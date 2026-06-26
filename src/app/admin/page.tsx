@@ -148,14 +148,19 @@ export default function AdminPage() {
   async function saveHighlight() {
     if (!hlForm.company_id) return
     setHlLoading(true)
+    // Mapeia scope_type para os campos reais da tabela
+    const levelMap: Record<string,string> = { global:'home', category:'category', subcategory:'subcategory' }
     await supabase.from('highlights').insert({
-      company_id: hlForm.company_id,
-      scope_type: hlForm.scope_type,
-      scope_id: hlForm.scope_id || null,
-      highlight_type: hlForm.highlight_type,
-      active: true,
-      status: 'active',
-      expires_at: hlForm.expires_at ? new Date(Date.now() + parseInt(hlForm.expires_at) * 86400000).toISOString() : null,
+      company_id:    hlForm.company_id,
+      level:         levelMap[hlForm.scope_type] || 'home',
+      category_id:   hlForm.scope_type === 'category'    ? hlForm.scope_id || null : null,
+      subcategory_id:hlForm.scope_type === 'subcategory' ? hlForm.scope_id || null : null,
+      scope_type:    hlForm.scope_type,
+      scope_id:      hlForm.scope_id || null,
+      highlight_type:hlForm.highlight_type,
+      active:        true,
+      status:        'active',
+      expires_at:    hlForm.expires_at ? new Date(Date.now() + parseInt(hlForm.expires_at) * 86400000).toISOString() : null,
     })
     setHlFormOpen(false)
     setHlForm({ company_id:'', scope_type:'category', scope_id:'', highlight_type:'manual', expires_at:'' })

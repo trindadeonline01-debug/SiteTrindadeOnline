@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, use } from 'react'
 import { supabase } from '@/lib/supabase'
 
 type CompanyHour = { label: string; hours: string; order: number }
@@ -54,7 +54,8 @@ function isOpenNow(hours: CompanyHour[] | undefined): boolean {
   return cur >= sh * 60 + sm && cur <= eh * 60 + em
 }
 
-export default function EmpresaPerfilPage({ params }: { params: { slug: string } }) {
+export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = use(params)
   const [company, setCompany]       = useState<Company | null>(null)
   const [reviews, setReviews]       = useState<Review[]>([])
   const [loading, setLoading]       = useState(true)
@@ -79,7 +80,7 @@ export default function EmpresaPerfilPage({ params }: { params: { slug: string }
     const { data: comp } = await supabase
       .from('companies')
       .select(`*, category:categories(name,emoji), subcategories:company_subcategories(subcategory:subcategories(name,emoji)), photos:company_photos(id,url,order), hours:company_hours(label,hours,order)`)
-      .eq('slug', params.slug)
+      .eq('slug', slug)
       .maybeSingle()
 
     if (!comp || comp.status !== 'active') { setNotFound(true); setLoading(false); return }

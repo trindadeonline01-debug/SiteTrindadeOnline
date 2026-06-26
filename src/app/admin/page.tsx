@@ -15,7 +15,10 @@ type Profile = {
   id: string; name: string; user_type: string
   neighborhood: string; created_at: string
 }
-type SearchLog = { query: string; count: number; no_result: number }
+type SearchLog  = { query: string; count: number; no_result: number }
+type Highlight  = { id: string; company_id: string; scope_type: string; scope_id: string|null; highlight_type: string; active: boolean; expires_at: string|null; display_order: number; company?: any; scope_name?: string }
+type CatOpt     = { id: string; name: string; emoji: string; slug: string }
+type SubcatOpt  = { id: string; name: string; emoji: string; slug: string; category_id: string }
 type Stats = {
   total_users: number; users_today: number; users_week: number
   total_companies: number; pending: number; active: number
@@ -30,7 +33,7 @@ const statusColor = (s: string) => s === 'active' ? '#0F8050' : s === 'pending' 
 const statusLabel = (s: string) => s === 'active' ? 'Ativa' : s === 'pending' ? 'Pendente' : 'Suspensa'
 
 export default function AdminPage() {
-  const [tab, setTab]               = useState<'dashboard'|'empresas'|'usuarios'|'buscas'|'atividade'>('dashboard')
+  const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'usuarios'|'buscas'|'atividade'>('dashboard')
   const [stats, setStats]           = useState<Stats|null>(null)
   const [companies, setCompanies]   = useState<Company[]>([])
   const [users, setUsers]           = useState<Profile[]>([])
@@ -39,6 +42,12 @@ export default function AdminPage() {
   const [loading, setLoading]       = useState(true)
   const [toast, setToast]           = useState('')
   const [authorized, setAuthorized] = useState<boolean|null>(null)
+  const [highlights, setHighlights] = useState<Highlight[]>([])
+  const [catOpts, setCatOpts]       = useState<CatOpt[]>([])
+  const [subcatOpts, setSubcatOpts] = useState<SubcatOpt[]>([])
+  const [hlForm, setHlForm]         = useState({ company_id:'', scope_type:'category', scope_id:'', highlight_type:'manual', expires_at:'' })
+  const [hlFormOpen, setHlFormOpen] = useState(false)
+  const [hlLoading, setHlLoading]   = useState(false)
 
   // Verifica se é admin
   useEffect(() => {
@@ -53,7 +62,7 @@ export default function AdminPage() {
 
   async function loadAll() {
     setLoading(true)
-    await Promise.all([loadStats(), loadCompanies(), loadUsers(), loadSearches()])
+    await Promise.all([loadStats(), loadCompanies(), loadUsers(), loadSearches(), loadHighlights()])
     setLoading(false)
   }
 
@@ -121,6 +130,47 @@ export default function AdminPage() {
       .sort((a, b) => b.count - a.count)
       .slice(0, 50)
     setSearches(sorted)
+  }
+
+  async function loadHighlights() {
+    const { data: hl } = await supabase
+      .from('highlights')
+      .select('*, company:companies(name,category:categories(name,emoji))')
+      .eq('active', true)
+      .order('display_order')
+    const { data: cats } = await supabase.from('categories').select('id,name,emoji,slug').order('name')
+    const { data: subs } = await supabase.from('subcategories').select('id,name,emoji,slug,category_id').order('name')
+    setHighlights((hl || []) as Highlight[])
+    setCatOpts((cats || []) as CatOpt[])
+    setSubcatOpts((subs || []) as SubcatOpt[])
+  }
+
+  async function saveHighlight() {
+    if (!hlForm.company_id) return
+    setHlLoading(true)
+    await supabase.from('highlights').insert({
+      company_id: hlForm.company_id,
+      scope_type: hlForm.scope_type,
+      scope_id: hlForm.scope_id || null,
+      highlight_type: hlForm.highlight_type,
+      active: true,
+      expires_at: hlForm.expires_at ? new Date(Date.now() + parseInt(hlForm.expires_at) * 86400000).toISOString() : null,
+    })
+    setHlFormOpen(false)
+    setHlForm({ company_id:'', scope_type:'category', scope_id:'', highlight_type:'manual', expires_at:'' })
+    await loadHighlights()
+    showToast('Destaque salvo!')
+    setHlLoading(false)
+  }
+
+  async function removeHighlight(id: string) {
+    await supabase.from('highlights').update({ active: false }).eq('id', id)
+    await loadHighlights()
+    showToast('Destaque removido.')
+  }
+
+  function showToast(msg: string) {
+    setToast(msg); setTimeout(() => setToast(''), 3000)
   }
 
   async function approveCompany(id: string) {
@@ -296,6 +346,7 @@ export default function AdminPage() {
           {[
             { id: 'dashboard', icon: '📊', label: 'Dashboard' },
             { id: 'empresas',  icon: '🏪', label: 'Empresas', badge: stats?.pending || 0 },
+            { id: 'destaques', icon: '⭐', label: 'Destaques' },
             { id: 'usuarios',  icon: '👥', label: 'Usuários' },
             { id: 'buscas',    icon: '🔍', label: 'Buscas' },
             { id: 'atividade', icon: '⚡', label: 'Atividade' },
@@ -325,6 +376,7 @@ export default function AdminPage() {
               {tab === 'usuarios'  && 'Usuários Cadastrados'}
               {tab === 'buscas'    && 'Analytics de Buscas'}
               {tab === 'atividade' && 'Atividade Recente'}
+              {tab === 'destaques' && 'Destaques'}
             </div>
             <div className="topbar-date">{new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}</div>
           </div>
@@ -537,6 +589,125 @@ export default function AdminPage() {
             )}
 
             {/* ── ATIVIDADE ── */}
+
+            {/* ── DESTAQUES ── */}
+            {!loading && tab === 'destaques' && (
+              <div>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
+                  <span className="section-title">DESTAQUES ATIVOS ({highlights.length})</span>
+                  <button className="filter-btn on" onClick={() => setHlFormOpen(!hlFormOpen)}>
+                    {hlFormOpen ? 'Cancelar' : '+ Adicionar destaque'}
+                  </button>
+                </div>
+
+                {hlFormOpen && (
+                  <div style={{background:'#1A1A1A',border:'1px solid #C9951A',borderRadius:12,padding:16,marginBottom:16}}>
+                    <div style={{fontSize:12,fontWeight:600,color:'#fff',marginBottom:12}}>Novo destaque</div>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:10}}>
+                      <div>
+                        <div style={{fontSize:10,color:'#888',marginBottom:4}}>EMPRESA</div>
+                        <select style={{width:'100%',padding:'7px 10px',borderRadius:8,border:'0.5px solid #333',background:'#111',color:'#fff',fontSize:12,fontFamily:'Inter,sans-serif'}}
+                          value={hlForm.company_id} onChange={e => setHlForm(f => ({...f,company_id:e.target.value}))}>
+                          <option value="">Selecionar empresa...</option>
+                          {companies.filter(c=>c.status==='active').map(c => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <div style={{fontSize:10,color:'#888',marginBottom:4}}>TIPO</div>
+                        <select style={{width:'100%',padding:'7px 10px',borderRadius:8,border:'0.5px solid #333',background:'#111',color:'#fff',fontSize:12,fontFamily:'Inter,sans-serif'}}
+                          value={hlForm.highlight_type} onChange={e => setHlForm(f => ({...f,highlight_type:e.target.value}))}>
+                          <option value="manual">Manual (gratuito)</option>
+                          <option value="paid">Pago</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:10}}>
+                      <div>
+                        <div style={{fontSize:10,color:'#888',marginBottom:4}}>ONDE APARECE</div>
+                        <select style={{width:'100%',padding:'7px 10px',borderRadius:8,border:'0.5px solid #333',background:'#111',color:'#fff',fontSize:12,fontFamily:'Inter,sans-serif'}}
+                          value={hlForm.scope_type} onChange={e => setHlForm(f => ({...f,scope_type:e.target.value,scope_id:''}))}>
+                          <option value="global">Em toda a home</option>
+                          <option value="category">Em uma categoria</option>
+                          <option value="subcategory">Em uma subcategoria</option>
+                        </select>
+                      </div>
+                      <div>
+                        <div style={{fontSize:10,color:'#888',marginBottom:4}}>
+                          {hlForm.scope_type === 'category' ? 'CATEGORIA' : hlForm.scope_type === 'subcategory' ? 'SUBCATEGORIA' : 'ESCOPO'}
+                        </div>
+                        {hlForm.scope_type === 'category' && (
+                          <select style={{width:'100%',padding:'7px 10px',borderRadius:8,border:'0.5px solid #333',background:'#111',color:'#fff',fontSize:12,fontFamily:'Inter,sans-serif'}}
+                            value={hlForm.scope_id} onChange={e => setHlForm(f => ({...f,scope_id:e.target.value}))}>
+                            <option value="">Selecionar...</option>
+                            {catOpts.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
+                          </select>
+                        )}
+                        {hlForm.scope_type === 'subcategory' && (
+                          <select style={{width:'100%',padding:'7px 10px',borderRadius:8,border:'0.5px solid #333',background:'#111',color:'#fff',fontSize:12,fontFamily:'Inter,sans-serif'}}
+                            value={hlForm.scope_id} onChange={e => setHlForm(f => ({...f,scope_id:e.target.value}))}>
+                            <option value="">Selecionar...</option>
+                            {subcatOpts.map(s => <option key={s.id} value={s.id}>{s.emoji} {s.name}</option>)}
+                          </select>
+                        )}
+                        {hlForm.scope_type === 'global' && (
+                          <div style={{padding:'7px 10px',borderRadius:8,border:'0.5px solid #333',background:'#111',color:'#555',fontSize:12}}>Aparece na home</div>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{marginBottom:12}}>
+                      <div style={{fontSize:10,color:'#888',marginBottom:4}}>EXPIRAÇÃO</div>
+                      <select style={{padding:'7px 10px',borderRadius:8,border:'0.5px solid #333',background:'#111',color:'#fff',fontSize:12,fontFamily:'Inter,sans-serif'}}
+                        value={hlForm.expires_at} onChange={e => setHlForm(f => ({...f,expires_at:e.target.value}))}>
+                        <option value="">Sem expiração</option>
+                        <option value="30">30 dias</option>
+                        <option value="60">60 dias</option>
+                        <option value="90">90 dias</option>
+                      </select>
+                    </div>
+                    <button onClick={saveHighlight} disabled={hlLoading || !hlForm.company_id}
+                      style={{padding:'9px 20px',background:'#C9951A',color:'#fff',border:'none',borderRadius:9,fontSize:13,fontWeight:600,fontFamily:'Inter,sans-serif',cursor:'pointer',opacity:(!hlForm.company_id||hlLoading)?0.6:1}}>
+                      {hlLoading ? 'Salvando...' : 'Salvar destaque'}
+                    </button>
+                  </div>
+                )}
+
+                {highlights.length === 0 && (
+                  <div style={{textAlign:'center',padding:'40px 0',color:'#555',fontSize:13}}>
+                    Nenhum destaque ativo. Adicione o primeiro!
+                  </div>
+                )}
+
+                <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                  {highlights.map(h => {
+                    const scopeLabel = h.scope_type === 'global' ? 'Home' :
+                      h.scope_type === 'category' ? `Categoria: ${catOpts.find(c=>c.id===h.scope_id)?.name||'—'}` :
+                      `Subcategoria: ${subcatOpts.find(s=>s.id===h.scope_id)?.name||'—'}`
+                    return (
+                      <div key={h.id} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 14px',background:'#111',border:'0.5px solid #222',borderRadius:10}}>
+                        <span style={{fontSize:22}}>{h.company?.category?.emoji||'🏪'}</span>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:13,fontWeight:600,color:'#fff',marginBottom:3}}>{h.company?.name||'—'}</div>
+                          <div style={{fontSize:11,color:'#666',display:'flex',gap:6,flexWrap:'wrap'}}>
+                            <span style={{background:h.highlight_type==='paid'?'#1A3A1A':'#2A1F0A',color:h.highlight_type==='paid'?'#4CAF50':'#C9951A',padding:'1px 8px',borderRadius:5,fontWeight:600,fontSize:10}}>
+                              {h.highlight_type==='paid'?'Pago':'Manual'}
+                            </span>
+                            <span style={{background:'#1A1F2A',color:'#7aacf0',padding:'1px 8px',borderRadius:5,fontSize:10}}>{scopeLabel}</span>
+                            {h.expires_at && <span style={{color:'#555',fontSize:10}}>Expira: {new Date(h.expires_at).toLocaleDateString('pt-BR')}</span>}
+                          </div>
+                        </div>
+                        <button onClick={() => removeHighlight(h.id)}
+                          style={{padding:'5px 10px',background:'#2A0A0A',color:'#E24B4A',border:'0.5px solid #4A1515',borderRadius:7,fontSize:11,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                          Remover
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
             {!loading && tab === 'atividade' && (
               <div className="section-card">
                 <div className="section-hdr"><span className="section-title">CADASTROS RECENTES</span></div>

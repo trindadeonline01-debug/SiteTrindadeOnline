@@ -160,6 +160,7 @@ export default function AdminPage() {
       scope_id:      hlForm.scope_id || null,
       highlight_type:hlForm.highlight_type,
       duration_days: durationDays,
+      price_paid:    0,
       active:        true,
       status:        'active',
       starts_at:     new Date().toISOString(),

@@ -44,14 +44,34 @@ export default function Home() {
   async function loadAll() {
     setLoading(true)
 
-    // Busca empresas em destaque (com highlights ativos ou simplesmente as melhores avaliadas)
-    const { data: destData } = await supabase
-      .from('companies')
-      .select('id, name, slug, avg_rating, category:categories(name,emoji), photos:company_photos(url,order)')
-      .eq('status', 'active')
-      .order('avg_rating', { ascending: false })
-      .limit(6)
-    setDestaques((destData || []) as any)
+    // Busca highlights globais (home)
+    const { data: hlData } = await supabase
+      .from('highlights')
+      .select('id, company_id, company:companies(id,name,slug,avg_rating,category:categories(name,emoji))')
+      .eq('active', true)
+      .eq('level', 'home')
+      .order('display_order')
+
+    if (hlData && hlData.length > 0) {
+      // Busca fotos separadamente
+      const ids = hlData.map((h: any) => h.company_id)
+      const { data: photos } = await supabase
+        .from('company_photos').select('company_id,url,order').in('company_id', ids).order('order')
+      const destWithPhotos = hlData.map((h: any) => ({
+        ...h.company,
+        photos: photos?.filter((p: any) => p.company_id === h.company_id) || []
+      }))
+      setDestaques(destWithPhotos as any)
+    } else {
+      // Fallback: empresas mais bem avaliadas
+      const { data: destData } = await supabase
+        .from('companies')
+        .select('id, name, slug, avg_rating, category:categories(name,emoji), photos:company_photos(url,order)')
+        .eq('status', 'active')
+        .order('avg_rating', { ascending: false })
+        .limit(6)
+      setDestaques((destData || []) as any)
+    }
 
     // Busca empresas recém aprovadas
     const { data: recData } = await supabase

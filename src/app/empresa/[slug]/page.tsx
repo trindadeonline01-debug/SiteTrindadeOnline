@@ -53,6 +53,8 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
   const [myText, setMyText]         = useState('')
   const [reviewSent, setReviewSent] = useState(false)
   const [revLoading, setRevLoad]    = useState(false)
+  const [alreadyReviewed, setAlreadyReviewed] = useState(false)
+  const [isAdmin, setIsAdmin]         = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -78,6 +80,15 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
     if (session) {
       const { data: fav } = await supabase.from('favorites').select('id').eq('user_id', session.user.id).eq('entity_type', 'company').eq('entity_id', data.id).maybeSingle()
       setIsFav(!!fav)
+      // Verifica se já avaliou essa semana
+      const now = new Date()
+      const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay())
+      weekStart.setHours(0,0,0,0)
+      const { data: myReview } = await supabase.from('reviews').select('id').eq('user_id', session.user.id).eq('company_id', data.id).gte('created_at', weekStart.toISOString()).maybeSingle()
+      setAlreadyReviewed(!!myReview)
+      // Verifica se é admin
+      const { data: prof } = await supabase.from('profiles').select('user_type').eq('id', session.user.id).single()
+      setIsAdmin(prof?.user_type === 'admin')
     }
     setLoading(false)
   }
@@ -99,11 +110,25 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
     window.open(`https://wa.me/55${company.phone.replace(/\D/g,'')}?text=Olá! Vi sua empresa no Trindade Online.`, '_blank')
   }
 
+  async function deleteReview(reviewId: string) {
+    await supabase.from('reviews').delete().eq('id', reviewId)
+    loadCompany()
+  }
+
   async function submitReview() {
     if (!userId) { window.location.href = '/login'; return }
     if (myRating === 0 || !company) return
     setRevLoad(true)
     await supabase.from('reviews').insert({ company_id: company.id, user_id: userId, rating: myRating, text: myText || null })
+    if (error) {
+      if (error.message?.includes('semana')) {
+        alert('Você já avaliou esta empresa esta semana. Volte em 7 dias!')
+      } else {
+        alert('Erro ao enviar avaliação: ' + error.message)
+      }
+      setRevLoad(false); return
+    }
+    setAlreadyReviewed(true)
     setReviewSent(true); setShowReview(false); setMyRating(0); setMyText('')
     loadCompany()
     setRevLoad(false)
@@ -323,12 +348,13 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
               ) : (
                 <span className="rc">Sem avaliações ainda</span>
               )}
-              {!reviewSent && (
+              {reviewSent && <span style={{fontSize:12,color:'#0F6E56',fontWeight:600}}>✓ Avaliação enviada!</span>}
+              {!reviewSent && alreadyReviewed && <span style={{fontSize:11,color:'#AAA'}}>✓ Avaliado esta semana</span>}
+              {!reviewSent && !alreadyReviewed && (
                 <button className="btn-write-rv" onClick={() => userId ? setShowReview(!showReview) : window.location.href='/login'}>
                   ⭐ {userId ? 'Avaliar' : 'Entrar para avaliar'}
                 </button>
               )}
-              {reviewSent && <span style={{fontSize:12,color:'#0F6E56',fontWeight:600}}>✓ Avaliação enviada!</span>}
             </div>
 
             {company.description && (
@@ -453,6 +479,9 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
                       <div className="rv-av" style={{background:['#C9951A','#185FA5','#0F6E56','#854F0B','#E24B4A'][r.rating % 5]}}>{r.user?.name?.[0] || '?'}</div>
                       <div className="rv-name">{r.user?.name || 'Usuário'}</div>
                       <span className="rv-date">{fmtDate(r.created_at)}</span>
+                      {isAdmin && (
+                        <button onClick={() => deleteReview(r.id)} style={{marginLeft:'auto',background:'none',border:'none',cursor:'pointer',color:'#E24B4A',fontSize:14,padding:'0 4px'}}>🗑</button>
+                      )}
                     </div>
                     <div className="rv-stars">{'★'.repeat(r.rating)}{'☆'.repeat(5-r.rating)}</div>
                     {r.text && <div className="rv-txt">{r.text}</div>}

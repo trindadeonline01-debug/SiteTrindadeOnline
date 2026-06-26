@@ -138,8 +138,8 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
         .chip{padding:7px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid #E0DDD8;background:#FAFAF8;color:#666;transition:all .15s;font-family:'Inter',sans-serif;}
         .chip:hover{border-color:#C9951A;background:#FEF3E2;color:#854F0B;}
         .chip.on{border-color:#C9951A;background:#C9951A;color:#fff;font-weight:600;}
-        @media(min-width:640px){.hl-grid{grid-template-columns:repeat(3,1fr) !important;}}
-        @media(min-width:1024px){.hl-grid{grid-template-columns:repeat(4,1fr) !important;}}
+        @media(min-width:640px){.hl-grid{grid-template-columns:repeat(6,minmax(0,1fr)) !important;}}
+        @media(min-width:1024px){.hl-grid{grid-template-columns:repeat(8,minmax(0,1fr)) !important;}}
 
         .result-cnt{font-size:13px;color:#AAA;margin-bottom:16px;}
         .result-cnt span{color:#111;font-weight:600;}
@@ -228,19 +228,21 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
               <span style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:12,color:'#AAA',letterSpacing:'1.5px'}}>EM DESTAQUE</span>
               <div style={{flex:1,height:'0.5px',background:'#F0EDE8'}}/>
             </div>
-            <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10}}>
+            <div className="hl-grid" style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:8}}>
               {highlights.map(h => {
                 const cover = h.company.photos?.length
                   ? [...h.company.photos].sort((a:any,b:any)=>a.order-b.order)[0]?.url
                   : null
                 return (
                   <a key={h.id} href={`/empresa/${h.company.slug}`}
-                    style={{display:'flex',flexDirection:'column',alignItems:'center',padding:'12px 10px',background:'#FEF8EC',border:'1.5px solid #C9951A',borderRadius:12,textDecoration:'none',transition:'all .15s',textAlign:'center'}}>
-                    <div style={{width:56,height:56,borderRadius:10,overflow:'hidden',flexShrink:0,background:'#FEF3E2',display:'flex',alignItems:'center',justifyContent:'center',fontSize:26,marginBottom:8}}>
+                    style={{display:'flex',flexDirection:'column',alignItems:'center',background:'#FEF8EC',border:'1.5px solid #C9951A',borderRadius:12,overflow:'hidden',textDecoration:'none',transition:'all .15s'}}>
+                    <div style={{width:'100%',height:90,background:'#FEF3E2',display:'flex',alignItems:'center',justifyContent:'center',fontSize:32,overflow:'hidden',flexShrink:0}}>
                       {cover ? <img src={cover} alt={h.company.name} style={{width:'100%',height:'100%',objectFit:'cover'}}/> : <span>{h.company.category?.emoji||'🏪'}</span>}
                     </div>
-                    <div style={{fontSize:11,fontWeight:700,color:'#111',marginBottom:3,overflow:'hidden',textOverflow:'ellipsis',width:'100%'}}>{h.company.name}</div>
-                    <div style={{fontSize:9,color:'#C9951A',fontWeight:600}}>⭐ Destaque</div>
+                    <div style={{padding:'8px 6px 10px',textAlign:'center',width:'100%'}}>
+                      <div style={{fontSize:10,fontWeight:700,color:'#111',marginBottom:3,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{h.company.name}</div>
+                      <div style={{fontSize:9,color:'#C9951A',fontWeight:600}}>⭐ Destaque</div>
+                    </div>
                   </a>
                 )
               })}

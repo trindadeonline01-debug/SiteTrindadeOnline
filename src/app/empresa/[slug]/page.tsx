@@ -174,6 +174,8 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
         .tag-closed{background:#FEF0F0;color:#E24B4A;}
         .tag-sub{background:#EBF4FF;color:#185FA5;}
         .stars-row{display:flex;align-items:center;gap:7px;margin-bottom:18px;}
+        .rating-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:0.5px solid #F0EDE8;border-bottom:0.5px solid #F0EDE8;margin-bottom:18px;gap:10px;}
+        .rating-left{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
         .st{color:#C9951A;font-size:15px;}
         .rn{font-weight:600;font-size:14px;color:#111;}
         .rc{font-size:12px;color:#AAA;}
@@ -226,7 +228,7 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
         .bar-r{display:flex;align-items:center;gap:6px;}
         .bar-bg{flex:1;height:5px;background:#F0EDE8;border-radius:3px;overflow:hidden;}
         .bar-f{height:100%;background:#C9951A;border-radius:3px;}
-        .btn-write-rv{padding:9px 20px;background:#FEF3E2;color:#C9951A;border:1.5px solid #C9951A;border-radius:10px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;}
+        .btn-write-rv{padding:7px 14px;background:#FEF3E2;color:#C9951A;border:1.5px solid #C9951A;border-radius:8px;font-size:12px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;white-space:nowrap;flex-shrink:0;}
 
         .rv-form{background:#FAFAF8;border:1.5px solid #C9951A;border-radius:14px;padding:16px;margin-bottom:16px;}
         .star-row{display:flex;gap:8px;margin-bottom:10px;}
@@ -308,13 +310,28 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
               {company.hours && company.hours.length > 0 && <span className={`tag ${open ? 'tag-open' : 'tag-closed'}`}>{open ? '● Aberto agora' : '● Fechado'}</span>}
               {company.subcategories?.map((s,i) => <span key={i} className="tag tag-sub">{s.subcategory.emoji} {s.subcategory.name}</span>)}
             </div>
-            {avgRating > 0 && (
-              <div className="stars-row">
-                <span className="st">{'★'.repeat(Math.round(avgRating))}{'☆'.repeat(5-Math.round(avgRating))}</span>
-                <span className="rn">{avgRating.toFixed(1)}</span>
-                <span className="rc">({company.total_reviews} avaliações)</span>
+  
+
+            {/* RATING ROW COM BOTÃO AVALIAR */}
+            <div className="rating-row">
+              <div className="rating-left">
+                {avgRating > 0 ? (
+                  <>
+                    <span className="st">{'★'.repeat(Math.round(avgRating))}{'☆'.repeat(5-Math.round(avgRating))}</span>
+                    <span className="rn">{avgRating.toFixed(1)}</span>
+                    <span className="rc">({company.total_reviews} avaliação{company.total_reviews !== 1 ? 's' : ''})</span>
+                  </>
+                ) : (
+                  <span className="rc">Sem avaliações ainda</span>
+                )}
               </div>
-            )}
+              {!reviewSent && (
+                <button className="btn-write-rv" onClick={() => userId ? setShowReview(!showReview) : window.location.href='/login'}>
+                  ⭐ {userId ? 'Avaliar' : 'Entrar para avaliar'}
+                </button>
+              )}
+              {reviewSent && <span style={{fontSize:12,color:'#0F6E56',fontWeight:600}}>✓ Avaliação enviada!</span>}
+            </div>
 
             {company.description && (
               <>
@@ -400,34 +417,10 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
         {/* AVALIAÇÕES — LARGURA TOTAL */}
         {isActive && (
           <div className="rv-section">
-            <div className="rv-hdr">
-              <div className="rv-sum">
-                {avgRating > 0 && <div className="rv-big">{avgRating.toFixed(1)}</div>}
-                <div className="rv-info">
-                  {avgRating > 0 && <span className="rv-st-big">{'★'.repeat(Math.round(avgRating))}{'☆'.repeat(5-Math.round(avgRating))}</span>}
-                  <span className="rv-cnt">{company.total_reviews || 0} avaliações</span>
-                </div>
-                {avgRating > 0 && reviews.length > 0 && (
-                  <div className="rv-bars">
-                    {[5,4,3,2,1].map(s => {
-                      const cnt = reviews.filter(r => r.rating === s).length
-                      const pct = reviews.length > 0 ? (cnt/reviews.length)*100 : 0
-                      return (
-                        <div key={s} className="bar-r">
-                          <span style={{fontSize:10,color:'#AAA',width:6}}>{s}</span>
-                          <div className="bar-bg"><div className="bar-f" style={{width:`${pct}%`}}/></div>
-                          <span style={{fontSize:10,color:'#CCC',width:16,textAlign:'right'}}>{cnt}</span>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-              {!reviewSent && (
-                <button className="btn-write-rv" onClick={() => userId ? setShowReview(!showReview) : window.location.href='/login'}>
-                  ⭐ {userId ? 'Avaliar esta empresa' : 'Entrar para avaliar'}
-                </button>
-              )}
+            <div style={{marginBottom:16}}>
+              <span style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:12,color:'#AAA',letterSpacing:'1.5px'}}>
+                AVALIAÇÕES ({company.total_reviews || 0})
+              </span>
             </div>
 
             {reviewSent && <div className="ok-msg">✓ Sua avaliação foi enviada!</div>}

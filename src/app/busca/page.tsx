@@ -67,7 +67,6 @@ function BuscaContent() {
     setEmpresas(emp)
     setCats(cat)
     setSubcats(sub)
-    setTotal(emp.length + cat.length + sub.length + desapegaData.length + empregosData.length + imoveisData.length + achadosData.length)
 
     // 4. Busca listings por tipo
     const searchListings = async (type: string) => {
@@ -93,7 +92,7 @@ function BuscaContent() {
     setImoveis(imoveisData)
     setAchados(achadosData)
 
-    const listingsTotal = desapegaData.length + empregosData.length + imoveisData.length + achadosData.length
+    setTotal(emp.length + cat.length + sub.length + desapegaData.length + empregosData.length + imoveisData.length + achadosData.length)
 
     // Registra no banco
     await supabase.from('search_logs').insert({

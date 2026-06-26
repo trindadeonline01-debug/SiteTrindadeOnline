@@ -7,8 +7,7 @@ type Category   = { id: string; name: string; emoji: string; slug: string; descr
 type Subcategory = { id: string; name: string; emoji: string }
 type Company    = {
   id: string; name: string; slug: string; avg_rating?: number; address?: string
-  category?: any; photos?: any[]
-  subcategories?: { subcategory: { id: string; name: string; emoji: string } }[]
+  category?: any; photos?: any[]; subcategories?: any[]
 }
 
 export default function CategoriaPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -52,9 +51,9 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
       .eq('category_id', cat.id)
       .order('avg_rating', { ascending: false })
     
-    const list = (comps || []) as Company[]
-    setCompanies(list)
-    setFiltered(list)
+    const list = (comps || []) as any[]
+    setCompanies(list as Company[])
+    setFiltered(list as Company[])
     setLoading(false)
   }
 

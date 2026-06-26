@@ -119,7 +119,7 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
     if (!userId) { window.location.href = '/login'; return }
     if (myRating === 0 || !company) return
     setRevLoad(true)
-    await supabase.from('reviews').insert({ company_id: company.id, user_id: userId, rating: myRating, text: myText || null })
+    const { error } = await supabase.from('reviews').insert({ company_id: company.id, user_id: userId, rating: myRating, text: myText || null })
     if (error) {
       if (error.message?.includes('semana')) {
         alert('Você já avaliou esta empresa esta semana. Volte em 7 dias!')

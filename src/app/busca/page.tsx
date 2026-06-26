@@ -11,6 +11,8 @@ type Company = {
   category_name?: string; category_emoji?: string; cover_url?: string
 }
 type Category = { id: string; name: string; emoji: string; slug: string }
+type Subcategory = { id: string; name: string; emoji: string; slug?: string }
+type Listing  = { id: string; type: string; title: string; price?: number; address?: string; subtype?: string; created_at: string; photos?: any[] }
 type Subcategory = { id: string; name: string; emoji: string }
 
 function BuscaContent() {
@@ -24,6 +26,10 @@ function BuscaContent() {
   const [empresas, setEmpresas]   = useState<Company[]>([])
   const [cats, setCats]           = useState<Category[]>([])
   const [subcats, setSubcats]     = useState<Subcategory[]>([])
+  const [desapega, setDesapega]   = useState<Listing[]>([])
+  const [empregos, setEmpregos]   = useState<Listing[]>([])
+  const [imoveis, setImoveis]     = useState<Listing[]>([])
+  const [achados, setAchados]     = useState<Listing[]>([])
   const [total, setTotal]         = useState(0)
 
   useEffect(() => {
@@ -62,12 +68,38 @@ function BuscaContent() {
     setEmpresas(emp)
     setCats(cat)
     setSubcats(sub)
-    setTotal(emp.length + cat.length + sub.length)
+    setTotal(emp.length + cat.length + sub.length + desapegaData.length + empregosData.length + imoveisData.length + achadosData.length)
+
+    // 4. Busca listings por tipo
+    const searchListings = async (type: string) => {
+      const { data } = await supabase
+        .from('listings')
+        .select('id, type, title, price, address, subtype, created_at, photos:listing_photos(url,order)')
+        .eq('status', 'active')
+        .eq('type', type)
+        .or(`title.ilike.%${term}%,description.ilike.%${term}%,address.ilike.%${term}%`)
+        .order('created_at', { ascending: false })
+        .limit(8)
+      return (data || []) as Listing[]
+    }
+
+    const [desapegaData, empregosData, imoveisData, achadosData] = await Promise.all([
+      searchListings('desapega'),
+      searchListings('emprego'),
+      searchListings('imovel'),
+      searchListings('achado'),
+    ])
+    setDesapega(desapegaData)
+    setEmpregos(empregosData)
+    setImoveis(imoveisData)
+    setAchados(achadosData)
+
+    const listingsTotal = desapegaData.length + empregosData.length + imoveisData.length + achadosData.length
 
     // Registra no banco
     await supabase.from('search_logs').insert({
       query: term.toLowerCase(),
-      results_count: emp.length + cat.length + sub.length
+      results_count: emp.length + cat.length + sub.length + desapegaData.length + empregosData.length + imoveisData.length + achadosData.length
     })
 
     setLoading(false)
@@ -304,6 +336,110 @@ function BuscaContent() {
               )}
             </div>
 
+
+            {/* DESAPEGA */}
+            <div className="section">
+              <div className="sec-hdr">
+                <span className="sec-lbl">DESAPEGA</span>
+                <span className="sec-cnt">{desapega.length > 0 ? `${desapega.length} encontrado${desapega.length!==1?'s':''}` : 'sem resultados'}</span>
+                <div className="sec-line"/>
+              </div>
+              {desapega.length > 0 ? (
+                <div className="results-grid">
+                  {desapega.map(l => (
+                    <a key={l.id} className="result-card" href={`/anuncio/${l.id}`}>
+                      <div className="rc-img">
+                        {l.photos?.length ? <img src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title}/> : <span>🏷️</span>}
+                      </div>
+                      <div className="rc-body">
+                        <div className="rc-name">{l.title}</div>
+                        <div className="rc-cat">{l.price ? `R$ ${l.price.toLocaleString('pt-BR')}` : 'Grátis'}</div>
+                        {l.address && <div className="rc-addr">📍 {l.address}</div>}
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-row"><span>🏷️</span> Nenhum item no Desapega com esse termo.</div>
+              )}
+            </div>
+
+            {/* EMPREGOS */}
+            <div className="section">
+              <div className="sec-hdr">
+                <span className="sec-lbl">EMPREGOS</span>
+                <span className="sec-cnt">{empregos.length > 0 ? `${empregos.length} encontrado${empregos.length!==1?'s':''}` : 'sem resultados'}</span>
+                <div className="sec-line"/>
+              </div>
+              {empregos.length > 0 ? (
+                <div className="results-grid">
+                  {empregos.map(l => (
+                    <a key={l.id} className="result-card" href={`/anuncio/${l.id}`}>
+                      <div className="rc-img"><span>💼</span></div>
+                      <div className="rc-body">
+                        <div className="rc-name">{l.title}</div>
+                        <div className="rc-cat">{l.price ? `R$ ${l.price.toLocaleString('pt-BR')}/mês` : 'Ver detalhes'}</div>
+                        {l.address && <div className="rc-addr">📍 {l.address}</div>}
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-row"><span>💼</span> Nenhuma vaga encontrada com esse termo.</div>
+              )}
+            </div>
+
+            {/* IMÓVEIS */}
+            <div className="section">
+              <div className="sec-hdr">
+                <span className="sec-lbl">IMÓVEIS</span>
+                <span className="sec-cnt">{imoveis.length > 0 ? `${imoveis.length} encontrado${imoveis.length!==1?'s':''}` : 'sem resultados'}</span>
+                <div className="sec-line"/>
+              </div>
+              {imoveis.length > 0 ? (
+                <div className="results-grid">
+                  {imoveis.map(l => (
+                    <a key={l.id} className="result-card" href={`/anuncio/${l.id}`}>
+                      <div className="rc-img">
+                        {l.photos?.length ? <img src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title}/> : <span>🏠</span>}
+                      </div>
+                      <div className="rc-body">
+                        <div className="rc-name">{l.title}</div>
+                        <div className="rc-cat">{l.price ? `R$ ${l.price.toLocaleString('pt-BR')}${l.subtype==='aluguel'?'/mês':''}` : 'Ver detalhes'}</div>
+                        {l.address && <div className="rc-addr">📍 {l.address}</div>}
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-row"><span>🏠</span> Nenhum imóvel encontrado com esse termo.</div>
+              )}
+            </div>
+
+            {/* ACHADOS & PERDIDOS */}
+            <div className="section">
+              <div className="sec-hdr">
+                <span className="sec-lbl">ACHADOS & PERDIDOS</span>
+                <span className="sec-cnt">{achados.length > 0 ? `${achados.length} encontrado${achados.length!==1?'s':''}` : 'sem resultados'}</span>
+                <div className="sec-line"/>
+              </div>
+              {achados.length > 0 ? (
+                <div className="results-grid">
+                  {achados.map(l => (
+                    <a key={l.id} className="result-card" href={`/anuncio/${l.id}`}>
+                      <div className="rc-img"><span>{l.subtype==='perdido'?'🔴':'🟢'} 🔍</span></div>
+                      <div className="rc-body">
+                        <div className="rc-name">{l.title}</div>
+                        <div className="rc-cat" style={{color:l.subtype==='perdido'?'#E24B4A':'#0F6E56'}}>{l.subtype==='perdido'?'Perdido':'Achado'}</div>
+                        {l.address && <div className="rc-addr">📍 {l.address}</div>}
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-row"><span>🔍</span> Nenhum item encontrado com esse termo.</div>
+              )}
+            </div>
             <div className="footer">
               <a href="/">← Voltar ao Trindade Online</a>
             </div>

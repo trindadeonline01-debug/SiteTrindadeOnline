@@ -14,14 +14,14 @@ type Company = {
 type UserSession = { name?: string; user_type?: string } | null
 
 const STATIC_CATEGORIES = [
-  { id:'1', name:'Comércios',          emoji:'🏪', slug:'comercios'        },
-  { id:'2', name:'Serviços',           emoji:'🔧', slug:'servicos'         },
-  { id:'3', name:'Gastronomia',        emoji:'🍽️', slug:'gastronomia'      },
-  { id:'4', name:'Empregos',           emoji:'💼', slug:'empregos'         },
-  { id:'5', name:'Imóveis',            emoji:'🏠', slug:'imoveis'          },
-  { id:'6', name:'Desapega',           emoji:'🏷️', slug:'desapega'         },
-  { id:'7', name:'Achados & Perdidos', emoji:'🔍', slug:'achados-perdidos' },
-  { id:'8', name:'Igrejas',            emoji:'⛪', slug:'igrejas'          },
+  { id:'1', name:'Comércios',          emoji:'🏪', slug:'comercios',        href:'/categoria/comercios'        },
+  { id:'2', name:'Serviços',           emoji:'🔧', slug:'servicos',         href:'/categoria/servicos'         },
+  { id:'3', name:'Gastronomia',        emoji:'🍽️', slug:'gastronomia',      href:'/categoria/gastronomia'      },
+  { id:'4', name:'Empregos',           emoji:'💼', slug:'empregos',         href:'/empregos'                   },
+  { id:'5', name:'Imóveis',            emoji:'🏠', slug:'imoveis',          href:'/imoveis'                    },
+  { id:'6', name:'Desapega',           emoji:'🏷️', slug:'desapega',         href:'/desapega'                   },
+  { id:'7', name:'Achados & Perdidos', emoji:'🔍', slug:'achados-perdidos', href:'/achados-perdidos'           },
+  { id:'8', name:'Igrejas',            emoji:'⛪', slug:'igrejas',          href:'/categoria/igrejas'          },
 ]
 
 export default function Home() {
@@ -257,7 +257,7 @@ export default function Home() {
         <div className="sec-hdr"><span className="sec-title">CATEGORIAS</span></div>
         <div className="cat-grid">
           {STATIC_CATEGORIES.map(cat => (
-            <div key={cat.id} className="cat-card" onClick={() => window.location.href = `/categoria/${cat.slug}`}>
+            <div key={cat.id} className="cat-card" onClick={() => window.location.href = (cat as any).href || `/categoria/${cat.slug}`}>
               <div className="cat-emoji">{cat.emoji}</div>
               <div className="cat-name">{cat.name}</div>
             </div>

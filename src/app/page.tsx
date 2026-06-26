@@ -62,16 +62,8 @@ export default function Home() {
         photos: photos?.filter((p: any) => p.company_id === h.company_id) || []
       }))
       setDestaques(destWithPhotos as any)
-    } else {
-      // Fallback: empresas mais bem avaliadas
-      const { data: destData } = await supabase
-        .from('companies')
-        .select('id, name, slug, avg_rating, category:categories(name,emoji), photos:company_photos(url,order)')
-        .eq('status', 'active')
-        .order('avg_rating', { ascending: false })
-        .limit(6)
-      setDestaques((destData || []) as any)
     }
+    // Sem fallback — seção só aparece se houver destaque criado no admin
 
     // Busca empresas recém aprovadas
     const { data: recData } = await supabase

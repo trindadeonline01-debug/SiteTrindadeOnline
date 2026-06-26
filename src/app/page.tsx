@@ -21,12 +21,12 @@ const destaques = [
 ]
 
 const recentes = [
-  { emoji: '🚗', name: 'Jair Suspensão',      cat: 'Mecânico Automotivo',         bairro: 'Trindade' },
-  { emoji: '🐾', name: 'Petshop Franciele',   cat: 'Petshop · Banho e Tosa',      bairro: 'Trindade' },
-  { emoji: '⚡', name: 'Beto Eletricista',    cat: 'Eletricista Automotivo',      bairro: 'Trindade' },
-  { emoji: '🔑', name: 'Imóveis Trindade',    cat: 'Imobiliária',                 bairro: 'Trindade' },
-  { emoji: '📚', name: "Daniel's Inglês",     cat: 'Curso de Inglês',             bairro: 'Trindade' },
-  { emoji: '🍕', name: 'Esfiharia Trindade',  cat: 'Árabe · Esfiha',              bairro: 'Trindade' },
+  { emoji: '🚗', name: 'Jair Suspensão',     cat: 'Mecânico Automotivo',    bairro: 'Trindade' },
+  { emoji: '🐾', name: 'Petshop Franciele',  cat: 'Petshop · Banho e Tosa', bairro: 'Trindade' },
+  { emoji: '⚡', name: 'Beto Eletricista',   cat: 'Eletricista Automotivo', bairro: 'Trindade' },
+  { emoji: '🔑', name: 'Imóveis Trindade',   cat: 'Imobiliária',            bairro: 'Trindade' },
+  { emoji: '📚', name: "Daniel's Inglês",    cat: 'Curso de Inglês',        bairro: 'Trindade' },
+  { emoji: '🍕', name: 'Esfiharia Trindade', cat: 'Árabe · Esfiha',         bairro: 'Trindade' },
 ]
 
 export default function Home() {
@@ -34,16 +34,8 @@ export default function Home() {
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap');
-
         * { box-sizing: border-box; margin: 0; padding: 0; }
-
-        body {
-          font-family: 'Inter', sans-serif;
-          background: #F0EDE8;
-          color: #111;
-        }
-
-        .bb { font-family: 'Bebas Neue', sans-serif; }
+        body { font-family: 'Inter', sans-serif; background: #F0EDE8; color: #111; }
 
         /* ── HEADER ── */
         .site-header {
@@ -56,21 +48,21 @@ export default function Home() {
         .header-inner {
           max-width: 1200px;
           margin: 0 auto;
-          padding: 14px 20px;
+          padding: 12px 20px;
           display: flex;
           align-items: center;
-          gap: 16px;
+          gap: 12px;
         }
         .logo {
           display: flex;
           align-items: baseline;
-          gap: 0;
           flex-shrink: 0;
           text-decoration: none;
         }
-        .logo-guia  { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: #111; letter-spacing: 2px; }
-        .logo-dot   { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: #DDD; margin: 0 5px; }
-        .logo-tri   { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: #C9951A; letter-spacing: 2px; }
+        .logo-guia { font-family: 'Bebas Neue', sans-serif; font-size: 26px; color: #111; letter-spacing: 2px; }
+        .logo-dot  { font-family: 'Bebas Neue', sans-serif; font-size: 18px; color: #DDD; margin: 0 5px; }
+        .logo-tri  { font-family: 'Bebas Neue', sans-serif; font-size: 26px; color: #C9951A; letter-spacing: 2px; }
+
         .search-wrap {
           flex: 1;
           display: flex;
@@ -82,39 +74,55 @@ export default function Home() {
           padding: 9px 16px;
         }
         .search-wrap input {
-          flex: 1;
-          border: none;
-          background: transparent;
-          font-size: 14px;
-          font-family: 'Inter', sans-serif;
-          color: #222;
-          outline: none;
+          flex: 1; border: none; background: transparent;
+          font-size: 14px; font-family: 'Inter', sans-serif; color: #222; outline: none;
         }
         .search-wrap input::placeholder { color: #BBB; }
         .search-btn {
-          width: 30px; height: 30px;
-          border-radius: 50%;
-          background: #C9951A;
-          border: none;
-          cursor: pointer;
+          width: 28px; height: 28px; border-radius: 50%;
+          background: #C9951A; border: none; cursor: pointer;
+          display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+
+        /* Ícone pessoa — só mobile */
+        .btn-login-icon {
+          width: 36px; height: 36px; border-radius: 50%;
+          border: 1.5px solid #C9951A; color: #C9951A;
           display: flex; align-items: center; justify-content: center;
-          flex-shrink: 0;
+          text-decoration: none; flex-shrink: 0; transition: background .15s;
         }
-        .header-cta {
-          background: #C9951A;
-          color: #fff;
-          border: none;
-          border-radius: 10px;
-          padding: 10px 18px;
-          font-size: 13px;
-          font-weight: 600;
-          font-family: 'Inter', sans-serif;
-          cursor: pointer;
-          white-space: nowrap;
-          flex-shrink: 0;
+        .btn-login-icon:hover { background: #FEF3E2; }
+
+        /* Botão "Entrar" texto — só desktop */
+        .btn-entrar {
           display: none;
+          align-items: center; gap: 5px;
+          background: transparent; color: #C9951A;
+          border: 1.5px solid #C9951A; border-radius: 10px;
+          padding: 8px 16px; font-size: 13px; font-weight: 600;
+          font-family: 'Inter', sans-serif; cursor: pointer;
+          white-space: nowrap; flex-shrink: 0; text-decoration: none;
+          transition: background .15s;
         }
-        @media (min-width: 768px) { .header-cta { display: block; } }
+        .btn-entrar:hover { background: #FEF3E2; }
+
+        /* Botão "Cadastrar empresa" — só desktop */
+        .btn-cadastrar {
+          display: none;
+          background: #C9951A; color: #fff;
+          border: none; border-radius: 10px;
+          padding: 9px 16px; font-size: 13px; font-weight: 600;
+          font-family: 'Inter', sans-serif; cursor: pointer;
+          white-space: nowrap; flex-shrink: 0; text-decoration: none;
+          transition: background .15s;
+        }
+        .btn-cadastrar:hover { background: #B8841A; }
+
+        @media (min-width: 768px) {
+          .btn-login-icon { display: none; }
+          .btn-entrar     { display: flex; }
+          .btn-cadastrar  { display: block; }
+        }
 
         /* ── HERO ── */
         .hero {
@@ -126,50 +134,26 @@ export default function Home() {
         .hero-title {
           font-family: 'Bebas Neue', sans-serif;
           font-size: clamp(42px, 6vw, 72px);
-          letter-spacing: 4px;
-          line-height: 1;
-          margin-bottom: 8px;
-          display: none;
+          letter-spacing: 4px; line-height: 1;
+          margin-bottom: 8px; display: none;
         }
         .hero-title span { color: #C9951A; }
-        .hero-sub {
-          font-size: clamp(14px, 2vw, 16px);
-          color: #888;
-          margin-bottom: 24px;
-          display: none;
-        }
+        .hero-sub { font-size: clamp(14px, 2vw, 16px); color: #888; margin-bottom: 24px; display: none; }
         .hero-search {
-          max-width: 600px;
-          margin: 0 auto;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          background: #fff;
-          border: 2px solid #C9951A;
-          border-radius: 50px;
-          padding: 12px 20px;
-          box-shadow: 0 4px 20px rgba(201,149,26,.15);
+          max-width: 600px; margin: 0 auto;
+          display: flex; align-items: center; gap: 8px;
+          background: #fff; border: 2px solid #C9951A; border-radius: 50px;
+          padding: 12px 20px; box-shadow: 0 4px 20px rgba(201,149,26,.15);
         }
         .hero-search input {
-          flex: 1;
-          border: none;
-          background: transparent;
-          font-size: 15px;
-          font-family: 'Inter', sans-serif;
-          color: #222;
-          outline: none;
+          flex: 1; border: none; background: transparent;
+          font-size: 15px; font-family: 'Inter', sans-serif; color: #222; outline: none;
         }
         .hero-search input::placeholder { color: #BBB; }
         .hero-search-btn {
-          background: #C9951A;
-          border: none;
-          border-radius: 50px;
-          padding: 8px 20px;
-          color: #fff;
-          font-size: 14px;
-          font-weight: 600;
-          font-family: 'Inter', sans-serif;
-          cursor: pointer;
+          background: #C9951A; border: none; border-radius: 50px;
+          padding: 8px 20px; color: #fff; font-size: 14px; font-weight: 600;
+          font-family: 'Inter', sans-serif; cursor: pointer;
         }
         @media (min-width: 768px) {
           .hero-title { display: block; }
@@ -177,265 +161,122 @@ export default function Home() {
           .hero { padding: 60px 20px 50px; }
         }
 
-        /* ── MAIN LAYOUT ── */
-        .main-wrap {
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: 0 20px;
-        }
-
-        /* ── SECTION HEADER ── */
-        .sec-hdr {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 14px;
-          margin-top: 28px;
-        }
-        .sec-title {
-          font-family: 'Bebas Neue', sans-serif;
-          font-size: 13px;
-          color: #999;
-          letter-spacing: 2px;
-        }
-        .sec-link {
-          font-size: 12px;
-          color: #C9951A;
-          font-weight: 500;
-          cursor: pointer;
-          text-decoration: none;
-        }
+        /* ── LAYOUT ── */
+        .main-wrap { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+        .sec-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; margin-top: 28px; }
+        .sec-title { font-family: 'Bebas Neue', sans-serif; font-size: 13px; color: #999; letter-spacing: 2px; }
+        .sec-link { font-size: 12px; color: #C9951A; font-weight: 500; cursor: pointer; text-decoration: none; }
         .sec-link:hover { text-decoration: underline; }
+        .divider { height: 1px; background: #F0EDE8; margin: 28px 0 0; }
 
-        /* ── DIVIDER ── */
-        .divider {
-          height: 1px;
-          background: #F0EDE8;
-          margin: 28px 0 0;
-        }
-
-        /* ── CATEGORIES ── */
-        .cat-grid {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 10px;
-        }
-        @media (min-width: 640px)  { .cat-grid { grid-template-columns: repeat(4, 1fr); gap: 12px; } }
+        /* ── CATEGORIAS ── */
+        .cat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
         @media (min-width: 1024px) { .cat-grid { grid-template-columns: repeat(8, 1fr); gap: 14px; } }
-
         .cat-card {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 8px;
-          padding: 14px 8px;
-          border-radius: 14px;
-          border: 1px solid #EDE8E0;
-          background: #FAFAF8;
-          cursor: pointer;
-          transition: all 0.18s;
-          text-align: center;
+          display: flex; flex-direction: column; align-items: center; gap: 8px;
+          padding: 14px 8px; border-radius: 14px;
+          border: 1px solid #EDE8E0; background: #FAFAF8;
+          cursor: pointer; transition: all .18s; text-align: center;
         }
-        .cat-card:hover {
-          border-color: #C9951A;
-          background: #FEF3E2;
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(201,149,26,.15);
-        }
+        .cat-card:hover { border-color: #C9951A; background: #FEF3E2; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(201,149,26,.15); }
         .cat-emoji { font-size: 28px; line-height: 1; }
         .cat-name  { font-size: 11px; font-weight: 500; color: #444; line-height: 1.3; }
-        @media (min-width: 1024px) {
-          .cat-card  { padding: 18px 10px; }
-          .cat-emoji { font-size: 32px; }
-          .cat-name  { font-size: 12px; }
-        }
+        @media (min-width: 1024px) { .cat-card { padding: 18px 10px; } .cat-emoji { font-size: 32px; } .cat-name { font-size: 12px; } }
 
-        /* ── HIGHLIGHTS ── */
-        .dest-grid {
-          display: flex;
-          gap: 12px;
-          overflow-x: auto;
-          padding-bottom: 4px;
-          scrollbar-width: none;
-        }
+        /* ── DESTAQUES ── */
+        .dest-grid { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
         .dest-grid::-webkit-scrollbar { display: none; }
-        @media (min-width: 768px) {
-          .dest-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            overflow: visible;
-          }
-        }
-        @media (min-width: 1024px) {
-          .dest-grid { grid-template-columns: repeat(6, 1fr); }
-        }
-
+        @media (min-width: 768px)  { .dest-grid { display: grid; grid-template-columns: repeat(3, 1fr); overflow: visible; } }
+        @media (min-width: 1024px) { .dest-grid { grid-template-columns: repeat(6, 1fr); } }
         .dest-card {
-          flex-shrink: 0;
-          width: 148px;
-          background: #fff;
-          border: 0.5px solid #E0DDD8;
-          border-radius: 14px;
-          overflow: hidden;
-          cursor: pointer;
-          transition: all 0.18s;
+          flex-shrink: 0; width: 148px; background: #fff;
+          border: 0.5px solid #E0DDD8; border-radius: 14px;
+          overflow: hidden; cursor: pointer; transition: all .18s;
         }
-        .dest-card:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 6px 20px rgba(0,0,0,.1);
-          border-color: #C9951A;
-        }
+        .dest-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,.1); border-color: #C9951A; }
         @media (min-width: 768px) { .dest-card { width: auto; } }
-
-        .dest-img {
-          height: 90px;
-          background: #FEF3E2;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 36px;
-          position: relative;
-        }
-        .dest-top-badge {
-          position: absolute;
-          top: 7px; right: 7px;
-          background: #C9951A;
-          color: #fff;
-          font-size: 9px;
-          font-weight: 700;
-          padding: 2px 8px;
-          border-radius: 8px;
-          font-family: 'Inter', sans-serif;
-        }
+        .dest-img { height: 90px; background: #FEF3E2; display: flex; align-items: center; justify-content: center; font-size: 36px; position: relative; }
+        .dest-top-badge { position: absolute; top: 7px; right: 7px; background: #C9951A; color: #fff; font-size: 9px; font-weight: 700; padding: 2px 8px; border-radius: 8px; }
         .dest-body  { padding: 10px 11px; }
         .dest-name  { font-size: 12px; font-weight: 600; color: #222; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .dest-cat   { font-size: 10px; color: #AAA; margin-bottom: 5px; }
         .dest-stars { font-size: 11px; color: #C9951A; font-weight: 600; }
 
-        /* ── RECENT ── */
-        .rec-grid {
-          display: flex;
-          flex-direction: column;
-          gap: 0;
-          border: 0.5px solid #EDE8E0;
-          border-radius: 14px;
-          overflow: hidden;
-          background: #fff;
-        }
-        @media (min-width: 768px) {
-          .rec-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-          }
-        }
-        @media (min-width: 1024px) {
-          .rec-grid { grid-template-columns: repeat(3, 1fr); }
-        }
-
-        .rec-item {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 13px 16px;
-          border-bottom: 0.5px solid #F5F2EC;
-          cursor: pointer;
-          transition: background 0.15s;
-        }
-        .rec-item:hover  { background: #FAFAF8; }
-        .rec-icon {
-          width: 44px; height: 44px;
-          border-radius: 11px;
-          background: #F0EDE8;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 20px;
-          flex-shrink: 0;
-          border: 0.5px solid #E0DDD8;
-        }
+        /* ── RECENTES ── */
+        .rec-grid { display: flex; flex-direction: column; border: 0.5px solid #EDE8E0; border-radius: 14px; overflow: hidden; background: #fff; }
+        @media (min-width: 768px)  { .rec-grid { display: grid; grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 1024px) { .rec-grid { grid-template-columns: repeat(3, 1fr); } }
+        .rec-item { display: flex; align-items: center; gap: 12px; padding: 13px 16px; border-bottom: 0.5px solid #F5F2EC; cursor: pointer; transition: background .15s; }
+        .rec-item:hover { background: #FAFAF8; }
+        .rec-icon { width: 44px; height: 44px; border-radius: 11px; background: #F0EDE8; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; border: 0.5px solid #E0DDD8; }
         .rec-name  { font-size: 13px; font-weight: 600; color: #222; margin-bottom: 2px; }
         .rec-cat   { font-size: 11px; color: #999; margin-bottom: 3px; }
         .rec-new   { font-size: 10px; color: #0F8050; font-weight: 600; }
 
-        /* ── CTA SECTION ── */
+        /* ── CTA ── */
         .cta-section {
           margin: 36px 0 48px;
           background: linear-gradient(135deg, #1A1A1A, #333);
-          border-radius: 20px;
-          padding: 36px 32px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          text-align: center;
-          gap: 16px;
+          border-radius: 20px; padding: 36px 32px;
+          display: flex; flex-direction: column; align-items: center; text-align: center; gap: 16px;
         }
-        @media (min-width: 768px) {
-          .cta-section {
-            flex-direction: row;
-            text-align: left;
-            justify-content: space-between;
-            padding: 36px 48px;
-          }
-        }
-        .cta-title {
-          font-family: 'Bebas Neue', sans-serif;
-          font-size: clamp(22px, 3vw, 30px);
-          color: #fff;
-          letter-spacing: 1px;
-          margin-bottom: 6px;
-        }
+        @media (min-width: 768px) { .cta-section { flex-direction: row; text-align: left; justify-content: space-between; padding: 36px 48px; } }
+        .cta-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(22px, 3vw, 30px); color: #fff; letter-spacing: 1px; margin-bottom: 6px; }
         .cta-title span { color: #C9951A; }
-        .cta-sub   { font-size: 13px; color: #AAA; }
-        .cta-btn {
-          background: #C9951A;
-          color: #fff;
-          border: none;
-          border-radius: 12px;
-          padding: 14px 28px;
-          font-size: 14px;
-          font-weight: 600;
-          font-family: 'Inter', sans-serif;
-          cursor: pointer;
-          white-space: nowrap;
-          flex-shrink: 0;
-          transition: background 0.15s;
-        }
+        .cta-sub  { font-size: 13px; color: #AAA; }
+        .cta-btn  { background: #C9951A; color: #fff; border: none; border-radius: 12px; padding: 14px 28px; font-size: 14px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; flex-shrink: 0; text-decoration: none; display: inline-block; transition: background .15s; }
         .cta-btn:hover { background: #B8841A; }
         .cta-note { font-size: 11px; color: #888; margin-top: 4px; }
 
         /* ── FOOTER ── */
-        .site-footer {
-          background: #111;
-          color: #888;
-          text-align: center;
-          font-size: 12px;
-          padding: 20px;
-        }
+        .site-footer { background: #111; color: #888; text-align: center; font-size: 12px; padding: 20px; }
         .site-footer span { color: #C9951A; }
       `}</style>
 
-      {/* ── HEADER ── */}
+      {/* HEADER */}
       <header className="site-header">
         <div className="header-inner">
           <a className="logo" href="/">
-            <span className="logo-guia">GUIA</span>
+            <span className="logo-guia">TRINDADE</span>
             <span className="logo-dot">·</span>
-            <span className="logo-tri">TRINDADE</span>
+            <span className="logo-tri">ONLINE</span>
           </a>
+
           <div className="search-wrap">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#AAA" strokeWidth="2" strokeLinecap="round">
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
             <input type="text" placeholder="Empresa, produto, serviço..." />
-            <button className="search-btn" type="button">
+            <button className="search-btn">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
                 <polyline points="9 18 15 12 9 6"/>
               </svg>
             </button>
           </div>
-          <button className="header-cta">+ Cadastrar empresa</button>
+
+          {/* Ícone pessoa — mobile */}
+          <a className="btn-login-icon" href="/login" title="Entrar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+          </a>
+
+          {/* Botão Entrar — desktop */}
+          <a className="btn-entrar" href="/login">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+            Entrar
+          </a>
+
+          {/* Botão Cadastrar — desktop */}
+          <a className="btn-cadastrar" href="/cadastro?tipo=empresa">+ Cadastrar empresa</a>
         </div>
       </header>
 
-      {/* ── HERO ── */}
+      {/* HERO */}
       <section className="hero">
         <h1 className="hero-title">TRINDADE <span>ONLINE</span></h1>
         <p className="hero-sub">Conectando moradores, comércios e serviços do bairro Trindade</p>
@@ -448,10 +289,9 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── CONTEÚDO ── */}
+      {/* CONTEÚDO */}
       <div className="main-wrap">
 
-        {/* CATEGORIAS */}
         <div className="sec-hdr">
           <span className="sec-title">CATEGORIAS</span>
         </div>
@@ -466,7 +306,6 @@ export default function Home() {
 
         <div className="divider" />
 
-        {/* EM DESTAQUE */}
         <div className="sec-hdr">
           <span className="sec-title">EM DESTAQUE</span>
           <a className="sec-link" href="#">Ver todos</a>
@@ -489,7 +328,6 @@ export default function Home() {
 
         <div className="divider" />
 
-        {/* RECÉM CADASTRADOS */}
         <div className="sec-hdr">
           <span className="sec-title">RECÉM CADASTRADOS</span>
           <a className="sec-link" href="#">Ver todos</a>
@@ -507,19 +345,17 @@ export default function Home() {
           ))}
         </div>
 
-        {/* CTA */}
         <div className="cta-section">
           <div>
             <div className="cta-title">SEU NEGÓCIO NO <span>TRINDADE ONLINE</span></div>
             <div className="cta-sub">Alcance milhares de moradores do bairro todos os dias</div>
             <div className="cta-note">30 dias grátis · Sem cartão de crédito</div>
           </div>
-          <button className="cta-btn">+ Cadastrar minha empresa</button>
+          <a className="cta-btn" href="/cadastro?tipo=empresa">+ Cadastrar minha empresa</a>
         </div>
 
       </div>
 
-      {/* ── FOOTER ── */}
       <footer className="site-footer">
         © 2026 <span>Trindade Online</span> · trindadeonline.com.br
       </footer>

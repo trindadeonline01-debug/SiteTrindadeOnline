@@ -174,7 +174,7 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
         .tag-closed{background:#FEF0F0;color:#E24B4A;}
         .tag-sub{background:#EBF4FF;color:#185FA5;}
         .stars-row{display:flex;align-items:center;gap:7px;margin-bottom:18px;}
-        .rating-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:0.5px solid #F0EDE8;border-bottom:0.5px solid #F0EDE8;margin-bottom:18px;gap:10px;}
+        .rating-row{display:flex;align-items:center;padding:10px 0;border-top:0.5px solid #F0EDE8;border-bottom:0.5px solid #F0EDE8;margin-bottom:18px;gap:10px;flex-wrap:wrap;}
         .rating-left{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
         .st{color:#C9951A;font-size:15px;}
         .rn{font-weight:600;font-size:14px;color:#111;}
@@ -314,17 +314,15 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
 
             {/* RATING ROW COM BOTÃO AVALIAR */}
             <div className="rating-row">
-              <div className="rating-left">
-                {avgRating > 0 ? (
-                  <>
-                    <span className="st">{'★'.repeat(Math.round(avgRating))}{'☆'.repeat(5-Math.round(avgRating))}</span>
-                    <span className="rn">{avgRating.toFixed(1)}</span>
-                    <span className="rc">({company.total_reviews} avaliação{company.total_reviews !== 1 ? 's' : ''})</span>
-                  </>
-                ) : (
-                  <span className="rc">Sem avaliações ainda</span>
-                )}
-              </div>
+              {avgRating > 0 ? (
+                <>
+                  <span className="st">{'★'.repeat(Math.round(avgRating))}{'☆'.repeat(5-Math.round(avgRating))}</span>
+                  <span className="rn">{avgRating.toFixed(1)}</span>
+                  <span className="rc">({company.total_reviews} avaliação{company.total_reviews !== 1 ? 's' : ''})</span>
+                </>
+              ) : (
+                <span className="rc">Sem avaliações ainda</span>
+              )}
               {!reviewSent && (
                 <button className="btn-write-rv" onClick={() => userId ? setShowReview(!showReview) : window.location.href='/login'}>
                   ⭐ {userId ? 'Avaliar' : 'Entrar para avaliar'}

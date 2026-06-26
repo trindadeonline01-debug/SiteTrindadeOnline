@@ -14,10 +14,26 @@ export default function LoginPage() {
     setErro('')
     setLoading(true)
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password: senha })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password: senha })
 
     if (error) {
       setErro('E-mail ou senha incorretos.')
+      setLoading(false)
+      return
+    }
+
+    // Busca o tipo de usuário no banco
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('user_type')
+      .eq('id', data.user.id)
+      .single()
+
+    // Redireciona conforme o tipo
+    if (profile?.user_type === 'company') {
+      window.location.href = '/painel'
+    } else if (profile?.user_type === 'admin') {
+      window.location.href = '/admin'
     } else {
       window.location.href = '/'
     }

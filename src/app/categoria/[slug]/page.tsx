@@ -4,7 +4,7 @@ import { useState, useEffect, use } from 'react'
 import { supabase } from '@/lib/supabase'
 
 type Category    = { id: string; name: string; emoji: string; slug: string }
-type Subcategory = { id: string; name: string; emoji: string }
+type Subcategory = { id: string; name: string; emoji: string; slug?: string }
 type Highlight   = { id: string; company: { name: string; slug: string; photos?: any[]; category?: any } }
 type Company     = {
   id: string; name: string; slug: string
@@ -34,7 +34,7 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
     setCategory(cat)
 
     const { data: subs } = await supabase
-      .from('subcategories').select('id, name, emoji')
+      .from('subcategories').select('id, name, emoji, slug')
       .eq('category_id', cat.id).order('order')
     setSubcats(subs || [])
 

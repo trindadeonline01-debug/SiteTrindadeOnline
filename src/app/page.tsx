@@ -114,6 +114,9 @@ export default function Home() {
         .btn-cadastrar{display:none;background:#C9951A;color:#fff;border:none;border-radius:10px;padding:9px 16px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;white-space:nowrap;flex-shrink:0;text-decoration:none;transition:background .15s;}
         .btn-cadastrar:hover{background:#B8841A;}
         .btn-painel{display:none;background:#111;color:#C9951A;border:none;border-radius:10px;padding:9px 16px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;white-space:nowrap;flex-shrink:0;text-decoration:none;}
+        .btn-sair{display:none;background:transparent;color:#666;border:1px solid #333;border-radius:10px;padding:8px 12px;font-size:12px;font-weight:500;font-family:'Inter',sans-serif;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .15s;}
+        .btn-sair:hover{color:#E24B4A;border-color:#E24B4A;}
+        @media(min-width:768px){.btn-sair{display:block;}}
         @media(min-width:768px){
           .btn-login-icon{display:none;}
           .btn-entrar{display:flex;}
@@ -225,9 +228,12 @@ export default function Home() {
           {/* Desktop — agrupado à direita */}
           <div style={{display:'flex',alignItems:'center',gap:8}}>
             {session ? (
-              <a className="btn-painel" href={session.user_type === 'company' ? '/painel' : session.user_type === 'admin' ? '/admin' : '/'}>
-                {session.user_type === 'admin' ? 'Admin →' : session.user_type === 'company' ? 'Meu painel →' : `Olá, ${session.name?.split(' ')[0]}`}
-              </a>
+              <>
+                <a className="btn-painel" href={session.user_type === 'company' ? '/painel' : session.user_type === 'admin' ? '/admin' : '/'}>
+                  {session.user_type === 'admin' ? 'Admin →' : session.user_type === 'company' ? 'Meu painel →' : `Olá, ${session.name?.split(' ')[0]}`}
+                </a>
+                <button className="btn-sair" onClick={async () => { await supabase.auth.signOut(); window.location.reload() }}>Sair</button>
+              </>
             ) : (
               <a className="btn-entrar" href="/login">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>

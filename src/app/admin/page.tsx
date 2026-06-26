@@ -154,6 +154,7 @@ export default function AdminPage() {
       scope_id: hlForm.scope_id || null,
       highlight_type: hlForm.highlight_type,
       active: true,
+      status: 'active',
       expires_at: hlForm.expires_at ? new Date(Date.now() + parseInt(hlForm.expires_at) * 86400000).toISOString() : null,
     })
     setHlFormOpen(false)
@@ -658,6 +659,12 @@ export default function AdminPage() {
                       <select style={{padding:'7px 10px',borderRadius:8,border:'0.5px solid #333',background:'#111',color:'#fff',fontSize:12,fontFamily:'Inter,sans-serif'}}
                         value={hlForm.expires_at} onChange={e => setHlForm(f => ({...f,expires_at:e.target.value}))}>
                         <option value="">Sem expiração</option>
+                        <option value="1">1 dia</option>
+                        <option value="3">3 dias</option>
+                        <option value="5">5 dias</option>
+                        <option value="7">7 dias</option>
+                        <option value="10">10 dias</option>
+                        <option value="15">15 dias</option>
                         <option value="30">30 dias</option>
                         <option value="60">60 dias</option>
                         <option value="90">90 dias</option>

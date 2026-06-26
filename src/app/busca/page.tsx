@@ -35,14 +35,9 @@ function BuscaContent() {
     setQuery(q)
     const term = q.trim()
 
-    // 1. Busca empresas: nome + endereço + descrição
+    // 1. Busca empresas via função sem acento (nome + endereço + descrição)
     const { data: empData } = await supabase
-      .from('companies')
-      .select('id, name, slug, address, avg_rating, category:categories(name,emoji), photos:company_photos(url,order)')
-      .eq('status', 'active')
-      .or(`name.ilike.%${term}%,address.ilike.%${term}%,description.ilike.%${term}%`)
-      .order('avg_rating', { ascending: false })
-      .limit(20)
+      .rpc('buscar_empresas', { termo: term })
 
     // 2. Busca categorias pelo nome
     const { data: catData } = await supabase
@@ -81,9 +76,11 @@ function BuscaContent() {
     buscar(input)
   }
 
-  function getCover(c: Company): string | null {
+  function getCover(c: any): string | null {
+    // Suporte tanto ao formato RPC (cover_url) quanto ao formato join (photos[])
+    if (c.cover_url) return c.cover_url
     if (!c.photos || c.photos.length === 0) return null
-    return [...c.photos].sort((a,b) => a.order - b.order)[0]?.url || null
+    return [...c.photos].sort((a:any,b:any) => a.order - b.order)[0]?.url || null
   }
 
   const SUGGESTIONS = ['Padaria','Barbearia','Restaurante','Mercado','Farmácia','Mecânico','Salão','Eletricista','Igreja','Academia']
@@ -247,8 +244,8 @@ function BuscaContent() {
                         </div>
                         <div className="emp-body">
                           <div className="emp-name">{c.name}</div>
-                          <div className="emp-cat">{c.category?.emoji} {c.category?.name || '—'}</div>
-                          {(c.avg_rating || 0) > 0 && <div className="emp-stars">★ {(c.avg_rating || 0).toFixed(1)}</div>}
+                          <div className="emp-cat">{c.category_emoji || c.category?.emoji} {c.category_name || c.category?.name || '—'}</div>
+                          {(c.avg_rating || 0) > 0 && <div className="emp-stars">★ {Number(c.avg_rating).toFixed(1)}</div>}
                           {c.address && <div className="emp-addr">📍 {c.address}</div>}
                         </div>
                       </a>

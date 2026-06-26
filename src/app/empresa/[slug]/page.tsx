@@ -81,7 +81,7 @@ export default function EmpresaPerfilPage({ params }: { params: { slug: string }
       .select(`*, category:categories(name,emoji), subcategories:company_subcategories(subcategory:subcategories(name,emoji)), photos:company_photos(id,url,order), hours:company_hours(label,hours,order)`)
       .eq('slug', params.slug)
       .eq('status', 'active')
-      .single()
+      .maybeSingle()
 
     if (!comp) { setNotFound(true); setLoading(false); return }
     setCompany(comp)

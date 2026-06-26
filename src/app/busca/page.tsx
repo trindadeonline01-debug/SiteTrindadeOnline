@@ -7,6 +7,8 @@ import { supabase } from '@/lib/supabase'
 type Company = {
   id: string; name: string; slug: string; address?: string; avg_rating?: number
   category?: any; photos?: any[]
+  // Campos do RPC buscar_empresas
+  category_name?: string; category_emoji?: string; cover_url?: string
 }
 type Category = { id: string; name: string; emoji: string; slug: string }
 type Subcategory = { id: string; name: string; emoji: string }

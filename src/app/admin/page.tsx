@@ -150,6 +150,7 @@ export default function AdminPage() {
     setHlLoading(true)
     // Mapeia scope_type para os campos reais da tabela
     const levelMap: Record<string,string> = { global:'home', category:'category', subcategory:'subcategory' }
+    const durationDays = parseInt(hlForm.expires_at) || 0
     const { error: hlErr } = await supabase.from('highlights').insert({
       company_id:    hlForm.company_id,
       level:         levelMap[hlForm.scope_type] || 'home',
@@ -158,9 +159,11 @@ export default function AdminPage() {
       scope_type:    hlForm.scope_type,
       scope_id:      hlForm.scope_id || null,
       highlight_type:hlForm.highlight_type,
+      duration_days: durationDays,
       active:        true,
       status:        'active',
-      expires_at:    hlForm.expires_at ? new Date(Date.now() + parseInt(hlForm.expires_at) * 86400000).toISOString() : null,
+      starts_at:     new Date().toISOString(),
+      expires_at:    durationDays > 0 ? new Date(Date.now() + durationDays * 86400000).toISOString() : null,
     })
     if (hlErr) { showToast('Erro: ' + hlErr.message); setHlLoading(false); return }
     setHlFormOpen(false)

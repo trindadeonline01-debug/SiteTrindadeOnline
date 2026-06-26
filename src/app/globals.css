@@ -1,26 +1,32 @@
-@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --gold: #C9951A;
+  --gold-light: #E8B84B;
+  --gold-50: #FEF3E2;
+  --gold-border: #F5C77A;
+  --brand-black: #111111;
+  --brand-white: #FFFFFF;
+  --brand-bg: #F0EDE8;
+  --brand-border: #E0DDD8;
+  --brand-muted: #FAFAF8;
+  --brand-gray: #AAA;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: #FFFFFF;
+  font-family: 'Inter', sans-serif;
+  color: #111111;
+  -webkit-font-smoothing: antialiased;
 }
+
+.font-bebas { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.05em; }
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: #F0EDE8; }
+::-webkit-scrollbar-thumb { background: #C9951A; border-radius: 2px; }

@@ -131,7 +131,8 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
         *{box-sizing:border-box;margin:0;padding:0;}
         body{font-family:'Inter',sans-serif;background:#F0EDE8;}
 
-        .topbar{background:#111;padding:10px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+        .topbar{background:#111;position:sticky;top:0;z-index:50;}
+        .topbar-inner{max-width:1200px;margin:0 auto;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;}
         .t-logo{font-family:'Bebas Neue',sans-serif;font-size:20px;color:#fff;letter-spacing:2px;text-decoration:none;}
         .t-logo span{color:#C9951A;}
         .t-back{color:#888;font-size:13px;text-decoration:none;display:flex;align-items:center;gap:5px;}
@@ -250,11 +251,13 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
 
       {/* TOPBAR */}
       <div className="topbar">
-        <a className="t-logo" href="/">TRINDADE <span>ONLINE</span></a>
-        <a className="t-back" href="/">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-          Voltar
-        </a>
+        <div className="topbar-inner">
+          <a className="t-logo" href="/">TRINDADE <span>ONLINE</span></a>
+          <a className="t-back" href="/">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+            Voltar
+          </a>
+        </div>
       </div>
 
       <div className="page">

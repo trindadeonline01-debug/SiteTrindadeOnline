@@ -169,9 +169,6 @@ export default function AdminPage() {
     showToast('Destaque removido.')
   }
 
-  function showToast(msg: string) {
-    setToast(msg); setTimeout(() => setToast(''), 3000)
-  }
 
   async function approveCompany(id: string) {
     await supabase.from('companies').update({ status: 'active', approved_at: new Date().toISOString() }).eq('id', id)

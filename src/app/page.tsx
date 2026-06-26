@@ -210,18 +210,20 @@ export default function Home() {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
           </a>
 
-          {/* Desktop */}
-          {session ? (
-            <a className="btn-painel" href={session.user_type === 'company' ? '/painel' : session.user_type === 'admin' ? '/admin' : '/'}>
-              {session.user_type === 'admin' ? 'Admin →' : session.user_type === 'company' ? 'Meu painel →' : `Olá, ${session.name?.split(' ')[0]}`}
-            </a>
-          ) : (
-            <a className="btn-entrar" href="/login">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              Entrar
-            </a>
-          )}
-          <a className="btn-cadastrar" href="/cadastro?tipo=empresa">+ Cadastrar empresa</a>
+          {/* Desktop — agrupado à direita */}
+          <div style={{display:'flex',alignItems:'center',gap:8}}>
+            {session ? (
+              <a className="btn-painel" href={session.user_type === 'company' ? '/painel' : session.user_type === 'admin' ? '/admin' : '/'}>
+                {session.user_type === 'admin' ? 'Admin →' : session.user_type === 'company' ? 'Meu painel →' : `Olá, ${session.name?.split(' ')[0]}`}
+              </a>
+            ) : (
+              <a className="btn-entrar" href="/login">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                Entrar
+              </a>
+            )}
+            <a className="btn-cadastrar" href="/cadastro?tipo=empresa">+ Cadastrar empresa</a>
+          </div>
         </div>
       </header>
 

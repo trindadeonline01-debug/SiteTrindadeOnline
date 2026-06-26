@@ -12,7 +12,7 @@ type Company = {
   external_link?: string; external_link_label?: string
   avg_rating?: number; total_reviews?: number
   views_count?: number; whatsapp_clicks?: number
-  category?: { name: string; emoji: string }
+  category?: { name: string; emoji: string; slug?: string }
   subcategories?: CompanySubcat[]
   photos?: CompanyPhoto[]
   hours?: CompanyHour[]
@@ -63,7 +63,7 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
   async function loadCompany() {
     const { data } = await supabase
       .from('companies')
-      .select('*, category:categories(name,emoji), subcategories:company_subcategories(subcategory:subcategories(name,emoji)), photos:company_photos(id,url,order), hours:company_hours(label,hours,order)')
+      .select('*, category:categories(name,emoji,slug), subcategories:company_subcategories(subcategory:subcategories(name,emoji)), photos:company_photos(id,url,order), hours:company_hours(label,hours,order)')
       .eq('slug', slug)
       .maybeSingle()
 
@@ -134,11 +134,16 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
         .topbar{background:#111;position:sticky;top:0;z-index:50;}
         .topbar-inner{max-width:1200px;margin:0 auto;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;}
         .t-logo{font-family:'Bebas Neue',sans-serif;font-size:20px;color:#fff;letter-spacing:2px;text-decoration:none;}
+        .t-bc{display:flex;align-items:center;gap:7px;font-size:13px;}
+        .t-bc a{color:#C9951A;font-weight:700;text-decoration:none;}
+        .t-bc a:hover{text-decoration:underline;}
+        .t-bc-sep{color:#444;font-size:14px;}
+        .t-bc-cur{color:#fff;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;}
         .t-logo span{color:#C9951A;}
         .t-back{color:#888;font-size:13px;text-decoration:none;display:flex;align-items:center;gap:5px;}
         .t-back:hover{color:#fff;}
 
-        .page{max-width:1100px;margin:0 auto;padding:24px 24px 48px;background:#fff;min-height:100vh;}
+        .page{max-width:1100px;margin:0 auto;padding:24px 24px 48px;min-height:100vh;}
         @media(max-width:767px){.page{padding:16px 16px 40px;}}
 
         /* TOP GRID */
@@ -253,10 +258,18 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
       <div className="topbar">
         <div className="topbar-inner">
           <a className="t-logo" href="/">TRINDADE <span>ONLINE</span></a>
-          <a className="t-back" href="/">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-            Voltar
-          </a>
+          <div className="t-bc">
+            <a href="/">Início</a>
+            {company?.category && (
+              <>
+                <span className="t-bc-sep">›</span>
+                <a href={`/categoria/${company.category.slug || ''}`}>{company.category.name}</a>
+              </>
+            )}
+            <span className="t-bc-sep">›</span>
+            <span className="t-bc-cur">{company?.name || '...'}</span>
+          </div>
+          <div/>
         </div>
       </div>
 

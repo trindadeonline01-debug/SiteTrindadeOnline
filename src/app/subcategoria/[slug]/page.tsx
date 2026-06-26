@@ -69,14 +69,17 @@ export default function SubcategoriaPage({ params }: { params: Promise<{ slug: s
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
-        body{font-family:'Inter',sans-serif;background:#F0EDE8;}
+        body{font-family:'Inter',sans-serif;background:#fff;}
 
         .topbar{background:#111;position:sticky;top:0;z-index:50;}
-        .topbar-inner{max-width:1200px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;}
+        .topbar-inner{max-width:1200px;margin:0 auto;padding:13px 24px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;}
         .t-logo{font-family:'Bebas Neue',sans-serif;font-size:24px;color:#fff;letter-spacing:2px;text-decoration:none;}
         .t-logo span{color:#C9951A;}
-        .t-back{color:#888;font-size:13px;font-weight:500;text-decoration:none;display:flex;align-items:center;gap:5px;transition:color .15s;}
-        .t-back:hover{color:#fff;}
+        .t-bc{display:flex;align-items:center;gap:7px;font-size:13px;}
+        .t-bc a{color:#C9951A;font-weight:700;text-decoration:none;}
+        .t-bc a:hover{text-decoration:underline;}
+        .t-bc-sep{color:#444;font-size:14px;}
+        .t-bc-cur{color:#fff;font-weight:700;}
 
         .hero{background:#111;padding:28px 24px 24px;border-bottom:2px solid #C9951A;}
         .hero-inner{max-width:1200px;margin:0 auto;}
@@ -96,7 +99,7 @@ export default function SubcategoriaPage({ params }: { params: Promise<{ slug: s
         .search-box input{flex:1;border:none;background:transparent;font-size:15px;font-family:'Inter',sans-serif;color:#222;outline:none;}
         .search-box input::placeholder{color:#BBB;}
 
-        .page{max-width:1200px;margin:0 auto;padding:8px 24px 48px;background:#fff;min-height:100vh;}
+        .page{max-width:1200px;margin:0 auto;padding:8px 24px 48px;min-height:100vh;}
         @media(max-width:767px){
           .topbar-inner,.hero-inner,.search-inner,.page{padding-left:16px;padding-right:16px;}
           .search-wrap{padding:0 16px;}
@@ -132,10 +135,14 @@ export default function SubcategoriaPage({ params }: { params: Promise<{ slug: s
       <div className="topbar">
         <div className="topbar-inner">
           <a className="t-logo" href="/">TRINDADE <span>ONLINE</span></a>
-          <a className="t-back" href="/">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-            Início
-          </a>
+          <div className="t-bc">
+            <a href="/">Início</a>
+            <span className="t-bc-sep">›</span>
+            {subcat && <a href={`/categoria/${subcat.category.slug}`}>{subcat.category.name}</a>}
+            <span className="t-bc-sep">›</span>
+            <span className="t-bc-cur">{subcat?.name || '...'}</span>
+          </div>
+          <div/>
         </div>
       </div>
 

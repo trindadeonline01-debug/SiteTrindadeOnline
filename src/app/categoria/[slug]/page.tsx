@@ -45,7 +45,27 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
       .order('avg_rating', { ascending: false })
 
     const list = (comps || []) as Company[]
-    setCompanies(list); setFiltered(list); setLoading(false)
+    setCompanies(list); setFiltered(list)
+
+    // Busca destaques da categoria
+    const { data: hlData } = await supabase
+      .from('highlights')
+      .select('id, company_id, company:companies(name,slug,category:categories(name,emoji))')
+      .eq('active', true)
+      .eq('level', 'category')
+      .eq('category_id', cat.id)
+      .order('display_order')
+
+    if (hlData && hlData.length > 0) {
+      const ids = hlData.map((h: any) => h.company_id)
+      const { data: photos } = await supabase
+        .from('company_photos').select('company_id,url,order').in('company_id', ids).order('order')
+      setHighlights(hlData.map((h: any) => ({
+        ...h, company: { ...h.company, photos: photos?.filter((p: any) => p.company_id === h.company_id) || [] }
+      })) as Highlight[])
+    }
+
+    setLoading(false)
   }
 
   function filterBySub(subId: string | null) {

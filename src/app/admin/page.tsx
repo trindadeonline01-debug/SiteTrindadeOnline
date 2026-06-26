@@ -18,6 +18,7 @@ type Profile = {
 type SearchLog  = { query: string; count: number; no_result: number }
 type Highlight  = { id: string; company_id: string; scope_type: string; scope_id: string|null; highlight_type: string; active: boolean; expires_at: string|null; display_order: number; company?: any; scope_name?: string }
 type CatOpt     = { id: string; name: string; emoji: string; slug: string }
+type Report     = { id: string; reason: string; resolved: boolean; created_at: string; listing?: any; reporter?: any }
 type SubcatOpt  = { id: string; name: string; emoji: string; slug: string; category_id: string }
 type Stats = {
   total_users: number; users_today: number; users_week: number
@@ -33,7 +34,7 @@ const statusColor = (s: string) => s === 'active' ? '#0F8050' : s === 'pending' 
 const statusLabel = (s: string) => s === 'active' ? 'Ativa' : s === 'pending' ? 'Pendente' : 'Suspensa'
 
 export default function AdminPage() {
-  const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'usuarios'|'buscas'|'atividade'>('dashboard')
+  const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'denuncias'|'usuarios'|'buscas'|'atividade'>('dashboard')
   const [stats, setStats]           = useState<Stats|null>(null)
   const [companies, setCompanies]   = useState<Company[]>([])
   const [users, setUsers]           = useState<Profile[]>([])
@@ -48,6 +49,8 @@ export default function AdminPage() {
   const [hlForm, setHlForm]         = useState({ company_id:'', scope_type:'category', scope_id:'', highlight_type:'manual', expires_at:'' })
   const [hlFormOpen, setHlFormOpen] = useState(false)
   const [hlLoading, setHlLoading]   = useState(false)
+  const [reports, setReports]         = useState<Report[]>([])
+  const [repCount, setRepCount]       = useState(0)
 
   // Verifica se é admin
   useEffect(() => {
@@ -62,7 +65,7 @@ export default function AdminPage() {
 
   async function loadAll() {
     setLoading(true)
-    await Promise.all([loadStats(), loadCompanies(), loadUsers(), loadSearches(), loadHighlights()])
+    await Promise.all([loadStats(), loadCompanies(), loadUsers(), loadSearches(), loadHighlights(), loadReports()])
     setLoading(false)
   }
 
@@ -174,6 +177,29 @@ export default function AdminPage() {
     setHlLoading(false)
   }
 
+
+  async function loadReports() {
+    const { data } = await supabase
+      .from('listing_reports')
+      .select('id, reason, resolved, created_at, listing:listings(id,title,type,status), reporter:profiles(name)')
+      .order('created_at', { ascending: false })
+    const r = (data || []) as Report[]
+    setReports(r)
+    setRepCount(r.filter(x => !x.resolved).length)
+  }
+
+  async function resolveReport(reportId: string) {
+    await supabase.from('listing_reports').update({ resolved: true }).eq('id', reportId)
+    await loadReports()
+    showToast('Denúncia ignorada.')
+  }
+
+  async function deleteListingFromReport(listingId: string, reportId: string) {
+    await supabase.from('listings').update({ status: 'deleted' }).eq('id', listingId)
+    await supabase.from('listing_reports').update({ resolved: true }).eq('id', reportId)
+    await loadReports()
+    showToast('Anúncio excluído.')
+  }
   async function removeHighlight(id: string) {
     await supabase.from('highlights').update({ active: false }).eq('id', id)
     await loadHighlights()
@@ -355,6 +381,8 @@ export default function AdminPage() {
             { id: 'dashboard', icon: '📊', label: 'Dashboard' },
             { id: 'empresas',  icon: '🏪', label: 'Empresas', badge: stats?.pending || 0 },
             { id: 'destaques', icon: '⭐', label: 'Destaques' },
+            { id: 'denuncias', icon: '🚩', label: 'Denúncias', badge: repCount },
+
             { id: 'usuarios',  icon: '👥', label: 'Usuários' },
             { id: 'buscas',    icon: '🔍', label: 'Buscas' },
             { id: 'atividade', icon: '⚡', label: 'Atividade' },
@@ -385,6 +413,7 @@ export default function AdminPage() {
               {tab === 'buscas'    && 'Analytics de Buscas'}
               {tab === 'atividade' && 'Atividade Recente'}
               {tab === 'destaques' && 'Destaques'}
+              {tab === 'denuncias' && 'Denúncias'}
             </div>
             <div className="topbar-date">{new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}</div>
           </div>
@@ -597,6 +626,52 @@ export default function AdminPage() {
             )}
 
             {/* ── ATIVIDADE ── */}
+
+
+            {/* ── DENÚNCIAS ── */}
+            {!loading && tab === 'denuncias' && (
+              <div>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
+                  <span className="section-title">DENÚNCIAS ({reports.filter(r=>!r.resolved).length} pendentes)</span>
+                </div>
+
+                {reports.length === 0 && (
+                  <div style={{textAlign:'center',padding:'40px 0',color:'#555',fontSize:13}}>
+                    Nenhuma denúncia registrada. ✅
+                  </div>
+                )}
+
+                <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                  {reports.map(r => (
+                    <div key={r.id} style={{display:'flex',alignItems:'flex-start',gap:12,padding:'12px 14px',background: r.resolved ? '#111' : '#1A0A0A',border:`0.5px solid ${r.resolved ? '#222' : '#4A1515'}`,borderRadius:10,opacity:r.resolved?0.5:1}}>
+                      <span style={{fontSize:20,flexShrink:0}}>{r.resolved ? '✅' : '🚩'}</span>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:13,fontWeight:600,color:'#fff',marginBottom:3}}>
+                          {r.listing?.title || 'Anúncio removido'}
+                          <span style={{marginLeft:8,fontSize:10,padding:'1px 7px',borderRadius:5,background:'#222',color:'#888'}}>{r.listing?.type||'—'}</span>
+                        </div>
+                        <div style={{fontSize:12,color:'#E24B4A',marginBottom:4}}>"{r.reason}"</div>
+                        <div style={{fontSize:11,color:'#555'}}>
+                          Denunciado por: {r.reporter?.name||'—'} · {new Date(r.created_at).toLocaleDateString('pt-BR')}
+                        </div>
+                      </div>
+                      {!r.resolved && r.listing?.status === 'active' && (
+                        <div style={{display:'flex',gap:6,flexShrink:0}}>
+                          <button onClick={() => deleteListingFromReport(r.listing.id, r.id)}
+                            style={{padding:'5px 10px',background:'#2A0A0A',color:'#E24B4A',border:'0.5px solid #4A1515',borderRadius:7,fontSize:11,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                            Excluir
+                          </button>
+                          <button onClick={() => resolveReport(r.id)}
+                            style={{padding:'5px 10px',background:'#0A1A0A',color:'#4CAF50',border:'0.5px solid #1A4A1A',borderRadius:7,fontSize:11,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                            Ignorar
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* ── DESTAQUES ── */}
             {!loading && tab === 'destaques' && (

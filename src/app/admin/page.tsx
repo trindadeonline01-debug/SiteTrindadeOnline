@@ -51,6 +51,7 @@ export default function AdminPage() {
   const [hlLoading, setHlLoading]   = useState(false)
   const [reports, setReports]         = useState<Report[]>([])
   const [repCount, setRepCount]       = useState(0)
+  const [planStats, setPlanStats]     = useState<{paid:number;trial:number;expired:number;expiring:number}>({paid:0,trial:0,expired:0,expiring:0})
 
   // Verifica se é admin
   useEffect(() => {
@@ -89,6 +90,22 @@ export default function AdminPage() {
       supabase.from('search_logs').select('*', { count: 'exact', head: true }),
       supabase.from('search_logs').select('*', { count: 'exact', head: true }).gte('created_at', today()),
     ])
+    // Plan stats
+    const now = new Date().toISOString()
+    const in3days = new Date(Date.now() + 3*86400000).toISOString()
+    const [
+      {count: paidCount},
+      {count: trialCount},
+      {count: expiredCount},
+      {count: expiringCount}
+    ] = await Promise.all([
+      supabase.from('companies').select('*',{count:'exact',head:true}).eq('status','active').eq('plan','paid'),
+      supabase.from('companies').select('*',{count:'exact',head:true}).eq('status','active').neq('plan','paid').gt('trial_ends_at',now),
+      supabase.from('companies').select('*',{count:'exact',head:true}).eq('status','active').neq('plan','paid').lt('trial_ends_at',now),
+      supabase.from('companies').select('*',{count:'exact',head:true}).eq('status','active').neq('plan','paid').gt('trial_ends_at',now).lt('trial_ends_at',in3days),
+    ])
+    setPlanStats({paid:paidCount||0,trial:trialCount||0,expired:expiredCount||0,expiring:expiringCount||0})
+
     setStats({
       total_users: total_users||0, users_today: users_today||0, users_week: users_week||0,
       total_companies: total_companies||0, pending: pending||0, active: active||0,

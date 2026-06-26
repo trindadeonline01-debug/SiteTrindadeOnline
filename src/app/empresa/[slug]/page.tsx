@@ -13,6 +13,7 @@ type Company = {
   avg_rating?: number; total_reviews?: number
   views_count?: number; whatsapp_clicks?: number
   category?: { name: string; emoji: string; slug?: string }
+  trial_ends_at?: string
   subcategories?: CompanySubcat[]
   photos?: CompanyPhoto[]
   hours?: CompanyHour[]
@@ -63,7 +64,7 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
   async function loadCompany() {
     const { data } = await supabase
       .from('companies')
-      .select('*, category:categories(name,emoji,slug), subcategories:company_subcategories(subcategory:subcategories(name,emoji)), photos:company_photos(id,url,order), hours:company_hours(label,hours,order)')
+      .select('*, trial_ends_at, category:categories(name,emoji,slug), subcategories:company_subcategories(subcategory:subcategories(name,emoji)), photos:company_photos(id,url,order), hours:company_hours(label,hours,order)')
       .eq('slug', slug)
       .maybeSingle()
 
@@ -120,6 +121,8 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
   )
   if (!company) return null
 
+  const isActive = company.plan === 'paid' || (!!company.trial_ends_at && new Date(company.trial_ends_at) > new Date())
+  const trialDaysLeft = company.trial_ends_at ? Math.ceil((new Date(company.trial_ends_at).getTime() - Date.now()) / 86400000) : 0
   const photos = (company.photos || []).sort((a,b) => a.order - b.order)
   const open = isOpenNow(company.hours)
   const avgRating = company.avg_rating || 0
@@ -333,16 +336,21 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
                 {company.hours && company.hours.length > 0 && (
                   <div className={`c-open-badge ${open ? 'c-open-yes' : 'c-open-no'}`}>{open ? '● Aberto agora' : '● Fechado agora'}</div>
                 )}
+                {company.plan !== 'paid' && company.trial_ends_at && trialDaysLeft > 0 && (
+                  <div style={{fontSize:10,fontWeight:600,padding:'2px 8px',borderRadius:6,background:'#FEF3E2',color:'#854F0B',marginBottom:6,display:'inline-block'}}>
+                    🕐 Trial: {trialDaysLeft} dia{trialDaysLeft!==1?'s':''} restante{trialDaysLeft!==1?'s':''}
+                  </div>
+                )}
                 <div className="c-name">{company.name}</div>
                 <div className="c-cat">{company.category?.emoji} {company.category?.name}{company.subcategories?.[0] ? ` · ${company.subcategories[0].subcategory.name}` : ''}</div>
 
-                {company.plan === 'paid' && company.phone && (
+                {isActive && company.phone && (
                   <button className="btn-wa" onClick={handleWhatsApp}>
                     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
                     Falar no WhatsApp
                   </button>
                 )}
-                {company.plan === 'paid' && company.external_link && (
+                {isActive && company.external_link && (
                   <button className="btn-ext" onClick={() => window.open(company.external_link!, '_blank')}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
                     {company.external_link_label || 'Acessar site'}
@@ -390,7 +398,7 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
         </div>
 
         {/* AVALIAÇÕES — LARGURA TOTAL */}
-        {company.plan === 'paid' && (
+        {isActive && (
           <div className="rv-section">
             <div className="rv-hdr">
               <div className="rv-sum">

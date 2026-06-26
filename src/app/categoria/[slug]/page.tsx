@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 
 type Category    = { id: string; name: string; emoji: string; slug: string }
 type Subcategory = { id: string; name: string; emoji: string }
+type Highlight   = { id: string; company: { name: string; slug: string; photos?: any[]; category?: any } }
 type Company     = {
   id: string; name: string; slug: string
   avg_rating?: number; address?: string
@@ -19,6 +20,7 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
   const [companies, setCompanies] = useState<Company[]>([])
   const [filtered, setFiltered]   = useState<Company[]>([])
   const [activeSub, setActiveSub] = useState<string | null>(null)
+  const [highlights, setHighlights] = useState<Highlight[]>([])
   const [loading, setLoading]     = useState(true)
   const [notFound, setNotFound]   = useState(false)
   const [search, setSearch]       = useState('')
@@ -116,6 +118,8 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
         .chip{padding:7px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid #E0DDD8;background:#FAFAF8;color:#666;transition:all .15s;font-family:'Inter',sans-serif;}
         .chip:hover{border-color:#C9951A;background:#FEF3E2;color:#854F0B;}
         .chip.on{border-color:#C9951A;background:#C9951A;color:#fff;font-weight:600;}
+        @media(min-width:640px){.hl-grid{grid-template-columns:repeat(3,1fr) !important;}}
+        @media(min-width:1024px){.hl-grid{grid-template-columns:repeat(4,1fr) !important;}}
 
         .result-cnt{font-size:13px;color:#AAA;margin-bottom:16px;}
         .result-cnt span{color:#111;font-weight:600;}
@@ -195,6 +199,36 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
           <span>›</span>
           <span>{category?.name || '...'}</span>
         </div>
+
+
+        {/* DESTAQUES */}
+        {highlights.length > 0 && (
+          <div style={{marginBottom:28}}>
+            <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
+              <span style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:12,color:'#AAA',letterSpacing:'1.5px'}}>EM DESTAQUE</span>
+              <div style={{flex:1,height:'0.5px',background:'#F0EDE8'}}/>
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:10}}>
+              {highlights.map(h => {
+                const cover = h.company.photos?.length
+                  ? [...h.company.photos].sort((a:any,b:any)=>a.order-b.order)[0]?.url
+                  : null
+                return (
+                  <a key={h.id} href={`/empresa/${h.company.slug}`}
+                    style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',background:'#FEF8EC',border:'1.5px solid #C9951A',borderRadius:12,textDecoration:'none',transition:'all .15s'}}>
+                    <div style={{width:48,height:48,borderRadius:10,overflow:'hidden',flexShrink:0,background:'#FEF3E2',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22}}>
+                      {cover ? <img src={cover} alt={h.company.name} style={{width:'100%',height:'100%',objectFit:'cover'}}/> : <span>{h.company.category?.emoji||'🏪'}</span>}
+                    </div>
+                    <div style={{minWidth:0}}>
+                      <div style={{fontSize:12,fontWeight:700,color:'#111',marginBottom:2,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{h.company.name}</div>
+                      <div style={{fontSize:10,color:'#C9951A',fontWeight:600}}>⭐ Destaque</div>
+                    </div>
+                  </a>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {subcats.length > 0 && (
           <>

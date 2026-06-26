@@ -85,7 +85,7 @@ export default function Home() {
 
         /* HEADER */
         .site-header{background:#fff;border-bottom:1px solid #EDE8E0;position:sticky;top:0;z-index:50;}
-        .header-inner{max-width:1200px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:12px;}
+        .header-inner{max-width:1200px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:12px;justify-content:space-between;}
         .logo{display:flex;align-items:baseline;flex-shrink:0;text-decoration:none;}
         .logo-main{font-family:'Bebas Neue',sans-serif;font-size:26px;color:#111;letter-spacing:2px;}
         .logo-dot{font-family:'Bebas Neue',sans-serif;font-size:18px;color:#DDD;margin:0 5px;}
@@ -94,7 +94,7 @@ export default function Home() {
         .search-wrap input{flex:1;border:none;background:transparent;font-size:14px;font-family:'Inter',sans-serif;color:#222;outline:none;}
         .search-wrap input::placeholder{color:#BBB;}
         .search-btn{width:28px;height:28px;border-radius:50%;background:#C9951A;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-        @media(min-width:768px){.search-wrap,.search-btn{display:none;}}
+        @media(min-width:768px){.search-wrap{display:none;}.search-btn{display:none;}}
         .btn-login-icon{width:36px;height:36px;border-radius:50%;border:1.5px solid #C9951A;color:#C9951A;display:flex;align-items:center;justify-content:center;text-decoration:none;flex-shrink:0;transition:background .15s;}
         .btn-login-icon:hover{background:#FEF3E2;}
         .btn-entrar{display:none;align-items:center;gap:5px;background:transparent;color:#C9951A;border:1.5px solid #C9951A;border-radius:10px;padding:8px 16px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;white-space:nowrap;flex-shrink:0;text-decoration:none;transition:background .15s;}

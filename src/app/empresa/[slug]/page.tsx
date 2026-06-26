@@ -80,10 +80,9 @@ export default function EmpresaPerfilPage({ params }: { params: { slug: string }
       .from('companies')
       .select(`*, category:categories(name,emoji), subcategories:company_subcategories(subcategory:subcategories(name,emoji)), photos:company_photos(id,url,order), hours:company_hours(label,hours,order)`)
       .eq('slug', params.slug)
-      .eq('status', 'active')
       .maybeSingle()
 
-    if (!comp) { setNotFound(true); setLoading(false); return }
+    if (!comp || comp.status !== 'active') { setNotFound(true); setLoading(false); return }
     setCompany(comp)
 
     // Registra visualização

@@ -228,21 +228,19 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
               <span style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:12,color:'#AAA',letterSpacing:'1.5px'}}>EM DESTAQUE</span>
               <div style={{flex:1,height:'0.5px',background:'#F0EDE8'}}/>
             </div>
-            <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:10}}>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10}}>
               {highlights.map(h => {
                 const cover = h.company.photos?.length
                   ? [...h.company.photos].sort((a:any,b:any)=>a.order-b.order)[0]?.url
                   : null
                 return (
                   <a key={h.id} href={`/empresa/${h.company.slug}`}
-                    style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',background:'#FEF8EC',border:'1.5px solid #C9951A',borderRadius:12,textDecoration:'none',transition:'all .15s'}}>
-                    <div style={{width:48,height:48,borderRadius:10,overflow:'hidden',flexShrink:0,background:'#FEF3E2',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22}}>
+                    style={{display:'flex',flexDirection:'column',alignItems:'center',padding:'12px 10px',background:'#FEF8EC',border:'1.5px solid #C9951A',borderRadius:12,textDecoration:'none',transition:'all .15s',textAlign:'center'}}>
+                    <div style={{width:56,height:56,borderRadius:10,overflow:'hidden',flexShrink:0,background:'#FEF3E2',display:'flex',alignItems:'center',justifyContent:'center',fontSize:26,marginBottom:8}}>
                       {cover ? <img src={cover} alt={h.company.name} style={{width:'100%',height:'100%',objectFit:'cover'}}/> : <span>{h.company.category?.emoji||'🏪'}</span>}
                     </div>
-                    <div style={{minWidth:0}}>
-                      <div style={{fontSize:12,fontWeight:700,color:'#111',marginBottom:2,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{h.company.name}</div>
-                      <div style={{fontSize:10,color:'#C9951A',fontWeight:600}}>⭐ Destaque</div>
-                    </div>
+                    <div style={{fontSize:11,fontWeight:700,color:'#111',marginBottom:3,overflow:'hidden',textOverflow:'ellipsis',width:'100%'}}>{h.company.name}</div>
+                    <div style={{fontSize:9,color:'#C9951A',fontWeight:600}}>⭐ Destaque</div>
                   </a>
                 )
               })}

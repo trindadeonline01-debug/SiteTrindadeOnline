@@ -20,13 +20,13 @@ function CadastroForm() {
   async function handleCadastro(e: React.FormEvent) {
     e.preventDefault()
     setErro('')
-    setLoading(true)
 
     if (senha.length < 6) {
       setErro('A senha precisa ter pelo menos 6 caracteres.')
-      setLoading(false)
       return
     }
+
+    setLoading(true)
 
     const { error } = await supabase.auth.signUp({
       email,
@@ -46,6 +46,13 @@ function CadastroForm() {
       } else {
         setErro('Erro ao criar conta. Tente novamente.')
       }
+      setLoading(false)
+      return
+    }
+
+    // Se for empresa, redireciona para cadastrar a empresa
+    if (tipo === 'empresa') {
+      window.location.href = '/empresa/cadastrar'
     } else {
       setOk(true)
     }
@@ -58,11 +65,10 @@ function CadastroForm() {
         <div style={{ fontSize: 48, marginBottom: 16 }}>🎉</div>
         <div style={{ fontSize: 20, fontWeight: 700, color: '#111', marginBottom: 8 }}>Conta criada!</div>
         <div style={{ fontSize: 13, color: '#888', lineHeight: 1.7, marginBottom: 24 }}>
-          Enviamos um e-mail de confirmação para <strong>{email}</strong>.<br/>
-          Confirme seu e-mail e depois faça o login.
+          Bem-vindo ao Trindade Online, <strong>{nome}</strong>!
         </div>
-        <a href="/login" style={{ background: '#C9951A', color: '#fff', padding: '12px 28px', borderRadius: 12, fontSize: 14, fontWeight: 600, textDecoration: 'none', display: 'inline-block' }}>
-          Ir para o login →
+        <a href="/" style={{ background: '#C9951A', color: '#fff', padding: '12px 28px', borderRadius: 12, fontSize: 14, fontWeight: 600, textDecoration: 'none', display: 'inline-block' }}>
+          Explorar o Guia →
         </a>
       </div>
     )
@@ -144,19 +150,18 @@ function CadastroForm() {
 
       {tipo === 'empresa' && (
         <div style={{ background: '#FEF3E2', border: '0.5px solid #F5C77A', borderRadius: 10, padding: '10px 14px', marginBottom: 14, fontSize: 12, color: '#854F0B', lineHeight: 1.6 }}>
-          ✅ Após criar sua conta, você poderá cadastrar sua empresa gratuitamente por 30 dias.
+          ✅ Após criar sua conta, você será direcionado para cadastrar sua empresa gratuitamente por 30 dias.
         </div>
       )}
 
       {erro && <div className="erro-msg">⚠️ {erro}</div>}
 
       <button className="btn-primary" type="submit" disabled={loading}>
-        {loading ? 'Criando conta...' : 'Criar conta grátis'}
+        {loading ? 'Criando conta...' : tipo === 'empresa' ? 'Criar conta e cadastrar empresa →' : 'Criar conta grátis'}
       </button>
 
       <div className="auth-footer">
-        Já tem conta?{' '}
-        <a href="/login">Fazer login</a>
+        Já tem conta? <a href="/login">Fazer login</a>
       </div>
     </form>
   )

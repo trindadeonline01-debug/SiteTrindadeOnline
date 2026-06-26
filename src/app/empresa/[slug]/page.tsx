@@ -3,59 +3,43 @@
 import { useState, useEffect, use } from 'react'
 import { supabase } from '@/lib/supabase'
 
-type CompanyHour = { label: string; hours: string; order: number }
-type CompanyPhoto = { id: string; url: string; order: number }
+type CompanyHour   = { label: string; hours: string; order: number }
+type CompanyPhoto  = { id: string; url: string; order: number }
 type CompanySubcat = { subcategory: { name: string; emoji: string } }
-type CompanyCategory = { name: string; emoji: string }
-
 type Company = {
-  id: string
-  name: string
-  slug: string
-  status: string
-  plan: string
-  description?: string
-  address?: string
-  phone?: string
-  external_link?: string
-  external_link_label?: string
-  avg_rating?: number
-  total_reviews?: number
-  views_count?: number
-  whatsapp_clicks?: number
-  category?: CompanyCategory
+  id: string; name: string; slug: string; status: string; plan: string
+  description?: string; address?: string; phone?: string
+  external_link?: string; external_link_label?: string
+  avg_rating?: number; total_reviews?: number
+  views_count?: number; whatsapp_clicks?: number
+  category?: { name: string; emoji: string }
   subcategories?: CompanySubcat[]
   photos?: CompanyPhoto[]
   hours?: CompanyHour[]
 }
-
 type Review = {
-  id: string
-  rating: number
-  text?: string
-  created_at: string
+  id: string; rating: number; text?: string; created_at: string
   user?: { name: string }
   response?: { text: string }
 }
 
 const fmtDate = (s: string) => new Date(s).toLocaleDateString('pt-BR')
 
-function isOpenNow(hours: CompanyHour[] | undefined): boolean {
+function isOpenNow(hours?: CompanyHour[]): boolean {
   if (!hours || hours.length === 0) return false
-  const now = new Date()
-  const day = now.getDay()
-  const dayMap: Record<number, string> = { 1:'Seg', 2:'Seg', 3:'Seg', 4:'Seg', 5:'Seg', 6:'Sáb', 0:'Dom' }
-  const entry = hours.find(h => h.label.includes(dayMap[day]))
+  const day = new Date().getDay()
+  const map: Record<number,string> = { 1:'Seg',2:'Seg',3:'Seg',4:'Seg',5:'Seg',6:'Sáb',0:'Dom' }
+  const entry = hours.find(h => h.label.includes(map[day]))
   if (!entry || !entry.hours || entry.hours.toLowerCase() === 'fechado') return false
-  const match = entry.hours.match(/(\d{2}):(\d{2})[–\-](\d{2}):(\d{2})/)
-  if (!match) return true
-  const sh = parseInt(match[1]), sm = parseInt(match[2]), eh = parseInt(match[3]), em = parseInt(match[4])
-  const cur = now.getHours() * 60 + now.getMinutes()
-  return cur >= sh * 60 + sm && cur <= eh * 60 + em
+  const m = entry.hours.match(/(\d{2}):(\d{2})[–\-](\d{2}):(\d{2})/)
+  if (!m) return true
+  const cur = new Date().getHours() * 60 + new Date().getMinutes()
+  return cur >= parseInt(m[1])*60+parseInt(m[2]) && cur <= parseInt(m[3])*60+parseInt(m[4])
 }
 
 export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params)
+
   const [company, setCompany]       = useState<Company | null>(null)
   const [reviews, setReviews]       = useState<Review[]>([])
   const [loading, setLoading]       = useState(true)
@@ -67,7 +51,7 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
   const [myRating, setMyRating]     = useState(0)
   const [myText, setMyText]         = useState('')
   const [reviewSent, setReviewSent] = useState(false)
-  const [reviewLoading, setRevLoad] = useState(false)
+  const [revLoading, setRevLoad]    = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -77,29 +61,21 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
   }, [])
 
   async function loadCompany() {
-    const { data: comp } = await supabase
+    const { data } = await supabase
       .from('companies')
-      .select(`*, category:categories(name,emoji), subcategories:company_subcategories(subcategory:subcategories(name,emoji)), photos:company_photos(id,url,order), hours:company_hours(label,hours,order)`)
+      .select('*, category:categories(name,emoji), subcategories:company_subcategories(subcategory:subcategories(name,emoji)), photos:company_photos(id,url,order), hours:company_hours(label,hours,order)')
       .eq('slug', slug)
       .maybeSingle()
 
-    if (!comp || comp.status !== 'active') { setNotFound(true); setLoading(false); return }
-    setCompany(comp)
-
-    // Registra visualização
-    await supabase.from('page_views').insert({ page: '/empresa', entity_id: comp.id })
-    await supabase.from('companies').update({ views_count: ((comp.views_count as number) || 0) + 1 }).eq('id', comp.id)
-
-    const { data: revs } = await supabase
-      .from('reviews')
-      .select('*, user:profiles(name), response:review_responses(text)')
-      .eq('company_id', comp.id)
-      .order('created_at', { ascending: false })
+    if (!data || data.status !== 'active') { setNotFound(true); setLoading(false); return }
+    setCompany(data)
+    await supabase.from('page_views').insert({ page: '/empresa', entity_id: data.id })
+    await supabase.from('companies').update({ views_count: ((data.views_count as number) || 0) + 1 }).eq('id', data.id)
+    const { data: revs } = await supabase.from('reviews').select('*, user:profiles(name), response:review_responses(text)').eq('company_id', data.id).order('created_at', { ascending: false })
     setReviews(revs || [])
-
     const { data: { session } } = await supabase.auth.getSession()
     if (session) {
-      const { data: fav } = await supabase.from('favorites').select('id').eq('user_id', session.user.id).eq('entity_type', 'company').eq('entity_id', comp.id).maybeSingle()
+      const { data: fav } = await supabase.from('favorites').select('id').eq('user_id', session.user.id).eq('entity_type', 'company').eq('entity_id', data.id).maybeSingle()
       setIsFav(!!fav)
     }
     setLoading(false)
@@ -109,25 +85,17 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
     if (!userId || !company) { window.location.href = '/login'; return }
     if (isFav) {
       await supabase.from('favorites').delete().eq('user_id', userId).eq('entity_type', 'company').eq('entity_id', company.id)
-      setIsFav(false)
     } else {
       await supabase.from('favorites').insert({ user_id: userId, entity_type: 'company', entity_id: company.id })
-      setIsFav(true)
     }
+    setIsFav(!isFav)
   }
 
   async function handleWhatsApp() {
     if (!company?.phone) return
-    const cur = (company.whatsapp_clicks as number) || 0
-    await supabase.from('companies').update({ whatsapp_clicks: cur + 1 }).eq('id', company.id)
+    await supabase.from('companies').update({ whatsapp_clicks: ((company.whatsapp_clicks as number) || 0) + 1 }).eq('id', company.id)
     await supabase.from('whatsapp_clicks').insert({ company_id: company.id, user_id: userId })
-    const phone = company.phone.replace(/\D/g, '')
-    window.open(`https://wa.me/55${phone}?text=Olá! Vi sua empresa no Trindade Online.`, '_blank')
-  }
-
-  async function handleLink() {
-    if (!company?.external_link) return
-    window.open(company.external_link, '_blank')
+    window.open(`https://wa.me/55${company.phone.replace(/\D/g,'')}?text=Olá! Vi sua empresa no Trindade Online.`, '_blank')
   }
 
   async function submitReview() {
@@ -135,33 +103,26 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
     if (myRating === 0 || !company) return
     setRevLoad(true)
     await supabase.from('reviews').insert({ company_id: company.id, user_id: userId, rating: myRating, text: myText || null })
-    setReviewSent(true)
-    setShowReview(false)
-    setMyRating(0)
-    setMyText('')
+    setReviewSent(true); setShowReview(false); setMyRating(0); setMyText('')
     loadCompany()
     setRevLoad(false)
   }
 
-  if (loading) return (
-    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'100vh', fontFamily:'Inter,sans-serif', color:'#AAA' }}>
-      Carregando...
-    </div>
-  )
+  if (loading) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',fontFamily:'Inter,sans-serif',color:'#AAA'}}>Carregando...</div>
 
   if (notFound) return (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:'100vh', fontFamily:'Inter,sans-serif', padding:24 }}>
-      <div style={{ fontSize:48, marginBottom:16 }}>🏪</div>
-      <div style={{ fontSize:20, fontWeight:700, marginBottom:8 }}>Empresa não encontrada</div>
-      <div style={{ fontSize:13, color:'#AAA', marginBottom:24 }}>Esta empresa não existe ou não está ativa.</div>
-      <a href="/" style={{ background:'#C9951A', color:'#fff', padding:'12px 24px', borderRadius:12, textDecoration:'none', fontWeight:600 }}>Voltar ao início</a>
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:'100vh',fontFamily:'Inter,sans-serif',padding:24,background:'#F0EDE8'}}>
+      <div style={{fontSize:56,marginBottom:16}}>🏪</div>
+      <div style={{fontSize:20,fontWeight:700,marginBottom:8}}>Empresa não encontrada</div>
+      <div style={{fontSize:13,color:'#AAA',marginBottom:24}}>Esta empresa não existe ou não está ativa.</div>
+      <a href="/" style={{background:'#C9951A',color:'#fff',padding:'12px 28px',borderRadius:12,textDecoration:'none',fontWeight:600}}>Voltar ao início</a>
     </div>
   )
-
   if (!company) return null
 
-  const photos = (company.photos || []).sort((a, b) => a.order - b.order)
+  const photos = (company.photos || []).sort((a,b) => a.order - b.order)
   const open = isOpenNow(company.hours)
+  const avgRating = company.avg_rating || 0
 
   return (
     <>
@@ -169,275 +130,333 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
         body{font-family:'Inter',sans-serif;background:#F0EDE8;}
-        .page-wrap{max-width:800px;margin:0 auto;background:#fff;min-height:100vh;box-shadow:0 0 40px rgba(0,0,0,.08);}
-        .gallery{position:relative;height:280px;background:#F0EDE8;overflow:hidden;}
-        @media(min-width:768px){.gallery{height:420px;}}
-        .gallery img{width:100%;height:100%;object-fit:cover;}
-        .gallery-empty{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:72px;}
-        .gal-prev,.gal-next{position:absolute;top:50%;transform:translateY(-50%);width:36px;height:36px;background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:50%;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;}
-        .gal-prev{left:12px;}.gal-next{right:12px;}
-        .gal-dots{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:6px;}
-        .gal-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.5);cursor:pointer;transition:all .2s;}
-        .gal-dot.on{background:#fff;width:20px;border-radius:4px;}
-        .gal-count{position:absolute;top:12px;right:12px;background:rgba(0,0,0,.5);color:#fff;font-size:11px;padding:3px 10px;border-radius:10px;}
-        .back-btn{position:absolute;top:12px;left:12px;display:flex;align-items:center;gap:5px;background:rgba(0,0,0,.5);color:#fff;padding:7px 12px;border-radius:20px;cursor:pointer;font-size:13px;font-weight:500;text-decoration:none;}
-        .empresa-hdr{padding:20px 20px 16px;border-bottom:0.5px solid #F0EDE8;}
-        .empresa-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px;}
-        .empresa-name{font-family:'Bebas Neue',sans-serif;font-size:clamp(22px,4vw,32px);color:#111;letter-spacing:1px;line-height:1.1;}
-        .top-btns{display:flex;gap:8px;flex-shrink:0;}
-        .icon-btn{width:38px;height:38px;border-radius:50%;border:1.5px solid #E0DDD8;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;font-size:16px;}
-        .icon-btn:hover,.icon-btn.fav{border-color:#C9951A;background:#FEF3E2;}
-        .meta-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
-        .cat-tag{font-size:12px;background:#F0EDE8;color:#666;padding:3px 10px;border-radius:10px;}
-        .rating-tag{font-size:13px;color:#C9951A;font-weight:600;}
-        .reviews-tag{font-size:12px;color:#AAA;}
-        .open-yes{font-size:11px;font-weight:600;padding:3px 10px;border-radius:10px;background:#EDFAF3;color:#0F8050;}
-        .open-no{font-size:11px;font-weight:600;padding:3px 10px;border-radius:10px;background:#FEF0F0;color:#E24B4A;}
-        .subcats-row{display:flex;gap:6px;flex-wrap:wrap;}
-        .sub-tag{font-size:11px;padding:3px 9px;border-radius:8px;background:#F5F2EC;color:#666;border:0.5px solid #E0DDD8;}
-        .action-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:16px 20px;border-bottom:0.5px solid #F0EDE8;}
-        .action-btns.single{grid-template-columns:1fr;}
-        .btn-wa{padding:13px;background:#25D366;color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;}
-        .btn-wa:hover{background:#22c55e;}
-        .btn-ext{padding:13px;background:#185FA5;color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;}
-        .btn-ext:hover{background:#1d4ed8;}
-        .section{padding:18px 20px;border-bottom:0.5px solid #F0EDE8;}
-        .sec-lbl{font-family:'Bebas Neue',sans-serif;font-size:13px;color:#888;letter-spacing:1.5px;margin-bottom:12px;}
-        .desc-text{font-size:14px;color:#555;line-height:1.8;}
-        .hours-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-        @media(min-width:600px){.hours-grid{grid-template-columns:repeat(4,1fr);}}
-        .hour-box{background:#FAFAF8;border:0.5px solid #E0DDD8;border-radius:10px;padding:10px 12px;}
-        .hour-day{font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;}
-        .hour-val{font-size:12px;color:#333;font-weight:500;}
-        .address-box{display:flex;align-items:flex-start;gap:10px;background:#FAFAF8;border:0.5px solid #E0DDD8;border-radius:12px;padding:14px;}
-        .address-txt{font-size:13px;color:#333;line-height:1.6;flex:1;}
-        .map-btn{padding:8px 14px;background:#C9951A;color:#fff;border:none;border-radius:9px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap;}
-        .rating-sum{display:flex;align-items:center;gap:16px;background:#FAFAF8;border:0.5px solid #E0DDD8;border-radius:13px;padding:16px;margin-bottom:16px;}
-        .rating-big{font-family:'Bebas Neue',sans-serif;font-size:52px;color:#C9951A;letter-spacing:2px;line-height:1;text-align:center;}
-        .bar-row{display:flex;align-items:center;gap:6px;margin-bottom:4px;}
-        .bar-bg{flex:1;height:6px;background:#F0EDE8;border-radius:3px;overflow:hidden;}
-        .bar-fill{height:100%;background:#C9951A;border-radius:3px;}
-        .review-card{background:#FAFAF8;border:0.5px solid #EDE8E0;border-radius:12px;padding:14px;margin-bottom:10px;}
-        .rv-top{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
-        .rv-av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#C9951A,#E8B84B);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:14px;color:#fff;flex-shrink:0;}
-        .rv-resp{background:#FEF3E2;border:0.5px solid #F5C77A;border-radius:9px;padding:10px 12px;margin-top:8px;}
-        .review-form{background:#FAFAF8;border:1.5px solid #C9951A;border-radius:14px;padding:16px;margin-bottom:12px;}
+
+        .topbar{background:#111;padding:10px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+        .t-logo{font-family:'Bebas Neue',sans-serif;font-size:20px;color:#fff;letter-spacing:2px;text-decoration:none;}
+        .t-logo span{color:#C9951A;}
+        .t-back{color:#888;font-size:13px;text-decoration:none;display:flex;align-items:center;gap:5px;}
+        .t-back:hover{color:#fff;}
+
+        .page{max-width:1100px;margin:0 auto;padding:24px 24px 48px;background:#fff;min-height:100vh;}
+        @media(max-width:767px){.page{padding:16px 16px 40px;}}
+
+        /* TOP GRID */
+        .top-grid{display:grid;grid-template-columns:1fr 300px;gap:24px;margin-bottom:36px;}
+        @media(max-width:767px){.top-grid{grid-template-columns:1fr;gap:0;}}
+
+        /* GALERIA */
+        .gallery{border-radius:14px;overflow:hidden;margin-bottom:18px;}
+        .gal-wrap{height:300px;background:#111;display:grid;grid-template-columns:2fr 1fr;grid-template-rows:1fr 1fr;gap:3px;}
+        @media(max-width:767px){.gal-wrap{height:220px;}}
+        .gal-big{grid-row:1/3;overflow:hidden;position:relative;}
+        .gal-big img,.gal-sm img{width:100%;height:100%;object-fit:cover;}
+        .gal-big-empty{width:100%;height:100%;background:#1a1a1a;display:flex;align-items:center;justify-content:center;font-size:56px;}
+        .gal-sm{overflow:hidden;position:relative;}
+        .gal-sm-empty{width:100%;height:100%;background:#222;display:flex;align-items:center;justify-content:center;font-size:28px;}
+        .gal-ov{position:absolute;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px;cursor:pointer;}
+        .gal-nav{position:absolute;bottom:10px;right:10px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;font-weight:500;padding:3px 10px;border-radius:12px;}
+
+        /* INFO */
+        .empresa-name{font-family:'Bebas Neue',sans-serif;font-size:clamp(26px,4vw,36px);color:#111;letter-spacing:1px;margin-bottom:8px;}
+        .tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
+        .tag{font-size:11px;padding:3px 9px;border-radius:7px;font-weight:500;}
+        .tag-cat{background:#F0EDE8;color:#666;border:0.5px solid #E0DDD8;}
+        .tag-open{background:#EDFAF3;color:#0F6E56;}
+        .tag-closed{background:#FEF0F0;color:#E24B4A;}
+        .tag-sub{background:#EBF4FF;color:#185FA5;}
+        .stars-row{display:flex;align-items:center;gap:7px;margin-bottom:18px;}
+        .st{color:#C9951A;font-size:15px;}
+        .rn{font-weight:600;font-size:14px;color:#111;}
+        .rc{font-size:12px;color:#AAA;}
+        .sec-lbl{font-family:'Bebas Neue',sans-serif;font-size:11px;color:#AAA;letter-spacing:1.5px;margin-bottom:8px;}
+        .desc{font-size:14px;color:#555;line-height:1.8;}
+
+        /* COLUNA DIREITA */
+        .right-col{display:flex;flex-direction:column;gap:10px;}
+        @media(min-width:768px){.right-col{position:sticky;top:60px;max-height:calc(100vh - 80px);overflow-y:auto;}}
+        @media(max-width:767px){.right-col{margin-top:20px;}}
+
+        /* CARD CONTATO */
+        .contact-card{background:#FAFAF8;border:0.5px solid #EDE8E0;border-radius:14px;overflow:hidden;}
+        .c-photo{height:130px;overflow:hidden;display:flex;align-items:center;justify-content:center;}
+        .c-photo img{width:100%;height:100%;object-fit:cover;}
+        .c-photo-empty{width:100%;height:100%;background:linear-gradient(135deg,#111,#2a2a2a);display:flex;align-items:center;justify-content:center;font-size:44px;}
+        .c-body{padding:13px 14px;}
+        .c-open-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;padding:2px 8px;border-radius:6px;margin-bottom:6px;}
+        .c-open-yes{background:#EDFAF3;color:#0F6E56;}
+        .c-open-no{background:#FEF0F0;color:#E24B4A;}
+        .c-name{font-family:'Bebas Neue',sans-serif;font-size:18px;color:#111;letter-spacing:1px;margin-bottom:2px;}
+        .c-cat{font-size:11px;color:#AAA;margin-bottom:10px;}
+        .btn-wa{width:100%;padding:10px;background:#25D366;color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:6px;transition:opacity .15s;}
+        .btn-wa:hover{opacity:.9;}
+        .btn-ext{width:100%;padding:10px;background:#EBF4FF;color:#185FA5;border:0.5px solid #B5D4F4;border-radius:9px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:6px;transition:opacity .15s;}
+        .btn-ext:hover{opacity:.9;}
+        .btn-fav{width:100%;padding:8px;background:#fff;color:#888;border:0.5px solid #E0DDD8;border-radius:9px;font-size:12px;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;}
+        .btn-fav.on{background:#FEF3E2;color:#C9951A;border-color:#F5C77A;}
+
+        /* ENDEREÇO */
+        .addr-box{display:flex;align-items:flex-start;gap:9px;background:#FAFAF8;border:0.5px solid #EDE8E0;border-radius:12px;padding:11px 13px;}
+        .addr-txt{font-size:12px;color:#555;line-height:1.6;flex:1;}
+
+        /* MAPA */
+        .map-card{background:#FAFAF8;border:0.5px solid #EDE8E0;border-radius:14px;overflow:hidden;}
+        .map-preview{height:130px;background:#F0EDE8;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+        .map-pin{font-size:28px;z-index:2;position:relative;}
+        .map-lbl{position:absolute;bottom:6px;left:0;right:0;text-align:center;font-size:10px;font-weight:500;color:#888;}
+        .map-open-btn{width:100%;padding:10px;background:#FAFAF8;border:none;border-top:0.5px solid #EDE8E0;font-size:12px;font-weight:600;color:#185FA5;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;justify-content:center;gap:5px;}
+
+        /* AVALIAÇÕES */
+        .rv-section{border-top:0.5px solid #F0EDE8;padding-top:28px;}
+        .rv-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;}
+        .rv-sum{display:flex;align-items:center;gap:14px;}
+        .rv-big{font-family:'Bebas Neue',sans-serif;font-size:48px;color:#C9951A;line-height:1;}
+        .rv-info{display:flex;flex-direction:column;gap:2px;}
+        .rv-st-big{font-size:15px;color:#C9951A;}
+        .rv-cnt{font-size:11px;color:#AAA;}
+        .rv-bars{display:flex;flex-direction:column;gap:4px;min-width:120px;}
+        .bar-r{display:flex;align-items:center;gap:6px;}
+        .bar-bg{flex:1;height:5px;background:#F0EDE8;border-radius:3px;overflow:hidden;}
+        .bar-f{height:100%;background:#C9951A;border-radius:3px;}
+        .btn-write-rv{padding:9px 20px;background:#FEF3E2;color:#C9951A;border:1.5px solid #C9951A;border-radius:10px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;}
+
+        .rv-form{background:#FAFAF8;border:1.5px solid #C9951A;border-radius:14px;padding:16px;margin-bottom:16px;}
+        .star-row{display:flex;gap:8px;margin-bottom:10px;}
         .star-btn{font-size:26px;cursor:pointer;background:none;border:none;line-height:1;transition:transform .1s;}
         .star-btn:hover{transform:scale(1.2);}
-        .btn-write{width:100%;padding:12px;background:#FEF3E2;color:#C9951A;border:1.5px solid #C9951A;border-radius:12px;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;margin-bottom:14px;}
-        .btn-submit{width:100%;padding:12px;background:#C9951A;color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;margin-top:10px;}
-        .btn-submit:disabled{opacity:.6;cursor:not-allowed;}
         .rv-textarea{width:100%;padding:11px 13px;border:1.5px solid #E0DDD8;border-radius:11px;font-size:13px;font-family:'Inter',sans-serif;outline:none;resize:none;transition:border-color .15s;}
         .rv-textarea:focus{border-color:#C9951A;}
-        .page-footer{padding:24px 20px;text-align:center;font-size:12px;color:#AAA;border-top:0.5px solid #F0EDE8;}
+        .btn-rv-submit{width:100%;padding:12px;background:#C9951A;color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;margin-top:10px;}
+        .btn-rv-submit:disabled{opacity:.6;cursor:not-allowed;}
+
+        .rv-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+        @media(max-width:900px){.rv-grid{grid-template-columns:repeat(2,1fr);}}
+        @media(max-width:600px){.rv-grid{grid-template-columns:1fr;}}
+
+        .rv-card{background:#FAFAF8;border:0.5px solid #EDE8E0;border-radius:12px;padding:14px;}
+        .rv-top{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+        .rv-av{width:32px;height:32px;border-radius:50%;background:#C9951A;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:13px;color:#fff;flex-shrink:0;}
+        .rv-name{font-size:13px;font-weight:600;color:#222;}
+        .rv-date{font-size:10px;color:#CCC;margin-left:auto;}
+        .rv-stars{font-size:12px;color:#C9951A;margin-bottom:5px;}
+        .rv-txt{font-size:12px;color:#555;line-height:1.6;}
+        .rv-resp{background:#FEF3E2;border:0.5px solid #F5C77A;border-radius:8px;padding:8px 10px;margin-top:8px;}
+        .rv-resp-l{font-size:10px;font-weight:600;color:#854F0B;margin-bottom:2px;}
+        .rv-resp-t{font-size:11px;color:#854F0B;line-height:1.5;}
+
+        .page-footer{padding:28px 0 8px;text-align:center;font-size:12px;color:#AAA;border-top:0.5px solid #F0EDE8;margin-top:32px;}
         .page-footer a{color:#C9951A;text-decoration:none;}
+        .ok-msg{background:#EDFAF3;border:1px solid #A8E6C4;border-radius:10px;padding:10px 14px;font-size:13px;color:#0F5C3A;margin-bottom:14px;}
       `}</style>
 
-      <div className="page-wrap">
+      {/* TOPBAR */}
+      <div className="topbar">
+        <a className="t-logo" href="/">TRINDADE <span>ONLINE</span></a>
+        <a className="t-back" href="/">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+          Voltar
+        </a>
+      </div>
 
-        {/* GALLERY */}
-        <div className="gallery">
-          <a className="back-btn" href="/">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-            Voltar
-          </a>
-          {photos.length > 0 ? (
-            <>
-              <img src={photos[photoIdx]?.url} alt={company.name} />
-              {photos.length > 1 && (
-                <>
-                  <button className="gal-prev" onClick={() => setPhotoIdx(i => (i - 1 + photos.length) % photos.length)}>‹</button>
-                  <button className="gal-next" onClick={() => setPhotoIdx(i => (i + 1) % photos.length)}>›</button>
-                  <div className="gal-dots">{photos.map((_, i) => <div key={i} className={`gal-dot ${i === photoIdx ? 'on' : ''}`} onClick={() => setPhotoIdx(i)} />)}</div>
-                  <div className="gal-count">{photoIdx + 1} / {photos.length}</div>
-                </>
-              )}
-            </>
-          ) : (
-            <div className="gallery-empty">{company.category?.emoji || '🏪'}</div>
-          )}
-        </div>
+      <div className="page">
+        <div className="top-grid">
 
-        {/* HEADER */}
-        <div className="empresa-hdr">
-          <div className="empresa-top">
-            <div className="empresa-name">{company.name}</div>
-            <div className="top-btns">
-              <div className={`icon-btn ${isFav ? 'fav' : ''}`} onClick={toggleFav}>{isFav ? '❤️' : '🤍'}</div>
-              <div className="icon-btn" onClick={() => navigator.clipboard?.writeText(window.location.href)} title="Copiar link">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          {/* COLUNA ESQUERDA */}
+          <div>
+            {/* GALERIA */}
+            <div className="gallery">
+              <div className="gal-wrap">
+                <div className="gal-big">
+                  {photos[0] ? <img src={photos[photoIdx]?.url} alt={company.name} onClick={() => setPhotoIdx(i => (i+1)%photos.length)} style={{cursor:photos.length>1?'pointer':'default'}} /> : <div className="gal-big-empty">{company.category?.emoji || '🏪'}</div>}
+                  {photos.length > 1 && <div className="gal-nav">{photoIdx+1} / {photos.length}</div>}
+                </div>
+                <div className="gal-sm">
+                  {photos[1] ? <img src={photos[1].url} alt="" onClick={() => setPhotoIdx(1)} style={{cursor:'pointer'}} /> : <div className="gal-sm-empty">{company.category?.emoji || '🏪'}</div>}
+                </div>
+                <div className="gal-sm">
+                  {photos[2] ? (
+                    <>
+                      <img src={photos[2].url} alt="" onClick={() => setPhotoIdx(2)} style={{cursor:'pointer'}} />
+                      {photos.length > 3 && <div className="gal-ov" onClick={() => setPhotoIdx(3)}>+{photos.length - 3} fotos</div>}
+                    </>
+                  ) : <div className="gal-sm-empty">{company.category?.emoji || '🏪'}</div>}
+                </div>
               </div>
             </div>
-          </div>
-          <div className="meta-row">
-            {company.category && <span className="cat-tag">{company.category.emoji} {company.category.name}</span>}
-            {(company.avg_rating || 0) > 0 && <span className="rating-tag">★ {(company.avg_rating || 0).toFixed(1)}</span>}
-            {(company.total_reviews || 0) > 0 && <span className="reviews-tag">({company.total_reviews} avaliações)</span>}
-            {company.hours && company.hours.length > 0 && <span className={open ? 'open-yes' : 'open-no'}>{open ? '● Aberto agora' : '● Fechado'}</span>}
-          </div>
-          {company.subcategories && company.subcategories.length > 0 && (
-            <div className="subcats-row">
-              {company.subcategories.map((s, i) => <span key={i} className="sub-tag">{s.subcategory.emoji} {s.subcategory.name}</span>)}
+
+            <div className="empresa-name">{company.name}</div>
+            <div className="tags">
+              {company.category && <span className="tag tag-cat">{company.category.emoji} {company.category.name}</span>}
+              {company.hours && company.hours.length > 0 && <span className={`tag ${open ? 'tag-open' : 'tag-closed'}`}>{open ? '● Aberto agora' : '● Fechado'}</span>}
+              {company.subcategories?.map((s,i) => <span key={i} className="tag tag-sub">{s.subcategory.emoji} {s.subcategory.name}</span>)}
             </div>
-          )}
+            {avgRating > 0 && (
+              <div className="stars-row">
+                <span className="st">{'★'.repeat(Math.round(avgRating))}{'☆'.repeat(5-Math.round(avgRating))}</span>
+                <span className="rn">{avgRating.toFixed(1)}</span>
+                <span className="rc">({company.total_reviews} avaliações)</span>
+              </div>
+            )}
+
+            {company.description && (
+              <>
+                <div className="sec-lbl">SOBRE</div>
+                <div className="desc">{company.description}</div>
+              </>
+            )}
+          </div>
+
+          {/* COLUNA DIREITA */}
+          <div className="right-col">
+
+            {/* CARD CONTATO */}
+            <div className="contact-card">
+              <div className="c-photo">
+                {photos[0] ? <img src={photos[0].url} alt={company.name} /> : <div className="c-photo-empty">{company.category?.emoji || '🏪'}</div>}
+              </div>
+              <div className="c-body">
+                {company.hours && company.hours.length > 0 && (
+                  <div className={`c-open-badge ${open ? 'c-open-yes' : 'c-open-no'}`}>{open ? '● Aberto agora' : '● Fechado agora'}</div>
+                )}
+                <div className="c-name">{company.name}</div>
+                <div className="c-cat">{company.category?.emoji} {company.category?.name}{company.subcategories?.[0] ? ` · ${company.subcategories[0].subcategory.name}` : ''}</div>
+
+                {company.plan === 'paid' && company.phone && (
+                  <button className="btn-wa" onClick={handleWhatsApp}>
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                    Falar no WhatsApp
+                  </button>
+                )}
+                {company.plan === 'paid' && company.external_link && (
+                  <button className="btn-ext" onClick={() => window.open(company.external_link!, '_blank')}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    {company.external_link_label || 'Acessar site'}
+                  </button>
+                )}
+                <button className={`btn-fav ${isFav ? 'on' : ''}`} onClick={toggleFav}>
+                  {isFav ? '❤️' : '🤍'} {isFav ? 'Salvo nos favoritos' : 'Salvar nos favoritos'}
+                </button>
+              </div>
+            </div>
+
+            {/* ENDEREÇO */}
+            {company.address && (
+              <div className="addr-box">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#C9951A" strokeWidth="2" strokeLinecap="round" style={{flexShrink:0,marginTop:2}}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                <div className="addr-txt">{company.address}</div>
+              </div>
+            )}
+
+            {/* MAPA */}
+            {company.address && (
+              <div className="map-card">
+                <div className="map-preview">
+                  <svg style={{position:'absolute',inset:0,width:'100%',height:'100%',opacity:.12}} viewBox="0 0 300 130" xmlns="http://www.w3.org/2000/svg">
+                    <defs><pattern id="gr" width="18" height="18" patternUnits="userSpaceOnUse"><path d="M 18 0 L 0 0 0 18" fill="none" stroke="#111" strokeWidth="0.5"/></pattern></defs>
+                    <rect width="300" height="130" fill="url(#gr)"/>
+                    <rect x="20" y="15" width="55" height="25" rx="2" fill="#888" opacity=".5"/>
+                    <rect x="100" y="35" width="70" height="35" rx="2" fill="#888" opacity=".4"/>
+                    <rect x="200" y="10" width="45" height="22" rx="2" fill="#888" opacity=".5"/>
+                    <rect x="20" y="70" width="80" height="40" rx="2" fill="#888" opacity=".3"/>
+                    <rect x="135" y="80" width="60" height="40" rx="2" fill="#888" opacity=".4"/>
+                    <line x1="0" y1="55" x2="300" y2="55" stroke="#C9951A" strokeWidth="2" opacity=".5"/>
+                    <line x1="95" y1="0" x2="95" y2="130" stroke="#C9951A" strokeWidth="2" opacity=".5"/>
+                  </svg>
+                  <span className="map-pin">📍</span>
+                  <div className="map-lbl">{company.address}</div>
+                </div>
+                <button className="map-open-btn" onClick={() => window.open(`https://maps.google.com?q=${encodeURIComponent(company.address || '')}`, '_blank')}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                  Abrir no Google Maps
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* BOTÕES */}
-        {company.plan === 'paid' ? (
-          <div className={`action-btns ${!company.external_link ? 'single' : ''}`}>
-            {company.phone && (
-              <button className="btn-wa" onClick={handleWhatsApp}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-                Falar no WhatsApp
-              </button>
-            )}
-            {company.external_link && (
-              <button className="btn-ext" onClick={handleLink}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                {company.external_link_label || 'Acessar site'}
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="action-btns single">
-            <div style={{ background:'#F7F4EF', border:'1px solid #E0DDD8', borderRadius:12, padding:14, textAlign:'center', fontSize:13, color:'#888', lineHeight:1.6 }}>
-              Este estabelecimento ainda não possui plano ativo.
-            </div>
-          </div>
-        )}
-
-        {/* DESCRIÇÃO */}
-        {company.description && (
-          <div className="section">
-            <div className="sec-lbl">SOBRE</div>
-            <div className="desc-text">{company.description}</div>
-          </div>
-        )}
-
-        {/* HORÁRIOS */}
-        {company.hours && company.hours.length > 0 && (
-          <div className="section">
-            <div className="sec-lbl">HORÁRIO DE FUNCIONAMENTO</div>
-            <div className="hours-grid">
-              {company.hours.sort((a, b) => a.order - b.order).map((h, i) => (
-                <div key={i} className="hour-box">
-                  <div className="hour-day">{h.label}</div>
-                  <div className="hour-val" style={{ color: h.hours?.toLowerCase() === 'fechado' ? '#E24B4A' : '#333' }}>{h.hours || '—'}</div>
+        {/* AVALIAÇÕES — LARGURA TOTAL */}
+        {company.plan === 'paid' && (
+          <div className="rv-section">
+            <div className="rv-hdr">
+              <div className="rv-sum">
+                {avgRating > 0 && <div className="rv-big">{avgRating.toFixed(1)}</div>}
+                <div className="rv-info">
+                  {avgRating > 0 && <span className="rv-st-big">{'★'.repeat(Math.round(avgRating))}{'☆'.repeat(5-Math.round(avgRating))}</span>}
+                  <span className="rv-cnt">{company.total_reviews || 0} avaliações</span>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ENDEREÇO */}
-        {company.address && (
-          <div className="section">
-            <div className="sec-lbl">ENDEREÇO</div>
-            <div className="address-box">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9951A" strokeWidth="2" strokeLinecap="round" style={{ flexShrink:0, marginTop:2 }}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-              <div className="address-txt">{company.address}</div>
-              <button className="map-btn" onClick={() => window.open(`https://maps.google.com?q=${encodeURIComponent(company.address || '')}`, '_blank')}>Ver no mapa</button>
-            </div>
-          </div>
-        )}
-
-        {/* AVALIAÇÕES */}
-        <div className="section">
-          <div className="sec-lbl">AVALIAÇÕES {(company.total_reviews || 0) > 0 && `(${company.total_reviews})`}</div>
-
-          {company.plan === 'paid' ? (
-            <>
-              {(company.total_reviews || 0) > 0 && (
-                <div className="rating-sum">
-                  <div style={{ textAlign:'center' }}>
-                    <div className="rating-big">{(company.avg_rating || 0).toFixed(1)}</div>
-                    <div style={{ fontSize:18, color:'#C9951A', margin:'4px 0 2px' }}>{'★'.repeat(Math.round(company.avg_rating || 0))}</div>
-                    <div style={{ fontSize:12, color:'#AAA' }}>{company.total_reviews} avaliações</div>
-                  </div>
-                  <div style={{ flex:1 }}>
-                    {[5,4,3,2,1].map(star => {
-                      const cnt = reviews.filter(r => r.rating === star).length
-                      const pct = reviews.length > 0 ? (cnt / reviews.length) * 100 : 0
+                {avgRating > 0 && reviews.length > 0 && (
+                  <div className="rv-bars">
+                    {[5,4,3,2,1].map(s => {
+                      const cnt = reviews.filter(r => r.rating === s).length
+                      const pct = reviews.length > 0 ? (cnt/reviews.length)*100 : 0
                       return (
-                        <div key={star} className="bar-row">
-                          <span style={{ fontSize:10, color:'#AAA', width:8 }}>{star}</span>
-                          <div className="bar-bg"><div className="bar-fill" style={{ width:`${pct}%` }} /></div>
-                          <span style={{ fontSize:10, color:'#CCC', width:20, textAlign:'right' }}>{cnt}</span>
+                        <div key={s} className="bar-r">
+                          <span style={{fontSize:10,color:'#AAA',width:6}}>{s}</span>
+                          <div className="bar-bg"><div className="bar-f" style={{width:`${pct}%`}}/></div>
+                          <span style={{fontSize:10,color:'#CCC',width:16,textAlign:'right'}}>{cnt}</span>
                         </div>
                       )
                     })}
                   </div>
-                </div>
-              )}
-
-              {reviewSent && (
-                <div style={{ background:'#EDFAF3', border:'1px solid #A8E6C4', borderRadius:10, padding:'10px 14px', marginBottom:12, fontSize:13, color:'#0F5C3A' }}>
-                  ✓ Sua avaliação foi enviada!
-                </div>
-              )}
-
-              {!reviewSent && !showReview && (
-                <button className="btn-write" onClick={() => userId ? setShowReview(true) : window.location.href = '/login'}>
-                  ⭐ {userId ? 'Avaliar esta empresa' : 'Faça login para avaliar'}
+                )}
+              </div>
+              {!reviewSent && (
+                <button className="btn-write-rv" onClick={() => userId ? setShowReview(!showReview) : window.location.href='/login'}>
+                  ⭐ {userId ? 'Avaliar esta empresa' : 'Entrar para avaliar'}
                 </button>
               )}
-
-              {showReview && (
-                <div className="review-form">
-                  <div style={{ fontSize:13, fontWeight:600, color:'#333', marginBottom:8 }}>Sua avaliação</div>
-                  <div style={{ display:'flex', gap:8, marginBottom:12 }}>
-                    {[1,2,3,4,5].map(s => (
-                      <button key={s} className="star-btn" onClick={() => setMyRating(s)}>
-                        {s <= myRating ? '★' : '☆'}
-                      </button>
-                    ))}
-                    {myRating > 0 && <span style={{ fontSize:12, color:'#AAA', alignSelf:'center' }}>{['','Ruim','Regular','Bom','Muito bom','Excelente'][myRating]}</span>}
-                  </div>
-                  <textarea className="rv-textarea" rows={3} placeholder="Conte sua experiência (opcional)" value={myText} onChange={e => setMyText(e.target.value)} />
-                  <button className="btn-submit" onClick={submitReview} disabled={myRating === 0 || reviewLoading}>
-                    {reviewLoading ? 'Enviando...' : 'Publicar avaliação'}
-                  </button>
-                </div>
-              )}
-
-              {reviews.length === 0 && !showReview && !reviewSent && (
-                <div style={{ textAlign:'center', padding:'24px 0', color:'#AAA', fontSize:13 }}>
-                  Nenhuma avaliação ainda. Seja o primeiro! ⭐
-                </div>
-              )}
-
-              {reviews.map(r => (
-                <div key={r.id} className="review-card">
-                  <div className="rv-top">
-                    <div className="rv-av">{r.user?.name?.[0] || '?'}</div>
-                    <div>
-                      <div style={{ fontSize:13, fontWeight:600, color:'#333' }}>{r.user?.name || 'Usuário'}</div>
-                    </div>
-                    <span style={{ fontSize:11, color:'#CCC', marginLeft:'auto' }}>{fmtDate(r.created_at)}</span>
-                  </div>
-                  <div style={{ fontSize:13, color:'#C9951A', marginBottom:6 }}>{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</div>
-                  {r.text && <div style={{ fontSize:13, color:'#555', lineHeight:1.6, marginBottom:8 }}>{r.text}</div>}
-                  {r.response && (
-                    <div className="rv-resp">
-                      <div style={{ fontSize:10, fontWeight:600, color:'#854F0B', marginBottom:3 }}>Resposta da empresa:</div>
-                      <div style={{ fontSize:12, color:'#854F0B', lineHeight:1.5 }}>{r.response.text}</div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </>
-          ) : (
-            <div style={{ textAlign:'center', padding:'20px 0', color:'#AAA', fontSize:13 }}>
-              Avaliações disponíveis no plano pago.
             </div>
-          )}
-        </div>
 
-        {/* FOOTER */}
+            {reviewSent && <div className="ok-msg">✓ Sua avaliação foi enviada!</div>}
+
+            {showReview && (
+              <div className="rv-form">
+                <div style={{fontSize:13,fontWeight:600,color:'#333',marginBottom:8}}>Sua avaliação</div>
+                <div className="star-row">
+                  {[1,2,3,4,5].map(s => (
+                    <button key={s} className="star-btn" onClick={() => setMyRating(s)}>{s <= myRating ? '★' : '☆'}</button>
+                  ))}
+                  {myRating > 0 && <span style={{fontSize:12,color:'#AAA',alignSelf:'center',marginLeft:4}}>{['','Ruim','Regular','Bom','Muito bom','Excelente'][myRating]}</span>}
+                </div>
+                <textarea className="rv-textarea" rows={3} placeholder="Conte sua experiência (opcional)" value={myText} onChange={e => setMyText(e.target.value)} />
+                <button className="btn-rv-submit" onClick={submitReview} disabled={myRating === 0 || revLoading}>
+                  {revLoading ? 'Enviando...' : 'Publicar avaliação'}
+                </button>
+              </div>
+            )}
+
+            {reviews.length === 0 && !showReview && (
+              <div style={{textAlign:'center',padding:'32px 0',color:'#AAA',fontSize:13}}>
+                Nenhuma avaliação ainda. Seja o primeiro! ⭐
+              </div>
+            )}
+
+            {reviews.length > 0 && (
+              <div className="rv-grid">
+                {reviews.map(r => (
+                  <div key={r.id} className="rv-card">
+                    <div className="rv-top">
+                      <div className="rv-av" style={{background:['#C9951A','#185FA5','#0F6E56','#854F0B','#E24B4A'][r.rating % 5]}}>{r.user?.name?.[0] || '?'}</div>
+                      <div className="rv-name">{r.user?.name || 'Usuário'}</div>
+                      <span className="rv-date">{fmtDate(r.created_at)}</span>
+                    </div>
+                    <div className="rv-stars">{'★'.repeat(r.rating)}{'☆'.repeat(5-r.rating)}</div>
+                    {r.text && <div className="rv-txt">{r.text}</div>}
+                    {r.response && (
+                      <div className="rv-resp">
+                        <div className="rv-resp-l">Resposta da empresa:</div>
+                        <div className="rv-resp-t">{r.response.text}</div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="page-footer">
           <a href="/">← Voltar ao Trindade Online</a>
         </div>
-
       </div>
     </>
   )

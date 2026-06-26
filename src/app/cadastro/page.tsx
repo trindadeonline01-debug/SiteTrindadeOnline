@@ -5,17 +5,28 @@ import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
 function CadastroForm() {
-  const searchParams  = useSearchParams()
-  const tipoInicial   = searchParams.get('tipo') === 'empresa' ? 'empresa' : 'usuario'
+  const searchParams = useSearchParams()
+  const tipoInicial  = searchParams.get('tipo') === 'empresa' ? 'empresa' : 'usuario'
 
-  const [tipo, setTipo]       = useState(tipoInicial)
-  const [nome, setNome]       = useState('')
-  const [email, setEmail]     = useState('')
-  const [senha, setSenha]     = useState('')
-  const [bairro, setBairro]   = useState('Trindade')
-  const [erro, setErro]       = useState('')
-  const [loading, setLoading] = useState(false)
-  const [ok, setOk]           = useState(false)
+  const [tipo, setTipo]           = useState(tipoInicial)
+  const [nome, setNome]           = useState('')
+  const [email, setEmail]         = useState('')
+  const [senha, setSenha]         = useState('')
+  const [confirma, setConfirma]   = useState('')
+  const [bairro, setBairro]       = useState('Trindade')
+  const [erro, setErro]           = useState('')
+  const [loading, setLoading]     = useState(false)
+  const [ok, setOk]               = useState(false)
+
+  // Força visual da senha
+  function senhaForca() {
+    if (senha.length === 0) return null
+    if (senha.length < 6)  return { cor: '#E24B4A', label: 'Muito fraca', pct: '25%' }
+    if (senha.length < 8)  return { cor: '#C9951A', label: 'Fraca',       pct: '50%' }
+    if (senha.length < 12) return { cor: '#185FA5', label: 'Boa',         pct: '75%' }
+    return                        { cor: '#0F8050', label: 'Forte',        pct: '100%' }
+  }
+  const forca = senhaForca()
 
   async function handleCadastro(e: React.FormEvent) {
     e.preventDefault()
@@ -23,6 +34,10 @@ function CadastroForm() {
 
     if (senha.length < 6) {
       setErro('A senha precisa ter pelo menos 6 caracteres.')
+      return
+    }
+    if (senha !== confirma) {
+      setErro('As senhas não coincidem. Verifique e tente novamente.')
       return
     }
 
@@ -50,7 +65,6 @@ function CadastroForm() {
       return
     }
 
-    // Se for empresa, redireciona para cadastrar a empresa
     if (tipo === 'empresa') {
       window.location.href = '/empresa/cadastrar'
     } else {
@@ -76,54 +90,67 @@ function CadastroForm() {
 
   return (
     <form onSubmit={handleCadastro}>
+
       {/* TIPO */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-        <button
-          type="button"
-          onClick={() => setTipo('usuario')}
-          style={{
-            flex: 1, padding: '10px', borderRadius: 10, border: '1.5px solid',
-            borderColor: tipo === 'usuario' ? '#C9951A' : '#E0DDD8',
-            background: tipo === 'usuario' ? '#FEF3E2' : '#FAFAF8',
-            color: tipo === 'usuario' ? '#854F0B' : '#888',
-            fontSize: 13, fontWeight: 600, cursor: 'pointer',
-            fontFamily: 'Inter, sans-serif'
-          }}
-        >
+        <button type="button" onClick={() => setTipo('usuario')} style={{ flex:1, padding:'10px', borderRadius:10, border:'1.5px solid', borderColor:tipo==='usuario'?'#C9951A':'#E0DDD8', background:tipo==='usuario'?'#FEF3E2':'#FAFAF8', color:tipo==='usuario'?'#854F0B':'#888', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'Inter, sans-serif' }}>
           👤 Sou morador
         </button>
-        <button
-          type="button"
-          onClick={() => setTipo('empresa')}
-          style={{
-            flex: 1, padding: '10px', borderRadius: 10, border: '1.5px solid',
-            borderColor: tipo === 'empresa' ? '#C9951A' : '#E0DDD8',
-            background: tipo === 'empresa' ? '#FEF3E2' : '#FAFAF8',
-            color: tipo === 'empresa' ? '#854F0B' : '#888',
-            fontSize: 13, fontWeight: 600, cursor: 'pointer',
-            fontFamily: 'Inter, sans-serif'
-          }}
-        >
+        <button type="button" onClick={() => setTipo('empresa')} style={{ flex:1, padding:'10px', borderRadius:10, border:'1.5px solid', borderColor:tipo==='empresa'?'#C9951A':'#E0DDD8', background:tipo==='empresa'?'#FEF3E2':'#FAFAF8', color:tipo==='empresa'?'#854F0B':'#888', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'Inter, sans-serif' }}>
           🏪 Tenho empresa
         </button>
       </div>
 
+      {/* NOME */}
       <div className="field">
         <label>{tipo === 'empresa' ? 'Nome do responsável' : 'Nome ou apelido'}</label>
         <input type="text" placeholder="Como quer ser chamado" value={nome} onChange={e => setNome(e.target.value)} required />
       </div>
+
+      {/* EMAIL */}
       <div className="field">
         <label>E-mail</label>
         <input type="email" placeholder="seu@email.com" value={email} onChange={e => setEmail(e.target.value)} required />
       </div>
+
+      {/* SENHA */}
       <div className="field">
         <label>Senha</label>
         <input type="password" placeholder="Mínimo 6 caracteres" value={senha} onChange={e => setSenha(e.target.value)} required />
+        {forca && (
+          <div style={{ marginTop: 6 }}>
+            <div style={{ height: 4, background: '#F0EDE8', borderRadius: 2, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: forca.pct, background: forca.cor, borderRadius: 2, transition: 'all .3s' }} />
+            </div>
+            <div style={{ fontSize: 11, color: forca.cor, marginTop: 3, fontWeight: 500 }}>{forca.label}</div>
+          </div>
+        )}
       </div>
+
+      {/* CONFIRMAR SENHA */}
+      <div className="field">
+        <label>Confirmar senha</label>
+        <input
+          type="password"
+          placeholder="Repita a senha"
+          value={confirma}
+          onChange={e => setConfirma(e.target.value)}
+          required
+          style={{ borderColor: confirma && senha !== confirma ? '#E24B4A' : confirma && senha === confirma ? '#0F8050' : '#E0DDD8' }}
+        />
+        {confirma && senha !== confirma && (
+          <div style={{ fontSize: 11, color: '#E24B4A', marginTop: 4 }}>As senhas não coincidem</div>
+        )}
+        {confirma && senha === confirma && senha.length >= 6 && (
+          <div style={{ fontSize: 11, color: '#0F8050', marginTop: 4 }}>✓ Senhas coincidem</div>
+        )}
+      </div>
+
+      {/* BAIRRO */}
       <div className="field">
         <label>Bairro</label>
         <select value={bairro} onChange={e => setBairro(e.target.value)}
-          style={{ width: '100%', padding: '12px 14px', border: '1.5px solid #E0DDD8', borderRadius: 11, fontSize: 14, fontFamily: 'Inter, sans-serif', color: '#222', background: '#FAFAF8', outline: 'none', cursor: 'pointer' }}>
+          style={{ width:'100%', padding:'12px 14px', border:'1.5px solid #E0DDD8', borderRadius:11, fontSize:14, fontFamily:'Inter, sans-serif', color:'#222', background:'#FAFAF8', outline:'none', cursor:'pointer' }}>
           <option>Trindade</option>
           <option>Alcântara</option>
           <option>Arsenal</option>
@@ -149,7 +176,7 @@ function CadastroForm() {
       </div>
 
       {tipo === 'empresa' && (
-        <div style={{ background: '#FEF3E2', border: '0.5px solid #F5C77A', borderRadius: 10, padding: '10px 14px', marginBottom: 14, fontSize: 12, color: '#854F0B', lineHeight: 1.6 }}>
+        <div style={{ background:'#FEF3E2', border:'0.5px solid #F5C77A', borderRadius:10, padding:'10px 14px', marginBottom:14, fontSize:12, color:'#854F0B', lineHeight:1.6 }}>
           ✅ Após criar sua conta, você será direcionado para cadastrar sua empresa gratuitamente por 30 dias.
         </div>
       )}

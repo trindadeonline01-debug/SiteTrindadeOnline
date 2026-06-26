@@ -269,7 +269,7 @@ export default function EmpresaCadastrarPage() {
               <div style={{ fontSize:20, fontWeight:700, color:'#111', marginBottom:8 }}>Cadastro enviado!</div>
               <div style={{ fontSize:13, color:'#888', lineHeight:1.8, marginBottom:24 }}>
                 <strong>{nome.toUpperCase()}</strong> está em análise.<br/>
-                Você receberá uma notificação quando for aprovada.<br/>
+                Nossa equipe do Trindade Online vai verificar e você receberá uma notificação assim que estiver no ar.<br/>
                 Prazo: até 24 horas.
               </div>
               <button className="btn-primary" onClick={() => window.location.href = '/'}>Voltar ao início</button>
@@ -419,8 +419,8 @@ export default function EmpresaCadastrarPage() {
                   </div>
 
                   <div className="note-box">
-                    ✅ Após o envio, Ricardo vai revisar e aprovar em até 24h.<br/>
-                    Você receberá uma notificação quando sua empresa for publicada.
+                    ✅ Nossa equipe vai revisar e aprovar seu cadastro em até 24h.<br/>
+                    Você receberá uma notificação assim que estiver no ar.
                   </div>
 
                   {erro && <div className="erro-msg">⚠️ {erro}</div>}

@@ -11,7 +11,6 @@ type Company = {
   category_name?: string; category_emoji?: string; cover_url?: string
 }
 type Category = { id: string; name: string; emoji: string; slug: string }
-type Subcategory = { id: string; name: string; emoji: string; slug?: string }
 type Listing  = { id: string; type: string; title: string; price?: number; address?: string; subtype?: string; created_at: string; photos?: any[] }
 type Subcategory = { id: string; name: string; emoji: string }
 

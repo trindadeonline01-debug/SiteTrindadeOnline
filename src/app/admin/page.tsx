@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
 // ── TIPOS ──────────────────────────────────────────────────
@@ -27,7 +27,7 @@ type Stats = {
 }
 type Banner = {
   id: string; title: string; subtitle: string|null; description: string|null
-  link_url: string|null; active: boolean; display_order: number; created_at: string
+  link_url: string|null; image_url: string|null; active: boolean; display_order: number; created_at: string
 }
 
 // ── HELPERS ────────────────────────────────────────────────
@@ -63,6 +63,12 @@ export default function AdminPage() {
   const [editingBannerId, setEditingBannerId] = useState<string|null>(null)
   const [bannerLoading, setBannerLoading] = useState(false)
   const [bannerForm, setBannerForm]       = useState({ title:'', subtitle:'', description:'', link_url:'', display_order:0 })
+  // upload de imagem
+  const [bannerImageFile, setBannerImageFile]       = useState<File|null>(null)
+  const [bannerImagePreview, setBannerImagePreview] = useState<string|null>(null)
+  const [bannerCurrentImage, setBannerCurrentImage] = useState<string|null>(null)
+  const [uploadProgress, setUploadProgress]         = useState(0)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Verifica se é admin
   useEffect(() => {
@@ -196,6 +202,9 @@ export default function AdminPage() {
   function openNewBanner() {
     setEditingBannerId(null)
     setBannerForm({ title:'', subtitle:'', description:'', link_url:'', display_order: banners.length })
+    setBannerImageFile(null)
+    setBannerImagePreview(null)
+    setBannerCurrentImage(null)
     setBannerFormOpen(true)
   }
 
@@ -208,17 +217,52 @@ export default function AdminPage() {
       link_url: b.link_url || '',
       display_order: b.display_order,
     })
+    setBannerImageFile(null)
+    setBannerImagePreview(null)
+    setBannerCurrentImage(b.image_url || null)
     setBannerFormOpen(true)
+  }
+
+  function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 5 * 1024 * 1024) { showToast('Imagem muito grande. Máximo 5MB.'); return }
+    setBannerImageFile(file)
+    const reader = new FileReader()
+    reader.onload = ev => setBannerImagePreview(ev.target?.result as string)
+    reader.readAsDataURL(file)
+  }
+
+  async function uploadBannerImage(file: File): Promise<string | null> {
+    const ext = file.name.split('.').pop()
+    const fileName = `banners/${Date.now()}.${ext}`
+    setUploadProgress(30)
+    const { error } = await supabase.storage.from('company-photos').upload(fileName, file, { upsert: true })
+    if (error) { showToast('Erro no upload: ' + error.message); setUploadProgress(0); return null }
+    setUploadProgress(80)
+    const { data: { publicUrl } } = supabase.storage.from('company-photos').getPublicUrl(fileName)
+    setUploadProgress(100)
+    setTimeout(() => setUploadProgress(0), 1000)
+    return publicUrl
   }
 
   async function saveBanner() {
     if (!bannerForm.title.trim()) return
     setBannerLoading(true)
+
+    let imageUrl = bannerCurrentImage
+    if (bannerImageFile) {
+      const uploaded = await uploadBannerImage(bannerImageFile)
+      if (!uploaded) { setBannerLoading(false); return }
+      imageUrl = uploaded
+    }
+
     const payload = {
       title: bannerForm.title.trim(),
       subtitle: bannerForm.subtitle.trim() || null,
       description: bannerForm.description.trim() || null,
       link_url: bannerForm.link_url.trim() || null,
+      image_url: imageUrl,
       display_order: bannerForm.display_order,
     }
     if (editingBannerId) {
@@ -232,6 +276,9 @@ export default function AdminPage() {
     setBannerFormOpen(false)
     setEditingBannerId(null)
     setBannerForm({ title:'', subtitle:'', description:'', link_url:'', display_order:0 })
+    setBannerImageFile(null)
+    setBannerImagePreview(null)
+    setBannerCurrentImage(null)
     showToast(editingBannerId ? 'Banner atualizado!' : 'Banner criado!')
     setBannerLoading(false)
   }
@@ -327,38 +374,90 @@ export default function AdminPage() {
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Inter', sans-serif; background: #F0EDE8; }
+
         .admin-layout { display: flex; min-height: 100vh; }
-        .sidebar { width: 220px; background: #111; flex-shrink: 0; display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; }
-        .sidebar-logo { padding: 24px 20px 20px; font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 2px; color: #fff; border-bottom: 1px solid #222; }
+
+        /* SIDEBAR */
+        .sidebar {
+          width: 220px; background: #111; flex-shrink: 0;
+          display: flex; flex-direction: column;
+          position: sticky; top: 0; height: 100vh;
+        }
+        .sidebar-logo {
+          padding: 24px 20px 20px;
+          font-family: 'Bebas Neue', sans-serif;
+          font-size: 20px; letter-spacing: 2px; color: #fff;
+          border-bottom: 1px solid #222;
+        }
         .sidebar-logo span { color: #C9951A; }
-        .sidebar-badge { font-size: 10px; background: #C9951A; color: #fff; padding: 2px 8px; border-radius: 8px; font-family: 'Inter', sans-serif; font-weight: 600; display: inline-block; margin-top: 4px; }
-        .nav-item { display: flex; align-items: center; gap: 10px; padding: 12px 20px; cursor: pointer; transition: all .15s; color: #888; font-size: 13px; font-weight: 500; border-left: 3px solid transparent; }
+        .sidebar-badge {
+          font-size: 10px; background: #C9951A; color: #fff;
+          padding: 2px 8px; border-radius: 8px;
+          font-family: 'Inter', sans-serif; font-weight: 600;
+          display: inline-block; margin-top: 4px;
+        }
+        .nav-item {
+          display: flex; align-items: center; gap: 10px;
+          padding: 12px 20px; cursor: pointer; transition: all .15s;
+          color: #888; font-size: 13px; font-weight: 500;
+          border-left: 3px solid transparent;
+        }
         .nav-item:hover { background: #1A1A1A; color: #fff; }
         .nav-item.on { background: #1A1A1A; color: #C9951A; border-left-color: #C9951A; }
-        .nav-badge { margin-left: auto; background: #E24B4A; color: #fff; font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 10px; }
-        .sidebar-footer { margin-top: auto; padding: 16px 20px; border-top: 1px solid #222; }
-        .sidebar-footer a { font-size: 12px; color: #555; text-decoration: none; display: flex; align-items: center; gap: 6px; }
+        .nav-badge {
+          margin-left: auto; background: #E24B4A; color: #fff;
+          font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 10px;
+        }
+        .sidebar-footer {
+          margin-top: auto; padding: 16px 20px;
+          border-top: 1px solid #222;
+        }
+        .sidebar-footer a {
+          font-size: 12px; color: #555; text-decoration: none;
+          display: flex; align-items: center; gap: 6px;
+        }
         .sidebar-footer a:hover { color: #888; }
+
+        /* MAIN */
         .admin-main { flex: 1; overflow-x: hidden; }
-        .admin-topbar { background: #fff; border-bottom: 1px solid #EDE8E0; padding: 14px 28px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 20; }
+        .admin-topbar {
+          background: #fff; border-bottom: 1px solid #EDE8E0;
+          padding: 14px 28px; display: flex; align-items: center;
+          justify-content: space-between; position: sticky; top: 0; z-index: 20;
+        }
         .topbar-title { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: #111; letter-spacing: 1px; }
         .topbar-date { font-size: 12px; color: #AAA; }
         .admin-body { padding: 28px; }
-        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 28px; }
+
+        /* STATS GRID */
+        .stats-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 14px; margin-bottom: 28px;
+        }
         @media (min-width: 1024px) { .stats-grid { grid-template-columns: repeat(4, 1fr); } }
-        .stat-card { background: #fff; border-radius: 14px; padding: 18px 20px; border: 0.5px solid #EDE8E0; }
+        .stat-card {
+          background: #fff; border-radius: 14px;
+          padding: 18px 20px; border: 0.5px solid #EDE8E0;
+        }
         .stat-label { font-size: 11px; color: #AAA; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px; }
         .stat-num   { font-family: 'Bebas Neue', sans-serif; font-size: 36px; letter-spacing: 1px; line-height: 1; margin-bottom: 4px; }
         .stat-sub   { font-size: 11px; color: #AAA; }
         .stat-up    { color: #0F8050; }
         .stat-warn  { color: #C9951A; }
         .stat-danger{ color: #E24B4A; }
+
+        /* SECTION */
         .section-card { background: #fff; border-radius: 14px; border: 0.5px solid #EDE8E0; margin-bottom: 20px; overflow: hidden; }
         .section-hdr  { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 0.5px solid #F0EDE8; }
         .section-title{ font-family: 'Bebas Neue', sans-serif; font-size: 14px; color: #888; letter-spacing: 1.5px; }
+
+        /* FILTERS */
         .filter-row { display: flex; gap: 8px; flex-wrap: wrap; }
         .filter-btn { padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid #E0DDD8; background: #FAFAF8; color: #666; transition: all .15s; font-family: 'Inter', sans-serif; }
         .filter-btn.on { border-color: #C9951A; background: #FEF3E2; color: #854F0B; font-weight: 600; }
+
+        /* TABLE */
         .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
         .data-table th { text-align: left; padding: 10px 16px; font-size: 11px; font-weight: 600; color: #AAA; text-transform: uppercase; letter-spacing: .04em; background: #FAFAF8; border-bottom: 0.5px solid #F0EDE8; }
         .data-table td { padding: 12px 16px; border-bottom: 0.5px solid #F5F2EC; color: #333; vertical-align: middle; }
@@ -367,9 +466,11 @@ export default function AdminPage() {
         .status-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 10px; }
         .action-btn { padding: 5px 12px; border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer; border: none; font-family: 'Inter', sans-serif; margin-right: 4px; transition: opacity .15s; }
         .action-btn:hover { opacity: .8; }
-        .btn-approve { background: #EDFAF3; color: #0F8050; }
-        .btn-suspend { background: #FEF0F0; color: #E24B4A; }
-        .btn-view    { background: #F0F4FF; color: #185FA5; }
+        .btn-approve  { background: #EDFAF3; color: #0F8050; }
+        .btn-suspend  { background: #FEF0F0; color: #E24B4A; }
+        .btn-view     { background: #F0F4FF; color: #185FA5; }
+
+        /* SEARCH TABLE */
         .search-bar-wrap { display: flex; align-items: center; gap: 8px; background: #F5F2EC; border: 1.5px solid #C9951A; border-radius: 10px; padding: 8px 14px; }
         .search-bar-wrap input { flex: 1; border: none; background: transparent; font-size: 13px; font-family: 'Inter', sans-serif; outline: none; }
         .rank-num { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: #DDD; width: 30px; }
@@ -379,17 +480,33 @@ export default function AdminPage() {
         .progress-bar { height: 6px; background: #F0EDE8; border-radius: 3px; overflow: hidden; flex: 1; }
         .progress-fill { height: 100%; background: #C9951A; border-radius: 3px; }
         .no-result-badge { font-size: 10px; background: #FEF0F0; color: #E24B4A; padding: 2px 7px; border-radius: 6px; font-weight: 600; }
-        .toast { position: fixed; bottom: 24px; right: 24px; background: #111; color: #fff; padding: 12px 20px; border-radius: 12px; font-size: 13px; font-weight: 500; z-index: 999; animation: fadein .2s ease; }
+
+        /* TOAST */
+        .toast {
+          position: fixed; bottom: 24px; right: 24px;
+          background: #111; color: #fff; padding: 12px 20px; border-radius: 12px;
+          font-size: 13px; font-weight: 500; z-index: 999;
+          animation: fadein .2s ease;
+        }
         @keyframes fadein { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
+
+        /* EMPTY */
         .empty-state { text-align: center; padding: 48px 20px; color: #AAA; }
         .empty-state div:first-child { font-size: 40px; margin-bottom: 12px; }
+
+        /* USER BADGE */
         .user-type-badge { font-size: 10px; padding: 2px 8px; border-radius: 8px; font-weight: 600; }
         .type-user    { background: #EBF4FF; color: #185FA5; }
         .type-company { background: #FEF3E2; color: #854F0B; }
         .type-admin   { background: #111; color: #C9951A; }
+
+        /* BANNER FORM */
         .banner-form-input { width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; font-family: 'Inter', sans-serif; outline: none; }
         .banner-form-input:focus { border-color: #C9951A; }
         .banner-form-label { font-size: 11px; color: #888; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; display: block; margin-bottom: 5px; }
+        .upload-area { border: 2px dashed #ddd; border-radius: 10px; padding: 24px; text-align: center; cursor: pointer; transition: all .15s; background: #fafafa; }
+        .upload-area:hover { border-color: #C9951A; background: #fffdf5; }
+        .upload-area-filled { border: 2px solid #C9951A; border-radius: 10px; overflow: hidden; cursor: pointer; }
       `}</style>
 
       {toast && <div className="toast">✓ {toast}</div>}
@@ -821,19 +938,85 @@ export default function AdminPage() {
             {/* ── BANNERS ── */}
             {!loading && tab === 'banners' && (
               <div>
+                {/* input de arquivo oculto */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  style={{ display: 'none' }}
+                />
+
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
                   <span className="section-title">BANNERS DA HOME ({banners.length})</span>
-                  <button className="filter-btn on" onClick={() => { setBannerFormOpen(!bannerFormOpen); if (bannerFormOpen) { setEditingBannerId(null); setBannerForm({ title:'', subtitle:'', description:'', link_url:'', display_order: banners.length }) } }}>
+                  <button className="filter-btn on" onClick={() => {
+                    if (bannerFormOpen) {
+                      setBannerFormOpen(false)
+                      setEditingBannerId(null)
+                      setBannerForm({ title:'', subtitle:'', description:'', link_url:'', display_order: banners.length })
+                      setBannerImageFile(null)
+                      setBannerImagePreview(null)
+                      setBannerCurrentImage(null)
+                    } else {
+                      openNewBanner()
+                    }
+                  }}>
                     {bannerFormOpen ? 'Cancelar' : '+ Novo banner'}
                   </button>
                 </div>
 
-                {/* Formulário */}
+                {/* ── FORMULÁRIO ── */}
                 {bannerFormOpen && (
                   <div style={{background:'#fff',border:'1px solid #e0e0e0',borderRadius:12,padding:20,marginBottom:20,boxShadow:'0 2px 8px rgba(0,0,0,0.06)'}}>
                     <div style={{fontSize:14,fontWeight:600,color:'#111',marginBottom:16}}>
                       {editingBannerId ? 'Editar Banner' : 'Novo Banner'}
                     </div>
+
+                    {/* Upload de imagem */}
+                    <div style={{marginBottom:16}}>
+                      <label className="banner-form-label">Imagem do banner (1200 × 359px recomendado)</label>
+
+                      {(bannerImagePreview || bannerCurrentImage) ? (
+                        <div className="upload-area-filled" onClick={() => fileInputRef.current?.click()}>
+                          <img
+                            src={bannerImagePreview || bannerCurrentImage!}
+                            alt="Preview"
+                            style={{width:'100%',height:160,objectFit:'cover',display:'block'}}
+                          />
+                        </div>
+                      ) : (
+                        <div className="upload-area" onClick={() => fileInputRef.current?.click()}>
+                          <div style={{fontSize:32,marginBottom:8}}>🖼️</div>
+                          <div style={{fontSize:13,color:'#666',fontWeight:500}}>Clique para fazer upload da imagem</div>
+                          <div style={{fontSize:11,color:'#aaa',marginTop:4}}>JPG, PNG ou WebP · Máximo 5MB · 1200×359px</div>
+                        </div>
+                      )}
+
+                      {(bannerImagePreview || bannerCurrentImage) && (
+                        <div style={{display:'flex',gap:8,marginTop:8}}>
+                          <button
+                            onClick={() => fileInputRef.current?.click()}
+                            style={{fontSize:11,color:'#185FA5',background:'#f0f4ff',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Inter,sans-serif',fontWeight:600}}
+                          >
+                            Trocar imagem
+                          </button>
+                          <button
+                            onClick={() => { setBannerImageFile(null); setBannerImagePreview(null); setBannerCurrentImage(null) }}
+                            style={{fontSize:11,color:'#dc2626',background:'#fef2f2',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Inter,sans-serif'}}
+                          >
+                            Remover imagem
+                          </button>
+                        </div>
+                      )}
+
+                      {uploadProgress > 0 && uploadProgress < 100 && (
+                        <div style={{marginTop:8,background:'#f0f0f0',borderRadius:4,overflow:'hidden',height:4}}>
+                          <div style={{height:'100%',background:'#C9951A',width:`${uploadProgress}%`,transition:'width 0.3s'}} />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Campos de texto */}
                     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:14}}>
                       <div>
                         <label className="banner-form-label">Título *</label>
@@ -888,6 +1071,7 @@ export default function AdminPage() {
                         <div style={{fontSize:10,color:'#aaa',marginTop:4}}>Número menor aparece primeiro</div>
                       </div>
                     </div>
+
                     <div style={{display:'flex',gap:8}}>
                       <button
                         onClick={saveBanner}
@@ -897,7 +1081,14 @@ export default function AdminPage() {
                         {bannerLoading ? 'Salvando...' : editingBannerId ? 'Salvar alterações' : 'Criar banner'}
                       </button>
                       <button
-                        onClick={() => { setBannerFormOpen(false); setEditingBannerId(null); setBannerForm({ title:'', subtitle:'', description:'', link_url:'', display_order:0 }) }}
+                        onClick={() => {
+                          setBannerFormOpen(false)
+                          setEditingBannerId(null)
+                          setBannerForm({ title:'', subtitle:'', description:'', link_url:'', display_order:0 })
+                          setBannerImageFile(null)
+                          setBannerImagePreview(null)
+                          setBannerCurrentImage(null)
+                        }}
                         style={{background:'transparent',color:'#666',border:'1px solid #ddd',padding:'9px 16px',borderRadius:7,fontSize:13,cursor:'pointer',fontFamily:'Inter,sans-serif'}}
                       >
                         Cancelar
@@ -906,7 +1097,7 @@ export default function AdminPage() {
                   </div>
                 )}
 
-                {/* Lista */}
+                {/* ── LISTA DE BANNERS ── */}
                 {banners.length === 0 ? (
                   <div className="empty-state">
                     <div>📢</div>
@@ -918,43 +1109,58 @@ export default function AdminPage() {
                     {banners.map(b => (
                       <div key={b.id} style={{
                         background:'#fff', border:'1px solid #e8e8e8', borderRadius:10,
-                        padding:'14px 16px', display:'flex', alignItems:'center',
-                        justifyContent:'space-between', opacity: b.active ? 1 : 0.55,
+                        overflow:'hidden', opacity: b.active ? 1 : 0.55,
                       }}>
-                        <div style={{display:'flex',alignItems:'center',gap:12,flex:1,minWidth:0}}>
-                          <div style={{width:36,height:36,borderRadius:8,background:'#f5e9c4',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0}}>
-                            📢
+                        {b.image_url && (
+                          <div style={{height:80,overflow:'hidden',position:'relative'}}>
+                            <img src={b.image_url} alt={b.title} style={{width:'100%',height:'100%',objectFit:'cover'}} />
+                            <div style={{position:'absolute',inset:0,background:'linear-gradient(90deg,rgba(0,0,0,0.55),transparent)'}} />
+                            <div style={{position:'absolute',left:14,top:'50%',transform:'translateY(-50%)',color:'#fff',fontFamily:'"Bebas Neue",sans-serif',fontSize:20,letterSpacing:1}}>
+                              {b.title}
+                            </div>
                           </div>
-                          <div style={{minWidth:0}}>
-                            <div style={{fontSize:14,fontWeight:600,color:'#111',marginBottom:2}}>{b.title}</div>
-                            {b.subtitle && <div style={{fontSize:12,color:'#888'}}>{b.subtitle}</div>}
-                            {b.link_url && (
-                              <div style={{fontSize:11,color:'#C9951A',marginTop:3,display:'flex',alignItems:'center',gap:4}}>
-                                🔗 <span style={{wordBreak:'break-all'}}>{b.link_url}</span>
+                        )}
+                        <div style={{padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                          <div style={{display:'flex',alignItems:'center',gap:12,flex:1,minWidth:0}}>
+                            {!b.image_url && (
+                              <div style={{width:36,height:36,borderRadius:8,background:'#f5e9c4',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0}}>
+                                📢
                               </div>
                             )}
+                            <div style={{minWidth:0}}>
+                              {!b.image_url && <div style={{fontSize:14,fontWeight:600,color:'#111',marginBottom:2}}>{b.title}</div>}
+                              {b.subtitle && <div style={{fontSize:12,color:'#888'}}>{b.subtitle}</div>}
+                              {b.link_url && (
+                                <div style={{fontSize:11,color:'#C9951A',marginTop:3,display:'flex',alignItems:'center',gap:4}}>
+                                  🔗 <span style={{wordBreak:'break-all'}}>{b.link_url}</span>
+                                </div>
+                              )}
+                              {!b.image_url && (
+                                <div style={{fontSize:11,color:'#f59e0b',marginTop:4,fontWeight:500}}>⚠ Sem imagem — aparecerá com fundo escuro padrão</div>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                        <div style={{display:'flex',gap:8,alignItems:'center',flexShrink:0,marginLeft:12}}>
-                          <span style={{
-                            fontSize:10,fontWeight:600,padding:'2px 10px',borderRadius:10,
-                            background: b.active ? '#dcfce7' : '#fee2e2',
-                            color: b.active ? '#16a34a' : '#dc2626',
-                          }}>
-                            {b.active ? 'Ativo' : 'Inativo'}
-                          </span>
-                          <button onClick={() => { openEditBanner(b); setBannerFormOpen(true) }}
-                            style={{fontSize:11,color:'#185FA5',background:'#f0f4ff',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Inter,sans-serif',fontWeight:600}}>
-                            Editar
-                          </button>
-                          <button onClick={() => toggleBanner(b.id, b.active)}
-                            style={{fontSize:11,color:'#555',background:'#f5f5f5',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
-                            {b.active ? 'Desativar' : 'Ativar'}
-                          </button>
-                          <button onClick={() => deleteBanner(b.id)}
-                            style={{fontSize:11,color:'#dc2626',background:'#fef2f2',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Inter,sans-serif',fontWeight:600}}>
-                            Excluir
-                          </button>
+                          <div style={{display:'flex',gap:8,alignItems:'center',flexShrink:0,marginLeft:12}}>
+                            <span style={{
+                              fontSize:10,fontWeight:600,padding:'2px 10px',borderRadius:10,
+                              background: b.active ? '#dcfce7' : '#fee2e2',
+                              color: b.active ? '#16a34a' : '#dc2626',
+                            }}>
+                              {b.active ? 'Ativo' : 'Inativo'}
+                            </span>
+                            <button onClick={() => { openEditBanner(b); setBannerFormOpen(true) }}
+                              style={{fontSize:11,color:'#185FA5',background:'#f0f4ff',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Inter,sans-serif',fontWeight:600}}>
+                              Editar
+                            </button>
+                            <button onClick={() => toggleBanner(b.id, b.active)}
+                              style={{fontSize:11,color:'#555',background:'#f5f5f5',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                              {b.active ? 'Desativar' : 'Ativar'}
+                            </button>
+                            <button onClick={() => deleteBanner(b.id)}
+                              style={{fontSize:11,color:'#dc2626',background:'#fef2f2',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Inter,sans-serif',fontWeight:600}}>
+                              Excluir
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}

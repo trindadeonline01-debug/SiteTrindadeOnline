@@ -25,6 +25,8 @@ type Highlight = {
 }
 
 const LINK_LABELS = ['Ver cardápio','Fazer pedido','Acessar site','Ver catálogo','Agendar consulta','Fazer uma visita','Solicitar contato','Personalizado']
+const IGREJAS_CATEGORY_ID = '00000000-0000-0000-0000-000000000008'
+const DIAS_SEMANA = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo']
 const fmtDate = (s: string) => new Date(s).toLocaleDateString('pt-BR')
 const daysLeft = (s: string) => Math.max(0, Math.ceil((new Date(s).getTime() - Date.now()) / 86400000))
 

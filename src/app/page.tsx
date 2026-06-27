@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import CookieBanner from '@/components/CookieBanner'
 
 type Category = { id: string; name: string; emoji: string; slug: string }
 type Company = {
@@ -407,6 +408,7 @@ export default function Home() {
           </div>
         </div>
       </footer>
+      <CookieBanner />
     </>
   )
 }

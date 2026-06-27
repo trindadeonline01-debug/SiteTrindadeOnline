@@ -25,6 +25,10 @@ type Stats = {
   total_companies: number; pending: number; active: number
   total_searches: number; searches_today: number
 }
+type Banner = {
+  id: string; title: string; subtitle: string|null; description: string|null
+  link_url: string|null; active: boolean; display_order: number; created_at: string
+}
 
 // ── HELPERS ────────────────────────────────────────────────
 const today = () => new Date().toISOString().split('T')[0]
@@ -34,7 +38,7 @@ const statusColor = (s: string) => s === 'active' ? '#0F8050' : s === 'pending' 
 const statusLabel = (s: string) => s === 'active' ? 'Ativa' : s === 'pending' ? 'Pendente' : 'Suspensa'
 
 export default function AdminPage() {
-  const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'denuncias'|'usuarios'|'buscas'|'atividade'>('dashboard')
+  const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'denuncias'|'usuarios'|'buscas'|'atividade'|'banners'>('dashboard')
   const [stats, setStats]           = useState<Stats|null>(null)
   const [companies, setCompanies]   = useState<Company[]>([])
   const [users, setUsers]           = useState<Profile[]>([])
@@ -49,9 +53,16 @@ export default function AdminPage() {
   const [hlForm, setHlForm]         = useState({ company_id:'', scope_type:'category', scope_id:'', highlight_type:'manual', expires_at:'' })
   const [hlFormOpen, setHlFormOpen] = useState(false)
   const [hlLoading, setHlLoading]   = useState(false)
-  const [reports, setReports]         = useState<Report[]>([])
-  const [repCount, setRepCount]       = useState(0)
-  const [planStats, setPlanStats]     = useState<{paid:number;trial:number;expired:number;expiring:number}>({paid:0,trial:0,expired:0,expiring:0})
+  const [reports, setReports]       = useState<Report[]>([])
+  const [repCount, setRepCount]     = useState(0)
+  const [planStats, setPlanStats]   = useState<{paid:number;trial:number;expired:number;expiring:number}>({paid:0,trial:0,expired:0,expiring:0})
+
+  // ── BANNERS ──
+  const [banners, setBanners]             = useState<Banner[]>([])
+  const [bannerFormOpen, setBannerFormOpen] = useState(false)
+  const [editingBannerId, setEditingBannerId] = useState<string|null>(null)
+  const [bannerLoading, setBannerLoading] = useState(false)
+  const [bannerForm, setBannerForm]       = useState({ title:'', subtitle:'', description:'', link_url:'', display_order:0 })
 
   // Verifica se é admin
   useEffect(() => {
@@ -66,7 +77,7 @@ export default function AdminPage() {
 
   async function loadAll() {
     setLoading(true)
-    await Promise.all([loadStats(), loadCompanies(), loadUsers(), loadSearches(), loadHighlights(), loadReports()])
+    await Promise.all([loadStats(), loadCompanies(), loadUsers(), loadSearches(), loadHighlights(), loadReports(), loadBanners()])
     setLoading(false)
   }
 
@@ -90,7 +101,6 @@ export default function AdminPage() {
       supabase.from('search_logs').select('*', { count: 'exact', head: true }),
       supabase.from('search_logs').select('*', { count: 'exact', head: true }).gte('created_at', today()),
     ])
-    // Plan stats
     const now = new Date().toISOString()
     const in3days = new Date(Date.now() + 3*86400000).toISOString()
     const [
@@ -105,7 +115,6 @@ export default function AdminPage() {
       supabase.from('companies').select('*',{count:'exact',head:true}).eq('status','active').neq('plan','paid').gt('trial_ends_at',now).lt('trial_ends_at',in3days),
     ])
     setPlanStats({paid:paidCount||0,trial:trialCount||0,expired:expiredCount||0,expiring:expiringCount||0})
-
     setStats({
       total_users: total_users||0, users_today: users_today||0, users_week: users_week||0,
       total_companies: total_companies||0, pending: pending||0, active: active||0,
@@ -165,10 +174,84 @@ export default function AdminPage() {
     setSubcatOpts((subs || []) as SubcatOpt[])
   }
 
+  async function loadReports() {
+    const { data } = await supabase
+      .from('listing_reports')
+      .select('id, reason, resolved, created_at, listing:listings(id,title,type,status), reporter:profiles(name)')
+      .order('created_at', { ascending: false })
+    const r = (data || []) as Report[]
+    setReports(r)
+    setRepCount(r.filter(x => !x.resolved).length)
+  }
+
+  async function loadBanners() {
+    const { data } = await supabase
+      .from('banners')
+      .select('*')
+      .order('display_order')
+    setBanners((data || []) as Banner[])
+  }
+
+  // ── BANNER ACTIONS ──
+  function openNewBanner() {
+    setEditingBannerId(null)
+    setBannerForm({ title:'', subtitle:'', description:'', link_url:'', display_order: banners.length })
+    setBannerFormOpen(true)
+  }
+
+  function openEditBanner(b: Banner) {
+    setEditingBannerId(b.id)
+    setBannerForm({
+      title: b.title,
+      subtitle: b.subtitle || '',
+      description: b.description || '',
+      link_url: b.link_url || '',
+      display_order: b.display_order,
+    })
+    setBannerFormOpen(true)
+  }
+
+  async function saveBanner() {
+    if (!bannerForm.title.trim()) return
+    setBannerLoading(true)
+    const payload = {
+      title: bannerForm.title.trim(),
+      subtitle: bannerForm.subtitle.trim() || null,
+      description: bannerForm.description.trim() || null,
+      link_url: bannerForm.link_url.trim() || null,
+      display_order: bannerForm.display_order,
+    }
+    if (editingBannerId) {
+      const { error } = await supabase.from('banners').update(payload).eq('id', editingBannerId)
+      if (error) { showToast('Erro ao salvar: ' + error.message); setBannerLoading(false); return }
+    } else {
+      const { error } = await supabase.from('banners').insert({ ...payload, active: true })
+      if (error) { showToast('Erro ao criar: ' + error.message); setBannerLoading(false); return }
+    }
+    await loadBanners()
+    setBannerFormOpen(false)
+    setEditingBannerId(null)
+    setBannerForm({ title:'', subtitle:'', description:'', link_url:'', display_order:0 })
+    showToast(editingBannerId ? 'Banner atualizado!' : 'Banner criado!')
+    setBannerLoading(false)
+  }
+
+  async function toggleBanner(id: string, current: boolean) {
+    await supabase.from('banners').update({ active: !current }).eq('id', id)
+    await loadBanners()
+    showToast(current ? 'Banner desativado.' : 'Banner ativado!')
+  }
+
+  async function deleteBanner(id: string) {
+    if (!confirm('Excluir este banner permanentemente?')) return
+    await supabase.from('banners').delete().eq('id', id)
+    setBanners(prev => prev.filter(b => b.id !== id))
+    showToast('Banner excluído.')
+  }
+
   async function saveHighlight() {
     if (!hlForm.company_id) return
     setHlLoading(true)
-    // Mapeia scope_type para os campos reais da tabela
     const levelMap: Record<string,string> = { global:'home', category:'category', subcategory:'subcategory' }
     const durationDays = parseInt(hlForm.expires_at) || 0
     const { error: hlErr } = await supabase.from('highlights').insert({
@@ -194,17 +277,6 @@ export default function AdminPage() {
     setHlLoading(false)
   }
 
-
-  async function loadReports() {
-    const { data } = await supabase
-      .from('listing_reports')
-      .select('id, reason, resolved, created_at, listing:listings(id,title,type,status), reporter:profiles(name)')
-      .order('created_at', { ascending: false })
-    const r = (data || []) as Report[]
-    setReports(r)
-    setRepCount(r.filter(x => !x.resolved).length)
-  }
-
   async function resolveReport(reportId: string) {
     await supabase.from('listing_reports').update({ resolved: true }).eq('id', reportId)
     await loadReports()
@@ -217,12 +289,12 @@ export default function AdminPage() {
     await loadReports()
     showToast('Anúncio excluído.')
   }
+
   async function removeHighlight(id: string) {
     await supabase.from('highlights').update({ active: false }).eq('id', id)
     await loadHighlights()
     showToast('Destaque removido.')
   }
-
 
   async function approveCompany(id: string) {
     await supabase.from('companies').update({ status: 'active', approved_at: new Date().toISOString() }).eq('id', id)
@@ -255,90 +327,38 @@ export default function AdminPage() {
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Inter', sans-serif; background: #F0EDE8; }
-
         .admin-layout { display: flex; min-height: 100vh; }
-
-        /* SIDEBAR */
-        .sidebar {
-          width: 220px; background: #111; flex-shrink: 0;
-          display: flex; flex-direction: column;
-          position: sticky; top: 0; height: 100vh;
-        }
-        .sidebar-logo {
-          padding: 24px 20px 20px;
-          font-family: 'Bebas Neue', sans-serif;
-          font-size: 20px; letter-spacing: 2px; color: #fff;
-          border-bottom: 1px solid #222;
-        }
+        .sidebar { width: 220px; background: #111; flex-shrink: 0; display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; }
+        .sidebar-logo { padding: 24px 20px 20px; font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 2px; color: #fff; border-bottom: 1px solid #222; }
         .sidebar-logo span { color: #C9951A; }
-        .sidebar-badge {
-          font-size: 10px; background: #C9951A; color: #fff;
-          padding: 2px 8px; border-radius: 8px;
-          font-family: 'Inter', sans-serif; font-weight: 600;
-          display: inline-block; margin-top: 4px;
-        }
-        .nav-item {
-          display: flex; align-items: center; gap: 10px;
-          padding: 12px 20px; cursor: pointer; transition: all .15s;
-          color: #888; font-size: 13px; font-weight: 500;
-          border-left: 3px solid transparent;
-        }
+        .sidebar-badge { font-size: 10px; background: #C9951A; color: #fff; padding: 2px 8px; border-radius: 8px; font-family: 'Inter', sans-serif; font-weight: 600; display: inline-block; margin-top: 4px; }
+        .nav-item { display: flex; align-items: center; gap: 10px; padding: 12px 20px; cursor: pointer; transition: all .15s; color: #888; font-size: 13px; font-weight: 500; border-left: 3px solid transparent; }
         .nav-item:hover { background: #1A1A1A; color: #fff; }
         .nav-item.on { background: #1A1A1A; color: #C9951A; border-left-color: #C9951A; }
-        .nav-badge {
-          margin-left: auto; background: #E24B4A; color: #fff;
-          font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 10px;
-        }
-        .sidebar-footer {
-          margin-top: auto; padding: 16px 20px;
-          border-top: 1px solid #222;
-        }
-        .sidebar-footer a {
-          font-size: 12px; color: #555; text-decoration: none;
-          display: flex; align-items: center; gap: 6px;
-        }
+        .nav-badge { margin-left: auto; background: #E24B4A; color: #fff; font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 10px; }
+        .sidebar-footer { margin-top: auto; padding: 16px 20px; border-top: 1px solid #222; }
+        .sidebar-footer a { font-size: 12px; color: #555; text-decoration: none; display: flex; align-items: center; gap: 6px; }
         .sidebar-footer a:hover { color: #888; }
-
-        /* MAIN */
         .admin-main { flex: 1; overflow-x: hidden; }
-        .admin-topbar {
-          background: #fff; border-bottom: 1px solid #EDE8E0;
-          padding: 14px 28px; display: flex; align-items: center;
-          justify-content: space-between; position: sticky; top: 0; z-index: 20;
-        }
+        .admin-topbar { background: #fff; border-bottom: 1px solid #EDE8E0; padding: 14px 28px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 20; }
         .topbar-title { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: #111; letter-spacing: 1px; }
         .topbar-date { font-size: 12px; color: #AAA; }
         .admin-body { padding: 28px; }
-
-        /* STATS GRID */
-        .stats-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 14px; margin-bottom: 28px;
-        }
+        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 28px; }
         @media (min-width: 1024px) { .stats-grid { grid-template-columns: repeat(4, 1fr); } }
-        .stat-card {
-          background: #fff; border-radius: 14px;
-          padding: 18px 20px; border: 0.5px solid #EDE8E0;
-        }
+        .stat-card { background: #fff; border-radius: 14px; padding: 18px 20px; border: 0.5px solid #EDE8E0; }
         .stat-label { font-size: 11px; color: #AAA; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px; }
         .stat-num   { font-family: 'Bebas Neue', sans-serif; font-size: 36px; letter-spacing: 1px; line-height: 1; margin-bottom: 4px; }
         .stat-sub   { font-size: 11px; color: #AAA; }
         .stat-up    { color: #0F8050; }
         .stat-warn  { color: #C9951A; }
         .stat-danger{ color: #E24B4A; }
-
-        /* SECTION */
         .section-card { background: #fff; border-radius: 14px; border: 0.5px solid #EDE8E0; margin-bottom: 20px; overflow: hidden; }
         .section-hdr  { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 0.5px solid #F0EDE8; }
         .section-title{ font-family: 'Bebas Neue', sans-serif; font-size: 14px; color: #888; letter-spacing: 1.5px; }
-
-        /* FILTERS */
         .filter-row { display: flex; gap: 8px; flex-wrap: wrap; }
         .filter-btn { padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid #E0DDD8; background: #FAFAF8; color: #666; transition: all .15s; font-family: 'Inter', sans-serif; }
         .filter-btn.on { border-color: #C9951A; background: #FEF3E2; color: #854F0B; font-weight: 600; }
-
-        /* TABLE */
         .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
         .data-table th { text-align: left; padding: 10px 16px; font-size: 11px; font-weight: 600; color: #AAA; text-transform: uppercase; letter-spacing: .04em; background: #FAFAF8; border-bottom: 0.5px solid #F0EDE8; }
         .data-table td { padding: 12px 16px; border-bottom: 0.5px solid #F5F2EC; color: #333; vertical-align: middle; }
@@ -347,11 +367,9 @@ export default function AdminPage() {
         .status-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 10px; }
         .action-btn { padding: 5px 12px; border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer; border: none; font-family: 'Inter', sans-serif; margin-right: 4px; transition: opacity .15s; }
         .action-btn:hover { opacity: .8; }
-        .btn-approve  { background: #EDFAF3; color: #0F8050; }
-        .btn-suspend  { background: #FEF0F0; color: #E24B4A; }
-        .btn-view     { background: #F0F4FF; color: #185FA5; }
-
-        /* SEARCH TABLE */
+        .btn-approve { background: #EDFAF3; color: #0F8050; }
+        .btn-suspend { background: #FEF0F0; color: #E24B4A; }
+        .btn-view    { background: #F0F4FF; color: #185FA5; }
         .search-bar-wrap { display: flex; align-items: center; gap: 8px; background: #F5F2EC; border: 1.5px solid #C9951A; border-radius: 10px; padding: 8px 14px; }
         .search-bar-wrap input { flex: 1; border: none; background: transparent; font-size: 13px; font-family: 'Inter', sans-serif; outline: none; }
         .rank-num { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: #DDD; width: 30px; }
@@ -361,25 +379,17 @@ export default function AdminPage() {
         .progress-bar { height: 6px; background: #F0EDE8; border-radius: 3px; overflow: hidden; flex: 1; }
         .progress-fill { height: 100%; background: #C9951A; border-radius: 3px; }
         .no-result-badge { font-size: 10px; background: #FEF0F0; color: #E24B4A; padding: 2px 7px; border-radius: 6px; font-weight: 600; }
-
-        /* TOAST */
-        .toast {
-          position: fixed; bottom: 24px; right: 24px;
-          background: #111; color: #fff; padding: 12px 20px; border-radius: 12px;
-          font-size: 13px; font-weight: 500; z-index: 999;
-          animation: fadein .2s ease;
-        }
+        .toast { position: fixed; bottom: 24px; right: 24px; background: #111; color: #fff; padding: 12px 20px; border-radius: 12px; font-size: 13px; font-weight: 500; z-index: 999; animation: fadein .2s ease; }
         @keyframes fadein { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
-
-        /* EMPTY */
         .empty-state { text-align: center; padding: 48px 20px; color: #AAA; }
         .empty-state div:first-child { font-size: 40px; margin-bottom: 12px; }
-
-        /* USER BADGE */
         .user-type-badge { font-size: 10px; padding: 2px 8px; border-radius: 8px; font-weight: 600; }
         .type-user    { background: #EBF4FF; color: #185FA5; }
         .type-company { background: #FEF3E2; color: #854F0B; }
         .type-admin   { background: #111; color: #C9951A; }
+        .banner-form-input { width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; font-family: 'Inter', sans-serif; outline: none; }
+        .banner-form-input:focus { border-color: #C9951A; }
+        .banner-form-label { font-size: 11px; color: #888; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; display: block; margin-bottom: 5px; }
       `}</style>
 
       {toast && <div className="toast">✓ {toast}</div>}
@@ -398,8 +408,8 @@ export default function AdminPage() {
             { id: 'dashboard', icon: '📊', label: 'Dashboard' },
             { id: 'empresas',  icon: '🏪', label: 'Empresas', badge: stats?.pending || 0 },
             { id: 'destaques', icon: '⭐', label: 'Destaques' },
+            { id: 'banners',   icon: '📢', label: 'Banners' },
             { id: 'denuncias', icon: '🚩', label: 'Denúncias', badge: repCount },
-
             { id: 'usuarios',  icon: '👥', label: 'Usuários' },
             { id: 'buscas',    icon: '🔍', label: 'Buscas' },
             { id: 'atividade', icon: '⚡', label: 'Atividade' },
@@ -431,6 +441,7 @@ export default function AdminPage() {
               {tab === 'atividade' && 'Atividade Recente'}
               {tab === 'destaques' && 'Destaques'}
               {tab === 'denuncias' && 'Denúncias'}
+              {tab === 'banners'   && 'Banners da Home'}
             </div>
             <div className="topbar-date">{new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}</div>
           </div>
@@ -464,7 +475,6 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                {/* Empresas pendentes no dashboard */}
                 {(stats?.pending || 0) > 0 && (
                   <div className="section-card">
                     <div className="section-hdr">
@@ -491,7 +501,6 @@ export default function AdminPage() {
                   </div>
                 )}
 
-                {/* Top buscas no dashboard */}
                 <div className="section-card">
                   <div className="section-hdr"><span className="section-title">🔍 TOP 10 BUSCAS</span></div>
                   {searches.length === 0
@@ -642,22 +651,17 @@ export default function AdminPage() {
               </>
             )}
 
-            {/* ── ATIVIDADE ── */}
-
-
             {/* ── DENÚNCIAS ── */}
             {!loading && tab === 'denuncias' && (
               <div>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
                   <span className="section-title">DENÚNCIAS ({reports.filter(r=>!r.resolved).length} pendentes)</span>
                 </div>
-
                 {reports.length === 0 && (
                   <div style={{textAlign:'center',padding:'40px 0',color:'#555',fontSize:13}}>
                     Nenhuma denúncia registrada. ✅
                   </div>
                 )}
-
                 <div style={{display:'flex',flexDirection:'column',gap:10}}>
                   {reports.map(r => (
                     <div key={r.id} style={{display:'flex',alignItems:'flex-start',gap:12,padding:'12px 14px',background: r.resolved ? '#111' : '#1A0A0A',border:`0.5px solid ${r.resolved ? '#222' : '#4A1515'}`,borderRadius:10,opacity:r.resolved?0.5:1}}>
@@ -814,6 +818,152 @@ export default function AdminPage() {
               </div>
             )}
 
+            {/* ── BANNERS ── */}
+            {!loading && tab === 'banners' && (
+              <div>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
+                  <span className="section-title">BANNERS DA HOME ({banners.length})</span>
+                  <button className="filter-btn on" onClick={() => { setBannerFormOpen(!bannerFormOpen); if (bannerFormOpen) { setEditingBannerId(null); setBannerForm({ title:'', subtitle:'', description:'', link_url:'', display_order: banners.length }) } }}>
+                    {bannerFormOpen ? 'Cancelar' : '+ Novo banner'}
+                  </button>
+                </div>
+
+                {/* Formulário */}
+                {bannerFormOpen && (
+                  <div style={{background:'#fff',border:'1px solid #e0e0e0',borderRadius:12,padding:20,marginBottom:20,boxShadow:'0 2px 8px rgba(0,0,0,0.06)'}}>
+                    <div style={{fontSize:14,fontWeight:600,color:'#111',marginBottom:16}}>
+                      {editingBannerId ? 'Editar Banner' : 'Novo Banner'}
+                    </div>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:14}}>
+                      <div>
+                        <label className="banner-form-label">Título *</label>
+                        <input
+                          className="banner-form-input"
+                          type="text"
+                          value={bannerForm.title}
+                          onChange={e => setBannerForm(p => ({...p, title: e.target.value}))}
+                          placeholder="Ex: Anderlu Material de Construção"
+                        />
+                      </div>
+                      <div>
+                        <label className="banner-form-label">Subtítulo</label>
+                        <input
+                          className="banner-form-input"
+                          type="text"
+                          value={bannerForm.subtitle}
+                          onChange={e => setBannerForm(p => ({...p, subtitle: e.target.value}))}
+                          placeholder="Ex: Material de Construção"
+                        />
+                      </div>
+                      <div>
+                        <label className="banner-form-label">Descrição curta</label>
+                        <input
+                          className="banner-form-input"
+                          type="text"
+                          value={bannerForm.description}
+                          onChange={e => setBannerForm(p => ({...p, description: e.target.value}))}
+                          placeholder="Ex: Tudo para sua obra na Trindade"
+                        />
+                      </div>
+                      <div>
+                        <label className="banner-form-label">Link (ao clicar no banner)</label>
+                        <input
+                          className="banner-form-input"
+                          type="text"
+                          value={bannerForm.link_url}
+                          onChange={e => setBannerForm(p => ({...p, link_url: e.target.value}))}
+                          placeholder="Ex: /empresa/anderlu ou https://..."
+                        />
+                        <div style={{fontSize:10,color:'#aaa',marginTop:4}}>O banner inteiro será clicável e levará para este link</div>
+                      </div>
+                      <div>
+                        <label className="banner-form-label">Ordem de exibição</label>
+                        <input
+                          className="banner-form-input"
+                          type="number"
+                          value={bannerForm.display_order}
+                          onChange={e => setBannerForm(p => ({...p, display_order: Number(e.target.value)}))}
+                          style={{width:100}}
+                        />
+                        <div style={{fontSize:10,color:'#aaa',marginTop:4}}>Número menor aparece primeiro</div>
+                      </div>
+                    </div>
+                    <div style={{display:'flex',gap:8}}>
+                      <button
+                        onClick={saveBanner}
+                        disabled={bannerLoading || !bannerForm.title.trim()}
+                        style={{background:'#C9951A',color:'#111',border:'none',padding:'9px 22px',borderRadius:7,fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'Inter,sans-serif',opacity:(!bannerForm.title.trim()||bannerLoading)?0.6:1}}
+                      >
+                        {bannerLoading ? 'Salvando...' : editingBannerId ? 'Salvar alterações' : 'Criar banner'}
+                      </button>
+                      <button
+                        onClick={() => { setBannerFormOpen(false); setEditingBannerId(null); setBannerForm({ title:'', subtitle:'', description:'', link_url:'', display_order:0 }) }}
+                        style={{background:'transparent',color:'#666',border:'1px solid #ddd',padding:'9px 16px',borderRadius:7,fontSize:13,cursor:'pointer',fontFamily:'Inter,sans-serif'}}
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Lista */}
+                {banners.length === 0 ? (
+                  <div className="empty-state">
+                    <div>📢</div>
+                    <div>Nenhum banner cadastrado ainda</div>
+                    <div style={{fontSize:12,marginTop:4}}>Adicione o primeiro banner para aparecer na home</div>
+                  </div>
+                ) : (
+                  <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                    {banners.map(b => (
+                      <div key={b.id} style={{
+                        background:'#fff', border:'1px solid #e8e8e8', borderRadius:10,
+                        padding:'14px 16px', display:'flex', alignItems:'center',
+                        justifyContent:'space-between', opacity: b.active ? 1 : 0.55,
+                      }}>
+                        <div style={{display:'flex',alignItems:'center',gap:12,flex:1,minWidth:0}}>
+                          <div style={{width:36,height:36,borderRadius:8,background:'#f5e9c4',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0}}>
+                            📢
+                          </div>
+                          <div style={{minWidth:0}}>
+                            <div style={{fontSize:14,fontWeight:600,color:'#111',marginBottom:2}}>{b.title}</div>
+                            {b.subtitle && <div style={{fontSize:12,color:'#888'}}>{b.subtitle}</div>}
+                            {b.link_url && (
+                              <div style={{fontSize:11,color:'#C9951A',marginTop:3,display:'flex',alignItems:'center',gap:4}}>
+                                🔗 <span style={{wordBreak:'break-all'}}>{b.link_url}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div style={{display:'flex',gap:8,alignItems:'center',flexShrink:0,marginLeft:12}}>
+                          <span style={{
+                            fontSize:10,fontWeight:600,padding:'2px 10px',borderRadius:10,
+                            background: b.active ? '#dcfce7' : '#fee2e2',
+                            color: b.active ? '#16a34a' : '#dc2626',
+                          }}>
+                            {b.active ? 'Ativo' : 'Inativo'}
+                          </span>
+                          <button onClick={() => { openEditBanner(b); setBannerFormOpen(true) }}
+                            style={{fontSize:11,color:'#185FA5',background:'#f0f4ff',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Inter,sans-serif',fontWeight:600}}>
+                            Editar
+                          </button>
+                          <button onClick={() => toggleBanner(b.id, b.active)}
+                            style={{fontSize:11,color:'#555',background:'#f5f5f5',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                            {b.active ? 'Desativar' : 'Ativar'}
+                          </button>
+                          <button onClick={() => deleteBanner(b.id)}
+                            style={{fontSize:11,color:'#dc2626',background:'#fef2f2',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Inter,sans-serif',fontWeight:600}}>
+                            Excluir
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── ATIVIDADE ── */}
             {!loading && tab === 'atividade' && (
               <div className="section-card">
                 <div className="section-hdr"><span className="section-title">CADASTROS RECENTES</span></div>

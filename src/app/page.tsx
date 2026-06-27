@@ -210,15 +210,15 @@ export default function Home() {
         @media(max-width:480px){.footer-top{grid-template-columns:1fr;}}
         .f-logo{font-family:'Bebas Neue',sans-serif;font-size:22px;color:#fff;letter-spacing:2px;margin-bottom:8px;text-decoration:none;display:block;}
         .f-logo span{color:#C9951A;}
-        .f-desc{font-size:12px;color:#555;line-height:1.7;max-width:220px;}
-        .f-col-title{font-family:'Bebas Neue',sans-serif;font-size:11px;color:#444;letter-spacing:1.5px;margin-bottom:12px;}
-        .f-link{display:block;font-size:12px;color:#666;text-decoration:none;margin-bottom:8px;transition:color .15s;}
+        .f-desc{font-size:12px;color:#888;line-height:1.7;max-width:220px;}
+        .f-col-title{font-family:'Bebas Neue',sans-serif;font-size:11px;color:#C9951A;letter-spacing:1.5px;margin-bottom:12px;}
+        .f-link{display:block;font-size:12px;color:#AAA;text-decoration:none;margin-bottom:8px;transition:color .15s;}
         .f-link:hover{color:#C9951A;}
         .footer-bottom{border-top:0.5px solid #1A1A1A;padding-top:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
-        .f-copy{font-size:11px;color:#333;}
-        .f-copy span{color:#555;}
+        .f-copy{font-size:11px;color:#666;}
+        .f-copy span{color:#888;}
         .f-legal{display:flex;gap:16px;}
-        .f-legal a{font-size:11px;color:#444;text-decoration:none;}
+        .f-legal a{font-size:11px;color:#888;text-decoration:none;}
         .f-legal a:hover{color:#C9951A;}
       `}</style>
 

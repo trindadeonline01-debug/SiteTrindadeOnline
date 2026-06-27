@@ -51,6 +51,7 @@ interface Banner {
   subtitle: string | null
   description: string | null
   link_url: string | null
+  image_url: string | null
   display_order: number
 }
 
@@ -432,7 +433,10 @@ export default function HomePage() {
             style={{ display: 'block', textDecoration: 'none' }}
           >
             <div className="banner-inner-wrap">
-              <div className="banner-deco">🏗️</div>
+              {currentBanner.image_url
+                ? <img src={currentBanner.image_url} alt={currentBanner.title} style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover"}} />
+                : <div className="banner-deco">🏗️</div>
+              }
               <div className="banner-content-wrap">
                 <div className="banner-title-text">{currentBanner.title}</div>
                 {currentBanner.subtitle    && <div className="banner-sub-text">{currentBanner.subtitle}</div>}

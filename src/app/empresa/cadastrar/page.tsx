@@ -6,6 +6,10 @@ import { supabase } from '@/lib/supabase'
 type Category = { id: string; name: string; emoji: string }
 type Subcategory = { id: string; name: string; emoji: string; category_id: string }
 
+const IGREJAS_CATEGORY_ID = '00000000-0000-0000-0000-000000000008'
+
+const DIAS_SEMANA = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo']
+
 const HOURS_DEFAULT = [
   { label: 'Seg–Sex', hours: '' },
   { label: 'Sábado', hours: '' },
@@ -39,6 +43,9 @@ export default function EmpresaCadastrarPage() {
   const [linkLabel, setLinkLabel]       = useState('Ver cardápio')
   const [linkUrl, setLinkUrl]           = useState('')
   const [hours, setHours]               = useState(HOURS_DEFAULT)
+  const [churchHours, setChurchHours]   = useState<{day:string;manha:string;noite:string}[]>(
+    DIAS_SEMANA.map(day => ({ day, manha: '', noite: '' }))
+  )
 
   // Etapa 3
   const [photos, setPhotos]             = useState<File[]>([])
@@ -133,11 +140,22 @@ export default function EmpresaCadastrarPage() {
       }
 
       // 3. Horários
-      const validHours = hours.filter(h => h.hours.trim())
-      if (validHours.length > 0) {
-        await supabase.from('company_hours').insert(
-          validHours.map((h, i) => ({ company_id: company.id, label: h.label, hours: h.hours, order: i }))
-        )
+      const isIgreja = categoryId === IGREJAS_CATEGORY_ID
+      if (isIgreja) {
+        const cultosEntries: {company_id:string;label:string;hours:string;order:number}[] = []
+        let order = 0
+        churchHours.forEach(({ day, manha, noite }) => {
+          if (manha.trim()) cultosEntries.push({ company_id: company.id, label: `${day} manhã`, hours: manha.trim(), order: order++ })
+          if (noite.trim()) cultosEntries.push({ company_id: company.id, label: `${day} noite`, hours: noite.trim(), order: order++ })
+        })
+        if (cultosEntries.length > 0) await supabase.from('company_hours').insert(cultosEntries)
+      } else {
+        const validHours = hours.filter(h => h.hours.trim())
+        if (validHours.length > 0) {
+          await supabase.from('company_hours').insert(
+            validHours.map((h, i) => ({ company_id: company.id, label: h.label, hours: h.hours, order: i }))
+          )
+        }
       }
 
       // 4. Upload das fotos
@@ -218,6 +236,12 @@ export default function EmpresaCadastrarPage() {
 
         /* HOURS */
         .hours-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .church-row { display: grid; grid-template-columns: 72px 1fr 1fr; gap: 8px; align-items: center; padding: 8px 10px; background: #FAFAF8; border: 0.5px solid #E0DDD8; border-radius: 10px; margin-bottom: 6px; }
+        .church-day { font-size: 12px; font-weight: 600; color: #222; }
+        .church-period { display: flex; flex-direction: column; gap: 3px; }
+        .church-period-lbl { font-size: 9px; color: #AAA; font-weight: 700; letter-spacing: .3px; }
+        .church-time { width: 100%; padding: 6px 8px; border: 1px solid #E0DDD8; border-radius: 7px; font-size: 12px; font-family: 'Inter',sans-serif; color: #222; background: #fff; outline: none; }
+        .church-time:focus { border-color: #C9951A; }
         .hour-box { background: #FAFAF8; border: 0.5px solid #E0DDD8; border-radius: 9px; padding: 9px 10px; }
         .hour-day { font-size: 9px; font-weight: 700; color: #999; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
         .hour-input { width: 100%; border: none; background: transparent; font-size: 12px; color: #444; font-family: 'Inter', sans-serif; outline: none; }
@@ -363,24 +387,43 @@ export default function EmpresaCadastrarPage() {
                   </div>
 
                   <div className="field">
-                    <label>Horário de funcionamento <span style={{fontSize:11,color:'#AAA',fontWeight:400}}>(opcional)</span></label>
-                    <div className="hours-grid">
-                      {hours.map((h, i) => (
-                        <div key={i} className="hour-box">
-                          <div className="hour-day">{h.label}</div>
-                          <input
-                            className="hour-input"
-                            value={h.hours}
-                            placeholder="Ex: 08:00–18:00"
-                            onChange={e => {
-                              const newH = [...hours]
-                              newH[i] = { ...newH[i], hours: e.target.value }
-                              setHours(newH)
-                            }}
-                          />
+                    <label>
+                      {categoryId === IGREJAS_CATEGORY_ID ? '⛪ Horários de culto' : 'Horário de funcionamento'}
+                      <span style={{fontSize:11,color:'#AAA',fontWeight:400}}> (opcional)</span>
+                    </label>
+
+                    {categoryId === IGREJAS_CATEGORY_ID ? (
+                      <div style={{marginTop:8}}>
+                        <div style={{fontSize:11,color:'#888',marginBottom:10,padding:'6px 10px',background:'#FEF3E2',borderRadius:8,borderLeft:'3px solid #C9951A'}}>
+                          Preencha os horários dos cultos. Deixe em branco os dias sem culto.
                         </div>
-                      ))}
-                    </div>
+                        {churchHours.map((ch, i) => (
+                          <div key={i} className="church-row">
+                            <div className="church-day">{ch.day}</div>
+                            <div className="church-period">
+                              <div className="church-period-lbl">MANHÃ</div>
+                              <input type="time" className="church-time" value={ch.manha}
+                                onChange={e => { const n=[...churchHours]; n[i]={...n[i],manha:e.target.value}; setChurchHours(n) }}/>
+                            </div>
+                            <div className="church-period">
+                              <div className="church-period-lbl">NOITE</div>
+                              <input type="time" className="church-time" value={ch.noite}
+                                onChange={e => { const n=[...churchHours]; n[i]={...n[i],noite:e.target.value}; setChurchHours(n) }}/>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="hours-grid">
+                        {hours.map((h, i) => (
+                          <div key={i} className="hour-box">
+                            <div className="hour-day">{h.label}</div>
+                            <input className="hour-input" value={h.hours} placeholder="Ex: 08:00–18:00"
+                              onChange={e => { const newH=[...hours]; newH[i]={...newH[i],hours:e.target.value}; setHours(newH) }}/>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {erro && <div className="erro-msg">⚠️ {erro}</div>}

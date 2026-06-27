@@ -46,6 +46,7 @@ export default function PainelPage() {
   const [editLinkUrl, setEditLinkUrl]     = useState('')
   const [editLinkLabel, setEditLinkLabel] = useState('Ver cardápio')
   const [editHours, setEditHours]         = useState<{label:string;hours:string}[]>([])
+  const [churchHours, setChurchHours]     = useState<{day:string;manha:string;noite:string}[]>(DIAS_SEMANA.map(day=>({day,manha:'',noite:''})))
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -91,8 +92,18 @@ export default function PainelPage() {
     setSaving(true)
     await supabase.from('companies').update({ name:editNome.toUpperCase(), phone:editPhone, address:editAddress, description:editDesc, external_link:editLinkUrl||null, external_link_label:editLinkUrl?editLinkLabel:null }).eq('id', company.id)
     await supabase.from('company_hours').delete().eq('company_id', company.id)
-    const validH = editHours.filter(h=>h.hours.trim())
-    if (validH.length > 0) await supabase.from('company_hours').insert(validH.map((h,i)=>({company_id:company.id,label:h.label,hours:h.hours,order:i})))
+    const isIgreja = company.category_id === IGREJAS_CATEGORY_ID
+    if (isIgreja) {
+      const cultosEntries: any[] = []; let order = 0
+      churchHours.forEach(({day,manha,noite}) => {
+        if (manha.trim()) cultosEntries.push({company_id:company.id,label:`${day} manhã`,hours:manha.trim(),order:order++})
+        if (noite.trim()) cultosEntries.push({company_id:company.id,label:`${day} noite`,hours:noite.trim(),order:order++})
+      })
+      if (cultosEntries.length > 0) await supabase.from('company_hours').insert(cultosEntries)
+    } else {
+      const validH = editHours.filter(h=>h.hours.trim())
+      if (validH.length > 0) await supabase.from('company_hours').insert(validH.map((h,i)=>({company_id:company.id,label:h.label,hours:h.hours,order:i})))
+    }
     showToast('Perfil atualizado!')
     setSaving(false)
   }
@@ -276,6 +287,12 @@ export default function PainelPage() {
         .form-grid{display:grid;grid-template-columns:1fr;gap:14px;}
         @media(min-width:768px){.form-grid{grid-template-columns:1fr 1fr;}}
         .hours-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+        .church-row{display:grid;grid-template-columns:72px 1fr 1fr;gap:8px;align-items:center;padding:8px 10px;background:#1A1A1A;border:0.5px solid #222;border-radius:10px;margin-bottom:6px;}
+        .church-day{font-size:12px;font-weight:600;color:#fff;}
+        .church-period{display:flex;flex-direction:column;gap:3px;}
+        .church-period-lbl{font-size:9px;color:#666;font-weight:700;letter-spacing:.3px;}
+        .church-time{width:100%;padding:6px 8px;border:1px solid #333;border-radius:7px;font-size:12px;font-family:'Inter',sans-serif;color:#fff;background:#111;outline:none;}
+        .church-time:focus{border-color:#C9951A;}
         .hour-box{background:#FAFAF8;border:0.5px solid #E0DDD8;border-radius:9px;padding:9px 10px;}
         .hour-day{font-size:9px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;}
         .hour-input{width:100%;border:none;background:transparent;font-size:12px;color:#444;font-family:'Inter',sans-serif;outline:none;}
@@ -602,15 +619,36 @@ export default function PainelPage() {
                       </div>
                     </div>
                     <div className="field">
-                      <label>Horários de funcionamento</label>
-                      <div className="hours-grid">
-                        {editHours.map((h,i)=>(
-                          <div key={i} className="hour-box">
-                            <div className="hour-day">{h.label}</div>
-                            <input className="hour-input" value={h.hours} placeholder="08:00–18:00" onChange={e=>{const n=[...editHours];n[i]={...n[i],hours:e.target.value};setEditHours(n)}}/>
+                      <label>{company.category_id === IGREJAS_CATEGORY_ID ? '⛪ Horários de culto' : 'Horários de funcionamento'}</label>
+                      {company.category_id === IGREJAS_CATEGORY_ID ? (
+                        <div style={{marginTop:8}}>
+                          <div style={{fontSize:11,color:'#888',marginBottom:10,padding:'6px 10px',background:'rgba(201,149,26,.1)',borderRadius:8,borderLeft:'3px solid #C9951A'}}>
+                            Preencha os horários dos cultos. Deixe em branco os dias sem culto.
                           </div>
-                        ))}
-                      </div>
+                          {churchHours.map((ch,i)=>(
+                            <div key={i} className="church-row">
+                              <div className="church-day">{ch.day}</div>
+                              <div className="church-period">
+                                <div className="church-period-lbl">MANHÃ</div>
+                                <input type="time" className="church-time" value={ch.manha} onChange={e=>{const n=[...churchHours];n[i]={...n[i],manha:e.target.value};setChurchHours(n)}}/>
+                              </div>
+                              <div className="church-period">
+                                <div className="church-period-lbl">NOITE</div>
+                                <input type="time" className="church-time" value={ch.noite} onChange={e=>{const n=[...churchHours];n[i]={...n[i],noite:e.target.value};setChurchHours(n)}}/>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="hours-grid">
+                          {editHours.map((h,i)=>(
+                            <div key={i} className="hour-box">
+                              <div className="hour-day">{h.label}</div>
+                              <input className="hour-input" value={h.hours} placeholder="08:00–18:00" onChange={e=>{const n=[...editHours];n[i]={...n[i],hours:e.target.value};setEditHours(n)}}/>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <button className="btn-primary" onClick={saveProfile} disabled={saving}>{saving?'Salvando...':'Salvar alterações'}</button>
                   </div>

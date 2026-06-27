@@ -43,6 +43,10 @@ export default function PainelPage() {
   const [replyText, setReplyText]   = useState('')
 
   const [editNome, setEditNome]           = useState('')
+  const [editCategoryId, setEditCategoryId] = useState('')
+  const [editSubcatIds, setEditSubcatIds]   = useState<string[]>([])
+  const [allCategories, setAllCategories]   = useState<{id:string;name:string;emoji:string}[]>([])
+  const [allSubcats, setAllSubcats]         = useState<{id:string;name:string;emoji:string;category_id:string}[]>([])
   const [editPhone, setEditPhone]         = useState('')
   const [editAddress, setEditAddress]     = useState('')
   const [editDesc, setEditDesc]           = useState('')
@@ -71,16 +75,44 @@ export default function PainelPage() {
 
     if (comp) {
       setCompany(comp)
+      // Load categories for selector
+      const [{ data: cats }, { data: subs }, { data: compSubs }] = await Promise.all([
+        supabase.from('categories').select('id,name,emoji').order('name'),
+        supabase.from('subcategories').select('id,name,emoji,category_id').order('name'),
+        supabase.from('company_subcategories').select('subcategory_id').eq('company_id', comp.id)
+      ])
+      setAllCategories(cats || [])
+      setAllSubcats(subs || [])
+      setEditCategoryId(comp.category_id || '')
+      setEditSubcatIds((compSubs || []).map((s:any) => s.subcategory_id))
+
       setEditNome(comp.name || '')
       setEditPhone(comp.phone || '')
       setEditAddress(comp.address || '')
       setEditDesc(comp.description || '')
       setEditLinkUrl(comp.external_link || '')
       setEditLinkLabel(comp.external_link_label || 'Ver cardápio')
-      setEditHours(comp.hours?.sort((a:any,b:any)=>a.order-b.order) || [
+      // Sempre mostra todos os dias — preenche com valores salvos se existirem
+      const HOURS_DEFAULT = [
         {label:'Seg–Sex',hours:''},{label:'Sábado',hours:''},{label:'Domingo',hours:''},{label:'Feriados',hours:''}
-      ])
-      const { data: revs } = await supabase.from('reviews').select('*, user:profiles(name), response:review_responses(text)').eq('company_id', comp.id).order('created_at',{ascending:false})
+      ]
+      const savedHours = comp.hours?.sort((a:any,b:any)=>a.order-b.order) || []
+      const mergedHours = HOURS_DEFAULT.map(def => {
+        const saved = savedHours.find((h:any) => h.label === def.label)
+        return { label: def.label, hours: saved?.hours || '' }
+      })
+      // Se tem horários que não são padrão (ex: igrejas), adiciona também
+      const extraHours = savedHours.filter((h:any) => !HOURS_DEFAULT.find(d => d.label === h.label))
+      setEditHours([...mergedHours, ...extraHours])
+      // Inicializa horários de culto se for Igreja
+      if (comp.category_id === IGREJAS_CATEGORY_ID) {
+        setChurchHours(DIAS_SEMANA.map(day => ({
+          day,
+          manha: savedHours.find((h:any)=>h.label===`${day} manhã`)?.hours || '',
+          noite: savedHours.find((h:any)=>h.label===`${day} noite`)?.hours || '',
+        })))
+      }
+      const { data: revs } = await supabase.from('reviews').select('*, user:profiles(name), response:review_responses(text)').eq('company_id', comp.id).order('created_at',{ascending:false}) = await supabase.from('reviews').select('*, user:profiles(name), response:review_responses(text)').eq('company_id', comp.id).order('created_at',{ascending:false})
       setReviews(revs || [])
       const { data: highs } = await supabase.from('highlights').select('*').eq('company_id', comp.id).order('created_at',{ascending:false})
       setHighlights(highs || [])
@@ -93,7 +125,20 @@ export default function PainelPage() {
   async function saveProfile() {
     if (!company) return
     setSaving(true)
-    await supabase.from('companies').update({ name:editNome.toUpperCase(), phone:editPhone, address:editAddress, description:editDesc, external_link:editLinkUrl||null, external_link_label:editLinkUrl?editLinkLabel:null }).eq('id', company.id)
+    await supabase.from('companies').update({
+      name: editNome.toUpperCase(),
+      phone: editPhone,
+      address: editAddress,
+      description: editDesc,
+      category_id: editCategoryId || null,
+      external_link: editLinkUrl || null,
+      external_link_label: editLinkUrl ? editLinkLabel : null
+    }).eq('id', company.id)
+    // Save subcategories
+    await supabase.from('company_subcategories').delete().eq('company_id', company.id)
+    if (editSubcatIds.length > 0) {
+      await supabase.from('company_subcategories').insert(editSubcatIds.map(sid => ({ company_id: company.id, subcategory_id: sid })))
+    }
     await supabase.from('company_hours').delete().eq('company_id', company.id)
     const isIgreja = company.category_id === IGREJAS_CATEGORY_ID
     if (isIgreja) {
@@ -620,6 +665,29 @@ export default function PainelPage() {
                         <label>Nome da empresa</label>
                         <input type="text" value={editNome} onChange={e=>setEditNome(e.target.value.toUpperCase())} style={{textTransform:'uppercase',fontFamily:"'Bebas Neue',sans-serif",letterSpacing:1}}/>
                       </div>
+                      <div className="field">
+                        <label>Categoria *</label>
+                        <select value={editCategoryId} onChange={e=>{setEditCategoryId(e.target.value);setEditSubcatIds([])}}>
+                          <option value="">Selecionar categoria...</option>
+                          {allCategories.map(cat=><option key={cat.id} value={cat.id}>{cat.emoji} {cat.name}</option>)}
+                        </select>
+                      </div>
+                      {editCategoryId && allSubcats.filter(s=>s.category_id===editCategoryId).length > 0 && (
+                      <div className="field">
+                        <label>Subcategorias <span style={{fontSize:11,color:'#666',fontWeight:400}}>(selecione até 3)</span></label>
+                        <div style={{display:'flex',flexWrap:'wrap',gap:7,marginTop:4}}>
+                          {allSubcats.filter(s=>s.category_id===editCategoryId).map(s=>(
+                            <div key={s.id} onClick={()=>setEditSubcatIds(prev=>prev.includes(s.id)?prev.filter(x=>x!==s.id):prev.length<3?[...prev,s.id]:prev)}
+                              style={{padding:'5px 12px',borderRadius:20,fontSize:12,cursor:'pointer',border:'1px solid',fontFamily:'Inter,sans-serif',
+                                borderColor:editSubcatIds.includes(s.id)?'#C9951A':'#333',
+                                background:editSubcatIds.includes(s.id)?'rgba(201,149,26,.15)':'transparent',
+                                color:editSubcatIds.includes(s.id)?'#C9951A':'#888'}}>
+                              {s.emoji} {s.name}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      )}
                       <div className="field">
                         <label>WhatsApp</label>
                         <input type="tel" value={editPhone} onChange={e=>setEditPhone(e.target.value)} placeholder="(21) 9 0000-0000"/>

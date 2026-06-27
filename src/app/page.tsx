@@ -234,7 +234,7 @@ export default function HomePage() {
         .hero-sub { font-size: clamp(14px, 2vw, 16px); color: #888; margin-bottom: 24px; display: none; }
         .hero-search-wrap { display: none; }
         @media(min-width: 768px) {
-          .hero { padding: 60px 20px 0; }
+          .hero { padding: 51px 20px 0; }
           .hero-title, .hero-sub { display: block; }
           .hero-search-wrap {
             display: flex;
@@ -260,7 +260,7 @@ export default function HomePage() {
         .banner-outer { width: 100%; }
         .banner-inner-wrap {
           width: 100%;
-          height: 260px;
+          height: 312px;
           background: linear-gradient(105deg, #1a0f00 0%, #3d2200 50%, #5c3300 100%);
           display: flex;
           align-items: center;
@@ -286,14 +286,14 @@ export default function HomePage() {
           background: #fff;
           border: 1px solid #e0e0e0;
           border-radius: 14px;
-          padding: 18px 20px;
+          padding: 24px 26px;
           box-shadow: 0 2px 12px rgba(0,0,0,0.08);
         }
         .cat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
         @media(min-width: 768px) { .cat-grid { grid-template-columns: repeat(8,1fr); gap: 4px; } }
-        .cat-item { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 6px; border-radius: 8px; cursor: pointer; text-decoration: none; transition: background 0.15s; }
+        .cat-item { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px 8px; border-radius: 8px; cursor: pointer; text-decoration: none; transition: background 0.15s; }
         .cat-item:hover { background: #fdf6e3; }
-        .cat-icon-wrap { width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+        .cat-icon-wrap { width: 58px; height: 58px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; }
         .cat-label { font-size: 11px; color: #555; text-align: center; line-height: 1.3; font-weight: 500; }
 
         /* seções */

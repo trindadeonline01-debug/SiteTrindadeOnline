@@ -48,8 +48,8 @@ export default function PerfilPage() {
       setForm({ name: prof.name || '', phone: prof.phone || '', neighborhood: prof.neighborhood || '' })
     }
     setListings((list || []) as Listing[])
-    setReviews((revs || []) as Review[])
-    setFavs((favData || []) as Fav[])
+    setReviews((revs || []) as any)
+    setFavs((favData || []) as any)
     setLoading(false)
   }
 

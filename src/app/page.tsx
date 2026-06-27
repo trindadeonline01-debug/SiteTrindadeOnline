@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 
 /* ─── tipos ─────────────────────────────────────────────── */
@@ -112,7 +112,7 @@ function CompanyPhoto({ photos, name }: { photos?: { photo_url: string; is_prima
 ═══════════════════════════════════════════════════════════ */
 export default function HomePage() {
   const router = useRouter()
-  const supabase = createClient()
+  
 
   const [user, setUser] = useState<any>(null)
   const [userType, setUserType] = useState<string | null>(null)
@@ -137,7 +137,7 @@ export default function HomePage() {
           .then(({ data }) => setUserType(data?.user_type ?? null))
       }
     })
-  }, [supabase])
+  }, [])
 
   /* ── dados ── */
   const loadData = useCallback(async () => {
@@ -193,7 +193,7 @@ export default function HomePage() {
       listingsMap[type] = (ld || []) as Listing[]
     }
     setRecentListings(listingsMap)
-  }, [supabase])
+  }, [])
 
   useEffect(() => { loadData() }, [loadData])
 

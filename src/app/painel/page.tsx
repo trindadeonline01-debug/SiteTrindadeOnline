@@ -85,7 +85,7 @@ export default function PainelPage() {
       const { data: highs } = await supabase.from('highlights').select('*').eq('company_id', comp.id).order('created_at',{ascending:false})
       setHighlights(highs || [])
     } else {
-      window.location.href = '/empresa/cadastrar'
+      // Não redireciona forçado — deixa o painel mostrar tela de boas-vindas
     }
     setLoading(false)
   }
@@ -153,6 +153,28 @@ export default function PainelPage() {
   function showToast(msg: string) { setToast(msg); setTimeout(()=>setToast(''), 3000) }
 
   if (loading) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',fontFamily:'Inter,sans-serif',color:'#AAA'}}>Carregando...</div>
+  if (!loading && !company) return (
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap');
+        *{box-sizing:border-box;margin:0;padding:0;}
+        body{font-family:'Inter',sans-serif;background:#111;color:#fff;}
+      `}</style>
+      <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:'100vh',padding:24,textAlign:'center'}}>
+        <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:24,color:'#fff',letterSpacing:2,marginBottom:6}}>TRINDADE <span style={{color:'#C9951A'}}>ONLINE</span></div>
+        <div style={{fontSize:48,margin:'24px 0 12px'}}>🏪</div>
+        <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:28,color:'#fff',letterSpacing:1,marginBottom:8}}>BEM-VINDO!</div>
+        <div style={{fontSize:14,color:'#666',maxWidth:380,lineHeight:1.7,marginBottom:28}}>
+          Sua conta está pronta. Agora cadastre sua empresa para aparecer no Trindade Online e ser encontrado pelos moradores do bairro.
+        </div>
+        <a href="/empresa/cadastrar" style={{display:'inline-block',padding:'14px 28px',background:'#C9951A',color:'#fff',borderRadius:12,textDecoration:'none',fontSize:15,fontWeight:700,marginBottom:12}}>
+          + Cadastrar minha empresa
+        </a>
+        <a href="/" style={{fontSize:13,color:'#555',textDecoration:'none'}}>← Voltar ao site</a>
+      </div>
+    </>
+  )
+
   if (!company) return null
 
   const activeHighlights = highlights.filter(h=>h.status==='active')

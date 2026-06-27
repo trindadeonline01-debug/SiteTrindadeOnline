@@ -183,8 +183,8 @@ export default function PainelPage() {
         .sb-item.on{background:#1A1A1A;color:#C9951A;border-left-color:#C9951A;}
         .sb-badge{margin-left:auto;background:#E24B4A;color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;}
         .sb-footer{padding:16px 20px;border-top:1px solid #222;}
-        .sb-footer a{font-size:12px;color:#555;text-decoration:none;display:flex;align-items:center;gap:6px;}
-        .sb-footer a:hover{color:#888;}
+        .sb-footer a{font-size:12px;color:#C9951A;text-decoration:none;display:flex;align-items:center;gap:6px;font-weight:600;}
+        .sb-footer a:hover{color:#fff;}
 
         /* MAIN */
         .painel-main{flex:1;overflow-x:hidden;display:flex;flex-direction:column;}
@@ -369,7 +369,10 @@ export default function PainelPage() {
               <div className="mhdr-logo">TRINDADE <span>ONLINE</span></div>
               <div className="mhdr-empresa">{company.name}</div>
             </div>
-            <a href="/sair" style={{fontSize:12,color:'#555',textDecoration:'none'}}>Sair</a>
+<div style={{display:'flex',gap:12,alignItems:'center'}}>
+              <a href="/" style={{fontSize:12,color:'#C9951A',textDecoration:'none',fontWeight:600}}>← Ver site</a>
+              <a href="/sair" style={{fontSize:12,color:'#555',textDecoration:'none'}}>Sair</a>
+            </div>
           </div>
 
           {/* Desktop topbar */}

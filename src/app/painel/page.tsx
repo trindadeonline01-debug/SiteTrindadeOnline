@@ -112,7 +112,7 @@ export default function PainelPage() {
           noite: savedHours.find((h:any)=>h.label===`${day} noite`)?.hours || '',
         })))
       }
-      const { data: revs } = await supabase.from('reviews').select('*, user:profiles(name), response:review_responses(text)').eq('company_id', comp.id).order('created_at',{ascending:false}) = await supabase.from('reviews').select('*, user:profiles(name), response:review_responses(text)').eq('company_id', comp.id).order('created_at',{ascending:false})
+      const { data: revs } = await supabase.from('reviews').select('*, user:profiles(name), response:review_responses(text)').eq('company_id', comp.id).order('created_at',{ascending:false})
       setReviews(revs || [])
       const { data: highs } = await supabase.from('highlights').select('*').eq('company_id', comp.id).order('created_at',{ascending:false})
       setHighlights(highs || [])

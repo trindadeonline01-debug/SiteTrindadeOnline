@@ -202,6 +202,24 @@ export default function Home() {
         /* FOOTER */
         .site-footer{background:#111;color:#888;text-align:center;font-size:12px;padding:20px;}
         .site-footer span{color:#C9951A;}
+        /* FOOTER */
+        .footer{background:#111;border-top:2px solid #C9951A;padding:36px 24px 24px;margin-top:48px;}
+        .fi{max-width:1200px;margin:0 auto;}
+        .footer-top{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:32px;margin-bottom:32px;}
+        @media(max-width:767px){.footer-top{grid-template-columns:1fr 1fr;gap:24px;}}
+        @media(max-width:480px){.footer-top{grid-template-columns:1fr;}}
+        .f-logo{font-family:'Bebas Neue',sans-serif;font-size:22px;color:#fff;letter-spacing:2px;margin-bottom:8px;text-decoration:none;display:block;}
+        .f-logo span{color:#C9951A;}
+        .f-desc{font-size:12px;color:#555;line-height:1.7;max-width:220px;}
+        .f-col-title{font-family:'Bebas Neue',sans-serif;font-size:11px;color:#444;letter-spacing:1.5px;margin-bottom:12px;}
+        .f-link{display:block;font-size:12px;color:#666;text-decoration:none;margin-bottom:8px;transition:color .15s;}
+        .f-link:hover{color:#C9951A;}
+        .footer-bottom{border-top:0.5px solid #1A1A1A;padding-top:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+        .f-copy{font-size:11px;color:#333;}
+        .f-copy span{color:#555;}
+        .f-legal{display:flex;gap:16px;}
+        .f-legal a{font-size:11px;color:#444;text-decoration:none;}
+        .f-legal a:hover{color:#C9951A;}
       `}</style>
 
       {/* HEADER */}
@@ -350,6 +368,47 @@ export default function Home() {
 
       <footer className="site-footer">
         © 2026 <span>Trindade Online</span> · trindadeonline.com.br
+      </footer>
+      {/* FOOTER */}
+      <footer className="footer">
+        <div className="fi">
+          <div className="footer-top">
+            <div>
+              <a className="f-logo" href="/">TRINDADE <span>ONLINE</span></a>
+              <div className="f-desc">O portal digital do bairro Trindade em São Gonçalo/RJ. Conectando moradores, comércios e histórias.</div>
+            </div>
+            <div>
+              <div className="f-col-title">EXPLORAR</div>
+              <a className="f-link" href="/categoria/comercios">🏪 Comércios</a>
+              <a className="f-link" href="/categoria/gastronomia">🍽️ Gastronomia</a>
+              <a className="f-link" href="/categoria/servicos">🔧 Serviços</a>
+              <a className="f-link" href="/categoria/igrejas">⛪ Igrejas</a>
+            </div>
+            <div>
+              <div className="f-col-title">COMUNIDADE</div>
+              <a className="f-link" href="/desapega">🏷️ Desapega</a>
+              <a className="f-link" href="/empregos">💼 Empregos</a>
+              <a className="f-link" href="/imoveis">🏠 Imóveis</a>
+              <a className="f-link" href="/achados-perdidos">🔍 Achados & Perdidos</a>
+            </div>
+            <div>
+              <div className="f-col-title">SUA EMPRESA</div>
+              <a className="f-link" href="/empresa/cadastrar">+ Cadastrar empresa</a>
+              <a className="f-link" href="/login">Entrar na plataforma</a>
+              <a className="f-link" href="/cadastro">Criar conta grátis</a>
+              <a className="f-link" href="/termos">Termos de Uso</a>
+              <a className="f-link" href="/termos">Política de Privacidade</a>
+            </div>
+          </div>
+          <div className="footer-bottom">
+            <div className="f-copy">© 2026 Trindade Online · <span>Trindade, São Gonçalo/RJ</span></div>
+            <div className="f-legal">
+              <a href="/termos">Termos de Uso</a>
+              <a href="/termos">Privacidade</a>
+              <a href="/termos">LGPD</a>
+            </div>
+          </div>
+        </div>
       </footer>
     </>
   )

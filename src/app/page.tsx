@@ -234,7 +234,7 @@ export default function HomePage() {
         .hero-sub { font-size: clamp(14px, 2vw, 16px); color: #888; margin-bottom: 24px; display: none; }
         .hero-search-wrap { display: none; }
         @media(min-width: 768px) {
-          .hero { padding: 51px 20px 0; }
+          .hero { padding: 43px 20px 0; }
           .hero-title, .hero-sub { display: block; }
           .hero-search-wrap {
             display: flex;
@@ -260,7 +260,7 @@ export default function HomePage() {
         .banner-outer { width: 100%; }
         .banner-inner-wrap {
           width: 100%;
-          height: 312px;
+          height: 359px;
           background: linear-gradient(105deg, #1a0f00 0%, #3d2200 50%, #5c3300 100%);
           display: flex;
           align-items: center;
@@ -289,9 +289,10 @@ export default function HomePage() {
           padding: 24px 26px;
           box-shadow: 0 2px 12px rgba(0,0,0,0.08);
         }
-        .cat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
-        @media(min-width: 768px) { .cat-grid { grid-template-columns: repeat(8,1fr); gap: 4px; } }
-        .cat-item { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px 8px; border-radius: 8px; cursor: pointer; text-decoration: none; transition: background 0.15s; }
+        .cat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 0; }
+        @media(min-width: 768px) { .cat-grid { grid-template-columns: repeat(8,1fr); gap: 0; } }
+        .cat-item { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px 8px; border-radius: 8px; cursor: pointer; text-decoration: none; transition: background 0.15s; position: relative; }
+        .cat-item:not(:last-child)::after { content: ""; position: absolute; right: 0; top: 20%; height: 60%; width: 1px; background: #e8e8e4; }
         .cat-item:hover { background: #fdf6e3; }
         .cat-icon-wrap { width: 58px; height: 58px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; }
         .cat-label { font-size: 11px; color: #555; text-align: center; line-height: 1.3; font-weight: 500; }

@@ -9,6 +9,7 @@ type Company = {
   external_link: string; external_link_label: string
   avg_rating: number; total_reviews: number
   views_count: number; whatsapp_clicks: number; link_clicks: number
+  category_id?: string; trial_ends_at?: string
   category?: { name: string; emoji: string }
   photos?: { id: string; url: string; order: number }[]
   hours?: { id: string; label: string; hours: string; order: number }[]
@@ -65,7 +66,7 @@ export default function PainelPage() {
     setLoading(true)
     const { data: comp } = await supabase
       .from('companies')
-      .select('*, category:categories(name,emoji), photos:company_photos(id,url,order), hours:company_hours(id,label,hours,order)')
+      .select('*, category_id, category:categories(name,emoji), photos:company_photos(id,url,order), hours:company_hours(id,label,hours,order)')
       .eq('owner_id', userId).single()
 
     if (comp) {

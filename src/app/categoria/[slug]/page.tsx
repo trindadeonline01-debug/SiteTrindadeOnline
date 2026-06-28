@@ -12,6 +12,74 @@ type Company     = {
   photos?: any[]; subcategories?: any[]
 }
 
+/* ── SVG por slug de categoria (mesmo estilo da home) ── */
+function CategorySVG({ slug, size = 56, color = '#C9951A' }: { slug: string; size?: number; color?: string }) {
+  const s = `width:${size}px;height:${size}px;stroke:${color};stroke-width:0.8;fill:none;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;`
+  const paths: Record<string, JSX.Element> = {
+    comercios: (
+      <svg viewBox="0 0 24 24" style={s as any}>
+        <path d="M3 9l1-5h16l1 5"/>
+        <path d="M3 9a2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0 2 2 2 2 0 0 0 2-2"/>
+        <path d="M5 20v-9"/><path d="M19 20v-9"/>
+        <rect x="9" y="14" width="6" height="6"/>
+        <path d="M3 20h18"/>
+      </svg>
+    ),
+    servicos: (
+      <svg viewBox="0 0 24 24" style={s as any}>
+        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+      </svg>
+    ),
+    gastronomia: (
+      <svg viewBox="0 0 24 24" style={s as any}>
+        <path d="M12 2 L22 20 Q12 23 2 20 Z"/>
+        <path d="M5.5 18.5 Q12 22 18.5 18.5"/>
+        <circle cx="12" cy="10" r="1"/>
+        <circle cx="9" cy="14" r="0.8"/>
+        <circle cx="15" cy="14" r="0.8"/>
+      </svg>
+    ),
+    empregos: (
+      <svg viewBox="0 0 24 24" style={s as any}>
+        <rect x="2" y="7" width="20" height="14" rx="2"/>
+        <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+        <path d="M2 12h20"/>
+      </svg>
+    ),
+    imoveis: (
+      <svg viewBox="0 0 24 24" style={s as any}>
+        <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/>
+        <path d="M9 21V12h6v9"/>
+      </svg>
+    ),
+    desapega: (
+      <svg viewBox="0 0 24 24" style={s as any}>
+        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+        <line x1="7" y1="7" x2="7.01" y2="7"/>
+      </svg>
+    ),
+    'achados-perdidos': (
+      <svg viewBox="0 0 24 24" style={s as any}>
+        <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/>
+        <circle cx="12" cy="10" r="3"/>
+      </svg>
+    ),
+    igrejas: (
+      <svg viewBox="0 0 24 24" style={s as any}>
+        <path d="M12 2v4M10 4h4"/>
+        <path d="M5 10l7-4 7 4v10a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V10z"/>
+        <path d="M10 21v-7h4v7"/>
+      </svg>
+    ),
+  }
+  return paths[slug] || (
+    <svg viewBox="0 0 24 24" style={s as any}>
+      <rect x="3" y="3" width="18" height="18" rx="2"/>
+      <path d="M3 9h18M9 21V9"/>
+    </svg>
+  )
+}
+
 export default function CategoriaPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params)
 
@@ -101,25 +169,31 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Inter', sans-serif; background: #F0EDE8; }
 
+        /* ── TOPBAR ── */
         .topbar { background: #111; position: sticky; top: 0; z-index: 50; }
-        .topbar-inner { max-width: 1200px; margin: 0 auto; padding: 13px 24px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; }
-        .t-logo { font-family: 'Bebas Neue', sans-serif; font-size: 24px; color: #fff; letter-spacing: 2px; text-decoration: none; }
+        .topbar-inner { max-width: 1200px; margin: 0 auto; padding: 13px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+        .t-logo { font-family: 'Bebas Neue', sans-serif; font-size: 24px; color: #fff; letter-spacing: 2px; text-decoration: none; flex-shrink: 0; }
         .t-logo span { color: #C9951A; }
         .t-bc { display: flex; align-items: center; gap: 7px; font-size: 13px; }
         .t-bc a { color: #C9951A; font-weight: 700; text-decoration: none; }
         .t-bc a:hover { text-decoration: underline; }
         .t-bc-sep { color: #444; font-size: 14px; }
         .t-bc-cur { color: #fff; font-weight: 700; }
+        .t-actions { display: none; align-items: center; gap: 8px; }
+        @media(min-width: 768px) { .t-actions { display: flex; } }
+        .t-btn-entrar { color: #C9951A; font-size: 13px; font-weight: 600; border: 1.5px solid #C9951A; border-radius: 10px; padding: 7px 14px; text-decoration: none; }
+        .t-btn-cad { background: #C9951A; color: #fff; font-size: 13px; font-weight: 600; border-radius: 10px; padding: 8px 14px; text-decoration: none; }
 
-        .cat-hero { background: #111; padding: 28px 24px 24px; border-bottom: 2px solid #C9951A; }
-        .cat-hero-inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; gap: 18px; }
-        .cat-emoji { font-size: 56px; flex-shrink: 0; }
+        /* ── HERO centralizado ── */
+        .cat-hero { background: #111; padding: 32px 24px 28px; border-bottom: 2px solid #C9951A; }
+        .cat-hero-inner { display: flex; align-items: center; justify-content: center; gap: 18px; }
         .cat-nm { font-family: 'Bebas Neue', sans-serif; font-size: clamp(32px,5vw,48px); color: #fff; letter-spacing: 3px; line-height: 1; margin-bottom: 6px; }
         .cat-cnt { font-size: 13px; color: #666; }
         .cat-cnt span { color: #C9951A; font-weight: 600; }
 
+        /* ── BUSCA ── */
         .search-bar-wrap { background: #F0EDE8; padding: 0 24px; }
-        .search-bar-inner { max-width: 1200px; margin: 0 auto; transform: translateY(-20px); }
+        .search-bar-inner { max-width: 640px; margin: 0 auto; transform: translateY(-20px); }
         .search-bar { display: flex; align-items: center; gap: 10px; background: #fff; border: 2px solid #C9951A; border-radius: 30px; padding: 13px 20px; box-shadow: 0 4px 20px rgba(0,0,0,.12); }
         .search-bar input { flex: 1; border: none; background: transparent; font-size: 15px; font-family: 'Inter', sans-serif; color: #222; outline: none; }
         .search-bar input::placeholder { color: #BBB; }
@@ -127,8 +201,9 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
         .page { max-width: 1200px; margin: 0 auto; padding: 8px 24px 48px; }
 
         @media(max-width: 767px) {
-          .topbar-inner, .cat-hero-inner, .search-bar-inner, .page { padding-left: 16px; padding-right: 16px; }
+          .topbar-inner, .page { padding-left: 16px; padding-right: 16px; }
           .search-bar-wrap { padding: 0 16px; }
+          .search-bar-inner { max-width: 100%; }
         }
 
         .sec-label { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: #AAA; letter-spacing: 1.5px; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
@@ -147,7 +222,7 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
         .dest-name { font-size: 13px; font-weight: 600; color: #111; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .dest-stars { font-size: 11px; color: #C9951A; font-weight: 600; }
 
-        /* SUBCATEGORIAS GRADE */
+        /* SUBCATEGORIAS */
         .subcat-wrap { background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 16px 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 24px; }
         .subcat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; }
         @media(min-width: 640px)  { .subcat-grid { grid-template-columns: repeat(6, 1fr); } }
@@ -165,7 +240,7 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
         .result-cnt { font-size: 13px; color: #AAA; margin-bottom: 16px; }
         .result-cnt span { color: #111; font-weight: 600; }
 
-        /* CARDS QUADRADOS */
+        /* CARDS */
         .companies-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
         @media(min-width: 640px)  { .companies-grid { grid-template-columns: repeat(3, 1fr); } }
         @media(min-width: 1024px) { .companies-grid { grid-template-columns: repeat(5, 1fr); } }
@@ -197,15 +272,18 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
             <span className="t-bc-sep">›</span>
             <span className="t-bc-cur">{category?.name || '...'}</span>
           </div>
-          <div />
+          <div className="t-actions">
+            <a className="t-btn-entrar" href="/login">Entrar</a>
+            <a className="t-btn-cad" href="/empresa/cadastrar">+ Cadastrar empresa</a>
+          </div>
         </div>
       </div>
 
-      {/* HERO */}
+      {/* HERO centralizado com SVG */}
       {category && (
         <div className="cat-hero">
           <div className="cat-hero-inner">
-            <div className="cat-emoji">{category.emoji}</div>
+            <CategorySVG slug={slug} size={56} color="#C9951A" />
             <div>
               <div className="cat-nm">{category.name}</div>
               <div className="cat-cnt">
@@ -216,7 +294,7 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
         </div>
       )}
 
-      {/* BUSCA FLUTUANTE */}
+      {/* BUSCA centralizada */}
       <div className="search-bar-wrap">
         <div className="search-bar-inner">
           <div className="search-bar">
@@ -266,18 +344,20 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
           </>
         )}
 
-        {/* 2. SUBCATEGORIAS GRADE */}
+        {/* 2. SUBCATEGORIAS */}
         {subcats.length > 0 && (
           <>
             <div className="sec-label">SUBCATEGORIAS</div>
             <div className="subcat-wrap">
               <div className="subcat-grid">
-                {/* Todas */}
+                {/* Todas — usa SVG da categoria */}
                 <div
                   className={`subcat-item ${!activeSub ? 'on' : ''}`}
                   onClick={() => filterBySub(null)}
                 >
-                  <div className="subcat-emoji-box">{category?.emoji || '🏪'}</div>
+                  <div className="subcat-emoji-box">
+                    <CategorySVG slug={slug} size={24} color={!activeSub ? '#C9951A' : '#888'} />
+                  </div>
                   <span className="subcat-label">Todas ({companies.length})</span>
                 </div>
 

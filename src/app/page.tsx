@@ -154,8 +154,7 @@ export default function HomePage() {
 
   async function handleSair() {
     await supabase.auth.signOut()
-    router.push('/')
-    router.refresh()
+    window.location.href = '/'
   }
 
   function prevBanner() {
@@ -183,12 +182,14 @@ export default function HomePage() {
         body { font-family: 'Inter', sans-serif; background: #F0EDE8; color: #111; }
 
         .site-header { background: #fff; border-bottom: 1px solid #EDE8E0; position: sticky; top: 0; z-index: 50; }
-        .header-inner { max-width: 1200px; margin: 0 auto; padding: 12px 20px; display: flex; align-items: center; gap: 12px; justify-content: space-between; }
-        .logo { display: flex; align-items: baseline; flex-shrink: 0; text-decoration: none; }
+        .header-inner { max-width: 1200px; margin: 0 auto; padding: 10px 14px; display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+        @media(min-width: 768px) { .header-inner { padding: 12px 20px; justify-content: space-between; } }
+        .logo { display: none; align-items: baseline; flex-shrink: 0; text-decoration: none; }
+        @media(min-width: 768px) { .logo { display: flex; } }
         .logo-main { font-family: 'Bebas Neue', sans-serif; font-size: 26px; color: #111; letter-spacing: 2px; }
         .logo-dot  { font-family: 'Bebas Neue', sans-serif; font-size: 18px; color: #DDD; margin: 0 5px; }
         .logo-gold { font-family: 'Bebas Neue', sans-serif; font-size: 26px; color: #C9951A; letter-spacing: 2px; }
-        .nav-actions { display: flex; align-items: center; gap: 8px; }
+        .nav-actions { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; justify-content: flex-end; width: 100%; }
         .btn-painel   { background: #111; color: #C9951A; border: none; border-radius: 10px; padding: 7px 12px; font-size: 12px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; text-decoration: none; display: block; }
         .btn-sair     { background: transparent; color: #666; border: 1px solid #333; border-radius: 10px; padding: 6px 10px; font-size: 11px; font-weight: 500; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; display: block; }
         .btn-entrar   { display: flex; align-items: center; gap: 5px; background: transparent; color: #C9951A; border: 1.5px solid #C9951A; border-radius: 10px; padding: 7px 12px; font-size: 12px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; text-decoration: none; }

@@ -39,6 +39,78 @@ function isOpenNow(hours?: CompanyHour[]): boolean {
   return cur >= parseInt(m[1])*60+parseInt(m[2]) && cur <= parseInt(m[3])*60+parseInt(m[4])
 }
 
+/* ── Galeria dinâmica por número de fotos ── */
+function Gallery({ photos, emoji }: { photos: CompanyPhoto[]; emoji: string }) {
+  const [idx, setIdx] = useState(0)
+  const n = photos.length
+
+  const imgStyle: React.CSSProperties = { width:'100%', height:'100%', objectFit:'cover', display:'block', cursor:'pointer' }
+  const emptyStyle: React.CSSProperties = { width:'100%', height:'100%', background:'#1a1a1a', display:'flex', alignItems:'center', justifyContent:'center', fontSize:56 }
+
+  function src(i: number) { return photos[i]?.url || '' }
+
+  /* 0 fotos */
+  if (n === 0) return (
+    <div style={{ width:'100%', height:360, background:'#111', borderRadius:16, display:'flex', alignItems:'center', justifyContent:'center', fontSize:72 }}>
+      {emoji}
+    </div>
+  )
+
+  /* 1 foto */
+  if (n === 1) return (
+    <div style={{ width:'100%', height:400, borderRadius:16, overflow:'hidden' }}>
+      <img src={src(0)} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
+    </div>
+  )
+
+  /* 2 fotos */
+  if (n === 2) return (
+    <div style={{ width:'100%', height:380, borderRadius:16, overflow:'hidden', display:'grid', gridTemplateColumns:'1fr 1fr', gap:3 }}>
+      <img src={src(0)} alt="" style={imgStyle} />
+      <img src={src(1)} alt="" style={imgStyle} />
+    </div>
+  )
+
+  /* 3 fotos */
+  if (n === 3) return (
+    <div style={{ width:'100%', height:380, borderRadius:16, overflow:'hidden', display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:3 }}>
+      <img src={src(0)} alt="" style={imgStyle} />
+      <img src={src(1)} alt="" style={imgStyle} />
+      <img src={src(2)} alt="" style={imgStyle} />
+    </div>
+  )
+
+  /* 4 fotos */
+  if (n === 4) return (
+    <div style={{ width:'100%', height:380, borderRadius:16, overflow:'hidden', display:'grid', gridTemplateColumns:'2fr 1fr', gridTemplateRows:'1fr 1fr', gap:3 }}>
+      <div style={{ gridRow:'1/3', overflow:'hidden' }}><img src={src(idx)} alt="" style={imgStyle} onClick={() => setIdx(i => (i+1)%n)} /></div>
+      <div style={{ overflow:'hidden' }}><img src={src(1)} alt="" style={imgStyle} onClick={() => setIdx(1)} /></div>
+      <div style={{ overflow:'hidden' }}><img src={src(2)} alt="" style={imgStyle} onClick={() => setIdx(2)} /></div>
+    </div>
+  )
+
+  /* 5+ fotos */
+  return (
+    <div style={{ width:'100%', height:380, borderRadius:16, overflow:'hidden', display:'grid', gridTemplateColumns:'2fr 1fr 1fr', gridTemplateRows:'1fr 1fr', gap:3 }}>
+      <div style={{ gridRow:'1/3', overflow:'hidden', position:'relative' }}>
+        <img src={src(idx)} alt="" style={imgStyle} onClick={() => setIdx(i => (i+1)%n)} />
+        <div style={{ position:'absolute', bottom:10, right:10, background:'rgba(0,0,0,.6)', color:'#fff', fontSize:11, fontWeight:500, padding:'3px 10px', borderRadius:12 }}>{idx+1} / {n}</div>
+      </div>
+      <div style={{ overflow:'hidden' }}><img src={src(1)} alt="" style={imgStyle} onClick={() => setIdx(1)} /></div>
+      <div style={{ overflow:'hidden' }}><img src={src(2)} alt="" style={imgStyle} onClick={() => setIdx(2)} /></div>
+      <div style={{ overflow:'hidden' }}><img src={src(3)} alt="" style={imgStyle} onClick={() => setIdx(3)} /></div>
+      <div style={{ overflow:'hidden', position:'relative' }}>
+        <img src={src(4)} alt="" style={imgStyle} onClick={() => setIdx(4)} />
+        {n > 5 && (
+          <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,.55)', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontFamily:'"Bebas Neue",sans-serif', fontSize:18, letterSpacing:1, cursor:'pointer' }} onClick={() => setIdx(5)}>
+            +{n - 5} fotos
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params)
 
@@ -46,7 +118,6 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
   const [reviews, setReviews]       = useState<Review[]>([])
   const [loading, setLoading]       = useState(true)
   const [notFound, setNotFound]     = useState(false)
-  const [photoIdx, setPhotoIdx]     = useState(0)
   const [userId, setUserId]         = useState<string | null>(null)
   const [isOwner, setIsOwner]       = useState(false)
   const [isFav, setIsFav]           = useState(false)
@@ -89,7 +160,6 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
       setAlreadyReviewed(!!myReview)
       const { data: prof } = await supabase.from('profiles').select('user_type').eq('id', session.user.id).single()
       setIsAdmin(prof?.user_type === 'admin')
-      // Verifica se é o dono da empresa
       setIsOwner(data.owner_id === session.user.id || prof?.user_type === 'admin')
     }
     setLoading(false)
@@ -172,67 +242,55 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
         .t-bc-cur{color:#fff;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;}
         .t-logo span{color:#C9951A;}
 
-        .page{max-width:1100px;margin:0 auto;padding:24px 24px 48px;min-height:100vh;}
+        /* GALERIA — full width */
+        .gallery-wrap{max-width:1200px;margin:0 auto;padding:20px 24px 0;}
+        @media(max-width:767px){.gallery-wrap{padding:12px 16px 0;}}
+
+        /* CONTEÚDO PRINCIPAL */
+        .page{max-width:1200px;margin:0 auto;padding:20px 24px 48px;}
         @media(max-width:767px){.page{padding:16px 16px 40px;}}
 
-        .top-grid{display:grid;grid-template-columns:1fr 300px;gap:24px;margin-bottom:36px;}
-        @media(max-width:767px){.top-grid{grid-template-columns:1fr;gap:0;}}
+        .content-grid{display:grid;grid-template-columns:1fr 300px;gap:20px;align-items:start;}
+        @media(max-width:767px){.content-grid{grid-template-columns:1fr;}}
 
-        .gallery{border-radius:14px;overflow:hidden;margin-bottom:18px;}
-        .gal-wrap{height:300px;background:#111;display:grid;grid-template-columns:2fr 1fr;grid-template-rows:1fr 1fr;gap:3px;}
-        @media(max-width:767px){.gal-wrap{height:220px;}}
-        .gal-big{grid-row:1/3;overflow:hidden;position:relative;}
-        .gal-big img,.gal-sm img{width:100%;height:100%;object-fit:cover;}
-        .gal-big-empty{width:100%;height:100%;background:#1a1a1a;display:flex;align-items:center;justify-content:center;font-size:56px;}
-        .gal-sm{overflow:hidden;position:relative;}
-        .gal-sm-empty{width:100%;height:100%;background:#222;display:flex;align-items:center;justify-content:center;font-size:28px;}
-        .gal-ov{position:absolute;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px;cursor:pointer;}
-        .gal-nav{position:absolute;bottom:10px;right:10px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;font-weight:500;padding:3px 10px;border-radius:12px;}
-
-        .empresa-name{font-family:'Bebas Neue',sans-serif;font-size:clamp(26px,4vw,36px);color:#111;letter-spacing:1px;margin-bottom:8px;}
-        .tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
+        /* COLUNA ESQUERDA */
+        .info-card{background:#fff;border:0.5px solid #EDE8E0;border-radius:14px;padding:22px;}
+        .empresa-name{font-family:'Bebas Neue',sans-serif;font-size:clamp(26px,4vw,36px);color:#111;letter-spacing:1px;margin-bottom:10px;}
+        .tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
         .tag{font-size:11px;padding:3px 9px;border-radius:7px;font-weight:500;}
         .tag-cat{background:#F0EDE8;color:#666;border:0.5px solid #E0DDD8;}
         .tag-open{background:#EDFAF3;color:#0F6E56;}
         .tag-closed{background:#FEF0F0;color:#E24B4A;}
         .tag-sub{background:#EBF4FF;color:#185FA5;}
-
         .rating-row{display:flex;align-items:center;padding:10px 0;border-top:0.5px solid #F0EDE8;border-bottom:0.5px solid #F0EDE8;margin-bottom:18px;gap:10px;flex-wrap:wrap;}
         .st{color:#C9951A;font-size:15px;}
         .rn{font-weight:600;font-size:14px;color:#111;}
         .rc{font-size:12px;color:#AAA;}
         .sec-lbl{font-family:'Bebas Neue',sans-serif;font-size:11px;color:#AAA;letter-spacing:1.5px;margin-bottom:8px;}
         .desc{font-size:14px;color:#555;line-height:1.8;}
+        .btn-write-rv{padding:7px 14px;background:#FEF3E2;color:#C9951A;border:1.5px solid #C9951A;border-radius:8px;font-size:12px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;white-space:nowrap;flex-shrink:0;}
 
+        /* COLUNA DIREITA */
         .right-col{display:flex;flex-direction:column;gap:10px;}
         @media(min-width:768px){.right-col{position:sticky;top:60px;max-height:calc(100vh - 80px);overflow-y:auto;}}
-        @media(max-width:767px){.right-col{margin-top:20px;}}
 
-        .contact-card{background:#FAFAF8;border:0.5px solid #EDE8E0;border-radius:14px;overflow:hidden;}
-        .c-photo{height:130px;overflow:hidden;display:flex;align-items:center;justify-content:center;}
-        .c-photo img{width:100%;height:100%;object-fit:cover;}
-        .c-photo-empty{width:100%;height:100%;background:linear-gradient(135deg,#111,#2a2a2a);display:flex;align-items:center;justify-content:center;font-size:44px;}
-        .c-body{padding:13px 14px;}
-        .c-open-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;padding:2px 8px;border-radius:6px;margin-bottom:6px;}
-        .c-open-yes{background:#EDFAF3;color:#0F6E56;}
-        .c-open-no{background:#FEF0F0;color:#E24B4A;}
-        .c-name{font-family:'Bebas Neue',sans-serif;font-size:18px;color:#111;letter-spacing:1px;margin-bottom:2px;}
-        .c-cat{font-size:11px;color:#AAA;margin-bottom:10px;}
-        .btn-wa{width:100%;padding:10px;background:#25D366;color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:6px;transition:opacity .15s;}
+        .action-card{background:#fff;border:0.5px solid #EDE8E0;border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:8px;}
+        .btn-wa{width:100%;padding:12px;background:#25D366;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s;}
         .btn-wa:hover{opacity:.9;}
-        .btn-ext{width:100%;padding:10px;background:#EBF4FF;color:#185FA5;border:0.5px solid #B5D4F4;border-radius:9px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:6px;transition:opacity .15s;}
+        .btn-ext{width:100%;padding:12px;background:#EBF4FF;color:#185FA5;border:0.5px solid #B5D4F4;border-radius:10px;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s;}
         .btn-ext:hover{opacity:.9;}
-        .btn-fav{width:100%;padding:8px;background:#fff;color:#888;border:0.5px solid #E0DDD8;border-radius:9px;font-size:12px;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;}
+        .btn-fav{width:100%;padding:9px;background:#fff;color:#888;border:0.5px solid #E0DDD8;border-radius:10px;font-size:13px;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;}
         .btn-fav.on{background:#FEF3E2;color:#C9951A;border-color:#F5C77A;}
 
-        .addr-box{display:flex;align-items:flex-start;gap:9px;background:#FAFAF8;border:0.5px solid #EDE8E0;border-radius:12px;padding:11px 13px;}
+        .addr-box{display:flex;align-items:flex-start;gap:9px;background:#fff;border:0.5px solid #EDE8E0;border-radius:12px;padding:12px 14px;}
         .addr-txt{font-size:12px;color:#555;line-height:1.6;flex:1;}
 
-        .map-card{background:#FAFAF8;border:0.5px solid #EDE8E0;border-radius:14px;overflow:hidden;}
+        .map-card{background:#fff;border:0.5px solid #EDE8E0;border-radius:14px;overflow:hidden;}
         .map-frame{width:100%;height:150px;border:none;display:block;}
-        .map-open-btn{width:100%;padding:10px;background:#FAFAF8;border:none;border-top:0.5px solid #EDE8E0;font-size:12px;font-weight:600;color:#185FA5;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;justify-content:center;gap:5px;}
+        .map-open-btn{width:100%;padding:10px;background:#fff;border:none;border-top:0.5px solid #EDE8E0;font-size:12px;font-weight:600;color:#185FA5;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;justify-content:center;gap:5px;}
 
-        .rv-section{border-top:0.5px solid #F0EDE8;padding-top:28px;}
+        /* AVALIAÇÕES */
+        .rv-section{margin-top:24px;border-top:0.5px solid #F0EDE8;padding-top:28px;}
         .rv-form{background:#FAFAF8;border:1.5px solid #C9951A;border-radius:14px;padding:16px;margin-bottom:16px;}
         .star-row{display:flex;gap:8px;margin-bottom:10px;}
         .star-btn{font-size:26px;cursor:pointer;background:none;border:none;line-height:1;transition:transform .1s;}
@@ -241,8 +299,6 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
         .rv-textarea:focus{border-color:#C9951A;}
         .btn-rv-submit{width:100%;padding:12px;background:#C9951A;color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;margin-top:10px;}
         .btn-rv-submit:disabled{opacity:.6;cursor:not-allowed;}
-        .btn-write-rv{padding:7px 14px;background:#FEF3E2;color:#C9951A;border:1.5px solid #C9951A;border-radius:8px;font-size:12px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;white-space:nowrap;flex-shrink:0;}
-
         .rv-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
         @media(max-width:900px){.rv-grid{grid-template-columns:repeat(2,1fr);}}
         @media(max-width:600px){.rv-grid{grid-template-columns:1fr;}}
@@ -281,36 +337,26 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
         </div>
       </div>
 
+      {/* GALERIA FULL WIDTH — grid dinâmico */}
+      <div className="gallery-wrap">
+        <Gallery photos={photos} emoji={company.category?.emoji || '🏪'} />
+      </div>
+
+      {/* CONTEÚDO */}
       <div className="page">
-        <div className="top-grid">
+        <div className="content-grid">
 
           {/* COLUNA ESQUERDA */}
-          <div>
-            <div className="gallery">
-              <div className="gal-wrap">
-                <div className="gal-big">
-                  {photos[0] ? <img src={photos[photoIdx]?.url} alt={company.name} onClick={() => setPhotoIdx(i => (i+1)%photos.length)} style={{cursor:photos.length>1?'pointer':'default'}} /> : <div className="gal-big-empty">{company.category?.emoji || '🏪'}</div>}
-                  {photos.length > 1 && <div className="gal-nav">{photoIdx+1} / {photos.length}</div>}
-                </div>
-                <div className="gal-sm">
-                  {photos[1] ? <img src={photos[1].url} alt="" onClick={() => setPhotoIdx(1)} style={{cursor:'pointer'}} /> : <div className="gal-sm-empty">{company.category?.emoji || '🏪'}</div>}
-                </div>
-                <div className="gal-sm">
-                  {photos[2] ? (
-                    <>
-                      <img src={photos[2].url} alt="" onClick={() => setPhotoIdx(2)} style={{cursor:'pointer'}} />
-                      {photos.length > 3 && <div className="gal-ov" onClick={() => setPhotoIdx(3)}>+{photos.length - 3} fotos</div>}
-                    </>
-                  ) : <div className="gal-sm-empty">{company.category?.emoji || '🏪'}</div>}
-                </div>
-              </div>
-            </div>
-
+          <div className="info-card">
             <div className="empresa-name">{company.name}</div>
             <div className="tags">
               {company.category && <span className="tag tag-cat">{company.category.emoji} {company.category.name}</span>}
-              {company.hours && company.hours.length > 0 && <span className={`tag ${open ? 'tag-open' : 'tag-closed'}`}>{open ? '● Aberto agora' : '● Fechado'}</span>}
-              {company.subcategories?.map((s,i) => <span key={i} className="tag tag-sub">{s.subcategory.emoji} {s.subcategory.name}</span>)}
+              {company.hours && company.hours.length > 0 && (
+                <span className={`tag ${open ? 'tag-open' : 'tag-closed'}`}>{open ? '● Aberto agora' : '● Fechado'}</span>
+              )}
+              {company.subcategories?.map((s,i) => (
+                <span key={i} className="tag tag-sub">{s.subcategory.emoji} {s.subcategory.name}</span>
+              ))}
             </div>
 
             <div className="rating-row">
@@ -343,47 +389,33 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
           {/* COLUNA DIREITA */}
           <div className="right-col">
 
-            <div className="contact-card">
-              <div className="c-photo">
-                {photos[0] ? <img src={photos[0].url} alt={company.name} /> : <div className="c-photo-empty">{company.category?.emoji || '🏪'}</div>}
+            {/* Badge trial — só pro dono */}
+            {isOwner && company.plan !== 'paid' && company.trial_ends_at && trialDaysLeft > 0 && (
+              <div style={{fontSize:11,fontWeight:600,padding:'6px 12px',borderRadius:8,background:'#FEF3E2',color:'#854F0B',border:'0.5px solid #F5C77A',textAlign:'center'}}>
+                🕐 Trial: {trialDaysLeft} dia{trialDaysLeft!==1?'s':''} restante{trialDaysLeft!==1?'s':''}
               </div>
-              <div className="c-body">
-                {/* Status aberto/fechado — visível para todos */}
-                {company.hours && company.hours.length > 0 && (
-                  <div className={`c-open-badge ${open ? 'c-open-yes' : 'c-open-no'}`}>
-                    {open ? '● Aberto agora' : '● Fechado agora'}
-                  </div>
-                )}
+            )}
 
-                {/* Badge trial — SOMENTE para o dono ou admin */}
-                {isOwner && company.plan !== 'paid' && company.trial_ends_at && trialDaysLeft > 0 && (
-                  <div style={{fontSize:10,fontWeight:600,padding:'2px 8px',borderRadius:6,background:'#FEF3E2',color:'#854F0B',marginBottom:6,display:'inline-block',marginLeft:4}}>
-                    🕐 Trial: {trialDaysLeft} dia{trialDaysLeft!==1?'s':''} restante{trialDaysLeft!==1?'s':''}
-                  </div>
-                )}
-
-                <div className="c-name">{company.name}</div>
-                <div className="c-cat">{company.category?.emoji} {company.category?.name}{company.subcategories?.[0] ? ` · ${company.subcategories[0].subcategory.name}` : ''}</div>
-
-                {isActive && company.phone && (
-                  <button className="btn-wa" onClick={handleWhatsApp}>
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-                    Falar no WhatsApp
-                  </button>
-                )}
-                {isActive && company.external_link && (
-                  <button className="btn-ext" onClick={() => window.open(company.external_link!, '_blank')}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                    {company.external_link_label || 'Acessar site'}
-                  </button>
-                )}
-                <button className={`btn-fav ${isFav ? 'on' : ''}`} onClick={toggleFav}>
-                  {isFav ? '❤️' : '🤍'} {isFav ? 'Salvo nos favoritos' : 'Salvar nos favoritos'}
+            {/* Botões de ação */}
+            <div className="action-card">
+              {isActive && company.phone && (
+                <button className="btn-wa" onClick={handleWhatsApp}>
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                  Falar no WhatsApp
                 </button>
-              </div>
+              )}
+              {isActive && company.external_link && (
+                <button className="btn-ext" onClick={() => window.open(company.external_link!, '_blank')}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                  {company.external_link_label || 'Acessar site'}
+                </button>
+              )}
+              <button className={`btn-fav ${isFav ? 'on' : ''}`} onClick={toggleFav}>
+                {isFav ? '❤️' : '🤍'} {isFav ? 'Salvo nos favoritos' : 'Salvar nos favoritos'}
+              </button>
             </div>
 
-            {/* ENDEREÇO */}
+            {/* Endereço */}
             {company.address && (
               <div className="addr-box">
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#C9951A" strokeWidth="2" strokeLinecap="round" style={{flexShrink:0,marginTop:2}}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
@@ -391,7 +423,7 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
               </div>
             )}
 
-            {/* MAPA — Google Maps iframe real */}
+            {/* Mapa Google Maps real */}
             {company.address && mapsUrl && (
               <div className="map-card">
                 <iframe
@@ -402,10 +434,7 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
                   referrerPolicy="no-referrer-when-downgrade"
                   title={`Mapa de ${company.name}`}
                 />
-                <button
-                  className="map-open-btn"
-                  onClick={() => window.open(`https://maps.google.com?q=${encodeURIComponent(company.address || '')}`, '_blank')}
-                >
+                <button className="map-open-btn" onClick={() => window.open(`https://maps.google.com?q=${encodeURIComponent(company.address || '')}`, '_blank')}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                   Abrir no Google Maps
                 </button>

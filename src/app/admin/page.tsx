@@ -27,7 +27,7 @@ type Stats = {
 }
 type Banner = {
   id: string; title: string; subtitle: string|null; description: string|null
-  link_url: string|null; image_url: string|null; active: boolean; display_order: number; created_at: string
+  link_url: string|null; image_url: string|null; image_url_mobile: string|null; active: boolean; display_order: number; created_at: string
 }
 
 // ── HELPERS ────────────────────────────────────────────────
@@ -66,8 +66,12 @@ export default function AdminPage() {
   const [bannerImageFile, setBannerImageFile]       = useState<File|null>(null)
   const [bannerImagePreview, setBannerImagePreview] = useState<string|null>(null)
   const [bannerCurrentImage, setBannerCurrentImage] = useState<string|null>(null)
+  const [bannerImageFileMobile, setBannerImageFileMobile] = useState<File|null>(null)
+  const [bannerImagePreviewMobile, setBannerImagePreviewMobile] = useState<string|null>(null)
+  const [bannerCurrentImageMobile, setBannerCurrentImageMobile] = useState<string|null>(null)
   const [uploadProgress, setUploadProgress]         = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const fileInputRefMobile = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -202,6 +206,9 @@ export default function AdminPage() {
     setBannerImageFile(null)
     setBannerImagePreview(null)
     setBannerCurrentImage(null)
+    setBannerImageFileMobile(null)
+    setBannerImagePreviewMobile(null)
+    setBannerCurrentImageMobile(null)
     setBannerFormOpen(true)
   }
 
@@ -217,6 +224,9 @@ export default function AdminPage() {
     setBannerImageFile(null)
     setBannerImagePreview(null)
     setBannerCurrentImage(b.image_url || null)
+    setBannerImageFileMobile(null)
+    setBannerImagePreviewMobile(null)
+    setBannerCurrentImageMobile(b.image_url_mobile || null)
     setBannerFormOpen(true)
   }
 
@@ -252,12 +262,19 @@ export default function AdminPage() {
       if (!uploaded) { setBannerLoading(false); return }
       imageUrl = uploaded
     }
+    let imageUrlMobile = bannerCurrentImageMobile
+    if (bannerImageFileMobile) {
+      const uploadedMobile = await uploadBannerImage(bannerImageFileMobile)
+      if (!uploadedMobile) { setBannerLoading(false); return }
+      imageUrlMobile = uploadedMobile
+    }
     const payload = {
       title: bannerForm.title.trim(),
       subtitle: bannerForm.subtitle.trim() || null,
       description: bannerForm.description.trim() || null,
       link_url: bannerForm.link_url.trim() || null,
       image_url: imageUrl,
+      image_url_mobile: imageUrlMobile || null,
       display_order: bannerForm.display_order,
     }
     if (editingBannerId) {
@@ -274,6 +291,9 @@ export default function AdminPage() {
     setBannerImageFile(null)
     setBannerImagePreview(null)
     setBannerCurrentImage(null)
+    setBannerImageFileMobile(null)
+    setBannerImagePreviewMobile(null)
+    setBannerCurrentImageMobile(null)
     showToast(editingBannerId ? 'Banner atualizado!' : 'Banner criado!')
     setBannerLoading(false)
   }
@@ -941,6 +961,21 @@ export default function AdminPage() {
                   onChange={handleImageSelect}
                   style={{ display: 'none' }}
                 />
+                <input
+                  ref={fileInputRefMobile}
+                  type="file"
+                  accept="image/*"
+                  onChange={e => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    if (file.size > 5 * 1024 * 1024) { showToast('Imagem muito grande. Máximo 5MB.'); return }
+                    setBannerImageFileMobile(file)
+                    const reader = new FileReader()
+                    reader.onload = ev => setBannerImagePreviewMobile(ev.target?.result as string)
+                    reader.readAsDataURL(file)
+                  }}
+                  style={{ display: 'none' }}
+                />
 
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
                   <span className="section-title">BANNERS DA HOME ({banners.length})</span>
@@ -966,8 +1001,9 @@ export default function AdminPage() {
                       {editingBannerId ? 'Editar Banner' : 'Novo Banner'}
                     </div>
 
-                    <div style={{marginBottom:16}}>
-                      <label className="banner-form-label">Imagem do banner (1200 × 359px recomendado)</label>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:16}}>
+                      <div>
+                      <label className="banner-form-label">Imagem Desktop (1200 × 359px)</label>
                       {(bannerImagePreview || bannerCurrentImage) ? (
                         <div className="upload-area-filled" onClick={() => fileInputRef.current?.click()}>
                           <img
@@ -1000,6 +1036,33 @@ export default function AdminPage() {
                           <div style={{height:'100%',background:'#C9951A',width:`${uploadProgress}%`,transition:'width 0.3s'}} />
                         </div>
                       )}
+                      </div>
+                      <div>
+                      <label className="banner-form-label">Imagem Mobile (opcional)</label>
+                      {(bannerImagePreviewMobile || bannerCurrentImageMobile) ? (
+                        <div className="upload-area-filled" onClick={() => fileInputRefMobile.current?.click()}>
+                          <img src={bannerImagePreviewMobile || bannerCurrentImageMobile!} alt="Preview mobile" style={{width:'100%',height:120,objectFit:'cover',display:'block'}} />
+                        </div>
+                      ) : (
+                        <div className="upload-area" onClick={() => fileInputRefMobile.current?.click()} style={{height:120,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
+                          <div style={{fontSize:24,marginBottom:6}}>📱</div>
+                          <div style={{fontSize:12,color:'#666',fontWeight:500}}>Upload imagem mobile</div>
+                          <div style={{fontSize:10,color:'#aaa',marginTop:3}}>Se vazio, usa a desktop</div>
+                        </div>
+                      )}
+                      {(bannerImagePreviewMobile || bannerCurrentImageMobile) && (
+                        <div style={{display:'flex',gap:8,marginTop:8}}>
+                          <button onClick={() => fileInputRefMobile.current?.click()}
+                            style={{fontSize:11,color:'#185FA5',background:'#f0f4ff',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Inter,sans-serif',fontWeight:600}}>
+                            Trocar
+                          </button>
+                          <button onClick={() => { setBannerImageFileMobile(null); setBannerImagePreviewMobile(null); setBannerCurrentImageMobile(null) }}
+                            style={{fontSize:11,color:'#dc2626',background:'#fef2f2',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                            Remover
+                          </button>
+                        </div>
+                      )}
+                      </div>
                     </div>
 
                     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:14}}>
@@ -1042,7 +1105,7 @@ export default function AdminPage() {
                         style={{background:'#C9951A',color:'#111',border:'none',padding:'9px 22px',borderRadius:7,fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'Inter,sans-serif',opacity:(bannerLoading||(!bannerCurrentImage&&!bannerImageFile))?0.6:1}}>
                         {bannerLoading ? 'Salvando...' : editingBannerId ? 'Salvar alterações' : 'Criar banner'}
                       </button>
-                      <button onClick={() => { setBannerFormOpen(false); setEditingBannerId(null); setBannerForm({ title:'', subtitle:'', description:'', link_url:'', display_order:0 }); setBannerImageFile(null); setBannerImagePreview(null); setBannerCurrentImage(null) }}
+                      <button onClick={() => { setBannerFormOpen(false); setEditingBannerId(null); setBannerForm({ title:'', subtitle:'', description:'', link_url:'', display_order:0 }); setBannerImageFile(null); setBannerImagePreview(null); setBannerCurrentImage(null); setBannerImageFileMobile(null); setBannerImagePreviewMobile(null); setBannerCurrentImageMobile(null) }}
                         style={{background:'transparent',color:'#666',border:'1px solid #ddd',padding:'9px 16px',borderRadius:7,fontSize:13,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
                         Cancelar
                       </button>
@@ -1083,6 +1146,7 @@ export default function AdminPage() {
                                 </div>
                               )}
                               {!b.image_url && <div style={{fontSize:11,color:'#f59e0b',marginTop:4,fontWeight:500}}>⚠ Sem imagem — aparecerá com fundo escuro padrão</div>}
+                              {b.image_url_mobile && <div style={{fontSize:11,color:'#0F8050',marginTop:3,fontWeight:500}}>📱 Tem versão mobile</div>}
                             </div>
                           </div>
                           <div style={{display:'flex',gap:8,alignItems:'center',flexShrink:0,marginLeft:12}}>

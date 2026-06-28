@@ -6,68 +6,44 @@ import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import CookieBanner from '@/components/CookieBanner'
 
-/* ─── tipos ─────────────────────────────────────────────── */
 interface Company {
-  id: string
-  name: string
-  slug: string
-  description: string | null
-  category_id: string
-  is_active: boolean
-  trial_ends_at: string | null
-  plan_status: string | null
-  avg_rating: number
-  total_reviews: number
+  id: string; name: string; slug: string; description: string | null
+  category_id: string; is_active: boolean; trial_ends_at: string | null
+  plan_status: string | null; avg_rating: number; total_reviews: number
   categories?: { name: string; emoji?: string } | null
   company_photos?: { photo_url: string; is_primary: boolean; order?: number }[]
 }
 
 interface Highlight {
-  id: string
-  company_id: string
-  scope: string
+  id: string; company_id: string; scope: string
   companies?: {
-    name: string
-    slug: string
-    avg_rating: number
-    total_reviews: number
+    name: string; slug: string; avg_rating: number; total_reviews: number
     categories?: { name: string; emoji?: string } | null
     company_photos?: { photo_url: string; is_primary: boolean; order?: number }[]
   } | null
 }
 
 interface Listing {
-  id: string
-  title: string
-  price: number | null
-  listing_type: string
-  company_name: string | null
-  created_at: string
+  id: string; title: string; price: number | null
+  listing_type: string; company_name: string | null; created_at: string
 }
 
 interface Banner {
-  id: string
-  title: string
-  subtitle: string | null
-  description: string | null
-  link_url: string | null
-  image_url: string | null
-  display_order: number
+  id: string; title: string; subtitle: string | null; description: string | null
+  link_url: string | null; image_url: string | null; image_url_mobile: string | null; display_order: number
 }
 
-/* ─── categorias fixas ───────────────────────────────────── */
 const CATEGORIES = [
-  { slug: 'comercios',        label: 'Comércios',         icon: 'ti-building-store', href: '/categoria/comercios'   },
-  { slug: 'servicos',         label: 'Serviços',           icon: 'ti-tool',           href: '/categoria/servicos'    },
-  { slug: 'gastronomia',      label: 'Gastronomia',        icon: 'ti-pizza',          href: '/categoria/gastronomia' },
-  { slug: 'empregos',         label: 'Empregos',           icon: 'ti-briefcase',      href: '/empregos'              },
-  { slug: 'imoveis',          label: 'Imóveis',            icon: 'ti-home',           href: '/imoveis'               },
-  { slug: 'desapega',         label: 'Desapega',           icon: 'ti-tag',            href: '/desapega'              },
-  { slug: 'achados-perdidos', label: 'Achados & Perdidos', icon: 'ti-map-pin',        href: '/achados-perdidos'      },
-  { slug: 'igrejas',          label: 'Igrejas',            icon: 'ti-building-church',href: '/categoria/igrejas'     },
+  { slug: 'comercios',        label: 'Comércios',         href: '/categoria/comercios'   },
+  { slug: 'servicos',         label: 'Serviços',           href: '/categoria/servicos'    },
+  { slug: 'gastronomia',      label: 'Gastronomia',        href: '/categoria/gastronomia' },
+  { slug: 'empregos',         label: 'Empregos',           href: '/empregos'              },
+  { slug: 'imoveis',          label: 'Imóveis',            href: '/imoveis'               },
+  { slug: 'desapega',         label: 'Desapega',           href: '/desapega'              },
+  { slug: 'achados-perdidos', label: 'Achados & Perdidos', href: '/achados-perdidos'      },
+  { slug: 'igrejas',          label: 'Igrejas',            href: '/categoria/igrejas'     },
 ]
 
-/* ─── helpers ────────────────────────────────────────────── */
 function isVisible(c: Company) {
   if (!c.is_active) return false
   if (c.plan_status === 'pago') return true
@@ -87,45 +63,44 @@ function CoverPhoto({ photos, name, style }: { photos?: { photo_url: string; is_
   return <span style={{ fontSize: 28 }}>🏪</span>
 }
 
-/* ═══════════════════════════════════════════════════════════
-   COMPONENTE PRINCIPAL
-═══════════════════════════════════════════════════════════ */
 export default function HomePage() {
   const router = useRouter()
-
   const [user, setUser]               = useState<any>(null)
   const [userType, setUserType]       = useState<string | null>(null)
-  const [userName, setUserName]       = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
-
   const [banners, setBanners]         = useState<Banner[]>([])
   const [activeBanner, setActiveBanner] = useState(0)
   const [highlights, setHighlights]   = useState<Highlight[]>([])
   const [newCompanies, setNewCompanies] = useState<Company[]>([])
   const [recentListings, setRecentListings] = useState<Record<string, Listing[]>>({})
   const [loading, setLoading]         = useState(true)
+  const [isMobile, setIsMobile]       = useState(false)
 
-  /* ── auth ── */
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
       if (session?.user) {
         supabase.from('profiles').select('user_type, name').eq('id', session.user.id).single()
-          .then(({ data }) => {
-            setUserType(data?.user_type ?? null)
-            setUserName(data?.name ?? null)
-          })
+          .then(({ data }) => { setUserType(data?.user_type ?? null) })
       }
     })
   }, [])
 
-  /* ── dados ── */
   const loadData = useCallback(async () => {
     setLoading(true)
 
     const { data: bannersData } = await supabase
       .from('banners').select('*').eq('active', true).order('display_order')
-    setBanners(bannersData || [])
+    // SHUFFLE — ordem aleatória a cada carregamento
+    const shuffled = [...(bannersData || [])].sort(() => Math.random() - 0.5)
+    setBanners(shuffled)
 
     const { data: hlData } = await supabase
       .from('highlights')
@@ -134,8 +109,7 @@ export default function HomePage() {
           categories ( name, emoji ),
           company_photos ( photo_url, is_primary, order )
         )`)
-      .eq('scope', 'home')
-      .limit(8)
+      .eq('scope', 'home').limit(8)
     setHighlights((hlData || []) as any)
 
     const { data: newData } = await supabase
@@ -144,9 +118,7 @@ export default function HomePage() {
         trial_ends_at, plan_status, avg_rating, total_reviews,
         categories ( name, emoji ),
         company_photos ( photo_url, is_primary, order )`)
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
-      .limit(10)
+      .eq('is_active', true).order('created_at', { ascending: false }).limit(10)
     const visible = ((newData || []) as any as Company[]).filter(isVisible)
     setNewCompanies(visible.slice(0, 6))
 
@@ -165,14 +137,12 @@ export default function HomePage() {
 
   useEffect(() => { loadData() }, [loadData])
 
-  /* ── banner rotativo ── */
   useEffect(() => {
     if (banners.length <= 1) return
     const t = setInterval(() => setActiveBanner(p => (p + 1) % banners.length), 5000)
     return () => clearInterval(t)
   }, [banners.length])
 
-  /* ── busca ── */
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
     if (searchQuery.trim()) {
@@ -188,11 +158,22 @@ export default function HomePage() {
     router.refresh()
   }
 
+  function prevBanner() {
+    setActiveBanner(p => (p - 1 + banners.length) % banners.length)
+  }
+
+  function nextBanner() {
+    setActiveBanner(p => (p + 1) % banners.length)
+  }
+
   const currentBanner = banners[activeBanner]
 
-  /* ══════════════════════════════════════════════════════════
-     RENDER
-  ══════════════════════════════════════════════════════════ */
+  // Escolhe imagem certa: mobile ou desktop
+  function getBannerImage(b: Banner): string | null {
+    if (isMobile && b.image_url_mobile) return b.image_url_mobile
+    return b.image_url
+  }
+
   return (
     <>
       <style>{`
@@ -201,7 +182,6 @@ export default function HomePage() {
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Inter', sans-serif; background: #F0EDE8; color: #111; }
 
-        /* ── NAV ── */
         .site-header { background: #fff; border-bottom: 1px solid #EDE8E0; position: sticky; top: 0; z-index: 50; }
         .header-inner { max-width: 1200px; margin: 0 auto; padding: 12px 20px; display: flex; align-items: center; gap: 12px; justify-content: space-between; }
         .logo { display: flex; align-items: baseline; flex-shrink: 0; text-decoration: none; }
@@ -216,15 +196,11 @@ export default function HomePage() {
         .btn-fav      { color: #555; font-size: 13px; text-decoration: none; display: none; }
         .btn-perfil   { color: #555; font-size: 13px; text-decoration: none; display: none; }
         @media(min-width: 768px) {
-          .btn-painel { display: block; }
-          .btn-sair   { display: block; }
-          .btn-entrar { display: flex; }
-          .btn-cad    { display: block; }
-          .btn-fav    { display: block; }
-          .btn-perfil { display: block; }
+          .btn-painel { display: block; } .btn-sair { display: block; }
+          .btn-entrar { display: flex; } .btn-cad { display: block; }
+          .btn-fav { display: block; } .btn-perfil { display: block; }
         }
 
-        /* ── HERO ── */
         .hero { background: linear-gradient(160deg, #fff 0%, #FEF8EC 60%, #FEF3E2 100%); padding: 40px 20px 36px; text-align: center; border-bottom: 1px solid #EDE8E0; }
         .hero-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(42px, 6vw, 72px); letter-spacing: 4px; line-height: 1; margin-bottom: 8px; display: none; }
         .hero-title span { color: #C9951A; }
@@ -234,58 +210,57 @@ export default function HomePage() {
           .hero { padding: 43px 20px 0; }
           .hero-title, .hero-sub { display: block; }
           .hero-search-wrap {
-            display: flex;
-            max-width: 600px;
-            margin: 0 auto;
-            align-items: center;
-            gap: 8px;
-            background: #fff;
-            border: 2px solid #C9951A;
-            border-radius: 50px;
-            padding: 6px 6px 6px 20px;
-            box-shadow: 0 4px 20px rgba(201,149,26,.12);
-            transform: translateY(50%);
-            position: relative;
-            z-index: 20;
+            display: flex; max-width: 600px; margin: 0 auto; align-items: center; gap: 8px;
+            background: #fff; border: 2px solid #C9951A; border-radius: 50px;
+            padding: 6px 6px 6px 20px; box-shadow: 0 4px 20px rgba(201,149,26,.12);
+            transform: translateY(50%); position: relative; z-index: 20;
           }
           .hero-search-wrap input { flex: 1; border: none; background: transparent; font-size: 15px; font-family: 'Inter', sans-serif; color: #222; outline: none; }
           .hero-search-wrap input::placeholder { color: #BBB; }
           .hero-search-btn { background: #C9951A; border: none; border-radius: 50px; padding: 10px 24px; color: #fff; font-size: 14px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
         }
 
-        /* ── BANNER full-width ── */
+        /* BANNER */
         .banner-outer { width: 100%; }
         .banner-inner-wrap {
-          width: 100%;
-          height: 359px;
+          width: 100%; height: 359px;
           background: linear-gradient(105deg, #1a0f00 0%, #3d2200 50%, #5c3300 100%);
-          display: flex;
-          align-items: center;
-          position: relative;
-          overflow: hidden;
-          padding-top: 30px;
+          display: flex; align-items: center; position: relative; overflow: hidden; padding-top: 30px;
         }
         .banner-deco { position: absolute; right: 8%; top: 50%; transform: translateY(-50%); font-size: 130px; opacity: 0.08; pointer-events: none; }
         .banner-content-wrap { max-width: 1200px; margin: 0 auto; padding: 0 20px; width: 100%; position: relative; z-index: 2; }
         .banner-title-text { font-family: 'Bebas Neue', sans-serif; font-size: 46px; color: #fff; line-height: 1; margin-bottom: 4px; }
         .banner-sub-text { color: #ccc; font-size: 14px; margin-bottom: 4px; }
         .banner-desc-text { color: #999; font-size: 12px; }
-        .banner-dots { position: absolute; bottom: 14px; right: 20px; display: flex; gap: 6px; }
-        .banner-dot { height: 7px; border-radius: 4px; cursor: pointer; transition: width 0.3s; background: rgba(255,255,255,0.25); }
+
+        /* setas do banner */
+        .banner-arrow {
+          position: absolute; top: 50%; transform: translateY(-50%);
+          width: 42px; height: 42px; border-radius: 50%;
+          background: rgba(0,0,0,0.45); border: 1.5px solid rgba(255,255,255,0.2);
+          display: flex; align-items: center; justify-content: center;
+          cursor: pointer; z-index: 10; transition: background 0.2s;
+        }
+        .banner-arrow:hover { background: rgba(0,0,0,0.65); }
+        .banner-arrow-left  { left: 14px; }
+        .banner-arrow-right { right: 14px; }
+
+        /* dots — fora do banner, entre banner e categorias */
+        .banner-dots-outer {
+          display: flex; justify-content: center; align-items: center; gap: 8px;
+          padding: 10px 0 0;
+          background: #F0EDE8;
+        }
+        .banner-dot {
+          height: 8px; border-radius: 4px; cursor: pointer;
+          transition: all 0.3s; background: rgba(0,0,0,0.18);
+        }
         .banner-dot.on { background: #C9951A; }
 
-        /* ── CONTAINER CENTRAL ── */
         .main-wrap { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
 
-        /* categorias sobrepostas */
         .cat-overlap { margin-top: -40px; position: relative; z-index: 10; }
-        .cat-card-wrap {
-          background: #fff;
-          border: 1px solid #e0e0e0;
-          border-radius: 14px;
-          padding: 24px 28px;
-          box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-        }
+        .cat-card-wrap { background: #fff; border: 1px solid #e0e0e0; border-radius: 14px; padding: 24px 28px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
         .cat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 0; }
         @media(min-width: 768px) { .cat-grid { grid-template-columns: repeat(8,1fr); gap: 0; } }
         .cat-item { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 20px 8px; border-radius: 10px; cursor: pointer; text-decoration: none; position: relative; transition: background 0.15s; }
@@ -296,14 +271,12 @@ export default function HomePage() {
         .cat-item svg { width: 70px; height: 70px; stroke: #111; stroke-width: 0.8; fill: none; stroke-linecap: round; stroke-linejoin: round; transition: stroke 0.15s; }
         .cat-label { font-size: 12px; color: #111; text-align: center; line-height: 1.3; font-weight: 600; transition: color 0.15s; }
 
-        /* seções */
         .sec-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; margin-top: 28px; }
         .sec-title { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: #999; letter-spacing: 2px; }
         .sec-link { font-size: 12px; color: #C9951A; font-weight: 500; text-decoration: none; }
         .sec-link:hover { text-decoration: underline; }
         .divider { height: 1px; background: #F0EDE8; margin: 20px 0 0; }
 
-        /* destaques */
         .dest-grid { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
         .dest-grid::-webkit-scrollbar { display: none; }
         @media(min-width: 768px)  { .dest-grid { display: grid; grid-template-columns: repeat(3,1fr); overflow: visible; } }
@@ -317,7 +290,6 @@ export default function HomePage() {
         .dest-cat  { font-size: 10px; color: #AAA; margin-bottom: 4px; }
         .badge-dest { position: absolute; top: 6px; right: 6px; background: #C9951A; color: #111; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 3px; }
 
-        /* anúncios */
         .listings-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
         @media(min-width: 768px) { .listings-grid { grid-template-columns: repeat(3,1fr); } }
         .listing-col { background: #fff; border: 1px solid #e8e8e8; border-radius: 10px; overflow: hidden; }
@@ -330,7 +302,6 @@ export default function HomePage() {
         .li-meta  { font-size: 11px; color: #999; }
         .li-price { font-size: 12px; color: #b8860b; font-weight: 600; }
 
-        /* recentes */
         .rec-grid { display: flex; flex-direction: column; border: 0.5px solid #EDE8E0; border-radius: 14px; overflow: hidden; background: #fff; }
         @media(min-width: 768px)  { .rec-grid { display: grid; grid-template-columns: repeat(2,1fr); } }
         @media(min-width: 1024px) { .rec-grid { grid-template-columns: repeat(3,1fr); } }
@@ -341,7 +312,6 @@ export default function HomePage() {
         .rec-cat  { font-size: 11px; color: #999; margin-bottom: 3px; }
         .rec-new  { font-size: 10px; color: #0F8050; font-weight: 600; }
 
-        /* CTA */
         .cta-section { margin: 36px 0 48px; background: linear-gradient(135deg,#1A1A1A,#333); border-radius: 20px; padding: 36px 32px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 16px; }
         @media(min-width: 768px) { .cta-section { flex-direction: row; text-align: left; justify-content: space-between; padding: 36px 48px; } }
         .cta-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(22px,3vw,30px); color: #fff; letter-spacing: 1px; margin-bottom: 6px; }
@@ -351,7 +321,6 @@ export default function HomePage() {
         .cta-btn:hover { background: #B8841A; }
         .cta-note { font-size: 11px; color: #888; margin-top: 4px; }
 
-        /* FOOTER */
         .footer { background: #111; border-top: 2px solid #C9951A; padding: 36px 24px 24px; margin-top: 48px; }
         .fi { max-width: 1200px; margin: 0 auto; }
         .footer-top { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap: 32px; margin-bottom: 32px; }
@@ -369,13 +338,12 @@ export default function HomePage() {
         .f-legal { display: flex; gap: 16px; }
         .f-legal a { font-size: 11px; color: #C9951A; font-weight: 700; text-decoration: none; }
 
-        /* empty / loading */
         .empty-state { text-align: center; padding: 32px 20px; color: #AAA; font-size: 13px; }
         .skeleton { background: linear-gradient(90deg,#F0EDE8 25%,#E8E4DD 50%,#F0EDE8 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 10px; }
         @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
       `}</style>
 
-      {/* ── HEADER ───────────────────────────────────────────── */}
+      {/* HEADER */}
       <header className="site-header">
         <div className="header-inner">
           <a className="logo" href="/">
@@ -383,7 +351,6 @@ export default function HomePage() {
             <span className="logo-dot">·</span>
             <span className="logo-gold">ONLINE</span>
           </a>
-
           <div className="nav-actions">
             {user ? (
               <>
@@ -392,7 +359,7 @@ export default function HomePage() {
                   <a className="btn-perfil" href="/perfil">👤 Perfil</a>
                 </>}
                 <a className="btn-painel" href={userType === 'admin' ? '/admin' : '/painel'}>
-                  {userType === 'admin' ? 'Admin →' : `Meu painel →`}
+                  {userType === 'admin' ? 'Admin →' : 'Meu painel →'}
                 </a>
                 <button className="btn-sair" onClick={handleSair}>Sair</button>
               </>
@@ -404,7 +371,7 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* ── HERO ─────────────────────────────────────────────── */}
+      {/* HERO */}
       <section className="hero">
         <h1 className="hero-title">TRINDADE <span>ONLINE</span></h1>
         <p className="hero-sub">Conectando moradores, comércios e serviços do bairro Trindade</p>
@@ -412,26 +379,18 @@ export default function HomePage() {
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9951A" strokeWidth="2" strokeLinecap="round">
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            placeholder="O que você está procurando?"
-          />
+          <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="O que você está procurando?" />
           <button type="submit" className="hero-search-btn">Buscar</button>
         </form>
       </section>
 
-      {/* ── BANNER FULL-WIDTH ────────────────────────────────── */}
+      {/* BANNER FULL-WIDTH */}
       <div className="banner-outer">
         {currentBanner ? (
-          <a
-            href={currentBanner.link_url || '#'}
-            style={{ display: 'block', textDecoration: 'none' }}
-          >
+          <a href={currentBanner.link_url || '#'} style={{ display: 'block', textDecoration: 'none' }}>
             <div className="banner-inner-wrap">
-              {currentBanner.image_url
-                ? <img src={currentBanner.image_url} alt={currentBanner.title} style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover"}} />
+              {getBannerImage(currentBanner)
+                ? <img src={getBannerImage(currentBanner)!} alt={currentBanner.title} style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover"}} />
                 : <div className="banner-deco">🏗️</div>
               }
               <div className="banner-content-wrap">
@@ -439,17 +398,31 @@ export default function HomePage() {
                 {currentBanner.subtitle    && <div className="banner-sub-text">{currentBanner.subtitle}</div>}
                 {currentBanner.description && <div className="banner-desc-text">{currentBanner.description}</div>}
               </div>
+
+              {/* SETA ESQUERDA */}
               {banners.length > 1 && (
-                <div className="banner-dots">
-                  {banners.map((_, i) => (
-                    <span
-                      key={i}
-                      className={`banner-dot${i === activeBanner ? ' on' : ''}`}
-                      style={{ width: i === activeBanner ? 20 : 7 }}
-                      onClick={e => { e.preventDefault(); setActiveBanner(i) }}
-                    />
-                  ))}
-                </div>
+                <button
+                  className="banner-arrow banner-arrow-left"
+                  onClick={e => { e.preventDefault(); prevBanner() }}
+                  aria-label="Banner anterior"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="15 18 9 12 15 6"/>
+                  </svg>
+                </button>
+              )}
+
+              {/* SETA DIREITA */}
+              {banners.length > 1 && (
+                <button
+                  className="banner-arrow banner-arrow-right"
+                  onClick={e => { e.preventDefault(); nextBanner() }}
+                  aria-label="Próximo banner"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </button>
               )}
             </div>
           </a>
@@ -462,12 +435,26 @@ export default function HomePage() {
             </div>
           </div>
         )}
+
+        {/* DOTS — fora do banner, entre banner e categorias */}
+        {banners.length > 1 && (
+          <div className="banner-dots-outer">
+            {banners.map((_, i) => (
+              <span
+                key={i}
+                className={`banner-dot${i === activeBanner ? ' on' : ''}`}
+                style={{ width: i === activeBanner ? 22 : 8 }}
+                onClick={() => setActiveBanner(i)}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* ── CONTEÚDO CENTRALIZADO ───────────────────────────── */}
+      {/* CONTEÚDO */}
       <div className="main-wrap">
 
-        {/* CATEGORIAS — sobrepostas ao banner */}
+        {/* CATEGORIAS */}
         <div className="cat-overlap">
           <div className="cat-card-wrap">
             <div className="cat-grid">
@@ -507,7 +494,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* EMPRESAS EM DESTAQUE */}
+        {/* EM DESTAQUE */}
         {!loading && highlights.length > 0 && (
           <>
             <div className="divider" />
@@ -519,11 +506,10 @@ export default function HomePage() {
               {highlights.map(hl => {
                 const c = hl.companies
                 if (!c) return null
-                const photos = c.company_photos || []
                 return (
                   <a key={hl.id} className="dest-card" href={`/empresa/${c.slug}`}>
                     <div className="dest-img">
-                      <CoverPhoto photos={photos} name={c.name} />
+                      <CoverPhoto photos={c.company_photos} name={c.name} />
                       <span className="badge-dest">DESTAQUE</span>
                     </div>
                     <div className="dest-body">
@@ -554,19 +540,15 @@ export default function HomePage() {
 
         {/* ANÚNCIOS RECENTES */}
         <div className="divider" />
-        <div className="sec-hdr">
-          <span className="sec-title">ANÚNCIOS RECENTES</span>
-        </div>
+        <div className="sec-hdr"><span className="sec-title">ANÚNCIOS RECENTES</span></div>
         <div className="listings-grid">
-          {/* Desapega */}
           <div className="listing-col">
             <div className="listing-col-hdr">
-              <span>🏷️</span>
-              <span className="lch-title">Desapega</span>
-              <a href="/desapega" style={{ marginLeft: 'auto', fontSize: 11, color: '#C9951A', fontWeight: 500, textDecoration: 'none' }}>ver todos</a>
+              <span>🏷️</span><span className="lch-title">Desapega</span>
+              <a href="/desapega" style={{ marginLeft:'auto', fontSize:11, color:'#C9951A', fontWeight:500, textDecoration:'none' }}>ver todos</a>
             </div>
             {(recentListings['desapega'] || []).length === 0
-              ? <div className="empty-state" style={{ padding: '16px 14px' }}>Nenhum anúncio ainda</div>
+              ? <div className="empty-state" style={{ padding:'16px 14px' }}>Nenhum anúncio ainda</div>
               : (recentListings['desapega'] || []).map(l => (
                   <a key={l.id} className="listing-item" href={`/anuncio/${l.id}`}>
                     <div className="li-title">{l.title}</div>
@@ -575,16 +557,13 @@ export default function HomePage() {
                 ))
             }
           </div>
-
-          {/* Empregos */}
           <div className="listing-col">
             <div className="listing-col-hdr">
-              <span>💼</span>
-              <span className="lch-title">Empregos</span>
-              <a href="/empregos" style={{ marginLeft: 'auto', fontSize: 11, color: '#C9951A', fontWeight: 500, textDecoration: 'none' }}>ver todos</a>
+              <span>💼</span><span className="lch-title">Empregos</span>
+              <a href="/empregos" style={{ marginLeft:'auto', fontSize:11, color:'#C9951A', fontWeight:500, textDecoration:'none' }}>ver todos</a>
             </div>
             {(recentListings['emprego'] || []).length === 0
-              ? <div className="empty-state" style={{ padding: '16px 14px' }}>Nenhuma vaga ainda</div>
+              ? <div className="empty-state" style={{ padding:'16px 14px' }}>Nenhuma vaga ainda</div>
               : (recentListings['emprego'] || []).map(l => (
                   <a key={l.id} className="listing-item" href={`/anuncio/${l.id}`}>
                     <div className="li-title">{l.title}</div>
@@ -593,16 +572,13 @@ export default function HomePage() {
                 ))
             }
           </div>
-
-          {/* Imóveis */}
           <div className="listing-col">
             <div className="listing-col-hdr">
-              <span>🏠</span>
-              <span className="lch-title">Imóveis</span>
-              <a href="/imoveis" style={{ marginLeft: 'auto', fontSize: 11, color: '#C9951A', fontWeight: 500, textDecoration: 'none' }}>ver todos</a>
+              <span>🏠</span><span className="lch-title">Imóveis</span>
+              <a href="/imoveis" style={{ marginLeft:'auto', fontSize:11, color:'#C9951A', fontWeight:500, textDecoration:'none' }}>ver todos</a>
             </div>
             {(recentListings['imovel'] || []).length === 0
-              ? <div className="empty-state" style={{ padding: '16px 14px' }}>Nenhum imóvel ainda</div>
+              ? <div className="empty-state" style={{ padding:'16px 14px' }}>Nenhum imóvel ainda</div>
               : (recentListings['imovel'] || []).map(l => (
                   <a key={l.id} className="listing-item" href={`/anuncio/${l.id}`}>
                     <div className="li-title">{l.title}</div>
@@ -620,8 +596,8 @@ export default function HomePage() {
           <a className="sec-link" href="/busca">Ver todos</a>
         </div>
         {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {[1,2,3].map(i => <div key={i} className="skeleton" style={{ height: 60, borderRadius: 10 }} />)}
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            {[1,2,3].map(i => <div key={i} className="skeleton" style={{ height:60, borderRadius:10 }} />)}
           </div>
         ) : newCompanies.length === 0 ? (
           <div className="empty-state">Nenhuma empresa cadastrada ainda.</div>
@@ -629,9 +605,7 @@ export default function HomePage() {
           <div className="rec-grid">
             {newCompanies.map(c => (
               <a key={c.id} className="rec-item" href={`/empresa/${c.slug}`}>
-                <div className="rec-icon">
-                  <CoverPhoto photos={c.company_photos} name={c.name} />
-                </div>
+                <div className="rec-icon"><CoverPhoto photos={c.company_photos} name={c.name} /></div>
                 <div>
                   <div className="rec-name">{c.name}</div>
                   <div className="rec-cat">{(c.categories as any)?.emoji} {(c.categories as any)?.name || '—'}</div>

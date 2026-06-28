@@ -1,0 +1,29 @@
+[33mcd247dc[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m feat: home com fontes maiores para melhor legibilidade
+[33mf6970a5[m feat: home com fontes maiores para melhor legibilidade
+[33m06fb65c[m fix: títulos de seção aumentados para 20px
+[33m7165189[m feat: categorias SVG inline outline traço fino 0.8px
+[33m8316e34[m fix: categorias com ícones outline Tabler — sem emojis
+[33m40bc701[m feat: categorias outline preto com hover dourado
+[33m75f6f86[m fix: banner sem obrigatoriedade de título, imagem aparece na home
+[33mc3598da[m ajuste hero -15%, banner +15%, divisórias nas categorias
+[33mbe5b6ce[m ajuste alturas: hero -15%, banner +20%, categorias +28%
+[33m6798e88[m fix: home com max-width 1200px centralizado
+[33m0c8e527[m fix: corrigir import supabase na home
+[33m885b422[m redesign home: banner rotativo, categorias sobrepostas, aba banners no admin
+[33m462ab43[m feat: cookie banner LGPD
+[33md00c2f1[m footer: remove tarja duplicada, copyright dourado, tudo em negrito
+[33m0314930[m footer: remove tarja duplicada, texto mais visivel
+[33m4ec97e3[m feat: footer com links de navegacao e termos
+[33md02dc9a[m home: botao sair no header
+[33mdad37c4[m fix: categorias home apontam para paginas corretas
+[33m44723e3[m home: destaques so aparecem se houver highlight criado no admin
+[33m9c2c17d[m home: destaques usam tabela highlights com fallback
+[33mbf0129d[m home: botoes header agrupados a direita
+[33md19de20[m home: header logo esquerda, botoes direita, centro vazio
+[33mbe7e1c0[m home: header limpo desktop + busca no hero
+[33mb90590c[m fix: tipos TypeScript na home
+[33m3f7bdea[m home: conectada ao banco de dados real
+[33m572a225[m fix: restaura login page
+[33m7158032[m header: botao entrar e cadastrar empresa
+[33mdac82ad[m home responsiva - Trindade Online
+[33mbecc458[m primeiro commit: projeto Next.js + Supabase configurado

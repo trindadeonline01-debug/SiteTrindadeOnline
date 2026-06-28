@@ -1,5 +1,4 @@
-// home v2 — fontes maiores (jun 2026)
-'use client' // v2 — fontes maiores
+'use client'
 
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
@@ -7,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import CookieBanner from '@/components/CookieBanner'
 
-/* ─── tipos ─────────────────────────────────────────────────────────── */
+/* ─── tipos ─────────────────────────────────────────────── */
 interface Company {
   id: string
   name: string
@@ -52,22 +51,23 @@ interface Banner {
   subtitle: string | null
   description: string | null
   link_url: string | null
+  image_url: string | null
   display_order: number
 }
 
-/* ─── categorias fixas ─────────────────────────────────────────────── */
+/* ─── categorias fixas ───────────────────────────────────── */
 const CATEGORIES = [
-  { slug: 'comercios',        label: 'Comércios',         emoji: '🏪', href: '/categoria/comercios',        color: '#fff3cd', },
-  { slug: 'servicos',         label: 'Serviços',           emoji: '🔧', href: '/categoria/servicos',         color: '#dbeafe', },
-  { slug: 'gastronomia',      label: 'Gastronomia',        emoji: '🍕', href: '/categoria/gastronomia',      color: '#fee2e2', },
-  { slug: 'empregos',         label: 'Empregos',           emoji: '💼', href: '/empregos',                   color: '#dcfce7', },
-  { slug: 'imoveis',          label: 'Imóveis',            emoji: '🏠', href: '/imoveis',                    color: '#ede9fe', },
-  { slug: 'desapega',         label: 'Desapega',           emoji: '🏷️', href: '/desapega',                   color: '#ffedd5', },
-  { slug: 'achados-perdidos', label: 'Achados & Perdidos', emoji: '📍', href: '/achados-perdidos',           color: '#ccfbf1', },
-  { slug: 'igrejas',          label: 'Igrejas',            emoji: '⛪', href: '/categoria/igrejas',          color: '#fce7f3', },
+  { slug: 'comercios',        label: 'Comércios',         icon: 'ti-building-store', href: '/categoria/comercios'   },
+  { slug: 'servicos',         label: 'Serviços',           icon: 'ti-tool',           href: '/categoria/servicos'    },
+  { slug: 'gastronomia',      label: 'Gastronomia',        icon: 'ti-pizza',          href: '/categoria/gastronomia' },
+  { slug: 'empregos',         label: 'Empregos',           icon: 'ti-briefcase',      href: '/empregos'              },
+  { slug: 'imoveis',          label: 'Imóveis',            icon: 'ti-home',           href: '/imoveis'               },
+  { slug: 'desapega',         label: 'Desapega',           icon: 'ti-tag',            href: '/desapega'              },
+  { slug: 'achados-perdidos', label: 'Achados & Perdidos', icon: 'ti-map-pin',        href: '/achados-perdidos'      },
+  { slug: 'igrejas',          label: 'Igrejas',            icon: 'ti-building-church',href: '/categoria/igrejas'     },
 ]
 
-/* ─── helpers ──────────────────────────────────────────────────────── */
+/* ─── helpers ────────────────────────────────────────────── */
 function isVisible(c: Company) {
   if (!c.is_active) return false
   if (c.plan_status === 'pago') return true
@@ -77,19 +77,19 @@ function isVisible(c: Company) {
 
 function Stars({ rating }: { rating: number }) {
   const r = Math.round(rating)
-  return <span style={{ color: '#C9951A', fontSize: 12 }}>{'★'.repeat(r)}{'☆'.repeat(5 - r)}</span>
+  return <span style={{ color: '#C9951A', fontSize: 11 }}>{'★'.repeat(r)}{'☆'.repeat(5 - r)}</span>
 }
 
-function CoverPhoto({ photos, name }: { photos?: { photo_url: string; is_primary: boolean; order?: number }[]; name: string }) {
+function CoverPhoto({ photos, name, style }: { photos?: { photo_url: string; is_primary: boolean; order?: number }[]; name: string; style?: React.CSSProperties }) {
   const sorted = [...(photos || [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
   const primary = sorted.find(p => p.is_primary) || sorted[0]
-  if (primary) return <img src={primary.photo_url} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+  if (primary) return <img src={primary.photo_url} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover', ...style }} />
   return <span style={{ fontSize: 28 }}>🏪</span>
 }
 
-/* ══════════════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════
    COMPONENTE PRINCIPAL
-══════════════════════════════════════════════════════════════════════ */
+═══════════════════════════════════════════════════════════ */
 export default function HomePage() {
   const router = useRouter()
 
@@ -190,13 +190,14 @@ export default function HomePage() {
 
   const currentBanner = banners[activeBanner]
 
-  /* ══════════════════════════════════════════════════════════════════════
+  /* ══════════════════════════════════════════════════════════
      RENDER
-  ══════════════════════════════════════════════════════════════════════ */
+  ══════════════════════════════════════════════════════════ */
   return (
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap');
+        @import url('https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css');
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Inter', sans-serif; background: #F0EDE8; color: #111; }
 
@@ -223,14 +224,19 @@ export default function HomePage() {
           .btn-perfil { display: block; }
         }
 
-        /* ── HERO ── */
+        /* ── HERO ──
+           Fonte título: Bebas Neue, 72px (clamp 42px→72px), letter-spacing 4px
+           Fonte subtítulo: Inter, 16px (clamp 14px→16px), cor #888
+           Campo busca: pill border-radius 50px, borda 2px solid #C9951A
+           Botão Buscar: background #C9951A, cor #fff, border-radius 50px
+        */
         .hero { background: linear-gradient(160deg, #fff 0%, #FEF8EC 60%, #FEF3E2 100%); padding: 40px 20px 36px; text-align: center; border-bottom: 1px solid #EDE8E0; }
         .hero-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(42px, 6vw, 72px); letter-spacing: 4px; line-height: 1; margin-bottom: 8px; display: none; }
         .hero-title span { color: #C9951A; }
         .hero-sub { font-size: clamp(14px, 2vw, 16px); color: #888; margin-bottom: 24px; display: none; }
         .hero-search-wrap { display: none; }
         @media(min-width: 768px) {
-          .hero { padding: 60px 20px 0; }
+          .hero { padding: 43px 20px 0; }
           .hero-title, .hero-sub { display: block; }
           .hero-search-wrap {
             display: flex;
@@ -256,7 +262,7 @@ export default function HomePage() {
         .banner-outer { width: 100%; }
         .banner-inner-wrap {
           width: 100%;
-          height: 260px;
+          height: 359px;
           background: linear-gradient(105deg, #1a0f00 0%, #3d2200 50%, #5c3300 100%);
           display: flex;
           align-items: center;
@@ -282,23 +288,23 @@ export default function HomePage() {
           background: #fff;
           border: 1px solid #e0e0e0;
           border-radius: 14px;
-          padding: 18px 20px;
+          padding: 24px 28px;
           box-shadow: 0 2px 12px rgba(0,0,0,0.08);
         }
-        .cat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
-        @media(min-width: 768px) { .cat-grid { grid-template-columns: repeat(8,1fr); gap: 4px; } }
-        .cat-item { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 6px; border-radius: 8px; cursor: pointer; text-decoration: none; transition: background 0.15s; }
-        .cat-item:hover { background: #fdf6e3; }
-        .cat-icon-wrap { width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; }
-        /* AUMENTADO: cat-label 11px → 14px */
-        .cat-label { font-size: 14px; color: #555; text-align: center; line-height: 1.3; font-weight: 500; }
+        .cat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 0; }
+        @media(min-width: 768px) { .cat-grid { grid-template-columns: repeat(8,1fr); gap: 0; } }
+        .cat-item { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 20px 8px; border-radius: 10px; cursor: pointer; text-decoration: none; position: relative; transition: background 0.15s; }
+        .cat-item:not(:last-child)::after { content: ""; position: absolute; right: 0; top: 20%; height: 60%; width: 1px; background: #e8e8e4; }
+        .cat-item:hover { background: #faf9f6; }
+        .cat-item:hover svg { stroke: #C9951A; }
+        .cat-item:hover .cat-label { color: #C9951A; }
+        .cat-item svg { width: 70px; height: 70px; stroke: #111; stroke-width: 0.8; fill: none; stroke-linecap: round; stroke-linejoin: round; transition: stroke 0.15s; }
+        .cat-label { font-size: 12px; color: #111; text-align: center; line-height: 1.3; font-weight: 600; transition: color 0.15s; }
 
         /* seções */
         .sec-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; margin-top: 28px; }
-        /* AUMENTADO: sec-title 13px → 18px */
-        .sec-title { font-family: 'Bebas Neue', sans-serif; font-size: 18px; color: #999; letter-spacing: 2px; }
-        /* AUMENTADO: sec-link 12px → 15px */
-        .sec-link { font-size: 15px; color: #C9951A; font-weight: 500; text-decoration: none; }
+        .sec-title { font-family: 'Bebas Neue', sans-serif; font-size: 13px; color: #999; letter-spacing: 2px; }
+        .sec-link { font-size: 12px; color: #C9951A; font-weight: 500; text-decoration: none; }
         .sec-link:hover { text-decoration: underline; }
         .divider { height: 1px; background: #F0EDE8; margin: 20px 0 0; }
 
@@ -312,10 +318,8 @@ export default function HomePage() {
         @media(min-width: 768px) { .dest-card { width: auto; } }
         .dest-img { height: 90px; background: #FEF3E2; display: flex; align-items: center; justify-content: center; font-size: 36px; position: relative; overflow: hidden; }
         .dest-body { padding: 10px 11px; }
-        /* AUMENTADO: dest-name 12px → 16px */
-        .dest-name { font-size: 16px; font-weight: 600; color: #222; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        /* AUMENTADO: dest-cat 10px → 13px */
-        .dest-cat  { font-size: 13px; color: #AAA; margin-bottom: 4px; }
+        .dest-name { font-size: 12px; font-weight: 600; color: #222; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .dest-cat  { font-size: 10px; color: #AAA; margin-bottom: 4px; }
         .badge-dest { position: absolute; top: 6px; right: 6px; background: #C9951A; color: #111; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 3px; }
 
         /* anúncios */
@@ -323,17 +327,13 @@ export default function HomePage() {
         @media(min-width: 768px) { .listings-grid { grid-template-columns: repeat(3,1fr); } }
         .listing-col { background: #fff; border: 1px solid #e8e8e8; border-radius: 10px; overflow: hidden; }
         .listing-col-hdr { padding: 11px 14px; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; gap: 8px; background: #fafafa; }
-        /* AUMENTADO: lch-title 13px → 16px */
-        .lch-title { font-size: 16px; font-weight: 600; color: #111; }
+        .lch-title { font-size: 13px; font-weight: 600; color: #111; }
         .listing-item { padding: 9px 14px; border-bottom: 1px solid #f5f5f5; display: block; text-decoration: none; }
         .listing-item:last-child { border-bottom: none; }
         .listing-item:hover { background: #fafaf8; }
-        /* AUMENTADO: li-title 12px → 15px */
-        .li-title { font-size: 15px; color: #333; margin-bottom: 2px; }
-        /* AUMENTADO: li-meta 11px → 14px */
-        .li-meta  { font-size: 14px; color: #999; }
-        /* AUMENTADO: li-price 12px → 15px */
-        .li-price { font-size: 15px; color: #b8860b; font-weight: 600; }
+        .li-title { font-size: 12px; color: #333; margin-bottom: 2px; }
+        .li-meta  { font-size: 11px; color: #999; }
+        .li-price { font-size: 12px; color: #b8860b; font-weight: 600; }
 
         /* recentes */
         .rec-grid { display: flex; flex-direction: column; border: 0.5px solid #EDE8E0; border-radius: 14px; overflow: hidden; background: #fff; }
@@ -342,12 +342,9 @@ export default function HomePage() {
         .rec-item { display: flex; align-items: center; gap: 12px; padding: 13px 16px; border-bottom: 0.5px solid #F5F2EC; cursor: pointer; transition: background .15s; text-decoration: none; }
         .rec-item:hover { background: #FAFAF8; }
         .rec-icon { width: 44px; height: 44px; border-radius: 11px; background: #F0EDE8; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; border: 0.5px solid #E0DDD8; overflow: hidden; }
-        /* AUMENTADO: rec-name 13px → 16px */
-        .rec-name { font-size: 16px; font-weight: 600; color: #222; margin-bottom: 2px; }
-        /* AUMENTADO: rec-cat 11px → 14px */
-        .rec-cat  { font-size: 14px; color: #999; margin-bottom: 3px; }
-        /* AUMENTADO: rec-new 10px → 13px */
-        .rec-new  { font-size: 13px; color: #0F8050; font-weight: 600; }
+        .rec-name { font-size: 13px; font-weight: 600; color: #222; margin-bottom: 2px; }
+        .rec-cat  { font-size: 11px; color: #999; margin-bottom: 3px; }
+        .rec-new  { font-size: 10px; color: #0F8050; font-weight: 600; }
 
         /* CTA */
         .cta-section { margin: 36px 0 48px; background: linear-gradient(135deg,#1A1A1A,#333); border-radius: 20px; padding: 36px 32px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 16px; }
@@ -383,7 +380,7 @@ export default function HomePage() {
         @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
       `}</style>
 
-      {/* ── HEADER ─────────────────────────────────────────────────────── */}
+      {/* ── HEADER ───────────────────────────────────────────── */}
       <header className="site-header">
         <div className="header-inner">
           <a className="logo" href="/">
@@ -412,7 +409,8 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* ── HERO ─────────────────────────────────────────────────────────── */}
+      {/* ── HERO ─────────────────────────────────────────────── */}
+      {/* Fonte título: Bebas Neue | Fonte subtítulo: Inter | Busca: pill borda dourada */}
       <section className="hero">
         <h1 className="hero-title">TRINDADE <span>ONLINE</span></h1>
         <p className="hero-sub">Conectando moradores, comércios e serviços do bairro Trindade</p>
@@ -430,7 +428,7 @@ export default function HomePage() {
         </form>
       </section>
 
-      {/* ── BANNER FULL-WIDTH ─────────────────────────────────────────────── */}
+      {/* ── BANNER FULL-WIDTH ────────────────────────────────── */}
       <div className="banner-outer">
         {currentBanner ? (
           <a
@@ -438,7 +436,10 @@ export default function HomePage() {
             style={{ display: 'block', textDecoration: 'none' }}
           >
             <div className="banner-inner-wrap">
-              <div className="banner-deco">🏗️</div>
+              {currentBanner.image_url
+                ? <img src={currentBanner.image_url} alt={currentBanner.title} style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover"}} />
+                : <div className="banner-deco">🏗️</div>
+              }
               <div className="banner-content-wrap">
                 <div className="banner-title-text">{currentBanner.title}</div>
                 {currentBanner.subtitle    && <div className="banner-sub-text">{currentBanner.subtitle}</div>}
@@ -469,21 +470,45 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* ── CONTEÚDO CENTRALIZADO ──────────────────────────────────────────── */}
+      {/* ── CONTEÚDO CENTRALIZADO ───────────────────────────── */}
       <div className="main-wrap">
 
         {/* CATEGORIAS — sobrepostas ao banner */}
         <div className="cat-overlap">
           <div className="cat-card-wrap">
             <div className="cat-grid">
-              {CATEGORIES.map(cat => (
-                <a key={cat.slug} className="cat-item" href={cat.href}>
-                  <div className="cat-icon-wrap" style={{ background: cat.color }}>
-                    <span style={{ fontSize: 20 }}>{cat.emoji}</span>
-                  </div>
-                  <span className="cat-label">{cat.label}</span>
-                </a>
-              ))}
+              <a className="cat-item" href="/categoria/comercios">
+                <svg viewBox="0 0 24 24"><path d="M3 9l1-5h16l1 5"/><path d="M3 9a2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0 2 2 2 2 0 0 0 2-2"/><path d="M5 20v-9"/><path d="M19 20v-9"/><rect x="9" y="14" width="6" height="6"/><path d="M3 20h18"/></svg>
+                <span className="cat-label">Comércios</span>
+              </a>
+              <a className="cat-item" href="/categoria/servicos">
+                <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                <span className="cat-label">Serviços</span>
+              </a>
+              <a className="cat-item" href="/categoria/gastronomia">
+                <svg viewBox="0 0 24 24"><path d="M12 2 L22 20 Q12 23 2 20 Z"/><path d="M5.5 18.5 Q12 22 18.5 18.5"/><circle cx="12" cy="10" r="1"/><circle cx="9" cy="14" r="0.8"/><circle cx="15" cy="14" r="0.8"/></svg>
+                <span className="cat-label">Gastronomia</span>
+              </a>
+              <a className="cat-item" href="/empregos">
+                <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><path d="M2 12h20"/></svg>
+                <span className="cat-label">Empregos</span>
+              </a>
+              <a className="cat-item" href="/imoveis">
+                <svg viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>
+                <span className="cat-label">Imóveis</span>
+              </a>
+              <a className="cat-item" href="/desapega">
+                <svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+                <span className="cat-label">Desapega</span>
+              </a>
+              <a className="cat-item" href="/achados-perdidos">
+                <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                <span className="cat-label">Achados & Perdidos</span>
+              </a>
+              <a className="cat-item" href="/categoria/igrejas">
+                <svg viewBox="0 0 24 24"><path d="M12 2v4M10 4h4"/><path d="M5 10l7-4 7 4v10a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V10z"/><path d="M10 21v-7h4v7"/></svg>
+                <span className="cat-label">Igrejas</span>
+              </a>
             </div>
           </div>
         </div>
@@ -544,7 +569,7 @@ export default function HomePage() {
             <div className="listing-col-hdr">
               <span>🏷️</span>
               <span className="lch-title">Desapega</span>
-              <a href="/desapega" style={{ marginLeft: 'auto', fontSize: 13, color: '#C9951A', fontWeight: 500, textDecoration: 'none' }}>ver todos</a>
+              <a href="/desapega" style={{ marginLeft: 'auto', fontSize: 11, color: '#C9951A', fontWeight: 500, textDecoration: 'none' }}>ver todos</a>
             </div>
             {(recentListings['desapega'] || []).length === 0
               ? <div className="empty-state" style={{ padding: '16px 14px' }}>Nenhum anúncio ainda</div>
@@ -562,7 +587,7 @@ export default function HomePage() {
             <div className="listing-col-hdr">
               <span>💼</span>
               <span className="lch-title">Empregos</span>
-              <a href="/empregos" style={{ marginLeft: 'auto', fontSize: 13, color: '#C9951A', fontWeight: 500, textDecoration: 'none' }}>ver todos</a>
+              <a href="/empregos" style={{ marginLeft: 'auto', fontSize: 11, color: '#C9951A', fontWeight: 500, textDecoration: 'none' }}>ver todos</a>
             </div>
             {(recentListings['emprego'] || []).length === 0
               ? <div className="empty-state" style={{ padding: '16px 14px' }}>Nenhuma vaga ainda</div>
@@ -580,7 +605,7 @@ export default function HomePage() {
             <div className="listing-col-hdr">
               <span>🏠</span>
               <span className="lch-title">Imóveis</span>
-              <a href="/imoveis" style={{ marginLeft: 'auto', fontSize: 13, color: '#C9951A', fontWeight: 500, textDecoration: 'none' }}>ver todos</a>
+              <a href="/imoveis" style={{ marginLeft: 'auto', fontSize: 11, color: '#C9951A', fontWeight: 500, textDecoration: 'none' }}>ver todos</a>
             </div>
             {(recentListings['imovel'] || []).length === 0
               ? <div className="empty-state" style={{ padding: '16px 14px' }}>Nenhum imóvel ainda</div>

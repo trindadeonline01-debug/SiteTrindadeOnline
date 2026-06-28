@@ -247,7 +247,7 @@ export default function AdminPage() {
   }
 
   async function saveBanner() {
-    // titulo opcional — sem obrigatoriedade
+    if (!bannerCurrentImage && !bannerImageFile) { showToast("Adicione uma imagem para o banner."); return }
     setBannerLoading(true)
 
     let imageUrl = bannerCurrentImage
@@ -258,7 +258,7 @@ export default function AdminPage() {
     }
 
     const payload = {
-      title: bannerForm.title.trim() || "Banner",
+      title: bannerForm.title.trim(),
       subtitle: bannerForm.subtitle.trim() || null,
       description: bannerForm.description.trim() || null,
       link_url: bannerForm.link_url.trim() || null,
@@ -1075,8 +1075,8 @@ export default function AdminPage() {
                     <div style={{display:'flex',gap:8}}>
                       <button
                         onClick={saveBanner}
-                        disabled={bannerLoading}
-                        style={{background:'#C9951A',color:'#111',border:'none',padding:'9px 22px',borderRadius:7,fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'Inter,sans-serif',opacity:bannerLoading?0.6:1}}
+                        disabled={bannerLoading || (!bannerCurrentImage && !bannerImageFile)}
+                        style={{background:'#C9951A',color:'#111',border:'none',padding:'9px 22px',borderRadius:7,fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'Inter,sans-serif',opacity:(bannerLoading||(!bannerCurrentImage&&!bannerImageFile))?0.6:1}}
                       >
                         {bannerLoading ? 'Salvando...' : editingBannerId ? 'Salvar alterações' : 'Criar banner'}
                       </button>

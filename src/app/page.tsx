@@ -303,7 +303,7 @@ export default function HomePage() {
 
         /* seções */
         .sec-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; margin-top: 28px; }
-        .sec-title { font-family: 'Bebas Neue', sans-serif; font-size: 13px; color: #999; letter-spacing: 2px; }
+        .sec-title { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: #999; letter-spacing: 2px; }
         .sec-link { font-size: 12px; color: #C9951A; font-weight: 500; text-decoration: none; }
         .sec-link:hover { text-decoration: underline; }
         .divider { height: 1px; background: #F0EDE8; margin: 20px 0 0; }

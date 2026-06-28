@@ -131,13 +131,13 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
           .search-bar-wrap { padding: 0 16px; }
         }
 
-        .sec-label { font-family: 'Bebas Neue', sans-serif; font-size: 11px; color: #AAA; letter-spacing: 1.5px; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
+        .sec-label { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: #AAA; letter-spacing: 1.5px; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
         .sec-label::after { content: ''; flex: 1; height: 0.5px; background: #ddd; }
 
         /* DESTAQUES */
         .dest-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 28px; }
         @media(min-width: 640px)  { .dest-grid { grid-template-columns: repeat(3, 1fr); } }
-        @media(min-width: 1024px) { .dest-grid { grid-template-columns: repeat(4, 1fr); } }
+        @media(min-width: 1024px) { .dest-grid { grid-template-columns: repeat(5, 1fr); } }
         .dest-card { background: #fff; border: 1.5px solid #C9951A; border-radius: 12px; overflow: hidden; text-decoration: none; display: block; transition: all .18s; }
         .dest-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,.1); }
         .dest-img { width: 100%; aspect-ratio: 1; background: #FEF3E2; display: flex; align-items: center; justify-content: center; font-size: 36px; overflow: hidden; position: relative; }

@@ -57,14 +57,14 @@ interface Banner {
 
 /* ─── categorias fixas ───────────────────────────────────── */
 const CATEGORIES = [
-  { slug: 'comercios',        label: 'Comércios',         emoji: '🏪', href: '/categoria/comercios',        color: '#fff3cd', },
-  { slug: 'servicos',         label: 'Serviços',           emoji: '🔧', href: '/categoria/servicos',         color: '#dbeafe', },
-  { slug: 'gastronomia',      label: 'Gastronomia',        emoji: '🍕', href: '/categoria/gastronomia',      color: '#fee2e2', },
-  { slug: 'empregos',         label: 'Empregos',           emoji: '💼', href: '/empregos',                   color: '#dcfce7', },
-  { slug: 'imoveis',          label: 'Imóveis',            emoji: '🏠', href: '/imoveis',                    color: '#ede9fe', },
-  { slug: 'desapega',         label: 'Desapega',           emoji: '🏷️', href: '/desapega',                   color: '#ffedd5', },
-  { slug: 'achados-perdidos', label: 'Achados & Perdidos', emoji: '📍', href: '/achados-perdidos',           color: '#ccfbf1', },
-  { slug: 'igrejas',          label: 'Igrejas',            emoji: '⛪', href: '/categoria/igrejas',          color: '#fce7f3', },
+  { slug: 'comercios',        label: 'Comércios',         icon: 'ti-building-store', href: '/categoria/comercios'   },
+  { slug: 'servicos',         label: 'Serviços',           icon: 'ti-tool',           href: '/categoria/servicos'    },
+  { slug: 'gastronomia',      label: 'Gastronomia',        icon: 'ti-pizza',          href: '/categoria/gastronomia' },
+  { slug: 'empregos',         label: 'Empregos',           icon: 'ti-briefcase',      href: '/empregos'              },
+  { slug: 'imoveis',          label: 'Imóveis',            icon: 'ti-home',           href: '/imoveis'               },
+  { slug: 'desapega',         label: 'Desapega',           icon: 'ti-tag',            href: '/desapega'              },
+  { slug: 'achados-perdidos', label: 'Achados & Perdidos', icon: 'ti-map-pin',        href: '/achados-perdidos'      },
+  { slug: 'igrejas',          label: 'Igrejas',            icon: 'ti-building-church',href: '/categoria/igrejas'     },
 ]
 
 /* ─── helpers ────────────────────────────────────────────── */
@@ -197,6 +197,7 @@ export default function HomePage() {
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap');
+        @import url('https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css');
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Inter', sans-serif; background: #F0EDE8; color: #111; }
 
@@ -479,7 +480,7 @@ export default function HomePage() {
               {CATEGORIES.map(cat => (
                 <a key={cat.slug} className="cat-item" href={cat.href}>
                   <div className="cat-icon-wrap" >
-                    <span style={{ fontSize: 20 }}>{cat.emoji}</span>
+                    <i className={`ti ${cat.icon}`} aria-hidden="true"></i>
                   </div>
                   <span className="cat-label">{cat.label}</span>
                 </a>

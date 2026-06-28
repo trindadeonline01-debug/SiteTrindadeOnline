@@ -63,14 +63,12 @@ export default function AdminPage() {
   const [editingBannerId, setEditingBannerId] = useState<string|null>(null)
   const [bannerLoading, setBannerLoading] = useState(false)
   const [bannerForm, setBannerForm]       = useState({ title:'', subtitle:'', description:'', link_url:'', display_order:0 })
-  // upload de imagem
   const [bannerImageFile, setBannerImageFile]       = useState<File|null>(null)
   const [bannerImagePreview, setBannerImagePreview] = useState<string|null>(null)
   const [bannerCurrentImage, setBannerCurrentImage] = useState<string|null>(null)
   const [uploadProgress, setUploadProgress]         = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Verifica se é admin
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { window.location.href = '/login'; return }
@@ -198,7 +196,6 @@ export default function AdminPage() {
     setBanners((data || []) as Banner[])
   }
 
-  // ── BANNER ACTIONS ──
   function openNewBanner() {
     setEditingBannerId(null)
     setBannerForm({ title:'', subtitle:'', description:'', link_url:'', display_order: banners.length })
@@ -249,14 +246,12 @@ export default function AdminPage() {
   async function saveBanner() {
     if (!bannerCurrentImage && !bannerImageFile) { showToast("Adicione uma imagem para o banner."); return }
     setBannerLoading(true)
-
     let imageUrl = bannerCurrentImage
     if (bannerImageFile) {
       const uploaded = await uploadBannerImage(bannerImageFile)
       if (!uploaded) { setBannerLoading(false); return }
       imageUrl = uploaded
     }
-
     const payload = {
       title: bannerForm.title.trim(),
       subtitle: bannerForm.subtitle.trim() || null,
@@ -357,12 +352,16 @@ export default function AdminPage() {
     loadCompanies(); loadStats()
   }
 
+  async function handleSair() {
+    await supabase.auth.signOut()
+    window.location.href = '/login'
+  }
+
   function showToast(msg: string) {
     setToast(msg)
     setTimeout(() => setToast(''), 3000)
   }
 
-  // ── GUARDS ────────────────────────────────────────────────
   if (authorized === null) return <div style={{ display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',fontFamily:'Inter,sans-serif',color:'#AAA' }}>Verificando acesso...</div>
   if (authorized === false) return <div style={{ display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',fontFamily:'Inter,sans-serif' }}><div style={{ textAlign:'center' }}><div style={{ fontSize:48,marginBottom:16 }}>🚫</div><div style={{ fontSize:20,fontWeight:700 }}>Acesso negado</div><div style={{ color:'#AAA',marginTop:8 }}>Você não tem permissão para acessar esta página.</div></div></div>
 
@@ -377,7 +376,6 @@ export default function AdminPage() {
 
         .admin-layout { display: flex; min-height: 100vh; }
 
-        /* SIDEBAR */
         .sidebar {
           width: 220px; background: #111; flex-shrink: 0;
           display: flex; flex-direction: column;
@@ -411,14 +409,20 @@ export default function AdminPage() {
         .sidebar-footer {
           margin-top: auto; padding: 16px 20px;
           border-top: 1px solid #222;
+          display: flex; flex-direction: column; gap: 8px;
         }
         .sidebar-footer a {
           font-size: 12px; color: #555; text-decoration: none;
           display: flex; align-items: center; gap: 6px;
         }
         .sidebar-footer a:hover { color: #888; }
+        .btn-sair-sidebar {
+          font-size: 12px; color: #E24B4A; background: none; border: none;
+          cursor: pointer; font-family: 'Inter', sans-serif;
+          display: flex; align-items: center; gap: 6px; padding: 0;
+        }
+        .btn-sair-sidebar:hover { color: #ff6b6b; }
 
-        /* MAIN */
         .admin-main { flex: 1; overflow-x: hidden; }
         .admin-topbar {
           background: #fff; border-bottom: 1px solid #EDE8E0;
@@ -429,7 +433,6 @@ export default function AdminPage() {
         .topbar-date { font-size: 12px; color: #AAA; }
         .admin-body { padding: 28px; }
 
-        /* STATS GRID */
         .stats-grid {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
@@ -447,17 +450,14 @@ export default function AdminPage() {
         .stat-warn  { color: #C9951A; }
         .stat-danger{ color: #E24B4A; }
 
-        /* SECTION */
         .section-card { background: #fff; border-radius: 14px; border: 0.5px solid #EDE8E0; margin-bottom: 20px; overflow: hidden; }
         .section-hdr  { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 0.5px solid #F0EDE8; }
         .section-title{ font-family: 'Bebas Neue', sans-serif; font-size: 14px; color: #888; letter-spacing: 1.5px; }
 
-        /* FILTERS */
         .filter-row { display: flex; gap: 8px; flex-wrap: wrap; }
         .filter-btn { padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid #E0DDD8; background: #FAFAF8; color: #666; transition: all .15s; font-family: 'Inter', sans-serif; }
         .filter-btn.on { border-color: #C9951A; background: #FEF3E2; color: #854F0B; font-weight: 600; }
 
-        /* TABLE */
         .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
         .data-table th { text-align: left; padding: 10px 16px; font-size: 11px; font-weight: 600; color: #AAA; text-transform: uppercase; letter-spacing: .04em; background: #FAFAF8; border-bottom: 0.5px solid #F0EDE8; }
         .data-table td { padding: 12px 16px; border-bottom: 0.5px solid #F5F2EC; color: #333; vertical-align: middle; }
@@ -470,7 +470,6 @@ export default function AdminPage() {
         .btn-suspend  { background: #FEF0F0; color: #E24B4A; }
         .btn-view     { background: #F0F4FF; color: #185FA5; }
 
-        /* SEARCH TABLE */
         .search-bar-wrap { display: flex; align-items: center; gap: 8px; background: #F5F2EC; border: 1.5px solid #C9951A; border-radius: 10px; padding: 8px 14px; }
         .search-bar-wrap input { flex: 1; border: none; background: transparent; font-size: 13px; font-family: 'Inter', sans-serif; outline: none; }
         .rank-num { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: #DDD; width: 30px; }
@@ -481,7 +480,6 @@ export default function AdminPage() {
         .progress-fill { height: 100%; background: #C9951A; border-radius: 3px; }
         .no-result-badge { font-size: 10px; background: #FEF0F0; color: #E24B4A; padding: 2px 7px; border-radius: 6px; font-weight: 600; }
 
-        /* TOAST */
         .toast {
           position: fixed; bottom: 24px; right: 24px;
           background: #111; color: #fff; padding: 12px 20px; border-radius: 12px;
@@ -490,17 +488,14 @@ export default function AdminPage() {
         }
         @keyframes fadein { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
 
-        /* EMPTY */
         .empty-state { text-align: center; padding: 48px 20px; color: #AAA; }
         .empty-state div:first-child { font-size: 40px; margin-bottom: 12px; }
 
-        /* USER BADGE */
         .user-type-badge { font-size: 10px; padding: 2px 8px; border-radius: 8px; font-weight: 600; }
         .type-user    { background: #EBF4FF; color: #185FA5; }
         .type-company { background: #FEF3E2; color: #854F0B; }
         .type-admin   { background: #111; color: #C9951A; }
 
-        /* BANNER FORM */
         .banner-form-input { width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; font-family: 'Inter', sans-serif; outline: none; }
         .banner-form-input:focus { border-color: #C9951A; }
         .banner-form-label { font-size: 11px; color: #888; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; display: block; margin-bottom: 5px; }
@@ -544,6 +539,7 @@ export default function AdminPage() {
 
           <div className="sidebar-footer">
             <a href="/">← Ver site</a>
+            <button className="btn-sair-sidebar" onClick={handleSair}>↪ Sair</button>
           </div>
         </aside>
 
@@ -938,7 +934,6 @@ export default function AdminPage() {
             {/* ── BANNERS ── */}
             {!loading && tab === 'banners' && (
               <div>
-                {/* input de arquivo oculto */}
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -965,17 +960,14 @@ export default function AdminPage() {
                   </button>
                 </div>
 
-                {/* ── FORMULÁRIO ── */}
                 {bannerFormOpen && (
                   <div style={{background:'#fff',border:'1px solid #e0e0e0',borderRadius:12,padding:20,marginBottom:20,boxShadow:'0 2px 8px rgba(0,0,0,0.06)'}}>
                     <div style={{fontSize:14,fontWeight:600,color:'#111',marginBottom:16}}>
                       {editingBannerId ? 'Editar Banner' : 'Novo Banner'}
                     </div>
 
-                    {/* Upload de imagem */}
                     <div style={{marginBottom:16}}>
                       <label className="banner-form-label">Imagem do banner (1200 × 359px recomendado)</label>
-
                       {(bannerImagePreview || bannerCurrentImage) ? (
                         <div className="upload-area-filled" onClick={() => fileInputRef.current?.click()}>
                           <img
@@ -991,24 +983,18 @@ export default function AdminPage() {
                           <div style={{fontSize:11,color:'#aaa',marginTop:4}}>JPG, PNG ou WebP · Máximo 5MB · 1200×359px</div>
                         </div>
                       )}
-
                       {(bannerImagePreview || bannerCurrentImage) && (
                         <div style={{display:'flex',gap:8,marginTop:8}}>
-                          <button
-                            onClick={() => fileInputRef.current?.click()}
-                            style={{fontSize:11,color:'#185FA5',background:'#f0f4ff',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Inter,sans-serif',fontWeight:600}}
-                          >
+                          <button onClick={() => fileInputRef.current?.click()}
+                            style={{fontSize:11,color:'#185FA5',background:'#f0f4ff',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Inter,sans-serif',fontWeight:600}}>
                             Trocar imagem
                           </button>
-                          <button
-                            onClick={() => { setBannerImageFile(null); setBannerImagePreview(null); setBannerCurrentImage(null) }}
-                            style={{fontSize:11,color:'#dc2626',background:'#fef2f2',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Inter,sans-serif'}}
-                          >
+                          <button onClick={() => { setBannerImageFile(null); setBannerImagePreview(null); setBannerCurrentImage(null) }}
+                            style={{fontSize:11,color:'#dc2626',background:'#fef2f2',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
                             Remover imagem
                           </button>
                         </div>
                       )}
-
                       {uploadProgress > 0 && uploadProgress < 100 && (
                         <div style={{marginTop:8,background:'#f0f0f0',borderRadius:4,overflow:'hidden',height:4}}>
                           <div style={{height:'100%',background:'#C9951A',width:`${uploadProgress}%`,transition:'width 0.3s'}} />
@@ -1016,88 +1002,54 @@ export default function AdminPage() {
                       )}
                     </div>
 
-                    {/* Campos de texto */}
                     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:14}}>
                       <div>
                         <label className="banner-form-label">Título *</label>
-                        <input
-                          className="banner-form-input"
-                          type="text"
-                          value={bannerForm.title}
+                        <input className="banner-form-input" type="text" value={bannerForm.title}
                           onChange={e => setBannerForm(p => ({...p, title: e.target.value}))}
-                          placeholder="Ex: Anderlu Material de Construção"
-                        />
+                          placeholder="Ex: Anderlu Material de Construção" />
                       </div>
                       <div>
                         <label className="banner-form-label">Subtítulo</label>
-                        <input
-                          className="banner-form-input"
-                          type="text"
-                          value={bannerForm.subtitle}
+                        <input className="banner-form-input" type="text" value={bannerForm.subtitle}
                           onChange={e => setBannerForm(p => ({...p, subtitle: e.target.value}))}
-                          placeholder="Ex: Material de Construção"
-                        />
+                          placeholder="Ex: Material de Construção" />
                       </div>
                       <div>
                         <label className="banner-form-label">Descrição curta</label>
-                        <input
-                          className="banner-form-input"
-                          type="text"
-                          value={bannerForm.description}
+                        <input className="banner-form-input" type="text" value={bannerForm.description}
                           onChange={e => setBannerForm(p => ({...p, description: e.target.value}))}
-                          placeholder="Ex: Tudo para sua obra na Trindade"
-                        />
+                          placeholder="Ex: Tudo para sua obra na Trindade" />
                       </div>
                       <div>
                         <label className="banner-form-label">Link (ao clicar no banner)</label>
-                        <input
-                          className="banner-form-input"
-                          type="text"
-                          value={bannerForm.link_url}
+                        <input className="banner-form-input" type="text" value={bannerForm.link_url}
                           onChange={e => setBannerForm(p => ({...p, link_url: e.target.value}))}
-                          placeholder="Ex: /empresa/anderlu ou https://..."
-                        />
+                          placeholder="Ex: /empresa/anderlu ou https://..." />
                         <div style={{fontSize:10,color:'#aaa',marginTop:4}}>O banner inteiro será clicável e levará para este link</div>
                       </div>
                       <div>
                         <label className="banner-form-label">Ordem de exibição</label>
-                        <input
-                          className="banner-form-input"
-                          type="number"
-                          value={bannerForm.display_order}
+                        <input className="banner-form-input" type="number" value={bannerForm.display_order}
                           onChange={e => setBannerForm(p => ({...p, display_order: Number(e.target.value)}))}
-                          style={{width:100}}
-                        />
+                          style={{width:100}} />
                         <div style={{fontSize:10,color:'#aaa',marginTop:4}}>Número menor aparece primeiro</div>
                       </div>
                     </div>
 
                     <div style={{display:'flex',gap:8}}>
-                      <button
-                        onClick={saveBanner}
-                        disabled={bannerLoading || (!bannerCurrentImage && !bannerImageFile)}
-                        style={{background:'#C9951A',color:'#111',border:'none',padding:'9px 22px',borderRadius:7,fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'Inter,sans-serif',opacity:(bannerLoading||(!bannerCurrentImage&&!bannerImageFile))?0.6:1}}
-                      >
+                      <button onClick={saveBanner} disabled={bannerLoading || (!bannerCurrentImage && !bannerImageFile)}
+                        style={{background:'#C9951A',color:'#111',border:'none',padding:'9px 22px',borderRadius:7,fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'Inter,sans-serif',opacity:(bannerLoading||(!bannerCurrentImage&&!bannerImageFile))?0.6:1}}>
                         {bannerLoading ? 'Salvando...' : editingBannerId ? 'Salvar alterações' : 'Criar banner'}
                       </button>
-                      <button
-                        onClick={() => {
-                          setBannerFormOpen(false)
-                          setEditingBannerId(null)
-                          setBannerForm({ title:'', subtitle:'', description:'', link_url:'', display_order:0 })
-                          setBannerImageFile(null)
-                          setBannerImagePreview(null)
-                          setBannerCurrentImage(null)
-                        }}
-                        style={{background:'transparent',color:'#666',border:'1px solid #ddd',padding:'9px 16px',borderRadius:7,fontSize:13,cursor:'pointer',fontFamily:'Inter,sans-serif'}}
-                      >
+                      <button onClick={() => { setBannerFormOpen(false); setEditingBannerId(null); setBannerForm({ title:'', subtitle:'', description:'', link_url:'', display_order:0 }); setBannerImageFile(null); setBannerImagePreview(null); setBannerCurrentImage(null) }}
+                        style={{background:'transparent',color:'#666',border:'1px solid #ddd',padding:'9px 16px',borderRadius:7,fontSize:13,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
                         Cancelar
                       </button>
                     </div>
                   </div>
                 )}
 
-                {/* ── LISTA DE BANNERS ── */}
                 {banners.length === 0 ? (
                   <div className="empty-state">
                     <div>📢</div>
@@ -1107,10 +1059,7 @@ export default function AdminPage() {
                 ) : (
                   <div style={{display:'flex',flexDirection:'column',gap:10}}>
                     {banners.map(b => (
-                      <div key={b.id} style={{
-                        background:'#fff', border:'1px solid #e8e8e8', borderRadius:10,
-                        overflow:'hidden', opacity: b.active ? 1 : 0.55,
-                      }}>
+                      <div key={b.id} style={{background:'#fff',border:'1px solid #e8e8e8',borderRadius:10,overflow:'hidden',opacity: b.active ? 1 : 0.55}}>
                         {b.image_url && (
                           <div style={{height:80,overflow:'hidden',position:'relative'}}>
                             <img src={b.image_url} alt={b.title} style={{width:'100%',height:'100%',objectFit:'cover'}} />
@@ -1123,9 +1072,7 @@ export default function AdminPage() {
                         <div style={{padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
                           <div style={{display:'flex',alignItems:'center',gap:12,flex:1,minWidth:0}}>
                             {!b.image_url && (
-                              <div style={{width:36,height:36,borderRadius:8,background:'#f5e9c4',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0}}>
-                                📢
-                              </div>
+                              <div style={{width:36,height:36,borderRadius:8,background:'#f5e9c4',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0}}>📢</div>
                             )}
                             <div style={{minWidth:0}}>
                               {!b.image_url && <div style={{fontSize:14,fontWeight:600,color:'#111',marginBottom:2}}>{b.title}</div>}
@@ -1135,17 +1082,11 @@ export default function AdminPage() {
                                   🔗 <span style={{wordBreak:'break-all'}}>{b.link_url}</span>
                                 </div>
                               )}
-                              {!b.image_url && (
-                                <div style={{fontSize:11,color:'#f59e0b',marginTop:4,fontWeight:500}}>⚠ Sem imagem — aparecerá com fundo escuro padrão</div>
-                              )}
+                              {!b.image_url && <div style={{fontSize:11,color:'#f59e0b',marginTop:4,fontWeight:500}}>⚠ Sem imagem — aparecerá com fundo escuro padrão</div>}
                             </div>
                           </div>
                           <div style={{display:'flex',gap:8,alignItems:'center',flexShrink:0,marginLeft:12}}>
-                            <span style={{
-                              fontSize:10,fontWeight:600,padding:'2px 10px',borderRadius:10,
-                              background: b.active ? '#dcfce7' : '#fee2e2',
-                              color: b.active ? '#16a34a' : '#dc2626',
-                            }}>
+                            <span style={{fontSize:10,fontWeight:600,padding:'2px 10px',borderRadius:10,background: b.active ? '#dcfce7' : '#fee2e2',color: b.active ? '#16a34a' : '#dc2626'}}>
                               {b.active ? 'Ativo' : 'Inativo'}
                             </span>
                             <button onClick={() => { openEditBanner(b); setBannerFormOpen(true) }}

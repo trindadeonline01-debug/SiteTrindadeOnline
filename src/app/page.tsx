@@ -221,6 +221,9 @@ export default function HomePage() {
         }
 
         /* BANNER */
+        @media(max-width: 767px) {
+          .banner-inner-wrap { height: auto; aspect-ratio: 3/2; padding-top: 0; }
+        }
         .banner-outer { width: 100%; }
         .banner-inner-wrap {
           width: 100%; height: 359px;

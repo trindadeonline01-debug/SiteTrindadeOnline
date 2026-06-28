@@ -215,7 +215,7 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
         .dest-card { flex-shrink: 0; width: 140px; background: #fff; border: 1.5px solid #C9951A; border-radius: 12px; overflow: hidden; text-decoration: none; display: block; transition: all .18s; }
         .dest-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,.1); }
         @media(min-width: 768px) { .dest-card { width: 180px; } }
-        .dest-img { width: 100%; height: 90px; background: #FEF3E2; display: flex; align-items: center; justify-content: center; font-size: 32px; overflow: hidden; position: relative; }
+        .dest-img { width: 100%; height: 117px; background: #FEF3E2; display: flex; align-items: center; justify-content: center; font-size: 32px; overflow: hidden; position: relative; }
         .dest-img img { width: 100%; height: 100%; object-fit: cover; }
         .dest-badge { position: absolute; top: 6px; left: 6px; background: #C9951A; color: #111; font-size: 8px; font-weight: 700; padding: 2px 6px; border-radius: 3px; letter-spacing: 0.5px; }
         .dest-body { padding: 8px 10px; }
@@ -240,18 +240,18 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
         .result-cnt { font-size: 13px; color: #AAA; margin-bottom: 16px; }
         .result-cnt span { color: #111; font-weight: 600; }
 
-        /* CARDS */
-        .companies-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
-        @media(min-width: 640px)  { .companies-grid { grid-template-columns: repeat(3, 1fr); } }
-        @media(min-width: 1024px) { .companies-grid { grid-template-columns: repeat(5, 1fr); } }
-        .cc { background: #fff; border-radius: 12px; overflow: hidden; text-decoration: none; display: block; border: 0.5px solid #e8e8e8; transition: all .18s; }
-        .cc:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,.08); border-color: #C9951A; }
-        .cc-img { width: 100%; aspect-ratio: 1; background: #f5f0e8; display: flex; align-items: center; justify-content: center; font-size: 40px; overflow: hidden; }
+        /* EMPRESAS EM LISTA */
+        .companies-grid { display: flex; flex-direction: column; background: #fff; border: 0.5px solid #EDE8E0; border-radius: 14px; overflow: hidden; }
+        .cc { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 0.5px solid #F5F2EC; text-decoration: none; transition: background .15s; }
+        .cc:last-child { border-bottom: none; }
+        .cc:hover { background: #FAFAF8; }
+        .cc-img { width: 48px; height: 48px; border-radius: 10px; background: #f5f0e8; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; border: 0.5px solid #E0DDD8; overflow: hidden; }
         .cc-img img { width: 100%; height: 100%; object-fit: cover; }
-        .cc-body { padding: 12px; }
-        .cc-name { font-size: 14px; font-weight: 600; color: #111; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .cc-stars { font-size: 12px; color: #C9951A; font-weight: 600; margin-bottom: 3px; }
+        .cc-body { flex: 1; min-width: 0; }
+        .cc-name { font-size: 13px; font-weight: 600; color: #111; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .cc-stars { font-size: 11px; color: #C9951A; font-weight: 600; margin-bottom: 2px; }
         .cc-addr { font-size: 11px; color: #BBB; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .cc-arrow { flex-shrink: 0; color: #CCC; }
 
         .sk { background: linear-gradient(90deg,#F0EDE8 25%,#E8E4DD 50%,#F0EDE8 75%); background-size: 200% 100%; animation: sh 1.5s infinite; border-radius: 12px; }
         @keyframes sh { 0%{background-position:200% 0} 100%{background-position:-200% 0} }

@@ -203,10 +203,18 @@ export default function HomePage() {
 
         .hero { background: linear-gradient(160deg, #fff 0%, #FEF8EC 60%, #FEF3E2 100%); padding: 28px 16px 0; text-align: center; border-bottom: 1px solid #EDE8E0; }
         @media(min-width: 768px) { .hero { padding: 43px 20px 0; } }
-        .hero-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(42px, 6vw, 72px); letter-spacing: 4px; line-height: 1; margin-bottom: 8px; display: none; }
+        .hero-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(30px, 8vw, 72px); letter-spacing: 4px; line-height: 1; margin-bottom: 8px; display: block; }
         .hero-title span { color: #C9951A; }
-        .hero-sub { font-size: clamp(14px, 2vw, 16px); color: #888; margin-bottom: 24px; display: none; }
-        .hero-search-wrap { display: none; }
+        .hero-sub { font-size: clamp(12px, 3vw, 16px); color: #888; margin-bottom: 20px; display: block; }
+        .hero-search-wrap {
+          display: flex; max-width: 600px; margin: 0 auto; align-items: center; gap: 8px;
+          background: #fff; border: 2px solid #C9951A; border-radius: 50px;
+          padding: 6px 6px 6px 16px; box-shadow: 0 4px 20px rgba(201,149,26,.12);
+          transform: translateY(50%); position: relative; z-index: 20;
+        }
+        .hero-search-wrap input { flex: 1; border: none; background: transparent; font-size: 14px; font-family: 'Inter', sans-serif; color: #222; outline: none; }
+        .hero-search-wrap input::placeholder { color: #BBB; }
+        .hero-search-btn { background: #C9951A; border: none; border-radius: 50px; padding: 9px 16px; color: #fff; font-size: 13px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
         @media(min-width: 768px) {
           .hero { padding: 43px 20px 0; }
           .hero-title, .hero-sub { display: block; }

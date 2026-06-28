@@ -257,7 +257,7 @@ export default function PainelPage() {
         .sb-footer a{font-size:12px;color:#C9951A;text-decoration:none;display:flex;align-items:center;gap:6px;font-weight:600;}
         .sb-footer a:hover{color:#fff;}
 
-        .painel-main{flex:1;overflow-x:hidden;display:flex;flex-direction:column;}
+        .painel-main{flex:1;overflow-x:hidden;display:flex;flex-direction:column;min-width:0;}
         .topbar{background:#fff;border-bottom:1px solid #EDE8E0;padding:14px 28px;display:none;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20;}
         @media(min-width:768px){.topbar{display:flex;}}
         .topbar-title{font-family:'Bebas Neue',sans-serif;font-size:20px;color:#111;letter-spacing:1px;}
@@ -267,8 +267,15 @@ export default function PainelPage() {
         .mhdr-logo{font-family:'Bebas Neue',sans-serif;font-size:18px;color:#fff;letter-spacing:2px;}
         .mhdr-logo span{color:#C9951A;}
         .mhdr-empresa{font-size:11px;color:#C9951A;font-family:'Bebas Neue',sans-serif;letter-spacing:1px;}
+
+        /* CONTENT — padding padrão para abas normais */
         .content{padding:24px 28px;flex:1;}
         @media(max-width:767px){.content{padding:16px 16px 80px;}}
+
+        /* CONTENT PLANO — centralizado com max-width */
+        .content-plano{padding:24px 28px;flex:1;}
+        @media(max-width:767px){.content-plano{padding:16px 16px 80px;}}
+        .plano-inner{max-width:780px;margin:0 auto;}
 
         .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;}
         @media(min-width:1024px){.stat-grid{grid-template-columns:repeat(4,1fr);}}
@@ -371,10 +378,10 @@ export default function PainelPage() {
 
         /* ── ABA PLANO ── */
         .pt-sec-lbl{font-family:'Bebas Neue',sans-serif;font-size:14px;color:#888;letter-spacing:1.5px;display:flex;align-items:center;gap:10px;margin:28px 0 6px;}
+        .pt-sec-lbl:first-child{margin-top:0;}
         .pt-sec-lbl::after{content:'';flex:1;height:0.5px;background:#E0DDD8;}
         .pt-sec-sub{font-size:13px;color:#999;margin-bottom:16px;}
 
-        /* status */
         .pt-status{background:linear-gradient(135deg,#1a1a1a,#2e2e2e);border-radius:14px;padding:22px 24px;}
         .pt-status-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
         .pt-status-name{font-family:'Bebas Neue',sans-serif;font-size:24px;color:#C9951A;letter-spacing:1px;}
@@ -384,9 +391,8 @@ export default function PainelPage() {
         .pt-trial-bar{height:6px;background:#333;border-radius:3px;overflow:hidden;}
         .pt-trial-fill{height:100%;background:#C9951A;border-radius:3px;}
 
-        /* planos */
         .pt-plan-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
-        @media(max-width:600px){.pt-plan-grid{grid-template-columns:1fr;}}
+        @media(max-width:500px){.pt-plan-grid{grid-template-columns:1fr;}}
         .pt-plan-opt{background:#fff;border:1.5px solid #E0DDD8;border-radius:14px;padding:22px 16px;text-align:center;position:relative;}
         .pt-plan-opt.popular{border-color:#C9951A;}
         .pt-popular-badge{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:#C9951A;color:#111;font-size:9px;font-weight:700;padding:3px 12px;border-radius:20px;white-space:nowrap;}
@@ -398,23 +404,22 @@ export default function PainelPage() {
         .pt-btn-assinar.off{background:#F0EDE8;color:#888;}
         .pt-ben-label{font-size:12px;color:#AAA;font-weight:600;margin-bottom:10px;}
         .pt-beneficios{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;}
-        @media(max-width:700px){.pt-beneficios{grid-template-columns:repeat(3,1fr);}}
+        @media(max-width:600px){.pt-beneficios{grid-template-columns:repeat(3,1fr);}}
         .pt-ben-card{background:#fff;border:0.5px solid #E0DDD8;border-radius:12px;padding:16px 8px;text-align:center;}
         .pt-ben-ico{font-size:26px;margin-bottom:8px;}
         .pt-ben-title{font-size:11px;font-weight:700;color:#111;margin-bottom:4px;line-height:1.3;}
         .pt-ben-desc{font-size:10px;color:#999;line-height:1.4;}
 
-        /* banner */
         .pt-banner-card{background:#fff;border:0.5px solid #E0DDD8;border-radius:14px;overflow:hidden;}
         .pt-banner-visual{background:linear-gradient(160deg,#0f0f0f,#2a1800);padding:32px 28px;display:flex;align-items:center;gap:28px;}
-        @media(max-width:600px){.pt-banner-visual{flex-direction:column;}}
+        @media(max-width:500px){.pt-banner-visual{flex-direction:column;}}
         .pt-banner-visual-left{flex:1;}
         .pt-banner-ico{font-size:48px;margin-bottom:12px;}
         .pt-banner-badge{background:#C9951A;color:#111;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;padding:4px 14px;border-radius:20px;display:inline-block;margin-bottom:12px;}
         .pt-banner-pos-title{font-size:18px;font-weight:700;color:#fff;margin-bottom:6px;}
         .pt-banner-pos-desc{font-size:13px;color:rgba(255,255,255,0.6);line-height:1.6;}
         .pt-banner-visual-right{width:200px;flex-shrink:0;}
-        @media(max-width:600px){.pt-banner-visual-right{width:100%;}}
+        @media(max-width:500px){.pt-banner-visual-right{width:100%;}}
         .pt-bv-site{background:#F0EDE8;border-radius:8px;overflow:hidden;border:1px solid #333;}
         .pt-bv-nav{background:#111;height:16px;display:flex;align-items:center;padding:0 8px;gap:3px;}
         .pt-bv-dot{width:4px;height:4px;border-radius:50%;background:#444;}
@@ -431,9 +436,8 @@ export default function PainelPage() {
         .pt-b-days{font-size:13px;font-weight:600;color:#333;margin-bottom:6px;}
         .pt-b-price{font-size:18px;font-weight:700;color:#C9951A;}
 
-        /* destaques */
         .pt-dest-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
-        @media(max-width:700px){.pt-dest-grid{grid-template-columns:1fr;}}
+        @media(max-width:600px){.pt-dest-grid{grid-template-columns:1fr;}}
         .pt-dest-card{background:#fff;border:0.5px solid #E0DDD8;border-radius:14px;overflow:hidden;}
         .pt-dest-visual{padding:24px 16px 20px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;border-bottom:0.5px solid #eee;}
         .pt-dest-visual.home{background:linear-gradient(160deg,#1a1a1a,#2e2e2e);}
@@ -446,7 +450,7 @@ export default function PainelPage() {
         .pt-rank-row{display:flex;align-items:center;gap:6px;}
         .pt-rank-item{height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;}
         .pt-rank-item.you{background:#C9951A;color:#111;padding:0 12px;font-size:11px;white-space:nowrap;}
-        .pt-rank-item.other{background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.4);width:32px;}
+        .pt-rank-item.other{background:rgba(255,255,255,0.12);width:32px;}
         .pt-dest-info{padding:16px;}
         .pt-dest-info-title{font-size:15px;font-weight:700;color:#111;margin-bottom:4px;}
         .pt-dest-info-desc{font-size:12px;color:#777;line-height:1.6;margin-bottom:14px;}
@@ -455,14 +459,14 @@ export default function PainelPage() {
         .pt-d-opt:hover{border-color:#C9951A;}
         .pt-d-day{font-size:13px;font-weight:500;color:#333;}
         .pt-d-price{font-size:14px;font-weight:700;color:#C9951A;}
-        .pt-footer-note{text-align:center;font-size:12px;color:#BBB;margin-top:24px;}
+        .pt-footer-note{text-align:center;font-size:12px;color:#BBB;margin-top:24px;padding-bottom:8px;}
       `}</style>
 
       {toast && <div className="toast">✓ {toast}</div>}
 
       <div className="painel-layout">
 
-        {/* SIDEBAR */}
+        {/* SIDEBAR — fixa na esquerda */}
         <aside className="sidebar">
           <div className="sb-logo">
             <div className="sb-logo-txt">TRINDADE <span>ONLINE</span></div>
@@ -486,7 +490,7 @@ export default function PainelPage() {
           </div>
         </aside>
 
-        {/* MAIN */}
+        {/* MAIN — área direita */}
         <main className="painel-main">
           <div className="mobile-hdr">
             <div>
@@ -504,141 +508,32 @@ export default function PainelPage() {
             <div className="topbar-right">{new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})}</div>
           </div>
 
-          <div className="content">
-            {company.status === 'pending' && (
-              <div className="alert-pending">⏳ Sua empresa está aguardando aprovação da nossa equipe. Você receberá uma notificação em até 24h.</div>
-            )}
+          {/* ── CONTEÚDO DAS ABAS ── */}
 
-            {/* ── DASHBOARD ── */}
-            {tab === 'painel' && (
-              <>
-                <div className="stat-grid">
-                  <div className="stat-card"><div className="stat-num" style={{color:'#185FA5'}}>{company.views_count||0}</div><div className="stat-lbl">Visualizações</div></div>
-                  <div className="stat-card"><div className="stat-num" style={{color:'#25D366'}}>{company.whatsapp_clicks||0}</div><div className="stat-lbl">Cliques WhatsApp</div></div>
-                  <div className="stat-card"><div className="stat-num" style={{color:'#C9951A'}}>{company.link_clicks||0}</div><div className="stat-lbl">Cliques no link</div></div>
-                  <div className="stat-card"><div className="stat-num" style={{color:'#C9951A'}}>{company.avg_rating>0?`${company.avg_rating}★`:'—'}</div><div className="stat-lbl">Nota média</div><div className="stat-sub">{company.total_reviews} avaliações</div></div>
-                </div>
-                <div className="section-label">AÇÕES RÁPIDAS</div>
-                <div className="actions-row">
-                  <button className="action-btn" style={{background:'#C9951A',color:'#fff'}} onClick={()=>setTab('perfil')}>✏️ Editar perfil</button>
-                  <button className="action-btn" style={{background:'#185FA5',color:'#fff'}} onClick={()=>setTab('plano')}>⭐ Criar destaque</button>
-                  {pendingReplies > 0 && <button className="action-btn" style={{background:'#FEF3E2',color:'#854F0B',border:'1px solid #F5C77A'}} onClick={()=>setTab('avaliacoes')}>💬 {pendingReplies} sem resposta</button>}
-                </div>
-                {reviews.length > 0 && (
-                  <div className="sec-card">
-                    <div className="sec-hdr"><span className="sec-title">AVALIAÇÕES RECENTES</span><span style={{fontSize:12,color:'#C9951A',cursor:'pointer'}} onClick={()=>setTab('avaliacoes')}>Ver todas →</span></div>
-                    <div className="sec-body">
-                      <div className="review-grid">
-                        {reviews.slice(0,4).map(r => (
-                          <div key={r.id} className="review-card">
-                            <div className="review-top">
-                              <div className="review-av">{r.user?.name?.[0]||'?'}</div>
-                              <div><div className="review-name">{r.user?.name||'Usuário'}</div></div>
-                              <span className="review-date">{fmtDate(r.created_at)}</span>
-                            </div>
-                            <div className="review-stars">{'★'.repeat(r.rating)}{'☆'.repeat(5-r.rating)}</div>
-                            {r.text && <div className="review-text">{r.text}</div>}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-
-            {/* ── DESTAQUES ── */}
-            {tab === 'destaques' && (
-              <>
-                {activeHighlights.length > 0 && (
-                  <>
-                    <div className="section-label">DESTAQUES ATIVOS</div>
-                    {activeHighlights.map(h => (
-                      <div key={h.id} className="hl-card">
-                        <div className="hl-top">
-                          <span style={{fontSize:13,fontWeight:600,color:'#333'}}>{h.level==='home'?'Destaque Home':h.level==='category'?'Destaque Categoria':'Destaque Subcategoria'} · {h.duration_days} dias</span>
-                          <span className="hl-badge b-active">● Ativo</span>
-                        </div>
-                        <div style={{fontSize:12,color:'#AAA',marginBottom:12}}>Vence em {fmtDate(h.expires_at)} · {daysLeft(h.expires_at)} dias restantes · R$ {h.price_paid.toFixed(2)}</div>
-                        <div className="hl-stats">
-                          <div><div className="hs-num">{h.clicks_count}</div><div className="hs-lbl">Cliques</div></div>
-                          <div><div className="hs-num">{h.impressions_count}</div><div className="hs-lbl">Impressões</div></div>
-                          <div><div className="hs-num">{h.impressions_count>0?Math.round((h.clicks_count/h.impressions_count)*100):0}%</div><div className="hs-lbl">Taxa de clique</div></div>
-                        </div>
-                      </div>
-                    ))}
-                  </>
-                )}
-                <div className="section-label">CRIAR NOVO DESTAQUE</div>
-                <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12}}>
-                  {[
-                    {level:'home',    label:'Destaque Home',         desc:'Aparece na página inicial', prices:['R$ 49,90','R$ 89,90','R$ 159,90']},
-                    {level:'category',label:'Destaque Categoria',    desc:'Topo da sua categoria',     prices:['R$ 29,90','R$ 54,90','R$ 99,90']},
-                    {level:'subcat',  label:'Destaque Subcategoria', desc:'Topo da subcategoria',      prices:['R$ 14,90','R$ 27,90','R$ 49,90']},
-                  ].map(d => (
-                    <div key={d.level} style={{background:'#FAFAF8',border:'0.5px solid #E0DDD8',borderRadius:14,padding:16}}>
-                      <div style={{fontWeight:600,fontSize:14,marginBottom:3}}>{d.label}</div>
-                      <div style={{fontSize:12,color:'#AAA',marginBottom:12}}>{d.desc}</div>
-                      {['7 dias','15 dias','30 dias'].map((dur,i) => (
-                        <button key={i} onClick={()=>showToast('Em breve: pagamento via Pix')} style={{width:'100%',padding:'9px',marginBottom:7,borderRadius:9,border:'1px solid #E0DDD8',background:'#fff',fontSize:12,cursor:'pointer',fontFamily:'Inter,sans-serif',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                          <span style={{fontWeight:500}}>{dur}</span>
-                          <span style={{color:'#C9951A',fontWeight:600}}>{d.prices[i]}</span>
-                        </button>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-                <div style={{textAlign:'center',fontSize:11,color:'#AAA',marginTop:8}}>Pagamento via Pix · Ativa na hora</div>
-                {highlights.filter(h=>h.status==='expired').length > 0 && (
-                  <>
-                    <div className="section-label">HISTÓRICO</div>
-                    {highlights.filter(h=>h.status==='expired').map(h => (
-                      <div key={h.id} className="hl-card exp">
-                        <div className="hl-top">
-                          <span style={{fontSize:13,fontWeight:600,color:'#888'}}>{h.level==='home'?'Home':h.level==='category'?'Categoria':'Subcategoria'} · {h.duration_days}d</span>
-                          <span className="hl-badge b-exp">Encerrado</span>
-                        </div>
-                        <div style={{fontSize:11,color:'#CCC',marginBottom:8}}>{fmtDate(h.starts_at)} – {fmtDate(h.expires_at)}</div>
-                        <div className="hl-stats">
-                          <div><div className="hs-num" style={{color:'#AAA'}}>{h.clicks_count}</div><div className="hs-lbl">Cliques</div></div>
-                          <div><div className="hs-num" style={{color:'#AAA'}}>{h.impressions_count}</div><div className="hs-lbl">Impressões</div></div>
-                        </div>
-                      </div>
-                    ))}
-                  </>
-                )}
-              </>
-            )}
-
-            {/* ── AVALIAÇÕES ── */}
-            {tab === 'avaliacoes' && (
-              <>
-                {reviews.length === 0 ? (
-                  <div className="empty"><div>⭐</div><div>Nenhuma avaliação ainda</div><div style={{fontSize:13,marginTop:8}}>Quando clientes avaliarem sua empresa, aparecem aqui</div></div>
-                ) : (
-                  <>
-                    <div className="rating-summary">
-                      <div style={{textAlign:'center'}}>
-                        <div className="rating-big">{company.avg_rating>0?company.avg_rating.toFixed(1):'—'}</div>
-                        <div style={{fontSize:18,color:'#C9951A',margin:'4px 0 2px'}}>{'★'.repeat(Math.round(company.avg_rating))}</div>
-                        <div style={{fontSize:12,color:'#AAA'}}>{company.total_reviews} avaliações</div>
-                      </div>
-                      <div className="rating-bars">
-                        {[5,4,3,2,1].map(star => {
-                          const cnt = reviews.filter(r=>r.rating===star).length
-                          const pct = reviews.length>0?(cnt/reviews.length)*100:0
-                          return (
-                            <div key={star} className="bar-row">
-                              <span className="bar-lbl">{star}</span>
-                              <div className="bar-bg"><div className="bar-fill" style={{width:`${pct}%`}}/></div>
-                              <span className="bar-cnt">{cnt}</span>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
+          {/* DASHBOARD */}
+          {tab === 'painel' && (
+            <div className="content">
+              {company.status === 'pending' && (
+                <div className="alert-pending">⏳ Sua empresa está aguardando aprovação da nossa equipe. Você receberá uma notificação em até 24h.</div>
+              )}
+              <div className="stat-grid">
+                <div className="stat-card"><div className="stat-num" style={{color:'#185FA5'}}>{company.views_count||0}</div><div className="stat-lbl">Visualizações</div></div>
+                <div className="stat-card"><div className="stat-num" style={{color:'#25D366'}}>{company.whatsapp_clicks||0}</div><div className="stat-lbl">Cliques WhatsApp</div></div>
+                <div className="stat-card"><div className="stat-num" style={{color:'#C9951A'}}>{company.link_clicks||0}</div><div className="stat-lbl">Cliques no link</div></div>
+                <div className="stat-card"><div className="stat-num" style={{color:'#C9951A'}}>{company.avg_rating>0?`${company.avg_rating}★`:'—'}</div><div className="stat-lbl">Nota média</div><div className="stat-sub">{company.total_reviews} avaliações</div></div>
+              </div>
+              <div className="section-label">AÇÕES RÁPIDAS</div>
+              <div className="actions-row">
+                <button className="action-btn" style={{background:'#C9951A',color:'#fff'}} onClick={()=>setTab('perfil')}>✏️ Editar perfil</button>
+                <button className="action-btn" style={{background:'#185FA5',color:'#fff'}} onClick={()=>setTab('plano')}>⭐ Criar destaque</button>
+                {pendingReplies > 0 && <button className="action-btn" style={{background:'#FEF3E2',color:'#854F0B',border:'1px solid #F5C77A'}} onClick={()=>setTab('avaliacoes')}>💬 {pendingReplies} sem resposta</button>}
+              </div>
+              {reviews.length > 0 && (
+                <div className="sec-card">
+                  <div className="sec-hdr"><span className="sec-title">AVALIAÇÕES RECENTES</span><span style={{fontSize:12,color:'#C9951A',cursor:'pointer'}} onClick={()=>setTab('avaliacoes')}>Ver todas →</span></div>
+                  <div className="sec-body">
                     <div className="review-grid">
-                      {reviews.map(r => (
+                      {reviews.slice(0,4).map(r => (
                         <div key={r.id} className="review-card">
                           <div className="review-top">
                             <div className="review-av">{r.user?.name?.[0]||'?'}</div>
@@ -647,141 +542,256 @@ export default function PainelPage() {
                           </div>
                           <div className="review-stars">{'★'.repeat(r.rating)}{'☆'.repeat(5-r.rating)}</div>
                           {r.text && <div className="review-text">{r.text}</div>}
-                          {r.response ? (
-                            <div className="reply-existing"><div className="reply-lbl">Sua resposta:</div><div className="reply-txt">{r.response.text}</div></div>
-                          ) : replyId===r.id ? (
-                            <div className="reply-box">
-                              <textarea className="reply-input" rows={3} placeholder="Escreva sua resposta pública..." value={replyText} onChange={e=>setReplyText(e.target.value)}/>
-                              <button className="reply-send" onClick={()=>sendReply(r.id)}>Publicar resposta</button>
-                            </div>
-                          ) : (
-                            <div className="review-actions">
-                              <button className="btn-reply" onClick={()=>{setReplyId(r.id);setReplyText('')}}>💬 Responder</button>
-                              <button className="btn-flag" onClick={()=>flagReview(r.id)}>⚑ Sinalizar</button>
-                            </div>
-                          )}
                         </div>
                       ))}
                     </div>
-                  </>
-                )}
-              </>
-            )}
-
-            {/* ── PERFIL ── */}
-            {tab === 'perfil' && (
-              <>
-                <div className="sec-card">
-                  <div className="sec-hdr"><span className="sec-title">FOTOS ({photos.length}/5)</span></div>
-                  <div className="sec-body">
-                    <div className="photos-grid">
-                      {photos.map((p,i) => (
-                        <div key={p.id} className="photo-item">
-                          <img src={p.url} alt={`foto ${i+1}`}/>
-                          <button className="photo-rm" onClick={()=>removePhoto(p.id)}>✕</button>
-                          {i===0 && <div className="photo-capa">CAPA</div>}
-                        </div>
-                      ))}
-                      {photos.length < 5 && <div className="photo-add" onClick={()=>fileRef.current?.click()}><span style={{fontSize:28}}>📷</span><span>Adicionar</span></div>}
-                    </div>
-                    <input ref={fileRef} type="file" accept="image/*" style={{display:'none'}} onChange={addPhoto}/>
                   </div>
                 </div>
-                <div className="sec-card">
-                  <div className="sec-hdr"><span className="sec-title">DADOS DA EMPRESA</span></div>
-                  <div className="sec-body">
-                    <div className="form-grid">
-                      <div className="field">
-                        <label>Nome da empresa</label>
-                        <input type="text" value={editNome} onChange={e=>setEditNome(e.target.value.toUpperCase())} style={{textTransform:'uppercase',fontFamily:"'Bebas Neue',sans-serif",letterSpacing:1}}/>
+              )}
+            </div>
+          )}
+
+          {/* DESTAQUES */}
+          {tab === 'destaques' && (
+            <div className="content">
+              {activeHighlights.length > 0 && (
+                <>
+                  <div className="section-label">DESTAQUES ATIVOS</div>
+                  {activeHighlights.map(h => (
+                    <div key={h.id} className="hl-card">
+                      <div className="hl-top">
+                        <span style={{fontSize:13,fontWeight:600,color:'#333'}}>{h.level==='home'?'Destaque Home':h.level==='category'?'Destaque Categoria':'Destaque Subcategoria'} · {h.duration_days} dias</span>
+                        <span className="hl-badge b-active">● Ativo</span>
                       </div>
-                      <div className="field">
-                        <label>Categoria *</label>
-                        <select value={editCategoryId} onChange={e=>{setEditCategoryId(e.target.value);setEditSubcatIds([])}}>
-                          <option value="">Selecionar categoria...</option>
-                          {allCategories.map(cat=><option key={cat.id} value={cat.id}>{cat.emoji} {cat.name}</option>)}
-                        </select>
+                      <div style={{fontSize:12,color:'#AAA',marginBottom:12}}>Vence em {fmtDate(h.expires_at)} · {daysLeft(h.expires_at)} dias restantes · R$ {h.price_paid.toFixed(2)}</div>
+                      <div className="hl-stats">
+                        <div><div className="hs-num">{h.clicks_count}</div><div className="hs-lbl">Cliques</div></div>
+                        <div><div className="hs-num">{h.impressions_count}</div><div className="hs-lbl">Impressões</div></div>
+                        <div><div className="hs-num">{h.impressions_count>0?Math.round((h.clicks_count/h.impressions_count)*100):0}%</div><div className="hs-lbl">Taxa de clique</div></div>
                       </div>
-                      {editCategoryId && allSubcats.filter(s=>s.category_id===editCategoryId).length > 0 && (
-                        <div className="field">
-                          <label>Subcategorias <span style={{fontSize:11,color:'#666',fontWeight:400}}>(selecione até 3)</span></label>
-                          <div style={{display:'flex',flexWrap:'wrap',gap:7,marginTop:4}}>
-                            {allSubcats.filter(s=>s.category_id===editCategoryId).map(s=>(
-                              <div key={s.id} onClick={()=>setEditSubcatIds(prev=>prev.includes(s.id)?prev.filter(x=>x!==s.id):prev.length<3?[...prev,s.id]:prev)}
-                                style={{padding:'5px 12px',borderRadius:20,fontSize:12,cursor:'pointer',border:'1px solid',fontFamily:'Inter,sans-serif',
-                                  borderColor:editSubcatIds.includes(s.id)?'#C9951A':'#333',
-                                  background:editSubcatIds.includes(s.id)?'rgba(201,149,26,.15)':'transparent',
-                                  color:editSubcatIds.includes(s.id)?'#C9951A':'#888'}}>
-                                {s.emoji} {s.name}
-                              </div>
-                            ))}
+                    </div>
+                  ))}
+                </>
+              )}
+              <div className="section-label">CRIAR NOVO DESTAQUE</div>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12}}>
+                {[
+                  {level:'home',    label:'Destaque Home',         desc:'Aparece na página inicial', prices:['R$ 49,90','R$ 89,90','R$ 159,90']},
+                  {level:'category',label:'Destaque Categoria',    desc:'Topo da sua categoria',     prices:['R$ 29,90','R$ 54,90','R$ 99,90']},
+                  {level:'subcat',  label:'Destaque Subcategoria', desc:'Topo da subcategoria',      prices:['R$ 14,90','R$ 27,90','R$ 49,90']},
+                ].map(d => (
+                  <div key={d.level} style={{background:'#FAFAF8',border:'0.5px solid #E0DDD8',borderRadius:14,padding:16}}>
+                    <div style={{fontWeight:600,fontSize:14,marginBottom:3}}>{d.label}</div>
+                    <div style={{fontSize:12,color:'#AAA',marginBottom:12}}>{d.desc}</div>
+                    {['7 dias','15 dias','30 dias'].map((dur,i) => (
+                      <button key={i} onClick={()=>showToast('Em breve: pagamento via Pix')} style={{width:'100%',padding:'9px',marginBottom:7,borderRadius:9,border:'1px solid #E0DDD8',background:'#fff',fontSize:12,cursor:'pointer',fontFamily:'Inter,sans-serif',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                        <span style={{fontWeight:500}}>{dur}</span>
+                        <span style={{color:'#C9951A',fontWeight:600}}>{d.prices[i]}</span>
+                      </button>
+                    ))}
+                  </div>
+                ))}
+              </div>
+              <div style={{textAlign:'center',fontSize:11,color:'#AAA',marginTop:8}}>Pagamento via Pix · Ativa na hora</div>
+              {highlights.filter(h=>h.status==='expired').length > 0 && (
+                <>
+                  <div className="section-label">HISTÓRICO</div>
+                  {highlights.filter(h=>h.status==='expired').map(h => (
+                    <div key={h.id} className="hl-card exp">
+                      <div className="hl-top">
+                        <span style={{fontSize:13,fontWeight:600,color:'#888'}}>{h.level==='home'?'Home':h.level==='category'?'Categoria':'Subcategoria'} · {h.duration_days}d</span>
+                        <span className="hl-badge b-exp">Encerrado</span>
+                      </div>
+                      <div style={{fontSize:11,color:'#CCC',marginBottom:8}}>{fmtDate(h.starts_at)} – {fmtDate(h.expires_at)}</div>
+                      <div className="hl-stats">
+                        <div><div className="hs-num" style={{color:'#AAA'}}>{h.clicks_count}</div><div className="hs-lbl">Cliques</div></div>
+                        <div><div className="hs-num" style={{color:'#AAA'}}>{h.impressions_count}</div><div className="hs-lbl">Impressões</div></div>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
+          )}
+
+          {/* AVALIAÇÕES */}
+          {tab === 'avaliacoes' && (
+            <div className="content">
+              {reviews.length === 0 ? (
+                <div className="empty"><div>⭐</div><div>Nenhuma avaliação ainda</div><div style={{fontSize:13,marginTop:8}}>Quando clientes avaliarem sua empresa, aparecem aqui</div></div>
+              ) : (
+                <>
+                  <div className="rating-summary">
+                    <div style={{textAlign:'center'}}>
+                      <div className="rating-big">{company.avg_rating>0?company.avg_rating.toFixed(1):'—'}</div>
+                      <div style={{fontSize:18,color:'#C9951A',margin:'4px 0 2px'}}>{'★'.repeat(Math.round(company.avg_rating))}</div>
+                      <div style={{fontSize:12,color:'#AAA'}}>{company.total_reviews} avaliações</div>
+                    </div>
+                    <div className="rating-bars">
+                      {[5,4,3,2,1].map(star => {
+                        const cnt = reviews.filter(r=>r.rating===star).length
+                        const pct = reviews.length>0?(cnt/reviews.length)*100:0
+                        return (
+                          <div key={star} className="bar-row">
+                            <span className="bar-lbl">{star}</span>
+                            <div className="bar-bg"><div className="bar-fill" style={{width:`${pct}%`}}/></div>
+                            <span className="bar-cnt">{cnt}</span>
                           </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                  <div className="review-grid">
+                    {reviews.map(r => (
+                      <div key={r.id} className="review-card">
+                        <div className="review-top">
+                          <div className="review-av">{r.user?.name?.[0]||'?'}</div>
+                          <div><div className="review-name">{r.user?.name||'Usuário'}</div></div>
+                          <span className="review-date">{fmtDate(r.created_at)}</span>
                         </div>
-                      )}
-                      <div className="field">
-                        <label>WhatsApp</label>
-                        <input type="tel" value={editPhone} onChange={e=>setEditPhone(e.target.value)} placeholder="(21) 9 0000-0000"/>
+                        <div className="review-stars">{'★'.repeat(r.rating)}{'☆'.repeat(5-r.rating)}</div>
+                        {r.text && <div className="review-text">{r.text}</div>}
+                        {r.response ? (
+                          <div className="reply-existing"><div className="reply-lbl">Sua resposta:</div><div className="reply-txt">{r.response.text}</div></div>
+                        ) : replyId===r.id ? (
+                          <div className="reply-box">
+                            <textarea className="reply-input" rows={3} placeholder="Escreva sua resposta pública..." value={replyText} onChange={e=>setReplyText(e.target.value)}/>
+                            <button className="reply-send" onClick={()=>sendReply(r.id)}>Publicar resposta</button>
+                          </div>
+                        ) : (
+                          <div className="review-actions">
+                            <button className="btn-reply" onClick={()=>{setReplyId(r.id);setReplyText('')}}>💬 Responder</button>
+                            <button className="btn-flag" onClick={()=>flagReview(r.id)}>⚑ Sinalizar</button>
+                          </div>
+                        )}
                       </div>
-                      <div className="field" style={{gridColumn:'1/-1'}}>
-                        <label>Endereço</label>
-                        <input type="text" value={editAddress} onChange={e=>setEditAddress(e.target.value)} placeholder="Rua, número, bairro"/>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* PERFIL */}
+          {tab === 'perfil' && (
+            <div className="content">
+              <div className="sec-card">
+                <div className="sec-hdr"><span className="sec-title">FOTOS ({photos.length}/5)</span></div>
+                <div className="sec-body">
+                  <div className="photos-grid">
+                    {photos.map((p,i) => (
+                      <div key={p.id} className="photo-item">
+                        <img src={p.url} alt={`foto ${i+1}`}/>
+                        <button className="photo-rm" onClick={()=>removePhoto(p.id)}>✕</button>
+                        {i===0 && <div className="photo-capa">CAPA</div>}
                       </div>
-                      <div className="field">
-                        <label>Label do link externo</label>
-                        <select value={editLinkLabel} onChange={e=>setEditLinkLabel(e.target.value)}>
-                          {LINK_LABELS.map(l=><option key={l}>{l}</option>)}
-                        </select>
-                      </div>
-                      <div className="field">
-                        <label>URL do link externo</label>
-                        <input type="url" value={editLinkUrl} onChange={e=>setEditLinkUrl(e.target.value)} placeholder="https://..."/>
-                      </div>
-                      <div className="field" style={{gridColumn:'1/-1'}}>
-                        <label>Descrição</label>
-                        <textarea rows={4} value={editDesc} onChange={e=>setEditDesc(e.target.value)} placeholder="Sobre sua empresa..."/>
-                      </div>
+                    ))}
+                    {photos.length < 5 && <div className="photo-add" onClick={()=>fileRef.current?.click()}><span style={{fontSize:28}}>📷</span><span>Adicionar</span></div>}
+                  </div>
+                  <input ref={fileRef} type="file" accept="image/*" style={{display:'none'}} onChange={addPhoto}/>
+                </div>
+              </div>
+              <div className="sec-card">
+                <div className="sec-hdr"><span className="sec-title">DADOS DA EMPRESA</span></div>
+                <div className="sec-body">
+                  <div className="form-grid">
+                    <div className="field">
+                      <label>Nome da empresa</label>
+                      <input type="text" value={editNome} onChange={e=>setEditNome(e.target.value.toUpperCase())} style={{textTransform:'uppercase',fontFamily:"'Bebas Neue',sans-serif",letterSpacing:1}}/>
                     </div>
                     <div className="field">
-                      <label>{company.category_id === IGREJAS_CATEGORY_ID ? '⛪ Horários de culto' : 'Horários de funcionamento'}</label>
-                      {company.category_id === IGREJAS_CATEGORY_ID ? (
-                        <div style={{marginTop:8}}>
-                          <div style={{fontSize:11,color:'#888',marginBottom:10,padding:'6px 10px',background:'rgba(201,149,26,.1)',borderRadius:8,borderLeft:'3px solid #C9951A'}}>
-                            Preencha os horários dos cultos. Deixe em branco os dias sem culto.
-                          </div>
-                          {churchHours.map((ch,i)=>(
-                            <div key={i} className="church-row">
-                              <div className="church-day">{ch.day}</div>
-                              <div className="church-period">
-                                <div className="church-period-lbl">MANHÃ</div>
-                                <input type="time" className="church-time" value={ch.manha} onChange={e=>{const n=[...churchHours];n[i]={...n[i],manha:e.target.value};setChurchHours(n)}}/>
-                              </div>
-                              <div className="church-period">
-                                <div className="church-period-lbl">NOITE</div>
-                                <input type="time" className="church-time" value={ch.noite} onChange={e=>{const n=[...churchHours];n[i]={...n[i],noite:e.target.value};setChurchHours(n)}}/>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="hours-grid">
-                          {editHours.map((h,i)=>(
-                            <div key={i} className="hour-box">
-                              <div className="hour-day">{h.label}</div>
-                              <input className="hour-input" value={h.hours} placeholder="08:00–18:00" onChange={e=>{const n=[...editHours];n[i]={...n[i],hours:e.target.value};setEditHours(n)}}/>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                      <label>Categoria *</label>
+                      <select value={editCategoryId} onChange={e=>{setEditCategoryId(e.target.value);setEditSubcatIds([])}}>
+                        <option value="">Selecionar categoria...</option>
+                        {allCategories.map(cat=><option key={cat.id} value={cat.id}>{cat.emoji} {cat.name}</option>)}
+                      </select>
                     </div>
-                    <button className="btn-primary" onClick={saveProfile} disabled={saving}>{saving?'Salvando...':'Salvar alterações'}</button>
+                    {editCategoryId && allSubcats.filter(s=>s.category_id===editCategoryId).length > 0 && (
+                      <div className="field">
+                        <label>Subcategorias <span style={{fontSize:11,color:'#666',fontWeight:400}}>(selecione até 3)</span></label>
+                        <div style={{display:'flex',flexWrap:'wrap',gap:7,marginTop:4}}>
+                          {allSubcats.filter(s=>s.category_id===editCategoryId).map(s=>(
+                            <div key={s.id} onClick={()=>setEditSubcatIds(prev=>prev.includes(s.id)?prev.filter(x=>x!==s.id):prev.length<3?[...prev,s.id]:prev)}
+                              style={{padding:'5px 12px',borderRadius:20,fontSize:12,cursor:'pointer',border:'1px solid',fontFamily:'Inter,sans-serif',
+                                borderColor:editSubcatIds.includes(s.id)?'#C9951A':'#333',
+                                background:editSubcatIds.includes(s.id)?'rgba(201,149,26,.15)':'transparent',
+                                color:editSubcatIds.includes(s.id)?'#C9951A':'#888'}}>
+                              {s.emoji} {s.name}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    <div className="field">
+                      <label>WhatsApp</label>
+                      <input type="tel" value={editPhone} onChange={e=>setEditPhone(e.target.value)} placeholder="(21) 9 0000-0000"/>
+                    </div>
+                    <div className="field" style={{gridColumn:'1/-1'}}>
+                      <label>Endereço</label>
+                      <input type="text" value={editAddress} onChange={e=>setEditAddress(e.target.value)} placeholder="Rua, número, bairro"/>
+                    </div>
+                    <div className="field">
+                      <label>Label do link externo</label>
+                      <select value={editLinkLabel} onChange={e=>setEditLinkLabel(e.target.value)}>
+                        {LINK_LABELS.map(l=><option key={l}>{l}</option>)}
+                      </select>
+                    </div>
+                    <div className="field">
+                      <label>URL do link externo</label>
+                      <input type="url" value={editLinkUrl} onChange={e=>setEditLinkUrl(e.target.value)} placeholder="https://..."/>
+                    </div>
+                    <div className="field" style={{gridColumn:'1/-1'}}>
+                      <label>Descrição</label>
+                      <textarea rows={4} value={editDesc} onChange={e=>setEditDesc(e.target.value)} placeholder="Sobre sua empresa..."/>
+                    </div>
                   </div>
+                  <div className="field">
+                    <label>{company.category_id === IGREJAS_CATEGORY_ID ? '⛪ Horários de culto' : 'Horários de funcionamento'}</label>
+                    {company.category_id === IGREJAS_CATEGORY_ID ? (
+                      <div style={{marginTop:8}}>
+                        <div style={{fontSize:11,color:'#888',marginBottom:10,padding:'6px 10px',background:'rgba(201,149,26,.1)',borderRadius:8,borderLeft:'3px solid #C9951A'}}>
+                          Preencha os horários dos cultos. Deixe em branco os dias sem culto.
+                        </div>
+                        {churchHours.map((ch,i)=>(
+                          <div key={i} className="church-row">
+                            <div className="church-day">{ch.day}</div>
+                            <div className="church-period">
+                              <div className="church-period-lbl">MANHÃ</div>
+                              <input type="time" className="church-time" value={ch.manha} onChange={e=>{const n=[...churchHours];n[i]={...n[i],manha:e.target.value};setChurchHours(n)}}/>
+                            </div>
+                            <div className="church-period">
+                              <div className="church-period-lbl">NOITE</div>
+                              <input type="time" className="church-time" value={ch.noite} onChange={e=>{const n=[...churchHours];n[i]={...n[i],noite:e.target.value};setChurchHours(n)}}/>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="hours-grid">
+                        {editHours.map((h,i)=>(
+                          <div key={i} className="hour-box">
+                            <div className="hour-day">{h.label}</div>
+                            <input className="hour-input" value={h.hours} placeholder="08:00–18:00" onChange={e=>{const n=[...editHours];n[i]={...n[i],hours:e.target.value};setEditHours(n)}}/>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <button className="btn-primary" onClick={saveProfile} disabled={saving}>{saving?'Salvando...':'Salvar alterações'}</button>
                 </div>
-              </>
-            )}
+              </div>
+            </div>
+          )}
 
-            {/* ── PLANO ── */}
-            {tab === 'plano' && (
-              <>
+          {/* PLANO — conteúdo centralizado com max-width */}
+          {tab === 'plano' && (
+            <div className="content-plano">
+              <div className="plano-inner">
+
+                {company.status === 'pending' && (
+                  <div className="alert-pending">⏳ Sua empresa está aguardando aprovação da nossa equipe. Você receberá uma notificação em até 24h.</div>
+                )}
+
                 {/* STATUS */}
                 <div className="pt-sec-lbl">STATUS ATUAL</div>
                 <div className="pt-status">
@@ -866,9 +876,7 @@ export default function PainelPage() {
                           <div className="pt-bv-dot"/><div className="pt-bv-dot"/><div className="pt-bv-dot"/>
                           <div className="pt-bv-logo">TRINDADE <span>ONLINE</span></div>
                         </div>
-                        <div className="pt-bv-banner">
-                          <div className="pt-bv-banner-txt">SUA EMPRESA</div>
-                        </div>
+                        <div className="pt-bv-banner"><div className="pt-bv-banner-txt">SUA EMPRESA</div></div>
                         <div style={{background:'#fff',margin:'-8px 6px 0',borderRadius:5,padding:4,position:'relative',zIndex:2}}>
                           <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:2}}>
                             {[1,2,3,4].map(i=><div key={i} style={{background:'#F0EDE8',borderRadius:2,height:12}}/>)}
@@ -905,15 +913,10 @@ export default function PainelPage() {
                     <div className="pt-dest-visual home">
                       <div className="pt-dest-ico">🏠</div>
                       <div className="pt-dest-badge-gold">★ 1º LUGAR</div>
-                      <div className="pt-dest-position">
-                        <strong>Página inicial</strong>
-                        Sua empresa aparece primeiro quando o morador abre o site
-                      </div>
+                      <div className="pt-dest-position"><strong>Página inicial</strong>Sua empresa aparece primeiro quando o morador abre o site</div>
                       <div className="pt-rank-row">
                         <div className="pt-rank-item you">★ você</div>
-                        <div className="pt-rank-item other"/>
-                        <div className="pt-rank-item other"/>
-                        <div className="pt-rank-item other"/>
+                        <div className="pt-rank-item other"/><div className="pt-rank-item other"/><div className="pt-rank-item other"/>
                       </div>
                     </div>
                     <div className="pt-dest-info">
@@ -933,15 +936,10 @@ export default function PainelPage() {
                     <div className="pt-dest-visual cat">
                       <div className="pt-dest-ico">📂</div>
                       <div className="pt-dest-badge-gold">★ 1º LUGAR</div>
-                      <div className="pt-dest-position">
-                        <strong>Página da categoria</strong>
-                        Primeiro quando o morador busca pela sua categoria (ex: Gastronomia)
-                      </div>
+                      <div className="pt-dest-position"><strong>Página da categoria</strong>Primeiro quando o morador busca pela sua categoria (ex: Gastronomia)</div>
                       <div className="pt-rank-row">
                         <div className="pt-rank-item you">★ você</div>
-                        <div className="pt-rank-item other"/>
-                        <div className="pt-rank-item other"/>
-                        <div className="pt-rank-item other"/>
+                        <div className="pt-rank-item other"/><div className="pt-rank-item other"/><div className="pt-rank-item other"/>
                       </div>
                     </div>
                     <div className="pt-dest-info">
@@ -961,14 +959,10 @@ export default function PainelPage() {
                     <div className="pt-dest-visual sub">
                       <div className="pt-dest-ico">🏷️</div>
                       <div className="pt-dest-badge-gold">★ 1º LUGAR</div>
-                      <div className="pt-dest-position">
-                        <strong>Página da subcategoria</strong>
-                        Primeiro quando o morador busca pela especialidade (ex: Pizzaria)
-                      </div>
+                      <div className="pt-dest-position"><strong>Página da subcategoria</strong>Primeiro quando o morador busca pela especialidade (ex: Pizzaria)</div>
                       <div className="pt-rank-row">
                         <div className="pt-rank-item you">★ você</div>
-                        <div className="pt-rank-item other"/>
-                        <div className="pt-rank-item other"/>
+                        <div className="pt-rank-item other"/><div className="pt-rank-item other"/>
                       </div>
                     </div>
                     <div className="pt-dest-info">
@@ -986,10 +980,10 @@ export default function PainelPage() {
 
                 </div>
                 <div className="pt-footer-note">Pagamento via Pix · Ativação imediata após confirmação</div>
-              </>
-            )}
+              </div>
+            </div>
+          )}
 
-          </div>
         </main>
       </div>
 

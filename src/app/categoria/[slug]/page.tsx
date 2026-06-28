@@ -168,7 +168,7 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
         /* CARDS QUADRADOS */
         .companies-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
         @media(min-width: 640px)  { .companies-grid { grid-template-columns: repeat(3, 1fr); } }
-        @media(min-width: 1024px) { .companies-grid { grid-template-columns: repeat(4, 1fr); } }
+        @media(min-width: 1024px) { .companies-grid { grid-template-columns: repeat(5, 1fr); } }
         .cc { background: #fff; border-radius: 12px; overflow: hidden; text-decoration: none; display: block; border: 0.5px solid #e8e8e8; transition: all .18s; }
         .cc:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,.08); border-color: #C9951A; }
         .cc-img { width: 100%; aspect-ratio: 1; background: #f5f0e8; display: flex; align-items: center; justify-content: center; font-size: 40px; overflow: hidden; }

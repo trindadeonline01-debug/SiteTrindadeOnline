@@ -287,16 +287,18 @@ export default function HomePage() {
           background: #fff;
           border: 1px solid #e0e0e0;
           border-radius: 14px;
-          padding: 24px 26px;
+          padding: 24px 28px;
           box-shadow: 0 2px 12px rgba(0,0,0,0.08);
         }
         .cat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 0; }
         @media(min-width: 768px) { .cat-grid { grid-template-columns: repeat(8,1fr); gap: 0; } }
-        .cat-item { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px 8px; border-radius: 8px; cursor: pointer; text-decoration: none; transition: background 0.15s; position: relative; }
+        .cat-item { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 18px 8px; border-radius: 10px; cursor: pointer; text-decoration: none; position: relative; transition: background 0.15s; }
         .cat-item:not(:last-child)::after { content: ""; position: absolute; right: 0; top: 20%; height: 60%; width: 1px; background: #e8e8e4; }
-        .cat-item:hover { background: #fdf6e3; }
-        .cat-icon-wrap { width: 58px; height: 58px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; }
-        .cat-label { font-size: 11px; color: #555; text-align: center; line-height: 1.3; font-weight: 500; }
+        .cat-item:hover { background: #faf9f6; }
+        .cat-item:hover .cat-icon-wrap { border-color: #C9951A; color: #C9951A; }
+        .cat-item:hover .cat-label { color: #C9951A; }
+        .cat-icon-wrap { width: 58px; height: 58px; border-radius: 50%; border: 2px solid #111; display: flex; align-items: center; justify-content: center; color: #111; font-size: 26px; transition: border-color 0.15s, color 0.15s; background: #fff; }
+        .cat-label { font-size: 12.5px; color: #111; text-align: center; line-height: 1.3; font-weight: 600; transition: color 0.15s; }
 
         /* seções */
         .sec-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; margin-top: 28px; }
@@ -476,7 +478,7 @@ export default function HomePage() {
             <div className="cat-grid">
               {CATEGORIES.map(cat => (
                 <a key={cat.slug} className="cat-item" href={cat.href}>
-                  <div className="cat-icon-wrap" style={{ background: cat.color }}>
+                  <div className="cat-icon-wrap" >
                     <span style={{ fontSize: 20 }}>{cat.emoji}</span>
                   </div>
                   <span className="cat-label">{cat.label}</span>

@@ -42,18 +42,18 @@ export default function PainelPage() {
   const [replyId, setReplyId]       = useState<string|null>(null)
   const [replyText, setReplyText]   = useState('')
 
-  const [editNome, setEditNome]           = useState('')
-  const [editCategoryId, setEditCategoryId] = useState('')
-  const [editSubcatIds, setEditSubcatIds]   = useState<string[]>([])
-  const [allCategories, setAllCategories]   = useState<{id:string;name:string;emoji:string}[]>([])
-  const [allSubcats, setAllSubcats]         = useState<{id:string;name:string;emoji:string;category_id:string}[]>([])
-  const [editPhone, setEditPhone]         = useState('')
-  const [editAddress, setEditAddress]     = useState('')
-  const [editDesc, setEditDesc]           = useState('')
-  const [editLinkUrl, setEditLinkUrl]     = useState('')
-  const [editLinkLabel, setEditLinkLabel] = useState('Ver cardápio')
-  const [editHours, setEditHours]         = useState<{label:string;hours:string}[]>([])
-  const [churchHours, setChurchHours]     = useState<{day:string;manha:string;noite:string}[]>(DIAS_SEMANA.map(day=>({day,manha:'',noite:''})))
+  const [editNome, setEditNome]               = useState('')
+  const [editCategoryId, setEditCategoryId]   = useState('')
+  const [editSubcatIds, setEditSubcatIds]     = useState<string[]>([])
+  const [allCategories, setAllCategories]     = useState<{id:string;name:string;emoji:string}[]>([])
+  const [allSubcats, setAllSubcats]           = useState<{id:string;name:string;emoji:string;category_id:string}[]>([])
+  const [editPhone, setEditPhone]             = useState('')
+  const [editAddress, setEditAddress]         = useState('')
+  const [editDesc, setEditDesc]               = useState('')
+  const [editLinkUrl, setEditLinkUrl]         = useState('')
+  const [editLinkLabel, setEditLinkLabel]     = useState('Ver cardápio')
+  const [editHours, setEditHours]             = useState<{label:string;hours:string}[]>([])
+  const [churchHours, setChurchHours]         = useState<{day:string;manha:string;noite:string}[]>(DIAS_SEMANA.map(day=>({day,manha:'',noite:''})))
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -190,6 +190,7 @@ export default function PainelPage() {
   function showToast(msg: string) { setToast(msg); setTimeout(()=>setToast(''), 3000) }
 
   if (loading) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',fontFamily:'Inter,sans-serif',color:'#AAA'}}>Carregando...</div>
+
   if (!loading && !company) return (
     <>
       <style>{`
@@ -261,13 +262,11 @@ export default function PainelPage() {
         @media(min-width:768px){.topbar{display:flex;}}
         .topbar-title{font-family:'Bebas Neue',sans-serif;font-size:20px;color:#111;letter-spacing:1px;}
         .topbar-right{font-size:12px;color:#AAA;}
-
         .mobile-hdr{background:#111;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;}
         @media(min-width:768px){.mobile-hdr{display:none;}}
         .mhdr-logo{font-family:'Bebas Neue',sans-serif;font-size:18px;color:#fff;letter-spacing:2px;}
         .mhdr-logo span{color:#C9951A;}
         .mhdr-empresa{font-size:11px;color:#C9951A;font-family:'Bebas Neue',sans-serif;letter-spacing:1px;}
-
         .content{padding:24px 28px;flex:1;}
         @media(max-width:767px){.content{padding:16px 16px 80px;}}
 
@@ -282,9 +281,7 @@ export default function PainelPage() {
         .sec-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:0.5px solid #F0EDE8;}
         .sec-title{font-family:'Bebas Neue',sans-serif;font-size:13px;color:#888;letter-spacing:1.5px;}
         .sec-body{padding:16px 18px;}
-
         .section-label{font-family:'Bebas Neue',sans-serif;font-size:13px;color:#888;letter-spacing:1.5px;margin:20px 0 12px;}
-
         .actions-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
         .action-btn{flex:1;min-width:140px;padding:12px 16px;border:none;border-radius:12px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px;}
         .action-btn:hover{opacity:.9;}
@@ -342,24 +339,23 @@ export default function PainelPage() {
         .hour-box{background:#FAFAF8;border:0.5px solid #E0DDD8;border-radius:9px;padding:9px 10px;}
         .hour-day{font-size:9px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;}
         .hour-input{width:100%;border:none;background:transparent;font-size:12px;color:#444;font-family:'Inter',sans-serif;outline:none;}
-
         .btn-primary{width:100%;padding:13px;background:#C9951A;color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:background .15s;margin-bottom:10px;}
         .btn-primary:hover:not(:disabled){background:#B8841A;}
         .btn-primary:disabled{opacity:.6;cursor:not-allowed;}
 
-        .dest-card{background:#fff;border:1.5px solid #C9951A;border-radius:14px;padding:16px;margin-bottom:10px;}
-        .dest-card.exp{border-color:#E0DDD8;opacity:.7;}
-        .dest-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
-        .dest-badge{font-size:10px;font-weight:700;padding:3px 10px;border-radius:10px;}
+        .hl-card{background:#fff;border:1.5px solid #C9951A;border-radius:14px;padding:16px;margin-bottom:10px;}
+        .hl-card.exp{border-color:#E0DDD8;opacity:.7;}
+        .hl-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+        .hl-badge{font-size:10px;font-weight:700;padding:3px 10px;border-radius:10px;}
         .b-active{background:#EDFAF3;color:#0F8050;border:0.5px solid #A8E6C4;}
         .b-exp{background:#F7F4EF;color:#AAA;border:0.5px solid #E0DDD8;}
-        .dest-stats{display:flex;gap:20px;}
-        .ds-num{font-family:'Bebas Neue',sans-serif;font-size:24px;color:#C9951A;letter-spacing:1px;}
-        .ds-lbl{font-size:9px;color:#AAA;}
-        .dest-grid-new{display:grid;grid-template-columns:1fr;gap:12px;}
-        @media(min-width:768px){.dest-grid-new{grid-template-columns:repeat(3,1fr);}}
+        .hl-stats{display:flex;gap:20px;}
+        .hs-num{font-family:'Bebas Neue',sans-serif;font-size:24px;color:#C9951A;letter-spacing:1px;}
+        .hs-lbl{font-size:9px;color:#AAA;}
 
         .alert-pending{background:#FEF3E2;border:1px solid #F5C77A;border-radius:12px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:#854F0B;line-height:1.6;}
+        .empty{text-align:center;padding:48px 20px;color:#AAA;}
+        .empty div:first-child{font-size:40px;margin-bottom:12px;}
 
         .bottom-nav{display:flex;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #F0EDE8;z-index:50;padding:8px 0 10px;}
         @media(min-width:768px){.bottom-nav{display:none;}}
@@ -373,13 +369,12 @@ export default function PainelPage() {
         @media(max-width:767px){.toast{bottom:80px;left:50%;right:auto;transform:translateX(-50%);white-space:nowrap;}}
         @keyframes fadein{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
-        .empty{text-align:center;padding:48px 20px;color:#AAA;}
-        .empty div:first-child{font-size:40px;margin-bottom:12px;}
-
         /* ── ABA PLANO ── */
         .pt-sec-lbl{font-family:'Bebas Neue',sans-serif;font-size:14px;color:#888;letter-spacing:1.5px;display:flex;align-items:center;gap:10px;margin:28px 0 6px;}
         .pt-sec-lbl::after{content:'';flex:1;height:0.5px;background:#E0DDD8;}
         .pt-sec-sub{font-size:13px;color:#999;margin-bottom:16px;}
+
+        /* status */
         .pt-status{background:linear-gradient(135deg,#1a1a1a,#2e2e2e);border-radius:14px;padding:22px 24px;}
         .pt-status-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
         .pt-status-name{font-family:'Bebas Neue',sans-serif;font-size:24px;color:#C9951A;letter-spacing:1px;}
@@ -388,6 +383,8 @@ export default function PainelPage() {
         .pt-trial-label{display:flex;justify-content:space-between;font-size:12px;color:#888;margin-bottom:6px;}
         .pt-trial-bar{height:6px;background:#333;border-radius:3px;overflow:hidden;}
         .pt-trial-fill{height:100%;background:#C9951A;border-radius:3px;}
+
+        /* planos */
         .pt-plan-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
         @media(max-width:600px){.pt-plan-grid{grid-template-columns:1fr;}}
         .pt-plan-opt{background:#fff;border:1.5px solid #E0DDD8;border-radius:14px;padding:22px 16px;text-align:center;position:relative;}
@@ -406,59 +403,52 @@ export default function PainelPage() {
         .pt-ben-ico{font-size:26px;margin-bottom:8px;}
         .pt-ben-title{font-size:11px;font-weight:700;color:#111;margin-bottom:4px;line-height:1.3;}
         .pt-ben-desc{font-size:10px;color:#999;line-height:1.4;}
-        .pt-banner-block{background:#fff;border:0.5px solid #E0DDD8;border-radius:14px;overflow:hidden;display:grid;grid-template-columns:1fr 1fr;min-height:340px;}
-        @media(max-width:600px){.pt-banner-block{grid-template-columns:1fr;}}
-        .pt-banner-left{background:#EFECE6;padding:20px;display:flex;flex-direction:column;gap:10px;}
-        .pt-bleft-label{font-size:11px;color:#999;font-weight:600;letter-spacing:.4px;}
-        .pt-site-mini{background:#fff;border-radius:10px;overflow:hidden;border:1px solid #ddd;flex:1;display:flex;flex-direction:column;}
-        .pt-mini-nav{background:#111;height:22px;display:flex;align-items:center;padding:0 10px;gap:4px;flex-shrink:0;}
-        .pt-mini-dot{width:5px;height:5px;border-radius:50%;background:#444;}
-        .pt-mini-logo{font-family:'Bebas Neue',sans-serif;font-size:10px;color:#fff;margin-left:6px;letter-spacing:1px;}
-        .pt-mini-logo span{color:#C9951A;}
-        .pt-mini-banner{background:linear-gradient(105deg,#1a0f00,#6b3a00);height:80px;display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0;}
-        .pt-mini-banner-txt{font-family:'Bebas Neue',sans-serif;font-size:20px;color:#fff;letter-spacing:2px;}
-        .pt-mini-banner-tag{position:absolute;top:8px;right:8px;background:#C9951A;color:#111;font-size:9px;font-weight:700;padding:3px 8px;border-radius:4px;}
-        .pt-mini-overlap{background:#fff;padding:6px 8px;margin:-10px 8px 0;border-radius:8px;border:1px solid #eee;position:relative;z-index:2;flex-shrink:0;}
-        .pt-mini-cats{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;}
-        .pt-mini-cat{background:#F5F2EC;border-radius:4px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;}
-        .pt-mini-body{padding:10px;flex:1;}
-        .pt-mini-row{height:7px;background:#F0EDE8;border-radius:3px;margin-bottom:5px;}
-        .pt-banner-right{padding:28px 24px;display:flex;flex-direction:column;justify-content:center;}
-        .pt-banner-right-title{font-family:'Bebas Neue',sans-serif;font-size:22px;color:#111;letter-spacing:1px;margin-bottom:8px;}
-        .pt-banner-right-desc{font-size:13px;color:#666;line-height:1.7;margin-bottom:20px;}
-        .pt-banner-opts{display:flex;flex-direction:column;gap:10px;}
-        .pt-banner-opt{display:flex;justify-content:space-between;align-items:center;border:1.5px solid #E0DDD8;border-radius:10px;padding:14px 16px;cursor:pointer;transition:border-color .15s;background:#fff;font-family:'Inter',sans-serif;width:100%;}
-        .pt-banner-opt:hover{border-color:#C9951A;}
-        .pt-b-days{font-size:14px;font-weight:600;color:#333;}
-        .pt-b-price{font-size:17px;font-weight:700;color:#C9951A;}
+
+        /* banner */
+        .pt-banner-card{background:#fff;border:0.5px solid #E0DDD8;border-radius:14px;overflow:hidden;}
+        .pt-banner-visual{background:linear-gradient(160deg,#0f0f0f,#2a1800);padding:32px 28px;display:flex;align-items:center;gap:28px;}
+        @media(max-width:600px){.pt-banner-visual{flex-direction:column;}}
+        .pt-banner-visual-left{flex:1;}
+        .pt-banner-ico{font-size:48px;margin-bottom:12px;}
+        .pt-banner-badge{background:#C9951A;color:#111;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;padding:4px 14px;border-radius:20px;display:inline-block;margin-bottom:12px;}
+        .pt-banner-pos-title{font-size:18px;font-weight:700;color:#fff;margin-bottom:6px;}
+        .pt-banner-pos-desc{font-size:13px;color:rgba(255,255,255,0.6);line-height:1.6;}
+        .pt-banner-visual-right{width:200px;flex-shrink:0;}
+        @media(max-width:600px){.pt-banner-visual-right{width:100%;}}
+        .pt-bv-site{background:#F0EDE8;border-radius:8px;overflow:hidden;border:1px solid #333;}
+        .pt-bv-nav{background:#111;height:16px;display:flex;align-items:center;padding:0 8px;gap:3px;}
+        .pt-bv-dot{width:4px;height:4px;border-radius:50%;background:#444;}
+        .pt-bv-logo{font-family:'Bebas Neue',sans-serif;font-size:7px;color:#fff;margin-left:4px;letter-spacing:1px;}
+        .pt-bv-logo span{color:#C9951A;}
+        .pt-bv-banner{background:#C9951A;height:32px;display:flex;align-items:center;justify-content:center;}
+        .pt-bv-banner-txt{font-family:'Bebas Neue',sans-serif;font-size:11px;color:#111;letter-spacing:1px;}
+        .pt-bv-rest{padding:6px;display:flex;flex-direction:column;gap:3px;}
+        .pt-bv-row{height:6px;background:#ddd;border-radius:2px;}
+        .pt-banner-info{padding:20px 24px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;border-top:0.5px solid #eee;}
+        @media(max-width:500px){.pt-banner-info{grid-template-columns:1fr;}}
+        .pt-b-opt{border:1.5px solid #E0DDD8;border-radius:10px;padding:14px 12px;cursor:pointer;transition:border-color .15s;background:#fff;font-family:'Inter',sans-serif;text-align:center;width:100%;}
+        .pt-b-opt:hover{border-color:#C9951A;}
+        .pt-b-days{font-size:13px;font-weight:600;color:#333;margin-bottom:6px;}
+        .pt-b-price{font-size:18px;font-weight:700;color:#C9951A;}
+
+        /* destaques */
         .pt-dest-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
-        @media(max-width:600px){.pt-dest-grid{grid-template-columns:1fr;}}
+        @media(max-width:700px){.pt-dest-grid{grid-template-columns:1fr;}}
         .pt-dest-card{background:#fff;border:0.5px solid #E0DDD8;border-radius:14px;overflow:hidden;}
-        .pt-dp-wrap{background:#F5F2EC;padding:14px;border-bottom:0.5px solid #E8E4DE;min-height:180px;display:flex;flex-direction:column;gap:5px;}
-        .pt-dp-sublabel{font-size:9px;color:#BBB;text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:4px;}
-        .pt-dp-topbar{background:#C8C4BE;height:14px;border-radius:4px;margin-bottom:2px;}
-        .pt-dp-hero{background:linear-gradient(105deg,#2a1500,#6b3a00);height:36px;border-radius:5px;display:flex;align-items:center;justify-content:center;margin-bottom:4px;}
-        .pt-dp-hero-txt{font-family:'Bebas Neue',sans-serif;font-size:10px;color:#C9951A;letter-spacing:1px;}
-        .pt-dp-catrow{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;margin-bottom:6px;}
-        .pt-dp-catbox{background:#fff;border:0.5px solid #E0DDD8;border-radius:3px;height:16px;}
-        .pt-dp-sec-title{font-size:8px;color:#AAA;font-weight:700;margin-bottom:4px;}
-        .pt-dp-row4{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;}
-        .pt-dp-row3{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;}
-        .pt-dp-d{border-radius:5px;height:36px;display:flex;align-items:center;justify-content:center;font-size:9px;}
-        .pt-dp-d.hl{background:#C9951A;color:#111;font-weight:700;}
-        .pt-dp-d.dim{background:#DDD9D4;}
-        .pt-dp-cat-hdr{background:#C8C4BE;height:28px;border-radius:5px;display:flex;align-items:center;padding:0 10px;margin-bottom:5px;}
-        .pt-dp-cat-hdr-txt{font-family:'Bebas Neue',sans-serif;font-size:10px;color:#fff;letter-spacing:1px;}
-        .pt-dp-subrow{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;margin-bottom:4px;}
-        .pt-dp-sub{background:#DDD9D4;border-radius:3px;height:12px;}
-        .pt-dp-gridrow{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;}
-        .pt-dp-gi{background:#DDD9D4;border-radius:3px;height:22px;}
-        .pt-dp-sub-hdr{background:#F0EDE8;border:1px solid #ddd;height:28px;border-radius:5px;display:flex;align-items:center;padding:0 10px;margin-bottom:5px;}
-        .pt-dp-sub-hdr-txt{font-family:'Bebas Neue',sans-serif;font-size:10px;color:#888;letter-spacing:.8px;}
-        .pt-dp-3grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;}
-        .pt-dp-3gi{background:#DDD9D4;border-radius:3px;height:22px;}
+        .pt-dest-visual{padding:24px 16px 20px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;border-bottom:0.5px solid #eee;}
+        .pt-dest-visual.home{background:linear-gradient(160deg,#1a1a1a,#2e2e2e);}
+        .pt-dest-visual.cat{background:linear-gradient(160deg,#0c3260,#185FA5);}
+        .pt-dest-visual.sub{background:linear-gradient(160deg,#3b1f00,#7a4500);}
+        .pt-dest-ico{font-size:40px;}
+        .pt-dest-badge-gold{background:#C9951A;color:#111;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;padding:4px 14px;border-radius:20px;}
+        .pt-dest-position{font-size:13px;color:rgba(255,255,255,0.7);line-height:1.5;}
+        .pt-dest-position strong{color:#fff;display:block;font-size:15px;margin-bottom:2px;}
+        .pt-rank-row{display:flex;align-items:center;gap:6px;}
+        .pt-rank-item{height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;}
+        .pt-rank-item.you{background:#C9951A;color:#111;padding:0 12px;font-size:11px;white-space:nowrap;}
+        .pt-rank-item.other{background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.4);width:32px;}
         .pt-dest-info{padding:16px;}
-        .pt-dest-info-title{font-size:15px;font-weight:700;color:#111;margin-bottom:5px;}
+        .pt-dest-info-title{font-size:15px;font-weight:700;color:#111;margin-bottom:4px;}
         .pt-dest-info-desc{font-size:12px;color:#777;line-height:1.6;margin-bottom:14px;}
         .pt-dest-opts{display:flex;flex-direction:column;gap:7px;}
         .pt-d-opt{display:flex;justify-content:space-between;align-items:center;border:1.5px solid #E0DDD8;border-radius:9px;padding:10px 14px;cursor:pointer;transition:border-color .15s;background:#fff;font-family:'Inter',sans-serif;width:100%;}
@@ -498,7 +488,6 @@ export default function PainelPage() {
 
         {/* MAIN */}
         <main className="painel-main">
-
           <div className="mobile-hdr">
             <div>
               <div className="mhdr-logo">TRINDADE <span>ONLINE</span></div>
@@ -516,7 +505,6 @@ export default function PainelPage() {
           </div>
 
           <div className="content">
-
             {company.status === 'pending' && (
               <div className="alert-pending">⏳ Sua empresa está aguardando aprovação da nossa equipe. Você receberá uma notificação em até 24h.</div>
             )}
@@ -530,14 +518,12 @@ export default function PainelPage() {
                   <div className="stat-card"><div className="stat-num" style={{color:'#C9951A'}}>{company.link_clicks||0}</div><div className="stat-lbl">Cliques no link</div></div>
                   <div className="stat-card"><div className="stat-num" style={{color:'#C9951A'}}>{company.avg_rating>0?`${company.avg_rating}★`:'—'}</div><div className="stat-lbl">Nota média</div><div className="stat-sub">{company.total_reviews} avaliações</div></div>
                 </div>
-
                 <div className="section-label">AÇÕES RÁPIDAS</div>
                 <div className="actions-row">
                   <button className="action-btn" style={{background:'#C9951A',color:'#fff'}} onClick={()=>setTab('perfil')}>✏️ Editar perfil</button>
                   <button className="action-btn" style={{background:'#185FA5',color:'#fff'}} onClick={()=>setTab('plano')}>⭐ Criar destaque</button>
                   {pendingReplies > 0 && <button className="action-btn" style={{background:'#FEF3E2',color:'#854F0B',border:'1px solid #F5C77A'}} onClick={()=>setTab('avaliacoes')}>💬 {pendingReplies} sem resposta</button>}
                 </div>
-
                 {reviews.length > 0 && (
                   <div className="sec-card">
                     <div className="sec-hdr"><span className="sec-title">AVALIAÇÕES RECENTES</span><span style={{fontSize:12,color:'#C9951A',cursor:'pointer'}} onClick={()=>setTab('avaliacoes')}>Ver todas →</span></div>
@@ -568,24 +554,23 @@ export default function PainelPage() {
                   <>
                     <div className="section-label">DESTAQUES ATIVOS</div>
                     {activeHighlights.map(h => (
-                      <div key={h.id} className="dest-card">
-                        <div className="dest-top">
+                      <div key={h.id} className="hl-card">
+                        <div className="hl-top">
                           <span style={{fontSize:13,fontWeight:600,color:'#333'}}>{h.level==='home'?'Destaque Home':h.level==='category'?'Destaque Categoria':'Destaque Subcategoria'} · {h.duration_days} dias</span>
-                          <span className="dest-badge b-active">● Ativo</span>
+                          <span className="hl-badge b-active">● Ativo</span>
                         </div>
                         <div style={{fontSize:12,color:'#AAA',marginBottom:12}}>Vence em {fmtDate(h.expires_at)} · {daysLeft(h.expires_at)} dias restantes · R$ {h.price_paid.toFixed(2)}</div>
-                        <div className="dest-stats">
-                          <div><div className="ds-num">{h.clicks_count}</div><div className="ds-lbl">Cliques</div></div>
-                          <div><div className="ds-num">{h.impressions_count}</div><div className="ds-lbl">Impressões</div></div>
-                          <div><div className="ds-num">{h.impressions_count>0?Math.round((h.clicks_count/h.impressions_count)*100):0}%</div><div className="ds-lbl">Taxa de clique</div></div>
+                        <div className="hl-stats">
+                          <div><div className="hs-num">{h.clicks_count}</div><div className="hs-lbl">Cliques</div></div>
+                          <div><div className="hs-num">{h.impressions_count}</div><div className="hs-lbl">Impressões</div></div>
+                          <div><div className="hs-num">{h.impressions_count>0?Math.round((h.clicks_count/h.impressions_count)*100):0}%</div><div className="hs-lbl">Taxa de clique</div></div>
                         </div>
                       </div>
                     ))}
                   </>
                 )}
-
                 <div className="section-label">CRIAR NOVO DESTAQUE</div>
-                <div className="dest-grid-new">
+                <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12}}>
                   {[
                     {level:'home',    label:'Destaque Home',         desc:'Aparece na página inicial', prices:['R$ 49,90','R$ 89,90','R$ 159,90']},
                     {level:'category',label:'Destaque Categoria',    desc:'Topo da sua categoria',     prices:['R$ 29,90','R$ 54,90','R$ 99,90']},
@@ -604,20 +589,19 @@ export default function PainelPage() {
                   ))}
                 </div>
                 <div style={{textAlign:'center',fontSize:11,color:'#AAA',marginTop:8}}>Pagamento via Pix · Ativa na hora</div>
-
                 {highlights.filter(h=>h.status==='expired').length > 0 && (
                   <>
                     <div className="section-label">HISTÓRICO</div>
                     {highlights.filter(h=>h.status==='expired').map(h => (
-                      <div key={h.id} className="dest-card exp">
-                        <div className="dest-top">
+                      <div key={h.id} className="hl-card exp">
+                        <div className="hl-top">
                           <span style={{fontSize:13,fontWeight:600,color:'#888'}}>{h.level==='home'?'Home':h.level==='category'?'Categoria':'Subcategoria'} · {h.duration_days}d</span>
-                          <span className="dest-badge b-exp">Encerrado</span>
+                          <span className="hl-badge b-exp">Encerrado</span>
                         </div>
                         <div style={{fontSize:11,color:'#CCC',marginBottom:8}}>{fmtDate(h.starts_at)} – {fmtDate(h.expires_at)}</div>
-                        <div className="dest-stats">
-                          <div><div className="ds-num" style={{color:'#AAA'}}>{h.clicks_count}</div><div className="ds-lbl">Cliques</div></div>
-                          <div><div className="ds-num" style={{color:'#AAA'}}>{h.impressions_count}</div><div className="ds-lbl">Impressões</div></div>
+                        <div className="hl-stats">
+                          <div><div className="hs-num" style={{color:'#AAA'}}>{h.clicks_count}</div><div className="hs-lbl">Cliques</div></div>
+                          <div><div className="hs-num" style={{color:'#AAA'}}>{h.impressions_count}</div><div className="hs-lbl">Impressões</div></div>
                         </div>
                       </div>
                     ))}
@@ -703,7 +687,6 @@ export default function PainelPage() {
                     <input ref={fileRef} type="file" accept="image/*" style={{display:'none'}} onChange={addPhoto}/>
                   </div>
                 </div>
-
                 <div className="sec-card">
                   <div className="sec-hdr"><span className="sec-title">DADOS DA EMPRESA</span></div>
                   <div className="sec-body">
@@ -799,13 +782,11 @@ export default function PainelPage() {
             {/* ── PLANO ── */}
             {tab === 'plano' && (
               <>
-                {/* STATUS ATUAL */}
+                {/* STATUS */}
                 <div className="pt-sec-lbl">STATUS ATUAL</div>
                 <div className="pt-status">
                   <div className="pt-status-top">
-                    <div className="pt-status-name">
-                      {company.plan === 'paid' ? 'PLANO ATIVO' : 'TRIAL GRATUITO'}
-                    </div>
+                    <div className="pt-status-name">{company.plan === 'paid' ? 'PLANO ATIVO' : 'TRIAL GRATUITO'}</div>
                     <div className={`pt-status-badge ${company.status !== 'active' ? 'pending' : ''}`}>
                       {company.status === 'active' ? '● Ativo' : '⏳ Pendente'}
                     </div>
@@ -814,9 +795,7 @@ export default function PainelPage() {
                     <>
                       <div className="pt-trial-label">
                         <span>Trial gratuito</span>
-                        <span style={{color:'#C9951A',fontWeight:700}}>
-                          {daysLeft(company.trial_ends_at)} dia{daysLeft(company.trial_ends_at) !== 1 ? 's' : ''} restante{daysLeft(company.trial_ends_at) !== 1 ? 's' : ''}
-                        </span>
+                        <span style={{color:'#C9951A',fontWeight:700}}>{daysLeft(company.trial_ends_at)} dia{daysLeft(company.trial_ends_at)!==1?'s':''} restante{daysLeft(company.trial_ends_at)!==1?'s':''}</span>
                       </div>
                       <div className="pt-trial-bar">
                         <div className="pt-trial-fill" style={{width:`${Math.min(100,Math.max(0,(daysLeft(company.trial_ends_at)/7)*100))}%`}}/>
@@ -824,16 +803,13 @@ export default function PainelPage() {
                     </>
                   )}
                   {company.plan === 'paid' && (
-                    <div style={{fontSize:13,color:'#5EE8A0',fontWeight:600}}>
-                      ✓ Plano pago ativo — todas as funcionalidades liberadas
-                    </div>
+                    <div style={{fontSize:13,color:'#5EE8A0',fontWeight:600}}>✓ Plano pago ativo — todas as funcionalidades liberadas</div>
                   )}
                 </div>
 
                 {/* PLANO BASE */}
                 <div className="pt-sec-lbl">PLANO BASE</div>
                 <p className="pt-sec-sub">Escolha o período e ative todas as funcionalidades do seu perfil</p>
-
                 <div className="pt-plan-grid">
                   <div className="pt-plan-opt">
                     <div className="pt-plan-period">Mensal</div>
@@ -854,7 +830,6 @@ export default function PainelPage() {
                     <button className="pt-btn-assinar off" onClick={()=>showToast('Em breve: pagamento via Pix')}>Assinar</button>
                   </div>
                 </div>
-
                 <p className="pt-ben-label">O que está incluído no plano</p>
                 <div className="pt-beneficios">
                   {[
@@ -876,74 +851,69 @@ export default function PainelPage() {
                 {/* BANNER DA HOME */}
                 <div className="pt-sec-lbl">BANNER DA HOME</div>
                 <p className="pt-sec-sub">O espaço mais visto do site — sua empresa antes de tudo</p>
-
-                <div className="pt-banner-block">
-                  <div className="pt-banner-left">
-                    <div className="pt-bleft-label">Seu banner aparece aqui ↓</div>
-                    <div className="pt-site-mini">
-                      <div className="pt-mini-nav">
-                        <div className="pt-mini-dot"/><div className="pt-mini-dot"/><div className="pt-mini-dot"/>
-                        <div className="pt-mini-logo">TRINDADE <span>ONLINE</span></div>
-                      </div>
-                      <div className="pt-mini-banner">
-                        <div className="pt-mini-banner-txt">SUA EMPRESA AQUI</div>
-                        <div className="pt-mini-banner-tag">← seu banner</div>
-                      </div>
-                      <div className="pt-mini-overlap">
-                        <div className="pt-mini-cats">
-                          <div className="pt-mini-cat">🏪</div>
-                          <div className="pt-mini-cat">🔧</div>
-                          <div className="pt-mini-cat">🍕</div>
-                          <div className="pt-mini-cat">💼</div>
+                <div className="pt-banner-card">
+                  <div className="pt-banner-visual">
+                    <div className="pt-banner-visual-left">
+                      <div className="pt-banner-ico">📢</div>
+                      <div className="pt-banner-badge">★ POSIÇÃO #1 DO SITE</div>
+                      <div className="pt-banner-pos-title">Topo da página inicial</div>
+                      <div className="pt-banner-pos-desc">Aparece antes de tudo — antes das categorias, antes das empresas, antes de qualquer conteúdo. Todo morador que abre o Trindade Online vê seu anúncio primeiro.</div>
+                    </div>
+                    <div className="pt-banner-visual-right">
+                      <div style={{fontSize:9,color:'rgba(255,255,255,0.4)',marginBottom:6,textAlign:'center'}}>como aparece no site</div>
+                      <div className="pt-bv-site">
+                        <div className="pt-bv-nav">
+                          <div className="pt-bv-dot"/><div className="pt-bv-dot"/><div className="pt-bv-dot"/>
+                          <div className="pt-bv-logo">TRINDADE <span>ONLINE</span></div>
+                        </div>
+                        <div className="pt-bv-banner">
+                          <div className="pt-bv-banner-txt">SUA EMPRESA</div>
+                        </div>
+                        <div style={{background:'#fff',margin:'-8px 6px 0',borderRadius:5,padding:4,position:'relative',zIndex:2}}>
+                          <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:2}}>
+                            {[1,2,3,4].map(i=><div key={i} style={{background:'#F0EDE8',borderRadius:2,height:12}}/>)}
+                          </div>
+                        </div>
+                        <div className="pt-bv-rest">
+                          <div className="pt-bv-row" style={{width:'60%'}}/>
+                          <div className="pt-bv-row"/>
+                          <div className="pt-bv-row" style={{width:'80%'}}/>
+                          <div className="pt-bv-row" style={{width:'70%'}}/>
                         </div>
                       </div>
-                      <div className="pt-mini-body">
-                        <div className="pt-mini-row" style={{width:'55%'}}/>
-                        <div className="pt-mini-row"/>
-                        <div className="pt-mini-row" style={{width:'80%'}}/>
-                        <div className="pt-mini-row" style={{width:'70%'}}/>
+                      <div style={{textAlign:'center',marginTop:8}}>
+                        <span style={{fontSize:9,color:'#C9951A',fontWeight:700}}>↑ seu banner aqui</span>
                       </div>
                     </div>
                   </div>
-                  <div className="pt-banner-right">
-                    <div className="pt-banner-right-title">BANNER DA PÁGINA INICIAL</div>
-                    <div className="pt-banner-right-desc">
-                      Aparece logo abaixo do cabeçalho, antes de qualquer outra empresa.
-                      Todo morador que abre o site vê seu anúncio primeiro.
-                    </div>
-                    <div className="pt-banner-opts">
-                      {[{dias:'7 dias',preco:'R$ 79,90'},{dias:'15 dias',preco:'R$ 139,90'},{dias:'30 dias',preco:'R$ 249,90'}].map((o,i)=>(
-                        <button key={i} className="pt-banner-opt" onClick={()=>showToast('Em breve: pagamento via Pix')}>
-                          <span className="pt-b-days">{o.dias}</span>
-                          <span className="pt-b-price">{o.preco}</span>
-                        </button>
-                      ))}
-                    </div>
+                  <div className="pt-banner-info">
+                    {[{dias:'7 dias',preco:'R$ 79,90'},{dias:'15 dias',preco:'R$ 139,90'},{dias:'30 dias',preco:'R$ 249,90'}].map((o,i)=>(
+                      <button key={i} className="pt-b-opt" onClick={()=>showToast('Em breve: pagamento via Pix')}>
+                        <div className="pt-b-days">{o.dias}</div>
+                        <div className="pt-b-price">{o.preco}</div>
+                      </button>
+                    ))}
                   </div>
                 </div>
 
                 {/* DESTAQUES */}
                 <div className="pt-sec-lbl">DESTAQUES</div>
                 <p className="pt-sec-sub">Apareça antes de todas as outras empresas na seção escolhida</p>
-
                 <div className="pt-dest-grid">
 
-                  {/* Destaque Home */}
                   <div className="pt-dest-card">
-                    <div className="pt-dp-wrap">
-                      <div className="pt-dp-sublabel">Onde aparece na home</div>
-                      <div className="pt-dp-topbar"/>
-                      <div className="pt-dp-hero"><div className="pt-dp-hero-txt">BANNER DA HOME</div></div>
-                      <div className="pt-dp-catrow">
-                        <div className="pt-dp-catbox"/><div className="pt-dp-catbox"/>
-                        <div className="pt-dp-catbox"/><div className="pt-dp-catbox"/>
+                    <div className="pt-dest-visual home">
+                      <div className="pt-dest-ico">🏠</div>
+                      <div className="pt-dest-badge-gold">★ 1º LUGAR</div>
+                      <div className="pt-dest-position">
+                        <strong>Página inicial</strong>
+                        Sua empresa aparece primeiro quando o morador abre o site
                       </div>
-                      <div className="pt-dp-sec-title">EM DESTAQUE</div>
-                      <div className="pt-dp-row4">
-                        <div className="pt-dp-d hl">★ você</div>
-                        <div className="pt-dp-d dim"/>
-                        <div className="pt-dp-d dim"/>
-                        <div className="pt-dp-d dim"/>
+                      <div className="pt-rank-row">
+                        <div className="pt-rank-item you">★ você</div>
+                        <div className="pt-rank-item other"/>
+                        <div className="pt-rank-item other"/>
+                        <div className="pt-rank-item other"/>
                       </div>
                     </div>
                     <div className="pt-dest-info">
@@ -952,35 +922,26 @@ export default function PainelPage() {
                       <div className="pt-dest-opts">
                         {[['7 dias','R$ 49,90'],['15 dias','R$ 89,90'],['30 dias','R$ 159,90']].map(([d,p],i)=>(
                           <button key={i} className="pt-d-opt" onClick={()=>showToast('Em breve: pagamento via Pix')}>
-                            <span className="pt-d-day">{d}</span>
-                            <span className="pt-d-price">{p}</span>
+                            <span className="pt-d-day">{d}</span><span className="pt-d-price">{p}</span>
                           </button>
                         ))}
                       </div>
                     </div>
                   </div>
 
-                  {/* Destaque Categoria */}
                   <div className="pt-dest-card">
-                    <div className="pt-dp-wrap">
-                      <div className="pt-dp-sublabel">Onde aparece na categoria</div>
-                      <div className="pt-dp-cat-hdr">
-                        <div className="pt-dp-cat-hdr-txt">{company.category?.name?.toUpperCase() || 'SUA CATEGORIA'}</div>
+                    <div className="pt-dest-visual cat">
+                      <div className="pt-dest-ico">📂</div>
+                      <div className="pt-dest-badge-gold">★ 1º LUGAR</div>
+                      <div className="pt-dest-position">
+                        <strong>Página da categoria</strong>
+                        Primeiro quando o morador busca pela sua categoria (ex: Gastronomia)
                       </div>
-                      <div className="pt-dp-sec-title">EM DESTAQUE</div>
-                      <div className="pt-dp-row4">
-                        <div className="pt-dp-d hl">★ você</div>
-                        <div className="pt-dp-d dim"/>
-                        <div className="pt-dp-d dim"/>
-                        <div className="pt-dp-d dim"/>
-                      </div>
-                      <div className="pt-dp-subrow">
-                        <div className="pt-dp-sub"/><div className="pt-dp-sub"/>
-                        <div className="pt-dp-sub"/><div className="pt-dp-sub"/>
-                      </div>
-                      <div className="pt-dp-gridrow">
-                        <div className="pt-dp-gi"/><div className="pt-dp-gi"/>
-                        <div className="pt-dp-gi"/><div className="pt-dp-gi"/>
+                      <div className="pt-rank-row">
+                        <div className="pt-rank-item you">★ você</div>
+                        <div className="pt-rank-item other"/>
+                        <div className="pt-rank-item other"/>
+                        <div className="pt-rank-item other"/>
                       </div>
                     </div>
                     <div className="pt-dest-info">
@@ -989,29 +950,25 @@ export default function PainelPage() {
                       <div className="pt-dest-opts">
                         {[['7 dias','R$ 29,90'],['15 dias','R$ 54,90'],['30 dias','R$ 99,90']].map(([d,p],i)=>(
                           <button key={i} className="pt-d-opt" onClick={()=>showToast('Em breve: pagamento via Pix')}>
-                            <span className="pt-d-day">{d}</span>
-                            <span className="pt-d-price">{p}</span>
+                            <span className="pt-d-day">{d}</span><span className="pt-d-price">{p}</span>
                           </button>
                         ))}
                       </div>
                     </div>
                   </div>
 
-                  {/* Destaque Subcategoria */}
                   <div className="pt-dest-card">
-                    <div className="pt-dp-wrap">
-                      <div className="pt-dp-sublabel">Onde aparece na subcategoria</div>
-                      <div className="pt-dp-sub-hdr">
-                        <div className="pt-dp-sub-hdr-txt">SUA SUBCATEGORIA</div>
+                    <div className="pt-dest-visual sub">
+                      <div className="pt-dest-ico">🏷️</div>
+                      <div className="pt-dest-badge-gold">★ 1º LUGAR</div>
+                      <div className="pt-dest-position">
+                        <strong>Página da subcategoria</strong>
+                        Primeiro quando o morador busca pela especialidade (ex: Pizzaria)
                       </div>
-                      <div className="pt-dp-sec-title">EM DESTAQUE</div>
-                      <div className="pt-dp-row3">
-                        <div className="pt-dp-d hl">★ você</div>
-                        <div className="pt-dp-d dim"/>
-                        <div className="pt-dp-d dim"/>
-                      </div>
-                      <div className="pt-dp-3grid">
-                        <div className="pt-dp-3gi"/><div className="pt-dp-3gi"/><div className="pt-dp-3gi"/>
+                      <div className="pt-rank-row">
+                        <div className="pt-rank-item you">★ você</div>
+                        <div className="pt-rank-item other"/>
+                        <div className="pt-rank-item other"/>
                       </div>
                     </div>
                     <div className="pt-dest-info">
@@ -1020,8 +977,7 @@ export default function PainelPage() {
                       <div className="pt-dest-opts">
                         {[['7 dias','R$ 14,90'],['15 dias','R$ 27,90'],['30 dias','R$ 49,90']].map(([d,p],i)=>(
                           <button key={i} className="pt-d-opt" onClick={()=>showToast('Em breve: pagamento via Pix')}>
-                            <span className="pt-d-day">{d}</span>
-                            <span className="pt-d-price">{p}</span>
+                            <span className="pt-d-day">{d}</span><span className="pt-d-price">{p}</span>
                           </button>
                         ))}
                       </div>
@@ -1029,7 +985,6 @@ export default function PainelPage() {
                   </div>
 
                 </div>
-
                 <div className="pt-footer-note">Pagamento via Pix · Ativação imediata após confirmação</div>
               </>
             )}
@@ -1038,7 +993,7 @@ export default function PainelPage() {
         </main>
       </div>
 
-      {/* BOTTOM NAV — mobile */}
+      {/* BOTTOM NAV */}
       <div className="bottom-nav">
         {navItems.map(n=>(
           <div key={n.id} className={`nav-item ${tab===n.id?'on':''}`} onClick={()=>setTab(n.id as any)}>

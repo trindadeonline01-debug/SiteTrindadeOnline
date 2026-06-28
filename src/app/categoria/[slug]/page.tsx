@@ -209,18 +209,18 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
         .sec-label { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: #AAA; letter-spacing: 1.5px; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
         .sec-label::after { content: ''; flex: 1; height: 0.5px; background: #ddd; }
 
-        /* DESTAQUES */
-        .dest-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 28px; }
-        @media(min-width: 640px)  { .dest-grid { grid-template-columns: repeat(3, 1fr); } }
-        @media(min-width: 1024px) { .dest-grid { grid-template-columns: repeat(5, 1fr); } }
-        .dest-card { background: #fff; border: 1.5px solid #C9951A; border-radius: 12px; overflow: hidden; text-decoration: none; display: block; transition: all .18s; }
+        /* DESTAQUES — carrossel */
+        .dest-grid { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; margin-bottom: 28px; }
+        .dest-grid::-webkit-scrollbar { display: none; }
+        .dest-card { flex-shrink: 0; width: 140px; background: #fff; border: 1.5px solid #C9951A; border-radius: 12px; overflow: hidden; text-decoration: none; display: block; transition: all .18s; }
         .dest-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,.1); }
-        .dest-img { width: 100%; aspect-ratio: 1; background: #FEF3E2; display: flex; align-items: center; justify-content: center; font-size: 36px; overflow: hidden; position: relative; }
+        @media(min-width: 768px) { .dest-card { width: 180px; } }
+        .dest-img { width: 100%; height: 90px; background: #FEF3E2; display: flex; align-items: center; justify-content: center; font-size: 32px; overflow: hidden; position: relative; }
         .dest-img img { width: 100%; height: 100%; object-fit: cover; }
-        .dest-badge { position: absolute; top: 8px; left: 8px; background: #C9951A; color: #111; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 3px; letter-spacing: 0.5px; }
-        .dest-body { padding: 10px 12px; }
-        .dest-name { font-size: 13px; font-weight: 600; color: #111; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .dest-stars { font-size: 11px; color: #C9951A; font-weight: 600; }
+        .dest-badge { position: absolute; top: 6px; left: 6px; background: #C9951A; color: #111; font-size: 8px; font-weight: 700; padding: 2px 6px; border-radius: 3px; letter-spacing: 0.5px; }
+        .dest-body { padding: 8px 10px; }
+        .dest-name { font-size: 11px; font-weight: 600; color: #111; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .dest-stars { font-size: 10px; color: #C9951A; font-weight: 600; }
 
         /* SUBCATEGORIAS */
         .subcat-wrap { background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 16px 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 24px; }
@@ -420,6 +420,7 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
                       <div className="cc-addr">📍 {c.address}</div>
                     )}
                   </div>
+                  <svg className="cc-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
                 </a>
               )
             })}

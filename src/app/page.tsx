@@ -1,4 +1,5 @@
-'use client'
+// home v2 — fontes maiores (jun 2026)
+'use client' // v2 — fontes maiores
 
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'

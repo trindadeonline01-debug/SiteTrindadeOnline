@@ -293,13 +293,13 @@ export default function HomePage() {
         }
         .cat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 0; }
         @media(min-width: 768px) { .cat-grid { grid-template-columns: repeat(8,1fr); gap: 0; } }
-        .cat-item { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 18px 8px; border-radius: 10px; cursor: pointer; text-decoration: none; position: relative; transition: background 0.15s; }
+        .cat-item { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 20px 8px; border-radius: 10px; cursor: pointer; text-decoration: none; position: relative; transition: background 0.15s; }
         .cat-item:not(:last-child)::after { content: ""; position: absolute; right: 0; top: 20%; height: 60%; width: 1px; background: #e8e8e4; }
         .cat-item:hover { background: #faf9f6; }
-        .cat-item:hover .cat-icon-wrap { border-color: #C9951A; color: #C9951A; }
+        .cat-item:hover svg { stroke: #C9951A; }
         .cat-item:hover .cat-label { color: #C9951A; }
-        .cat-icon-wrap { width: 58px; height: 58px; border-radius: 50%; border: 2px solid #111; display: flex; align-items: center; justify-content: center; color: #111; font-size: 26px; transition: border-color 0.15s, color 0.15s; background: #fff; }
-        .cat-label { font-size: 12.5px; color: #111; text-align: center; line-height: 1.3; font-weight: 600; transition: color 0.15s; }
+        .cat-item svg { width: 70px; height: 70px; stroke: #111; stroke-width: 0.8; fill: none; stroke-linecap: round; stroke-linejoin: round; transition: stroke 0.15s; }
+        .cat-label { font-size: 12px; color: #111; text-align: center; line-height: 1.3; font-weight: 600; transition: color 0.15s; }
 
         /* seções */
         .sec-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; margin-top: 28px; }
@@ -477,14 +477,38 @@ export default function HomePage() {
         <div className="cat-overlap">
           <div className="cat-card-wrap">
             <div className="cat-grid">
-              {CATEGORIES.map(cat => (
-                <a key={cat.slug} className="cat-item" href={cat.href}>
-                  <div className="cat-icon-wrap" >
-                    <i className={`ti ${cat.icon}`} aria-hidden="true"></i>
-                  </div>
-                  <span className="cat-label">{cat.label}</span>
-                </a>
-              ))}
+              <a className="cat-item" href="/categoria/comercios">
+                <svg viewBox="0 0 24 24"><path d="M3 9l1-5h16l1 5"/><path d="M3 9a2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0 2 2 2 2 0 0 0 2-2"/><path d="M5 20v-9"/><path d="M19 20v-9"/><rect x="9" y="14" width="6" height="6"/><path d="M3 20h18"/></svg>
+                <span className="cat-label">Comércios</span>
+              </a>
+              <a className="cat-item" href="/categoria/servicos">
+                <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                <span className="cat-label">Serviços</span>
+              </a>
+              <a className="cat-item" href="/categoria/gastronomia">
+                <svg viewBox="0 0 24 24"><path d="M12 2 L22 20 Q12 23 2 20 Z"/><path d="M5.5 18.5 Q12 22 18.5 18.5"/><circle cx="12" cy="10" r="1"/><circle cx="9" cy="14" r="0.8"/><circle cx="15" cy="14" r="0.8"/></svg>
+                <span className="cat-label">Gastronomia</span>
+              </a>
+              <a className="cat-item" href="/empregos">
+                <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><path d="M2 12h20"/></svg>
+                <span className="cat-label">Empregos</span>
+              </a>
+              <a className="cat-item" href="/imoveis">
+                <svg viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>
+                <span className="cat-label">Imóveis</span>
+              </a>
+              <a className="cat-item" href="/desapega">
+                <svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+                <span className="cat-label">Desapega</span>
+              </a>
+              <a className="cat-item" href="/achados-perdidos">
+                <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                <span className="cat-label">Achados & Perdidos</span>
+              </a>
+              <a className="cat-item" href="/categoria/igrejas">
+                <svg viewBox="0 0 24 24"><path d="M12 2v4M10 4h4"/><path d="M5 10l7-4 7 4v10a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V10z"/><path d="M10 21v-7h4v7"/></svg>
+                <span className="cat-label">Igrejas</span>
+              </a>
             </div>
           </div>
         </div>

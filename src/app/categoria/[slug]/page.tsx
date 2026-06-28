@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 
 type Category    = { id: string; name: string; emoji: string; slug: string }
 type Subcategory = { id: string; name: string; emoji: string; slug?: string }
-type Highlight   = { id: string; company: { name: string; slug: string; photos?: any[]; category?: any } }
+type Highlight   = { id: string; company: { name: string; slug: string; photos?: any[]; category?: any; avg_rating?: number } }
 type Company     = {
   id: string; name: string; slug: string
   avg_rating?: number; address?: string
@@ -15,15 +15,15 @@ type Company     = {
 export default function CategoriaPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params)
 
-  const [category, setCategory]   = useState<Category | null>(null)
-  const [subcats, setSubcats]     = useState<Subcategory[]>([])
-  const [companies, setCompanies] = useState<Company[]>([])
-  const [filtered, setFiltered]   = useState<Company[]>([])
-  const [activeSub, setActiveSub] = useState<string | null>(null)
+  const [category, setCategory]     = useState<Category | null>(null)
+  const [subcats, setSubcats]       = useState<Subcategory[]>([])
+  const [companies, setCompanies]   = useState<Company[]>([])
+  const [filtered, setFiltered]     = useState<Company[]>([])
+  const [activeSub, setActiveSub]   = useState<string | null>(null)
   const [highlights, setHighlights] = useState<Highlight[]>([])
-  const [loading, setLoading]     = useState(true)
-  const [notFound, setNotFound]   = useState(false)
-  const [search, setSearch]       = useState('')
+  const [loading, setLoading]       = useState(true)
+  const [notFound, setNotFound]     = useState(false)
+  const [search, setSearch]         = useState('')
 
   useEffect(() => { loadData() }, [])
 
@@ -43,14 +43,12 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
       .select('id, name, slug, avg_rating, address, photos:company_photos(url,order), subcategories:company_subcategories(subcategory:subcategories(id,name,emoji))')
       .eq('status', 'active').eq('category_id', cat.id)
       .order('avg_rating', { ascending: false })
-
     const list = (comps || []) as Company[]
     setCompanies(list); setFiltered(list)
 
-    // Busca destaques da categoria
     const { data: hlData } = await supabase
       .from('highlights')
-      .select('id, company_id, company:companies(name,slug,category:categories(name,emoji))')
+      .select('id, company_id, company:companies(name,slug,avg_rating,category:categories(name,emoji))')
       .eq('active', true)
       .eq('level', 'category')
       .eq('category_id', cat.id)
@@ -83,16 +81,16 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
     ))
   }
 
-  function getCover(c: Company): string | null {
-    if (!c.photos?.length) return null
-    return [...c.photos].sort((a,b) => a.order - b.order)[0]?.url || null
+  function getCover(photos?: any[]): string | null {
+    if (!photos?.length) return null
+    return [...photos].sort((a, b) => a.order - b.order)[0]?.url || null
   }
 
   if (notFound) return (
-    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:'100vh',fontFamily:'Inter,sans-serif',padding:24,background:'#F0EDE8'}}>
-      <div style={{fontSize:56,marginBottom:16}}>📂</div>
-      <div style={{fontSize:20,fontWeight:700,marginBottom:8}}>Categoria não encontrada</div>
-      <a href="/" style={{background:'#C9951A',color:'#fff',padding:'12px 28px',borderRadius:12,textDecoration:'none',fontWeight:600,marginTop:16}}>← Voltar ao início</a>
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:'100vh', fontFamily:'Inter,sans-serif', padding:24, background:'#F0EDE8' }}>
+      <div style={{ fontSize:56, marginBottom:16 }}>📂</div>
+      <div style={{ fontSize:20, fontWeight:700, marginBottom:8 }}>Categoria não encontrada</div>
+      <a href="/" style={{ background:'#C9951A', color:'#fff', padding:'12px 28px', borderRadius:12, textDecoration:'none', fontWeight:600, marginTop:16 }}>← Voltar ao início</a>
     </div>
   )
 
@@ -100,75 +98,94 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap');
-        *{box-sizing:border-box;margin:0;padding:0;}
-        body{font-family:'Inter',sans-serif;background:#fff;}
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background: #F0EDE8; }
 
-        .topbar{background:#111;position:sticky;top:0;z-index:50;}
-        .topbar-inner{max-width:1200px;margin:0 auto;padding:13px 24px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;}
-        .t-logo{font-family:'Bebas Neue',sans-serif;font-size:24px;color:#fff;letter-spacing:2px;text-decoration:none;}
-        .t-logo span{color:#C9951A;}
-        .t-bc{display:flex;align-items:center;gap:7px;font-size:13px;}
-        .t-bc a{color:#C9951A;font-weight:700;text-decoration:none;}
-        .t-bc a:hover{text-decoration:underline;}
-        .t-bc-sep{color:#444;font-size:14px;}
-        .t-bc-cur{color:#fff;font-weight:700;}
+        .topbar { background: #111; position: sticky; top: 0; z-index: 50; }
+        .topbar-inner { max-width: 1200px; margin: 0 auto; padding: 13px 24px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; }
+        .t-logo { font-family: 'Bebas Neue', sans-serif; font-size: 24px; color: #fff; letter-spacing: 2px; text-decoration: none; }
+        .t-logo span { color: #C9951A; }
+        .t-bc { display: flex; align-items: center; gap: 7px; font-size: 13px; }
+        .t-bc a { color: #C9951A; font-weight: 700; text-decoration: none; }
+        .t-bc a:hover { text-decoration: underline; }
+        .t-bc-sep { color: #444; font-size: 14px; }
+        .t-bc-cur { color: #fff; font-weight: 700; }
 
-        .cat-hero{background:#111;padding:28px 24px 24px;border-bottom:2px solid #C9951A;}
-        .cat-hero-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:18px;}
-        .cat-emoji{font-size:56px;flex-shrink:0;}
-        .cat-nm{font-family:'Bebas Neue',sans-serif;font-size:clamp(32px,5vw,48px);color:#fff;letter-spacing:3px;line-height:1;margin-bottom:6px;}
-        .cat-cnt{font-size:13px;color:#666;}
-        .cat-cnt span{color:#C9951A;font-weight:600;}
+        .cat-hero { background: #111; padding: 28px 24px 24px; border-bottom: 2px solid #C9951A; }
+        .cat-hero-inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; gap: 18px; }
+        .cat-emoji { font-size: 56px; flex-shrink: 0; }
+        .cat-nm { font-family: 'Bebas Neue', sans-serif; font-size: clamp(32px,5vw,48px); color: #fff; letter-spacing: 3px; line-height: 1; margin-bottom: 6px; }
+        .cat-cnt { font-size: 13px; color: #666; }
+        .cat-cnt span { color: #C9951A; font-weight: 600; }
 
-        .search-bar-wrap{background:#F0EDE8;padding:0 24px;}
-        .search-bar-inner{max-width:1200px;margin:0 auto;padding:0;transform:translateY(-20px);}
-        .search-bar{display:flex;align-items:center;gap:10px;background:#fff;border:2px solid #C9951A;border-radius:30px;padding:13px 20px;box-shadow:0 4px 20px rgba(0,0,0,.12);}
-        .search-bar input{flex:1;border:none;background:transparent;font-size:15px;font-family:'Inter',sans-serif;color:#222;outline:none;}
-        .search-bar input::placeholder{color:#BBB;}
+        .search-bar-wrap { background: #F0EDE8; padding: 0 24px; }
+        .search-bar-inner { max-width: 1200px; margin: 0 auto; transform: translateY(-20px); }
+        .search-bar { display: flex; align-items: center; gap: 10px; background: #fff; border: 2px solid #C9951A; border-radius: 30px; padding: 13px 20px; box-shadow: 0 4px 20px rgba(0,0,0,.12); }
+        .search-bar input { flex: 1; border: none; background: transparent; font-size: 15px; font-family: 'Inter', sans-serif; color: #222; outline: none; }
+        .search-bar input::placeholder { color: #BBB; }
 
-        .page{max-width:1200px;margin:0 auto;padding:8px 24px 48px;min-height:100vh;}
-        @media(max-width:767px){
-          .topbar-inner,.cat-hero-inner,.search-bar-inner,.page{padding-left:16px;padding-right:16px;}
-          .search-bar-wrap{padding:0 16px;}
+        .page { max-width: 1200px; margin: 0 auto; padding: 8px 24px 48px; }
+
+        @media(max-width: 767px) {
+          .topbar-inner, .cat-hero-inner, .search-bar-inner, .page { padding-left: 16px; padding-right: 16px; }
+          .search-bar-wrap { padding: 0 16px; }
         }
 
-        .breadcrumb{display:flex;align-items:center;gap:6px;font-size:12px;color:#AAA;margin-bottom:20px;}
-        .breadcrumb a{color:#C9951A;text-decoration:none;}
-        .breadcrumb a:hover{text-decoration:underline;}
+        .sec-label { font-family: 'Bebas Neue', sans-serif; font-size: 11px; color: #AAA; letter-spacing: 1.5px; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
+        .sec-label::after { content: ''; flex: 1; height: 0.5px; background: #ddd; }
 
-        .filters-lbl{font-family:'Bebas Neue',sans-serif;font-size:11px;color:#AAA;letter-spacing:1.5px;margin-bottom:10px;}
-        .filters-row{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:20px;}
-        .chip{padding:7px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid #E0DDD8;background:#FAFAF8;color:#666;transition:all .15s;font-family:'Inter',sans-serif;}
-        .chip:hover{border-color:#C9951A;background:#FEF3E2;color:#854F0B;}
-        .chip.on{border-color:#C9951A;background:#C9951A;color:#fff;font-weight:600;}
-        @media(min-width:640px){.hl-grid{grid-template-columns:repeat(6,minmax(0,1fr)) !important;}}
-        @media(min-width:1024px){.hl-grid{grid-template-columns:repeat(8,minmax(0,1fr)) !important;}}
+        /* DESTAQUES */
+        .dest-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 28px; }
+        @media(min-width: 640px)  { .dest-grid { grid-template-columns: repeat(3, 1fr); } }
+        @media(min-width: 1024px) { .dest-grid { grid-template-columns: repeat(4, 1fr); } }
+        .dest-card { background: #fff; border: 1.5px solid #C9951A; border-radius: 12px; overflow: hidden; text-decoration: none; display: block; transition: all .18s; }
+        .dest-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,.1); }
+        .dest-img { width: 100%; aspect-ratio: 1; background: #FEF3E2; display: flex; align-items: center; justify-content: center; font-size: 36px; overflow: hidden; position: relative; }
+        .dest-img img { width: 100%; height: 100%; object-fit: cover; }
+        .dest-badge { position: absolute; top: 8px; left: 8px; background: #C9951A; color: #111; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 3px; letter-spacing: 0.5px; }
+        .dest-body { padding: 10px 12px; }
+        .dest-name { font-size: 13px; font-weight: 600; color: #111; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .dest-stars { font-size: 11px; color: #C9951A; font-weight: 600; }
 
-        .result-cnt{font-size:13px;color:#AAA;margin-bottom:16px;}
-        .result-cnt span{color:#111;font-weight:600;}
+        /* SUBCATEGORIAS GRADE */
+        .subcat-wrap { background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 16px 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 24px; }
+        .subcat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; }
+        @media(min-width: 640px)  { .subcat-grid { grid-template-columns: repeat(6, 1fr); } }
+        @media(min-width: 1024px) { .subcat-grid { grid-template-columns: repeat(8, 1fr); } }
+        .subcat-item { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 6px; border-radius: 8px; cursor: pointer; position: relative; transition: background 0.15s; }
+        .subcat-item:hover { background: #fdf6e3; }
+        .subcat-item:hover .subcat-label { color: #C9951A; }
+        .subcat-item.on { background: #FEF3E2; }
+        .subcat-item.on .subcat-label { color: #C9951A; font-weight: 700; }
+        .subcat-item.on .subcat-emoji-box { border-color: #C9951A; }
+        .subcat-item:not(:last-child)::after { content: ""; position: absolute; right: 0; top: 20%; height: 60%; width: 1px; background: #e8e8e4; }
+        .subcat-emoji-box { width: 48px; height: 48px; border-radius: 10px; border: 1.5px solid #e0e0e0; background: #fafafa; display: flex; align-items: center; justify-content: center; font-size: 24px; transition: border-color 0.15s; }
+        .subcat-label { font-size: 10.5px; color: #555; text-align: center; line-height: 1.3; font-weight: 500; transition: color 0.15s; }
 
-        .companies-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;}
-        @media(min-width:640px){.companies-grid{grid-template-columns:repeat(3,1fr);}}
-        @media(min-width:1024px){.companies-grid{grid-template-columns:repeat(4,1fr);}}
+        .result-cnt { font-size: 13px; color: #AAA; margin-bottom: 16px; }
+        .result-cnt span { color: #111; font-weight: 600; }
 
-        .cc{background:#fff;border:0.5px solid #E0DDD8;border-radius:14px;overflow:hidden;text-decoration:none;display:block;transition:all .18s;}
-        .cc:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.1);border-color:#C9951A;}
-        .cc-img{height:110px;background:#FEF3E2;display:flex;align-items:center;justify-content:center;font-size:40px;overflow:hidden;}
-        .cc-img img{width:100%;height:100%;object-fit:cover;}
-        .cc-body{padding:11px 12px;}
-        .cc-name{font-size:13px;font-weight:600;color:#222;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-        .cc-sub{font-size:10px;color:#AAA;margin-bottom:4px;}
-        .cc-stars{font-size:11px;color:#C9951A;font-weight:600;margin-bottom:3px;}
-        .cc-addr{font-size:10px;color:#BBB;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        /* CARDS QUADRADOS */
+        .companies-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+        @media(min-width: 640px)  { .companies-grid { grid-template-columns: repeat(3, 1fr); } }
+        @media(min-width: 1024px) { .companies-grid { grid-template-columns: repeat(4, 1fr); } }
+        .cc { background: #fff; border-radius: 12px; overflow: hidden; text-decoration: none; display: block; border: 0.5px solid #e8e8e8; transition: all .18s; }
+        .cc:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,.08); border-color: #C9951A; }
+        .cc-img { width: 100%; aspect-ratio: 1; background: #f5f0e8; display: flex; align-items: center; justify-content: center; font-size: 40px; overflow: hidden; }
+        .cc-img img { width: 100%; height: 100%; object-fit: cover; }
+        .cc-body { padding: 12px; }
+        .cc-name { font-size: 14px; font-weight: 600; color: #111; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .cc-stars { font-size: 12px; color: #C9951A; font-weight: 600; margin-bottom: 3px; }
+        .cc-addr { font-size: 11px; color: #BBB; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        .sk{background:linear-gradient(90deg,#F0EDE8 25%,#E8E4DD 50%,#F0EDE8 75%);background-size:200% 100%;animation:sh 1.5s infinite;border-radius:14px;}
-        @keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
+        .sk { background: linear-gradient(90deg,#F0EDE8 25%,#E8E4DD 50%,#F0EDE8 75%); background-size: 200% 100%; animation: sh 1.5s infinite; border-radius: 12px; }
+        @keyframes sh { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 
-        .empty{text-align:center;padding:56px 20px;color:#AAA;}
-        .empty-ico{font-size:48px;margin-bottom:14px;}
-        .empty-title{font-size:16px;font-weight:600;color:#555;margin-bottom:6px;}
-        .empty-sub{font-size:13px;line-height:1.7;}
-        .btn-clear{margin-top:16px;display:inline-block;padding:9px 22px;background:#FEF3E2;color:#C9951A;border:1px solid #C9951A;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;}
+        .empty { text-align: center; padding: 56px 20px; color: #AAA; }
+        .empty-ico { font-size: 48px; margin-bottom: 14px; }
+        .empty-title { font-size: 16px; font-weight: 600; color: #555; margin-bottom: 6px; }
+        .empty-sub { font-size: 13px; line-height: 1.7; }
+        .btn-clear { margin-top: 16px; display: inline-block; padding: 9px 22px; background: #FEF3E2; color: #C9951A; border: 1px solid #C9951A; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif; }
       `}</style>
 
       {/* TOPBAR */}
@@ -180,7 +197,7 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
             <span className="t-bc-sep">›</span>
             <span className="t-bc-cur">{category?.name || '...'}</span>
           </div>
-          <div/>
+          <div />
         </div>
       </div>
 
@@ -211,7 +228,7 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
               onChange={handleSearch}
             />
             {search && (
-              <button onClick={() => { setSearch(''); setFiltered(companies) }} style={{background:'none',border:'none',cursor:'pointer',color:'#AAA',fontSize:18,lineHeight:1}}>✕</button>
+              <button onClick={() => { setSearch(''); setFiltered(companies) }} style={{ background:'none', border:'none', cursor:'pointer', color:'#AAA', fontSize:18, lineHeight:1 }}>✕</button>
             )}
           </div>
         </div>
@@ -219,91 +236,109 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
 
       {/* CONTEÚDO */}
       <div className="page">
-        <div className="breadcrumb">
-          <a href="/">Início</a>
-          <span>›</span>
-          <span>{category?.name || '...'}</span>
-        </div>
 
-
-        {/* DESTAQUES */}
+        {/* 1. EM DESTAQUE */}
         {highlights.length > 0 && (
-          <div style={{marginBottom:28}}>
-            <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
-              <span style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:12,color:'#AAA',letterSpacing:'1.5px'}}>EM DESTAQUE</span>
-              <div style={{flex:1,height:'0.5px',background:'#F0EDE8'}}/>
-            </div>
-            <div className="hl-grid" style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:8}}>
+          <>
+            <div className="sec-label">EM DESTAQUE</div>
+            <div className="dest-grid">
               {highlights.map(h => {
-                const cover = h.company.photos?.length
-                  ? [...h.company.photos].sort((a:any,b:any)=>a.order-b.order)[0]?.url
-                  : null
+                const cover = getCover(h.company.photos)
                 return (
-                  <a key={h.id} href={`/empresa/${h.company.slug}`}
-                    style={{display:'flex',flexDirection:'column',alignItems:'center',background:'#FEF8EC',border:'1.5px solid #C9951A',borderRadius:12,overflow:'hidden',textDecoration:'none',transition:'all .15s'}}>
-                    <div style={{width:'100%',height:90,background:'#FEF3E2',display:'flex',alignItems:'center',justifyContent:'center',fontSize:32,overflow:'hidden',flexShrink:0}}>
-                      {cover ? <img src={cover} alt={h.company.name} style={{width:'100%',height:'100%',objectFit:'cover'}}/> : <span>{h.company.category?.emoji||'🏪'}</span>}
+                  <a key={h.id} className="dest-card" href={`/empresa/${h.company.slug}`}>
+                    <div className="dest-img">
+                      {cover
+                        ? <img src={cover} alt={h.company.name} />
+                        : <span>{h.company.category?.emoji || '🏪'}</span>
+                      }
+                      <span className="dest-badge">DESTAQUE</span>
                     </div>
-                    <div style={{padding:'8px 6px 10px',textAlign:'center',width:'100%'}}>
-                      <div style={{fontSize:10,fontWeight:700,color:'#111',marginBottom:3,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{h.company.name}</div>
-                      <div style={{fontSize:9,color:'#C9951A',fontWeight:600}}>⭐ Destaque</div>
+                    <div className="dest-body">
+                      <div className="dest-name">{h.company.name}</div>
+                      {(h.company.avg_rating || 0) > 0 && (
+                        <div className="dest-stars">★ {Number(h.company.avg_rating).toFixed(1)}</div>
+                      )}
                     </div>
                   </a>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        {subcats.length > 0 && (
-          <>
-            <div className="filters-lbl">FILTRAR POR SUBCATEGORIA</div>
-            <div className="filters-row">
-              <div className={`chip ${!activeSub?'on':''}`} onClick={() => filterBySub(null)}>
-                Todas ({companies.length})
-              </div>
-              {subcats.map(s => {
-                const cnt = companies.filter(c => c.subcategories?.some((cs:any) => cs.subcategory?.id === s.id)).length
-                if (cnt === 0) return null
-                return (
-                  <div key={s.id} className={`chip ${activeSub===s.id?'on':''}`} onClick={() => filterBySub(s.id)}>
-                    {s.emoji} {s.name} ({cnt})
-                  </div>
                 )
               })}
             </div>
           </>
         )}
 
+        {/* 2. SUBCATEGORIAS GRADE */}
+        {subcats.length > 0 && (
+          <>
+            <div className="sec-label">SUBCATEGORIAS</div>
+            <div className="subcat-wrap">
+              <div className="subcat-grid">
+                {/* Todas */}
+                <div
+                  className={`subcat-item ${!activeSub ? 'on' : ''}`}
+                  onClick={() => filterBySub(null)}
+                >
+                  <div className="subcat-emoji-box">{category?.emoji || '🏪'}</div>
+                  <span className="subcat-label">Todas ({companies.length})</span>
+                </div>
+
+                {subcats.map(s => {
+                  const cnt = companies.filter(c =>
+                    c.subcategories?.some((cs: any) => cs.subcategory?.id === s.id)
+                  ).length
+                  if (cnt === 0) return null
+                  return (
+                    <div
+                      key={s.id}
+                      className={`subcat-item ${activeSub === s.id ? 'on' : ''}`}
+                      onClick={() => filterBySub(s.id)}
+                    >
+                      <div className="subcat-emoji-box">{s.emoji}</div>
+                      <span className="subcat-label">{s.name} ({cnt})</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* 3. EMPRESAS */}
         {!loading && (
           <div className="result-cnt">
             Mostrando <span>{filtered.length}</span> empresa{filtered.length !== 1 ? 's' : ''}
-            {activeSub && ` em ${subcats.find(s=>s.id===activeSub)?.name}`}
+            {activeSub && ` em ${subcats.find(s => s.id === activeSub)?.name}`}
             {search && ` para "${search}"`}
           </div>
         )}
 
         {loading && (
           <div className="companies-grid">
-            {[1,2,3,4,5,6,7,8].map(i => <div key={i} className="sk" style={{height:190}}/>)}
+            {[1,2,3,4,5,6,7,8].map(i => (
+              <div key={i} className="sk" style={{ aspectRatio: '1' }} />
+            ))}
           </div>
         )}
 
         {!loading && filtered.length > 0 && (
           <div className="companies-grid">
             {filtered.map(c => {
-              const cover = getCover(c)
-              const mainSub = c.subcategories?.[0]?.subcategory
+              const cover = getCover(c.photos)
               return (
                 <a key={c.id} className="cc" href={`/empresa/${c.slug}`}>
                   <div className="cc-img">
-                    {cover ? <img src={cover} alt={c.name}/> : <span>{category?.emoji||'🏪'}</span>}
+                    {cover
+                      ? <img src={cover} alt={c.name} />
+                      : <span>{category?.emoji || '🏪'}</span>
+                    }
                   </div>
                   <div className="cc-body">
                     <div className="cc-name">{c.name}</div>
-                    {mainSub && <div className="cc-sub">{mainSub.emoji} {mainSub.name}</div>}
-                    {(c.avg_rating||0)>0 && <div className="cc-stars">★ {Number(c.avg_rating).toFixed(1)}</div>}
-                    {c.address && <div className="cc-addr">📍 {c.address}</div>}
+                    {(c.avg_rating || 0) > 0 && (
+                      <div className="cc-stars">★ {Number(c.avg_rating).toFixed(1)}</div>
+                    )}
+                    {c.address && (
+                      <div className="cc-addr">📍 {c.address}</div>
+                    )}
                   </div>
                 </a>
               )
@@ -320,13 +355,14 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
             <div className="empty-sub">
               {search ? 'Tente outro termo ou remova o filtro.' : 'Em breve novos estabelecimentos serão cadastrados aqui.'}
             </div>
-            {(search||activeSub) && (
+            {(search || activeSub) && (
               <button className="btn-clear" onClick={() => { setSearch(''); filterBySub(null) }}>
                 Limpar filtro
               </button>
             )}
           </div>
         )}
+
       </div>
     </>
   )

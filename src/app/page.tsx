@@ -221,8 +221,6 @@ export default function HomePage() {
         }
 
         /* BANNER */
-        .banner-img { object-fit: cover; }
-        @media(max-width: 767px) { .banner-img { object-fit: contain; background: #111; } }
         @media(max-width: 767px) {
           .banner-inner-wrap { height: auto; aspect-ratio: 3/2; padding-top: 0; }
         }
@@ -231,6 +229,12 @@ export default function HomePage() {
           width: 100%; height: 359px;
           background: linear-gradient(105deg, #1a0f00 0%, #3d2200 50%, #5c3300 100%);
           display: flex; align-items: center; position: relative; overflow: hidden; padding-top: 30px;
+        }
+        @media(max-width: 767px) {
+          .banner-inner-wrap { height: auto; min-height: unset; padding-top: 0; display: block; }
+          .banner-img { position: relative !important; inset: unset !important; width: 100% !important; height: auto !important; object-fit: contain !important; display: block; }
+          .banner-content-wrap { display: none; }
+          .banner-arrow { top: 50%; }
         }
         .banner-deco { position: absolute; right: 8%; top: 50%; transform: translateY(-50%); font-size: 130px; opacity: 0.08; pointer-events: none; }
         .banner-content-wrap { max-width: 1200px; margin: 0 auto; padding: 0 20px; width: 100%; position: relative; z-index: 2; }
@@ -329,8 +333,6 @@ export default function HomePage() {
         .footer { background: #111; border-top: 2px solid #C9951A; padding: 36px 24px 24px; margin-top: 48px; }
         .fi { max-width: 1200px; margin: 0 auto; }
         .footer-top { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap: 32px; margin-bottom: 32px; }
-        .banner-img { object-fit: cover; }
-        @media(max-width: 767px) { .banner-img { object-fit: contain; background: #111; } }
         @media(max-width: 767px) { .footer-top { grid-template-columns: 1fr 1fr; gap: 24px; } }
         @media(max-width: 480px) { .footer-top { grid-template-columns: 1fr; } }
         .f-logo { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: #fff; letter-spacing: 2px; margin-bottom: 8px; text-decoration: none; display: block; }
@@ -397,7 +399,7 @@ export default function HomePage() {
           <a href={currentBanner.link_url || '#'} style={{ display: 'block', textDecoration: 'none' }}>
             <div className="banner-inner-wrap">
               {getBannerImage(currentBanner)
-                ? <img src={getBannerImage(currentBanner)!} alt={currentBanner.title} className="banner-img" style={{position:"absolute",inset:0,width:"100%",height:"100%"}} />
+                ? <img src={getBannerImage(currentBanner)!} alt={currentBanner.title} style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover"}} />
                 : <div className="banner-deco">🏗️</div>
               }
               <div className="banner-content-wrap">

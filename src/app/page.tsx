@@ -224,12 +224,7 @@ export default function HomePage() {
           .btn-perfil { display: block; }
         }
 
-        /* ── HERO ──
-           Fonte título: Bebas Neue, 72px (clamp 42px→72px), letter-spacing 4px
-           Fonte subtítulo: Inter, 16px (clamp 14px→16px), cor #888
-           Campo busca: pill border-radius 50px, borda 2px solid #C9951A
-           Botão Buscar: background #C9951A, cor #fff, border-radius 50px
-        */
+        /* ── HERO ── */
         .hero { background: linear-gradient(160deg, #fff 0%, #FEF8EC 60%, #FEF3E2 100%); padding: 40px 20px 36px; text-align: center; border-bottom: 1px solid #EDE8E0; }
         .hero-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(42px, 6vw, 72px); letter-spacing: 4px; line-height: 1; margin-bottom: 8px; display: none; }
         .hero-title span { color: #C9951A; }
@@ -303,7 +298,7 @@ export default function HomePage() {
 
         /* seções */
         .sec-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; margin-top: 28px; }
-        .sec-title { font-family: 'Bebas Neue', sans-serif; font-size: 13px; color: #999; letter-spacing: 2px; }
+        .sec-title { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: #999; letter-spacing: 2px; }
         .sec-link { font-size: 12px; color: #C9951A; font-weight: 500; text-decoration: none; }
         .sec-link:hover { text-decoration: underline; }
         .divider { height: 1px; background: #F0EDE8; margin: 20px 0 0; }
@@ -410,7 +405,6 @@ export default function HomePage() {
       </header>
 
       {/* ── HERO ─────────────────────────────────────────────── */}
-      {/* Fonte título: Bebas Neue | Fonte subtítulo: Inter | Busca: pill borda dourada */}
       <section className="hero">
         <h1 className="hero-title">TRINDADE <span>ONLINE</span></h1>
         <p className="hero-sub">Conectando moradores, comércios e serviços do bairro Trindade</p>

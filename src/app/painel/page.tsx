@@ -75,7 +75,6 @@ export default function PainelPage() {
 
     if (comp) {
       setCompany(comp)
-      // Load categories for selector
       const [{ data: cats }, { data: subs }, { data: compSubs }] = await Promise.all([
         supabase.from('categories').select('id,name,emoji').order('name'),
         supabase.from('subcategories').select('id,name,emoji,category_id').order('name'),
@@ -85,14 +84,12 @@ export default function PainelPage() {
       setAllSubcats(subs || [])
       setEditCategoryId(comp.category_id || '')
       setEditSubcatIds((compSubs || []).map((s:any) => s.subcategory_id))
-
       setEditNome(comp.name || '')
       setEditPhone(comp.phone || '')
       setEditAddress(comp.address || '')
       setEditDesc(comp.description || '')
       setEditLinkUrl(comp.external_link || '')
       setEditLinkLabel(comp.external_link_label || 'Ver cardápio')
-      // Sempre mostra todos os dias — preenche com valores salvos se existirem
       const HOURS_DEFAULT = [
         {label:'Seg–Sex',hours:''},{label:'Sábado',hours:''},{label:'Domingo',hours:''},{label:'Feriados',hours:''}
       ]
@@ -101,10 +98,8 @@ export default function PainelPage() {
         const saved = savedHours.find((h:any) => h.label === def.label)
         return { label: def.label, hours: saved?.hours || '' }
       })
-      // Se tem horários que não são padrão (ex: igrejas), adiciona também
       const extraHours = savedHours.filter((h:any) => !HOURS_DEFAULT.find(d => d.label === h.label))
       setEditHours([...mergedHours, ...extraHours])
-      // Inicializa horários de culto se for Igreja
       if (comp.category_id === IGREJAS_CATEGORY_ID) {
         setChurchHours(DIAS_SEMANA.map(day => ({
           day,
@@ -116,8 +111,6 @@ export default function PainelPage() {
       setReviews(revs || [])
       const { data: highs } = await supabase.from('highlights').select('*').eq('company_id', comp.id).order('created_at',{ascending:false})
       setHighlights(highs || [])
-    } else {
-      // Não redireciona forçado — deixa o painel mostrar tela de boas-vindas
     }
     setLoading(false)
   }
@@ -134,7 +127,6 @@ export default function PainelPage() {
       external_link: editLinkUrl || null,
       external_link_label: editLinkUrl ? editLinkLabel : null
     }).eq('id', company.id)
-    // Save subcategories
     await supabase.from('company_subcategories').delete().eq('company_id', company.id)
     if (editSubcatIds.length > 0) {
       await supabase.from('company_subcategories').insert(editSubcatIds.map(sid => ({ company_id: company.id, subcategory_id: sid })))
@@ -245,10 +237,7 @@ export default function PainelPage() {
         *{box-sizing:border-box;margin:0;padding:0;}
         body{font-family:'Inter',sans-serif;background:#F0EDE8;}
 
-        /* ── LAYOUT ── */
         .painel-layout{display:flex;min-height:100vh;}
-
-        /* SIDEBAR — desktop only */
         .sidebar{width:220px;background:#111;flex-shrink:0;display:none;flex-direction:column;position:sticky;top:0;height:100vh;}
         @media(min-width:768px){.sidebar{display:flex;}}
         .sb-logo{padding:24px 20px 16px;border-bottom:1px solid #222;}
@@ -267,27 +256,21 @@ export default function PainelPage() {
         .sb-footer a{font-size:12px;color:#C9951A;text-decoration:none;display:flex;align-items:center;gap:6px;font-weight:600;}
         .sb-footer a:hover{color:#fff;}
 
-        /* MAIN */
         .painel-main{flex:1;overflow-x:hidden;display:flex;flex-direction:column;}
-
-        /* TOP BAR — desktop */
         .topbar{background:#fff;border-bottom:1px solid #EDE8E0;padding:14px 28px;display:none;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20;}
         @media(min-width:768px){.topbar{display:flex;}}
         .topbar-title{font-family:'Bebas Neue',sans-serif;font-size:20px;color:#111;letter-spacing:1px;}
         .topbar-right{font-size:12px;color:#AAA;}
 
-        /* MOBILE HEADER */
         .mobile-hdr{background:#111;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;}
         @media(min-width:768px){.mobile-hdr{display:none;}}
         .mhdr-logo{font-family:'Bebas Neue',sans-serif;font-size:18px;color:#fff;letter-spacing:2px;}
         .mhdr-logo span{color:#C9951A;}
         .mhdr-empresa{font-size:11px;color:#C9951A;font-family:'Bebas Neue',sans-serif;letter-spacing:1px;}
 
-        /* CONTENT AREA */
         .content{padding:24px 28px;flex:1;}
         @media(max-width:767px){.content{padding:16px 16px 80px;}}
 
-        /* STATS */
         .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;}
         @media(min-width:1024px){.stat-grid{grid-template-columns:repeat(4,1fr);}}
         .stat-card{background:#fff;border:0.5px solid #EDE8E0;border-radius:14px;padding:16px 18px;}
@@ -295,21 +278,17 @@ export default function PainelPage() {
         .stat-lbl{font-size:11px;color:#AAA;}
         .stat-sub{font-size:10px;color:#AAA;margin-top:4px;}
 
-        /* SECTION CARD */
         .sec-card{background:#fff;border:0.5px solid #EDE8E0;border-radius:14px;margin-bottom:16px;overflow:hidden;}
         .sec-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:0.5px solid #F0EDE8;}
         .sec-title{font-family:'Bebas Neue',sans-serif;font-size:13px;color:#888;letter-spacing:1.5px;}
         .sec-body{padding:16px 18px;}
 
-        /* SECTION TITLE STANDALONE */
         .section-label{font-family:'Bebas Neue',sans-serif;font-size:13px;color:#888;letter-spacing:1.5px;margin:20px 0 12px;}
 
-        /* QUICK ACTIONS */
         .actions-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
         .action-btn{flex:1;min-width:140px;padding:12px 16px;border:none;border-radius:12px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px;}
         .action-btn:hover{opacity:.9;}
 
-        /* RATING */
         .rating-summary{display:flex;align-items:center;gap:16px;background:#FAFAF8;border:0.5px solid #E0DDD8;border-radius:13px;padding:16px;margin-bottom:16px;}
         .rating-big{font-family:'Bebas Neue',sans-serif;font-size:52px;color:#C9951A;letter-spacing:2px;line-height:1;}
         .rating-bars{flex:1;}
@@ -319,7 +298,6 @@ export default function PainelPage() {
         .bar-fill{height:100%;background:#C9951A;border-radius:3px;}
         .bar-cnt{font-size:10px;color:#CCC;width:20px;text-align:right;}
 
-        /* REVIEW GRID */
         .review-grid{display:grid;grid-template-columns:1fr;gap:12px;}
         @media(min-width:1024px){.review-grid{grid-template-columns:1fr 1fr;}}
         .review-card{background:#FAFAF8;border:0.5px solid #EDE8E0;border-radius:12px;padding:14px;}
@@ -339,7 +317,6 @@ export default function PainelPage() {
         .reply-input{width:100%;border:none;padding:10px 12px;font-size:12px;font-family:'Inter',sans-serif;outline:none;resize:none;color:#333;}
         .reply-send{width:100%;padding:9px;background:#C9951A;color:#fff;border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;}
 
-        /* PHOTOS */
         .photos-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:12px;}
         @media(max-width:600px){.photos-grid{grid-template-columns:repeat(3,1fr);}}
         .photo-item{height:100px;border-radius:10px;overflow:hidden;position:relative;border:0.5px solid #E0DDD8;}
@@ -348,7 +325,6 @@ export default function PainelPage() {
         .photo-capa{position:absolute;bottom:4px;left:4px;background:#C9951A;color:#fff;font-size:8px;font-weight:700;padding:1px 6px;border-radius:5px;}
         .photo-add{height:100px;border:2px dashed #C9951A;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;background:#FEF3E2;color:#C9951A;font-size:12px;font-weight:600;}
 
-        /* FORM FIELDS */
         .field{margin-bottom:14px;}
         .field label{display:block;font-size:12px;font-weight:600;color:#444;margin-bottom:6px;}
         .field input,.field textarea,.field select{width:100%;padding:11px 13px;border:1.5px solid #E0DDD8;border-radius:11px;font-size:13px;font-family:'Inter',sans-serif;color:#222;background:#FAFAF8;outline:none;transition:border-color .15s;}
@@ -367,12 +343,10 @@ export default function PainelPage() {
         .hour-day{font-size:9px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;}
         .hour-input{width:100%;border:none;background:transparent;font-size:12px;color:#444;font-family:'Inter',sans-serif;outline:none;}
 
-        /* BUTTONS */
         .btn-primary{width:100%;padding:13px;background:#C9951A;color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:background .15s;margin-bottom:10px;}
         .btn-primary:hover:not(:disabled){background:#B8841A;}
         .btn-primary:disabled{opacity:.6;cursor:not-allowed;}
 
-        /* HIGHLIGHT */
         .dest-card{background:#fff;border:1.5px solid #C9951A;border-radius:14px;padding:16px;margin-bottom:10px;}
         .dest-card.exp{border-color:#E0DDD8;opacity:.7;}
         .dest-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
@@ -385,22 +359,8 @@ export default function PainelPage() {
         .dest-grid-new{display:grid;grid-template-columns:1fr;gap:12px;}
         @media(min-width:768px){.dest-grid-new{grid-template-columns:repeat(3,1fr);}}
 
-        /* PLANO */
-        .plan-card{background:linear-gradient(135deg,#1A1A1A,#333);border-radius:16px;padding:24px;margin-bottom:20px;color:#fff;}
-        .plan-nm{font-family:'Bebas Neue',sans-serif;font-size:24px;color:#C9951A;letter-spacing:1px;margin-bottom:4px;}
-        .plan-pr{font-size:28px;font-weight:700;margin-bottom:8px;}
-        .plan-pr span{font-size:14px;color:#AAA;font-weight:400;}
-        .plan-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;background:rgba(15,128,80,.3);color:#5EE8A0;padding:4px 12px;border-radius:10px;font-weight:600;}
-        .features{background:#fff;border:0.5px solid #EDE8E0;border-radius:14px;overflow:hidden;}
-        .feat-item{display:flex;align-items:center;gap:12px;padding:13px 18px;border-bottom:0.5px solid #F5F2EC;font-size:13px;color:#333;}
-        .feat-item:last-child{border-bottom:none;}
-        .feat-chk{width:22px;height:22px;border-radius:50%;background:#C9951A;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;flex-shrink:0;}
-        .feat-chk.off{background:#E0DDD8;}
-
-        /* ALERT */
         .alert-pending{background:#FEF3E2;border:1px solid #F5C77A;border-radius:12px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:#854F0B;line-height:1.6;}
 
-        /* BOTTOM NAV — mobile only */
         .bottom-nav{display:flex;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #F0EDE8;z-index:50;padding:8px 0 10px;}
         @media(min-width:768px){.bottom-nav{display:none;}}
         .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 0;position:relative;}
@@ -409,14 +369,103 @@ export default function PainelPage() {
         .nav-item.on .nav-lbl{color:#C9951A;font-weight:700;}
         .nav-bdg{position:absolute;top:0;right:calc(50% - 18px);background:#E24B4A;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;}
 
-        /* TOAST */
         .toast{position:fixed;bottom:24px;right:24px;background:#111;color:#fff;padding:12px 20px;border-radius:12px;font-size:13px;font-weight:500;z-index:999;animation:fadein .2s ease;}
         @media(max-width:767px){.toast{bottom:80px;left:50%;right:auto;transform:translateX(-50%);white-space:nowrap;}}
         @keyframes fadein{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
-        /* EMPTY */
         .empty{text-align:center;padding:48px 20px;color:#AAA;}
         .empty div:first-child{font-size:40px;margin-bottom:12px;}
+
+        /* ── ABA PLANO ── */
+        .pt-sec-lbl{font-family:'Bebas Neue',sans-serif;font-size:14px;color:#888;letter-spacing:1.5px;display:flex;align-items:center;gap:10px;margin:28px 0 6px;}
+        .pt-sec-lbl::after{content:'';flex:1;height:0.5px;background:#E0DDD8;}
+        .pt-sec-sub{font-size:13px;color:#999;margin-bottom:16px;}
+        .pt-status{background:linear-gradient(135deg,#1a1a1a,#2e2e2e);border-radius:14px;padding:22px 24px;}
+        .pt-status-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+        .pt-status-name{font-family:'Bebas Neue',sans-serif;font-size:24px;color:#C9951A;letter-spacing:1px;}
+        .pt-status-badge{font-size:11px;font-weight:700;padding:4px 12px;border-radius:10px;background:rgba(15,128,80,.3);color:#5EE8A0;}
+        .pt-status-badge.pending{background:rgba(201,149,26,.2);color:#E8B84B;}
+        .pt-trial-label{display:flex;justify-content:space-between;font-size:12px;color:#888;margin-bottom:6px;}
+        .pt-trial-bar{height:6px;background:#333;border-radius:3px;overflow:hidden;}
+        .pt-trial-fill{height:100%;background:#C9951A;border-radius:3px;}
+        .pt-plan-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+        @media(max-width:600px){.pt-plan-grid{grid-template-columns:1fr;}}
+        .pt-plan-opt{background:#fff;border:1.5px solid #E0DDD8;border-radius:14px;padding:22px 16px;text-align:center;position:relative;}
+        .pt-plan-opt.popular{border-color:#C9951A;}
+        .pt-popular-badge{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:#C9951A;color:#111;font-size:9px;font-weight:700;padding:3px 12px;border-radius:20px;white-space:nowrap;}
+        .pt-plan-period{font-size:12px;color:#AAA;margin-bottom:8px;}
+        .pt-plan-price{font-family:'Bebas Neue',sans-serif;font-size:34px;color:#111;line-height:1;}
+        .pt-plan-price span{font-family:'Inter',sans-serif;font-size:12px;color:#AAA;font-weight:400;}
+        .pt-plan-economy{font-size:11px;color:#0F8050;font-weight:600;margin-top:5px;}
+        .pt-btn-assinar{width:100%;padding:11px;margin-top:14px;background:#C9951A;color:#111;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;}
+        .pt-btn-assinar.off{background:#F0EDE8;color:#888;}
+        .pt-ben-label{font-size:12px;color:#AAA;font-weight:600;margin-bottom:10px;}
+        .pt-beneficios{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;}
+        @media(max-width:700px){.pt-beneficios{grid-template-columns:repeat(3,1fr);}}
+        .pt-ben-card{background:#fff;border:0.5px solid #E0DDD8;border-radius:12px;padding:16px 8px;text-align:center;}
+        .pt-ben-ico{font-size:26px;margin-bottom:8px;}
+        .pt-ben-title{font-size:11px;font-weight:700;color:#111;margin-bottom:4px;line-height:1.3;}
+        .pt-ben-desc{font-size:10px;color:#999;line-height:1.4;}
+        .pt-banner-block{background:#fff;border:0.5px solid #E0DDD8;border-radius:14px;overflow:hidden;display:grid;grid-template-columns:1fr 1fr;min-height:340px;}
+        @media(max-width:600px){.pt-banner-block{grid-template-columns:1fr;}}
+        .pt-banner-left{background:#EFECE6;padding:20px;display:flex;flex-direction:column;gap:10px;}
+        .pt-bleft-label{font-size:11px;color:#999;font-weight:600;letter-spacing:.4px;}
+        .pt-site-mini{background:#fff;border-radius:10px;overflow:hidden;border:1px solid #ddd;flex:1;display:flex;flex-direction:column;}
+        .pt-mini-nav{background:#111;height:22px;display:flex;align-items:center;padding:0 10px;gap:4px;flex-shrink:0;}
+        .pt-mini-dot{width:5px;height:5px;border-radius:50%;background:#444;}
+        .pt-mini-logo{font-family:'Bebas Neue',sans-serif;font-size:10px;color:#fff;margin-left:6px;letter-spacing:1px;}
+        .pt-mini-logo span{color:#C9951A;}
+        .pt-mini-banner{background:linear-gradient(105deg,#1a0f00,#6b3a00);height:80px;display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0;}
+        .pt-mini-banner-txt{font-family:'Bebas Neue',sans-serif;font-size:20px;color:#fff;letter-spacing:2px;}
+        .pt-mini-banner-tag{position:absolute;top:8px;right:8px;background:#C9951A;color:#111;font-size:9px;font-weight:700;padding:3px 8px;border-radius:4px;}
+        .pt-mini-overlap{background:#fff;padding:6px 8px;margin:-10px 8px 0;border-radius:8px;border:1px solid #eee;position:relative;z-index:2;flex-shrink:0;}
+        .pt-mini-cats{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;}
+        .pt-mini-cat{background:#F5F2EC;border-radius:4px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;}
+        .pt-mini-body{padding:10px;flex:1;}
+        .pt-mini-row{height:7px;background:#F0EDE8;border-radius:3px;margin-bottom:5px;}
+        .pt-banner-right{padding:28px 24px;display:flex;flex-direction:column;justify-content:center;}
+        .pt-banner-right-title{font-family:'Bebas Neue',sans-serif;font-size:22px;color:#111;letter-spacing:1px;margin-bottom:8px;}
+        .pt-banner-right-desc{font-size:13px;color:#666;line-height:1.7;margin-bottom:20px;}
+        .pt-banner-opts{display:flex;flex-direction:column;gap:10px;}
+        .pt-banner-opt{display:flex;justify-content:space-between;align-items:center;border:1.5px solid #E0DDD8;border-radius:10px;padding:14px 16px;cursor:pointer;transition:border-color .15s;background:#fff;font-family:'Inter',sans-serif;width:100%;}
+        .pt-banner-opt:hover{border-color:#C9951A;}
+        .pt-b-days{font-size:14px;font-weight:600;color:#333;}
+        .pt-b-price{font-size:17px;font-weight:700;color:#C9951A;}
+        .pt-dest-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+        @media(max-width:600px){.pt-dest-grid{grid-template-columns:1fr;}}
+        .pt-dest-card{background:#fff;border:0.5px solid #E0DDD8;border-radius:14px;overflow:hidden;}
+        .pt-dp-wrap{background:#F5F2EC;padding:14px;border-bottom:0.5px solid #E8E4DE;min-height:180px;display:flex;flex-direction:column;gap:5px;}
+        .pt-dp-sublabel{font-size:9px;color:#BBB;text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:4px;}
+        .pt-dp-topbar{background:#C8C4BE;height:14px;border-radius:4px;margin-bottom:2px;}
+        .pt-dp-hero{background:linear-gradient(105deg,#2a1500,#6b3a00);height:36px;border-radius:5px;display:flex;align-items:center;justify-content:center;margin-bottom:4px;}
+        .pt-dp-hero-txt{font-family:'Bebas Neue',sans-serif;font-size:10px;color:#C9951A;letter-spacing:1px;}
+        .pt-dp-catrow{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;margin-bottom:6px;}
+        .pt-dp-catbox{background:#fff;border:0.5px solid #E0DDD8;border-radius:3px;height:16px;}
+        .pt-dp-sec-title{font-size:8px;color:#AAA;font-weight:700;margin-bottom:4px;}
+        .pt-dp-row4{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;}
+        .pt-dp-row3{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;}
+        .pt-dp-d{border-radius:5px;height:36px;display:flex;align-items:center;justify-content:center;font-size:9px;}
+        .pt-dp-d.hl{background:#C9951A;color:#111;font-weight:700;}
+        .pt-dp-d.dim{background:#DDD9D4;}
+        .pt-dp-cat-hdr{background:#C8C4BE;height:28px;border-radius:5px;display:flex;align-items:center;padding:0 10px;margin-bottom:5px;}
+        .pt-dp-cat-hdr-txt{font-family:'Bebas Neue',sans-serif;font-size:10px;color:#fff;letter-spacing:1px;}
+        .pt-dp-subrow{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;margin-bottom:4px;}
+        .pt-dp-sub{background:#DDD9D4;border-radius:3px;height:12px;}
+        .pt-dp-gridrow{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;}
+        .pt-dp-gi{background:#DDD9D4;border-radius:3px;height:22px;}
+        .pt-dp-sub-hdr{background:#F0EDE8;border:1px solid #ddd;height:28px;border-radius:5px;display:flex;align-items:center;padding:0 10px;margin-bottom:5px;}
+        .pt-dp-sub-hdr-txt{font-family:'Bebas Neue',sans-serif;font-size:10px;color:#888;letter-spacing:.8px;}
+        .pt-dp-3grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;}
+        .pt-dp-3gi{background:#DDD9D4;border-radius:3px;height:22px;}
+        .pt-dest-info{padding:16px;}
+        .pt-dest-info-title{font-size:15px;font-weight:700;color:#111;margin-bottom:5px;}
+        .pt-dest-info-desc{font-size:12px;color:#777;line-height:1.6;margin-bottom:14px;}
+        .pt-dest-opts{display:flex;flex-direction:column;gap:7px;}
+        .pt-d-opt{display:flex;justify-content:space-between;align-items:center;border:1.5px solid #E0DDD8;border-radius:9px;padding:10px 14px;cursor:pointer;transition:border-color .15s;background:#fff;font-family:'Inter',sans-serif;width:100%;}
+        .pt-d-opt:hover{border-color:#C9951A;}
+        .pt-d-day{font-size:13px;font-weight:500;color:#333;}
+        .pt-d-price{font-size:14px;font-weight:700;color:#C9951A;}
+        .pt-footer-note{text-align:center;font-size:12px;color:#BBB;margin-top:24px;}
       `}</style>
 
       {toast && <div className="toast">✓ {toast}</div>}
@@ -450,19 +499,17 @@ export default function PainelPage() {
         {/* MAIN */}
         <main className="painel-main">
 
-          {/* Mobile header */}
           <div className="mobile-hdr">
             <div>
               <div className="mhdr-logo">TRINDADE <span>ONLINE</span></div>
               <div className="mhdr-empresa">{company.name}</div>
             </div>
-<div style={{display:'flex',gap:12,alignItems:'center'}}>
+            <div style={{display:'flex',gap:12,alignItems:'center'}}>
               <a href="/" style={{fontSize:12,color:'#C9951A',textDecoration:'none',fontWeight:600}}>← Ver site</a>
               <a href="/sair" style={{fontSize:12,color:'#555',textDecoration:'none'}}>Sair</a>
             </div>
           </div>
 
-          {/* Desktop topbar */}
           <div className="topbar">
             <div className="topbar-title">{tabTitle[tab]}</div>
             <div className="topbar-right">{new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})}</div>
@@ -487,7 +534,7 @@ export default function PainelPage() {
                 <div className="section-label">AÇÕES RÁPIDAS</div>
                 <div className="actions-row">
                   <button className="action-btn" style={{background:'#C9951A',color:'#fff'}} onClick={()=>setTab('perfil')}>✏️ Editar perfil</button>
-                  <button className="action-btn" style={{background:'#185FA5',color:'#fff'}} onClick={()=>setTab('destaques')}>⭐ Criar destaque</button>
+                  <button className="action-btn" style={{background:'#185FA5',color:'#fff'}} onClick={()=>setTab('plano')}>⭐ Criar destaque</button>
                   {pendingReplies > 0 && <button className="action-btn" style={{background:'#FEF3E2',color:'#854F0B',border:'1px solid #F5C77A'}} onClick={()=>setTab('avaliacoes')}>💬 {pendingReplies} sem resposta</button>}
                 </div>
 
@@ -673,20 +720,20 @@ export default function PainelPage() {
                         </select>
                       </div>
                       {editCategoryId && allSubcats.filter(s=>s.category_id===editCategoryId).length > 0 && (
-                      <div className="field">
-                        <label>Subcategorias <span style={{fontSize:11,color:'#666',fontWeight:400}}>(selecione até 3)</span></label>
-                        <div style={{display:'flex',flexWrap:'wrap',gap:7,marginTop:4}}>
-                          {allSubcats.filter(s=>s.category_id===editCategoryId).map(s=>(
-                            <div key={s.id} onClick={()=>setEditSubcatIds(prev=>prev.includes(s.id)?prev.filter(x=>x!==s.id):prev.length<3?[...prev,s.id]:prev)}
-                              style={{padding:'5px 12px',borderRadius:20,fontSize:12,cursor:'pointer',border:'1px solid',fontFamily:'Inter,sans-serif',
-                                borderColor:editSubcatIds.includes(s.id)?'#C9951A':'#333',
-                                background:editSubcatIds.includes(s.id)?'rgba(201,149,26,.15)':'transparent',
-                                color:editSubcatIds.includes(s.id)?'#C9951A':'#888'}}>
-                              {s.emoji} {s.name}
-                            </div>
-                          ))}
+                        <div className="field">
+                          <label>Subcategorias <span style={{fontSize:11,color:'#666',fontWeight:400}}>(selecione até 3)</span></label>
+                          <div style={{display:'flex',flexWrap:'wrap',gap:7,marginTop:4}}>
+                            {allSubcats.filter(s=>s.category_id===editCategoryId).map(s=>(
+                              <div key={s.id} onClick={()=>setEditSubcatIds(prev=>prev.includes(s.id)?prev.filter(x=>x!==s.id):prev.length<3?[...prev,s.id]:prev)}
+                                style={{padding:'5px 12px',borderRadius:20,fontSize:12,cursor:'pointer',border:'1px solid',fontFamily:'Inter,sans-serif',
+                                  borderColor:editSubcatIds.includes(s.id)?'#C9951A':'#333',
+                                  background:editSubcatIds.includes(s.id)?'rgba(201,149,26,.15)':'transparent',
+                                  color:editSubcatIds.includes(s.id)?'#C9951A':'#888'}}>
+                                {s.emoji} {s.name}
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </div>
                       )}
                       <div className="field">
                         <label>WhatsApp</label>
@@ -752,37 +799,238 @@ export default function PainelPage() {
             {/* ── PLANO ── */}
             {tab === 'plano' && (
               <>
-                <div className="plan-card">
-                  <div className="plan-nm">{company.plan==='paid'?'PLANO PAGO':'PLANO GRATUITO'}</div>
-                  <div className="plan-pr">{company.plan==='paid'?<>R$ 29,90 <span>/mês</span></>:<>R$ 0 <span>/ 30 dias grátis</span></>}</div>
-                  <span className="plan-badge">● {company.status==='active'?'Ativo':'Pendente'}</span>
+                {/* STATUS ATUAL */}
+                <div className="pt-sec-lbl">STATUS ATUAL</div>
+                <div className="pt-status">
+                  <div className="pt-status-top">
+                    <div className="pt-status-name">
+                      {company.plan === 'paid' ? 'PLANO ATIVO' : 'TRIAL GRATUITO'}
+                    </div>
+                    <div className={`pt-status-badge ${company.status !== 'active' ? 'pending' : ''}`}>
+                      {company.status === 'active' ? '● Ativo' : '⏳ Pendente'}
+                    </div>
+                  </div>
+                  {company.plan !== 'paid' && company.trial_ends_at && (
+                    <>
+                      <div className="pt-trial-label">
+                        <span>Trial gratuito</span>
+                        <span style={{color:'#C9951A',fontWeight:700}}>
+                          {daysLeft(company.trial_ends_at)} dia{daysLeft(company.trial_ends_at) !== 1 ? 's' : ''} restante{daysLeft(company.trial_ends_at) !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                      <div className="pt-trial-bar">
+                        <div className="pt-trial-fill" style={{width:`${Math.min(100,Math.max(0,(daysLeft(company.trial_ends_at)/7)*100))}%`}}/>
+                      </div>
+                    </>
+                  )}
+                  {company.plan === 'paid' && (
+                    <div style={{fontSize:13,color:'#5EE8A0',fontWeight:600}}>
+                      ✓ Plano pago ativo — todas as funcionalidades liberadas
+                    </div>
+                  )}
                 </div>
 
-                {company.plan === 'free' && (
-                  <div style={{background:'#FEF3E2',border:'1px solid #F5C77A',borderRadius:12,padding:16,marginBottom:20}}>
-                    <div style={{fontSize:14,fontWeight:600,color:'#854F0B',marginBottom:6}}>Upgrade para o Plano Pago</div>
-                    <div style={{fontSize:13,color:'#854F0B',lineHeight:1.6,marginBottom:12}}>WhatsApp clicável · Endereço e mapa · Múltiplas subcategorias · Receber avaliações · Estatísticas completas</div>
-                    <button className="btn-primary" onClick={()=>showToast('Em breve: pagamento via Pix')}>Assinar por R$ 29,90/mês</button>
-                  </div>
-                )}
+                {/* PLANO BASE */}
+                <div className="pt-sec-lbl">PLANO BASE</div>
+                <p className="pt-sec-sub">Escolha o período e ative todas as funcionalidades do seu perfil</p>
 
-                <div className="section-label">O QUE ESTÁ INCLUÍDO</div>
-                <div className="features">
+                <div className="pt-plan-grid">
+                  <div className="pt-plan-opt">
+                    <div className="pt-plan-period">Mensal</div>
+                    <div className="pt-plan-price">R$ 29,90<span>/mês</span></div>
+                    <button className="pt-btn-assinar off" onClick={()=>showToast('Em breve: pagamento via Pix')}>Assinar</button>
+                  </div>
+                  <div className="pt-plan-opt popular">
+                    <div className="pt-popular-badge">MAIS POPULAR</div>
+                    <div className="pt-plan-period">Trimestral</div>
+                    <div className="pt-plan-price">R$ 79,90<span>/3 meses</span></div>
+                    <div className="pt-plan-economy">↓ Economize R$9,80</div>
+                    <button className="pt-btn-assinar" onClick={()=>showToast('Em breve: pagamento via Pix')}>Assinar</button>
+                  </div>
+                  <div className="pt-plan-opt">
+                    <div className="pt-plan-period">Semestral</div>
+                    <div className="pt-plan-price">R$ 149,90<span>/6 meses</span></div>
+                    <div className="pt-plan-economy">↓ Economize R$29,50</div>
+                    <button className="pt-btn-assinar off" onClick={()=>showToast('Em breve: pagamento via Pix')}>Assinar</button>
+                  </div>
+                </div>
+
+                <p className="pt-ben-label">O que está incluído no plano</p>
+                <div className="pt-beneficios">
                   {[
-                    {ok:true,               txt:'Perfil completo com fotos e descrição'},
-                    {ok:company.plan==='paid',txt:'WhatsApp e link externo clicáveis'},
-                    {ok:company.plan==='paid',txt:'Endereço e mapa visíveis'},
-                    {ok:company.plan==='paid',txt:'Múltiplas subcategorias'},
-                    {ok:company.plan==='paid',txt:'Receber e responder avaliações'},
-                    {ok:company.plan==='paid',txt:'Estatísticas completas'},
-                    {ok:true,               txt:'Criar destaques pagos'},
-                  ].map((f,i)=>(
-                    <div key={i} className="feat-item">
-                      <div className={`feat-chk ${f.ok?'':'off'}`}>{f.ok?'✓':'—'}</div>
-                      <span style={{color:f.ok?'#333':'#AAA'}}>{f.txt}</span>
+                    {ico:'📱',title:'WhatsApp clicável',desc:'Clientes entram em contato direto'},
+                    {ico:'📍',title:'Endereço e mapa',desc:'Google Maps na sua página'},
+                    {ico:'⭐',title:'Avaliações',desc:'Receba e responda clientes'},
+                    {ico:'🔗',title:'Link externo',desc:'Cardápio, site, iFood...'},
+                    {ico:'📊',title:'Estatísticas',desc:'Visualizações e cliques'},
+                    {ico:'🏷️',title:'Subcategorias',desc:'Apareça em mais buscas'},
+                  ].map((b,i)=>(
+                    <div key={i} className="pt-ben-card">
+                      <div className="pt-ben-ico">{b.ico}</div>
+                      <div className="pt-ben-title">{b.title}</div>
+                      <div className="pt-ben-desc">{b.desc}</div>
                     </div>
                   ))}
                 </div>
+
+                {/* BANNER DA HOME */}
+                <div className="pt-sec-lbl">BANNER DA HOME</div>
+                <p className="pt-sec-sub">O espaço mais visto do site — sua empresa antes de tudo</p>
+
+                <div className="pt-banner-block">
+                  <div className="pt-banner-left">
+                    <div className="pt-bleft-label">Seu banner aparece aqui ↓</div>
+                    <div className="pt-site-mini">
+                      <div className="pt-mini-nav">
+                        <div className="pt-mini-dot"/><div className="pt-mini-dot"/><div className="pt-mini-dot"/>
+                        <div className="pt-mini-logo">TRINDADE <span>ONLINE</span></div>
+                      </div>
+                      <div className="pt-mini-banner">
+                        <div className="pt-mini-banner-txt">SUA EMPRESA AQUI</div>
+                        <div className="pt-mini-banner-tag">← seu banner</div>
+                      </div>
+                      <div className="pt-mini-overlap">
+                        <div className="pt-mini-cats">
+                          <div className="pt-mini-cat">🏪</div>
+                          <div className="pt-mini-cat">🔧</div>
+                          <div className="pt-mini-cat">🍕</div>
+                          <div className="pt-mini-cat">💼</div>
+                        </div>
+                      </div>
+                      <div className="pt-mini-body">
+                        <div className="pt-mini-row" style={{width:'55%'}}/>
+                        <div className="pt-mini-row"/>
+                        <div className="pt-mini-row" style={{width:'80%'}}/>
+                        <div className="pt-mini-row" style={{width:'70%'}}/>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="pt-banner-right">
+                    <div className="pt-banner-right-title">BANNER DA PÁGINA INICIAL</div>
+                    <div className="pt-banner-right-desc">
+                      Aparece logo abaixo do cabeçalho, antes de qualquer outra empresa.
+                      Todo morador que abre o site vê seu anúncio primeiro.
+                    </div>
+                    <div className="pt-banner-opts">
+                      {[{dias:'7 dias',preco:'R$ 79,90'},{dias:'15 dias',preco:'R$ 139,90'},{dias:'30 dias',preco:'R$ 249,90'}].map((o,i)=>(
+                        <button key={i} className="pt-banner-opt" onClick={()=>showToast('Em breve: pagamento via Pix')}>
+                          <span className="pt-b-days">{o.dias}</span>
+                          <span className="pt-b-price">{o.preco}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* DESTAQUES */}
+                <div className="pt-sec-lbl">DESTAQUES</div>
+                <p className="pt-sec-sub">Apareça antes de todas as outras empresas na seção escolhida</p>
+
+                <div className="pt-dest-grid">
+
+                  {/* Destaque Home */}
+                  <div className="pt-dest-card">
+                    <div className="pt-dp-wrap">
+                      <div className="pt-dp-sublabel">Onde aparece na home</div>
+                      <div className="pt-dp-topbar"/>
+                      <div className="pt-dp-hero"><div className="pt-dp-hero-txt">BANNER DA HOME</div></div>
+                      <div className="pt-dp-catrow">
+                        <div className="pt-dp-catbox"/><div className="pt-dp-catbox"/>
+                        <div className="pt-dp-catbox"/><div className="pt-dp-catbox"/>
+                      </div>
+                      <div className="pt-dp-sec-title">EM DESTAQUE</div>
+                      <div className="pt-dp-row4">
+                        <div className="pt-dp-d hl">★ você</div>
+                        <div className="pt-dp-d dim"/>
+                        <div className="pt-dp-d dim"/>
+                        <div className="pt-dp-d dim"/>
+                      </div>
+                    </div>
+                    <div className="pt-dest-info">
+                      <div className="pt-dest-info-title">Destaque Home</div>
+                      <div className="pt-dest-info-desc">Primeiro na seção "Em destaque" da página inicial</div>
+                      <div className="pt-dest-opts">
+                        {[['7 dias','R$ 49,90'],['15 dias','R$ 89,90'],['30 dias','R$ 159,90']].map(([d,p],i)=>(
+                          <button key={i} className="pt-d-opt" onClick={()=>showToast('Em breve: pagamento via Pix')}>
+                            <span className="pt-d-day">{d}</span>
+                            <span className="pt-d-price">{p}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Destaque Categoria */}
+                  <div className="pt-dest-card">
+                    <div className="pt-dp-wrap">
+                      <div className="pt-dp-sublabel">Onde aparece na categoria</div>
+                      <div className="pt-dp-cat-hdr">
+                        <div className="pt-dp-cat-hdr-txt">{company.category?.name?.toUpperCase() || 'SUA CATEGORIA'}</div>
+                      </div>
+                      <div className="pt-dp-sec-title">EM DESTAQUE</div>
+                      <div className="pt-dp-row4">
+                        <div className="pt-dp-d hl">★ você</div>
+                        <div className="pt-dp-d dim"/>
+                        <div className="pt-dp-d dim"/>
+                        <div className="pt-dp-d dim"/>
+                      </div>
+                      <div className="pt-dp-subrow">
+                        <div className="pt-dp-sub"/><div className="pt-dp-sub"/>
+                        <div className="pt-dp-sub"/><div className="pt-dp-sub"/>
+                      </div>
+                      <div className="pt-dp-gridrow">
+                        <div className="pt-dp-gi"/><div className="pt-dp-gi"/>
+                        <div className="pt-dp-gi"/><div className="pt-dp-gi"/>
+                      </div>
+                    </div>
+                    <div className="pt-dest-info">
+                      <div className="pt-dest-info-title">Destaque Categoria</div>
+                      <div className="pt-dest-info-desc">Primeiro na página da sua categoria (ex: Gastronomia, Serviços)</div>
+                      <div className="pt-dest-opts">
+                        {[['7 dias','R$ 29,90'],['15 dias','R$ 54,90'],['30 dias','R$ 99,90']].map(([d,p],i)=>(
+                          <button key={i} className="pt-d-opt" onClick={()=>showToast('Em breve: pagamento via Pix')}>
+                            <span className="pt-d-day">{d}</span>
+                            <span className="pt-d-price">{p}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Destaque Subcategoria */}
+                  <div className="pt-dest-card">
+                    <div className="pt-dp-wrap">
+                      <div className="pt-dp-sublabel">Onde aparece na subcategoria</div>
+                      <div className="pt-dp-sub-hdr">
+                        <div className="pt-dp-sub-hdr-txt">SUA SUBCATEGORIA</div>
+                      </div>
+                      <div className="pt-dp-sec-title">EM DESTAQUE</div>
+                      <div className="pt-dp-row3">
+                        <div className="pt-dp-d hl">★ você</div>
+                        <div className="pt-dp-d dim"/>
+                        <div className="pt-dp-d dim"/>
+                      </div>
+                      <div className="pt-dp-3grid">
+                        <div className="pt-dp-3gi"/><div className="pt-dp-3gi"/><div className="pt-dp-3gi"/>
+                      </div>
+                    </div>
+                    <div className="pt-dest-info">
+                      <div className="pt-dest-info-title">Destaque Subcategoria</div>
+                      <div className="pt-dest-info-desc">Primeiro na sua subcategoria (ex: Pizzaria, Barbearia, Padaria)</div>
+                      <div className="pt-dest-opts">
+                        {[['7 dias','R$ 14,90'],['15 dias','R$ 27,90'],['30 dias','R$ 49,90']].map(([d,p],i)=>(
+                          <button key={i} className="pt-d-opt" onClick={()=>showToast('Em breve: pagamento via Pix')}>
+                            <span className="pt-d-day">{d}</span>
+                            <span className="pt-d-price">{p}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+
+                <div className="pt-footer-note">Pagamento via Pix · Ativação imediata após confirmação</div>
               </>
             )}
 

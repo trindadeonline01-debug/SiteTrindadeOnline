@@ -221,6 +221,8 @@ export default function HomePage() {
         }
 
         /* BANNER */
+        .banner-img { object-fit: cover; }
+        @media(max-width: 767px) { .banner-img { object-fit: contain; background: #111; } }
         @media(max-width: 767px) {
           .banner-inner-wrap { height: auto; aspect-ratio: 3/2; padding-top: 0; }
         }
@@ -327,6 +329,8 @@ export default function HomePage() {
         .footer { background: #111; border-top: 2px solid #C9951A; padding: 36px 24px 24px; margin-top: 48px; }
         .fi { max-width: 1200px; margin: 0 auto; }
         .footer-top { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap: 32px; margin-bottom: 32px; }
+        .banner-img { object-fit: cover; }
+        @media(max-width: 767px) { .banner-img { object-fit: contain; background: #111; } }
         @media(max-width: 767px) { .footer-top { grid-template-columns: 1fr 1fr; gap: 24px; } }
         @media(max-width: 480px) { .footer-top { grid-template-columns: 1fr; } }
         .f-logo { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: #fff; letter-spacing: 2px; margin-bottom: 8px; text-decoration: none; display: block; }
@@ -393,7 +397,7 @@ export default function HomePage() {
           <a href={currentBanner.link_url || '#'} style={{ display: 'block', textDecoration: 'none' }}>
             <div className="banner-inner-wrap">
               {getBannerImage(currentBanner)
-                ? <img src={getBannerImage(currentBanner)!} alt={currentBanner.title} style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover"}} />
+                ? <img src={getBannerImage(currentBanner)!} alt={currentBanner.title} className="banner-img" style={{position:"absolute",inset:0,width:"100%",height:"100%"}} />
                 : <div className="banner-deco">🏗️</div>
               }
               <div className="banner-content-wrap">

@@ -189,10 +189,10 @@ export default function HomePage() {
         .logo-dot  { font-family: 'Bebas Neue', sans-serif; font-size: 18px; color: #DDD; margin: 0 5px; }
         .logo-gold { font-family: 'Bebas Neue', sans-serif; font-size: 26px; color: #C9951A; letter-spacing: 2px; }
         .nav-actions { display: flex; align-items: center; gap: 8px; }
-        .btn-painel   { background: #111; color: #C9951A; border: none; border-radius: 10px; padding: 9px 16px; font-size: 13px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; text-decoration: none; display: none; }
-        .btn-sair     { background: transparent; color: #666; border: 1px solid #333; border-radius: 10px; padding: 8px 12px; font-size: 12px; font-weight: 500; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; display: none; }
-        .btn-entrar   { display: none; align-items: center; gap: 5px; background: transparent; color: #C9951A; border: 1.5px solid #C9951A; border-radius: 10px; padding: 8px 16px; font-size: 13px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; text-decoration: none; }
-        .btn-cad      { background: #C9951A; color: #fff; border: none; border-radius: 10px; padding: 9px 16px; font-size: 13px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; text-decoration: none; display: none; }
+        .btn-painel   { background: #111; color: #C9951A; border: none; border-radius: 10px; padding: 7px 12px; font-size: 12px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; text-decoration: none; display: block; }
+        .btn-sair     { background: transparent; color: #666; border: 1px solid #333; border-radius: 10px; padding: 6px 10px; font-size: 11px; font-weight: 500; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; display: block; }
+        .btn-entrar   { display: flex; align-items: center; gap: 5px; background: transparent; color: #C9951A; border: 1.5px solid #C9951A; border-radius: 10px; padding: 7px 12px; font-size: 12px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; text-decoration: none; }
+        .btn-cad      { background: #C9951A; color: #fff; border: none; border-radius: 10px; padding: 7px 12px; font-size: 12px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; text-decoration: none; display: block; }
         .btn-fav      { color: #555; font-size: 13px; text-decoration: none; display: none; }
         .btn-perfil   { color: #555; font-size: 13px; text-decoration: none; display: none; }
         @media(min-width: 768px) {
@@ -201,7 +201,7 @@ export default function HomePage() {
           .btn-fav { display: block; } .btn-perfil { display: block; }
         }
 
-        .hero { background: linear-gradient(160deg, #fff 0%, #FEF8EC 60%, #FEF3E2 100%); padding: 28px 16px 0; text-align: center; border-bottom: 1px solid #EDE8E0; }
+        .hero { background: linear-gradient(160deg, #fff 0%, #FEF8EC 60%, #FEF3E2 100%); padding: 28px 16px 8px; text-align: center; border-bottom: 1px solid #EDE8E0; }
         @media(min-width: 768px) { .hero { padding: 43px 20px 0; } }
         .hero-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(30px, 8vw, 72px); letter-spacing: 4px; line-height: 1; margin-bottom: 8px; display: block; }
         .hero-title span { color: #C9951A; }
@@ -210,7 +210,7 @@ export default function HomePage() {
           display: flex; max-width: 600px; margin: 0 auto; align-items: center; gap: 8px;
           background: #fff; border: 2px solid #C9951A; border-radius: 50px;
           padding: 6px 6px 6px 16px; box-shadow: 0 4px 20px rgba(201,149,26,.12);
-          transform: translateY(50%); position: relative; z-index: 20;
+          transform: none; position: relative; z-index: 20; margin-bottom: 4px;
         }
         .hero-search-wrap input { flex: 1; border: none; background: transparent; font-size: 14px; font-family: 'Inter', sans-serif; color: #222; outline: none; }
         .hero-search-wrap input::placeholder { color: #BBB; }
@@ -222,7 +222,7 @@ export default function HomePage() {
             display: flex; max-width: 600px; margin: 0 auto; align-items: center; gap: 8px;
             background: #fff; border: 2px solid #C9951A; border-radius: 50px;
             padding: 6px 6px 6px 20px; box-shadow: 0 4px 20px rgba(201,149,26,.12);
-            transform: translateY(50%); position: relative; z-index: 20;
+            transform: none; position: relative; z-index: 20; margin-bottom: 4px;
           }
           .hero-search-wrap input { flex: 1; border: none; background: transparent; font-size: 15px; font-family: 'Inter', sans-serif; color: #222; outline: none; }
           .hero-search-wrap input::placeholder { color: #BBB; }

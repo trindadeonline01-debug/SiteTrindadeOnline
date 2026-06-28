@@ -201,7 +201,8 @@ export default function HomePage() {
           .btn-fav { display: block; } .btn-perfil { display: block; }
         }
 
-        .hero { background: linear-gradient(160deg, #fff 0%, #FEF8EC 60%, #FEF3E2 100%); padding: 40px 20px 36px; text-align: center; border-bottom: 1px solid #EDE8E0; }
+        .hero { background: linear-gradient(160deg, #fff 0%, #FEF8EC 60%, #FEF3E2 100%); padding: 28px 16px 0; text-align: center; border-bottom: 1px solid #EDE8E0; }
+        @media(min-width: 768px) { .hero { padding: 43px 20px 0; } }
         .hero-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(42px, 6vw, 72px); letter-spacing: 4px; line-height: 1; margin-bottom: 8px; display: none; }
         .hero-title span { color: #C9951A; }
         .hero-sub { font-size: clamp(14px, 2vw, 16px); color: #888; margin-bottom: 24px; display: none; }

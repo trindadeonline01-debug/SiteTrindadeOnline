@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, use } from 'react'
+import React, { useState, useEffect, use } from 'react'
 import { supabase } from '@/lib/supabase'
 
 type Category    = { id: string; name: string; emoji: string; slug: string }
@@ -15,7 +15,7 @@ type Company     = {
 /* ── SVG por slug de categoria (mesmo estilo da home) ── */
 function CategorySVG({ slug, size = 56, color = '#C9951A' }: { slug: string; size?: number; color?: string }) {
   const s = `width:${size}px;height:${size}px;stroke:${color};stroke-width:0.8;fill:none;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;`
-  const paths: Record<string, JSX.Element> = {
+  const paths: Record<string, React.ReactElement> = {
     comercios: (
       <svg viewBox="0 0 24 24" style={s as any}>
         <path d="M3 9l1-5h16l1 5"/>

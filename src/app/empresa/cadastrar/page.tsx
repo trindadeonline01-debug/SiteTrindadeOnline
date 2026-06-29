@@ -62,7 +62,9 @@ export default function EmpresaCadastrarPage() {
     supabase.from('subcategories').select('*').order('order').then(({ data }) => setSubcats(data || []))
   }, [])
 
+  const [subcatSearch, setSubcatSearch] = useState('')
   const filteredSubs = subcategories.filter(s => s.category_id === categoryId)
+  const filteredSubsSearch = filteredSubs.filter(s => s.name.toLowerCase().includes(subcatSearch.toLowerCase()))
 
   function toggleSub(id: string) {
     setSelectedSubs(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id])

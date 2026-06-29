@@ -18,6 +18,25 @@ async function processPayment(paymentId: string) {
     const payment = await res.json()
     if (payment.status !== 'approved') return
 
+    const ext = JSON.parse(payment.external_reference || '{}')
+
+    // DESTAQUE
+    if (ext.type === 'highlight' && ext.company_id) {
+      await supabase.from('highlights').insert({
+        company_id: ext.company_id,
+        level: ext.level,
+        duration_days: ext.days,
+        price_paid: ext.value,
+        starts_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + ext.days * 86400000).toISOString(),
+        status: 'active',
+        clicks_count: 0,
+        impressions_count: 0,
+      })
+      return
+    }
+
+    // PLANO
     const { data: rec } = await supabase.from('payments').select('*').eq('payment_id', String(paymentId)).single()
 
     if (!rec) {

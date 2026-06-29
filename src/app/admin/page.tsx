@@ -74,6 +74,7 @@ export default function AdminPage() {
   const [mpToken, setMpToken] = useState('')
   const [mpTokenSaving, setMpTokenSaving] = useState(false)
   const [mpTokenLoaded, setMpTokenLoaded] = useState(false)
+  const [mpSecret, setMpSecret] = useState('')
   const fileInputRefMobile = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -200,13 +201,18 @@ export default function AdminPage() {
     if (data) {
       const mp = data.find((s: any) => s.key === 'mp_access_token')
       if (mp) { setMpToken(mp.value || ''); setMpTokenLoaded(true) }
+      const sec = data.find((s: any) => s.key === 'mp_webhook_secret')
+      if (sec) setMpSecret(sec.value || '')
     }
   }
 
   async function saveMpToken() {
     setMpTokenSaving(true)
-    await supabase.from('settings').upsert({ key: 'mp_access_token', value: mpToken, updated_at: new Date().toISOString() }, { onConflict: 'key' })
-    showToast('Token salvo!')
+    await Promise.all([
+      supabase.from('settings').upsert({ key: 'mp_access_token', value: mpToken, updated_at: new Date().toISOString() }, { onConflict: 'key' }),
+      supabase.from('settings').upsert({ key: 'mp_webhook_secret', value: mpSecret, updated_at: new Date().toISOString() }, { onConflict: 'key' }),
+    ])
+    showToast('Configurações salvas!')
     setMpTokenSaving(false)
   }
 
@@ -1219,6 +1225,21 @@ export default function AdminPage() {
                     {mpToken && (
                       <div style={{fontSize:11,color:'#0F8050',marginBottom:12}}>
                         ✓ Token configurado — {mpToken.substring(0,20)}...
+                      </div>
+                    )}
+                    <div className="field" style={{marginTop:8}}>
+                      <label>Webhook Secret (assinatura secreta)</label>
+                      <input
+                        type="password"
+                        value={mpSecret}
+                        onChange={e => setMpSecret(e.target.value)}
+                        placeholder="Cole a assinatura secreta do webhook..."
+                        style={{fontFamily:'monospace',fontSize:12}}
+                      />
+                    </div>
+                    {mpSecret && (
+                      <div style={{fontSize:11,color:'#0F8050',marginBottom:12}}>
+                        ✓ Secret configurado
                       </div>
                     )}
                     <button

@@ -607,6 +607,16 @@ export default function PainelPage() {
                       <div style={{width:8,height:8,borderRadius:'50%',background:'#C9951A'}}/>
                       <div style={{fontSize:12,color:'#666'}}>Aguardando pagamento...</div>
                     </div>
+                    <button onClick={async () => {
+                      const { data: hls } = await supabase.from('highlights').select('id').eq('company_id', company!.id).eq('status','active').order('created_at',{ascending:false}).limit(1)
+                      if (hls && hls.length > 0) {
+                        setHlModal(p => ({ ...p, confirmed: true }))
+                      } else {
+                        showToast('Pagamento ainda não confirmado. Aguarde.')
+                      }
+                    }} style={{width:'100%',padding:'12px',background:'#0F8050',color:'#fff',border:'none',borderRadius:12,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',marginBottom:8}}>
+                      ✓ Já paguei — verificar agora
+                    </button>
                   </>
                 )}
                 <button onClick={() => setHlModal(p => ({ ...p, open: false }))} style={{width:'100%',padding:'10px',background:'transparent',color:'#AAA',border:'1px solid #ddd',borderRadius:12,fontSize:13,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>Fechar</button>

@@ -126,7 +126,7 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
       const ids = hlData.map((h: any) => h.company_id)
       const { data: photos } = await supabase
         .from('company_photos').select('company_id,url,order').in('company_id', ids).order('order')
-      setHighlights(hlData.map((h: any) => ({
+      setHighlights([...hlData].sort(() => Math.random() - 0.5).map((h: any) => ({
         ...h, company: { ...h.company, photos: photos?.filter((p: any) => p.company_id === h.company_id) || [] }
       })) as Highlight[])
     }

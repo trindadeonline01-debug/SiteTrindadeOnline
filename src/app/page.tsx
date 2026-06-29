@@ -110,7 +110,7 @@ export default function HomePage() {
           company_photos ( photo_url, is_primary, order )
         )`)
       .eq('scope', 'home').limit(8)
-    setHighlights((hlData || []) as any)
+    setHighlights(([...(hlData || [])].sort(() => Math.random() - 0.5)) as any)
 
     const { data: newData } = await supabase
       .from('companies')

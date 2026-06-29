@@ -697,7 +697,7 @@ export default function PainelPage() {
               {company.status==='active'?'● Ativa':'⏳ Pendente'}
             </span>
           </div>
-          {companies.length > 1 && (
+          {companies.length >= 1 && (
             <div style={{padding:'8px 12px',borderBottom:'1px solid #222'}}>
               <div style={{fontSize:10,color:'#555',fontWeight:700,letterSpacing:1,marginBottom:6}}>EMPRESAS</div>
               {companies.map(c => (

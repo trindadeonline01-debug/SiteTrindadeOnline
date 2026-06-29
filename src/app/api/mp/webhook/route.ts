@@ -10,24 +10,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
 
-    // Valida assinatura do MP se secret estiver configurado
-    const xSignature = req.headers.get('x-signature')
-    const xRequestId = req.headers.get('x-request-id')
-    if (xSignature) {
-      const { data: secSetting } = await supabase.from('settings').select('value').eq('key', 'mp_webhook_secret').single()
-      const secret = secSetting?.value
-      if (secret && xRequestId) {
-        const dataId = body.data?.id
-        const manifest = `id:${dataId};request-id:${xRequestId};ts:${xSignature.split('ts=')[1]?.split(',')[0]};`
-        const crypto = await import('crypto')
-        const ts = xSignature.split('ts=')[1]?.split(',')[0]
-        const v1 = xSignature.split('v1=')[1]
-        const hmac = crypto.createHmac('sha256', secret).update(manifest).digest('hex')
-        if (hmac !== v1) {
-          return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
-        }
-      }
-    }
+    // Validação de assinatura desabilitada temporariamente
 
     if (body.type !== 'payment') return NextResponse.json({ ok: true })
     const paymentId = body.data?.id

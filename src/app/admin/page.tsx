@@ -71,6 +71,9 @@ export default function AdminPage() {
   const [bannerCurrentImageMobile, setBannerCurrentImageMobile] = useState<string|null>(null)
   const [uploadProgress, setUploadProgress]         = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [mpToken, setMpToken] = useState('')
+  const [mpTokenSaving, setMpTokenSaving] = useState(false)
+  const [mpTokenLoaded, setMpTokenLoaded] = useState(false)
   const fileInputRefMobile = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -85,7 +88,7 @@ export default function AdminPage() {
 
   async function loadAll() {
     setLoading(true)
-    await Promise.all([loadStats(), loadCompanies(), loadUsers(), loadSearches(), loadHighlights(), loadReports(), loadBanners()])
+    await Promise.all([loadStats(), loadCompanies(), loadUsers(), loadSearches(), loadHighlights(), loadReports(), loadBanners(), loadSettings()])
     setLoading(false)
   }
 
@@ -190,6 +193,21 @@ export default function AdminPage() {
     const r = (data || []) as Report[]
     setReports(r)
     setRepCount(r.filter(x => !x.resolved).length)
+  }
+
+  async function loadSettings() {
+    const { data } = await supabase.from('settings').select('key,value')
+    if (data) {
+      const mp = data.find((s: any) => s.key === 'mp_access_token')
+      if (mp) { setMpToken(mp.value || ''); setMpTokenLoaded(true) }
+    }
+  }
+
+  async function saveMpToken() {
+    setMpTokenSaving(true)
+    await supabase.from('settings').upsert({ key: 'mp_access_token', value: mpToken, updated_at: new Date().toISOString() }, { onConflict: 'key' })
+    showToast('Token salvo!')
+    setMpTokenSaving(false)
   }
 
   async function loadBanners() {
@@ -545,6 +563,7 @@ export default function AdminPage() {
             { id: 'usuarios',  icon: '👥', label: 'Usuários' },
             { id: 'buscas',    icon: '🔍', label: 'Buscas' },
             { id: 'atividade', icon: '⚡', label: 'Atividade' },
+    { id: 'configuracoes', icon: '⚙️', label: 'Configurações' },
           ].map(n => (
             <div
               key={n.id}
@@ -575,6 +594,7 @@ export default function AdminPage() {
               {tab === 'destaques' && 'Destaques'}
               {tab === 'denuncias' && 'Denúncias'}
               {tab === 'banners'   && 'Banners da Home'}
+              {tab === 'configuracoes' && 'Configurações'}
             </div>
             <div className="topbar-date">{new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}</div>
           </div>
@@ -1171,6 +1191,45 @@ export default function AdminPage() {
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* ── CONFIGURAÇÕES ── */}
+            {!loading && tab === 'configuracoes' && (
+              <div style={{maxWidth:600}}>
+                <div className="section-card">
+                  <div className="section-hdr">
+                    <span className="section-title">💳 MERCADO PAGO</span>
+                  </div>
+                  <div style={{padding:'20px 24px'}}>
+                    <div style={{fontSize:13,color:'#666',marginBottom:16,lineHeight:1.6}}>
+                      Cole aqui o <strong>Access Token de produção</strong> do Mercado Pago.<br/>
+                      Encontre em: <span style={{color:'#C9951A'}}>mercadopago.com.br/developers → Credenciais de produção</span>
+                    </div>
+                    <div className="field">
+                      <label>Access Token</label>
+                      <input
+                        type="password"
+                        value={mpToken}
+                        onChange={e => setMpToken(e.target.value)}
+                        placeholder="APP_USR-..."
+                        style={{fontFamily:'monospace',fontSize:12}}
+                      />
+                    </div>
+                    {mpToken && (
+                      <div style={{fontSize:11,color:'#0F8050',marginBottom:12}}>
+                        ✓ Token configurado — {mpToken.substring(0,20)}...
+                      </div>
+                    )}
+                    <button
+                      onClick={saveMpToken}
+                      disabled={mpTokenSaving}
+                      style={{padding:'10px 24px',background:'#C9951A',color:'#fff',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',opacity:mpTokenSaving?0.6:1}}
+                    >
+                      {mpTokenSaving ? 'Salvando...' : 'Salvar token'}
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
 

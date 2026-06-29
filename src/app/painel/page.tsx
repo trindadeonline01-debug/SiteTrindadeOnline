@@ -126,10 +126,10 @@ export default function PainelPage() {
     if (!company) return
     setPixModal(p => ({ ...p, open: true, loading: true, plan, copied: false, qr_code_image: null, pix_copy_paste: null }))
     try {
-      const res = await fetch('/api/asaas/create-charge', {
+      const res = await fetch('/api/mp/create-charge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan, company_id: company.id, owner_name: ownerName, owner_email: ownerEmail, cpf_cnpj: company.cpf_cnpj || '' })
+        body: JSON.stringify({ plan, company_id: company.id, owner_email: ownerEmail })
       })
       const data = await res.json()
       if (data.error) { showToast('Erro: ' + data.error); setPixModal(p => ({ ...p, open: false, loading: false })); return }

@@ -43,6 +43,8 @@ export default function PainelPage() {
   const [replyText, setReplyText]   = useState('')
   const [ownerEmail, setOwnerEmail] = useState('')
   const [ownerName, setOwnerName]   = useState('')
+  const [hlModal, setHlModal] = useState({ open:false, loading:false, level:'', days:0, value:0, qr_code_image:null as string|null, pix_copy_paste:null as string|null, payment_id:null as string|null, copied:false, confirmed:false })
+
   const [pixModal, setPixModal] = useState({ open:false, loading:false, plan:'', value:0, qr_code_image:null as string|null, pix_copy_paste:null as string|null, payment_id:null as string|null, copied:false, confirmed:false })
 
   const [editNome, setEditNome]               = useState('')
@@ -120,6 +122,39 @@ export default function PainelPage() {
       setHighlights(highs || [])
     }
     setLoading(false)
+  }
+
+  async function assinarDestaque(level: string, days: number) {
+    if (!company) return
+    setHlModal(p => ({ ...p, open: true, loading: true, level, days, copied: false, qr_code_image: null, pix_copy_paste: null, confirmed: false }))
+    try {
+      const res = await fetch('/api/mp/create-highlight', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ level, days, company_id: company.id, owner_email: ownerEmail })
+      })
+      const data = await res.json()
+      if (data.error) { showToast('Erro: ' + data.error); setHlModal(p => ({ ...p, open: false, loading: false })); return }
+      setHlModal(p => ({ ...p, loading: false, value: data.value, qr_code_image: data.qr_code_image, pix_copy_paste: data.pix_copy_paste, payment_id: data.payment_id }))
+      // Polling
+      const pollInterval = setInterval(async () => {
+        try {
+          const { data: hls } = await supabase.from('highlights').select('id').eq('company_id', company.id).eq('status','active').order('created_at',{ascending:false}).limit(1)
+          if (hls && hls.length > 0) {
+            clearInterval(pollInterval)
+            setHlModal(p => ({ ...p, confirmed: true }))
+          }
+        } catch {}
+      }, 4000)
+      setTimeout(() => clearInterval(pollInterval), 600000)
+    } catch { showToast('Erro ao gerar Pix'); setHlModal(p => ({ ...p, open: false, loading: false })) }
+  }
+
+  function copiarPixHL() {
+    if (!hlModal.pix_copy_paste) return
+    navigator.clipboard.writeText(hlModal.pix_copy_paste)
+    setHlModal(p => ({ ...p, copied: true }))
+    setTimeout(() => setHlModal(p => ({ ...p, copied: false })), 3000)
   }
 
   async function assinar(plan: string) {
@@ -536,6 +571,51 @@ export default function PainelPage() {
         .pt-footer-note{text-align:center;font-size:12px;color:#BBB;margin-top:24px;padding-bottom:8px;}
       `}</style>
 
+      {hlModal.open && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+          <div style={{background:'#fff',borderRadius:20,padding:28,maxWidth:400,width:'100%',textAlign:'center'}}>
+            {hlModal.confirmed ? (
+              <>
+                <div style={{fontSize:56,marginBottom:12}}>🎉</div>
+                <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:24,color:'#0F8050',letterSpacing:1,marginBottom:8}}>DESTAQUE ATIVADO!</div>
+                <div style={{fontSize:14,color:'#555',marginBottom:20,lineHeight:1.6}}>Seu destaque foi ativado com sucesso!</div>
+                <button onClick={() => { setHlModal(p => ({ ...p, open: false })); window.location.reload() }}
+                  style={{width:'100%',padding:'13px',background:'#C9951A',color:'#fff',border:'none',borderRadius:12,fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                  Ver meus destaques →
+                </button>
+              </>
+            ) : (
+              <>
+                <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,color:'#111',letterSpacing:1,marginBottom:4}}>PAGUE VIA PIX</div>
+                <div style={{fontSize:13,color:'#888',marginBottom:16}}>Destaque {hlModal.level === 'home' ? 'Home' : hlModal.level === 'category' ? 'Categoria' : 'Subcategoria'} — {hlModal.days} dias — R$ {hlModal.value?.toFixed(2)}</div>
+                <div style={{background:'#FEF3E2',border:'1.5px solid #C9951A',borderRadius:12,padding:'10px 16px',marginBottom:16,display:'flex',alignItems:'center',gap:10,textAlign:'left'}}>
+                  <span style={{fontSize:20}}>✅</span>
+                  <div>
+                    <div style={{fontSize:10,color:'#854F0B',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.5px'}}>Favorecido</div>
+                    <div style={{fontSize:13,color:'#111',fontWeight:600}}>Flávia Andrade Faria Grion</div>
+                  </div>
+                </div>
+                {hlModal.loading ? (
+                  <div style={{padding:'40px 0',color:'#AAA',fontSize:13}}>Gerando QR Code...</div>
+                ) : (
+                  <>
+                    {hlModal.qr_code_image && <img src={`data:image/png;base64,${hlModal.qr_code_image}`} alt="QR Code" style={{width:200,height:200,margin:'0 auto 12px',display:'block',borderRadius:12,border:'1px solid #eee'}} />}
+                    <button onClick={copiarPixHL} style={{width:'100%',padding:'12px',background:hlModal.copied?'#0F8050':'#111',color:'#fff',border:'none',borderRadius:12,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',marginBottom:8}}>
+                      {hlModal.copied ? '✓ Copiado!' : '📋 Copiar código Pix'}
+                    </button>
+                    <div style={{background:'#F5F5F5',borderRadius:10,padding:'10px 14px',marginBottom:8,display:'flex',alignItems:'center',gap:8,justifyContent:'center'}}>
+                      <div style={{width:8,height:8,borderRadius:'50%',background:'#C9951A'}}/>
+                      <div style={{fontSize:12,color:'#666'}}>Aguardando pagamento...</div>
+                    </div>
+                  </>
+                )}
+                <button onClick={() => setHlModal(p => ({ ...p, open: false }))} style={{width:'100%',padding:'10px',background:'transparent',color:'#AAA',border:'1px solid #ddd',borderRadius:12,fontSize:13,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>Fechar</button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {pixModal.open && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
           <div style={{background:'#fff',borderRadius:20,padding:28,maxWidth:400,width:'100%',textAlign:'center'}}>
@@ -710,7 +790,7 @@ export default function PainelPage() {
                     <div style={{fontWeight:600,fontSize:14,marginBottom:3}}>{d.label}</div>
                     <div style={{fontSize:12,color:'#AAA',marginBottom:12}}>{d.desc}</div>
                     {['7 dias','15 dias','30 dias'].map((dur,i) => (
-                      <button key={i} onClick={()=>showToast('Em breve: pagamento via Pix')} style={{width:'100%',padding:'9px',marginBottom:7,borderRadius:9,border:'1px solid #E0DDD8',background:'#fff',fontSize:12,cursor:'pointer',fontFamily:'Inter,sans-serif',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                      <button key={i} onClick={()=>assinarDestaque(d.level, [7,15,30][i])} style={{width:'100%',padding:'9px',marginBottom:7,borderRadius:9,border:'1px solid #E0DDD8',background:'#fff',fontSize:12,cursor:'pointer',fontFamily:'Inter,sans-serif',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                         <span style={{fontWeight:500}}>{dur}</span>
                         <span style={{color:'#C9951A',fontWeight:600}}>{d.prices[i]}</span>
                       </button>

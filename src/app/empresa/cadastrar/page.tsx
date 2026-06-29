@@ -36,6 +36,7 @@ export default function EmpresaCadastrarPage() {
   const [nome, setNome]                 = useState('')
   const [categoryId, setCategoryId]     = useState('')
   const [selectedSubs, setSelectedSubs] = useState<string[]>([])
+  const [cpfCnpj, setCpfCnpj]             = useState('')
   const [endereco, setEndereco]         = useState('')
 
   // Etapa 2
@@ -338,6 +339,10 @@ export default function EmpresaCadastrarPage() {
                     <div className="field-hint">Nome exibido em letras maiúsculas automaticamente</div>
                   </div>
 
+                  <div className="field">
+                    <label>CPF / CNPJ *</label>
+                    <input type="text" placeholder="000.000.000-00 ou 00.000.000/0001-00" value={cpfCnpj} onChange={e => setCpfCnpj(e.target.value)} />
+                  </div>
                   <div className="field">
                     <label>Categoria *</label>
                     <select value={categoryId} onChange={e => { setCategoryId(e.target.value); setSelectedSubs([]) }}>

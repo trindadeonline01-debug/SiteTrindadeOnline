@@ -929,24 +929,31 @@ export default function PainelPage() {
                         <div className="subcat-search-wrap">
                           <input
                             type="text"
-                            placeholder="🔍 Buscar subcategoria..."
+                            placeholder="🔍 Buscar ou escolha da lista..."
                             value={subcatSearch}
                             onChange={e => setSubcatSearch(e.target.value)}
+                            onFocus={() => setSubcatSearch(subcatSearch || ' ')}
+                            onBlur={() => setTimeout(() => setSubcatSearch(''), 200)}
                             style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:11,fontSize:13,fontFamily:"'Inter',sans-serif",outline:'none'}}
                           />
                           {subcatSearch && (
                             <div className="subcat-dropdown">
-                              {allSubcats.filter(s => s.category_id === editCategoryId && s.name.toLowerCase().includes(subcatSearch.toLowerCase())).map(s => {
-                                const selected = editSubcatIds.includes(s.id)
-                                const maxed = editSubcatIds.length >= 3 && !selected
-                                return (
-                                  <div key={s.id} className="subcat-option" style={{color: maxed ? '#CCC' : '#333', cursor: maxed ? 'not-allowed' : 'pointer'}}
-                                    onClick={() => { if (!maxed) { setEditSubcatIds(prev => prev.includes(s.id) ? prev.filter(x => x !== s.id) : [...prev, s.id]); setSubcatSearch('') } }}>
-                                    <span>{s.emoji} {s.name}</span>
-                                    {selected ? <span style={{color:'#C9951A',fontWeight:700}}>✓</span> : !maxed ? <span style={{color:'#AAA'}}>+ Adicionar</span> : null}
-                                  </div>
-                                )
+                              {allSubcats
+                                .filter(s => s.category_id === editCategoryId && s.name.toLowerCase().includes(subcatSearch.trim().toLowerCase()))
+                                .map(s => {
+                                  const selected = editSubcatIds.includes(s.id)
+                                  const maxed = editSubcatIds.length >= 3 && !selected
+                                  return (
+                                    <div key={s.id} className="subcat-option" style={{color: maxed ? '#CCC' : '#333', cursor: maxed ? 'not-allowed' : 'pointer', background: selected ? '#FEF3E2' : undefined}}
+                                      onMouseDown={() => { if (!maxed) { setEditSubcatIds(prev => prev.includes(s.id) ? prev.filter(x => x !== s.id) : [...prev, s.id]) } }}>
+                                      <span>{s.emoji} {s.name}</span>
+                                      {selected ? <span style={{color:'#C9951A',fontWeight:700}}>✓ Selecionado</span> : !maxed ? <span style={{color:'#AAA',fontSize:11}}>+ Adicionar</span> : <span style={{fontSize:11,color:'#CCC'}}>máx. 3</span>}
+                                    </div>
+                                  )
                               })}
+                              {allSubcats.filter(s => s.category_id === editCategoryId && s.name.toLowerCase().includes(subcatSearch.trim().toLowerCase())).length === 0 && (
+                                <div style={{padding:'12px 14px',fontSize:13,color:'#AAA'}}>Nenhuma subcategoria encontrada</div>
+                              )}
                             </div>
                           )}
                           {editSubcatIds.length > 0 && (

@@ -34,6 +34,7 @@ const daysLeft = (s: string) => Math.max(0, Math.ceil((new Date(s).getTime() - D
 export default function PainelPage() {
   const [tab, setTab]               = useState<'painel'|'destaques'|'avaliacoes'|'perfil'|'plano'>('painel')
   const [company, setCompany]       = useState<Company|null>(null)
+  const [companies, setCompanies]   = useState<Company[]>([])
   const [reviews, setReviews]       = useState<Review[]>([])
   const [highlights, setHighlights] = useState<Highlight[]>([])
   const [loading, setLoading]       = useState(true)
@@ -77,10 +78,14 @@ export default function PainelPage() {
 
   async function loadData(userId: string) {
     setLoading(true)
-    const { data: comp } = await supabase
+    const { data: comps } = await supabase
       .from('companies')
       .select('*, category_id, category:categories(name,emoji), photos:company_photos(id,url,order), hours:company_hours(id,label,hours,order)')
-      .eq('owner_id', userId).single()
+      .eq('owner_id', userId)
+      .order('created_at', {ascending: true})
+    
+    const comp = comps?.[0] || null
+    setCompanies((comps || []) as any)
 
     if (comp) {
       setCompany(comp)
@@ -692,6 +697,22 @@ export default function PainelPage() {
               {company.status==='active'?'● Ativa':'⏳ Pendente'}
             </span>
           </div>
+          {companies.length > 1 && (
+            <div style={{padding:'8px 12px',borderBottom:'1px solid #222'}}>
+              <div style={{fontSize:10,color:'#555',fontWeight:700,letterSpacing:1,marginBottom:6}}>EMPRESAS</div>
+              {companies.map(c => (
+                <div key={c.id} onClick={() => { setCompany(c); setTab('painel') }}
+                  style={{padding:'7px 10px',borderRadius:8,cursor:'pointer',marginBottom:3,fontSize:12,fontWeight:600,
+                    background: company?.id === c.id ? 'rgba(201,149,26,.15)' : 'transparent',
+                    color: company?.id === c.id ? '#C9951A' : '#888',
+                    border: company?.id === c.id ? '1px solid rgba(201,149,26,.3)' : '1px solid transparent'
+                  }}>
+                  {c.name}
+                </div>
+              ))}
+              <a href="/empresa/cadastrar" style={{display:'block',padding:'7px 10px',fontSize:11,color:'#555',textDecoration:'none',marginTop:4}}>+ Nova empresa</a>
+            </div>
+          )}
           <nav className="sb-nav">
             {navItems.map(n => (
               <div key={n.id} className={`sb-item ${tab===n.id?'on':''}`} onClick={() => setTab(n.id as any)}>
@@ -716,6 +737,12 @@ export default function PainelPage() {
             </div>
             <div style={{display:'flex',gap:12,alignItems:'center'}}>
               <a href="/" style={{fontSize:12,color:'#C9951A',textDecoration:'none',fontWeight:600}}>← Ver site</a>
+              {companies.length > 1 && (
+                <select value={company?.id} onChange={e => setCompany(companies.find(c => c.id === e.target.value) || null)}
+                  style={{fontSize:11,border:'1px solid #333',borderRadius:8,padding:'4px 8px',background:'#222',color:'#C9951A',maxWidth:120}}>
+                  {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              )}
               <a href="/sair" style={{fontSize:12,color:'#555',textDecoration:'none'}}>Sair</a>
             </div>
           </div>

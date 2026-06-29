@@ -134,15 +134,22 @@ export default function PainelPage() {
       const data = await res.json()
       if (data.error) { showToast('Erro: ' + data.error); setPixModal(p => ({ ...p, open: false, loading: false })); return }
       setPixModal(p => ({ ...p, loading: false, value: data.value, qr_code_image: data.qr_code_image, pix_copy_paste: data.pix_copy_paste, payment_id: data.payment_id }))
-      // Polling: verifica pagamento a cada 5s
+      // Polling: verifica pagamento a cada 4s direto na API do MP
       const pollInterval = setInterval(async () => {
-        const { data: comp } = await supabase.from('companies').select('plan, plan_ends_at, trial_ends_at').eq('id', company.id).single()
-        if (comp?.plan === 'paid') {
-          clearInterval(pollInterval)
-          setPixModal(p => ({ ...p, confirmed: true }))
-          setCompany(prev => prev ? { ...prev, plan: 'paid', plan_ends_at: comp.plan_ends_at } : prev)
-        }
-      }, 5000)
+        try {
+          const res = await fetch('/api/mp/check-payment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ payment_id: data.payment_id, company_id: company.id })
+          })
+          const result = await res.json()
+          if (result.paid) {
+            clearInterval(pollInterval)
+            setPixModal(p => ({ ...p, confirmed: true }))
+            setCompany(prev => prev ? { ...prev, plan: 'paid', plan_ends_at: result.plan_ends_at } : prev)
+          }
+        } catch {}
+      }, 4000)
       // Para o polling após 10 minutos
       setTimeout(() => clearInterval(pollInterval), 600000)
     } catch { showToast('Erro ao gerar Pix'); setPixModal(p => ({ ...p, open: false, loading: false })) }

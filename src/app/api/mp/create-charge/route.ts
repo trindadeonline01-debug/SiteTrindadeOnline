@@ -46,11 +46,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: data.message || 'Erro ao criar pagamento', detail: data }, { status: 500 })
     }
 
-    await supabase.from('payments').insert({
+    const { error: insertError } = await supabase.from('payments').insert({
       company_id,
-      asaas_payment_id: String(data.id),
+      payment_id: String(data.id),
       plan, value: planData.value, days: planData.days, status: 'pending',
     })
+    if (insertError) console.error('INSERT ERROR:', insertError)
 
     const pixData = data.point_of_interaction?.transaction_data
     return NextResponse.json({

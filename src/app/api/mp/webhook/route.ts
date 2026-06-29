@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     const payment = await res.json()
     if (payment.status !== 'approved') return NextResponse.json({ ok: true })
 
-    const { data: rec } = await supabase.from('payments').select('*').eq('asaas_payment_id', String(paymentId)).single()
+    const { data: rec } = await supabase.from('payments').select('*').eq('payment_id', String(paymentId)).single()
 
     if (!rec) {
       const ext = JSON.parse(payment.external_reference || '{}')

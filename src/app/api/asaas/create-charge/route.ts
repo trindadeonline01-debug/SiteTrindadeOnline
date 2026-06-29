@@ -28,11 +28,19 @@ export async function POST(req: NextRequest) {
     const searchData = await searchRes.json()
     if (searchData.data?.length > 0) {
       asaasCustomerId = searchData.data[0].id
+      // Atualiza CPF se não tiver
+      if (!searchData.data[0].cpfCnpj && cpf_cnpj) {
+        await fetch(`${ASAAS_BASE_URL}/customers/${asaasCustomerId}`, {
+          method: 'PUT',
+          headers: { 'access_token': ASAAS_API_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cpfCnpj: cpf_cnpj.replace(/\D/g, '') })
+        })
+      }
     } else {
       const createRes = await fetch(`${ASAAS_BASE_URL}/customers`, {
         method: 'POST',
         headers: { 'access_token': ASAAS_API_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: owner_name || 'Lojista', email: owner_email, cpfCnpj: cpf_cnpj || undefined })
+        body: JSON.stringify({ name: owner_name || 'Lojista', email: owner_email, cpfCnpj: cpf_cnpj ? cpf_cnpj.replace(/\D/g, '') : undefined })
       })
       const customerData = await createRes.json()
       asaasCustomerId = customerData.id

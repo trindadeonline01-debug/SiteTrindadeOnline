@@ -148,6 +148,32 @@ export default function PainelPage() {
     } catch { showToast('Erro ao gerar Pix'); setPixModal(p => ({ ...p, open: false, loading: false })) }
   }
 
+  async function verificarPagamento() {
+    if (!company || !pixModal.payment_id) return
+    try {
+      const res = await fetch('/api/mp/check-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payment_id: pixModal.payment_id, company_id: company.id })
+      })
+      const data = await res.json()
+      if (data.paid) {
+        setPixModal(p => ({ ...p, confirmed: true }))
+        setCompany(prev => prev ? { ...prev, plan: 'paid', plan_ends_at: data.plan_ends_at } : prev)
+      } else {
+        showToast('Pagamento ainda não confirmado. Aguarde alguns segundos.')
+      }
+    } catch {
+      const { data: comp } = await supabase.from('companies').select('plan, plan_ends_at').eq('id', company.id).single()
+      if (comp?.plan === 'paid') {
+        setPixModal(p => ({ ...p, confirmed: true }))
+        setCompany(prev => prev ? { ...prev, plan: 'paid', plan_ends_at: comp.plan_ends_at } : prev)
+      } else {
+        showToast('Pagamento ainda não confirmado. Aguarde alguns segundos.')
+      }
+    }
+  }
+
   function copiarPix() {
     if (!pixModal.pix_copy_paste) return
     navigator.clipboard.writeText(pixModal.pix_copy_paste)

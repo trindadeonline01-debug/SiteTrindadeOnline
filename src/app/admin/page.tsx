@@ -90,6 +90,25 @@ export default function AdminPage() {
   async function loadAll() {
     setLoading(true)
     await Promise.all([loadStats(), loadCompanies(), loadUsers(), loadSearches(), loadHighlights(), loadReports(), loadBanners(), loadSettings()])
+
+    // Realtime — atualiza automaticamente
+    const channel = supabase
+      .channel('admin-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'companies' }, () => {
+        loadStats(); loadCompanies()
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => {
+        loadStats()
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'listing_reports' }, () => {
+        loadReports()
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'highlights' }, () => {
+        loadHighlights()
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
     setLoading(false)
   }
 

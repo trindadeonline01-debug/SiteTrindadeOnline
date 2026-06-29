@@ -64,7 +64,6 @@ export default function EmpresaCadastrarPage() {
   }, [])
 
   const [subcatSearch, setSubcatSearch] = useState('')
-  const [subcatSearch, setSubcatSearch] = useState('')
   const filteredSubs = subcategories.filter(s => s.category_id === categoryId)
   const filteredSubsSearch = filteredSubs.filter(s => s.name.toLowerCase().includes(subcatSearch.toLowerCase()))
 

@@ -937,7 +937,8 @@ export default function PainelPage() {
 
           {/* DESTAQUES */}
           {tab === 'destaques' && (
-            <div className="content">
+            <div className="content-plano">
+              <div className="plano-inner">
               {activeHighlights.length > 0 && (
                 <>
                   <div className="section-label">DESTAQUES ATIVOS</div>
@@ -957,26 +958,7 @@ export default function PainelPage() {
                   ))}
                 </>
               )}
-              <div className="section-label">CRIAR NOVO DESTAQUE</div>
-              <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12}}>
-                {[
-                  {level:'home',    label:'Destaque Home',         desc:'Aparece na página inicial', prices:['R$ 49,90','R$ 89,90','R$ 159,90']},
-                  {level:'category',label:'Destaque Categoria',    desc:'Topo da sua categoria',     prices:['R$ 29,90','R$ 54,90','R$ 99,90']},
-                  {level:'subcat',  label:'Destaque Subcategoria', desc:'Topo da subcategoria',      prices:['R$ 14,90','R$ 27,90','R$ 49,90']},
-                ].map(d => (
-                  <div key={d.level} style={{background:'#FAFAF8',border:'0.5px solid #E0DDD8',borderRadius:14,padding:16}}>
-                    <div style={{fontWeight:600,fontSize:14,marginBottom:3}}>{d.label}</div>
-                    <div style={{fontSize:12,color:'#AAA',marginBottom:12}}>{d.desc}</div>
-                    {['7 dias','15 dias','30 dias'].map((dur,i) => (
-                      <button key={i} onClick={()=>assinarDestaque(d.level, [7,15,30][i])} style={{width:'100%',padding:'9px',marginBottom:7,borderRadius:9,border:'1px solid #E0DDD8',background:'#fff',fontSize:12,cursor:'pointer',fontFamily:'Inter,sans-serif',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                        <span style={{fontWeight:500}}>{dur}</span>
-                        <span style={{color:'#C9951A',fontWeight:600}}>{d.prices[i]}</span>
-                      </button>
-                    ))}
-                  </div>
-                ))}
-              </div>
-              <div style={{textAlign:'center',fontSize:11,color:'#AAA',marginTop:8}}>Pagamento via Pix · Ativa na hora</div>
+
               {/* BANNER DA HOME + DESTAQUES */}
               <div className="section-label" style={{marginTop:24}}>BANNER DA HOME</div>
 <p style={{fontSize:13,color:'#999',marginBottom:16}}>O espaço mais visto do site — sua empresa antes de tudo</p>
@@ -1120,6 +1102,7 @@ export default function PainelPage() {
             </div>
           )}
 
+              </div>
           {/* AVALIAÇÕES */}
           {tab === 'avaliacoes' && (
             <div className="content">

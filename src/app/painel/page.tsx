@@ -548,6 +548,7 @@ export default function PainelPage() {
                     <div style={{fontSize:11,color:'#AAA',marginBottom:16}}>O plano será ativado automaticamente após o pagamento</div>
                   </>
                 )}
+                <button onClick={verificarPagamento} style={{width:'100%',padding:'12px',background:'#0F8050',color:'#fff',border:'none',borderRadius:12,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',marginBottom:8}}>✓ Já paguei — verificar agora</button>
                 <button onClick={() => setPixModal(p => ({ ...p, open: false }))} style={{width:'100%',padding:'10px',background:'transparent',color:'#AAA',border:'1px solid #ddd',borderRadius:12,fontSize:13,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>Fechar</button>
               </>
             )}

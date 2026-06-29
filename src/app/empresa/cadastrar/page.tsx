@@ -492,7 +492,7 @@ export default function EmpresaCadastrarPage() {
                         style={{border:'none',background:'transparent',outline:'none',fontSize:13,fontFamily:"'Inter',sans-serif",minWidth:120,flex:1}}
                       />
                     </div>
-                    <div style={{fontSize:11,color:'#AAA',marginTop:4}}>{tags.length}/30 tags
+                    <div style={{fontSize:11,color:'#AAA',marginTop:4}}>{tags.length}/30 tags</div>
                   </div>
 
                   <div className="note-box">

@@ -9,7 +9,7 @@ type Company = {
   external_link: string; external_link_label: string
   avg_rating: number; total_reviews: number
   views_count: number; whatsapp_clicks: number; link_clicks: number
-  category_id?: string; trial_ends_at?: string
+  category_id?: string; trial_ends_at?: string; plan_ends_at?: string
   category?: { name: string; emoji: string }
   photos?: { id: string; url: string; order: number }[]
   hours?: { id: string; label: string; hours: string; order: number }[]
@@ -41,6 +41,9 @@ export default function PainelPage() {
   const [toast, setToast]           = useState('')
   const [replyId, setReplyId]       = useState<string|null>(null)
   const [replyText, setReplyText]   = useState('')
+  const [ownerEmail, setOwnerEmail] = useState('')
+  const [ownerName, setOwnerName]   = useState('')
+  const [pixModal, setPixModal] = useState({ open:false, loading:false, plan:'', value:0, qr_code_image:null as string|null, pix_copy_paste:null as string|null, payment_id:null as string|null, copied:false })
 
   const [editNome, setEditNome]               = useState('')
   const [editCategoryId, setEditCategoryId]   = useState('')
@@ -59,8 +62,10 @@ export default function PainelPage() {
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { window.location.href = '/login'; return }
-      const { data: profile } = await supabase.from('profiles').select('user_type').eq('id', session.user.id).single()
+      const { data: profile } = await supabase.from('profiles').select('user_type, name').eq('id', session.user.id).single()
       if (profile?.user_type === 'admin') { window.location.href = '/admin'; return }
+      setOwnerEmail(session.user.email || '')
+      setOwnerName(profile?.name || '')
       if (profile?.user_type !== 'company') { window.location.href = '/'; return }
       loadData(session.user.id)
     })
@@ -113,6 +118,28 @@ export default function PainelPage() {
       setHighlights(highs || [])
     }
     setLoading(false)
+  }
+
+  async function assinar(plan: string) {
+    if (!company) return
+    setPixModal(p => ({ ...p, open: true, loading: true, plan, copied: false, qr_code_image: null, pix_copy_paste: null }))
+    try {
+      const res = await fetch('/api/asaas/create-charge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan, company_id: company.id, owner_name: ownerName, owner_email: ownerEmail })
+      })
+      const data = await res.json()
+      if (data.error) { showToast('Erro: ' + data.error); setPixModal(p => ({ ...p, open: false, loading: false })); return }
+      setPixModal(p => ({ ...p, loading: false, value: data.value, qr_code_image: data.qr_code_image, pix_copy_paste: data.pix_copy_paste, payment_id: data.payment_id }))
+    } catch { showToast('Erro ao gerar Pix'); setPixModal(p => ({ ...p, open: false, loading: false })) }
+  }
+
+  function copiarPix() {
+    if (!pixModal.pix_copy_paste) return
+    navigator.clipboard.writeText(pixModal.pix_copy_paste)
+    setPixModal(p => ({ ...p, copied: true }))
+    setTimeout(() => setPixModal(p => ({ ...p, copied: false })), 3000)
   }
 
   async function saveProfile() {
@@ -462,6 +489,29 @@ export default function PainelPage() {
         .pt-footer-note{text-align:center;font-size:12px;color:#BBB;margin-top:24px;padding-bottom:8px;}
       `}</style>
 
+      {pixModal.open && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+          <div style={{background:'#fff',borderRadius:20,padding:28,maxWidth:400,width:'100%',textAlign:'center'}}>
+            <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,color:'#111',letterSpacing:1,marginBottom:4}}>PAGUE VIA PIX</div>
+            <div style={{fontSize:13,color:'#888',marginBottom:20}}>{pixModal.plan === 'mensal' ? 'Plano Mensal — R$ 29,90' : pixModal.plan === 'trimestral' ? 'Plano Trimestral — R$ 79,90' : 'Plano Semestral — R$ 149,90'}</div>
+            {pixModal.loading ? (
+              <div style={{padding:'40px 0',color:'#AAA',fontSize:13}}>Gerando QR Code...</div>
+            ) : (
+              <>
+                {pixModal.qr_code_image && (
+                  <img src={`data:image/png;base64,${pixModal.qr_code_image}`} alt="QR Code Pix" style={{width:220,height:220,margin:'0 auto 16px',display:'block',borderRadius:12,border:'1px solid #eee'}} />
+                )}
+                <div style={{fontSize:12,color:'#888',marginBottom:10}}>Ou copie o código Pix:</div>
+                <button onClick={copiarPix} style={{width:'100%',padding:'12px',background: pixModal.copied ? '#0F8050' : '#111',color:'#fff',border:'none',borderRadius:12,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',marginBottom:12,transition:'background .2s'}}>
+                  {pixModal.copied ? '✓ Código copiado!' : '📋 Copiar código Pix'}
+                </button>
+                <div style={{fontSize:11,color:'#AAA',marginBottom:16}}>Após o pagamento, seu plano será ativado automaticamente</div>
+              </>
+            )}
+            <button onClick={() => setPixModal(p => ({ ...p, open: false }))} style={{width:'100%',padding:'10px',background:'transparent',color:'#AAA',border:'1px solid #ddd',borderRadius:12,fontSize:13,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>Fechar</button>
+          </div>
+        </div>
+      )}
       {toast && <div className="toast">✓ {toast}</div>}
 
       <div className="painel-layout">
@@ -824,20 +874,20 @@ export default function PainelPage() {
                   <div className="pt-plan-opt">
                     <div className="pt-plan-period">Mensal</div>
                     <div className="pt-plan-price">R$ 29,90<span>/mês</span></div>
-                    <button className="pt-btn-assinar off" onClick={()=>showToast('Em breve: pagamento via Pix')}>Assinar</button>
+                    <button className="pt-btn-assinar off" onClick={() => assinar('mensal')}>Assinar</button>
                   </div>
                   <div className="pt-plan-opt popular">
                     <div className="pt-popular-badge">MAIS POPULAR</div>
                     <div className="pt-plan-period">Trimestral</div>
                     <div className="pt-plan-price">R$ 79,90<span>/3 meses</span></div>
                     <div className="pt-plan-economy">↓ Economize R$9,80</div>
-                    <button className="pt-btn-assinar" onClick={()=>showToast('Em breve: pagamento via Pix')}>Assinar</button>
+                    <button className="pt-btn-assinar" onClick={() => assinar('trimestral')}>Assinar</button>
                   </div>
                   <div className="pt-plan-opt">
                     <div className="pt-plan-period">Semestral</div>
                     <div className="pt-plan-price">R$ 149,90<span>/6 meses</span></div>
                     <div className="pt-plan-economy">↓ Economize R$29,50</div>
-                    <button className="pt-btn-assinar off" onClick={()=>showToast('Em breve: pagamento via Pix')}>Assinar</button>
+                    <button className="pt-btn-assinar off" onClick={() => assinar('semestral')}>Assinar</button>
                   </div>
                 </div>
                 <p className="pt-ben-label">O que está incluído no plano</p>

@@ -57,6 +57,7 @@ export default function PainelPage() {
   const [editDesc, setEditDesc]               = useState('')
   const [editLinkUrl, setEditLinkUrl]         = useState('')
   const [editLinkLabel, setEditLinkLabel]     = useState('Ver cardápio')
+  const [subcatSearch, setSubcatSearch]         = useState('')
   const [editCpfCnpj, setEditCpfCnpj]         = useState('')
   const [editHours, setEditHours]             = useState<{label:string;hours:string}[]>([])
   const [churchHours, setChurchHours]         = useState<{day:string;manha:string;noite:string}[]>(DIAS_SEMANA.map(day=>({day,manha:'',noite:''})))
@@ -925,16 +926,43 @@ export default function PainelPage() {
                     {editCategoryId && allSubcats.filter(s=>s.category_id===editCategoryId).length > 0 && (
                       <div className="field">
                         <label>Subcategorias <span style={{fontSize:11,color:'#666',fontWeight:400}}>(selecione até 3)</span></label>
-                        <div style={{display:'flex',flexWrap:'wrap',gap:7,marginTop:4}}>
-                          {allSubcats.filter(s=>s.category_id===editCategoryId).map(s=>(
-                            <div key={s.id} onClick={()=>setEditSubcatIds(prev=>prev.includes(s.id)?prev.filter(x=>x!==s.id):prev.length<3?[...prev,s.id]:prev)}
-                              style={{padding:'5px 12px',borderRadius:20,fontSize:12,cursor:'pointer',border:'1px solid',fontFamily:'Inter,sans-serif',
-                                borderColor:editSubcatIds.includes(s.id)?'#C9951A':'#333',
-                                background:editSubcatIds.includes(s.id)?'rgba(201,149,26,.15)':'transparent',
-                                color:editSubcatIds.includes(s.id)?'#C9951A':'#888'}}>
-                              {s.emoji} {s.name}
+                        <div className="subcat-search-wrap">
+                          <input
+                            type="text"
+                            placeholder="🔍 Buscar subcategoria..."
+                            value={subcatSearch}
+                            onChange={e => setSubcatSearch(e.target.value)}
+                            style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:11,fontSize:13,fontFamily:"'Inter',sans-serif",outline:'none'}}
+                          />
+                          {subcatSearch && (
+                            <div className="subcat-dropdown">
+                              {allSubcats.filter(s => s.category_id === editCategoryId && s.name.toLowerCase().includes(subcatSearch.toLowerCase())).map(s => {
+                                const selected = editSubcatIds.includes(s.id)
+                                const maxed = editSubcatIds.length >= 3 && !selected
+                                return (
+                                  <div key={s.id} className="subcat-option" style={{color: maxed ? '#CCC' : '#333', cursor: maxed ? 'not-allowed' : 'pointer'}}
+                                    onClick={() => { if (!maxed) { setEditSubcatIds(prev => prev.includes(s.id) ? prev.filter(x => x !== s.id) : [...prev, s.id]); setSubcatSearch('') } }}>
+                                    <span>{s.emoji} {s.name}</span>
+                                    {selected ? <span style={{color:'#C9951A',fontWeight:700}}>✓</span> : !maxed ? <span style={{color:'#AAA'}}>+ Adicionar</span> : null}
+                                  </div>
+                                )
+                              })}
                             </div>
-                          ))}
+                          )}
+                          {editSubcatIds.length > 0 && (
+                            <div className="subcat-selected-wrap">
+                              {editSubcatIds.map(sid => {
+                                const s = allSubcats.find(x => x.id === sid)
+                                if (!s) return null
+                                return (
+                                  <div key={sid} className="subcat-tag">
+                                    {s.emoji} {s.name}
+                                    <button onClick={() => setEditSubcatIds(prev => prev.filter(x => x !== sid))}>×</button>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}

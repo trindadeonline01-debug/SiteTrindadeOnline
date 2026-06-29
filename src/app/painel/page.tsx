@@ -44,6 +44,10 @@ export default function PainelPage() {
   const [replyText, setReplyText]   = useState('')
   const [ownerEmail, setOwnerEmail] = useState('')
   const [ownerName, setOwnerName]   = useState('')
+  const [bannerModal, setBannerModal] = useState({ open:false, dias:0, valor:0, step:'escolha' as 'escolha'|'upload'|'ia'|'pix'|'confirmado', fileDesktop:null as File|null, fileMobile:null as File|null, descricaoIA:'', paymentId:null as string|null, qrCode:null as string|null, pixCode:null as string|null, copied:false })
+  const bannerDesktopRef = useRef<HTMLInputElement>(null)
+  const bannerMobileRef  = useRef<HTMLInputElement>(null)
+
   const [hlModal, setHlModal] = useState({ open:false, loading:false, level:'', days:0, value:0, qr_code_image:null as string|null, pix_copy_paste:null as string|null, payment_id:null as string|null, copied:false, confirmed:false })
 
   const [pixModal, setPixModal] = useState({ open:false, loading:false, plan:'', value:0, qr_code_image:null as string|null, pix_copy_paste:null as string|null, payment_id:null as string|null, copied:false, confirmed:false })
@@ -131,6 +135,26 @@ export default function PainelPage() {
       setHighlights(highs || [])
     }
     setLoading(false)
+  }
+
+  function abrirBanner(dias: number, valor: number) {
+    setBannerModal({ open:true, dias, valor, step:'escolha', fileDesktop:null, fileMobile:null, descricaoIA:'', paymentId:null, qrCode:null, pixCode:null, copied:false })
+  }
+
+  async function pagarBanner(tipo: 'upload'|'ia') {
+    if (!company) return
+    const valorTotal = tipo === 'upload' ? bannerModal.valor : bannerModal.valor + 40
+    setBannerModal(p => ({ ...p, step:'pix' }))
+    try {
+      const res = await fetch('/api/mp/create-charge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: `banner_${bannerModal.dias}d_${tipo}`, company_id: company.id, owner_email: ownerEmail, _valor_override: valorTotal })
+      })
+      const data = await res.json()
+      if (data.error) { showToast('Erro: ' + data.error); setBannerModal(p => ({ ...p, step: tipo })); return }
+      setBannerModal(p => ({ ...p, paymentId: data.payment_id, qrCode: data.qr_code_image, pixCode: data.pix_copy_paste }))
+    } catch { showToast('Erro ao gerar Pix'); setBannerModal(p => ({ ...p, step: tipo })) }
   }
 
   async function assinarDestaque(level: string, days: number) {
@@ -580,6 +604,118 @@ export default function PainelPage() {
         .pt-d-price{font-size:14px;font-weight:700;color:#C9951A;}
         .pt-footer-note{text-align:center;font-size:12px;color:#BBB;margin-top:24px;padding-bottom:8px;}
       `}</style>
+
+      {bannerModal.open && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:16,overflowY:'auto'}}>
+          <div style={{background:'#fff',borderRadius:20,padding:28,maxWidth:440,width:'100%'}}>
+
+            {bannerModal.step === 'escolha' && (
+              <>
+                <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,color:'#111',letterSpacing:1,marginBottom:4}}>BANNER DA HOME</div>
+                <div style={{fontSize:13,color:'#888',marginBottom:20}}>{bannerModal.dias} dias · R$ {bannerModal.valor.toFixed(2)}</div>
+                <div style={{fontSize:15,fontWeight:600,color:'#111',marginBottom:6}}>Você já tem o banner pronto?</div>
+                <div style={{fontSize:13,color:'#888',marginBottom:20}}>Faça o upload ou contrate a criação com inteligência artificial.</div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>
+                  <button onClick={()=>setBannerModal(p=>({...p,step:'upload'}))}
+                    style={{border:'2px solid #C9951A',borderRadius:12,padding:16,cursor:'pointer',background:'#FEF3E2',textAlign:'left'}}>
+                    <div style={{fontSize:22,marginBottom:8}}>📤</div>
+                    <div style={{fontSize:13,fontWeight:600,color:'#854F0B',marginBottom:4}}>Tenho meu banner</div>
+                    <div style={{fontSize:11,color:'#AAA'}}>Faço upload e pago</div>
+                  </button>
+                  <button onClick={()=>setBannerModal(p=>({...p,step:'ia'}))}
+                    style={{border:'1px solid #E0DDD8',borderRadius:12,padding:16,cursor:'pointer',background:'#fff',textAlign:'left'}}>
+                    <div style={{fontSize:22,marginBottom:8}}>✨</div>
+                    <div style={{fontSize:13,fontWeight:600,color:'#111',marginBottom:4}}>Criar com IA</div>
+                    <div style={{fontSize:11,color:'#AAA'}}>+R$ 40 (desktop+mobile)</div>
+                  </button>
+                </div>
+                <button onClick={()=>setBannerModal(p=>({...p,open:false}))} style={{width:'100%',padding:10,background:'transparent',color:'#AAA',border:'1px solid #ddd',borderRadius:12,fontSize:13,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>Fechar</button>
+              </>
+            )}
+
+            {bannerModal.step === 'upload' && (
+              <>
+                <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:20,color:'#111',letterSpacing:1,marginBottom:4}}>FAZER UPLOAD DO BANNER</div>
+                <div style={{fontSize:13,color:'#888',marginBottom:20}}>{bannerModal.dias} dias · R$ {bannerModal.valor.toFixed(2)}</div>
+                <div style={{background:'#FAFAF8',border:'0.5px solid #E0DDD8',borderRadius:10,padding:14,marginBottom:12}}>
+                  <div style={{fontSize:12,fontWeight:600,color:'#111',marginBottom:6}}>Desktop <span style={{fontWeight:400,color:'#AAA'}}>· 1200×255px · JPG ou PNG</span></div>
+                  <div onClick={()=>bannerDesktopRef.current?.click()} style={{border:'1.5px dashed #C9951A',borderRadius:8,padding:14,textAlign:'center',cursor:'pointer',color:'#AAA',fontSize:12}}>
+                    {bannerModal.fileDesktop ? <span style={{color:'#0F8050',fontWeight:600}}>✓ {bannerModal.fileDesktop.name}</span> : '📷 Clique para enviar'}
+                  </div>
+                  <input ref={bannerDesktopRef} type="file" accept="image/*" style={{display:'none'}} onChange={e=>setBannerModal(p=>({...p,fileDesktop:e.target.files?.[0]||null}))}/>
+                </div>
+                <div style={{background:'#FAFAF8',border:'0.5px solid #E0DDD8',borderRadius:10,padding:14,marginBottom:12}}>
+                  <div style={{fontSize:12,fontWeight:600,color:'#111',marginBottom:6}}>Mobile <span style={{fontWeight:400,color:'#AAA'}}>· 750×500px · JPG ou PNG · opcional</span></div>
+                  <div onClick={()=>bannerMobileRef.current?.click()} style={{border:'1.5px dashed #E0DDD8',borderRadius:8,padding:14,textAlign:'center',cursor:'pointer',color:'#AAA',fontSize:12}}>
+                    {bannerModal.fileMobile ? <span style={{color:'#0F8050',fontWeight:600}}>✓ {bannerModal.fileMobile.name}</span> : '📷 Clique para enviar (opcional)'}
+                  </div>
+                  <input ref={bannerMobileRef} type="file" accept="image/*" style={{display:'none'}} onChange={e=>setBannerModal(p=>({...p,fileMobile:e.target.files?.[0]||null}))}/>
+                </div>
+                <div style={{fontSize:11,color:'#AAA',marginBottom:14}}>O mobile é opcional — se não enviado, usamos o desktop.</div>
+                <button onClick={()=>pagarBanner('upload')} disabled={!bannerModal.fileDesktop}
+                  style={{width:'100%',padding:12,background:bannerModal.fileDesktop?'#C9951A':'#E0DDD8',color:bannerModal.fileDesktop?'#fff':'#AAA',border:'none',borderRadius:12,fontSize:13,fontWeight:600,cursor:bannerModal.fileDesktop?'pointer':'not-allowed',fontFamily:'Inter,sans-serif',marginBottom:8}}>
+                  Pagar R$ {bannerModal.valor.toFixed(2)} via Pix
+                </button>
+                <button onClick={()=>setBannerModal(p=>({...p,step:'escolha'}))} style={{width:'100%',padding:10,background:'transparent',color:'#AAA',border:'1px solid #ddd',borderRadius:12,fontSize:13,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>← Voltar</button>
+              </>
+            )}
+
+            {bannerModal.step === 'ia' && (
+              <>
+                <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:20,color:'#111',letterSpacing:1,marginBottom:4}}>CRIAR BANNER COM IA</div>
+                <div style={{fontSize:13,color:'#888',marginBottom:16}}>Desktop (1200×255px) + Mobile (750×500px)</div>
+                <div style={{background:'#FEF3E2',border:'1px solid #C9951A',borderRadius:10,padding:12,marginBottom:16,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                  <span style={{fontSize:13,color:'#854F0B',fontWeight:600}}>Banner da Home ({bannerModal.dias} dias) + Criação IA</span>
+                  <span style={{fontSize:16,fontWeight:700,color:'#C9951A'}}>R$ {(bannerModal.valor+40).toFixed(2)}</span>
+                </div>
+                <div style={{marginBottom:14}}>
+                  <div style={{fontSize:12,fontWeight:600,color:'#111',marginBottom:6}}>Descreva seu negócio para a IA</div>
+                  <textarea rows={3} value={bannerModal.descricaoIA} onChange={e=>setBannerModal(p=>({...p,descricaoIA:e.target.value}))}
+                    placeholder="Ex: Burger artesanal, ingredientes frescos, entrega em Trindade..."
+                    style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:12,fontFamily:'Inter,sans-serif',resize:'none',outline:'none'}}/>
+                </div>
+                <div style={{fontSize:11,color:'#AAA',marginBottom:14}}>Entregamos os banners em até 24h. Após o pagamento você receberá por email.</div>
+                <button onClick={()=>pagarBanner('ia')} disabled={!bannerModal.descricaoIA.trim()}
+                  style={{width:'100%',padding:12,background:bannerModal.descricaoIA.trim()?'#C9951A':'#E0DDD8',color:bannerModal.descricaoIA.trim()?'#fff':'#AAA',border:'none',borderRadius:12,fontSize:13,fontWeight:600,cursor:bannerModal.descricaoIA.trim()?'pointer':'not-allowed',fontFamily:'Inter,sans-serif',marginBottom:8}}>
+                  Pagar R$ {(bannerModal.valor+40).toFixed(2)} via Pix
+                </button>
+                <button onClick={()=>setBannerModal(p=>({...p,step:'escolha'}))} style={{width:'100%',padding:10,background:'transparent',color:'#AAA',border:'1px solid #ddd',borderRadius:12,fontSize:13,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>← Voltar</button>
+              </>
+            )}
+
+            {bannerModal.step === 'pix' && (
+              <>
+                <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,color:'#111',letterSpacing:1,marginBottom:4}}>PAGUE VIA PIX</div>
+                <div style={{background:'#FEF3E2',border:'1.5px solid #C9951A',borderRadius:12,padding:'10px 16px',marginBottom:16,display:'flex',alignItems:'center',gap:10}}>
+                  <span style={{fontSize:20}}>✅</span>
+                  <div>
+                    <div style={{fontSize:10,color:'#854F0B',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.5px'}}>Favorecido</div>
+                    <div style={{fontSize:13,color:'#111',fontWeight:600}}>Flávia Andrade Faria Grion</div>
+                  </div>
+                </div>
+                {!bannerModal.qrCode ? (
+                  <div style={{padding:'40px 0',color:'#AAA',fontSize:13,textAlign:'center'}}>Gerando QR Code...</div>
+                ) : (
+                  <>
+                    {bannerModal.qrCode && <img src={`data:image/png;base64,${bannerModal.qrCode}`} alt="QR Code" style={{width:200,height:200,margin:'0 auto 12px',display:'block',borderRadius:12,border:'1px solid #eee'}}/>}
+                    <button onClick={()=>{navigator.clipboard.writeText(bannerModal.pixCode||'');setBannerModal(p=>({...p,copied:true}));setTimeout(()=>setBannerModal(p=>({...p,copied:false})),3000)}}
+                      style={{width:'100%',padding:12,background:bannerModal.copied?'#0F8050':'#111',color:'#fff',border:'none',borderRadius:12,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',marginBottom:8}}>
+                      {bannerModal.copied?'✓ Código copiado!':'📋 Copiar código Pix'}
+                    </button>
+                    <div style={{background:'#F5F5F5',borderRadius:10,padding:'10px 14px',marginBottom:12,display:'flex',alignItems:'center',gap:8,justifyContent:'center'}}>
+                      <div style={{width:8,height:8,borderRadius:'50%',background:'#C9951A'}}/>
+                      <div style={{fontSize:12,color:'#666'}}>Aguardando pagamento...</div>
+                    </div>
+                    <div style={{fontSize:11,color:'#AAA',marginBottom:12}}>Após o pagamento nossa equipe entrará em contato para finalizar seu banner.</div>
+                  </>
+                )}
+                <button onClick={()=>setBannerModal(p=>({...p,open:false}))} style={{width:'100%',padding:10,background:'transparent',color:'#AAA',border:'1px solid #ddd',borderRadius:12,fontSize:13,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>Fechar</button>
+              </>
+            )}
+
+          </div>
+        </div>
+      )}
 
       {hlModal.open && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>

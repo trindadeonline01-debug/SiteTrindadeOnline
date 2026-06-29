@@ -43,7 +43,7 @@ export default function PainelPage() {
   const [replyText, setReplyText]   = useState('')
   const [ownerEmail, setOwnerEmail] = useState('')
   const [ownerName, setOwnerName]   = useState('')
-  const [pixModal, setPixModal] = useState({ open:false, loading:false, plan:'', value:0, qr_code_image:null as string|null, pix_copy_paste:null as string|null, payment_id:null as string|null, copied:false })
+  const [pixModal, setPixModal] = useState({ open:false, loading:false, plan:'', value:0, qr_code_image:null as string|null, pix_copy_paste:null as string|null, payment_id:null as string|null, copied:false, confirmed:false })
 
   const [editNome, setEditNome]               = useState('')
   const [editCategoryId, setEditCategoryId]   = useState('')
@@ -134,6 +134,17 @@ export default function PainelPage() {
       const data = await res.json()
       if (data.error) { showToast('Erro: ' + data.error); setPixModal(p => ({ ...p, open: false, loading: false })); return }
       setPixModal(p => ({ ...p, loading: false, value: data.value, qr_code_image: data.qr_code_image, pix_copy_paste: data.pix_copy_paste, payment_id: data.payment_id }))
+      // Polling: verifica pagamento a cada 5s
+      const pollInterval = setInterval(async () => {
+        const { data: comp } = await supabase.from('companies').select('plan, plan_ends_at, trial_ends_at').eq('id', company.id).single()
+        if (comp?.plan === 'paid') {
+          clearInterval(pollInterval)
+          setPixModal(p => ({ ...p, confirmed: true }))
+          setCompany(prev => prev ? { ...prev, plan: 'paid', plan_ends_at: comp.plan_ends_at } : prev)
+        }
+      }, 5000)
+      // Para o polling após 10 minutos
+      setTimeout(() => clearInterval(pollInterval), 600000)
     } catch { showToast('Erro ao gerar Pix'); setPixModal(p => ({ ...p, open: false, loading: false })) }
   }
 
@@ -495,23 +506,51 @@ export default function PainelPage() {
       {pixModal.open && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
           <div style={{background:'#fff',borderRadius:20,padding:28,maxWidth:400,width:'100%',textAlign:'center'}}>
-            <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,color:'#111',letterSpacing:1,marginBottom:4}}>PAGUE VIA PIX</div>
-            <div style={{fontSize:13,color:'#888',marginBottom:20}}>{pixModal.plan === 'mensal' ? 'Plano Mensal — R$ 29,90' : pixModal.plan === 'trimestral' ? 'Plano Trimestral — R$ 79,90' : 'Plano Semestral — R$ 149,90'}</div>
-            {pixModal.loading ? (
-              <div style={{padding:'40px 0',color:'#AAA',fontSize:13}}>Gerando QR Code...</div>
+
+            {pixModal.confirmed ? (
+              <>
+                <div style={{fontSize:56,marginBottom:12}}>🎉</div>
+                <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:24,color:'#0F8050',letterSpacing:1,marginBottom:8}}>PAGAMENTO CONFIRMADO!</div>
+                <div style={{fontSize:14,color:'#555',marginBottom:20,lineHeight:1.6}}>Seu plano foi ativado com sucesso.<br/>Aproveite todas as funcionalidades!</div>
+                <button onClick={() => { setPixModal(p => ({ ...p, open: false })); window.location.reload() }}
+                  style={{width:'100%',padding:'13px',background:'#C9951A',color:'#fff',border:'none',borderRadius:12,fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                  Acessar meu painel →
+                </button>
+              </>
             ) : (
               <>
-                {pixModal.qr_code_image && (
-                  <img src={`data:image/png;base64,${pixModal.qr_code_image}`} alt="QR Code Pix" style={{width:220,height:220,margin:'0 auto 16px',display:'block',borderRadius:12,border:'1px solid #eee'}} />
+                <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,color:'#111',letterSpacing:1,marginBottom:4}}>PAGUE VIA PIX</div>
+                <div style={{fontSize:13,color:'#888',marginBottom:16}}>{pixModal.plan === 'mensal' ? 'Plano Mensal — R$ 29,90' : pixModal.plan === 'trimestral' ? 'Plano Trimestral — R$ 79,90' : 'Plano Semestral — R$ 149,90'}</div>
+
+                <div style={{background:'#FEF3E2',border:'1.5px solid #C9951A',borderRadius:12,padding:'10px 16px',marginBottom:16,display:'flex',alignItems:'center',gap:10,textAlign:'left'}}>
+                  <span style={{fontSize:20}}>✅</span>
+                  <div>
+                    <div style={{fontSize:10,color:'#854F0B',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.5px'}}>Favorecido</div>
+                    <div style={{fontSize:13,color:'#111',fontWeight:600}}>Flávia Andrade Faria Grion</div>
+                  </div>
+                </div>
+
+                {pixModal.loading ? (
+                  <div style={{padding:'40px 0',color:'#AAA',fontSize:13}}>Gerando QR Code...</div>
+                ) : (
+                  <>
+                    {pixModal.qr_code_image && (
+                      <img src={`data:image/png;base64,${pixModal.qr_code_image}`} alt="QR Code Pix" style={{width:200,height:200,margin:'0 auto 12px',display:'block',borderRadius:12,border:'1px solid #eee'}} />
+                    )}
+                    <div style={{fontSize:12,color:'#888',marginBottom:8}}>Ou copie o código Pix:</div>
+                    <button onClick={copiarPix} style={{width:'100%',padding:'12px',background: pixModal.copied ? '#0F8050' : '#111',color:'#fff',border:'none',borderRadius:12,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',marginBottom:12,transition:'background .2s'}}>
+                      {pixModal.copied ? '✓ Código copiado!' : '📋 Copiar código Pix'}
+                    </button>
+                    <div style={{background:'#F5F5F5',borderRadius:10,padding:'10px 14px',marginBottom:12,display:'flex',alignItems:'center',gap:8,justifyContent:'center'}}>
+                      <div style={{width:8,height:8,borderRadius:'50%',background:'#C9951A'}}/>
+                      <div style={{fontSize:12,color:'#666'}}>Aguardando pagamento...</div>
+                    </div>
+                    <div style={{fontSize:11,color:'#AAA',marginBottom:16}}>O plano será ativado automaticamente após o pagamento</div>
+                  </>
                 )}
-                <div style={{fontSize:12,color:'#888',marginBottom:10}}>Ou copie o código Pix:</div>
-                <button onClick={copiarPix} style={{width:'100%',padding:'12px',background: pixModal.copied ? '#0F8050' : '#111',color:'#fff',border:'none',borderRadius:12,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',marginBottom:12,transition:'background .2s'}}>
-                  {pixModal.copied ? '✓ Código copiado!' : '📋 Copiar código Pix'}
-                </button>
-                <div style={{fontSize:11,color:'#AAA',marginBottom:16}}>Após o pagamento, seu plano será ativado automaticamente</div>
+                <button onClick={() => setPixModal(p => ({ ...p, open: false }))} style={{width:'100%',padding:'10px',background:'transparent',color:'#AAA',border:'1px solid #ddd',borderRadius:12,fontSize:13,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>Fechar</button>
               </>
             )}
-            <button onClick={() => setPixModal(p => ({ ...p, open: false }))} style={{width:'100%',padding:'10px',background:'transparent',color:'#AAA',border:'1px solid #ddd',borderRadius:12,fontSize:13,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>Fechar</button>
           </div>
         </div>
       )}
@@ -869,9 +908,24 @@ export default function PainelPage() {
                       </div>
                     </>
                   )}
-                  {company.plan === 'paid' && (
-                    <div style={{fontSize:13,color:'#5EE8A0',fontWeight:600}}>✓ Plano pago ativo — todas as funcionalidades liberadas</div>
-                  )}
+                  {company.plan === 'paid' && company.plan_ends_at && (() => {
+                    const total = Math.ceil((new Date(company.plan_ends_at).getTime() - new Date(company.plan_ends_at).getTime() + daysLeft(company.plan_ends_at) * 86400000 + 86400000) / 86400000)
+                    const remaining = daysLeft(company.plan_ends_at)
+                    const pct = Math.min(100, Math.max(0, (remaining / total) * 100))
+                    const venceEm = new Date(company.plan_ends_at).toLocaleDateString('pt-BR')
+                    return (
+                      <>
+                        <div className="pt-trial-label">
+                          <span style={{color:'#5EE8A0'}}>✓ Plano ativo</span>
+                          <span style={{color:'#C9951A',fontWeight:700}}>{remaining} dia{remaining!==1?'s':''} restante{remaining!==1?'s':''}</span>
+                        </div>
+                        <div className="pt-trial-bar">
+                          <div className="pt-trial-fill" style={{width:`${pct}%`, background:'#5EE8A0'}}/>
+                        </div>
+                        <div style={{fontSize:11,color:'#555',marginTop:6}}>Vence em: {venceEm}</div>
+                      </>
+                    )
+                  })()}
                 </div>
 
                 {/* PLANO BASE */}

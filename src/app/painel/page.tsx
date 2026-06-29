@@ -1149,7 +1149,7 @@ export default function PainelPage() {
                       <div className="pt-dest-info-desc">Primeiro na seção "Em destaque" da página inicial</div>
                       <div className="pt-dest-opts">
                         {[['7 dias','R$ 49,90'],['15 dias','R$ 89,90'],['30 dias','R$ 159,90']].map(([d,p],i)=>(
-                          <button key={i} className="pt-d-opt" onClick={()=>showToast('Em breve: pagamento via Pix')}>
+                          <button key={i} className="pt-d-opt" onClick={()=>assinarDestaque('subcat', [7,15,30][i])}>
                             <span className="pt-d-day">{d}</span><span className="pt-d-price">{p}</span>
                           </button>
                         ))}
@@ -1172,7 +1172,7 @@ export default function PainelPage() {
                       <div className="pt-dest-info-desc">Primeiro na página da sua categoria (ex: Gastronomia, Serviços)</div>
                       <div className="pt-dest-opts">
                         {[['7 dias','R$ 29,90'],['15 dias','R$ 54,90'],['30 dias','R$ 99,90']].map(([d,p],i)=>(
-                          <button key={i} className="pt-d-opt" onClick={()=>showToast('Em breve: pagamento via Pix')}>
+                          <button key={i} className="pt-d-opt" onClick={()=>assinarDestaque('subcat', [7,15,30][i])}>
                             <span className="pt-d-day">{d}</span><span className="pt-d-price">{p}</span>
                           </button>
                         ))}
@@ -1195,7 +1195,7 @@ export default function PainelPage() {
                       <div className="pt-dest-info-desc">Primeiro na sua subcategoria (ex: Pizzaria, Barbearia, Padaria)</div>
                       <div className="pt-dest-opts">
                         {[['7 dias','R$ 14,90'],['15 dias','R$ 27,90'],['30 dias','R$ 49,90']].map(([d,p],i)=>(
-                          <button key={i} className="pt-d-opt" onClick={()=>showToast('Em breve: pagamento via Pix')}>
+                          <button key={i} className="pt-d-opt" onClick={()=>assinarDestaque('subcat', [7,15,30][i])}>
                             <span className="pt-d-day">{d}</span><span className="pt-d-price">{p}</span>
                           </button>
                         ))}

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-const ASAAS_API_KEY = '$aact_prod_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OjFlMTFiZWVmLTI4N2UtNDdiNC05NzY5LTllOGQyZjk3MmZiNTo6JGFhY2hfMmI2NjI0ZGYtMmJiMy00YTBmLTg2ZTktNGNiYTcxNDk5OTE5'
+const ASAAS_API_KEY = process.env.ASAAS_API_KEY as string
 const ASAAS_BASE_URL = 'https://api.asaas.com/v3'
 
 const supabase = createClient(

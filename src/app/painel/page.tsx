@@ -9,7 +9,7 @@ type Company = {
   external_link: string; external_link_label: string
   avg_rating: number; total_reviews: number
   views_count: number; whatsapp_clicks: number; link_clicks: number
-  category_id?: string; trial_ends_at?: string; plan_ends_at?: string
+  category_id?: string; trial_ends_at?: string; plan_ends_at?: string; cpf_cnpj?: string
   category?: { name: string; emoji: string }
   photos?: { id: string; url: string; order: number }[]
   hours?: { id: string; label: string; hours: string; order: number }[]
@@ -55,6 +55,7 @@ export default function PainelPage() {
   const [editDesc, setEditDesc]               = useState('')
   const [editLinkUrl, setEditLinkUrl]         = useState('')
   const [editLinkLabel, setEditLinkLabel]     = useState('Ver cardápio')
+  const [editCpfCnpj, setEditCpfCnpj]         = useState('')
   const [editHours, setEditHours]             = useState<{label:string;hours:string}[]>([])
   const [churchHours, setChurchHours]         = useState<{day:string;manha:string;noite:string}[]>(DIAS_SEMANA.map(day=>({day,manha:'',noite:''})))
   const fileRef = useRef<HTMLInputElement>(null)
@@ -95,6 +96,7 @@ export default function PainelPage() {
       setEditDesc(comp.description || '')
       setEditLinkUrl(comp.external_link || '')
       setEditLinkLabel(comp.external_link_label || 'Ver cardápio')
+      setEditCpfCnpj(comp.cpf_cnpj || '')
       const HOURS_DEFAULT = [
         {label:'Seg–Sex',hours:''},{label:'Sábado',hours:''},{label:'Domingo',hours:''},{label:'Feriados',hours:''}
       ]
@@ -127,7 +129,7 @@ export default function PainelPage() {
       const res = await fetch('/api/asaas/create-charge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan, company_id: company.id, owner_name: ownerName, owner_email: ownerEmail })
+        body: JSON.stringify({ plan, company_id: company.id, owner_name: ownerName, owner_email: ownerEmail, cpf_cnpj: company.cpf_cnpj || '' })
       })
       const data = await res.json()
       if (data.error) { showToast('Erro: ' + data.error); setPixModal(p => ({ ...p, open: false, loading: false })); return }
@@ -152,7 +154,8 @@ export default function PainelPage() {
       description: editDesc,
       category_id: editCategoryId || null,
       external_link: editLinkUrl || null,
-      external_link_label: editLinkUrl ? editLinkLabel : null
+      external_link_label: editLinkUrl ? editLinkLabel : null,
+      cpf_cnpj: editCpfCnpj || null
     }).eq('id', company.id)
     await supabase.from('company_subcategories').delete().eq('company_id', company.id)
     if (editSubcatIds.length > 0) {
@@ -775,6 +778,10 @@ export default function PainelPage() {
                     <div className="field">
                       <label>WhatsApp</label>
                       <input type="tel" value={editPhone} onChange={e=>setEditPhone(e.target.value)} placeholder="(21) 9 0000-0000"/>
+                    </div>
+                    <div className="field">
+                      <label>CPF / CNPJ <span style={{fontSize:11,color:'#C9951A',fontWeight:400}}>* necessário para pagamento via Pix</span></label>
+                      <input type="text" value={editCpfCnpj} onChange={e=>setEditCpfCnpj(e.target.value)} placeholder="000.000.000-00 ou 00.000.000/0001-00"/>
                     </div>
                     <div className="field" style={{gridColumn:'1/-1'}}>
                       <label>Endereço</label>

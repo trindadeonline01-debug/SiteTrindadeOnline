@@ -17,7 +17,7 @@ const PLANS: Record<string, { value: number; days: number; description: string }
 
 export async function POST(req: NextRequest) {
   try {
-    const { plan, company_id, owner_name, owner_email } = await req.json()
+    const { plan, company_id, owner_name, owner_email, cpf_cnpj } = await req.json()
     const planData = PLANS[plan]
     if (!planData) return NextResponse.json({ error: 'Plano inválido' }, { status: 400 })
 
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
       const createRes = await fetch(`${ASAAS_BASE_URL}/customers`, {
         method: 'POST',
         headers: { 'access_token': ASAAS_API_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: owner_name || 'Lojista', email: owner_email })
+        body: JSON.stringify({ name: owner_name || 'Lojista', email: owner_email, cpfCnpj: cpf_cnpj || undefined })
       })
       const customerData = await createRes.json()
       asaasCustomerId = customerData.id

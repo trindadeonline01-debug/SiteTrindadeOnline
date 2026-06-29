@@ -108,7 +108,6 @@ export default function AdminPage() {
       })
       .subscribe()
 
-    return () => { supabase.removeChannel(channel) }
     setLoading(false)
   }
 

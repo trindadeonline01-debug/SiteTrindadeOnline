@@ -977,6 +977,128 @@ export default function PainelPage() {
                 ))}
               </div>
               <div style={{textAlign:'center',fontSize:11,color:'#AAA',marginTop:8}}>Pagamento via Pix · Ativa na hora</div>
+              {/* BANNER DA HOME + DESTAQUES */}
+              <div className="section-label" style={{marginTop:24}}>BANNER DA HOME</div>
+<p style={{fontSize:13,color:'#999',marginBottom:16}}>O espaço mais visto do site — sua empresa antes de tudo</p>
+                <div className="pt-banner-card">
+                  <div className="pt-banner-visual">
+                    <div className="pt-banner-visual-left">
+                      <div className="pt-banner-ico">📢</div>
+                      <div className="pt-banner-badge">★ POSIÇÃO #1 DO SITE</div>
+                      <div className="pt-banner-pos-title">Topo da página inicial</div>
+                      <div className="pt-banner-pos-desc">Aparece antes de tudo — antes das categorias, antes das empresas, antes de qualquer conteúdo. Todo morador que abre o Trindade Online vê seu anúncio primeiro.</div>
+                    </div>
+                    <div className="pt-banner-visual-right">
+                      <div style={{fontSize:9,color:'rgba(255,255,255,0.4)',marginBottom:6,textAlign:'center'}}>como aparece no site</div>
+                      <div className="pt-bv-site">
+                        <div className="pt-bv-nav">
+                          <div className="pt-bv-dot"/><div className="pt-bv-dot"/><div className="pt-bv-dot"/>
+                          <div className="pt-bv-logo">TRINDADE <span>ONLINE</span></div>
+                        </div>
+                        <div className="pt-bv-banner"><div className="pt-bv-banner-txt">SUA EMPRESA</div></div>
+                        <div style={{background:'#fff',margin:'-8px 6px 0',borderRadius:5,padding:4,position:'relative',zIndex:2}}>
+                          <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:2}}>
+                            {[1,2,3,4].map(i=><div key={i} style={{background:'#F0EDE8',borderRadius:2,height:12}}/>)}
+                          </div>
+                        </div>
+                        <div className="pt-bv-rest">
+                          <div className="pt-bv-row" style={{width:'60%'}}/>
+                          <div className="pt-bv-row"/>
+                          <div className="pt-bv-row" style={{width:'80%'}}/>
+                          <div className="pt-bv-row" style={{width:'70%'}}/>
+                        </div>
+                      </div>
+                      <div style={{textAlign:'center',marginTop:8}}>
+                        <span style={{fontSize:9,color:'#C9951A',fontWeight:700}}>↑ seu banner aqui</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="pt-banner-info">
+                    {[{dias:'7 dias',preco:'R$ 79,90'},{dias:'15 dias',preco:'R$ 139,90'},{dias:'30 dias',preco:'R$ 249,90'}].map((o,i)=>(
+                      <button key={i} className="pt-b-opt" onClick={()=>showToast('Em breve: pagamento via Pix')}>
+                        <div className="pt-b-days">{o.dias}</div>
+                        <div className="pt-b-price">{o.preco}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* DESTAQUES */}
+<div className="section-label" style={{marginTop:24}}>DESTAQUES</div>
+<p style={{fontSize:13,color:'#999',marginBottom:16}}>Apareça antes de todas as outras empresas na seção escolhida</p>
+<div className="pt-dest-grid">
+
+                  <div className="pt-dest-card">
+                    <div className="pt-dest-visual home">
+                      <div className="pt-dest-ico">🏠</div>
+                      <div className="pt-dest-badge-gold">★ 1º LUGAR</div>
+                      <div className="pt-dest-position"><strong>Página inicial</strong>Sua empresa aparece primeiro quando o morador abre o site</div>
+                      <div className="pt-rank-row">
+                        <div className="pt-rank-item you">★ você</div>
+                        <div className="pt-rank-item other"/><div className="pt-rank-item other"/><div className="pt-rank-item other"/>
+                      </div>
+                    </div>
+                    <div className="pt-dest-info">
+                      <div className="pt-dest-info-title">Destaque Home</div>
+                      <div className="pt-dest-info-desc">Primeiro na seção "Em destaque" da página inicial</div>
+                      <div className="pt-dest-opts">
+                        {[['7 dias','R$ 49,90'],['15 dias','R$ 89,90'],['30 dias','R$ 159,90']].map(([d,p],i)=>(
+                          <button key={i} className="pt-d-opt" onClick={()=>assinarDestaque('home', [7,15,30][i])}>
+                            <span className="pt-d-day">{d}</span><span className="pt-d-price">{p}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-dest-card">
+                    <div className="pt-dest-visual cat">
+                      <div className="pt-dest-ico">📂</div>
+                      <div className="pt-dest-badge-gold">★ 1º LUGAR</div>
+                      <div className="pt-dest-position"><strong>Página da categoria</strong>Primeiro quando o morador busca pela sua categoria (ex: Gastronomia)</div>
+                      <div className="pt-rank-row">
+                        <div className="pt-rank-item you">★ você</div>
+                        <div className="pt-rank-item other"/><div className="pt-rank-item other"/><div className="pt-rank-item other"/>
+                      </div>
+                    </div>
+                    <div className="pt-dest-info">
+                      <div className="pt-dest-info-title">Destaque Categoria</div>
+                      <div className="pt-dest-info-desc">Primeiro na página da sua categoria (ex: Gastronomia, Serviços)</div>
+                      <div className="pt-dest-opts">
+                        {[['7 dias','R$ 29,90'],['15 dias','R$ 54,90'],['30 dias','R$ 99,90']].map(([d,p],i)=>(
+                          <button key={i} className="pt-d-opt" onClick={()=>assinarDestaque('category', [7,15,30][i])}>
+                            <span className="pt-d-day">{d}</span><span className="pt-d-price">{p}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-dest-card">
+                    <div className="pt-dest-visual sub">
+                      <div className="pt-dest-ico">🏷️</div>
+                      <div className="pt-dest-badge-gold">★ 1º LUGAR</div>
+                      <div className="pt-dest-position"><strong>Página da subcategoria</strong>Primeiro quando o morador busca pela especialidade (ex: Pizzaria)</div>
+                      <div className="pt-rank-row">
+                        <div className="pt-rank-item you">★ você</div>
+                        <div className="pt-rank-item other"/><div className="pt-rank-item other"/>
+                      </div>
+                    </div>
+                    <div className="pt-dest-info">
+                      <div className="pt-dest-info-title">Destaque Subcategoria</div>
+                      <div className="pt-dest-info-desc">Primeiro na sua subcategoria (ex: Pizzaria, Barbearia, Padaria)</div>
+                      <div className="pt-dest-opts">
+                        {[['7 dias','R$ 14,90'],['15 dias','R$ 27,90'],['30 dias','R$ 49,90']].map(([d,p],i)=>(
+                          <button key={i} className="pt-d-opt" onClick={()=>assinarDestaque('subcat', [7,15,30][i])}>
+                            <span className="pt-d-day">{d}</span><span className="pt-d-price">{p}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+
               {highlights.filter(h=>h.status==='expired').length > 0 && (
                 <>
                   <div className="section-label">HISTÓRICO</div>
@@ -1324,127 +1446,6 @@ export default function PainelPage() {
                   ))}
                 </div>
 
-                {/* BANNER DA HOME */}
-                <div className="pt-sec-lbl">BANNER DA HOME</div>
-                <p className="pt-sec-sub">O espaço mais visto do site — sua empresa antes de tudo</p>
-                <div className="pt-banner-card">
-                  <div className="pt-banner-visual">
-                    <div className="pt-banner-visual-left">
-                      <div className="pt-banner-ico">📢</div>
-                      <div className="pt-banner-badge">★ POSIÇÃO #1 DO SITE</div>
-                      <div className="pt-banner-pos-title">Topo da página inicial</div>
-                      <div className="pt-banner-pos-desc">Aparece antes de tudo — antes das categorias, antes das empresas, antes de qualquer conteúdo. Todo morador que abre o Trindade Online vê seu anúncio primeiro.</div>
-                    </div>
-                    <div className="pt-banner-visual-right">
-                      <div style={{fontSize:9,color:'rgba(255,255,255,0.4)',marginBottom:6,textAlign:'center'}}>como aparece no site</div>
-                      <div className="pt-bv-site">
-                        <div className="pt-bv-nav">
-                          <div className="pt-bv-dot"/><div className="pt-bv-dot"/><div className="pt-bv-dot"/>
-                          <div className="pt-bv-logo">TRINDADE <span>ONLINE</span></div>
-                        </div>
-                        <div className="pt-bv-banner"><div className="pt-bv-banner-txt">SUA EMPRESA</div></div>
-                        <div style={{background:'#fff',margin:'-8px 6px 0',borderRadius:5,padding:4,position:'relative',zIndex:2}}>
-                          <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:2}}>
-                            {[1,2,3,4].map(i=><div key={i} style={{background:'#F0EDE8',borderRadius:2,height:12}}/>)}
-                          </div>
-                        </div>
-                        <div className="pt-bv-rest">
-                          <div className="pt-bv-row" style={{width:'60%'}}/>
-                          <div className="pt-bv-row"/>
-                          <div className="pt-bv-row" style={{width:'80%'}}/>
-                          <div className="pt-bv-row" style={{width:'70%'}}/>
-                        </div>
-                      </div>
-                      <div style={{textAlign:'center',marginTop:8}}>
-                        <span style={{fontSize:9,color:'#C9951A',fontWeight:700}}>↑ seu banner aqui</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="pt-banner-info">
-                    {[{dias:'7 dias',preco:'R$ 79,90'},{dias:'15 dias',preco:'R$ 139,90'},{dias:'30 dias',preco:'R$ 249,90'}].map((o,i)=>(
-                      <button key={i} className="pt-b-opt" onClick={()=>showToast('Em breve: pagamento via Pix')}>
-                        <div className="pt-b-days">{o.dias}</div>
-                        <div className="pt-b-price">{o.preco}</div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* DESTAQUES */}
-                <div className="pt-sec-lbl">DESTAQUES</div>
-                <p className="pt-sec-sub">Apareça antes de todas as outras empresas na seção escolhida</p>
-                <div className="pt-dest-grid">
-
-                  <div className="pt-dest-card">
-                    <div className="pt-dest-visual home">
-                      <div className="pt-dest-ico">🏠</div>
-                      <div className="pt-dest-badge-gold">★ 1º LUGAR</div>
-                      <div className="pt-dest-position"><strong>Página inicial</strong>Sua empresa aparece primeiro quando o morador abre o site</div>
-                      <div className="pt-rank-row">
-                        <div className="pt-rank-item you">★ você</div>
-                        <div className="pt-rank-item other"/><div className="pt-rank-item other"/><div className="pt-rank-item other"/>
-                      </div>
-                    </div>
-                    <div className="pt-dest-info">
-                      <div className="pt-dest-info-title">Destaque Home</div>
-                      <div className="pt-dest-info-desc">Primeiro na seção "Em destaque" da página inicial</div>
-                      <div className="pt-dest-opts">
-                        {[['7 dias','R$ 49,90'],['15 dias','R$ 89,90'],['30 dias','R$ 159,90']].map(([d,p],i)=>(
-                          <button key={i} className="pt-d-opt" onClick={()=>assinarDestaque('home', [7,15,30][i])}>
-                            <span className="pt-d-day">{d}</span><span className="pt-d-price">{p}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="pt-dest-card">
-                    <div className="pt-dest-visual cat">
-                      <div className="pt-dest-ico">📂</div>
-                      <div className="pt-dest-badge-gold">★ 1º LUGAR</div>
-                      <div className="pt-dest-position"><strong>Página da categoria</strong>Primeiro quando o morador busca pela sua categoria (ex: Gastronomia)</div>
-                      <div className="pt-rank-row">
-                        <div className="pt-rank-item you">★ você</div>
-                        <div className="pt-rank-item other"/><div className="pt-rank-item other"/><div className="pt-rank-item other"/>
-                      </div>
-                    </div>
-                    <div className="pt-dest-info">
-                      <div className="pt-dest-info-title">Destaque Categoria</div>
-                      <div className="pt-dest-info-desc">Primeiro na página da sua categoria (ex: Gastronomia, Serviços)</div>
-                      <div className="pt-dest-opts">
-                        {[['7 dias','R$ 29,90'],['15 dias','R$ 54,90'],['30 dias','R$ 99,90']].map(([d,p],i)=>(
-                          <button key={i} className="pt-d-opt" onClick={()=>assinarDestaque('category', [7,15,30][i])}>
-                            <span className="pt-d-day">{d}</span><span className="pt-d-price">{p}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="pt-dest-card">
-                    <div className="pt-dest-visual sub">
-                      <div className="pt-dest-ico">🏷️</div>
-                      <div className="pt-dest-badge-gold">★ 1º LUGAR</div>
-                      <div className="pt-dest-position"><strong>Página da subcategoria</strong>Primeiro quando o morador busca pela especialidade (ex: Pizzaria)</div>
-                      <div className="pt-rank-row">
-                        <div className="pt-rank-item you">★ você</div>
-                        <div className="pt-rank-item other"/><div className="pt-rank-item other"/>
-                      </div>
-                    </div>
-                    <div className="pt-dest-info">
-                      <div className="pt-dest-info-title">Destaque Subcategoria</div>
-                      <div className="pt-dest-info-desc">Primeiro na sua subcategoria (ex: Pizzaria, Barbearia, Padaria)</div>
-                      <div className="pt-dest-opts">
-                        {[['7 dias','R$ 14,90'],['15 dias','R$ 27,90'],['30 dias','R$ 49,90']].map(([d,p],i)=>(
-                          <button key={i} className="pt-d-opt" onClick={()=>assinarDestaque('subcat', [7,15,30][i])}>
-                            <span className="pt-d-day">{d}</span><span className="pt-d-price">{p}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                </div>
                 <div className="pt-footer-note">Pagamento via Pix · Ativação imediata após confirmação</div>
               </div>
             </div>

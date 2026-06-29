@@ -1101,7 +1101,6 @@ export default function PainelPage() {
               )}
             </div>
           )}
-              </div>
           {/* AVALIAÇÕES */}
           {tab === 'avaliacoes' && (
             <div className="content">

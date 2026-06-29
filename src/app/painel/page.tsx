@@ -59,6 +59,8 @@ export default function PainelPage() {
   const [editLinkUrl, setEditLinkUrl]         = useState('')
   const [editLinkLabel, setEditLinkLabel]     = useState('Ver cardápio')
   const [subcatSearch, setSubcatSearch]         = useState('')
+  const [editTags, setEditTags]                 = useState<string[]>([])
+  const [tagInput, setTagInput]                 = useState('')
   const [editCpfCnpj, setEditCpfCnpj]         = useState('')
   const [editHours, setEditHours]             = useState<{label:string;hours:string}[]>([])
   const [churchHours, setChurchHours]         = useState<{day:string;manha:string;noite:string}[]>(DIAS_SEMANA.map(day=>({day,manha:'',noite:''})))
@@ -105,6 +107,7 @@ export default function PainelPage() {
       setEditLinkUrl(comp.external_link || '')
       setEditLinkLabel(comp.external_link_label || 'Ver cardápio')
       setEditCpfCnpj(comp.cpf_cnpj || '')
+      setEditTags(comp.tags || [])
       const HOURS_DEFAULT = [
         {label:'Seg–Sex',hours:''},{label:'Sábado',hours:''},{label:'Domingo',hours:''},{label:'Feriados',hours:''}
       ]
@@ -240,7 +243,8 @@ export default function PainelPage() {
       category_id: editCategoryId || null,
       external_link: editLinkUrl || null,
       external_link_label: editLinkUrl ? editLinkLabel : null,
-      cpf_cnpj: editCpfCnpj || null
+      cpf_cnpj: editCpfCnpj || null,
+      tags: editTags
     }).eq('id', company.id)
     await supabase.from('company_subcategories').delete().eq('company_id', company.id)
     if (editSubcatIds.length > 0) {
@@ -1025,6 +1029,35 @@ export default function PainelPage() {
                     <div className="field" style={{gridColumn:'1/-1'}}>
                       <label>Descrição</label>
                       <textarea rows={4} value={editDesc} onChange={e=>setEditDesc(e.target.value)} placeholder="Sobre sua empresa..."/>
+                    </div>
+                    <div className="field">
+                      <label>Tags <span style={{fontSize:11,color:'#AAA',fontWeight:400}}>Digite e pressione Enter para adicionar</span></label>
+                      <div style={{border:'1.5px solid #E0DDD8',borderRadius:11,padding:'8px 10px',background:'#FAFAF8',display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
+                        {editTags.map((tag,i) => (
+                          <div key={i} style={{display:'flex',alignItems:'center',gap:4,padding:'3px 10px',background:'#FEF3E2',border:'1px solid #C9951A',borderRadius:20,fontSize:12,color:'#854F0B',fontWeight:600}}>
+                            #{tag}
+                            <button onClick={() => setEditTags(prev => prev.filter((_,j) => j !== i))} style={{background:'none',border:'none',cursor:'pointer',fontSize:14,color:'#C9951A',padding:0,lineHeight:1}}>×</button>
+                          </div>
+                        ))}
+                        <input
+                          type="text"
+                          value={tagInput}
+                          onChange={e => setTagInput(e.target.value)}
+                          onKeyDown={e => {
+                            if ((e.key === 'Enter' || e.key === ',') && tagInput.trim()) {
+                              e.preventDefault()
+                              const tag = tagInput.trim().toLowerCase().replace(/[^a-z0-9àáâãéêíóôõúç ]/g, '')
+                              if (tag && !editTags.includes(tag) && editTags.length < 30) {
+                                setEditTags(prev => [...prev, tag])
+                              }
+                              setTagInput('')
+                            }
+                          }}
+                          placeholder={editTags.length === 0 ? "ex: pizza, delivery, hambúrguer..." : ""}
+                          style={{border:'none',background:'transparent',outline:'none',fontSize:13,fontFamily:"'Inter',sans-serif",minWidth:120,flex:1}}
+                        />
+                      </div>
+                      <div style={{fontSize:11,color:'#AAA',marginTop:4}}>{editTags.length}/30 tags · {company?.plan === 'paid' ? '✓ Aparece nas buscas' : '⚠ Ative o plano pago para aparecer nas buscas'}</div>
                     </div>
                   </div>
                   <div className="field">

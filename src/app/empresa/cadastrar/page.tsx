@@ -52,6 +52,8 @@ export default function EmpresaCadastrarPage() {
   const [photos, setPhotos]             = useState<File[]>([])
   const [previews, setPreviews]         = useState<string[]>([])
   const [descricao, setDescricao]       = useState('')
+  const [tags, setTags]                 = useState<string[]>([])
+  const [tagInput, setTagInput]         = useState('')
   const fileRef                         = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -123,6 +125,7 @@ export default function EmpresaCadastrarPage() {
           slug,
           category_id: categoryId || null,
           description: descricao || null,
+          tags: tags,
           address: endereco || null,
           phone: phone || null,
           external_link: linkUrl || null,
@@ -466,6 +469,30 @@ export default function EmpresaCadastrarPage() {
                   <div className="field">
                     <label>Descrição <span style={{fontSize:11,color:'#AAA',fontWeight:400}}>(opcional)</span></label>
                     <textarea rows={4} placeholder="Conte sobre sua empresa, o que oferece, diferenciais..." value={descricao} onChange={e => setDescricao(e.target.value)} />
+                  </div>
+                  <div className="field">
+                    <label>Tags <span style={{fontSize:11,color:'#AAA',fontWeight:400}}>Digite e pressione Enter (máx. 30)</span></label>
+                    <div style={{border:'1.5px solid #E0DDD8',borderRadius:11,padding:'8px 10px',background:'#FAFAF8',display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
+                      {tags.map((tag,i) => (
+                        <div key={i} style={{display:'flex',alignItems:'center',gap:4,padding:'3px 10px',background:'#FEF3E2',border:'1px solid #C9951A',borderRadius:20,fontSize:12,color:'#854F0B',fontWeight:600}}>
+                          #{tag}
+                          <button onClick={() => setTags(prev => prev.filter((_,j) => j !== i))} style={{background:'none',border:'none',cursor:'pointer',fontSize:14,color:'#C9951A',padding:0,lineHeight:1}}>×</button>
+                        </div>
+                      ))}
+                      <input type="text" value={tagInput} onChange={e => setTagInput(e.target.value)}
+                        onKeyDown={e => {
+                          if ((e.key === 'Enter' || e.key === ',') && tagInput.trim()) {
+                            e.preventDefault()
+                            const tag = tagInput.trim().toLowerCase().replace(/[^a-z0-9àáâãéêíóôõúç ]/g, '')
+                            if (tag && !tags.includes(tag) && tags.length < 30) setTags(prev => [...prev, tag])
+                            setTagInput('')
+                          }
+                        }}
+                        placeholder={tags.length === 0 ? "ex: pizza, delivery, hambúrguer..." : ""}
+                        style={{border:'none',background:'transparent',outline:'none',fontSize:13,fontFamily:"'Inter',sans-serif",minWidth:120,flex:1}}
+                      />
+                    </div>
+                    <div style={{fontSize:11,color:'#AAA',marginTop:4}}>{tags.length}/30 tags
                   </div>
 
                   <div className="note-box">

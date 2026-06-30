@@ -432,6 +432,92 @@ export default function AdminPage() {
     loadCompanies(); loadStats()
   }
 
+  async function openEditCompany(c: any) {
+    if (allCategories.length === 0) {
+      const { data: cats } = await supabase.from('categories').select('id,name,emoji,slug').order('name')
+      setAllCategories((cats || []) as CatOpt[])
+    }
+    if (allSubcats.length === 0) {
+      const { data: subs } = await supabase.from('subcategories').select('id,name,emoji,slug,category_id').order('name')
+      setAllSubcats((subs || []) as SubcatOpt[])
+    }
+    const { data: compSubs } = await supabase.from('company_subcategories').select('subcategory_id').eq('company_id', c.id)
+    setCompanySubcatIds((compSubs || []).map((s: any) => s.subcategory_id))
+    setEditCompanyModal({ open: true, company: { ...c } })
+  }
+
+  async function saveCompanyEdit() {
+    const c = editCompanyModal.company
+    setSavingEdit(true)
+    const res = await fetch('/api/admin/update-company', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        company_id: c.id,
+        updates: {
+          name: c.name, category_id: c.category_id, address: c.address, phone: c.phone,
+          description: c.description || null, cpf_cnpj: c.cpf_cnpj || null, external_link: c.external_link || null,
+          tags: c.tags || [], status: c.status, plan: c.plan,
+        },
+        subcategory_ids: companySubcatIds,
+      })
+    })
+    const data = await res.json()
+    setSavingEdit(false)
+    if (data.error) { showToast('Erro: ' + data.error); return }
+    showToast('Empresa atualizada!')
+    setEditCompanyModal({ open: false, company: null })
+    loadCompanies()
+  }
+
+  function openEditUser(u: any) {
+    setNewPassword('')
+    setEditUserModal({ open: true, user: { ...u } })
+  }
+
+  async function saveUserEdit() {
+    const u = editUserModal.user
+    setSavingEdit(true)
+    const res = await fetch('/api/admin/update-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: u.id, updates: { name: u.name, neighborhood: u.neighborhood }, new_email: u.email || null })
+    })
+    const data = await res.json()
+    setSavingEdit(false)
+    if (data.error) { showToast('Erro: ' + data.error); return }
+    showToast('Usuário atualizado!')
+    setEditUserModal({ open: false, user: null })
+    loadUsers()
+  }
+
+  async function sendResetLink() {
+    const u = editUserModal.user
+    if (!u.email) { showToast('Usuário sem email cadastrado'); return }
+    const res = await fetch('/api/admin/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ send_reset_link: true, email: u.email })
+    })
+    const data = await res.json()
+    if (data.error) { showToast('Erro: ' + data.error); return }
+    showToast('Link de redefinição enviado!')
+  }
+
+  async function setNewPasswordDirect() {
+    if (!newPassword.trim() || newPassword.length < 6) { showToast('Senha deve ter no mínimo 6 caracteres'); return }
+    const u = editUserModal.user
+    const res = await fetch('/api/admin/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: u.id, new_password: newPassword })
+    })
+    const data = await res.json()
+    if (data.error) { showToast('Erro: ' + data.error); return }
+    showToast('Senha atualizada!')
+    setNewPassword('')
+  }
+
   async function handleSair() {
     await supabase.auth.signOut()
     window.location.href = '/login'

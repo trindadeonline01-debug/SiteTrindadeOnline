@@ -147,13 +147,13 @@ function BuscaContent() {
         .result-hdr{margin-bottom:24px;padding-bottom:16px;border-bottom:0.5px solid #F0EDE8;}
         .result-title{font-family:'Bebas Neue',sans-serif;font-size:22px;color:#111;letter-spacing:1px;margin-bottom:4px;}
         .result-title span{color:#C9951A;}
-        .result-sub{font-size:12px;color:#AAA;}
+        .result-sub{font-size:15px;color:#666;font-weight:600;}
 
         /* SEÇÃO */
         .section{margin-bottom:28px;}
         .sec-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
-        .sec-lbl{font-family:'Bebas Neue',sans-serif;font-size:12px;color:#999;letter-spacing:1.5px;}
-        .sec-cnt{font-size:11px;color:#AAA;font-family:'Inter',sans-serif;}
+        .sec-lbl{font-family:'Bebas Neue',sans-serif;font-size:15px;color:#666;letter-spacing:1.5px;}
+        .sec-cnt{font-size:13px;color:#888;font-family:'Inter',sans-serif;}
         .sec-line{flex:1;height:0.5px;background:#F0EDE8;}
 
         /* GRID EMPRESAS */
@@ -165,32 +165,32 @@ function BuscaContent() {
         .emp-img{height:100px;background:#FEF3E2;display:flex;align-items:center;justify-content:center;font-size:36px;overflow:hidden;}
         .emp-img img{width:100%;height:100%;object-fit:cover;}
         .emp-body{padding:10px 12px;}
-        .emp-name{font-size:12px;font-weight:600;color:#222;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-        .emp-cat{font-size:10px;color:#AAA;margin-bottom:3px;}
-        .emp-stars{font-size:10px;color:#C9951A;font-weight:600;margin-bottom:2px;}
-        .emp-addr{font-size:10px;color:#BBB;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .emp-name{font-size:14px;font-weight:600;color:#111;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .emp-cat{font-size:13px;color:#777;margin-bottom:3px;}
+        .emp-stars{font-size:13px;color:#C9951A;font-weight:600;margin-bottom:2px;}
+        .emp-addr{font-size:12px;color:#999;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
         /* CATEGORIAS */
         .cats-row{display:flex;gap:8px;flex-wrap:wrap;}
         .cat-chip{display:flex;align-items:center;gap:7px;padding:9px 14px;background:#FAFAF8;border:0.5px solid #E0DDD8;border-radius:11px;cursor:pointer;text-decoration:none;transition:all .15s;}
         .cat-chip:hover{border-color:#C9951A;background:#FEF3E2;}
         .cat-emoji{font-size:20px;}
-        .cat-nm{font-size:12px;font-weight:600;color:#222;}
-        .cat-sub{font-size:10px;color:#AAA;margin-left:2px;}
+        .cat-nm{font-size:14px;font-weight:600;color:#111;}
+        .cat-sub{font-size:13px;color:#888;margin-left:2px;}
 
         /* SUBCATEGORIAS */
         .sub-row{display:flex;gap:7px;flex-wrap:wrap;}
-        .sub-chip{padding:6px 12px;background:#FAFAF8;border:0.5px solid #E0DDD8;border-radius:20px;font-size:11px;font-weight:500;color:#555;cursor:pointer;text-decoration:none;transition:all .15s;}
+        .sub-chip{padding:7px 14px;background:#FAFAF8;border:0.5px solid #E0DDD8;border-radius:20px;font-size:13px;font-weight:600;color:#444;cursor:pointer;text-decoration:none;transition:all .15s;}
         .sub-chip:hover{border-color:#C9951A;color:#C9951A;background:#FEF3E2;}
 
         /* VAZIO */
-        .empty-row{display:flex;align-items:center;gap:8px;padding:11px 14px;background:#FAFAF8;border:0.5px solid #F0EDE8;border-radius:10px;font-size:12px;color:#BBB;}
+        .empty-row{display:flex;align-items:center;gap:8px;padding:12px 16px;background:#FAFAF8;border:0.5px solid #F0EDE8;border-radius:10px;font-size:14px;font-weight:600;color:#777;}
 
         /* ESTADO INICIAL */
         .initial{padding:32px 0;}
-        .sug-title{font-family:'Bebas Neue',sans-serif;font-size:13px;color:#AAA;letter-spacing:1.5px;margin-bottom:14px;}
+        .sug-title{font-family:'Bebas Neue',sans-serif;font-size:15px;color:#666;letter-spacing:1.5px;margin-bottom:14px;}
         .sug-row{display:flex;gap:8px;flex-wrap:wrap;}
-        .sug-btn{padding:8px 16px;border-radius:20px;background:#FEF3E2;color:#C9951A;border:1px solid #F5C77A;font-size:13px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;}
+        .sug-btn{padding:9px 18px;border-radius:20px;background:#FEF3E2;color:#854F0B;border:1px solid #F5C77A;font-size:14px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;}
         .sug-btn:hover{background:#C9951A;color:#fff;border-color:#C9951A;}
 
         /* LOADING */

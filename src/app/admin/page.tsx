@@ -1310,7 +1310,7 @@ export default function AdminPage() {
                                   <a href={req.file_desktop_url} target="_blank" rel="noopener noreferrer">
                                     <img src={req.file_desktop_url} style={{width:180,height:45,objectFit:'cover',borderRadius:6,border:'1px solid #EDE8E0',cursor:'pointer'}} alt="desktop" title="Clique para ampliar"/>
                                   </a>
-                                  <a href={req.file_desktop_url} download target="_blank" style={{display:'block',fontSize:10,color:'#C9951A',fontWeight:600,textDecoration:'none',marginTop:3,textAlign:'center'}}>⬇ Download</a>
+                                  <a href={`/api/download-banner?url=${encodeURIComponent(req.file_desktop_url)}&filename=banner-desktop-${req.company?.name||'empresa'}.png`} style={{display:'block',fontSize:10,color:'#C9951A',fontWeight:600,textDecoration:'none',marginTop:3,textAlign:'center'}}>⬇ Download</a>
                                 </div>
                               )}
                               {req.file_mobile_url && (
@@ -1319,7 +1319,7 @@ export default function AdminPage() {
                                   <a href={req.file_mobile_url} target="_blank" rel="noopener noreferrer">
                                     <img src={req.file_mobile_url} style={{width:68,height:45,objectFit:'cover',borderRadius:6,border:'1px solid #EDE8E0',cursor:'pointer'}} alt="mobile" title="Clique para ampliar"/>
                                   </a>
-                                  <a href={req.file_mobile_url} download target="_blank" style={{display:'block',fontSize:10,color:'#C9951A',fontWeight:600,textDecoration:'none',marginTop:3,textAlign:'center'}}>⬇ Download</a>
+                                  <a href={`/api/download-banner?url=${encodeURIComponent(req.file_mobile_url)}&filename=banner-mobile-${req.company?.name||'empresa'}.png`} style={{display:'block',fontSize:10,color:'#C9951A',fontWeight:600,textDecoration:'none',marginTop:3,textAlign:'center'}}>⬇ Download</a>
                                 </div>
                               )}
                             </div>

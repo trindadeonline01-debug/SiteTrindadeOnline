@@ -173,12 +173,14 @@ export default function AdminPage() {
   }
 
   async function loadUsers() {
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(100)
-    setUsers(data || [])
+    try {
+      const res = await fetch('/api/admin/list-users')
+      const data = await res.json()
+      setUsers(data.users || [])
+    } catch {
+      const { data } = await supabase.from('profiles').select('*').order('created_at', { ascending: false }).limit(100)
+      setUsers(data || [])
+    }
   }
 
   async function loadSearches() {

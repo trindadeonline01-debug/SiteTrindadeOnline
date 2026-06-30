@@ -1008,7 +1008,7 @@ export default function AdminPage() {
                   ? <div className="empty-state"><div>👥</div><div>Nenhum usuário cadastrado ainda</div></div>
                   : <div style={{ overflowX:'auto' }}>
                       <table className="data-table">
-                        <thead><tr><th>Nome</th><th>Tipo</th><th>Bairro</th><th>Cadastro</th></tr></thead>
+                        <thead><tr><th>Nome</th><th>Tipo</th><th>Bairro</th><th>Cadastro</th><th>Ações</th></tr></thead>
                         <tbody>
                           {users.map(u => (
                             <tr key={u.id}>
@@ -1020,6 +1020,7 @@ export default function AdminPage() {
                               </td>
                               <td>{u.neighborhood || '—'}</td>
                               <td>{fmtDate(u.created_at)}</td>
+                              <td><button className="action-btn" style={{background:'#185FA522',color:'#185FA5'}} onClick={() => openEditUser(u)}>✏️ Editar</button></td>
                             </tr>
                           ))}
                         </tbody>

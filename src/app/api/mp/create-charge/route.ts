@@ -10,6 +10,12 @@ const PLANS: Record<string, { value: number; days: number; description: string }
   mensal:     { value: 29.90,  days: 30,  description: 'Trindade Online — Plano Mensal' },
   trimestral: { value: 79.90,  days: 90,  description: 'Trindade Online — Plano Trimestral' },
   semestral:  { value: 149.90, days: 180, description: 'Trindade Online — Plano Semestral' },
+  'banner_7d_upload':  { value: 79.90,  days: 7,  description: 'Trindade Online — Banner Home 7 dias' },
+  'banner_15d_upload': { value: 139.90, days: 15, description: 'Trindade Online — Banner Home 15 dias' },
+  'banner_30d_upload': { value: 249.90, days: 30, description: 'Trindade Online — Banner Home 30 dias' },
+  'banner_7d_ia':      { value: 119.90, days: 7,  description: 'Trindade Online — Banner Home 7 dias + Criação IA' },
+  'banner_15d_ia':     { value: 179.90, days: 15, description: 'Trindade Online — Banner Home 15 dias + Criação IA' },
+  'banner_30d_ia':     { value: 289.90, days: 30, description: 'Trindade Online — Banner Home 30 dias + Criação IA' },
 }
 
 export async function POST(req: NextRequest) {

@@ -1237,46 +1237,75 @@ export default function AdminPage() {
                 ) : (
                   <div style={{display:'flex',flexDirection:'column',gap:12}}>
                     {bannerRequests.map((req: any) => (
-                      <div key={req.id} style={{background:'#fff',border:'0.5px solid #EDE8E0',borderRadius:14,padding:20}}>
-                        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
-                          <div>
-                            <div style={{fontWeight:600,fontSize:15,color:'#111'}}>{req.company?.name}</div>
-                            <div style={{fontSize:12,color:'#AAA',marginTop:2}}>
-                              {req.tipo === 'ia' ? '✨ Criação com IA' : '📤 Upload próprio'} · {req.dias} dias · R$ {Number(req.value).toFixed(2)}
+                      {(() => {
+                        const now = Date.now()
+                        const expires = req.expires_at ? new Date(req.expires_at).getTime() : null
+                        const daysRemaining = expires ? Math.ceil((expires - now) / 86400000) : null
+                        const borderColor = !expires ? '#EDE8E0' : daysRemaining! <= 0 ? '#E24B4A' : daysRemaining! <= 3 ? '#F5C77A' : '#5EE8A0'
+                        const statusBg = !expires ? '#fff' : daysRemaining! <= 0 ? '#FCEBEB' : daysRemaining! <= 3 ? '#FAEEDA' : '#EAF3DE'
+                        return (
+                        <div key={req.id} style={{background:statusBg,border:`1.5px solid ${borderColor}`,borderRadius:14,padding:16}}>
+                          <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:8,flexWrap:'wrap'}}>
+                            <div style={{flex:1,minWidth:0}}>
+                              <div style={{fontWeight:600,fontSize:14,color:'#111'}}>{req.company?.name}</div>
+                              <div style={{fontSize:11,color:'#888',marginTop:2}}>
+                                {req.tipo === 'ia' ? '✨ IA' : '📤 Upload'} · {req.dias} dias · R$ {Number(req.value).toFixed(2)} · {new Date(req.created_at).toLocaleDateString('pt-BR')}
+                              </div>
+                              {req.expires_at && (
+                                <div style={{fontSize:11,marginTop:3,fontWeight:600,color: daysRemaining! <= 0 ? '#E24B4A' : daysRemaining! <= 3 ? '#854F0B' : '#0F6E56'}}>
+                                  {daysRemaining! <= 0 ? '🔴 Vencido' : daysRemaining! <= 3 ? `🟡 Vence em ${daysRemaining} dia(s)` : `🟢 ${daysRemaining} dias restantes`}
+                                  {' · '}{new Date(req.starts_at).toLocaleDateString('pt-BR')} → {new Date(req.expires_at).toLocaleDateString('pt-BR')}
+                                </div>
+                              )}
+                              {!req.expires_at && (
+                                <div style={{fontSize:11,color:'#AAA',marginTop:2}}>⏳ Aguardando ativação ({req.dias} dias após entrega)</div>
+                              )}
                             </div>
-                            <div style={{fontSize:11,color:'#AAA'}}>{new Date(req.created_at).toLocaleDateString('pt-BR')}</div>
-                          </div>
-                          <div style={{display:'flex',alignItems:'center',gap:8}}>
                             <select value={req.status} onChange={async (e) => {
-                              await supabase.from('banner_requests').update({status: e.target.value}).eq('id', req.id)
+                              const newStatus = e.target.value
+                              const updates: any = { status: newStatus }
+                              if (newStatus === 'delivered' && !req.starts_at) {
+                                updates.starts_at = new Date().toISOString()
+                                updates.expires_at = new Date(Date.now() + req.dias * 86400000).toISOString()
+                              }
+                              await supabase.from('banner_requests').update(updates).eq('id', req.id)
                               loadBannerRequests()
-                            }} style={{padding:'6px 10px',borderRadius:8,border:'1px solid #E0DDD8',fontSize:12,fontFamily:'Inter,sans-serif'}}>
+                            }} style={{padding:'6px 10px',borderRadius:8,border:'1px solid #E0DDD8',fontSize:11,fontFamily:'Inter,sans-serif',background:'#fff'}}>
                               <option value="pending">⏳ Pendente</option>
                               <option value="in_progress">🔄 Em produção</option>
                               <option value="delivered">✅ Entregue</option>
                             </select>
                           </div>
+                          {req.descricao_ia && (
+                            <div style={{background:'#FEF3E2',border:'1px solid #F5C77A',borderRadius:8,padding:'8px 12px',marginTop:10,fontSize:12,color:'#854F0B'}}>
+                              <strong>IA:</strong> {req.descricao_ia}
+                            </div>
+                          )}
+                          {(req.file_desktop_url || req.file_mobile_url) && (
+                            <div style={{display:'flex',gap:10,marginTop:10,flexWrap:'wrap'}}>
+                              {req.file_desktop_url && (
+                                <div>
+                                  <div style={{fontSize:10,color:'#AAA',marginBottom:3}}>DESKTOP</div>
+                                  <a href={req.file_desktop_url} target="_blank" rel="noopener noreferrer">
+                                    <img src={req.file_desktop_url} style={{width:180,height:45,objectFit:'cover',borderRadius:6,border:'1px solid #EDE8E0',cursor:'pointer'}} alt="desktop" title="Clique para ampliar"/>
+                                  </a>
+                                  <a href={req.file_desktop_url} download target="_blank" style={{display:'block',fontSize:10,color:'#C9951A',fontWeight:600,textDecoration:'none',marginTop:3,textAlign:'center'}}>⬇ Download</a>
+                                </div>
+                              )}
+                              {req.file_mobile_url && (
+                                <div>
+                                  <div style={{fontSize:10,color:'#AAA',marginBottom:3}}>MOBILE</div>
+                                  <a href={req.file_mobile_url} target="_blank" rel="noopener noreferrer">
+                                    <img src={req.file_mobile_url} style={{width:68,height:45,objectFit:'cover',borderRadius:6,border:'1px solid #EDE8E0',cursor:'pointer'}} alt="mobile" title="Clique para ampliar"/>
+                                  </a>
+                                  <a href={req.file_mobile_url} download target="_blank" style={{display:'block',fontSize:10,color:'#C9951A',fontWeight:600,textDecoration:'none',marginTop:3,textAlign:'center'}}>⬇ Download</a>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
-                        {req.descricao_ia && (
-                          <div style={{background:'#FEF3E2',border:'1px solid #F5C77A',borderRadius:10,padding:'10px 14px',marginBottom:10}}>
-                            <div style={{fontSize:11,fontWeight:700,color:'#854F0B',marginBottom:4}}>DESCRIÇÃO PARA IA</div>
-                            <div style={{fontSize:13,color:'#854F0B'}}>{req.descricao_ia}</div>
-                          </div>
-                        )}
-                        {req.file_desktop_url && (
-                          <div style={{marginBottom:8}}>
-                            <div style={{fontSize:11,color:'#AAA',marginBottom:4}}>DESKTOP:</div>
-                            <img src={req.file_desktop_url} style={{maxWidth:'100%',borderRadius:8,border:'1px solid #EDE8E0'}} alt="banner desktop"/>
-                          </div>
-                        )}
-                        {req.file_mobile_url && (
-                          <div>
-                            <div style={{fontSize:11,color:'#AAA',marginBottom:4}}>MOBILE:</div>
-                            <img src={req.file_mobile_url} style={{maxWidth:300,borderRadius:8,border:'1px solid #EDE8E0'}} alt="banner mobile"/>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                        )
+                      })()}
                   </div>
                 )}
               </div>

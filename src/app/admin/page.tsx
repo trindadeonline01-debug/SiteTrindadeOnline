@@ -72,6 +72,8 @@ export default function AdminPage() {
   const [uploadProgress, setUploadProgress]         = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [bannerRequests, setBannerRequests] = useState<any[]>([])
+  const [bannerFilter, setBannerFilter] = useState<'all'|'pending'|'in_progress'|'delivered'>('all')
+  const [bannerSort, setBannerSort] = useState<'recent'|'urgent'|'far'>('recent')
   const [mpToken, setMpToken] = useState('')
   const [mpTokenSaving, setMpTokenSaving] = useState(false)
   const [mpTokenLoaded, setMpTokenLoaded] = useState(false)
@@ -1232,11 +1234,31 @@ export default function AdminPage() {
             {/* ── PEDIDOS DE BANNER ── */}
             {!loading && tab === 'pedidos-banner' && (
               <div>
-                {bannerRequests.length === 0 ? (
-                  <div style={{textAlign:'center',padding:'48px 20px',color:'#AAA'}}>Nenhum pedido de banner ainda</div>
-                ) : (
-                  <div style={{display:'flex',flexDirection:'column',gap:12}}>
-                    {bannerRequests.map((req: any) => { return (() => {
+                <div style={{display:'flex',gap:10,marginBottom:16,flexWrap:'wrap',alignItems:'center'}}>
+                  <select value={bannerFilter} onChange={e=>setBannerFilter(e.target.value as any)} style={{padding:'8px 12px',borderRadius:8,border:'1px solid #E0DDD8',fontSize:12,fontFamily:'Inter,sans-serif',background:'#fff'}}>
+                    <option value="all">Todos os status</option>
+                    <option value="pending">⏳ Pendente</option>
+                    <option value="in_progress">🔄 Em produção</option>
+                    <option value="delivered">✅ Entregue</option>
+                  </select>
+                  <select value={bannerSort} onChange={e=>setBannerSort(e.target.value as any)} style={{padding:'8px 12px',borderRadius:8,border:'1px solid #E0DDD8',fontSize:12,fontFamily:'Inter,sans-serif',background:'#fff'}}>
+                    <option value="recent">Mais recentes primeiro</option>
+                    <option value="urgent">Vencendo primeiro</option>
+                    <option value="far">Mais tempo restante primeiro</option>
+                  </select>
+                </div>
+                {(() => {
+                  let filtered = bannerFilter === 'all' ? bannerRequests : bannerRequests.filter((r:any) => r.status === bannerFilter)
+                  filtered = [...filtered].sort((a:any, b:any) => {
+                    if (bannerSort === 'recent') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                    const aExp = a.expires_at ? new Date(a.expires_at).getTime() : Infinity
+                    const bExp = b.expires_at ? new Date(b.expires_at).getTime() : Infinity
+                    return bannerSort === 'urgent' ? aExp - bExp : bExp - aExp
+                  })
+                  if (filtered.length === 0) return <div style={{textAlign:'center',padding:'48px 20px',color:'#AAA'}}>Nenhum pedido encontrado</div>
+                  return (
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:14}}>
+                    {filtered.map((req: any) => { return (() => {
                         const now = Date.now()
                         const expires = req.expires_at ? new Date(req.expires_at).getTime() : null
                         const daysRemaining = expires ? Math.ceil((expires - now) / 86400000) : null
@@ -1306,7 +1328,8 @@ export default function AdminPage() {
                         )
                       })()})}
                   </div>
-                )}
+                  )
+                })()}
               </div>
             )}
 

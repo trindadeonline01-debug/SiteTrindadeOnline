@@ -175,7 +175,7 @@ export default function PainelPage() {
         }
       }
       // Salvar pedido de banner
-      await supabase.from('banner_requests').insert({
+      const { error: bannerErr } = await supabase.from('banner_requests').insert({
         company_id: company.id,
         tipo,
         dias: bannerModal.dias,

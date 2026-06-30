@@ -383,7 +383,10 @@ export default function HomePage() {
                 <button className="btn-sair" onClick={handleSair}>Sair</button>
               </>
             ) : (
-              <a className="btn-entrar" href="/login">Entrar</a>
+              <>
+                <a className="btn-entrar" href="/login">Entrar</a>
+                <a className="btn-entrar" href="/cadastro" style={{borderColor:'#888',color:'#888'}}>+ Cadastrar morador</a>
+              </>
             )}
             <a className="btn-cad" href="/empresa/cadastrar">+ Cadastrar empresa</a>
           </div>

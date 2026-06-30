@@ -434,10 +434,22 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
                   title={`Mapa de ${company.name}`}
                   style={!userId ? {filter:'blur(4px)',pointerEvents:'none'} : {}}
                 />
-                <button className="map-open-btn" onClick={() => window.open(`https://maps.google.com?q=${encodeURIComponent(company.address || '')}`, '_blank')}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                  Abrir no Google Maps
-                </button>
+                {!userId ? (
+                  <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}} onClick={() => window.location.href='/login'}>
+                    <span style={{fontSize:13,fontWeight:700,color:'#C9951A',background:'#fff',padding:'8px 16px',borderRadius:10,border:'1.5px solid #C9951A',boxShadow:'0 2px 8px rgba(0,0,0,.1)'}}>🔒 Entre para ver no mapa</span>
+                  </div>
+                ) : (
+                  <button className="map-open-btn" onClick={() => window.open(`https://maps.google.com?q=${encodeURIComponent(company.address || '')}`, '_blank')}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    Abrir no Google Maps
+                  </button>
+                )}
+              </div>
+            )}
+            {company.description && (
+              <div className="sec-card" style={{padding:16,background:'#fff',border:'0.5px solid #EDE8E0',borderRadius:14,marginTop:16}}>
+                <div className="sec-lbl" style={{marginBottom:10}}>SOBRE</div>
+                <div className="desc">{company.description}</div>
               </div>
             )}
           </div>

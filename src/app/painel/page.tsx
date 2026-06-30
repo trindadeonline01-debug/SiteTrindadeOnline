@@ -187,6 +187,22 @@ export default function PainelPage() {
         status: 'pending',
       })
       setBannerModal(p => ({ ...p, paymentId: data.payment_id, qrCode: data.qr_code_image, pixCode: data.pix_copy_paste }))
+      // Polling a cada 4s
+      const pollInterval = setInterval(async () => {
+        try {
+          const res2 = await fetch('/api/mp/check-payment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ payment_id: data.payment_id, company_id: company.id })
+          })
+          const result = await res2.json()
+          if (result.paid) {
+            clearInterval(pollInterval)
+            setBannerModal(p => ({ ...p, step: 'confirmado' }))
+          }
+        } catch {}
+      }, 4000)
+      setTimeout(() => clearInterval(pollInterval), 600000)
     } catch { showToast('Erro ao gerar Pix'); setBannerModal(p => ({ ...p, step: tipo })) }
   }
 
@@ -716,6 +732,18 @@ export default function PainelPage() {
               </>
             )}
 
+            {bannerModal.step === 'confirmado' && (
+              <>
+                <div style={{fontSize:56,marginBottom:12,textAlign:'center'}}>🎉</div>
+                <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:24,color:'#0F8050',letterSpacing:1,marginBottom:8,textAlign:'center'}}>PAGAMENTO CONFIRMADO!</div>
+                <div style={{fontSize:14,color:'#555',marginBottom:20,lineHeight:1.6,textAlign:'center'}}>Recebemos seu pedido de banner.<br/>Nossa equipe entrará em contato em até 24h.</div>
+                <button onClick={() => { setBannerModal(p => ({ ...p, open: false })) }}
+                  style={{width:'100%',padding:'13px',background:'#C9951A',color:'#fff',border:'none',borderRadius:12,fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                  Fechar
+                </button>
+              </>
+            )}
+
             {bannerModal.step === 'pix' && (
               <>
                 <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,color:'#111',letterSpacing:1,marginBottom:4}}>PAGUE VIA PIX</div>
@@ -735,11 +763,26 @@ export default function PainelPage() {
                       style={{width:'100%',padding:12,background:bannerModal.copied?'#0F8050':'#111',color:'#fff',border:'none',borderRadius:12,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',marginBottom:8}}>
                       {bannerModal.copied?'✓ Código copiado!':'📋 Copiar código Pix'}
                     </button>
-                    <div style={{background:'#F5F5F5',borderRadius:10,padding:'10px 14px',marginBottom:12,display:'flex',alignItems:'center',gap:8,justifyContent:'center'}}>
+                    <div style={{background:'#F5F5F5',borderRadius:10,padding:'10px 14px',marginBottom:8,display:'flex',alignItems:'center',gap:8,justifyContent:'center'}}>
                       <div style={{width:8,height:8,borderRadius:'50%',background:'#C9951A'}}/>
                       <div style={{fontSize:12,color:'#666'}}>Aguardando pagamento...</div>
                     </div>
                     <div style={{fontSize:11,color:'#AAA',marginBottom:12}}>Após o pagamento nossa equipe entrará em contato para finalizar seu banner.</div>
+                    <button onClick={async () => {
+                      const res2 = await fetch('/api/mp/check-payment', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ payment_id: bannerModal.paymentId, company_id: company!.id })
+                      })
+                      const result = await res2.json()
+                      if (result.paid) {
+                        setBannerModal(p => ({ ...p, step: 'confirmado' }))
+                      } else {
+                        showToast('Pagamento ainda não confirmado. Aguarde.')
+                      }
+                    }} style={{width:'100%',padding:'12px',background:'#0F8050',color:'#fff',border:'none',borderRadius:12,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',marginBottom:8}}>
+                      ✓ Já paguei — verificar agora
+                    </button>
                   </>
                 )}
                 <button onClick={()=>setBannerModal(p=>({...p,open:false}))} style={{width:'100%',padding:10,background:'transparent',color:'#AAA',border:'1px solid #ddd',borderRadius:12,fontSize:13,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>Fechar</button>

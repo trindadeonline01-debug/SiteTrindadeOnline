@@ -38,7 +38,7 @@ const statusColor = (s: string) => s === 'active' ? '#0F8050' : s === 'pending' 
 const statusLabel = (s: string) => s === 'active' ? 'Ativa' : s === 'pending' ? 'Pendente' : 'Suspensa'
 
 export default function AdminPage() {
-  const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'denuncias'|'usuarios'|'buscas'|'atividade'|'banners'|'configuracoes'>('dashboard')
+  const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'denuncias'|'usuarios'|'buscas'|'atividade'|'banners'|'pedidos-banner'|'configuracoes'>('dashboard')
   const [stats, setStats]           = useState<Stats|null>(null)
   const [companies, setCompanies]   = useState<Company[]>([])
   const [users, setUsers]           = useState<Profile[]>([])
@@ -71,6 +71,7 @@ export default function AdminPage() {
   const [bannerCurrentImageMobile, setBannerCurrentImageMobile] = useState<string|null>(null)
   const [uploadProgress, setUploadProgress]         = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [bannerRequests, setBannerRequests] = useState<any[]>([])
   const [mpToken, setMpToken] = useState('')
   const [mpTokenSaving, setMpTokenSaving] = useState(false)
   const [mpTokenLoaded, setMpTokenLoaded] = useState(false)
@@ -89,7 +90,7 @@ export default function AdminPage() {
 
   async function loadAll() {
     setLoading(true)
-    await Promise.all([loadStats(), loadCompanies(), loadUsers(), loadSearches(), loadHighlights(), loadReports(), loadBanners(), loadSettings()])
+    await Promise.all([loadStats(), loadCompanies(), loadUsers(), loadSearches(), loadHighlights(), loadReports(), loadBanners(), loadSettings(), loadBannerRequests()])
 
     // Realtime — atualiza automaticamente
     const channel = supabase
@@ -212,6 +213,14 @@ export default function AdminPage() {
     const r = (data || []) as Report[]
     setReports(r)
     setRepCount(r.filter(x => !x.resolved).length)
+  }
+
+  async function loadBannerRequests() {
+    const { data } = await supabase
+      .from('banner_requests')
+      .select('*, company:companies(name)')
+      .order('created_at', {ascending: false})
+    setBannerRequests((data || []) as any[])
   }
 
   async function loadSettings() {
@@ -587,6 +596,7 @@ export default function AdminPage() {
             { id: 'usuarios',  icon: '👥', label: 'Usuários' },
             { id: 'buscas',    icon: '🔍', label: 'Buscas' },
             { id: 'atividade', icon: '⚡', label: 'Atividade' },
+    { id: 'pedidos-banner', icon: '🖼️', label: 'Ped. Banner' },
     { id: 'configuracoes', icon: '⚙️', label: 'Configurações' },
           ].map(n => (
             <div
@@ -618,6 +628,7 @@ export default function AdminPage() {
               {tab === 'destaques' && 'Destaques'}
               {tab === 'denuncias' && 'Denúncias'}
               {tab === 'banners'   && 'Banners da Home'}
+              {tab === 'pedidos-banner' && 'Pedidos de Banner'}
               {tab === 'configuracoes' && 'Configurações'}
             </div>
             <div className="topbar-date">{new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}</div>
@@ -1211,6 +1222,59 @@ export default function AdminPage() {
                             </button>
                           </div>
                         </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── PEDIDOS DE BANNER ── */}
+            {!loading && tab === 'pedidos-banner' && (
+              <div>
+                {bannerRequests.length === 0 ? (
+                  <div style={{textAlign:'center',padding:'48px 20px',color:'#AAA'}}>Nenhum pedido de banner ainda</div>
+                ) : (
+                  <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                    {bannerRequests.map((req: any) => (
+                      <div key={req.id} style={{background:'#fff',border:'0.5px solid #EDE8E0',borderRadius:14,padding:20}}>
+                        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+                          <div>
+                            <div style={{fontWeight:600,fontSize:15,color:'#111'}}>{req.company?.name}</div>
+                            <div style={{fontSize:12,color:'#AAA',marginTop:2}}>
+                              {req.tipo === 'ia' ? '✨ Criação com IA' : '📤 Upload próprio'} · {req.dias} dias · R$ {Number(req.value).toFixed(2)}
+                            </div>
+                            <div style={{fontSize:11,color:'#AAA'}}>{new Date(req.created_at).toLocaleDateString('pt-BR')}</div>
+                          </div>
+                          <div style={{display:'flex',alignItems:'center',gap:8}}>
+                            <select value={req.status} onChange={async (e) => {
+                              await supabase.from('banner_requests').update({status: e.target.value}).eq('id', req.id)
+                              loadBannerRequests()
+                            }} style={{padding:'6px 10px',borderRadius:8,border:'1px solid #E0DDD8',fontSize:12,fontFamily:'Inter,sans-serif'}}>
+                              <option value="pending">⏳ Pendente</option>
+                              <option value="in_progress">🔄 Em produção</option>
+                              <option value="delivered">✅ Entregue</option>
+                            </select>
+                          </div>
+                        </div>
+                        {req.descricao_ia && (
+                          <div style={{background:'#FEF3E2',border:'1px solid #F5C77A',borderRadius:10,padding:'10px 14px',marginBottom:10}}>
+                            <div style={{fontSize:11,fontWeight:700,color:'#854F0B',marginBottom:4}}>DESCRIÇÃO PARA IA</div>
+                            <div style={{fontSize:13,color:'#854F0B'}}>{req.descricao_ia}</div>
+                          </div>
+                        )}
+                        {req.file_desktop_url && (
+                          <div style={{marginBottom:8}}>
+                            <div style={{fontSize:11,color:'#AAA',marginBottom:4}}>DESKTOP:</div>
+                            <img src={req.file_desktop_url} style={{maxWidth:'100%',borderRadius:8,border:'1px solid #EDE8E0'}} alt="banner desktop"/>
+                          </div>
+                        )}
+                        {req.file_mobile_url && (
+                          <div>
+                            <div style={{fontSize:11,color:'#AAA',marginBottom:4}}>MOBILE:</div>
+                            <img src={req.file_mobile_url} style={{maxWidth:300,borderRadius:8,border:'1px solid #EDE8E0'}} alt="banner mobile"/>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

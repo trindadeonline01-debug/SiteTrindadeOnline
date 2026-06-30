@@ -153,6 +153,16 @@ export default function PainelPage() {
       })
       const data = await res.json()
       if (data.error) { showToast('Erro: ' + data.error); setBannerModal(p => ({ ...p, step: tipo })); return }
+      // Salvar pedido de banner
+      await supabase.from('banner_requests').insert({
+        company_id: company.id,
+        tipo,
+        dias: bannerModal.dias,
+        value: valorTotal,
+        descricao_ia: tipo === 'ia' ? bannerModal.descricaoIA : null,
+        payment_id: String(data.payment_id),
+        status: 'pending',
+      })
       setBannerModal(p => ({ ...p, paymentId: data.payment_id, qrCode: data.qr_code_image, pixCode: data.pix_copy_paste }))
     } catch { showToast('Erro ao gerar Pix'); setBannerModal(p => ({ ...p, step: tipo })) }
   }

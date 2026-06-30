@@ -1362,7 +1362,7 @@ export default function PainelPage() {
                   </div>
                   <div className="pt-banner-info">
                     {[{dias:'7 dias',preco:'R$ 79,90'},{dias:'15 dias',preco:'R$ 139,90'},{dias:'30 dias',preco:'R$ 249,90'}].map((o,i)=>(
-                      <button key={i} className="pt-b-opt" onClick={()=>showToast('Em breve: pagamento via Pix')}>
+                      <button key={i} className="pt-b-opt" onClick={()=>abrirBanner(i===0?7:i===1?15:30, i===0?79.90:i===1?139.90:249.90)}>
                         <div className="pt-b-days">{o.dias}</div>
                         <div className="pt-b-price">{o.preco}</div>
                       </button>

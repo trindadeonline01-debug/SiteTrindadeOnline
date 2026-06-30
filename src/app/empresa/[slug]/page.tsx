@@ -378,12 +378,6 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
                 </button>
               )}
             </div>
-
-            {company.description && (
-              <>
-                <div className="sec-lbl">SOBRE</div>
-                <div className="desc">{company.description}</div>
-              </>
             )}
           </div>
 
@@ -418,15 +412,15 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
 
             {/* Endereço */}
             {company.address && (
-              <div className="addr-box">
+              <div className="addr-box" style={{position:'relative'}}>
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#C9951A" strokeWidth="2" strokeLinecap="round" style={{flexShrink:0,marginTop:2}}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                <div className="addr-txt">{company.address}</div>
+                <div className="addr-txt" style={!userId ? {filter:'blur(5px)',userSelect:'none'} : {}}>{company.address}</div>\n                {!userId && (\n                  <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(255,255,255,0.5)',borderRadius:10,cursor:'pointer'}} onClick={() => window.location.href='/login'}>\n                    <span style={{fontSize:12,fontWeight:700,color:'#C9951A',background:'#fff',padding:'4px 10px',borderRadius:8,border:'1px solid #C9951A'}}>🔒 Entrar para ver</span>\n                  </div>\n                )}
               </div>
             )}
 
             {/* Mapa Google Maps real */}
             {company.address && mapsUrl && (
-              <div className="map-card">
+              <div className="map-card" style={{position:'relative'}}>
                 <iframe
                   className="map-frame"
                   src={mapsUrl}
@@ -434,6 +428,7 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
                   title={`Mapa de ${company.name}`}
+                  style={!userId ? {filter:'blur(4px)',pointerEvents:'none'} : {}}
                 />
                 <button className="map-open-btn" onClick={() => window.open(`https://maps.google.com?q=${encodeURIComponent(company.address || '')}`, '_blank')}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>

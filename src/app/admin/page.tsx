@@ -1236,8 +1236,7 @@ export default function AdminPage() {
                   <div style={{textAlign:'center',padding:'48px 20px',color:'#AAA'}}>Nenhum pedido de banner ainda</div>
                 ) : (
                   <div style={{display:'flex',flexDirection:'column',gap:12}}>
-                    {bannerRequests.map((req: any) => (
-                      {(() => {
+                    {bannerRequests.map((req: any) => {(() => {
                         const now = Date.now()
                         const expires = req.expires_at ? new Date(req.expires_at).getTime() : null
                         const daysRemaining = expires ? Math.ceil((expires - now) / 86400000) : null
@@ -1305,7 +1304,7 @@ export default function AdminPage() {
                           )}
                         </div>
                         )
-                      })()}
+                      })()})}
                   </div>
                 )}
               </div>

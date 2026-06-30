@@ -215,6 +215,15 @@ function BuscaContent() {
         </div>
       </div>
 
+      <div className="mobile-search-bar">
+        <form className="sf" onSubmit={handleSubmit} style={{maxWidth:'100%'}}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" placeholder="Empresa, produto, endereço, bairro..." value={input} onChange={e => setInput(e.target.value)} style={{fontSize:16}}/>
+          <button type="submit" className="sf-btn">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </form>
+      </div>
       <div className="page">
 
         {/* ESTADO INICIAL */}

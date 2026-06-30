@@ -153,6 +153,27 @@ export default function PainelPage() {
       })
       const data = await res.json()
       if (data.error) { showToast('Erro: ' + data.error); setBannerModal(p => ({ ...p, step: tipo })); return }
+      // Upload dos arquivos se for upload
+      let fileDesktopUrl = null
+      let fileMobileUrl = null
+      if (tipo === 'upload' && bannerModal.fileDesktop) {
+        const ext = bannerModal.fileDesktop.name.split('.').pop()
+        const pathD = `${company.id}/${Date.now()}-desktop.${ext}`
+        const { data: upD } = await supabase.storage.from('banner-uploads').upload(pathD, bannerModal.fileDesktop, {upsert:true})
+        if (upD) {
+          const { data: urlD } = supabase.storage.from('banner-uploads').getPublicUrl(pathD)
+          fileDesktopUrl = urlD.publicUrl
+        }
+        if (bannerModal.fileMobile) {
+          const extM = bannerModal.fileMobile.name.split('.').pop()
+          const pathM = `${company.id}/${Date.now()}-mobile.${extM}`
+          const { data: upM } = await supabase.storage.from('banner-uploads').upload(pathM, bannerModal.fileMobile, {upsert:true})
+          if (upM) {
+            const { data: urlM } = supabase.storage.from('banner-uploads').getPublicUrl(pathM)
+            fileMobileUrl = urlM.publicUrl
+          }
+        }
+      }
       // Salvar pedido de banner
       await supabase.from('banner_requests').insert({
         company_id: company.id,
@@ -160,6 +181,8 @@ export default function PainelPage() {
         dias: bannerModal.dias,
         value: valorTotal,
         descricao_ia: tipo === 'ia' ? bannerModal.descricaoIA : null,
+        file_desktop_url: fileDesktopUrl,
+        file_mobile_url: fileMobileUrl,
         payment_id: String(data.payment_id),
         status: 'pending',
       })

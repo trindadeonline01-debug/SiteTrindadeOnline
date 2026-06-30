@@ -7,13 +7,13 @@ import { supabase } from '@/lib/supabase'
 type Company = {
   id: string; name: string; status: string; plan: string
   created_at: string; owner_id: string; category_id: string
-  address: string; phone: string
+  address: string; phone: string; description?: string; tags?: string[]; cpf_cnpj?: string; external_link?: string
   category?: { name: string; emoji: string }
   owner?: { name: string }
 }
 type Profile = {
   id: string; name: string; user_type: string
-  neighborhood: string; created_at: string
+  neighborhood: string; created_at: string; email?: string
 }
 type SearchLog  = { query: string; count: number; no_result: number }
 type Highlight  = { id: string; company_id: string; scope_type: string; scope_id: string|null; highlight_type: string; active: boolean; expires_at: string|null; display_order: number; company?: any; scope_name?: string }
@@ -72,6 +72,13 @@ export default function AdminPage() {
   const [uploadProgress, setUploadProgress]         = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [bannerRequests, setBannerRequests] = useState<any[]>([])
+  const [editCompanyModal, setEditCompanyModal] = useState<{open:boolean; company:any}>({open:false, company:null})
+  const [editUserModal, setEditUserModal] = useState<{open:boolean; user:any}>({open:false, user:null})
+  const [allCategories, setAllCategories] = useState<CatOpt[]>([])
+  const [allSubcats, setAllSubcats] = useState<SubcatOpt[]>([])
+  const [companySubcatIds, setCompanySubcatIds] = useState<string[]>([])
+  const [savingEdit, setSavingEdit] = useState(false)
+  const [newPassword, setNewPassword] = useState('')
   const [bannerFilter, setBannerFilter] = useState<'all'|'pending'|'in_progress'|'delivered'>('all')
   const [bannerSort, setBannerSort] = useState<'recent'|'urgent'|'far'>('recent')
   const [mpToken, setMpToken] = useState('')

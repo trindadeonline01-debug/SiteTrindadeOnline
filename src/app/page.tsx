@@ -213,7 +213,7 @@ export default function HomePage() {
           padding: 6px 6px 6px 16px; box-shadow: 0 4px 20px rgba(201,149,26,.12);
           transform: none; position: relative; z-index: 20; margin-bottom: 4px;
         }
-        .hero-search-wrap input { flex: 1; border: none; background: transparent; font-size: 14px; font-family: 'Inter', sans-serif; color: #222; outline: none; }
+        .hero-search-wrap input { flex: 1; border: none; background: transparent; font-size: 16px; font-family: 'Inter', sans-serif; color: #222; outline: none; }
         .hero-search-wrap input::placeholder { color: #BBB; }
         .hero-search-btn { background: #C9951A; border: none; border-radius: 50px; padding: 9px 16px; color: #fff; font-size: 13px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
         @media(min-width: 768px) {

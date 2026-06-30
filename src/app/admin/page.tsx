@@ -843,6 +843,7 @@ export default function AdminPage() {
                                 {c.status === 'active'    && <button className="action-btn btn-suspend" onClick={() => suspendCompany(c.id)}>Suspender</button>}
                                 {c.status === 'suspended' && <button className="action-btn btn-approve" onClick={() => approveCompany(c.id)}>Reativar</button>}
                                 <button className="action-btn btn-view" onClick={() => window.open(`/empresa/${c.id}`)}>Ver</button>
+                                <button className="action-btn" style={{background:'#185FA522',color:'#185FA5'}} onClick={() => openEditCompany(c)}>✏️ Editar</button>
                               </td>
                             </tr>
                           ))}

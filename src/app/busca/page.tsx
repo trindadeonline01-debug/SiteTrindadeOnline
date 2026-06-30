@@ -126,6 +126,12 @@ function BuscaContent() {
 
         .topbar{background:#111;padding:0;position:sticky;top:0;z-index:50;}
         .topbar-inner{max-width:1200px;margin:0 auto;padding:11px 24px;display:flex;align-items:center;gap:14px;}
+        @media(max-width:767px){
+          .topbar-inner{ justify-content: space-between; }
+          .topbar-inner .sf { display: none; }
+          .mobile-search-bar { display: block; padding: 14px 16px 4px; }
+        }
+        @media(min-width:768px){ .mobile-search-bar { display: none; } }
         .t-logo{font-family:'Bebas Neue',sans-serif;font-size:20px;color:#fff;letter-spacing:2px;text-decoration:none;flex-shrink:0;}
         .t-logo span{color:#C9951A;}
         .sf{flex:1;display:flex;align-items:center;gap:8px;background:#1A1A1A;border:1.5px solid #C9951A;border-radius:30px;padding:9px 16px;max-width:640px;}

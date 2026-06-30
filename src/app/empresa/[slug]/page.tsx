@@ -378,7 +378,6 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
                 </button>
               )}
             </div>
-            )}
           </div>
 
           {/* COLUNA DIREITA */}

@@ -79,6 +79,7 @@ export default function AdminPage() {
   const [companySubcatIds, setCompanySubcatIds] = useState<string[]>([])
   const [savingEdit, setSavingEdit] = useState(false)
   const [newPassword, setNewPassword] = useState('')
+  const [adminSubcatSearch, setAdminSubcatSearch] = useState('')
   const [bannerFilter, setBannerFilter] = useState<'all'|'pending'|'in_progress'|'delivered'>('all')
   const [bannerSort, setBannerSort] = useState<'recent'|'urgent'|'far'>('recent')
   const [mpToken, setMpToken] = useState('')
@@ -697,19 +698,37 @@ export default function AdminPage() {
                   <option value="suspended">Suspensa</option>
                 </select>
               </div>
-              <div style={{gridColumn:'1/-1'}}>
-                <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Subcategorias</label>
-                <div style={{display:'flex',flexWrap:'wrap',gap:6,padding:10,border:'1.5px solid #E0DDD8',borderRadius:10,maxHeight:120,overflowY:'auto'}}>
-                  {allSubcats.filter(s=>s.category_id===editCompanyModal.company.category_id).map(s=>(
-                    <div key={s.id} onClick={()=>setCompanySubcatIds(prev=>prev.includes(s.id)?prev.filter(x=>x!==s.id):[...prev,s.id])}
-                      style={{padding:'5px 12px',borderRadius:20,fontSize:12,cursor:'pointer',border:'1px solid',
-                        borderColor:companySubcatIds.includes(s.id)?'#C9951A':'#E0DDD8',
-                        background:companySubcatIds.includes(s.id)?'#FEF3E2':'transparent',
-                        color:companySubcatIds.includes(s.id)?'#854F0B':'#888'}}>
-                      {s.emoji} {s.name}
-                    </div>
-                  ))}
-                </div>
+              <div style={{gridColumn:'1/-1',position:'relative'}}>
+                <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Subcategorias <span style={{fontSize:11,color:'#AAA',fontWeight:400}}>(máx. 3)</span></label>
+                <input type="text" placeholder="🔍 Buscar ou escolha da lista..." value={adminSubcatSearch}
+                  onChange={e=>setAdminSubcatSearch(e.target.value)}
+                  onFocus={()=>{ if(!adminSubcatSearch) setAdminSubcatSearch(' ') }}
+                  onBlur={()=>setTimeout(()=>setAdminSubcatSearch(''),200)}
+                  style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+                {adminSubcatSearch && (
+                  <div style={{position:'absolute',top:68,left:0,right:0,background:'#fff',border:'1.5px solid #C9951A',borderRadius:10,maxHeight:180,overflowY:'auto',zIndex:50,boxShadow:'0 4px 16px rgba(0,0,0,.08)'}}>
+                    {allSubcats.filter(s=>s.category_id===editCompanyModal.company.category_id && s.name.toLowerCase().includes(adminSubcatSearch.trim().toLowerCase())).map(s=>{
+                      const selected = companySubcatIds.includes(s.id)
+                      const maxed = companySubcatIds.length >= 3 && !selected
+                      return (
+                        <div key={s.id} onMouseDown={()=>{ if(!maxed) setCompanySubcatIds(prev=>prev.includes(s.id)?prev.filter(x=>x!==s.id):[...prev,s.id]) }}
+                          style={{padding:'10px 14px',fontSize:13,cursor:maxed?'not-allowed':'pointer',display:'flex',justifyContent:'space-between',background:selected?'#FEF3E2':undefined,color:maxed?'#CCC':'#333'}}>
+                          <span>{s.emoji} {s.name}</span>
+                          {selected ? <span style={{color:'#C9951A',fontWeight:700}}>✓</span> : !maxed ? <span style={{color:'#AAA',fontSize:11}}>+ Adicionar</span> : <span style={{fontSize:11,color:'#CCC'}}>máx. 3</span>}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+                {companySubcatIds.length > 0 && (
+                  <div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:8}}>
+                    {companySubcatIds.map(sid=>{
+                      const s = allSubcats.find(x=>x.id===sid)
+                      if(!s) return null
+                      return <div key={sid} style={{display:'flex',alignItems:'center',gap:4,padding:'4px 10px',background:'#FEF3E2',border:'1px solid #C9951A',borderRadius:20,fontSize:12,color:'#854F0B',fontWeight:600}}>{s.emoji} {s.name}<button onClick={()=>setCompanySubcatIds(prev=>prev.filter(x=>x!==sid))} style={{background:'none',border:'none',cursor:'pointer',fontSize:14,color:'#C9951A',padding:0}}>×</button></div>
+                    })}
+                  </div>
+                )}
               </div>
               <div>
                 <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>WhatsApp</label>

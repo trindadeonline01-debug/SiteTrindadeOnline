@@ -670,6 +670,131 @@ export default function AdminPage() {
         .upload-area-filled { border: 2px solid #C9951A; border-radius: 10px; overflow: hidden; cursor: pointer; }
       `}</style>
 
+      {editCompanyModal.open && editCompanyModal.company && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:16,overflowY:'auto'}}>
+          <div style={{background:'#fff',borderRadius:20,padding:28,maxWidth:560,width:'100%',maxHeight:'90vh',overflowY:'auto'}}>
+            <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,color:'#111',letterSpacing:1,marginBottom:20}}>EDITAR EMPRESA</div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:14}}>
+              <div style={{gridColumn:'1/-1'}}>
+                <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Nome</label>
+                <input value={editCompanyModal.company.name||''} onChange={e=>setEditCompanyModal(p=>({...p,company:{...p.company,name:e.target.value}}))}
+                  style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+              </div>
+              <div>
+                <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Categoria</label>
+                <select value={editCompanyModal.company.category_id||''} onChange={e=>setEditCompanyModal(p=>({...p,company:{...p.company,category_id:e.target.value}}))}
+                  style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}>
+                  <option value="">Selecionar...</option>
+                  {allCategories.map(c=><option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Status</label>
+                <select value={editCompanyModal.company.status||''} onChange={e=>setEditCompanyModal(p=>({...p,company:{...p.company,status:e.target.value}}))}
+                  style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}>
+                  <option value="pending">Pendente</option>
+                  <option value="active">Ativa</option>
+                  <option value="suspended">Suspensa</option>
+                </select>
+              </div>
+              <div style={{gridColumn:'1/-1'}}>
+                <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Subcategorias</label>
+                <div style={{display:'flex',flexWrap:'wrap',gap:6,padding:10,border:'1.5px solid #E0DDD8',borderRadius:10,maxHeight:120,overflowY:'auto'}}>
+                  {allSubcats.filter(s=>s.category_id===editCompanyModal.company.category_id).map(s=>(
+                    <div key={s.id} onClick={()=>setCompanySubcatIds(prev=>prev.includes(s.id)?prev.filter(x=>x!==s.id):[...prev,s.id])}
+                      style={{padding:'5px 12px',borderRadius:20,fontSize:12,cursor:'pointer',border:'1px solid',
+                        borderColor:companySubcatIds.includes(s.id)?'#C9951A':'#E0DDD8',
+                        background:companySubcatIds.includes(s.id)?'#FEF3E2':'transparent',
+                        color:companySubcatIds.includes(s.id)?'#854F0B':'#888'}}>
+                      {s.emoji} {s.name}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>WhatsApp</label>
+                <input value={editCompanyModal.company.phone||''} onChange={e=>setEditCompanyModal(p=>({...p,company:{...p.company,phone:e.target.value}}))}
+                  style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+              </div>
+              <div>
+                <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>CPF/CNPJ</label>
+                <input value={editCompanyModal.company.cpf_cnpj||''} onChange={e=>setEditCompanyModal(p=>({...p,company:{...p.company,cpf_cnpj:e.target.value}}))}
+                  style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+              </div>
+              <div style={{gridColumn:'1/-1'}}>
+                <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Endereço</label>
+                <input value={editCompanyModal.company.address||''} onChange={e=>setEditCompanyModal(p=>({...p,company:{...p.company,address:e.target.value}}))}
+                  style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+              </div>
+              <div style={{gridColumn:'1/-1'}}>
+                <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Link externo</label>
+                <input value={editCompanyModal.company.external_link||''} onChange={e=>setEditCompanyModal(p=>({...p,company:{...p.company,external_link:e.target.value}}))}
+                  style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+              </div>
+              <div style={{gridColumn:'1/-1'}}>
+                <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Descrição</label>
+                <textarea rows={3} value={editCompanyModal.company.description||''} onChange={e=>setEditCompanyModal(p=>({...p,company:{...p.company,description:e.target.value}}))}
+                  style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif',resize:'none'}}/>
+              </div>
+              <div>
+                <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Plano</label>
+                <select value={editCompanyModal.company.plan||''} onChange={e=>setEditCompanyModal(p=>({...p,company:{...p.company,plan:e.target.value}}))}
+                  style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}>
+                  <option value="free">Grátis</option>
+                  <option value="paid">Pago</option>
+                </select>
+              </div>
+            </div>
+            <div style={{display:'flex',gap:10}}>
+              <button onClick={saveCompanyEdit} disabled={savingEdit} style={{flex:1,padding:'12px',background:'#C9951A',color:'#fff',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                {savingEdit?'Salvando...':'Salvar alterações'}
+              </button>
+              <button onClick={()=>setEditCompanyModal({open:false,company:null})} style={{padding:'12px 20px',background:'transparent',color:'#AAA',border:'1px solid #ddd',borderRadius:10,fontSize:13,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editUserModal.open && editUserModal.user && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:16,overflowY:'auto'}}>
+          <div style={{background:'#fff',borderRadius:20,padding:28,maxWidth:440,width:'100%'}}>
+            <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,color:'#111',letterSpacing:1,marginBottom:20}}>EDITAR USUÁRIO</div>
+            <div style={{marginBottom:14}}>
+              <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Nome</label>
+              <input value={editUserModal.user.name||''} onChange={e=>setEditUserModal(p=>({...p,user:{...p.user,name:e.target.value}}))}
+                style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+            </div>
+            <div style={{marginBottom:14}}>
+              <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Email</label>
+              <input value={editUserModal.user.email||''} onChange={e=>setEditUserModal(p=>({...p,user:{...p.user,email:e.target.value}}))}
+                style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+            </div>
+            <div style={{marginBottom:20}}>
+              <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Bairro</label>
+              <input value={editUserModal.user.neighborhood||''} onChange={e=>setEditUserModal(p=>({...p,user:{...p.user,neighborhood:e.target.value}}))}
+                style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+            </div>
+            <button onClick={saveUserEdit} disabled={savingEdit} style={{width:'100%',padding:'12px',background:'#C9951A',color:'#fff',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',marginBottom:16}}>
+              {savingEdit?'Salvando...':'Salvar alterações'}
+            </button>
+
+            <div style={{borderTop:'1px solid #EDE8E0',paddingTop:16}}>
+              <div style={{fontSize:12,fontWeight:700,color:'#888',letterSpacing:1,marginBottom:10}}>SENHA</div>
+              <button onClick={sendResetLink} style={{width:'100%',padding:'10px',background:'#FEF3E2',color:'#854F0B',border:'1px solid #F5C77A',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',marginBottom:10}}>
+                ✉️ Enviar link de redefinição
+              </button>
+              <div style={{display:'flex',gap:8}}>
+                <input type="text" placeholder="Nova senha (mín. 6 caracteres)" value={newPassword} onChange={e=>setNewPassword(e.target.value)}
+                  style={{flex:1,padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+                <button onClick={setNewPasswordDirect} style={{padding:'10px 16px',background:'#111',color:'#fff',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>Definir</button>
+              </div>
+            </div>
+
+            <button onClick={()=>setEditUserModal({open:false,user:null})} style={{width:'100%',padding:'10px',background:'transparent',color:'#AAA',border:'1px solid #ddd',borderRadius:10,fontSize:13,cursor:'pointer',fontFamily:'Inter,sans-serif',marginTop:16}}>Fechar</button>
+          </div>
+        </div>
+      )}
+
       {toast && <div className="toast">✓ {toast}</div>}
 
       <div className="admin-layout">

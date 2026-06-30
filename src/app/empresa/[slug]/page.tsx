@@ -413,7 +413,12 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
             {company.address && (
               <div className="addr-box" style={{position:'relative'}}>
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#C9951A" strokeWidth="2" strokeLinecap="round" style={{flexShrink:0,marginTop:2}}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                <div className="addr-txt" style={!userId ? {filter:'blur(5px)',userSelect:'none'} : {}}>{company.address}</div>\n                {!userId && (\n                  <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(255,255,255,0.5)',borderRadius:10,cursor:'pointer'}} onClick={() => window.location.href='/login'}>\n                    <span style={{fontSize:12,fontWeight:700,color:'#C9951A',background:'#fff',padding:'4px 10px',borderRadius:8,border:'1px solid #C9951A'}}>🔒 Entrar para ver</span>\n                  </div>\n                )}
+                <div className="addr-txt" style={!userId ? {filter:'blur(5px)',userSelect:'none'} : {}}>{company.address}</div>
+                {!userId && (
+                  <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(255,255,255,0.5)',borderRadius:10,cursor:'pointer'}} onClick={() => window.location.href='/login'}>
+                    <span style={{fontSize:12,fontWeight:700,color:'#C9951A',background:'#fff',padding:'4px 10px',borderRadius:8,border:'1px solid #C9951A'}}>🔒 Entrar para ver</span>
+                  </div>
+                )}
               </div>
             )}
 

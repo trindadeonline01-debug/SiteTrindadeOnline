@@ -6,10 +6,12 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
+// VALORES DE TESTE — restaurar após testes:
+// home: 49.90/89.90/159.90 | category: 29.90/54.90/99.90 | subcat: 14.90/27.90/49.90
 const PRICES: Record<string, Record<number, number>> = {
-  home:     { 7: 49.90, 15: 89.90,  30: 159.90 },
-  category: { 7: 29.90, 15: 54.90,  30: 99.90  },
-  subcat:   { 7: 14.90, 15: 27.90,  30: 49.90  },
+  home:     { 7: 5.00, 15: 6.00, 30: 7.00 },
+  category: { 7: 4.00, 15: 5.00, 30: 6.00 },
+  subcat:   { 7: 3.00, 15: 4.00, 30: 5.00 },
 }
 
 export async function POST(req: NextRequest) {

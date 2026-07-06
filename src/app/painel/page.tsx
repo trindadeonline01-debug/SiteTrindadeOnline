@@ -603,9 +603,10 @@ export default function PainelPage() {
         .pt-plan-opt{background:#fff;border:1.5px solid #E0DDD8;border-radius:14px;padding:22px 16px;text-align:center;position:relative;}
         .pt-plan-opt.popular{border-color:#C9951A;}
         .pt-popular-badge{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:#C9951A;color:#111;font-size:9px;font-weight:700;padding:3px 12px;border-radius:20px;white-space:nowrap;}
-        .pt-plan-period{font-size:12px;color:#AAA;margin-bottom:8px;}
-        .pt-plan-price{font-family:'Bebas Neue',sans-serif;font-size:34px;color:#111;line-height:1;}
-        .pt-plan-price span{font-family:'Inter',sans-serif;font-size:12px;color:#AAA;font-weight:400;}
+        .pt-plan-period{font-size:13px;font-weight:700;color:#111;margin-bottom:10px;letter-spacing:0.5px;}
+        .pt-plan-parcela{font-family:'Bebas Neue',sans-serif;font-size:38px;color:#111;line-height:1;margin-bottom:2px;}
+        .pt-plan-parcela-label{font-size:12px;color:#888;margin-bottom:6px;}
+        .pt-plan-total{font-size:11px;color:#AAA;margin-bottom:2px;}
         .pt-plan-economy{font-size:11px;color:#0F8050;font-weight:600;margin-top:5px;}
         .pt-btn-assinar{width:100%;padding:11px;margin-top:14px;background:#C9951A;color:#111;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;}
         .pt-btn-assinar.off{background:#F0EDE8;color:#888;}
@@ -1382,8 +1383,18 @@ export default function PainelPage() {
                     <div key={plan.id} className={`pt-plan-opt ${plan.highlight ? 'popular' : ''}`}>
                       {plan.highlight && <div className="pt-popular-badge">{plan.highlight_label || 'DESTAQUE'}</div>}
                       <div className="pt-plan-period">{plan.name}</div>
-                      <div className="pt-plan-price">R$ {Number(plan.value).toFixed(2)}<span>/{plan.days} dias</span></div>
-                      {plan.description && <div className="pt-plan-economy" style={{color:'#888',fontSize:11}}>{plan.description}</div>}
+                      {(() => {
+                        const months = Math.round(plan.days / 30)
+                        const parcela = months > 0 ? Number(plan.value) / months : Number(plan.value)
+                        return (
+                          <>
+                            <div className="pt-plan-parcela">R$ {parcela.toFixed(2).replace('.',',')}</div>
+                            <div className="pt-plan-parcela-label">{months > 1 ? `em ${months}x de R$ ${parcela.toFixed(2).replace('.',',')}` : 'por mês'}</div>
+                            {months > 1 && <div className="pt-plan-total">Total: R$ {Number(plan.value).toFixed(2).replace('.',',')}</div>}
+                          </>
+                        )
+                      })()}
+                      {plan.description && <div style={{fontSize:11,color:'#AAA',marginBottom:4}}>{plan.description}</div>}
                       <button className={`pt-btn-assinar ${plan.highlight ? '' : 'off'}`} onClick={() => assinar(plan.id, Number(plan.value), plan.days, plan.name)}>
                         Assinar
                       </button>

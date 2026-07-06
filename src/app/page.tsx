@@ -68,7 +68,7 @@ export default function HomePage() {
   const [user, setUser]               = useState<any>(null)
   const [userType, setUserType]       = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
-  const [suggestions, setSuggestions] = useState<{type:string;label:string;sub:string}[]>([])
+  const [suggestions, setSuggestions] = useState<{type:string;label:string;sub:string;slug?:string;categorySlug?:string}[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
   const [banners, setBanners]         = useState<Banner[]>([])
@@ -178,6 +178,20 @@ export default function HomePage() {
         }
       })
     }
+    // Subcategorias
+    const { data: subcatData } = await supabase
+      .from('subcategories')
+      .select('id, name, slug, category:categories(slug)')
+      .ilike('name', `%${q}%`)
+      .limit(3)
+    if (subcatData) {
+      subcatData.forEach((s:any) => {
+        if (!results.find(r => r.label.toLowerCase() === s.name.toLowerCase())) {
+          results.push({ type:'subcat', label: s.name, sub: 'Ver subcategoria', slug: s.slug, categorySlug: s.category?.slug })
+        }
+      })
+    }
+
     setSuggestions(results.slice(0,8))
     setShowSuggestions(true)
   }
@@ -468,9 +482,13 @@ export default function HomePage() {
               <div key={i} className="sug-item" onMouseDown={() => {
                 setSearchQuery(s.label)
                 setShowSuggestions(false)
-                window.location.href = `/busca?q=${encodeURIComponent(s.label)}`
+                if (s.type === 'subcat' && s.categorySlug && s.slug) {
+                  window.location.href = `/categoria/${s.categorySlug}?sub=${s.slug}`
+                } else {
+                  window.location.href = `/busca?q=${encodeURIComponent(s.label)}`
+                }
               }}>
-                <div className="sug-ico">{s.type === 'empresa' ? '🏪' : '🏷️'}</div>
+                <div className="sug-ico">{s.type === 'empresa' ? '🏪' : s.type === 'subcat' ? '📂' : '🏷️'}</div>
                 <div>
                   <div className="sug-label">{s.label}</div>
                   {s.sub && <div className="sug-sub">{s.type === 'tag' ? `em ${s.sub}` : s.sub}</div>}

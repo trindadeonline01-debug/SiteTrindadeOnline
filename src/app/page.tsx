@@ -259,8 +259,8 @@ export default function HomePage() {
         .sug-item:last-child { border-bottom:none; }
         .sug-item:hover { background:#FEF3E2; }
         .sug-ico { font-size:14px; flex-shrink:0; }
-        .sug-label { font-size:13px; font-weight:600; color:#111; }
-        .sug-sub { font-size:11px; color:#AAA; margin-top:1px; }
+        .sug-label { font-size:13px; font-weight:600; color:#111; text-align:left; }
+        .sug-sub { font-size:11px; color:#AAA; margin-top:1px; text-align:left; }
         .hero-search-btn { background: #C9951A; border: none; border-radius: 50px; padding: 9px 16px; color: #fff; font-size: 13px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
         @media(min-width: 768px) {
           .hero { padding: 43px 20px 0; }
@@ -278,8 +278,8 @@ export default function HomePage() {
         .sug-item:last-child { border-bottom:none; }
         .sug-item:hover { background:#FEF3E2; }
         .sug-ico { font-size:14px; flex-shrink:0; }
-        .sug-label { font-size:13px; font-weight:600; color:#111; }
-        .sug-sub { font-size:11px; color:#AAA; margin-top:1px; }
+        .sug-label { font-size:13px; font-weight:600; color:#111; text-align:left; }
+        .sug-sub { font-size:11px; color:#AAA; margin-top:1px; text-align:left; }
         .hero-search-btn { background: #C9951A; border: none; border-radius: 50px; padding: 10px 24px; color: #fff; font-size: 14px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
         }
 

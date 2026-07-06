@@ -197,7 +197,7 @@ function BuscaContent() {
         .skeleton{background:linear-gradient(90deg,#F0EDE8 25%,#E8E4DD 50%,#F0EDE8 75%);background-size:200% 100%;animation:sh 1.5s infinite;border-radius:12px;}
         @keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
-        .footer{padding:24px 0 0;text-align:center;font-size:12px;color:#AAA;border-top:0.5px solid #F0EDE8;margin-top:16px;}
+        .footer{padding:24px 0 0;text-align:left;font-size:12px;color:#AAA;border-top:0.5px solid #F0EDE8;margin-top:16px;}
         .footer a{color:#C9951A;text-decoration:none;}
       `}</style>
 

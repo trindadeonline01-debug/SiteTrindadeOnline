@@ -153,7 +153,11 @@ export default function HomePage() {
     // Empresas
     if (data) {
       data.slice(0,5).forEach((c:any) => {
-        results.push({ type:'empresa', label: c.name, sub: c.category_name || '' })
+        const q_lower = q.toLowerCase()
+        let motivo = c.category_name || ''
+        if (c.address && c.address.toLowerCase().includes(q_lower)) motivo = `📍 ${c.address}`
+        else if (c.category_name) motivo = c.category_name
+        results.push({ type:'empresa', label: c.name, sub: motivo })
       })
     }
     // Tags — buscar empresas com tags matching

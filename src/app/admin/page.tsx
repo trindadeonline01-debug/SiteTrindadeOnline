@@ -38,7 +38,7 @@ const statusColor = (s: string) => s === 'active' ? '#0F8050' : s === 'pending' 
 const statusLabel = (s: string) => s === 'active' ? 'Ativa' : s === 'pending' ? 'Pendente' : 'Suspensa'
 
 export default function AdminPage() {
-  const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'denuncias'|'usuarios'|'buscas'|'atividade'|'banners'|'pedidos-banner'|'configuracoes'>('dashboard')
+  const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'denuncias'|'usuarios'|'buscas'|'atividade'|'banners'|'pedidos-banner'|'configuracoes'|'recursos'>('dashboard')
   const [stats, setStats]           = useState<Stats|null>(null)
   const [companies, setCompanies]   = useState<Company[]>([])
   const [users, setUsers]           = useState<Profile[]>([])
@@ -72,6 +72,7 @@ export default function AdminPage() {
   const [uploadProgress, setUploadProgress]         = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [bannerRequests, setBannerRequests] = useState<any[]>([])
+  const [featureFlags, setFeatureFlags] = useState<any[]>([])
   const [editCompanyModal, setEditCompanyModal] = useState<{open:boolean; company:any}>({open:false, company:null})
   const [editUserModal, setEditUserModal] = useState<{open:boolean; user:any}>({open:false, user:null})
   const [allCategories, setAllCategories] = useState<CatOpt[]>([])
@@ -100,7 +101,7 @@ export default function AdminPage() {
 
   async function loadAll() {
     setLoading(true)
-    await Promise.all([loadStats(), loadCompanies(), loadUsers(), loadSearches(), loadHighlights(), loadReports(), loadBanners(), loadSettings(), loadBannerRequests()])
+    await Promise.all([loadStats(), loadCompanies(), loadUsers(), loadSearches(), loadHighlights(), loadReports(), loadBanners(), loadSettings(), loadBannerRequests(), loadFeatureFlags()])
 
     // Realtime — atualiza automaticamente
     const channel = supabase
@@ -225,6 +226,17 @@ export default function AdminPage() {
     const r = (data || []) as Report[]
     setReports(r)
     setRepCount(r.filter(x => !x.resolved).length)
+  }
+
+  async function loadFeatureFlags() {
+    const { data } = await supabase.from('feature_flags').select('*').order('label')
+    setFeatureFlags(data || [])
+  }
+
+  async function toggleFlag(id: string, enabled: boolean) {
+    await supabase.from('feature_flags').update({ enabled, updated_at: new Date().toISOString() }).eq('id', id)
+    loadFeatureFlags()
+    showToast(enabled ? 'Recurso ativado!' : 'Recurso desativado.')
   }
 
   async function loadBannerRequests() {
@@ -838,6 +850,7 @@ export default function AdminPage() {
             { id: 'buscas',    icon: '🔍', label: 'Buscas' },
             { id: 'atividade', icon: '⚡', label: 'Atividade' },
     { id: 'pedidos-banner', icon: '🖼️', label: 'Ped. Banner' },
+    { id: 'recursos', icon: '🔧', label: 'Recursos' },
     { id: 'configuracoes', icon: '⚙️', label: 'Configurações' },
           ].map(n => (
             <div
@@ -870,6 +883,7 @@ export default function AdminPage() {
               {tab === 'denuncias' && 'Denúncias'}
               {tab === 'banners'   && 'Banners da Home'}
               {tab === 'pedidos-banner' && 'Pedidos de Banner'}
+              {tab === 'recursos' && 'Recursos do Site'}
               {tab === 'configuracoes' && 'Configurações'}
             </div>
             <div className="topbar-date">{new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}</div>
@@ -1571,6 +1585,32 @@ export default function AdminPage() {
                   </div>
                   )
                 })()}
+              </div>
+            )}
+
+            {/* ── RECURSOS ── */}
+            {!loading && tab === 'recursos' && (
+              <div style={{maxWidth:600}}>
+                <div style={{fontSize:13,color:'#888',marginBottom:20,lineHeight:1.6}}>
+                  Ative ou desative recursos do site sem precisar alterar o código. As mudanças têm efeito imediato.
+                </div>
+                <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                  {featureFlags.map((flag: any) => (
+                    <div key={flag.id} style={{background:'#fff',border:'0.5px solid #EDE8E0',borderRadius:14,padding:'16px 20px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:16}}>
+                      <div>
+                        <div style={{fontWeight:600,fontSize:14,color:'#111',marginBottom:3}}>{flag.label}</div>
+                        <div style={{fontSize:12,color:'#AAA'}}>{flag.description}</div>
+                      </div>
+                      <div style={{display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
+                        <span style={{fontSize:12,fontWeight:600,color:flag.enabled?'#0F8050':'#E24B4A'}}>{flag.enabled?'Ativo':'Inativo'}</span>
+                        <div onClick={() => toggleFlag(flag.id, !flag.enabled)}
+                          style={{width:44,height:24,borderRadius:12,background:flag.enabled?'#0F8050':'#E0DDD8',cursor:'pointer',position:'relative',transition:'background .2s'}}>
+                          <div style={{position:'absolute',top:2,left:flag.enabled?22:2,width:20,height:20,borderRadius:'50%',background:'#fff',boxShadow:'0 1px 4px rgba(0,0,0,.2)',transition:'left .2s'}}/>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 

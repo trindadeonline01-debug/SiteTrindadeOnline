@@ -17,6 +17,9 @@ function CadastroForm() {
   const [erro, setErro]           = useState('')
   const [loading, setLoading]     = useState(false)
   const [ok, setOk]               = useState(false)
+  const [step, setStep]           = useState<'form'|'verify'>('form')
+  const [code, setCode]           = useState('')
+  const [pendingData, setPendingData] = useState<any>(null)
 
   // Força visual da senha
   function senhaForca() {
@@ -31,40 +34,48 @@ function CadastroForm() {
   async function handleCadastro(e: React.FormEvent) {
     e.preventDefault()
     setErro('')
-
-    if (senha.length < 6) {
-      setErro('A senha precisa ter pelo menos 6 caracteres.')
-      return
-    }
-    if (senha !== confirma) {
-      setErro('As senhas não coincidem. Verifique e tente novamente.')
-      return
-    }
-
+    if (senha.length < 6) { setErro('A senha precisa ter pelo menos 6 caracteres.'); return }
+    if (senha !== confirma) { setErro('As senhas não coincidem.'); return }
     setLoading(true)
-
-    const { error } = await supabase.auth.signUp({
-      email,
-      password: senha,
-      options: {
-        data: {
-          name: nome,
-          user_type: tipo === 'empresa' ? 'company' : 'user',
-          neighborhood: bairro,
-        }
-      }
+    const res = await fetch('/api/auth/send-code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
     })
+    const data = await res.json()
+    setLoading(false)
+    if (data.error) { setErro(data.error); return }
+    setPendingData({ nome, email, senha, tipo, bairro })
+    setStep('verify')
+  }
 
+  async function handleVerify(e: React.FormEvent) {
+    e.preventDefault()
+    setErro('')
+    setLoading(true)
+    const res = await fetch('/api/auth/verify-code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: pendingData.email, code })
+    })
+    const data = await res.json()
+    if (data.error) { setErro(data.error); setLoading(false); return }
+    const { error } = await supabase.auth.signUp({
+      email: pendingData.email,
+      password: pendingData.senha,
+      options: { data: { name: pendingData.nome, user_type: pendingData.tipo === 'empresa' ? 'company' : 'user', neighborhood: pendingData.bairro } }
+    })
     if (error) {
-      if (error.message.includes('already registered')) {
-        setErro('Este e-mail já está cadastrado. Tente fazer login.')
-      } else {
-        setErro('Erro ao criar conta. Tente novamente.')
-      }
-      setLoading(false)
-      return
+      setErro(error.message.includes('already registered') ? 'Este e-mail já está cadastrado.' : 'Erro ao criar conta.')
+      setLoading(false); return
     }
-
+    if (pendingData.tipo === 'empresa') {
+      window.location.href = '/empresa/cadastrar'
+    } else {
+      setOk(true)
+    }
+    setLoading(false)
+  }
     if (tipo === 'empresa') {
       window.location.href = '/empresa/cadastrar'
     } else {

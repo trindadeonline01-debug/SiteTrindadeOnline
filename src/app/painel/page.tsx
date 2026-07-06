@@ -50,6 +50,8 @@ export default function PainelPage() {
 
   const [hlModal, setHlModal] = useState({ open:false, loading:false, level:'', days:0, value:0, qr_code_image:null as string|null, pix_copy_paste:null as string|null, payment_id:null as string|null, copied:false, confirmed:false })
 
+  const [featureFlags, setFeatureFlags] = useState<Record<string,boolean>>({})
+
   const [pixModal, setPixModal] = useState({ open:false, loading:false, plan:'', value:0, qr_code_image:null as string|null, pix_copy_paste:null as string|null, payment_id:null as string|null, copied:false, confirmed:false })
 
   const [editNome, setEditNome]               = useState('')
@@ -71,6 +73,9 @@ export default function PainelPage() {
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
+    supabase.from('feature_flags').select('key,enabled').then(({ data }) => {
+      if (data) setFeatureFlags(Object.fromEntries(data.map((f:any) => [f.key, f.enabled])))
+    })
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { window.location.href = '/login'; return }
       const { data: profile } = await supabase.from('profiles').select('user_type, name').eq('id', session.user.id).single()
@@ -1466,7 +1471,7 @@ export default function PainelPage() {
                       <div className="pt-dest-info-desc">Primeiro na seção "Em destaque" da página inicial</div>
                       <div className="pt-dest-opts">
                         {[['7 dias','R$ 49,90'],['15 dias','R$ 89,90'],['30 dias','R$ 159,90']].map(([d,p],i)=>(
-                          <button key={i} className="pt-d-opt" onClick={()=>assinarDestaque('subcat', [7,15,30][i])}>
+                          <button key={i} className="pt-d-opt" onClick={()=>featureFlags['destaques'] ? assinarDestaque('subcat', [7,15,30][i]) : null} disabled={!featureFlags['destaques']}>
                             <span className="pt-d-day">{d}</span><span className="pt-d-price">{p}</span>
                           </button>
                         ))}
@@ -1489,7 +1494,7 @@ export default function PainelPage() {
                       <div className="pt-dest-info-desc">Primeiro na página da sua categoria (ex: Gastronomia, Serviços)</div>
                       <div className="pt-dest-opts">
                         {[['7 dias','R$ 29,90'],['15 dias','R$ 54,90'],['30 dias','R$ 99,90']].map(([d,p],i)=>(
-                          <button key={i} className="pt-d-opt" onClick={()=>assinarDestaque('subcat', [7,15,30][i])}>
+                          <button key={i} className="pt-d-opt" onClick={()=>featureFlags['destaques'] ? assinarDestaque('subcat', [7,15,30][i]) : null} disabled={!featureFlags['destaques']}>
                             <span className="pt-d-day">{d}</span><span className="pt-d-price">{p}</span>
                           </button>
                         ))}
@@ -1512,7 +1517,7 @@ export default function PainelPage() {
                       <div className="pt-dest-info-desc">Primeiro na sua subcategoria (ex: Pizzaria, Barbearia, Padaria)</div>
                       <div className="pt-dest-opts">
                         {[['7 dias','R$ 14,90'],['15 dias','R$ 27,90'],['30 dias','R$ 49,90']].map(([d,p],i)=>(
-                          <button key={i} className="pt-d-opt" onClick={()=>assinarDestaque('subcat', [7,15,30][i])}>
+                          <button key={i} className="pt-d-opt" onClick={()=>featureFlags['destaques'] ? assinarDestaque('subcat', [7,15,30][i]) : null} disabled={!featureFlags['destaques']}>
                             <span className="pt-d-day">{d}</span><span className="pt-d-price">{p}</span>
                           </button>
                         ))}

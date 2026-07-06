@@ -58,7 +58,7 @@ export default function EmpresaCadastrarPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) { window.location.href = '/login'; return }
+      if (!session) { window.location.href = '/cadastro?tipo=empresa'; return }
       setUserId(session.user.id)
     })
     supabase.from('categories').select('*').order('order').then(({ data }) => setCategories(data || []))

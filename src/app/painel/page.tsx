@@ -1498,7 +1498,8 @@ export default function PainelPage() {
                       <div className="pt-dest-info-desc">Primeiro na seção "Em destaque" da página inicial</div>
                       <div className="pt-dest-opts">
                         {availablePlans.filter(p=>p.type==='highlight'&&p.name.toLowerCase().includes('home')).map((plan:any)=>(
-                          <button key={plan.id} className="pt-d-opt" onClick={()=>featureFlags['destaques']? assinarDestaque('home', plan.days, Number(plan.value), plan.name) : null} disabled={!featureFlags['destaques']}>
+                          <button key={plan.id} className={`pt-d-opt${plan.highlight?' popular':''}`} style={{position:'relative'}} onClick={()=>featureFlags['destaques']? assinarDestaque('home', plan.days, Number(plan.value), plan.name) : null} disabled={!featureFlags['destaques']}>
+                            {plan.highlight && <div className="pt-popular-badge">{plan.highlight_label||'MELHOR OPÇÃO'}</div>}
                             <span className="pt-d-day">{plan.days} dias</span><span className="pt-d-price">R$ {Number(plan.value).toFixed(2)}</span>
                           </button>
                         ))}
@@ -1521,7 +1522,8 @@ export default function PainelPage() {
                       <div className="pt-dest-info-desc">Primeiro na página da sua categoria (ex: Gastronomia, Serviços)</div>
                       <div className="pt-dest-opts">
                         {availablePlans.filter(p=>p.type==='highlight'&&p.name.toLowerCase().includes('categoria')).map((plan:any)=>(
-                          <button key={plan.id} className="pt-d-opt" onClick={()=>featureFlags['destaques']? assinarDestaque('category', plan.days, Number(plan.value), plan.name) : null} disabled={!featureFlags['destaques']}>
+                          <button key={plan.id} className={`pt-d-opt${plan.highlight?' popular':''}`} style={{position:'relative'}} onClick={()=>featureFlags['destaques']? assinarDestaque('category', plan.days, Number(plan.value), plan.name) : null} disabled={!featureFlags['destaques']}>
+                            {plan.highlight && <div className="pt-popular-badge">{plan.highlight_label||'MELHOR OPÇÃO'}</div>}
                             <span className="pt-d-day">{plan.days} dias</span><span className="pt-d-price">R$ {Number(plan.value).toFixed(2)}</span>
                           </button>
                         ))}
@@ -1544,7 +1546,8 @@ export default function PainelPage() {
                       <div className="pt-dest-info-desc">Primeiro na sua subcategoria (ex: Pizzaria, Barbearia, Padaria)</div>
                       <div className="pt-dest-opts">
                         {availablePlans.filter(p=>p.type==='highlight'&&p.name.toLowerCase().includes('subcat')).map((plan:any)=>(
-                          <button key={plan.id} className="pt-d-opt" onClick={()=>featureFlags['destaques']? assinarDestaque('subcat', plan.days, Number(plan.value), plan.name) : null} disabled={!featureFlags['destaques']}>
+                          <button key={plan.id} className={`pt-d-opt${plan.highlight?' popular':''}`} style={{position:'relative'}} onClick={()=>featureFlags['destaques']? assinarDestaque('subcat', plan.days, Number(plan.value), plan.name) : null} disabled={!featureFlags['destaques']}>
+                            {plan.highlight && <div className="pt-popular-badge">{plan.highlight_label||'MELHOR OPÇÃO'}</div>}
                             <span className="pt-d-day">{plan.days} dias</span><span className="pt-d-price">R$ {Number(plan.value).toFixed(2)}</span>
                           </button>
                         ))}

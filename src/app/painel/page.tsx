@@ -221,14 +221,14 @@ export default function PainelPage() {
     } catch { showToast('Erro ao gerar Pix'); setBannerModal(p => ({ ...p, step: tipo })) }
   }
 
-  async function assinarDestaque(level: string, days: number) {
+  async function assinarDestaque(level: string, days: number, valor?: number, nome?: string) {
     if (!company) return
     setHlModal(p => ({ ...p, open: true, loading: true, level, days, copied: false, qr_code_image: null, pix_copy_paste: null, confirmed: false }))
     try {
       const res = await fetch('/api/mp/create-highlight', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ level, days, company_id: company.id, owner_email: ownerEmail })
+        body: JSON.stringify({ level, days, company_id: company.id, owner_email: ownerEmail, valor_override: valor, nome_plano: nome })
       })
       const data = await res.json()
       if (data.error) { showToast('Erro: ' + data.error); setHlModal(p => ({ ...p, open: false, loading: false })); return }
@@ -1050,24 +1050,37 @@ export default function PainelPage() {
                 </>
               )}
               <div className="section-label">CRIAR NOVO DESTAQUE</div>
-              <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12}}>
-                {[
-                  {level:'home',    label:'Destaque Home',         desc:'Aparece na página inicial', prices:['R$ 49,90','R$ 89,90','R$ 159,90']},
-                  {level:'category',label:'Destaque Categoria',    desc:'Topo da sua categoria',     prices:['R$ 29,90','R$ 54,90','R$ 99,90']},
-                  {level:'subcat',  label:'Destaque Subcategoria', desc:'Topo da subcategoria',      prices:['R$ 14,90','R$ 27,90','R$ 49,90']},
-                ].map(d => (
-                  <div key={d.level} style={{background:'#FAFAF8',border:'0.5px solid #E0DDD8',borderRadius:14,padding:16}}>
-                    <div style={{fontWeight:600,fontSize:14,marginBottom:3}}>{d.label}</div>
-                    <div style={{fontSize:12,color:'#AAA',marginBottom:12}}>{d.desc}</div>
-                    {['7 dias','15 dias','30 dias'].map((dur,i) => (
-                      <button key={i} onClick={()=>assinarDestaque(d.level, [7,15,30][i])} style={{width:'100%',padding:'9px',marginBottom:7,borderRadius:9,border:'1px solid #E0DDD8',background:'#fff',fontSize:12,cursor:'pointer',fontFamily:'Inter,sans-serif',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                        <span style={{fontWeight:500}}>{dur}</span>
-                        <span style={{color:'#C9951A',fontWeight:600}}>{d.prices[i]}</span>
-                      </button>
-                    ))}
+              {(() => {
+                const hlPlans = availablePlans.filter(p => p.type === 'highlight')
+                const groups = [
+                  {level:'home',     label:'Destaque Home',         desc:'Aparece na página inicial'},
+                  {level:'category', label:'Destaque Categoria',    desc:'Topo da sua categoria'},
+                  {level:'subcat',   label:'Destaque Subcategoria', desc:'Topo da subcategoria'},
+                ]
+                return (
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12}}>
+                    {groups.map(g => {
+                      const gPlans = hlPlans.filter(p => p.name.toLowerCase().includes(g.level === 'home' ? 'home' : g.level === 'category' ? 'categoria' : 'subcat'))
+                      const disabled = !featureFlags['destaques'] || gPlans.length === 0
+                      return (
+                        <div key={g.level} style={{background:disabled?'#F5F5F5':'#FAFAF8',border:'0.5px solid #E0DDD8',borderRadius:14,padding:16,opacity:disabled?0.6:1}}>
+                          <div style={{fontWeight:600,fontSize:14,marginBottom:3,color:disabled?'#AAA':'#111'}}>{g.label}</div>
+                          <div style={{fontSize:12,color:'#AAA',marginBottom:12}}>{disabled && gPlans.length === 0 ? 'Em breve' : g.desc}</div>
+                          {gPlans.map((plan: any) => (
+                            <button key={plan.id} onClick={()=>!disabled && assinarDestaque(g.level, plan.days, Number(plan.value), plan.name)}
+                              disabled={disabled}
+                              style={{width:'100%',padding:'9px',marginBottom:7,borderRadius:9,border:'1px solid #E0DDD8',background:'#fff',fontSize:12,cursor:disabled?'not-allowed':'pointer',fontFamily:'Inter,sans-serif',display:'flex',justifyContent:'space-between',alignItems:'center',opacity:disabled?0.5:1}}>
+                              <span style={{fontWeight:500}}>{plan.days} dias</span>
+                              <span style={{color:'#C9951A',fontWeight:600}}>R$ {Number(plan.value).toFixed(2)}</span>
+                            </button>
+                          ))}
+                          {gPlans.length === 0 && <div style={{fontSize:11,color:'#CCC',textAlign:'center',padding:'8px 0'}}>Em breve</div>}
+                        </div>
+                      )
+                    })}
                   </div>
-                ))}
-              </div>
+                )
+              })()}
               <div style={{textAlign:'center',fontSize:11,color:'#AAA',marginTop:8}}>Pagamento via Pix · Ativa na hora</div>
               {highlights.filter(h=>h.status==='expired').length > 0 && (
                 <>

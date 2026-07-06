@@ -99,6 +99,37 @@ function CadastroForm() {
     )
   }
 
+  if (step === 'verify') {
+    return (
+      <div style={{textAlign:'center',padding:'20px 0'}}>
+        <div style={{fontSize:48,marginBottom:12}}>📧</div>
+        <div style={{fontSize:20,fontWeight:700,color:'#111',marginBottom:8}}>Verifique seu email</div>
+        <div style={{fontSize:13,color:'#888',lineHeight:1.7,marginBottom:24}}>
+          Enviamos um código de 6 dígitos para<br/><strong>{pendingData?.email}</strong>
+        </div>
+        <form onSubmit={handleVerify}>
+          <input type="text" inputMode="numeric" maxLength={6} value={code}
+            onChange={e => setCode(e.target.value.replace(/[^0-9]/g,''))}
+            placeholder="000000"
+            style={{width:'100%',padding:'14px',textAlign:'center',fontSize:28,fontWeight:700,letterSpacing:12,border:'1.5px solid #E0DDD8',borderRadius:12,fontFamily:'Inter,sans-serif',marginBottom:12,outline:'none'}}
+          />
+          {erro && <div style={{color:'#E24B4A',fontSize:13,marginBottom:12}}>{erro}</div>}
+          <button type="submit" disabled={loading || code.length < 6}
+            style={{width:'100%',padding:'13px',background:code.length===6?'#C9951A':'#E0DDD8',color:code.length===6?'#fff':'#AAA',border:'none',borderRadius:12,fontSize:14,fontWeight:700,cursor:code.length===6?'pointer':'not-allowed',fontFamily:'Inter,sans-serif',marginBottom:12}}>
+            {loading ? 'Verificando...' : 'Confirmar código'}
+          </button>
+          <button type="button" onClick={() => { setStep('form'); setCode(''); setErro('') }}
+            style={{width:'100%',padding:'10px',background:'transparent',color:'#AAA',border:'1px solid #ddd',borderRadius:12,fontSize:13,cursor:'pointer',fontFamily:'Inter,sans-serif',marginBottom:8}}>
+            ← Voltar
+          </button>
+          <button type="button" onClick={() => handleCadastro({preventDefault:()=>{}} as any)}
+            style={{fontSize:12,color:'#C9951A',background:'none',border:'none',cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+            Reenviar código
+          </button>
+        </form>
+      </div>
+    )
+  }
   return (
     <form onSubmit={handleCadastro}>
 

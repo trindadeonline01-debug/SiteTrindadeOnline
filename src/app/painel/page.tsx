@@ -664,6 +664,7 @@ export default function PainelPage() {
         .pt-dest-info-desc{font-size:12px;color:#777;line-height:1.6;margin-bottom:14px;}
         .pt-dest-opts{display:flex;flex-direction:column;gap:7px;}
         .pt-d-opt{display:flex;justify-content:space-between;align-items:center;border:1.5px solid #E0DDD8;border-radius:9px;padding:10px 14px;cursor:pointer;transition:border-color .15s;background:#fff;font-family:'Inter',sans-serif;width:100%;}
+        .pt-d-opt.popular{border-color:#C9951A;background:#FEF9F0;}
         .pt-d-opt:hover{border-color:#C9951A;}
         .pt-d-day{font-size:13px;font-weight:500;color:#333;}
         .pt-d-price{font-size:14px;font-weight:700;color:#C9951A;}

@@ -1497,7 +1497,7 @@ export default function PainelPage() {
                       <div className="pt-dest-info-title">Destaque Home</div>
                       <div className="pt-dest-info-desc">Primeiro na seção "Em destaque" da página inicial</div>
                       <div className="pt-dest-opts">
-                        {[['7 dias','R$ 49,90'],['15 dias','R$ 89,90'],['30 dias','R$ 159,90']].map(([d,p],i)=>(
+                        {availablePlans.filter(p=>p.type==='highlight'&&p.name.toLowerCase().includes('home')).map((plan:any)=>(
                           <button key={i} className="pt-d-opt" onClick={()=>featureFlags['destaques'] ? assinarDestaque('subcat', [7,15,30][i]) : null} disabled={!featureFlags['destaques']}>
                             <span className="pt-d-day">{d}</span><span className="pt-d-price">{p}</span>
                           </button>
@@ -1520,7 +1520,7 @@ export default function PainelPage() {
                       <div className="pt-dest-info-title">Destaque Categoria</div>
                       <div className="pt-dest-info-desc">Primeiro na página da sua categoria (ex: Gastronomia, Serviços)</div>
                       <div className="pt-dest-opts">
-                        {[['7 dias','R$ 29,90'],['15 dias','R$ 54,90'],['30 dias','R$ 99,90']].map(([d,p],i)=>(
+                        {availablePlans.filter(p=>p.type==='highlight'&&p.name.toLowerCase().includes('categoria')).map((plan:any)=>(
                           <button key={i} className="pt-d-opt" onClick={()=>featureFlags['destaques'] ? assinarDestaque('subcat', [7,15,30][i]) : null} disabled={!featureFlags['destaques']}>
                             <span className="pt-d-day">{d}</span><span className="pt-d-price">{p}</span>
                           </button>
@@ -1543,7 +1543,7 @@ export default function PainelPage() {
                       <div className="pt-dest-info-title">Destaque Subcategoria</div>
                       <div className="pt-dest-info-desc">Primeiro na sua subcategoria (ex: Pizzaria, Barbearia, Padaria)</div>
                       <div className="pt-dest-opts">
-                        {[['7 dias','R$ 14,90'],['15 dias','R$ 27,90'],['30 dias','R$ 49,90']].map(([d,p],i)=>(
+                        {availablePlans.filter(p=>p.type==='highlight'&&p.name.toLowerCase().includes('subcat')).map((plan:any)=>(
                           <button key={i} className="pt-d-opt" onClick={()=>featureFlags['destaques'] ? assinarDestaque('subcat', [7,15,30][i]) : null} disabled={!featureFlags['destaques']}>
                             <span className="pt-d-day">{d}</span><span className="pt-d-price">{p}</span>
                           </button>

@@ -187,7 +187,7 @@ export default function HomePage() {
     if (subcatData) {
       subcatData.forEach((s:any) => {
         if (!results.find(r => r.label.toLowerCase() === s.name.toLowerCase())) {
-          results.push({ type:'subcat', label: s.name, sub: 'Ver subcategoria', slug: s.slug, categorySlug: s.category?.slug })
+          results.push({ type:'subcat', label: s.name, sub: 'Ver subcategoria', slug: s.slug as string, categorySlug: s.category?.slug as string })
         }
       })
     }

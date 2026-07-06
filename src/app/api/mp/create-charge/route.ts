@@ -24,8 +24,13 @@ const PLANS: Record<string, { value: number; days: number; description: string }
 
 export async function POST(req: NextRequest) {
   try {
-    const { plan, company_id, owner_email } = await req.json()
-    const planData = PLANS[plan]
+    const { plan, company_id, owner_email, valor_override, dias_override, nome_plano } = await req.json()
+    
+    // Plano dinâmico (do banco) tem precedência sobre os fixos
+    let planData = PLANS[plan]
+    if (valor_override && dias_override) {
+      planData = { value: valor_override, days: dias_override, description: `Trindade Online — ${nome_plano || plan}` }
+    }
     if (!planData) return NextResponse.json({ error: 'Plano inválido' }, { status: 400 })
 
     const { data: setting } = await supabase

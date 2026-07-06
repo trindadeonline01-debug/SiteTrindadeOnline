@@ -51,8 +51,9 @@ export default function PainelPage() {
   const [hlModal, setHlModal] = useState({ open:false, loading:false, level:'', days:0, value:0, qr_code_image:null as string|null, pix_copy_paste:null as string|null, payment_id:null as string|null, copied:false, confirmed:false })
 
   const [featureFlags, setFeatureFlags] = useState<Record<string,boolean>>({})
+  const [availablePlans, setAvailablePlans] = useState<any[]>([])
 
-  const [pixModal, setPixModal] = useState({ open:false, loading:false, plan:'', value:0, qr_code_image:null as string|null, pix_copy_paste:null as string|null, payment_id:null as string|null, copied:false, confirmed:false })
+  const [pixModal, setPixModal] = useState({ open:false, loading:false, plan:'', planNome:'', value:0, qr_code_image:null as string|null, pix_copy_paste:null as string|null, payment_id:null as string|null, copied:false, confirmed:false })
 
   const [editNome, setEditNome]               = useState('')
   const [editCategoryId, setEditCategoryId]   = useState('')
@@ -73,8 +74,14 @@ export default function PainelPage() {
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
+    supabase.from('plans').select('*').eq('active', true).order('display_order').then(({ data }) => {
+      setAvailablePlans(data || [])
+    })
     supabase.from('feature_flags').select('key,enabled').then(({ data }) => {
       if (data) setFeatureFlags(Object.fromEntries(data.map((f:any) => [f.key, f.enabled])))
+    })
+    supabase.from('plans').select('*').eq('active', true).order('display_order').then(({ data }) => {
+      setAvailablePlans(data || [])
     })
     supabase.from('feature_flags').select('key,enabled').then(({ data }) => {
       if (data) setFeatureFlags(Object.fromEntries(data.map((f:any) => [f.key, f.enabled])))
@@ -247,14 +254,14 @@ export default function PainelPage() {
     setTimeout(() => setHlModal(p => ({ ...p, copied: false })), 3000)
   }
 
-  async function assinar(plan: string) {
+  async function assinar(plan: string, valor?: number, dias?: number, nome?: string) {
     if (!company) return
-    setPixModal(p => ({ ...p, open: true, loading: true, plan, copied: false, qr_code_image: null, pix_copy_paste: null }))
+    setPixModal(p => ({ ...p, open: true, loading: true, plan, planNome: nome||plan, copied: false, qr_code_image: null, pix_copy_paste: null }))
     try {
       const res = await fetch('/api/mp/create-charge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan, company_id: company.id, owner_email: ownerEmail })
+        body: JSON.stringify({ plan, company_id: company.id, owner_email: ownerEmail, valor_override: valor, dias_override: dias, nome_plano: nome })
       })
       const data = await res.json()
       if (data.error) { showToast('Erro: ' + data.error); setPixModal(p => ({ ...p, open: false, loading: false })); return }
@@ -873,7 +880,7 @@ export default function PainelPage() {
             ) : (
               <>
                 <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,color:'#111',letterSpacing:1,marginBottom:4}}>PAGUE VIA PIX</div>
-                <div style={{fontSize:13,color:'#888',marginBottom:16}}>{pixModal.plan === 'mensal' ? 'Plano Mensal — R$ 29,90' : pixModal.plan === 'trimestral' ? 'Plano Trimestral — R$ 79,90' : 'Plano Semestral — R$ 149,90'}</div>
+                <div style={{fontSize:13,color:'#888',marginBottom:16}}>{pixModal.planNome || pixModal.plan} — R$ {pixModal.value?.toFixed(2)}</div>
 
                 <div style={{background:'#FEF3E2',border:'1.5px solid #C9951A',borderRadius:12,padding:'10px 16px',marginBottom:16,display:'flex',alignItems:'center',gap:10,textAlign:'left'}}>
                   <span style={{fontSize:20}}>✅</span>
@@ -1370,25 +1377,18 @@ export default function PainelPage() {
                 {/* PLANO BASE */}
                 <div className="pt-sec-lbl">PLANO BASE</div>
                 <p className="pt-sec-sub">Escolha o período e ative todas as funcionalidades do seu perfil</p>
-                <div className="pt-plan-grid">
-                  <div className="pt-plan-opt">
-                    <div className="pt-plan-period">Mensal</div>
-                    <div className="pt-plan-price">R$ 29,90<span>/mês</span></div>
-                    <button className="pt-btn-assinar off" onClick={() => assinar('mensal')}>Assinar</button>
-                  </div>
-                  <div className="pt-plan-opt popular">
-                    <div className="pt-popular-badge">MAIS POPULAR</div>
-                    <div className="pt-plan-period">Trimestral</div>
-                    <div className="pt-plan-price">R$ 79,90<span>/3 meses</span></div>
-                    <div className="pt-plan-economy">↓ Economize R$9,80</div>
-                    <button className="pt-btn-assinar" onClick={() => assinar('trimestral')}>Assinar</button>
-                  </div>
-                  <div className="pt-plan-opt">
-                    <div className="pt-plan-period">Semestral</div>
-                    <div className="pt-plan-price">R$ 149,90<span>/6 meses</span></div>
-                    <div className="pt-plan-economy">↓ Economize R$29,50</div>
-                    <button className="pt-btn-assinar off" onClick={() => assinar('semestral')}>Assinar</button>
-                  </div>
+                <div className="pt-plan-grid" style={{gridTemplateColumns:`repeat(${Math.min(availablePlans.filter(p=>p.type==='subscription').length,3)},1fr)`}}>
+                  {availablePlans.filter(p => p.type === 'subscription').map((plan: any) => (
+                    <div key={plan.id} className={`pt-plan-opt ${plan.highlight ? 'popular' : ''}`}>
+                      {plan.highlight && <div className="pt-popular-badge">{plan.highlight_label || 'DESTAQUE'}</div>}
+                      <div className="pt-plan-period">{plan.name}</div>
+                      <div className="pt-plan-price">R$ {Number(plan.value).toFixed(2)}<span>/{plan.days} dias</span></div>
+                      {plan.description && <div className="pt-plan-economy" style={{color:'#888',fontSize:11}}>{plan.description}</div>}
+                      <button className={`pt-btn-assinar ${plan.highlight ? '' : 'off'}`} onClick={() => assinar(plan.id, Number(plan.value), plan.days, plan.name)}>
+                        Assinar
+                      </button>
+                    </div>
+                  ))}
                 </div>
                 <p className="pt-ben-label">O que está incluído no plano</p>
                 <div className="pt-beneficios">

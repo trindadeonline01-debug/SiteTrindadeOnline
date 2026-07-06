@@ -52,8 +52,6 @@ export default function PainelPage() {
 
   const [featureFlags, setFeatureFlags] = useState<Record<string,boolean>>({})
 
-  const [featureFlags, setFeatureFlags] = useState<Record<string,boolean>>({})
-
   const [pixModal, setPixModal] = useState({ open:false, loading:false, plan:'', value:0, qr_code_image:null as string|null, pix_copy_paste:null as string|null, payment_id:null as string|null, copied:false, confirmed:false })
 
   const [editNome, setEditNome]               = useState('')

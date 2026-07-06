@@ -76,13 +76,6 @@ function CadastroForm() {
     }
     setLoading(false)
   }
-    if (tipo === 'empresa') {
-      window.location.href = '/empresa/cadastrar'
-    } else {
-      setOk(true)
-    }
-    setLoading(false)
-  }
 
   if (ok) {
     return (

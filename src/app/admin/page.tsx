@@ -260,6 +260,12 @@ export default function AdminPage() {
     loadPlans()
   }
 
+  async function togglePlan(id: string, active: boolean) {
+    await supabase.from('plans').update({ active }).eq('id', id)
+    showToast(active ? 'Plano ativado!' : 'Plano desativado.')
+    loadPlans()
+  }
+
   async function deletePlan(id: string) {
     if (!confirm('Tem certeza que deseja excluir este plano?')) return
     await supabase.from('plans').delete().eq('id', id)
@@ -1640,10 +1646,10 @@ export default function AdminPage() {
                   </button>
                 </div>
 
-                {['subscription','banner'].map(type => (
+                {['subscription','banner','highlight'].map(type => (
                   <div key={type} style={{marginBottom:24}}>
                     <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:16,color:'#AAA',letterSpacing:1,marginBottom:10}}>
-                      {type === 'subscription' ? '📋 PLANOS DE VISIBILIDADE' : '📢 PLANOS DE BANNER'}
+                      {type === 'subscription' ? '📋 PLANOS DE VISIBILIDADE' : type === 'banner' ? '📢 PLANOS DE BANNER' : '⭐ PLANOS DE DESTAQUE'}
                     </div>
                     <div style={{display:'flex',flexDirection:'column',gap:8}}>
                       {plans.filter(p => p.type === type).map((p: any) => (
@@ -1657,6 +1663,9 @@ export default function AdminPage() {
                             <div style={{fontSize:12,color:'#888'}}>{p.days} dias · R$ {Number(p.value).toFixed(2)} · {p.description}</div>
                           </div>
                           <div style={{display:'flex',gap:8,flexShrink:0}}>
+                            <button onClick={()=>togglePlan(p.id, !p.active)} style={{padding:'6px 12px',background:p.active?'#FAEEDA':'#EAF3DE',color:p.active?'#854F0B':'#0F6E56',border:'none',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                              {p.active ? '⏸ Desativar' : '▶ Ativar'}
+                            </button>
                             <button onClick={()=>setPlanForm({...p})} style={{padding:'6px 12px',background:'#F5F0E8',color:'#854F0B',border:'none',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>✏️ Editar</button>
                             <button onClick={()=>deletePlan(p.id)} style={{padding:'6px 12px',background:'#FCEBEB',color:'#E24B4A',border:'none',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>🗑️</button>
                           </div>

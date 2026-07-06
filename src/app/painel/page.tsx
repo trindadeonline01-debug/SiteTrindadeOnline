@@ -1522,7 +1522,6 @@ export default function PainelPage() {
                       <div className="pt-dest-opts">
                           <button key={plan.id} className="pt-d-opt" onClick={()=>featureFlags['destaques']? assinarDestaque('category', plan.days, Number(plan.value), plan.name) : null} disabled={!featureFlags['destaques']}>
                             <span className="pt-d-day">{plan.days} dias</span><span className="pt-d-price">R$ {Number(plan.value).toFixed(2)}</span>
-                            <span className="pt-d-day">{d}</span><span className="pt-d-price">{p}</span>
                           </button>
                         ))}
                       </div>

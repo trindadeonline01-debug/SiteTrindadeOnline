@@ -149,7 +149,7 @@ export default function HomePage() {
   async function fetchSuggestions(q: string) {
     if (q.length < 2) { setSuggestions([]); return }
     const { data } = await supabase.rpc('buscar_empresas', { termo: q })
-    const results: {type:string;label:string;sub:string}[] = []
+    const results: {type:string;label:string;sub:string;slug?:string;categorySlug?:string}[] = []
     // Empresas
     if (data) {
       data.slice(0,5).forEach((c:any) => {

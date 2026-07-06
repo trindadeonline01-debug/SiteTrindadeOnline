@@ -68,6 +68,9 @@ export default function HomePage() {
   const [user, setUser]               = useState<any>(null)
   const [userType, setUserType]       = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [suggestions, setSuggestions] = useState<{type:string;label:string;sub:string}[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const searchRef = useRef<HTMLDivElement>(null)
   const [banners, setBanners]         = useState<Banner[]>([])
   const [activeBanner, setActiveBanner] = useState(0)
   const [highlights, setHighlights]   = useState<Highlight[]>([])
@@ -143,6 +146,38 @@ export default function HomePage() {
     return () => clearInterval(t)
   }, [banners.length])
 
+  async function fetchSuggestions(q: string) {
+    if (q.length < 2) { setSuggestions([]); return }
+    const { data } = await supabase.rpc('buscar_empresas', { termo: q })
+    const results: {type:string;label:string;sub:string}[] = []
+    // Empresas
+    if (data) {
+      data.slice(0,5).forEach((c:any) => {
+        results.push({ type:'empresa', label: c.name, sub: c.category_name || '' })
+      })
+    }
+    // Tags — buscar empresas com tags matching
+    const { data: tagData } = await supabase
+      .from('companies')
+      .select('name, tags')
+      .eq('status','active')
+      .eq('plan','paid')
+      .limit(50)
+    if (tagData) {
+      tagData.forEach((c:any) => {
+        if (c.tags) {
+          c.tags.filter((t:string) => t.toLowerCase().includes(q.toLowerCase())).slice(0,2).forEach((t:string) => {
+            if (!results.find(r => r.label.toLowerCase() === t.toLowerCase())) {
+              results.push({ type:'tag', label: t, sub: c.name })
+            }
+          })
+        }
+      })
+    }
+    setSuggestions(results.slice(0,8))
+    setShowSuggestions(true)
+  }
+
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
     if (searchQuery.trim()) {
@@ -215,6 +250,13 @@ export default function HomePage() {
         }
         .hero-search-wrap input { flex: 1; border: none; background: transparent; font-size: 16px; font-family: 'Inter', sans-serif; color: #222; outline: none; }
         .hero-search-wrap input::placeholder { color: #BBB; }
+        .search-suggestions { position:absolute; top:100%; left:0; right:0; background:#fff; border:1.5px solid #C9951A; border-radius:14px; margin-top:6px; box-shadow:0 8px 24px rgba(0,0,0,.12); z-index:100; overflow:hidden; }
+        .sug-item { display:flex; align-items:center; gap:10px; padding:10px 16px; cursor:pointer; transition:background .12s; border-bottom:0.5px solid #F5F2EC; }
+        .sug-item:last-child { border-bottom:none; }
+        .sug-item:hover { background:#FEF3E2; }
+        .sug-ico { font-size:14px; flex-shrink:0; }
+        .sug-label { font-size:13px; font-weight:600; color:#111; }
+        .sug-sub { font-size:11px; color:#AAA; margin-top:1px; }
         .hero-search-btn { background: #C9951A; border: none; border-radius: 50px; padding: 9px 16px; color: #fff; font-size: 13px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
         @media(min-width: 768px) {
           .hero { padding: 43px 20px 0; }
@@ -227,7 +269,14 @@ export default function HomePage() {
           }
           .hero-search-wrap input { flex: 1; border: none; background: transparent; font-size: 15px; font-family: 'Inter', sans-serif; color: #222; outline: none; }
           .hero-search-wrap input::placeholder { color: #BBB; }
-          .hero-search-btn { background: #C9951A; border: none; border-radius: 50px; padding: 10px 24px; color: #fff; font-size: 14px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+          .search-suggestions { position:absolute; top:100%; left:0; right:0; background:#fff; border:1.5px solid #C9951A; border-radius:14px; margin-top:6px; box-shadow:0 8px 24px rgba(0,0,0,.12); z-index:100; overflow:hidden; }
+        .sug-item { display:flex; align-items:center; gap:10px; padding:10px 16px; cursor:pointer; transition:background .12s; border-bottom:0.5px solid #F5F2EC; }
+        .sug-item:last-child { border-bottom:none; }
+        .sug-item:hover { background:#FEF3E2; }
+        .sug-ico { font-size:14px; flex-shrink:0; }
+        .sug-label { font-size:13px; font-weight:600; color:#111; }
+        .sug-sub { font-size:11px; color:#AAA; margin-top:1px; }
+        .hero-search-btn { background: #C9951A; border: none; border-radius: 50px; padding: 10px 24px; color: #fff; font-size: 14px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
         }
 
         /* BANNER */
@@ -397,13 +446,36 @@ export default function HomePage() {
       <section className="hero">
         <h1 className="hero-title">TRINDADE <span>ONLINE</span></h1>
         <p className="hero-sub">Conectando moradores, comércios e serviços do bairro Trindade</p>
+        <div ref={searchRef} style={{position:'relative',width:'100%',maxWidth:600,margin:'0 auto'}}>
         <form className="hero-search-wrap" onSubmit={handleSearch}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9951A" strokeWidth="2" strokeLinecap="round">
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
-          <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="O que você está procurando?" />
+          <input type="text" value={searchQuery}
+            onChange={e => { setSearchQuery(e.target.value); fetchSuggestions(e.target.value) }}
+            onFocus={() => searchQuery.length >= 2 && setShowSuggestions(true)}
+            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+            placeholder="O que você está procurando?" />
           <button type="submit" className="hero-search-btn">Buscar</button>
         </form>
+        {showSuggestions && suggestions.length > 0 && (
+          <div className="search-suggestions">
+            {suggestions.map((s, i) => (
+              <div key={i} className="sug-item" onMouseDown={() => {
+                setSearchQuery(s.label)
+                setShowSuggestions(false)
+                window.location.href = `/busca?q=${encodeURIComponent(s.label)}`
+              }}>
+                <div className="sug-ico">{s.type === 'empresa' ? '🏪' : '🏷️'}</div>
+                <div>
+                  <div className="sug-label">{s.label}</div>
+                  {s.sub && <div className="sug-sub">{s.type === 'tag' ? `em ${s.sub}` : s.sub}</div>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        </div>
       </section>
 
       {/* BANNER FULL-WIDTH */}

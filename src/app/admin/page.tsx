@@ -38,7 +38,7 @@ const statusColor = (s: string) => s === 'active' ? '#0F8050' : s === 'pending' 
 const statusLabel = (s: string) => s === 'active' ? 'Ativa' : s === 'pending' ? 'Pendente' : 'Suspensa'
 
 export default function AdminPage() {
-  const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'denuncias'|'usuarios'|'buscas'|'atividade'|'banners'|'pedidos-banner'|'configuracoes'|'recursos'>('dashboard')
+  const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'denuncias'|'usuarios'|'buscas'|'atividade'|'banners'|'pedidos-banner'|'configuracoes'|'recursos'|'planos'>('dashboard')
   const [stats, setStats]           = useState<Stats|null>(null)
   const [companies, setCompanies]   = useState<Company[]>([])
   const [users, setUsers]           = useState<Profile[]>([])
@@ -73,6 +73,9 @@ export default function AdminPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [bannerRequests, setBannerRequests] = useState<any[]>([])
   const [featureFlags, setFeatureFlags] = useState<any[]>([])
+  const [plans, setPlans] = useState<any[]>([])
+  const [planForm, setPlanForm] = useState<any>(null)
+  const [savingPlan, setSavingPlan] = useState(false)
   const [editCompanyModal, setEditCompanyModal] = useState<{open:boolean; company:any}>({open:false, company:null})
   const [editUserModal, setEditUserModal] = useState<{open:boolean; user:any}>({open:false, user:null})
   const [allCategories, setAllCategories] = useState<CatOpt[]>([])
@@ -101,7 +104,7 @@ export default function AdminPage() {
 
   async function loadAll() {
     setLoading(true)
-    await Promise.all([loadStats(), loadCompanies(), loadUsers(), loadSearches(), loadHighlights(), loadReports(), loadBanners(), loadSettings(), loadBannerRequests(), loadFeatureFlags()])
+    await Promise.all([loadStats(), loadCompanies(), loadUsers(), loadSearches(), loadHighlights(), loadReports(), loadBanners(), loadSettings(), loadBannerRequests(), loadFeatureFlags(), loadPlans()])
 
     // Realtime — atualiza automaticamente
     const channel = supabase
@@ -226,6 +229,42 @@ export default function AdminPage() {
     const r = (data || []) as Report[]
     setReports(r)
     setRepCount(r.filter(x => !x.resolved).length)
+  }
+
+  async function loadPlans() {
+    const { data } = await supabase.from('plans').select('*').order('type').order('display_order')
+    setPlans(data || [])
+  }
+
+  async function savePlan() {
+    if (!planForm) return
+    setSavingPlan(true)
+    if (planForm.id) {
+      await supabase.from('plans').update({
+        name: planForm.name, type: planForm.type, days: Number(planForm.days),
+        value: Number(planForm.value), description: planForm.description,
+        highlight: planForm.highlight, highlight_label: planForm.highlight_label,
+        active: planForm.active, display_order: Number(planForm.display_order)
+      }).eq('id', planForm.id)
+    } else {
+      await supabase.from('plans').insert({
+        name: planForm.name, type: planForm.type, days: Number(planForm.days),
+        value: Number(planForm.value), description: planForm.description,
+        highlight: planForm.highlight || false, highlight_label: planForm.highlight_label || null,
+        active: true, display_order: Number(planForm.display_order) || 99
+      })
+    }
+    setSavingPlan(false)
+    setPlanForm(null)
+    showToast('Plano salvo!')
+    loadPlans()
+  }
+
+  async function deletePlan(id: string) {
+    if (!confirm('Tem certeza que deseja excluir este plano?')) return
+    await supabase.from('plans').delete().eq('id', id)
+    showToast('Plano excluído.')
+    loadPlans()
   }
 
   async function loadFeatureFlags() {
@@ -850,6 +889,7 @@ export default function AdminPage() {
             { id: 'buscas',    icon: '🔍', label: 'Buscas' },
             { id: 'atividade', icon: '⚡', label: 'Atividade' },
     { id: 'pedidos-banner', icon: '🖼️', label: 'Ped. Banner' },
+    { id: 'planos', icon: '💰', label: 'Planos' },
     { id: 'recursos', icon: '🔧', label: 'Recursos' },
     { id: 'configuracoes', icon: '⚙️', label: 'Configurações' },
           ].map(n => (
@@ -883,6 +923,7 @@ export default function AdminPage() {
               {tab === 'denuncias' && 'Denúncias'}
               {tab === 'banners'   && 'Banners da Home'}
               {tab === 'pedidos-banner' && 'Pedidos de Banner'}
+              {tab === 'planos' && 'Gestão de Planos'}
               {tab === 'recursos' && 'Recursos do Site'}
               {tab === 'configuracoes' && 'Configurações'}
             </div>
@@ -1585,6 +1626,113 @@ export default function AdminPage() {
                   </div>
                   )
                 })()}
+              </div>
+            )}
+
+            {/* ── PLANOS ── */}
+            {!loading && tab === 'planos' && (
+              <div>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+                  <div style={{fontSize:13,color:'#888'}}>Gerencie os planos disponíveis para os lojistas.</div>
+                  <button onClick={()=>setPlanForm({name:'',type:'subscription',days:30,value:'',description:'',highlight:false,highlight_label:'',active:true,display_order:99})}
+                    style={{padding:'8px 16px',background:'#C9951A',color:'#fff',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                    + Novo plano
+                  </button>
+                </div>
+
+                {['subscription','banner'].map(type => (
+                  <div key={type} style={{marginBottom:24}}>
+                    <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:16,color:'#AAA',letterSpacing:1,marginBottom:10}}>
+                      {type === 'subscription' ? '📋 PLANOS DE VISIBILIDADE' : '📢 PLANOS DE BANNER'}
+                    </div>
+                    <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                      {plans.filter(p => p.type === type).map((p: any) => (
+                        <div key={p.id} style={{background:'#fff',border:'0.5px solid #EDE8E0',borderRadius:12,padding:'14px 16px',display:'flex',alignItems:'center',gap:12}}>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:3}}>
+                              <span style={{fontWeight:600,fontSize:14,color:'#111'}}>{p.name}</span>
+                              {p.highlight && <span style={{fontSize:10,background:'#C9951A',color:'#fff',padding:'2px 7px',borderRadius:4,fontWeight:700}}>{p.highlight_label||'DESTAQUE'}</span>}
+                              <span style={{fontSize:11,color:p.active?'#0F8050':'#E24B4A',fontWeight:600}}>{p.active?'● Ativo':'● Inativo'}</span>
+                            </div>
+                            <div style={{fontSize:12,color:'#888'}}>{p.days} dias · R$ {Number(p.value).toFixed(2)} · {p.description}</div>
+                          </div>
+                          <div style={{display:'flex',gap:8,flexShrink:0}}>
+                            <button onClick={()=>setPlanForm({...p})} style={{padding:'6px 12px',background:'#F5F0E8',color:'#854F0B',border:'none',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>✏️ Editar</button>
+                            <button onClick={()=>deletePlan(p.id)} style={{padding:'6px 12px',background:'#FCEBEB',color:'#E24B4A',border:'none',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>🗑️</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+
+                {planForm && (
+                  <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+                    <div style={{background:'#fff',borderRadius:20,padding:28,maxWidth:480,width:'100%',maxHeight:'90vh',overflowY:'auto'}}>
+                      <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,color:'#111',letterSpacing:1,marginBottom:20}}>{planForm.id ? 'EDITAR PLANO' : 'NOVO PLANO'}</div>
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
+                        <div style={{gridColumn:'1/-1'}}>
+                          <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Nome do plano</label>
+                          <input value={planForm.name} onChange={e=>setPlanForm((p:any)=>({...p,name:e.target.value}))}
+                            style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+                        </div>
+                        <div>
+                          <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Tipo</label>
+                          <select value={planForm.type} onChange={e=>setPlanForm((p:any)=>({...p,type:e.target.value}))}
+                            style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}>
+                            <option value="subscription">Visibilidade</option>
+                            <option value="banner">Banner</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Dias</label>
+                          <input type="number" value={planForm.days} onChange={e=>setPlanForm((p:any)=>({...p,days:e.target.value}))}
+                            style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+                        </div>
+                        <div>
+                          <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Valor (R$)</label>
+                          <input type="number" step="0.01" value={planForm.value} onChange={e=>setPlanForm((p:any)=>({...p,value:e.target.value}))}
+                            style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+                        </div>
+                        <div style={{gridColumn:'1/-1'}}>
+                          <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Descrição</label>
+                          <input value={planForm.description||''} onChange={e=>setPlanForm((p:any)=>({...p,description:e.target.value}))}
+                            style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+                        </div>
+                        <div>
+                          <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Ordem</label>
+                          <input type="number" value={planForm.display_order} onChange={e=>setPlanForm((p:any)=>({...p,display_order:e.target.value}))}
+                            style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+                        </div>
+                        <div>
+                          <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Status</label>
+                          <select value={planForm.active?'true':'false'} onChange={e=>setPlanForm((p:any)=>({...p,active:e.target.value==='true'}))}
+                            style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}>
+                            <option value="true">Ativo</option>
+                            <option value="false">Inativo</option>
+                          </select>
+                        </div>
+                        <div style={{display:'flex',alignItems:'center',gap:8}}>
+                          <input type="checkbox" checked={planForm.highlight||false} onChange={e=>setPlanForm((p:any)=>({...p,highlight:e.target.checked}))} id="hl"/>
+                          <label htmlFor="hl" style={{fontSize:13,color:'#444',cursor:'pointer'}}>Destacar este plano</label>
+                        </div>
+                        {planForm.highlight && (
+                          <div>
+                            <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Label do destaque</label>
+                            <input value={planForm.highlight_label||''} onChange={e=>setPlanForm((p:any)=>({...p,highlight_label:e.target.value}))} placeholder="ex: MAIS POPULAR"
+                              style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+                          </div>
+                        )}
+                      </div>
+                      <div style={{display:'flex',gap:10,marginTop:20}}>
+                        <button onClick={savePlan} disabled={savingPlan} style={{flex:1,padding:'12px',background:'#C9951A',color:'#fff',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                          {savingPlan?'Salvando...':'Salvar plano'}
+                        </button>
+                        <button onClick={()=>setPlanForm(null)} style={{padding:'12px 20px',background:'transparent',color:'#AAA',border:'1px solid #ddd',borderRadius:10,fontSize:13,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>Cancelar</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

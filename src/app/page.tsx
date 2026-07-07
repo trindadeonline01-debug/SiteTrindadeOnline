@@ -77,6 +77,7 @@ export default function HomePage() {
   const [newCompanies, setNewCompanies] = useState<Company[]>([])
   const [recentListings, setRecentListings] = useState<Record<string, Listing[]>>({})
   const [loading, setLoading]         = useState(true)
+  const [settingsLoaded, setSettingsLoaded] = useState(false)
   const [isMobile, setIsMobile]       = useState(false)
   const [siteTheme, setSiteTheme]     = useState('classico-preto')
   const [bannerEnabled, setBannerEnabled] = useState(true)
@@ -144,6 +145,7 @@ export default function HomePage() {
       if (theme) setSiteTheme(theme.value || 'classico-preto')
       if (banner) setBannerEnabled(banner.value === 'true')
     }
+    setSettingsLoaded(true)
     setLoading(false)
   }, [])
 
@@ -479,7 +481,7 @@ export default function HomePage() {
       </header>
 
       {/* HERO */}
-      <section className="hero" style={{background: TEMAS[siteTheme]?.heroBg || '#111111'}}>
+      <section className="hero" style={{background: settingsLoaded ? (TEMAS[siteTheme]?.heroBg || '#111111') : 'transparent'}}>
         <h1 className="hero-title" style={{color: siteTheme === 'branco-limpo' ? '#111' : '#fff'}}>TRINDADE <span style={{color: TEMAS[siteTheme]?.dest || '#C9951A'}}>ONLINE</span></h1>
         <p className="hero-sub">Conectando moradores, comércios e serviços do bairro Trindade</p>
         <div ref={searchRef} style={{position:'relative',width:'100%',maxWidth:600,margin:'0 auto'}}>

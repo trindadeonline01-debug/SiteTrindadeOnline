@@ -520,7 +520,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {bannerEnabled && (<>
+      {settingsLoaded && bannerEnabled && (<>
       <div className="banner-outer">
         {currentBanner ? (
           <a href={currentBanner.link_url || '#'} style={{ display: 'block', textDecoration: 'none' }}>

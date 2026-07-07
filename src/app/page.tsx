@@ -293,7 +293,7 @@ export default function HomePage() {
         .sug-ico { font-size:14px; flex-shrink:0; }
         .sug-label { font-size:13px; font-weight:600; color:#111; text-align:left; }
         .sug-sub { font-size:11px; color:#AAA; margin-top:1px; text-align:left; }
-        .hero-search-btn { background: #C9951A; border: none; border-radius: 50px; padding: 9px 16px; color: #fff; font-size: 13px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+        .hero-search-btn { background: #C9951A; border: none; border-radius: 50px; padding: 9px 16px; color: #fff; font-size: 13px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; flex-shrink: 0; } @media(max-width: 480px) { .hero-search-btn { padding: 8px 10px; font-size: 12px; } .hero-search-wrap { padding: 4px 4px 4px 12px; } }
         @media(min-width: 768px) {
           .hero { padding: 43px 20px 0; }
           .hero-title, .hero-sub { display: block; }
@@ -473,7 +473,7 @@ export default function HomePage() {
                 <a className="btn-entrar" href="/cadastro" style={{borderColor:'#888',color:'#888'}}>+ Cadastrar morador</a>
               </>
             )}
-            <a className="btn-cad" href="/empresa/cadastrar">+ Cadastrar empresa</a>
+            <a className="btn-cad" href="/empresa/cadastrar">+ Empresa</a>
           </div>
         </div>
       </header>

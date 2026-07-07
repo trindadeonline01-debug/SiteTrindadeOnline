@@ -467,6 +467,25 @@ export default function PainelPage() {
         .sb-footer{padding:16px 20px;border-top:1px solid #222;}
         .sb-footer a{font-size:12px;color:#C9951A;text-decoration:none;display:flex;align-items:center;gap:6px;font-weight:600;}
         .sb-footer a:hover{color:#fff;}
+        .sb-actions{display:flex;gap:6px;}
+        .sb-btn{flex:1;padding:10px 8px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;text-align:center;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:4px;}
+        .sb-btn-gold{background:#C9951A;color:#fff !important;}
+        .sb-btn-gold:hover{background:#B8841A;color:#fff !important;}
+        .sb-btn-gray{background:transparent;color:#888 !important;border:1.5px solid #333;}
+        .sb-btn-gray:hover{background:#1A1A1A;color:#C9951A !important;border-color:#C9951A;}
+        .mobile-hdr-new{background:#111;padding:16px 20px;text-align:center;}
+        @media(min-width:768px){.mobile-hdr-new{display:none;}}
+        .mobile-hdr-new .mhdr-logo{font-family:'Bebas Neue',sans-serif;font-size:22px;color:#fff;letter-spacing:2px;}
+        .mobile-hdr-new .mhdr-logo span{color:#C9951A;}
+        .mobile-hdr-new .mhdr-empresa{font-size:11px;color:#999;margin-top:6px;font-weight:600;letter-spacing:1px;text-transform:uppercase;}
+        .mobile-actions{background:#F5F0E8;padding:12px 16px;display:flex;gap:8px;align-items:stretch;}
+        @media(min-width:768px){.mobile-actions{display:none;}}
+        .m-action-btn{flex:1;padding:12px 10px;border-radius:10px;font-size:13px;font-weight:700;text-decoration:none;text-align:center;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px;}
+        .m-action-gold{background:#C9951A;color:#fff;}
+        .m-action-gold:hover{background:#B8841A;}
+        .m-action-gray{background:transparent;color:#666;border:1.5px solid #DDD;}
+        .m-action-gray:hover{background:#EDE8E0;color:#111;}
+        .m-action-select{flex:1;padding:0 10px;border-radius:10px;border:1.5px solid #DDD;font-size:12px;font-weight:600;color:#333;background:#fff;font-family:'Inter',sans-serif;}
 
         .painel-main{flex:1;overflow-x:hidden;display:flex;flex-direction:column;min-width:0;}
         .topbar{background:#fff;border-bottom:1px solid #EDE8E0;padding:14px 28px;display:none;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20;}
@@ -975,28 +994,27 @@ export default function PainelPage() {
             ))}
           </nav>
           <div className="sb-footer">
-            <a href="/">← Ver site</a>
-            <a href="/sair" style={{marginTop:8}}>↩ Sair</a>
+            <div className="sb-actions">
+              <a href="/" className="sb-btn sb-btn-gold">🌐 Ver site</a>
+              <a href="/sair" className="sb-btn sb-btn-gray">🚪 Sair</a>
+            </div>
           </div>
         </aside>
 
         {/* MAIN — área direita */}
         <main className="painel-main">
-          <div className="mobile-hdr">
-            <div>
-              <div className="mhdr-logo">TRINDADE <span>ONLINE</span></div>
-              <div className="mhdr-empresa">{company.name}</div>
-            </div>
-            <div style={{display:'flex',gap:12,alignItems:'center'}}>
-              <a href="/" style={{fontSize:12,color:'#C9951A',textDecoration:'none',fontWeight:600}}>← Ver site</a>
-              {companies.length > 1 && (
-                <select value={company?.id} onChange={e => setCompany(companies.find(c => c.id === e.target.value) || null)}
-                  style={{fontSize:11,border:'1px solid #333',borderRadius:8,padding:'4px 8px',background:'#222',color:'#C9951A',maxWidth:120}}>
-                  {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              )}
-              <a href="/sair" style={{fontSize:12,color:'#555',textDecoration:'none'}}>Sair</a>
-            </div>
+          <div className="mobile-hdr-new">
+            <div className="mhdr-logo">TRINDADE <span>ONLINE</span></div>
+            <div className="mhdr-empresa">{company.name}</div>
+          </div>
+          <div className="mobile-actions">
+            <a href="/" className="m-action-btn m-action-gold">🌐 Ver site</a>
+            {companies.length > 1 && (
+              <select value={company?.id} onChange={e => setCompany(companies.find(c => c.id === e.target.value) || null)} className="m-action-select">
+                {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            )}
+            <a href="/sair" className="m-action-btn m-action-gray">🚪 Sair</a>
           </div>
 
           <div className="topbar">

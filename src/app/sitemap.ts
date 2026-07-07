@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase'
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = 'https://trindadeonline.com.br'
 
-  const static_pages = [
+  const static_pages: MetadataRoute.Sitemap = [
     { url: `${base}/`, changeFrequency: 'daily', priority: 1 },
     { url: `${base}/categoria/comercios`, changeFrequency: 'daily', priority: 0.9 },
     { url: `${base}/categoria/gastronomia`, changeFrequency: 'daily', priority: 0.9 },
@@ -22,7 +22,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .select('slug, updated_at')
     .eq('is_active', true)
 
-  const company_pages = (companies || []).map(c => ({
+  const company_pages: MetadataRoute.Sitemap = (companies || []).map(c => ({
     url: `${base}/empresa/${c.slug}`,
     changeFrequency: 'weekly' as const,
     priority: 0.8,

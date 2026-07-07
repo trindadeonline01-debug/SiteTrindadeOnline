@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+
+Disallow: /admin
+Disallow: /painel
+Disallow: /login
+Disallow: /cadastro
+Disallow: /sair
+Disallow: /redefinir-senha
+
+Sitemap: https://trindadeonline.com.br/sitemap.xml

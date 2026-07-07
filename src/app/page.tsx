@@ -260,7 +260,7 @@ export default function HomePage() {
         .logo-main { font-family: 'Bebas Neue', sans-serif; font-size: 26px; color: #111; letter-spacing: 2px; }
         .logo-dot  { font-family: 'Bebas Neue', sans-serif; font-size: 18px; color: #DDD; margin: 0 5px; }
         .logo-gold { font-family: 'Bebas Neue', sans-serif; font-size: 26px; color: #C9951A; letter-spacing: 2px; }
-        .nav-actions { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; justify-content: flex-end; width: 100%; }
+        .nav-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; width: 100%; }
         .btn-painel   { background: #111; color: #C9951A; border: none; border-radius: 10px; padding: 7px 12px; font-size: 12px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; text-decoration: none; display: block; }
         .btn-sair     { background: transparent; color: #666; border: 1px solid #333; border-radius: 10px; padding: 6px 10px; font-size: 11px; font-weight: 500; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; display: block; }
         .btn-entrar   { display: flex; align-items: center; gap: 5px; background: transparent; color: #C9951A; border: 1.5px solid #C9951A; border-radius: 10px; padding: 7px 12px; font-size: 12px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; text-decoration: none; }
@@ -365,7 +365,7 @@ export default function HomePage() {
 
         .cat-overlap { margin-top: -40px; position: relative; z-index: 10; }
         .cat-card-wrap { background: #fff; border: 1px solid #e0e0e0; border-radius: 14px; padding: 24px 28px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
-        .cat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 0; }
+        .cat-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; }
         @media(min-width: 768px) { .cat-grid { grid-template-columns: repeat(8,1fr); gap: 0; } }
         .cat-item { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 20px 8px; border-radius: 10px; cursor: pointer; text-decoration: none; position: relative; transition: background 0.15s; }
         .cat-item:not(:last-child)::after { content: ""; position: absolute; right: 0; top: 20%; height: 60%; width: 1px; background: #e8e8e4; }
@@ -373,7 +373,7 @@ export default function HomePage() {
         .cat-item:hover svg { stroke: #C9951A; }
         .cat-item:hover .cat-label { color: #C9951A; }
         .cat-item svg { width: 70px; height: 70px; stroke: #111; stroke-width: 0.8; fill: none; stroke-linecap: round; stroke-linejoin: round; transition: stroke 0.15s; }
-        .cat-label { font-size: 12px; color: #111; text-align: center; line-height: 1.3; font-weight: 600; transition: color 0.15s; }
+        .cat-label { font-size: 12px; color: #111; text-align: center; line-height: 1.3; font-weight: 600; transition: color 0.15s; } @media(max-width: 767px) { .cat-item { padding: 12px 4px; gap: 8px; } .cat-item svg { width: 40px; height: 40px; } .cat-label { font-size: 10px; } }
 
         .sec-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; margin-top: 28px; }
         .sec-title { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: #999; letter-spacing: 2px; }

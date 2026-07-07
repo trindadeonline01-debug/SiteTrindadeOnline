@@ -38,7 +38,7 @@ const statusColor = (s: string) => s === 'active' ? '#0F8050' : s === 'pending' 
 const statusLabel = (s: string) => s === 'active' ? 'Ativa' : s === 'pending' ? 'Pendente' : 'Suspensa'
 
 export default function AdminPage() {
-  const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'denuncias'|'usuarios'|'buscas'|'atividade'|'banners'|'pedidos-banner'|'configuracoes'|'recursos'|'planos'>('dashboard')
+  const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'denuncias'|'usuarios'|'buscas'|'atividade'|'banners'|'pedidos-banner'|'configuracoes'|'recursos'|'planos'|'aparencia'>('dashboard')
   const [stats, setStats]           = useState<Stats|null>(null)
   const [companies, setCompanies]   = useState<Company[]>([])
   const [users, setUsers]           = useState<Profile[]>([])
@@ -90,6 +90,9 @@ export default function AdminPage() {
   const [mpTokenSaving, setMpTokenSaving] = useState(false)
   const [mpTokenLoaded, setMpTokenLoaded] = useState(false)
   const [mpSecret, setMpSecret] = useState('')
+  const [siteTheme, setSiteTheme]       = useState('classico-preto')
+  const [bannerEnabled, setBannerEnabled] = useState(true)
+  const [savingAppearance, setSavingAppearance] = useState(false)
   const fileInputRefMobile = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -104,7 +107,7 @@ export default function AdminPage() {
 
   async function loadAll() {
     setLoading(true)
-    await Promise.all([loadStats(), loadCompanies(), loadUsers(), loadSearches(), loadHighlights(), loadReports(), loadBanners(), loadSettings(), loadBannerRequests(), loadFeatureFlags(), loadPlans()])
+    await Promise.all([loadStats(), loadCompanies(), loadUsers(), loadSearches(), loadHighlights(), loadReports(), loadBanners(), loadSettings(), loadAppearance(), loadBannerRequests(), loadFeatureFlags(), loadPlans()])
 
     // Realtime — atualiza automaticamente
     const channel = supabase
@@ -300,6 +303,26 @@ export default function AdminPage() {
       const sec = data.find((s: any) => s.key === 'mp_webhook_secret')
       if (sec) setMpSecret(sec.value || '')
     }
+  }
+
+  async function loadAppearance() {
+    const { data } = await supabase.from('site_settings').select('key,value')
+    if (data) {
+      const theme = data.find((s: any) => s.key === 'active_theme')
+      const banner = data.find((s: any) => s.key === 'banner_enabled')
+      if (theme) setSiteTheme(theme.value || 'classico-preto')
+      if (banner) setBannerEnabled(banner.value === 'true')
+    }
+  }
+
+  async function saveAppearance(theme: string, banner: boolean) {
+    setSavingAppearance(true)
+    await Promise.all([
+      supabase.from('site_settings').upsert({ key: 'active_theme', value: theme, updated_at: new Date().toISOString() }, { onConflict: 'key' }),
+      supabase.from('site_settings').upsert({ key: 'banner_enabled', value: String(banner), updated_at: new Date().toISOString() }, { onConflict: 'key' }),
+    ])
+    setSavingAppearance(false)
+    showToast('Aparência salva!')
   }
 
   async function saveMpToken() {
@@ -898,6 +921,7 @@ export default function AdminPage() {
     { id: 'planos', icon: '💰', label: 'Planos' },
     { id: 'recursos', icon: '🔧', label: 'Recursos' },
     { id: 'configuracoes', icon: '⚙️', label: 'Configurações' },
+    { id: 'aparencia', icon: '🎨', label: 'Aparência' },
           ].map(n => (
             <div
               key={n.id}
@@ -932,6 +956,7 @@ export default function AdminPage() {
               {tab === 'planos' && 'Gestão de Planos'}
               {tab === 'recursos' && 'Recursos do Site'}
               {tab === 'configuracoes' && 'Configurações'}
+              {tab === 'aparencia' && 'Aparência do Site'}
             </div>
             <div className="topbar-date">{new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}</div>
           </div>
@@ -1767,6 +1792,55 @@ export default function AdminPage() {
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── APARÊNCIA ── */}
+            {!loading && tab === 'aparencia' && (
+              <div style={{maxWidth:700}}>
+                <div style={{fontSize:13,color:'#888',marginBottom:24,lineHeight:1.6}}>Personalize a aparência do site. As mudanças têm efeito imediato para todos os visitantes.</div>
+
+                <div style={{background:'#fff',border:'0.5px solid #EDE8E0',borderRadius:14,padding:'20px 24px',marginBottom:20}}>
+                  <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:14,color:'#888',letterSpacing:1,marginBottom:16}}>BANNER DA HOME</div>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                    <div>
+                      <div style={{fontWeight:600,fontSize:14,color:'#111',marginBottom:4}}>Exibir banner na home</div>
+                      <div style={{fontSize:12,color:'#AAA'}}>Quando desativado, as categorias sobem direto abaixo da busca</div>
+                    </div>
+                    <div style={{display:'flex',alignItems:'center',gap:10}}>
+                      <span style={{fontSize:12,fontWeight:600,color:bannerEnabled?'#0F8050':'#E24B4A'}}>{bannerEnabled?'Ativo':'Inativo'}</span>
+                      <div onClick={()=>{ const nb=!bannerEnabled; setBannerEnabled(nb); saveAppearance(siteTheme,nb) }}
+                        style={{width:44,height:24,borderRadius:12,background:bannerEnabled?'#0F8050':'#E0DDD8',cursor:'pointer',position:'relative',transition:'background .2s'}}>
+                        <div style={{position:'absolute',top:2,left:bannerEnabled?22:2,width:20,height:20,borderRadius:'50%',background:'#fff',boxShadow:'0 1px 4px rgba(0,0,0,.2)',transition:'left .2s'}}/>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{background:'#fff',border:'0.5px solid #EDE8E0',borderRadius:14,padding:'20px 24px'}}>
+                  <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:14,color:'#888',letterSpacing:1,marginBottom:16}}>TEMA DE CORES</div>
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12}}>
+                    {[
+                      {id:'classico-preto',nome:'Clássico Preto',hero:'#111111',dest:'#C9951A'},
+                      {id:'trindade-quente',nome:'Trindade Quente',hero:'#7A2020',dest:'#F0A500'},
+                      {id:'verde-raiz',nome:'Verde Raiz',hero:'#1A3A2A',dest:'#5DBF8A'},
+                      {id:'azul-confianca',nome:'Azul Confiança',hero:'#0D2B45',dest:'#3A9FD8'},
+                      {id:'terra-morna',nome:'Terra Morna',hero:'#3D2B1A',dest:'#D4845A'},
+                      {id:'branco-limpo',nome:'Branco Limpo',hero:'#F5F5F5',dest:'#C9951A'},
+                    ].map(t=>(
+                      <div key={t.id} onClick={()=>{ setSiteTheme(t.id); saveAppearance(t.id,bannerEnabled) }}
+                        style={{border:siteTheme===t.id?'2px solid #C9951A':'1.5px solid #EDE8E0',borderRadius:12,padding:12,cursor:'pointer',background:siteTheme===t.id?'#FEF3E2':'#FAFAF8',transition:'all .15s'}}>
+                        <div style={{display:'flex',gap:6,marginBottom:8}}>
+                          <div style={{flex:1,height:28,borderRadius:6,background:t.hero}}/>
+                          <div style={{width:28,height:28,borderRadius:6,background:t.dest}}/>
+                        </div>
+                        <div style={{fontSize:12,fontWeight:600,color:'#111',marginBottom:4}}>{t.nome}</div>
+                        {siteTheme===t.id && <div style={{fontSize:10,color:'#C9951A',fontWeight:700}}>✓ ATIVO</div>}
+                      </div>
+                    ))}
+                  </div>
+                  {savingAppearance && <div style={{fontSize:12,color:'#C9951A',marginTop:12}}>Salvando...</div>}
                 </div>
               </div>
             )}

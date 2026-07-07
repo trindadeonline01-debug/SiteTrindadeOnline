@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
-type Plan = { id: string; name: string; days: number; value: number; description: string; display_order: number }
+type Plan = { id: string; name: string; days: number; value: number; description: string; display_order: number; highlight?: boolean; highlight_label?: string }
 
 export default function PlanosPage() {
   const router = useRouter()
@@ -15,7 +15,7 @@ export default function PlanosPage() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) { router.push('/login'); return }
     })
-    supabase.from('plans').select('id,name,days,value,description,display_order')
+    supabase.from('plans').select('id,name,days,value,description,display_order,highlight,highlight_label')
       .eq('type', 'subscription').eq('active', true).order('display_order')
       .then(({ data }) => { setPlans((data || []) as Plan[]); setLoading(false) })
   }, [])
@@ -36,8 +36,6 @@ export default function PlanosPage() {
     if (data.pix_url) router.push(`/painel?pix=${encodeURIComponent(data.pix_url)}&valor=${plan.value}&plano=${plan.name}`)
     else alert('Erro ao gerar pagamento. Tente novamente.')
   }
-
-  const popular = 1
 
   return (
     <>
@@ -77,13 +75,13 @@ export default function PlanosPage() {
         ) : (
           <div className="grid">
             {plans.map((plan, i) => (
-              <div key={plan.id} className={`card ${i === popular ? 'popular' : ''}`}>
-                {i === popular && <div className="popular-badge">MAIS POPULAR</div>}
+              <div key={plan.id} className={`card ${plan.highlight ? 'popular' : ''}`}>
+                {plan.highlight && <div className="popular-badge">{plan.highlight_label || 'MAIS POPULAR'}</div>}
                 <div className="plan-label">{plan.name}</div>
-                <div className="price">R$ {Number(plan.value).toFixed(0)}</div>
+                <div className="price">R$ {Number(plan.value).toFixed(2).replace('.', ',')}</div>
                 <div className="price-note">{plan.days === 30 ? '/mês' : plan.days === 180 ? '/mês · 6 meses' : '/mês · anual'}</div>
                 <div className="desc">{plan.description}</div>
-                <button className={`btn-plan ${i === popular ? 'popular' : ''}`}
+                <button className={`btn-plan ${plan.highlight ? 'popular' : ''}`}
                   disabled={paying === plan.id}
                   onClick={() => handleAssinar(plan)}>
                   {paying === plan.id ? 'Aguarde...' : 'Assinar'}

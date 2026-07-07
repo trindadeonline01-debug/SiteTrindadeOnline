@@ -32,7 +32,7 @@ const fmtDate = (s: string) => new Date(s).toLocaleDateString('pt-BR')
 const daysLeft = (s: string) => Math.max(0, Math.ceil((new Date(s).getTime() - Date.now()) / 86400000))
 
 export default function PainelPage() {
-  const [tab, setTab]               = useState<'painel'|'destaques'|'avaliacoes'|'perfil'|'plano'>('painel')
+  const [tab, setTab]               = useState<'painel'|'destaques'|'banners'|'avaliacoes'|'perfil'|'plano'>('painel')
   const [company, setCompany]       = useState<Company|null>(null)
   const [companies, setCompanies]   = useState<Company[]>([])
   const [reviews, setReviews]       = useState<Review[]>([])
@@ -52,6 +52,7 @@ export default function PainelPage() {
 
   const [featureFlags, setFeatureFlags] = useState<Record<string,boolean>>({})
   const [availablePlans, setAvailablePlans] = useState<any[]>([])
+  const [bannerRequests, setBannerRequests] = useState<any[]>([])
 
   const [pixModal, setPixModal] = useState({ open:false, loading:false, plan:'', planNome:'', value:0, qr_code_image:null as string|null, pix_copy_paste:null as string|null, payment_id:null as string|null, copied:false, confirmed:false })
 
@@ -137,6 +138,8 @@ export default function PainelPage() {
       })
       const extraHours = savedHours.filter((h:any) => !HOURS_DEFAULT.find(d => d.label === h.label))
       setEditHours([...mergedHours, ...extraHours])
+      const { data: bReqs } = await supabase.from('banner_requests').select('*').eq('company_id', comp.id).order('created_at', {ascending: false})
+      setBannerRequests(bReqs || [])
       if (comp.category_id === IGREJAS_CATEGORY_ID) {
         setChurchHours(DIAS_SEMANA.map(day => ({
           day,
@@ -427,12 +430,13 @@ export default function PainelPage() {
   const pendingReplies = reviews.filter(r=>!r.response).length
 
   const tabTitle: Record<string,string> = {
-    painel:'Dashboard', destaques:'Destaques', avaliacoes:'Avaliações', perfil:'Editar Perfil', plano:'Meu Plano'
+    painel:'Dashboard', destaques:'Destaques', banners:'Banners', avaliacoes:'Avaliações', perfil:'Editar Perfil', plano:'Meu Plano'
   }
 
   const navItems = [
     { id:'painel',     ico:'📊', lbl:'Dashboard',  badge:0 },
     { id:'destaques',  ico:'⭐', lbl:'Destaques',  badge:activeHighlights.length },
+    { id:'banners',    ico:'📢', lbl:'Banners',    badge:0 },
     { id:'avaliacoes', ico:'💬', lbl:'Avaliações', badge:pendingReplies },
     { id:'perfil',     ico:'✏️', lbl:'Perfil',     badge:0 },
     { id:'plano',      ico:'💳', lbl:'Plano',      badge:0 },
@@ -619,6 +623,16 @@ export default function PainelPage() {
         .pt-ben-desc{font-size:10px;color:#999;line-height:1.4;}
 
         .pt-banner-card{background:#fff;border:0.5px solid #E0DDD8;border-radius:14px;overflow:hidden;}
+        .banner-hist-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-bottom:16px;}
+        .banner-hist-card{background:#fff;border:0.5px solid #EDE8E0;border-radius:12px;padding:16px;}
+        .banner-hist-hdr{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px;}
+        .banner-hist-title{font-size:14px;font-weight:700;color:#111;margin-bottom:3px;}
+        .banner-hist-meta{font-size:11px;color:#888;}
+        .banner-hist-status{font-size:11px;font-weight:600;padding:4px 10px;border-radius:6px;border:1px solid;white-space:nowrap;}
+        .banner-hist-prazo{font-size:11px;font-weight:600;margin-top:6px;}
+        .banner-hist-ia{background:#FEF3E2;border:1px solid #F5C77A;border-radius:8px;padding:8px 12px;margin-top:10px;font-size:12px;color:#854F0B;}
+        .banner-hist-imgs{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+        .banner-hist-imgs img{width:120px;height:36px;object-fit:cover;border-radius:6px;border:1px solid #EDE8E0;cursor:pointer;}
         .pt-banner-visual{background:linear-gradient(160deg,#0f0f0f,#2a1800);padding:32px 28px;display:flex;align-items:center;gap:28px;}
         @media(max-width:500px){.pt-banner-visual{flex-direction:column;}}
         .pt-banner-visual-left{flex:1;}
@@ -1340,6 +1354,105 @@ export default function PainelPage() {
             </div>
           )}
 
+          {/* BANNERS — gerenciar banners contratados */}
+          {tab === 'banners' && (
+            <div className="content-plano">
+              <div className="plano-inner">
+                <div className="pt-sec-lbl">MEUS BANNERS</div>
+                <p className="pt-sec-sub">Histórico de banners contratados pela sua empresa</p>
+                {bannerRequests.length === 0 ? (
+                  <div style={{background:'#fff',border:'0.5px solid #EDE8E0',borderRadius:14,padding:'32px 20px',textAlign:'center',color:'#AAA',fontSize:13,marginBottom:32}}>
+                    Você ainda não contratou nenhum banner. Contrate abaixo.
+                  </div>
+                ) : (
+                  <div className="banner-hist-grid">
+                    {bannerRequests.map((b:any) => {
+                      const now = Date.now()
+                      const expires = b.expires_at ? new Date(b.expires_at).getTime() : null
+                      const daysLeft = expires ? Math.ceil((expires - now) / 86400000) : null
+                      const statusColor = b.status === 'delivered' ? '#0F8050' : b.status === 'in_progress' ? '#C9951A' : '#888'
+                      const statusLabel = b.status === 'delivered' ? '✓ Entregue' : b.status === 'in_progress' ? '⏳ Em produção' : '⏳ Pendente'
+                      return (
+                        <div key={b.id} className="banner-hist-card">
+                          <div className="banner-hist-hdr">
+                            <div>
+                              <div className="banner-hist-title">Banner {b.dias} dias</div>
+                              <div className="banner-hist-meta">{b.tipo === 'ia' ? '✨ Criação por IA' : '📤 Upload próprio'} · R$ {Number(b.value).toFixed(2).replace('.',',')}</div>
+                            </div>
+                            <div className="banner-hist-status" style={{color:statusColor,borderColor:statusColor}}>{statusLabel}</div>
+                          </div>
+                          {b.expires_at && (
+                            <div className="banner-hist-prazo" style={{color: daysLeft! <= 0 ? '#E24B4A' : daysLeft! <= 3 ? '#C9951A' : '#0F8050'}}>
+                              {daysLeft! <= 0 ? '🔴 Expirado' : `${daysLeft} dias restantes`} · {new Date(b.starts_at).toLocaleDateString('pt-BR')} → {new Date(b.expires_at).toLocaleDateString('pt-BR')}
+                            </div>
+                          )}
+                          {!b.expires_at && b.status !== 'delivered' && (
+                            <div className="banner-hist-prazo" style={{color:'#888'}}>Aguardando ativação após entrega</div>
+                          )}
+                          {b.descricao_ia && (
+                            <div className="banner-hist-ia">
+                              <strong>IA:</strong> {b.descricao_ia}
+                            </div>
+                          )}
+                          {(b.file_desktop_url || b.file_mobile_url) && (
+                            <div className="banner-hist-imgs">
+                              {b.file_desktop_url && <a href={b.file_desktop_url} target="_blank" rel="noopener noreferrer"><img src={b.file_desktop_url} alt="desktop" title="Ver desktop"/></a>}
+                              {b.file_mobile_url && <a href={b.file_mobile_url} target="_blank" rel="noopener noreferrer"><img src={b.file_mobile_url} alt="mobile" title="Ver mobile" style={{maxWidth:80}}/></a>}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+
+                <div className="pt-sec-lbl" style={{marginTop:32}}>CONTRATAR NOVO BANNER</div>
+                <p className="pt-sec-sub">O espaço mais visto do site — sua empresa antes de tudo</p>
+                <div className="pt-banner-card">
+                  <div className="pt-banner-visual">
+                    <div className="pt-banner-visual-left">
+                      <div className="pt-banner-ico">📢</div>
+                      <div className="pt-banner-badge">★ POSIÇÃO #1 DO SITE</div>
+                      <div className="pt-banner-pos-title">Topo da página inicial</div>
+                      <div className="pt-banner-pos-desc">Aparece antes de tudo — antes das categorias, antes das empresas, antes de qualquer conteúdo. Todo morador que abre o Trindade Online vê seu anúncio primeiro.</div>
+                    </div>
+                    <div className="pt-banner-visual-right">
+                      <div style={{fontSize:9,color:'rgba(255,255,255,0.4)',marginBottom:6,textAlign:'center'}}>como aparece no site</div>
+                      <div className="pt-bv-site">
+                        <div className="pt-bv-nav">
+                          <div className="pt-bv-dot"/><div className="pt-bv-dot"/><div className="pt-bv-dot"/>
+                          <div className="pt-bv-logo">TRINDADE <span>ONLINE</span></div>
+                        </div>
+                        <div className="pt-bv-banner"><div className="pt-bv-banner-txt">SUA EMPRESA</div></div>
+                        <div style={{background:'#fff',margin:'-8px 6px 0',borderRadius:5,padding:4,position:'relative',zIndex:2}}>
+                          <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:2}}>
+                            {[1,2,3,4].map(i=><div key={i} style={{background:'#F0EDE8',borderRadius:2,height:12}}/>)}
+                          </div>
+                        </div>
+                        <div className="pt-bv-rest">
+                          <div className="pt-bv-row" style={{width:'60%'}}/>
+                          <div className="pt-bv-row"/>
+                          <div className="pt-bv-row" style={{width:'80%'}}/>
+                          <div className="pt-bv-row" style={{width:'70%'}}/>
+                        </div>
+                      </div>
+                      <div style={{textAlign:'center',marginTop:8}}>
+                        <span style={{fontSize:9,color:'#C9951A',fontWeight:700}}>↑ seu banner aqui</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="pt-banner-info" style={{gridTemplateColumns:`repeat(${Math.min(availablePlans.filter(p=>p.type==='banner').length,3)},1fr)`}}>
+                    {availablePlans.filter(p => p.type === 'banner').map((plan: any) => (
+                      <button key={plan.id} className="pt-b-opt" onClick={()=>abrirBanner(plan.days, Number(plan.value))}>
+                        <div className="pt-b-days">{plan.name}</div>
+                        <div className="pt-b-price">R$ {Number(plan.value).toFixed(2)}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
           {/* PLANO — conteúdo centralizado com max-width */}
           {tab === 'plano' && (
             <div className="content-plano">
@@ -1433,130 +1546,6 @@ export default function PainelPage() {
                   ))}
                 </div>
 
-                {/* BANNER DA HOME */}
-                <div className="pt-sec-lbl">BANNER DA HOME</div>
-                <p className="pt-sec-sub">O espaço mais visto do site — sua empresa antes de tudo</p>
-                <div className="pt-banner-card">
-                  <div className="pt-banner-visual">
-                    <div className="pt-banner-visual-left">
-                      <div className="pt-banner-ico">📢</div>
-                      <div className="pt-banner-badge">★ POSIÇÃO #1 DO SITE</div>
-                      <div className="pt-banner-pos-title">Topo da página inicial</div>
-                      <div className="pt-banner-pos-desc">Aparece antes de tudo — antes das categorias, antes das empresas, antes de qualquer conteúdo. Todo morador que abre o Trindade Online vê seu anúncio primeiro.</div>
-                    </div>
-                    <div className="pt-banner-visual-right">
-                      <div style={{fontSize:9,color:'rgba(255,255,255,0.4)',marginBottom:6,textAlign:'center'}}>como aparece no site</div>
-                      <div className="pt-bv-site">
-                        <div className="pt-bv-nav">
-                          <div className="pt-bv-dot"/><div className="pt-bv-dot"/><div className="pt-bv-dot"/>
-                          <div className="pt-bv-logo">TRINDADE <span>ONLINE</span></div>
-                        </div>
-                        <div className="pt-bv-banner"><div className="pt-bv-banner-txt">SUA EMPRESA</div></div>
-                        <div style={{background:'#fff',margin:'-8px 6px 0',borderRadius:5,padding:4,position:'relative',zIndex:2}}>
-                          <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:2}}>
-                            {[1,2,3,4].map(i=><div key={i} style={{background:'#F0EDE8',borderRadius:2,height:12}}/>)}
-                          </div>
-                        </div>
-                        <div className="pt-bv-rest">
-                          <div className="pt-bv-row" style={{width:'60%'}}/>
-                          <div className="pt-bv-row"/>
-                          <div className="pt-bv-row" style={{width:'80%'}}/>
-                          <div className="pt-bv-row" style={{width:'70%'}}/>
-                        </div>
-                      </div>
-                      <div style={{textAlign:'center',marginTop:8}}>
-                        <span style={{fontSize:9,color:'#C9951A',fontWeight:700}}>↑ seu banner aqui</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="pt-banner-info" style={{gridTemplateColumns:`repeat(${Math.min(availablePlans.filter(p=>p.type==='banner').length,3)},1fr)`}}>
-                    {availablePlans.filter(p => p.type === 'banner').map((plan: any) => (
-                      <button key={plan.id} className="pt-b-opt" onClick={()=>abrirBanner(plan.days, Number(plan.value))}>
-                        <div className="pt-b-days">{plan.name}</div>
-                        <div className="pt-b-price">R$ {Number(plan.value).toFixed(2)}</div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* DESTAQUES */}
-                <div className="pt-sec-lbl">DESTAQUES</div>
-                <p className="pt-sec-sub">Apareça antes de todas as outras empresas na seção escolhida</p>
-                <div className="pt-dest-grid">
-
-                  <div className="pt-dest-card">
-                    <div className="pt-dest-visual home">
-                      <div className="pt-dest-ico">🏠</div>
-                      <div className="pt-dest-badge-gold">★ 1º LUGAR</div>
-                      <div className="pt-dest-position"><strong>Página inicial</strong>Sua empresa aparece primeiro quando o morador abre o site</div>
-                      <div className="pt-rank-row">
-                        <div className="pt-rank-item you">★ você</div>
-                        <div className="pt-rank-item other"/><div className="pt-rank-item other"/><div className="pt-rank-item other"/>
-                      </div>
-                    </div>
-                    <div className="pt-dest-info">
-                      <div className="pt-dest-info-title">Destaque Home</div>
-                      <div className="pt-dest-info-desc">Primeiro na seção "Em destaque" da página inicial</div>
-                      <div className="pt-dest-opts">
-                        {availablePlans.filter(p=>p.type==='highlight'&&p.name.toLowerCase().includes('home')).map((plan:any)=>(
-                          <button key={plan.id} className={`pt-d-opt${plan.highlight?' popular':''}`} style={{position:'relative'}} onClick={()=>featureFlags['destaques']? assinarDestaque('home', plan.days, Number(plan.value), plan.name) : null} disabled={!featureFlags['destaques']}>
-                            {plan.highlight && <div className="pt-popular-badge">{plan.highlight_label||'MELHOR OPÇÃO'}</div>}
-                            <span className="pt-d-day">{plan.days} dias</span><span className="pt-d-price">R$ {Number(plan.value).toFixed(2)}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="pt-dest-card">
-                    <div className="pt-dest-visual cat">
-                      <div className="pt-dest-ico">📂</div>
-                      <div className="pt-dest-badge-gold">★ 1º LUGAR</div>
-                      <div className="pt-dest-position"><strong>Página da categoria</strong>Primeiro quando o morador busca pela sua categoria (ex: Gastronomia)</div>
-                      <div className="pt-rank-row">
-                        <div className="pt-rank-item you">★ você</div>
-                        <div className="pt-rank-item other"/><div className="pt-rank-item other"/><div className="pt-rank-item other"/>
-                      </div>
-                    </div>
-                    <div className="pt-dest-info">
-                      <div className="pt-dest-info-title">Destaque Categoria</div>
-                      <div className="pt-dest-info-desc">Primeiro na página da sua categoria (ex: Gastronomia, Serviços)</div>
-                      <div className="pt-dest-opts">
-                        {availablePlans.filter(p=>p.type==='highlight'&&p.name.toLowerCase().includes('categoria')).map((plan:any)=>(
-                          <button key={plan.id} className={`pt-d-opt${plan.highlight?' popular':''}`} style={{position:'relative'}} onClick={()=>featureFlags['destaques']? assinarDestaque('category', plan.days, Number(plan.value), plan.name) : null} disabled={!featureFlags['destaques']}>
-                            {plan.highlight && <div className="pt-popular-badge">{plan.highlight_label||'MELHOR OPÇÃO'}</div>}
-                            <span className="pt-d-day">{plan.days} dias</span><span className="pt-d-price">R$ {Number(plan.value).toFixed(2)}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="pt-dest-card">
-                    <div className="pt-dest-visual sub">
-                      <div className="pt-dest-ico">🏷️</div>
-                      <div className="pt-dest-badge-gold">★ 1º LUGAR</div>
-                      <div className="pt-dest-position"><strong>Página da subcategoria</strong>Primeiro quando o morador busca pela especialidade (ex: Pizzaria)</div>
-                      <div className="pt-rank-row">
-                        <div className="pt-rank-item you">★ você</div>
-                        <div className="pt-rank-item other"/><div className="pt-rank-item other"/>
-                      </div>
-                    </div>
-                    <div className="pt-dest-info">
-                      <div className="pt-dest-info-title">Destaque Subcategoria</div>
-                      <div className="pt-dest-info-desc">Primeiro na sua subcategoria (ex: Pizzaria, Barbearia, Padaria)</div>
-                      <div className="pt-dest-opts">
-                        {availablePlans.filter(p=>p.type==='highlight'&&p.name.toLowerCase().includes('subcat')).map((plan:any)=>(
-                          <button key={plan.id} className={`pt-d-opt${plan.highlight?' popular':''}`} style={{position:'relative'}} onClick={()=>featureFlags['destaques']? assinarDestaque('subcat', plan.days, Number(plan.value), plan.name) : null} disabled={!featureFlags['destaques']}>
-                            {plan.highlight && <div className="pt-popular-badge">{plan.highlight_label||'MELHOR OPÇÃO'}</div>}
-                            <span className="pt-d-day">{plan.days} dias</span><span className="pt-d-price">R$ {Number(plan.value).toFixed(2)}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                </div>
                 <div className="pt-footer-note">Pagamento via Pix · Ativação imediata após confirmação</div>
               </div>
             </div>

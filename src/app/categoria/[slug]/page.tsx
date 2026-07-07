@@ -1,3 +1,26 @@
+import type { Metadata } from 'next'
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params
+  const titles: Record<string, string> = {
+    'comercios': 'Comércios na Trindade — Lojas e Estabelecimentos em São Gonçalo',
+    'gastronomia': 'Gastronomia na Trindade — Restaurantes e Lanchonetes',
+    'servicos': 'Serviços na Trindade São Gonçalo — Pedreiros, Eletricistas e Mais',
+    'igrejas': 'Igrejas na Trindade São Gonçalo',
+  }
+  const descs: Record<string, string> = {
+    'comercios': 'Encontre os melhores comércios do bairro Trindade em São Gonçalo/RJ.',
+    'gastronomia': 'Restaurantes, lanchonetes e opções gastronômicas no bairro Trindade em São Gonçalo/RJ.',
+    'servicos': 'Pedreiros, eletricistas, encanadores e outros serviços no bairro Trindade em São Gonçalo/RJ.',
+    'igrejas': 'Igrejas e comunidades religiosas do bairro Trindade em São Gonçalo/RJ.',
+  }
+  return {
+    title: titles[slug] || 'Trindade Online',
+    description: descs[slug] || 'O portal digital do bairro Trindade em São Gonçalo/RJ.',
+    openGraph: { title: titles[slug], description: descs[slug], url: `https://trindadeonline.com.br/categoria/${slug}` }
+  }
+}
+
 'use client'
 
 import React, { useState, useEffect, use } from 'react'

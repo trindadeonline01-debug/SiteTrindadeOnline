@@ -1,3 +1,6 @@
+import type { Metadata } from 'next'
+export const metadata: Metadata = { title: 'Empregos na Trindade — Vagas em São Gonçalo', description: 'Vagas de emprego no bairro Trindade e região de São Gonçalo/RJ.', openGraph: { title: 'Empregos na Trindade', description: 'Vagas de emprego no bairro Trindade em São Gonçalo/RJ.', url: 'https://trindadeonline.com.br/empregos' } }
+
 'use client'
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'

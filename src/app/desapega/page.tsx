@@ -1,3 +1,6 @@
+import type { Metadata } from 'next'
+export const metadata: Metadata = { title: 'Desapega Trindade — Compra e Venda no Bairro', description: 'Anúncios de compra e venda de produtos usados no bairro Trindade em São Gonçalo/RJ.', openGraph: { title: 'Desapega Trindade', description: 'Compra e venda de produtos no bairro Trindade em São Gonçalo/RJ.', url: 'https://trindadeonline.com.br/desapega' } }
+
 'use client'
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'

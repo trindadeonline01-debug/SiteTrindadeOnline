@@ -78,6 +78,8 @@ export default function HomePage() {
   const [recentListings, setRecentListings] = useState<Record<string, Listing[]>>({})
   const [loading, setLoading]         = useState(true)
   const [isMobile, setIsMobile]       = useState(false)
+  const [siteTheme, setSiteTheme]     = useState('classico-preto')
+  const [bannerEnabled, setBannerEnabled] = useState(true)
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768)
@@ -135,6 +137,13 @@ export default function HomePage() {
       map[type] = (ld || []) as Listing[]
     }
     setRecentListings(map)
+    const { data: siteSettings } = await supabase.from('site_settings').select('key,value')
+    if (siteSettings) {
+      const theme = siteSettings.find((s: any) => s.key === 'active_theme')
+      const banner = siteSettings.find((s: any) => s.key === 'banner_enabled')
+      if (theme) setSiteTheme(theme.value || 'classico-preto')
+      if (banner) setBannerEnabled(banner.value === 'true')
+    }
     setLoading(false)
   }, [])
 
@@ -226,6 +235,15 @@ export default function HomePage() {
     return b.image_url
   }
 
+
+  const TEMAS: Record<string, {heroBg: string, dest: string}> = {
+    'classico-preto':  { heroBg: '#111111', dest: '#C9951A' },
+    'trindade-quente': { heroBg: '#7A2020', dest: '#F0A500' },
+    'verde-raiz':      { heroBg: '#1A3A2A', dest: '#5DBF8A' },
+    'azul-confianca':  { heroBg: '#0D2B45', dest: '#3A9FD8' },
+    'terra-morna':     { heroBg: '#3D2B1A', dest: '#D4845A' },
+    'branco-limpo':    { heroBg: '#F5F5F5', dest: '#C9951A' },
+  }
   return (
     <>
       <style>{`
@@ -461,7 +479,7 @@ export default function HomePage() {
       </header>
 
       {/* HERO */}
-      <section className="hero">
+      <section className="hero" style={{background: TEMAS[siteTheme]?.heroBg || '#111111'}}>
         <h1 className="hero-title">TRINDADE <span>ONLINE</span></h1>
         <p className="hero-sub">Conectando moradores, comércios e serviços do bairro Trindade</p>
         <div ref={searchRef} style={{position:'relative',width:'100%',maxWidth:600,margin:'0 auto'}}>
@@ -500,7 +518,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* BANNER FULL-WIDTH */}
+      {bannerEnabled && (<>
       <div className="banner-outer">
         {currentBanner ? (
           <a href={currentBanner.link_url || '#'} style={{ display: 'block', textDecoration: 'none' }}>
@@ -566,7 +584,7 @@ export default function HomePage() {
           </div>
         )}
       </div>
-
+      </>)}
       {/* CONTEÚDO */}
       <div className="main-wrap">
 

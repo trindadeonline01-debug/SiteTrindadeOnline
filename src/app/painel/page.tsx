@@ -611,6 +611,11 @@ export default function PainelPage() {
         .pt-plan-parcela{font-family:'Bebas Neue',sans-serif;font-size:38px;color:#111;line-height:1;margin-bottom:2px;}
         .pt-plan-parcela-label{font-size:12px;color:#888;margin-bottom:6px;}
         .pt-plan-total{display:inline-block;background:#FEF3E2;color:#854F0B;font-size:12px;font-weight:700;padding:4px 12px;border-radius:6px;margin-top:8px;margin-bottom:8px;}
+        .subcat-selected-wrap{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
+        .subcat-tag{display:inline-flex;align-items:center;gap:6px;background:#FEF3E2;color:#854F0B;border:1px solid #F5C77A;padding:6px 4px 6px 12px;border-radius:20px;font-size:13px;font-weight:600;transition:all .15s;}
+        .subcat-tag:hover{background:#FCE8C4;border-color:#E5A83A;}
+        .subcat-tag button{background:transparent;border:none;color:#B87A00;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;line-height:1;padding:0;margin-left:2px;transition:all .15s;}
+        .subcat-tag button:hover{background:#E24B4A;color:#fff;}
         .pt-plan-economy{font-size:11px;color:#0F8050;font-weight:600;margin-top:5px;}
         .pt-btn-assinar{width:100%;padding:11px;margin-top:14px;background:#C9951A;color:#111;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;}
         .pt-btn-assinar.off{background:#F0EDE8;color:#888;}
@@ -1234,7 +1239,7 @@ export default function PainelPage() {
                                     <div key={s.id} className="subcat-option" style={{color: maxed ? '#CCC' : '#333', cursor: maxed ? 'not-allowed' : 'pointer', background: selected ? '#FEF3E2' : undefined}}
                                       onMouseDown={() => { if (!maxed) { setEditSubcatIds(prev => prev.includes(s.id) ? prev.filter(x => x !== s.id) : [...prev, s.id]) } }}>
                                       <span>{s.emoji} {s.name}</span>
-                                      {selected ? <span style={{color:'#C9951A',fontWeight:700}}>✓ Selecionado</span> : !maxed ? <span style={{color:'#AAA',fontSize:11}}>+ Adicionar</span> : <span style={{fontSize:11,color:'#CCC'}}>máx. 3</span>}
+                                      {selected ? <span style={{color:'#C9951A',fontWeight:700}}>✓ Selecionado</span> : !maxed ? <span style={{color:'#AAA',fontSize:11}}>+ Adicionar</span> : <span style={{fontSize:11,color:'#CCC'}}>máx. 5</span>}
                                     </div>
                                   )
                               })}

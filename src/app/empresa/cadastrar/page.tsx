@@ -31,6 +31,8 @@ export default function EmpresaCadastrarPage() {
   const [categories, setCategories]     = useState<Category[]>([])
   const [subcategories, setSubcats]     = useState<Subcategory[]>([])
   const [userId, setUserId]             = useState<string|null>(null)
+  const [subcatOpen, setSubcatOpen]     = useState(false)
+  const subcatRef                       = useRef<HTMLDivElement>(null)
 
   // Etapa 1
   const [nome, setNome]                 = useState('')
@@ -62,7 +64,17 @@ export default function EmpresaCadastrarPage() {
       setUserId(session.user.id)
     })
     supabase.from('categories').select('*').order('order').then(({ data }) => setCategories(data || []))
-    supabase.from('subcategories').select('*').order('order').then(({ data }) => setSubcats(data || []))
+    supabase.from('subcategories').select('*').order('name', { ascending: true }).then(({ data }) => setSubcats(data || []))
+  }, [])
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (subcatRef.current && !subcatRef.current.contains(e.target as Node)) {
+        setSubcatOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
   const [subcatSearch, setSubcatSearch] = useState('')
@@ -236,9 +248,14 @@ export default function EmpresaCadastrarPage() {
         .uppercase-input { text-transform: uppercase; letter-spacing: 1px; font-family: 'Bebas Neue', sans-serif !important; }
 
         /* SUBCATS */
-        .subcats-wrap { display: flex; flex-wrap: wrap; gap: 7px; max-height: 140px; overflow-y: auto; padding: 2px; }
-        .subcat-chip { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid #E0DDD8; background: #FAFAF8; color: #666; transition: all .15s; }
-        .subcat-chip.on { border-color: #C9951A; background: #FEF3E2; color: #854F0B; font-weight: 600; }
+        .subcat-dropdown-wrap { position: relative; }
+        .subcat-dropdown-btn { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border: 1px solid #E0DDD8; background: #fff; border-radius: 10px; cursor: pointer; font-size: 14px; color: #333; }
+        .subcat-dropdown-btn:hover { border-color: #C9951A; }
+        .subcat-dropdown-arrow { font-size: 10px; color: #888; margin-left: 8px; }
+        .subcat-dropdown-panel { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid #E0DDD8; border-radius: 10px; margin-top: 4px; max-height: 260px; overflow-y: auto; z-index: 20; box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+        .subcat-option { display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer; font-size: 13px; color: #333; transition: background .15s; }
+        .subcat-option:hover { background: #FEF3E2; }
+        .subcat-option input[type=checkbox] { accent-color: #C9951A; width: 16px; height: 16px; cursor: pointer; }
 
         /* HOURS */
         .hours-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -359,12 +376,34 @@ export default function EmpresaCadastrarPage() {
                   {categoryId && filteredSubs.length > 0 && (
                     <div className="field">
                       <label>Subcategorias <span style={{fontSize:11,color:'#AAA',fontWeight:400}}>(selecione todas que se aplicam)</span></label>
-                      <div className="subcats-wrap">
-                        {filteredSubs.map(s => (
-                          <div key={s.id} className={`subcat-chip ${selectedSubs.includes(s.id)?'on':''}`} onClick={() => toggleSub(s.id)}>
-                            {s.emoji} {s.name}
+                      <div className="subcat-dropdown-wrap" ref={subcatRef}>
+                        <div className="subcat-dropdown-btn" onClick={() => setSubcatOpen(!subcatOpen)}>
+                          <span>
+                            {selectedSubs.length === 0 && 'Selecione as subcategorias'}
+                            {selectedSubs.length === 1 && (() => {
+                              const s = filteredSubs.find(x => x.id === selectedSubs[0])
+                              return s ? `${s.emoji} ${s.name}` : '1 subcategoria selecionada'
+                            })()}
+                            {selectedSubs.length > 1 && `${selectedSubs.length} subcategorias selecionadas`}
+                          </span>
+                          <span className="subcat-dropdown-arrow">{subcatOpen ? '▲' : '▼'}</span>
+                        </div>
+                        {subcatOpen && (
+                          <div className="subcat-dropdown-panel">
+                            {[...filteredSubs].sort((a, b) => {
+                              const aSel = selectedSubs.includes(a.id)
+                              const bSel = selectedSubs.includes(b.id)
+                              if (aSel && !bSel) return -1
+                              if (!aSel && bSel) return 1
+                              return a.name.localeCompare(b.name)
+                            }).map(s => (
+                              <label key={s.id} className="subcat-option">
+                                <input type="checkbox" checked={selectedSubs.includes(s.id)} onChange={() => toggleSub(s.id)} />
+                                <span>{s.emoji} {s.name}</span>
+                              </label>
+                            ))}
                           </div>
-                        ))}
+                        )}
                       </div>
                     </div>
                   )}

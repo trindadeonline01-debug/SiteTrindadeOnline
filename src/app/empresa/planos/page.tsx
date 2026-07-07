@@ -10,6 +10,8 @@ export default function PlanosPage() {
   const [plans, setPlans] = useState<Plan[]>([])
   const [loading, setLoading] = useState(true)
   const [paying, setPaying] = useState<string | null>(null)
+  const [pixData, setPixData] = useState<{qr: string|null; copy: string|null; valor: number; plano: string} | null>(null)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -26,15 +28,32 @@ export default function PlanosPage() {
     if (!session) { router.push('/login'); return }
     const { data: company } = await supabase.from('companies').select('id,name').eq('owner_id', session.user.id).single()
     if (!company) { setPaying(null); return }
-    const res = await fetch('/api/pagamento/criar-pix', {
+    const res = await fetch('/api/mp/create-charge', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ company_id: company.id, plan_id: plan.id, valor: plan.value, descricao: `Trindade Online — Plano ${plan.name}` })
+      body: JSON.stringify({
+        plan: 'custom',
+        company_id: company.id,
+        owner_email: session.user.email,
+        valor_override: plan.value,
+        dias_override: plan.days,
+        nome_plano: plan.name
+      })
     })
     const data = await res.json()
     setPaying(null)
-    if (data.pix_url) router.push(`/painel?pix=${encodeURIComponent(data.pix_url)}&valor=${plan.value}&plano=${plan.name}`)
-    else alert('Erro ao gerar pagamento. Tente novamente.')
+    if (data.qr_code_image || data.pix_copy_paste) {
+      setPixData({ qr: data.qr_code_image, copy: data.pix_copy_paste, valor: plan.value, plano: plan.name })
+    } else {
+      alert('Erro ao gerar pagamento: ' + (data.error || 'Tente novamente.'))
+    }
+  }
+
+  function copiarPix() {
+    if (!pixData?.copy) return
+    navigator.clipboard.writeText(pixData.copy)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   return (
@@ -64,6 +83,23 @@ export default function PlanosPage() {
         .back { text-align: center; margin-top: 16px; }
         .back a { font-size: 12px; color: #555; text-decoration: none; }
         .back a:hover { color: #C9951A; }
+        .pix-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .pix-modal { background: #fff; border-radius: 20px; padding: 32px 28px; max-width: 420px; width: 100%; position: relative; text-align: center; max-height: 90vh; overflow-y: auto; }
+        .pix-close { position: absolute; top: 12px; right: 16px; font-size: 28px; color: #888; cursor: pointer; line-height: 1; }
+        .pix-close:hover { color: #111; }
+        .pix-title { font-family: 'Bebas Neue', sans-serif; font-size: 26px; color: #111; letter-spacing: 2px; margin-bottom: 4px; }
+        .pix-title span { color: #C9951A; }
+        .pix-plano { font-size: 13px; color: #666; margin-bottom: 20px; font-weight: 600; }
+        .pix-qr-wrap { background: #fff; padding: 8px; border: 2px solid #EDE8E0; border-radius: 12px; display: inline-block; margin-bottom: 16px; }
+        .pix-qr { width: 220px; height: 220px; display: block; }
+        .pix-instr { font-size: 12px; color: #888; margin-bottom: 16px; line-height: 1.5; }
+        .pix-copy-wrap { display: flex; gap: 6px; margin-bottom: 20px; }
+        .pix-copy-input { flex: 1; padding: 10px 12px; border: 1.5px solid #E0DDD8; border-radius: 8px; font-size: 11px; font-family: monospace; color: #333; background: #FAFAF8; outline: none; }
+        .pix-copy-btn { background: #C9951A; color: #fff; border: none; padding: 10px 16px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; font-family: 'Inter', sans-serif; }
+        .pix-copy-btn:hover { background: #B8841A; }
+        .pix-done-btn { width: 100%; background: #111; color: #fff; border: none; padding: 14px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: 'Inter', sans-serif; margin-bottom: 12px; }
+        .pix-done-btn:hover { background: #333; }
+        .pix-note { font-size: 11px; color: #999; line-height: 1.5; }
       `}</style>
       <div className="wrap">
         <div className="header">
@@ -93,6 +129,34 @@ export default function PlanosPage() {
         <div className="footer-note">Todos os planos incluem ativação imediata via Pix · Cancele quando quiser</div>
         <div className="back"><a href="/painel">← Ir para o painel sem assinar agora</a></div>
       </div>
+
+      {pixData && (
+        <div className="pix-overlay" onClick={() => setPixData(null)}>
+          <div className="pix-modal" onClick={e => e.stopPropagation()}>
+            <div className="pix-close" onClick={() => setPixData(null)}>×</div>
+            <div className="pix-title">PAGUE COM <span>PIX</span></div>
+            <div className="pix-plano">{pixData.plano} · R$ {Number(pixData.valor).toFixed(2).replace('.', ',')}</div>
+            {pixData.qr && (
+              <div className="pix-qr-wrap">
+                <img src={`data:image/png;base64,${pixData.qr}`} alt="QR Code Pix" className="pix-qr" />
+              </div>
+            )}
+            <div className="pix-instr">Escaneie o QR Code acima ou copie o código abaixo no app do seu banco</div>
+            {pixData.copy && (
+              <>
+                <div className="pix-copy-wrap">
+                  <input type="text" readOnly value={pixData.copy} className="pix-copy-input" />
+                  <button className="pix-copy-btn" onClick={copiarPix}>
+                    {copied ? '✓ Copiado' : 'Copiar'}
+                  </button>
+                </div>
+              </>
+            )}
+            <button className="pix-done-btn" onClick={() => router.push('/painel')}>Já paguei — ir para o painel →</button>
+            <div className="pix-note">Após o pagamento, seu plano é ativado automaticamente em até 2 minutos</div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

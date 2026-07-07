@@ -40,8 +40,37 @@ function isOpenNow(hours?: CompanyHour[]): boolean {
 }
 
 /* ── Galeria dinâmica por número de fotos ── */
+function Lightbox({ photos, idx, open, setIdx, onClose }: { photos: CompanyPhoto[]; idx: number; open: boolean; setIdx: (v:number|((i:number)=>number)) => void; onClose: () => void }) {
+  if (!open) return null
+  const n = photos.length
+  return (
+    <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.95)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center'}}>
+      <button onClick={(e) => { e.stopPropagation(); onClose() }} style={{position:'absolute',top:20,right:20,background:'rgba(255,255,255,0.15)',border:'none',color:'#fff',fontSize:28,width:44,height:44,borderRadius:22,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',zIndex:2}}>×</button>
+      {n > 1 && (<>
+        <button onClick={(e) => { e.stopPropagation(); setIdx((i:number) => (i - 1 + n) % n) }} style={{position:'absolute',left:20,top:'50%',transform:'translateY(-50%)',background:'rgba(255,255,255,0.15)',border:'none',color:'#fff',fontSize:28,width:50,height:50,borderRadius:25,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',zIndex:2}}>‹</button>
+        <button onClick={(e) => { e.stopPropagation(); setIdx((i:number) => (i + 1) % n) }} style={{position:'absolute',right:20,top:'50%',transform:'translateY(-50%)',background:'rgba(255,255,255,0.15)',border:'none',color:'#fff',fontSize:28,width:50,height:50,borderRadius:25,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',zIndex:2}}>›</button>
+        <div style={{position:'absolute',bottom:20,left:'50%',transform:'translateX(-50%)',background:'rgba(0,0,0,0.6)',color:'#fff',padding:'6px 16px',borderRadius:20,fontSize:13,fontWeight:600,zIndex:2}}>{idx + 1} / {n}</div>
+      </>)}
+      <img src={photos[idx]?.url || ''} alt="" onClick={(e) => e.stopPropagation()} style={{maxWidth:'92vw',maxHeight:'92vh',objectFit:'contain',borderRadius:8}} />
+    </div>
+  )
+}
+
 function Gallery({ photos, emoji }: { photos: CompanyPhoto[]; emoji: string }) {
   const [idx, setIdx] = useState(0)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [lightboxIdx, setLightboxIdx] = useState(0)
+  function openLightbox(i: number) { setLightboxIdx(i); setLightboxOpen(true) }
+  useEffect(() => {
+    if (!lightboxOpen) return
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setLightboxOpen(false)
+      if (e.key === 'ArrowRight') setLightboxIdx(i => (i + 1) % photos.length)
+      if (e.key === 'ArrowLeft') setLightboxIdx(i => (i - 1 + photos.length) % photos.length)
+    }
+    document.addEventListener('keydown', handleKey)
+    return () => document.removeEventListener('keydown', handleKey)
+  }, [lightboxOpen, photos.length])
   const n = photos.length
 
   const imgStyle: React.CSSProperties = { width:'100%', height:'100%', objectFit:'cover', display:'block', cursor:'pointer' }
@@ -58,56 +87,71 @@ function Gallery({ photos, emoji }: { photos: CompanyPhoto[]; emoji: string }) {
 
   /* 1 foto */
   if (n === 1) return (
+    <>
     <div style={{ width:'100%', height:400, borderRadius:16, overflow:'hidden' }}>
-      <img src={src(0)} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
+      <img src={src(0)} alt="" onClick={() => openLightbox(0)} style={{ width:'100%', height:'100%', objectFit:'cover', display:'block', cursor:'pointer' }} />
     </div>
+    <Lightbox photos={photos} idx={lightboxIdx} open={lightboxOpen} setIdx={setLightboxIdx} onClose={() => setLightboxOpen(false)} />
+    </>
   )
 
   /* 2 fotos */
   if (n === 2) return (
+    <>
     <div style={{ width:'100%', height:380, borderRadius:16, overflow:'hidden', display:'grid', gridTemplateColumns:'1fr 1fr', gap:3 }}>
-      <img src={src(0)} alt="" style={imgStyle} />
-      <img src={src(1)} alt="" style={imgStyle} />
+      <img src={src(0)} alt="" style={imgStyle} onClick={() => openLightbox(0)} />
+      <img src={src(1)} alt="" style={imgStyle} onClick={() => openLightbox(1)} />
     </div>
+    <Lightbox photos={photos} idx={lightboxIdx} open={lightboxOpen} setIdx={setLightboxIdx} onClose={() => setLightboxOpen(false)} />
+    </>
   )
 
   /* 3 fotos */
   if (n === 3) return (
+    <>
     <div style={{ width:'100%', height:380, borderRadius:16, overflow:'hidden', display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:3 }}>
-      <img src={src(0)} alt="" style={imgStyle} />
-      <img src={src(1)} alt="" style={imgStyle} />
-      <img src={src(2)} alt="" style={imgStyle} />
+      <img src={src(0)} alt="" style={imgStyle} onClick={() => openLightbox(0)} />
+      <img src={src(1)} alt="" style={imgStyle} onClick={() => openLightbox(1)} />
+      <img src={src(2)} alt="" style={imgStyle} onClick={() => openLightbox(2)} />
     </div>
+    <Lightbox photos={photos} idx={lightboxIdx} open={lightboxOpen} setIdx={setLightboxIdx} onClose={() => setLightboxOpen(false)} />
+    </>
   )
 
   /* 4 fotos */
   if (n === 4) return (
+    <>
     <div style={{ width:'100%', height:380, borderRadius:16, overflow:'hidden', display:'grid', gridTemplateColumns:'2fr 1fr', gridTemplateRows:'1fr 1fr', gap:3 }}>
-      <div style={{ gridRow:'1/3', overflow:'hidden' }}><img src={src(idx)} alt="" style={imgStyle} onClick={() => setIdx(i => (i+1)%n)} /></div>
-      <div style={{ overflow:'hidden' }}><img src={src(1)} alt="" style={imgStyle} onClick={() => setIdx(1)} /></div>
-      <div style={{ overflow:'hidden' }}><img src={src(2)} alt="" style={imgStyle} onClick={() => setIdx(2)} /></div>
+      <div style={{ gridRow:'1/3', overflow:'hidden' }}><img src={src(idx)} alt="" style={imgStyle} onClick={() => openLightbox(idx)} /></div>
+      <div style={{ overflow:'hidden' }}><img src={src(1)} alt="" style={imgStyle} onClick={() => openLightbox(1)} /></div>
+      <div style={{ overflow:'hidden' }}><img src={src(2)} alt="" style={imgStyle} onClick={() => openLightbox(2)} /></div>
     </div>
+    <Lightbox photos={photos} idx={lightboxIdx} open={lightboxOpen} setIdx={setLightboxIdx} onClose={() => setLightboxOpen(false)} />
+    </>
   )
 
   /* 5+ fotos */
   return (
+    <>
     <div style={{ width:'100%', height:380, borderRadius:16, overflow:'hidden', display:'grid', gridTemplateColumns:'2fr 1fr 1fr', gridTemplateRows:'1fr 1fr', gap:3 }}>
       <div style={{ gridRow:'1/3', overflow:'hidden', position:'relative' }}>
-        <img src={src(idx)} alt="" style={imgStyle} onClick={() => setIdx(i => (i+1)%n)} />
+        <img src={src(idx)} alt="" style={imgStyle} onClick={() => openLightbox(idx)} />
         <div style={{ position:'absolute', bottom:10, right:10, background:'rgba(0,0,0,.6)', color:'#fff', fontSize:11, fontWeight:500, padding:'3px 10px', borderRadius:12 }}>{idx+1} / {n}</div>
       </div>
-      <div style={{ overflow:'hidden' }}><img src={src(1)} alt="" style={imgStyle} onClick={() => setIdx(1)} /></div>
-      <div style={{ overflow:'hidden' }}><img src={src(2)} alt="" style={imgStyle} onClick={() => setIdx(2)} /></div>
-      <div style={{ overflow:'hidden' }}><img src={src(3)} alt="" style={imgStyle} onClick={() => setIdx(3)} /></div>
+      <div style={{ overflow:'hidden' }}><img src={src(1)} alt="" style={imgStyle} onClick={() => openLightbox(1)} /></div>
+      <div style={{ overflow:'hidden' }}><img src={src(2)} alt="" style={imgStyle} onClick={() => openLightbox(2)} /></div>
+      <div style={{ overflow:'hidden' }}><img src={src(3)} alt="" style={imgStyle} onClick={() => openLightbox(3)} /></div>
       <div style={{ overflow:'hidden', position:'relative' }}>
-        <img src={src(4)} alt="" style={imgStyle} onClick={() => setIdx(4)} />
+        <img src={src(4)} alt="" style={imgStyle} onClick={() => openLightbox(4)} />
         {n > 5 && (
-          <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,.55)', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontFamily:'"Bebas Neue",sans-serif', fontSize:18, letterSpacing:1, cursor:'pointer' }} onClick={() => setIdx(5)}>
+          <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,.55)', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontFamily:'"Bebas Neue",sans-serif', fontSize:18, letterSpacing:1, cursor:'pointer' }} onClick={() => openLightbox(5)}>
             +{n - 5} fotos
           </div>
         )}
       </div>
     </div>
+    <Lightbox photos={photos} idx={lightboxIdx} open={lightboxOpen} setIdx={setLightboxIdx} onClose={() => setLightboxOpen(false)} />
+    </>
   )
 }
 
@@ -262,6 +306,13 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
         .t-bc-sep{color:#444;font-size:14px;}
         .t-bc-cur{color:#fff;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;}
         .t-logo span{color:#C9951A;}
+        @media(max-width:767px){
+          .topbar-inner{flex-direction:column;gap:6px;padding:10px 16px;}
+          .t-logo{font-size:18px;text-align:center;}
+          .t-bc{justify-content:center;flex-wrap:wrap;width:100%;font-size:12px;}
+          .t-bc-cur{max-width:100%;flex:1;min-width:0;text-align:center;}
+          .topbar-inner > div:last-child{display:none;}
+        }
 
         /* GALERIA — full width */
         .gallery-wrap{max-width:1200px;margin:0 auto;padding:20px 24px 0;}

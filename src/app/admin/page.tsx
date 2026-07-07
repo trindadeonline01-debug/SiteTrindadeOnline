@@ -90,6 +90,9 @@ export default function AdminPage() {
   const [mpTokenSaving, setMpTokenSaving] = useState(false)
   const [mpTokenLoaded, setMpTokenLoaded] = useState(false)
   const [mpSecret, setMpSecret] = useState('')
+  const [trialEnabled, setTrialEnabled] = useState(false)
+  const [trialDays, setTrialDays] = useState(7)
+  const [savingTrial, setSavingTrial] = useState(false)
   const [siteTheme, setSiteTheme]       = useState('classico-preto')
   const [bannerEnabled, setBannerEnabled] = useState(true)
   const [savingAppearance, setSavingAppearance] = useState(false)
@@ -107,7 +110,7 @@ export default function AdminPage() {
 
   async function loadAll() {
     setLoading(true)
-    await Promise.all([loadStats(), loadCompanies(), loadUsers(), loadSearches(), loadHighlights(), loadReports(), loadBanners(), loadSettings(), loadAppearance(), loadBannerRequests(), loadFeatureFlags(), loadPlans()])
+    await Promise.all([loadStats(), loadCompanies(), loadUsers(), loadSearches(), loadHighlights(), loadReports(), loadBanners(), loadSettings(), loadAppearance(), loadTrialSettings(), loadBannerRequests(), loadFeatureFlags(), loadPlans()])
 
     // Realtime — atualiza automaticamente
     const channel = supabase
@@ -323,6 +326,26 @@ export default function AdminPage() {
     ])
     setSavingAppearance(false)
     showToast('Aparência salva!')
+  }
+
+  async function loadTrialSettings() {
+    const { data } = await supabase.from('site_settings').select('key,value')
+    if (data) {
+      const enabled = data.find((s: any) => s.key === 'trial_enabled')
+      const days = data.find((s: any) => s.key === 'trial_days')
+      if (enabled) setTrialEnabled(enabled.value === 'true')
+      if (days) setTrialDays(Number(days.value) || 7)
+    }
+  }
+
+  async function saveTrialSettings() {
+    setSavingTrial(true)
+    await Promise.all([
+      supabase.from('site_settings').upsert({ key: 'trial_enabled', value: String(trialEnabled), updated_at: new Date().toISOString() }, { onConflict: 'key' }),
+      supabase.from('site_settings').upsert({ key: 'trial_days', value: String(trialDays), updated_at: new Date().toISOString() }, { onConflict: 'key' }),
+    ])
+    setSavingTrial(false)
+    showToast('Configurações de trial salvas!')
   }
 
   async function saveMpToken() {
@@ -1893,6 +1916,42 @@ export default function AdminPage() {
                       style={{padding:'10px 24px',background:'#C9951A',color:'#fff',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',opacity:mpTokenSaving?0.6:1}}
                     >
                       {mpTokenSaving ? 'Salvando...' : 'Salvar token'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="section-card" style={{marginTop:20}}>
+                  <div className="section-hdr">
+                    <span className="section-title">🎁 TRIAL DE EMPRESAS</span>
+                  </div>
+                  <div style={{padding:'20px 24px'}}>
+                    <div style={{fontSize:13,color:'#666',marginBottom:20,lineHeight:1.6}}>
+                      Quando ativado, novas empresas cadastradas ganham um período gratuito antes de precisar pagar. Quando desativado, elas vão direto para a página de planos.
+                    </div>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:trialEnabled?20:0}}>
+                      <div>
+                        <div style={{fontWeight:600,fontSize:14,color:'#111',marginBottom:4}}>Trial ativado</div>
+                        <div style={{fontSize:12,color:'#AAA'}}>{trialEnabled ? 'Novas empresas ganham dias grátis' : 'Novas empresas pagam imediatamente'}</div>
+                      </div>
+                      <div style={{display:'flex',alignItems:'center',gap:10}}>
+                        <span style={{fontSize:12,fontWeight:600,color:trialEnabled?'#0F8050':'#E24B4A'}}>{trialEnabled?'Ativo':'Inativo'}</span>
+                        <div onClick={()=>setTrialEnabled(!trialEnabled)}
+                          style={{width:44,height:24,borderRadius:12,background:trialEnabled?'#0F8050':'#E0DDD8',cursor:'pointer',position:'relative',transition:'background .2s'}}>
+                          <div style={{position:'absolute',top:2,left:trialEnabled?22:2,width:20,height:20,borderRadius:'50%',background:'#fff',boxShadow:'0 1px 4px rgba(0,0,0,.2)',transition:'left .2s'}}/>
+                        </div>
+                      </div>
+                    </div>
+                    {trialEnabled && (
+                      <div style={{marginBottom:20}}>
+                        <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Quantidade de dias</label>
+                        <input type="number" min="1" max="90" value={trialDays} onChange={e=>setTrialDays(Number(e.target.value)||7)}
+                          style={{width:120,padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+                        <div style={{fontSize:11,color:'#AAA',marginTop:6}}>Entre 1 e 90 dias</div>
+                      </div>
+                    )}
+                    <button onClick={saveTrialSettings} disabled={savingTrial}
+                      style={{padding:'10px 24px',background:'#C9951A',color:'#fff',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',opacity:savingTrial?0.6:1}}>
+                      {savingTrial ? 'Salvando...' : 'Salvar configurações'}
                     </button>
                   </div>
                 </div>

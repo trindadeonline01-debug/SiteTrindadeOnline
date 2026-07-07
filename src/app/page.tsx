@@ -757,7 +757,7 @@ export default function HomePage() {
           <div>
             <div className="cta-title">SEU NEGÓCIO NO <span>TRINDADE ONLINE</span></div>
             <div className="cta-sub">Alcance milhares de moradores do bairro todos os dias</div>
-            <div className="cta-note">7 dias grátis · Sem cartão de crédito</div>
+            <div className="cta-note">Ativação imediata · Pagamento via Pix</div>
           </div>
           <a className="cta-btn" href="/empresa/cadastrar">+ Cadastrar minha empresa</a>
         </div>

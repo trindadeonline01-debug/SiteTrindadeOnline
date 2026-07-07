@@ -118,7 +118,7 @@ export default function TermosPage() {
             </ul>
 
             <div className="sec-title"><span className="sec-num">8. </span>PLANOS E PAGAMENTOS</div>
-            <p>O cadastro de empresas na plataforma inclui um período de teste gratuito de <strong>7 (sete) dias</strong>. Após este período, a manutenção do perfil ativo com todas as funcionalidades está condicionada à contratação de um plano pago.</p>
+            <p>O cadastro de empresas na plataforma requer a contratação de um plano pago para que o perfil fique ativo e visível para os moradores. O administrador da plataforma pode, a seu critério, conceder períodos de teste a empresas específicas.</p>
             <p>Os valores, formas de pagamento e condições dos planos são informados no momento da contratação. Pagamentos são processados via Pix, através de plataformas de pagamento parceiras. O Trindade Online não armazena dados de pagamento dos usuários.</p>
 
             <div className="sec-title"><span className="sec-num">9. </span>LIMITAÇÃO DE RESPONSABILIDADE</div>

@@ -212,14 +212,14 @@ function CadastroForm() {
 
       {tipo === 'empresa' && (
         <div style={{ background:'#FEF3E2', border:'0.5px solid #F5C77A', borderRadius:10, padding:'10px 14px', marginBottom:14, fontSize:12, color:'#854F0B', lineHeight:1.6 }}>
-          ✅ Após criar sua conta, você será direcionado para cadastrar sua empresa gratuitamente por 30 dias.
+          ✅ Após criar sua conta, você será direcionado para cadastrar sua empresa e escolher um plano.
         </div>
       )}
 
       {erro && <div className="erro-msg">⚠️ {erro}</div>}
 
       <button className="btn-primary" type="submit" disabled={loading}>
-        {loading ? 'Criando conta...' : tipo === 'empresa' ? 'Criar conta e cadastrar empresa →' : 'Criar conta grátis'}
+        {loading ? 'Criando conta...' : tipo === 'empresa' ? 'Criar conta e cadastrar empresa →' : 'Criar conta'}
       </button>
 
       <div className="auth-footer">
@@ -261,7 +261,7 @@ export default function CadastroPage() {
           <div className="auth-logo">
             <a href="/">TRINDADE <span>ONLINE</span></a>
           </div>
-          <div className="auth-title">Criar conta grátis</div>
+          <div className="auth-title">Criar conta</div>
           <div className="auth-sub">Faça parte da comunidade digital da Trindade</div>
           <Suspense fallback={<div>Carregando...</div>}>
             <CadastroForm />

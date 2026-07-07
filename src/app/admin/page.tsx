@@ -867,7 +867,7 @@ export default function AdminPage() {
                   <div style={{position:'absolute',top:68,left:0,right:0,background:'#fff',border:'1.5px solid #C9951A',borderRadius:10,maxHeight:180,overflowY:'auto',zIndex:50,boxShadow:'0 4px 16px rgba(0,0,0,.08)'}}>
                     {allSubcats.filter(s=>s.category_id===editCompanyModal.company.category_id && s.name.toLowerCase().includes(adminSubcatSearch.trim().toLowerCase())).map(s=>{
                       const selected = companySubcatIds.includes(s.id)
-                      const maxed = companySubcatIds.length >= 3 && !selected
+                      const maxed = companySubcatIds.length >= 5 && !selected
                       return (
                         <div key={s.id} onMouseDown={()=>{ if(!maxed) setCompanySubcatIds(prev=>prev.includes(s.id)?prev.filter(x=>x!==s.id):[...prev,s.id]) }}
                           style={{padding:'10px 14px',fontSize:13,cursor:maxed?'not-allowed':'pointer',display:'flex',justifyContent:'space-between',background:selected?'#FEF3E2':undefined,color:maxed?'#CCC':'#333'}}>

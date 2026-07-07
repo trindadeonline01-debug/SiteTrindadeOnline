@@ -1229,7 +1229,7 @@ export default function PainelPage() {
                                 .filter(s => s.category_id === editCategoryId && s.name.toLowerCase().includes(subcatSearch.trim().toLowerCase()))
                                 .map(s => {
                                   const selected = editSubcatIds.includes(s.id)
-                                  const maxed = editSubcatIds.length >= 3 && !selected
+                                  const maxed = editSubcatIds.length >= 5 && !selected
                                   return (
                                     <div key={s.id} className="subcat-option" style={{color: maxed ? '#CCC' : '#333', cursor: maxed ? 'not-allowed' : 'pointer', background: selected ? '#FEF3E2' : undefined}}
                                       onMouseDown={() => { if (!maxed) { setEditSubcatIds(prev => prev.includes(s.id) ? prev.filter(x => x !== s.id) : [...prev, s.id]) } }}>

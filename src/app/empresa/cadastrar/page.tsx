@@ -302,7 +302,7 @@ export default function EmpresaCadastrarPage() {
                 Nossa equipe do Trindade Online vai verificar e você receberá uma notificação assim que estiver no ar.<br/>
                 Prazo: até 24 horas.
               </div>
-              <button className="btn-primary" onClick={() => window.location.href = '/'}>Voltar ao início</button>
+              <button className="btn-primary" onClick={() => window.location.href = '/empresa/bem-vindo'}>Voltar ao início</button>
             </div>
           ) : (
             <>

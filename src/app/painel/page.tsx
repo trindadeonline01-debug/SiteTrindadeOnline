@@ -1217,7 +1217,7 @@ export default function PainelPage() {
                     </div>
                     {editCategoryId && allSubcats.filter(s=>s.category_id===editCategoryId).length > 0 && (
                       <div className="field">
-                        <label>Subcategorias <span style={{fontSize:11,color:'#666',fontWeight:400}}>(selecione até 3)</span></label>
+                        <label>Subcategorias <span style={{fontSize:11,color:'#666',fontWeight:400}}>(selecione até 5)</span></label>
                         <div className="subcat-search-wrap">
                           <input
                             type="text"

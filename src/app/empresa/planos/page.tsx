@@ -76,6 +76,7 @@ export default function PlanosPage() {
         .price { font-family: 'Bebas Neue', sans-serif; font-size: 52px; color: #fff; line-height: 1; }
         .price-note { font-size: 11px; color: #555; margin-bottom: 8px; }
         .desc { font-size: 12px; color: #888; line-height: 1.8; margin: 16px 0 24px; min-height: 60px; }
+        .plan-total { display: inline-block; background: #FEF3E2; color: #854F0B; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 6px; margin-top: 8px; }
         .btn-plan { width: 100%; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: 'Inter', sans-serif; border: 1.5px solid #C9951A; background: transparent; color: #C9951A; }
         .btn-plan.popular { background: #C9951A; color: #111; border: none; }
         .btn-plan:disabled { opacity: 0.6; cursor: not-allowed; }
@@ -110,12 +111,16 @@ export default function PlanosPage() {
           <div style={{textAlign:'center',color:'#555',paddingTop:60}}>Carregando planos...</div>
         ) : (
           <div className="grid">
-            {plans.map((plan, i) => (
+            {plans.map((plan, i) => {
+              const months = Math.max(1, Math.round(plan.days / 30))
+              const parcela = plan.value / months
+              return (
               <div key={plan.id} className={`card ${plan.highlight ? 'popular' : ''}`}>
                 {plan.highlight && <div className="popular-badge">{plan.highlight_label || 'MAIS POPULAR'}</div>}
                 <div className="plan-label">{plan.name}</div>
-                <div className="price">R$ {Number(plan.value).toFixed(2).replace('.', ',')}</div>
-                <div className="price-note">{plan.days === 30 ? '/mês' : plan.days === 180 ? '/mês · 6 meses' : '/mês · anual'}</div>
+                <div className="price">R$ {parcela.toFixed(2).replace('.', ',')}</div>
+                <div className="price-note">{months > 1 ? `em ${months}x de R$ ${parcela.toFixed(2).replace('.',',')}` : 'por mês'}</div>
+                {months > 1 && <div className="plan-total">Total: R$ {Number(plan.value).toFixed(2).replace('.',',')}</div>}
                 <div className="desc">{plan.description}</div>
                 <button className={`btn-plan ${plan.highlight ? 'popular' : ''}`}
                   disabled={paying === plan.id}
@@ -123,7 +128,8 @@ export default function PlanosPage() {
                   {paying === plan.id ? 'Aguarde...' : 'Assinar'}
                 </button>
               </div>
-            ))}
+              )
+            })}
           </div>
         )}
         <div className="footer-note">Todos os planos incluem ativação imediata via Pix · Cancele quando quiser</div>

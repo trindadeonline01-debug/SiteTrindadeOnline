@@ -480,12 +480,12 @@ export default function PainelPage() {
         .mobile-hdr-new .mhdr-empresa{font-size:11px;color:#999;margin-top:6px;font-weight:600;letter-spacing:1px;text-transform:uppercase;}
         .mobile-actions{background:#F5F0E8;padding:12px 16px;display:flex;gap:8px;align-items:stretch;}
         @media(min-width:768px){.mobile-actions{display:none;}}
-        .m-action-btn{flex:1;padding:12px 10px;border-radius:10px;font-size:13px;font-weight:700;text-decoration:none;text-align:center;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px;}
+        .m-action-btn{flex:1;min-width:0;width:0;padding:12px 10px;border-radius:10px;font-size:13px;font-weight:700;text-decoration:none;text-align:center;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px;}
         .m-action-gold{background:#C9951A;color:#fff;}
         .m-action-gold:hover{background:#B8841A;}
         .m-action-gray{background:transparent;color:#666;border:1.5px solid #DDD;}
         .m-action-gray:hover{background:#EDE8E0;color:#111;}
-        .m-action-select{flex:1;padding:0 10px;border-radius:10px;border:1.5px solid #DDD;font-size:12px;font-weight:600;color:#333;background:#fff;font-family:'Inter',sans-serif;}
+        .m-action-select{flex:1;min-width:0;width:0;padding:0 10px;border-radius:10px;border:1.5px solid #DDD;font-size:12px;font-weight:600;color:#333;background:#fff;font-family:'Inter',sans-serif;text-overflow:ellipsis;overflow:hidden;white-space:nowrap;}
 
         .painel-main{flex:1;overflow-x:hidden;display:flex;flex-direction:column;min-width:0;}
         .topbar{background:#fff;border-bottom:1px solid #EDE8E0;padding:14px 28px;display:none;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20;}

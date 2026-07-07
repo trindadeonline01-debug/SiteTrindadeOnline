@@ -122,6 +122,9 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
   const [isOwner, setIsOwner]       = useState(false)
   const [isFav, setIsFav]           = useState(false)
   const [showReview, setShowReview] = useState(false)
+  const [showContato, setShowContato] = useState(false)
+  const [contatoSent, setContatoSent]  = useState(false)
+  const [sendingContato, setSendingContato] = useState(false)
   const [myRating, setMyRating]     = useState(0)
   const [myText, setMyText]         = useState('')
   const [reviewSent, setReviewSent] = useState(false)
@@ -173,6 +176,23 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
       await supabase.from('favorites').insert({ user_id: userId, entity_type: 'company', entity_id: company.id })
     }
     setIsFav(!isFav)
+  }
+
+  async function solicitarContato() {
+    if (!company) return
+    setSendingContato(true)
+    try {
+      await supabase.from('contact_requests').insert({ company_id: company.id })
+      await fetch('/api/notificar-interesse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ company_id: company.id })
+      })
+      setContatoSent(true)
+    } catch (err) {
+      console.error(err)
+    }
+    setSendingContato(false)
   }
 
   async function handleWhatsApp() {
@@ -280,6 +300,16 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
         .btn-wa:hover{opacity:.9;}
         .btn-ext{width:100%;padding:12px;background:#EBF4FF;color:#185FA5;border:0.5px solid #B5D4F4;border-radius:10px;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s;}
         .btn-ext:hover{opacity:.9;}
+        .btn-wa-locked{width:100%;padding:12px;background:#F0EDE8;color:#888;border:1px solid #DDD9D0;border-radius:10px;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .15s;}
+        .btn-wa-locked:hover:not(:disabled){background:#E5E1D9;border-color:#C9951A;color:#C9951A;}
+        .btn-wa-locked:disabled{cursor:not-allowed;opacity:0.6;}
+        .btn-ext-locked{width:100%;padding:12px;background:#F0EDE8;color:#888;border:1px solid #DDD9D0;border-radius:10px;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .15s;}
+        .btn-ext-locked:hover:not(:disabled){background:#E5E1D9;border-color:#C9951A;color:#C9951A;}
+        .btn-ext-locked:disabled{cursor:not-allowed;opacity:0.6;}
+        .btn-solicitar{width:100%;padding:12px;background:#C9951A;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .15s;margin-bottom:8px;}
+        .btn-solicitar:hover:not(:disabled){background:#B8841A;}
+        .btn-solicitar:disabled{cursor:not-allowed;}
+        .btn-solicitar.sent{background:#E8F5E9;color:#2E7D32;border:1.5px solid #A5D6A7;}
         .btn-fav{width:100%;padding:9px;background:#fff;color:#888;border:0.5px solid #E0DDD8;border-radius:10px;font-size:13px;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;}
         .btn-fav.on{background:#FEF3E2;color:#C9951A;border-color:#F5C77A;}
 
@@ -392,15 +422,32 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
 
             {/* Botões de ação */}
             <div className="action-card">
-              {isActive && company.phone && (
+              {!isActive && (
+                <button className={`btn-solicitar ${contatoSent ? 'sent' : ''}`} onClick={solicitarContato} disabled={contatoSent || sendingContato}>
+                  {contatoSent ? '✓ Contato registrado — o lojista foi notificado' : sendingContato ? 'Enviando...' : '🔔 Solicitar contato'}
+                </button>
+              )}
+              {company.phone && isActive && (
                 <button className="btn-wa" onClick={handleWhatsApp}>
                   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                  Falar no WhatsApp
+                </button>
+              )}
+              {company.phone && !isActive && (
+                <button className="btn-wa-locked" onClick={solicitarContato} disabled={contatoSent || sendingContato}>
+                  <span style={{fontSize:16}}>🔒</span>
                   Falar no WhatsApp
                 </button>
               )}
               {isActive && company.external_link && (
                 <button className="btn-ext" onClick={() => window.open(company.external_link!, '_blank')}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                  {company.external_link_label || 'Acessar site'}
+                </button>
+              )}
+              {company.external_link && !isActive && (
+                <button className="btn-ext-locked" onClick={solicitarContato} disabled={contatoSent || sendingContato}>
+                  <span style={{fontSize:14}}>🔒</span>
                   {company.external_link_label || 'Acessar site'}
                 </button>
               )}
@@ -413,10 +460,10 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
             {company.address && (
               <div className="addr-box" style={{position:'relative'}}>
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#C9951A" strokeWidth="2" strokeLinecap="round" style={{flexShrink:0,marginTop:2}}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                <div className="addr-txt" style={!userId ? {filter:'blur(5px)',userSelect:'none'} : {}}>{company.address}</div>
-                {!userId && (
-                  <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(255,255,255,0.5)',borderRadius:10,cursor:'pointer'}} onClick={() => window.location.href='/login'}>
-                    <span style={{fontSize:12,fontWeight:700,color:'#C9951A',background:'#fff',padding:'4px 10px',borderRadius:8,border:'1px solid #C9951A'}}>🔒 Entrar para ver</span>
+                <div className="addr-txt" style={!isActive ? {filter:'blur(5px)',userSelect:'none'} : {}}>{company.address}</div>
+                {!isActive && (
+                  <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(255,255,255,0.5)',borderRadius:10,cursor:'pointer'}} onClick={solicitarContato}>
+                    <span style={{fontSize:12,fontWeight:700,color:'#C9951A',background:'#fff',padding:'4px 10px',borderRadius:8,border:'1px solid #C9951A'}}>🔒 Solicitar contato</span>
                   </div>
                 )}
               </div>
@@ -432,11 +479,11 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
                   title={`Mapa de ${company.name}`}
-                  style={!userId ? {filter:'blur(4px)',pointerEvents:'none'} : {}}
+                  style={!isActive ? {filter:'blur(4px)',pointerEvents:'none'} : {}}
                 />
-                {!userId ? (
-                  <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}} onClick={() => window.location.href='/login'}>
-                    <span style={{fontSize:13,fontWeight:700,color:'#C9951A',background:'#fff',padding:'8px 16px',borderRadius:10,border:'1.5px solid #C9951A',boxShadow:'0 2px 8px rgba(0,0,0,.1)'}}>🔒 Entre para ver no mapa</span>
+                {!isActive ? (
+                  <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}} onClick={solicitarContato}>
+                    <span style={{fontSize:13,fontWeight:700,color:'#C9951A',background:'#fff',padding:'8px 16px',borderRadius:10,border:'1.5px solid #C9951A',boxShadow:'0 2px 8px rgba(0,0,0,.1)'}}>🔒 Solicitar contato para ver no mapa</span>
                   </div>
                 ) : (
                   <button className="map-open-btn" onClick={() => window.open(`https://maps.google.com?q=${encodeURIComponent(company.address || '')}`, '_blank')}>

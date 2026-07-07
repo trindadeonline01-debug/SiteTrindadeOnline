@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
+import dynamic from 'next/dynamic'
+const EmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false })
 
 // ── TIPOS ──────────────────────────────────────────────────
 type Company = {
@@ -38,7 +40,7 @@ const statusColor = (s: string) => s === 'active' ? '#0F8050' : s === 'pending' 
 const statusLabel = (s: string) => s === 'active' ? 'Ativa' : s === 'pending' ? 'Pendente' : 'Suspensa'
 
 export default function AdminPage() {
-  const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'denuncias'|'usuarios'|'buscas'|'atividade'|'banners'|'pedidos-banner'|'configuracoes'|'recursos'|'planos'|'aparencia'>('dashboard')
+  const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'denuncias'|'usuarios'|'buscas'|'atividade'|'banners'|'pedidos-banner'|'configuracoes'|'recursos'|'planos'|'aparencia'|'subcategorias'>('dashboard')
   const [stats, setStats]           = useState<Stats|null>(null)
   const [companies, setCompanies]   = useState<Company[]>([])
   const [users, setUsers]           = useState<Profile[]>([])
@@ -93,6 +95,11 @@ export default function AdminPage() {
   const [trialEnabled, setTrialEnabled] = useState(false)
   const [trialDays, setTrialDays] = useState(7)
   const [savingTrial, setSavingTrial] = useState(false)
+  const [subcatsList, setSubcatsList]       = useState<any[]>([])
+  const [subcatForm, setSubcatForm]         = useState<any>({ name:'', emoji:'', category_id:'' })
+  const [editingSubcatId, setEditingSubcatId] = useState<string|null>(null)
+  const [savingSubcat, setSavingSubcat]     = useState(false)
+  const [subcatEmojiOpen, setSubcatEmojiOpen] = useState(false)
   const [siteTheme, setSiteTheme]       = useState('classico-preto')
   const [bannerEnabled, setBannerEnabled] = useState(true)
   const [savingAppearance, setSavingAppearance] = useState(false)
@@ -110,7 +117,7 @@ export default function AdminPage() {
 
   async function loadAll() {
     setLoading(true)
-    await Promise.all([loadStats(), loadCompanies(), loadUsers(), loadSearches(), loadHighlights(), loadReports(), loadBanners(), loadSettings(), loadAppearance(), loadTrialSettings(), loadBannerRequests(), loadFeatureFlags(), loadPlans()])
+    await Promise.all([loadStats(), loadCompanies(), loadUsers(), loadSearches(), loadHighlights(), loadReports(), loadBanners(), loadSettings(), loadAppearance(), loadTrialSettings(), loadBannerRequests(), loadFeatureFlags(), loadPlans(), loadSubcats()])
 
     // Realtime — atualiza automaticamente
     const channel = supabase
@@ -306,6 +313,52 @@ export default function AdminPage() {
       const sec = data.find((s: any) => s.key === 'mp_webhook_secret')
       if (sec) setMpSecret(sec.value || '')
     }
+  }
+
+  async function loadSubcats() {
+    const { data } = await supabase.from('subcategories').select('id,name,emoji,category_id,category:categories(name,emoji)').order('name', {ascending: true})
+    setSubcatsList(data || [])
+  }
+
+  async function saveSubcat() {
+    if (!subcatForm.name?.trim() || !subcatForm.emoji?.trim() || !subcatForm.category_id) {
+      showToast('Preencha emoji, nome e categoria')
+      return
+    }
+    setSavingSubcat(true)
+    if (editingSubcatId) {
+      await supabase.from('subcategories').update({
+        name: subcatForm.name.trim(),
+        emoji: subcatForm.emoji.trim(),
+        category_id: subcatForm.category_id
+      }).eq('id', editingSubcatId)
+    } else {
+      const slug = subcatForm.name.toLowerCase().trim().replace(/[^a-z0-9\s-]/g,'').replace(/\s+/g,'-')
+      await supabase.from('subcategories').insert({
+        name: subcatForm.name.trim(),
+        emoji: subcatForm.emoji.trim(),
+        category_id: subcatForm.category_id,
+        slug
+      })
+    }
+    setSavingSubcat(false)
+    setSubcatForm({ name:'', emoji:'', category_id:'' })
+    setEditingSubcatId(null)
+    showToast(editingSubcatId ? 'Subcategoria atualizada!' : 'Subcategoria criada!')
+    loadSubcats()
+  }
+
+  function editSubcat(sc: any) {
+    setSubcatForm({ name: sc.name, emoji: sc.emoji, category_id: sc.category_id })
+    setEditingSubcatId(sc.id)
+  }
+
+  async function deleteSubcat(id: string) {
+    if (!confirm('Tem certeza? Empresas usando essa subcategoria vão perdê-la.')) return
+    await supabase.from('company_subcategories').delete().eq('subcategory_id', id)
+    await supabase.from('subcategories').delete().eq('id', id)
+    showToast('Subcategoria excluída.')
+    loadSubcats()
   }
 
   async function loadAppearance() {
@@ -945,6 +998,7 @@ export default function AdminPage() {
     { id: 'recursos', icon: '🔧', label: 'Recursos' },
     { id: 'configuracoes', icon: '⚙️', label: 'Configurações' },
     { id: 'aparencia', icon: '🎨', label: 'Aparência' },
+    { id: 'subcategorias', icon: '🏷️', label: 'Subcategorias' },
           ].map(n => (
             <div
               key={n.id}
@@ -980,6 +1034,7 @@ export default function AdminPage() {
               {tab === 'recursos' && 'Recursos do Site'}
               {tab === 'configuracoes' && 'Configurações'}
               {tab === 'aparencia' && 'Aparência do Site'}
+              {tab === 'subcategorias' && 'Subcategorias'}
             </div>
             <div className="topbar-date">{new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}</div>
           </div>
@@ -1816,6 +1871,97 @@ export default function AdminPage() {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* ── SUBCATEGORIAS ── */}
+            {!loading && tab === 'subcategorias' && (
+              <div style={{maxWidth:900}}>
+                <div style={{fontSize:13,color:'#888',marginBottom:20,lineHeight:1.6}}>
+                  Cadastre, edite ou exclua subcategorias. Empresas usando uma subcategoria excluída perdem esse vínculo automaticamente.
+                </div>
+
+                <div style={{background:'#fff',border:'0.5px solid #EDE8E0',borderRadius:14,padding:'20px 24px',marginBottom:24}}>
+                  <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:14,color:'#888',letterSpacing:1,marginBottom:16}}>
+                    {editingSubcatId ? '✏️ EDITAR SUBCATEGORIA' : '+ NOVA SUBCATEGORIA'}
+                  </div>
+                  <div style={{display:'grid',gridTemplateColumns:'auto 1fr 1fr',gap:12,alignItems:'end'}}>
+                    <div style={{position:'relative'}}>
+                      <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Emoji</label>
+                      <button onClick={()=>setSubcatEmojiOpen(!subcatEmojiOpen)}
+                        style={{width:60,height:44,padding:0,border:'1.5px solid #E0DDD8',borderRadius:10,background:'#fff',fontSize:24,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                        {subcatForm.emoji || '😀'}
+                      </button>
+                      {subcatEmojiOpen && (
+                        <div style={{position:'absolute',top:'100%',left:0,zIndex:100,marginTop:6}}>
+                          <EmojiPicker
+                            onEmojiClick={(e:any)=>{ setSubcatForm((p:any)=>({...p,emoji:e.emoji})); setSubcatEmojiOpen(false) }}
+                            searchPlaceholder="Buscar emoji..."
+                            width={340}
+                            height={400}
+                          />
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Nome</label>
+                      <input value={subcatForm.name} onChange={e=>setSubcatForm((p:any)=>({...p,name:e.target.value}))}
+                        placeholder="Ex: Pizzaria"
+                        style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+                    </div>
+                    <div>
+                      <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Categoria pai</label>
+                      <select value={subcatForm.category_id} onChange={e=>setSubcatForm((p:any)=>({...p,category_id:e.target.value}))}
+                        style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}>
+                        <option value="">Selecione...</option>
+                        {catOpts.map((c:any)=><option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div style={{display:'flex',gap:10,marginTop:16}}>
+                    <button onClick={saveSubcat} disabled={savingSubcat}
+                      style={{padding:'10px 24px',background:'#C9951A',color:'#fff',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',opacity:savingSubcat?0.6:1}}>
+                      {savingSubcat ? 'Salvando...' : editingSubcatId ? 'Salvar alterações' : 'Criar subcategoria'}
+                    </button>
+                    {editingSubcatId && (
+                      <button onClick={()=>{ setSubcatForm({name:'',emoji:'',category_id:''}); setEditingSubcatId(null); setSubcatEmojiOpen(false) }}
+                        style={{padding:'10px 20px',background:'transparent',color:'#888',border:'1px solid #E0DDD8',borderRadius:10,fontSize:13,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                        Cancelar
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:14,color:'#888',letterSpacing:1,marginBottom:12}}>
+                  SUBCATEGORIAS CADASTRADAS ({subcatsList.length})
+                </div>
+                {catOpts.map((cat:any) => {
+                  const items = subcatsList.filter((s:any)=>s.category_id === cat.id)
+                  if (items.length === 0) return null
+                  return (
+                    <div key={cat.id} style={{marginBottom:20}}>
+                      <div style={{fontSize:13,fontWeight:700,color:'#111',marginBottom:8,padding:'6px 12px',background:'#F5F0E8',borderRadius:8}}>
+                        {cat.emoji} {cat.name} <span style={{fontWeight:400,color:'#888',fontSize:11}}>({items.length})</span>
+                      </div>
+                      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))',gap:8}}>
+                        {items.map((sc:any)=>(
+                          <div key={sc.id} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px',background:'#fff',border:'0.5px solid #EDE8E0',borderRadius:10}}>
+                            <span style={{fontSize:20}}>{sc.emoji}</span>
+                            <span style={{flex:1,fontSize:13,fontWeight:500,color:'#333'}}>{sc.name}</span>
+                            <button onClick={()=>editSubcat(sc)} title="Editar"
+                              style={{padding:'4px 8px',background:'#F0F4FF',color:'#185FA5',border:'none',borderRadius:6,fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                              ✏️
+                            </button>
+                            <button onClick={()=>deleteSubcat(sc.id)} title="Excluir"
+                              style={{padding:'4px 8px',background:'#FEF0F0',color:'#E24B4A',border:'none',borderRadius:6,fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                              🗑️
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             )}
 

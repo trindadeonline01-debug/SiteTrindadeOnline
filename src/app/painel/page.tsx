@@ -1529,7 +1529,7 @@ export default function PainelPage() {
             </div>
           )}
           {/* PLANO — conteúdo centralizado com max-width */}
-          {tab === 'plano' && (
+          {tab === 'plano' && (() => { const isPaid = company.plan === 'paid' && !!company.plan_ends_at; const planDaysLeft = isPaid ? daysLeft(company.plan_ends_at!) : 0; const blocked = isPaid && planDaysLeft > 60; return (
             <div className="content-plano">
               <div className="plano-inner">
 
@@ -1577,6 +1577,31 @@ export default function PainelPage() {
                   })()}
                 </div>
 
+                {blocked && (
+                  <div style={{textAlign:'center',padding:'40px 20px'}}>
+                    <div style={{fontSize:56,marginBottom:14}}>🎉</div>
+                    <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:28,color:'#111',letterSpacing:2,marginBottom:8}}>
+                      PLANO <span style={{color:'#C9951A'}}>ATIVO</span>
+                    </div>
+                    <div style={{fontSize:14,color:'#666',marginBottom:24}}>Seu plano está ativo e todas as funcionalidades liberadas</div>
+                    <div style={{background:'linear-gradient(135deg, #C9951A 0%, #B8841A 100%)',borderRadius:20,padding:'24px 22px',color:'#fff',marginBottom:16,boxShadow:'0 10px 30px rgba(201,149,26,0.2)',maxWidth:380,margin:'0 auto 16px'}}>
+                      <div style={{fontSize:12,fontWeight:700,letterSpacing:1,opacity:0.9,marginBottom:6}}>✓ VÁLIDO ATÉ</div>
+                      <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:30,marginBottom:6}}>
+                        {new Date(company.plan_ends_at!).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                      </div>
+                      <div style={{fontSize:13,fontWeight:600,opacity:0.9}}>{planDaysLeft} dias restantes</div>
+                    </div>
+                    <div style={{background:'#F5F0E8',borderRadius:12,padding:'12px 16px',fontSize:12,color:'#666',lineHeight:1.5,maxWidth:380,margin:'0 auto'}}>
+                      💡 A renovação estará disponível quando faltarem <strong style={{color:'#C9951A'}}>60 dias</strong> para o vencimento.
+                    </div>
+                  </div>
+                )}
+                {!blocked && isPaid && planDaysLeft <= 60 && (
+                  <div style={{background:'#FEF3E2',border:'1.5px solid #F5C77A',borderRadius:12,padding:'14px 18px',marginBottom:20,color:'#854F0B',fontSize:13,fontWeight:600,display:'flex',alignItems:'center',gap:10}}>
+                    ⏰ Seu plano vence em {planDaysLeft} dias. Renove agora para não perder o acesso.
+                  </div>
+                )}
+                {!blocked && (<>
                 {/* PLANO BASE */}
                 <div className="pt-sec-lbl">PLANO BASE</div>
                 <p className="pt-sec-sub">Escolha o período e ative todas as funcionalidades do seu perfil</p>
@@ -1622,9 +1647,10 @@ export default function PainelPage() {
                 </div>
 
                 <div className="pt-footer-note">Pagamento via Pix · Ativação imediata após confirmação</div>
+                </>)}
               </div>
             </div>
-          )}
+          )})()}
 
         </main>
       </div>

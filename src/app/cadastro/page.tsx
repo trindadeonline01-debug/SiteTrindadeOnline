@@ -14,6 +14,7 @@ function CadastroForm() {
   const [senha, setSenha]         = useState('')
   const [confirma, setConfirma]   = useState('')
   const [bairro, setBairro]       = useState('Trindade')
+  const [whatsapp, setWhatsapp]   = useState('')
   const [erro, setErro]           = useState('')
   const [loading, setLoading]     = useState(false)
   const [ok, setOk]               = useState(false)
@@ -36,6 +37,7 @@ function CadastroForm() {
     setErro('')
     if (senha.length < 6) { setErro('A senha precisa ter pelo menos 6 caracteres.'); return }
     if (senha !== confirma) { setErro('As senhas não coincidem.'); return }
+    if (whatsapp.length < 10) { setErro('Informe um número de WhatsApp válido.'); return }
     setLoading(true)
     const res = await fetch('/api/auth/send-code', {
       method: 'POST',
@@ -45,7 +47,7 @@ function CadastroForm() {
     const data = await res.json()
     setLoading(false)
     if (data.error) { setErro(data.error); return }
-    setPendingData({ nome, email, senha, tipo, bairro })
+    setPendingData({ nome, email, senha, tipo, bairro, whatsapp })
     setStep('verify')
   }
 
@@ -63,7 +65,7 @@ function CadastroForm() {
     const { error } = await supabase.auth.signUp({
       email: pendingData.email,
       password: pendingData.senha,
-      options: { data: { name: pendingData.nome, user_type: pendingData.tipo === 'empresa' ? 'company' : 'user', neighborhood: pendingData.bairro } }
+      options: { data: { name: pendingData.nome, user_type: pendingData.tipo === 'empresa' ? 'company' : 'user', neighborhood: pendingData.bairro, phone: pendingData.whatsapp } }
     })
     if (error) {
       setErro(error.message.includes('already registered') ? 'Este e-mail já está cadastrado.' : 'Erro ao criar conta.')
@@ -208,6 +210,19 @@ function CadastroForm() {
           <option>Vista Alegre</option>
           <option>Outro bairro de SG</option>
         </select>
+      </div>
+
+      {/* WHATSAPP */}
+      <div className="field">
+        <label>WhatsApp <span style={{color:'#E24B4A'}}>*</span></label>
+        <input
+          type="tel"
+          placeholder="(21) 99999-9999"
+          value={whatsapp}
+          onChange={e => setWhatsapp(e.target.value.replace(/[^0-9]/g,''))}
+          required
+          maxLength={11}
+        />
       </div>
 
       {tipo === 'empresa' && (

@@ -1622,9 +1622,6 @@ export default function PainelPage() {
                 </div>
 
                 <div className="pt-footer-note">Pagamento via Pix · Ativação imediata após confirmação</div>
-                    </>
-                  )
-                })()}
               </div>
             </div>
           )}

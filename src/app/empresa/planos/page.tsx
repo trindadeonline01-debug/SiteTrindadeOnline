@@ -102,7 +102,7 @@ export default function PlanosPage() {
         .tab .discount { position: absolute; top: -8px; right: 4px; background: #4ADE80; color: #111; font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 8px; letter-spacing: 0.5px; }
         .tab.on .discount { background: #111; color: #C9951A; }
 
-        .plan-card { background: linear-gradient(135deg, #C9951A 0%, #B8841A 100%); border-radius: 20px; padding: 22px 20px; color: #fff; position: relative; margin-bottom: 14px; box-shadow: 0 10px 30px rgba(201,149,26,0.3); text-align: center; }
+        .plan-card { background: linear-gradient(135deg, #C9951A 0%, #B8841A 100%); border-radius: 20px 20px 0 0; padding: 22px 20px 16px; color: #fff; position: relative; text-align: center; }
         .plan-name-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 12px; }
         .plan-name { font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; opacity: 0.95; }
         .plan-badge { background: rgba(255,255,255,0.25); color: #fff; font-size: 10px; font-weight: 800; padding: 4px 10px; border-radius: 20px; letter-spacing: 0.5px; }
@@ -112,11 +112,11 @@ export default function PlanosPage() {
         .plan-period { font-size: 12px; opacity: 0.9; margin-bottom: 12px; font-weight: 600; }
         .plan-economy { display: inline-block; background: #4ADE80; color: #0F5232; padding: 7px 14px; border-radius: 8px; font-size: 12px; font-weight: 800; }
 
-        .pix-badge { background: #1A1A1A; border: 1px solid #4ADE80; border-radius: 12px; padding: 12px; display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 14px; }
-        .pix-badge-text { color: #4ADE80; font-size: 12px; font-weight: 800; letter-spacing: 0.5px; }
+        .pix-inline { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 14px; }
+        .pix-inline-text { color: #4ADE80; font-size: 13px; font-weight: 800; letter-spacing: 0.5px; }
 
-        .benefits { background: #1A1A1A; border-radius: 14px; padding: 14px 18px; margin-bottom: 16px; }
-        .benefits-title { font-size: 11px; font-weight: 700; color: #888; letter-spacing: 1px; margin-bottom: 8px; }
+        .benefits { background: #1A1A1A; border-radius: 0 0 20px 20px; padding: 14px 20px 18px; border-top: 1px solid rgba(255,255,255,0.08); margin-bottom: 14px; box-shadow: 0 10px 30px rgba(201,149,26,0.15); }
+        .benefits-title { font-size: 11px; font-weight: 700; color: #888; letter-spacing: 1px; margin-bottom: 8px; text-align: center; }
         .benefit-item { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #ccc; padding: 4px 0; }
         .benefit-item .check { color: #4ADE80; font-size: 16px; font-weight: 700; }
 
@@ -189,17 +189,17 @@ export default function PlanosPage() {
                     {saved > 0 && <div className="plan-economy">💰 Economia de R$ {fmtBRL(saved)}</div>}
                   </div>
 
-                  <div className="pix-badge">
-                    <span style={{fontSize:16}}>💠</span>
-                    <span className="pix-badge-text">PAGAMENTO EXCLUSIVO VIA PIX</span>
-                  </div>
-
                   <div className="benefits">
                     <div className="benefits-title">✓ INCLUÍDO</div>
                     <div className="benefit-item"><span className="check">✓</span> WhatsApp visível</div>
                     <div className="benefit-item"><span className="check">✓</span> Endereço e mapa</div>
                     <div className="benefit-item"><span className="check">✓</span> Link externo</div>
                     <div className="benefit-item"><span className="check">✓</span> Fotos, avaliações e busca por tags</div>
+                  </div>
+
+                  <div className="pix-inline">
+                    <span style={{fontSize:16}}>💠</span>
+                    <span className="pix-inline-text">PAGAMENTO EXCLUSIVO VIA PIX</span>
                   </div>
 
                   <button className="btn-assinar" disabled={paying === selectedPlan.id} onClick={() => handleAssinar(selectedPlan)}>

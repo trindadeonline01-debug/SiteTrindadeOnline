@@ -663,7 +663,7 @@ export default function AdminPage() {
     else if (filter === '30d') { const d = new Date(now); d.setDate(d.getDate()-30); from = d.toISOString() }
     else if (filter === '90d') { const d = new Date(now); d.setDate(d.getDate()-90); from = d.toISOString() }
     else if (filter === 'custom' && dateFrom) { from = dateFrom + 'T00:00:00Z'; to = dateTo ? dateTo + 'T23:59:59Z' : now.toISOString() }
-    let q = supabase.from('payments').select('*, company:companies(name)').eq('status','approved').order('paid_at', { ascending: false })
+    let q = supabase.from('payments').select('*, company:companies(name)').eq('status','paid').order('paid_at', { ascending: false })
     if (from) q = q.gte('paid_at', from)
     if (to) q = q.lte('paid_at', to)
     const { data } = await q

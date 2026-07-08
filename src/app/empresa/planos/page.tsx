@@ -123,6 +123,30 @@ export default function PlanosPage() {
         .tab.on .discount { background: #111; color: #C9951A; }
 
         .plan-card { background: linear-gradient(135deg, #C9951A 0%, #B8841A 100%); border-radius: 20px 20px 0 0; padding: 22px 20px 16px; color: #fff; position: relative; text-align: center; }
+        .plan-card.ouro { background: linear-gradient(135deg, #F5C540 0%, #C9951A 100%); color: #fff; }
+        .plan-card.prata { background: linear-gradient(135deg, #C0C0C0 0%, #909090 100%); color: #1a1a1a; }
+        .plan-card.bronze { background: linear-gradient(135deg, #B87333 0%, #8B5A2B 100%); color: #fff; }
+        .tab.on.ouro { background: #C9951A; color: #fff; }
+        .tab.on.prata { background: #909090; color: #fff; }
+        .tab.on.bronze { background: #B87333; color: #fff; }
+        .tab.on.ouro .discount { background: #fff; color: #C9951A; }
+        .tab.on.prata .discount { background: #fff; color: #666; }
+        .tab.on.bronze .discount { background: #fff; color: #8B5A2B; }
+        .btn-assinar.ouro { background: #F5C540; color: #111; }
+        .btn-assinar.prata { background: #C0C0C0; color: #1a1a1a; }
+        .btn-assinar.bronze { background: #B87333; color: #fff; }
+        .plan-card.ouro { background: linear-gradient(135deg, #F5C540 0%, #C9951A 100%); color: #fff; }
+        .plan-card.prata { background: linear-gradient(135deg, #C0C0C0 0%, #909090 100%); color: #1a1a1a; }
+        .plan-card.bronze { background: linear-gradient(135deg, #B87333 0%, #8B5A2B 100%); color: #fff; }
+        .tab.on.ouro { background: #C9951A; color: #fff; }
+        .tab.on.prata { background: #909090; color: #fff; }
+        .tab.on.bronze { background: #B87333; color: #fff; }
+        .tab.on.ouro .discount { background: #fff; color: #C9951A; }
+        .tab.on.prata .discount { background: #fff; color: #666; }
+        .tab.on.bronze .discount { background: #fff; color: #8B5A2B; }
+        .btn-assinar.ouro { background: #F5C540; color: #111; }
+        .btn-assinar.prata { background: #C0C0C0; color: #1a1a1a; }
+        .btn-assinar.bronze { background: #B87333; color: #fff; }
         .plan-name-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 12px; }
         .plan-name { font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; opacity: 0.95; }
         .plan-badge { background: rgba(255,255,255,0.25); color: #fff; font-size: 10px; font-weight: 800; padding: 4px 10px; border-radius: 20px; letter-spacing: 0.5px; }
@@ -199,7 +223,7 @@ export default function PlanosPage() {
               {plans.map(plan => {
                 const { percent } = calcDiscount(plan)
                 return (
-                  <button key={plan.id} className={`tab ${selectedId === plan.id ? 'on' : ''}`} onClick={() => setSelectedId(plan.id)}>
+                  <button key={plan.id} className={`tab ${selectedId === plan.id ? 'on' : ''} ${selectedId === plan.id ? (Number(plan.days) >= 300 ? 'ouro' : Number(plan.days) >= 120 ? 'prata' : 'bronze') : ''}`} onClick={() => setSelectedId(plan.id)}>
                     {plan.name}
                     {percent > 0 && <span className="discount">-{percent}%</span>}
                   </button>
@@ -212,10 +236,10 @@ export default function PlanosPage() {
               const months = Math.max(1, Math.round(selectedPlan.days / 30))
               return (
                 <>
-                  <div className="plan-card">
+                  <div className={`plan-card ${Number(selectedPlan.days) >= 300 ? 'ouro' : Number(selectedPlan.days) >= 120 ? 'prata' : 'bronze'}`}>
                     <div className="plan-name-row">
                       <span className="plan-name">Plano {selectedPlan.name}</span>
-                      {selectedPlan.highlight && <span className="plan-badge">{selectedPlan.highlight_label || 'MELHOR OFERTA'}</span>}
+                      {Number(selectedPlan.days) >= 300 && <span className="plan-badge">MELHOR OFERTA</span>}
                     </div>
                     {saved > 0 && <div className="price-original">De R$ {fmtBRL(full)}</div>}
                     <div className="plan-price">R$ {Math.floor(selectedPlan.value)}<small>,{selectedPlan.value.toFixed(2).split('.')[1]}</small></div>
@@ -238,7 +262,7 @@ export default function PlanosPage() {
                     <span className="pix-inline-text">PAGAMENTO EXCLUSIVO VIA PIX</span>
                   </div>
 
-                  <button className="btn-assinar" disabled={paying === selectedPlan.id} onClick={() => handleAssinar(selectedPlan)}>
+                  <button className={`btn-assinar ${Number(selectedPlan.days) >= 300 ? 'ouro' : Number(selectedPlan.days) >= 120 ? 'prata' : 'bronze'}`} disabled={paying === selectedPlan.id} onClick={() => handleAssinar(selectedPlan)}>
                     {paying === selectedPlan.id ? 'Aguarde...' : `Assinar · R$ ${fmtBRL(selectedPlan.value)}`}
                   </button>
                   <div className="btn-note">Cancele quando quiser</div>

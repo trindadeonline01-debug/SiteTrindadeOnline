@@ -692,6 +692,16 @@ export default function PainelPage() {
         .npg-tab .disc{position:absolute;top:-8px;right:4px;background:#4ADE80;color:#111;font-size:9px;font-weight:800;padding:2px 6px;border-radius:8px;letter-spacing:0.5px;}
         .npg-tab.on .disc{background:#fff;color:#C9951A;}
         .npg-mob-card{background:linear-gradient(135deg,#F5C540 0%,#C9951A 100%);border-radius:20px 20px 0 0;padding:22px 20px 16px;color:#fff;text-align:center;}
+        .npg-mob-card.ouro{background:linear-gradient(135deg,#F5C540 0%,#C9951A 100%);color:#fff;}
+        .npg-mob-card.prata{background:linear-gradient(135deg,#C0C0C0 0%,#909090 100%);color:#1a1a1a;}
+        .npg-mob-card.bronze{background:linear-gradient(135deg,#B87333 0%,#8B5A2B 100%);color:#fff;}
+        .npg-tab.on.ouro{background:#C9951A;color:#fff;}
+        .npg-tab.on.prata{background:#909090;color:#fff;}
+        .npg-tab.on.bronze{background:#B87333;color:#fff;}
+        .npg-tab.on.ouro .disc{background:#fff;color:#C9951A;}
+        .npg-tab.on.prata .disc{background:#fff;color:#666;}
+        .npg-tab.on.bronze .disc{background:#fff;color:#8B5A2B;}
+        .npg-mob-badge{position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:#4ADE80;color:#0F5232;font-size:10px;font-weight:800;padding:5px 14px;border-radius:20px;letter-spacing:1px;z-index:3;white-space:nowrap;}
         .subcat-selected-wrap{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
         .subcat-tag{display:inline-flex;align-items:center;gap:6px;background:#FEF3E2;color:#854F0B;border:1px solid #F5C77A;padding:6px 4px 6px 12px;border-radius:20px;font-size:13px;font-weight:600;transition:all .15s;}
         .subcat-tag:hover{background:#FCE8C4;border-color:#E5A83A;}
@@ -1706,8 +1716,10 @@ export default function PainelPage() {
                           {sorted.map((plan:any) => {
                             const c = calc(plan)
                             const active = currentMobile.id === plan.id
+                            const d = Number(plan.days)
+                            const t = d >= 300 ? 'ouro' : d >= 120 ? 'prata' : 'bronze'
                             return (
-                              <button key={plan.id} className={`npg-tab ${active ? 'on' : ''}`} onClick={() => setMobileTab(plan.id)}>
+                              <button key={plan.id} className={`npg-tab ${active ? 'on' : ''} ${active ? t : ''}`} onClick={() => setMobileTab(plan.id)}>
                                 {plan.name}
                                 {c.percent > 0 && <span className="disc">-{c.percent}%</span>}
                               </button>
@@ -1718,12 +1730,19 @@ export default function PainelPage() {
                           const c = calc(currentMobile)
                           return (
                             <div>
-                              <div className="npg-mob-card">
-                                <div className="npg-name">{currentMobile.name}</div>
-                                {c.saved > 0 && <div className="npg-price-original">De R$ {fmtBRL(c.full)}</div>}
-                                <div className="npg-price">R$ {Math.floor(c.val)}<small>,{c.val.toFixed(2).split('.')[1]}</small></div>
-                                <div className="npg-period">{period(c.months)}</div>
-                                {c.saved > 0 && <div className="npg-economy">💰 Economia de R$ {fmtBRL(c.saved)}</div>}
+                              <div style={{position:'relative'}}>
+                                {(() => { const d = Number(currentMobile.days); const t = d >= 300 ? 'ouro' : d >= 120 ? 'prata' : 'bronze'; return (
+                                <>
+                                {t === 'ouro' && <div className="npg-mob-badge">★ MELHOR OFERTA</div>}
+                                <div className={`npg-mob-card ${t}`}>
+                                  <div className="npg-name">{currentMobile.name}</div>
+                                  {c.saved > 0 && <div className="npg-price-original">De R$ {fmtBRL(c.full)}</div>}
+                                  <div className="npg-price">R$ {Math.floor(c.val)}<small>,{c.val.toFixed(2).split('.')[1]}</small></div>
+                                  <div className="npg-period">{period(c.months)}</div>
+                                  {c.saved > 0 && <div className="npg-economy">💰 Economia de R$ {fmtBRL(c.saved)}</div>}
+                                </div>
+                                </>
+                                ) })()}
                               </div>
                               <div className="npg-benefits">
                                 <div className="npg-benefits-title">✓ INCLUÍDO</div>
@@ -1734,7 +1753,7 @@ export default function PainelPage() {
                                   <span style={{fontSize:14}}>💠</span>
                                   <span className="npg-pix-text">PAGAMENTO EXCLUSIVO VIA PIX</span>
                                 </div>
-                                <button className="npg-btn ouro" onClick={() => assinar(currentMobile.id, Number(currentMobile.value), Number(currentMobile.days), currentMobile.name)}>
+                                <button className={`npg-btn ${(() => { const d = Number(currentMobile.days); return d >= 300 ? 'ouro' : d >= 120 ? 'prata' : 'bronze'; })()}`} onClick={() => assinar(currentMobile.id, Number(currentMobile.value), Number(currentMobile.days), currentMobile.name)}>
                                   Assinar · R$ {fmtBRL(c.val)}
                                 </button>
                               </div>

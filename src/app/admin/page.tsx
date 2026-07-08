@@ -85,6 +85,7 @@ export default function AdminPage() {
   const [allSubcats, setAllSubcats] = useState<SubcatOpt[]>([])
   const [companySubcatIds, setCompanySubcatIds] = useState<string[]>([])
   const [savingEdit, setSavingEdit] = useState(false)
+  const [tagInputAdmin, setTagInputAdmin] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [adminSubcatSearch, setAdminSubcatSearch] = useState('')
   const [bannerFilter, setBannerFilter] = useState<'all'|'pending'|'in_progress'|'delivered'>('all')
@@ -652,25 +653,34 @@ export default function AdminPage() {
   async function saveCompanyEdit() {
     const c = editCompanyModal.company
     setSavingEdit(true)
-    const res = await fetch('/api/admin/update-company', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        company_id: c.id,
-        updates: {
-          name: c.name, category_id: c.category_id, address: c.address, phone: c.phone,
-          description: c.description || null, cpf_cnpj: c.cpf_cnpj || null, external_link: c.external_link || null,
-          tags: c.tags || [], status: c.status, plan: c.plan,
-        },
-        subcategory_ids: companySubcatIds,
-      })
-    })
-    const data = await res.json()
-    setSavingEdit(false)
-    if (data.error) { showToast('Erro: ' + data.error); return }
-    showToast('Empresa atualizada!')
-    setEditCompanyModal({ open: false, company: null })
-    loadCompanies()
+    try {
+      const { error: updateError } = await supabase.from('companies').update({
+        name: c.name,
+        category_id: c.category_id,
+        address: c.address,
+        phone: c.phone,
+        description: c.description || null,
+        cpf_cnpj: c.cpf_cnpj || null,
+        external_link: c.external_link || null,
+        tags: c.tags || [],
+        status: c.status,
+        plan: c.plan,
+      }).eq('id', c.id)
+      if (updateError) throw new Error(updateError.message)
+      await supabase.from('company_subcategories').delete().eq('company_id', c.id)
+      if (companySubcatIds.length > 0) {
+        await supabase.from('company_subcategories').insert(
+          companySubcatIds.map((sid: string, i: number) => ({ company_id: c.id, subcategory_id: sid, is_primary: i === 0 }))
+        )
+      }
+      setSavingEdit(false)
+      showToast('Empresa atualizada!')
+      setEditCompanyModal({ open: false, company: null })
+      loadCompanies()
+    } catch (err: any) {
+      setSavingEdit(false)
+      showToast('Erro: ' + (err.message || 'desconhecido'))
+    }
   }
 
   function openEditUser(u: any) {
@@ -956,6 +966,29 @@ export default function AdminPage() {
                 <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Descrição</label>
                 <textarea rows={3} value={editCompanyModal.company.description||''} onChange={e=>setEditCompanyModal(p=>({...p,company:{...p.company,description:e.target.value}}))}
                   style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif',resize:'none'}}/>
+              </div>
+              <div style={{gridColumn:'1/-1'}}>
+                <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Tags <span style={{fontSize:11,color:'#AAA',fontWeight:400}}>Digite e pressione Enter para adicionar</span></label>
+                <div style={{border:'1.5px solid #E0DDD8',borderRadius:10,padding:'8px 10px',background:'#FAFAF8',display:'flex',flexWrap:'wrap',gap:6,alignItems:'center',minHeight:44}}>
+                  {(editCompanyModal.company.tags || []).map((tag:string, i:number) => (
+                    <div key={i} style={{display:'flex',alignItems:'center',gap:4,padding:'3px 10px',background:'#FEF3E2',border:'1px solid #C9951A',borderRadius:20,fontSize:12,color:'#854F0B',fontWeight:600}}>
+                      #{tag}
+                      <button onClick={()=>setEditCompanyModal(p=>({...p,company:{...p.company,tags:(p.company.tags||[]).filter((_:any,j:number)=>j!==i)}}))} style={{background:'none',border:'none',cursor:'pointer',fontSize:14,color:'#C9951A',padding:0,lineHeight:1}}>×</button>
+                    </div>
+                  ))}
+                  <input type="text" value={tagInputAdmin} onChange={e=>setTagInputAdmin(e.target.value)} onKeyDown={e=>{
+                    if ((e.key==='Enter'||e.key===',') && tagInputAdmin.trim()) {
+                      e.preventDefault()
+                      const tag = tagInputAdmin.trim().toLowerCase().replace(/[^a-z0-9àáâãéêíóôõúç ]/g,'')
+                      const cur = editCompanyModal.company.tags || []
+                      if (tag && !cur.includes(tag)) {
+                        setEditCompanyModal(p=>({...p,company:{...p.company,tags:[...(p.company.tags||[]),tag]}}))
+                      }
+                      setTagInputAdmin('')
+                    }
+                  }} placeholder={(editCompanyModal.company.tags||[]).length===0?"ex: pizza, delivery, hambúrguer...":""} style={{border:'none',background:'transparent',outline:'none',fontSize:13,fontFamily:"'Inter',sans-serif",minWidth:120,flex:1}}/>
+                </div>
+                <div style={{fontSize:11,color:'#AAA',marginTop:4}}>{(editCompanyModal.company.tags||[]).length} tags</div>
               </div>
               <div>
                 <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Plano</label>

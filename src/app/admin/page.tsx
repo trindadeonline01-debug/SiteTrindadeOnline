@@ -88,6 +88,8 @@ export default function AdminPage() {
   const [tagInputAdmin, setTagInputAdmin] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [adminSubcatSearch, setAdminSubcatSearch] = useState('')
+  const [previewModal, setPreviewModal] = useState<{open:boolean; company:any; photos:any[]; hours:any[]; subcats:any[]}>({open:false, company:null, photos:[], hours:[], subcats:[]})
+  const [previewLoading, setPreviewLoading] = useState(false)
   const [bannerFilter, setBannerFilter] = useState<'all'|'pending'|'in_progress'|'delivered'>('all')
   const [bannerSort, setBannerSort] = useState<'recent'|'urgent'|'far'>('recent')
   const [mpToken, setMpToken] = useState('')
@@ -636,6 +638,18 @@ export default function AdminPage() {
     }
   }
 
+  async function openPreviewCompany(c: any) {
+    setPreviewModal({ open: true, company: c, photos: [], hours: [], subcats: [] })
+    setPreviewLoading(true)
+    const [{ data: photos }, { data: hours }, { data: subcatLinks }] = await Promise.all([
+      supabase.from('company_photos').select('url, display_order').eq('company_id', c.id).order('display_order'),
+      supabase.from('company_hours').select('*').eq('company_id', c.id),
+      supabase.from('company_subcategories').select('subcategory_id, subcategories(name, emoji)').eq('company_id', c.id)
+    ])
+    const subcats = (subcatLinks || []).map((s: any) => s.subcategories).filter(Boolean)
+    setPreviewModal(p => ({ ...p, photos: photos || [], hours: hours || [], subcats }))
+    setPreviewLoading(false)
+  }
   async function openEditCompany(c: any) {
     if (allCategories.length === 0) {
       const { data: cats } = await supabase.from('categories').select('id,name,emoji,slug').order('name')
@@ -883,6 +897,95 @@ export default function AdminPage() {
         .upload-area-filled { border: 2px solid #C9951A; border-radius: 10px; overflow: hidden; cursor: pointer; }
       `}</style>
 
+      {previewModal.open && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.75)',zIndex:2000,display:'flex',alignItems:'center',justifyContent:'center',padding:16,overflowY:'auto'}}>
+          <div style={{background:'#fff',borderRadius:20,padding:28,maxWidth:620,width:'100%',maxHeight:'90vh',overflowY:'auto',position:'relative'}}>
+            <button onClick={()=>setPreviewModal(p=>({...p,open:false}))} style={{position:'absolute',top:16,right:16,background:'#f0f0f0',border:'none',borderRadius:50,width:32,height:32,cursor:'pointer',fontSize:16,display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
+            <div style={{marginBottom:20}}>
+              <div style={{fontSize:11,fontWeight:600,color:'#999',textTransform:'uppercase',letterSpacing:1,marginBottom:4}}>Preview da Empresa</div>
+              <div style={{fontSize:22,fontWeight:700,color:'#111'}}>{previewModal.company?.name}</div>
+              <div style={{fontSize:13,color:'#666',marginTop:2}}>{previewModal.company?.category?.emoji} {previewModal.company?.category?.name}</div>
+            </div>
+            {previewLoading ? (
+              <div style={{textAlign:'center',padding:40,color:'#999'}}>Carregando...</div>
+            ) : (<>
+              {previewModal.photos.length > 0 && (
+                <div style={{marginBottom:20}}>
+                  <div style={{fontSize:12,fontWeight:600,color:'#666',marginBottom:8,textTransform:'uppercase',letterSpacing:0.5}}>Fotos ({previewModal.photos.length})</div>
+                  <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                    {previewModal.photos.map((p:any,i:number)=>(
+                      <img key={i} src={p.url} style={{width:80,height:80,objectFit:'cover',borderRadius:8,border:'1px solid #eee'}} />
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:20}}>
+                {previewModal.company?.address && (
+                  <div style={{background:'#fafafa',borderRadius:10,padding:'10px 14px'}}>
+                    <div style={{fontSize:11,color:'#999',fontWeight:600,marginBottom:2}}>ENDEREÇO</div>
+                    <div style={{fontSize:13,color:'#333'}}>{previewModal.company.address}</div>
+                  </div>
+                )}
+                {previewModal.company?.phone && (
+                  <div style={{background:'#fafafa',borderRadius:10,padding:'10px 14px'}}>
+                    <div style={{fontSize:11,color:'#999',fontWeight:600,marginBottom:2}}>WHATSAPP</div>
+                    <div style={{fontSize:13,color:'#333'}}>{previewModal.company.phone}</div>
+                  </div>
+                )}
+                {previewModal.company?.external_link && (
+                  <div style={{background:'#fafafa',borderRadius:10,padding:'10px 14px'}}>
+                    <div style={{fontSize:11,color:'#999',fontWeight:600,marginBottom:2}}>LINK EXTERNO</div>
+                    <div style={{fontSize:13,color:'#C9951A',wordBreak:'break-all'}}>{previewModal.company.external_link}</div>
+                  </div>
+                )}
+                {previewModal.company?.owner?.name && (
+                  <div style={{background:'#fafafa',borderRadius:10,padding:'10px 14px'}}>
+                    <div style={{fontSize:11,color:'#999',fontWeight:600,marginBottom:2}}>RESPONSÁVEL</div>
+                    <div style={{fontSize:13,color:'#333'}}>{previewModal.company.owner.name}</div>
+                  </div>
+                )}
+              </div>
+              {previewModal.company?.description && (
+                <div style={{background:'#fafafa',borderRadius:10,padding:'12px 14px',marginBottom:20}}>
+                  <div style={{fontSize:11,color:'#999',fontWeight:600,marginBottom:4}}>DESCRIÇÃO</div>
+                  <div style={{fontSize:13,color:'#333',lineHeight:1.6}}>{previewModal.company.description}</div>
+                </div>
+              )}
+              {previewModal.subcats.length > 0 && (
+                <div style={{marginBottom:20}}>
+                  <div style={{fontSize:11,color:'#999',fontWeight:600,marginBottom:8,textTransform:'uppercase',letterSpacing:0.5}}>Subcategorias</div>
+                  <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+                    {previewModal.subcats.map((s:any,i:number)=>(
+                      <span key={i} style={{background:'#F5F2EC',borderRadius:20,padding:'4px 12px',fontSize:12,color:'#555'}}>{s.emoji} {s.name}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {previewModal.hours.length > 0 && (
+                <div style={{marginBottom:20}}>
+                  <div style={{fontSize:11,color:'#999',fontWeight:600,marginBottom:8,textTransform:'uppercase',letterSpacing:0.5}}>Horários</div>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
+                    {previewModal.hours.map((h:any,i:number)=>(
+                      <div key={i} style={{background:'#fafafa',borderRadius:8,padding:'6px 12px',fontSize:12,color:'#444'}}>
+                        <span style={{fontWeight:600}}>{h.day_of_week}: </span>{h.open_time ? `${h.open_time} – ${h.close_time}` : 'Fechado'}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div style={{display:'flex',gap:10,justifyContent:'flex-end',marginTop:8,borderTop:'1px solid #f0f0f0',paddingTop:16}}>
+                <button onClick={()=>setPreviewModal(p=>({...p,open:false}))} style={{padding:'8px 20px',borderRadius:8,border:'1px solid #ddd',background:'#fff',cursor:'pointer',fontSize:13}}>Fechar</button>
+                {previewModal.company?.status !== 'active' && (
+                  <button onClick={()=>{approveCompany(previewModal.company.id);setPreviewModal(p=>({...p,open:false}))}} style={{padding:'8px 20px',borderRadius:8,border:'none',background:'#0F8050',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:600}}>✓ Aprovar</button>
+                )}
+                {previewModal.company?.status === 'active' && (
+                  <button onClick={()=>{suspendCompany(previewModal.company.id);setPreviewModal(p=>({...p,open:false}))}} style={{padding:'8px 20px',borderRadius:8,border:'none',background:'#E24B4A',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:600}}>Suspender</button>
+                )}
+              </div>
+            </>)}
+          </div>
+        </div>
+      )}
       {editCompanyModal.open && editCompanyModal.company && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:16,overflowY:'auto'}}>
           <div style={{background:'#fff',borderRadius:20,padding:28,maxWidth:560,width:'100%',maxHeight:'90vh',overflowY:'auto'}}>
@@ -1240,7 +1343,7 @@ export default function AdminPage() {
                                 {c.status === 'pending'   && <button className="action-btn btn-approve" onClick={() => approveCompany(c.id)}>✓ Aprovar</button>}
                                 {c.status === 'active'    && <button className="action-btn btn-suspend" onClick={() => suspendCompany(c.id)}>Suspender</button>}
                                 {c.status === 'suspended' && <button className="action-btn btn-approve" onClick={() => approveCompany(c.id)}>Reativar</button>}
-                                <button className="action-btn btn-view" onClick={() => window.open(`/empresa/${c.id}`)}>Ver</button>
+                                <button className="action-btn btn-view" onClick={() => openPreviewCompany(c)}>Ver</button>
                                 <button className="action-btn" style={{background:'#185FA522',color:'#185FA5'}} onClick={() => openEditCompany(c)}>✏️ Editar</button>
                               </td>
                             </tr>

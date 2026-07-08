@@ -18,9 +18,11 @@ function CadastroForm() {
   const [erro, setErro]           = useState('')
   const [loading, setLoading]     = useState(false)
   const [ok, setOk]               = useState(false)
-  const [step, setStep]           = useState<'form'|'verify'>('form')
+  const [step, setStep]           = useState<'form'|'verify'>(() => { try { return sessionStorage.getItem('cadastro_pending') ? 'verify' : 'form' } catch { return 'form' } })
   const [code, setCode]           = useState('')
-  const [pendingData, setPendingData] = useState<any>(null)
+  const [pendingData, setPendingData] = useState<any>(() => {
+    try { const s = sessionStorage.getItem('cadastro_pending'); return s ? JSON.parse(s) : null } catch { return null }
+  })
 
   // Força visual da senha
   function senhaForca() {
@@ -47,7 +49,9 @@ function CadastroForm() {
     const data = await res.json()
     setLoading(false)
     if (data.error) { setErro(data.error); return }
-    setPendingData({ nome, email, senha, tipo, bairro, whatsapp })
+    const pd = { nome, email, senha, tipo, bairro, whatsapp }
+    setPendingData(pd)
+    sessionStorage.setItem('cadastro_pending', JSON.stringify(pd))
     setStep('verify')
   }
 
@@ -71,6 +75,7 @@ function CadastroForm() {
       setErro(error.message.includes('already registered') ? 'Este e-mail já está cadastrado.' : 'Erro ao criar conta.')
       setLoading(false); return
     }
+    sessionStorage.removeItem('cadastro_pending')
     if (pendingData.tipo === 'empresa') {
       window.location.href = '/empresa/cadastrar'
     } else {

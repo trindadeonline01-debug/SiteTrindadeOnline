@@ -119,6 +119,10 @@ export default function AdminPage() {
   const fileInputRefMobile = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
+    if (tab === 'vendas') loadSales(salesFilter)
+  }, [tab])
+
+  useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { window.location.href = '/login'; return }
       const { data } = await supabase.from('profiles').select('user_type').eq('id', session.user.id).single()
@@ -2394,7 +2398,7 @@ export default function AdminPage() {
                   style={{fontSize:12,padding:'6px 10px',borderRadius:8,border:'0.5px solid #E0DDD8',outline:'none'}}/>
                 <button onClick={()=>{setSalesFilter('today');loadSales('custom',salesDateFrom,salesDateTo)}}
                   style={{fontSize:12,fontWeight:600,padding:'6px 14px',borderRadius:8,border:'none',background:'#C9951A',color:'#fff',cursor:'pointer'}}>Filtrar</button>
-                {!salesData.length && !salesLoading && tab==='vendas' && (() => { loadSales('today'); return null })()}
+
               </div>
 
               {/* HOJE DESTAQUE */}

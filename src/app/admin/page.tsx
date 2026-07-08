@@ -17,7 +17,7 @@ type Company = {
 }
 type Profile = {
   id: string; name: string; user_type: string
-  neighborhood: string; created_at: string; email?: string
+  neighborhood: string; created_at: string; email?: string; phone?: string
 }
 type SearchLog  = { query: string; count: number; no_result: number }
 type Highlight  = { id: string; company_id: string; scope_type: string; scope_id: string|null; highlight_type: string; active: boolean; expires_at: string|null; display_order: number; company?: any; scope_name?: string }

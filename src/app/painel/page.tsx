@@ -54,6 +54,7 @@ export default function PainelPage() {
   const [featureFlags, setFeatureFlags] = useState<Record<string,boolean>>({})
   const [availablePlans, setAvailablePlans] = useState<any[]>([])
   const [bannerRequests, setBannerRequests] = useState<any[]>([])
+  const [interesses, setInteresses] = useState<any[]>([])
 
   const [pixModal, setPixModal] = useState({ open:false, loading:false, plan:'', planNome:'', value:0, qr_code_image:null as string|null, pix_copy_paste:null as string|null, payment_id:null as string|null, copied:false, confirmed:false })
 
@@ -74,6 +75,21 @@ export default function PainelPage() {
   const [editHours, setEditHours]             = useState<{label:string;hours:string}[]>([])
   const [churchHours, setChurchHours]         = useState<{day:string;manha:string;noite:string}[]>(DIAS_SEMANA.map(day=>({day,manha:'',noite:''})))
   const fileRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (!company?.id) return
+    const channel = supabase.channel(`interesses-${company.id}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'contact_requests',
+        filter: `company_id=eq.${company.id}`
+      }, (payload) => {
+        setInteresses(prev => [payload.new, ...prev])
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [company?.id])
 
   useEffect(() => {
     supabase.from('plans').select('*').eq('active', true).order('display_order').then(({ data }) => {
@@ -141,6 +157,8 @@ export default function PainelPage() {
       setEditHours([...mergedHours, ...extraHours])
       const { data: bReqs } = await supabase.from('banner_requests').select('*').eq('company_id', comp.id).order('created_at', {ascending: false})
       setBannerRequests(bReqs || [])
+      const { data: intReqs } = await supabase.from('contact_requests').select('*').eq('company_id', comp.id).order('created_at', {ascending: false}).limit(50)
+      setInteresses(intReqs || [])
       if (comp.category_id === IGREJAS_CATEGORY_ID) {
         setChurchHours(DIAS_SEMANA.map(day => ({
           day,
@@ -1043,6 +1061,35 @@ export default function PainelPage() {
                 <button className="action-btn" style={{background:'#185FA5',color:'#fff'}} onClick={()=>setTab('plano')}>⭐ Criar destaque</button>
                 {pendingReplies > 0 && <button className="action-btn" style={{background:'#FEF3E2',color:'#854F0B',border:'1px solid #F5C77A'}} onClick={()=>setTab('avaliacoes')}>💬 {pendingReplies} sem resposta</button>}
               </div>
+              {interesses.length > 0 && (
+                <div className="sec-card">
+                  <div className="sec-hdr">
+                    <span className="sec-title">🔔 INTERESSES RECEBIDOS <span style={{background:'#C9951A',color:'#fff',fontSize:11,fontWeight:700,padding:'2px 8px',borderRadius:10,marginLeft:6}}>{interesses.length}</span></span>
+                  </div>
+                  <div className="sec-body">
+                    {(company.plan !== 'paid' && (!company.trial_ends_at || new Date(company.trial_ends_at) < new Date())) && (
+                      <div style={{background:'#FEF3E2',border:'1px solid #F5C77A',borderRadius:10,padding:'14px 16px',marginBottom:14,display:'flex',flexWrap:'wrap',alignItems:'center',justifyContent:'space-between',gap:10}}>
+                        <div style={{fontSize:13,color:'#854F0B',fontWeight:600,flex:1,minWidth:180}}>
+                          {interesses.length === 1 ? '1 cliente tentou' : `${interesses.length} clientes tentaram`} entrar em contato. Ative um plano para liberar!
+                        </div>
+                        <button onClick={()=>setTab('plano')} style={{background:'#C9951A',color:'#fff',border:'none',padding:'8px 16px',borderRadius:8,fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>Ativar plano →</button>
+                      </div>
+                    )}
+                    <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                      {interesses.slice(0,10).map(i => (
+                        <div key={i.id} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 14px',background:'#FAFAF8',borderRadius:8,border:'1px solid #EDE8E0'}}>
+                          <div style={{width:32,height:32,borderRadius:16,background:'#C9951A',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,flexShrink:0}}>🔔</div>
+                          <div style={{flex:1,fontSize:13,color:'#333',fontWeight:500}}>Cliente demonstrou interesse</div>
+                          <div style={{fontSize:11,color:'#888'}}>{fmtDate(i.created_at)}</div>
+                        </div>
+                      ))}
+                    </div>
+                    {interesses.length > 10 && (
+                      <div style={{fontSize:12,color:'#888',textAlign:'center',marginTop:10}}>e mais {interesses.length - 10} interesses anteriores</div>
+                    )}
+                  </div>
+                </div>
+              )}
               {reviews.length > 0 && (
                 <div className="sec-card">
                   <div className="sec-hdr"><span className="sec-title">AVALIAÇÕES RECENTES</span><span style={{fontSize:12,color:'#C9951A',cursor:'pointer'}} onClick={()=>setTab('avaliacoes')}>Ver todas →</span></div>

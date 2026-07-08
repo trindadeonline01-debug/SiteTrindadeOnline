@@ -62,22 +62,22 @@ export default function PlanosPage() {
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700;800&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: #111; font-family: 'Inter', sans-serif; }
-        .wrap { min-height: 100vh; padding: 48px 20px; }
-        .header { text-align: center; margin-bottom: 40px; }
+        .wrap { min-height: 100vh; padding: 48px 20px; } @media(max-width:600px){.wrap{padding:16px 10px;}}
+        .header { text-align: center; margin-bottom: 40px; } @media(max-width:600px){.header{margin-bottom:14px;}}
         .title { font-family: 'Bebas Neue', sans-serif; font-size: 36px; color: #fff; letter-spacing: 2px; }
         .title span { color: #C9951A; }
         .subtitle { font-size: 13px; color: #666; margin-top: 8px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; max-width: 860px; margin: 0 auto; }
-        .card { background: #1A1A1A; border: 1.5px solid #333; border-radius: 16px; padding: 28px 22px; text-align: center; position: relative; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; max-width: 860px; margin: 0 auto; } @media(max-width:600px){.grid{gap:8px;}}
+        .card { background: #1A1A1A; border: 1.5px solid #333; border-radius: 16px; padding: 28px 22px; text-align: center; position: relative; } @media(max-width:600px){.card{padding:14px 12px;border-radius:12px;}}
         .card.popular { border: 2px solid #C9951A; }
         .popular-badge { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); background: #C9951A; color: #111; font-size: 10px; font-weight: 800; padding: 4px 16px; border-radius: 20px; letter-spacing: 1px; white-space: nowrap; }
-        .plan-label { font-size: 11px; font-weight: 700; letter-spacing: 1px; margin-bottom: 16px; color: #888; text-transform: uppercase; }
+        .plan-label { font-size: 11px; font-weight: 700; letter-spacing: 1px; margin-bottom: 16px; color: #888; text-transform: uppercase; } @media(max-width:600px){.plan-label{font-size:14px;margin-bottom:8px;}}
         .card.popular .plan-label { color: #C9951A; }
-        .price { font-family: 'Bebas Neue', sans-serif; font-size: 52px; color: #fff; line-height: 1; }
-        .price-note { font-size: 11px; color: #555; margin-bottom: 8px; }
-        .desc { font-size: 12px; color: #888; line-height: 1.8; margin: 16px 0 24px; min-height: 60px; }
-        .plan-total { display: inline-block; background: #FEF3E2; color: #854F0B; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 6px; margin-top: 8px; }
-        .btn-plan { width: 100%; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: 'Inter', sans-serif; border: 1.5px solid #C9951A; background: transparent; color: #C9951A; }
+        .price { font-family: 'Bebas Neue', sans-serif; font-size: 52px; color: #fff; line-height: 1; } @media(max-width:600px){.price{font-size:42px;}}
+        .price-note { font-size: 11px; color: #555; margin-bottom: 8px; } @media(max-width:600px){.price-note{font-size:13px;margin-bottom:4px;}}
+        .desc { font-size: 12px; color: #888; line-height: 1.8; margin: 16px 0 24px; min-height: 60px; } @media(max-width:600px){.desc{display:none;}}
+        .plan-total { display: inline-block; background: #FEF3E2; color: #854F0B; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 6px; margin-top: 8px; } @media(max-width:600px){.plan-total{font-size:13px;margin-top:4px;padding:3px 10px;}}
+        .btn-plan { width: 100%; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: 'Inter', sans-serif; border: 1.5px solid #C9951A; background: transparent; color: #C9951A; } @media(max-width:600px){.btn-plan{padding:10px;font-size:15px;margin-top:6px;}}
         .btn-plan.popular { background: #C9951A; color: #111; border: none; }
         .btn-plan:disabled { opacity: 0.6; cursor: not-allowed; }
         .footer-note { text-align: center; margin-top: 28px; font-size: 12px; color: #444; }

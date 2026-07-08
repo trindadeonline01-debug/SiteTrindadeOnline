@@ -54,6 +54,7 @@ export default function PainelPage() {
   const [featureFlags, setFeatureFlags] = useState<Record<string,boolean>>({})
   const [availablePlans, setAvailablePlans] = useState<any[]>([])
   const [bannerRequests, setBannerRequests] = useState<any[]>([])
+  const [mobileTab, setMobileTab] = useState<string | null>(null)
   const [interesses, setInteresses] = useState<any[]>([])
 
   const [pixModal, setPixModal] = useState({ open:false, loading:false, plan:'', planNome:'', value:0, qr_code_image:null as string|null, pix_copy_paste:null as string|null, payment_id:null as string|null, copied:false, confirmed:false })
@@ -649,6 +650,48 @@ export default function PainelPage() {
         .pt-plan-parcela{font-family:'Bebas Neue',sans-serif;font-size:38px;color:#111;line-height:1;margin-bottom:2px;}
         .pt-plan-parcela-label{font-size:12px;color:#888;margin-bottom:6px;}
         .pt-plan-total{display:inline-block;background:#FEF3E2;color:#854F0B;font-size:12px;font-weight:700;padding:4px 12px;border-radius:6px;margin-top:8px;margin-bottom:8px;}
+        /* PLANOS COM HIERARQUIA BRONZE/PRATA/OURO */
+        .npg-wrap{margin-bottom:20px;}
+        .npg-title{font-family:'Bebas Neue',sans-serif;font-size:28px;color:#111;letter-spacing:2px;text-align:center;margin-bottom:6px;}
+        .npg-title span{color:#C9951A;}
+        .npg-sub{font-size:13px;color:#666;text-align:center;margin-bottom:24px;}
+        /* DESKTOP grid 3 planos */
+        .npg-desktop{display:none;}
+        @media(min-width:768px){.npg-desktop{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;padding-top:14px;align-items:start;}}
+        .npg-plan-wrap{border-radius:20px;position:relative;}
+        .npg-plan-wrap.ouro{transform:scale(1.04);box-shadow:0 16px 40px rgba(201,149,26,0.35);}
+        .npg-plan-wrap.prata{box-shadow:0 8px 24px rgba(160,160,160,0.25);}
+        .npg-plan-wrap.bronze{box-shadow:0 8px 24px rgba(184,115,51,0.2);}
+        .npg-card{border-radius:20px 20px 0 0;padding:22px 20px 16px;color:#fff;text-align:center;}
+        .npg-card.ouro{background:linear-gradient(135deg,#F5C540 0%,#C9951A 100%);}
+        .npg-card.prata{background:linear-gradient(135deg,#C0C0C0 0%,#909090 100%);color:#1a1a1a;}
+        .npg-card.bronze{background:linear-gradient(135deg,#B87333 0%,#8B5A2B 100%);}
+        .npg-badge-top{position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:#4ADE80;color:#0F5232;font-size:10px;font-weight:800;padding:5px 14px;border-radius:20px;letter-spacing:1px;z-index:3;white-space:nowrap;}
+        .npg-name{font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;opacity:0.95;margin-bottom:10px;}
+        .npg-price-original{font-size:13px;text-decoration:line-through;font-weight:600;margin-bottom:2px;opacity:0.65;}
+        .npg-price{font-family:'Bebas Neue',sans-serif;font-size:48px;line-height:1;margin:0 0 4px;}
+        .npg-price small{font-size:20px;}
+        .npg-period{font-size:11px;opacity:0.9;margin-bottom:12px;font-weight:600;}
+        .npg-economy{display:inline-block;background:#4ADE80;color:#0F5232;padding:6px 10px;border-radius:6px;font-size:10px;font-weight:800;}
+        .npg-benefits{background:#1A1A1A;border-radius:0 0 20px 20px;padding:14px 18px 16px;border-top:1px solid rgba(255,255,255,0.08);}
+        .npg-benefits-title{font-size:10px;font-weight:700;color:#888;letter-spacing:1px;margin-bottom:8px;text-align:center;}
+        .npg-benefit{display:flex;align-items:center;gap:8px;font-size:12px;color:#ccc;padding:3px 0;}
+        .npg-benefit .check{color:#4ADE80;font-size:14px;font-weight:700;}
+        .npg-pix{display:flex;align-items:center;justify-content:center;gap:8px;margin:12px 0;}
+        .npg-pix-text{color:#4ADE80;font-size:11px;font-weight:800;letter-spacing:0.5px;}
+        .npg-btn{width:100%;border:none;padding:12px;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;letter-spacing:0.3px;margin-top:4px;font-family:'Inter',sans-serif;}
+        .npg-btn.ouro{background:#F5C540;color:#111;}
+        .npg-btn.prata{background:#C0C0C0;color:#1a1a1a;}
+        .npg-btn.bronze{background:#B87333;color:#fff;}
+        /* MOBILE */
+        .npg-mobile{display:block;}
+        @media(min-width:768px){.npg-mobile{display:none;}}
+        .npg-tabs{background:rgba(0,0,0,0.05);border:1px solid rgba(0,0,0,0.1);border-radius:100px;padding:5px;display:flex;gap:3px;margin-bottom:20px;}
+        .npg-tab{flex:1;padding:12px 6px;border-radius:100px;text-align:center;font-size:13px;font-weight:700;cursor:pointer;color:#666;transition:all .15s;position:relative;border:none;background:transparent;font-family:'Inter',sans-serif;}
+        .npg-tab.on{background:#C9951A;color:#fff;}
+        .npg-tab .disc{position:absolute;top:-8px;right:4px;background:#4ADE80;color:#111;font-size:9px;font-weight:800;padding:2px 6px;border-radius:8px;letter-spacing:0.5px;}
+        .npg-tab.on .disc{background:#fff;color:#C9951A;}
+        .npg-mob-card{background:linear-gradient(135deg,#F5C540 0%,#C9951A 100%);border-radius:20px 20px 0 0;padding:22px 20px 16px;color:#fff;text-align:center;}
         .subcat-selected-wrap{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
         .subcat-tag{display:inline-flex;align-items:center;gap:6px;background:#FEF3E2;color:#854F0B;border:1px solid #F5C77A;padding:6px 4px 6px 12px;border-radius:20px;font-size:13px;font-weight:600;transition:all .15s;}
         .subcat-tag:hover{background:#FCE8C4;border-color:#E5A83A;}
@@ -1602,50 +1645,106 @@ export default function PainelPage() {
                   </div>
                 )}
                 {!blocked && (<>
-                {/* PLANO BASE */}
-                <div className="pt-sec-lbl">PLANO BASE</div>
-                <p className="pt-sec-sub">Escolha o período e ative todas as funcionalidades do seu perfil</p>
-                <div className="pt-plan-grid" style={{gridTemplateColumns:`repeat(${Math.min(availablePlans.filter(p=>p.type==='subscription').length,3)},1fr)`}}>
-                  {availablePlans.filter(p => p.type === 'subscription').map((plan: any) => (
-                    <div key={plan.id} className={`pt-plan-opt ${plan.highlight ? 'popular' : ''}`}>
-                      {plan.highlight && <div className="pt-popular-badge">{plan.highlight_label || 'DESTAQUE'}</div>}
-                      <div className="pt-plan-period">{plan.name}</div>
-                      {(() => {
-                        const months = Math.round(plan.days / 30)
-                        const parcela = months > 0 ? Number(plan.value) / months : Number(plan.value)
-                        return (
-                          <>
-                            <div className="pt-plan-parcela">R$ {parcela.toFixed(2).replace('.',',')}</div>
-                            <div className="pt-plan-parcela-label">{months > 1 ? `em ${months}x de R$ ${parcela.toFixed(2).replace('.',',')}` : 'por mês'}</div>
-                            {months > 1 && <div className="pt-plan-total">Total: R$ {Number(plan.value).toFixed(2).replace('.',',')}</div>}
-                          </>
-                        )
-                      })()}
-                      {plan.description && <div style={{fontSize:11,color:'#AAA',marginBottom:4}}>{plan.description}</div>}
-                      <button className={`pt-btn-assinar ${plan.highlight ? '' : 'off'}`} onClick={() => assinar(plan.id, Number(plan.value), plan.days, plan.name)}>
-                        Assinar
-                      </button>
+                {(() => {
+                  const subscriptions = availablePlans.filter((p:any) => p.type === 'subscription')
+                  if (subscriptions.length === 0) return null
+                  const mensalPlan = subscriptions.find((p:any) => Number(p.days) <= 31)
+                  const mensalRef = mensalPlan ? Number(mensalPlan.value) : 0
+                  const sorted = [...subscriptions].sort((a:any,b:any) => Number(a.value) - Number(b.value))
+                  const tiers = ['bronze','prata','ouro']
+                  const currentMobile = mobileTab && sorted.find((p:any) => p.id === mobileTab) ? sorted.find((p:any) => p.id === mobileTab)! : sorted[sorted.length-1]
+                  const fmtBRL = (n:number) => n.toFixed(2).replace('.', ',')
+                  const calc = (plan:any) => {
+                    const months = Math.max(1, Math.round(Number(plan.days)/30))
+                    const full = mensalRef * months
+                    const val = Number(plan.value)
+                    const saved = full - val
+                    const percent = full > 0 ? Math.round((saved/full)*100) : 0
+                    return { months, full, saved, percent, val }
+                  }
+                  const period = (months:number) => months === 1 ? 'Cobrado uma vez por mês' : months === 12 ? 'Cobrado uma vez por ano' : `Cobrado a cada ${months} meses`
+                  return (
+                    <div className="npg-wrap">
+                      <div className="npg-title">MEU <span>PLANO</span></div>
+                      <div className="npg-sub">Escolha o período e ative todas as funcionalidades</div>
+                      {/* DESKTOP */}
+                      <div className="npg-desktop">
+                        {sorted.map((plan:any, i:number) => {
+                          const tier = tiers[i] || 'ouro'
+                          const c = calc(plan)
+                          const isOuro = tier === 'ouro'
+                          return (
+                            <div key={plan.id} className={`npg-plan-wrap ${tier}`}>
+                              {isOuro && <div className="npg-badge-top">★ MELHOR OFERTA</div>}
+                              <div className={`npg-card ${tier}`}>
+                                <div className="npg-name">{plan.name}</div>
+                                {c.saved > 0 && <div className="npg-price-original">De R$ {fmtBRL(c.full)}</div>}
+                                <div className="npg-price">R$ {Math.floor(c.val)}<small>,{c.val.toFixed(2).split('.')[1]}</small></div>
+                                <div className="npg-period">{period(c.months)}</div>
+                                {c.saved > 0 && <div className="npg-economy">💰 Economia R$ {fmtBRL(c.saved)}</div>}
+                              </div>
+                              <div className="npg-benefits">
+                                <div className="npg-benefits-title">✓ INCLUÍDO</div>
+                                <div className="npg-benefit"><span className="check">✓</span> WhatsApp visível</div>
+                                <div className="npg-benefit"><span className="check">✓</span> Endereço e mapa</div>
+                                <div className="npg-benefit"><span className="check">✓</span> Link externo</div>
+                                <div className="npg-pix">
+                                  <span style={{fontSize:14}}>💠</span>
+                                  <span className="npg-pix-text">PAGAMENTO VIA PIX</span>
+                                </div>
+                                <button className={`npg-btn ${tier}`} onClick={() => assinar(plan.id, Number(plan.value), Number(plan.days), plan.name)}>
+                                  Assinar · R$ {fmtBRL(c.val)}
+                                </button>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                      {/* MOBILE */}
+                      <div className="npg-mobile">
+                        <div className="npg-tabs">
+                          {sorted.map((plan:any) => {
+                            const c = calc(plan)
+                            const active = currentMobile.id === plan.id
+                            return (
+                              <button key={plan.id} className={`npg-tab ${active ? 'on' : ''}`} onClick={() => setMobileTab(plan.id)}>
+                                {plan.name}
+                                {c.percent > 0 && <span className="disc">-{c.percent}%</span>}
+                              </button>
+                            )
+                          })}
+                        </div>
+                        {(() => {
+                          const c = calc(currentMobile)
+                          return (
+                            <div>
+                              <div className="npg-mob-card">
+                                <div className="npg-name">{currentMobile.name}</div>
+                                {c.saved > 0 && <div className="npg-price-original">De R$ {fmtBRL(c.full)}</div>}
+                                <div className="npg-price">R$ {Math.floor(c.val)}<small>,{c.val.toFixed(2).split('.')[1]}</small></div>
+                                <div className="npg-period">{period(c.months)}</div>
+                                {c.saved > 0 && <div className="npg-economy">💰 Economia de R$ {fmtBRL(c.saved)}</div>}
+                              </div>
+                              <div className="npg-benefits">
+                                <div className="npg-benefits-title">✓ INCLUÍDO</div>
+                                <div className="npg-benefit"><span className="check">✓</span> WhatsApp visível</div>
+                                <div className="npg-benefit"><span className="check">✓</span> Endereço e mapa</div>
+                                <div className="npg-benefit"><span className="check">✓</span> Link externo</div>
+                                <div className="npg-pix">
+                                  <span style={{fontSize:14}}>💠</span>
+                                  <span className="npg-pix-text">PAGAMENTO EXCLUSIVO VIA PIX</span>
+                                </div>
+                                <button className="npg-btn ouro" onClick={() => assinar(currentMobile.id, Number(currentMobile.value), Number(currentMobile.days), currentMobile.name)}>
+                                  Assinar · R$ {fmtBRL(c.val)}
+                                </button>
+                              </div>
+                            </div>
+                          )
+                        })()}
+                      </div>
                     </div>
-                  ))}
-                </div>
-                <p className="pt-ben-label">O que está incluído no plano</p>
-                <div className="pt-beneficios">
-                  {[
-                    {ico:'📱',title:'WhatsApp clicável',desc:'Clientes entram em contato direto'},
-                    {ico:'📍',title:'Endereço e mapa',desc:'Google Maps na sua página'},
-                    {ico:'⭐',title:'Avaliações',desc:'Receba e responda clientes'},
-                    {ico:'🔗',title:'Link externo',desc:'Cardápio, site, iFood...'},
-                    {ico:'📊',title:'Estatísticas',desc:'Visualizações e cliques'},
-                    {ico:'🏷️',title:'Subcategorias',desc:'Apareça em mais buscas'},
-                  ].map((b,i)=>(
-                    <div key={i} className="pt-ben-card">
-                      <div className="pt-ben-ico">{b.ico}</div>
-                      <div className="pt-ben-title">{b.title}</div>
-                      <div className="pt-ben-desc">{b.desc}</div>
-                    </div>
-                  ))}
-                </div>
-
+                  )
+                })()}
                 <div className="pt-footer-note">Pagamento via Pix · Ativação imediata após confirmação</div>
                 </>)}
               </div>

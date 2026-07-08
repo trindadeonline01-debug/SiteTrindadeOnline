@@ -42,7 +42,7 @@ const statusColor = (s: string) => s === 'active' ? '#0F8050' : s === 'pending' 
 const statusLabel = (s: string) => s === 'active' ? 'Ativa' : s === 'pending' ? 'Pendente' : 'Suspensa'
 
 export default function AdminPage() {
-  const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'denuncias'|'usuarios'|'buscas'|'atividade'|'banners'|'pedidos-banner'|'configuracoes'|'recursos'|'planos'|'aparencia'|'subcategorias'>('dashboard')
+  const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'denuncias'|'usuarios'|'buscas'|'atividade'|'banners'|'pedidos-banner'|'configuracoes'|'recursos'|'planos'|'aparencia'|'subcategorias'|'vendas'>('dashboard')
   const [stats, setStats]           = useState<Stats|null>(null)
   const [companies, setCompanies]   = useState<Company[]>([])
   const [users, setUsers]           = useState<Profile[]>([])
@@ -94,6 +94,12 @@ export default function AdminPage() {
   const [previewModal, setPreviewModal] = useState<{open:boolean; company:any; photos:any[]; hours:any[]; subcats:any[]}>({open:false, company:null, photos:[], hours:[], subcats:[]})
   const [previewLoading, setPreviewLoading] = useState(false)
   const [bannerFilter, setBannerFilter] = useState<'all'|'pending'|'in_progress'|'delivered'>('all')
+  const [salesData, setSalesData] = useState<any[]>([])
+  const [salesFilter, setSalesFilter] = useState<'today'|'week'|'month'|'30d'|'90d'|'all'>('today')
+  const [salesDateFrom, setSalesDateFrom] = useState('')
+  const [salesDateTo, setSalesDateTo] = useState('')
+  const [salesLoading, setSalesLoading] = useState(false)
+  const [expiringPlans, setExpiringPlans] = useState<any[]>([])
   const [bannerSort, setBannerSort] = useState<'recent'|'urgent'|'far'>('recent')
   const [mpToken, setMpToken] = useState('')
   const [mpTokenSaving, setMpTokenSaving] = useState(false)
@@ -642,6 +648,27 @@ export default function AdminPage() {
     }
   }
 
+  async function loadSales(filter: string, dateFrom?: string, dateTo?: string) {
+    setSalesLoading(true)
+    const now = new Date()
+    let from: string | null = null
+    let to: string | null = null
+    if (filter === 'today') { from = now.toISOString().split('T')[0] + 'T00:00:00Z'; to = now.toISOString() }
+    else if (filter === 'week') { const d = new Date(now); d.setDate(d.getDate()-7); from = d.toISOString() }
+    else if (filter === 'month') { from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString() }
+    else if (filter === '30d') { const d = new Date(now); d.setDate(d.getDate()-30); from = d.toISOString() }
+    else if (filter === '90d') { const d = new Date(now); d.setDate(d.getDate()-90); from = d.toISOString() }
+    else if (filter === 'custom' && dateFrom) { from = dateFrom + 'T00:00:00Z'; to = dateTo ? dateTo + 'T23:59:59Z' : now.toISOString() }
+    let q = supabase.from('payments').select('*, company:companies(name)').eq('status','approved').order('paid_at', { ascending: false })
+    if (from) q = q.gte('paid_at', from)
+    if (to) q = q.lte('paid_at', to)
+    const { data } = await q
+    setSalesData(data || [])
+    const in7days = new Date(now); in7days.setDate(in7days.getDate()+7)
+    const { data: exp } = await supabase.from('companies').select('id,name,trial_ends_at,plan').eq('status','active').neq('plan','paid').lt('trial_ends_at', in7days.toISOString()).gt('trial_ends_at', now.toISOString()).order('trial_ends_at')
+    setExpiringPlans(exp || [])
+    setSalesLoading(false)
+  }
   async function openPreviewCompany(c: any) {
     setPreviewModal({ open: true, company: c, photos: [], hours: [], subcats: [] })
     setPreviewLoading(true)
@@ -1208,6 +1235,7 @@ export default function AdminPage() {
             { id: 'atividade', icon: '⚡', label: 'Atividade' },
     { id: 'pedidos-banner', icon: '🖼️', label: 'Ped. Banner' },
     { id: 'planos', icon: '💰', label: 'Planos' },
+            { id: 'vendas', icon: '📈', label: 'Vendas' },
     { id: 'recursos', icon: '🔧', label: 'Recursos' },
     { id: 'configuracoes', icon: '⚙️', label: 'Configurações' },
     { id: 'aparencia', icon: '🎨', label: 'Aparência' },
@@ -1244,6 +1272,7 @@ export default function AdminPage() {
               {tab === 'banners'   && 'Banners da Home'}
               {tab === 'pedidos-banner' && 'Pedidos de Banner'}
               {tab === 'planos' && 'Gestão de Planos'}
+              {tab === 'vendas' && 'Painel de Vendas'}
               {tab === 'recursos' && 'Recursos do Site'}
               {tab === 'configuracoes' && 'Configurações'}
               {tab === 'aparencia' && 'Aparência do Site'}
@@ -2346,6 +2375,126 @@ export default function AdminPage() {
                 </table>
               </div>
             )}
+
+          {tab === 'vendas' && (
+            <div>
+              {/* FILTROS */}
+              <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:20,flexWrap:'wrap'}}>
+                <span style={{fontSize:12,color:'#999',fontWeight:500}}>Período:</span>
+                {(['today','week','month','30d','90d','all'] as const).map(f => (
+                  <button key={f} onClick={()=>{setSalesFilter(f);loadSales(f)}}
+                    style={{fontSize:12,fontWeight:500,padding:'6px 14px',borderRadius:8,border:'0.5px solid',borderColor:salesFilter===f?'#888':'#E0DDD8',background:salesFilter===f?'#F5F2EC':'#fff',color:salesFilter===f?'#111':'#888',cursor:'pointer'}}>
+                    {f==='today'?'Hoje':f==='week'?'Esta semana':f==='month'?'Este mês':f==='30d'?'30 dias':f==='90d'?'90 dias':'Total'}
+                  </button>
+                ))}
+                <input type="date" value={salesDateFrom} onChange={e=>setSalesDateFrom(e.target.value)}
+                  style={{fontSize:12,padding:'6px 10px',borderRadius:8,border:'0.5px solid #E0DDD8',outline:'none'}}/>
+                <span style={{fontSize:12,color:'#999'}}>até</span>
+                <input type="date" value={salesDateTo} onChange={e=>setSalesDateTo(e.target.value)}
+                  style={{fontSize:12,padding:'6px 10px',borderRadius:8,border:'0.5px solid #E0DDD8',outline:'none'}}/>
+                <button onClick={()=>{setSalesFilter('today');loadSales('custom',salesDateFrom,salesDateTo)}}
+                  style={{fontSize:12,fontWeight:600,padding:'6px 14px',borderRadius:8,border:'none',background:'#C9951A',color:'#fff',cursor:'pointer'}}>Filtrar</button>
+                {!salesData.length && !salesLoading && tab==='vendas' && (() => { loadSales('today'); return null })()}
+              </div>
+
+              {/* HOJE DESTAQUE */}
+              {(() => {
+                const today = new Date().toISOString().split('T')[0]
+                const todaySales = salesData.filter(p => (p.paid_at||'').startsWith(today))
+                const todayTotal = todaySales.reduce((a:number,p:any)=>a+Number(p.value||0),0)
+                const allTotal = salesData.reduce((a:number,p:any)=>a+Number(p.value||0),0)
+                const avg = salesData.length ? allTotal/salesData.length : 0
+                return (
+                  <div style={{background:'#FEF3E2',border:'0.5px solid #F5C77A',borderRadius:12,padding:'14px 20px',marginBottom:20,display:'flex',alignItems:'center',gap:24,flexWrap:'wrap'}}>
+                    {[
+                      {label:'Total arrecadado',val:`R$ ${allTotal.toFixed(2).replace('.',',')}`,color:'#0F8050'},
+                      {label:'Pagamentos',val:String(salesData.length),color:'#111'},
+                      {label:'Ticket médio',val:`R$ ${avg.toFixed(2).replace('.',',')}`,color:'#111'},
+                      {label:'Vendas hoje',val:`R$ ${todayTotal.toFixed(2).replace('.',',')}`,color:'#C9951A'},
+                      {label:'Pagamentos hoje',val:String(todaySales.length),color:'#C9951A'},
+                    ].map((item,i) => (
+                      <div key={i} style={{display:'flex',flexDirection:'column',gap:3}}>
+                        <div style={{fontSize:11,color:'#854F0B',fontWeight:500,textTransform:'uppercase',letterSpacing:.5}}>{item.label}</div>
+                        <div style={{fontSize:22,fontWeight:500,color:item.color}}>{item.val}</div>
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
+
+              {/* STATUS PLANOS */}
+              <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:20}}>
+                {[
+                  {label:'Planos ativos',val:planStats.paid,color:'#0F8050',pct:planStats.paid},
+                  {label:'Em trial',val:planStats.trial,color:'#C9951A',pct:planStats.trial},
+                  {label:'Vencendo em 3 dias',val:planStats.expiring,color:'#E24B4A',pct:planStats.expiring},
+                  {label:'Trial vencido',val:planStats.expired,color:'#AAA',pct:planStats.expired},
+                ].map((item,i) => (
+                  <div key={i} className="section-card" style={{padding:'14px 16px',margin:0}}>
+                    <div style={{fontSize:11,color:'#999',fontWeight:500,textTransform:'uppercase',letterSpacing:.5,marginBottom:6}}>{item.label}</div>
+                    <div style={{fontSize:26,fontWeight:500,color:item.color,lineHeight:1}}>{item.val}</div>
+                    <div style={{height:6,background:'#F0EDE8',borderRadius:3,overflow:'hidden',marginTop:8}}>
+                      <div style={{height:'100%',borderRadius:3,background:item.color,width:`${Math.min((item.pct/(planStats.paid+planStats.trial+1))*100,100)}%`}}/>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* TABELAS */}
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+                <div className="section-card" style={{margin:0}}>
+                  <div style={{padding:'14px 16px',borderBottom:'0.5px solid #EDE8E0',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                    <span style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:15,letterSpacing:1}}>PAGAMENTOS RECENTES</span>
+                    <span style={{fontSize:12,color:'#999'}}>{salesData.length} registros</span>
+                  </div>
+                  {salesLoading ? <div style={{padding:32,textAlign:'center',color:'#999'}}>Carregando...</div> : salesData.length === 0 ?
+                    <div style={{padding:32,textAlign:'center',color:'#999'}}>Nenhum pagamento no período</div> :
+                    <div style={{overflowX:'auto'}}>
+                      <table className="data-table">
+                        <thead><tr><th>Empresa</th><th>Plano</th><th>Valor</th><th>Data</th></tr></thead>
+                        <tbody>
+                          {salesData.slice(0,10).map((p:any)=>(
+                            <tr key={p.id}>
+                              <td><strong>{p.company?.name||'—'}</strong></td>
+                              <td style={{fontSize:12,color:'#666'}}>{p.plan||'—'}</td>
+                              <td style={{fontWeight:600,color:'#0F8050'}}>R$ {Number(p.value||0).toFixed(2).replace('.',',')}</td>
+                              <td style={{fontSize:12,color:'#999'}}>{p.paid_at?fmtDate(p.paid_at):'—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  }
+                </div>
+
+                <div className="section-card" style={{margin:0}}>
+                  <div style={{padding:'14px 16px',borderBottom:'0.5px solid #EDE8E0'}}>
+                    <span style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:15,letterSpacing:1}}>VENCENDO EM BREVE</span>
+                  </div>
+                  {expiringPlans.length === 0 ?
+                    <div style={{padding:32,textAlign:'center',color:'#999'}}>Nenhum plano vencendo</div> :
+                    <div style={{overflowX:'auto'}}>
+                      <table className="data-table">
+                        <thead><tr><th>Empresa</th><th>Vence em</th><th>Status</th></tr></thead>
+                        <tbody>
+                          {expiringPlans.map((c:any)=>{
+                            const days = Math.ceil((new Date(c.trial_ends_at).getTime()-Date.now())/86400000)
+                            return (
+                              <tr key={c.id}>
+                                <td><strong>{c.name}</strong></td>
+                                <td style={{fontWeight:600,color:days<=2?'#E24B4A':'#C9951A'}}>{days} dia{days!==1?'s':''}</td>
+                                <td><span style={{fontSize:11,fontWeight:600,padding:'3px 10px',borderRadius:20,background:days<=2?'#E24B4A22':'#C9951A22',color:days<=2?'#E24B4A':'#854F0B'}}>{days<=2?'Urgente':'Atenção'}</span></td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+          )}
 
           </div>
         </main>

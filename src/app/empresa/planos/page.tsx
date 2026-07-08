@@ -13,21 +13,41 @@ export default function PlanosPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [pixData, setPixData] = useState<{qr: string|null; copy: string|null; valor: number; plano: string} | null>(null)
   const [copied, setCopied] = useState(false)
+  const [activePlan, setActivePlan] = useState<{name:string; endsAt:string; daysLeft:number} | null>(null)
+  const [checkingCompany, setCheckingCompany] = useState(true)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession()
       if (!session) { router.push('/login'); return }
-    })
-    supabase.from('plans').select('id,name,days,value,description,display_order,highlight,highlight_label')
-      .eq('type', 'subscription').eq('active', true).order('display_order')
-      .then(({ data }) => {
-        const list = (data || []) as Plan[]
-        setPlans(list)
-        // Seleciona o "highlight" ou o primeiro por padrão
-        const highlighted = list.find(p => p.highlight)
-        setSelectedId(highlighted?.id || list[0]?.id || null)
-        setLoading(false)
-      })
+
+      const { data: company } = await supabase
+        .from('companies')
+        .select('id,name,plan,plan_ends_at')
+        .eq('owner_id', session.user.id)
+        .single()
+
+      if (company?.plan === 'paid' && company.plan_ends_at) {
+        const endsAt = new Date(company.plan_ends_at)
+        const daysLeft = Math.ceil((endsAt.getTime() - Date.now()) / 86400000)
+        if (daysLeft > 60) {
+          setActivePlan({ name: company.name, endsAt: company.plan_ends_at, daysLeft })
+          setCheckingCompany(false)
+          setLoading(false)
+          return
+        }
+      }
+      setCheckingCompany(false)
+
+      const { data } = await supabase.from('plans')
+        .select('id,name,days,value,description,display_order,highlight,highlight_label')
+        .eq('type', 'subscription').eq('active', true).order('display_order')
+      const list = (data || []) as Plan[]
+      setPlans(list)
+      const highlighted = list.find(p => p.highlight)
+      setSelectedId(highlighted?.id || list[0]?.id || null)
+      setLoading(false)
+    })()
   }, [])
 
   // Plano mensal serve de referência para calcular o valor "cheio"
@@ -147,6 +167,22 @@ export default function PlanosPage() {
         .pix-note { font-size: 11px; color: #999; line-height: 1.5; }
       `}</style>
 
+      {activePlan ? (
+        <div className="wrap">
+          <div style={{textAlign:'center',padding:'40px 20px'}}>
+            <div style={{fontSize:64,marginBottom:16}}>🎉</div>
+            <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:32,color:'#fff',letterSpacing:2,marginBottom:8}}>PLANO <span style={{color:'#C9951A'}}>ATIVO</span></div>
+            <div style={{fontSize:14,color:'#888',marginBottom:32}}>Sua empresa <strong style={{color:'#fff'}}>{activePlan.name}</strong> já tem um plano ativo</div>
+            <div style={{background:'linear-gradient(135deg, #C9951A 0%, #B8841A 100%)',borderRadius:20,padding:'28px 24px',color:'#fff',marginBottom:20}}>
+              <div style={{fontSize:13,fontWeight:700,letterSpacing:1,opacity:0.9,marginBottom:6}}>✓ VÁLIDO ATÉ</div>
+              <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:36,marginBottom:8}}>{new Date(activePlan.endsAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
+              <div style={{fontSize:14,fontWeight:600,opacity:0.9}}>{activePlan.daysLeft} dias restantes</div>
+            </div>
+            <div style={{background:'#1A1A1A',borderRadius:12,padding:'14px 18px',fontSize:12,color:'#888',lineHeight:1.6,marginBottom:24}}>💡 A renovação estará disponível quando faltarem <strong style={{color:'#C9951A'}}>60 dias</strong> para o vencimento do seu plano atual.</div>
+            <button onClick={()=>router.push('/painel')} style={{width:'100%',background:'#C9951A',color:'#111',border:'none',padding:'16px',borderRadius:12,fontSize:15,fontWeight:800,cursor:'pointer',fontFamily:'Inter,sans-serif',letterSpacing:0.5}}>← Ir para o painel</button>
+          </div>
+        </div>
+      ) : (
       <div className="wrap">
         <div className="header">
           <div className="title">ESCOLHA SEU <span>PLANO</span></div>
@@ -214,6 +250,7 @@ export default function PlanosPage() {
 
         <div className="back"><a href="/painel">← Ir para o painel sem assinar agora</a></div>
       </div>
+      )}
 
       {pixData && (
         <div className="pix-overlay" onClick={() => setPixData(null)}>

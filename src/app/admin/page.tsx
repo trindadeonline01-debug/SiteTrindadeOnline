@@ -48,6 +48,8 @@ export default function AdminPage() {
   const [users, setUsers]           = useState<Profile[]>([])
   const [searches, setSearches]     = useState<SearchLog[]>([])
   const [filterStatus, setFilter]   = useState('all')
+  const [searchCompany, setSearchCompany] = useState('')
+  const [searchUser, setSearchUser] = useState('')
   const [loading, setLoading]       = useState(true)
   const [toast, setToast]           = useState('')
   const [authorized, setAuthorized] = useState<boolean|null>(null)
@@ -772,7 +774,7 @@ export default function AdminPage() {
   if (authorized === null) return <div style={{ display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',fontFamily:'Inter,sans-serif',color:'#AAA' }}>Verificando acesso...</div>
   if (authorized === false) return <div style={{ display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',fontFamily:'Inter,sans-serif' }}><div style={{ textAlign:'center' }}><div style={{ fontSize:48,marginBottom:16 }}>🚫</div><div style={{ fontSize:20,fontWeight:700 }}>Acesso negado</div><div style={{ color:'#AAA',marginTop:8 }}>Você não tem permissão para acessar esta página.</div></div></div>
 
-  const filteredCompanies = filterStatus === 'all' ? companies : companies.filter(c => c.status === filterStatus)
+  const filteredCompanies = companies.filter(c => (filterStatus === 'all' || c.status === filterStatus) && (searchCompany === '' || c.name.toLowerCase().includes(searchCompany.toLowerCase()) || (c.owner?.name||'').toLowerCase().includes(searchCompany.toLowerCase())))
 
   return (
     <>
@@ -1332,6 +1334,7 @@ export default function AdminPage() {
               <div className="section-card">
                 <div className="section-hdr">
                   <span className="section-title">EMPRESAS ({filteredCompanies.length})</span>
+                  <input value={searchCompany} onChange={e=>setSearchCompany(e.target.value)} placeholder="🔍 Buscar empresa ou responsável..." style={{padding:'7px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none',width:260}}/>
                   <div className="filter-row">
                     {['all','pending','active','suspended'].map(f => (
                       <button key={f} className={`filter-btn ${filterStatus===f?'on':''}`} onClick={() => setFilter(f)}>
@@ -1379,7 +1382,8 @@ export default function AdminPage() {
             {!loading && tab === 'usuarios' && (
               <div className="section-card">
                 <div className="section-hdr">
-                  <span className="section-title">USUÁRIOS ({users.length})</span>
+                  <span className="section-title">USUÁRIOS ({users.filter(u=>searchUser===''||u.name.toLowerCase().includes(searchUser.toLowerCase())||(u.email||'').toLowerCase().includes(searchUser.toLowerCase())).length})</span>
+                  <input value={searchUser} onChange={e=>setSearchUser(e.target.value)} placeholder="🔍 Buscar nome ou email..." style={{padding:'7px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none',width:260}}/>
                 </div>
                 {users.length === 0
                   ? <div className="empty-state"><div>👥</div><div>Nenhum usuário cadastrado ainda</div></div>
@@ -1387,7 +1391,7 @@ export default function AdminPage() {
                       <table className="data-table">
                         <thead><tr><th>Nome</th><th>Tipo</th><th>Bairro</th><th>WhatsApp</th><th>Email</th><th>Cadastro</th><th>Ações</th></tr></thead>
                         <tbody>
-                          {users.map(u => (
+                          {users.filter(u=>searchUser===''||u.name.toLowerCase().includes(searchUser.toLowerCase())||(u.email||'').toLowerCase().includes(searchUser.toLowerCase())).map(u => (
                             <tr key={u.id}>
                               <td><strong>{u.name}</strong></td>
                               <td>

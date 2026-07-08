@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
+import PhotoManager from '@/components/PhotoManager'
 
 type Company = {
   id: string; name: string; status: string; plan: string
@@ -1309,6 +1310,10 @@ export default function PainelPage() {
                       <label>Descrição</label>
                       <textarea rows={4} value={editDesc} onChange={e=>setEditDesc(e.target.value)} placeholder="Sobre sua empresa..."/>
                     </div>
+                    <div className="field" style={{gridColumn:'1/-1'}}>
+                      <label>📸 Fotos da empresa</label>
+                      {company?.id && <PhotoManager companyId={company.id} />}
+                    </div>
                     <div className="field">
                       <label>Tags <span style={{fontSize:11,color:'#AAA',fontWeight:400}}>Digite e pressione Enter para adicionar</span></label>
                       <div style={{border:'1.5px solid #E0DDD8',borderRadius:11,padding:'8px 10px',background:'#FAFAF8',display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
@@ -1326,7 +1331,7 @@ export default function PainelPage() {
                             if ((e.key === 'Enter' || e.key === ',') && tagInput.trim()) {
                               e.preventDefault()
                               const tag = tagInput.trim().toLowerCase().replace(/[^a-z0-9àáâãéêíóôõúç ]/g, '')
-                              if (tag && !editTags.includes(tag) && editTags.length < 30) {
+                              if (tag && !editTags.includes(tag) && true) {
                                 setEditTags(prev => [...prev, tag])
                               }
                               setTagInput('')
@@ -1336,7 +1341,7 @@ export default function PainelPage() {
                           style={{border:'none',background:'transparent',outline:'none',fontSize:13,fontFamily:"'Inter',sans-serif",minWidth:120,flex:1}}
                         />
                       </div>
-                      <div style={{fontSize:11,color:'#AAA',marginTop:4}}>{editTags.length}/30 tags · {company?.plan === 'paid' ? '✓ Aparece nas buscas' : '⚠ Ative o plano pago para aparecer nas buscas'}</div>
+                      <div style={{fontSize:11,color:'#AAA',marginTop:4}}>{editTags.length} tags · {company?.plan === 'paid' ? '✓ Aparece nas buscas' : '⚠ Ative o plano pago para aparecer nas buscas'}</div>
                     </div>
                   </div>
                   <div className="field">

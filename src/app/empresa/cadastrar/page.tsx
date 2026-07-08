@@ -523,7 +523,7 @@ export default function EmpresaCadastrarPage() {
                           if ((e.key === 'Enter' || e.key === ',') && tagInput.trim()) {
                             e.preventDefault()
                             const tag = tagInput.trim().toLowerCase().replace(/[^a-z0-9àáâãéêíóôõúç ]/g, '')
-                            if (tag && !tags.includes(tag) && tags.length < 30) setTags(prev => [...prev, tag])
+                            if (tag && !tags.includes(tag) && true) setTags(prev => [...prev, tag])
                             setTagInput('')
                           }
                         }}
@@ -531,7 +531,7 @@ export default function EmpresaCadastrarPage() {
                         style={{border:'none',background:'transparent',outline:'none',fontSize:13,fontFamily:"'Inter',sans-serif",minWidth:120,flex:1}}
                       />
                     </div>
-                    <div style={{fontSize:11,color:'#AAA',marginTop:4}}>{tags.length}/30 tags</div>
+                    <div style={{fontSize:11,color:'#AAA',marginTop:4}}>{tags.length} tags</div>
                   </div>
 
                   <div className="note-box">

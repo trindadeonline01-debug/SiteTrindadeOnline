@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
+import PhotoManager from '@/components/PhotoManager'
 import dynamic from 'next/dynamic'
 const EmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false })
 
@@ -591,6 +592,49 @@ export default function AdminPage() {
     loadCompanies(); loadStats()
   }
 
+  async function deleteCompany(id: string, nome: string) {
+    if (!confirm(`Tem certeza? Isso apagará TODOS os dados de "${nome}" (fotos, avaliações, banners, etc). Ação irreversível.`)) return
+    const typed = prompt(`Para confirmar, digite exatamente o nome da empresa:\n\n${nome}`)
+    if (typed !== nome) {
+      showToast('Nome não confere. Exclusão cancelada.')
+      return
+    }
+    try {
+      const { data: photos } = await supabase.from('company_photos').select('url').eq('company_id', id)
+      if (photos && photos.length > 0) {
+        const paths = photos.map((p:any) => {
+          const parts = (p.url || '').split('/company-photos/')
+          return parts[1] || null
+        }).filter(Boolean)
+        if (paths.length > 0) {
+          await supabase.storage.from('company-photos').remove(paths)
+        }
+      }
+      await supabase.from('contact_requests').delete().eq('company_id', id)
+      await supabase.from('whatsapp_clicks').delete().eq('company_id', id)
+      await supabase.from('banner_requests').delete().eq('company_id', id)
+      await supabase.from('highlights').delete().eq('company_id', id)
+      await supabase.from('subscriptions').delete().eq('company_id', id)
+      await supabase.from('promotions').delete().eq('company_id', id)
+      await supabase.from('vouchers').delete().eq('company_id', id)
+      await supabase.from('jobs').delete().eq('company_id', id)
+      await supabase.from('delivery_orders').delete().eq('company_id', id)
+      await supabase.from('review_responses').delete().eq('company_id', id)
+      await supabase.from('reviews').delete().eq('company_id', id)
+      await supabase.from('company_hours').delete().eq('company_id', id)
+      await supabase.from('company_photos').delete().eq('company_id', id)
+      await supabase.from('company_subcategories').delete().eq('company_id', id)
+      await supabase.from('payments').delete().eq('company_id', id)
+      const { error } = await supabase.from('companies').delete().eq('id', id)
+      if (error) { showToast('Erro ao excluir: ' + error.message); return }
+      showToast('Empresa excluída permanentemente.')
+      setEditCompanyModal({ open: false, company: null })
+      loadCompanies()
+    } catch (err: any) {
+      showToast('Erro: ' + (err.message || 'desconhecido'))
+    }
+  }
+
   async function openEditCompany(c: any) {
     if (allCategories.length === 0) {
       const { data: cats } = await supabase.from('categories').select('id,name,emoji,slug').order('name')
@@ -922,11 +966,22 @@ export default function AdminPage() {
                 </select>
               </div>
             </div>
+            <div style={{marginBottom:20,paddingTop:16,borderTop:'1px solid #EDE8E0'}}>
+              <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:10,display:'block'}}>📸 Fotos da empresa</label>
+              <PhotoManager companyId={editCompanyModal.company.id} />
+            </div>
             <div style={{display:'flex',gap:10}}>
               <button onClick={saveCompanyEdit} disabled={savingEdit} style={{flex:1,padding:'12px',background:'#C9951A',color:'#fff',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
                 {savingEdit?'Salvando...':'Salvar alterações'}
               </button>
               <button onClick={()=>setEditCompanyModal({open:false,company:null})} style={{padding:'12px 20px',background:'transparent',color:'#AAA',border:'1px solid #ddd',borderRadius:10,fontSize:13,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>Cancelar</button>
+            </div>
+            <div style={{marginTop:20,paddingTop:20,borderTop:'1px solid #EDE8E0'}}>
+              <div style={{fontSize:11,color:'#888',marginBottom:10,textTransform:'uppercase',letterSpacing:1,fontWeight:700}}>Zona de perigo</div>
+              <button onClick={()=>deleteCompany(editCompanyModal.company.id, editCompanyModal.company.name)} style={{width:'100%',padding:'12px',background:'transparent',color:'#E24B4A',border:'1.5px solid #E24B4A',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                🗑️ Excluir empresa permanentemente
+              </button>
+              <div style={{fontSize:11,color:'#AAA',marginTop:6,textAlign:'center'}}>Apaga todos os dados. Ação irreversível.</div>
             </div>
           </div>
         </div>

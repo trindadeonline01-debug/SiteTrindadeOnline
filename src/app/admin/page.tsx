@@ -654,8 +654,13 @@ export default function AdminPage() {
   }
   async function deleteUser(id: string, nome: string) {
     if (!confirm(`Excluir o usuário "${nome}"? Esta ação é irreversível.`)) return
-    const { error } = await supabase.from('profiles').delete().eq('id', id)
-    if (error) { showToast('Erro ao excluir: ' + error.message); return }
+    const res = await fetch('/api/admin/delete-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: id })
+    })
+    const data = await res.json()
+    if (data.error) { showToast('Erro: ' + data.error); return }
     showToast('Usuário excluído.')
     loadUsers(); loadStats()
   }

@@ -652,6 +652,20 @@ export default function AdminPage() {
     setPreviewModal(p => ({ ...p, photos: photos || [], hours: hours || [], subcats }))
     setPreviewLoading(false)
   }
+  async function deleteUser(id: string, nome: string) {
+    if (!confirm(`Excluir o usuário "${nome}"? Esta ação é irreversível.`)) return
+    const { error } = await supabase.from('profiles').delete().eq('id', id)
+    if (error) { showToast('Erro ao excluir: ' + error.message); return }
+    showToast('Usuário excluído.')
+    loadUsers(); loadStats()
+  }
+  async function deleteUser(id: string, nome: string) {
+    if (!confirm(`Excluir o usuário "${nome}"? Esta ação é irreversível.`)) return
+    const { error } = await supabase.from('profiles').delete().eq('id', id)
+    if (error) { showToast('Erro ao excluir: ' + error.message); return }
+    showToast('Usuário excluído.')
+    loadUsers(); loadStats()
+  }
   async function openEditCompany(c: any) {
     if (allCategories.length === 0) {
       const { data: cats } = await supabase.from('categories').select('id,name,emoji,slug').order('name')
@@ -710,7 +724,7 @@ export default function AdminPage() {
     const res = await fetch('/api/admin/update-user', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: u.id, updates: { name: u.name, neighborhood: u.neighborhood }, new_email: u.email || null })
+      body: JSON.stringify({ user_id: u.id, updates: { name: u.name, neighborhood: u.neighborhood, phone: u.phone || null }, new_email: u.email || null })
     })
     const data = await res.json()
     setSavingEdit(false)
@@ -1139,9 +1153,15 @@ export default function AdminPage() {
               <input value={editUserModal.user.email||''} onChange={e=>setEditUserModal(p=>({...p,user:{...p.user,email:e.target.value}}))}
                 style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
             </div>
-            <div style={{marginBottom:20}}>
+            <div style={{marginBottom:14}}>
               <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Bairro</label>
               <input value={editUserModal.user.neighborhood||''} onChange={e=>setEditUserModal(p=>({...p,user:{...p.user,neighborhood:e.target.value}}))}
+                style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+            </div>
+            <div style={{marginBottom:20}}>
+              <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>WhatsApp</label>
+              <input value={editUserModal.user.phone||''} onChange={e=>setEditUserModal(p=>({...p,user:{...p.user,phone:e.target.value.replace(/[^0-9]/g,'')}}))}
+                placeholder="21999999999" maxLength={11}
                 style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
             </div>
             <button onClick={saveUserEdit} disabled={savingEdit} style={{width:'100%',padding:'12px',background:'#C9951A',color:'#fff',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',marginBottom:16}}>
@@ -1367,7 +1387,7 @@ export default function AdminPage() {
                   ? <div className="empty-state"><div>👥</div><div>Nenhum usuário cadastrado ainda</div></div>
                   : <div style={{ overflowX:'auto' }}>
                       <table className="data-table">
-                        <thead><tr><th>Nome</th><th>Tipo</th><th>Bairro</th><th>Cadastro</th><th>Ações</th></tr></thead>
+                        <thead><tr><th>Nome</th><th>Tipo</th><th>Bairro</th><th>WhatsApp</th><th>Email</th><th>Cadastro</th><th>Ações</th></tr></thead>
                         <tbody>
                           {users.map(u => (
                             <tr key={u.id}>
@@ -1378,8 +1398,13 @@ export default function AdminPage() {
                                 </span>
                               </td>
                               <td>{u.neighborhood || '—'}</td>
+                              <td>{u.phone || '—'}</td>
+                              <td style={{fontSize:12,color:'#666'}}>{u.email || '—'}</td>
                               <td>{fmtDate(u.created_at)}</td>
-                              <td><button className="action-btn" style={{background:'#185FA522',color:'#185FA5'}} onClick={() => openEditUser(u)}>✏️ Editar</button></td>
+                              <td style={{display:'flex',gap:6}}>
+                                <button className="action-btn" style={{background:'#185FA522',color:'#185FA5'}} onClick={() => openEditUser(u)}>✏️ Editar</button>
+                                {u.user_type !== 'admin' && <button className="action-btn" style={{background:'#E24B4A22',color:'#E24B4A'}} onClick={() => deleteUser(u.id, u.name)}>🗑</button>}
+                              </td>
                             </tr>
                           ))}
                         </tbody>

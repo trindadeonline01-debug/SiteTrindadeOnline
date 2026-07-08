@@ -44,8 +44,8 @@ export default function PlanosPage() {
         .eq('type', 'subscription').eq('active', true).order('display_order')
       const list = (data || []) as Plan[]
       setPlans(list)
-      const highlighted = list.find(p => p.highlight)
-      setSelectedId(highlighted?.id || list[0]?.id || null)
+      const mensal = list.find(p => Number(p.days) <= 31)
+      setSelectedId(mensal?.id || list[0]?.id || null)
       setLoading(false)
     })()
   }, [])

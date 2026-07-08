@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
@@ -10,6 +10,7 @@ export default function PlanosPage() {
   const [plans, setPlans] = useState<Plan[]>([])
   const [loading, setLoading] = useState(true)
   const [paying, setPaying] = useState<string | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [pixData, setPixData] = useState<{qr: string|null; copy: string|null; valor: number; plano: string} | null>(null)
   const [copied, setCopied] = useState(false)
 
@@ -19,8 +20,32 @@ export default function PlanosPage() {
     })
     supabase.from('plans').select('id,name,days,value,description,display_order,highlight,highlight_label')
       .eq('type', 'subscription').eq('active', true).order('display_order')
-      .then(({ data }) => { setPlans((data || []) as Plan[]); setLoading(false) })
+      .then(({ data }) => {
+        const list = (data || []) as Plan[]
+        setPlans(list)
+        // Seleciona o "highlight" ou o primeiro por padrão
+        const highlighted = list.find(p => p.highlight)
+        setSelectedId(highlighted?.id || list[0]?.id || null)
+        setLoading(false)
+      })
   }, [])
+
+  // Plano mensal serve de referência para calcular o valor "cheio"
+  const mensalValue = useMemo(() => {
+    const mensal = plans.find(p => p.days <= 31)
+    return mensal ? mensal.value : 0
+  }, [plans])
+
+  const selectedPlan = plans.find(p => p.id === selectedId) || null
+
+  function calcDiscount(plan: Plan) {
+    if (!mensalValue) return { full: 0, saved: 0, percent: 0 }
+    const months = Math.max(1, Math.round(plan.days / 30))
+    const full = mensalValue * months
+    const saved = full - plan.value
+    const percent = full > 0 ? Math.round((saved / full) * 100) : 0
+    return { full, saved, percent }
+  }
 
   async function handleAssinar(plan: Plan) {
     setPaying(plan.id)
@@ -56,34 +81,53 @@ export default function PlanosPage() {
     setTimeout(() => setCopied(false), 2000)
   }
 
+  const fmtBRL = (n: number) => n.toFixed(2).replace('.', ',')
+
   return (
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700;800&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: #111; font-family: 'Inter', sans-serif; }
-        .wrap { min-height: 100vh; padding: 48px 20px; } @media(max-width:600px){.wrap{padding:16px 10px;}}
-        .header { text-align: center; margin-bottom: 40px; } @media(max-width:600px){.header{margin-bottom:14px;}}
-        .title { font-family: 'Bebas Neue', sans-serif; font-size: 36px; color: #fff; letter-spacing: 2px; }
+        .wrap { min-height: 100vh; padding: 32px 20px; max-width: 460px; margin: 0 auto; }
+        @media(max-width:600px){.wrap{padding:20px 14px;}}
+        .header { text-align: center; margin-bottom: 22px; }
+        .title { font-family: 'Bebas Neue', sans-serif; font-size: 34px; color: #fff; letter-spacing: 2px; }
         .title span { color: #C9951A; }
-        .subtitle { font-size: 13px; color: #666; margin-top: 8px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; max-width: 860px; margin: 0 auto; } @media(max-width:600px){.grid{gap:8px;}}
-        .card { background: #1A1A1A; border: 1.5px solid #333; border-radius: 16px; padding: 28px 22px; text-align: center; position: relative; } @media(max-width:600px){.card{padding:14px 12px;border-radius:12px;}}
-        .card.popular { border: 2px solid #C9951A; }
-        .popular-badge { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); background: #C9951A; color: #111; font-size: 10px; font-weight: 800; padding: 4px 16px; border-radius: 20px; letter-spacing: 1px; white-space: nowrap; }
-        .plan-label { font-size: 11px; font-weight: 700; letter-spacing: 1px; margin-bottom: 16px; color: #888; text-transform: uppercase; } @media(max-width:600px){.plan-label{font-size:14px;margin-bottom:8px;}}
-        .card.popular .plan-label { color: #C9951A; }
-        .price { font-family: 'Bebas Neue', sans-serif; font-size: 52px; color: #fff; line-height: 1; } @media(max-width:600px){.price{font-size:42px;}}
-        .price-note { font-size: 11px; color: #555; margin-bottom: 8px; } @media(max-width:600px){.price-note{font-size:13px;margin-bottom:4px;}}
-        .desc { font-size: 12px; color: #888; line-height: 1.8; margin: 16px 0 24px; min-height: 60px; } @media(max-width:600px){.desc{display:none;}}
-        .plan-total { display: inline-block; background: #FEF3E2; color: #854F0B; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 6px; margin-top: 8px; } @media(max-width:600px){.plan-total{font-size:13px;margin-top:4px;padding:3px 10px;}}
-        .btn-plan { width: 100%; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: 'Inter', sans-serif; border: 1.5px solid #C9951A; background: transparent; color: #C9951A; } @media(max-width:600px){.btn-plan{padding:10px;font-size:15px;margin-top:6px;}}
-        .btn-plan.popular { background: #C9951A; color: #111; border: none; }
-        .btn-plan:disabled { opacity: 0.6; cursor: not-allowed; }
-        .footer-note { text-align: center; margin-top: 28px; font-size: 12px; color: #444; }
-        .back { text-align: center; margin-top: 16px; }
+        .subtitle { font-size: 12px; color: #666; margin-top: 6px; }
+
+        .tabs-wrap { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 100px; padding: 5px; display: flex; gap: 3px; margin-bottom: 20px; }
+        .tab { flex: 1; padding: 12px 6px; border-radius: 100px; text-align: center; font-size: 13px; font-weight: 700; cursor: pointer; color: #888; transition: all .15s; position: relative; border: none; background: transparent; font-family: 'Inter', sans-serif; }
+        .tab.on { background: #C9951A; color: #111; }
+        .tab .discount { position: absolute; top: -8px; right: 4px; background: #4ADE80; color: #111; font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 8px; letter-spacing: 0.5px; }
+        .tab.on .discount { background: #111; color: #C9951A; }
+
+        .plan-card { background: linear-gradient(135deg, #C9951A 0%, #B8841A 100%); border-radius: 20px; padding: 22px 20px; color: #fff; position: relative; margin-bottom: 14px; box-shadow: 0 10px 30px rgba(201,149,26,0.3); text-align: center; }
+        .plan-name-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 12px; }
+        .plan-name { font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; opacity: 0.95; }
+        .plan-badge { background: rgba(255,255,255,0.25); color: #fff; font-size: 10px; font-weight: 800; padding: 4px 10px; border-radius: 20px; letter-spacing: 0.5px; }
+        .price-original { font-size: 15px; color: rgba(255,255,255,0.65); text-decoration: line-through; font-weight: 600; margin-bottom: 2px; }
+        .plan-price { font-family: 'Bebas Neue', sans-serif; font-size: 60px; line-height: 1; margin: 0 0 4px; }
+        .plan-price small { font-size: 24px; }
+        .plan-period { font-size: 12px; opacity: 0.9; margin-bottom: 12px; font-weight: 600; }
+        .plan-economy { display: inline-block; background: #4ADE80; color: #0F5232; padding: 7px 14px; border-radius: 8px; font-size: 12px; font-weight: 800; }
+
+        .pix-badge { background: #1A1A1A; border: 1px solid #4ADE80; border-radius: 12px; padding: 12px; display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 14px; }
+        .pix-badge-text { color: #4ADE80; font-size: 12px; font-weight: 800; letter-spacing: 0.5px; }
+
+        .benefits { background: #1A1A1A; border-radius: 14px; padding: 14px 18px; margin-bottom: 16px; }
+        .benefits-title { font-size: 11px; font-weight: 700; color: #888; letter-spacing: 1px; margin-bottom: 8px; }
+        .benefit-item { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #ccc; padding: 4px 0; }
+        .benefit-item .check { color: #4ADE80; font-size: 16px; font-weight: 700; }
+
+        .btn-assinar { width: 100%; background: #C9951A; color: #111; border: none; padding: 16px; border-radius: 12px; font-size: 15px; font-weight: 800; cursor: pointer; letter-spacing: 0.5px; font-family: 'Inter', sans-serif; }
+        .btn-assinar:hover { background: #B8841A; }
+        .btn-assinar:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-note { text-align: center; font-size: 11px; color: #555; margin-top: 10px; }
+        .back { text-align: center; margin-top: 20px; }
         .back a { font-size: 12px; color: #555; text-decoration: none; }
         .back a:hover { color: #C9951A; }
+
         .pix-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
         .pix-modal { background: #fff; border-radius: 20px; padding: 32px 28px; max-width: 420px; width: 100%; position: relative; text-align: center; max-height: 90vh; overflow-y: auto; }
         .pix-close { position: absolute; top: 12px; right: 16px; font-size: 28px; color: #888; cursor: pointer; line-height: 1; }
@@ -102,37 +146,72 @@ export default function PlanosPage() {
         .pix-done-btn:hover { background: #333; }
         .pix-note { font-size: 11px; color: #999; line-height: 1.5; }
       `}</style>
+
       <div className="wrap">
         <div className="header">
           <div className="title">ESCOLHA SEU <span>PLANO</span></div>
           <div className="subtitle">Ativação imediata após o pagamento via Pix</div>
         </div>
+
         {loading ? (
           <div style={{textAlign:'center',color:'#555',paddingTop:60}}>Carregando planos...</div>
+        ) : plans.length === 0 ? (
+          <div style={{textAlign:'center',color:'#555',paddingTop:60}}>Nenhum plano disponível.</div>
         ) : (
-          <div className="grid">
-            {plans.map((plan, i) => {
-              const months = Math.max(1, Math.round(plan.days / 30))
-              const parcela = plan.value / months
+          <>
+            <div className="tabs-wrap">
+              {plans.map(plan => {
+                const { percent } = calcDiscount(plan)
+                return (
+                  <button key={plan.id} className={`tab ${selectedId === plan.id ? 'on' : ''}`} onClick={() => setSelectedId(plan.id)}>
+                    {plan.name}
+                    {percent > 0 && <span className="discount">-{percent}%</span>}
+                  </button>
+                )
+              })}
+            </div>
+
+            {selectedPlan && (() => {
+              const { full, saved } = calcDiscount(selectedPlan)
+              const months = Math.max(1, Math.round(selectedPlan.days / 30))
               return (
-              <div key={plan.id} className={`card ${plan.highlight ? 'popular' : ''}`}>
-                {plan.highlight && <div className="popular-badge">{plan.highlight_label || 'MAIS POPULAR'}</div>}
-                <div className="plan-label">{plan.name}</div>
-                <div className="price">R$ {parcela.toFixed(2).replace('.', ',')}</div>
-                <div className="price-note">{months > 1 ? `em ${months}x de R$ ${parcela.toFixed(2).replace('.',',')}` : 'por mês'}</div>
-                {months > 1 && <div className="plan-total">Total: R$ {Number(plan.value).toFixed(2).replace('.',',')}</div>}
-                <div className="desc">{plan.description}</div>
-                <button className={`btn-plan ${plan.highlight ? 'popular' : ''}`}
-                  disabled={paying === plan.id}
-                  onClick={() => handleAssinar(plan)}>
-                  {paying === plan.id ? 'Aguarde...' : 'Assinar'}
-                </button>
-              </div>
+                <>
+                  <div className="plan-card">
+                    <div className="plan-name-row">
+                      <span className="plan-name">Plano {selectedPlan.name}</span>
+                      {selectedPlan.highlight && <span className="plan-badge">{selectedPlan.highlight_label || 'MELHOR OFERTA'}</span>}
+                    </div>
+                    {saved > 0 && <div className="price-original">De R$ {fmtBRL(full)}</div>}
+                    <div className="plan-price">R$ {Math.floor(selectedPlan.value)}<small>,{selectedPlan.value.toFixed(2).split('.')[1]}</small></div>
+                    <div className="plan-period">
+                      {months === 1 ? 'Cobrado uma vez por mês' : months === 12 ? 'Cobrado uma vez por ano' : `Cobrado a cada ${months} meses`}
+                    </div>
+                    {saved > 0 && <div className="plan-economy">💰 Economia de R$ {fmtBRL(saved)}</div>}
+                  </div>
+
+                  <div className="pix-badge">
+                    <span style={{fontSize:16}}>💠</span>
+                    <span className="pix-badge-text">PAGAMENTO EXCLUSIVO VIA PIX</span>
+                  </div>
+
+                  <div className="benefits">
+                    <div className="benefits-title">✓ INCLUÍDO</div>
+                    <div className="benefit-item"><span className="check">✓</span> WhatsApp visível</div>
+                    <div className="benefit-item"><span className="check">✓</span> Endereço e mapa</div>
+                    <div className="benefit-item"><span className="check">✓</span> Link externo</div>
+                    <div className="benefit-item"><span className="check">✓</span> Fotos, avaliações e busca por tags</div>
+                  </div>
+
+                  <button className="btn-assinar" disabled={paying === selectedPlan.id} onClick={() => handleAssinar(selectedPlan)}>
+                    {paying === selectedPlan.id ? 'Aguarde...' : `Assinar · R$ ${fmtBRL(selectedPlan.value)}`}
+                  </button>
+                  <div className="btn-note">Cancele quando quiser</div>
+                </>
               )
-            })}
-          </div>
+            })()}
+          </>
         )}
-        <div className="footer-note">Todos os planos incluem ativação imediata via Pix · Cancele quando quiser</div>
+
         <div className="back"><a href="/painel">← Ir para o painel sem assinar agora</a></div>
       </div>
 
@@ -141,7 +220,7 @@ export default function PlanosPage() {
           <div className="pix-modal" onClick={e => e.stopPropagation()}>
             <div className="pix-close" onClick={() => setPixData(null)}>×</div>
             <div className="pix-title">PAGUE COM <span>PIX</span></div>
-            <div className="pix-plano">{pixData.plano} · R$ {Number(pixData.valor).toFixed(2).replace('.', ',')}</div>
+            <div className="pix-plano">{pixData.plano} · R$ {fmtBRL(pixData.valor)}</div>
             {pixData.qr && (
               <div className="pix-qr-wrap">
                 <img src={`data:image/png;base64,${pixData.qr}`} alt="QR Code Pix" className="pix-qr" />
@@ -149,14 +228,12 @@ export default function PlanosPage() {
             )}
             <div className="pix-instr">Escaneie o QR Code acima ou copie o código abaixo no app do seu banco</div>
             {pixData.copy && (
-              <>
-                <div className="pix-copy-wrap">
-                  <input type="text" readOnly value={pixData.copy} className="pix-copy-input" />
-                  <button className="pix-copy-btn" onClick={copiarPix}>
-                    {copied ? '✓ Copiado' : 'Copiar'}
-                  </button>
-                </div>
-              </>
+              <div className="pix-copy-wrap">
+                <input type="text" readOnly value={pixData.copy} className="pix-copy-input" />
+                <button className="pix-copy-btn" onClick={copiarPix}>
+                  {copied ? '✓ Copiado' : 'Copiar'}
+                </button>
+              </div>
             )}
             <button className="pix-done-btn" onClick={() => router.push('/painel')}>Já paguei — ir para o painel →</button>
             <div className="pix-note">Após o pagamento, seu plano é ativado automaticamente em até 2 minutos</div>

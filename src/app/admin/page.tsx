@@ -659,13 +659,6 @@ export default function AdminPage() {
     showToast('Usuário excluído.')
     loadUsers(); loadStats()
   }
-  async function deleteUser(id: string, nome: string) {
-    if (!confirm(`Excluir o usuário "${nome}"? Esta ação é irreversível.`)) return
-    const { error } = await supabase.from('profiles').delete().eq('id', id)
-    if (error) { showToast('Erro ao excluir: ' + error.message); return }
-    showToast('Usuário excluído.')
-    loadUsers(); loadStats()
-  }
   async function openEditCompany(c: any) {
     if (allCategories.length === 0) {
       const { data: cats } = await supabase.from('categories').select('id,name,emoji,slug').order('name')

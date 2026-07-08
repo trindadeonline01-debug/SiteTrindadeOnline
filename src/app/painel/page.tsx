@@ -1,5 +1,6 @@
 'use client'
 
+import { compressImage } from '@/lib/compressImage'
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import PhotoManager from '@/components/PhotoManager'
@@ -197,7 +198,8 @@ export default function PainelPage() {
       if (tipo === 'upload' && bannerModal.fileDesktop) {
         const ext = bannerModal.fileDesktop.name.split('.').pop()
         const pathD = `${company.id}/${Date.now()}-desktop.${ext}`
-        const { data: upD } = await supabase.storage.from('banner-uploads').upload(pathD, bannerModal.fileDesktop, {upsert:true})
+        const compressedD = await compressImage(bannerModal.fileDesktop, 1.5, 1920)
+        const { data: upD } = await supabase.storage.from('banner-uploads').upload(pathD, compressedD, {upsert:true})
         if (upD) {
           const { data: urlD } = supabase.storage.from('banner-uploads').getPublicUrl(pathD)
           fileDesktopUrl = urlD.publicUrl
@@ -205,7 +207,8 @@ export default function PainelPage() {
         if (bannerModal.fileMobile) {
           const extM = bannerModal.fileMobile.name.split('.').pop()
           const pathM = `${company.id}/${Date.now()}-mobile.${extM}`
-          const { data: upM } = await supabase.storage.from('banner-uploads').upload(pathM, bannerModal.fileMobile, {upsert:true})
+          const compressedM = await compressImage(bannerModal.fileMobile, 1.0, 1200)
+          const { data: upM } = await supabase.storage.from('banner-uploads').upload(pathM, compressedM, {upsert:true})
           if (upM) {
             const { data: urlM } = supabase.storage.from('banner-uploads').getPublicUrl(pathM)
             fileMobileUrl = urlM.publicUrl
@@ -384,7 +387,8 @@ export default function PainelPage() {
     const ext = file.name.split('.').pop()
     const order = (company.photos?.length || 0)
     const path = `${company.id}/${order}-${Date.now()}.${ext}`
-    const { data: upload } = await supabase.storage.from('company-photos').upload(path, file, {upsert:true})
+    const compressed = await compressImage(file)
+    const { data: upload } = await supabase.storage.from('company-photos').upload(path, compressed, {upsert:true})
     if (upload) {
       const { data: url } = supabase.storage.from('company-photos').getPublicUrl(path)
       await supabase.from('company_photos').insert({company_id:company.id, url:url.publicUrl, order})

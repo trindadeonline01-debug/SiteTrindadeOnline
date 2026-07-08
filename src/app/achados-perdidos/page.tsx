@@ -1,4 +1,5 @@
 'use client'
+import { compressImage } from '@/lib/compressImage'
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -168,7 +169,7 @@ function FormModal({subtypes,type,userId,onClose,onSaved}:{subtypes:[string,stri
     if(error||!listing){setLoading(false);alert('Erro: '+error?.message);return}
     for(let i=0;i<files.length;i++){
       const file=files[i];const ext=file.name.split('.').pop();const path=`listings/${listing.id}/${Date.now()}_${i}.${ext}`
-      const{data:up}=await supabase.storage.from('company-photos').upload(path,file)
+      const compressed=await compressImage(file);const{data:up}=await supabase.storage.from('company-photos').upload(path,compressed)
       if(up){const{data:url}=supabase.storage.from('company-photos').getPublicUrl(path);await supabase.from('listing_photos').insert({listing_id:listing.id,url:url.publicUrl,order:i})}
     }
     setLoading(false);onSaved()

@@ -1,4 +1,5 @@
 'use client'
+import { compressImage } from '@/lib/compressImage'
 import { useState, useRef, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
@@ -97,7 +98,8 @@ export default function PhotoManager({ companyId, onChange }: { companyId: strin
       const file = toUpload[i]
       const ext = file.name.split('.').pop()
       const path = `${companyId}/${photos.length + i}-${Date.now()}.${ext}`
-      const { data: up } = await supabase.storage.from('company-photos').upload(path, file, { upsert: true })
+      const compressed = await compressImage(file)
+      const { data: up } = await supabase.storage.from('company-photos').upload(path, compressed, { upsert: true })
       if (up) {
         const { data: urlData } = supabase.storage.from('company-photos').getPublicUrl(path)
         await supabase.from('company_photos').insert({

@@ -1,5 +1,6 @@
 'use client'
 
+import { compressImage } from '@/lib/compressImage'
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -182,9 +183,10 @@ export default function EmpresaCadastrarPage() {
         const ext = file.name.split('.').pop()
         const path = `${company.id}/${i}-${Date.now()}.${ext}`
 
+        const compressed = await compressImage(file)
         const { data: upload } = await supabase.storage
           .from('company-photos')
-          .upload(path, file, { upsert: true })
+          .upload(path, compressed, { upsert: true })
 
         if (upload) {
           const { data: urlData } = supabase.storage.from('company-photos').getPublicUrl(path)

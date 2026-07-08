@@ -1,5 +1,6 @@
 'use client'
 
+import { compressImage } from '@/lib/compressImage'
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import PhotoManager from '@/components/PhotoManager'
@@ -467,7 +468,8 @@ export default function AdminPage() {
     const ext = file.name.split('.').pop()
     const fileName = `banners/${Date.now()}.${ext}`
     setUploadProgress(30)
-    const { error } = await supabase.storage.from('company-photos').upload(fileName, file, { upsert: true })
+    const compressed = await compressImage(file)
+    const { error } = await supabase.storage.from('company-photos').upload(fileName, compressed, { upsert: true })
     if (error) { showToast('Erro no upload: ' + error.message); setUploadProgress(0); return null }
     setUploadProgress(80)
     const { data: { publicUrl } } = supabase.storage.from('company-photos').getPublicUrl(fileName)

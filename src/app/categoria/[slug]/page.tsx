@@ -8,7 +8,7 @@ type Subcategory = { id: string; name: string; emoji: string; slug?: string }
 type Highlight   = { id: string; company: { name: string; slug: string; photos?: any[]; category?: any; avg_rating?: number } }
 type Company     = {
   id: string; name: string; slug: string
-  avg_rating?: number; address?: string
+  avg_rating?: number; address?: string; plan?: string
   photos?: any[]; subcategories?: any[]
 }
 
@@ -87,6 +87,7 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
   const [subcats, setSubcats]       = useState<Subcategory[]>([])
   const [companies, setCompanies]   = useState<Company[]>([])
   const [filtered, setFiltered]     = useState<Company[]>([])
+  const [sortOrder, setSortOrder]     = useState<'az'|'rating'|'recent'>('az')
   const [activeSub, setActiveSub]   = useState<string | null>(null)
   const [highlights, setHighlights] = useState<Highlight[]>([])
   const [loading, setLoading]       = useState(true)
@@ -108,7 +109,7 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
 
     const { data: comps } = await supabase
       .from('companies')
-      .select('id, name, slug, avg_rating, address, photos:company_photos(url,order), subcategories:company_subcategories(subcategory:subcategories(id,name,emoji))')
+      .select('id, name, slug, avg_rating, address, plan, photos:company_photos(url,order), subcategories:company_subcategories(subcategory:subcategories(id,name,emoji))')
       .eq('status', 'active').eq('category_id', cat.id)
       .order('avg_rating', { ascending: false })
     const list = (comps || []) as Company[]
@@ -224,16 +225,10 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
 
         /* SUBCATEGORIAS */
         .subcat-wrap { background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 16px 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 24px; }
-        .subcat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; }
-        @media(min-width: 640px)  { .subcat-grid { grid-template-columns: repeat(6, 1fr); } }
-        @media(min-width: 1024px) { .subcat-grid { grid-template-columns: repeat(8, 1fr); } }
-        .subcat-item { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 6px; border-radius: 8px; cursor: pointer; position: relative; transition: background 0.15s; }
-        .subcat-item:hover { background: #fdf6e3; }
-        .subcat-item:hover .subcat-label { color: #C9951A; }
-        .subcat-item.on { background: #FEF3E2; }
-        .subcat-item.on .subcat-label { color: #C9951A; font-weight: 700; }
-        .subcat-item.on .subcat-emoji-box { border-color: #C9951A; }
-        .subcat-item:not(:last-child)::after { content: ""; position: absolute; right: 0; top: 20%; height: 60%; width: 1px; background: #e8e8e4; }
+        .subcat-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; }
+        .subcat-pill { display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; border-radius: 20px; border: 0.5px solid #E0DDD8; background: #fff; font-size: 12px; font-weight: 500; color: #555; cursor: pointer; white-space: nowrap; transition: all .15s; }
+        .subcat-pill:hover { border-color: #C9951A; color: #854F0B; background: #FEF3E2; }
+        .subcat-pill.on { background: #FEF3E2; border-color: #F5C77A; color: #854F0B; font-weight: 600; }
         .subcat-emoji-box { width: 48px; height: 48px; border-radius: 10px; border: 1.5px solid #e0e0e0; background: #fafafa; display: flex; align-items: center; justify-content: center; font-size: 24px; transition: border-color 0.15s; }
         .subcat-label { font-size: 10.5px; color: #555; text-align: center; line-height: 1.3; font-weight: 500; transition: color 0.15s; }
 
@@ -241,15 +236,18 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
         .result-cnt span { color: #111; font-weight: 600; }
 
         /* EMPRESAS EM LISTA */
-        .companies-grid { display: flex; flex-direction: column; background: #fff; border: 0.5px solid #EDE8E0; border-radius: 14px; overflow: hidden; }
-        .cc { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 0.5px solid #F5F2EC; text-decoration: none; transition: background .15s; }
-        .cc:last-child { border-bottom: none; }
-        .cc:hover { background: #FAFAF8; }
-        .cc-img { width: 48px; height: 48px; border-radius: 10px; background: #f5f0e8; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; border: 0.5px solid #E0DDD8; overflow: hidden; }
+        .companies-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; }
+        @media(min-width: 640px) { .companies-grid { grid-template-columns: repeat(3,1fr); } }
+        @media(min-width: 1024px) { .companies-grid { grid-template-columns: repeat(4,1fr); } }
+        .cc { background: #fff; border: 0.5px solid #E0DDD8; border-radius: 12px; overflow: hidden; text-decoration: none; transition: all .18s; display: block; }
+        .cc:hover { transform: translateY(-2px); border-color: #C9951A; }
+        .cc-img { height: 90px; background: #FEF3E2; display: flex; align-items: center; justify-content: center; font-size: 32px; overflow: hidden; }
         .cc-img img { width: 100%; height: 100%; object-fit: cover; }
-        .cc-body { flex: 1; min-width: 0; }
-        .cc-name { font-size: 13px; font-weight: 600; color: #111; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .cc-stars { font-size: 11px; color: #C9951A; font-weight: 600; margin-bottom: 2px; }
+        .cc-body { padding: 10px 12px; }
+        .cc-name { font-size: 13px; font-weight: 600; color: #111; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .cc-stars { font-size: 11px; color: #C9951A; font-weight: 600; margin-bottom: 3px; }
+        .cc-subs { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+        .cc-sub { font-size: 10px; background: #F5F2EC; color: #666; padding: 2px 7px; border-radius: 10px; }
         .cc-addr { font-size: 11px; color: #BBB; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .cc-arrow { flex-shrink: 0; color: #CCC; }
 
@@ -348,41 +346,38 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
         {subcats.length > 0 && (
           <>
             <div className="sec-label">SUBCATEGORIAS</div>
-            <div className="subcat-wrap">
-              <div className="subcat-grid">
-                {/* Todas — usa SVG da categoria */}
-                <div
-                  className={`subcat-item ${!activeSub ? 'on' : ''}`}
-                  onClick={() => filterBySub(null)}
-                >
-                  <div className="subcat-emoji-box">
-                    <CategorySVG slug={slug} size={24} color={!activeSub ? '#C9951A' : '#888'} />
-                  </div>
-                  <span className="subcat-label">Todas ({companies.length})</span>
-                </div>
-
-                {subcats.map(s => {
-                  const cnt = companies.filter(c =>
-                    c.subcategories?.some((cs: any) => cs.subcategory?.id === s.id)
-                  ).length
-                  if (cnt === 0) return null
-                  return (
-                    <div
-                      key={s.id}
-                      className={`subcat-item ${activeSub === s.id ? 'on' : ''}`}
-                      onClick={() => filterBySub(s.id)}
-                    >
-                      <div className="subcat-emoji-box">{s.emoji}</div>
-                      <span className="subcat-label">{s.name} ({cnt})</span>
-                    </div>
-                  )
-                })}
+            <div className="subcat-pills">
+              <div className={`subcat-pill ${!activeSub ? 'on' : ''}`} onClick={() => filterBySub(null)}>
+                Todas ({companies.length})
               </div>
+              {subcats.map(s => {
+                const cnt = companies.filter(c => c.subcategories?.some((cs: any) => cs.subcategory?.id === s.id)).length
+                if (cnt === 0) return null
+                return (
+                  <div key={s.id} className={`subcat-pill ${activeSub === s.id ? 'on' : ''}`} onClick={() => filterBySub(s.id)}>
+                    {s.emoji} {s.name} ({cnt})
+                  </div>
+                )
+              })}
             </div>
           </>
         )}
 
         {/* 3. EMPRESAS */}
+        {!loading && filtered.length > 0 && (
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12,flexWrap:'wrap',gap:8}}>
+            <div/>
+            <div style={{display:'flex',gap:6,alignItems:'center'}}>
+              <span style={{fontSize:11,color:'#999'}}>Ordenar:</span>
+              {([['az','A–Z'],['rating','Melhor avaliado'],['recent','Mais recente']] as const).map(([v,l])=>(
+                <button key={v} onClick={()=>setSortOrder(v)}
+                  style={{padding:'5px 12px',borderRadius:8,border:'0.5px solid',borderColor:sortOrder===v?'#888':'#E0DDD8',background:sortOrder===v?'#F5F2EC':'#fff',color:sortOrder===v?'#111':'#888',fontSize:11,fontWeight:500,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                  {l}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         {!loading && (
           <div className="result-cnt">
             Mostrando <span>{filtered.length}</span> empresa{filtered.length !== 1 ? 's' : ''}
@@ -401,8 +396,13 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
 
         {!loading && filtered.length > 0 && (
           <div className="companies-grid">
-            {filtered.map(c => {
+            {[...filtered].sort((a,b)=>{
+              if(sortOrder==='az') return a.name.localeCompare(b.name,'pt')
+              if(sortOrder==='rating') return (b.avg_rating||0)-(a.avg_rating||0)
+              return 0
+            }).map(c => {
               const cover = getCover(c.photos)
+              const subs = c.subcategories?.map((s:any)=>s.subcategory).filter(Boolean).slice(0,2) || []
               return (
                 <a key={c.id} className="cc" href={`/empresa/${c.slug}`}>
                   <div className="cc-img">
@@ -416,7 +416,10 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
                     {(c.avg_rating || 0) > 0 && (
                       <div className="cc-stars">★ {Number(c.avg_rating).toFixed(1)}</div>
                     )}
-                    {c.address && (
+                    {subs.length > 0 && (
+                      <div className="cc-subs">{subs.map((s:any,i:number)=><span key={i} className="cc-sub">{s.emoji} {s.name}</span>)}</div>
+                    )}
+                    {c.address && c.plan === 'paid' && (
                       <div className="cc-addr">📍 {c.address}</div>
                     )}
                   </div>

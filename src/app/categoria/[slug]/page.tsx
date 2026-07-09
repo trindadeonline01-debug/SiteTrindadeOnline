@@ -8,7 +8,7 @@ type Subcategory = { id: string; name: string; emoji: string; slug?: string }
 type Highlight   = { id: string; company: { name: string; slug: string; photos?: any[]; category?: any; avg_rating?: number } }
 type Company     = {
   id: string; name: string; slug: string
-  avg_rating?: number; address?: string; plan?: string
+  avg_rating?: number; address?: string; plan?: string; description?: string; tags?: string[]
   photos?: any[]; subcategories?: any[]
 }
 
@@ -109,7 +109,7 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
 
     const { data: comps } = await supabase
       .from('companies')
-      .select('id, name, slug, avg_rating, address, plan, photos:company_photos(url,order), subcategories:company_subcategories(subcategory:subcategories(id,name,emoji))')
+      .select('id, name, slug, avg_rating, address, plan, description, tags, photos:company_photos(url,order), subcategories:company_subcategories(subcategory:subcategories(id,name,emoji))')
       .eq('status', 'active').eq('category_id', cat.id)
       .order('avg_rating', { ascending: false })
     const list = (comps || []) as Company[]

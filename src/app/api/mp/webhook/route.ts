@@ -29,7 +29,7 @@ function emailTemplate(title: string, body: string) {
 
 async function processPayment(paymentId: string) {
   try {
-    const { data: setting } = await supabase.from('settings').select('value').eq('key', 'mp_access_token').single()
+    const { data: setting } = await supabase.from('settings').select('value').eq('key', 'mp_access_token').maybeSingle()
     const accessToken = setting?.value
     if (!accessToken) return
 
@@ -57,7 +57,7 @@ async function processPayment(paymentId: string) {
         impressions_count: 0,
       })
       // Buscar email do dono
-      const { data: comp } = await supabase.from('companies').select('name, owner_id').eq('id', ext.company_id).single()
+      const { data: comp } = await supabase.from('companies').select('name, owner_id').eq('id', ext.company_id).maybeSingle()
       if (comp) {
         const { data: authUser } = await supabase.auth.admin.getUserById(comp.owner_id)
         const email = authUser?.user?.email
@@ -84,7 +84,7 @@ async function processPayment(paymentId: string) {
     }
 
     // PLANO
-    const { data: rec } = await supabase.from('payments').select('*').eq('payment_id', String(paymentId)).single()
+    const { data: rec } = await supabase.from('payments').select('*').eq('payment_id', String(paymentId)).maybeSingle()
     const companyId = rec?.company_id || ext.company_id
     if (!companyId) return
 
@@ -99,7 +99,7 @@ async function processPayment(paymentId: string) {
     await supabase.from('companies').update({ plan: 'paid', plan_ends_at: planEndsAt.toISOString(), status: 'active' }).eq('id', companyId)
 
     // Email de confirmação do plano
-    const { data: comp } = await supabase.from('companies').select('name, owner_id').eq('id', companyId).single()
+    const { data: comp } = await supabase.from('companies').select('name, owner_id').eq('id', companyId).maybeSingle()
     if (comp) {
       const { data: authUser } = await supabase.auth.admin.getUserById(comp.owner_id)
       const email = authUser?.user?.email

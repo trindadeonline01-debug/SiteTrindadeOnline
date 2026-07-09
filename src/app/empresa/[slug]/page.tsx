@@ -42,14 +42,16 @@ function isOpenNow(hours?: CompanyHour[]): boolean {
 /* ── Galeria dinâmica por número de fotos ── */
 function Lightbox({ photos, idx, open, setIdx, onClose, isAdmin }: { photos: CompanyPhoto[]; idx: number; open: boolean; setIdx: (v:number|((i:number)=>number)) => void; onClose: () => void; isAdmin?: boolean }) {
   const [editMode, setEditMode] = useState(false)
-  const [drawing, setDrawing] = useState(false)
   const [saving, setSaving] = useState(false)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [rects, setRects] = useState<{x:number,y:number,w:number,h:number}[]>([])
+  const [dragging, setDragging] = useState<{x:number,y:number}|null>(null)
+  const [current, setCurrent] = useState<{x:number,y:number,w:number,h:number}|null>(null)
   const imgRef = useRef<HTMLImageElement>(null)
-  function loadCanvas() { const c=canvasRef.current,i=imgRef.current; if(!c||!i)return; c.width=i.naturalWidth; c.height=i.naturalHeight; c.getContext('2d')?.drawImage(i,0,0) }
-  function getPos(e:React.MouseEvent<HTMLCanvasElement>){const c=canvasRef.current!,r=c.getBoundingClientRect();return{x:(e.clientX-r.left)*c.width/r.width,y:(e.clientY-r.top)*c.height/r.height}}
-  function drawBlur(e:React.MouseEvent<HTMLCanvasElement>){if(!drawing)return;const ctx=canvasRef.current?.getContext('2d');if(!ctx)return;const{x,y}=getPos(e);ctx.filter='blur(10px)';ctx.fillStyle='rgba(0,0,0,0.8)';ctx.beginPath();ctx.arc(x,y,25,0,Math.PI*2);ctx.fill();ctx.filter='none'}
-  async function saveEdit(){const c=canvasRef.current,p=photos[idx];if(!c||!p)return;setSaving(true);const blob=await new Promise<Blob>(r=>c.toBlob(b=>r(b!),'image/jpeg',0.92));const fd=new FormData();fd.append('file',blob,'photo.jpg');fd.append('photo_id',p.id);fd.append('photo_url',p.url);await fetch('/api/admin/edit-photo',{method:'POST',body:fd});setSaving(false);setEditMode(false);window.location.reload()}
+  function getRelPos(e:React.MouseEvent<HTMLDivElement>){const r=e.currentTarget.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
+  function onMouseDown(e:React.MouseEvent<HTMLDivElement>){e.stopPropagation();const p=getRelPos(e);setDragging(p);setCurrent({...p,w:0,h:0})}
+  function onMouseMove(e:React.MouseEvent<HTMLDivElement>){e.stopPropagation();if(!dragging)return;const p=getRelPos(e);setCurrent({x:Math.min(dragging.x,p.x),y:Math.min(dragging.y,p.y),w:Math.abs(p.x-dragging.x),h:Math.abs(p.y-dragging.y)})}
+  function onMouseUp(e:React.MouseEvent<HTMLDivElement>){e.stopPropagation();if(current&&current.w>5&&current.h>5)setRects(r=>[...r,current]);setDragging(null);setCurrent(null)}
+  async function saveEdit(){const p=photos[idx],img=imgRef.current;if(!p||!img)return;setSaving(true);const scaleX=img.naturalWidth/img.width,scaleY=img.naturalHeight/img.height;const regions=rects.map(r=>({x:r.x*scaleX,y:r.y*scaleY,w:r.w*scaleX,h:r.h*scaleY}));await fetch('/api/admin/edit-photo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({photo_id:p.id,photo_url:p.url,regions})});setSaving(false);setEditMode(false);setRects([]);window.location.reload()}
   if (!open) return null
   const n = photos.length
   return (
@@ -60,10 +62,14 @@ function Lightbox({ photos, idx, open, setIdx, onClose, isAdmin }: { photos: Com
         <button onClick={(e) => { e.stopPropagation(); setIdx((i:number) => (i + 1) % n) }} style={{position:'absolute',right:20,top:'50%',transform:'translateY(-50%)',background:'rgba(0,0,0,0.7)',border:'2px solid #fff',color:'#fff',fontSize:28,width:50,height:50,borderRadius:25,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',zIndex:2}}>›</button>
         <div style={{position:'absolute',bottom:20,left:'50%',transform:'translateX(-50%)',background:'rgba(0,0,0,0.6)',color:'#fff',padding:'6px 16px',borderRadius:20,fontSize:13,fontWeight:600,zIndex:2}}>{idx + 1} / {n}</div>
       </>)}
-      {isAdmin && !editMode && <button onClick={(e)=>{e.stopPropagation();setEditMode(true);setTimeout(loadCanvas,100)}} style={{position:'absolute',top:20,left:20,background:'#C9951A',border:'none',color:'#fff',fontSize:13,fontWeight:600,padding:'8px 16px',borderRadius:10,cursor:'pointer',zIndex:2}}>✏️ Editar foto</button>}
-      {editMode && <div style={{position:'absolute',top:20,left:20,display:'flex',gap:8,zIndex:2}} onClick={e=>e.stopPropagation()}><span style={{background:'rgba(0,0,0,0.8)',color:'#fff',fontSize:12,padding:'6px 12px',borderRadius:8}}>🖌️ Arraste para borrar</span><button onClick={saveEdit} disabled={saving} style={{background:'#0F8050',border:'none',color:'#fff',fontSize:13,fontWeight:600,padding:'8px 16px',borderRadius:10,cursor:'pointer'}}>{saving?'Salvando...':'✓ Salvar'}</button><button onClick={()=>setEditMode(false)} style={{background:'#E24B4A',border:'none',color:'#fff',fontSize:13,fontWeight:600,padding:'8px 16px',borderRadius:10,cursor:'pointer'}}>Cancelar</button></div>}
-      <img ref={imgRef} crossOrigin="anonymous" src={photos[idx]?.url || ''} alt="" onClick={(e) => e.stopPropagation()} style={{maxWidth:'92vw',maxHeight:'92vh',objectFit:'contain',borderRadius:8,display:editMode?'none':'block'}} />
-      {editMode && <canvas ref={canvasRef} onClick={e=>e.stopPropagation()} onMouseDown={e=>{e.stopPropagation();setDrawing(true);drawBlur(e)}} onMouseMove={e=>{e.stopPropagation();drawBlur(e)}} onMouseUp={e=>{e.stopPropagation();setDrawing(false)}} onMouseLeave={()=>setDrawing(false)} style={{maxWidth:'92vw',maxHeight:'80vh',cursor:'crosshair',borderRadius:8}}/>}
+      {isAdmin && !editMode && <button onClick={(e)=>{e.stopPropagation();setEditMode(true);setRects([])}} style={{position:'absolute',top:20,left:20,background:'#C9951A',border:'none',color:'#fff',fontSize:13,fontWeight:600,padding:'8px 16px',borderRadius:10,cursor:'pointer',zIndex:2}}>✏️ Editar foto</button>}
+      {editMode && <div style={{position:'absolute',top:20,left:20,display:'flex',gap:8,zIndex:2}} onClick={e=>e.stopPropagation()}><span style={{background:'rgba(0,0,0,0.8)',color:'#fff',fontSize:12,padding:'6px 12px',borderRadius:8}}>⬛ Arraste para cobrir área</span><button onClick={()=>setRects([])} style={{background:'#666',border:'none',color:'#fff',fontSize:12,padding:'8px 12px',borderRadius:8,cursor:'pointer'}}>Limpar</button><button onClick={saveEdit} disabled={saving||rects.length===0} style={{background:'#0F8050',border:'none',color:'#fff',fontSize:13,fontWeight:600,padding:'8px 16px',borderRadius:10,cursor:'pointer'}}>{saving?'Salvando...':'✓ Salvar'}</button><button onClick={()=>{setEditMode(false);setRects([])}} style={{background:'#E24B4A',border:'none',color:'#fff',fontSize:13,fontWeight:600,padding:'8px 16px',borderRadius:10,cursor:'pointer'}}>Cancelar</button></div>}
+      {!editMode && <img ref={imgRef} src={photos[idx]?.url || ''} alt="" onClick={(e) => e.stopPropagation()} style={{maxWidth:'92vw',maxHeight:'92vh',objectFit:'contain',borderRadius:8}} />}
+      {editMode && <div onClick={e=>e.stopPropagation()} onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} style={{position:'relative',cursor:'crosshair',userSelect:'none'}}>
+        <img ref={imgRef} src={photos[idx]?.url||''} alt="" style={{maxWidth:'92vw',maxHeight:'80vh',objectFit:'contain',borderRadius:8,display:'block'}}/>
+        {rects.map((r,i)=><div key={i} style={{position:'absolute',left:r.x,top:r.y,width:r.w,height:r.h,background:'black',pointerEvents:'none'}}/>)}
+        {current&&<div style={{position:'absolute',left:current.x,top:current.y,width:current.w,height:current.h,background:'rgba(0,0,0,0.7)',border:'2px dashed #fff',pointerEvents:'none'}}/>}
+      </div>}
     </div>
   )
 }

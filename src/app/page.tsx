@@ -25,7 +25,7 @@ interface Highlight {
 
 interface Listing {
   id: string; title: string; price: number | null
-  listing_type: string; company_name: string | null; created_at: string
+  type: string; created_at: string
 }
 
 interface Banner {
@@ -132,8 +132,8 @@ export default function HomePage() {
     const map: Record<string, Listing[]> = {}
     for (const type of types) {
       const { data: ld } = await supabase
-        .from('listings').select('id, title, price, listing_type, company_name, created_at')
-        .eq('listing_type', type).eq('is_resolved', false)
+        .from('listings').select('id, title, price, type, created_at')
+        .eq('type', type).eq('status', 'active')
         .order('created_at', { ascending: false }).limit(3)
       map[type] = (ld || []) as Listing[]
     }
@@ -703,7 +703,7 @@ export default function HomePage() {
               : (recentListings['emprego'] || []).map(l => (
                   <a key={l.id} className="listing-item" href={`/anuncio/${l.id}`}>
                     <div className="li-title">{l.title}</div>
-                    {l.company_name && <div className="li-meta">{l.company_name}</div>}
+                    <div className="li-meta">Vaga de emprego</div>
                   </a>
                 ))
             }

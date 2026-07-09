@@ -402,13 +402,15 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
           </div>
         )}
 
-        {!loading && filtered.length > 0 && (
-          <div className="companies-grid">
-            {[...filtered].sort((a,b)=>{
-              if(sortOrder==='az') return a.name.localeCompare(b.name,'pt')
-              if(sortOrder==='rating') return (b.avg_rating||0)-(a.avg_rating||0)
-              return 0
-            }).map(c => {
+        {!loading && filtered.length > 0 && (() => {
+          const sorted = [...filtered].sort((a,b)=>{
+            if(sortOrder==='az') return a.name.localeCompare(b.name,'pt')
+            if(sortOrder==='rating') return (b.avg_rating||0)-(a.avg_rating||0)
+            return 0
+          })
+          const pagas = sorted.filter(c => c.plan === 'paid')
+          const outras = sorted.filter(c => c.plan !== 'paid')
+          const renderCard = (c: any) => {
               const cover = getCover(c.photos)
               const subs = c.subcategories?.map((s:any)=>s.subcategory).filter(Boolean) || []
               return (
@@ -444,9 +446,29 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
                   )}
                 </a>
               )
-            })}
-          </div>
-        )}
+          }
+          return (
+            <div>
+              {pagas.length > 0 && (
+                <>
+                  <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:13,color:'#C9951A',letterSpacing:'1.5px',marginBottom:10,display:'flex',alignItems:'center',gap:8}}>
+                    <svg width="16" height="16" viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="28" stroke="#C9951A" strokeWidth="5" fill="none"/><path d="M18 32 L27 42 L46 22" stroke="#C9951A" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    EMPRESAS INDICADAS ({pagas.length})
+                  </div>
+                  <div className="companies-grid" style={{marginBottom:24}}>{pagas.map(c => renderCard(c))}</div>
+                </>
+              )}
+              {outras.length > 0 && (
+                <>
+                  <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:13,color:'#AAA',letterSpacing:'1.5px',marginBottom:10,marginTop:pagas.length>0?8:0}}>
+                    OUTRAS EMPRESAS ({outras.length})
+                  </div>
+                  <div className="companies-grid">{outras.map(c => renderCard(c))}</div>
+                </>
+              )}
+            </div>
+          )
+        })()}
 
         {!loading && filtered.length === 0 && (
           <div className="empty">

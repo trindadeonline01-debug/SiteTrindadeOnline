@@ -41,11 +41,11 @@ function isOpenNow(hours?: CompanyHour[]): boolean {
 
 /* ── Galeria dinâmica por número de fotos ── */
 function Lightbox({ photos, idx, open, setIdx, onClose, isAdmin }: { photos: CompanyPhoto[]; idx: number; open: boolean; setIdx: (v:number|((i:number)=>number)) => void; onClose: () => void; isAdmin?: boolean }) {
-  const [editMode, setEditMode] = React.useState(false)
-  const [drawing, setDrawing] = React.useState(false)
-  const [saving, setSaving] = React.useState(false)
-  const canvasRef = React.useRef<HTMLCanvasElement>(null)
-  const imgRef = React.useRef<HTMLImageElement>(null)
+  const [editMode, setEditMode] = useState(false)
+  const [drawing, setDrawing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const imgRef = useRef<HTMLImageElement>(null)
   function loadCanvas() { const c=canvasRef.current,i=imgRef.current; if(!c||!i)return; c.width=i.naturalWidth; c.height=i.naturalHeight; c.getContext('2d')?.drawImage(i,0,0) }
   function getPos(e:React.MouseEvent<HTMLCanvasElement>){const c=canvasRef.current!,r=c.getBoundingClientRect();return{x:(e.clientX-r.left)*c.width/r.width,y:(e.clientY-r.top)*c.height/r.height}}
   function drawBlur(e:React.MouseEvent<HTMLCanvasElement>){if(!drawing)return;const ctx=canvasRef.current?.getContext('2d');if(!ctx)return;const{x,y}=getPos(e);ctx.filter='blur(10px)';ctx.fillStyle='rgba(0,0,0,0.8)';ctx.beginPath();ctx.arc(x,y,25,0,Math.PI*2);ctx.fill();ctx.filter='none'}

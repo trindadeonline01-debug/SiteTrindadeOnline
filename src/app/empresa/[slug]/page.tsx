@@ -68,7 +68,7 @@ function Lightbox({ photos, idx, open, setIdx, onClose, isAdmin }: { photos: Com
   )
 }
 
-function Gallery({ photos, emoji }: { photos: CompanyPhoto[]; emoji: string }) {
+function Gallery({ photos, emoji, isAdmin }: { photos: CompanyPhoto[]; emoji: string; isAdmin?: boolean }) {
   const [idx, setIdx] = useState(0)
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIdx, setLightboxIdx] = useState(0)
@@ -436,7 +436,7 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
 
       {/* GALERIA FULL WIDTH — grid dinâmico */}
       <div className="gallery-wrap">
-        <Gallery photos={photos} emoji={company.category?.emoji || '🏪'} />
+        <Gallery photos={photos} emoji={company.category?.emoji || '🏪'} isAdmin={isAdmin} />
       </div>
 
       {/* CONTEÚDO */}

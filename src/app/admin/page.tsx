@@ -50,6 +50,8 @@ export default function AdminPage() {
   const [filterStatus, setFilter]   = useState('all')
   const [searchCompany, setSearchCompany] = useState('')
   const [searchUser, setSearchUser] = useState('')
+  const [filterUserType, setFilterUserType] = useState('all')
+  const [filterUserBairro, setFilterUserBairro] = useState('all')
   const [loading, setLoading]       = useState(true)
   const [toast, setToast]           = useState('')
   const [authorized, setAuthorized] = useState<boolean|null>(null)
@@ -1405,9 +1407,28 @@ export default function AdminPage() {
             {/* ── USUÁRIOS ── */}
             {!loading && tab === 'usuarios' && (
               <div className="section-card">
-                <div className="section-hdr">
-                  <span className="section-title">USUÁRIOS ({users.filter(u=>searchUser===''||u.name.toLowerCase().includes(searchUser.toLowerCase())||(u.email||'').toLowerCase().includes(searchUser.toLowerCase())).length})</span>
-                  <input value={searchUser} onChange={e=>setSearchUser(e.target.value)} placeholder="🔍 Buscar nome ou email..." style={{padding:'7px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none',width:260}}/>
+                <div className="section-hdr" style={{flexWrap:'wrap',gap:8}}>
+                  <span className="section-title">USUÁRIOS ({users.filter(u=>{
+                    const matchSearch = searchUser===''||u.name.toLowerCase().includes(searchUser.toLowerCase())||(u.email||'').toLowerCase().includes(searchUser.toLowerCase())
+                    const matchType = filterUserType==='all'||u.user_type===filterUserType
+                    const matchBairro = filterUserBairro==='all'||(u.neighborhood||'')=== filterUserBairro
+                    return matchSearch && matchType && matchBairro
+                  }).length})</span>
+                  <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
+                    <input value={searchUser} onChange={e=>setSearchUser(e.target.value)} placeholder="🔍 Buscar nome ou email..." style={{padding:'7px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none',width:220}}/>
+                    <select value={filterUserType} onChange={e=>setFilterUserType(e.target.value)} style={{padding:'7px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none',background:'#fff'}}>
+                      <option value="all">Todos os tipos</option>
+                      <option value="user">Morador</option>
+                      <option value="company">Lojista</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                    <select value={filterUserBairro} onChange={e=>setFilterUserBairro(e.target.value)} style={{padding:'7px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none',background:'#fff'}}>
+                      <option value="all">Todos os bairros</option>
+                      {[...new Set(users.map(u=>u.neighborhood).filter(Boolean))].sort().map(b=>(
+                        <option key={b} value={b}>{b}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
                 {users.length === 0
                   ? <div className="empty-state"><div>👥</div><div>Nenhum usuário cadastrado ainda</div></div>

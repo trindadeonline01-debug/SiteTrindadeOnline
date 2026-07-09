@@ -147,7 +147,10 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
     const ql = q.toLowerCase()
     setFiltered(!q.trim() ? companies : companies.filter(c =>
       c.name.toLowerCase().includes(ql) ||
-      c.subcategories?.some((s: any) => s.subcategory?.name?.toLowerCase().includes(ql)) ||
+      c.subcategories?.some((s: any) => {
+        const sub = Array.isArray(s.subcategory) ? s.subcategory[0] : s.subcategory
+        return sub?.name?.toLowerCase().includes(ql)
+      }) ||
       c.description?.toLowerCase().includes(ql) ||
       (c.plan === 'paid' && (
         c.address?.toLowerCase().includes(ql) ||

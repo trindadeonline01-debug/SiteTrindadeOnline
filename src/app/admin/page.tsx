@@ -1390,6 +1390,7 @@ export default function AdminPage() {
                               <td>{fmtDate(c.created_at)}</td>
                               <td>
                                 {c.status === 'pending'   && <button className="action-btn btn-approve" onClick={() => approveCompany(c.id)}>✓ Aprovar</button>}
+                                {c.status === 'pending'   && <button className="action-btn btn-suspend" onClick={() => suspendCompany(c.id)}>✗ Recusar</button>}
                                 {c.status === 'active'    && <button className="action-btn btn-suspend" onClick={() => suspendCompany(c.id)}>Suspender</button>}
                                 {c.status === 'suspended' && <button className="action-btn btn-approve" onClick={() => approveCompany(c.id)}>Reativar</button>}
                                 <button className="action-btn btn-view" onClick={() => openPreviewCompany(c)}>Ver</button>

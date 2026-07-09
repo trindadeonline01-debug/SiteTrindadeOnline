@@ -40,7 +40,16 @@ function isOpenNow(hours?: CompanyHour[]): boolean {
 }
 
 /* ── Galeria dinâmica por número de fotos ── */
-function Lightbox({ photos, idx, open, setIdx, onClose }: { photos: CompanyPhoto[]; idx: number; open: boolean; setIdx: (v:number|((i:number)=>number)) => void; onClose: () => void }) {
+function Lightbox({ photos, idx, open, setIdx, onClose, isAdmin }: { photos: CompanyPhoto[]; idx: number; open: boolean; setIdx: (v:number|((i:number)=>number)) => void; onClose: () => void; isAdmin?: boolean }) {
+  const [editMode, setEditMode] = React.useState(false)
+  const [drawing, setDrawing] = React.useState(false)
+  const [saving, setSaving] = React.useState(false)
+  const canvasRef = React.useRef<HTMLCanvasElement>(null)
+  const imgRef = React.useRef<HTMLImageElement>(null)
+  function loadCanvas() { const c=canvasRef.current,i=imgRef.current; if(!c||!i)return; c.width=i.naturalWidth; c.height=i.naturalHeight; c.getContext('2d')?.drawImage(i,0,0) }
+  function getPos(e:React.MouseEvent<HTMLCanvasElement>){const c=canvasRef.current!,r=c.getBoundingClientRect();return{x:(e.clientX-r.left)*c.width/r.width,y:(e.clientY-r.top)*c.height/r.height}}
+  function drawBlur(e:React.MouseEvent<HTMLCanvasElement>){if(!drawing)return;const ctx=canvasRef.current?.getContext('2d');if(!ctx)return;const{x,y}=getPos(e);ctx.filter='blur(10px)';ctx.fillStyle='rgba(0,0,0,0.8)';ctx.beginPath();ctx.arc(x,y,25,0,Math.PI*2);ctx.fill();ctx.filter='none'}
+  async function saveEdit(){const c=canvasRef.current,p=photos[idx];if(!c||!p)return;setSaving(true);const blob=await new Promise<Blob>(r=>c.toBlob(b=>r(b!),'image/jpeg',0.92));const fd=new FormData();fd.append('file',blob,'photo.jpg');fd.append('photo_id',p.id);fd.append('photo_url',p.url);await fetch('/api/admin/edit-photo',{method:'POST',body:fd});setSaving(false);setEditMode(false);window.location.reload()}
   if (!open) return null
   const n = photos.length
   return (
@@ -51,7 +60,10 @@ function Lightbox({ photos, idx, open, setIdx, onClose }: { photos: CompanyPhoto
         <button onClick={(e) => { e.stopPropagation(); setIdx((i:number) => (i + 1) % n) }} style={{position:'absolute',right:20,top:'50%',transform:'translateY(-50%)',background:'rgba(0,0,0,0.7)',border:'2px solid #fff',color:'#fff',fontSize:28,width:50,height:50,borderRadius:25,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',zIndex:2}}>›</button>
         <div style={{position:'absolute',bottom:20,left:'50%',transform:'translateX(-50%)',background:'rgba(0,0,0,0.6)',color:'#fff',padding:'6px 16px',borderRadius:20,fontSize:13,fontWeight:600,zIndex:2}}>{idx + 1} / {n}</div>
       </>)}
-      <img src={photos[idx]?.url || ''} alt="" onClick={(e) => e.stopPropagation()} style={{maxWidth:'92vw',maxHeight:'92vh',objectFit:'contain',borderRadius:8}} />
+      {isAdmin && !editMode && <button onClick={(e)=>{e.stopPropagation();setEditMode(true);setTimeout(loadCanvas,100)}} style={{position:'absolute',top:20,left:20,background:'#C9951A',border:'none',color:'#fff',fontSize:13,fontWeight:600,padding:'8px 16px',borderRadius:10,cursor:'pointer',zIndex:2}}>✏️ Editar foto</button>}
+      {editMode && <div style={{position:'absolute',top:20,left:20,display:'flex',gap:8,zIndex:2}} onClick={e=>e.stopPropagation()}><span style={{background:'rgba(0,0,0,0.8)',color:'#fff',fontSize:12,padding:'6px 12px',borderRadius:8}}>🖌️ Arraste para borrar</span><button onClick={saveEdit} disabled={saving} style={{background:'#0F8050',border:'none',color:'#fff',fontSize:13,fontWeight:600,padding:'8px 16px',borderRadius:10,cursor:'pointer'}}>{saving?'Salvando...':'✓ Salvar'}</button><button onClick={()=>setEditMode(false)} style={{background:'#E24B4A',border:'none',color:'#fff',fontSize:13,fontWeight:600,padding:'8px 16px',borderRadius:10,cursor:'pointer'}}>Cancelar</button></div>}
+      <img ref={imgRef} crossOrigin="anonymous" src={photos[idx]?.url || ''} alt="" onClick={(e) => e.stopPropagation()} style={{maxWidth:'92vw',maxHeight:'92vh',objectFit:'contain',borderRadius:8,display:editMode?'none':'block'}} />
+      {editMode && <canvas ref={canvasRef} onClick={e=>e.stopPropagation()} onMouseDown={e=>{e.stopPropagation();setDrawing(true);drawBlur(e)}} onMouseMove={e=>{e.stopPropagation();drawBlur(e)}} onMouseUp={e=>{e.stopPropagation();setDrawing(false)}} onMouseLeave={()=>setDrawing(false)} style={{maxWidth:'92vw',maxHeight:'80vh',cursor:'crosshair',borderRadius:8}}/>}
     </div>
   )
 }
@@ -91,7 +103,7 @@ function Gallery({ photos, emoji }: { photos: CompanyPhoto[]; emoji: string }) {
     <div style={{ width:'100%', height:400, borderRadius:16, overflow:'hidden' }}>
       <img src={src(0)} alt="" onClick={() => openLightbox(0)} style={{ width:'100%', height:'100%', objectFit:'cover', display:'block', cursor:'pointer' }} />
     </div>
-    <Lightbox photos={photos} idx={lightboxIdx} open={lightboxOpen} setIdx={setLightboxIdx} onClose={() => setLightboxOpen(false)} />
+    <Lightbox isAdmin={isAdmin} photos={photos} idx={lightboxIdx} open={lightboxOpen} setIdx={setLightboxIdx} onClose={() => setLightboxOpen(false)} />
     </>
   )
 
@@ -102,7 +114,7 @@ function Gallery({ photos, emoji }: { photos: CompanyPhoto[]; emoji: string }) {
       <img src={src(0)} alt="" style={imgStyle} onClick={() => openLightbox(0)} />
       <img src={src(1)} alt="" style={imgStyle} onClick={() => openLightbox(1)} />
     </div>
-    <Lightbox photos={photos} idx={lightboxIdx} open={lightboxOpen} setIdx={setLightboxIdx} onClose={() => setLightboxOpen(false)} />
+    <Lightbox isAdmin={isAdmin} photos={photos} idx={lightboxIdx} open={lightboxOpen} setIdx={setLightboxIdx} onClose={() => setLightboxOpen(false)} />
     </>
   )
 
@@ -114,7 +126,7 @@ function Gallery({ photos, emoji }: { photos: CompanyPhoto[]; emoji: string }) {
       <img src={src(1)} alt="" style={imgStyle} onClick={() => openLightbox(1)} />
       <img src={src(2)} alt="" style={imgStyle} onClick={() => openLightbox(2)} />
     </div>
-    <Lightbox photos={photos} idx={lightboxIdx} open={lightboxOpen} setIdx={setLightboxIdx} onClose={() => setLightboxOpen(false)} />
+    <Lightbox isAdmin={isAdmin} photos={photos} idx={lightboxIdx} open={lightboxOpen} setIdx={setLightboxIdx} onClose={() => setLightboxOpen(false)} />
     </>
   )
 
@@ -126,7 +138,7 @@ function Gallery({ photos, emoji }: { photos: CompanyPhoto[]; emoji: string }) {
       <div style={{ overflow:'hidden' }}><img src={src(1)} alt="" style={imgStyle} onClick={() => openLightbox(1)} /></div>
       <div style={{ overflow:'hidden' }}><img src={src(2)} alt="" style={imgStyle} onClick={() => openLightbox(2)} /></div>
     </div>
-    <Lightbox photos={photos} idx={lightboxIdx} open={lightboxOpen} setIdx={setLightboxIdx} onClose={() => setLightboxOpen(false)} />
+    <Lightbox isAdmin={isAdmin} photos={photos} idx={lightboxIdx} open={lightboxOpen} setIdx={setLightboxIdx} onClose={() => setLightboxOpen(false)} />
     </>
   )
 
@@ -150,7 +162,7 @@ function Gallery({ photos, emoji }: { photos: CompanyPhoto[]; emoji: string }) {
         )}
       </div>
     </div>
-    <Lightbox photos={photos} idx={lightboxIdx} open={lightboxOpen} setIdx={setLightboxIdx} onClose={() => setLightboxOpen(false)} />
+    <Lightbox isAdmin={isAdmin} photos={photos} idx={lightboxIdx} open={lightboxOpen} setIdx={setLightboxIdx} onClose={() => setLightboxOpen(false)} />
     </>
   )
 }

@@ -550,12 +550,7 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
                 )}
               </div>
             )}
-            {company.description && (
-              <div className="sec-card" style={{padding:16,background:'#fff',border:'0.5px solid #EDE8E0',borderRadius:14,marginTop:16}}>
-                <div className="sec-lbl" style={{marginBottom:10}}>SOBRE</div>
-                <div className="desc">{company.description}</div>
-              </div>
-            )}
+
           </div>
         </div>
 

@@ -236,7 +236,8 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
         .result-cnt span { color: #111; font-weight: 600; }
 
         /* EMPRESAS EM LISTA */
-        .companies-grid { display: flex; flex-direction: column; gap: 8px; }
+        .companies-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+        @media(min-width: 640px) { .companies-grid { grid-template-columns: repeat(2,1fr); } }
         .cc { background: #fff; border: 0.5px solid #E0DDD8; border-radius: 12px; overflow: hidden; text-decoration: none; transition: all .18s; display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
         .cc:hover { border-color: #C9951A; background: #FDFBF7; }
         .cc-img { width: 56px; height: 56px; border-radius: 10px; background: #FEF3E2; display: flex; align-items: center; justify-content: center; font-size: 26px; overflow: hidden; flex-shrink: 0; border: 0.5px solid #E0DDD8; }
@@ -362,24 +363,25 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
         )}
 
         {/* 3. EMPRESAS */}
-        {!loading && filtered.length > 0 && (
-          <div style={{display:'flex',alignItems:'center',justifyContent:'flex-start',marginBottom:12,flexWrap:'wrap',gap:8}}>
-            <div style={{display:'flex',gap:6,alignItems:'center'}}>
-              <span style={{fontSize:12,color:'#999',fontWeight:500}}>Ordenar:</span>
-              {([['az','A–Z'],['rating','Melhor avaliado'],['recent','Mais recente']] as const).map(([v,l])=>(
-                <button key={v} onClick={()=>setSortOrder(v)}
-                  style={{padding:'5px 12px',borderRadius:8,border:'0.5px solid',borderColor:sortOrder===v?'#888':'#E0DDD8',background:sortOrder===v?'#F5F2EC':'#fff',color:sortOrder===v?'#111':'#888',fontSize:11,fontWeight:500,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
-                  {l}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
         {!loading && (
-          <div className="result-cnt">
-            Mostrando <span>{filtered.length}</span> empresa{filtered.length !== 1 ? 's' : ''}
-            {activeSub && ` em ${subcats.find(s => s.id === activeSub)?.name}`}
-            {search && ` para "${search}"`}
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16,flexWrap:'wrap',gap:8}}>
+            <div style={{fontSize:13,color:'#AAA'}}>
+              Mostrando <span style={{color:'#111',fontWeight:600}}>{filtered.length}</span> empresa{filtered.length !== 1 ? 's' : ''}
+              {activeSub && ` em ${subcats.find(s => s.id === activeSub)?.name}`}
+              {search && ` para "${search}"`}
+            </div>
+            {filtered.length > 0 && (
+              <div style={{display:'flex',alignItems:'center',gap:6}}>
+                <span style={{fontSize:12,color:'#CCC'}}>|</span>
+                <span style={{fontSize:12,color:'#999',fontWeight:500}}>Ordenar:</span>
+                {([['az','A–Z'],['rating','Melhor avaliado'],['recent','Mais recente']] as const).map(([v,l])=>(
+                  <button key={v} onClick={()=>setSortOrder(v)}
+                    style={{padding:'5px 12px',borderRadius:8,border:'0.5px solid',borderColor:sortOrder===v?'#888':'#E0DDD8',background:sortOrder===v?'#F5F2EC':'#fff',color:sortOrder===v?'#111':'#888',fontSize:11,fontWeight:500,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                    {l}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

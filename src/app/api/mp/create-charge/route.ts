@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
         description: planData.description,
         payment_method_id: 'pix',
         payer: { email: owner_email || 'lojista@trindadeonline.com.br' },
-        notification_url: 'https://trindadeonline.com.br/api/mp/webhook',
+        notification_url: 'https://www.trindadeonline.com.br/api/mp/webhook',
         external_reference: JSON.stringify({ company_id, plan, days: planData.days }),
       })
     })

@@ -44,13 +44,13 @@ function Lightbox({ photos, idx, open, setIdx, onClose, isAdmin }: { photos: Com
   const [editMode, setEditMode] = useState(false)
   const [saving, setSaving] = useState(false)
   const [rects, setRects] = useState<{x:number,y:number,w:number,h:number}[]>([])
-  const [dragging, setDragging] = useState<{x:number,y:number}|null>(null)
   const [current, setCurrent] = useState<{x:number,y:number,w:number,h:number}|null>(null)
   const imgRef = useRef<HTMLImageElement>(null)
+  const dragStart = useRef<{x:number,y:number}|null>(null)
   function getRelPos(e:React.MouseEvent<HTMLDivElement>){const r=e.currentTarget.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
-  function onMouseDown(e:React.MouseEvent<HTMLDivElement>){e.stopPropagation();const p=getRelPos(e);setDragging(p);setCurrent({...p,w:0,h:0})}
-  function onMouseMove(e:React.MouseEvent<HTMLDivElement>){e.stopPropagation();if(!dragging)return;const p=getRelPos(e);setCurrent({x:Math.min(dragging.x,p.x),y:Math.min(dragging.y,p.y),w:Math.abs(p.x-dragging.x),h:Math.abs(p.y-dragging.y)})}
-  function onMouseUp(e:React.MouseEvent<HTMLDivElement>){e.stopPropagation();if(current&&current.w>5&&current.h>5)setRects(r=>[...r,current]);setDragging(null);setCurrent(null)}
+  function onMouseDown(e:React.MouseEvent<HTMLDivElement>){e.stopPropagation();dragStart.current=getRelPos(e);setCurrent({...dragStart.current,w:0,h:0})}
+  function onMouseMove(e:React.MouseEvent<HTMLDivElement>){e.stopPropagation();if(!dragStart.current)return;const p=getRelPos(e);const d=dragStart.current;setCurrent({x:Math.min(d.x,p.x),y:Math.min(d.y,p.y),w:Math.abs(p.x-d.x),h:Math.abs(p.y-d.y)})}
+  function onMouseUp(e:React.MouseEvent<HTMLDivElement>){e.stopPropagation();if(current&&current.w>5&&current.h>5)setRects(r=>[...r,current]);dragStart.current=null;setCurrent(null)}
   async function saveEdit(){const p=photos[idx],img=imgRef.current;if(!p||!img)return;setSaving(true);const scaleX=img.naturalWidth/img.width,scaleY=img.naturalHeight/img.height;const regions=rects.map(r=>({x:r.x*scaleX,y:r.y*scaleY,w:r.w*scaleX,h:r.h*scaleY}));await fetch('/api/admin/edit-photo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({photo_id:p.id,photo_url:p.url,regions})});setSaving(false);setEditMode(false);setRects([]);window.location.reload()}
   if (!open) return null
   const n = photos.length

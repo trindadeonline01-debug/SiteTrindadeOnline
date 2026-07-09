@@ -39,7 +39,7 @@ async function processPayment(paymentId: string) {
     const payment = await res.json()
     if (payment.status !== 'approved') return
 
-    const ext = JSON.parse(payment.external_reference || '{}')
+    let ext: any = {}; try { ext = JSON.parse(payment.external_reference || '{}') } catch(e) { console.error('webhook: external_reference invalido', payment.external_reference) }
 
     // DESTAQUE
     if (ext.type === 'highlight' && ext.company_id) {

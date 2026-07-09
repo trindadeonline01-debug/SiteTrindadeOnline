@@ -431,7 +431,17 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
                       <div className="cc-addr">📍 {c.address}</div>
                     )}
                   </div>
-                  <svg className="cc-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+                  {c.plan === 'paid' ? (
+                    <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:2,flexShrink:0}}>
+                      <svg width="48" height="48" viewBox="0 0 64 64" fill="none">
+                        <circle cx="32" cy="32" r="28" stroke="#C9951A" strokeWidth="5" fill="none"/>
+                        <path d="M18 32 L27 42 L46 22" stroke="#C9951A" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      <span style={{fontSize:8,fontWeight:700,color:'#C9951A',letterSpacing:'.8px',textTransform:'uppercase'}}>Indicado</span>
+                    </div>
+                  ) : (
+                    <svg className="cc-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+                  )}
                 </a>
               )
             })}

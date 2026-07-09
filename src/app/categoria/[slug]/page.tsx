@@ -226,7 +226,7 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
         /* SUBCATEGORIAS */
         .subcat-wrap { background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 16px 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 24px; }
         .subcat-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; }
-        .subcat-pill { display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; border-radius: 20px; border: 0.5px solid #E0DDD8; background: #fff; font-size: 12px; font-weight: 500; color: #555; cursor: pointer; white-space: nowrap; transition: all .15s; }
+        .subcat-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; border: 0.5px solid #E0DDD8; background: #fff; font-size: 13px; font-weight: 500; color: #555; cursor: pointer; white-space: nowrap; transition: all .15s; }
         .subcat-pill:hover { border-color: #C9951A; color: #854F0B; background: #FEF3E2; }
         .subcat-pill.on { background: #FEF3E2; border-color: #F5C77A; color: #854F0B; font-weight: 600; }
         .subcat-emoji-box { width: 48px; height: 48px; border-radius: 10px; border: 1.5px solid #e0e0e0; background: #fafafa; display: flex; align-items: center; justify-content: center; font-size: 24px; transition: border-color 0.15s; }
@@ -236,18 +236,16 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
         .result-cnt span { color: #111; font-weight: 600; }
 
         /* EMPRESAS EM LISTA */
-        .companies-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; }
-        @media(min-width: 640px) { .companies-grid { grid-template-columns: repeat(3,1fr); } }
-        @media(min-width: 1024px) { .companies-grid { grid-template-columns: repeat(4,1fr); } }
-        .cc { background: #fff; border: 0.5px solid #E0DDD8; border-radius: 12px; overflow: hidden; text-decoration: none; transition: all .18s; display: block; }
-        .cc:hover { transform: translateY(-2px); border-color: #C9951A; }
-        .cc-img { height: 90px; background: #FEF3E2; display: flex; align-items: center; justify-content: center; font-size: 32px; overflow: hidden; }
+        .companies-grid { display: flex; flex-direction: column; gap: 8px; }
+        .cc { background: #fff; border: 0.5px solid #E0DDD8; border-radius: 12px; overflow: hidden; text-decoration: none; transition: all .18s; display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
+        .cc:hover { border-color: #C9951A; background: #FDFBF7; }
+        .cc-img { width: 56px; height: 56px; border-radius: 10px; background: #FEF3E2; display: flex; align-items: center; justify-content: center; font-size: 26px; overflow: hidden; flex-shrink: 0; border: 0.5px solid #E0DDD8; }
         .cc-img img { width: 100%; height: 100%; object-fit: cover; }
-        .cc-body { padding: 10px 12px; }
-        .cc-name { font-size: 13px; font-weight: 600; color: #111; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .cc-stars { font-size: 11px; color: #C9951A; font-weight: 600; margin-bottom: 3px; }
-        .cc-subs { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
-        .cc-sub { font-size: 10px; background: #F5F2EC; color: #666; padding: 2px 7px; border-radius: 10px; }
+        .cc-body { flex: 1; min-width: 0; }
+        .cc-name { font-size: 15px; font-weight: 600; color: #111; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .cc-stars { font-size: 13px; color: #C9951A; font-weight: 600; margin-bottom: 4px; }
+        .cc-subs { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 4px; }
+        .cc-sub { font-size: 12px; background: #F5F2EC; color: #555; padding: 3px 9px; border-radius: 10px; }
         .cc-addr { font-size: 11px; color: #BBB; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .cc-arrow { flex-shrink: 0; color: #CCC; }
 
@@ -365,10 +363,9 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
 
         {/* 3. EMPRESAS */}
         {!loading && filtered.length > 0 && (
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12,flexWrap:'wrap',gap:8}}>
-            <div/>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'flex-start',marginBottom:12,flexWrap:'wrap',gap:8}}>
             <div style={{display:'flex',gap:6,alignItems:'center'}}>
-              <span style={{fontSize:11,color:'#999'}}>Ordenar:</span>
+              <span style={{fontSize:12,color:'#999',fontWeight:500}}>Ordenar:</span>
               {([['az','A–Z'],['rating','Melhor avaliado'],['recent','Mais recente']] as const).map(([v,l])=>(
                 <button key={v} onClick={()=>setSortOrder(v)}
                   style={{padding:'5px 12px',borderRadius:8,border:'0.5px solid',borderColor:sortOrder===v?'#888':'#E0DDD8',background:sortOrder===v?'#F5F2EC':'#fff',color:sortOrder===v?'#111':'#888',fontSize:11,fontWeight:500,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>

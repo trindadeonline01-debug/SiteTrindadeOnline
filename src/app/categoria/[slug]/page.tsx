@@ -410,7 +410,7 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
               return 0
             }).map(c => {
               const cover = getCover(c.photos)
-              const subs = c.subcategories?.map((s:any)=>s.subcategory).filter(Boolean).slice(0,2) || []
+              const subs = c.subcategories?.map((s:any)=>s.subcategory).filter(Boolean) || []
               return (
                 <a key={c.id} className="cc" href={`/empresa/${c.slug}`}>
                   <div className="cc-img">

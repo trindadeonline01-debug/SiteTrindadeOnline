@@ -144,9 +144,15 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
 
   function handleSearch(e: React.ChangeEvent<HTMLInputElement>) {
     const q = e.target.value; setSearch(q); setActiveSub(null)
+    const ql = q.toLowerCase()
     setFiltered(!q.trim() ? companies : companies.filter(c =>
-      c.name.toLowerCase().includes(q.toLowerCase()) ||
-      c.address?.toLowerCase().includes(q.toLowerCase())
+      c.name.toLowerCase().includes(ql) ||
+      c.subcategories?.some((s: any) => s.subcategory?.name?.toLowerCase().includes(ql)) ||
+      c.description?.toLowerCase().includes(ql) ||
+      (c.plan === 'paid' && (
+        c.address?.toLowerCase().includes(ql) ||
+        c.tags?.some((t: string) => t.toLowerCase().includes(ql))
+      ))
     ))
   }
 

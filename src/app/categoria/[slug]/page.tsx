@@ -104,7 +104,7 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
 
     const { data: subs } = await supabase
       .from('subcategories').select('id, name, emoji, slug')
-      .eq('category_id', cat.id).order('order')
+      .eq('category_id', cat.id).order('name')
     setSubcats(subs || [])
 
     const { data: comps } = await supabase

@@ -175,6 +175,9 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
   const [revLoading, setRevLoad]    = useState(false)
   const [alreadyReviewed, setAlreadyReviewed] = useState(false)
   const [isAdmin, setIsAdmin]       = useState(false)
+  const [editingDesc, setEditingDesc] = useState(false)
+  const [descText, setDescText]       = useState('')
+  const [savingDesc, setSavingDesc]   = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -459,10 +462,37 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
                 </button>
               )}
             </div>
-            {company.description && (
+            {(company.description || isAdmin) && (
               <div style={{borderTop:'0.5px solid #EDE8E0',marginTop:14,paddingTop:14}}>
-                <div style={{fontSize:11,fontWeight:600,color:'#AAA',letterSpacing:'.6px',textTransform:'uppercase',marginBottom:8}}>Sobre</div>
-                <div style={{fontSize:14,color:'#555',lineHeight:1.6}}>{company.description}</div>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
+                  <div style={{fontSize:11,fontWeight:600,color:'#AAA',letterSpacing:'.6px',textTransform:'uppercase'}}>Sobre</div>
+                  {isAdmin && !editingDesc && (
+                    <button onClick={()=>{setDescText(company.description||'');setEditingDesc(true)}}
+                      style={{fontSize:11,color:'#C9951A',background:'none',border:'none',cursor:'pointer',fontWeight:600,padding:'2px 6px'}}>✏️ Editar</button>
+                  )}
+                </div>
+                {editingDesc ? (
+                  <div>
+                    <textarea value={descText} onChange={e=>setDescText(e.target.value)} rows={4}
+                      style={{width:'100%',padding:'10px 12px',border:'1.5px solid #C9951A',borderRadius:10,fontSize:14,fontFamily:'Inter,sans-serif',resize:'vertical',outline:'none',lineHeight:1.6,marginBottom:8}}/>
+                    <div style={{display:'flex',gap:8}}>
+                      <button onClick={async()=>{
+                        setSavingDesc(true)
+                        await fetch('/api/admin/update-company',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({company_id:company.id,updates:{description:descText}})})
+                        company.description = descText
+                        setEditingDesc(false)
+                        setSavingDesc(false)
+                      }} disabled={savingDesc}
+                        style={{padding:'7px 16px',background:'#C9951A',color:'#fff',border:'none',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer'}}>
+                        {savingDesc?'Salvando...':'Salvar'}
+                      </button>
+                      <button onClick={()=>setEditingDesc(false)}
+                        style={{padding:'7px 16px',background:'transparent',color:'#AAA',border:'1px solid #ddd',borderRadius:8,fontSize:12,cursor:'pointer'}}>Cancelar</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{fontSize:14,color:'#555',lineHeight:1.6}}>{company.description || <span style={{color:'#CCC',fontStyle:'italic'}}>Sem descrição ainda</span>}</div>
+                )}
               </div>
             )}
           </div>

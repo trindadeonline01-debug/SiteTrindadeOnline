@@ -1407,21 +1407,16 @@ export default function AdminPage() {
             {/* ── USUÁRIOS ── */}
             {!loading && tab === 'usuarios' && (
               <div className="section-card">
-                <div className="section-hdr" style={{flexWrap:'wrap',gap:8}}>
-                  <span className="section-title">USUÁRIOS ({users.filter(u=>{
-                    const matchSearch = searchUser===''||u.name.toLowerCase().includes(searchUser.toLowerCase())||(u.email||'').toLowerCase().includes(searchUser.toLowerCase())
-                    const matchType = filterUserType==='all'||u.user_type===filterUserType
-                    const matchBairro = filterUserBairro==='all'||(u.neighborhood||'')=== filterUserBairro
-                    return matchSearch && matchType && matchBairro
-                  }).length})</span>
+                <div className="section-hdr" style={{flexWrap:'wrap',gap:8,alignItems:'center'}}>
+                  <span className="section-title">USUÁRIOS ({users.filter(u=>(searchUser===''||u.name.toLowerCase().includes(searchUser.toLowerCase())||(u.email||'').toLowerCase().includes(searchUser.toLowerCase()))&&(filterUserType==='all'||u.user_type===filterUserType)&&(filterUserBairro==='all'||(u.neighborhood||'')===filterUserBairro)).length})</span>
                   <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
-                    <input value={searchUser} onChange={e=>setSearchUser(e.target.value)} placeholder="🔍 Buscar nome ou email..." style={{padding:'7px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none',width:220}}/>
-                    <select value={filterUserType} onChange={e=>setFilterUserType(e.target.value)} style={{padding:'7px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none',background:'#fff'}}>
-                      <option value="all">Todos os tipos</option>
-                      <option value="user">Morador</option>
-                      <option value="company">Lojista</option>
-                      <option value="admin">Admin</option>
-                    </select>
+                    <input value={searchUser} onChange={e=>setSearchUser(e.target.value)} placeholder="🔍 Buscar..." style={{padding:'7px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none',width:180}}/>
+                    {['all','user','company'].map(t=>(
+                      <button key={t} onClick={()=>setFilterUserType(t)}
+                        style={{padding:'6px 14px',borderRadius:8,border:'1.5px solid',borderColor:filterUserType===t?'#C9951A':'#E0DDD8',background:filterUserType===t?'#FEF3E2':'#fff',color:filterUserType===t?'#854F0B':'#888',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                        {t==='all'?'Todos':t==='user'?'Moradores':'Lojistas'}
+                      </button>
+                    ))}
                     <select value={filterUserBairro} onChange={e=>setFilterUserBairro(e.target.value)} style={{padding:'7px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none',background:'#fff'}}>
                       <option value="all">Todos os bairros</option>
                       {[...new Set(users.map(u=>u.neighborhood).filter(Boolean))].sort().map(b=>(
@@ -1436,7 +1431,7 @@ export default function AdminPage() {
                       <table className="data-table">
                         <thead><tr><th>Nome</th><th>Tipo</th><th>Bairro</th><th>WhatsApp</th><th>Email</th><th>Cadastro</th><th>Ações</th></tr></thead>
                         <tbody>
-                          {users.filter(u=>searchUser===''||u.name.toLowerCase().includes(searchUser.toLowerCase())||(u.email||'').toLowerCase().includes(searchUser.toLowerCase())).map(u => (
+                          {users.filter(u=>(searchUser===''||u.name.toLowerCase().includes(searchUser.toLowerCase())||(u.email||'').toLowerCase().includes(searchUser.toLowerCase()))&&(filterUserType==='all'||u.user_type===filterUserType)&&(filterUserBairro==='all'||(u.neighborhood||'')===filterUserBairro)).map(u => (
                             <tr key={u.id}>
                               <td><strong>{u.name}</strong></td>
                               <td>

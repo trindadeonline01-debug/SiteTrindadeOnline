@@ -454,11 +454,17 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
               {reviewSent && <span style={{fontSize:12,color:'#0F6E56',fontWeight:600}}>✓ Avaliação enviada!</span>}
               {!reviewSent && alreadyReviewed && <span style={{fontSize:11,color:'#AAA'}}>✓ Avaliado esta semana</span>}
               {!reviewSent && !alreadyReviewed && (
-                <button className="btn-write-rv" onClick={() => userId ? setShowReview(!showReview) : window.location.href='/login'}>
+                <button className="btn-write-rv" onClick={() => userId ? setShowReview(true) : window.location.href='/login'}>
                   ⭐ {userId ? 'Avaliar' : 'Entrar para avaliar'}
                 </button>
               )}
             </div>
+            {company.description && (
+              <div style={{borderTop:'0.5px solid #EDE8E0',marginTop:14,paddingTop:14}}>
+                <div style={{fontSize:11,fontWeight:600,color:'#AAA',letterSpacing:'.6px',textTransform:'uppercase',marginBottom:8}}>Sobre</div>
+                <div style={{fontSize:14,color:'#555',lineHeight:1.6}}>{company.description}</div>
+              </div>
+            )}
           </div>
 
           {/* COLUNA DIREITA */}
@@ -553,6 +559,31 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
           </div>
         </div>
 
+        {/* MODAL AVALIAÇÃO */}
+        {showReview && (
+          <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+            <div style={{background:'#fff',borderRadius:20,padding:28,maxWidth:420,width:'100%',position:'relative'}}>
+              <button onClick={()=>{setShowReview(false);setMyRating(0);setMyText('')}} style={{position:'absolute',top:14,right:14,background:'#f0f0f0',border:'none',borderRadius:50,width:30,height:30,cursor:'pointer',fontSize:15,display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
+              <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:20,letterSpacing:1,color:'#111',marginBottom:4}}>AVALIAR</div>
+              <div style={{fontSize:13,color:'#888',marginBottom:20}}>{company.name}</div>
+              <div style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:10}}>Sua nota</div>
+              <div style={{display:'flex',gap:8,marginBottom:20}}>
+                {[1,2,3,4,5].map(s => (
+                  <button key={s} onClick={()=>setMyRating(s)}
+                    style={{fontSize:28,background:'none',border:'none',cursor:'pointer',color:s<=myRating?'#C9951A':'#DDD',padding:0,lineHeight:1}}>★</button>
+                ))}
+                {myRating > 0 && <span style={{fontSize:12,color:'#C9951A',fontWeight:600,alignSelf:'center',marginLeft:4}}>{['','Ruim','Regular','Bom','Muito bom','Excelente'][myRating]}</span>}
+              </div>
+              <div style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:8}}>Comentário <span style={{color:'#AAA',fontWeight:400}}>(opcional)</span></div>
+              <textarea rows={3} placeholder="Conte sua experiência..." value={myText} onChange={e=>setMyText(e.target.value)}
+                style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif',resize:'none',outline:'none',marginBottom:16}}/>
+              <button onClick={submitReview} disabled={myRating===0||revLoading}
+                style={{width:'100%',padding:'12px',background:myRating>0?'#C9951A':'#E0DDD8',color:myRating>0?'#fff':'#AAA',border:'none',borderRadius:10,fontSize:14,fontWeight:600,cursor:myRating>0?'pointer':'not-allowed',fontFamily:'Inter,sans-serif'}}>
+                {revLoading?'Enviando...':'Publicar avaliação'}
+              </button>
+            </div>
+          </div>
+        )}
         {/* AVALIAÇÕES */}
         {isActive && (
           <div className="rv-section">
@@ -564,21 +595,7 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
 
             {reviewSent && <div className="ok-msg">✓ Sua avaliação foi enviada!</div>}
 
-            {showReview && (
-              <div className="rv-form">
-                <div style={{fontSize:13,fontWeight:600,color:'#333',marginBottom:8}}>Sua avaliação</div>
-                <div className="star-row">
-                  {[1,2,3,4,5].map(s => (
-                    <button key={s} className="star-btn" onClick={() => setMyRating(s)}>{s <= myRating ? '★' : '☆'}</button>
-                  ))}
-                  {myRating > 0 && <span style={{fontSize:12,color:'#AAA',alignSelf:'center',marginLeft:4}}>{['','Ruim','Regular','Bom','Muito bom','Excelente'][myRating]}</span>}
-                </div>
-                <textarea className="rv-textarea" rows={3} placeholder="Conte sua experiência (opcional)" value={myText} onChange={e => setMyText(e.target.value)} />
-                <button className="btn-rv-submit" onClick={submitReview} disabled={myRating === 0 || revLoading}>
-                  {revLoading ? 'Enviando...' : 'Publicar avaliação'}
-                </button>
-              </div>
-            )}
+
 
             {reviews.length === 0 && !showReview && (
               <div style={{textAlign:'center',padding:'32px 0',color:'#AAA',fontSize:13}}>

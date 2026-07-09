@@ -8,7 +8,7 @@ type Company = {
   id: string; name: string; slug: string; address?: string; avg_rating?: number
   category?: any; photos?: any[]
   // Campos do RPC buscar_empresas
-  category_name?: string; category_emoji?: string; cover_url?: string
+  category_name?: string; category_emoji?: string; cover_url?: string; is_paid?: boolean
 }
 type Category = { id: string; name: string; emoji: string; slug: string }
 type Listing  = { id: string; type: string; title: string; price?: number; address?: string; subtype?: string; created_at: string; photos?: any[] }
@@ -293,7 +293,7 @@ function BuscaContent() {
                           <div className="emp-name">{c.name}</div>
                           <div className="emp-cat">{c.category_emoji || c.category?.emoji} {c.category_name || c.category?.name || '—'}</div>
                           {(c.avg_rating || 0) > 0 && <div className="emp-stars">★ {Number(c.avg_rating).toFixed(1)}</div>}
-                          {c.address && <div className="emp-addr">📍 {c.address}</div>}
+                          {c.address && (c as any).is_paid && <div className="emp-addr">📍 {c.address}</div>}
                         </div>
                       </a>
                     )

@@ -42,7 +42,7 @@ const statusColor = (s: string) => s === 'active' ? '#0F8050' : s === 'pending' 
 const statusLabel = (s: string) => s === 'active' ? 'Ativa' : s === 'pending' ? 'Pendente' : 'Suspensa'
 
 export default function AdminPage() {
-  const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'denuncias'|'usuarios'|'buscas'|'atividade'|'banners'|'pedidos-banner'|'configuracoes'|'recursos'|'planos'|'aparencia'|'subcategorias'|'vendas'>('dashboard')
+  const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'denuncias'|'usuarios'|'buscas'|'atividade'|'banners'|'pedidos-banner'|'configuracoes'|'recursos'|'planos'|'aparencia'|'subcategorias'|'vendas'|'sugestoes'>('dashboard')
   const [stats, setStats]           = useState<Stats|null>(null)
   const [companies, setCompanies]   = useState<Company[]>([])
   const [users, setUsers]           = useState<Profile[]>([])
@@ -111,6 +111,7 @@ export default function AdminPage() {
   const [trialDays, setTrialDays] = useState(7)
   const [savingTrial, setSavingTrial] = useState(false)
   const [subcatsList, setSubcatsList]       = useState<any[]>([])
+  const [sugestoesList, setSugestoesList]   = useState<any[]>([])
   const [subcatForm, setSubcatForm]         = useState<any>({ name:'', emoji:'', category_id:'' })
   const [editingSubcatId, setEditingSubcatId] = useState<string|null>(null)
   const [savingSubcat, setSavingSubcat]     = useState(false)
@@ -122,6 +123,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (tab === 'vendas') loadSales(salesFilter)
+    if (tab === 'sugestoes') loadSugestoes()
   }, [tab])
 
   useEffect(() => {
@@ -654,6 +656,12 @@ export default function AdminPage() {
     }
   }
 
+  async function loadSugestoes() {
+    const { data } = await supabase.from('subcategory_suggestions')
+      .select('id, suggestion, created_at, company:companies(name)')
+      .order('created_at', { ascending: false })
+    setSugestoesList(data || [])
+  }
   async function loadSales(filter: string, dateFrom?: string, dateTo?: string) {
     setSalesLoading(true)
     const res = await fetch('/api/admin/sales', {
@@ -1237,6 +1245,7 @@ export default function AdminPage() {
     { id: 'configuracoes', icon: '⚙️', label: 'Configurações' },
     { id: 'aparencia', icon: '🎨', label: 'Aparência' },
     { id: 'subcategorias', icon: '🏷️', label: 'Subcategorias' },
+            { id: 'sugestoes', icon: '💡', label: 'Sugestões' },
           ].map(n => (
             <div
               key={n.id}
@@ -1274,6 +1283,7 @@ export default function AdminPage() {
               {tab === 'configuracoes' && 'Configurações'}
               {tab === 'aparencia' && 'Aparência do Site'}
               {tab === 'subcategorias' && 'Subcategorias'}
+              {tab === 'sugestoes' && 'Sugestões de Subcategorias'}
             </div>
             <div className="topbar-date">{new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}</div>
           </div>
@@ -2505,6 +2515,43 @@ export default function AdminPage() {
                   }
                 </div>
               </div>
+            </div>
+          )}
+
+          {tab === 'sugestoes' && (
+            <div className="section-card">
+              <div className="section-hdr">
+                <span className="section-title">SUGESTÕES DE SUBCATEGORIAS ({sugestoesList.length})</span>
+                <button onClick={loadSugestoes} style={{fontSize:12,color:'#999',background:'none',border:'none',cursor:'pointer'}}>↻ Atualizar</button>
+              </div>
+              {sugestoesList.length === 0 ? (
+                <div className="empty-state"><div>💡</div><div>Nenhuma sugestão ainda</div></div>
+              ) : (
+                <div style={{overflowX:'auto'}}>
+                  <table className="data-table">
+                    <thead><tr><th>Empresa</th><th>Sugestão</th><th>Data</th><th>Ações</th></tr></thead>
+                    <tbody>
+                      {sugestoesList.map((s:any) => (
+                        <tr key={s.id}>
+                          <td><strong>{s.company?.name || '—'}</strong></td>
+                          <td style={{fontSize:14,color:'#333'}}>{s.suggestion}</td>
+                          <td style={{fontSize:12,color:'#999'}}>{fmtDate(s.created_at)}</td>
+                          <td style={{display:'flex',gap:6}}>
+                            <button onClick={()=>{setTab('subcategorias');setTimeout(()=>{const el=document.querySelector('.subcat-name-input') as HTMLInputElement;if(el){el.value=s.suggestion;el.focus()}},300)}}
+                              style={{padding:'5px 12px',borderRadius:8,background:'#FEF3E2',color:'#854F0B',border:'1px solid #F5C77A',fontSize:12,cursor:'pointer',fontWeight:600}}>
+                              + Criar subcategoria
+                            </button>
+                            <button onClick={async()=>{await supabase.from('subcategory_suggestions').delete().eq('id',s.id);loadSugestoes()}}
+                              style={{padding:'5px 12px',borderRadius:8,background:'#F5F2EC',color:'#888',border:'1px solid #E0DDD8',fontSize:12,cursor:'pointer'}}>
+                              Ignorar
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
 

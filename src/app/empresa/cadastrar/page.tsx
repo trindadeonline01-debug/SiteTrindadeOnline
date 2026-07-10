@@ -79,6 +79,8 @@ export default function EmpresaCadastrarPage() {
   }, [])
 
   const [subcatSearch, setSubcatSearch] = useState('')
+  const [subcatSugestao, setSubcatSugestao] = useState('')
+  const [subcatSugestoes, setSubcatSugestoes] = useState<string[]>([])
   const filteredSubs = subcategories.filter(s => s.category_id === categoryId)
   const filteredSubsSearch = filteredSubs.filter(s => s.name.toLowerCase().includes(subcatSearch.toLowerCase()))
 
@@ -158,6 +160,12 @@ export default function EmpresaCadastrarPage() {
         )
       }
 
+      // 2.5 Sugestões de subcategoria
+      if (subcatSugestoes.length > 0) {
+        await supabase.from('subcategory_suggestions').insert(
+          subcatSugestoes.map(s => ({ company_id: company.id, suggestion: s }))
+        )
+      }
       // 3. Horários
       const isIgreja = categoryId === IGREJAS_CATEGORY_ID
       if (isIgreja) {
@@ -410,6 +418,27 @@ export default function EmpresaCadastrarPage() {
                     </div>
                   )}
 
+                  <div className="field" style={{marginTop:8}}>
+                    <label style={{fontSize:12,color:'#888'}}>Não encontrou sua subcategoria? Sugira aqui</label>
+                    <div style={{display:'flex',gap:8}}>
+                      <input type="text" placeholder="Ex: Barbearia infantil" value={subcatSugestao}
+                        onChange={e=>setSubcatSugestao(e.target.value)}
+                        onKeyDown={e=>{if(e.key==='Enter'&&subcatSugestao.trim()){e.preventDefault();setSubcatSugestoes(s=>[...s,subcatSugestao.trim()]);setSubcatSugestao('')}}}
+                        style={{flex:1,padding:'10px 14px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none'}}/>
+                      <button type="button" onClick={()=>{if(subcatSugestao.trim()){setSubcatSugestoes(s=>[...s,subcatSugestao.trim()]);setSubcatSugestao('')}}}
+                        style={{padding:'10px 16px',background:'#F5F2EC',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,cursor:'pointer',fontWeight:600,color:'#555'}}>+ Adicionar</button>
+                    </div>
+                    {subcatSugestoes.length > 0 && (
+                      <div style={{display:'flex',gap:6,flexWrap:'wrap',marginTop:8}}>
+                        {subcatSugestoes.map((s,i)=>(
+                          <span key={i} style={{background:'#FEF3E2',border:'1px solid #F5C77A',borderRadius:20,padding:'3px 10px',fontSize:12,color:'#854F0B',display:'flex',alignItems:'center',gap:4}}>
+                            {s}
+                            <button type="button" onClick={()=>setSubcatSugestoes(ss=>ss.filter((_,j)=>j!==i))} style={{background:'none',border:'none',cursor:'pointer',color:'#C9951A',fontSize:14,lineHeight:1,padding:0}}>×</button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <div className="field">
                     <label>Endereço completo *</label>
                     <input type="text" placeholder="Rua, número, bairro" value={endereco} onChange={e => setEndereco(e.target.value)} />

@@ -267,8 +267,8 @@ export default function HomePage() {
         .btn-sair     { background: transparent; color: #666; border: 1px solid #333; border-radius: 10px; padding: 6px 10px; font-size: 11px; font-weight: 500; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; display: block; }
         .btn-entrar   { display: flex; align-items: center; gap: 5px; background: transparent; color: #C9951A; border: 1.5px solid #C9951A; border-radius: 10px; padding: 7px 12px; font-size: 12px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; text-decoration: none; }
         .btn-cad      { background: #C9951A; color: #fff; border: none; border-radius: 10px; padding: 7px 12px; font-size: 12px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; text-decoration: none; display: block; }
-        .btn-fav      { color: #555; font-size: 13px; text-decoration: none; display: none; }
-        .btn-perfil   { color: #555; font-size: 13px; text-decoration: none; display: none; }
+        .btn-fav      { color: #555; font-size: 13px; text-decoration: none; display: block; }
+        .btn-perfil   { color: #555; font-size: 13px; text-decoration: none; display: block; }
         @media(min-width: 768px) {
           .btn-painel { display: block; } .btn-sair { display: block; }
           .btn-entrar { display: flex; } .btn-cad { display: block; }
@@ -464,9 +464,11 @@ export default function HomePage() {
                   <a className="btn-fav"    href="/favoritos">❤ Favoritos</a>
                   <a className="btn-perfil" href="/perfil">👤 Perfil</a>
                 </>}
-                <a className="btn-painel" href={userType === 'admin' ? '/admin' : '/painel'}>
-                  {userType === 'admin' ? 'Admin →' : 'Meu painel →'}
-                </a>
+                {(userType === 'admin' || userType === 'company') && (
+                  <a className="btn-painel" href={userType === 'admin' ? '/admin' : '/painel'}>
+                    {userType === 'admin' ? 'Admin →' : 'Meu painel →'}
+                  </a>
+                )}
                 <button className="btn-sair" onClick={handleSair}>Sair</button>
               </>
             ) : (

@@ -207,7 +207,7 @@ export default function AdminPage() {
       .from('companies')
       .select('*, category:categories(name,emoji), owner:profiles(name)')
       .order('created_at', { ascending: false })
-      .limit(100)
+      .limit(500)
     setCompanies(data || [])
   }
 
@@ -217,7 +217,7 @@ export default function AdminPage() {
       const data = await res.json()
       setUsers(data.users || [])
     } catch {
-      const { data } = await supabase.from('profiles').select('*').order('created_at', { ascending: false }).limit(100)
+      const { data } = await supabase.from('profiles').select('*').order('created_at', { ascending: false }).limit(500)
       setUsers(data || [])
     }
   }

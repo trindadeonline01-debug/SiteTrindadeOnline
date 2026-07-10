@@ -125,7 +125,6 @@ export default function PainelPage() {
       .eq('owner_id', userId)
       .order('created_at', {ascending: true})
     
-    console.log('loadData comps:', comps, 'userId:', userId)
     const comp = comps?.[0] || null
     setCompanies((comps || []) as any)
 

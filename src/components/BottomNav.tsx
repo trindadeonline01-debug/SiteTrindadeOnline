@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+const HIDE_STYLE = `@media(min-width:768px){.bottom-nav-mobile{display:none!important}.bottom-nav-spacer{display:none!important}}`
 import { usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
@@ -33,7 +34,7 @@ export default function BottomNav() {
 
   return (
     <>
-      <nav style={{position:'fixed',bottom:0,left:0,right:0,background:'#fff',borderTop:'0.5px solid #E0DDD8',display:'flex',zIndex:9999,paddingBottom:'env(safe-area-inset-bottom)'}}>
+      <nav style={{position:'fixed',bottom:0,left:0,right:0,background:'#fff',borderTop:'0.5px solid #E0DDD8',display:'flex',zIndex:9999,paddingBottom:'env(safe-area-inset-bottom)'}} className="bottom-nav-mobile">
         {items.map((item: any) => {
           const active = pathname === item.href
           return (
@@ -45,7 +46,8 @@ export default function BottomNav() {
           )
         })}
       </nav>
-      <div style={{height:64}}/>
+      <style>{HIDE_STYLE}</style>
+      <div style={{height:64}} className="bottom-nav-spacer"/>
     </>
   )
 }

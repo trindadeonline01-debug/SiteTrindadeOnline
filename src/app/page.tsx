@@ -460,9 +460,17 @@ export default function HomePage() {
           <div className="nav-actions">
             {user ? (
               <>
-                {userType === 'admin' && (
-                  <a className="btn-painel" href="/admin">Admin →</a>
+                {userType === 'user' && <>
+                  <a className="btn-fav" href="/favoritos">❤ Favoritos</a>
+                  <a className="btn-perfil" href="/perfil">👤 Perfil</a>
+                </>}
+                {(userType === 'admin' || userType === 'company') && (
+                  <a className="btn-painel" href={userType === 'admin' ? '/admin' : '/painel'}>
+                    {userType === 'admin' ? 'Admin →' : 'Meu painel →'}
+                  </a>
                 )}
+                <a className="btn-cad" href="/empresa/cadastrar">+ Empresa</a>
+                <button className="btn-sair" onClick={handleSair}>Sair</button>
               </>
             ) : (
               <>

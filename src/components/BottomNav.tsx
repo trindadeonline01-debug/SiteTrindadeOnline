@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-const HIDE_STYLE = `@media(min-width:768px){.bottom-nav-mobile{display:none!important}.bottom-nav-spacer{display:none!important}}`
+const HIDE_STYLE = `@media(min-width:768px){.bottom-nav-mobile{display:none!important}}`
 import { usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 

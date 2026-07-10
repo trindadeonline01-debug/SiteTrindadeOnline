@@ -482,7 +482,7 @@ export default function HomePage() {
                 <a className="nav-center-link" href="/perfil">👤 Perfil</a>
               </nav>
               <div className="nav-right">
-                <a className="btn-cad" href="/empresa/cadastrar">+ Empresa</a>
+                <a className="btn-cad" href="/empresa/cadastrar">Cadastrar empresa</a>
                 <button className="btn-sair" onClick={handleSair}>Sair</button>
               </div>
             </>

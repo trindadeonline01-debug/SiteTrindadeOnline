@@ -820,7 +820,7 @@ export default function AdminPage() {
         .sidebar {
           width: 220px; background: #111; flex-shrink: 0;
           display: flex; flex-direction: column;
-          position: sticky; top: 0; height: 100vh;
+          position: sticky; top: 0; height: 100vh; overflow-y: auto;
         }
         .sidebar-logo {
           padding: 24px 20px 20px;

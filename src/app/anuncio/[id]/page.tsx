@@ -86,7 +86,7 @@ export default function AnuncioPage({ params }: { params: Promise<{ id: string }
   }
   async function saveEdit(){
     if(!listing||!editForm.title.trim())return; setActionLoading(true)
-    await supabase.from('listings').update({title:editForm.title.trim(),description:editForm.description||null,price:editForm.price?parseFloat(editForm.price):null,address:editForm.address||null,contact_phone:editForm.phone||null}).eq('id',listing.id)
+    await fetch('/api/listings/update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({listing_id:listing.id,user_id:userId,updates:{title:editForm.title.trim(),description:editForm.description||null,price:editForm.price?parseFloat(editForm.price):null,address:editForm.address||null,contact_phone:editForm.phone||null}})})
     for(let i=0;i<newFiles.length;i++){
       const file=newFiles[i];const ext=file.name.split('.').pop();const path=`listings/${listing.id}/${Date.now()}_${i}.${ext}`
       const compressed=await compressImage(file);const{data:up}=await supabase.storage.from('company-photos').upload(path,compressed,{upsert:true})
@@ -95,15 +95,15 @@ export default function AnuncioPage({ params }: { params: Promise<{ id: string }
     setShowEdit(false); setActionLoading(false); load()
   }
   async function pauseListing(){
-    if(!listing)return; setActionLoading(true)
+    if(!listing||!userId)return; setActionLoading(true)
     const newStatus = listing.status === 'active' ? 'paused' : 'active'
-    await supabase.from('listings').update({status:newStatus}).eq('id',listing.id)
+    await fetch('/api/listings/update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({listing_id:listing.id,user_id:userId,updates:{status:newStatus}})})
     setListing({...listing, status:newStatus}); setActionLoading(false)
   }
   async function deleteListing(){
-    if(!listing||!confirm('Excluir este anúncio? Esta ação é irreversível.'))return
+    if(!listing||!userId||!confirm('Excluir este anúncio? Esta ação é irreversível.'))return
     setActionLoading(true)
-    await supabase.from('listings').update({status:'deleted'}).eq('id',listing.id)
+    await fetch('/api/listings/update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({listing_id:listing.id,user_id:userId,updates:{status:'deleted'}})})
     window.location.href = '/' + (TYPE_INFO[listing.type]?.slug || '')
   }
   function fmtPrice(l:Listing){if(!l.price)return'Grátis';return`R$ ${l.price.toLocaleString('pt-BR')}${l.price_label?` /${l.price_label}`:''}`}

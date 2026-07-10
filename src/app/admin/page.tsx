@@ -1148,6 +1148,28 @@ export default function AdminPage() {
                   <option value="free">Grátis</option>
                   <option value="paid">Pago</option>
                 </select>
+                {editCompanyModal.company.plan === 'paid' && (
+                  <div style={{marginTop:8}}>
+                    <label style={{fontSize:11,color:'#888',marginBottom:4,display:'block'}}>Dias de validade</label>
+                    <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:6}}>
+                      {[30,60,90,180,365].map(d=>(
+                        <button key={d} type="button" onClick={()=>setEditCompanyModal(p=>({...p,company:{...p.company,plan_days:d}}))}
+                          style={{padding:'5px 12px',borderRadius:8,border:'1.5px solid',borderColor:editCompanyModal.company.plan_days===d?'#C9951A':'#E0DDD8',background:editCompanyModal.company.plan_days===d?'#FEF3E2':'#fff',color:editCompanyModal.company.plan_days===d?'#854F0B':'#888',fontSize:12,cursor:'pointer',fontWeight:600}}>
+                          {d}d
+                        </button>
+                      ))}
+                    </div>
+                    <input type="number" placeholder="Ou digite os dias" min={1} max={365}
+                      value={editCompanyModal.company.plan_days||''}
+                      onChange={e=>setEditCompanyModal(p=>({...p,company:{...p.company,plan_days:Number(e.target.value)}}))}
+                      style={{width:'100%',padding:'8px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none'}}/>
+                    {editCompanyModal.company.plan_ends_at && (
+                      <div style={{fontSize:11,color:'#888',marginTop:4}}>
+                        Vence atual: {new Date(editCompanyModal.company.plan_ends_at).toLocaleDateString('pt-BR')}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
             <div style={{marginBottom:20,paddingTop:16,borderTop:'1px solid #EDE8E0'}}>

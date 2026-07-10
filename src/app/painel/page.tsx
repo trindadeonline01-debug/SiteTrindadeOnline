@@ -63,6 +63,8 @@ export default function PainelPage() {
   const [editNome, setEditNome]               = useState('')
   const [editCategoryId, setEditCategoryId]   = useState('')
   const [editSubcatIds, setEditSubcatIds]     = useState<string[]>([])
+  const [painelSubcatSugestao, setPainelSubcatSugestao] = useState('')
+  const [painelSubcatSugestoes, setPainelSubcatSugestoes] = useState<string[]>([])
   const [allCategories, setAllCategories]     = useState<{id:string;name:string;emoji:string}[]>([])
   const [allSubcats, setAllSubcats]           = useState<{id:string;name:string;emoji:string;category_id:string}[]>([])
   const [editPhone, setEditPhone]             = useState('')
@@ -361,6 +363,10 @@ export default function PainelPage() {
       tags: editTags
     }).eq('id', company.id)
     await supabase.from('company_subcategories').delete().eq('company_id', company.id)
+    if (painelSubcatSugestoes.length > 0) {
+      await supabase.from('subcategory_suggestions').insert(painelSubcatSugestoes.map(s => ({ company_id: company.id, suggestion: s })))
+      setPainelSubcatSugestoes([])
+    }
     if (editSubcatIds.length > 0) {
       await supabase.from('company_subcategories').insert(editSubcatIds.map(sid => ({ company_id: company.id, subcategory_id: sid })))
     }
@@ -1407,6 +1413,26 @@ export default function PainelPage() {
                                   </div>
                                 )
                               })}
+                            </div>
+                          )}
+                        </div>
+                        <div style={{marginTop:8}}>
+                          <label style={{fontSize:11,color:'#888',display:'block',marginBottom:6}}>Não encontrou sua subcategoria? Sugira aqui</label>
+                          <div style={{display:'flex',gap:8}}>
+                            <input type="text" placeholder="Ex: Barbearia infantil" value={painelSubcatSugestao}
+                              onChange={e=>setPainelSubcatSugestao(e.target.value)}
+                              onKeyDown={e=>{if(e.key==='Enter'&&painelSubcatSugestao.trim()){e.preventDefault();setPainelSubcatSugestoes(s=>[...s,painelSubcatSugestao.trim()]);setPainelSubcatSugestao('')}}}
+                              style={{flex:1,padding:'8px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none'}}/>
+                            <button type="button" onClick={()=>{if(painelSubcatSugestao.trim()){setPainelSubcatSugestoes(s=>[...s,painelSubcatSugestao.trim()]);setPainelSubcatSugestao('')}}}
+                              style={{padding:'8px 14px',background:'#F5F2EC',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:12,cursor:'pointer',fontWeight:600,color:'#555'}}>+ Add</button>
+                          </div>
+                          {painelSubcatSugestoes.length > 0 && (
+                            <div style={{display:'flex',gap:5,flexWrap:'wrap',marginTop:6}}>
+                              {painelSubcatSugestoes.map((s,i)=>(
+                                <span key={i} style={{background:'#FEF3E2',border:'1px solid #F5C77A',borderRadius:20,padding:'3px 10px',fontSize:11,color:'#854F0B',display:'flex',alignItems:'center',gap:4}}>
+                                  {s}<button type="button" onClick={()=>setPainelSubcatSugestoes(ss=>ss.filter((_,j)=>j!==i))} style={{background:'none',border:'none',cursor:'pointer',color:'#C9951A',fontSize:13,lineHeight:1,padding:0}}>×</button>
+                                </span>
+                              ))}
                             </div>
                           )}
                         </div>

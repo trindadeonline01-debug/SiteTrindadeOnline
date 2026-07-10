@@ -460,24 +460,17 @@ export default function HomePage() {
           <div className="nav-actions">
             {user ? (
               <>
-                {userType === 'user' && <>
-                  <a className="btn-fav"    href="/favoritos">❤ Favoritos</a>
-                  <a className="btn-perfil" href="/perfil">👤 Perfil</a>
-                </>}
-                {(userType === 'admin' || userType === 'company') && (
-                  <a className="btn-painel" href={userType === 'admin' ? '/admin' : '/painel'}>
-                    {userType === 'admin' ? 'Admin →' : 'Meu painel →'}
-                  </a>
+                {userType === 'admin' && (
+                  <a className="btn-painel" href="/admin">Admin →</a>
                 )}
-                <button className="btn-sair" onClick={handleSair}>Sair</button>
               </>
             ) : (
               <>
                 <a className="btn-entrar" href="/login">Entrar</a>
                 <a className="btn-entrar" href="/cadastro" style={{borderColor:'#888',color:'#888'}}>+ Cadastrar morador</a>
+                <a className="btn-cad" href="/empresa/cadastrar">+ Empresa</a>
               </>
             )}
-            <a className="btn-cad" href="/empresa/cadastrar">+ Empresa</a>
           </div>
         </div>
       </header>

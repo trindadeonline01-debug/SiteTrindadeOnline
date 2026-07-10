@@ -8,7 +8,7 @@ const supabase = createClient(
 
 export async function GET() {
   try {
-    const { data: profiles } = await supabase.from('profiles').select('*').order('created_at', {ascending: false}).limit(100)
+    const { data: profiles } = await supabase.from('profiles').select('*').order('created_at', {ascending: false}).limit(500)
     const { data: authData } = await supabase.auth.admin.listUsers()
 
     const merged = (profiles || []).map((p: any) => {

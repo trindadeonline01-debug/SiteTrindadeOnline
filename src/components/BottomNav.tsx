@@ -8,6 +8,13 @@ export default function BottomNav() {
   const [userType, setUserType] = useState<string|null>(null)
   const [loaded, setLoaded] = useState(false)
   const pathname = usePathname()
+  const [isDesktop, setIsDesktop] = useState(false)
+  useEffect(() => {
+    const check = () => setIsDesktop(window.innerWidth >= 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -18,6 +25,7 @@ export default function BottomNav() {
     })
   }, [])
 
+  if (isDesktop) return null
   const hideOn = ['/login', '/cadastro', '/admin', '/painel', '/empresa/cadastrar']
   if (!loaded || !userType || userType === 'admin' || hideOn.some(p => pathname.startsWith(p))) return null
 

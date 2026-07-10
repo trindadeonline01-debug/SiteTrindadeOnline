@@ -19,13 +19,23 @@ export async function POST(req: NextRequest) {
   else if (filter === '90d') { const d = new Date(now); d.setDate(d.getDate()-90); from = d.toISOString() }
   else if (filter === 'custom' && dateFrom) { from = dateFrom + 'T00:00:00Z'; to = dateTo ? dateTo + 'T23:59:59Z' : now.toISOString() }
 
-  let q = supabaseAdmin.from('payments').select('id, payment_id, plan, value, days, status, paid_at, company_id, companies(name)').eq('status','paid').order('paid_at', { ascending: false })
+  let q = supabaseAdmin.from('payments').select('id, payment_id, plan, value, days, status, paid_at, company_id').eq('status','paid').order('paid_at', { ascending: false })
   if (from) q = q.gte('paid_at', from)
   if (to) q = q.lte('paid_at', to)
-  const { data, error } = await q
+  const { data: payments, error } = await q
+
+  // Buscar nomes das empresas separado
+  const companyIds = [...new Set((payments||[]).map((p:any) => p.company_id).filter(Boolean))]
+  let companyMap: Record<string,string> = {}
+  if (companyIds.length > 0) {
+    const { data: comps } = await supabaseAdmin.from('companies').select('id,name').in('id', companyIds)
+    if (comps) comps.forEach((c:any) => { companyMap[c.id] = c.name })
+  }
+
+  const paymentsWithNames = (payments||[]).map((p:any) => ({ ...p, company: { name: companyMap[p.company_id] || '—' } }))
 
   const in7days = new Date(now); in7days.setDate(in7days.getDate()+7)
   const { data: exp } = await supabaseAdmin.from('companies').select('id,name,trial_ends_at,plan').eq('status','active').neq('plan','paid').lt('trial_ends_at', in7days.toISOString()).gt('trial_ends_at', now.toISOString()).order('trial_ends_at')
 
-  return NextResponse.json({ payments: data || [], expiring: exp || [], error: error?.message })
+  return NextResponse.json({ payments: paymentsWithNames, expiring: exp || [], error: error?.message })
 }

@@ -19,7 +19,7 @@ export default function TopNav() {
 
   const hideOn = ['/login', '/cadastro', '/admin', '/painel', '/empresa/cadastrar']
   if (hideOn.some(p => pathname.startsWith(p))) return null
-  if (!user) return null
+
 
   async function handleSair() {
     await supabase.auth.signOut()
@@ -51,19 +51,31 @@ export default function TopNav() {
       <div className="top-nav-global">
         <a className="top-nav-logo" href="/">TRINDADE <span>ONLINE</span></a>
         <nav className="top-nav-center">
-          <a className={`top-nav-link ${pathname==='/'?'active':''}`} href="/">🏠 Início</a>
-          <a className={`top-nav-link ${pathname==='/cupons'?'active':''}`} href="/cupons" style={{position:'relative'}}>
-            🎟️ Cupons<span className="top-nav-dot"/>
-          </a>
-          <a className={`top-nav-link ${pathname==='/feed'?'active':''}`} href="/feed">📰 Feed</a>
-          {userType === 'user' && <a className={`top-nav-link ${pathname==='/favoritos'?'active':''}`} href="/favoritos">❤️ Favoritos</a>}
-          {userType === 'company' && <a className={`top-nav-link ${pathname==='/painel'?'active':''}`} href="/painel">📊 Meu Painel</a>}
-          {userType === 'admin' && <a className="top-nav-link" href="/admin">⚙️ Admin</a>}
-          <a className={`top-nav-link ${pathname==='/perfil'?'active':''}`} href="/perfil">👤 Perfil</a>
+          {user && <>
+            <a className={`top-nav-link ${pathname==='/'?'active':''}`} href="/">🏠 Início</a>
+            <a className={`top-nav-link ${pathname==='/cupons'?'active':''}`} href="/cupons" style={{position:'relative'}}>
+              🎟️ Cupons<span className="top-nav-dot"/>
+            </a>
+            <a className={`top-nav-link ${pathname==='/feed'?'active':''}`} href="/feed">📰 Feed</a>
+            {userType === 'user' && <a className={`top-nav-link ${pathname==='/favoritos'?'active':''}`} href="/favoritos">❤️ Favoritos</a>}
+            {userType === 'company' && <a className={`top-nav-link ${pathname==='/painel'?'active':''}`} href="/painel">📊 Meu Painel</a>}
+            {userType === 'admin' && <a className="top-nav-link" href="/admin">⚙️ Admin</a>}
+            <a className={`top-nav-link ${pathname==='/perfil'?'active':''}`} href="/perfil">👤 Perfil</a>
+          </>}
         </nav>
         <div className="top-nav-right">
-          <a className="top-nav-btn" href="/empresa/cadastrar">Cadastrar empresa</a>
-          <button className="top-nav-sair" onClick={handleSair}>Sair</button>
+          {user ? (
+            <>
+              <a className="top-nav-btn" href="/empresa/cadastrar">Cadastrar empresa</a>
+              <button className="top-nav-sair" onClick={handleSair}>Sair</button>
+            </>
+          ) : (
+            <>
+              <a className="top-nav-sair" href="/login" style={{textDecoration:'none',display:'inline-block'}}>Entrar</a>
+              <a className="top-nav-sair" href="/cadastro" style={{textDecoration:'none',display:'inline-block'}}>Cadastrar morador</a>
+              <a className="top-nav-btn" href="/empresa/cadastrar">Cadastrar empresa</a>
+            </>
+          )}
         </div>
       </div>
     </>

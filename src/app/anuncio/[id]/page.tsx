@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, use } from 'react'
 import { supabase } from '@/lib/supabase'
+import { compressImage } from '@/lib/compressImage'
 
 type Listing = {
   id:string; type:string; title:string; description?:string
@@ -42,6 +43,9 @@ export default function AnuncioPage({ params }: { params: Promise<{ id: string }
   const [actionLoading, setActionLoading] = useState(false)
   const [showEdit, setShowEdit] = useState(false)
   const [editForm, setEditForm] = useState({title:'',description:'',price:'',address:'',phone:''})
+  const [editPhotos, setEditPhotos] = useState<any[]>([])
+  const [newFiles, setNewFiles] = useState<File[]>([])
+  const [removingPhoto, setRemovingPhoto] = useState<string|null>(null)
 
   useEffect(()=>{
     supabase.auth.getSession().then(({data:{session:s}})=>{if(s)setUserId(s.user.id)})
@@ -68,13 +72,27 @@ export default function AnuncioPage({ params }: { params: Promise<{ id: string }
   function openEdit(){
     if(!listing)return
     setEditForm({title:listing.title||'',description:listing.description||'',price:listing.price?String(listing.price):'',address:listing.address||'',phone:listing.contact_phone||''})
+    setEditPhotos(listing.photos||[])
+    setNewFiles([])
     setShowEdit(true)
+  }
+  async function removeEditPhoto(photo: any){
+    setRemovingPhoto(photo.id)
+    const path = photo.url.split('/company-photos/')[1]
+    if(path) await supabase.storage.from('company-photos').remove([path])
+    await supabase.from('listing_photos').delete().eq('id', photo.id)
+    setEditPhotos(p => p.filter(x => x.id !== photo.id))
+    setRemovingPhoto(null)
   }
   async function saveEdit(){
     if(!listing||!editForm.title.trim())return; setActionLoading(true)
     await supabase.from('listings').update({title:editForm.title.trim(),description:editForm.description||null,price:editForm.price?parseFloat(editForm.price):null,address:editForm.address||null,contact_phone:editForm.phone||null}).eq('id',listing.id)
-    setListing({...listing,title:editForm.title,description:editForm.description,price:editForm.price?parseFloat(editForm.price):undefined,address:editForm.address,contact_phone:editForm.phone})
-    setShowEdit(false); setActionLoading(false)
+    for(let i=0;i<newFiles.length;i++){
+      const file=newFiles[i];const ext=file.name.split('.').pop();const path=`listings/${listing.id}/${Date.now()}_${i}.${ext}`
+      const compressed=await compressImage(file);const{data:up}=await supabase.storage.from('company-photos').upload(path,compressed,{upsert:true})
+      if(up){const{data:url}=supabase.storage.from('company-photos').getPublicUrl(path);await supabase.from('listing_photos').insert({listing_id:listing.id,url:url.publicUrl,order:editPhotos.length+i})}
+    }
+    setShowEdit(false); setActionLoading(false); load()
   }
   async function pauseListing(){
     if(!listing)return; setActionLoading(true)
@@ -278,6 +296,20 @@ export default function AnuncioPage({ params }: { params: Promise<{ id: string }
               <input value={editForm.address} onChange={e=>setEditForm(f=>({...f,address:e.target.value}))} placeholder="Trindade" style={{width:'100%',padding:'10px 13px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:14,fontFamily:'Inter,sans-serif',outline:'none',boxSizing:'border-box'}}/>
             </div>
           </div>
+          <label style={{fontSize:11,fontWeight:700,color:'#AAA',letterSpacing:.5,marginBottom:8,display:'block'}}>FOTOS ATUAIS</label>
+          {editPhotos.length > 0 && (
+            <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:12}}>
+              {editPhotos.map((p:any)=>(
+                <div key={p.id} style={{position:'relative',width:72,height:72}}>
+                  <img src={p.url} style={{width:72,height:72,objectFit:'cover',borderRadius:8,border:'1px solid #E0DDD8'}}/>
+                  <button onClick={()=>removeEditPhoto(p)} disabled={removingPhoto===p.id}
+                    style={{position:'absolute',top:-6,right:-6,width:20,height:20,borderRadius:10,background:'#E24B4A',border:'2px solid #fff',color:'#fff',fontSize:12,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0,lineHeight:1}}>×</button>
+                </div>
+              ))}
+            </div>
+          )}
+          <label style={{fontSize:11,fontWeight:700,color:'#AAA',letterSpacing:.5,marginBottom:5,display:'block'}}>ADICIONAR FOTOS</label>
+          <input type="file" accept="image/*" multiple onChange={e=>setNewFiles(Array.from(e.target.files||[]).slice(0,5-editPhotos.length))} style={{width:'100%',padding:'10px 13px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif',marginBottom:12,boxSizing:'border-box'}}/>
           <label style={{fontSize:11,fontWeight:700,color:'#AAA',letterSpacing:.5,marginBottom:5,display:'block'}}>WHATSAPP</label>
           <input value={editForm.phone} onChange={e=>setEditForm(f=>({...f,phone:e.target.value}))} placeholder="21 99999-9999" style={{width:'100%',padding:'10px 13px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:14,fontFamily:'Inter,sans-serif',outline:'none',marginBottom:16,boxSizing:'border-box'}}/>
           <button onClick={saveEdit} disabled={actionLoading||!editForm.title.trim()} style={{width:'100%',padding:13,background:'#C9951A',color:'#fff',border:'none',borderRadius:12,fontSize:15,fontWeight:700,cursor:'pointer',fontFamily:'Inter,sans-serif',marginBottom:8}}>{actionLoading?'Salvando...':'Salvar alterações'}</button>

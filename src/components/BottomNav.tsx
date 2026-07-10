@@ -35,6 +35,7 @@ export default function BottomNav() {
 
   return (
     <>
+      <style>{HIDE_STYLE}</style>
       <nav style={{position:'fixed',bottom:0,left:0,right:0,background:'#111',borderTop:'none',display:'flex',zIndex:9999,paddingBottom:'env(safe-area-inset-bottom)'}} className="bottom-nav-mobile">
         {items.map((item: any) => {
           const active = pathname === item.href
@@ -47,7 +48,6 @@ export default function BottomNav() {
           )
         })}
       </nav>
-      <style>{HIDE_STYLE}</style>
       <div style={{height:64}} className="bottom-nav-spacer"/>
     </>
   )

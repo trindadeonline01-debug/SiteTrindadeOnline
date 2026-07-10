@@ -1484,7 +1484,7 @@ export default function AdminPage() {
                                 if (!comp) return <span style={{fontSize:11,color:'#AAA'}}>—</span>
                                 return <span style={{fontSize:11,fontWeight:600,color:comp.plan==='paid'?'#0F8050':'#AAA'}}>{comp.plan==='paid'?'Pago':'Grátis'}</span>
                               })()}</td>
-                              <td>{u.phone ? <a href={`https://wa.me/55${u.phone}`} target='_blank' style={{color:'#25D366',textDecoration:'none',fontSize:12}}>📱 {u.phone}</a> : '—'}</td>
+                              <td>{u.phone ? <button onClick={()=>navigator.clipboard.writeText(u.phone||'').then(()=>showToast('Número copiado!'))} style={{background:'none',border:'none',cursor:'pointer',color:'#25D366',fontSize:12,padding:0,fontFamily:'Inter,sans-serif'}}>📋 {u.phone}</button> : '—'}</td>
                               <td style={{fontSize:12,color:'#666'}}>{u.email || '—'}</td>
                               <td style={{textAlign:'center'}}>
                                 <input type="checkbox" checked={!!u.whatsapp_group} onChange={async(e)=>{

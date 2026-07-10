@@ -72,7 +72,7 @@ export default function PerfilPage() {
   if (loading) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',fontFamily:'Inter,sans-serif',color:'#AAA'}}>Carregando...</div>
   if (!profile) return null
 
-  const activeListings = listings.filter(l => l.status === 'active')
+  const activeListings = listings.filter(l => l.status === 'active' || l.status === 'paused')
 
   return (
     <>
@@ -252,7 +252,7 @@ export default function PerfilPage() {
                       <div className="an-meta">
                         {TYPE_LABEL[l.type]} · {l.price ? `R$ ${l.price.toLocaleString('pt-BR')}` : 'Grátis'} · {timeAgo(l.created_at)}
                       </div>
-                      <span className="an-badge badge-active">Ativo</span>
+                      <span className={`an-badge ${l.status==='paused'?'':'badge-active'}`} style={l.status==='paused'?{background:'#F5F2EC',color:'#888'}:{}}>{l.status==='paused'?'⏸ Pausado':'Ativo'}</span>
                       <button className="an-del" onClick={()=>deleteListing(l.id)} title="Remover">🗑</button>
                     </div>
                   ))}

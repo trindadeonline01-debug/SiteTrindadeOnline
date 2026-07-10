@@ -53,6 +53,7 @@ export default function AdminPage() {
   const [filterUserType, setFilterUserType] = useState('all')
   const [filterUserBairro, setFilterUserBairro] = useState('all')
   const [filterUserPlan, setFilterUserPlan] = useState('all')
+  const [groupStatus, setGroupStatus] = useState<Record<string,{checked:boolean,at:string|null}>>({})  
   const [loading, setLoading]       = useState(true)
   const [toast, setToast]           = useState('')
   const [authorized, setAuthorized] = useState<boolean|null>(null)
@@ -215,7 +216,11 @@ export default function AdminPage() {
     try {
       const res = await fetch('/api/admin/list-users')
       const data = await res.json()
-      setUsers(data.users || [])
+      const us = data.users || []
+      setUsers(us)
+      const gs: Record<string,{checked:boolean,at:string|null}> = {}
+      us.forEach((u:any) => { gs[u.id] = {checked:!!u.whatsapp_group, at:u.whatsapp_group_at||null} })
+      setGroupStatus(gs)
     } catch {
       const { data } = await supabase.from('profiles').select('*').order('created_at', { ascending: false }).limit(500)
       setUsers(data || [])
@@ -1488,14 +1493,14 @@ export default function AdminPage() {
                               <td style={{fontSize:12,color:'#666'}}>{u.email || '—'}</td>
                               <td style={{textAlign:'center'}}>
                                 <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
-                                  <input type="checkbox" defaultChecked={!!u.whatsapp_group} onChange={async(e)=>{
+                                  <input type="checkbox" checked={!!groupStatus[u.id]?.checked} onChange={async(e)=>{
                                     const val = e.target.checked
                                     const now = val ? new Date().toISOString() : null
-                                    u.whatsapp_group = val; u.whatsapp_group_at = now
+                                    setGroupStatus(prev=>({...prev,[u.id]:{checked:val,at:now}}))
                                     await fetch('/api/admin/update-user',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:u.id,updates:{whatsapp_group:val,whatsapp_group_at:now}})})
                                   }} style={{width:16,height:16,cursor:'pointer',accentColor:'#25D366'}}/>
-                                  {u.whatsapp_group && u.whatsapp_group_at && (
-                                    <span style={{fontSize:9,color:'#25D366',whiteSpace:'nowrap'}}>{new Date(u.whatsapp_group_at).toLocaleDateString('pt-BR')} {new Date(u.whatsapp_group_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span>
+                                  {groupStatus[u.id]?.checked && groupStatus[u.id]?.at && (
+                                    <span style={{fontSize:9,color:'#25D366',whiteSpace:'nowrap'}}>{new Date(groupStatus[u.id].at!).toLocaleDateString('pt-BR')} {new Date(groupStatus[u.id].at!).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span>
                                   )}
                                 </div>
                               </td>

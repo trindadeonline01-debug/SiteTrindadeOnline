@@ -434,7 +434,18 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
 
           {/* COLUNA ESQUERDA */}
           <div className="info-card">
-            <div className="empresa-name">{company.name}</div>
+            <div style={{display:'flex',alignItems:'center',gap:12,flexWrap:'wrap'}}>
+              <div className="empresa-name">{company.name}</div>
+              {company.plan === 'paid' && (
+                <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:2,flexShrink:0}}>
+                  <svg width="44" height="44" viewBox="0 0 64 64" fill="none">
+                    <circle cx="32" cy="32" r="28" stroke="#C9951A" strokeWidth="5" fill="none"/>
+                    <path d="M18 32 L27 42 L46 22" stroke="#C9951A" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <span style={{fontSize:8,fontWeight:700,color:'#C9951A',letterSpacing:'.8px',textTransform:'uppercase'}}>Indicado</span>
+                </div>
+              )}
+            </div>
             <div className="tags">
               {company.category && <span className="tag tag-cat">{company.category.emoji} {company.category.name}</span>}
               {company.hours && company.hours.length > 0 && (

@@ -17,7 +17,7 @@ type Company = {
 }
 type Profile = {
   id: string; name: string; user_type: string
-  neighborhood: string; created_at: string; email?: string; phone?: string
+  neighborhood: string; created_at: string; email?: string; phone?: string; whatsapp_group?: boolean
 }
 type SearchLog  = { query: string; count: number; no_result: number }
 type Highlight  = { id: string; company_id: string; scope_type: string; scope_id: string|null; highlight_type: string; active: boolean; expires_at: string|null; display_order: number; company?: any; scope_name?: string }
@@ -52,6 +52,7 @@ export default function AdminPage() {
   const [searchUser, setSearchUser] = useState('')
   const [filterUserType, setFilterUserType] = useState('all')
   const [filterUserBairro, setFilterUserBairro] = useState('all')
+  const [filterUserPlan, setFilterUserPlan] = useState('all')
   const [loading, setLoading]       = useState(true)
   const [toast, setToast]           = useState('')
   const [authorized, setAuthorized] = useState<boolean|null>(null)
@@ -1406,12 +1407,13 @@ export default function AdminPage() {
                   ? <div className="empty-state"><div>🏪</div><div>Nenhuma empresa encontrada</div></div>
                   : <div style={{ overflowX:'auto' }}>
                       <table className="data-table">
-                        <thead><tr><th>Nome</th><th>Responsável</th><th>Categoria</th><th>Plano</th><th>Status</th><th>Data</th><th>Ações</th></tr></thead>
+                        <thead><tr><th>Nome</th><th>Responsável</th><th>WhatsApp</th><th>Categoria</th><th>Plano</th><th>Status</th><th>Data</th><th>Ações</th></tr></thead>
                         <tbody>
                           {filteredCompanies.map(c => (
                             <tr key={c.id}>
                               <td><strong>{c.name}</strong><br/><span style={{fontSize:11,color:'#AAA'}}>{c.address || '—'}</span></td>
                               <td>{c.owner?.name || '—'}</td>
+                              <td>{c.phone ? <a href={`https://wa.me/55${c.phone}`} target='_blank' style={{color:'#25D366',textDecoration:'none',fontSize:12}}>📱 {c.phone}</a> : '—'}</td>
                               <td>{c.category?.emoji} {c.category?.name || '—'}</td>
                               <td><span style={{fontSize:11,fontWeight:600,color:c.plan==='paid'?'#0F8050':'#AAA'}}>{c.plan==='paid'?'Pago':'Grátis'}</span></td>
                               <td>
@@ -1450,6 +1452,11 @@ export default function AdminPage() {
                         {t==='all'?'Todos':t==='user'?'Moradores':'Lojistas'}
                       </button>
                     ))}
+                    <select value={filterUserPlan} onChange={e=>setFilterUserPlan(e.target.value)} style={{padding:'7px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none',background:'#fff'}}>
+                      <option value="all">Todos os planos</option>
+                      <option value="paid">Pago</option>
+                      <option value="free">Gratuito</option>
+                    </select>
                     <select value={filterUserBairro} onChange={e=>setFilterUserBairro(e.target.value)} style={{padding:'7px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none',background:'#fff'}}>
                       <option value="all">Todos os bairros</option>
                       {[...new Set(users.map(u=>u.neighborhood).filter(Boolean))].sort().map(b=>(
@@ -1462,9 +1469,9 @@ export default function AdminPage() {
                   ? <div className="empty-state"><div>👥</div><div>Nenhum usuário cadastrado ainda</div></div>
                   : <div style={{ overflowX:'auto' }}>
                       <table className="data-table">
-                        <thead><tr><th>Nome</th><th>Tipo</th><th>Bairro</th><th>WhatsApp</th><th>Email</th><th>Cadastro</th><th>Ações</th></tr></thead>
+                        <thead><tr><th>Nome</th><th>Tipo</th><th>Plano</th><th>WhatsApp</th><th>Email</th><th>Grupo WA</th><th>Ações</th></tr></thead>
                         <tbody>
-                          {users.filter(u=>(searchUser===''||u.name.toLowerCase().includes(searchUser.toLowerCase())||(u.email||'').toLowerCase().includes(searchUser.toLowerCase()))&&(filterUserType==='all'||u.user_type===filterUserType)&&(filterUserBairro==='all'||(u.neighborhood||'')===filterUserBairro)).map(u => (
+                          {users.filter(u=>(searchUser===''||u.name.toLowerCase().includes(searchUser.toLowerCase())||(u.email||'').toLowerCase().includes(searchUser.toLowerCase()))&&(filterUserType==='all'||u.user_type===filterUserType)&&(filterUserBairro==='all'||(u.neighborhood||'')===filterUserBairro)&&(filterUserPlan==='all'||(filterUserPlan==='paid'&&companies.find(c=>c.owner_id===u.id)?.plan==='paid')||(filterUserPlan==='free'&&(!companies.find(c=>c.owner_id===u.id)||companies.find(c=>c.owner_id===u.id)?.plan!=='paid')))).map(u => (
                             <tr key={u.id}>
                               <td><strong>{u.name}</strong></td>
                               <td>
@@ -1472,10 +1479,19 @@ export default function AdminPage() {
                                   {u.user_type === 'user' ? '👤 Morador' : u.user_type === 'company' ? '🏪 Lojista' : '⭐ Admin'}
                                 </span>
                               </td>
-                              <td>{u.neighborhood || '—'}</td>
-                              <td>{u.phone || '—'}</td>
+                              <td>{(() => {
+                                const comp = companies.find(c => c.owner_id === u.id)
+                                if (!comp) return <span style={{fontSize:11,color:'#AAA'}}>—</span>
+                                return <span style={{fontSize:11,fontWeight:600,color:comp.plan==='paid'?'#0F8050':'#AAA'}}>{comp.plan==='paid'?'Pago':'Grátis'}</span>
+                              })()}</td>
+                              <td>{u.phone ? <a href={`https://wa.me/55${u.phone}`} target='_blank' style={{color:'#25D366',textDecoration:'none',fontSize:12}}>📱 {u.phone}</a> : '—'}</td>
                               <td style={{fontSize:12,color:'#666'}}>{u.email || '—'}</td>
-                              <td>{fmtDate(u.created_at)}</td>
+                              <td style={{textAlign:'center'}}>
+                                <input type="checkbox" checked={!!u.whatsapp_group} onChange={async(e)=>{
+                                  await fetch('/api/admin/update-user',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:u.id,updates:{whatsapp_group:e.target.checked}})})
+                                  u.whatsapp_group = e.target.checked
+                                }} style={{width:16,height:16,cursor:'pointer',accentColor:'#25D366'}}/>
+                              </td>
                               <td style={{display:'flex',gap:6}}>
                                 <button className="action-btn" style={{background:'#185FA522',color:'#185FA5'}} onClick={() => openEditUser(u)}>✏️ Editar</button>
                                 {u.user_type !== 'admin' && <button className="action-btn" style={{background:'#E24B4A22',color:'#E24B4A'}} onClick={() => deleteUser(u.id, u.name)}>🗑</button>}

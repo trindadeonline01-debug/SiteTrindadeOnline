@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   else if (filter === '90d') { const d = new Date(now); d.setDate(d.getDate()-90); from = d.toISOString() }
   else if (filter === 'custom' && dateFrom) { from = dateFrom + 'T00:00:00Z'; to = dateTo ? dateTo + 'T23:59:59Z' : now.toISOString() }
 
-  let q = supabaseAdmin.from('payments').select('*, company:companies(name)').eq('status','paid').order('paid_at', { ascending: false })
+  let q = supabaseAdmin.from('payments').select('id, payment_id, plan, value, days, status, paid_at, company_id, companies(name)').eq('status','paid').order('paid_at', { ascending: false })
   if (from) q = q.gte('paid_at', from)
   if (to) q = q.lte('paid_at', to)
   const { data, error } = await q

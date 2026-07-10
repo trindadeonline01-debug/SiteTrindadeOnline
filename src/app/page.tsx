@@ -264,6 +264,15 @@ export default function HomePage() {
         .logo-dot  { font-family: 'Bebas Neue', sans-serif; font-size: 18px; color: #DDD; margin: 0 5px; }
         .logo-gold { font-family: 'Bebas Neue', sans-serif; font-size: 26px; color: #C9951A; letter-spacing: 2px; }
         .nav-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; width: 100%; }
+        .nav-center { display: none; }
+        .nav-right { display: none; }
+        @media(min-width: 768px) {
+          .header-inner { grid-template-columns: auto 1fr auto; display: grid; }
+          .nav-center { display: flex; align-items: center; justify-content: center; gap: 2px; }
+          .nav-right { display: flex; align-items: center; gap: 8px; }
+          .nav-center-link { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 10px; font-size: 14px; font-weight: 500; color: #555; text-decoration: none; white-space: nowrap; position: relative; }
+          .nav-center-link:hover { background: #F5F2EC; color: #111; }
+        }
         .btn-painel   { background: #111; color: #C9951A; border: none; border-radius: 10px; padding: 7px 12px; font-size: 12px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; text-decoration: none; display: block; }
         .btn-sair     { background: transparent; color: #666; border: 1px solid #333; border-radius: 10px; padding: 6px 10px; font-size: 11px; font-weight: 500; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; display: block; }
         .btn-entrar   { display: flex; align-items: center; gap: 5px; background: transparent; color: #C9951A; border: 1.5px solid #C9951A; border-radius: 10px; padding: 7px 12px; font-size: 12px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; text-decoration: none; }
@@ -458,29 +467,32 @@ export default function HomePage() {
             <span className="logo-dot">·</span>
             <span className="logo-gold">ONLINE</span>
           </a>
-          <div className="nav-actions">
-            {user ? (
-              <>
-                {userType === 'user' && <>
-                  <a className="btn-fav" href="/favoritos">❤ Favoritos</a>
-                  <a className="btn-perfil" href="/perfil">👤 Perfil</a>
-                </>}
-                {(userType === 'admin' || userType === 'company') && (
-                  <a className="btn-painel" href={userType === 'admin' ? '/admin' : '/painel'}>
-                    {userType === 'admin' ? 'Admin →' : 'Meu painel →'}
-                  </a>
-                )}
+          {user ? (
+            <>
+              <nav className="nav-center">
+                <a className="nav-center-link" href="/">🏠 Início</a>
+                <a className="nav-center-link" href="/cupons" style={{position:'relative'}}>
+                  🎟️ Cupons
+                  <span style={{position:'absolute',top:6,right:6,width:7,height:7,background:'#E24B4A',borderRadius:'50%',border:'1.5px solid #fff'}}/>
+                </a>
+                <a className="nav-center-link" href="/feed">📰 Feed</a>
+                {userType === 'user' && <a className="nav-center-link" href="/favoritos">❤️ Favoritos</a>}
+                {userType === 'company' && <a className="nav-center-link" href="/painel">📊 Meu Painel</a>}
+                {userType === 'admin' && <a className="nav-center-link" href="/admin">⚙️ Admin</a>}
+                <a className="nav-center-link" href="/perfil">👤 Perfil</a>
+              </nav>
+              <div className="nav-right">
                 <a className="btn-cad" href="/empresa/cadastrar">+ Empresa</a>
                 <button className="btn-sair" onClick={handleSair}>Sair</button>
-              </>
-            ) : (
-              <>
-                <a className="btn-entrar" href="/login">Entrar</a>
-                <a className="btn-entrar" href="/cadastro" style={{borderColor:'#888',color:'#888'}}>+ Cadastrar morador</a>
-                <a className="btn-cad" href="/empresa/cadastrar">+ Empresa</a>
-              </>
-            )}
-          </div>
+              </div>
+            </>
+          ) : (
+            <div className="nav-actions">
+              <a className="btn-entrar" href="/login">Entrar</a>
+              <a className="btn-entrar" href="/cadastro" style={{borderColor:'#888',color:'#888'}}>Cadastrar morador</a>
+              <a className="btn-cad" href="/empresa/cadastrar">Cadastrar empresa</a>
+            </div>
+          )}
         </div>
       </header>
 

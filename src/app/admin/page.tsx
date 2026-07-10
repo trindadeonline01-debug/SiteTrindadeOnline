@@ -1491,7 +1491,7 @@ export default function AdminPage() {
                                   <input type="checkbox" checked={!!u.whatsapp_group} onChange={async(e)=>{
                                     const now = e.target.checked ? new Date().toISOString() : null
                                     await fetch('/api/admin/update-user',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:u.id,updates:{whatsapp_group:e.target.checked,whatsapp_group_at:now}})})
-                                    setUsers(prev=>prev.map(x=>x.id===u.id?{...x,whatsapp_group:e.target.checked,whatsapp_group_at:now}:x))
+                                    setUsers(prev=>[...prev.map(x=>x.id===u.id?{...x,whatsapp_group:e.target.checked,whatsapp_group_at:now}:x)])
                                   }} style={{width:16,height:16,cursor:'pointer',accentColor:'#25D366'}}/>
                                   {u.whatsapp_group && u.whatsapp_group_at && (
                                     <span style={{fontSize:9,color:'#25D366',whiteSpace:'nowrap'}}>{new Date(u.whatsapp_group_at).toLocaleDateString('pt-BR')} {new Date(u.whatsapp_group_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span>

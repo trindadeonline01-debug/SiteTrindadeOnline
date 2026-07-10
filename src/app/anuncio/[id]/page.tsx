@@ -39,6 +39,7 @@ export default function AnuncioPage({ params }: { params: Promise<{ id: string }
   const [reportReason, setReportReason] = useState('')
   const [reportSent, setReportSent] = useState(false)
   const [resolving, setResolving] = useState(false)
+  const [actionLoading, setActionLoading] = useState(false)
 
   useEffect(()=>{
     supabase.auth.getSession().then(({data:{session:s}})=>{if(s)setUserId(s.user.id)})
@@ -62,6 +63,18 @@ export default function AnuncioPage({ params }: { params: Promise<{ id: string }
     setResolving(false); window.location.href='/achados-perdidos'
   }
 
+  async function pauseListing(){
+    if(!listing)return; setActionLoading(true)
+    const newStatus = listing.status === 'active' ? 'paused' : 'active'
+    await supabase.from('listings').update({status:newStatus}).eq('id',listing.id)
+    setListing({...listing, status:newStatus}); setActionLoading(false)
+  }
+  async function deleteListing(){
+    if(!listing||!confirm('Excluir este anúncio? Esta ação é irreversível.'))return
+    setActionLoading(true)
+    await supabase.from('listings').update({status:'deleted'}).eq('id',listing.id)
+    window.location.href = '/' + (TYPE_INFO[listing.type]?.slug || '')
+  }
   function fmtPrice(l:Listing){if(!l.price)return'Grátis';return`R$ ${l.price.toLocaleString('pt-BR')}${l.price_label?` /${l.price_label}`:''}`}
   function fmtDate(d:string){return new Date(d).toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'})}
 
@@ -201,6 +214,22 @@ export default function AnuncioPage({ params }: { params: Promise<{ id: string }
             </div>
           </div>
 
+          {isOwner && (
+            <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:12}}>
+              <button onClick={pauseListing} disabled={actionLoading}
+                style={{padding:'9px 16px',borderRadius:10,border:'1.5px solid #E0DDD8',background:'#fff',color:'#555',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                {listing.status==='active'?'⏸ Pausar':'▶ Reativar'}
+              </button>
+              <a href={`/${TYPE_INFO[listing.type]?.slug||'desapega'}?edit=${listing.id}`}
+                style={{padding:'9px 16px',borderRadius:10,border:'1.5px solid #C9951A',background:'#FEF3E2',color:'#854F0B',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',textDecoration:'none'}}>
+                ✏️ Editar
+              </a>
+              <button onClick={deleteListing} disabled={actionLoading}
+                style={{padding:'9px 16px',borderRadius:10,border:'1.5px solid #E24B4A',background:'#FEF0F0',color:'#E24B4A',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                🗑 Excluir
+              </button>
+            </div>
+          )}
           {isOwner&&listing.type==='achado'&&listing.status==='active'&&(
             <button className="btn-resolve" onClick={markResolved} disabled={resolving}>
               {resolving?'Marcando...':'✓ Marcar como resolvido'}

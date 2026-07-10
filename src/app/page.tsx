@@ -255,7 +255,7 @@ export default function HomePage() {
         body { font-family: 'Inter', sans-serif; background: #F0EDE8; color: #111; }
 
         .site-header { background: #fff; border-bottom: 1px solid #EDE8E0; position: sticky; top: 0; z-index: 50; }
-        @media(max-width: 767px) { .site-header { display: none; } }
+        @media(max-width: 767px) { .site-header-logged { display: none; } }
         .header-inner { max-width: 1200px; margin: 0 auto; padding: 10px 14px; display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
         @media(min-width: 768px) { .header-inner { padding: 12px 20px; justify-content: space-between; } }
         .logo { display: none; align-items: baseline; flex-shrink: 0; text-decoration: none; }
@@ -451,7 +451,7 @@ export default function HomePage() {
       `}</style>
 
       {/* HEADER */}
-      <header className="site-header">
+      <header className={user ? 'site-header site-header-logged' : 'site-header'}>
         <div className="header-inner">
           <a className="logo" href="/">
             <span className="logo-main">TRINDADE</span>

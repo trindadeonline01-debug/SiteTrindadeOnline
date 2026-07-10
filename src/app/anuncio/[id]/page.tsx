@@ -40,6 +40,8 @@ export default function AnuncioPage({ params }: { params: Promise<{ id: string }
   const [reportSent, setReportSent] = useState(false)
   const [resolving, setResolving] = useState(false)
   const [actionLoading, setActionLoading] = useState(false)
+  const [showEdit, setShowEdit] = useState(false)
+  const [editForm, setEditForm] = useState({title:'',description:'',price:'',address:'',phone:''})
 
   useEffect(()=>{
     supabase.auth.getSession().then(({data:{session:s}})=>{if(s)setUserId(s.user.id)})
@@ -63,6 +65,17 @@ export default function AnuncioPage({ params }: { params: Promise<{ id: string }
     setResolving(false); window.location.href='/achados-perdidos'
   }
 
+  function openEdit(){
+    if(!listing)return
+    setEditForm({title:listing.title||'',description:listing.description||'',price:listing.price?String(listing.price):'',address:listing.address||'',phone:listing.contact_phone||''})
+    setShowEdit(true)
+  }
+  async function saveEdit(){
+    if(!listing||!editForm.title.trim())return; setActionLoading(true)
+    await supabase.from('listings').update({title:editForm.title.trim(),description:editForm.description||null,price:editForm.price?parseFloat(editForm.price):null,address:editForm.address||null,contact_phone:editForm.phone||null}).eq('id',listing.id)
+    setListing({...listing,title:editForm.title,description:editForm.description,price:editForm.price?parseFloat(editForm.price):undefined,address:editForm.address,contact_phone:editForm.phone})
+    setShowEdit(false); setActionLoading(false)
+  }
   async function pauseListing(){
     if(!listing)return; setActionLoading(true)
     const newStatus = listing.status === 'active' ? 'paused' : 'active'
@@ -220,10 +233,10 @@ export default function AnuncioPage({ params }: { params: Promise<{ id: string }
                 style={{padding:'9px 16px',borderRadius:10,border:'1.5px solid #E0DDD8',background:'#fff',color:'#555',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
                 {listing.status==='active'?'⏸ Pausar':'▶ Reativar'}
               </button>
-              <a href={`/${TYPE_INFO[listing.type]?.slug||'desapega'}?edit=${listing.id}`}
-                style={{padding:'9px 16px',borderRadius:10,border:'1.5px solid #C9951A',background:'#FEF3E2',color:'#854F0B',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',textDecoration:'none'}}>
+              <button onClick={openEdit}
+                style={{padding:'9px 16px',borderRadius:10,border:'1.5px solid #C9951A',background:'#FEF3E2',color:'#854F0B',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
                 ✏️ Editar
-              </a>
+              </button>
               <button onClick={deleteListing} disabled={actionLoading}
                 style={{padding:'9px 16px',borderRadius:10,border:'1.5px solid #E24B4A',background:'#FEF0F0',color:'#E24B4A',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
                 🗑 Excluir
@@ -247,6 +260,31 @@ export default function AnuncioPage({ params }: { params: Promise<{ id: string }
       <div className="footer"><a href={`/${info.slug}`}>← Voltar a {info.label}</a></div>
     </div>
 
+    {showEdit&&(
+      <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.6)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:16}} onClick={e=>e.target===e.currentTarget&&setShowEdit(false)}>
+        <div style={{background:'#fff',borderRadius:20,padding:24,width:'100%',maxWidth:500,maxHeight:'90vh',overflowY:'auto'}}>
+          <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,color:'#111',letterSpacing:1,marginBottom:16}}>EDITAR ANÚNCIO</div>
+          <label style={{fontSize:11,fontWeight:700,color:'#AAA',letterSpacing:.5,marginBottom:5,display:'block'}}>TÍTULO *</label>
+          <input value={editForm.title} onChange={e=>setEditForm(f=>({...f,title:e.target.value}))} style={{width:'100%',padding:'10px 13px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:14,fontFamily:'Inter,sans-serif',outline:'none',marginBottom:12,boxSizing:'border-box'}}/>
+          <label style={{fontSize:11,fontWeight:700,color:'#AAA',letterSpacing:.5,marginBottom:5,display:'block'}}>DESCRIÇÃO</label>
+          <textarea value={editForm.description} onChange={e=>setEditForm(f=>({...f,description:e.target.value}))} rows={3} style={{width:'100%',padding:'10px 13px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:14,fontFamily:'Inter,sans-serif',outline:'none',marginBottom:12,resize:'none',boxSizing:'border-box'}}/>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12}}>
+            <div>
+              <label style={{fontSize:11,fontWeight:700,color:'#AAA',letterSpacing:.5,marginBottom:5,display:'block'}}>VALOR (R$)</label>
+              <input type="number" value={editForm.price} onChange={e=>setEditForm(f=>({...f,price:e.target.value}))} placeholder="Grátis" style={{width:'100%',padding:'10px 13px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:14,fontFamily:'Inter,sans-serif',outline:'none',boxSizing:'border-box'}}/>
+            </div>
+            <div>
+              <label style={{fontSize:11,fontWeight:700,color:'#AAA',letterSpacing:.5,marginBottom:5,display:'block'}}>BAIRRO</label>
+              <input value={editForm.address} onChange={e=>setEditForm(f=>({...f,address:e.target.value}))} placeholder="Trindade" style={{width:'100%',padding:'10px 13px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:14,fontFamily:'Inter,sans-serif',outline:'none',boxSizing:'border-box'}}/>
+            </div>
+          </div>
+          <label style={{fontSize:11,fontWeight:700,color:'#AAA',letterSpacing:.5,marginBottom:5,display:'block'}}>WHATSAPP</label>
+          <input value={editForm.phone} onChange={e=>setEditForm(f=>({...f,phone:e.target.value}))} placeholder="21 99999-9999" style={{width:'100%',padding:'10px 13px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:14,fontFamily:'Inter,sans-serif',outline:'none',marginBottom:16,boxSizing:'border-box'}}/>
+          <button onClick={saveEdit} disabled={actionLoading||!editForm.title.trim()} style={{width:'100%',padding:13,background:'#C9951A',color:'#fff',border:'none',borderRadius:12,fontSize:15,fontWeight:700,cursor:'pointer',fontFamily:'Inter,sans-serif',marginBottom:8}}>{actionLoading?'Salvando...':'Salvar alterações'}</button>
+          <button onClick={()=>setShowEdit(false)} style={{width:'100%',padding:10,background:'#FAFAF8',color:'#888',border:'1px solid #E0DDD8',borderRadius:12,fontSize:14,fontFamily:'Inter,sans-serif',cursor:'pointer'}}>Cancelar</button>
+        </div>
+      </div>
+    )}
     {showReport&&(
       <div className="mbg" onClick={e=>e.target===e.currentTarget&&setShowReport(false)}>
         <div className="modal">

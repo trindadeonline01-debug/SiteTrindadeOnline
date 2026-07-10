@@ -116,6 +116,21 @@ export default function AnuncioPage({ params }: { params: Promise<{ id: string }
   const photos = (listing.photos||[]).sort((a,b)=>a.order-b.order)
   const subtypeStyle = listing.subtype ? SUBTYPE_COLORS[listing.subtype] : null
   const isOwner = userId === listing.user_id
+  if(listing.status === 'paused' && !isOwner) return (
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:'100vh',fontFamily:'Inter,sans-serif',padding:24}}>
+      <div style={{fontSize:48,marginBottom:12}}>⏸</div>
+      <div style={{fontSize:18,fontWeight:700,marginBottom:8}}>Anúncio pausado</div>
+      <div style={{fontSize:14,color:'#AAA',marginBottom:24}}>Este anúncio está temporariamente indisponível.</div>
+      <a href="/" style={{color:'#C9951A',fontWeight:600,textDecoration:'none'}}>← Voltar ao início</a>
+    </div>
+  )
+  if(listing.status === 'deleted') return (
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:'100vh',fontFamily:'Inter,sans-serif',padding:24}}>
+      <div style={{fontSize:48,marginBottom:12}}>🗑</div>
+      <div style={{fontSize:18,fontWeight:700,marginBottom:8}}>Anúncio removido</div>
+      <a href="/" style={{color:'#C9951A',fontWeight:600,textDecoration:'none'}}>← Voltar ao início</a>
+    </div>
+  )
 
   return(<>
     <style>{`

@@ -71,10 +71,6 @@ export default function PerfilPage() {
   function timeAgo(d: string) { const s = Math.floor((Date.now()-new Date(d).getTime())/1000); if(s<3600)return`${Math.floor(s/60)}min`; if(s<86400)return`${Math.floor(s/3600)}h`; return`${Math.floor(s/86400)}d` }
 
   if (loading) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',fontFamily:'Inter,sans-serif',color:'#AAA'}}>Carregando...</div>
-  if (!profile) return null
-
-  const activeListings = listings.filter(l => l.status === 'active' || l.status === 'paused')
-
   useEffect(() => {
     if (tab === 'cupons' && profile?.id) {
       supabase.from('coupon_redemptions')
@@ -84,6 +80,10 @@ export default function PerfilPage() {
         .then(({ data }) => setMyCoupons(data || []))
     }
   }, [tab, profile?.id])
+  if (!profile) return null
+
+  const activeListings = listings.filter(l => l.status === 'active' || l.status === 'paused')
+
 
   return (
     <>

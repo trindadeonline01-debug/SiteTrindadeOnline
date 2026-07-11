@@ -76,14 +76,14 @@ export default function PerfilPage() {
   const activeListings = listings.filter(l => l.status === 'active' || l.status === 'paused')
 
   useEffect(() => {
-    if (tab === 'cupons' && userId) {
+    if (tab === 'cupons' && profile?.id) {
       supabase.from('coupon_redemptions')
         .select('*, coupon:coupons(id,title,discount_type,discount_value,expires_at,company:companies(id,name,phone))')
-        .eq('user_id', userId)
+        .eq('user_id', profile!.id)
         .order('created_at', { ascending: false })
         .then(({ data }) => setMyCoupons(data || []))
     }
-  }, [tab, userId])
+  }, [tab, profile?.id])
 
   return (
     <>

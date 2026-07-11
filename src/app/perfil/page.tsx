@@ -17,7 +17,8 @@ export default function PerfilPage() {
   const [reviews, setReviews]   = useState<Review[]>([])
   const [favs, setFavs]         = useState<Fav[]>([])
   const [loading, setLoading]   = useState(true)
-  const [tab, setTab]           = useState<'anuncios'|'avaliacoes'|'favoritos'>('anuncios')
+  const [tab, setTab]           = useState<'anuncios'|'avaliacoes'|'favoritos'|'cupons'>('anuncios')
+  const [myCoupons, setMyCoupons] = useState<any[]>([])
   const [editing, setEditing]   = useState(false)
   const [form, setForm]         = useState({ name:'', phone:'', neighborhood:'' })
   const [saving, setSaving]     = useState(false)
@@ -73,6 +74,16 @@ export default function PerfilPage() {
   if (!profile) return null
 
   const activeListings = listings.filter(l => l.status === 'active' || l.status === 'paused')
+
+  useEffect(() => {
+    if (tab === 'cupons' && userId) {
+      supabase.from('coupon_redemptions')
+        .select('*, coupon:coupons(id,title,discount_type,discount_value,expires_at,company:companies(id,name,phone))')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .then(({ data }) => setMyCoupons(data || []))
+    }
+  }, [tab, userId])
 
   return (
     <>
@@ -230,6 +241,7 @@ export default function PerfilPage() {
               <div className={`tab ${tab==='anuncios'?'on':''}`} onClick={()=>setTab('anuncios')}>📋 Anúncios ({activeListings.length})</div>
               <div className={`tab ${tab==='avaliacoes'?'on':''}`} onClick={()=>setTab('avaliacoes')}>⭐ Avaliações ({reviews.length})</div>
               <div className={`tab ${tab==='favoritos'?'on':''}`} onClick={()=>setTab('favoritos')}>❤️ Favoritos ({favs.length})</div>
+              <div className={`tab ${tab==='cupons'?'on':''}`} onClick={()=>setTab('cupons')}>🎟️ Cupons</div>
             </div>
 
             {/* ABA ANÚNCIOS */}

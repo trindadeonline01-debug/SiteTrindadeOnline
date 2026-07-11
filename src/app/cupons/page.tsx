@@ -72,6 +72,7 @@ export default function CuponsPage() {
         *{box-sizing:border-box;margin:0;padding:0;}
         body{font-family:'Inter',sans-serif;background:#F0EDE8;}
         .hero{background:#111;padding:20px 20px 22px;}
+        .hero-inner{max-width:1200px;margin:0 auto;}
         .hero-title{font-family:'Bebas Neue',sans-serif;font-size:28px;color:#fff;letter-spacing:2px;margin-bottom:4px;}
         .hero-title span{color:#C9951A;}
         .hero-sub{font-size:12px;color:rgba(255,255,255,0.45);margin-bottom:16px;}
@@ -97,7 +98,7 @@ export default function CuponsPage() {
         .coupon-btn{padding:5px 12px;border:none;border-radius:8px;font-size:11px;font-weight:500;cursor:pointer;white-space:nowrap;}
         .empty{text-align:center;padding:40px 20px;color:#888;font-size:14px;}
       `}</style>
-      <div className="hero">
+      <div className="hero"><div className="hero-inner">
         <div className="hero-title">🎟️ CUPONS <span>RELÂMPAGO</span></div>
         <div className="hero-sub">Descontos exclusivos das empresas do bairro · Quantidade limitada</div>
         <div className="filters">
@@ -106,7 +107,7 @@ export default function CuponsPage() {
             <button key={cat} className={`filter-btn ${filter===cat?'on':''}`} onClick={()=>setFilter(cat||'')}>{cat}</button>
           ))}
         </div>
-      </div>
+      </div></div>
       <div className="body">
         {!userId && (
           <div className="not-logged">

@@ -14,6 +14,7 @@ export default function CuponsPage() {
   const [userId, setUserId] = useState<string|null>(null)
   const [filter, setFilter] = useState('todos')
   const [redeeming, setRedeeming] = useState<string|null>(null)
+  const [redeemModal, setRedeemModal] = useState<{code:string,coupon:Coupon}|null>(null)
   const [myRedemptions, setMyRedemptions] = useState<string[]>([])
 
   useEffect(() => {
@@ -44,7 +45,7 @@ export default function CuponsPage() {
     if (error) { alert('Erro: ' + error.message); setRedeeming(null); return }
     setMyRedemptions(prev => [...prev, coupon.id])
     setRedeeming(null)
-    window.location.href = '/perfil?tab=cupons'
+    setRedeemModal({ code, coupon })
   }
 
   function timeLeft(expires: string) {
@@ -155,6 +156,32 @@ export default function CuponsPage() {
           </>
         )}
       </div>
+      {redeemModal && (
+        <div onClick={()=>setRedeemModal(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.7)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+          <div onClick={e=>e.stopPropagation()} style={{background:'#fff',borderRadius:20,padding:28,width:'100%',maxWidth:420,textAlign:'center'}}>
+            <div style={{fontSize:40,marginBottom:8}}>🎟️</div>
+            <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,color:'#111',letterSpacing:1,marginBottom:4}}>CUPOM RESGATADO!</div>
+            <div style={{fontSize:13,color:'#888',marginBottom:20}}>{redeemModal.coupon.title}</div>
+            <div style={{background:'#F5F2EC',borderRadius:12,padding:'16px 20px',marginBottom:20}}>
+              <div style={{fontSize:11,color:'#888',marginBottom:6,textTransform:'uppercase',letterSpacing:.6}}>Seu código</div>
+              <div style={{fontSize:32,fontWeight:700,color:'#111',letterSpacing:6,fontFamily:'monospace'}}>{redeemModal.code}</div>
+            </div>
+            <div style={{display:'flex',flexDirection:'column',gap:10}}>
+              <div style={{fontSize:12,color:'#555',marginBottom:4}}>Apresente este código ao lojista ou envie pelo WhatsApp</div>
+              {redeemModal.coupon.company?.phone && (
+                <a href={`https://wa.me/55${redeemModal.coupon.company.phone}?text=${encodeURIComponent(`Olá! Quero usar meu cupom *${redeemModal.code}* — ${redeemModal.coupon.title}. Pode confirmar?`)}`} target="_blank"
+                  style={{padding:'12px',background:'#25D366',color:'#fff',border:'none',borderRadius:12,fontSize:14,fontWeight:600,textDecoration:'none',display:'block'}}>
+                  💬 Enviar pelo WhatsApp
+                </a>
+              )}
+              <button onClick={()=>setRedeemModal(null)}
+                style={{padding:'12px',background:'#F5F2EC',color:'#555',border:'none',borderRadius:12,fontSize:13,cursor:'pointer'}}>
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

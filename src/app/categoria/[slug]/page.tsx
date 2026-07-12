@@ -313,10 +313,15 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
               placeholder={`Buscar dentro de ${category?.name || 'categoria'}...`}
               value={search}
               onChange={handleSearch}
+              onKeyDown={e => e.key === 'Enter' && handleSearch({ target: { value: search } } as any)}
             />
             {search && (
               <button onClick={() => { setSearch(''); setFiltered(companies) }} style={{ background:'none', border:'none', cursor:'pointer', color:'#AAA', fontSize:18, lineHeight:1 }}>✕</button>
             )}
+            <button onClick={() => handleSearch({ target: { value: search } } as any)}
+              style={{background:'#C9951A',border:'none',borderRadius:20,padding:'7px 18px',color:'#fff',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',whiteSpace:'nowrap'}}>
+              Buscar
+            </button>
           </div>
         </div>
       </div>

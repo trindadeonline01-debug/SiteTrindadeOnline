@@ -13,6 +13,7 @@ export default function PromocoesPage() {
   const [current, setCurrent] = useState(0)
   const [filter, setFilter] = useState('todos')
   const [isMobile, setIsMobile] = useState(false)
+  const [hasBottomNav, setHasBottomNav] = useState(false)
   const touchStartX = useRef(0)
   const touchEndX = useRef(0)
 
@@ -20,6 +21,8 @@ export default function PromocoesPage() {
     const check = () => setIsMobile(window.innerWidth < 768)
     check()
     window.addEventListener('resize', check)
+    const nav = document.querySelector('.bottom-nav-mobile')
+    setHasBottomNav(!!nav)
     return () => window.removeEventListener('resize', check)
   }, [])
 
@@ -55,7 +58,7 @@ export default function PromocoesPage() {
     body{font-family:'Inter',sans-serif;}
 
     /* MOBILE - stories */
-    .pg-mobile{position:fixed;inset:0;top:0;bottom:64px;background:#000;display:flex;flex-direction:column;overflow:hidden;}
+    .pg-mobile{position:fixed;inset:0;top:0;bottom:0;background:#000;display:flex;flex-direction:column;overflow:hidden;}
     .topbar{background:rgba(0,0,0,0.9);padding:10px 16px;flex-shrink:0;backdrop-filter:blur(10px);}
     .top-title{font-family:'Bebas Neue',sans-serif;font-size:20px;color:#fff;letter-spacing:2px;margin-bottom:6px;}
     .top-title span{color:#C9951A;}
@@ -153,7 +156,7 @@ export default function PromocoesPage() {
   return (
     <>
       <style dangerouslySetInnerHTML={{__html: CSS}}/>
-      <div className="pg-mobile">
+      <div className="pg-mobile" style={{bottom: hasBottomNav ? '64px' : '0'}}>
         <div className="topbar">
           <div className="top-title">🏷️ PROMOÇÕES <span>DA SEMANA</span></div>
           <div className="filters">

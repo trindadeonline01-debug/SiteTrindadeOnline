@@ -43,7 +43,7 @@ export default function PromocoesPage() {
 
   return (
     <>
-      <style>{\`
+      <style dangerouslySetInnerHTML={{__html:`
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
         html,body{height:100%;overflow:hidden;}
@@ -76,7 +76,7 @@ export default function PromocoesPage() {
         .arrow-right-btn{right:12px;}
         .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;color:#555;gap:8px;font-size:14px;}
         @media(max-width:640px){.arrow-btn{display:none;}.pg{top:56px;}}
-      \`}</style>
+      `}}/>
       <div className="pg">
         <div className="topbar">
           <div className="topbar-inner">

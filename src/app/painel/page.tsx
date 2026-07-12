@@ -36,6 +36,7 @@ const daysLeft = (s: string) => Math.max(0, Math.ceil((new Date(s).getTime() - D
 export default function PainelPage() {
   const [tab, setTab]               = useState<'painel'|'destaques'|'banners'|'avaliacoes'|'perfil'|'plano'|'cupons'|'promocoes'>('painel')
   const [myCoupons, setMyCoupons]   = useState<any[]>([])
+  const [couponTab, setCouponTab]   = useState<'ativos'|'expirados'|'desativados'>('ativos')
   const [myPromos, setMyPromos]       = useState<any[]>([])
   const [promoForm, setPromoForm]     = useState({title:'',starts_at:'',expires_at:'',image_url:''})
   const [promoFile, setPromoFile]     = useState<File|null>(null)
@@ -55,7 +56,7 @@ export default function PainelPage() {
 
   useEffect(() => {
     if (tab === 'cupons' && company?.id) {
-      supabase.from('coupons').select('*').eq('company_id', company.id).eq('active', true).order('created_at', {ascending:false}).then(({data}) => setMyCoupons(data||[]))
+      supabase.from('coupons').select('*').eq('company_id', company.id).order('created_at', {ascending:false}).then(({data}) => setMyCoupons(data||[]))
     }
   }, [tab, company?.id])
   const [companies, setCompanies]   = useState<Company[]>([])
@@ -1900,7 +1901,7 @@ export default function PainelPage() {
                       setSavingCoupon(true)
                       await supabase.from('coupons').insert({company_id:company.id,title:couponForm.title,discount_type:couponForm.discount_type,discount_value:Number(couponForm.discount_value),total_qty:Number(couponForm.total_qty),qty_per_person:Number(couponForm.qty_per_person),expires_at:new Date(couponForm.expires_at).toISOString(),active:true,min_purchase:couponForm.min_purchase?Number(couponForm.min_purchase):0})
                       setCouponForm({title:'',discount_type:'fixed',discount_value:'',total_qty:'',qty_per_person:'1',expires_at:'',expires_date:'',expires_time:'',min_purchase:''})
-                      const {data} = await supabase.from('coupons').select('*').eq('company_id',company.id).eq('active',true).order('created_at',{ascending:false})
+                      const {data} = await supabase.from('coupons').select('*').eq('company_id',company.id).order('created_at',{ascending:false})
                       setMyCoupons(data||[])
                       setSavingCoupon(false)
                     }}
@@ -1950,26 +1951,44 @@ export default function PainelPage() {
               </div>
 
               <div style={{fontSize:13,fontWeight:600,color:'#111',marginBottom:10}}>📋 Meus cupons</div>
-              {myCoupons.length === 0 ? (
-                <div style={{textAlign:'center',padding:20,color:'#AAA',fontSize:13}}>Nenhum cupom criado ainda</div>
-              ) : (
-                <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                  {myCoupons.map((c:any)=>(
-                    <div key={c.id} style={{background:'#fff',border:'0.5px solid #E0DDD8',borderRadius:10,padding:'12px 14px',display:'flex',alignItems:'center',gap:12}}>
-                      <div style={{flex:1}}>
-                        <div style={{fontSize:13,fontWeight:500,color:'#111',marginBottom:2}}>{c.title}</div>
-                        <div style={{fontSize:11,color:'#888'}}>{c.discount_type==='fixed'?`R$ ${c.discount_value} off`:`${c.discount_value}% off`}{c.min_purchase>0?` · Mín. R$ ${c.min_purchase}`:''} · Vence: {new Date(c.expires_at).toLocaleDateString('pt-BR')}</div>
-                      </div>
-                      <div style={{textAlign:'center',minWidth:40}}>
-                        <div style={{fontSize:18,fontWeight:600,color:'#C9951A'}}>{c.total_qty}</div>
-                        <div style={{fontSize:9,color:'#888'}}>cupons</div>
-                      </div>
-                      <button onClick={async()=>{await supabase.from('coupons').update({active:false}).eq('id',c.id);setMyCoupons((p:any)=>p.filter((x:any)=>x.id!==c.id))}}
-                        style={{padding:'5px 10px',background:'#FCEBEB',color:'#E24B4A',border:'none',borderRadius:7,fontSize:11,cursor:'pointer'}}>Desativar</button>
+              {(() => {
+                const now = new Date()
+                const ativos = myCoupons.filter(c => c.active && new Date(c.expires_at) > now)
+                const expirados = myCoupons.filter(c => c.active && new Date(c.expires_at) <= now)
+                const desativados = myCoupons.filter(c => !c.active)
+                const lista = couponTab==='ativos' ? ativos : couponTab==='expirados' ? expirados : desativados
+                return (
+                  <>
+                    <div style={{display:'flex',gap:4,background:'#E8E4DF',padding:4,borderRadius:10,marginBottom:12}}>
+                      {[['ativos',`Ativos (${ativos.length})`],['expirados',`Expirados (${expirados.length})`],['desativados',`Desativados (${desativados.length})`]].map(([id,lbl])=>(
+                        <button key={id} onClick={()=>setCouponTab(id as any)} style={{flex:1,padding:'7px 4px',textAlign:'center',fontSize:11,fontWeight:couponTab===id?600:500,color:couponTab===id?'#C9951A':'#888',background:couponTab===id?'#fff':'transparent',border:'none',borderRadius:8,cursor:'pointer'}}>{lbl}</button>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              )}
+                    {lista.length === 0 ? (
+                      <div style={{textAlign:'center',padding:20,color:'#AAA',fontSize:13}}>Nenhum cupom aqui</div>
+                    ) : (
+                      <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                        {lista.map((c:any)=>(
+                          <div key={c.id} style={{background:'#fff',border:'0.5px solid #E0DDD8',borderRadius:10,padding:'12px 14px',display:'flex',alignItems:'center',gap:12,opacity:couponTab!=='ativos'?.7:1}}>
+                            <div style={{flex:1}}>
+                              <div style={{fontSize:13,fontWeight:500,color:'#111',marginBottom:2}}>{c.title}</div>
+                              <div style={{fontSize:11,color:'#888'}}>{c.discount_type==='fixed'?`R$ ${c.discount_value} off`:`${c.discount_value}% off`}{c.min_purchase>0?` · Mín. R$ ${c.min_purchase}`:''} · {couponTab==='expirados'?'Expirou':'Vence'}: {new Date(c.expires_at).toLocaleDateString('pt-BR')}</div>
+                            </div>
+                            <div style={{textAlign:'center',minWidth:40}}>
+                              <div style={{fontSize:18,fontWeight:600,color:'#C9951A'}}>{c.total_qty}</div>
+                              <div style={{fontSize:9,color:'#888'}}>cupons</div>
+                            </div>
+                            {couponTab==='ativos' && (
+                              <button onClick={async()=>{await supabase.from('coupons').update({active:false}).eq('id',c.id);setMyCoupons((p:any)=>p.map((x:any)=>x.id===c.id?{...x,active:false}:x))}}
+                                style={{padding:'5px 10px',background:'#FCEBEB',color:'#E24B4A',border:'none',borderRadius:7,fontSize:11,cursor:'pointer'}}>Desativar</button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )
+              })()}
               </div>
             </div>
           )}

@@ -34,14 +34,24 @@ const fmtDate = (s: string) => new Date(s).toLocaleDateString('pt-BR')
 const daysLeft = (s: string) => Math.max(0, Math.ceil((new Date(s).getTime() - Date.now()) / 86400000))
 
 export default function PainelPage() {
-  const [tab, setTab]               = useState<'painel'|'destaques'|'banners'|'avaliacoes'|'perfil'|'plano'|'cupons'>('painel')
+  const [tab, setTab]               = useState<'painel'|'destaques'|'banners'|'avaliacoes'|'perfil'|'plano'|'cupons'|'promocoes'>('painel')
   const [myCoupons, setMyCoupons]   = useState<any[]>([])
+  const [myPromos, setMyPromos]       = useState<any[]>([])
+  const [promoForm, setPromoForm]     = useState({title:'',starts_at:'',expires_at:'',image_url:''})
+  const [promoFile, setPromoFile]     = useState<File|null>(null)
+  const [savingPromo, setSavingPromo] = useState(false)
   const [couponForm, setCouponForm] = useState({title:'',discount_type:'fixed',discount_value:'',total_qty:'',qty_per_person:'1',expires_at:'',expires_date:'',expires_time:'',min_purchase:''})
   const [savingCoupon, setSavingCoupon] = useState(false)
   const [validateCode, setValidateCode] = useState('')
   const [validateResult, setValidateResult] = useState<any>(null)
   const [validating, setValidating] = useState(false)
   const [company, setCompany]       = useState<Company|null>(null)
+
+  useEffect(() => {
+    if (tab === 'promocoes' && company?.id) {
+      supabase.from('promotions').select('*').eq('company_id', company.id).order('created_at',{ascending:false}).then(({data})=>setMyPromos(data||[]))
+    }
+  }, [tab, company?.id])
 
   useEffect(() => {
     if (tab === 'cupons' && company?.id) {
@@ -497,7 +507,7 @@ export default function PainelPage() {
   const pendingReplies = reviews.filter(r=>!r.response).length
 
   const tabTitle: Record<string,string> = {
-    painel:'Dashboard', destaques:'Destaques', banners:'Banners', avaliacoes:'Avaliações', perfil:'Editar Perfil', plano:'Meu Plano', cupons:'Cupons Relâmpago'
+    painel:'Dashboard', destaques:'Destaques', banners:'Banners', avaliacoes:'Avaliações', perfil:'Editar Perfil', plano:'Meu Plano', cupons:'Cupons Relâmpago', promocoes:'Promoções da Semana'
   }
 
   const navItems = [
@@ -508,6 +518,7 @@ export default function PainelPage() {
     { id:'perfil',     ico:'✏️', lbl:'Perfil',     badge:0 },
     { id:'plano',      ico:'💳', lbl:'Plano',      badge:0 },
     { id:'cupons',     ico:'🎟️', lbl:'Cupons',     badge:0 },
+    { id:'promocoes',  ico:'🏷️', lbl:'Promoções',  badge:0 },
   ]
 
   return (

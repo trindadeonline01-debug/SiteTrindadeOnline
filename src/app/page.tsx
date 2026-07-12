@@ -608,23 +608,11 @@ export default function HomePage() {
 
         {/* CARDS CUPONS + PROMOÇÕES */}
         <div style={{maxWidth:1200,margin:'0 auto',padding:'20px 20px 0',display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
-          <a href="/cupons" style={{borderRadius:16,overflow:'hidden',textDecoration:'none',display:'block',position:'relative',height:160,background:'#111'}}>
-            <div style={{position:'absolute',inset:0,padding:'24px 28px',display:'flex',flexDirection:'column',justifyContent:'space-between'}}>
-              <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:28,color:'#C9951A',letterSpacing:2,lineHeight:1}}>Cupons<br/>Relâmpago</div>
-              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                <div style={{background:'rgba(201,149,26,0.15)',border:'1px solid #C9951A',color:'#C9951A',padding:'6px 14px',borderRadius:20,fontSize:12,fontWeight:500}}>Ver cupons →</div>
-                <span style={{fontSize:52,lineHeight:1,opacity:.9}}>🎟️</span>
-              </div>
-            </div>
+          <a href="/cupons" style={{borderRadius:16,overflow:'hidden',textDecoration:'none',display:'block'}}>
+            <img src="https://plfuznchzuzardkfjmqo.supabase.co/storage/v1/object/public/company-photos/cupom_banner.png" alt="Cupons Relâmpago" style={{width:'100%',height:'auto',display:'block',borderRadius:16}}/>
           </a>
-          <a href="/promocoes" style={{borderRadius:16,overflow:'hidden',textDecoration:'none',display:'block',position:'relative',height:160,background:'#C9951A'}}>
-            <div style={{position:'absolute',inset:0,padding:'24px 28px',display:'flex',flexDirection:'column',justifyContent:'space-between'}}>
-              <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:28,color:'#111',letterSpacing:2,lineHeight:1}}>Promoções<br/>da Semana</div>
-              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                <div style={{background:'rgba(0,0,0,0.15)',color:'#111',padding:'6px 14px',borderRadius:20,fontSize:12,fontWeight:500}}>Ver promoções →</div>
-                <span style={{fontSize:52,lineHeight:1,opacity:.9}}>🏷️</span>
-              </div>
-            </div>
+          <a href="/promocoes" style={{borderRadius:16,overflow:'hidden',textDecoration:'none',display:'block'}}>
+            <img src="https://plfuznchzuzardkfjmqo.supabase.co/storage/v1/object/public/company-photos/promocoes_banner.png" alt="Promoções da Semana" style={{width:'100%',height:'auto',display:'block',borderRadius:16}}/>
           </a>
         </div>
 

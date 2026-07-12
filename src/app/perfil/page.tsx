@@ -104,7 +104,7 @@ export default function PerfilPage() {
         .hi{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:18px;}
         .avatar{width:72px;height:72px;border-radius:50%;background:#C9951A;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:32px;color:#fff;flex-shrink:0;border:3px solid #C9951A;}
         .hname{font-family:'Bebas Neue',sans-serif;font-size:clamp(22px,3vw,32px);color:#fff;letter-spacing:1px;margin-bottom:5px;}
-        .hmeta{font-size:12px;color:#666;display:flex;gap:14px;flex-wrap:wrap;}
+        .hmeta{font-size:15px;color:#666;display:flex;gap:14px;flex-wrap:wrap;}
 
         .page{max-width:1200px;margin:0 auto;padding:24px 24px 48px;}
         @media(max-width:767px){.page{padding:16px 16px 40px;}}
@@ -113,9 +113,9 @@ export default function PerfilPage() {
         .card{background:#FAFAF8;border:0.5px solid #E0DDD8;border-radius:14px;padding:18px;margin-bottom:14px;}
         .card-title{font-family:'Bebas Neue',sans-serif;font-size:12px;color:#AAA;letter-spacing:1.5px;margin-bottom:14px;}
         .field{margin-bottom:12px;}
-        .fl{font-size:10px;font-weight:700;color:#AAA;letter-spacing:.5px;margin-bottom:4px;display:block;}
-        .fv{font-size:13px;color:#222;}
-        .fi{width:100%;padding:9px 12px;border:1.5px solid #E0DDD8;border-radius:9px;font-size:13px;font-family:'Inter',sans-serif;outline:none;transition:border .15s;background:#fff;color:#222;}
+        .fl{font-size:13px;font-weight:700;color:#AAA;letter-spacing:.5px;margin-bottom:4px;display:block;}
+        .fv{font-size:17px;color:#222;font-weight:500;}
+        .fi{width:100%;padding:11px 14px;border:1.5px solid #E0DDD8;border-radius:9px;font-size:16px;font-family:'Inter',sans-serif;outline:none;transition:border .15s;background:#fff;color:#222;}
         .fi:focus{border-color:#C9951A;}
         .btn-edit{width:100%;padding:10px;background:#FEF3E2;color:#C9951A;border:1.5px solid #C9951A;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;}
         .btn-save{width:100%;padding:10px;background:#C9951A;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;margin-bottom:6px;}
@@ -125,8 +125,8 @@ export default function PerfilPage() {
         .stats-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
         .stat{background:#FAFAF8;border:0.5px solid #E0DDD8;border-radius:10px;padding:12px;text-align:center;text-decoration:none;display:block;transition:all .15s;}
         .stat:hover{border-color:#C9951A;background:#FEF3E2;}
-        .stat-n{font-family:'Bebas Neue',sans-serif;font-size:28px;color:#C9951A;line-height:1;}
-        .stat-l{font-size:10px;color:#AAA;margin-top:2px;}
+        .stat-n{font-family:'Bebas Neue',sans-serif;font-size:36px;color:#C9951A;line-height:1;}
+        .stat-l{font-size:13px;color:#AAA;margin-top:2px;font-weight:500;}
 
         .tabs{display:flex;gap:4px;margin-bottom:20px;background:#FAFAF8;padding:5px;border-radius:12px;border:0.5px solid #E0DDD8;}
         .tab{flex:1;padding:8px 4px;text-align:center;font-size:12px;font-weight:600;color:#888;cursor:pointer;border-radius:9px;transition:all .15s;font-family:'Inter',sans-serif;}

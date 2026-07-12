@@ -2005,7 +2005,7 @@ export default function PainelPage() {
                         const ext = promoFile.name.split('.').pop()
                         const path = `promotions/${company.id}/${Date.now()}.${ext}`
                         const {data:up} = await supabase.storage.from('company-photos').upload(path, promoFile, {upsert:true})
-                        if(!up){setSavingPromo(false);return}
+                        if(!up){console.error('Upload falhou');setSavingPromo(false);alert('Erro no upload da imagem');return}
                         const {data:url} = supabase.storage.from('company-photos').getPublicUrl(path)
                         await supabase.from('promotions').insert({company_id:company.id,title:promoForm.title,image_url:url.publicUrl,starts_at:new Date(promoForm.starts_at).toISOString(),expires_at:new Date(promoForm.expires_at+'T23:59:59').toISOString(),status:'active'})
                         setPromoForm({title:'',starts_at:'',expires_at:'',image_url:''})

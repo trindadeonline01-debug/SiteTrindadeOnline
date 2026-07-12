@@ -294,6 +294,46 @@ export default function PerfilPage() {
               )
             )}
 
+            {/* ABA CUPONS */}
+            {tab === 'cupons' && (
+              myCoupons.length === 0 ? (
+                <div className="empty-tab">
+                  <div style={{fontSize:40,marginBottom:10}}>🎟️</div>
+                  <div style={{fontSize:14,fontWeight:600,color:'#555',marginBottom:6}}>Nenhum cupom resgatado</div>
+                  <div style={{fontSize:12,marginBottom:16}}>Resgate cupons das empresas do bairro!</div>
+                  <a href="/cupons" style={{color:'#C9951A',fontSize:13,fontWeight:600,textDecoration:'none'}}>Ver cupons disponíveis →</a>
+                </div>
+              ) : (
+                <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                  {myCoupons.map((r:any) => {
+                    const used = r.status === 'used'
+                    const phone = r.coupon?.company?.phone
+                    const msg = encodeURIComponent(`Olá! Quero usar meu cupom *${r.code}* — ${r.coupon?.title}. Pode confirmar?`)
+                    const waUrl = phone ? `https://wa.me/55${phone}?text=${msg}` : '#'
+                    return (
+                      <div key={r.id} style={{background:used?'#F5F2EC':'#fff',border:'0.5px solid #E0DDD8',borderRadius:12,display:'flex',overflow:'hidden',opacity:used?.7:1}}>
+                        <div style={{width:60,display:'flex',alignItems:'center',justifyContent:'center',background:used?'#F0EDE8':'#FEF3E2',fontSize:26,flexShrink:0}}>🎟️</div>
+                        <div style={{flex:1,padding:'10px 12px',borderLeft:'1px dashed #E0DDD8',minWidth:0,display:'flex',flexDirection:'column',justifyContent:'center',gap:2}}>
+                          <div style={{fontSize:11,color:'#888'}}>{r.coupon?.company?.name}</div>
+                          <div style={{fontSize:13,fontWeight:500,color:used?'#AAA':'#111',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.coupon?.title}</div>
+                          <div style={{fontSize:13,fontWeight:600,color:used?'#BBB':'#C9951A',letterSpacing:2,fontFamily:'monospace'}}>{r.code}</div>
+                        </div>
+                        <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'8px 12px',gap:4,flexShrink:0,borderLeft:'1px dashed #E0DDD8'}}>
+                          {used ? (
+                            <span style={{fontSize:10,background:'#F5F2EC',color:'#AAA',padding:'3px 10px',borderRadius:8}}>Utilizado</span>
+                          ) : (
+                            <>
+                              <a href={waUrl} target="_blank" style={{padding:'5px 10px',background:'#25D366',color:'#fff',border:'none',borderRadius:7,fontSize:10,fontWeight:500,textDecoration:'none',whiteSpace:'nowrap'}}>WhatsApp</a>
+                              <button onClick={()=>navigator.clipboard.writeText(r.code)} style={{padding:'5px 10px',background:'#F5F2EC',color:'#555',border:'none',borderRadius:7,fontSize:10,fontWeight:500,cursor:'pointer',whiteSpace:'nowrap'}}>Copiar</button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            )}
             {/* ABA FAVORITOS */}
             {tab === 'favoritos' && (
               favs.length === 0 ? (

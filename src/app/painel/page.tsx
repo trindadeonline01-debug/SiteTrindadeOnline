@@ -1831,6 +1831,121 @@ export default function PainelPage() {
             </div>
           )})()}
 
+          {tab === 'cupons' && (
+            <div style={{padding:'20px',maxWidth:700}}>
+              <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,color:'#111',letterSpacing:1,marginBottom:16}}>CUPONS RELÂMPAGO</div>
+
+              <div style={{background:'#F5F2EC',borderRadius:12,padding:16,marginBottom:20}}>
+                <div style={{fontSize:13,fontWeight:600,color:'#111',marginBottom:12}}>➕ Criar novo cupom</div>
+                <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                  <div>
+                    <label style={{fontSize:11,fontWeight:600,color:'#666',display:'block',marginBottom:4}}>DESCRIÇÃO</label>
+                    <input value={couponForm.title} onChange={e=>setCouponForm(f=>({...f,title:e.target.value}))} placeholder="Ex: R$ 10 off acima de R$ 40" style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none'}}/>
+                  </div>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                    <div>
+                      <label style={{fontSize:11,fontWeight:600,color:'#666',display:'block',marginBottom:4}}>TIPO</label>
+                      <select value={couponForm.discount_type} onChange={e=>setCouponForm(f=>({...f,discount_type:e.target.value}))} style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',background:'#fff',outline:'none'}}>
+                        <option value="fixed">R$ Valor fixo</option>
+                        <option value="percent">% Percentual</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{fontSize:11,fontWeight:600,color:'#666',display:'block',marginBottom:4}}>VALOR</label>
+                      <input type="number" value={couponForm.discount_value} onChange={e=>setCouponForm(f=>({...f,discount_value:e.target.value}))} placeholder="10" style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none'}}/>
+                    </div>
+                  </div>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
+                    <div>
+                      <label style={{fontSize:11,fontWeight:600,color:'#666',display:'block',marginBottom:4}}>TOTAL CUPONS</label>
+                      <input type="number" value={couponForm.total_qty} onChange={e=>setCouponForm(f=>({...f,total_qty:e.target.value}))} placeholder="10" style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none'}}/>
+                    </div>
+                    <div>
+                      <label style={{fontSize:11,fontWeight:600,color:'#666',display:'block',marginBottom:4}}>LIMITE/PESSOA</label>
+                      <input type="number" value={couponForm.qty_per_person} onChange={e=>setCouponForm(f=>({...f,qty_per_person:e.target.value}))} placeholder="1" style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none'}}/>
+                    </div>
+                    <div>
+                      <label style={{fontSize:11,fontWeight:600,color:'#666',display:'block',marginBottom:4}}>VALIDADE</label>
+                      <input type="datetime-local" value={couponForm.expires_at} onChange={e=>setCouponForm(f=>({...f,expires_at:e.target.value}))} style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none'}}/>
+                    </div>
+                  </div>
+                  <button disabled={savingCoupon||!couponForm.title||!couponForm.discount_value||!couponForm.total_qty||!couponForm.expires_at}
+                    onClick={async()=>{
+                      setSavingCoupon(true)
+                      await supabase.from('coupons').insert({company_id:company.id,title:couponForm.title,discount_type:couponForm.discount_type,discount_value:Number(couponForm.discount_value),total_qty:Number(couponForm.total_qty),qty_per_person:Number(couponForm.qty_per_person),expires_at:new Date(couponForm.expires_at).toISOString(),active:true})
+                      setCouponForm({title:'',discount_type:'fixed',discount_value:'',total_qty:'',qty_per_person:'1',expires_at:''})
+                      const {data} = await supabase.from('coupons').select('*').eq('company_id',company.id).order('created_at',{ascending:false})
+                      setMyCoupons(data||[])
+                      setSavingCoupon(false)
+                    }}
+                    style={{padding:'11px',background:'#C9951A',color:'#111',border:'none',borderRadius:10,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                    {savingCoupon?'Publicando...':'Publicar cupom →'}
+                  </button>
+                </div>
+              </div>
+
+              <div style={{background:'#F5F2EC',borderRadius:12,padding:16,marginBottom:20}}>
+                <div style={{fontSize:13,fontWeight:600,color:'#111',marginBottom:12}}>🔍 Validar código do cliente</div>
+                <div style={{display:'flex',gap:8}}>
+                  <input value={validateCode} onChange={e=>setValidateCode(e.target.value.toUpperCase())} placeholder="TRD-XXXX" maxLength={8}
+                    style={{flex:1,padding:'10px 12px',border:'2px solid #C9951A',borderRadius:10,fontSize:16,fontWeight:600,letterSpacing:3,fontFamily:'monospace',outline:'none',textAlign:'center'}}/>
+                  <button onClick={async()=>{
+                    if(!validateCode.trim())return
+                    setValidating(true); setValidateResult(null)
+                    const {data} = await supabase.from('coupon_redemptions').select('*, user:profiles(name), coupon:coupons(title,discount_type,discount_value)').eq('code',validateCode.trim()).maybeSingle()
+                    setValidateResult(data||false); setValidating(false)
+                  }} disabled={validating} style={{padding:'10px 16px',background:'#111',color:'#C9951A',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer'}}>
+                    {validating?'...':'Verificar'}
+                  </button>
+                </div>
+                {validateResult && typeof validateResult === 'object' && (
+                  <div style={{marginTop:12,background:validateResult.status==='used'?'#FCEBEB':'#EAF3DE',border:`1px solid ${validateResult.status==='used'?'#F7C1C1':'#C0DD97'}`,borderRadius:10,padding:14}}>
+                    {validateResult.status==='used' ? (
+                      <div style={{color:'#A32D2D',fontWeight:600,fontSize:13}}>❌ Cupom já utilizado</div>
+                    ) : (
+                      <>
+                        <div style={{color:'#3B6D11',fontWeight:600,fontSize:14,marginBottom:4}}>✅ Cupom válido!</div>
+                        <div style={{fontSize:13,color:'#555',marginBottom:2}}>Cliente: <strong>{validateResult.user?.name}</strong></div>
+                        <div style={{fontSize:13,color:'#555',marginBottom:10}}>Cupom: {validateResult.coupon?.title}</div>
+                        <button onClick={async()=>{
+                          await supabase.from('coupon_redemptions').update({status:'used',used_at:new Date().toISOString()}).eq('id',validateResult.id)
+                          setValidateResult({...validateResult,status:'used'})
+                          setValidateCode('')
+                        }} style={{padding:'8px 16px',background:'#3B6D11',color:'#fff',border:'none',borderRadius:8,fontSize:13,fontWeight:600,cursor:'pointer',width:'100%'}}>
+                          ✓ Confirmar uso e dar baixa
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+                {validateResult === false && (
+                  <div style={{marginTop:12,background:'#FCEBEB',border:'1px solid #F7C1C1',borderRadius:10,padding:14,color:'#A32D2D',fontWeight:600,fontSize:13}}>❌ Código não encontrado</div>
+                )}
+              </div>
+
+              <div style={{fontSize:13,fontWeight:600,color:'#111',marginBottom:10}}>📋 Meus cupons</div>
+              {myCoupons.length === 0 ? (
+                <div style={{textAlign:'center',padding:20,color:'#AAA',fontSize:13}}>Nenhum cupom criado ainda</div>
+              ) : (
+                <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                  {myCoupons.map((c:any)=>(
+                    <div key={c.id} style={{background:'#fff',border:'0.5px solid #E0DDD8',borderRadius:10,padding:'12px 14px',display:'flex',alignItems:'center',gap:12}}>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:13,fontWeight:500,color:'#111',marginBottom:2}}>{c.title}</div>
+                        <div style={{fontSize:11,color:'#888'}}>{c.discount_type==='fixed'?`R$ ${c.discount_value} off`:`${c.discount_value}% off`} · Vence: {new Date(c.expires_at).toLocaleDateString('pt-BR')}</div>
+                      </div>
+                      <div style={{textAlign:'center',minWidth:40}}>
+                        <div style={{fontSize:18,fontWeight:600,color:'#C9951A'}}>{c.total_qty}</div>
+                        <div style={{fontSize:9,color:'#888'}}>cupons</div>
+                      </div>
+                      <button onClick={async()=>{await supabase.from('coupons').update({active:false}).eq('id',c.id);setMyCoupons((p:any)=>p.filter((x:any)=>x.id!==c.id))}}
+                        style={{padding:'5px 10px',background:'#FCEBEB',color:'#E24B4A',border:'none',borderRadius:7,fontSize:11,cursor:'pointer'}}>Desativar</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </main>
       </div>
 

@@ -82,9 +82,9 @@ export default function PromocoesPage() {
           <div className="topbar-inner">
             <div className="top-title">🏷️ PROMOÇÕES <span>DA SEMANA</span></div>
             <div className="filters">
-              <button className={\`filter-btn \${filter==='todos'?'on':''}\`} onClick={()=>setFilter('todos')}>Todas</button>
+              <button className={`filter-btn ${filter==='todos'?'on':''}`} onClick={()=>setFilter('todos')}>Todas</button>
               {categories.map(cat=>(
-                <button key={cat} className={\`filter-btn \${filter===cat?'on':''}\`} onClick={()=>setFilter(cat||'')}>{cat}</button>
+                <button key={cat} className={`filter-btn ${filter===cat?'on':''}`} onClick={()=>setFilter(cat||'')}>{cat}</button>
               ))}
             </div>
           </div>

@@ -56,7 +56,7 @@ export default function PainelPage() {
 
   useEffect(() => {
     if (tab === 'cupons' && company?.id) {
-      supabase.from('coupons').select('*').eq('company_id', company.id).order('created_at', {ascending:false}).then(({data}) => setMyCoupons(data||[]))
+      supabase.from('coupons').select('*, redemptions:coupon_redemptions(id,status)').eq('company_id', company.id).order('created_at', {ascending:false}).then(({data}) => setMyCoupons(data||[]))
     }
   }, [tab, company?.id])
   const [companies, setCompanies]   = useState<Company[]>([])
@@ -1901,7 +1901,7 @@ export default function PainelPage() {
                       setSavingCoupon(true)
                       await supabase.from('coupons').insert({company_id:company.id,title:couponForm.title,discount_type:couponForm.discount_type,discount_value:Number(couponForm.discount_value),total_qty:Number(couponForm.total_qty),qty_per_person:Number(couponForm.qty_per_person),expires_at:new Date(couponForm.expires_at).toISOString(),active:true,min_purchase:couponForm.min_purchase?Number(couponForm.min_purchase):0})
                       setCouponForm({title:'',discount_type:'fixed',discount_value:'',total_qty:'',qty_per_person:'1',expires_at:'',expires_date:'',expires_time:'',min_purchase:''})
-                      const {data} = await supabase.from('coupons').select('*').eq('company_id',company.id).order('created_at',{ascending:false})
+                      const {data} = await supabase.from('coupons').select('*, redemptions:coupon_redemptions(id,status)').eq('company_id',company.id).order('created_at',{ascending:false})
                       setMyCoupons(data||[])
                       setSavingCoupon(false)
                     }}
@@ -1974,9 +1974,23 @@ export default function PainelPage() {
                               <div style={{fontSize:13,fontWeight:500,color:'#111',marginBottom:2}}>{c.title}</div>
                               <div style={{fontSize:11,color:'#888'}}>{c.discount_type==='fixed'?`R$ ${c.discount_value} off`:`${c.discount_value}% off`}{c.min_purchase>0?` · Mín. R$ ${c.min_purchase}`:''} · {couponTab==='expirados'?'Expirou':'Vence'}: {new Date(c.expires_at).toLocaleDateString('pt-BR')}</div>
                             </div>
-                            <div style={{textAlign:'center',minWidth:40}}>
-                              <div style={{fontSize:18,fontWeight:600,color:'#C9951A'}}>{c.total_qty}</div>
-                              <div style={{fontSize:9,color:'#888'}}>cupons</div>
+                            <div style={{display:'flex',gap:8,flexShrink:0}}>
+                              <div style={{textAlign:'center',minWidth:34}}>
+                                <div style={{fontSize:15,fontWeight:600,color:'#C9951A'}}>{c.total_qty}</div>
+                                <div style={{fontSize:9,color:'#888'}}>total</div>
+                              </div>
+                              <div style={{textAlign:'center',minWidth:34}}>
+                                <div style={{fontSize:15,fontWeight:600,color:'#185FA5'}}>{(c.redemptions||[]).length}</div>
+                                <div style={{fontSize:9,color:'#888'}}>resgatados</div>
+                              </div>
+                              <div style={{textAlign:'center',minWidth:34}}>
+                                <div style={{fontSize:15,fontWeight:600,color:'#0F8050'}}>{(c.redemptions||[]).filter((r:any)=>r.status==='used').length}</div>
+                                <div style={{fontSize:9,color:'#888'}}>usados</div>
+                              </div>
+                              <div style={{textAlign:'center',minWidth:34}}>
+                                <div style={{fontSize:15,fontWeight:600,color:'#888'}}>{Math.max(0,c.total_qty-(c.redemptions||[]).length)}</div>
+                                <div style={{fontSize:9,color:'#888'}}>disponíveis</div>
+                              </div>
                             </div>
                             {couponTab==='ativos' && (
                               <button onClick={async()=>{await supabase.from('coupons').update({active:false}).eq('id',c.id);setMyCoupons((p:any)=>p.map((x:any)=>x.id===c.id?{...x,active:false}:x))}}

@@ -1889,7 +1889,7 @@ export default function PainelPage() {
                       setSavingCoupon(true)
                       await supabase.from('coupons').insert({company_id:company.id,title:couponForm.title,discount_type:couponForm.discount_type,discount_value:Number(couponForm.discount_value),total_qty:Number(couponForm.total_qty),qty_per_person:Number(couponForm.qty_per_person),expires_at:new Date(couponForm.expires_at).toISOString(),active:true,min_purchase:couponForm.min_purchase?Number(couponForm.min_purchase):0})
                       setCouponForm({title:'',discount_type:'fixed',discount_value:'',total_qty:'',qty_per_person:'1',expires_at:'',min_purchase:''})
-                      const {data} = await supabase.from('coupons').select('*').eq('company_id',company.id).order('created_at',{ascending:false})
+                      const {data} = await supabase.from('coupons').select('*').eq('company_id',company.id).eq('active',true).order('created_at',{ascending:false})
                       setMyCoupons(data||[])
                       setSavingCoupon(false)
                     }}

@@ -34,7 +34,13 @@ const fmtDate = (s: string) => new Date(s).toLocaleDateString('pt-BR')
 const daysLeft = (s: string) => Math.max(0, Math.ceil((new Date(s).getTime() - Date.now()) / 86400000))
 
 export default function PainelPage() {
-  const [tab, setTab]               = useState<'painel'|'destaques'|'banners'|'avaliacoes'|'perfil'|'plano'>('painel')
+  const [tab, setTab]               = useState<'painel'|'destaques'|'banners'|'avaliacoes'|'perfil'|'plano'|'cupons'>('painel')
+  const [myCoupons, setMyCoupons]   = useState<any[]>([])
+  const [couponForm, setCouponForm] = useState({title:'',discount_type:'fixed',discount_value:'',total_qty:'',qty_per_person:'1',expires_at:''})
+  const [savingCoupon, setSavingCoupon] = useState(false)
+  const [validateCode, setValidateCode] = useState('')
+  const [validateResult, setValidateResult] = useState<any>(null)
+  const [validating, setValidating] = useState(false)
   const [company, setCompany]       = useState<Company|null>(null)
   const [companies, setCompanies]   = useState<Company[]>([])
   const [reviews, setReviews]       = useState<Review[]>([])
@@ -494,6 +500,7 @@ export default function PainelPage() {
     { id:'avaliacoes', ico:'💬', lbl:'Avaliações', badge:pendingReplies },
     { id:'perfil',     ico:'✏️', lbl:'Perfil',     badge:0 },
     { id:'plano',      ico:'💳', lbl:'Plano',      badge:0 },
+    { id:'cupons',     ico:'🎟️', lbl:'Cupons',     badge:0 },
   ]
 
   return (

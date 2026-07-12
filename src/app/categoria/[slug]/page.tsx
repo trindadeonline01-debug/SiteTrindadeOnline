@@ -234,10 +234,13 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
 
         /* SUBCATEGORIAS */
         .subcat-wrap { background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 16px 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 24px; }
-        .subcat-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; }
-        .subcat-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; border: 0.5px solid #E0DDD8; background: #fff; font-size: 13px; font-weight: 500; color: #555; cursor: pointer; white-space: nowrap; transition: all .15s; }
-        .subcat-pill:hover { border-color: #C9951A; color: #854F0B; background: #FEF3E2; }
-        .subcat-pill.on { background: #FEF3E2; border-color: #F5C77A; color: #854F0B; font-weight: 600; }
+        .subcat-pills { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px; margin-bottom: 20px; }
+        .subcat-pill { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 10px 6px; border-radius: 12px; border: 0.5px solid #E0DDD8; background: #fff; cursor: pointer; text-align: center; transition: all .15s; min-height: 70px; }
+        .subcat-pill:hover { border-color: #C9951A; background: #FEF3E2; }
+        .subcat-pill.on { background: #FEF3E2; border-color: #F5C77A; font-weight: 600; }
+        .subcat-pill-emoji { font-size: 24px; line-height: 1; }
+        .subcat-pill-name { font-size: 10px; line-height: 1.2; font-weight: 500; color: #555; }
+        .subcat-pill.on .subcat-pill-name { color: #854F0B; font-weight: 600; }
         .subcat-emoji-box { width: 48px; height: 48px; border-radius: 10px; border: 1.5px solid #e0e0e0; background: #fafafa; display: flex; align-items: center; justify-content: center; font-size: 24px; transition: border-color 0.15s; }
         .subcat-label { font-size: 10.5px; color: #555; text-align: center; line-height: 1.3; font-weight: 500; transition: color 0.15s; }
 
@@ -356,14 +359,16 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
             <div className="sec-label">SUBCATEGORIAS</div>
             <div className="subcat-pills">
               <div className={`subcat-pill ${!activeSub ? 'on' : ''}`} onClick={() => filterBySub(null)}>
-                Todas ({companies.length})
+                <span className="subcat-pill-emoji">🏪</span>
+                <span className="subcat-pill-name">Todas ({companies.length})</span>
               </div>
               {subcats.map(s => {
                 const cnt = companies.filter(c => c.subcategories?.some((cs: any) => cs.subcategory?.id === s.id)).length
                 if (cnt === 0) return null
                 return (
                   <div key={s.id} className={`subcat-pill ${activeSub === s.id ? 'on' : ''}`} onClick={() => filterBySub(s.id)}>
-                    {s.emoji} {s.name} ({cnt})
+                    <span className="subcat-pill-emoji">{s.emoji}</span>
+                    <span className="subcat-pill-name">{s.name} ({cnt})</span>
                   </div>
                 )
               })}

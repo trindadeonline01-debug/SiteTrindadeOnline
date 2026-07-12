@@ -1973,6 +1973,73 @@ export default function PainelPage() {
               </div>
             </div>
           )}
+          {tab === 'promocoes' && (
+            <div className="content-plano">
+              <div className="plano-inner">
+                <div style={{background:'#F5F2EC',borderRadius:12,padding:16,marginBottom:20}}>
+                  <div style={{fontSize:13,fontWeight:600,color:'#111',marginBottom:12}}>➕ Criar nova promoção</div>
+                  <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                    <div>
+                      <label style={{fontSize:11,fontWeight:600,color:'#666',display:'block',marginBottom:4}}>TÍTULO DA PROMOÇÃO</label>
+                      <input value={promoForm.title} onChange={e=>setPromoForm(f=>({...f,title:e.target.value}))} placeholder="Ex: 20% off em todo cardápio" style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none'}}/>
+                    </div>
+                    <div>
+                      <label style={{fontSize:11,fontWeight:600,color:'#666',display:'block',marginBottom:4}}>IMAGEM DA PROMOÇÃO</label>
+                      <input type="file" accept="image/*" onChange={e=>setPromoFile(e.target.files?.[0]||null)} style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',background:'#fff'}}/>
+                      <div style={{fontSize:10,color:'#AAA',marginTop:3}}>JPG, PNG ou WEBP · formato vertical (stories)</div>
+                    </div>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                      <div>
+                        <label style={{fontSize:11,fontWeight:600,color:'#666',display:'block',marginBottom:4}}>INÍCIO</label>
+                        <input type="date" value={promoForm.starts_at} onChange={e=>setPromoForm(f=>({...f,starts_at:e.target.value}))} style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none'}}/>
+                      </div>
+                      <div>
+                        <label style={{fontSize:11,fontWeight:600,color:'#666',display:'block',marginBottom:4}}>FIM</label>
+                        <input type="date" value={promoForm.expires_at} onChange={e=>setPromoForm(f=>({...f,expires_at:e.target.value}))} style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none'}}/>
+                      </div>
+                    </div>
+                    <button disabled={savingPromo||!promoForm.title||!promoForm.starts_at||!promoForm.expires_at||!promoFile}
+                      onClick={async()=>{
+                        if(!promoFile||!company)return
+                        setSavingPromo(true)
+                        const ext = promoFile.name.split('.').pop()
+                        const path = `promotions/${company.id}/${Date.now()}.${ext}`
+                        const {data:up} = await supabase.storage.from('company-photos').upload(path, promoFile, {upsert:true})
+                        if(!up){setSavingPromo(false);return}
+                        const {data:url} = supabase.storage.from('company-photos').getPublicUrl(path)
+                        await supabase.from('promotions').insert({company_id:company.id,title:promoForm.title,image_url:url.publicUrl,starts_at:new Date(promoForm.starts_at).toISOString(),expires_at:new Date(promoForm.expires_at+'T23:59:59').toISOString(),status:'active'})
+                        setPromoForm({title:'',starts_at:'',expires_at:'',image_url:''})
+                        setPromoFile(null)
+                        const {data} = await supabase.from('promotions').select('*').eq('company_id',company.id).order('created_at',{ascending:false})
+                        setMyPromos(data||[])
+                        setSavingPromo(false)
+                      }}
+                      style={{padding:'11px',background:'#C9951A',color:'#111',border:'none',borderRadius:10,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                      {savingPromo?'Publicando...':'Publicar promoção →'}
+                    </button>
+                  </div>
+                </div>
+                <div style={{fontSize:13,fontWeight:600,color:'#111',marginBottom:10}}>📋 Minhas promoções</div>
+                {myPromos.length === 0 ? (
+                  <div style={{textAlign:'center',padding:20,color:'#AAA',fontSize:13}}>Nenhuma promoção criada ainda</div>
+                ) : (
+                  <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                    {myPromos.map((p:any)=>(
+                      <div key={p.id} style={{background:'#fff',border:'0.5px solid #E0DDD8',borderRadius:10,padding:'12px 14px',display:'flex',alignItems:'center',gap:12}}>
+                        {p.image_url && <img src={p.image_url} style={{width:48,height:64,objectFit:'cover',borderRadius:8,flexShrink:0}}/>}
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:13,fontWeight:500,color:'#111',marginBottom:2}}>{p.title}</div>
+                          <div style={{fontSize:11,color:'#888'}}>{new Date(p.starts_at).toLocaleDateString('pt-BR')} → {new Date(p.expires_at).toLocaleDateString('pt-BR')}</div>
+                        </div>
+                        <button onClick={async()=>{await supabase.from('promotions').update({status:'inactive'}).eq('id',p.id);setMyPromos((prev:any)=>prev.filter((x:any)=>x.id!==p.id))}}
+                          style={{padding:'5px 10px',background:'#FCEBEB',color:'#E24B4A',border:'none',borderRadius:7,fontSize:11,cursor:'pointer',flexShrink:0}}>Desativar</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </main>
       </div>
 

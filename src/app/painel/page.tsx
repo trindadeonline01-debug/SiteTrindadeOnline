@@ -1955,6 +1955,7 @@ export default function PainelPage() {
                   ))}
                 </div>
               )}
+              </div>
             </div>
           )}
         </main>

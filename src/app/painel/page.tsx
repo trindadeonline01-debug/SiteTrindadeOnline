@@ -1876,8 +1876,12 @@ export default function PainelPage() {
                       <input type="number" value={couponForm.qty_per_person} onChange={e=>setCouponForm(f=>({...f,qty_per_person:e.target.value}))} placeholder="1" style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none'}}/>
                     </div>
                     <div>
-                      <label style={{fontSize:11,fontWeight:600,color:'#666',display:'block',marginBottom:4}}>VALIDADE</label>
-                      <input type="datetime-local" value={couponForm.expires_at} onChange={e=>setCouponForm(f=>({...f,expires_at:e.target.value}))} style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none'}}/>
+                      <label style={{fontSize:11,fontWeight:600,color:'#666',display:'block',marginBottom:4}}>DATA</label>
+                      <input type="date" value={couponForm.expires_date} onChange={e=>{const d=e.target.value;const t=couponForm.expires_time||'23:59';setCouponForm(f=>({...f,expires_date:d,expires_at:d?`${d}T${t}`:''}))}  } style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none'}}/>
+                    </div>
+                    <div>
+                      <label style={{fontSize:11,fontWeight:600,color:'#666',display:'block',marginBottom:4}}>HORA</label>
+                      <input type="time" value={couponForm.expires_time} onChange={e=>{const t=e.target.value;const d=couponForm.expires_date;setCouponForm(f=>({...f,expires_time:t,expires_at:d?`${d}T${t}`:''}))}  } style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none'}}/>
                     </div>
                   </div>
                   <button disabled={savingCoupon||!couponForm.title||!couponForm.discount_value||!couponForm.total_qty||!couponForm.expires_at}

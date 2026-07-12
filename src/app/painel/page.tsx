@@ -1839,8 +1839,8 @@ export default function PainelPage() {
           )})()}
 
           {tab === 'cupons' && (
-            <div style={{padding:'20px',maxWidth:700}}>
-              <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,color:'#111',letterSpacing:1,marginBottom:16}}>CUPONS RELÂMPAGO</div>
+            <div className="content-plano">
+              <div className="plano-inner">
 
               <div style={{background:'#F5F2EC',borderRadius:12,padding:16,marginBottom:20}}>
                 <div style={{fontSize:13,fontWeight:600,color:'#111',marginBottom:12}}>➕ Criar novo cupom</div>

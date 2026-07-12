@@ -607,13 +607,15 @@ export default function HomePage() {
       <div className="main-wrap">
 
         {/* CARDS CUPONS + PROMOÇÕES */}
-        <div style={{maxWidth:1200,margin:'0 auto',padding:'20px 20px 0',display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
-          <a href="/cupons" style={{borderRadius:16,overflow:'hidden',textDecoration:'none',display:'block'}}>
-            <img src="https://plfuznchzuzardkfjmqo.supabase.co/storage/v1/object/public/company-photos/cupom_banner.png" alt="Cupons Relâmpago" style={{width:'100%',height:'auto',display:'block',borderRadius:16}}/>
-          </a>
-          <a href="/promocoes" style={{borderRadius:16,overflow:'hidden',textDecoration:'none',display:'block'}}>
-            <img src="https://plfuznchzuzardkfjmqo.supabase.co/storage/v1/object/public/company-photos/promocoes_banner.png" alt="Promoções da Semana" style={{width:'100%',height:'auto',display:'block',borderRadius:16}}/>
-          </a>
+        <div className="cat-overlap" style={{marginTop:24,marginBottom:-20}}>
+          <div className="cat-card-wrap" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,padding:'0',background:'transparent',border:'none',boxShadow:'none'}}>
+            <a href="/cupons" style={{borderRadius:16,overflow:'hidden',textDecoration:'none',display:'block'}}>
+              <img src="https://plfuznchzuzardkfjmqo.supabase.co/storage/v1/object/public/company-photos/cupom_banner.png" alt="Cupons Relâmpago" style={{width:'100%',height:'auto',display:'block',borderRadius:16}}/>
+            </a>
+            <a href="/promocoes" style={{borderRadius:16,overflow:'hidden',textDecoration:'none',display:'block'}}>
+              <img src="https://plfuznchzuzardkfjmqo.supabase.co/storage/v1/object/public/company-photos/promocoes_banner.png" alt="Promoções da Semana" style={{width:'100%',height:'auto',display:'block',borderRadius:16}}/>
+            </a>
+          </div>
         </div>
 
         {/* CATEGORIAS */}

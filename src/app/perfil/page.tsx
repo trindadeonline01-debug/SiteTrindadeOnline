@@ -241,7 +241,7 @@ export default function PerfilPage() {
               <div className={`tab ${tab==='anuncios'?'on':''}`} onClick={()=>setTab('anuncios')}>📋 Anúncios ({activeListings.length})</div>
               <div className={`tab ${tab==='avaliacoes'?'on':''}`} onClick={()=>setTab('avaliacoes')}>⭐ Avaliações ({reviews.length})</div>
               <div className={`tab ${tab==='favoritos'?'on':''}`} onClick={()=>setTab('favoritos')}>❤️ Favoritos ({favs.length})</div>
-              <div className={`tab ${tab==='cupons'?'on':''}`} onClick={()=>setTab('cupons')}>🎟️ Cupons</div>
+              <div className={`tab ${tab==='cupons'?'on':''}`} onClick={()=>setTab('cupons')}>🎟️ Meus Cupons</div>
             </div>
 
             {/* ABA ANÚNCIOS */}

@@ -26,7 +26,7 @@ export default function BottomNav() {
   const items = [
     { href: '/', icon: '🏠', label: 'Início' },
     { href: '/cupons', icon: '🎟️', label: 'Cupons', badge: true },
-    { href: '/feed', icon: '📰', label: 'Feed' },
+    { href: '/promocoes', icon: '🏷️', label: 'Promoções' },
     ...(userType === 'admin'
       ? [{ href: '/admin', icon: '⚙️', label: 'Admin' }]
       : userType === 'company'

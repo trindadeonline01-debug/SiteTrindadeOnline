@@ -36,7 +36,7 @@ const daysLeft = (s: string) => Math.max(0, Math.ceil((new Date(s).getTime() - D
 export default function PainelPage() {
   const [tab, setTab]               = useState<'painel'|'destaques'|'banners'|'avaliacoes'|'perfil'|'plano'|'cupons'>('painel')
   const [myCoupons, setMyCoupons]   = useState<any[]>([])
-  const [couponForm, setCouponForm] = useState({title:'',discount_type:'fixed',discount_value:'',total_qty:'',qty_per_person:'1',expires_at:''})
+  const [couponForm, setCouponForm] = useState({title:'',discount_type:'fixed',discount_value:'',total_qty:'',qty_per_person:'1',expires_at:'',min_purchase:''})
   const [savingCoupon, setSavingCoupon] = useState(false)
   const [validateCode, setValidateCode] = useState('')
   const [validateResult, setValidateResult] = useState<any>(null)
@@ -1866,6 +1866,10 @@ export default function PainelPage() {
                       <input type="number" value={couponForm.discount_value} onChange={e=>setCouponForm(f=>({...f,discount_value:e.target.value}))} placeholder="10" style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none'}}/>
                     </div>
                   </div>
+                  <div style={{marginBottom:0}}>
+                    <label style={{fontSize:11,fontWeight:600,color:'#666',display:'block',marginBottom:4}}>COMPRA MÍNIMA (opcional)</label>
+                    <input type="number" value={couponForm.min_purchase} onChange={e=>setCouponForm(f=>({...f,min_purchase:e.target.value}))} placeholder="Ex: 50 (deixe vazio para sem mínimo)" style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none'}}/>
+                  </div>
                   <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
                     <div>
                       <label style={{fontSize:11,fontWeight:600,color:'#666',display:'block',marginBottom:4}}>TOTAL CUPONS</label>
@@ -1883,8 +1887,8 @@ export default function PainelPage() {
                   <button disabled={savingCoupon||!couponForm.title||!couponForm.discount_value||!couponForm.total_qty||!couponForm.expires_at}
                     onClick={async()=>{
                       setSavingCoupon(true)
-                      await supabase.from('coupons').insert({company_id:company.id,title:couponForm.title,discount_type:couponForm.discount_type,discount_value:Number(couponForm.discount_value),total_qty:Number(couponForm.total_qty),qty_per_person:Number(couponForm.qty_per_person),expires_at:new Date(couponForm.expires_at).toISOString(),active:true})
-                      setCouponForm({title:'',discount_type:'fixed',discount_value:'',total_qty:'',qty_per_person:'1',expires_at:''})
+                      await supabase.from('coupons').insert({company_id:company.id,title:couponForm.title,discount_type:couponForm.discount_type,discount_value:Number(couponForm.discount_value),total_qty:Number(couponForm.total_qty),qty_per_person:Number(couponForm.qty_per_person),expires_at:new Date(couponForm.expires_at).toISOString(),active:true,min_purchase:couponForm.min_purchase?Number(couponForm.min_purchase):0})
+                      setCouponForm({title:'',discount_type:'fixed',discount_value:'',total_qty:'',qty_per_person:'1',expires_at:'',min_purchase:''})
                       const {data} = await supabase.from('coupons').select('*').eq('company_id',company.id).order('created_at',{ascending:false})
                       setMyCoupons(data||[])
                       setSavingCoupon(false)
@@ -1943,7 +1947,7 @@ export default function PainelPage() {
                     <div key={c.id} style={{background:'#fff',border:'0.5px solid #E0DDD8',borderRadius:10,padding:'12px 14px',display:'flex',alignItems:'center',gap:12}}>
                       <div style={{flex:1}}>
                         <div style={{fontSize:13,fontWeight:500,color:'#111',marginBottom:2}}>{c.title}</div>
-                        <div style={{fontSize:11,color:'#888'}}>{c.discount_type==='fixed'?`R$ ${c.discount_value} off`:`${c.discount_value}% off`} · Vence: {new Date(c.expires_at).toLocaleDateString('pt-BR')}</div>
+                        <div style={{fontSize:11,color:'#888'}}>{c.discount_type==='fixed'?`R$ ${c.discount_value} off`:`${c.discount_value}% off`}{c.min_purchase>0?` · Mín. R$ ${c.min_purchase}`:''} · Vence: {new Date(c.expires_at).toLocaleDateString('pt-BR')}</div>
                       </div>
                       <div style={{textAlign:'center',minWidth:40}}>
                         <div style={{fontSize:18,fontWeight:600,color:'#C9951A'}}>{c.total_qty}</div>

@@ -108,8 +108,7 @@ export default function PerfilPage() {
 
         .page{max-width:1200px;margin:0 auto;padding:24px 24px 48px;}
         @media(max-width:767px){.page{padding:16px 16px 40px;}}
-        .layout{display:grid;grid-template-columns:280px 1fr;gap:24px;}
-        @media(max-width:767px){.layout{grid-template-columns:1fr;}}
+        .layout{display:block;max-width:860px;margin:0 auto;}
 
         .card{background:#FAFAF8;border:0.5px solid #E0DDD8;border-radius:14px;padding:18px;margin-bottom:14px;}
         .card-title{font-family:'Bebas Neue',sans-serif;font-size:12px;color:#AAA;letter-spacing:1.5px;margin-bottom:14px;}
@@ -190,52 +189,6 @@ export default function PerfilPage() {
       <div className="page">
         <div className="layout">
 
-          {/* ESQUERDA */}
-          <div>
-            <div className="card">
-              <div className="card-title">MEUS DADOS</div>
-
-              {saved && <div className="ok-msg">✓ Dados atualizados!</div>}
-
-              {editing ? (
-                <>
-                  <div className="field"><label className="fl">NOME</label><input className="fi" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))}/></div>
-                  <div className="field"><label className="fl">WHATSAPP</label><input className="fi" placeholder="21 99999-9999" value={form.phone} onChange={e=>setForm(f=>({...f,phone:e.target.value}))}/></div>
-                  <div className="field"><label className="fl">BAIRRO</label><input className="fi" placeholder="Ex: Trindade" value={form.neighborhood} onChange={e=>setForm(f=>({...f,neighborhood:e.target.value}))}/></div>
-                  <button className="btn-save" onClick={saveProfile} disabled={saving}>{saving?'Salvando...':'Salvar alterações'}</button>
-                  <button className="btn-cancel" onClick={()=>setEditing(false)}>Cancelar</button>
-                </>
-              ) : (
-                <>
-                  <div className="field"><div className="fl">NOME</div><div className="fv">{profile.name}</div></div>
-                  {profile.phone && <div className="field"><div className="fl">WHATSAPP</div><div className="fv">{profile.phone}</div></div>}
-                  {profile.neighborhood && <div className="field"><div className="fl">BAIRRO</div><div className="fv">{profile.neighborhood}</div></div>}
-                  <button className="btn-edit" onClick={()=>setEditing(true)}>✏️ Editar dados</button>
-                </>
-              )}
-            </div>
-
-            <div className="stats-row">
-              <div className="stat" onClick={()=>setTab('favoritos')} style={{cursor:'pointer'}}>
-                <div className="stat-n">{favs.length}</div>
-                <div className="stat-l">Favoritos</div>
-              </div>
-              <div className="stat" onClick={()=>setTab('avaliacoes')} style={{cursor:'pointer'}}>
-                <div className="stat-n">{reviews.length}</div>
-                <div className="stat-l">Avaliações</div>
-              </div>
-              <div className="stat" onClick={()=>setTab('anuncios')} style={{cursor:'pointer'}}>
-                <div className="stat-n">{activeListings.length}</div>
-                <div className="stat-l">Anúncios</div>
-              </div>
-              <a className="stat" href="/favoritos">
-                <div className="stat-n" style={{fontSize:22}}>❤️</div>
-                <div className="stat-l">Ver favoritos</div>
-              </a>
-            </div>
-          </div>
-
-          {/* DIREITA */}
           <div>
             <div className="tabs">
               <div className={`tab ${tab==='perfil'?'on':''}`} onClick={()=>setTab('perfil')}>👤 Perfil</div>
@@ -265,6 +218,20 @@ export default function PerfilPage() {
                     <button className="btn-edit" onClick={()=>setEditing(true)}>✏️ Editar dados</button>
                   </>
                 )}
+                <div className="stats-row" style={{marginTop:16}}>
+                  <div className="stat" onClick={()=>setTab('favoritos')} style={{cursor:'pointer'}}>
+                    <div className="stat-n">{favs.length}</div>
+                    <div className="stat-l">Favoritos</div>
+                  </div>
+                  <div className="stat" onClick={()=>setTab('avaliacoes')} style={{cursor:'pointer'}}>
+                    <div className="stat-n">{reviews.length}</div>
+                    <div className="stat-l">Avaliações</div>
+                  </div>
+                  <div className="stat" onClick={()=>setTab('anuncios')} style={{cursor:'pointer'}}>
+                    <div className="stat-n">{activeListings.length}</div>
+                    <div className="stat-l">Anúncios</div>
+                  </div>
+                </div>
               </div>
             )}
             {/* ABA ANÚNCIOS */}

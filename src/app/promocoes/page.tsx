@@ -55,7 +55,7 @@ export default function PromocoesPage() {
     body{font-family:'Inter',sans-serif;}
 
     /* MOBILE - stories */
-    .pg-mobile{position:fixed;inset:0;top:0;background:#000;display:flex;flex-direction:column;overflow:hidden;}
+    .pg-mobile{position:fixed;inset:0;top:0;bottom:64px;background:#000;display:flex;flex-direction:column;overflow:hidden;}
     .topbar{background:rgba(0,0,0,0.9);padding:10px 16px;flex-shrink:0;backdrop-filter:blur(10px);}
     .top-title{font-family:'Bebas Neue',sans-serif;font-size:20px;color:#fff;letter-spacing:2px;margin-bottom:6px;}
     .top-title span{color:#C9951A;}

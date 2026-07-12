@@ -606,6 +606,36 @@ export default function HomePage() {
       {/* CONTEÚDO */}
       <div className="main-wrap">
 
+        {/* CARDS CUPONS + PROMOÇÕES */}
+        <div style={{maxWidth:1200,margin:'0 auto',padding:'20px 20px 0',display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+          <a href="/cupons" style={{borderRadius:16,overflow:'hidden',textDecoration:'none',display:'block'}}>
+            <div style={{background:'#111',padding:'16px 20px 12px'}}>
+              <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:18,color:'#C9951A',letterSpacing:1}}>Cupons Relâmpago</div>
+            </div>
+            <div style={{background:'#fff',border:'0.5px solid #E0DDD8',borderBottomLeftRadius:16,borderBottomRightRadius:16,padding:'14px 16px'}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
+                <span style={{fontSize:36,lineHeight:1}}>🎟️</span>
+                <span style={{background:'#FCEBEB',color:'#A32D2D',fontSize:11,fontWeight:500,padding:'3px 10px',borderRadius:20}}>Disponíveis agora</span>
+              </div>
+              <div style={{fontSize:12,color:'#888',lineHeight:1.5}}>Descontos exclusivos com quantidade limitada</div>
+              <div style={{marginTop:10,display:'inline-block',padding:'6px 14px',background:'#111',color:'#C9951A',borderRadius:20,fontSize:11,fontWeight:500}}>Ver cupons →</div>
+            </div>
+          </a>
+          <a href="/promocoes" style={{borderRadius:16,overflow:'hidden',textDecoration:'none',display:'block'}}>
+            <div style={{background:'#C9951A',padding:'16px 20px 12px'}}>
+              <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:18,color:'#111',letterSpacing:1}}>Promoções da Semana</div>
+            </div>
+            <div style={{background:'#fff',border:'0.5px solid #E0DDD8',borderBottomLeftRadius:16,borderBottomRightRadius:16,padding:'14px 16px'}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
+                <span style={{fontSize:36,lineHeight:1}}>🏷️</span>
+                <span style={{background:'#FEF3E2',color:'#854F0B',fontSize:11,fontWeight:500,padding:'3px 10px',borderRadius:20}}>Esta semana</span>
+              </div>
+              <div style={{fontSize:12,color:'#888',lineHeight:1.5}}>Ofertas das empresas parceiras da Trindade</div>
+              <div style={{marginTop:10,display:'inline-block',padding:'6px 14px',background:'#C9951A',color:'#111',borderRadius:20,fontSize:11,fontWeight:500}}>Ver promoções →</div>
+            </div>
+          </a>
+        </div>
+
         {/* CATEGORIAS */}
         <div className="cat-overlap" style={{marginTop: bannerEnabled ? '-40px' : '24px'}}>
           <div className="cat-card-wrap">

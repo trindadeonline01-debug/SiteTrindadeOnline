@@ -497,7 +497,7 @@ export default function PainelPage() {
   const pendingReplies = reviews.filter(r=>!r.response).length
 
   const tabTitle: Record<string,string> = {
-    painel:'Dashboard', destaques:'Destaques', banners:'Banners', avaliacoes:'Avaliações', perfil:'Editar Perfil', plano:'Meu Plano'
+    painel:'Dashboard', destaques:'Destaques', banners:'Banners', avaliacoes:'Avaliações', perfil:'Editar Perfil', plano:'Meu Plano', cupons:'Cupons Relâmpago'
   }
 
   const navItems = [

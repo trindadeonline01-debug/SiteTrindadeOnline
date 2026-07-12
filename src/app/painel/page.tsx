@@ -43,22 +43,8 @@ export default function PainelPage() {
   const [validating, setValidating] = useState(false)
   const [company, setCompany]       = useState<Company|null>(null)
 
-  useEffect(() => {
-    if (tab === 'cupons' && company?.id) {
-      supabase.from('coupons')
-        .select('*, redemptions:coupon_redemptions(count)')
-        .eq('company_id', company.id)
-        .eq('active', true)
-        .order('created_at', { ascending: false })
-        .then(({ data }) => setMyCoupons(data || []))
-    }
-  }, [tab, company?.id])
 
-  useEffect(() => {
-    if (!savingCoupon && tab === 'cupons' && company?.id) {
-      supabase.from('coupons').select('*').eq('company_id', company.id).eq('active', true).order('created_at', {ascending:false}).then(({data}) => setMyCoupons(data||[]))
     }
-  }, [savingCoupon])
   const [companies, setCompanies]   = useState<Company[]>([])
   const [reviews, setReviews]       = useState<Review[]>([])
   const [highlights, setHighlights] = useState<Highlight[]>([])

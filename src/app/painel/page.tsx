@@ -36,6 +36,17 @@ const daysLeft = (s: string) => Math.max(0, Math.ceil((new Date(s).getTime() - D
 export default function PainelPage() {
   const [tab, setTab]               = useState<'painel'|'destaques'|'banners'|'avaliacoes'|'perfil'|'plano'|'cupons'>('painel')
   const [myCoupons, setMyCoupons]   = useState<any[]>([])
+
+  useEffect(() => {
+    if (tab === 'cupons' && company?.id) {
+      supabase.from('coupons')
+        .select('*, redemptions:coupon_redemptions(count)')
+        .eq('company_id', company.id)
+        .eq('active', true)
+        .order('created_at', { ascending: false })
+        .then(({ data }) => setMyCoupons(data || []))
+    }
+  }, [tab, company?.id])
   const [couponForm, setCouponForm] = useState({title:'',discount_type:'fixed',discount_value:'',total_qty:'',qty_per_person:'1',expires_at:''})
   const [savingCoupon, setSavingCoupon] = useState(false)
   const [validateCode, setValidateCode] = useState('')

@@ -39,6 +39,7 @@ export default function PromocoesPage() {
         body{font-family:'Inter',sans-serif;background:#111;height:100vh;overflow:hidden;}
         .pg{background:#111;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
         .hero{padding:16px 20px 12px;flex-shrink:0;}
+        .hero-inner{max-width:1100px;margin:0 auto;}
         .hero-title{font-family:'Bebas Neue',sans-serif;font-size:24px;color:#fff;letter-spacing:2px;margin-bottom:3px;}
         .hero-title span{color:#C9951A;}
         .hero-sub{font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:12px;}
@@ -69,7 +70,7 @@ export default function PromocoesPage() {
         }
       `}</style>
       <div className="pg">
-        <div className="hero">
+        <div className="hero"><div className="hero-inner">
           <div className="hero-title">🏷️ PROMOÇÕES <span>DA SEMANA</span></div>
           <div className="hero-sub">{filtered.length} promoções ativas · toque para ver a empresa</div>
           <div className="filters">
@@ -78,7 +79,7 @@ export default function PromocoesPage() {
               <button key={cat} className={`filter-btn ${filter===cat?'on':''}`} onClick={()=>setFilter(cat||'')}>{cat}</button>
             ))}
           </div>
-        </div>
+        </div></div>
 
         {loading ? (
           <div className="empty"><div style={{fontSize:32}}>⏳</div><div>Carregando...</div></div>

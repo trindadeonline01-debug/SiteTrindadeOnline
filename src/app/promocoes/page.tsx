@@ -90,10 +90,10 @@ export default function PromocoesPage() {
     .desktop-filter-btn{padding:5px 14px;border-radius:20px;font-size:11px;font-weight:500;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.5);background:transparent;cursor:pointer;}
     .desktop-filter-btn.on{background:#C9951A;color:#111;border-color:#C9951A;}
     .grid-body{padding:20px 24px;max-width:1100px;margin:0 auto;}
-    .promo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+    .promo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
     .promo-card{background:#fff;border-radius:14px;overflow:hidden;border:0.5px solid #E0DDD8;cursor:pointer;transition:transform .15s;}
     .promo-card:hover{transform:translateY(-2px);}
-    .promo-card-img{height:180px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#F5F0E8;font-size:60px;}
+    .promo-card-img{aspect-ratio:9/16;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#F5F0E8;font-size:60px;}
     .promo-card-img img{width:100%;height:100%;object-fit:cover;}
     .promo-card-body{padding:12px 14px;}
     .promo-card-cat{font-size:10px;color:#888;margin-bottom:3px;}

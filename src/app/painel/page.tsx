@@ -49,7 +49,7 @@ export default function PainelPage() {
 
   useEffect(() => {
     if (tab === 'promocoes' && company?.id) {
-      supabase.from('promotions').select('*').eq('company_id', company.id).order('created_at',{ascending:false}).then(({data})=>setMyPromos(data||[]))
+      supabase.from('promotions').select('*').eq('company_id', company.id).eq('status','active').order('created_at',{ascending:false}).then(({data})=>setMyPromos(data||[]))
     }
   }, [tab, company?.id])
 
@@ -2010,7 +2010,7 @@ export default function PainelPage() {
                         await supabase.from('promotions').insert({company_id:company.id,title:promoForm.title,image_url:url.publicUrl,starts_at:new Date(promoForm.starts_at).toISOString(),expires_at:new Date(promoForm.expires_at+'T23:59:59').toISOString(),status:'active'})
                         setPromoForm({title:'',starts_at:'',expires_at:'',image_url:''})
                         setPromoFile(null)
-                        const {data} = await supabase.from('promotions').select('*').eq('company_id',company.id).order('created_at',{ascending:false})
+                        const {data} = await supabase.from('promotions').select('*').eq('company_id',company.id).eq('status','active').order('created_at',{ascending:false})
                         setMyPromos(data||[])
                         setSavingPromo(false)
                       }}

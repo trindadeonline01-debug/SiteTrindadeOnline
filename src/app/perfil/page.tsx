@@ -17,7 +17,7 @@ export default function PerfilPage() {
   const [reviews, setReviews]   = useState<Review[]>([])
   const [favs, setFavs]         = useState<Fav[]>([])
   const [loading, setLoading]   = useState(true)
-  const [tab, setTab]           = useState<'anuncios'|'avaliacoes'|'favoritos'|'cupons'>('anuncios')
+  const [tab, setTab]           = useState<'perfil'|'anuncios'|'avaliacoes'|'favoritos'|'cupons'>('perfil')
   const [myCoupons, setMyCoupons] = useState<any[]>([])
   const [editing, setEditing]   = useState(false)
   const [form, setForm]         = useState({ name:'', phone:'', neighborhood:'' })
@@ -238,12 +238,35 @@ export default function PerfilPage() {
           {/* DIREITA */}
           <div>
             <div className="tabs">
+              <div className={`tab ${tab==='perfil'?'on':''}`} onClick={()=>setTab('perfil')}>👤 Perfil</div>
               <div className={`tab ${tab==='anuncios'?'on':''}`} onClick={()=>setTab('anuncios')}>📋 Anúncios ({activeListings.length})</div>
               <div className={`tab ${tab==='avaliacoes'?'on':''}`} onClick={()=>setTab('avaliacoes')}>⭐ Avaliações ({reviews.length})</div>
               <div className={`tab ${tab==='favoritos'?'on':''}`} onClick={()=>setTab('favoritos')}>❤️ Favoritos ({favs.length})</div>
               <div className={`tab ${tab==='cupons'?'on':''}`} onClick={()=>setTab('cupons')}>🎟️ Meus Cupons</div>
             </div>
 
+            {/* ABA PERFIL */}
+            {tab === 'perfil' && (
+              <div className="card">
+                {saved && <div className="ok-msg">✓ Dados atualizados!</div>}
+                {editing ? (
+                  <>
+                    <div className="field"><label className="fl">NOME</label><input className="fi" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))}/></div>
+                    <div className="field"><label className="fl">WHATSAPP</label><input className="fi" placeholder="21 99999-9999" value={form.phone} onChange={e=>setForm(f=>({...f,phone:e.target.value}))}/></div>
+                    <div className="field"><label className="fl">BAIRRO</label><input className="fi" placeholder="Ex: Trindade" value={form.neighborhood} onChange={e=>setForm(f=>({...f,neighborhood:e.target.value}))}/></div>
+                    <button className="btn-save" onClick={saveProfile} disabled={saving}>{saving?'Salvando...':'Salvar alterações'}</button>
+                    <button className="btn-cancel" onClick={()=>setEditing(false)}>Cancelar</button>
+                  </>
+                ) : (
+                  <>
+                    <div className="field"><div className="fl">NOME</div><div className="fv">{profile.name}</div></div>
+                    {profile.phone && <div className="field"><div className="fl">WHATSAPP</div><div className="fv">{profile.phone}</div></div>}
+                    {profile.neighborhood && <div className="field"><div className="fl">BAIRRO</div><div className="fv">{profile.neighborhood}</div></div>}
+                    <button className="btn-edit" onClick={()=>setEditing(true)}>✏️ Editar dados</button>
+                  </>
+                )}
+              </div>
+            )}
             {/* ABA ANÚNCIOS */}
             {tab === 'anuncios' && (
               activeListings.length === 0 ? (

@@ -36,6 +36,12 @@ const daysLeft = (s: string) => Math.max(0, Math.ceil((new Date(s).getTime() - D
 export default function PainelPage() {
   const [tab, setTab]               = useState<'painel'|'destaques'|'banners'|'avaliacoes'|'perfil'|'plano'|'cupons'>('painel')
   const [myCoupons, setMyCoupons]   = useState<any[]>([])
+  const [couponForm, setCouponForm] = useState({title:'',discount_type:'fixed',discount_value:'',total_qty:'',qty_per_person:'1',expires_at:''})
+  const [savingCoupon, setSavingCoupon] = useState(false)
+  const [validateCode, setValidateCode] = useState('')
+  const [validateResult, setValidateResult] = useState<any>(null)
+  const [validating, setValidating] = useState(false)
+  const [company, setCompany]       = useState<Company|null>(null)
 
   useEffect(() => {
     if (tab === 'cupons' && company?.id) {
@@ -47,12 +53,6 @@ export default function PainelPage() {
         .then(({ data }) => setMyCoupons(data || []))
     }
   }, [tab, company?.id])
-  const [couponForm, setCouponForm] = useState({title:'',discount_type:'fixed',discount_value:'',total_qty:'',qty_per_person:'1',expires_at:''})
-  const [savingCoupon, setSavingCoupon] = useState(false)
-  const [validateCode, setValidateCode] = useState('')
-  const [validateResult, setValidateResult] = useState<any>(null)
-  const [validating, setValidating] = useState(false)
-  const [company, setCompany]       = useState<Company|null>(null)
   const [companies, setCompanies]   = useState<Company[]>([])
   const [reviews, setReviews]       = useState<Review[]>([])
   const [highlights, setHighlights] = useState<Highlight[]>([])

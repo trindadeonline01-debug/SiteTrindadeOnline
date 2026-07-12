@@ -2031,7 +2031,7 @@ export default function PainelPage() {
                           <div style={{fontSize:13,fontWeight:500,color:'#111',marginBottom:2}}>{p.title}</div>
                           <div style={{fontSize:11,color:'#888'}}>{new Date(p.starts_at).toLocaleDateString('pt-BR')} → {new Date(p.expires_at).toLocaleDateString('pt-BR')}</div>
                         </div>
-                        <button onClick={async()=>{await supabase.from('promotions').update({status:'inactive'}).eq('id',p.id);setMyPromos((prev:any)=>prev.filter((x:any)=>x.id!==p.id))}}
+                        <button onClick={async()=>{await supabase.from('promotions').update({status:'expired'}).eq('id',p.id);setMyPromos((prev:any)=>prev.filter((x:any)=>x.id!==p.id))}}
                           style={{padding:'5px 10px',background:'#FCEBEB',color:'#E24B4A',border:'none',borderRadius:7,fontSize:11,cursor:'pointer',flexShrink:0}}>Desativar</button>
                       </div>
                     ))}

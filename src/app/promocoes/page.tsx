@@ -74,7 +74,7 @@ export default function PromocoesPage() {
     .story-empresa{font-size:22px;font-weight:700;color:#fff;margin-bottom:4px;}
     .story-title{font-size:15px;color:rgba(255,255,255,0.85);margin-bottom:6px;}
     .story-validade{font-size:12px;color:#C9951A;margin-bottom:14px;}
-    .story-btn{display:inline-flex;align-items:center;gap:6px;padding:11px 22px;background:#C9951A;color:#111;border-radius:24px;font-size:13px;font-weight:700;text-decoration:none;}
+    .story-btn{display:inline-flex;align-items:center;gap:6px;padding:11px 22px;background:#C9951A;color:#111;border-radius:24px;font-size:13px;font-weight:700;text-decoration:none;position:relative;z-index:20;}
     .nav-left{position:absolute;left:0;top:0;bottom:0;width:35%;cursor:pointer;z-index:10;}
     .nav-right{position:absolute;right:0;top:0;bottom:0;width:35%;cursor:pointer;z-index:10;}
     .empty-mobile{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;color:#555;gap:8px;font-size:14px;}

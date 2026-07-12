@@ -61,7 +61,7 @@ export default function PromocoesPage() {
         .progress-item{flex:1;height:2px;background:rgba(255,255,255,0.2);border-radius:2px;overflow:hidden;cursor:pointer;}
         .progress-fill{height:100%;background:#fff;border-radius:2px;transition:width .3s;}
         .story-wrap{flex:1;position:relative;overflow:hidden;}
-        .story-img{width:100%;height:100%;object-fit:cover;display:block;}
+        .story-img{width:100%;height:100%;object-fit:contain;display:block;background:#000;}
         .story-bg{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#1A1A1A;font-size:80px;}
         .story-overlay{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,0.9));padding:24px 20px 40px;}
         .story-cat{font-size:11px;color:rgba(255,255,255,0.6);margin-bottom:4px;}

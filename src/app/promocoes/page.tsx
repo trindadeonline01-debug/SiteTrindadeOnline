@@ -36,8 +36,8 @@ export default function PromocoesPage() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
-        body{font-family:'Inter',sans-serif;background:#111;height:100vh;overflow:hidden;}
-        .pg{background:#111;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+        body{font-family:'Inter',sans-serif;background:#111;}
+        .pg{background:#111;height:calc(100vh - 60px);display:flex;flex-direction:column;overflow:hidden;}
         .hero{padding:16px 20px 12px;flex-shrink:0;}
         .hero-inner{max-width:1100px;margin:0 auto;}
         .hero-title{font-family:'Bebas Neue',sans-serif;font-size:24px;color:#fff;letter-spacing:2px;margin-bottom:3px;}
@@ -97,7 +97,7 @@ export default function PromocoesPage() {
                 return (
                   <a key={p.id} href={`/empresa/${p.company?.slug}`}
                     className={`story ${isActive?'active':'peek'}`}
-                    style={{width: isActive?'180px':'140px', height: isActive?'300px':'260px'}}>
+                    style={{width: isActive?'280px':'180px', height: isActive?'480px':'380px'}}>
                     {p.image_url ? (
                       <img src={p.image_url} alt={p.title}/>
                     ) : (

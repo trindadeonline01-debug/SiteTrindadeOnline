@@ -88,6 +88,7 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
   const [companies, setCompanies]   = useState<Company[]>([])
   const [filtered, setFiltered]     = useState<Company[]>([])
   const [sortOrder, setSortOrder]     = useState<'az'|'rating'|'recent'>('az')
+  const [showAllSubcats, setShowAllSubcats] = useState(false)
   const [activeSub, setActiveSub]   = useState<string | null>(null)
   const [highlights, setHighlights] = useState<Highlight[]>([])
   const [loading, setLoading]       = useState(true)
@@ -367,9 +368,9 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
                 <span className="subcat-pill-emoji">🏪</span>
                 <span className="subcat-pill-name">Todas ({companies.length})</span>
               </div>
-              {subcats.map(s => {
+              {subcats.filter(s => companies.filter(c => c.subcategories?.some((cs: any) => cs.subcategory?.id === s.id)).length > 0).map((s, idx) => {
                 const cnt = companies.filter(c => c.subcategories?.some((cs: any) => cs.subcategory?.id === s.id)).length
-                if (cnt === 0) return null
+                if (!showAllSubcats && idx >= 3) return null
                 return (
                   <div key={s.id} className={`subcat-pill ${activeSub === s.id ? 'on' : ''}`} onClick={() => filterBySub(s.id)}>
                     <span className="subcat-pill-emoji">{s.emoji}</span>
@@ -377,6 +378,18 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
                   </div>
                 )
               })}
+              {!showAllSubcats && subcats.filter(s => companies.filter(c => c.subcategories?.some((cs: any) => cs.subcategory?.id === s.id)).length > 0).length > 3 && (
+                <div className="subcat-pill" onClick={() => setShowAllSubcats(true)}>
+                  <span className="subcat-pill-emoji">➕</span>
+                  <span className="subcat-pill-name">Ver mais</span>
+                </div>
+              )}
+              {showAllSubcats && (
+                <div className="subcat-pill" onClick={() => setShowAllSubcats(false)}>
+                  <span className="subcat-pill-emoji">➖</span>
+                  <span className="subcat-pill-name">Ver menos</span>
+                </div>
+              )}
             </div>
           </>
         )}
@@ -393,9 +406,9 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
               <div style={{display:'flex',alignItems:'center',gap:6}}>
                 <span style={{fontSize:12,color:'#CCC'}}>|</span>
                 <span style={{fontSize:12,color:'#999',fontWeight:500}}>Ordenar:</span>
-                {([['az','A–Z'],['rating','Melhor avaliado'],['recent','Mais recente']] as const).map(([v,l])=>(
+                {([['az','A–Z'],['rating','⭐ Avaliado'],['recent','🕐 Recente']] as const).map(([v,l])=>(
                   <button key={v} onClick={()=>setSortOrder(v)}
-                    style={{padding:'5px 12px',borderRadius:8,border:'0.5px solid',borderColor:sortOrder===v?'#888':'#E0DDD8',background:sortOrder===v?'#F5F2EC':'#fff',color:sortOrder===v?'#111':'#888',fontSize:11,fontWeight:500,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                    style={{padding:'7px 14px',borderRadius:20,border:'1.5px solid',borderColor:sortOrder===v?'#C9951A':'#E0DDD8',background:sortOrder===v?'#FEF3E2':'#fff',color:sortOrder===v?'#854F0B':'#888',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',whiteSpace:'nowrap'}}>
                     {l}
                   </button>
                 ))}

@@ -20,16 +20,18 @@ export default function BottomNav() {
     })
   }, [])
 
-  const hideOn = ['/login', '/cadastro', '/admin', '/painel', '/empresa/cadastrar']
-  if (!show || !loaded || !userType || userType === 'admin' || hideOn.some(p => pathname.startsWith(p))) return null
+  const hideOn = ['/login', '/cadastro', '/empresa/cadastrar']
+  if (!show || !loaded || !userType || hideOn.some(p => pathname.startsWith(p))) return null
 
   const items = [
     { href: '/', icon: '🏠', label: 'Início' },
     { href: '/cupons', icon: '🎟️', label: 'Cupons', badge: true },
     { href: '/feed', icon: '📰', label: 'Feed' },
-    ...(userType === 'company'
-      ? [{ href: '/painel', icon: '📊', label: 'Painel' }]
-      : [{ href: '/favoritos', icon: '❤️', label: 'Favoritos' }]
+    ...(userType === 'admin'
+      ? [{ href: '/admin', icon: '⚙️', label: 'Admin' }]
+      : userType === 'company'
+        ? [{ href: '/painel', icon: '📊', label: 'Painel' }]
+        : [{ href: '/favoritos', icon: '❤️', label: 'Favoritos' }]
     ),
     { href: '/perfil', icon: '👤', label: 'Perfil' },
     { href: '/sair', icon: '🚪', label: 'Sair', sair: true },

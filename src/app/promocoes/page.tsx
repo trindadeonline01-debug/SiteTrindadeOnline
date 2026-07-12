@@ -69,7 +69,7 @@ export default function PromocoesPage() {
     .story-wrap{flex:1;position:relative;overflow:hidden;}
     .story-img{width:100%;height:100%;object-fit:contain;display:block;background:#000;}
     .story-bg{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#1A1A1A;font-size:80px;}
-    .story-overlay{position:absolute;bottom:80px;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,0.85));padding:20px 20px 16px;}
+    .story-overlay{position:absolute;bottom:90px;right:16px;}
     .story-cat{font-size:11px;color:rgba(255,255,255,0.6);margin-bottom:4px;}
     .story-empresa{font-size:22px;font-weight:700;color:#fff;margin-bottom:4px;}
     .story-title{font-size:15px;color:rgba(255,255,255,0.85);margin-bottom:6px;}
@@ -184,8 +184,6 @@ export default function PromocoesPage() {
             <div className="nav-left" onClick={prev}/>
             <div className="nav-right" onClick={next}/>
             <div className="story-overlay">
-              <div className="story-title">{promo.title}</div>
-              <div className="story-validade">válido até {new Date(promo.expires_at).toLocaleDateString('pt-BR')}</div>
               <a className="story-btn" href={'/empresa/'+promo.company?.slug}>Ver empresa →</a>
             </div>
           </div>

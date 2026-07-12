@@ -38,7 +38,7 @@ export default function PainelPage() {
   const [myCoupons, setMyCoupons]   = useState<any[]>([])
   const [couponTab, setCouponTab]   = useState<'ativos'|'expirados'|'desativados'>('ativos')
   const [myPromos, setMyPromos]       = useState<any[]>([])
-  const [promoForm, setPromoForm]     = useState({title:'',starts_at:'',expires_at:'',image_url:''})
+  const [promoForm, setPromoForm]     = useState({title:'',starts_at:'',starts_time:'00:00',expires_at:'',expires_time:'23:59',image_url:''})
   const [promoFile, setPromoFile]     = useState<File|null>(null)
   const [savingPromo, setSavingPromo] = useState(false)
   const [couponForm, setCouponForm] = useState({title:'',discount_type:'fixed',discount_value:'',total_qty:'',qty_per_person:'1',expires_at:'',expires_date:'',expires_time:'',min_purchase:''})
@@ -2025,10 +2025,12 @@ export default function PainelPage() {
                       <div>
                         <label style={{fontSize:11,fontWeight:600,color:'#666',display:'block',marginBottom:4}}>INÍCIO</label>
                         <input type="date" value={promoForm.starts_at} onChange={e=>setPromoForm(f=>({...f,starts_at:e.target.value}))} style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none'}}/>
+                        <input type="time" value={promoForm.starts_time} onChange={e=>setPromoForm(f=>({...f,starts_time:e.target.value}))} style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none',marginTop:4}}/>
                       </div>
                       <div>
                         <label style={{fontSize:11,fontWeight:600,color:'#666',display:'block',marginBottom:4}}>FIM</label>
                         <input type="date" value={promoForm.expires_at} onChange={e=>setPromoForm(f=>({...f,expires_at:e.target.value}))} style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none'}}/>
+                        <input type="time" value={promoForm.expires_time} onChange={e=>setPromoForm(f=>({...f,expires_time:e.target.value}))} style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none',marginTop:4}}/>
                       </div>
                     </div>
                     <button disabled={savingPromo||!promoForm.title||!promoForm.starts_at||!promoForm.expires_at||!promoFile}
@@ -2040,8 +2042,8 @@ export default function PainelPage() {
                         const {data:up} = await supabase.storage.from('company-photos').upload(path, promoFile, {upsert:true})
                         if(!up){setSavingPromo(false);return}
                         const {data:url} = supabase.storage.from('company-photos').getPublicUrl(path)
-                        await supabase.from('promotions').insert({company_id:company.id,title:promoForm.title,image_url:url.publicUrl,starts_at:new Date(promoForm.starts_at).toISOString(),expires_at:new Date(promoForm.expires_at+'T23:59:59').toISOString(),status:'active'})
-                        setPromoForm({title:'',starts_at:'',expires_at:'',image_url:''})
+                        await supabase.from('promotions').insert({company_id:company.id,title:promoForm.title,image_url:url.publicUrl,starts_at:new Date(`${promoForm.starts_at}T${promoForm.starts_time||'00:00'}`).toISOString(),expires_at:new Date(`${promoForm.expires_at}T${promoForm.expires_time||'23:59'}`).toISOString(),status:'active'})
+                        setPromoForm({title:'',starts_at:'',starts_time:'00:00',expires_at:'',expires_time:'23:59',image_url:''})
                         setPromoFile(null)
                         const {data} = await supabase.from('promotions').select('*').eq('company_id',company.id).eq('status','active').order('created_at',{ascending:false})
                         setMyPromos(data||[])

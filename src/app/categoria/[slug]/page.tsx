@@ -151,8 +151,8 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
         const sub = Array.isArray(s.subcategory) ? s.subcategory[0] : s.subcategory
         return sub?.name?.toLowerCase().includes(ql)
       }) ||
-      c.description?.toLowerCase().includes(ql) ||
       (c.plan === 'paid' && (
+        c.description?.toLowerCase().includes(ql) ||
         c.address?.toLowerCase().includes(ql) ||
         c.tags?.some((t: string) => t.toLowerCase().includes(ql))
       ))

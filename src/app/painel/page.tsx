@@ -678,9 +678,9 @@ export default function PainelPage() {
         .empty{text-align:center;padding:48px 20px;color:#AAA;}
         .empty div:first-child{font-size:40px;margin-bottom:12px;}
 
-        .bottom-nav{display:flex;position:fixed;bottom:0;left:0;right:0;background:#FAFAF8;border-top:0.5px solid #E0DDD8;z-index:50;padding:5px;gap:4px;overflow-x:auto;scrollbar-width:none;}
+        .bottom-nav{display:none;}
+        @media(max-width:767px){.bottom-nav{display:flex;background:#FAFAF8;border-bottom:0.5px solid #E0DDD8;padding:5px;gap:4px;overflow-x:auto;scrollbar-width:none;position:sticky;top:0;z-index:40;}}
         .bottom-nav::-webkit-scrollbar{display:none;}
-        @media(min-width:768px){.bottom-nav{display:none;}}
         .nav-item{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:7px 10px;border-radius:9px;position:relative;min-width:56px;}
         .nav-item.on{background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.08);}
         .nav-ico{font-size:18px;line-height:1;}
@@ -1140,6 +1140,16 @@ export default function PainelPage() {
         </aside>
 
         {/* MAIN — área direita */}
+      {/* BOTTOM NAV */}
+      <div className="bottom-nav">
+        {navItems.map(n=>(
+          <div key={n.id} className={`nav-item ${tab===n.id?'on':''}`} onClick={()=>setTab(n.id as any)}>
+            {n.badge > 0 && <span className="nav-bdg">{n.badge}</span>}
+            <div className="nav-ico">{n.ico}</div>
+            <div className="nav-lbl">{n.lbl}</div>
+          </div>
+        ))}
+      </div>
         <main className="painel-main">
           <div className="mobile-hdr-new">
             <div className="mhdr-logo">TRINDADE <span>ONLINE</span></div>
@@ -2084,16 +2094,6 @@ export default function PainelPage() {
         </main>
       </div>
 
-      {/* BOTTOM NAV */}
-      <div className="bottom-nav">
-        {navItems.map(n=>(
-          <div key={n.id} className={`nav-item ${tab===n.id?'on':''}`} onClick={()=>setTab(n.id as any)}>
-            {n.badge > 0 && <span className="nav-bdg">{n.badge}</span>}
-            <div className="nav-ico">{n.ico}</div>
-            <div className="nav-lbl">{n.lbl}</div>
-          </div>
-        ))}
-      </div>
     </>
   )
 }

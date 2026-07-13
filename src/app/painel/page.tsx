@@ -36,6 +36,10 @@ const daysLeft = (s: string) => Math.max(0, Math.ceil((new Date(s).getTime() - D
 export default function PainelPage() {
   const [tab, setTab]               = useState<'painel'|'destaques'|'banners'|'avaliacoes'|'perfil'|'plano'|'cupons'|'promocoes'>('painel')
   const [myCoupons, setMyCoupons]   = useState<any[]>([])
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search).get('tab')
+    if (p) setTab(p as any)
+  }, [])
   const [couponTab, setCouponTab]   = useState<'ativos'|'expirados'|'desativados'>('ativos')
   const [myPromos, setMyPromos]       = useState<any[]>([])
   const [promoForm, setPromoForm]     = useState({title:'',starts_at:'',starts_time:'00:00',expires_at:'',expires_time:'23:59',image_url:''})

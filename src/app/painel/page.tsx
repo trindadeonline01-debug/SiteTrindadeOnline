@@ -1532,6 +1532,13 @@ export default function PainelPage() {
                           placeholder={editTags.length === 0 ? "ex: pizza, delivery, hambúrguer..." : ""}
                           style={{border:'none',background:'transparent',outline:'none',fontSize:13,fontFamily:"'Inter',sans-serif",minWidth:120,flex:1}}
                         />
+                        {tagInput.trim() && (
+                          <button onClick={()=>{
+                            const tag = tagInput.trim().toLowerCase().replace(/[^a-z0-9àáâãéêíóôõúç ]/g, '')
+                            if (tag && !editTags.includes(tag)) setEditTags(prev => [...prev, tag])
+                            setTagInput('')
+                          }} style={{background:'#C9951A',border:'none',borderRadius:6,color:'#fff',fontSize:12,fontWeight:700,padding:'3px 8px',cursor:'pointer',flexShrink:0}}>+</button>
+                        )}
                       </div>
                       <div style={{fontSize:11,color:'#AAA',marginTop:4}}>{editTags.length} tags · {company?.plan === 'paid' ? '✓ Aparece nas buscas' : '⚠ Ative o plano pago para aparecer nas buscas'}</div>
                     </div>

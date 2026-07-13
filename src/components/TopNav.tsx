@@ -56,9 +56,10 @@ export default function TopNav() {
             <a className={`top-nav-link ${pathname==='/cupons'?'active':''}`} href="/cupons" style={{position:'relative'}}>
               🎟️ Cupons<span className="top-nav-dot"/>
             </a>
-            <a className={`top-nav-link ${pathname==='/feed'?'active':''}`} href="/feed">📰 Feed</a>
+            <a className={`top-nav-link ${pathname==='/promocoes'?'active':''}`} href="/promocoes">🏷️ Promoções</a>
             {userType === 'user' && <a className={`top-nav-link ${pathname==='/favoritos'?'active':''}`} href="/favoritos">❤️ Favoritos</a>}
             {userType === 'company' && <a className={`top-nav-link ${pathname==='/painel'?'active':''}`} href="/painel">📊 Meu Painel</a>}
+            {userType === 'company' && <a className={`top-nav-link ${pathname.includes('tab=plano')?'active':''}`} href="/painel?tab=plano">💳 Planos</a>}
             {userType === 'admin' && <a className="top-nav-link" href="/admin">⚙️ Admin</a>}
             <a className={`top-nav-link ${pathname==='/perfil'?'active':''}`} href="/perfil">👤 Perfil</a>
           </>}

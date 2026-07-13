@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import Script from 'next/script'
 import BottomNav from '@/components/BottomNav'
 import TopNav from '@/components/TopNav'
 
@@ -29,7 +30,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR">
-      <body><TopNav />{children}<BottomNav /></body>
+      <body><TopNav />{children}<BottomNav /><Script src='https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js' strategy='afterInteractive'/></body>
     </html>
   )
 }

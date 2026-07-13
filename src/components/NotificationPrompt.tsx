@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 
 async function registerPushToken() {
   try {
+    if (window.location.hostname === 'trindadeonline.com.br') { window.location.href = window.location.href.replace('trindadeonline.com.br', 'www.trindadeonline.com.br'); return false; }
     if (!('Notification' in window) || !('serviceWorker' in navigator)) return false
     const permission = await Notification.requestPermission()
     if (permission !== 'granted') return false

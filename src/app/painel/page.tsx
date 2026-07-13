@@ -512,15 +512,13 @@ export default function PainelPage() {
   const pendingReplies = reviews.filter(r=>!r.response).length
 
   const tabTitle: Record<string,string> = {
-    painel:'Dashboard', destaques:'Destaques', banners:'Banners', avaliacoes:'Avaliações', perfil:'Editar Perfil', plano:'Meu Plano', cupons:'Cupons Relâmpago', promocoes:'Promoções da Semana'
+    painel:'Dashboard', destaques:'Destaques', banners:'Banners', avaliacoes:'Avaliações', perfil:'Minha Empresa', plano:'Meu Plano', cupons:'Cupons Relâmpago', promocoes:'Promoções da Semana'
   }
 
   const navItems = [
     { id:'painel',     ico:'📊', lbl:'Dashboard',  badge:0 },
-    { id:'destaques',  ico:'⭐', lbl:'Destaques',  badge:activeHighlights.length },
-    { id:'banners',    ico:'📢', lbl:'Banners',    badge:0 },
     { id:'avaliacoes', ico:'💬', lbl:'Avaliações', badge:pendingReplies },
-    { id:'perfil',     ico:'✏️', lbl:'Perfil',     badge:0 },
+    { id:'perfil',     ico:'✏️', lbl:'Empresa',    badge:0 },
     { id:'plano',      ico:'💳', lbl:'Plano',      badge:0 },
     { id:'cupons',     ico:'🎟️', lbl:'Cupons',     badge:0 },
     { id:'promocoes',  ico:'🏷️', lbl:'Promoções',  badge:0 },

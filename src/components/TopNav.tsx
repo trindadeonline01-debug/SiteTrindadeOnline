@@ -17,7 +17,7 @@ export default function TopNav() {
     })
   }, [])
 
-  const hideOn = ['/login', '/cadastro', '/admin', '/painel', '/empresa/cadastrar']
+  const hideOn = ['/login', '/cadastro', '/admin', '/empresa/cadastrar']
   if (hideOn.some(p => pathname.startsWith(p))) return null
 
 

@@ -158,7 +158,7 @@ export default function CuponsPage() {
         .sec-label{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.8px;font-weight:500;margin-bottom:10px;}
         .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
         @media(max-width:640px){.grid{grid-template-columns:1fr;}}
-        .coupon{background:#fff;border-radius:12px;border:0.5px solid #E0DDD8;display:flex;overflow:hidden;height:80px;}
+        .coupon{background:#fff;border-radius:12px;border:0.5px solid #E0DDD8;display:flex;overflow:hidden;height:80px;}@media(max-width:640px){.coupon{height:96px;}}
         .coupon-left{width:68px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:30px;background:#FEF3E2;}
         .coupon-body{flex:1;padding:10px 12px;border-left:1px dashed #E0DDD8;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px;overflow:hidden;}
         .coupon-empresa{font-size:10px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}

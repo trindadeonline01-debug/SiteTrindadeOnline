@@ -1,6 +1,40 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { supabase } from '@/lib/supabase'
+
+async function registerPushToken() {
+  try {
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) return
+    const permission = await Notification.requestPermission()
+    if (permission !== 'granted') return
+
+    const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js')
+    await navigator.serviceWorker.ready
+
+    const { getFirebaseMessaging, getToken, VAPID_KEY } = await import('@/lib/firebase')
+    const messaging = getFirebaseMessaging()
+    if (!messaging) return
+
+    const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg })
+    if (!token) return
+
+    const { data: { session } } = await supabase.auth.getSession()
+    const userId = session?.user?.id || null
+    const { data: profile } = userId
+      ? await supabase.from('profiles').select('user_type').eq('id', userId).single()
+      : { data: null }
+    const userType = profile?.user_type || 'user'
+
+    await fetch('/api/push/save-token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, user_id: userId, user_type: userType })
+    })
+  } catch (err) {
+    console.error('Push registration error:', err)
+  }
+}
 
 export default function CookieBanner() {
   const [visible, setVisible] = useState(false)
@@ -10,9 +44,12 @@ export default function CookieBanner() {
     if (!consent) setVisible(true)
   }, [])
 
-  function accept(type: 'all' | 'essential') {
+  async function accept(type: 'all' | 'essential') {
     localStorage.setItem('trindade_cookie_consent', type)
     setVisible(false)
+    if (type === 'all') {
+      await registerPushToken()
+    }
   }
 
   if (!visible) return null
@@ -33,10 +70,10 @@ export default function CookieBanner() {
             fontFamily:"'Bebas Neue',sans-serif",
             fontSize:15, color:'#fff', letterSpacing:1, marginBottom:5
           }}>
-            🍪 Cookies e Privacidade
+            🍪 Cookies e Notificações
           </div>
           <div style={{fontSize:12, color:'#AAA', lineHeight:1.7}}>
-            Usamos cookies essenciais para o funcionamento do site. Ao continuar navegando, você concorda com nossa{' '}
+            Usamos cookies essenciais e gostaríamos de enviar notificações sobre novidades do bairro. Ao aceitar todos, você também autoriza o recebimento de notificações. Veja nossa{' '}
             <Link href="/termos" style={{color:'#C9951A', fontWeight:700, textDecoration:'none'}}>
               Política de Privacidade
             </Link>{' '}
@@ -47,7 +84,6 @@ export default function CookieBanner() {
             , em conformidade com a LGPD.
           </div>
         </div>
-
         <div style={{display:'flex', gap:10, flexShrink:0, alignItems:'center'}}>
           <button
             onClick={() => accept('essential')}
@@ -82,7 +118,7 @@ export default function CookieBanner() {
               boxShadow:'0 2px 10px rgba(201,149,26,.5)',
               lineHeight:1
             }}>
-            ✓ Aceitar todos
+            ✓ Aceitar tudo
           </button>
         </div>
       </div>

@@ -1,4 +1,5 @@
 'use client'
+import Footer from '@/components/Footer'
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -350,6 +351,7 @@ export default function PerfilPage() {
         </div>
 
         <div className="footer"><a href="/">← Voltar ao Trindade Online</a></div>
+      <Footer/>
       </div>
     </>
   )

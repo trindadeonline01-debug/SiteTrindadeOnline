@@ -1,4 +1,5 @@
 'use client'
+import Footer from '@/components/Footer'
 
 import { compressImage } from '@/lib/compressImage'
 import { useState, useEffect, useRef } from 'react'
@@ -1136,7 +1137,7 @@ export default function PainelPage() {
           </nav>
           <div className="sb-footer">
             <div className="sb-actions">
-              <a href="/" className="sb-btn sb-btn-gold">🌐 Ver site</a>
+
               <a href="/sair" className="sb-btn sb-btn-gray">🚪 Sair</a>
             </div>
           </div>
@@ -2097,6 +2098,7 @@ export default function PainelPage() {
         </main>
       </div>
 
+      <Footer/>
     </>
   )
 }

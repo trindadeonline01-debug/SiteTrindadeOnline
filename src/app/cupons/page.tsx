@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import Footer from '@/components/Footer'
 import { supabase } from '@/lib/supabase'
 
 type Coupon = {
@@ -182,6 +183,7 @@ export default function CuponsPage() {
           </div>
         </div>
       )}
+      <Footer/>
     </>
   )
 }

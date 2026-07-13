@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import WAButton from '@/components/WAButton'
 import NotificationPrompt from '@/components/NotificationPrompt'
+import OneSignalInit from '@/components/OneSignalInit'
 import CookieBanner from '@/components/CookieBanner'
 
 interface Company {
@@ -862,6 +863,7 @@ export default function HomePage() {
       {user && userType !== 'admin' && <div style={{height:64}}/>}
       <WAButton/>
       <NotificationPrompt/>
+      <OneSignalInit/>
     </>
   )
 }

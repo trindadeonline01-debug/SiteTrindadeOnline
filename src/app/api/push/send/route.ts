@@ -1,64 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+const ONESIGNAL_APP_ID = process.env.ONESIGNAL_APP_ID!
+const ONESIGNAL_REST_API_KEY = process.env.ONESIGNAL_REST_API_KEY!
 
 export async function POST(req: NextRequest) {
   try {
     const { title, body, target } = await req.json()
     if (!title || !body) return NextResponse.json({ error: 'title e body obrigatórios' }, { status: 400 })
 
-    let query = supabase.from('push_tokens').select('token')
-    if (target === 'user') query = query.eq('user_type', 'user')
-    else if (target === 'company') query = query.eq('user_type', 'company')
-
-    const { data: tokens } = await query
-    if (!tokens || tokens.length === 0) return NextResponse.json({ sent: 0 })
-
-    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT!)
-    const { GoogleAuth } = await import('google-auth-library')
-    const auth = new GoogleAuth({
-      credentials: serviceAccount,
-      scopes: ['https://www.googleapis.com/auth/firebase.messaging']
-    })
-    const accessToken = await auth.getAccessToken()
-
-    let sent = 0
-    for (const { token } of tokens) {
-      try {
-        const res = await fetch(
-          `https://fcm.googleapis.com/v1/projects/${serviceAccount.project_id}/messages:send`,
-          {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              message: {
-                token,
-                notification: { title, body },
-                webpush: {
-                  notification: { icon: '/icon-192.png', badge: '/icon-192.png' }
-                }
-              }
-            })
-          }
-        )
-        if (res.ok) sent++
-        else {
-          const err = await res.json()
-          if (err.error?.details?.some((d: any) => d.errorCode === 'UNREGISTERED')) {
-            await supabase.from('push_tokens').delete().eq('token', token)
-          }
-        }
-      } catch {}
+    let filters: any[] = []
+    if (target === 'user') {
+      filters = [{ field: 'tag', key: 'user_type', relation: '=', value: 'user' }]
+    } else if (target === 'company') {
+      filters = [{ field: 'tag', key: 'user_type', relation: '=', value: 'company' }]
     }
 
-    return NextResponse.json({ sent, total: tokens.length })
+    const payload: any = {
+      app_id: ONESIGNAL_APP_ID,
+      headings: { en: title, pt: title },
+      contents: { en: body, pt: body },
+      chrome_web_icon: '/icon-192.png',
+    }
+
+    if (filters.length > 0) {
+      payload.filters = filters
+    } else {
+      payload.included_segments = ['All']
+    }
+
+    const res = await fetch('https://onesignal.com/api/v1/notifications', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Key ${ONESIGNAL_REST_API_KEY}`
+      },
+      body: JSON.stringify(payload)
+    })
+
+    const data = await res.json()
+    if (data.errors) return NextResponse.json({ error: data.errors }, { status: 500 })
+
+    return NextResponse.json({ sent: data.recipients || 0, total: data.recipients || 0, id: data.id })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }

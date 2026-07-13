@@ -1,34 +1,5 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
-
-async function registerPushToken() {
-  try {
-    if (window.location.hostname === 'trindadeonline.com.br') { window.location.href = window.location.href.replace('trindadeonline.com.br', 'www.trindadeonline.com.br'); return false; }
-    if (!('Notification' in window) || !('serviceWorker' in navigator)) return false
-    const permission = await Notification.requestPermission()
-    if (permission !== 'granted') return false
-    const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js')
-    await navigator.serviceWorker.ready
-    const { getFirebaseMessaging, getToken, VAPID_KEY } = await import('@/lib/firebase')
-    const messaging = getFirebaseMessaging()
-    if (!messaging) return false
-    const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg })
-    if (!token) return false
-    const { data: { session } } = await supabase.auth.getSession()
-    const userId = session?.user?.id || null
-    const { data: profile } = userId
-      ? await supabase.from('profiles').select('user_type').eq('id', userId).single()
-      : { data: null }
-    const userType = profile?.user_type || 'user'
-    await fetch('/api/push/save-token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token, user_id: userId, user_type: userType })
-    })
-    return true
-  } catch { return false }
-}
 
 export default function NotificationPrompt() {
   const [visible, setVisible] = useState(false)
@@ -36,8 +7,7 @@ export default function NotificationPrompt() {
   useEffect(() => {
     const consent = localStorage.getItem('trindade_cookie_consent')
     const notifPrompt = localStorage.getItem('trindade_notif_prompt')
-    const notifGranted = localStorage.getItem('trindade_notif_granted')
-    if (consent && !notifPrompt && !notifGranted && 'Notification' in window && Notification.permission === 'default') {
+    if (consent && !notifPrompt) {
       setTimeout(() => setVisible(true), 3000)
     }
   }, [])
@@ -45,8 +15,14 @@ export default function NotificationPrompt() {
   async function ativar() {
     setVisible(false)
     localStorage.setItem('trindade_notif_prompt', '1')
-    const ok = await registerPushToken()
-    if (ok) localStorage.setItem('trindade_notif_granted', '1')
+    try {
+      if (window.OneSignal) {
+        await window.OneSignal.showNativePrompt()
+        await window.OneSignal.sendTag('user_type', localStorage.getItem('trindade_user_type') || 'user')
+      }
+    } catch (err) {
+      console.error('OneSignal error:', err)
+    }
   }
 
   function dispensar() {

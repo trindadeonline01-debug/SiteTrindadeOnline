@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
+import WAButton from '@/components/WAButton'
 import CookieBanner from '@/components/CookieBanner'
 
 interface Company {
@@ -858,6 +859,7 @@ export default function HomePage() {
         </nav>
       )}
       {user && userType !== 'admin' && <div style={{height:64}}/>}
+      <WAButton/>
     </>
   )
 }

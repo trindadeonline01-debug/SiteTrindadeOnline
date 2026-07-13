@@ -20,7 +20,7 @@ export default function BottomNav() {
     })
   }, [])
 
-  const hideOn = ['/login', '/cadastro', '/empresa/cadastrar']
+  const hideOn = ['/login', '/cadastro', '/empresa/cadastrar', '/painel', '/admin']
   if (!show || !loaded || !userType || hideOn.some(p => pathname.startsWith(p))) return null
 
   const items = [

@@ -3,6 +3,7 @@
 import { compressImage } from '@/lib/compressImage'
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
+import NotificacoesTab from '@/components/admin/NotificacoesTab'
 import PhotoManager from '@/components/PhotoManager'
 import dynamic from 'next/dynamic'
 const EmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false })
@@ -42,7 +43,7 @@ const statusColor = (s: string) => s === 'active' ? '#0F8050' : s === 'pending' 
 const statusLabel = (s: string) => s === 'active' ? 'Ativa' : s === 'pending' ? 'Pendente' : 'Suspensa'
 
 export default function AdminPage() {
-  const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'denuncias'|'usuarios'|'buscas'|'atividade'|'banners'|'pedidos-banner'|'configuracoes'|'recursos'|'planos'|'aparencia'|'subcategorias'|'vendas'|'sugestoes'>('dashboard')
+  const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'denuncias'|'usuarios'|'buscas'|'atividade'|'banners'|'pedidos-banner'|'configuracoes'|'recursos'|'planos'|'aparencia'|'subcategorias'|'vendas'|'sugestoes'|'notificacoes'>('dashboard')
   const [stats, setStats]           = useState<Stats|null>(null)
   const [companies, setCompanies]   = useState<Company[]>([])
   const [users, setUsers]           = useState<Profile[]>([])
@@ -1274,6 +1275,7 @@ export default function AdminPage() {
     { id: 'aparencia', icon: '🎨', label: 'Aparência' },
     { id: 'subcategorias', icon: '🏷️', label: 'Subcategorias' },
             { id: 'sugestoes', icon: '💡', label: 'Sugestões' },
+            { id: 'notificacoes', icon: '🔔', label: 'Notificações' },
           ].map(n => (
             <div
               key={n.id}
@@ -2603,6 +2605,9 @@ export default function AdminPage() {
                 </div>
               )}
             </div>
+          )}
+          {tab === 'notificacoes' && (
+            <NotificacoesTab />
           )}
 
           </div>

@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const response = NextResponse.json({ ok: true })
     if ((body.type === 'payment' || body.action === 'payment.updated') && body.data?.id) {
-      processPayment(String(body.data.id))
+      await processPayment(String(body.data.id))
     }
     return response
   } catch {

@@ -1527,6 +1527,11 @@ export default function PainelPage() {
                           onKeyDown={e => {
                             if ((e.key === 'Enter' || e.key === ',') && tagInput.trim()) {
                               e.preventDefault()
+                            }
+                          }}
+                          onKeyUp={e => {
+                            if ((e.key === 'Enter' || e.key === ',') && tagInput.trim()) {
+                              e.preventDefault()
                               const tag = tagInput.trim().toLowerCase().replace(/[^a-z0-9àáâãéêíóôõúç ]/g, '')
                               if (tag && !editTags.includes(tag) && true) {
                                 setEditTags(prev => [...prev, tag])

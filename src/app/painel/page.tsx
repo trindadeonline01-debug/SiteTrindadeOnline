@@ -678,13 +678,15 @@ export default function PainelPage() {
         .empty{text-align:center;padding:48px 20px;color:#AAA;}
         .empty div:first-child{font-size:40px;margin-bottom:12px;}
 
-        .bottom-nav{display:flex;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #F0EDE8;z-index:50;padding:8px 0 10px;}
+        .bottom-nav{display:flex;position:fixed;bottom:0;left:0;right:0;background:#FAFAF8;border-top:0.5px solid #E0DDD8;z-index:50;padding:5px;gap:4px;overflow-x:auto;scrollbar-width:none;}
+        .bottom-nav::-webkit-scrollbar{display:none;}
         @media(min-width:768px){.bottom-nav{display:none;}}
-        .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 0;position:relative;}
-        .nav-ico{font-size:20px;line-height:1;}
-        .nav-lbl{font-size:9px;font-weight:500;color:#BBB;}
+        .nav-item{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:7px 10px;border-radius:9px;position:relative;min-width:56px;}
+        .nav-item.on{background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.08);}
+        .nav-ico{font-size:18px;line-height:1;}
+        .nav-lbl{font-size:9px;font-weight:500;color:#888;white-space:nowrap;}
         .nav-item.on .nav-lbl{color:#C9951A;font-weight:700;}
-        .nav-bdg{position:absolute;top:0;right:calc(50% - 18px);background:#E24B4A;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;}
+        .nav-bdg{position:absolute;top:2px;right:6px;background:#E24B4A;color:#fff;font-size:8px;font-weight:700;padding:1px 4px;border-radius:8px;}
 
         .toast{position:fixed;bottom:24px;right:24px;background:#111;color:#fff;padding:12px 20px;border-radius:12px;font-size:13px;font-weight:500;z-index:999;animation:fadein .2s ease;}
         @media(max-width:767px){.toast{bottom:80px;left:50%;right:auto;transform:translateX(-50%);white-space:nowrap;}}

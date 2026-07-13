@@ -15,7 +15,6 @@ type RankingItem = {
 
 const RANKING_CATS = ['Comércios','Serviços','Gastronomia']
 const CAT_EMOJI: Record<string,string> = { Comércios:'🏪', Serviços:'🔧', Gastronomia:'🍕' }
-const MEDAL = ['🥇','🥈','🥉']
 
 export default function CuponsPage() {
   const [coupons, setCoupons] = useState<Coupon[]>([])
@@ -110,7 +109,33 @@ export default function CuponsPage() {
   const EMOJIS: Record<string,string> = { Gastronomia:'🍕', Serviços:'🔧', Comércios:'🏪', Igrejas:'⛪', Imóveis:'🏠', Empregos:'💼', Desapega:'🏷️' }
   const filtered = filter === 'todos' ? coupons : coupons.filter(c => c.company?.category?.name === filter)
   const categories = [...new Set(coupons.map(c => c.company?.category?.name).filter(Boolean))]
-  const rankingFiltrado = ranking.filter(r => r.category_name === rankingCat).slice(0, 3)
+  const rankingPorCat = (cat: string) => ranking.filter(r => r.category_name === cat).slice(0, 3)
+
+  function RankingCol({ cat }: { cat: string }) {
+    const items = rankingPorCat(cat)
+    return (
+      <div className="rk-col">
+        <div className="rk-col-hdr">
+          <span>{CAT_EMOJI[cat]}</span>
+          <span className="rk-col-title">{cat.toUpperCase()}</span>
+        </div>
+        <div className="rk-col-body">
+          {items.length === 0 ? (
+            <div className="rk-empty">Nenhum confirmado ainda<br/>este mês 🎯</div>
+          ) : items.map((r, i) => (
+            <div key={r.company_id} className={`rk-item rk-item-${i+1}`}>
+              <div className={`rk-pos rk-pos-${i+1}`}>{i+1}</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div className={`rk-name rk-name-${i+1}`}>{r.company_name}</div>
+                <div className="rk-count">{r.total} confirmado{r.total!==1?'s':''}</div>
+              </div>
+              {i === 0 && <div className="rk-badge">🎬 Reel</div>}
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <>
@@ -144,40 +169,54 @@ export default function CuponsPage() {
         .coupon-valor{font-size:17px;font-weight:600;color:#C9951A;white-space:nowrap;}
         .coupon-btn{padding:5px 12px;border:none;border-radius:8px;font-size:11px;font-weight:500;cursor:pointer;white-space:nowrap;}
         .empty{text-align:center;padding:40px 20px;color:#888;font-size:14px;}
-        .ranking-wrap{padding:16px 20px 0;max-width:1200px;margin:0 auto;}
-        .ranking-box{background:#111;border-radius:14px;overflow:hidden;margin-bottom:20px;}
-        .ranking-hdr{padding:16px 18px 12px;border-bottom:1px solid #1A1A1A;display:flex;align-items:center;justify-content:space-between;gap:12px;}
-        .ranking-title{font-family:'Bebas Neue',sans-serif;font-size:18px;color:#C9951A;letter-spacing:2px;}
-        .ranking-sub{font-size:11px;color:#555;margin-top:2px;}
-        .ranking-premio{background:rgba(201,149,26,0.15);border:1px solid rgba(201,149,26,0.3);border-radius:8px;padding:6px 12px;text-align:center;flex-shrink:0;}
-        .ranking-premio-label{font-size:9px;color:#C9951A;font-weight:700;letter-spacing:1px;}
-        .ranking-premio-val{font-size:10px;color:#fff;font-weight:600;}
-        .ranking-premio-sub{font-size:9px;color:#555;}
-        .ranking-tabs{display:flex;border-bottom:1px solid #1A1A1A;}
-        .ranking-tab{flex:1;padding:10px 4px;text-align:center;font-size:12px;font-weight:600;color:#555;cursor:pointer;border:none;background:transparent;border-bottom:2px solid transparent;transition:all .15s;font-family:'Inter',sans-serif;}
-        .ranking-tab.on{color:#C9951A;border-bottom-color:#C9951A;}
-        @media(max-width:640px){.ranking-tab{font-size:11px;padding:9px 2px;}}
-        .ranking-list{padding:12px 16px;display:flex;flex-direction:column;gap:8px;}
-        .ranking-item{display:flex;align-items:center;gap:12px;border-radius:10px;padding:10px 14px;}
-        .ranking-item.pos1{background:#1A1A1A;border:1px solid rgba(201,149,26,0.3);}
-        .ranking-item.pos2{background:#161616;border:1px solid #222;}
-        .ranking-item.pos3{background:#161616;border:1px solid #222;}
-        .ranking-pos{font-family:'Bebas Neue',sans-serif;font-size:26px;width:24px;text-align:center;flex-shrink:0;}
-        .ranking-pos.p1{color:#C9951A;}
-        .ranking-pos.p2{color:#888;}
-        .ranking-pos.p3{color:#7a4500;}
-        .ranking-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
-        .ranking-avatar.p1{background:#C9951A;}
-        .ranking-avatar.p2{background:#333;}
-        .ranking-avatar.p3{background:#2a1800;}
-        .ranking-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-        .ranking-name.p1{color:#fff;}
-        .ranking-name.p2,.ranking-name.p3{color:#888;}
-        .ranking-count{font-size:11px;color:#555;margin-top:1px;}
-        .ranking-badge{background:rgba(201,149,26,0.2);border:1px solid rgba(201,149,26,0.4);border-radius:6px;padding:3px 8px;flex-shrink:0;}
-        .ranking-badge-txt{font-size:9px;color:#C9951A;font-weight:700;white-space:nowrap;}
-        .ranking-empty{text-align:center;padding:20px;font-size:12px;color:#444;}
-        .ranking-footer{text-align:center;font-size:10px;color:#333;padding-bottom:10px;}
+
+        /* RANKING */
+        .rk-wrap{padding:16px 20px 0;max-width:1200px;margin:0 auto;}
+        .rk-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;}
+        .rk-title{font-family:'Bebas Neue',sans-serif;font-size:18px;color:#111;letter-spacing:2px;}
+        .rk-sub{font-size:11px;color:#888;margin-top:2px;}
+        .rk-premio{background:#111;border:1px solid rgba(201,149,26,0.3);border-radius:8px;padding:6px 12px;text-align:center;flex-shrink:0;}
+        .rk-premio-label{font-size:9px;color:#C9951A;font-weight:700;letter-spacing:1px;}
+        .rk-premio-val{font-size:10px;color:#fff;font-weight:600;}
+        .rk-premio-sub{font-size:9px;color:#555;}
+
+        /* DESKTOP: 3 colunas */
+        .rk-desktop{display:none;}
+        @media(min-width:768px){.rk-desktop{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px;}}
+        .rk-col{background:#111;border-radius:12px;overflow:hidden;}
+        .rk-col-hdr{padding:10px 12px;border-bottom:1px solid #1A1A1A;display:flex;align-items:center;gap:6px;}
+        .rk-col-title{font-family:'Bebas Neue',sans-serif;font-size:14px;color:#C9951A;letter-spacing:1px;}
+        .rk-col-body{padding:8px 10px;display:flex;flex-direction:column;gap:6px;}
+        .rk-item{display:flex;align-items:center;gap:8px;border-radius:8px;padding:8px 10px;}
+        .rk-item-1{background:#1A1A1A;border:1px solid rgba(201,149,26,0.3);}
+        .rk-item-2,.rk-item-3{background:#161616;border:1px solid #222;}
+        .rk-pos{font-family:'Bebas Neue',sans-serif;font-size:22px;width:18px;flex-shrink:0;}
+        .rk-pos-1{color:#C9951A;}
+        .rk-pos-2{color:#888;}
+        .rk-pos-3{color:#7a4500;}
+        .rk-name{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .rk-name-1{color:#fff;}
+        .rk-name-2,.rk-name-3{color:#888;}
+        .rk-count{font-size:9px;color:#555;margin-top:1px;}
+        .rk-badge{font-size:9px;background:rgba(201,149,26,0.2);border:1px solid rgba(201,149,26,0.4);border-radius:5px;padding:2px 6px;color:#C9951A;white-space:nowrap;flex-shrink:0;}
+        .rk-empty{text-align:center;padding:16px 8px;font-size:10px;color:#444;line-height:1.6;}
+        .rk-footer{text-align:center;font-size:10px;color:#333;padding:4px 0 10px;}
+
+        /* MOBILE: abas */
+        .rk-mobile{display:block;margin-bottom:20px;}
+        @media(min-width:768px){.rk-mobile{display:none;}}
+        .rk-mobile-box{background:#111;border-radius:14px;overflow:hidden;}
+        .rk-tabs{display:flex;border-bottom:1px solid #1A1A1A;}
+        .rk-tab{flex:1;padding:9px 4px;text-align:center;font-size:11px;font-weight:600;color:#555;cursor:pointer;border:none;background:transparent;border-bottom:2px solid transparent;font-family:'Inter',sans-serif;}
+        .rk-tab.on{color:#C9951A;border-bottom-color:#C9951A;}
+        .rk-mob-body{padding:10px 12px;display:flex;flex-direction:column;gap:6px;}
+        .rk-mob-item{display:flex;align-items:center;gap:10px;border-radius:10px;padding:10px 12px;}
+        .rk-mob-item-1{background:#1A1A1A;border:1px solid rgba(201,149,26,0.3);}
+        .rk-mob-item-2,.rk-mob-item-3{background:#161616;border:1px solid #222;}
+        .rk-mob-pos{font-family:'Bebas Neue',sans-serif;font-size:24px;width:22px;flex-shrink:0;}
+        .rk-mob-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .rk-mob-name-1{color:#fff;}
+        .rk-mob-name-2,.rk-mob-name-3{color:#888;}
       `}</style>
 
       <div className="hero"><div className="hero-inner">
@@ -191,46 +230,51 @@ export default function CuponsPage() {
         </div>
       </div></div>
 
-      {/* RANKING DO MÊS */}
-      <div className="ranking-wrap">
-        <div className="ranking-box">
-          <div className="ranking-hdr">
-            <div>
-              <div className="ranking-title">🏆 RANKING DO MÊS</div>
-              <div className="ranking-sub">Top 3 por categoria · {mesAtual()} · Critério: cupons confirmados</div>
-            </div>
-            <div className="ranking-premio">
-              <div className="ranking-premio-label">PRÊMIO</div>
-              <div className="ranking-premio-val">Reel no Instagram</div>
-              <div className="ranking-premio-sub">@trindade.online</div>
-            </div>
+      {/* RANKING */}
+      <div className="rk-wrap">
+        <div className="rk-header">
+          <div>
+            <div className="rk-title">🏆 RANKING DO MÊS</div>
+            <div className="rk-sub">{mesAtual()} · Cupons confirmados · Top 3 por categoria</div>
           </div>
-          <div className="ranking-tabs">
-            {RANKING_CATS.map(cat => (
-              <button key={cat} className={`ranking-tab ${rankingCat===cat?'on':''}`} onClick={()=>setRankingCat(cat)}>
-                {CAT_EMOJI[cat]} {cat}
-              </button>
-            ))}
+          <div className="rk-premio">
+            <div className="rk-premio-label">PRÊMIO 1º LUGAR</div>
+            <div className="rk-premio-val">Reel no Instagram</div>
+            <div className="rk-premio-sub">@trindade.online</div>
           </div>
-          <div className="ranking-list">
-            {rankingFiltrado.length === 0 ? (
-              <div className="ranking-empty">Nenhum cupom confirmado ainda nesta categoria este mês.<br/>Seja o primeiro! 🎯</div>
-            ) : rankingFiltrado.map((r, i) => (
-              <div key={r.company_id} className={`ranking-item pos${i+1}`}>
-                <div className={`ranking-pos p${i+1}`}>{i+1}</div>
-                <div className={`ranking-avatar p${i+1}`}>{CAT_EMOJI[r.category_name]||'🏪'}</div>
-                <div style={{flex:1,minWidth:0}}>
-                  <div className={`ranking-name p${i+1}`}>{r.company_name}</div>
-                  <div className="ranking-count">{r.total} cupom{r.total!==1?'s':''} confirmado{r.total!==1?'s':''}</div>
-                </div>
-                {i === 0 && (
-                  <div className="ranking-badge">
-                    <div className="ranking-badge-txt">🎬 Ganha Reel</div>
+        </div>
+
+        {/* DESKTOP — 3 colunas fixas */}
+        <div className="rk-desktop">
+          {RANKING_CATS.map(cat => <RankingCol key={cat} cat={cat} />)}
+        </div>
+        <div className="rk-footer" style={{display:'none'}} id="rk-footer-desktop">Reinicia em {proximoMes()}</div>
+
+        {/* MOBILE — abas */}
+        <div className="rk-mobile">
+          <div className="rk-mobile-box">
+            <div className="rk-tabs">
+              {RANKING_CATS.map(cat => (
+                <button key={cat} className={`rk-tab ${rankingCat===cat?'on':''}`} onClick={()=>setRankingCat(cat)}>
+                  {CAT_EMOJI[cat]} {cat}
+                </button>
+              ))}
+            </div>
+            <div className="rk-mob-body">
+              {rankingPorCat(rankingCat).length === 0 ? (
+                <div className="rk-empty">Nenhum confirmado ainda este mês 🎯</div>
+              ) : rankingPorCat(rankingCat).map((r, i) => (
+                <div key={r.company_id} className={`rk-mob-item rk-mob-item-${i+1}`}>
+                  <div className={`rk-mob-pos rk-pos-${i+1}`}>{i+1}</div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div className={`rk-mob-name rk-mob-name-${i+1}`}>{r.company_name}</div>
+                    <div className="rk-count">{r.total} confirmado{r.total!==1?'s':''}</div>
                   </div>
-                )}
-              </div>
-            ))}
-            <div className="ranking-footer">Reinicia em {proximoMes()}</div>
+                  {i === 0 && <div className="rk-badge">🎬 Reel</div>}
+                </div>
+              ))}
+              <div className="rk-footer">Reinicia em {proximoMes()}</div>
+            </div>
           </div>
         </div>
       </div>

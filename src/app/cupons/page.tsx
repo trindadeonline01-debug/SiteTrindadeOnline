@@ -71,7 +71,7 @@ export default function CuponsPage() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
-        body{font-family:'Inter',sans-serif;background:#F0EDE8;}
+        body{font-family:'Inter',sans-serif;background:#F0EDE8;min-height:100vh;}
         .hero{background:#111;}
         .hero-inner{max-width:1100px;margin:0 auto;padding:20px 20px 22px;}
         .hero-title{font-family:'Bebas Neue',sans-serif;font-size:28px;color:#fff;letter-spacing:2px;margin-bottom:4px;}

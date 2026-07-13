@@ -1314,6 +1314,7 @@ export default function AdminPage() {
               {tab === 'aparencia' && 'Aparência do Site'}
               {tab === 'subcategorias' && 'Subcategorias'}
               {tab === 'sugestoes' && 'Sugestões de Subcategorias'}
+              {tab === 'notificacoes' && 'Notificações Push'}
             </div>
             <div className="topbar-date">{new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}</div>
           </div>

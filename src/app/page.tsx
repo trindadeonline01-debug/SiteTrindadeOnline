@@ -276,8 +276,8 @@ export default function HomePage() {
         .btn-painel   { background: #111; color: #C9951A; border: none; border-radius: 10px; padding: 7px 12px; font-size: 12px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; text-decoration: none; display: block; }
         .btn-sair     { background: transparent; color: #666; border: 1px solid #333; border-radius: 10px; padding: 6px 10px; font-size: 11px; font-weight: 500; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; display: block; }
         .btn-entrar   { display: flex; align-items: center; gap: 5px; background: transparent; color: #C9951A; border: 1.5px solid #C9951A; border-radius: 10px; padding: 7px 12px; font-size: 12px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; text-decoration: none; }
-        .btn-txt { display: inline; }
-        @media(max-width:480px){ .btn-txt { display: none; } .nav-actions { flex-wrap: nowrap; } }
+        .btn-txt { display: inline; } .btn-plus { display: none; }
+        @media(max-width:480px){ .btn-txt { display: none; } .btn-plus { display: inline; } .nav-actions { flex-wrap: nowrap; } }
         .btn-cad      { background: #C9951A; color: #fff; border: none; border-radius: 10px; padding: 7px 12px; font-size: 12px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; text-decoration: none; display: block; }
         .btn-fav      { color: #555; font-size: 13px; text-decoration: none; display: block; }
         .btn-perfil   { color: #555; font-size: 13px; text-decoration: none; display: block; }
@@ -491,8 +491,8 @@ export default function HomePage() {
           ) : (
             <div className="nav-actions">
               <a className="btn-entrar" href="/login">Entrar</a>
-              <a className="btn-entrar" href="/cadastro" style={{borderColor:'#888',color:'#888'}}>+<span className="btn-txt"> Morador</span></a>
-              <a className="btn-cad" href="/empresa/cadastrar">+<span className="btn-txt"> Empresa</span></a>
+              <a className="btn-entrar" href="/cadastro" style={{borderColor:'#888',color:'#888'}}><span className="btn-txt">Cadastrar </span><span className="btn-plus">+</span> Morador</a>
+              <a className="btn-cad" href="/empresa/cadastrar"><span className="btn-txt">Cadastrar </span><span className="btn-plus">+</span> Empresa</a>
             </div>
           )}
         </div>

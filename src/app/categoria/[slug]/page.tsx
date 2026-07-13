@@ -213,8 +213,10 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
 
         @media(max-width: 767px) {
           .topbar-inner, .page { padding-left: 16px; padding-right: 16px; }
-          .search-bar-wrap { padding: 0 16px; }
+          .search-bar-wrap { padding: 0 12px; }
           .search-bar-inner { max-width: 100%; }
+          .search-bar { padding: 8px 12px; gap: 6px; }
+          .search-bar input { font-size: 13px; }
         }
 
         .sec-label { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: #AAA; letter-spacing: 1.5px; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
@@ -235,7 +237,7 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
 
         /* SUBCATEGORIAS */
         .subcat-wrap { background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 16px 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 24px; }
-        .subcat-pills { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px; margin-bottom: 20px; }
+        .subcat-pills { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 6px; margin-bottom: 20px; }
         .subcat-pill { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 10px 6px; border-radius: 12px; border: 0.5px solid #E0DDD8; background: #fff; cursor: pointer; text-align: center; transition: all .15s; min-height: 70px; }
         .subcat-pill:hover { border-color: #C9951A; background: #FEF3E2; }
         .subcat-pill.on { background: #FEF3E2; border-color: #F5C77A; font-weight: 600; }

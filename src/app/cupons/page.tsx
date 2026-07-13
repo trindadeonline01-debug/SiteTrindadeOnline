@@ -110,7 +110,7 @@ export default function CuponsPage() {
           ))}
         </div>
       </div></div>
-      <div className="body">
+      <div className="body" style={{minHeight:"calc(100vh - 300px)"}}>
         {!userId && (
           <div className="not-logged">
             <span style={{fontSize:18}}>🔒</span>

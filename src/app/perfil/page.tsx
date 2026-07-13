@@ -351,8 +351,8 @@ export default function PerfilPage() {
         </div>
 
         <div className="footer"><a href="/">← Voltar ao Trindade Online</a></div>
-      <Footer/>
       </div>
+      <Footer/>
     </>
   )
 }

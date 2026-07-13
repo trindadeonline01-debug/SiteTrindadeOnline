@@ -53,7 +53,7 @@ export default function BottomNav() {
           )
         })}
       </nav>
-      <div style={{height:64}}/>
+      <div style={{height:64,background:'transparent'}}/>
     </>
   )
 }

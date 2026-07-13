@@ -12,7 +12,7 @@ const firebaseConfig = {
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
 
-export const VAPID_KEY = 'BGBRsHo51oiyxOlSeiPqernB1Py0kKLNADtkDcc2vuIHSFKLxpah4k81Fwfe_lCpFNshVvATEvCLxNUzS4_uCK8'
+export const VAPID_KEY = 'P7GXNTWLKJ9WW-yiFm-VCdMn2afjY1WYB2PFMDAaf1Q'
 
 export function getFirebaseMessaging() {
   if (typeof window === 'undefined') return null

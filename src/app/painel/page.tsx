@@ -1156,15 +1156,7 @@ export default function PainelPage() {
               </div>
             ))}
           </div>
-          <div className="mobile-actions">
-            <a href="/" className="m-action-btn m-action-gold">🌐 Ver site</a>
-            {companies.length > 1 && (
-              <select value={company?.id} onChange={e => setCompany(companies.find(c => c.id === e.target.value) || null)} className="m-action-select">
-                {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            )}
-            <a href="/sair" className="m-action-btn m-action-gray">🚪 Sair</a>
-          </div>
+
 
           <div className="topbar">
             <div className="topbar-title">{tabTitle[tab]}</div>
@@ -1187,8 +1179,6 @@ export default function PainelPage() {
               </div>
               <div className="section-label">AÇÕES RÁPIDAS</div>
               <div className="actions-row">
-                <button className="action-btn" style={{background:'#C9951A',color:'#fff'}} onClick={()=>setTab('perfil')}>✏️ Editar perfil</button>
-                <button className="action-btn" style={{background:'#185FA5',color:'#fff'}} onClick={()=>setTab('plano')}>⭐ Criar destaque</button>
                 {pendingReplies > 0 && <button className="action-btn" style={{background:'#FEF3E2',color:'#854F0B',border:'1px solid #F5C77A'}} onClick={()=>setTab('avaliacoes')}>💬 {pendingReplies} sem resposta</button>}
               </div>
               {interesses.length > 0 && (

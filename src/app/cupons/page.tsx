@@ -9,6 +9,14 @@ type Coupon = {
   company: { id: string; name: string; phone?: string; category?: { name: string; emoji: string } }
 }
 
+type RankingItem = {
+  company_id: string; company_name: string; category_name: string; total: number
+}
+
+const RANKING_CATS = ['Comércios','Serviços','Gastronomia']
+const CAT_EMOJI: Record<string,string> = { Comércios:'🏪', Serviços:'🔧', Gastronomia:'🍕' }
+const MEDAL = ['🥇','🥈','🥉']
+
 export default function CuponsPage() {
   const [coupons, setCoupons] = useState<Coupon[]>([])
   const [loading, setLoading] = useState(true)
@@ -17,12 +25,15 @@ export default function CuponsPage() {
   const [redeeming, setRedeeming] = useState<string|null>(null)
   const [redeemModal, setRedeemModal] = useState<{code:string,coupon:Coupon}|null>(null)
   const [myRedemptions, setMyRedemptions] = useState<string[]>([])
+  const [ranking, setRanking] = useState<RankingItem[]>([])
+  const [rankingCat, setRankingCat] = useState('Comércios')
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) { setUserId(session.user.id); loadMyRedemptions(session.user.id) }
     })
     loadCoupons()
+    loadRanking()
   }, [])
 
   async function loadCoupons() {
@@ -31,6 +42,30 @@ export default function CuponsPage() {
       .eq('active', true).gt('expires_at', new Date().toISOString())
       .order('created_at', { ascending: false })
     setCoupons(data || []); setLoading(false)
+  }
+
+  async function loadRanking() {
+    const now = new Date()
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString()
+    const { data } = await supabase
+      .from('coupon_redemptions')
+      .select('coupon:coupons(company:companies(id,name,category:categories(name)))')
+      .eq('status', 'used')
+      .gte('used_at', firstDay)
+      .lte('used_at', lastDay)
+    if (!data) return
+    const counts: Record<string, RankingItem> = {}
+    data.forEach((r: any) => {
+      const co = r.coupon?.company
+      if (!co) return
+      const catName = co.category?.name || ''
+      if (!RANKING_CATS.includes(catName)) return
+      const key = co.id
+      if (!counts[key]) counts[key] = { company_id: co.id, company_name: co.name, category_name: catName, total: 0 }
+      counts[key].total++
+    })
+    setRanking(Object.values(counts).sort((a,b) => b.total - a.total))
   }
 
   async function loadMyRedemptions(uid: string) {
@@ -63,9 +98,19 @@ export default function CuponsPage() {
     return c.discount_type === 'fixed' ? `R$ ${c.discount_value.toFixed(2).replace('.',',')}` : `${c.discount_value}%`
   }
 
+  function mesAtual() {
+    return new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+  }
+
+  function proximoMes() {
+    const d = new Date()
+    return new Date(d.getFullYear(), d.getMonth() + 1, 1).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })
+  }
+
   const EMOJIS: Record<string,string> = { Gastronomia:'🍕', Serviços:'🔧', Comércios:'🏪', Igrejas:'⛪', Imóveis:'🏠', Empregos:'💼', Desapega:'🏷️' }
   const filtered = filter === 'todos' ? coupons : coupons.filter(c => c.company?.category?.name === filter)
   const categories = [...new Set(coupons.map(c => c.company?.category?.name).filter(Boolean))]
+  const rankingFiltrado = ranking.filter(r => r.category_name === rankingCat).slice(0, 3)
 
   return (
     <>
@@ -99,7 +144,42 @@ export default function CuponsPage() {
         .coupon-valor{font-size:17px;font-weight:600;color:#C9951A;white-space:nowrap;}
         .coupon-btn{padding:5px 12px;border:none;border-radius:8px;font-size:11px;font-weight:500;cursor:pointer;white-space:nowrap;}
         .empty{text-align:center;padding:40px 20px;color:#888;font-size:14px;}
+        .ranking-wrap{padding:16px 20px 0;max-width:1200px;margin:0 auto;}
+        .ranking-box{background:#111;border-radius:14px;overflow:hidden;margin-bottom:20px;}
+        .ranking-hdr{padding:16px 18px 12px;border-bottom:1px solid #1A1A1A;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+        .ranking-title{font-family:'Bebas Neue',sans-serif;font-size:18px;color:#C9951A;letter-spacing:2px;}
+        .ranking-sub{font-size:11px;color:#555;margin-top:2px;}
+        .ranking-premio{background:rgba(201,149,26,0.15);border:1px solid rgba(201,149,26,0.3);border-radius:8px;padding:6px 12px;text-align:center;flex-shrink:0;}
+        .ranking-premio-label{font-size:9px;color:#C9951A;font-weight:700;letter-spacing:1px;}
+        .ranking-premio-val{font-size:10px;color:#fff;font-weight:600;}
+        .ranking-premio-sub{font-size:9px;color:#555;}
+        .ranking-tabs{display:flex;border-bottom:1px solid #1A1A1A;}
+        .ranking-tab{flex:1;padding:10px 4px;text-align:center;font-size:12px;font-weight:600;color:#555;cursor:pointer;border:none;background:transparent;border-bottom:2px solid transparent;transition:all .15s;font-family:'Inter',sans-serif;}
+        .ranking-tab.on{color:#C9951A;border-bottom-color:#C9951A;}
+        @media(max-width:640px){.ranking-tab{font-size:11px;padding:9px 2px;}}
+        .ranking-list{padding:12px 16px;display:flex;flex-direction:column;gap:8px;}
+        .ranking-item{display:flex;align-items:center;gap:12px;border-radius:10px;padding:10px 14px;}
+        .ranking-item.pos1{background:#1A1A1A;border:1px solid rgba(201,149,26,0.3);}
+        .ranking-item.pos2{background:#161616;border:1px solid #222;}
+        .ranking-item.pos3{background:#161616;border:1px solid #222;}
+        .ranking-pos{font-family:'Bebas Neue',sans-serif;font-size:26px;width:24px;text-align:center;flex-shrink:0;}
+        .ranking-pos.p1{color:#C9951A;}
+        .ranking-pos.p2{color:#888;}
+        .ranking-pos.p3{color:#7a4500;}
+        .ranking-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+        .ranking-avatar.p1{background:#C9951A;}
+        .ranking-avatar.p2{background:#333;}
+        .ranking-avatar.p3{background:#2a1800;}
+        .ranking-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .ranking-name.p1{color:#fff;}
+        .ranking-name.p2,.ranking-name.p3{color:#888;}
+        .ranking-count{font-size:11px;color:#555;margin-top:1px;}
+        .ranking-badge{background:rgba(201,149,26,0.2);border:1px solid rgba(201,149,26,0.4);border-radius:6px;padding:3px 8px;flex-shrink:0;}
+        .ranking-badge-txt{font-size:9px;color:#C9951A;font-weight:700;white-space:nowrap;}
+        .ranking-empty{text-align:center;padding:20px;font-size:12px;color:#444;}
+        .ranking-footer{text-align:center;font-size:10px;color:#333;padding-bottom:10px;}
       `}</style>
+
       <div className="hero"><div className="hero-inner">
         <div className="hero-title">🎟️ CUPONS <span>RELÂMPAGO</span></div>
         <div className="hero-sub">Descontos exclusivos das empresas do bairro · Quantidade limitada</div>
@@ -110,6 +190,51 @@ export default function CuponsPage() {
           ))}
         </div>
       </div></div>
+
+      {/* RANKING DO MÊS */}
+      <div className="ranking-wrap">
+        <div className="ranking-box">
+          <div className="ranking-hdr">
+            <div>
+              <div className="ranking-title">🏆 RANKING DO MÊS</div>
+              <div className="ranking-sub">Top 3 por categoria · {mesAtual()} · Critério: cupons confirmados</div>
+            </div>
+            <div className="ranking-premio">
+              <div className="ranking-premio-label">PRÊMIO</div>
+              <div className="ranking-premio-val">Reel no Instagram</div>
+              <div className="ranking-premio-sub">@trindade.online</div>
+            </div>
+          </div>
+          <div className="ranking-tabs">
+            {RANKING_CATS.map(cat => (
+              <button key={cat} className={`ranking-tab ${rankingCat===cat?'on':''}`} onClick={()=>setRankingCat(cat)}>
+                {CAT_EMOJI[cat]} {cat}
+              </button>
+            ))}
+          </div>
+          <div className="ranking-list">
+            {rankingFiltrado.length === 0 ? (
+              <div className="ranking-empty">Nenhum cupom confirmado ainda nesta categoria este mês.<br/>Seja o primeiro! 🎯</div>
+            ) : rankingFiltrado.map((r, i) => (
+              <div key={r.company_id} className={`ranking-item pos${i+1}`}>
+                <div className={`ranking-pos p${i+1}`}>{i+1}</div>
+                <div className={`ranking-avatar p${i+1}`}>{CAT_EMOJI[r.category_name]||'🏪'}</div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div className={`ranking-name p${i+1}`}>{r.company_name}</div>
+                  <div className="ranking-count">{r.total} cupom{r.total!==1?'s':''} confirmado{r.total!==1?'s':''}</div>
+                </div>
+                {i === 0 && (
+                  <div className="ranking-badge">
+                    <div className="ranking-badge-txt">🎬 Ganha Reel</div>
+                  </div>
+                )}
+              </div>
+            ))}
+            <div className="ranking-footer">Reinicia em {proximoMes()}</div>
+          </div>
+        </div>
+      </div>
+
       <div className="body" style={{minHeight:"calc(100vh - 300px)"}}>
         {!userId && (
           <div className="not-logged">
@@ -157,6 +282,7 @@ export default function CuponsPage() {
           </>
         )}
       </div>
+
       {redeemModal && (
         <div onClick={()=>setRedeemModal(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.7)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
           <div onClick={e=>e.stopPropagation()} style={{background:'#fff',borderRadius:20,padding:28,width:'100%',maxWidth:420,textAlign:'center'}}>

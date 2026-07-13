@@ -17,8 +17,8 @@ export default function NotificationPrompt() {
     localStorage.setItem('trindade_notif_prompt', '1')
     try {
       if (window.OneSignal) {
-        await window.OneSignal.showNativePrompt()
-        await window.OneSignal.sendTag('user_type', localStorage.getItem('trindade_user_type') || 'user')
+        await window.OneSignal.Notifications.requestPermission()
+        await window.OneSignal.User.addTag('user_type', localStorage.getItem('trindade_user_type') || 'user')
       }
     } catch (err) {
       console.error('OneSignal error:', err)

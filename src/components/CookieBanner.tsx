@@ -5,8 +5,8 @@ import Link from 'next/link'
 async function requestOneSignalPermission(userType: string) {
   try {
     if (typeof window === 'undefined' || !window.OneSignal) return
-    await window.OneSignal.showNativePrompt()
-    await window.OneSignal.sendTag('user_type', userType)
+    await window.OneSignal.Notifications.requestPermission()
+    await window.OneSignal.User.addTag('user_type', userType)
   } catch (err) {
     console.error('OneSignal error:', err)
   }

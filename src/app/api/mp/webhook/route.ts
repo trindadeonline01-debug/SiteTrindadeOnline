@@ -97,6 +97,9 @@ async function processPayment(paymentId: string) {
       await supabase.from('payments').update({ status: 'paid', paid_at: new Date().toISOString() }).eq('id', rec.id)
     }
     await supabase.from('companies').update({ plan: 'paid', plan_ends_at: planEndsAt.toISOString(), status: 'active' }).eq('id', companyId)
+    // Notificação automática — nova empresa ativa
+    const { data: flagC } = await supabase.from('feature_flags').select('enabled').eq('key', 'notify_new_company').maybeSingle()
+    if (flagC?.enabled) { fetch(process.env.NEXT_PUBLIC_SITE_URL + '/api/push/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: '🏪 Nova empresa no bairro!', body: `Uma nova empresa acabou de entrar no Trindade Online. Confira!`, target: 'user' }) }) }
 
     // Email de confirmação do plano
     const { data: comp } = await supabase.from('companies').select('name, owner_id').eq('id', companyId).maybeSingle()

@@ -2,34 +2,17 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 
-async function requestOneSignalPermission(userType: string) {
-  try {
-    if (typeof window === 'undefined' || !window.OneSignalReact) return
-    await new Promise(resolve => { const check = setInterval(() => { if (window.OneSignalReact?.Notifications) { clearInterval(check); window.OneSignalReact?.Notifications.requestPermission().then(resolve) } }, 200) })
-    await window.OneSignalReact?.User.addTag('user_type', userType)
-  } catch (err) {
-    console.error('OneSignal error:', err)
-  }
-}
-
 export default function CookieBanner() {
   const [visible, setVisible] = useState(false)
-  const [userType, setUserType] = useState('user')
 
   useEffect(() => {
     const consent = localStorage.getItem('trindade_cookie_consent')
     if (!consent) setVisible(true)
-    // detectar tipo de usuário
-    const stored = localStorage.getItem('trindade_user_type')
-    if (stored) setUserType(stored)
   }, [])
 
-  async function accept(type: 'all' | 'essential') {
+  function accept(type: 'all' | 'essential') {
     localStorage.setItem('trindade_cookie_consent', type)
     setVisible(false)
-    if (type === 'all') {
-      await requestOneSignalPermission(userType)
-    }
   }
 
   if (!visible) return null
@@ -55,7 +38,7 @@ export default function CookieBanner() {
             🍪 Cookies e Notificações
           </div>
           <div style={{fontSize:12, color:'#AAA', lineHeight:1.7}}>
-            Usamos cookies essenciais e gostaríamos de enviar notificações sobre novidades do bairro. Ao aceitar todos, você também autoriza o recebimento de notificações. Veja nossa{' '}
+            Usamos cookies essenciais e gostaríamos de enviar notificações sobre novidades do bairro. Veja nossa{' '}
             <Link href="/termos" style={{color:'#C9951A', fontWeight:700, textDecoration:'none'}}>
               Política de Privacidade
             </Link>{' '}

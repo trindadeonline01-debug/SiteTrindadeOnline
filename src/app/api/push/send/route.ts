@@ -5,7 +5,9 @@ const ONESIGNAL_REST_API_KEY = process.env.ONESIGNAL_REST_API_KEY!
 
 export async function POST(req: NextRequest) {
   try {
-    const { title, body, target } = await req.json()
+    const raw = await req.text()
+    console.log('RAW BODY:', raw)
+    const { title, body, target } = JSON.parse(raw)
     if (!title || !body) return NextResponse.json({ error: 'title e body obrigatórios' }, { status: 400 })
 
     let filters: any[] = []

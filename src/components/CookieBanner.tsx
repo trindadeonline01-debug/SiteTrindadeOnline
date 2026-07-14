@@ -4,9 +4,9 @@ import Link from 'next/link'
 
 async function requestOneSignalPermission(userType: string) {
   try {
-    if (typeof window === 'undefined' || !window.OneSignal) return
-    await new Promise(resolve => { const check = setInterval(() => { if (window.OneSignal?.Notifications) { clearInterval(check); window.OneSignal.Notifications.requestPermission().then(resolve) } }, 200) })
-    await window.OneSignal.User.addTag('user_type', userType)
+    if (typeof window === 'undefined' || !window.OneSignalReact) return
+    await new Promise(resolve => { const check = setInterval(() => { if (window.OneSignalReact?.Notifications) { clearInterval(check); window.OneSignalReact?.Notifications.requestPermission().then(resolve) } }, 200) })
+    await window.OneSignalReact?.User.addTag('user_type', userType)
   } catch (err) {
     console.error('OneSignal error:', err)
   }

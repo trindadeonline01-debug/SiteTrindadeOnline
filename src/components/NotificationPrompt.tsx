@@ -16,9 +16,9 @@ export default function NotificationPrompt() {
     setVisible(false)
     localStorage.setItem('trindade_notif_prompt', '1')
     try {
-      if (window.OneSignal) {
-        await new Promise(resolve => { const check = setInterval(() => { if (window.OneSignal?.Notifications) { clearInterval(check); window.OneSignal.Notifications.requestPermission().then(resolve) } }, 200) })
-        await window.OneSignal.User.addTag('user_type', localStorage.getItem('trindade_user_type') || 'user')
+      if (window.OneSignalReact) {
+        await new Promise(resolve => { const check = setInterval(() => { if (window.OneSignalReact?.Notifications) { clearInterval(check); window.OneSignalReact?.Notifications.requestPermission().then(resolve) } }, 200) })
+        await window.OneSignalReact?.User.addTag('user_type', localStorage.getItem('trindade_user_type') || 'user')
       }
     } catch (err) {
       console.error('OneSignal error:', err)

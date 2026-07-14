@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
     })
 
     const data = await res.json()
+    console.log('OneSignal response:', JSON.stringify(data))
     if (data.errors) return NextResponse.json({ error: data.errors }, { status: 500 })
 
     return NextResponse.json({ sent: data.recipients || 0, total: data.recipients || 0, id: data.id })

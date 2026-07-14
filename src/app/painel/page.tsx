@@ -1923,6 +1923,8 @@ export default function PainelPage() {
                       setCouponForm({title:'',discount_type:'fixed',discount_value:'',total_qty:'',qty_per_person:'1',expires_at:'',expires_date:'',expires_time:'',min_purchase:''})
                       const {data} = await supabase.from('coupons').select('*, redemptions:coupon_redemptions(id,status)').eq('company_id',company.id).order('created_at',{ascending:false})
                       setMyCoupons(data||[])
+                      const {data:flag} = await supabase.from('feature_flags').select('enabled').eq('key','notify_new_coupon').maybeSingle()
+                      if (flag?.enabled) { fetch('/api/push/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:'🎟️ Novo cupom disponível!',body:`${company.name} acabou de publicar um cupom. Corre lá!`,target:'user'})}) }
                       setSavingCoupon(false)
                     }}
                     style={{padding:'11px',background:'#C9951A',color:'#111',border:'none',borderRadius:10,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
@@ -2067,6 +2069,8 @@ export default function PainelPage() {
                         setPromoFile(null)
                         const {data} = await supabase.from('promotions').select('*').eq('company_id',company.id).eq('status','active').order('created_at',{ascending:false})
                         setMyPromos(data||[])
+                        const {data:flagP} = await supabase.from('feature_flags').select('enabled').eq('key','notify_new_promo').maybeSingle()
+                        if (flagP?.enabled) { fetch('/api/push/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:'🏷️ Nova promoção!',body:`${company.name} publicou uma nova promoção. Confira!`,target:'user'})}) }
                         setSavingPromo(false)
                       }}
                       style={{padding:'11px',background:'#C9951A',color:'#111',border:'none',borderRadius:10,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>

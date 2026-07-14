@@ -7,7 +7,7 @@ export default function OneSignalInit() {
       const OneSignal = (await import('react-onesignal')).default
       await OneSignal.init({
         appId: '237b0896-717c-4ba7-8585-73ca162fa751',
-        notifyButton: { enable: false },
+        notifyButton: { enable: false } as any,
         allowLocalhostAsSecureOrigin: true,
       })
       // expor globalmente para CookieBanner e NotificationPrompt

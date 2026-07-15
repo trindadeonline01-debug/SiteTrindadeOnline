@@ -35,6 +35,7 @@ export default function AnuncioPage({ params }: { params: Promise<{ id: string }
   const [listing, setListing]   = useState<Listing|null>(null)
   const [loading, setLoading]   = useState(true)
   const [userId, setUserId]     = useState<string|null>(null)
+  const [userType, setUserType]   = useState<string|null>(null)
   const [photoIdx, setPhotoIdx] = useState(0)
   const [showReport, setShowReport] = useState(false)
   const [reportReason, setReportReason] = useState('')
@@ -48,7 +49,7 @@ export default function AnuncioPage({ params }: { params: Promise<{ id: string }
   const [removingPhoto, setRemovingPhoto] = useState<string|null>(null)
 
   useEffect(()=>{
-    supabase.auth.getSession().then(({data:{session:s}})=>{if(s)setUserId(s.user.id)})
+    supabase.auth.getSession().then(async({data:{session:s}})=>{if(s){setUserId(s.user.id);const{data:p}=await supabase.from('profiles').select('user_type').eq('id',s.user.id).single();if(p)setUserType(p.user_type)}})
     load()
   },[])
 
@@ -260,7 +261,7 @@ export default function AnuncioPage({ params }: { params: Promise<{ id: string }
             </div>
           </div>
 
-          {isOwner && (
+          {(isOwner || userType === 'admin') && (
             <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:12}}>
               <button onClick={pauseListing} disabled={actionLoading}
                 style={{padding:'9px 16px',borderRadius:10,border:'1.5px solid #E0DDD8',background:'#fff',color:'#555',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>

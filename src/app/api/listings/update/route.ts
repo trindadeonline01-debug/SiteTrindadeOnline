@@ -12,7 +12,9 @@ export async function POST(req: NextRequest) {
     if (!listing_id || !user_id) return NextResponse.json({ error: 'Dados incompletos' }, { status: 400 })
 
     const { data: listing } = await supabaseAdmin.from('listings').select('user_id').eq('id', listing_id).single()
-    if (!listing || listing.user_id !== user_id) return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
+    const { data: profile } = await supabaseAdmin.from('profiles').select('user_type').eq('id', user_id).single()
+    const isAdmin = profile?.user_type === 'admin'
+    if (!listing || (listing.user_id !== user_id && !isAdmin)) return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
 
     const { error } = await supabaseAdmin.from('listings').update(updates).eq('id', listing_id)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })

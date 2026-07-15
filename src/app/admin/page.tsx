@@ -114,6 +114,7 @@ export default function AdminPage() {
   const [trialDays, setTrialDays] = useState(7)
   const [savingTrial, setSavingTrial] = useState(false)
   const [subcatsList, setSubcatsList]       = useState<any[]>([])
+  const [subcatSearch, setSubcatSearch]     = useState('')
   const [sugestoesList, setSugestoesList]   = useState<any[]>([])
   const [subcatForm, setSubcatForm]         = useState<any>({ name:'', emoji:'', category_id:'' })
   const [editingSubcatId, setEditingSubcatId] = useState<string|null>(null)
@@ -2259,10 +2260,11 @@ export default function AdminPage() {
                 </div>
 
                 <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:14,color:'#888',letterSpacing:1,marginBottom:12}}>
+                <input placeholder="🔍 Buscar subcategoria..." value={subcatSearch} onChange={e=>setSubcatSearch(e.target.value)} style={{width:"100%",padding:"10px 14px",border:"1.5px solid #E0DDD8",borderRadius:10,fontSize:13,fontFamily:"Inter,sans-serif",outline:"none",marginBottom:12}}/>
                   SUBCATEGORIAS CADASTRADAS ({subcatsList.length})
                 </div>
                 {catOpts.map((cat:any) => {
-                  const items = subcatsList.filter((s:any)=>s.category_id === cat.id)
+                  const items = subcatsList.filter((s:any)=>s.category_id === cat.id && (!subcatSearch.trim() || s.name.toLowerCase().includes(subcatSearch.trim().toLowerCase())))
                   if (items.length === 0) return null
                   return (
                     <div key={cat.id} style={{marginBottom:20}}>

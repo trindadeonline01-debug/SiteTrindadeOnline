@@ -1503,43 +1503,31 @@ export default function PainelPage() {
                       {company?.id && <PhotoManager companyId={company.id} />}
                     </div>
                     <div className="field">
-                      <label>Tags <span style={{fontSize:11,color:'#AAA',fontWeight:400}}>Digite e pressione Enter para adicionar</span></label>
-                      <div style={{border:'1.5px solid #E0DDD8',borderRadius:11,padding:'8px 10px',background:'#FAFAF8',display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
-                        {editTags.map((tag,i) => (
-                          <div key={i} style={{display:'flex',alignItems:'center',gap:4,padding:'3px 10px',background:'#FEF3E2',border:'1px solid #C9951A',borderRadius:20,fontSize:12,color:'#854F0B',fontWeight:600}}>
-                            #{tag}
-                            <button onClick={() => setEditTags(prev => prev.filter((_,j) => j !== i))} style={{background:'none',border:'none',cursor:'pointer',fontSize:14,color:'#C9951A',padding:0,lineHeight:1}}>×</button>
-                          </div>
-                        ))}
+                      <label>Tags <span style={{fontSize:11,color:'#AAA',fontWeight:400}}>Adicione palavras-chave do seu negócio</span></label>
+                      {editTags.length > 0 && (
+                        <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:8}}>
+                          {editTags.map((tag,i) => (
+                            <div key={i} style={{display:'flex',alignItems:'center',gap:4,padding:'3px 10px',background:'#FEF3E2',border:'1px solid #C9951A',borderRadius:20,fontSize:12,color:'#854F0B',fontWeight:600}}>
+                              #{tag}
+                              <button onClick={() => setEditTags(prev => prev.filter((_,j) => j !== i))} style={{background:'none',border:'none',cursor:'pointer',fontSize:14,color:'#C9951A',padding:0,lineHeight:1}}>×</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div style={{display:'flex',gap:8}}>
                         <input
                           type="text"
                           value={tagInput}
                           onChange={e => setTagInput(e.target.value)}
-                          onKeyDown={e => {
-                            if ((e.key === 'Enter' || e.key === ',') && tagInput.trim()) {
-                              e.preventDefault()
-                            }
-                          }}
-                          onKeyUp={e => {
-                            if ((e.key === 'Enter' || e.key === ',') && tagInput.trim()) {
-                              e.preventDefault()
-                              const tag = tagInput.trim().toLowerCase().replace(/[^a-z0-9àáâãéêíóôõúç ]/g, '')
-                              if (tag && !editTags.includes(tag) && true) {
-                                setEditTags(prev => [...prev, tag])
-                              }
-                              setTagInput('')
-                            }
-                          }}
-                          placeholder={editTags.length === 0 ? "ex: pizza, delivery, hambúrguer..." : ""}
-                          style={{border:'none',background:'transparent',outline:'none',fontSize:13,fontFamily:"'Inter',sans-serif",minWidth:120,flex:1}}
+                          onKeyDown={e => { if (e.key === 'Enter' && tagInput.trim()) { e.preventDefault(); const tag = tagInput.trim().toLowerCase().replace(/[^a-z0-9àáâãéêíóôõúç ]/g, ''); if (tag && !editTags.includes(tag)) setEditTags(prev => [...prev, tag]); setTagInput('') } }}
+                          placeholder="ex: pizza, delivery, hambúrguer..."
+                          style={{flex:1,padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:"'Inter',sans-serif",outline:'none',background:'#FAFAF8'}}
                         />
-                        {tagInput.trim() && (
-                          <button onClick={()=>{
-                            const tag = tagInput.trim().toLowerCase().replace(/[^a-z0-9àáâãéêíóôõúç ]/g, '')
-                            if (tag && !editTags.includes(tag)) setEditTags(prev => [...prev, tag])
-                            setTagInput('')
-                          }} style={{background:'#C9951A',border:'none',borderRadius:6,color:'#fff',fontSize:12,fontWeight:700,padding:'3px 8px',cursor:'pointer',flexShrink:0}}>+</button>
-                        )}
+                        <button onClick={()=>{ const tag = tagInput.trim().toLowerCase().replace(/[^a-z0-9àáâãéêíóôõúç ]/g, ''); if (tag && !editTags.includes(tag)) setEditTags(prev => [...prev, tag]); setTagInput('') }}
+                          disabled={!tagInput.trim()}
+                          style={{padding:'10px 18px',background:tagInput.trim()?'#C9951A':'#E0DDD8',color:tagInput.trim()?'#111':'#AAA',border:'none',borderRadius:10,fontSize:13,fontWeight:700,cursor:tagInput.trim()?'pointer':'not-allowed',fontFamily:'Inter,sans-serif',whiteSpace:'nowrap',flexShrink:0}}>
+                          + Adicionar
+                        </button>
                       </div>
                       <div style={{fontSize:11,color:'#AAA',marginTop:4}}>{editTags.length} tags · {company?.plan === 'paid' ? '✓ Aparece nas buscas' : '⚠ Ative o plano pago para aparecer nas buscas'}</div>
                     </div>

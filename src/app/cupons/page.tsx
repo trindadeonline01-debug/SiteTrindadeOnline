@@ -20,6 +20,10 @@ export default function CuponsPage() {
   const [coupons, setCoupons] = useState<Coupon[]>([])
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState<string|null>(null)
+  const [userType, setUserType] = useState<string|null>(null)
+  const [editModal, setEditModal] = useState<Coupon|null>(null)
+  const [editForm, setEditForm] = useState({title:'',discount_value:'',expires_at:''})
+  const [saving, setSaving] = useState(false)
   const [filter, setFilter] = useState('todos')
   const [redeeming, setRedeeming] = useState<string|null>(null)
   const [redeemModal, setRedeemModal] = useState<{code:string,coupon:Coupon}|null>(null)
@@ -28,8 +32,8 @@ export default function CuponsPage() {
   const [rankingCat, setRankingCat] = useState('Comércios')
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) { setUserId(session.user.id); loadMyRedemptions(session.user.id) }
+    supabase.auth.getSession().then(async({ data: { session } }) => {
+      if (session) { setUserId(session.user.id); loadMyRedemptions(session.user.id); const{data:p}=await supabase.from('profiles').select('user_type').eq('id',session.user.id).single(); if(p) setUserType(p.user_type) }
     })
     loadCoupons()
     loadRanking()
@@ -318,6 +322,12 @@ export default function CuponsPage() {
                           {redeeming===c.id?'...Aguarde':'Resgatar'}
                         </button>
                       )}
+                      {userType==='admin' && (
+                        <div style={{display:'flex',gap:4,marginTop:4}}>
+                          <button onClick={()=>{setEditModal(c);setEditForm({title:c.title,discount_value:String(c.discount_value),expires_at:c.expires_at.slice(0,16)})}} style={{padding:'3px 8px',background:'#FEF3E2',color:'#854F0B',border:'1px solid #F5C77A',borderRadius:6,fontSize:10,cursor:'pointer',fontWeight:600}}>✏️ Editar</button>
+                          <button onClick={async()=>{if(confirm('Deletar cupom?')){await supabase.from('coupons').delete().eq('id',c.id);loadCoupons()}}} style={{padding:'3px 8px',background:'#FCEBEB',color:'#E24B4A',border:'1px solid #F7C1C1',borderRadius:6,fontSize:10,cursor:'pointer',fontWeight:600}}>🗑</button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )
@@ -350,6 +360,18 @@ export default function CuponsPage() {
                 Fechar
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {editModal && (
+        <div onClick={()=>setEditModal(null)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+          <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:20,padding:28,width:"100%",maxWidth:420}}>
+            <div style={{fontFamily:"Bebas Neue,sans-serif",fontSize:20,color:"#111",letterSpacing:1,marginBottom:16}}>✏️ EDITAR CUPOM</div>
+            <div style={{marginBottom:10}}><label style={{fontSize:12,fontWeight:600,color:"#444",display:"block",marginBottom:4}}>TÍTULO</label><input value={editForm.title} onChange={e=>setEditForm(f=>({...f,title:e.target.value}))} style={{width:"100%",padding:"9px 12px",border:"1.5px solid #E0DDD8",borderRadius:8,fontSize:13,fontFamily:"Inter,sans-serif",outline:"none"}}/></div>
+            <div style={{marginBottom:10}}><label style={{fontSize:12,fontWeight:600,color:"#444",display:"block",marginBottom:4}}>VALOR DO DESCONTO</label><input type="number" value={editForm.discount_value} onChange={e=>setEditForm(f=>({...f,discount_value:e.target.value}))} style={{width:"100%",padding:"9px 12px",border:"1.5px solid #E0DDD8",borderRadius:8,fontSize:13,fontFamily:"Inter,sans-serif",outline:"none"}}/></div>
+            <div style={{marginBottom:16}}><label style={{fontSize:12,fontWeight:600,color:"#444",display:"block",marginBottom:4}}>VALIDADE</label><input type="datetime-local" value={editForm.expires_at} onChange={e=>setEditForm(f=>({...f,expires_at:e.target.value}))} style={{width:"100%",padding:"9px 12px",border:"1.5px solid #E0DDD8",borderRadius:8,fontSize:13,fontFamily:"Inter,sans-serif",outline:"none"}}/></div>
+            <button onClick={async()=>{if(!editModal)return;setSaving(true);await supabase.from("coupons").update({title:editForm.title,discount_value:Number(editForm.discount_value),expires_at:new Date(editForm.expires_at).toISOString()}).eq("id",editModal.id);setSaving(false);setEditModal(null);loadCoupons()}} style={{width:"100%",padding:12,background:"#C9951A",color:"#111",border:"none",borderRadius:10,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"Inter,sans-serif",marginBottom:8}}>{saving?"Salvando...":"Salvar alterações"}</button>
+            <button onClick={()=>setEditModal(null)} style={{width:"100%",padding:10,background:"#F5F2EC",color:"#888",border:"none",borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:"Inter,sans-serif"}}>Cancelar</button>
           </div>
         </div>
       )}

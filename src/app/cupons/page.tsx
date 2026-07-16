@@ -44,7 +44,7 @@ export default function CuponsPage() {
       .select('*, company:companies(id,name,phone,category:categories(name,emoji))')
       .eq('active', true).gt('expires_at', new Date().toISOString())
       .order('created_at', { ascending: false })
-    setCoupons(data || []); setLoading(false)
+    setCoupons((data || []) as Coupon[]); setLoading(false)
   }
 
   async function loadRanking() {

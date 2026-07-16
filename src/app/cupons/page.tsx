@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 
 type Coupon = {
   id: string; title: string; discount_type: string; discount_value: number
-  total_qty: number; qty_per_person: number; expires_at: string; active: boolean
+  total_qty: number; qty_per_person: number; expires_at: string; active: boolean; min_purchase?: number
   company: { id: string; name: string; phone?: string; category?: { name: string; emoji: string } }
 }
 

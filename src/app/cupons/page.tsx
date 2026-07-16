@@ -325,7 +325,7 @@ export default function CuponsPage() {
                       {userType==='admin' && (
                         <div style={{display:'flex',gap:4,marginTop:4}}>
                           <button onClick={()=>{setEditModal(c);setEditForm({title:c.title,discount_value:String(c.discount_value),expires_at:c.expires_at.slice(0,16),min_purchase:c.min_purchase?String(c.min_purchase):''})}} style={{padding:'3px 8px',background:'#FEF3E2',color:'#854F0B',border:'1px solid #F5C77A',borderRadius:6,fontSize:10,cursor:'pointer',fontWeight:600}}>✏️ Editar</button>
-                          <button onClick={async()=>{if(confirm('Deletar cupom?')){await supabase.from('coupons').delete().eq('id',c.id);loadCoupons()}}} style={{padding:'3px 8px',background:'#FCEBEB',color:'#E24B4A',border:'1px solid #F7C1C1',borderRadius:6,fontSize:10,cursor:'pointer',fontWeight:600}}>🗑</button>
+                          <button onClick={async()=>{if(confirm('Deletar cupom?')){await fetch('/api/coupons/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({coupon_id:c.id})});loadCoupons()}}} style={{padding:'3px 8px',background:'#FCEBEB',color:'#E24B4A',border:'1px solid #F7C1C1',borderRadius:6,fontSize:10,cursor:'pointer',fontWeight:600}}>🗑</button>
                         </div>
                       )}
                     </div>

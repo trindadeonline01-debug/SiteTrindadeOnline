@@ -37,25 +37,20 @@ export async function POST(req: NextRequest) {
         ? `<div style="background:#C9951A;color:#111;font-size:9px;font-weight:bold;padding:5px 0;text-align:center;border-radius:8px 8px 0 0;">MAIS POPULAR</div>`
         : `<div style="height:20px;"></div>`
 
-      return `
-      <tr>
-        <td style="padding-bottom:10px;">
-          <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:10px;${borderStyle}">
-            <tr><td>
-              ${popularBadge}
-              <div style="padding:12px 10px 14px;text-align:center;">
-                <div style="font-size:11px;color:${labelColor};font-weight:bold;margin-bottom:6px;">${label}</div>
-                <div style="font-size:22px;font-weight:bold;color:#111;">R$${reais}<span style="font-size:13px;">,${cents}</span></div>
-                <div style="font-size:10px;color:#aaa;margin-bottom:4px;">por mes</div>
-                ${totalLine}
-                <div style="text-align:center;">
-                  <a href="https://www.trindadeonline.com.br/login?redirect=/painel?tab=plano" style="display:inline-block;background:${btnBg};color:${btnColor};padding:10px 32px;border-radius:8px;font-size:12px;font-weight:bold;text-decoration:none;">Assinar</a>
-                </div>
-              </div>
-            </td></tr>
-          </table>
-        </td>
-      </tr>`
+      return `<td width="33%" style="padding:4px;vertical-align:top;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:10px;${borderStyle}">
+          <tr><td>
+            ${popularBadge}
+            <div style="padding:10px 8px 14px;text-align:center;">
+              <div style="font-size:11px;color:${labelColor};font-weight:bold;margin-bottom:6px;">${label}</div>
+              <div style="font-size:20px;font-weight:bold;color:#111;">R$${reais}<span style="font-size:12px;">,${cents}</span></div>
+              <div style="font-size:10px;color:#aaa;margin-bottom:4px;">por mes</div>
+              ${totalLine}
+              <a href="https://www.trindadeonline.com.br/login?redirect=/painel?tab=plano" style="display:inline-block;background:${btnBg};color:${btnColor};padding:8px 16px;border-radius:8px;font-size:11px;font-weight:bold;text-decoration:none;">Assinar</a>
+            </div>
+          </td></tr>
+        </table>
+      </td>`
     }).join('')
 
     const html = `
@@ -64,68 +59,55 @@ export async function POST(req: NextRequest) {
 <body style="margin:0;padding:0;background:#f0f0f0;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f0f0;padding:20px 0;">
 <tr><td align="center">
-<table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;border-radius:16px;overflow:hidden;font-family:Arial,sans-serif;">
+<table width="560" cellpadding="0" cellspacing="0" style="border-radius:16px;overflow:hidden;font-family:Arial,sans-serif;">
 
-  <!-- CABECALHO PRETO -->
-  <tr><td style="background:#111;padding:28px 20px;text-align:center;">
-    <div style="font-size:22px;font-weight:bold;letter-spacing:3px;color:#fff;margin-bottom:14px;">TRINDADE<span style="color:#C9951A;">ONLINE</span></div>
-    <div style="font-size:18px;font-weight:bold;color:#fff;margin-bottom:12px;">Sua empresa foi aprovada! 🎉</div>
-    <div style="font-size:13px;color:#aaa;line-height:1.7;">Ola! A empresa <strong style="color:#fff;">${company.name}</strong> ja esta visivel no Trindade Online e pode ser encontrada pelos moradores do bairro.</div>
+  <tr><td style="background:#111;padding:28px 20px 0 20px;">
+    <div style="font-size:22px;font-weight:bold;letter-spacing:3px;color:#fff;text-align:center;margin-bottom:14px;">TRINDADE<span style="color:#C9951A;">ONLINE</span></div>
+    <div style="font-size:18px;font-weight:bold;color:#fff;text-align:center;margin-bottom:10px;">Sua empresa foi aprovada! 🎉</div>
+    <div style="font-size:13px;color:#aaa;line-height:1.7;text-align:center;margin-bottom:20px;">Ola! A empresa <strong style="color:#fff;">${company.name}</strong> ja esta visivel no Trindade Online e pode ser encontrada pelos moradores do bairro.</div>
+    <div style="background:#C9951A;height:3px;margin:0 -20px;"></div>
+    <div style="background:#F5F5F5;margin:0 -20px;padding:24px 20px;">
+      <div style="font-size:13px;font-weight:bold;color:#333;text-align:center;margin-bottom:16px;">Veja o que cada plano oferece:</div>
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+        <tr>
+          <td width="49%" style="background:#fff;border:1px solid #ddd;border-radius:10px;padding:14px;vertical-align:top;">
+            <div style="font-size:11px;font-weight:bold;color:#888;letter-spacing:1px;margin-bottom:2px;">GRATUITO</div>
+            <div style="font-size:11px;color:#aaa;margin-bottom:10px;">Para sempre</div>
+            <div style="font-size:12px;color:#555;margin-bottom:5px;">&#10003; Perfil cadastrado</div>
+            <div style="font-size:12px;color:#555;margin-bottom:5px;">&#10003; Aparece nas categorias</div>
+            <div style="font-size:12px;color:#555;margin-bottom:10px;">&#10003; Fotos e descricao</div>
+            <div style="height:1px;background:#eee;margin-bottom:10px;"></div>
+            <div style="font-size:12px;color:#ccc;text-decoration:line-through;margin-bottom:5px;">&#10007; WhatsApp visivel</div>
+            <div style="font-size:12px;color:#ccc;text-decoration:line-through;margin-bottom:5px;">&#10007; Endereco completo</div>
+            <div style="font-size:12px;color:#ccc;text-decoration:line-through;margin-bottom:5px;">&#10007; Link externo</div>
+            <div style="font-size:12px;color:#ccc;text-decoration:line-through;margin-bottom:5px;">&#10007; Buscas por tags</div>
+            <div style="font-size:12px;color:#ccc;text-decoration:line-through;margin-bottom:5px;">&#10007; Cupons Relampago</div>
+            <div style="font-size:12px;color:#ccc;text-decoration:line-through;">&#10007; Promocoes da Semana</div>
+          </td>
+          <td width="2%"></td>
+          <td width="49%" style="background:#fff;border:2px solid #C9951A;border-radius:10px;padding:14px;vertical-align:top;">
+            <div style="font-size:11px;font-weight:bold;color:#C9951A;letter-spacing:1px;margin-bottom:2px;">PLANO PAGO</div>
+            <div style="font-size:11px;color:#C9951A;margin-bottom:10px;">Tudo desbloqueado</div>
+            <div style="font-size:12px;color:#555;margin-bottom:5px;">&#10003; Perfil cadastrado</div>
+            <div style="font-size:12px;color:#555;margin-bottom:5px;">&#10003; Aparece nas categorias</div>
+            <div style="font-size:12px;color:#555;margin-bottom:10px;">&#10003; Fotos e descricao</div>
+            <div style="height:1px;background:#eee;margin-bottom:10px;"></div>
+            <div style="font-size:12px;color:#C9951A;font-weight:bold;margin-bottom:5px;">&#10003; WhatsApp visivel</div>
+            <div style="font-size:12px;color:#C9951A;font-weight:bold;margin-bottom:5px;">&#10003; Endereco completo</div>
+            <div style="font-size:12px;color:#C9951A;font-weight:bold;margin-bottom:5px;">&#10003; Link externo</div>
+            <div style="font-size:12px;color:#C9951A;font-weight:bold;margin-bottom:5px;">&#10003; Buscas por tags</div>
+            <div style="font-size:12px;color:#C9951A;font-weight:bold;margin-bottom:5px;">&#10003; Cupons Relampago</div>
+            <div style="font-size:12px;color:#C9951A;font-weight:bold;">&#10003; Promocoes da Semana</div>
+          </td>
+        </tr>
+      </table>
+      <div style="font-size:11px;font-weight:bold;color:#888;letter-spacing:1px;text-align:center;margin-bottom:12px;">ESCOLHA SEU PLANO:</div>
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr>${planCards}</tr>
+      </table>
+    </div>
   </td></tr>
 
-  <!-- LINHA DOURADA -->
-  <tr><td style="background:#C9951A;height:3px;font-size:0;">&nbsp;</td></tr>
-
-  <!-- CORPO CINZA -->
-  <tr><td style="background:#F5F5F5;padding:24px 16px;">
-
-    <div style="font-size:13px;font-weight:bold;color:#333;text-align:center;margin-bottom:16px;">Veja o que cada plano oferece:</div>
-
-    <!-- GRATUITO -->
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:10px;">
-      <tr><td style="background:#fff;border:1px solid #ddd;border-radius:10px;padding:14px;vertical-align:top;">
-        <div style="font-size:11px;font-weight:bold;color:#888;letter-spacing:1px;margin-bottom:2px;">GRATUITO</div>
-        <div style="font-size:11px;color:#aaa;margin-bottom:10px;">Para sempre</div>
-        <div style="font-size:12px;color:#555;margin-bottom:5px;">&#10003; Perfil cadastrado</div>
-        <div style="font-size:12px;color:#555;margin-bottom:5px;">&#10003; Aparece nas categorias</div>
-        <div style="font-size:12px;color:#555;margin-bottom:10px;">&#10003; Fotos e descricao</div>
-        <div style="height:1px;background:#eee;margin-bottom:10px;"></div>
-        <div style="font-size:12px;color:#ccc;text-decoration:line-through;margin-bottom:5px;">&#10007; WhatsApp visivel</div>
-        <div style="font-size:12px;color:#ccc;text-decoration:line-through;margin-bottom:5px;">&#10007; Endereco completo</div>
-        <div style="font-size:12px;color:#ccc;text-decoration:line-through;margin-bottom:5px;">&#10007; Link externo</div>
-        <div style="font-size:12px;color:#ccc;text-decoration:line-through;margin-bottom:5px;">&#10007; Buscas por tags</div>
-        <div style="font-size:12px;color:#ccc;text-decoration:line-through;margin-bottom:5px;">&#10007; Cupons Relampago</div>
-        <div style="font-size:12px;color:#ccc;text-decoration:line-through;">&#10007; Promocoes da Semana</div>
-      </td></tr>
-    </table>
-
-    <!-- PLANO PAGO -->
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
-      <tr><td style="background:#fff;border:2px solid #C9951A;border-radius:10px;padding:14px;vertical-align:top;">
-        <div style="font-size:11px;font-weight:bold;color:#C9951A;letter-spacing:1px;margin-bottom:2px;">PLANO PAGO</div>
-        <div style="font-size:11px;color:#C9951A;margin-bottom:10px;">Tudo desbloqueado</div>
-        <div style="font-size:12px;color:#555;margin-bottom:5px;">&#10003; Perfil cadastrado</div>
-        <div style="font-size:12px;color:#555;margin-bottom:5px;">&#10003; Aparece nas categorias</div>
-        <div style="font-size:12px;color:#555;margin-bottom:10px;">&#10003; Fotos e descricao</div>
-        <div style="height:1px;background:#eee;margin-bottom:10px;"></div>
-        <div style="font-size:12px;color:#C9951A;font-weight:bold;margin-bottom:5px;">&#10003; WhatsApp visivel</div>
-        <div style="font-size:12px;color:#C9951A;font-weight:bold;margin-bottom:5px;">&#10003; Endereco completo</div>
-        <div style="font-size:12px;color:#C9951A;font-weight:bold;margin-bottom:5px;">&#10003; Link externo</div>
-        <div style="font-size:12px;color:#C9951A;font-weight:bold;margin-bottom:5px;">&#10003; Buscas por tags</div>
-        <div style="font-size:12px;color:#C9951A;font-weight:bold;margin-bottom:5px;">&#10003; Cupons Relampago</div>
-        <div style="font-size:12px;color:#C9951A;font-weight:bold;">&#10003; Promocoes da Semana</div>
-      </td></tr>
-    </table>
-
-    <!-- PLANOS EMPILHADOS -->
-    <div style="font-size:11px;font-weight:bold;color:#888;letter-spacing:1px;text-align:center;margin-bottom:12px;">ESCOLHA SEU PLANO:</div>
-    <table width="100%" cellpadding="0" cellspacing="0">
-      ${planCards}
-    </table>
-
-  </td></tr>
-
-  <!-- RODAPE PRETO -->
   <tr><td style="background:#111;padding:16px 20px;text-align:center;border-top:3px solid #C9951A;">
     <div style="font-size:12px;color:#555;">Pagamento via Pix - Ativacao imediata</div>
     <div style="font-size:12px;color:#C9951A;margin-top:4px;">trindadeonline.com.br</div>

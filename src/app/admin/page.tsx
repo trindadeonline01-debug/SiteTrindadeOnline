@@ -1440,6 +1440,7 @@ export default function AdminPage() {
                                 {c.status === 'suspended' && <button className="action-btn btn-approve" onClick={() => approveCompany(c.id)}>Reativar</button>}
                                 <button className="action-btn btn-view" onClick={() => openPreviewCompany(c)}>Ver</button>
                                 <button className="action-btn" style={{background:'#185FA522',color:'#185FA5'}} onClick={() => openEditCompany(c)}>✏️ Editar</button>
+                                {c.status === 'active' && <button className="action-btn" style={{background:'#FEF3E2',color:'#C9951A'}} onClick={()=>{ fetch('/api/email/aprovacao',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({company_id:c.id})}).then(()=>showToast('Email enviado para ' + c.name)) }}>📧 Email planos</button>}
                               </td>
                             </tr>
                           ))}

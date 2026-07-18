@@ -70,6 +70,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: err }, { status: 500 })
     }
 
+    await supabase.from('email_logs').insert({ company_id, email_type: 'aprovacao' })
     return NextResponse.json({ ok: true })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })

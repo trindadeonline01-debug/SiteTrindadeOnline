@@ -46,6 +46,7 @@ export default function AdminPage() {
   const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'denuncias'|'usuarios'|'buscas'|'atividade'|'banners'|'pedidos-banner'|'configuracoes'|'recursos'|'planos'|'aparencia'|'subcategorias'|'vendas'|'sugestoes'|'notificacoes'>('dashboard')
   const [stats, setStats]           = useState<Stats|null>(null)
   const [companies, setCompanies]   = useState<Company[]>([])
+  const [emailLogs, setEmailLogs]     = useState<Record<string,number>>({})
   const [users, setUsers]           = useState<Profile[]>([])
   const [searches, setSearches]     = useState<SearchLog[]>([])
   const [filterStatus, setFilter]   = useState('all')
@@ -212,6 +213,12 @@ export default function AdminPage() {
       .order('created_at', { ascending: false })
       .limit(500)
     setCompanies(data || [])
+    const { data: logs } = await supabase.from('email_logs').select('company_id').eq('email_type','aprovacao')
+    if (logs) {
+      const counts: Record<string,number> = {}
+      logs.forEach((l:any) => { counts[l.company_id] = (counts[l.company_id] || 0) + 1 })
+      setEmailLogs(counts)
+    }
   }
 
   async function loadUsers() {
@@ -1440,7 +1447,7 @@ export default function AdminPage() {
                                 {c.status === 'suspended' && <button className="action-btn btn-approve" onClick={() => approveCompany(c.id)}>Reativar</button>}
                                 <button className="action-btn btn-view" onClick={() => openPreviewCompany(c)}>Ver</button>
                                 <button className="action-btn" style={{background:'#185FA522',color:'#185FA5'}} onClick={() => openEditCompany(c)}>✏️ Editar</button>
-                                {c.status === 'active' && <button className="action-btn" style={{background:'#FEF3E2',color:'#C9951A'}} onClick={()=>{ fetch('/api/email/aprovacao',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({company_id:c.id})}).then(()=>showToast('Email enviado para ' + c.name)) }}>📧 Email planos</button>}
+                                {c.status === 'active' && (() => { const n = emailLogs[c.id] || 0; const bg = n===0?'#EDFAF3':n===1?'#FEF3E2':n===2?'#FEE4D0':'#FCEBEB'; const cl = n===0?'#0F8050':n===1?'#C9951A':n===2?'#E07030':'#E24B4A'; return <button className="action-btn" style={{background:bg,color:cl}} onClick={()=>{ fetch('/api/email/aprovacao',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({company_id:c.id})}).then(()=>{showToast('Email enviado para ' + c.name);setEmailLogs(p=>({...p,[c.id]:(p[c.id]||0)+1}))}) }}>📧 {n===0?'Enviar email':n===1?'Enviado 1x':n===2?'Enviado 2x':'Enviado 3x+'}</button> })()}
                               </td>
                             </tr>
                           ))}

@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
       const months = Math.max(1, Math.round(Number(p.days) / 30))
       const period = months === 1 ? 'Mensal' : months === 6 ? 'Semestral' : 'Anual'
       return `
-        <a href="https://www.trindadeonline.com.br/painel?tab=plano" style="display:block;background:#1A1A1A;border-radius:12px;padding:20px;margin-bottom:12px;text-decoration:none;">
+        <a href="https://www.trindadeonline.com.br/login?redirect=/painel?tab=plano" style="display:block;background:#1A1A1A;border-radius:12px;padding:20px;margin-bottom:12px;text-decoration:none;">
           <div style="font-size:13px;font-weight:700;color:#C9951A;margin-bottom:4px;">${period} - ${p.name}</div>
           <div style="font-size:24px;font-weight:700;color:#fff;margin-bottom:4px;">R$ ${Number(p.value).toFixed(2).replace('.',',')}</div>
           <div style="font-size:11px;color:#888;">${months === 1 ? 'Cobrado mensalmente' : `Cobrado a cada ${months} meses`}</div>

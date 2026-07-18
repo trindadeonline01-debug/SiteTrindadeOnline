@@ -31,7 +31,11 @@ export default function LoginPage() {
       .eq('id', data.user.id)
       .single()
 
-    if (profile?.user_type === 'company') {
+    const params = new URLSearchParams(window.location.search)
+    const redirect = params.get('redirect')
+    if (redirect) {
+      window.location.href = redirect
+    } else if (profile?.user_type === 'company') {
       window.location.href = '/painel'
     } else if (profile?.user_type === 'admin') {
       window.location.href = '/admin'

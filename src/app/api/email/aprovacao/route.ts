@@ -70,9 +70,12 @@ export async function POST(req: NextRequest) {
       <div style="font-size:13px;font-weight:bold;color:#333;text-align:center;margin-bottom:16px;">Veja o que cada plano oferece:</div>
       <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
         <tr>
-          <td width="49%" style="background:#fff;border:1px solid #ddd;border-radius:10px;padding:14px;vertical-align:top;">
-            <div style="font-size:11px;font-weight:bold;color:#888;letter-spacing:1px;margin-bottom:2px;">GRATUITO</div>
-            <div style="font-size:11px;color:#aaa;margin-bottom:10px;">Para sempre</div>
+          <td width="49%" style="background:#fff;border:1px solid #ddd;border-radius:10px;vertical-align:top;overflow:hidden;">
+            <div style="background:#2e7d32;padding:7px 14px;border-radius:10px 10px 0 0;">
+              <div style="font-size:12px;font-weight:bold;color:#fff;letter-spacing:1px;">GRATUITO</div>
+              <div style="font-size:10px;color:#a5d6a7;">Para sempre</div>
+            </div>
+            <div style="padding:14px;">
             <div style="font-size:12px;color:#555;margin-bottom:5px;">&#10003; Perfil cadastrado</div>
             <div style="font-size:12px;color:#555;margin-bottom:5px;">&#10003; Aparece nas categorias</div>
             <div style="font-size:12px;color:#555;margin-bottom:10px;">&#10003; Fotos e descricao</div>
@@ -83,11 +86,15 @@ export async function POST(req: NextRequest) {
             <div style="font-size:12px;color:#ccc;text-decoration:line-through;margin-bottom:5px;">&#10007; Buscas por tags</div>
             <div style="font-size:12px;color:#ccc;text-decoration:line-through;margin-bottom:5px;">&#10007; Cupons Relampago</div>
             <div style="font-size:12px;color:#ccc;text-decoration:line-through;">&#10007; Promocoes da Semana</div>
+            </div>
           </td>
           <td width="2%"></td>
-          <td width="49%" style="background:#fff;border:2px solid #C9951A;border-radius:10px;padding:14px;vertical-align:top;">
-            <div style="font-size:11px;font-weight:bold;color:#C9951A;letter-spacing:1px;margin-bottom:2px;">PLANO PAGO</div>
-            <div style="font-size:11px;color:#C9951A;margin-bottom:10px;">Tudo desbloqueado</div>
+          <td width="49%" style="background:#fff;border:2px solid #C9951A;border-radius:10px;vertical-align:top;overflow:hidden;">
+            <div style="background:#C9951A;padding:7px 14px;border-radius:8px 8px 0 0;">
+              <div style="font-size:12px;font-weight:bold;color:#111;letter-spacing:1px;">PLANO PAGO</div>
+              <div style="font-size:10px;color:#5a3e00;">Tudo desbloqueado</div>
+            </div>
+            <div style="padding:14px;">
             <div style="font-size:12px;color:#555;margin-bottom:5px;">&#10003; Perfil cadastrado</div>
             <div style="font-size:12px;color:#555;margin-bottom:5px;">&#10003; Aparece nas categorias</div>
             <div style="font-size:12px;color:#555;margin-bottom:10px;">&#10003; Fotos e descricao</div>
@@ -98,6 +105,7 @@ export async function POST(req: NextRequest) {
             <div style="font-size:12px;color:#C9951A;font-weight:bold;margin-bottom:5px;">&#10003; Buscas por tags</div>
             <div style="font-size:12px;color:#C9951A;font-weight:bold;margin-bottom:5px;">&#10003; Cupons Relampago</div>
             <div style="font-size:12px;color:#C9951A;font-weight:bold;">&#10003; Promocoes da Semana</div>
+            </div>
           </td>
         </tr>
       </table>

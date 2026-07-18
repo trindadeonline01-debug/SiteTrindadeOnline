@@ -611,7 +611,7 @@ export default function AdminPage() {
     await supabase.from('companies').update({ status: 'active', approved_at: new Date().toISOString() }).eq('id', id)
     const { data: { session } } = await supabase.auth.getSession()
     if (session) await supabase.from('admin_logs').insert({ admin_id: session.user.id, action: 'approve_company', entity_type: 'company', entity_id: id })
-    showToast('Empresa aprovada!')
+    showToast('Empresa aprovada!'); fetch('/api/email/aprovacao',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({company_id:id})})
     const {data:flagC} = await supabase.from('feature_flags').select('enabled').eq('key','notify_new_company').maybeSingle()
     if (flagC?.enabled) { fetch('/api/push/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:'🏪 Nova empresa no bairro!',body:'Uma nova empresa acabou de entrar no Trindade Online. Confira!',target:'user'})}) }
     loadCompanies(); loadStats()

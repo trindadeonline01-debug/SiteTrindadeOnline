@@ -204,7 +204,7 @@ export default function DisparosTab() {
     setTestSending(true)
     setTestSent(false)
     try {
-      const res = await fetch("/api/blast/test", {
+      const res = await fetch("https://api.trindadeonline.com.br/send-test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone: testSelected.phone, name: testSelected.name, company: testSelected.name, messages: validMessages })

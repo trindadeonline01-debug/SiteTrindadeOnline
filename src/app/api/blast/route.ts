@@ -6,7 +6,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'http://157.90.156.213:8080'
+const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'https://taste-relocation-recording-decided.trycloudflare.com'
 const EVOLUTION_KEY = process.env.EVOLUTION_API_KEY || 'trindade2024'
 const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE || 'Trindade Online'
 

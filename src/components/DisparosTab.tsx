@@ -300,8 +300,8 @@ export default function DisparosTab() {
           Variações de mensagem <span style={{ color: '#aaa', fontWeight: 400 }}>(até 5 — sorteadas aleatoriamente)</span>
         </label>
         <div style={{ marginBottom: 8 }}>
-          <button onClick={() => { const m = [...messages]; m[activeTextarea] = (m[activeTextarea] || '') + '{{nome}}'; setMessages(m) }} style={{ ...s.varTag, cursor: 'pointer', border: '1px solid #f0d080' }}>+ {{nome}}</button>
-          <button onClick={() => { const m = [...messages]; m[activeTextarea] = (m[activeTextarea] || '') + '{{empresa}}'; setMessages(m) }} style={{ ...s.varTag, cursor: 'pointer', border: '1px solid #f0d080' }}>+ {{empresa}}</button>
+          <button onClick={() => { const m = [...messages]; m[activeTextarea] = (m[activeTextarea] || '') + '{{nome}}'; setMessages(m) }} style={{ ...s.varTag, cursor: 'pointer', border: '1px solid #f0d080' }}>{'+ {{nome}}'}</button>
+          <button onClick={() => { const m = [...messages]; m[activeTextarea] = (m[activeTextarea] || '') + '{{empresa}}'; setMessages(m) }} style={{ ...s.varTag, cursor: 'pointer', border: '1px solid #f0d080' }}>{'+ {{empresa}}'}</button>
         </div>
 
         {messages.map((msg, i) => (

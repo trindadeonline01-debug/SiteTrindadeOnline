@@ -69,6 +69,7 @@ export default function DisparosTab() {
   const [testSelected, setTestSelected] = useState<any>(null)
   const [testSending, setTestSending] = useState(false)
   const [testSent, setTestSent] = useState(false)
+  const [activeTextarea, setActiveTextarea] = useState<number>(0)
 
   useEffect(() => {
     checkWaStatus()
@@ -299,14 +300,14 @@ export default function DisparosTab() {
           Variações de mensagem <span style={{ color: '#aaa', fontWeight: 400 }}>(até 5 — sorteadas aleatoriamente)</span>
         </label>
         <div style={{ marginBottom: 8 }}>
-          <span style={s.varTag}>{'{{nome}}'}</span>
-          <span style={s.varTag}>{'{{empresa}}'}</span>
+          <button onClick={() => { const m = [...messages]; m[activeTextarea] = (m[activeTextarea] || '') + '{{nome}}'; setMessages(m) }} style={{ ...s.varTag, cursor: 'pointer', border: '1px solid #f0d080' }}>+ {{nome}}</button>
+          <button onClick={() => { const m = [...messages]; m[activeTextarea] = (m[activeTextarea] || '') + '{{empresa}}'; setMessages(m) }} style={{ ...s.varTag, cursor: 'pointer', border: '1px solid #f0d080' }}>+ {{empresa}}</button>
         </div>
 
         {messages.map((msg, i) => (
           <div key={i} style={{ position: 'relative', marginBottom: 8 }}>
             <textarea
-              style={{ ...s.textarea, paddingRight: 36 }}
+              style={{ ...s.textarea, paddingRight: 36 }} onFocus={() => setActiveTextarea(i)}
               value={msg}
               onChange={e => { const m = [...messages]; m[i] = e.target.value; setMessages(m) }}
               placeholder={`Variação ${i + 1}...`}

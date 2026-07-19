@@ -64,6 +64,11 @@ export default function DisparosTab() {
   const [blPhone, setBlPhone] = useState('')
   const [blName, setBlName] = useState('')
   const [blReason, setBlReason] = useState('')
+  const [testSearch, setTestSearch] = useState('')
+  const [testResults, setTestResults] = useState<any[]>([])
+  const [testSelected, setTestSelected] = useState<any>(null)
+  const [testSending, setTestSending] = useState(false)
+  const [testSent, setTestSent] = useState(false)
 
   useEffect(() => {
     checkWaStatus()
@@ -178,6 +183,38 @@ export default function DisparosTab() {
     if (!confirm('Cancelar campanha?')) return
     await fetch('/api/blast', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'cancel', campaign_id: id }) })
     await loadCampaigns()
+  }
+
+  async function searchTestContact(q: string) {
+    if (q.length < 2) { setTestResults([]); return }
+    const results: any[] = []
+    const { data: companies } = await supabase.from("companies").select("name, phone").ilike("name", `%${q}%`).not("phone", "is", null).limit(5)
+    const { data: byPhone } = await supabase.from("companies").select("name, phone").ilike("phone", `%${q}%`).not("phone", "is", null).limit(3)
+    ;(companies || []).forEach((c: any) => results.push({ name: c.name, phone: c.phone, type: "company" }))
+    ;(byPhone || []).forEach((c: any) => { if (!results.find(r => r.phone === c.phone)) results.push({ name: c.name, phone: c.phone, type: "company" }) })
+    const { data: residents } = await supabase.from("profiles").select("name, phone").eq("user_type", "user").ilike("name", `%${q}%`).not("phone", "is", null).limit(5)
+    ;(residents || []).forEach((r: any) => results.push({ name: r.name, phone: r.phone, type: "resident" }))
+    setTestResults(results.slice(0, 8))
+  }
+
+  async function sendTest() {
+    if (!testSelected) return
+    const validMessages = messages.filter((m: string) => m.trim())
+    if (validMessages.length === 0) return alert("Adicione pelo menos uma mensagem")
+    setTestSending(true)
+    setTestSent(false)
+    try {
+      const res = await fetch("/api/blast/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: testSelected.phone, name: testSelected.name, company: testSelected.name, messages: validMessages })
+      })
+      const data = await res.json()
+      if (data.ok) { setTestSent(true); setTimeout(() => setTestSent(false), 3000) }
+      else alert("Erro: " + data.error)
+    } finally {
+      setTestSending(false)
+    }
   }
 
   async function addBlacklist() {
@@ -314,6 +351,51 @@ export default function DisparosTab() {
             </div>
           </div>
         )}
+
+        {/* ENVIO DE TESTE */}
+        <div style={{ background: '#f9f9f9', border: '1.5px solid #eee', borderRadius: 12, padding: 16, marginTop: 16, marginBottom: 4 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#888', letterSpacing: 1.5, textTransform: 'uppercase' as const, marginBottom: 12 }}>🧪 Envio de Teste</div>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+            <input
+              style={{ ...s.input, flex: 1 }}
+              placeholder="Buscar por nome ou número..."
+              value={testSearch}
+              onChange={e => { setTestSearch(e.target.value); searchTestContact(e.target.value) }}
+            />
+          </div>
+          {testResults.length > 0 && (
+            <div style={{ background: '#fff', border: '1.5px solid #eee', borderRadius: 10, overflow: 'hidden', marginBottom: 10 }}>
+              {testResults.map((r: any) => (
+                <div key={r.phone} onClick={() => { setTestSelected(r); setTestResults([]) }}
+                  style={{ padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 32, height: 32, background: '#f0f0f0', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>
+                    {r.type === 'company' ? '🏪' : '👤'}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600 }}>{r.name}</div>
+                    <div style={{ fontSize: 11, color: '#aaa' }}>{r.phone}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {testSelected && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#fff8e6', border: '1.5px solid #f0d080', borderRadius: 10, padding: '10px 14px', marginBottom: 10 }}>
+              <div style={{ fontSize: 20 }}>{testSelected.type === 'company' ? '🏪' : '👤'}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 700 }}>{testSelected.name}</div>
+                <div style={{ fontSize: 11, color: '#92600a' }}>{testSelected.phone}</div>
+              </div>
+              <button onClick={() => setTestSelected(null)} style={{ background: 'none', border: 'none', color: '#ccc', cursor: 'pointer', fontSize: 18 }}>×</button>
+            </div>
+          )}
+          <button
+            onClick={sendTest}
+            disabled={!testSelected || testSending}
+            style={{ width: '100%', background: testSelected ? '#111' : '#eee', color: testSelected ? '#fff' : '#aaa', border: 'none', padding: '11px 0', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: testSelected ? 'pointer' : 'not-allowed' }}>
+            {testSending ? 'Enviando...' : testSent ? '✓ Enviado!' : '📤 Enviar teste para este número'}
+          </button>
+        </div>
 
         <button style={s.btnPrimary} onClick={() => createCampaign(true)} disabled={loading}>
           {loading ? 'Criando...' : '🚀 Criar e Disparar Agora'}

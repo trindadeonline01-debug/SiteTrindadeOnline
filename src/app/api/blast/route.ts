@@ -35,7 +35,7 @@ function formatPhone(phone: string): string {
 async function sendWhatsApp(phone: string, message: string): Promise<{ ok: boolean; error?: string }> {
   try {
     const formatted = formatPhone(phone)
-    const res = await fetch(`${EVOLUTION_URL}/message/sendText/${EVOLUTION_INSTANCE}`, {
+    const res = await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(EVOLUTION_INSTANCE)}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

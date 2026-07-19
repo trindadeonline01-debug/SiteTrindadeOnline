@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     const formatted = formatPhone(phone)
     const message = buildMessage(messages, name, company)
 
-    const res = await fetch(`${EVOLUTION_URL}/message/sendText/${EVOLUTION_INSTANCE}`, {
+    const res = await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(EVOLUTION_INSTANCE)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'apikey': EVOLUTION_KEY },
       body: JSON.stringify({ number: formatted, text: message })

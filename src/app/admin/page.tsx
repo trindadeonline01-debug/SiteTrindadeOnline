@@ -620,6 +620,24 @@ export default function AdminPage() {
     const { data: { session } } = await supabase.auth.getSession()
     if (session) await supabase.from('admin_logs').insert({ admin_id: session.user.id, action: 'approve_company', entity_type: 'company', entity_id: id })
     showToast('Empresa aprovada!'); fetch('/api/email/aprovacao',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({company_id:id})})
+    ;(async () => {
+      const { data: co } = await supabase.from('companies').select('name, phone, owner_id').eq('id', id).single()
+      if (!co) return
+      let ph = co.phone
+      if (!ph) {
+        const { data: pr } = await supabase.from('profiles').select('phone').eq('id', co.owner_id).single()
+        ph = pr?.phone
+      }
+      if (!ph) return
+      const msgs = [
+        'Olá ' + co.name + '! Seja bem-vindo ao Trindade Online — o maior site de busca que a Trindade já viu. Qualquer dúvida, é só chamar aqui. Estamos à disposição! 😊',
+        'Oi ' + co.name + ', tudo bem? Agora vocês fazem parte do Trindade Online! Ficamos felizes em ter você com a gente. Qualquer dúvida é só mandar mensagem por aqui.',
+        co.name + ', bem-vindo ao Trindade Online! 🎉 Somos o maior site de busca do bairro Trindade. Este é nosso número de suporte — pode falar à vontade sempre que precisar.',
+        'Olá ' + co.name + '! Vocês agora estão no Trindade Online, o maior site de busca da Trindade. Se tiver qualquer dúvida sobre a plataforma, estamos aqui pra ajudar!',
+        'Oi ' + co.name + '! Seja bem-vindo à plataforma Trindade Online. 🙌 Este número é nosso suporte direto — qualquer dúvida que surgir, pode chamar aqui que a gente resolve!'
+      ]
+      fetch('https://api.trindadeonline.com.br/send-test', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:ph,name:co.name,company:co.name,messages:msgs})})
+    })()
     const {data:flagC} = await supabase.from('feature_flags').select('enabled').eq('key','notify_new_company').maybeSingle()
     if (flagC?.enabled) { fetch('/api/push/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:'🏪 Nova empresa no bairro!',body:'Uma nova empresa acabou de entrar no Trindade Online. Confira!',target:'user'})}) }
     loadCompanies(); loadStats()

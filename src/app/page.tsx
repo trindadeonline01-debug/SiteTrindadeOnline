@@ -28,6 +28,7 @@ interface Highlight {
 interface Listing {
   id: string; title: string; price: number | null
   type: string; created_at: string
+  photos?: { url: string; order: number }[]
 }
 
 interface Banner {
@@ -134,7 +135,7 @@ export default function HomePage() {
     const map: Record<string, Listing[]> = {}
     for (const type of types) {
       const { data: ld } = await supabase
-        .from('listings').select('id, title, price, type, created_at')
+        .from('listings').select('id, title, price, type, created_at, photos:listing_photos(url,order)')
         .eq('type', type).eq('status', 'active')
         .order('created_at', { ascending: false }).limit(3)
       map[type] = (ld || []) as Listing[]
@@ -718,9 +719,16 @@ export default function HomePage() {
             {(recentListings['desapega'] || []).length === 0
               ? <div className="empty-state" style={{ padding:'16px 14px' }}>Nenhum anúncio ainda</div>
               : (recentListings['desapega'] || []).map(l => (
-                  <a key={l.id} className="listing-item" href={`/anuncio/${l.id}`}>
-                    <div className="li-title">{l.title}</div>
-                    {l.price && <div className="li-price">R$ {l.price.toLocaleString('pt-BR')}</div>}
+                  <a key={l.id} className="listing-item" href={`/anuncio/${l.id}`} style={{display:'flex',alignItems:'center',gap:10}}>
+                    {l.photos?.length ? (
+                      <img src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title} style={{width:52,height:52,objectFit:'cover',borderRadius:8,flexShrink:0}}/>
+                    ) : (
+                      <div style={{width:52,height:52,background:'#F0EDE8',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,flexShrink:0}}>🏷️</div>
+                    )}
+                    <div style={{flex:1,minWidth:0}}>
+                      <div className="li-title">{l.title}</div>
+                      {l.price && <div className="li-price">R$ {l.price.toLocaleString('pt-BR')}</div>}
+                    </div>
                   </a>
                 ))
             }

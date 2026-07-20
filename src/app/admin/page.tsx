@@ -4,6 +4,7 @@ import { compressImage } from '@/lib/compressImage'
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import NotificacoesTab from '@/components/admin/NotificacoesTab'
+import DashboardTab from '@/components/admin/DashboardTab'
 import DisparosTab from '@/components/DisparosTab'
 import PhotoManager from '@/components/PhotoManager'
 import dynamic from 'next/dynamic'
@@ -1370,79 +1371,7 @@ export default function AdminPage() {
             {loading && <div style={{ textAlign:'center', padding:'60px', color:'#AAA' }}>Carregando dados...</div>}
 
             {/* ── DASHBOARD ── */}
-            {!loading && tab === 'dashboard' && (
-              <>
-                <div className="stats-grid">
-                  <div className="stat-card">
-                    <div className="stat-label">Total de Usuários</div>
-                    <div className="stat-num stat-up">{stats?.total_users || 0}</div>
-                    <div className="stat-sub">+{stats?.users_today || 0} hoje · +{stats?.users_week || 0} essa semana</div>
-                  </div>
-                  <div className="stat-card">
-                    <div className="stat-label">Empresas Cadastradas</div>
-                    <div className="stat-num stat-warn">{stats?.total_companies || 0}</div>
-                    <div className="stat-sub">{stats?.active || 0} ativas · {stats?.pending || 0} aguardando aprovação</div>
-                  </div>
-                  <div className="stat-card">
-                    <div className="stat-label">Total de Buscas</div>
-                    <div className="stat-num" style={{ color:'#185FA5' }}>{stats?.total_searches || 0}</div>
-                    <div className="stat-sub">{stats?.searches_today || 0} hoje</div>
-                  </div>
-                  <div className="stat-card">
-                    <div className="stat-label">Pendentes de Aprovação</div>
-                    <div className={`stat-num ${stats?.pending ? 'stat-danger' : 'stat-up'}`}>{stats?.pending || 0}</div>
-                    <div className="stat-sub">{stats?.pending ? 'Requer atenção' : 'Tudo em dia ✓'}</div>
-                  </div>
-                </div>
-
-                {(stats?.pending || 0) > 0 && (
-                  <div className="section-card">
-                    <div className="section-hdr">
-                      <span className="section-title">⚠️ EMPRESAS AGUARDANDO APROVAÇÃO</span>
-                      <button className="filter-btn on" onClick={() => setTab('empresas')}>Ver todas →</button>
-                    </div>
-                    <table className="data-table">
-                      <thead><tr><th>Empresa</th><th>Responsável</th><th>Categoria</th><th>Data</th><th>Ação</th></tr></thead>
-                      <tbody>
-                        {companies.filter(c => c.status === 'pending').slice(0,5).map(c => (
-                          <tr key={c.id}>
-                            <td><strong>{c.name}</strong></td>
-                            <td>{c.owner?.name || '—'}</td>
-                            <td>{c.category?.emoji} {c.category?.name || '—'}</td>
-                            <td>{fmtDate(c.created_at)}</td>
-                            <td>
-                              <button className="action-btn btn-approve" onClick={() => approveCompany(c.id)}>✓ Aprovar</button>
-                              <button className="action-btn btn-suspend" onClick={() => suspendCompany(c.id)}>✗ Recusar</button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-
-                <div className="section-card">
-                  <div className="section-hdr"><span className="section-title">🔍 TOP 10 BUSCAS</span></div>
-                  {searches.length === 0
-                    ? <div className="empty-state"><div>🔍</div><div>Nenhuma busca registrada ainda</div></div>
-                    : <table className="data-table">
-                        <thead><tr><th>#</th><th>Termo</th><th>Buscas</th><th>Sem resultado</th></tr></thead>
-                        <tbody>
-                          {searches.slice(0,10).map((s,i) => (
-                            <tr key={s.query}>
-                              <td><span className={`rank-num ${i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':''}`}>{i+1}</span></td>
-                              <td><strong>{s.query}</strong></td>
-                              <td>{s.count}</td>
-                              <td>{s.no_result > 0 ? <span className="no-result-badge">{s.no_result} sem resultado</span> : <span style={{color:'#AAA'}}>—</span>}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                  }
-                </div>
-              </>
-            )}
-
+            {tab === 'dashboard' && <DashboardTab onGoToTab={(t) => setTab(t as any)} />}
             {/* ── EMPRESAS ── */}
             {!loading && tab === 'empresas' && (
               <div className="section-card">

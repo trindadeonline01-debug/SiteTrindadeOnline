@@ -630,11 +630,11 @@ export default function AdminPage() {
       }
       if (!ph) return
       const msgs = [
-        'Olá ' + co.name + '! Seja bem-vindo ao Trindade Online — o maior site de busca que a Trindade já viu. Qualquer dúvida, é só chamar aqui. Estamos à disposição! 😊',
-        'Oi ' + co.name + ', tudo bem? Agora vocês fazem parte do Trindade Online! Ficamos felizes em ter você com a gente. Qualquer dúvida é só mandar mensagem por aqui.',
-        co.name + ', bem-vindo ao Trindade Online! 🎉 Somos o maior site de busca do bairro Trindade. Este é nosso número de suporte — pode falar à vontade sempre que precisar.',
-        'Olá ' + co.name + '! Vocês agora estão no Trindade Online, o maior site de busca da Trindade. Se tiver qualquer dúvida sobre a plataforma, estamos aqui pra ajudar!',
-        'Oi ' + co.name + '! Seja bem-vindo à plataforma Trindade Online. 🙌 Este número é nosso suporte direto — qualquer dúvida que surgir, pode chamar aqui que a gente resolve!'
+        '🎉 *' + co.name + '*, seja bem-vindo ao *Trindade Online!*\n\nSomos o maior site de busca da Trindade. Sua empresa agora pode ser encontrada por todos os moradores do bairro.\n\nQualquer dúvida é só chamar aqui. Estamos à disposição! 😊',
+        '👋 Oi, *' + co.name + '*!\n\nVocês agora fazem parte do *Trindade Online* — o maior site de busca do bairro Trindade. 🏘️\n\nEste é nosso suporte direto. Pode falar sempre que precisar!',
+        '🚀 *' + co.name + '*, bem-vindo!\n\nSua empresa está no *Trindade Online*, o maior site de busca da Trindade.\n\nQualquer dúvida sobre a plataforma, é só mandar mensagem aqui. 👆',
+        '🏪 *' + co.name + '* agora está no *Trindade Online!*\n\nSomos o maior site de busca do bairro Trindade e sua empresa já pode ser encontrada pelos moradores.\n\nEstamos aqui para ajudar no que precisar! 😊',
+        '✅ Cadastro confirmado!\n\n*' + co.name + '*, seja bem-vindo à plataforma *Trindade Online*. 🎉\n\nEste número é nosso suporte — qualquer dúvida que surgir, pode chamar aqui que a gente resolve!'
       ]
       fetch('https://api.trindadeonline.com.br/send-test', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:ph,name:co.name,company:co.name,messages:msgs})})
     })()

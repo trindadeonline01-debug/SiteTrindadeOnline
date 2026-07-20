@@ -322,14 +322,22 @@ export default function EmpresaCadastrarPage() {
 
           {ok ? (
             <div style={{ textAlign:'center', padding:'16px 0' }}>
-              <div style={{ fontSize:56, marginBottom:16 }}>⏳</div>
-              <div style={{ fontSize:20, fontWeight:700, color:'#111', marginBottom:8 }}>Cadastro enviado!</div>
-              <div style={{ fontSize:13, color:'#888', lineHeight:1.8, marginBottom:24 }}>
-                <strong>{nome.toUpperCase()}</strong> está em análise.<br/>
-                Nossa equipe do Trindade Online vai verificar e você receberá uma notificação assim que estiver no ar.<br/>
-                Prazo: até 24 horas.
+              <div style={{ fontSize:56, marginBottom:16 }}>🎉</div>
+              <div style={{ fontSize:22, fontWeight:700, color:'#111', marginBottom:8 }}>Cadastro recebido!</div>
+              <div style={{ fontSize:13, color:'#555', lineHeight:1.9, marginBottom:16 }}>
+                <strong>{nome.toUpperCase()}</strong> foi cadastrada e está em análise.<br/>
+                Em até 24h sua empresa estará no ar para todos os moradores da Trindade encontrarem.
               </div>
-              <button className="btn-primary" onClick={() => window.location.href = '/empresa/planos'}>Voltar ao início</button>
+              <div style={{ background:'#fff8e6', border:'1.5px solid #f0d080', borderRadius:12, padding:'14px 16px', marginBottom:24, textAlign:'left' }}>
+                <div style={{ fontSize:13, fontWeight:700, color:'#92600a', marginBottom:6 }}>💡 Enquanto isso, que tal já escolher seu plano?</div>
+                <div style={{ fontSize:12, color:'#b89030', lineHeight:1.7 }}>
+                  Empresas com plano pago aparecem em destaque, mostram o WhatsApp e recebem muito mais clientes. Você pode escolher agora e ativar quando quiser.
+                </div>
+              </div>
+              <button className="btn-primary" onClick={() => window.location.href = '/empresa/planos'}>🚀 Destaque sua empresa agora</button>
+              <div style={{ marginTop:12 }}>
+                <a href="/" style={{ fontSize:12, color:'#aaa', textDecoration:'none' }}>Voltar ao início</a>
+              </div>
             </div>
           ) : (
             <>

@@ -46,6 +46,7 @@ const statusLabel = (s: string) => s === 'active' ? 'Ativa' : s === 'pending' ? 
 
 export default function AdminPage() {
   const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'denuncias'|'usuarios'|'buscas'|'atividade'|'banners'|'pedidos-banner'|'configuracoes'|'recursos'|'planos'|'aparencia'|'subcategorias'|'vendas'|'sugestoes'|'notificacoes'|'disparos'>('dashboard')
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [stats, setStats]           = useState<Stats|null>(null)
   const [companies, setCompanies]   = useState<Company[]>([])
   const [emailLogs, setEmailLogs]     = useState<Record<string,number>>({})
@@ -875,6 +876,30 @@ export default function AdminPage() {
           display: flex; flex-direction: column;
           position: sticky; top: 0; height: 100vh; overflow-y: auto;
         }
+        .sidebar-footer {
+          flex-shrink: 0; padding: 16px 20px; border-top: 1px solid #222;
+          display: flex; flex-direction: column; gap: 8px; background: #111;
+        }
+        .sidebar-overlay {
+          display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 98;
+        }
+        .btn-hamburger {
+          display: none; background: none; border: none; color: #fff;
+          font-size: 22px; cursor: pointer; padding: 4px 8px;
+        }
+        @media (max-width: 768px) {
+          .sidebar {
+            position: fixed; left: 0; top: 0; z-index: 99;
+            transform: translateX(-100%); transition: transform 0.25s ease;
+          }
+          .sidebar.open { transform: translateX(0); }
+          .sidebar-overlay.open { display: block; }
+          .admin-main { margin-left: 0 !important; }
+          .btn-hamburger { display: block; }
+          .admin-body { padding: 16px; }
+          .stats-grid { grid-template-columns: repeat(2,1fr) !important; }
+          .admin-topbar { padding: 12px 16px; }
+        }
         .sidebar-logo {
           padding: 24px 20px 20px;
           font-family: 'Bebas Neue', sans-serif;
@@ -900,11 +925,7 @@ export default function AdminPage() {
           margin-left: auto; background: #E24B4A; color: #fff;
           font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 10px;
         }
-        .sidebar-footer {
-          margin-top: auto; padding: 16px 20px;
-          border-top: 1px solid #222;
-          display: flex; flex-direction: column; gap: 8px;
-        }
+        /* sidebar-footer movido para cima */
         .sidebar-footer a {
           font-size: 12px; color: #555; text-decoration: none;
           display: flex; align-items: center; gap: 6px;
@@ -1297,7 +1318,8 @@ export default function AdminPage() {
       <div className="admin-layout">
 
         {/* SIDEBAR */}
-        <aside className="sidebar">
+        <div className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`} onClick={() => setSidebarOpen(false)}></div>
+        <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
           <div className="sidebar-logo">
             TRINDADE <span>ONLINE</span>
             <br/>
@@ -1327,7 +1349,7 @@ export default function AdminPage() {
             <div
               key={n.id}
               className={`nav-item ${tab === n.id ? 'on' : ''}`}
-              onClick={() => setTab(n.id as any)}
+              onClick={() => { setTab(n.id as any); setSidebarOpen(false) }}
             >
               <span>{n.icon}</span>
               <span>{n.label}</span>
@@ -1344,6 +1366,7 @@ export default function AdminPage() {
         {/* MAIN */}
         <main className="admin-main">
           <div className="admin-topbar">
+              <button className="btn-hamburger" onClick={() => setSidebarOpen(true)}>☰</button>
             <div className="topbar-title">
               {tab === 'dashboard' && 'Dashboard'}
               {tab === 'empresas'  && 'Gestão de Empresas'}

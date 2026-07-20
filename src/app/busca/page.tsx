@@ -199,6 +199,17 @@ function BuscaContent() {
 
         .footer{padding:24px 0 0;text-align:left;font-size:12px;color:#AAA;border-top:0.5px solid #F0EDE8;margin-top:16px;}
         .footer a{color:#C9951A;text-decoration:none;}
+        /* RESULTS GRID — Desapega, Empregos, Imóveis */
+        .results-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+        @media(min-width:640px){.results-grid{grid-template-columns:repeat(3,1fr);}}
+        .result-card{display:flex;flex-direction:column;background:#FAFAF8;border:0.5px solid #E0DDD8;border-radius:12px;overflow:hidden;text-decoration:none;transition:all .15s;}
+        .result-card:hover{border-color:#C9951A;box-shadow:0 2px 8px rgba(0,0,0,0.08);}
+        .rc-img{height:100px;background:#F0EDE8;display:flex;align-items:center;justify-content:center;font-size:28px;overflow:hidden;flex-shrink:0;}
+        .rc-img img{width:100%;height:100%;object-fit:cover;}
+        .rc-body{padding:8px 10px;}
+        .rc-name{font-size:13px;font-weight:600;color:#111;margin-bottom:2px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+        .rc-cat{font-size:12px;color:#C9951A;font-weight:600;margin-bottom:2px;}
+        .rc-addr{font-size:11px;color:#999;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
       `}</style>
 
       <div className="topbar">

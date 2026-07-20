@@ -636,7 +636,22 @@ export default function AdminPage() {
         '🏪 *' + co.name + '* agora está no *Trindade Online!*\n\nSomos o maior site de busca do bairro Trindade e sua empresa já pode ser encontrada pelos moradores.\n\n👉 Clique no link e escolha seu plano:\nhttps://www.trindadeonline.com.br/empresa/planos',
         '✅ Cadastro confirmado!\n\n*' + co.name + '*, seja bem-vindo à plataforma *Trindade Online*. 🎉\n\nAgora é só escolher o plano ideal para sua empresa:\nhttps://www.trindadeonline.com.br/empresa/planos'
       ]
-      fetch('https://api.trindadeonline.com.br/send-test', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:ph,name:co.name,company:co.name,messages:msgs})})
+      const msg1Options = [
+        '🎉 *' + co.name + '*, seja bem-vindo ao *Trindade Online!*\n\nSomos o maior site de busca da Trindade. Sua empresa agora pode ser encontrada por todos os moradores do bairro.\n\nQualquer dúvida é só chamar aqui. Estamos à disposição! 😊',
+        '👋 Oi, *' + co.name + '*!\n\nVocês agora fazem parte do *Trindade Online* — o maior site de busca do bairro Trindade. 🏘️\n\nEste é nosso suporte direto. Pode falar sempre que precisar!',
+        '🚀 *' + co.name + '*, bem-vindo!\n\nSua empresa está no *Trindade Online*, o maior site de busca da Trindade.\n\nQualquer dúvida sobre a plataforma, é só mandar mensagem aqui. 👆',
+        '🏪 *' + co.name + '* agora está no *Trindade Online!*\n\nSomos o maior site de busca do bairro Trindade e sua empresa já pode ser encontrada pelos moradores.\n\nEstamos aqui para ajudar no que precisar! 😊',
+        '✅ Cadastro confirmado!\n\n*' + co.name + '*, seja bem-vindo à plataforma *Trindade Online*. 🎉\n\nEste é nosso suporte — qualquer dúvida que surgir, pode chamar aqui que a gente resolve!'
+      ]
+      const msg2Options = [
+        '👇 *Próximo passo:* escolha o plano ideal para sua empresa e apareça em destaque para todos os moradores da Trindade!\n\nhttps://www.trindadeonline.com.br/empresa/planos',
+        '💡 *Dica importante:* empresas com plano pago aparecem com WhatsApp, endereço e link visíveis. Escolha o seu plano agora:\n\nhttps://www.trindadeonline.com.br/empresa/planos',
+        '🌟 Quer aparecer em destaque na Trindade? Escolha seu plano e ative agora:\n\nhttps://www.trindadeonline.com.br/empresa/planos',
+        '📲 Para liberar o WhatsApp e o endereço completo da sua empresa, escolha um plano:\n\nhttps://www.trindadeonline.com.br/empresa/planos',
+        '🔓 *Desbloqueie todos os recursos* da sua empresa no Trindade Online. Escolha seu plano agora:\n\nhttps://www.trindadeonline.com.br/empresa/planos'
+      ]
+      const idx = Math.floor(Math.random() * msg1Options.length)
+      fetch('https://api.trindadeonline.com.br/send-welcome', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:ph,name:co.name,company:co.name,msg1:msg1Options[idx],msg2:msg2Options[idx],delay_ms:120000})})
     })()
     const {data:flagC} = await supabase.from('feature_flags').select('enabled').eq('key','notify_new_company').maybeSingle()
     if (flagC?.enabled) { fetch('/api/push/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:'🏪 Nova empresa no bairro!',body:'Uma nova empresa acabou de entrar no Trindade Online. Confira!',target:'user'})}) }

@@ -651,7 +651,8 @@ export default function AdminPage() {
         '🔓 *Desbloqueie todos os recursos* da sua empresa no Trindade Online. Escolha seu plano agora:\n\nhttps://www.trindadeonline.com.br/empresa/planos'
       ]
       const idx = Math.floor(Math.random() * msg1Options.length)
-      fetch('https://api.trindadeonline.com.br/send-welcome', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:ph,name:co.name,company:co.name,msg1:msg1Options[idx],msg2:msg2Options[idx],delay_ms:120000})})
+      const msg3 = '📌 *Salve esse número na sua agenda!*\n\nPor aqui você terá todo o suporte do *Trindade Online* sempre que precisar.\n\nÉ rápido e fácil — salva agora como *"Trindade Online Suporte"* 😊'
+      fetch('https://api.trindadeonline.com.br/send-welcome', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:ph,name:co.name,company:co.name,msg1:msg1Options[idx],msg2:msg2Options[idx],msg3,delay1_ms:120000,delay2_ms:600000})})
     })()
     const {data:flagC} = await supabase.from('feature_flags').select('enabled').eq('key','notify_new_company').maybeSingle()
     if (flagC?.enabled) { fetch('/api/push/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:'🏪 Nova empresa no bairro!',body:'Uma nova empresa acabou de entrar no Trindade Online. Confira!',target:'user'})}) }

@@ -53,6 +53,7 @@ export default function AdminPage() {
   const [users, setUsers]           = useState<Profile[]>([])
   const [searches, setSearches]     = useState<SearchLog[]>([])
   const [filterStatus, setFilter]   = useState('all')
+  const [filterPlan, setFilterPlan]   = useState('all')
   const [searchCompany, setSearchCompany] = useState('')
   const [searchUser, setSearchUser] = useState('')
   const [filterUserType, setFilterUserType] = useState('all')
@@ -860,7 +861,7 @@ export default function AdminPage() {
   if (authorized === null) return <div style={{ display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',fontFamily:'Inter,sans-serif',color:'#AAA' }}>Verificando acesso...</div>
   if (authorized === false) return <div style={{ display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',fontFamily:'Inter,sans-serif' }}><div style={{ textAlign:'center' }}><div style={{ fontSize:48,marginBottom:16 }}>🚫</div><div style={{ fontSize:20,fontWeight:700 }}>Acesso negado</div><div style={{ color:'#AAA',marginTop:8 }}>Você não tem permissão para acessar esta página.</div></div></div>
 
-  const filteredCompanies = companies.filter(c => (filterStatus === 'all' || c.status === filterStatus) && (searchCompany === '' || c.name.toLowerCase().includes(searchCompany.toLowerCase()) || (c.owner?.name||'').toLowerCase().includes(searchCompany.toLowerCase())))
+  const filteredCompanies = companies.filter(c => (filterStatus === 'all' || c.status === filterStatus) && (filterPlan === 'all' || (filterPlan === 'paid' ? c.plan === 'paid' : c.plan !== 'paid')) && (searchCompany === '' || c.name.toLowerCase().includes(searchCompany.toLowerCase()) || (c.owner?.name||'').toLowerCase().includes(searchCompany.toLowerCase())))
 
   return (
     <>
@@ -1407,6 +1408,11 @@ export default function AdminPage() {
                         {f==='all'?'Todas':f==='pending'?'Pendentes':f==='active'?'Ativas':'Suspensas'}
                         {f==='pending' && stats?.pending ? ` (${stats.pending})` : ''}
                       </button>
+                    ))}
+                  </div>
+                  <div className="filter-row" style={{marginTop:6}}>
+                    {[['all','Todos os planos'],['paid','Plano pago'],['free','Plano gratuito']].map(([val,lbl]) => (
+                      <button key={val} className={`filter-btn ${filterPlan===val?'on':''}`} onClick={()=>setFilterPlan(val)}>{lbl}</button>
                     ))}
                   </div>
                 </div>

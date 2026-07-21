@@ -150,11 +150,14 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
       favorites: 0
     })
 
-    // Views por dia (últimos 7 dias)
+    // Buscas por dia (últimos 7 dias) — dados reais
     const days: DayData[] = []
     for (let i = 6; i >= 0; i--) {
       const d = new Date(Date.now() - i * 86400000)
-      days.push({ day: d.toLocaleDateString('pt-BR', { weekday: 'short' }), views: Math.floor(Math.random() * 400 + 400) })
+      const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate()).toISOString()
+      const dayEnd = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59).toISOString()
+      const { count } = await supabase.from('search_logs').select('*', { count: 'exact', head: true }).gte('created_at', dayStart).lte('created_at', dayEnd)
+      days.push({ day: d.toLocaleDateString('pt-BR', { weekday: 'short' }), views: count || 0 })
     }
     setWeeklyViews(days)
     setLoading(false)
@@ -265,7 +268,7 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
 
       {/* GRÁFICO LINHA */}
       <div style={s.chartCard}>
-        <div style={s.chartTitle}>Visualizações por dia</div>
+        <div style={s.chartTitle}>Buscas por dia</div>
         <div style={{ position: 'relative', height: 180 }}>
           <canvas ref={lineRef}></canvas>
         </div>
@@ -276,7 +279,7 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
       <div style={s.grid3}>
         <div style={s.card}>
           <span style={s.cardIcon}>✅</span>
-          <div style={s.cardLabel}>Pagas ativas</div>
+          <div style={s.cardLabel}>Pagas ativas <span style={{fontSize:10,color:'#aaa',fontWeight:400}}>(total atual)</span></div>
           {num(stats.paid, '#16a34a')}
           <div style={{ fontSize: 12, color: '#aaa', marginBottom: 12 }}>R$ {(stats.paid * 49.9).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/mês estimado</div>
           <div style={{ background: '#f0f0f0', borderRadius: 99, height: 5, overflow: 'hidden' }}>
@@ -285,7 +288,7 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
         </div>
         <div style={s.card}>
           <span style={s.cardIcon}>🆓</span>
-          <div style={s.cardLabel}>Cadastros gratuitos</div>
+          <div style={s.cardLabel}>Cadastros gratuitos <span style={{fontSize:10,color:'#aaa',fontWeight:400}}>(total atual)</span></div>
           {num(stats.free, '#C9951A')}
           <div style={{ fontSize: 12, color: '#C9951A', marginBottom: 12 }}>Potencial de conversão</div>
           <div style={{ background: '#f0f0f0', borderRadius: 99, height: 5, overflow: 'hidden' }}>

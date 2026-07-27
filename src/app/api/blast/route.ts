@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
       const { name, messages, filter, delay_min, delay_max, scheduled_at } = data
 
       // Busca contatos conforme filtro
-      let contacts: { phone: string; name: string; company: string }[] = []
+      let contacts: { phone: string; name: string; company: string; owner_id?: string }[] = []
 
       if (filter === 'all' || filter === 'paid' || filter === 'unpaid') {
         // Empresas
@@ -75,6 +75,19 @@ export async function POST(req: NextRequest) {
         if (filter === 'unpaid') query = query.neq('plan', 'paid')
         const { data: companies } = await query
         contacts = [...contacts, ...(companies || []).map((c: any) => ({ phone: c.phone, name: c.name, company: c.name }))]
+      }
+
+      if (filter === 'no_group') {
+        // Empresas cujo dono ainda não está marcado como "Grupo WA"
+        const { data: companies } = await supabase
+          .from('companies')
+          .select('name, phone, owner_id, owner:profiles(whatsapp_group)')
+          .not('phone', 'is', null).neq('phone', '')
+        const withoutGroup = (companies || []).filter((c: any) => {
+          const owner = Array.isArray(c.owner) ? c.owner[0] : c.owner
+          return !owner?.whatsapp_group
+        })
+        contacts = [...contacts, ...withoutGroup.map((c: any) => ({ phone: c.phone, name: c.name, company: c.name, owner_id: c.owner_id }))]
       }
 
       if (filter === 'all' || filter === 'residents') {
@@ -122,6 +135,7 @@ export async function POST(req: NextRequest) {
         phone: c.phone,
         contact_name: c.name,
         company_name: c.company,
+        owner_id: c.owner_id || null,
         status: 'pending'
       }))
       await supabase.from('blast_logs').insert(logs)
@@ -159,6 +173,12 @@ export async function POST(req: NextRequest) {
 
           if (result.ok) {
             await supabase.from('blast_campaigns').update({ sent_count: campaign.sent_count + 1 }).eq('id', campaign_id)
+            if (campaign.filter === 'no_group' && log.owner_id) {
+              await supabase.from('profiles').update({
+                whatsapp_group: true,
+                whatsapp_group_at: new Date().toISOString()
+              }).eq('id', log.owner_id)
+            }
           } else {
             await supabase.from('blast_campaigns').update({ failed_count: campaign.failed_count + 1 }).eq('id', campaign_id)
           }

@@ -293,8 +293,14 @@ export default function DisparosTab() {
           <option value="all">👥 Todos (empresas + moradores)</option>
           <option value="paid">💛 Só empresas pagas</option>
           <option value="unpaid">⭕ Só empresas não pagas</option>
+          <option value="no_group">📵 Empresas sem grupo WA</option>
           <option value="residents">🏘️ Só moradores</option>
         </select>
+        {filter === 'no_group' && (
+          <div style={{ fontSize: 11, color: '#92600a', marginTop: 6 }}>
+            ✅ Ao enviar, cada empresa contatada é marcada automaticamente como "Grupo WA" na aba Usuários.
+          </div>
+        )}
 
         <label style={s.label}>
           Variações de mensagem <span style={{ color: '#aaa', fontWeight: 400 }}>(até 5 — sorteadas aleatoriamente)</span>

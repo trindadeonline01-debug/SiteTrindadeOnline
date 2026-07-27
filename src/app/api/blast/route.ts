@@ -180,6 +180,17 @@ export async function POST(req: NextRequest) {
           const message = buildMessage(campaign.messages, log.contact_name || 'Cliente', log.company_name || '')
           const result = await sendWhatsApp(log.phone, message)
 
+          // Marca o Grupo WA logo apos o envio confirmado, antes de qualquer outra
+          // escrita — se o processo for interrompido em seguida (comum em loop
+          // longo rodando em background no serverless), o que importa de verdade
+          // (o convite foi entregue) ja fica registrado
+          if (result.ok && campaign.filter === 'no_group' && log.owner_id) {
+            await supabase.from('profiles').update({
+              whatsapp_group: true,
+              whatsapp_group_at: new Date().toISOString()
+            }).eq('id', log.owner_id)
+          }
+
           await supabase.from('blast_logs').update({
             status: result.ok ? 'sent' : 'failed',
             message_sent: message,
@@ -192,12 +203,6 @@ export async function POST(req: NextRequest) {
           const { data: freshCampaign } = await supabase.from('blast_campaigns').select('sent_count, failed_count').eq('id', campaign_id).single()
           if (result.ok) {
             await supabase.from('blast_campaigns').update({ sent_count: (freshCampaign?.sent_count || 0) + 1 }).eq('id', campaign_id)
-            if (campaign.filter === 'no_group' && log.owner_id) {
-              await supabase.from('profiles').update({
-                whatsapp_group: true,
-                whatsapp_group_at: new Date().toISOString()
-              }).eq('id', log.owner_id)
-            }
           } else {
             await supabase.from('blast_campaigns').update({ failed_count: (freshCampaign?.failed_count || 0) + 1 }).eq('id', campaign_id)
           }

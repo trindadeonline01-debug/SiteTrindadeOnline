@@ -148,6 +148,11 @@ export async function POST(req: NextRequest) {
       const { data: campaign } = await supabase.from('blast_campaigns').select('*').eq('id', campaign_id).single()
       if (!campaign) return NextResponse.json({ error: 'Campanha não encontrada' }, { status: 404 })
 
+      // Evita loops duplicados: só inicia um novo loop se a campanha não estiver rodando
+      if (campaign.status === 'running') {
+        return NextResponse.json({ ok: true, message: 'Campanha já está em andamento' })
+      }
+
       // Atualiza status
       await supabase.from('blast_campaigns').update({ status: 'running', started_at: new Date().toISOString() }).eq('id', campaign_id)
 
@@ -161,6 +166,17 @@ export async function POST(req: NextRequest) {
           const { data: current } = await supabase.from('blast_campaigns').select('status').eq('id', campaign_id).single()
           if (current?.status === 'paused') break
 
+          // Reivindica o contato de forma atômica: só segue se conseguir mudar
+          // de 'pending' pra 'sending' — evita que outro loop concorrente
+          // (ex: retomar clicado enquanto o loop anterior ainda está de pé) envie de novo
+          const { data: claimed } = await supabase
+            .from('blast_logs')
+            .update({ status: 'sending' })
+            .eq('id', log.id)
+            .eq('status', 'pending')
+            .select('id')
+          if (!claimed || claimed.length === 0) continue
+
           const message = buildMessage(campaign.messages, log.contact_name || 'Cliente', log.company_name || '')
           const result = await sendWhatsApp(log.phone, message)
 
@@ -171,8 +187,11 @@ export async function POST(req: NextRequest) {
             sent_at: new Date().toISOString()
           }).eq('id', log.id)
 
+          // Le a contagem atual antes de incrementar (evita contador "congelado"
+          // quando ha mais de uma leva de envios na mesma campanha)
+          const { data: freshCampaign } = await supabase.from('blast_campaigns').select('sent_count, failed_count').eq('id', campaign_id).single()
           if (result.ok) {
-            await supabase.from('blast_campaigns').update({ sent_count: campaign.sent_count + 1 }).eq('id', campaign_id)
+            await supabase.from('blast_campaigns').update({ sent_count: (freshCampaign?.sent_count || 0) + 1 }).eq('id', campaign_id)
             if (campaign.filter === 'no_group' && log.owner_id) {
               await supabase.from('profiles').update({
                 whatsapp_group: true,
@@ -180,7 +199,7 @@ export async function POST(req: NextRequest) {
               }).eq('id', log.owner_id)
             }
           } else {
-            await supabase.from('blast_campaigns').update({ failed_count: campaign.failed_count + 1 }).eq('id', campaign_id)
+            await supabase.from('blast_campaigns').update({ failed_count: (freshCampaign?.failed_count || 0) + 1 }).eq('id', campaign_id)
           }
 
           // Delay aleatório

@@ -123,6 +123,7 @@ export default function AdminPage() {
   const [subcatSearch, setSubcatSearch]     = useState('')
   const [sugestoesList, setSugestoesList]   = useState<any[]>([])
   const [subcatForm, setSubcatForm]         = useState<any>({ name:'', emoji:'', category_id:'' })
+  const [pendingSuggestionId, setPendingSuggestionId] = useState<string|null>(null)
   const [editingSubcatId, setEditingSubcatId] = useState<string|null>(null)
   const [savingSubcat, setSavingSubcat]     = useState(false)
   const [subcatEmojiOpen, setSubcatEmojiOpen] = useState(false)
@@ -381,6 +382,11 @@ export default function AdminPage() {
         category_id: subcatForm.category_id,
         slug
       })
+      if (pendingSuggestionId) {
+        await supabase.from('subcategory_suggestions').delete().eq('id', pendingSuggestionId)
+        setSugestoesList((prev:any[]) => prev.filter(s => s.id !== pendingSuggestionId))
+        setPendingSuggestionId(null)
+      }
     }
     setSavingSubcat(false)
     setSubcatForm({ name:'', emoji:'', category_id:'' })
@@ -392,6 +398,7 @@ export default function AdminPage() {
   function editSubcat(sc: any) {
     setSubcatForm({ name: sc.name, emoji: sc.emoji, category_id: sc.category_id })
     setEditingSubcatId(sc.id)
+    setPendingSuggestionId(null)
   }
 
   async function deleteSubcat(id: string) {
@@ -2216,6 +2223,14 @@ export default function AdminPage() {
                   Cadastre, edite ou exclua subcategorias. Empresas usando uma subcategoria excluída perdem esse vínculo automaticamente.
                 </div>
 
+                {pendingSuggestionId && (
+                  <div style={{display:'flex',alignItems:'center',gap:10,background:'#FEF3E2',border:'1px solid #F5C77A',borderRadius:10,padding:'10px 14px',marginBottom:14,fontSize:12,color:'#854F0B'}}>
+                    <span style={{flex:1}}>💡 Preenchido a partir de uma sugestão — escolha o emoji e a categoria e salve. A sugestão some da lista automaticamente.</span>
+                    <button onClick={()=>{setPendingSuggestionId(null);setSubcatForm({name:'',emoji:'',category_id:''})}}
+                      style={{background:'none',border:'none',color:'#854F0B',cursor:'pointer',fontSize:12,textDecoration:'underline'}}>cancelar</button>
+                  </div>
+                )}
+
                 <div style={{background:'#fff',border:'0.5px solid #EDE8E0',borderRadius:14,padding:'20px 24px',marginBottom:24}}>
                   <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:14,color:'#888',letterSpacing:1,marginBottom:16}}>
                     {editingSubcatId ? '✏️ EDITAR SUBCATEGORIA' : '+ NOVA SUBCATEGORIA'}
@@ -2602,7 +2617,7 @@ export default function AdminPage() {
                           <td style={{fontSize:14,color:'#333'}}>{s.suggestion}</td>
                           <td style={{fontSize:12,color:'#999'}}>{fmtDate(s.created_at)}</td>
                           <td style={{display:'flex',gap:6}}>
-                            <button onClick={()=>{setTab('subcategorias');setTimeout(()=>{const el=document.querySelector('.subcat-name-input') as HTMLInputElement;if(el){el.value=s.suggestion;el.focus()}},300)}}
+                            <button onClick={()=>{setSubcatForm({name:s.suggestion,emoji:'',category_id:''});setEditingSubcatId(null);setPendingSuggestionId(s.id);setTab('subcategorias')}}
                               style={{padding:'5px 12px',borderRadius:8,background:'#FEF3E2',color:'#854F0B',border:'1px solid #F5C77A',fontSize:12,cursor:'pointer',fontWeight:600}}>
                               + Criar subcategoria
                             </button>

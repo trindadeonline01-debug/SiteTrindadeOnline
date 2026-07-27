@@ -59,6 +59,7 @@ export default function AdminPage() {
   const [filterUserType, setFilterUserType] = useState('all')
   const [filterUserBairro, setFilterUserBairro] = useState('all')
   const [filterUserPlan, setFilterUserPlan] = useState('all')
+  const [filterNoCompany, setFilterNoCompany] = useState(false)
   const [groupStatus, setGroupStatus] = useState<Record<string,{checked:boolean,at:string|null}>>({})  
   const [loading, setLoading]       = useState(true)
   const [toast, setToast]           = useState('')
@@ -1457,7 +1458,7 @@ export default function AdminPage() {
             {!loading && tab === 'usuarios' && (
               <div className="section-card">
                 <div className="section-hdr" style={{flexWrap:'wrap',gap:8,alignItems:'center'}}>
-                  <span className="section-title">USUÁRIOS ({users.filter(u=>(searchUser===''||u.name.toLowerCase().includes(searchUser.toLowerCase())||(u.email||'').toLowerCase().includes(searchUser.toLowerCase()))&&(filterUserType==='all'||u.user_type===filterUserType)&&(filterUserBairro==='all'||(u.neighborhood||'')===filterUserBairro)).length})</span>
+                  <span className="section-title">USUÁRIOS ({users.filter(u=>(searchUser===''||u.name.toLowerCase().includes(searchUser.toLowerCase())||(u.email||'').toLowerCase().includes(searchUser.toLowerCase()))&&(filterUserType==='all'||u.user_type===filterUserType)&&(filterUserBairro==='all'||(u.neighborhood||'')===filterUserBairro)&&(!filterNoCompany||(u.user_type==='company'&&!companies.find(c=>c.owner_id===u.id)))).length})</span>
                   <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
                     <input value={searchUser} onChange={e=>setSearchUser(e.target.value)} placeholder="🔍 Buscar..." style={{padding:'7px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none',width:180}}/>
                     {['all','user','company'].map(t=>(
@@ -1466,6 +1467,10 @@ export default function AdminPage() {
                         {t==='all'?'Todos':t==='user'?'Moradores':'Lojistas'}
                       </button>
                     ))}
+                    <button onClick={()=>{ setFilterNoCompany(v=>!v); if(!filterNoCompany) setFilterUserType('company') }}
+                      style={{padding:'6px 14px',borderRadius:8,border:'1.5px solid',borderColor:filterNoCompany?'#C9951A':'#E0DDD8',background:filterNoCompany?'#FEF3E2':'#fff',color:filterNoCompany?'#854F0B':'#888',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                      ⚠️ Sem empresa
+                    </button>
                     <select value={filterUserPlan} onChange={e=>setFilterUserPlan(e.target.value)} style={{padding:'7px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none',background:'#fff'}}>
                       <option value="all">Todos os planos</option>
                       <option value="paid">Pago</option>
@@ -1485,7 +1490,7 @@ export default function AdminPage() {
                       <table className="data-table">
                         <thead><tr><th>Nome</th><th>Tipo</th><th>Plano</th><th>WhatsApp</th><th>Email</th><th>Grupo WA</th><th>Ações</th></tr></thead>
                         <tbody>
-                          {users.filter(u=>(searchUser===''||u.name.toLowerCase().includes(searchUser.toLowerCase())||(u.email||'').toLowerCase().includes(searchUser.toLowerCase()))&&(filterUserType==='all'||u.user_type===filterUserType)&&(filterUserBairro==='all'||(u.neighborhood||'')===filterUserBairro)&&(filterUserPlan==='all'||(filterUserPlan==='paid'&&companies.find(c=>c.owner_id===u.id)?.plan==='paid')||(filterUserPlan==='free'&&(!companies.find(c=>c.owner_id===u.id)||companies.find(c=>c.owner_id===u.id)?.plan!=='paid')))).map(u => (
+                          {users.filter(u=>(searchUser===''||u.name.toLowerCase().includes(searchUser.toLowerCase())||(u.email||'').toLowerCase().includes(searchUser.toLowerCase()))&&(filterUserType==='all'||u.user_type===filterUserType)&&(filterUserBairro==='all'||(u.neighborhood||'')===filterUserBairro)&&(filterUserPlan==='all'||(filterUserPlan==='paid'&&companies.find(c=>c.owner_id===u.id)?.plan==='paid')||(filterUserPlan==='free'&&(!companies.find(c=>c.owner_id===u.id)||companies.find(c=>c.owner_id===u.id)?.plan!=='paid')))&&(!filterNoCompany||(u.user_type==='company'&&!companies.find(c=>c.owner_id===u.id)))).map(u => (
                             <tr key={u.id}>
                               <td><strong>{u.name}</strong></td>
                               <td>

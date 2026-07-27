@@ -10,7 +10,7 @@
 Ricardo dá o comando → Claude executa a mudança, commita, dá push **direto no `main`** e a Vercel publica sozinha. **Sem pedir aprovação passo a passo**, sem esperar "pode"/"aprovado" antes de cada etapa, sem mockup HTML antes do código. Roda `tsc --noEmit` (ou lint equivalente) antes do push como checagem de sanidade, mas não pausa pra aprovação por isso.
 
 **Exceções que continuam valendo sempre:**
-- **Supabase MCP conectado ao Claude é de outro projeto (Space Sports/Michel)** — NUNCA usar para o Trindade Online. Todo SQL é fornecido em bloco pra Ricardo colar manualmente no Supabase SQL Editor.
+- **Supabase MCP** — desde jul/2026 está conectado corretamente ao projeto do Trindade Online (`plfuznchzuzardkfjmqo`, verificado via `list_projects`). Sempre reconferir o project_id antes de rodar algo, mas já pode ser usado diretamente (consultas e mudanças de dados) em vez de só fornecer SQL manual. Mudanças de schema (`apply_migration`) e qualquer coisa destrutiva continuam pedindo confirmação antes.
 - Mudanças ambíguas, destrutivas (delete em massa, mudança de schema, etc.) ou que fujam do que foi pedido: perguntar antes, não assumir.
 - Ricardo usa **voz transcrita** — interpretar: "feio"=feito, "puxo"=push, "Cláudia"=Claude
 - Respostas **curtas e diretas** — Ricardo não gosta de textos longos explicativos
@@ -357,7 +357,7 @@ const DIAS_SEMANA = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Dom
 - **Email HTML:** sempre table-based (não CSS grid/flex) para compatibilidade com clientes de email; mesclar tudo em um `<td>` para evitar colapso no Gmail
 - **Python heredoc:** usar `repr()` para detectar whitespace exato antes de fazer match — diferenças invisíveis causam falhas silenciosas
 - **Evolution API:** nome da instância deve ser exatamente `Trindade Online` (espaço + maiúsculas); IPs de container Docker podem mudar no restart — usar nome do container ou DNS interno
-- **Supabase MCP** conectado ao Claude desta conta é de OUTRO projeto — nunca usar para Trindade Online
+- **Supabase MCP** desde jul/2026 aponta pro projeto certo (`plfuznchzuzardkfjmqo`) — sempre confirmar via `list_projects` antes de rodar algo, já que trocar de conta/projeto no futuro é possível
 
 ---
 

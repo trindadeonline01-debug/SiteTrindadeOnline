@@ -6,17 +6,24 @@
 
 ## REGRAS DE TRABALHO (LER PRIMEIRO — INEGOCIÁVEIS)
 
-1. **Nunca gerar código ou documento sem aprovação prévia de Ricardo**
+### Fluxo atual — Claude Code direto (a partir de jul/2026)
+Ricardo dá o comando → Claude executa a mudança, commita, dá push **direto no `main`** e a Vercel publica sozinha. **Sem pedir aprovação passo a passo**, sem esperar "pode"/"aprovado" antes de cada etapa, sem mockup HTML antes do código. Roda `tsc --noEmit` (ou lint equivalente) antes do push como checagem de sanidade, mas não pausa pra aprovação por isso.
+
+**Exceções que continuam valendo sempre:**
+- **Supabase MCP conectado ao Claude é de outro projeto (Space Sports/Michel)** — NUNCA usar para o Trindade Online. Todo SQL é fornecido em bloco pra Ricardo colar manualmente no Supabase SQL Editor.
+- Mudanças ambíguas, destrutivas (delete em massa, mudança de schema, etc.) ou que fujam do que foi pedido: perguntar antes, não assumir.
+- Ricardo usa **voz transcrita** — interpretar: "feio"=feito, "puxo"=push, "Cláudia"=Claude
+- Respostas **curtas e diretas** — Ricardo não gosta de textos longos explicativos
+
+### Regras antigas (fluxo manual via GitHub Codespaces — Ricardo copia/cola arquivos)
+Só se aplicam quando Ricardo estiver trabalhando fora do Claude Code, colando arquivos manualmente:
+1. Nunca gerar código ou documento sem aprovação prévia de Ricardo
 2. Sempre mostrar visual HTML interativo em chat para aprovação ANTES de gerar código Next.js
 3. Sempre gerar **arquivo completo** para substituição total — Ricardo apaga tudo e cola tudo, sem exceção
 4. Aguardar confirmação explícita ("pode", "aprovado", "sim") antes de executar qualquer passo
 5. **Executar em etapas separadas:** 1) criar pasta → 2) criar arquivo → 3) fazer alterações. Nunca combinar em um comando. Aguardar confirmação entre cada etapa
 6. Após cada comando, enviar imediatamente o comando de verificação antes de avançar
 7. Sempre `grep` para verificar correspondência exata de texto antes de qualquer substituição
-8. Ricardo usa **voz transcrita** — interpretar: "feio"=feito, "puxo"=push, "Cláudia"=Claude
-9. **Supabase MCP conectado ao Claude é de outro projeto (Space Sports/Michel)** — NUNCA usar para o Trindade Online
-10. Todo SQL é fornecido para Ricardo colar no Supabase SQL Editor manualmente
-11. Respostas **curtas e diretas** — Ricardo não gosta de textos longos explicativos
 
 ---
 
@@ -363,11 +370,11 @@ const DIAS_SEMANA = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Dom
 4. Vercel detecta o push no branch `main` e faz deploy automático
 5. Disponível em `trindadeonline.com.br`
 
-**Fluxo adicional (Claude Code neste ambiente, a partir de jul/2026):**
-- Claude também consegue editar, commitar e dar push diretamente neste ambiente (branch de trabalho: `claude/trindade-deploy-codespace-ogsy1n`)
-- Para ir ao ar, o conteúdo precisa chegar ao branch `main` (via PR aprovado por Ricardo, ou push direto quando autorizado)
+**Fluxo atual (Claude Code neste ambiente, a partir de jul/2026):**
+- Claude edita, commita e dá push **direto no branch `main`** — sem PR, sem aprovação por etapa (ver seção "Regras de Trabalho")
+- Vercel detecta o push no `main` e publica automaticamente
 - Vercel: projeto correto é **`site-trindade-online`** (`trindadeonline01-debug/SiteTrindadeOnline`, domínio `www.trindadeonline.com.br`). Havia um projeto duplicado (`site-trindade-online-7tgh`) que foi **removido** em jul/2026.
-- Regras de aprovação por etapa (seção "Regras de Trabalho") continuam valendo mesmo nesse fluxo direto.
+- GitHub App do Claude precisa estar instalado com permissão de escrita (`Contents: Read and write`) no repositório — sem isso, push e criação de branch/PR falham com 403.
 
 ---
 

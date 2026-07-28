@@ -1,5 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+
+// Permite a funcao serverless continuar rodando em segundo plano (via after())
+// pelo tempo necessario pra terminar o disparo de uma campanha
+export const maxDuration = 300
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -159,8 +163,10 @@ export async function POST(req: NextRequest) {
       // Busca logs pendentes
       const { data: logs } = await supabase.from('blast_logs').select('*').eq('campaign_id', campaign_id).eq('status', 'pending')
 
-      // Disparo assíncrono
-      ;(async () => {
+      // Disparo assíncrono — after() garante pra Vercel que este trabalho em
+      // segundo plano precisa continuar rodando mesmo depois da resposta HTTP
+      // ja ter sido enviada (sem isso, a funcao podia ser encerrada no meio do loop)
+      after(async () => {
         for (const log of (logs || [])) {
           // Verifica se campanha foi pausada
           const { data: current } = await supabase.from('blast_campaigns').select('status').eq('id', campaign_id).single()
@@ -216,7 +222,7 @@ export async function POST(req: NextRequest) {
         if (final?.status === 'running') {
           await supabase.from('blast_campaigns').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', campaign_id)
         }
-      })()
+      })
 
       return NextResponse.json({ ok: true, message: 'Disparo iniciado' })
     }

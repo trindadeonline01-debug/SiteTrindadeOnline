@@ -72,6 +72,7 @@ export default function HomePage() {
   const [highlights, setHighlights]   = useState<Highlight[]>([])
   const [newCompanies, setNewCompanies] = useState<Company[]>([])
   const [recentListings, setRecentListings] = useState<Record<string, Listing[]>>({})
+  const [pulseMessages, setPulseMessages] = useState<{id:string;message:string}[]>([])
   const [loading, setLoading]         = useState(true)
   const [settingsLoaded, setSettingsLoaded] = useState(false)
   const [isMobile, setIsMobile]       = useState(false)
@@ -133,6 +134,11 @@ export default function HomePage() {
       map[type] = (ld || []) as Listing[]
     }
     setRecentListings(map)
+
+    const { data: pulseData } = await supabase
+      .from('pulse_messages').select('id, message')
+      .eq('active', true).order('display_order')
+    setPulseMessages(pulseData || [])
     const { data: siteSettings } = await supabase.from('site_settings').select('key,value')
     if (siteSettings) {
       const theme = siteSettings.find((s: any) => s.key === 'active_theme')
@@ -328,6 +334,12 @@ export default function HomePage() {
         @media(max-width: 767px) {
           .banner-inner-wrap { height: auto; aspect-ratio: 3/2; padding-top: 0; }
         }
+        .pulse-ticker { width: 100%; overflow: hidden; background: #111; padding: 9px 0; }
+        .pulse-track { display: flex; width: max-content; animation: pulse-scroll linear infinite; }
+        .pulse-item { color: #C9951A; font-size: 13px; font-weight: 600; white-space: nowrap; padding: 0 24px; font-family: 'Inter', sans-serif; position: relative; }
+        .pulse-item::after { content: '•'; position: absolute; right: -2px; color: #555; }
+        @keyframes pulse-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
         .banner-outer { width: 100%; }
         .banner-inner-wrap {
           width: 100%; height: 359px;
@@ -419,15 +431,15 @@ export default function HomePage() {
         .recent-card-sub { font-size: 13px; color: #888; }
         .recent-card-price { font-size: 13px; color: #C9951A; font-weight: 700; }
 
-        .rec-grid { display: flex; flex-direction: column; border: 0.5px solid #EDE8E0; border-radius: 14px; overflow: hidden; background: #fff; }
-        @media(min-width: 768px)  { .rec-grid { display: grid; grid-template-columns: repeat(2,1fr); } }
-        @media(min-width: 1024px) { .rec-grid { grid-template-columns: repeat(3,1fr); } }
-        .rec-item { display: flex; align-items: center; gap: 12px; padding: 13px 16px; border-bottom: 0.5px solid #F5F2EC; cursor: pointer; transition: background .15s; text-decoration: none; }
-        .rec-item:hover { background: #FAFAF8; }
-        .rec-icon { width: 44px; height: 44px; border-radius: 11px; background: #F0EDE8; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; border: 0.5px solid #E0DDD8; overflow: hidden; }
-        .rec-name { font-size: 13px; font-weight: 600; color: #222; margin-bottom: 2px; }
-        .rec-cat  { font-size: 11px; color: #999; margin-bottom: 3px; }
-        .rec-new  { font-size: 10px; color: #0F8050; font-weight: 600; }
+        .rec-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 16px; }
+        @media(min-width: 768px)  { .rec-grid { grid-template-columns: repeat(3,1fr); } }
+        @media(min-width: 1024px) { .rec-grid { grid-template-columns: repeat(4,1fr); } }
+        .rec-card { display: block; text-decoration: none; }
+        .rec-card-img { width: 100%; aspect-ratio: 1/1; border-radius: 14px; overflow: hidden; background: #F0EDE8; display: flex; align-items: center; justify-content: center; font-size: 34px; margin-bottom: 8px; }
+        .rec-card-img img { width: 100%; height: 100%; object-fit: cover; }
+        .rec-name { font-size: 14px; font-weight: 600; color: #111; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .rec-cat  { font-size: 12px; color: #999; margin-bottom: 2px; }
+        .rec-new  { font-size: 11px; color: #0F8050; font-weight: 600; }
 
         .cta-section { margin: 36px 0 48px; background: linear-gradient(135deg,#1A1A1A,#333); border-radius: 20px; padding: 36px 32px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 16px; }
         @media(min-width: 768px) { .cta-section { flex-direction: row; text-align: left; justify-content: space-between; padding: 36px 48px; } }
@@ -536,6 +548,16 @@ export default function HomePage() {
         )}
         </div>
       </section>
+
+      {pulseMessages.length > 0 && (
+        <div className="pulse-ticker">
+          <div className="pulse-track" style={{animationDuration: `${Math.max(15, pulseMessages.length * 6)}s`}}>
+            {[...pulseMessages, ...pulseMessages].map((m, i) => (
+              <span key={i} className="pulse-item">{m.message}</span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {settingsLoaded && bannerEnabled && (<>
       <div className="banner-outer">
@@ -791,13 +813,11 @@ export default function HomePage() {
         ) : (
           <div className="rec-grid">
             {newCompanies.map(c => (
-              <a key={c.id} className="rec-item" href={`/empresa/${c.slug}`}>
-                <div className="rec-icon"><CoverPhoto photos={c.company_photos} name={c.name} /></div>
-                <div>
-                  <div className="rec-name">{c.name}</div>
-                  <div className="rec-cat">{(c.categories as any)?.emoji} {(c.categories as any)?.name || '—'}</div>
-                  <div className="rec-new">● Novo · Trindade</div>
-                </div>
+              <a key={c.id} className="rec-card" href={`/empresa/${c.slug}`}>
+                <div className="rec-card-img"><CoverPhoto photos={c.company_photos} name={c.name} /></div>
+                <div className="rec-name">{c.name}</div>
+                <div className="rec-cat">{(c.categories as any)?.emoji} {(c.categories as any)?.name || '—'}</div>
+                <div className="rec-new">● Novo · Trindade</div>
               </a>
             ))}
           </div>

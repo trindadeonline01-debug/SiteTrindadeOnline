@@ -31,8 +31,9 @@ export default function BottomNav() {
       ? [{ href: '/admin', icon: '⚙️', label: 'Admin' }]
       : userType === 'company'
         ? [{ href: '/painel', icon: '📊', label: 'Painel' }, { href: '/painel?tab=plano', icon: '💳', label: 'Planos' }]
-        : [{ href: '/favoritos', icon: '❤️', label: 'Favoritos' }]
+        : []
     ),
+    { href: '/favoritos', icon: '❤️', label: 'Favoritos' },
     { href: '/perfil', icon: '👤', label: 'Perfil' },
     { href: '/sair', icon: '🚪', label: 'Sair', sair: true },
   ]

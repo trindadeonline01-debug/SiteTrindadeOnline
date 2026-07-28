@@ -130,6 +130,9 @@ export default function AdminPage() {
   const [siteTheme, setSiteTheme]       = useState('classico-preto')
   const [bannerEnabled, setBannerEnabled] = useState(true)
   const [savingAppearance, setSavingAppearance] = useState(false)
+  const [pulseMessages, setPulseMessages] = useState<any[]>([])
+  const [deletedPulseIds, setDeletedPulseIds] = useState<string[]>([])
+  const [savingPulse, setSavingPulse] = useState(false)
   const fileInputRefMobile = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -149,7 +152,7 @@ export default function AdminPage() {
 
   async function loadAll() {
     setLoading(true)
-    await Promise.all([loadStats(), loadCompanies(), loadUsers(), loadSearches(), loadHighlights(), loadReports(), loadBanners(), loadSettings(), loadAppearance(), loadTrialSettings(), loadBannerRequests(), loadFeatureFlags(), loadPlans(), loadSubcats()])
+    await Promise.all([loadStats(), loadCompanies(), loadUsers(), loadSearches(), loadHighlights(), loadReports(), loadBanners(), loadSettings(), loadAppearance(), loadPulseMessages(), loadTrialSettings(), loadBannerRequests(), loadFeatureFlags(), loadPlans(), loadSubcats()])
 
     // Realtime — atualiza automaticamente
     const channel = supabase
@@ -427,6 +430,43 @@ export default function AdminPage() {
     ])
     setSavingAppearance(false)
     showToast('Aparência salva!')
+  }
+
+  async function loadPulseMessages() {
+    const { data } = await supabase.from('pulse_messages').select('*').order('display_order')
+    setPulseMessages(data || [])
+  }
+
+  function addPulseMessage() {
+    setPulseMessages(prev => [...prev, { id: `new-${Date.now()}`, message: '', display_order: prev.length, active: true, isNew: true }])
+  }
+
+  function updatePulseMessage(id: string, updates: any) {
+    setPulseMessages(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p))
+  }
+
+  function removePulseMessage(id: string, isNew?: boolean) {
+    setPulseMessages(prev => prev.filter(p => p.id !== id).map((p, i) => ({ ...p, display_order: i })))
+    if (!isNew) setDeletedPulseIds(prev => [...prev, id])
+  }
+
+  async function savePulseMessages() {
+    setSavingPulse(true)
+    if (deletedPulseIds.length > 0) {
+      await supabase.from('pulse_messages').delete().in('id', deletedPulseIds)
+    }
+    for (const p of pulseMessages) {
+      if (!p.message.trim()) continue
+      if (p.isNew) {
+        await supabase.from('pulse_messages').insert({ message: p.message, display_order: p.display_order, active: p.active })
+      } else {
+        await supabase.from('pulse_messages').update({ message: p.message, display_order: p.display_order, active: p.active }).eq('id', p.id)
+      }
+    }
+    setDeletedPulseIds([])
+    await loadPulseMessages()
+    setSavingPulse(false)
+    showToast('Pulso do Bairro salvo!')
   }
 
   async function loadTrialSettings() {
@@ -2361,6 +2401,28 @@ export default function AdminPage() {
                     ))}
                   </div>
                   {savingAppearance && <div style={{fontSize:12,color:'#C9951A',marginTop:12}}>Salvando...</div>}
+                </div>
+
+                <div style={{background:'#fff',border:'0.5px solid #EDE8E0',borderRadius:14,padding:'20px 24px',marginTop:20}}>
+                  <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:14,color:'#888',letterSpacing:1,marginBottom:6}}>PULSO DO BAIRRO</div>
+                  <div style={{fontSize:12,color:'#AAA',marginBottom:16}}>Frases que rodam em loop na faixa abaixo da busca, na home. Frases inativas ficam salvas mas não aparecem no site.</div>
+                  <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                    {pulseMessages.map(p => (
+                      <div key={p.id} style={{display:'flex',alignItems:'center',gap:8}}>
+                        <input value={p.message} onChange={e=>updatePulseMessage(p.id,{message:e.target.value})} placeholder="Ex: 🎉 Bem-vindo à Trindade!"
+                          style={{flex:1,padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none'}}/>
+                        <div onClick={()=>updatePulseMessage(p.id,{active:!p.active})}
+                          style={{width:40,height:22,borderRadius:11,background:p.active?'#0F8050':'#E0DDD8',cursor:'pointer',position:'relative',transition:'background .2s',flexShrink:0}}>
+                          <div style={{position:'absolute',top:2,left:p.active?20:2,width:18,height:18,borderRadius:'50%',background:'#fff',boxShadow:'0 1px 4px rgba(0,0,0,.2)',transition:'left .2s'}}/>
+                        </div>
+                        <button onClick={()=>removePulseMessage(p.id,p.isNew)} style={{background:'#FCEBEB',color:'#E24B4A',border:'none',borderRadius:8,width:32,height:32,cursor:'pointer',flexShrink:0}}>🗑</button>
+                      </div>
+                    ))}
+                  </div>
+                  <button onClick={addPulseMessage} style={{width:'100%',marginTop:10,padding:'9px',background:'#fafafa',border:'1.5px dashed #ddd',color:'#aaa',borderRadius:10,fontSize:12,fontWeight:600,cursor:'pointer'}}>+ Adicionar frase</button>
+                  <button onClick={savePulseMessages} disabled={savingPulse} style={{width:'100%',marginTop:14,padding:11,background:'#C9951A',color:'#111',border:'none',borderRadius:10,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',opacity:savingPulse?0.6:1}}>
+                    {savingPulse?'Salvando...':'Salvar alterações'}
+                  </button>
                 </div>
               </div>
             )}

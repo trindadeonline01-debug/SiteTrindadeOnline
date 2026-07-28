@@ -3,6 +3,7 @@ import './globals.css'
 import Script from 'next/script'
 import BottomNav from '@/components/BottomNav'
 import TopNav from '@/components/TopNav'
+import BackButton from '@/components/BackButton'
 
 export const metadata: Metadata = {
   title: 'Trindade Online — Comércios, Serviços e Moradores do Bairro Trindade',
@@ -52,6 +53,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </noscript>
         <TopNav />
         {children}
+        <BackButton />
         <BottomNav />
         <Script src='https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js' strategy='afterInteractive'/>
       </body>

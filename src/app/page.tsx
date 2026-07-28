@@ -47,13 +47,6 @@ const CATEGORIES = [
   { slug: 'igrejas',          label: 'Igrejas',            href: '/categoria/igrejas'     },
 ]
 
-function isVisible(c: Company) {
-  if (c.status !== 'active') return false
-  if (c.plan === 'paid') return true
-  if (c.trial_ends_at && new Date(c.trial_ends_at) > new Date()) return true
-  return false
-}
-
 function Stars({ rating }: { rating: number }) {
   const r = Math.round(rating)
   return <span style={{ color: '#C9951A', fontSize: 11 }}>{'★'.repeat(r)}{'☆'.repeat(5 - r)}</span>
@@ -128,8 +121,7 @@ export default function HomePage() {
         categories ( name, emoji ),
         company_photos ( photo_url, is_primary, order )`)
       .eq('status', 'active').order('created_at', { ascending: false }).limit(10)
-    const visible = ((newData || []) as any as Company[]).filter(isVisible)
-    setNewCompanies(visible.slice(0, 6))
+    setNewCompanies(((newData || []) as any as Company[]).slice(0, 6))
 
     const types = ['desapega', 'emprego', 'imovel']
     const map: Record<string, Listing[]> = {}
@@ -413,7 +405,7 @@ export default function HomePage() {
 
         .recent-section { margin-top: 22px; }
         .recent-section-hdr { display: flex; align-items: center; gap: 7px; margin-bottom: 12px; }
-        .recent-section-title { font-size: 15px; font-weight: 700; color: #111; font-family: 'Inter', sans-serif; }
+        .recent-section-title { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: #999; letter-spacing: 2px; }
         .recent-scroll { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
         .recent-scroll::-webkit-scrollbar { display: none; }
         @media(min-width: 768px) { .recent-scroll { display: grid; grid-template-columns: repeat(4,1fr); overflow: visible; } }
@@ -719,7 +711,7 @@ export default function HomePage() {
         {(recentListings['desapega'] || []).length > 0 && (
         <div className="recent-section">
           <div className="recent-section-hdr">
-            <span className="recent-section-title">🏷️ Desapega</span>
+            <span className="recent-section-title">🏷️ DESAPEGA</span>
             <a href="/desapega" className="sec-link" style={{marginLeft:'auto'}}>Ver tudo →</a>
           </div>
           <div className="recent-scroll">
@@ -741,7 +733,7 @@ export default function HomePage() {
         {(recentListings['emprego'] || []).length > 0 && (
         <div className="recent-section">
           <div className="recent-section-hdr">
-            <span className="recent-section-title">💼 Empregos</span>
+            <span className="recent-section-title">💼 EMPREGOS</span>
             <a href="/empregos" className="sec-link" style={{marginLeft:'auto'}}>Ver tudo →</a>
           </div>
           <div className="recent-scroll">
@@ -763,7 +755,7 @@ export default function HomePage() {
         {(recentListings['imovel'] || []).length > 0 && (
         <div className="recent-section">
           <div className="recent-section-hdr">
-            <span className="recent-section-title">🏠 Imóveis</span>
+            <span className="recent-section-title">🏠 IMÓVEIS</span>
             <a href="/imoveis" className="sec-link" style={{marginLeft:'auto'}}>Ver tudo →</a>
           </div>
           <div className="recent-scroll">

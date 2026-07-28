@@ -624,7 +624,7 @@ export default function HomePage() {
         </div>
 
         {/* CATEGORIAS */}
-        <div className="cat-overlap" style={{marginTop: bannerEnabled ? '-40px' : '24px'}}>
+        <div className="cat-overlap" style={{marginTop: 14}}>
           <div className="cat-card-wrap">
             <div className="cat-grid">
               <a className="cat-item" href="/categoria/comercios">

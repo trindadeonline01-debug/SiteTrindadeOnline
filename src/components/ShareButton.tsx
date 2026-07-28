@@ -53,8 +53,8 @@ export default function ShareButton({ title, text, url, label = 'Compartilhar', 
   return (
     <div ref={ref} style={{ position: 'relative', display: fullWidth ? 'block' : 'inline-block', width: fullWidth ? '100%' : 'auto' }}>
       <button onClick={handleClick} style={{
-        width: fullWidth ? '100%' : 'auto', padding: fullWidth ? '9px' : '6px 10px', background: '#fff', color: '#888', border: '0.5px solid #E0DDD8',
-        borderRadius: 10, fontSize: 13, fontFamily: "'Inter',sans-serif", cursor: 'pointer',
+        width: fullWidth ? '100%' : 'auto', padding: fullWidth ? '9px' : '6px 10px', background: '#FEF3E2', color: '#854F0B', border: '1px solid #F5C77A',
+        borderRadius: 10, fontSize: 13, fontWeight: 600, fontFamily: "'Inter',sans-serif", cursor: 'pointer',
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
       }}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

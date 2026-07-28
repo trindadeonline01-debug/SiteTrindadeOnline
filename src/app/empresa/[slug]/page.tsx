@@ -366,8 +366,8 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
         .btn-solicitar:hover:not(:disabled){background:#B8841A;}
         .btn-solicitar:disabled{cursor:not-allowed;}
         .btn-solicitar.sent{background:#E8F5E9;color:#2E7D32;border:1.5px solid #A5D6A7;}
-        .btn-fav{width:100%;padding:9px;background:#fff;color:#888;border:0.5px solid #E0DDD8;border-radius:10px;font-size:13px;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;}
-        .btn-fav.on{background:#FEF3E2;color:#C9951A;border-color:#F5C77A;}
+        .btn-fav{width:100%;padding:9px;background:#FEF3E2;color:#854F0B;border:1px solid #F5C77A;border-radius:10px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;}
+        .btn-fav.on{border-color:#C9951A;}
 
         .addr-box{display:flex;align-items:flex-start;gap:9px;background:#fff;border:0.5px solid #EDE8E0;border-radius:12px;padding:12px 14px;}
         .addr-txt{font-size:12px;color:#555;line-height:1.6;flex:1;}

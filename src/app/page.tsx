@@ -73,6 +73,7 @@ export default function HomePage() {
   const [newCompanies, setNewCompanies] = useState<Company[]>([])
   const [recentListings, setRecentListings] = useState<Record<string, Listing[]>>({})
   const [pulseMessages, setPulseMessages] = useState<{id:string;message:string}[]>([])
+  const [pulseColorPreset, setPulseColorPreset] = useState('classico')
   const [loading, setLoading]         = useState(true)
   const [settingsLoaded, setSettingsLoaded] = useState(false)
   const [isMobile, setIsMobile]       = useState(false)
@@ -143,8 +144,10 @@ export default function HomePage() {
     if (siteSettings) {
       const theme = siteSettings.find((s: any) => s.key === 'active_theme')
       const banner = siteSettings.find((s: any) => s.key === 'banner_enabled')
+      const pulseColor = siteSettings.find((s: any) => s.key === 'pulse_color_preset')
       if (theme) setSiteTheme(theme.value || 'classico-preto')
       if (banner) setBannerEnabled(banner.value === 'true')
+      if (pulseColor) setPulseColorPreset(pulseColor.value || 'classico')
     }
     setSettingsLoaded(true)
     setLoading(false)
@@ -247,6 +250,14 @@ export default function HomePage() {
     'terra-morna':     { heroBg: '#3D2B1A', dest: '#D4845A' },
     'branco-limpo':    { heroBg: '#F5F5F5', dest: '#C9951A' },
   }
+
+  const PULSE_PRESETS: Record<string, {bg: string, text: string}> = {
+    classico: { bg: '#111111', text: '#C9951A' },
+    promocao: { bg: '#C0392B', text: '#FFFFFF' },
+    frete:    { bg: '#0F8050', text: '#FFFFFF' },
+    urgente:  { bg: '#E07030', text: '#FFFFFF' },
+    elegante: { bg: '#FFFFFF', text: '#111111' },
+  }
   return (
     <>
       <style>{`
@@ -288,7 +299,7 @@ export default function HomePage() {
           .btn-fav { display: block; } .btn-perfil { display: block; }
         }
 
-        .hero { background: linear-gradient(160deg, #fff 0%, #FEF8EC 60%, #FEF3E2 100%); padding: 28px 16px 8px; text-align: center; border-bottom: 1px solid #EDE8E0; }
+        .hero { padding: 28px 16px 8px; text-align: center; margin: 0; }
         @media(min-width: 768px) { .hero { padding: 43px 20px 48px; } }
         .hero-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(30px, 8vw, 72px); letter-spacing: 4px; line-height: 1; margin-bottom: 8px; display: block; }
         .hero-title span { color: #C9951A; }
@@ -550,10 +561,10 @@ export default function HomePage() {
       </section>
 
       {pulseMessages.length > 0 && (
-        <div className="pulse-ticker">
+        <div className="pulse-ticker" style={{background: PULSE_PRESETS[pulseColorPreset]?.bg || '#111111'}}>
           <div className="pulse-track" style={{animationDuration: `${Math.max(15, pulseMessages.length * 6)}s`}}>
             {[...pulseMessages, ...pulseMessages].map((m, i) => (
-              <span key={i} className="pulse-item">{m.message}</span>
+              <span key={i} className="pulse-item" style={{color: PULSE_PRESETS[pulseColorPreset]?.text || '#C9951A'}}>{m.message}</span>
             ))}
           </div>
         </div>

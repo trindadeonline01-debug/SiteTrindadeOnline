@@ -132,6 +132,7 @@ export default function AdminPage() {
   const [savingAppearance, setSavingAppearance] = useState(false)
   const [pulseMessages, setPulseMessages] = useState<any[]>([])
   const [deletedPulseIds, setDeletedPulseIds] = useState<string[]>([])
+  const [pulseColorPreset, setPulseColorPreset] = useState('classico')
   const [savingPulse, setSavingPulse] = useState(false)
   const fileInputRefMobile = useRef<HTMLInputElement>(null)
 
@@ -417,9 +418,17 @@ export default function AdminPage() {
     if (data) {
       const theme = data.find((s: any) => s.key === 'active_theme')
       const banner = data.find((s: any) => s.key === 'banner_enabled')
+      const pulseColor = data.find((s: any) => s.key === 'pulse_color_preset')
       if (theme) setSiteTheme(theme.value || 'classico-preto')
       if (banner) setBannerEnabled(banner.value === 'true')
+      if (pulseColor) setPulseColorPreset(pulseColor.value || 'classico')
     }
+  }
+
+  async function savePulseColor(preset: string) {
+    setPulseColorPreset(preset)
+    await supabase.from('site_settings').upsert({ key: 'pulse_color_preset', value: preset, updated_at: new Date().toISOString() }, { onConflict: 'key' })
+    showToast('Cor do Pulso atualizada!')
   }
 
   async function saveAppearance(theme: string, banner: boolean) {
@@ -452,21 +461,25 @@ export default function AdminPage() {
 
   async function savePulseMessages() {
     setSavingPulse(true)
+    let hadError = false
     if (deletedPulseIds.length > 0) {
-      await supabase.from('pulse_messages').delete().in('id', deletedPulseIds)
+      const { error } = await supabase.from('pulse_messages').delete().in('id', deletedPulseIds)
+      if (error) hadError = true
     }
     for (const p of pulseMessages) {
       if (!p.message.trim()) continue
       if (p.isNew) {
-        await supabase.from('pulse_messages').insert({ message: p.message, display_order: p.display_order, active: p.active })
+        const { error } = await supabase.from('pulse_messages').insert({ message: p.message, display_order: p.display_order, active: p.active })
+        if (error) hadError = true
       } else {
-        await supabase.from('pulse_messages').update({ message: p.message, display_order: p.display_order, active: p.active }).eq('id', p.id)
+        const { error } = await supabase.from('pulse_messages').update({ message: p.message, display_order: p.display_order, active: p.active }).eq('id', p.id)
+        if (error) hadError = true
       }
     }
     setDeletedPulseIds([])
     await loadPulseMessages()
     setSavingPulse(false)
-    showToast('Pulso do Bairro salvo!')
+    showToast(hadError ? '⚠️ Erro ao salvar algumas mudanças — tenta de novo' : 'Pulso do Bairro salvo!')
   }
 
   async function loadTrialSettings() {
@@ -2406,6 +2419,25 @@ export default function AdminPage() {
                 <div style={{background:'#fff',border:'0.5px solid #EDE8E0',borderRadius:14,padding:'20px 24px',marginTop:20}}>
                   <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:14,color:'#888',letterSpacing:1,marginBottom:6}}>PULSO DO BAIRRO</div>
                   <div style={{fontSize:12,color:'#AAA',marginBottom:16}}>Frases que rodam em loop na faixa abaixo da busca, na home. Frases inativas ficam salvas mas não aparecem no site.</div>
+
+                  <div style={{fontSize:11,fontWeight:700,color:'#666',letterSpacing:0.5,marginBottom:8,textTransform:'uppercase' as const}}>Cor da faixa</div>
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:8,marginBottom:18}}>
+                    {[
+                      {id:'classico', nome:'Clássico', bg:'#111111', txt:'#C9951A'},
+                      {id:'promocao', nome:'Promoção', bg:'#C0392B', txt:'#FFFFFF'},
+                      {id:'frete',    nome:'Frete Grátis', bg:'#0F8050', txt:'#FFFFFF'},
+                      {id:'urgente',  nome:'Urgência', bg:'#E07030', txt:'#FFFFFF'},
+                      {id:'elegante', nome:'Elegante', bg:'#FFFFFF', txt:'#111111'},
+                    ].map(c=>(
+                      <div key={c.id} onClick={()=>savePulseColor(c.id)}
+                        style={{border:pulseColorPreset===c.id?'2px solid #C9951A':'1.5px solid #EDE8E0',borderRadius:10,padding:6,cursor:'pointer',textAlign:'center' as const}}>
+                        <div style={{background:c.bg,color:c.txt,borderRadius:6,padding:'8px 2px',fontSize:10,fontWeight:700,marginBottom:4,border:c.bg==='#FFFFFF'?'0.5px solid #E0DDD8':'none'}}>Abc</div>
+                        <div style={{fontSize:10,color:'#888',fontWeight:600}}>{c.nome}</div>
+                        {pulseColorPreset===c.id && <div style={{fontSize:9,color:'#C9951A',fontWeight:700}}>✓</div>}
+                      </div>
+                    ))}
+                  </div>
+
                   <div style={{display:'flex',flexDirection:'column',gap:8}}>
                     {pulseMessages.map(p => (
                       <div key={p.id} style={{display:'flex',alignItems:'center',gap:8}}>

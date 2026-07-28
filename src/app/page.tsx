@@ -10,8 +10,8 @@ import CookieBanner from '@/components/CookieBanner'
 
 interface Company {
   id: string; name: string; slug: string; description: string | null
-  category_id: string; is_active: boolean; trial_ends_at: string | null
-  plan_status: string | null; avg_rating: number; total_reviews: number
+  category_id: string; status: string; trial_ends_at: string | null
+  plan: string | null; avg_rating: number; total_reviews: number
   categories?: { name: string; emoji?: string } | null
   company_photos?: { photo_url: string; is_primary: boolean; order?: number }[]
 }
@@ -48,8 +48,8 @@ const CATEGORIES = [
 ]
 
 function isVisible(c: Company) {
-  if (!c.is_active) return false
-  if (c.plan_status === 'pago') return true
+  if (c.status !== 'active') return false
+  if (c.plan === 'paid') return true
   if (c.trial_ends_at && new Date(c.trial_ends_at) > new Date()) return true
   return false
 }
@@ -123,11 +123,11 @@ export default function HomePage() {
 
     const { data: newData } = await supabase
       .from('companies')
-      .select(`id, name, slug, description, category_id, is_active,
-        trial_ends_at, plan_status, avg_rating, total_reviews,
+      .select(`id, name, slug, description, category_id, status,
+        trial_ends_at, plan, avg_rating, total_reviews,
         categories ( name, emoji ),
         company_photos ( photo_url, is_primary, order )`)
-      .eq('is_active', true).order('created_at', { ascending: false }).limit(10)
+      .eq('status', 'active').order('created_at', { ascending: false }).limit(10)
     const visible = ((newData || []) as any as Company[]).filter(isVisible)
     setNewCompanies(visible.slice(0, 6))
 

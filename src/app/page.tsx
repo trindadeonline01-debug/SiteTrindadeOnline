@@ -300,7 +300,6 @@ export default function HomePage() {
         }
 
         .hero { padding: 28px 16px 8px; text-align: center; margin: 0; }
-        @media(min-width: 768px) { .hero { padding: 43px 20px 48px; } }
         .hero-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(30px, 8vw, 72px); letter-spacing: 4px; line-height: 1; margin-bottom: 8px; display: block; }
         .hero-title span { color: #C9951A; }
         .hero-sub { font-size: clamp(12px, 3vw, 16px); color: #888; margin-bottom: 20px; display: block; }

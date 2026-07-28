@@ -46,7 +46,7 @@ export default function PainelPage() {
   const [promoForm, setPromoForm]     = useState({title:'',duration_days:'',image_url:''})
   const [promoFile, setPromoFile]     = useState<File|null>(null)
   const [savingPromo, setSavingPromo] = useState(false)
-  const [couponForm, setCouponForm] = useState({title:'',discount_type:'fixed',discount_value:'',total_qty:'',qty_per_person:'1',expires_at:'',expires_date:'',expires_time:'',min_purchase:''})
+  const [couponForm, setCouponForm] = useState({title:'',discount_type:'fixed',discount_value:'',total_qty:'',qty_per_person:'1',duration_days:'',min_purchase:''})
   const [savingCoupon, setSavingCoupon] = useState(false)
   const [validateCode, setValidateCode] = useState('')
   const [validateResult, setValidateResult] = useState<any>(null)
@@ -1891,7 +1891,7 @@ export default function PainelPage() {
                     <label style={{fontSize:11,fontWeight:600,color:'#666',display:'block',marginBottom:4}}>COMPRA MÍNIMA (opcional)</label>
                     <input type="number" value={couponForm.min_purchase} onChange={e=>setCouponForm(f=>({...f,min_purchase:e.target.value}))} placeholder="Ex: 50 (deixe vazio para sem mínimo)" style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none'}}/>
                   </div>
-                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:8}}>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
                     <div>
                       <label style={{fontSize:11,fontWeight:600,color:'#666',display:'block',marginBottom:4}}>TOTAL CUPONS</label>
                       <input type="number" value={couponForm.total_qty} onChange={e=>setCouponForm(f=>({...f,total_qty:e.target.value}))} placeholder="10" style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none'}}/>
@@ -1901,19 +1901,20 @@ export default function PainelPage() {
                       <input type="number" value={couponForm.qty_per_person} onChange={e=>setCouponForm(f=>({...f,qty_per_person:e.target.value}))} placeholder="1" style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none'}}/>
                     </div>
                     <div>
-                      <label style={{fontSize:11,fontWeight:600,color:'#666',display:'block',marginBottom:4}}>DATA</label>
-                      <input type="date" value={couponForm.expires_date} onChange={e=>{const d=e.target.value;const t=couponForm.expires_time||'23:59';setCouponForm(f=>({...f,expires_date:d,expires_at:d?`${d}T${t}`:''}))}  } style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none'}}/>
-                    </div>
-                    <div>
-                      <label style={{fontSize:11,fontWeight:600,color:'#666',display:'block',marginBottom:4}}>HORA</label>
-                      <input type="time" value={couponForm.expires_time} onChange={e=>{const t=e.target.value;const d=couponForm.expires_date;setCouponForm(f=>({...f,expires_time:t,expires_at:d?`${d}T${t}`:''}))}  } style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none'}}/>
+                      <label style={{fontSize:11,fontWeight:600,color:'#666',display:'block',marginBottom:4}}>DURAÇÃO</label>
+                      <select value={couponForm.duration_days} onChange={e=>setCouponForm(f=>({...f,duration_days:e.target.value}))} style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',background:'#fff',outline:'none'}}>
+                        <option value="">Selecione...</option>
+                        {[1,2,3,4,5,6,7].map(d => <option key={d} value={d}>{d} dia{d>1?'s':''}</option>)}
+                      </select>
                     </div>
                   </div>
-                  <button disabled={savingCoupon||!couponForm.title||!couponForm.discount_value||!couponForm.total_qty||!couponForm.expires_at}
+                  <div style={{fontSize:10,color:'#AAA'}}>Máximo de 7 dias · começa a valer assim que publicar</div>
+                  <button disabled={savingCoupon||!couponForm.title||!couponForm.discount_value||!couponForm.total_qty||!couponForm.duration_days}
                     onClick={async()=>{
                       setSavingCoupon(true)
-                      await supabase.from('coupons').insert({company_id:company.id,title:couponForm.title,discount_type:couponForm.discount_type,discount_value:Number(couponForm.discount_value),total_qty:Number(couponForm.total_qty),qty_per_person:Number(couponForm.qty_per_person),expires_at:new Date(couponForm.expires_at).toISOString(),active:true,min_purchase:couponForm.min_purchase?Number(couponForm.min_purchase):0})
-                      setCouponForm({title:'',discount_type:'fixed',discount_value:'',total_qty:'',qty_per_person:'1',expires_at:'',expires_date:'',expires_time:'',min_purchase:''})
+                      const expiresAt = new Date(Date.now() + Number(couponForm.duration_days)*24*60*60*1000)
+                      await supabase.from('coupons').insert({company_id:company.id,title:couponForm.title,discount_type:couponForm.discount_type,discount_value:Number(couponForm.discount_value),total_qty:Number(couponForm.total_qty),qty_per_person:Number(couponForm.qty_per_person),expires_at:expiresAt.toISOString(),active:true,min_purchase:couponForm.min_purchase?Number(couponForm.min_purchase):0})
+                      setCouponForm({title:'',discount_type:'fixed',discount_value:'',total_qty:'',qty_per_person:'1',duration_days:'',min_purchase:''})
                       const {data} = await supabase.from('coupons').select('*, redemptions:coupon_redemptions(id,status)').eq('company_id',company.id).order('created_at',{ascending:false})
                       setMyCoupons(data||[])
                       const {data:flag} = await supabase.from('feature_flags').select('enabled').eq('key','notify_new_coupon').maybeSingle()

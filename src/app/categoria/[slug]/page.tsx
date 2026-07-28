@@ -260,8 +260,8 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
         .cc-body { flex: 1; min-width: 0; }
         .cc-name { font-size: 15px; font-weight: 600; color: #111; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .cc-stars { font-size: 13px; color: #C9951A; font-weight: 600; margin-bottom: 4px; }
-        .cc-subs { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 4px; }
-        .cc-sub { font-size: 12px; background: #F5F2EC; color: #555; padding: 3px 9px; border-radius: 10px; }
+        .cc-subs { display: flex; gap: 5px; flex-wrap: nowrap; overflow: hidden; margin-top: 4px; }
+        .cc-sub { font-size: 12px; background: #F5F2EC; color: #555; padding: 3px 9px; border-radius: 10px; white-space: nowrap; flex-shrink: 0; }
         .cc-addr { font-size: 11px; color: #BBB; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .cc-arrow { flex-shrink: 0; color: #CCC; }
 

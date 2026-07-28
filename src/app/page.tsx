@@ -345,7 +345,8 @@ export default function HomePage() {
         @media(max-width: 767px) {
           .banner-inner-wrap { height: auto; aspect-ratio: 3/2; padding-top: 0; }
         }
-        .pulse-ticker { width: 100%; overflow: hidden; background: #111; padding: 9px 0; }
+        .pulse-ticker { width: 100%; background: #111; padding: 9px 0; }
+        .pulse-track-clip { max-width: 1200px; margin: 0 auto; overflow: hidden; }
         .pulse-track { display: flex; width: max-content; animation: pulse-scroll linear infinite; }
         .pulse-item { color: #C9951A; font-size: 13px; font-weight: 600; white-space: nowrap; padding: 0 24px; font-family: 'Inter', sans-serif; position: relative; }
         .pulse-item::after { content: '•'; position: absolute; right: -2px; color: #555; }
@@ -560,15 +561,21 @@ export default function HomePage() {
         </div>
       </section>
 
-      {pulseMessages.length > 0 && (
-        <div className="pulse-ticker" style={{background: PULSE_PRESETS[pulseColorPreset]?.bg || '#111111'}}>
-          <div className="pulse-track" style={{animationDuration: `${Math.max(15, pulseMessages.length * 6)}s`}}>
-            {[...pulseMessages, ...pulseMessages].map((m, i) => (
-              <span key={i} className="pulse-item" style={{color: PULSE_PRESETS[pulseColorPreset]?.text || '#C9951A'}}>{m.message}</span>
-            ))}
+      {pulseMessages.length > 0 && (() => {
+        const fillCount = Math.max(1, Math.ceil(14 / pulseMessages.length))
+        const pulseFilled = Array.from({length: fillCount}).flatMap(() => pulseMessages)
+        return (
+          <div className="pulse-ticker" style={{background: PULSE_PRESETS[pulseColorPreset]?.bg || '#111111'}}>
+            <div className="pulse-track-clip">
+              <div className="pulse-track" style={{animationDuration: `${Math.max(15, pulseFilled.length * 6)}s`}}>
+                {[...pulseFilled, ...pulseFilled].map((m, i) => (
+                  <span key={i} className="pulse-item" style={{color: PULSE_PRESETS[pulseColorPreset]?.text || '#C9951A'}}>{m.message}</span>
+                ))}
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {settingsLoaded && bannerEnabled && (<>
       <div className="banner-outer">

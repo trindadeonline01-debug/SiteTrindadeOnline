@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
+import ShareButton from '@/components/ShareButton'
 
 type Promotion = {
   id: string; title: string; image_url: string; starts_at: string; expires_at: string
@@ -132,18 +133,23 @@ export default function PromocoesPage() {
           ) : (
             <div className="promo-grid">
               {filtered.map(p => (
-                <a key={p.id} className="promo-card" href={'/empresa/'+p.company?.slug}>
-                  <div className="promo-card-img">
-                    {p.image_url ? <img src={p.image_url} alt={p.title}/> : (p.company?.category?.emoji || '🏷️')}
+                <div key={p.id} className="promo-card" style={{position:'relative'}}>
+                  <a href={'/empresa/'+p.company?.slug} style={{display:'block',color:'inherit',textDecoration:'none'}}>
+                    <div className="promo-card-img">
+                      {p.image_url ? <img src={p.image_url} alt={p.title}/> : (p.company?.category?.emoji || '🏷️')}
+                    </div>
+                    <div className="promo-card-body">
+                      <div className="promo-card-cat">{p.company?.category?.emoji} {p.company?.category?.name}</div>
+                      <div className="promo-card-empresa">{p.company?.name}</div>
+                      <div className="promo-card-title">{p.title}</div>
+                      <div className="promo-card-validade">válido até {new Date(p.expires_at).toLocaleDateString('pt-BR')}</div>
+                      <span className="promo-card-btn">Ver empresa →</span>
+                    </div>
+                  </a>
+                  <div style={{position:'absolute',top:8,right:8,zIndex:5}} onClick={e=>e.stopPropagation()}>
+                    <ShareButton title={p.title} text={`🏷️ ${p.title} — ${p.company?.name} no Trindade Online!`} label="" fullWidth={false}/>
                   </div>
-                  <div className="promo-card-body">
-                    <div className="promo-card-cat">{p.company?.category?.emoji} {p.company?.category?.name}</div>
-                    <div className="promo-card-empresa">{p.company?.name}</div>
-                    <div className="promo-card-title">{p.title}</div>
-                    <div className="promo-card-validade">válido até {new Date(p.expires_at).toLocaleDateString('pt-BR')}</div>
-                    <span className="promo-card-btn">Ver empresa →</span>
-                  </div>
-                </a>
+                </div>
               ))}
             </div>
           )}
@@ -186,8 +192,11 @@ export default function PromocoesPage() {
             )}
             <div className="nav-left" onClick={prev}/>
             <div className="nav-right" onClick={next}/>
-            <div className="story-overlay">
+            <div className="story-overlay" style={{display:'flex',alignItems:'center',gap:8}}>
               <a className="story-btn" href={'/empresa/'+promo.company?.slug}>Ver empresa →</a>
+              <div style={{position:'relative',zIndex:20}}>
+                <ShareButton title={promo.title} text={`🏷️ ${promo.title} — ${promo.company?.name} no Trindade Online!`} label="" fullWidth={false}/>
+              </div>
             </div>
           </div>
         )}

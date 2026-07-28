@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
+import ShareButton from '@/components/ShareButton'
 
 type CompanyHour   = { label: string; hours: string; order: number }
 type CompanyPhoto  = { id: string; url: string; order: number }
@@ -553,6 +554,7 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
               <button className={`btn-fav ${isFav ? 'on' : ''}`} onClick={toggleFav}>
                 {isFav ? '❤️' : '🤍'} {isFav ? 'Salvo nos favoritos' : 'Salvar nos favoritos'}
               </button>
+              <ShareButton title={company.name} text={`Dá uma olhada em ${company.name} no Trindade Online!`} />
             </div>
 
             {/* Endereço */}

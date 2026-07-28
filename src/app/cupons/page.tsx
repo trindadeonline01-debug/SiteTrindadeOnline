@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import Footer from '@/components/Footer'
 import { supabase } from '@/lib/supabase'
+import ShareButton from '@/components/ShareButton'
 
 type Coupon = {
   id: string; title: string; discount_type: string; discount_value: number
@@ -322,6 +323,9 @@ export default function CuponsPage() {
                           {redeeming===c.id?'...Aguarde':'Resgatar'}
                         </button>
                       )}
+                      <div style={{marginTop:4,display:'flex',justifyContent:'flex-end'}}>
+                        <ShareButton title={c.title} text={`🎟️ Cupom ${c.title} — ${c.company?.name} no Trindade Online!`} url={`${typeof window!=='undefined'?window.location.origin:''}/cupons`} label="" fullWidth={false}/>
+                      </div>
                       {userType==='admin' && (
                         <div style={{display:'flex',gap:4,marginTop:4}}>
                           <button onClick={()=>{setEditModal(c);setEditForm({title:c.title,discount_value:String(c.discount_value),expires_at:c.expires_at.slice(0,16),min_purchase:c.min_purchase?String(c.min_purchase):''})}} style={{padding:'3px 8px',background:'#FEF3E2',color:'#854F0B',border:'1px solid #F5C77A',borderRadius:6,fontSize:10,cursor:'pointer',fontWeight:600}}>✏️ Editar</button>

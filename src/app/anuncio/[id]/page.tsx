@@ -2,6 +2,7 @@
 import { useState, useEffect, use } from 'react'
 import { supabase } from '@/lib/supabase'
 import { compressImage } from '@/lib/compressImage'
+import ShareButton from '@/components/ShareButton'
 
 type Listing = {
   id:string; type:string; title:string; description?:string
@@ -244,6 +245,10 @@ export default function AnuncioPage({ params }: { params: Promise<{ id: string }
                 Entrar em contato
               </button>
             )}
+          </div>
+
+          <div style={{marginBottom:12}}>
+            <ShareButton title={listing.title} text={`Dá uma olhada nesse anúncio no Trindade Online: ${listing.title}`} />
           </div>
 
           {listing.address&&(

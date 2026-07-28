@@ -266,7 +266,7 @@ export default function HomePage() {
         .logo-main { font-family: 'Bebas Neue', sans-serif; font-size: 26px; color: #111; letter-spacing: 2px; }
         .logo-dot  { font-family: 'Bebas Neue', sans-serif; font-size: 18px; color: #DDD; margin: 0 5px; }
         .logo-gold { font-family: 'Bebas Neue', sans-serif; font-size: 26px; color: #C9951A; letter-spacing: 2px; }
-        .nav-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; width: 100%; }
+        .nav-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; width: 100%; }
         .nav-center { display: none; }
         .nav-right { display: none; }
         @media(min-width: 768px) {
@@ -494,8 +494,8 @@ export default function HomePage() {
           ) : (
             <div className="nav-actions">
               <a className="btn-entrar" href="/login">Entrar</a>
-              <a className="btn-entrar" href="/cadastro" style={{borderColor:'#888',color:'#888'}}><span className="btn-txt">Cadastrar </span><span className="btn-plus">+</span> Morador</a>
-              <a className="btn-cad" href="/empresa/cadastrar"><span className="btn-txt">Cadastrar </span><span className="btn-plus">+</span> Empresa</a>
+              <a className="btn-entrar" href="/cadastro" style={{borderColor:'#888',color:'#888'}}><span className="btn-txt">Cadastrar </span><span className="btn-plus">CAD</span> Morador</a>
+              <a className="btn-cad" href="/empresa/cadastrar"><span className="btn-txt">Cadastrar </span><span className="btn-plus">CAD</span> Empresa</a>
             </div>
           )}
         </div>

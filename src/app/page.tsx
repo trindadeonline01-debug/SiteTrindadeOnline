@@ -494,8 +494,8 @@ export default function HomePage() {
           ) : (
             <div className="nav-actions">
               <a className="btn-entrar" href="/login">Entrar</a>
-              <a className="btn-entrar" href="/cadastro" style={{borderColor:'#888',color:'#888'}}><span className="btn-txt">Cadastrar </span><span className="btn-plus">CAD</span> Morador</a>
-              <a className="btn-cad" href="/empresa/cadastrar"><span className="btn-txt">Cadastrar </span><span className="btn-plus">CAD</span> Empresa</a>
+              <a className="btn-entrar" href="/cadastro" style={{borderColor:'#888',color:'#888'}}><span className="btn-txt">Cadastrar </span><span className="btn-plus">Cad</span> Morador</a>
+              <a className="btn-cad" href="/empresa/cadastrar"><span className="btn-txt">Cadastrar </span><span className="btn-plus">Cad</span> Empresa</a>
             </div>
           )}
         </div>

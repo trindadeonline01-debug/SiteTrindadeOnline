@@ -394,6 +394,10 @@ export default function PainelPage() {
     await supabase.from('company_subcategories').delete().eq('company_id', company.id)
     if (painelSubcatSugestoes.length > 0) {
       await supabase.from('subcategory_suggestions').insert(painelSubcatSugestoes.map(s => ({ company_id: company.id, suggestion: s })))
+      fetch('/api/admin/notify-whatsapp', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'nova_sugestao', empresa: company.name, sugestoes: painelSubcatSugestoes })
+      }).catch(() => {})
       setPainelSubcatSugestoes([])
     }
     if (editSubcatIds.length > 0) {

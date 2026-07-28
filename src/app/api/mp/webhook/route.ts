@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { notifyAdmin } from '@/lib/notifyAdmin'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -97,6 +98,16 @@ async function processPayment(paymentId: string) {
       await supabase.from('payments').update({ status: 'paid', paid_at: new Date().toISOString() }).eq('id', rec.id)
     }
     await supabase.from('companies').update({ plan: 'paid', plan_ends_at: planEndsAt.toISOString(), status: 'active' }).eq('id', companyId)
+
+    // Avisa o admin no WhatsApp
+    {
+      const { data: compForNotify } = await supabase.from('companies').select('name').eq('id', companyId).maybeSingle()
+      const periodoLabel = days <= 31 ? 'Plano Mensal' : days <= 200 ? 'Plano Semestral' : 'Plano Anual'
+      if (compForNotify) {
+        notifyAdmin({ type: 'nova_assinatura', empresa: compForNotify.name, plano: periodoLabel, valor: Number(payment.transaction_amount) })
+      }
+    }
+
     // Notificação automática — nova empresa ativa
     const { data: flagC } = await supabase.from('feature_flags').select('enabled').eq('key', 'notify_new_company').maybeSingle()
     if (flagC?.enabled) { fetch(process.env.NEXT_PUBLIC_SITE_URL + '/api/push/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: '🏪 Nova empresa no bairro!', body: `Uma nova empresa acabou de entrar no Trindade Online. Confira!`, target: 'user' }) }) }

@@ -153,6 +153,11 @@ export default function EmpresaCadastrarPage() {
 
       if (companyError) throw new Error('Erro ao criar empresa.')
 
+      fetch('/api/admin/notify-whatsapp', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'nova_empresa', nome: company.name, categoria: catSel?.name })
+      }).catch(() => {})
+
       // 2. Subcategorias
       if (selectedSubs.length > 0) {
         await supabase.from('company_subcategories').insert(
@@ -165,6 +170,10 @@ export default function EmpresaCadastrarPage() {
         await supabase.from('subcategory_suggestions').insert(
           subcatSugestoes.map(s => ({ company_id: company.id, suggestion: s }))
         )
+        fetch('/api/admin/notify-whatsapp', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'nova_sugestao', empresa: company.name, sugestoes: subcatSugestoes })
+        }).catch(() => {})
       }
       // 3. Horários
       const isIgreja = categoryId === IGREJAS_CATEGORY_ID

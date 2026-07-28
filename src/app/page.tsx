@@ -137,7 +137,7 @@ export default function HomePage() {
       const { data: ld } = await supabase
         .from('listings').select('id, title, price, type, created_at, photos:listing_photos(url,order)')
         .eq('type', type).eq('status', 'active')
-        .order('created_at', { ascending: false }).limit(3)
+        .order('created_at', { ascending: false }).limit(type === 'desapega' ? 5 : 3)
       map[type] = (ld || []) as Listing[]
     }
     setRecentListings(map)
@@ -413,6 +413,16 @@ export default function HomePage() {
 
         .listings-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
         @media(min-width: 768px) { .listings-grid { grid-template-columns: repeat(3,1fr); } }
+
+        .desapega-scroll { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+        .desapega-scroll::-webkit-scrollbar { display: none; }
+        .desapega-card { flex-shrink: 0; width: 118px; background: #fff; border: 0.5px solid #E0DDD8; border-radius: 12px; overflow: hidden; text-decoration: none; display: block; }
+        .desapega-img { width: 118px; height: 118px; background: #F0EDE8; display: flex; align-items: center; justify-content: center; font-size: 28px; overflow: hidden; }
+        .desapega-img img { width: 100%; height: 100%; object-fit: cover; }
+        .desapega-body { padding: 7px 9px; }
+        .desapega-title { font-size: 12px; font-weight: 600; color: #111; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
+        .desapega-price { font-size: 12px; color: #C9951A; font-weight: 700; }
+        .desapega-more { flex-shrink: 0; width: 84px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: #F5F2EC; border-radius: 12px; text-decoration: none; color: #854F0B; font-size: 11px; font-weight: 600; text-align: center; }
         .listing-col { background: #fff; border: 1px solid #e8e8e8; border-radius: 10px; overflow: hidden; }
         .listing-col-hdr { padding: 11px 14px; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; gap: 8px; background: #fafafa; }
         .lch-title { font-size: 13px; font-weight: 600; color: #111; }
@@ -708,62 +718,66 @@ export default function HomePage() {
         )}
 
         {/* ANÚNCIOS RECENTES */}
+        {((recentListings['desapega']||[]).length > 0 || (recentListings['emprego']||[]).length > 0 || (recentListings['imovel']||[]).length > 0) && (
+        <>
         <div className="divider" />
         <div className="sec-hdr"><span className="sec-title">ANÚNCIOS RECENTES</span></div>
         <div className="listings-grid">
+          {(recentListings['desapega'] || []).length > 0 && (
           <div className="listing-col">
             <div className="listing-col-hdr">
               <span>🏷️</span><span className="lch-title">Desapega</span>
               <a href="/desapega" style={{ marginLeft:'auto', fontSize:11, color:'#C9951A', fontWeight:500, textDecoration:'none' }}>ver todos</a>
             </div>
-            {(recentListings['desapega'] || []).length === 0
-              ? <div className="empty-state" style={{ padding:'16px 14px' }}>Nenhum anúncio ainda</div>
-              : (recentListings['desapega'] || []).map(l => (
-                  <a key={l.id} className="listing-item" href={`/anuncio/${l.id}`} style={{display:'flex',alignItems:'center',gap:10}}>
+            <div className="desapega-scroll">
+              {(recentListings['desapega'] || []).map(l => (
+                <a key={l.id} className="desapega-card" href={`/anuncio/${l.id}`}>
+                  <div className="desapega-img">
                     {l.photos?.length ? (
-                      <img src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title} style={{width:52,height:52,objectFit:'cover',borderRadius:8,flexShrink:0}}/>
-                    ) : (
-                      <div style={{width:52,height:52,background:'#F0EDE8',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,flexShrink:0}}>🏷️</div>
-                    )}
-                    <div style={{flex:1,minWidth:0}}>
-                      <div className="li-title">{l.title}</div>
-                      {l.price && <div className="li-price">R$ {l.price.toLocaleString('pt-BR')}</div>}
-                    </div>
-                  </a>
-                ))
-            }
+                      <img src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title}/>
+                    ) : '🏷️'}
+                  </div>
+                  <div className="desapega-body">
+                    <div className="desapega-title">{l.title}</div>
+                    {l.price && <div className="desapega-price">R$ {l.price.toLocaleString('pt-BR')}</div>}
+                  </div>
+                </a>
+              ))}
+              <a className="desapega-more" href="/desapega">Ver mais →</a>
+            </div>
           </div>
+          )}
+          {(recentListings['emprego'] || []).length > 0 && (
           <div className="listing-col">
             <div className="listing-col-hdr">
               <span>💼</span><span className="lch-title">Empregos</span>
               <a href="/empregos" style={{ marginLeft:'auto', fontSize:11, color:'#C9951A', fontWeight:500, textDecoration:'none' }}>ver todos</a>
             </div>
-            {(recentListings['emprego'] || []).length === 0
-              ? <div className="empty-state" style={{ padding:'16px 14px' }}>Nenhuma vaga ainda</div>
-              : (recentListings['emprego'] || []).map(l => (
-                  <a key={l.id} className="listing-item" href={`/anuncio/${l.id}`}>
-                    <div className="li-title">{l.title}</div>
-                    <div className="li-meta">Vaga de emprego</div>
-                  </a>
-                ))
-            }
+            {(recentListings['emprego'] || []).map(l => (
+              <a key={l.id} className="listing-item" href={`/anuncio/${l.id}`}>
+                <div className="li-title">{l.title}</div>
+                <div className="li-meta">Vaga de emprego</div>
+              </a>
+            ))}
           </div>
+          )}
+          {(recentListings['imovel'] || []).length > 0 && (
           <div className="listing-col">
             <div className="listing-col-hdr">
               <span>🏠</span><span className="lch-title">Imóveis</span>
               <a href="/imoveis" style={{ marginLeft:'auto', fontSize:11, color:'#C9951A', fontWeight:500, textDecoration:'none' }}>ver todos</a>
             </div>
-            {(recentListings['imovel'] || []).length === 0
-              ? <div className="empty-state" style={{ padding:'16px 14px' }}>Nenhum imóvel ainda</div>
-              : (recentListings['imovel'] || []).map(l => (
-                  <a key={l.id} className="listing-item" href={`/anuncio/${l.id}`}>
-                    <div className="li-title">{l.title}</div>
-                    {l.price && <div className="li-price">R$ {l.price.toLocaleString('pt-BR')}/mês</div>}
-                  </a>
-                ))
-            }
+            {(recentListings['imovel'] || []).map(l => (
+              <a key={l.id} className="listing-item" href={`/anuncio/${l.id}`}>
+                <div className="li-title">{l.title}</div>
+                {l.price && <div className="li-price">R$ {l.price.toLocaleString('pt-BR')}/mês</div>}
+              </a>
+            ))}
           </div>
+          )}
         </div>
+        </>
+        )}
 
         {/* RECÉM CADASTRADOS */}
         <div className="divider" />

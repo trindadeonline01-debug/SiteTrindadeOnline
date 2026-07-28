@@ -137,7 +137,7 @@ export default function HomePage() {
       const { data: ld } = await supabase
         .from('listings').select('id, title, price, type, created_at, photos:listing_photos(url,order)')
         .eq('type', type).eq('status', 'active')
-        .order('created_at', { ascending: false }).limit(type === 'desapega' ? 5 : 3)
+        .order('created_at', { ascending: false }).limit(5)
       map[type] = (ld || []) as Listing[]
     }
     setRecentListings(map)
@@ -411,27 +411,21 @@ export default function HomePage() {
         .dest-cat  { font-size: 10px; color: #AAA; margin-bottom: 4px; }
         .badge-dest { position: absolute; top: 6px; right: 6px; background: #C9951A; color: #111; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 3px; }
 
-        .listings-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
-        @media(min-width: 768px) { .listings-grid { grid-template-columns: repeat(3,1fr); } }
-
-        .desapega-scroll { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
-        .desapega-scroll::-webkit-scrollbar { display: none; }
-        .desapega-card { flex-shrink: 0; width: 118px; background: #fff; border: 0.5px solid #E0DDD8; border-radius: 12px; overflow: hidden; text-decoration: none; display: block; }
-        .desapega-img { width: 118px; height: 118px; background: #F0EDE8; display: flex; align-items: center; justify-content: center; font-size: 28px; overflow: hidden; }
-        .desapega-img img { width: 100%; height: 100%; object-fit: cover; }
-        .desapega-body { padding: 7px 9px; }
-        .desapega-title { font-size: 12px; font-weight: 600; color: #111; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
-        .desapega-price { font-size: 12px; color: #C9951A; font-weight: 700; }
-        .desapega-more { flex-shrink: 0; width: 84px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: #F5F2EC; border-radius: 12px; text-decoration: none; color: #854F0B; font-size: 11px; font-weight: 600; text-align: center; }
-        .listing-col { background: #fff; border: 1px solid #e8e8e8; border-radius: 10px; overflow: hidden; }
-        .listing-col-hdr { padding: 11px 14px; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; gap: 8px; background: #fafafa; }
-        .lch-title { font-size: 13px; font-weight: 600; color: #111; }
-        .listing-item { padding: 9px 14px; border-bottom: 1px solid #f5f5f5; display: block; text-decoration: none; }
-        .listing-item:last-child { border-bottom: none; }
-        .listing-item:hover { background: #fafaf8; }
-        .li-title { font-size: 12px; color: #333; margin-bottom: 2px; }
-        .li-meta  { font-size: 11px; color: #999; }
-        .li-price { font-size: 12px; color: #b8860b; font-weight: 600; }
+        .recent-section { margin-top: 22px; }
+        .recent-section-hdr { display: flex; align-items: center; gap: 7px; margin-bottom: 12px; }
+        .recent-section-title { font-size: 15px; font-weight: 700; color: #111; font-family: 'Inter', sans-serif; }
+        .recent-scroll { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+        .recent-scroll::-webkit-scrollbar { display: none; }
+        @media(min-width: 768px) { .recent-scroll { display: grid; grid-template-columns: repeat(4,1fr); overflow: visible; } }
+        @media(min-width: 1024px) { .recent-scroll { grid-template-columns: repeat(5,1fr); } }
+        .recent-card { flex-shrink: 0; width: 46vw; max-width: 210px; text-decoration: none; display: block; }
+        @media(min-width: 480px) { .recent-card { width: 190px; } }
+        @media(min-width: 768px) { .recent-card { width: auto; } }
+        .recent-card-img { width: 100%; aspect-ratio: 1/1; border-radius: 14px; overflow: hidden; background: #F0EDE8; display: flex; align-items: center; justify-content: center; font-size: 34px; margin-bottom: 8px; }
+        .recent-card-img img { width: 100%; height: 100%; object-fit: cover; }
+        .recent-card-title { font-size: 14px; font-weight: 600; color: #111; line-height: 1.3; margin-bottom: 2px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .recent-card-sub { font-size: 13px; color: #888; }
+        .recent-card-price { font-size: 13px; color: #C9951A; font-weight: 700; }
 
         .rec-grid { display: flex; flex-direction: column; border: 0.5px solid #EDE8E0; border-radius: 14px; overflow: hidden; background: #fff; }
         @media(min-width: 768px)  { .rec-grid { display: grid; grid-template-columns: repeat(2,1fr); } }
@@ -717,65 +711,76 @@ export default function HomePage() {
           </>
         )}
 
-        {/* ANÚNCIOS RECENTES */}
+        {/* ANÚNCIOS RECENTES — estilo Airbnb, sem container */}
         {((recentListings['desapega']||[]).length > 0 || (recentListings['emprego']||[]).length > 0 || (recentListings['imovel']||[]).length > 0) && (
         <>
         <div className="divider" />
-        <div className="sec-hdr"><span className="sec-title">ANÚNCIOS RECENTES</span></div>
-        <div className="listings-grid">
-          {(recentListings['desapega'] || []).length > 0 && (
-          <div className="listing-col">
-            <div className="listing-col-hdr">
-              <span>🏷️</span><span className="lch-title">Desapega</span>
-              <a href="/desapega" style={{ marginLeft:'auto', fontSize:11, color:'#C9951A', fontWeight:500, textDecoration:'none' }}>ver todos</a>
-            </div>
-            <div className="desapega-scroll">
-              {(recentListings['desapega'] || []).map(l => (
-                <a key={l.id} className="desapega-card" href={`/anuncio/${l.id}`}>
-                  <div className="desapega-img">
-                    {l.photos?.length ? (
-                      <img src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title}/>
-                    ) : '🏷️'}
-                  </div>
-                  <div className="desapega-body">
-                    <div className="desapega-title">{l.title}</div>
-                    {l.price && <div className="desapega-price">R$ {l.price.toLocaleString('pt-BR')}</div>}
-                  </div>
-                </a>
-              ))}
-              <a className="desapega-more" href="/desapega">Ver mais →</a>
-            </div>
+
+        {(recentListings['desapega'] || []).length > 0 && (
+        <div className="recent-section">
+          <div className="recent-section-hdr">
+            <span className="recent-section-title">🏷️ Desapega</span>
+            <a href="/desapega" className="sec-link" style={{marginLeft:'auto'}}>Ver tudo →</a>
           </div>
-          )}
-          {(recentListings['emprego'] || []).length > 0 && (
-          <div className="listing-col">
-            <div className="listing-col-hdr">
-              <span>💼</span><span className="lch-title">Empregos</span>
-              <a href="/empregos" style={{ marginLeft:'auto', fontSize:11, color:'#C9951A', fontWeight:500, textDecoration:'none' }}>ver todos</a>
-            </div>
-            {(recentListings['emprego'] || []).map(l => (
-              <a key={l.id} className="listing-item" href={`/anuncio/${l.id}`}>
-                <div className="li-title">{l.title}</div>
-                <div className="li-meta">Vaga de emprego</div>
+          <div className="recent-scroll">
+            {(recentListings['desapega'] || []).map(l => (
+              <a key={l.id} className="recent-card" href={`/anuncio/${l.id}`}>
+                <div className="recent-card-img">
+                  {l.photos?.length ? (
+                    <img src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title}/>
+                  ) : '🏷️'}
+                </div>
+                <div className="recent-card-title">{l.title}</div>
+                {l.price && <div className="recent-card-price">R$ {l.price.toLocaleString('pt-BR')}</div>}
               </a>
             ))}
           </div>
-          )}
-          {(recentListings['imovel'] || []).length > 0 && (
-          <div className="listing-col">
-            <div className="listing-col-hdr">
-              <span>🏠</span><span className="lch-title">Imóveis</span>
-              <a href="/imoveis" style={{ marginLeft:'auto', fontSize:11, color:'#C9951A', fontWeight:500, textDecoration:'none' }}>ver todos</a>
-            </div>
-            {(recentListings['imovel'] || []).map(l => (
-              <a key={l.id} className="listing-item" href={`/anuncio/${l.id}`}>
-                <div className="li-title">{l.title}</div>
-                {l.price && <div className="li-price">R$ {l.price.toLocaleString('pt-BR')}/mês</div>}
-              </a>
-            ))}
-          </div>
-          )}
         </div>
+        )}
+
+        {(recentListings['emprego'] || []).length > 0 && (
+        <div className="recent-section">
+          <div className="recent-section-hdr">
+            <span className="recent-section-title">💼 Empregos</span>
+            <a href="/empregos" className="sec-link" style={{marginLeft:'auto'}}>Ver tudo →</a>
+          </div>
+          <div className="recent-scroll">
+            {(recentListings['emprego'] || []).map(l => (
+              <a key={l.id} className="recent-card" href={`/anuncio/${l.id}`}>
+                <div className="recent-card-img">
+                  {l.photos?.length ? (
+                    <img src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title}/>
+                  ) : '💼'}
+                </div>
+                <div className="recent-card-title">{l.title}</div>
+                <div className="recent-card-sub">Vaga de emprego</div>
+              </a>
+            ))}
+          </div>
+        </div>
+        )}
+
+        {(recentListings['imovel'] || []).length > 0 && (
+        <div className="recent-section">
+          <div className="recent-section-hdr">
+            <span className="recent-section-title">🏠 Imóveis</span>
+            <a href="/imoveis" className="sec-link" style={{marginLeft:'auto'}}>Ver tudo →</a>
+          </div>
+          <div className="recent-scroll">
+            {(recentListings['imovel'] || []).map(l => (
+              <a key={l.id} className="recent-card" href={`/anuncio/${l.id}`}>
+                <div className="recent-card-img">
+                  {l.photos?.length ? (
+                    <img src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title}/>
+                  ) : '🏠'}
+                </div>
+                <div className="recent-card-title">{l.title}</div>
+                {l.price && <div className="recent-card-price">R$ {l.price.toLocaleString('pt-BR')}/mês</div>}
+              </a>
+            ))}
+          </div>
+        </div>
+        )}
         </>
         )}
 

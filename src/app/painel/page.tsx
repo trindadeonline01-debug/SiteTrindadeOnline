@@ -1750,7 +1750,7 @@ export default function PainelPage() {
                   const mensalRef = mensalPlan ? Number(mensalPlan.value) : 0
                   const sorted = [...subscriptions].sort((a:any,b:any) => Number(a.value) - Number(b.value))
                   const tiers = ['bronze','prata','ouro']
-                  const currentMobile = mobileTab && sorted.find((p:any) => p.id === mobileTab) ? sorted.find((p:any) => p.id === mobileTab)! : sorted[sorted.length-1]
+                  const currentMobile = mobileTab && sorted.find((p:any) => p.id === mobileTab) ? sorted.find((p:any) => p.id === mobileTab)! : sorted[0]
                   const fmtBRL = (n:number) => n.toFixed(2).replace('.', ',')
                   const calc = (plan:any) => {
                     const months = Math.max(1, Math.round(Number(plan.days)/30))
@@ -1862,6 +1862,7 @@ export default function PainelPage() {
             <div className="content-plano">
               <div className="plano-inner">
 
+              {company.plan === 'paid' ? (
               <div style={{background:'#F5F2EC',borderRadius:12,padding:16,marginBottom:20}}>
                 <div style={{fontSize:13,fontWeight:600,color:'#111',marginBottom:12}}>➕ Criar novo cupom</div>
                 <div style={{display:'flex',flexDirection:'column',gap:10}}>
@@ -1920,6 +1921,12 @@ export default function PainelPage() {
                   </button>
                 </div>
               </div>
+              ) : (
+              <div style={{background:'#FEF3E2',border:'1px solid #F5C77A',borderRadius:10,padding:'14px 16px',marginBottom:20,display:'flex',flexWrap:'wrap',alignItems:'center',justifyContent:'space-between',gap:10}}>
+                <div style={{fontSize:13,color:'#854F0B',fontWeight:600,flex:1,minWidth:180}}>🎟️ Cupons Relâmpago são exclusivos do plano pago. Ative um plano para criar os seus!</div>
+                <button onClick={()=>setTab('plano')} style={{background:'#C9951A',color:'#fff',border:'none',padding:'8px 16px',borderRadius:8,fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>Ativar plano →</button>
+              </div>
+              )}
 
               <div style={{background:'#F5F2EC',borderRadius:12,padding:16,marginBottom:20}}>
                 <div style={{fontSize:13,fontWeight:600,color:'#111',marginBottom:12}}>🔍 Validar código do cliente</div>
@@ -2019,6 +2026,7 @@ export default function PainelPage() {
           {tab === 'promocoes' && (
             <div className="content-plano">
               <div className="plano-inner">
+                {company.plan === 'paid' ? (
                 <div style={{background:'#F5F2EC',borderRadius:12,padding:16,marginBottom:20}}>
                   <div style={{fontSize:13,fontWeight:600,color:'#111',marginBottom:12}}>➕ Criar nova promoção</div>
                   <div style={{display:'flex',flexDirection:'column',gap:10}}>
@@ -2066,6 +2074,12 @@ export default function PainelPage() {
                     </button>
                   </div>
                 </div>
+                ) : (
+                <div style={{background:'#FEF3E2',border:'1px solid #F5C77A',borderRadius:10,padding:'14px 16px',marginBottom:20,display:'flex',flexWrap:'wrap',alignItems:'center',justifyContent:'space-between',gap:10}}>
+                  <div style={{fontSize:13,color:'#854F0B',fontWeight:600,flex:1,minWidth:180}}>🏷️ Promoções da Semana são exclusivas do plano pago. Ative um plano para criar as suas!</div>
+                  <button onClick={()=>setTab('plano')} style={{background:'#C9951A',color:'#fff',border:'none',padding:'8px 16px',borderRadius:8,fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>Ativar plano →</button>
+                </div>
+                )}
                 <div style={{fontSize:13,fontWeight:600,color:'#111',marginBottom:10}}>📋 Minhas promoções</div>
                 {myPromos.length === 0 ? (
                   <div style={{textAlign:'center',padding:20,color:'#AAA',fontSize:13}}>Nenhuma promoção criada ainda</div>

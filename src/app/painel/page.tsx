@@ -52,6 +52,19 @@ export default function PainelPage() {
   const [validateResult, setValidateResult] = useState<any>(null)
   const [validating, setValidating] = useState(false)
   const [company, setCompany]       = useState<Company|null>(null)
+  const [showTrialPopup, setShowTrialPopup] = useState(false)
+
+  useEffect(() => {
+    if (!company || company.plan === 'paid' || !company.trial_ends_at) return
+    const expired = new Date(company.trial_ends_at) < new Date()
+    const dl = daysLeft(company.trial_ends_at)
+    if (!expired && dl > 3) return
+    const key = `trial_popup_${company.id}`
+    const today = new Date().toISOString().split('T')[0]
+    if (localStorage.getItem(key) === today) return
+    localStorage.setItem(key, today)
+    setShowTrialPopup(true)
+  }, [company?.id, company?.plan, company?.trial_ends_at])
 
   useEffect(() => {
     if (tab === 'promocoes' && company?.id) {
@@ -685,6 +698,13 @@ export default function PainelPage() {
         .hs-lbl{font-size:9px;color:#AAA;}
 
         .alert-pending{background:#FEF3E2;border:1px solid #F5C77A;border-radius:12px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:#854F0B;line-height:1.6;}
+
+        .trial-banner{background:#FEF3E2;border-bottom:1px solid #F5C77A;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+        .trial-banner-text{font-size:12px;font-weight:600;color:#854F0B;}
+        .trial-banner-btn{background:#C9951A;color:#fff;border:none;padding:6px 14px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap;}
+        .trial-banner-expired{background:#FEECEC;border-bottom:1px solid #F5A3A3;}
+        .trial-banner-expired .trial-banner-text{color:#B42318;}
+        @media(min-width:768px){.trial-banner{padding:10px 28px;}}
         .empty{text-align:center;padding:48px 20px;color:#AAA;}
         .empty div:first-child{font-size:40px;margin-bottom:12px;}
 
@@ -1049,6 +1069,34 @@ export default function PainelPage() {
         </div>
       )}
 
+      {showTrialPopup && company?.trial_ends_at && (() => {
+        const expired = new Date(company.trial_ends_at) < new Date()
+        const dl = daysLeft(company.trial_ends_at)
+        return (
+          <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+            <div style={{background:'#fff',borderRadius:20,padding:28,maxWidth:360,width:'100%',textAlign:'center'}}>
+              <div style={{fontSize:40,marginBottom:10}}>{expired ? '⏰' : '🎁'}</div>
+              <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,color:expired?'#B42318':'#111',letterSpacing:1,marginBottom:8}}>
+                {expired ? 'SEU TRIAL ACABOU' : `SEU TRIAL ACABA EM ${dl} DIA${dl!==1?'S':''}`}
+              </div>
+              <div style={{fontSize:13,color:'#666',marginBottom:22,lineHeight:1.5}}>
+                {expired
+                  ? 'Seu WhatsApp e link não aparecem mais pros moradores. Ative um plano pra voltar a ser encontrado.'
+                  : 'Depois disso, seu WhatsApp e link somem do seu perfil pros moradores.'}
+              </div>
+              <button onClick={()=>{setShowTrialPopup(false);setTab('plano')}}
+                style={{width:'100%',padding:'13px',background:'#C9951A',color:'#fff',border:'none',borderRadius:12,fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'Inter,sans-serif',marginBottom:8}}>
+                Ativar plano →
+              </button>
+              <button onClick={()=>setShowTrialPopup(false)}
+                style={{width:'100%',padding:'10px',background:'transparent',color:'#AAA',border:'none',fontSize:13,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                Agora não
+              </button>
+            </div>
+          </div>
+        )
+      })()}
+
       {pixModal.open && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
           <div style={{background:'#fff',borderRadius:20,padding:28,maxWidth:400,width:'100%',textAlign:'center'}}>
@@ -1167,6 +1215,19 @@ export default function PainelPage() {
             <div className="topbar-title">{tabTitle[tab]}</div>
             <div className="topbar-right">{new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})}</div>
           </div>
+
+          {company.plan !== 'paid' && company.trial_ends_at && (() => {
+            const expired = new Date(company.trial_ends_at) < new Date()
+            const dl = daysLeft(company.trial_ends_at)
+            return (
+              <div className={`trial-banner${expired ? ' trial-banner-expired' : ''}`}>
+                <span className="trial-banner-text">
+                  {expired ? '⏰ Seu trial grátis venceu' : `🎁 Trial grátis · ${dl} dia${dl!==1?'s':''} restante${dl!==1?'s':''}`}
+                </span>
+                <button className="trial-banner-btn" onClick={()=>setTab('plano')}>Ativar plano →</button>
+              </div>
+            )
+          })()}
 
           {/* ── CONTEÚDO DAS ABAS ── */}
 

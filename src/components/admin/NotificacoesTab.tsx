@@ -16,20 +16,12 @@ export default function NotificacoesTab() {
   const [result, setResult] = useState<{sent:number,total:number}|null>(null)
   const [flags, setFlags] = useState<Record<string,boolean>>({})
   const [savingFlags, setSavingFlags] = useState(false)
-  const [totalTokens, setTotalTokens] = useState<{all:number,user:number,company:number}>({all:0,user:0,company:0})
 
-  useEffect(() => { loadFlags(); loadTokenCounts() }, [])
+  useEffect(() => { loadFlags() }, [])
 
   async function loadFlags() {
     const { data } = await supabase.from('feature_flags').select('key,enabled').in('key', EVENTOS.map(e => e.key))
     if (data) setFlags(Object.fromEntries(data.map((f:any) => [f.key, f.enabled])))
-  }
-
-  async function loadTokenCounts() {
-    const { count: all } = await supabase.from('push_tokens').select('*', { count: 'exact', head: true })
-    const { count: user } = await supabase.from('push_tokens').select('*', { count: 'exact', head: true }).eq('user_type', 'user')
-    const { count: company } = await supabase.from('push_tokens').select('*', { count: 'exact', head: true }).eq('user_type', 'company')
-    setTotalTokens({ all: all||0, user: user||0, company: company||0 })
   }
 
   async function toggleFlag(key: string) {
@@ -59,18 +51,6 @@ export default function NotificacoesTab() {
 
   return (
     <div style={{display:'flex',flexDirection:'column',gap:16}}>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12}}>
-        {[
-          { label:'Total de dispositivos', count: totalTokens.all, color:'#185FA5' },
-          { label:'Moradores', count: totalTokens.user, color:'#0F8050' },
-          { label:'Empresas', count: totalTokens.company, color:'#C9951A' },
-        ].map(s => (
-          <div key={s.label} style={{background:'#fff',border:'0.5px solid #EDE8E0',borderRadius:14,padding:'16px 18px'}}>
-            <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:32,color:s.color,letterSpacing:1}}>{s.count}</div>
-            <div style={{fontSize:11,color:'#AAA'}}>{s.label}</div>
-          </div>
-        ))}
-      </div>
       <div style={{background:'#fff',border:'0.5px solid #EDE8E0',borderRadius:14,overflow:'hidden'}}>
         <div style={{padding:'14px 18px',borderBottom:'0.5px solid #F0EDE8'}}>
           <span style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:13,color:'#888',letterSpacing:1.5}}>📢 DISPARAR NOTIFICAÇÃO MANUAL</span>
@@ -82,8 +62,7 @@ export default function NotificacoesTab() {
               {([['all','🌍 Todos','#185FA5'],['user','👤 Moradores','#0F8050'],['company','🏪 Empresas','#C9951A']] as const).map(([val,lbl,color]) => (
                 <button key={val} onClick={()=>setTarget(val)}
                   style={{flex:1,padding:'10px 8px',borderRadius:10,border:`2px solid ${target===val?color:'#E0DDD8'}`,background:target===val?`${color}15`:'#FAFAF8',fontSize:12,fontWeight:600,color:target===val?color:'#888',cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
-                  {lbl}<br/>
-                  <span style={{fontSize:10,fontWeight:400,color:'#AAA'}}>{val==='all'?totalTokens.all:val==='user'?totalTokens.user:totalTokens.company} dispositivos</span>
+                  {lbl}
                 </button>
               ))}
             </div>

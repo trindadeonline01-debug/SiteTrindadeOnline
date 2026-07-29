@@ -54,10 +54,8 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
   const [loading, setLoading] = useState(true)
   const lineRef = useRef<HTMLCanvasElement>(null)
   const donutRef = useRef<HTMLCanvasElement>(null)
-  const barRef = useRef<HTMLCanvasElement>(null)
   const lineChart = useRef<any>(null)
   const donutChart = useRef<any>(null)
-  const barChart = useRef<any>(null)
 
   function getDateRange(): { from: string; to: string } {
     const now = new Date()
@@ -95,27 +93,38 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
       { count: reviews },
       { count: coupons },
       { count: promotions },
+      { count: viewsCount },
+      { count: wppClicksCount },
+      { data: pageViewRows },
     ] = await Promise.all([
-      supabase.from('companies').select('views_count, whatsapp_clicks, link_clicks, address_clicks, name, plan').eq('status', 'active'),
+      supabase.from('companies').select('link_clicks, address_clicks').eq('status', 'active'),
       supabase.from('companies').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
       supabase.from('companies').select('*', { count: 'exact', head: true }).eq('status', 'active').eq('plan', 'paid'),
       supabase.from('companies').select('*', { count: 'exact', head: true }).eq('status', 'active').neq('plan', 'paid'),
       supabase.from('companies').select('*', { count: 'exact', head: true }).eq('status', 'active').gte('created_at', from).lte('created_at', to),
-      supabase.from('search_logs').select('query, result_count').gte('created_at', from).lte('created_at', to),
+      supabase.from('search_logs').select('query, results_count').gte('created_at', from).lte('created_at', to),
       supabase.from('reviews').select('*', { count: 'exact', head: true }).gte('created_at', from).lte('created_at', to),
       supabase.from('coupons').select('*', { count: 'exact', head: true }).gte('created_at', from).lte('created_at', to),
       supabase.from('promotions').select('*', { count: 'exact', head: true }).gte('created_at', from).lte('created_at', to),
+      supabase.from('page_views').select('*', { count: 'exact', head: true }).eq('page', '/empresa').gte('created_at', from).lte('created_at', to),
+      supabase.from('whatsapp_clicks').select('*', { count: 'exact', head: true }).gte('created_at', from).lte('created_at', to),
+      supabase.from('page_views').select('entity_id').eq('page', '/empresa').gte('created_at', from).lte('created_at', to),
     ])
 
-    // Agrega stats de empresas
-    const totalViews = (companies || []).reduce((a, c) => a + (c.views_count || 0), 0)
-    const totalWpp = (companies || []).reduce((a, c) => a + (c.whatsapp_clicks || 0), 0)
+    // Cliques em link externo e endereço não têm log por data — soma acumulada (total geral)
     const totalLink = (companies || []).reduce((a, c) => a + (c.link_clicks || 0), 0)
     const totalAddr = (companies || []).reduce((a, c) => a + (c.address_clicks || 0), 0)
 
-    // Top 5 empresas por views
-    const sorted = [...(companies || [])].sort((a, b) => (b.views_count || 0) - (a.views_count || 0)).slice(0, 5)
-    setTopCompanies(sorted.map(c => ({ name: c.name, category: '', views: c.views_count || 0 })))
+    // Top 5 empresas por visualizações no período (a partir do log real de page_views)
+    const viewCountMap: Record<string, number> = {}
+    ;(pageViewRows || []).forEach((r: any) => { if (r.entity_id) viewCountMap[r.entity_id] = (viewCountMap[r.entity_id] || 0) + 1 })
+    const topIds = Object.entries(viewCountMap).sort((a, b) => b[1] - a[1]).slice(0, 5)
+    let topNames: Record<string, string> = {}
+    if (topIds.length > 0) {
+      const { data: topCos } = await supabase.from('companies').select('id, name').in('id', topIds.map(([id]) => id))
+      ;(topCos || []).forEach((c: any) => { topNames[c.id] = c.name })
+    }
+    setTopCompanies(topIds.map(([id, views]) => ({ name: topNames[id] || '—', category: '', views })))
 
     // Termos de busca
     const termMap: Record<string, { count: number; no_result: boolean }> = {}
@@ -124,18 +133,18 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
       if (!q) return
       if (!termMap[q]) termMap[q] = { count: 0, no_result: false }
       termMap[q].count++
-      if (!s.result_count || s.result_count === 0) termMap[q].no_result = true
+      if (!s.results_count || s.results_count === 0) termMap[q].no_result = true
     })
     const terms = Object.entries(termMap)
       .map(([term, v]) => ({ term, count: v.count, no_result: v.no_result }))
       .sort((a, b) => b.count - a.count)
     setSearchTerms(terms)
 
-    const noResultCount = (searches || []).filter((s: any) => !s.result_count || s.result_count === 0).length
+    const noResultCount = (searches || []).filter((s: any) => !s.results_count || s.results_count === 0).length
 
     setStats({
-      views: totalViews,
-      whatsapp_clicks: totalWpp,
+      views: viewsCount || 0,
+      whatsapp_clicks: wppClicksCount || 0,
       link_clicks: totalLink,
       address_clicks: totalAddr,
       paid: paid || 0,
@@ -186,16 +195,6 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
           type: 'doughnut',
           data: { datasets: [{ data: [stats.paid, stats.free], backgroundColor: ['#16a34a', '#C9951A'], borderWidth: 0 }] },
           options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, cutout: '70%' }
-        })
-      }
-      if (barRef.current) {
-        if (barChart.current) barChart.current.destroy()
-        const labels = ['S-7','S-6','S-5','S-4','S-3','S-2','S-1','Atual']
-        const base = stats.paid * 49.9
-        barChart.current = new Chart(barRef.current, {
-          type: 'bar',
-          data: { labels, datasets: [{ label: 'Receita', data: labels.map((_, i) => Math.floor(base * (0.7 + i * 0.04))), backgroundColor: 'rgba(201,149,26,0.15)', borderColor: '#C9951A', borderWidth: 2, borderRadius: 8 }] },
-          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#aaa' } }, y: { grid: { color: '#f0f0f0' }, ticks: { font: { size: 11 }, color: '#aaa', callback: (v: any) => 'R$' + v } } } }
         })
       }
     })
@@ -255,8 +254,8 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
         {[
           { icon: '👁️', label: 'Visualizações', val: stats.views, color: '#2563eb' },
           { icon: '💬', label: 'Cliques WhatsApp', val: stats.whatsapp_clicks, color: '#C9951A' },
-          { icon: '🔗', label: 'Cliques link externo', val: stats.link_clicks, color: '#111' },
-          { icon: '📍', label: 'Cliques no endereço', val: stats.address_clicks, color: '#111' },
+          { icon: '🔗', label: 'Cliques link externo (total geral)', val: stats.link_clicks, color: '#111' },
+          { icon: '📍', label: 'Cliques no endereço (total geral)', val: stats.address_clicks, color: '#111' },
         ].map(c => (
           <div key={c.label} style={s.card}>
             <span style={s.cardIcon}>{c.icon}</span>
@@ -330,13 +329,6 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
           <div style={{ fontSize: 12, color: '#C9951A' }}>{stats.free} empresas no plano gratuito</div>
         </div>
       </div>
-      <div style={s.chartCard}>
-        <div style={s.chartTitle}>Receita estimada (últimas 8 semanas)</div>
-        <div style={{ position: 'relative', height: 160 }}>
-          <canvas ref={barRef}></canvas>
-        </div>
-      </div>
-
       {/* ENGAJAMENTO */}
       <div style={s.sectionTitle}>❤️ Engajamento</div>
       <div style={s.grid4}>

@@ -123,6 +123,9 @@ export default function AdminPage() {
   const [deletedReminderIds, setDeletedReminderIds] = useState<string[]>([])
   const [reminderSentCounts, setReminderSentCounts] = useState<Record<string, number>>({})
   const [savingReminders, setSavingReminders] = useState(false)
+  const [testInputs, setTestInputs] = useState<Record<string,{phone:string;email:string}>>({})
+  const [testSending, setTestSending] = useState<Record<string,boolean>>({})
+  const [testResults, setTestResults] = useState<Record<string,string>>({})
   const [subcatsList, setSubcatsList]       = useState<any[]>([])
   const [subcatSearch, setSubcatSearch]     = useState('')
   const [sugestoesList, setSugestoesList]   = useState<any[]>([])
@@ -553,6 +556,37 @@ export default function AdminPage() {
     await loadTrialReminders()
     setSavingReminders(false)
     showToast('Lembretes de trial salvos!')
+  }
+
+  async function sendReminderTest(r: any) {
+    const input = testInputs[r.id] || { phone: '', email: '' }
+    if (!input.phone.trim() && !input.email.trim()) { showToast('Informe telefone e/ou email pra testar'); return }
+    setTestSending(prev => ({ ...prev, [r.id]: true }))
+    setTestResults(prev => ({ ...prev, [r.id]: '' }))
+    try {
+      const res = await fetch('/api/trial-reminders/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: input.phone.trim() || undefined,
+          email: input.email.trim() || undefined,
+          name: 'Empresa Teste',
+          whatsapp_message: r.whatsapp_message,
+          email_subject: r.email_subject,
+          email_body: r.email_body,
+        })
+      })
+      const data = await res.json()
+      if (data.error) { setTestResults(prev => ({ ...prev, [r.id]: '⚠️ ' + data.error })); return }
+      const parts: string[] = []
+      if (input.phone.trim()) parts.push(data.whatsapp ? '✓ WhatsApp enviado' : '✗ WhatsApp falhou')
+      if (input.email.trim()) parts.push(data.email ? '✓ Email enviado' : '✗ Email falhou')
+      setTestResults(prev => ({ ...prev, [r.id]: parts.join(' · ') }))
+    } catch (err: any) {
+      setTestResults(prev => ({ ...prev, [r.id]: '⚠️ ' + err.message }))
+    } finally {
+      setTestSending(prev => ({ ...prev, [r.id]: false }))
+    }
   }
 
   async function saveMpToken() {
@@ -2642,6 +2676,23 @@ export default function AdminPage() {
                           <textarea value={r.email_body||''} onChange={e=>updateTrialReminder(r.id,{email_body:e.target.value})}
                             placeholder="Use {{nome}} pra inserir o nome da empresa"
                             style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',minHeight:60,resize:'vertical'}}/>
+
+                          <div style={{marginTop:14,paddingTop:14,borderTop:'1px dashed #E0DDD8'}}>
+                            <label style={{fontSize:11,fontWeight:600,color:'#888',display:'block',marginBottom:6}}>🧪 Testar este lembrete (envia pra você, com o texto acima)</label>
+                            <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                              <input placeholder="Seu WhatsApp (ex: 21980239006)" value={testInputs[r.id]?.phone||''}
+                                onChange={e=>setTestInputs(prev=>({...prev,[r.id]:{phone:e.target.value,email:prev[r.id]?.email||''}}))}
+                                style={{flex:1,minWidth:160,padding:'8px 10px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:12,fontFamily:'Inter,sans-serif'}}/>
+                              <input placeholder="Seu email" value={testInputs[r.id]?.email||''}
+                                onChange={e=>setTestInputs(prev=>({...prev,[r.id]:{phone:prev[r.id]?.phone||'',email:e.target.value}}))}
+                                style={{flex:1,minWidth:160,padding:'8px 10px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:12,fontFamily:'Inter,sans-serif'}}/>
+                              <button onClick={()=>sendReminderTest(r)} disabled={testSending[r.id]}
+                                style={{padding:'8px 16px',background:'#111',color:'#C9951A',border:'none',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer',whiteSpace:'nowrap',opacity:testSending[r.id]?0.6:1}}>
+                                {testSending[r.id]?'Enviando...':'Enviar teste'}
+                              </button>
+                            </div>
+                            {testResults[r.id] && <div style={{fontSize:11,color:'#666',marginTop:6}}>{testResults[r.id]}</div>}
+                          </div>
                         </div>
                       ))}
                     </div>

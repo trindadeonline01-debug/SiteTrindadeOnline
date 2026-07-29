@@ -119,6 +119,10 @@ export default function AdminPage() {
   const [trialEnabled, setTrialEnabled] = useState(false)
   const [trialDays, setTrialDays] = useState(7)
   const [savingTrial, setSavingTrial] = useState(false)
+  const [trialReminders, setTrialReminders] = useState<any[]>([])
+  const [deletedReminderIds, setDeletedReminderIds] = useState<string[]>([])
+  const [reminderSentCounts, setReminderSentCounts] = useState<Record<string, number>>({})
+  const [savingReminders, setSavingReminders] = useState(false)
   const [subcatsList, setSubcatsList]       = useState<any[]>([])
   const [subcatSearch, setSubcatSearch]     = useState('')
   const [sugestoesList, setSugestoesList]   = useState<any[]>([])
@@ -153,7 +157,7 @@ export default function AdminPage() {
 
   async function loadAll() {
     setLoading(true)
-    await Promise.all([loadStats(), loadCompanies(), loadUsers(), loadSearches(), loadHighlights(), loadReports(), loadBanners(), loadSettings(), loadAppearance(), loadPulseMessages(), loadTrialSettings(), loadBannerRequests(), loadFeatureFlags(), loadPlans(), loadSubcats()])
+    await Promise.all([loadStats(), loadCompanies(), loadUsers(), loadSearches(), loadHighlights(), loadReports(), loadBanners(), loadSettings(), loadAppearance(), loadPulseMessages(), loadTrialSettings(), loadTrialReminders(), loadBannerRequests(), loadFeatureFlags(), loadPlans(), loadSubcats()])
 
     // Realtime — atualiza automaticamente
     const channel = supabase
@@ -500,6 +504,55 @@ export default function AdminPage() {
     ])
     setSavingTrial(false)
     showToast('Configurações de trial salvas!')
+  }
+
+  async function loadTrialReminders() {
+    const { data } = await supabase.from('trial_reminders').select('*').order('display_order')
+    setTrialReminders(data || [])
+    const { data: logs } = await supabase.from('trial_reminder_log').select('reminder_id')
+    if (logs) {
+      const counts: Record<string, number> = {}
+      logs.forEach((l: any) => { counts[l.reminder_id] = (counts[l.reminder_id] || 0) + 1 })
+      setReminderSentCounts(counts)
+    }
+  }
+
+  function addTrialReminder() {
+    setTrialReminders(prev => [...prev, {
+      id: `new-${Date.now()}`, days_before: 3, active: true,
+      whatsapp_message: '', email_subject: '', email_body: '',
+      display_order: prev.length, isNew: true
+    }])
+  }
+
+  function updateTrialReminder(id: string, updates: any) {
+    setTrialReminders(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r))
+  }
+
+  function removeTrialReminder(id: string, isNew?: boolean) {
+    setTrialReminders(prev => prev.filter(r => r.id !== id).map((r, i) => ({ ...r, display_order: i })))
+    if (!isNew) setDeletedReminderIds(prev => [...prev, id])
+  }
+
+  async function saveTrialReminders() {
+    setSavingReminders(true)
+    if (deletedReminderIds.length > 0) {
+      await supabase.from('trial_reminders').delete().in('id', deletedReminderIds)
+    }
+    for (const r of trialReminders) {
+      const payload = {
+        days_before: r.days_before, active: r.active,
+        whatsapp_message: r.whatsapp_message, email_subject: r.email_subject,
+        email_body: r.email_body, display_order: r.display_order,
+        updated_at: new Date().toISOString()
+      }
+      if (r.isNew) await supabase.from('trial_reminders').insert(payload)
+      else await supabase.from('trial_reminders').update(payload).eq('id', r.id)
+    }
+    setDeletedReminderIds([])
+    await loadTrialReminders()
+    setSavingReminders(false)
+    showToast('Lembretes de trial salvos!')
   }
 
   async function saveMpToken() {
@@ -2543,6 +2596,60 @@ export default function AdminPage() {
                     <button onClick={saveTrialSettings} disabled={savingTrial}
                       style={{padding:'10px 24px',background:'#C9951A',color:'#fff',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',opacity:savingTrial?0.6:1}}>
                       {savingTrial ? 'Salvando...' : 'Salvar configurações'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="section-card" style={{marginTop:20}}>
+                  <div className="section-hdr">
+                    <span className="section-title">🔔 LEMBRETES DE TRIAL</span>
+                  </div>
+                  <div style={{padding:'20px 24px'}}>
+                    <div style={{fontSize:13,color:'#666',marginBottom:20,lineHeight:1.6}}>
+                      Avisos automáticos por WhatsApp e e-mail enviados conforme os dias restantes do trial de cada empresa. "Dias antes" negativo dispara depois do trial já ter vencido. Cada lembrete é enviado uma única vez por empresa.
+                    </div>
+
+                    <div style={{display:'flex',flexDirection:'column',gap:14}}>
+                      {trialReminders.map(r => (
+                        <div key={r.id} style={{border:'1.5px solid #EDE8E0',borderRadius:12,padding:16}}>
+                          <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:12,flexWrap:'wrap'}}>
+                            <div>
+                              <label style={{fontSize:11,fontWeight:600,color:'#888',display:'block',marginBottom:4}}>Dias antes de vencer</label>
+                              <input type="number" value={r.days_before} onChange={e=>updateTrialReminder(r.id,{days_before:Number(e.target.value)||0})}
+                                style={{width:90,padding:'8px 10px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+                            </div>
+                            <div onClick={()=>updateTrialReminder(r.id,{active:!r.active})}
+                              style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer',marginTop:16}}>
+                              <div style={{width:40,height:22,borderRadius:11,background:r.active?'#0F8050':'#E0DDD8',position:'relative',transition:'background .2s'}}>
+                                <div style={{position:'absolute',top:2,left:r.active?20:2,width:18,height:18,borderRadius:'50%',background:'#fff',boxShadow:'0 1px 4px rgba(0,0,0,.2)',transition:'left .2s'}}/>
+                              </div>
+                              <span style={{fontSize:12,fontWeight:600,color:r.active?'#0F8050':'#AAA'}}>{r.active?'Ativo':'Inativo'}</span>
+                            </div>
+                            <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:10,marginTop:16}}>
+                              <span style={{fontSize:11,color:'#AAA'}}>{reminderSentCounts[r.id] || 0} enviados</span>
+                              <button onClick={()=>removeTrialReminder(r.id,r.isNew)}
+                                style={{background:'#FCEBEB',color:'#E24B4A',border:'none',borderRadius:8,width:30,height:30,cursor:'pointer'}}>🗑</button>
+                            </div>
+                          </div>
+                          <label style={{fontSize:11,fontWeight:600,color:'#888',display:'block',marginBottom:4}}>Mensagem WhatsApp</label>
+                          <textarea value={r.whatsapp_message||''} onChange={e=>updateTrialReminder(r.id,{whatsapp_message:e.target.value})}
+                            placeholder="Use {{nome}} pra inserir o nome da empresa"
+                            style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',minHeight:60,resize:'vertical',marginBottom:10}}/>
+                          <label style={{fontSize:11,fontWeight:600,color:'#888',display:'block',marginBottom:4}}>Assunto do e-mail</label>
+                          <input value={r.email_subject||''} onChange={e=>updateTrialReminder(r.id,{email_subject:e.target.value})}
+                            style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',marginBottom:10}}/>
+                          <label style={{fontSize:11,fontWeight:600,color:'#888',display:'block',marginBottom:4}}>Corpo do e-mail</label>
+                          <textarea value={r.email_body||''} onChange={e=>updateTrialReminder(r.id,{email_body:e.target.value})}
+                            placeholder="Use {{nome}} pra inserir o nome da empresa"
+                            style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',minHeight:60,resize:'vertical'}}/>
+                        </div>
+                      ))}
+                    </div>
+
+                    <button onClick={addTrialReminder} style={{width:'100%',marginTop:12,padding:'9px',background:'#fafafa',border:'1.5px dashed #ddd',color:'#aaa',borderRadius:10,fontSize:12,fontWeight:600,cursor:'pointer'}}>+ Adicionar lembrete</button>
+                    <button onClick={saveTrialReminders} disabled={savingReminders}
+                      style={{width:'100%',marginTop:14,padding:11,background:'#C9951A',color:'#111',border:'none',borderRadius:10,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',opacity:savingReminders?0.6:1}}>
+                      {savingReminders ? 'Salvando...' : 'Salvar lembretes'}
                     </button>
                   </div>
                 </div>

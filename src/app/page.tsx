@@ -116,14 +116,15 @@ export default function HomePage() {
       .eq('scope', 'home').limit(8)
     setHighlights(([...(hlData || [])].sort(() => Math.random() - 0.5)) as any)
 
-    const { data: newData } = await supabase
+    const { data: newData, error: newError } = await supabase
       .from('companies')
       .select(`id, name, slug, description, category_id, status,
         trial_ends_at, plan, avg_rating, total_reviews,
         categories ( name, emoji ),
         company_photos ( photo_url, is_primary, order )`)
-      .eq('status', 'active').order('created_at', { ascending: false }).limit(10)
-    setNewCompanies(((newData || []) as any as Company[]).slice(0, 6))
+      .eq('status', 'active').order('created_at', { ascending: false }).limit(5)
+    if (newError) console.error('Erro ao carregar cadastros recentes:', newError)
+    setNewCompanies((newData || []) as any as Company[])
 
     const types = ['desapega', 'emprego', 'imovel']
     const map: Record<string, Listing[]> = {}
@@ -444,7 +445,7 @@ export default function HomePage() {
 
         .rec-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 16px; }
         @media(min-width: 768px)  { .rec-grid { grid-template-columns: repeat(3,1fr); } }
-        @media(min-width: 1024px) { .rec-grid { grid-template-columns: repeat(4,1fr); } }
+        @media(min-width: 1024px) { .rec-grid { grid-template-columns: repeat(5,1fr); } }
         .rec-card { display: block; text-decoration: none; }
         .rec-card-img { width: 100%; aspect-ratio: 1/1; border-radius: 14px; overflow: hidden; background: #F0EDE8; display: flex; align-items: center; justify-content: center; font-size: 34px; margin-bottom: 8px; }
         .rec-card-img img { width: 100%; height: 100%; object-fit: cover; }

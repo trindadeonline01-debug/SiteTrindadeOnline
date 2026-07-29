@@ -12,6 +12,7 @@ interface Campaign {
   name: string
   messages: string[]
   filter: string
+  list_name?: string | null
   delay_min: number
   delay_max: number
   status: string
@@ -22,6 +23,22 @@ interface Campaign {
   started_at: string | null
   completed_at: string | null
   created_at: string
+}
+
+interface BroadcastList {
+  id: string
+  name: string
+  created_at: string
+  member_count: number
+}
+
+interface BroadcastMember {
+  id: string
+  list_id: string
+  phone: string
+  name: string | null
+  company: string | null
+  source: string
 }
 
 interface BlastLog {
@@ -70,11 +87,23 @@ export default function DisparosTab() {
   const [testSending, setTestSending] = useState(false)
   const [testSent, setTestSent] = useState(false)
   const [activeTextarea, setActiveTextarea] = useState<number>(0)
+  const [selectedListId, setSelectedListId] = useState('')
+
+  // Listas de transmissão
+  const [lists, setLists] = useState<BroadcastList[]>([])
+  const [expandedListId, setExpandedListId] = useState<string | null>(null)
+  const [listMembers, setListMembers] = useState<BroadcastMember[]>([])
+  const [newListName, setNewListName] = useState('')
+  const [listSearch, setListSearch] = useState('')
+  const [listSearchResults, setListSearchResults] = useState<any[]>([])
+  const [manualPhone, setManualPhone] = useState('')
+  const [manualName, setManualName] = useState('')
 
   useEffect(() => {
     checkWaStatus()
     loadCampaigns()
     loadBlacklist()
+    loadLists()
     const interval = setInterval(() => {
       loadCampaigns()
       if (selectedCampaign) loadLogs(selectedCampaign)
@@ -113,17 +142,96 @@ export default function DisparosTab() {
     setBlacklist(data || [])
   }
 
+  async function loadLists() {
+    const { data: listsData } = await supabase.from('broadcast_lists').select('*').order('name')
+    const { data: membersData } = await supabase.from('broadcast_list_members').select('list_id')
+    const counts: Record<string, number> = {}
+    ;(membersData || []).forEach((m: any) => { counts[m.list_id] = (counts[m.list_id] || 0) + 1 })
+    setLists((listsData || []).map((l: any) => ({ ...l, member_count: counts[l.id] || 0 })))
+  }
+
+  async function createList() {
+    if (!newListName.trim()) return
+    const { data, error } = await supabase.from('broadcast_lists').insert({ name: newListName.trim() }).select().single()
+    if (error) return alert('Erro: ' + error.message)
+    setNewListName('')
+    await loadLists()
+    if (data) setExpandedListId(data.id)
+  }
+
+  async function deleteList(id: string) {
+    if (!confirm('Excluir esta lista de transmissão? Os contatos salvos nela serão perdidos.')) return
+    await supabase.from('broadcast_lists').delete().eq('id', id)
+    if (expandedListId === id) setExpandedListId(null)
+    if (selectedListId === id) setSelectedListId('')
+    await loadLists()
+  }
+
+  async function toggleExpandList(id: string) {
+    if (expandedListId === id) { setExpandedListId(null); return }
+    setExpandedListId(id)
+    setListSearch(''); setListSearchResults([])
+    const { data } = await supabase.from('broadcast_list_members').select('*').eq('list_id', id).order('created_at', { ascending: false })
+    setListMembers(data || [])
+  }
+
+  async function searchForList(q: string) {
+    setListSearch(q)
+    if (q.length < 2) { setListSearchResults([]); return }
+    const results: any[] = []
+    const { data: companies } = await supabase.from('companies').select('name, phone').ilike('name', `%${q}%`).not('phone', 'is', null).limit(5)
+    const { data: byPhone } = await supabase.from('companies').select('name, phone').ilike('phone', `%${q}%`).not('phone', 'is', null).limit(3)
+    ;(companies || []).forEach((c: any) => results.push({ name: c.name, phone: c.phone, company: c.name, source: 'company' }))
+    ;(byPhone || []).forEach((c: any) => { if (!results.find(r => r.phone === c.phone)) results.push({ name: c.name, phone: c.phone, company: c.name, source: 'company' }) })
+    const { data: residents } = await supabase.from('profiles').select('name, phone').eq('user_type', 'user').ilike('name', `%${q}%`).not('phone', 'is', null).limit(5)
+    ;(residents || []).forEach((r: any) => results.push({ name: r.name, phone: r.phone, company: '', source: 'resident' }))
+    const { data: residentsByPhone } = await supabase.from('profiles').select('name, phone').eq('user_type', 'user').ilike('phone', `%${q}%`).not('phone', 'is', null).limit(3)
+    ;(residentsByPhone || []).forEach((r: any) => { if (!results.find(res => res.phone === r.phone)) results.push({ name: r.name, phone: r.phone, company: '', source: 'resident' }) })
+    setListSearchResults(results.slice(0, 8))
+  }
+
+  async function addMemberToList(listId: string, member: { phone: string; name: string; company?: string; source: string }) {
+    const { error } = await supabase.from('broadcast_list_members').insert({
+      list_id: listId, phone: member.phone, name: member.name, company: member.company || null, source: member.source
+    })
+    if (error) {
+      if (error.code === '23505') alert('Esse número já está nesta lista.')
+      else alert('Erro: ' + error.message)
+      return
+    }
+    setListSearch(''); setListSearchResults([])
+    await toggleExpandListRefresh(listId)
+    await loadLists()
+  }
+
+  async function addManualMember(listId: string) {
+    if (!manualPhone.trim()) return
+    await addMemberToList(listId, { phone: manualPhone.trim(), name: manualName.trim() || manualPhone.trim(), source: 'manual' })
+    setManualPhone(''); setManualName('')
+  }
+
+  async function toggleExpandListRefresh(listId: string) {
+    const { data } = await supabase.from('broadcast_list_members').select('*').eq('list_id', listId).order('created_at', { ascending: false })
+    setListMembers(data || [])
+  }
+
+  async function removeMember(memberId: string, listId: string) {
+    await supabase.from('broadcast_list_members').delete().eq('id', memberId)
+    await toggleExpandListRefresh(listId)
+    await loadLists()
+  }
+
   async function calcPreview() {
     const res = await fetch('/api/blast/preview', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ filter })
+      body: JSON.stringify({ filter, list_id: filter === 'broadcast_list' ? selectedListId : undefined })
     })
     const data = await res.json()
     setPreviewCount(data.count ?? null)
   }
 
-  useEffect(() => { calcPreview() }, [filter])
+  useEffect(() => { calcPreview() }, [filter, selectedListId])
 
   function estimateTime() {
     if (!previewCount) return ''
@@ -138,8 +246,10 @@ export default function DisparosTab() {
     if (!name.trim()) return alert('Dê um nome para a campanha')
     const validMessages = messages.filter(m => m.trim())
     if (validMessages.length === 0) return alert('Adicione pelo menos uma mensagem')
+    if (filter === 'broadcast_list' && !selectedListId) return alert('Escolha uma lista de transmissão')
     setLoading(true)
     try {
+      const listName = filter === 'broadcast_list' ? (lists.find(l => l.id === selectedListId)?.name || null) : null
       const res = await fetch('/api/blast', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -148,6 +258,8 @@ export default function DisparosTab() {
           name,
           messages: validMessages,
           filter,
+          list_id: filter === 'broadcast_list' ? selectedListId : undefined,
+          list_name: listName,
           delay_min: delayMin,
           delay_max: delayMax,
           scheduled_at: scheduledAt || null
@@ -295,11 +407,25 @@ export default function DisparosTab() {
           <option value="unpaid">⭕ Só empresas não pagas</option>
           <option value="no_group">📵 Empresas sem grupo WA</option>
           <option value="residents">🏘️ Só moradores</option>
+          <option value="broadcast_list">📋 Lista de transmissão</option>
         </select>
         {filter === 'no_group' && (
           <div style={{ fontSize: 11, color: '#92600a', marginTop: 6 }}>
             ✅ Ao enviar, cada empresa contatada é marcada automaticamente como "Grupo WA" na aba Usuários.
           </div>
+        )}
+        {filter === 'broadcast_list' && (
+          <>
+            <select style={{ ...s.select, marginTop: 8 }} value={selectedListId} onChange={e => setSelectedListId(e.target.value)}>
+              <option value="">Selecione uma lista...</option>
+              {lists.map(l => <option key={l.id} value={l.id}>{l.name} ({l.member_count} contatos)</option>)}
+            </select>
+            {lists.length === 0 && (
+              <div style={{ fontSize: 11, color: '#92600a', marginTop: 6 }}>
+                Nenhuma lista criada ainda. Crie uma no card "📋 Listas de Transmissão" mais abaixo.
+              </div>
+            )}
+          </>
         )}
 
         <label style={s.label}>
@@ -424,7 +550,9 @@ export default function DisparosTab() {
                   <div style={s.badge(c.status)}>{c.status === 'running' ? 'EM ANDAMENTO' : 'PAUSADA'}</div>
                   <div style={{ fontSize: 14, fontWeight: 700, flex: 1 }}>{c.name}</div>
                 </div>
-                <div style={{ fontSize: 11, color: '#888', marginBottom: 10 }}>{c.total_contacts} contatos no total</div>
+                <div style={{ fontSize: 11, color: '#888', marginBottom: 10 }}>
+                  {c.total_contacts} contatos no total{c.list_name ? ` · 📋 ${c.list_name}` : ''}
+                </div>
                 <div style={s.progressBar}>
                   <div style={{ background: '#C9951A', height: '100%', borderRadius: 99, width: `${pct}%` }} />
                 </div>
@@ -488,7 +616,7 @@ export default function DisparosTab() {
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13, fontWeight: 600 }}>{c.name}</div>
                 <div style={{ fontSize: 11, color: '#aaa', marginTop: 2 }}>
-                  {c.created_at ? new Date(c.created_at).toLocaleDateString('pt-BR') : ''} · {c.total_contacts} contatos
+                  {c.created_at ? new Date(c.created_at).toLocaleDateString('pt-BR') : ''} · {c.total_contacts} contatos{c.list_name ? ` · 📋 ${c.list_name}` : ''}
                 </div>
               </div>
               <div style={{ textAlign: 'right', fontSize: 12 }}>
@@ -503,6 +631,83 @@ export default function DisparosTab() {
           ))}
         </div>
       )}
+
+      {/* LISTAS DE TRANSMISSÃO */}
+      <div style={s.card}>
+        <div style={s.cardTitle}>📋 Listas de Transmissão</div>
+
+        <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+          <input style={{ ...s.input, flex: 1 }} placeholder="Nome da nova lista (ex: Feirantes da Praça)" value={newListName} onChange={e => setNewListName(e.target.value)} />
+          <button onClick={createList}
+            style={{ background: '#111', color: '#fff', border: 'none', padding: '11px 18px', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            + Nova lista
+          </button>
+        </div>
+
+        {lists.length === 0 && <div style={{ color: '#aaa', fontSize: 13 }}>Nenhuma lista criada ainda.</div>}
+
+        {lists.map(l => (
+          <div key={l.id} style={{ border: '1.5px solid #eee', borderRadius: 12, marginBottom: 8, overflow: 'hidden' }}>
+            <div onClick={() => toggleExpandList(l.id)}
+              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', cursor: 'pointer', background: '#f9f9f9' }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 700 }}>{l.name}</div>
+                <div style={{ fontSize: 11, color: '#aaa' }}>{l.member_count} contato{l.member_count !== 1 ? 's' : ''}</div>
+              </div>
+              <button onClick={e => { e.stopPropagation(); deleteList(l.id) }}
+                style={{ background: 'none', border: 'none', color: '#ddd', cursor: 'pointer', fontSize: 16 }}>🗑</button>
+              <span style={{ color: '#aaa', fontSize: 12 }}>{expandedListId === l.id ? '▲' : '▼'}</span>
+            </div>
+
+            {expandedListId === l.id && (
+              <div style={{ padding: 14, borderTop: '1.5px solid #eee' }}>
+                <input style={s.input} placeholder="Buscar por nome ou número..." value={listSearch} onChange={e => searchForList(e.target.value)} />
+                {listSearchResults.length > 0 && (
+                  <div style={{ background: '#fff', border: '1.5px solid #eee', borderRadius: 10, overflow: 'hidden', marginTop: 8 }}>
+                    {listSearchResults.map((r: any) => (
+                      <div key={r.phone} onClick={() => addMemberToList(l.id, r)}
+                        style={{ padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0', display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ width: 28, height: 28, background: '#f0f0f0', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}>
+                          {r.source === 'company' ? '🏪' : '👤'}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600 }}>{r.name}</div>
+                          <div style={{ fontSize: 11, color: '#aaa' }}>{r.phone}</div>
+                        </div>
+                        <span style={{ fontSize: 11, color: '#C9951A', fontWeight: 600 }}>+ adicionar</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                  <input style={{ ...s.input, flex: 1 }} placeholder="Número (contato sem cadastro)" value={manualPhone} onChange={e => setManualPhone(e.target.value)} />
+                  <input style={{ ...s.input, flex: 1 }} placeholder="Nome (opcional)" value={manualName} onChange={e => setManualName(e.target.value)} />
+                  <button onClick={() => addManualMember(l.id)}
+                    style={{ background: '#fff', border: '1.5px solid #C9951A', color: '#C9951A', padding: '11px 14px', borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                    + Manual
+                  </button>
+                </div>
+
+                <div style={{ marginTop: 14 }}>
+                  {listMembers.length === 0 && <div style={{ color: '#aaa', fontSize: 12 }}>Nenhum contato nesta lista ainda.</div>}
+                  {listMembers.map(m => (
+                    <div key={m.id} style={s.blRow}>
+                      <div style={{ fontSize: 16 }}>{m.source === 'company' ? '🏪' : m.source === 'resident' ? '👤' : '✏️'}</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600 }}>{m.name || m.phone}</div>
+                        <div style={{ fontSize: 11, color: '#aaa' }}>{m.phone}{m.company ? ` — ${m.company}` : ''}</div>
+                      </div>
+                      <button onClick={() => removeMember(m.id, l.id)}
+                        style={{ background: 'none', border: 'none', color: '#ddd', cursor: 'pointer', fontSize: 16 }}>🗑</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
 
       {/* BLACKLIST */}
       <div style={s.card}>

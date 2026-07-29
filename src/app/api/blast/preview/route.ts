@@ -14,9 +14,14 @@ function formatPhone(phone: string): string {
 
 export async function POST(req: NextRequest) {
   try {
-    const { filter } = await req.json()
+    const { filter, list_id } = await req.json()
 
     let contacts: string[] = []
+
+    if (filter === 'broadcast_list') {
+      const { data } = await supabase.from('broadcast_list_members').select('phone').eq('list_id', list_id)
+      contacts = [...contacts, ...(data || []).map((m: any) => m.phone)]
+    }
 
     if (filter === 'all' || filter === 'paid' || filter === 'unpaid') {
       let query = supabase.from('companies').select('phone, plan').not('phone', 'is', null).neq('phone', '')

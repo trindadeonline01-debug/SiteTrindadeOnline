@@ -67,10 +67,15 @@ export async function POST(req: NextRequest) {
 
     // CRIAR CAMPANHA
     if (action === 'create') {
-      const { name, messages, filter, delay_min, delay_max, scheduled_at } = data
+      const { name, messages, filter, delay_min, delay_max, scheduled_at, list_id, list_name } = data
 
       // Busca contatos conforme filtro
       let contacts: { phone: string; name: string; company: string; owner_id?: string }[] = []
+
+      if (filter === 'broadcast_list') {
+        const { data: members } = await supabase.from('broadcast_list_members').select('phone, name, company').eq('list_id', list_id)
+        contacts = [...contacts, ...(members || []).map((m: any) => ({ phone: m.phone, name: m.name || '', company: m.company || '' }))]
+      }
 
       if (filter === 'all' || filter === 'paid' || filter === 'unpaid') {
         // Empresas
@@ -124,6 +129,8 @@ export async function POST(req: NextRequest) {
         name,
         messages,
         filter,
+        list_id: filter === 'broadcast_list' ? (list_id || null) : null,
+        list_name: filter === 'broadcast_list' ? (list_name || null) : null,
         delay_min: delay_min || 10,
         delay_max: delay_max || 60,
         total_contacts: contacts.length,

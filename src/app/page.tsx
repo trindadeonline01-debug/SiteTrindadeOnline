@@ -8,14 +8,6 @@ import WAButton from '@/components/WAButton'
 import OneSignalInit from '@/components/OneSignalInit'
 import CookieBanner from '@/components/CookieBanner'
 
-interface Company {
-  id: string; name: string; slug: string; description: string | null
-  category_id: string; status: string; trial_ends_at: string | null
-  plan: string | null; avg_rating: number; total_reviews: number
-  categories?: { name: string; emoji?: string } | null
-  company_photos?: { photo_url: string; is_primary: boolean; order?: number }[]
-}
-
 interface Highlight {
   id: string; company_id: string; scope: string
   companies?: {
@@ -70,7 +62,6 @@ export default function HomePage() {
   const [banners, setBanners]         = useState<Banner[]>([])
   const [activeBanner, setActiveBanner] = useState(0)
   const [highlights, setHighlights]   = useState<Highlight[]>([])
-  const [newCompanies, setNewCompanies] = useState<Company[]>([])
   const [recentListings, setRecentListings] = useState<Record<string, Listing[]>>({})
   const [pulseMessages, setPulseMessages] = useState<{id:string;message:string}[]>([])
   const [pulseColorPreset, setPulseColorPreset] = useState('classico')
@@ -116,15 +107,6 @@ export default function HomePage() {
       .eq('scope', 'home').limit(8)
     setHighlights(([...(hlData || [])].sort(() => Math.random() - 0.5)) as any)
 
-    const { data: newData, error: newError } = await supabase
-      .from('companies')
-      .select(`id, name, slug, description, category_id, status,
-        trial_ends_at, plan, avg_rating, total_reviews,
-        categories ( name, emoji ),
-        company_photos ( photo_url, is_primary, order )`)
-      .eq('status', 'active').order('created_at', { ascending: false }).limit(5)
-    if (newError) console.error('Erro ao carregar cadastros recentes:', newError)
-    setNewCompanies((newData || []) as any as Company[])
 
     const types = ['desapega', 'emprego', 'imovel']
     const map: Record<string, Listing[]> = {}
@@ -442,16 +424,6 @@ export default function HomePage() {
         .recent-card-title { font-size: 14px; font-weight: 600; color: #111; line-height: 1.3; margin-bottom: 2px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
         .recent-card-sub { font-size: 13px; color: #888; }
         .recent-card-price { font-size: 13px; color: #C9951A; font-weight: 700; }
-
-        .rec-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 16px; }
-        @media(min-width: 768px)  { .rec-grid { grid-template-columns: repeat(3,1fr); } }
-        @media(min-width: 1024px) { .rec-grid { grid-template-columns: repeat(5,1fr); } }
-        .rec-card { display: block; text-decoration: none; }
-        .rec-card-img { width: 100%; aspect-ratio: 1/1; border-radius: 14px; overflow: hidden; background: #F0EDE8; display: flex; align-items: center; justify-content: center; font-size: 34px; margin-bottom: 8px; }
-        .rec-card-img img { width: 100%; height: 100%; object-fit: cover; }
-        .rec-name { font-size: 14px; font-weight: 600; color: #111; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .rec-cat  { font-size: 12px; color: #999; margin-bottom: 2px; }
-        .rec-new  { font-size: 11px; color: #0F8050; font-weight: 600; }
 
         .cta-section { margin: 36px 0 48px; background: linear-gradient(135deg,#1A1A1A,#333); border-radius: 20px; padding: 36px 32px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 16px; }
         @media(min-width: 768px) { .cta-section { flex-direction: row; text-align: left; justify-content: space-between; padding: 36px 48px; } }
@@ -814,31 +786,6 @@ export default function HomePage() {
         </div>
         )}
         </>
-        )}
-
-        {/* RECÉM CADASTRADOS */}
-        <div className="divider" />
-        <div className="sec-hdr">
-          <span className="sec-title">RECÉM CADASTRADOS</span>
-          <a className="sec-link" href="/busca">Ver todos</a>
-        </div>
-        {loading ? (
-          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-            {[1,2,3].map(i => <div key={i} className="skeleton" style={{ height:60, borderRadius:10 }} />)}
-          </div>
-        ) : newCompanies.length === 0 ? (
-          <div className="empty-state">Nenhuma empresa cadastrada ainda.</div>
-        ) : (
-          <div className="rec-grid">
-            {newCompanies.map(c => (
-              <a key={c.id} className="rec-card" href={`/empresa/${c.slug}`}>
-                <div className="rec-card-img"><CoverPhoto photos={c.company_photos} name={c.name} /></div>
-                <div className="rec-name">{c.name}</div>
-                <div className="rec-cat">{(c.categories as any)?.emoji} {(c.categories as any)?.name || '—'}</div>
-                <div className="rec-new">● Novo · Trindade</div>
-              </a>
-            ))}
-          </div>
         )}
 
         {/* CTA */}

@@ -126,6 +126,8 @@ export default function AdminPage() {
   const [testInputs, setTestInputs] = useState<Record<string,{phone:string;email:string}>>({})
   const [testSending, setTestSending] = useState<Record<string,boolean>>({})
   const [testResults, setTestResults] = useState<Record<string,string>>({})
+  const [cronRunning, setCronRunning] = useState(false)
+  const [cronResult, setCronResult] = useState<{sent:number;checked:number;details:string[]}|null>(null)
   const [subcatsList, setSubcatsList]       = useState<any[]>([])
   const [subcatSearch, setSubcatSearch]     = useState('')
   const [sugestoesList, setSugestoesList]   = useState<any[]>([])
@@ -586,6 +588,20 @@ export default function AdminPage() {
       setTestResults(prev => ({ ...prev, [r.id]: '⚠️ ' + err.message }))
     } finally {
       setTestSending(prev => ({ ...prev, [r.id]: false }))
+    }
+  }
+
+  async function runCronNow() {
+    setCronRunning(true)
+    setCronResult(null)
+    try {
+      const res = await fetch('/api/admin/run-trial-reminders', { method: 'POST' })
+      const data = await res.json()
+      setCronResult({ sent: data.sent || 0, checked: data.checked || 0, details: data.details || [] })
+    } catch (err: any) {
+      setCronResult({ sent: 0, checked: 0, details: ['⚠️ ' + err.message] })
+    } finally {
+      setCronRunning(false)
     }
   }
 
@@ -2702,6 +2718,31 @@ export default function AdminPage() {
                       style={{width:'100%',marginTop:14,padding:11,background:'#C9951A',color:'#111',border:'none',borderRadius:10,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',opacity:savingReminders?0.6:1}}>
                       {savingReminders ? 'Salvando...' : 'Salvar lembretes'}
                     </button>
+
+                    <div style={{marginTop:24,paddingTop:20,borderTop:'1px solid #EDE8E0'}}>
+                      <div style={{fontWeight:600,fontSize:14,color:'#111',marginBottom:4}}>▶️ Rodar o cron agora</div>
+                      <div style={{fontSize:12,color:'#AAA',marginBottom:12}}>
+                        Executa a mesma varredura que roda sozinha todo dia às 10h — útil pra conferir se está tudo certo sem esperar o horário. Só dispara pra empresas que realmente baterem um gatilho hoje (e só uma vez por empresa/lembrete).
+                      </div>
+                      <button onClick={runCronNow} disabled={cronRunning}
+                        style={{padding:'10px 24px',background:'#111',color:'#C9951A',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',opacity:cronRunning?0.6:1}}>
+                        {cronRunning ? 'Rodando...' : 'Rodar agora'}
+                      </button>
+                      {cronResult && (
+                        <div style={{marginTop:14,background:'#FAFAF8',border:'1.5px solid #E0DDD8',borderRadius:10,padding:14}}>
+                          <div style={{fontSize:13,fontWeight:600,marginBottom:8}}>
+                            {cronResult.checked} empresa{cronResult.checked!==1?'s':''} em trial verificada{cronResult.checked!==1?'s':''} · {cronResult.sent} lembrete{cronResult.sent!==1?'s':''} disparado{cronResult.sent!==1?'s':''} agora
+                          </div>
+                          {cronResult.details.length === 0 ? (
+                            <div style={{fontSize:12,color:'#AAA'}}>Nenhuma empresa bateu um gatilho hoje.</div>
+                          ) : (
+                            <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                              {cronResult.details.map((d,i) => <div key={i} style={{fontSize:12,color:'#666'}}>{d}</div>)}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

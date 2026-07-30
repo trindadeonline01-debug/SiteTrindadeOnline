@@ -440,7 +440,7 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
         @media(min-width:768px){.right-col{position:sticky;top:60px;max-height:calc(100vh - 80px);overflow-y:auto;}}
 
         .action-card{background:#fff;border:0.5px solid #EDE8E0;border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:8px;}
-        .btn-wa{width:100%;padding:12px;background:#25D366;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s;}
+        .btn-wa{width:100%;height:46px;padding:0 12px;background:#25D366;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s;}
         .btn-wa:hover{opacity:.9;}
         .btn-ext{width:100%;padding:12px;background:#EBF4FF;color:#185FA5;border:0.5px solid #B5D4F4;border-radius:10px;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s;}
         .btn-ext:hover{opacity:.9;}
@@ -454,7 +454,7 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
         .btn-solicitar:hover:not(:disabled){background:#B8841A;}
         .btn-solicitar:disabled{cursor:not-allowed;}
         .btn-solicitar.sent{background:#E8F5E9;color:#2E7D32;border:1.5px solid #A5D6A7;}
-        .btn-fav{width:100%;padding:9px;background:#FEF3E2;color:#854F0B;border:1px solid #F5C77A;border-radius:10px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;}
+        .btn-fav{width:100%;height:46px;padding:0 9px;background:#FEF3E2;color:#854F0B;border:1px solid #F5C77A;border-radius:10px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-sizing:border-box;}
         .btn-fav.on{border-color:#C9951A;}
 
         .addr-box{display:flex;align-items:flex-start;gap:9px;background:#fff;border:0.5px solid #EDE8E0;border-radius:12px;padding:12px 14px;}
@@ -728,7 +728,7 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
                   {isFav ? '❤️' : '🤍'} {isFav ? 'Salvo' : 'Favoritar'}
                 </button>
                 <div style={{flex:1}}>
-                  <ShareButton title={company.name} text={`Dá uma olhada em ${company.name} no Trindade Online!`} label="Compartilhar"/>
+                  <ShareButton title={company.name} text={`Dá uma olhada em ${company.name} no Trindade Online!`} label="Compartilhar" height={46}/>
                 </div>
               </div>
             </div>

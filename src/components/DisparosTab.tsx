@@ -265,7 +265,19 @@ export default function DisparosTab() {
     })
   }
 
+  // Limites do proprio WhatsApp (nao so do Supabase) -- nao adianta liberar
+  // upload maior no bucket se o WhatsApp vai recusar o envio depois
+  const MEDIA_SIZE_LIMITS: Record<string, number> = { image: 5 * 1024 * 1024, video: 16 * 1024 * 1024, audio: 16 * 1024 * 1024 }
+  const MEDIA_SIZE_LABELS: Record<string, string> = { image: '5MB', video: '16MB', audio: '16MB' }
+
   async function uploadMediaBlob(i: number, blob: Blob, ext: string, contentType?: string) {
+    const mType = messages[i]?.mediaType
+    const limit = mType ? MEDIA_SIZE_LIMITS[mType] : undefined
+    if (limit && blob.size > limit) {
+      alert(`Arquivo muito grande (${(blob.size / 1024 / 1024).toFixed(1)}MB). O WhatsApp só aceita até ${MEDIA_SIZE_LABELS[mType!]} para esse tipo de mídia.`)
+      return
+    }
+
     // Preview local instantanea (URL.createObjectURL) -- toca direto do arquivo
     // que acabou de ser gravado/selecionado, sem depender do upload/rede/CDN.
     // Isso isola: se tocar aqui mas nao no link publico depois, o problema

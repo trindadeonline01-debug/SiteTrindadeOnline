@@ -7,11 +7,24 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
+type MediaKind = 'audio' | 'video' | 'image'
+
+interface MediaSlot {
+  url: string
+  localUrl?: string
+}
+
 interface MessageVariation {
   text: string
-  mediaType: 'none' | 'audio' | 'video' | 'image'
-  mediaUrl: string
-  localPreviewUrl?: string
+  mediaType: 'none' | MediaKind
+  // Cada tipo de midia guarda seu proprio arquivo -- trocar de aba
+  // (Audio/Video/Imagem) so muda qual esta ativo pro envio, sem apagar
+  // o que ja foi carregado nos outros
+  media: Record<MediaKind, MediaSlot>
+}
+
+function emptyMedia(): Record<MediaKind, MediaSlot> {
+  return { audio: { url: '' }, video: { url: '' }, image: { url: '' } }
 }
 
 interface Campaign {
@@ -82,8 +95,8 @@ export default function DisparosTab() {
   const [name, setName] = useState('')
   const [filter, setFilter] = useState('all')
   const [messages, setMessages] = useState<MessageVariation[]>([
-    { text: '', mediaType: 'none', mediaUrl: '' },
-    { text: '', mediaType: 'none', mediaUrl: '' },
+    { text: '', mediaType: 'none', media: emptyMedia() },
+    { text: '', mediaType: 'none', media: emptyMedia() },
   ])
   const [delayMin, setDelayMin] = useState(10)
   const [delayMax, setDelayMax] = useState(60)
@@ -110,8 +123,10 @@ export default function DisparosTab() {
   const [manualName, setManualName] = useState('')
 
   // Mídia por variação de mensagem
-  const [mediaUploading, setMediaUploading] = useState<Record<number, boolean>>({})
-  const [mediaUploadProgress, setMediaUploadProgress] = useState<Record<number, number>>({})
+  // Chaves no formato "indice:tipo" (ex: "0:video") -- cada slot de midia
+  // sobe/mostra progresso de forma independente
+  const [mediaUploading, setMediaUploading] = useState<Record<string, boolean>>({})
+  const [mediaUploadProgress, setMediaUploadProgress] = useState<Record<string, number>>({})
   const [recordingIndex, setRecordingIndex] = useState<number | null>(null)
   const [recordSeconds, setRecordSeconds] = useState(0)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
@@ -244,6 +259,10 @@ export default function DisparosTab() {
     setMessages(prev => prev.map((m, j) => j === i ? { ...m, ...updates } : m))
   }
 
+  function updateMediaSlot(i: number, type: MediaKind, updates: Partial<MediaSlot>) {
+    setMessages(prev => prev.map((m, j) => j === i ? { ...m, media: { ...m.media, [type]: { ...m.media[type], ...updates } } } : m))
+  }
+
   // Upload via XMLHttpRequest (nao supabase-js) so o xhr.upload tem evento
   // de progresso real -- o cliente padrao do Supabase usa fetch, que nao
   // reporta progresso de envio
@@ -270,11 +289,10 @@ export default function DisparosTab() {
   const MEDIA_SIZE_LIMITS: Record<string, number> = { image: 5 * 1024 * 1024, video: 16 * 1024 * 1024, audio: 16 * 1024 * 1024 }
   const MEDIA_SIZE_LABELS: Record<string, string> = { image: '5MB', video: '16MB', audio: '16MB' }
 
-  async function uploadMediaBlob(i: number, blob: Blob, ext: string, contentType?: string) {
-    const mType = messages[i]?.mediaType
-    const limit = mType ? MEDIA_SIZE_LIMITS[mType] : undefined
-    if (limit && blob.size > limit) {
-      alert(`Arquivo muito grande (${(blob.size / 1024 / 1024).toFixed(1)}MB). O WhatsApp só aceita até ${MEDIA_SIZE_LABELS[mType!]} para esse tipo de mídia.`)
+  async function uploadMediaBlob(i: number, type: MediaKind, blob: Blob, ext: string, contentType?: string) {
+    const limit = MEDIA_SIZE_LIMITS[type]
+    if (blob.size > limit) {
+      alert(`Arquivo muito grande (${(blob.size / 1024 / 1024).toFixed(1)}MB). O WhatsApp só aceita até ${MEDIA_SIZE_LABELS[type]} para esse tipo de mídia.`)
       return
     }
 
@@ -283,29 +301,30 @@ export default function DisparosTab() {
     // Isso isola: se tocar aqui mas nao no link publico depois, o problema
     // era upload/servidor; se nem aqui tocar, o navegador nao decodifica o
     // que ele mesmo gravou (mais comum no Safari/iOS)
-    const oldLocal = messages[i]?.localPreviewUrl
+    const oldLocal = messages[i]?.media[type]?.localUrl
     if (oldLocal) URL.revokeObjectURL(oldLocal)
     const localUrl = URL.createObjectURL(blob)
-    updateMessageAt(i, { localPreviewUrl: localUrl })
+    updateMediaSlot(i, type, { localUrl })
 
-    setMediaUploading(prev => ({ ...prev, [i]: true }))
-    setMediaUploadProgress(prev => ({ ...prev, [i]: 0 }))
+    const key = `${i}:${type}`
+    setMediaUploading(prev => ({ ...prev, [key]: true }))
+    setMediaUploadProgress(prev => ({ ...prev, [key]: 0 }))
     try {
-      const path = `campanha-${Date.now()}-${i}.${ext}`
-      await uploadWithProgress(path, blob, contentType || blob.type || 'application/octet-stream', pct => setMediaUploadProgress(prev => ({ ...prev, [i]: pct })))
+      const path = `campanha-${Date.now()}-${i}-${type}.${ext}`
+      await uploadWithProgress(path, blob, contentType || blob.type || 'application/octet-stream', pct => setMediaUploadProgress(prev => ({ ...prev, [key]: pct })))
       const { data } = supabase.storage.from('blast-media').getPublicUrl(path)
-      updateMessageAt(i, { mediaUrl: data.publicUrl })
+      updateMediaSlot(i, type, { url: data.publicUrl })
     } catch (err: any) {
       alert('Erro ao enviar arquivo: ' + err.message)
     } finally {
-      setMediaUploading(prev => ({ ...prev, [i]: false }))
-      setMediaUploadProgress(prev => ({ ...prev, [i]: 0 }))
+      setMediaUploading(prev => ({ ...prev, [key]: false }))
+      setMediaUploadProgress(prev => ({ ...prev, [key]: 0 }))
     }
   }
 
-  function handleMediaFile(i: number, file: File) {
+  function handleMediaFile(i: number, type: MediaKind, file: File) {
     const ext = file.name.split('.').pop() || 'bin'
-    uploadMediaBlob(i, file, ext, file.type)
+    uploadMediaBlob(i, type, file, ext, file.type)
   }
 
   // Ordem de preferencia: cada navegador grava num formato diferente
@@ -325,7 +344,7 @@ export default function DisparosTab() {
         const actualType = recorder.mimeType || supportedType || 'audio/webm'
         const ext = actualType.includes('mp4') ? 'm4a' : actualType.includes('ogg') ? 'ogg' : 'webm'
         const blob = new Blob(recordedChunksRef.current, { type: actualType })
-        uploadMediaBlob(i, blob, ext, actualType)
+        uploadMediaBlob(i, 'audio', blob, ext, actualType)
       }
       mediaRecorderRef.current = recorder
       recorder.start()
@@ -343,10 +362,12 @@ export default function DisparosTab() {
     clearInterval(recordTimerRef.current)
   }
 
-  function removeMedia(i: number) {
-    const oldLocal = messages[i]?.localPreviewUrl
+  // Limpa so o arquivo do tipo indicado -- os outros tipos ja carregados
+  // nessa variacao continuam intactos
+  function removeMedia(i: number, type: MediaKind) {
+    const oldLocal = messages[i]?.media[type]?.localUrl
     if (oldLocal) URL.revokeObjectURL(oldLocal)
-    updateMessageAt(i, { mediaType: 'none', mediaUrl: '', localPreviewUrl: undefined })
+    updateMediaSlot(i, type, { url: '', localUrl: undefined })
   }
 
   async function calcPreview() {
@@ -373,8 +394,8 @@ export default function DisparosTab() {
   async function createCampaign(startNow: boolean) {
     if (!name.trim()) return alert('Dê um nome para a campanha')
     const validMessages = messages
-      .filter(m => m.text.trim() || (m.mediaType !== 'none' && m.mediaUrl))
-      .map(m => ({ text: m.text.trim(), media_url: m.mediaType !== 'none' ? m.mediaUrl : null, media_type: m.mediaType !== 'none' ? m.mediaType : null }))
+      .filter(m => m.text.trim() || (m.mediaType !== 'none' && m.media[m.mediaType as MediaKind]?.url))
+      .map(m => ({ text: m.text.trim(), media_url: m.mediaType !== 'none' ? m.media[m.mediaType as MediaKind].url : null, media_type: m.mediaType !== 'none' ? m.mediaType : null }))
     if (validMessages.length === 0) return alert('Adicione pelo menos uma mensagem ou uma mídia (aguarde o upload terminar)')
     if (filter === 'broadcast_list' && !selectedListId) return alert('Escolha uma lista de transmissão')
     if (Object.values(mediaUploading).some(Boolean)) return alert('Aguarde o envio da mídia terminar')
@@ -405,7 +426,7 @@ export default function DisparosTab() {
           body: JSON.stringify({ action: 'start', campaign_id: data.campaign_id })
         })
       }
-      setName(''); setMessages([{ text: '', mediaType: 'none', mediaUrl: '' }, { text: '', mediaType: 'none', mediaUrl: '' }]); setScheduledAt('')
+      setName(''); setMessages([{ text: '', mediaType: 'none', media: emptyMedia() }, { text: '', mediaType: 'none', media: emptyMedia() }]); setScheduledAt('')
       await loadCampaigns()
       if (data.campaign_id) { setSelectedCampaign(data.campaign_id); loadLogs(data.campaign_id) }
     } finally {
@@ -445,8 +466,8 @@ export default function DisparosTab() {
     if (!testSelected) return
     if (Object.values(mediaUploading).some(Boolean)) return alert('Aguarde o envio da mídia terminar')
     const validMessages = messages
-      .filter(m => m.text.trim() || (m.mediaType !== 'none' && m.mediaUrl))
-      .map(m => ({ text: m.text.trim(), media_url: m.mediaType !== 'none' ? m.mediaUrl : null, media_type: m.mediaType !== 'none' ? m.mediaType : null }))
+      .filter(m => m.text.trim() || (m.mediaType !== 'none' && m.media[m.mediaType as MediaKind]?.url))
+      .map(m => ({ text: m.text.trim(), media_url: m.mediaType !== 'none' ? m.media[m.mediaType as MediaKind].url : null, media_type: m.mediaType !== 'none' ? m.mediaType : null }))
     if (validMessages.length === 0) return alert("Adicione pelo menos uma mensagem ou uma mídia (aguarde o upload terminar)")
     setTestSending(true)
     setTestSent(false)
@@ -590,86 +611,98 @@ export default function DisparosTab() {
 
             <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
               {([['none','Nenhuma'],['audio','🎙️ Áudio'],['video','🎥 Vídeo'],['image','🖼️ Imagem']] as const).map(([val,lbl]) => (
-                <button key={val} onClick={() => { if (val !== msg.mediaType) removeMedia(i); updateMessageAt(i, { mediaType: val }) }}
-                  style={{ flex: 1, padding: '7px 6px', borderRadius: 8, border: msg.mediaType === val ? '1.5px solid #C9951A' : '1.5px solid #e5e5e5', background: msg.mediaType === val ? '#fff8e6' : '#fff', color: msg.mediaType === val ? '#92600a' : '#666', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter,sans-serif' }}>
+                <button key={val} onClick={() => updateMessageAt(i, { mediaType: val })}
+                  style={{ position: 'relative', flex: 1, padding: '7px 6px', borderRadius: 8, border: msg.mediaType === val ? '1.5px solid #C9951A' : '1.5px solid #e5e5e5', background: msg.mediaType === val ? '#fff8e6' : '#fff', color: msg.mediaType === val ? '#92600a' : '#666', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter,sans-serif' }}>
                   {lbl}
+                  {val !== 'none' && msg.media[val].url && (
+                    <span style={{ position: 'absolute', top: -4, right: -4, width: 9, height: 9, borderRadius: '50%', background: '#0F8050', border: '1.5px solid #fff' }} />
+                  )}
                 </button>
               ))}
             </div>
 
-            {msg.mediaType === 'audio' && (
-              <div style={{ background: '#fff', border: '1.5px solid #eee', borderRadius: 10, padding: 10 }}>
-                {!msg.mediaUrl && !msg.localPreviewUrl && recordingIndex !== i && (
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button onClick={() => startRecording(i)} disabled={recordingIndex !== null} style={{ flex: 1, padding: '9px', background: '#111', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: recordingIndex !== null ? 0.5 : 1 }}>🔴 Gravar agora</button>
-                    <label style={{ flex: 1, padding: '9px', background: '#fff', color: '#C9951A', border: '1.5px solid #C9951A', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', textAlign: 'center' }}>
-                      📁 Carregar arquivo
-                      <input type="file" accept="audio/*" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && handleMediaFile(i, e.target.files[0])} />
-                    </label>
-                  </div>
-                )}
-                {recordingIndex === i && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#E24B4A' }} />
-                    <div style={{ flex: 1, fontSize: 12, fontWeight: 600 }}>Gravando... {Math.floor(recordSeconds / 60)}:{String(recordSeconds % 60).padStart(2, '0')}</div>
-                    <button onClick={stopRecording} style={{ padding: '7px 14px', background: '#E24B4A', color: '#fff', border: 'none', borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>⏹ Parar</button>
-                  </div>
-                )}
-                {(msg.localPreviewUrl || msg.mediaUrl) && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <audio controls src={msg.localPreviewUrl || msg.mediaUrl} style={{ flex: 1, height: 34 }} />
-                    <button onClick={() => removeMedia(i)} style={{ background: '#FCEBEB', color: '#E24B4A', border: 'none', borderRadius: 8, width: 30, height: 30, cursor: 'pointer', flexShrink: 0 }}>🗑</button>
-                  </div>
-                )}
-                {mediaUploading[i] && (
-                  <div style={{ marginTop: 8 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#aaa', marginBottom: 4 }}>
-                      <span>Enviando áudio pro servidor...</span>
-                      <span>{mediaUploadProgress[i] || 0}%</span>
+            {msg.mediaType === 'audio' && (() => {
+              const slot = msg.media.audio
+              const key = `${i}:audio`
+              return (
+                <div style={{ background: '#fff', border: '1.5px solid #eee', borderRadius: 10, padding: 10 }}>
+                  {!slot.url && !slot.localUrl && recordingIndex !== i && (
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button onClick={() => startRecording(i)} disabled={recordingIndex !== null} style={{ flex: 1, padding: '9px', background: '#111', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: recordingIndex !== null ? 0.5 : 1 }}>🔴 Gravar agora</button>
+                      <label style={{ flex: 1, padding: '9px', background: '#fff', color: '#C9951A', border: '1.5px solid #C9951A', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', textAlign: 'center' }}>
+                        📁 Carregar arquivo
+                        <input type="file" accept="audio/*" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && handleMediaFile(i, 'audio', e.target.files[0])} />
+                      </label>
                     </div>
-                    <div style={{ height: 6, background: '#eee', borderRadius: 99, overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${mediaUploadProgress[i] || 0}%`, background: '#C9951A', borderRadius: 99, transition: 'width .15s' }} />
+                  )}
+                  {recordingIndex === i && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#E24B4A' }} />
+                      <div style={{ flex: 1, fontSize: 12, fontWeight: 600 }}>Gravando... {Math.floor(recordSeconds / 60)}:{String(recordSeconds % 60).padStart(2, '0')}</div>
+                      <button onClick={stopRecording} style={{ padding: '7px 14px', background: '#E24B4A', color: '#fff', border: 'none', borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>⏹ Parar</button>
                     </div>
-                  </div>
-                )}
-              </div>
-            )}
+                  )}
+                  {(slot.localUrl || slot.url) && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <audio controls src={slot.localUrl || slot.url} style={{ flex: 1, height: 34 }} />
+                      <button onClick={() => removeMedia(i, 'audio')} style={{ background: '#FCEBEB', color: '#E24B4A', border: 'none', borderRadius: 8, width: 30, height: 30, cursor: 'pointer', flexShrink: 0 }}>🗑</button>
+                    </div>
+                  )}
+                  {mediaUploading[key] && (
+                    <div style={{ marginTop: 8 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#aaa', marginBottom: 4 }}>
+                        <span>Enviando áudio pro servidor...</span>
+                        <span>{mediaUploadProgress[key] || 0}%</span>
+                      </div>
+                      <div style={{ height: 6, background: '#eee', borderRadius: 99, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${mediaUploadProgress[key] || 0}%`, background: '#C9951A', borderRadius: 99, transition: 'width .15s' }} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
 
-            {(msg.mediaType === 'video' || msg.mediaType === 'image') && (
-              <div style={{ background: '#fff', border: '1.5px solid #eee', borderRadius: 10, padding: 10 }}>
-                {!msg.mediaUrl && !msg.localPreviewUrl && (
-                  <label style={{ display: 'block', padding: '9px', background: '#fff', color: '#C9951A', border: '1.5px solid #C9951A', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', textAlign: 'center' }}>
-                    📁 Carregar {msg.mediaType === 'video' ? 'vídeo' : 'imagem'}
-                    <input type="file" accept={msg.mediaType === 'video' ? 'video/*' : 'image/*'} style={{ display: 'none' }} onChange={e => e.target.files?.[0] && handleMediaFile(i, e.target.files[0])} />
-                  </label>
-                )}
-                {(msg.localPreviewUrl || msg.mediaUrl) && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    {msg.mediaType === 'video' ? (
-                      <video controls src={msg.localPreviewUrl || msg.mediaUrl} style={{ maxWidth: 150, maxHeight: 90, borderRadius: 8 }} />
-                    ) : (
-                      <img src={msg.localPreviewUrl || msg.mediaUrl} alt="Prévia" style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8 }} />
-                    )}
-                    <button onClick={() => removeMedia(i)} style={{ background: '#FCEBEB', color: '#E24B4A', border: 'none', borderRadius: 8, width: 30, height: 30, cursor: 'pointer', flexShrink: 0 }}>🗑</button>
-                  </div>
-                )}
-                {mediaUploading[i] && (
-                  <div style={{ marginTop: 8 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#aaa', marginBottom: 4 }}>
-                      <span>Enviando {msg.mediaType === 'video' ? 'vídeo' : 'imagem'} pro servidor...</span>
-                      <span>{mediaUploadProgress[i] || 0}%</span>
+            {(msg.mediaType === 'video' || msg.mediaType === 'image') && (() => {
+              const type = msg.mediaType as 'video' | 'image'
+              const slot = msg.media[type]
+              const key = `${i}:${type}`
+              return (
+                <div style={{ background: '#fff', border: '1.5px solid #eee', borderRadius: 10, padding: 10 }}>
+                  {!slot.url && !slot.localUrl && (
+                    <label style={{ display: 'block', padding: '9px', background: '#fff', color: '#C9951A', border: '1.5px solid #C9951A', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', textAlign: 'center' }}>
+                      📁 Carregar {type === 'video' ? 'vídeo' : 'imagem'}
+                      <input type="file" accept={type === 'video' ? 'video/*' : 'image/*'} style={{ display: 'none' }} onChange={e => e.target.files?.[0] && handleMediaFile(i, type, e.target.files[0])} />
+                    </label>
+                  )}
+                  {(slot.localUrl || slot.url) && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {type === 'video' ? (
+                        <video controls src={slot.localUrl || slot.url} style={{ maxWidth: 150, maxHeight: 90, borderRadius: 8 }} />
+                      ) : (
+                        <img src={slot.localUrl || slot.url} alt="Prévia" style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8 }} />
+                      )}
+                      <button onClick={() => removeMedia(i, type)} style={{ background: '#FCEBEB', color: '#E24B4A', border: 'none', borderRadius: 8, width: 30, height: 30, cursor: 'pointer', flexShrink: 0 }}>🗑</button>
                     </div>
-                    <div style={{ height: 6, background: '#eee', borderRadius: 99, overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${mediaUploadProgress[i] || 0}%`, background: '#C9951A', borderRadius: 99, transition: 'width .15s' }} />
+                  )}
+                  {mediaUploading[key] && (
+                    <div style={{ marginTop: 8 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#aaa', marginBottom: 4 }}>
+                        <span>Enviando {type === 'video' ? 'vídeo' : 'imagem'} pro servidor...</span>
+                        <span>{mediaUploadProgress[key] || 0}%</span>
+                      </div>
+                      <div style={{ height: 6, background: '#eee', borderRadius: 99, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${mediaUploadProgress[key] || 0}%`, background: '#C9951A', borderRadius: 99, transition: 'width .15s' }} />
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            )}
+                  )}
+                </div>
+              )
+            })()}
           </div>
         ))}
         {messages.length < 5 && (
-          <button style={s.btnAdd} onClick={() => setMessages([...messages, { text: '', mediaType: 'none', mediaUrl: '' }])}>+ Adicionar variação de mensagem</button>
+          <button style={s.btnAdd} onClick={() => setMessages([...messages, { text: '', mediaType: 'none', media: emptyMedia() }])}>+ Adicionar variação de mensagem</button>
         )}
 
         <label style={s.label}>Intervalo entre envios (segundos)</label>

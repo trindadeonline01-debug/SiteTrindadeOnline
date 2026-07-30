@@ -31,6 +31,22 @@ const SUBTYPE_COLORS:Record<string,{bg:string;color:string}> = {
   pj:      {bg:'#F0EDE8',color:'#666'},
 }
 
+function Lightbox({ photos, idx, open, setIdx, onClose }: { photos: {url:string}[]; idx: number; open: boolean; setIdx: (v:number|((i:number)=>number)) => void; onClose: () => void }) {
+  if (!open) return null
+  const n = photos.length
+  return (
+    <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.95)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center'}}>
+      <button onClick={(e) => { e.stopPropagation(); onClose() }} style={{position:'absolute',top:20,right:20,background:'rgba(0,0,0,0.7)',border:'2px solid #fff',color:'#fff',fontSize:28,width:44,height:44,borderRadius:22,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',zIndex:2}}>×</button>
+      {n > 1 && (<>
+        <button onClick={(e) => { e.stopPropagation(); setIdx((i:number) => (i - 1 + n) % n) }} style={{position:'absolute',left:20,top:'50%',transform:'translateY(-50%)',background:'rgba(0,0,0,0.7)',border:'2px solid #fff',color:'#fff',fontSize:28,width:50,height:50,borderRadius:25,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',zIndex:2}}>‹</button>
+        <button onClick={(e) => { e.stopPropagation(); setIdx((i:number) => (i + 1) % n) }} style={{position:'absolute',right:20,top:'50%',transform:'translateY(-50%)',background:'rgba(0,0,0,0.7)',border:'2px solid #fff',color:'#fff',fontSize:28,width:50,height:50,borderRadius:25,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',zIndex:2}}>›</button>
+        <div style={{position:'absolute',bottom:20,left:'50%',transform:'translateX(-50%)',background:'rgba(0,0,0,0.6)',color:'#fff',padding:'6px 16px',borderRadius:20,fontSize:13,fontWeight:600,zIndex:2}}>{idx + 1} / {n}</div>
+      </>)}
+      <img src={photos[idx]?.url || ''} alt="" onClick={(e) => e.stopPropagation()} style={{maxWidth:'92vw',maxHeight:'92vh',objectFit:'contain',borderRadius:8}} />
+    </div>
+  )
+}
+
 export default function AnuncioPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const [listing, setListing]   = useState<Listing|null>(null)
@@ -38,6 +54,7 @@ export default function AnuncioPage({ params }: { params: Promise<{ id: string }
   const [userId, setUserId]     = useState<string|null>(null)
   const [userType, setUserType]   = useState<string|null>(null)
   const [photoIdx, setPhotoIdx] = useState(0)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
   const [showReport, setShowReport] = useState(false)
   const [reportReason, setReportReason] = useState('')
   const [reportSent, setReportSent] = useState(false)
@@ -205,7 +222,7 @@ export default function AnuncioPage({ params }: { params: Promise<{ id: string }
       <div className="layout">
         <div>
           <div className="gallery">
-            <div className="gal-main">
+            <div className="gal-main" onClick={()=>photos[photoIdx]&&setLightboxOpen(true)} style={{cursor:photos[photoIdx]?'pointer':'default'}}>
               {photos[photoIdx] ? <img src={photos[photoIdx].url} alt={listing.title}/> : <span>{info.emoji}</span>}
               {photos.length>1&&<div className="gal-nav">{photoIdx+1}/{photos.length}</div>}
             </div>
@@ -218,6 +235,7 @@ export default function AnuncioPage({ params }: { params: Promise<{ id: string }
                 ))}
               </div>
             )}
+            <Lightbox photos={photos} idx={photoIdx} open={lightboxOpen} setIdx={setPhotoIdx} onClose={()=>setLightboxOpen(false)} />
           </div>
 
           <div style={{marginTop:photos.length>1?20:0,paddingTop:photos.length>1?0:16}}>

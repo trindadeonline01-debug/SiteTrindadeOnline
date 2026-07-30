@@ -10,12 +10,20 @@ function formatPhone(phone: string): string {
   return '55' + digits
 }
 
-function buildMessage(messages: string[], nome: string, empresa: string): string {
-  if (!messages || messages.length === 0) return ''
+interface MessageVariation {
+  text: string
+  media_url?: string | null
+  media_type?: string | null
+}
+
+function pickVariation(messages: MessageVariation[], nome: string, empresa: string) {
   const idx = Math.floor(Math.random() * messages.length)
-  return messages[idx]
-    .replace(/\{\{nome\}\}/g, nome || 'Cliente')
-    .replace(/\{\{empresa\}\}/g, empresa || '')
+  const v = messages[idx]
+  return {
+    text: (v.text || '').replace(/\{\{nome\}\}/g, nome || 'Cliente').replace(/\{\{empresa\}\}/g, empresa || ''),
+    media_url: v.media_url || null,
+    media_type: v.media_type || null
+  }
 }
 
 async function sendText(phone: string, text: string) {
@@ -47,18 +55,19 @@ async function sendAudio(phone: string, mediaUrl: string) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { phone, name, company, messages, media_url, media_type } = await req.json()
+    const { phone, name, company, messages } = await req.json()
     if (!phone) return NextResponse.json({ error: 'phone obrigatorio' }, { status: 400 })
-    const validMessages = (messages || []).filter((m: string) => m?.trim())
-    if (validMessages.length === 0 && !media_url) return NextResponse.json({ error: 'informe mensagem e/ou midia' }, { status: 400 })
+    const validMessages = ((messages || []) as MessageVariation[]).filter(m => m?.text?.trim() || m?.media_url)
+    if (validMessages.length === 0) return NextResponse.json({ error: 'informe mensagem e/ou midia' }, { status: 400 })
 
-    const message = buildMessage(validMessages, name, company)
+    const picked = pickVariation(validMessages, name, company)
+    const message = picked.text
     let err: string | null = null
 
-    if (media_type === 'image' || media_type === 'video') {
-      err = await sendMedia(phone, media_url, media_type, message)
-    } else if (media_type === 'audio') {
-      err = await sendAudio(phone, media_url)
+    if (picked.media_type === 'image' || picked.media_type === 'video') {
+      err = await sendMedia(phone, picked.media_url!, picked.media_type as 'image' | 'video', message)
+    } else if (picked.media_type === 'audio') {
+      err = await sendAudio(phone, picked.media_url!)
       if (!err && message) err = await sendText(phone, message)
     } else {
       err = await sendText(phone, message)

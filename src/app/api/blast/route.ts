@@ -20,13 +20,22 @@ function randomDelay(min: number, max: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
-// Sorteia uma mensagem aleatória e substitui variáveis
-function buildMessage(messages: string[], nome: string, empresa: string): string {
-  if (!messages || messages.length === 0) return ''
+interface MessageVariation {
+  text: string
+  media_url?: string | null
+  media_type?: string | null
+}
+
+// Sorteia uma variação (texto + midia propria) e substitui variáveis no texto
+function pickVariation(messages: MessageVariation[], nome: string, empresa: string): { text: string; media_url: string | null; media_type: string | null } {
+  if (!messages || messages.length === 0) return { text: '', media_url: null, media_type: null }
   const idx = Math.floor(Math.random() * messages.length)
-  return messages[idx]
-    .replace(/\{\{nome\}\}/g, nome)
-    .replace(/\{\{empresa\}\}/g, empresa)
+  const v = messages[idx]
+  return {
+    text: (v.text || '').replace(/\{\{nome\}\}/g, nome).replace(/\{\{empresa\}\}/g, empresa),
+    media_url: v.media_url || null,
+    media_type: v.media_type || null
+  }
 }
 
 // Formata número para padrão internacional
@@ -114,7 +123,7 @@ export async function POST(req: NextRequest) {
 
     // CRIAR CAMPANHA
     if (action === 'create') {
-      const { name, messages, filter, delay_min, delay_max, scheduled_at, list_id, list_name, media_url, media_type } = data
+      const { name, messages, filter, delay_min, delay_max, scheduled_at, list_id, list_name } = data
 
       // Busca contatos conforme filtro
       let contacts: { phone: string; name: string; company: string; owner_id?: string }[] = []
@@ -178,8 +187,6 @@ export async function POST(req: NextRequest) {
         filter,
         list_id: filter === 'broadcast_list' ? (list_id || null) : null,
         list_name: filter === 'broadcast_list' ? (list_name || null) : null,
-        media_url: media_url || null,
-        media_type: media_type || null,
         delay_min: delay_min || 10,
         delay_max: delay_max || 60,
         total_contacts: contacts.length,
@@ -239,12 +246,13 @@ export async function POST(req: NextRequest) {
             .select('id')
           if (!claimed || claimed.length === 0) continue
 
-          const message = buildMessage(campaign.messages, log.contact_name || 'Cliente', log.company_name || '')
+          const picked = pickVariation(campaign.messages, log.contact_name || 'Cliente', log.company_name || '')
+          const message = picked.text
           let result: { ok: boolean; error?: string }
-          if (campaign.media_type === 'image' || campaign.media_type === 'video') {
-            result = await sendMedia(log.phone, campaign.media_url, campaign.media_type, message)
-          } else if (campaign.media_type === 'audio') {
-            result = await sendAudio(log.phone, campaign.media_url)
+          if (picked.media_type === 'image' || picked.media_type === 'video') {
+            result = await sendMedia(log.phone, picked.media_url!, picked.media_type as 'image' | 'video', message)
+          } else if (picked.media_type === 'audio') {
+            result = await sendAudio(log.phone, picked.media_url!)
             if (result.ok && message) await sendWhatsApp(log.phone, message)
           } else {
             result = await sendWhatsApp(log.phone, message)

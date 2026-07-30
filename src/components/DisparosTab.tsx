@@ -7,14 +7,18 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
+interface MessageVariation {
+  text: string
+  mediaType: 'none' | 'audio' | 'video' | 'image'
+  mediaUrl: string
+}
+
 interface Campaign {
   id: string
   name: string
-  messages: string[]
+  messages: { text: string; media_url?: string | null; media_type?: string | null }[]
   filter: string
   list_name?: string | null
-  media_url?: string | null
-  media_type?: string | null
   delay_min: number
   delay_max: number
   status: string
@@ -76,7 +80,10 @@ export default function DisparosTab() {
   // Form
   const [name, setName] = useState('')
   const [filter, setFilter] = useState('all')
-  const [messages, setMessages] = useState(['', ''])
+  const [messages, setMessages] = useState<MessageVariation[]>([
+    { text: '', mediaType: 'none', mediaUrl: '' },
+    { text: '', mediaType: 'none', mediaUrl: '' },
+  ])
   const [delayMin, setDelayMin] = useState(10)
   const [delayMax, setDelayMax] = useState(60)
   const [scheduledAt, setScheduledAt] = useState('')
@@ -101,11 +108,9 @@ export default function DisparosTab() {
   const [manualPhone, setManualPhone] = useState('')
   const [manualName, setManualName] = useState('')
 
-  // Mídia da campanha
-  const [mediaType, setMediaType] = useState<'none'|'audio'|'video'|'image'>('none')
-  const [mediaUrl, setMediaUrl] = useState('')
-  const [mediaUploading, setMediaUploading] = useState(false)
-  const [recording, setRecording] = useState(false)
+  // Mídia por variação de mensagem
+  const [mediaUploading, setMediaUploading] = useState<Record<number, boolean>>({})
+  const [recordingIndex, setRecordingIndex] = useState<number | null>(null)
   const [recordSeconds, setRecordSeconds] = useState(0)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const recordedChunksRef = useRef<Blob[]>([])
@@ -233,25 +238,29 @@ export default function DisparosTab() {
     await loadLists()
   }
 
-  async function uploadMediaBlob(blob: Blob, ext: string) {
-    setMediaUploading(true)
+  function updateMessageAt(i: number, updates: Partial<MessageVariation>) {
+    setMessages(prev => prev.map((m, j) => j === i ? { ...m, ...updates } : m))
+  }
+
+  async function uploadMediaBlob(i: number, blob: Blob, ext: string) {
+    setMediaUploading(prev => ({ ...prev, [i]: true }))
     try {
-      const path = `campanha-${Date.now()}.${ext}`
+      const path = `campanha-${Date.now()}-${i}.${ext}`
       const { error } = await supabase.storage.from('blast-media').upload(path, blob, { upsert: true })
       if (error) { alert('Erro ao enviar arquivo: ' + error.message); return }
       const { data } = supabase.storage.from('blast-media').getPublicUrl(path)
-      setMediaUrl(data.publicUrl)
+      updateMessageAt(i, { mediaUrl: data.publicUrl })
     } finally {
-      setMediaUploading(false)
+      setMediaUploading(prev => ({ ...prev, [i]: false }))
     }
   }
 
-  function handleMediaFile(file: File) {
+  function handleMediaFile(i: number, file: File) {
     const ext = file.name.split('.').pop() || 'bin'
-    uploadMediaBlob(file, ext)
+    uploadMediaBlob(i, file, ext)
   }
 
-  async function startRecording() {
+  async function startRecording(i: number) {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       const recorder = new MediaRecorder(stream)
@@ -260,11 +269,11 @@ export default function DisparosTab() {
       recorder.onstop = () => {
         stream.getTracks().forEach(t => t.stop())
         const blob = new Blob(recordedChunksRef.current, { type: 'audio/webm' })
-        uploadMediaBlob(blob, 'webm')
+        uploadMediaBlob(i, blob, 'webm')
       }
       mediaRecorderRef.current = recorder
       recorder.start()
-      setRecording(true)
+      setRecordingIndex(i)
       setRecordSeconds(0)
       recordTimerRef.current = setInterval(() => setRecordSeconds(s => s + 1), 1000)
     } catch {
@@ -274,13 +283,12 @@ export default function DisparosTab() {
 
   function stopRecording() {
     mediaRecorderRef.current?.stop()
-    setRecording(false)
+    setRecordingIndex(null)
     clearInterval(recordTimerRef.current)
   }
 
-  function removeMedia() {
-    setMediaType('none')
-    setMediaUrl('')
+  function removeMedia(i: number) {
+    updateMessageAt(i, { mediaType: 'none', mediaUrl: '' })
   }
 
   async function calcPreview() {
@@ -306,10 +314,12 @@ export default function DisparosTab() {
 
   async function createCampaign(startNow: boolean) {
     if (!name.trim()) return alert('Dê um nome para a campanha')
-    const validMessages = messages.filter(m => m.trim())
-    if (validMessages.length === 0 && !mediaUrl) return alert('Adicione pelo menos uma mensagem ou uma mídia')
+    const validMessages = messages
+      .filter(m => m.text.trim() || m.mediaUrl)
+      .map(m => ({ text: m.text.trim(), media_url: m.mediaType !== 'none' ? m.mediaUrl : null, media_type: m.mediaType !== 'none' ? m.mediaType : null }))
+    if (validMessages.length === 0) return alert('Adicione pelo menos uma mensagem ou uma mídia')
     if (filter === 'broadcast_list' && !selectedListId) return alert('Escolha uma lista de transmissão')
-    if (mediaUploading) return alert('Aguarde o envio da mídia terminar')
+    if (Object.values(mediaUploading).some(Boolean)) return alert('Aguarde o envio da mídia terminar')
     setLoading(true)
     try {
       const listName = filter === 'broadcast_list' ? (lists.find(l => l.id === selectedListId)?.name || null) : null
@@ -326,8 +336,6 @@ export default function DisparosTab() {
           delay_min: delayMin,
           delay_max: delayMax,
           scheduled_at: scheduledAt || null,
-          media_url: mediaType !== 'none' ? mediaUrl : null,
-          media_type: mediaType !== 'none' ? mediaType : null,
         })
       })
       const data = await res.json()
@@ -339,7 +347,7 @@ export default function DisparosTab() {
           body: JSON.stringify({ action: 'start', campaign_id: data.campaign_id })
         })
       }
-      setName(''); setMessages(['', '']); setScheduledAt(''); removeMedia()
+      setName(''); setMessages([{ text: '', mediaType: 'none', mediaUrl: '' }, { text: '', mediaType: 'none', mediaUrl: '' }]); setScheduledAt('')
       await loadCampaigns()
       if (data.campaign_id) { setSelectedCampaign(data.campaign_id); loadLogs(data.campaign_id) }
     } finally {
@@ -377,8 +385,10 @@ export default function DisparosTab() {
 
   async function sendTest() {
     if (!testSelected) return
-    const validMessages = messages.filter((m: string) => m.trim())
-    if (validMessages.length === 0 && !mediaUrl) return alert("Adicione pelo menos uma mensagem ou uma mídia")
+    const validMessages = messages
+      .filter(m => m.text.trim() || m.mediaUrl)
+      .map(m => ({ text: m.text.trim(), media_url: m.mediaType !== 'none' ? m.mediaUrl : null, media_type: m.mediaType !== 'none' ? m.mediaType : null }))
+    if (validMessages.length === 0) return alert("Adicione pelo menos uma mensagem ou uma mídia")
     setTestSending(true)
     setTestSent(false)
     try {
@@ -387,8 +397,6 @@ export default function DisparosTab() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           phone: testSelected.phone, name: testSelected.name, company: testSelected.name, messages: validMessages,
-          media_url: mediaType !== 'none' ? mediaUrl : null,
-          media_type: mediaType !== 'none' ? mediaType : null,
         })
       })
       const data = await res.json()
@@ -499,89 +507,90 @@ export default function DisparosTab() {
         )}
 
         <label style={s.label}>
-          Variações de mensagem <span style={{ color: '#aaa', fontWeight: 400 }}>(até 5 — sorteadas aleatoriamente)</span>
+          Variações de mensagem <span style={{ color: '#aaa', fontWeight: 400 }}>(até 5 — sorteadas aleatoriamente, cada uma com sua própria mídia)</span>
         </label>
         <div style={{ marginBottom: 8 }}>
-          <button onClick={() => { const m = [...messages]; m[activeTextarea] = (m[activeTextarea] || '') + '{{nome}}'; setMessages(m) }} style={{ ...s.varTag, cursor: 'pointer', border: '1px solid #f0d080' }}>{'+ {{nome}}'}</button>
-          <button onClick={() => { const m = [...messages]; m[activeTextarea] = (m[activeTextarea] || '') + '{{empresa}}'; setMessages(m) }} style={{ ...s.varTag, cursor: 'pointer', border: '1px solid #f0d080' }}>{'+ {{empresa}}'}</button>
+          <button onClick={() => updateMessageAt(activeTextarea, { text: (messages[activeTextarea]?.text || '') + '{{nome}}' })} style={{ ...s.varTag, cursor: 'pointer', border: '1px solid #f0d080' }}>{'+ {{nome}}'}</button>
+          <button onClick={() => updateMessageAt(activeTextarea, { text: (messages[activeTextarea]?.text || '') + '{{empresa}}' })} style={{ ...s.varTag, cursor: 'pointer', border: '1px solid #f0d080' }}>{'+ {{empresa}}'}</button>
         </div>
 
         {messages.map((msg, i) => (
-          <div key={i} style={{ position: 'relative', marginBottom: 8 }}>
-            <textarea
-              style={{ ...s.textarea, paddingRight: 36 }} onFocus={() => setActiveTextarea(i)}
-              value={msg}
-              onChange={e => { const m = [...messages]; m[i] = e.target.value; setMessages(m) }}
-              placeholder={`Variação ${i + 1}...`}
-            />
-            {messages.length > 1 && (
-              <button onClick={() => setMessages(messages.filter((_, j) => j !== i))}
-                style={{ position: 'absolute', top: 8, right: 10, background: 'none', border: 'none', color: '#ccc', cursor: 'pointer', fontSize: 18 }}>×</button>
+          <div key={i} style={{ background: '#fafafa', border: '1.5px solid #eee', borderRadius: 12, padding: 12, marginBottom: 10 }}>
+            <div style={{ position: 'relative', marginBottom: 10 }}>
+              <textarea
+                style={{ ...s.textarea, paddingRight: 36, background: '#fff' }} onFocus={() => setActiveTextarea(i)}
+                value={msg.text}
+                onChange={e => updateMessageAt(i, { text: e.target.value })}
+                placeholder={`Variação ${i + 1}...`}
+              />
+              {messages.length > 1 && (
+                <button onClick={() => setMessages(messages.filter((_, j) => j !== i))}
+                  style={{ position: 'absolute', top: 8, right: 10, background: 'none', border: 'none', color: '#ccc', cursor: 'pointer', fontSize: 18 }}>×</button>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+              {([['none','Nenhuma'],['audio','🎙️ Áudio'],['video','🎥 Vídeo'],['image','🖼️ Imagem']] as const).map(([val,lbl]) => (
+                <button key={val} onClick={() => { updateMessageAt(i, { mediaType: val }); if (val === 'none') removeMedia(i) }}
+                  style={{ flex: 1, padding: '7px 6px', borderRadius: 8, border: msg.mediaType === val ? '1.5px solid #C9951A' : '1.5px solid #e5e5e5', background: msg.mediaType === val ? '#fff8e6' : '#fff', color: msg.mediaType === val ? '#92600a' : '#666', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter,sans-serif' }}>
+                  {lbl}
+                </button>
+              ))}
+            </div>
+
+            {msg.mediaType === 'audio' && (
+              <div style={{ background: '#fff', border: '1.5px solid #eee', borderRadius: 10, padding: 10 }}>
+                {!msg.mediaUrl && recordingIndex !== i && (
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={() => startRecording(i)} disabled={recordingIndex !== null} style={{ flex: 1, padding: '9px', background: '#111', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: recordingIndex !== null ? 0.5 : 1 }}>🔴 Gravar agora</button>
+                    <label style={{ flex: 1, padding: '9px', background: '#fff', color: '#C9951A', border: '1.5px solid #C9951A', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', textAlign: 'center' }}>
+                      📁 Carregar arquivo
+                      <input type="file" accept="audio/*" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && handleMediaFile(i, e.target.files[0])} />
+                    </label>
+                  </div>
+                )}
+                {recordingIndex === i && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#E24B4A' }} />
+                    <div style={{ flex: 1, fontSize: 12, fontWeight: 600 }}>Gravando... {Math.floor(recordSeconds / 60)}:{String(recordSeconds % 60).padStart(2, '0')}</div>
+                    <button onClick={stopRecording} style={{ padding: '7px 14px', background: '#E24B4A', color: '#fff', border: 'none', borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>⏹ Parar</button>
+                  </div>
+                )}
+                {mediaUploading[i] && <div style={{ fontSize: 11, color: '#aaa' }}>Enviando áudio...</div>}
+                {msg.mediaUrl && !mediaUploading[i] && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <audio controls src={msg.mediaUrl} style={{ flex: 1, height: 34 }} />
+                    <button onClick={() => removeMedia(i)} style={{ background: '#FCEBEB', color: '#E24B4A', border: 'none', borderRadius: 8, width: 30, height: 30, cursor: 'pointer', flexShrink: 0 }}>🗑</button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {(msg.mediaType === 'video' || msg.mediaType === 'image') && (
+              <div style={{ background: '#fff', border: '1.5px solid #eee', borderRadius: 10, padding: 10 }}>
+                {!msg.mediaUrl && !mediaUploading[i] && (
+                  <label style={{ display: 'block', padding: '9px', background: '#fff', color: '#C9951A', border: '1.5px solid #C9951A', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', textAlign: 'center' }}>
+                    📁 Carregar {msg.mediaType === 'video' ? 'vídeo' : 'imagem'}
+                    <input type="file" accept={msg.mediaType === 'video' ? 'video/*' : 'image/*'} style={{ display: 'none' }} onChange={e => e.target.files?.[0] && handleMediaFile(i, e.target.files[0])} />
+                  </label>
+                )}
+                {mediaUploading[i] && <div style={{ fontSize: 11, color: '#aaa' }}>Enviando...</div>}
+                {msg.mediaUrl && !mediaUploading[i] && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {msg.mediaType === 'video' ? (
+                      <video controls src={msg.mediaUrl} style={{ maxWidth: 150, maxHeight: 90, borderRadius: 8 }} />
+                    ) : (
+                      <img src={msg.mediaUrl} alt="Prévia" style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8 }} />
+                    )}
+                    <button onClick={() => removeMedia(i)} style={{ background: '#FCEBEB', color: '#E24B4A', border: 'none', borderRadius: 8, width: 30, height: 30, cursor: 'pointer', flexShrink: 0 }}>🗑</button>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         ))}
         {messages.length < 5 && (
-          <button style={s.btnAdd} onClick={() => setMessages([...messages, ''])}>+ Adicionar variação de mensagem</button>
-        )}
-
-        <label style={s.label}>Mídia <span style={{ color: '#aaa', fontWeight: 400 }}>(opcional — enviada junto com a mensagem)</span></label>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-          {([['none','Nenhuma'],['audio','🎙️ Áudio'],['video','🎥 Vídeo'],['image','🖼️ Imagem']] as const).map(([val,lbl]) => (
-            <button key={val} onClick={() => { setMediaType(val); if (val === 'none') removeMedia() }}
-              style={{ flex: 1, padding: '9px 8px', borderRadius: 10, border: mediaType === val ? '1.5px solid #C9951A' : '1.5px solid #e5e5e5', background: mediaType === val ? '#fff8e6' : '#fff', color: mediaType === val ? '#92600a' : '#666', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter,sans-serif' }}>
-              {lbl}
-            </button>
-          ))}
-        </div>
-
-        {mediaType === 'audio' && (
-          <div style={{ background: '#f9f9f9', border: '1.5px solid #eee', borderRadius: 12, padding: 14, marginBottom: 12 }}>
-            {!mediaUrl && !recording && (
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={startRecording} style={{ flex: 1, padding: '10px', background: '#111', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>🔴 Gravar agora</button>
-                <label style={{ flex: 1, padding: '10px', background: '#fff', color: '#C9951A', border: '1.5px solid #C9951A', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', textAlign: 'center' }}>
-                  📁 Carregar arquivo
-                  <input type="file" accept="audio/*" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && handleMediaFile(e.target.files[0])} />
-                </label>
-              </div>
-            )}
-            {recording && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#E24B4A' }} />
-                <div style={{ flex: 1, fontSize: 13, fontWeight: 600 }}>Gravando... {Math.floor(recordSeconds / 60)}:{String(recordSeconds % 60).padStart(2, '0')}</div>
-                <button onClick={stopRecording} style={{ padding: '8px 16px', background: '#E24B4A', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>⏹ Parar</button>
-              </div>
-            )}
-            {mediaUploading && <div style={{ fontSize: 12, color: '#aaa' }}>Enviando áudio...</div>}
-            {mediaUrl && !mediaUploading && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <audio controls src={mediaUrl} style={{ flex: 1, height: 36 }} />
-                <button onClick={removeMedia} style={{ background: '#FCEBEB', color: '#E24B4A', border: 'none', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', flexShrink: 0 }}>🗑</button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {(mediaType === 'video' || mediaType === 'image') && (
-          <div style={{ background: '#f9f9f9', border: '1.5px solid #eee', borderRadius: 12, padding: 14, marginBottom: 12 }}>
-            {!mediaUrl && !mediaUploading && (
-              <label style={{ display: 'block', padding: '10px', background: '#fff', color: '#C9951A', border: '1.5px solid #C9951A', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', textAlign: 'center' }}>
-                📁 Carregar {mediaType === 'video' ? 'vídeo' : 'imagem'}
-                <input type="file" accept={mediaType === 'video' ? 'video/*' : 'image/*'} style={{ display: 'none' }} onChange={e => e.target.files?.[0] && handleMediaFile(e.target.files[0])} />
-              </label>
-            )}
-            {mediaUploading && <div style={{ fontSize: 12, color: '#aaa' }}>Enviando...</div>}
-            {mediaUrl && !mediaUploading && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                {mediaType === 'video' ? (
-                  <video controls src={mediaUrl} style={{ maxWidth: 160, maxHeight: 100, borderRadius: 8 }} />
-                ) : (
-                  <img src={mediaUrl} alt="Prévia" style={{ width: 70, height: 70, objectFit: 'cover', borderRadius: 8 }} />
-                )}
-                <button onClick={removeMedia} style={{ background: '#FCEBEB', color: '#E24B4A', border: 'none', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', flexShrink: 0 }}>🗑</button>
-              </div>
-            )}
-          </div>
+          <button style={s.btnAdd} onClick={() => setMessages([...messages, { text: '', mediaType: 'none', mediaUrl: '' }])}>+ Adicionar variação de mensagem</button>
         )}
 
         <label style={s.label}>Intervalo entre envios (segundos)</label>

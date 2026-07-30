@@ -249,7 +249,7 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
     if (!userId) { window.location.href = '/login'; return }
     await supabase.from('companies').update({ whatsapp_clicks: ((company.whatsapp_clicks as number) || 0) + 1 }).eq('id', company.id)
     await supabase.from('whatsapp_clicks').insert({ company_id: company.id, user_id: userId })
-    window.open(`https://wa.me/55${company.phone.replace(/\D/g,'')}?text=Olá! Vi sua empresa no Trindade Online.`, '_blank')
+    window.open(`https://wa.me/55${company.phone.replace(/\D/g,'')}?text=${encodeURIComponent('Olá, vim pelo site do Trindade Online e quero fazer meu pedido.')}`, '_blank')
   }
 
   async function deleteReview(reviewId: string) {

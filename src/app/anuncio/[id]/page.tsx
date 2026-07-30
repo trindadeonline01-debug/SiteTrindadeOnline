@@ -18,6 +18,13 @@ const TYPE_INFO:Record<string,{emoji:string;label:string;slug:string}> = {
   achado:   {emoji:'🔍',label:'Achados & Perdidos',slug:'achados-perdidos'},
 }
 
+const WA_MESSAGE_BY_TYPE:Record<string,string> = {
+  desapega: 'Olá, vim pelo site do Trindade Online e quero saber mais sobre o anúncio.',
+  emprego:  'Olá, vim pelo site do Trindade Online e quero saber mais sobre a vaga disponível.',
+  imovel:   'Olá, vim pelo site do Trindade Online e quero saber mais sobre o imóvel.',
+  achado:   'Olá, vim pelo site do Trindade Online sobre o item que você publicou.',
+}
+
 const SUBTYPE_COLORS:Record<string,{bg:string;color:string}> = {
   venda:   {bg:'#EAF3DE',color:'#3B6D11'},
   doacao:  {bg:'#EBF4FF',color:'#185FA5'},
@@ -258,7 +265,7 @@ export default function AnuncioPage({ params }: { params: Promise<{ id: string }
             <div className="price-big">{fmtPrice(listing)}</div>
             <div className="price-sub">Publicado em {fmtDate(listing.created_at)}</div>
             {listing.contact_phone&&(
-              <button className="btn-wa" onClick={()=>window.open(`https://wa.me/55${listing.contact_phone!.replace(/\D/g,'')}?text=Olá! Vi seu anúncio "${listing.title}" no Trindade Online.`,'_blank')}>
+              <button className="btn-wa" onClick={()=>window.open(`https://wa.me/55${listing.contact_phone!.replace(/\D/g,'')}?text=${encodeURIComponent(WA_MESSAGE_BY_TYPE[listing.type] || 'Olá, vim pelo site do Trindade Online e quero saber mais sobre o anúncio.')}`,'_blank')}>
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
                 Entrar em contato
               </button>

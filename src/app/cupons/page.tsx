@@ -31,6 +31,7 @@ export default function CuponsPage() {
   const [myRedemptions, setMyRedemptions] = useState<string[]>([])
   const [ranking, setRanking] = useState<RankingItem[]>([])
   const [rankingCat, setRankingCat] = useState('Comércios')
+  const [showRanking, setShowRanking] = useState(true)
 
   useEffect(() => {
     supabase.auth.getSession().then(async({ data: { session } }) => {
@@ -38,6 +39,8 @@ export default function CuponsPage() {
     })
     loadCoupons()
     loadRanking()
+    supabase.from('feature_flags').select('enabled').eq('key', 'cupons_ranking').maybeSingle()
+      .then(({ data }) => { if (data) setShowRanking(data.enabled) })
   }, [])
 
   async function loadCoupons() {
@@ -236,6 +239,7 @@ export default function CuponsPage() {
       </div></div>
 
       {/* RANKING */}
+      {showRanking && (
       <div className="rk-wrap">
         <div className="rk-header">
           <div>
@@ -283,6 +287,7 @@ export default function CuponsPage() {
           </div>
         </div>
       </div>
+      )}
 
       <div className="body" style={{minHeight:"calc(100vh - 300px)"}}>
         {!userId && (

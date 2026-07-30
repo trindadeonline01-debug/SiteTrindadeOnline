@@ -13,6 +13,8 @@ interface Campaign {
   messages: string[]
   filter: string
   list_name?: string | null
+  media_url?: string | null
+  media_type?: string | null
   delay_min: number
   delay_max: number
   status: string
@@ -98,6 +100,16 @@ export default function DisparosTab() {
   const [listSearchResults, setListSearchResults] = useState<any[]>([])
   const [manualPhone, setManualPhone] = useState('')
   const [manualName, setManualName] = useState('')
+
+  // Mídia da campanha
+  const [mediaType, setMediaType] = useState<'none'|'audio'|'video'|'image'>('none')
+  const [mediaUrl, setMediaUrl] = useState('')
+  const [mediaUploading, setMediaUploading] = useState(false)
+  const [recording, setRecording] = useState(false)
+  const [recordSeconds, setRecordSeconds] = useState(0)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const recordedChunksRef = useRef<Blob[]>([])
+  const recordTimerRef = useRef<any>(null)
 
   useEffect(() => {
     checkWaStatus()
@@ -221,6 +233,56 @@ export default function DisparosTab() {
     await loadLists()
   }
 
+  async function uploadMediaBlob(blob: Blob, ext: string) {
+    setMediaUploading(true)
+    try {
+      const path = `campanha-${Date.now()}.${ext}`
+      const { error } = await supabase.storage.from('blast-media').upload(path, blob, { upsert: true })
+      if (error) { alert('Erro ao enviar arquivo: ' + error.message); return }
+      const { data } = supabase.storage.from('blast-media').getPublicUrl(path)
+      setMediaUrl(data.publicUrl)
+    } finally {
+      setMediaUploading(false)
+    }
+  }
+
+  function handleMediaFile(file: File) {
+    const ext = file.name.split('.').pop() || 'bin'
+    uploadMediaBlob(file, ext)
+  }
+
+  async function startRecording() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const recorder = new MediaRecorder(stream)
+      recordedChunksRef.current = []
+      recorder.ondataavailable = e => { if (e.data.size > 0) recordedChunksRef.current.push(e.data) }
+      recorder.onstop = () => {
+        stream.getTracks().forEach(t => t.stop())
+        const blob = new Blob(recordedChunksRef.current, { type: 'audio/webm' })
+        uploadMediaBlob(blob, 'webm')
+      }
+      mediaRecorderRef.current = recorder
+      recorder.start()
+      setRecording(true)
+      setRecordSeconds(0)
+      recordTimerRef.current = setInterval(() => setRecordSeconds(s => s + 1), 1000)
+    } catch {
+      alert('Não foi possível acessar o microfone. Verifique a permissão do navegador.')
+    }
+  }
+
+  function stopRecording() {
+    mediaRecorderRef.current?.stop()
+    setRecording(false)
+    clearInterval(recordTimerRef.current)
+  }
+
+  function removeMedia() {
+    setMediaType('none')
+    setMediaUrl('')
+  }
+
   async function calcPreview() {
     const res = await fetch('/api/blast/preview', {
       method: 'POST',
@@ -245,8 +307,9 @@ export default function DisparosTab() {
   async function createCampaign(startNow: boolean) {
     if (!name.trim()) return alert('Dê um nome para a campanha')
     const validMessages = messages.filter(m => m.trim())
-    if (validMessages.length === 0) return alert('Adicione pelo menos uma mensagem')
+    if (validMessages.length === 0 && !mediaUrl) return alert('Adicione pelo menos uma mensagem ou uma mídia')
     if (filter === 'broadcast_list' && !selectedListId) return alert('Escolha uma lista de transmissão')
+    if (mediaUploading) return alert('Aguarde o envio da mídia terminar')
     setLoading(true)
     try {
       const listName = filter === 'broadcast_list' ? (lists.find(l => l.id === selectedListId)?.name || null) : null
@@ -262,7 +325,9 @@ export default function DisparosTab() {
           list_name: listName,
           delay_min: delayMin,
           delay_max: delayMax,
-          scheduled_at: scheduledAt || null
+          scheduled_at: scheduledAt || null,
+          media_url: mediaType !== 'none' ? mediaUrl : null,
+          media_type: mediaType !== 'none' ? mediaType : null,
         })
       })
       const data = await res.json()
@@ -274,7 +339,7 @@ export default function DisparosTab() {
           body: JSON.stringify({ action: 'start', campaign_id: data.campaign_id })
         })
       }
-      setName(''); setMessages(['', '']); setScheduledAt('')
+      setName(''); setMessages(['', '']); setScheduledAt(''); removeMedia()
       await loadCampaigns()
       if (data.campaign_id) { setSelectedCampaign(data.campaign_id); loadLogs(data.campaign_id) }
     } finally {
@@ -313,14 +378,18 @@ export default function DisparosTab() {
   async function sendTest() {
     if (!testSelected) return
     const validMessages = messages.filter((m: string) => m.trim())
-    if (validMessages.length === 0) return alert("Adicione pelo menos uma mensagem")
+    if (validMessages.length === 0 && !mediaUrl) return alert("Adicione pelo menos uma mensagem ou uma mídia")
     setTestSending(true)
     setTestSent(false)
     try {
-      const res = await fetch("https://api.trindadeonline.com.br/send-test", {
+      const res = await fetch("/api/blast/test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: testSelected.phone, name: testSelected.name, company: testSelected.name, messages: validMessages })
+        body: JSON.stringify({
+          phone: testSelected.phone, name: testSelected.name, company: testSelected.name, messages: validMessages,
+          media_url: mediaType !== 'none' ? mediaUrl : null,
+          media_type: mediaType !== 'none' ? mediaType : null,
+        })
       })
       const data = await res.json()
       if (data.ok) { setTestSent(true); setTimeout(() => setTestSent(false), 3000) }
@@ -453,6 +522,66 @@ export default function DisparosTab() {
         ))}
         {messages.length < 5 && (
           <button style={s.btnAdd} onClick={() => setMessages([...messages, ''])}>+ Adicionar variação de mensagem</button>
+        )}
+
+        <label style={s.label}>Mídia <span style={{ color: '#aaa', fontWeight: 400 }}>(opcional — enviada junto com a mensagem)</span></label>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+          {([['none','Nenhuma'],['audio','🎙️ Áudio'],['video','🎥 Vídeo'],['image','🖼️ Imagem']] as const).map(([val,lbl]) => (
+            <button key={val} onClick={() => { setMediaType(val); if (val === 'none') removeMedia() }}
+              style={{ flex: 1, padding: '9px 8px', borderRadius: 10, border: mediaType === val ? '1.5px solid #C9951A' : '1.5px solid #e5e5e5', background: mediaType === val ? '#fff8e6' : '#fff', color: mediaType === val ? '#92600a' : '#666', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter,sans-serif' }}>
+              {lbl}
+            </button>
+          ))}
+        </div>
+
+        {mediaType === 'audio' && (
+          <div style={{ background: '#f9f9f9', border: '1.5px solid #eee', borderRadius: 12, padding: 14, marginBottom: 12 }}>
+            {!mediaUrl && !recording && (
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={startRecording} style={{ flex: 1, padding: '10px', background: '#111', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>🔴 Gravar agora</button>
+                <label style={{ flex: 1, padding: '10px', background: '#fff', color: '#C9951A', border: '1.5px solid #C9951A', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', textAlign: 'center' }}>
+                  📁 Carregar arquivo
+                  <input type="file" accept="audio/*" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && handleMediaFile(e.target.files[0])} />
+                </label>
+              </div>
+            )}
+            {recording && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#E24B4A' }} />
+                <div style={{ flex: 1, fontSize: 13, fontWeight: 600 }}>Gravando... {Math.floor(recordSeconds / 60)}:{String(recordSeconds % 60).padStart(2, '0')}</div>
+                <button onClick={stopRecording} style={{ padding: '8px 16px', background: '#E24B4A', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>⏹ Parar</button>
+              </div>
+            )}
+            {mediaUploading && <div style={{ fontSize: 12, color: '#aaa' }}>Enviando áudio...</div>}
+            {mediaUrl && !mediaUploading && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <audio controls src={mediaUrl} style={{ flex: 1, height: 36 }} />
+                <button onClick={removeMedia} style={{ background: '#FCEBEB', color: '#E24B4A', border: 'none', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', flexShrink: 0 }}>🗑</button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {(mediaType === 'video' || mediaType === 'image') && (
+          <div style={{ background: '#f9f9f9', border: '1.5px solid #eee', borderRadius: 12, padding: 14, marginBottom: 12 }}>
+            {!mediaUrl && !mediaUploading && (
+              <label style={{ display: 'block', padding: '10px', background: '#fff', color: '#C9951A', border: '1.5px solid #C9951A', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', textAlign: 'center' }}>
+                📁 Carregar {mediaType === 'video' ? 'vídeo' : 'imagem'}
+                <input type="file" accept={mediaType === 'video' ? 'video/*' : 'image/*'} style={{ display: 'none' }} onChange={e => e.target.files?.[0] && handleMediaFile(e.target.files[0])} />
+              </label>
+            )}
+            {mediaUploading && <div style={{ fontSize: 12, color: '#aaa' }}>Enviando...</div>}
+            {mediaUrl && !mediaUploading && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {mediaType === 'video' ? (
+                  <video controls src={mediaUrl} style={{ maxWidth: 160, maxHeight: 100, borderRadius: 8 }} />
+                ) : (
+                  <img src={mediaUrl} alt="Prévia" style={{ width: 70, height: 70, objectFit: 'cover', borderRadius: 8 }} />
+                )}
+                <button onClick={removeMedia} style={{ background: '#FCEBEB', color: '#E24B4A', border: 'none', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', flexShrink: 0 }}>🗑</button>
+              </div>
+            )}
+          </div>
         )}
 
         <label style={s.label}>Intervalo entre envios (segundos)</label>

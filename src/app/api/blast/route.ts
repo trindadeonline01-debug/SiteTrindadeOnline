@@ -22,6 +22,7 @@ function randomDelay(min: number, max: number): Promise<void> {
 
 // Sorteia uma mensagem aleatória e substitui variáveis
 function buildMessage(messages: string[], nome: string, empresa: string): string {
+  if (!messages || messages.length === 0) return ''
   const idx = Math.floor(Math.random() * messages.length)
   return messages[idx]
     .replace(/\{\{nome\}\}/g, nome)
@@ -60,6 +61,52 @@ async function sendWhatsApp(phone: string, message: string): Promise<{ ok: boole
   }
 }
 
+// Envia imagem ou video (com legenda opcional) via Evolution API
+async function sendMedia(phone: string, mediaUrl: string, mediaType: 'image' | 'video', caption: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const formatted = formatPhone(phone)
+    const res = await fetch(`${EVOLUTION_URL}/message/sendMedia/${encodeURIComponent(EVOLUTION_INSTANCE)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': EVOLUTION_KEY },
+      body: JSON.stringify({
+        number: formatted,
+        mediatype: mediaType,
+        media: mediaUrl,
+        caption: caption || undefined
+      })
+    })
+    if (!res.ok) {
+      const err = await res.text()
+      return { ok: false, error: err }
+    }
+    return { ok: true }
+  } catch (err: any) {
+    return { ok: false, error: err.message }
+  }
+}
+
+// Envia audio como nota de voz via Evolution API
+async function sendAudio(phone: string, mediaUrl: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const formatted = formatPhone(phone)
+    const res = await fetch(`${EVOLUTION_URL}/message/sendWhatsAppAudio/${encodeURIComponent(EVOLUTION_INSTANCE)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': EVOLUTION_KEY },
+      body: JSON.stringify({
+        number: formatted,
+        audio: mediaUrl
+      })
+    })
+    if (!res.ok) {
+      const err = await res.text()
+      return { ok: false, error: err }
+    }
+    return { ok: true }
+  } catch (err: any) {
+    return { ok: false, error: err.message }
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
@@ -67,7 +114,7 @@ export async function POST(req: NextRequest) {
 
     // CRIAR CAMPANHA
     if (action === 'create') {
-      const { name, messages, filter, delay_min, delay_max, scheduled_at, list_id, list_name } = data
+      const { name, messages, filter, delay_min, delay_max, scheduled_at, list_id, list_name, media_url, media_type } = data
 
       // Busca contatos conforme filtro
       let contacts: { phone: string; name: string; company: string; owner_id?: string }[] = []
@@ -131,6 +178,8 @@ export async function POST(req: NextRequest) {
         filter,
         list_id: filter === 'broadcast_list' ? (list_id || null) : null,
         list_name: filter === 'broadcast_list' ? (list_name || null) : null,
+        media_url: media_url || null,
+        media_type: media_type || null,
         delay_min: delay_min || 10,
         delay_max: delay_max || 60,
         total_contacts: contacts.length,
@@ -191,7 +240,15 @@ export async function POST(req: NextRequest) {
           if (!claimed || claimed.length === 0) continue
 
           const message = buildMessage(campaign.messages, log.contact_name || 'Cliente', log.company_name || '')
-          const result = await sendWhatsApp(log.phone, message)
+          let result: { ok: boolean; error?: string }
+          if (campaign.media_type === 'image' || campaign.media_type === 'video') {
+            result = await sendMedia(log.phone, campaign.media_url, campaign.media_type, message)
+          } else if (campaign.media_type === 'audio') {
+            result = await sendAudio(log.phone, campaign.media_url)
+            if (result.ok && message) await sendWhatsApp(log.phone, message)
+          } else {
+            result = await sendWhatsApp(log.phone, message)
+          }
 
           // Marca o Grupo WA logo apos o envio confirmado, antes de qualquer outra
           // escrita — se o processo for interrompido em seguida (comum em loop

@@ -155,7 +155,7 @@ export default function HomePage() {
         let motivo = c.category_name || ''
         if (c.address && c.address.toLowerCase().includes(q_lower)) motivo = `📍 ${c.address}`
         else if (c.category_name) motivo = c.category_name
-        results.push({ type:'empresa', label: c.name, sub: motivo })
+        results.push({ type:'empresa', label: c.name, sub: motivo, slug: c.slug })
       })
     }
     // Tags — buscar empresas com tags matching
@@ -515,7 +515,9 @@ export default function HomePage() {
               <div key={i} className="sug-item" onMouseDown={() => {
                 setSearchQuery(s.label)
                 setShowSuggestions(false)
-                if (s.type === 'subcat' && s.categorySlug && s.slug) {
+                if (s.type === 'empresa' && s.slug) {
+                  window.location.href = `/empresa/${s.slug}`
+                } else if (s.type === 'subcat' && s.categorySlug && s.slug) {
                   window.location.href = `/categoria/${s.categorySlug}?sub=${s.slug}`
                 } else {
                   window.location.href = `/busca?q=${encodeURIComponent(s.label)}`

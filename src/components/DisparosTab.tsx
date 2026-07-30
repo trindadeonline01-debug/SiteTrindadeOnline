@@ -111,6 +111,7 @@ export default function DisparosTab() {
 
   // Mídia por variação de mensagem
   const [mediaUploading, setMediaUploading] = useState<Record<number, boolean>>({})
+  const [mediaUploadProgress, setMediaUploadProgress] = useState<Record<number, number>>({})
   const [recordingIndex, setRecordingIndex] = useState<number | null>(null)
   const [recordSeconds, setRecordSeconds] = useState(0)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
@@ -243,6 +244,27 @@ export default function DisparosTab() {
     setMessages(prev => prev.map((m, j) => j === i ? { ...m, ...updates } : m))
   }
 
+  // Upload via XMLHttpRequest (nao supabase-js) so o xhr.upload tem evento
+  // de progresso real -- o cliente padrao do Supabase usa fetch, que nao
+  // reporta progresso de envio
+  function uploadWithProgress(path: string, blob: Blob, contentType: string, onProgress: (pct: number) => void): Promise<void> {
+    return new Promise(async (resolve, reject) => {
+      const { data: sessionData } = await supabase.auth.getSession()
+      const token = sessionData.session?.access_token || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/blast-media/${path}`
+      const xhr = new XMLHttpRequest()
+      xhr.open('POST', url)
+      xhr.setRequestHeader('Authorization', `Bearer ${token}`)
+      xhr.setRequestHeader('apikey', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
+      xhr.setRequestHeader('x-upsert', 'true')
+      xhr.setRequestHeader('Content-Type', contentType || 'application/octet-stream')
+      xhr.upload.onprogress = e => { if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100)) }
+      xhr.onload = () => xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(xhr.responseText || `HTTP ${xhr.status}`))
+      xhr.onerror = () => reject(new Error('Falha de rede no upload'))
+      xhr.send(blob)
+    })
+  }
+
   async function uploadMediaBlob(i: number, blob: Blob, ext: string, contentType?: string) {
     // Preview local instantanea (URL.createObjectURL) -- toca direto do arquivo
     // que acabou de ser gravado/selecionado, sem depender do upload/rede/CDN.
@@ -255,14 +277,17 @@ export default function DisparosTab() {
     updateMessageAt(i, { localPreviewUrl: localUrl })
 
     setMediaUploading(prev => ({ ...prev, [i]: true }))
+    setMediaUploadProgress(prev => ({ ...prev, [i]: 0 }))
     try {
       const path = `campanha-${Date.now()}-${i}.${ext}`
-      const { error } = await supabase.storage.from('blast-media').upload(path, blob, { upsert: true, contentType: contentType || blob.type || undefined })
-      if (error) { alert('Erro ao enviar arquivo: ' + error.message); return }
+      await uploadWithProgress(path, blob, contentType || blob.type || 'application/octet-stream', pct => setMediaUploadProgress(prev => ({ ...prev, [i]: pct })))
       const { data } = supabase.storage.from('blast-media').getPublicUrl(path)
       updateMessageAt(i, { mediaUrl: data.publicUrl })
+    } catch (err: any) {
+      alert('Erro ao enviar arquivo: ' + err.message)
     } finally {
       setMediaUploading(prev => ({ ...prev, [i]: false }))
+      setMediaUploadProgress(prev => ({ ...prev, [i]: 0 }))
     }
   }
 
@@ -584,7 +609,17 @@ export default function DisparosTab() {
                     <button onClick={() => removeMedia(i)} style={{ background: '#FCEBEB', color: '#E24B4A', border: 'none', borderRadius: 8, width: 30, height: 30, cursor: 'pointer', flexShrink: 0 }}>🗑</button>
                   </div>
                 )}
-                {mediaUploading[i] && <div style={{ fontSize: 11, color: '#aaa', marginTop: 6 }}>Enviando áudio pro servidor...</div>}
+                {mediaUploading[i] && (
+                  <div style={{ marginTop: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#aaa', marginBottom: 4 }}>
+                      <span>Enviando áudio pro servidor...</span>
+                      <span>{mediaUploadProgress[i] || 0}%</span>
+                    </div>
+                    <div style={{ height: 6, background: '#eee', borderRadius: 99, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${mediaUploadProgress[i] || 0}%`, background: '#C9951A', borderRadius: 99, transition: 'width .15s' }} />
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -606,7 +641,17 @@ export default function DisparosTab() {
                     <button onClick={() => removeMedia(i)} style={{ background: '#FCEBEB', color: '#E24B4A', border: 'none', borderRadius: 8, width: 30, height: 30, cursor: 'pointer', flexShrink: 0 }}>🗑</button>
                   </div>
                 )}
-                {mediaUploading[i] && <div style={{ fontSize: 11, color: '#aaa', marginTop: 6 }}>Enviando pro servidor...</div>}
+                {mediaUploading[i] && (
+                  <div style={{ marginTop: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#aaa', marginBottom: 4 }}>
+                      <span>Enviando {msg.mediaType === 'video' ? 'vídeo' : 'imagem'} pro servidor...</span>
+                      <span>{mediaUploadProgress[i] || 0}%</span>
+                    </div>
+                    <div style={{ height: 6, background: '#eee', borderRadius: 99, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${mediaUploadProgress[i] || 0}%`, background: '#C9951A', borderRadius: 99, transition: 'width .15s' }} />
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

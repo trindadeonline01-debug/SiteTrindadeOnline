@@ -1039,7 +1039,10 @@ export default function AdminPage() {
         .sidebar {
           width: 220px; background: #111; flex-shrink: 0;
           display: flex; flex-direction: column;
-          position: sticky; top: 0; height: 100vh; overflow-y: auto;
+          position: sticky; top: 0; height: 100vh;
+        }
+        .sidebar-nav {
+          flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; min-height: 0;
         }
         .sidebar-footer {
           flex-shrink: 0; padding: 16px 20px; border-top: 1px solid #222;
@@ -1049,12 +1052,13 @@ export default function AdminPage() {
           display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 98;
         }
         .btn-hamburger {
-          display: none; background: none; border: none; color: #fff;
+          display: none; background: none; border: none; color: #111;
           font-size: 22px; cursor: pointer; padding: 4px 8px;
         }
         @media (max-width: 768px) {
           .sidebar {
             position: fixed; left: 0; top: 0; z-index: 99;
+            height: 100vh; height: 100dvh;
             transform: translateX(-100%); transition: transform 0.25s ease;
           }
           .sidebar.open { transform: translateX(0); }
@@ -1491,6 +1495,7 @@ export default function AdminPage() {
             <span className="sidebar-badge">ADMIN</span>
           </div>
 
+          <nav className="sidebar-nav">
           {[
             { id: 'dashboard', icon: '📊', label: 'Dashboard' },
             { id: 'empresas',  icon: '🏪', label: 'Empresas', badge: stats?.pending || 0 },
@@ -1521,6 +1526,7 @@ export default function AdminPage() {
               {!!n.badge && <span className="nav-badge">{n.badge}</span>}
             </div>
           ))}
+          </nav>
 
           <div className="sidebar-footer">
             <a href="/">← Ver site</a>

@@ -386,7 +386,9 @@ function BuscaContent() {
               <div className="results-grid">
                 {empregos.map(l => (
                   <a key={l.id} className="result-card" href={`/anuncio/${l.id}`}>
-                    <div className="rc-img"><span>💼</span></div>
+                    <div className="rc-img">
+                      {l.photos?.length ? <img src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title}/> : <span>💼</span>}
+                    </div>
                     <div className="rc-body">
                       <div className="rc-name">{l.title}</div>
                       <div className="rc-cat">{l.price ? `R$ ${l.price.toLocaleString('pt-BR')}/mês` : 'Ver detalhes'}</div>
@@ -434,7 +436,9 @@ function BuscaContent() {
               <div className="results-grid">
                 {achados.map(l => (
                   <a key={l.id} className="result-card" href={`/anuncio/${l.id}`}>
-                    <div className="rc-img"><span>{l.subtype==='perdido'?'🔴':'🟢'} 🔍</span></div>
+                    <div className="rc-img">
+                      {l.photos?.length ? <img src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title}/> : <span>{l.subtype==='perdido'?'🔴':'🟢'} 🔍</span>}
+                    </div>
                     <div className="rc-body">
                       <div className="rc-name">{l.title}</div>
                       <div className="rc-cat" style={{color:l.subtype==='perdido'?'#E24B4A':'#0F6E56'}}>{l.subtype==='perdido'?'Perdido':'Achado'}</div>

@@ -149,8 +149,11 @@ function BuscaContent() {
         .result-title span{color:#C9951A;}
         .result-sub{font-size:15px;color:#666;font-weight:600;}
 
+        /* GRID DE SEÇÕES */
+        .sections-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:28px 32px;align-items:start;}
+
         /* SEÇÃO */
-        .section{margin-bottom:28px;}
+        .section{margin-bottom:0;}
         .sec-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
         .sec-lbl{font-family:'Bebas Neue',sans-serif;font-size:15px;color:#666;letter-spacing:1.5px;}
         .sec-cnt{font-size:13px;color:#888;font-family:'Inter',sans-serif;}
@@ -280,6 +283,8 @@ function BuscaContent() {
                 <a href="/" style={{display:'inline-block',padding:'12px 28px',background:'#C9951A',color:'#fff',borderRadius:12,textDecoration:'none',fontSize:14,fontWeight:600}}>← Voltar ao início</a>
               </div>
             )}
+
+            <div className="sections-grid">
 
             {/* EMPRESAS */}
             {empresas.length > 0 && (
@@ -440,6 +445,9 @@ function BuscaContent() {
               </div>
             </div>
             )}
+
+            </div>
+
             <div className="footer">
               <a href="/">← Voltar ao Trindade Online</a>
             </div>

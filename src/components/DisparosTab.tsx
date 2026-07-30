@@ -403,6 +403,7 @@ export default function DisparosTab() {
         <label style={s.label}>Público-alvo</label>
         <select style={s.select} value={filter} onChange={e => setFilter(e.target.value)}>
           <option value="all">👥 Todos (empresas + moradores)</option>
+          <option value="companies">🏪 Todas as empresas (pagas + gratuitas)</option>
           <option value="paid">💛 Só empresas pagas</option>
           <option value="unpaid">⭕ Só empresas não pagas</option>
           <option value="no_group">📵 Empresas sem grupo WA</option>

@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
       contacts = [...contacts, ...(data || []).map((m: any) => m.phone)]
     }
 
-    if (filter === 'all' || filter === 'paid' || filter === 'unpaid') {
+    if (filter === 'all' || filter === 'companies' || filter === 'paid' || filter === 'unpaid') {
       let query = supabase.from('companies').select('phone, plan').not('phone', 'is', null).neq('phone', '')
       if (filter === 'paid') query = query.eq('plan', 'paid')
       if (filter === 'unpaid') query = query.neq('plan', 'paid')

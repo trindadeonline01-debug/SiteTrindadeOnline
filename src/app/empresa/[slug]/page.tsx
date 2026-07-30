@@ -3,23 +3,26 @@
 import { useState, useEffect, use, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import ShareButton from '@/components/ShareButton'
+import { compressImage } from '@/lib/compressImage'
 
 type CompanyHour   = { label: string; hours: string; order: number }
 type CompanyPhoto  = { id: string; url: string; order: number }
-type CompanySubcat = { subcategory: { name: string; emoji: string } }
+type CompanySubcat = { subcategory_id?: string; subcategory: { name: string; emoji: string } }
 type Company = {
   id: string; name: string; slug: string; status: string; plan: string
   description?: string; address?: string; phone?: string
   external_link?: string; external_link_label?: string
   avg_rating?: number; total_reviews?: number
   views_count?: number; whatsapp_clicks?: number
-  owner_id?: string
+  owner_id?: string; category_id?: string
   category?: { name: string; emoji: string; slug?: string }
   trial_ends_at?: string
   subcategories?: CompanySubcat[]
   photos?: CompanyPhoto[]
   hours?: CompanyHour[]
 }
+type SimpleCategory    = { id: string; name: string; emoji: string }
+type SimpleSubcategory = { id: string; name: string; emoji: string; category_id: string }
 type Review = {
   id: string; rating: number; text?: string; created_at: string
   user?: { name: string }
@@ -180,6 +183,18 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
   const [editingDesc, setEditingDesc] = useState(false)
   const [descText, setDescText]       = useState('')
   const [savingDesc, setSavingDesc]   = useState(false)
+  const [editingName, setEditingName] = useState(false)
+  const [nameText, setNameText]       = useState('')
+  const [savingName, setSavingName]   = useState(false)
+  const [editingCategory, setEditingCategory] = useState(false)
+  const [categorySelId, setCategorySelId]     = useState('')
+  const [savingCategory, setSavingCategory]   = useState(false)
+  const [editingSubcats, setEditingSubcats]   = useState(false)
+  const [subcatSelIds, setSubcatSelIds]       = useState<string[]>([])
+  const [savingSubcats, setSavingSubcats]     = useState(false)
+  const [allCategories, setAllCategories]     = useState<SimpleCategory[]>([])
+  const [allSubcats, setAllSubcats]           = useState<SimpleSubcategory[]>([])
+  const [uploadingPhoto, setUploadingPhoto]   = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -188,10 +203,18 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
     loadCompany()
   }, [])
 
+  const COMPANY_SELECT = '*, owner_id, trial_ends_at, category:categories(name,emoji,slug), subcategories:company_subcategories(subcategory_id, subcategory:subcategories(name,emoji)), photos:company_photos(id,url,order), hours:company_hours(label,hours,order)'
+
+  // Recarrega os dados da empresa sem contar view nem duplicar log — usado após salvar edições
+  async function refreshCompany() {
+    const { data } = await supabase.from('companies').select(COMPANY_SELECT).eq('slug', slug).maybeSingle()
+    if (data) setCompany(data)
+  }
+
   async function loadCompany() {
     const { data } = await supabase
       .from('companies')
-      .select('*, owner_id, trial_ends_at, category:categories(name,emoji,slug), subcategories:company_subcategories(subcategory:subcategories(name,emoji)), photos:company_photos(id,url,order), hours:company_hours(label,hours,order)')
+      .select(COMPANY_SELECT)
       .eq('slug', slug)
       .maybeSingle()
 
@@ -211,8 +234,15 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
       const { data: myReview } = await supabase.from('reviews').select('id').eq('user_id', session.user.id).eq('company_id', data.id).gte('created_at', weekStart.toISOString()).maybeSingle()
       setAlreadyReviewed(!!myReview)
       const { data: prof } = await supabase.from('profiles').select('user_type').eq('id', session.user.id).single()
-      setIsAdmin(prof?.user_type === 'admin')
-      setIsOwner(data.owner_id === session.user.id || prof?.user_type === 'admin')
+      const admin = prof?.user_type === 'admin'
+      setIsAdmin(admin)
+      setIsOwner(data.owner_id === session.user.id || admin)
+      if (admin) {
+        const { data: catsData } = await supabase.from('categories').select('id,name,emoji').order('name')
+        setAllCategories(catsData || [])
+        const { data: subcatsData } = await supabase.from('subcategories').select('id,name,emoji,category_id').eq('active', true).order('order')
+        setAllSubcats(subcatsData || [])
+      }
     }
     setLoading(false)
   }
@@ -255,6 +285,64 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
   async function deleteReview(reviewId: string) {
     await supabase.from('reviews').delete().eq('id', reviewId)
     loadCompany()
+  }
+
+  async function saveName() {
+    if (!company || !nameText.trim()) return
+    setSavingName(true)
+    await supabase.from('companies').update({ name: nameText.trim() }).eq('id', company.id)
+    await refreshCompany()
+    setEditingName(false)
+    setSavingName(false)
+  }
+
+  async function saveCategory() {
+    if (!company || !categorySelId) return
+    setSavingCategory(true)
+    await supabase.from('companies').update({ category_id: categorySelId }).eq('id', company.id)
+    await refreshCompany()
+    setEditingCategory(false)
+    setSavingCategory(false)
+  }
+
+  function toggleSubcat(id: string) {
+    setSubcatSelIds(ids => ids.includes(id) ? ids.filter(x => x !== id) : [...ids, id])
+  }
+
+  async function saveSubcats() {
+    if (!company) return
+    setSavingSubcats(true)
+    await supabase.from('company_subcategories').delete().eq('company_id', company.id)
+    if (subcatSelIds.length > 0) {
+      await supabase.from('company_subcategories').insert(subcatSelIds.map(id => ({ company_id: company.id, subcategory_id: id })))
+    }
+    await refreshCompany()
+    setEditingSubcats(false)
+    setSavingSubcats(false)
+  }
+
+  async function addPhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!company || !e.target.files?.[0]) return
+    setUploadingPhoto(true)
+    const file = e.target.files[0]
+    const ext = file.name.split('.').pop()
+    const order = (company.photos?.length || 0)
+    const path = `${company.id}/${order}-${Date.now()}.${ext}`
+    const compressed = await compressImage(file)
+    const { data: upload } = await supabase.storage.from('company-photos').upload(path, compressed, { upsert: true })
+    if (upload) {
+      const { data: url } = supabase.storage.from('company-photos').getPublicUrl(path)
+      await supabase.from('company_photos').insert({ company_id: company.id, url: url.publicUrl, order })
+      await refreshCompany()
+    }
+    setUploadingPhoto(false)
+    e.target.value = ''
+  }
+
+  async function deletePhoto(photoId: string) {
+    if (!confirm('Remover esta foto?')) return
+    await supabase.from('company_photos').delete().eq('id', photoId)
+    await refreshCompany()
   }
 
   async function submitReview() {
@@ -427,6 +515,21 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
       {/* GALERIA FULL WIDTH — grid dinâmico */}
       <div className="gallery-wrap">
         <Gallery photos={photos} emoji={company.category?.emoji || '🏪'} isAdmin={isAdmin} />
+        {isAdmin && (
+          <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:12,alignItems:'center'}}>
+            {photos.map(p => (
+              <div key={p.id} style={{position:'relative',width:64,height:64,borderRadius:8,overflow:'hidden',border:'1px solid #E0DDD8',flexShrink:0}}>
+                <img src={p.url} alt="" style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
+                <button onClick={()=>deletePhoto(p.id)}
+                  style={{position:'absolute',top:2,right:2,background:'rgba(0,0,0,.7)',color:'#fff',border:'none',borderRadius:10,width:18,height:18,fontSize:11,lineHeight:1,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
+              </div>
+            ))}
+            <label style={{width:64,height:64,borderRadius:8,border:'1.5px dashed #C9951A',display:'flex',alignItems:'center',justifyContent:'center',cursor:uploadingPhoto?'wait':'pointer',color:'#C9951A',fontSize:22,flexShrink:0}}>
+              {uploadingPhoto ? '…' : '+'}
+              <input type="file" accept="image/*" style={{display:'none'}} onChange={addPhoto} disabled={uploadingPhoto}/>
+            </label>
+          </div>
+        )}
       </div>
 
       {/* CONTEÚDO */}
@@ -436,7 +539,26 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
           {/* COLUNA ESQUERDA */}
           <div className="info-card">
             <div style={{display:'flex',alignItems:'center',gap:12,flexWrap:'wrap'}}>
-              <div className="empresa-name">{company.name}</div>
+              {editingName ? (
+                <div style={{display:'flex',gap:8,alignItems:'center',flex:1,minWidth:220}}>
+                  <input value={nameText} onChange={e=>setNameText(e.target.value)} autoFocus
+                    style={{flex:1,fontSize:20,fontFamily:"'Bebas Neue',sans-serif",letterSpacing:1,padding:'8px 12px',border:'1.5px solid #C9951A',borderRadius:8,outline:'none'}}/>
+                  <button onClick={saveName} disabled={savingName || !nameText.trim()}
+                    style={{padding:'7px 14px',background:'#C9951A',color:'#fff',border:'none',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer'}}>
+                    {savingName?'...':'Salvar'}
+                  </button>
+                  <button onClick={()=>setEditingName(false)}
+                    style={{padding:'7px 14px',background:'transparent',color:'#AAA',border:'1px solid #ddd',borderRadius:8,fontSize:12,cursor:'pointer'}}>Cancelar</button>
+                </div>
+              ) : (
+                <div className="empresa-name" style={{display:'flex',alignItems:'center',gap:8}}>
+                  {company.name}
+                  {isAdmin && (
+                    <button onClick={()=>{setNameText(company.name);setEditingName(true)}}
+                      style={{fontSize:13,background:'none',border:'none',cursor:'pointer',padding:0}}>✏️</button>
+                  )}
+                </div>
+              )}
               {company.plan === 'paid' && (
                 <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:2,flexShrink:0}}>
                   <svg width="44" height="44" viewBox="0 0 64 64" fill="none">
@@ -447,15 +569,65 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
                 </div>
               )}
             </div>
-            <div className="tags">
-              {company.category && <span className="tag tag-cat">{company.category.emoji} {company.category.name}</span>}
+            <div className="tags" style={{alignItems:'center'}}>
+              {editingCategory ? (
+                <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                  <select value={categorySelId} onChange={e=>setCategorySelId(e.target.value)}
+                    style={{fontSize:12,padding:'5px 8px',borderRadius:8,border:'1.5px solid #C9951A',fontFamily:'Inter,sans-serif',outline:'none'}}>
+                    {allCategories.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
+                  </select>
+                  <button onClick={saveCategory} disabled={savingCategory}
+                    style={{padding:'5px 10px',background:'#C9951A',color:'#fff',border:'none',borderRadius:8,fontSize:11,fontWeight:600,cursor:'pointer'}}>
+                    {savingCategory?'...':'✓'}
+                  </button>
+                  <button onClick={()=>setEditingCategory(false)}
+                    style={{padding:'5px 10px',background:'transparent',color:'#AAA',border:'1px solid #ddd',borderRadius:8,fontSize:11,cursor:'pointer'}}>✕</button>
+                </div>
+              ) : (
+                company.category && (
+                  <span className="tag tag-cat" style={{display:'flex',alignItems:'center',gap:4}}>
+                    {company.category.emoji} {company.category.name}
+                    {isAdmin && (
+                      <button onClick={()=>{setCategorySelId(company.category_id||'');setEditingCategory(true)}}
+                        style={{fontSize:10,background:'none',border:'none',cursor:'pointer',padding:0,marginLeft:2}}>✏️</button>
+                    )}
+                  </span>
+                )
+              )}
               {company.hours && company.hours.length > 0 && (
                 <span className={`tag ${open ? 'tag-open' : 'tag-closed'}`}>{open ? '● Aberto agora' : '● Fechado'}</span>
               )}
               {company.subcategories?.map((s,i) => (
                 <span key={i} className="tag tag-sub">{s.subcategory.emoji} {s.subcategory.name}</span>
               ))}
+              {isAdmin && !editingSubcats && (
+                <button onClick={()=>{setSubcatSelIds((company.subcategories||[]).map(s=>s.subcategory_id).filter(Boolean) as string[]);setEditingSubcats(true)}}
+                  style={{fontSize:11,color:'#C9951A',background:'none',border:'none',cursor:'pointer',fontWeight:600,padding:'2px 4px'}}>✏️ Editar subcategorias</button>
+              )}
             </div>
+            {editingSubcats && (
+              <div style={{background:'#FAFAF8',border:'1px solid #E0DDD8',borderRadius:10,padding:12,marginBottom:14}}>
+                <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:10}}>
+                  {allSubcats.filter(s => s.category_id === company.category_id).map(s => (
+                    <label key={s.id} style={{display:'flex',alignItems:'center',gap:5,fontSize:12,background:subcatSelIds.includes(s.id)?'#FEF3E2':'#fff',border:'1px solid '+(subcatSelIds.includes(s.id)?'#C9951A':'#E0DDD8'),borderRadius:8,padding:'5px 9px',cursor:'pointer'}}>
+                      <input type="checkbox" checked={subcatSelIds.includes(s.id)} onChange={()=>toggleSubcat(s.id)} style={{margin:0}}/>
+                      {s.emoji} {s.name}
+                    </label>
+                  ))}
+                  {allSubcats.filter(s => s.category_id === company.category_id).length === 0 && (
+                    <span style={{fontSize:12,color:'#AAA'}}>Nenhuma subcategoria cadastrada para essa categoria.</span>
+                  )}
+                </div>
+                <div style={{display:'flex',gap:8}}>
+                  <button onClick={saveSubcats} disabled={savingSubcats}
+                    style={{padding:'7px 16px',background:'#C9951A',color:'#fff',border:'none',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer'}}>
+                    {savingSubcats?'Salvando...':'Salvar'}
+                  </button>
+                  <button onClick={()=>setEditingSubcats(false)}
+                    style={{padding:'7px 16px',background:'transparent',color:'#AAA',border:'1px solid #ddd',borderRadius:8,fontSize:12,cursor:'pointer'}}>Cancelar</button>
+                </div>
+              </div>
+            )}
 
             <div className="rating-row">
               {avgRating > 0 ? (
@@ -491,8 +663,8 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
                     <div style={{display:'flex',gap:8}}>
                       <button onClick={async()=>{
                         setSavingDesc(true)
-                        await fetch('/api/admin/update-company',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({company_id:company.id,updates:{description:descText}})})
-                        company.description = descText
+                        await supabase.from('companies').update({ description: descText }).eq('id', company.id)
+                        await refreshCompany()
                         setEditingDesc(false)
                         setSavingDesc(false)
                       }} disabled={savingDesc}

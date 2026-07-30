@@ -336,9 +336,9 @@ export default function DisparosTab() {
   async function createCampaign(startNow: boolean) {
     if (!name.trim()) return alert('Dê um nome para a campanha')
     const validMessages = messages
-      .filter(m => m.text.trim() || m.mediaUrl)
+      .filter(m => m.text.trim() || (m.mediaType !== 'none' && m.mediaUrl))
       .map(m => ({ text: m.text.trim(), media_url: m.mediaType !== 'none' ? m.mediaUrl : null, media_type: m.mediaType !== 'none' ? m.mediaType : null }))
-    if (validMessages.length === 0) return alert('Adicione pelo menos uma mensagem ou uma mídia')
+    if (validMessages.length === 0) return alert('Adicione pelo menos uma mensagem ou uma mídia (aguarde o upload terminar)')
     if (filter === 'broadcast_list' && !selectedListId) return alert('Escolha uma lista de transmissão')
     if (Object.values(mediaUploading).some(Boolean)) return alert('Aguarde o envio da mídia terminar')
     setLoading(true)
@@ -406,10 +406,11 @@ export default function DisparosTab() {
 
   async function sendTest() {
     if (!testSelected) return
+    if (Object.values(mediaUploading).some(Boolean)) return alert('Aguarde o envio da mídia terminar')
     const validMessages = messages
-      .filter(m => m.text.trim() || m.mediaUrl)
+      .filter(m => m.text.trim() || (m.mediaType !== 'none' && m.mediaUrl))
       .map(m => ({ text: m.text.trim(), media_url: m.mediaType !== 'none' ? m.mediaUrl : null, media_type: m.mediaType !== 'none' ? m.mediaType : null }))
-    if (validMessages.length === 0) return alert("Adicione pelo menos uma mensagem ou uma mídia")
+    if (validMessages.length === 0) return alert("Adicione pelo menos uma mensagem ou uma mídia (aguarde o upload terminar)")
     setTestSending(true)
     setTestSent(false)
     try {

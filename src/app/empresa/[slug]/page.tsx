@@ -723,13 +723,11 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
                   {company.external_link_label || 'Acessar site'}
                 </button>
               )}
-              <div style={{display:'flex',gap:8}}>
-                <button className={`btn-fav ${isFav ? 'on' : ''}`} onClick={toggleFav} style={{flex:1}}>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                <button className={`btn-fav ${isFav ? 'on' : ''}`} onClick={toggleFav}>
                   {isFav ? '❤️' : '🤍'} {isFav ? 'Salvo' : 'Favoritar'}
                 </button>
-                <div style={{flex:1}}>
-                  <ShareButton title={company.name} text={`Dá uma olhada em ${company.name} no Trindade Online!`} label="Compartilhar" height={46}/>
-                </div>
+                <ShareButton title={company.name} text={`Dá uma olhada em ${company.name} no Trindade Online!`} label="Compartilhar" height={46}/>
               </div>
             </div>
 

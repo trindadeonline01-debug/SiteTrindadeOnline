@@ -183,9 +183,6 @@ function BuscaContent() {
         .sub-chip{padding:7px 14px;background:#FAFAF8;border:0.5px solid #E0DDD8;border-radius:20px;font-size:13px;font-weight:600;color:#444;cursor:pointer;text-decoration:none;transition:all .15s;}
         .sub-chip:hover{border-color:#C9951A;color:#C9951A;background:#FEF3E2;}
 
-        /* VAZIO */
-        .empty-row{display:flex;align-items:center;gap:8px;padding:12px 16px;background:#FAFAF8;border:0.5px solid #F0EDE8;border-radius:10px;font-size:14px;font-weight:600;color:#777;}
-
         /* ESTADO INICIAL */
         .initial{padding:32px 0;}
         .sug-title{font-family:'Bebas Neue',sans-serif;font-size:15px;color:#666;letter-spacing:1.5px;margin-bottom:14px;}
@@ -285,185 +282,164 @@ function BuscaContent() {
             )}
 
             {/* EMPRESAS */}
+            {empresas.length > 0 && (
             <div className="section">
               <div className="sec-hdr">
                 <span className="sec-lbl">EMPRESAS</span>
-                <span className="sec-cnt">{empresas.length > 0 ? `${empresas.length} encontrada${empresas.length !== 1 ? 's' : ''}` : 'sem resultados'}</span>
+                <span className="sec-cnt">{empresas.length} encontrada{empresas.length !== 1 ? 's' : ''}</span>
                 <div className="sec-line"/>
               </div>
-              {empresas.length > 0 ? (
-                <div className="emp-grid">
-                  {empresas.map(c => {
-                    const cover = getCover(c)
-                    return (
-                      <a key={c.id} className="emp-card" href={`/empresa/${c.slug}`}>
-                        <div className="emp-img">
-                          {cover ? <img src={cover} alt={c.name} /> : <span>{c.category?.emoji || '🏪'}</span>}
-                        </div>
-                        <div className="emp-body">
-                          <div className="emp-name">{c.name}</div>
-                          <div className="emp-cat">{c.category_emoji || c.category?.emoji} {c.category_name || c.category?.name || '—'}</div>
-                          {(c.avg_rating || 0) > 0 && <div className="emp-stars">★ {Number(c.avg_rating).toFixed(1)}</div>}
-                          {c.address && (c as any).is_paid && <div className="emp-addr">📍 {c.address}</div>}
-                        </div>
-                      </a>
-                    )
-                  })}
-                </div>
-              ) : (
-                <div className="empty-row">
-                  <span>🏪</span> Nenhuma empresa encontrada com esse termo.
-                </div>
-              )}
+              <div className="emp-grid">
+                {empresas.map(c => {
+                  const cover = getCover(c)
+                  return (
+                    <a key={c.id} className="emp-card" href={`/empresa/${c.slug}`}>
+                      <div className="emp-img">
+                        {cover ? <img src={cover} alt={c.name} /> : <span>{c.category?.emoji || '🏪'}</span>}
+                      </div>
+                      <div className="emp-body">
+                        <div className="emp-name">{c.name}</div>
+                        <div className="emp-cat">{c.category_emoji || c.category?.emoji} {c.category_name || c.category?.name || '—'}</div>
+                        {(c.avg_rating || 0) > 0 && <div className="emp-stars">★ {Number(c.avg_rating).toFixed(1)}</div>}
+                        {c.address && (c as any).is_paid && <div className="emp-addr">📍 {c.address}</div>}
+                      </div>
+                    </a>
+                  )
+                })}
+              </div>
             </div>
+            )}
 
             {/* CATEGORIAS */}
+            {cats.length > 0 && (
             <div className="section">
               <div className="sec-hdr">
                 <span className="sec-lbl">CATEGORIAS</span>
-                <span className="sec-cnt">{cats.length > 0 ? `${cats.length} encontrada${cats.length !== 1 ? 's' : ''}` : 'sem resultados'}</span>
+                <span className="sec-cnt">{cats.length} encontrada{cats.length !== 1 ? 's' : ''}</span>
                 <div className="sec-line"/>
               </div>
-              {cats.length > 0 ? (
-                <div className="cats-row">
-                  {cats.map(c => (
-                    <a key={c.id} className="cat-chip" href={`/categoria/${c.slug}`}>
-                      <span className="cat-emoji">{c.emoji}</span>
-                      <span className="cat-nm">{c.name}</span>
-                    </a>
-                  ))}
-                </div>
-              ) : (
-                <div className="empty-row">
-                  <span>📂</span> Nenhuma categoria encontrada com esse termo.
-                </div>
-              )}
+              <div className="cats-row">
+                {cats.map(c => (
+                  <a key={c.id} className="cat-chip" href={`/categoria/${c.slug}`}>
+                    <span className="cat-emoji">{c.emoji}</span>
+                    <span className="cat-nm">{c.name}</span>
+                  </a>
+                ))}
+              </div>
             </div>
+            )}
 
             {/* SUBCATEGORIAS */}
+            {subcats.length > 0 && (
             <div className="section">
               <div className="sec-hdr">
                 <span className="sec-lbl">SUBCATEGORIAS</span>
-                <span className="sec-cnt">{subcats.length > 0 ? `${subcats.length} encontrada${subcats.length !== 1 ? 's' : ''}` : 'sem resultados'}</span>
+                <span className="sec-cnt">{subcats.length} encontrada{subcats.length !== 1 ? 's' : ''}</span>
                 <div className="sec-line"/>
               </div>
-              {subcats.length > 0 ? (
-                <div className="sub-row">
-                  {subcats.map(s => (
-                    <span key={s.id} className="sub-chip">{s.emoji} {s.name}</span>
-                  ))}
-                </div>
-              ) : (
-                <div className="empty-row">
-                  <span>🏷️</span> Nenhuma subcategoria encontrada com esse termo.
-                </div>
-              )}
+              <div className="sub-row">
+                {subcats.map(s => (
+                  <span key={s.id} className="sub-chip">{s.emoji} {s.name}</span>
+                ))}
+              </div>
             </div>
-
+            )}
 
             {/* DESAPEGA */}
+            {desapega.length > 0 && (
             <div className="section">
               <div className="sec-hdr">
                 <span className="sec-lbl">DESAPEGA</span>
-                <span className="sec-cnt">{desapega.length > 0 ? `${desapega.length} encontrado${desapega.length!==1?'s':''}` : 'sem resultados'}</span>
+                <span className="sec-cnt">{desapega.length} encontrado{desapega.length!==1?'s':''}</span>
                 <div className="sec-line"/>
               </div>
-              {desapega.length > 0 ? (
-                <div className="results-grid">
-                  {desapega.map(l => (
-                    <a key={l.id} className="result-card" href={`/anuncio/${l.id}`}>
-                      <div className="rc-img">
-                        {l.photos?.length ? <img src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title}/> : <span>🏷️</span>}
-                      </div>
-                      <div className="rc-body">
-                        <div className="rc-name">{l.title}</div>
-                        <div className="rc-cat">{l.price ? `R$ ${l.price.toLocaleString('pt-BR')}` : 'Grátis'}</div>
-                        {l.address && <div className="rc-addr">📍 {l.address}</div>}
-                      </div>
-                    </a>
-                  ))}
-                </div>
-              ) : (
-                <div className="empty-row"><span>🏷️</span> Nenhum item no Desapega com esse termo.</div>
-              )}
+              <div className="results-grid">
+                {desapega.map(l => (
+                  <a key={l.id} className="result-card" href={`/anuncio/${l.id}`}>
+                    <div className="rc-img">
+                      {l.photos?.length ? <img src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title}/> : <span>🏷️</span>}
+                    </div>
+                    <div className="rc-body">
+                      <div className="rc-name">{l.title}</div>
+                      <div className="rc-cat">{l.price ? `R$ ${l.price.toLocaleString('pt-BR')}` : 'Grátis'}</div>
+                      {l.address && <div className="rc-addr">📍 {l.address}</div>}
+                    </div>
+                  </a>
+                ))}
+              </div>
             </div>
+            )}
 
             {/* EMPREGOS */}
+            {empregos.length > 0 && (
             <div className="section">
               <div className="sec-hdr">
                 <span className="sec-lbl">EMPREGOS</span>
-                <span className="sec-cnt">{empregos.length > 0 ? `${empregos.length} encontrado${empregos.length!==1?'s':''}` : 'sem resultados'}</span>
+                <span className="sec-cnt">{empregos.length} encontrado{empregos.length!==1?'s':''}</span>
                 <div className="sec-line"/>
               </div>
-              {empregos.length > 0 ? (
-                <div className="results-grid">
-                  {empregos.map(l => (
-                    <a key={l.id} className="result-card" href={`/anuncio/${l.id}`}>
-                      <div className="rc-img"><span>💼</span></div>
-                      <div className="rc-body">
-                        <div className="rc-name">{l.title}</div>
-                        <div className="rc-cat">{l.price ? `R$ ${l.price.toLocaleString('pt-BR')}/mês` : 'Ver detalhes'}</div>
-                        {l.address && <div className="rc-addr">📍 {l.address}</div>}
-                      </div>
-                    </a>
-                  ))}
-                </div>
-              ) : (
-                <div className="empty-row"><span>💼</span> Nenhuma vaga encontrada com esse termo.</div>
-              )}
+              <div className="results-grid">
+                {empregos.map(l => (
+                  <a key={l.id} className="result-card" href={`/anuncio/${l.id}`}>
+                    <div className="rc-img"><span>💼</span></div>
+                    <div className="rc-body">
+                      <div className="rc-name">{l.title}</div>
+                      <div className="rc-cat">{l.price ? `R$ ${l.price.toLocaleString('pt-BR')}/mês` : 'Ver detalhes'}</div>
+                      {l.address && <div className="rc-addr">📍 {l.address}</div>}
+                    </div>
+                  </a>
+                ))}
+              </div>
             </div>
+            )}
 
             {/* IMÓVEIS */}
+            {imoveis.length > 0 && (
             <div className="section">
               <div className="sec-hdr">
                 <span className="sec-lbl">IMÓVEIS</span>
-                <span className="sec-cnt">{imoveis.length > 0 ? `${imoveis.length} encontrado${imoveis.length!==1?'s':''}` : 'sem resultados'}</span>
+                <span className="sec-cnt">{imoveis.length} encontrado{imoveis.length!==1?'s':''}</span>
                 <div className="sec-line"/>
               </div>
-              {imoveis.length > 0 ? (
-                <div className="results-grid">
-                  {imoveis.map(l => (
-                    <a key={l.id} className="result-card" href={`/anuncio/${l.id}`}>
-                      <div className="rc-img">
-                        {l.photos?.length ? <img src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title}/> : <span>🏠</span>}
-                      </div>
-                      <div className="rc-body">
-                        <div className="rc-name">{l.title}</div>
-                        <div className="rc-cat">{l.price ? `R$ ${l.price.toLocaleString('pt-BR')}${l.subtype==='aluguel'?'/mês':''}` : 'Ver detalhes'}</div>
-                        {l.address && <div className="rc-addr">📍 {l.address}</div>}
-                      </div>
-                    </a>
-                  ))}
-                </div>
-              ) : (
-                <div className="empty-row"><span>🏠</span> Nenhum imóvel encontrado com esse termo.</div>
-              )}
+              <div className="results-grid">
+                {imoveis.map(l => (
+                  <a key={l.id} className="result-card" href={`/anuncio/${l.id}`}>
+                    <div className="rc-img">
+                      {l.photos?.length ? <img src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title}/> : <span>🏠</span>}
+                    </div>
+                    <div className="rc-body">
+                      <div className="rc-name">{l.title}</div>
+                      <div className="rc-cat">{l.price ? `R$ ${l.price.toLocaleString('pt-BR')}${l.subtype==='aluguel'?'/mês':''}` : 'Ver detalhes'}</div>
+                      {l.address && <div className="rc-addr">📍 {l.address}</div>}
+                    </div>
+                  </a>
+                ))}
+              </div>
             </div>
+            )}
 
             {/* ACHADOS & PERDIDOS */}
+            {achados.length > 0 && (
             <div className="section">
               <div className="sec-hdr">
                 <span className="sec-lbl">ACHADOS & PERDIDOS</span>
-                <span className="sec-cnt">{achados.length > 0 ? `${achados.length} encontrado${achados.length!==1?'s':''}` : 'sem resultados'}</span>
+                <span className="sec-cnt">{achados.length} encontrado{achados.length!==1?'s':''}</span>
                 <div className="sec-line"/>
               </div>
-              {achados.length > 0 ? (
-                <div className="results-grid">
-                  {achados.map(l => (
-                    <a key={l.id} className="result-card" href={`/anuncio/${l.id}`}>
-                      <div className="rc-img"><span>{l.subtype==='perdido'?'🔴':'🟢'} 🔍</span></div>
-                      <div className="rc-body">
-                        <div className="rc-name">{l.title}</div>
-                        <div className="rc-cat" style={{color:l.subtype==='perdido'?'#E24B4A':'#0F6E56'}}>{l.subtype==='perdido'?'Perdido':'Achado'}</div>
-                        {l.address && <div className="rc-addr">📍 {l.address}</div>}
-                      </div>
-                    </a>
-                  ))}
-                </div>
-              ) : (
-                <div className="empty-row"><span>🔍</span> Nenhum item encontrado com esse termo.</div>
-              )}
+              <div className="results-grid">
+                {achados.map(l => (
+                  <a key={l.id} className="result-card" href={`/anuncio/${l.id}`}>
+                    <div className="rc-img"><span>{l.subtype==='perdido'?'🔴':'🟢'} 🔍</span></div>
+                    <div className="rc-body">
+                      <div className="rc-name">{l.title}</div>
+                      <div className="rc-cat" style={{color:l.subtype==='perdido'?'#E24B4A':'#0F6E56'}}>{l.subtype==='perdido'?'Perdido':'Achado'}</div>
+                      {l.address && <div className="rc-addr">📍 {l.address}</div>}
+                    </div>
+                  </a>
+                ))}
+              </div>
             </div>
+            )}
             <div className="footer">
               <a href="/">← Voltar ao Trindade Online</a>
             </div>

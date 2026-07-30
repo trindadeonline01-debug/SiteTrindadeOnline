@@ -242,11 +242,11 @@ export default function DisparosTab() {
     setMessages(prev => prev.map((m, j) => j === i ? { ...m, ...updates } : m))
   }
 
-  async function uploadMediaBlob(i: number, blob: Blob, ext: string) {
+  async function uploadMediaBlob(i: number, blob: Blob, ext: string, contentType?: string) {
     setMediaUploading(prev => ({ ...prev, [i]: true }))
     try {
       const path = `campanha-${Date.now()}-${i}.${ext}`
-      const { error } = await supabase.storage.from('blast-media').upload(path, blob, { upsert: true })
+      const { error } = await supabase.storage.from('blast-media').upload(path, blob, { upsert: true, contentType: contentType || blob.type || undefined })
       if (error) { alert('Erro ao enviar arquivo: ' + error.message); return }
       const { data } = supabase.storage.from('blast-media').getPublicUrl(path)
       updateMessageAt(i, { mediaUrl: data.publicUrl })
@@ -257,19 +257,27 @@ export default function DisparosTab() {
 
   function handleMediaFile(i: number, file: File) {
     const ext = file.name.split('.').pop() || 'bin'
-    uploadMediaBlob(i, file, ext)
+    uploadMediaBlob(i, file, ext, file.type)
   }
+
+  // Ordem de preferencia: cada navegador grava num formato diferente
+  // (Chrome/Android gravam webm, Safari/iOS grava mp4) — usar sempre
+  // 'audio/webm' fixo quebra a reproducao no iPhone
+  const AUDIO_MIME_CANDIDATES = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg']
 
   async function startRecording(i: number) {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const recorder = new MediaRecorder(stream)
+      const supportedType = AUDIO_MIME_CANDIDATES.find(t => typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported?.(t))
+      const recorder = supportedType ? new MediaRecorder(stream, { mimeType: supportedType }) : new MediaRecorder(stream)
       recordedChunksRef.current = []
       recorder.ondataavailable = e => { if (e.data.size > 0) recordedChunksRef.current.push(e.data) }
       recorder.onstop = () => {
         stream.getTracks().forEach(t => t.stop())
-        const blob = new Blob(recordedChunksRef.current, { type: 'audio/webm' })
-        uploadMediaBlob(i, blob, 'webm')
+        const actualType = recorder.mimeType || supportedType || 'audio/webm'
+        const ext = actualType.includes('mp4') ? 'm4a' : actualType.includes('ogg') ? 'ogg' : 'webm'
+        const blob = new Blob(recordedChunksRef.current, { type: actualType })
+        uploadMediaBlob(i, blob, ext, actualType)
       }
       mediaRecorderRef.current = recorder
       recorder.start()

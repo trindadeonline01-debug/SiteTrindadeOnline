@@ -11,6 +11,7 @@ interface MessageVariation {
   text: string
   mediaType: 'none' | 'audio' | 'video' | 'image'
   mediaUrl: string
+  localPreviewUrl?: string
 }
 
 interface Campaign {
@@ -243,6 +244,16 @@ export default function DisparosTab() {
   }
 
   async function uploadMediaBlob(i: number, blob: Blob, ext: string, contentType?: string) {
+    // Preview local instantanea (URL.createObjectURL) -- toca direto do arquivo
+    // que acabou de ser gravado/selecionado, sem depender do upload/rede/CDN.
+    // Isso isola: se tocar aqui mas nao no link publico depois, o problema
+    // era upload/servidor; se nem aqui tocar, o navegador nao decodifica o
+    // que ele mesmo gravou (mais comum no Safari/iOS)
+    const oldLocal = messages[i]?.localPreviewUrl
+    if (oldLocal) URL.revokeObjectURL(oldLocal)
+    const localUrl = URL.createObjectURL(blob)
+    updateMessageAt(i, { localPreviewUrl: localUrl })
+
     setMediaUploading(prev => ({ ...prev, [i]: true }))
     try {
       const path = `campanha-${Date.now()}-${i}.${ext}`
@@ -296,7 +307,9 @@ export default function DisparosTab() {
   }
 
   function removeMedia(i: number) {
-    updateMessageAt(i, { mediaType: 'none', mediaUrl: '' })
+    const oldLocal = messages[i]?.localPreviewUrl
+    if (oldLocal) URL.revokeObjectURL(oldLocal)
+    updateMessageAt(i, { mediaType: 'none', mediaUrl: '', localPreviewUrl: undefined })
   }
 
   async function calcPreview() {
@@ -548,7 +561,7 @@ export default function DisparosTab() {
 
             {msg.mediaType === 'audio' && (
               <div style={{ background: '#fff', border: '1.5px solid #eee', borderRadius: 10, padding: 10 }}>
-                {!msg.mediaUrl && recordingIndex !== i && (
+                {!msg.mediaUrl && !msg.localPreviewUrl && recordingIndex !== i && (
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button onClick={() => startRecording(i)} disabled={recordingIndex !== null} style={{ flex: 1, padding: '9px', background: '#111', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: recordingIndex !== null ? 0.5 : 1 }}>🔴 Gravar agora</button>
                     <label style={{ flex: 1, padding: '9px', background: '#fff', color: '#C9951A', border: '1.5px solid #C9951A', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', textAlign: 'center' }}>
@@ -564,35 +577,35 @@ export default function DisparosTab() {
                     <button onClick={stopRecording} style={{ padding: '7px 14px', background: '#E24B4A', color: '#fff', border: 'none', borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>⏹ Parar</button>
                   </div>
                 )}
-                {mediaUploading[i] && <div style={{ fontSize: 11, color: '#aaa' }}>Enviando áudio...</div>}
-                {msg.mediaUrl && !mediaUploading[i] && (
+                {(msg.localPreviewUrl || msg.mediaUrl) && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <audio controls src={msg.mediaUrl} style={{ flex: 1, height: 34 }} />
+                    <audio controls src={msg.localPreviewUrl || msg.mediaUrl} style={{ flex: 1, height: 34 }} />
                     <button onClick={() => removeMedia(i)} style={{ background: '#FCEBEB', color: '#E24B4A', border: 'none', borderRadius: 8, width: 30, height: 30, cursor: 'pointer', flexShrink: 0 }}>🗑</button>
                   </div>
                 )}
+                {mediaUploading[i] && <div style={{ fontSize: 11, color: '#aaa', marginTop: 6 }}>Enviando áudio pro servidor...</div>}
               </div>
             )}
 
             {(msg.mediaType === 'video' || msg.mediaType === 'image') && (
               <div style={{ background: '#fff', border: '1.5px solid #eee', borderRadius: 10, padding: 10 }}>
-                {!msg.mediaUrl && !mediaUploading[i] && (
+                {!msg.mediaUrl && !msg.localPreviewUrl && (
                   <label style={{ display: 'block', padding: '9px', background: '#fff', color: '#C9951A', border: '1.5px solid #C9951A', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', textAlign: 'center' }}>
                     📁 Carregar {msg.mediaType === 'video' ? 'vídeo' : 'imagem'}
                     <input type="file" accept={msg.mediaType === 'video' ? 'video/*' : 'image/*'} style={{ display: 'none' }} onChange={e => e.target.files?.[0] && handleMediaFile(i, e.target.files[0])} />
                   </label>
                 )}
-                {mediaUploading[i] && <div style={{ fontSize: 11, color: '#aaa' }}>Enviando...</div>}
-                {msg.mediaUrl && !mediaUploading[i] && (
+                {(msg.localPreviewUrl || msg.mediaUrl) && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     {msg.mediaType === 'video' ? (
-                      <video controls src={msg.mediaUrl} style={{ maxWidth: 150, maxHeight: 90, borderRadius: 8 }} />
+                      <video controls src={msg.localPreviewUrl || msg.mediaUrl} style={{ maxWidth: 150, maxHeight: 90, borderRadius: 8 }} />
                     ) : (
-                      <img src={msg.mediaUrl} alt="Prévia" style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8 }} />
+                      <img src={msg.localPreviewUrl || msg.mediaUrl} alt="Prévia" style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8 }} />
                     )}
                     <button onClick={() => removeMedia(i)} style={{ background: '#FCEBEB', color: '#E24B4A', border: 'none', borderRadius: 8, width: 30, height: 30, cursor: 'pointer', flexShrink: 0 }}>🗑</button>
                   </div>
                 )}
+                {mediaUploading[i] && <div style={{ fontSize: 11, color: '#aaa', marginTop: 6 }}>Enviando pro servidor...</div>}
               </div>
             )}
           </div>

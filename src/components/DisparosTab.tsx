@@ -552,7 +552,7 @@ export default function DisparosTab() {
 
             <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
               {([['none','Nenhuma'],['audio','🎙️ Áudio'],['video','🎥 Vídeo'],['image','🖼️ Imagem']] as const).map(([val,lbl]) => (
-                <button key={val} onClick={() => { updateMessageAt(i, { mediaType: val }); if (val === 'none') removeMedia(i) }}
+                <button key={val} onClick={() => { if (val !== msg.mediaType) removeMedia(i); updateMessageAt(i, { mediaType: val }) }}
                   style={{ flex: 1, padding: '7px 6px', borderRadius: 8, border: msg.mediaType === val ? '1.5px solid #C9951A' : '1.5px solid #e5e5e5', background: msg.mediaType === val ? '#fff8e6' : '#fff', color: msg.mediaType === val ? '#92600a' : '#666', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter,sans-serif' }}>
                   {lbl}
                 </button>

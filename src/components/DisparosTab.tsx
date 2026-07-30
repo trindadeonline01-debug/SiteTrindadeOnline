@@ -332,6 +332,53 @@ export default function DisparosTab() {
   // 'audio/webm' fixo quebra a reproducao no iPhone
   const AUDIO_MIME_CANDIDATES = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg']
 
+  // Blobs montados a partir dos pedacos do MediaRecorder costumam sair sem
+  // duracao valida no cabecalho (bug conhecido, principalmente webm/mp4
+  // gravados incrementalmente) -- o navegador toca numa boa escaneando o
+  // arquivo, mas ferramentas de conversao (como a que a Evolution API usa
+  // pra transformar em nota de voz) podem entender a duracao como ~0-1s e
+  // cortar o audio ali. Decodificar e regravar como WAV corrige isso: o
+  // cabeçalho WAV e calculado direto da quantidade real de amostras
+  function audioBufferToWav(buffer: AudioBuffer): Blob {
+    const numChannels = buffer.numberOfChannels
+    const sampleRate = buffer.sampleRate
+    const bytesPerSample = 2
+    const blockAlign = numChannels * bytesPerSample
+    const length = buffer.length * numChannels
+    const interleaved = new Float32Array(length)
+    for (let ch = 0; ch < numChannels; ch++) {
+      const channelData = buffer.getChannelData(ch)
+      for (let s = 0; s < buffer.length; s++) interleaved[s * numChannels + ch] = channelData[s]
+    }
+    const dataSize = interleaved.length * bytesPerSample
+    const arrayBuf = new ArrayBuffer(44 + dataSize)
+    const view = new DataView(arrayBuf)
+    const writeStr = (offset: number, str: string) => { for (let k = 0; k < str.length; k++) view.setUint8(offset + k, str.charCodeAt(k)) }
+    writeStr(0, 'RIFF'); view.setUint32(4, 36 + dataSize, true); writeStr(8, 'WAVE')
+    writeStr(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true)
+    view.setUint16(22, numChannels, true); view.setUint32(24, sampleRate, true)
+    view.setUint32(28, sampleRate * blockAlign, true); view.setUint16(32, blockAlign, true); view.setUint16(34, 16, true)
+    writeStr(36, 'data'); view.setUint32(40, dataSize, true)
+    let offset = 44
+    for (let s = 0; s < interleaved.length; s++, offset += 2) {
+      const v = Math.max(-1, Math.min(1, interleaved[s]))
+      view.setInt16(offset, v < 0 ? v * 0x8000 : v * 0x7fff, true)
+    }
+    return new Blob([arrayBuf], { type: 'audio/wav' })
+  }
+
+  async function blobToWav(blob: Blob): Promise<Blob> {
+    const arrayBuffer = await blob.arrayBuffer()
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext
+    const ctx = new AudioCtx()
+    try {
+      const audioBuffer = await ctx.decodeAudioData(arrayBuffer)
+      return audioBufferToWav(audioBuffer)
+    } finally {
+      ctx.close()
+    }
+  }
+
   async function startRecording(i: number) {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
@@ -339,12 +386,18 @@ export default function DisparosTab() {
       const recorder = supportedType ? new MediaRecorder(stream, { mimeType: supportedType }) : new MediaRecorder(stream)
       recordedChunksRef.current = []
       recorder.ondataavailable = e => { if (e.data.size > 0) recordedChunksRef.current.push(e.data) }
-      recorder.onstop = () => {
+      recorder.onstop = async () => {
         stream.getTracks().forEach(t => t.stop())
         const actualType = recorder.mimeType || supportedType || 'audio/webm'
-        const ext = actualType.includes('mp4') ? 'm4a' : actualType.includes('ogg') ? 'ogg' : 'webm'
-        const blob = new Blob(recordedChunksRef.current, { type: actualType })
-        uploadMediaBlob(i, 'audio', blob, ext, actualType)
+        const rawBlob = new Blob(recordedChunksRef.current, { type: actualType })
+        try {
+          const wavBlob = await blobToWav(rawBlob)
+          uploadMediaBlob(i, 'audio', wavBlob, 'wav', 'audio/wav')
+        } catch {
+          // Se por algum motivo nao conseguir decodificar, manda o arquivo original
+          const ext = actualType.includes('mp4') ? 'm4a' : actualType.includes('ogg') ? 'ogg' : 'webm'
+          uploadMediaBlob(i, 'audio', rawBlob, ext, actualType)
+        }
       }
       mediaRecorderRef.current = recorder
       recorder.start()

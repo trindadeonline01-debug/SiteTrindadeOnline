@@ -202,10 +202,8 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
 
   const s: Record<string, any> = {
     wrap: { padding: '0 0 40px 0' },
-    periodBar: { display: 'flex', alignItems: 'center', gap: 6, marginBottom: 24, flexWrap: 'wrap' as const },
     periodLabel: { fontSize: 12, fontWeight: 600, color: '#888', marginRight: 4 },
     periodBtn: (on: boolean) => ({ padding: '7px 14px', borderRadius: 8, border: on ? '1.5px solid #111' : '1.5px solid #e0e0e0', background: on ? '#111' : '#fff', color: on ? '#C9951A' : '#666', fontSize: 12, fontWeight: 600, cursor: 'pointer' }),
-    periodInput: { background: '#fff', border: '1.5px solid #e0e0e0', color: '#555', padding: '7px 10px', borderRadius: 8, fontSize: 12 },
     alert: { background: '#fff', borderRadius: 12, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', borderLeft: '4px solid #e24b4a', marginBottom: 24 },
     sectionTitle: { fontSize: 11, fontWeight: 700, color: '#aaa', letterSpacing: 1.5, textTransform: 'uppercase' as const, marginBottom: 12, marginTop: 28 },
     card: { background: '#fff', borderRadius: 14, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', border: '1.5px solid #f0f0f0', position: 'relative' as const, overflow: 'hidden' },
@@ -228,6 +226,12 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
         .dash-grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:14px;}
         .dash-donut-row{display:flex;align-items:center;gap:20px;flex-wrap:wrap;justify-content:center;}
         .dash-terms-mobile{display:none;}
+        .dash-period-presets{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+        .dash-period-custom{display:flex;align-items:flex-end;gap:10px;background:#fff;border:1.5px solid #e0e0e0;border-radius:10px;padding:10px 12px;flex-wrap:wrap;}
+        .dash-date-field{display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px;}
+        .dash-date-field label{font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.5px;}
+        .dash-date-field input{border:1.5px solid #e0e0e0;border-radius:8px;padding:7px 8px;font-size:12px;color:#555;width:100%;}
+        .dash-date-sep{color:#ccc;font-size:15px;padding-bottom:8px;flex-shrink:0;}
         @media(max-width:700px){
           .dash-grid-4{grid-template-columns:repeat(2,1fr);}
           .dash-grid-3{grid-template-columns:1fr;}
@@ -235,19 +239,32 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
           .dash-terms-table{display:none;}
           .dash-terms-mobile{display:flex;flex-direction:column;}
         }
+        @media(max-width:420px){
+          .dash-date-sep{display:none;}
+        }
       `}</style>
 
       {/* FILTRO */}
-      <div style={s.periodBar}>
-        <span style={s.periodLabel}>Período:</span>
-        {(['today','week','month','year'] as Period[]).map(p => (
-          <button key={p} style={s.periodBtn(period === p)} onClick={() => setPeriod(p)}>
-            {p === 'today' ? 'Hoje' : p === 'week' ? 'Esta semana' : p === 'month' ? 'Este mês' : 'Este ano'}
-          </button>
-        ))}
-        <input type="date" style={s.periodInput} value={dateFrom} onChange={e => { setDateFrom(e.target.value); setPeriod('custom') }} />
-        <span style={{ fontSize: 12, color: '#aaa' }}>até</span>
-        <input type="date" style={s.periodInput} value={dateTo} onChange={e => { setDateTo(e.target.value); setPeriod('custom') }} />
+      <div style={{ marginBottom: 24 }}>
+        <div className="dash-period-presets">
+          <span style={s.periodLabel}>Período:</span>
+          {(['today','week','month','year'] as Period[]).map(p => (
+            <button key={p} style={s.periodBtn(period === p)} onClick={() => setPeriod(p)}>
+              {p === 'today' ? 'Hoje' : p === 'week' ? 'Esta semana' : p === 'month' ? 'Este mês' : 'Este ano'}
+            </button>
+          ))}
+        </div>
+        <div className="dash-period-custom">
+          <div className="dash-date-field">
+            <label>Personalizado — de</label>
+            <input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setPeriod('custom') }} />
+          </div>
+          <span className="dash-date-sep">→</span>
+          <div className="dash-date-field">
+            <label>Até</label>
+            <input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setPeriod('custom') }} />
+          </div>
+        </div>
       </div>
 
       {/* ALERTA */}

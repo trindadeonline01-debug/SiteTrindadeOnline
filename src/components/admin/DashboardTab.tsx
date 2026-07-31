@@ -208,9 +208,6 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
     periodInput: { background: '#fff', border: '1.5px solid #e0e0e0', color: '#555', padding: '7px 10px', borderRadius: 8, fontSize: 12 },
     alert: { background: '#fff', borderRadius: 12, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', borderLeft: '4px solid #e24b4a', marginBottom: 24 },
     sectionTitle: { fontSize: 11, fontWeight: 700, color: '#aaa', letterSpacing: 1.5, textTransform: 'uppercase' as const, marginBottom: 12, marginTop: 28 },
-    grid4: { display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 14 },
-    grid3: { display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14, marginBottom: 14 },
-    grid2: { display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 14, marginBottom: 14 },
     card: { background: '#fff', borderRadius: 14, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', border: '1.5px solid #f0f0f0', position: 'relative' as const, overflow: 'hidden' },
     cardIcon: { position: 'absolute' as const, top: 16, right: 16, fontSize: 26, opacity: 0.12 },
     cardLabel: { fontSize: 11, fontWeight: 700, color: '#aaa', letterSpacing: 1, textTransform: 'uppercase' as const, marginBottom: 8 },
@@ -225,6 +222,20 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
 
   return (
     <div style={s.wrap}>
+      <style>{`
+        .dash-grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px;}
+        .dash-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px;}
+        .dash-grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:14px;}
+        .dash-donut-row{display:flex;align-items:center;gap:20px;flex-wrap:wrap;justify-content:center;}
+        .dash-terms-mobile{display:none;}
+        @media(max-width:700px){
+          .dash-grid-4{grid-template-columns:repeat(2,1fr);}
+          .dash-grid-3{grid-template-columns:1fr;}
+          .dash-grid-2{grid-template-columns:1fr;}
+          .dash-terms-table{display:none;}
+          .dash-terms-mobile{display:flex;flex-direction:column;}
+        }
+      `}</style>
 
       {/* FILTRO */}
       <div style={s.periodBar}>
@@ -250,7 +261,7 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
 
       {/* ACESSO */}
       <div style={s.sectionTitle}>📊 Acesso ao site</div>
-      <div style={s.grid4}>
+      <div className="dash-grid-4">
         {[
           { icon: '👁️', label: 'Visualizações', val: stats.views, color: '#2563eb' },
           { icon: '💬', label: 'Cliques WhatsApp', val: stats.whatsapp_clicks, color: '#C9951A' },
@@ -275,7 +286,7 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
 
       {/* EMPRESAS */}
       <div style={s.sectionTitle}>🏪 Empresas</div>
-      <div style={s.grid3}>
+      <div className="dash-grid-3">
         <div style={s.card}>
           <span style={s.cardIcon}>✅</span>
           <div style={s.cardLabel}>Pagas ativas <span style={{fontSize:10,color:'#aaa',fontWeight:400}}>(total atual)</span></div>
@@ -295,8 +306,8 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
           </div>
         </div>
         <div style={{ ...s.card, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-            <div style={{ width: 110, height: 110 }}>
+          <div className="dash-donut-row">
+            <div style={{ width: 110, height: 110, flexShrink: 0 }}>
               <canvas ref={donutRef}></canvas>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -315,7 +326,7 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
 
       {/* RECEITA */}
       <div style={s.sectionTitle}>💰 Receita</div>
-      <div style={s.grid2}>
+      <div className="dash-grid-2">
         <div style={s.card}>
           <span style={s.cardIcon}>💵</span>
           <div style={s.cardLabel}>Receita mensal estimada</div>
@@ -331,7 +342,7 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
       </div>
       {/* ENGAJAMENTO */}
       <div style={s.sectionTitle}>❤️ Engajamento</div>
-      <div style={s.grid4}>
+      <div className="dash-grid-4">
         {[
           { icon: '⭐', label: 'Avaliações', val: stats.reviews, color: '#111' },
           { icon: '🎟️', label: 'Cupons criados', val: stats.coupons, color: '#C9951A' },
@@ -367,7 +378,9 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
 
       {/* BUSCAS */}
       <div style={s.sectionTitle}>🔍 Termos mais buscados</div>
-      <div style={{ background: '#fff', borderRadius: 14, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', border: '1.5px solid #f0f0f0', overflow: 'hidden' }}>
+
+      {/* Desktop/tablet — tabela */}
+      <div className="dash-terms-table" style={{ background: '#fff', borderRadius: 14, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', border: '1.5px solid #f0f0f0', overflow: 'hidden' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr 70px 130px 130px', gap: 8, padding: '12px 16px', background: '#fafafa', borderBottom: '1px solid #f0f0f0' }}>
           {['#','Termo','Buscas','Resultado','Volume'].map(h => (
             <span key={h} style={{ fontSize: 11, fontWeight: 700, color: '#aaa', letterSpacing: 0.5, textTransform: 'uppercase' as const }}>{h}</span>
@@ -389,6 +402,26 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
           ))}
           {searchTerms.length === 0 && <div style={{ padding: 24, textAlign: 'center', color: '#aaa', fontSize: 13 }}>Nenhuma busca no período selecionado.</div>}
         </div>
+      </div>
+
+      {/* Mobile — cards empilhados */}
+      <div className="dash-terms-mobile" style={{ gap: 8 }}>
+        {searchTerms.slice(0, 50).map((t, i) => (
+          <div key={t.term} style={{ background: '#fff', borderRadius: 12, border: '1.5px solid #f0f0f0', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', padding: '12px 14px', marginBottom: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: 6, flexShrink: 0, background: i === 0 ? '#fff8e6' : i === 1 ? '#f5f5f5' : i === 2 ? '#fdf3ec' : '#f0f0f0', color: i === 0 ? '#C9951A' : i === 1 ? '#666' : i === 2 ? '#b87333' : '#888', fontSize: 11, fontWeight: 700 }}>{i + 1}</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: '#111', flex: 1 }}>{t.term}</span>
+              <span style={{ fontSize: 11, fontWeight: 600, background: t.no_result ? '#fff0f0' : '#f0fdf4', color: t.no_result ? '#dc2626' : '#16a34a', padding: '2px 8px', borderRadius: 6, flexShrink: 0 }}>{t.no_result ? '✗ sem resultado' : '✓ encontrou'}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#2563eb', flexShrink: 0 }}>{t.count} busca{t.count !== 1 ? 's' : ''}</span>
+              <div style={{ flex: 1, background: '#f0f0f0', borderRadius: 99, height: 4, overflow: 'hidden' }}>
+                <div style={{ background: t.no_result ? '#dc2626' : '#2563eb', height: '100%', borderRadius: 99, width: `${Math.round((t.count / (searchTerms[0]?.count || 1)) * 100)}%` }}></div>
+              </div>
+            </div>
+          </div>
+        ))}
+        {searchTerms.length === 0 && <div style={{ padding: 24, textAlign: 'center', color: '#aaa', fontSize: 13 }}>Nenhuma busca no período selecionado.</div>}
       </div>
 
     </div>

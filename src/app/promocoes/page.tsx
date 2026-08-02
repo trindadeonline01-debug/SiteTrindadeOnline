@@ -74,6 +74,7 @@ export default function PromocoesPage() {
     .story-wrap{flex:1;position:relative;overflow:hidden;}
     .story-img{width:100%;height:100%;object-fit:contain;display:block;background:#000;}
     .story-bg{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#1A1A1A;font-size:80px;}
+    .nav-left,.nav-center,.nav-right{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;user-select:none;outline:none;}
     .nav-left{position:absolute;left:0;top:0;bottom:0;width:25%;cursor:pointer;z-index:10;}
     .nav-center{position:absolute;left:25%;top:0;bottom:0;width:50%;cursor:pointer;z-index:10;display:block;}
     .nav-right{position:absolute;right:0;top:0;bottom:0;width:25%;cursor:pointer;z-index:10;}

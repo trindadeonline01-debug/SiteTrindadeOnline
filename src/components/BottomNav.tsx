@@ -69,7 +69,7 @@ export default function BottomNav() {
           return (
             <a key={item.href} href={item.sair ? '#' : item.href}
               onClick={item.sair ? async(e)=>{e.preventDefault();const {supabase:sb}=await import('@/lib/supabase');await sb.auth.signOut();window.location.href='/'} : undefined}
-              style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'8px 0 10px',textDecoration:'none',color:item.sair?'#E24B4A':active?'#fff':'rgba(255,255,255,0.65)',fontSize:10,fontWeight:active?600:500,fontFamily:'Inter,sans-serif',position:'relative'}}>
+              style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'8px 0 10px',textDecoration:'none',color:item.sair?'#E24B4A':active?'#C9951A':'rgba(255,255,255,0.65)',fontSize:10,fontWeight:active?600:500,fontFamily:'Inter,sans-serif',position:'relative'}}>
               {item.badge && <span style={{position:'absolute',top:6,right:'calc(50% - 14px)',width:7,height:7,background:'#E24B4A',borderRadius:'50%',border:'1.5px solid #111'}}/>}
               <span style={{lineHeight:1,marginBottom:3,display:'flex'}}><NavIcon name={item.icon} /></span>
               {item.label}

@@ -22,8 +22,7 @@ export default function PromocoesPage() {
     const check = () => setIsMobile(window.innerWidth < 768)
     check()
     window.addEventListener('resize', check)
-    const nav = document.querySelector('.bottom-nav-mobile')
-    setHasBottomNav(!!nav)
+    supabase.auth.getSession().then(({ data: { session } }) => setHasBottomNav(!!session))
     return () => window.removeEventListener('resize', check)
   }, [])
 
@@ -59,7 +58,7 @@ export default function PromocoesPage() {
     body{font-family:'Inter',sans-serif;background:#000;min-height:100vh;}
 
     /* MOBILE - stories */
-    .pg-mobile{position:fixed;inset:0;top:0;bottom:0;background:#000;display:flex;flex-direction:column;overflow:hidden;}
+    .pg-mobile{position:fixed;left:0;right:0;top:54px;bottom:0;background:#000;display:flex;flex-direction:column;overflow:hidden;}
     .topbar{background:rgba(0,0,0,0.9);padding:10px 16px;flex-shrink:0;backdrop-filter:blur(10px);}
     .top-title{font-family:'Bebas Neue',sans-serif;font-size:20px;color:#fff;letter-spacing:2px;margin-bottom:6px;}
     .top-title span{color:#C9951A;}
@@ -73,14 +72,16 @@ export default function PromocoesPage() {
     .story-wrap{flex:1;position:relative;overflow:hidden;}
     .story-img{width:100%;height:100%;object-fit:contain;display:block;background:#000;}
     .story-bg{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#1A1A1A;font-size:80px;}
-    .story-overlay{position:absolute;bottom:90px;right:16px;}
+    .story-gradient{position:absolute;left:0;right:0;bottom:0;height:40%;background:linear-gradient(to top,rgba(0,0,0,0.75),transparent);pointer-events:none;z-index:1;}
+    .story-info{position:absolute;left:16px;right:70px;bottom:24px;pointer-events:none;z-index:2;}
     .story-cat{font-size:11px;color:rgba(255,255,255,0.6);margin-bottom:4px;}
-    .story-empresa{font-size:22px;font-weight:700;color:#fff;margin-bottom:4px;}
-    .story-title{font-size:15px;color:rgba(255,255,255,0.85);margin-bottom:6px;}
-    .story-validade{font-size:12px;color:#C9951A;margin-bottom:14px;}
-    .story-btn{display:inline-flex;align-items:center;gap:6px;padding:11px 22px;background:#C9951A;color:#111;border-radius:24px;font-size:13px;font-weight:700;text-decoration:none;position:relative;z-index:20;}
-    .nav-left{position:absolute;left:0;top:0;bottom:0;width:35%;cursor:pointer;z-index:10;}
-    .nav-right{position:absolute;right:0;top:0;bottom:0;width:35%;cursor:pointer;z-index:10;}
+    .story-empresa{font-size:20px;font-weight:700;color:#fff;margin-bottom:4px;}
+    .story-title{font-size:14px;color:rgba(255,255,255,0.85);margin-bottom:6px;}
+    .story-validade{font-size:12px;color:#C9951A;}
+    .story-share{position:absolute;right:16px;bottom:24px;z-index:20;}
+    .nav-left{position:absolute;left:0;top:0;bottom:0;width:25%;cursor:pointer;z-index:10;}
+    .nav-center{position:absolute;left:25%;top:0;bottom:0;width:50%;cursor:pointer;z-index:10;display:block;}
+    .nav-right{position:absolute;right:0;top:0;bottom:0;width:25%;cursor:pointer;z-index:10;}
     .empty-mobile{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;color:#555;gap:8px;font-size:14px;}
 
     /* DESKTOP - grid */
@@ -162,7 +163,7 @@ export default function PromocoesPage() {
   return (
     <>
       <style dangerouslySetInnerHTML={{__html: CSS}}/>
-      <div className="pg-mobile" style={{bottom: hasBottomNav ? '64px' : '0'}}>
+      <div className="pg-mobile" style={{bottom: hasBottomNav ? 'calc(64px + env(safe-area-inset-bottom))' : '0'}}>
         <div className="topbar">
           <div className="top-title">🏷️ PROMOÇÕES <span>DA SEMANA</span></div>
           <div className="filters">
@@ -190,14 +191,19 @@ export default function PromocoesPage() {
             ) : (
               <div className="story-bg">{promo.company?.category?.emoji || '🏷️'}</div>
             )}
-            <div className="nav-left" onClick={prev}/>
-            <div className="nav-right" onClick={next}/>
-            <div className="story-overlay" style={{display:'flex',alignItems:'center',gap:8}}>
-              <a className="story-btn" href={'/empresa/'+promo.company?.slug}>Ver empresa →</a>
-              <div style={{position:'relative',zIndex:20}}>
-                <ShareButton title={promo.title} text={`🏷️ ${promo.title} — ${promo.company?.name} no Trindade Online!`} label="" fullWidth={false}/>
-              </div>
+            <div className="story-gradient"/>
+            <div className="story-info">
+              <div className="story-cat">{promo.company?.category?.emoji} {promo.company?.category?.name}</div>
+              <div className="story-empresa">{promo.company?.name}</div>
+              <div className="story-title">{promo.title}</div>
+              <div className="story-validade">válido até {new Date(promo.expires_at).toLocaleDateString('pt-BR')}</div>
             </div>
+            <div className="story-share" onClick={e=>e.stopPropagation()}>
+              <ShareButton title={promo.title} text={`🏷️ ${promo.title} — ${promo.company?.name} no Trindade Online!`} label="" fullWidth={false}/>
+            </div>
+            <div className="nav-left" onClick={prev}/>
+            <a className="nav-center" href={'/empresa/'+promo.company?.slug} aria-label={`Ver empresa ${promo.company?.name}`}/>
+            <div className="nav-right" onClick={next}/>
           </div>
         )}
       </div>

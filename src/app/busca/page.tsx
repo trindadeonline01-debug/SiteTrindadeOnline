@@ -124,7 +124,7 @@ function BuscaContent() {
         *{box-sizing:border-box;margin:0;padding:0;}
         body{font-family:'Inter',sans-serif;background:#F0EDE8;}
 
-        .topbar{background:#111;padding:0;position:sticky;top:0;z-index:50;}
+        .topbar{background:#111;padding:0;z-index:50;}
         .topbar-inner{max-width:1200px;margin:0 auto;padding:11px 24px;display:flex;align-items:center;gap:14px;}
         @media(max-width:767px){
           .topbar-inner{ justify-content: center; }

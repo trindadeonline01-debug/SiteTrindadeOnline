@@ -390,7 +390,7 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
         *{box-sizing:border-box;margin:0;padding:0;}
         body{font-family:'Inter',sans-serif;background:#F0EDE8;}
 
-        .topbar{background:#111;position:sticky;top:0;z-index:50;}
+        .topbar{background:#111;z-index:50;}
         .topbar-inner{max-width:1200px;margin:0 auto;padding:12px 24px;display:flex;align-items:center;justify-content:center;}
         .t-bc{display:flex;align-items:center;gap:7px;font-size:13px;}
         .t-bc a{color:#C9951A;font-weight:700;text-decoration:none;}

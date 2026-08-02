@@ -53,7 +53,7 @@ export default function FavoritosPage() {
         *{box-sizing:border-box;margin:0;padding:0;}
         body{font-family:'Inter',sans-serif;background:#fff;}
 
-        .topbar{background:#111;position:sticky;top:0;z-index:50;}
+        .topbar{background:#111;z-index:50;}
         .ti{max-width:1200px;margin:0 auto;padding:13px 24px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;}
         .bc{display:flex;align-items:center;gap:7px;font-size:13px;}
         .bc a{color:#C9951A;font-weight:700;text-decoration:none;}

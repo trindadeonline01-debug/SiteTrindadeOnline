@@ -51,7 +51,7 @@ export default function MobileMenu() {
       <style>{`
         .mm-bar{display:none;}
         @media(max-width:767px){
-          .mm-bar{display:flex;align-items:center;justify-content:space-between;background:#fff;border-bottom:1px solid #E0DDD8;padding:10px 14px;position:relative;z-index:9500;}
+          .mm-bar{display:flex;align-items:center;justify-content:space-between;background:#fff;border-bottom:1px solid #E0DDD8;padding:0 14px;height:54px;box-sizing:border-box;position:sticky;top:0;z-index:9500;}
         }
         .mm-hamburger{background:none;border:none;cursor:pointer;padding:6px;display:flex;flex-direction:column;gap:4px;width:34px;flex-shrink:0;}
         .mm-hamburger span{display:block;height:2px;background:#111;border-radius:2px;}

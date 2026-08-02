@@ -58,7 +58,7 @@ export default function MobileMenu() {
         .mm-logo{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1.5px;color:#111;text-decoration:none;}
         .mm-logo span{color:#C9951A;}
         .mm-entrar{background:#fff;color:#C9951A;border:1.5px solid #C9951A;border-radius:20px;padding:7px 16px;font-size:12px;font-weight:700;text-decoration:none;font-family:'Inter',sans-serif;flex-shrink:0;}
-        .mm-profile-btn{background:none;border:none;font-size:22px;cursor:pointer;text-decoration:none;display:flex;flex-shrink:0;}
+        .mm-profile-btn{background:none;border:none;color:#111;cursor:pointer;text-decoration:none;display:flex;flex-shrink:0;}
         .mm-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9998;}
         .mm-drawer{position:fixed;top:0;left:0;bottom:0;width:82%;max-width:320px;background:#fff;z-index:9999;overflow-y:auto;box-shadow:2px 0 24px rgba(0,0,0,0.2);}
         .mm-drawer-head{display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1px solid #F0EDE8;}
@@ -78,7 +78,11 @@ export default function MobileMenu() {
         </button>
         <a className="mm-logo" href="/">TRINDADE <span>ONLINE</span></a>
         {user ? (
-          <a className="mm-profile-btn" href="/perfil" aria-label="Meu perfil">👤</a>
+          <a className="mm-profile-btn" href="/perfil" aria-label="Meu perfil">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 4-6 8-6s8 2 8 6" />
+            </svg>
+          </a>
         ) : (
           <a className="mm-entrar" href="/login">Entrar</a>
         )}

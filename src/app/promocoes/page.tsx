@@ -62,17 +62,18 @@ export default function PromocoesPage() {
     .topbar{background:rgba(0,0,0,0.9);padding:10px 16px;flex-shrink:0;backdrop-filter:blur(10px);}
     .top-title{font-family:'Bebas Neue',sans-serif;font-size:20px;color:#fff;letter-spacing:2px;margin-bottom:6px;}
     .top-title span{color:#C9951A;}
-    .filters{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;}
+    .filters-row{display:flex;align-items:center;gap:10px;}
+    .filters{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;flex:1;min-width:0;}
     .filters::-webkit-scrollbar{display:none;}
     .filter-btn{padding:4px 14px;border-radius:20px;font-size:11px;font-weight:500;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.5);background:transparent;cursor:pointer;white-space:nowrap;flex-shrink:0;}
     .filter-btn.on{background:#C9951A;color:#111;border-color:#C9951A;}
+    .filters-share{flex-shrink:0;}
     .progress-bar{display:flex;gap:3px;padding:8px 16px 0;flex-shrink:0;}
     .progress-item{flex:1;height:2px;background:rgba(255,255,255,0.2);border-radius:2px;overflow:hidden;cursor:pointer;}
     .progress-fill{height:100%;background:#fff;border-radius:2px;transition:width .3s;}
     .story-wrap{flex:1;position:relative;overflow:hidden;}
     .story-img{width:100%;height:100%;object-fit:contain;display:block;background:#000;}
     .story-bg{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#1A1A1A;font-size:80px;}
-    .story-share{position:absolute;right:16px;top:16px;z-index:20;}
     .nav-left{position:absolute;left:0;top:0;bottom:0;width:25%;cursor:pointer;z-index:10;}
     .nav-center{position:absolute;left:25%;top:0;bottom:0;width:50%;cursor:pointer;z-index:10;display:block;}
     .nav-right{position:absolute;right:0;top:0;bottom:0;width:25%;cursor:pointer;z-index:10;}
@@ -160,11 +161,18 @@ export default function PromocoesPage() {
       <div className="pg-mobile" style={{bottom: hasBottomNav ? 'calc(64px + env(safe-area-inset-bottom))' : '0'}}>
         <div className="topbar">
           <div className="top-title">🏷️ PROMOÇÕES <span>DA SEMANA</span></div>
-          <div className="filters">
-            <button className={`filter-btn ${filter==='todos'?'on':''}`} onClick={()=>setFilter('todos')}>Todas</button>
-            {categories.map(cat=>(
-              <button key={cat} className={`filter-btn ${filter===cat?'on':''}`} onClick={()=>setFilter(cat||'')}>{cat}</button>
-            ))}
+          <div className="filters-row">
+            <div className="filters">
+              <button className={`filter-btn ${filter==='todos'?'on':''}`} onClick={()=>setFilter('todos')}>Todas</button>
+              {categories.map(cat=>(
+                <button key={cat} className={`filter-btn ${filter===cat?'on':''}`} onClick={()=>setFilter(cat||'')}>{cat}</button>
+              ))}
+            </div>
+            {promo && (
+              <div className="filters-share">
+                <ShareButton title={promo.title} text={`🏷️ ${promo.title} — ${promo.company?.name} no Trindade Online!`} label="" fullWidth={false}/>
+              </div>
+            )}
           </div>
         </div>
         {filtered.length > 0 && (
@@ -185,9 +193,6 @@ export default function PromocoesPage() {
             ) : (
               <div className="story-bg">{promo.company?.category?.emoji || '🏷️'}</div>
             )}
-            <div className="story-share" onClick={e=>e.stopPropagation()}>
-              <ShareButton title={promo.title} text={`🏷️ ${promo.title} — ${promo.company?.name} no Trindade Online!`} label="" fullWidth={false}/>
-            </div>
             <div className="nav-left" onClick={prev}/>
             <a className="nav-center" href={'/empresa/'+promo.company?.slug} aria-label={`Ver empresa ${promo.company?.name}`}/>
             <div className="nav-right" onClick={next}/>

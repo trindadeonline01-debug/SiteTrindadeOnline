@@ -127,13 +127,11 @@ function BuscaContent() {
         .topbar{background:#111;padding:0;position:sticky;top:0;z-index:50;}
         .topbar-inner{max-width:1200px;margin:0 auto;padding:11px 24px;display:flex;align-items:center;gap:14px;}
         @media(max-width:767px){
-          .topbar-inner{ justify-content: space-between; }
+          .topbar-inner{ justify-content: center; }
           .topbar-inner .sf { display: none; }
           .mobile-search-bar { display: block; padding: 14px 16px 4px; }
         }
         @media(min-width:768px){ .mobile-search-bar { display: none; } }
-        .t-logo{font-family:'Bebas Neue',sans-serif;font-size:20px;color:#fff;letter-spacing:2px;text-decoration:none;flex-shrink:0;}
-        .t-logo span{color:#C9951A;}
         .sf{flex:1;display:flex;align-items:center;gap:8px;background:#1A1A1A;border:1.5px solid #C9951A;border-radius:30px;padding:9px 16px;max-width:640px;}
         .sf input{flex:1;border:none;background:transparent;font-size:14px;font-family:'Inter',sans-serif;color:#fff;outline:none;}
         .sf input::placeholder{color:#666;}
@@ -214,7 +212,6 @@ function BuscaContent() {
 
       <div className="topbar">
         <div className="topbar-inner">
-          <a className="t-logo" href="/">TRINDADE <span>ONLINE</span></a>
           <form className="sf" onSubmit={handleSubmit}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input type="text" placeholder="Empresa, produto, endereço, bairro..." value={input} onChange={e => setInput(e.target.value)} autoFocus />

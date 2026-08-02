@@ -182,9 +182,7 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
 
         /* ── TOPBAR ── */
         .topbar { background: #111; position: sticky; top: 0; z-index: 50; }
-        .topbar-inner { max-width: 1200px; margin: 0 auto; padding: 13px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-        .t-logo { font-family: 'Bebas Neue', sans-serif; font-size: 24px; color: #fff; letter-spacing: 2px; text-decoration: none; flex-shrink: 0; }
-        .t-logo span { color: #C9951A; }
+        .topbar-inner { max-width: 1200px; margin: 0 auto; padding: 13px 24px; display: flex; align-items: center; justify-content: center; gap: 16px; }
         .t-bc { display: flex; align-items: center; gap: 7px; font-size: 13px; }
         .t-bc a { color: #C9951A; font-weight: 700; text-decoration: none; }
         .t-bc a:hover { text-decoration: underline; }
@@ -278,7 +276,6 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
       {/* TOPBAR */}
       <div className="topbar">
         <div className="topbar-inner">
-          <a className="t-logo" href="/">TRINDADE <span>ONLINE</span></a>
           <div className="t-bc">
             <a href="/">Início</a>
             <span className="t-bc-sep">›</span>

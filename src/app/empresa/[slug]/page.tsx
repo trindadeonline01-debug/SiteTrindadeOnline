@@ -391,20 +391,16 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
         body{font-family:'Inter',sans-serif;background:#F0EDE8;}
 
         .topbar{background:#111;position:sticky;top:0;z-index:50;}
-        .topbar-inner{max-width:1200px;margin:0 auto;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;}
-        .t-logo{font-family:'Bebas Neue',sans-serif;font-size:20px;color:#fff;letter-spacing:2px;text-decoration:none;}
+        .topbar-inner{max-width:1200px;margin:0 auto;padding:12px 24px;display:flex;align-items:center;justify-content:center;}
         .t-bc{display:flex;align-items:center;gap:7px;font-size:13px;}
         .t-bc a{color:#C9951A;font-weight:700;text-decoration:none;}
         .t-bc a:hover{text-decoration:underline;}
         .t-bc-sep{color:#444;font-size:14px;}
         .t-bc-cur{color:#fff;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;}
-        .t-logo span{color:#C9951A;}
         @media(max-width:767px){
-          .topbar-inner{flex-direction:column;gap:6px;padding:10px 16px;}
-          .t-logo{font-size:18px;text-align:center;}
+          .topbar-inner{padding:10px 16px;}
           .t-bc{justify-content:center;flex-wrap:wrap;width:100%;font-size:12px;}
           .t-bc-cur{max-width:100%;flex:1;min-width:0;text-align:center;}
-          .topbar-inner > div:last-child{display:none;}
         }
 
         /* GALERIA — full width */
@@ -496,7 +492,6 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
       {/* TOPBAR */}
       <div className="topbar">
         <div className="topbar-inner">
-          <a className="t-logo" href="/">TRINDADE <span>ONLINE</span></a>
           <div className="t-bc">
             <a href="/">Início</a>
             {company?.category && (
@@ -508,7 +503,6 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
             <span className="t-bc-sep">›</span>
             <span className="t-bc-cur">{company?.name || '...'}</span>
           </div>
-          <div/>
         </div>
       </div>
 

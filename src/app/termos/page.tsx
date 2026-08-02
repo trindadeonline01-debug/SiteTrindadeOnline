@@ -1,6 +1,5 @@
 'use client'
 import { useState } from 'react'
-import Link from 'next/link'
 
 const DATA_ATUALIZACAO = '27 de junho de 2026'
 
@@ -13,9 +12,6 @@ export default function TermosPage() {
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
         body{font-family:'Inter',sans-serif;background:#fff;}
-        .topbar{background:#111;padding:13px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
-        .logo{font-family:'Bebas Neue',sans-serif;font-size:20px;color:#fff;letter-spacing:2px;text-decoration:none;}
-        .logo span{color:#C9951A;}
         .hero{background:linear-gradient(160deg,#fff,#FEF8EC);padding:36px 24px;border-bottom:1px solid #F0EDE8;text-align:center;}
         .hero-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(28px,4vw,40px);color:#111;letter-spacing:2px;margin-bottom:6px;}
         .hero-sub{font-size:13px;color:#AAA;}
@@ -37,10 +33,6 @@ export default function TermosPage() {
         .footer{padding:28px 0 0;text-align:center;font-size:12px;color:#AAA;border-top:0.5px solid #F0EDE8;margin-top:32px;}
         .footer a{color:#C9951A;text-decoration:none;}
       `}</style>
-
-      <div className="topbar">
-        <Link className="logo" href="/">TRINDADE <span>ONLINE</span></Link>
-      </div>
 
       <div className="hero">
         <div className="hero-title">TERMOS E PRIVACIDADE</div>

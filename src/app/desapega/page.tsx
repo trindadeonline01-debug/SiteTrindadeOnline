@@ -38,8 +38,6 @@ export default function DesapegaPage(){
       body{font-family:'Inter',sans-serif;background:#fff;}
       .topbar{background:#111;position:sticky;top:0;z-index:50;}
       .ti{max-width:1200px;margin:0 auto;padding:13px 24px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;}
-      .logo{font-family:'Bebas Neue',sans-serif;font-size:22px;color:#fff;letter-spacing:2px;text-decoration:none;}
-      .logo span{color:#C9951A;}
       .bc{display:flex;align-items:center;gap:7px;font-size:13px;}
       .bc a{color:#C9951A;font-weight:700;text-decoration:none;}
       .bcs{color:#444;}.bcc{color:#fff;font-weight:700;}
@@ -92,7 +90,7 @@ export default function DesapegaPage(){
     `}</style>
 
     <div className="topbar"><div className="ti">
-      <a className="logo" href="/">TRINDADE <span>ONLINE</span></a>
+      <div/>
       <div className="bc"><a href="/">Início</a><span className="bcs">›</span><span className="bcc">Desapega</span></div>
       <div/>
     </div></div>

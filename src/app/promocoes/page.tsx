@@ -72,13 +72,7 @@ export default function PromocoesPage() {
     .story-wrap{flex:1;position:relative;overflow:hidden;}
     .story-img{width:100%;height:100%;object-fit:contain;display:block;background:#000;}
     .story-bg{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#1A1A1A;font-size:80px;}
-    .story-gradient{position:absolute;left:0;right:0;bottom:0;height:40%;background:linear-gradient(to top,rgba(0,0,0,0.75),transparent);pointer-events:none;z-index:1;}
-    .story-info{position:absolute;left:16px;right:70px;bottom:24px;pointer-events:none;z-index:2;}
-    .story-cat{font-size:11px;color:rgba(255,255,255,0.6);margin-bottom:4px;}
-    .story-empresa{font-size:20px;font-weight:700;color:#fff;margin-bottom:4px;}
-    .story-title{font-size:14px;color:rgba(255,255,255,0.85);margin-bottom:6px;}
-    .story-validade{font-size:12px;color:#C9951A;}
-    .story-share{position:absolute;right:16px;bottom:24px;z-index:20;}
+    .story-share{position:absolute;right:16px;top:16px;z-index:20;}
     .nav-left{position:absolute;left:0;top:0;bottom:0;width:25%;cursor:pointer;z-index:10;}
     .nav-center{position:absolute;left:25%;top:0;bottom:0;width:50%;cursor:pointer;z-index:10;display:block;}
     .nav-right{position:absolute;right:0;top:0;bottom:0;width:25%;cursor:pointer;z-index:10;}
@@ -191,13 +185,6 @@ export default function PromocoesPage() {
             ) : (
               <div className="story-bg">{promo.company?.category?.emoji || '🏷️'}</div>
             )}
-            <div className="story-gradient"/>
-            <div className="story-info">
-              <div className="story-cat">{promo.company?.category?.emoji} {promo.company?.category?.name}</div>
-              <div className="story-empresa">{promo.company?.name}</div>
-              <div className="story-title">{promo.title}</div>
-              <div className="story-validade">válido até {new Date(promo.expires_at).toLocaleDateString('pt-BR')}</div>
-            </div>
             <div className="story-share" onClick={e=>e.stopPropagation()}>
               <ShareButton title={promo.title} text={`🏷️ ${promo.title} — ${promo.company?.name} no Trindade Online!`} label="" fullWidth={false}/>
             </div>

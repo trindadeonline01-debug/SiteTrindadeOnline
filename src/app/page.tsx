@@ -203,11 +203,6 @@ export default function HomePage() {
     }
   }
 
-  async function handleSair() {
-    await supabase.auth.signOut()
-    window.location.href = '/'
-  }
-
   function prevBanner() {
     setActiveBanner(p => (p - 1 + banners.length) % banners.length)
   }
@@ -249,38 +244,6 @@ export default function HomePage() {
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Inter', sans-serif; background: #F0EDE8; color: #111; }
 
-        .site-header { background: #fff; border-bottom: 1px solid #EDE8E0; position: sticky; top: 0; z-index: 50; }
-        @media(max-width: 767px) { .site-header-logged { display: none; } }
-        .header-inner { max-width: 1200px; margin: 0 auto; padding: 10px 14px; display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
-        @media(min-width: 768px) { .header-inner { padding: 12px 20px; justify-content: space-between; } }
-        .logo { display: none; align-items: baseline; flex-shrink: 0; text-decoration: none; }
-        @media(min-width: 768px) { .logo { display: flex; } }
-        .logo-main { font-family: 'Bebas Neue', sans-serif; font-size: 26px; color: #111; letter-spacing: 2px; }
-        .logo-dot  { font-family: 'Bebas Neue', sans-serif; font-size: 18px; color: #DDD; margin: 0 5px; }
-        .logo-gold { font-family: 'Bebas Neue', sans-serif; font-size: 26px; color: #C9951A; letter-spacing: 2px; }
-        .nav-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; width: 100%; }
-        .nav-center { display: none; }
-        .nav-right { display: none; }
-        @media(min-width: 768px) {
-          .header-inner { grid-template-columns: auto 1fr auto; display: grid; }
-          .nav-center { display: flex; align-items: center; justify-content: center; gap: 2px; }
-          .nav-right { display: flex; align-items: center; gap: 8px; }
-          .nav-center-link { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 10px; font-size: 14px; font-weight: 500; color: #555; text-decoration: none; white-space: nowrap; position: relative; }
-          .nav-center-link:hover { background: #F5F2EC; color: #111; }
-        }
-        .btn-painel   { background: #111; color: #C9951A; border: none; border-radius: 10px; padding: 7px 12px; font-size: 12px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; text-decoration: none; display: block; }
-        .btn-sair     { background: transparent; color: #666; border: 1px solid #333; border-radius: 10px; padding: 6px 10px; font-size: 11px; font-weight: 500; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; display: block; }
-        .btn-entrar   { display: flex; align-items: center; gap: 5px; background: transparent; color: #C9951A; border: 1.5px solid #C9951A; border-radius: 10px; padding: 7px 12px; font-size: 12px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; text-decoration: none; }
-        .btn-txt { display: inline; } .btn-plus { display: none; }
-        @media(max-width:480px){ .btn-txt { display: none; } .btn-plus { display: inline; } .nav-actions { flex-wrap: nowrap; } }
-        .btn-cad      { background: #C9951A; color: #fff; border: none; border-radius: 10px; padding: 7px 12px; font-size: 12px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; text-decoration: none; display: block; }
-        .btn-fav      { color: #555; font-size: 13px; text-decoration: none; display: block; }
-        .btn-perfil   { color: #555; font-size: 13px; text-decoration: none; display: block; }
-        @media(min-width: 768px) {
-          .btn-painel { display: block; } .btn-sair { display: block; }
-          .btn-entrar { display: flex; } .btn-cad { display: block; }
-          .btn-fav { display: block; } .btn-perfil { display: block; }
-        }
 
         .hero { padding: 28px 16px 8px; text-align: center; margin: 0; }
         .hero-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(30px, 8vw, 72px); letter-spacing: 4px; line-height: 1; margin-bottom: 8px; display: block; }
@@ -455,43 +418,6 @@ export default function HomePage() {
         .skeleton { background: linear-gradient(90deg,#F0EDE8 25%,#E8E4DD 50%,#F0EDE8 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 10px; }
         @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
       `}</style>
-
-      {/* HEADER */}
-      <header className={user ? 'site-header site-header-logged' : 'site-header'}>
-        <div className="header-inner">
-          <a className="logo" href="/">
-            <span className="logo-main">TRINDADE</span>
-            <span className="logo-dot">·</span>
-            <span className="logo-gold">ONLINE</span>
-          </a>
-          {user ? (
-            <>
-              <nav className="nav-center">
-                <a className="nav-center-link" href="/">🏠 Início</a>
-                <a className="nav-center-link" href="/cupons" style={{position:'relative'}}>
-                  🎟️ Cupons
-                  <span style={{position:'absolute',top:6,right:6,width:7,height:7,background:'#E24B4A',borderRadius:'50%',border:'1.5px solid #fff'}}/>
-                </a>
-                <a className="nav-center-link" href="/feed">📰 Feed</a>
-                {userType === 'user' && <a className="nav-center-link" href="/favoritos">❤️ Favoritos</a>}
-                {userType === 'company' && <a className="nav-center-link" href="/painel">📊 Meu Painel</a>}
-                {userType === 'admin' && <a className="nav-center-link" href="/admin">⚙️ Admin</a>}
-                <a className="nav-center-link" href="/perfil">👤 Perfil</a>
-              </nav>
-              <div className="nav-right">
-                <a className="btn-cad" href="/empresa/cadastrar">Cadastrar empresa</a>
-                <button className="btn-sair" onClick={handleSair}>Sair</button>
-              </div>
-            </>
-          ) : (
-            <div className="nav-actions">
-              <a className="btn-entrar" href="/login">Entrar</a>
-              <a className="btn-entrar" href="/cadastro" style={{borderColor:'#888',color:'#888'}}><span className="btn-txt">Cadastrar </span><span className="btn-plus">Cad</span> Morador</a>
-              <a className="btn-cad" href="/empresa/cadastrar"><span className="btn-txt">Cadastrar </span><span className="btn-plus">Cad</span> Empresa</a>
-            </div>
-          )}
-        </div>
-      </header>
 
       {/* HERO */}
       <section className="hero" style={{background: settingsLoaded ? (TEMAS[siteTheme]?.heroBg || '#111111') : 'transparent'}}>

@@ -3,6 +3,7 @@ import './globals.css'
 import Script from 'next/script'
 import BottomNav from '@/components/BottomNav'
 import TopNav from '@/components/TopNav'
+import MobileMenu from '@/components/MobileMenu'
 import BackButton from '@/components/BackButton'
 
 export const metadata: Metadata = {
@@ -52,6 +53,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           />
         </noscript>
         <TopNav />
+        <MobileMenu />
         {children}
         <BackButton />
         <BottomNav />

@@ -20,6 +20,12 @@ function randomDelay(min: number, max: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
+// Vercel mata a função depois de maxDuration (300s). Paramos de pegar novos
+// contatos bem antes disso e encadeamos uma nova chamada pra continuar —
+// sem isso a campanha ficava travada em "running" e exigia pausar/retomar
+// na mão pra seguir depois de cada janela de 300s.
+const SAFE_BUDGET_MS = 260_000
+
 interface MessageVariation {
   text: string
   media_url?: string | null
@@ -210,30 +216,46 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, campaign_id: campaign.id, total: contacts.length })
     }
 
-    // INICIAR DISPARO
-    if (action === 'start') {
+    // INICIAR ou CONTINUAR DISPARO
+    // 'start' é chamado pelo usuário (Iniciar/Retomar). 'continue' é uso
+    // interno: a própria função se rechama antes de bater no maxDuration,
+    // então não passa pela checagem de "já está rodando".
+    if (action === 'start' || action === 'continue') {
       const { data: campaign } = await supabase.from('blast_campaigns').select('*').eq('id', campaign_id).single()
       if (!campaign) return NextResponse.json({ error: 'Campanha não encontrada' }, { status: 404 })
 
-      // Evita loops duplicados: só inicia um novo loop se a campanha não estiver rodando
-      if (campaign.status === 'running') {
-        return NextResponse.json({ ok: true, message: 'Campanha já está em andamento' })
+      if (action === 'start') {
+        // Evita loops duplicados: só inicia um novo loop se a campanha não estiver rodando
+        if (campaign.status === 'running') {
+          return NextResponse.json({ ok: true, message: 'Campanha já está em andamento' })
+        }
+        await supabase.from('blast_campaigns').update({ status: 'running', started_at: new Date().toISOString() }).eq('id', campaign_id)
+      } else {
+        // continue: se foi pausada/cancelada nesse meio tempo, não reinicia sozinha
+        if (campaign.status !== 'running') return NextResponse.json({ ok: true, message: 'Campanha não está em execução' })
       }
-
-      // Atualiza status
-      await supabase.from('blast_campaigns').update({ status: 'running', started_at: new Date().toISOString() }).eq('id', campaign_id)
 
       // Busca logs pendentes
       const { data: logs } = await supabase.from('blast_logs').select('*').eq('campaign_id', campaign_id).eq('status', 'pending')
+      const origin = new URL(req.url).origin
 
       // Disparo assíncrono — after() garante pra Vercel que este trabalho em
       // segundo plano precisa continuar rodando mesmo depois da resposta HTTP
       // ja ter sido enviada (sem isso, a funcao podia ser encerrada no meio do loop)
       after(async () => {
+        const loopStart = Date.now()
+        let ranOutOfTime = false
+
         for (const log of (logs || [])) {
+          // Encerra essa invocação bem antes do limite de maxDuration e
+          // encadeia a continuação numa nova chamada — sem isso a campanha
+          // trava em "running" ao bater os 300s, e só volta pausando/retomando
+          // na mão
+          if (Date.now() - loopStart > SAFE_BUDGET_MS) { ranOutOfTime = true; break }
+
           // Verifica se campanha foi pausada
           const { data: current } = await supabase.from('blast_campaigns').select('status').eq('id', campaign_id).single()
-          if (current?.status === 'paused') break
+          if (current?.status === 'paused') return
 
           // Reivindica o contato de forma atômica: só segue se conseguir mudar
           // de 'pending' pra 'sending' — evita que outro loop concorrente
@@ -289,6 +311,19 @@ export async function POST(req: NextRequest) {
           await randomDelay(campaign.delay_min, campaign.delay_max)
         }
 
+        if (ranOutOfTime) {
+          // Encadeia a próxima leva antes de sair — a campanha continua
+          // "running", só quem processa o resto é a próxima invocação
+          try {
+            await fetch(`${origin}/api/blast`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'continue', campaign_id })
+            })
+          } catch {}
+          return
+        }
+
         // Finaliza
         const { data: final } = await supabase.from('blast_campaigns').select('status').eq('id', campaign_id).single()
         if (final?.status === 'running') {
@@ -296,7 +331,7 @@ export async function POST(req: NextRequest) {
         }
       })
 
-      return NextResponse.json({ ok: true, message: 'Disparo iniciado' })
+      return NextResponse.json({ ok: true, message: action === 'start' ? 'Disparo iniciado' : 'Continuando disparo' })
     }
 
     // PAUSAR

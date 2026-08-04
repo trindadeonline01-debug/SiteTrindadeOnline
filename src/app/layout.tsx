@@ -7,6 +7,7 @@ import MobileMenu from '@/components/MobileMenu'
 import BackButton from '@/components/BackButton'
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://trindadeonline.com.br'),
   title: 'Trindade Online — Comércios, Serviços e Moradores do Bairro Trindade',
   description: 'O portal digital do bairro Trindade em São Gonçalo/RJ. Encontre comércios, restaurantes, serviços, empregos, imóveis e muito mais.',
   keywords: ['Trindade', 'São Gonçalo', 'comércio local', 'serviços Trindade', 'empregos São Gonçalo', 'bairro Trindade RJ'],

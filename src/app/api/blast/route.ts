@@ -124,6 +124,105 @@ async function sendAudio(phone: string, mediaUrl: string): Promise<{ ok: boolean
   }
 }
 
+// Processa um lote de contatos pendentes em segundo plano, respeitando o
+// orçamento de tempo, e encadeia a continuação (action:'continue') se ainda
+// sobrar gente pra mandar. Usado tanto pelo start/continue quanto pelo
+// watchdog do GET (chamado pelo polling do painel a cada 8s)
+async function runCampaignBatch(campaign: any, logs: any[], origin: string) {
+  const loopStart = Date.now()
+  let ranOutOfTime = false
+  let sentThisInvocation = 0
+
+  // Orçamento desconta o pior caso do delay que vem depois do envio (até
+  // delay_max) — senão a função pode ser morta pela Vercel durante esse
+  // delay, sem chance de encadear a continuação
+  const budgetMs = HARD_LIMIT_MS - (campaign.delay_max * 1000) - SEND_BUFFER_MS
+
+  for (const log of logs) {
+    // Sempre manda pelo menos 1 nessa invocação, mesmo que o delay_max
+    // configurado deixe o orçamento negativo
+    if (sentThisInvocation > 0 && Date.now() - loopStart > budgetMs) { ranOutOfTime = true; break }
+
+    // Verifica se campanha foi pausada
+    const { data: current } = await supabase.from('blast_campaigns').select('status').eq('id', campaign.id).single()
+    if (current?.status === 'paused') return
+
+    // Reivindica o contato de forma atômica: só segue se conseguir mudar
+    // de 'pending' pra 'sending' — evita que outro loop concorrente
+    // (ex: retomar clicado enquanto o loop anterior ainda está de pé, ou o
+    // watchdog disparando junto com um loop que só estava demorando) envie de novo
+    const { data: claimed } = await supabase
+      .from('blast_logs')
+      .update({ status: 'sending' })
+      .eq('id', log.id)
+      .eq('status', 'pending')
+      .select('id')
+    if (!claimed || claimed.length === 0) continue
+    sentThisInvocation++
+
+    const picked = pickVariation(campaign.messages, log.contact_name || 'Cliente', log.company_name || '')
+    const message = picked.text
+    let result: { ok: boolean; error?: string }
+    if (picked.media_type === 'image' || picked.media_type === 'video') {
+      result = await sendMedia(log.phone, picked.media_url!, picked.media_type as 'image' | 'video', message)
+    } else if (picked.media_type === 'audio') {
+      result = await sendAudio(log.phone, picked.media_url!)
+      if (result.ok && message) await sendWhatsApp(log.phone, message)
+    } else {
+      result = await sendWhatsApp(log.phone, message)
+    }
+
+    // Marca o Grupo WA logo apos o envio confirmado, antes de qualquer outra
+    // escrita — se o processo for interrompido em seguida (comum em loop
+    // longo rodando em background no serverless), o que importa de verdade
+    // (o convite foi entregue) ja fica registrado
+    if (result.ok && campaign.filter === 'no_group' && log.owner_id) {
+      await supabase.from('profiles').update({
+        whatsapp_group: true,
+        whatsapp_group_at: new Date().toISOString()
+      }).eq('id', log.owner_id)
+    }
+
+    await supabase.from('blast_logs').update({
+      status: result.ok ? 'sent' : 'failed',
+      message_sent: message,
+      error_message: result.error || null,
+      sent_at: new Date().toISOString()
+    }).eq('id', log.id)
+
+    // Le a contagem atual antes de incrementar (evita contador "congelado"
+    // quando ha mais de uma leva de envios na mesma campanha)
+    const { data: freshCampaign } = await supabase.from('blast_campaigns').select('sent_count, failed_count').eq('id', campaign.id).single()
+    if (result.ok) {
+      await supabase.from('blast_campaigns').update({ sent_count: (freshCampaign?.sent_count || 0) + 1 }).eq('id', campaign.id)
+    } else {
+      await supabase.from('blast_campaigns').update({ failed_count: (freshCampaign?.failed_count || 0) + 1 }).eq('id', campaign.id)
+    }
+
+    // Delay aleatório
+    await randomDelay(campaign.delay_min, campaign.delay_max)
+  }
+
+  if (ranOutOfTime) {
+    // Encadeia a próxima leva antes de sair — a campanha continua
+    // "running", só quem processa o resto é a próxima invocação
+    try {
+      await fetch(`${origin}/api/blast`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'continue', campaign_id: campaign.id })
+      })
+    } catch {}
+    return
+  }
+
+  // Finaliza
+  const { data: final } = await supabase.from('blast_campaigns').select('status').eq('id', campaign.id).single()
+  if (final?.status === 'running') {
+    await supabase.from('blast_campaigns').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', campaign.id)
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
@@ -260,99 +359,7 @@ export async function POST(req: NextRequest) {
       // Disparo assíncrono — after() garante pra Vercel que este trabalho em
       // segundo plano precisa continuar rodando mesmo depois da resposta HTTP
       // ja ter sido enviada (sem isso, a funcao podia ser encerrada no meio do loop)
-      after(async () => {
-        const loopStart = Date.now()
-        let ranOutOfTime = false
-        let sentThisInvocation = 0
-
-        // Orçamento desconta o pior caso do delay que vem depois do envio
-        // (até delay_max) — senão a função pode ser morta pela Vercel
-        // durante esse delay, sem chance de encadear a continuação
-        const budgetMs = HARD_LIMIT_MS - (campaign.delay_max * 1000) - SEND_BUFFER_MS
-
-        for (const log of (logs || [])) {
-          // Sempre manda pelo menos 1 nessa invocação, mesmo que o delay_max
-          // configurado deixe o orçamento negativo
-          if (sentThisInvocation > 0 && Date.now() - loopStart > budgetMs) { ranOutOfTime = true; break }
-
-          // Verifica se campanha foi pausada
-          const { data: current } = await supabase.from('blast_campaigns').select('status').eq('id', campaign_id).single()
-          if (current?.status === 'paused') return
-
-          // Reivindica o contato de forma atômica: só segue se conseguir mudar
-          // de 'pending' pra 'sending' — evita que outro loop concorrente
-          // (ex: retomar clicado enquanto o loop anterior ainda está de pé) envie de novo
-          const { data: claimed } = await supabase
-            .from('blast_logs')
-            .update({ status: 'sending' })
-            .eq('id', log.id)
-            .eq('status', 'pending')
-            .select('id')
-          if (!claimed || claimed.length === 0) continue
-          sentThisInvocation++
-
-          const picked = pickVariation(campaign.messages, log.contact_name || 'Cliente', log.company_name || '')
-          const message = picked.text
-          let result: { ok: boolean; error?: string }
-          if (picked.media_type === 'image' || picked.media_type === 'video') {
-            result = await sendMedia(log.phone, picked.media_url!, picked.media_type as 'image' | 'video', message)
-          } else if (picked.media_type === 'audio') {
-            result = await sendAudio(log.phone, picked.media_url!)
-            if (result.ok && message) await sendWhatsApp(log.phone, message)
-          } else {
-            result = await sendWhatsApp(log.phone, message)
-          }
-
-          // Marca o Grupo WA logo apos o envio confirmado, antes de qualquer outra
-          // escrita — se o processo for interrompido em seguida (comum em loop
-          // longo rodando em background no serverless), o que importa de verdade
-          // (o convite foi entregue) ja fica registrado
-          if (result.ok && campaign.filter === 'no_group' && log.owner_id) {
-            await supabase.from('profiles').update({
-              whatsapp_group: true,
-              whatsapp_group_at: new Date().toISOString()
-            }).eq('id', log.owner_id)
-          }
-
-          await supabase.from('blast_logs').update({
-            status: result.ok ? 'sent' : 'failed',
-            message_sent: message,
-            error_message: result.error || null,
-            sent_at: new Date().toISOString()
-          }).eq('id', log.id)
-
-          // Le a contagem atual antes de incrementar (evita contador "congelado"
-          // quando ha mais de uma leva de envios na mesma campanha)
-          const { data: freshCampaign } = await supabase.from('blast_campaigns').select('sent_count, failed_count').eq('id', campaign_id).single()
-          if (result.ok) {
-            await supabase.from('blast_campaigns').update({ sent_count: (freshCampaign?.sent_count || 0) + 1 }).eq('id', campaign_id)
-          } else {
-            await supabase.from('blast_campaigns').update({ failed_count: (freshCampaign?.failed_count || 0) + 1 }).eq('id', campaign_id)
-          }
-
-          // Delay aleatório
-          await randomDelay(campaign.delay_min, campaign.delay_max)
-        }
-
-        if (ranOutOfTime) {
-          // Encadeia a próxima leva antes de sair — a campanha continua
-          // "running", só quem processa o resto é a próxima invocação
-          try {
-            await fetch(`${origin}/api/blast`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ action: 'continue', campaign_id })
-            })
-          } catch {}
-          return
-        }
-
-        // Finaliza
-        const { data: final } = await supabase.from('blast_campaigns').select('status').eq('id', campaign_id).single()
-        if (final?.status === 'running') {
-          await supabase.from('blast_campaigns').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', campaign_id)
-        }
-      })
+      after(() => runCampaignBatch(campaign, logs || [], origin))
 
       return NextResponse.json({ ok: true, message: action === 'start' ? 'Disparo iniciado' : 'Continuando disparo' })
     }
@@ -394,6 +401,33 @@ export async function GET(req: NextRequest) {
 
     // Lista todas as campanhas
     const { data: campaigns } = await supabase.from('blast_campaigns').select('*').order('created_at', { ascending: false })
+
+    // Watchdog: o painel faz polling desse endpoint a cada 8s enquanto a aba
+    // Disparos está aberta. Aproveita esse ping pra detectar campanha "running"
+    // travada (nada enviado além do delay_max esperado) e reativar sozinho —
+    // cobre o caso raro do próprio encadeamento (fetch de continue) falhar
+    // silenciosamente (rede) e deixar a campanha presa sem ninguém tentar de novo
+    const WATCHDOG_BUFFER_MS = 60_000
+    for (const campaign of (campaigns || []).filter((c: any) => c.status === 'running')) {
+      const { data: lastLog } = await supabase
+        .from('blast_logs')
+        .select('sent_at')
+        .eq('campaign_id', campaign.id)
+        .not('sent_at', 'is', null)
+        .order('sent_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      const lastActivity = new Date(lastLog?.sent_at || campaign.started_at || campaign.created_at).getTime()
+      const stalledFor = Date.now() - lastActivity
+      if (stalledFor > campaign.delay_max * 1000 + WATCHDOG_BUFFER_MS) {
+        const { data: pending } = await supabase.from('blast_logs').select('*').eq('campaign_id', campaign.id).eq('status', 'pending').limit(500)
+        if (pending && pending.length > 0) {
+          const origin = new URL(req.url).origin
+          after(() => runCampaignBatch(campaign, pending, origin))
+        }
+      }
+    }
+
     return NextResponse.json({ campaigns })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })

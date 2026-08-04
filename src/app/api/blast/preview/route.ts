@@ -31,6 +31,17 @@ export async function POST(req: NextRequest) {
       contacts = [...contacts, ...(data || []).map((c: any) => c.phone)]
     }
 
+    if (filter === 'owner_phone') {
+      const { data } = await supabase
+        .from('companies')
+        .select('owner:profiles(phone)')
+        .not('owner_id', 'is', null)
+      const withOwnerPhone = (data || [])
+        .map((c: any) => (Array.isArray(c.owner) ? c.owner[0] : c.owner)?.phone)
+        .filter(Boolean)
+      contacts = [...contacts, ...withOwnerPhone]
+    }
+
     if (filter === 'no_group') {
       const { data } = await supabase
         .from('companies')

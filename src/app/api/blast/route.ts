@@ -148,6 +148,22 @@ export async function POST(req: NextRequest) {
         contacts = [...contacts, ...(companies || []).map((c: any) => ({ phone: c.phone, name: c.name, company: c.name }))]
       }
 
+      if (filter === 'owner_phone') {
+        // ADM Empresas: em vez do WhatsApp cadastrado na empresa, usa o
+        // WhatsApp do perfil pessoal do lojista (dono da empresa)
+        const { data: companies } = await supabase
+          .from('companies')
+          .select('name, owner_id, owner:profiles(name, phone)')
+          .not('owner_id', 'is', null)
+        const withOwnerPhone = (companies || [])
+          .map((c: any) => {
+            const owner = Array.isArray(c.owner) ? c.owner[0] : c.owner
+            return { phone: owner?.phone, name: owner?.name || c.name, company: c.name }
+          })
+          .filter((c: any) => c.phone)
+        contacts = [...contacts, ...withOwnerPhone]
+      }
+
       if (filter === 'no_group') {
         // Empresas cujo dono ainda não está marcado como "Grupo WA"
         const { data: companies } = await supabase

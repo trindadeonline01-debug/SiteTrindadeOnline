@@ -617,12 +617,18 @@ export default function DisparosTab() {
           <option value="paid">💛 Só empresas pagas</option>
           <option value="unpaid">⭕ Só empresas não pagas</option>
           <option value="no_group">📵 Empresas sem grupo WA</option>
+          <option value="owner_phone">👤 ADM Empresas (WhatsApp do lojista)</option>
           <option value="residents">🏘️ Só moradores</option>
           <option value="broadcast_list">📋 Lista de transmissão</option>
         </select>
         {filter === 'no_group' && (
           <div style={{ fontSize: 11, color: '#92600a', marginTop: 6 }}>
             ✅ Ao enviar, cada empresa contatada é marcada automaticamente como "Grupo WA" na aba Usuários.
+          </div>
+        )}
+        {filter === 'owner_phone' && (
+          <div style={{ fontSize: 11, color: '#92600a', marginTop: 6 }}>
+            📱 Manda pro WhatsApp do perfil pessoal do lojista (não pro WhatsApp cadastrado na empresa). Só entra quem tem telefone no perfil.
           </div>
         )}
         {filter === 'broadcast_list' && (

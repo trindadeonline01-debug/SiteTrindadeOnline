@@ -20,11 +20,13 @@ function randomDelay(min: number, max: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
-// Vercel mata a função depois de maxDuration (300s). Paramos de pegar novos
-// contatos bem antes disso e encadeamos uma nova chamada pra continuar —
-// sem isso a campanha ficava travada em "running" e exigia pausar/retomar
-// na mão pra seguir depois de cada janela de 300s.
-const SAFE_BUDGET_MS = 260_000
+// Vercel mata a função depois de maxDuration (300s) — inclusive no meio de
+// um await, sem chance de rodar código depois. Por isso o orçamento não pode
+// ser um numero fixo: ele precisa sobrar espaço pro delay aleatorio (até
+// delay_max) que vem DEPOIS do envio, senão a função é morta durante esse
+// delay antes mesmo de checar o tempo de novo ou encadear a continuação.
+const HARD_LIMIT_MS = 300_000
+const SEND_BUFFER_MS = 15_000 // margem pro envio em si + disparo da continuação
 
 interface MessageVariation {
   text: string
@@ -261,13 +263,17 @@ export async function POST(req: NextRequest) {
       after(async () => {
         const loopStart = Date.now()
         let ranOutOfTime = false
+        let sentThisInvocation = 0
+
+        // Orçamento desconta o pior caso do delay que vem depois do envio
+        // (até delay_max) — senão a função pode ser morta pela Vercel
+        // durante esse delay, sem chance de encadear a continuação
+        const budgetMs = HARD_LIMIT_MS - (campaign.delay_max * 1000) - SEND_BUFFER_MS
 
         for (const log of (logs || [])) {
-          // Encerra essa invocação bem antes do limite de maxDuration e
-          // encadeia a continuação numa nova chamada — sem isso a campanha
-          // trava em "running" ao bater os 300s, e só volta pausando/retomando
-          // na mão
-          if (Date.now() - loopStart > SAFE_BUDGET_MS) { ranOutOfTime = true; break }
+          // Sempre manda pelo menos 1 nessa invocação, mesmo que o delay_max
+          // configurado deixe o orçamento negativo
+          if (sentThisInvocation > 0 && Date.now() - loopStart > budgetMs) { ranOutOfTime = true; break }
 
           // Verifica se campanha foi pausada
           const { data: current } = await supabase.from('blast_campaigns').select('status').eq('id', campaign_id).single()
@@ -283,6 +289,7 @@ export async function POST(req: NextRequest) {
             .eq('status', 'pending')
             .select('id')
           if (!claimed || claimed.length === 0) continue
+          sentThisInvocation++
 
           const picked = pickVariation(campaign.messages, log.contact_name || 'Cliente', log.company_name || '')
           const message = picked.text

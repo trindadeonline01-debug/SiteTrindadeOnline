@@ -83,16 +83,18 @@ function Gallery({ photos, emoji, isAdmin }: { photos: CompanyPhoto[]; emoji: st
 
   /* 0 fotos */
   if (n === 0) return (
-    <div style={{ width:'100%', height:360, background:'#111', borderRadius:16, display:'flex', alignItems:'center', justifyContent:'center', fontSize:72 }}>
+    <div style={{ width:'100%', aspectRatio:'1 / 1', background:'#111', borderRadius:16, display:'flex', alignItems:'center', justifyContent:'center', fontSize:72 }}>
       {emoji}
     </div>
   )
 
   /* Foto principal (capa) + miniaturas embaixo pra trocar — em vez de
-     espremer todas as fotos lado a lado, o que cortava as imagens */
+     espremer todas as fotos lado a lado, o que cortava as imagens.
+     Container sempre quadrado (padrão em toda página de empresa) — a
+     foto preenche 100% via object-fit:cover, sem faixa nenhuma sobrando */
   return (
     <>
-    <div style={{ width:'100%', height:360, borderRadius:16, overflow:'hidden', position:'relative' }}>
+    <div style={{ width:'100%', aspectRatio:'1 / 1', borderRadius:16, overflow:'hidden', position:'relative' }}>
       <img src={src(idx)} alt="" onClick={() => openLightbox(idx)} style={{ width:'100%', height:'100%', objectFit:'cover', display:'block', cursor:'pointer' }} />
       {n > 1 && (
         <div style={{ position:'absolute', bottom:10, right:10, background:'rgba(0,0,0,.6)', color:'#fff', fontSize:11, fontWeight:500, padding:'3px 10px', borderRadius:12 }}>{idx+1} / {n}</div>

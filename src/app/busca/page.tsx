@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { usePalavraPremiada, PalavraPremiadaModal } from '@/components/PalavraPremiada'
 
 type Company = {
   id: string; name: string; slug: string; address?: string; avg_rating?: number
@@ -30,7 +31,7 @@ function BuscaContent() {
   const [imoveis, setImoveis]     = useState<Listing[]>([])
   const [achados, setAchados]     = useState<Listing[]>([])
   const [total, setTotal]         = useState(0)
-  const [premio, setPremio]       = useState<{ won?: boolean; needsLogin?: boolean; alreadyWon?: boolean; soldOut?: boolean; position?: number; prize_description?: string; code?: string | null; name?: string | null; admin_whatsapp?: string } | null>(null)
+  const { premio, setPremio, checarPalavraPremiada, waResgateUrl } = usePalavraPremiada()
 
   useEffect(() => {
     if (queryInicial.trim()) buscar(queryInicial)
@@ -103,25 +104,6 @@ function BuscaContent() {
 
     setLoading(false)
     checarPalavraPremiada(term)
-  }
-
-  async function checarPalavraPremiada(term: string) {
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const res = await fetch('/api/palavra-premiada', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'check', query: term, access_token: session?.access_token })
-      })
-      const data = await res.json()
-      if (data.match) setPremio(data)
-    } catch {}
-  }
-
-  function waResgateUrl() {
-    if (!premio?.admin_whatsapp) return '#'
-    const msg = `Oi! 🎉 Acertei a Palavra Premiada do Trindade Online!\n\nNome: ${premio.name || '—'}\nPalavra: ${query}\nPrêmio: ${premio.prize_description || '—'}\nPosição: ${premio.position ? `${premio.position}º` : '—'}\nCódigo: ${premio.code || '—'}`
-    return `https://wa.me/${premio.admin_whatsapp}?text=${encodeURIComponent(msg)}`
   }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -236,49 +218,7 @@ function BuscaContent() {
       `}</style>
 
       {premio && (
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.65)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:20}} onClick={() => setPremio(null)}>
-          <div style={{background:'#fff',borderRadius:20,padding:'36px 28px',maxWidth:380,width:'100%',textAlign:'center'}} onClick={e => e.stopPropagation()}>
-            {premio.won && (
-              <>
-                <div style={{fontSize:56,marginBottom:12}}>🎉</div>
-                <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:26,color:'#111',letterSpacing:1,marginBottom:8}}>PARABÉNS!</div>
-                <div style={{fontSize:15,color:'#444',lineHeight:1.6,marginBottom:20}}>
-                  Você é o <strong>{premio.position}º</strong> a acertar a Palavra Premiada!<br/>Prêmio: <strong>{premio.prize_description}</strong>
-                </div>
-                <a href={waResgateUrl()} target="_blank" rel="noopener noreferrer" style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:'13px 20px',background:'#25D366',color:'#fff',borderRadius:12,textDecoration:'none',fontSize:14,fontWeight:700,marginBottom:10}}>
-                  📲 Clique aqui pra resgatar no WhatsApp
-                </a>
-                <div style={{fontSize:12,color:'#AAA'}}>Código: {premio.code}</div>
-              </>
-            )}
-            {premio.needsLogin && (
-              <>
-                <div style={{fontSize:56,marginBottom:12}}>🏆</div>
-                <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:24,color:'#111',letterSpacing:1,marginBottom:8}}>VOCÊ ACHOU A PALAVRA PREMIADA!</div>
-                <div style={{fontSize:15,color:'#444',lineHeight:1.6,marginBottom:20}}>Faça login (é rápido) pra resgatar seu prêmio.</div>
-                <a href={`/login?redirect=${encodeURIComponent(`/busca?q=${query}`)}`} style={{display:'inline-block',padding:'12px 28px',background:'#C9951A',color:'#fff',borderRadius:12,textDecoration:'none',fontSize:14,fontWeight:700}}>Entrar e resgatar</a>
-              </>
-            )}
-            {premio.alreadyWon && (
-              <>
-                <div style={{fontSize:44,marginBottom:12}}>😉</div>
-                <div style={{fontSize:15,color:'#444',lineHeight:1.6,marginBottom:premio.admin_whatsapp ? 20 : 0}}>Você já garantiu sua vaga na Palavra Premiada dessa rodada!</div>
-                {premio.admin_whatsapp && (
-                  <a href={waResgateUrl()} target="_blank" rel="noopener noreferrer" style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:'13px 20px',background:'#25D366',color:'#fff',borderRadius:12,textDecoration:'none',fontSize:14,fontWeight:700}}>
-                    📲 Falar no WhatsApp
-                  </a>
-                )}
-              </>
-            )}
-            {premio.soldOut && (
-              <>
-                <div style={{fontSize:44,marginBottom:12}}>⏳</div>
-                <div style={{fontSize:15,color:'#444',lineHeight:1.6}}>Essa rodada da Palavra Premiada já esgotou. Fique de olho na próxima!</div>
-              </>
-            )}
-            <button onClick={() => setPremio(null)} style={{marginTop:20,background:'none',border:'none',color:'#999',fontSize:13,cursor:'pointer',textDecoration:'underline'}}>Fechar</button>
-          </div>
-        </div>
+        <PalavraPremiadaModal premio={premio} onClose={() => setPremio(null)} waResgateUrl={waResgateUrl} loginRedirect={`/busca?q=${query}`} />
       )}
 
       <div className="topbar">

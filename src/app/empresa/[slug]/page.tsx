@@ -4,6 +4,7 @@ import { useState, useEffect, use, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import ShareButton from '@/components/ShareButton'
 import { compressImage } from '@/lib/compressImage'
+import { usePalavraPremiada, PalavraPremiadaModal } from '@/components/PalavraPremiada'
 
 type CompanyHour   = { label: string; hours: string; order: number }
 type CompanyPhoto  = { id: string; url: string; order: number }
@@ -195,6 +196,9 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
   const [allCategories, setAllCategories]     = useState<SimpleCategory[]>([])
   const [allSubcats, setAllSubcats]           = useState<SimpleSubcategory[]>([])
   const [uploadingPhoto, setUploadingPhoto]   = useState(false)
+  const [premiadaAtiva, setPremiadaAtiva]     = useState<{ active: boolean; prize_description?: string | null }>({ active: false })
+  const [premiadaInput, setPremiadaInput]     = useState('')
+  const { premio, setPremio, checarPalavraPremiada, waResgateUrl } = usePalavraPremiada()
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -202,6 +206,30 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
     })
     loadCompany()
   }, [])
+
+  // Confere se essa loja tem rodada da Palavra Premiada ativa; se veio de
+  // um redirect de login com ?palavra=, já reconfere a palavra na hora
+  useEffect(() => {
+    if (!company?.id) return
+    fetch(`/api/palavra-premiada?company_id=${company.id}`)
+      .then(r => r.json())
+      .then(data => {
+        setPremiadaAtiva(data)
+        const palavraPendente = new URLSearchParams(window.location.search).get('palavra')
+        if (palavraPendente) {
+          setPremiadaInput(palavraPendente)
+          checarPalavraPremiada(palavraPendente, company.id)
+        }
+      })
+      .catch(() => {})
+  }, [company?.id])
+
+  function handlePalavraPremiadaSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    if (!company?.id) return
+    const raw = e.currentTarget.querySelector('input')?.value ?? premiadaInput
+    if (raw.trim()) checarPalavraPremiada(raw.trim(), company.id)
+  }
 
   const COMPANY_SELECT = '*, owner_id, trial_ends_at, category:categories(name,emoji,slug), subcategories:company_subcategories(subcategory_id, subcategory:subcategories(name,emoji)), photos:company_photos(id,url,order), hours:company_hours(label,hours,order)'
 
@@ -506,9 +534,32 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
         </div>
       </div>
 
+      {premio && (
+        <PalavraPremiadaModal premio={premio} onClose={() => setPremio(null)} waResgateUrl={waResgateUrl} loginRedirect={`/empresa/${slug}?palavra=${premiadaInput}`} />
+      )}
+
       {/* GALERIA FULL WIDTH — grid dinâmico */}
       <div className="gallery-wrap">
         <Gallery photos={photos} emoji={company.category?.emoji || '🏪'} isAdmin={isAdmin} />
+
+        {premiadaAtiva.active && (
+          <form onSubmit={handlePalavraPremiadaSubmit} style={{marginTop:14,background:'linear-gradient(135deg,#1A0F00,#111111)',borderRadius:14,padding:'16px 18px',display:'flex',flexDirection:'column',gap:10}}>
+            <div style={{display:'flex',alignItems:'center',gap:8,color:'#F0EDE8',fontSize:13,fontWeight:700,letterSpacing:0.5}}>
+              🎁 PALAVRA PREMIADA DESSA LOJA
+            </div>
+            <div style={{display:'flex',gap:8}}>
+              <input
+                type="text"
+                value={premiadaInput}
+                onChange={e => setPremiadaInput(e.target.value)}
+                placeholder="Digite a palavra premiada..."
+                style={{flex:1,padding:'11px 14px',borderRadius:10,border:'1.5px solid #C9951A',background:'#1A1A1A',color:'#fff',fontSize:14,outline:'none'}}
+              />
+              <button type="submit" style={{background:'#C9951A',border:'none',borderRadius:10,padding:'0 20px',color:'#111',fontWeight:700,fontSize:14,cursor:'pointer'}}>Enviar</button>
+            </div>
+          </form>
+        )}
+
         {isAdmin && (
           <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:12,alignItems:'center'}}>
             {photos.map(p => (

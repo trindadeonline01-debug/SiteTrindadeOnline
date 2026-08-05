@@ -41,18 +41,22 @@ export async function POST(req: NextRequest) {
 
     // CRIAR NOVA RODADA (admin)
     if (action === 'create') {
-      const { word, prize_description, max_winners } = body
+      const { word, prize_description, max_winners, company_id } = body
       if (!word?.trim() || !prize_description?.trim()) {
         return NextResponse.json({ error: 'Preencha a palavra e a descrição do prêmio' }, { status: 400 })
       }
 
-      // Só uma rodada ativa por vez — encerra qualquer uma anterior
-      await supabase.from('prize_words').update({ status: 'inactive', completed_at: new Date().toISOString() }).eq('status', 'active')
+      // Só uma rodada ativa por escopo — encerra a anterior do MESMO escopo
+      // (geral, ou da mesma loja), sem mexer nas rodadas de outras lojas
+      let deactivateQuery = supabase.from('prize_words').update({ status: 'inactive', completed_at: new Date().toISOString() }).eq('status', 'active')
+      deactivateQuery = company_id ? deactivateQuery.eq('company_id', company_id) : deactivateQuery.is('company_id', null)
+      await deactivateQuery
 
       const { data, error } = await supabase.from('prize_words').insert({
         word: normalize(word),
         prize_description: prize_description.trim(),
-        max_winners: max_winners && Number(max_winners) > 0 ? Number(max_winners) : 3
+        max_winners: max_winners && Number(max_winners) > 0 ? Number(max_winners) : 3,
+        company_id: company_id || null
       }).select().single()
 
       if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -75,11 +79,15 @@ export async function POST(req: NextRequest) {
 
     // CONFERIR PESQUISA (chamado a cada busca no site)
     if (action === 'check') {
-      const { query, access_token } = body
+      const { query, access_token, company_id } = body
       const term = normalize(query || '')
       if (!term) return NextResponse.json({ match: false })
 
-      const { data: round } = await supabase.from('prize_words').select('*').eq('status', 'active').maybeSingle()
+      // Busca geral (sem loja) só bate com rodada geral; busca dentro da
+      // loja só bate com a rodada daquela loja — nunca cruza escopo
+      let roundQuery = supabase.from('prize_words').select('*').eq('status', 'active')
+      roundQuery = company_id ? roundQuery.eq('company_id', company_id) : roundQuery.is('company_id', null)
+      const { data: round } = await roundQuery.maybeSingle()
       if (!round || round.word !== term) return NextResponse.json({ match: false })
 
       // Não logado: precisa entrar pra resgatar
@@ -154,10 +162,25 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Lista rodadas + ganhadores (painel admin)
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const { data: rounds } = await supabase.from('prize_words').select('*').order('created_at', { ascending: false })
+    const { searchParams } = new URL(req.url)
+    const company_id = searchParams.get('company_id')
+
+    // Uso público (página da loja): só diz se tem rodada ativa ali e o
+    // prêmio — nunca devolve a palavra
+    if (company_id) {
+      const { data: round } = await supabase
+        .from('prize_words')
+        .select('prize_description')
+        .eq('status', 'active')
+        .eq('company_id', company_id)
+        .maybeSingle()
+      return NextResponse.json({ active: !!round, prize_description: round?.prize_description || null })
+    }
+
+    // Lista rodadas + ganhadores (painel admin)
+    const { data: rounds } = await supabase.from('prize_words').select('*, company:companies(name)').order('created_at', { ascending: false })
     const { data: winners } = await supabase.from('prize_word_winners').select('*').order('won_at', { ascending: false })
     return NextResponse.json({ rounds: rounds || [], winners: winners || [] })
   } catch (err: any) {

@@ -1599,7 +1599,7 @@ export default function AdminPage() {
                             <tr key={c.id}>
                               <td><strong>{c.name}</strong><br/><span style={{fontSize:11,color:'#AAA'}}>{c.address || '—'}</span></td>
                               <td>{c.owner?.name || '—'}</td>
-                              <td>{c.phone ? <a href={`https://wa.me/55${c.phone}`} target='_blank' style={{color:'#25D366',textDecoration:'none',fontSize:12}}>📱 {c.phone}</a> : '—'}</td>
+                              <td>{c.phone ? <button onClick={()=>navigator.clipboard.writeText(c.phone||'').then(()=>showToast('Número copiado!'))} style={{background:'none',border:'none',cursor:'pointer',color:'#25D366',fontSize:12,padding:0,fontFamily:'Inter,sans-serif'}}>📋 {c.phone}</button> : '—'}</td>
                               <td>{c.category?.emoji} {c.category?.name || '—'}</td>
                               <td><span style={{fontSize:11,fontWeight:600,color:c.plan==='paid'?'#0F8050':'#AAA'}}>{c.plan==='paid'?'Pago':'Grátis'}</span></td>
                               <td>

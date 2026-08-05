@@ -30,6 +30,7 @@ function BuscaContent() {
   const [imoveis, setImoveis]     = useState<Listing[]>([])
   const [achados, setAchados]     = useState<Listing[]>([])
   const [total, setTotal]         = useState(0)
+  const [premio, setPremio]       = useState<{ won?: boolean; needsLogin?: boolean; alreadyWon?: boolean; soldOut?: boolean; position?: number; prize_description?: string } | null>(null)
 
   useEffect(() => {
     if (queryInicial.trim()) buscar(queryInicial)
@@ -101,6 +102,20 @@ function BuscaContent() {
     })
 
     setLoading(false)
+    checarPalavraPremiada(term)
+  }
+
+  async function checarPalavraPremiada(term: string) {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/palavra-premiada', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'check', query: term, access_token: session?.access_token })
+      })
+      const data = await res.json()
+      if (data.match) setPremio(data)
+    } catch {}
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -209,6 +224,44 @@ function BuscaContent() {
         .rc-cat{font-size:12px;color:#C9951A;font-weight:600;margin-bottom:2px;}
         .rc-addr{font-size:11px;color:#999;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
       `}</style>
+
+      {premio && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.65)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:20}} onClick={() => setPremio(null)}>
+          <div style={{background:'#fff',borderRadius:20,padding:'36px 28px',maxWidth:380,width:'100%',textAlign:'center'}} onClick={e => e.stopPropagation()}>
+            {premio.won && (
+              <>
+                <div style={{fontSize:56,marginBottom:12}}>🎉</div>
+                <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:26,color:'#111',letterSpacing:1,marginBottom:8}}>PARABÉNS!</div>
+                <div style={{fontSize:15,color:'#444',lineHeight:1.6,marginBottom:16}}>
+                  Você é o <strong>{premio.position}º</strong> a acertar a Palavra Premiada!<br/>Prêmio: <strong>{premio.prize_description}</strong>
+                </div>
+                <div style={{fontSize:13,color:'#888',marginBottom:20}}>Em breve entraremos em contato pelo seu WhatsApp cadastrado 💛</div>
+              </>
+            )}
+            {premio.needsLogin && (
+              <>
+                <div style={{fontSize:56,marginBottom:12}}>🏆</div>
+                <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:24,color:'#111',letterSpacing:1,marginBottom:8}}>VOCÊ ACHOU A PALAVRA PREMIADA!</div>
+                <div style={{fontSize:15,color:'#444',lineHeight:1.6,marginBottom:20}}>Faça login (é rápido) pra resgatar seu prêmio.</div>
+                <a href={`/login?redirect=${encodeURIComponent(`/busca?q=${query}`)}`} style={{display:'inline-block',padding:'12px 28px',background:'#C9951A',color:'#fff',borderRadius:12,textDecoration:'none',fontSize:14,fontWeight:700}}>Entrar e resgatar</a>
+              </>
+            )}
+            {premio.alreadyWon && (
+              <>
+                <div style={{fontSize:44,marginBottom:12}}>😉</div>
+                <div style={{fontSize:15,color:'#444',lineHeight:1.6}}>Você já garantiu sua vaga na Palavra Premiada dessa rodada!</div>
+              </>
+            )}
+            {premio.soldOut && (
+              <>
+                <div style={{fontSize:44,marginBottom:12}}>⏳</div>
+                <div style={{fontSize:15,color:'#444',lineHeight:1.6}}>Essa rodada da Palavra Premiada já esgotou. Fique de olho na próxima!</div>
+              </>
+            )}
+            <button onClick={() => setPremio(null)} style={{marginTop:20,background:'none',border:'none',color:'#999',fontSize:13,cursor:'pointer',textDecoration:'underline'}}>Fechar</button>
+          </div>
+        </div>
+      )}
 
       <div className="topbar">
         <div className="topbar-inner">

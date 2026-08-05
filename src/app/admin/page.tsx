@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import NotificacoesTab from '@/components/admin/NotificacoesTab'
 import DashboardTab from '@/components/admin/DashboardTab'
 import DisparosTab from '@/components/DisparosTab'
+import PalavraPremiadaTab from '@/components/PalavraPremiadaTab'
 import PhotoManager from '@/components/PhotoManager'
 import dynamic from 'next/dynamic'
 const EmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false })
@@ -45,7 +46,7 @@ const statusColor = (s: string) => s === 'active' ? '#0F8050' : s === 'pending' 
 const statusLabel = (s: string) => s === 'active' ? 'Ativa' : s === 'pending' ? 'Pendente' : 'Suspensa'
 
 export default function AdminPage() {
-  const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'denuncias'|'usuarios'|'buscas'|'atividade'|'banners'|'pedidos-banner'|'configuracoes'|'recursos'|'planos'|'aparencia'|'subcategorias'|'vendas'|'sugestoes'|'notificacoes'|'disparos'>('dashboard')
+  const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'denuncias'|'usuarios'|'buscas'|'atividade'|'banners'|'pedidos-banner'|'configuracoes'|'recursos'|'planos'|'aparencia'|'subcategorias'|'vendas'|'sugestoes'|'notificacoes'|'disparos'|'palavra-premiada'>('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [stats, setStats]           = useState<Stats|null>(null)
   const [companies, setCompanies]   = useState<Company[]>([])
@@ -1515,6 +1516,7 @@ export default function AdminPage() {
             { id: 'sugestoes', icon: '💡', label: 'Sugestões' },
             { id: 'notificacoes', icon: '🔔', label: 'Notificações' },
             { id: 'disparos', icon: '📤', label: 'Disparos' },
+            { id: 'palavra-premiada', icon: '🎁', label: 'Palavra Premiada' },
           ].map(n => (
             <div
               key={n.id}
@@ -1557,6 +1559,7 @@ export default function AdminPage() {
               {tab === 'sugestoes' && 'Sugestões de Subcategorias'}
               {tab === 'notificacoes' && 'Notificações Push'}
               {tab === 'disparos' && 'Disparos WhatsApp'}
+              {tab === 'palavra-premiada' && 'Palavra Premiada'}
             </div>
             <div className="topbar-date">{new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}</div>
           </div>
@@ -2935,6 +2938,9 @@ export default function AdminPage() {
           )}
           {tab === 'disparos' && (
             <DisparosTab />
+          )}
+          {tab === 'palavra-premiada' && (
+            <PalavraPremiadaTab />
           )}
           {tab === 'notificacoes' && (
             <NotificacoesTab />

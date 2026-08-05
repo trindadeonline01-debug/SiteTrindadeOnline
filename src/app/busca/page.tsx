@@ -30,7 +30,7 @@ function BuscaContent() {
   const [imoveis, setImoveis]     = useState<Listing[]>([])
   const [achados, setAchados]     = useState<Listing[]>([])
   const [total, setTotal]         = useState(0)
-  const [premio, setPremio]       = useState<{ won?: boolean; needsLogin?: boolean; alreadyWon?: boolean; soldOut?: boolean; position?: number; prize_description?: string } | null>(null)
+  const [premio, setPremio]       = useState<{ won?: boolean; needsLogin?: boolean; alreadyWon?: boolean; soldOut?: boolean; position?: number; prize_description?: string; code?: string | null; name?: string | null; admin_whatsapp?: string } | null>(null)
 
   useEffect(() => {
     if (queryInicial.trim()) buscar(queryInicial)
@@ -116,6 +116,12 @@ function BuscaContent() {
       const data = await res.json()
       if (data.match) setPremio(data)
     } catch {}
+  }
+
+  function waResgateUrl() {
+    if (!premio?.admin_whatsapp) return '#'
+    const msg = `Oi! 🎉 Acertei a Palavra Premiada do Trindade Online!\n\nNome: ${premio.name || '—'}\nPalavra: ${query}\nPrêmio: ${premio.prize_description || '—'}\nPosição: ${premio.position ? `${premio.position}º` : '—'}\nCódigo: ${premio.code || '—'}`
+    return `https://wa.me/${premio.admin_whatsapp}?text=${encodeURIComponent(msg)}`
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -232,10 +238,13 @@ function BuscaContent() {
               <>
                 <div style={{fontSize:56,marginBottom:12}}>🎉</div>
                 <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:26,color:'#111',letterSpacing:1,marginBottom:8}}>PARABÉNS!</div>
-                <div style={{fontSize:15,color:'#444',lineHeight:1.6,marginBottom:16}}>
+                <div style={{fontSize:15,color:'#444',lineHeight:1.6,marginBottom:20}}>
                   Você é o <strong>{premio.position}º</strong> a acertar a Palavra Premiada!<br/>Prêmio: <strong>{premio.prize_description}</strong>
                 </div>
-                <div style={{fontSize:13,color:'#888',marginBottom:20}}>Em breve entraremos em contato pelo seu WhatsApp cadastrado 💛</div>
+                <a href={waResgateUrl()} target="_blank" rel="noopener noreferrer" style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:'13px 20px',background:'#25D366',color:'#fff',borderRadius:12,textDecoration:'none',fontSize:14,fontWeight:700,marginBottom:10}}>
+                  📲 Clique aqui pra resgatar no WhatsApp
+                </a>
+                <div style={{fontSize:12,color:'#AAA'}}>Código: {premio.code}</div>
               </>
             )}
             {premio.needsLogin && (
@@ -249,7 +258,12 @@ function BuscaContent() {
             {premio.alreadyWon && (
               <>
                 <div style={{fontSize:44,marginBottom:12}}>😉</div>
-                <div style={{fontSize:15,color:'#444',lineHeight:1.6}}>Você já garantiu sua vaga na Palavra Premiada dessa rodada!</div>
+                <div style={{fontSize:15,color:'#444',lineHeight:1.6,marginBottom:premio.admin_whatsapp ? 20 : 0}}>Você já garantiu sua vaga na Palavra Premiada dessa rodada!</div>
+                {premio.admin_whatsapp && (
+                  <a href={waResgateUrl()} target="_blank" rel="noopener noreferrer" style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:'13px 20px',background:'#25D366',color:'#fff',borderRadius:12,textDecoration:'none',fontSize:14,fontWeight:700}}>
+                    📲 Falar no WhatsApp
+                  </a>
+                )}
               </>
             )}
             {premio.soldOut && (

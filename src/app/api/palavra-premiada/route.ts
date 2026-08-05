@@ -25,6 +25,15 @@ function formatPhone(phone: string): string {
   return '55' + digits
 }
 
+// Mesmo número usado pra notificar o admin (nova empresa, assinatura etc.) —
+// é o WhatsApp pessoal do Ricardo pra onde o ganhador manda o resgate
+const ADMIN_WHATSAPP = formatPhone(process.env.ADMIN_WHATSAPP_NUMBER || '21980239006')
+
+// Código curto pro admin conferir o resgate sem precisar abrir o painel
+function shortCode(id: string): string {
+  return id.replace(/-/g, '').slice(0, 6).toUpperCase()
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
@@ -83,12 +92,15 @@ export async function POST(req: NextRequest) {
       // Já ganhou essa rodada?
       const { data: already } = await supabase
         .from('prize_word_winners')
-        .select('position')
+        .select('id, position, name')
         .eq('prize_word_id', round.id)
         .eq('user_id', user.id)
         .maybeSingle()
       if (already) {
-        return NextResponse.json({ match: true, alreadyWon: true, position: already.position, prize_description: round.prize_description })
+        return NextResponse.json({
+          match: true, alreadyWon: true, position: already.position, prize_description: round.prize_description,
+          code: shortCode(already.id), name: already.name, admin_whatsapp: ADMIN_WHATSAPP
+        })
       }
 
       const { data: profile } = await supabase.from('profiles').select('name, phone').eq('id', user.id).single()
@@ -117,20 +129,23 @@ export async function POST(req: NextRequest) {
 
       const position = claimed.winners_count
 
-      await supabase.from('prize_word_winners').insert({
+      const { data: winnerRow } = await supabase.from('prize_word_winners').insert({
         prize_word_id: round.id,
         user_id: user.id,
         name: profile?.name || null,
         phone: profile?.phone || null,
         position
-      })
+      }).select('id').single()
 
       // Atingiu o número de ganhadores: desativa a rodada imediatamente
       if (position >= claimed.max_winners) {
         await supabase.from('prize_words').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', round.id)
       }
 
-      return NextResponse.json({ match: true, won: true, position, prize_description: round.prize_description })
+      return NextResponse.json({
+        match: true, won: true, position, prize_description: round.prize_description,
+        code: winnerRow ? shortCode(winnerRow.id) : null, name: profile?.name || null, admin_whatsapp: ADMIN_WHATSAPP
+      })
     }
 
     return NextResponse.json({ error: 'Ação inválida' }, { status: 400 })

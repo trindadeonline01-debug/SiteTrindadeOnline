@@ -194,10 +194,14 @@ export default function HomePage() {
     setShowSuggestions(true)
   }
 
-  function handleSearch(e: React.FormEvent) {
+  function handleSearch(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    if (searchQuery.trim()) {
-      const q = searchQuery.trim()
+    // Lê direto do input na hora do submit (não do state) — no Enter logo
+    // após digitar rápido no celular, o onChange às vezes ainda não
+    // terminou de atualizar o state, e a busca saía com o termo cortado
+    const raw = e.currentTarget.querySelector('input')?.value ?? searchQuery
+    if (raw.trim()) {
+      const q = raw.trim()
       supabase.from('search_logs').insert({ query: q, user_id: user?.id || null }).then(() => {})
       router.push(`/busca?q=${encodeURIComponent(q)}`)
     }

@@ -124,9 +124,13 @@ function BuscaContent() {
     return `https://wa.me/${premio.admin_whatsapp}?text=${encodeURIComponent(msg)}`
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    buscar(input)
+    // Lê direto do input na hora do submit (não do state) — no Enter logo
+    // após digitar rápido no celular, o onChange às vezes ainda não
+    // terminou de atualizar o state, e a busca saía com o termo cortado
+    const raw = e.currentTarget.querySelector('input')?.value ?? input
+    buscar(raw)
   }
 
   function getCover(c: any): string | null {

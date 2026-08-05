@@ -7,6 +7,7 @@ import ShareButton from '@/components/ShareButton'
 type Listing = {
   id:string; type:string; title:string; description?:string
   price?:number; price_label?:string; address?:string; subtype?:string
+  metadata?:{role?:string}
   contact_phone?:string; created_at:string; status:string; user_id:string
   user?:any; photos?:any[]
 }
@@ -23,6 +24,17 @@ const WA_MESSAGE_BY_TYPE:Record<string,string> = {
   emprego:  'Olá, vim pelo site do Trindade Online e quero saber mais sobre a vaga disponível.',
   imovel:   'Olá, vim pelo site do Trindade Online e quero saber mais sobre o imóvel.',
   achado:   'Olá, vim pelo site do Trindade Online sobre o item que você publicou.',
+}
+
+// Empregos tem mão dupla (vaga oferecida x pessoa buscando emprego) —
+// a mensagem do WhatsApp muda de lado conforme quem publicou
+function waMessage(listing:Listing):string{
+  if(listing.type==='emprego'){
+    return listing.metadata?.role==='procura'
+      ? 'Olá, vi seu anúncio buscando emprego no Trindade Online e quero conversar.'
+      : 'Olá, vim pelo site do Trindade Online e quero saber mais sobre a vaga disponível.'
+  }
+  return WA_MESSAGE_BY_TYPE[listing.type] || 'Olá, vim pelo site do Trindade Online e quero saber mais sobre o anúncio.'
 }
 
 const SUBTYPE_COLORS:Record<string,{bg:string;color:string}> = {
@@ -132,7 +144,7 @@ export default function AnuncioPage({ params }: { params: Promise<{ id: string }
     await fetch('/api/listings/update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({listing_id:listing.id,user_id:userId,updates:{status:'deleted'}})})
     window.location.href = '/' + (TYPE_INFO[listing.type]?.slug || '')
   }
-  function fmtPrice(l:Listing){if(!l.price)return'Grátis';return`R$ ${l.price.toLocaleString('pt-BR')}${l.price_label?` /${l.price_label}`:''}`}
+  function fmtPrice(l:Listing){if(!l.price)return l.type==='emprego'?'A combinar':'Grátis';return`R$ ${l.price.toLocaleString('pt-BR')}${l.price_label?` /${l.price_label}`:''}`}
   function fmtDate(d:string){return new Date(d).toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'})}
 
   if(loading) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',fontFamily:'Inter,sans-serif',color:'#AAA'}}>Carregando...</div>
@@ -246,6 +258,7 @@ export default function AnuncioPage({ params }: { params: Promise<{ id: string }
           <div style={{marginTop:photos.length>1?20:0,paddingTop:photos.length>1?0:16}}>
             <div className="tags">
               <span className="tag" style={{background:'#F0EDE8',color:'#666'}}>{info.emoji} {info.label}</span>
+              {listing.type==='emprego'&&<span className="tag" style={listing.metadata?.role==='procura'?{background:'#EAF1FE',color:'#1D4ED8'}:{background:'#FEF3E2',color:'#C9951A'}}>{listing.metadata?.role==='procura'?'🙋 Busco emprego':'💼 Vaga aberta'}</span>}
               {listing.subtype&&subtypeStyle&&<span className="tag" style={{background:subtypeStyle.bg,color:subtypeStyle.color}}>{listing.subtype.charAt(0).toUpperCase()+listing.subtype.slice(1)}</span>}
             </div>
             <div className="title">{listing.title}</div>
@@ -263,7 +276,7 @@ export default function AnuncioPage({ params }: { params: Promise<{ id: string }
             <div className="price-big">{fmtPrice(listing)}</div>
             <div className="price-sub">Publicado em {fmtDate(listing.created_at)}</div>
             {listing.contact_phone&&(
-              <button className="btn-wa" onClick={()=>window.open(`https://wa.me/55${listing.contact_phone!.replace(/\D/g,'')}?text=${encodeURIComponent(WA_MESSAGE_BY_TYPE[listing.type] || 'Olá, vim pelo site do Trindade Online e quero saber mais sobre o anúncio.')}`,'_blank')}>
+              <button className="btn-wa" onClick={()=>window.open(`https://wa.me/55${listing.contact_phone!.replace(/\D/g,'')}?text=${encodeURIComponent(waMessage(listing))}`,'_blank')}>
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
                 Entrar em contato
               </button>

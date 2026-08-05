@@ -3,17 +3,22 @@ import { compressImage } from '@/lib/compressImage'
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 
-type Listing = { id:string; title:string; description?:string; price?:number; price_label?:string; address?:string; subtype?:string; created_at:string; status:string; user?:any; photos?:any[] }
+type Listing = { id:string; title:string; description?:string; price?:number; price_label?:string; address?:string; subtype?:string; metadata?:{role?:string}; created_at:string; status:string; user?:any; photos?:any[] }
 
 const SUBTYPES:[string,string][] = [['clt','CLT'],['freelance','Freelance'],['estagio','Estágio'],['pj','PJ']]
 const EMOJI = '💼'; const TITLE = 'Empregos'
+// 'oferece' = quem tá contratando (padrão, cobre os anúncios antigos sem metadata),
+// 'procura' = quem tá buscando emprego / oferecendo os próprios serviços
+const ROLES:[string,string][] = [['oferece','💼 Vagas abertas'],['procura','🙋 Buscando emprego']]
 
+function roleOf(l:Listing){ return l.metadata?.role || 'oferece' }
 function timeAgo(d:string){const s=Math.floor((Date.now()-new Date(d).getTime())/1000);if(s<60)return'agora';if(s<3600)return`${Math.floor(s/60)}min`;if(s<86400)return`${Math.floor(s/3600)}h`;return`${Math.floor(s/86400)}d`}
 
 export default function EmpregosPage(){
   const [listings,setListings]=useState<Listing[]>([])
   const [filtered,setFiltered]=useState<Listing[]>([])
   const [loading,setLoading]=useState(true)
+  const [role,setRole]=useState('oferece')
   const [filter,setFilter]=useState('todos')
   const [userId,setUserId]=useState<string|null>(null)
   const [search,setSearch]=useState('')
@@ -22,14 +27,16 @@ export default function EmpregosPage(){
   useEffect(()=>{supabase.auth.getSession().then(({data:{session:s}})=>{if(s)setUserId(s.user.id)});load()},[])
 
   async function load(){
-    const{data}=await supabase.from('listings').select('id,title,description,price,price_label,address,subtype,created_at,status,user:profiles(name),photos:listing_photos(url,order)').eq('type','emprego').eq('status','active').order('created_at',{ascending:false})
-    const list=(data||[]) as Listing[];setListings(list);setFiltered(list);setLoading(false)
+    const{data}=await supabase.from('listings').select('id,title,description,price,price_label,address,subtype,metadata,created_at,status,user:profiles(name),photos:listing_photos(url,order)').eq('type','emprego').eq('status','active').order('created_at',{ascending:false})
+    const list=(data||[]) as Listing[];setListings(list);setFiltered(list.filter(l=>roleOf(l)==='oferece'));setLoading(false)
   }
 
-  function applyFilter(f:string){setFilter(f);setSearch('');setFiltered(f==='todos'?listings:listings.filter(l=>l.subtype===f))}
-  function handleSearch(e:React.ChangeEvent<HTMLInputElement>){const q=e.target.value;setSearch(q);setFilter('todos');setFiltered(!q.trim()?listings:listings.filter(l=>l.title.toLowerCase().includes(q.toLowerCase())||l.address?.toLowerCase().includes(q.toLowerCase())))}
+  function baseForRole(r:string){ return listings.filter(l=>roleOf(l)===r) }
+  function applyRole(r:string){setRole(r);setFilter('todos');setSearch('');setFiltered(baseForRole(r))}
+  function applyFilter(f:string){setFilter(f);setSearch('');const base=baseForRole(role);setFiltered(f==='todos'?base:base.filter(l=>l.subtype===f))}
+  function handleSearch(e:React.ChangeEvent<HTMLInputElement>){const q=e.target.value;setSearch(q);setFilter('todos');const base=baseForRole(role);setFiltered(!q.trim()?base:base.filter(l=>l.title.toLowerCase().includes(q.toLowerCase())||l.address?.toLowerCase().includes(q.toLowerCase())))}
   function getCover(l:Listing){if(!l.photos?.length)return null;return[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url||null}
-  function fmtPrice(l:Listing){if(!l.price)return'Grátis';return`R$ ${l.price.toLocaleString('pt-BR')}`}
+  function fmtPrice(l:Listing){if(!l.price)return'A combinar';return`R$ ${l.price.toLocaleString('pt-BR')}`}
 
   return(<>
     <style>{`
@@ -53,6 +60,12 @@ export default function EmpregosPage(){
       .sb{display:flex;align-items:center;gap:10px;background:#fff;border:2px solid #C9951A;border-radius:30px;padding:13px 20px;box-shadow:0 4px 20px rgba(0,0,0,.12);}
       .sb input{flex:1;border:none;background:transparent;font-size:15px;font-family:'Inter',sans-serif;color:#222;outline:none;}
       .sb input::placeholder{color:#BBB;}
+      .roles{display:flex;gap:10px;margin:8px 0 18px;}
+      .role-tab{flex:1;text-align:center;padding:13px 12px;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;border:1.5px solid #E0DDD8;background:#FAFAF8;color:#666;transition:all .15s;font-family:'Inter',sans-serif;}
+      .role-tab span{font-weight:500;color:#AAA;}
+      .role-tab:hover{border-color:#C9951A;}
+      .role-tab.on{border-color:#C9951A;background:#111;color:#fff;}
+      .role-tab.on span{color:#C9951A;}
       .filters{display:flex;gap:7px;flex-wrap:wrap;padding:4px 0 16px;border-bottom:0.5px solid #F0EDE8;margin-bottom:16px;}
       .chip{padding:7px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid #E0DDD8;background:#FAFAF8;color:#666;transition:all .15s;font-family:'Inter',sans-serif;}
       .chip:hover{border-color:#C9951A;background:#FEF3E2;}
@@ -100,19 +113,25 @@ export default function EmpregosPage(){
         <div className="he">💼</div>
         <div><div className="hn">EMPREGOS</div><div className="hc"><span>{filtered.length}</span> itens disponíveis</div></div>
       </div>
-      <button className="btnp" onClick={()=>userId?setShowForm(true):window.location.href='/login'}>+ Publicar vaga</button>
+      <button className="btnp" onClick={()=>userId?setShowForm(true):window.location.href='/login'}>{role==='oferece'?'+ Publicar vaga':'+ Anunciar que busco emprego'}</button>
     </div></div>
 
     <div className="page">
       <div className="sw"><div className="sb">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9951A" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input type="text" placeholder="Buscar no empregos..." value={search} onChange={handleSearch}/>
-        {search&&<button onClick={()=>{setSearch('');setFiltered(listings)}} style={{background:'none',border:'none',cursor:'pointer',color:'#AAA',fontSize:18,lineHeight:'1'}}>✕</button>}
+        {search&&<button onClick={()=>{setSearch('');setFiltered(baseForRole(role))}} style={{background:'none',border:'none',cursor:'pointer',color:'#AAA',fontSize:18,lineHeight:'1'}}>✕</button>}
       </div></div>
 
+      <div className="roles">
+        {ROLES.map(([v,l])=>(
+          <div key={v} className={`role-tab ${role===v?'on':''}`} onClick={()=>applyRole(v)}>{l} <span>({baseForRole(v).length})</span></div>
+        ))}
+      </div>
+
       <div className="filters">
-        <div className={`chip ${filter==='todos'?'on':''}`} onClick={()=>applyFilter('todos')}>Todos ({listings.length})</div>
-        {SUBTYPES.map(([v,l])=>{const c=listings.filter(x=>x.subtype===v).length;return c>0?<div key={v} className={`chip ${filter===v?'on':''}`} onClick={()=>applyFilter(v)}>{l} ({c})</div>:null})}
+        <div className={`chip ${filter==='todos'?'on':''}`} onClick={()=>applyFilter('todos')}>Todos ({baseForRole(role).length})</div>
+        {SUBTYPES.map(([v,l])=>{const c=baseForRole(role).filter(x=>x.subtype===v).length;return c>0?<div key={v} className={`chip ${filter===v?'on':''}`} onClick={()=>applyFilter(v)}>{l} ({c})</div>:null})}
       </div>
 
       {!loading&&<div className="rc">Mostrando <span>{filtered.length}</span> itens</div>}
@@ -126,7 +145,7 @@ export default function EmpregosPage(){
             return(
               <a key={l.id} className="card" href={`/anuncio/${l.id}`}>
                 <div className="ci">{cover?<img src={cover} alt={l.title}/>:<span>💼</span>}
-                  {badge&&<div style={{position:'absolute',top:8,left:8,padding:'2px 8px',borderRadius:6,fontSize:9,fontWeight:700,background:'#FEF3E2',color:'#C9951A'}}>{badge[1]}</div>}
+                  {badge&&<div style={{position:'absolute',top:8,left:8,padding:'2px 8px',borderRadius:6,fontSize:9,fontWeight:700,...(roleOf(l)==='procura'?{background:'#EAF1FE',color:'#1D4ED8'}:{background:'#FEF3E2',color:'#C9951A'})}}>{badge[1]}</div>}
                 </div>
                 <div className="cb">
                   <div className="ct">{l.title}</div>
@@ -145,25 +164,26 @@ export default function EmpregosPage(){
           <div style={{fontSize:48,marginBottom:12}}>💼</div>
           <div style={{fontSize:16,fontWeight:600,color:'#555',marginBottom:6}}>{search?`Nenhum resultado para "${search}"`:'Nenhum anúncio ainda'}</div>
           <div style={{fontSize:13,color:'#AAA'}}>{search?'Tente outro termo.':'Seja o primeiro a publicar!'}</div>
-          {!search&&<button className="btnp" style={{marginTop:16}} onClick={()=>userId?setShowForm(true):window.location.href='/login'}>+ Publicar vaga</button>}
+          {!search&&<button className="btnp" style={{marginTop:16}} onClick={()=>userId?setShowForm(true):window.location.href='/login'}>{role==='oferece'?'+ Publicar vaga':'+ Anunciar que busco emprego'}</button>}
         </div>
       )}
 
       <div className="footer"><a href="/">← Voltar ao Trindade Online</a></div>
     </div>
 
-    {showForm&&<FormModal subtypes={SUBTYPES} type="emprego" userId={userId!} onClose={()=>setShowForm(false)} onSaved={()=>{setShowForm(false);load()}}/>}
+    {showForm&&<FormModal subtypes={SUBTYPES} type="emprego" userId={userId!} initialRole={role} onClose={()=>setShowForm(false)} onSaved={()=>{setShowForm(false);load()}}/>}
   </>)
 }
 
-function FormModal({subtypes,type,userId,onClose,onSaved}:{subtypes:[string,string][];type:string;userId:string;onClose:()=>void;onSaved:()=>void}){
+function FormModal({subtypes,type,userId,initialRole,onClose,onSaved}:{subtypes:[string,string][];type:string;userId:string;initialRole:string;onClose:()=>void;onSaved:()=>void}){
+  const [role,setFormRole]=useState(initialRole)
   const [form,setForm]=useState({title:'',description:'',price:'',address:'',subtype:subtypes[0]?.[0]||'',phone:''})
   const [files,setFiles]=useState<File[]>([])
   const [loading,setLoading]=useState(false)
 
   async function submit(){
     if(!form.title.trim())return;setLoading(true)
-    const{data:listing,error}=await supabase.from('listings').insert({type,user_id:userId,title:form.title.trim(),description:form.description||null,price:form.price?parseFloat(form.price):null,address:form.address||null,subtype:form.subtype||null,contact_phone:form.phone||null,status:'active'}).select().single()
+    const{data:listing,error}=await supabase.from('listings').insert({type,user_id:userId,title:form.title.trim(),description:form.description||null,price:form.price?parseFloat(form.price):null,address:form.address||null,subtype:form.subtype||null,contact_phone:form.phone||null,status:'active',metadata:{role}}).select().single()
     if(error||!listing){setLoading(false);alert('Erro: '+error?.message);return}
     for(let i=0;i<files.length;i++){
       const file=files[i];const ext=file.name.split('.').pop();const path=`listings/${listing.id}/${Date.now()}_${i}.${ext}`
@@ -177,11 +197,16 @@ function FormModal({subtypes,type,userId,onClose,onSaved}:{subtypes:[string,stri
     <div className="mbg" onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="modal">
         <div className="mt">Novo anúncio — Empregos</div>
+        <label className="fl">O QUE VOCÊ QUER FAZER?</label>
+        <div className="fr" style={{marginBottom:12}}>
+          <button type="button" onClick={()=>setFormRole('oferece')} style={{padding:'11px 8px',borderRadius:10,border:role==='oferece'?'1.5px solid #C9951A':'1.5px solid #E0DDD8',background:role==='oferece'?'#FEF3E2':'#fff',color:role==='oferece'?'#92600A':'#666',fontSize:13,fontWeight:700,fontFamily:'Inter,sans-serif',cursor:'pointer'}}>🏢 Estou contratando</button>
+          <button type="button" onClick={()=>setFormRole('procura')} style={{padding:'11px 8px',borderRadius:10,border:role==='procura'?'1.5px solid #C9951A':'1.5px solid #E0DDD8',background:role==='procura'?'#FEF3E2':'#fff',color:role==='procura'?'#92600A':'#666',fontSize:13,fontWeight:700,fontFamily:'Inter,sans-serif',cursor:'pointer'}}>🙋 Busco emprego</button>
+        </div>
         {subtypes.length>0&&(<><label className="fl">TIPO</label><select className="fi" value={form.subtype} onChange={e=>setForm(f=>({...f,subtype:e.target.value}))}>{subtypes.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></>)}
-        <label className="fl">TÍTULO *</label><input className="fi" placeholder="Ex: Sofá 3 lugares azul" value={form.title} onChange={e=>setForm(f=>({...f,title:e.target.value}))}/>
-        <label className="fl">DESCRIÇÃO</label><textarea className="fi" placeholder="Estado, medidas, motivo da venda..." value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} rows={3}/>
+        <label className="fl">TÍTULO *</label><input className="fi" placeholder={role==='oferece'?'Ex: Vendedor(a) meio período':'Ex: Busco vaga de auxiliar administrativo'} value={form.title} onChange={e=>setForm(f=>({...f,title:e.target.value}))}/>
+        <label className="fl">DESCRIÇÃO</label><textarea className="fi" placeholder={role==='oferece'?'Requisitos, horário, benefícios...':'Experiência, disponibilidade, qualificações...'} value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} rows={3}/>
         <div className="fr">
-          <div><label className="fl">VALOR (R$)</label><input className="fi" type="number" placeholder="Deixe vazio = Grátis" value={form.price} onChange={e=>setForm(f=>({...f,price:e.target.value}))}/></div>
+          <div><label className="fl">{role==='oferece'?'SALÁRIO (R$)':'PRETENSÃO SALARIAL (R$)'}</label><input className="fi" type="number" placeholder="Deixe vazio = A combinar" value={form.price} onChange={e=>setForm(f=>({...f,price:e.target.value}))}/></div>
           <div><label className="fl">BAIRRO</label><input className="fi" placeholder="Trindade" value={form.address} onChange={e=>setForm(f=>({...f,address:e.target.value}))}/></div>
         </div>
         <label className="fl">SEU WHATSAPP</label><input className="fi" placeholder="21 99999-9999" value={form.phone} onChange={e=>setForm(f=>({...f,phone:e.target.value}))}/>

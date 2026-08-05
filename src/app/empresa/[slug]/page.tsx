@@ -79,9 +79,6 @@ function Gallery({ photos, emoji, isAdmin }: { photos: CompanyPhoto[]; emoji: st
   }, [lightboxOpen, photos.length])
   const n = photos.length
 
-  const imgStyle: React.CSSProperties = { width:'100%', height:'100%', objectFit:'cover', display:'block', cursor:'pointer' }
-  const emptyStyle: React.CSSProperties = { width:'100%', height:'100%', background:'#1a1a1a', display:'flex', alignItems:'center', justifyContent:'center', fontSize:56 }
-
   function src(i: number) { return photos[i]?.url || '' }
 
   /* 0 fotos */
@@ -91,71 +88,26 @@ function Gallery({ photos, emoji, isAdmin }: { photos: CompanyPhoto[]; emoji: st
     </div>
   )
 
-  /* 1 foto */
-  if (n === 1) return (
-    <>
-    <div style={{ width:'100%', height:400, borderRadius:16, overflow:'hidden' }}>
-      <img src={src(0)} alt="" onClick={() => openLightbox(0)} style={{ width:'100%', height:'100%', objectFit:'cover', display:'block', cursor:'pointer' }} />
-    </div>
-    <Lightbox isAdmin={isAdmin} photos={photos} idx={lightboxIdx} open={lightboxOpen} setIdx={setLightboxIdx} onClose={() => setLightboxOpen(false)} />
-    </>
-  )
-
-  /* 2 fotos */
-  if (n === 2) return (
-    <>
-    <div style={{ width:'100%', height:380, borderRadius:16, overflow:'hidden', display:'grid', gridTemplateColumns:'1fr 1fr', gap:3 }}>
-      <img src={src(0)} alt="" style={imgStyle} onClick={() => openLightbox(0)} />
-      <img src={src(1)} alt="" style={imgStyle} onClick={() => openLightbox(1)} />
-    </div>
-    <Lightbox isAdmin={isAdmin} photos={photos} idx={lightboxIdx} open={lightboxOpen} setIdx={setLightboxIdx} onClose={() => setLightboxOpen(false)} />
-    </>
-  )
-
-  /* 3 fotos */
-  if (n === 3) return (
-    <>
-    <div style={{ width:'100%', height:380, borderRadius:16, overflow:'hidden', display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:3 }}>
-      <img src={src(0)} alt="" style={imgStyle} onClick={() => openLightbox(0)} />
-      <img src={src(1)} alt="" style={imgStyle} onClick={() => openLightbox(1)} />
-      <img src={src(2)} alt="" style={imgStyle} onClick={() => openLightbox(2)} />
-    </div>
-    <Lightbox isAdmin={isAdmin} photos={photos} idx={lightboxIdx} open={lightboxOpen} setIdx={setLightboxIdx} onClose={() => setLightboxOpen(false)} />
-    </>
-  )
-
-  /* 4 fotos */
-  if (n === 4) return (
-    <>
-    <div style={{ width:'100%', height:380, borderRadius:16, overflow:'hidden', display:'grid', gridTemplateColumns:'2fr 1fr', gridTemplateRows:'1fr 1fr', gap:3 }}>
-      <div style={{ gridRow:'1/3', overflow:'hidden' }}><img src={src(idx)} alt="" style={imgStyle} onClick={() => openLightbox(idx)} /></div>
-      <div style={{ overflow:'hidden' }}><img src={src(1)} alt="" style={imgStyle} onClick={() => openLightbox(1)} /></div>
-      <div style={{ overflow:'hidden' }}><img src={src(2)} alt="" style={imgStyle} onClick={() => openLightbox(2)} /></div>
-    </div>
-    <Lightbox isAdmin={isAdmin} photos={photos} idx={lightboxIdx} open={lightboxOpen} setIdx={setLightboxIdx} onClose={() => setLightboxOpen(false)} />
-    </>
-  )
-
-  /* 5+ fotos */
+  /* Foto principal (capa) + miniaturas embaixo pra trocar — em vez de
+     espremer todas as fotos lado a lado, o que cortava as imagens */
   return (
     <>
-    <div style={{ width:'100%', height:380, borderRadius:16, overflow:'hidden', display:'grid', gridTemplateColumns:'2fr 1fr 1fr', gridTemplateRows:'1fr 1fr', gap:3 }}>
-      <div style={{ gridRow:'1/3', overflow:'hidden', position:'relative' }}>
-        <img src={src(idx)} alt="" style={imgStyle} onClick={() => openLightbox(idx)} />
+    <div style={{ width:'100%', height:360, borderRadius:16, overflow:'hidden', position:'relative' }}>
+      <img src={src(idx)} alt="" onClick={() => openLightbox(idx)} style={{ width:'100%', height:'100%', objectFit:'cover', display:'block', cursor:'pointer' }} />
+      {n > 1 && (
         <div style={{ position:'absolute', bottom:10, right:10, background:'rgba(0,0,0,.6)', color:'#fff', fontSize:11, fontWeight:500, padding:'3px 10px', borderRadius:12 }}>{idx+1} / {n}</div>
-      </div>
-      <div style={{ overflow:'hidden' }}><img src={src(1)} alt="" style={imgStyle} onClick={() => openLightbox(1)} /></div>
-      <div style={{ overflow:'hidden' }}><img src={src(2)} alt="" style={imgStyle} onClick={() => openLightbox(2)} /></div>
-      <div style={{ overflow:'hidden' }}><img src={src(3)} alt="" style={imgStyle} onClick={() => openLightbox(3)} /></div>
-      <div style={{ overflow:'hidden', position:'relative' }}>
-        <img src={src(4)} alt="" style={imgStyle} onClick={() => openLightbox(4)} />
-        {n > 5 && (
-          <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,.55)', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontFamily:'"Bebas Neue",sans-serif', fontSize:18, letterSpacing:1, cursor:'pointer' }} onClick={() => openLightbox(5)}>
-            +{n - 5} fotos
-          </div>
-        )}
-      </div>
+      )}
     </div>
+    {n > 1 && (
+      <div style={{ display:'flex', gap:8, marginTop:8, overflowX:'auto', paddingBottom:2 }}>
+        {photos.map((p, i) => (
+          <div key={p.id} onClick={() => setIdx(i)}
+            style={{ flexShrink:0, width:64, height:64, borderRadius:10, overflow:'hidden', cursor:'pointer', border: i===idx ? '2.5px solid #C9951A' : '2.5px solid transparent', opacity: i===idx ? 1 : 0.7, transition:'opacity .15s, border-color .15s' }}>
+            <img src={p.url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
+          </div>
+        ))}
+      </div>
+    )}
     <Lightbox isAdmin={isAdmin} photos={photos} idx={lightboxIdx} open={lightboxOpen} setIdx={setLightboxIdx} onClose={() => setLightboxOpen(false)} />
     </>
   )

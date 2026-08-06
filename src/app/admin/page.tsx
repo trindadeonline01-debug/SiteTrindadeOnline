@@ -89,6 +89,17 @@ export default function AdminPage() {
   const [bannerCurrentImageMobile, setBannerCurrentImageMobile] = useState<string|null>(null)
   const [uploadProgress, setUploadProgress]         = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [bannerCompanySearch, setBannerCompanySearch] = useState('')
+  const [bannerCompanyResults, setBannerCompanyResults] = useState<{id:string;name:string;slug:string}[]>([])
+
+  useEffect(() => {
+    if (!bannerCompanySearch.trim() || bannerCompanySearch.length < 2) { setBannerCompanyResults([]); return }
+    const t = setTimeout(async () => {
+      const { data } = await supabase.from('companies').select('id, name, slug').ilike('name', `%${bannerCompanySearch.trim()}%`).limit(8)
+      setBannerCompanyResults((data || []) as any)
+    }, 250)
+    return () => clearTimeout(t)
+  }, [bannerCompanySearch])
   const [bannerRequests, setBannerRequests] = useState<any[]>([])
   const [featureFlags, setFeatureFlags] = useState<any[]>([])
   const [plans, setPlans] = useState<any[]>([])
@@ -633,6 +644,8 @@ export default function AdminPage() {
     setBannerImageFileMobile(null)
     setBannerImagePreviewMobile(null)
     setBannerCurrentImageMobile(null)
+    setBannerCompanySearch('')
+    setBannerCompanyResults([])
     setBannerFormOpen(true)
   }
 
@@ -651,6 +664,8 @@ export default function AdminPage() {
     setBannerImageFileMobile(null)
     setBannerImagePreviewMobile(null)
     setBannerCurrentImageMobile(b.image_url_mobile || null)
+    setBannerCompanySearch('')
+    setBannerCompanyResults([])
     setBannerFormOpen(true)
   }
 
@@ -1956,6 +1971,8 @@ export default function AdminPage() {
                       setBannerImageFile(null)
                       setBannerImagePreview(null)
                       setBannerCurrentImage(null)
+                      setBannerCompanySearch('')
+                      setBannerCompanyResults([])
                     } else {
                       openNewBanner()
                     }
@@ -2055,10 +2072,23 @@ export default function AdminPage() {
                       </div>
                       <div>
                         <label className="banner-form-label">Link (ao clicar no banner)</label>
+                        <div style={{position:'relative'}}>
+                          <input className="banner-form-input" type="text" value={bannerCompanySearch}
+                            onChange={e => setBannerCompanySearch(e.target.value)}
+                            placeholder="🔍 Buscar loja pelo nome pra preencher o link..." />
+                          {bannerCompanyResults.length > 0 && (
+                            <div style={{position:'absolute',top:'100%',left:0,right:0,zIndex:10,background:'#fff',border:'1px solid #eee',borderRadius:8,overflow:'hidden',boxShadow:'0 4px 12px rgba(0,0,0,.1)'}}>
+                              {bannerCompanyResults.map(c => (
+                                <div key={c.id} onClick={() => { setBannerForm(p => ({...p, link_url: `/empresa/${c.slug}`})); setBannerCompanySearch(c.name); setBannerCompanyResults([]) }}
+                                  style={{padding:'9px 12px',fontSize:13,cursor:'pointer',borderBottom:'1px solid #f5f5f5'}}>{c.name}</div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                         <input className="banner-form-input" type="text" value={bannerForm.link_url}
                           onChange={e => setBannerForm(p => ({...p, link_url: e.target.value}))}
-                          placeholder="Ex: /empresa/anderlu ou https://..." />
-                        <div style={{fontSize:10,color:'#aaa',marginTop:4}}>O banner inteiro será clicável e levará para este link</div>
+                          placeholder="Ex: /empresa/anderlu ou https://..." style={{marginTop:6}} />
+                        <div style={{fontSize:10,color:'#aaa',marginTop:4}}>O banner inteiro será clicável e levará para este link. Busque a loja acima ou digite o link direto (também serve pra outras páginas, tipo /cupons).</div>
                       </div>
                       <div>
                         <label className="banner-form-label">Ordem de exibição</label>
@@ -2074,7 +2104,7 @@ export default function AdminPage() {
                         style={{background:'#C9951A',color:'#111',border:'none',padding:'9px 22px',borderRadius:7,fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'Inter,sans-serif',opacity:(bannerLoading||(!bannerCurrentImage&&!bannerImageFile))?0.6:1}}>
                         {bannerLoading ? 'Salvando...' : editingBannerId ? 'Salvar alterações' : 'Criar banner'}
                       </button>
-                      <button onClick={() => { setBannerFormOpen(false); setEditingBannerId(null); setBannerForm({ title:'', subtitle:'', description:'', link_url:'', display_order:0 }); setBannerImageFile(null); setBannerImagePreview(null); setBannerCurrentImage(null); setBannerImageFileMobile(null); setBannerImagePreviewMobile(null); setBannerCurrentImageMobile(null) }}
+                      <button onClick={() => { setBannerFormOpen(false); setEditingBannerId(null); setBannerForm({ title:'', subtitle:'', description:'', link_url:'', display_order:0 }); setBannerImageFile(null); setBannerImagePreview(null); setBannerCurrentImage(null); setBannerImageFileMobile(null); setBannerImagePreviewMobile(null); setBannerCurrentImageMobile(null); setBannerCompanySearch(''); setBannerCompanyResults([]) }}
                         style={{background:'transparent',color:'#666',border:'1px solid #ddd',padding:'9px 16px',borderRadius:7,fontSize:13,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
                         Cancelar
                       </button>

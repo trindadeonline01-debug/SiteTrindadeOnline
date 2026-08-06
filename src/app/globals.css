@@ -30,3 +30,10 @@ body {
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: #F0EDE8; }
 ::-webkit-scrollbar-thumb { background: #C9951A; border-radius: 2px; }
+
+/* iOS/Safari dá zoom automático ao focar campo com fonte < 16px — a maioria
+   dos formulários do site usa 13-15px inline, então força 16px só no mobile
+   (onde o zoom acontece) pra não mexer em nada no layout do desktop/admin */
+@media (max-width: 767px) {
+  input, textarea, select { font-size: 16px !important; }
+}

@@ -683,7 +683,12 @@ export default function AdminPage() {
     const ext = file.name.split('.').pop()
     const fileName = `banners/${Date.now()}.${ext}`
     setUploadProgress(30)
-    const compressed = await compressImage(file)
+    // Banner é a imagem mais visível da home — os parâmetros padrão do
+    // compressImage (0.4MB/1200px) são pensados pra foto de perfil/listagem
+    // e deixavam o banner borrado, principalmente no celular com tela de
+    // alta densidade (onde 750px CSS pede bem mais que 1200px reais pra
+    // ficar nítido). Mesmo tratamento que o banner do painel do lojista já usa.
+    const compressed = await compressImage(file, 1.5, 1920)
     const { error } = await supabase.storage.from('company-photos').upload(fileName, compressed, { upsert: true })
     if (error) { showToast('Erro no upload: ' + error.message); setUploadProgress(0); return null }
     setUploadProgress(80)

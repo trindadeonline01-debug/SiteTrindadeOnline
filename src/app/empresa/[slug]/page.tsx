@@ -32,6 +32,8 @@ type Review = {
 
 const fmtDate = (s: string) => new Date(s).toLocaleDateString('pt-BR')
 
+const PALAVRA_ERRO_MSGS = ['❌ Ainda não é essa... tenta de novo!', '😅 Quase! Mas não é essa palavra.', '🔍 Não foi dessa vez, continua tentando!']
+
 function isOpenNow(hours?: CompanyHour[]): boolean {
   if (!hours || hours.length === 0) return false
   const day = new Date().getDay()
@@ -152,6 +154,9 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
   const [uploadingPhoto, setUploadingPhoto]   = useState(false)
   const [premiadaAtiva, setPremiadaAtiva]     = useState<{ active: boolean; prize_description?: string | null }>({ active: false })
   const [premiadaInput, setPremiadaInput]     = useState('')
+  const [premiadaErro, setPremiadaErro]       = useState('')
+  const premiadaInputRef = useRef<HTMLInputElement>(null)
+  const premiadaErroTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { premio, setPremio, checarPalavraPremiada, waResgateUrl } = usePalavraPremiada()
 
   useEffect(() => {
@@ -178,11 +183,31 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
       .catch(() => {})
   }, [company?.id])
 
-  function handlePalavraPremiadaSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handlePalavraPremiadaSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (!company?.id) return
     const raw = e.currentTarget.querySelector('input')?.value ?? premiadaInput
-    if (raw.trim()) checarPalavraPremiada(raw.trim(), company.id)
+    if (!raw.trim()) return
+
+    const data = await checarPalavraPremiada(raw.trim(), company.id)
+
+    // Errou: treme o campo, borda fica vermelha e mostra uma mensagem
+    // curta que some sozinha — antes disso o campo não dava sinal nenhum
+    if (!data?.match) {
+      const el = premiadaInputRef.current
+      if (el) {
+        el.classList.remove('pw-shake')
+        void el.offsetWidth
+        el.classList.add('pw-shake', 'pw-error')
+        setTimeout(() => el.classList.remove('pw-shake'), 400)
+        setTimeout(() => el.classList.remove('pw-error'), 650)
+      }
+      setPremiadaErro(PALAVRA_ERRO_MSGS[Math.floor(Math.random() * PALAVRA_ERRO_MSGS.length)])
+      if (premiadaErroTimer.current) clearTimeout(premiadaErroTimer.current)
+      premiadaErroTimer.current = setTimeout(() => setPremiadaErro(''), 3200)
+    } else {
+      setPremiadaErro('')
+    }
   }
 
   const COMPANY_SELECT = '*, owner_id, trial_ends_at, category:categories(name,emoji,slug), subcategories:company_subcategories(subcategory_id, subcategory:subcategories(name,emoji)), photos:company_photos(id,url,order), hours:company_hours(label,hours,order)'
@@ -469,6 +494,14 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
         .page-footer{padding:28px 0 8px;text-align:center;font-size:12px;color:#AAA;border-top:0.5px solid #F0EDE8;margin-top:32px;}
         .page-footer a{color:#C9951A;text-decoration:none;}
         .ok-msg{background:#EDFAF3;border:1px solid #A8E6C4;border-radius:10px;padding:10px 14px;font-size:13px;color:#0F5C3A;margin-bottom:14px;}
+
+        /* PALAVRA PREMIADA — feedback de erro */
+        .pw-input.pw-error{border-color:#E24B4A !important;background:#241213 !important;}
+        .pw-input.pw-shake{animation:pwShake .4s;}
+        @keyframes pwShake{10%,90%{transform:translateX(-1px);}20%,80%{transform:translateX(2px);}30%,50%,70%{transform:translateX(-4px);}40%,60%{transform:translateX(4px);}}
+        @media(prefers-reduced-motion:reduce){.pw-input.pw-shake{animation:none;}}
+        .pw-feedback{font-size:12.5px;font-weight:600;color:#FF9B9B;min-height:16px;opacity:0;transform:translateY(-4px);transition:opacity .25s,transform .25s;}
+        .pw-feedback.show{opacity:1;transform:translateY(0);}
       `}</style>
 
       {/* TOPBAR */}
@@ -503,6 +536,8 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
             </div>
             <div style={{display:'flex',gap:8}}>
               <input
+                ref={premiadaInputRef}
+                className="pw-input"
                 type="text"
                 value={premiadaInput}
                 onChange={e => setPremiadaInput(e.target.value)}
@@ -511,6 +546,7 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
               />
               <button type="submit" style={{background:'#C9951A',border:'none',borderRadius:10,padding:'0 20px',color:'#111',fontWeight:700,fontSize:14,cursor:'pointer'}}>Enviar</button>
             </div>
+            <div className={`pw-feedback ${premiadaErro ? 'show' : ''}`}>{premiadaErro || ' '}</div>
           </form>
         )}
 

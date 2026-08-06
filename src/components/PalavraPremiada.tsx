@@ -48,7 +48,10 @@ export function usePalavraPremiada() {
         setWonTerm(term)
         setPremio(data)
       }
-    } catch {}
+      return data
+    } catch {
+      return null
+    }
   }
 
   function waResgateUrl() {

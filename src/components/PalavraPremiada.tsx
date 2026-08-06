@@ -14,6 +14,20 @@ export interface PremioState {
   admin_whatsapp?: string
 }
 
+// ID anônimo persistido no navegador — permite contar pessoas únicas nas
+// tentativas/visitas da Palavra Premiada mesmo antes de fazer login
+export function getVisitorId(): string {
+  if (typeof window === 'undefined') return ''
+  try {
+    let id = localStorage.getItem('tro_vid')
+    if (!id) {
+      id = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`
+      localStorage.setItem('tro_vid', id)
+    }
+    return id
+  } catch { return '' }
+}
+
 // Confere uma pesquisa contra a rodada ativa (geral, se companyId for
 // omitido, ou da loja específica) e monta o link de WhatsApp pro resgate —
 // usado tanto na busca geral quanto na página da empresa
@@ -27,7 +41,7 @@ export function usePalavraPremiada() {
       const res = await fetch('/api/palavra-premiada', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'check', query: term, access_token: session?.access_token, company_id: companyId || null })
+        body: JSON.stringify({ action: 'check', query: term, access_token: session?.access_token, company_id: companyId || null, visitor_id: getVisitorId() })
       })
       const data = await res.json()
       if (data.match) {

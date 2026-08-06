@@ -4,7 +4,7 @@ import { useState, useEffect, use, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import ShareButton from '@/components/ShareButton'
 import { compressImage } from '@/lib/compressImage'
-import { usePalavraPremiada, PalavraPremiadaModal } from '@/components/PalavraPremiada'
+import { usePalavraPremiada, PalavraPremiadaModal, getVisitorId } from '@/components/PalavraPremiada'
 
 type CompanyHour   = { label: string; hours: string; order: number }
 type CompanyPhoto  = { id: string; url: string; order: number }
@@ -165,7 +165,7 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
   // um redirect de login com ?palavra=, já reconfere a palavra na hora
   useEffect(() => {
     if (!company?.id) return
-    fetch(`/api/palavra-premiada?company_id=${company.id}`)
+    fetch(`/api/palavra-premiada?company_id=${company.id}&visitor_id=${encodeURIComponent(getVisitorId())}`)
       .then(r => r.json())
       .then(data => {
         setPremiadaAtiva(data)

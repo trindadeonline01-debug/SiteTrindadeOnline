@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
 
 interface Round {
@@ -29,6 +29,19 @@ interface Winner {
 
 interface CompanyOption { id: string; name: string }
 
+interface Attempt {
+  id: string
+  company_id: string | null
+  prize_word_id: string | null
+  event_type: 'view' | 'attempt'
+  term: string | null
+  matched: boolean
+  user_id: string | null
+  visitor_id: string | null
+  created_at: string
+  company?: { name: string } | null
+}
+
 const s: Record<string, any> = {
   card: { background: '#fff', borderRadius: 16, padding: 24, marginBottom: 20, boxShadow: '0 2px 12px rgba(0,0,0,0.07)' },
   cardTitle: { fontSize: 11, fontWeight: 700, color: '#C9951A', letterSpacing: 1.5, textTransform: 'uppercase' as const, marginBottom: 18 },
@@ -42,6 +55,7 @@ const s: Record<string, any> = {
 export default function PalavraPremiadaTab() {
   const [rounds, setRounds] = useState<Round[]>([])
   const [winners, setWinners] = useState<Winner[]>([])
+  const [attempts, setAttempts] = useState<Attempt[]>([])
   const [loading, setLoading] = useState(false)
   const [word, setWord] = useState('')
   const [prize, setPrize] = useState('')
@@ -68,6 +82,7 @@ export default function PalavraPremiadaTab() {
     const data = await res.json()
     setRounds(data.rounds || [])
     setWinners(data.winners || [])
+    setAttempts(data.attempts || [])
   }
 
   async function criar() {
@@ -110,6 +125,43 @@ export default function PalavraPremiadaTab() {
   const winnersOf = (roundId: string) => winners.filter(w => w.prize_word_id === roundId).sort((a, b) => a.position - b.position)
   const scopeLabel = (r: Round) => r.company_id ? `🏪 ${r.company?.name || 'loja'}` : '🌐 Geral (busca do site)'
 
+  // Ranking de palavras tentadas (agrupado por escopo + palavra) — pessoa
+  // única = user_id (se logado) ou visitor_id (fallback anônimo)
+  const wordStats = useMemo(() => {
+    const map = new Map<string, { scope: string; term: string; count: number; matched: number; people: Set<string> }>()
+    attempts.filter(a => a.event_type === 'attempt' && a.term).forEach(a => {
+      const key = `${a.company_id || 'geral'}::${a.term}`
+      if (!map.has(key)) {
+        map.set(key, { scope: a.company_id ? (a.company?.name || 'loja') : '🌐 Geral (site)', term: a.term as string, count: 0, matched: 0, people: new Set() })
+      }
+      const e = map.get(key)!
+      e.count++
+      if (a.matched) e.matched++
+      const person = a.user_id || a.visitor_id
+      if (person) e.people.add(person)
+    })
+    return Array.from(map.values()).map(e => ({ scope: e.scope, term: e.term, count: e.count, matched: e.matched, unique: e.people.size })).sort((a, b) => b.count - a.count)
+  }, [attempts])
+
+  // Visitas à página da loja enquanto tinha rodada ativa (intenção de participar)
+  const viewStats = useMemo(() => {
+    const map = new Map<string, { scope: string; count: number; people: Set<string> }>()
+    attempts.filter(a => a.event_type === 'view' && a.company_id).forEach(a => {
+      const key = a.company_id as string
+      if (!map.has(key)) map.set(key, { scope: a.company?.name || 'loja', count: 0, people: new Set() })
+      const e = map.get(key)!
+      e.count++
+      const person = a.user_id || a.visitor_id
+      if (person) e.people.add(person)
+    })
+    return Array.from(map.values()).map(e => ({ scope: e.scope, count: e.count, unique: e.people.size })).sort((a, b) => b.unique - a.unique)
+  }, [attempts])
+
+  const totalAttempts = attempts.filter(a => a.event_type === 'attempt').length
+  const totalUniqueAttempters = new Set(attempts.filter(a => a.event_type === 'attempt').map(a => a.user_id || a.visitor_id).filter(Boolean)).size
+  const totalViews = attempts.filter(a => a.event_type === 'view').length
+  const totalUniqueVisitors = new Set(attempts.filter(a => a.event_type === 'view').map(a => a.user_id || a.visitor_id).filter(Boolean)).size
+
   return (
     <div>
       <div style={s.card}>
@@ -131,6 +183,52 @@ export default function PalavraPremiadaTab() {
               </div>
             )}
             <button style={s.btnGhost} onClick={() => encerrar(r.id)}>Encerrar rodada agora</button>
+          </div>
+        ))}
+      </div>
+
+      <div style={s.card}>
+        <div style={s.cardTitle}>📊 Analytics — Palavra Premiada</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 10, marginBottom: 20 }}>
+          <div style={{ background: '#f9f9f9', borderRadius: 10, padding: '12px 14px' }}>
+            <div style={{ fontSize: 22, fontWeight: 700, color: '#111' }}>{totalAttempts}</div>
+            <div style={{ fontSize: 11, color: '#888' }}>tentativas no total</div>
+          </div>
+          <div style={{ background: '#f9f9f9', borderRadius: 10, padding: '12px 14px' }}>
+            <div style={{ fontSize: 22, fontWeight: 700, color: '#111' }}>{totalUniqueAttempters}</div>
+            <div style={{ fontSize: 11, color: '#888' }}>pessoas únicas tentando</div>
+          </div>
+          <div style={{ background: '#f9f9f9', borderRadius: 10, padding: '12px 14px' }}>
+            <div style={{ fontSize: 22, fontWeight: 700, color: '#111' }}>{totalViews}</div>
+            <div style={{ fontSize: 11, color: '#888' }}>visitas com rodada ativa</div>
+          </div>
+          <div style={{ background: '#f9f9f9', borderRadius: 10, padding: '12px 14px' }}>
+            <div style={{ fontSize: 22, fontWeight: 700, color: '#111' }}>{totalUniqueVisitors}</div>
+            <div style={{ fontSize: 11, color: '#888' }}>visitantes únicos</div>
+          </div>
+        </div>
+
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#888', letterSpacing: 0.5, textTransform: 'uppercase' as const, marginBottom: 10 }}>Palavras mais tentadas</div>
+        {wordStats.length === 0 && <div style={{ fontSize: 13, color: '#999', marginBottom: 8 }}>Nenhuma tentativa registrada ainda.</div>}
+        {wordStats.map((w, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: i < wordStats.length - 1 ? '1px solid #f2f2f2' : 'none' }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#111' }}>"{w.term}"</div>
+              <div style={{ fontSize: 11, color: '#999' }}>{w.scope}</div>
+            </div>
+            <div style={{ fontSize: 12, color: '#666', textAlign: 'right' as const }}>{w.count} tentativa{w.count === 1 ? '' : 's'}</div>
+            <div style={{ fontSize: 12, color: '#666', textAlign: 'right' as const }}>{w.unique} pessoa{w.unique === 1 ? '' : 's'}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: w.matched > 0 ? '#0F6E56' : '#BBB', textAlign: 'right' as const }}>{w.matched} acerto{w.matched === 1 ? '' : 's'}</div>
+          </div>
+        ))}
+
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#888', letterSpacing: 0.5, textTransform: 'uppercase' as const, margin: '20px 0 10px' }}>Visitas por loja (pra participar)</div>
+        {viewStats.length === 0 && <div style={{ fontSize: 13, color: '#999' }}>Nenhuma visita registrada ainda.</div>}
+        {viewStats.map((v, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: i < viewStats.length - 1 ? '1px solid #f2f2f2' : 'none' }}>
+            <div style={{ flex: 1, fontSize: 13, fontWeight: 700, color: '#111' }}>🏪 {v.scope}</div>
+            <div style={{ fontSize: 12, color: '#666', textAlign: 'right' as const }}>{v.count} visita{v.count === 1 ? '' : 's'}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#C9951A', textAlign: 'right' as const }}>{v.unique} única{v.unique === 1 ? '' : 's'}</div>
           </div>
         ))}
       </div>

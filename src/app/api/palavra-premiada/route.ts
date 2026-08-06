@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
 
     // CONFERIR PESQUISA (chamado a cada busca no site)
     if (action === 'check') {
-      const { query, access_token, company_id } = body
+      const { query, access_token, company_id, visitor_id } = body
       const term = normalize(query || '')
       if (!term) return NextResponse.json({ match: false })
 
@@ -93,14 +93,35 @@ export async function POST(req: NextRequest) {
       roundQuery = company_id ? roundQuery.eq('company_id', company_id) : roundQuery.is('company_id', null)
       const { data: activeRounds } = await roundQuery
       const round = (activeRounds || []).find(r => r.word === term)
+
+      // Resolve o usuário uma única vez (se veio token) — reaproveitado
+      // pro log de tentativa e pro fluxo de resgate logo abaixo
+      let user: { id: string } | null = null
+      if (access_token) {
+        const { data: userData } = await supabaseAuth.auth.getUser(access_token)
+        if (userData?.user) user = { id: userData.user.id }
+      }
+
+      // Log de tentativa pro painel de analytics — só quando existe alguma
+      // rodada rolando nesse escopo, pra não virar log genérico de toda busca do site
+      if ((activeRounds || []).length > 0) {
+        try {
+          await supabase.from('prize_word_attempts').insert({
+            company_id: company_id || null,
+            prize_word_id: round?.id || null,
+            event_type: 'attempt',
+            term,
+            matched: !!round,
+            user_id: user?.id || null,
+            visitor_id: visitor_id || null
+          })
+        } catch {}
+      }
+
       if (!round) return NextResponse.json({ match: false })
 
       // Não logado: precisa entrar pra resgatar
-      if (!access_token) return NextResponse.json({ match: true, needsLogin: true })
-
-      const { data: userData, error: userErr } = await supabaseAuth.auth.getUser(access_token)
-      if (userErr || !userData?.user) return NextResponse.json({ match: true, needsLogin: true })
-      const user = userData.user
+      if (!user) return NextResponse.json({ match: true, needsLogin: true })
 
       // Já ganhou essa rodada?
       const { data: already } = await supabase
@@ -181,16 +202,35 @@ export async function GET(req: NextRequest) {
         .select('prize_description')
         .eq('status', 'active')
         .eq('company_id', company_id)
+      const active = (rounds || []).length > 0
+
+      // Log de visita pro painel de analytics — só quando tem rodada rolando,
+      // pra medir quantas pessoas únicas chegaram na loja pra participar
+      if (active) {
+        try {
+          await supabase.from('prize_word_attempts').insert({
+            company_id,
+            event_type: 'view',
+            visitor_id: searchParams.get('visitor_id') || null
+          })
+        } catch {}
+      }
+
       return NextResponse.json({
-        active: (rounds || []).length > 0,
+        active,
         prize_description: (rounds || []).map(r => r.prize_description).join(' • ') || null
       })
     }
 
-    // Lista rodadas + ganhadores (painel admin)
+    // Lista rodadas + ganhadores + tentativas/visitas (painel admin)
     const { data: rounds } = await supabase.from('prize_words').select('*, company:companies(name)').order('created_at', { ascending: false })
     const { data: winners } = await supabase.from('prize_word_winners').select('*').order('won_at', { ascending: false })
-    return NextResponse.json({ rounds: rounds || [], winners: winners || [] })
+    const { data: attempts } = await supabase
+      .from('prize_word_attempts')
+      .select('*, company:companies(name)')
+      .order('created_at', { ascending: false })
+      .limit(5000)
+    return NextResponse.json({ rounds: rounds || [], winners: winners || [], attempts: attempts || [] })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }

@@ -144,6 +144,20 @@ export default function AgendaTab() {
 
   return (
     <div style={{ background: '#0B0D10', color: '#EDEFF2', fontFamily: 'ui-monospace,SF Mono,Roboto Mono,Menlo,Consolas,monospace', margin: -24, padding: 24 }}>
+      <style>{`
+        .at-tiles { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:#333B46; border:1px solid #333B46; margin-bottom:20px; }
+        @media(max-width:760px){ .at-tiles { grid-template-columns:repeat(2,1fr); } }
+        .at-grid2 { display:grid; grid-template-columns:1.3fr 1fr; gap:1px; background:#333B46; border:1px solid #333B46; margin-bottom:20px; }
+        @media(max-width:900px){ .at-grid2 { grid-template-columns:1fr; } }
+        .at-form2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+        @media(max-width:600px){ .at-form2 { grid-template-columns:1fr; } }
+        .at-task-row { display:grid; grid-template-columns:auto 1fr auto; gap:14px; align-items:center; background:#12151A; padding:14px 16px; }
+        .at-task-meta { display:flex; align-items:center; gap:10px; }
+        @media(max-width:640px){
+          .at-task-row { grid-template-columns:auto 1fr; row-gap:10px; }
+          .at-task-meta { grid-column:1 / -1; justify-content:space-between; }
+        }
+      `}</style>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, flexWrap: 'wrap', gap: 12, borderBottom: '1px solid #333B46', paddingBottom: 14 }}>
         <div style={{ fontFamily: "'Oswald','Arial Narrow',sans-serif", fontWeight: 700, fontSize: 22, letterSpacing: 1, textTransform: 'uppercase' }}>
           Agenda <span style={{ fontFamily: 'ui-monospace,monospace', fontSize: 10, color: '#5B6473', border: '1px solid #333B46', padding: '3px 7px', marginLeft: 8 }}>/producao</span>
@@ -156,7 +170,7 @@ export default function AgendaTab() {
 
       {loading ? <div style={{ color: '#5B6473', fontSize: 13 }}>Carregando...</div> : <>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 1, background: '#333B46', border: '1px solid #333B46', marginBottom: 20 }}>
+      <div className="at-tiles">
         {(['pendente', 'aceito', 'concluido', 'atrasado'] as const).map(k => (
           <div key={k} style={{ background: '#12151A', padding: 16, borderLeft: `2px solid ${STATUS_COLOR[k]}` }}>
             <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.5, color: '#5B6473', textTransform: 'uppercase', marginBottom: 10 }}>
@@ -167,7 +181,7 @@ export default function AgendaTab() {
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 1, background: '#333B46', border: '1px solid #333B46', marginBottom: 20 }}>
+      <div className="at-grid2">
         <div style={s.panel}>
           <div style={s.panelTitle}>Tarefas por pessoa</div>
           {byPerson.arr.length === 0 && <div style={{ fontSize: 12, color: '#5B6473' }}>Sem tarefas ainda.</div>}
@@ -195,9 +209,9 @@ export default function AgendaTab() {
           <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px dashed #333B46' }}>
             <label style={s.label}>Convidar por email</label>
             <input style={s.input} placeholder="Nome" value={teamForm.name} onChange={e => setTeamForm(f => ({ ...f, name: e.target.value }))} />
-            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-              <input style={s.input} placeholder="email@exemplo.com" value={teamForm.email} onChange={e => setTeamForm(f => ({ ...f, email: e.target.value }))} />
-              <input style={{ ...s.input, maxWidth: 130 }} placeholder="WhatsApp" value={teamForm.phone} onChange={e => setTeamForm(f => ({ ...f, phone: e.target.value }))} />
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+              <input style={{ ...s.input, flex: '1 1 160px' }} placeholder="email@exemplo.com" value={teamForm.email} onChange={e => setTeamForm(f => ({ ...f, email: e.target.value }))} />
+              <input style={{ ...s.input, flex: '1 1 110px', maxWidth: 130 }} placeholder="WhatsApp" value={teamForm.phone} onChange={e => setTeamForm(f => ({ ...f, phone: e.target.value }))} />
               <button style={s.btnPrimary} disabled={saving} onClick={inviteTeam}>Enviar</button>
             </div>
           </div>
@@ -223,7 +237,7 @@ export default function AgendaTab() {
       {showNewTask && (
         <div style={{ ...s.panel, marginBottom: 20 }}>
           <div style={s.panelTitle}>Nova tarefa</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="at-form2">
             <div>
               <label style={s.label}>Cliente</label>
               <select style={s.input} value={taskForm.client_id} onChange={e => setTaskForm(f => ({ ...f, client_id: e.target.value }))}>
@@ -241,7 +255,7 @@ export default function AgendaTab() {
           </div>
           <label style={s.label}>Título</label>
           <input style={s.input} value={taskForm.title} onChange={e => setTaskForm(f => ({ ...f, title: e.target.value }))} placeholder="Ex: Reels — Promoção de carnes" />
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="at-form2">
             <div>
               <label style={s.label}>Data e hora da captação</label>
               <input style={s.input} type="datetime-local" value={taskForm.scheduled_at} onChange={e => setTaskForm(f => ({ ...f, scheduled_at: e.target.value }))} />
@@ -279,17 +293,19 @@ export default function AgendaTab() {
           const client = one(t.client)
           const person = one(t.team)
           return (
-            <div key={t.id} style={{ background: '#12151A', padding: '14px 16px', display: 'grid', gridTemplateColumns: 'auto 1fr auto auto', gap: 14, alignItems: 'center', borderLeft: `3px solid ${STATUS_COLOR[st]}` }}>
+            <div key={t.id} className="at-task-row" style={{ borderLeft: `3px solid ${STATUS_COLOR[st]}` }}>
               <div style={{ width: 38, height: 38, background: '#161A20', border: '1px solid #333B46', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🎬</div>
-              <div>
+              <div style={{ minWidth: 0 }}>
                 <div style={{ fontFamily: 'ui-monospace,monospace', fontSize: 13, fontWeight: 700, marginBottom: 3 }}>{t.title}</div>
                 <div style={{ fontSize: 10.5, color: '#5B6473' }}>{(client?.name || '—').toUpperCase()} · {fmtWhenBR(t.scheduled_at)}{t.location ? ` · ${t.location}` : ''}</div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                {person && <span style={{ width: 26, height: 26, background: '#161A20', border: '1px solid #333B46', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700 }}>{initials(person.name)}</span>}
-                <span style={{ fontFamily: 'ui-monospace,monospace', display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, fontWeight: 700, letterSpacing: 0.5, padding: '4px 8px', border: `1px solid ${STATUS_COLOR[st]}`, color: STATUS_COLOR[st], textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{STATUS_LABEL[st]}</span>
+              <div className="at-task-meta">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  {person && <span style={{ width: 26, height: 26, background: '#161A20', border: '1px solid #333B46', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700 }}>{initials(person.name)}</span>}
+                  <span style={{ fontFamily: 'ui-monospace,monospace', display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, fontWeight: 700, letterSpacing: 0.5, padding: '4px 8px', border: `1px solid ${STATUS_COLOR[st]}`, color: STATUS_COLOR[st], textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{STATUS_LABEL[st]}</span>
+                </div>
+                <button onClick={() => deleteTask(t.id)} style={{ background: 'none', border: 'none', color: '#5B6473', cursor: 'pointer', fontSize: 15 }} title="Excluir">×</button>
               </div>
-              <button onClick={() => deleteTask(t.id)} style={{ background: 'none', border: 'none', color: '#5B6473', cursor: 'pointer', fontSize: 15 }} title="Excluir">×</button>
             </div>
           )
         })}

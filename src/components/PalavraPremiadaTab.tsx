@@ -74,9 +74,6 @@ export default function PalavraPremiadaTab() {
     if (!word.trim() || !prize.trim()) return alert('Preencha a palavra e o prêmio')
     if (scope === 'loja' && !selectedCompany) return alert('Escolha a loja')
 
-    const conflitante = ativasFiltradas.find(r => (scope === 'geral' ? !r.company_id : r.company_id === selectedCompany?.id))
-    if (conflitante && !confirm(`Já existe uma rodada ativa ${scope === 'geral' ? 'geral' : `da loja "${selectedCompany?.name}"`} com a palavra "${conflitante.word}". Criar uma nova encerra essa automaticamente. Continuar?`)) return
-
     setLoading(true)
     const res = await fetch('/api/palavra-premiada', {
       method: 'POST',
@@ -145,6 +142,7 @@ export default function PalavraPremiadaTab() {
           <button style={s.scopeBtn(scope === 'geral')} onClick={() => setScope('geral')}>🌐 Geral (busca do site)</button>
           <button style={s.scopeBtn(scope === 'loja')} onClick={() => setScope('loja')}>🏪 Loja específica</button>
         </div>
+        <div style={{ fontSize: 11.5, color: '#999', marginTop: 8 }}>Você pode ativar mais de uma rodada pra mesma loja — cada uma com uma palavra e um prêmio diferente. O morador digita no mesmo campo de busca do perfil da loja.</div>
 
         {scope === 'loja' && (
           <div style={{ marginTop: 12 }}>

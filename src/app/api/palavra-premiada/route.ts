@@ -46,12 +46,9 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Preencha a palavra e a descrição do prêmio' }, { status: 400 })
       }
 
-      // Só uma rodada ativa por escopo — encerra a anterior do MESMO escopo
-      // (geral, ou da mesma loja), sem mexer nas rodadas de outras lojas
-      let deactivateQuery = supabase.from('prize_words').update({ status: 'inactive', completed_at: new Date().toISOString() }).eq('status', 'active')
-      deactivateQuery = company_id ? deactivateQuery.eq('company_id', company_id) : deactivateQuery.is('company_id', null)
-      await deactivateQuery
-
+      // Várias rodadas podem ficar ativas ao mesmo tempo no mesmo escopo
+      // (ex: 3 palavras diferentes pra mesma loja, cada uma com seu prêmio) —
+      // só não deixa repetir a MESMA palavra ativa duas vezes no mesmo escopo
       const { data, error } = await supabase.from('prize_words').insert({
         word: normalize(word),
         prize_description: prize_description.trim(),
@@ -59,7 +56,12 @@ export async function POST(req: NextRequest) {
         company_id: company_id || null
       }).select().single()
 
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      if (error) {
+        if (error.code === '23505') {
+          return NextResponse.json({ error: `Já existe uma rodada ativa com a palavra "${normalize(word)}" nesse escopo. Escolha uma palavra diferente.` }, { status: 400 })
+        }
+        return NextResponse.json({ error: error.message }, { status: 500 })
+      }
       return NextResponse.json({ ok: true, round: data })
     }
 
@@ -83,12 +85,15 @@ export async function POST(req: NextRequest) {
       const term = normalize(query || '')
       if (!term) return NextResponse.json({ match: false })
 
-      // Busca geral (sem loja) só bate com rodada geral; busca dentro da
-      // loja só bate com a rodada daquela loja — nunca cruza escopo
+      // Busca geral (sem loja) só bate com rodadas gerais; busca dentro da
+      // loja só bate com as rodadas daquela loja — nunca cruza escopo.
+      // Podem existir várias rodadas ativas ao mesmo tempo no mesmo escopo
+      // (várias palavras, cada uma com seu prêmio), então procura qual delas bate
       let roundQuery = supabase.from('prize_words').select('*').eq('status', 'active')
       roundQuery = company_id ? roundQuery.eq('company_id', company_id) : roundQuery.is('company_id', null)
-      const { data: round } = await roundQuery.maybeSingle()
-      if (!round || round.word !== term) return NextResponse.json({ match: false })
+      const { data: activeRounds } = await roundQuery
+      const round = (activeRounds || []).find(r => r.word === term)
+      if (!round) return NextResponse.json({ match: false })
 
       // Não logado: precisa entrar pra resgatar
       if (!access_token) return NextResponse.json({ match: true, needsLogin: true })
@@ -167,16 +172,19 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const company_id = searchParams.get('company_id')
 
-    // Uso público (página da loja): só diz se tem rodada ativa ali e o
-    // prêmio — nunca devolve a palavra
+    // Uso público (página da loja): só diz se tem rodada(s) ativa(s) ali e
+    // o(s) prêmio(s) — nunca devolve a palavra. Pode haver mais de uma
+    // rodada ativa ao mesmo tempo pra mesma loja
     if (company_id) {
-      const { data: round } = await supabase
+      const { data: rounds } = await supabase
         .from('prize_words')
         .select('prize_description')
         .eq('status', 'active')
         .eq('company_id', company_id)
-        .maybeSingle()
-      return NextResponse.json({ active: !!round, prize_description: round?.prize_description || null })
+      return NextResponse.json({
+        active: (rounds || []).length > 0,
+        prize_description: (rounds || []).map(r => r.prize_description).join(' • ') || null
+      })
     }
 
     // Lista rodadas + ganhadores (painel admin)

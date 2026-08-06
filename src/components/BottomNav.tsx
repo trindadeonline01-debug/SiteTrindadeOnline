@@ -44,7 +44,7 @@ export default function BottomNav() {
     })
   }, [])
 
-  const hideOn = ['/login', '/cadastro', '/empresa/cadastrar', '/admin']
+  const hideOn = ['/login', '/cadastro', '/empresa/cadastrar', '/admin', '/agenda']
   if (!show || !loaded || !userType || hideOn.some(p => pathname.startsWith(p))) return null
 
   const items: { href: string; icon: IconKey; label: string; badge?: boolean; sair?: boolean }[] = [

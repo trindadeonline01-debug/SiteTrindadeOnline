@@ -306,7 +306,7 @@ export default function HomePage() {
 
         /* BANNER */
         @media(max-width: 767px) {
-          .banner-inner-wrap { height: auto; aspect-ratio: 3/2; padding-top: 0; }
+          .banner-inner-wrap { height: auto; aspect-ratio: 5/2; padding-top: 0; }
         }
         .pulse-ticker { width: 100%; background: #111; padding: 9px 0; }
         .pulse-track-clip { max-width: 1200px; margin: 0 auto; overflow: hidden; }

@@ -325,7 +325,6 @@ export default function HomePage() {
           .banner-inner-wrap { height: auto; min-height: unset; padding-top: 0; display: block; }
           .banner-img { position: relative !important; inset: unset !important; width: 100% !important; height: auto !important; object-fit: contain !important; display: block; }
           .banner-content-wrap { display: none; }
-          .banner-arrow { top: 50%; }
         }
         .banner-deco { position: absolute; right: 8%; top: 50%; transform: translateY(-50%); font-size: 130px; opacity: 0.08; pointer-events: none; }
         .banner-content-wrap { max-width: 1200px; margin: 0 auto; padding: 0 20px; width: 100%; position: relative; z-index: 2; }
@@ -333,24 +332,23 @@ export default function HomePage() {
         .banner-sub-text { color: #ccc; font-size: 14px; margin-bottom: 4px; }
         .banner-desc-text { color: #999; font-size: 12px; }
 
-        /* setas do banner */
+        /* setas do banner — abaixo do banner, junto com os dots, não mais
+           sobrepondo a imagem */
         .banner-arrow {
-          position: absolute; top: 50%; transform: translateY(-50%);
-          width: 42px; height: 42px; border-radius: 50%;
-          background: rgba(0,0,0,0.45); border: 1.5px solid rgba(255,255,255,0.2);
+          width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+          background: #fff; border: 1.5px solid #E0DDD8;
           display: flex; align-items: center; justify-content: center;
-          cursor: pointer; z-index: 10; transition: background 0.2s;
+          cursor: pointer; transition: all 0.15s;
         }
-        .banner-arrow:hover { background: rgba(0,0,0,0.65); }
-        .banner-arrow-left  { left: 14px; }
-        .banner-arrow-right { right: 14px; }
+        .banner-arrow:hover { border-color: #C9951A; background: #FEF3E2; }
 
-        /* dots — fora do banner, entre banner e categorias */
+        /* dots + setas — fora do banner, entre banner e categorias */
         .banner-dots-outer {
-          display: flex; justify-content: center; align-items: center; gap: 8px;
+          display: flex; justify-content: center; align-items: center; gap: 12px;
           padding: 10px 0 0;
           background: #F0EDE8;
         }
+        .banner-dots-row { display: flex; align-items: center; gap: 8px; }
         .banner-dot {
           height: 8px; border-radius: 4px; cursor: pointer;
           transition: all 0.3s; background: rgba(0,0,0,0.18);
@@ -509,32 +507,6 @@ export default function HomePage() {
                 {currentBanner.subtitle    && <div className="banner-sub-text">{currentBanner.subtitle}</div>}
                 {currentBanner.description && <div className="banner-desc-text">{currentBanner.description}</div>}
               </div>
-
-              {/* SETA ESQUERDA */}
-              {banners.length > 1 && (
-                <button
-                  className="banner-arrow banner-arrow-left"
-                  onClick={e => { e.preventDefault(); prevBanner() }}
-                  aria-label="Banner anterior"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="15 18 9 12 15 6"/>
-                  </svg>
-                </button>
-              )}
-
-              {/* SETA DIREITA */}
-              {banners.length > 1 && (
-                <button
-                  className="banner-arrow banner-arrow-right"
-                  onClick={e => { e.preventDefault(); nextBanner() }}
-                  aria-label="Próximo banner"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="9 18 15 12 9 6"/>
-                  </svg>
-                </button>
-              )}
             </div>
           </a>
         ) : (
@@ -547,17 +519,29 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* DOTS — fora do banner, entre banner e categorias */}
+        {/* SETAS + DOTS — fora do banner, abaixo da imagem, entre banner e categorias */}
         {banners.length > 1 && (
           <div className="banner-dots-outer">
-            {banners.map((_, i) => (
-              <span
-                key={i}
-                className={`banner-dot${i === activeBanner ? ' on' : ''}`}
-                style={{ width: i === activeBanner ? 22 : 8 }}
-                onClick={() => setActiveBanner(i)}
-              />
-            ))}
+            <button className="banner-arrow" onClick={() => prevBanner()} aria-label="Banner anterior">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6"/>
+              </svg>
+            </button>
+            <div className="banner-dots-row">
+              {banners.map((_, i) => (
+                <span
+                  key={i}
+                  className={`banner-dot${i === activeBanner ? ' on' : ''}`}
+                  style={{ width: i === activeBanner ? 22 : 8 }}
+                  onClick={() => setActiveBanner(i)}
+                />
+              ))}
+            </div>
+            <button className="banner-arrow" onClick={() => nextBanner()} aria-label="Próximo banner">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+            </button>
           </div>
         )}
       </div>

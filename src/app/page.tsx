@@ -8,13 +8,10 @@ import WAButton from '@/components/WAButton'
 import OneSignalInit from '@/components/OneSignalInit'
 import CookieBanner from '@/components/CookieBanner'
 
-interface Highlight {
-  id: string; company_id: string; scope: string
-  companies?: {
-    name: string; slug: string; avg_rating: number; total_reviews: number
-    categories?: { name: string; emoji?: string } | null
-    company_photos?: { photo_url: string; is_primary: boolean; order?: number }[]
-  } | null
+interface PaidCompany {
+  id: string; name: string; slug: string; avg_rating: number; total_reviews: number
+  category?: { name: string; emoji?: string } | null
+  photos?: { url: string; order: number }[]
 }
 
 interface Listing {
@@ -39,16 +36,17 @@ const CATEGORIES = [
   { slug: 'igrejas',          label: 'Igrejas',            href: '/categoria/igrejas'     },
 ]
 
+// Carrosséis de empresas pagas na home — 1 por categoria, ordem pedida:
+// gastronomia primeiro, depois comércios, depois serviços
+const PAID_CAROUSELS: [string, string, string, string][] = [
+  ['00000000-0000-0000-0000-000000000003', 'gastronomia', '🍽️ GASTRONOMIA', '/categoria/gastronomia'],
+  ['00000000-0000-0000-0000-000000000001', 'comercios',   '🏪 COMÉRCIOS',    '/categoria/comercios'],
+  ['00000000-0000-0000-0000-000000000002', 'servicos',    '🔧 SERVIÇOS',     '/categoria/servicos'],
+]
+
 function Stars({ rating }: { rating: number }) {
   const r = Math.round(rating)
   return <span style={{ color: '#C9951A', fontSize: 11 }}>{'★'.repeat(r)}{'☆'.repeat(5 - r)}</span>
-}
-
-function CoverPhoto({ photos, name, style }: { photos?: { photo_url: string; is_primary: boolean; order?: number }[]; name: string; style?: React.CSSProperties }) {
-  const sorted = [...(photos || [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-  const primary = sorted.find(p => p.is_primary) || sorted[0]
-  if (primary) return <img src={primary.photo_url} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover', ...style }} />
-  return <span style={{ fontSize: 28 }}>🏪</span>
 }
 
 export default function HomePage() {
@@ -61,7 +59,7 @@ export default function HomePage() {
   const searchRef = useRef<HTMLDivElement>(null)
   const [banners, setBanners]         = useState<Banner[]>([])
   const [activeBanner, setActiveBanner] = useState(0)
-  const [highlights, setHighlights]   = useState<Highlight[]>([])
+  const [paidCompanies, setPaidCompanies] = useState<Record<string, PaidCompany[]>>({})
   const [recentListings, setRecentListings] = useState<Record<string, Listing[]>>({})
   const [pulseMessages, setPulseMessages] = useState<{id:string;message:string}[]>([])
   const [pulseColorPreset, setPulseColorPreset] = useState('classico')
@@ -97,15 +95,17 @@ export default function HomePage() {
     const shuffled = [...(bannersData || [])].sort(() => Math.random() - 0.5)
     setBanners(shuffled)
 
-    const { data: hlData } = await supabase
-      .from('highlights')
-      .select(`id, company_id, scope,
-        companies ( name, slug, avg_rating, total_reviews,
-          categories ( name, emoji ),
-          company_photos ( photo_url, is_primary, order )
-        )`)
-      .eq('scope', 'home').limit(8)
-    setHighlights(([...(hlData || [])].sort(() => Math.random() - 0.5)) as any)
+    // Empresas pagas por categoria — todo mundo no plano pago aparece,
+    // ordem embaralhada a cada carregamento pra dar chance igual a todas
+    const paidMap: Record<string, PaidCompany[]> = {}
+    for (const [categoryId, key] of PAID_CAROUSELS) {
+      const { data: pd } = await supabase
+        .from('companies')
+        .select('id, name, slug, avg_rating, total_reviews, category:categories(name,emoji), photos:company_photos(url,order)')
+        .eq('plan', 'paid').eq('status', 'active').eq('category_id', categoryId)
+      paidMap[key] = ([...(pd || [])].sort(() => Math.random() - 0.5)) as any
+    }
+    setPaidCompanies(paidMap)
 
 
     const types = ['desapega', 'emprego', 'imovel']
@@ -603,44 +603,47 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* EM DESTAQUE */}
-        {!loading && highlights.length > 0 && (
+        {/* EMPRESAS PAGAS — 1 carrossel por categoria (gastronomia, comércios,
+            serviços), ordem embaralhada a cada carregamento pra dar visibilidade
+            igual a todo mundo no plano pago */}
+        {!loading && PAID_CAROUSELS.some(([, key]) => (paidCompanies[key] || []).length > 0) && (
           <>
             <div className="divider" />
-            <div className="sec-hdr">
-              <span className="sec-title">EM DESTAQUE</span>
-              <a className="sec-link" href="/busca">Ver todos</a>
-            </div>
-            <div className="dest-grid">
-              {highlights.map(hl => {
-                const c = hl.companies
-                if (!c) return null
-                return (
-                  <a key={hl.id} className="dest-card" href={`/empresa/${c.slug}`}>
-                    <div className="dest-img">
-                      <CoverPhoto photos={c.company_photos} name={c.name} />
-                      <span className="badge-dest">DESTAQUE</span>
-                    </div>
-                    <div className="dest-body">
-                      <div className="dest-name">{c.name}</div>
-                      <div className="dest-cat">{(c.categories as any)?.emoji} {(c.categories as any)?.name || ''}</div>
-                      {c.avg_rating > 0 && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                          <Stars rating={c.avg_rating} />
-                          <span style={{ fontSize: 10, color: '#999' }}>{c.avg_rating.toFixed(1)}</span>
-                        </div>
-                      )}
-                    </div>
-                  </a>
-                )
-              })}
-            </div>
+            {PAID_CAROUSELS.map(([, key, title, href]) => {
+              const list = paidCompanies[key] || []
+              if (list.length === 0) return null
+              return (
+                <div key={key} className="recent-section">
+                  <div className="recent-section-hdr">
+                    <span className="recent-section-title">{title}</span>
+                    <a href={href} className="sec-link" style={{ marginLeft: 'auto' }}>Ver tudo →</a>
+                  </div>
+                  <div className="recent-scroll">
+                    {list.map(c => {
+                      const cover = [...(c.photos || [])].sort((a, b) => a.order - b.order)[0]?.url
+                      return (
+                        <a key={c.id} className="recent-card" href={`/empresa/${c.slug}`}>
+                          <div className="recent-card-img">
+                            {cover ? <img src={cover} alt={c.name} /> : (c.category?.emoji || '🏪')}
+                          </div>
+                          <div className="recent-card-title">{c.name}</div>
+                          <div className="recent-card-sub">
+                            {c.category?.emoji} {c.category?.name || ''}
+                            {c.avg_rating > 0 && <> · <Stars rating={c.avg_rating} /> {c.avg_rating.toFixed(1)}</>}
+                          </div>
+                        </a>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })}
           </>
         )}
         {loading && (
           <>
             <div className="divider" />
-            <div className="sec-hdr"><span className="sec-title">EM DESTAQUE</span></div>
+            <div className="sec-hdr"><span className="sec-title">GASTRONOMIA</span></div>
             <div className="dest-grid">
               {[1,2,3,4].map(i => <div key={i} className="skeleton" style={{ height: 148, borderRadius: 14 }} />)}
             </div>

@@ -43,6 +43,19 @@ const PAID_CAROUSELS: [string, string, string, string][] = [
   ['00000000-0000-0000-0000-000000000001', 'comercios',   '🏪 COMÉRCIOS',    '/categoria/comercios'],
   ['00000000-0000-0000-0000-000000000002', 'servicos',    '🔧 SERVIÇOS',     '/categoria/servicos'],
 ]
+const PAID_CAROUSEL_SIZE = 10
+
+// sort(() => Math.random()-0.5) é um shuffle enviesado — pra listas
+// pequenas, mistura pouco e sempre deixa os mesmos no topo. Fisher-Yates
+// é o shuffle de verdade, com distribuição uniforme
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
 
 function Stars({ rating }: { rating: number }) {
   const r = Math.round(rating)
@@ -92,18 +105,19 @@ export default function HomePage() {
     const { data: bannersData } = await supabase
       .from('banners').select('*').eq('active', true).order('display_order')
     // SHUFFLE — ordem aleatória a cada carregamento
-    const shuffled = [...(bannersData || [])].sort(() => Math.random() - 0.5)
-    setBanners(shuffled)
+    setBanners(shuffle(bannersData || []))
 
-    // Empresas pagas por categoria — todo mundo no plano pago aparece,
-    // ordem embaralhada a cada carregamento pra dar chance igual a todas
+    // Empresas pagas por categoria — todo mundo no plano pago é buscado (sem
+    // limite na consulta), embaralhado de verdade e só então cortado nas
+    // primeiras 10 — assim a cada carregamento é um recorte diferente do
+    // total, não sempre as mesmas
     const paidMap: Record<string, PaidCompany[]> = {}
     for (const [categoryId, key] of PAID_CAROUSELS) {
       const { data: pd } = await supabase
         .from('companies')
         .select('id, name, slug, avg_rating, total_reviews, category:categories(name,emoji), photos:company_photos(url,order)')
         .eq('plan', 'paid').eq('status', 'active').eq('category_id', categoryId)
-      paidMap[key] = ([...(pd || [])].sort(() => Math.random() - 0.5)) as any
+      paidMap[key] = shuffle((pd || []) as any as PaidCompany[]).slice(0, PAID_CAROUSEL_SIZE)
     }
     setPaidCompanies(paidMap)
 

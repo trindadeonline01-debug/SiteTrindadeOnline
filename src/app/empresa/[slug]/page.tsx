@@ -216,7 +216,9 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
     }
 
     // Errou: treme o campo, borda fica vermelha e mostra uma mensagem
-    // curta que some sozinha — antes disso o campo não dava sinal nenhum
+    // curta que some sozinha — antes disso o campo não dava sinal nenhum.
+    // Já limpa e foca o campo, pra pessoa só digitar a próxima em vez de
+    // apagar a palavra errada na mão antes de tentar de novo
     if (!data?.match) {
       const el = premiadaInputRef.current
       if (el) {
@@ -226,6 +228,8 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
         setTimeout(() => el.classList.remove('pw-shake'), 400)
         setTimeout(() => el.classList.remove('pw-error'), 650)
       }
+      setPremiadaInput('')
+      el?.focus()
       setPremiadaErro(PALAVRA_ERRO_MSGS[Math.floor(Math.random() * PALAVRA_ERRO_MSGS.length)])
       if (premiadaErroTimer.current) clearTimeout(premiadaErroTimer.current)
       premiadaErroTimer.current = setTimeout(() => setPremiadaErro(''), 3200)

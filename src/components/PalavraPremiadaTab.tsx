@@ -144,7 +144,7 @@ export default function PalavraPremiadaTab() {
   // `attempts` já vem filtrado do banco pelo `store_filter` (ver load()) —
   // não precisa filtrar de novo aqui
   // Ranking de palavras tentadas (agrupado por escopo + palavra) — pessoa
-  // única = user_id (se logado) ou visitor_id (fallback anônimo)
+  // única = visitor_id (sempre presente) com fallback pro user_id
   const wordStats = useMemo(() => {
     const map = new Map<string, { scope: string; term: string; count: number; matched: number; people: Set<string> }>()
     attempts.filter(a => a.event_type === 'attempt' && a.term).forEach(a => {
@@ -155,7 +155,7 @@ export default function PalavraPremiadaTab() {
       const e = map.get(key)!
       e.count++
       if (a.matched) e.matched++
-      const person = a.user_id || a.visitor_id
+      const person = a.visitor_id || a.user_id
       if (person) e.people.add(person)
     })
     return Array.from(map.values()).map(e => ({ scope: e.scope, term: e.term, count: e.count, matched: e.matched, unique: e.people.size })).sort((a, b) => b.count - a.count)
@@ -169,16 +169,21 @@ export default function PalavraPremiadaTab() {
       if (!map.has(key)) map.set(key, { scope: a.company?.name || 'loja', count: 0, people: new Set() })
       const e = map.get(key)!
       e.count++
-      const person = a.user_id || a.visitor_id
+      const person = a.visitor_id || a.user_id
       if (person) e.people.add(person)
     })
     return Array.from(map.values()).map(e => ({ scope: e.scope, count: e.count, unique: e.people.size })).sort((a, b) => b.unique - a.unique)
   }, [attempts])
 
+  // "Pessoa única" usa visitor_id primeiro (sempre presente, inclusive nas
+  // visitas) e cai pro user_id só se faltar — visitas nunca gravam user_id
+  // (evita mandar token de sessão pela URL), então usar user_id como
+  // preferência aqui fazia "tentando" e "visitando" contarem gente diferente
+  // pra mesma pessoa logada, e às vezes "tentantes" passava de "visitantes"
   const totalAttempts = attempts.filter(a => a.event_type === 'attempt').length
-  const totalUniqueAttempters = new Set(attempts.filter(a => a.event_type === 'attempt').map(a => a.user_id || a.visitor_id).filter(Boolean)).size
+  const totalUniqueAttempters = new Set(attempts.filter(a => a.event_type === 'attempt').map(a => a.visitor_id || a.user_id).filter(Boolean)).size
   const totalViews = attempts.filter(a => a.event_type === 'view').length
-  const totalUniqueVisitors = new Set(attempts.filter(a => a.event_type === 'view').map(a => a.user_id || a.visitor_id).filter(Boolean)).size
+  const totalUniqueVisitors = new Set(attempts.filter(a => a.event_type === 'view').map(a => a.visitor_id || a.user_id).filter(Boolean)).size
 
   const wordsToShow = wordsExpanded ? wordStats : wordStats.slice(0, WORDS_PREVIEW)
 

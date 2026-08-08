@@ -71,7 +71,9 @@ export default function PalavraPremiadaTab() {
   const [wordsExpanded, setWordsExpanded] = useState(false)
   const WORDS_PREVIEW = 8
 
-  useEffect(() => { load() }, [])
+  // Recarrega sempre que o filtro de loja do Analytics muda — a filtragem
+  // acontece no banco (store_filter), não mandamos tudo pro navegador filtrar
+  useEffect(() => { load() }, [analyticsFilter])
 
   useEffect(() => {
     if (scope !== 'loja' || !companySearch.trim() || companySearch.length < 2) { setCompanyResults([]); return }
@@ -83,7 +85,8 @@ export default function PalavraPremiadaTab() {
   }, [companySearch, scope])
 
   async function load() {
-    const res = await fetch('/api/palavra-premiada')
+    const qs = analyticsFilter === 'todas' ? '' : `?store_filter=${encodeURIComponent(analyticsFilter)}`
+    const res = await fetch('/api/palavra-premiada' + qs)
     const data = await res.json()
     setRounds(data.rounds || [])
     setWinners(data.winners || [])
@@ -130,27 +133,21 @@ export default function PalavraPremiadaTab() {
   const winnersOf = (roundId: string) => winners.filter(w => w.prize_word_id === roundId).sort((a, b) => a.position - b.position)
   const scopeLabel = (r: Round) => r.company_id ? `🏪 ${r.company?.name || 'loja'}` : '🌐 Geral (busca do site)'
 
-  // Lojas disponíveis pro filtro do Analytics — junta o que aparece nas
-  // rodadas e nos registros de tentativa/visita, sem duplicar
+  // Lojas disponíveis pro filtro do Analytics — vem sempre das rodadas (lista
+  // completa, nunca filtrada), senão o próprio filtro faria a lista de opções sumir
   const companyOptions = useMemo(() => {
     const map = new Map<string, string>()
     rounds.forEach(r => { if (r.company_id) map.set(r.company_id, r.company?.name || 'loja') })
-    attempts.forEach(a => { if (a.company_id && !map.has(a.company_id)) map.set(a.company_id, a.company?.name || 'loja') })
     return Array.from(map.entries()).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name))
-  }, [rounds, attempts])
+  }, [rounds])
 
-  // Aplica o filtro de escopo escolhido no Analytics antes de agregar nada
-  const filteredAttempts = useMemo(() => {
-    if (analyticsFilter === 'todas') return attempts
-    if (analyticsFilter === 'geral') return attempts.filter(a => !a.company_id)
-    return attempts.filter(a => a.company_id === analyticsFilter)
-  }, [attempts, analyticsFilter])
-
+  // `attempts` já vem filtrado do banco pelo `store_filter` (ver load()) —
+  // não precisa filtrar de novo aqui
   // Ranking de palavras tentadas (agrupado por escopo + palavra) — pessoa
   // única = user_id (se logado) ou visitor_id (fallback anônimo)
   const wordStats = useMemo(() => {
     const map = new Map<string, { scope: string; term: string; count: number; matched: number; people: Set<string> }>()
-    filteredAttempts.filter(a => a.event_type === 'attempt' && a.term).forEach(a => {
+    attempts.filter(a => a.event_type === 'attempt' && a.term).forEach(a => {
       const key = `${a.company_id || 'geral'}::${a.term}`
       if (!map.has(key)) {
         map.set(key, { scope: a.company_id ? (a.company?.name || 'loja') : '🌐 Geral (site)', term: a.term as string, count: 0, matched: 0, people: new Set() })
@@ -162,12 +159,12 @@ export default function PalavraPremiadaTab() {
       if (person) e.people.add(person)
     })
     return Array.from(map.values()).map(e => ({ scope: e.scope, term: e.term, count: e.count, matched: e.matched, unique: e.people.size })).sort((a, b) => b.count - a.count)
-  }, [filteredAttempts])
+  }, [attempts])
 
   // Visitas à página da loja enquanto tinha rodada ativa (intenção de participar)
   const viewStats = useMemo(() => {
     const map = new Map<string, { scope: string; count: number; people: Set<string> }>()
-    filteredAttempts.filter(a => a.event_type === 'view' && a.company_id).forEach(a => {
+    attempts.filter(a => a.event_type === 'view' && a.company_id).forEach(a => {
       const key = a.company_id as string
       if (!map.has(key)) map.set(key, { scope: a.company?.name || 'loja', count: 0, people: new Set() })
       const e = map.get(key)!
@@ -176,12 +173,12 @@ export default function PalavraPremiadaTab() {
       if (person) e.people.add(person)
     })
     return Array.from(map.values()).map(e => ({ scope: e.scope, count: e.count, unique: e.people.size })).sort((a, b) => b.unique - a.unique)
-  }, [filteredAttempts])
+  }, [attempts])
 
-  const totalAttempts = filteredAttempts.filter(a => a.event_type === 'attempt').length
-  const totalUniqueAttempters = new Set(filteredAttempts.filter(a => a.event_type === 'attempt').map(a => a.user_id || a.visitor_id).filter(Boolean)).size
-  const totalViews = filteredAttempts.filter(a => a.event_type === 'view').length
-  const totalUniqueVisitors = new Set(filteredAttempts.filter(a => a.event_type === 'view').map(a => a.user_id || a.visitor_id).filter(Boolean)).size
+  const totalAttempts = attempts.filter(a => a.event_type === 'attempt').length
+  const totalUniqueAttempters = new Set(attempts.filter(a => a.event_type === 'attempt').map(a => a.user_id || a.visitor_id).filter(Boolean)).size
+  const totalViews = attempts.filter(a => a.event_type === 'view').length
+  const totalUniqueVisitors = new Set(attempts.filter(a => a.event_type === 'view').map(a => a.user_id || a.visitor_id).filter(Boolean)).size
 
   const wordsToShow = wordsExpanded ? wordStats : wordStats.slice(0, WORDS_PREVIEW)
 

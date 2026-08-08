@@ -222,14 +222,24 @@ export async function GET(req: NextRequest) {
       })
     }
 
-    // Lista rodadas + ganhadores + tentativas/visitas (painel admin)
+    // Lista rodadas + ganhadores + tentativas/visitas (painel admin).
+    // O total de tentativas cresce rápido (milhares em poucas horas em rodadas
+    // populares), então o filtro por loja do Analytics é aplicado aqui no banco
+    // (store_filter = 'geral' | <company_id>) em vez de mandar tudo pro navegador
+    // filtrar — evita depender de um limit() que pode cortar dados antigos
+    const storeFilter = searchParams.get('store_filter')
     const { data: rounds } = await supabase.from('prize_words').select('*, company:companies(name)').order('created_at', { ascending: false })
     const { data: winners } = await supabase.from('prize_word_winners').select('*').order('won_at', { ascending: false })
-    const { data: attempts } = await supabase
+
+    let attemptsQuery = supabase
       .from('prize_word_attempts')
       .select('*, company:companies(name)')
       .order('created_at', { ascending: false })
-      .limit(5000)
+      .limit(10000)
+    if (storeFilter === 'geral') attemptsQuery = attemptsQuery.is('company_id', null)
+    else if (storeFilter) attemptsQuery = attemptsQuery.eq('company_id', storeFilter)
+    const { data: attempts } = await attemptsQuery
+
     return NextResponse.json({ rounds: rounds || [], winners: winners || [], attempts: attempts || [] })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })

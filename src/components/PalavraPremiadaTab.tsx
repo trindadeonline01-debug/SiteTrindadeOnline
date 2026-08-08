@@ -66,6 +66,11 @@ export default function PalavraPremiadaTab() {
   const [companyResults, setCompanyResults] = useState<CompanyOption[]>([])
   const [selectedCompany, setSelectedCompany] = useState<CompanyOption | null>(null)
 
+  // Filtro do painel de Analytics: 'todas' | 'geral' | <company_id>
+  const [analyticsFilter, setAnalyticsFilter] = useState('todas')
+  const [wordsExpanded, setWordsExpanded] = useState(false)
+  const WORDS_PREVIEW = 8
+
   useEffect(() => { load() }, [])
 
   useEffect(() => {
@@ -125,11 +130,27 @@ export default function PalavraPremiadaTab() {
   const winnersOf = (roundId: string) => winners.filter(w => w.prize_word_id === roundId).sort((a, b) => a.position - b.position)
   const scopeLabel = (r: Round) => r.company_id ? `🏪 ${r.company?.name || 'loja'}` : '🌐 Geral (busca do site)'
 
+  // Lojas disponíveis pro filtro do Analytics — junta o que aparece nas
+  // rodadas e nos registros de tentativa/visita, sem duplicar
+  const companyOptions = useMemo(() => {
+    const map = new Map<string, string>()
+    rounds.forEach(r => { if (r.company_id) map.set(r.company_id, r.company?.name || 'loja') })
+    attempts.forEach(a => { if (a.company_id && !map.has(a.company_id)) map.set(a.company_id, a.company?.name || 'loja') })
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name))
+  }, [rounds, attempts])
+
+  // Aplica o filtro de escopo escolhido no Analytics antes de agregar nada
+  const filteredAttempts = useMemo(() => {
+    if (analyticsFilter === 'todas') return attempts
+    if (analyticsFilter === 'geral') return attempts.filter(a => !a.company_id)
+    return attempts.filter(a => a.company_id === analyticsFilter)
+  }, [attempts, analyticsFilter])
+
   // Ranking de palavras tentadas (agrupado por escopo + palavra) — pessoa
   // única = user_id (se logado) ou visitor_id (fallback anônimo)
   const wordStats = useMemo(() => {
     const map = new Map<string, { scope: string; term: string; count: number; matched: number; people: Set<string> }>()
-    attempts.filter(a => a.event_type === 'attempt' && a.term).forEach(a => {
+    filteredAttempts.filter(a => a.event_type === 'attempt' && a.term).forEach(a => {
       const key = `${a.company_id || 'geral'}::${a.term}`
       if (!map.has(key)) {
         map.set(key, { scope: a.company_id ? (a.company?.name || 'loja') : '🌐 Geral (site)', term: a.term as string, count: 0, matched: 0, people: new Set() })
@@ -141,12 +162,12 @@ export default function PalavraPremiadaTab() {
       if (person) e.people.add(person)
     })
     return Array.from(map.values()).map(e => ({ scope: e.scope, term: e.term, count: e.count, matched: e.matched, unique: e.people.size })).sort((a, b) => b.count - a.count)
-  }, [attempts])
+  }, [filteredAttempts])
 
   // Visitas à página da loja enquanto tinha rodada ativa (intenção de participar)
   const viewStats = useMemo(() => {
     const map = new Map<string, { scope: string; count: number; people: Set<string> }>()
-    attempts.filter(a => a.event_type === 'view' && a.company_id).forEach(a => {
+    filteredAttempts.filter(a => a.event_type === 'view' && a.company_id).forEach(a => {
       const key = a.company_id as string
       if (!map.has(key)) map.set(key, { scope: a.company?.name || 'loja', count: 0, people: new Set() })
       const e = map.get(key)!
@@ -155,12 +176,14 @@ export default function PalavraPremiadaTab() {
       if (person) e.people.add(person)
     })
     return Array.from(map.values()).map(e => ({ scope: e.scope, count: e.count, unique: e.people.size })).sort((a, b) => b.unique - a.unique)
-  }, [attempts])
+  }, [filteredAttempts])
 
-  const totalAttempts = attempts.filter(a => a.event_type === 'attempt').length
-  const totalUniqueAttempters = new Set(attempts.filter(a => a.event_type === 'attempt').map(a => a.user_id || a.visitor_id).filter(Boolean)).size
-  const totalViews = attempts.filter(a => a.event_type === 'view').length
-  const totalUniqueVisitors = new Set(attempts.filter(a => a.event_type === 'view').map(a => a.user_id || a.visitor_id).filter(Boolean)).size
+  const totalAttempts = filteredAttempts.filter(a => a.event_type === 'attempt').length
+  const totalUniqueAttempters = new Set(filteredAttempts.filter(a => a.event_type === 'attempt').map(a => a.user_id || a.visitor_id).filter(Boolean)).size
+  const totalViews = filteredAttempts.filter(a => a.event_type === 'view').length
+  const totalUniqueVisitors = new Set(filteredAttempts.filter(a => a.event_type === 'view').map(a => a.user_id || a.visitor_id).filter(Boolean)).size
+
+  const wordsToShow = wordsExpanded ? wordStats : wordStats.slice(0, WORDS_PREVIEW)
 
   return (
     <div>
@@ -189,6 +212,14 @@ export default function PalavraPremiadaTab() {
 
       <div style={s.card}>
         <div style={s.cardTitle}>📊 Analytics — Palavra Premiada</div>
+
+        <label style={s.label}>Filtrar por loja</label>
+        <select style={{ ...s.input, marginBottom: 20 }} value={analyticsFilter} onChange={e => { setAnalyticsFilter(e.target.value); setWordsExpanded(false) }}>
+          <option value="todas">Todas as lojas + geral</option>
+          <option value="geral">🌐 Geral (busca do site)</option>
+          {companyOptions.map(c => <option key={c.id} value={c.id}>🏪 {c.name}</option>)}
+        </select>
+
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 10, marginBottom: 20 }}>
           <div style={{ background: '#f9f9f9', borderRadius: 10, padding: '12px 14px' }}>
             <div style={{ fontSize: 22, fontWeight: 700, color: '#111' }}>{totalAttempts}</div>
@@ -208,10 +239,10 @@ export default function PalavraPremiadaTab() {
           </div>
         </div>
 
-        <div style={{ fontSize: 11, fontWeight: 700, color: '#888', letterSpacing: 0.5, textTransform: 'uppercase' as const, marginBottom: 10 }}>Palavras mais tentadas</div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#888', letterSpacing: 0.5, textTransform: 'uppercase' as const, marginBottom: 10 }}>Palavras mais tentadas {wordStats.length > 0 ? `(${wordStats.length})` : ''}</div>
         {wordStats.length === 0 && <div style={{ fontSize: 13, color: '#999', marginBottom: 8 }}>Nenhuma tentativa registrada ainda.</div>}
-        {wordStats.map((w, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: i < wordStats.length - 1 ? '1px solid #f2f2f2' : 'none' }}>
+        {wordsToShow.map((w, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: i < wordsToShow.length - 1 ? '1px solid #f2f2f2' : 'none' }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: '#111' }}>"{w.term}"</div>
               <div style={{ fontSize: 11, color: '#999' }}>{w.scope}</div>
@@ -221,6 +252,11 @@ export default function PalavraPremiadaTab() {
             <div style={{ fontSize: 12, fontWeight: 700, color: w.matched > 0 ? '#0F6E56' : '#BBB', textAlign: 'right' as const }}>{w.matched} acerto{w.matched === 1 ? '' : 's'}</div>
           </div>
         ))}
+        {wordStats.length > WORDS_PREVIEW && (
+          <button onClick={() => setWordsExpanded(v => !v)} style={{ width: '100%', marginTop: 10, background: '#f9f9f9', color: '#92600A', border: '1px solid #eee', borderRadius: 10, padding: '9px 12px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>
+            {wordsExpanded ? 'Mostrar menos ▴' : `Mostrar mais ${wordStats.length - WORDS_PREVIEW} palavras ▾`}
+          </button>
+        )}
 
         <div style={{ fontSize: 11, fontWeight: 700, color: '#888', letterSpacing: 0.5, textTransform: 'uppercase' as const, margin: '20px 0 10px' }}>Visitas por loja (pra participar)</div>
         {viewStats.length === 0 && <div style={{ fontSize: 13, color: '#999' }}>Nenhuma visita registrada ainda.</div>}

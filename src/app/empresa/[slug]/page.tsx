@@ -155,8 +155,10 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
   const [premiadaAtiva, setPremiadaAtiva]     = useState<{ active: boolean; prize_description?: string | null }>({ active: false })
   const [premiadaInput, setPremiadaInput]     = useState('')
   const [premiadaErro, setPremiadaErro]       = useState('')
+  const [premiadaCooldown, setPremiadaCooldown] = useState(0)
   const premiadaInputRef = useRef<HTMLInputElement>(null)
   const premiadaErroTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const premiadaCooldownTimer = useRef<ReturnType<typeof setInterval> | null>(null)
   const { premio, setPremio, checarPalavraPremiada, waResgateUrl } = usePalavraPremiada()
 
   useEffect(() => {
@@ -183,13 +185,35 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
       .catch(() => {})
   }, [company?.id])
 
+  function startPremiadaCooldown(seconds: number) {
+    if (premiadaCooldownTimer.current) clearInterval(premiadaCooldownTimer.current)
+    setPremiadaCooldown(seconds)
+    premiadaCooldownTimer.current = setInterval(() => {
+      setPremiadaCooldown(s => {
+        if (s <= 1) {
+          if (premiadaCooldownTimer.current) clearInterval(premiadaCooldownTimer.current)
+          return 0
+        }
+        return s - 1
+      })
+    }, 1000)
+  }
+
   async function handlePalavraPremiadaSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    if (!company?.id) return
+    if (!company?.id || premiadaCooldown > 0) return
     const raw = e.currentTarget.querySelector('input')?.value ?? premiadaInput
     if (!raw.trim()) return
 
     const data = await checarPalavraPremiada(raw.trim(), company.id)
+
+    // Muitas tentativas seguidas: entra em espera (aumenta a cada 3 erradas,
+    // zera depois de 1h parado) em vez de deixar tentar palavra atrás de palavra
+    if (data?.cooldown) {
+      setPremiadaErro('')
+      startPremiadaCooldown(data.waitSeconds || 5)
+      return
+    }
 
     // Errou: treme o campo, borda fica vermelha e mostra uma mensagem
     // curta que some sozinha — antes disso o campo não dava sinal nenhum
@@ -541,12 +565,17 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
                 type="text"
                 value={premiadaInput}
                 onChange={e => setPremiadaInput(e.target.value)}
-                placeholder="Digite a palavra premiada..."
-                style={{flex:1,padding:'11px 14px',borderRadius:10,border:'1.5px solid #C9951A',background:'#1A1A1A',color:'#fff',fontSize:14,outline:'none'}}
+                placeholder={premiadaCooldown > 0 ? `Espera ${premiadaCooldown}s...` : 'Digite a palavra premiada...'}
+                disabled={premiadaCooldown > 0}
+                style={{flex:1,padding:'11px 14px',borderRadius:10,border:'1.5px solid #C9951A',background:'#1A1A1A',color:'#fff',fontSize:14,outline:'none',opacity:premiadaCooldown>0?0.6:1}}
               />
-              <button type="submit" style={{background:'#C9951A',border:'none',borderRadius:10,padding:'0 20px',color:'#111',fontWeight:700,fontSize:14,cursor:'pointer'}}>Enviar</button>
+              <button type="submit" disabled={premiadaCooldown > 0} style={{background:premiadaCooldown>0?'#5A4008':'#C9951A',border:'none',borderRadius:10,padding:'0 20px',color:premiadaCooldown>0?'#B8860B':'#111',fontWeight:700,fontSize:14,cursor:premiadaCooldown>0?'not-allowed':'pointer',whiteSpace:'nowrap'}}>
+                {premiadaCooldown > 0 ? `⏳ ${premiadaCooldown}s` : 'Enviar'}
+              </button>
             </div>
-            <div className={`pw-feedback ${premiadaErro ? 'show' : ''}`}>{premiadaErro || ' '}</div>
+            <div className={`pw-feedback ${(premiadaErro || premiadaCooldown > 0) ? 'show' : ''}`}>
+              {premiadaCooldown > 0 ? '⏳ Muitas tentativas seguidas... espera um pouco.' : (premiadaErro || ' ')}
+            </div>
           </form>
         )}
 

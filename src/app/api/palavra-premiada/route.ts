@@ -102,6 +102,37 @@ export async function POST(req: NextRequest) {
         if (userData?.user) user = { id: userData.user.id }
       }
 
+      // Fricção anti-força-bruta: a cada 3 tentativas erradas seguidas nesse
+      // escopo, a espera pra próxima tentativa aumenta 5s (5s, 10s, 15s...).
+      // Não bloqueia quem insiste, só desacelera — zera se ficar 1h sem tentar
+      if ((activeRounds || []).length > 0 && (user?.id || visitor_id)) {
+        let historyQuery = supabase
+          .from('prize_word_attempts')
+          .select('created_at')
+          .eq('event_type', 'attempt')
+          .order('created_at', { ascending: false })
+          .limit(300)
+        historyQuery = company_id ? historyQuery.eq('company_id', company_id) : historyQuery.is('company_id', null)
+        const idFilters = [user?.id ? `user_id.eq.${user.id}` : null, visitor_id ? `visitor_id.eq.${visitor_id}` : null].filter(Boolean).join(',')
+        historyQuery = historyQuery.or(idFilters)
+        const { data: history } = await historyQuery
+
+        if (history && history.length > 0) {
+          const ONE_HOUR_MS = 60 * 60 * 1000
+          let streak = 1
+          let cursor = new Date(history[0].created_at).getTime()
+          for (let i = 1; i < history.length; i++) {
+            const t = new Date(history[i].created_at).getTime()
+            if (cursor - t <= ONE_HOUR_MS) { streak++; cursor = t } else break
+          }
+          const requiredWaitSec = 5 * Math.floor(streak / 3)
+          const elapsedSec = (Date.now() - new Date(history[0].created_at).getTime()) / 1000
+          if (requiredWaitSec > 0 && elapsedSec < requiredWaitSec) {
+            return NextResponse.json({ match: false, cooldown: true, waitSeconds: Math.ceil(requiredWaitSec - elapsedSec) })
+          }
+        }
+      }
+
       // Log de tentativa pro painel de analytics — só quando existe alguma
       // rodada rolando nesse escopo, pra não virar log genérico de toda busca do site
       if ((activeRounds || []).length > 0) {

@@ -255,11 +255,13 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
 
     if (!data || data.status !== 'active') { setNotFound(true); setLoading(false); return }
     setCompany(data)
-    await supabase.from('page_views').insert({ page: '/empresa', entity_id: data.id })
+    const { data: { session } } = await supabase.auth.getSession()
+    // Grava quem visitou (visitor_id anônimo do navegador + user_id se
+    // logado) — permite calcular visitantes únicos no dashboard do admin
+    await supabase.from('page_views').insert({ page: '/empresa', entity_id: data.id, session_id: getVisitorId(), user_id: session?.user?.id || null })
     await supabase.from('companies').update({ views_count: ((data.views_count as number) || 0) + 1 }).eq('id', data.id)
     const { data: revs } = await supabase.from('reviews').select('*, user:profiles(name), response:review_responses(text)').eq('company_id', data.id).order('created_at', { ascending: false })
     setReviews(revs || [])
-    const { data: { session } } = await supabase.auth.getSession()
     if (session) {
       const { data: fav } = await supabase.from('favorites').select('id').eq('user_id', session.user.id).eq('entity_type', 'company').eq('entity_id', data.id).maybeSingle()
       setIsFav(!!fav)

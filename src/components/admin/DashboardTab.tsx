@@ -11,6 +11,7 @@ type Period = 'today' | 'week' | 'month' | 'year' | 'custom'
 
 interface DashStats {
   views: number
+  unique_visitors: number
   whatsapp_clicks: number
   link_clicks: number
   address_clicks: number
@@ -95,7 +96,8 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
       { count: promotions },
       { count: viewsCount },
       { count: wppClicksCount },
-      { data: pageViewRows },
+      { data: topCompanyViews },
+      { data: uniqueVisitorsCount },
     ] = await Promise.all([
       supabase.from('companies').select('link_clicks, address_clicks').eq('status', 'active'),
       supabase.from('companies').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
@@ -108,23 +110,25 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
       supabase.from('promotions').select('*', { count: 'exact', head: true }).gte('created_at', from).lte('created_at', to),
       supabase.from('page_views').select('*', { count: 'exact', head: true }).eq('page', '/empresa').gte('created_at', from).lte('created_at', to),
       supabase.from('whatsapp_clicks').select('*', { count: 'exact', head: true }).gte('created_at', from).lte('created_at', to),
-      supabase.from('page_views').select('entity_id').eq('page', '/empresa').gte('created_at', from).lte('created_at', to),
+      // Agregado no banco (RPC), não trazendo linha por linha pro navegador —
+      // o SELECT do Supabase corta em 1000 linhas, então em períodos longos
+      // (ano todo) a contagem por empresa saía cortada e errada
+      supabase.rpc('dashboard_top_companies', { p_from: from, p_to: to, p_limit: 5 }),
+      supabase.rpc('dashboard_unique_visitors', { p_from: from, p_to: to }),
     ])
 
     // Cliques em link externo e endereço não têm log por data — soma acumulada (total geral)
     const totalLink = (companies || []).reduce((a, c) => a + (c.link_clicks || 0), 0)
     const totalAddr = (companies || []).reduce((a, c) => a + (c.address_clicks || 0), 0)
 
-    // Top 5 empresas por visualizações no período (a partir do log real de page_views)
-    const viewCountMap: Record<string, number> = {}
-    ;(pageViewRows || []).forEach((r: any) => { if (r.entity_id) viewCountMap[r.entity_id] = (viewCountMap[r.entity_id] || 0) + 1 })
-    const topIds = Object.entries(viewCountMap).sort((a, b) => b[1] - a[1]).slice(0, 5)
+    // Top 5 empresas por visualizações no período (já vem agregado e ordenado do banco)
+    const topIds = (topCompanyViews || []).map((r: any) => [r.entity_id, r.views] as [string, number])
     let topNames: Record<string, string> = {}
     if (topIds.length > 0) {
-      const { data: topCos } = await supabase.from('companies').select('id, name').in('id', topIds.map(([id]) => id))
+      const { data: topCos } = await supabase.from('companies').select('id, name').in('id', topIds.map(([id]: [string, number]) => id))
       ;(topCos || []).forEach((c: any) => { topNames[c.id] = c.name })
     }
-    setTopCompanies(topIds.map(([id, views]) => ({ name: topNames[id] || '—', category: '', views })))
+    setTopCompanies(topIds.map(([id, views]: [string, number]) => ({ name: topNames[id] || '—', category: '', views })))
 
     // Termos de busca
     const termMap: Record<string, { count: number; no_result: boolean }> = {}
@@ -144,6 +148,7 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
 
     setStats({
       views: viewsCount || 0,
+      unique_visitors: Number(uniqueVisitorsCount) || 0,
       whatsapp_clicks: wppClicksCount || 0,
       link_clicks: totalLink,
       address_clicks: totalAddr,
@@ -221,6 +226,7 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
   return (
     <div style={s.wrap}>
       <style>{`
+        .dash-grid-5{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:14px;}
         .dash-grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px;}
         .dash-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px;}
         .dash-grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:14px;}
@@ -233,6 +239,7 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
         .dash-date-field input{border:1.5px solid #e0e0e0;border-radius:8px;padding:7px 8px;font-size:12px;color:#555;width:100%;}
         .dash-date-sep{color:#ccc;font-size:15px;padding-bottom:8px;flex-shrink:0;}
         @media(max-width:700px){
+          .dash-grid-5{grid-template-columns:repeat(2,1fr);}
           .dash-grid-4{grid-template-columns:repeat(2,1fr);}
           .dash-grid-3{grid-template-columns:1fr;}
           .dash-grid-2{grid-template-columns:1fr;}
@@ -278,9 +285,10 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
 
       {/* ACESSO */}
       <div style={s.sectionTitle}>📊 Acesso ao site</div>
-      <div className="dash-grid-4">
+      <div className="dash-grid-5">
         {[
           { icon: '👁️', label: 'Visualizações', val: stats.views, color: '#2563eb' },
+          { icon: '🙋', label: 'Visitantes únicos', val: stats.unique_visitors, color: '#16a34a' },
           { icon: '💬', label: 'Cliques WhatsApp', val: stats.whatsapp_clicks, color: '#C9951A' },
           { icon: '🔗', label: 'Cliques link externo (total geral)', val: stats.link_clicks, color: '#111' },
           { icon: '📍', label: 'Cliques no endereço (total geral)', val: stats.address_clicks, color: '#111' },

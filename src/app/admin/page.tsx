@@ -47,7 +47,7 @@ const statusColor = (s: string) => s === 'active' ? '#0F8050' : s === 'pending' 
 const statusLabel = (s: string) => s === 'active' ? 'Ativa' : s === 'pending' ? 'Pendente' : 'Suspensa'
 
 export default function AdminPage() {
-  const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'denuncias'|'usuarios'|'buscas'|'atividade'|'banners'|'pedidos-banner'|'configuracoes'|'recursos'|'planos'|'aparencia'|'subcategorias'|'vendas'|'sugestoes'|'notificacoes'|'disparos'|'palavra-premiada'|'agenda'>('dashboard')
+  const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'denuncias'|'usuarios'|'buscas'|'atividade'|'banners'|'pedidos-banner'|'configuracoes'|'recursos'|'planos'|'aparencia'|'subcategorias'|'vendas'|'notificacoes'|'disparos'|'palavra-premiada'|'agenda'>('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [stats, setStats]           = useState<Stats|null>(null)
   const [companies, setCompanies]   = useState<Company[]>([])
@@ -143,6 +143,7 @@ export default function AdminPage() {
   const [cronResult, setCronResult] = useState<{sent:number;checked:number;details:string[]}|null>(null)
   const [subcatsList, setSubcatsList]       = useState<any[]>([])
   const [subcatSearch, setSubcatSearch]     = useState('')
+  const [subcatInnerTab, setSubcatInnerTab] = useState<'lista'|'sugestoes'>('lista')
   const [sugestoesList, setSugestoesList]   = useState<any[]>([])
   const [subcatForm, setSubcatForm]         = useState<any>({ name:'', emoji:'', category_id:'' })
   const [pendingSuggestionId, setPendingSuggestionId] = useState<string|null>(null)
@@ -160,7 +161,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (tab === 'vendas') loadSales(salesFilter)
-    if (tab === 'sugestoes') loadSugestoes()
+    if (tab === 'subcategorias') loadSugestoes()
   }, [tab])
 
   useEffect(() => {
@@ -394,6 +395,7 @@ export default function AdminPage() {
       return
     }
     setSavingSubcat(true)
+    let msg = editingSubcatId ? 'Subcategoria atualizada!' : 'Subcategoria criada!'
     if (editingSubcatId) {
       await supabase.from('subcategories').update({
         name: subcatForm.name.trim(),
@@ -408,16 +410,26 @@ export default function AdminPage() {
         category_id: subcatForm.category_id,
         slug
       })
-      if (pendingSuggestionId) {
-        await supabase.from('subcategory_suggestions').delete().eq('id', pendingSuggestionId)
-        setSugestoesList((prev:any[]) => prev.filter(s => s.id !== pendingSuggestionId))
-        setPendingSuggestionId(null)
-      }
+
+      // Avisa no WhatsApp toda empresa que sugeriu esse nome (pode ser mais
+      // de uma) e já limpa as sugestões correspondentes da lista
+      try {
+        const res = await fetch('/api/admin/notify-subcategoria', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subcategory_name: subcatForm.name.trim() })
+        })
+        const data = await res.json()
+        if (data.notified > 0) msg += ` ${data.notified} empresa${data.notified > 1 ? 's' : ''} avisada${data.notified > 1 ? 's' : ''} no WhatsApp.`
+      } catch {}
+
+      setPendingSuggestionId(null)
+      loadSugestoes()
     }
     setSavingSubcat(false)
     setSubcatForm({ name:'', emoji:'', category_id:'' })
     setEditingSubcatId(null)
-    showToast(editingSubcatId ? 'Subcategoria atualizada!' : 'Subcategoria criada!')
+    showToast(msg)
     loadSubcats()
   }
 
@@ -1533,8 +1545,7 @@ export default function AdminPage() {
     { id: 'recursos', icon: '🔧', label: 'Recursos' },
     { id: 'configuracoes', icon: '⚙️', label: 'Configurações' },
     { id: 'aparencia', icon: '🎨', label: 'Aparência' },
-    { id: 'subcategorias', icon: '🏷️', label: 'Subcategorias' },
-            { id: 'sugestoes', icon: '💡', label: 'Sugestões' },
+    { id: 'subcategorias', icon: '🏷️', label: 'Subcategorias', badge: sugestoesList.length },
             { id: 'notificacoes', icon: '🔔', label: 'Notificações' },
             { id: 'disparos', icon: '📤', label: 'Disparos' },
             { id: 'palavra-premiada', icon: '🎁', label: 'Palavra Premiada' },
@@ -1577,8 +1588,7 @@ export default function AdminPage() {
               {tab === 'recursos' && 'Recursos do Site'}
               {tab === 'configuracoes' && 'Configurações'}
               {tab === 'aparencia' && 'Aparência do Site'}
-              {tab === 'subcategorias' && 'Subcategorias'}
-              {tab === 'sugestoes' && 'Sugestões de Subcategorias'}
+              {tab === 'subcategorias' && (subcatInnerTab === 'sugestoes' ? 'Sugestões de Subcategorias' : 'Subcategorias')}
               {tab === 'notificacoes' && 'Notificações Push'}
               {tab === 'disparos' && 'Disparos WhatsApp'}
               {tab === 'palavra-premiada' && 'Palavra Premiada'}
@@ -2422,10 +2432,59 @@ export default function AdminPage() {
             {/* ── SUBCATEGORIAS ── */}
             {!loading && tab === 'subcategorias' && (
               <div style={{maxWidth:900}}>
-                <div style={{fontSize:13,color:'#888',marginBottom:20,lineHeight:1.6}}>
+                <div style={{fontSize:13,color:'#888',marginBottom:16,lineHeight:1.6}}>
                   Cadastre, edite ou exclua subcategorias. Empresas usando uma subcategoria excluída perdem esse vínculo automaticamente.
                 </div>
 
+                <div style={{display:'flex',gap:8,marginBottom:20}}>
+                  <button onClick={()=>setSubcatInnerTab('lista')}
+                    style={{padding:'8px 16px',borderRadius:10,border:subcatInnerTab==='lista'?'1.5px solid #C9951A':'1.5px solid #E0DDD8',background:subcatInnerTab==='lista'?'#FEF3E2':'#fff',color:subcatInnerTab==='lista'?'#92600A':'#666',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                    🏷️ Subcategorias
+                  </button>
+                  <button onClick={()=>setSubcatInnerTab('sugestoes')}
+                    style={{padding:'8px 16px',borderRadius:10,border:subcatInnerTab==='sugestoes'?'1.5px solid #C9951A':'1.5px solid #E0DDD8',background:subcatInnerTab==='sugestoes'?'#FEF3E2':'#fff',color:subcatInnerTab==='sugestoes'?'#92600A':'#666',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                    💡 Sugestões {sugestoesList.length > 0 ? `(${sugestoesList.length})` : ''}
+                  </button>
+                </div>
+
+                {subcatInnerTab === 'sugestoes' && (
+                  <div className="section-card" style={{padding:0,border:'none',boxShadow:'none',background:'transparent'}}>
+                    <div className="section-hdr">
+                      <span className="section-title">SUGESTÕES DE SUBCATEGORIAS ({sugestoesList.length})</span>
+                      <button onClick={loadSugestoes} style={{fontSize:12,color:'#999',background:'none',border:'none',cursor:'pointer'}}>↻ Atualizar</button>
+                    </div>
+                    {sugestoesList.length === 0 ? (
+                      <div className="empty-state"><div>💡</div><div>Nenhuma sugestão ainda</div></div>
+                    ) : (
+                      <div style={{overflowX:'auto'}}>
+                        <table className="data-table">
+                          <thead><tr><th>Empresa</th><th>Sugestão</th><th>Data</th><th>Ações</th></tr></thead>
+                          <tbody>
+                            {sugestoesList.map((s:any) => (
+                              <tr key={s.id}>
+                                <td><strong>{s.company?.name || '—'}</strong></td>
+                                <td style={{fontSize:14,color:'#333'}}>{s.suggestion}</td>
+                                <td style={{fontSize:12,color:'#999'}}>{fmtDate(s.created_at)}</td>
+                                <td style={{display:'flex',gap:6}}>
+                                  <button onClick={()=>{setSubcatForm({name:s.suggestion,emoji:'',category_id:''});setEditingSubcatId(null);setPendingSuggestionId(s.id);setSubcatInnerTab('lista')}}
+                                    style={{padding:'5px 12px',borderRadius:8,background:'#FEF3E2',color:'#854F0B',border:'1px solid #F5C77A',fontSize:12,cursor:'pointer',fontWeight:600}}>
+                                    + Criar subcategoria
+                                  </button>
+                                  <button onClick={async()=>{await supabase.from('subcategory_suggestions').delete().eq('id',s.id);loadSugestoes()}}
+                                    style={{padding:'5px 12px',borderRadius:8,background:'#F5F2EC',color:'#888',border:'1px solid #E0DDD8',fontSize:12,cursor:'pointer'}}>
+                                    Ignorar
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {subcatInnerTab === 'lista' && (<>
                 {pendingSuggestionId && (
                   <div style={{display:'flex',alignItems:'center',gap:10,background:'#FEF3E2',border:'1px solid #F5C77A',borderRadius:10,padding:'10px 14px',marginBottom:14,fontSize:12,color:'#854F0B'}}>
                     <span style={{flex:1}}>💡 Preenchido a partir de uma sugestão — escolha o emoji e a categoria e salve. A sugestão some da lista automaticamente.</span>
@@ -2516,6 +2575,7 @@ export default function AdminPage() {
                     </div>
                   )
                 })}
+                </>)}
               </div>
             )}
 
@@ -2938,42 +2998,6 @@ export default function AdminPage() {
             </div>
           )}
 
-          {tab === 'sugestoes' && (
-            <div className="section-card">
-              <div className="section-hdr">
-                <span className="section-title">SUGESTÕES DE SUBCATEGORIAS ({sugestoesList.length})</span>
-                <button onClick={loadSugestoes} style={{fontSize:12,color:'#999',background:'none',border:'none',cursor:'pointer'}}>↻ Atualizar</button>
-              </div>
-              {sugestoesList.length === 0 ? (
-                <div className="empty-state"><div>💡</div><div>Nenhuma sugestão ainda</div></div>
-              ) : (
-                <div style={{overflowX:'auto'}}>
-                  <table className="data-table">
-                    <thead><tr><th>Empresa</th><th>Sugestão</th><th>Data</th><th>Ações</th></tr></thead>
-                    <tbody>
-                      {sugestoesList.map((s:any) => (
-                        <tr key={s.id}>
-                          <td><strong>{s.company?.name || '—'}</strong></td>
-                          <td style={{fontSize:14,color:'#333'}}>{s.suggestion}</td>
-                          <td style={{fontSize:12,color:'#999'}}>{fmtDate(s.created_at)}</td>
-                          <td style={{display:'flex',gap:6}}>
-                            <button onClick={()=>{setSubcatForm({name:s.suggestion,emoji:'',category_id:''});setEditingSubcatId(null);setPendingSuggestionId(s.id);setTab('subcategorias')}}
-                              style={{padding:'5px 12px',borderRadius:8,background:'#FEF3E2',color:'#854F0B',border:'1px solid #F5C77A',fontSize:12,cursor:'pointer',fontWeight:600}}>
-                              + Criar subcategoria
-                            </button>
-                            <button onClick={async()=>{await supabase.from('subcategory_suggestions').delete().eq('id',s.id);loadSugestoes()}}
-                              style={{padding:'5px 12px',borderRadius:8,background:'#F5F2EC',color:'#888',border:'1px solid #E0DDD8',fontSize:12,cursor:'pointer'}}>
-                              Ignorar
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
           {tab === 'disparos' && (
             <DisparosTab />
           )}

@@ -1,8 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'https://evo.trindadeonline.com.br'
-const EVOLUTION_KEY = process.env.EVOLUTION_API_KEY || 'trindade2024'
-const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE || 'Trindade Online'
+
+type EvoInstance = { name: string; key: string }
+
+// Mesma lógica de failover do disparo em massa (src/app/api/blast/route.ts)
+// — testa aqui pelo botão "Testar" já passa pela mesma instância que vai
+// ser usada de verdade numa campanha
+const INSTANCES: EvoInstance[] = [
+  { name: process.env.EVOLUTION_INSTANCE || 'Trindade Online', key: process.env.EVOLUTION_API_KEY || 'trindade2024' },
+  { name: process.env.EVOLUTION_INSTANCE_2 || '', key: process.env.EVOLUTION_API_KEY_2 || '' },
+].filter(i => i.name && i.key)
+
+async function isInstanceConnected(instance: EvoInstance): Promise<boolean> {
+  try {
+    const res = await fetch(`${EVOLUTION_URL}/instance/connectionState/${encodeURIComponent(instance.name)}`, {
+      headers: { apikey: instance.key }
+    })
+    if (!res.ok) return false
+    const data = await res.json()
+    return data?.instance?.state === 'open'
+  } catch {
+    return false
+  }
+}
+
+async function pickActiveInstance(): Promise<EvoInstance> {
+  for (const inst of INSTANCES) {
+    if (await isInstanceConnected(inst)) return inst
+  }
+  return INSTANCES[0]
+}
+
+async function evoRequest(instance: EvoInstance, path: string, body: any): Promise<string | null> {
+  const res = await fetch(`${EVOLUTION_URL}${path}/${encodeURIComponent(instance.name)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', apikey: instance.key },
+    body: JSON.stringify(body)
+  })
+  return res.ok ? null : await res.text()
+}
+
+async function sendWithFailover(path: string, body: any, current: EvoInstance): Promise<string | null> {
+  const err = await evoRequest(current, path, body)
+  if (!err) return null
+  const other = INSTANCES.find(i => i.name !== current.name)
+  if (other) {
+    const retryErr = await evoRequest(other, path, body)
+    if (!retryErr) return null
+  }
+  return err
+}
 
 function formatPhone(phone: string): string {
   const digits = phone.replace(/\D/g, '')
@@ -26,31 +74,16 @@ function pickVariation(messages: MessageVariation[], nome: string, empresa: stri
   }
 }
 
-async function sendText(phone: string, text: string) {
-  const res = await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(EVOLUTION_INSTANCE)}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'apikey': EVOLUTION_KEY },
-    body: JSON.stringify({ number: formatPhone(phone), text })
-  })
-  return res.ok ? null : await res.text()
+async function sendText(phone: string, text: string, instance: EvoInstance) {
+  return sendWithFailover('/message/sendText', { number: formatPhone(phone), text }, instance)
 }
 
-async function sendMedia(phone: string, mediaUrl: string, mediaType: 'image' | 'video', caption: string) {
-  const res = await fetch(`${EVOLUTION_URL}/message/sendMedia/${encodeURIComponent(EVOLUTION_INSTANCE)}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'apikey': EVOLUTION_KEY },
-    body: JSON.stringify({ number: formatPhone(phone), mediatype: mediaType, media: mediaUrl, caption: caption || undefined })
-  })
-  return res.ok ? null : await res.text()
+async function sendMedia(phone: string, mediaUrl: string, mediaType: 'image' | 'video', caption: string, instance: EvoInstance) {
+  return sendWithFailover('/message/sendMedia', { number: formatPhone(phone), mediatype: mediaType, media: mediaUrl, caption: caption || undefined }, instance)
 }
 
-async function sendAudio(phone: string, mediaUrl: string) {
-  const res = await fetch(`${EVOLUTION_URL}/message/sendWhatsAppAudio/${encodeURIComponent(EVOLUTION_INSTANCE)}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'apikey': EVOLUTION_KEY },
-    body: JSON.stringify({ number: formatPhone(phone), audio: mediaUrl })
-  })
-  return res.ok ? null : await res.text()
+async function sendAudio(phone: string, mediaUrl: string, instance: EvoInstance) {
+  return sendWithFailover('/message/sendWhatsAppAudio', { number: formatPhone(phone), audio: mediaUrl }, instance)
 }
 
 export async function POST(req: NextRequest) {
@@ -62,15 +95,16 @@ export async function POST(req: NextRequest) {
 
     const picked = pickVariation(validMessages, name, company)
     const message = picked.text
+    const instance = await pickActiveInstance()
     let err: string | null = null
 
     if (picked.media_type === 'image' || picked.media_type === 'video') {
-      err = await sendMedia(phone, picked.media_url!, picked.media_type as 'image' | 'video', message)
+      err = await sendMedia(phone, picked.media_url!, picked.media_type as 'image' | 'video', message, instance)
     } else if (picked.media_type === 'audio') {
-      err = await sendAudio(phone, picked.media_url!)
-      if (!err && message) err = await sendText(phone, message)
+      err = await sendAudio(phone, picked.media_url!, instance)
+      if (!err && message) err = await sendText(phone, message, instance)
     } else {
-      err = await sendText(phone, message)
+      err = await sendText(phone, message, instance)
     }
 
     if (err) return NextResponse.json({ error: err }, { status: 500 })

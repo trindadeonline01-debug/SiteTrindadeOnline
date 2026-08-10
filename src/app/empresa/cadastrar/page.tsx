@@ -3,20 +3,11 @@
 import { compressImage } from '@/lib/compressImage'
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
+import BusinessHoursEditor from '@/components/BusinessHoursEditor'
+import { IGREJAS_CATEGORY_ID, DIAS_SEMANA, HourRow } from '@/lib/businessHours'
 
 type Category = { id: string; name: string; emoji: string }
 type Subcategory = { id: string; name: string; emoji: string; category_id: string }
-
-const IGREJAS_CATEGORY_ID = '00000000-0000-0000-0000-000000000008'
-
-const DIAS_SEMANA = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo']
-
-const HOURS_DEFAULT = [
-  { label: 'Seg–Sex', hours: '' },
-  { label: 'Sábado', hours: '' },
-  { label: 'Domingo', hours: '' },
-  { label: 'Feriados', hours: '' },
-]
 
 const LINK_LABELS = [
   'Ver cardápio', 'Fazer pedido', 'Acessar site',
@@ -46,7 +37,7 @@ export default function EmpresaCadastrarPage() {
   const [phone, setPhone]               = useState('')
   const [linkLabel, setLinkLabel]       = useState('Ver cardápio')
   const [linkUrl, setLinkUrl]           = useState('')
-  const [hours, setHours]               = useState(HOURS_DEFAULT)
+  const [hours, setHours]               = useState<HourRow[]>([])
   const [churchHours, setChurchHours]   = useState<{day:string;manha:string;noite:string}[]>(
     DIAS_SEMANA.map(day => ({ day, manha: '', noite: '' }))
   )
@@ -186,10 +177,16 @@ export default function EmpresaCadastrarPage() {
         })
         if (cultosEntries.length > 0) await supabase.from('company_hours').insert(cultosEntries)
       } else {
-        const validHours = hours.filter(h => h.hours.trim())
+        // Só salva linha fechada (sem horário) ou linha com os dois horários preenchidos —
+        // intervalo pela metade (só abre ou só fecha) não é dado suficiente pra guardar
+        const validHours = hours.filter(h => h.closed || (h.open_time?.trim() && h.close_time?.trim()))
         if (validHours.length > 0) {
           await supabase.from('company_hours').insert(
-            validHours.map((h, i) => ({ company_id: company.id, label: h.label, hours: h.hours, order: i }))
+            validHours.map((h, i) => ({
+              company_id: company.id, day_of_week: h.day_of_week,
+              open_time: h.closed ? null : h.open_time, close_time: h.closed ? null : h.close_time,
+              closed: h.closed, order: i,
+            }))
           )
         }
       }
@@ -276,16 +273,12 @@ export default function EmpresaCadastrarPage() {
         .subcat-option input[type=checkbox] { accent-color: #C9951A; width: 16px; height: 16px; cursor: pointer; }
 
         /* HOURS */
-        .hours-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .church-row { display: grid; grid-template-columns: 72px 1fr 1fr; gap: 8px; align-items: center; padding: 8px 10px; background: #FAFAF8; border: 0.5px solid #E0DDD8; border-radius: 10px; margin-bottom: 6px; }
         .church-day { font-size: 12px; font-weight: 600; color: #222; }
         .church-period { display: flex; flex-direction: column; gap: 3px; }
         .church-period-lbl { font-size: 9px; color: #AAA; font-weight: 700; letter-spacing: .3px; }
         .church-time { width: 100%; padding: 6px 8px; border: 1px solid #E0DDD8; border-radius: 7px; font-size: 12px; font-family: 'Inter',sans-serif; color: #222; background: #fff; outline: none; }
         .church-time:focus { border-color: #C9951A; }
-        .hour-box { background: #FAFAF8; border: 0.5px solid #E0DDD8; border-radius: 9px; padding: 9px 10px; }
-        .hour-day { font-size: 9px; font-weight: 700; color: #999; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
-        .hour-input { width: 100%; border: none; background: transparent; font-size: 12px; color: #444; font-family: 'Inter', sans-serif; outline: none; }
 
         /* PHOTOS */
         .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px; }
@@ -510,14 +503,8 @@ export default function EmpresaCadastrarPage() {
                         ))}
                       </div>
                     ) : (
-                      <div className="hours-grid">
-                        {hours.map((h, i) => (
-                          <div key={i} className="hour-box">
-                            <div className="hour-day">{h.label}</div>
-                            <input className="hour-input" value={h.hours} placeholder="Ex: 08:00–18:00"
-                              onChange={e => { const newH=[...hours]; newH[i]={...newH[i],hours:e.target.value}; setHours(newH) }}/>
-                          </div>
-                        ))}
+                      <div style={{marginTop:8}}>
+                        <BusinessHoursEditor hours={hours} setHours={setHours} />
                       </div>
                     )}
                   </div>

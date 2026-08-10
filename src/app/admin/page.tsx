@@ -11,6 +11,7 @@ import PalavraPremiadaTab from '@/components/PalavraPremiadaTab'
 import AgendaTab from '@/components/AgendaTab'
 import ClarityTab from '@/components/ClarityTab'
 import PhotoManager from '@/components/PhotoManager'
+import { dayOfWeekLabel } from '@/lib/businessHours'
 import dynamic from 'next/dynamic'
 const EmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false })
 
@@ -1298,13 +1299,25 @@ export default function AdminPage() {
                   </div>
                 </div>
               )}
-              {previewModal.hours.length > 0 && (
+              {previewModal.hours.some((h:any)=>h.day_of_week !== null) && (
                 <div style={{marginBottom:20}}>
                   <div style={{fontSize:11,color:'#999',fontWeight:600,marginBottom:8,textTransform:'uppercase',letterSpacing:0.5}}>Horários</div>
                   <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
-                    {previewModal.hours.map((h:any,i:number)=>(
+                    {previewModal.hours.filter((h:any)=>h.day_of_week !== null).sort((a:any,b:any)=>a.order-b.order).map((h:any,i:number)=>(
                       <div key={i} style={{background:'#fafafa',borderRadius:8,padding:'6px 12px',fontSize:12,color:'#444'}}>
-                        <span style={{fontWeight:600}}>{h.day_of_week}: </span>{h.open_time ? `${h.open_time} – ${h.close_time}` : 'Fechado'}
+                        <span style={{fontWeight:600}}>{dayOfWeekLabel(h.day_of_week)}: </span>{h.closed ? 'Fechado' : h.open_time ? `${h.open_time} – ${h.close_time}` : '—'}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {previewModal.hours.some((h:any)=>h.day_of_week === null) && (
+                <div style={{marginBottom:20}}>
+                  <div style={{fontSize:11,color:'#999',fontWeight:600,marginBottom:8,textTransform:'uppercase',letterSpacing:0.5}}>⛪ Horários de culto</div>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
+                    {previewModal.hours.filter((h:any)=>h.day_of_week === null).sort((a:any,b:any)=>a.order-b.order).map((h:any,i:number)=>(
+                      <div key={i} style={{background:'#fafafa',borderRadius:8,padding:'6px 12px',fontSize:12,color:'#444'}}>
+                        <span style={{fontWeight:600}}>{h.label}: </span>{h.hours}
                       </div>
                     ))}
                   </div>

@@ -1,7 +1,7 @@
 import { createServerSupabase } from '@/lib/supabase-server'
 import EmpresaPerfilClient from '@/components/empresa/EmpresaPerfilClient'
 
-type CompanyHour   = { label: string; hours: string; order: number }
+type CompanyHour   = { label: string | null; hours: string | null; order: number; day_of_week: number | null; open_time: string | null; close_time: string | null; closed: boolean }
 type CompanyPhoto  = { id: string; url: string; order: number }
 type CompanySubcat = { subcategory_id?: string; subcategory: { name: string; emoji: string } }
 type Company = {
@@ -23,7 +23,7 @@ type Review = {
   response?: { text: string }
 }
 
-const COMPANY_SELECT = '*, owner_id, trial_ends_at, category:categories(name,emoji,slug), subcategories:company_subcategories(subcategory_id, subcategory:subcategories(name,emoji)), photos:company_photos(id,url,order), hours:company_hours(label,hours,order)'
+const COMPANY_SELECT = '*, owner_id, trial_ends_at, category:categories(name,emoji,slug), subcategories:company_subcategories(subcategory_id, subcategory:subcategories(name,emoji)), photos:company_photos(id,url,order), hours:company_hours(label,hours,order,day_of_week,open_time,close_time,closed)'
 
 export default async function EmpresaPerfilPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params

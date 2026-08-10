@@ -6,6 +6,8 @@ import { compressImage } from '@/lib/compressImage'
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import PhotoManager from '@/components/PhotoManager'
+import BusinessHoursEditor from '@/components/BusinessHoursEditor'
+import { IGREJAS_CATEGORY_ID, DIAS_SEMANA, HourRow } from '@/lib/businessHours'
 
 type Company = {
   id: string; name: string; status: string; plan: string
@@ -16,7 +18,7 @@ type Company = {
   category_id?: string; trial_ends_at?: string; plan_ends_at?: string; cpf_cnpj?: string
   category?: { name: string; emoji: string }
   photos?: { id: string; url: string; order: number }[]
-  hours?: { id: string; label: string; hours: string; order: number }[]
+  hours?: { id: string; label: string; hours: string; order: number; day_of_week: number | null; open_time: string | null; close_time: string | null; closed: boolean }[]
 }
 type Review = {
   id: string; rating: number; text: string; created_at: string
@@ -30,8 +32,6 @@ type Highlight = {
 }
 
 const LINK_LABELS = ['Ver cardápio','Fazer pedido','Acessar site','Ver catálogo','Agendar consulta','Fazer uma visita','Solicitar contato','Personalizado']
-const IGREJAS_CATEGORY_ID = '00000000-0000-0000-0000-000000000008'
-const DIAS_SEMANA = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo']
 const fmtDate = (s: string) => new Date(s).toLocaleDateString('pt-BR')
 const daysLeft = (s: string) => Math.max(0, Math.ceil((new Date(s).getTime() - Date.now()) / 86400000))
 
@@ -119,7 +119,7 @@ export default function PainelPage() {
   const [editTags, setEditTags]                 = useState<string[]>([])
   const [tagInput, setTagInput]                 = useState('')
   const [editCpfCnpj, setEditCpfCnpj]         = useState('')
-  const [editHours, setEditHours]             = useState<{label:string;hours:string}[]>([])
+  const [editHours, setEditHours]             = useState<HourRow[]>([])
   const [churchHours, setChurchHours]         = useState<{day:string;manha:string;noite:string}[]>(DIAS_SEMANA.map(day=>({day,manha:'',noite:''})))
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -166,7 +166,7 @@ export default function PainelPage() {
     setLoading(true)
     const { data: comps } = await supabase
       .from('companies')
-      .select('*, category_id, category:categories(name,emoji), photos:company_photos(id,url,order), hours:company_hours(id,label,hours,order)')
+      .select('*, category_id, category:categories(name,emoji), photos:company_photos(id,url,order), hours:company_hours(id,label,hours,order,day_of_week,open_time,close_time,closed)')
       .eq('owner_id', userId)
       .order('created_at', {ascending: true})
     
@@ -192,16 +192,13 @@ export default function PainelPage() {
       setEditLinkLabel(comp.external_link_label || 'Ver cardápio')
       setEditCpfCnpj(comp.cpf_cnpj || '')
       setEditTags(comp.tags || [])
-      const HOURS_DEFAULT = [
-        {label:'Seg–Sex',hours:''},{label:'Sábado',hours:''},{label:'Domingo',hours:''},{label:'Feriados',hours:''}
-      ]
       const savedHours = comp.hours?.sort((a:any,b:any)=>a.order-b.order) || []
-      const mergedHours = HOURS_DEFAULT.map(def => {
-        const saved = savedHours.find((h:any) => h.label === def.label)
-        return { label: def.label, hours: saved?.hours || '' }
-      })
-      const extraHours = savedHours.filter((h:any) => !HOURS_DEFAULT.find(d => d.label === h.label))
-      setEditHours([...mergedHours, ...extraHours])
+      setEditHours(savedHours.filter((h:any) => h.day_of_week !== null).map((h:any) => ({
+        day_of_week: h.day_of_week,
+        open_time: h.open_time ? h.open_time.slice(0,5) : null,
+        close_time: h.close_time ? h.close_time.slice(0,5) : null,
+        closed: h.closed,
+      })))
       const { data: bReqs } = await supabase.from('banner_requests').select('*').eq('company_id', comp.id).order('created_at', {ascending: false})
       setBannerRequests(bReqs || [])
       const { data: intReqs } = await supabase.from('contact_requests').select('*').eq('company_id', comp.id).order('created_at', {ascending: false}).limit(50)
@@ -427,8 +424,14 @@ export default function PainelPage() {
       })
       if (cultosEntries.length > 0) await supabase.from('company_hours').insert(cultosEntries)
     } else {
-      const validH = editHours.filter(h=>h.hours.trim())
-      if (validH.length > 0) await supabase.from('company_hours').insert(validH.map((h,i)=>({company_id:company.id,label:h.label,hours:h.hours,order:i})))
+      // Só salva linha fechada (sem horário) ou linha com os dois horários preenchidos —
+      // intervalo pela metade (só abre ou só fecha) não é dado suficiente pra guardar
+      const validH = editHours.filter(h => h.closed || (h.open_time?.trim() && h.close_time?.trim()))
+      if (validH.length > 0) await supabase.from('company_hours').insert(validH.map((h,i)=>({
+        company_id: company.id, day_of_week: h.day_of_week,
+        open_time: h.closed ? null : h.open_time, close_time: h.closed ? null : h.close_time,
+        closed: h.closed, order: i,
+      })))
     }
     showToast('Perfil atualizado!')
     setSaving(false)
@@ -671,16 +674,12 @@ export default function PainelPage() {
         .field textarea{resize:none;}
         .form-grid{display:grid;grid-template-columns:1fr;gap:14px;}
         @media(min-width:768px){.form-grid{grid-template-columns:1fr 1fr;}}
-        .hours-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
         .church-row{display:grid;grid-template-columns:72px 1fr 1fr;gap:8px;align-items:center;padding:8px 10px;background:#1A1A1A;border:0.5px solid #222;border-radius:10px;margin-bottom:6px;}
         .church-day{font-size:12px;font-weight:600;color:#fff;}
         .church-period{display:flex;flex-direction:column;gap:3px;}
         .church-period-lbl{font-size:9px;color:#666;font-weight:700;letter-spacing:.3px;}
         .church-time{width:100%;padding:6px 8px;border:1px solid #333;border-radius:7px;font-size:12px;font-family:'Inter',sans-serif;color:#fff;background:#111;outline:none;}
         .church-time:focus{border-color:#C9951A;}
-        .hour-box{background:#FAFAF8;border:0.5px solid #E0DDD8;border-radius:9px;padding:9px 10px;}
-        .hour-day{font-size:9px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;}
-        .hour-input{width:100%;border:none;background:transparent;font-size:12px;color:#444;font-family:'Inter',sans-serif;outline:none;}
         .btn-primary{width:100%;padding:13px;background:#C9951A;color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:background .15s;margin-bottom:10px;}
         .btn-primary:hover:not(:disabled){background:#B8841A;}
         .btn-primary:disabled{opacity:.6;cursor:not-allowed;}
@@ -1617,13 +1616,8 @@ export default function PainelPage() {
                         ))}
                       </div>
                     ) : (
-                      <div className="hours-grid">
-                        {editHours.map((h,i)=>(
-                          <div key={i} className="hour-box">
-                            <div className="hour-day">{h.label}</div>
-                            <input className="hour-input" value={h.hours} placeholder="08:00–18:00" onChange={e=>{const n=[...editHours];n[i]={...n[i],hours:e.target.value};setEditHours(n)}}/>
-                          </div>
-                        ))}
+                      <div style={{marginTop:8}}>
+                        <BusinessHoursEditor hours={editHours} setHours={setEditHours} />
                       </div>
                     )}
                   </div>

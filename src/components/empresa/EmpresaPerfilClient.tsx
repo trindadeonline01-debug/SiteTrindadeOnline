@@ -6,8 +6,9 @@ import { supabase } from '@/lib/supabase'
 import ShareButton from '@/components/ShareButton'
 import { compressImage } from '@/lib/compressImage'
 import { usePalavraPremiada, PalavraPremiadaModal, getVisitorId } from '@/components/PalavraPremiada'
+import { isOpenNow } from '@/lib/businessHours'
 
-type CompanyHour   = { label: string; hours: string; order: number }
+type CompanyHour   = { label: string | null; hours: string | null; order: number; day_of_week: number | null; open_time: string | null; close_time: string | null; closed: boolean }
 type CompanyPhoto  = { id: string; url: string; order: number }
 type CompanySubcat = { subcategory_id?: string; subcategory: { name: string; emoji: string } }
 type Company = {
@@ -40,18 +41,6 @@ type Props = {
 const fmtDate = (s: string) => new Date(s).toLocaleDateString('pt-BR')
 
 const PALAVRA_ERRO_MSGS = ['❌ Ainda não é essa... tenta de novo!', '😅 Quase! Mas não é essa palavra.', '🔍 Não foi dessa vez, continua tentando!']
-
-function isOpenNow(hours?: CompanyHour[]): boolean {
-  if (!hours || hours.length === 0) return false
-  const day = new Date().getDay()
-  const map: Record<number,string> = { 1:'Seg',2:'Seg',3:'Seg',4:'Seg',5:'Seg',6:'Sáb',0:'Dom' }
-  const entry = hours.find(h => h.label.includes(map[day]))
-  if (!entry || !entry.hours || entry.hours.toLowerCase() === 'fechado') return false
-  const m = entry.hours.match(/(\d{2}):(\d{2})[–\-](\d{2}):(\d{2})/)
-  if (!m) return true
-  const cur = new Date().getHours() * 60 + new Date().getMinutes()
-  return cur >= parseInt(m[1])*60+parseInt(m[2]) && cur <= parseInt(m[3])*60+parseInt(m[4])
-}
 
 /* ── Galeria dinâmica por número de fotos ── */
 function Lightbox({ photos, idx, open, setIdx, onClose, isAdmin }: { photos: CompanyPhoto[]; idx: number; open: boolean; setIdx: (v:number|((i:number)=>number)) => void; onClose: () => void; isAdmin?: boolean }) {
@@ -126,7 +115,7 @@ function Gallery({ photos, emoji, isAdmin }: { photos: CompanyPhoto[]; emoji: st
   )
 }
 
-const COMPANY_SELECT = '*, owner_id, trial_ends_at, category:categories(name,emoji,slug), subcategories:company_subcategories(subcategory_id, subcategory:subcategories(name,emoji)), photos:company_photos(id,url,order), hours:company_hours(label,hours,order)'
+const COMPANY_SELECT = '*, owner_id, trial_ends_at, category:categories(name,emoji,slug), subcategories:company_subcategories(subcategory_id, subcategory:subcategories(name,emoji)), photos:company_photos(id,url,order), hours:company_hours(label,hours,order,day_of_week,open_time,close_time,closed)'
 
 export default function EmpresaPerfilClient({ slug, initialCompany, initialReviews }: Props) {
   const [company, setCompany]       = useState<Company>(initialCompany)

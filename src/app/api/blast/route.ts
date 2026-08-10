@@ -11,8 +11,16 @@ const supabase = createClient(
 )
 
 const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'https://evo.trindadeonline.com.br'
-const EVOLUTION_KEY = process.env.EVOLUTION_API_KEY || 'trindade2024'
-const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE || 'Trindade Online'
+
+type EvoInstance = { name: string; key: string }
+
+// Instância principal + secundária (opcional) — se a segunda não tiver
+// variável de ambiente configurada, o array fica só com a principal e o
+// disparo funciona exatamente como antes, sem failover
+const INSTANCES: EvoInstance[] = [
+  { name: process.env.EVOLUTION_INSTANCE || 'Trindade Online', key: process.env.EVOLUTION_API_KEY || 'trindade2024' },
+  { name: process.env.EVOLUTION_INSTANCE_2 || '', key: process.env.EVOLUTION_API_KEY_2 || '' },
+].filter(i => i.name && i.key)
 
 // Delay aleatório em ms
 function randomDelay(min: number, max: number): Promise<void> {
@@ -53,20 +61,36 @@ function formatPhone(phone: string): string {
   return '55' + digits
 }
 
-// Envia mensagem via Evolution API
-async function sendWhatsApp(phone: string, message: string): Promise<{ ok: boolean; error?: string }> {
+// Confere se uma instância está com o WhatsApp conectado (não caída/deslogada)
+async function isInstanceConnected(instance: EvoInstance): Promise<boolean> {
   try {
-    const formatted = formatPhone(phone)
-    const res = await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(EVOLUTION_INSTANCE)}`, {
+    const res = await fetch(`${EVOLUTION_URL}/instance/connectionState/${encodeURIComponent(instance.name)}`, {
+      headers: { apikey: instance.key }
+    })
+    if (!res.ok) return false
+    const data = await res.json()
+    return data?.instance?.state === 'open'
+  } catch {
+    return false
+  }
+}
+
+// Escolhe a instância pra começar o lote: testa a principal primeiro, só cai
+// pra segunda se a principal não estiver conectada. Roda 1x por lote (não por
+// mensagem) pra não pesar o envio com uma checagem extra a cada contato
+async function pickActiveInstance(): Promise<EvoInstance> {
+  for (const inst of INSTANCES) {
+    if (await isInstanceConnected(inst)) return inst
+  }
+  return INSTANCES[0]
+}
+
+async function evoRequest(instance: EvoInstance, path: string, body: any): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${EVOLUTION_URL}${path}/${encodeURIComponent(instance.name)}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': EVOLUTION_KEY
-      },
-      body: JSON.stringify({
-        number: formatted,
-        text: message
-      })
+      headers: { 'Content-Type': 'application/json', apikey: instance.key },
+      body: JSON.stringify(body)
     })
     if (!res.ok) {
       const err = await res.text()
@@ -76,52 +100,35 @@ async function sendWhatsApp(phone: string, message: string): Promise<{ ok: boole
   } catch (err: any) {
     return { ok: false, error: err.message }
   }
+}
+
+// Manda pela instância atual; se falhar e tiver uma segunda instância
+// configurada, tenta de novo por ela antes de desistir — devolve qual
+// instância realmente funcionou, pra próxima mensagem do lote já começar por ali
+async function sendWithFailover(path: string, body: any, current: EvoInstance): Promise<{ ok: boolean; error?: string; instance: EvoInstance }> {
+  const result = await evoRequest(current, path, body)
+  if (result.ok) return { ...result, instance: current }
+  const other = INSTANCES.find(i => i.name !== current.name)
+  if (other) {
+    const retry = await evoRequest(other, path, body)
+    if (retry.ok) return { ...retry, instance: other }
+  }
+  return { ...result, instance: current }
+}
+
+// Envia mensagem via Evolution API
+async function sendWhatsApp(phone: string, message: string, instance: EvoInstance): Promise<{ ok: boolean; error?: string; instance: EvoInstance }> {
+  return sendWithFailover('/message/sendText', { number: formatPhone(phone), text: message }, instance)
 }
 
 // Envia imagem ou video (com legenda opcional) via Evolution API
-async function sendMedia(phone: string, mediaUrl: string, mediaType: 'image' | 'video', caption: string): Promise<{ ok: boolean; error?: string }> {
-  try {
-    const formatted = formatPhone(phone)
-    const res = await fetch(`${EVOLUTION_URL}/message/sendMedia/${encodeURIComponent(EVOLUTION_INSTANCE)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'apikey': EVOLUTION_KEY },
-      body: JSON.stringify({
-        number: formatted,
-        mediatype: mediaType,
-        media: mediaUrl,
-        caption: caption || undefined
-      })
-    })
-    if (!res.ok) {
-      const err = await res.text()
-      return { ok: false, error: err }
-    }
-    return { ok: true }
-  } catch (err: any) {
-    return { ok: false, error: err.message }
-  }
+async function sendMedia(phone: string, mediaUrl: string, mediaType: 'image' | 'video', caption: string, instance: EvoInstance): Promise<{ ok: boolean; error?: string; instance: EvoInstance }> {
+  return sendWithFailover('/message/sendMedia', { number: formatPhone(phone), mediatype: mediaType, media: mediaUrl, caption: caption || undefined }, instance)
 }
 
 // Envia audio como nota de voz via Evolution API
-async function sendAudio(phone: string, mediaUrl: string): Promise<{ ok: boolean; error?: string }> {
-  try {
-    const formatted = formatPhone(phone)
-    const res = await fetch(`${EVOLUTION_URL}/message/sendWhatsAppAudio/${encodeURIComponent(EVOLUTION_INSTANCE)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'apikey': EVOLUTION_KEY },
-      body: JSON.stringify({
-        number: formatted,
-        audio: mediaUrl
-      })
-    })
-    if (!res.ok) {
-      const err = await res.text()
-      return { ok: false, error: err }
-    }
-    return { ok: true }
-  } catch (err: any) {
-    return { ok: false, error: err.message }
-  }
+async function sendAudio(phone: string, mediaUrl: string, instance: EvoInstance): Promise<{ ok: boolean; error?: string; instance: EvoInstance }> {
+  return sendWithFailover('/message/sendWhatsAppAudio', { number: formatPhone(phone), audio: mediaUrl }, instance)
 }
 
 // Processa um lote de contatos pendentes em segundo plano, respeitando o
@@ -132,6 +139,10 @@ async function runCampaignBatch(campaign: any, logs: any[], origin: string) {
   const loopStart = Date.now()
   let ranOutOfTime = false
   let sentThisInvocation = 0
+  // Escolhida 1x no início do lote — cada envio bem-sucedido atualiza essa
+  // variável pra instância que funcionou, então se a principal cair no meio
+  // do lote as mensagens seguintes já saem direto pela segunda
+  let activeInstance = await pickActiveInstance()
 
   // Orçamento desconta o pior caso do delay que vem depois do envio (até
   // delay_max) — senão a função pode ser morta pela Vercel durante esse
@@ -162,15 +173,17 @@ async function runCampaignBatch(campaign: any, logs: any[], origin: string) {
 
     const picked = pickVariation(campaign.messages, log.contact_name || 'Cliente', log.company_name || '')
     const message = picked.text
-    let result: { ok: boolean; error?: string }
+    let result: { ok: boolean; error?: string; instance: EvoInstance }
     if (picked.media_type === 'image' || picked.media_type === 'video') {
-      result = await sendMedia(log.phone, picked.media_url!, picked.media_type as 'image' | 'video', message)
+      result = await sendMedia(log.phone, picked.media_url!, picked.media_type as 'image' | 'video', message, activeInstance)
     } else if (picked.media_type === 'audio') {
-      result = await sendAudio(log.phone, picked.media_url!)
-      if (result.ok && message) await sendWhatsApp(log.phone, message)
+      result = await sendAudio(log.phone, picked.media_url!, activeInstance)
+      activeInstance = result.instance
+      if (result.ok && message) await sendWhatsApp(log.phone, message, activeInstance)
     } else {
-      result = await sendWhatsApp(log.phone, message)
+      result = await sendWhatsApp(log.phone, message, activeInstance)
     }
+    activeInstance = result.instance
 
     // Marca o Grupo WA logo apos o envio confirmado, antes de qualquer outra
     // escrita — se o processo for interrompido em seguida (comum em loop

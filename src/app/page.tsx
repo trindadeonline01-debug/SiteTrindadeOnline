@@ -343,7 +343,7 @@ export default async function HomePage() {
         .oa-badge-dot { width: 5px; height: 5px; border-radius: 50%; background: #3FDE7F; flex-shrink: 0; }
         .dv-badge { position: absolute; top: 8px; left: 8px; background: rgba(17,17,17,0.85); font-size: 13px; padding: 4px 6px; border-radius: 20px; line-height: 1; }
         .oa-empty { font-size: 13px; color: #AAA; padding: 12px 0 4px; }
-        .oa-panel { background: #fff; border-radius: 16px; border: 1px solid #E7E3DC; box-shadow: 0 2px 12px rgba(0,0,0,0.05); padding: 16px 14px 14px; }
+        .oa-band { background: #fff; padding: 18px 0 20px; }
 
         /* cards compactos — cabem 4 por tela no mobile + uma fatia do 5º
            (os carrosséis normais usam .recent-card, feito pra 2 por tela) */
@@ -405,32 +405,36 @@ export default async function HomePage() {
         <HomeSearchBox />
       </section>
 
-      {(openCompanies.length > 0 || deliveringCompanies.length > 0) && (
-        <div className="main-wrap" style={{marginTop: 20}}>
-          {abertoAgoraEnabled && <HomeAbertoAgora companies={openCompanies} chips={abertoAgoraChips} />}
+      {abertoAgoraEnabled && openCompanies.length > 0 && (
+        <section className="oa-band">
+          <div className="main-wrap">
+            <HomeAbertoAgora companies={openCompanies} chips={abertoAgoraChips} />
+          </div>
+        </section>
+      )}
 
-          {entregandoAgoraEnabled && deliveringCompanies.length > 0 && (
-            <div className="recent-section">
-              <div className="recent-section-hdr">
-                <span className="recent-section-title">🛵 ENTREGANDO AGORA</span>
-              </div>
-              <div className="oa-scroll">
-                {deliveringCompanies.map(c => {
-                  const cover = [...(c.photos || [])].sort((a, b) => a.order - b.order)[0]?.url
-                  return (
-                    <a key={c.id} className="oa-card" href={`/empresa/${c.slug}`}>
-                      <div className="oa-card-img">
-                        {cover ? <Image src={cover} alt={c.name} fill sizes="(max-width:639px) 20vw, 120px" style={{objectFit:'cover'}} /> : (c.category?.emoji || '🏪')}
-                        <span className="dv-badge">🛵</span>
-                      </div>
-                      <div className="oa-card-title">{c.name}</div>
-                      <div className="oa-card-sub">entrega própria</div>
-                    </a>
-                  )
-                })}
-              </div>
+      {entregandoAgoraEnabled && deliveringCompanies.length > 0 && (
+        <div className="main-wrap" style={{marginTop: 20}}>
+          <div className="recent-section">
+            <div className="recent-section-hdr">
+              <span className="recent-section-title">🛵 ENTREGANDO AGORA</span>
             </div>
-          )}
+            <div className="oa-scroll">
+              {deliveringCompanies.map(c => {
+                const cover = [...(c.photos || [])].sort((a, b) => a.order - b.order)[0]?.url
+                return (
+                  <a key={c.id} className="oa-card" href={`/empresa/${c.slug}`}>
+                    <div className="oa-card-img">
+                      {cover ? <Image src={cover} alt={c.name} fill sizes="(max-width:639px) 20vw, 120px" style={{objectFit:'cover'}} /> : (c.category?.emoji || '🏪')}
+                      <span className="dv-badge">🛵</span>
+                    </div>
+                    <div className="oa-card-title">{c.name}</div>
+                    <div className="oa-card-sub">entrega própria</div>
+                  </a>
+                )
+              })}
+            </div>
+          </div>
         </div>
       )}
 

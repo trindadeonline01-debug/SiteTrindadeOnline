@@ -1,13 +1,10 @@
-'use client'
-
-import { useEffect, useState, useCallback, useRef } from 'react'
-import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { supabase } from '@/lib/supabase'
-import Link from 'next/link'
 import WAButton from '@/components/WAButton'
 import OneSignalInit from '@/components/OneSignalInit'
 import CookieBanner from '@/components/CookieBanner'
+import HomeSearchBox from '@/components/home/HomeSearchBox'
+import HomeBannerCarousel from '@/components/home/HomeBannerCarousel'
+import { createServerSupabase } from '@/lib/supabase-server'
 
 interface PaidCompany {
   id: string; name: string; slug: string; avg_rating: number; total_reviews: number
@@ -25,17 +22,6 @@ interface Banner {
   id: string; title: string; subtitle: string | null; description: string | null
   link_url: string | null; image_url: string | null; image_url_mobile: string | null; display_order: number
 }
-
-const CATEGORIES = [
-  { slug: 'comercios',        label: 'Comércios',         href: '/categoria/comercios'   },
-  { slug: 'servicos',         label: 'Serviços',           href: '/categoria/servicos'    },
-  { slug: 'gastronomia',      label: 'Gastronomia',        href: '/categoria/gastronomia' },
-  { slug: 'empregos',         label: 'Empregos',           href: '/empregos'              },
-  { slug: 'imoveis',          label: 'Imóveis',            href: '/imoveis'               },
-  { slug: 'desapega',         label: 'Desapega',           href: '/desapega'              },
-  { slug: 'achados-perdidos', label: 'Achados & Perdidos', href: '/achados-perdidos'      },
-  { slug: 'igrejas',          label: 'Igrejas',            href: '/categoria/igrejas'     },
-]
 
 // Carrosséis de empresas pagas na home — 1 por categoria, ordem pedida:
 // gastronomia primeiro, depois comércios, depois serviços
@@ -63,203 +49,89 @@ function Stars({ rating }: { rating: number }) {
   return <span style={{ color: '#C9951A', fontSize: 11 }}>{'★'.repeat(r)}{'☆'.repeat(5 - r)}</span>
 }
 
-export default function HomePage() {
-  const router = useRouter()
-  const [user, setUser]               = useState<any>(null)
-  const [userType, setUserType]       = useState<string | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [suggestions, setSuggestions] = useState<{type:string;label:string;sub:string;slug?:string;categorySlug?:string}[]>([])
-  const [showSuggestions, setShowSuggestions] = useState(false)
-  const searchRef = useRef<HTMLDivElement>(null)
-  const [banners, setBanners]         = useState<Banner[]>([])
-  const [activeBanner, setActiveBanner] = useState(0)
-  const [paidCompanies, setPaidCompanies] = useState<Record<string, PaidCompany[]>>({})
-  const [recentListings, setRecentListings] = useState<Record<string, Listing[]>>({})
-  const [pulseMessages, setPulseMessages] = useState<{id:string;message:string}[]>([])
-  const [pulseColorPreset, setPulseColorPreset] = useState('classico')
-  const [loading, setLoading]         = useState(true)
-  const [settingsLoaded, setSettingsLoaded] = useState(false)
-  const [isMobile, setIsMobile]       = useState(false)
-  const [siteTheme, setSiteTheme]     = useState('classico-preto')
-  const [bannerEnabled, setBannerEnabled] = useState(true)
+const TEMAS: Record<string, { heroBg: string, dest: string }> = {
+  'classico-preto':  { heroBg: '#111111', dest: '#C9951A' },
+  'trindade-quente': { heroBg: '#7A2020', dest: '#F0A500' },
+  'verde-raiz':      { heroBg: '#1A3A2A', dest: '#5DBF8A' },
+  'azul-confianca':  { heroBg: '#0D2B45', dest: '#3A9FD8' },
+  'terra-morna':     { heroBg: '#3D2B1A', dest: '#D4845A' },
+  'branco-limpo':    { heroBg: '#F5F5F5', dest: '#C9951A' },
+}
 
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768)
-    check()
-    window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
-  }, [])
+const PULSE_PRESETS: Record<string, { bg: string, text: string }> = {
+  classico: { bg: '#111111', text: '#C9951A' },
+  promocao: { bg: '#C0392B', text: '#FFFFFF' },
+  frete:    { bg: '#0F8050', text: '#FFFFFF' },
+  urgente:  { bg: '#E07030', text: '#FFFFFF' },
+  elegante: { bg: '#FFFFFF', text: '#111111' },
+}
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        supabase.from('profiles').select('user_type, name').eq('id', session.user.id).single()
-          .then(({ data }) => { setUserType(data?.user_type ?? null) })
-      }
-    })
-  }, [])
+export default async function HomePage() {
+  const supabaseServer = await createServerSupabase()
 
-  const loadData = useCallback(async () => {
-    setLoading(true)
-
-    // Todas as consultas daqui são independentes entre si — rodam em paralelo
-    // em vez de uma esperar a outra terminar, o que cortava bastante o tempo
-    // até a home aparecer com conteúdo de verdade
-    const types = ['desapega', 'emprego', 'imovel']
-
-    const [bannersRes, paidResults, listingResults, pulseRes, settingsRes] = await Promise.all([
-      supabase.from('banners').select('*').eq('active', true).order('display_order'),
-      Promise.all(PAID_CAROUSELS.map(([categoryId]) =>
-        supabase.from('companies')
-          .select('id, name, slug, avg_rating, total_reviews, category:categories(name,emoji), photos:company_photos(url,order)')
-          .eq('plan', 'paid').eq('status', 'active').eq('category_id', categoryId)
-      )),
-      Promise.all(types.map(type =>
-        supabase.from('listings')
-          .select('id, title, price, type, created_at, photos:listing_photos(url,order)')
-          .eq('type', type).eq('status', 'active')
-          .order('created_at', { ascending: false }).limit(5)
-      )),
-      supabase.from('pulse_messages').select('id, message').eq('active', true).order('display_order'),
-      supabase.from('site_settings').select('key,value'),
-    ])
-
-    // SHUFFLE — ordem aleatória a cada carregamento
-    setBanners(shuffle(bannersRes.data || []))
-
-    // Empresas pagas por categoria — todo mundo no plano pago é buscado (sem
-    // limite na consulta), embaralhado de verdade e só então cortado nas
-    // primeiras 10 — assim a cada carregamento é um recorte diferente do
-    // total, não sempre as mesmas
-    const paidMap: Record<string, PaidCompany[]> = {}
-    PAID_CAROUSELS.forEach(([, key], i) => {
-      paidMap[key] = shuffle((paidResults[i].data || []) as any as PaidCompany[]).slice(0, PAID_CAROUSEL_SIZE)
-    })
-    setPaidCompanies(paidMap)
-
-    const map: Record<string, Listing[]> = {}
-    types.forEach((type, i) => { map[type] = (listingResults[i].data || []) as Listing[] })
-    setRecentListings(map)
-
-    setPulseMessages(pulseRes.data || [])
-    const siteSettings = settingsRes.data
-    if (siteSettings) {
-      const theme = siteSettings.find((s: any) => s.key === 'active_theme')
-      const banner = siteSettings.find((s: any) => s.key === 'banner_enabled')
-      const pulseColor = siteSettings.find((s: any) => s.key === 'pulse_color_preset')
-      if (theme) setSiteTheme(theme.value || 'classico-preto')
-      if (banner) setBannerEnabled(banner.value === 'true')
-      if (pulseColor) setPulseColorPreset(pulseColor.value || 'classico')
-    }
-    setSettingsLoaded(true)
-    setLoading(false)
-  }, [])
-
-  useEffect(() => { loadData() }, [loadData])
-
-  useEffect(() => {
-    if (banners.length <= 1) return
-    const t = setInterval(() => setActiveBanner(p => (p + 1) % banners.length), 5000)
-    return () => clearInterval(t)
-  }, [banners.length])
-
-  async function fetchSuggestions(q: string) {
-    if (q.length < 2) { setSuggestions([]); return }
-    const { data } = await supabase.rpc('buscar_empresas', { termo: q })
-    const results: {type:string;label:string;sub:string;slug?:string;categorySlug?:string}[] = []
-    // Empresas
-    if (data) {
-      data.slice(0,5).forEach((c:any) => {
-        const q_lower = q.toLowerCase()
-        let motivo = c.category_name || ''
-        if (c.address && c.address.toLowerCase().includes(q_lower)) motivo = `📍 ${c.address}`
-        else if (c.category_name) motivo = c.category_name
-        results.push({ type:'empresa', label: c.name, sub: motivo, slug: c.slug })
-      })
-    }
-    // Tags — buscar empresas com tags matching
-    const { data: tagData } = await supabase
-      .from('companies')
-      .select('name, tags')
-      .eq('status','active')
-      .eq('plan','paid')
-      .limit(50)
-    if (tagData) {
-      tagData.forEach((c:any) => {
-        if (c.tags) {
-          c.tags.filter((t:string) => t.toLowerCase().includes(q.toLowerCase())).slice(0,2).forEach((t:string) => {
-            if (!results.find(r => r.label.toLowerCase() === t.toLowerCase())) {
-              results.push({ type:'tag', label: t, sub: c.name })
-            }
-          })
-        }
-      })
-    }
-    // Subcategorias
-    const { data: subcatData } = await supabase
-      .from('subcategories')
-      .select('id, name, slug, category:categories(slug)')
-      .ilike('name', `%${q}%`)
-      .limit(3)
-    if (subcatData) {
-      subcatData.forEach((s:any) => {
-        if (!results.find(r => r.label.toLowerCase() === s.name.toLowerCase())) {
-          results.push({ type:'subcat', label: s.name, sub: 'Ver subcategoria', slug: s.slug as string, categorySlug: s.category?.slug as string })
-        }
-      })
-    }
-
-    setSuggestions(results.slice(0,8))
-    setShowSuggestions(true)
+  const { data: { session } } = await supabaseServer.auth.getSession()
+  const user = session?.user ?? null
+  let userType: string | null = null
+  if (user) {
+    const { data: profile } = await supabaseServer.from('profiles').select('user_type').eq('id', user.id).single()
+    userType = profile?.user_type ?? null
   }
 
-  function handleSearch(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    // Lê direto do input na hora do submit (não do state) — no Enter logo
-    // após digitar rápido no celular, o onChange às vezes ainda não
-    // terminou de atualizar o state, e a busca saía com o termo cortado
-    const raw = e.currentTarget.querySelector('input')?.value ?? searchQuery
-    if (raw.trim()) {
-      const q = raw.trim()
-      supabase.from('search_logs').insert({ query: q, user_id: user?.id || null }).then(() => {})
-      router.push(`/busca?q=${encodeURIComponent(q)}`)
-    }
+  // Todas as consultas daqui são independentes entre si — rodam em paralelo
+  // em vez de uma esperar a outra terminar, o que cortava bastante o tempo
+  // até a home aparecer com conteúdo de verdade. Agora rodam no servidor,
+  // antes de mandar qualquer HTML pro navegador — sem tela de carregando.
+  const types = ['desapega', 'emprego', 'imovel']
+
+  const [bannersRes, paidResults, listingResults, pulseRes, settingsRes] = await Promise.all([
+    supabaseServer.from('banners').select('*').eq('active', true).order('display_order'),
+    Promise.all(PAID_CAROUSELS.map(([categoryId]) =>
+      supabaseServer.from('companies')
+        .select('id, name, slug, avg_rating, total_reviews, category:categories(name,emoji), photos:company_photos(url,order)')
+        .eq('plan', 'paid').eq('status', 'active').eq('category_id', categoryId)
+    )),
+    Promise.all(types.map(type =>
+      supabaseServer.from('listings')
+        .select('id, title, price, type, created_at, photos:listing_photos(url,order)')
+        .eq('type', type).eq('status', 'active')
+        .order('created_at', { ascending: false }).limit(5)
+    )),
+    supabaseServer.from('pulse_messages').select('id, message').eq('active', true).order('display_order'),
+    supabaseServer.from('site_settings').select('key,value'),
+  ])
+
+  // SHUFFLE — ordem aleatória a cada carregamento
+  const banners = shuffle((bannersRes.data || []) as Banner[])
+
+  // Empresas pagas por categoria — todo mundo no plano pago é buscado (sem
+  // limite na consulta), embaralhado de verdade e só então cortado nas
+  // primeiras 10 — assim a cada carregamento é um recorte diferente do
+  // total, não sempre as mesmas
+  const paidCompanies: Record<string, PaidCompany[]> = {}
+  PAID_CAROUSELS.forEach(([, key], i) => {
+    paidCompanies[key] = shuffle((paidResults[i].data || []) as any as PaidCompany[]).slice(0, PAID_CAROUSEL_SIZE)
+  })
+
+  const recentListings: Record<string, Listing[]> = {}
+  types.forEach((type, i) => { recentListings[type] = (listingResults[i].data || []) as Listing[] })
+
+  const pulseMessages = pulseRes.data || []
+
+  let siteTheme = 'classico-preto'
+  let bannerEnabled = true
+  let pulseColorPreset = 'classico'
+  const siteSettings = settingsRes.data
+  if (siteSettings) {
+    const theme = siteSettings.find((s: any) => s.key === 'active_theme')
+    const bannerSetting = siteSettings.find((s: any) => s.key === 'banner_enabled')
+    const pulseColor = siteSettings.find((s: any) => s.key === 'pulse_color_preset')
+    if (theme) siteTheme = theme.value || 'classico-preto'
+    if (bannerSetting) bannerEnabled = bannerSetting.value === 'true'
+    if (pulseColor) pulseColorPreset = pulseColor.value || 'classico'
   }
 
-  function prevBanner() {
-    setActiveBanner(p => (p - 1 + banners.length) % banners.length)
-  }
+  const tema = TEMAS[siteTheme] || TEMAS['classico-preto']
 
-  function nextBanner() {
-    setActiveBanner(p => (p + 1) % banners.length)
-  }
-
-  const currentBanner = banners[activeBanner]
-
-  // Escolhe imagem certa: mobile ou desktop
-  function getBannerImage(b: Banner): string | null {
-    if (isMobile && b.image_url_mobile) return b.image_url_mobile
-    return b.image_url
-  }
-
-
-  const TEMAS: Record<string, {heroBg: string, dest: string}> = {
-    'classico-preto':  { heroBg: '#111111', dest: '#C9951A' },
-    'trindade-quente': { heroBg: '#7A2020', dest: '#F0A500' },
-    'verde-raiz':      { heroBg: '#1A3A2A', dest: '#5DBF8A' },
-    'azul-confianca':  { heroBg: '#0D2B45', dest: '#3A9FD8' },
-    'terra-morna':     { heroBg: '#3D2B1A', dest: '#D4845A' },
-    'branco-limpo':    { heroBg: '#F5F5F5', dest: '#C9951A' },
-  }
-
-  const PULSE_PRESETS: Record<string, {bg: string, text: string}> = {
-    classico: { bg: '#111111', text: '#C9951A' },
-    promocao: { bg: '#C0392B', text: '#FFFFFF' },
-    frete:    { bg: '#0F8050', text: '#FFFFFF' },
-    urgente:  { bg: '#E07030', text: '#FFFFFF' },
-    elegante: { bg: '#FFFFFF', text: '#111111' },
-  }
   return (
     <>
       <style>{`
@@ -441,45 +313,10 @@ export default function HomePage() {
       `}</style>
 
       {/* HERO */}
-      <section className="hero" style={{background: settingsLoaded ? (TEMAS[siteTheme]?.heroBg || '#111111') : 'transparent'}}>
-        <h1 className="hero-title" style={{color: siteTheme === 'branco-limpo' ? '#111' : '#fff'}}>TRINDADE <span style={{color: TEMAS[siteTheme]?.dest || '#C9951A'}}>ONLINE</span></h1>
+      <section className="hero" style={{background: tema.heroBg}}>
+        <h1 className="hero-title" style={{color: siteTheme === 'branco-limpo' ? '#111' : '#fff'}}>TRINDADE <span style={{color: tema.dest}}>ONLINE</span></h1>
         <p className="hero-sub">Conectando moradores, comércios e serviços do bairro Trindade</p>
-        <div ref={searchRef} style={{position:'relative',width:'100%',maxWidth:600,margin:'0 auto'}}>
-        <form className="hero-search-wrap" onSubmit={handleSearch}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9951A" strokeWidth="2" strokeLinecap="round">
-            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-          </svg>
-          <input type="text" value={searchQuery}
-            onChange={e => { setSearchQuery(e.target.value); fetchSuggestions(e.target.value) }}
-            onFocus={() => searchQuery.length >= 2 && setShowSuggestions(true)}
-            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-            placeholder="O que você está procurando?" />
-          <button type="submit" className="hero-search-btn">Buscar</button>
-        </form>
-        {showSuggestions && suggestions.length > 0 && (
-          <div className="search-suggestions">
-            {suggestions.map((s, i) => (
-              <div key={i} className="sug-item" onMouseDown={() => {
-                setSearchQuery(s.label)
-                setShowSuggestions(false)
-                if (s.type === 'empresa' && s.slug) {
-                  window.location.href = `/empresa/${s.slug}`
-                } else if (s.type === 'subcat' && s.categorySlug && s.slug) {
-                  window.location.href = `/categoria/${s.categorySlug}?sub=${s.slug}`
-                } else {
-                  window.location.href = `/busca?q=${encodeURIComponent(s.label)}`
-                }
-              }}>
-                <div className="sug-ico">{s.type === 'empresa' ? '🏪' : s.type === 'subcat' ? '📂' : '🏷️'}</div>
-                <div>
-                  <div className="sug-label">{s.label}</div>
-                  {s.sub && <div className="sug-sub">{s.type === 'tag' ? `em ${s.sub}` : s.sub}</div>}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-        </div>
+        <HomeSearchBox userId={user?.id ?? null} />
       </section>
 
       {pulseMessages.length > 0 && (() => {
@@ -498,59 +335,8 @@ export default function HomePage() {
         )
       })()}
 
-      {settingsLoaded && bannerEnabled && (<>
-      <div className="banner-outer">
-        {currentBanner ? (
-          <a href={currentBanner.link_url || '#'} style={{ display: 'block', textDecoration: 'none' }}>
-            <div className="banner-inner-wrap">
-              {getBannerImage(currentBanner)
-                ? <Image src={getBannerImage(currentBanner)!} alt={currentBanner.title} fill priority sizes="100vw" style={{objectFit:"cover"}} />
-                : <div className="banner-deco">🏗️</div>
-              }
-              <div className="banner-content-wrap">
-                <div className="banner-title-text">{currentBanner.title}</div>
-                {currentBanner.subtitle    && <div className="banner-sub-text">{currentBanner.subtitle}</div>}
-                {currentBanner.description && <div className="banner-desc-text">{currentBanner.description}</div>}
-              </div>
-            </div>
-          </a>
-        ) : (
-          <div className="banner-inner-wrap" style={{ justifyContent: 'center' }}>
-            <div style={{ textAlign: 'center', color: '#555' }}>
-              <div style={{ fontSize: 32, marginBottom: 8 }}>📢</div>
-              <div style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 20, color: '#C9951A' }}>Espaço para anunciante</div>
-              <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>Entre em contato para anunciar aqui</div>
-            </div>
-          </div>
-        )}
+      {bannerEnabled && <HomeBannerCarousel banners={banners} />}
 
-        {/* SETAS + DOTS — fora do banner, abaixo da imagem, entre banner e categorias */}
-        {banners.length > 1 && (
-          <div className="banner-dots-outer">
-            <button className="banner-arrow" onClick={() => prevBanner()} aria-label="Banner anterior">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="15 18 9 12 15 6"/>
-              </svg>
-            </button>
-            <div className="banner-dots-row">
-              {banners.map((_, i) => (
-                <span
-                  key={i}
-                  className={`banner-dot${i === activeBanner ? ' on' : ''}`}
-                  style={{ width: i === activeBanner ? 22 : 8 }}
-                  onClick={() => setActiveBanner(i)}
-                />
-              ))}
-            </div>
-            <button className="banner-arrow" onClick={() => nextBanner()} aria-label="Próximo banner">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="9 18 15 12 9 6"/>
-              </svg>
-            </button>
-          </div>
-        )}
-      </div>
-      </>)}
       {/* CONTEÚDO */}
       <div className="main-wrap">
 
@@ -609,7 +395,7 @@ export default function HomePage() {
         {/* EMPRESAS PAGAS — 1 carrossel por categoria (gastronomia, comércios,
             serviços), ordem embaralhada a cada carregamento pra dar visibilidade
             igual a todo mundo no plano pago */}
-        {!loading && PAID_CAROUSELS.some(([, key]) => (paidCompanies[key] || []).length > 0) && (
+        {PAID_CAROUSELS.some(([, key]) => (paidCompanies[key] || []).length > 0) && (
           <>
             <div className="divider" />
             {PAID_CAROUSELS.map(([, key, title, href]) => {
@@ -641,15 +427,6 @@ export default function HomePage() {
                 </div>
               )
             })}
-          </>
-        )}
-        {loading && (
-          <>
-            <div className="divider" />
-            <div className="sec-hdr"><span className="sec-title">GASTRONOMIA</span></div>
-            <div className="dest-grid">
-              {[1,2,3,4].map(i => <div key={i} className="skeleton" style={{ height: 148, borderRadius: 14 }} />)}
-            </div>
           </>
         )}
 

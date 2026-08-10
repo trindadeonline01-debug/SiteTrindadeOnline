@@ -345,15 +345,18 @@ export default async function HomePage() {
         .oa-empty { font-size: 13px; color: #AAA; padding: 12px 0 4px; }
         .oa-band { background: #fff; padding: 18px 0 20px; }
 
-        /* cards compactos — cabem 4 por tela no mobile + uma fatia do 5º
-           (os carrosséis normais usam .recent-card, feito pra 2 por tela) */
-        .oa-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+        /* cards compactos — cabem 4 por tela no mobile + uma fatia do 5º.
+           No desktop continua em fileira única (nunca quebra linha) — os
+           cards a mais ficam disponíveis rolando de lado, sem barra de
+           scroll visível (os carrosséis normais usam .recent-card, que
+           vira grade com quebra de linha — esse aqui não quebra nunca) */
+        .oa-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; cursor: grab; }
         .oa-scroll::-webkit-scrollbar { display: none; }
-        @media(min-width: 768px) { .oa-scroll { display: grid; grid-template-columns: repeat(4,1fr); overflow: visible; gap: 14px; } }
-        @media(min-width: 1024px) { .oa-scroll { grid-template-columns: repeat(5,1fr); } }
+        .oa-scroll:active { cursor: grabbing; }
+        @media(min-width: 768px) { .oa-scroll { gap: 16px; } }
         .oa-card { flex-shrink: 0; width: 20vw; max-width: 80px; text-decoration: none; display: block; }
         @media(min-width: 480px) { .oa-card { width: 84px; } }
-        @media(min-width: 768px) { .oa-card { width: auto; } }
+        @media(min-width: 768px) { .oa-card { width: 112px; } }
         .oa-card-img { width: 100%; aspect-ratio: 1/1; border-radius: 10px; overflow: hidden; background: #F0EDE8; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-bottom: 5px; position: relative; }
         @media(min-width: 768px) { .oa-card-img { border-radius: 14px; font-size: 34px; margin-bottom: 8px; } }
         .oa-card-img img { width: 100%; height: 100%; object-fit: cover; }

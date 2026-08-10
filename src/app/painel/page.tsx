@@ -17,6 +17,7 @@ type Company = {
   views_count: number; whatsapp_clicks: number; link_clicks: number
   category_id?: string; trial_ends_at?: string; plan_ends_at?: string; cpf_cnpj?: string
   delivery_available?: boolean
+  flexible_hours?: boolean
   category?: { name: string; emoji: string }
   photos?: { id: string; url: string; order: number }[]
   hours?: { id: string; label: string; hours: string; order: number; day_of_week: number | null; open_time: string | null; close_time: string | null; closed: boolean }[]
@@ -122,6 +123,7 @@ export default function PainelPage() {
   const [editCpfCnpj, setEditCpfCnpj]         = useState('')
   const [editHours, setEditHours]             = useState<HourRow[]>([])
   const [editDelivery, setEditDelivery]       = useState(false)
+  const [editFlexible, setEditFlexible]       = useState(false)
   const [churchHours, setChurchHours]         = useState<{day:string;manha:string;noite:string}[]>(DIAS_SEMANA.map(day=>({day,manha:'',noite:''})))
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -191,6 +193,7 @@ export default function PainelPage() {
       setEditAddress(comp.address || '')
       setEditDesc(comp.description || '')
       setEditDelivery(!!comp.delivery_available)
+      setEditFlexible(!!comp.flexible_hours)
       setEditLinkUrl(comp.external_link || '')
       setEditLinkLabel(comp.external_link_label || 'Ver cardápio')
       setEditCpfCnpj(comp.cpf_cnpj || '')
@@ -400,6 +403,7 @@ export default function PainelPage() {
       address: editAddress,
       description: editDesc,
       delivery_available: editDelivery,
+      flexible_hours: editFlexible,
       category_id: editCategoryId || null,
       external_link: editLinkUrl || null,
       external_link_label: editLinkUrl ? editLinkLabel : null,
@@ -427,7 +431,7 @@ export default function PainelPage() {
         if (noite.trim()) cultosEntries.push({company_id:company.id,label:`${day} noite`,hours:noite.trim(),order:order++})
       })
       if (cultosEntries.length > 0) await supabase.from('company_hours').insert(cultosEntries)
-    } else {
+    } else if (!editFlexible) {
       // Só salva linha fechada (sem horário) ou linha com os dois horários preenchidos —
       // intervalo pela metade (só abre ou só fecha) não é dado suficiente pra guardar
       const validH = editHours.filter(h => h.closed || (h.open_time?.trim() && h.close_time?.trim()))
@@ -437,6 +441,8 @@ export default function PainelPage() {
         closed: h.closed, order: i,
       })))
     }
+    // editFlexible === true: não insere nada em company_hours — "aberta sempre"
+    // fica marcado direto em companies.flexible_hours
     showToast('Perfil atualizado!')
     setSaving(false)
   }
@@ -1621,7 +1627,7 @@ export default function PainelPage() {
                       </div>
                     ) : (
                       <div style={{marginTop:8}}>
-                        <BusinessHoursEditor hours={editHours} setHours={setEditHours} />
+                        <BusinessHoursEditor hours={editHours} setHours={setEditHours} flexible={editFlexible} setFlexible={setEditFlexible} />
                       </div>
                     )}
                   </div>

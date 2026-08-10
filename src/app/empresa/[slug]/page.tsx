@@ -16,6 +16,7 @@ type Company = {
   subcategories?: CompanySubcat[]
   photos?: CompanyPhoto[]
   hours?: CompanyHour[]
+  flexible_hours?: boolean
 }
 type Review = {
   id: string; rating: number; text?: string; created_at: string

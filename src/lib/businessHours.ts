@@ -33,8 +33,10 @@ export type HourRow = {
 // Confere se a empresa está aberta agora, considerando todos os intervalos
 // cadastrados pro dia de hoje — true se o horário atual cair dentro de
 // QUALQUER um deles (dá suporte a mais de um horário no mesmo dia, ex:
-// almoço 11h-14h e janta 18h-23h)
-export function isOpenNow(hours?: HourRow[]): boolean {
+// almoço 11h-14h e janta 18h-23h). Empresas sem horário fixo (flexible=true,
+// ex: ambulantes) contam sempre como abertas, sem depender de "hours"
+export function isOpenNow(hours?: HourRow[], flexible?: boolean): boolean {
+  if (flexible) return true
   if (!hours || hours.length === 0) return false
   const today = new Date().getDay()
   const todayRows = hours.filter(h => h.day_of_week === today)

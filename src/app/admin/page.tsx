@@ -1299,6 +1299,11 @@ export default function AdminPage() {
                   </div>
                 </div>
               )}
+              {previewModal.company?.flexible_hours && (
+                <div style={{marginBottom:20,fontSize:12,color:'#854F0B',background:'rgba(201,149,26,.1)',borderRadius:8,padding:'8px 12px',borderLeft:'3px solid #C9951A'}}>
+                  🕐 Horário flexível — empresa sem horário fixo cadastrado
+                </div>
+              )}
               {previewModal.hours.some((h:any)=>h.day_of_week !== null) && (
                 <div style={{marginBottom:20}}>
                   <div style={{fontSize:11,color:'#999',fontWeight:600,marginBottom:8,textTransform:'uppercase',letterSpacing:0.5}}>Horários</div>

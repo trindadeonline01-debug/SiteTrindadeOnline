@@ -42,6 +42,7 @@ export default function EmpresaCadastrarPage() {
     DIAS_SEMANA.map(day => ({ day, manha: '', noite: '' }))
   )
   const [deliveryAvailable, setDeliveryAvailable] = useState(false)
+  const [flexibleHours, setFlexibleHours] = useState(false)
 
   // Etapa 3
   const [photos, setPhotos]             = useState<File[]>([])
@@ -138,6 +139,7 @@ export default function EmpresaCadastrarPage() {
           external_link: linkUrl || null,
           external_link_label: linkUrl ? linkLabel : null,
           delivery_available: deliveryAvailable,
+          flexible_hours: flexibleHours,
           status: 'pending',
           plan: 'free',
         })
@@ -178,7 +180,7 @@ export default function EmpresaCadastrarPage() {
           if (noite.trim()) cultosEntries.push({ company_id: company.id, label: `${day} noite`, hours: noite.trim(), order: order++ })
         })
         if (cultosEntries.length > 0) await supabase.from('company_hours').insert(cultosEntries)
-      } else {
+      } else if (!flexibleHours) {
         // Só salva linha fechada (sem horário) ou linha com os dois horários preenchidos —
         // intervalo pela metade (só abre ou só fecha) não é dado suficiente pra guardar
         const validHours = hours.filter(h => h.closed || (h.open_time?.trim() && h.close_time?.trim()))
@@ -506,7 +508,7 @@ export default function EmpresaCadastrarPage() {
                       </div>
                     ) : (
                       <div style={{marginTop:8}}>
-                        <BusinessHoursEditor hours={hours} setHours={setHours} />
+                        <BusinessHoursEditor hours={hours} setHours={setHours} flexible={flexibleHours} setFlexible={setFlexibleHours} />
                       </div>
                     )}
                   </div>

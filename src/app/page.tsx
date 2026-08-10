@@ -16,7 +16,7 @@ interface PaidCompany {
 }
 
 interface OpenCompany {
-  id: string; name: string; slug: string; plan: string; delivery_available: boolean
+  id: string; name: string; slug: string; plan: string; delivery_available: boolean; flexible_hours: boolean
   category?: { emoji?: string } | null
   photos?: { url: string; order: number }[]
   subcategories?: { subcategory: { id: string; name: string; emoji: string } | null }[]
@@ -156,10 +156,10 @@ export default async function HomePage() {
   if (abertoAgoraEnabled || entregandoAgoraEnabled) {
     const { data: candidates } = await supabaseServer
       .from('companies')
-      .select('id, name, slug, plan, delivery_available, category:categories(emoji), photos:company_photos(url,order), subcategories:company_subcategories(subcategory:subcategories(id,name,emoji)), hours:company_hours(day_of_week,open_time,close_time,closed)')
+      .select('id, name, slug, plan, delivery_available, flexible_hours, category:categories(emoji), photos:company_photos(url,order), subcategories:company_subcategories(subcategory:subcategories(id,name,emoji)), hours:company_hours(day_of_week,open_time,close_time,closed)')
       .eq('status', 'active')
 
-    const open = ((candidates || []) as any as OpenCompany[]).filter(c => isOpenNow(c.hours))
+    const open = ((candidates || []) as any as OpenCompany[]).filter(c => isOpenNow(c.hours, c.flexible_hours))
     // Paga primeiro (mesma prioridade dos outros carrosséis da home),
     // embaralhado dentro de cada grupo pra dar visibilidade igual
     openCompanies = [...shuffle(open.filter(c => c.plan === 'paid')), ...shuffle(open.filter(c => c.plan !== 'paid'))]

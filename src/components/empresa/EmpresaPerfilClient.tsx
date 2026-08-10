@@ -23,6 +23,7 @@ type Company = {
   subcategories?: CompanySubcat[]
   photos?: CompanyPhoto[]
   hours?: CompanyHour[]
+  flexible_hours?: boolean
 }
 type SimpleCategory    = { id: string; name: string; emoji: string }
 type SimpleSubcategory = { id: string; name: string; emoji: string; category_id: string }
@@ -426,7 +427,7 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
   const isActive = company.plan === 'paid' || (!!company.trial_ends_at && new Date(company.trial_ends_at) > new Date())
   const trialDaysLeft = company.trial_ends_at ? Math.ceil((new Date(company.trial_ends_at).getTime() - Date.now()) / 86400000) : 0
   const photos = (company.photos || []).sort((a,b) => a.order - b.order)
-  const open = isOpenNow(company.hours)
+  const open = isOpenNow(company.hours, company.flexible_hours)
   const avgRating = company.avg_rating || 0
   const mapsUrl = company.address ? `https://maps.google.com/maps?q=${encodeURIComponent(company.address)}&output=embed` : null
 
@@ -673,8 +674,8 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
                   </span>
                 )
               )}
-              {company.hours && company.hours.length > 0 && (
-                <span className={`tag ${open ? 'tag-open' : 'tag-closed'}`}>{open ? '● Aberto agora' : '● Fechado'}</span>
+              {(company.flexible_hours || (company.hours && company.hours.length > 0)) && (
+                <span className={`tag ${open ? 'tag-open' : 'tag-closed'}`}>{company.flexible_hours ? '● Horário flexível' : (open ? '● Aberto agora' : '● Fechado')}</span>
               )}
               {company.subcategories?.map((s,i) => (
                 <span key={i} className="tag tag-sub">{s.subcategory.emoji} {s.subcategory.name}</span>

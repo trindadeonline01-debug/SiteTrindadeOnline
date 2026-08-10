@@ -1,6 +1,7 @@
 'use client'
 
 import { compressImage } from '@/lib/compressImage'
+import Image from 'next/image'
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import NotificacoesTab from '@/components/admin/NotificacoesTab'
@@ -1239,7 +1240,7 @@ export default function AdminPage() {
                   <div style={{fontSize:12,fontWeight:600,color:'#666',marginBottom:8,textTransform:'uppercase',letterSpacing:0.5}}>Fotos ({previewModal.photos.length})</div>
                   <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
                     {previewModal.photos.map((p:any,i:number)=>(
-                      <img key={i} src={p.url} style={{width:80,height:80,objectFit:'cover',borderRadius:8,border:'1px solid #eee'}} />
+                      <Image key={i} src={p.url} alt="" width={80} height={80} style={{objectFit:'cover',borderRadius:8,border:'1px solid #eee'}} />
                     ))}
                   </div>
                 </div>
@@ -2144,7 +2145,7 @@ export default function AdminPage() {
                       <div key={b.id} style={{background:'#fff',border:'1px solid #e8e8e8',borderRadius:10,overflow:'hidden',opacity: b.active ? 1 : 0.55}}>
                         {b.image_url && (
                           <div style={{height:80,overflow:'hidden',position:'relative'}}>
-                            <img src={b.image_url} alt={b.title} style={{width:'100%',height:'100%',objectFit:'cover'}} />
+                            <Image src={b.image_url} alt={b.title} fill sizes="300px" style={{objectFit:'cover'}} />
                             <div style={{position:'absolute',inset:0,background:'linear-gradient(90deg,rgba(0,0,0,0.55),transparent)'}} />
                             <div style={{position:'absolute',left:14,top:'50%',transform:'translateY(-50%)',color:'#fff',fontFamily:'"Bebas Neue",sans-serif',fontSize:20,letterSpacing:1}}>
                               {b.title}
@@ -2270,7 +2271,7 @@ export default function AdminPage() {
                                 <div>
                                   <div style={{fontSize:10,color:'#AAA',marginBottom:3}}>DESKTOP</div>
                                   <a href={req.file_desktop_url} target="_blank" rel="noopener noreferrer">
-                                    <img src={req.file_desktop_url} style={{width:180,height:45,objectFit:'cover',borderRadius:6,border:'1px solid #EDE8E0',cursor:'pointer'}} alt="desktop" title="Clique para ampliar"/>
+                                    <Image src={req.file_desktop_url} width={180} height={45} style={{objectFit:'cover',borderRadius:6,border:'1px solid #EDE8E0',cursor:'pointer'}} alt="desktop" title="Clique para ampliar"/>
                                   </a>
                                   <a href={`/api/download-banner?url=${encodeURIComponent(req.file_desktop_url)}&filename=banner-desktop-${req.company?.name||'empresa'}.png`} style={{display:'block',fontSize:10,color:'#C9951A',fontWeight:600,textDecoration:'none',marginTop:3,textAlign:'center'}}>⬇ Download</a>
                                 </div>
@@ -2279,7 +2280,7 @@ export default function AdminPage() {
                                 <div>
                                   <div style={{fontSize:10,color:'#AAA',marginBottom:3}}>MOBILE</div>
                                   <a href={req.file_mobile_url} target="_blank" rel="noopener noreferrer">
-                                    <img src={req.file_mobile_url} style={{width:68,height:45,objectFit:'cover',borderRadius:6,border:'1px solid #EDE8E0',cursor:'pointer'}} alt="mobile" title="Clique para ampliar"/>
+                                    <Image src={req.file_mobile_url} width={68} height={45} style={{objectFit:'cover',borderRadius:6,border:'1px solid #EDE8E0',cursor:'pointer'}} alt="mobile" title="Clique para ampliar"/>
                                   </a>
                                   <a href={`/api/download-banner?url=${encodeURIComponent(req.file_mobile_url)}&filename=banner-mobile-${req.company?.name||'empresa'}.png`} style={{display:'block',fontSize:10,color:'#C9951A',fontWeight:600,textDecoration:'none',marginTop:3,textAlign:'center'}}>⬇ Download</a>
                                 </div>

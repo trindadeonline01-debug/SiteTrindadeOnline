@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
+import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import ShareButton from '@/components/ShareButton'
 
@@ -93,7 +94,7 @@ export default function PromocoesPage() {
     .promo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
     .promo-card{background:#fff;border-radius:14px;overflow:hidden;border:0.5px solid #E0DDD8;cursor:pointer;transition:transform .15s;}
     .promo-card:hover{transform:translateY(-2px);}
-    .promo-card-img{aspect-ratio:9/16;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#F5F0E8;font-size:60px;}
+    .promo-card-img{aspect-ratio:9/16;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#F5F0E8;font-size:60px;position:relative;}
     .promo-card-img img{width:100%;height:100%;object-fit:cover;}
     .promo-card-body{padding:12px 14px;}
     .promo-card-cat{font-size:10px;color:#888;margin-bottom:3px;}
@@ -132,7 +133,7 @@ export default function PromocoesPage() {
                 <div key={p.id} className="promo-card" style={{position:'relative'}}>
                   <a href={'/empresa/'+p.company?.slug} style={{display:'block',color:'inherit',textDecoration:'none'}}>
                     <div className="promo-card-img">
-                      {p.image_url ? <img src={p.image_url} alt={p.title}/> : (p.company?.category?.emoji || '🏷️')}
+                      {p.image_url ? <Image src={p.image_url} alt={p.title} fill sizes="(max-width:639px) 45vw, 220px" style={{objectFit:'cover'}}/> : (p.company?.category?.emoji || '🏷️')}
                     </div>
                     <div className="promo-card-body">
                       <div className="promo-card-cat">{p.company?.category?.emoji} {p.company?.category?.name}</div>
@@ -189,7 +190,7 @@ export default function PromocoesPage() {
         ) : (
           <div className="story-wrap" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
             {promo.image_url ? (
-              <img className="story-img" src={promo.image_url} alt={promo.title}/>
+              <Image className="story-img" src={promo.image_url} alt={promo.title} fill sizes="100vw" style={{objectFit:'contain'}}/>
             ) : (
               <div className="story-bg">{promo.company?.category?.emoji || '🏷️'}</div>
             )}

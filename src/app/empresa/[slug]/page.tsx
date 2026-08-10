@@ -599,7 +599,7 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
           <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:12,alignItems:'center'}}>
             {photos.map(p => (
               <div key={p.id} style={{position:'relative',width:64,height:64,borderRadius:8,overflow:'hidden',border:'1px solid #E0DDD8',flexShrink:0}}>
-                <img src={p.url} alt="" style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
+                <Image src={p.url} alt="" fill sizes="64px" style={{objectFit:'cover'}}/>
                 <button onClick={()=>deletePhoto(p.id)}
                   style={{position:'absolute',top:2,right:2,background:'rgba(0,0,0,.7)',color:'#fff',border:'none',borderRadius:10,width:18,height:18,fontSize:11,lineHeight:1,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
               </div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import WAButton from '@/components/WAButton'
@@ -402,7 +403,7 @@ export default function HomePage() {
         .recent-card { flex-shrink: 0; width: 46vw; max-width: 210px; text-decoration: none; display: block; }
         @media(min-width: 480px) { .recent-card { width: 190px; } }
         @media(min-width: 768px) { .recent-card { width: auto; } }
-        .recent-card-img { width: 100%; aspect-ratio: 1/1; border-radius: 14px; overflow: hidden; background: #F0EDE8; display: flex; align-items: center; justify-content: center; font-size: 34px; margin-bottom: 8px; }
+        .recent-card-img { width: 100%; aspect-ratio: 1/1; border-radius: 14px; overflow: hidden; background: #F0EDE8; display: flex; align-items: center; justify-content: center; font-size: 34px; margin-bottom: 8px; position: relative; }
         .recent-card-img img { width: 100%; height: 100%; object-fit: cover; }
         .recent-card-title { font-size: 14px; font-weight: 600; color: #111; line-height: 1.3; margin-bottom: 2px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
         .recent-card-sub { font-size: 13px; color: #888; }
@@ -503,7 +504,7 @@ export default function HomePage() {
           <a href={currentBanner.link_url || '#'} style={{ display: 'block', textDecoration: 'none' }}>
             <div className="banner-inner-wrap">
               {getBannerImage(currentBanner)
-                ? <img src={getBannerImage(currentBanner)!} alt={currentBanner.title} style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover"}} />
+                ? <Image src={getBannerImage(currentBanner)!} alt={currentBanner.title} fill priority sizes="100vw" style={{objectFit:"cover"}} />
                 : <div className="banner-deco">🏗️</div>
               }
               <div className="banner-content-wrap">
@@ -626,7 +627,7 @@ export default function HomePage() {
                       return (
                         <a key={c.id} className="recent-card" href={`/empresa/${c.slug}`}>
                           <div className="recent-card-img">
-                            {cover ? <img src={cover} alt={c.name} /> : (c.category?.emoji || '🏪')}
+                            {cover ? <Image src={cover} alt={c.name} fill sizes="(max-width:639px) 45vw, 220px" style={{objectFit:'cover'}} /> : (c.category?.emoji || '🏪')}
                           </div>
                           <div className="recent-card-title">{c.name}</div>
                           <div className="recent-card-sub">
@@ -668,7 +669,7 @@ export default function HomePage() {
               <a key={l.id} className="recent-card" href={`/anuncio/${l.id}`}>
                 <div className="recent-card-img">
                   {l.photos?.length ? (
-                    <img src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title}/>
+                    <Image src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title} fill sizes="(max-width:639px) 45vw, 220px" style={{objectFit:'cover'}}/>
                   ) : '🏷️'}
                 </div>
                 <div className="recent-card-title">{l.title}</div>
@@ -690,7 +691,7 @@ export default function HomePage() {
               <a key={l.id} className="recent-card" href={`/anuncio/${l.id}`}>
                 <div className="recent-card-img">
                   {l.photos?.length ? (
-                    <img src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title}/>
+                    <Image src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title} fill sizes="(max-width:639px) 45vw, 220px" style={{objectFit:'cover'}}/>
                   ) : '💼'}
                 </div>
                 <div className="recent-card-title">{l.title}</div>
@@ -712,7 +713,7 @@ export default function HomePage() {
               <a key={l.id} className="recent-card" href={`/anuncio/${l.id}`}>
                 <div className="recent-card-img">
                   {l.photos?.length ? (
-                    <img src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title}/>
+                    <Image src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title} fill sizes="(max-width:639px) 45vw, 220px" style={{objectFit:'cover'}}/>
                   ) : '🏠'}
                 </div>
                 <div className="recent-card-title">{l.title}</div>

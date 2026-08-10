@@ -1,5 +1,6 @@
 'use client'
 import { compressImage } from '@/lib/compressImage'
+import Image from 'next/image'
 import { useState, useRef, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
@@ -26,7 +27,7 @@ function SortableItem({ photo, isMain, onDelete }: { photo: Photo; isMain: boole
       border: isMain ? '2px solid #C9951A' : '1px solid #E0DDD8',
       cursor:'grab',
     }} {...attributes} {...listeners}>
-      <img src={photo.url} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} draggable={false} />
+      <Image src={photo.url} alt="" fill sizes="150px" style={{objectFit:'cover'}} draggable={false} />
       {isMain && (
         <div style={{position:'absolute',bottom:4,left:4,background:'#C9951A',color:'#fff',fontSize:9,fontWeight:700,padding:'2px 6px',borderRadius:4,letterSpacing:0.5}}>
           PRINCIPAL

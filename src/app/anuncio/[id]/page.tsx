@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, use } from 'react'
+import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import { compressImage } from '@/lib/compressImage'
 import ShareButton from '@/components/ShareButton'
@@ -61,7 +62,9 @@ function Lightbox({ photos, idx, open, setIdx, onClose }: { photos: {url:string}
         <button onClick={(e) => { e.stopPropagation(); setIdx((i:number) => (i + 1) % n) }} style={{position:'absolute',right:20,top:'50%',transform:'translateY(-50%)',background:'rgba(0,0,0,0.7)',border:'2px solid #fff',color:'#fff',fontSize:28,width:50,height:50,borderRadius:25,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',zIndex:2}}>›</button>
         <div style={{position:'absolute',bottom:20,left:'50%',transform:'translateX(-50%)',background:'rgba(0,0,0,0.6)',color:'#fff',padding:'6px 16px',borderRadius:20,fontSize:13,fontWeight:600,zIndex:2}}>{idx + 1} / {n}</div>
       </>)}
-      <img src={photos[idx]?.url || ''} alt="" onClick={(e) => e.stopPropagation()} style={{maxWidth:'92vw',maxHeight:'92vh',objectFit:'contain',borderRadius:8}} />
+      <div onClick={(e) => e.stopPropagation()} style={{position:'relative',width:'92vw',height:'92vh'}}>
+        <Image src={photos[idx]?.url || ''} alt="" fill sizes="92vw" style={{objectFit:'contain',borderRadius:8}} />
+      </div>
     </div>
   )
 }
@@ -188,7 +191,7 @@ export default function AnuncioPage({ params }: { params: Promise<{ id: string }
       .gal-main img{width:100%;height:100%;object-fit:cover;}
       .gal-nav{position:absolute;bottom:10px;right:10px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;padding:3px 10px;border-radius:12px;}
       .gal-thumbs{display:flex;gap:6px;overflow-x:auto;}
-      .gal-thumb{width:56px;height:56px;border-radius:8px;overflow:hidden;flex-shrink:0;cursor:pointer;border:2px solid transparent;}
+      .gal-thumb{width:56px;height:56px;border-radius:8px;overflow:hidden;flex-shrink:0;cursor:pointer;border:2px solid transparent;position:relative;}
       .gal-thumb.on{border-color:#C9951A;}
       .gal-thumb img{width:100%;height:100%;object-fit:cover;}
       .title{font-family:'Bebas Neue',sans-serif;font-size:clamp(24px,3vw,36px);color:#111;letter-spacing:1px;margin-bottom:10px;}
@@ -239,14 +242,14 @@ export default function AnuncioPage({ params }: { params: Promise<{ id: string }
         <div>
           <div className="gallery">
             <div className="gal-main" onClick={()=>photos[photoIdx]&&setLightboxOpen(true)} style={{cursor:photos[photoIdx]?'pointer':'default'}}>
-              {photos[photoIdx] ? <img src={photos[photoIdx].url} alt={listing.title}/> : <span>{info.emoji}</span>}
+              {photos[photoIdx] ? <Image src={photos[photoIdx].url} alt={listing.title} fill sizes="(max-width:767px) 100vw, 600px" style={{objectFit:'cover'}}/> : <span>{info.emoji}</span>}
               {photos.length>1&&<div className="gal-nav">{photoIdx+1}/{photos.length}</div>}
             </div>
             {photos.length>1&&(
               <div className="gal-thumbs">
                 {photos.map((p,i)=>(
                   <div key={i} className={`gal-thumb ${i===photoIdx?'on':''}`} onClick={()=>setPhotoIdx(i)}>
-                    <img src={p.url} alt=""/>
+                    <Image src={p.url} alt="" fill sizes="56px" style={{objectFit:'cover'}}/>
                   </div>
                 ))}
               </div>
@@ -357,7 +360,7 @@ export default function AnuncioPage({ params }: { params: Promise<{ id: string }
             <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:12}}>
               {editPhotos.map((p:any)=>(
                 <div key={p.id} style={{position:'relative',width:72,height:72}}>
-                  <img src={p.url} style={{width:72,height:72,objectFit:'cover',borderRadius:8,border:'1px solid #E0DDD8'}}/>
+                  <Image src={p.url} alt="" fill sizes="72px" style={{objectFit:'cover',borderRadius:8,border:'1px solid #E0DDD8'}}/>
                   <button onClick={()=>removeEditPhoto(p)} disabled={removingPhoto===p.id}
                     style={{position:'absolute',top:-6,right:-6,width:20,height:20,borderRadius:10,background:'#E24B4A',border:'2px solid #fff',color:'#fff',fontSize:12,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0,lineHeight:1}}>×</button>
                 </div>

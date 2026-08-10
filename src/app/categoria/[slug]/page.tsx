@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, use } from 'react'
+import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 
 type Category    = { id: string; name: string; emoji: string; slug: string }
@@ -252,7 +253,7 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
         @media(min-width: 640px) { .companies-grid { grid-template-columns: repeat(2,1fr); } }
         .cc { background: #fff; border: 0.5px solid #E0DDD8; border-radius: 12px; overflow: hidden; text-decoration: none; transition: all .18s; display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
         .cc:hover { border-color: #C9951A; background: #FDFBF7; }
-        .cc-img { width: 56px; height: 56px; border-radius: 10px; background: #FEF3E2; display: flex; align-items: center; justify-content: center; font-size: 26px; overflow: hidden; flex-shrink: 0; border: 0.5px solid #E0DDD8; }
+        .cc-img { width: 56px; height: 56px; border-radius: 10px; background: #FEF3E2; display: flex; align-items: center; justify-content: center; font-size: 26px; overflow: hidden; flex-shrink: 0; border: 0.5px solid #E0DDD8; position: relative; }
         .cc-img img { width: 100%; height: 100%; object-fit: cover; }
         .cc-body { flex: 1; min-width: 0; }
         .cc-name { font-size: 15px; font-weight: 600; color: #111; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -339,7 +340,7 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
                   <a key={h.id} className="dest-card" href={`/empresa/${h.company.slug}`}>
                     <div className="dest-img">
                       {cover
-                        ? <img src={cover} alt={h.company.name} />
+                        ? <Image src={cover} alt={h.company.name} fill sizes="180px" style={{objectFit:'cover'}} />
                         : <span>{h.company.category?.emoji || '🏪'}</span>
                       }
                       <span className="dest-badge">DESTAQUE</span>
@@ -438,7 +439,7 @@ export default function CategoriaPage({ params }: { params: Promise<{ slug: stri
                 <a key={c.id} className="cc" href={`/empresa/${c.slug}`}>
                   <div className="cc-img">
                     {cover
-                      ? <img src={cover} alt={c.name} />
+                      ? <Image src={cover} alt={c.name} fill sizes="56px" style={{objectFit:'cover'}} />
                       : <span>{category?.emoji || '🏪'}</span>
                     }
                   </div>

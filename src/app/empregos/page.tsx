@@ -1,4 +1,5 @@
 'use client'
+import Image from 'next/image'
 import { compressImage } from '@/lib/compressImage'
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -143,7 +144,7 @@ export default function EmpregosPage(){
             const badge=SUBTYPES.find(([v])=>v===l.subtype)
             return(
               <a key={l.id} className="card" href={`/anuncio/${l.id}`}>
-                <div className="ci">{cover?<img src={cover} alt={l.title}/>:<span>💼</span>}
+                <div className="ci">{cover?<Image src={cover} alt={l.title} fill sizes="(max-width:639px) 50vw, (max-width:1023px) 33vw, 300px" style={{objectFit:'cover'}} />:<span>💼</span>}
                   {badge&&<div style={{position:'absolute',top:8,left:8,padding:'2px 8px',borderRadius:6,fontSize:9,fontWeight:700,...(roleOf(l)==='procura'?{background:'#EAF1FE',color:'#1D4ED8'}:{background:'#FEF3E2',color:'#C9951A'})}}>{badge[1]}</div>}
                 </div>
                 <div className="cb">

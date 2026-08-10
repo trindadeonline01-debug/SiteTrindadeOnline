@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, use } from 'react'
+import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 
 type Subcategory = { id: string; name: string; emoji: string; slug: string; category: { id: string; name: string; emoji: string; slug: string } }
@@ -111,7 +112,7 @@ export default function SubcategoriaPage({ params }: { params: Promise<{ slug: s
 
         .cc{background:#fff;border:0.5px solid #E0DDD8;border-radius:14px;overflow:hidden;text-decoration:none;display:block;transition:all .18s;}
         .cc:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.1);border-color:#C9951A;}
-        .cc-img{height:110px;background:#FEF3E2;display:flex;align-items:center;justify-content:center;font-size:40px;overflow:hidden;}
+        .cc-img{height:110px;background:#FEF3E2;display:flex;align-items:center;justify-content:center;font-size:40px;overflow:hidden;position:relative;}
         .cc-img img{width:100%;height:100%;object-fit:cover;}
         .cc-body{padding:11px 12px;}
         .cc-name{font-size:13px;font-weight:600;color:#222;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -211,7 +212,7 @@ export default function SubcategoriaPage({ params }: { params: Promise<{ slug: s
               return (
                 <a key={c.id} className="cc" href={`/empresa/${c.slug}`}>
                   <div className="cc-img">
-                    {cover ? <img src={cover} alt={c.name}/> : <span>{subcat?.emoji||'🏪'}</span>}
+                    {cover ? <Image src={cover} alt={c.name} fill sizes="(max-width:639px) 50vw, 300px" style={{objectFit:'cover'}}/> : <span>{subcat?.emoji||'🏪'}</span>}
                   </div>
                   <div className="cc-body">
                     <div className="cc-name">{c.name}</div>

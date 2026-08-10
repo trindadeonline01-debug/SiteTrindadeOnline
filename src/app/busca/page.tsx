@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
+import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { usePalavraPremiada, PalavraPremiadaModal } from '@/components/PalavraPremiada'
@@ -169,7 +170,7 @@ function BuscaContent() {
         @media(min-width:1024px){.emp-grid{grid-template-columns:repeat(4,1fr);}}
         .emp-card{background:#fff;border:0.5px solid #E0DDD8;border-radius:14px;overflow:hidden;cursor:pointer;transition:all .18s;text-decoration:none;display:block;}
         .emp-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.08);border-color:#C9951A;}
-        .emp-img{height:100px;background:#FEF3E2;display:flex;align-items:center;justify-content:center;font-size:36px;overflow:hidden;}
+        .emp-img{height:100px;background:#FEF3E2;display:flex;align-items:center;justify-content:center;font-size:36px;overflow:hidden;position:relative;}
         .emp-img img{width:100%;height:100%;object-fit:cover;}
         .emp-body{padding:10px 12px;}
         .emp-name{font-size:14px;font-weight:600;color:#111;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -208,7 +209,7 @@ function BuscaContent() {
         @media(min-width:640px){.results-grid{grid-template-columns:repeat(3,1fr);}}
         .result-card{display:flex;flex-direction:column;background:#FAFAF8;border:0.5px solid #E0DDD8;border-radius:12px;overflow:hidden;text-decoration:none;transition:all .15s;}
         .result-card:hover{border-color:#C9951A;box-shadow:0 2px 8px rgba(0,0,0,0.08);}
-        .rc-img{height:100px;background:#F0EDE8;display:flex;align-items:center;justify-content:center;font-size:28px;overflow:hidden;flex-shrink:0;}
+        .rc-img{height:100px;background:#F0EDE8;display:flex;align-items:center;justify-content:center;font-size:28px;overflow:hidden;flex-shrink:0;position:relative;}
         .rc-img img{width:100%;height:100%;object-fit:cover;}
         .rc-body{padding:8px 10px;}
         .rc-name{font-size:13px;font-weight:600;color:#111;margin-bottom:2px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
@@ -307,7 +308,7 @@ function BuscaContent() {
                   return (
                     <a key={c.id} className="emp-card" href={`/empresa/${c.slug}`}>
                       <div className="emp-img">
-                        {cover ? <img src={cover} alt={c.name} /> : <span>{c.category?.emoji || '🏪'}</span>}
+                        {cover ? <Image src={cover} alt={c.name} fill sizes="(max-width:639px) 33vw, 200px" style={{objectFit:'cover'}} /> : <span>{c.category?.emoji || '🏪'}</span>}
                       </div>
                       <div className="emp-body">
                         <div className="emp-name">{c.name}</div>
@@ -369,7 +370,7 @@ function BuscaContent() {
                 {desapega.map(l => (
                   <a key={l.id} className="result-card" href={`/anuncio/${l.id}`}>
                     <div className="rc-img">
-                      {l.photos?.length ? <img src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title}/> : <span>🏷️</span>}
+                      {l.photos?.length ? <Image src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title} fill sizes="(max-width:639px) 50vw, 33vw" style={{objectFit:'cover'}} /> : <span>🏷️</span>}
                     </div>
                     <div className="rc-body">
                       <div className="rc-name">{l.title}</div>
@@ -394,7 +395,7 @@ function BuscaContent() {
                 {empregos.map(l => (
                   <a key={l.id} className="result-card" href={`/anuncio/${l.id}`}>
                     <div className="rc-img">
-                      {l.photos?.length ? <img src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title}/> : <span>💼</span>}
+                      {l.photos?.length ? <Image src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title} fill sizes="(max-width:639px) 50vw, 33vw" style={{objectFit:'cover'}} /> : <span>💼</span>}
                     </div>
                     <div className="rc-body">
                       <div className="rc-name">{l.title}</div>
@@ -419,7 +420,7 @@ function BuscaContent() {
                 {imoveis.map(l => (
                   <a key={l.id} className="result-card" href={`/anuncio/${l.id}`}>
                     <div className="rc-img">
-                      {l.photos?.length ? <img src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title}/> : <span>🏠</span>}
+                      {l.photos?.length ? <Image src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title} fill sizes="(max-width:639px) 50vw, 33vw" style={{objectFit:'cover'}} /> : <span>🏠</span>}
                     </div>
                     <div className="rc-body">
                       <div className="rc-name">{l.title}</div>
@@ -444,7 +445,7 @@ function BuscaContent() {
                 {achados.map(l => (
                   <a key={l.id} className="result-card" href={`/anuncio/${l.id}`}>
                     <div className="rc-img">
-                      {l.photos?.length ? <img src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title}/> : <span>{l.subtype==='perdido'?'🔴':'🟢'} 🔍</span>}
+                      {l.photos?.length ? <Image src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title} fill sizes="(max-width:639px) 50vw, 33vw" style={{objectFit:'cover'}} /> : <span>{l.subtype==='perdido'?'🔴':'🟢'} 🔍</span>}
                     </div>
                     <div className="rc-body">
                       <div className="rc-name">{l.title}</div>

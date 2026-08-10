@@ -2116,7 +2116,8 @@ export default function PainelPage() {
                         setSavingPromo(true)
                         const ext = promoFile.name.split('.').pop()
                         const path = `promotions/${company.id}/${Date.now()}.${ext}`
-                        const {data:up} = await supabase.storage.from('company-photos').upload(path, promoFile, {upsert:true})
+                        const compressedPromo = await compressImage(promoFile)
+                        const {data:up} = await supabase.storage.from('company-photos').upload(path, compressedPromo, {upsert:true})
                         if(!up){setSavingPromo(false);return}
                         const {data:url} = supabase.storage.from('company-photos').getPublicUrl(path)
                         const now = new Date()

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, use, useRef } from 'react'
+import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import ShareButton from '@/components/ShareButton'
 import { compressImage } from '@/lib/compressImage'
@@ -59,7 +60,9 @@ function Lightbox({ photos, idx, open, setIdx, onClose, isAdmin }: { photos: Com
         <button onClick={(e) => { e.stopPropagation(); setIdx((i:number) => (i + 1) % n) }} style={{position:'absolute',right:20,top:'50%',transform:'translateY(-50%)',background:'rgba(0,0,0,0.7)',border:'2px solid #fff',color:'#fff',fontSize:28,width:50,height:50,borderRadius:25,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',zIndex:2}}>›</button>
         <div style={{position:'absolute',bottom:20,left:'50%',transform:'translateX(-50%)',background:'rgba(0,0,0,0.6)',color:'#fff',padding:'6px 16px',borderRadius:20,fontSize:13,fontWeight:600,zIndex:2}}>{idx + 1} / {n}</div>
       </>)}
-      <img src={photos[idx]?.url || ''} alt="" onClick={(e) => e.stopPropagation()} style={{maxWidth:'92vw',maxHeight:'92vh',objectFit:'contain',borderRadius:8}} />
+      <div onClick={(e) => e.stopPropagation()} style={{position:'relative',width:'92vw',height:'92vh'}}>
+        <Image src={photos[idx]?.url || ''} alt="" fill sizes="92vw" style={{objectFit:'contain',borderRadius:8}} />
+      </div>
     </div>
   )
 }
@@ -97,7 +100,7 @@ function Gallery({ photos, emoji, isAdmin }: { photos: CompanyPhoto[]; emoji: st
   return (
     <>
     <div style={{ width:'100%', aspectRatio:'1 / 1', borderRadius:16, overflow:'hidden', position:'relative' }}>
-      <img src={src(idx)} alt="" onClick={() => openLightbox(idx)} style={{ width:'100%', height:'100%', objectFit:'cover', display:'block', cursor:'pointer' }} />
+      <Image src={src(idx)} alt="" onClick={() => openLightbox(idx)} fill sizes="(max-width:767px) 100vw, 700px" priority style={{ objectFit:'cover', cursor:'pointer' }} />
       {n > 1 && (
         <div style={{ position:'absolute', bottom:10, right:10, background:'rgba(0,0,0,.6)', color:'#fff', fontSize:11, fontWeight:500, padding:'3px 10px', borderRadius:12 }}>{idx+1} / {n}</div>
       )}
@@ -106,8 +109,8 @@ function Gallery({ photos, emoji, isAdmin }: { photos: CompanyPhoto[]; emoji: st
       <div style={{ display:'flex', gap:8, marginTop:8, overflowX:'auto', paddingBottom:2 }}>
         {photos.map((p, i) => (
           <div key={p.id} onClick={() => setIdx(i)}
-            style={{ flexShrink:0, width:64, height:64, borderRadius:10, overflow:'hidden', cursor:'pointer', border: i===idx ? '2.5px solid #C9951A' : '2.5px solid transparent', opacity: i===idx ? 1 : 0.7, transition:'opacity .15s, border-color .15s' }}>
-            <img src={p.url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
+            style={{ flexShrink:0, width:64, height:64, borderRadius:10, overflow:'hidden', cursor:'pointer', position:'relative', border: i===idx ? '2.5px solid #C9951A' : '2.5px solid transparent', opacity: i===idx ? 1 : 0.7, transition:'opacity .15s, border-color .15s' }}>
+            <Image src={p.url} alt="" fill sizes="64px" style={{ objectFit:'cover' }} />
           </div>
         ))}
       </div>

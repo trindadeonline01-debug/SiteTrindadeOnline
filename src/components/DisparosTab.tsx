@@ -617,6 +617,7 @@ export default function DisparosTab() {
           <option value="paid">💛 Só empresas pagas</option>
           <option value="unpaid">⭕ Só empresas não pagas</option>
           <option value="no_group">📵 Empresas sem grupo WA</option>
+          <option value="no_hours">🕐 Empresas sem horário cadastrado</option>
           <option value="owner_phone">👤 ADM Empresas (WhatsApp do lojista)</option>
           <option value="residents">🏘️ Só moradores</option>
           <option value="broadcast_list">📋 Lista de transmissão</option>

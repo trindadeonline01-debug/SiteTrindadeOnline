@@ -54,6 +54,14 @@ export async function POST(req: NextRequest) {
       contacts = [...contacts, ...withoutGroup.map((c: any) => c.phone)]
     }
 
+    if (filter === 'no_hours') {
+      const { data } = await supabase.from('companies').select('id, phone').not('phone', 'is', null).neq('phone', '')
+      const { data: hours } = await supabase.from('company_hours').select('company_id')
+      const withHours = new Set((hours || []).map((h: any) => h.company_id))
+      const withoutHours = (data || []).filter((c: any) => !withHours.has(c.id))
+      contacts = [...contacts, ...withoutHours.map((c: any) => c.phone)]
+    }
+
     if (filter === 'all' || filter === 'residents') {
       const { data } = await supabase.from('profiles').select('phone').eq('user_type', 'user').not('phone', 'is', null).neq('phone', '')
       contacts = [...contacts, ...(data || []).map((r: any) => r.phone)]

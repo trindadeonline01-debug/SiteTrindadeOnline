@@ -291,6 +291,16 @@ export async function POST(req: NextRequest) {
         contacts = [...contacts, ...withoutGroup.map((c: any) => ({ phone: c.phone, name: c.name, company: c.name, owner_id: c.owner_id }))]
       }
 
+      if (filter === 'no_hours') {
+        // Empresas que ainda não cadastraram horário de funcionamento —
+        // usado pra campanha pedindo pra completar (alimenta o "Aberto agora")
+        const { data: companies } = await supabase.from('companies').select('id, name, phone').not('phone', 'is', null).neq('phone', '')
+        const { data: hours } = await supabase.from('company_hours').select('company_id')
+        const withHours = new Set((hours || []).map((h: any) => h.company_id))
+        const withoutHours = (companies || []).filter((c: any) => !withHours.has(c.id))
+        contacts = [...contacts, ...withoutHours.map((c: any) => ({ phone: c.phone, name: c.name, company: c.name }))]
+      }
+
       if (filter === 'all' || filter === 'residents') {
         // Moradores
         const { data: residents } = await supabase

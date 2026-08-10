@@ -35,13 +35,6 @@ type Props = {
   slug: string
   initialCompany: Company
   initialReviews: Review[]
-  initialUserId: string | null
-  initialIsAdmin: boolean
-  initialIsOwner: boolean
-  initialIsFav: boolean
-  initialAlreadyReviewed: boolean
-  initialAllCategories: SimpleCategory[]
-  initialAllSubcats: SimpleSubcategory[]
 }
 
 const fmtDate = (s: string) => new Date(s).toLocaleDateString('pt-BR')
@@ -135,15 +128,12 @@ function Gallery({ photos, emoji, isAdmin }: { photos: CompanyPhoto[]; emoji: st
 
 const COMPANY_SELECT = '*, owner_id, trial_ends_at, category:categories(name,emoji,slug), subcategories:company_subcategories(subcategory_id, subcategory:subcategories(name,emoji)), photos:company_photos(id,url,order), hours:company_hours(label,hours,order)'
 
-export default function EmpresaPerfilClient({
-  slug, initialCompany, initialReviews, initialUserId, initialIsAdmin, initialIsOwner,
-  initialIsFav, initialAlreadyReviewed, initialAllCategories, initialAllSubcats,
-}: Props) {
+export default function EmpresaPerfilClient({ slug, initialCompany, initialReviews }: Props) {
   const [company, setCompany]       = useState<Company>(initialCompany)
   const [reviews, setReviews]       = useState<Review[]>(initialReviews)
-  const [userId, setUserId]         = useState<string | null>(initialUserId)
-  const [isOwner, setIsOwner]       = useState(initialIsOwner)
-  const [isFav, setIsFav]           = useState(initialIsFav)
+  const [userId, setUserId]         = useState<string | null>(null)
+  const [isOwner, setIsOwner]       = useState(false)
+  const [isFav, setIsFav]           = useState(false)
   const [showReview, setShowReview] = useState(false)
   const [showContato, setShowContato] = useState(false)
   const [contatoSent, setContatoSent]  = useState(false)
@@ -152,8 +142,8 @@ export default function EmpresaPerfilClient({
   const [myText, setMyText]         = useState('')
   const [reviewSent, setReviewSent] = useState(false)
   const [revLoading, setRevLoad]    = useState(false)
-  const [alreadyReviewed, setAlreadyReviewed] = useState(initialAlreadyReviewed)
-  const [isAdmin, setIsAdmin]       = useState(initialIsAdmin)
+  const [alreadyReviewed, setAlreadyReviewed] = useState(false)
+  const [isAdmin, setIsAdmin]       = useState(false)
   const [editingDesc, setEditingDesc] = useState(false)
   const [descText, setDescText]       = useState('')
   const [savingDesc, setSavingDesc]   = useState(false)
@@ -166,8 +156,8 @@ export default function EmpresaPerfilClient({
   const [editingSubcats, setEditingSubcats]   = useState(false)
   const [subcatSelIds, setSubcatSelIds]       = useState<string[]>([])
   const [savingSubcats, setSavingSubcats]     = useState(false)
-  const [allCategories, setAllCategories]     = useState<SimpleCategory[]>(initialAllCategories)
-  const [allSubcats, setAllSubcats]           = useState<SimpleSubcategory[]>(initialAllSubcats)
+  const [allCategories, setAllCategories]     = useState<SimpleCategory[]>([])
+  const [allSubcats, setAllSubcats]           = useState<SimpleSubcategory[]>([])
   const [uploadingPhoto, setUploadingPhoto]   = useState(false)
   const [premiadaAtiva, setPremiadaAtiva]     = useState<{ active: boolean; prize_description?: string | null }>({ active: false })
   const [premiadaInput, setPremiadaInput]     = useState('')
@@ -178,11 +168,41 @@ export default function EmpresaPerfilClient({
   const premiadaCooldownTimer = useRef<ReturnType<typeof setInterval> | null>(null)
   const { premio, setPremio, checarPalavraPremiada, waResgateUrl } = usePalavraPremiada()
 
-  // Empresa/avaliações/sessão já vieram prontas do servidor — só falta
-  // registrar a visita (analytics), sem travar a renderização da página
+  // Empresa/avaliações já vieram prontas do servidor (dado público). A
+  // sessão do site fica no localStorage do navegador, não em cookie, então
+  // quem é o usuário (admin, dono, favoritou, já avaliou) só dá pra saber
+  // aqui no cliente — resolvido à parte, sem travar o primeiro parecer da
+  // página. Junto, registra a visita (analytics), sem esperar.
   useEffect(() => {
-    supabase.from('page_views').insert({ page: '/empresa', entity_id: company.id, session_id: getVisitorId(), user_id: userId }).then(() => {})
-    supabase.from('companies').update({ views_count: ((company.views_count as number) || 0) + 1 }).eq('id', company.id).then(() => {})
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      supabase.from('page_views').insert({ page: '/empresa', entity_id: company.id, session_id: getVisitorId(), user_id: session?.user?.id || null }).then(() => {})
+      supabase.from('companies').update({ views_count: ((company.views_count as number) || 0) + 1 }).eq('id', company.id).then(() => {})
+
+      if (!session) return
+      setUserId(session.user.id)
+      const now = new Date()
+      const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay())
+      weekStart.setHours(0, 0, 0, 0)
+
+      const [{ data: fav }, { data: myReview }, { data: prof }] = await Promise.all([
+        supabase.from('favorites').select('id').eq('user_id', session.user.id).eq('entity_type', 'company').eq('entity_id', company.id).maybeSingle(),
+        supabase.from('reviews').select('id').eq('user_id', session.user.id).eq('company_id', company.id).gte('created_at', weekStart.toISOString()).maybeSingle(),
+        supabase.from('profiles').select('user_type').eq('id', session.user.id).single(),
+      ])
+      setIsFav(!!fav)
+      setAlreadyReviewed(!!myReview)
+      const admin = prof?.user_type === 'admin'
+      setIsAdmin(admin)
+      setIsOwner(company.owner_id === session.user.id || admin)
+      if (admin) {
+        const [{ data: catsData }, { data: subcatsData }] = await Promise.all([
+          supabase.from('categories').select('id,name,emoji').order('name'),
+          supabase.from('subcategories').select('id,name,emoji,category_id').eq('active', true).order('order'),
+        ])
+        setAllCategories(catsData || [])
+        setAllSubcats(subcatsData || [])
+      }
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 
 type Suggestion = { type: string; label: string; sub: string; slug?: string; categorySlug?: string }
 
-export default function HomeSearchBox({ userId }: { userId: string | null }) {
+export default function HomeSearchBox() {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState('')
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
@@ -67,7 +67,9 @@ export default function HomeSearchBox({ userId }: { userId: string | null }) {
     const raw = e.currentTarget.querySelector('input')?.value ?? searchQuery
     if (raw.trim()) {
       const q = raw.trim()
-      supabase.from('search_logs').insert({ query: q, user_id: userId }).then(() => {})
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        supabase.from('search_logs').insert({ query: q, user_id: session?.user?.id || null }).then(() => {})
+      })
       router.push(`/busca?q=${encodeURIComponent(q)}`)
     }
   }

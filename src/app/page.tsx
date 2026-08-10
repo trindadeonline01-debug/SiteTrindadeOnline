@@ -4,6 +4,7 @@ import OneSignalInit from '@/components/OneSignalInit'
 import CookieBanner from '@/components/CookieBanner'
 import HomeSearchBox from '@/components/home/HomeSearchBox'
 import HomeBannerCarousel from '@/components/home/HomeBannerCarousel'
+import HomeBottomNav from '@/components/home/HomeBottomNav'
 import { createServerSupabase } from '@/lib/supabase-server'
 
 interface PaidCompany {
@@ -67,15 +68,11 @@ const PULSE_PRESETS: Record<string, { bg: string, text: string }> = {
 }
 
 export default async function HomePage() {
+  // O login guarda a sessão no localStorage do navegador (não em cookie),
+  // então esse cliente de servidor nunca vê quem está logado — serve só
+  // pra buscar dado público. Quem é o usuário (pra nav mobile, busca etc.)
+  // continua sendo resolvido no navegador, no HomeBottomNav/HomeSearchBox.
   const supabaseServer = await createServerSupabase()
-
-  const { data: { session } } = await supabaseServer.auth.getSession()
-  const user = session?.user ?? null
-  let userType: string | null = null
-  if (user) {
-    const { data: profile } = await supabaseServer.from('profiles').select('user_type').eq('id', user.id).single()
-    userType = profile?.user_type ?? null
-  }
 
   // Todas as consultas daqui são independentes entre si — rodam em paralelo
   // em vez de uma esperar a outra terminar, o que cortava bastante o tempo
@@ -316,7 +313,7 @@ export default async function HomePage() {
       <section className="hero" style={{background: tema.heroBg}}>
         <h1 className="hero-title" style={{color: siteTheme === 'branco-limpo' ? '#111' : '#fff'}}>TRINDADE <span style={{color: tema.dest}}>ONLINE</span></h1>
         <p className="hero-sub">Conectando moradores, comércios e serviços do bairro Trindade</p>
-        <HomeSearchBox userId={user?.id ?? null} />
+        <HomeSearchBox />
       </section>
 
       {pulseMessages.length > 0 && (() => {
@@ -558,27 +555,7 @@ export default async function HomePage() {
       </footer>
 
       <CookieBanner />
-      {user && userType !== 'admin' && (
-        <nav style={{position:'fixed',bottom:0,left:0,right:0,background:'#fff',borderTop:'0.5px solid #E0DDD8',display:'flex',zIndex:100,paddingBottom:'env(safe-area-inset-bottom)'}}>
-          {([
-            {href:'/',icon:'🏠',label:'Início'},
-            {href:'/cupons',icon:'🎟️',label:'Cupons',badge:true},
-            {href:'/feed',icon:'📰',label:'Feed'},
-            ...(userType==='company'
-              ? [{href:'/painel',icon:'📊',label:'Painel'}]
-              : [{href:'/favoritos',icon:'❤️',label:'Favoritos'}]
-            ),
-            {href:'/perfil',icon:'👤',label:'Perfil'},
-          ] as any[]).map((item)=>(
-            <a key={item.href} href={item.href} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'8px 0 10px',textDecoration:'none',color:'#888',fontSize:10,fontWeight:500,fontFamily:'Inter,sans-serif',position:'relative'}}>
-              {item.badge && <span style={{position:'absolute',top:6,right:'calc(50% - 14px)',width:7,height:7,background:'#E24B4A',borderRadius:'50%',border:'1.5px solid #fff'}}/>}
-              <span style={{fontSize:22,lineHeight:1,marginBottom:2}}>{item.icon}</span>
-              {item.label}
-            </a>
-          ))}
-        </nav>
-      )}
-      {user && userType !== 'admin' && <div style={{height:64}}/>}
+      <HomeBottomNav />
       <WAButton/>
       <OneSignalInit/>
     </>

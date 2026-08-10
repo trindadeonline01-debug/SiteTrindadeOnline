@@ -343,6 +343,7 @@ export default async function HomePage() {
         .oa-badge-dot { width: 5px; height: 5px; border-radius: 50%; background: #3FDE7F; flex-shrink: 0; }
         .dv-badge { position: absolute; top: 8px; left: 8px; background: rgba(17,17,17,0.85); font-size: 13px; padding: 4px 6px; border-radius: 20px; line-height: 1; }
         .oa-empty { font-size: 13px; color: #AAA; padding: 12px 0 4px; }
+        .oa-panel { background: #fff; border-radius: 16px; border: 1px solid #E7E3DC; box-shadow: 0 2px 12px rgba(0,0,0,0.05); padding: 16px 14px 14px; }
 
         /* cards compactos — cabem 4 por tela no mobile + uma fatia do 5º
            (os carrosséis normais usam .recent-card, feito pra 2 por tela) */

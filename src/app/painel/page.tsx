@@ -16,6 +16,7 @@ type Company = {
   avg_rating: number; total_reviews: number
   views_count: number; whatsapp_clicks: number; link_clicks: number
   category_id?: string; trial_ends_at?: string; plan_ends_at?: string; cpf_cnpj?: string
+  delivery_available?: boolean
   category?: { name: string; emoji: string }
   photos?: { id: string; url: string; order: number }[]
   hours?: { id: string; label: string; hours: string; order: number; day_of_week: number | null; open_time: string | null; close_time: string | null; closed: boolean }[]
@@ -120,6 +121,7 @@ export default function PainelPage() {
   const [tagInput, setTagInput]                 = useState('')
   const [editCpfCnpj, setEditCpfCnpj]         = useState('')
   const [editHours, setEditHours]             = useState<HourRow[]>([])
+  const [editDelivery, setEditDelivery]       = useState(false)
   const [churchHours, setChurchHours]         = useState<{day:string;manha:string;noite:string}[]>(DIAS_SEMANA.map(day=>({day,manha:'',noite:''})))
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -188,6 +190,7 @@ export default function PainelPage() {
       setEditPhone(comp.phone || '')
       setEditAddress(comp.address || '')
       setEditDesc(comp.description || '')
+      setEditDelivery(!!comp.delivery_available)
       setEditLinkUrl(comp.external_link || '')
       setEditLinkLabel(comp.external_link_label || 'Ver cardápio')
       setEditCpfCnpj(comp.cpf_cnpj || '')
@@ -396,6 +399,7 @@ export default function PainelPage() {
       phone: editPhone,
       address: editAddress,
       description: editDesc,
+      delivery_available: editDelivery,
       category_id: editCategoryId || null,
       external_link: editLinkUrl || null,
       external_link_label: editLinkUrl ? editLinkLabel : null,
@@ -1620,6 +1624,19 @@ export default function PainelPage() {
                         <BusinessHoursEditor hours={editHours} setHours={setEditHours} />
                       </div>
                     )}
+                  </div>
+                  <div className="field">
+                    <label>🛵 Entrega</label>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',background:'#fff',border:'0.5px solid #E0DDD8',borderRadius:10,padding:'10px 14px',marginTop:8}}>
+                      <div>
+                        <div style={{fontSize:13,fontWeight:600,color:'#111',marginBottom:2}}>Fazemos entrega própria</div>
+                        <div style={{fontSize:11,color:'#AAA'}}>Aparece pros clientes quando ativado</div>
+                      </div>
+                      <div onClick={()=>setEditDelivery(d=>!d)}
+                        style={{width:44,height:24,borderRadius:12,background:editDelivery?'#0F8050':'#E0DDD8',cursor:'pointer',position:'relative',transition:'background .2s',flexShrink:0}}>
+                        <div style={{position:'absolute',top:2,left:editDelivery?22:2,width:20,height:20,borderRadius:'50%',background:'#fff',boxShadow:'0 1px 4px rgba(0,0,0,.2)',transition:'left .2s'}}/>
+                      </div>
+                    </div>
                   </div>
                   <button className="btn-primary" onClick={saveProfile} disabled={saving}>{saving?'Salvando...':'Salvar alterações'}</button>
                 </div>

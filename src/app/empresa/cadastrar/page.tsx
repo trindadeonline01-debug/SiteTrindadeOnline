@@ -41,6 +41,7 @@ export default function EmpresaCadastrarPage() {
   const [churchHours, setChurchHours]   = useState<{day:string;manha:string;noite:string}[]>(
     DIAS_SEMANA.map(day => ({ day, manha: '', noite: '' }))
   )
+  const [deliveryAvailable, setDeliveryAvailable] = useState(false)
 
   // Etapa 3
   const [photos, setPhotos]             = useState<File[]>([])
@@ -136,6 +137,7 @@ export default function EmpresaCadastrarPage() {
           phone: phone || null,
           external_link: linkUrl || null,
           external_link_label: linkUrl ? linkLabel : null,
+          delivery_available: deliveryAvailable,
           status: 'pending',
           plan: 'free',
         })
@@ -507,6 +509,20 @@ export default function EmpresaCadastrarPage() {
                         <BusinessHoursEditor hours={hours} setHours={setHours} />
                       </div>
                     )}
+                  </div>
+
+                  <div className="field">
+                    <label>🛵 Entrega</label>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',background:'#FAFAF8',border:'0.5px solid #E0DDD8',borderRadius:10,padding:'10px 14px',marginTop:8}}>
+                      <div>
+                        <div style={{fontSize:13,fontWeight:600,color:'#111',marginBottom:2}}>Fazemos entrega própria</div>
+                        <div style={{fontSize:11,color:'#AAA'}}>Aparece pros clientes quando ativado</div>
+                      </div>
+                      <div onClick={()=>setDeliveryAvailable(d=>!d)}
+                        style={{width:44,height:24,borderRadius:12,background:deliveryAvailable?'#0F8050':'#E0DDD8',cursor:'pointer',position:'relative',transition:'background .2s',flexShrink:0}}>
+                        <div style={{position:'absolute',top:2,left:deliveryAvailable?22:2,width:20,height:20,borderRadius:'50%',background:'#fff',boxShadow:'0 1px 4px rgba(0,0,0,.2)',transition:'left .2s'}}/>
+                      </div>
+                    </div>
                   </div>
 
                   {erro && <div className="erro-msg">⚠️ {erro}</div>}

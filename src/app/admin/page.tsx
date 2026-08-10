@@ -155,6 +155,8 @@ export default function AdminPage() {
   const [siteTheme, setSiteTheme]       = useState('classico-preto')
   const [bannerEnabled, setBannerEnabled] = useState(true)
   const [savingAppearance, setSavingAppearance] = useState(false)
+  const [abertoAgoraEnabled, setAbertoAgoraEnabled] = useState(false)
+  const [entregandoAgoraEnabled, setEntregandoAgoraEnabled] = useState(false)
   const [pulseMessages, setPulseMessages] = useState<any[]>([])
   const [deletedPulseIds, setDeletedPulseIds] = useState<string[]>([])
   const [pulseColorPreset, setPulseColorPreset] = useState('classico')
@@ -455,10 +457,19 @@ export default function AdminPage() {
       const theme = data.find((s: any) => s.key === 'active_theme')
       const banner = data.find((s: any) => s.key === 'banner_enabled')
       const pulseColor = data.find((s: any) => s.key === 'pulse_color_preset')
+      const abertoAgora = data.find((s: any) => s.key === 'aberto_agora_enabled')
+      const entregandoAgora = data.find((s: any) => s.key === 'entregando_agora_enabled')
       if (theme) setSiteTheme(theme.value || 'classico-preto')
       if (banner) setBannerEnabled(banner.value === 'true')
       if (pulseColor) setPulseColorPreset(pulseColor.value || 'classico')
+      setAbertoAgoraEnabled(abertoAgora?.value === 'true')
+      setEntregandoAgoraEnabled(entregandoAgora?.value === 'true')
     }
+  }
+
+  async function saveNovaSecaoHome(key: 'aberto_agora_enabled' | 'entregando_agora_enabled', value: boolean) {
+    await supabase.from('site_settings').upsert({ key, value: String(value), updated_at: new Date().toISOString() }, { onConflict: 'key' })
+    showToast(value ? 'Seção ativada!' : 'Seção desativada.')
   }
 
   async function savePulseColor(preset: string) {
@@ -2599,6 +2610,39 @@ export default function AdminPage() {
                       <div onClick={()=>{ const nb=!bannerEnabled; setBannerEnabled(nb); saveAppearance(siteTheme,nb) }}
                         style={{width:44,height:24,borderRadius:12,background:bannerEnabled?'#0F8050':'#E0DDD8',cursor:'pointer',position:'relative',transition:'background .2s'}}>
                         <div style={{position:'absolute',top:2,left:bannerEnabled?22:2,width:20,height:20,borderRadius:'50%',background:'#fff',boxShadow:'0 1px 4px rgba(0,0,0,.2)',transition:'left .2s'}}/>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{background:'#fff',border:'0.5px solid #EDE8E0',borderRadius:14,padding:'20px 24px',marginBottom:20}}>
+                  <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:14,color:'#888',letterSpacing:1,marginBottom:6}}>NOVAS SEÇÕES DA HOME</div>
+                  <div style={{fontSize:12,color:'#AAA',marginBottom:16,lineHeight:1.6}}>Dependem de dado cadastrado pelas empresas (horário e entrega) — deixe desativado até ter cobertura suficiente, senão a seção sai vazia ou incompleta.</div>
+
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 0',borderBottom:'0.5px solid #F0EDE8'}}>
+                    <div>
+                      <div style={{fontWeight:600,fontSize:14,color:'#111',marginBottom:4}}>🟢 Aberto agora</div>
+                      <div style={{fontSize:12,color:'#AAA'}}>Vitrine de empresas abertas no momento, com filtro por subcategoria de comida</div>
+                    </div>
+                    <div style={{display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
+                      <span style={{fontSize:12,fontWeight:600,color:abertoAgoraEnabled?'#0F8050':'#E24B4A'}}>{abertoAgoraEnabled?'Ativo':'Inativo'}</span>
+                      <div onClick={()=>{ const nv=!abertoAgoraEnabled; setAbertoAgoraEnabled(nv); saveNovaSecaoHome('aberto_agora_enabled',nv) }}
+                        style={{width:44,height:24,borderRadius:12,background:abertoAgoraEnabled?'#0F8050':'#E0DDD8',cursor:'pointer',position:'relative',transition:'background .2s'}}>
+                        <div style={{position:'absolute',top:2,left:abertoAgoraEnabled?22:2,width:20,height:20,borderRadius:'50%',background:'#fff',boxShadow:'0 1px 4px rgba(0,0,0,.2)',transition:'left .2s'}}/>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 0 0'}}>
+                    <div>
+                      <div style={{fontWeight:600,fontSize:14,color:'#111',marginBottom:4}}>🛵 Entregando agora</div>
+                      <div style={{fontSize:12,color:'#AAA'}}>Só empresas abertas com entrega própria marcada no cadastro</div>
+                    </div>
+                    <div style={{display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
+                      <span style={{fontSize:12,fontWeight:600,color:entregandoAgoraEnabled?'#0F8050':'#E24B4A'}}>{entregandoAgoraEnabled?'Ativo':'Inativo'}</span>
+                      <div onClick={()=>{ const nv=!entregandoAgoraEnabled; setEntregandoAgoraEnabled(nv); saveNovaSecaoHome('entregando_agora_enabled',nv) }}
+                        style={{width:44,height:24,borderRadius:12,background:entregandoAgoraEnabled?'#0F8050':'#E0DDD8',cursor:'pointer',position:'relative',transition:'background .2s'}}>
+                        <div style={{position:'absolute',top:2,left:entregandoAgoraEnabled?22:2,width:20,height:20,borderRadius:'50%',background:'#fff',boxShadow:'0 1px 4px rgba(0,0,0,.2)',transition:'left .2s'}}/>
                       </div>
                     </div>
                   </div>

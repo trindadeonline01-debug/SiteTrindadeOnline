@@ -36,16 +36,16 @@ export default function HomeAbertoAgora({ companies, chips }: { companies: Compa
       {filtered.length === 0 ? (
         <div className="oa-empty">Nenhuma empresa aberta nessa subcategoria agora.</div>
       ) : (
-        <div className="recent-scroll">
+        <div className="oa-scroll">
           {filtered.map(c => {
             const cover = [...(c.photos || [])].sort((a, b) => a.order - b.order)[0]?.url
             return (
-              <a key={c.id} className="recent-card" href={`/empresa/${c.slug}`}>
-                <div className="recent-card-img">
-                  {cover ? <Image src={cover} alt={c.name} fill sizes="(max-width:639px) 45vw, 220px" style={{objectFit:'cover'}} /> : (c.category?.emoji || '🏪')}
+              <a key={c.id} className="oa-card" href={`/empresa/${c.slug}`}>
+                <div className="oa-card-img">
+                  {cover ? <Image src={cover} alt={c.name} fill sizes="(max-width:639px) 20vw, 120px" style={{objectFit:'cover'}} /> : (c.category?.emoji || '🏪')}
                   <span className="oa-badge"><span className="oa-badge-dot" />ABERTO</span>
                 </div>
-                <div className="recent-card-title">{c.name}</div>
+                <div className="oa-card-title">{c.name}</div>
               </a>
             )
           })}

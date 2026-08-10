@@ -344,6 +344,28 @@ export default async function HomePage() {
         .dv-badge { position: absolute; top: 8px; left: 8px; background: rgba(17,17,17,0.85); font-size: 13px; padding: 4px 6px; border-radius: 20px; line-height: 1; }
         .oa-empty { font-size: 13px; color: #AAA; padding: 12px 0 4px; }
 
+        /* cards compactos — cabem 4 por tela no mobile + uma fatia do 5º
+           (os carrosséis normais usam .recent-card, feito pra 2 por tela) */
+        .oa-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+        .oa-scroll::-webkit-scrollbar { display: none; }
+        @media(min-width: 768px) { .oa-scroll { display: grid; grid-template-columns: repeat(4,1fr); overflow: visible; gap: 14px; } }
+        @media(min-width: 1024px) { .oa-scroll { grid-template-columns: repeat(5,1fr); } }
+        .oa-card { flex-shrink: 0; width: 20vw; max-width: 80px; text-decoration: none; display: block; }
+        @media(min-width: 480px) { .oa-card { width: 84px; } }
+        @media(min-width: 768px) { .oa-card { width: auto; } }
+        .oa-card-img { width: 100%; aspect-ratio: 1/1; border-radius: 10px; overflow: hidden; background: #F0EDE8; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-bottom: 5px; position: relative; }
+        @media(min-width: 768px) { .oa-card-img { border-radius: 14px; font-size: 34px; margin-bottom: 8px; } }
+        .oa-card-img img { width: 100%; height: 100%; object-fit: cover; }
+        .oa-card-title { font-size: 10.5px; font-weight: 600; color: #111; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        @media(min-width: 768px) { .oa-card-title { font-size: 14px; } }
+        .oa-card-sub { font-size: 8.5px; color: #888; margin-top: 1px; }
+        @media(min-width: 768px) { .oa-card-sub { font-size: 13px; margin-top: 2px; } }
+        @media(max-width: 767px) {
+          .oa-badge { font-size: 6.5px; padding: 2px 5px 2px 4px; gap: 2px; top: 4px; left: 4px; }
+          .oa-badge-dot { width: 4px; height: 4px; }
+          .dv-badge { font-size: 9px; padding: 3px 4px; top: 4px; left: 4px; }
+        }
+
         .cta-section { margin: 36px 0 48px; background: linear-gradient(135deg,#1A1A1A,#333); border-radius: 20px; padding: 36px 32px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 16px; }
         @media(min-width: 768px) { .cta-section { flex-direction: row; text-align: left; justify-content: space-between; padding: 36px 48px; } }
         .cta-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(22px,3vw,30px); color: #fff; letter-spacing: 1px; margin-bottom: 6px; }
@@ -391,17 +413,17 @@ export default async function HomePage() {
               <div className="recent-section-hdr">
                 <span className="recent-section-title">🛵 ENTREGANDO AGORA</span>
               </div>
-              <div className="recent-scroll">
+              <div className="oa-scroll">
                 {deliveringCompanies.map(c => {
                   const cover = [...(c.photos || [])].sort((a, b) => a.order - b.order)[0]?.url
                   return (
-                    <a key={c.id} className="recent-card" href={`/empresa/${c.slug}`}>
-                      <div className="recent-card-img">
-                        {cover ? <Image src={cover} alt={c.name} fill sizes="(max-width:639px) 45vw, 220px" style={{objectFit:'cover'}} /> : (c.category?.emoji || '🏪')}
+                    <a key={c.id} className="oa-card" href={`/empresa/${c.slug}`}>
+                      <div className="oa-card-img">
+                        {cover ? <Image src={cover} alt={c.name} fill sizes="(max-width:639px) 20vw, 120px" style={{objectFit:'cover'}} /> : (c.category?.emoji || '🏪')}
                         <span className="dv-badge">🛵</span>
                       </div>
-                      <div className="recent-card-title">{c.name}</div>
-                      <div className="recent-card-sub">entrega própria</div>
+                      <div className="oa-card-title">{c.name}</div>
+                      <div className="oa-card-sub">entrega própria</div>
                     </a>
                   )
                 })}

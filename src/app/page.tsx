@@ -5,12 +5,22 @@ import CookieBanner from '@/components/CookieBanner'
 import HomeSearchBox from '@/components/home/HomeSearchBox'
 import HomeBannerCarousel from '@/components/home/HomeBannerCarousel'
 import HomeBottomNav from '@/components/home/HomeBottomNav'
+import HomeAbertoAgora from '@/components/home/HomeAbertoAgora'
 import { createServerSupabase } from '@/lib/supabase-server'
+import { isOpenNow, HourRow } from '@/lib/businessHours'
 
 interface PaidCompany {
   id: string; name: string; slug: string; avg_rating: number; total_reviews: number
   category?: { name: string; emoji?: string } | null
   photos?: { url: string; order: number }[]
+}
+
+interface OpenCompany {
+  id: string; name: string; slug: string; plan: string; delivery_available: boolean
+  category?: { emoji?: string } | null
+  photos?: { url: string; order: number }[]
+  subcategories?: { subcategory: { id: string; name: string; emoji: string } | null }[]
+  hours?: HourRow[]
 }
 
 interface Listing {
@@ -117,17 +127,61 @@ export default async function HomePage() {
   let siteTheme = 'classico-preto'
   let bannerEnabled = true
   let pulseColorPreset = 'classico'
+  let abertoAgoraEnabled = false
+  let entregandoAgoraEnabled = false
   const siteSettings = settingsRes.data
   if (siteSettings) {
     const theme = siteSettings.find((s: any) => s.key === 'active_theme')
     const bannerSetting = siteSettings.find((s: any) => s.key === 'banner_enabled')
     const pulseColor = siteSettings.find((s: any) => s.key === 'pulse_color_preset')
+    const abertoAgora = siteSettings.find((s: any) => s.key === 'aberto_agora_enabled')
+    const entregandoAgora = siteSettings.find((s: any) => s.key === 'entregando_agora_enabled')
     if (theme) siteTheme = theme.value || 'classico-preto'
     if (bannerSetting) bannerEnabled = bannerSetting.value === 'true'
     if (pulseColor) pulseColorPreset = pulseColor.value || 'classico'
+    abertoAgoraEnabled = abertoAgora?.value === 'true'
+    entregandoAgoraEnabled = entregandoAgora?.value === 'true'
   }
 
   const tema = TEMAS[siteTheme] || TEMAS['classico-preto']
+
+  // "Aberto agora"/"Entregando agora" — só busca esse tanto de dado (todas
+  // as empresas ativas + horário) quando pelo menos uma das duas seções
+  // está ligada em Aparência. Enquanto as duas estiverem desativadas (hoje
+  // em dia), essa consulta nem roda
+  let openCompanies: OpenCompany[] = []
+  let deliveringCompanies: OpenCompany[] = []
+  let abertoAgoraChips: { id: string; name: string; emoji: string; count: number }[] = []
+
+  if (abertoAgoraEnabled || entregandoAgoraEnabled) {
+    const { data: candidates } = await supabaseServer
+      .from('companies')
+      .select('id, name, slug, plan, delivery_available, category:categories(emoji), photos:company_photos(url,order), subcategories:company_subcategories(subcategory:subcategories(id,name,emoji)), hours:company_hours(day_of_week,open_time,close_time,closed)')
+      .eq('status', 'active')
+
+    const open = ((candidates || []) as any as OpenCompany[]).filter(c => isOpenNow(c.hours))
+    // Paga primeiro (mesma prioridade dos outros carrosséis da home),
+    // embaralhado dentro de cada grupo pra dar visibilidade igual
+    openCompanies = [...shuffle(open.filter(c => c.plan === 'paid')), ...shuffle(open.filter(c => c.plan !== 'paid'))]
+
+    if (entregandoAgoraEnabled) {
+      deliveringCompanies = openCompanies.filter(c => c.delivery_available)
+    }
+
+    if (abertoAgoraEnabled) {
+      const counts = new Map<string, { id: string; name: string; emoji: string; count: number }>()
+      openCompanies.forEach(c => {
+        (c.subcategories || []).forEach(s => {
+          const sub = s.subcategory
+          if (!sub) return
+          const cur = counts.get(sub.id)
+          if (cur) cur.count++
+          else counts.set(sub.id, { id: sub.id, name: sub.name, emoji: sub.emoji, count: 1 })
+        })
+      })
+      abertoAgoraChips = [...counts.values()].sort((a, b) => b.count - a.count).slice(0, 8)
+    }
+  }
 
   return (
     <>
@@ -278,6 +332,18 @@ export default async function HomePage() {
         .recent-card-sub { font-size: 13px; color: #888; }
         .recent-card-price { font-size: 13px; color: #C9951A; font-weight: 700; }
 
+        /* ABERTO AGORA / ENTREGANDO AGORA */
+        .oa-title { display: flex; align-items: center; gap: 7px; }
+        .oa-live-dot { width: 8px; height: 8px; border-radius: 50%; background: #2E9E5B; box-shadow: 0 0 0 3px rgba(46,158,91,0.22); flex-shrink: 0; }
+        .oa-chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 10px; margin-top: -2px; scrollbar-width: none; }
+        .oa-chips::-webkit-scrollbar { display: none; }
+        .oa-chip { flex-shrink: 0; font-size: 12px; font-weight: 600; padding: 6px 13px; border-radius: 20px; background: #fff; border: 1px solid #E0DDD8; color: #666; font-family: 'Inter', sans-serif; white-space: nowrap; cursor: pointer; }
+        .oa-chip.on { background: #C9951A; border-color: #C9951A; color: #fff; }
+        .oa-badge { position: absolute; top: 8px; left: 8px; display: flex; align-items: center; gap: 4px; background: rgba(17,17,17,0.85); color: #6FE3A0; font-size: 9px; font-weight: 800; padding: 3px 8px 3px 6px; border-radius: 20px; letter-spacing: .3px; }
+        .oa-badge-dot { width: 5px; height: 5px; border-radius: 50%; background: #3FDE7F; flex-shrink: 0; }
+        .dv-badge { position: absolute; top: 8px; left: 8px; background: rgba(17,17,17,0.85); font-size: 13px; padding: 4px 6px; border-radius: 20px; line-height: 1; }
+        .oa-empty { font-size: 13px; color: #AAA; padding: 12px 0 4px; }
+
         .cta-section { margin: 36px 0 48px; background: linear-gradient(135deg,#1A1A1A,#333); border-radius: 20px; padding: 36px 32px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 16px; }
         @media(min-width: 768px) { .cta-section { flex-direction: row; text-align: left; justify-content: space-between; padding: 36px 48px; } }
         .cta-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(22px,3vw,30px); color: #fff; letter-spacing: 1px; margin-bottom: 6px; }
@@ -315,6 +381,35 @@ export default async function HomePage() {
         <p className="hero-sub">Conectando moradores, comércios e serviços do bairro Trindade</p>
         <HomeSearchBox />
       </section>
+
+      {(openCompanies.length > 0 || deliveringCompanies.length > 0) && (
+        <div className="main-wrap" style={{marginTop: 20}}>
+          {abertoAgoraEnabled && <HomeAbertoAgora companies={openCompanies} chips={abertoAgoraChips} />}
+
+          {entregandoAgoraEnabled && deliveringCompanies.length > 0 && (
+            <div className="recent-section">
+              <div className="recent-section-hdr">
+                <span className="recent-section-title">🛵 ENTREGANDO AGORA</span>
+              </div>
+              <div className="recent-scroll">
+                {deliveringCompanies.map(c => {
+                  const cover = [...(c.photos || [])].sort((a, b) => a.order - b.order)[0]?.url
+                  return (
+                    <a key={c.id} className="recent-card" href={`/empresa/${c.slug}`}>
+                      <div className="recent-card-img">
+                        {cover ? <Image src={cover} alt={c.name} fill sizes="(max-width:639px) 45vw, 220px" style={{objectFit:'cover'}} /> : (c.category?.emoji || '🏪')}
+                        <span className="dv-badge">🛵</span>
+                      </div>
+                      <div className="recent-card-title">{c.name}</div>
+                      <div className="recent-card-sub">entrega própria</div>
+                    </a>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {pulseMessages.length > 0 && (() => {
         const fillCount = Math.max(1, Math.ceil(14 / pulseMessages.length))

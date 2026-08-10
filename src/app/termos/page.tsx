@@ -9,7 +9,6 @@ export default function TermosPage() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
         body{font-family:'Inter',sans-serif;background:#fff;}
         .hero{background:linear-gradient(160deg,#fff,#FEF8EC);padding:36px 24px;border-bottom:1px solid #F0EDE8;text-align:center;}

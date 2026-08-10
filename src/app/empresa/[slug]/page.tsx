@@ -247,37 +247,45 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
   }
 
   async function loadCompany() {
-    const { data } = await supabase
-      .from('companies')
-      .select(COMPANY_SELECT)
-      .eq('slug', slug)
-      .maybeSingle()
+    // Empresa e sessão não dependem uma da outra — busca as duas ao mesmo tempo
+    const [{ data }, { data: { session } }] = await Promise.all([
+      supabase.from('companies').select(COMPANY_SELECT).eq('slug', slug).maybeSingle(),
+      supabase.auth.getSession(),
+    ])
 
     if (!data || data.status !== 'active') { setNotFound(true); setLoading(false); return }
     setCompany(data)
-    const { data: { session } } = await supabase.auth.getSession()
-    // Grava quem visitou (visitor_id anônimo do navegador + user_id se
-    // logado) — permite calcular visitantes únicos no dashboard do admin
-    await supabase.from('page_views').insert({ page: '/empresa', entity_id: data.id, session_id: getVisitorId(), user_id: session?.user?.id || null })
-    await supabase.from('companies').update({ views_count: ((data.views_count as number) || 0) + 1 }).eq('id', data.id)
+
+    // Grava quem visitou em segundo plano — sem esperar (é só analytics,
+    // visitor_id anônimo do navegador + user_id se logado, não deve travar
+    // a renderização da página)
+    supabase.from('page_views').insert({ page: '/empresa', entity_id: data.id, session_id: getVisitorId(), user_id: session?.user?.id || null })
+    supabase.from('companies').update({ views_count: ((data.views_count as number) || 0) + 1 }).eq('id', data.id)
+
     const { data: revs } = await supabase.from('reviews').select('*, user:profiles(name), response:review_responses(text)').eq('company_id', data.id).order('created_at', { ascending: false })
     setReviews(revs || [])
     if (session) {
-      const { data: fav } = await supabase.from('favorites').select('id').eq('user_id', session.user.id).eq('entity_type', 'company').eq('entity_id', data.id).maybeSingle()
-      setIsFav(!!fav)
       const now = new Date()
       const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay())
       weekStart.setHours(0,0,0,0)
-      const { data: myReview } = await supabase.from('reviews').select('id').eq('user_id', session.user.id).eq('company_id', data.id).gte('created_at', weekStart.toISOString()).maybeSingle()
+
+      // Essas três não dependem entre si — rodam juntas em vez de em fila
+      const [{ data: fav }, { data: myReview }, { data: prof }] = await Promise.all([
+        supabase.from('favorites').select('id').eq('user_id', session.user.id).eq('entity_type', 'company').eq('entity_id', data.id).maybeSingle(),
+        supabase.from('reviews').select('id').eq('user_id', session.user.id).eq('company_id', data.id).gte('created_at', weekStart.toISOString()).maybeSingle(),
+        supabase.from('profiles').select('user_type').eq('id', session.user.id).single(),
+      ])
+      setIsFav(!!fav)
       setAlreadyReviewed(!!myReview)
-      const { data: prof } = await supabase.from('profiles').select('user_type').eq('id', session.user.id).single()
       const admin = prof?.user_type === 'admin'
       setIsAdmin(admin)
       setIsOwner(data.owner_id === session.user.id || admin)
       if (admin) {
-        const { data: catsData } = await supabase.from('categories').select('id,name,emoji').order('name')
+        const [{ data: catsData }, { data: subcatsData }] = await Promise.all([
+          supabase.from('categories').select('id,name,emoji').order('name'),
+          supabase.from('subcategories').select('id,name,emoji,category_id').eq('active', true).order('order'),
+        ])
         setAllCategories(catsData || [])
-        const { data: subcatsData } = await supabase.from('subcategories').select('id,name,emoji,category_id').eq('active', true).order('order')
         setAllSubcats(subcatsData || [])
       }
     }
@@ -423,7 +431,6 @@ export default function EmpresaPerfilPage({ params }: { params: Promise<{ slug: 
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
         body{font-family:'Inter',sans-serif;background:#F0EDE8;}
 

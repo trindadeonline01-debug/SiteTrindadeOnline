@@ -53,7 +53,6 @@ export default function PromocoesPage() {
   const promo = filtered[current]
 
   const CSS = `
-    @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap');
     *{box-sizing:border-box;margin:0;padding:0;}
     body{font-family:'Inter',sans-serif;background:#000;min-height:100vh;}
 

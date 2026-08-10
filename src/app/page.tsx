@@ -102,42 +102,47 @@ export default function HomePage() {
   const loadData = useCallback(async () => {
     setLoading(true)
 
-    const { data: bannersData } = await supabase
-      .from('banners').select('*').eq('active', true).order('display_order')
+    // Todas as consultas daqui são independentes entre si — rodam em paralelo
+    // em vez de uma esperar a outra terminar, o que cortava bastante o tempo
+    // até a home aparecer com conteúdo de verdade
+    const types = ['desapega', 'emprego', 'imovel']
+
+    const [bannersRes, paidResults, listingResults, pulseRes, settingsRes] = await Promise.all([
+      supabase.from('banners').select('*').eq('active', true).order('display_order'),
+      Promise.all(PAID_CAROUSELS.map(([categoryId]) =>
+        supabase.from('companies')
+          .select('id, name, slug, avg_rating, total_reviews, category:categories(name,emoji), photos:company_photos(url,order)')
+          .eq('plan', 'paid').eq('status', 'active').eq('category_id', categoryId)
+      )),
+      Promise.all(types.map(type =>
+        supabase.from('listings')
+          .select('id, title, price, type, created_at, photos:listing_photos(url,order)')
+          .eq('type', type).eq('status', 'active')
+          .order('created_at', { ascending: false }).limit(5)
+      )),
+      supabase.from('pulse_messages').select('id, message').eq('active', true).order('display_order'),
+      supabase.from('site_settings').select('key,value'),
+    ])
+
     // SHUFFLE — ordem aleatória a cada carregamento
-    setBanners(shuffle(bannersData || []))
+    setBanners(shuffle(bannersRes.data || []))
 
     // Empresas pagas por categoria — todo mundo no plano pago é buscado (sem
     // limite na consulta), embaralhado de verdade e só então cortado nas
     // primeiras 10 — assim a cada carregamento é um recorte diferente do
     // total, não sempre as mesmas
     const paidMap: Record<string, PaidCompany[]> = {}
-    for (const [categoryId, key] of PAID_CAROUSELS) {
-      const { data: pd } = await supabase
-        .from('companies')
-        .select('id, name, slug, avg_rating, total_reviews, category:categories(name,emoji), photos:company_photos(url,order)')
-        .eq('plan', 'paid').eq('status', 'active').eq('category_id', categoryId)
-      paidMap[key] = shuffle((pd || []) as any as PaidCompany[]).slice(0, PAID_CAROUSEL_SIZE)
-    }
+    PAID_CAROUSELS.forEach(([, key], i) => {
+      paidMap[key] = shuffle((paidResults[i].data || []) as any as PaidCompany[]).slice(0, PAID_CAROUSEL_SIZE)
+    })
     setPaidCompanies(paidMap)
 
-
-    const types = ['desapega', 'emprego', 'imovel']
     const map: Record<string, Listing[]> = {}
-    for (const type of types) {
-      const { data: ld } = await supabase
-        .from('listings').select('id, title, price, type, created_at, photos:listing_photos(url,order)')
-        .eq('type', type).eq('status', 'active')
-        .order('created_at', { ascending: false }).limit(5)
-      map[type] = (ld || []) as Listing[]
-    }
+    types.forEach((type, i) => { map[type] = (listingResults[i].data || []) as Listing[] })
     setRecentListings(map)
 
-    const { data: pulseData } = await supabase
-      .from('pulse_messages').select('id, message')
-      .eq('active', true).order('display_order')
-    setPulseMessages(pulseData || [])
-    const { data: siteSettings } = await supabase.from('site_settings').select('key,value')
+    setPulseMessages(pulseRes.data || [])
+    const siteSettings = settingsRes.data
     if (siteSettings) {
       const theme = siteSettings.find((s: any) => s.key === 'active_theme')
       const banner = siteSettings.find((s: any) => s.key === 'banner_enabled')
@@ -257,7 +262,6 @@ export default function HomePage() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap');
         @import url('https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css');
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Inter', sans-serif; background: #F0EDE8; color: #111; }

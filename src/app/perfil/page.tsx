@@ -8,9 +8,18 @@ type Profile = { id: string; name: string; email?: string; phone?: string; neigh
 type Listing = { id: string; type: string; title: string; price?: number; subtype?: string; status: string; created_at: string }
 type Review  = { id: string; rating: number; text?: string; created_at: string; company?: { name: string; slug: string } }
 type Fav     = { id: string; company?: { name: string; slug: string; category?: any } }
+type PedidoItem = { id: string; product_name: string; unit_price: number; qty: number; selected_options: { name: string; price: number }[] }
+type Pedido = { id: string; status: string; total: number; created_at: string; company?: { name: string; slug: string }; itens?: PedidoItem[] }
 
 const TYPE_EMOJI: Record<string,string> = { desapega:'🏷️', emprego:'💼', imovel:'🏠', achado:'🔍' }
 const TYPE_LABEL: Record<string,string> = { desapega:'Desapega', emprego:'Emprego', imovel:'Imóvel', achado:'Achado/Perdido' }
+const PEDIDO_STATUS_LABEL: Record<string,string> = { recebido:'Recebido', em_preparo:'Em preparo', pronto:'Pronto', saiu_entrega:'Saiu p/ entrega', entregue:'Entregue', cancelado:'Cancelado' }
+const PEDIDO_STATUS_COLOR: Record<string,{bg:string;fg:string}> = {
+  recebido:{bg:'#FEF0E0',fg:'#B5690C'}, em_preparo:{bg:'#FEF6DC',fg:'#8A6410'},
+  pronto:{bg:'#E4F3EC',fg:'#157A52'}, saiu_entrega:{bg:'#E8F0FE',fg:'#1A56B0'},
+  entregue:{bg:'#F0EDE8',fg:'#6E6656'}, cancelado:{bg:'#FBEAEA',fg:'#C43D3D'},
+}
+function fmtMoney(n: number) { return 'R$ ' + n.toFixed(2).replace('.', ',') }
 
 export default function PerfilPage() {
   const [profile, setProfile]   = useState<Profile|null>(null)
@@ -18,8 +27,9 @@ export default function PerfilPage() {
   const [reviews, setReviews]   = useState<Review[]>([])
   const [favs, setFavs]         = useState<Fav[]>([])
   const [loading, setLoading]   = useState(true)
-  const [tab, setTab]           = useState<'perfil'|'anuncios'|'avaliacoes'|'favoritos'|'cupons'>('perfil')
+  const [tab, setTab]           = useState<'perfil'|'anuncios'|'avaliacoes'|'favoritos'|'cupons'|'pedidos'>('perfil')
   const [myCoupons, setMyCoupons] = useState<any[]>([])
+  const [myPedidos, setMyPedidos] = useState<Pedido[]>([])
   const [editing, setEditing]   = useState(false)
   const [form, setForm]         = useState({ name:'', phone:'', neighborhood:'' })
   const [saving, setSaving]     = useState(false)
@@ -78,6 +88,13 @@ export default function PerfilPage() {
         .eq('user_id', profile!.id)
         .order('created_at', { ascending: false })
         .then(({ data }) => setMyCoupons(data || []))
+    }
+    if (tab === 'pedidos' && profile?.id) {
+      supabase.from('loja_pedidos')
+        .select('id, status, total, created_at, company:companies(name,slug), itens:loja_pedido_itens(*)')
+        .eq('customer_id', profile!.id)
+        .order('created_at', { ascending: false })
+        .then(({ data }) => setMyPedidos((data || []) as any))
     }
   }, [tab, profile?.id])
   if (loading) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',fontFamily:'Inter,sans-serif',color:'#AAA'}}>Carregando...</div>
@@ -194,6 +211,7 @@ export default function PerfilPage() {
               <div className={`tab ${tab==='avaliacoes'?'on':''}`} onClick={()=>setTab('avaliacoes')}>⭐ Avaliações ({reviews.length})</div>
               <div className={`tab ${tab==='favoritos'?'on':''}`} onClick={()=>setTab('favoritos')}>❤️ Favoritos ({favs.length})</div>
               <div className={`tab ${tab==='cupons'?'on':''}`} onClick={()=>setTab('cupons')}>🎟️ Meus Cupons</div>
+              <div className={`tab ${tab==='pedidos'?'on':''}`} onClick={()=>setTab('pedidos')}>🧾 Meus Pedidos</div>
             </div>
 
             {/* ABA PERFIL */}
@@ -315,6 +333,40 @@ export default function PerfilPage() {
                               <button onClick={()=>navigator.clipboard.writeText(r.code)} style={{padding:'5px 10px',background:'#F5F2EC',color:'#555',border:'none',borderRadius:7,fontSize:10,fontWeight:500,cursor:'pointer',whiteSpace:'nowrap'}}>Copiar</button>
                             </>
                           )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            )}
+            {/* ABA PEDIDOS */}
+            {tab === 'pedidos' && (
+              myPedidos.length === 0 ? (
+                <div className="empty-tab">
+                  <div style={{fontSize:40,marginBottom:10}}>🧾</div>
+                  <div style={{fontSize:14,fontWeight:600,color:'#555',marginBottom:6}}>Nenhum pedido ainda</div>
+                  <div style={{fontSize:12}}>Peça pelo cardápio de uma empresa do bairro!</div>
+                </div>
+              ) : (
+                <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                  {myPedidos.map(p => {
+                    const c = PEDIDO_STATUS_COLOR[p.status] || PEDIDO_STATUS_COLOR.recebido
+                    return (
+                      <div key={p.id} className="rv-item">
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
+                          {p.company ? <a className="rv-empresa" style={{marginBottom:0}} href={`/empresa/${p.company.slug}`}>{p.company.name} →</a> : <span/>}
+                          <span style={{fontSize:10,fontWeight:700,padding:'3px 8px',borderRadius:7,background:c.bg,color:c.fg,whiteSpace:'nowrap'}}>{PEDIDO_STATUS_LABEL[p.status] || p.status}</span>
+                        </div>
+                        {p.itens?.map(it => (
+                          <div key={it.id} style={{fontSize:12,color:'#555',padding:'2px 0'}}>
+                            {it.qty}x {it.product_name}
+                            {it.selected_options?.length > 0 && <span style={{color:'#AAA'}}> · {it.selected_options.map(o=>o.name).join(', ')}</span>}
+                          </div>
+                        ))}
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:6}}>
+                          <div className="rv-date" style={{marginTop:0}}>{fmtDate(p.created_at)}</div>
+                          <div style={{fontSize:13,fontWeight:700,color:'#111'}}>{fmtMoney(p.total)}</div>
                         </div>
                       </div>
                     )

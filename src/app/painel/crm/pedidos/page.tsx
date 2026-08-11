@@ -5,10 +5,25 @@ import { supabase } from '@/lib/supabase'
 type Item = { id: string; product_name: string; unit_price: number; qty: number; selected_options: { name: string; price: number }[] }
 type Status = 'recebido' | 'em_preparo' | 'pronto' | 'saiu_entrega' | 'entregue' | 'cancelado'
 type Pedido = {
-  id: string; customer_name: string; customer_phone: string | null; delivery_address: string | null
+  id: string; customer_id: string | null; customer_name: string; customer_phone: string | null; delivery_address: string | null
   origin: string; status: Status; payment_method: string | null; payment_status: string
   notes: string | null; subtotal: number; total: number; created_at: string
   itens: Item[]
+}
+
+const CUSTOMER_MSG: Partial<Record<Status, string>> = {
+  pronto: 'Seu pedido está pronto!',
+  saiu_entrega: 'Seu pedido saiu para entrega!',
+  entregue: 'Pedido entregue. Bom apetite!',
+  cancelado: 'Seu pedido foi cancelado.',
+}
+function notifyCustomer(customerId: string | null, companyName: string, status: Status) {
+  const msg = CUSTOMER_MSG[status]
+  if (!customerId || !msg) return
+  fetch('/api/push/send', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title: companyName, body: msg, target: 'external_user_id', userId: customerId }),
+  }).catch(() => {})
 }
 
 const STATUS_LABEL: Record<Status, string> = { recebido: 'Recebido', em_preparo: 'Em preparo', pronto: 'Pronto', saiu_entrega: 'Saiu p/ entrega', entregue: 'Entregue', cancelado: 'Cancelado' }
@@ -43,6 +58,7 @@ function beep() {
 export default function PedidosPage() {
   const [loading, setLoading] = useState(true)
   const [companyId, setCompanyId] = useState('')
+  const [companyName, setCompanyName] = useState('')
   const [pedidos, setPedidos] = useState<Pedido[]>([])
   const [filter, setFilter] = useState<'ativos' | 'historico'>('ativos')
   const [openId, setOpenId] = useState<string | null>(null)
@@ -51,9 +67,10 @@ export default function PedidosPage() {
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { window.location.href = '/login?redirect=/painel/crm/pedidos'; return }
-      const { data: comp } = await supabase.from('companies').select('id, loja_digital_enabled').eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
+      const { data: comp } = await supabase.from('companies').select('id, name, loja_digital_enabled').eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
       if (!comp || !comp.loja_digital_enabled) { window.location.href = '/painel/crm'; return }
       setCompanyId(comp.id); companyIdRef.current = comp.id
+      setCompanyName(comp.name)
       await loadAll(comp.id)
       setLoading(false)
 
@@ -75,6 +92,8 @@ export default function PedidosPage() {
   async function setStatus(id: string, status: Status) {
     setPedidos(prev => prev.map(p => p.id === id ? { ...p, status } : p))
     await supabase.from('loja_pedidos').update({ status, updated_at: new Date().toISOString() }).eq('id', id)
+    const pedido = pedidos.find(p => p.id === id)
+    if (pedido) notifyCustomer(pedido.customer_id, companyName, status)
   }
 
   if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter,sans-serif', color: '#AAA' }}>Carregando...</div>

@@ -4,13 +4,23 @@ import { supabase } from '@/lib/supabase'
 
 type Item = { id: string; product_name: string; qty: number; selected_options: { name: string; price: number }[] }
 type Status = 'recebido' | 'em_preparo' | 'pronto' | 'saiu_entrega' | 'entregue' | 'cancelado'
-type Pedido = { id: string; customer_name: string; status: Status; created_at: string; itens: Item[] }
+type Pedido = { id: string; customer_id: string | null; customer_name: string; status: Status; created_at: string; itens: Item[] }
 
 const COLUMNS: { status: Status; label: string; next: Status; action: string }[] = [
   { status: 'recebido', label: 'Recebido', next: 'em_preparo', action: 'Iniciar preparo' },
   { status: 'em_preparo', label: 'Em preparo', next: 'pronto', action: 'Marcar pronto' },
   { status: 'pronto', label: 'Pronto', next: 'saiu_entrega', action: 'Concluir' },
 ]
+
+const CUSTOMER_MSG: Partial<Record<Status, string>> = { pronto: 'Seu pedido está pronto!', saiu_entrega: 'Seu pedido saiu para entrega!' }
+function notifyCustomer(customerId: string | null, companyName: string, status: Status) {
+  const msg = CUSTOMER_MSG[status]
+  if (!customerId || !msg) return
+  fetch('/api/push/send', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title: companyName, body: msg, target: 'external_user_id', userId: customerId }),
+  }).catch(() => {})
+}
 
 function timeAgo(iso: string) {
   const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
@@ -30,15 +40,17 @@ function beep() {
 
 export default function CozinhaPage() {
   const [loading, setLoading] = useState(true)
+  const [companyName, setCompanyName] = useState('')
   const [pedidos, setPedidos] = useState<Pedido[]>([])
   const companyIdRef = useRef('')
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { window.location.href = '/login?redirect=/painel/crm/cozinha'; return }
-      const { data: comp } = await supabase.from('companies').select('id, loja_digital_enabled').eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
+      const { data: comp } = await supabase.from('companies').select('id, name, loja_digital_enabled').eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
       if (!comp || !comp.loja_digital_enabled) { window.location.href = '/painel/crm'; return }
       companyIdRef.current = comp.id
+      setCompanyName(comp.name)
       await loadAll(comp.id)
       setLoading(false)
 
@@ -58,8 +70,10 @@ export default function CozinhaPage() {
   }
 
   async function advance(id: string, next: Status) {
+    const pedido = pedidos.find(p => p.id === id)
     setPedidos(prev => next === 'saiu_entrega' ? prev.filter(p => p.id !== id) : prev.map(p => p.id === id ? { ...p, status: next } : p))
     await supabase.from('loja_pedidos').update({ status: next, updated_at: new Date().toISOString() }).eq('id', id)
+    if (pedido) notifyCustomer(pedido.customer_id, companyName, next)
   }
 
   if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter,sans-serif', color: '#AAA', background: '#111' }}>Carregando...</div>

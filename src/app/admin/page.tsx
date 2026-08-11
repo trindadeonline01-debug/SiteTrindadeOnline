@@ -144,6 +144,16 @@ export default function AdminPage() {
   const [testResults, setTestResults] = useState<Record<string,string>>({})
   const [cronRunning, setCronRunning] = useState(false)
   const [cronResult, setCronResult] = useState<{sent:number;checked:number;details:string[]}|null>(null)
+  const [planReminders, setPlanReminders] = useState<any[]>([])
+  const [deletedPlanReminderIds, setDeletedPlanReminderIds] = useState<string[]>([])
+  const [planReminderSentCounts, setPlanReminderSentCounts] = useState<Record<string, number>>({})
+  const [planDowngradedCount, setPlanDowngradedCount] = useState(0)
+  const [savingPlanReminders, setSavingPlanReminders] = useState(false)
+  const [planTestInputs, setPlanTestInputs] = useState<Record<string,{phone:string;email:string}>>({})
+  const [planTestSending, setPlanTestSending] = useState<Record<string,boolean>>({})
+  const [planTestResults, setPlanTestResults] = useState<Record<string,string>>({})
+  const [planCronRunning, setPlanCronRunning] = useState(false)
+  const [planCronResult, setPlanCronResult] = useState<{sent:number;checked:number;downgraded:number;details:string[]}|null>(null)
   const [subcatsList, setSubcatsList]       = useState<any[]>([])
   const [subcatSearch, setSubcatSearch]     = useState('')
   const [subcatInnerTab, setSubcatInnerTab] = useState<'lista'|'sugestoes'>('lista')
@@ -181,7 +191,7 @@ export default function AdminPage() {
 
   async function loadAll() {
     setLoading(true)
-    await Promise.all([loadStats(), loadCompanies(), loadUsers(), loadSearches(), loadHighlights(), loadReports(), loadBanners(), loadSettings(), loadAppearance(), loadPulseMessages(), loadTrialSettings(), loadTrialReminders(), loadBannerRequests(), loadFeatureFlags(), loadPlans(), loadSubcats()])
+    await Promise.all([loadStats(), loadCompanies(), loadUsers(), loadSearches(), loadHighlights(), loadReports(), loadBanners(), loadSettings(), loadAppearance(), loadPulseMessages(), loadTrialSettings(), loadTrialReminders(), loadPlanReminders(), loadBannerRequests(), loadFeatureFlags(), loadPlans(), loadSubcats()])
 
     // Realtime — atualiza automaticamente
     const channel = supabase
@@ -641,6 +651,103 @@ export default function AdminPage() {
       setCronResult({ sent: 0, checked: 0, details: ['⚠️ ' + err.message] })
     } finally {
       setCronRunning(false)
+    }
+  }
+
+  async function loadPlanReminders() {
+    const { data } = await supabase.from('plan_reminders').select('*').order('display_order')
+    setPlanReminders(data || [])
+    const { data: logs } = await supabase.from('plan_reminder_log').select('reminder_id')
+    if (logs) {
+      const counts: Record<string, number> = {}
+      logs.forEach((l: any) => { counts[l.reminder_id] = (counts[l.reminder_id] || 0) + 1 })
+      setPlanReminderSentCounts(counts)
+    }
+    const { count } = await supabase.from('notification_log').select('id', { count: 'exact', head: true }).eq('type', 'plan_downgraded')
+    setPlanDowngradedCount(count || 0)
+  }
+
+  function addPlanReminder() {
+    setPlanReminders(prev => [...prev, {
+      id: `new-${Date.now()}`, days_before: 3, active: true,
+      whatsapp_message: '', email_subject: '', email_body: '',
+      display_order: prev.length, isNew: true
+    }])
+  }
+
+  function updatePlanReminder(id: string, updates: any) {
+    setPlanReminders(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r))
+  }
+
+  function removePlanReminder(id: string, isNew?: boolean) {
+    setPlanReminders(prev => prev.filter(r => r.id !== id).map((r, i) => ({ ...r, display_order: i })))
+    if (!isNew) setDeletedPlanReminderIds(prev => [...prev, id])
+  }
+
+  async function savePlanReminders() {
+    setSavingPlanReminders(true)
+    if (deletedPlanReminderIds.length > 0) {
+      await supabase.from('plan_reminders').delete().in('id', deletedPlanReminderIds)
+    }
+    for (const r of planReminders) {
+      const payload = {
+        days_before: r.days_before, active: r.active,
+        whatsapp_message: r.whatsapp_message, email_subject: r.email_subject,
+        email_body: r.email_body, display_order: r.display_order,
+        updated_at: new Date().toISOString()
+      }
+      if (r.isNew) await supabase.from('plan_reminders').insert(payload)
+      else await supabase.from('plan_reminders').update(payload).eq('id', r.id)
+    }
+    setDeletedPlanReminderIds([])
+    await loadPlanReminders()
+    setSavingPlanReminders(false)
+    showToast('Lembretes de plano salvos!')
+  }
+
+  async function sendPlanReminderTest(r: any) {
+    const input = planTestInputs[r.id] || { phone: '', email: '' }
+    if (!input.phone.trim() && !input.email.trim()) { showToast('Informe telefone e/ou email pra testar'); return }
+    setPlanTestSending(prev => ({ ...prev, [r.id]: true }))
+    setPlanTestResults(prev => ({ ...prev, [r.id]: '' }))
+    try {
+      const res = await fetch('/api/trial-reminders/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: input.phone.trim() || undefined,
+          email: input.email.trim() || undefined,
+          name: 'Empresa Teste',
+          whatsapp_message: r.whatsapp_message,
+          email_subject: r.email_subject,
+          email_body: r.email_body,
+        })
+      })
+      const data = await res.json()
+      if (data.error) { setPlanTestResults(prev => ({ ...prev, [r.id]: '⚠️ ' + data.error })); return }
+      const parts: string[] = []
+      if (input.phone.trim()) parts.push(data.whatsapp ? '✓ WhatsApp enviado' : '✗ WhatsApp falhou')
+      if (input.email.trim()) parts.push(data.email ? '✓ Email enviado' : '✗ Email falhou')
+      setPlanTestResults(prev => ({ ...prev, [r.id]: parts.join(' · ') }))
+    } catch (err: any) {
+      setPlanTestResults(prev => ({ ...prev, [r.id]: '⚠️ ' + err.message }))
+    } finally {
+      setPlanTestSending(prev => ({ ...prev, [r.id]: false }))
+    }
+  }
+
+  async function runPlanCronNow() {
+    setPlanCronRunning(true)
+    setPlanCronResult(null)
+    try {
+      const res = await fetch('/api/admin/run-plan-expiration', { method: 'POST' })
+      const data = await res.json()
+      setPlanCronResult({ sent: data.sent || 0, checked: data.checked || 0, downgraded: data.downgraded || 0, details: data.details || [] })
+      setPlanDowngradedCount(prev => prev + (data.downgraded || 0))
+    } catch (err: any) {
+      setPlanCronResult({ sent: 0, checked: 0, downgraded: 0, details: ['⚠️ ' + err.message] })
+    } finally {
+      setPlanCronRunning(false)
     }
   }
 
@@ -2910,6 +3017,105 @@ export default function AdminPage() {
                           ) : (
                             <div style={{display:'flex',flexDirection:'column',gap:4}}>
                               {cronResult.details.map((d,i) => <div key={i} style={{fontSize:12,color:'#666'}}>{d}</div>)}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="section-card" style={{marginTop:20}}>
+                  <div className="section-hdr">
+                    <span className="section-title">💳 VENCIMENTO DE PLANO PAGO</span>
+                  </div>
+                  <div style={{padding:'20px 24px'}}>
+                    <div style={{fontSize:13,color:'#666',marginBottom:20,lineHeight:1.6}}>
+                      Todo dia às 10h10 o sistema verifica todas as empresas com plano pago. Quem passou da data de vencimento sem renovar volta automaticamente pro plano <b>free</b> (perde WhatsApp visível, link externo e destaques). Antes disso, os lembretes abaixo disparam por WhatsApp e e-mail conforme os dias restantes. "Dias antes" negativo dispara depois de já ter vencido. Cada lembrete é enviado uma única vez por empresa.
+                    </div>
+                    <div style={{marginBottom:20,padding:'12px 16px',background:'#FAFAF8',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontWeight:600,color:'#111'}}>
+                      {planDowngradedCount} empresa{planDowngradedCount!==1?'s':''} já rebaixada{planDowngradedCount!==1?'s':''} de pago pra free por falta de renovação
+                    </div>
+
+                    <div style={{display:'flex',flexDirection:'column',gap:14}}>
+                      {planReminders.map(r => (
+                        <div key={r.id} style={{border:'1.5px solid #EDE8E0',borderRadius:12,padding:16}}>
+                          <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:12,flexWrap:'wrap'}}>
+                            <div>
+                              <label style={{fontSize:11,fontWeight:600,color:'#888',display:'block',marginBottom:4}}>Dias antes de vencer</label>
+                              <input type="number" value={r.days_before} onChange={e=>updatePlanReminder(r.id,{days_before:Number(e.target.value)||0})}
+                                style={{width:90,padding:'8px 10px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+                            </div>
+                            <div onClick={()=>updatePlanReminder(r.id,{active:!r.active})}
+                              style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer',marginTop:16}}>
+                              <div style={{width:40,height:22,borderRadius:11,background:r.active?'#0F8050':'#E0DDD8',position:'relative',transition:'background .2s'}}>
+                                <div style={{position:'absolute',top:2,left:r.active?20:2,width:18,height:18,borderRadius:'50%',background:'#fff',boxShadow:'0 1px 4px rgba(0,0,0,.2)',transition:'left .2s'}}/>
+                              </div>
+                              <span style={{fontSize:12,fontWeight:600,color:r.active?'#0F8050':'#AAA'}}>{r.active?'Ativo':'Inativo'}</span>
+                            </div>
+                            <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:10,marginTop:16}}>
+                              <span style={{fontSize:11,color:'#AAA'}}>{planReminderSentCounts[r.id] || 0} enviados</span>
+                              <button onClick={()=>removePlanReminder(r.id,r.isNew)}
+                                style={{background:'#FCEBEB',color:'#E24B4A',border:'none',borderRadius:8,width:30,height:30,cursor:'pointer'}}>🗑</button>
+                            </div>
+                          </div>
+                          <label style={{fontSize:11,fontWeight:600,color:'#888',display:'block',marginBottom:4}}>Mensagem WhatsApp</label>
+                          <textarea value={r.whatsapp_message||''} onChange={e=>updatePlanReminder(r.id,{whatsapp_message:e.target.value})}
+                            placeholder="Use {{nome}} pra inserir o nome da empresa"
+                            style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',minHeight:60,resize:'vertical',marginBottom:10}}/>
+                          <label style={{fontSize:11,fontWeight:600,color:'#888',display:'block',marginBottom:4}}>Assunto do e-mail</label>
+                          <input value={r.email_subject||''} onChange={e=>updatePlanReminder(r.id,{email_subject:e.target.value})}
+                            style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',marginBottom:10}}/>
+                          <label style={{fontSize:11,fontWeight:600,color:'#888',display:'block',marginBottom:4}}>Corpo do e-mail</label>
+                          <textarea value={r.email_body||''} onChange={e=>updatePlanReminder(r.id,{email_body:e.target.value})}
+                            placeholder="Use {{nome}} pra inserir o nome da empresa"
+                            style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',minHeight:60,resize:'vertical'}}/>
+
+                          <div style={{marginTop:14,paddingTop:14,borderTop:'1px dashed #E0DDD8'}}>
+                            <label style={{fontSize:11,fontWeight:600,color:'#888',display:'block',marginBottom:6}}>🧪 Testar este lembrete (envia pra você, com o texto acima)</label>
+                            <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                              <input placeholder="Seu WhatsApp (ex: 21980239006)" value={planTestInputs[r.id]?.phone||''}
+                                onChange={e=>setPlanTestInputs(prev=>({...prev,[r.id]:{phone:e.target.value,email:prev[r.id]?.email||''}}))}
+                                style={{flex:1,minWidth:160,padding:'8px 10px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:12,fontFamily:'Inter,sans-serif'}}/>
+                              <input placeholder="Seu email" value={planTestInputs[r.id]?.email||''}
+                                onChange={e=>setPlanTestInputs(prev=>({...prev,[r.id]:{phone:prev[r.id]?.phone||'',email:e.target.value}}))}
+                                style={{flex:1,minWidth:160,padding:'8px 10px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:12,fontFamily:'Inter,sans-serif'}}/>
+                              <button onClick={()=>sendPlanReminderTest(r)} disabled={planTestSending[r.id]}
+                                style={{padding:'8px 16px',background:'#111',color:'#C9951A',border:'none',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer',whiteSpace:'nowrap',opacity:planTestSending[r.id]?0.6:1}}>
+                                {planTestSending[r.id]?'Enviando...':'Enviar teste'}
+                              </button>
+                            </div>
+                            {planTestResults[r.id] && <div style={{fontSize:11,color:'#666',marginTop:6}}>{planTestResults[r.id]}</div>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <button onClick={addPlanReminder} style={{width:'100%',marginTop:12,padding:'9px',background:'#fafafa',border:'1.5px dashed #ddd',color:'#aaa',borderRadius:10,fontSize:12,fontWeight:600,cursor:'pointer'}}>+ Adicionar lembrete</button>
+                    <button onClick={savePlanReminders} disabled={savingPlanReminders}
+                      style={{width:'100%',marginTop:14,padding:11,background:'#C9951A',color:'#111',border:'none',borderRadius:10,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',opacity:savingPlanReminders?0.6:1}}>
+                      {savingPlanReminders ? 'Salvando...' : 'Salvar lembretes'}
+                    </button>
+
+                    <div style={{marginTop:24,paddingTop:20,borderTop:'1px solid #EDE8E0'}}>
+                      <div style={{fontWeight:600,fontSize:14,color:'#111',marginBottom:4}}>▶️ Rodar o cron agora</div>
+                      <div style={{fontSize:12,color:'#AAA',marginBottom:12}}>
+                        Executa a mesma varredura que roda sozinha todo dia às 10h10 — lembretes de vencimento + rebaixamento de quem já venceu. Útil pra conferir sem esperar o horário.
+                      </div>
+                      <button onClick={runPlanCronNow} disabled={planCronRunning}
+                        style={{padding:'10px 24px',background:'#111',color:'#C9951A',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',opacity:planCronRunning?0.6:1}}>
+                        {planCronRunning ? 'Rodando...' : 'Rodar agora'}
+                      </button>
+                      {planCronResult && (
+                        <div style={{marginTop:14,background:'#FAFAF8',border:'1.5px solid #E0DDD8',borderRadius:10,padding:14}}>
+                          <div style={{fontSize:13,fontWeight:600,marginBottom:8}}>
+                            {planCronResult.checked} empresa{planCronResult.checked!==1?'s':''} paga{planCronResult.checked!==1?'s':''} verificada{planCronResult.checked!==1?'s':''} · {planCronResult.sent} lembrete{planCronResult.sent!==1?'s':''} disparado{planCronResult.sent!==1?'s':''} · {planCronResult.downgraded} rebaixada{planCronResult.downgraded!==1?'s':''} pra free
+                          </div>
+                          {planCronResult.details.length === 0 ? (
+                            <div style={{fontSize:12,color:'#AAA'}}>Nenhuma empresa bateu um gatilho ou venceu hoje.</div>
+                          ) : (
+                            <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                              {planCronResult.details.map((d,i) => <div key={i} style={{fontSize:12,color:'#666'}}>{d}</div>)}
                             </div>
                           )}
                         </div>

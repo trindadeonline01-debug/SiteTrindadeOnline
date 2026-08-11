@@ -26,7 +26,9 @@ export async function POST(req: NextRequest) {
     const { data: rec } = await supabase.from('payments').select('*').eq('payment_id', String(payment_id)).single()
     const ext = JSON.parse(payment.external_reference || '{}')
     const days = rec?.days || ext?.days || 30
-    const planEndsAt = new Date(Date.now() + days * 86400000).toISOString()
+    const { data: companyBefore } = await supabase.from('companies').select('plan_ends_at').eq('id', company_id).maybeSingle()
+    const base = companyBefore?.plan_ends_at && new Date(companyBefore.plan_ends_at).getTime() > Date.now() ? new Date(companyBefore.plan_ends_at).getTime() : Date.now()
+    const planEndsAt = new Date(base + days * 86400000).toISOString()
 
     if (rec) {
       await supabase.from('payments').update({ status: 'paid', paid_at: new Date().toISOString() }).eq('id', rec.id)

@@ -18,7 +18,9 @@ export async function POST(req: NextRequest) {
     if (!rec) return NextResponse.json({ ok: true })
 
     await supabase.from('payments').update({ status: 'paid', paid_at: new Date().toISOString() }).eq('id', rec.id)
-    const planEndsAt = new Date(Date.now() + rec.days * 86400000).toISOString()
+    const { data: companyBefore } = await supabase.from('companies').select('plan_ends_at').eq('id', rec.company_id).maybeSingle()
+    const base = companyBefore?.plan_ends_at && new Date(companyBefore.plan_ends_at).getTime() > Date.now() ? new Date(companyBefore.plan_ends_at).getTime() : Date.now()
+    const planEndsAt = new Date(base + rec.days * 86400000).toISOString()
     await supabase.from('companies').update({ plan: 'paid', plan_ends_at: planEndsAt, status: 'active' }).eq('id', rec.company_id)
 
     return NextResponse.json({ ok: true })

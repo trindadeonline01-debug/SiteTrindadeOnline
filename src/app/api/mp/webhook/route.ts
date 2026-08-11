@@ -90,7 +90,9 @@ async function processPayment(paymentId: string) {
     if (!companyId) return
 
     const days = rec?.days || ext.days || 30
-    const planEndsAt = new Date(Date.now() + days * 86400000)
+    const { data: companyBefore } = await supabase.from('companies').select('plan_ends_at').eq('id', companyId).maybeSingle()
+    const base = companyBefore?.plan_ends_at && new Date(companyBefore.plan_ends_at).getTime() > Date.now() ? new Date(companyBefore.plan_ends_at).getTime() : Date.now()
+    const planEndsAt = new Date(base + days * 86400000)
 
     if (!rec) {
       await supabase.from('payments').insert({ company_id: ext.company_id, payment_id: String(paymentId), plan: ext.plan, value: payment.transaction_amount, days, status: 'paid', paid_at: new Date().toISOString() })

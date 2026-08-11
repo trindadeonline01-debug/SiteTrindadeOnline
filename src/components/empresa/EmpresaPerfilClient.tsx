@@ -24,6 +24,7 @@ type Company = {
   photos?: CompanyPhoto[]
   hours?: CompanyHour[]
   flexible_hours?: boolean
+  loja_digital_enabled?: boolean
 }
 type SimpleCategory    = { id: string; name: string; emoji: string }
 type SimpleSubcategory = { id: string; name: string; emoji: string; category_id: string }
@@ -487,6 +488,8 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
         .btn-wa:hover{opacity:.9;}
         .btn-ext{width:100%;padding:12px;background:#EBF4FF;color:#185FA5;border:0.5px solid #B5D4F4;border-radius:10px;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s;}
         .btn-ext:hover{opacity:.9;}
+        .btn-cardapio{width:100%;padding:12px;background:#C9951A;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;transition:opacity .15s;box-sizing:border-box;}
+        .btn-cardapio:hover{opacity:.9;}
         .btn-wa-locked{width:100%;padding:12px;background:#F0EDE8;color:#888;border:1px solid #DDD9D0;border-radius:10px;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .15s;}
         .btn-wa-locked:hover:not(:disabled){background:#E5E1D9;border-color:#C9951A;color:#C9951A;}
         .btn-wa-locked:disabled{cursor:not-allowed;opacity:0.6;}
@@ -757,6 +760,11 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
                   <span style={{fontSize:16}}>🔒</span>
                   Falar no WhatsApp
                 </button>
+              )}
+              {isActive && company.loja_digital_enabled && (
+                <a className="btn-cardapio" href={`/empresa/${company.slug}/cardapio`}>
+                  🧾 Ver cardápio
+                </a>
               )}
               {isActive && company.external_link && (
                 <button className="btn-ext" onClick={() => window.open(company.external_link!, '_blank')}>

@@ -13,6 +13,7 @@ type Company = {
   owner_id?: string; category_id?: string
   category?: { name: string; emoji: string; slug?: string }
   trial_ends_at?: string
+  loja_digital_enabled?: boolean
   subcategories?: CompanySubcat[]
   photos?: CompanyPhoto[]
   hours?: CompanyHour[]
@@ -24,7 +25,7 @@ type Review = {
   response?: { text: string }
 }
 
-const COMPANY_SELECT = '*, owner_id, trial_ends_at, category:categories(name,emoji,slug), subcategories:company_subcategories(subcategory_id, subcategory:subcategories(name,emoji)), photos:company_photos(id,url,order), hours:company_hours(label,hours,order,day_of_week,open_time,close_time,closed)'
+const COMPANY_SELECT = '*, owner_id, trial_ends_at, loja_digital_enabled, category:categories(name,emoji,slug), subcategories:company_subcategories(subcategory_id, subcategory:subcategories(name,emoji)), photos:company_photos(id,url,order), hours:company_hours(label,hours,order,day_of_week,open_time,close_time,closed)'
 
 export default async function EmpresaPerfilPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params

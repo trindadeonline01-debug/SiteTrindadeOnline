@@ -7,8 +7,9 @@ export async function POST(req: NextRequest) {
   try {
     const raw = await req.text()
     console.log('RAW BODY:', raw)
-    const { title, body, target } = JSON.parse(raw)
+    const { title, body, target, userId } = JSON.parse(raw)
     if (!title || !body) return NextResponse.json({ error: 'title e body obrigatórios' }, { status: 400 })
+    if (target === 'external_user_id' && !userId) return NextResponse.json({ error: 'userId obrigatório para target=external_user_id' }, { status: 400 })
 
     let filters: any[] = []
     if (target === 'user') {
@@ -24,7 +25,9 @@ export async function POST(req: NextRequest) {
       chrome_web_icon: '/icon-192.png',
     }
 
-    if (filters.length > 0) {
+    if (target === 'external_user_id') {
+      payload.include_external_user_ids = [userId]
+    } else if (filters.length > 0) {
       payload.filters = filters
     } else {
       payload.included_segments = ['All']

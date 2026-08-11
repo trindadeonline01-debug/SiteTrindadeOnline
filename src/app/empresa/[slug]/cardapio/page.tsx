@@ -17,10 +17,10 @@ type Categoria = { id: string; name: string; display_order: number }
 type Company = {
   id: string; name: string; slug: string; phone: string | null; address: string | null
   avg_rating: number; total_reviews: number; status: string
-  loja_digital_enabled: boolean; flexible_hours?: boolean
+  loja_digital_enabled: boolean; flexible_hours?: boolean; owner_id?: string
   hours?: any[]
 }
-type CartLine = { id: string; produtoId: string; name: string; unitPrice: number; qty: number }
+type CartLine = { key: string; produtoId: string; name: string; modifiers: { name: string; price: number }[]; unitPrice: number; qty: number }
 
 function fmt(n: number) { return 'R$ ' + n.toFixed(2).replace('.', ',') }
 function promoPrice(p: Produto): number | null {
@@ -54,7 +54,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
 
   useEffect(() => {
     supabase.from('companies')
-      .select('id,name,slug,phone,address,avg_rating,total_reviews,status,loja_digital_enabled,flexible_hours,hours:company_hours(label,hours,order,day_of_week,open_time,close_time,closed)')
+      .select('id,name,slug,phone,address,avg_rating,total_reviews,status,loja_digital_enabled,flexible_hours,owner_id,hours:company_hours(label,hours,order,day_of_week,open_time,close_time,closed)')
       .eq('slug', slug).maybeSingle()
       .then(async ({ data: comp }) => {
         if (!comp || comp.status !== 'active' || !comp.loja_digital_enabled) { setCompany(null); setLoading(false); return }
@@ -74,11 +74,12 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
     })
   }, [slug])
 
-  function addToCart(id: string, name: string, price: number, qty: number) {
+  function addToCart(produtoId: string, name: string, price: number, qty: number, modifiers: { name: string; price: number }[] = []) {
+    const key = produtoId + '|' + modifiers.map(m => m.name).sort().join('+')
     setCart(prev => {
-      const existing = prev.find(l => l.id === id)
-      if (existing) return prev.map(l => l.id === id ? { ...l, qty: l.qty + qty } : l)
-      return [...prev, { id, produtoId: id, name, unitPrice: price, qty }]
+      const existing = prev.find(l => l.key === key)
+      if (existing) return prev.map(l => l.key === key ? { ...l, qty: l.qty + qty } : l)
+      return [...prev, { key, produtoId, name, modifiers, unitPrice: price, qty }]
     })
   }
   const cartTotal = cart.reduce((s, l) => s + l.unitPrice * l.qty, 0)
@@ -102,10 +103,9 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
 
   function confirmAddDetail() {
     if (!detail || !detailReqMet) return
-    const modNames: string[] = []
-    detail.groups.forEach((g, gi) => detailSel[gi].forEach(oi => modNames.push(g.options[oi].name)))
-    const lineId = detail.id + '|' + modNames.slice().sort().join('+')
-    addToCart(lineId, detail.name + (modNames.length ? ' · ' + modNames.join(', ') : ''), detailUnitPrice, detailQty)
+    const modifiers: { name: string; price: number }[] = []
+    detail.groups.forEach((g, gi) => detailSel[gi].forEach(oi => modifiers.push({ name: g.options[oi].name, price: g.options[oi].price })))
+    addToCart(detail.id, detail.name, detailUnitPrice, detailQty, modifiers)
     setDetail(null)
   }
 
@@ -123,8 +123,20 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
     }).select('id').single()
     if (pedido) {
       await supabase.from('loja_pedido_itens').insert(cart.map(l => ({
-        pedido_id: pedido.id, produto_id: l.produtoId.split('|')[0], product_name: l.name, unit_price: l.unitPrice, qty: l.qty,
+        pedido_id: pedido.id, produto_id: l.produtoId, product_name: l.name, unit_price: l.unitPrice, qty: l.qty,
+        selected_options: l.modifiers,
       })))
+      if (company.owner_id) {
+        fetch('/api/push/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: `Novo pedido — ${company.name}`,
+            body: `${profile?.name || 'Cliente'} pediu ${fmt(cartTotal)}`,
+            target: 'external_user_id', userId: company.owner_id,
+          }),
+        }).catch(() => {})
+      }
     }
     setConfirming(false)
     setSuccess(true)
@@ -303,7 +315,12 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
             <>
               <div className="cd-dbody">
                 <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', marginBottom: 8, fontWeight: 800 }}>Itens</div>
-                {cart.map(l => <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '0.5px solid #EDE8E0', fontSize: 12 }}><span>{l.qty}x {l.name}</span><b>{fmt(l.qty * l.unitPrice)}</b></div>)}
+                {cart.map(l => (
+                  <div key={l.key} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '0.5px solid #EDE8E0', fontSize: 12 }}>
+                    <span>{l.qty}x {l.name}{l.modifiers.length > 0 && <span style={{ display: 'block', fontSize: 10.5, color: '#AAA' }}>{l.modifiers.map(m => m.name).join(', ')}</span>}</span>
+                    <b>{fmt(l.qty * l.unitPrice)}</b>
+                  </div>
+                ))}
                 <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', margin: '14px 0 8px', fontWeight: 800 }}>Endereço</div>
                 <input className="cd-diinput" value={address} onChange={e => setAddress(e.target.value)} placeholder="Rua, número, bairro" />
                 <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', margin: '14px 0 8px', fontWeight: 800 }}>Pagamento</div>

@@ -20,6 +20,7 @@ type Company = {
   id: string; name: string; status: string; plan: string
   created_at: string; owner_id: string; category_id: string
   address: string; phone: string; description?: string; tags?: string[]; cpf_cnpj?: string; external_link?: string
+  loja_digital_enabled?: boolean
   category?: { name: string; emoji: string }
   owner?: { name: string }
 }
@@ -987,6 +988,12 @@ export default function AdminPage() {
     loadCompanies(); loadStats()
   }
 
+  async function toggleLojaDigital(id: string, enabled: boolean) {
+    setCompanies(prev => prev.map(c => c.id === id ? { ...c, loja_digital_enabled: !enabled } : c))
+    await supabase.from('companies').update({ loja_digital_enabled: !enabled }).eq('id', id)
+    showToast(!enabled ? 'Cardápio Digital ativado.' : 'Cardápio Digital desativado.')
+  }
+
   async function deleteCompany(id: string, nome: string) {
     if (!confirm(`Tem certeza? Isso apagará TODOS os dados de "${nome}" (fotos, avaliações, banners, etc). Ação irreversível.`)) return
     const typed = prompt(`Para confirmar, digite exatamente o nome da empresa:\n\n${nome}`)
@@ -1788,6 +1795,11 @@ export default function AdminPage() {
                                 <button className="action-btn btn-view" onClick={() => openPreviewCompany(c)}>Ver</button>
                                 <button className="action-btn" style={{background:'#185FA522',color:'#185FA5'}} onClick={() => openEditCompany(c)}>✏️ Editar</button>
                                 {c.status === 'active' && (() => { const n = emailLogs[c.id] || 0; const bg = n===0?'#EDFAF3':n===1?'#FEF3E2':n===2?'#FEE4D0':'#FCEBEB'; const cl = n===0?'#0F8050':n===1?'#C9951A':n===2?'#E07030':'#E24B4A'; return <button className="action-btn" style={{background:bg,color:cl}} onClick={()=>{ fetch('/api/email/aprovacao',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({company_id:c.id})}).then(()=>{showToast('Email enviado para ' + c.name);setEmailLogs(p=>({...p,[c.id]:(p[c.id]||0)+1}))}) }}>📧 {n===0?'Enviar email':n===1?'Enviado 1x':n===2?'Enviado 2x':'Enviado 3x+'}</button> })()}
+                                {c.status === 'active' && (
+                                  <button className="action-btn" style={c.loja_digital_enabled ? {background:'#E4F3EC',color:'#157A52'} : {background:'#F0EDE8',color:'#888'}} onClick={() => toggleLojaDigital(c.id, !!c.loja_digital_enabled)}>
+                                    🧾 {c.loja_digital_enabled ? 'Cardápio ON' : 'Cardápio OFF'}
+                                  </button>
+                                )}
                               </td>
                             </tr>
                           ))}

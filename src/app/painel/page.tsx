@@ -18,6 +18,7 @@ type Company = {
   category_id?: string; trial_ends_at?: string; plan_ends_at?: string; cpf_cnpj?: string
   delivery_available?: boolean
   flexible_hours?: boolean
+  loja_digital_enabled?: boolean
   category?: { name: string; emoji: string }
   photos?: { id: string; url: string; order: number }[]
   hours?: { id: string; label: string; hours: string; order: number; day_of_week: number | null; open_time: string | null; close_time: string | null; closed: boolean }[]
@@ -1193,6 +1194,12 @@ export default function PainelPage() {
                 {n.badge > 0 && <span className="sb-badge">{n.badge}</span>}
               </div>
             ))}
+            {company.loja_digital_enabled && (
+              <a href="/painel/crm" className="sb-item" style={{textDecoration:'none'}}>
+                <span>🧾</span>
+                <span>Cardápio Digital</span>
+              </a>
+            )}
           </nav>
           <div className="sb-footer">
             <div className="sb-actions">
@@ -1215,6 +1222,12 @@ export default function PainelPage() {
                 <div className="mobile-submenu-lbl">{n.lbl}</div>
               </div>
             ))}
+            {company.loja_digital_enabled && (
+              <a href="/painel/crm" className="mobile-submenu-item" style={{textDecoration:'none'}}>
+                <div className="mobile-submenu-ico">🧾</div>
+                <div className="mobile-submenu-lbl">Cardápio</div>
+              </a>
+            )}
           </div>
 
 

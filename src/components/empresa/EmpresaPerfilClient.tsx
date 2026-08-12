@@ -96,22 +96,21 @@ function Gallery({ photos, emoji, isAdmin }: { photos: CompanyPhoto[]; emoji: st
      foto preenche 100% via object-fit:cover, sem faixa nenhuma sobrando */
   return (
     <>
-    <div style={{ width:'100%', aspectRatio:'1 / 1', borderRadius:16, overflow:'hidden', position:'relative' }}>
-      <Image src={src(idx)} alt="" onClick={() => openLightbox(idx)} fill sizes="(max-width:767px) 100vw, 700px" priority style={{ objectFit:'cover', cursor:'pointer' }} />
+    <div className="gallery-flex">
+      <div className="gallery-main">
+        <Image src={src(idx)} alt="" onClick={() => openLightbox(idx)} fill sizes="(max-width:767px) 100vw, 700px" priority style={{ objectFit:'cover', cursor:'pointer' }} />
+        {n > 1 && <div className="gallery-badge">{idx+1} / {n}</div>}
+      </div>
       {n > 1 && (
-        <div style={{ position:'absolute', bottom:10, right:10, background:'rgba(0,0,0,.6)', color:'#fff', fontSize:11, fontWeight:500, padding:'3px 10px', borderRadius:12 }}>{idx+1} / {n}</div>
+        <div className="gallery-thumbs">
+          {photos.map((p, i) => (
+            <div key={p.id} className={`gallery-thumb ${i===idx ? 'active' : ''}`} onClick={() => setIdx(i)}>
+              <Image src={p.url} alt="" fill sizes="92px" style={{ objectFit:'cover' }} />
+            </div>
+          ))}
+        </div>
       )}
     </div>
-    {n > 1 && (
-      <div style={{ display:'flex', gap:8, marginTop:8, overflowX:'auto', paddingBottom:2 }}>
-        {photos.map((p, i) => (
-          <div key={p.id} onClick={() => setIdx(i)}
-            style={{ flexShrink:0, width:64, height:64, borderRadius:10, overflow:'hidden', cursor:'pointer', position:'relative', border: i===idx ? '2.5px solid #C9951A' : '2.5px solid transparent', opacity: i===idx ? 1 : 0.7, transition:'opacity .15s, border-color .15s' }}>
-            <Image src={p.url} alt="" fill sizes="64px" style={{ objectFit:'cover' }} />
-          </div>
-        ))}
-      </div>
-    )}
     <Lightbox isAdmin={isAdmin} photos={photos} idx={lightboxIdx} open={lightboxOpen} setIdx={setLightboxIdx} onClose={() => setLightboxOpen(false)} />
     </>
   )
@@ -455,12 +454,33 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
         .gallery-wrap{max-width:1200px;margin:0 auto;padding:20px 24px 0;}
         @media(max-width:767px){.gallery-wrap{padding:12px 16px 0;}}
 
+        /* Mobile: foto quadrada em cima, miniaturas em fileira embaixo (sem mudança). */
+        .gallery-flex{display:flex;flex-direction:column;gap:8px;}
+        .gallery-main{width:100%;aspect-ratio:1/1;border-radius:16px;overflow:hidden;position:relative;}
+        .gallery-badge{position:absolute;bottom:10px;right:10px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;font-weight:500;padding:3px 10px;border-radius:12px;}
+        .gallery-thumbs{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;}
+        .gallery-thumb{flex-shrink:0;width:64px;height:64px;border-radius:10px;overflow:hidden;cursor:pointer;position:relative;border:2.5px solid transparent;opacity:.7;transition:opacity .15s,border-color .15s;}
+        .gallery-thumb.active{border-color:#C9951A;opacity:1;}
+        /* Desktop: foto horizontal + miniaturas quadradas na lateral. */
+        @media(min-width:768px){
+          .gallery-flex{flex-direction:row;align-items:stretch;}
+          .gallery-main{aspect-ratio:21/9;flex:1;min-width:0;}
+          .gallery-thumbs{flex-direction:column;width:92px;flex-shrink:0;overflow-x:visible;overflow-y:auto;padding-bottom:0;}
+          .gallery-thumb{width:100%;height:auto;aspect-ratio:1/1;}
+        }
+
         /* CONTEÚDO PRINCIPAL */
         .page{max-width:1200px;margin:0 auto;padding:20px 24px 48px;}
         @media(max-width:767px){.page{padding:16px 16px 40px;}}
 
-        .content-grid{display:grid;grid-template-columns:1fr 300px;gap:20px;align-items:start;}
-        @media(max-width:767px){.content-grid{grid-template-columns:1fr;}}
+        /* Mobile: empilhado na mesma ordem de sempre — nome, ações/endereço/mapa, sobre. */
+        .content-grid{display:grid;grid-template-columns:1fr;grid-template-areas:"info" "right" "sobre";gap:20px;align-items:start;}
+        .ga-info{grid-area:info;}
+        .ga-sobre{grid-area:sobre;}
+        /* Desktop: sobre sobe pra colar no card do nome, na mesma coluna. */
+        @media(min-width:768px){
+          .content-grid{grid-template-columns:1fr 300px;grid-template-areas:"info right" "sobre right";}
+        }
 
         /* COLUNA ESQUERDA */
         .info-card{background:#fff;border:0.5px solid #EDE8E0;border-radius:14px;padding:22px;}
@@ -480,7 +500,7 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
         .btn-write-rv{padding:7px 14px;background:#FEF3E2;color:#C9951A;border:1.5px solid #C9951A;border-radius:8px;font-size:12px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;white-space:nowrap;flex-shrink:0;}
 
         /* COLUNA DIREITA */
-        .right-col{display:flex;flex-direction:column;gap:10px;}
+        .right-col{display:flex;flex-direction:column;gap:10px;grid-area:right;}
         @media(min-width:768px){.right-col{position:sticky;top:60px;max-height:calc(100vh - 80px);overflow-y:auto;}}
 
         .action-card{background:#fff;border:0.5px solid #EDE8E0;border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:8px;}
@@ -620,7 +640,7 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
         <div className="content-grid">
 
           {/* COLUNA ESQUERDA */}
-          <div className="info-card">
+          <div className="info-card ga-info">
             <div style={{display:'flex',alignItems:'center',gap:12,flexWrap:'wrap'}}>
               {editingName ? (
                 <div style={{display:'flex',gap:8,alignItems:'center',flex:1,minWidth:220}}>
@@ -825,11 +845,10 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
             )}
 
           </div>
-        </div>
 
-        {/* SOBRE — abaixo do endereço, separado do card de nome/avaliação */}
-        {(company.description || isAdmin) && (
-          <div className="info-card" style={{marginTop:20}}>
+          {/* SOBRE — mesma coluna do nome, no desktop fica colado embaixo dele */}
+          {(company.description || isAdmin) && (
+          <div className="info-card ga-sobre">
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
               <div style={{fontSize:11,fontWeight:600,color:'#AAA',letterSpacing:'.6px',textTransform:'uppercase'}}>Sobre</div>
               {isAdmin && !editingDesc && (
@@ -860,7 +879,9 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
               <div style={{fontSize:14,color:'#555',lineHeight:1.6}}>{company.description || <span style={{color:'#CCC',fontStyle:'italic'}}>Sem descrição ainda</span>}</div>
             )}
           </div>
-        )}
+          )}
+
+        </div>
 
         {/* MODAL AVALIAÇÃO */}
         {showReview && (

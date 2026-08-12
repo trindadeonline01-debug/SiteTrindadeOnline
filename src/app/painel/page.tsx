@@ -1462,7 +1462,7 @@ export default function PainelPage() {
                   <div className="photos-grid">
                     {photos.map((p,i) => (
                       <div key={p.id} className="photo-item">
-                        <Image src={p.url} alt={`foto ${i+1}`} fill sizes="150px" style={{objectFit:'cover'}}/>
+                        <Image unoptimized src={p.url} alt={`foto ${i+1}`} fill sizes="150px" style={{objectFit:'cover'}}/>
                         <button className="photo-rm" onClick={()=>removePhoto(p.id)}>✕</button>
                         {i===0 && <div className="photo-capa">CAPA</div>}
                       </div>
@@ -1705,8 +1705,8 @@ export default function PainelPage() {
                           )}
                           {(b.file_desktop_url || b.file_mobile_url) && (
                             <div className="banner-hist-imgs">
-                              {b.file_desktop_url && <a href={b.file_desktop_url} target="_blank" rel="noopener noreferrer"><Image src={b.file_desktop_url} alt="desktop" title="Ver desktop" width={120} height={36}/></a>}
-                              {b.file_mobile_url && <a href={b.file_mobile_url} target="_blank" rel="noopener noreferrer"><Image src={b.file_mobile_url} alt="mobile" title="Ver mobile" width={80} height={36} style={{maxWidth:80,height:'auto'}}/></a>}
+                              {b.file_desktop_url && <a href={b.file_desktop_url} target="_blank" rel="noopener noreferrer"><Image unoptimized src={b.file_desktop_url} alt="desktop" title="Ver desktop" width={120} height={36}/></a>}
+                              {b.file_mobile_url && <a href={b.file_mobile_url} target="_blank" rel="noopener noreferrer"><Image unoptimized src={b.file_mobile_url} alt="mobile" title="Ver mobile" width={80} height={36} style={{maxWidth:80,height:'auto'}}/></a>}
                             </div>
                           )}
                         </div>
@@ -2180,7 +2180,7 @@ export default function PainelPage() {
                   <div style={{display:'flex',flexDirection:'column',gap:8}}>
                     {myPromos.map((p:any)=>(
                       <div key={p.id} style={{background:'#fff',border:'0.5px solid #E0DDD8',borderRadius:10,padding:'12px 14px',display:'flex',alignItems:'center',gap:12}}>
-                        {p.image_url && <Image src={p.image_url} alt="" width={48} height={64} style={{objectFit:'cover',borderRadius:8,flexShrink:0}}/>}
+                        {p.image_url && <Image unoptimized src={p.image_url} alt="" width={48} height={64} style={{objectFit:'cover',borderRadius:8,flexShrink:0}}/>}
                         <div style={{flex:1,minWidth:0}}>
                           <div style={{fontSize:13,fontWeight:500,color:'#111',marginBottom:2}}>{p.title}</div>
                           <div style={{fontSize:11,color:'#888'}}>{new Date(p.starts_at).toLocaleDateString('pt-BR')} → {new Date(p.expires_at).toLocaleDateString('pt-BR')}</div>

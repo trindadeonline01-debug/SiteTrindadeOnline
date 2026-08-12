@@ -295,7 +295,7 @@ export default function BuscaPageClient({ initialQuery, initialResults }: { init
                   return (
                     <a key={c.id} className="emp-card" href={`/empresa/${c.slug}`}>
                       <div className="emp-img">
-                        {cover ? <Image src={cover} alt={c.name} fill sizes="(max-width:639px) 33vw, 200px" style={{objectFit:'cover'}} /> : <span>{c.category?.emoji || '🏪'}</span>}
+                        {cover ? <Image unoptimized src={cover} alt={c.name} fill sizes="(max-width:639px) 33vw, 200px" style={{objectFit:'cover'}} /> : <span>{c.category?.emoji || '🏪'}</span>}
                       </div>
                       <div className="emp-body">
                         <div className="emp-name">{c.name}</div>
@@ -357,7 +357,7 @@ export default function BuscaPageClient({ initialQuery, initialResults }: { init
                 {desapega.map(l => (
                   <a key={l.id} className="result-card" href={`/anuncio/${l.id}`}>
                     <div className="rc-img">
-                      {l.photos?.length ? <Image src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title} fill sizes="(max-width:639px) 50vw, 33vw" style={{objectFit:'cover'}} /> : <span>🏷️</span>}
+                      {l.photos?.length ? <Image unoptimized src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title} fill sizes="(max-width:639px) 50vw, 33vw" style={{objectFit:'cover'}} /> : <span>🏷️</span>}
                     </div>
                     <div className="rc-body">
                       <div className="rc-name">{l.title}</div>
@@ -382,7 +382,7 @@ export default function BuscaPageClient({ initialQuery, initialResults }: { init
                 {empregos.map(l => (
                   <a key={l.id} className="result-card" href={`/anuncio/${l.id}`}>
                     <div className="rc-img">
-                      {l.photos?.length ? <Image src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title} fill sizes="(max-width:639px) 50vw, 33vw" style={{objectFit:'cover'}} /> : <span>💼</span>}
+                      {l.photos?.length ? <Image unoptimized src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title} fill sizes="(max-width:639px) 50vw, 33vw" style={{objectFit:'cover'}} /> : <span>💼</span>}
                     </div>
                     <div className="rc-body">
                       <div className="rc-name">{l.title}</div>
@@ -407,7 +407,7 @@ export default function BuscaPageClient({ initialQuery, initialResults }: { init
                 {imoveis.map(l => (
                   <a key={l.id} className="result-card" href={`/anuncio/${l.id}`}>
                     <div className="rc-img">
-                      {l.photos?.length ? <Image src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title} fill sizes="(max-width:639px) 50vw, 33vw" style={{objectFit:'cover'}} /> : <span>🏠</span>}
+                      {l.photos?.length ? <Image unoptimized src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title} fill sizes="(max-width:639px) 50vw, 33vw" style={{objectFit:'cover'}} /> : <span>🏠</span>}
                     </div>
                     <div className="rc-body">
                       <div className="rc-name">{l.title}</div>
@@ -432,7 +432,7 @@ export default function BuscaPageClient({ initialQuery, initialResults }: { init
                 {achados.map(l => (
                   <a key={l.id} className="result-card" href={`/anuncio/${l.id}`}>
                     <div className="rc-img">
-                      {l.photos?.length ? <Image src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title} fill sizes="(max-width:639px) 50vw, 33vw" style={{objectFit:'cover'}} /> : <span>{l.subtype==='perdido'?'🔴':'🟢'} 🔍</span>}
+                      {l.photos?.length ? <Image unoptimized src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title} fill sizes="(max-width:639px) 50vw, 33vw" style={{objectFit:'cover'}} /> : <span>{l.subtype==='perdido'?'🔴':'🟢'} 🔍</span>}
                     </div>
                     <div className="rc-body">
                       <div className="rc-name">{l.title}</div>

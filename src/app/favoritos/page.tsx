@@ -144,7 +144,7 @@ export default function FavoritosPage() {
                 <div key={f.id} style={{position:'relative'}}>
                   <a className="card" href={`/empresa/${c.slug}`}>
                     <div className="ci">
-                      {cover ? <Image src={cover} alt={c.name} fill sizes="(max-width:639px) 50vw, 300px" style={{objectFit:'cover'}}/> : <span>{c.category?.emoji || '🏪'}</span>}
+                      {cover ? <Image src={cover} alt={c.name} fill sizes="(max-width:639px) 50vw, 300px" unoptimized style={{objectFit:'cover'}}/> : <span>{c.category?.emoji || '🏪'}</span>}
                     </div>
                     <div className="cb">
                       <div className="ct">{c.name}</div>

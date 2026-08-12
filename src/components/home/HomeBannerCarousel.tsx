@@ -42,7 +42,7 @@ export default function HomeBannerCarousel({ banners }: { banners: Banner[] }) {
         <a href={currentBanner.link_url || '#'} style={{ display: 'block', textDecoration: 'none' }}>
           <div className="banner-inner-wrap">
             {getBannerImage(currentBanner)
-              ? <Image src={getBannerImage(currentBanner)!} alt={currentBanner.title} fill priority sizes="100vw" style={{ objectFit: 'cover' }} />
+              ? <Image unoptimized src={getBannerImage(currentBanner)!} alt={currentBanner.title} fill priority sizes="100vw" style={{ objectFit: 'cover' }} />
               : <div className="banner-deco">🏗️</div>
             }
             <div className="banner-content-wrap">

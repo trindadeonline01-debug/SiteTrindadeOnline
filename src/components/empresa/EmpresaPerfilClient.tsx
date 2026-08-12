@@ -58,7 +58,7 @@ function Lightbox({ photos, idx, open, setIdx, onClose, isAdmin }: { photos: Com
         <div style={{position:'absolute',bottom:20,left:'50%',transform:'translateX(-50%)',background:'rgba(0,0,0,0.6)',color:'#fff',padding:'6px 16px',borderRadius:20,fontSize:13,fontWeight:600,zIndex:2}}>{idx + 1} / {n}</div>
       </>)}
       <div onClick={(e) => e.stopPropagation()} style={{position:'relative',width:'92vw',height:'92vh'}}>
-        <Image src={photos[idx]?.url || ''} alt="" fill sizes="92vw" style={{objectFit:'contain',borderRadius:8}} />
+        <Image src={photos[idx]?.url || ''} alt="" fill sizes="92vw" unoptimized style={{objectFit:'contain',borderRadius:8}} />
       </div>
     </div>
   )
@@ -98,14 +98,14 @@ function Gallery({ photos, emoji, isAdmin }: { photos: CompanyPhoto[]; emoji: st
     <>
     <div className="gallery-flex">
       <div className="gallery-main">
-        <Image src={src(idx)} alt="" onClick={() => openLightbox(idx)} fill sizes="(max-width:767px) 100vw, 700px" priority style={{ objectFit:'cover', cursor:'pointer' }} />
+        <Image src={src(idx)} alt="" onClick={() => openLightbox(idx)} fill sizes="(max-width:767px) 100vw, 700px" priority unoptimized style={{ objectFit:'cover', cursor:'pointer' }} />
         {n > 1 && <div className="gallery-badge">{idx+1} / {n}</div>}
       </div>
       {n > 1 && (
         <div className="gallery-thumbs">
           {photos.map((p, i) => (
             <div key={p.id} className={`gallery-thumb ${i===idx ? 'active' : ''}`} onClick={() => setIdx(i)}>
-              <Image src={p.url} alt="" fill sizes="92px" style={{ objectFit:'cover' }} />
+              <Image src={p.url} alt="" fill sizes="92px" unoptimized style={{ objectFit:'cover' }} />
             </div>
           ))}
         </div>
@@ -622,7 +622,7 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
           <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:12,alignItems:'center'}}>
             {photos.map(p => (
               <div key={p.id} style={{position:'relative',width:64,height:64,borderRadius:8,overflow:'hidden',border:'1px solid #E0DDD8',flexShrink:0}}>
-                <Image src={p.url} alt="" fill sizes="64px" style={{objectFit:'cover'}}/>
+                <Image src={p.url} alt="" fill sizes="64px" unoptimized style={{objectFit:'cover'}}/>
                 <button onClick={()=>deletePhoto(p.id)}
                   style={{position:'absolute',top:2,right:2,background:'rgba(0,0,0,.7)',color:'#fff',border:'none',borderRadius:10,width:18,height:18,fontSize:11,lineHeight:1,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
               </div>

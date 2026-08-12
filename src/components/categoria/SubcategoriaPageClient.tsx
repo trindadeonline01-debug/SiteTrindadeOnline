@@ -162,7 +162,7 @@ export default function SubcategoriaPageClient({ subcat, companies }: Props) {
               return (
                 <a key={c.id} className="cc" href={`/empresa/${c.slug}`}>
                   <div className="cc-img">
-                    {cover ? <Image src={cover} alt={c.name} fill sizes="(max-width:639px) 50vw, 300px" style={{objectFit:'cover'}}/> : <span>{subcat.emoji||'🏪'}</span>}
+                    {cover ? <Image unoptimized src={cover} alt={c.name} fill sizes="(max-width:639px) 50vw, 300px" style={{objectFit:'cover'}}/> : <span>{subcat.emoji||'🏪'}</span>}
                   </div>
                   <div className="cc-body">
                     <div className="cc-name">{c.name}</div>

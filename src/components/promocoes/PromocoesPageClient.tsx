@@ -120,7 +120,7 @@ export default function PromocoesPageClient({ initialPromos }: { initialPromos: 
                 <div key={p.id} className="promo-card" style={{position:'relative'}}>
                   <a href={'/empresa/'+p.company?.slug} style={{display:'block',color:'inherit',textDecoration:'none'}}>
                     <div className="promo-card-img">
-                      {p.image_url ? <Image src={p.image_url} alt={p.title} fill sizes="(max-width:639px) 45vw, 220px" style={{objectFit:'cover'}}/> : (p.company?.category?.emoji || '🏷️')}
+                      {p.image_url ? <Image unoptimized src={p.image_url} alt={p.title} fill sizes="(max-width:639px) 45vw, 220px" style={{objectFit:'cover'}}/> : (p.company?.category?.emoji || '🏷️')}
                     </div>
                     <div className="promo-card-body">
                       <div className="promo-card-cat">{p.company?.category?.emoji} {p.company?.category?.name}</div>
@@ -177,7 +177,7 @@ export default function PromocoesPageClient({ initialPromos }: { initialPromos: 
         ) : (
           <div className="story-wrap" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
             {promo.image_url ? (
-              <Image className="story-img" src={promo.image_url} alt={promo.title} fill sizes="100vw" style={{objectFit:'contain'}}/>
+              <Image unoptimized className="story-img" src={promo.image_url} alt={promo.title} fill sizes="100vw" style={{objectFit:'contain'}}/>
             ) : (
               <div className="story-bg">{promo.company?.category?.emoji || '🏷️'}</div>
             )}

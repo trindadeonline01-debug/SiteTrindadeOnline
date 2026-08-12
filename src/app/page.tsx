@@ -428,7 +428,7 @@ export default async function HomePage() {
                 return (
                   <a key={c.id} className="oa-card" href={`/empresa/${c.slug}`}>
                     <div className="oa-card-img">
-                      {cover ? <Image src={cover} alt={c.name} fill sizes="(max-width:639px) 20vw, 120px" style={{objectFit:'cover'}} /> : (c.category?.emoji || '🏪')}
+                      {cover ? <Image src={cover} alt={c.name} fill sizes="(max-width:639px) 20vw, 120px" unoptimized style={{objectFit:'cover'}} /> : (c.category?.emoji || '🏪')}
                       <span className="dv-badge">🛵</span>
                     </div>
                     <div className="oa-card-title">{c.name}</div>
@@ -535,7 +535,7 @@ export default async function HomePage() {
                       return (
                         <a key={c.id} className="recent-card" href={`/empresa/${c.slug}`}>
                           <div className="recent-card-img">
-                            {cover ? <Image src={cover} alt={c.name} fill sizes="(max-width:639px) 45vw, 220px" style={{objectFit:'cover'}} /> : (c.category?.emoji || '🏪')}
+                            {cover ? <Image src={cover} alt={c.name} fill sizes="(max-width:639px) 45vw, 220px" unoptimized style={{objectFit:'cover'}} /> : (c.category?.emoji || '🏪')}
                           </div>
                           <div className="recent-card-title">{c.name}</div>
                           <div className="recent-card-sub">
@@ -568,7 +568,7 @@ export default async function HomePage() {
               <a key={l.id} className="recent-card" href={`/anuncio/${l.id}`}>
                 <div className="recent-card-img">
                   {l.photos?.length ? (
-                    <Image src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title} fill sizes="(max-width:639px) 45vw, 220px" style={{objectFit:'cover'}}/>
+                    <Image unoptimized src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title} fill sizes="(max-width:639px) 45vw, 220px" style={{objectFit:'cover'}}/>
                   ) : '🏷️'}
                 </div>
                 <div className="recent-card-title">{l.title}</div>
@@ -590,7 +590,7 @@ export default async function HomePage() {
               <a key={l.id} className="recent-card" href={`/anuncio/${l.id}`}>
                 <div className="recent-card-img">
                   {l.photos?.length ? (
-                    <Image src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title} fill sizes="(max-width:639px) 45vw, 220px" style={{objectFit:'cover'}}/>
+                    <Image unoptimized src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title} fill sizes="(max-width:639px) 45vw, 220px" style={{objectFit:'cover'}}/>
                   ) : '💼'}
                 </div>
                 <div className="recent-card-title">{l.title}</div>
@@ -612,7 +612,7 @@ export default async function HomePage() {
               <a key={l.id} className="recent-card" href={`/anuncio/${l.id}`}>
                 <div className="recent-card-img">
                   {l.photos?.length ? (
-                    <Image src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title} fill sizes="(max-width:639px) 45vw, 220px" style={{objectFit:'cover'}}/>
+                    <Image unoptimized src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title} fill sizes="(max-width:639px) 45vw, 220px" style={{objectFit:'cover'}}/>
                   ) : '🏠'}
                 </div>
                 <div className="recent-card-title">{l.title}</div>

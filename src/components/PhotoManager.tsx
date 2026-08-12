@@ -27,7 +27,7 @@ function SortableItem({ photo, isMain, onDelete }: { photo: Photo; isMain: boole
       border: isMain ? '2px solid #C9951A' : '1px solid #E0DDD8',
       cursor:'grab',
     }} {...attributes} {...listeners}>
-      <Image src={photo.url} alt="" fill sizes="150px" style={{objectFit:'cover'}} draggable={false} />
+      <Image src={photo.url} alt="" fill sizes="150px" unoptimized style={{objectFit:'cover'}} draggable={false} />
       {isMain && (
         <div style={{position:'absolute',bottom:4,left:4,background:'#C9951A',color:'#fff',fontSize:9,fontWeight:700,padding:'2px 6px',borderRadius:4,letterSpacing:0.5}}>
           PRINCIPAL
@@ -97,9 +97,9 @@ export default function PhotoManager({ companyId, onChange }: { companyId: strin
     setUploading(true)
     for (let i = 0; i < toUpload.length; i++) {
       const file = toUpload[i]
-      const ext = file.name.split('.').pop()
-      const path = `${companyId}/${photos.length + i}-${Date.now()}.${ext}`
       const compressed = await compressImage(file)
+      const ext = compressed.type === 'image/webp' ? 'webp' : (file.name.split('.').pop() || 'jpg')
+      const path = `${companyId}/${photos.length + i}-${Date.now()}.${ext}`
       const { data: up } = await supabase.storage.from('company-photos').upload(path, compressed, { upsert: true })
       if (up) {
         const { data: urlData } = supabase.storage.from('company-photos').getPublicUrl(path)

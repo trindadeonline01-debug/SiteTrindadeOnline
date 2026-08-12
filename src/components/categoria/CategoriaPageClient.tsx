@@ -288,7 +288,7 @@ export default function CategoriaPageClient({ slug, category, subcats, companies
                   <a key={h.id} className="dest-card" href={`/empresa/${h.company.slug}`}>
                     <div className="dest-img">
                       {cover
-                        ? <Image src={cover} alt={h.company.name} fill sizes="180px" style={{objectFit:'cover'}} />
+                        ? <Image unoptimized src={cover} alt={h.company.name} fill sizes="180px" style={{objectFit:'cover'}} />
                         : <span>{h.company.category?.emoji || '🏪'}</span>
                       }
                       <span className="dest-badge">DESTAQUE</span>
@@ -377,7 +377,7 @@ export default function CategoriaPageClient({ slug, category, subcats, companies
                 <a key={c.id} className="cc" href={`/empresa/${c.slug}`}>
                   <div className="cc-img">
                     {cover
-                      ? <Image src={cover} alt={c.name} fill sizes="56px" style={{objectFit:'cover'}} />
+                      ? <Image unoptimized src={cover} alt={c.name} fill sizes="56px" style={{objectFit:'cover'}} />
                       : <span>{category.emoji || '🏪'}</span>
                     }
                   </div>

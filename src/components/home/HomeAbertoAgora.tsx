@@ -77,7 +77,7 @@ export default function HomeAbertoAgora({ companies, chips }: { companies: Compa
             return (
               <a key={c.id} className="oa-card" href={`/empresa/${c.slug}`}>
                 <div className="oa-card-img">
-                  {cover ? <Image src={cover} alt={c.name} fill sizes="(max-width:639px) 20vw, 120px" style={{objectFit:'cover'}} /> : (c.category?.emoji || '🏪')}
+                  {cover ? <Image unoptimized src={cover} alt={c.name} fill sizes="(max-width:639px) 20vw, 120px" style={{objectFit:'cover'}} /> : (c.category?.emoji || '🏪')}
                   <span className="oa-badge"><span className="oa-badge-dot" />ABERTO</span>
                 </div>
                 <div className="oa-card-title">{c.name}</div>

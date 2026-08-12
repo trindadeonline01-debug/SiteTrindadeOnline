@@ -63,7 +63,7 @@ function Lightbox({ photos, idx, open, setIdx, onClose }: { photos: {url:string}
         <div style={{position:'absolute',bottom:20,left:'50%',transform:'translateX(-50%)',background:'rgba(0,0,0,0.6)',color:'#fff',padding:'6px 16px',borderRadius:20,fontSize:13,fontWeight:600,zIndex:2}}>{idx + 1} / {n}</div>
       </>)}
       <div onClick={(e) => e.stopPropagation()} style={{position:'relative',width:'92vw',height:'92vh'}}>
-        <Image src={photos[idx]?.url || ''} alt="" fill sizes="92vw" style={{objectFit:'contain',borderRadius:8}} />
+        <Image unoptimized src={photos[idx]?.url || ''} alt="" fill sizes="92vw" style={{objectFit:'contain',borderRadius:8}} />
       </div>
     </div>
   )
@@ -240,14 +240,14 @@ export default function AnuncioPageClient({ id, initialListing }: Props) {
         <div>
           <div className="gallery">
             <div className="gal-main" onClick={()=>photos[photoIdx]&&setLightboxOpen(true)} style={{cursor:photos[photoIdx]?'pointer':'default'}}>
-              {photos[photoIdx] ? <Image src={photos[photoIdx].url} alt={listing.title} fill sizes="(max-width:767px) 100vw, 600px" style={{objectFit:'cover'}}/> : <span>{info.emoji}</span>}
+              {photos[photoIdx] ? <Image unoptimized src={photos[photoIdx].url} alt={listing.title} fill sizes="(max-width:767px) 100vw, 600px" style={{objectFit:'cover'}}/> : <span>{info.emoji}</span>}
               {photos.length>1&&<div className="gal-nav">{photoIdx+1}/{photos.length}</div>}
             </div>
             {photos.length>1&&(
               <div className="gal-thumbs">
                 {photos.map((p,i)=>(
                   <div key={i} className={`gal-thumb ${i===photoIdx?'on':''}`} onClick={()=>setPhotoIdx(i)}>
-                    <Image src={p.url} alt="" fill sizes="56px" style={{objectFit:'cover'}}/>
+                    <Image unoptimized src={p.url} alt="" fill sizes="56px" style={{objectFit:'cover'}}/>
                   </div>
                 ))}
               </div>
@@ -358,7 +358,7 @@ export default function AnuncioPageClient({ id, initialListing }: Props) {
             <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:12}}>
               {editPhotos.map((p:any)=>(
                 <div key={p.id} style={{position:'relative',width:72,height:72}}>
-                  <Image src={p.url} alt="" fill sizes="72px" style={{objectFit:'cover',borderRadius:8,border:'1px solid #E0DDD8'}}/>
+                  <Image unoptimized src={p.url} alt="" fill sizes="72px" style={{objectFit:'cover',borderRadius:8,border:'1px solid #E0DDD8'}}/>
                   <button onClick={()=>removeEditPhoto(p)} disabled={removingPhoto===p.id}
                     style={{position:'absolute',top:-6,right:-6,width:20,height:20,borderRadius:10,background:'#E24B4A',border:'2px solid #fff',color:'#fff',fontSize:12,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0,lineHeight:1}}>×</button>
                 </div>

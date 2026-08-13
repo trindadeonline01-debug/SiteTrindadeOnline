@@ -27,10 +27,63 @@ function NavIcon({ name }: { name: IconKey }) {
   }
 }
 
+function navItemStyle(active: boolean, danger?: boolean): React.CSSProperties {
+  return {
+    flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+    padding: '8px 0 10px', textDecoration: 'none',
+    color: danger ? '#E24B4A' : active ? '#C9951A' : 'rgba(255,255,255,0.65)',
+    fontSize: 10, fontWeight: active ? 600 : 500, fontFamily: 'Inter,sans-serif', position: 'relative',
+  }
+}
+
+type SheetItem = { href: string; icon: string; label: string }
+type SheetGroup = { title: string; items: SheetItem[] }
+
+function MoreSheet({ groups, open, onClose, onSignOut }: { groups: SheetGroup[]; open: boolean; onClose: () => void; onSignOut: () => void }) {
+  return (
+    <>
+      <div onClick={onClose} style={{
+        position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', zIndex: 9997,
+        opacity: open ? 1 : 0, pointerEvents: open ? 'auto' : 'none', transition: 'opacity .2s ease',
+      }} />
+      <div style={{
+        position: 'fixed', left: 0, right: 0, bottom: 0, background: '#1A1610',
+        borderRadius: '22px 22px 0 0', padding: '16px 14px calc(78px + env(safe-area-inset-bottom))',
+        zIndex: 9998, maxHeight: '75vh', overflowY: 'auto',
+        transform: open ? 'translateY(0)' : 'translateY(100%)', transition: 'transform .25s cubic-bezier(.2,.8,.3,1)',
+      }}>
+        <div style={{ width: 36, height: 4, background: 'rgba(255,255,255,.25)', borderRadius: 3, margin: '0 auto 14px' }} />
+        {groups.map(g => (
+          <div key={g.title}>
+            <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,.4)', margin: '16px 4px 9px' }}>{g.title}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 9 }}>
+              {g.items.map(it => (
+                <a key={it.href} href={it.href} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7, background: '#232019', borderRadius: 14, padding: '12px 4px 10px', textDecoration: 'none', color: '#fff', textAlign: 'center' }}>
+                  <div style={{ width: 42, height: 42, borderRadius: 13, background: 'rgba(201,149,26,.16)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>{it.icon}</div>
+                  <div style={{ fontSize: 10, fontWeight: 600, lineHeight: 1.25 }}>{it.label}</div>
+                </a>
+              ))}
+            </div>
+          </div>
+        ))}
+        <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,.4)', margin: '16px 4px 9px' }}>Conta</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 9 }}>
+          <div onClick={onSignOut} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7, background: '#232019', borderRadius: 14, padding: '12px 4px 10px', cursor: 'pointer', textAlign: 'center' }}>
+            <div style={{ width: 42, height: 42, borderRadius: 13, background: 'rgba(226,75,74,.16)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🚪</div>
+            <div style={{ fontSize: 10, fontWeight: 600, lineHeight: 1.25, color: '#FF8A85' }}>Sair</div>
+          </div>
+        </div>
+      </div>
+    </>
+  )
+}
+
 export default function BottomNav() {
   const [userType, setUserType] = useState<string|null>(null)
+  const [lojaDigital, setLojaDigital] = useState(false)
   const [loaded, setLoaded] = useState(false)
   const [show, setShow] = useState(false)
+  const [sheetOpen, setSheetOpen] = useState(false)
   const pathname = usePathname()
 
   useEffect(() => {
@@ -39,24 +92,91 @@ export default function BottomNav() {
       if (!session) { setLoaded(true); return }
       const { data } = await supabase.from('profiles').select('user_type').eq('id', session.user.id).single()
       setUserType(data?.user_type || null)
+      if (data?.user_type === 'company') {
+        const { data: comp } = await supabase.from('companies').select('loja_digital_enabled').eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
+        setLojaDigital(!!comp?.loja_digital_enabled)
+      }
       setLoaded(true)
       setShow(true)
     })
   }, [])
 
+  useEffect(() => { setSheetOpen(false) }, [pathname])
+
   const hideOn = ['/login', '/cadastro', '/empresa/cadastrar', '/admin', '/agenda']
   if (!show || !loaded || !userType || hideOn.some(p => pathname.startsWith(p))) return null
+
+  async function signOut() {
+    await supabase.auth.signOut()
+    window.location.href = '/'
+  }
+
+  if (userType === 'company') {
+    const sheetGroups: SheetGroup[] = [
+      {
+        title: 'Minha loja', items: [
+          { href: '/painel?tab=painel', icon: '📊', label: 'Dashboard' },
+          { href: '/painel?tab=avaliacoes', icon: '💬', label: 'Avaliações' },
+          { href: '/painel?tab=perfil', icon: '✏️', label: 'Minha empresa' },
+          { href: '/painel?tab=plano', icon: '💳', label: 'Plano' },
+        ]
+      },
+      ...(lojaDigital ? [{
+        title: 'Cardápio digital', items: [
+          { href: '/painel/crm/catalogo', icon: '📋', label: 'Catálogo' },
+          { href: '/painel/crm/pedidos', icon: '🧾', label: 'Pedidos' },
+          { href: '/painel/crm/cozinha', icon: '🍳', label: 'Cozinha' },
+        ]
+      }] : []),
+      {
+        title: 'Loja & bairro', items: [
+          { href: '/painel?tab=cupons', icon: '🎟️', label: 'Meus cupons' },
+          { href: '/painel?tab=promocoes', icon: '🏷️', label: 'Minhas promoções' },
+          { href: '/promocoes', icon: '📣', label: 'Promoções da Trindade' },
+        ]
+      },
+    ]
+
+    return (
+      <>
+        <MoreSheet groups={sheetGroups} open={sheetOpen} onClose={() => setSheetOpen(false)} onSignOut={signOut} />
+        <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#111', display: 'flex', alignItems: 'center', zIndex: 9999, padding: '0 4px env(safe-area-inset-bottom)' }}>
+          <a href="/" style={navItemStyle(pathname === '/')}>
+            <span style={{ lineHeight: 1, marginBottom: 3, display: 'flex' }}><NavIcon name="home" /></span>
+            Início
+          </a>
+          <a href="/cupons" style={navItemStyle(pathname === '/cupons')}>
+            <span style={{ position: 'absolute', top: 6, right: 'calc(50% - 14px)', width: 7, height: 7, background: '#E24B4A', borderRadius: '50%', border: '1.5px solid #111' }} />
+            <span style={{ lineHeight: 1, marginBottom: 3, display: 'flex' }}><NavIcon name="ticket" /></span>
+            Cupons
+          </a>
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'center', position: 'relative' }}>
+            <div onClick={() => setSheetOpen(o => !o)} style={{
+              width: 52, height: 52, borderRadius: '50%', background: '#C9951A', color: '#1A1610',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, fontWeight: 800,
+              position: 'absolute', bottom: 14, boxShadow: '0 6px 14px -4px rgba(201,149,26,.6)', cursor: 'pointer',
+              transition: 'transform .18s ease', border: '4px solid #111', transform: sheetOpen ? 'rotate(45deg)' : 'none',
+            }}>+</div>
+          </div>
+          <a href="/painel" style={navItemStyle(pathname.startsWith('/painel'))}>
+            <span style={{ lineHeight: 1, marginBottom: 3, display: 'flex' }}><NavIcon name="chart" /></span>
+            Painel
+          </a>
+          <a href="/favoritos" style={navItemStyle(pathname === '/favoritos')}>
+            <span style={{ lineHeight: 1, marginBottom: 3, display: 'flex' }}><NavIcon name="heart" /></span>
+            Favoritos
+          </a>
+        </nav>
+        <div style={{ height: 64, background: 'transparent' }} />
+      </>
+    )
+  }
 
   const items: { href: string; icon: IconKey; label: string; badge?: boolean; sair?: boolean }[] = [
     { href: '/', icon: 'home', label: 'Início' },
     { href: '/cupons', icon: 'ticket', label: 'Cupons', badge: true },
     { href: '/promocoes', icon: 'megaphone', label: 'Promoções' },
-    ...(userType === 'admin'
-      ? [{ href: '/admin', icon: 'settings' as IconKey, label: 'Admin' }]
-      : userType === 'company'
-        ? [{ href: '/painel', icon: 'chart' as IconKey, label: 'Painel' }, { href: '/painel?tab=plano', icon: 'card' as IconKey, label: 'Planos' }]
-        : []
-    ),
+    ...(userType === 'admin' ? [{ href: '/admin', icon: 'settings' as IconKey, label: 'Admin' }] : []),
     { href: '/favoritos', icon: 'heart', label: 'Favoritos' },
     { href: '/sair', icon: 'logout', label: 'Sair', sair: true },
   ]
@@ -68,8 +188,8 @@ export default function BottomNav() {
           const active = pathname === item.href
           return (
             <a key={item.href} href={item.sair ? '#' : item.href}
-              onClick={item.sair ? async(e)=>{e.preventDefault();const {supabase:sb}=await import('@/lib/supabase');await sb.auth.signOut();window.location.href='/'} : undefined}
-              style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'8px 0 10px',textDecoration:'none',color:item.sair?'#E24B4A':active?'#C9951A':'rgba(255,255,255,0.65)',fontSize:10,fontWeight:active?600:500,fontFamily:'Inter,sans-serif',position:'relative'}}>
+              onClick={item.sair ? async(e)=>{e.preventDefault();await signOut()} : undefined}
+              style={navItemStyle(active, item.sair)}>
               {item.badge && <span style={{position:'absolute',top:6,right:'calc(50% - 14px)',width:7,height:7,background:'#E24B4A',borderRadius:'50%',border:'1.5px solid #111'}}/>}
               <span style={{lineHeight:1,marginBottom:3,display:'flex'}}><NavIcon name={item.icon} /></span>
               {item.label}

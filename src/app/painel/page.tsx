@@ -586,13 +586,6 @@ export default function PainelPage() {
         .sb-btn-gray{background:transparent;color:#888 !important;border:1.5px solid #333;}
         .sb-btn-gray:hover{background:#1A1A1A;color:#C9951A !important;border-color:#C9951A;}
         .mobile-hdr-new{background:#111;padding:16px 20px;text-align:center;}
-        .mobile-submenu{display:flex;gap:2px;background:#fff;padding:4px;border-bottom:1px solid #E0DDD8;}
-        .mobile-submenu-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:7px 2px;border-radius:8px;}
-        .mobile-submenu-item.on{background:#FEF3E2;}
-        .mobile-submenu-ico{font-size:18px;line-height:1;}
-        .mobile-submenu-lbl{font-size:8px;color:#888;font-weight:500;text-align:center;}
-        .mobile-submenu-item.on .mobile-submenu-lbl{color:#C9951A;font-weight:700;}
-        @media(min-width:768px){.mobile-submenu{display:none;}}
         @media(min-width:768px){.mobile-hdr-new{display:none;}}
         .mobile-hdr-new .mhdr-logo{font-family:'Bebas Neue',sans-serif;font-size:22px;color:#fff;letter-spacing:2px;}
         .mobile-hdr-new .mhdr-logo span{color:#C9951A;}
@@ -1215,22 +1208,6 @@ export default function PainelPage() {
             <div className="mhdr-logo">TRINDADE <span>ONLINE</span></div>
             <div className="mhdr-empresa">{company.name}</div>
           </div>
-          <div className="mobile-submenu">
-            {navItems.filter(n=>['painel','avaliacoes','perfil','cupons','promocoes'].includes(n.id)).map(n=>(
-              <div key={n.id} className={`mobile-submenu-item ${tab===n.id?'on':''}`} onClick={()=>setTab(n.id as any)}>
-                <div className="mobile-submenu-ico">{n.ico}</div>
-                <div className="mobile-submenu-lbl">{n.lbl}</div>
-              </div>
-            ))}
-            {company.loja_digital_enabled && (
-              <a href="/painel/crm" className="mobile-submenu-item" style={{textDecoration:'none'}}>
-                <div className="mobile-submenu-ico">🧾</div>
-                <div className="mobile-submenu-lbl">Cardápio</div>
-              </a>
-            )}
-          </div>
-
-
           <div className="topbar">
             <div className="topbar-title">{tabTitle[tab]}</div>
             <div className="topbar-right">{new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})}</div>

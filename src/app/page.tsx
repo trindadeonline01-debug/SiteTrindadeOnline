@@ -96,6 +96,7 @@ export default async function HomePage() {
       supabaseServer.from('companies')
         .select('id, name, slug, avg_rating, total_reviews, category:categories(name,emoji), photos:company_photos(url,order)')
         .eq('plan', 'paid').eq('status', 'active').eq('category_id', categoryId)
+        .limit(80) // amostra grande o bastante pro shuffle continuar variado, sem escalar sem limite conforme mais empresas assinam
     )),
     Promise.all(types.map(type =>
       supabaseServer.from('listings')

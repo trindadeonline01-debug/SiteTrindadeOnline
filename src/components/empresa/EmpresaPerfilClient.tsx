@@ -385,15 +385,19 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
     if (!e.target.files?.[0]) return
     setUploadingPhoto(true)
     const file = e.target.files[0]
-    const ext = file.name.split('.').pop()
     const order = (company.photos?.length || 0)
-    const path = `${company.id}/${order}-${Date.now()}.${ext}`
-    const compressed = await compressImage(file)
-    const { data: upload } = await supabase.storage.from('company-photos').upload(path, compressed, { upsert: true })
-    if (upload) {
-      const { data: url } = supabase.storage.from('company-photos').getPublicUrl(path)
-      await supabase.from('company_photos').insert({ company_id: company.id, url: url.publicUrl, order })
-      await refreshCompany()
+    try {
+      const compressed = await compressImage(file)
+      const ext = compressed.type === 'image/webp' ? 'webp' : (file.name.split('.').pop() || 'jpg')
+      const path = `${company.id}/${order}-${Date.now()}.${ext}`
+      const { data: upload } = await supabase.storage.from('company-photos').upload(path, compressed, { upsert: true })
+      if (upload) {
+        const { data: url } = supabase.storage.from('company-photos').getPublicUrl(path)
+        await supabase.from('company_photos').insert({ company_id: company.id, url: url.publicUrl, order })
+        await refreshCompany()
+      }
+    } catch {
+      alert('Não deu pra enviar essa foto. Tenta outra imagem.')
     }
     setUploadingPhoto(false)
     e.target.value = ''

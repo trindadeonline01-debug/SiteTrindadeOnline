@@ -95,22 +95,28 @@ export default function PhotoManager({ companyId, onChange }: { companyId: strin
     if (available <= 0) return
     const toUpload = files.slice(0, available)
     setUploading(true)
+    let failed = 0
     for (let i = 0; i < toUpload.length; i++) {
       const file = toUpload[i]
-      const compressed = await compressImage(file)
-      const ext = compressed.type === 'image/webp' ? 'webp' : (file.name.split('.').pop() || 'jpg')
-      const path = `${companyId}/${photos.length + i}-${Date.now()}.${ext}`
-      const { data: up } = await supabase.storage.from('company-photos').upload(path, compressed, { upsert: true })
-      if (up) {
-        const { data: urlData } = supabase.storage.from('company-photos').getPublicUrl(path)
-        await supabase.from('company_photos').insert({
-          company_id: companyId,
-          url: urlData.publicUrl,
-          order: photos.length + i,
-        })
+      try {
+        const compressed = await compressImage(file)
+        const ext = compressed.type === 'image/webp' ? 'webp' : (file.name.split('.').pop() || 'jpg')
+        const path = `${companyId}/${photos.length + i}-${Date.now()}.${ext}`
+        const { data: up } = await supabase.storage.from('company-photos').upload(path, compressed, { upsert: true })
+        if (up) {
+          const { data: urlData } = supabase.storage.from('company-photos').getPublicUrl(path)
+          await supabase.from('company_photos').insert({
+            company_id: companyId,
+            url: urlData.publicUrl,
+            order: photos.length + i,
+          })
+        }
+      } catch {
+        failed++
       }
     }
     setUploading(false)
+    if (failed > 0) alert(`${failed} foto(s) não deu pra enviar — tenta de novo com outra imagem.`)
     if (fileRef.current) fileRef.current.value = ''
     loadPhotos()
     if (onChange) onChange()

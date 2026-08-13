@@ -132,6 +132,9 @@ export default function AdminPage() {
   const [mpToken, setMpToken] = useState('')
   const [mpTokenSaving, setMpTokenSaving] = useState(false)
   const [mpTokenLoaded, setMpTokenLoaded] = useState(false)
+  const [recompressRunning, setRecompressRunning] = useState(false)
+  const [recompressStats, setRecompressStats] = useState({ offset: 0, processed: 0, skipped: 0, failed: 0 })
+  const [recompressDone, setRecompressDone] = useState(false)
   const [mpSecret, setMpSecret] = useState('')
   const [trialEnabled, setTrialEnabled] = useState(false)
   const [trialDays, setTrialDays] = useState(7)
@@ -760,6 +763,33 @@ export default function AdminPage() {
     ])
     showToast('Configurações salvas!')
     setMpTokenSaving(false)
+  }
+
+  async function runRecompressPhotos() {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
+    setRecompressRunning(true)
+    setRecompressDone(false)
+    setRecompressStats({ offset: 0, processed: 0, skipped: 0, failed: 0 })
+    let offset = 0
+    while (true) {
+      const res = await fetch('/api/admin/recompress-photos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: session.user.id, offset }),
+      })
+      const data = await res.json()
+      if (data.error) { showToast('Erro: ' + data.error); break }
+      setRecompressStats(s => ({
+        offset: data.nextOffset,
+        processed: s.processed + (data.processed || 0),
+        skipped: s.skipped + (data.skipped || 0),
+        failed: s.failed + (data.failed || 0),
+      }))
+      if (data.done) { setRecompressDone(true); break }
+      offset = data.nextOffset
+    }
+    setRecompressRunning(false)
   }
 
   async function loadBanners() {
@@ -2901,6 +2931,27 @@ export default function AdminPage() {
                       style={{padding:'10px 24px',background:'#C9951A',color:'#fff',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',opacity:mpTokenSaving?0.6:1}}
                     >
                       {mpTokenSaving ? 'Salvando...' : 'Salvar token'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="section-card" style={{marginTop:20}}>
+                  <div className="section-hdr">
+                    <span className="section-title">🖼️ OTIMIZAÇÃO DE FOTOS</span>
+                  </div>
+                  <div style={{padding:'20px 24px'}}>
+                    <div style={{fontSize:13,color:'#666',marginBottom:16,lineHeight:1.6}}>
+                      Recomprime as fotos de empresa já salvas no Storage (algumas passam de 3-4MB, deixando o site pesado pra carregar). Fotos já pequenas são puladas. Pode rodar mais de uma vez sem problema.
+                    </div>
+                    {(recompressRunning || recompressStats.processed + recompressStats.skipped + recompressStats.failed > 0) && (
+                      <div style={{fontSize:12,color:'#555',marginBottom:14,background:'#FAFAF8',border:'1px solid #EDE8E0',borderRadius:10,padding:'10px 14px'}}>
+                        {recompressRunning ? '⏳ Processando... ' : recompressDone ? '✓ Concluído — ' : '⏸ Parado — '}
+                        {recompressStats.processed} recomprimidas · {recompressStats.skipped} já pequenas · {recompressStats.failed} falharam
+                      </div>
+                    )}
+                    <button onClick={runRecompressPhotos} disabled={recompressRunning}
+                      style={{padding:'10px 24px',background:'#C9951A',color:'#fff',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',opacity:recompressRunning?0.6:1}}>
+                      {recompressRunning ? 'Rodando...' : 'Recomprimir fotos antigas'}
                     </button>
                   </div>
                 </div>

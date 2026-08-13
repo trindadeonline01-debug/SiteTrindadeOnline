@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
-type IconKey = 'home' | 'ticket' | 'megaphone' | 'chart' | 'card' | 'settings' | 'heart' | 'logout'
+type IconKey = 'home' | 'ticket' | 'megaphone' | 'chart' | 'card' | 'settings' | 'heart' | 'logout' | 'edit'
 
 function NavIcon({ name }: { name: IconKey }) {
   const common = { width: 22, height: 22, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
@@ -24,6 +24,8 @@ function NavIcon({ name }: { name: IconKey }) {
       return <svg {...common}><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.6z" /></svg>
     case 'logout':
       return <svg {...common}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
+    case 'edit':
+      return <svg {...common}><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
   }
 }
 
@@ -39,7 +41,7 @@ function navItemStyle(active: boolean, danger?: boolean): React.CSSProperties {
 type SheetItem = { href: string; icon: string; label: string }
 type SheetGroup = { title: string; items: SheetItem[] }
 
-function MoreSheet({ groups, open, onClose, onSignOut }: { groups: SheetGroup[]; open: boolean; onClose: () => void; onSignOut: () => void }) {
+function MoreSheet({ groups, open, onClose }: { groups: SheetGroup[]; open: boolean; onClose: () => void }) {
   return (
     <>
       <div onClick={onClose} style={{
@@ -66,13 +68,6 @@ function MoreSheet({ groups, open, onClose, onSignOut }: { groups: SheetGroup[];
             </div>
           </div>
         ))}
-        <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,.4)', margin: '16px 4px 9px' }}>Conta</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 9 }}>
-          <div onClick={onSignOut} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7, background: '#232019', borderRadius: 14, padding: '12px 4px 10px', cursor: 'pointer', textAlign: 'center' }}>
-            <div style={{ width: 42, height: 42, borderRadius: 13, background: 'rgba(226,75,74,.16)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🚪</div>
-            <div style={{ fontSize: 10, fontWeight: 600, lineHeight: 1.25, color: '#FF8A85' }}>Sair</div>
-          </div>
-        </div>
       </div>
     </>
   )
@@ -115,9 +110,7 @@ export default function BottomNav() {
     const sheetGroups: SheetGroup[] = [
       {
         title: 'Minha loja', items: [
-          { href: '/painel?tab=painel', icon: '📊', label: 'Dashboard' },
           { href: '/painel?tab=avaliacoes', icon: '💬', label: 'Avaliações' },
-          { href: '/painel?tab=perfil', icon: '✏️', label: 'Minha empresa' },
           { href: '/painel?tab=plano', icon: '💳', label: 'Plano' },
         ]
       },
@@ -130,25 +123,30 @@ export default function BottomNav() {
       }] : []),
       {
         title: 'Loja & bairro', items: [
-          { href: '/painel?tab=cupons', icon: '🎟️', label: 'Meus cupons' },
+          { href: '/cupons', icon: '🎟️', label: 'Cupons' },
+          { href: '/painel?tab=cupons', icon: '🎫', label: 'Meus cupons' },
           { href: '/painel?tab=promocoes', icon: '🏷️', label: 'Minhas promoções' },
           { href: '/promocoes', icon: '📣', label: 'Promoções da Trindade' },
+        ]
+      },
+      {
+        title: 'Conta', items: [
+          { href: '/favoritos', icon: '❤️', label: 'Favoritos' },
         ]
       },
     ]
 
     return (
       <>
-        <MoreSheet groups={sheetGroups} open={sheetOpen} onClose={() => setSheetOpen(false)} onSignOut={signOut} />
+        <MoreSheet groups={sheetGroups} open={sheetOpen} onClose={() => setSheetOpen(false)} />
         <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#111', display: 'flex', alignItems: 'center', zIndex: 9999, padding: '0 4px env(safe-area-inset-bottom)' }}>
           <a href="/" style={navItemStyle(pathname === '/')}>
             <span style={{ lineHeight: 1, marginBottom: 3, display: 'flex' }}><NavIcon name="home" /></span>
             Início
           </a>
-          <a href="/cupons" style={navItemStyle(pathname === '/cupons')}>
-            <span style={{ position: 'absolute', top: 6, right: 'calc(50% - 14px)', width: 7, height: 7, background: '#E24B4A', borderRadius: '50%', border: '1.5px solid #111' }} />
-            <span style={{ lineHeight: 1, marginBottom: 3, display: 'flex' }}><NavIcon name="ticket" /></span>
-            Cupons
+          <a href="/painel" style={navItemStyle(pathname === '/painel')}>
+            <span style={{ lineHeight: 1, marginBottom: 3, display: 'flex' }}><NavIcon name="chart" /></span>
+            Dashboard
           </a>
           <div style={{ flex: 1, display: 'flex', justifyContent: 'center', position: 'relative' }}>
             <div onClick={() => setSheetOpen(o => !o)} style={{
@@ -158,13 +156,13 @@ export default function BottomNav() {
               transition: 'transform .18s ease', border: '4px solid #111', transform: sheetOpen ? 'rotate(45deg)' : 'none',
             }}>+</div>
           </div>
-          <a href="/painel" style={navItemStyle(pathname.startsWith('/painel'))}>
-            <span style={{ lineHeight: 1, marginBottom: 3, display: 'flex' }}><NavIcon name="chart" /></span>
-            Painel
+          <a href="/painel?tab=perfil" style={navItemStyle(false)}>
+            <span style={{ lineHeight: 1, marginBottom: 3, display: 'flex' }}><NavIcon name="edit" /></span>
+            Empresa
           </a>
-          <a href="/favoritos" style={navItemStyle(pathname === '/favoritos')}>
-            <span style={{ lineHeight: 1, marginBottom: 3, display: 'flex' }}><NavIcon name="heart" /></span>
-            Favoritos
+          <a href="#" onClick={async(e)=>{e.preventDefault();await signOut()}} style={navItemStyle(false, true)}>
+            <span style={{ lineHeight: 1, marginBottom: 3, display: 'flex' }}><NavIcon name="logout" /></span>
+            Sair
           </a>
         </nav>
         <div style={{ height: 64, background: 'transparent' }} />

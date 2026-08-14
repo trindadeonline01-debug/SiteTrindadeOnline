@@ -1,16 +1,12 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
-import sharp from 'sharp'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const BATCH_SIZE = 6 // pequeno de propósito — não passar do limite de tempo de função serverless
-const MAX_DIMENSION = 900
-const WEBP_QUALITY = 78
-const SKIP_UNDER_BYTES = 150 * 1024
+const BATCH_SIZE = 8
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,48 +23,48 @@ export async function POST(req: NextRequest) {
       .range(offset, offset + BATCH_SIZE - 1)
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    if (!photos || photos.length === 0) return NextResponse.json({ done: true, processed: 0, skipped: 0, failed: 0, nextOffset: offset })
+    if (!photos || photos.length === 0) return NextResponse.json({ done: true, healthy: 0, repaired: 0, unrecoverable: 0, nextOffset: offset })
 
-    let processed = 0, skipped = 0, failed = 0
+    let healthy = 0, repaired = 0, unrecoverable = 0
+    const unrecoverableIds: string[] = []
 
     for (const photo of photos) {
       try {
         const marker = '/company-photos/'
         const idx = photo.url.indexOf(marker)
-        if (idx === -1) { skipped++; continue }
+        if (idx === -1) { healthy++; continue }
         const path = photo.url.slice(idx + marker.length)
 
-        const res = await fetch(photo.url)
-        if (!res.ok) { failed++; continue }
-        const buf = Buffer.from(await res.arrayBuffer())
-        if (buf.byteLength <= SKIP_UNDER_BYTES) { skipped++; continue }
+        // Testa o link público de verdade — é isso que o visitante usa.
+        const publicCheck = await fetch(photo.url, { cache: 'no-store' })
+        if (publicCheck.ok) { healthy++; continue }
 
-        const out = await sharp(buf)
-          .resize({ width: MAX_DIMENSION, height: MAX_DIMENSION, fit: 'inside', withoutEnlargement: true })
-          .webp({ quality: WEBP_QUALITY })
-          .toBuffer()
+        // Link público quebrado. Tenta buscar os bytes direto da API
+        // autenticada do Storage (não passa pelo CDN público) — se os
+        // bytes ainda existirem aí, o arquivo não foi perdido, só o link
+        // ficou preso quebrado.
+        const { data: fileBlob, error: dlErr } = await supabaseAdmin.storage.from('company-photos').download(path)
+        if (dlErr || !fileBlob) { unrecoverable++; unrecoverableIds.push(photo.id); continue }
 
-        // Nunca sobrescrever no mesmo caminho — o CDN do Supabase não
-        // invalida direito quando o arquivo é trocado no mesmo link, e o
-        // link antigo fica servindo algo quebrado. Sempe sobe num caminho
-        // novo e troca a URL salva no banco.
-        const newPath = path.replace(/\.[a-zA-Z0-9]+$/, '') + `-rc${Date.now()}.webp`
+        const buf = Buffer.from(await fileBlob.arrayBuffer())
+        const newPath = path.replace(/\.[a-zA-Z0-9]+$/, '') + `-fix${Date.now()}.webp`
         const { error: upErr } = await supabaseAdmin.storage
           .from('company-photos')
-          .upload(newPath, out, { contentType: 'image/webp', upsert: false })
+          .upload(newPath, buf, { contentType: fileBlob.type || 'image/webp', upsert: false })
 
-        if (upErr) { failed++; continue }
+        if (upErr) { unrecoverable++; unrecoverableIds.push(photo.id); continue }
 
         const { data: urlData } = supabaseAdmin.storage.from('company-photos').getPublicUrl(newPath)
         await supabaseAdmin.from('company_photos').update({ url: urlData.publicUrl }).eq('id', photo.id)
         await supabaseAdmin.storage.from('company-photos').remove([path])
-        processed++
+        repaired++
       } catch {
-        failed++
+        unrecoverable++
+        unrecoverableIds.push(photo.id)
       }
     }
 
-    return NextResponse.json({ done: false, processed, skipped, failed, batchSize: photos.length, nextOffset: offset + photos.length })
+    return NextResponse.json({ done: false, healthy, repaired, unrecoverable, unrecoverableIds, batchSize: photos.length, nextOffset: offset + photos.length })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }

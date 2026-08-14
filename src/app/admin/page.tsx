@@ -135,6 +135,9 @@ export default function AdminPage() {
   const [recompressRunning, setRecompressRunning] = useState(false)
   const [recompressStats, setRecompressStats] = useState({ offset: 0, processed: 0, skipped: 0, failed: 0 })
   const [recompressDone, setRecompressDone] = useState(false)
+  const [repairRunning, setRepairRunning] = useState(false)
+  const [repairStats, setRepairStats] = useState({ offset: 0, healthy: 0, repaired: 0, unrecoverable: 0 })
+  const [repairDone, setRepairDone] = useState(false)
   const [mpSecret, setMpSecret] = useState('')
   const [trialEnabled, setTrialEnabled] = useState(false)
   const [trialDays, setTrialDays] = useState(7)
@@ -790,6 +793,33 @@ export default function AdminPage() {
       offset = data.nextOffset
     }
     setRecompressRunning(false)
+  }
+
+  async function runRepairPhotos() {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
+    setRepairRunning(true)
+    setRepairDone(false)
+    setRepairStats({ offset: 0, healthy: 0, repaired: 0, unrecoverable: 0 })
+    let offset = 0
+    while (true) {
+      const res = await fetch('/api/admin/repair-photos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: session.user.id, offset }),
+      })
+      const data = await res.json()
+      if (data.error) { showToast('Erro: ' + data.error); break }
+      setRepairStats(s => ({
+        offset: data.nextOffset,
+        healthy: s.healthy + (data.healthy || 0),
+        repaired: s.repaired + (data.repaired || 0),
+        unrecoverable: s.unrecoverable + (data.unrecoverable || 0),
+      }))
+      if (data.done) { setRepairDone(true); break }
+      offset = data.nextOffset
+    }
+    setRepairRunning(false)
   }
 
   async function loadBanners() {
@@ -2931,6 +2961,27 @@ export default function AdminPage() {
                       style={{padding:'10px 24px',background:'#C9951A',color:'#fff',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',opacity:mpTokenSaving?0.6:1}}
                     >
                       {mpTokenSaving ? 'Salvando...' : 'Salvar token'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="section-card" style={{marginTop:20}}>
+                  <div className="section-hdr">
+                    <span className="section-title">🩹 REPARAR FOTOS QUEBRADAS</span>
+                  </div>
+                  <div style={{padding:'20px 24px'}}>
+                    <div style={{fontSize:13,color:'#666',marginBottom:16,lineHeight:1.6}}>
+                      Testa o link público de cada foto de empresa; se estiver quebrado, busca o arquivo direto do Storage (sem passar pelo CDN) e recria num link novo. Corrige as fotos que quebraram na recompressão anterior. Pode rodar quantas vezes precisar.
+                    </div>
+                    {(repairRunning || repairStats.healthy + repairStats.repaired + repairStats.unrecoverable > 0) && (
+                      <div style={{fontSize:12,color:'#555',marginBottom:14,background:'#FAFAF8',border:'1px solid #EDE8E0',borderRadius:10,padding:'10px 14px'}}>
+                        {repairRunning ? '⏳ Processando... ' : repairDone ? '✓ Concluído — ' : '⏸ Parado — '}
+                        {repairStats.healthy} já ok · {repairStats.repaired} reparadas · {repairStats.unrecoverable} não deu pra recuperar
+                      </div>
+                    )}
+                    <button onClick={runRepairPhotos} disabled={repairRunning}
+                      style={{padding:'10px 24px',background:'#C9951A',color:'#fff',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',opacity:repairRunning?0.6:1}}>
+                      {repairRunning ? 'Rodando...' : 'Reparar fotos quebradas'}
                     </button>
                   </div>
                 </div>

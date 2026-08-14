@@ -111,17 +111,20 @@ export default async function HomePage() {
 
   // Reparo de fotos quebradas roda sozinho: dispara em cadeia a partir de
   // uma visita real na home (sem depender de ninguém clicar em botão no
-  // admin), e para de disparar assim que o flag vira "done" — o próprio
-  // /api/admin/repair-photos evita corrente duplicada se já tiver rodando.
+  // admin). Não trava mais em "já tá rodando" — quem decide isso (inclusive
+  // destravar corrente morta) é o próprio /api/admin/repair-photos; aqui só
+  // para de chamar quando o flag vira "done".
   const photoMigrationStatus = (settingsRes.data || []).find(s => s.key === 'photo_migration_status')?.value
-  if (photoMigrationStatus !== 'done' && photoMigrationStatus !== 'running') {
-    after(() => {
-      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://trindadeonline.com.br'
-      fetch(`${siteUrl}/api/admin/repair-photos`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ auto: true, offset: 0 }),
-      }).catch(() => {})
+  if (photoMigrationStatus !== 'done') {
+    after(async () => {
+      try {
+        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://trindadeonline.com.br'
+        await fetch(`${siteUrl}/api/admin/repair-photos`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ auto: true, offset: 0 }),
+        })
+      } catch {}
     })
   }
 

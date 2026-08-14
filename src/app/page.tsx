@@ -1,4 +1,5 @@
 import Image from 'next/image'
+import { after } from 'next/server'
 import WAButton from '@/components/WAButton'
 import OneSignalInit from '@/components/OneSignalInit'
 import CookieBanner from '@/components/CookieBanner'
@@ -107,6 +108,22 @@ export default async function HomePage() {
     supabaseServer.from('pulse_messages').select('id, message').eq('active', true).order('display_order'),
     supabaseServer.from('site_settings').select('key,value'),
   ])
+
+  // Reparo de fotos quebradas roda sozinho: dispara em cadeia a partir de
+  // uma visita real na home (sem depender de ninguém clicar em botão no
+  // admin), e para de disparar assim que o flag vira "done" — o próprio
+  // /api/admin/repair-photos evita corrente duplicada se já tiver rodando.
+  const photoMigrationStatus = (settingsRes.data || []).find(s => s.key === 'photo_migration_status')?.value
+  if (photoMigrationStatus !== 'done' && photoMigrationStatus !== 'running') {
+    after(() => {
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://trindadeonline.com.br'
+      fetch(`${siteUrl}/api/admin/repair-photos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ auto: true, offset: 0 }),
+      }).catch(() => {})
+    })
+  }
 
   // SHUFFLE — ordem aleatória a cada carregamento
   const banners = shuffle((bannersRes.data || []) as Banner[])

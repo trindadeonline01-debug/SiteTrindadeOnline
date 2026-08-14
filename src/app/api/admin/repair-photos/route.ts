@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { after } from 'next/server'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -7,14 +8,54 @@ const supabaseAdmin = createClient(
 )
 
 const BATCH_SIZE = 8
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://trindadeonline.com.br'
+const STATUS_KEY = 'photo_migration_status'
+
+async function markDone() {
+  await supabaseAdmin.from('site_settings').upsert(
+    { key: STATUS_KEY, value: 'done', updated_at: new Date().toISOString() },
+    { onConflict: 'key' }
+  )
+}
+
+function chainNext(nextOffset: number) {
+  after(() => {
+    fetch(`${SITE_URL}/api/admin/repair-photos`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ auto: true, offset: nextOffset }),
+    }).catch(() => {})
+  })
+}
 
 export async function POST(req: NextRequest) {
   try {
-    const { user_id, offset = 0 } = await req.json()
-    if (!user_id) return NextResponse.json({ error: 'user_id obrigatório' }, { status: 400 })
+    const { user_id, auto, offset = 0 } = await req.json()
 
-    const { data: profile } = await supabaseAdmin.from('profiles').select('user_type').eq('id', user_id).single()
-    if (profile?.user_type !== 'admin') return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
+    if (!auto) {
+      if (!user_id) return NextResponse.json({ error: 'user_id obrigatório' }, { status: 400 })
+      const { data: profile } = await supabaseAdmin.from('profiles').select('user_type').eq('id', user_id).single()
+      if (profile?.user_type !== 'admin') return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
+    }
+
+    // Kick automático (disparado por tráfego real do site, sem depender de
+    // alguém clicar em botão nenhum): se já tem uma corrente rodando ou já
+    // terminou, não faz nada — evita disparar dezenas de correntes duplicadas
+    // a cada visita na home.
+    if (auto && offset === 0) {
+      const { data: statusRow } = await supabaseAdmin
+        .from('site_settings')
+        .select('value')
+        .eq('key', STATUS_KEY)
+        .maybeSingle()
+      if (statusRow?.value === 'done' || statusRow?.value === 'running') {
+        return NextResponse.json({ skipped: true, status: statusRow.value })
+      }
+      await supabaseAdmin.from('site_settings').upsert(
+        { key: STATUS_KEY, value: 'running', updated_at: new Date().toISOString() },
+        { onConflict: 'key' }
+      )
+    }
 
     const { data: photos, error } = await supabaseAdmin
       .from('company_photos')
@@ -23,7 +64,10 @@ export async function POST(req: NextRequest) {
       .range(offset, offset + BATCH_SIZE - 1)
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    if (!photos || photos.length === 0) return NextResponse.json({ done: true, migrated: 0, failed: 0, nextOffset: offset })
+    if (!photos || photos.length === 0) {
+      await markDone()
+      return NextResponse.json({ done: true, migrated: 0, failed: 0, nextOffset: offset })
+    }
 
     let migrated = 0, failed = 0
 
@@ -61,7 +105,10 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ done: false, migrated, failed, batchSize: photos.length, nextOffset: offset + photos.length })
+    const nextOffset = offset + photos.length
+    if (auto) chainNext(nextOffset)
+
+    return NextResponse.json({ done: false, migrated, failed, batchSize: photos.length, nextOffset })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }

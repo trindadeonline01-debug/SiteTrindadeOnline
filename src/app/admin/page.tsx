@@ -136,7 +136,7 @@ export default function AdminPage() {
   const [recompressStats, setRecompressStats] = useState({ offset: 0, processed: 0, skipped: 0, failed: 0 })
   const [recompressDone, setRecompressDone] = useState(false)
   const [repairRunning, setRepairRunning] = useState(false)
-  const [repairStats, setRepairStats] = useState({ offset: 0, healthy: 0, repaired: 0, unrecoverable: 0 })
+  const [repairStats, setRepairStats] = useState({ offset: 0, migrated: 0, failed: 0 })
   const [repairDone, setRepairDone] = useState(false)
   const [mpSecret, setMpSecret] = useState('')
   const [trialEnabled, setTrialEnabled] = useState(false)
@@ -800,7 +800,7 @@ export default function AdminPage() {
     if (!session) return
     setRepairRunning(true)
     setRepairDone(false)
-    setRepairStats({ offset: 0, healthy: 0, repaired: 0, unrecoverable: 0 })
+    setRepairStats({ offset: 0, migrated: 0, failed: 0 })
     let offset = 0
     while (true) {
       const res = await fetch('/api/admin/repair-photos', {
@@ -812,9 +812,8 @@ export default function AdminPage() {
       if (data.error) { showToast('Erro: ' + data.error); break }
       setRepairStats(s => ({
         offset: data.nextOffset,
-        healthy: s.healthy + (data.healthy || 0),
-        repaired: s.repaired + (data.repaired || 0),
-        unrecoverable: s.unrecoverable + (data.unrecoverable || 0),
+        migrated: s.migrated + (data.migrated || 0),
+        failed: s.failed + (data.failed || 0),
       }))
       if (data.done) { setRepairDone(true); break }
       offset = data.nextOffset
@@ -2971,12 +2970,12 @@ export default function AdminPage() {
                   </div>
                   <div style={{padding:'20px 24px'}}>
                     <div style={{fontSize:13,color:'#666',marginBottom:16,lineHeight:1.6}}>
-                      Testa o link público de cada foto de empresa; se estiver quebrado, busca o arquivo direto do Storage (sem passar pelo CDN) e recria num link novo. Corrige as fotos que quebraram na recompressão anterior. Pode rodar quantas vezes precisar.
+                      Migra toda foto de empresa pra um link novo (sem testar se "parece" quebrada — um teste do servidor pode dar ok mesmo quando o celular do morador vê quebrado, por causa de cache de CDN diferente por região). Fotos já migradas numa rodada anterior são puladas. Pode rodar quantas vezes precisar.
                     </div>
-                    {(repairRunning || repairStats.healthy + repairStats.repaired + repairStats.unrecoverable > 0) && (
+                    {(repairRunning || repairStats.migrated + repairStats.failed > 0) && (
                       <div style={{fontSize:12,color:'#555',marginBottom:14,background:'#FAFAF8',border:'1px solid #EDE8E0',borderRadius:10,padding:'10px 14px'}}>
                         {repairRunning ? '⏳ Processando... ' : repairDone ? '✓ Concluído — ' : '⏸ Parado — '}
-                        {repairStats.healthy} já ok · {repairStats.repaired} reparadas · {repairStats.unrecoverable} não deu pra recuperar
+                        {repairStats.migrated} migradas · {repairStats.failed} falharam
                       </div>
                     )}
                     <button onClick={runRepairPhotos} disabled={repairRunning}

@@ -23,28 +23,26 @@ export async function POST(req: NextRequest) {
       .range(offset, offset + BATCH_SIZE - 1)
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    if (!photos || photos.length === 0) return NextResponse.json({ done: true, healthy: 0, repaired: 0, unrecoverable: 0, nextOffset: offset })
+    if (!photos || photos.length === 0) return NextResponse.json({ done: true, migrated: 0, failed: 0, nextOffset: offset })
 
-    let healthy = 0, repaired = 0, unrecoverable = 0
-    const unrecoverableIds: string[] = []
+    let migrated = 0, failed = 0
 
+    // Não testa mais se o link "parece" quebrado — um fetch daqui (servidor
+    // da Vercel) pode bater num nó de CDN diferente do que o celular do
+    // morador bate, e dar "saudável" mesmo pra quem tá vendo quebrado de
+    // verdade. Em vez de confiar nesse teste, migra TODA foto pra um link
+    // novo, direto: um link que nenhum CDN nunca viu antes não tem como
+    // estar com cache travado.
     for (const photo of photos) {
       try {
         const marker = '/company-photos/'
         const idx = photo.url.indexOf(marker)
-        if (idx === -1) { healthy++; continue }
+        if (idx === -1) { failed++; continue }
         const path = photo.url.slice(idx + marker.length)
+        if (/-fix\d+\.webp$|-rc\d+\.webp$/.test(path)) { continue } // já migrada numa rodada anterior
 
-        // Testa o link público de verdade — é isso que o visitante usa.
-        const publicCheck = await fetch(photo.url, { cache: 'no-store' })
-        if (publicCheck.ok) { healthy++; continue }
-
-        // Link público quebrado. Tenta buscar os bytes direto da API
-        // autenticada do Storage (não passa pelo CDN público) — se os
-        // bytes ainda existirem aí, o arquivo não foi perdido, só o link
-        // ficou preso quebrado.
         const { data: fileBlob, error: dlErr } = await supabaseAdmin.storage.from('company-photos').download(path)
-        if (dlErr || !fileBlob) { unrecoverable++; unrecoverableIds.push(photo.id); continue }
+        if (dlErr || !fileBlob) { failed++; continue }
 
         const buf = Buffer.from(await fileBlob.arrayBuffer())
         const newPath = path.replace(/\.[a-zA-Z0-9]+$/, '') + `-fix${Date.now()}.webp`
@@ -52,19 +50,18 @@ export async function POST(req: NextRequest) {
           .from('company-photos')
           .upload(newPath, buf, { contentType: fileBlob.type || 'image/webp', upsert: false })
 
-        if (upErr) { unrecoverable++; unrecoverableIds.push(photo.id); continue }
+        if (upErr) { failed++; continue }
 
         const { data: urlData } = supabaseAdmin.storage.from('company-photos').getPublicUrl(newPath)
         await supabaseAdmin.from('company_photos').update({ url: urlData.publicUrl }).eq('id', photo.id)
         await supabaseAdmin.storage.from('company-photos').remove([path])
-        repaired++
+        migrated++
       } catch {
-        unrecoverable++
-        unrecoverableIds.push(photo.id)
+        failed++
       }
     }
 
-    return NextResponse.json({ done: false, healthy, repaired, unrecoverable, unrecoverableIds, batchSize: photos.length, nextOffset: offset + photos.length })
+    return NextResponse.json({ done: false, migrated, failed, batchSize: photos.length, nextOffset: offset + photos.length })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }

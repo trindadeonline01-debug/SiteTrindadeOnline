@@ -129,8 +129,7 @@ export default function BottomNav() {
       {
         title: 'Minha loja', items: [
           { href: '/painel', icon: '📊', label: 'Dashboard' },
-          { href: '/painel?tab=perfil', icon: '✏️', label: 'Editar loja' },
-          { href: '/painel?tab=fotos', icon: '📷', label: 'Fotos' },
+          { href: '/painel?tab=perfil', icon: '✏️', label: 'Editar loja e fotos' },
           { href: '/painel?tab=avaliacoes', icon: '💬', label: 'Avaliações' },
         ]
       },

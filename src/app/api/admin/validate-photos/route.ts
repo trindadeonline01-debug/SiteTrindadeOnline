@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { after } from 'next/server'
+import sharp from 'sharp'
 
 export const maxDuration = 300 // Vercel limita ao teto do plano — só pede o máximo possível
 
@@ -9,12 +10,12 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const BATCH_SIZE = 8
+const BATCH_SIZE = 6 // decodificar imagem pesa mais que só copiar bytes
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://trindadeonline.com.br'
-const STATUS_KEY = 'photo_migration_status'
-const OFFSET_KEY = 'photo_migration_offset'
-const TIME_BUDGET_MS = 4.5 * 60 * 1000 // deixa folga sob o teto de 300s antes de passar a corrente adiante
-const STALE_AFTER_MS = 5 * 60 * 1000 // corrente "running" sem batimento há mais que isso é considerada morta
+const STATUS_KEY = 'photo_validation_status'
+const OFFSET_KEY = 'photo_validation_offset'
+const TIME_BUDGET_MS = 4.5 * 60 * 1000
+const STALE_AFTER_MS = 5 * 60 * 1000
 
 async function setStatus(value: string) {
   await supabaseAdmin.from('site_settings').upsert(
@@ -30,63 +31,62 @@ async function setOffsetHeartbeat(offset: number) {
   )
 }
 
-// Rede autêntica (não busca o próprio callback antes de ele terminar), pra
-// não deixar o processo ser congelado pela Vercel antes do fetch sair de
-// verdade — foi exatamente isso que travou a corrente anterior em silêncio.
 function chainNext(nextOffset: number) {
   after(async () => {
     try {
-      await fetch(`${SITE_URL}/api/admin/repair-photos`, {
+      await fetch(`${SITE_URL}/api/admin/validate-photos`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ auto: true, offset: nextOffset }),
       })
-    } catch {
-      // se essa ponta falhar, a próxima visita na home destrava de novo
-      // via checagem de "running" parado (STALE_AFTER_MS)
-    }
+    } catch {}
   })
 }
 
-async function migrateBatch(photos: { id: string; url: string }[]) {
-  let migrated = 0, failed = 0
+// Um tamanho de arquivo "razoável" no banco não prova que a imagem abre de
+// verdade — um download truncado por uma corrida (arquivo original apagado
+// no meio de outro processo lendo ele) produz um arquivo menor, mas ainda
+// assim não-vazio, que passa por qualquer checagem de "size > 0". A única
+// forma real de saber é tentar decodificar a imagem de verdade.
+async function validateBatch(photos: { id: string; url: string }[]) {
+  let ok = 0, removed = 0, errors = 0
   for (const photo of photos) {
     try {
       const marker = '/company-photos/'
       const idx = photo.url.indexOf(marker)
-      if (idx === -1) { failed++; continue }
+      if (idx === -1) { errors++; continue }
       const path = photo.url.slice(idx + marker.length)
-      if (/-fix\d+\.webp$|-rc\d+\.webp$/.test(path)) { continue } // já migrada numa rodada anterior
 
       const { data: fileBlob, error: dlErr } = await supabaseAdmin.storage.from('company-photos').download(path)
-      if (dlErr || !fileBlob) { failed++; continue }
+      if (dlErr || !fileBlob) { errors++; continue }
 
       const buf = Buffer.from(await fileBlob.arrayBuffer())
-      if (buf.byteLength === 0) {
-        // Arquivo original já estava corrompido (0 bytes) antes de qualquer
-        // reparo — não tem conteúdo pra recuperar. Migrar isso só criaria
-        // outro link quebrado com nome novo. Em vez disso, remove de vez:
-        // a empresa fica sem essa foto, não com uma foto eternamente quebrada.
+
+      let corrupted = buf.byteLength === 0
+      if (!corrupted) {
+        try {
+          const meta = await sharp(buf).metadata()
+          if (!meta.width || !meta.height) corrupted = true
+        } catch {
+          corrupted = true
+        }
+      }
+
+      if (corrupted) {
+        // Sem como recuperar o conteúdo original a partir daqui — a empresa
+        // fica sem essa foto específica, em vez de com um link eternamente
+        // quebrado.
         await supabaseAdmin.from('company_photos').delete().eq('id', photo.id)
         await supabaseAdmin.storage.from('company-photos').remove([path])
-        continue
+        removed++
+      } else {
+        ok++
       }
-      const newPath = path.replace(/\.[a-zA-Z0-9]+$/, '') + `-fix${Date.now()}.webp`
-      const { error: upErr } = await supabaseAdmin.storage
-        .from('company-photos')
-        .upload(newPath, buf, { contentType: fileBlob.type || 'image/webp', upsert: false })
-
-      if (upErr) { failed++; continue }
-
-      const { data: urlData } = supabaseAdmin.storage.from('company-photos').getPublicUrl(newPath)
-      await supabaseAdmin.from('company_photos').update({ url: urlData.publicUrl }).eq('id', photo.id)
-      await supabaseAdmin.storage.from('company-photos').remove([path])
-      migrated++
     } catch {
-      failed++
+      errors++
     }
   }
-  return { migrated, failed }
+  return { ok, removed, errors }
 }
 
 export async function POST(req: NextRequest) {
@@ -99,15 +99,6 @@ export async function POST(req: NextRequest) {
       if (profile?.user_type !== 'admin') return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
     }
 
-    // Kick automático (disparado por tráfego real do site): antes isso era
-    // "lê o status, depois decide, depois escreve" em passos separados — sob
-    // visitas simultâneas, dois pedidos podiam ler "não tá rodando" ao mesmo
-    // tempo e os DOIS começarem a migrar as mesmas linhas em paralelo (um
-    // apagando o arquivo original enquanto o outro ainda tava baixando ele,
-    // o que pode truncar o download e gerar um arquivo corrompido — mesmo
-    // tamanho plausível, conteúdo inválido). Agora a virada pra "running" é
-    // atômica: um UPDATE só, com condição, garante que só um pedido consegue
-    // "ganhar a corrida" por vez.
     if (auto && offset === 0) {
       await supabaseAdmin.from('site_settings').upsert(
         { key: STATUS_KEY, value: 'pending', updated_at: new Date(0).toISOString() },
@@ -126,12 +117,9 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Processa o máximo de lotes possível numa invocação só, em vez de
-    // depender de vários pulos HTTP em cadeia — bem mais robusto. Só recorre
-    // à corrente via after() se sobrar trabalho depois do orçamento de tempo.
     const startedAt = Date.now()
     let cursor = offset
-    let totalMigrated = 0, totalFailed = 0
+    let totalOk = 0, totalRemoved = 0, totalErrors = 0
 
     while (true) {
       const { data: photos, error } = await supabaseAdmin
@@ -144,19 +132,20 @@ export async function POST(req: NextRequest) {
 
       if (!photos || photos.length === 0) {
         await setStatus('done')
-        return NextResponse.json({ done: true, migrated: totalMigrated, failed: totalFailed, nextOffset: cursor })
+        return NextResponse.json({ done: true, ok: totalOk, removed: totalRemoved, errors: totalErrors, nextOffset: cursor })
       }
 
-      const { migrated, failed } = await migrateBatch(photos)
-      totalMigrated += migrated
-      totalFailed += failed
+      const { ok, removed, errors } = await validateBatch(photos)
+      totalOk += ok
+      totalRemoved += removed
+      totalErrors += errors
       cursor += photos.length
 
       if (auto) await setOffsetHeartbeat(cursor)
 
       if (Date.now() - startedAt > TIME_BUDGET_MS) {
         if (auto) chainNext(cursor)
-        return NextResponse.json({ done: false, migrated: totalMigrated, failed: totalFailed, nextOffset: cursor })
+        return NextResponse.json({ done: false, ok: totalOk, removed: totalRemoved, errors: totalErrors, nextOffset: cursor })
       }
     }
   } catch (err: any) {

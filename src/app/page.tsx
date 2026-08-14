@@ -128,6 +128,26 @@ export default async function HomePage() {
     })
   }
 
+  // Passagem de validação: o reparo acima só copia bytes pra um link novo —
+  // se o arquivo de origem já tivesse sido corrompido por uma corrida entre
+  // duas execuções simultâneas (uma apagando o original enquanto a outra
+  // ainda lia ele), a cópia carrega a corrupção pra frente com um tamanho de
+  // arquivo que ainda parece válido. Essa passagem decodifica cada imagem de
+  // verdade (não só confere o tamanho) e limpa o que não abre de verdade.
+  const photoValidationStatus = (settingsRes.data || []).find(s => s.key === 'photo_validation_status')?.value
+  if (photoValidationStatus !== 'done') {
+    after(async () => {
+      try {
+        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://trindadeonline.com.br'
+        await fetch(`${siteUrl}/api/admin/validate-photos`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ auto: true, offset: 0 }),
+        })
+      } catch {}
+    })
+  }
+
   // SHUFFLE — ordem aleatória a cada carregamento
   const banners = shuffle((bannersRes.data || []) as Banner[])
 

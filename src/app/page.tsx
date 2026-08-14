@@ -140,9 +140,17 @@ export default async function HomePage() {
   // limite na consulta), embaralhado de verdade e só então cortado nas
   // primeiras 10 — assim a cada carregamento é um recorte diferente do
   // total, não sempre as mesmas
+  //
+  // REGRA TEMPORÁRIA: empresa sem nenhuma foto cadastrada não aparece nos
+  // destaques da home (fica só com o emoji da categoria, o que não fica bom
+  // num carrossel de destaque). Não detecta foto corrompida-mas-presente
+  // ainda — a checagem que tentava isso teve falso positivo em massa e foi
+  // desativada; enquanto não tiver uma forma confiável de checar isso, só
+  // filtra por "tem foto".
   const paidCompanies: Record<string, PaidCompany[]> = {}
   PAID_CAROUSELS.forEach(([, key], i) => {
-    paidCompanies[key] = shuffle((paidResults[i].data || []) as any as PaidCompany[]).slice(0, PAID_CAROUSEL_SIZE)
+    const comFoto = ((paidResults[i].data || []) as any as PaidCompany[]).filter(c => (c.photos || []).length > 0)
+    paidCompanies[key] = shuffle(comFoto).slice(0, PAID_CAROUSEL_SIZE)
   })
 
   const recentListings: Record<string, Listing[]> = {}
@@ -185,7 +193,9 @@ export default async function HomePage() {
       .select('id, name, slug, plan, delivery_available, flexible_hours, category:categories(emoji), photos:company_photos(url,order), subcategories:company_subcategories(subcategory:subcategories(id,name,emoji)), hours:company_hours(day_of_week,open_time,close_time,closed)')
       .eq('status', 'active')
 
-    const open = ((candidates || []) as any as OpenCompany[]).filter(c => isOpenNow(c.hours, c.flexible_hours))
+    const open = ((candidates || []) as any as OpenCompany[])
+      .filter(c => (c.photos || []).length > 0) // mesma regra temporária: sem foto não aparece em destaque
+      .filter(c => isOpenNow(c.hours, c.flexible_hours))
     // Paga primeiro (mesma prioridade dos outros carrosséis da home),
     // embaralhado dentro de cada grupo pra dar visibilidade igual
     openCompanies = [...shuffle(open.filter(c => c.plan === 'paid')), ...shuffle(open.filter(c => c.plan !== 'paid'))]

@@ -5,7 +5,6 @@ import OneSignalInit from '@/components/OneSignalInit'
 import CookieBanner from '@/components/CookieBanner'
 import HomeSearchBox from '@/components/home/HomeSearchBox'
 import HomeBannerCarousel from '@/components/home/HomeBannerCarousel'
-import HomeBottomNav from '@/components/home/HomeBottomNav'
 import HomeAbertoAgora from '@/components/home/HomeAbertoAgora'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { isOpenNow, HourRow } from '@/lib/businessHours'
@@ -82,7 +81,7 @@ export default async function HomePage() {
   // O login guarda a sessão no localStorage do navegador (não em cookie),
   // então esse cliente de servidor nunca vê quem está logado — serve só
   // pra buscar dado público. Quem é o usuário (pra nav mobile, busca etc.)
-  // continua sendo resolvido no navegador, no HomeBottomNav/HomeSearchBox.
+  // continua sendo resolvido no navegador, no BottomNav global/HomeSearchBox.
   const supabaseServer = await createServerSupabase()
 
   // Todas as consultas daqui são independentes entre si — rodam em paralelo
@@ -716,7 +715,6 @@ export default async function HomePage() {
       </footer>
 
       <CookieBanner />
-      <HomeBottomNav />
       <WAButton/>
       <OneSignalInit/>
     </>

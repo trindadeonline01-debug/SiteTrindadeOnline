@@ -62,6 +62,15 @@ async function migrateBatch(photos: { id: string; url: string }[]) {
       if (dlErr || !fileBlob) { failed++; continue }
 
       const buf = Buffer.from(await fileBlob.arrayBuffer())
+      if (buf.byteLength === 0) {
+        // Arquivo original já estava corrompido (0 bytes) antes de qualquer
+        // reparo — não tem conteúdo pra recuperar. Migrar isso só criaria
+        // outro link quebrado com nome novo. Em vez disso, remove de vez:
+        // a empresa fica sem essa foto, não com uma foto eternamente quebrada.
+        await supabaseAdmin.from('company_photos').delete().eq('id', photo.id)
+        await supabaseAdmin.storage.from('company-photos').remove([path])
+        continue
+      }
       const newPath = path.replace(/\.[a-zA-Z0-9]+$/, '') + `-fix${Date.now()}.webp`
       const { error: upErr } = await supabaseAdmin.storage
         .from('company-photos')

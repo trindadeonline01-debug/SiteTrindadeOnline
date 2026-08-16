@@ -5,7 +5,7 @@ import { compressImage } from '@/lib/compressImage'
 import CrmShell from '@/components/CrmShell'
 
 type Categoria = { id: string; name: string; display_order: number }
-type Opcao = { id?: string; name: string; price: number; max_qty: number | null; linked_produto_id: string | null; photo_url?: string | null; _photoFile?: File | null }
+type Opcao = { id?: string; name: string; price: string; max_qty: number | null; linked_produto_id: string | null; photo_url?: string | null; _photoFile?: File | null }
 type Grupo = { id?: string; name: string; required: boolean; min_select: number; max_select: number; pricing_rule: 'soma' | 'maior_valor'; options: Opcao[] }
 type Produto = {
   id: string; name: string; description: string | null; photo_url: string | null
@@ -167,7 +167,7 @@ export default function CatalogoPage() {
       active: data.active,
       groups: (data.groups || []).map((g: any) => ({
         id: g.id, name: g.name, required: g.required, min_select: g.min_select, max_select: g.max_select, pricing_rule: g.pricing_rule || 'soma',
-        options: (g.options || []).map((o: any) => ({ id: o.id, name: o.name, price: o.price, max_qty: o.max_qty, linked_produto_id: o.linked_produto_id, photo_url: o.photo_url || null, _photoFile: null })),
+        options: (g.options || []).map((o: any) => ({ id: o.id, name: o.name, price: Number(o.price || 0).toFixed(2).replace('.', ','), max_qty: o.max_qty, linked_produto_id: o.linked_produto_id, photo_url: o.photo_url || null, _photoFile: null })),
       })),
     })
     setPhotoFile(null)
@@ -177,7 +177,7 @@ export default function CatalogoPage() {
   function addGroup() { setForm(f => ({ ...f, groups: [...f.groups, { name: '', required: false, min_select: 0, max_select: 1, pricing_rule: 'soma', options: [] }] })) }
   function removeGroup(gi: number) { setForm(f => ({ ...f, groups: f.groups.filter((_, i) => i !== gi) })) }
   function updateGroup(gi: number, patch: Partial<Grupo>) { setForm(f => ({ ...f, groups: f.groups.map((g, i) => i === gi ? { ...g, ...patch } : g) })) }
-  function addOption(gi: number) { updateGroup(gi, { options: [...form.groups[gi].options, { name: '', price: 0, max_qty: 1, linked_produto_id: null, photo_url: null, _photoFile: null }] }) }
+  function addOption(gi: number) { updateGroup(gi, { options: [...form.groups[gi].options, { name: '', price: '0', max_qty: 1, linked_produto_id: null, photo_url: null, _photoFile: null }] }) }
   function removeOption(gi: number, oi: number) { updateGroup(gi, { options: form.groups[gi].options.filter((_, i) => i !== oi) }) }
   function updateOption(gi: number, oi: number, patch: Partial<Opcao>) {
     updateGroup(gi, { options: form.groups[gi].options.map((o, i) => i === oi ? { ...o, ...patch } : o) })
@@ -262,7 +262,7 @@ export default function CatalogoPage() {
           }
         }
         optRows.push({
-          grupo_id: gData.id, name: o.name.trim() || 'Opção', price: o.price, max_qty: o.max_qty || null, linked_produto_id: o.linked_produto_id || null, photo_url: optPhotoUrl, display_order: oi,
+          grupo_id: gData.id, name: o.name.trim() || 'Opção', price: parsePt(o.price), max_qty: o.max_qty || null, linked_produto_id: o.linked_produto_id || null, photo_url: optPhotoUrl, display_order: oi,
         })
       }
       if (optRows.length) await supabase.from('loja_opcoes').insert(optRows)
@@ -550,7 +550,7 @@ export default function CatalogoPage() {
                     <div className="cg-opt-fields">
                       <div className="cg-opt-field">
                         <label>Preço (R$)</label>
-                        <input value={o.price} onChange={e => updateOption(gi, oi, { price: +e.target.value || 0 })} />
+                        <input value={o.price} onChange={e => updateOption(gi, oi, { price: e.target.value })} />
                       </div>
                       <div className="cg-opt-field">
                         <label>Qtd. máx. dessa opção</label>

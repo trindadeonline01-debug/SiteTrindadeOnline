@@ -49,6 +49,10 @@ export default function CatalogoPage() {
   const [newCatName, setNewCatName] = useState('')
   const [showNewCat, setShowNewCat] = useState(false)
   const [toast, setToast] = useState('')
+  const [showCatManager, setShowCatManager] = useState(false)
+  const [mgrNewCatName, setMgrNewCatName] = useState('')
+  const [editingCatId, setEditingCatId] = useState('')
+  const [editCatName, setEditCatName] = useState('')
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -78,6 +82,36 @@ export default function CatalogoPage() {
     const { data } = await supabase.from('loja_categorias').insert({ company_id: companyId, name: newCatName.trim(), display_order: categorias.length }).select().single()
     if (data) { setCategorias(prev => [...prev, data]); setForm(f => ({ ...f, category_id: data.id })) }
     setNewCatName(''); setShowNewCat(false)
+  }
+
+  async function addCategoriaFromManager() {
+    if (!mgrNewCatName.trim()) return
+    const { data } = await supabase.from('loja_categorias').insert({ company_id: companyId, name: mgrNewCatName.trim(), display_order: categorias.length }).select().single()
+    if (data) setCategorias(prev => [...prev, data])
+    setMgrNewCatName('')
+  }
+
+  async function saveCategoriaName(id: string) {
+    if (!editCatName.trim()) { setEditingCatId(''); return }
+    const name = editCatName.trim()
+    await supabase.from('loja_categorias').update({ name }).eq('id', id)
+    setCategorias(prev => prev.map(c => c.id === id ? { ...c, name } : c))
+    setProdutos(prev => prev.map(p => p.category_id === id ? { ...p, category: { name } } : p))
+    setEditingCatId('')
+  }
+
+  async function deleteCategoria(id: string) {
+    const emUso = produtos.filter(p => p.category_id === id).length
+    const msg = emUso > 0
+      ? `Essa categoria tem ${emUso} produto${emUso > 1 ? 's' : ''}. Eles ficam como "Sem categoria" — não são excluídos. Apagar a categoria mesmo assim?`
+      : 'Apagar essa categoria?'
+    if (!confirm(msg)) return
+    if (emUso > 0) await supabase.from('loja_produtos').update({ category_id: null }).eq('category_id', id)
+    await supabase.from('loja_categorias').delete().eq('id', id)
+    setCategorias(prev => prev.filter(c => c.id !== id))
+    setProdutos(prev => prev.map(p => p.category_id === id ? { ...p, category_id: null, category: null } : p))
+    if (filterCat === id) setFilterCat('all')
+    showToast('Categoria apagada')
   }
 
   function openNew() { setForm(emptyForm()); setPhotoFile(null); setView('form') }
@@ -284,6 +318,17 @@ export default function CatalogoPage() {
         .cg-photo-input{ display:flex;align-items:center;gap:12px;margin-bottom:14px; }
         .cg-photo-big{ width:64px;height:64px;border-radius:12px;background:linear-gradient(135deg,#FBF1DC,#FCFAF5);display:flex;align-items:center;justify-content:center;font-size:26px;overflow:hidden;flex:none; }
         .cg-photo-big img{ width:100%;height:100%;object-fit:cover; }
+        .cg-cat-overlay{ position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:60;display:flex;align-items:flex-end;justify-content:center; }
+        .cg-cat-modal{ background:#F7F5F0;width:100%;max-width:480px;max-height:80vh;border-radius:18px 18px 0 0;display:flex;flex-direction:column;overflow:hidden; }
+        .cg-cat-modal-head{ padding:16px;border-bottom:1px solid #EDE8E0;display:flex;justify-content:space-between;align-items:center;background:#fff; }
+        .cg-close{ width:28px;height:28px;border-radius:50%;border:1px solid #E6E0D2;background:#fff;cursor:pointer; }
+        .cg-cat-modal-body{ flex:1;overflow-y:auto;padding:6px 16px; }
+        .cg-cat-row{ display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid #EDE8E0; }
+        .cg-cat-row input{ flex:1;min-width:0;padding:7px 10px;border-radius:8px;border:1px solid #E6E0D2;font-size:12.5px;font-family:inherit; }
+        .cg-cat-row-name{ flex:1;min-width:0;font-weight:700;font-size:12.5px; }
+        .cg-cat-row-count{ font-size:10.5px;color:#A79E8B;flex:none;white-space:nowrap; }
+        .cg-cat-modal-foot{ padding:12px 16px 16px;border-top:1px solid #EDE8E0;background:#fff;display:flex;gap:8px; }
+        .cg-cat-modal-foot input{ flex:1;min-width:0;padding:9px 11px;border-radius:9px;border:1px solid #E6E0D2;font-size:12.5px;font-family:inherit; }
       `}</style>
 
       {view === 'list' && (
@@ -291,6 +336,7 @@ export default function CatalogoPage() {
           <div className="cg-head">
             <a href="/painel/crm" className="cg-back" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', color: '#1A1610' }}>‹</a>
             <h1>Catálogo</h1>
+            <button className="cg-btn-ghost" style={{ padding: '8px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700 }} onClick={() => setShowCatManager(true)}>🏷️ Categorias</button>
           </div>
           <div className="cg-body">
             {produtos.length > 0 && (
@@ -436,6 +482,42 @@ export default function CatalogoPage() {
 
             <div className="cg-savebar">
               <button className="cg-btn cg-btn-gold" disabled={savingProd} onClick={saveProduto}>{savingProd ? 'Salvando...' : 'Salvar produto'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCatManager && (
+        <div className="cg-cat-overlay" onClick={() => { setShowCatManager(false); setEditingCatId('') }}>
+          <div className="cg-cat-modal" onClick={e => e.stopPropagation()}>
+            <div className="cg-cat-modal-head">
+              <b>Categorias do cardápio</b>
+              <button className="cg-close" onClick={() => { setShowCatManager(false); setEditingCatId('') }}>✕</button>
+            </div>
+            <div className="cg-cat-modal-body">
+              {categorias.length === 0 && <div style={{ fontSize: 12, color: '#A79E8B', padding: '12px 0' }}>Nenhuma categoria ainda.</div>}
+              {categorias.map(c => (
+                <div className="cg-cat-row" key={c.id}>
+                  {editingCatId === c.id ? (
+                    <>
+                      <input value={editCatName} onChange={e => setEditCatName(e.target.value)} autoFocus onKeyDown={e => e.key === 'Enter' && saveCategoriaName(c.id)} />
+                      <button className="cg-btn cg-btn-gold" style={{ padding: '7px 12px' }} onClick={() => saveCategoriaName(c.id)}>OK</button>
+                      <button className="cg-btn-ghost" style={{ padding: '7px 10px', borderRadius: 8 }} onClick={() => setEditingCatId('')}>✕</button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="cg-cat-row-name">{c.name}</span>
+                      <span className="cg-cat-row-count">{produtos.filter(p => p.category_id === c.id).length} produto{produtos.filter(p => p.category_id === c.id).length !== 1 ? 's' : ''}</span>
+                      <button className="cg-btn-ghost" style={{ padding: '6px 9px', borderRadius: 8, fontSize: 11 }} onClick={() => { setEditingCatId(c.id); setEditCatName(c.name) }}>✏️</button>
+                      <button className="cg-del" onClick={() => deleteCategoria(c.id)}>🗑</button>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="cg-cat-modal-foot">
+              <input placeholder="Nova categoria" value={mgrNewCatName} onChange={e => setMgrNewCatName(e.target.value)} onKeyDown={e => e.key === 'Enter' && addCategoriaFromManager()} />
+              <button className="cg-btn cg-btn-gold" onClick={addCategoriaFromManager}>+ Adicionar</button>
             </div>
           </div>
         </div>

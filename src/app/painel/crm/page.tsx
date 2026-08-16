@@ -98,6 +98,8 @@ export default function CrmPage() {
           @media(min-width:768px){.crm-hub-content{padding:28px 32px;}}
           .crm-hub-title{font-size:17px;font-weight:800;margin-bottom:20px;text-align:center;}
           @media(min-width:768px){.crm-hub-title{display:none;}}
+          .crm-hub-exit{display:block;text-align:center;font-size:11.5px;font-weight:700;color:#8A6410;text-decoration:none;margin-bottom:14px;}
+          @media(min-width:768px){.crm-hub-exit{display:none;}}
           .crm-hub-grid{display:flex;flex-direction:column;gap:12px;width:100%;max-width:320px;margin:0 auto;}
           @media(min-width:768px){.crm-hub-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;max-width:none;margin:0;}}
           .crm-share-card{margin:20px auto 0;max-width:320px;background:#fff;border:1px solid #EDE8E0;border-radius:14px;padding:18px;text-align:center;}
@@ -116,6 +118,7 @@ export default function CrmPage() {
           .crm-config-field input{width:100%;padding:9px 11px;border-radius:9px;border:1px solid #E6E0D2;font-size:12.5px;font-family:inherit;}
           .crm-config-btn{width:100%;padding:9px;border-radius:9px;border:none;background:#1A1610;color:#C9951A;font-weight:700;font-size:12px;cursor:pointer;margin-top:4px;}
         `}</style>
+        <a href="/painel" className="crm-hub-exit">‹ Voltar ao Painel</a>
         <div className="crm-hub-title">{company.name}</div>
         <div className="crm-hub-grid">
           <a href="/painel/crm/pedidos" style={hubCard}><span style={{ fontSize: 26 }}>🧾</span><div><div style={hubTitle}>Pedidos</div><div style={hubSub}>Ver e gerenciar pedidos recebidos</div></div></a>

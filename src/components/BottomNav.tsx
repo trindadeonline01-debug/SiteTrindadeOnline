@@ -116,7 +116,7 @@ export default function BottomNav() {
 
   useEffect(() => { setSheetOpen(false) }, [pathname])
 
-  const hideOn = ['/login', '/cadastro', '/empresa/cadastrar', '/admin', '/agenda']
+  const hideOn = ['/login', '/cadastro', '/empresa/cadastrar', '/admin', '/agenda', '/painel/crm']
   if (!show || !loaded || !userType || hideOn.some(p => pathname.startsWith(p))) return null
 
   async function signOut() {

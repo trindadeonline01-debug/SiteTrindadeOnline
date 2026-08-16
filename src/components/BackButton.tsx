@@ -14,7 +14,7 @@ export default function BackButton() {
     return () => window.removeEventListener('resize', check)
   }, [])
 
-  if (pathname === '/') return null
+  if (pathname === '/' || pathname.startsWith('/painel/crm')) return null
 
   return (
     <button

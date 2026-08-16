@@ -273,7 +273,8 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
         .cd-tag{ font-size:10.5px;padding:3px 9px;border-radius:7px;font-weight:600;display:inline-block; }
         .cd-tag.open{ background:#EDFAF3;color:#0F6E56; }
         .cd-tag.closed{ background:#FEF0F0;color:#E24B4A; }
-        .cd-rating{ display:flex;align-items:center;gap:8px;padding:9px 0;border-top:0.5px solid #F0EDE8;font-size:12.5px; }
+        .cd-statusrow{ display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 0;border-top:0.5px solid #F0EDE8; }
+        .cd-rating{ display:flex;align-items:center;gap:6px;font-size:12.5px;flex:none; }
         .cd-search{ padding:12px 16px 0; }
         .cd-search input{ width:100%;padding:11px 14px;border-radius:12px;border:1px solid #EDE8E0;background:#fff;font-size:13px;font-family:inherit; }
         .cd-catbar{ position:sticky;top:0;z-index:15;background:#F0EDE8;padding:12px 16px 8px;display:flex;gap:8px;overflow-x:auto; }
@@ -331,8 +332,10 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
             <div className="cd-av">{company.name.slice(0, 2).toUpperCase()}</div>
             <div><div className="cd-name">{company.name}</div><div className="cd-sub">{company.address || ''}</div></div>
           </div>
-          <span className={`cd-tag ${open ? 'open' : 'closed'}`}>{open ? '● Aberto agora' : '● Fechado agora'}</span>
-          <div className="cd-rating"><span style={{ color: '#C9951A' }}>★★★★★</span><b>{Number(company.avg_rating || 0).toFixed(1)}</b><span style={{ color: '#AAA' }}>({company.total_reviews || 0})</span></div>
+          <div className="cd-statusrow">
+            <span className={`cd-tag ${open ? 'open' : 'closed'}`}>{open ? '● Aberto agora' : '● Fechado agora'}</span>
+            <div className="cd-rating"><span style={{ color: '#C9951A' }}>★★★★★</span><b>{Number(company.avg_rating || 0).toFixed(1)}</b><span style={{ color: '#AAA' }}>({company.total_reviews || 0})</span></div>
+          </div>
         </div>
       </div>
 

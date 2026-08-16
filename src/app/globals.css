@@ -15,7 +15,14 @@
   --brand-gray: #AAA;
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+/* Botões/links não recebem contorno ao clicar com mouse/toque — só o
+   teclado (Tab) continua mostrando o contorno de foco, por acessibilidade. */
+a:focus:not(:focus-visible),
+button:focus:not(:focus-visible) {
+  outline: none;
+}
 
 body {
   background: #FFFFFF;

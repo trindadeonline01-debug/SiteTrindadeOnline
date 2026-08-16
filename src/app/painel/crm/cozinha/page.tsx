@@ -6,10 +6,10 @@ type Item = { id: string; product_name: string; qty: number; selected_options: {
 type Status = 'recebido' | 'em_preparo' | 'pronto' | 'saiu_entrega' | 'entregue' | 'cancelado'
 type Pedido = { id: string; customer_id: string | null; customer_name: string; status: Status; created_at: string; itens: Item[] }
 
-const COLUMNS: { status: Status; label: string; next: Status; action: string }[] = [
-  { status: 'recebido', label: 'Recebido', next: 'em_preparo', action: 'Iniciar preparo' },
-  { status: 'em_preparo', label: 'Em preparo', next: 'pronto', action: 'Marcar pronto' },
-  { status: 'pronto', label: 'Pronto', next: 'saiu_entrega', action: 'Concluir' },
+const COLUMNS: { status: Status; label: string; next: Status; action: string; color: string }[] = [
+  { status: 'recebido', label: 'Recebido', next: 'em_preparo', action: 'Iniciar preparo', color: '#E24B4A' },
+  { status: 'em_preparo', label: 'Em preparo', next: 'pronto', action: 'Marcar pronto', color: '#E8B84B' },
+  { status: 'pronto', label: 'Pronto', next: 'saiu_entrega', action: 'Concluir', color: '#3FBE7A' },
 ]
 
 const CUSTOMER_MSG: Partial<Record<Status, string>> = { pronto: 'Seu pedido está pronto!', saiu_entrega: 'Seu pedido saiu para entrega!' }
@@ -86,16 +86,16 @@ export default function CozinhaPage() {
         .cz-head h1{ font-size:20px;font-weight:800;margin:0;flex:1; }
         .cz-back{ color:#C9951A;text-decoration:none;font-size:14px;font-weight:700; }
         .cz-cols{ display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:16px; min-height:calc(100vh - 64px); }
-        .cz-col{ background:#1C1914;border-radius:14px;padding:12px;display:flex;flex-direction:column;min-height:200px; }
-        .cz-colhead{ display:flex;justify-content:space-between;align-items:center;padding:4px 6px 12px;font-weight:800;font-size:15px;text-transform:uppercase;letter-spacing:.04em; }
-        .cz-count{ background:#C9951A;color:#1A1610;font-size:12px;font-weight:800;padding:2px 9px;border-radius:20px; }
-        .cz-card{ background:#2A2620;border-radius:12px;padding:14px;margin-bottom:10px;cursor:pointer;border:1px solid #3A3428; transition:transform .1s; }
+        .cz-col{ background:#1C1914;border-radius:14px;padding:12px;display:flex;flex-direction:column;min-height:200px;border-top:4px solid var(--accent); }
+        .cz-colhead{ display:flex;justify-content:space-between;align-items:center;padding:4px 6px 12px;font-weight:800;font-size:15px;text-transform:uppercase;letter-spacing:.04em;color:var(--accent); }
+        .cz-count{ background:var(--accent);color:#141210;font-size:12px;font-weight:800;padding:2px 9px;border-radius:20px; }
+        .cz-card{ background:#2A2620;border-radius:12px;padding:14px;margin-bottom:10px;cursor:pointer;border:1px solid #3A3428;border-left:4px solid var(--accent); transition:transform .1s; }
         .cz-card:active{ transform:scale(.97); }
         .cz-cname{ font-weight:800;font-size:16px;margin-bottom:2px; }
         .cz-ctime{ font-size:11px;color:#A79E8B;margin-bottom:8px; }
         .cz-citem{ font-size:13.5px;padding:2px 0;color:#F0EDE8; }
         .cz-cmods{ font-size:11px;color:#C9951A;padding-left:14px; }
-        .cz-cbtn{ margin-top:10px;width:100%;padding:10px;border-radius:9px;border:none;background:#C9951A;color:#1A1610;font-weight:800;font-size:13px;cursor:pointer; }
+        .cz-cbtn{ margin-top:10px;width:100%;padding:10px;border-radius:9px;border:none;background:var(--accent);color:#141210;font-weight:800;font-size:13px;cursor:pointer; }
         .cz-empty{ text-align:center;color:#5A5346;font-size:12.5px;padding:30px 0; }
         @media(max-width:820px){ .cz-cols{ grid-template-columns:1fr; } }
       `}</style>
@@ -107,7 +107,7 @@ export default function CozinhaPage() {
         {COLUMNS.map(col => {
           const items = pedidos.filter(p => p.status === col.status)
           return (
-            <div className="cz-col" key={col.status}>
+            <div className="cz-col" key={col.status} style={{ '--accent': col.color } as React.CSSProperties}>
               <div className="cz-colhead"><span>{col.label}</span><span className="cz-count">{items.length}</span></div>
               {items.length === 0 && <div className="cz-empty">Nada aqui</div>}
               {items.map(p => (

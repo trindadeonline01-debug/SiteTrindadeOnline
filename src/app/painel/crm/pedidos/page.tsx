@@ -332,6 +332,9 @@ export default function PedidosPage() {
         .np-foot{ padding:12px 16px 16px;border-top:1px solid #EDE8E0;background:#fff; }
         .np-createbtn{ width:100%;padding:13px;border-radius:10px;border:none;background:#157A52;color:#fff;font-weight:800;cursor:pointer; }
         .np-createbtn:disabled{ background:#D8D2C4;color:#8A8577; }
+        .pd-group{ margin-bottom:20px; }
+        .pd-group-head{ display:flex;justify-content:space-between;align-items:center;padding:2px 2px 8px;font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);border-bottom:2px solid var(--accent);margin-bottom:10px; }
+        .pd-group-count{ background:var(--accent);color:#fff;font-size:11px;font-weight:800;padding:2px 9px;border-radius:20px; }
         .pd-board{ display:none; }
         @media(min-width:768px){
           .pd-wrap{ max-width:none;margin:0;padding-bottom:40px; }
@@ -361,7 +364,18 @@ export default function PedidosPage() {
         </div>
         <div className="pd-body">
           {list.length === 0 && <div className="pd-empty">Nenhum pedido por aqui.</div>}
-          {list.map(renderCard)}
+          {filter === 'ativos'
+            ? ACTIVE.map(status => {
+                const items = list.filter(p => p.status === status)
+                if (items.length === 0) return null
+                return (
+                  <div className="pd-group" key={status} style={{ '--accent': STATUS_COLOR[status].fg } as React.CSSProperties}>
+                    <div className="pd-group-head"><span>{STATUS_LABEL[status]}</span><span className="pd-group-count">{items.length}</span></div>
+                    {items.map(renderCard)}
+                  </div>
+                )
+              })
+            : list.map(renderCard)}
         </div>
       </div>
 

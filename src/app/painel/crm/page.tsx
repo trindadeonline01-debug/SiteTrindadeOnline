@@ -2,12 +2,15 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import CrmShell from '@/components/CrmShell'
+import QRCode from 'qrcode'
 
-type Company = { id: string; name: string; loja_digital_enabled: boolean }
+type Company = { id: string; name: string; slug: string; loja_digital_enabled: boolean }
 
 export default function CrmPage() {
   const [loading, setLoading] = useState(true)
   const [company, setCompany] = useState<Company | null>(null)
+  const [qrDataUrl, setQrDataUrl] = useState('')
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -16,7 +19,7 @@ export default function CrmPage() {
       if (profile?.user_type !== 'company') { window.location.href = '/'; return }
       const { data: comp } = await supabase
         .from('companies')
-        .select('id, name, loja_digital_enabled')
+        .select('id, name, slug, loja_digital_enabled')
         .eq('owner_id', session.user.id)
         .order('created_at', { ascending: true })
         .limit(1)
@@ -25,6 +28,18 @@ export default function CrmPage() {
       setLoading(false)
     })
   }, [])
+
+  const cardapioLink = company ? `https://trindadeonline.com.br/empresa/${company.slug}/cardapio` : ''
+
+  useEffect(() => {
+    if (!cardapioLink) return
+    QRCode.toDataURL(cardapioLink, { width: 200, margin: 1, color: { dark: '#1A1610', light: '#FFFFFF' } })
+      .then(setQrDataUrl).catch(() => {})
+  }, [cardapioLink])
+
+  function copyLink() {
+    navigator.clipboard.writeText(cardapioLink).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) })
+  }
 
   if (loading) {
     return <div style={wrap}><div style={{ color: '#AAA', fontSize: 13 }}>Carregando...</div></div>
@@ -63,12 +78,25 @@ export default function CrmPage() {
           @media(min-width:768px){.crm-hub-title{display:none;}}
           .crm-hub-grid{display:flex;flex-direction:column;gap:12px;width:100%;max-width:320px;margin:0 auto;}
           @media(min-width:768px){.crm-hub-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;max-width:none;margin:0;}}
+          .crm-share-card{margin:20px auto 0;max-width:320px;background:#fff;border:1px solid #EDE8E0;border-radius:14px;padding:18px;text-align:center;}
+          @media(min-width:768px){.crm-share-card{max-width:280px;margin:24px 0 0;}}
+          .crm-share-title{font-weight:800;font-size:13.5px;margin-bottom:12px;}
+          .crm-share-qr{width:160px;height:160px;margin:0 auto 12px;border-radius:10px;overflow:hidden;background:#F0EDE8;}
+          .crm-share-qr img{width:100%;height:100%;}
+          .crm-share-link{font-size:10.5px;color:#888;word-break:break-all;margin-bottom:10px;}
+          .crm-share-btn{width:100%;padding:9px;border-radius:9px;border:none;background:#C9951A;color:#1A1610;font-weight:700;font-size:12px;cursor:pointer;}
         `}</style>
         <div className="crm-hub-title">{company.name}</div>
         <div className="crm-hub-grid">
           <a href="/painel/crm/pedidos" style={hubCard}><span style={{ fontSize: 26 }}>🧾</span><div><div style={hubTitle}>Pedidos</div><div style={hubSub}>Ver e gerenciar pedidos recebidos</div></div></a>
           <a href="/painel/crm/cozinha" style={hubCard}><span style={{ fontSize: 26 }}>🍳</span><div><div style={hubTitle}>Cozinha</div><div style={hubSub}>Painel pra deixar aberto na tela da cozinha</div></div></a>
           <a href="/painel/crm/catalogo" style={hubCard}><span style={{ fontSize: 26 }}>📋</span><div><div style={hubTitle}>Catálogo</div><div style={hubSub}>Produtos, categorias e combos</div></div></a>
+        </div>
+        <div className="crm-share-card">
+          <div className="crm-share-title">📲 Compartilhar cardápio</div>
+          <div className="crm-share-qr">{qrDataUrl && <img src={qrDataUrl} alt="QR Code do cardápio" />}</div>
+          <div className="crm-share-link">{cardapioLink}</div>
+          <button className="crm-share-btn" onClick={copyLink}>{copied ? 'Link copiado!' : 'Copiar link'}</button>
         </div>
       </div>
     </CrmShell>

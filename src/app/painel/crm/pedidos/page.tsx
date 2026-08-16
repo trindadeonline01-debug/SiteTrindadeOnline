@@ -81,6 +81,7 @@ export default function PedidosPage() {
   const [npNome, setNpNome] = useState('')
   const [npTelefone, setNpTelefone] = useState('')
   const [npEndereco, setNpEndereco] = useState('')
+  const [npObs, setNpObs] = useState('')
   const [npPay, setNpPay] = useState<'pix' | 'dinheiro' | 'cartao'>('dinheiro')
   const [npSaving, setNpSaving] = useState(false)
 
@@ -139,7 +140,7 @@ export default function PedidosPage() {
     }
   }
   function closeNovoPedido() {
-    setNpOpen(false); setNpCart([]); setNpDetail(null); setNpNome(''); setNpTelefone(''); setNpEndereco(''); setNpPay('dinheiro')
+    setNpOpen(false); setNpCart([]); setNpDetail(null); setNpNome(''); setNpTelefone(''); setNpEndereco(''); setNpObs(''); setNpPay('dinheiro')
   }
   function npAddToCart(produtoId: string, name: string, price: number, modifiers: { name: string; price: number }[] = []) {
     const key = produtoId + '|' + modifiers.map(m => m.name).sort().join('+')
@@ -182,13 +183,20 @@ export default function PedidosPage() {
       company_id: companyId, customer_id: null,
       customer_name: npNome.trim(), customer_phone: npTelefone.trim() || null,
       delivery_address: npEndereco.trim() || null, origin: 'balcao', payment_method: npPay,
-      subtotal: npTotal, total: npTotal, accepted_at: new Date().toISOString(),
+      subtotal: npTotal, total: npTotal, notes: npObs.trim() || null, accepted_at: new Date().toISOString(),
     }).select('id').single()
     if (pedido) {
       await supabase.from('loja_pedido_itens').insert(npCart.map(l => ({
         pedido_id: pedido.id, produto_id: l.produtoId, product_name: l.name, unit_price: l.unitPrice, qty: l.qty,
         selected_options: l.modifiers,
       })))
+      fetch('/api/loja/registrar-pedido', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyId, phone: npTelefone.trim() || null, name: npNome.trim(), address: npEndereco.trim() || null,
+          total: npTotal, items: npCart.map(l => ({ produtoId: l.produtoId, qty: l.qty })),
+        }),
+      }).catch(() => {})
     }
     setNpSaving(false)
     closeNovoPedido()
@@ -372,6 +380,7 @@ export default function PedidosPage() {
                 <input className="np-input" placeholder="Nome do cliente" value={npNome} onChange={e => setNpNome(e.target.value)} />
                 <input className="np-input" placeholder="Telefone (opcional)" value={npTelefone} onChange={e => setNpTelefone(e.target.value)} />
                 <input className="np-input" placeholder="Endereço (deixe em branco se for retirada)" value={npEndereco} onChange={e => setNpEndereco(e.target.value)} />
+                <input className="np-input" placeholder="Observação (opcional)" value={npObs} onChange={e => setNpObs(e.target.value)} />
 
                 <div className="np-section-label">Pagamento</div>
                 <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>

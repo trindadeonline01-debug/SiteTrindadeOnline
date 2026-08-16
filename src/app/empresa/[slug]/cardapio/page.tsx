@@ -11,6 +11,7 @@ type Produto = {
   promo_type: 'percent' | 'fixed' | null; promo_value: number | null
   promo_starts_at: string | null; promo_ends_at: string | null
   available_days: number[] | null
+  total_pedidos: number
   groups: Grupo[]
 }
 type Categoria = { id: string; name: string; display_order: number }
@@ -42,12 +43,14 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
   const [categorias, setCategorias] = useState<Categoria[]>([])
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [filterCat, setFilterCat] = useState('all')
+  const [search, setSearch] = useState('')
   const [cart, setCart] = useState<CartLine[]>([])
   const [detail, setDetail] = useState<Produto | null>(null)
   const [detailSel, setDetailSel] = useState<number[][]>([])
   const [detailQty, setDetailQty] = useState(1)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [address, setAddress] = useState('')
+  const [obs, setObs] = useState('')
   const [payMethod, setPayMethod] = useState<'pix' | 'dinheiro' | 'cartao'>('pix')
   const [success, setSuccess] = useState(false)
   const [confirming, setConfirming] = useState(false)
@@ -119,13 +122,20 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
       company_id: company.id, customer_id: session.user.id,
       customer_name: profile?.name || 'Cliente', customer_phone: profile?.phone || null,
       delivery_address: address, origin: 'cardapio_publico', payment_method: payMethod,
-      subtotal: cartTotal, total: cartTotal,
+      subtotal: cartTotal, total: cartTotal, notes: obs.trim() || null,
     }).select('id').single()
     if (pedido) {
       await supabase.from('loja_pedido_itens').insert(cart.map(l => ({
         pedido_id: pedido.id, produto_id: l.produtoId, product_name: l.name, unit_price: l.unitPrice, qty: l.qty,
         selected_options: l.modifiers,
       })))
+      fetch('/api/loja/registrar-pedido', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyId: company.id, phone: profile?.phone || null, name: profile?.name || 'Cliente',
+          address, total: cartTotal, items: cart.map(l => ({ produtoId: l.produtoId, qty: l.qty })),
+        }),
+      }).catch(() => {})
       if (company.owner_id) {
         fetch('/api/push/send', {
           method: 'POST',
@@ -140,7 +150,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
     }
     setConfirming(false)
     setSuccess(true)
-    setTimeout(() => { setDrawerOpen(false); setSuccess(false); setCart([]) }, 2500)
+    setTimeout(() => { setDrawerOpen(false); setSuccess(false); setCart([]); setObs('') }, 2500)
   }
 
   if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter,sans-serif', color: '#AAA', background: '#F0EDE8' }}>Carregando...</div>
@@ -152,7 +162,11 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
   )
 
   const open = isOpenNow(company.hours as any, company.flexible_hours)
-  const filtered = produtos.filter(p => filterCat === 'all' || p.category_id === filterCat)
+  const searchTerm = search.trim().toLowerCase()
+  const filtered = produtos
+    .filter(p => filterCat === 'all' || p.category_id === filterCat)
+    .filter(p => !searchTerm || p.name.toLowerCase().includes(searchTerm))
+  const maisPedidos = !searchTerm ? [...produtos].filter(p => p.total_pedidos > 0).sort((a, b) => b.total_pedidos - a.total_pedidos).slice(0, 4) : []
 
   return (
     <div className="cd-wrap">
@@ -171,10 +185,18 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
         .cd-tag.open{ background:#EDFAF3;color:#0F6E56; }
         .cd-tag.closed{ background:#FEF0F0;color:#E24B4A; }
         .cd-rating{ display:flex;align-items:center;gap:8px;padding:9px 0;border-top:0.5px solid #F0EDE8;font-size:12.5px; }
+        .cd-search{ padding:12px 16px 0; }
+        .cd-search input{ width:100%;padding:11px 14px;border-radius:12px;border:1px solid #EDE8E0;background:#fff;font-size:13px;font-family:inherit; }
         .cd-catbar{ position:sticky;top:0;z-index:15;background:#F0EDE8;padding:12px 16px 8px;display:flex;gap:8px;overflow-x:auto; }
         .cd-catchip{ flex:none;font-size:12px;font-weight:700;padding:7px 14px;border-radius:20px;background:#fff;border:1px solid #EDE8E0;color:#555;cursor:pointer; }
         .cd-catchip.active{ background:#111;color:#C9951A;border-color:#111; }
         .cd-menu{ padding:2px 16px; }
+        .cd-hot-row{ display:flex;gap:10px;overflow-x:auto;padding:2px 2px 10px; }
+        .cd-hot-card{ flex:none;width:120px;background:#fff;border:1px solid #EDE8E0;border-radius:12px;padding:8px;cursor:pointer; }
+        .cd-hot-photo{ width:100%;height:70px;border-radius:8px;background:linear-gradient(135deg,#FBF1DC,#F0EDE8);display:flex;align-items:center;justify-content:center;font-size:22px;overflow:hidden;margin-bottom:6px; }
+        .cd-hot-photo img{ width:100%;height:100%;object-fit:cover; }
+        .cd-hot-name{ font-size:11px;font-weight:700;line-height:1.3; }
+        .cd-hot-price{ font-size:11px;font-weight:800;margin-top:3px; }
         .cd-sec{ font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#A79E8B;margin:16px 2px 4px; }
         .cd-prow{ display:flex;gap:11px;padding:10px 0;border-bottom:0.5px solid #EDE8E0;align-items:center;cursor:pointer; }
         .cd-pphoto{ width:56px;height:56px;border-radius:11px;background:linear-gradient(135deg,#FBF1DC,#F0EDE8);display:flex;align-items:center;justify-content:center;font-size:22px;position:relative;overflow:hidden; }
@@ -223,12 +245,38 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
         </div>
       </div>
 
+      <div className="cd-search">
+        <input placeholder="Buscar no cardápio..." value={search} onChange={e => setSearch(e.target.value)} />
+      </div>
+
       <div className="cd-catbar">
         <button className={`cd-catchip ${filterCat === 'all' ? 'active' : ''}`} onClick={() => setFilterCat('all')}>Tudo</button>
         {categorias.map(c => <button key={c.id} className={`cd-catchip ${filterCat === c.id ? 'active' : ''}`} onClick={() => setFilterCat(c.id)}>{c.name}</button>)}
       </div>
 
+      {maisPedidos.length > 0 && (
+        <div className="cd-menu">
+          <div className="cd-sec">🔥 Mais pedidos</div>
+          <div className="cd-hot-row">
+            {maisPedidos.map(p => {
+              const promo = promoPrice(p)
+              const hasOpts = p.groups && p.groups.length > 0
+              return (
+                <div className="cd-hot-card" key={p.id} onClick={() => hasOpts ? openDetail(p) : addToCart(p.id, p.name, promo ?? p.sale_price, 1)}>
+                  <div className="cd-hot-photo">{p.photo_url ? <img src={p.photo_url} alt="" /> : '🍽️'}</div>
+                  <div className="cd-hot-name">{p.name}</div>
+                  <div className="cd-hot-price">{fmt(promo ?? p.sale_price)}</div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="cd-menu">
+        {searchTerm && filtered.length === 0 && (
+          <div style={{ textAlign: 'center', color: '#AAA', padding: '30px 0', fontSize: 12.5 }}>Nenhum produto encontrado pra "{search.trim()}"</div>
+        )}
         {categorias.filter(c => filterCat === 'all' || filterCat === c.id).map(cat => {
           const items = filtered.filter(p => p.category_id === cat.id)
           if (!items.length) return null
@@ -323,6 +371,8 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
                 ))}
                 <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', margin: '14px 0 8px', fontWeight: 800 }}>Endereço</div>
                 <input className="cd-diinput" value={address} onChange={e => setAddress(e.target.value)} placeholder="Rua, número, bairro" />
+                <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', margin: '14px 0 8px', fontWeight: 800 }}>Observações (opcional)</div>
+                <textarea className="cd-diinput" style={{ minHeight: 56, resize: 'vertical' }} value={obs} onChange={e => setObs(e.target.value)} placeholder="Ex: sem cebola, troco pra R$50..." />
                 <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', margin: '14px 0 8px', fontWeight: 800 }}>Pagamento</div>
                 {(['pix', 'dinheiro', 'cartao'] as const).map(m => <button key={m} className={`cd-paychip ${payMethod === m ? 'active' : ''}`} onClick={() => setPayMethod(m)}>{m === 'pix' ? 'Pix' : m === 'dinheiro' ? 'Dinheiro' : 'Cartão'}</button>)}
                 <div className="cd-totalrow"><span>Total</span><span>{fmt(cartTotal)}</span></div>

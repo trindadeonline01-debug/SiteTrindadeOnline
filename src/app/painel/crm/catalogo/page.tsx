@@ -189,6 +189,10 @@ export default function CatalogoPage() {
   if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter,sans-serif', color: '#AAA' }}>Carregando...</div>
 
   const filtered = produtos.filter(p => filterCat === 'all' || p.category_id === filterCat)
+  const pctFoto = produtos.length ? Math.round(produtos.filter(p => p.photo_url).length / produtos.length * 100) : 0
+  const pctDesc = produtos.length ? Math.round(produtos.filter(p => p.description && p.description.trim()).length / produtos.length * 100) : 0
+  const pctPromo = produtos.length ? Math.round(produtos.filter(p => p.promo_type).length / produtos.length * 100) : 0
+  const qualidade = produtos.length ? Math.round((pctFoto + pctDesc + pctPromo) / 3) : 0
 
   return (
     <CrmShell active="catalogo" companyName={companyName}>
@@ -201,6 +205,7 @@ export default function CatalogoPage() {
           .cg-body{ padding:0 32px; }
           .cg-list-view .cg-body{ display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:14px; align-content:start; }
           .cg-list-view .cg-filters{ grid-column:1/-1; }
+          .cg-list-view .cg-quality{ grid-column:1/-1; }
           .cg-list-view .cg-empty-msg{ grid-column:1/-1; }
           .cg-row{ flex-direction:column; align-items:stretch; gap:0; border:1px solid #E6E0D2; border-radius:14px; padding:0; overflow:hidden; background:#fff; }
           .cg-row .cg-photo{ width:100%; height:130px; border-radius:0; font-size:34px; }
@@ -218,6 +223,13 @@ export default function CatalogoPage() {
         .cg-btn-ghost{ background:#fff;border:1px solid #E6E0D2;color:#1A1610; }
         .cg-fab{ position:fixed; right:calc(50% - 240px + 16px); bottom:24px; width:50px;height:50px;border-radius:50%;background:#C9951A;color:#1A1610;border:none;font-size:24px;font-weight:800;box-shadow:0 8px 18px -6px rgba(0,0,0,.35);cursor:pointer; }
         @media(max-width:520px){ .cg-fab{ right:16px; } }
+        .cg-quality{ display:flex;align-items:center;gap:14px;background:#fff;border:1px solid #E6E0D2;border-radius:14px;padding:14px;margin-bottom:14px; }
+        .cg-quality-num{ font-family:'Bebas Neue',sans-serif;font-size:30px;color:#C9951A;letter-spacing:1px;line-height:1;flex:none; }
+        .cg-quality-mid{ flex:1;min-width:0; }
+        .cg-quality-title{ font-size:12px;font-weight:800;margin-bottom:6px; }
+        .cg-quality-bar{ height:6px;background:#F0EDE8;border-radius:3px;overflow:hidden;margin-bottom:6px; }
+        .cg-quality-fill{ height:100%;background:#C9951A;border-radius:3px; }
+        .cg-quality-sub{ font-size:10.5px;color:#A79E8B; }
         .cg-filters{ display:flex; gap:6px; overflow-x:auto; padding-bottom:10px; }
         .cg-chip{ flex:none;font-size:11px;font-weight:700;padding:6px 12px;border-radius:20px;border:1px solid #E6E0D2;background:#fff;color:#6E6656;cursor:pointer; }
         .cg-chip.active{ background:#1A1610;color:#C9951A;border-color:#1A1610; }
@@ -274,6 +286,16 @@ export default function CatalogoPage() {
             <h1>Catálogo</h1>
           </div>
           <div className="cg-body">
+            {produtos.length > 0 && (
+              <div className="cg-quality">
+                <div className="cg-quality-num">{qualidade}%</div>
+                <div className="cg-quality-mid">
+                  <div className="cg-quality-title">Qualidade do cardápio</div>
+                  <div className="cg-quality-bar"><div className="cg-quality-fill" style={{ width: `${qualidade}%` }} /></div>
+                  <div className="cg-quality-sub">{pctFoto}% com foto · {pctDesc}% com descrição · {pctPromo}% em promoção</div>
+                </div>
+              </div>
+            )}
             <div className="cg-filters">
               <button className={`cg-chip ${filterCat === 'all' ? 'active' : ''}`} onClick={() => setFilterCat('all')}>Tudo</button>
               {categorias.map(c => (

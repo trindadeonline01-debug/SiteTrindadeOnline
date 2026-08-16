@@ -16,6 +16,7 @@ type Produto = {
   groups: Grupo[]
 }
 function isSoldOut(p: Produto) { return p.esgotado || (p.track_stock && (p.stock_qty ?? 0) <= 0) }
+function cartStorageKey(slug: string) { return `cardapio_cart_${slug}` }
 type Categoria = { id: string; name: string; display_order: number }
 type Company = {
   id: string; name: string; slug: string; phone: string | null; address: string | null
@@ -78,8 +79,25 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
         setProdutos(((prods || []) as any[]).filter(availableToday))
         setLoading(false)
       })
+    let restoredCart = false
+    try {
+      const saved = localStorage.getItem(cartStorageKey(slug))
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed.cart) && parsed.cart.length > 0) {
+          setCart(parsed.cart)
+          setAddress(parsed.address || '')
+          setObs(parsed.obs || '')
+          setPayMethod(parsed.payMethod || 'pix')
+          setDrawerOpen(true)
+          restoredCart = true
+        }
+        localStorage.removeItem(cartStorageKey(slug))
+      }
+    } catch {}
+
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session) return
+      if (!session || restoredCart) return
       const { data: profile } = await supabase.from('profiles').select('address').eq('id', session.user.id).maybeSingle()
       if (profile?.address) setAddress(profile.address)
     })
@@ -122,7 +140,11 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
 
   async function confirmOrder() {
     const { data: { session } } = await supabase.auth.getSession()
-    if (!session) { window.location.href = `/login?redirect=/empresa/${slug}/cardapio`; return }
+    if (!session) {
+      try { localStorage.setItem(cartStorageKey(slug), JSON.stringify({ cart, address, obs, payMethod })) } catch {}
+      window.location.href = `/login?redirect=/empresa/${slug}/cardapio`
+      return
+    }
     if (!company || cart.length === 0) return
     if (Number(company.loja_pedido_minimo || 0) > 0 && cartTotal < Number(company.loja_pedido_minimo)) return
     setConfirming(true)

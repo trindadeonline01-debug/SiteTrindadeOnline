@@ -283,9 +283,17 @@ export default function PedidosPage() {
     <div className="pd-wrap">
       <style>{`
         .pd-wrap{ max-width:480px;margin:0 auto;min-height:100vh;background:#F7F5F0;font-family:'Inter',sans-serif;font-size:13px;color:#1A1610;padding-bottom:30px; }
-        .pd-head{ padding:22px 16px 14px;display:flex;align-items:center;gap:10px;position:sticky;top:0;background:#F7F5F0;z-index:5; }
-        .pd-head h1{ font-size:18px;margin:0;flex:1;font-weight:800; }
-        .pd-back{ width:32px;height:32px;border-radius:50%;border:1px solid #E6E0D2;background:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;text-decoration:none;color:#1A1610; }
+        .pd-head{ padding:22px 12px 14px;display:flex;align-items:center;gap:7px;position:sticky;top:0;background:#F7F5F0;z-index:5; }
+        .pd-head h1{ font-size:17px;margin:0;font-weight:800;flex:none; }
+        .pd-back{ flex:none;width:32px;height:32px;border-radius:50%;border:1px solid #E6E0D2;background:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;text-decoration:none;color:#1A1610; }
+        .pd-head-spacer{ flex:1; }
+        .pd-auto-pill{ flex:none;display:flex;align-items:center;gap:5px;background:#fff;border:1px solid #E6E0D2;border-radius:20px;padding:5px 9px 5px 10px;cursor:pointer; }
+        .pd-auto-pill span{ font-size:10px;font-weight:700;color:#6E6656; }
+        .pd-auto-pill .pd-switch{ width:26px;height:16px;border-radius:9px; }
+        .pd-auto-pill .pd-switch .k{ width:12px;height:12px;top:2px;left:2px; }
+        .pd-auto-pill .pd-switch.on .k{ left:12px; }
+        .pd-new-pill{ flex:none;width:28px;height:28px;border-radius:50%;background:#C9951A;color:#1A1610;border:none;font-size:16px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center; }
+        .pd-searchbar{ padding:0 16px 12px; }
         .pd-tabs{ display:flex;gap:8px;padding:0 16px 12px;overflow-x:auto; }
         .pd-tab{ flex:none;display:flex;align-items:center;gap:6px;padding:8px 13px;border-radius:20px;border:1.5px solid #E6E0D2;background:#fff;font-weight:700;font-size:12.5px;color:#6E6656;cursor:pointer;white-space:nowrap; }
         .pd-tab.active{ background:var(--accent);color:#fff;border-color:var(--accent); }
@@ -310,7 +318,7 @@ export default function PedidosPage() {
         .pd-card-pending{ border:1.5px solid var(--accent); }
         .pd-accept{ width:100%;margin-top:8px;padding:9px;border-radius:9px;border:none;background:var(--accent);color:#fff;font-weight:800;font-size:12px;cursor:pointer; }
         .pd-next{ width:100%;margin-top:8px;padding:10px;border-radius:9px;border:none;background:var(--accent);color:#fff;font-weight:800;font-size:12.5px;cursor:pointer; }
-        .pd-toolbar{ padding:14px 16px;display:flex;flex-direction:column;gap:10px;background:#fff;border-top:1px solid #EDE8E0;border-bottom:1px solid #EDE8E0; }
+        .pd-toolbar{ display:none; }
         .pd-search{ width:100%;padding:9px 12px;border-radius:9px;border:1px solid #E6E0D2;background:#F7F5F0;font-size:12.5px;font-family:inherit; }
         .pd-autotoggle{ display:flex;align-items:center;gap:10px;font-size:11.5px;font-weight:600;color:#6E6656;cursor:pointer; }
         .pd-switch{ width:36px;height:20px;border-radius:11px;background:#E6E0D2;position:relative;cursor:pointer;flex:none; }
@@ -346,7 +354,7 @@ export default function PedidosPage() {
         @media(min-width:768px){
           .pd-wrap{ max-width:none;margin:0;padding-bottom:40px; }
           .pd-mobile-only{ display:none; }
-          .pd-toolbar{ flex-direction:row;align-items:center;padding:16px 32px;border-top:none; }
+          .pd-toolbar{ display:flex;flex-direction:row;align-items:center;padding:16px 32px;gap:10px;background:#fff;border-bottom:1px solid #EDE8E0; }
           .pd-search{ max-width:280px; }
           .pd-autotoggle{ margin-left:auto; }
           .pd-newbtn{ padding:10px 20px; }
@@ -363,7 +371,16 @@ export default function PedidosPage() {
         <div className="pd-head">
           <a href="/painel/crm" className="pd-back">‹</a>
           <h1>Pedidos</h1>
+          <label className="pd-auto-pill">
+            <div className={`pd-switch ${autoAceitar ? 'on' : ''}`} onClick={toggleAutoAceitar}><div className="k" /></div>
+            <span>Auto</span>
+          </label>
+          <button className="pd-new-pill" onClick={openNovoPedido} title="Novo pedido">+</button>
+          <div className="pd-head-spacer" />
           <a href="/painel/crm/cozinha" style={{ fontSize: 11, fontWeight: 700, color: '#8A6410', background: '#FBF1DC', padding: '7px 12px', borderRadius: 8, textDecoration: 'none' }}>🍳 Cozinha</a>
+        </div>
+        <div className="pd-searchbar">
+          <input className="pd-search" placeholder="Buscar por cliente..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <div className="pd-tabs">
           {MOBILE_STAGES.map(t => {

@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase'
 
 type Item = { id: string; product_name: string; qty: number; selected_options: { name: string; price: number }[] }
 type Status = 'recebido' | 'em_preparo' | 'pronto' | 'saiu_entrega' | 'entregue' | 'cancelado'
-type Pedido = { id: string; customer_id: string | null; customer_name: string; status: Status; created_at: string; itens: Item[] }
+type Pedido = { id: string; customer_id: string | null; customer_name: string; status: Status; created_at: string; accepted_at: string | null; itens: Item[] }
 
 const COLUMNS: { status: Status; label: string; next: Status; action: string; color: string }[] = [
   { status: 'recebido', label: 'Recebido', next: 'em_preparo', action: 'Iniciar preparo', color: '#E24B4A' },
@@ -43,13 +43,15 @@ export default function CozinhaPage() {
   const [companyName, setCompanyName] = useState('')
   const [pedidos, setPedidos] = useState<Pedido[]>([])
   const companyIdRef = useRef('')
+  const autoAceitarRef = useRef(true)
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { window.location.href = '/login?redirect=/painel/crm/cozinha'; return }
-      const { data: comp } = await supabase.from('companies').select('id, name, loja_digital_enabled').eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
+      const { data: comp } = await supabase.from('companies').select('id, name, loja_digital_enabled, loja_auto_aceitar_pedidos').eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
       if (!comp || !comp.loja_digital_enabled) { window.location.href = '/painel/crm'; return }
       companyIdRef.current = comp.id
+      autoAceitarRef.current = comp.loja_auto_aceitar_pedidos !== false
       setCompanyName(comp.name)
       await loadAll(comp.id)
       setLoading(false)
@@ -66,7 +68,8 @@ export default function CozinhaPage() {
 
   async function loadAll(cid: string) {
     const { data } = await supabase.from('loja_pedidos').select('*, itens:loja_pedido_itens(*)').eq('company_id', cid).in('status', ['recebido', 'em_preparo', 'pronto']).order('created_at', { ascending: true })
-    setPedidos((data || []) as any)
+    const rows = (data || []) as Pedido[]
+    setPedidos(autoAceitarRef.current ? rows : rows.filter(p => p.status !== 'recebido' || p.accepted_at))
   }
 
   async function advance(id: string, next: Status) {

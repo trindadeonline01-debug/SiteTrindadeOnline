@@ -487,45 +487,52 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
         }
 
         /* COLUNA ESQUERDA */
-        .info-card{background:#fff;border:0.5px solid #EDE8E0;border-radius:14px;padding:22px;}
-        .empresa-name{font-family:'Bebas Neue',sans-serif;font-size:clamp(26px,4vw,36px);color:#111;letter-spacing:1px;margin-bottom:10px;}
-        .tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
-        .tag{font-size:11px;padding:3px 9px;border-radius:7px;font-weight:500;}
-        .tag-cat{background:#F0EDE8;color:#666;border:0.5px solid #E0DDD8;}
-        .tag-open{background:#EDFAF3;color:#0F6E56;}
-        .tag-closed{background:#FEF0F0;color:#E24B4A;}
-        .tag-sub{background:#EBF4FF;color:#185FA5;}
-        .rating-row{display:flex;align-items:center;padding:10px 0;border-top:0.5px solid #F0EDE8;border-bottom:0.5px solid #F0EDE8;margin-bottom:18px;gap:10px;flex-wrap:wrap;}
-        .st{color:#C9951A;font-size:15px;}
-        .rn{font-weight:600;font-size:14px;color:#111;}
-        .rc{font-size:12px;color:#AAA;}
+        .info-card{background:#fff;border:0.5px solid #EDE8E0;border-radius:14px;padding:18px 16px;}
+        .name-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:8px;}
+        .empresa-name{font-family:'Bebas Neue',sans-serif;font-size:clamp(24px,4vw,34px);color:#111;letter-spacing:1px;line-height:1.05;}
+        .verified-badge{flex-shrink:0;width:19px;height:19px;border-radius:50%;background:#C9951A;color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;}
+        .tag-cat-edit{font-size:12.5px;color:#666;}
+        .meta-line{display:flex;align-items:center;flex-wrap:wrap;gap:6px;font-size:12.5px;font-weight:500;color:#666;margin-bottom:12px;}
+        .meta-line .sep{color:#D8D2C4;}
+        .meta-line .status-open{color:#0F6E56;font-weight:700;}
+        .meta-line .status-closed{color:#E24B4A;font-weight:700;}
+        .meta-line .st{color:#C9951A;font-size:12px;letter-spacing:.5px;}
+        .meta-line .rc{color:#AAA;font-size:12px;}
+        .btn-write-rv{background:none;border:none;padding:0;color:#C9951A;font-weight:700;font-size:12.5px;font-family:'Inter',sans-serif;cursor:pointer;text-decoration:underline;text-underline-offset:2px;white-space:nowrap;}
+        .subcat-scroll{display:flex;gap:6px;overflow-x:auto;margin:0 -16px 14px;padding:0 16px 2px;-webkit-mask-image:linear-gradient(to right,#000 92%,transparent 100%);mask-image:linear-gradient(to right,#000 92%,transparent 100%);}
+        .subcat-scroll::-webkit-scrollbar{display:none;}
+        .tag-sub{flex-shrink:0;white-space:nowrap;background:#EBF4FF;color:#185FA5;font-size:11px;padding:5px 10px;border-radius:20px;font-weight:600;}
         .sec-lbl{font-family:'Bebas Neue',sans-serif;font-size:11px;color:#AAA;letter-spacing:1.5px;margin-bottom:8px;}
         .desc{font-size:14px;color:#555;line-height:1.8;}
-        .btn-write-rv{padding:7px 14px;background:#FEF3E2;color:#C9951A;border:1.5px solid #C9951A;border-radius:8px;font-size:12px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;white-space:nowrap;flex-shrink:0;}
 
         /* COLUNA DIREITA */
         .right-col{display:flex;flex-direction:column;gap:10px;grid-area:right;}
         @media(min-width:768px){.right-col{position:sticky;top:60px;max-height:calc(100vh - 80px);overflow-y:auto;}}
 
-        .action-card{background:#fff;border:0.5px solid #EDE8E0;border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:8px;}
-        .btn-wa{width:100%;height:46px;padding:0 12px;background:#25D366;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s;}
-        .btn-wa:hover{opacity:.9;}
-        .btn-ext{width:100%;padding:12px;background:#EBF4FF;color:#185FA5;border:0.5px solid #B5D4F4;border-radius:10px;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s;}
-        .btn-ext:hover{opacity:.9;}
-        .btn-cardapio{width:100%;padding:12px;background:#C9951A;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;transition:opacity .15s;box-sizing:border-box;}
-        .btn-cardapio:hover{opacity:.9;}
-        .btn-wa-locked{width:100%;padding:12px;background:#F0EDE8;color:#888;border:1px solid #DDD9D0;border-radius:10px;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .15s;}
-        .btn-wa-locked:hover:not(:disabled){background:#E5E1D9;border-color:#C9951A;color:#C9951A;}
-        .btn-wa-locked:disabled{cursor:not-allowed;opacity:0.6;}
-        .btn-ext-locked{width:100%;padding:12px;background:#F0EDE8;color:#888;border:1px solid #DDD9D0;border-radius:10px;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .15s;}
-        .btn-ext-locked:hover:not(:disabled){background:#E5E1D9;border-color:#C9951A;color:#C9951A;}
-        .btn-ext-locked:disabled{cursor:not-allowed;opacity:0.6;}
-        .btn-solicitar{width:100%;padding:12px;background:#C9951A;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .15s;margin-bottom:8px;}
+        .action-card{background:#fff;border:0.5px solid #EDE8E0;border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px;}
+        .btn-solicitar{width:100%;padding:12px;background:#C9951A;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .15s;}
         .btn-solicitar:hover:not(:disabled){background:#B8841A;}
         .btn-solicitar:disabled{cursor:not-allowed;}
         .btn-solicitar.sent{background:#E8F5E9;color:#2E7D32;border:1.5px solid #A5D6A7;}
-        .btn-fav{width:100%;height:46px;padding:0 9px;background:#FEF3E2;color:#854F0B;border:1px solid #F5C77A;border-radius:10px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-sizing:border-box;}
-        .btn-fav.on{border-color:#C9951A;}
+
+        /* Cardápio + WhatsApp — cápsulas lado a lado */
+        .pill-row{display:flex;gap:8px;}
+        .pill-cardapio{flex:1;height:44px;padding:0 8px;background:#C9951A;color:#fff;border:none;border-radius:999px;font-size:13px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;box-sizing:border-box;transition:opacity .15s;}
+        .pill-cardapio:hover{opacity:.9;}
+        .pill-wa{flex:1;height:44px;padding:0 8px;background:#25D366;color:#fff;border:none;border-radius:999px;font-size:13px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-sizing:border-box;transition:opacity .15s;}
+        .pill-wa:hover{opacity:.9;}
+        .pill-wa-locked{flex:1;height:44px;padding:0 8px;background:#F0EDE8;color:#888;border:1px solid #DDD9D0;border-radius:999px;font-size:13px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-sizing:border-box;transition:all .15s;}
+        .pill-wa-locked:hover:not(:disabled){background:#E5E1D9;border-color:#C9951A;color:#C9951A;}
+        .pill-wa-locked:disabled{cursor:not-allowed;opacity:.6;}
+
+        /* Favoritar / Compartilhar / Site — círculos de apoio */
+        .icon-row{display:flex;gap:8px;}
+        .icon-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;background:none;border:none;font-family:'Inter',sans-serif;cursor:pointer;padding:2px 0;}
+        .icon-circle{width:42px;height:42px;border-radius:50%;background:#FAFAF8;border:1px solid #E0DDD8;display:flex;align-items:center;justify-content:center;font-size:16px;color:#666;transition:all .15s;}
+        .icon-btn.on .icon-circle{background:#FEF3E2;border-color:#C9951A;color:#C9951A;}
+        .icon-btn.locked .icon-circle{background:#F0EDE8;color:#999;}
+        .icon-btn:disabled{cursor:not-allowed;opacity:.7;}
+        .icon-lbl{font-size:9px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:#888;}
 
         .addr-box{display:flex;align-items:flex-start;gap:9px;background:#fff;border:0.5px solid #EDE8E0;border-radius:12px;padding:12px 14px;}
         .addr-txt{font-size:12px;color:#555;line-height:1.6;flex:1;}
@@ -645,7 +652,7 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
 
           {/* COLUNA ESQUERDA */}
           <div className="info-card ga-info">
-            <div style={{display:'flex',alignItems:'center',gap:12,flexWrap:'wrap'}}>
+            <div className="name-row">
               {editingName ? (
                 <div style={{display:'flex',gap:8,alignItems:'center',flex:1,minWidth:220}}>
                   <input value={nameText} onChange={e=>setNameText(e.target.value)} autoFocus
@@ -658,25 +665,17 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
                     style={{padding:'7px 14px',background:'transparent',color:'#AAA',border:'1px solid #ddd',borderRadius:8,fontSize:12,cursor:'pointer'}}>Cancelar</button>
                 </div>
               ) : (
-                <div className="empresa-name" style={{display:'flex',alignItems:'center',gap:8}}>
-                  {company.name}
+                <>
+                  <span className="empresa-name">{company.name}</span>
+                  {company.plan === 'paid' && <span className="verified-badge" title="Indicado">✓</span>}
                   {isAdmin && (
                     <button onClick={()=>{setNameText(company.name);setEditingName(true)}}
                       style={{fontSize:13,background:'none',border:'none',cursor:'pointer',padding:0}}>✏️</button>
                   )}
-                </div>
-              )}
-              {company.plan === 'paid' && (
-                <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:2,flexShrink:0}}>
-                  <svg width="44" height="44" viewBox="0 0 64 64" fill="none">
-                    <circle cx="32" cy="32" r="28" stroke="#C9951A" strokeWidth="5" fill="none"/>
-                    <path d="M18 32 L27 42 L46 22" stroke="#C9951A" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  <span style={{fontSize:8,fontWeight:700,color:'#C9951A',letterSpacing:'.8px',textTransform:'uppercase'}}>Indicado</span>
-                </div>
+                </>
               )}
             </div>
-            <div className="tags" style={{alignItems:'center'}}>
+            <div className="meta-line">
               {editingCategory ? (
                 <div style={{display:'flex',gap:6,alignItems:'center'}}>
                   <select value={categorySelId} onChange={e=>setCategorySelId(e.target.value)}
@@ -692,7 +691,7 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
                 </div>
               ) : (
                 company.category && (
-                  <span className="tag tag-cat" style={{display:'flex',alignItems:'center',gap:4}}>
+                  <span className="tag-cat-edit" style={{display:'flex',alignItems:'center',gap:4}}>
                     {company.category.emoji} {company.category.name}
                     {isAdmin && (
                       <button onClick={()=>{setCategorySelId(company.category_id||'');setEditingCategory(true)}}
@@ -702,16 +701,42 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
                 )
               )}
               {(company.flexible_hours || (company.hours && company.hours.length > 0)) && (
-                <span className={`tag ${open ? 'tag-open' : 'tag-closed'}`}>{company.flexible_hours ? '● Horário flexível' : (open ? '● Aberto agora' : '● Fechado')}</span>
+                <>
+                  <span className="sep">·</span>
+                  <span className={open ? 'status-open' : 'status-closed'}>{company.flexible_hours ? '● Horário flexível' : (open ? '● Aberto agora' : '● Fechado')}</span>
+                </>
               )}
-              {company.subcategories?.map((s,i) => (
-                <span key={i} className="tag tag-sub">{s.subcategory.emoji} {s.subcategory.name}</span>
-              ))}
-              {isAdmin && !editingSubcats && (
-                <button onClick={()=>{setSubcatSelIds((company.subcategories||[]).map(s=>s.subcategory_id).filter(Boolean) as string[]);setEditingSubcats(true)}}
-                  style={{fontSize:11,color:'#C9951A',background:'none',border:'none',cursor:'pointer',fontWeight:600,padding:'2px 4px'}}>✏️ Editar subcategorias</button>
+              <span className="sep">·</span>
+              {avgRating > 0 ? (
+                <>
+                  <span className="st">{'★'.repeat(Math.round(avgRating))}{'☆'.repeat(5-Math.round(avgRating))}</span>
+                  <span>{avgRating.toFixed(1)} <span className="rc">({company.total_reviews})</span></span>
+                </>
+              ) : (
+                <span className="rc">Sem avaliações ainda</span>
+              )}
+              {reviewSent && <><span className="sep">·</span><span style={{fontSize:12,color:'#0F6E56',fontWeight:600}}>✓ Enviada!</span></>}
+              {!reviewSent && alreadyReviewed && <><span className="sep">·</span><span className="rc">✓ Avaliado</span></>}
+              {!reviewSent && !alreadyReviewed && (
+                <>
+                  <span className="sep">·</span>
+                  <button className="btn-write-rv" onClick={() => userId ? setShowReview(true) : window.location.href='/login'}>
+                    {userId ? 'Avaliar' : 'Entrar para avaliar'}
+                  </button>
+                </>
               )}
             </div>
+            {company.subcategories && company.subcategories.length > 0 && (
+              <div className="subcat-scroll">
+                {company.subcategories.map((s,i) => (
+                  <span key={i} className="tag-sub">{s.subcategory.emoji} {s.subcategory.name}</span>
+                ))}
+              </div>
+            )}
+            {isAdmin && !editingSubcats && (
+              <button onClick={()=>{setSubcatSelIds((company.subcategories||[]).map(s=>s.subcategory_id).filter(Boolean) as string[]);setEditingSubcats(true)}}
+                style={{fontSize:11,color:'#C9951A',background:'none',border:'none',cursor:'pointer',fontWeight:600,padding:0,marginBottom:10,display:'block'}}>✏️ Editar subcategorias</button>
+            )}
             {editingSubcats && (
               <div style={{background:'#FAFAF8',border:'1px solid #E0DDD8',borderRadius:10,padding:12,marginBottom:14}}>
                 <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:10}}>
@@ -735,25 +760,6 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
                 </div>
               </div>
             )}
-
-            <div className="rating-row">
-              {avgRating > 0 ? (
-                <>
-                  <span className="st">{'★'.repeat(Math.round(avgRating))}{'☆'.repeat(5-Math.round(avgRating))}</span>
-                  <span className="rn">{avgRating.toFixed(1)}</span>
-                  <span className="rc">({company.total_reviews} avaliação{company.total_reviews !== 1 ? 's' : ''})</span>
-                </>
-              ) : (
-                <span className="rc">Sem avaliações ainda</span>
-              )}
-              {reviewSent && <span style={{fontSize:12,color:'#0F6E56',fontWeight:600}}>✓ Avaliação enviada!</span>}
-              {!reviewSent && alreadyReviewed && <span style={{fontSize:11,color:'#AAA'}}>✓ Avaliado esta semana</span>}
-              {!reviewSent && !alreadyReviewed && (
-                <button className="btn-write-rv" onClick={() => userId ? setShowReview(true) : window.location.href='/login'}>
-                  ⭐ {userId ? 'Avaliar' : 'Entrar para avaliar'}
-                </button>
-              )}
-            </div>
           </div>
 
           {/* COLUNA DIREITA */}
@@ -773,40 +779,46 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
                   {contatoSent ? '✓ Contato registrado — o lojista foi notificado' : sendingContato ? 'Enviando...' : '🔔 Solicitar contato'}
                 </button>
               )}
-              {company.phone && isActive && (
-                <button className="btn-wa" onClick={handleWhatsApp}>
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-                  Falar no WhatsApp
-                </button>
+              {(company.phone || (isActive && company.loja_digital_enabled)) && (
+                <div className="pill-row">
+                  {isActive && company.loja_digital_enabled && (
+                    <a className="pill-cardapio" href={`/empresa/${company.slug}/cardapio`}>
+                      🧾 Cardápio
+                    </a>
+                  )}
+                  {company.phone && isActive && (
+                    <button className="pill-wa" onClick={handleWhatsApp}>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                      WhatsApp
+                    </button>
+                  )}
+                  {company.phone && !isActive && (
+                    <button className="pill-wa-locked" onClick={solicitarContato} disabled={contatoSent || sendingContato}>
+                      🔒 WhatsApp
+                    </button>
+                  )}
+                </div>
               )}
-              {company.phone && !isActive && (
-                <button className="btn-wa-locked" onClick={solicitarContato} disabled={contatoSent || sendingContato}>
-                  <span style={{fontSize:16}}>🔒</span>
-                  Falar no WhatsApp
+              <div className="icon-row">
+                <button className={`icon-btn ${isFav ? 'on' : ''}`} onClick={toggleFav}>
+                  <span className="icon-circle">{isFav ? '❤️' : '🤍'}</span>
+                  <span className="icon-lbl">{isFav ? 'Salvo' : 'Favoritar'}</span>
                 </button>
-              )}
-              {isActive && company.loja_digital_enabled && (
-                <a className="btn-cardapio" href={`/empresa/${company.slug}/cardapio`}>
-                  🧾 Ver cardápio
-                </a>
-              )}
-              {isActive && company.external_link && (
-                <button className="btn-ext" onClick={() => window.open(company.external_link!, '_blank')}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                  {company.external_link_label || 'Acessar site'}
-                </button>
-              )}
-              {company.external_link && !isActive && (
-                <button className="btn-ext-locked" onClick={solicitarContato} disabled={contatoSent || sendingContato}>
-                  <span style={{fontSize:14}}>🔒</span>
-                  {company.external_link_label || 'Acessar site'}
-                </button>
-              )}
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
-                <button className={`btn-fav ${isFav ? 'on' : ''}`} onClick={toggleFav}>
-                  {isFav ? '❤️' : '🤍'} {isFav ? 'Salvo' : 'Favoritar'}
-                </button>
-                <ShareButton title={company.name} text={`Dá uma olhada em ${company.name} no Trindade Online!`} label="Compartilhar" height={46}/>
+                <ShareButton variant="circle" title={company.name} text={`Dá uma olhada em ${company.name} no Trindade Online!`} label="Compartilhar"/>
+                {isActive && company.external_link && (
+                  <button className="icon-btn" onClick={() => window.open(company.external_link!, '_blank')}>
+                    <span className="icon-circle">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    </span>
+                    <span className="icon-lbl">Site</span>
+                  </button>
+                )}
+                {company.external_link && !isActive && (
+                  <button className="icon-btn locked" onClick={solicitarContato} disabled={contatoSent || sendingContato}>
+                    <span className="icon-circle">🔒</span>
+                    <span className="icon-lbl">Site</span>
+                  </button>
+                )}
               </div>
             </div>
 

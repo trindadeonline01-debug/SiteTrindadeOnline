@@ -8,9 +8,10 @@ type Props = {
   label?: string
   fullWidth?: boolean
   height?: number
+  variant?: 'default' | 'circle'
 }
 
-export default function ShareButton({ title, text, url, label = 'Compartilhar', fullWidth = true, height }: Props) {
+export default function ShareButton({ title, text, url, label = 'Compartilhar', fullWidth = true, height, variant = 'default' }: Props) {
   const [open, setOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -51,19 +52,35 @@ export default function ShareButton({ title, text, url, label = 'Compartilhar', 
 
   const waText = encodeURIComponent(`${text ? text + '\n' : ''}${getUrl()}`)
 
+  const shareIcon = (
+    <svg width={variant === 'circle' ? 15 : 15} height={variant === 'circle' ? 15 : 15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+    </svg>
+  )
+
   return (
-    <div ref={ref} style={{ position: 'relative', display: fullWidth ? 'block' : 'inline-block', width: fullWidth ? '100%' : 'auto' }}>
-      <button onClick={handleClick} style={{
-        width: fullWidth ? '100%' : 'auto', height: height || 'auto', padding: fullWidth ? '9px' : '6px 10px', background: '#FEF3E2', color: '#854F0B', border: '1px solid #F5C77A',
-        borderRadius: 10, fontSize: 13, fontWeight: 600, fontFamily: "'Inter',sans-serif", cursor: 'pointer', boxSizing: 'border-box',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
-      }}>
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
-          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-        </svg>
-        {label && <span>{label}</span>}
-      </button>
+    <div ref={ref} style={{ position: 'relative', display: variant === 'circle' ? 'flex' : (fullWidth ? 'block' : 'inline-block'), flexDirection: variant === 'circle' ? 'column' : undefined, alignItems: variant === 'circle' ? 'center' : undefined, gap: variant === 'circle' ? 5 : undefined, width: variant === 'circle' ? 'auto' : (fullWidth ? '100%' : 'auto') }}>
+      {variant === 'circle' ? (
+        <button onClick={handleClick} style={{
+          width: 42, height: 42, borderRadius: '50%', background: '#FAFAF8', color: '#666', border: '1px solid #E0DDD8',
+          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>
+          {shareIcon}
+        </button>
+      ) : (
+        <button onClick={handleClick} style={{
+          width: fullWidth ? '100%' : 'auto', height: height || 'auto', padding: fullWidth ? '9px' : '6px 10px', background: '#FEF3E2', color: '#854F0B', border: '1px solid #F5C77A',
+          borderRadius: 10, fontSize: 13, fontWeight: 600, fontFamily: "'Inter',sans-serif", cursor: 'pointer', boxSizing: 'border-box',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+        }}>
+          {shareIcon}
+          {label && <span>{label}</span>}
+        </button>
+      )}
+      {variant === 'circle' && label && (
+        <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.03em', textTransform: 'uppercase', color: '#888' }}>{label}</span>
+      )}
       {open && (
         <div style={{
           position: 'absolute', top: 'calc(100% + 6px)', right: 0, background: '#fff', border: '1px solid #E0DDD8',

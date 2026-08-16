@@ -300,9 +300,9 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
         .cd-pprice.was{ font-size:10.5px;color:#AAA;text-decoration:line-through;margin-left:5px;font-weight:600; }
         .cd-addbtn{ flex:none;width:30px;height:30px;border-radius:9px;border:1.5px solid #C9951A;background:#FEF3E2;color:#C9951A;font-size:16px;font-weight:800;cursor:pointer; }
         .cd-chev{ flex:none;width:26px;height:26px;border-radius:50%;border:none;background:#F0EDE8;color:#AAA;font-size:13px;font-weight:800;cursor:pointer; }
-        .cd-cartbar{ position:fixed;left:50%;transform:translateX(-50%);bottom:16px;width:calc(100% - 32px);max-width:448px;padding:13px 16px;border-radius:16px;background:#C9951A;color:#1A1610;display:flex;align-items:center;justify-content:space-between;box-shadow:0 10px 24px -8px rgba(0,0,0,.35);cursor:pointer;z-index:25; }
-        .cd-overlay{ position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:40;display:${detail || drawerOpen ? 'block' : 'none'}; }
-        .cd-detail{ position:fixed;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:#F0EDE8;z-index:45;border-radius:20px 20px 0 0;max-height:88vh;display:flex;flex-direction:column;overflow:hidden; }
+        .cd-cartbar{ position:fixed;left:50%;transform:translateX(-50%);bottom:16px;width:calc(100% - 32px);max-width:448px;padding:13px 16px;border-radius:16px;background:#C9951A;color:#1A1610;display:flex;align-items:center;justify-content:space-between;box-shadow:0 10px 24px -8px rgba(0,0,0,.35);cursor:pointer;z-index:10000; }
+        .cd-overlay{ position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9990;display:${detail || drawerOpen ? 'block' : 'none'}; }
+        .cd-detail{ position:fixed;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:#F0EDE8;z-index:10000;border-radius:20px 20px 0 0;max-height:88vh;display:flex;flex-direction:column;overflow:hidden; }
         .cd-hero{ height:150px;flex:none;background:linear-gradient(135deg,#FBF1DC,#E7DCC2);display:flex;align-items:center;justify-content:center;font-size:54px;position:relative;overflow:hidden; }
         .cd-hero img{ width:100%;height:100%;object-fit:cover; }
         .cd-herobtn{ position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.94);border:none;font-size:14px;cursor:pointer; }
@@ -315,7 +315,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
         .cd-dfoot{ flex:none;background:#fff;border-top:1px solid #EDE8E0;padding:12px 16px 16px;display:flex;gap:10px; }
         .cd-addcart{ flex:1;padding:14px;border-radius:12px;border:none;background:#C9951A;color:#1A1610;font-weight:800;font-size:13px;cursor:pointer; }
         .cd-addcart:disabled{ background:#E2DCCB;color:#A79E8B; }
-        .cd-drawer{ position:fixed;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:#fff;z-index:45;border-radius:20px 20px 0 0;max-height:88vh;display:flex;flex-direction:column; }
+        .cd-drawer{ position:fixed;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:#fff;z-index:10000;border-radius:20px 20px 0 0;max-height:88vh;display:flex;flex-direction:column; }
         .cd-dhead{ padding:16px;border-bottom:1px solid #EDE8E0;display:flex;justify-content:space-between;align-items:center; }
         .cd-dbody{ flex:1;overflow-y:auto;padding:14px 16px; }
         .cd-diinput{ width:100%;padding:10px 12px;border-radius:10px;border:1px solid #EDE8E0;background:#F0EDE8;font-size:13px;font-family:inherit; }

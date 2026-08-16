@@ -46,12 +46,16 @@ const STATUS_COLOR: Record<Status, { bg: string; fg: string }> = {
 const FLOW: Status[] = ['recebido', 'em_preparo', 'pronto', 'saiu_entrega', 'entregue']
 const ACTIVE: Status[] = ['recebido', 'em_preparo', 'pronto', 'saiu_entrega']
 const BOARD_COLUMNS: Status[] = ['recebido', 'em_preparo', 'pronto', 'saiu_entrega', 'entregue']
-const NEXT_ACTION: Partial<Record<Status, { next: Status; label: string }>> = {
-  recebido: { next: 'em_preparo', label: 'Iniciar preparo' },
-  em_preparo: { next: 'pronto', label: 'Marcar pronto' },
-  pronto: { next: 'saiu_entrega', label: 'Saiu para entrega' },
-  saiu_entrega: { next: 'entregue', label: 'Marcar entregue' },
+function getNextAction(p: Pedido): { next: Status; label: string } | null {
+  if (p.status === 'recebido') return { next: 'em_preparo', label: 'Iniciar preparo' }
+  if (p.status === 'em_preparo') return { next: 'pronto', label: 'Marcar pronto' }
+  if (p.status === 'pronto') {
+    return p.delivery_type === 'retirada' ? { next: 'entregue', label: 'Cliente retirou' } : { next: 'saiu_entrega', label: 'Saiu para entrega' }
+  }
+  if (p.status === 'saiu_entrega') return { next: 'entregue', label: 'Marcar entregue' }
+  return null
 }
+function flowFor(p: Pedido): Status[] { return p.delivery_type === 'retirada' ? FLOW.filter(s => s !== 'saiu_entrega') : FLOW }
 
 function fmt(n: number) { return 'R$ ' + n.toFixed(2).replace('.', ',') }
 function fmtSchedule(iso: string) {
@@ -240,8 +244,8 @@ export default function PedidosPage() {
         {p.scheduled_for && <div className="pd-sum" style={{ color: '#B5690C', fontWeight: 700 }}>📅 Agendado pra {fmtSchedule(p.scheduled_for)}</div>}
         <div className="pd-total">{fmt(p.total)}</div>
         {needsAccept && <button className="pd-accept" onClick={e => { e.stopPropagation(); acceptPedido(p.id) }}>✓ Aceitar pedido</button>}
-        {!needsAccept && !open && NEXT_ACTION[p.status] && (
-          <button className="pd-next" onClick={e => { e.stopPropagation(); setStatus(p.id, NEXT_ACTION[p.status]!.next) }}>{NEXT_ACTION[p.status]!.label} →</button>
+        {!needsAccept && !open && getNextAction(p) && (
+          <button className="pd-next" onClick={e => { e.stopPropagation(); setStatus(p.id, getNextAction(p)!.next) }}>{getNextAction(p)!.label} →</button>
         )}
         {open && (
           <div className="pd-detail" onClick={e => e.stopPropagation()}>
@@ -255,7 +259,7 @@ export default function PedidosPage() {
             {p.customer_phone && <div style={{ fontSize: 11.5, marginTop: 2 }}>📞 {p.customer_phone}</div>}
             {p.notes && <div style={{ fontSize: 11.5, marginTop: 2, color: '#6E6656' }}>Obs: {p.notes}</div>}
             <div className="pd-chips">
-              {FLOW.map(s => <button key={s} className={`pd-chip ${p.status === s ? 'current' : ''}`} onClick={() => setStatus(p.id, s)}>{STATUS_LABEL[s]}</button>)}
+              {flowFor(p).map(s => <button key={s} className={`pd-chip ${p.status === s ? 'current' : ''}`} onClick={() => setStatus(p.id, s)}>{STATUS_LABEL[s]}</button>)}
             </div>
             {p.status !== 'cancelado' && p.status !== 'entregue' && <button className="pd-cancel" onClick={() => setStatus(p.id, 'cancelado')}>Cancelar pedido</button>}
           </div>

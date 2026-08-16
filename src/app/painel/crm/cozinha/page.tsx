@@ -11,8 +11,12 @@ const COLUMNS: { status: Status; label: string; next: Status; action: string; co
   { status: 'em_preparo', label: 'Em preparo', next: 'pronto', action: 'Marcar pronto', color: '#E8B84B' },
   { status: 'pronto', label: 'Pronto', next: 'saiu_entrega', action: 'Concluir', color: '#3FBE7A' },
 ]
+function nextForCard(p: Pedido, col: typeof COLUMNS[number]) {
+  if (col.status === 'pronto' && p.delivery_type === 'retirada') return { next: 'entregue' as Status, action: 'Cliente retirou' }
+  return { next: col.next, action: col.action }
+}
 
-const CUSTOMER_MSG: Partial<Record<Status, string>> = { pronto: 'Seu pedido está pronto!', saiu_entrega: 'Seu pedido saiu para entrega!' }
+const CUSTOMER_MSG: Partial<Record<Status, string>> = { pronto: 'Seu pedido está pronto!', saiu_entrega: 'Seu pedido saiu para entrega!', entregue: 'Pedido entregue. Bom apetite!' }
 function notifyCustomer(customerId: string | null, companyName: string, status: Status) {
   const msg = CUSTOMER_MSG[status]
   if (!customerId || !msg) return
@@ -78,7 +82,8 @@ export default function CozinhaPage() {
 
   async function advance(id: string, next: Status) {
     const pedido = pedidos.find(p => p.id === id)
-    setPedidos(prev => next === 'saiu_entrega' ? prev.filter(p => p.id !== id) : prev.map(p => p.id === id ? { ...p, status: next } : p))
+    const leavesKds = next === 'saiu_entrega' || next === 'entregue'
+    setPedidos(prev => leavesKds ? prev.filter(p => p.id !== id) : prev.map(p => p.id === id ? { ...p, status: next } : p))
     await supabase.from('loja_pedidos').update({ status: next, updated_at: new Date().toISOString() }).eq('id', id)
     if (pedido) notifyCustomer(pedido.customer_id, companyName, next)
   }
@@ -117,19 +122,22 @@ export default function CozinhaPage() {
             <div className="cz-col" key={col.status} style={{ '--accent': col.color } as React.CSSProperties}>
               <div className="cz-colhead"><span>{col.label}</span><span className="cz-count">{items.length}</span></div>
               {items.length === 0 && <div className="cz-empty">Nada aqui</div>}
-              {items.map(p => (
-                <div className="cz-card" key={p.id} onClick={() => advance(p.id, col.next)}>
-                  <div className="cz-cname">{p.customer_name}</div>
-                  <div className="cz-ctime">{timeAgo(p.created_at)} atrás · {p.delivery_type === 'retirada' ? '🏪 Retirada' : '🚴 Entrega'}{p.scheduled_for ? ` · 📅 ${fmtSchedule(p.scheduled_for)}` : ''}</div>
-                  {p.itens?.map(it => (
-                    <div key={it.id}>
-                      <div className="cz-citem">{it.qty}x {it.product_name}</div>
-                      {it.selected_options?.length > 0 && <div className="cz-cmods">{it.selected_options.map(o => o.name).join(', ')}</div>}
-                    </div>
-                  ))}
-                  <button className="cz-cbtn" onClick={e => { e.stopPropagation(); advance(p.id, col.next) }}>{col.action}</button>
-                </div>
-              ))}
+              {items.map(p => {
+                const { next, action } = nextForCard(p, col)
+                return (
+                  <div className="cz-card" key={p.id} onClick={() => advance(p.id, next)}>
+                    <div className="cz-cname">{p.customer_name}</div>
+                    <div className="cz-ctime">{timeAgo(p.created_at)} atrás · {p.delivery_type === 'retirada' ? '🏪 Retirada' : '🚴 Entrega'}{p.scheduled_for ? ` · 📅 ${fmtSchedule(p.scheduled_for)}` : ''}</div>
+                    {p.itens?.map(it => (
+                      <div key={it.id}>
+                        <div className="cz-citem">{it.qty}x {it.product_name}</div>
+                        {it.selected_options?.length > 0 && <div className="cz-cmods">{it.selected_options.map(o => o.name).join(', ')}</div>}
+                      </div>
+                    ))}
+                    <button className="cz-cbtn" onClick={e => { e.stopPropagation(); advance(p.id, next) }}>{action}</button>
+                  </div>
+                )
+              })}
             </div>
           )
         })}

@@ -491,9 +491,12 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
 
         /* COLUNA ESQUERDA */
         .info-card{background:#fff;border:0.5px solid #EDE8E0;border-radius:14px;padding:18px 16px;min-width:0;}
-        .name-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:8px;}
-        .empresa-name{font-family:'Bebas Neue',sans-serif;font-size:clamp(24px,4vw,34px);color:#111;letter-spacing:1px;line-height:1.05;}
-        .verified-badge{flex-shrink:0;width:19px;height:19px;border-radius:50%;background:#C9951A;color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;}
+        /* Sem flex-wrap: a linha nunca quebra, então o selo fica sempre
+           fixo na ponta direita, no topo — é o nome que quebra dentro da
+           própria caixa dele (flex:1 + min-width:0), não a linha inteira. */
+        .name-row{display:flex;align-items:flex-start;gap:7px;margin-bottom:8px;}
+        .empresa-name{flex:1;min-width:0;font-family:'Bebas Neue',sans-serif;font-size:clamp(24px,4vw,34px);color:#111;letter-spacing:1px;line-height:1.05;}
+        .verified-badge{flex-shrink:0;margin-top:3px;width:19px;height:19px;border-radius:50%;background:#C9951A;color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;}
         .tag-cat-edit{font-size:12.5px;color:#666;}
         .meta-line{display:flex;align-items:center;flex-wrap:wrap;gap:6px;font-size:12.5px;font-weight:500;color:#666;margin-bottom:12px;}
         .meta-line .sep{color:#D8D2C4;}
@@ -502,9 +505,6 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
         .meta-line .st{color:#C9951A;font-size:12px;letter-spacing:.5px;}
         .meta-line .rc{color:#AAA;font-size:12px;}
         .btn-write-rv{background:none;border:none;padding:0;color:#C9951A;font-weight:700;font-size:12.5px;font-family:'Inter',sans-serif;cursor:pointer;text-decoration:underline;text-underline-offset:2px;white-space:nowrap;}
-        .subcat-scroll{display:flex;gap:6px;overflow-x:auto;margin:0 -16px 14px;padding:0 16px 2px;}
-        .subcat-scroll::-webkit-scrollbar{display:none;}
-        .tag-sub{flex-shrink:0;white-space:nowrap;background:#EBF4FF;color:#185FA5;font-size:11px;padding:5px 10px;border-radius:20px;font-weight:600;}
         .sec-lbl{font-family:'Bebas Neue',sans-serif;font-size:11px;color:#AAA;letter-spacing:1.5px;margin-bottom:8px;}
         .desc{font-size:14px;color:#555;line-height:1.8;}
 
@@ -729,16 +729,12 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
                 </>
               )}
             </div>
-            {company.subcategories && company.subcategories.length > 0 && (
-              <div className="subcat-scroll">
-                {company.subcategories.map((s,i) => (
-                  <span key={i} className="tag-sub">{s.subcategory.emoji} {s.subcategory.name}</span>
-                ))}
-              </div>
-            )}
+            {/* Subcategorias não aparecem mais pro visitante (não são clicáveis,
+                não ajudam quem tá vendo o perfil) — continuam existindo só como
+                dado de busca/filtro, editável pelo admin abaixo. */}
             {isAdmin && !editingSubcats && (
               <button onClick={()=>{setSubcatSelIds((company.subcategories||[]).map(s=>s.subcategory_id).filter(Boolean) as string[]);setEditingSubcats(true)}}
-                style={{fontSize:11,color:'#C9951A',background:'none',border:'none',cursor:'pointer',fontWeight:600,padding:0,marginBottom:10,display:'block'}}>✏️ Editar subcategorias</button>
+                style={{fontSize:11,color:'#C9951A',background:'none',border:'none',cursor:'pointer',fontWeight:600,padding:0,marginBottom:10,display:'block'}}>✏️ Editar subcategorias {company.subcategories && company.subcategories.length > 0 ? `(${company.subcategories.length})` : ''}</button>
             )}
             {editingSubcats && (
               <div style={{background:'#FAFAF8',border:'1px solid #E0DDD8',borderRadius:10,padding:12,marginBottom:14}}>

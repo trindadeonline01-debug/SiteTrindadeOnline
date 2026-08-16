@@ -130,8 +130,8 @@ export default function PedidosPage() {
 
   async function acceptPedido(id: string) {
     const now = new Date().toISOString()
-    setPedidos(prev => prev.map(p => p.id === id ? { ...p, accepted_at: now } : p))
-    await supabase.from('loja_pedidos').update({ accepted_at: now }).eq('id', id)
+    setPedidos(prev => prev.map(p => p.id === id ? { ...p, accepted_at: now, status: 'em_preparo' } : p))
+    await supabase.from('loja_pedidos').update({ accepted_at: now, status: 'em_preparo', updated_at: now }).eq('id', id)
   }
 
   async function toggleAutoAceitar() {

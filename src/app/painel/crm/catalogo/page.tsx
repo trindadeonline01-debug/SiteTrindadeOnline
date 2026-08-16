@@ -187,13 +187,25 @@ export default function CatalogoPage() {
   async function saveProduto() {
     if (!form.name.trim()) { showToast('Dá um nome pro produto'); return }
     setSavingProd(true)
+    try {
+      await saveProdutoInner()
+      setView('list')
+      showToast('Produto salvo!')
+    } catch (err: any) {
+      showToast('Não deu pra salvar: ' + (err?.message || 'erro desconhecido'))
+    } finally {
+      setSavingProd(false)
+    }
+  }
+
+  async function saveProdutoInner() {
     let photoUrl = form.photo_url
     if (photoFile) {
       const ext = photoFile.name.split('.').pop()
       const path = `${companyId}/${Date.now()}.${ext}`
       const compressed = await compressImage(photoFile)
       const { data: up, error: upErr } = await supabase.storage.from('loja-produtos').upload(path, compressed, { upsert: true })
-      if (upErr) { showToast('Não deu pra trocar a foto: ' + upErr.message); setSavingProd(false); return }
+      if (upErr) throw new Error('foto do produto: ' + upErr.message)
       if (up) photoUrl = supabase.storage.from('loja-produtos').getPublicUrl(path).data.publicUrl
     }
     const payload = {
@@ -236,11 +248,18 @@ export default function CatalogoPage() {
         const o = g.options[oi]
         let optPhotoUrl = o.photo_url || null
         if (o._photoFile) {
-          const ext = o._photoFile.name.split('.').pop()
-          const path = `${companyId}/opcoes/${Date.now()}_${gi}_${oi}.${ext}`
-          const compressed = await compressImage(o._photoFile)
-          const { data: up } = await supabase.storage.from('loja-produtos').upload(path, compressed, { upsert: true })
-          if (up) optPhotoUrl = supabase.storage.from('loja-produtos').getPublicUrl(path).data.publicUrl
+          try {
+            const ext = o._photoFile.name.split('.').pop()
+            const path = `${companyId}/opcoes/${Date.now()}_${gi}_${oi}.${ext}`
+            const compressed = await compressImage(o._photoFile)
+            const { data: up, error: upErr } = await supabase.storage.from('loja-produtos').upload(path, compressed, { upsert: true })
+            if (upErr) throw upErr
+            if (up) optPhotoUrl = supabase.storage.from('loja-produtos').getPublicUrl(path).data.publicUrl
+          } catch {
+            // Não deixa a foto de UMA opção travar o produto inteiro — salva
+            // a opção sem foto e avisa depois, em vez de perder tudo.
+            showToast(`Salvou, mas a foto de "${o.name || 'uma opção'}" falhou — tenta outra imagem`)
+          }
         }
         optRows.push({
           grupo_id: gData.id, name: o.name.trim() || 'Opção', price: o.price, max_qty: o.max_qty || null, linked_produto_id: o.linked_produto_id || null, photo_url: optPhotoUrl, display_order: oi,
@@ -250,9 +269,6 @@ export default function CatalogoPage() {
     }
 
     await loadAll(companyId)
-    setSavingProd(false)
-    setView('list')
-    showToast('Produto salvo!')
   }
 
   async function toggleActive(p: Produto) {

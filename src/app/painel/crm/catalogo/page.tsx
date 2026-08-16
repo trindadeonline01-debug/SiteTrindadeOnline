@@ -357,12 +357,10 @@ export default function CatalogoPage() {
         .cg-opt-photo{ flex:none;width:36px;height:36px;border-radius:8px;background:#fff;border:1px solid #E6E0D2;display:flex;align-items:center;justify-content:center;font-size:14px;color:#A79E8B;overflow:hidden;cursor:pointer; }
         .cg-opt-photo img{ width:100%;height:100%;object-fit:cover; }
         .cg-opt-name{ flex:1;min-width:0;padding:7px 9px;border-radius:7px;border:1px solid #E6E0D2;font-size:12px;font-family:inherit;box-sizing:border-box; }
-        .cg-opt-line2{ display:flex;gap:6px;align-items:center; }
-        .cg-opt-line2 input{ padding:6px 8px;border-radius:7px;border:1px solid #E6E0D2;font-size:11.5px;font-family:inherit;box-sizing:border-box; }
-        .cg-opt-line2 .op{ flex:none;width:60px;text-align:right; }
-        .cg-opt-line2 .oq{ flex:none;width:38px;text-align:center; }
-        .cg-opt-line2 select{ flex:1;min-width:0;padding:6px;border-radius:7px;border:1px solid #E6E0D2;font-size:11px;font-family:inherit; }
-        .cg-opt-line2 .cg-del{ flex:none; }
+        .cg-opt-fields{ display:grid;grid-template-columns:1fr 1fr;gap:8px; }
+        .cg-opt-field-full{ grid-column:1/-1; }
+        .cg-opt-field label{ display:block;font-size:10px;font-weight:700;color:#6E6656;margin-bottom:4px; }
+        .cg-opt-field input, .cg-opt-field select{ width:100%;padding:7px 9px;border-radius:7px;border:1px solid #E6E0D2;font-size:11.5px;font-family:inherit;box-sizing:border-box; }
         .cg-add-inline{ font-size:11px;font-weight:700;color:#8A6410;background:#FBF1DC;border:1px dashed #E6E0D2;border-radius:8px;padding:7px;width:100%;cursor:pointer;margin-top:4px; }
         .cg-add-group{ width:100%;padding:10px;border-radius:10px;border:1.5px dashed #E6E0D2;background:transparent;color:#A79E8B;font-weight:700;font-size:12px;cursor:pointer; }
         .cg-savebar{ position:sticky;bottom:0;padding:12px 0 6px;background:#F7F5F0;display:flex;gap:8px; }
@@ -531,15 +529,24 @@ export default function CatalogoPage() {
                         <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => updateOption(gi, oi, { _photoFile: e.target.files?.[0] || null })} />
                       </label>
                       <input className="cg-opt-name" placeholder="Nome da opção" value={o.name} onChange={e => updateOption(gi, oi, { name: e.target.value })} />
+                      <button className="cg-del" style={{ width: 26, height: 26 }} onClick={() => removeOption(gi, oi)}>🗑</button>
                     </div>
-                    <div className="cg-opt-line2">
-                      <input className="op" placeholder="preço" value={o.price} onChange={e => updateOption(gi, oi, { price: +e.target.value || 0 })} />
-                      <input className="oq" placeholder="máx" value={o.max_qty ?? ''} onChange={e => updateOption(gi, oi, { max_qty: +e.target.value || null })} />
-                      <select value={o.linked_produto_id || ''} onChange={e => updateOption(gi, oi, { linked_produto_id: e.target.value || null })}>
-                        <option value="">avulso</option>
-                        {produtos.filter(p => p.id !== form.id).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                      </select>
-                      <button className="cg-del" style={{ width: 26, height: 26 }} onClick={() => removeOption(gi, oi)}>✕</button>
+                    <div className="cg-opt-fields">
+                      <div className="cg-opt-field">
+                        <label>Preço (R$)</label>
+                        <input value={o.price} onChange={e => updateOption(gi, oi, { price: +e.target.value || 0 })} />
+                      </div>
+                      <div className="cg-opt-field">
+                        <label>Qtd. máx. dessa opção</label>
+                        <input placeholder="sem limite" value={o.max_qty ?? ''} onChange={e => updateOption(gi, oi, { max_qty: +e.target.value || null })} />
+                      </div>
+                      <div className="cg-opt-field cg-opt-field-full">
+                        <label>Vincular a um produto do catálogo (opcional)</label>
+                        <select value={o.linked_produto_id || ''} onChange={e => updateOption(gi, oi, { linked_produto_id: e.target.value || null })}>
+                          <option value="">Nenhum — é só uma opção avulsa</option>
+                          {produtos.filter(p => p.id !== form.id).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                        </select>
+                      </div>
                     </div>
                   </div>
                 ))}

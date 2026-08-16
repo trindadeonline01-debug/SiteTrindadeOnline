@@ -41,7 +41,7 @@ export default function CatalogoPage() {
   const [companyName, setCompanyName] = useState('')
   const [categorias, setCategorias] = useState<Categoria[]>([])
   const [produtos, setProdutos] = useState<Produto[]>([])
-  const [view, setView] = useState<'list' | 'form'>('list')
+  const [view, setView] = useState<'list' | 'form' | 'bulk'>('list')
   const [filterCat, setFilterCat] = useState('all')
   const [form, setForm] = useState(emptyForm())
   const [photoFile, setPhotoFile] = useState<File | null>(null)
@@ -53,6 +53,8 @@ export default function CatalogoPage() {
   const [mgrNewCatName, setMgrNewCatName] = useState('')
   const [editingCatId, setEditingCatId] = useState('')
   const [editCatName, setEditCatName] = useState('')
+  const [bulkRows, setBulkRows] = useState(() => Array.from({ length: 5 }, () => ({ name: '', category_id: '', cost_price: '', sale_price: '' })))
+  const [savingBulk, setSavingBulk] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -115,6 +117,37 @@ export default function CatalogoPage() {
   }
 
   function openNew() { setForm(emptyForm()); setPhotoFile(null); setView('form') }
+
+  function openBulk() { setView('bulk') }
+  function updateBulkRow(i: number, patch: Partial<{ name: string; category_id: string; cost_price: string; sale_price: string }>) {
+    setBulkRows(prev => prev.map((r, idx) => idx === i ? { ...r, ...patch } : r))
+  }
+  function addBulkRow() {
+    setBulkRows(prev => [...prev, { name: '', category_id: prev[prev.length - 1]?.category_id || '', cost_price: '', sale_price: '' }])
+  }
+  function removeBulkRow(i: number) { setBulkRows(prev => prev.filter((_, idx) => idx !== i)) }
+
+  async function saveBulkRows() {
+    const valid = bulkRows.filter(r => r.name.trim())
+    if (!valid.length) { showToast('Preenche pelo menos o nome de um produto'); return }
+    setSavingBulk(true)
+    const payload = valid.map((r, idx) => ({
+      company_id: companyId,
+      category_id: r.category_id || null,
+      name: r.name.trim(),
+      cost_price: parsePt(r.cost_price),
+      sale_price: parsePt(r.sale_price),
+      active: true,
+      track_stock: false,
+      esgotado: false,
+      display_order: produtos.length + idx,
+    }))
+    await supabase.from('loja_produtos').insert(payload)
+    await loadAll(companyId)
+    setBulkRows(Array.from({ length: 5 }, () => ({ name: '', category_id: valid[valid.length - 1].category_id, cost_price: '', sale_price: '' })))
+    setSavingBulk(false)
+    showToast(`${valid.length} produto${valid.length > 1 ? 's' : ''} criado${valid.length > 1 ? 's' : ''}!`)
+  }
 
   async function openEdit(id: string) {
     const { data } = await supabase
@@ -247,6 +280,7 @@ export default function CatalogoPage() {
           .cg-list-view .cg-filters{ grid-column:1/-1; }
           .cg-list-view .cg-quality{ grid-column:1/-1; }
           .cg-list-view .cg-empty-msg{ grid-column:1/-1; }
+          .cg-list-view .cg-bulk-cta{ grid-column:1/-1; }
           .cg-row{ flex-direction:column; align-items:stretch; gap:0; border:1px solid #E6E0D2; border-radius:14px; padding:0; overflow:hidden; background:#fff; }
           .cg-row .cg-photo{ width:100%; height:130px; border-radius:0; font-size:34px; }
           .cg-row .cg-mid{ padding:12px 14px 4px; }
@@ -329,6 +363,12 @@ export default function CatalogoPage() {
         .cg-cat-row-count{ font-size:10.5px;color:#A79E8B;flex:none;white-space:nowrap; }
         .cg-cat-modal-foot{ padding:12px 16px 16px;border-top:1px solid #EDE8E0;background:#fff;display:flex;gap:8px; }
         .cg-cat-modal-foot input{ flex:1;min-width:0;padding:9px 11px;border-radius:9px;border:1px solid #E6E0D2;font-size:12.5px;font-family:inherit; }
+        .cg-bulk-hint{ font-size:11.5px;color:#A79E8B;margin-bottom:12px;line-height:1.5; }
+        .cg-bulk-row{ border:1px solid #E6E0D2;border-radius:10px;padding:8px;margin-bottom:8px;background:#fff; }
+        .cg-bulk-name{ width:100%;padding:8px 10px;border-radius:8px;border:1px solid #E6E0D2;font-size:12.5px;font-family:inherit;margin-bottom:6px;box-sizing:border-box; }
+        .cg-bulk-line2{ display:flex;gap:6px; }
+        .cg-bulk-line2 select{ flex:1.4;min-width:0;padding:7px 6px;border-radius:8px;border:1px solid #E6E0D2;font-size:11.5px;font-family:inherit; }
+        .cg-bulk-price{ flex:1;min-width:0;padding:7px 8px;border-radius:8px;border:1px solid #E6E0D2;font-size:11.5px;font-family:inherit; }
       `}</style>
 
       {view === 'list' && (
@@ -355,6 +395,7 @@ export default function CatalogoPage() {
                 <button key={c.id} className={`cg-chip ${filterCat === c.id ? 'active' : ''}`} onClick={() => setFilterCat(c.id)}>{c.name}</button>
               ))}
             </div>
+            <button className="cg-add-group cg-bulk-cta" style={{ marginBottom: 14 }} onClick={openBulk}>⚡ Cadastro rápido — vários produtos de uma vez</button>
             {filtered.length === 0 && <div className="cg-empty-msg" style={{ textAlign: 'center', color: '#A79E8B', padding: '40px 0', fontSize: 12.5 }}>Nenhum produto ainda. Toca no + pra criar o primeiro.</div>}
             {filtered.map(p => (
               <div key={p.id} className="cg-row" onClick={() => openEdit(p.id)}>
@@ -482,6 +523,38 @@ export default function CatalogoPage() {
 
             <div className="cg-savebar">
               <button className="cg-btn cg-btn-gold" disabled={savingProd} onClick={saveProduto}>{savingProd ? 'Salvando...' : 'Salvar produto'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {view === 'bulk' && (
+        <div className="cg-form-view">
+          <div className="cg-head">
+            <button className="cg-back" onClick={() => setView('list')}>‹</button>
+            <h1>Cadastro rápido</h1>
+            <button className="cg-btn-ghost" style={{ padding: '8px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700 }} onClick={() => setShowCatManager(true)}>🏷️ Categorias</button>
+          </div>
+          <div className="cg-body">
+            <div className="cg-bulk-hint">Nome, categoria e preços de vários produtos de uma vez. Foto e descrição você adiciona depois, abrindo cada um na lista.</div>
+            {bulkRows.map((r, i) => (
+              <div className="cg-bulk-row" key={i}>
+                <input className="cg-bulk-name" placeholder="Nome do produto" value={r.name} onChange={e => updateBulkRow(i, { name: e.target.value })} />
+                <div className="cg-bulk-line2">
+                  <select value={r.category_id} onChange={e => updateBulkRow(i, { category_id: e.target.value })}>
+                    <option value="">Sem categoria</option>
+                    {categorias.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                  <input className="cg-bulk-price" placeholder="Custo" value={r.cost_price} onChange={e => updateBulkRow(i, { cost_price: e.target.value })} />
+                  <input className="cg-bulk-price" placeholder="Venda" value={r.sale_price} onChange={e => updateBulkRow(i, { sale_price: e.target.value })} />
+                  <button className="cg-del" style={{ width: 26, height: 26 }} onClick={() => removeBulkRow(i)}>✕</button>
+                </div>
+              </div>
+            ))}
+            <button className="cg-add-inline" onClick={addBulkRow}>+ Adicionar linha</button>
+
+            <div className="cg-savebar">
+              <button className="cg-btn cg-btn-gold" disabled={savingBulk} onClick={saveBulkRows}>{savingBulk ? 'Salvando...' : 'Salvar todos'}</button>
             </div>
           </div>
         </div>

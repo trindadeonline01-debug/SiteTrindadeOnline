@@ -125,7 +125,8 @@ export default function CatalogoPage() {
       const ext = photoFile.name.split('.').pop()
       const path = `${companyId}/${Date.now()}.${ext}`
       const compressed = await compressImage(photoFile)
-      const { data: up } = await supabase.storage.from('loja-produtos').upload(path, compressed, { upsert: true })
+      const { data: up, error: upErr } = await supabase.storage.from('loja-produtos').upload(path, compressed, { upsert: true })
+      if (upErr) { showToast('Não deu pra trocar a foto: ' + upErr.message); setSavingProd(false); return }
       if (up) photoUrl = supabase.storage.from('loja-produtos').getPublicUrl(path).data.publicUrl
     }
     const payload = {

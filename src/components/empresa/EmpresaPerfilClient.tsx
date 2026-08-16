@@ -478,16 +478,19 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
         @media(max-width:767px){.page{padding:16px 16px 40px;}}
 
         /* Mobile: empilhado na mesma ordem de sempre — nome, ações/endereço/mapa, sobre. */
-        .content-grid{display:grid;grid-template-columns:1fr;grid-template-areas:"info" "right" "sobre";gap:20px;align-items:start;}
-        .ga-info{grid-area:info;}
-        .ga-sobre{grid-area:sobre;}
+        /* minmax(0,1fr) em vez de 1fr: sem isso, a coluna se recusa a
+           encolher abaixo da largura do conteúdo (ex: a fileira de chips
+           de subcategoria com scroll) e a página inteira vaza pra direita. */
+        .content-grid{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"info" "right" "sobre";gap:20px;align-items:start;}
+        .ga-info{grid-area:info;min-width:0;}
+        .ga-sobre{grid-area:sobre;min-width:0;}
         /* Desktop: sobre sobe pra colar no card do nome, na mesma coluna. */
         @media(min-width:768px){
-          .content-grid{grid-template-columns:1fr 300px;grid-template-areas:"info right" "sobre right";}
+          .content-grid{grid-template-columns:minmax(0,1fr) 300px;grid-template-areas:"info right" "sobre right";}
         }
 
         /* COLUNA ESQUERDA */
-        .info-card{background:#fff;border:0.5px solid #EDE8E0;border-radius:14px;padding:18px 16px;}
+        .info-card{background:#fff;border:0.5px solid #EDE8E0;border-radius:14px;padding:18px 16px;min-width:0;}
         .name-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:8px;}
         .empresa-name{font-family:'Bebas Neue',sans-serif;font-size:clamp(24px,4vw,34px);color:#111;letter-spacing:1px;line-height:1.05;}
         .verified-badge{flex-shrink:0;width:19px;height:19px;border-radius:50%;background:#C9951A;color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;}
@@ -499,14 +502,14 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
         .meta-line .st{color:#C9951A;font-size:12px;letter-spacing:.5px;}
         .meta-line .rc{color:#AAA;font-size:12px;}
         .btn-write-rv{background:none;border:none;padding:0;color:#C9951A;font-weight:700;font-size:12.5px;font-family:'Inter',sans-serif;cursor:pointer;text-decoration:underline;text-underline-offset:2px;white-space:nowrap;}
-        .subcat-scroll{display:flex;gap:6px;overflow-x:auto;margin:0 -16px 14px;padding:0 16px 2px;-webkit-mask-image:linear-gradient(to right,#000 92%,transparent 100%);mask-image:linear-gradient(to right,#000 92%,transparent 100%);}
+        .subcat-scroll{display:flex;gap:6px;overflow-x:auto;margin:0 -16px 14px;padding:0 16px 2px;}
         .subcat-scroll::-webkit-scrollbar{display:none;}
         .tag-sub{flex-shrink:0;white-space:nowrap;background:#EBF4FF;color:#185FA5;font-size:11px;padding:5px 10px;border-radius:20px;font-weight:600;}
         .sec-lbl{font-family:'Bebas Neue',sans-serif;font-size:11px;color:#AAA;letter-spacing:1.5px;margin-bottom:8px;}
         .desc{font-size:14px;color:#555;line-height:1.8;}
 
         /* COLUNA DIREITA */
-        .right-col{display:flex;flex-direction:column;gap:10px;grid-area:right;}
+        .right-col{display:flex;flex-direction:column;gap:10px;grid-area:right;min-width:0;}
         @media(min-width:768px){.right-col{position:sticky;top:60px;max-height:calc(100vh - 80px);overflow-y:auto;}}
 
         .action-card{background:#fff;border:0.5px solid #EDE8E0;border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px;}

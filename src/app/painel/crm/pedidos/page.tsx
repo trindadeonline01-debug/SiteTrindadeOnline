@@ -44,8 +44,15 @@ const STATUS_COLOR: Record<Status, { bg: string; fg: string }> = {
   entregue: { bg: '#F0EDE8', fg: '#6E6656' }, cancelado: { bg: '#FBEAEA', fg: '#C43D3D' },
 }
 const FLOW: Status[] = ['recebido', 'em_preparo', 'pronto', 'saiu_entrega', 'entregue']
-const ACTIVE: Status[] = ['recebido', 'em_preparo', 'pronto', 'saiu_entrega']
 const BOARD_COLUMNS: Status[] = ['recebido', 'em_preparo', 'pronto', 'saiu_entrega', 'entregue']
+type MobileStageKey = 'recebido' | 'em_preparo' | 'pronto' | 'saiu_entrega' | 'historico'
+const MOBILE_STAGES: { key: MobileStageKey; label: string; accent: string; match: (s: Status) => boolean }[] = [
+  { key: 'recebido', label: 'Recebido', accent: STATUS_COLOR.recebido.fg, match: s => s === 'recebido' },
+  { key: 'em_preparo', label: 'Em preparo', accent: STATUS_COLOR.em_preparo.fg, match: s => s === 'em_preparo' },
+  { key: 'pronto', label: 'Pronto', accent: STATUS_COLOR.pronto.fg, match: s => s === 'pronto' },
+  { key: 'saiu_entrega', label: 'Saiu p/ entrega', accent: STATUS_COLOR.saiu_entrega.fg, match: s => s === 'saiu_entrega' },
+  { key: 'historico', label: 'Histórico', accent: STATUS_COLOR.entregue.fg, match: s => s === 'entregue' || s === 'cancelado' },
+]
 function getNextAction(p: Pedido): { next: Status; label: string } | null {
   if (p.status === 'recebido') return { next: 'em_preparo', label: 'Iniciar preparo' }
   if (p.status === 'em_preparo') return { next: 'pronto', label: 'Marcar pronto' }
@@ -87,7 +94,7 @@ export default function PedidosPage() {
   const [companyName, setCompanyName] = useState('')
   const [autoAceitar, setAutoAceitar] = useState(true)
   const [pedidos, setPedidos] = useState<Pedido[]>([])
-  const [filter, setFilter] = useState<'ativos' | 'historico'>('ativos')
+  const [mobileStage, setMobileStage] = useState<MobileStageKey>('recebido')
   const [openId, setOpenId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const companyIdRef = useRef('')
@@ -228,7 +235,8 @@ export default function PedidosPage() {
   const searched = search.trim()
     ? pedidos.filter(p => p.customer_name.toLowerCase().includes(search.trim().toLowerCase()) || p.id.startsWith(search.trim()))
     : pedidos
-  const list = searched.filter(p => filter === 'ativos' ? ACTIVE.includes(p.status) : !ACTIVE.includes(p.status))
+  const currentStage = MOBILE_STAGES.find(t => t.key === mobileStage)!
+  const mobileList = searched.filter(p => currentStage.match(p.status))
 
   function renderCard(p: Pedido) {
     const open = openId === p.id
@@ -278,9 +286,11 @@ export default function PedidosPage() {
         .pd-head{ padding:22px 16px 14px;display:flex;align-items:center;gap:10px;position:sticky;top:0;background:#F7F5F0;z-index:5; }
         .pd-head h1{ font-size:18px;margin:0;flex:1;font-weight:800; }
         .pd-back{ width:32px;height:32px;border-radius:50%;border:1px solid #E6E0D2;background:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;text-decoration:none;color:#1A1610; }
-        .pd-tabs{ display:flex;gap:8px;padding:0 16px 12px; }
-        .pd-tab{ flex:1;padding:8px;border-radius:9px;border:1px solid #E6E0D2;background:#fff;font-weight:700;font-size:12px;color:#6E6656;cursor:pointer; }
-        .pd-tab.active{ background:#1A1610;color:#C9951A;border-color:#1A1610; }
+        .pd-tabs{ display:flex;gap:8px;padding:0 16px 12px;overflow-x:auto; }
+        .pd-tab{ flex:none;display:flex;align-items:center;gap:6px;padding:8px 13px;border-radius:20px;border:1.5px solid #E6E0D2;background:#fff;font-weight:700;font-size:12.5px;color:#6E6656;cursor:pointer;white-space:nowrap; }
+        .pd-tab.active{ background:var(--accent);color:#fff;border-color:var(--accent); }
+        .pd-tab-count{ font-variant-numeric:tabular-nums;background:#EDE8E0;color:#6E6656;font-size:10.5px;font-weight:800;padding:1px 7px;border-radius:20px; }
+        .pd-tab.active .pd-tab-count{ background:rgba(255,255,255,.3);color:#fff; }
         .pd-body{ padding:0 16px; }
         .pd-card{ background:#fff;border:1px solid #EDE8E0;border-radius:12px;padding:12px;margin-bottom:10px;cursor:pointer; }
         .pd-row1{ display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px; }
@@ -332,9 +342,6 @@ export default function PedidosPage() {
         .np-foot{ padding:12px 16px 16px;border-top:1px solid #EDE8E0;background:#fff; }
         .np-createbtn{ width:100%;padding:13px;border-radius:10px;border:none;background:#157A52;color:#fff;font-weight:800;cursor:pointer; }
         .np-createbtn:disabled{ background:#D8D2C4;color:#8A8577; }
-        .pd-group{ margin-bottom:20px; }
-        .pd-group-head{ display:flex;justify-content:space-between;align-items:center;padding:2px 2px 8px;font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);border-bottom:2px solid var(--accent);margin-bottom:10px; }
-        .pd-group-count{ background:var(--accent);color:#fff;font-size:11px;font-weight:800;padding:2px 9px;border-radius:20px; }
         .pd-board{ display:none; }
         @media(min-width:768px){
           .pd-wrap{ max-width:none;margin:0;padding-bottom:40px; }
@@ -359,23 +366,18 @@ export default function PedidosPage() {
           <a href="/painel/crm/cozinha" style={{ fontSize: 11, fontWeight: 700, color: '#8A6410', background: '#FBF1DC', padding: '7px 12px', borderRadius: 8, textDecoration: 'none' }}>🍳 Cozinha</a>
         </div>
         <div className="pd-tabs">
-          <button className={`pd-tab ${filter === 'ativos' ? 'active' : ''}`} onClick={() => setFilter('ativos')}>Ativos ({pedidos.filter(p => ACTIVE.includes(p.status)).length})</button>
-          <button className={`pd-tab ${filter === 'historico' ? 'active' : ''}`} onClick={() => setFilter('historico')}>Histórico</button>
+          {MOBILE_STAGES.map(t => {
+            const count = searched.filter(p => t.match(p.status)).length
+            return (
+              <button key={t.key} className={`pd-tab ${mobileStage === t.key ? 'active' : ''}`} style={{ '--accent': t.accent } as React.CSSProperties} onClick={() => setMobileStage(t.key)}>
+                {t.label} <span className="pd-tab-count">{count}</span>
+              </button>
+            )
+          })}
         </div>
         <div className="pd-body">
-          {list.length === 0 && <div className="pd-empty">Nenhum pedido por aqui.</div>}
-          {filter === 'ativos'
-            ? ACTIVE.map(status => {
-                const items = list.filter(p => p.status === status)
-                if (items.length === 0) return null
-                return (
-                  <div className="pd-group" key={status} style={{ '--accent': STATUS_COLOR[status].fg } as React.CSSProperties}>
-                    <div className="pd-group-head"><span>{STATUS_LABEL[status]}</span><span className="pd-group-count">{items.length}</span></div>
-                    {items.map(renderCard)}
-                  </div>
-                )
-              })
-            : list.map(renderCard)}
+          {mobileList.length === 0 && <div className="pd-empty">Nenhum pedido em {currentStage.label.toLowerCase()}.</div>}
+          {mobileList.map(renderCard)}
         </div>
       </div>
 

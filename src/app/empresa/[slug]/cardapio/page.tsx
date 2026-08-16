@@ -58,11 +58,46 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
   const [detailSel, setDetailSel] = useState<number[][]>([])
   const [detailQty, setDetailQty] = useState(1)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [deliveryType, setDeliveryType] = useState<'entrega' | 'retirada'>('entrega')
+  const [cep, setCep] = useState('')
+  const [cepLoading, setCepLoading] = useState(false)
+  const [cepError, setCepError] = useState(false)
+  const [numero, setNumero] = useState('')
+  const [cepData, setCepData] = useState<{ logradouro: string; bairro: string; localidade: string; uf: string } | null>(null)
   const [address, setAddress] = useState('')
+  const [agendarRetirada, setAgendarRetirada] = useState(false)
+  const [scheduleDate, setScheduleDate] = useState('')
+  const [scheduleTime, setScheduleTime] = useState('')
   const [obs, setObs] = useState('')
   const [payMethod, setPayMethod] = useState<'pix' | 'dinheiro' | 'cartao'>('pix')
   const [success, setSuccess] = useState(false)
   const [confirming, setConfirming] = useState(false)
+
+  function formatCep(v: string) { return v.replace(/\D/g, '').slice(0, 8).replace(/^(\d{5})(\d)/, '$1-$2') }
+  function buildAddress(data: { logradouro: string; bairro: string; localidade: string; uf: string }, num: string) {
+    return [data.logradouro + (num ? ', ' + num : ''), data.bairro, `${data.localidade}-${data.uf}`].filter(Boolean).join(', ')
+  }
+  async function handleCepChange(v: string) {
+    setCep(formatCep(v))
+    setCepError(false)
+    const digits = v.replace(/\D/g, '')
+    if (digits.length !== 8) return
+    setCepLoading(true)
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`)
+      const data = await res.json()
+      if (data.erro) { setCepError(true); setCepData(null) } else {
+        const parsed = { logradouro: data.logradouro || '', bairro: data.bairro || '', localidade: data.localidade || '', uf: data.uf || '' }
+        setCepData(parsed)
+        setAddress(buildAddress(parsed, numero))
+      }
+    } catch { setCepError(true) }
+    setCepLoading(false)
+  }
+  function handleNumeroChange(v: string) {
+    setNumero(v)
+    if (cepData) setAddress(buildAddress(cepData, v))
+  }
 
   useEffect(() => {
     supabase.from('companies')
@@ -86,7 +121,14 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
         const parsed = JSON.parse(saved)
         if (Array.isArray(parsed.cart) && parsed.cart.length > 0) {
           setCart(parsed.cart)
+          setDeliveryType(parsed.deliveryType || 'entrega')
+          setCep(parsed.cep || '')
+          setNumero(parsed.numero || '')
+          setCepData(parsed.cepData || null)
           setAddress(parsed.address || '')
+          setAgendarRetirada(!!parsed.agendarRetirada)
+          setScheduleDate(parsed.scheduleDate || '')
+          setScheduleTime(parsed.scheduleTime || '')
           setObs(parsed.obs || '')
           setPayMethod(parsed.payMethod || 'pix')
           setDrawerOpen(true)
@@ -141,20 +183,28 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
   async function confirmOrder() {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) {
-      try { localStorage.setItem(cartStorageKey(slug), JSON.stringify({ cart, address, obs, payMethod })) } catch {}
+      try {
+        localStorage.setItem(cartStorageKey(slug), JSON.stringify({
+          cart, deliveryType, cep, numero, cepData, address, agendarRetirada, scheduleDate, scheduleTime, obs, payMethod,
+        }))
+      } catch {}
       window.location.href = `/login?redirect=/empresa/${slug}/cardapio`
       return
     }
     if (!company || cart.length === 0) return
     if (Number(company.loja_pedido_minimo || 0) > 0 && cartTotal < Number(company.loja_pedido_minimo)) return
+    if (deliveryType === 'entrega' && !address.trim()) return
     setConfirming(true)
-    const taxa = address.trim() ? Number(company.loja_taxa_entrega || 0) : 0
+    const taxa = deliveryType === 'entrega' ? Number(company.loja_taxa_entrega || 0) : 0
     const total = cartTotal + taxa
+    const scheduledFor = deliveryType === 'retirada' && agendarRetirada && scheduleDate && scheduleTime
+      ? new Date(`${scheduleDate}T${scheduleTime}`).toISOString() : null
     const { data: profile } = await supabase.from('profiles').select('name, phone').eq('id', session.user.id).maybeSingle()
     const { data: pedido } = await supabase.from('loja_pedidos').insert({
       company_id: company.id, customer_id: session.user.id,
       customer_name: profile?.name || 'Cliente', customer_phone: profile?.phone || null,
-      delivery_address: address, origin: 'cardapio_publico', payment_method: payMethod,
+      delivery_address: deliveryType === 'entrega' ? address : null, delivery_type: deliveryType, scheduled_for: scheduledFor,
+      origin: 'cardapio_publico', payment_method: payMethod,
       subtotal: cartTotal, total, notes: obs.trim() || null,
     }).select('id').single()
     if (pedido) {
@@ -166,7 +216,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           companyId: company.id, phone: profile?.phone || null, name: profile?.name || 'Cliente',
-          address, total, items: cart.map(l => ({ produtoId: l.produtoId, qty: l.qty })),
+          address: deliveryType === 'entrega' ? address : null, total, items: cart.map(l => ({ produtoId: l.produtoId, qty: l.qty })),
         }),
       }).catch(() => {})
       if (company.owner_id) {
@@ -183,7 +233,10 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
     }
     setConfirming(false)
     setSuccess(true)
-    setTimeout(() => { setDrawerOpen(false); setSuccess(false); setCart([]); setObs('') }, 2500)
+    setTimeout(() => {
+      setDrawerOpen(false); setSuccess(false); setCart([]); setObs('')
+      setAgendarRetirada(false); setScheduleDate(''); setScheduleTime('')
+    }, 2500)
   }
 
   if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter,sans-serif', color: '#AAA', background: '#F0EDE8' }}>Carregando...</div>
@@ -195,7 +248,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
   )
 
   const open = isOpenNow(company.hours as any, company.flexible_hours)
-  const taxaEntrega = address.trim() ? Number(company.loja_taxa_entrega || 0) : 0
+  const taxaEntrega = deliveryType === 'entrega' ? Number(company.loja_taxa_entrega || 0) : 0
   const orderTotal = cartTotal + taxaEntrega
   const abaixoMinimo = Number(company.loja_pedido_minimo || 0) > 0 && cartTotal < Number(company.loja_pedido_minimo)
   const searchTerm = search.trim().toLowerCase()
@@ -410,8 +463,38 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
                     <b>{fmt(l.qty * l.unitPrice)}</b>
                   </div>
                 ))}
-                <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', margin: '14px 0 8px', fontWeight: 800 }}>Endereço</div>
-                <input className="cd-diinput" value={address} onChange={e => setAddress(e.target.value)} placeholder="Rua, número, bairro" />
+                <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', margin: '14px 0 8px', fontWeight: 800 }}>Como você quer receber?</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className={`cd-paychip ${deliveryType === 'entrega' ? 'active' : ''}`} style={{ flex: 1, marginRight: 0, textAlign: 'center' }} onClick={() => setDeliveryType('entrega')}>🚴 Entrega</button>
+                  <button className={`cd-paychip ${deliveryType === 'retirada' ? 'active' : ''}`} style={{ flex: 1, marginRight: 0, textAlign: 'center' }} onClick={() => setDeliveryType('retirada')}>🏪 Retirar na loja</button>
+                </div>
+
+                {deliveryType === 'entrega' ? (
+                  <>
+                    <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', margin: '14px 0 8px', fontWeight: 800 }}>Endereço</div>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                      <input className="cd-diinput" style={{ flex: 1 }} value={cep} onChange={e => handleCepChange(e.target.value)} placeholder="CEP" inputMode="numeric" />
+                      <input className="cd-diinput" style={{ width: 90 }} value={numero} onChange={e => handleNumeroChange(e.target.value)} placeholder="Número" />
+                    </div>
+                    {cepLoading && <div style={{ fontSize: 11, color: '#AAA', marginBottom: 6 }}>Buscando endereço...</div>}
+                    {cepError && <div style={{ fontSize: 11, color: '#C43D3D', marginBottom: 6 }}>CEP não encontrado — preenche o endereço direto embaixo</div>}
+                    <input className="cd-diinput" value={address} onChange={e => setAddress(e.target.value)} placeholder="Rua, bairro, complemento" />
+                  </>
+                ) : (
+                  <>
+                    <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <input type="checkbox" checked={agendarRetirada} onChange={e => setAgendarRetirada(e.target.checked)} id="cd-agendar" />
+                      <label htmlFor="cd-agendar" style={{ fontSize: 12, fontWeight: 600 }}>Agendar retirada pra outro dia/horário</label>
+                    </div>
+                    {agendarRetirada && (
+                      <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                        <input className="cd-diinput" type="date" value={scheduleDate} onChange={e => setScheduleDate(e.target.value)} />
+                        <input className="cd-diinput" type="time" value={scheduleTime} onChange={e => setScheduleTime(e.target.value)} />
+                      </div>
+                    )}
+                  </>
+                )}
+
                 <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', margin: '14px 0 8px', fontWeight: 800 }}>Observações (opcional)</div>
                 <textarea className="cd-diinput" style={{ minHeight: 56, resize: 'vertical' }} value={obs} onChange={e => setObs(e.target.value)} placeholder="Ex: sem cebola, troco pra R$50..." />
                 <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', margin: '14px 0 8px', fontWeight: 800 }}>Pagamento</div>
@@ -427,7 +510,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
                 <div className="cd-totalrow"><span>Total</span><span>{fmt(orderTotal)}</span></div>
               </div>
               <div style={{ padding: '14px 16px 16px', borderTop: '1px solid #EDE8E0' }}>
-                <button className="cd-addcart" style={{ width: '100%' }} disabled={confirming || !address.trim() || abaixoMinimo} onClick={confirmOrder}>{confirming ? 'Enviando...' : 'Confirmar pedido'}</button>
+                <button className="cd-addcart" style={{ width: '100%' }} disabled={confirming || (deliveryType === 'entrega' && !address.trim()) || (agendarRetirada && (!scheduleDate || !scheduleTime)) || abaixoMinimo} onClick={confirmOrder}>{confirming ? 'Enviando...' : 'Confirmar pedido'}</button>
               </div>
             </>
           ) : (

@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase'
 
 type Item = { id: string; product_name: string; qty: number; selected_options: { name: string; price: number }[] }
 type Status = 'recebido' | 'em_preparo' | 'pronto' | 'saiu_entrega' | 'entregue' | 'cancelado'
-type Pedido = { id: string; customer_id: string | null; customer_name: string; status: Status; created_at: string; accepted_at: string | null; itens: Item[] }
+type Pedido = { id: string; customer_id: string | null; customer_name: string; status: Status; created_at: string; accepted_at: string | null; delivery_type: 'entrega' | 'retirada'; scheduled_for: string | null; itens: Item[] }
 
 const COLUMNS: { status: Status; label: string; next: Status; action: string; color: string }[] = [
   { status: 'recebido', label: 'Recebido', next: 'em_preparo', action: 'Iniciar preparo', color: '#E24B4A' },
@@ -22,6 +22,10 @@ function notifyCustomer(customerId: string | null, companyName: string, status: 
   }).catch(() => {})
 }
 
+function fmtSchedule(iso: string) {
+  const d = new Date(iso)
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' às ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+}
 function timeAgo(iso: string) {
   const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
   if (mins < 1) return 'agora'
@@ -116,7 +120,7 @@ export default function CozinhaPage() {
               {items.map(p => (
                 <div className="cz-card" key={p.id} onClick={() => advance(p.id, col.next)}>
                   <div className="cz-cname">{p.customer_name}</div>
-                  <div className="cz-ctime">{timeAgo(p.created_at)} atrás</div>
+                  <div className="cz-ctime">{timeAgo(p.created_at)} atrás · {p.delivery_type === 'retirada' ? '🏪 Retirada' : '🚴 Entrega'}{p.scheduled_for ? ` · 📅 ${fmtSchedule(p.scheduled_for)}` : ''}</div>
                   {p.itens?.map(it => (
                     <div key={it.id}>
                       <div className="cz-citem">{it.qty}x {it.product_name}</div>

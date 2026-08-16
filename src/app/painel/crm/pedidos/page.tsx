@@ -8,6 +8,7 @@ type Status = 'recebido' | 'em_preparo' | 'pronto' | 'saiu_entrega' | 'entregue'
 type Pedido = {
   id: string; customer_id: string | null; customer_name: string; customer_phone: string | null; delivery_address: string | null
   origin: string; status: Status; payment_method: string | null; payment_status: string
+  delivery_type: 'entrega' | 'retirada'; scheduled_for: string | null
   notes: string | null; subtotal: number; total: number; created_at: string; accepted_at: string | null
   itens: Item[]
 }
@@ -47,6 +48,10 @@ const ACTIVE: Status[] = ['recebido', 'em_preparo', 'pronto', 'saiu_entrega']
 const BOARD_COLUMNS: Status[] = ['recebido', 'em_preparo', 'pronto', 'saiu_entrega', 'entregue']
 
 function fmt(n: number) { return 'R$ ' + n.toFixed(2).replace('.', ',') }
+function fmtSchedule(iso: string) {
+  const d = new Date(iso)
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' às ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+}
 function timeAgo(iso: string) {
   const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
   if (mins < 1) return 'agora'
@@ -187,7 +192,7 @@ export default function PedidosPage() {
     const { data: pedido } = await supabase.from('loja_pedidos').insert({
       company_id: companyId, customer_id: null,
       customer_name: npNome.trim(), customer_phone: npTelefone.trim() || null,
-      delivery_address: npEndereco.trim() || null, origin: 'balcao', payment_method: npPay,
+      delivery_address: npEndereco.trim() || null, delivery_type: npEndereco.trim() ? 'entrega' : 'retirada', origin: 'balcao', payment_method: npPay,
       subtotal: npTotal, total: npTotal, notes: npObs.trim() || null, accepted_at: new Date().toISOString(),
     }).select('id').single()
     if (pedido) {
@@ -225,7 +230,8 @@ export default function PedidosPage() {
           <div><div className="pd-name">{p.customer_name}</div><div className="pd-time">{timeAgo(p.created_at)} atrás · {p.origin === 'cardapio_publico' ? 'Cardápio' : p.origin === 'balcao' ? 'Balcão' : p.origin}</div></div>
           <span className="pd-badge" style={{ background: c.bg, color: c.fg }}>{STATUS_LABEL[p.status]}</span>
         </div>
-        <div className="pd-sum">{p.itens?.length || 0} {p.itens?.length === 1 ? 'item' : 'itens'} · {p.payment_method || '—'} · {p.payment_status === 'pago' ? 'pago' : 'pendente'}</div>
+        <div className="pd-sum">{p.itens?.length || 0} {p.itens?.length === 1 ? 'item' : 'itens'} · {p.payment_method || '—'} · {p.payment_status === 'pago' ? 'pago' : 'pendente'} · {p.delivery_type === 'retirada' ? '🏪 Retirada' : '🚴 Entrega'}</div>
+        {p.scheduled_for && <div className="pd-sum" style={{ color: '#B5690C', fontWeight: 700 }}>📅 Agendado pra {fmtSchedule(p.scheduled_for)}</div>}
         <div className="pd-total">{fmt(p.total)}</div>
         {needsAccept && <button className="pd-accept" onClick={e => { e.stopPropagation(); acceptPedido(p.id) }}>✓ Aceitar pedido</button>}
         {open && (

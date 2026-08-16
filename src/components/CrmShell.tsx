@@ -1,12 +1,13 @@
 'use client'
 
-type NavId = 'inicio' | 'pedidos' | 'cozinha' | 'catalogo'
+type NavId = 'inicio' | 'pedidos' | 'cozinha' | 'catalogo' | 'clientes'
 
 const NAV_ITEMS: { id: NavId; href: string; ico: string; lbl: string }[] = [
   { id: 'inicio', href: '/painel/crm', ico: '🏠', lbl: 'Início' },
   { id: 'pedidos', href: '/painel/crm/pedidos', ico: '🧾', lbl: 'Pedidos' },
   { id: 'cozinha', href: '/painel/crm/cozinha', ico: '🍳', lbl: 'Cozinha' },
   { id: 'catalogo', href: '/painel/crm/catalogo', ico: '📋', lbl: 'Catálogo' },
+  { id: 'clientes', href: '/painel/crm/clientes', ico: '👥', lbl: 'Clientes' },
 ]
 
 export default function CrmShell({ active, companyName, children }: { active: NavId; companyName?: string; children: React.ReactNode }) {

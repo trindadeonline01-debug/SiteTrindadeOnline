@@ -99,7 +99,7 @@ export default function CrmPage() {
           .crm-hub-title{font-size:17px;font-weight:800;margin-bottom:20px;text-align:center;}
           @media(min-width:768px){.crm-hub-title{display:none;}}
           .crm-hub-grid{display:flex;flex-direction:column;gap:12px;width:100%;max-width:320px;margin:0 auto;}
-          @media(min-width:768px){.crm-hub-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;max-width:none;margin:0;}}
+          @media(min-width:768px){.crm-hub-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;max-width:none;margin:0;}}
           .crm-share-card{margin:20px auto 0;max-width:320px;background:#fff;border:1px solid #EDE8E0;border-radius:14px;padding:18px;text-align:center;}
           @media(min-width:768px){.crm-share-card{max-width:280px;margin:24px 0 0;}}
           .crm-share-title{font-weight:800;font-size:13.5px;margin-bottom:12px;}
@@ -121,6 +121,7 @@ export default function CrmPage() {
           <a href="/painel/crm/pedidos" style={hubCard}><span style={{ fontSize: 26 }}>🧾</span><div><div style={hubTitle}>Pedidos</div><div style={hubSub}>Ver e gerenciar pedidos recebidos</div></div></a>
           <a href="/painel/crm/cozinha" style={hubCard}><span style={{ fontSize: 26 }}>🍳</span><div><div style={hubTitle}>Cozinha</div><div style={hubSub}>Painel pra deixar aberto na tela da cozinha</div></div></a>
           <a href="/painel/crm/catalogo" style={hubCard}><span style={{ fontSize: 26 }}>📋</span><div><div style={hubTitle}>Catálogo</div><div style={hubSub}>Produtos, categorias e combos</div></div></a>
+          <a href="/painel/crm/clientes" style={hubCard}><span style={{ fontSize: 26 }}>👥</span><div><div style={hubTitle}>Clientes</div><div style={hubSub}>Quem comprou, quem sumiu</div></div></a>
         </div>
         <div className="crm-share-card">
           <div className="crm-share-title">📲 Compartilhar cardápio</div>

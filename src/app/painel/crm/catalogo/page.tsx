@@ -204,7 +204,7 @@ export default function CatalogoPage() {
     <CrmShell active="catalogo" companyName={companyName}>
     <div className="cg-wrap">
       <style>{`
-        .cg-wrap{ max-width:480px; margin:0 auto; min-height:100vh; background:#F7F5F0; font-family:'Inter',sans-serif; font-size:13px; color:#1A1610; padding-bottom:40px; min-width:0; overflow-x:hidden; }
+        .cg-wrap{ width:100%; max-width:480px; margin:0 auto; min-height:100vh; background:#F7F5F0; font-family:'Inter',sans-serif; font-size:13px; color:#1A1610; padding-bottom:40px; min-width:0; overflow-x:hidden; }
         @media(min-width:768px){
           .cg-wrap{ max-width:none; margin:0; min-height:0; padding-bottom:60px; }
           .cg-head{ padding:28px 32px 16px; position:static; }

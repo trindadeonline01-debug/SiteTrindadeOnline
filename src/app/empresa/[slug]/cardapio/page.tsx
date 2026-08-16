@@ -12,8 +12,10 @@ type Produto = {
   promo_starts_at: string | null; promo_ends_at: string | null
   available_days: number[] | null
   total_pedidos: number
+  esgotado: boolean; track_stock: boolean; stock_qty: number | null
   groups: Grupo[]
 }
+function isSoldOut(p: Produto) { return p.esgotado || (p.track_stock && (p.stock_qty ?? 0) <= 0) }
 type Categoria = { id: string; name: string; display_order: number }
 type Company = {
   id: string; name: string; slug: string; phone: string | null; address: string | null
@@ -178,7 +180,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
   const filtered = produtos
     .filter(p => filterCat === 'all' || p.category_id === filterCat)
     .filter(p => !searchTerm || p.name.toLowerCase().includes(searchTerm))
-  const maisPedidos = !searchTerm ? [...produtos].filter(p => p.total_pedidos > 0).sort((a, b) => b.total_pedidos - a.total_pedidos).slice(0, 4) : []
+  const maisPedidos = !searchTerm ? [...produtos].filter(p => p.total_pedidos > 0 && !isSoldOut(p)).sort((a, b) => b.total_pedidos - a.total_pedidos).slice(0, 4) : []
 
   return (
     <div className="cd-wrap">
@@ -211,6 +213,8 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
         .cd-hot-price{ font-size:11px;font-weight:800;margin-top:3px; }
         .cd-sec{ font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#A79E8B;margin:16px 2px 4px; }
         .cd-prow{ display:flex;gap:11px;padding:10px 0;border-bottom:0.5px solid #EDE8E0;align-items:center;cursor:pointer; }
+        .cd-prow-soldout{ cursor:default;opacity:.55; }
+        .cd-prow-soldout .cd-pphoto{ filter:grayscale(1); }
         .cd-pphoto{ width:56px;height:56px;border-radius:11px;background:linear-gradient(135deg,#FBF1DC,#F0EDE8);display:flex;align-items:center;justify-content:center;font-size:22px;position:relative;overflow:hidden; }
         .cd-pphoto img{ width:100%;height:100%;object-fit:cover; }
         .cd-badge{ position:absolute;top:-6px;left:-6px;background:#E24B4A;color:#fff;font-size:9px;font-weight:800;padding:2px 6px;border-radius:6px; }
@@ -298,18 +302,21 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
               {items.map(p => {
                 const promo = promoPrice(p)
                 const hasOpts = p.groups && p.groups.length > 0
+                const soldOut = isSoldOut(p)
                 return (
-                  <div className="cd-prow" key={p.id} onClick={() => hasOpts ? openDetail(p) : addToCart(p.id, p.name, promo ?? p.sale_price, 1)}>
+                  <div className={`cd-prow ${soldOut ? 'cd-prow-soldout' : ''}`} key={p.id} onClick={() => { if (soldOut) return; hasOpts ? openDetail(p) : addToCart(p.id, p.name, promo ?? p.sale_price, 1) }}>
                     <div className="cd-pphoto">
                       {p.photo_url ? <img src={p.photo_url} alt="" /> : '🍽️'}
-                      {promo != null && <span className="cd-badge">{p.promo_type === 'percent' ? `-${p.promo_value}%` : `-${fmt(p.promo_value!)}`}</span>}
+                      {!soldOut && promo != null && <span className="cd-badge">{p.promo_type === 'percent' ? `-${p.promo_value}%` : `-${fmt(p.promo_value!)}`}</span>}
                     </div>
                     <div className="cd-pmid">
                       <div className="cd-pname">{p.name}</div>
                       {p.description && <div className="cd-pdesc">{p.description}</div>}
-                      <div className="cd-pprice">{fmt(promo ?? p.sale_price)}{promo != null && <span className="was">{fmt(p.sale_price)}</span>}</div>
+                      {soldOut
+                        ? <div className="cd-pprice" style={{ color: '#C43D3D' }}>Esgotado</div>
+                        : <div className="cd-pprice">{fmt(promo ?? p.sale_price)}{promo != null && <span className="was">{fmt(p.sale_price)}</span>}</div>}
                     </div>
-                    {hasOpts ? <button className="cd-chev">›</button> : <button className="cd-addbtn">+</button>}
+                    {!soldOut && (hasOpts ? <button className="cd-chev">›</button> : <button className="cd-addbtn">+</button>)}
                   </div>
                 )
               })}

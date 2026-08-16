@@ -5,7 +5,7 @@ import { compressImage } from '@/lib/compressImage'
 import CrmShell from '@/components/CrmShell'
 
 type Categoria = { id: string; name: string; display_order: number }
-type Opcao = { id?: string; name: string; price: number; max_qty: number | null; linked_produto_id: string | null }
+type Opcao = { id?: string; name: string; price: number; max_qty: number | null; linked_produto_id: string | null; photo_url?: string | null; _photoFile?: File | null }
 type Grupo = { id?: string; name: string; required: boolean; min_select: number; max_select: number; pricing_rule: 'soma' | 'maior_valor'; options: Opcao[] }
 type Produto = {
   id: string; name: string; description: string | null; photo_url: string | null
@@ -167,7 +167,7 @@ export default function CatalogoPage() {
       active: data.active,
       groups: (data.groups || []).map((g: any) => ({
         id: g.id, name: g.name, required: g.required, min_select: g.min_select, max_select: g.max_select, pricing_rule: g.pricing_rule || 'soma',
-        options: (g.options || []).map((o: any) => ({ id: o.id, name: o.name, price: o.price, max_qty: o.max_qty, linked_produto_id: o.linked_produto_id })),
+        options: (g.options || []).map((o: any) => ({ id: o.id, name: o.name, price: o.price, max_qty: o.max_qty, linked_produto_id: o.linked_produto_id, photo_url: o.photo_url || null, _photoFile: null })),
       })),
     })
     setPhotoFile(null)
@@ -177,7 +177,7 @@ export default function CatalogoPage() {
   function addGroup() { setForm(f => ({ ...f, groups: [...f.groups, { name: 'Novo grupo', required: false, min_select: 0, max_select: 1, pricing_rule: 'soma', options: [] }] })) }
   function removeGroup(gi: number) { setForm(f => ({ ...f, groups: f.groups.filter((_, i) => i !== gi) })) }
   function updateGroup(gi: number, patch: Partial<Grupo>) { setForm(f => ({ ...f, groups: f.groups.map((g, i) => i === gi ? { ...g, ...patch } : g) })) }
-  function addOption(gi: number) { updateGroup(gi, { options: [...form.groups[gi].options, { name: 'Nova opção', price: 0, max_qty: 1, linked_produto_id: null }] }) }
+  function addOption(gi: number) { updateGroup(gi, { options: [...form.groups[gi].options, { name: 'Nova opção', price: 0, max_qty: 1, linked_produto_id: null, photo_url: null, _photoFile: null }] }) }
   function removeOption(gi: number, oi: number) { updateGroup(gi, { options: form.groups[gi].options.filter((_, i) => i !== oi) }) }
   function updateOption(gi: number, oi: number, patch: Partial<Opcao>) {
     updateGroup(gi, { options: form.groups[gi].options.map((o, i) => i === oi ? { ...o, ...patch } : o) })
@@ -231,9 +231,21 @@ export default function CatalogoPage() {
         produto_id: produtoId, name: g.name, required: g.required, min_select: g.min_select, max_select: g.max_select, pricing_rule: g.pricing_rule, display_order: gi,
       }).select('id').single()
       if (!gData) continue
-      const optRows = g.options.map((o, oi) => ({
-        grupo_id: gData.id, name: o.name, price: o.price, max_qty: o.max_qty || null, linked_produto_id: o.linked_produto_id || null, display_order: oi,
-      }))
+      const optRows = []
+      for (let oi = 0; oi < g.options.length; oi++) {
+        const o = g.options[oi]
+        let optPhotoUrl = o.photo_url || null
+        if (o._photoFile) {
+          const ext = o._photoFile.name.split('.').pop()
+          const path = `${companyId}/opcoes/${Date.now()}_${gi}_${oi}.${ext}`
+          const compressed = await compressImage(o._photoFile)
+          const { data: up } = await supabase.storage.from('loja-produtos').upload(path, compressed, { upsert: true })
+          if (up) optPhotoUrl = supabase.storage.from('loja-produtos').getPublicUrl(path).data.publicUrl
+        }
+        optRows.push({
+          grupo_id: gData.id, name: o.name, price: o.price, max_qty: o.max_qty || null, linked_produto_id: o.linked_produto_id || null, photo_url: optPhotoUrl, display_order: oi,
+        })
+      }
       if (optRows.length) await supabase.from('loja_opcoes').insert(optRows)
     }
 
@@ -338,12 +350,19 @@ export default function CatalogoPage() {
         .cg-del{ width:26px;height:26px;border-radius:7px;border:none;background:#FBEAEA;color:#C43D3D;cursor:pointer;flex:none; }
         .cg-rule{ display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;font-size:11px;color:#6E6656; }
         .cg-rule input{ width:38px;padding:5px;text-align:center;border-radius:6px;border:1px solid #E6E0D2;font-family:inherit; }
-        .cg-opt{ display:flex;gap:6px;align-items:center;margin-bottom:6px; }
-        .cg-opt input{ padding:6px 8px;border-radius:7px;border:1px solid #E6E0D2;font-size:11.5px;font-family:inherit; }
-        .cg-opt .on{ flex:1;min-width:0; }
-        .cg-opt .op{ width:56px;text-align:right; }
-        .cg-opt .oq{ width:34px;text-align:center; }
-        .cg-opt select{ flex:1; padding:6px; border-radius:7px; border:1px solid #E6E0D2; font-size:11px; }
+        .cg-rule-cobrar{ display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:11px;color:#6E6656; }
+        .cg-rule-cobrar select{ flex:1;min-width:0;padding:6px 8px;border-radius:6px;border:1px solid #E6E0D2;font-family:inherit;font-size:11px; }
+        .cg-opt{ border:1px solid #E6E0D2;border-radius:9px;padding:8px;margin-bottom:6px;background:#FCFAF5; }
+        .cg-opt-top{ display:flex;gap:8px;align-items:center;margin-bottom:6px; }
+        .cg-opt-photo{ flex:none;width:36px;height:36px;border-radius:8px;background:#fff;border:1px solid #E6E0D2;display:flex;align-items:center;justify-content:center;font-size:14px;color:#A79E8B;overflow:hidden;cursor:pointer; }
+        .cg-opt-photo img{ width:100%;height:100%;object-fit:cover; }
+        .cg-opt-name{ flex:1;min-width:0;padding:7px 9px;border-radius:7px;border:1px solid #E6E0D2;font-size:12px;font-family:inherit;box-sizing:border-box; }
+        .cg-opt-line2{ display:flex;gap:6px;align-items:center; }
+        .cg-opt-line2 input{ padding:6px 8px;border-radius:7px;border:1px solid #E6E0D2;font-size:11.5px;font-family:inherit;box-sizing:border-box; }
+        .cg-opt-line2 .op{ flex:none;width:60px;text-align:right; }
+        .cg-opt-line2 .oq{ flex:none;width:38px;text-align:center; }
+        .cg-opt-line2 select{ flex:1;min-width:0;padding:6px;border-radius:7px;border:1px solid #E6E0D2;font-size:11px;font-family:inherit; }
+        .cg-opt-line2 .cg-del{ flex:none; }
         .cg-add-inline{ font-size:11px;font-weight:700;color:#8A6410;background:#FBF1DC;border:1px dashed #E6E0D2;border-radius:8px;padding:7px;width:100%;cursor:pointer;margin-top:4px; }
         .cg-add-group{ width:100%;padding:10px;border-radius:10px;border:1.5px dashed #E6E0D2;background:transparent;color:#A79E8B;font-weight:700;font-size:12px;cursor:pointer; }
         .cg-savebar{ position:sticky;bottom:0;padding:12px 0 6px;background:#F7F5F0;display:flex;gap:8px; }
@@ -496,24 +515,32 @@ export default function CatalogoPage() {
                   <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}><input type="checkbox" checked={g.required} onChange={e => updateGroup(gi, { required: e.target.checked })} /> Obrigatório</label>
                   <div>mín <input value={g.min_select} onChange={e => updateGroup(gi, { min_select: +e.target.value || 0 })} /></div>
                   <div>máx <input value={g.max_select} onChange={e => updateGroup(gi, { max_select: +e.target.value || 1 })} /></div>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    cobrar:
-                    <select value={g.pricing_rule} onChange={e => updateGroup(gi, { pricing_rule: e.target.value as any })} style={{ padding: '5px 6px', borderRadius: 6, border: '1px solid #E6E0D2', fontFamily: 'inherit', fontSize: 11 }}>
-                      <option value="soma">soma dos itens</option>
-                      <option value="maior_valor">o mais caro (ex: pizza meio a meio)</option>
-                    </select>
-                  </label>
+                </div>
+                <div className="cg-rule-cobrar">
+                  <span>cobrar:</span>
+                  <select value={g.pricing_rule} onChange={e => updateGroup(gi, { pricing_rule: e.target.value as any })}>
+                    <option value="soma">soma dos itens</option>
+                    <option value="maior_valor">o mais caro (ex: pizza meio a meio)</option>
+                  </select>
                 </div>
                 {g.options.map((o, oi) => (
                   <div className="cg-opt" key={oi}>
-                    <input className="on" value={o.name} onChange={e => updateOption(gi, oi, { name: e.target.value })} />
-                    <input className="op" value={o.price} onChange={e => updateOption(gi, oi, { price: +e.target.value || 0 })} />
-                    <input className="oq" placeholder="máx" value={o.max_qty ?? ''} onChange={e => updateOption(gi, oi, { max_qty: +e.target.value || null })} />
-                    <select value={o.linked_produto_id || ''} onChange={e => updateOption(gi, oi, { linked_produto_id: e.target.value || null })}>
-                      <option value="">avulso</option>
-                      {produtos.filter(p => p.id !== form.id).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                    </select>
-                    <button className="cg-del" style={{ width: 22, height: 22 }} onClick={() => removeOption(gi, oi)}>✕</button>
+                    <div className="cg-opt-top">
+                      <label className="cg-opt-photo">
+                        {o._photoFile ? <img src={URL.createObjectURL(o._photoFile)} alt="" /> : o.photo_url ? <img src={o.photo_url} alt="" /> : '🍽️'}
+                        <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => updateOption(gi, oi, { _photoFile: e.target.files?.[0] || null })} />
+                      </label>
+                      <input className="cg-opt-name" placeholder="Nome da opção" value={o.name} onChange={e => updateOption(gi, oi, { name: e.target.value })} />
+                    </div>
+                    <div className="cg-opt-line2">
+                      <input className="op" placeholder="preço" value={o.price} onChange={e => updateOption(gi, oi, { price: +e.target.value || 0 })} />
+                      <input className="oq" placeholder="máx" value={o.max_qty ?? ''} onChange={e => updateOption(gi, oi, { max_qty: +e.target.value || null })} />
+                      <select value={o.linked_produto_id || ''} onChange={e => updateOption(gi, oi, { linked_produto_id: e.target.value || null })}>
+                        <option value="">avulso</option>
+                        {produtos.filter(p => p.id !== form.id).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                      </select>
+                      <button className="cg-del" style={{ width: 26, height: 26 }} onClick={() => removeOption(gi, oi)}>✕</button>
+                    </div>
                   </div>
                 ))}
                 <button className="cg-add-inline" onClick={() => addOption(gi)}>+ Adicionar opção</button>

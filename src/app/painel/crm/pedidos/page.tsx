@@ -283,10 +283,11 @@ export default function PedidosPage() {
     <div className="pd-wrap">
       <style>{`
         .pd-wrap{ max-width:480px;margin:0 auto;min-height:100vh;background:#F7F5F0;font-family:'Inter',sans-serif;font-size:13px;color:#1A1610;padding-bottom:30px;overflow-x:hidden; }
-        .pd-head{ padding:22px 12px 14px;display:flex;align-items:center;gap:6px;position:sticky;top:0;background:#F7F5F0;z-index:5; }
-        .pd-head h1{ font-size:16.5px;margin:0;font-weight:800;flex:none; }
+        .pd-head{ padding:22px 12px 10px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 10px;position:sticky;top:0;background:#F7F5F0;z-index:5; }
+        .pd-head-left{ display:flex;align-items:center;gap:6px;min-width:0; }
+        .pd-head-right{ display:flex;align-items:center;gap:6px;flex:none; }
+        .pd-head h1{ font-size:16.5px;margin:0;font-weight:800;flex:none;white-space:nowrap; }
         .pd-back{ flex:none;width:30px;height:30px;border-radius:50%;border:1px solid #E6E0D2;background:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;text-decoration:none;color:#1A1610; }
-        .pd-head-spacer{ flex:1;min-width:0; }
         .pd-auto-pill{ flex:none;display:flex;align-items:center;gap:4px;background:#fff;border:1px solid #E6E0D2;border-radius:20px;padding:5px 8px;cursor:pointer; }
         .pd-auto-pill .pd-switch{ width:24px;height:15px;border-radius:8px; }
         .pd-auto-pill .pd-switch .k{ width:11px;height:11px;top:2px;left:2px; }
@@ -368,14 +369,17 @@ export default function PedidosPage() {
       `}</style>
       <div className="pd-mobile-only">
         <div className="pd-head">
-          <a href="/painel/crm" className="pd-back">‹</a>
-          <h1>Pedidos</h1>
-          <label className="pd-auto-pill" title="Aceitar pedidos automaticamente">
-            <div className={`pd-switch ${autoAceitar ? 'on' : ''}`} onClick={toggleAutoAceitar}><div className="k" /></div>
-          </label>
-          <div className="pd-head-spacer" />
-          <button className="pd-new-pill" onClick={openNovoPedido} title="Novo pedido">+</button>
-          <a href="/painel/crm/cozinha" style={{ fontSize: 11, fontWeight: 700, color: '#8A6410', background: '#FBF1DC', padding: '7px 12px', borderRadius: 8, textDecoration: 'none' }}>🍳 Cozinha</a>
+          <div className="pd-head-left">
+            <a href="/painel/crm" className="pd-back">‹</a>
+            <h1>Pedidos</h1>
+            <label className="pd-auto-pill" title="Aceitar pedidos automaticamente">
+              <div className={`pd-switch ${autoAceitar ? 'on' : ''}`} onClick={toggleAutoAceitar}><div className="k" /></div>
+            </label>
+          </div>
+          <div className="pd-head-right">
+            <button className="pd-new-pill" onClick={openNovoPedido} title="Novo pedido">+</button>
+            <a href="/painel/crm/cozinha" style={{ fontSize: 11, fontWeight: 700, color: '#8A6410', background: '#FBF1DC', padding: '7px 12px', borderRadius: 8, textDecoration: 'none' }}>🍳 Cozinha</a>
+          </div>
         </div>
         <div className="pd-searchbar">
           <input className="pd-search" placeholder="Buscar por cliente..." value={search} onChange={e => setSearch(e.target.value)} />

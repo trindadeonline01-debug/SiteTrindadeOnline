@@ -46,6 +46,12 @@ const STATUS_COLOR: Record<Status, { bg: string; fg: string }> = {
 const FLOW: Status[] = ['recebido', 'em_preparo', 'pronto', 'saiu_entrega', 'entregue']
 const ACTIVE: Status[] = ['recebido', 'em_preparo', 'pronto', 'saiu_entrega']
 const BOARD_COLUMNS: Status[] = ['recebido', 'em_preparo', 'pronto', 'saiu_entrega', 'entregue']
+const NEXT_ACTION: Partial<Record<Status, { next: Status; label: string }>> = {
+  recebido: { next: 'em_preparo', label: 'Iniciar preparo' },
+  em_preparo: { next: 'pronto', label: 'Marcar pronto' },
+  pronto: { next: 'saiu_entrega', label: 'Saiu para entrega' },
+  saiu_entrega: { next: 'entregue', label: 'Marcar entregue' },
+}
 
 function fmt(n: number) { return 'R$ ' + n.toFixed(2).replace('.', ',') }
 function fmtSchedule(iso: string) {
@@ -234,6 +240,9 @@ export default function PedidosPage() {
         {p.scheduled_for && <div className="pd-sum" style={{ color: '#B5690C', fontWeight: 700 }}>📅 Agendado pra {fmtSchedule(p.scheduled_for)}</div>}
         <div className="pd-total">{fmt(p.total)}</div>
         {needsAccept && <button className="pd-accept" onClick={e => { e.stopPropagation(); acceptPedido(p.id) }}>✓ Aceitar pedido</button>}
+        {!needsAccept && !open && NEXT_ACTION[p.status] && (
+          <button className="pd-next" onClick={e => { e.stopPropagation(); setStatus(p.id, NEXT_ACTION[p.status]!.next) }}>{NEXT_ACTION[p.status]!.label} →</button>
+        )}
         {open && (
           <div className="pd-detail" onClick={e => e.stopPropagation()}>
             {p.itens?.map(it => (
@@ -286,6 +295,7 @@ export default function PedidosPage() {
         .pd-empty{ text-align:center;color:#A79E8B;padding:40px 0;font-size:12.5px; }
         .pd-card-pending{ border:1.5px solid var(--accent); }
         .pd-accept{ width:100%;margin-top:8px;padding:9px;border-radius:9px;border:none;background:var(--accent);color:#fff;font-weight:800;font-size:12px;cursor:pointer; }
+        .pd-next{ width:100%;margin-top:8px;padding:10px;border-radius:9px;border:none;background:var(--accent);color:#fff;font-weight:800;font-size:12.5px;cursor:pointer; }
         .pd-toolbar{ padding:14px 16px;display:flex;flex-direction:column;gap:10px;background:#fff;border-top:1px solid #EDE8E0;border-bottom:1px solid #EDE8E0; }
         .pd-search{ width:100%;padding:9px 12px;border-radius:9px;border:1px solid #E6E0D2;background:#F7F5F0;font-size:12.5px;font-family:inherit; }
         .pd-autotoggle{ display:flex;align-items:center;gap:10px;font-size:11.5px;font-weight:600;color:#6E6656;cursor:pointer; }

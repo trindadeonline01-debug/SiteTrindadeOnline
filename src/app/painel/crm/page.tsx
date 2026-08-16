@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import CrmShell from '@/components/CrmShell'
 
 type Company = { id: string; name: string; loja_digital_enabled: boolean }
 
@@ -53,14 +54,24 @@ export default function CrmPage() {
   }
 
   return (
-    <div style={{ ...wrap, justifyContent: 'flex-start', paddingTop: 40 }}>
-      <div style={{ fontSize: 17, fontWeight: 800, marginBottom: 24, textAlign: 'center' }}>{company.name}</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%', maxWidth: 320 }}>
-        <a href="/painel/crm/pedidos" style={hubCard}><span style={{ fontSize: 26 }}>🧾</span><div><div style={hubTitle}>Pedidos</div><div style={hubSub}>Ver e gerenciar pedidos recebidos</div></div></a>
-        <a href="/painel/crm/cozinha" style={hubCard}><span style={{ fontSize: 26 }}>🍳</span><div><div style={hubTitle}>Cozinha</div><div style={hubSub}>Painel pra deixar aberto na tela da cozinha</div></div></a>
-        <a href="/painel/crm/catalogo" style={hubCard}><span style={{ fontSize: 26 }}>📋</span><div><div style={hubTitle}>Catálogo</div><div style={hubSub}>Produtos, categorias e combos</div></div></a>
+    <CrmShell active="inicio" companyName={company.name}>
+      <div className="crm-hub-content">
+        <style>{`
+          .crm-hub-content{padding:24px 16px 80px;}
+          @media(min-width:768px){.crm-hub-content{padding:28px 32px;}}
+          .crm-hub-title{font-size:17px;font-weight:800;margin-bottom:20px;text-align:center;}
+          @media(min-width:768px){.crm-hub-title{display:none;}}
+          .crm-hub-grid{display:flex;flex-direction:column;gap:12px;width:100%;max-width:320px;margin:0 auto;}
+          @media(min-width:768px){.crm-hub-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;max-width:none;margin:0;}}
+        `}</style>
+        <div className="crm-hub-title">{company.name}</div>
+        <div className="crm-hub-grid">
+          <a href="/painel/crm/pedidos" style={hubCard}><span style={{ fontSize: 26 }}>🧾</span><div><div style={hubTitle}>Pedidos</div><div style={hubSub}>Ver e gerenciar pedidos recebidos</div></div></a>
+          <a href="/painel/crm/cozinha" style={hubCard}><span style={{ fontSize: 26 }}>🍳</span><div><div style={hubTitle}>Cozinha</div><div style={hubSub}>Painel pra deixar aberto na tela da cozinha</div></div></a>
+          <a href="/painel/crm/catalogo" style={hubCard}><span style={{ fontSize: 26 }}>📋</span><div><div style={hubTitle}>Catálogo</div><div style={hubSub}>Produtos, categorias e combos</div></div></a>
+        </div>
       </div>
-    </div>
+    </CrmShell>
   )
 }
 

@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import CrmShell from '@/components/CrmShell'
 
 type Item = { id: string; product_name: string; unit_price: number; qty: number; selected_options: { name: string; price: number }[] }
 type Status = 'recebido' | 'em_preparo' | 'pronto' | 'saiu_entrega' | 'entregue' | 'cancelado'
@@ -34,6 +35,7 @@ const STATUS_COLOR: Record<Status, { bg: string; fg: string }> = {
 }
 const FLOW: Status[] = ['recebido', 'em_preparo', 'pronto', 'saiu_entrega', 'entregue']
 const ACTIVE: Status[] = ['recebido', 'em_preparo', 'pronto', 'saiu_entrega']
+const BOARD_COLUMNS: Status[] = ['recebido', 'em_preparo', 'pronto', 'saiu_entrega', 'entregue']
 
 function fmt(n: number) { return 'R$ ' + n.toFixed(2).replace('.', ',') }
 function timeAgo(iso: string) {
@@ -100,7 +102,42 @@ export default function PedidosPage() {
 
   const list = pedidos.filter(p => filter === 'ativos' ? ACTIVE.includes(p.status) : !ACTIVE.includes(p.status))
 
+  function renderCard(p: Pedido) {
+    const open = openId === p.id
+    const c = STATUS_COLOR[p.status]
+    return (
+      <div className="pd-card" key={p.id} onClick={() => setOpenId(open ? null : p.id)}>
+        <div className="pd-row1">
+          <div><div className="pd-name">{p.customer_name}</div><div className="pd-time">{timeAgo(p.created_at)} atrás · {p.origin === 'cardapio_publico' ? 'Cardápio' : p.origin}</div></div>
+          <span className="pd-badge" style={{ background: c.bg, color: c.fg }}>{STATUS_LABEL[p.status]}</span>
+        </div>
+        <div className="pd-sum">{p.itens?.length || 0} {p.itens?.length === 1 ? 'item' : 'itens'} · {p.payment_method || '—'} · {p.payment_status === 'pago' ? 'pago' : 'pendente'}</div>
+        <div className="pd-total">{fmt(p.total)}</div>
+        {open && (
+          <div className="pd-detail" onClick={e => e.stopPropagation()}>
+            {p.itens?.map(it => (
+              <div key={it.id}>
+                <div className="pd-item"><span>{it.qty}x {it.product_name}</span><span>{fmt(it.unit_price * it.qty)}</span></div>
+                {it.selected_options?.length > 0 && <div className="pd-mods">{it.selected_options.map(o => o.name).join(', ')}</div>}
+              </div>
+            ))}
+            {p.delivery_address && <div style={{ marginTop: 8, fontSize: 11.5 }}>📍 {p.delivery_address}</div>}
+            {p.customer_phone && <div style={{ fontSize: 11.5, marginTop: 2 }}>📞 {p.customer_phone}</div>}
+            {p.notes && <div style={{ fontSize: 11.5, marginTop: 2, color: '#6E6656' }}>Obs: {p.notes}</div>}
+            <div className="pd-chips">
+              {FLOW.map(s => <button key={s} className={`pd-chip ${p.status === s ? 'current' : ''}`} onClick={() => setStatus(p.id, s)}>{STATUS_LABEL[s]}</button>)}
+            </div>
+            {p.status !== 'cancelado' && p.status !== 'entregue' && <button className="pd-cancel" onClick={() => setStatus(p.id, 'cancelado')}>Cancelar pedido</button>}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  const cancelados = pedidos.filter(p => p.status === 'cancelado')
+
   return (
+    <CrmShell active="pedidos" companyName={companyName}>
     <div className="pd-wrap">
       <style>{`
         .pd-wrap{ max-width:480px;margin:0 auto;min-height:100vh;background:#F7F5F0;font-family:'Inter',sans-serif;font-size:13px;color:#1A1610;padding-bottom:30px; }
@@ -126,50 +163,55 @@ export default function PedidosPage() {
         .pd-chip.current{ background:#C9951A;color:#1A1610;border-color:#C9951A; }
         .pd-cancel{ font-size:10.5px;color:#C43D3D;font-weight:700;background:none;border:none;cursor:pointer;margin-top:8px; }
         .pd-empty{ text-align:center;color:#A79E8B;padding:40px 0;font-size:12.5px; }
+        .pd-board{ display:none; }
+        @media(min-width:768px){
+          .pd-wrap{ max-width:none;margin:0;padding-bottom:40px; }
+          .pd-mobile-only{ display:none; }
+          .pd-board{ display:flex;gap:14px;overflow-x:auto;padding:28px 32px; align-items:flex-start; }
+          .pd-board-col{ flex:0 0 250px;background:#EFEBE1;border-radius:14px;padding:10px;max-height:calc(100vh - 130px);display:flex;flex-direction:column; }
+          .pd-board-colhead{ display:flex;justify-content:space-between;align-items:center;padding:4px 6px 10px;font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:#6E6656; }
+          .pd-board-count{ background:#1A1610;color:#C9951A;font-size:11px;font-weight:800;padding:1px 8px;border-radius:20px; }
+          .pd-board-scroll{ overflow-y:auto;flex:1; }
+          .pd-board .pd-card{ margin-bottom:8px; }
+          .pd-board-empty{ text-align:center;color:#A79E8B;font-size:11px;padding:14px 0; }
+        }
       `}</style>
-      <div className="pd-head">
-        <a href="/painel/crm" className="pd-back">‹</a>
-        <h1>Pedidos</h1>
-        <a href="/painel/crm/cozinha" style={{ fontSize: 11, fontWeight: 700, color: '#8A6410', background: '#FBF1DC', padding: '7px 12px', borderRadius: 8, textDecoration: 'none' }}>🍳 Cozinha</a>
+      <div className="pd-mobile-only">
+        <div className="pd-head">
+          <a href="/painel/crm" className="pd-back">‹</a>
+          <h1>Pedidos</h1>
+          <a href="/painel/crm/cozinha" style={{ fontSize: 11, fontWeight: 700, color: '#8A6410', background: '#FBF1DC', padding: '7px 12px', borderRadius: 8, textDecoration: 'none' }}>🍳 Cozinha</a>
+        </div>
+        <div className="pd-tabs">
+          <button className={`pd-tab ${filter === 'ativos' ? 'active' : ''}`} onClick={() => setFilter('ativos')}>Ativos ({pedidos.filter(p => ACTIVE.includes(p.status)).length})</button>
+          <button className={`pd-tab ${filter === 'historico' ? 'active' : ''}`} onClick={() => setFilter('historico')}>Histórico</button>
+        </div>
+        <div className="pd-body">
+          {list.length === 0 && <div className="pd-empty">Nenhum pedido por aqui.</div>}
+          {list.map(renderCard)}
+        </div>
       </div>
-      <div className="pd-tabs">
-        <button className={`pd-tab ${filter === 'ativos' ? 'active' : ''}`} onClick={() => setFilter('ativos')}>Ativos ({pedidos.filter(p => ACTIVE.includes(p.status)).length})</button>
-        <button className={`pd-tab ${filter === 'historico' ? 'active' : ''}`} onClick={() => setFilter('historico')}>Histórico</button>
-      </div>
-      <div className="pd-body">
-        {list.length === 0 && <div className="pd-empty">Nenhum pedido por aqui.</div>}
-        {list.map(p => {
-          const open = openId === p.id
-          const c = STATUS_COLOR[p.status]
+      <div className="pd-board">
+        {BOARD_COLUMNS.map(status => {
+          const items = pedidos.filter(p => p.status === status)
           return (
-            <div className="pd-card" key={p.id} onClick={() => setOpenId(open ? null : p.id)}>
-              <div className="pd-row1">
-                <div><div className="pd-name">{p.customer_name}</div><div className="pd-time">{timeAgo(p.created_at)} atrás · {p.origin === 'cardapio_publico' ? 'Cardápio' : p.origin}</div></div>
-                <span className="pd-badge" style={{ background: c.bg, color: c.fg }}>{STATUS_LABEL[p.status]}</span>
+            <div className="pd-board-col" key={status}>
+              <div className="pd-board-colhead"><span>{STATUS_LABEL[status]}</span><span className="pd-board-count">{items.length}</span></div>
+              <div className="pd-board-scroll">
+                {items.length === 0 && <div className="pd-board-empty">Nada aqui</div>}
+                {items.map(renderCard)}
               </div>
-              <div className="pd-sum">{p.itens?.length || 0} {p.itens?.length === 1 ? 'item' : 'itens'} · {p.payment_method || '—'} · {p.payment_status === 'pago' ? 'pago' : 'pendente'}</div>
-              <div className="pd-total">{fmt(p.total)}</div>
-              {open && (
-                <div className="pd-detail" onClick={e => e.stopPropagation()}>
-                  {p.itens?.map(it => (
-                    <div key={it.id}>
-                      <div className="pd-item"><span>{it.qty}x {it.product_name}</span><span>{fmt(it.unit_price * it.qty)}</span></div>
-                      {it.selected_options?.length > 0 && <div className="pd-mods">{it.selected_options.map(o => o.name).join(', ')}</div>}
-                    </div>
-                  ))}
-                  {p.delivery_address && <div style={{ marginTop: 8, fontSize: 11.5 }}>📍 {p.delivery_address}</div>}
-                  {p.customer_phone && <div style={{ fontSize: 11.5, marginTop: 2 }}>📞 {p.customer_phone}</div>}
-                  {p.notes && <div style={{ fontSize: 11.5, marginTop: 2, color: '#6E6656' }}>Obs: {p.notes}</div>}
-                  <div className="pd-chips">
-                    {FLOW.map(s => <button key={s} className={`pd-chip ${p.status === s ? 'current' : ''}`} onClick={() => setStatus(p.id, s)}>{STATUS_LABEL[s]}</button>)}
-                  </div>
-                  {p.status !== 'cancelado' && p.status !== 'entregue' && <button className="pd-cancel" onClick={() => setStatus(p.id, 'cancelado')}>Cancelar pedido</button>}
-                </div>
-              )}
             </div>
           )
         })}
+        {cancelados.length > 0 && (
+          <div className="pd-board-col" key="cancelado" style={{ background: '#FBEAEA' }}>
+            <div className="pd-board-colhead"><span>Cancelados</span><span className="pd-board-count" style={{ background: '#C43D3D' }}>{cancelados.length}</span></div>
+            <div className="pd-board-scroll">{cancelados.map(renderCard)}</div>
+          </div>
+        )}
       </div>
     </div>
+    </CrmShell>
   )
 }

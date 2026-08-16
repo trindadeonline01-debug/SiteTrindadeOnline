@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { compressImage } from '@/lib/compressImage'
+import CrmShell from '@/components/CrmShell'
 
 type Categoria = { id: string; name: string; display_order: number }
 type Opcao = { id?: string; name: string; price: number; max_qty: number | null; linked_produto_id: string | null }
@@ -37,6 +38,7 @@ function parsePt(v: string) { return parseFloat((v || '0').replace(',', '.')) ||
 export default function CatalogoPage() {
   const [loading, setLoading] = useState(true)
   const [companyId, setCompanyId] = useState('')
+  const [companyName, setCompanyName] = useState('')
   const [categorias, setCategorias] = useState<Categoria[]>([])
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [view, setView] = useState<'list' | 'form'>('list')
@@ -51,9 +53,10 @@ export default function CatalogoPage() {
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { window.location.href = '/login?redirect=/painel/crm/catalogo'; return }
-      const { data: comp } = await supabase.from('companies').select('id, loja_digital_enabled').eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
+      const { data: comp } = await supabase.from('companies').select('id, name, loja_digital_enabled').eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
       if (!comp || !comp.loja_digital_enabled) { window.location.href = '/painel/crm'; return }
       setCompanyId(comp.id)
+      setCompanyName(comp.name)
       await loadAll(comp.id)
       setLoading(false)
     })
@@ -188,9 +191,24 @@ export default function CatalogoPage() {
   const filtered = produtos.filter(p => filterCat === 'all' || p.category_id === filterCat)
 
   return (
+    <CrmShell active="catalogo" companyName={companyName}>
     <div className="cg-wrap">
       <style>{`
         .cg-wrap{ max-width:480px; margin:0 auto; min-height:100vh; background:#F7F5F0; font-family:'Inter',sans-serif; font-size:13px; color:#1A1610; padding-bottom:40px; }
+        @media(min-width:768px){
+          .cg-wrap{ max-width:none; margin:0; min-height:0; padding-bottom:60px; }
+          .cg-head{ padding:28px 32px 16px; position:static; }
+          .cg-body{ padding:0 32px; }
+          .cg-list-view .cg-body{ display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:14px; align-content:start; }
+          .cg-list-view .cg-filters{ grid-column:1/-1; }
+          .cg-list-view .cg-empty-msg{ grid-column:1/-1; }
+          .cg-row{ flex-direction:column; align-items:stretch; gap:0; border:1px solid #E6E0D2; border-radius:14px; padding:0; overflow:hidden; background:#fff; }
+          .cg-row .cg-photo{ width:100%; height:130px; border-radius:0; font-size:34px; }
+          .cg-row .cg-mid{ padding:12px 14px 4px; }
+          .cg-row-actions{ padding:0 14px 12px; }
+          .cg-fab{ right:32px; }
+          .cg-form-view .cg-body{ max-width:640px; margin:0 auto; padding:0 32px; }
+        }
         .cg-head{ padding:22px 16px 14px; display:flex; align-items:center; gap:10px; background:#F7F5F0; position:sticky; top:0; z-index:5; }
         .cg-head h1{ font-size:18px; margin:0; flex:1; font-weight:800; }
         .cg-back{ width:32px;height:32px;border-radius:50%;border:1px solid #E6E0D2;background:#fff;font-size:15px;cursor:pointer; }
@@ -207,6 +225,7 @@ export default function CatalogoPage() {
         .cg-photo{ width:48px;height:48px;border-radius:10px;background:linear-gradient(135deg,#FBF1DC,#FCFAF5);display:flex;align-items:center;justify-content:center;font-size:20px;flex:none;overflow:hidden; }
         .cg-photo img{ width:100%;height:100%;object-fit:cover; }
         .cg-mid{ flex:1;min-width:0; }
+        .cg-row-actions{ display:flex;gap:6px;flex:none; }
         .cg-name{ font-weight:700;font-size:12.5px; }
         .cg-cat{ font-size:10.5px;color:#A79E8B; }
         .cg-price{ font-size:12px;font-weight:800;margin-top:2px; }
@@ -249,7 +268,7 @@ export default function CatalogoPage() {
       `}</style>
 
       {view === 'list' && (
-        <>
+        <div className="cg-list-view">
           <div className="cg-head">
             <a href="/painel/crm" className="cg-back" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', color: '#1A1610' }}>‹</a>
             <h1>Catálogo</h1>
@@ -261,7 +280,7 @@ export default function CatalogoPage() {
                 <button key={c.id} className={`cg-chip ${filterCat === c.id ? 'active' : ''}`} onClick={() => setFilterCat(c.id)}>{c.name}</button>
               ))}
             </div>
-            {filtered.length === 0 && <div style={{ textAlign: 'center', color: '#A79E8B', padding: '40px 0', fontSize: 12.5 }}>Nenhum produto ainda. Toca no + pra criar o primeiro.</div>}
+            {filtered.length === 0 && <div className="cg-empty-msg" style={{ textAlign: 'center', color: '#A79E8B', padding: '40px 0', fontSize: 12.5 }}>Nenhum produto ainda. Toca no + pra criar o primeiro.</div>}
             {filtered.map(p => (
               <div key={p.id} className="cg-row" onClick={() => openEdit(p.id)}>
                 <div className="cg-photo">{p.photo_url ? <img src={p.photo_url} alt="" /> : '🍽️'}</div>
@@ -273,17 +292,19 @@ export default function CatalogoPage() {
                     <span className={`cg-badge ${p.active ? 'on' : 'off'}`}>{p.active ? `${margin(Number(p.cost_price), Number(p.sale_price))}% margem` : 'pausado'}</span>
                   </div>
                 </div>
-                <button className="cg-btn-ghost" style={{ padding: '6px 10px', borderRadius: 8, fontSize: 11 }} onClick={e => { e.stopPropagation(); toggleActive(p) }}>{p.active ? '⏸' : '▶'}</button>
-                <button className="cg-del" onClick={e => { e.stopPropagation(); deleteProduto(p.id) }}>🗑</button>
+                <div className="cg-row-actions">
+                  <button className="cg-btn-ghost" style={{ padding: '6px 10px', borderRadius: 8, fontSize: 11 }} onClick={e => { e.stopPropagation(); toggleActive(p) }}>{p.active ? '⏸' : '▶'}</button>
+                  <button className="cg-del" onClick={e => { e.stopPropagation(); deleteProduto(p.id) }}>🗑</button>
+                </div>
               </div>
             ))}
           </div>
           <button className="cg-fab" onClick={openNew}>+</button>
-        </>
+        </div>
       )}
 
       {view === 'form' && (
-        <>
+        <div className="cg-form-view">
           <div className="cg-head">
             <button className="cg-back" onClick={() => setView('list')}>‹</button>
             <h1>{form.id ? 'Editar produto' : 'Novo produto'}</h1>
@@ -379,10 +400,11 @@ export default function CatalogoPage() {
               <button className="cg-btn cg-btn-gold" disabled={savingProd} onClick={saveProduto}>{savingProd ? 'Salvando...' : 'Salvar produto'}</button>
             </div>
           </div>
-        </>
+        </div>
       )}
 
       {toast && <div className="cg-toast">{toast}</div>}
     </div>
+    </CrmShell>
   )
 }

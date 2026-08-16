@@ -47,7 +47,7 @@ export default function ClientesPage() {
     <CrmShell active="clientes" companyName={companyName}>
       <div className="cl-wrap">
         <style>{`
-          .cl-wrap{ max-width:480px;margin:0 auto;min-height:100vh;background:#F7F5F0;font-family:'Inter',sans-serif;font-size:13px;color:#1A1610;padding-bottom:30px; }
+          .cl-wrap{ max-width:480px;margin:0 auto;min-height:100vh;background:#F7F5F0;font-family:'Inter',sans-serif;font-size:13px;color:#1A1610;padding-bottom:30px;min-width:0;overflow-x:hidden; }
           .cl-head{ padding:22px 16px 14px;display:flex;align-items:center;gap:10px;position:sticky;top:0;background:#F7F5F0;z-index:5; }
           .cl-head h1{ font-size:18px;margin:0;flex:1;font-weight:800; }
           .cl-back{ width:32px;height:32px;border-radius:50%;border:1px solid #E6E0D2;background:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;text-decoration:none;color:#1A1610; }

@@ -94,7 +94,7 @@ export default function CrmPage() {
     <CrmShell active="inicio" companyName={company.name}>
       <div className="crm-hub-content">
         <style>{`
-          .crm-hub-content{padding:24px 16px 80px;}
+          .crm-hub-content{padding:24px 16px 80px;min-width:0;}
           @media(min-width:768px){.crm-hub-content{padding:28px 32px;}}
           .crm-hub-title{font-size:17px;font-weight:800;margin-bottom:20px;text-align:center;}
           @media(min-width:768px){.crm-hub-title{display:none;}}

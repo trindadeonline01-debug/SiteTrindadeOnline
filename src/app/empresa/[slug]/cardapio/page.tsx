@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { isOpenNow } from '@/lib/businessHours'
 
 type Opcao = { id: string; name: string; price: number; max_qty: number | null }
-type Grupo = { id: string; name: string; required: boolean; min_select: number; max_select: number; options: Opcao[] }
+type Grupo = { id: string; name: string; required: boolean; min_select: number; max_select: number; pricing_rule: 'soma' | 'maior_valor'; options: Opcao[] }
 type Produto = {
   id: string; name: string; description: string | null; photo_url: string | null
   category_id: string | null; sale_price: number
@@ -19,6 +19,7 @@ type Company = {
   id: string; name: string; slug: string; phone: string | null; address: string | null
   avg_rating: number; total_reviews: number; status: string
   loja_digital_enabled: boolean; flexible_hours?: boolean; owner_id?: string
+  loja_taxa_entrega: number; loja_pedido_minimo: number
   hours?: any[]
 }
 type CartLine = { key: string; produtoId: string; name: string; modifiers: { name: string; price: number }[]; unitPrice: number; qty: number }
@@ -34,6 +35,11 @@ function promoPrice(p: Produto): number | null {
 function availableToday(p: Produto) {
   if (!p.available_days || p.available_days.length === 0) return true
   return p.available_days.includes(new Date().getDay())
+}
+function groupContribution(g: Grupo, selectedIdx: number[]): number {
+  const prices = selectedIdx.map(oi => g.options[oi].price)
+  if (prices.length === 0) return 0
+  return g.pricing_rule === 'maior_valor' ? Math.max(...prices) : prices.reduce((a, b) => a + b, 0)
 }
 
 export default function CardapioPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -57,7 +63,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
 
   useEffect(() => {
     supabase.from('companies')
-      .select('id,name,slug,phone,address,avg_rating,total_reviews,status,loja_digital_enabled,flexible_hours,owner_id,hours:company_hours(label,hours,order,day_of_week,open_time,close_time,closed)')
+      .select('id,name,slug,phone,address,avg_rating,total_reviews,status,loja_digital_enabled,flexible_hours,owner_id,loja_taxa_entrega,loja_pedido_minimo,hours:company_hours(label,hours,order,day_of_week,open_time,close_time,closed)')
       .eq('slug', slug).maybeSingle()
       .then(async ({ data: comp }) => {
         if (!comp || comp.status !== 'active' || !comp.loja_digital_enabled) { setCompany(null); setLoading(false); return }
@@ -101,7 +107,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
       return s
     }))
   }
-  const detailUnitPrice = detail ? (promoPrice(detail) ?? detail.sale_price) + detail.groups.reduce((s, g, gi) => s + detailSel[gi].reduce((s2, oi) => s2 + g.options[oi].price, 0), 0) : 0
+  const detailUnitPrice = detail ? (promoPrice(detail) ?? detail.sale_price) + detail.groups.reduce((s, g, gi) => s + groupContribution(g, detailSel[gi]), 0) : 0
   const detailReqMet = detail ? detail.groups.every((g, gi) => !g.required || detailSel[gi].length >= g.min_select) : true
 
   function confirmAddDetail() {
@@ -116,13 +122,16 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { window.location.href = `/login?redirect=/empresa/${slug}/cardapio`; return }
     if (!company || cart.length === 0) return
+    if (Number(company.loja_pedido_minimo || 0) > 0 && cartTotal < Number(company.loja_pedido_minimo)) return
     setConfirming(true)
+    const taxa = address.trim() ? Number(company.loja_taxa_entrega || 0) : 0
+    const total = cartTotal + taxa
     const { data: profile } = await supabase.from('profiles').select('name, phone').eq('id', session.user.id).maybeSingle()
     const { data: pedido } = await supabase.from('loja_pedidos').insert({
       company_id: company.id, customer_id: session.user.id,
       customer_name: profile?.name || 'Cliente', customer_phone: profile?.phone || null,
       delivery_address: address, origin: 'cardapio_publico', payment_method: payMethod,
-      subtotal: cartTotal, total: cartTotal, notes: obs.trim() || null,
+      subtotal: cartTotal, total, notes: obs.trim() || null,
     }).select('id').single()
     if (pedido) {
       await supabase.from('loja_pedido_itens').insert(cart.map(l => ({
@@ -133,7 +142,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           companyId: company.id, phone: profile?.phone || null, name: profile?.name || 'Cliente',
-          address, total: cartTotal, items: cart.map(l => ({ produtoId: l.produtoId, qty: l.qty })),
+          address, total, items: cart.map(l => ({ produtoId: l.produtoId, qty: l.qty })),
         }),
       }).catch(() => {})
       if (company.owner_id) {
@@ -142,7 +151,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             title: `Novo pedido — ${company.name}`,
-            body: `${profile?.name || 'Cliente'} pediu ${fmt(cartTotal)}`,
+            body: `${profile?.name || 'Cliente'} pediu ${fmt(total)}`,
             target: 'external_user_id', userId: company.owner_id,
           }),
         }).catch(() => {})
@@ -162,6 +171,9 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
   )
 
   const open = isOpenNow(company.hours as any, company.flexible_hours)
+  const taxaEntrega = address.trim() ? Number(company.loja_taxa_entrega || 0) : 0
+  const orderTotal = cartTotal + taxaEntrega
+  const abaixoMinimo = Number(company.loja_pedido_minimo || 0) > 0 && cartTotal < Number(company.loja_pedido_minimo)
   const searchTerm = search.trim().toLowerCase()
   const filtered = produtos
     .filter(p => filterCat === 'all' || p.category_id === filterCat)
@@ -375,10 +387,18 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
                 <textarea className="cd-diinput" style={{ minHeight: 56, resize: 'vertical' }} value={obs} onChange={e => setObs(e.target.value)} placeholder="Ex: sem cebola, troco pra R$50..." />
                 <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', margin: '14px 0 8px', fontWeight: 800 }}>Pagamento</div>
                 {(['pix', 'dinheiro', 'cartao'] as const).map(m => <button key={m} className={`cd-paychip ${payMethod === m ? 'active' : ''}`} onClick={() => setPayMethod(m)}>{m === 'pix' ? 'Pix' : m === 'dinheiro' ? 'Dinheiro' : 'Cartão'}</button>)}
-                <div className="cd-totalrow"><span>Total</span><span>{fmt(cartTotal)}</span></div>
+                {abaixoMinimo && (
+                  <div style={{ marginTop: 12, padding: '10px 12px', borderRadius: 10, background: '#FEF0E0', color: '#B5690C', fontSize: 11.5, fontWeight: 600 }}>
+                    Pedido mínimo de {fmt(Number(company.loja_pedido_minimo))} — faltam {fmt(Number(company.loja_pedido_minimo) - cartTotal)}
+                  </div>
+                )}
+                {taxaEntrega > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0 0', fontSize: 12, color: '#555' }}><span>Taxa de entrega</span><span>{fmt(taxaEntrega)}</span></div>
+                )}
+                <div className="cd-totalrow"><span>Total</span><span>{fmt(orderTotal)}</span></div>
               </div>
               <div style={{ padding: '14px 16px 16px', borderTop: '1px solid #EDE8E0' }}>
-                <button className="cd-addcart" style={{ width: '100%' }} disabled={confirming || !address.trim()} onClick={confirmOrder}>{confirming ? 'Enviando...' : 'Confirmar pedido'}</button>
+                <button className="cd-addcart" style={{ width: '100%' }} disabled={confirming || !address.trim() || abaixoMinimo} onClick={confirmOrder}>{confirming ? 'Enviando...' : 'Confirmar pedido'}</button>
               </div>
             </>
           ) : (

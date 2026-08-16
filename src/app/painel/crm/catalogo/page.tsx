@@ -6,7 +6,7 @@ import CrmShell from '@/components/CrmShell'
 
 type Categoria = { id: string; name: string; display_order: number }
 type Opcao = { id?: string; name: string; price: number; max_qty: number | null; linked_produto_id: string | null }
-type Grupo = { id?: string; name: string; required: boolean; min_select: number; max_select: number; options: Opcao[] }
+type Grupo = { id?: string; name: string; required: boolean; min_select: number; max_select: number; pricing_rule: 'soma' | 'maior_valor'; options: Opcao[] }
 type Produto = {
   id: string; name: string; description: string | null; photo_url: string | null
   category_id: string | null; cost_price: number; sale_price: number
@@ -14,7 +14,7 @@ type Produto = {
   available_days: number[] | null
   promo_type: 'percent' | 'fixed' | null; promo_value: number | null
   promo_starts_at: string | null; promo_ends_at: string | null
-  active: boolean; display_order: number
+  active: boolean; esgotado: boolean; display_order: number
   category?: { name: string } | null
 }
 
@@ -99,7 +99,7 @@ export default function CatalogoPage() {
       promo_ends_at: data.promo_ends_at ? data.promo_ends_at.slice(0, 10) : '',
       active: data.active,
       groups: (data.groups || []).map((g: any) => ({
-        id: g.id, name: g.name, required: g.required, min_select: g.min_select, max_select: g.max_select,
+        id: g.id, name: g.name, required: g.required, min_select: g.min_select, max_select: g.max_select, pricing_rule: g.pricing_rule || 'soma',
         options: (g.options || []).map((o: any) => ({ id: o.id, name: o.name, price: o.price, max_qty: o.max_qty, linked_produto_id: o.linked_produto_id })),
       })),
     })
@@ -107,7 +107,7 @@ export default function CatalogoPage() {
     setView('form')
   }
 
-  function addGroup() { setForm(f => ({ ...f, groups: [...f.groups, { name: 'Novo grupo', required: false, min_select: 0, max_select: 1, options: [] }] })) }
+  function addGroup() { setForm(f => ({ ...f, groups: [...f.groups, { name: 'Novo grupo', required: false, min_select: 0, max_select: 1, pricing_rule: 'soma', options: [] }] })) }
   function removeGroup(gi: number) { setForm(f => ({ ...f, groups: f.groups.filter((_, i) => i !== gi) })) }
   function updateGroup(gi: number, patch: Partial<Grupo>) { setForm(f => ({ ...f, groups: f.groups.map((g, i) => i === gi ? { ...g, ...patch } : g) })) }
   function addOption(gi: number) { updateGroup(gi, { options: [...form.groups[gi].options, { name: 'Nova opção', price: 0, max_qty: 1, linked_produto_id: null }] }) }
@@ -160,7 +160,7 @@ export default function CatalogoPage() {
     for (let gi = 0; gi < form.groups.length; gi++) {
       const g = form.groups[gi]
       const { data: gData } = await supabase.from('loja_opcoes_grupo').insert({
-        produto_id: produtoId, name: g.name, required: g.required, min_select: g.min_select, max_select: g.max_select, display_order: gi,
+        produto_id: produtoId, name: g.name, required: g.required, min_select: g.min_select, max_select: g.max_select, pricing_rule: g.pricing_rule, display_order: gi,
       }).select('id').single()
       if (!gData) continue
       const optRows = g.options.map((o, oi) => ({
@@ -178,6 +178,11 @@ export default function CatalogoPage() {
   async function toggleActive(p: Produto) {
     await supabase.from('loja_produtos').update({ active: !p.active }).eq('id', p.id)
     setProdutos(prev => prev.map(x => x.id === p.id ? { ...x, active: !p.active } : x))
+  }
+
+  async function toggleEsgotado(p: Produto) {
+    await supabase.from('loja_produtos').update({ esgotado: !p.esgotado }).eq('id', p.id)
+    setProdutos(prev => prev.map(x => x.id === p.id ? { ...x, esgotado: !p.esgotado } : x))
   }
 
   async function deleteProduto(id: string) {
@@ -238,6 +243,7 @@ export default function CatalogoPage() {
         .cg-photo img{ width:100%;height:100%;object-fit:cover; }
         .cg-mid{ flex:1;min-width:0; }
         .cg-row-actions{ display:flex;gap:6px;flex:none; }
+        .cg-btn-danger{ background:#FBEAEA;border-color:#F3C6C6; }
         .cg-name{ font-weight:700;font-size:12.5px; }
         .cg-cat{ font-size:10.5px;color:#A79E8B; }
         .cg-price{ font-size:12px;font-weight:800;margin-top:2px; }
@@ -312,9 +318,11 @@ export default function CatalogoPage() {
                   <div className="cg-price">
                     {fmt(Number(p.sale_price))}
                     <span className={`cg-badge ${p.active ? 'on' : 'off'}`}>{p.active ? `${margin(Number(p.cost_price), Number(p.sale_price))}% margem` : 'pausado'}</span>
+                    {p.esgotado && <span className="cg-badge off" style={{ background: '#FBEAEA', color: '#C43D3D' }}>esgotado hoje</span>}
                   </div>
                 </div>
                 <div className="cg-row-actions">
+                  <button className={`cg-btn-ghost ${p.esgotado ? 'cg-btn-danger' : ''}`} style={{ padding: '6px 10px', borderRadius: 8, fontSize: 11 }} title="Esgotar hoje" onClick={e => { e.stopPropagation(); toggleEsgotado(p) }}>{p.esgotado ? '🚫' : '🈹'}</button>
                   <button className="cg-btn-ghost" style={{ padding: '6px 10px', borderRadius: 8, fontSize: 11 }} onClick={e => { e.stopPropagation(); toggleActive(p) }}>{p.active ? '⏸' : '▶'}</button>
                   <button className="cg-del" onClick={e => { e.stopPropagation(); deleteProduto(p.id) }}>🗑</button>
                 </div>
@@ -400,6 +408,13 @@ export default function CatalogoPage() {
                   <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}><input type="checkbox" checked={g.required} onChange={e => updateGroup(gi, { required: e.target.checked })} /> Obrigatório</label>
                   <div>mín <input value={g.min_select} onChange={e => updateGroup(gi, { min_select: +e.target.value || 0 })} /></div>
                   <div>máx <input value={g.max_select} onChange={e => updateGroup(gi, { max_select: +e.target.value || 1 })} /></div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    cobrar:
+                    <select value={g.pricing_rule} onChange={e => updateGroup(gi, { pricing_rule: e.target.value as any })} style={{ padding: '5px 6px', borderRadius: 6, border: '1px solid #E6E0D2', fontFamily: 'inherit', fontSize: 11 }}>
+                      <option value="soma">soma dos itens</option>
+                      <option value="maior_valor">o mais caro (ex: pizza meio a meio)</option>
+                    </select>
+                  </label>
                 </div>
                 {g.options.map((o, oi) => (
                   <div className="cg-opt" key={oi}>

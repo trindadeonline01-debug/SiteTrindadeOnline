@@ -12,7 +12,12 @@ type Pedido = {
   itens: Item[]
 }
 type NpOpcao = { id: string; name: string; price: number; max_qty: number | null }
-type NpGrupo = { id: string; name: string; required: boolean; min_select: number; max_select: number; options: NpOpcao[] }
+type NpGrupo = { id: string; name: string; required: boolean; min_select: number; max_select: number; pricing_rule: 'soma' | 'maior_valor'; options: NpOpcao[] }
+function npGroupContribution(g: NpGrupo, selectedIdx: number[]): number {
+  const prices = selectedIdx.map(oi => g.options[oi].price)
+  if (prices.length === 0) return 0
+  return g.pricing_rule === 'maior_valor' ? Math.max(...prices) : prices.reduce((a, b) => a + b, 0)
+}
 type NpProduto = { id: string; name: string; sale_price: number; category_id: string | null; groups: NpGrupo[] }
 type NpCartLine = { key: string; produtoId: string; name: string; modifiers: { name: string; price: number }[]; unitPrice: number; qty: number }
 
@@ -167,7 +172,7 @@ export default function PedidosPage() {
     }))
   }
   const npDetailReqMet = npDetail ? npDetail.groups.every((g, gi) => !g.required || npDetailSel[gi].length >= g.min_select) : true
-  const npDetailPrice = npDetail ? npDetail.sale_price + npDetail.groups.reduce((s, g, gi) => s + npDetailSel[gi].reduce((s2, oi) => s2 + g.options[oi].price, 0), 0) : 0
+  const npDetailPrice = npDetail ? npDetail.sale_price + npDetail.groups.reduce((s, g, gi) => s + npGroupContribution(g, npDetailSel[gi]), 0) : 0
   function npConfirmDetail() {
     if (!npDetail || !npDetailReqMet) return
     const modifiers: { name: string; price: number }[] = []

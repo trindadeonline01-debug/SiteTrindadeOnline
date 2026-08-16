@@ -4,13 +4,19 @@ import { supabase } from '@/lib/supabase'
 import CrmShell from '@/components/CrmShell'
 import QRCode from 'qrcode'
 
-type Company = { id: string; name: string; slug: string; loja_digital_enabled: boolean }
+type Company = { id: string; name: string; slug: string; loja_digital_enabled: boolean; loja_taxa_entrega: number; loja_pedido_minimo: number }
+
+function parsePt(v: string) { return parseFloat((v || '0').replace(',', '.')) || 0 }
 
 export default function CrmPage() {
   const [loading, setLoading] = useState(true)
   const [company, setCompany] = useState<Company | null>(null)
   const [qrDataUrl, setQrDataUrl] = useState('')
   const [copied, setCopied] = useState(false)
+  const [taxaInput, setTaxaInput] = useState('0')
+  const [minimoInput, setMinimoInput] = useState('0')
+  const [savingConfig, setSavingConfig] = useState(false)
+  const [configSaved, setConfigSaved] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -19,15 +25,31 @@ export default function CrmPage() {
       if (profile?.user_type !== 'company') { window.location.href = '/'; return }
       const { data: comp } = await supabase
         .from('companies')
-        .select('id, name, slug, loja_digital_enabled')
+        .select('id, name, slug, loja_digital_enabled, loja_taxa_entrega, loja_pedido_minimo')
         .eq('owner_id', session.user.id)
         .order('created_at', { ascending: true })
         .limit(1)
         .maybeSingle()
       setCompany(comp as Company | null)
+      if (comp) {
+        setTaxaInput(Number(comp.loja_taxa_entrega || 0).toFixed(2).replace('.', ','))
+        setMinimoInput(Number(comp.loja_pedido_minimo || 0).toFixed(2).replace('.', ','))
+      }
       setLoading(false)
     })
   }, [])
+
+  async function saveConfig() {
+    if (!company) return
+    setSavingConfig(true)
+    const loja_taxa_entrega = parsePt(taxaInput)
+    const loja_pedido_minimo = parsePt(minimoInput)
+    await supabase.from('companies').update({ loja_taxa_entrega, loja_pedido_minimo }).eq('id', company.id)
+    setCompany({ ...company, loja_taxa_entrega, loja_pedido_minimo })
+    setSavingConfig(false)
+    setConfigSaved(true)
+    setTimeout(() => setConfigSaved(false), 2000)
+  }
 
   const cardapioLink = company ? `https://trindadeonline.com.br/empresa/${company.slug}/cardapio` : ''
 
@@ -85,6 +107,14 @@ export default function CrmPage() {
           .crm-share-qr img{width:100%;height:100%;}
           .crm-share-link{font-size:10.5px;color:#888;word-break:break-all;margin-bottom:10px;}
           .crm-share-btn{width:100%;padding:9px;border-radius:9px;border:none;background:#C9951A;color:#1A1610;font-weight:700;font-size:12px;cursor:pointer;}
+          .crm-config-card{margin:16px auto 0;max-width:320px;background:#fff;border:1px solid #EDE8E0;border-radius:14px;padding:18px;}
+          @media(min-width:768px){.crm-config-card{max-width:280px;margin:16px 0 0;}}
+          .crm-config-title{font-weight:800;font-size:13.5px;margin-bottom:4px;}
+          .crm-config-sub{font-size:10.5px;color:#888;margin-bottom:12px;line-height:1.5;}
+          .crm-config-field{margin-bottom:10px;}
+          .crm-config-field label{display:block;font-size:10.5px;font-weight:700;color:#6E6656;margin-bottom:5px;}
+          .crm-config-field input{width:100%;padding:9px 11px;border-radius:9px;border:1px solid #E6E0D2;font-size:12.5px;font-family:inherit;}
+          .crm-config-btn{width:100%;padding:9px;border-radius:9px;border:none;background:#1A1610;color:#C9951A;font-weight:700;font-size:12px;cursor:pointer;margin-top:4px;}
         `}</style>
         <div className="crm-hub-title">{company.name}</div>
         <div className="crm-hub-grid">
@@ -97,6 +127,13 @@ export default function CrmPage() {
           <div className="crm-share-qr">{qrDataUrl && <img src={qrDataUrl} alt="QR Code do cardápio" />}</div>
           <div className="crm-share-link">{cardapioLink}</div>
           <button className="crm-share-btn" onClick={copyLink}>{copied ? 'Link copiado!' : 'Copiar link'}</button>
+        </div>
+        <div className="crm-config-card">
+          <div className="crm-config-title">🚚 Entrega e pedido mínimo</div>
+          <div className="crm-config-sub">Taxa de entrega só é cobrada quando o pedido tem endereço preenchido. Deixe 0 pra não cobrar.</div>
+          <div className="crm-config-field"><label>Taxa de entrega (R$)</label><input value={taxaInput} onChange={e => setTaxaInput(e.target.value)} /></div>
+          <div className="crm-config-field"><label>Pedido mínimo (R$)</label><input value={minimoInput} onChange={e => setMinimoInput(e.target.value)} /></div>
+          <button className="crm-config-btn" disabled={savingConfig} onClick={saveConfig}>{configSaved ? 'Salvo!' : savingConfig ? 'Salvando...' : 'Salvar'}</button>
         </div>
       </div>
     </CrmShell>

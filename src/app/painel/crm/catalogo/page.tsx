@@ -174,10 +174,10 @@ export default function CatalogoPage() {
     setView('form')
   }
 
-  function addGroup() { setForm(f => ({ ...f, groups: [...f.groups, { name: 'Novo grupo', required: false, min_select: 0, max_select: 1, pricing_rule: 'soma', options: [] }] })) }
+  function addGroup() { setForm(f => ({ ...f, groups: [...f.groups, { name: '', required: false, min_select: 0, max_select: 1, pricing_rule: 'soma', options: [] }] })) }
   function removeGroup(gi: number) { setForm(f => ({ ...f, groups: f.groups.filter((_, i) => i !== gi) })) }
   function updateGroup(gi: number, patch: Partial<Grupo>) { setForm(f => ({ ...f, groups: f.groups.map((g, i) => i === gi ? { ...g, ...patch } : g) })) }
-  function addOption(gi: number) { updateGroup(gi, { options: [...form.groups[gi].options, { name: 'Nova opção', price: 0, max_qty: 1, linked_produto_id: null, photo_url: null, _photoFile: null }] }) }
+  function addOption(gi: number) { updateGroup(gi, { options: [...form.groups[gi].options, { name: '', price: 0, max_qty: 1, linked_produto_id: null, photo_url: null, _photoFile: null }] }) }
   function removeOption(gi: number, oi: number) { updateGroup(gi, { options: form.groups[gi].options.filter((_, i) => i !== oi) }) }
   function updateOption(gi: number, oi: number, patch: Partial<Opcao>) {
     updateGroup(gi, { options: form.groups[gi].options.map((o, i) => i === oi ? { ...o, ...patch } : o) })
@@ -228,7 +228,7 @@ export default function CatalogoPage() {
     for (let gi = 0; gi < form.groups.length; gi++) {
       const g = form.groups[gi]
       const { data: gData } = await supabase.from('loja_opcoes_grupo').insert({
-        produto_id: produtoId, name: g.name, required: g.required, min_select: g.min_select, max_select: g.max_select, pricing_rule: g.pricing_rule, display_order: gi,
+        produto_id: produtoId, name: g.name.trim() || 'Grupo', required: g.required, min_select: g.min_select, max_select: g.max_select || 1, pricing_rule: g.pricing_rule, display_order: gi,
       }).select('id').single()
       if (!gData) continue
       const optRows = []
@@ -243,7 +243,7 @@ export default function CatalogoPage() {
           if (up) optPhotoUrl = supabase.storage.from('loja-produtos').getPublicUrl(path).data.publicUrl
         }
         optRows.push({
-          grupo_id: gData.id, name: o.name, price: o.price, max_qty: o.max_qty || null, linked_produto_id: o.linked_produto_id || null, photo_url: optPhotoUrl, display_order: oi,
+          grupo_id: gData.id, name: o.name.trim() || 'Opção', price: o.price, max_qty: o.max_qty || null, linked_produto_id: o.linked_produto_id || null, photo_url: optPhotoUrl, display_order: oi,
         })
       }
       if (optRows.length) await supabase.from('loja_opcoes').insert(optRows)
@@ -508,13 +508,13 @@ export default function CatalogoPage() {
             {form.groups.map((g, gi) => (
               <div className="cg-group" key={gi}>
                 <div className="cg-group-top">
-                  <input value={g.name} onChange={e => updateGroup(gi, { name: e.target.value })} />
+                  <input placeholder="Nome do grupo (ex: Sabores, Tamanho...)" value={g.name} onChange={e => updateGroup(gi, { name: e.target.value })} />
                   <button className="cg-del" onClick={() => removeGroup(gi)}>🗑</button>
                 </div>
                 <div className="cg-rule">
                   <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}><input type="checkbox" checked={g.required} onChange={e => updateGroup(gi, { required: e.target.checked })} /> Obrigatório</label>
                   <div>mín <input value={g.min_select} onChange={e => updateGroup(gi, { min_select: +e.target.value || 0 })} /></div>
-                  <div>máx <input value={g.max_select} onChange={e => updateGroup(gi, { max_select: +e.target.value || 1 })} /></div>
+                  <div>máx <input value={g.max_select} onChange={e => updateGroup(gi, { max_select: +e.target.value || 0 })} /></div>
                 </div>
                 <div className="cg-rule-cobrar">
                   <span>cobrar:</span>

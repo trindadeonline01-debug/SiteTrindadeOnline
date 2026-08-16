@@ -585,11 +585,6 @@ export default function PainelPage() {
         .sb-btn-gold:hover{background:#B8841A;color:#fff !important;}
         .sb-btn-gray{background:transparent;color:#888 !important;border:1.5px solid #333;}
         .sb-btn-gray:hover{background:#1A1A1A;color:#C9951A !important;border-color:#C9951A;}
-        .mobile-hdr-new{background:#111;padding:16px 20px;text-align:center;}
-        @media(min-width:768px){.mobile-hdr-new{display:none;}}
-        .mobile-hdr-new .mhdr-logo{font-family:'Bebas Neue',sans-serif;font-size:22px;color:#fff;letter-spacing:2px;}
-        .mobile-hdr-new .mhdr-logo span{color:#C9951A;}
-        .mobile-hdr-new .mhdr-empresa{font-size:11px;color:#999;margin-top:6px;font-weight:600;letter-spacing:1px;text-transform:uppercase;}
         .mobile-actions{background:#F5F0E8;padding:12px 16px;display:flex;gap:8px;align-items:stretch;}
         @media(min-width:768px){.mobile-actions{display:none;}}
         .m-action-btn{flex:1;min-width:0;width:0;padding:12px 10px;border-radius:10px;font-size:13px;font-weight:700;text-decoration:none;text-align:center;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px;}
@@ -604,11 +599,6 @@ export default function PainelPage() {
         @media(min-width:768px){.topbar{display:flex;}}
         .topbar-title{font-family:'Bebas Neue',sans-serif;font-size:20px;color:#111;letter-spacing:1px;}
         .topbar-right{font-size:12px;color:#AAA;}
-        .mobile-hdr{background:#111;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;}
-        @media(min-width:768px){.mobile-hdr{display:none;}}
-        .mhdr-logo{font-family:'Bebas Neue',sans-serif;font-size:18px;color:#fff;letter-spacing:2px;}
-        .mhdr-logo span{color:#C9951A;}
-        .mhdr-empresa{font-size:11px;color:#C9951A;font-family:'Bebas Neue',sans-serif;letter-spacing:1px;}
 
         /* CONTENT — padding padrão para abas normais */
         .content{padding:24px 28px;flex:1;}
@@ -1204,10 +1194,6 @@ export default function PainelPage() {
 
         {/* MAIN — área direita */}
         <main className="painel-main">
-          <div className="mobile-hdr-new">
-            <div className="mhdr-logo">TRINDADE <span>ONLINE</span></div>
-            <div className="mhdr-empresa">{company.name}</div>
-          </div>
           <div className="topbar">
             <div className="topbar-title">{tabTitle[tab]}</div>
             <div className="topbar-right">{new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})}</div>

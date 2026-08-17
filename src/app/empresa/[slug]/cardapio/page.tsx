@@ -339,7 +339,8 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
         .cd-detail{ position:fixed;top:0;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:#F0EDE8;z-index:10000;display:flex;flex-direction:column;overflow:hidden; }
         .cd-hero{ height:200px;flex:none;background:linear-gradient(135deg,#FBF1DC,#E7DCC2);display:flex;align-items:center;justify-content:center;font-size:54px;position:relative;overflow:hidden; }
         .cd-hero img{ width:100%;height:100%;object-fit:cover; }
-        .cd-herobtn{ position:absolute;top:14px;right:14px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.94);border:none;font-size:16px;cursor:pointer;z-index:2; }
+        .cd-hero-scrim{ position:absolute;top:0;left:0;right:0;height:70px;background:linear-gradient(180deg,rgba(0,0,0,.32),transparent);z-index:1; }
+        .cd-herobtn{ position:absolute;top:14px;right:14px;width:38px;height:38px;border-radius:50%;background:rgba(20,15,8,.55);backdrop-filter:blur(3px);border:1px solid rgba(255,255,255,.3);font-size:19px;font-weight:800;color:#fff;cursor:pointer;z-index:2;box-shadow:0 3px 10px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center; }
         .cd-dscroll{ flex:1;overflow-y:auto;padding:16px; }
         .cd-optgroup{ border-top:7px solid #F0EDE8;margin:0 -16px; }
         .cd-og-head{ background:#FBF1DC;padding:11px 16px;display:flex;align-items:center;gap:8px; }
@@ -461,6 +462,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
         <div className="cd-detail">
           <div className="cd-hero">
             {detail.photo_url ? <img src={detail.photo_url} alt="" /> : detail.name[0]}
+            <div className="cd-hero-scrim" />
             <button className="cd-herobtn" onClick={() => setDetail(null)}>‹</button>
           </div>
           <div className="cd-dscroll">

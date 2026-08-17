@@ -41,6 +41,13 @@ export async function POST(req: NextRequest) {
       .eq('instance_name', instanceName).maybeSingle()
     if (!inst) return NextResponse.json({ ok: true })
 
+    // DEBUG temporário: grava o payload cru de status/presença pra descobrir
+    // o formato exato que essa versão da Evolution manda (vamos remover essa
+    // tabela depois de confirmar o parsing).
+    if (event.includes('messages.update') || event.includes('messages_update') || event.includes('presence')) {
+      await supabase.from('crm_webhook_debug').insert({ event, payload: body })
+    }
+
     // Auto-upgrade: instâncias criadas antes de MESSAGES_UPDATE/PRESENCE_UPDATE
     // existirem só escutavam os eventos antigos. Na primeira vez que qualquer
     // evento chegar depois desse deploy, reconfigura o webhook na Evolution

@@ -309,9 +309,9 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
         .cd-catchip.active{ background:#111;color:#C9951A;border-color:#111; }
         .cd-menu{ padding:2px 16px; }
         .cd-hot-row{ display:flex;gap:10px;overflow-x:auto;padding:2px 2px 10px; }
-        .cd-hot-card{ flex:none;width:120px;background:#fff;border:1px solid #EDE8E0;border-radius:12px;padding:8px;cursor:pointer;transition:transform .3s; }
+        .cd-hot-card{ flex:none;width:140px;background:#fff;border:1px solid #EDE8E0;border-radius:12px;padding:8px;cursor:pointer;transition:transform .3s; }
         .cd-hot-card.cd-flash{ animation:cdFlash .5s ease; border-color:#C9951A; }
-        .cd-hot-photo{ width:100%;height:70px;border-radius:8px;background:linear-gradient(135deg,#FBF1DC,#F0EDE8);display:flex;align-items:center;justify-content:center;font-size:22px;overflow:hidden;margin-bottom:6px; }
+        .cd-hot-photo{ width:100%;height:82px;border-radius:8px;background:linear-gradient(135deg,#FBF1DC,#F0EDE8);display:flex;align-items:center;justify-content:center;font-size:22px;overflow:hidden;margin-bottom:6px; }
         .cd-hot-photo img{ width:100%;height:100%;object-fit:cover; }
         .cd-hot-name{ font-size:11px;font-weight:700;line-height:1.3; }
         .cd-hot-price{ font-size:11px;font-weight:800;margin-top:3px; }
@@ -321,7 +321,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
         @keyframes cdFlash{ 0%{ background:#FBF1DC; } 35%{ background:#F5DFA0; transform:scale(1.012); } 100%{ background:transparent; transform:scale(1); } }
         .cd-prow-soldout{ cursor:default;opacity:.55; }
         .cd-prow-soldout .cd-pphoto{ filter:grayscale(1); }
-        .cd-pphoto{ width:56px;height:56px;border-radius:11px;background:linear-gradient(135deg,#FBF1DC,#F0EDE8);display:flex;align-items:center;justify-content:center;font-size:22px;position:relative;overflow:hidden; }
+        .cd-pphoto{ width:66px;height:66px;border-radius:11px;background:linear-gradient(135deg,#FBF1DC,#F0EDE8);display:flex;align-items:center;justify-content:center;font-size:22px;position:relative;overflow:hidden; }
         .cd-pphoto img{ width:100%;height:100%;object-fit:cover; }
         .cd-badge{ position:absolute;top:-6px;left:-6px;background:#E24B4A;color:#fff;font-size:9px;font-weight:800;padding:2px 6px;border-radius:6px; }
         .cd-pmid{ flex:1;min-width:0; }

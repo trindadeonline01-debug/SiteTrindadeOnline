@@ -116,7 +116,7 @@ export default function CatalogoPage() {
   const importCancelledRef = useRef(false)
   const [importProgress, setImportProgress] = useState({ done: 0, total: 0 })
   const [importResults, setImportResults] = useState<{ ok: number; errors: string[]; photoWarnings: string[]; cancelled: boolean } | null>(null)
-  const [lastImportedIds, setLastImportedIds] = useState<string[]>([])
+  const [lastImportBatch, setLastImportBatch] = useState<{ id: string; count: number } | null>(null)
   const [deletingLastImport, setDeletingLastImport] = useState(false)
 
   useEffect(() => {
@@ -127,6 +127,7 @@ export default function CatalogoPage() {
       setCompanyId(comp.id)
       setCompanyName(comp.name)
       await loadAll(comp.id)
+      await loadLastImportBatch(comp.id)
       setLoading(false)
     })
   }, [])
@@ -138,6 +139,17 @@ export default function CatalogoPage() {
     ])
     setCategorias(cats || [])
     setProdutos((prods || []) as any)
+  }
+
+  // Guardado no banco (não só em memória) pra o botão "excluir última
+  // importação" continuar disponível mesmo depois de recarregar a página,
+  // fechar e voltar — o Ricardo só decide excluir depois de abrir vários
+  // produtos e conferir se tá tudo certo, não na hora.
+  async function loadLastImportBatch(cid: string) {
+    const { data } = await supabase.from('loja_produtos').select('import_batch_id, created_at').eq('company_id', cid).not('import_batch_id', 'is', null).order('created_at', { ascending: false }).limit(1).maybeSingle()
+    if (!data?.import_batch_id) { setLastImportBatch(null); return }
+    const { count } = await supabase.from('loja_produtos').select('id', { count: 'exact', head: true }).eq('company_id', cid).eq('import_batch_id', data.import_batch_id)
+    setLastImportBatch({ id: data.import_batch_id, count: count || 0 })
   }
 
   function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(''), 2500) }
@@ -226,6 +238,7 @@ export default function CatalogoPage() {
     if (iNome === -1) { showToast('O CSV precisa ter uma coluna "nome"'); return }
 
     const dataRows = rows.slice(1)
+    const batchId = crypto.randomUUID()
     setImportResults(null)
     setImporting(true)
     setImportPaused(false)
@@ -234,7 +247,7 @@ export default function CatalogoPage() {
     setImportProgress({ done: 0, total: dataRows.length })
     const errors: string[] = []
     const photoWarnings: string[] = []
-    const createdIds: string[] = []
+    let createdCount = 0
     let ok = 0
     let cancelled = false
     let localCats = [...categorias]
@@ -291,9 +304,10 @@ export default function CatalogoPage() {
             photo_url: photoUrl,
             cost_price: 0, sale_price: iPreco >= 0 ? parsePt(r[iPreco]) : 0,
             track_stock: false, esgotado: false, active: true, display_order: produtos.length + i,
+            import_batch_id: batchId,
           }).select('id').single()
           if (prodErr || !prod) throw new Error(prodErr?.message || 'falha ao criar produto')
-          createdIds.push(prod.id)
+          createdCount++
 
           const groups = iGrupos >= 0 ? parseGroupsField(r[iGrupos] || '') : []
           for (let gi = 0; gi < groups.length; gi++) {
@@ -320,7 +334,7 @@ export default function CatalogoPage() {
     await loadAll(companyId)
     setImporting(false)
     setImportPaused(false)
-    setLastImportedIds(createdIds)
+    if (createdCount > 0) setLastImportBatch({ id: batchId, count: createdCount })
     setImportResults({ ok, errors, photoWarnings, cancelled })
   }
 
@@ -336,12 +350,12 @@ export default function CatalogoPage() {
   }
 
   async function deleteLastImport() {
-    if (!lastImportedIds.length) return
-    if (!confirm(`Excluir os ${lastImportedIds.length} produtos da última importação? Não dá pra desfazer.`)) return
+    if (!lastImportBatch) return
+    if (!confirm(`Excluir os ${lastImportBatch.count} produtos da última importação? Não dá pra desfazer.`)) return
     setDeletingLastImport(true)
-    await supabase.from('loja_produtos').delete().in('id', lastImportedIds)
+    await supabase.from('loja_produtos').delete().eq('company_id', companyId).eq('import_batch_id', lastImportBatch.id)
     await loadAll(companyId)
-    setLastImportedIds([])
+    setLastImportBatch(null)
     setDeletingLastImport(false)
     setImportResults(null)
     setShowImportCsv(false)
@@ -924,13 +938,13 @@ export default function CatalogoPage() {
                       Sabores | obrigatorio | 1 | 2 | maior_valor | Calabresa=39.90 ; Mussarela=35.90
                     </span>
                   </div>
-                  <label className="cg-btn cg-btn-gold" style={{ display: 'block', textAlign: 'center', cursor: 'pointer', marginBottom: lastImportedIds.length ? 10 : 16 }}>
+                  <label className="cg-btn cg-btn-gold" style={{ display: 'block', textAlign: 'center', cursor: 'pointer', marginBottom: lastImportBatch ? 10 : 16 }}>
                     Escolher arquivo CSV
                     <input type="file" accept=".csv,text/csv" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) handleImportCsv(f) }} />
                   </label>
-                  {lastImportedIds.length > 0 && (
+                  {lastImportBatch && (
                     <button className="cg-btn-ghost cg-btn-danger" style={{ width: '100%', padding: 10, borderRadius: 10, marginBottom: 6 }} disabled={deletingLastImport} onClick={deleteLastImport}>
-                      {deletingLastImport ? 'Excluindo...' : `🗑 Excluir última importação (${lastImportedIds.length} produtos)`}
+                      {deletingLastImport ? 'Excluindo...' : `🗑 Excluir última importação (${lastImportBatch.count} produtos)`}
                     </button>
                   )}
                 </>
@@ -964,9 +978,9 @@ export default function CatalogoPage() {
                       {importResults.photoWarnings.map((e, i) => <div key={i} style={{ fontSize: 11, color: '#8A6410', marginBottom: 2 }}>{e}</div>)}
                     </>
                   )}
-                  {lastImportedIds.length > 0 && (
+                  {lastImportBatch && (
                     <button className="cg-btn-ghost cg-btn-danger" style={{ width: '100%', padding: 10, borderRadius: 10, marginTop: 12 }} disabled={deletingLastImport} onClick={deleteLastImport}>
-                      {deletingLastImport ? 'Excluindo...' : `🗑 Excluir essa importação (${lastImportedIds.length} produtos)`}
+                      {deletingLastImport ? 'Excluindo...' : `🗑 Excluir essa importação (${lastImportBatch.count} produtos)`}
                     </button>
                   )}
                   <button className="cg-btn cg-btn-gold" style={{ width: '100%', marginTop: 8 }} onClick={() => { setShowImportCsv(false); setImportResults(null) }}>Fechar</button>

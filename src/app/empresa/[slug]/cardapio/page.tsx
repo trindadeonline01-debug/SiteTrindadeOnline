@@ -316,7 +316,9 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
         .cd-hot-name{ font-size:11px;font-weight:700;line-height:1.3; }
         .cd-hot-price{ font-size:11px;font-weight:800;margin-top:3px; }
         .cd-sec{ font-size:17px;font-weight:800;letter-spacing:.01em;color:#1A1610;margin:26px 2px 10px;padding-left:11px;border-left:4px solid #C9951A;line-height:1.2; }
-        .cd-prow{ display:flex;gap:11px;padding:10px 16px;margin:0 -16px;border-bottom:1px solid #E2DCCB;align-items:center;cursor:pointer;transition:background .3s,transform .3s; }
+        .cd-prowgroup{ background:#fff;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.04);overflow:hidden; }
+        .cd-prow{ display:flex;gap:11px;padding:11px 12px;border-bottom:1px solid #EFEAE0;align-items:center;cursor:pointer;transition:background .3s,transform .3s; }
+        .cd-prowgroup .cd-prow:last-child{ border-bottom:none; }
         .cd-prow.cd-flash{ animation:cdFlash .5s ease; }
         @keyframes cdFlash{ 0%{ background:#FBF1DC; } 35%{ background:#F5DFA0; transform:scale(1.012); } 100%{ background:transparent; transform:scale(1); } }
         .cd-prow-soldout{ cursor:default;opacity:.55; }
@@ -419,6 +421,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
           return (
             <div key={cat.id}>
               <div className="cd-sec">{cat.name}</div>
+              <div className="cd-prowgroup">
               {items.map(p => {
                 const promo = promoPrice(p)
                 const hasOpts = p.groups && p.groups.length > 0
@@ -440,6 +443,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
                   </div>
                 )
               })}
+              </div>
             </div>
           )
         })}

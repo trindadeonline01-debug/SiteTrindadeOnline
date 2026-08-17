@@ -225,9 +225,6 @@ export default function CatalogoPage() {
     const iFoto = header.indexOf('foto_url')
     if (iNome === -1) { showToast('O CSV precisa ter uma coluna "nome"'); return }
 
-    const { data: { session } } = await supabase.auth.getSession()
-    const accessToken = session?.access_token
-
     const dataRows = rows.slice(1)
     setImportResults(null)
     setImporting(true)
@@ -267,17 +264,24 @@ export default function CatalogoPage() {
 
           let photoUrl: string | null = null
           const fotoSrc = iFoto >= 0 ? (r[iFoto] || '').trim() : ''
-          if (fotoSrc && accessToken) {
+          if (fotoSrc) {
             try {
+              // Busca a sessão de novo a cada foto (em vez de uma vez só no
+              // início) — em importações longas o SDK pode renovar o token
+              // sozinho no meio do caminho, e uma cópia antiga capturada lá
+              // atrás vira inválida mesmo os inserts continuando funcionando.
+              const { data: { session: freshSession } } = await supabase.auth.getSession()
+              const freshToken = freshSession?.access_token
+              if (!freshToken) throw new Error('sem sessão ativa')
               const res = await fetch('/api/loja/importar-foto', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ access_token: accessToken, company_id: companyId, image_url: fotoSrc }),
+                body: JSON.stringify({ access_token: freshToken, company_id: companyId, image_url: fotoSrc }),
               })
               const data = await res.json()
               if (res.ok && data.photo_url) photoUrl = data.photo_url
               else photoWarnings.push(`${nome}: ${data.error || 'foto não importada'}`)
-            } catch {
-              photoWarnings.push(`${nome}: foto não importada`)
+            } catch (err: any) {
+              photoWarnings.push(`${nome}: ${err?.message || 'foto não importada'}`)
             }
           }
 

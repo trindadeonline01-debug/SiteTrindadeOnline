@@ -35,6 +35,56 @@ function fmt(n: number) { return 'R$ ' + n.toFixed(2).replace('.', ',') }
 function margin(cost: number, price: number) { return price > 0 ? Math.round(((price - cost) / price) * 100) : 0 }
 function parsePt(v: string) { return parseFloat((v || '0').replace(',', '.')) || 0 }
 
+// Parser de CSV simples que respeita campos entre aspas (com vírgula/quebra
+// de linha dentro) — não dependemos de biblioteca externa só pra isso.
+function parseCsv(text: string): string[][] {
+  const rows: string[][] = []
+  let row: string[] = []
+  let field = ''
+  let inQuotes = false
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i]
+    if (inQuotes) {
+      if (c === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++ }
+        else inQuotes = false
+      } else field += c
+    } else if (c === '"') inQuotes = true
+    else if (c === ',') { row.push(field); field = '' }
+    else if (c === '\n' || c === '\r') {
+      if (c === '\r' && text[i + 1] === '\n') i++
+      row.push(field); field = ''
+      if (row.some(f => f.trim() !== '')) rows.push(row)
+      row = []
+    } else field += c
+  }
+  if (field !== '' || row.length) { row.push(field); if (row.some(f => f.trim() !== '')) rows.push(row) }
+  return rows
+}
+
+// Coluna "grupos" do CSV: um ou mais grupos separados por " && ", campos de
+// cada grupo separados por " | " (nome | obrigatorio/opcional | min | max |
+// soma/maior_valor | opções), opções separadas por " ; " no formato Nome=Preço.
+function parseGroupsField(raw: string) {
+  if (!raw || !raw.trim()) return [] as { name: string; required: boolean; min_select: number; max_select: number; pricing_rule: 'soma' | 'maior_valor'; options: { name: string; price: number }[] }[]
+  return raw.split('&&').map(chunk => {
+    const parts = chunk.split('|').map(s => s.trim())
+    const [name, reqStr, minStr, maxStr, ruleStr, optsStr] = parts
+    const options = (optsStr || '').split(';').map(o => o.trim()).filter(Boolean).map(o => {
+      const eq = o.lastIndexOf('=')
+      return eq === -1 ? { name: o.trim(), price: 0 } : { name: o.slice(0, eq).trim(), price: parsePt(o.slice(eq + 1)) }
+    })
+    return {
+      name: (name || 'Grupo').trim(),
+      required: (reqStr || '').toLowerCase().trim().startsWith('obrig'),
+      min_select: parseInt(minStr) || 0,
+      max_select: parseInt(maxStr) || 1,
+      pricing_rule: (ruleStr || '').toLowerCase().includes('maior') ? 'maior_valor' as const : 'soma' as const,
+      options,
+    }
+  }).filter(g => g.options.length > 0)
+}
+
 export default function CatalogoPage() {
   const [loading, setLoading] = useState(true)
   const [companyId, setCompanyId] = useState('')
@@ -59,6 +109,10 @@ export default function CatalogoPage() {
   const [dupSourceId, setDupSourceId] = useState('')
   const [dupGroups, setDupGroups] = useState<Grupo[]>([])
   const [dupLoading, setDupLoading] = useState(false)
+  const [showImportCsv, setShowImportCsv] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [importProgress, setImportProgress] = useState({ done: 0, total: 0 })
+  const [importResults, setImportResults] = useState<{ ok: number; errors: string[] } | null>(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -151,6 +205,76 @@ export default function CatalogoPage() {
     setBulkRows(Array.from({ length: 5 }, () => ({ name: '', category_id: valid[valid.length - 1].category_id, cost_price: '', sale_price: '' })))
     setSavingBulk(false)
     showToast(`${valid.length} produto${valid.length > 1 ? 's' : ''} criado${valid.length > 1 ? 's' : ''}!`)
+  }
+
+  async function handleImportCsv(file: File) {
+    const text = await file.text()
+    const rows = parseCsv(text)
+    if (rows.length < 2) { showToast('CSV vazio ou sem produtos'); return }
+    const header = rows[0].map(h => h.trim().toLowerCase())
+    const iNome = header.indexOf('nome')
+    const iCat = header.indexOf('categoria')
+    const iDesc = header.indexOf('descricao')
+    const iPreco = header.indexOf('preco')
+    const iGrupos = header.indexOf('grupos')
+    if (iNome === -1) { showToast('O CSV precisa ter uma coluna "nome"'); return }
+
+    const dataRows = rows.slice(1)
+    setImportResults(null)
+    setImporting(true)
+    setImportProgress({ done: 0, total: dataRows.length })
+    const errors: string[] = []
+    let ok = 0
+    let localCats = [...categorias]
+
+    for (let i = 0; i < dataRows.length; i++) {
+      const r = dataRows[i]
+      const nome = (r[iNome] || '').trim()
+      if (nome) {
+        try {
+          let categoryId: string | null = null
+          const catName = iCat >= 0 ? (r[iCat] || '').trim() : ''
+          if (catName) {
+            const found = localCats.find(c => c.name.toLowerCase() === catName.toLowerCase())
+            if (found) categoryId = found.id
+            else {
+              const { data } = await supabase.from('loja_categorias').insert({ company_id: companyId, name: catName, display_order: localCats.length }).select().single()
+              if (data) { localCats.push(data); categoryId = data.id }
+            }
+          }
+          const { data: prod, error: prodErr } = await supabase.from('loja_produtos').insert({
+            company_id: companyId, category_id: categoryId, name: nome,
+            description: iDesc >= 0 ? ((r[iDesc] || '').trim() || null) : null,
+            cost_price: 0, sale_price: iPreco >= 0 ? parsePt(r[iPreco]) : 0,
+            track_stock: false, esgotado: false, active: true, display_order: produtos.length + i,
+          }).select('id').single()
+          if (prodErr || !prod) throw new Error(prodErr?.message || 'falha ao criar produto')
+
+          const groups = iGrupos >= 0 ? parseGroupsField(r[iGrupos] || '') : []
+          for (let gi = 0; gi < groups.length; gi++) {
+            const g = groups[gi]
+            const { data: gData } = await supabase.from('loja_opcoes_grupo').insert({
+              produto_id: prod.id, name: g.name, required: g.required, min_select: g.min_select, max_select: g.max_select || 1, pricing_rule: g.pricing_rule, display_order: gi,
+            }).select('id').single()
+            if (!gData) continue
+            if (g.options.length) {
+              await supabase.from('loja_opcoes').insert(g.options.map((o, oi) => ({
+                grupo_id: gData.id, name: o.name || 'Opção', price: o.price, display_order: oi,
+              })))
+            }
+          }
+          ok++
+        } catch (err: any) {
+          errors.push(`${nome}: ${err?.message || 'erro desconhecido'}`)
+        }
+      }
+      setImportProgress(p => ({ ...p, done: p.done + 1 }))
+    }
+
+    setCategorias(localCats)
+    await loadAll(companyId)
+    setImporting(false)
+    setImportResults({ ok, errors })
   }
 
   async function openEdit(id: string) {
@@ -453,7 +577,8 @@ export default function CatalogoPage() {
                 <button key={c.id} className={`cg-chip ${filterCat === c.id ? 'active' : ''}`} onClick={() => setFilterCat(c.id)}>{c.name}</button>
               ))}
             </div>
-            <button className="cg-add-group cg-bulk-cta" style={{ marginBottom: 14 }} onClick={openBulk}>⚡ Cadastro rápido — vários produtos de uma vez</button>
+            <button className="cg-add-group cg-bulk-cta" style={{ marginBottom: 8 }} onClick={openBulk}>⚡ Cadastro rápido — vários produtos de uma vez</button>
+            <button className="cg-add-group cg-bulk-cta" style={{ marginBottom: 14 }} onClick={() => { setShowImportCsv(true); setImportResults(null) }}>📥 Importar de um CSV</button>
             {filtered.length === 0 && <div className="cg-empty-msg" style={{ textAlign: 'center', color: '#A79E8B', padding: '40px 0', fontSize: 12.5 }}>Nenhum produto ainda. Toca no + pra criar o primeiro.</div>}
             {filtered.map(p => (
               <div key={p.id} className="cg-row" onClick={() => openEdit(p.id)}>
@@ -700,6 +825,53 @@ export default function CatalogoPage() {
                   <button className="cg-btn cg-btn-gold" style={{ padding: '7px 12px', fontSize: 11 }} onClick={() => copyGroup(g)}>Copiar</button>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showImportCsv && (
+        <div className="cg-cat-overlay" onClick={() => !importing && setShowImportCsv(false)}>
+          <div className="cg-cat-modal" onClick={e => e.stopPropagation()}>
+            <div className="cg-cat-modal-head">
+              <b>Importar de um CSV</b>
+              {!importing && <button className="cg-close" onClick={() => setShowImportCsv(false)}>✕</button>}
+            </div>
+            <div className="cg-cat-modal-body">
+              {!importing && !importResults && (
+                <>
+                  <div style={{ fontSize: 11.5, color: '#6E6656', lineHeight: 1.6, padding: '10px 0' }}>
+                    Colunas do arquivo: <b>nome, categoria, descricao, preco, grupos</b> (categoria e grupos são opcionais). Categoria que não existir ainda é criada automaticamente.
+                    <br /><br />
+                    Formato da coluna <b>grupos</b> (só quando o produto tem variação, tipo sabores): cada grupo separado por <code>&&</code>, campos separados por <code>|</code>, opções separadas por <code>;</code> no formato <code>Nome=Preço</code>.
+                    <br />
+                    <span style={{ fontFamily: 'monospace', fontSize: 10.5, display: 'block', background: '#FCFAF5', border: '1px solid #E6E0D2', borderRadius: 8, padding: 8, marginTop: 6, wordBreak: 'break-word' }}>
+                      Sabores | obrigatorio | 1 | 2 | maior_valor | Calabresa=39.90 ; Mussarela=35.90
+                    </span>
+                  </div>
+                  <label className="cg-btn cg-btn-gold" style={{ display: 'block', textAlign: 'center', cursor: 'pointer', marginBottom: 16 }}>
+                    Escolher arquivo CSV
+                    <input type="file" accept=".csv,text/csv" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) handleImportCsv(f) }} />
+                  </label>
+                </>
+              )}
+              {importing && (
+                <div style={{ textAlign: 'center', padding: '20px 0', fontSize: 13, fontWeight: 700 }}>
+                  Importando {importProgress.done}/{importProgress.total}...
+                </div>
+              )}
+              {importResults && (
+                <div style={{ padding: '10px 0' }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8 }}>{importResults.ok} produto{importResults.ok !== 1 ? 's' : ''} importado{importResults.ok !== 1 ? 's' : ''}!</div>
+                  {importResults.errors.length > 0 && (
+                    <>
+                      <div style={{ fontSize: 11.5, fontWeight: 700, color: '#C43D3D', marginBottom: 4 }}>{importResults.errors.length} com erro:</div>
+                      {importResults.errors.map((e, i) => <div key={i} style={{ fontSize: 11, color: '#C43D3D', marginBottom: 2 }}>{e}</div>)}
+                    </>
+                  )}
+                  <button className="cg-btn cg-btn-gold" style={{ width: '100%', marginTop: 14 }} onClick={() => { setShowImportCsv(false); setImportResults(null) }}>Fechar</button>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -44,21 +44,30 @@ export async function POST(req: NextRequest) {
     // Auto-upgrade: instâncias criadas antes de MESSAGES_UPDATE/PRESENCE_UPDATE
     // existirem só escutavam os eventos antigos. Na primeira vez que qualquer
     // evento chegar depois desse deploy, reconfigura o webhook na Evolution
-    // sem precisar reconectar/reescanear o QR. Não bloqueia o processamento
-    // do evento atual (fire-and-forget).
+    // sem precisar reconectar/reescanear o QR. Precisa de `await` de verdade
+    // — função serverless da Vercel pode congelar assim que a resposta sai,
+    // matando qualquer fetch em segundo plano que não foi esperado.
     if (!inst.webhook_v2 && inst.api_key) {
-      fetch(`${EVOLUTION_URL}/webhook/set/${encodeURIComponent(instanceName)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', apikey: inst.api_key },
-        body: JSON.stringify({
-          webhook: {
-            url: `${SITE_URL}/api/crm/webhook`, byEvents: false, base64: true,
-            events: ['QRCODE_UPDATED', 'CONNECTION_UPDATE', 'MESSAGES_UPSERT', 'MESSAGES_UPDATE', 'PRESENCE_UPDATE'],
-          },
-        }),
-      }).then(async r => {
-        if (r.ok) await supabase.from('crm_whatsapp_instances').update({ webhook_v2: true }).eq('id', inst.id)
-      }).catch(() => {})
+      try {
+        const setRes = await fetch(`${EVOLUTION_URL}/webhook/set/${encodeURIComponent(instanceName)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', apikey: inst.api_key },
+          body: JSON.stringify({
+            webhook: {
+              url: `${SITE_URL}/api/crm/webhook`, byEvents: false, base64: true,
+              events: ['QRCODE_UPDATED', 'CONNECTION_UPDATE', 'MESSAGES_UPSERT', 'MESSAGES_UPDATE', 'PRESENCE_UPDATE'],
+            },
+          }),
+        })
+        if (setRes.ok) {
+          await supabase.from('crm_whatsapp_instances').update({ webhook_v2: true, webhook_v2_error: null }).eq('id', inst.id)
+        } else {
+          const errText = await setRes.text().catch(() => '')
+          await supabase.from('crm_whatsapp_instances').update({ webhook_v2_error: `${setRes.status}: ${errText.slice(0, 300)}` }).eq('id', inst.id)
+        }
+      } catch (err: any) {
+        await supabase.from('crm_whatsapp_instances').update({ webhook_v2_error: String(err?.message || err).slice(0, 300) }).eq('id', inst.id)
+      }
     }
 
     if (event.includes('connection')) {

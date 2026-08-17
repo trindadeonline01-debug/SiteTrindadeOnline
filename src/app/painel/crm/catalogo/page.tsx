@@ -85,6 +85,13 @@ function parseGroupsField(raw: string) {
   }).filter(g => g.options.length > 0)
 }
 
+// Pra casar nome de arquivo com nome de produto sem exigir que fiquem
+// idênticos byte a byte — minúsculo, sem acento, espaços colapsados.
+const DIACRITICS_RE = new RegExp('[\\u0300-\\u036f]', 'g')
+function normalizeName(s: string) {
+  return (s || '').trim().toLowerCase().normalize('NFD').replace(DIACRITICS_RE, '').replace(/\s+/g, ' ')
+}
+
 export default function CatalogoPage() {
   const [loading, setLoading] = useState(true)
   const [companyId, setCompanyId] = useState('')
@@ -118,6 +125,10 @@ export default function CatalogoPage() {
   const [importResults, setImportResults] = useState<{ ok: number; errors: string[]; photoWarnings: string[]; cancelled: boolean } | null>(null)
   const [lastImportBatch, setLastImportBatch] = useState<{ id: string; count: number } | null>(null)
   const [deletingLastImport, setDeletingLastImport] = useState(false)
+  const [showImportPhotos, setShowImportPhotos] = useState(false)
+  const [importingPhotos, setImportingPhotos] = useState(false)
+  const [photoImportProgress, setPhotoImportProgress] = useState({ done: 0, total: 0 })
+  const [photoImportResults, setPhotoImportResults] = useState<{ matched: number; unmatched: string[] } | null>(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -153,6 +164,46 @@ export default function CatalogoPage() {
   }
 
   function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(''), 2500) }
+
+  // Casa cada arquivo pelo nome (sem extensão) com o produto de mesmo nome
+  // no catálogo e sobe a foto — tudo local, sem precisar buscar de outro
+  // site, então não esbarra em bloqueio de CDN como o link direto esbarrava.
+  async function handleImportPhotos(files: FileList) {
+    const fileArr = Array.from(files).filter(f => f.type.startsWith('image/'))
+    if (!fileArr.length) { showToast('Nenhuma imagem selecionada'); return }
+    setPhotoImportResults(null)
+    setImportingPhotos(true)
+    setPhotoImportProgress({ done: 0, total: fileArr.length })
+    let matched = 0
+    const unmatched: string[] = []
+
+    for (let i = 0; i < fileArr.length; i++) {
+      const file = fileArr[i]
+      const baseName = file.name.replace(/\.[^.]+$/, '')
+      const prod = produtos.find(p => normalizeName(p.name) === normalizeName(baseName))
+      if (!prod) {
+        unmatched.push(file.name)
+      } else {
+        try {
+          const ext = file.name.split('.').pop() || 'jpg'
+          const path = `${companyId}/${Date.now()}_${i}.${ext}`
+          const compressed = await compressImage(file)
+          const { data: up, error: upErr } = await supabase.storage.from('loja-produtos').upload(path, compressed, { upsert: true })
+          if (upErr || !up) throw new Error(upErr?.message || 'falha no upload')
+          const photoUrl = supabase.storage.from('loja-produtos').getPublicUrl(path).data.publicUrl
+          await supabase.from('loja_produtos').update({ photo_url: photoUrl }).eq('id', prod.id)
+          matched++
+        } catch {
+          unmatched.push(`${file.name} (falhou no upload)`)
+        }
+      }
+      setPhotoImportProgress(p => ({ ...p, done: p.done + 1 }))
+    }
+
+    await loadAll(companyId)
+    setImportingPhotos(false)
+    setPhotoImportResults({ matched, unmatched })
+  }
 
   async function addCategoria() {
     if (!newCatName.trim()) return
@@ -667,7 +718,8 @@ export default function CatalogoPage() {
               ))}
             </div>
             <button className="cg-add-group cg-bulk-cta" style={{ marginBottom: 8 }} onClick={openBulk}>⚡ Cadastro rápido — vários produtos de uma vez</button>
-            <button className="cg-add-group cg-bulk-cta" style={{ marginBottom: 14 }} onClick={() => { setShowImportCsv(true); setImportResults(null) }}>📥 Importar de um CSV</button>
+            <button className="cg-add-group cg-bulk-cta" style={{ marginBottom: 8 }} onClick={() => { setShowImportCsv(true); setImportResults(null) }}>📥 Importar de um CSV</button>
+            <button className="cg-add-group cg-bulk-cta" style={{ marginBottom: 14 }} onClick={() => { setShowImportPhotos(true); setPhotoImportResults(null) }}>🖼️ Importar fotos pelo nome do produto</button>
             {filtered.length === 0 && <div className="cg-empty-msg" style={{ textAlign: 'center', color: '#A79E8B', padding: '40px 0', fontSize: 12.5 }}>Nenhum produto ainda. Toca no + pra criar o primeiro.</div>}
             {filtered.map(p => (
               <div key={p.id} className="cg-row" onClick={() => openEdit(p.id)}>
@@ -984,6 +1036,47 @@ export default function CatalogoPage() {
                     </button>
                   )}
                   <button className="cg-btn cg-btn-gold" style={{ width: '100%', marginTop: 8 }} onClick={() => { setShowImportCsv(false); setImportResults(null) }}>Fechar</button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showImportPhotos && (
+        <div className="cg-cat-overlay" onClick={() => !importingPhotos && setShowImportPhotos(false)}>
+          <div className="cg-cat-modal" onClick={e => e.stopPropagation()}>
+            <div className="cg-cat-modal-head">
+              <b>Importar fotos pelo nome</b>
+              {!importingPhotos && <button className="cg-close" onClick={() => setShowImportPhotos(false)}>✕</button>}
+            </div>
+            <div className="cg-cat-modal-body">
+              {!importingPhotos && !photoImportResults && (
+                <>
+                  <div style={{ fontSize: 11.5, color: '#6E6656', lineHeight: 1.6, padding: '10px 0' }}>
+                    Escolhe várias imagens de uma vez — cada arquivo tem que se chamar exatamente igual ao nome do produto no catálogo (a extensão não conta). Ex: um produto chamado <b>Pizza Grande 35cm</b> casa com o arquivo <b>Pizza Grande 35cm.jpg</b>.
+                  </div>
+                  <label className="cg-btn cg-btn-gold" style={{ display: 'block', textAlign: 'center', cursor: 'pointer', marginBottom: 6 }}>
+                    Escolher fotos
+                    <input type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={e => { if (e.target.files?.length) handleImportPhotos(e.target.files) }} />
+                  </label>
+                </>
+              )}
+              {importingPhotos && (
+                <div style={{ textAlign: 'center', padding: '20px 0', fontSize: 13, fontWeight: 700 }}>
+                  Importando {photoImportProgress.done}/{photoImportProgress.total}...
+                </div>
+              )}
+              {photoImportResults && (
+                <div style={{ padding: '10px 0' }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8 }}>{photoImportResults.matched} foto{photoImportResults.matched !== 1 ? 's' : ''} aplicada{photoImportResults.matched !== 1 ? 's' : ''}!</div>
+                  {photoImportResults.unmatched.length > 0 && (
+                    <>
+                      <div style={{ fontSize: 11.5, fontWeight: 700, color: '#C43D3D', marginBottom: 4 }}>{photoImportResults.unmatched.length} sem produto correspondente:</div>
+                      {photoImportResults.unmatched.map((e, i) => <div key={i} style={{ fontSize: 11, color: '#C43D3D', marginBottom: 2 }}>{e}</div>)}
+                    </>
+                  )}
+                  <button className="cg-btn cg-btn-gold" style={{ width: '100%', marginTop: 14 }} onClick={() => { setShowImportPhotos(false); setPhotoImportResults(null) }}>Fechar</button>
                 </div>
               )}
             </div>

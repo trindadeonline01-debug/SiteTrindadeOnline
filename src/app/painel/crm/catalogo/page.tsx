@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { compressImage } from '@/lib/compressImage'
 import CrmShell from '@/components/CrmShell'
@@ -111,8 +111,13 @@ export default function CatalogoPage() {
   const [dupLoading, setDupLoading] = useState(false)
   const [showImportCsv, setShowImportCsv] = useState(false)
   const [importing, setImporting] = useState(false)
+  const [importPaused, setImportPaused] = useState(false)
+  const importPausedRef = useRef(false)
+  const importCancelledRef = useRef(false)
   const [importProgress, setImportProgress] = useState({ done: 0, total: 0 })
-  const [importResults, setImportResults] = useState<{ ok: number; errors: string[]; photoWarnings: string[] } | null>(null)
+  const [importResults, setImportResults] = useState<{ ok: number; errors: string[]; photoWarnings: string[]; cancelled: boolean } | null>(null)
+  const [lastImportedIds, setLastImportedIds] = useState<string[]>([])
+  const [deletingLastImport, setDeletingLastImport] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -226,13 +231,25 @@ export default function CatalogoPage() {
     const dataRows = rows.slice(1)
     setImportResults(null)
     setImporting(true)
+    setImportPaused(false)
+    importPausedRef.current = false
+    importCancelledRef.current = false
     setImportProgress({ done: 0, total: dataRows.length })
     const errors: string[] = []
     const photoWarnings: string[] = []
+    const createdIds: string[] = []
     let ok = 0
+    let cancelled = false
     let localCats = [...categorias]
 
     for (let i = 0; i < dataRows.length; i++) {
+      if (importCancelledRef.current) { cancelled = true; break }
+      while (importPausedRef.current) {
+        await new Promise(r => setTimeout(r, 250))
+        if (importCancelledRef.current) break
+      }
+      if (importCancelledRef.current) { cancelled = true; break }
+
       const r = dataRows[i]
       const nome = (r[iNome] || '').trim()
       if (nome) {
@@ -272,6 +289,7 @@ export default function CatalogoPage() {
             track_stock: false, esgotado: false, active: true, display_order: produtos.length + i,
           }).select('id').single()
           if (prodErr || !prod) throw new Error(prodErr?.message || 'falha ao criar produto')
+          createdIds.push(prod.id)
 
           const groups = iGrupos >= 0 ? parseGroupsField(r[iGrupos] || '') : []
           for (let gi = 0; gi < groups.length; gi++) {
@@ -297,7 +315,33 @@ export default function CatalogoPage() {
     setCategorias(localCats)
     await loadAll(companyId)
     setImporting(false)
-    setImportResults({ ok, errors, photoWarnings })
+    setImportPaused(false)
+    setLastImportedIds(createdIds)
+    setImportResults({ ok, errors, photoWarnings, cancelled })
+  }
+
+  function togglePauseImport() {
+    importPausedRef.current = !importPausedRef.current
+    setImportPaused(importPausedRef.current)
+  }
+
+  function cancelImport() {
+    importCancelledRef.current = true
+    importPausedRef.current = false
+    setImportPaused(false)
+  }
+
+  async function deleteLastImport() {
+    if (!lastImportedIds.length) return
+    if (!confirm(`Excluir os ${lastImportedIds.length} produtos da última importação? Não dá pra desfazer.`)) return
+    setDeletingLastImport(true)
+    await supabase.from('loja_produtos').delete().in('id', lastImportedIds)
+    await loadAll(companyId)
+    setLastImportedIds([])
+    setDeletingLastImport(false)
+    setImportResults(null)
+    setShowImportCsv(false)
+    showToast('Importação desfeita')
   }
 
   async function openEdit(id: string) {
@@ -876,20 +920,34 @@ export default function CatalogoPage() {
                       Sabores | obrigatorio | 1 | 2 | maior_valor | Calabresa=39.90 ; Mussarela=35.90
                     </span>
                   </div>
-                  <label className="cg-btn cg-btn-gold" style={{ display: 'block', textAlign: 'center', cursor: 'pointer', marginBottom: 16 }}>
+                  <label className="cg-btn cg-btn-gold" style={{ display: 'block', textAlign: 'center', cursor: 'pointer', marginBottom: lastImportedIds.length ? 10 : 16 }}>
                     Escolher arquivo CSV
                     <input type="file" accept=".csv,text/csv" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) handleImportCsv(f) }} />
                   </label>
+                  {lastImportedIds.length > 0 && (
+                    <button className="cg-btn-ghost cg-btn-danger" style={{ width: '100%', padding: 10, borderRadius: 10, marginBottom: 6 }} disabled={deletingLastImport} onClick={deleteLastImport}>
+                      {deletingLastImport ? 'Excluindo...' : `🗑 Excluir última importação (${lastImportedIds.length} produtos)`}
+                    </button>
+                  )}
                 </>
               )}
               {importing && (
-                <div style={{ textAlign: 'center', padding: '20px 0', fontSize: 13, fontWeight: 700 }}>
-                  Importando {importProgress.done}/{importProgress.total}...
+                <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>
+                    {importPaused ? 'Pausado' : 'Importando'} {importProgress.done}/{importProgress.total}...
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button className="cg-btn cg-btn-gold" style={{ flex: 1 }} onClick={togglePauseImport}>{importPaused ? '▶ Continuar' : '⏸ Pausar'}</button>
+                    <button className="cg-btn-ghost cg-btn-danger" style={{ flex: 1, borderRadius: 10 }} onClick={cancelImport}>✕ Cancelar</button>
+                  </div>
                 </div>
               )}
               {importResults && (
                 <div style={{ padding: '10px 0' }}>
-                  <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8 }}>{importResults.ok} produto{importResults.ok !== 1 ? 's' : ''} importado{importResults.ok !== 1 ? 's' : ''}!</div>
+                  <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8 }}>
+                    {importResults.cancelled && <span style={{ color: '#C43D3D' }}>Importação cancelada. </span>}
+                    {importResults.ok} produto{importResults.ok !== 1 ? 's' : ''} importado{importResults.ok !== 1 ? 's' : ''}!
+                  </div>
                   {importResults.errors.length > 0 && (
                     <>
                       <div style={{ fontSize: 11.5, fontWeight: 700, color: '#C43D3D', marginBottom: 4 }}>{importResults.errors.length} com erro:</div>
@@ -902,7 +960,12 @@ export default function CatalogoPage() {
                       {importResults.photoWarnings.map((e, i) => <div key={i} style={{ fontSize: 11, color: '#8A6410', marginBottom: 2 }}>{e}</div>)}
                     </>
                   )}
-                  <button className="cg-btn cg-btn-gold" style={{ width: '100%', marginTop: 14 }} onClick={() => { setShowImportCsv(false); setImportResults(null) }}>Fechar</button>
+                  {lastImportedIds.length > 0 && (
+                    <button className="cg-btn-ghost cg-btn-danger" style={{ width: '100%', padding: 10, borderRadius: 10, marginTop: 12 }} disabled={deletingLastImport} onClick={deleteLastImport}>
+                      {deletingLastImport ? 'Excluindo...' : `🗑 Excluir essa importação (${lastImportedIds.length} produtos)`}
+                    </button>
+                  )}
+                  <button className="cg-btn cg-btn-gold" style={{ width: '100%', marginTop: 8 }} onClick={() => { setShowImportCsv(false); setImportResults(null) }}>Fechar</button>
                 </div>
               )}
             </div>

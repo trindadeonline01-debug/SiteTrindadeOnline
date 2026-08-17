@@ -112,7 +112,7 @@ export default function CatalogoPage() {
   const [showImportCsv, setShowImportCsv] = useState(false)
   const [importing, setImporting] = useState(false)
   const [importProgress, setImportProgress] = useState({ done: 0, total: 0 })
-  const [importResults, setImportResults] = useState<{ ok: number; errors: string[] } | null>(null)
+  const [importResults, setImportResults] = useState<{ ok: number; errors: string[]; photoWarnings: string[] } | null>(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -217,13 +217,18 @@ export default function CatalogoPage() {
     const iDesc = header.indexOf('descricao')
     const iPreco = header.indexOf('preco')
     const iGrupos = header.indexOf('grupos')
+    const iFoto = header.indexOf('foto_url')
     if (iNome === -1) { showToast('O CSV precisa ter uma coluna "nome"'); return }
+
+    const { data: { session } } = await supabase.auth.getSession()
+    const accessToken = session?.access_token
 
     const dataRows = rows.slice(1)
     setImportResults(null)
     setImporting(true)
     setImportProgress({ done: 0, total: dataRows.length })
     const errors: string[] = []
+    const photoWarnings: string[] = []
     let ok = 0
     let localCats = [...categorias]
 
@@ -242,9 +247,27 @@ export default function CatalogoPage() {
               if (data) { localCats.push(data); categoryId = data.id }
             }
           }
+
+          let photoUrl: string | null = null
+          const fotoSrc = iFoto >= 0 ? (r[iFoto] || '').trim() : ''
+          if (fotoSrc && accessToken) {
+            try {
+              const res = await fetch('/api/loja/importar-foto', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ access_token: accessToken, company_id: companyId, image_url: fotoSrc }),
+              })
+              const data = await res.json()
+              if (res.ok && data.photo_url) photoUrl = data.photo_url
+              else photoWarnings.push(`${nome}: ${data.error || 'foto não importada'}`)
+            } catch {
+              photoWarnings.push(`${nome}: foto não importada`)
+            }
+          }
+
           const { data: prod, error: prodErr } = await supabase.from('loja_produtos').insert({
             company_id: companyId, category_id: categoryId, name: nome,
             description: iDesc >= 0 ? ((r[iDesc] || '').trim() || null) : null,
+            photo_url: photoUrl,
             cost_price: 0, sale_price: iPreco >= 0 ? parsePt(r[iPreco]) : 0,
             track_stock: false, esgotado: false, active: true, display_order: produtos.length + i,
           }).select('id').single()
@@ -274,7 +297,7 @@ export default function CatalogoPage() {
     setCategorias(localCats)
     await loadAll(companyId)
     setImporting(false)
-    setImportResults({ ok, errors })
+    setImportResults({ ok, errors, photoWarnings })
   }
 
   async function openEdit(id: string) {
@@ -841,7 +864,7 @@ export default function CatalogoPage() {
               {!importing && !importResults && (
                 <>
                   <div style={{ fontSize: 11.5, color: '#6E6656', lineHeight: 1.6, padding: '10px 0' }}>
-                    Colunas do arquivo: <b>nome, categoria, descricao, preco, grupos</b> (categoria e grupos são opcionais). Categoria que não existir ainda é criada automaticamente.
+                    Colunas do arquivo: <b>nome, categoria, descricao, preco, grupos, foto_url</b> (só nome é obrigatório). Categoria que não existir ainda é criada automaticamente. Se vier <b>foto_url</b> (link direto da imagem), a gente baixa e já sobe pro seu catálogo.
                     <br /><br />
                     Formato da coluna <b>grupos</b> (só quando o produto tem variação, tipo sabores): cada grupo separado por <code>&&</code>, campos separados por <code>|</code>, opções separadas por <code>;</code> no formato <code>Nome=Preço</code>.
                     <br />
@@ -867,6 +890,12 @@ export default function CatalogoPage() {
                     <>
                       <div style={{ fontSize: 11.5, fontWeight: 700, color: '#C43D3D', marginBottom: 4 }}>{importResults.errors.length} com erro:</div>
                       {importResults.errors.map((e, i) => <div key={i} style={{ fontSize: 11, color: '#C43D3D', marginBottom: 2 }}>{e}</div>)}
+                    </>
+                  )}
+                  {importResults.photoWarnings.length > 0 && (
+                    <>
+                      <div style={{ fontSize: 11.5, fontWeight: 700, color: '#8A6410', marginTop: 10, marginBottom: 4 }}>{importResults.photoWarnings.length} foto{importResults.photoWarnings.length !== 1 ? 's' : ''} não importada{importResults.photoWarnings.length !== 1 ? 's' : ''} (produto foi criado normal, só a foto que falhou):</div>
+                      {importResults.photoWarnings.map((e, i) => <div key={i} style={{ fontSize: 11, color: '#8A6410', marginBottom: 2 }}>{e}</div>)}
                     </>
                   )}
                   <button className="cg-btn cg-btn-gold" style={{ width: '100%', marginTop: 14 }} onClick={() => { setShowImportCsv(false); setImportResults(null) }}>Fechar</button>

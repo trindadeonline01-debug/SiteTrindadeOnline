@@ -104,16 +104,47 @@ export default function MensagensPage() {
     if (msgBodyRef.current) msgBodyRef.current.scrollTop = msgBodyRef.current.scrollHeight
   }, [messages])
 
-  // Poll leve: lista de contatos a cada 5s, thread aberta a cada 2s.
+  // Realtime: mensagem nova (recebida, ou mandada pelo celular fora do CRM)
+  // chega na hora via websocket em vez de esperar o poll. O poll abaixo vira
+  // só uma rede de segurança pra caso a conexão de realtime cair.
+  useEffect(() => {
+    if (!company) return
+    const channel = supabase
+      .channel(`crm-messages-${company.id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'crm_messages', filter: `company_id=eq.${company.id}` }, async (payload) => {
+        const row = payload.new as any
+        loadContacts(company.id)
+        if (selectedRef.current && row.contact_id === selectedRef.current.id) {
+          let signedUrl: string | null = null
+          if (row.media_url) {
+            const cached = mediaUrlCacheRef.current.get(row.id)
+            if (cached) signedUrl = cached
+            else {
+              const { data: signed } = await supabase.storage.from('crm-midia').createSignedUrl(row.media_url, 3600)
+              signedUrl = signed?.signedUrl || null
+              if (signedUrl) mediaUrlCacheRef.current.set(row.id, signedUrl)
+            }
+          }
+          setMessages(prev => prev.some(m => m.id === row.id) ? prev : [...prev, {
+            id: row.id, direction: row.direction, body: row.body,
+            media_type: row.media_type, media_url: row.media_url, sent_at: row.sent_at, signedUrl,
+          }])
+        }
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [company?.id])
+
+  // Poll de segurança (bem mais espaçado agora que o realtime cobre a maioria dos casos).
   useEffect(() => {
     if (instance?.status !== 'connected' || !company) return
-    const iv = setInterval(() => loadContacts(company.id), 5000)
+    const iv = setInterval(() => loadContacts(company.id), 15000)
     return () => clearInterval(iv)
   }, [instance?.status, company?.id])
 
   useEffect(() => {
     if (!selected) return
-    const iv = setInterval(() => loadMessages(selected.id), 2000)
+    const iv = setInterval(() => loadMessages(selected.id), 10000)
     return () => clearInterval(iv)
   }, [selected?.id])
 

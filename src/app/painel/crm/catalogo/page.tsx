@@ -55,6 +55,10 @@ export default function CatalogoPage() {
   const [editCatName, setEditCatName] = useState('')
   const [bulkRows, setBulkRows] = useState(() => Array.from({ length: 5 }, () => ({ name: '', category_id: '', cost_price: '', sale_price: '' })))
   const [savingBulk, setSavingBulk] = useState(false)
+  const [showDupGroup, setShowDupGroup] = useState(false)
+  const [dupSourceId, setDupSourceId] = useState('')
+  const [dupGroups, setDupGroups] = useState<Grupo[]>([])
+  const [dupLoading, setDupLoading] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -176,6 +180,27 @@ export default function CatalogoPage() {
 
   function addGroup() { setForm(f => ({ ...f, groups: [...f.groups, { name: '', required: false, min_select: 0, max_select: 1, pricing_rule: 'soma', options: [] }] })) }
   function removeGroup(gi: number) { setForm(f => ({ ...f, groups: f.groups.filter((_, i) => i !== gi) })) }
+
+  function openDupGroup() { setShowDupGroup(true); setDupSourceId(''); setDupGroups([]) }
+
+  async function loadDupGroups(produtoId: string) {
+    setDupSourceId(produtoId)
+    setDupGroups([])
+    if (!produtoId) return
+    setDupLoading(true)
+    const { data } = await supabase.from('loja_opcoes_grupo').select('*, options:loja_opcoes(*)').eq('produto_id', produtoId).order('display_order')
+    setDupGroups((data || []).map((g: any) => ({
+      name: g.name, required: g.required, min_select: g.min_select, max_select: g.max_select, pricing_rule: g.pricing_rule || 'soma',
+      options: (g.options || []).map((o: any) => ({ name: o.name, price: Number(o.price || 0).toFixed(2).replace('.', ','), max_qty: o.max_qty, linked_produto_id: o.linked_produto_id, photo_url: o.photo_url || null, _photoFile: null })),
+    })))
+    setDupLoading(false)
+  }
+
+  function copyGroup(g: Grupo) {
+    setForm(f => ({ ...f, groups: [...f.groups, { ...g, options: g.options.map(o => ({ ...o })) }] }))
+    setShowDupGroup(false)
+    showToast(`Grupo "${g.name}" copiado — dá uma revisada e ajusta o que precisar`)
+  }
   function updateGroup(gi: number, patch: Partial<Grupo>) { setForm(f => ({ ...f, groups: f.groups.map((g, i) => i === gi ? { ...g, ...patch } : g) })) }
   function addOption(gi: number) { updateGroup(gi, { options: [...form.groups[gi].options, { name: '', price: '0', max_qty: 1, linked_produto_id: null, photo_url: null, _photoFile: null }] }) }
   function removeOption(gi: number, oi: number) { updateGroup(gi, { options: form.groups[gi].options.filter((_, i) => i !== oi) }) }
@@ -569,7 +594,10 @@ export default function CatalogoPage() {
                 <button className="cg-add-inline" onClick={() => addOption(gi)}>+ Adicionar opção</button>
               </div>
             ))}
-            <button className="cg-add-group" onClick={addGroup}>+ Adicionar grupo de opção</button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="cg-add-group" style={{ flex: 1 }} onClick={addGroup}>+ Adicionar grupo de opção</button>
+              <button className="cg-add-group" style={{ flex: 1 }} onClick={openDupGroup}>📋 Duplicar de outro produto</button>
+            </div>
 
             <div className="cg-savebar">
               <button className="cg-btn cg-btn-gold" disabled={savingProd} onClick={saveProduto}>{savingProd ? 'Salvando...' : 'Salvar produto'}</button>
@@ -641,6 +669,37 @@ export default function CatalogoPage() {
             <div className="cg-cat-modal-foot">
               <input placeholder="Nova categoria" value={mgrNewCatName} onChange={e => setMgrNewCatName(e.target.value)} onKeyDown={e => e.key === 'Enter' && addCategoriaFromManager()} />
               <button className="cg-btn cg-btn-gold" onClick={addCategoriaFromManager}>+ Adicionar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDupGroup && (
+        <div className="cg-cat-overlay" onClick={() => setShowDupGroup(false)}>
+          <div className="cg-cat-modal" onClick={e => e.stopPropagation()}>
+            <div className="cg-cat-modal-head">
+              <b>Duplicar grupo de outro produto</b>
+              <button className="cg-close" onClick={() => setShowDupGroup(false)}>✕</button>
+            </div>
+            <div className="cg-cat-modal-body">
+              <div className="cg-field" style={{ marginTop: 10 }}>
+                <label>De qual produto?</label>
+                <select value={dupSourceId} onChange={e => loadDupGroups(e.target.value)}>
+                  <option value="">Selecionar produto...</option>
+                  {produtos.filter(p => p.id !== form.id).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              </div>
+              {dupLoading && <div style={{ fontSize: 12, color: '#A79E8B', padding: '8px 0' }}>Carregando...</div>}
+              {!dupLoading && dupSourceId && dupGroups.length === 0 && (
+                <div style={{ fontSize: 12, color: '#A79E8B', padding: '8px 0' }}>Esse produto não tem grupo de opção.</div>
+              )}
+              {dupGroups.map((g, i) => (
+                <div className="cg-cat-row" key={i}>
+                  <span className="cg-cat-row-name">{g.name}</span>
+                  <span className="cg-cat-row-count">{g.options.length} opç{g.options.length !== 1 ? 'ões' : 'ão'}</span>
+                  <button className="cg-btn cg-btn-gold" style={{ padding: '7px 12px', fontSize: 11 }} onClick={() => copyGroup(g)}>Copiar</button>
+                </div>
+              ))}
             </div>
           </div>
         </div>

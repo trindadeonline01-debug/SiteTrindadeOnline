@@ -3,7 +3,7 @@ import { useEffect, useState, use } from 'react'
 import { supabase } from '@/lib/supabase'
 import { isOpenNow } from '@/lib/businessHours'
 
-type Opcao = { id: string; name: string; price: number; max_qty: number | null }
+type Opcao = { id: string; name: string; price: number; max_qty: number | null; photo_url?: string | null }
 type Grupo = { id: string; name: string; required: boolean; min_select: number; max_select: number; pricing_rule: 'soma' | 'maior_valor'; options: Opcao[] }
 type Produto = {
   id: string; name: string; description: string | null; photo_url: string | null
@@ -303,13 +303,15 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
         .cd-chev{ flex:none;width:26px;height:26px;border-radius:50%;border:none;background:#F0EDE8;color:#AAA;font-size:13px;font-weight:800;cursor:pointer; }
         .cd-cartbar{ position:fixed;left:50%;transform:translateX(-50%);bottom:16px;width:calc(100% - 32px);max-width:448px;padding:13px 16px;border-radius:16px;background:#C9951A;color:#1A1610;display:flex;align-items:center;justify-content:space-between;box-shadow:0 10px 24px -8px rgba(0,0,0,.35);cursor:pointer;z-index:10000; }
         .cd-overlay{ position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9990;display:${detail || drawerOpen ? 'block' : 'none'}; }
-        .cd-detail{ position:fixed;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:#F0EDE8;z-index:10000;border-radius:20px 20px 0 0;max-height:88vh;display:flex;flex-direction:column;overflow:hidden; }
-        .cd-hero{ height:150px;flex:none;background:linear-gradient(135deg,#FBF1DC,#E7DCC2);display:flex;align-items:center;justify-content:center;font-size:54px;position:relative;overflow:hidden; }
+        .cd-detail{ position:fixed;top:0;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:#F0EDE8;z-index:10000;display:flex;flex-direction:column;overflow:hidden; }
+        .cd-hero{ height:200px;flex:none;background:linear-gradient(135deg,#FBF1DC,#E7DCC2);display:flex;align-items:center;justify-content:center;font-size:54px;position:relative;overflow:hidden; }
         .cd-hero img{ width:100%;height:100%;object-fit:cover; }
-        .cd-herobtn{ position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.94);border:none;font-size:14px;cursor:pointer; }
+        .cd-herobtn{ position:absolute;top:14px;right:14px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.94);border:none;font-size:16px;cursor:pointer;z-index:2; }
         .cd-dscroll{ flex:1;overflow-y:auto;padding:16px; }
         .cd-optgroup{ border-top:7px solid #F0EDE8;margin:0 -16px;padding:12px 16px 4px; }
         .cd-orow{ display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid #EDE8E0;cursor:pointer; }
+        .cd-oimg{ width:42px;height:42px;border-radius:9px;overflow:hidden;flex:none;background:#F0EDE8; }
+        .cd-oimg img{ width:100%;height:100%;object-fit:cover; }
         .cd-ocheck{ width:20px;height:20px;border:1.5px solid #D8D2C4;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex:none; }
         .cd-ocheck.radio{ border-radius:50%; } .cd-ocheck.box{ border-radius:6px; }
         .cd-ocheck.active{ background:#C9951A;border-color:#C9951A; }
@@ -359,7 +361,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
                 <div className="cd-hot-card" key={p.id} onClick={() => hasOpts ? openDetail(p) : addToCart(p.id, p.name, promo ?? p.sale_price, 1)}>
                   <div className="cd-hot-photo">{p.photo_url ? <img src={p.photo_url} alt="" /> : '🍽️'}</div>
                   <div className="cd-hot-name">{p.name}</div>
-                  <div className="cd-hot-price">{fmt(promo ?? p.sale_price)}</div>
+                  {(promo ?? p.sale_price) > 0 && <div className="cd-hot-price">{fmt(promo ?? p.sale_price)}</div>}
                 </div>
               )
             })}
@@ -392,7 +394,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
                       {p.description && <div className="cd-pdesc">{p.description}</div>}
                       {soldOut
                         ? <div className="cd-pprice" style={{ color: '#C43D3D' }}>Esgotado</div>
-                        : <div className="cd-pprice">{fmt(promo ?? p.sale_price)}{promo != null && <span className="was">{fmt(p.sale_price)}</span>}</div>}
+                        : (promo ?? p.sale_price) > 0 && <div className="cd-pprice">{fmt(promo ?? p.sale_price)}{promo != null && <span className="was">{fmt(p.sale_price)}</span>}</div>}
                     </div>
                     {!soldOut && (hasOpts ? <button className="cd-chev">›</button> : <button className="cd-addbtn">+</button>)}
                   </div>
@@ -419,7 +421,9 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
           </div>
           <div className="cd-dscroll">
             <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 4 }}>{detail.name}</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#555', marginBottom: 9 }}>{fmt(promoPrice(detail) ?? detail.sale_price)}</div>
+            {(promoPrice(detail) ?? detail.sale_price) > 0 && (
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#555', marginBottom: 9 }}>{fmt(promoPrice(detail) ?? detail.sale_price)}</div>
+            )}
             {detail.description && <div style={{ fontSize: 12.5, color: '#555', lineHeight: 1.6, marginBottom: 14 }}>{detail.description}</div>}
             {detail.groups.map((g, gi) => (
               <div className="cd-optgroup" key={g.id}>
@@ -431,6 +435,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
                   const active = detailSel[gi]?.includes(oi)
                   return (
                     <div className="cd-orow" key={o.id} onClick={() => toggleOpt(gi, oi)}>
+                      {o.photo_url && <div className="cd-oimg"><img src={o.photo_url} alt="" /></div>}
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 12.5, fontWeight: 700 }}>{o.name}</div>
                         <div style={{ fontSize: 11, color: '#555' }}>{o.price > 0 ? '+ ' + fmt(o.price) : 'Grátis'}</div>

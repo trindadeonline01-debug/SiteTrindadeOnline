@@ -54,6 +54,7 @@ export async function POST(req: NextRequest) {
         qrcode: true,
         integration: 'WHATSAPP-BAILEYS',
         webhook: {
+          enabled: true,
           url: `${SITE_URL}/api/crm/webhook`,
           byEvents: false,
           base64: true,

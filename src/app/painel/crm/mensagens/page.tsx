@@ -8,11 +8,12 @@ type Company = { id: string; name: string; crm_whatsapp_enabled: boolean }
 type Instance = { id: string; instance_name: string; status: string; phone: string | null }
 type Contact = {
   id: string; phone: string; name: string | null; last_message_at: string | null; last_read_at: string | null
-  presence_state?: string | null; presence_until?: string | null
+  presence_state?: string | null; presence_until?: string | null; pinned?: boolean; archived?: boolean
 }
 type Message = {
   id: string; direction: 'in' | 'out'; body: string | null; media_type: string | null; media_url: string | null
   sent_at: string; signedUrl?: string | null; status?: string | null; reply_to_id?: string | null
+  edited_at?: string | null; deleted_at?: string | null
 }
 
 function fmtTime(iso: string) {
@@ -23,6 +24,13 @@ function tickIcon(status?: string | null) {
   if (status === 'read') return <span style={{ color: '#4FA8E8' }}>✓✓</span>
   if (status === 'delivered') return <span style={{ color: '#A79E8B' }}>✓✓</span>
   return <span style={{ color: '#A79E8B' }}>✓</span>
+}
+
+function highlightMatch(text: string, term: string) {
+  if (!term.trim()) return text
+  const idx = text.toLowerCase().indexOf(term.toLowerCase())
+  if (idx === -1) return text
+  return <>{text.slice(0, idx)}<mark className="msg-search-hit">{text.slice(idx, idx + term.length)}</mark>{text.slice(idx + term.length)}</>
 }
 
 function replySnippet(m: Message): string {
@@ -56,6 +64,10 @@ export default function MensagensPage() {
   const [mediaError, setMediaError] = useState('')
   const [lightbox, setLightbox] = useState<string | null>(null)
   const [replyTo, setReplyTo] = useState<Message | null>(null)
+  const [editingMessage, setEditingMessage] = useState<Message | null>(null)
+  const [showArchived, setShowArchived] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
 
   const companyRef = useRef<Company | null>(null)
   const selectedRef = useRef<Contact | null>(null)
@@ -90,15 +102,30 @@ export default function MensagensPage() {
 
   async function loadContacts(companyId: string) {
     const { data } = await supabase
-      .from('crm_contacts').select('id, phone, name, last_message_at, last_read_at, presence_state, presence_until')
+      .from('crm_contacts').select('id, phone, name, last_message_at, last_read_at, presence_state, presence_until, pinned, archived')
       .eq('company_id', companyId).not('last_message_at', 'is', null)
       .order('last_message_at', { ascending: false })
     setContacts((data || []) as Contact[])
   }
 
+  async function togglePin(c: Contact, e: React.MouseEvent) {
+    e.stopPropagation()
+    const pinned = !c.pinned
+    setContacts(prev => prev.map(x => x.id === c.id ? { ...x, pinned } : x))
+    await supabase.from('crm_contacts').update({ pinned }).eq('id', c.id)
+  }
+
+  async function toggleArchive(c: Contact, e: React.MouseEvent) {
+    e.stopPropagation()
+    const archived = !c.archived
+    setContacts(prev => prev.map(x => x.id === c.id ? { ...x, archived } : x))
+    if (archived && selected?.id === c.id) setSelected(null)
+    await supabase.from('crm_contacts').update({ archived }).eq('id', c.id)
+  }
+
   async function loadMessages(contactId: string) {
     const { data } = await supabase
-      .from('crm_messages').select('id, direction, body, media_type, media_url, sent_at, status, reply_to_id')
+      .from('crm_messages').select('id, direction, body, media_type, media_url, sent_at, status, reply_to_id, edited_at, deleted_at')
       .eq('contact_id', contactId).order('sent_at', { ascending: true })
     const msgs = (data || []) as Message[]
     const withUrls = await Promise.all(msgs.map(async m => {
@@ -119,6 +146,8 @@ export default function MensagensPage() {
     setSelected(c)
     selectedRef.current = c
     setReplyTo(null)
+    setEditingMessage(null)
+    setSearchOpen(false); setSearchTerm('')
     await loadMessages(c.id)
     if (c.last_message_at && (!c.last_read_at || c.last_read_at < c.last_message_at)) {
       const now = new Date().toISOString()
@@ -190,12 +219,19 @@ export default function MensagensPage() {
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'crm_messages', filter: `company_id=eq.${company.id}` }, (payload) => {
         const row = payload.new as any
-        // status de entrega/leitura mudou (✓ -> ✓✓ -> ✓✓ azul)
-        setMessages(prev => prev.map(m => m.id === row.id ? { ...m, status: row.status } : m))
+        // status de entrega/leitura, edição ou exclusão da mensagem
+        setMessages(prev => prev.map(m => m.id === row.id ? {
+          ...m, status: row.status, body: row.body, media_type: row.media_type, media_url: row.media_url,
+          edited_at: row.edited_at, deleted_at: row.deleted_at,
+          signedUrl: row.deleted_at ? null : m.signedUrl,
+        } : m))
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'crm_contacts', filter: `company_id=eq.${company.id}` }, (payload) => {
         const row = payload.new as any
-        setContacts(prev => prev.map(c => c.id === row.id ? { ...c, presence_state: row.presence_state, presence_until: row.presence_until, name: row.name, last_message_at: row.last_message_at, last_read_at: row.last_read_at } : c))
+        setContacts(prev => prev.map(c => c.id === row.id ? {
+          ...c, presence_state: row.presence_state, presence_until: row.presence_until, name: row.name,
+          last_message_at: row.last_message_at, last_read_at: row.last_read_at, pinned: row.pinned, archived: row.archived,
+        } : c))
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
@@ -246,7 +282,49 @@ export default function MensagensPage() {
     setConnecting(false)
   }
 
+  function startEdit(m: Message) {
+    setReplyTo(null)
+    setEditingMessage(m)
+    setText(m.body || '')
+  }
+
+  function cancelEdit() {
+    setEditingMessage(null)
+    setText('')
+  }
+
+  async function submitEdit() {
+    if (!editingMessage || !text.trim() || !company || sending) return
+    setSending(true)
+    const { data: { session } } = await supabase.auth.getSession()
+    const newBody = text.trim()
+    const msgId = editingMessage.id
+    setText(''); setEditingMessage(null)
+    // Otimista — o eco do Realtime confirma depois.
+    setMessages(prev => prev.map(m => m.id === msgId ? { ...m, body: newBody, edited_at: new Date().toISOString() } : m))
+    const res = await fetch('/api/crm/editar', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ access_token: session?.access_token, company_id: company.id, message_id: msgId, text: newBody }),
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => null)
+      setMediaError(data?.error || 'falha ao editar')
+    }
+    setSending(false)
+  }
+
+  async function deleteMessage(m: Message) {
+    if (!company || !window.confirm('Apagar essa mensagem pra todos?')) return
+    setMessages(prev => prev.map(x => x.id === m.id ? { ...x, deleted_at: new Date().toISOString(), body: null, media_type: null, media_url: null, signedUrl: null } : x))
+    const { data: { session } } = await supabase.auth.getSession()
+    await fetch('/api/crm/apagar', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ access_token: session?.access_token, company_id: company.id, message_id: m.id }),
+    }).catch(() => {})
+  }
+
   async function sendMessage() {
+    if (editingMessage) return submitEdit()
     if (!text.trim() || !selected || !company || sending) return
     setSending(true)
     const { data: { session } } = await supabase.auth.getSession()
@@ -392,6 +470,11 @@ export default function MensagensPage() {
           .msg-item-name{font-weight:700;font-size:13px;}
           .msg-item-time{font-size:10.5px;color:#A79E8B;}
           .msg-unread{width:8px;height:8px;border-radius:50%;background:#C9951A;flex:none;}
+          .msg-item-actions{display:none;gap:4px;flex:none;}
+          .msg-item:hover .msg-item-actions{display:flex;}
+          .msg-item-actions button{background:none;border:none;font-size:13px;cursor:pointer;padding:4px;border-radius:6px;opacity:.6;}
+          .msg-item-actions button:hover{opacity:1;background:#EFE8D8;}
+          .msg-archived-toggle{width:100%;padding:12px 14px;background:none;border:none;border-top:1px solid #F0EDE8;color:#8A6410;font-weight:700;font-size:12px;cursor:pointer;text-align:left;font-family:inherit;}
           .msg-thread{display:flex;flex-direction:column;min-height:0;}
           @media(max-width:767px){.msg-thread{display:${selected ? 'flex' : 'none'};}}
           .msg-thead{padding:12px 16px;border-bottom:1px solid #EDE8E0;display:flex;align-items:center;gap:10px;flex:none;}
@@ -416,12 +499,18 @@ export default function MensagensPage() {
           .msg-reply-quote{background:rgba(0,0,0,.05);border-left:3px solid #C9951A;border-radius:6px;padding:5px 8px;margin-bottom:5px;font-size:11.5px;color:#6E6656;max-height:36px;overflow:hidden;}
           .msg-bubble-wrap{display:flex;align-items:center;gap:2px;max-width:76%;}
           .msg-bubble-wrap .msg-bubble{max-width:100%;}
+          .msg-bubble-actions{display:flex;gap:0;flex:none;}
           .msg-reply-btn{background:none;border:none;font-size:13px;color:#A79E8B;cursor:pointer;opacity:0;transition:opacity .15s;padding:4px;flex:none;}
           .msg-bubble-row:hover .msg-reply-btn{opacity:1;}
           .msg-reply-bar{display:flex;align-items:center;gap:10px;padding:8px 14px;background:#F7F5F0;border-top:1px solid #EDE8E0;font-size:12px;}
           .msg-reply-bar-txt{flex:1;min-width:0;color:#6E6656;border-left:3px solid #C9951A;padding-left:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
           .msg-reply-bar button{background:none;border:none;font-size:15px;cursor:pointer;color:#A79E8B;flex:none;}
           .msg-presence{font-size:11px;color:#4FA8E8;font-weight:600;}
+          .msg-thead-search-btn{background:none;border:none;font-size:16px;cursor:pointer;padding:6px;flex:none;color:#8A6410;}
+          .msg-search-input{flex:1;padding:9px 14px;border-radius:20px;border:1px solid #EDE8E0;background:#F7F5F0;font-size:13px;font-family:inherit;}
+          .msg-search-hit{background:#FBEEC5;border-radius:3px;padding:0 1px;}
+          .msg-deleted{font-size:12.5px;color:#A79E8B;font-style:italic;}
+          .msg-edited-tag{font-size:9.5px;color:#A79E8B;}
           .msg-online-dot{width:8px;height:8px;border-radius:50%;background:#3FBF6F;border:2px solid #fff;position:absolute;margin-left:24px;margin-top:22px;}
           .msg-lightbox{position:fixed;inset:0;background:rgba(10,8,4,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;padding:24px;}
           .msg-lightbox img{max-width:92vw;max-height:76vh;object-fit:contain;border-radius:6px;}
@@ -456,20 +545,40 @@ export default function MensagensPage() {
         ) : (
           <div className="msg-shell">
             <div className="msg-list">
-              {contacts.length === 0 && <div style={{ padding: 20, fontSize: 12.5, color: '#A79E8B', textAlign: 'center' }}>Nenhuma conversa ainda.</div>}
-              {contacts.map(c => {
-                const unread = !!c.last_message_at && (!c.last_read_at || c.last_read_at < c.last_message_at)
+              {(() => {
+                const visible = contacts.filter(c => showArchived ? c.archived : !c.archived)
+                const pinned = visible.filter(c => c.pinned)
+                const rest = visible.filter(c => !c.pinned)
+                const archivedCount = contacts.filter(c => c.archived).length
+                const rows = [...pinned, ...rest]
                 return (
-                  <div key={c.id} className={`msg-item ${selected?.id === c.id ? 'sel' : ''}`} onClick={() => openContact(c)}>
-                    <div className="msg-avatar">{(c.name || c.phone).slice(0, 2).toUpperCase()}</div>
-                    <div className="msg-item-txt">
-                      <div className="msg-item-name">{c.name || c.phone}</div>
-                      <div className="msg-item-time">{c.last_message_at ? fmtTime(c.last_message_at) : ''}</div>
-                    </div>
-                    {unread && <div className="msg-unread" />}
-                  </div>
+                  <>
+                    {rows.length === 0 && <div style={{ padding: 20, fontSize: 12.5, color: '#A79E8B', textAlign: 'center' }}>{showArchived ? 'Nenhuma conversa arquivada.' : 'Nenhuma conversa ainda.'}</div>}
+                    {rows.map(c => {
+                      const unread = !!c.last_message_at && (!c.last_read_at || c.last_read_at < c.last_message_at)
+                      return (
+                        <div key={c.id} className={`msg-item ${selected?.id === c.id ? 'sel' : ''}`} onClick={() => openContact(c)}>
+                          <div className="msg-avatar">{(c.name || c.phone).slice(0, 2).toUpperCase()}</div>
+                          <div className="msg-item-txt">
+                            <div className="msg-item-name">{c.pinned && '📌 '}{c.name || c.phone}</div>
+                            <div className="msg-item-time">{c.last_message_at ? fmtTime(c.last_message_at) : ''}</div>
+                          </div>
+                          <div className="msg-item-actions">
+                            <button title={c.pinned ? 'Desafixar' : 'Fixar'} onClick={e => togglePin(c, e)}>📌</button>
+                            <button title={c.archived ? 'Desarquivar' : 'Arquivar'} onClick={e => toggleArchive(c, e)}>🗄</button>
+                          </div>
+                          {unread && <div className="msg-unread" />}
+                        </div>
+                      )
+                    })}
+                    {archivedCount > 0 && (
+                      <button className="msg-archived-toggle" onClick={() => setShowArchived(v => !v)}>
+                        {showArchived ? '‹ Voltar' : `🗄 Ver arquivadas (${archivedCount})`}
+                      </button>
+                    )}
+                  </>
                 )
-              })}
+              })()}
             </div>
             <div className="msg-thread">
               {!selected ? (
@@ -477,55 +586,90 @@ export default function MensagensPage() {
               ) : (
                 <>
                   <div className="msg-thead">
-                    <button className="msg-back" onClick={() => setSelected(null)}>‹</button>
-                    <div style={{ position: 'relative' }}>
-                      <div className="msg-avatar">{(selectedLive?.name || selectedLive?.phone || '').slice(0, 2).toUpperCase()}</div>
-                      {isOnline && !isTyping && <div className="msg-online-dot" />}
-                    </div>
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: 14 }}>{selectedLive?.name || selectedLive?.phone}</div>
-                      <div style={{ fontSize: 11.5, color: '#888' }}>
-                        {isTyping ? <span className="msg-presence">digitando...</span> : isOnline ? <span className="msg-presence">online</span> : selectedLive?.phone}
-                      </div>
-                    </div>
+                    {searchOpen ? (
+                      <>
+                        <input
+                          className="msg-search-input" autoFocus placeholder="Buscar na conversa..."
+                          value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+                          onKeyDown={e => e.key === 'Escape' && (setSearchOpen(false), setSearchTerm(''))}
+                        />
+                        <button className="msg-back" style={{ display: 'block' }} onClick={() => { setSearchOpen(false); setSearchTerm('') }}>✕</button>
+                      </>
+                    ) : (
+                      <>
+                        <button className="msg-back" onClick={() => setSelected(null)}>‹</button>
+                        <div style={{ position: 'relative' }}>
+                          <div className="msg-avatar">{(selectedLive?.name || selectedLive?.phone || '').slice(0, 2).toUpperCase()}</div>
+                          {isOnline && !isTyping && <div className="msg-online-dot" />}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 700, fontSize: 14 }}>{selectedLive?.name || selectedLive?.phone}</div>
+                          <div style={{ fontSize: 11.5, color: '#888' }}>
+                            {isTyping ? <span className="msg-presence">digitando...</span> : isOnline ? <span className="msg-presence">online</span> : selectedLive?.phone}
+                          </div>
+                        </div>
+                        <button className="msg-thead-search-btn" title="Buscar na conversa" onClick={() => setSearchOpen(true)}>🔍</button>
+                      </>
+                    )}
                   </div>
                   <div className="msg-body" ref={msgBodyRef}>
-                    {messages.map(m => {
+                    {(searchTerm.trim() ? messages.filter(m => m.body?.toLowerCase().includes(searchTerm.toLowerCase())) : messages).map(m => {
                       const quoted = m.reply_to_id ? messages.find(x => x.id === m.reply_to_id) : null
                       let location: any = null, vcard: any = null
                       if (m.media_type === 'location' && m.body) { try { location = JSON.parse(m.body) } catch {} }
                       if (m.media_type === 'contact' && m.body) { try { vcard = JSON.parse(m.body) } catch {} }
+                      const canEditDelete = m.direction === 'out' && !m.deleted_at
                       return (
                         <div key={m.id} className={`msg-bubble-row ${m.direction === 'out' ? 'out' : 'in'}`}>
                           <div className="msg-bubble-wrap">
                           <div className="msg-bubble">
-                            {quoted && <div className="msg-reply-quote">{replySnippet(quoted)}</div>}
-                            {m.media_type === 'image' && (m.signedUrl ? <img className="msg-media-img" src={m.signedUrl} alt="" onClick={() => setLightbox(m.signedUrl!)} /> : <div className="msg-media-fail">📷 imagem indisponível</div>)}
-                            {m.media_type === 'video' && (m.signedUrl ? <video controls src={m.signedUrl} /> : <div className="msg-media-fail">🎥 vídeo indisponível</div>)}
-                            {m.media_type === 'audio' && (m.signedUrl ? <audio controls src={m.signedUrl} /> : <div className="msg-media-fail">🎤 áudio indisponível</div>)}
-                            {m.media_type === 'sticker' && (m.signedUrl ? <img className="msg-sticker" src={m.signedUrl} alt="" /> : <div className="msg-media-fail">🏷️ figurinha indisponível</div>)}
-                            {m.media_type === 'document' && (m.signedUrl
-                              ? <a className="msg-doc" href={m.signedUrl} target="_blank" rel="noreferrer"><span className="msg-doc-ico">📄</span><span className="msg-doc-name">{m.body || 'Documento'}</span></a>
-                              : <div className="msg-media-fail">📄 documento indisponível</div>)}
-                            {m.media_type === 'location' && location && (
-                              <a className="msg-loc" href={`https://www.google.com/maps?q=${location.lat},${location.lng}`} target="_blank" rel="noreferrer">
-                                <span className="msg-loc-ico">📍</span><span>{location.name || location.address || 'Ver localização no mapa'}</span>
-                              </a>
+                            {m.deleted_at ? (
+                              <div className="msg-deleted">🚫 {m.direction === 'out' ? 'Você apagou essa mensagem' : 'Mensagem apagada'}</div>
+                            ) : (
+                              <>
+                                {quoted && <div className="msg-reply-quote">{replySnippet(quoted)}</div>}
+                                {m.media_type === 'image' && (m.signedUrl ? <img className="msg-media-img" src={m.signedUrl} alt="" onClick={() => setLightbox(m.signedUrl!)} /> : <div className="msg-media-fail">📷 imagem indisponível</div>)}
+                                {m.media_type === 'video' && (m.signedUrl ? <video controls src={m.signedUrl} /> : <div className="msg-media-fail">🎥 vídeo indisponível</div>)}
+                                {m.media_type === 'audio' && (m.signedUrl ? <audio controls src={m.signedUrl} /> : <div className="msg-media-fail">🎤 áudio indisponível</div>)}
+                                {m.media_type === 'sticker' && (m.signedUrl ? <img className="msg-sticker" src={m.signedUrl} alt="" /> : <div className="msg-media-fail">🏷️ figurinha indisponível</div>)}
+                                {m.media_type === 'document' && (m.signedUrl
+                                  ? <a className="msg-doc" href={m.signedUrl} target="_blank" rel="noreferrer"><span className="msg-doc-ico">📄</span><span className="msg-doc-name">{m.body || 'Documento'}</span></a>
+                                  : <div className="msg-media-fail">📄 documento indisponível</div>)}
+                                {m.media_type === 'location' && location && (
+                                  <a className="msg-loc" href={`https://www.google.com/maps?q=${location.lat},${location.lng}`} target="_blank" rel="noreferrer">
+                                    <span className="msg-loc-ico">📍</span><span>{location.name || location.address || 'Ver localização no mapa'}</span>
+                                  </a>
+                                )}
+                                {m.media_type === 'contact' && vcard && (
+                                  <div className="msg-vcard"><span className="msg-vcard-ico">👤</span><span className="msg-vcard-name">{vcard.name || vcard.phone || 'Contato'}</span></div>
+                                )}
+                                {m.media_type !== 'location' && m.media_type !== 'contact' && m.media_type !== 'document' && m.body && highlightMatch(m.body, searchTerm)}
+                              </>
                             )}
-                            {m.media_type === 'contact' && vcard && (
-                              <div className="msg-vcard"><span className="msg-vcard-ico">👤</span><span className="msg-vcard-name">{vcard.name || vcard.phone || 'Contato'}</span></div>
-                            )}
-                            {m.media_type !== 'location' && m.media_type !== 'contact' && m.media_type !== 'document' && m.body}
-                            <div className="t">{fmtTime(m.sent_at)}{m.direction === 'out' && tickIcon(m.status)}</div>
+                            <div className="t">
+                              {m.edited_at && !m.deleted_at && <span className="msg-edited-tag">editada</span>}
+                              {fmtTime(m.sent_at)}{m.direction === 'out' && !m.deleted_at && tickIcon(m.status)}
+                            </div>
                           </div>
-                          <button className="msg-reply-btn" title="Responder" onClick={() => setReplyTo(m)}>↩</button>
+                          {!m.deleted_at && (
+                            <div className="msg-bubble-actions">
+                              <button className="msg-reply-btn" title="Responder" onClick={() => setReplyTo(m)}>↩</button>
+                              {canEditDelete && !m.media_type && <button className="msg-reply-btn" title="Editar" onClick={() => startEdit(m)}>✏️</button>}
+                              {canEditDelete && <button className="msg-reply-btn" title="Apagar" onClick={() => deleteMessage(m)}>🗑</button>}
+                            </div>
+                          )}
                           </div>
                         </div>
                       )
                     })}
                   </div>
                   {mediaError && <div className="msg-err" style={{ padding: '0 14px' }}>{mediaError}</div>}
-                  {replyTo && (
+                  {editingMessage ? (
+                    <div className="msg-reply-bar">
+                      <div className="msg-reply-bar-txt">✏️ Editando mensagem</div>
+                      <button onClick={cancelEdit}>✕</button>
+                    </div>
+                  ) : replyTo && (
                     <div className="msg-reply-bar">
                       <div className="msg-reply-bar-txt">Respondendo: {replySnippet(replyTo)}</div>
                       <button onClick={() => setReplyTo(null)}>✕</button>
@@ -533,10 +677,10 @@ export default function MensagensPage() {
                   )}
                   <div className="msg-composer">
                     <input type="file" accept="image/*" ref={fileInputRef} style={{ display: 'none' }} onChange={onPickImage} />
-                    <button className="msg-attach" disabled={sending || recording} onClick={() => fileInputRef.current?.click()} title="Enviar foto">📎</button>
-                    <button className={`msg-mic ${recording ? 'active' : ''}`} disabled={sending} onClick={recording ? stopRecording : startRecording} title={recording ? 'Parar e enviar' : 'Gravar áudio'}>{recording ? '⏹' : '🎤'}</button>
-                    <input placeholder="Escrever mensagem..." value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendMessage()} disabled={recording} />
-                    <button className="msg-send" disabled={sending || recording || !text.trim()} onClick={sendMessage}>➤</button>
+                    <button className="msg-attach" disabled={sending || recording || !!editingMessage} onClick={() => fileInputRef.current?.click()} title="Enviar foto">📎</button>
+                    <button className={`msg-mic ${recording ? 'active' : ''}`} disabled={sending || !!editingMessage} onClick={recording ? stopRecording : startRecording} title={recording ? 'Parar e enviar' : 'Gravar áudio'}>{recording ? '⏹' : '🎤'}</button>
+                    <input placeholder={editingMessage ? 'Editar mensagem...' : 'Escrever mensagem...'} value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendMessage()} disabled={recording} />
+                    <button className="msg-send" disabled={sending || recording || !text.trim()} onClick={sendMessage}>{editingMessage ? '✓' : '➤'}</button>
                   </div>
                 </>
               )}

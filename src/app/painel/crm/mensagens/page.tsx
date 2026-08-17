@@ -162,19 +162,30 @@ export default function MensagensPage() {
             }
           }
           // Se já existe (bolha otimista com o mesmo id gerado no navegador),
-          // reconcilia os campos em vez de duplicar — sem isso a mensagem que
-          // a gente acabou de mandar pisca/duplica na tela.
-          setMessages(prev => prev.some(m => m.id === row.id)
-            ? prev.map(m => m.id === row.id ? {
-                ...m, body: row.body, media_type: row.media_type, media_url: row.media_url,
-                sent_at: row.sent_at, status: row.status, reply_to_id: row.reply_to_id,
-                signedUrl: signedUrl || m.signedUrl,
-              } : m)
-            : [...prev, {
-                id: row.id, direction: row.direction, body: row.body,
-                media_type: row.media_type, media_url: row.media_url, sent_at: row.sent_at, signedUrl,
-                status: row.status, reply_to_id: row.reply_to_id,
-              }])
+          // reconcilia os campos em vez de duplicar. E se nada de fato mudou
+          // (eco da nossa própria mensagem de texto, já idêntica), devolve a
+          // MESMA referência do array — o React não re-renderiza nesse caso,
+          // então não pisca à toa.
+          setMessages(prev => {
+            const idx = prev.findIndex(m => m.id === row.id)
+            if (idx === -1) return [...prev, {
+              id: row.id, direction: row.direction, body: row.body,
+              media_type: row.media_type, media_url: row.media_url, sent_at: row.sent_at, signedUrl,
+              status: row.status, reply_to_id: row.reply_to_id,
+            }]
+            const existing = prev[idx]
+            const resolvedSignedUrl = signedUrl || existing.signedUrl || null
+            const unchanged = existing.body === row.body && existing.status === row.status
+              && existing.media_url === row.media_url && existing.reply_to_id === (row.reply_to_id ?? null)
+              && existing.signedUrl === resolvedSignedUrl
+            if (unchanged) return prev
+            const next = [...prev]
+            next[idx] = {
+              ...existing, body: row.body, media_type: row.media_type, media_url: row.media_url,
+              sent_at: row.sent_at, status: row.status, reply_to_id: row.reply_to_id, signedUrl: resolvedSignedUrl,
+            }
+            return next
+          })
         }
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'crm_messages', filter: `company_id=eq.${company.id}` }, (payload) => {

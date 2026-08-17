@@ -34,6 +34,7 @@ export default function MensagensPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
+  const mediaUrlCacheRef = useRef<Map<string, string>>(new Map())
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -73,7 +74,13 @@ export default function MensagensPage() {
     const msgs = (data || []) as Message[]
     const withUrls = await Promise.all(msgs.map(async m => {
       if (!m.media_url) return m
+      // O poll roda a cada poucos segundos — reusa a URL já assinada pra essa
+      // mensagem em vez de gerar uma nova a cada recarga, senão a troca de
+      // `src` no meio da reprodução reinicia o áudio (e a imagem pisca).
+      const cached = mediaUrlCacheRef.current.get(m.id)
+      if (cached) return { ...m, signedUrl: cached }
       const { data: signed } = await supabase.storage.from('crm-midia').createSignedUrl(m.media_url, 3600)
+      if (signed?.signedUrl) mediaUrlCacheRef.current.set(m.id, signed.signedUrl)
       return { ...m, signedUrl: signed?.signedUrl || null }
     }))
     setMessages(withUrls)
@@ -250,7 +257,7 @@ export default function MensagensPage() {
           .msg-bubble-row.in .msg-bubble{background:#fff;border:1px solid #EDE8E0;border-bottom-left-radius:4px;}
           .msg-bubble-row.out .msg-bubble{background:#FBF1DC;border:1px solid #F0E2BC;border-bottom-right-radius:4px;}
           .msg-bubble .t{font-size:10px;color:#A79E8B;margin-top:5px;text-align:right;}
-          .msg-media-img{display:block;max-width:100%;border-radius:8px;margin-bottom:4px;}
+          .msg-media-img{display:block;max-width:100%;width:260px;height:auto;max-height:320px;object-fit:cover;border-radius:8px;margin-bottom:4px;}
           .msg-media-fail{font-size:12px;color:#A79E8B;font-style:italic;}
           .msg-bubble audio{display:block;max-width:220px;height:34px;}
           .msg-composer{padding:12px 14px;border-top:1px solid #EDE8E0;display:flex;gap:8px;align-items:center;}

@@ -6,11 +6,37 @@ import CrmShell from '@/components/CrmShell'
 
 type Company = { id: string; name: string; crm_whatsapp_enabled: boolean }
 type Instance = { id: string; instance_name: string; status: string; phone: string | null }
-type Contact = { id: string; phone: string; name: string | null; last_message_at: string | null; last_read_at: string | null }
-type Message = { id: string; direction: 'in' | 'out'; body: string | null; media_type: string | null; media_url: string | null; sent_at: string; signedUrl?: string | null }
+type Contact = {
+  id: string; phone: string; name: string | null; last_message_at: string | null; last_read_at: string | null
+  presence_state?: string | null; presence_until?: string | null
+}
+type Message = {
+  id: string; direction: 'in' | 'out'; body: string | null; media_type: string | null; media_url: string | null
+  sent_at: string; signedUrl?: string | null; status?: string | null; reply_to_id?: string | null
+}
 
 function fmtTime(iso: string) {
   return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+}
+
+function tickIcon(status?: string | null) {
+  if (status === 'read') return <span style={{ color: '#4FA8E8' }}>✓✓</span>
+  if (status === 'delivered') return <span style={{ color: '#A79E8B' }}>✓✓</span>
+  return <span style={{ color: '#A79E8B' }}>✓</span>
+}
+
+function replySnippet(m: Message): string {
+  if (m.body && m.media_type !== 'location' && m.media_type !== 'contact') return m.body
+  switch (m.media_type) {
+    case 'image': return '📷 Foto'
+    case 'video': return '🎥 Vídeo'
+    case 'audio': return '🎤 Áudio'
+    case 'document': return `📄 ${m.body || 'Documento'}`
+    case 'sticker': return '🏷️ Figurinha'
+    case 'location': return '📍 Localização'
+    case 'contact': return '👤 Contato'
+    default: return ''
+  }
 }
 
 export default function MensagensPage() {
@@ -29,6 +55,7 @@ export default function MensagensPage() {
   const [recording, setRecording] = useState(false)
   const [mediaError, setMediaError] = useState('')
   const [lightbox, setLightbox] = useState<string | null>(null)
+  const [replyTo, setReplyTo] = useState<Message | null>(null)
 
   const companyRef = useRef<Company | null>(null)
   const selectedRef = useRef<Contact | null>(null)
@@ -63,7 +90,7 @@ export default function MensagensPage() {
 
   async function loadContacts(companyId: string) {
     const { data } = await supabase
-      .from('crm_contacts').select('id, phone, name, last_message_at, last_read_at')
+      .from('crm_contacts').select('id, phone, name, last_message_at, last_read_at, presence_state, presence_until')
       .eq('company_id', companyId).not('last_message_at', 'is', null)
       .order('last_message_at', { ascending: false })
     setContacts((data || []) as Contact[])
@@ -71,7 +98,7 @@ export default function MensagensPage() {
 
   async function loadMessages(contactId: string) {
     const { data } = await supabase
-      .from('crm_messages').select('id, direction, body, media_type, media_url, sent_at')
+      .from('crm_messages').select('id, direction, body, media_type, media_url, sent_at, status, reply_to_id')
       .eq('contact_id', contactId).order('sent_at', { ascending: true })
     const msgs = (data || []) as Message[]
     const withUrls = await Promise.all(msgs.map(async m => {
@@ -91,10 +118,18 @@ export default function MensagensPage() {
   async function openContact(c: Contact) {
     setSelected(c)
     selectedRef.current = c
+    setReplyTo(null)
     await loadMessages(c.id)
     if (c.last_message_at && (!c.last_read_at || c.last_read_at < c.last_message_at)) {
-      await supabase.from('crm_contacts').update({ last_read_at: new Date().toISOString() }).eq('id', c.id)
-      setContacts(prev => prev.map(x => x.id === c.id ? { ...x, last_read_at: new Date().toISOString() } : x))
+      const now = new Date().toISOString()
+      setContacts(prev => prev.map(x => x.id === c.id ? { ...x, last_read_at: now } : x))
+      const { data: { session } } = await supabase.auth.getSession()
+      // Marca lido no nosso banco E manda o read receipt real pra Evolution
+      // (tique azul do lado do cliente também), não só localmente.
+      fetch('/api/crm/ler', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token: session?.access_token, company_id: companyRef.current?.id, contact_id: c.id }),
+      }).catch(() => {})
     }
   }
 
@@ -104,9 +139,10 @@ export default function MensagensPage() {
     if (msgBodyRef.current) msgBodyRef.current.scrollTop = msgBodyRef.current.scrollHeight
   }, [messages])
 
-  // Realtime: mensagem nova (recebida, ou mandada pelo celular fora do CRM)
-  // chega na hora via websocket em vez de esperar o poll. O poll abaixo vira
-  // só uma rede de segurança pra caso a conexão de realtime cair.
+  // Realtime: mensagem nova (recebida, ou mandada pelo celular fora do CRM),
+  // status de entrega/leitura e presença (digitando/online) chegam na hora
+  // via websocket em vez de esperar o poll. O poll abaixo vira só uma rede
+  // de segurança pra caso a conexão de realtime cair.
   useEffect(() => {
     if (!company) return
     const channel = supabase
@@ -128,8 +164,18 @@ export default function MensagensPage() {
           setMessages(prev => prev.some(m => m.id === row.id) ? prev : [...prev, {
             id: row.id, direction: row.direction, body: row.body,
             media_type: row.media_type, media_url: row.media_url, sent_at: row.sent_at, signedUrl,
+            status: row.status, reply_to_id: row.reply_to_id,
           }])
         }
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'crm_messages', filter: `company_id=eq.${company.id}` }, (payload) => {
+        const row = payload.new as any
+        // status de entrega/leitura mudou (✓ -> ✓✓ -> ✓✓ azul)
+        setMessages(prev => prev.map(m => m.id === row.id ? { ...m, status: row.status } : m))
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'crm_contacts', filter: `company_id=eq.${company.id}` }, (payload) => {
+        const row = payload.new as any
+        setContacts(prev => prev.map(c => c.id === row.id ? { ...c, presence_state: row.presence_state, presence_until: row.presence_until, name: row.name, last_message_at: row.last_message_at, last_read_at: row.last_read_at } : c))
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
@@ -186,14 +232,16 @@ export default function MensagensPage() {
     const { data: { session } } = await supabase.auth.getSession()
     const token = session?.access_token
     const body = text.trim()
+    const replyId = replyTo?.id || null
     setText('')
+    setReplyTo(null)
     // Otimista: mostra a mensagem na hora, não espera o round-trip até a
     // Evolution API responder pra só então recarregar tudo do banco.
     const tempId = `tmp-${Date.now()}`
-    setMessages(prev => [...prev, { id: tempId, direction: 'out', body, media_type: null, media_url: null, sent_at: new Date().toISOString() }])
+    setMessages(prev => [...prev, { id: tempId, direction: 'out', body, media_type: null, media_url: null, sent_at: new Date().toISOString(), status: 'sent', reply_to_id: replyId }])
     const res = await fetch('/api/crm/enviar', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ access_token: token, company_id: company.id, contact_id: selected.id, text: body }),
+      body: JSON.stringify({ access_token: token, company_id: company.id, contact_id: selected.id, text: body, reply_to_id: replyId }),
     })
     if (res.ok) await loadMessages(selected.id)
     else { setText(body); setMessages(prev => prev.filter(m => m.id !== tempId)) }
@@ -203,9 +251,11 @@ export default function MensagensPage() {
   async function sendMedia(mediaType: 'image' | 'audio', blob: Blob, ext: string, contentType: string) {
     if (!selected || !company || sending) return
     setSending(true); setMediaError('')
+    const replyId = replyTo?.id || null
+    setReplyTo(null)
     const tempId = `tmp-${Date.now()}`
     const localUrl = URL.createObjectURL(blob)
-    setMessages(prev => [...prev, { id: tempId, direction: 'out', body: null, media_type: mediaType, media_url: null, sent_at: new Date().toISOString(), signedUrl: localUrl }])
+    setMessages(prev => [...prev, { id: tempId, direction: 'out', body: null, media_type: mediaType, media_url: null, sent_at: new Date().toISOString(), signedUrl: localUrl, status: 'sent', reply_to_id: replyId }])
     const path = `${company.id}/${selected.id}/${Date.now()}.${ext}`
     const { error: upErr } = await supabase.storage.from('crm-midia').upload(path, blob, { contentType })
     if (upErr) {
@@ -216,7 +266,7 @@ export default function MensagensPage() {
     const { data: { session } } = await supabase.auth.getSession()
     const res = await fetch('/api/crm/enviar', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ access_token: session?.access_token, company_id: company.id, contact_id: selected.id, media_path: path, media_type: mediaType }),
+      body: JSON.stringify({ access_token: session?.access_token, company_id: company.id, contact_id: selected.id, media_path: path, media_type: mediaType, reply_to_id: replyId }),
     })
     if (res.ok) await loadMessages(selected.id)
     else { const data = await res.json().catch(() => null); setMediaError(data?.error || 'falha ao enviar'); setMessages(prev => prev.filter(m => m.id !== tempId)) }
@@ -288,6 +338,11 @@ export default function MensagensPage() {
     )
   }
 
+  const selectedLive = selected ? (contacts.find(c => c.id === selected.id) || selected) : null
+  const isTyping = !!selectedLive?.presence_state && (selectedLive.presence_state === 'composing' || selectedLive.presence_state === 'recording')
+    && !!selectedLive.presence_until && new Date(selectedLive.presence_until) > new Date()
+  const isOnline = selectedLive?.presence_state === 'available'
+
   return (
     <CrmShell active="mensagens" companyName={company.name}>
       <div className="msg-page">
@@ -318,15 +373,31 @@ export default function MensagensPage() {
           .msg-back{display:none;background:none;border:none;font-size:18px;cursor:pointer;color:#8A6410;}
           @media(max-width:767px){.msg-back{display:block;}}
           .msg-body{flex:1;min-height:0;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:8px;background:#F7F5F0;}
-          .msg-bubble-row{display:flex;}
+          .msg-bubble-row{display:flex;position:relative;}
           .msg-bubble-row.out{justify-content:flex-end;}
-          .msg-bubble{max-width:76%;padding:9px 13px;border-radius:14px;font-size:13px;line-height:1.45;}
+          .msg-bubble{position:relative;max-width:76%;padding:9px 13px;border-radius:14px;font-size:13px;line-height:1.45;}
           .msg-bubble-row.in .msg-bubble{background:#fff;border:1px solid #EDE8E0;border-bottom-left-radius:4px;}
           .msg-bubble-row.out .msg-bubble{background:#FBF1DC;border:1px solid #F0E2BC;border-bottom-right-radius:4px;}
-          .msg-bubble .t{font-size:10px;color:#A79E8B;margin-top:5px;text-align:right;}
+          .msg-bubble .t{font-size:10px;color:#A79E8B;margin-top:5px;text-align:right;display:flex;justify-content:flex-end;gap:4px;align-items:center;}
           .msg-media-img{display:block;max-width:100%;width:260px;height:auto;max-height:320px;object-fit:cover;border-radius:8px;margin-bottom:4px;cursor:pointer;}
           .msg-media-fail{font-size:12px;color:#A79E8B;font-style:italic;}
           .msg-bubble audio{display:block;max-width:220px;height:34px;}
+          .msg-bubble video{display:block;max-width:260px;max-height:320px;border-radius:8px;margin-bottom:4px;}
+          .msg-sticker{display:block;width:120px;height:120px;object-fit:contain;margin-bottom:4px;}
+          .msg-doc,.msg-loc,.msg-vcard{display:flex;align-items:center;gap:10px;padding:4px 2px;text-decoration:none;color:inherit;}
+          .msg-doc-ico,.msg-loc-ico,.msg-vcard-ico{font-size:22px;flex:none;}
+          .msg-doc-name{font-size:12.5px;font-weight:600;word-break:break-all;}
+          .msg-loc a,.msg-vcard-name{color:#8A6410;font-weight:700;font-size:12.5px;}
+          .msg-reply-quote{background:rgba(0,0,0,.05);border-left:3px solid #C9951A;border-radius:6px;padding:5px 8px;margin-bottom:5px;font-size:11.5px;color:#6E6656;max-height:36px;overflow:hidden;}
+          .msg-bubble-wrap{display:flex;align-items:center;gap:2px;max-width:76%;}
+          .msg-bubble-wrap .msg-bubble{max-width:100%;}
+          .msg-reply-btn{background:none;border:none;font-size:13px;color:#A79E8B;cursor:pointer;opacity:0;transition:opacity .15s;padding:4px;flex:none;}
+          .msg-bubble-row:hover .msg-reply-btn{opacity:1;}
+          .msg-reply-bar{display:flex;align-items:center;gap:10px;padding:8px 14px;background:#F7F5F0;border-top:1px solid #EDE8E0;font-size:12px;}
+          .msg-reply-bar-txt{flex:1;min-width:0;color:#6E6656;border-left:3px solid #C9951A;padding-left:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+          .msg-reply-bar button{background:none;border:none;font-size:15px;cursor:pointer;color:#A79E8B;flex:none;}
+          .msg-presence{font-size:11px;color:#4FA8E8;font-weight:600;}
+          .msg-online-dot{width:8px;height:8px;border-radius:50%;background:#3FBF6F;border:2px solid #fff;position:absolute;margin-left:24px;margin-top:22px;}
           .msg-lightbox{position:fixed;inset:0;background:rgba(10,8,4,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;padding:24px;}
           .msg-lightbox img{max-width:92vw;max-height:76vh;object-fit:contain;border-radius:6px;}
           .msg-lightbox-actions{display:flex;gap:12px;margin-top:18px;}
@@ -382,25 +453,59 @@ export default function MensagensPage() {
                 <>
                   <div className="msg-thead">
                     <button className="msg-back" onClick={() => setSelected(null)}>‹</button>
-                    <div className="msg-avatar">{(selected.name || selected.phone).slice(0, 2).toUpperCase()}</div>
+                    <div style={{ position: 'relative' }}>
+                      <div className="msg-avatar">{(selectedLive?.name || selectedLive?.phone || '').slice(0, 2).toUpperCase()}</div>
+                      {isOnline && !isTyping && <div className="msg-online-dot" />}
+                    </div>
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: 14 }}>{selected.name || selected.phone}</div>
-                      <div style={{ fontSize: 11.5, color: '#888' }}>{selected.phone}</div>
+                      <div style={{ fontWeight: 700, fontSize: 14 }}>{selectedLive?.name || selectedLive?.phone}</div>
+                      <div style={{ fontSize: 11.5, color: '#888' }}>
+                        {isTyping ? <span className="msg-presence">digitando...</span> : isOnline ? <span className="msg-presence">online</span> : selectedLive?.phone}
+                      </div>
                     </div>
                   </div>
                   <div className="msg-body" ref={msgBodyRef}>
-                    {messages.map(m => (
-                      <div key={m.id} className={`msg-bubble-row ${m.direction === 'out' ? 'out' : 'in'}`}>
-                        <div className="msg-bubble">
-                          {m.media_type === 'image' && (m.signedUrl ? <img className="msg-media-img" src={m.signedUrl} alt="" onClick={() => setLightbox(m.signedUrl!)} /> : <div className="msg-media-fail">📷 imagem indisponível</div>)}
-                          {m.media_type === 'audio' && (m.signedUrl ? <audio controls src={m.signedUrl} /> : <div className="msg-media-fail">🎤 áudio indisponível</div>)}
-                          {m.body}
-                          <div className="t">{fmtTime(m.sent_at)}</div>
+                    {messages.map(m => {
+                      const quoted = m.reply_to_id ? messages.find(x => x.id === m.reply_to_id) : null
+                      let location: any = null, vcard: any = null
+                      if (m.media_type === 'location' && m.body) { try { location = JSON.parse(m.body) } catch {} }
+                      if (m.media_type === 'contact' && m.body) { try { vcard = JSON.parse(m.body) } catch {} }
+                      return (
+                        <div key={m.id} className={`msg-bubble-row ${m.direction === 'out' ? 'out' : 'in'}`}>
+                          <div className="msg-bubble-wrap">
+                          <div className="msg-bubble">
+                            {quoted && <div className="msg-reply-quote">{replySnippet(quoted)}</div>}
+                            {m.media_type === 'image' && (m.signedUrl ? <img className="msg-media-img" src={m.signedUrl} alt="" onClick={() => setLightbox(m.signedUrl!)} /> : <div className="msg-media-fail">📷 imagem indisponível</div>)}
+                            {m.media_type === 'video' && (m.signedUrl ? <video controls src={m.signedUrl} /> : <div className="msg-media-fail">🎥 vídeo indisponível</div>)}
+                            {m.media_type === 'audio' && (m.signedUrl ? <audio controls src={m.signedUrl} /> : <div className="msg-media-fail">🎤 áudio indisponível</div>)}
+                            {m.media_type === 'sticker' && (m.signedUrl ? <img className="msg-sticker" src={m.signedUrl} alt="" /> : <div className="msg-media-fail">🏷️ figurinha indisponível</div>)}
+                            {m.media_type === 'document' && (m.signedUrl
+                              ? <a className="msg-doc" href={m.signedUrl} target="_blank" rel="noreferrer"><span className="msg-doc-ico">📄</span><span className="msg-doc-name">{m.body || 'Documento'}</span></a>
+                              : <div className="msg-media-fail">📄 documento indisponível</div>)}
+                            {m.media_type === 'location' && location && (
+                              <a className="msg-loc" href={`https://www.google.com/maps?q=${location.lat},${location.lng}`} target="_blank" rel="noreferrer">
+                                <span className="msg-loc-ico">📍</span><span>{location.name || location.address || 'Ver localização no mapa'}</span>
+                              </a>
+                            )}
+                            {m.media_type === 'contact' && vcard && (
+                              <div className="msg-vcard"><span className="msg-vcard-ico">👤</span><span className="msg-vcard-name">{vcard.name || vcard.phone || 'Contato'}</span></div>
+                            )}
+                            {m.media_type !== 'location' && m.media_type !== 'contact' && m.media_type !== 'document' && m.body}
+                            <div className="t">{fmtTime(m.sent_at)}{m.direction === 'out' && tickIcon(m.status)}</div>
+                          </div>
+                          <button className="msg-reply-btn" title="Responder" onClick={() => setReplyTo(m)}>↩</button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                   {mediaError && <div className="msg-err" style={{ padding: '0 14px' }}>{mediaError}</div>}
+                  {replyTo && (
+                    <div className="msg-reply-bar">
+                      <div className="msg-reply-bar-txt">Respondendo: {replySnippet(replyTo)}</div>
+                      <button onClick={() => setReplyTo(null)}>✕</button>
+                    </div>
+                  )}
                   <div className="msg-composer">
                     <input type="file" accept="image/*" ref={fileInputRef} style={{ display: 'none' }} onChange={onPickImage} />
                     <button className="msg-attach" disabled={sending || recording} onClick={() => fileInputRef.current?.click()} title="Enviar foto">📎</button>

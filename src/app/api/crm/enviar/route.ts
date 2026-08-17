@@ -24,7 +24,7 @@ function formatPhone(phone: string): string {
 // crm-midia + media_type) — nunca os dois vazios.
 export async function POST(req: NextRequest) {
   try {
-    const { access_token, company_id, contact_id, text, media_path, media_type } = await req.json()
+    const { access_token, company_id, contact_id, text, media_path, media_type, reply_to_id } = await req.json()
     if (!access_token || !company_id || !contact_id || (!text?.trim() && !media_path)) {
       return NextResponse.json({ error: 'dados faltando' }, { status: 400 })
     }
@@ -48,6 +48,18 @@ export async function POST(req: NextRequest) {
     const { data: contact } = await supabase.from('crm_contacts').select('phone').eq('id', contact_id).eq('company_id', company_id).maybeSingle()
     if (!contact) return NextResponse.json({ error: 'contato não encontrado' }, { status: 404 })
 
+    // Responder citando: só precisa da key (remoteJid/fromMe/id) da mensagem original,
+    // o WhatsApp busca o conteúdo pra montar a caixinha de citação sozinho.
+    let quoted: any = undefined
+    if (reply_to_id) {
+      const { data: quotedMsg } = await supabase
+        .from('crm_messages').select('wa_message_id, direction')
+        .eq('id', reply_to_id).eq('company_id', company_id).maybeSingle()
+      if (quotedMsg?.wa_message_id) {
+        quoted = { key: { remoteJid: `${formatPhone(contact.phone)}@s.whatsapp.net`, fromMe: quotedMsg.direction === 'out', id: quotedMsg.wa_message_id } }
+      }
+    }
+
     const number = formatPhone(contact.phone)
     let evoRes: Response
     if (media_path) {
@@ -62,20 +74,20 @@ export async function POST(req: NextRequest) {
         evoRes = await fetch(`${EVOLUTION_URL}/message/sendMedia/${encodeURIComponent(instance.instance_name)}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', apikey: instance.api_key },
-          body: JSON.stringify({ number, mediatype: 'image', media: signed.signedUrl, caption: text?.trim() || undefined }),
+          body: JSON.stringify({ number, mediatype: 'image', media: signed.signedUrl, caption: text?.trim() || undefined, quoted }),
         })
       } else {
         evoRes = await fetch(`${EVOLUTION_URL}/message/sendWhatsAppAudio/${encodeURIComponent(instance.instance_name)}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', apikey: instance.api_key },
-          body: JSON.stringify({ number, audio: signed.signedUrl }),
+          body: JSON.stringify({ number, audio: signed.signedUrl, quoted }),
         })
       }
     } else {
       evoRes = await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', apikey: instance.api_key },
-        body: JSON.stringify({ number, text: text.trim() }),
+        body: JSON.stringify({ number, text: text.trim(), quoted }),
       })
     }
 
@@ -90,7 +102,7 @@ export async function POST(req: NextRequest) {
     await supabase.from('crm_messages').insert({
       company_id, contact_id, direction: 'out',
       body: text?.trim() || null, media_type: media_path ? media_type : null, media_url: media_path || null,
-      wa_message_id: waMessageId, sent_at: now,
+      wa_message_id: waMessageId, sent_at: now, reply_to_id: reply_to_id || null, status: 'sent',
     })
     await supabase.from('crm_contacts').update({ last_message_at: now, last_read_at: now }).eq('id', contact_id)
 

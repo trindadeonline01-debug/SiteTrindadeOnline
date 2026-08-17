@@ -121,6 +121,7 @@ export default function CrmPage() {
         <a href="/painel" className="crm-hub-exit">‹ Voltar ao Painel</a>
         <div className="crm-hub-title">{company.name}</div>
         <div className="crm-hub-grid">
+          <a href="/painel/crm/mensagens" style={hubCard}><span style={{ fontSize: 26 }}>💬</span><div><div style={hubTitle}>Mensagens</div><div style={hubSub}>Atenda pelo WhatsApp direto do painel</div></div></a>
           <a href="/painel/crm/pedidos" style={hubCard}><span style={{ fontSize: 26 }}>🧾</span><div><div style={hubTitle}>Pedidos</div><div style={hubSub}>Ver e gerenciar pedidos recebidos</div></div></a>
           <a href="/painel/crm/cozinha" style={hubCard}><span style={{ fontSize: 26 }}>🍳</span><div><div style={hubTitle}>Cozinha</div><div style={hubSub}>Painel pra deixar aberto na tela da cozinha</div></div></a>
           <a href="/painel/crm/catalogo" style={hubCard}><span style={{ fontSize: 26 }}>📋</span><div><div style={hubTitle}>Catálogo</div><div style={hubSub}>Produtos, categorias e combos</div></div></a>

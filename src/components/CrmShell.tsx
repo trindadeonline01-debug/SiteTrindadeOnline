@@ -1,9 +1,10 @@
 'use client'
 
-type NavId = 'inicio' | 'pedidos' | 'cozinha' | 'catalogo' | 'clientes'
+type NavId = 'inicio' | 'pedidos' | 'cozinha' | 'catalogo' | 'clientes' | 'mensagens'
 
 const NAV_ITEMS: { id: NavId; href: string; ico: string; lbl: string }[] = [
   { id: 'inicio', href: '/painel/crm', ico: '🏠', lbl: 'Início' },
+  { id: 'mensagens', href: '/painel/crm/mensagens', ico: '💬', lbl: 'Mensagens' },
   { id: 'pedidos', href: '/painel/crm/pedidos', ico: '🧾', lbl: 'Pedidos' },
   { id: 'cozinha', href: '/painel/crm/cozinha', ico: '🍳', lbl: 'Cozinha' },
   { id: 'catalogo', href: '/painel/crm/catalogo', ico: '📋', lbl: 'Catálogo' },

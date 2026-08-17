@@ -92,6 +92,15 @@ function normalizeName(s: string) {
   return (s || '').trim().toLowerCase().normalize('NFD').replace(DIACRITICS_RE, '').replace(/\s+/g, ' ')
 }
 
+// Extrai o caminho dentro do bucket a partir da URL pública, pra poder
+// apagar o arquivo do Storage (a URL pública não serve de argumento pro remove()).
+function storagePathFromUrl(url: string | null | undefined): string | null {
+  if (!url) return null
+  const marker = '/loja-produtos/'
+  const i = url.indexOf(marker)
+  return i === -1 ? null : url.slice(i + marker.length)
+}
+
 export default function CatalogoPage() {
   const [loading, setLoading] = useState(true)
   const [companyId, setCompanyId] = useState('')
@@ -404,7 +413,16 @@ export default function CatalogoPage() {
     if (!lastImportBatch) return
     if (!confirm(`Excluir os ${lastImportBatch.count} produtos da última importação? Não dá pra desfazer.`)) return
     setDeletingLastImport(true)
+    const { data } = await supabase
+      .from('loja_produtos')
+      .select('photo_url, groups:loja_opcoes_grupo(options:loja_opcoes(photo_url))')
+      .eq('company_id', companyId).eq('import_batch_id', lastImportBatch.id)
+    const paths = (data || []).flatMap(p => [
+      storagePathFromUrl(p.photo_url),
+      ...(((p.groups as any[]) || []).flatMap(g => (g.options || []).map((o: any) => storagePathFromUrl(o.photo_url)))),
+    ]).filter((p): p is string => !!p)
     await supabase.from('loja_produtos').delete().eq('company_id', companyId).eq('import_batch_id', lastImportBatch.id)
+    if (paths.length) await supabase.storage.from('loja-produtos').remove(paths)
     await loadAll(companyId)
     setLastImportBatch(null)
     setDeletingLastImport(false)
@@ -568,7 +586,16 @@ export default function CatalogoPage() {
 
   async function deleteProduto(id: string) {
     if (!confirm('Excluir esse produto? Não dá pra desfazer.')) return
+    const { data } = await supabase
+      .from('loja_produtos')
+      .select('photo_url, groups:loja_opcoes_grupo(options:loja_opcoes(photo_url))')
+      .eq('id', id).single()
+    const paths = [
+      storagePathFromUrl(data?.photo_url),
+      ...(((data?.groups as any[]) || []).flatMap(g => (g.options || []).map((o: any) => storagePathFromUrl(o.photo_url)))),
+    ].filter((p): p is string => !!p)
     await supabase.from('loja_produtos').delete().eq('id', id)
+    if (paths.length) await supabase.storage.from('loja-produtos').remove(paths)
     setProdutos(prev => prev.filter(x => x.id !== id))
   }
 

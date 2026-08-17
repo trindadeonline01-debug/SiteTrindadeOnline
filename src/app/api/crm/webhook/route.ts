@@ -37,9 +37,29 @@ export async function POST(req: NextRequest) {
 
     const { data: inst } = await supabase
       .from('crm_whatsapp_instances')
-      .select('id, company_id, api_key')
+      .select('id, company_id, api_key, webhook_v2')
       .eq('instance_name', instanceName).maybeSingle()
     if (!inst) return NextResponse.json({ ok: true })
+
+    // Auto-upgrade: instâncias criadas antes de MESSAGES_UPDATE/PRESENCE_UPDATE
+    // existirem só escutavam os eventos antigos. Na primeira vez que qualquer
+    // evento chegar depois desse deploy, reconfigura o webhook na Evolution
+    // sem precisar reconectar/reescanear o QR. Não bloqueia o processamento
+    // do evento atual (fire-and-forget).
+    if (!inst.webhook_v2 && inst.api_key) {
+      fetch(`${EVOLUTION_URL}/webhook/set/${encodeURIComponent(instanceName)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: inst.api_key },
+        body: JSON.stringify({
+          webhook: {
+            url: `${SITE_URL}/api/crm/webhook`, byEvents: false, base64: true,
+            events: ['QRCODE_UPDATED', 'CONNECTION_UPDATE', 'MESSAGES_UPSERT', 'MESSAGES_UPDATE', 'PRESENCE_UPDATE'],
+          },
+        }),
+      }).then(async r => {
+        if (r.ok) await supabase.from('crm_whatsapp_instances').update({ webhook_v2: true }).eq('id', inst.id)
+      }).catch(() => {})
+    }
 
     if (event.includes('connection')) {
       const state = data?.state || data?.connection

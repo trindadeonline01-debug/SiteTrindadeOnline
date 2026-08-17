@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
     const qrcodeBase64 = evoData?.qrcode?.base64 || evoData?.qrcode?.code || evoData?.qrcode || null
 
     const { data: inst, error: instErr } = await supabase.from('crm_whatsapp_instances').insert({
-      company_id, instance_name: instanceName, api_key: apiKey, status: 'disconnected',
+      company_id, instance_name: instanceName, api_key: apiKey, status: 'disconnected', webhook_v2: true,
     }).select('id').single()
     if (instErr) return NextResponse.json({ error: instErr.message }, { status: 500 })
 

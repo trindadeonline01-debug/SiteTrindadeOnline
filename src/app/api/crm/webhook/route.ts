@@ -18,6 +18,13 @@ export async function POST(req: NextRequest) {
     const instanceName: string | undefined = body?.instance
     const event: string = (body?.event || '').toLowerCase()
     const data = body?.data
+
+    // DEBUG TEMPORÁRIO — grava todo payload cru recebido, pra conseguir ver
+    // o formato real do evento sem acesso ao log da Vercel. Remover depois
+    // que o parsing abaixo estiver confirmado com um teste ao vivo. Precisa
+    // de await — função serverless pode ser encerrada antes de completar
+    // uma escrita disparada sem esperar.
+    await supabase.from('crm_webhook_debug_log').insert({ event: body?.event || null, instance: instanceName || null, raw: body })
     if (!instanceName) return NextResponse.json({ ok: true })
 
     const { data: inst } = await supabase

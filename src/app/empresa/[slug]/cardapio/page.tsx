@@ -315,7 +315,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
         .cd-hot-photo img{ width:100%;height:100%;object-fit:cover; }
         .cd-hot-name{ font-size:11px;font-weight:700;line-height:1.3; }
         .cd-hot-price{ font-size:11px;font-weight:800;margin-top:3px; }
-        .cd-sec{ font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#A79E8B;margin:16px 2px 4px; }
+        .cd-sec{ font-size:17px;font-weight:800;letter-spacing:.01em;color:#1A1610;margin:26px 2px 10px;padding-left:11px;border-left:4px solid #C9951A;line-height:1.2; }
         .cd-prow{ display:flex;gap:11px;padding:10px 16px;margin:0 -16px;border-bottom:1px solid #E2DCCB;align-items:center;cursor:pointer;transition:background .3s,transform .3s; }
         .cd-prow.cd-flash{ animation:cdFlash .5s ease; }
         @keyframes cdFlash{ 0%{ background:#FBF1DC; } 35%{ background:#F5DFA0; transform:scale(1.012); } 100%{ background:transparent; transform:scale(1); } }

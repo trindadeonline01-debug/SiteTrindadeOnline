@@ -154,6 +154,12 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
       return [...prev, { key, produtoId, name, modifiers, unitPrice: price, qty }]
     })
   }
+  const [flashId, setFlashId] = useState<string | null>(null)
+  function quickAdd(p: Produto, price: number) {
+    addToCart(p.id, p.name, price, 1)
+    setFlashId(p.id)
+    setTimeout(() => setFlashId(id => id === p.id ? null : id), 500)
+  }
   function changeCartQty(key: string, delta: number) {
     setCart(prev => prev.flatMap(l => {
       if (l.key !== key) return [l]
@@ -303,13 +309,16 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
         .cd-catchip.active{ background:#111;color:#C9951A;border-color:#111; }
         .cd-menu{ padding:2px 16px; }
         .cd-hot-row{ display:flex;gap:10px;overflow-x:auto;padding:2px 2px 10px; }
-        .cd-hot-card{ flex:none;width:120px;background:#fff;border:1px solid #EDE8E0;border-radius:12px;padding:8px;cursor:pointer; }
+        .cd-hot-card{ flex:none;width:120px;background:#fff;border:1px solid #EDE8E0;border-radius:12px;padding:8px;cursor:pointer;transition:transform .3s; }
+        .cd-hot-card.cd-flash{ animation:cdFlash .5s ease; border-color:#C9951A; }
         .cd-hot-photo{ width:100%;height:70px;border-radius:8px;background:linear-gradient(135deg,#FBF1DC,#F0EDE8);display:flex;align-items:center;justify-content:center;font-size:22px;overflow:hidden;margin-bottom:6px; }
         .cd-hot-photo img{ width:100%;height:100%;object-fit:cover; }
         .cd-hot-name{ font-size:11px;font-weight:700;line-height:1.3; }
         .cd-hot-price{ font-size:11px;font-weight:800;margin-top:3px; }
         .cd-sec{ font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#A79E8B;margin:16px 2px 4px; }
-        .cd-prow{ display:flex;gap:11px;padding:10px 0;border-bottom:0.5px solid #EDE8E0;align-items:center;cursor:pointer; }
+        .cd-prow{ display:flex;gap:11px;padding:10px 16px;margin:0 -16px;border-bottom:1px solid #E2DCCB;align-items:center;cursor:pointer;transition:background .3s,transform .3s; }
+        .cd-prow.cd-flash{ animation:cdFlash .5s ease; }
+        @keyframes cdFlash{ 0%{ background:#FBF1DC; } 35%{ background:#F5DFA0; transform:scale(1.012); } 100%{ background:transparent; transform:scale(1); } }
         .cd-prow-soldout{ cursor:default;opacity:.55; }
         .cd-prow-soldout .cd-pphoto{ filter:grayscale(1); }
         .cd-pphoto{ width:56px;height:56px;border-radius:11px;background:linear-gradient(135deg,#FBF1DC,#F0EDE8);display:flex;align-items:center;justify-content:center;font-size:22px;position:relative;overflow:hidden; }
@@ -320,7 +329,8 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
         .cd-pdesc{ font-size:11px;color:#AAA;margin-top:2px; }
         .cd-pprice{ font-size:13px;font-weight:800;margin-top:4px; }
         .cd-pprice.was{ font-size:10.5px;color:#AAA;text-decoration:line-through;margin-left:5px;font-weight:600; }
-        .cd-addbtn{ flex:none;width:30px;height:30px;border-radius:9px;border:1.5px solid #C9951A;background:#FEF3E2;color:#C9951A;font-size:16px;font-weight:800;cursor:pointer; }
+        .cd-addbtn{ flex:none;width:30px;height:30px;border-radius:9px;border:1.5px solid #C9951A;background:#FEF3E2;color:#C9951A;font-size:16px;font-weight:800;cursor:pointer;transition:background .2s,color .2s,transform .2s; }
+        .cd-addbtn.added{ background:#C9951A;color:#fff;transform:scale(1.12); }
         .cd-chev{ flex:none;width:26px;height:26px;border-radius:50%;border:none;background:#F0EDE8;color:#AAA;font-size:13px;font-weight:800;cursor:pointer; }
         .cd-cartbar{ position:fixed;left:50%;transform:translateX(-50%);bottom:16px;width:calc(100% - 32px);max-width:448px;padding:13px 16px;border-radius:16px;background:#C9951A;color:#1A1610;display:flex;align-items:center;justify-content:space-between;box-shadow:0 10px 24px -8px rgba(0,0,0,.35);cursor:pointer;z-index:10000; }
         .cd-overlay{ position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9990;display:${detail || drawerOpen ? 'block' : 'none'}; }
@@ -388,7 +398,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
               const promo = promoPrice(p)
               const hasOpts = p.groups && p.groups.length > 0
               return (
-                <div className="cd-hot-card" key={p.id} onClick={() => hasOpts ? openDetail(p) : addToCart(p.id, p.name, promo ?? p.sale_price, 1)}>
+                <div className={`cd-hot-card ${flashId === p.id ? 'cd-flash' : ''}`} key={p.id} onClick={() => hasOpts ? openDetail(p) : quickAdd(p, promo ?? p.sale_price)}>
                   <div className="cd-hot-photo">{p.photo_url ? <img src={p.photo_url} alt="" /> : '🍽️'}</div>
                   <div className="cd-hot-name">{p.name}</div>
                   {(promo ?? p.sale_price) > 0 && <div className="cd-hot-price">{fmt(promo ?? p.sale_price)}</div>}
@@ -414,7 +424,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
                 const hasOpts = p.groups && p.groups.length > 0
                 const soldOut = isSoldOut(p)
                 return (
-                  <div className={`cd-prow ${soldOut ? 'cd-prow-soldout' : ''}`} key={p.id} onClick={() => { if (soldOut) return; hasOpts ? openDetail(p) : addToCart(p.id, p.name, promo ?? p.sale_price, 1) }}>
+                  <div className={`cd-prow ${soldOut ? 'cd-prow-soldout' : ''} ${flashId === p.id ? 'cd-flash' : ''}`} key={p.id} onClick={() => { if (soldOut) return; hasOpts ? openDetail(p) : quickAdd(p, promo ?? p.sale_price) }}>
                     <div className="cd-pphoto">
                       {p.photo_url ? <img src={p.photo_url} alt="" /> : '🍽️'}
                       {!soldOut && promo != null && <span className="cd-badge">{p.promo_type === 'percent' ? `-${p.promo_value}%` : `-${fmt(p.promo_value!)}`}</span>}
@@ -426,7 +436,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
                         ? <div className="cd-pprice" style={{ color: '#C43D3D' }}>Esgotado</div>
                         : (promo ?? p.sale_price) > 0 && <div className="cd-pprice">{fmt(promo ?? p.sale_price)}{promo != null && <span className="was">{fmt(p.sale_price)}</span>}</div>}
                     </div>
-                    {!soldOut && (hasOpts ? <button className="cd-chev">›</button> : <button className="cd-addbtn">+</button>)}
+                    {!soldOut && (hasOpts ? <button className="cd-chev">›</button> : <button className={`cd-addbtn ${flashId === p.id ? 'added' : ''}`}>{flashId === p.id ? '✓' : '+'}</button>)}
                   </div>
                 )
               })}

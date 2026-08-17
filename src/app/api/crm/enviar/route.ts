@@ -24,7 +24,7 @@ function formatPhone(phone: string): string {
 // crm-midia + media_type) — nunca os dois vazios.
 export async function POST(req: NextRequest) {
   try {
-    const { access_token, company_id, contact_id, text, media_path, media_type, reply_to_id } = await req.json()
+    const { access_token, company_id, contact_id, text, media_path, media_type, reply_to_id, client_message_id } = await req.json()
     if (!access_token || !company_id || !contact_id || (!text?.trim() && !media_path)) {
       return NextResponse.json({ error: 'dados faltando' }, { status: 400 })
     }
@@ -100,6 +100,9 @@ export async function POST(req: NextRequest) {
 
     const now = new Date().toISOString()
     await supabase.from('crm_messages').insert({
+      // Usa o id gerado no navegador (mesmo id da bolha otimista) pra o
+      // evento de Realtime da própria mensagem reconciliar em vez de duplicar.
+      ...(client_message_id ? { id: client_message_id } : {}),
       company_id, contact_id, direction: 'out',
       body: text?.trim() || null, media_type: media_path ? media_type : null, media_url: media_path || null,
       wa_message_id: waMessageId, sent_at: now, reply_to_id: reply_to_id || null, status: 'sent',

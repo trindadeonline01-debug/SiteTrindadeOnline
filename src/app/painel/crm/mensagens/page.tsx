@@ -161,11 +161,20 @@ export default function MensagensPage() {
               if (signedUrl) mediaUrlCacheRef.current.set(row.id, signedUrl)
             }
           }
-          setMessages(prev => prev.some(m => m.id === row.id) ? prev : [...prev, {
-            id: row.id, direction: row.direction, body: row.body,
-            media_type: row.media_type, media_url: row.media_url, sent_at: row.sent_at, signedUrl,
-            status: row.status, reply_to_id: row.reply_to_id,
-          }])
+          // Se já existe (bolha otimista com o mesmo id gerado no navegador),
+          // reconcilia os campos em vez de duplicar — sem isso a mensagem que
+          // a gente acabou de mandar pisca/duplica na tela.
+          setMessages(prev => prev.some(m => m.id === row.id)
+            ? prev.map(m => m.id === row.id ? {
+                ...m, body: row.body, media_type: row.media_type, media_url: row.media_url,
+                sent_at: row.sent_at, status: row.status, reply_to_id: row.reply_to_id,
+                signedUrl: signedUrl || m.signedUrl,
+              } : m)
+            : [...prev, {
+                id: row.id, direction: row.direction, body: row.body,
+                media_type: row.media_type, media_url: row.media_url, sent_at: row.sent_at, signedUrl,
+                status: row.status, reply_to_id: row.reply_to_id,
+              }])
         }
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'crm_messages', filter: `company_id=eq.${company.id}` }, (payload) => {
@@ -235,16 +244,16 @@ export default function MensagensPage() {
     const replyId = replyTo?.id || null
     setText('')
     setReplyTo(null)
-    // Otimista: mostra a mensagem na hora, não espera o round-trip até a
-    // Evolution API responder pra só então recarregar tudo do banco.
-    const tempId = `tmp-${Date.now()}`
-    setMessages(prev => [...prev, { id: tempId, direction: 'out', body, media_type: null, media_url: null, sent_at: new Date().toISOString(), status: 'sent', reply_to_id: replyId }])
+    // Otimista com o MESMO id que o servidor vai usar no insert — assim o
+    // eco do Realtime reconcilia em vez de criar uma bolha duplicada, e não
+    // precisa recarregar tudo do banco depois (o que causava o piscar).
+    const clientId = crypto.randomUUID()
+    setMessages(prev => [...prev, { id: clientId, direction: 'out', body, media_type: null, media_url: null, sent_at: new Date().toISOString(), status: 'sent', reply_to_id: replyId }])
     const res = await fetch('/api/crm/enviar', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ access_token: token, company_id: company.id, contact_id: selected.id, text: body, reply_to_id: replyId }),
+      body: JSON.stringify({ access_token: token, company_id: company.id, contact_id: selected.id, text: body, reply_to_id: replyId, client_message_id: clientId }),
     })
-    if (res.ok) await loadMessages(selected.id)
-    else { setText(body); setMessages(prev => prev.filter(m => m.id !== tempId)) }
+    if (!res.ok) { setText(body); setMessages(prev => prev.filter(m => m.id !== clientId)) }
     setSending(false)
   }
 
@@ -253,25 +262,30 @@ export default function MensagensPage() {
     setSending(true); setMediaError('')
     const replyId = replyTo?.id || null
     setReplyTo(null)
-    const tempId = `tmp-${Date.now()}`
+    const clientId = crypto.randomUUID()
     const localUrl = URL.createObjectURL(blob)
-    setMessages(prev => [...prev, { id: tempId, direction: 'out', body: null, media_type: mediaType, media_url: null, sent_at: new Date().toISOString(), signedUrl: localUrl, status: 'sent', reply_to_id: replyId }])
+    setMessages(prev => [...prev, { id: clientId, direction: 'out', body: null, media_type: mediaType, media_url: null, sent_at: new Date().toISOString(), signedUrl: localUrl, status: 'sent', reply_to_id: replyId }])
     const path = `${company.id}/${selected.id}/${Date.now()}.${ext}`
     const { error: upErr } = await supabase.storage.from('crm-midia').upload(path, blob, { contentType })
     if (upErr) {
       setMediaError('falha ao subir mídia: ' + upErr.message); setSending(false)
-      setMessages(prev => prev.filter(m => m.id !== tempId)); URL.revokeObjectURL(localUrl)
+      setMessages(prev => prev.filter(m => m.id !== clientId)); URL.revokeObjectURL(localUrl)
       return
     }
     const { data: { session } } = await supabase.auth.getSession()
     const res = await fetch('/api/crm/enviar', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ access_token: session?.access_token, company_id: company.id, contact_id: selected.id, media_path: path, media_type: mediaType, reply_to_id: replyId }),
+      body: JSON.stringify({ access_token: session?.access_token, company_id: company.id, contact_id: selected.id, media_path: path, media_type: mediaType, reply_to_id: replyId, client_message_id: clientId }),
     })
-    if (res.ok) await loadMessages(selected.id)
-    else { const data = await res.json().catch(() => null); setMediaError(data?.error || 'falha ao enviar'); setMessages(prev => prev.filter(m => m.id !== tempId)) }
+    if (!res.ok) {
+      const data = await res.json().catch(() => null); setMediaError(data?.error || 'falha ao enviar')
+      setMessages(prev => prev.filter(m => m.id !== clientId)); URL.revokeObjectURL(localUrl)
+    } else {
+      // Espera o eco do Realtime trocar pela URL assinada real antes de
+      // revogar o blob local, senão a mídia pisca quebrada por um instante.
+      setTimeout(() => URL.revokeObjectURL(localUrl), 5000)
+    }
     setSending(false)
-    URL.revokeObjectURL(localUrl)
   }
 
   async function downloadImage(url: string) {

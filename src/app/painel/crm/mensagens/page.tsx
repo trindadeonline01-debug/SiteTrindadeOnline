@@ -235,7 +235,7 @@ export default function MensagensPage() {
           .msg-err{color:#C43D3D;font-size:12px;margin-top:12px;line-height:1.5;}
           .msg-shell{display:grid;grid-template-columns:1fr;border:1px solid #EDE8E0;border-radius:14px;overflow:hidden;background:#fff;height:calc(100vh - 140px);min-height:420px;}
           @media(min-width:768px){.msg-shell{grid-template-columns:280px 1fr;}}
-          .msg-list{border-right:1px solid #EDE8E0;overflow-y:auto;}
+          .msg-list{border-right:1px solid #EDE8E0;overflow-y:auto;min-height:0;}
           @media(max-width:767px){.msg-list{display:${selected ? 'none' : 'block'};}}
           .msg-item{display:flex;gap:10px;padding:12px 14px;border-bottom:1px solid #F0EDE8;cursor:pointer;align-items:center;}
           .msg-item.sel{background:#FBF1DC;}
@@ -245,12 +245,12 @@ export default function MensagensPage() {
           .msg-item-name{font-weight:700;font-size:13px;}
           .msg-item-time{font-size:10.5px;color:#A79E8B;}
           .msg-unread{width:8px;height:8px;border-radius:50%;background:#C9951A;flex:none;}
-          .msg-thread{display:flex;flex-direction:column;}
+          .msg-thread{display:flex;flex-direction:column;min-height:0;}
           @media(max-width:767px){.msg-thread{display:${selected ? 'flex' : 'none'};}}
-          .msg-thead{padding:12px 16px;border-bottom:1px solid #EDE8E0;display:flex;align-items:center;gap:10px;}
+          .msg-thead{padding:12px 16px;border-bottom:1px solid #EDE8E0;display:flex;align-items:center;gap:10px;flex:none;}
           .msg-back{display:none;background:none;border:none;font-size:18px;cursor:pointer;color:#8A6410;}
           @media(max-width:767px){.msg-back{display:block;}}
-          .msg-body{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:8px;background:#F7F5F0;}
+          .msg-body{flex:1;min-height:0;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:8px;background:#F7F5F0;}
           .msg-bubble-row{display:flex;}
           .msg-bubble-row.out{justify-content:flex-end;}
           .msg-bubble{max-width:76%;padding:9px 13px;border-radius:14px;font-size:13px;line-height:1.45;}
@@ -260,7 +260,7 @@ export default function MensagensPage() {
           .msg-media-img{display:block;max-width:100%;width:260px;height:auto;max-height:320px;object-fit:cover;border-radius:8px;margin-bottom:4px;}
           .msg-media-fail{font-size:12px;color:#A79E8B;font-style:italic;}
           .msg-bubble audio{display:block;max-width:220px;height:34px;}
-          .msg-composer{padding:12px 14px;border-top:1px solid #EDE8E0;display:flex;gap:8px;align-items:center;}
+          .msg-composer{padding:12px 14px;border-top:1px solid #EDE8E0;display:flex;gap:8px;align-items:center;flex:none;}
           .msg-composer input{flex:1;padding:11px 14px;border-radius:22px;border:1px solid #EDE8E0;background:#F7F5F0;font-size:13px;font-family:inherit;}
           .msg-send{width:38px;height:38px;border-radius:50%;background:#C9951A;border:none;color:#1A1610;font-weight:800;cursor:pointer;flex:none;}
           .msg-attach,.msg-mic{width:36px;height:36px;border-radius:50%;background:#F7F5F0;border:1px solid #EDE8E0;font-size:15px;cursor:pointer;flex:none;}

@@ -62,7 +62,10 @@ export async function POST(req: NextRequest) {
         if (!text && m.imageMessage) { mediaType = 'image'; text = m.imageMessage.caption || null }
         else if (!text && m.audioMessage) { mediaType = 'audio' }
 
-        const pushName: string | null = msg?.pushName || null
+        // pushName no evento fromMe é o nome do PRÓPRIO perfil (quem mandou),
+        // não do contato — só serve pra nomear/atualizar contato em mensagem
+        // recebida (direction 'in'), senão grava o nosso nome no cliente.
+        const pushName: string | null = direction === 'in' ? (msg?.pushName || null) : null
         const sentAt = msg?.messageTimestamp ? new Date(Number(msg.messageTimestamp) * 1000).toISOString() : new Date().toISOString()
 
         // Evolution normalmente manda a mídia já decodificada em base64 no

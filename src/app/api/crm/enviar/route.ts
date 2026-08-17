@@ -20,11 +20,16 @@ function formatPhone(phone: string): string {
 // Resposta 1:1 numa conversa do CRM — NÃO conta pro limite diário de disparo
 // (crm_daily_send_count), que é só pra campanha em massa. Responder cliente
 // que acabou de mandar mensagem é uso normal do WhatsApp, sem risco de bloqueio.
+// Aceita texto puro OU mídia (media_path já enviado pelo navegador pro bucket
+// crm-midia + media_type) — nunca os dois vazios.
 export async function POST(req: NextRequest) {
   try {
-    const { access_token, company_id, contact_id, text } = await req.json()
-    if (!access_token || !company_id || !contact_id || !text?.trim()) {
+    const { access_token, company_id, contact_id, text, media_path, media_type } = await req.json()
+    if (!access_token || !company_id || !contact_id || (!text?.trim() && !media_path)) {
       return NextResponse.json({ error: 'dados faltando' }, { status: 400 })
+    }
+    if (media_path && media_type !== 'image' && media_type !== 'audio') {
+      return NextResponse.json({ error: 'media_type inválido' }, { status: 400 })
     }
 
     const { data: userData } = await supabaseAuth.auth.getUser(access_token)
@@ -43,11 +48,37 @@ export async function POST(req: NextRequest) {
     const { data: contact } = await supabase.from('crm_contacts').select('phone').eq('id', contact_id).eq('company_id', company_id).maybeSingle()
     if (!contact) return NextResponse.json({ error: 'contato não encontrado' }, { status: 404 })
 
-    const evoRes = await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', apikey: instance.api_key },
-      body: JSON.stringify({ number: formatPhone(contact.phone), text: text.trim() }),
-    })
+    const number = formatPhone(contact.phone)
+    let evoRes: Response
+    if (media_path) {
+      // media_path é caminho no bucket privado — a Evolution precisa de uma
+      // URL alcançável de fora pra baixar, então gera uma assinada de curta
+      // duração só pro tempo do envio (a mídia já fica hospedada no próprio
+      // WhatsApp depois de entregue, não depende dessa URL continuar válida).
+      const { data: signed } = await supabase.storage.from('crm-midia').createSignedUrl(media_path, 300)
+      if (!signed?.signedUrl) return NextResponse.json({ error: 'falha ao gerar URL da mídia' }, { status: 500 })
+
+      if (media_type === 'image') {
+        evoRes = await fetch(`${EVOLUTION_URL}/message/sendMedia/${encodeURIComponent(instance.instance_name)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', apikey: instance.api_key },
+          body: JSON.stringify({ number, mediatype: 'image', media: signed.signedUrl, caption: text?.trim() || undefined }),
+        })
+      } else {
+        evoRes = await fetch(`${EVOLUTION_URL}/message/sendWhatsAppAudio/${encodeURIComponent(instance.instance_name)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', apikey: instance.api_key },
+          body: JSON.stringify({ number, audio: signed.signedUrl }),
+        })
+      }
+    } else {
+      evoRes = await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: instance.api_key },
+        body: JSON.stringify({ number, text: text.trim() }),
+      })
+    }
+
     if (!evoRes.ok) {
       const errText = await evoRes.text()
       return NextResponse.json({ error: `falha ao enviar (status ${evoRes.status}): ${errText.slice(0, 300)}` }, { status: 500 })
@@ -57,7 +88,9 @@ export async function POST(req: NextRequest) {
 
     const now = new Date().toISOString()
     await supabase.from('crm_messages').insert({
-      company_id, contact_id, direction: 'out', body: text.trim(), wa_message_id: waMessageId, sent_at: now,
+      company_id, contact_id, direction: 'out',
+      body: text?.trim() || null, media_type: media_path ? media_type : null, media_url: media_path || null,
+      wa_message_id: waMessageId, sent_at: now,
     })
     await supabase.from('crm_contacts').update({ last_message_at: now, last_read_at: now }).eq('id', contact_id)
 

@@ -45,15 +45,33 @@ export async function POST(req: NextRequest) {
         const phone = remoteJid.split('@')[0]
 
         const m = msg?.message || {}
-        let mediaType: string | null = null
+        let mediaType: 'image' | 'audio' | null = null
         let text: string | null = m.conversation || m.extendedTextMessage?.text || null
-        if (!text && m.imageMessage) { mediaType = 'image'; text = m.imageMessage.caption || '[imagem recebida — visualização chega em breve]' }
-        else if (!text && m.audioMessage) { mediaType = 'audio'; text = '[áudio recebido — visualização chega em breve]' }
-        if (!text) continue
+        if (!text && m.imageMessage) { mediaType = 'image'; text = m.imageMessage.caption || null }
+        else if (!text && m.audioMessage) { mediaType = 'audio' }
 
         const waMessageId: string | null = msg?.key?.id || null
         const pushName: string | null = msg?.pushName || null
         const sentAt = msg?.messageTimestamp ? new Date(Number(msg.messageTimestamp) * 1000).toISOString() : new Date().toISOString()
+
+        // Evolution manda a mídia já decodificada em base64 no próprio evento
+        // (config base64:true na criação da instância) — não precisa lidar
+        // com URL criptografada nem chave de mídia.
+        let mediaPath: string | null = null
+        if (mediaType && m.base64) {
+          try {
+            const mimetype: string = (mediaType === 'image' ? m.imageMessage?.mimetype : m.audioMessage?.mimetype) || ''
+            const ext = mediaType === 'image' ? (mimetype.split('/')[1] || 'jpg').split(';')[0] : 'ogg'
+            const buf = Buffer.from(m.base64, 'base64')
+            const path = `${inst.company_id}/${phone}/${Date.now()}.${ext}`
+            const { error: upErr } = await supabase.storage.from('crm-midia').upload(path, buf, {
+              contentType: mimetype || (mediaType === 'image' ? 'image/jpeg' : 'audio/ogg'),
+            })
+            if (!upErr) mediaPath = path
+          } catch {}
+        }
+
+        if (!text && !mediaPath) continue // nada útil pra registrar
 
         const { data: existing } = await supabase
           .from('crm_contacts').select('id, name')
@@ -76,15 +94,16 @@ export async function POST(req: NextRequest) {
 
         await supabase.from('crm_messages').insert({
           company_id: inst.company_id, contact_id: contactId, direction: 'in',
-          body: text, media_type: mediaType, wa_message_id: waMessageId, sent_at: sentAt,
+          body: text, media_type: mediaType, media_url: mediaPath, wa_message_id: waMessageId, sent_at: sentAt,
         })
 
         const { data: company } = await supabase.from('companies').select('owner_id, name').eq('id', inst.company_id).maybeSingle()
         if (company?.owner_id) {
+          const notifBody = text || (mediaType === 'image' ? '📷 Foto' : mediaType === 'audio' ? '🎤 Áudio' : 'Nova mensagem')
           fetch(`${SITE_URL}/api/push/send`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              title: `💬 ${pushName || phone}`, body: text.slice(0, 120),
+              title: `💬 ${pushName || phone}`, body: notifBody.slice(0, 120),
               target: 'external_user_id', userId: company.owner_id,
             }),
           }).catch(() => {})

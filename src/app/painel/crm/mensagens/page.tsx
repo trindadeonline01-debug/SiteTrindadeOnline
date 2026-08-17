@@ -1,12 +1,13 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { compressImage } from '@/lib/compressImage'
 import CrmShell from '@/components/CrmShell'
 
 type Company = { id: string; name: string; crm_whatsapp_enabled: boolean }
 type Instance = { id: string; instance_name: string; status: string; phone: string | null }
 type Contact = { id: string; phone: string; name: string | null; last_message_at: string | null; last_read_at: string | null }
-type Message = { id: string; direction: 'in' | 'out'; body: string | null; media_type: string | null; sent_at: string }
+type Message = { id: string; direction: 'in' | 'out'; body: string | null; media_type: string | null; media_url: string | null; sent_at: string; signedUrl?: string | null }
 
 function fmtTime(iso: string) {
   return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
@@ -25,9 +26,14 @@ export default function MensagensPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
+  const [recording, setRecording] = useState(false)
+  const [mediaError, setMediaError] = useState('')
 
   const companyRef = useRef<Company | null>(null)
   const selectedRef = useRef<Contact | null>(null)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -62,9 +68,15 @@ export default function MensagensPage() {
 
   async function loadMessages(contactId: string) {
     const { data } = await supabase
-      .from('crm_messages').select('id, direction, body, media_type, sent_at')
+      .from('crm_messages').select('id, direction, body, media_type, media_url, sent_at')
       .eq('contact_id', contactId).order('sent_at', { ascending: true })
-    setMessages((data || []) as Message[])
+    const msgs = (data || []) as Message[]
+    const withUrls = await Promise.all(msgs.map(async m => {
+      if (!m.media_url) return m
+      const { data: signed } = await supabase.storage.from('crm-midia').createSignedUrl(m.media_url, 3600)
+      return { ...m, signedUrl: signed?.signedUrl || null }
+    }))
+    setMessages(withUrls)
   }
 
   async function openContact(c: Contact) {
@@ -139,6 +151,54 @@ export default function MensagensPage() {
     setSending(false)
   }
 
+  async function sendMedia(mediaType: 'image' | 'audio', blob: Blob, ext: string, contentType: string) {
+    if (!selected || !company || sending) return
+    setSending(true); setMediaError('')
+    const path = `${company.id}/${selected.id}/${Date.now()}.${ext}`
+    const { error: upErr } = await supabase.storage.from('crm-midia').upload(path, blob, { contentType })
+    if (upErr) { setMediaError('falha ao subir mídia: ' + upErr.message); setSending(false); return }
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch('/api/crm/enviar', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ access_token: session?.access_token, company_id: company.id, contact_id: selected.id, media_path: path, media_type: mediaType }),
+    })
+    if (res.ok) await loadMessages(selected.id)
+    else { const data = await res.json().catch(() => null); setMediaError(data?.error || 'falha ao enviar') }
+    setSending(false)
+  }
+
+  async function onPickImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    const compressed = await compressImage(file)
+    await sendMedia('image', compressed, 'jpg', 'image/jpeg')
+  }
+
+  async function startRecording() {
+    setMediaError('')
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mr = new MediaRecorder(stream)
+      audioChunksRef.current = []
+      mr.ondataavailable = e => { if (e.data.size > 0) audioChunksRef.current.push(e.data) }
+      mr.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop())
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        await sendMedia('audio', blob, 'webm', 'audio/webm')
+      }
+      mr.start()
+      mediaRecorderRef.current = mr
+      setRecording(true)
+    } catch {
+      setMediaError('não consegui acessar o microfone — confere a permissão do navegador')
+    }
+  }
+  function stopRecording() {
+    mediaRecorderRef.current?.stop()
+    setRecording(false)
+  }
+
   if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter,sans-serif', color: '#AAA' }}>Carregando...</div>
 
   if (!company?.crm_whatsapp_enabled) {
@@ -190,9 +250,14 @@ export default function MensagensPage() {
           .msg-bubble-row.in .msg-bubble{background:#fff;border:1px solid #EDE8E0;border-bottom-left-radius:4px;}
           .msg-bubble-row.out .msg-bubble{background:#FBF1DC;border:1px solid #F0E2BC;border-bottom-right-radius:4px;}
           .msg-bubble .t{font-size:10px;color:#A79E8B;margin-top:5px;text-align:right;}
-          .msg-composer{padding:12px 14px;border-top:1px solid #EDE8E0;display:flex;gap:8px;}
+          .msg-media-img{display:block;max-width:100%;border-radius:8px;margin-bottom:4px;}
+          .msg-media-fail{font-size:12px;color:#A79E8B;font-style:italic;}
+          .msg-bubble audio{display:block;max-width:220px;height:34px;}
+          .msg-composer{padding:12px 14px;border-top:1px solid #EDE8E0;display:flex;gap:8px;align-items:center;}
           .msg-composer input{flex:1;padding:11px 14px;border-radius:22px;border:1px solid #EDE8E0;background:#F7F5F0;font-size:13px;font-family:inherit;}
           .msg-send{width:38px;height:38px;border-radius:50%;background:#C9951A;border:none;color:#1A1610;font-weight:800;cursor:pointer;flex:none;}
+          .msg-attach,.msg-mic{width:36px;height:36px;border-radius:50%;background:#F7F5F0;border:1px solid #EDE8E0;font-size:15px;cursor:pointer;flex:none;}
+          .msg-mic.active{background:#FBEAEA;border-color:#C43D3D;color:#C43D3D;}
           .msg-empty{flex:1;display:flex;align-items:center;justify-content:center;color:#A79E8B;font-size:13px;}
         `}</style>
 
@@ -247,13 +312,22 @@ export default function MensagensPage() {
                   <div className="msg-body">
                     {messages.map(m => (
                       <div key={m.id} className={`msg-bubble-row ${m.direction === 'out' ? 'out' : 'in'}`}>
-                        <div className="msg-bubble">{m.body}<div className="t">{fmtTime(m.sent_at)}</div></div>
+                        <div className="msg-bubble">
+                          {m.media_type === 'image' && (m.signedUrl ? <img className="msg-media-img" src={m.signedUrl} alt="" /> : <div className="msg-media-fail">📷 imagem indisponível</div>)}
+                          {m.media_type === 'audio' && (m.signedUrl ? <audio controls src={m.signedUrl} /> : <div className="msg-media-fail">🎤 áudio indisponível</div>)}
+                          {m.body}
+                          <div className="t">{fmtTime(m.sent_at)}</div>
+                        </div>
                       </div>
                     ))}
                   </div>
+                  {mediaError && <div className="msg-err" style={{ padding: '0 14px' }}>{mediaError}</div>}
                   <div className="msg-composer">
-                    <input placeholder="Escrever mensagem..." value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendMessage()} />
-                    <button className="msg-send" disabled={sending || !text.trim()} onClick={sendMessage}>➤</button>
+                    <input type="file" accept="image/*" ref={fileInputRef} style={{ display: 'none' }} onChange={onPickImage} />
+                    <button className="msg-attach" disabled={sending || recording} onClick={() => fileInputRef.current?.click()} title="Enviar foto">📎</button>
+                    <button className={`msg-mic ${recording ? 'active' : ''}`} disabled={sending} onClick={recording ? stopRecording : startRecording} title={recording ? 'Parar e enviar' : 'Gravar áudio'}>{recording ? '⏹' : '🎤'}</button>
+                    <input placeholder="Escrever mensagem..." value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendMessage()} disabled={recording} />
+                    <button className="msg-send" disabled={sending || recording || !text.trim()} onClick={sendMessage}>➤</button>
                   </div>
                 </>
               )}

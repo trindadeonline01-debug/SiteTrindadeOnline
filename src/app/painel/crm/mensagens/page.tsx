@@ -28,6 +28,7 @@ export default function MensagensPage() {
   const [sending, setSending] = useState(false)
   const [recording, setRecording] = useState(false)
   const [mediaError, setMediaError] = useState('')
+  const [lightbox, setLightbox] = useState<string | null>(null)
 
   const companyRef = useRef<Company | null>(null)
   const selectedRef = useRef<Contact | null>(null)
@@ -35,6 +36,7 @@ export default function MensagensPage() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
   const mediaUrlCacheRef = useRef<Map<string, string>>(new Map())
+  const msgBodyRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -96,17 +98,22 @@ export default function MensagensPage() {
     }
   }
 
-  // Poll leve: lista de contatos a cada 8s, thread aberta a cada 4s — mesmo
-  // padrão de polling já usado na aba Disparos do admin (sem Realtime aqui).
+  // Sempre gruda no fim: ao abrir a conversa e sempre que a lista de
+  // mensagens mudar (nova mensagem chegando ou enviada), rola pro final.
+  useEffect(() => {
+    if (msgBodyRef.current) msgBodyRef.current.scrollTop = msgBodyRef.current.scrollHeight
+  }, [messages])
+
+  // Poll leve: lista de contatos a cada 5s, thread aberta a cada 2s.
   useEffect(() => {
     if (instance?.status !== 'connected' || !company) return
-    const iv = setInterval(() => loadContacts(company.id), 8000)
+    const iv = setInterval(() => loadContacts(company.id), 5000)
     return () => clearInterval(iv)
   }, [instance?.status, company?.id])
 
   useEffect(() => {
     if (!selected) return
-    const iv = setInterval(() => loadMessages(selected.id), 4000)
+    const iv = setInterval(() => loadMessages(selected.id), 2000)
     return () => clearInterval(iv)
   }, [selected?.id])
 
@@ -149,29 +156,58 @@ export default function MensagensPage() {
     const token = session?.access_token
     const body = text.trim()
     setText('')
+    // Otimista: mostra a mensagem na hora, não espera o round-trip até a
+    // Evolution API responder pra só então recarregar tudo do banco.
+    const tempId = `tmp-${Date.now()}`
+    setMessages(prev => [...prev, { id: tempId, direction: 'out', body, media_type: null, media_url: null, sent_at: new Date().toISOString() }])
     const res = await fetch('/api/crm/enviar', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ access_token: token, company_id: company.id, contact_id: selected.id, text: body }),
     })
     if (res.ok) await loadMessages(selected.id)
-    else setText(body)
+    else { setText(body); setMessages(prev => prev.filter(m => m.id !== tempId)) }
     setSending(false)
   }
 
   async function sendMedia(mediaType: 'image' | 'audio', blob: Blob, ext: string, contentType: string) {
     if (!selected || !company || sending) return
     setSending(true); setMediaError('')
+    const tempId = `tmp-${Date.now()}`
+    const localUrl = URL.createObjectURL(blob)
+    setMessages(prev => [...prev, { id: tempId, direction: 'out', body: null, media_type: mediaType, media_url: null, sent_at: new Date().toISOString(), signedUrl: localUrl }])
     const path = `${company.id}/${selected.id}/${Date.now()}.${ext}`
     const { error: upErr } = await supabase.storage.from('crm-midia').upload(path, blob, { contentType })
-    if (upErr) { setMediaError('falha ao subir mídia: ' + upErr.message); setSending(false); return }
+    if (upErr) {
+      setMediaError('falha ao subir mídia: ' + upErr.message); setSending(false)
+      setMessages(prev => prev.filter(m => m.id !== tempId)); URL.revokeObjectURL(localUrl)
+      return
+    }
     const { data: { session } } = await supabase.auth.getSession()
     const res = await fetch('/api/crm/enviar', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ access_token: session?.access_token, company_id: company.id, contact_id: selected.id, media_path: path, media_type: mediaType }),
     })
     if (res.ok) await loadMessages(selected.id)
-    else { const data = await res.json().catch(() => null); setMediaError(data?.error || 'falha ao enviar') }
+    else { const data = await res.json().catch(() => null); setMediaError(data?.error || 'falha ao enviar'); setMessages(prev => prev.filter(m => m.id !== tempId)) }
     setSending(false)
+    URL.revokeObjectURL(localUrl)
+  }
+
+  async function downloadImage(url: string) {
+    try {
+      const res = await fetch(url)
+      const blob = await res.blob()
+      const objUrl = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = objUrl
+      a.download = `foto-trindade-${Date.now()}.jpg`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(objUrl)
+    } catch {
+      window.open(url, '_blank')
+    }
   }
 
   async function onPickImage(e: React.ChangeEvent<HTMLInputElement>) {
@@ -257,9 +293,14 @@ export default function MensagensPage() {
           .msg-bubble-row.in .msg-bubble{background:#fff;border:1px solid #EDE8E0;border-bottom-left-radius:4px;}
           .msg-bubble-row.out .msg-bubble{background:#FBF1DC;border:1px solid #F0E2BC;border-bottom-right-radius:4px;}
           .msg-bubble .t{font-size:10px;color:#A79E8B;margin-top:5px;text-align:right;}
-          .msg-media-img{display:block;max-width:100%;width:260px;height:auto;max-height:320px;object-fit:cover;border-radius:8px;margin-bottom:4px;}
+          .msg-media-img{display:block;max-width:100%;width:260px;height:auto;max-height:320px;object-fit:cover;border-radius:8px;margin-bottom:4px;cursor:pointer;}
           .msg-media-fail{font-size:12px;color:#A79E8B;font-style:italic;}
           .msg-bubble audio{display:block;max-width:220px;height:34px;}
+          .msg-lightbox{position:fixed;inset:0;background:rgba(10,8,4,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;padding:24px;}
+          .msg-lightbox img{max-width:92vw;max-height:76vh;object-fit:contain;border-radius:6px;}
+          .msg-lightbox-actions{display:flex;gap:12px;margin-top:18px;}
+          .msg-lightbox-actions button{background:#fff;color:#1A1610;border:none;padding:10px 20px;border-radius:24px;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;}
+          .msg-lightbox-actions button.ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4);}
           .msg-composer{padding:12px 14px;border-top:1px solid #EDE8E0;display:flex;gap:8px;align-items:center;flex:none;}
           .msg-composer input{flex:1;padding:11px 14px;border-radius:22px;border:1px solid #EDE8E0;background:#F7F5F0;font-size:13px;font-family:inherit;}
           .msg-send{width:38px;height:38px;border-radius:50%;background:#C9951A;border:none;color:#1A1610;font-weight:800;cursor:pointer;flex:none;}
@@ -316,11 +357,11 @@ export default function MensagensPage() {
                       <div style={{ fontSize: 11.5, color: '#888' }}>{selected.phone}</div>
                     </div>
                   </div>
-                  <div className="msg-body">
+                  <div className="msg-body" ref={msgBodyRef}>
                     {messages.map(m => (
                       <div key={m.id} className={`msg-bubble-row ${m.direction === 'out' ? 'out' : 'in'}`}>
                         <div className="msg-bubble">
-                          {m.media_type === 'image' && (m.signedUrl ? <img className="msg-media-img" src={m.signedUrl} alt="" /> : <div className="msg-media-fail">📷 imagem indisponível</div>)}
+                          {m.media_type === 'image' && (m.signedUrl ? <img className="msg-media-img" src={m.signedUrl} alt="" onClick={() => setLightbox(m.signedUrl!)} /> : <div className="msg-media-fail">📷 imagem indisponível</div>)}
                           {m.media_type === 'audio' && (m.signedUrl ? <audio controls src={m.signedUrl} /> : <div className="msg-media-fail">🎤 áudio indisponível</div>)}
                           {m.body}
                           <div className="t">{fmtTime(m.sent_at)}</div>
@@ -338,6 +379,16 @@ export default function MensagensPage() {
                   </div>
                 </>
               )}
+            </div>
+          </div>
+        )}
+
+        {lightbox && (
+          <div className="msg-lightbox" onClick={() => setLightbox(null)}>
+            <img src={lightbox} alt="" onClick={e => e.stopPropagation()} />
+            <div className="msg-lightbox-actions" onClick={e => e.stopPropagation()}>
+              <button onClick={() => downloadImage(lightbox)}>⬇ Baixar</button>
+              <button className="ghost" onClick={() => setLightbox(null)}>✕ Fechar</button>
             </div>
           </div>
         )}

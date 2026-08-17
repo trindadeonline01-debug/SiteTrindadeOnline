@@ -308,13 +308,22 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
         .cd-hero img{ width:100%;height:100%;object-fit:cover; }
         .cd-herobtn{ position:absolute;top:14px;right:14px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.94);border:none;font-size:16px;cursor:pointer;z-index:2; }
         .cd-dscroll{ flex:1;overflow-y:auto;padding:16px; }
-        .cd-optgroup{ border-top:7px solid #F0EDE8;margin:0 -16px;padding:12px 16px 4px; }
-        .cd-orow{ display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid #EDE8E0;cursor:pointer; }
+        .cd-optgroup{ border-top:7px solid #F0EDE8;margin:0 -16px; }
+        .cd-og-head{ background:#FBF1DC;padding:11px 16px;display:flex;align-items:center;gap:8px; }
+        .cd-og-mid{ flex:1;min-width:0; }
+        .cd-og-name{ font-weight:800;font-size:13.5px; }
+        .cd-og-sub{ font-size:10px;color:#8A6410;margin-top:1px; }
+        .cd-og-req{ flex:none;background:#C43D3D;color:#fff;font-size:9px;font-weight:800;padding:3px 7px;border-radius:6px;letter-spacing:.03em; }
+        .cd-og-count{ flex:none;background:#C9951A;color:#fff;font-size:10px;font-weight:800;padding:3px 8px;border-radius:20px;font-variant-numeric:tabular-nums; }
+        .cd-orow{ display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:0.5px solid #EDE8E0;cursor:pointer; }
         .cd-oimg{ width:42px;height:42px;border-radius:9px;overflow:hidden;flex:none;background:#F0EDE8; }
         .cd-oimg img{ width:100%;height:100%;object-fit:cover; }
+        .cd-omax{ font-size:9.5px;color:#AAA;margin-top:1px; }
         .cd-ocheck{ width:20px;height:20px;border:1.5px solid #D8D2C4;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex:none; }
-        .cd-ocheck.radio{ border-radius:50%; } .cd-ocheck.box{ border-radius:6px; }
+        .cd-ocheck.radio{ border-radius:50%; }
         .cd-ocheck.active{ background:#C9951A;border-color:#C9951A; }
+        .cd-oplus{ flex:none;width:26px;height:26px;border-radius:50%;border:1.5px solid #C9951A;color:#8A6410;background:#FEF3E2;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center; }
+        .cd-oplus.active{ background:#C9951A;color:#fff;border-color:#C9951A; }
         .cd-dfoot{ flex:none;background:#fff;border-top:1px solid #EDE8E0;padding:12px 16px 16px;display:flex;gap:10px; }
         .cd-addcart{ flex:1;padding:14px;border-radius:12px;border:none;background:#C9951A;color:#1A1610;font-weight:800;font-size:13px;cursor:pointer; }
         .cd-addcart:disabled{ background:#E2DCCB;color:#A79E8B; }
@@ -417,7 +426,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
         <div className="cd-detail">
           <div className="cd-hero">
             {detail.photo_url ? <img src={detail.photo_url} alt="" /> : detail.name[0]}
-            <button className="cd-herobtn" onClick={() => setDetail(null)}>✕</button>
+            <button className="cd-herobtn" onClick={() => setDetail(null)}>‹</button>
           </div>
           <div className="cd-dscroll">
             <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 4 }}>{detail.name}</div>
@@ -425,11 +434,17 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
               <div style={{ fontSize: 15, fontWeight: 700, color: '#555', marginBottom: 9 }}>{fmt(promoPrice(detail) ?? detail.sale_price)}</div>
             )}
             {detail.description && <div style={{ fontSize: 12.5, color: '#555', lineHeight: 1.6, marginBottom: 14 }}>{detail.description}</div>}
-            {detail.groups.map((g, gi) => (
+            {detail.groups.map((g, gi) => {
+              const selCount = detailSel[gi]?.length || 0
+              return (
               <div className="cd-optgroup" key={g.id}>
-                <div style={{ fontWeight: 800, fontSize: 13.5 }}>{g.name}</div>
-                <div style={{ fontSize: 11, color: '#AAA', marginTop: 2 }}>
-                  {g.required ? `Obrigatório · Escolha ${g.min_select}${g.max_select > g.min_select ? '-' + g.max_select : ''} ${g.max_select > 1 ? 'itens' : 'item'}` : `Opcional · Escolha até ${g.max_select}`}
+                <div className="cd-og-head">
+                  <div className="cd-og-mid">
+                    <div className="cd-og-name">{g.name}</div>
+                    <div className="cd-og-sub">{g.required ? `Escolha ${g.min_select}${g.max_select > g.min_select ? '-' + g.max_select : ''} ${g.max_select > 1 ? 'itens' : 'item'}` : `Escolha até ${g.max_select} ${g.max_select > 1 ? 'itens' : 'item'}`}</div>
+                  </div>
+                  {g.required && <span className="cd-og-req">OBRIGATÓRIO</span>}
+                  <span className="cd-og-count">{selCount}/{g.max_select}</span>
                 </div>
                 {g.options.map((o, oi) => {
                   const active = detailSel[gi]?.includes(oi)
@@ -439,13 +454,17 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 12.5, fontWeight: 700 }}>{o.name}</div>
                         <div style={{ fontSize: 11, color: '#555' }}>{o.price > 0 ? '+ ' + fmt(o.price) : 'Grátis'}</div>
+                        {o.max_qty != null && <div className="cd-omax">Máx {o.max_qty}</div>}
                       </div>
-                      <div className={`cd-ocheck ${g.max_select === 1 ? 'radio' : 'box'} ${active ? 'active' : ''}`}>{active ? (g.max_select === 1 ? '●' : '✓') : ''}</div>
+                      {g.max_select === 1
+                        ? <div className={`cd-ocheck radio ${active ? 'active' : ''}`}>{active ? '●' : ''}</div>
+                        : <div className={`cd-oplus ${active ? 'active' : ''}`}>{active ? '✓' : '+'}</div>}
                     </div>
                   )
                 })}
               </div>
-            ))}
+              )
+            })}
           </div>
           <div className="cd-dfoot">
             <div style={{ display: 'flex', border: '1.5px solid #C9951A', borderRadius: 12, overflow: 'hidden' }}>

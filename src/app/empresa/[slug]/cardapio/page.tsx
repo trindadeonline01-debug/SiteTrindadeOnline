@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, use } from 'react'
+import { useEffect, useRef, useState, use } from 'react'
 import { supabase } from '@/lib/supabase'
 import { isOpenNow } from '@/lib/businessHours'
 
@@ -56,6 +56,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
   const [cart, setCart] = useState<CartLine[]>([])
   const [detail, setDetail] = useState<Produto | null>(null)
   const [detailSel, setDetailSel] = useState<number[][]>([])
+  const groupRefs = useRef<(HTMLDivElement | null)[]>([])
   const [detailQty, setDetailQty] = useState(1)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [deliveryType, setDeliveryType] = useState<'entrega' | 'retirada'>('entrega')
@@ -160,14 +161,24 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
   function toggleOpt(gi: number, oi: number) {
     if (!detail) return
     const g = detail.groups[gi]
-    setDetailSel(sel => sel.map((s, i) => {
-      if (i !== gi) return s
-      const active = s.includes(oi)
-      if (g.max_select === 1) return active ? [] : [oi]
-      if (active) return s.filter(x => x !== oi)
-      if (s.length < g.max_select) return [...s, oi]
-      return s
-    }))
+    setDetailSel(sel => {
+      const next = sel.map((s, i) => {
+        if (i !== gi) return s
+        const active = s.includes(oi)
+        if (g.max_select === 1) return active ? [] : [oi]
+        if (active) return s.filter(x => x !== oi)
+        if (s.length < g.max_select) return [...s, oi]
+        return s
+      })
+      // Ao completar um grupo (bater o máximo de escolhas), rola sozinho até
+      // o próximo grupo — evita o cliente ter que descer a tela na mão pra
+      // achar a próxima etapa (ex: escolheu os 2 sabores, já mostra a borda).
+      if (next[gi].length === g.max_select && next[gi].length !== sel[gi].length) {
+        const nextEl = groupRefs.current[gi + 1]
+        if (nextEl) setTimeout(() => nextEl.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150)
+      }
+      return next
+    })
   }
   const detailUnitPrice = detail ? (promoPrice(detail) ?? detail.sale_price) + detail.groups.reduce((s, g, gi) => s + groupContribution(g, detailSel[gi]), 0) : 0
   const detailReqMet = detail ? detail.groups.every((g, gi) => !g.required || detailSel[gi].length >= g.min_select) : true
@@ -437,7 +448,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
             {detail.groups.map((g, gi) => {
               const selCount = detailSel[gi]?.length || 0
               return (
-              <div className="cd-optgroup" key={g.id}>
+              <div className="cd-optgroup" key={g.id} ref={el => { groupRefs.current[gi] = el }}>
                 <div className="cd-og-head">
                   <div className="cd-og-mid">
                     <div className="cd-og-name">{g.name}</div>

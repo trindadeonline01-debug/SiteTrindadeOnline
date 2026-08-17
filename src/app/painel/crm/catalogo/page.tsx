@@ -559,6 +559,10 @@ export default function CatalogoPage() {
         .cg-photo-big img{ width:100%;height:100%;object-fit:cover; }
         .cg-cat-overlay{ position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:60;display:flex;align-items:flex-end;justify-content:center; }
         .cg-cat-modal{ background:#F7F5F0;width:100%;max-width:480px;max-height:80vh;border-radius:18px 18px 0 0;display:flex;flex-direction:column;overflow:hidden; }
+        @media(min-width:768px){
+          .cg-cat-overlay{ align-items:center;padding:24px; }
+          .cg-cat-modal{ border-radius:16px;max-height:min(640px,85vh); }
+        }
         .cg-cat-modal-head{ padding:16px;border-bottom:1px solid #EDE8E0;display:flex;justify-content:space-between;align-items:center;background:#fff; }
         .cg-close{ width:28px;height:28px;border-radius:50%;border:1px solid #E6E0D2;background:#fff;cursor:pointer; }
         .cg-cat-modal-body{ flex:1;overflow-y:auto;padding:6px 16px; }

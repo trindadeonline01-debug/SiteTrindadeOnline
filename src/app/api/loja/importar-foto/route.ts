@@ -33,21 +33,41 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'empresa não é sua' }, { status: 403 })
     }
 
+    // Muitos CDNs de cardápio (Anota Aí, iFood etc.) bloqueiam pedidos que não
+    // parecem vir de um navegador de verdade — sem User-Agent/Referer/Accept
+    // "normais" a resposta pode vir vazia, com erro, ou sem content-type de
+    // imagem. Simula um navegador real pra passar por essa proteção.
+    let origin = ''
+    try { origin = new URL(image_url).origin } catch {}
     let imgRes: Response
     try {
-      imgRes = await fetch(image_url, { signal: AbortSignal.timeout(15000) })
+      imgRes = await fetch(image_url, {
+        signal: AbortSignal.timeout(15000),
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+          'Accept': 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+          ...(origin ? { Referer: origin + '/' } : {}),
+        },
+      })
     } catch {
       return NextResponse.json({ error: 'não deu pra acessar essa URL (fora do ar ou demorou demais)' }, { status: 400 })
     }
     if (!imgRes.ok) return NextResponse.json({ error: 'URL não respondeu (status ' + imgRes.status + ')' }, { status: 400 })
 
-    const contentType = imgRes.headers.get('content-type') || ''
-    if (!contentType.startsWith('image/')) return NextResponse.json({ error: 'a URL não é de uma imagem' }, { status: 400 })
+    const contentTypeHeader = imgRes.headers.get('content-type') || ''
+    // Alguns servidores mandam um content-type genérico (ex: application/octet-stream)
+    // mesmo servindo uma imagem de verdade — nesse caso confia na extensão do link.
+    const extFromUrl = (image_url.match(/\.(jpe?g|png|webp|gif|avif)(\?|#|$)/i) || [])[1]?.toLowerCase()
+    if (!contentTypeHeader.startsWith('image/') && !extFromUrl) {
+      return NextResponse.json({ error: 'a URL não é de uma imagem (recebido: ' + (contentTypeHeader || 'sem content-type') + ')' }, { status: 400 })
+    }
 
     const buf = Buffer.from(await imgRes.arrayBuffer())
+    if (buf.byteLength === 0) return NextResponse.json({ error: 'a URL respondeu vazia' }, { status: 400 })
     if (buf.byteLength > MAX_BYTES) return NextResponse.json({ error: 'imagem grande demais' }, { status: 400 })
 
-    const ext = (contentType.split('/')[1] || 'jpg').split(';')[0]
+    const ext = contentTypeHeader.startsWith('image/') ? contentTypeHeader.split('/')[1].split(';')[0] : (extFromUrl === 'jpg' || extFromUrl === 'jpeg' ? 'jpeg' : extFromUrl || 'jpg')
+    const contentType = contentTypeHeader.startsWith('image/') ? contentTypeHeader : `image/${ext}`
     const path = `${company_id}/importado/${Date.now()}.${ext}`
     const { error: upErr } = await supabase.storage.from('loja-produtos').upload(path, buf, { contentType, upsert: true })
     if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 })

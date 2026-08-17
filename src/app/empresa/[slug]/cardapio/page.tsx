@@ -154,6 +154,16 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
       return [...prev, { key, produtoId, name, modifiers, unitPrice: price, qty }]
     })
   }
+  function changeCartQty(key: string, delta: number) {
+    setCart(prev => prev.flatMap(l => {
+      if (l.key !== key) return [l]
+      const qty = l.qty + delta
+      return qty <= 0 ? [] : [{ ...l, qty }]
+    }))
+  }
+  function removeCartLine(key: string) {
+    setCart(prev => prev.filter(l => l.key !== key))
+  }
   const cartTotal = cart.reduce((s, l) => s + l.unitPrice * l.qty, 0)
   const cartCount = cart.reduce((s, l) => s + l.qty, 0)
 
@@ -496,9 +506,18 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
               <div className="cd-dbody">
                 <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', marginBottom: 8, fontWeight: 800 }}>Itens</div>
                 {cart.map(l => (
-                  <div key={l.key} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '0.5px solid #EDE8E0', fontSize: 12 }}>
-                    <span>{l.qty}x {l.name}{l.modifiers.length > 0 && <span style={{ display: 'block', fontSize: 10.5, color: '#AAA' }}>{l.modifiers.map(m => m.name).join(', ')}</span>}</span>
-                    <b>{fmt(l.qty * l.unitPrice)}</b>
+                  <div key={l.key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '0.5px solid #EDE8E0', fontSize: 12 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <span>{l.name}</span>
+                      {l.modifiers.length > 0 && <span style={{ display: 'block', fontSize: 10.5, color: '#AAA' }}>{l.modifiers.map(m => m.name).join(', ')}</span>}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 'none' }}>
+                      <button onClick={() => changeCartQty(l.key, -1)} style={{ width: 24, height: 24, borderRadius: '50%', border: '1px solid #E2DCCB', background: '#F7F5F0', fontWeight: 800, fontSize: 13, lineHeight: 1, cursor: 'pointer' }}>−</button>
+                      <b style={{ minWidth: 14, textAlign: 'center' }}>{l.qty}</b>
+                      <button onClick={() => changeCartQty(l.key, 1)} style={{ width: 24, height: 24, borderRadius: '50%', border: '1px solid #E2DCCB', background: '#F7F5F0', fontWeight: 800, fontSize: 13, lineHeight: 1, cursor: 'pointer' }}>+</button>
+                    </div>
+                    <b style={{ flex: 'none', minWidth: 60, textAlign: 'right' }}>{fmt(l.qty * l.unitPrice)}</b>
+                    <button onClick={() => removeCartLine(l.key)} aria-label="Remover item" style={{ flex: 'none', width: 24, height: 24, borderRadius: '50%', border: 'none', background: 'transparent', color: '#C43D3D', fontSize: 14, cursor: 'pointer' }}>🗑</button>
                   </div>
                 ))}
                 <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', margin: '14px 0 8px', fontWeight: 800 }}>Como você quer receber?</div>

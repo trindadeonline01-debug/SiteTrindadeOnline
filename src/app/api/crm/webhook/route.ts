@@ -133,6 +133,25 @@ export async function POST(req: NextRequest) {
         const fromMe: boolean = !!msg?.key?.fromMe
         const direction: 'in' | 'out' = fromMe ? 'out' : 'in'
 
+        // Reação é um "mensagem" à parte que referencia outra pelo key.id —
+        // não cria linha nova, só atualiza a mensagem alvo. Texto vazio = removeu a reação.
+        const reactionMsg = msg?.message?.reactionMessage
+        if (reactionMsg) {
+          const targetWaId: string | undefined = reactionMsg.key?.id
+          const emoji: string = reactionMsg.text || ''
+          if (targetWaId) {
+            const { data: target } = await supabase
+              .from('crm_messages').select('id')
+              .eq('company_id', inst.company_id).eq('wa_message_id', targetWaId).maybeSingle()
+            if (target) {
+              await supabase.from('crm_messages').update({
+                reaction: emoji || null, reaction_by: emoji ? direction : null,
+              }).eq('id', target.id)
+            }
+          }
+          continue
+        }
+
         const waMessageId: string | null = msg?.key?.id || null
         if (waMessageId) {
           // Evita duplicar: se fromMe, pode já ter sido gravado por /api/crm/enviar;

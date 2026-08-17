@@ -13,8 +13,11 @@ type Contact = {
 type Message = {
   id: string; direction: 'in' | 'out'; body: string | null; media_type: string | null; media_url: string | null
   sent_at: string; signedUrl?: string | null; status?: string | null; reply_to_id?: string | null
-  edited_at?: string | null; deleted_at?: string | null
+  edited_at?: string | null; deleted_at?: string | null; reaction?: string | null; reaction_by?: string | null
 }
+
+const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏']
+const EMOJI_PICKER_LIST = '😀😁😂🤣😊😍😘😉😎🥳🤔😅😢😭😡🤯👍👎👏🙏💪🤝❤️🧡💛💚💙💜🔥✨🎉🎂🎁🍕🍔☕🍺⚽🎵📌📷📅✅❌⏰💰💬📞'.match(/./gu) || []
 
 function fmtTime(iso: string) {
   return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
@@ -68,10 +71,16 @@ export default function MensagensPage() {
   const [showArchived, setShowArchived] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const [attachMenuOpen, setAttachMenuOpen] = useState(false)
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
+  const [reactionPickerFor, setReactionPickerFor] = useState<string | null>(null)
+  const [contactPicker, setContactPicker] = useState<{ mode: 'forward' | 'shareContact'; forMessage?: Message } | null>(null)
 
   const companyRef = useRef<Company | null>(null)
   const selectedRef = useRef<Contact | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const videoInputRef = useRef<HTMLInputElement | null>(null)
+  const docInputRef = useRef<HTMLInputElement | null>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
   const mediaUrlCacheRef = useRef<Map<string, string>>(new Map())
@@ -125,7 +134,7 @@ export default function MensagensPage() {
 
   async function loadMessages(contactId: string) {
     const { data } = await supabase
-      .from('crm_messages').select('id, direction, body, media_type, media_url, sent_at, status, reply_to_id, edited_at, deleted_at')
+      .from('crm_messages').select('id, direction, body, media_type, media_url, sent_at, status, reply_to_id, edited_at, deleted_at, reaction, reaction_by')
       .eq('contact_id', contactId).order('sent_at', { ascending: true })
     const msgs = (data || []) as Message[]
     const withUrls = await Promise.all(msgs.map(async m => {
@@ -200,18 +209,19 @@ export default function MensagensPage() {
             if (idx === -1) return [...prev, {
               id: row.id, direction: row.direction, body: row.body,
               media_type: row.media_type, media_url: row.media_url, sent_at: row.sent_at, signedUrl,
-              status: row.status, reply_to_id: row.reply_to_id,
+              status: row.status, reply_to_id: row.reply_to_id, reaction: row.reaction, reaction_by: row.reaction_by,
             }]
             const existing = prev[idx]
             const resolvedSignedUrl = signedUrl || existing.signedUrl || null
             const unchanged = existing.body === row.body && existing.status === row.status
               && existing.media_url === row.media_url && existing.reply_to_id === (row.reply_to_id ?? null)
-              && existing.signedUrl === resolvedSignedUrl
+              && existing.signedUrl === resolvedSignedUrl && existing.reaction === (row.reaction ?? null)
             if (unchanged) return prev
             const next = [...prev]
             next[idx] = {
               ...existing, body: row.body, media_type: row.media_type, media_url: row.media_url,
               sent_at: row.sent_at, status: row.status, reply_to_id: row.reply_to_id, signedUrl: resolvedSignedUrl,
+              reaction: row.reaction, reaction_by: row.reaction_by,
             }
             return next
           })
@@ -222,7 +232,7 @@ export default function MensagensPage() {
         // status de entrega/leitura, edição ou exclusão da mensagem
         setMessages(prev => prev.map(m => m.id === row.id ? {
           ...m, status: row.status, body: row.body, media_type: row.media_type, media_url: row.media_url,
-          edited_at: row.edited_at, deleted_at: row.deleted_at,
+          edited_at: row.edited_at, deleted_at: row.deleted_at, reaction: row.reaction, reaction_by: row.reaction_by,
           signedUrl: row.deleted_at ? null : m.signedUrl,
         } : m))
       })
@@ -346,14 +356,17 @@ export default function MensagensPage() {
     setSending(false)
   }
 
-  async function sendMedia(mediaType: 'image' | 'audio', blob: Blob, ext: string, contentType: string) {
+  async function sendMedia(mediaType: 'image' | 'audio' | 'video' | 'document', blob: Blob, ext: string, contentType: string, fileName?: string) {
     if (!selected || !company || sending) return
     setSending(true); setMediaError('')
     const replyId = replyTo?.id || null
     setReplyTo(null)
     const clientId = crypto.randomUUID()
     const localUrl = URL.createObjectURL(blob)
-    setMessages(prev => [...prev, { id: clientId, direction: 'out', body: null, media_type: mediaType, media_url: null, sent_at: new Date().toISOString(), signedUrl: localUrl, status: 'sent', reply_to_id: replyId }])
+    setMessages(prev => [...prev, {
+      id: clientId, direction: 'out', body: mediaType === 'document' ? (fileName || 'Documento') : null,
+      media_type: mediaType, media_url: null, sent_at: new Date().toISOString(), signedUrl: localUrl, status: 'sent', reply_to_id: replyId,
+    }])
     const path = `${company.id}/${selected.id}/${Date.now()}.${ext}`
     const { error: upErr } = await supabase.storage.from('crm-midia').upload(path, blob, { contentType })
     if (upErr) {
@@ -364,7 +377,7 @@ export default function MensagensPage() {
     const { data: { session } } = await supabase.auth.getSession()
     const res = await fetch('/api/crm/enviar', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ access_token: session?.access_token, company_id: company.id, contact_id: selected.id, media_path: path, media_type: mediaType, reply_to_id: replyId, client_message_id: clientId }),
+      body: JSON.stringify({ access_token: session?.access_token, company_id: company.id, contact_id: selected.id, media_path: path, media_type: mediaType, file_name: fileName, reply_to_id: replyId, client_message_id: clientId }),
     })
     if (!res.ok) {
       const data = await res.json().catch(() => null); setMediaError(data?.error || 'falha ao enviar')
@@ -375,6 +388,73 @@ export default function MensagensPage() {
       setTimeout(() => URL.revokeObjectURL(localUrl), 5000)
     }
     setSending(false)
+  }
+
+  async function shareLocation() {
+    if (!selected || !company) return
+    if (!navigator.geolocation) { setMediaError('geolocalização não disponível nesse navegador'); return }
+    setMediaError('')
+    navigator.geolocation.getCurrentPosition(async pos => {
+      const location = { lat: pos.coords.latitude, lng: pos.coords.longitude }
+      setSending(true)
+      const clientId = crypto.randomUUID()
+      setMessages(prev => [...prev, { id: clientId, direction: 'out', body: JSON.stringify(location), media_type: 'location', media_url: null, sent_at: new Date().toISOString(), status: 'sent', reply_to_id: null }])
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/crm/enviar', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token: session?.access_token, company_id: company.id, contact_id: selected.id, location, client_message_id: clientId }),
+      })
+      if (!res.ok) { const data = await res.json().catch(() => null); setMediaError(data?.error || 'falha ao enviar localização'); setMessages(prev => prev.filter(m => m.id !== clientId)) }
+      setSending(false)
+    }, () => setMediaError('não consegui pegar sua localização — confere a permissão do navegador'))
+  }
+
+  async function shareContact(target: Contact) {
+    if (!selected || !company) return
+    setContactPicker(null)
+    setSending(true)
+    const contactShare = { name: target.name || target.phone, phone: target.phone }
+    const clientId = crypto.randomUUID()
+    setMessages(prev => [...prev, { id: clientId, direction: 'out', body: JSON.stringify(contactShare), media_type: 'contact', media_url: null, sent_at: new Date().toISOString(), status: 'sent', reply_to_id: null }])
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch('/api/crm/enviar', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ access_token: session?.access_token, company_id: company.id, contact_id: selected.id, contact_share: contactShare, client_message_id: clientId }),
+    })
+    if (!res.ok) { const data = await res.json().catch(() => null); setMediaError(data?.error || 'falha ao compartilhar contato'); setMessages(prev => prev.filter(m => m.id !== clientId)) }
+    setSending(false)
+  }
+
+  async function forwardMessage(msg: Message, target: Contact) {
+    if (!company) return
+    setContactPicker(null)
+    const { data: { session } } = await supabase.auth.getSession()
+    const isMedia = msg.media_type && msg.media_type !== 'location' && msg.media_type !== 'contact' && msg.media_type !== 'sticker'
+    await fetch('/api/crm/enviar', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        access_token: session?.access_token, company_id: company.id, contact_id: target.id,
+        text: !msg.media_type ? (msg.body || undefined) : undefined,
+        media_path: isMedia ? (msg.media_url || undefined) : undefined,
+        media_type: isMedia ? msg.media_type : undefined,
+        file_name: msg.media_type === 'document' ? (msg.body || undefined) : undefined,
+        location: msg.media_type === 'location' && msg.body ? JSON.parse(msg.body) : undefined,
+        contact_share: msg.media_type === 'contact' && msg.body ? JSON.parse(msg.body) : undefined,
+      }),
+    }).catch(() => {})
+    if (target.id === selected?.id) await loadMessages(target.id)
+  }
+
+  async function sendReaction(m: Message, emoji: string) {
+    if (!company) return
+    setReactionPickerFor(null)
+    const removing = m.reaction === emoji
+    setMessages(prev => prev.map(x => x.id === m.id ? { ...x, reaction: removing ? null : emoji, reaction_by: removing ? null : 'out' } : x))
+    const { data: { session } } = await supabase.auth.getSession()
+    await fetch('/api/crm/reagir', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ access_token: session?.access_token, company_id: company.id, message_id: m.id, emoji: removing ? '' : emoji }),
+    }).catch(() => {})
   }
 
   async function downloadImage(url: string) {
@@ -395,11 +475,30 @@ export default function MensagensPage() {
   }
 
   async function onPickImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files || [])
+    e.target.value = ''
+    for (const file of files) {
+      const compressed = await compressImage(file)
+      await sendMedia('image', compressed, 'jpg', 'image/jpeg')
+    }
+  }
+
+  async function onPickVideo(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file) return
-    const compressed = await compressImage(file)
-    await sendMedia('image', compressed, 'jpg', 'image/jpeg')
+    if (file.size > 30 * 1024 * 1024) { setMediaError('vídeo muito grande (máx. 30MB)'); return }
+    const ext = file.name.split('.').pop() || 'mp4'
+    await sendMedia('video', file, ext, file.type || 'video/mp4')
+  }
+
+  async function onPickDocument(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    if (file.size > 30 * 1024 * 1024) { setMediaError('arquivo muito grande (máx. 30MB)'); return }
+    const ext = file.name.split('.').pop() || 'bin'
+    await sendMedia('document', file, ext, file.type || 'application/octet-stream', file.name)
   }
 
   async function startRecording() {
@@ -502,6 +601,22 @@ export default function MensagensPage() {
           .msg-bubble-actions{display:flex;gap:0;flex:none;}
           .msg-reply-btn{background:none;border:none;font-size:13px;color:#A79E8B;cursor:pointer;opacity:0;transition:opacity .15s;padding:4px;flex:none;}
           .msg-bubble-row:hover .msg-reply-btn{opacity:1;}
+          .msg-reaction-badge{position:absolute;bottom:-9px;right:6px;background:#fff;border:1px solid #EDE8E0;border-radius:10px;font-size:12px;padding:1px 5px;line-height:1.3;box-shadow:0 1px 2px rgba(0,0,0,.08);}
+          .msg-reaction-picker{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);display:flex;gap:2px;background:#fff;border:1px solid #EDE8E0;border-radius:20px;padding:4px 6px;box-shadow:0 4px 12px rgba(0,0,0,.12);margin-bottom:6px;z-index:10;}
+          .msg-reaction-picker button{background:none;border:none;font-size:17px;cursor:pointer;padding:3px;border-radius:50%;}
+          .msg-reaction-picker button.sel{background:#FBF1DC;}
+          .msg-attach-menu{position:absolute;bottom:100%;left:0;margin-bottom:8px;background:#fff;border:1px solid #EDE8E0;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.14);padding:6px;display:flex;flex-direction:column;gap:2px;min-width:150px;z-index:10;}
+          .msg-attach-menu button{background:none;border:none;text-align:left;padding:9px 10px;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;}
+          .msg-attach-menu button:hover{background:#F7F5F0;}
+          .msg-emoji-picker{position:absolute;bottom:100%;left:0;margin-bottom:8px;background:#fff;border:1px solid #EDE8E0;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.14);padding:8px;display:grid;grid-template-columns:repeat(8,1fr);gap:2px;width:280px;max-height:220px;overflow-y:auto;z-index:10;}
+          .msg-emoji-picker button{background:none;border:none;font-size:18px;cursor:pointer;padding:4px;border-radius:6px;}
+          .msg-emoji-picker button:hover{background:#F7F5F0;}
+          .msg-picker{background:#fff;border-radius:14px;width:320px;max-width:92vw;max-height:70vh;display:flex;flex-direction:column;overflow:hidden;}
+          .msg-picker-title{padding:16px;font-weight:800;font-size:14px;border-bottom:1px solid #EDE8E0;}
+          .msg-picker-list{overflow-y:auto;flex:1;}
+          .msg-picker-item{display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;font-size:13px;}
+          .msg-picker-item:hover{background:#F7F5F0;}
+          .msg-picker-cancel{padding:14px;border:none;border-top:1px solid #EDE8E0;background:none;font-weight:700;font-size:13px;color:#C43D3D;cursor:pointer;font-family:inherit;}
           .msg-reply-bar{display:flex;align-items:center;gap:10px;padding:8px 14px;background:#F7F5F0;border-top:1px solid #EDE8E0;font-size:12px;}
           .msg-reply-bar-txt{flex:1;min-width:0;color:#6E6656;border-left:3px solid #C9951A;padding-left:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
           .msg-reply-bar button{background:none;border:none;font-size:15px;cursor:pointer;color:#A79E8B;flex:none;}
@@ -650,10 +765,20 @@ export default function MensagensPage() {
                               {m.edited_at && !m.deleted_at && <span className="msg-edited-tag">editada</span>}
                               {fmtTime(m.sent_at)}{m.direction === 'out' && !m.deleted_at && tickIcon(m.status)}
                             </div>
+                            {m.reaction && !m.deleted_at && <div className="msg-reaction-badge">{m.reaction}</div>}
                           </div>
                           {!m.deleted_at && (
-                            <div className="msg-bubble-actions">
+                            <div className="msg-bubble-actions" style={{ position: 'relative' }}>
+                              {reactionPickerFor === m.id && (
+                                <div className="msg-reaction-picker" onMouseLeave={() => setReactionPickerFor(null)}>
+                                  {QUICK_REACTIONS.map(em => (
+                                    <button key={em} onClick={() => sendReaction(m, em)} className={m.reaction === em ? 'sel' : ''}>{em}</button>
+                                  ))}
+                                </div>
+                              )}
+                              <button className="msg-reply-btn" title="Reagir" onClick={() => setReactionPickerFor(v => v === m.id ? null : m.id)}>😊</button>
                               <button className="msg-reply-btn" title="Responder" onClick={() => setReplyTo(m)}>↩</button>
+                              {m.media_type !== 'sticker' && <button className="msg-reply-btn" title="Encaminhar" onClick={() => setContactPicker({ mode: 'forward', forMessage: m })}>➡️</button>}
                               {canEditDelete && !m.media_type && <button className="msg-reply-btn" title="Editar" onClick={() => startEdit(m)}>✏️</button>}
                               {canEditDelete && <button className="msg-reply-btn" title="Apagar" onClick={() => deleteMessage(m)}>🗑</button>}
                             </div>
@@ -676,8 +801,31 @@ export default function MensagensPage() {
                     </div>
                   )}
                   <div className="msg-composer">
-                    <input type="file" accept="image/*" ref={fileInputRef} style={{ display: 'none' }} onChange={onPickImage} />
-                    <button className="msg-attach" disabled={sending || recording || !!editingMessage} onClick={() => fileInputRef.current?.click()} title="Enviar foto">📎</button>
+                    <input type="file" accept="image/*" multiple ref={fileInputRef} style={{ display: 'none' }} onChange={onPickImage} />
+                    <input type="file" accept="video/*" ref={videoInputRef} style={{ display: 'none' }} onChange={onPickVideo} />
+                    <input type="file" ref={docInputRef} style={{ display: 'none' }} onChange={onPickDocument} />
+                    <div style={{ position: 'relative' }}>
+                      {attachMenuOpen && (
+                        <div className="msg-attach-menu" onMouseLeave={() => setAttachMenuOpen(false)}>
+                          <button onClick={() => { fileInputRef.current?.click(); setAttachMenuOpen(false) }}>🖼 Foto(s)</button>
+                          <button onClick={() => { videoInputRef.current?.click(); setAttachMenuOpen(false) }}>🎥 Vídeo</button>
+                          <button onClick={() => { docInputRef.current?.click(); setAttachMenuOpen(false) }}>📄 Documento</button>
+                          <button onClick={() => { shareLocation(); setAttachMenuOpen(false) }}>📍 Localização</button>
+                          <button onClick={() => { setContactPicker({ mode: 'shareContact' }); setAttachMenuOpen(false) }}>👤 Contato</button>
+                        </div>
+                      )}
+                      <button className="msg-attach" disabled={sending || recording || !!editingMessage} onClick={() => setAttachMenuOpen(v => !v)} title="Anexar">📎</button>
+                    </div>
+                    <div style={{ position: 'relative' }}>
+                      {emojiPickerOpen && (
+                        <div className="msg-emoji-picker" onMouseLeave={() => setEmojiPickerOpen(false)}>
+                          {EMOJI_PICKER_LIST.map((em, i) => (
+                            <button key={i} onClick={() => { setText(t => t + em); setEmojiPickerOpen(false) }}>{em}</button>
+                          ))}
+                        </div>
+                      )}
+                      <button className="msg-attach" disabled={sending || recording} onClick={() => setEmojiPickerOpen(v => !v)} title="Emoji">😊</button>
+                    </div>
                     <button className={`msg-mic ${recording ? 'active' : ''}`} disabled={sending || !!editingMessage} onClick={recording ? stopRecording : startRecording} title={recording ? 'Parar e enviar' : 'Gravar áudio'}>{recording ? '⏹' : '🎤'}</button>
                     <input placeholder={editingMessage ? 'Editar mensagem...' : 'Escrever mensagem...'} value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendMessage()} disabled={recording} />
                     <button className="msg-send" disabled={sending || recording || !text.trim()} onClick={sendMessage}>{editingMessage ? '✓' : '➤'}</button>
@@ -694,6 +842,24 @@ export default function MensagensPage() {
             <div className="msg-lightbox-actions" onClick={e => e.stopPropagation()}>
               <button onClick={() => downloadImage(lightbox)}>⬇ Baixar</button>
               <button className="ghost" onClick={() => setLightbox(null)}>✕ Fechar</button>
+            </div>
+          </div>
+        )}
+
+        {contactPicker && (
+          <div className="msg-lightbox" onClick={() => setContactPicker(null)}>
+            <div className="msg-picker" onClick={e => e.stopPropagation()}>
+              <div className="msg-picker-title">{contactPicker.mode === 'forward' ? 'Encaminhar mensagem pra...' : 'Compartilhar contato'}</div>
+              <div className="msg-picker-list">
+                {contacts.length === 0 && <div style={{ padding: 16, fontSize: 12.5, color: '#A79E8B' }}>Nenhum contato ainda.</div>}
+                {contacts.map(c => (
+                  <div key={c.id} className="msg-picker-item" onClick={() => contactPicker.mode === 'forward' ? forwardMessage(contactPicker.forMessage!, c) : shareContact(c)}>
+                    <div className="msg-avatar">{(c.name || c.phone).slice(0, 2).toUpperCase()}</div>
+                    <div>{c.name || c.phone}</div>
+                  </div>
+                ))}
+              </div>
+              <button className="msg-picker-cancel" onClick={() => setContactPicker(null)}>Cancelar</button>
             </div>
           </div>
         )}

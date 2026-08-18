@@ -223,7 +223,9 @@ export default function PedidosPage() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           companyId, phone: npTelefone.trim() || null, name: npNome.trim(), address: npEndereco.trim() || null,
-          total: npTotal, items: npCart.map(l => ({ produtoId: l.produtoId, qty: l.qty })),
+          total: npTotal, subtotal: npTotal, deliveryFee: 0,
+          paymentMethod: npPay, deliveryType: npEndereco.trim() ? 'entrega' : 'retirada', notes: npObs.trim() || null,
+          items: npCart.map(l => ({ produtoId: l.produtoId, name: l.name, qty: l.qty, unitPrice: l.unitPrice, modifiers: l.modifiers })),
         }),
       }).catch(() => {})
     }

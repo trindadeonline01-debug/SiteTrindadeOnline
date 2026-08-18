@@ -243,7 +243,9 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           companyId: company.id, phone: profile?.phone || null, name: profile?.name || 'Cliente',
-          address: deliveryType === 'entrega' ? address : null, total, items: cart.map(l => ({ produtoId: l.produtoId, qty: l.qty })),
+          address: deliveryType === 'entrega' ? address : null, total, subtotal: cartTotal, deliveryFee: taxa,
+          paymentMethod: payMethod, deliveryType, notes: obs.trim() || null,
+          items: cart.map(l => ({ produtoId: l.produtoId, name: l.name, qty: l.qty, unitPrice: l.unitPrice, modifiers: l.modifiers })),
         }),
       }).catch(() => {})
       if (company.owner_id) {

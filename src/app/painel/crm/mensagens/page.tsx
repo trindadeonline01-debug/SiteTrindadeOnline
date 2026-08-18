@@ -22,8 +22,20 @@ type Message = {
 }
 type QuickReply = { id: string; shortcut: string; body: string }
 
+type NpOpcao = { id: string; name: string; price: number; max_qty: number | null }
+type NpGrupo = { id: string; name: string; required: boolean; min_select: number; max_select: number; pricing_rule: 'soma' | 'maior_valor'; options: NpOpcao[] }
+type NpProduto = { id: string; name: string; sale_price: number; category_id: string | null; groups: NpGrupo[] }
+type NpCartLine = { key: string; produtoId: string; name: string; modifiers: { name: string; price: number }[]; unitPrice: number; qty: number }
+function npGroupContribution(g: NpGrupo, selectedIdx: number[]): number {
+  const prices = selectedIdx.map(oi => g.options[oi].price)
+  if (prices.length === 0) return 0
+  return g.pricing_rule === 'maior_valor' ? Math.max(...prices) : prices.reduce((a, b) => a + b, 0)
+}
+
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏']
 const EMOJI_PICKER_LIST = '😀😁😂🤣😊😍😘😉😎🥳🤔😅😢😭😡🤯👍👎👏🙏💪🤝❤️🧡💛💚💙💜🔥✨🎉🎂🎁🍕🍔☕🍺⚽🎵📌📷📅✅❌⏰💰💬📞'.match(/./gu) || []
+
+function fmtMoney(n: number) { return 'R$ ' + Number(n || 0).toFixed(2).replace('.', ',') }
 
 function fmtTime(iso: string) {
   return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
@@ -115,6 +127,16 @@ export default function MensagensPage() {
   const [autoReplyOpen, setAutoReplyOpen] = useState(false)
   const [autoReplyDraft, setAutoReplyDraft] = useState({ enabled: false, text: '' })
   const [savingAutoReply, setSavingAutoReply] = useState(false)
+  const [npOpen, setNpOpen] = useState(false)
+  const [npProdutos, setNpProdutos] = useState<NpProduto[]>([])
+  const [npLoadingProdutos, setNpLoadingProdutos] = useState(false)
+  const [npCart, setNpCart] = useState<NpCartLine[]>([])
+  const [npDetail, setNpDetail] = useState<NpProduto | null>(null)
+  const [npDetailSel, setNpDetailSel] = useState<number[][]>([])
+  const [npEndereco, setNpEndereco] = useState('')
+  const [npObs, setNpObs] = useState('')
+  const [npPay, setNpPay] = useState<'pix' | 'dinheiro' | 'cartao'>('dinheiro')
+  const [npSaving, setNpSaving] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [attachMenuOpen, setAttachMenuOpen] = useState(false)
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
@@ -223,6 +245,85 @@ export default function MensagensPage() {
   function useQuickReply(q: QuickReply) {
     setText(t => t ? `${t}\n${q.body}` : q.body)
     setQuickRepliesOpen(false)
+  }
+
+  async function openNovoPedido() {
+    if (!company) return
+    setNpOpen(true)
+    if (npProdutos.length === 0) {
+      setNpLoadingProdutos(true)
+      const { data } = await supabase.from('loja_produtos').select('id, name, sale_price, category_id, groups:loja_opcoes_grupo(*, options:loja_opcoes(*))').eq('company_id', company.id).eq('active', true).order('display_order')
+      setNpProdutos((data || []) as any)
+      setNpLoadingProdutos(false)
+    }
+  }
+  function closeNovoPedido() {
+    setNpOpen(false); setNpCart([]); setNpDetail(null); setNpEndereco(''); setNpObs(''); setNpPay('dinheiro')
+  }
+  function npAddToCart(produtoId: string, name: string, price: number, modifiers: { name: string; price: number }[] = []) {
+    const key = produtoId + '|' + modifiers.map(m => m.name).sort().join('+')
+    setNpCart(prev => {
+      const existing = prev.find(l => l.key === key)
+      if (existing) return prev.map(l => l.key === key ? { ...l, qty: l.qty + 1 } : l)
+      return [...prev, { key, produtoId, name, modifiers, unitPrice: price, qty: 1 }]
+    })
+  }
+  function npChangeQty(key: string, delta: number) {
+    setNpCart(prev => prev.map(l => l.key === key ? { ...l, qty: l.qty + delta } : l).filter(l => l.qty > 0))
+  }
+  function npOpenDetail(p: NpProduto) {
+    if (!p.groups || p.groups.length === 0) { npAddToCart(p.id, p.name, p.sale_price); return }
+    setNpDetail(p); setNpDetailSel(p.groups.map(() => []))
+  }
+  function npToggleOpt(gi: number, oi: number) {
+    if (!npDetail) return
+    const g = npDetail.groups[gi]
+    setNpDetailSel(sel => sel.map((s, i) => {
+      if (i !== gi) return s
+      const active = s.includes(oi)
+      if (g.max_select === 1) return active ? [] : [oi]
+      if (active) return s.filter(x => x !== oi)
+      if (s.length < g.max_select) return [...s, oi]
+      return s
+    }))
+  }
+  const npDetailReqMet = npDetail ? npDetail.groups.every((g, gi) => !g.required || npDetailSel[gi].length >= g.min_select) : true
+  const npDetailPrice = npDetail ? npDetail.sale_price + npDetail.groups.reduce((s, g, gi) => s + npGroupContribution(g, npDetailSel[gi]), 0) : 0
+  function npConfirmDetail() {
+    if (!npDetail || !npDetailReqMet) return
+    const modifiers: { name: string; price: number }[] = []
+    npDetail.groups.forEach((g, gi) => npDetailSel[gi].forEach(oi => modifiers.push({ name: g.options[oi].name, price: g.options[oi].price })))
+    npAddToCart(npDetail.id, npDetail.name, npDetailPrice, modifiers)
+    setNpDetail(null)
+  }
+  const npTotal = npCart.reduce((s, l) => s + l.unitPrice * l.qty, 0)
+  async function npCriarPedido() {
+    if (!company || !selectedLive || npCart.length === 0) return
+    setNpSaving(true)
+    const deliveryType = npEndereco.trim() ? 'entrega' : 'retirada'
+    const { data: pedido } = await supabase.from('loja_pedidos').insert({
+      company_id: company.id, customer_id: null,
+      customer_name: selectedLive.name || selectedLive.phone, customer_phone: selectedLive.phone,
+      delivery_address: npEndereco.trim() || null, delivery_type: deliveryType, origin: 'crm_conversa', payment_method: npPay,
+      subtotal: npTotal, total: npTotal, notes: npObs.trim() || null, accepted_at: new Date().toISOString(),
+    }).select('id').single()
+    if (pedido) {
+      await supabase.from('loja_pedido_itens').insert(npCart.map(l => ({
+        pedido_id: pedido.id, produto_id: l.produtoId, product_name: l.name, unit_price: l.unitPrice, qty: l.qty,
+        selected_options: l.modifiers,
+      })))
+      fetch('/api/loja/registrar-pedido', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyId: company.id, phone: selectedLive.phone, name: selectedLive.name || selectedLive.phone,
+          address: npEndereco.trim() || null, total: npTotal, subtotal: npTotal, deliveryFee: 0,
+          paymentMethod: npPay, deliveryType, notes: npObs.trim() || null,
+          items: npCart.map(l => ({ produtoId: l.produtoId, name: l.name, qty: l.qty, unitPrice: l.unitPrice, modifiers: l.modifiers })),
+        }),
+      }).catch(() => {})
+    }
+    setNpSaving(false)
+    closeNovoPedido()
   }
 
   async function saveAutoReply() {
@@ -825,6 +926,36 @@ export default function MensagensPage() {
           .msg-qr-new input,.msg-qr-new textarea{border-radius:8px;border:1px solid #2f3b43;background:#2a3942;color:#e9edef;font-size:12.5px;font-family:inherit;padding:8px 10px;}
           .msg-qr-new textarea{min-height:60px;resize:vertical;}
           .msg-star-badge{position:absolute;top:-9px;left:6px;background:#233138;border:1px solid #2f3b43;border-radius:10px;font-size:11px;padding:1px 4px;line-height:1.3;}
+          .np-box{background:#233138;border-radius:14px;width:380px;max-width:92vw;max-height:82vh;display:flex;flex-direction:column;overflow:hidden;}
+          .np-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #2f3b43;color:#e9edef;font-size:14px;}
+          .np-close{background:none;border:none;color:#8696a0;font-size:16px;cursor:pointer;}
+          .np-body{overflow-y:auto;flex:1;}
+          .np-empty{padding:20px;text-align:center;color:#8696a0;font-size:12.5px;}
+          .np-products{display:flex;flex-direction:column;}
+          .np-prod{display:flex;align-items:center;justify-content:space-between;padding:11px 16px;border-bottom:1px solid #2f3b43;cursor:pointer;}
+          .np-prod:hover{background:#182229;}
+          .np-prod-name{font-size:13px;color:#e9edef;font-weight:600;}
+          .np-prod-price{font-size:12.5px;color:#00a884;font-weight:700;}
+          .np-cart{border-top:2px solid #2f3b43;padding:12px 16px;display:flex;flex-direction:column;gap:8px;}
+          .np-cart-line{display:flex;align-items:center;gap:8px;font-size:12.5px;color:#e9edef;}
+          .np-cart-line-txt{flex:1;min-width:0;}
+          .np-cart-line-mods{font-size:10.5px;color:#8696a0;}
+          .np-cart-line-qty{display:flex;align-items:center;gap:6px;background:#2a3942;border-radius:14px;padding:2px 8px;flex:none;}
+          .np-cart-line-qty button{background:none;border:none;color:#00a884;font-size:14px;cursor:pointer;width:18px;}
+          .np-cart-line-price{font-weight:700;flex:none;width:60px;text-align:right;}
+          .np-input{width:100%;padding:9px 11px;border-radius:9px;border:1px solid #2f3b43;background:#2a3942;color:#e9edef;font-size:12.5px;font-family:inherit;}
+          textarea.np-input{min-height:50px;resize:vertical;}
+          .np-pay-row{display:flex;gap:8px;}
+          .np-pay-btn{flex:1;padding:8px;border-radius:9px;border:1px solid #2f3b43;background:#2a3942;color:#cfd6da;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+          .np-pay-btn.on{background:#00a884;color:#fff;border-color:#00a884;}
+          .np-confirm-btn{width:100%;padding:11px;border-radius:9px;border:none;background:#00a884;color:#fff;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;margin-top:4px;}
+          .np-confirm-btn:disabled{opacity:.5;cursor:not-allowed;}
+          .np-detail-body{overflow-y:auto;flex:1;padding:14px 16px;}
+          .np-group{margin-bottom:16px;}
+          .np-group-title{font-size:12.5px;font-weight:700;color:#e9edef;margin-bottom:8px;}
+          .np-req{color:#e0645a;font-weight:600;}
+          .np-opt{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:12.5px;color:#cfd6da;cursor:pointer;}
+          .np-opt-price{margin-left:auto;color:#00a884;font-weight:700;}
           .msg-thread{display:flex;flex-direction:column;min-height:0;}
           @media(max-width:767px){.msg-thread{display:${selected ? 'flex' : 'none'};position:fixed;inset:0;z-index:10000;background:#0b141a;}}
           .msg-thead{padding:12px 16px;background:#202c33;border-bottom:1px solid #2f3b43;display:flex;align-items:center;gap:10px;flex:none;color:#e9edef;}
@@ -844,7 +975,8 @@ export default function MensagensPage() {
           .msg-bubble .t{font-size:10.5px;color:rgba(233,237,239,.6);margin-top:3px;text-align:right;display:flex;justify-content:flex-end;gap:4px;align-items:center;}
           .msg-media-img{display:block;max-width:100%;width:260px;height:auto;max-height:320px;object-fit:cover;border-radius:6px;margin-bottom:4px;cursor:pointer;}
           .msg-media-fail{font-size:12px;color:#8696a0;font-style:italic;}
-          .msg-bubble audio{display:block;max-width:220px;height:34px;}
+          .msg-audio-wrap{max-width:calc(84vw - 40px);overflow:hidden;}
+          .msg-bubble audio{display:block;width:220px;max-width:100%;height:34px;}
           .msg-bubble video{display:block;max-width:260px;max-height:320px;border-radius:6px;margin-bottom:4px;}
           .msg-sticker{display:block;width:120px;height:120px;object-fit:contain;margin-bottom:4px;}
           .msg-doc,.msg-loc,.msg-vcard{display:flex;align-items:center;gap:10px;padding:4px 2px;text-decoration:none;color:inherit;}
@@ -1033,6 +1165,9 @@ export default function MensagensPage() {
                             {isTyping ? <span className="msg-presence">digitando...</span> : isOnline ? <span className="msg-presence">online</span> : selectedLive?.notes ? <span style={{ color: '#C9951A' }}>📝 {selectedLive.notes}</span> : selectedLive?.phone}
                           </div>
                         </div>
+                        {company?.loja_digital_enabled && (
+                          <button className="msg-thead-search-btn" title="Novo pedido" onClick={openNovoPedido}>🧾</button>
+                        )}
                         <button className="msg-thead-search-btn" title="Buscar na conversa" onClick={() => setSearchOpen(true)}>🔍</button>
                       </>
                     )}
@@ -1062,7 +1197,7 @@ export default function MensagensPage() {
                                 {quoted && <div className="msg-reply-quote">{replySnippet(quoted)}</div>}
                                 {m.media_type === 'image' && (m.signedUrl ? <img className="msg-media-img" src={m.signedUrl} alt="" onClick={() => setLightbox(m.signedUrl!)} /> : <div className="msg-media-fail">📷 imagem indisponível</div>)}
                                 {m.media_type === 'video' && (m.signedUrl ? <video controls src={m.signedUrl} /> : <div className="msg-media-fail">🎥 vídeo indisponível</div>)}
-                                {m.media_type === 'audio' && (m.signedUrl ? <audio controls src={m.signedUrl} /> : <div className="msg-media-fail">🎤 áudio indisponível</div>)}
+                                {m.media_type === 'audio' && (m.signedUrl ? <div className="msg-audio-wrap"><audio controls src={m.signedUrl} /></div> : <div className="msg-media-fail">🎤 áudio indisponível</div>)}
                                 {m.media_type === 'sticker' && (m.signedUrl ? <img className="msg-sticker" src={m.signedUrl} alt="" /> : <div className="msg-media-fail">🏷️ figurinha indisponível</div>)}
                                 {m.media_type === 'document' && (m.signedUrl
                                   ? <a className="msg-doc" href={m.signedUrl} target="_blank" rel="noreferrer"><span className="msg-doc-ico">📄</span><span className="msg-doc-name">{m.body || 'Documento'}</span></a>
@@ -1234,6 +1369,75 @@ export default function MensagensPage() {
                 <button className="msg-notes-cancel" onClick={() => setNotesOpen(false)}>Cancelar</button>
                 <button className="msg-notes-save" onClick={() => { saveNotes(selectedLive.id, notesDraft); setNotesOpen(false) }}>Salvar</button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {npOpen && selectedLive && (
+          <div className="msg-lightbox" onClick={closeNovoPedido}>
+            <div className="np-box" onClick={e => e.stopPropagation()}>
+              {npDetail ? (
+                <>
+                  <div className="np-head"><b>{npDetail.name}</b><button className="np-close" onClick={() => setNpDetail(null)}>✕</button></div>
+                  <div className="np-detail-body">
+                    {npDetail.groups.map((g, gi) => (
+                      <div key={g.id} className="np-group">
+                        <div className="np-group-title">{g.name}{g.required && <span className="np-req"> · obrigatório</span>}</div>
+                        {g.options.map((o, oi) => (
+                          <label key={o.id} className="np-opt">
+                            <input type={g.max_select === 1 ? 'radio' : 'checkbox'} checked={npDetailSel[gi]?.includes(oi) || false} onChange={() => npToggleOpt(gi, oi)} />
+                            <span>{o.name}</span>
+                            {o.price > 0 && <span className="np-opt-price">+{fmtMoney(o.price)}</span>}
+                          </label>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                  <button className="np-confirm-btn" disabled={!npDetailReqMet} onClick={npConfirmDetail}>Adicionar — {fmtMoney(npDetailPrice)}</button>
+                </>
+              ) : (
+                <>
+                  <div className="np-head"><b>🧾 Novo pedido — {selectedLive.name || selectedLive.phone}</b><button className="np-close" onClick={closeNovoPedido}>✕</button></div>
+                  <div className="np-body">
+                    <div className="np-products">
+                      {npLoadingProdutos && <div className="np-empty">Carregando catálogo...</div>}
+                      {!npLoadingProdutos && npProdutos.length === 0 && <div className="np-empty">Nenhum produto ativo no catálogo.</div>}
+                      {npProdutos.map(p => (
+                        <div key={p.id} className="np-prod" onClick={() => npOpenDetail(p)}>
+                          <div className="np-prod-name">{p.name}</div>
+                          <div className="np-prod-price">{fmtMoney(p.sale_price)}</div>
+                        </div>
+                      ))}
+                    </div>
+                    {npCart.length > 0 && (
+                      <div className="np-cart">
+                        {npCart.map(l => (
+                          <div key={l.key} className="np-cart-line">
+                            <div className="np-cart-line-txt">
+                              <div>{l.name}</div>
+                              {l.modifiers.length > 0 && <div className="np-cart-line-mods">{l.modifiers.map(m => m.name).join(', ')}</div>}
+                            </div>
+                            <div className="np-cart-line-qty">
+                              <button onClick={() => npChangeQty(l.key, -1)}>−</button>
+                              <span>{l.qty}</span>
+                              <button onClick={() => npChangeQty(l.key, 1)}>+</button>
+                            </div>
+                            <div className="np-cart-line-price">{fmtMoney(l.unitPrice * l.qty)}</div>
+                          </div>
+                        ))}
+                        <input className="np-input" placeholder="Endereço de entrega (vazio = retirada)" value={npEndereco} onChange={e => setNpEndereco(e.target.value)} />
+                        <textarea className="np-input" placeholder="Observações" value={npObs} onChange={e => setNpObs(e.target.value)} />
+                        <div className="np-pay-row">
+                          {(['dinheiro', 'pix', 'cartao'] as const).map(p => (
+                            <button key={p} className={`np-pay-btn ${npPay === p ? 'on' : ''}`} onClick={() => setNpPay(p)}>{p === 'dinheiro' ? 'Dinheiro' : p === 'pix' ? 'Pix' : 'Cartão'}</button>
+                          ))}
+                        </div>
+                        <button className="np-confirm-btn" disabled={npSaving} onClick={npCriarPedido}>{npSaving ? 'Criando...' : `Criar pedido — ${fmtMoney(npTotal)}`}</button>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}

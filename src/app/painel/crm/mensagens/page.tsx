@@ -22,14 +22,28 @@ type Message = {
 }
 type QuickReply = { id: string; shortcut: string; body: string }
 
-type NpOpcao = { id: string; name: string; price: number; max_qty: number | null }
+type NpOpcao = { id: string; name: string; price: number; max_qty: number | null; photo_url?: string | null }
 type NpGrupo = { id: string; name: string; required: boolean; min_select: number; max_select: number; pricing_rule: 'soma' | 'maior_valor'; options: NpOpcao[] }
-type NpProduto = { id: string; name: string; sale_price: number; category_id: string | null; groups: NpGrupo[] }
+type NpProduto = {
+  id: string; name: string; description: string | null; photo_url: string | null; sale_price: number; category_id: string | null
+  promo_type: 'percent' | 'fixed' | null; promo_value: number | null; promo_starts_at: string | null; promo_ends_at: string | null
+  esgotado?: boolean; track_stock?: boolean; stock_qty?: number | null
+  groups: NpGrupo[]
+}
+type NpCategoria = { id: string; name: string; display_order: number }
 type NpCartLine = { key: string; produtoId: string; name: string; modifiers: { name: string; price: number }[]; unitPrice: number; qty: number }
 function npGroupContribution(g: NpGrupo, selectedIdx: number[]): number {
   const prices = selectedIdx.map(oi => g.options[oi].price)
   if (prices.length === 0) return 0
   return g.pricing_rule === 'maior_valor' ? Math.max(...prices) : prices.reduce((a, b) => a + b, 0)
+}
+function npIsSoldOut(p: NpProduto) { return !!p.esgotado || (!!p.track_stock && (p.stock_qty ?? 0) <= 0) }
+function npPromoPrice(p: NpProduto): number | null {
+  if (!p.promo_type || !p.promo_value) return null
+  const now = Date.now()
+  if (p.promo_starts_at && now < new Date(p.promo_starts_at).getTime()) return null
+  if (p.promo_ends_at && now > new Date(p.promo_ends_at).getTime()) return null
+  return p.promo_type === 'percent' ? p.sale_price * (1 - p.promo_value / 100) : Math.max(0, p.sale_price - p.promo_value)
 }
 
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏']
@@ -129,8 +143,12 @@ export default function MensagensPage() {
   const [savingAutoReply, setSavingAutoReply] = useState(false)
   const [npOpen, setNpOpen] = useState(false)
   const [npProdutos, setNpProdutos] = useState<NpProduto[]>([])
+  const [npCategorias, setNpCategorias] = useState<NpCategoria[]>([])
+  const [npSearch, setNpSearch] = useState('')
+  const [npFilterCat, setNpFilterCat] = useState('all')
   const [npLoadingProdutos, setNpLoadingProdutos] = useState(false)
   const [npCart, setNpCart] = useState<NpCartLine[]>([])
+  const [npCartOpen, setNpCartOpen] = useState(false)
   const [npDetail, setNpDetail] = useState<NpProduto | null>(null)
   const [npDetailSel, setNpDetailSel] = useState<number[][]>([])
   const [npEndereco, setNpEndereco] = useState('')
@@ -252,13 +270,17 @@ export default function MensagensPage() {
     setNpOpen(true)
     if (npProdutos.length === 0) {
       setNpLoadingProdutos(true)
-      const { data } = await supabase.from('loja_produtos').select('id, name, sale_price, category_id, groups:loja_opcoes_grupo(*, options:loja_opcoes(*))').eq('company_id', company.id).eq('active', true).order('display_order')
-      setNpProdutos((data || []) as any)
+      const [{ data: cats }, { data: prods }] = await Promise.all([
+        supabase.from('loja_categorias').select('id, name, display_order').eq('company_id', company.id).order('display_order'),
+        supabase.from('loja_produtos').select('*, groups:loja_opcoes_grupo(*, options:loja_opcoes(*))').eq('company_id', company.id).eq('active', true).order('display_order'),
+      ])
+      setNpCategorias((cats || []) as any)
+      setNpProdutos((prods || []) as any)
       setNpLoadingProdutos(false)
     }
   }
   function closeNovoPedido() {
-    setNpOpen(false); setNpCart([]); setNpDetail(null); setNpEndereco(''); setNpObs(''); setNpPay('dinheiro')
+    setNpOpen(false); setNpCart([]); setNpDetail(null); setNpEndereco(''); setNpObs(''); setNpPay('dinheiro'); setNpSearch(''); setNpFilterCat('all'); setNpCartOpen(false)
   }
   function npAddToCart(produtoId: string, name: string, price: number, modifiers: { name: string; price: number }[] = []) {
     const key = produtoId + '|' + modifiers.map(m => m.name).sort().join('+')
@@ -926,17 +948,36 @@ export default function MensagensPage() {
           .msg-qr-new input,.msg-qr-new textarea{border-radius:8px;border:1px solid #2f3b43;background:#2a3942;color:#e9edef;font-size:12.5px;font-family:inherit;padding:8px 10px;}
           .msg-qr-new textarea{min-height:60px;resize:vertical;}
           .msg-star-badge{position:absolute;top:-9px;left:6px;background:#233138;border:1px solid #2f3b43;border-radius:10px;font-size:11px;padding:1px 4px;line-height:1.3;}
-          .np-box{background:#233138;border-radius:14px;width:380px;max-width:92vw;max-height:82vh;display:flex;flex-direction:column;overflow:hidden;}
-          .np-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #2f3b43;color:#e9edef;font-size:14px;}
-          .np-close{background:none;border:none;color:#8696a0;font-size:16px;cursor:pointer;}
-          .np-body{overflow-y:auto;flex:1;}
+          .np-box{background:#233138;border-radius:14px;width:440px;max-width:94vw;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;position:relative;}
+          @media(max-width:600px){.np-box{width:100vw;max-width:100vw;height:100vh;max-height:100vh;border-radius:0;}}
+          .np-head{display:flex;align-items:center;gap:8px;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #2f3b43;color:#e9edef;font-size:14px;flex:none;}
+          .np-head b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+          .np-close,.np-back{background:none;border:none;color:#8696a0;font-size:16px;cursor:pointer;flex:none;}
+          .np-body{overflow-y:auto;flex:1;min-height:0;}
           .np-empty{padding:20px;text-align:center;color:#8696a0;font-size:12.5px;}
-          .np-products{display:flex;flex-direction:column;}
-          .np-prod{display:flex;align-items:center;justify-content:space-between;padding:11px 16px;border-bottom:1px solid #2f3b43;cursor:pointer;}
+          .np-search{padding:10px 16px;flex:none;}
+          .np-search input{width:100%;padding:9px 14px;border-radius:20px;border:none;background:#2a3942;color:#e9edef;font-size:13px;font-family:inherit;}
+          .np-search input::placeholder{color:#8696a0;}
+          .np-catbar{display:flex;gap:8px;padding:0 16px 10px;overflow-x:auto;flex:none;scrollbar-width:none;}
+          .np-catbar::-webkit-scrollbar{display:none;}
+          .np-catchip{flex:none;padding:6px 14px;border-radius:16px;border:none;background:#2a3942;color:#cfd6da;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;}
+          .np-catchip.on{background:#00a884;color:#fff;}
+          .np-sec{padding:12px 16px 6px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#8696a0;}
+          .np-products{display:flex;flex-direction:column;padding-bottom:8px;}
+          .np-prod{display:flex;align-items:center;gap:10px;padding:9px 16px;cursor:pointer;}
           .np-prod:hover{background:#182229;}
+          .np-prod.soldout{opacity:.5;cursor:default;}
+          .np-prod-photo{width:46px;height:46px;border-radius:9px;overflow:hidden;flex:none;background:#2a3942;display:flex;align-items:center;justify-content:center;font-size:20px;}
+          .np-prod-photo img{width:100%;height:100%;object-fit:cover;}
+          .np-prod-mid{flex:1;min-width:0;}
           .np-prod-name{font-size:13px;color:#e9edef;font-weight:600;}
-          .np-prod-price{font-size:12.5px;color:#00a884;font-weight:700;}
-          .np-cart{border-top:2px solid #2f3b43;padding:12px 16px;display:flex;flex-direction:column;gap:8px;}
+          .np-prod-desc{font-size:11px;color:#8696a0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px;}
+          .np-prod-price{font-size:12.5px;color:#00a884;font-weight:700;margin-top:2px;}
+          .np-prod-price .was{font-size:10.5px;color:#8696a0;text-decoration:line-through;margin-left:5px;font-weight:600;}
+          .np-addbtn{flex:none;width:28px;height:28px;border-radius:8px;border:1.5px solid #00a884;background:none;color:#00a884;font-size:15px;font-weight:800;cursor:pointer;}
+          .np-chev{flex:none;width:24px;height:24px;border-radius:50%;border:none;background:#2a3942;color:#8696a0;font-size:13px;font-weight:800;cursor:pointer;}
+          .np-cartbar{flex:none;margin:0 12px 12px;padding:12px 16px;border-radius:12px;background:#00a884;color:#fff;display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:700;cursor:pointer;}
+          .np-cart{padding:12px 16px;display:flex;flex-direction:column;gap:8px;}
           .np-cart-line{display:flex;align-items:center;gap:8px;font-size:12.5px;color:#e9edef;}
           .np-cart-line-txt{flex:1;min-width:0;}
           .np-cart-line-mods{font-size:10.5px;color:#8696a0;}
@@ -948,9 +989,14 @@ export default function MensagensPage() {
           .np-pay-row{display:flex;gap:8px;}
           .np-pay-btn{flex:1;padding:8px;border-radius:9px;border:1px solid #2f3b43;background:#2a3942;color:#cfd6da;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
           .np-pay-btn.on{background:#00a884;color:#fff;border-color:#00a884;}
-          .np-confirm-btn{width:100%;padding:11px;border-radius:9px;border:none;background:#00a884;color:#fff;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;margin-top:4px;}
+          .np-confirm-btn{width:100%;padding:11px;border-radius:9px;border:none;background:#00a884;color:#fff;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;margin-top:4px;flex:none;}
           .np-confirm-btn:disabled{opacity:.5;cursor:not-allowed;}
-          .np-detail-body{overflow-y:auto;flex:1;padding:14px 16px;}
+          .np-hero{height:170px;flex:none;background:linear-gradient(135deg,#2a3942,#182229);display:flex;align-items:center;justify-content:center;font-size:44px;position:relative;overflow:hidden;}
+          .np-hero img{width:100%;height:100%;object-fit:cover;}
+          .np-hero-back{position:absolute;top:12px;left:12px;width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.45);border:none;color:#fff;font-size:18px;font-weight:800;cursor:pointer;}
+          .np-detail-body{overflow-y:auto;flex:1;min-height:0;padding:14px 16px;}
+          .np-detail-name{font-size:16px;font-weight:800;color:#e9edef;margin-bottom:4px;}
+          .np-detail-desc{font-size:12px;color:#8696a0;line-height:1.5;margin-bottom:12px;}
           .np-group{margin-bottom:16px;}
           .np-group-title{font-size:12.5px;font-weight:700;color:#e9edef;margin-bottom:8px;}
           .np-req{color:#e0645a;font-weight:600;}
@@ -1373,43 +1419,44 @@ export default function MensagensPage() {
           </div>
         )}
 
-        {npOpen && selectedLive && (
-          <div className="msg-lightbox" onClick={closeNovoPedido}>
-            <div className="np-box" onClick={e => e.stopPropagation()}>
-              {npDetail ? (
-                <>
-                  <div className="np-head"><b>{npDetail.name}</b><button className="np-close" onClick={() => setNpDetail(null)}>✕</button></div>
-                  <div className="np-detail-body">
-                    {npDetail.groups.map((g, gi) => (
-                      <div key={g.id} className="np-group">
-                        <div className="np-group-title">{g.name}{g.required && <span className="np-req"> · obrigatório</span>}</div>
-                        {g.options.map((o, oi) => (
-                          <label key={o.id} className="np-opt">
-                            <input type={g.max_select === 1 ? 'radio' : 'checkbox'} checked={npDetailSel[gi]?.includes(oi) || false} onChange={() => npToggleOpt(gi, oi)} />
-                            <span>{o.name}</span>
-                            {o.price > 0 && <span className="np-opt-price">+{fmtMoney(o.price)}</span>}
-                          </label>
-                        ))}
-                      </div>
-                    ))}
-                  </div>
-                  <button className="np-confirm-btn" disabled={!npDetailReqMet} onClick={npConfirmDetail}>Adicionar — {fmtMoney(npDetailPrice)}</button>
-                </>
-              ) : (
-                <>
-                  <div className="np-head"><b>🧾 Novo pedido — {selectedLive.name || selectedLive.phone}</b><button className="np-close" onClick={closeNovoPedido}>✕</button></div>
-                  <div className="np-body">
-                    <div className="np-products">
-                      {npLoadingProdutos && <div className="np-empty">Carregando catálogo...</div>}
-                      {!npLoadingProdutos && npProdutos.length === 0 && <div className="np-empty">Nenhum produto ativo no catálogo.</div>}
-                      {npProdutos.map(p => (
-                        <div key={p.id} className="np-prod" onClick={() => npOpenDetail(p)}>
-                          <div className="np-prod-name">{p.name}</div>
-                          <div className="np-prod-price">{fmtMoney(p.sale_price)}</div>
+        {npOpen && selectedLive && (() => {
+          const term = npSearch.trim().toLowerCase()
+          const visible = npProdutos.filter(p => !term || p.name.toLowerCase().includes(term) || (p.description || '').toLowerCase().includes(term))
+          return (
+            <div className="msg-lightbox" onClick={closeNovoPedido}>
+              <div className="np-box" onClick={e => e.stopPropagation()}>
+                {npDetail ? (
+                  <>
+                    <div className="np-hero">
+                      {npDetail.photo_url ? <img src={npDetail.photo_url} alt="" /> : <span>🍽️</span>}
+                      <button className="np-hero-back" onClick={() => setNpDetail(null)}>‹</button>
+                    </div>
+                    <div className="np-detail-body">
+                      <div className="np-detail-name">{npDetail.name}</div>
+                      {npDetail.description && <div className="np-detail-desc">{npDetail.description}</div>}
+                      {npDetail.groups.map((g, gi) => (
+                        <div key={g.id} className="np-group">
+                          <div className="np-group-title">{g.name}{g.required && <span className="np-req"> · obrigatório</span>}</div>
+                          {g.options.map((o, oi) => (
+                            <label key={o.id} className="np-opt">
+                              <input type={g.max_select === 1 ? 'radio' : 'checkbox'} checked={npDetailSel[gi]?.includes(oi) || false} onChange={() => npToggleOpt(gi, oi)} />
+                              <span>{o.name}</span>
+                              {o.price > 0 && <span className="np-opt-price">+{fmtMoney(o.price)}</span>}
+                            </label>
+                          ))}
                         </div>
                       ))}
                     </div>
-                    {npCart.length > 0 && (
+                    <button className="np-confirm-btn" disabled={!npDetailReqMet} onClick={npConfirmDetail}>Adicionar — {fmtMoney(npDetailPrice)}</button>
+                  </>
+                ) : npCartOpen ? (
+                  <>
+                    <div className="np-head">
+                      <button className="np-back" onClick={() => setNpCartOpen(false)}>‹</button>
+                      <b>Carrinho — {selectedLive.name || selectedLive.phone}</b>
+                      <button className="np-close" onClick={closeNovoPedido}>✕</button>
+                    </div>
+                    <div className="np-body">
                       <div className="np-cart">
                         {npCart.map(l => (
                           <div key={l.key} className="np-cart-line">
@@ -1432,15 +1479,90 @@ export default function MensagensPage() {
                             <button key={p} className={`np-pay-btn ${npPay === p ? 'on' : ''}`} onClick={() => setNpPay(p)}>{p === 'dinheiro' ? 'Dinheiro' : p === 'pix' ? 'Pix' : 'Cartão'}</button>
                           ))}
                         </div>
-                        <button className="np-confirm-btn" disabled={npSaving} onClick={npCriarPedido}>{npSaving ? 'Criando...' : `Criar pedido — ${fmtMoney(npTotal)}`}</button>
+                        <button className="np-confirm-btn" disabled={npSaving || npCart.length === 0} onClick={npCriarPedido}>{npSaving ? 'Criando...' : `Criar pedido — ${fmtMoney(npTotal)}`}</button>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="np-head"><b>🧾 Novo pedido — {selectedLive.name || selectedLive.phone}</b><button className="np-close" onClick={closeNovoPedido}>✕</button></div>
+                    <div className="np-search"><input placeholder="Buscar produto..." value={npSearch} onChange={e => setNpSearch(e.target.value)} /></div>
+                    <div className="np-catbar">
+                      <button className={`np-catchip ${npFilterCat === 'all' ? 'on' : ''}`} onClick={() => setNpFilterCat('all')}>Tudo</button>
+                      {npCategorias.map(c => (
+                        <button key={c.id} className={`np-catchip ${npFilterCat === c.id ? 'on' : ''}`} onClick={() => setNpFilterCat(c.id)}>{c.name}</button>
+                      ))}
+                    </div>
+                    <div className="np-body">
+                      <div className="np-products">
+                        {npLoadingProdutos && <div className="np-empty">Carregando catálogo...</div>}
+                        {!npLoadingProdutos && npProdutos.length === 0 && <div className="np-empty">Nenhum produto ativo no catálogo.</div>}
+                        {!npLoadingProdutos && term && visible.length === 0 && <div className="np-empty">Nenhum produto encontrado.</div>}
+                        {npCategorias.filter(c => npFilterCat === 'all' || npFilterCat === c.id).map(cat => {
+                          const items = visible.filter(p => p.category_id === cat.id)
+                          if (items.length === 0) return null
+                          return (
+                            <div key={cat.id}>
+                              <div className="np-sec">{cat.name}</div>
+                              {items.map(p => {
+                                const promo = npPromoPrice(p)
+                                const hasOpts = p.groups && p.groups.length > 0
+                                const soldOut = npIsSoldOut(p)
+                                return (
+                                  <div key={p.id} className={`np-prod ${soldOut ? 'soldout' : ''}`} onClick={() => { if (soldOut) return; hasOpts ? npOpenDetail(p) : npAddToCart(p.id, p.name, promo ?? p.sale_price) }}>
+                                    <div className="np-prod-photo">{p.photo_url ? <img src={p.photo_url} alt="" /> : '🍽️'}</div>
+                                    <div className="np-prod-mid">
+                                      <div className="np-prod-name">{p.name}</div>
+                                      {p.description && <div className="np-prod-desc">{p.description}</div>}
+                                      {soldOut
+                                        ? <div className="np-prod-price" style={{ color: '#e0645a' }}>Esgotado</div>
+                                        : <div className="np-prod-price">{fmtMoney(promo ?? p.sale_price)}{promo != null && <span className="was">{fmtMoney(p.sale_price)}</span>}</div>}
+                                    </div>
+                                    {!soldOut && (hasOpts ? <button className="np-chev">›</button> : <button className="np-addbtn">+</button>)}
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          )
+                        })}
+                        {/* Produtos sem categoria cadastrada — ainda tem que aparecer */}
+                        {(npFilterCat === 'all') && visible.filter(p => !p.category_id).length > 0 && (
+                          <div>
+                            <div className="np-sec">Outros</div>
+                            {visible.filter(p => !p.category_id).map(p => {
+                              const promo = npPromoPrice(p)
+                              const hasOpts = p.groups && p.groups.length > 0
+                              const soldOut = npIsSoldOut(p)
+                              return (
+                                <div key={p.id} className={`np-prod ${soldOut ? 'soldout' : ''}`} onClick={() => { if (soldOut) return; hasOpts ? npOpenDetail(p) : npAddToCart(p.id, p.name, promo ?? p.sale_price) }}>
+                                  <div className="np-prod-photo">{p.photo_url ? <img src={p.photo_url} alt="" /> : '🍽️'}</div>
+                                  <div className="np-prod-mid">
+                                    <div className="np-prod-name">{p.name}</div>
+                                    {p.description && <div className="np-prod-desc">{p.description}</div>}
+                                    {soldOut
+                                      ? <div className="np-prod-price" style={{ color: '#e0645a' }}>Esgotado</div>
+                                      : <div className="np-prod-price">{fmtMoney(promo ?? p.sale_price)}{promo != null && <span className="was">{fmtMoney(p.sale_price)}</span>}</div>}
+                                  </div>
+                                  {!soldOut && (hasOpts ? <button className="np-chev">›</button> : <button className="np-addbtn">+</button>)}
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {npCart.length > 0 && (
+                      <div className="np-cartbar" onClick={() => setNpCartOpen(true)}>
+                        <span>{npCart.reduce((s, l) => s + l.qty, 0)} {npCart.reduce((s, l) => s + l.qty, 0) === 1 ? 'item' : 'itens'} · Ver carrinho</span>
+                        <b>{fmtMoney(npTotal)}</b>
                       </div>
                     )}
-                  </div>
-                </>
-              )}
+                  </>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          )
+        })()}
 
         {autoReplyOpen && (
           <div className="msg-lightbox" onClick={() => setAutoReplyOpen(false)}>

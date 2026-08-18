@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
   try {
     const raw = await req.text()
     console.log('RAW BODY:', raw)
-    const { title, body, target, userId } = JSON.parse(raw)
+    const { title, body, target, userId, url } = JSON.parse(raw)
     if (!title || !body) return NextResponse.json({ error: 'title e body obrigatórios' }, { status: 400 })
     if (target === 'external_user_id' && !userId) return NextResponse.json({ error: 'userId obrigatório para target=external_user_id' }, { status: 400 })
 
@@ -24,6 +24,9 @@ export async function POST(req: NextRequest) {
       contents: { en: body, pt: body },
       chrome_web_icon: '/icon-192.png',
     }
+    // Sem isso, clicar na notificação sempre abre a home — o OneSignal só
+    // manda pra uma página específica se a gente disser qual.
+    if (url) payload.url = url
 
     if (target === 'external_user_id') {
       payload.include_external_user_ids = [userId]

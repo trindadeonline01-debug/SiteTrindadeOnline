@@ -22,7 +22,7 @@ function notifyCustomer(customerId: string | null, companyName: string, status: 
   if (!customerId || !msg) return
   fetch('/api/push/send', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title: companyName, body: msg, target: 'external_user_id', userId: customerId }),
+    body: JSON.stringify({ title: companyName, body: msg, target: 'external_user_id', userId: customerId, url: `${window.location.origin}/perfil` }),
   }).catch(() => {})
 }
 

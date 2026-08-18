@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { compressImage } from '@/lib/compressImage'
 import EmpresaShell from '@/components/EmpresaShell'
@@ -24,9 +24,36 @@ function fmtTime(iso: string) {
 }
 
 function tickIcon(status?: string | null) {
-  if (status === 'read') return <span style={{ color: '#4FA8E8' }}>✓✓</span>
-  if (status === 'delivered') return <span style={{ color: '#A79E8B' }}>✓✓</span>
-  return <span style={{ color: '#A79E8B' }}>✓</span>
+  if (status === 'read') return <span style={{ color: '#53bdeb' }}>✓✓</span>
+  if (status === 'delivered') return <span style={{ color: 'rgba(233,237,239,.6)' }}>✓✓</span>
+  return <span style={{ color: 'rgba(233,237,239,.6)' }}>✓</span>
+}
+
+function dateSepLabel(iso: string) {
+  const d = new Date(iso)
+  const today = new Date()
+  const yest = new Date(today); yest.setDate(today.getDate() - 1)
+  const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString()
+  if (sameDay(d, today)) return 'Hoje'
+  if (sameDay(d, yest)) return 'Ontem'
+  const diffDays = Math.floor((today.getTime() - d.getTime()) / 86400000)
+  if (diffDays >= 0 && diffDays < 7) {
+    const w = d.toLocaleDateString('pt-BR', { weekday: 'long' })
+    return w.charAt(0).toUpperCase() + w.slice(1)
+  }
+  return d.toLocaleDateString('pt-BR')
+}
+
+function extractFirstUrl(text: string): string | null {
+  const m = text.match(/https?:\/\/[^\s<]+/i)
+  return m ? m[0].replace(/[).,;:!?]+$/, '') : null
+}
+
+function linkifyText(text: string) {
+  const parts = text.split(/(https?:\/\/[^\s<]+)/gi)
+  return parts.map((part, i) => /^https?:\/\//i.test(part)
+    ? <a key={i} href={part} target="_blank" rel="noreferrer">{part}</a>
+    : <span key={i}>{part}</span>)
 }
 
 function highlightMatch(text: string, term: string) {
@@ -75,6 +102,8 @@ export default function MensagensPage() {
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
   const [reactionPickerFor, setReactionPickerFor] = useState<string | null>(null)
   const [contactPicker, setContactPicker] = useState<{ mode: 'forward' | 'shareContact'; forMessage?: Message } | null>(null)
+  const [linkPreviews, setLinkPreviews] = useState<Record<string, { title: string | null; image: string | null; siteName: string | null } | null>>({})
+  const linkPreviewFetching = useRef<Set<string>>(new Set())
 
   const companyRef = useRef<Company | null>(null)
   const selectedRef = useRef<Contact | null>(null)
@@ -176,6 +205,21 @@ export default function MensagensPage() {
   useEffect(() => {
     if (msgBodyRef.current) msgBodyRef.current.scrollTop = msgBodyRef.current.scrollHeight
   }, [messages])
+
+  // Prévia de link (imagem/título/site) estilo WhatsApp pra mensagens de
+  // texto com URL — busca uma vez por URL e guarda em cache local.
+  useEffect(() => {
+    for (const m of messages) {
+      if (m.deleted_at || m.media_type || !m.body) continue
+      const url = extractFirstUrl(m.body)
+      if (!url || linkPreviewFetching.current.has(url) || url in linkPreviews) continue
+      linkPreviewFetching.current.add(url)
+      fetch(`/api/crm/link-preview?url=${encodeURIComponent(url)}`)
+        .then(r => r.json())
+        .then(data => setLinkPreviews(prev => ({ ...prev, [url]: (data?.title || data?.image) ? data : null })))
+        .catch(() => setLinkPreviews(prev => ({ ...prev, [url]: null })))
+    }
+  }, [messages, linkPreviews])
 
   // Realtime: mensagem nova (recebida, ou mandada pelo celular fora do CRM),
   // status de entrega/leitura e presença (digitando/online) chegam na hora
@@ -576,67 +620,75 @@ export default function MensagensPage() {
           .msg-archived-toggle{width:100%;padding:12px 14px;background:none;border:none;border-top:1px solid #F0EDE8;color:#8A6410;font-weight:700;font-size:12px;cursor:pointer;text-align:left;font-family:inherit;}
           .msg-thread{display:flex;flex-direction:column;min-height:0;}
           @media(max-width:767px){.msg-thread{display:${selected ? 'flex' : 'none'};}}
-          .msg-thead{padding:12px 16px;border-bottom:1px solid #EDE8E0;display:flex;align-items:center;gap:10px;flex:none;}
-          .msg-back{display:none;background:none;border:none;font-size:18px;cursor:pointer;color:#8A6410;}
+          .msg-thead{padding:12px 16px;background:#202c33;border-bottom:1px solid #2f3b43;display:flex;align-items:center;gap:10px;flex:none;color:#e9edef;}
+          .msg-back{display:none;background:none;border:none;font-size:18px;cursor:pointer;color:#aebac1;}
           @media(max-width:767px){.msg-back{display:block;}}
-          .msg-body{flex:1;min-height:0;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:8px;background:#F7F5F0;}
+          .msg-body{flex:1;min-height:0;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:8px;background-color:#0b141a;background-image:radial-gradient(rgba(255,255,255,.035) 1px,transparent 1px),radial-gradient(rgba(255,255,255,.02) 1px,transparent 1px);background-size:26px 26px,26px 26px;background-position:0 0,13px 13px;}
+          .msg-date-sep{align-self:center;background:#182229;color:#8696a0;font-size:11px;font-weight:600;padding:5px 12px;border-radius:8px;margin:6px 0;}
           .msg-bubble-row{display:flex;position:relative;}
           .msg-bubble-row.out{justify-content:flex-end;}
-          .msg-bubble{position:relative;max-width:76%;padding:9px 13px;border-radius:14px;font-size:13px;line-height:1.45;}
-          .msg-bubble-row.in .msg-bubble{background:#fff;border:1px solid #EDE8E0;border-bottom-left-radius:4px;}
-          .msg-bubble-row.out .msg-bubble{background:#FBF1DC;border:1px solid #F0E2BC;border-bottom-right-radius:4px;}
-          .msg-bubble .t{font-size:10px;color:#A79E8B;margin-top:5px;text-align:right;display:flex;justify-content:flex-end;gap:4px;align-items:center;}
-          .msg-media-img{display:block;max-width:100%;width:260px;height:auto;max-height:320px;object-fit:cover;border-radius:8px;margin-bottom:4px;cursor:pointer;}
-          .msg-media-fail{font-size:12px;color:#A79E8B;font-style:italic;}
+          .msg-bubble{position:relative;max-width:76%;padding:6px 9px 8px;border-radius:8px;font-size:13.5px;line-height:1.45;box-shadow:0 1px 1px rgba(0,0,0,.3);color:#e9edef;}
+          .msg-bubble-row.in .msg-bubble{background:#202c33;border-bottom-left-radius:2px;}
+          .msg-bubble-row.out .msg-bubble{background:#005c4b;border-bottom-right-radius:2px;}
+          .msg-bubble a{color:#53bdeb;text-decoration:underline;}
+          .msg-bubble .t{font-size:10.5px;color:rgba(233,237,239,.6);margin-top:3px;text-align:right;display:flex;justify-content:flex-end;gap:4px;align-items:center;}
+          .msg-media-img{display:block;max-width:100%;width:260px;height:auto;max-height:320px;object-fit:cover;border-radius:6px;margin-bottom:4px;cursor:pointer;}
+          .msg-media-fail{font-size:12px;color:#8696a0;font-style:italic;}
           .msg-bubble audio{display:block;max-width:220px;height:34px;}
-          .msg-bubble video{display:block;max-width:260px;max-height:320px;border-radius:8px;margin-bottom:4px;}
+          .msg-bubble video{display:block;max-width:260px;max-height:320px;border-radius:6px;margin-bottom:4px;}
           .msg-sticker{display:block;width:120px;height:120px;object-fit:contain;margin-bottom:4px;}
           .msg-doc,.msg-loc,.msg-vcard{display:flex;align-items:center;gap:10px;padding:4px 2px;text-decoration:none;color:inherit;}
           .msg-doc-ico,.msg-loc-ico,.msg-vcard-ico{font-size:22px;flex:none;}
           .msg-doc-name{font-size:12.5px;font-weight:600;word-break:break-all;}
-          .msg-loc a,.msg-vcard-name{color:#8A6410;font-weight:700;font-size:12.5px;}
-          .msg-reply-quote{background:rgba(0,0,0,.05);border-left:3px solid #C9951A;border-radius:6px;padding:5px 8px;margin-bottom:5px;font-size:11.5px;color:#6E6656;max-height:36px;overflow:hidden;}
+          .msg-loc a,.msg-vcard-name{color:#e9edef;font-weight:700;font-size:12.5px;text-decoration:none;}
+          .msg-reply-quote{background:rgba(255,255,255,.08);border-left:3px solid #C9951A;border-radius:6px;padding:5px 8px;margin-bottom:5px;font-size:11.5px;color:#c8ccce;max-height:36px;overflow:hidden;}
+          .msg-link-preview{display:block;background:rgba(0,0,0,.18);border-radius:8px;overflow:hidden;margin-top:2px;margin-bottom:2px;text-decoration:none;color:inherit;}
+          .msg-link-preview-img{display:block;width:100%;max-height:180px;object-fit:cover;background:#0b141a;}
+          .msg-link-preview-body{padding:7px 9px;}
+          .msg-link-preview-title{font-size:12.5px;font-weight:700;color:#e9edef;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+          .msg-link-preview-site{font-size:10.5px;color:#8696a0;margin-top:4px;display:flex;align-items:center;gap:4px;}
           .msg-bubble-wrap{display:flex;align-items:center;gap:2px;max-width:76%;}
           .msg-bubble-wrap .msg-bubble{max-width:100%;}
           .msg-bubble-actions{display:flex;gap:0;flex:none;}
-          .msg-reply-btn{background:none;border:none;font-size:13px;color:#A79E8B;cursor:pointer;opacity:0;transition:opacity .15s;padding:4px;flex:none;}
+          .msg-reply-btn{background:none;border:none;font-size:13px;color:#8696a0;cursor:pointer;opacity:0;transition:opacity .15s;padding:4px;flex:none;}
           .msg-bubble-row:hover .msg-reply-btn{opacity:1;}
-          .msg-reaction-badge{position:absolute;bottom:-9px;right:6px;background:#fff;border:1px solid #EDE8E0;border-radius:10px;font-size:12px;padding:1px 5px;line-height:1.3;box-shadow:0 1px 2px rgba(0,0,0,.08);}
-          .msg-reaction-picker{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);display:flex;gap:2px;background:#fff;border:1px solid #EDE8E0;border-radius:20px;padding:4px 6px;box-shadow:0 4px 12px rgba(0,0,0,.12);margin-bottom:6px;z-index:10;}
+          .msg-reaction-badge{position:absolute;bottom:-9px;right:6px;background:#233138;border:1px solid #2f3b43;border-radius:10px;font-size:12px;padding:1px 5px;line-height:1.3;box-shadow:0 1px 2px rgba(0,0,0,.3);}
+          .msg-reaction-picker{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);display:flex;gap:2px;background:#233138;border:1px solid #2f3b43;border-radius:20px;padding:4px 6px;box-shadow:0 4px 12px rgba(0,0,0,.35);margin-bottom:6px;z-index:10;}
           .msg-reaction-picker button{background:none;border:none;font-size:17px;cursor:pointer;padding:3px;border-radius:50%;}
-          .msg-reaction-picker button.sel{background:#FBF1DC;}
-          .msg-attach-menu{position:absolute;bottom:100%;left:0;margin-bottom:8px;background:#fff;border:1px solid #EDE8E0;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.14);padding:6px;display:flex;flex-direction:column;gap:2px;min-width:150px;z-index:10;}
-          .msg-attach-menu button{background:none;border:none;text-align:left;padding:9px 10px;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;}
-          .msg-attach-menu button:hover{background:#F7F5F0;}
-          .msg-emoji-picker{position:absolute;bottom:100%;left:0;margin-bottom:8px;background:#fff;border:1px solid #EDE8E0;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.14);padding:8px;display:grid;grid-template-columns:repeat(8,1fr);gap:2px;width:280px;max-height:220px;overflow-y:auto;z-index:10;}
+          .msg-reaction-picker button.sel{background:#005c4b;}
+          .msg-attach-menu{position:absolute;bottom:100%;left:0;margin-bottom:8px;background:#233138;border:1px solid #2f3b43;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.35);padding:6px;display:flex;flex-direction:column;gap:2px;min-width:150px;z-index:10;}
+          .msg-attach-menu button{background:none;border:none;text-align:left;padding:9px 10px;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;color:#e9edef;}
+          .msg-attach-menu button:hover{background:#182229;}
+          .msg-emoji-picker{position:absolute;bottom:100%;left:0;margin-bottom:8px;background:#233138;border:1px solid #2f3b43;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.35);padding:8px;display:grid;grid-template-columns:repeat(8,1fr);gap:2px;width:280px;max-height:220px;overflow-y:auto;z-index:10;}
           .msg-emoji-picker button{background:none;border:none;font-size:18px;cursor:pointer;padding:4px;border-radius:6px;}
-          .msg-emoji-picker button:hover{background:#F7F5F0;}
+          .msg-emoji-picker button:hover{background:#182229;}
           .msg-picker{background:#fff;border-radius:14px;width:320px;max-width:92vw;max-height:70vh;display:flex;flex-direction:column;overflow:hidden;}
           .msg-picker-title{padding:16px;font-weight:800;font-size:14px;border-bottom:1px solid #EDE8E0;}
           .msg-picker-list{overflow-y:auto;flex:1;}
           .msg-picker-item{display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;font-size:13px;}
           .msg-picker-item:hover{background:#F7F5F0;}
           .msg-picker-cancel{padding:14px;border:none;border-top:1px solid #EDE8E0;background:none;font-weight:700;font-size:13px;color:#C43D3D;cursor:pointer;font-family:inherit;}
-          .msg-reply-bar{display:flex;align-items:center;gap:10px;padding:8px 14px;background:#F7F5F0;border-top:1px solid #EDE8E0;font-size:12px;}
-          .msg-reply-bar-txt{flex:1;min-width:0;color:#6E6656;border-left:3px solid #C9951A;padding-left:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-          .msg-reply-bar button{background:none;border:none;font-size:15px;cursor:pointer;color:#A79E8B;flex:none;}
-          .msg-presence{font-size:11px;color:#4FA8E8;font-weight:600;}
-          .msg-thead-search-btn{background:none;border:none;font-size:16px;cursor:pointer;padding:6px;flex:none;color:#8A6410;}
-          .msg-search-input{flex:1;padding:9px 14px;border-radius:20px;border:1px solid #EDE8E0;background:#F7F5F0;font-size:13px;font-family:inherit;}
-          .msg-search-hit{background:#FBEEC5;border-radius:3px;padding:0 1px;}
-          .msg-deleted{font-size:12.5px;color:#A79E8B;font-style:italic;}
-          .msg-edited-tag{font-size:9.5px;color:#A79E8B;}
-          .msg-online-dot{width:8px;height:8px;border-radius:50%;background:#3FBF6F;border:2px solid #fff;position:absolute;margin-left:24px;margin-top:22px;}
+          .msg-reply-bar{display:flex;align-items:center;gap:10px;padding:8px 14px;background:#202c33;border-top:1px solid #2f3b43;font-size:12px;}
+          .msg-reply-bar-txt{flex:1;min-width:0;color:#c8ccce;border-left:3px solid #C9951A;padding-left:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+          .msg-reply-bar button{background:none;border:none;font-size:15px;cursor:pointer;color:#8696a0;flex:none;}
+          .msg-presence{font-size:11px;color:#53bdeb;font-weight:600;}
+          .msg-thead-search-btn{background:none;border:none;font-size:16px;cursor:pointer;padding:6px;flex:none;color:#aebac1;}
+          .msg-search-input{flex:1;padding:9px 14px;border-radius:20px;border:1px solid #2f3b43;background:#2a3942;color:#e9edef;font-size:13px;font-family:inherit;}
+          .msg-search-hit{background:#FBEEC5;color:#1A1610;border-radius:3px;padding:0 1px;}
+          .msg-deleted{font-size:12.5px;color:#8696a0;font-style:italic;}
+          .msg-edited-tag{font-size:9.5px;color:#8696a0;}
+          .msg-online-dot{width:8px;height:8px;border-radius:50%;background:#3FBF6F;border:2px solid #202c33;position:absolute;margin-left:24px;margin-top:22px;}
           .msg-lightbox{position:fixed;inset:0;background:rgba(10,8,4,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;padding:24px;}
           .msg-lightbox img{max-width:92vw;max-height:76vh;object-fit:contain;border-radius:6px;}
           .msg-lightbox-actions{display:flex;gap:12px;margin-top:18px;}
           .msg-lightbox-actions button{background:#fff;color:#1A1610;border:none;padding:10px 20px;border-radius:24px;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;}
           .msg-lightbox-actions button.ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4);}
-          .msg-composer{padding:12px 14px;border-top:1px solid #EDE8E0;display:flex;gap:8px;align-items:center;flex:none;}
-          .msg-composer input{flex:1;padding:11px 14px;border-radius:22px;border:1px solid #EDE8E0;background:#F7F5F0;font-size:13px;font-family:inherit;}
-          .msg-send{width:38px;height:38px;border-radius:50%;background:#C9951A;border:none;color:#1A1610;font-weight:800;cursor:pointer;flex:none;}
-          .msg-attach,.msg-mic{width:36px;height:36px;border-radius:50%;background:#F7F5F0;border:1px solid #EDE8E0;font-size:15px;cursor:pointer;flex:none;}
-          .msg-mic.active{background:#FBEAEA;border-color:#C43D3D;color:#C43D3D;}
+          .msg-composer{padding:10px 14px;background:#202c33;border-top:1px solid #2f3b43;display:flex;gap:8px;align-items:center;flex:none;}
+          .msg-composer input{flex:1;padding:11px 14px;border-radius:22px;border:none;background:#2a3942;color:#e9edef;font-size:13px;font-family:inherit;}
+          .msg-composer input::placeholder{color:#8696a0;}
+          .msg-send{width:38px;height:38px;border-radius:50%;background:#00a884;border:none;color:#fff;font-weight:800;cursor:pointer;flex:none;}
+          .msg-attach,.msg-mic{width:36px;height:36px;border-radius:50%;background:none;border:none;color:#8696a0;font-size:17px;cursor:pointer;flex:none;}
+          .msg-mic.active{background:#3a1414;color:#e0645a;}
           .msg-empty{flex:1;display:flex;align-items:center;justify-content:center;color:#A79E8B;font-size:13px;}
         `}</style>
 
@@ -718,8 +770,8 @@ export default function MensagensPage() {
                           {isOnline && !isTyping && <div className="msg-online-dot" />}
                         </div>
                         <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 700, fontSize: 14 }}>{selectedLive?.name || selectedLive?.phone}</div>
-                          <div style={{ fontSize: 11.5, color: '#888' }}>
+                          <div style={{ fontWeight: 700, fontSize: 14, color: '#e9edef' }}>{selectedLive?.name || selectedLive?.phone}</div>
+                          <div style={{ fontSize: 11.5, color: '#8696a0' }}>
                             {isTyping ? <span className="msg-presence">digitando...</span> : isOnline ? <span className="msg-presence">online</span> : selectedLive?.phone}
                           </div>
                         </div>
@@ -728,14 +780,21 @@ export default function MensagensPage() {
                     )}
                   </div>
                   <div className="msg-body" ref={msgBodyRef}>
-                    {(searchTerm.trim() ? messages.filter(m => m.body?.toLowerCase().includes(searchTerm.toLowerCase())) : messages).map(m => {
+                    {(searchTerm.trim() ? messages.filter(m => m.body?.toLowerCase().includes(searchTerm.toLowerCase())) : messages).map((m, idx, arr) => {
                       const quoted = m.reply_to_id ? messages.find(x => x.id === m.reply_to_id) : null
                       let location: any = null, vcard: any = null
                       if (m.media_type === 'location' && m.body) { try { location = JSON.parse(m.body) } catch {} }
                       if (m.media_type === 'contact' && m.body) { try { vcard = JSON.parse(m.body) } catch {} }
                       const canEditDelete = m.direction === 'out' && !m.deleted_at
+                      const prev = arr[idx - 1]
+                      const showDateSep = !prev || new Date(prev.sent_at).toDateString() !== new Date(m.sent_at).toDateString()
+                      const url = !m.media_type && !m.deleted_at && m.body ? extractFirstUrl(m.body) : null
+                      const preview = url ? linkPreviews[url] : null
+                      const textWithoutUrl = url && m.body ? m.body.replace(url, '').trim() : m.body
                       return (
-                        <div key={m.id} className={`msg-bubble-row ${m.direction === 'out' ? 'out' : 'in'}`}>
+                        <Fragment key={m.id}>
+                        {showDateSep && <div className="msg-date-sep">{dateSepLabel(m.sent_at)}</div>}
+                        <div className={`msg-bubble-row ${m.direction === 'out' ? 'out' : 'in'}`}>
                           <div className="msg-bubble-wrap">
                           <div className="msg-bubble">
                             {m.deleted_at ? (
@@ -758,7 +817,20 @@ export default function MensagensPage() {
                                 {m.media_type === 'contact' && vcard && (
                                   <div className="msg-vcard"><span className="msg-vcard-ico">👤</span><span className="msg-vcard-name">{vcard.name || vcard.phone || 'Contato'}</span></div>
                                 )}
-                                {m.media_type !== 'location' && m.media_type !== 'contact' && m.media_type !== 'document' && m.body && highlightMatch(m.body, searchTerm)}
+                                {m.media_type !== 'location' && m.media_type !== 'contact' && m.media_type !== 'document' && m.body && (
+                                  searchTerm.trim()
+                                    ? highlightMatch(m.body, searchTerm)
+                                    : (url ? (textWithoutUrl && <div style={{ marginBottom: 4 }}>{linkifyText(textWithoutUrl)}</div>) : linkifyText(m.body))
+                                )}
+                                {url && preview !== null && (
+                                  <a className="msg-link-preview" href={url} target="_blank" rel="noreferrer">
+                                    {preview?.image && <img className="msg-link-preview-img" src={preview.image} alt="" />}
+                                    <div className="msg-link-preview-body">
+                                      <div className="msg-link-preview-title">{preview?.title || url}</div>
+                                      <div className="msg-link-preview-site">🔗 {preview?.siteName || new URL(url).hostname.replace(/^www\./, '')}</div>
+                                    </div>
+                                  </a>
+                                )}
                               </>
                             )}
                             <div className="t">
@@ -785,10 +857,11 @@ export default function MensagensPage() {
                           )}
                           </div>
                         </div>
+                        </Fragment>
                       )
                     })}
                   </div>
-                  {mediaError && <div className="msg-err" style={{ padding: '0 14px' }}>{mediaError}</div>}
+                  {mediaError && <div className="msg-err" style={{ padding: '8px 14px', background: '#202c33' }}>{mediaError}</div>}
                   {editingMessage ? (
                     <div className="msg-reply-bar">
                       <div className="msg-reply-bar-txt">✏️ Editando mensagem</div>

@@ -543,9 +543,22 @@ export default function MensagensPage() {
   async function onPickImage(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || [])
     e.target.value = ''
+    setMediaError('')
     for (const file of files) {
-      const compressed = await compressImage(file)
-      await sendMedia('image', compressed, 'jpg', 'image/jpeg')
+      try {
+        const compressed = await compressImage(file)
+        // Usa o tipo real do arquivo comprimido (a compressão pode gerar
+        // webp, ou manter o formato original nos fallbacks) — antes estava
+        // sempre rotulado como jpg/jpeg mesmo quando o conteúdo era outro.
+        const contentType = compressed.type || file.type || 'image/jpeg'
+        const ext = contentType.includes('webp') ? 'webp' : contentType.includes('png') ? 'png' : 'jpg'
+        await sendMedia('image', compressed, ext, contentType)
+      } catch (err: any) {
+        // Sem isso, uma falha na compressão (foto grande demais, HEIC do
+        // iPhone, etc.) travava o loop em silêncio — parecia que o clique
+        // no "enviar" simplesmente não fazia nada.
+        setMediaError(err?.message || 'não consegui enviar essa foto — tenta outra imagem')
+      }
     }
   }
 

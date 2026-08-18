@@ -44,9 +44,7 @@ export default function MaisPage() {
         *{box-sizing:border-box;}
         body{margin:0;font-family:'Inter',sans-serif;background:#F7F5F0;}
         .mais-page{min-height:100vh;padding-bottom:90px;}
-        .mais-head{background:#fff;border-bottom:1px solid #EDE8E0;padding:16px 18px;display:flex;align-items:center;gap:10px;}
-        .mais-head-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:.5px;color:#111;}
-        .mais-body{padding:16px 18px;max-width:600px;margin:0 auto;}
+        .mais-body{padding:20px 18px 16px;max-width:600px;margin:0 auto;}
         .company-card{background:#111;border-radius:16px;padding:16px;display:flex;align-items:center;gap:12px;margin-bottom:20px;text-decoration:none;}
         .company-avatar{width:46px;height:46px;border-radius:12px;background:#C9951A;color:#1A1610;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex:none;}
         .company-name{color:#fff;font-weight:800;font-size:14px;}
@@ -66,10 +64,8 @@ export default function MaisPage() {
         @media(min-width:768px){.mais-page{display:none;}}
       `}</style>
 
-      <div className="mais-head"><div className="mais-head-title">Mais</div></div>
-
       <div className="mais-body">
-        <a className="company-card" href={`/empresa/${company.slug}`}>
+        <a className="company-card" href={`/empresa/${company.slug}`} target="_blank" rel="noopener noreferrer">
           <div className="company-avatar">{initials}</div>
           <div>
             <div className="company-name">{company.name}</div>

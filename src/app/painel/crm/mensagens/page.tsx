@@ -702,7 +702,7 @@ export default function MensagensPage() {
           .msg-date-sep{align-self:center;background:#182229;color:#8696a0;font-size:11px;font-weight:600;padding:5px 12px;border-radius:8px;margin:6px 0;}
           .msg-bubble-row{display:flex;position:relative;}
           .msg-bubble-row.out{justify-content:flex-end;}
-          .msg-bubble{position:relative;max-width:84%;padding:6px 9px 8px;border-radius:8px;font-size:13.5px;line-height:1.45;box-shadow:0 1px 1px rgba(0,0,0,.3);color:#e9edef;}
+          .msg-bubble{position:relative;max-width:84%;padding:6px 9px 8px;border-radius:8px;font-size:13.5px;line-height:1.45;box-shadow:0 1px 1px rgba(0,0,0,.3);color:#e9edef;white-space:pre-wrap;overflow-wrap:break-word;}
           .msg-bubble-row.in .msg-bubble{background:#202c33;border-bottom-left-radius:2px;}
           .msg-bubble-row.out .msg-bubble{background:#005c4b;border-bottom-right-radius:2px;}
           .msg-bubble a{color:#53bdeb;text-decoration:underline;}

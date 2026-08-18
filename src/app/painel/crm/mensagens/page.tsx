@@ -627,7 +627,7 @@ export default function MensagensPage() {
           .msg-date-sep{align-self:center;background:#182229;color:#8696a0;font-size:11px;font-weight:600;padding:5px 12px;border-radius:8px;margin:6px 0;}
           .msg-bubble-row{display:flex;position:relative;}
           .msg-bubble-row.out{justify-content:flex-end;}
-          .msg-bubble{position:relative;max-width:76%;padding:6px 9px 8px;border-radius:8px;font-size:13.5px;line-height:1.45;box-shadow:0 1px 1px rgba(0,0,0,.3);color:#e9edef;}
+          .msg-bubble{position:relative;max-width:84%;padding:6px 9px 8px;border-radius:8px;font-size:13.5px;line-height:1.45;box-shadow:0 1px 1px rgba(0,0,0,.3);color:#e9edef;}
           .msg-bubble-row.in .msg-bubble{background:#202c33;border-bottom-left-radius:2px;}
           .msg-bubble-row.out .msg-bubble{background:#005c4b;border-bottom-right-radius:2px;}
           .msg-bubble a{color:#53bdeb;text-decoration:underline;}
@@ -647,7 +647,7 @@ export default function MensagensPage() {
           .msg-link-preview-body{padding:7px 9px;}
           .msg-link-preview-title{font-size:12.5px;font-weight:700;color:#e9edef;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
           .msg-link-preview-site{font-size:10.5px;color:#8696a0;margin-top:4px;display:flex;align-items:center;gap:4px;}
-          .msg-bubble-wrap{display:flex;align-items:center;gap:2px;max-width:76%;}
+          .msg-bubble-wrap{display:flex;align-items:center;gap:2px;max-width:84%;}
           .msg-bubble-wrap .msg-bubble{max-width:100%;}
           .msg-bubble-actions{display:flex;gap:0;flex:none;}
           .msg-reply-btn{background:none;border:none;font-size:13px;color:#8696a0;cursor:pointer;opacity:0;transition:opacity .15s;padding:4px;flex:none;}
@@ -684,12 +684,16 @@ export default function MensagensPage() {
           .msg-lightbox-actions{display:flex;gap:12px;margin-top:18px;}
           .msg-lightbox-actions button{background:#fff;color:#1A1610;border:none;padding:10px 20px;border-radius:24px;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;}
           .msg-lightbox-actions button.ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4);}
-          .msg-composer{padding:10px 14px;background:#202c33;border-top:1px solid #2f3b43;display:flex;gap:8px;align-items:center;flex:none;}
-          .msg-composer input{flex:1;min-width:0;padding:11px 14px;border-radius:22px;border:none;background:#2a3942;color:#e9edef;font-size:13px;font-family:inherit;}
-          .msg-composer input::placeholder{color:#8696a0;}
-          .msg-send{width:38px;height:38px;border-radius:50%;background:#00a884;border:none;color:#fff;font-weight:800;cursor:pointer;flex:none;}
-          .msg-attach,.msg-mic{width:36px;height:36px;border-radius:50%;background:none;border:none;color:#8696a0;font-size:17px;cursor:pointer;flex:none;}
-          .msg-mic.active{background:#3a1414;color:#e0645a;}
+          .msg-composer{padding:8px 8px;background:#0b141a;display:flex;gap:8px;align-items:flex-end;flex:none;}
+          .msg-composer-pill{flex:1;min-width:0;display:flex;align-items:center;background:#2a3942;border-radius:26px;padding:2px 4px 2px 4px;}
+          .msg-composer-pill input{flex:1;min-width:0;border:none;background:none;color:#e9edef;font-size:14.5px;font-family:inherit;padding:10px 4px;}
+          .msg-composer-pill input::placeholder{color:#8696a0;}
+          .msg-composer-icon{width:36px;height:36px;flex:none;background:none;border:none;color:#8696a0;font-size:19px;cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:50%;}
+          .msg-composer-icon:disabled{opacity:.4;cursor:not-allowed;}
+          .msg-mic-send{width:46px;height:46px;flex:none;border-radius:50%;border:none;background:#2a3942;color:#e9edef;font-size:19px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+          .msg-mic-send.send{background:#00a884;color:#fff;}
+          .msg-mic-send.active{background:#3a1414;color:#e0645a;}
+          .msg-mic-send:disabled{opacity:.5;cursor:not-allowed;}
           .msg-empty{flex:1;display:flex;align-items:center;justify-content:center;color:#A79E8B;font-size:13px;}
         `}</style>
 
@@ -878,31 +882,40 @@ export default function MensagensPage() {
                     <input type="file" accept="image/*" multiple ref={fileInputRef} style={{ display: 'none' }} onChange={onPickImage} />
                     <input type="file" accept="video/*" ref={videoInputRef} style={{ display: 'none' }} onChange={onPickVideo} />
                     <input type="file" ref={docInputRef} style={{ display: 'none' }} onChange={onPickDocument} />
-                    <div style={{ position: 'relative' }}>
-                      {attachMenuOpen && (
-                        <div className="msg-attach-menu" onMouseLeave={() => setAttachMenuOpen(false)}>
-                          <button onClick={() => { fileInputRef.current?.click(); setAttachMenuOpen(false) }}>🖼 Foto(s)</button>
-                          <button onClick={() => { videoInputRef.current?.click(); setAttachMenuOpen(false) }}>🎥 Vídeo</button>
-                          <button onClick={() => { docInputRef.current?.click(); setAttachMenuOpen(false) }}>📄 Documento</button>
-                          <button onClick={() => { shareLocation(); setAttachMenuOpen(false) }}>📍 Localização</button>
-                          <button onClick={() => { setContactPicker({ mode: 'shareContact' }); setAttachMenuOpen(false) }}>👤 Contato</button>
-                        </div>
-                      )}
-                      <button className="msg-attach" disabled={sending || recording || !!editingMessage} onClick={() => setAttachMenuOpen(v => !v)} title="Anexar">📎</button>
+                    <div className="msg-composer-pill">
+                      <div style={{ position: 'relative' }}>
+                        {emojiPickerOpen && (
+                          <div className="msg-emoji-picker" onMouseLeave={() => setEmojiPickerOpen(false)}>
+                            {EMOJI_PICKER_LIST.map((em, i) => (
+                              <button key={i} onClick={() => { setText(t => t + em); setEmojiPickerOpen(false) }}>{em}</button>
+                            ))}
+                          </div>
+                        )}
+                        <button className="msg-composer-icon" disabled={sending || recording} onClick={() => setEmojiPickerOpen(v => !v)} title="Emoji">😊</button>
+                      </div>
+                      <input placeholder={editingMessage ? 'Editar mensagem' : 'Mensagem'} value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendMessage()} disabled={recording} />
+                      <div style={{ position: 'relative' }}>
+                        {attachMenuOpen && (
+                          <div className="msg-attach-menu" onMouseLeave={() => setAttachMenuOpen(false)}>
+                            <button onClick={() => { fileInputRef.current?.click(); setAttachMenuOpen(false) }}>🖼 Foto(s)</button>
+                            <button onClick={() => { videoInputRef.current?.click(); setAttachMenuOpen(false) }}>🎥 Vídeo</button>
+                            <button onClick={() => { docInputRef.current?.click(); setAttachMenuOpen(false) }}>📄 Documento</button>
+                            <button onClick={() => { shareLocation(); setAttachMenuOpen(false) }}>📍 Localização</button>
+                            <button onClick={() => { setContactPicker({ mode: 'shareContact' }); setAttachMenuOpen(false) }}>👤 Contato</button>
+                          </div>
+                        )}
+                        <button className="msg-composer-icon" disabled={sending || recording || !!editingMessage} onClick={() => setAttachMenuOpen(v => !v)} title="Anexar">📎</button>
+                      </div>
+                      <button className="msg-composer-icon" disabled={sending || recording || !!editingMessage} onClick={() => fileInputRef.current?.click()} title="Câmera">📷</button>
                     </div>
-                    <div style={{ position: 'relative' }}>
-                      {emojiPickerOpen && (
-                        <div className="msg-emoji-picker" onMouseLeave={() => setEmojiPickerOpen(false)}>
-                          {EMOJI_PICKER_LIST.map((em, i) => (
-                            <button key={i} onClick={() => { setText(t => t + em); setEmojiPickerOpen(false) }}>{em}</button>
-                          ))}
-                        </div>
-                      )}
-                      <button className="msg-attach" disabled={sending || recording} onClick={() => setEmojiPickerOpen(v => !v)} title="Emoji">😊</button>
-                    </div>
-                    <button className={`msg-mic ${recording ? 'active' : ''}`} disabled={sending || !!editingMessage} onClick={recording ? stopRecording : startRecording} title={recording ? 'Parar e enviar' : 'Gravar áudio'}>{recording ? '⏹' : '🎤'}</button>
-                    <input placeholder={editingMessage ? 'Editar mensagem...' : 'Escrever mensagem...'} value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendMessage()} disabled={recording} />
-                    <button className="msg-send" disabled={sending || recording || !text.trim()} onClick={sendMessage}>{editingMessage ? '✓' : '➤'}</button>
+                    <button
+                      className={`msg-mic-send ${recording ? 'active' : text.trim() ? 'send' : ''}`}
+                      disabled={sending || (!text.trim() && !recording && !!editingMessage)}
+                      onClick={recording ? stopRecording : text.trim() ? sendMessage : startRecording}
+                      title={recording ? 'Parar e enviar' : text.trim() ? 'Enviar' : 'Gravar áudio'}
+                    >
+                      {recording ? '⏹' : text.trim() ? (editingMessage ? '✓' : '➤') : '🎤'}
+                    </button>
                   </div>
                 </>
               )}

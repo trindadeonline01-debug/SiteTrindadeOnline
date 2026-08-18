@@ -110,6 +110,7 @@ export default function MensagensPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const videoInputRef = useRef<HTMLInputElement | null>(null)
   const docInputRef = useRef<HTMLInputElement | null>(null)
+  const composerRef = useRef<HTMLTextAreaElement | null>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
   const mediaUrlCacheRef = useRef<Map<string, string>>(new Map())
@@ -205,6 +206,15 @@ export default function MensagensPage() {
   useEffect(() => {
     if (msgBodyRef.current) msgBodyRef.current.scrollTop = msgBodyRef.current.scrollHeight
   }, [messages])
+
+  // Campo de digitação cresce em altura (como no WhatsApp) em vez de rolar
+  // o texto na horizontal — o textarea é de uma linha só até o texto quebrar.
+  useEffect(() => {
+    const el = composerRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px'
+  }, [text])
 
   // Prévia de link (imagem/título/site) estilo WhatsApp pra mensagens de
   // texto com URL — busca uma vez por URL e guarda em cache local.
@@ -593,7 +603,7 @@ export default function MensagensPage() {
     <EmpresaShell active="mensagens" companyName={company.name} companySlug={company.slug} lojaDigitalEnabled={company.loja_digital_enabled} crmEnabled={company.crm_whatsapp_enabled}>
       <div className="msg-page">
         <style>{`
-          .msg-page{padding:20px 16px 80px;min-width:0;}
+          .msg-page{padding:0;min-width:0;}
           @media(min-width:768px){.msg-page{padding:28px 32px;}}
           .msg-connect{max-width:360px;margin:40px auto;text-align:center;background:#fff;border:1px solid #EDE8E0;border-radius:16px;padding:28px 22px;}
           .msg-qr{width:200px;height:200px;margin:16px auto;border-radius:12px;border:1px solid #EDE8E0;overflow:hidden;background:#F7F5F0;display:flex;align-items:center;justify-content:center;}
@@ -601,29 +611,33 @@ export default function MensagensPage() {
           .msg-btn{padding:11px 22px;border-radius:10px;border:none;background:#C9951A;color:#1A1610;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;}
           .msg-btn:disabled{opacity:.5;cursor:not-allowed;}
           .msg-err{color:#C43D3D;font-size:12px;margin-top:12px;line-height:1.5;}
-          .msg-shell{display:grid;grid-template-columns:1fr;border:1px solid #EDE8E0;border-radius:14px;overflow:hidden;background:#fff;height:calc(100vh - 140px);min-height:420px;}
-          @media(min-width:768px){.msg-shell{grid-template-columns:280px 1fr;}}
-          .msg-list{border-right:1px solid #EDE8E0;overflow-y:auto;min-height:0;}
+          .msg-shell{display:grid;grid-template-columns:1fr;border:none;border-radius:0;overflow:hidden;background:#111b21;height:calc(100vh - 74px);min-height:420px;}
+          @media(min-width:768px){.msg-shell{grid-template-columns:280px 1fr;border:1px solid #EDE8E0;border-radius:14px;background:#fff;height:calc(100vh - 140px);}}
+          .msg-list{background:#111b21;border-right:1px solid #2f3b43;overflow-y:auto;min-height:0;}
           @media(max-width:767px){.msg-list{display:${selected ? 'none' : 'block'};}}
-          .msg-item{display:flex;gap:10px;padding:12px 14px;border-bottom:1px solid #F0EDE8;cursor:pointer;align-items:center;}
-          .msg-item.sel{background:#FBF1DC;}
-          .msg-item:hover{background:#F7F5F0;}
-          .msg-avatar{width:34px;height:34px;border-radius:50%;background:#F0EDE8;border:1px solid #EDE8E0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:#6E6656;flex:none;}
+          .msg-item{display:flex;gap:10px;padding:12px 14px;border-bottom:1px solid #202c33;cursor:pointer;align-items:center;}
+          .msg-item.sel{background:#2a3942;}
+          .msg-item:hover{background:#202c33;}
+          .msg-avatar{width:34px;height:34px;border-radius:50%;background:#374045;border:none;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:#cfd6da;flex:none;overflow:hidden;}
+          .msg-avatar img{width:100%;height:100%;object-fit:cover;}
           .msg-item-txt{flex:1;min-width:0;}
-          .msg-item-name{font-weight:700;font-size:13px;}
-          .msg-item-time{font-size:10.5px;color:#A79E8B;}
-          .msg-unread{width:8px;height:8px;border-radius:50%;background:#C9951A;flex:none;}
+          .msg-item-name{font-weight:700;font-size:13px;color:#e9edef;}
+          .msg-item-time{font-size:10.5px;color:#8696a0;}
+          .msg-unread{width:8px;height:8px;border-radius:50%;background:#00a884;flex:none;}
           .msg-item-actions{display:none;gap:4px;flex:none;}
           .msg-item:hover .msg-item-actions{display:flex;}
           .msg-item-actions button{background:none;border:none;font-size:13px;cursor:pointer;padding:4px;border-radius:6px;opacity:.6;}
-          .msg-item-actions button:hover{opacity:1;background:#EFE8D8;}
-          .msg-archived-toggle{width:100%;padding:12px 14px;background:none;border:none;border-top:1px solid #F0EDE8;color:#8A6410;font-weight:700;font-size:12px;cursor:pointer;text-align:left;font-family:inherit;}
+          .msg-item-actions button:hover{opacity:1;background:#2f3b43;}
+          .msg-archived-toggle{width:100%;padding:12px 14px;background:none;border:none;border-top:1px solid #202c33;color:#53bdeb;font-weight:700;font-size:12px;cursor:pointer;text-align:left;font-family:inherit;}
           .msg-thread{display:flex;flex-direction:column;min-height:0;}
           @media(max-width:767px){.msg-thread{display:${selected ? 'flex' : 'none'};position:fixed;inset:0;z-index:10000;background:#0b141a;}}
           .msg-thead{padding:12px 16px;background:#202c33;border-bottom:1px solid #2f3b43;display:flex;align-items:center;gap:10px;flex:none;color:#e9edef;}
           .msg-back{display:none;background:none;border:none;font-size:18px;cursor:pointer;color:#aebac1;}
           @media(max-width:767px){.msg-back{display:block;}}
-          .msg-body{flex:1;min-height:0;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:8px;background-color:#0b141a;background-image:radial-gradient(rgba(255,255,255,.035) 1px,transparent 1px),radial-gradient(rgba(255,255,255,.02) 1px,transparent 1px);background-size:26px 26px,26px 26px;background-position:0 0,13px 13px;}
+          .msg-body{flex:1;min-height:0;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:8px;background-color:#0b141a;background-image:radial-gradient(rgba(255,255,255,.035) 1px,transparent 1px),radial-gradient(rgba(255,255,255,.02) 1px,transparent 1px);background-size:26px 26px,26px 26px;background-position:0 0,13px 13px;scrollbar-width:none;-ms-overflow-style:none;}
+          .msg-body::-webkit-scrollbar{display:none;}
+          .msg-list{scrollbar-width:none;-ms-overflow-style:none;}
+          .msg-list::-webkit-scrollbar{display:none;}
           .msg-date-sep{align-self:center;background:#182229;color:#8696a0;font-size:11px;font-weight:600;padding:5px 12px;border-radius:8px;margin:6px 0;}
           .msg-bubble-row{display:flex;position:relative;}
           .msg-bubble-row.out{justify-content:flex-end;}
@@ -649,7 +663,8 @@ export default function MensagensPage() {
           .msg-link-preview-site{font-size:10.5px;color:#8696a0;margin-top:4px;display:flex;align-items:center;gap:4px;}
           .msg-bubble-wrap{display:flex;align-items:center;gap:2px;max-width:84%;}
           .msg-bubble-wrap .msg-bubble{max-width:100%;}
-          .msg-bubble-actions{display:flex;gap:0;flex:none;}
+          .msg-bubble-actions{display:flex;gap:0;flex:none;width:0;overflow:hidden;}
+          .msg-bubble-row:hover .msg-bubble-actions{width:auto;overflow:visible;}
           .msg-reply-btn{background:none;border:none;font-size:13px;color:#8696a0;cursor:pointer;opacity:0;transition:opacity .15s;padding:4px;flex:none;}
           .msg-bubble-row:hover .msg-reply-btn{opacity:1;}
           .msg-reaction-badge{position:absolute;bottom:-9px;right:6px;background:#233138;border:1px solid #2f3b43;border-radius:10px;font-size:12px;padding:1px 5px;line-height:1.3;box-shadow:0 1px 2px rgba(0,0,0,.3);}
@@ -686,8 +701,9 @@ export default function MensagensPage() {
           .msg-lightbox-actions button.ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4);}
           .msg-composer{padding:8px 8px;background:#0b141a;display:flex;gap:8px;align-items:flex-end;flex:none;}
           .msg-composer-pill{flex:1;min-width:0;display:flex;align-items:center;background:#2a3942;border-radius:26px;padding:2px 4px 2px 4px;}
-          .msg-composer-pill input{flex:1;min-width:0;border:none;background:none;color:#e9edef;font-size:14.5px;font-family:inherit;padding:10px 4px;}
-          .msg-composer-pill input::placeholder{color:#8696a0;}
+          .msg-composer-pill textarea{flex:1;min-width:0;border:none;background:none;color:#e9edef;font-size:14.5px;font-family:inherit;padding:10px 4px;resize:none;max-height:120px;line-height:1.35;scrollbar-width:none;-ms-overflow-style:none;}
+          .msg-composer-pill textarea::-webkit-scrollbar{display:none;}
+          .msg-composer-pill textarea::placeholder{color:#8696a0;}
           .msg-composer-icon{width:36px;height:36px;flex:none;background:none;border:none;color:#8696a0;font-size:19px;cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:50%;}
           .msg-composer-icon:disabled{opacity:.4;cursor:not-allowed;}
           .msg-mic-send{width:46px;height:46px;flex:none;border-radius:50%;border:none;background:#2a3942;color:#e9edef;font-size:19px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
@@ -893,7 +909,14 @@ export default function MensagensPage() {
                         )}
                         <button className="msg-composer-icon" disabled={sending || recording} onClick={() => setEmojiPickerOpen(v => !v)} title="Emoji">😊</button>
                       </div>
-                      <input placeholder={editingMessage ? 'Editar mensagem' : 'Mensagem'} value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendMessage()} disabled={recording} />
+                      <textarea
+                        ref={composerRef} rows={1}
+                        placeholder={editingMessage ? 'Editar mensagem' : 'Mensagem'}
+                        value={text}
+                        onChange={e => setText(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
+                        disabled={recording}
+                      />
                       <div style={{ position: 'relative' }}>
                         {attachMenuOpen && (
                           <div className="msg-attach-menu" onMouseLeave={() => setAttachMenuOpen(false)}>

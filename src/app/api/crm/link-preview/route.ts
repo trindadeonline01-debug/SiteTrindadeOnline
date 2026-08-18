@@ -15,6 +15,18 @@ function extractMeta(html: string, prop: string): string | null {
   return m2 ? m2[1] : null
 }
 
+const NAMED_ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' }
+
+function decodeEntities(s: string): string {
+  return s.replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (full, code) => {
+    if (code[0] === '#') {
+      const cp = code[1].toLowerCase() === 'x' ? parseInt(code.slice(2), 16) : parseInt(code.slice(1), 10)
+      return Number.isFinite(cp) ? String.fromCodePoint(cp) : full
+    }
+    return NAMED_ENTITIES[code.toLowerCase()] ?? full
+  })
+}
+
 export async function GET(req: NextRequest) {
   const url = req.nextUrl.searchParams.get('url')
   if (!url) return NextResponse.json({ error: 'url faltando' }, { status: 400 })
@@ -30,7 +42,11 @@ export async function GET(req: NextRequest) {
     const timeout = setTimeout(() => controller.abort(), 5000)
     const res = await fetch(parsed.toString(), {
       signal: controller.signal,
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; TrindadeOnlineBot/1.0; +https://trindadeonline.com.br)' },
+      // UA de crawler de link preview (o mesmo padrão que WhatsApp/Facebook usam) —
+      // alguns sites só entregam as meta tags og: completas pra esse tipo de UA.
+      // Instagram é uma exceção conhecida: bloqueia scraping de terceiros mesmo
+      // assim, então o preview de link do Instagram pode continuar sem imagem.
+      headers: { 'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)' },
     })
     clearTimeout(timeout)
     if (!res.ok) return NextResponse.json({ title: null, image: null, siteName: parsed.hostname.replace(/^www\./, '') })
@@ -49,11 +65,12 @@ export async function GET(req: NextRequest) {
       html = (await res.text()).slice(0, 200000)
     }
 
-    const title = extractMeta(html, 'og:title') || (html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1] ?? null)
+    const rawTitle = extractMeta(html, 'og:title') || (html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1] ?? null)
+    const title = rawTitle ? decodeEntities(rawTitle) : null
     let image = extractMeta(html, 'og:image')
     if (image) { try { image = new URL(image, parsed).toString() } catch { image = null } }
     if (image && !/^https:\/\//i.test(image)) image = null // evita mixed-content / imagem servida via http puro
-    const siteName = extractMeta(html, 'og:site_name') || parsed.hostname.replace(/^www\./, '')
+    const siteName = decodeEntities(extractMeta(html, 'og:site_name') || parsed.hostname.replace(/^www\./, ''))
 
     return NextResponse.json({ title: title?.trim().slice(0, 200) || null, image, siteName })
   } catch {

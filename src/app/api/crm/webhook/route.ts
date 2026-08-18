@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { isOpenNow } from '@/lib/businessHours'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -247,7 +248,7 @@ export async function POST(req: NextRequest) {
         }
 
         const { data: existing } = await supabase
-          .from('crm_contacts').select('id, name')
+          .from('crm_contacts').select('id, name, muted, last_auto_reply_at')
           .eq('company_id', inst.company_id).eq('phone', phone).maybeSingle()
 
         let contactId: string | undefined
@@ -277,19 +278,50 @@ export async function POST(req: NextRequest) {
           continue
         }
 
-        const { data: company } = await supabase.from('companies').select('owner_id, name').eq('id', inst.company_id).maybeSingle()
-        if (company?.owner_id) {
+        const { data: company } = await supabase
+          .from('companies')
+          .select('owner_id, name, crm_auto_reply_enabled, crm_auto_reply_text, flexible_hours')
+          .eq('id', inst.company_id).maybeSingle()
+        if (company?.owner_id && !existing?.muted) {
           const notifBody = text && mediaType !== 'location' && mediaType !== 'contact' ? text
             : mediaType === 'image' ? '📷 Foto' : mediaType === 'video' ? '🎥 Vídeo' : mediaType === 'audio' ? '🎤 Áudio'
             : mediaType === 'document' ? '📄 Documento' : mediaType === 'sticker' ? '🏷️ Figurinha'
             : mediaType === 'location' ? '📍 Localização' : mediaType === 'contact' ? '👤 Contato' : 'Nova mensagem'
-          fetch(`${SITE_URL}/api/push/send`, {
+          // Precisa de `await` de verdade — sem isso a função serverless pode
+          // congelar assim que a resposta sai, matando o fetch em segundo plano.
+          await fetch(`${SITE_URL}/api/push/send`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               title: `💬 ${pushName || phone}`, body: notifBody.slice(0, 120),
               target: 'external_user_id', userId: company.owner_id,
             }),
           }).catch(() => {})
+        }
+
+        // Resposta automática fora do horário de funcionamento — só dispara
+        // uma vez a cada 3h por contato, pra não spammar numa conversa ativa.
+        if (company?.crm_auto_reply_enabled && company.crm_auto_reply_text?.trim() && inst.api_key) {
+          const cooldownOk = !existing?.last_auto_reply_at ||
+            (Date.now() - new Date(existing.last_auto_reply_at).getTime()) > 3 * 60 * 60 * 1000
+          if (cooldownOk) {
+            const { data: hours } = await supabase
+              .from('company_hours').select('day_of_week, open_time, close_time, closed')
+              .eq('company_id', inst.company_id)
+            if (!isOpenNow(hours || [], company.flexible_hours)) {
+              try {
+                await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(instanceName)}`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', apikey: inst.api_key },
+                  body: JSON.stringify({ number: phone, text: company.crm_auto_reply_text.trim() }),
+                })
+                await supabase.from('crm_messages').insert({
+                  company_id: inst.company_id, contact_id: contactId, direction: 'out',
+                  body: company.crm_auto_reply_text.trim(), status: 'sent', sent_at: new Date().toISOString(),
+                })
+                await supabase.from('crm_contacts').update({ last_auto_reply_at: new Date().toISOString() }).eq('id', contactId)
+              } catch {}
+            }
+          }
         }
       }
       return NextResponse.json({ ok: true })

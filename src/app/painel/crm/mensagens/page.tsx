@@ -4,17 +4,23 @@ import { supabase } from '@/lib/supabase'
 import { compressImage } from '@/lib/compressImage'
 import EmpresaShell from '@/components/EmpresaShell'
 
-type Company = { id: string; name: string; slug?: string; crm_whatsapp_enabled: boolean; loja_digital_enabled?: boolean }
+type Company = {
+  id: string; name: string; slug?: string; crm_whatsapp_enabled: boolean; loja_digital_enabled?: boolean
+  crm_auto_reply_enabled?: boolean; crm_auto_reply_text?: string | null
+}
 type Instance = { id: string; instance_name: string; status: string; phone: string | null }
 type Contact = {
   id: string; phone: string; name: string | null; last_message_at: string | null; last_read_at: string | null
   presence_state?: string | null; presence_until?: string | null; pinned?: boolean; archived?: boolean
+  avatar_url?: string | null; muted?: boolean; notes?: string | null
 }
 type Message = {
   id: string; direction: 'in' | 'out'; body: string | null; media_type: string | null; media_url: string | null
   sent_at: string; signedUrl?: string | null; status?: string | null; reply_to_id?: string | null
   edited_at?: string | null; deleted_at?: string | null; reaction?: string | null; reaction_by?: string | null
+  starred?: boolean
 }
+type QuickReply = { id: string; shortcut: string; body: string }
 
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏']
 const EMOJI_PICKER_LIST = '😀😁😂🤣😊😍😘😉😎🥳🤔😅😢😭😡🤯👍👎👏🙏💪🤝❤️🧡💛💚💙💜🔥✨🎉🎂🎁🍕🍔☕🍺⚽🎵📌📷📅✅❌⏰💰💬📞'.match(/./gu) || []
@@ -99,6 +105,16 @@ export default function MensagensPage() {
   const [contactFilter, setContactFilter] = useState<'todas' | 'nao_lidas' | 'arquivadas'>('todas')
   const [contactSearch, setContactSearch] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
+  const [notesOpen, setNotesOpen] = useState(false)
+  const [notesDraft, setNotesDraft] = useState('')
+  const [quickRepliesOpen, setQuickRepliesOpen] = useState(false)
+  const [quickReplies, setQuickReplies] = useState<QuickReply[]>([])
+  const [quickReplyForm, setQuickReplyForm] = useState<{ shortcut: string; body: string } | null>(null)
+  const [messageSearchHits, setMessageSearchHits] = useState<{ id: string; contact_id: string; body: string; sent_at: string; contactName: string }[]>([])
+  const [starredOpen, setStarredOpen] = useState(false)
+  const [autoReplyOpen, setAutoReplyOpen] = useState(false)
+  const [autoReplyDraft, setAutoReplyDraft] = useState({ enabled: false, text: '' })
+  const [savingAutoReply, setSavingAutoReply] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [attachMenuOpen, setAttachMenuOpen] = useState(false)
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
@@ -106,6 +122,7 @@ export default function MensagensPage() {
   const [contactPicker, setContactPicker] = useState<{ mode: 'forward' | 'shareContact'; forMessage?: Message } | null>(null)
   const [linkPreviews, setLinkPreviews] = useState<Record<string, { title: string | null; image: string | null; siteName: string | null } | null>>({})
   const linkPreviewFetching = useRef<Set<string>>(new Set())
+  const avatarFetching = useRef<Set<string>>(new Set())
 
   const companyRef = useRef<Company | null>(null)
   const selectedRef = useRef<Contact | null>(null)
@@ -123,12 +140,13 @@ export default function MensagensPage() {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { window.location.href = '/login?redirect=/painel/crm/mensagens'; return }
       const { data: comp } = await supabase
-        .from('companies').select('id, name, slug, crm_whatsapp_enabled, loja_digital_enabled')
+        .from('companies').select('id, name, slug, crm_whatsapp_enabled, loja_digital_enabled, crm_auto_reply_enabled, crm_auto_reply_text')
         .eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
       if (!comp) { window.location.href = '/painel/crm'; return }
       setCompany(comp as Company)
       companyRef.current = comp as Company
       if (comp.crm_whatsapp_enabled) await loadInstance(comp.id)
+      loadQuickReplies(comp.id)
       setLoading(false)
     })
   }, [])
@@ -144,7 +162,7 @@ export default function MensagensPage() {
 
   async function loadContacts(companyId: string) {
     const { data } = await supabase
-      .from('crm_contacts').select('id, phone, name, last_message_at, last_read_at, presence_state, presence_until, pinned, archived')
+      .from('crm_contacts').select('id, phone, name, last_message_at, last_read_at, presence_state, presence_until, pinned, archived, avatar_url, muted, notes')
       .eq('company_id', companyId).not('last_message_at', 'is', null)
       .order('last_message_at', { ascending: false })
     setContacts((data || []) as Contact[])
@@ -165,9 +183,62 @@ export default function MensagensPage() {
     await supabase.from('crm_contacts').update({ archived }).eq('id', c.id)
   }
 
+  async function toggleMute(c: Contact, e: React.MouseEvent) {
+    e.stopPropagation()
+    const muted = !c.muted
+    setContacts(prev => prev.map(x => x.id === c.id ? { ...x, muted } : x))
+    await supabase.from('crm_contacts').update({ muted }).eq('id', c.id)
+  }
+
+  async function saveNotes(contactId: string, notes: string) {
+    setContacts(prev => prev.map(x => x.id === contactId ? { ...x, notes } : x))
+    await supabase.from('crm_contacts').update({ notes: notes.trim() || null }).eq('id', contactId)
+  }
+
+  async function toggleStar(m: Message) {
+    const starred = !m.starred
+    setMessages(prev => prev.map(x => x.id === m.id ? { ...x, starred } : x))
+    await supabase.from('crm_messages').update({ starred }).eq('id', m.id)
+  }
+
+  async function loadQuickReplies(companyId: string) {
+    const { data } = await supabase.from('crm_quick_replies').select('id, shortcut, body').eq('company_id', companyId).order('shortcut')
+    setQuickReplies((data || []) as QuickReply[])
+  }
+
+  async function saveQuickReply() {
+    if (!company || !quickReplyForm?.shortcut.trim() || !quickReplyForm?.body.trim()) return
+    const { data } = await supabase.from('crm_quick_replies')
+      .insert({ company_id: company.id, shortcut: quickReplyForm.shortcut.trim(), body: quickReplyForm.body.trim() })
+      .select('id, shortcut, body').single()
+    if (data) setQuickReplies(prev => [...prev, data as QuickReply].sort((a, b) => a.shortcut.localeCompare(b.shortcut)))
+    setQuickReplyForm(null)
+  }
+
+  async function deleteQuickReply(id: string) {
+    setQuickReplies(prev => prev.filter(q => q.id !== id))
+    await supabase.from('crm_quick_replies').delete().eq('id', id)
+  }
+
+  function useQuickReply(q: QuickReply) {
+    setText(t => t ? `${t}\n${q.body}` : q.body)
+    setQuickRepliesOpen(false)
+  }
+
+  async function saveAutoReply() {
+    if (!company) return
+    setSavingAutoReply(true)
+    const crm_auto_reply_enabled = autoReplyDraft.enabled
+    const crm_auto_reply_text = autoReplyDraft.text.trim() || null
+    await supabase.from('companies').update({ crm_auto_reply_enabled, crm_auto_reply_text }).eq('id', company.id)
+    setCompany({ ...company, crm_auto_reply_enabled, crm_auto_reply_text })
+    setSavingAutoReply(false)
+    setAutoReplyOpen(false)
+  }
+
   async function loadMessages(contactId: string) {
     const { data } = await supabase
-      .from('crm_messages').select('id, direction, body, media_type, media_url, sent_at, status, reply_to_id, edited_at, deleted_at, reaction, reaction_by')
+      .from('crm_messages').select('id, direction, body, media_type, media_url, sent_at, status, reply_to_id, edited_at, deleted_at, reaction, reaction_by, starred')
       .eq('contact_id', contactId).order('sent_at', { ascending: true })
     const msgs = (data || []) as Message[]
     const withUrls = await Promise.all(msgs.map(async m => {
@@ -242,6 +313,48 @@ export default function MensagensPage() {
         .catch(() => setLinkPreviews(prev => ({ ...prev, [url]: null })))
     }
   }, [messages, linkPreviews])
+
+  // Foto de perfil real do contato — busca uma vez por contato (em cache no
+  // banco depois disso) em vez de mostrar só as iniciais igual antes.
+  useEffect(() => {
+    if (!company?.id) return
+    const missing = contacts.filter(c => c.avatar_url === undefined || c.avatar_url === null).slice(0, 30)
+    if (missing.length === 0) return
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const token = session?.access_token
+      if (!token) return
+      for (const c of missing) {
+        if (avatarFetching.current.has(c.id)) continue
+        avatarFetching.current.add(c.id)
+        fetch('/api/crm/avatar', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ access_token: token, company_id: company.id, contact_id: c.id }),
+        })
+          .then(r => r.json())
+          .then(data => setContacts(prev => prev.map(x => x.id === c.id ? { ...x, avatar_url: data?.url || '' } : x)))
+          .catch(() => setContacts(prev => prev.map(x => x.id === c.id ? { ...x, avatar_url: '' } : x)))
+      }
+    })
+  }, [contacts, company?.id])
+
+  // Busca de mensagem em todas as conversas de uma vez (não só na aberta) —
+  // só dispara quando a busca da lista de contatos não bate com nenhum nome/
+  // telefone, pra não competir com o filtro normal de contato por nome.
+  useEffect(() => {
+    const term = contactSearch.trim()
+    if (!company?.id || term.length < 3) { setMessageSearchHits([]); return }
+    const matchesContact = contacts.some(c => (c.name || '').toLowerCase().includes(term.toLowerCase()) || c.phone.includes(term))
+    if (matchesContact) { setMessageSearchHits([]); return }
+    const id = setTimeout(async () => {
+      const { data } = await supabase
+        .from('crm_messages').select('id, contact_id, body, sent_at')
+        .eq('company_id', company.id).ilike('body', `%${term}%`).is('deleted_at', null)
+        .order('sent_at', { ascending: false }).limit(25)
+      const byId = new Map(contacts.map(c => [c.id, c.name || c.phone]))
+      setMessageSearchHits((data || []).map(m => ({ ...m, contactName: byId.get(m.contact_id) || '' })).filter(m => m.contactName))
+    }, 350)
+    return () => clearTimeout(id)
+  }, [contactSearch, company?.id, contacts])
 
   // Realtime: mensagem nova (recebida, ou mandada pelo celular fora do CRM),
   // status de entrega/leitura e presença (digitando/online) chegam na hora
@@ -690,6 +803,28 @@ export default function MensagensPage() {
           .msg-list-chips::-webkit-scrollbar{display:none;}
           .msg-list-chip{flex:none;padding:6px 14px;border-radius:16px;border:none;background:#202c33;color:#cfd6da;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;}
           .msg-list-chip.on{background:#00a884;color:#fff;}
+          .msg-search-hits{padding:4px 0 2px;}
+          .msg-search-hit-row{padding:8px 12px;cursor:pointer;border-bottom:1px solid #202c33;}
+          .msg-search-hit-row:hover{background:#202c33;}
+          .msg-search-hit-name{font-size:12px;font-weight:700;color:#00a884;}
+          .msg-search-hit-body{font-size:12px;color:#cfd6da;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+          .msg-notes-box{background:#233138;border:1px solid #2f3b43;border-radius:14px;width:340px;max-width:92vw;padding:16px;}
+          .msg-notes-box h4{margin:0 0 10px;color:#e9edef;font-size:14px;}
+          .msg-notes-box textarea{width:100%;min-height:100px;border-radius:10px;border:1px solid #2f3b43;background:#2a3942;color:#e9edef;font-size:13px;font-family:inherit;padding:10px;resize:vertical;}
+          .msg-notes-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px;}
+          .msg-notes-actions button{padding:8px 16px;border-radius:8px;border:none;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;}
+          .msg-notes-save{background:#00a884;color:#fff;}
+          .msg-notes-cancel{background:#2a3942;color:#cfd6da;}
+          .msg-qr-item{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid #2f3b43;}
+          .msg-qr-item:hover{background:#182229;}
+          .msg-qr-item-txt{flex:1;min-width:0;cursor:pointer;}
+          .msg-qr-item-shortcut{font-size:12.5px;font-weight:700;color:#00a884;}
+          .msg-qr-item-body{font-size:11.5px;color:#8696a0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+          .msg-qr-item button{background:none;border:none;color:#8696a0;font-size:14px;cursor:pointer;padding:4px;}
+          .msg-qr-new{padding:12px 16px;display:flex;flex-direction:column;gap:8px;}
+          .msg-qr-new input,.msg-qr-new textarea{border-radius:8px;border:1px solid #2f3b43;background:#2a3942;color:#e9edef;font-size:12.5px;font-family:inherit;padding:8px 10px;}
+          .msg-qr-new textarea{min-height:60px;resize:vertical;}
+          .msg-star-badge{position:absolute;top:-9px;left:6px;background:#233138;border:1px solid #2f3b43;border-radius:10px;font-size:11px;padding:1px 4px;line-height:1.3;}
           .msg-thread{display:flex;flex-direction:column;min-height:0;}
           @media(max-width:767px){.msg-thread{display:${selected ? 'flex' : 'none'};position:fixed;inset:0;z-index:10000;background:#0b141a;}}
           .msg-thead{padding:12px 16px;background:#202c33;border-bottom:1px solid #2f3b43;display:flex;align-items:center;gap:10px;flex:none;color:#e9edef;}
@@ -726,6 +861,10 @@ export default function MensagensPage() {
           .msg-bubble-wrap .msg-bubble{max-width:100%;}
           .msg-bubble-actions{display:flex;gap:0;flex:none;width:0;overflow:hidden;}
           .msg-bubble-row:hover .msg-bubble-actions{width:auto;overflow:visible;}
+          @media(max-width:767px){
+            .msg-bubble-actions{width:auto;overflow:visible;}
+            .msg-reply-btn{opacity:.6;}
+          }
           .msg-reply-btn{background:none;border:none;font-size:13px;color:#8696a0;cursor:pointer;opacity:0;transition:opacity .15s;padding:4px;flex:none;}
           .msg-bubble-row:hover .msg-reply-btn{opacity:1;}
           .msg-reaction-badge{position:absolute;bottom:-9px;right:6px;background:#233138;border:1px solid #2f3b43;border-radius:10px;font-size:12px;padding:1px 5px;line-height:1.3;box-shadow:0 1px 2px rgba(0,0,0,.3);}
@@ -807,7 +946,22 @@ export default function MensagensPage() {
                   <button className={`msg-list-chip ${contactFilter === 'todas' ? 'on' : ''}`} onClick={() => setContactFilter('todas')}>Todas</button>
                   <button className={`msg-list-chip ${contactFilter === 'nao_lidas' ? 'on' : ''}`} onClick={() => setContactFilter('nao_lidas')}>Não lidas</button>
                   <button className={`msg-list-chip ${contactFilter === 'arquivadas' ? 'on' : ''}`} onClick={() => setContactFilter('arquivadas')}>Arquivadas</button>
+                  <button className="msg-list-chip" onClick={() => setStarredOpen(true)}>⭐ Marcadas</button>
+                  <button
+                    className="msg-list-chip" title="Resposta automática fora do horário"
+                    onClick={() => { setAutoReplyDraft({ enabled: !!company?.crm_auto_reply_enabled, text: company?.crm_auto_reply_text || '' }); setAutoReplyOpen(true) }}
+                  >⚙️</button>
                 </div>
+                {messageSearchHits.length > 0 && (
+                  <div className="msg-search-hits">
+                    {messageSearchHits.map(h => (
+                      <div key={h.id} className="msg-search-hit-row" onClick={() => { const c = contacts.find(x => x.id === h.contact_id); if (c) openContact(c) }}>
+                        <div className="msg-search-hit-name">{h.contactName}</div>
+                        <div className="msg-search-hit-body">{h.body}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               {(() => {
                 const term = contactSearch.trim().toLowerCase()
@@ -829,13 +983,14 @@ export default function MensagensPage() {
                       const unread = !!c.last_message_at && (!c.last_read_at || c.last_read_at < c.last_message_at)
                       return (
                         <div key={c.id} className={`msg-item ${selected?.id === c.id ? 'sel' : ''}`} onClick={() => openContact(c)}>
-                          <div className="msg-avatar">{(c.name || c.phone).slice(0, 2).toUpperCase()}</div>
+                          <div className="msg-avatar">{c.avatar_url ? <img src={c.avatar_url} alt="" /> : (c.name || c.phone).slice(0, 2).toUpperCase()}</div>
                           <div className="msg-item-txt">
-                            <div className="msg-item-name">{c.pinned && '📌 '}{c.name || c.phone}</div>
+                            <div className="msg-item-name">{c.pinned && '📌 '}{c.muted && '🔕 '}{c.name || c.phone}</div>
                             <div className="msg-item-time">{c.last_message_at ? fmtTime(c.last_message_at) : ''}</div>
                           </div>
                           <div className="msg-item-actions">
                             <button title={c.pinned ? 'Desafixar' : 'Fixar'} onClick={e => togglePin(c, e)}>📌</button>
+                            <button title={c.muted ? 'Reativar notificações' : 'Silenciar'} onClick={e => toggleMute(c, e)}>{c.muted ? '🔔' : '🔕'}</button>
                             <button title={c.archived ? 'Desarquivar' : 'Arquivar'} onClick={e => toggleArchive(c, e)}>🗄</button>
                           </div>
                           {unread && <div className="msg-unread" />}
@@ -865,13 +1020,13 @@ export default function MensagensPage() {
                       <>
                         <button className="msg-back" onClick={() => setSelected(null)}>‹</button>
                         <div style={{ position: 'relative' }}>
-                          <div className="msg-avatar">{(selectedLive?.name || selectedLive?.phone || '').slice(0, 2).toUpperCase()}</div>
+                          <div className="msg-avatar">{selectedLive?.avatar_url ? <img src={selectedLive.avatar_url} alt="" /> : (selectedLive?.name || selectedLive?.phone || '').slice(0, 2).toUpperCase()}</div>
                           {isOnline && !isTyping && <div className="msg-online-dot" />}
                         </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 700, fontSize: 14, color: '#e9edef', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedLive?.name || selectedLive?.phone}</div>
+                        <div style={{ flex: 1, minWidth: 0 }} onClick={() => { setNotesDraft(selectedLive?.notes || ''); setNotesOpen(true) }}>
+                          <div style={{ fontWeight: 700, fontSize: 14, color: '#e9edef', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedLive?.muted && '🔕 '}{selectedLive?.name || selectedLive?.phone}</div>
                           <div style={{ fontSize: 11.5, color: '#8696a0' }}>
-                            {isTyping ? <span className="msg-presence">digitando...</span> : isOnline ? <span className="msg-presence">online</span> : selectedLive?.phone}
+                            {isTyping ? <span className="msg-presence">digitando...</span> : isOnline ? <span className="msg-presence">online</span> : selectedLive?.notes ? <span style={{ color: '#C9951A' }}>📝 {selectedLive.notes}</span> : selectedLive?.phone}
                           </div>
                         </div>
                         <button className="msg-thead-search-btn" title="Buscar na conversa" onClick={() => setSearchOpen(true)}>🔍</button>
@@ -937,6 +1092,7 @@ export default function MensagensPage() {
                               {fmtTime(m.sent_at)}{m.direction === 'out' && !m.deleted_at && tickIcon(m.status)}
                             </div>
                             {m.reaction && !m.deleted_at && <div className="msg-reaction-badge">{m.reaction}</div>}
+                            {m.starred && !m.deleted_at && <div className="msg-star-badge">⭐</div>}
                           </div>
                           {!m.deleted_at && (
                             <div className="msg-bubble-actions" style={{ position: 'relative' }}>
@@ -950,6 +1106,7 @@ export default function MensagensPage() {
                               <button className="msg-reply-btn" title="Reagir" onClick={() => setReactionPickerFor(v => v === m.id ? null : m.id)}>😊</button>
                               <button className="msg-reply-btn" title="Responder" onClick={() => setReplyTo(m)}>↩</button>
                               {m.media_type !== 'sticker' && <button className="msg-reply-btn" title="Encaminhar" onClick={() => setContactPicker({ mode: 'forward', forMessage: m })}>➡️</button>}
+                              <button className="msg-reply-btn" title={m.starred ? 'Desmarcar' : 'Marcar'} onClick={() => toggleStar(m)}>{m.starred ? '⭐' : '☆'}</button>
                               {canEditDelete && !m.media_type && <button className="msg-reply-btn" title="Editar" onClick={() => startEdit(m)}>✏️</button>}
                               {canEditDelete && <button className="msg-reply-btn" title="Apagar" onClick={() => deleteMessage(m)}>🗑</button>}
                             </div>
@@ -1009,6 +1166,7 @@ export default function MensagensPage() {
                               <button onClick={() => { docInputRef.current?.click(); setAttachMenuOpen(false) }}>📄 Documento</button>
                               <button onClick={() => { shareLocation(); setAttachMenuOpen(false) }}>📍 Localização</button>
                               <button onClick={() => { setContactPicker({ mode: 'shareContact' }); setAttachMenuOpen(false) }}>👤 Contato</button>
+                              <button onClick={() => { setQuickRepliesOpen(true); setAttachMenuOpen(false) }}>⚡ Resposta rápida</button>
                             </div>
                           )}
                           <button className="msg-composer-icon" disabled={sending || !!editingMessage} onClick={() => setAttachMenuOpen(v => !v)} title="Anexar">📎</button>
@@ -1059,7 +1217,132 @@ export default function MensagensPage() {
             </div>
           </div>
         )}
+
+        {notesOpen && selectedLive && (
+          <div className="msg-lightbox" onClick={() => setNotesOpen(false)}>
+            <div className="msg-notes-box" onClick={e => e.stopPropagation()}>
+              <h4>📝 Nota sobre {selectedLive.name || selectedLive.phone}</h4>
+              <textarea
+                autoFocus placeholder="Só você vê essa nota — o cliente não tem acesso."
+                value={notesDraft} onChange={e => setNotesDraft(e.target.value)}
+              />
+              <div className="msg-notes-actions">
+                <button className="msg-notes-cancel" onClick={() => setNotesOpen(false)}>Cancelar</button>
+                <button className="msg-notes-save" onClick={() => { saveNotes(selectedLive.id, notesDraft); setNotesOpen(false) }}>Salvar</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {autoReplyOpen && (
+          <div className="msg-lightbox" onClick={() => setAutoReplyOpen(false)}>
+            <div className="msg-notes-box" onClick={e => e.stopPropagation()}>
+              <h4>🤖 Resposta automática fora do horário</h4>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: '#cfd6da', marginBottom: 10, cursor: 'pointer' }}>
+                <input type="checkbox" checked={autoReplyDraft.enabled} onChange={e => setAutoReplyDraft(d => ({ ...d, enabled: e.target.checked }))} />
+                Ativar resposta automática
+              </label>
+              <div style={{ fontSize: 11, color: '#8696a0', marginBottom: 8, lineHeight: 1.5 }}>
+                Manda essa mensagem sozinha quando um cliente escreve fora do horário de funcionamento cadastrado no perfil da empresa (no máximo uma vez a cada 3h por conversa).
+              </div>
+              <textarea
+                placeholder="Ex: Nossa loja está fechada agora. Voltamos amanhã às 9h! Deixe sua mensagem que respondemos assim que abrir 🙂"
+                value={autoReplyDraft.text} onChange={e => setAutoReplyDraft(d => ({ ...d, text: e.target.value }))}
+              />
+              <div className="msg-notes-actions">
+                <button className="msg-notes-cancel" onClick={() => setAutoReplyOpen(false)}>Cancelar</button>
+                <button className="msg-notes-save" disabled={savingAutoReply} onClick={saveAutoReply}>{savingAutoReply ? 'Salvando...' : 'Salvar'}</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {quickRepliesOpen && (
+          <div className="msg-lightbox" onClick={() => { setQuickRepliesOpen(false); setQuickReplyForm(null) }}>
+            <div className="msg-picker" onClick={e => e.stopPropagation()}>
+              <div className="msg-picker-title">⚡ Respostas rápidas</div>
+              <div className="msg-picker-list">
+                {quickReplies.length === 0 && !quickReplyForm && <div style={{ padding: 16, fontSize: 12.5, color: '#8696a0' }}>Nenhuma resposta salva ainda.</div>}
+                {quickReplies.map(q => (
+                  <div key={q.id} className="msg-qr-item">
+                    <div className="msg-qr-item-txt" onClick={() => useQuickReply(q)}>
+                      <div className="msg-qr-item-shortcut">{q.shortcut}</div>
+                      <div className="msg-qr-item-body">{q.body}</div>
+                    </div>
+                    <button title="Apagar" onClick={() => deleteQuickReply(q.id)}>🗑</button>
+                  </div>
+                ))}
+                {quickReplyForm ? (
+                  <div className="msg-qr-new">
+                    <input autoFocus placeholder="Título curto (ex: Horário de funcionamento)" value={quickReplyForm.shortcut} onChange={e => setQuickReplyForm(f => f && { ...f, shortcut: e.target.value })} />
+                    <textarea placeholder="Texto da resposta" value={quickReplyForm.body} onChange={e => setQuickReplyForm(f => f && { ...f, body: e.target.value })} />
+                    <div className="msg-notes-actions">
+                      <button className="msg-notes-cancel" onClick={() => setQuickReplyForm(null)}>Cancelar</button>
+                      <button className="msg-notes-save" onClick={saveQuickReply}>Salvar</button>
+                    </div>
+                  </div>
+                ) : (
+                  <button className="msg-picker-item" style={{ color: '#00a884', fontWeight: 700 }} onClick={() => setQuickReplyForm({ shortcut: '', body: '' })}>+ Nova resposta rápida</button>
+                )}
+              </div>
+              <button className="msg-picker-cancel" onClick={() => { setQuickRepliesOpen(false); setQuickReplyForm(null) }}>Fechar</button>
+            </div>
+          </div>
+        )}
+
+        {starredOpen && (
+          <StarredMessagesPanel
+            companyId={company?.id}
+            contacts={contacts}
+            onOpenContact={c => { setStarredOpen(false); openContact(c) }}
+            onClose={() => setStarredOpen(false)}
+          />
+        )}
       </div>
     </EmpresaShell>
+  )
+}
+
+// Painel com todas as mensagens marcadas com estrela, de qualquer conversa —
+// mesmo conceito do "Mensagens favoritas" do WhatsApp, que junta tudo numa
+// lista só em vez de precisar abrir conversa por conversa procurando.
+function StarredMessagesPanel({
+  companyId, contacts, onOpenContact, onClose,
+}: {
+  companyId?: string
+  contacts: Contact[]
+  onOpenContact: (c: Contact) => void
+  onClose: () => void
+}) {
+  const [items, setItems] = useState<{ id: string; contact_id: string; body: string | null; media_type: string | null; sent_at: string }[] | null>(null)
+
+  useEffect(() => {
+    if (!companyId) return
+    supabase
+      .from('crm_messages').select('id, contact_id, body, media_type, sent_at')
+      .eq('company_id', companyId).eq('starred', true).is('deleted_at', null)
+      .order('sent_at', { ascending: false })
+      .then(({ data }) => setItems(data || []))
+  }, [companyId])
+
+  const byId = new Map(contacts.map(c => [c.id, c.name || c.phone]))
+
+  return (
+    <div className="msg-lightbox" onClick={onClose}>
+      <div className="msg-picker" onClick={e => e.stopPropagation()}>
+        <div className="msg-picker-title">⭐ Mensagens marcadas</div>
+        <div className="msg-picker-list">
+          {items === null && <div style={{ padding: 16, fontSize: 12.5, color: '#8696a0' }}>Carregando...</div>}
+          {items?.length === 0 && <div style={{ padding: 16, fontSize: 12.5, color: '#8696a0' }}>Nenhuma mensagem marcada ainda — toque no ☆ ao lado de uma mensagem pra marcar.</div>}
+          {items?.map(m => (
+            <div key={m.id} className="msg-search-hit-row" onClick={() => { const c = contacts.find(x => x.id === m.contact_id); if (c) onOpenContact(c) }}>
+              <div className="msg-search-hit-name">{byId.get(m.contact_id) || ''}</div>
+              <div className="msg-search-hit-body">{m.body || replySnippet({ media_type: m.media_type } as Message)}</div>
+            </div>
+          ))}
+        </div>
+        <button className="msg-picker-cancel" onClick={onClose}>Fechar</button>
+      </div>
+    </div>
   )
 }

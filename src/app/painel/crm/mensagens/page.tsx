@@ -91,6 +91,7 @@ export default function MensagensPage() {
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const [recording, setRecording] = useState(false)
+  const [recordSeconds, setRecordSeconds] = useState(0)
   const [mediaError, setMediaError] = useState('')
   const [lightbox, setLightbox] = useState<string | null>(null)
   const [replyTo, setReplyTo] = useState<Message | null>(null)
@@ -114,6 +115,7 @@ export default function MensagensPage() {
   const composerRef = useRef<HTMLTextAreaElement | null>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
+  const discardRecordingRef = useRef(false)
   const mediaUrlCacheRef = useRef<Map<string, string>>(new Map())
   const msgBodyRef = useRef<HTMLDivElement | null>(null)
 
@@ -216,6 +218,15 @@ export default function MensagensPage() {
     el.style.height = 'auto'
     el.style.height = Math.min(el.scrollHeight, 120) + 'px'
   }, [text])
+
+  // Cronômetro visível durante a gravação de áudio, pra ficar claro que
+  // está gravando de verdade (sem isso o usuário não tinha nenhum feedback).
+  useEffect(() => {
+    if (!recording) { setRecordSeconds(0); return }
+    const start = Date.now()
+    const id = setInterval(() => setRecordSeconds(Math.floor((Date.now() - start) / 1000)), 250)
+    return () => clearInterval(id)
+  }, [recording])
 
   // Prévia de link (imagem/título/site) estilo WhatsApp pra mensagens de
   // texto com URL — busca uma vez por URL e guarda em cache local.
@@ -558,24 +569,54 @@ export default function MensagensPage() {
 
   async function startRecording() {
     setMediaError('')
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+      setMediaError('gravação de áudio não é suportada neste navegador')
+      return
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mr = new MediaRecorder(stream)
+      // Nem todo navegador grava no mesmo formato — Safari/iOS não suporta
+      // webm, por exemplo. Sem negociar isso, a gravação parecia funcionar
+      // localmente mas o áudio chegava corrompido/ilegível do outro lado.
+      const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus', 'audio/aac']
+      const mimeType = candidates.find(t => typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported?.(t))
+      const mr = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream)
       audioChunksRef.current = []
+      discardRecordingRef.current = false
       mr.ondataavailable = e => { if (e.data.size > 0) audioChunksRef.current.push(e.data) }
       mr.onstop = async () => {
         stream.getTracks().forEach(t => t.stop())
-        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
-        await sendMedia('audio', blob, 'webm', 'audio/webm')
+        if (discardRecordingRef.current) return
+        if (audioChunksRef.current.length === 0) { setMediaError('a gravação ficou vazia — tenta de novo'); return }
+        const actualType = mr.mimeType || mimeType || 'audio/webm'
+        const ext = actualType.includes('mp4') ? 'mp4' : actualType.includes('ogg') ? 'ogg' : actualType.includes('aac') ? 'aac' : 'webm'
+        const blob = new Blob(audioChunksRef.current, { type: actualType })
+        await sendMedia('audio', blob, ext, actualType)
+      }
+      mr.onerror = (e: any) => {
+        setMediaError('erro durante a gravação: ' + (e?.error?.message || e?.error?.name || 'desconhecido'))
+        stream.getTracks().forEach(t => t.stop())
+        setRecording(false)
       }
       mr.start()
       mediaRecorderRef.current = mr
       setRecording(true)
-    } catch {
-      setMediaError('não consegui acessar o microfone — confere a permissão do navegador')
+    } catch (err: any) {
+      if (err?.name === 'NotAllowedError' || err?.name === 'SecurityError') {
+        setMediaError('permissão de microfone negada — libera o microfone nas configurações do navegador pra esse site e tenta de novo')
+      } else if (err?.name === 'NotFoundError') {
+        setMediaError('nenhum microfone encontrado neste aparelho')
+      } else {
+        setMediaError('não consegui gravar áudio (' + (err?.name || err?.message || 'erro desconhecido') + ')')
+      }
     }
   }
   function stopRecording() {
+    mediaRecorderRef.current?.stop()
+    setRecording(false)
+  }
+  function cancelRecording() {
+    discardRecordingRef.current = true
     mediaRecorderRef.current?.stop()
     setRecording(false)
   }
@@ -708,6 +749,10 @@ export default function MensagensPage() {
           .msg-lightbox-actions button.ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4);}
           .msg-composer{padding:8px 8px;background:#0b141a;display:flex;gap:8px;align-items:flex-end;flex:none;}
           .msg-composer-pill{flex:1;min-width:0;display:flex;align-items:center;background:#2a3942;border-radius:26px;padding:2px 4px 2px 4px;}
+          .msg-recording-pill{padding:6px 6px 6px 16px;gap:10px;}
+          .msg-recording-dot{width:11px;height:11px;border-radius:50%;background:#e0645a;flex:none;animation:msgRecPulse 1.1s ease-in-out infinite;}
+          @keyframes msgRecPulse{0%,100%{opacity:1;}50%{opacity:.25;}}
+          .msg-recording-txt{flex:1;color:#e9edef;font-size:14px;font-variant-numeric:tabular-nums;}
           .msg-composer-pill textarea{flex:1;min-width:0;border:none;background:none;color:#e9edef;font-size:14.5px;font-family:inherit;padding:10px 4px;resize:none;max-height:120px;line-height:1.35;scrollbar-width:none;-ms-overflow-style:none;}
           .msg-composer-pill textarea::-webkit-scrollbar{display:none;}
           .msg-composer-pill textarea::placeholder{color:#8696a0;}
@@ -918,39 +963,46 @@ export default function MensagensPage() {
                     <input type="file" accept="image/*" multiple ref={fileInputRef} style={{ display: 'none' }} onChange={onPickImage} />
                     <input type="file" accept="video/*" ref={videoInputRef} style={{ display: 'none' }} onChange={onPickVideo} />
                     <input type="file" ref={docInputRef} style={{ display: 'none' }} onChange={onPickDocument} />
-                    <div className="msg-composer-pill">
-                      <div style={{ position: 'relative' }}>
-                        {emojiPickerOpen && (
-                          <div className="msg-emoji-picker" onMouseLeave={() => setEmojiPickerOpen(false)}>
-                            {EMOJI_PICKER_LIST.map((em, i) => (
-                              <button key={i} onClick={() => { setText(t => t + em); setEmojiPickerOpen(false) }}>{em}</button>
-                            ))}
-                          </div>
-                        )}
-                        <button className="msg-composer-icon" disabled={sending || recording} onClick={() => setEmojiPickerOpen(v => !v)} title="Emoji">😊</button>
+                    {recording ? (
+                      <div className="msg-composer-pill msg-recording-pill">
+                        <span className="msg-recording-dot" />
+                        <span className="msg-recording-txt">Gravando... {Math.floor(recordSeconds / 60)}:{String(recordSeconds % 60).padStart(2, '0')}</span>
+                        <button className="msg-composer-icon" title="Cancelar gravação" onClick={cancelRecording}>🗑</button>
                       </div>
-                      <textarea
-                        ref={composerRef} rows={1}
-                        placeholder={editingMessage ? 'Editar mensagem' : 'Mensagem'}
-                        value={text}
-                        onChange={e => setText(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
-                        disabled={recording}
-                      />
-                      <div style={{ position: 'relative' }}>
-                        {attachMenuOpen && (
-                          <div className="msg-attach-menu" onMouseLeave={() => setAttachMenuOpen(false)}>
-                            <button onClick={() => { fileInputRef.current?.click(); setAttachMenuOpen(false) }}>🖼 Foto(s)</button>
-                            <button onClick={() => { videoInputRef.current?.click(); setAttachMenuOpen(false) }}>🎥 Vídeo</button>
-                            <button onClick={() => { docInputRef.current?.click(); setAttachMenuOpen(false) }}>📄 Documento</button>
-                            <button onClick={() => { shareLocation(); setAttachMenuOpen(false) }}>📍 Localização</button>
-                            <button onClick={() => { setContactPicker({ mode: 'shareContact' }); setAttachMenuOpen(false) }}>👤 Contato</button>
-                          </div>
-                        )}
-                        <button className="msg-composer-icon" disabled={sending || recording || !!editingMessage} onClick={() => setAttachMenuOpen(v => !v)} title="Anexar">📎</button>
+                    ) : (
+                      <div className="msg-composer-pill">
+                        <div style={{ position: 'relative' }}>
+                          {emojiPickerOpen && (
+                            <div className="msg-emoji-picker" onMouseLeave={() => setEmojiPickerOpen(false)}>
+                              {EMOJI_PICKER_LIST.map((em, i) => (
+                                <button key={i} onClick={() => { setText(t => t + em); setEmojiPickerOpen(false) }}>{em}</button>
+                              ))}
+                            </div>
+                          )}
+                          <button className="msg-composer-icon" disabled={sending} onClick={() => setEmojiPickerOpen(v => !v)} title="Emoji">😊</button>
+                        </div>
+                        <textarea
+                          ref={composerRef} rows={1}
+                          placeholder={editingMessage ? 'Editar mensagem' : 'Mensagem'}
+                          value={text}
+                          onChange={e => setText(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
+                        />
+                        <div style={{ position: 'relative' }}>
+                          {attachMenuOpen && (
+                            <div className="msg-attach-menu" onMouseLeave={() => setAttachMenuOpen(false)}>
+                              <button onClick={() => { fileInputRef.current?.click(); setAttachMenuOpen(false) }}>🖼 Foto(s)</button>
+                              <button onClick={() => { videoInputRef.current?.click(); setAttachMenuOpen(false) }}>🎥 Vídeo</button>
+                              <button onClick={() => { docInputRef.current?.click(); setAttachMenuOpen(false) }}>📄 Documento</button>
+                              <button onClick={() => { shareLocation(); setAttachMenuOpen(false) }}>📍 Localização</button>
+                              <button onClick={() => { setContactPicker({ mode: 'shareContact' }); setAttachMenuOpen(false) }}>👤 Contato</button>
+                            </div>
+                          )}
+                          <button className="msg-composer-icon" disabled={sending || !!editingMessage} onClick={() => setAttachMenuOpen(v => !v)} title="Anexar">📎</button>
+                        </div>
+                        <button className="msg-composer-icon" disabled={sending || !!editingMessage} onClick={() => fileInputRef.current?.click()} title="Câmera">📷</button>
                       </div>
-                      <button className="msg-composer-icon" disabled={sending || recording || !!editingMessage} onClick={() => fileInputRef.current?.click()} title="Câmera">📷</button>
-                    </div>
+                    )}
                     <button
                       className={`msg-mic-send ${recording ? 'active' : text.trim() ? 'send' : ''}`}
                       disabled={sending || (!text.trim() && !recording && !!editingMessage)}

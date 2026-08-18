@@ -21,7 +21,11 @@ export async function compressImage(file: File, maxSizeMB = 0.25, maxWidthOrHeig
       maxSizeMB,
       maxWidthOrHeight,
       useWebWorker: true,
-      fileType: 'image/webp',
+      // jpeg em vez de webp: alguns navegadores mobile (Samsung Internet,
+      // WebViews Android mais antigos) não conseguem CODIFICAR webp via
+      // canvas.toBlob e derrubavam a tentativa principal inteira — jpeg é
+      // suportado em praticamente qualquer navegador.
+      fileType: 'image/jpeg',
     })
   } catch {
     for (const { useWebWorker, ...opts } of FALLBACKS) {

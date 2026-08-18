@@ -619,7 +619,7 @@ export default function MensagensPage() {
           .msg-item-actions button:hover{opacity:1;background:#EFE8D8;}
           .msg-archived-toggle{width:100%;padding:12px 14px;background:none;border:none;border-top:1px solid #F0EDE8;color:#8A6410;font-weight:700;font-size:12px;cursor:pointer;text-align:left;font-family:inherit;}
           .msg-thread{display:flex;flex-direction:column;min-height:0;}
-          @media(max-width:767px){.msg-thread{display:${selected ? 'flex' : 'none'};}}
+          @media(max-width:767px){.msg-thread{display:${selected ? 'flex' : 'none'};position:fixed;inset:0;z-index:10000;background:#0b141a;}}
           .msg-thead{padding:12px 16px;background:#202c33;border-bottom:1px solid #2f3b43;display:flex;align-items:center;gap:10px;flex:none;color:#e9edef;}
           .msg-back{display:none;background:none;border:none;font-size:18px;cursor:pointer;color:#aebac1;}
           @media(max-width:767px){.msg-back{display:block;}}
@@ -678,13 +678,14 @@ export default function MensagensPage() {
           .msg-deleted{font-size:12.5px;color:#8696a0;font-style:italic;}
           .msg-edited-tag{font-size:9.5px;color:#8696a0;}
           .msg-online-dot{width:8px;height:8px;border-radius:50%;background:#3FBF6F;border:2px solid #202c33;position:absolute;margin-left:24px;margin-top:22px;}
-          .msg-lightbox{position:fixed;inset:0;background:rgba(10,8,4,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;padding:24px;}
+          .msg-lightbox{position:fixed;inset:0;background:rgba(10,8,4,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:10050;padding:24px;}
           .msg-lightbox img{max-width:92vw;max-height:76vh;object-fit:contain;border-radius:6px;}
+          .msg-lightbox-close{position:absolute;top:16px;right:16px;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.14);border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
           .msg-lightbox-actions{display:flex;gap:12px;margin-top:18px;}
           .msg-lightbox-actions button{background:#fff;color:#1A1610;border:none;padding:10px 20px;border-radius:24px;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;}
           .msg-lightbox-actions button.ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4);}
           .msg-composer{padding:10px 14px;background:#202c33;border-top:1px solid #2f3b43;display:flex;gap:8px;align-items:center;flex:none;}
-          .msg-composer input{flex:1;padding:11px 14px;border-radius:22px;border:none;background:#2a3942;color:#e9edef;font-size:13px;font-family:inherit;}
+          .msg-composer input{flex:1;min-width:0;padding:11px 14px;border-radius:22px;border:none;background:#2a3942;color:#e9edef;font-size:13px;font-family:inherit;}
           .msg-composer input::placeholder{color:#8696a0;}
           .msg-send{width:38px;height:38px;border-radius:50%;background:#00a884;border:none;color:#fff;font-weight:800;cursor:pointer;flex:none;}
           .msg-attach,.msg-mic{width:36px;height:36px;border-radius:50%;background:none;border:none;color:#8696a0;font-size:17px;cursor:pointer;flex:none;}
@@ -769,8 +770,8 @@ export default function MensagensPage() {
                           <div className="msg-avatar">{(selectedLive?.name || selectedLive?.phone || '').slice(0, 2).toUpperCase()}</div>
                           {isOnline && !isTyping && <div className="msg-online-dot" />}
                         </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 700, fontSize: 14, color: '#e9edef' }}>{selectedLive?.name || selectedLive?.phone}</div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 700, fontSize: 14, color: '#e9edef', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedLive?.name || selectedLive?.phone}</div>
                           <div style={{ fontSize: 11.5, color: '#8696a0' }}>
                             {isTyping ? <span className="msg-presence">digitando...</span> : isOnline ? <span className="msg-presence">online</span> : selectedLive?.phone}
                           </div>
@@ -911,6 +912,7 @@ export default function MensagensPage() {
 
         {lightbox && (
           <div className="msg-lightbox" onClick={() => setLightbox(null)}>
+            <button className="msg-lightbox-close" onClick={e => { e.stopPropagation(); setLightbox(null) }} title="Fechar">✕</button>
             <img src={lightbox} alt="" onClick={e => e.stopPropagation()} />
             <div className="msg-lightbox-actions" onClick={e => e.stopPropagation()}>
               <button onClick={() => downloadImage(lightbox)}>⬇ Baixar</button>

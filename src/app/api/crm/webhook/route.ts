@@ -42,10 +42,12 @@ export async function POST(req: NextRequest) {
       .eq('instance_name', instanceName).maybeSingle()
     if (!inst) return NextResponse.json({ ok: true })
 
-    // DEBUG temporário: grava o payload cru de status/presença pra descobrir
-    // o formato exato que essa versão da Evolution manda (vamos remover essa
-    // tabela depois de confirmar o parsing).
-    if (event.includes('messages.update') || event.includes('messages_update') || event.includes('presence')) {
+    // DEBUG temporário: grava o payload cru de status/presença/chat pra
+    // descobrir o formato exato que essa versão da Evolution manda (vamos
+    // remover essa tabela depois de confirmar o parsing). chats.update é o
+    // evento que deve carregar o "li no celular" sincronizado de volta —
+    // ainda não sabemos o formato real até ver um payload de verdade.
+    if (event.includes('messages.update') || event.includes('messages_update') || event.includes('presence') || event.includes('chats')) {
       await supabase.from('crm_webhook_debug').insert({ event, payload: body })
     }
 
@@ -63,7 +65,7 @@ export async function POST(req: NextRequest) {
           body: JSON.stringify({
             webhook: {
               enabled: true, url: `${SITE_URL}/api/crm/webhook`, byEvents: false, base64: true,
-              events: ['QRCODE_UPDATED', 'CONNECTION_UPDATE', 'MESSAGES_UPSERT', 'MESSAGES_UPDATE', 'PRESENCE_UPDATE'],
+              events: ['QRCODE_UPDATED', 'CONNECTION_UPDATE', 'MESSAGES_UPSERT', 'MESSAGES_UPDATE', 'PRESENCE_UPDATE', 'CHATS_UPDATE', 'CHATS_UPSERT'],
             },
           }),
         })

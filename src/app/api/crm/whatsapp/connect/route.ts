@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
           url: `${SITE_URL}/api/crm/webhook`,
           byEvents: false,
           base64: true,
-          events: ['QRCODE_UPDATED', 'CONNECTION_UPDATE', 'MESSAGES_UPSERT', 'MESSAGES_UPDATE', 'PRESENCE_UPDATE'],
+          events: ['QRCODE_UPDATED', 'CONNECTION_UPDATE', 'MESSAGES_UPSERT', 'MESSAGES_UPDATE', 'PRESENCE_UPDATE', 'CHATS_UPDATE', 'CHATS_UPSERT'],
         },
       }),
     })

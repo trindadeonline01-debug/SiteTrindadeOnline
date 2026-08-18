@@ -155,6 +155,7 @@ export default function MensagensPage() {
   const [npObs, setNpObs] = useState('')
   const [npPay, setNpPay] = useState<'pix' | 'dinheiro' | 'cartao'>('dinheiro')
   const [npSaving, setNpSaving] = useState(false)
+  const [npError, setNpError] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [attachMenuOpen, setAttachMenuOpen] = useState(false)
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
@@ -280,7 +281,7 @@ export default function MensagensPage() {
     }
   }
   function closeNovoPedido() {
-    setNpOpen(false); setNpCart([]); setNpDetail(null); setNpEndereco(''); setNpObs(''); setNpPay('dinheiro'); setNpSearch(''); setNpFilterCat('all'); setNpCartOpen(false)
+    setNpOpen(false); setNpCart([]); setNpDetail(null); setNpEndereco(''); setNpObs(''); setNpPay('dinheiro'); setNpSearch(''); setNpFilterCat('all'); setNpCartOpen(false); setNpError('')
   }
   function npAddToCart(produtoId: string, name: string, price: number, modifiers: { name: string; price: number }[] = []) {
     const key = produtoId + '|' + modifiers.map(m => m.name).sort().join('+')
@@ -322,28 +323,37 @@ export default function MensagensPage() {
   async function npCriarPedido() {
     if (!company || !selectedLive || npCart.length === 0) return
     setNpSaving(true)
+    setNpError('')
     const deliveryType = npEndereco.trim() ? 'entrega' : 'retirada'
-    const { data: pedido } = await supabase.from('loja_pedidos').insert({
+    const { data: pedido, error: pedidoErr } = await supabase.from('loja_pedidos').insert({
       company_id: company.id, customer_id: null,
       customer_name: selectedLive.name || selectedLive.phone, customer_phone: selectedLive.phone,
       delivery_address: npEndereco.trim() || null, delivery_type: deliveryType, origin: 'crm_conversa', payment_method: npPay,
       subtotal: npTotal, total: npTotal, notes: npObs.trim() || null, accepted_at: new Date().toISOString(),
     }).select('id').single()
-    if (pedido) {
-      await supabase.from('loja_pedido_itens').insert(npCart.map(l => ({
-        pedido_id: pedido.id, produto_id: l.produtoId, product_name: l.name, unit_price: l.unitPrice, qty: l.qty,
-        selected_options: l.modifiers,
-      })))
-      fetch('/api/loja/registrar-pedido', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          companyId: company.id, phone: selectedLive.phone, name: selectedLive.name || selectedLive.phone,
-          address: npEndereco.trim() || null, total: npTotal, subtotal: npTotal, deliveryFee: 0,
-          paymentMethod: npPay, deliveryType, notes: npObs.trim() || null,
-          items: npCart.map(l => ({ produtoId: l.produtoId, name: l.name, qty: l.qty, unitPrice: l.unitPrice, modifiers: l.modifiers })),
-        }),
-      }).catch(() => {})
+    if (pedidoErr || !pedido) {
+      setNpError(pedidoErr?.message || 'Não consegui criar o pedido — tenta de novo.')
+      setNpSaving(false)
+      return
     }
+    const { error: itensErr } = await supabase.from('loja_pedido_itens').insert(npCart.map(l => ({
+      pedido_id: pedido.id, produto_id: l.produtoId, product_name: l.name, unit_price: l.unitPrice, qty: l.qty,
+      selected_options: l.modifiers,
+    })))
+    if (itensErr) {
+      setNpError('Pedido criado, mas falhou ao salvar os itens: ' + itensErr.message)
+      setNpSaving(false)
+      return
+    }
+    fetch('/api/loja/registrar-pedido', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        companyId: company.id, phone: selectedLive.phone, name: selectedLive.name || selectedLive.phone,
+        address: npEndereco.trim() || null, total: npTotal, subtotal: npTotal, deliveryFee: 0,
+        paymentMethod: npPay, deliveryType, notes: npObs.trim() || null,
+        items: npCart.map(l => ({ produtoId: l.produtoId, name: l.name, qty: l.qty, unitPrice: l.unitPrice, modifiers: l.modifiers })),
+      }),
+    }).catch(() => {})
     setNpSaving(false)
     closeNovoPedido()
   }
@@ -989,6 +999,7 @@ export default function MensagensPage() {
           .np-pay-row{display:flex;gap:8px;}
           .np-pay-btn{flex:1;padding:8px;border-radius:9px;border:1px solid #2f3b43;background:#2a3942;color:#cfd6da;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
           .np-pay-btn.on{background:#00a884;color:#fff;border-color:#00a884;}
+          .np-error{color:#e0645a;font-size:11.5px;line-height:1.5;}
           .np-confirm-btn{width:100%;padding:11px;border-radius:9px;border:none;background:#00a884;color:#fff;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;margin-top:4px;flex:none;}
           .np-confirm-btn:disabled{opacity:.5;cursor:not-allowed;}
           .np-hero{height:170px;flex:none;background:linear-gradient(135deg,#2a3942,#182229);display:flex;align-items:center;justify-content:center;font-size:44px;position:relative;overflow:hidden;}
@@ -1479,6 +1490,7 @@ export default function MensagensPage() {
                             <button key={p} className={`np-pay-btn ${npPay === p ? 'on' : ''}`} onClick={() => setNpPay(p)}>{p === 'dinheiro' ? 'Dinheiro' : p === 'pix' ? 'Pix' : 'Cartão'}</button>
                           ))}
                         </div>
+                        {npError && <div className="np-error">{npError}</div>}
                         <button className="np-confirm-btn" disabled={npSaving || npCart.length === 0} onClick={npCriarPedido}>{npSaving ? 'Criando...' : `Criar pedido — ${fmtMoney(npTotal)}`}</button>
                       </div>
                     </div>

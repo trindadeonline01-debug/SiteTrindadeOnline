@@ -14,29 +14,50 @@ function formatPhone(phone: string): string {
   return digits.startsWith('55') ? digits : '55' + digits
 }
 
-function buildOrderMessage(opts: {
-  items: { name: string; qty: number; unitPrice: number; modifiers?: { name: string; price: number }[] }[]
+type OrderItem = { name: string; qty: number; unitPrice: number; modifiers?: { name: string; price: number }[] }
+type OrderInfo = {
+  items: OrderItem[]
   subtotal: number; deliveryFee: number; total: number
   paymentMethod: string | null; deliveryType: string | null; address: string | null; notes: string | null
-}): string {
+}
+
+function itemLines(items: OrderItem[]): string[] {
   const fmt = (n: number) => 'R$ ' + Number(n || 0).toFixed(2).replace('.', ',')
-  const lines = opts.items.map(it => {
+  return items.map(it => {
     const mods = (it.modifiers || []).map(m => m.name).join(', ')
     return `• ${it.qty}x ${it.name}${mods ? ` (${mods})` : ''} — ${fmt(it.unitPrice * it.qty)}`
   })
-  const parts = [
-    '🧾 *Pedido recebido!*',
-    '',
-    ...lines,
-    '',
-    `Subtotal: ${fmt(opts.subtotal)}`,
-  ]
+}
+
+// Mensagem que o CLIENTE recebe, confirmando o pedido dele.
+function buildCustomerMessage(opts: OrderInfo): string {
+  const fmt = (n: number) => 'R$ ' + Number(n || 0).toFixed(2).replace('.', ',')
+  const parts = ['🧾 *Pedido recebido!*', '', ...itemLines(opts.items), '', `Subtotal: ${fmt(opts.subtotal)}`]
   if (opts.deliveryFee > 0) parts.push(`Taxa de entrega: ${fmt(opts.deliveryFee)}`)
   parts.push(`*Total: ${fmt(opts.total)}*`, '')
   if (opts.paymentMethod) parts.push(`💳 Pagamento: ${PAY_LABEL[opts.paymentMethod] || opts.paymentMethod}`)
   parts.push(opts.deliveryType === 'entrega' && opts.address ? `🚚 Entrega: ${opts.address}` : '🏪 Retirada no local')
   if (opts.notes) parts.push(`📝 Obs: ${opts.notes}`)
   parts.push('', 'Assim que confirmarmos, te avisamos por aqui!')
+  return parts.join('\n')
+}
+
+// Mensagem que a LOJA recebe (no WhatsApp de verdade, além da notificação
+// no app) — precisa dizer quem pediu, já que essa parte some na versão
+// que vai pro cliente.
+function buildOwnerMessage(opts: OrderInfo & { customerName: string; customerPhone: string | null }): string {
+  const fmt = (n: number) => 'R$ ' + Number(n || 0).toFixed(2).replace('.', ',')
+  const parts = [
+    '🔔 *Novo pedido!*',
+    `👤 ${opts.customerName}${opts.customerPhone ? ` · ${opts.customerPhone}` : ''}`,
+    '',
+    ...itemLines(opts.items),
+    '',
+    `*Total: ${fmt(opts.total)}*`,
+  ]
+  if (opts.paymentMethod) parts.push(`💳 ${PAY_LABEL[opts.paymentMethod] || opts.paymentMethod}`)
+  parts.push(opts.deliveryType === 'entrega' && opts.address ? `🚚 Entrega: ${opts.address}` : '🏪 Retirada no local')
+  if (opts.notes) parts.push(`📝 Obs: ${opts.notes}`)
   return parts.join('\n')
 }
 
@@ -74,31 +95,54 @@ export async function POST(req: NextRequest) {
 
     // Confirmação do pedido por WhatsApp de verdade — só quando a loja tem o
     // CRM ativo e conectado, e a gente recebeu os itens com nome/preço (o
-    // avulso e o checkout público mandam isso; chamadas antigas sem esses
-    // campos simplesmente pulam essa parte, sem quebrar o resto da rota).
-    if (phone && Array.isArray(items) && items.length > 0 && items.every((it: any) => it.name && it.unitPrice != null)) {
-      const { data: company } = await supabase.from('companies').select('crm_whatsapp_enabled').eq('id', companyId).maybeSingle()
+    // avulso, o pedido pela conversa e o checkout público mandam isso;
+    // chamadas antigas sem esses campos simplesmente pulam essa parte, sem
+    // quebrar o resto da rota).
+    if (Array.isArray(items) && items.length > 0 && items.every((it: any) => it.name && it.unitPrice != null)) {
+      const { data: company } = await supabase.from('companies').select('owner_id, crm_whatsapp_enabled').eq('id', companyId).maybeSingle()
       if (company?.crm_whatsapp_enabled) {
         const { data: instance } = await supabase
           .from('crm_whatsapp_instances').select('instance_name, api_key')
           .eq('company_id', companyId).eq('status', 'connected').limit(1).maybeSingle()
         if (instance) {
-          const text = buildOrderMessage({
+          const orderInfo = {
             items, subtotal: Number(subtotal ?? total ?? 0), deliveryFee: Number(deliveryFee || 0), total: Number(total || 0),
             paymentMethod: paymentMethod || null, deliveryType: deliveryType || null, address: address || null, notes: notes || null,
-          })
-          try {
-            await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', apikey: instance.api_key },
-              body: JSON.stringify({ number: formatPhone(phone), text }),
-            })
-            const { data: contact } = await supabase.from('crm_contacts').select('id').eq('company_id', companyId).eq('phone', phone).maybeSingle()
-            if (contact) {
-              await supabase.from('crm_messages').insert({
-                company_id: companyId, contact_id: contact.id, direction: 'out', body: text, status: 'sent', sent_at: new Date().toISOString(),
+          }
+
+          // Pro cliente — vira mensagem na conversa do CRM também.
+          if (phone) {
+            try {
+              const text = buildCustomerMessage(orderInfo)
+              await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', apikey: instance.api_key },
+                body: JSON.stringify({ number: formatPhone(phone), text }),
               })
-              await supabase.from('crm_contacts').update({ last_message_at: new Date().toISOString() }).eq('id', contact.id)
+              const { data: contact } = await supabase.from('crm_contacts').select('id').eq('company_id', companyId).eq('phone', phone).maybeSingle()
+              if (contact) {
+                await supabase.from('crm_messages').insert({
+                  company_id: companyId, contact_id: contact.id, direction: 'out', body: text, status: 'sent', sent_at: new Date().toISOString(),
+                })
+                await supabase.from('crm_contacts').update({ last_message_at: new Date().toISOString() }).eq('id', contact.id)
+              }
+            } catch {}
+          }
+
+          // Pro WhatsApp da própria loja (número pessoal do dono cadastrado
+          // no perfil) — assim o pedido chega no WhatsApp de verdade, não só
+          // como notificação dentro do app.
+          try {
+            const { data: owner } = company.owner_id
+              ? await supabase.from('profiles').select('phone').eq('id', company.owner_id).maybeSingle()
+              : { data: null }
+            if (owner?.phone) {
+              const ownerText = buildOwnerMessage({ ...orderInfo, customerName: name || 'Cliente', customerPhone: phone || null })
+              await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', apikey: instance.api_key },
+                body: JSON.stringify({ number: formatPhone(owner.phone), text: ownerText }),
+              })
             }
           } catch {}
         }

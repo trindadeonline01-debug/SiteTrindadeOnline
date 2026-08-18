@@ -864,6 +864,10 @@ export default function MensagensPage() {
           @media(max-width:767px){
             .msg-bubble-actions{width:auto;overflow:visible;}
             .msg-reply-btn{opacity:.6;}
+            /* Nas mensagens enviadas (right-aligned), as ações têm que ficar
+               à ESQUERDA da bolha — senão elas "roubam" o lugar da bolha
+               junto à borda direita e a bolha parece flutuar fora do lugar. */
+            .msg-bubble-row.out .msg-bubble-actions{order:-1;}
           }
           .msg-reply-btn{background:none;border:none;font-size:13px;color:#8696a0;cursor:pointer;opacity:0;transition:opacity .15s;padding:4px;flex:none;}
           .msg-bubble-row:hover .msg-reply-btn{opacity:1;}

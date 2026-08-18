@@ -95,7 +95,8 @@ export default function MensagensPage() {
   const [lightbox, setLightbox] = useState<string | null>(null)
   const [replyTo, setReplyTo] = useState<Message | null>(null)
   const [editingMessage, setEditingMessage] = useState<Message | null>(null)
-  const [showArchived, setShowArchived] = useState(false)
+  const [contactFilter, setContactFilter] = useState<'todas' | 'nao_lidas' | 'arquivadas'>('todas')
+  const [contactSearch, setContactSearch] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [attachMenuOpen, setAttachMenuOpen] = useState(false)
@@ -628,7 +629,13 @@ export default function MensagensPage() {
           .msg-item:hover .msg-item-actions{display:flex;}
           .msg-item-actions button{background:none;border:none;font-size:13px;cursor:pointer;padding:4px;border-radius:6px;opacity:.6;}
           .msg-item-actions button:hover{opacity:1;background:#2f3b43;}
-          .msg-archived-toggle{width:100%;padding:12px 14px;background:none;border:none;border-top:1px solid #202c33;color:#53bdeb;font-weight:700;font-size:12px;cursor:pointer;text-align:left;font-family:inherit;}
+          .msg-list-toolbar{position:sticky;top:0;z-index:5;background:#111b21;padding:10px 12px 8px;display:flex;flex-direction:column;gap:8px;}
+          .msg-list-search{width:100%;padding:9px 14px;border-radius:20px;border:none;background:#202c33;color:#e9edef;font-size:13px;font-family:inherit;}
+          .msg-list-search::placeholder{color:#8696a0;}
+          .msg-list-chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;}
+          .msg-list-chips::-webkit-scrollbar{display:none;}
+          .msg-list-chip{flex:none;padding:6px 14px;border-radius:16px;border:none;background:#202c33;color:#cfd6da;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;}
+          .msg-list-chip.on{background:#00a884;color:#fff;}
           .msg-thread{display:flex;flex-direction:column;min-height:0;}
           @media(max-width:767px){.msg-thread{display:${selected ? 'flex' : 'none'};position:fixed;inset:0;z-index:10000;background:#0b141a;}}
           .msg-thead{padding:12px 16px;background:#202c33;border-bottom:1px solid #2f3b43;display:flex;align-items:center;gap:10px;flex:none;color:#e9edef;}
@@ -733,15 +740,33 @@ export default function MensagensPage() {
         ) : (
           <div className="msg-shell">
             <div className="msg-list">
+              <div className="msg-list-toolbar">
+                <input
+                  className="msg-list-search" placeholder="Pesquisar conversa"
+                  value={contactSearch} onChange={e => setContactSearch(e.target.value)}
+                />
+                <div className="msg-list-chips">
+                  <button className={`msg-list-chip ${contactFilter === 'todas' ? 'on' : ''}`} onClick={() => setContactFilter('todas')}>Todas</button>
+                  <button className={`msg-list-chip ${contactFilter === 'nao_lidas' ? 'on' : ''}`} onClick={() => setContactFilter('nao_lidas')}>Não lidas</button>
+                  <button className={`msg-list-chip ${contactFilter === 'arquivadas' ? 'on' : ''}`} onClick={() => setContactFilter('arquivadas')}>Arquivadas</button>
+                </div>
+              </div>
               {(() => {
-                const visible = contacts.filter(c => showArchived ? c.archived : !c.archived)
-                const pinned = visible.filter(c => c.pinned)
-                const rest = visible.filter(c => !c.pinned)
-                const archivedCount = contacts.filter(c => c.archived).length
+                const term = contactSearch.trim().toLowerCase()
+                const base = contacts
+                  .filter(c => contactFilter === 'arquivadas' ? c.archived : !c.archived)
+                  .filter(c => contactFilter !== 'nao_lidas' || (!!c.last_message_at && (!c.last_read_at || c.last_read_at < c.last_message_at)))
+                  .filter(c => !term || (c.name || '').toLowerCase().includes(term) || c.phone.includes(term))
+                const pinned = base.filter(c => c.pinned)
+                const rest = base.filter(c => !c.pinned)
                 const rows = [...pinned, ...rest]
+                const emptyMsg = term ? 'Nenhuma conversa encontrada.'
+                  : contactFilter === 'arquivadas' ? 'Nenhuma conversa arquivada.'
+                  : contactFilter === 'nao_lidas' ? 'Nenhuma conversa não lida.'
+                  : 'Nenhuma conversa ainda.'
                 return (
                   <>
-                    {rows.length === 0 && <div style={{ padding: 20, fontSize: 12.5, color: '#A79E8B', textAlign: 'center' }}>{showArchived ? 'Nenhuma conversa arquivada.' : 'Nenhuma conversa ainda.'}</div>}
+                    {rows.length === 0 && <div style={{ padding: 20, fontSize: 12.5, color: '#8696a0', textAlign: 'center' }}>{emptyMsg}</div>}
                     {rows.map(c => {
                       const unread = !!c.last_message_at && (!c.last_read_at || c.last_read_at < c.last_message_at)
                       return (
@@ -759,11 +784,6 @@ export default function MensagensPage() {
                         </div>
                       )
                     })}
-                    {archivedCount > 0 && (
-                      <button className="msg-archived-toggle" onClick={() => setShowArchived(v => !v)}>
-                        {showArchived ? '‹ Voltar' : `🗄 Ver arquivadas (${archivedCount})`}
-                      </button>
-                    )}
                   </>
                 )
               })()}

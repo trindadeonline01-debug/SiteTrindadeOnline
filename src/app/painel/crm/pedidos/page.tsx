@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import CrmShell from '@/components/CrmShell'
+import EmpresaShell from '@/components/EmpresaShell'
 
 type Item = { id: string; product_name: string; unit_price: number; qty: number; selected_options: { name: string; price: number }[] }
 type Status = 'recebido' | 'em_preparo' | 'pronto' | 'saiu_entrega' | 'entregue' | 'cancelado'
@@ -92,6 +92,7 @@ export default function PedidosPage() {
   const [loading, setLoading] = useState(true)
   const [companyId, setCompanyId] = useState('')
   const [companyName, setCompanyName] = useState('')
+  const [crmEnabled, setCrmEnabled] = useState(false)
   const [autoAceitar, setAutoAceitar] = useState(true)
   const [pedidos, setPedidos] = useState<Pedido[]>([])
   const [mobileStage, setMobileStage] = useState<MobileStageKey>('recebido')
@@ -115,10 +116,11 @@ export default function PedidosPage() {
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { window.location.href = '/login?redirect=/painel/crm/pedidos'; return }
-      const { data: comp } = await supabase.from('companies').select('id, name, loja_digital_enabled, loja_auto_aceitar_pedidos').eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
+      const { data: comp } = await supabase.from('companies').select('id, name, loja_digital_enabled, loja_auto_aceitar_pedidos, crm_whatsapp_enabled').eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
       if (!comp || !comp.loja_digital_enabled) { window.location.href = '/painel/crm'; return }
       setCompanyId(comp.id); companyIdRef.current = comp.id
       setCompanyName(comp.name)
+      setCrmEnabled(!!comp.crm_whatsapp_enabled)
       setAutoAceitar(comp.loja_auto_aceitar_pedidos !== false)
       await loadAll(comp.id)
       setLoading(false)
@@ -279,7 +281,7 @@ export default function PedidosPage() {
   const cancelados = searched.filter(p => p.status === 'cancelado')
 
   return (
-    <CrmShell active="pedidos" companyName={companyName}>
+    <EmpresaShell active="pedidos" companyName={companyName} lojaDigitalEnabled crmEnabled={crmEnabled}>
     <div className="pd-wrap">
       <style>{`
         .pd-wrap{ width:100%;max-width:480px;margin:0 auto;min-height:100vh;background:#F7F5F0;font-family:'Inter',sans-serif;font-size:13px;color:#1A1610;padding-bottom:30px;overflow-x:hidden;min-width:0; }
@@ -512,6 +514,6 @@ export default function PedidosPage() {
         </div>
       )}
     </div>
-    </CrmShell>
+    </EmpresaShell>
   )
 }

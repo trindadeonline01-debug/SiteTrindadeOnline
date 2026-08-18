@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import CrmShell from '@/components/CrmShell'
+import EmpresaShell from '@/components/EmpresaShell'
 
 type Contact = {
   id: string; phone: string; name: string | null; address: string | null
@@ -18,6 +18,7 @@ function waLink(phone: string) { return `https://wa.me/${phone.replace(/\D/g, ''
 export default function ClientesPage() {
   const [loading, setLoading] = useState(true)
   const [companyName, setCompanyName] = useState('')
+  const [crmEnabled, setCrmEnabled] = useState(false)
   const [contacts, setContacts] = useState<Contact[]>([])
   const [filter, setFilter] = useState<'todos' | 'ativos' | 'inativos'>('todos')
   const [search, setSearch] = useState('')
@@ -25,9 +26,10 @@ export default function ClientesPage() {
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { window.location.href = '/login?redirect=/painel/crm/clientes'; return }
-      const { data: comp } = await supabase.from('companies').select('id, name, loja_digital_enabled').eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
+      const { data: comp } = await supabase.from('companies').select('id, name, loja_digital_enabled, crm_whatsapp_enabled').eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
       if (!comp || !comp.loja_digital_enabled) { window.location.href = '/painel/crm'; return }
       setCompanyName(comp.name)
+      setCrmEnabled(!!comp.crm_whatsapp_enabled)
       const { data } = await supabase.from('crm_contacts').select('*').eq('company_id', comp.id).order('last_purchase_at', { ascending: false })
       setContacts((data || []) as Contact[])
       setLoading(false)
@@ -44,7 +46,7 @@ export default function ClientesPage() {
   const ativosCount = contacts.filter(c => diasAtras(c.last_purchase_at) <= 30).length
 
   return (
-    <CrmShell active="clientes" companyName={companyName}>
+    <EmpresaShell active="clientes" companyName={companyName} lojaDigitalEnabled crmEnabled={crmEnabled}>
       <div className="cl-wrap">
         <style>{`
           .cl-wrap{ width:100%;max-width:480px;margin:0 auto;min-height:100vh;background:#F7F5F0;font-family:'Inter',sans-serif;font-size:13px;color:#1A1610;padding-bottom:30px;min-width:0;overflow-x:hidden; }
@@ -77,7 +79,6 @@ export default function ClientesPage() {
           }
         `}</style>
         <div className="cl-head">
-          <a href="/painel/crm" className="cl-back">‹</a>
           <h1>Clientes</h1>
         </div>
         <div className="cl-body">
@@ -113,6 +114,6 @@ export default function ClientesPage() {
           </div>
         </div>
       </div>
-    </CrmShell>
+    </EmpresaShell>
   )
 }

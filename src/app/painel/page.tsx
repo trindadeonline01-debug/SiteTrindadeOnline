@@ -8,9 +8,10 @@ import { supabase } from '@/lib/supabase'
 import PhotoManager from '@/components/PhotoManager'
 import BusinessHoursEditor from '@/components/BusinessHoursEditor'
 import { IGREJAS_CATEGORY_ID, DIAS_SEMANA, HourRow } from '@/lib/businessHours'
+import EmpresaShell, { EmpresaNavKey } from '@/components/EmpresaShell'
 
 type Company = {
-  id: string; name: string; status: string; plan: string
+  id: string; name: string; slug?: string; status: string; plan: string
   address: string; phone: string; description: string
   external_link: string; external_link_label: string
   avg_rating: number; total_reviews: number
@@ -19,6 +20,7 @@ type Company = {
   delivery_available?: boolean
   flexible_hours?: boolean
   loja_digital_enabled?: boolean
+  crm_whatsapp_enabled?: boolean
   category?: { name: string; emoji: string }
   photos?: { id: string; url: string; order: number }[]
   hours?: { id: string; label: string; hours: string; order: number; day_of_week: number | null; open_time: string | null; close_time: string | null; closed: boolean }[]
@@ -542,18 +544,6 @@ export default function PainelPage() {
   const photos = company.photos?.sort((a,b)=>a.order-b.order) || []
   const pendingReplies = reviews.filter(r=>!r.response).length
 
-  const tabTitle: Record<string,string> = {
-    painel:'Dashboard', destaques:'Destaques', banners:'Banners', avaliacoes:'Avaliações', perfil:'Minha Empresa', plano:'Meu Plano', cupons:'Cupons Relâmpago', promocoes:'Promoções da Semana'
-  }
-
-  const navItems = [
-    { id:'painel',     ico:'📊', lbl:'Dashboard',  badge:0 },
-    { id:'avaliacoes', ico:'💬', lbl:'Avaliações', badge:pendingReplies },
-    { id:'perfil',     ico:'✏️', lbl:'Empresa',    badge:0 },
-    { id:'plano',      ico:'💳', lbl:'Plano',      badge:0 },
-    { id:'cupons',     ico:'🎟️', lbl:'Cupons',     badge:0 },
-    { id:'promocoes',  ico:'🏷️', lbl:'Promoções',  badge:0 },
-  ]
 
   return (
     <>
@@ -561,44 +551,6 @@ export default function PainelPage() {
         *{box-sizing:border-box;margin:0;padding:0;}
         body{font-family:'Inter',sans-serif;background:#F0EDE8;}
 
-        .painel-layout{display:flex;min-height:100vh;}
-        .sidebar{width:220px;background:#111;flex-shrink:0;display:none;flex-direction:column;position:sticky;top:0;height:100vh;}
-        @media(min-width:768px){.sidebar{display:flex;}}
-        .sb-logo{padding:24px 20px 16px;border-bottom:1px solid #222;}
-        .sb-logo-txt{font-family:'Bebas Neue',sans-serif;font-size:20px;color:#fff;letter-spacing:2px;}
-        .sb-logo-txt span{color:#C9951A;}
-        .sb-empresa{font-family:'Bebas Neue',sans-serif;font-size:14px;color:#C9951A;letter-spacing:1px;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-        .sb-status{font-size:10px;font-weight:600;padding:2px 8px;border-radius:8px;display:inline-block;margin-top:4px;}
-        .sb-status.active{background:rgba(15,128,80,.2);color:#5EE8A0;}
-        .sb-status.pending{background:rgba(201,149,26,.2);color:#E8B84B;}
-        .sb-nav{padding:12px 0;flex:1;}
-        .sb-item{display:flex;align-items:center;gap:10px;padding:12px 20px;cursor:pointer;transition:all .15s;color:#888;font-size:13px;font-weight:500;border-left:3px solid transparent;position:relative;}
-        .sb-item:hover{background:#1A1A1A;color:#fff;}
-        .sb-item.on{background:#1A1A1A;color:#C9951A;border-left-color:#C9951A;}
-        .sb-badge{margin-left:auto;background:#E24B4A;color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;}
-        .sb-footer{padding:16px 20px;border-top:1px solid #222;}
-        .sb-footer a{font-size:12px;color:#C9951A;text-decoration:none;display:flex;align-items:center;gap:6px;font-weight:600;}
-        .sb-footer a:hover{color:#fff;}
-        .sb-actions{display:flex;gap:6px;}
-        .sb-btn{flex:1;padding:10px 8px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;text-align:center;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:4px;}
-        .sb-btn-gold{background:#C9951A;color:#fff !important;}
-        .sb-btn-gold:hover{background:#B8841A;color:#fff !important;}
-        .sb-btn-gray{background:transparent;color:#888 !important;border:1.5px solid #333;}
-        .sb-btn-gray:hover{background:#1A1A1A;color:#C9951A !important;border-color:#C9951A;}
-        .mobile-actions{background:#F5F0E8;padding:12px 16px;display:flex;gap:8px;align-items:stretch;}
-        @media(min-width:768px){.mobile-actions{display:none;}}
-        .m-action-btn{flex:1;min-width:0;width:0;padding:12px 10px;border-radius:10px;font-size:13px;font-weight:700;text-decoration:none;text-align:center;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px;}
-        .m-action-gold{background:#C9951A;color:#fff;}
-        .m-action-gold:hover{background:#B8841A;}
-        .m-action-gray{background:transparent;color:#666;border:1.5px solid #DDD;}
-        .m-action-gray:hover{background:#EDE8E0;color:#111;}
-        .m-action-select{flex:1;min-width:0;width:0;padding:0 10px;border-radius:10px;border:1.5px solid #DDD;font-size:12px;font-weight:600;color:#333;background:#fff;font-family:'Inter',sans-serif;text-overflow:ellipsis;overflow:hidden;white-space:nowrap;}
-
-        .painel-main{flex:1;overflow-x:hidden;display:flex;flex-direction:column;min-width:0;}
-        .topbar{background:#fff;border-bottom:1px solid #EDE8E0;padding:14px 28px;display:none;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20;}
-        @media(min-width:768px){.topbar{display:flex;}}
-        .topbar-title{font-family:'Bebas Neue',sans-serif;font-size:20px;color:#111;letter-spacing:1px;}
-        .topbar-right{font-size:12px;color:#AAA;}
 
         /* CONTENT — padding padrão para abas normais */
         .content{padding:24px 28px;flex:1;}
@@ -1142,62 +1094,16 @@ export default function PainelPage() {
       )}
       {toast && <div className="toast">✓ {toast}</div>}
 
-      <div className="painel-layout">
-
-        {/* SIDEBAR — fixa na esquerda */}
-        <aside className="sidebar">
-          <div className="sb-logo">
-            <div className="sb-logo-txt">TRINDADE <span>ONLINE</span></div>
-            <div className="sb-empresa">{company.name}</div>
-            <span className={`sb-status ${company.status==='active'?'active':'pending'}`}>
-              {company.status==='active'?'● Ativa':'⏳ Pendente'}
-            </span>
-          </div>
-          {companies.length >= 1 && (
-            <div style={{padding:'8px 12px',borderBottom:'1px solid #222'}}>
-              <div style={{fontSize:10,color:'#555',fontWeight:700,letterSpacing:1,marginBottom:6}}>EMPRESAS</div>
-              {companies.map(c => (
-                <div key={c.id} onClick={() => { setCompany(c); setTab('painel') }}
-                  style={{padding:'7px 10px',borderRadius:8,cursor:'pointer',marginBottom:3,fontSize:12,fontWeight:600,
-                    background: company?.id === c.id ? 'rgba(201,149,26,.15)' : 'transparent',
-                    color: company?.id === c.id ? '#C9951A' : '#888',
-                    border: company?.id === c.id ? '1px solid rgba(201,149,26,.3)' : '1px solid transparent'
-                  }}>
-                  {c.name}
-                </div>
-              ))}
-              <a href="/empresa/cadastrar" style={{display:'block',padding:'7px 10px',fontSize:11,color:'#555',textDecoration:'none',marginTop:4}}>+ Nova empresa</a>
-            </div>
-          )}
-          <nav className="sb-nav">
-            {navItems.map(n => (
-              <div key={n.id} className={`sb-item ${tab===n.id?'on':''}`} onClick={() => setTab(n.id as any)}>
-                <span>{n.ico}</span>
-                <span>{n.lbl}</span>
-                {n.badge > 0 && <span className="sb-badge">{n.badge}</span>}
-              </div>
-            ))}
-            {company.loja_digital_enabled && (
-              <a href="/painel/crm" className="sb-item" style={{textDecoration:'none'}}>
-                <span>🧾</span>
-                <span>Cardápio Digital</span>
-              </a>
-            )}
-          </nav>
-          <div className="sb-footer">
-            <div className="sb-actions">
-
-              <a href="/sair" className="sb-btn sb-btn-gray">🚪 Sair</a>
-            </div>
-          </div>
-        </aside>
-
-        {/* MAIN — área direita */}
-        <main className="painel-main">
-          <div className="topbar">
-            <div className="topbar-title">{tabTitle[tab]}</div>
-            <div className="topbar-right">{new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})}</div>
-          </div>
+      <EmpresaShell
+        active={(tab === 'painel' ? 'dashboard' : tab) as EmpresaNavKey}
+        companyName={company.name}
+        companySlug={company.slug}
+        lojaDigitalEnabled={company.loja_digital_enabled}
+        crmEnabled={company.crm_whatsapp_enabled}
+        avaliacoesBadge={pendingReplies}
+        companies={companies}
+        onSwitchCompany={c => { const full = companies.find(x => x.id === c.id); if (full) { setCompany(full); setTab('painel') } }}
+      >
 
           {company.plan !== 'paid' && company.trial_ends_at && (() => {
             const expired = new Date(company.trial_ends_at) < new Date()
@@ -2157,8 +2063,7 @@ export default function PainelPage() {
               </div>
             </div>
           )}
-        </main>
-      </div>
+      </EmpresaShell>
 
       <Footer/>
     </>

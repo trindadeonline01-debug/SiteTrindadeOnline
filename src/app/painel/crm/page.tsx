@@ -1,10 +1,10 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import CrmShell from '@/components/CrmShell'
+import EmpresaShell from '@/components/EmpresaShell'
 import QRCode from 'qrcode'
 
-type Company = { id: string; name: string; slug: string; loja_digital_enabled: boolean; loja_taxa_entrega: number; loja_pedido_minimo: number }
+type Company = { id: string; name: string; slug: string; loja_digital_enabled: boolean; loja_taxa_entrega: number; loja_pedido_minimo: number; crm_whatsapp_enabled: boolean }
 
 function parsePt(v: string) { return parseFloat((v || '0').replace(',', '.')) || 0 }
 
@@ -25,7 +25,7 @@ export default function CrmPage() {
       if (profile?.user_type !== 'company') { window.location.href = '/'; return }
       const { data: comp } = await supabase
         .from('companies')
-        .select('id, name, slug, loja_digital_enabled, loja_taxa_entrega, loja_pedido_minimo')
+        .select('id, name, slug, loja_digital_enabled, loja_taxa_entrega, loja_pedido_minimo, crm_whatsapp_enabled')
         .eq('owner_id', session.user.id)
         .order('created_at', { ascending: true })
         .limit(1)
@@ -91,17 +91,13 @@ export default function CrmPage() {
   }
 
   return (
-    <CrmShell active="inicio" companyName={company.name}>
+    <EmpresaShell active="compartilhar" companyName={company.name} companySlug={company.slug} lojaDigitalEnabled crmEnabled={company.crm_whatsapp_enabled}>
       <div className="crm-hub-content">
         <style>{`
           .crm-hub-content{padding:24px 16px 80px;min-width:0;}
           @media(min-width:768px){.crm-hub-content{padding:28px 32px;}}
           .crm-hub-title{font-size:17px;font-weight:800;margin-bottom:20px;text-align:center;}
           @media(min-width:768px){.crm-hub-title{display:none;}}
-          .crm-hub-exit{display:block;text-align:center;font-size:11.5px;font-weight:700;color:#8A6410;text-decoration:none;margin-bottom:14px;}
-          @media(min-width:768px){.crm-hub-exit{display:none;}}
-          .crm-hub-grid{display:flex;flex-direction:column;gap:12px;width:100%;max-width:320px;margin:0 auto;}
-          @media(min-width:768px){.crm-hub-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;max-width:none;margin:0;}}
           .crm-share-card{margin:20px auto 0;max-width:320px;background:#fff;border:1px solid #EDE8E0;border-radius:14px;padding:18px;text-align:center;}
           @media(min-width:768px){.crm-share-card{max-width:280px;margin:24px 0 0;}}
           .crm-share-title{font-weight:800;font-size:13.5px;margin-bottom:12px;}
@@ -118,15 +114,7 @@ export default function CrmPage() {
           .crm-config-field input{width:100%;padding:9px 11px;border-radius:9px;border:1px solid #E6E0D2;font-size:12.5px;font-family:inherit;}
           .crm-config-btn{width:100%;padding:9px;border-radius:9px;border:none;background:#1A1610;color:#C9951A;font-weight:700;font-size:12px;cursor:pointer;margin-top:4px;}
         `}</style>
-        <a href="/painel" className="crm-hub-exit">‹ Voltar ao Painel</a>
-        <div className="crm-hub-title">{company.name}</div>
-        <div className="crm-hub-grid">
-          <a href="/painel/crm/mensagens" style={hubCard}><span style={{ fontSize: 26 }}>💬</span><div><div style={hubTitle}>Mensagens</div><div style={hubSub}>Atenda pelo WhatsApp direto do painel</div></div></a>
-          <a href="/painel/crm/pedidos" style={hubCard}><span style={{ fontSize: 26 }}>🧾</span><div><div style={hubTitle}>Pedidos</div><div style={hubSub}>Ver e gerenciar pedidos recebidos</div></div></a>
-          <a href="/painel/crm/cozinha" style={hubCard}><span style={{ fontSize: 26 }}>🍳</span><div><div style={hubTitle}>Cozinha</div><div style={hubSub}>Painel pra deixar aberto na tela da cozinha</div></div></a>
-          <a href="/painel/crm/catalogo" style={hubCard}><span style={{ fontSize: 26 }}>📋</span><div><div style={hubTitle}>Catálogo</div><div style={hubSub}>Produtos, categorias e combos</div></div></a>
-          <a href="/painel/crm/clientes" style={hubCard}><span style={{ fontSize: 26 }}>👥</span><div><div style={hubTitle}>Clientes</div><div style={hubSub}>Quem comprou, quem sumiu</div></div></a>
-        </div>
+        <div className="crm-hub-title">Compartilhar cardápio</div>
         <div className="crm-share-card">
           <div className="crm-share-title">📲 Compartilhar cardápio</div>
           <div className="crm-share-qr">{qrDataUrl && <img src={qrDataUrl} alt="QR Code do cardápio" />}</div>
@@ -141,7 +129,7 @@ export default function CrmPage() {
           <button className="crm-config-btn" disabled={savingConfig} onClick={saveConfig}>{configSaved ? 'Salvo!' : savingConfig ? 'Salvando...' : 'Salvar'}</button>
         </div>
       </div>
-    </CrmShell>
+    </EmpresaShell>
   )
 }
 
@@ -153,9 +141,3 @@ const btn: React.CSSProperties = {
   background: '#C9951A', color: '#fff', padding: '11px 24px', borderRadius: 10,
   textDecoration: 'none', fontWeight: 700, fontSize: 13
 }
-const hubCard: React.CSSProperties = {
-  display: 'flex', alignItems: 'center', gap: 14, background: '#fff', border: '1px solid #EDE8E0',
-  borderRadius: 14, padding: '16px 18px', textDecoration: 'none', color: '#1A1610', textAlign: 'left'
-}
-const hubTitle: React.CSSProperties = { fontWeight: 800, fontSize: 14 }
-const hubSub: React.CSSProperties = { fontSize: 11.5, color: '#888', marginTop: 2 }

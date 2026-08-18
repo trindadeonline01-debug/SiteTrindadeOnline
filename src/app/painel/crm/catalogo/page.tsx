@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { compressImage } from '@/lib/compressImage'
-import CrmShell from '@/components/CrmShell'
+import EmpresaShell from '@/components/EmpresaShell'
 
 type Categoria = { id: string; name: string; display_order: number }
 type Opcao = { id?: string; name: string; price: string; max_qty: number | null; linked_produto_id: string | null; photo_url?: string | null; _photoFile?: File | null }
@@ -105,6 +105,7 @@ export default function CatalogoPage() {
   const [loading, setLoading] = useState(true)
   const [companyId, setCompanyId] = useState('')
   const [companyName, setCompanyName] = useState('')
+  const [crmEnabled, setCrmEnabled] = useState(false)
   const [categorias, setCategorias] = useState<Categoria[]>([])
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [view, setView] = useState<'list' | 'form' | 'bulk'>('list')
@@ -142,10 +143,11 @@ export default function CatalogoPage() {
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { window.location.href = '/login?redirect=/painel/crm/catalogo'; return }
-      const { data: comp } = await supabase.from('companies').select('id, name, loja_digital_enabled').eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
+      const { data: comp } = await supabase.from('companies').select('id, name, loja_digital_enabled, crm_whatsapp_enabled').eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
       if (!comp || !comp.loja_digital_enabled) { window.location.href = '/painel/crm'; return }
       setCompanyId(comp.id)
       setCompanyName(comp.name)
+      setCrmEnabled(!!comp.crm_whatsapp_enabled)
       await loadAll(comp.id)
       await loadLastImportBatch(comp.id)
       setLoading(false)
@@ -608,7 +610,7 @@ export default function CatalogoPage() {
   const qualidade = produtos.length ? Math.round((pctFoto + pctDesc + pctPromo) / 3) : 0
 
   return (
-    <CrmShell active="catalogo" companyName={companyName}>
+    <EmpresaShell active="catalogo" companyName={companyName} lojaDigitalEnabled crmEnabled={crmEnabled}>
     <div className="cg-wrap">
       <style>{`
         .cg-wrap{ width:100%; max-width:480px; margin:0 auto; min-height:100vh; background:#F7F5F0; font-family:'Inter',sans-serif; font-size:13px; color:#1A1610; padding-bottom:40px; min-width:0; overflow-x:hidden; }
@@ -1113,6 +1115,6 @@ export default function CatalogoPage() {
 
       {toast && <div className="cg-toast">{toast}</div>}
     </div>
-    </CrmShell>
+    </EmpresaShell>
   )
 }

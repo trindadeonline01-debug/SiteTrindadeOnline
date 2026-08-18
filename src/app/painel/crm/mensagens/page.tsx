@@ -2,9 +2,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { compressImage } from '@/lib/compressImage'
-import CrmShell from '@/components/CrmShell'
+import EmpresaShell from '@/components/EmpresaShell'
 
-type Company = { id: string; name: string; crm_whatsapp_enabled: boolean }
+type Company = { id: string; name: string; slug?: string; crm_whatsapp_enabled: boolean; loja_digital_enabled?: boolean }
 type Instance = { id: string; instance_name: string; status: string; phone: string | null }
 type Contact = {
   id: string; phone: string; name: string | null; last_message_at: string | null; last_read_at: string | null
@@ -90,7 +90,7 @@ export default function MensagensPage() {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { window.location.href = '/login?redirect=/painel/crm/mensagens'; return }
       const { data: comp } = await supabase
-        .from('companies').select('id, name, crm_whatsapp_enabled')
+        .from('companies').select('id, name, slug, crm_whatsapp_enabled, loja_digital_enabled')
         .eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
       if (!comp) { window.location.href = '/painel/crm'; return }
       setCompany(comp as Company)
@@ -546,7 +546,7 @@ export default function MensagensPage() {
   const isOnline = selectedLive?.presence_state === 'available'
 
   return (
-    <CrmShell active="mensagens" companyName={company.name}>
+    <EmpresaShell active="mensagens" companyName={company.name} companySlug={company.slug} lojaDigitalEnabled={company.loja_digital_enabled} crmEnabled={company.crm_whatsapp_enabled}>
       <div className="msg-page">
         <style>{`
           .msg-page{padding:20px 16px 80px;min-width:0;}
@@ -864,6 +864,6 @@ export default function MensagensPage() {
           </div>
         )}
       </div>
-    </CrmShell>
+    </EmpresaShell>
   )
 }

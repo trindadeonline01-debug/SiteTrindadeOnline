@@ -7,7 +7,7 @@ import { useEffect, useRef } from 'react'
 // sidebar interna de /painel, que eram dois sistemas de menu separados.
 export type EmpresaNavKey =
   | 'dashboard' | 'perfil' | 'avaliacoes' | 'destaques' | 'banners'
-  | 'compartilhar' | 'catalogo' | 'pedidos' | 'cozinha' | 'mensagens' | 'clientes'
+  | 'compartilhar' | 'catalogo' | 'pedidos' | 'cozinha' | 'entrega' | 'mensagens' | 'clientes'
   | 'cupons' | 'promocoes' | 'plano'
 
 type Company = { id: string; name: string; slug?: string }
@@ -15,7 +15,7 @@ type Company = { id: string; name: string; slug?: string }
 const TITLES: Record<EmpresaNavKey, string> = {
   dashboard: 'Dashboard', perfil: 'Perfil e fotos', avaliacoes: 'Avaliações', destaques: 'Destaques',
   banners: 'Banners', compartilhar: 'Compartilhar cardápio', catalogo: 'Catálogo', pedidos: 'Pedidos',
-  cozinha: 'Cozinha', mensagens: 'Mensagens', clientes: 'Clientes', cupons: 'Cupons', promocoes: 'Promoções', plano: 'Plano',
+  cozinha: 'Cozinha', entrega: 'Entrega', mensagens: 'Mensagens', clientes: 'Clientes', cupons: 'Cupons', promocoes: 'Promoções', plano: 'Plano',
 }
 
 export default function EmpresaShell({
@@ -149,6 +149,7 @@ export default function EmpresaShell({
               <a href="/painel/crm/catalogo" className={`es-item ${active === 'catalogo' ? 'on' : ''}`}>📋 Catálogo</a>
               <a href="/painel/crm/pedidos" className={`es-item ${active === 'pedidos' ? 'on' : ''}`}>🧾 Pedidos</a>
               <a href="/painel/crm/cozinha" className={`es-item ${active === 'cozinha' ? 'on' : ''}`}>🍳 Cozinha</a>
+              <a href="/painel/crm/entrega" className={`es-item ${active === 'entrega' ? 'on' : ''}`}>🏍️ Entrega</a>
             </>
           )}
           {crmEnabled && (

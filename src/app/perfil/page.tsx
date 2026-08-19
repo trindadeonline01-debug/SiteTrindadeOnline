@@ -9,7 +9,9 @@ type Listing = { id: string; type: string; title: string; price?: number; subtyp
 type Review  = { id: string; rating: number; text?: string; created_at: string; company?: { name: string; slug: string } }
 type Fav     = { id: string; company?: { name: string; slug: string; category?: any } }
 type PedidoItem = { id: string; product_name: string; unit_price: number; qty: number; selected_options: { name: string; price: number }[] }
-type Pedido = { id: string; status: string; total: number; created_at: string; company?: { name: string; slug: string }; itens?: PedidoItem[] }
+type Pedido = { id: string; status: string; total: number; created_at: string; delivery_type: string; company?: { name: string; slug: string }; itens?: PedidoItem[] }
+type Entrega = { pedido_id: string; status: string; delivery_code: string; motoboy_name: string | null }
+const ENTREGA_STATUS_LABEL: Record<string, string> = { buscando_motoboy: 'Chamando motoboy', a_caminho: 'Motoboy a caminho', entregue: 'Entregue', cancelada: 'Cancelada', sem_credito: 'Aguardando loja' }
 
 const TYPE_EMOJI: Record<string,string> = { desapega:'🏷️', emprego:'💼', imovel:'🏠', achado:'🔍' }
 const TYPE_LABEL: Record<string,string> = { desapega:'Desapega', emprego:'Emprego', imovel:'Imóvel', achado:'Achado/Perdido' }
@@ -30,6 +32,7 @@ export default function PerfilPage() {
   const [tab, setTab]           = useState<'perfil'|'anuncios'|'avaliacoes'|'favoritos'|'cupons'|'pedidos'>('perfil')
   const [myCoupons, setMyCoupons] = useState<any[]>([])
   const [myPedidos, setMyPedidos] = useState<Pedido[]>([])
+  const [entregas, setEntregas] = useState<Record<string, Entrega>>({})
   const [editing, setEditing]   = useState(false)
   const [form, setForm]         = useState({ name:'', phone:'', neighborhood:'' })
   const [saving, setSaving]     = useState(false)
@@ -91,10 +94,19 @@ export default function PerfilPage() {
     }
     if (tab === 'pedidos' && profile?.id) {
       supabase.from('loja_pedidos')
-        .select('id, status, total, created_at, company:companies(name,slug), itens:loja_pedido_itens(*)')
+        .select('id, status, total, created_at, delivery_type, company:companies(name,slug), itens:loja_pedido_itens(*)')
         .eq('customer_id', profile!.id)
         .order('created_at', { ascending: false })
-        .then(({ data }) => setMyPedidos((data || []) as any))
+        .then(async ({ data }) => {
+          const pedidos = (data || []) as any as Pedido[]
+          setMyPedidos(pedidos)
+          const ids = pedidos.filter(p => p.delivery_type === 'entrega').map(p => p.id)
+          if (ids.length === 0) { setEntregas({}); return }
+          const { data: dEntregas } = await supabase.from('delivery_orders').select('pedido_id, status, delivery_code, motoboy_name').in('pedido_id', ids)
+          const map: Record<string, Entrega> = {}
+          for (const e of dEntregas || []) map[e.pedido_id] = e as Entrega
+          setEntregas(map)
+        })
     }
   }, [tab, profile?.id])
   if (loading) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',fontFamily:'Inter,sans-serif',color:'#AAA'}}>Carregando...</div>
@@ -364,6 +376,21 @@ export default function PerfilPage() {
                             {it.selected_options?.length > 0 && <span style={{color:'#AAA'}}> · {it.selected_options.map(o=>o.name).join(', ')}</span>}
                           </div>
                         ))}
+                        {p.delivery_type === 'entrega' && entregas[p.id] && (
+                          <div style={{marginTop:8,background:'#1A1610',borderRadius:10,padding:'10px 12px'}}>
+                            <div style={{fontSize:10.5,fontWeight:700,color:'#C9951A',letterSpacing:'.04em',textTransform:'uppercase'}}>
+                              🏍️ {ENTREGA_STATUS_LABEL[entregas[p.id].status] || entregas[p.id].status}
+                            </div>
+                            {entregas[p.id].status === 'a_caminho' && (
+                              <>
+                                {entregas[p.id].motoboy_name && <div style={{fontSize:11.5,color:'#F0EDE8',marginTop:3}}>{entregas[p.id].motoboy_name} está a caminho</div>}
+                                <div style={{fontSize:10,color:'#C9951A',marginTop:6}}>Seu código de entrega</div>
+                                <div style={{fontFamily:'Bebas Neue,sans-serif',fontSize:26,letterSpacing:8,color:'#fff'}}>{entregas[p.id].delivery_code}</div>
+                                <div style={{fontSize:10,color:'#b6ab97',lineHeight:1.5}}>Mostre esses números pro motoboy na entrega.</div>
+                              </>
+                            )}
+                          </div>
+                        )}
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:6}}>
                           <div className="rv-date" style={{marginTop:0}}>{fmtDate(p.created_at)}</div>
                           <div style={{fontSize:13,fontWeight:700,color:'#111'}}>{fmtMoney(p.total)}</div>

@@ -9,6 +9,7 @@ import DashboardTab from '@/components/admin/DashboardTab'
 import DisparosTab from '@/components/DisparosTab'
 import PalavraPremiadaTab from '@/components/PalavraPremiadaTab'
 import AgendaTab from '@/components/AgendaTab'
+import MotoboysTab from '@/components/MotoboysTab'
 import ClarityTab from '@/components/ClarityTab'
 import PhotoManager from '@/components/PhotoManager'
 import { dayOfWeekLabel } from '@/lib/businessHours'
@@ -51,7 +52,7 @@ const statusColor = (s: string) => s === 'active' ? '#0F8050' : s === 'pending' 
 const statusLabel = (s: string) => s === 'active' ? 'Ativa' : s === 'pending' ? 'Pendente' : 'Suspensa'
 
 export default function AdminPage() {
-  const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'denuncias'|'usuarios'|'buscas'|'atividade'|'banners'|'pedidos-banner'|'configuracoes'|'recursos'|'planos'|'aparencia'|'subcategorias'|'vendas'|'notificacoes'|'disparos'|'palavra-premiada'|'agenda'|'clarity'>('dashboard')
+  const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'denuncias'|'usuarios'|'buscas'|'atividade'|'banners'|'pedidos-banner'|'configuracoes'|'recursos'|'planos'|'aparencia'|'subcategorias'|'vendas'|'notificacoes'|'disparos'|'palavra-premiada'|'agenda'|'clarity'|'motoboys'>('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [stats, setStats]           = useState<Stats|null>(null)
   const [companies, setCompanies]   = useState<Company[]>([])
@@ -1753,6 +1754,7 @@ export default function AdminPage() {
             { id: 'disparos', icon: '📤', label: 'Disparos' },
             { id: 'palavra-premiada', icon: '🎁', label: 'Palavra Premiada' },
             { id: 'agenda', icon: '🎬', label: 'Agenda' },
+            { id: 'motoboys', icon: '🏍️', label: 'Motoboys' },
             { id: 'clarity', icon: '📈', label: 'Clarity' },
           ].map(n => (
             <div
@@ -1797,6 +1799,7 @@ export default function AdminPage() {
               {tab === 'disparos' && 'Disparos WhatsApp'}
               {tab === 'palavra-premiada' && 'Palavra Premiada'}
               {tab === 'agenda' && 'Agenda de Produção'}
+              {tab === 'motoboys' && 'Motoboys — Trindade Entrega'}
               {tab === 'clarity' && 'Microsoft Clarity'}
             </div>
             <div className="topbar-date">{new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}</div>
@@ -3390,6 +3393,9 @@ export default function AdminPage() {
           )}
           {tab === 'agenda' && (
             <AgendaTab />
+          )}
+          {tab === 'motoboys' && (
+            <MotoboysTab />
           )}
           {tab === 'clarity' && (
             <ClarityTab />

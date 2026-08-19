@@ -115,6 +115,9 @@ export default function PedidosPage() {
   const [openId, setOpenId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const companyIdRef = useRef('')
+  const [deliveryCalled, setDeliveryCalled] = useState<Set<string>>(new Set())
+  const [motoErrors, setMotoErrors] = useState<Record<string, string>>({})
+  const [motoLoading, setMotoLoading] = useState<string | null>(null)
 
   const [npOpen, setNpOpen] = useState(false)
   const [npProdutos, setNpProdutos] = useState<NpProduto[]>([])
@@ -156,6 +159,25 @@ export default function PedidosPage() {
   async function loadAll(cid: string) {
     const { data } = await supabase.from('loja_pedidos').select('*, itens:loja_pedido_itens(*)').eq('company_id', cid).order('created_at', { ascending: false }).limit(100)
     setPedidos((data || []) as any)
+    const { data: entregas } = await supabase.from('delivery_orders').select('pedido_id').eq('company_id', cid).not('pedido_id', 'is', null)
+    setDeliveryCalled(new Set((entregas || []).map(e => e.pedido_id as string)))
+  }
+
+  async function chamarMotoboy(p: Pedido) {
+    setMotoErrors(prev => { const n = { ...prev }; delete n[p.id]; return n })
+    setMotoLoading(p.id)
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch('/api/entrega/criar', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        access_token: session?.access_token, company_id: companyId, pedido_id: p.id,
+        customer_name: p.customer_name, customer_phone: p.customer_phone, dropoff_address: p.delivery_address,
+      }),
+    })
+    const data = await res.json()
+    setMotoLoading(null)
+    if (!res.ok || data.error) { setMotoErrors(prev => ({ ...prev, [p.id]: data.error || 'Não consegui chamar o motoboy.' })); return }
+    setDeliveryCalled(prev => new Set(prev).add(p.id))
   }
 
   async function setStatus(id: string, status: Status) {
@@ -311,6 +333,18 @@ export default function PedidosPage() {
             {p.delivery_address && <div style={{ marginTop: 8, fontSize: 11.5 }}>📍 {p.delivery_address}</div>}
             {p.customer_phone && <div style={{ fontSize: 11.5, marginTop: 2 }}>📞 {p.customer_phone}</div>}
             {p.notes && <div style={{ fontSize: 11.5, marginTop: 2, color: '#6E6656' }}>Obs: {p.notes}</div>}
+            {p.delivery_type === 'entrega' && p.status !== 'cancelado' && (
+              deliveryCalled.has(p.id) ? (
+                <div style={{ marginTop: 8, fontSize: 11.5, fontWeight: 700, color: '#157A52' }}>🏍️ Motoboy chamado — acompanhe em Entrega</div>
+              ) : (
+                <>
+                  <button className="pd-next" style={{ marginTop: 8 }} disabled={motoLoading === p.id} onClick={e => { e.stopPropagation(); chamarMotoboy(p) }}>
+                    {motoLoading === p.id ? 'Chamando...' : '🏍️ Chamar motoboy'}
+                  </button>
+                  {motoErrors[p.id] && <div style={{ color: '#C43D3D', fontSize: 11, marginTop: 4 }}>{motoErrors[p.id]}</div>}
+                </>
+              )
+            )}
             <div className="pd-chips">
               {flowFor(p).map(s => <button key={s} className={`pd-chip ${p.status === s ? 'current' : ''}`} onClick={() => setStatus(p.id, s)}>{STATUS_LABEL[s]}</button>)}
             </div>

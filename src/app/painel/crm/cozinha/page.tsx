@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase'
 
 type Item = { id: string; product_name: string; qty: number; selected_options: { name: string; price: number }[] }
 type Status = 'recebido' | 'em_preparo' | 'pronto' | 'saiu_entrega' | 'entregue' | 'cancelado'
-type Pedido = { id: string; customer_id: string | null; customer_name: string; customer_phone: string | null; status: Status; created_at: string; accepted_at: string | null; delivery_type: 'entrega' | 'retirada'; scheduled_for: string | null; itens: Item[] }
+type Pedido = { id: string; customer_id: string | null; customer_name: string; customer_phone: string | null; delivery_address: string | null; status: Status; created_at: string; accepted_at: string | null; delivery_type: 'entrega' | 'retirada'; scheduled_for: string | null; itens: Item[] }
 
 const COLUMNS: { status: Status; label: string; next: Status; action: string; color: string }[] = [
   { status: 'recebido', label: 'Recebido', next: 'em_preparo', action: 'Iniciar preparo', color: '#E24B4A' },
@@ -57,6 +57,7 @@ export default function CozinhaPage() {
   const [loading, setLoading] = useState(true)
   const [companyName, setCompanyName] = useState('')
   const [pedidos, setPedidos] = useState<Pedido[]>([])
+  const [deliveryCalled, setDeliveryCalled] = useState<Set<string>>(new Set())
   const companyIdRef = useRef('')
   const autoAceitarRef = useRef(true)
 
@@ -85,6 +86,28 @@ export default function CozinhaPage() {
     const { data } = await supabase.from('loja_pedidos').select('*, itens:loja_pedido_itens(*)').eq('company_id', cid).in('status', ['recebido', 'em_preparo', 'pronto']).order('created_at', { ascending: true })
     const rows = (data || []) as Pedido[]
     setPedidos(autoAceitarRef.current ? rows : rows.filter(p => p.status !== 'recebido' || p.accepted_at))
+    const { data: entregas } = await supabase.from('delivery_orders').select('pedido_id').eq('company_id', cid).not('pedido_id', 'is', null)
+    setDeliveryCalled(new Set((entregas || []).map(e => e.pedido_id as string)))
+  }
+
+  // Assim que o pedido entra em preparo, já chama o motoboy — ele viaja até
+  // a loja enquanto o prato fica pronto, em vez de ficar esperando parado.
+  async function chamarMotoboy(p: Pedido) {
+    setDeliveryCalled(prev => new Set(prev).add(p.id))
+    const { data: { session } } = await supabase.auth.getSession()
+    const call = () => fetch('/api/entrega/criar', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        access_token: session?.access_token, company_id: companyIdRef.current, pedido_id: p.id,
+        customer_name: p.customer_name, customer_phone: p.customer_phone, dropoff_address: p.delivery_address,
+      }),
+    })
+    let res = await call()
+    if (res.status === 401) { await supabase.auth.refreshSession(); res = await call() }
+    if (!res.ok) setDeliveryCalled(prev => { const n = new Set(prev); n.delete(p.id); return n })
+  }
+  function maybeAutoChamarMotoboy(pedido: Pedido) {
+    if (pedido.delivery_type === 'entrega' && pedido.delivery_address && !deliveryCalled.has(pedido.id)) chamarMotoboy(pedido)
   }
 
   async function advance(id: string, next: Status) {
@@ -95,6 +118,7 @@ export default function CozinhaPage() {
     if (pedido) {
       notifyCustomer(pedido.customer_id, companyName, next)
       notifyCustomerWhatsapp(companyIdRef.current, pedido.customer_phone, next, pedido.delivery_type)
+      if (next === 'em_preparo') maybeAutoChamarMotoboy(pedido)
     }
   }
 

@@ -166,18 +166,38 @@ export default function PedidosPage() {
   async function chamarMotoboy(p: Pedido) {
     setMotoErrors(prev => { const n = { ...prev }; delete n[p.id]; return n })
     setMotoLoading(p.id)
-    const { data: { session } } = await supabase.auth.getSession()
-    const res = await fetch('/api/entrega/criar', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        access_token: session?.access_token, company_id: companyId, pedido_id: p.id,
-        customer_name: p.customer_name, customer_phone: p.customer_phone, dropoff_address: p.delivery_address,
-      }),
-    })
-    const data = await res.json()
+
+    const call = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      const r = await fetch('/api/entrega/criar', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          access_token: session?.access_token, company_id: companyId, pedido_id: p.id,
+          customer_name: p.customer_name, customer_phone: p.customer_phone, dropoff_address: p.delivery_address,
+        }),
+      })
+      return { r, data: await r.json() }
+    }
+
+    let { r: res, data } = await call()
+    // Token pode ter ficado velho (aba em segundo plano no celular sem
+    // renovar sozinha) — força renovar a sessão e tenta de novo uma vez
+    // antes de mostrar erro pro lojista.
+    if (res.status === 401) {
+      await supabase.auth.refreshSession()
+      ;({ r: res, data } = await call())
+    }
     setMotoLoading(null)
     if (!res.ok || data.error) { setMotoErrors(prev => ({ ...prev, [p.id]: data.error || 'Não consegui chamar o motoboy.' })); return }
     setDeliveryCalled(prev => new Set(prev).add(p.id))
+  }
+
+  // Assim que o pedido entra em preparo, já chama o motoboy — ele viaja até
+  // a loja enquanto o prato fica pronto, em vez de ficar esperando parado.
+  function maybeAutoChamarMotoboy(pedido: Pedido) {
+    if (pedido.delivery_type === 'entrega' && pedido.delivery_address && !deliveryCalled.has(pedido.id)) {
+      chamarMotoboy(pedido)
+    }
   }
 
   async function setStatus(id: string, status: Status) {
@@ -187,6 +207,7 @@ export default function PedidosPage() {
     if (pedido) {
       notifyCustomer(pedido.customer_id, companyName, status)
       notifyCustomerWhatsapp(companyId, pedido.customer_phone, status, pedido.delivery_type)
+      if (status === 'em_preparo') maybeAutoChamarMotoboy(pedido)
     }
   }
 
@@ -198,6 +219,7 @@ export default function PedidosPage() {
     if (pedido) {
       notifyCustomer(pedido.customer_id, companyName, 'em_preparo')
       notifyCustomerWhatsapp(companyId, pedido.customer_phone, 'em_preparo', pedido.delivery_type)
+      maybeAutoChamarMotoboy(pedido)
     }
   }
 

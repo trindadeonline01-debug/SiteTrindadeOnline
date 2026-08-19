@@ -88,12 +88,21 @@ export default function EntregaPage() {
   async function iniciarPagamento(kind: 'diaria' | 'credito', credits = 0) {
     setPayError('')
     setPaying(kind + credits)
-    const { data: { session } } = await supabase.auth.getSession()
-    const res = await fetch('/api/entrega/pagar', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ access_token: session?.access_token, company_id: companyId, kind, credits }),
-    })
-    const data = await res.json()
+
+    const call = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      const r = await fetch('/api/entrega/pagar', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token: session?.access_token, company_id: companyId, kind, credits }),
+      })
+      return { r, data: await r.json() }
+    }
+
+    let { r: res, data } = await call()
+    if (res.status === 401) {
+      await supabase.auth.refreshSession()
+      ;({ r: res, data } = await call())
+    }
     setPaying(null)
     if (!res.ok || data.error) { setPayError(data.error || 'Não consegui gerar o Pix — tenta de novo.'); return }
     setPixModal({ kind, credits, payment_id: String(data.payment_id), qr: data.qr_code_image, copy: data.pix_copy_paste, value: data.value })

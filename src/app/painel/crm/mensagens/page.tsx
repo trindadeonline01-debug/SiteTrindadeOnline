@@ -161,6 +161,8 @@ export default function MensagensPage() {
   const [attachMenuOpen, setAttachMenuOpen] = useState(false)
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
   const [reactionPickerFor, setReactionPickerFor] = useState<string | null>(null)
+  const [mobileActionsFor, setMobileActionsFor] = useState<string | null>(null)
+  const pressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [contactPicker, setContactPicker] = useState<{ mode: 'forward' | 'shareContact'; forMessage?: Message } | null>(null)
   const [linkPreviews, setLinkPreviews] = useState<Record<string, { title: string | null; image: string | null; siteName: string | null } | null>>({})
   const linkPreviewFetching = useRef<Set<string>>(new Set())
@@ -241,6 +243,21 @@ export default function MensagensPage() {
     const starred = !m.starred
     setMessages(prev => prev.map(x => x.id === m.id ? { ...x, starred } : x))
     await supabase.from('crm_messages').update({ starred }).eq('id', m.id)
+  }
+
+  // Toque-e-segure no mobile (igual ao WhatsApp de verdade) pra abrir o menu
+  // de ações da mensagem — em vez de deixar os ícones sempre visíveis, o que
+  // poluía a tela e ainda brigava com a seleção nativa de texto do celular.
+  function handleBubblePressStart(id: string) {
+    if (pressTimerRef.current) clearTimeout(pressTimerRef.current)
+    pressTimerRef.current = setTimeout(() => {
+      setMobileActionsFor(id)
+      pressTimerRef.current = null
+      if (navigator.vibrate) navigator.vibrate(12)
+    }, 420)
+  }
+  function cancelBubblePress() {
+    if (pressTimerRef.current) { clearTimeout(pressTimerRef.current); pressTimerRef.current = null }
   }
 
   async function loadQuickReplies(companyId: string) {
@@ -1049,15 +1066,25 @@ export default function MensagensPage() {
           .msg-link-preview-site{font-size:10.5px;color:#8696a0;margin-top:4px;display:flex;align-items:center;gap:4px;}
           .msg-bubble-wrap{display:flex;align-items:center;gap:2px;max-width:84%;}
           .msg-bubble-wrap .msg-bubble{max-width:100%;}
-          .msg-bubble-actions{display:flex;gap:0;flex:none;width:0;overflow:hidden;}
+          .msg-bubble-actions{display:flex;gap:0;flex:none;width:0;overflow:hidden;position:relative;}
           .msg-bubble-row:hover .msg-bubble-actions{width:auto;overflow:visible;}
           @media(max-width:767px){
-            .msg-bubble-actions{width:auto;overflow:visible;}
-            .msg-reply-btn{opacity:.6;}
-            /* Nas mensagens enviadas (right-aligned), as ações têm que ficar
-               à ESQUERDA da bolha — senão elas "roubam" o lugar da bolha
-               junto à borda direita e a bolha parece flutuar fora do lugar. */
-            .msg-bubble-row.out .msg-bubble-actions{order:-1;}
+            /* Igual ao WhatsApp: os ícones ficam escondidos e só aparecem
+               num menu flutuante ao toque-e-segure na bolha (ver
+               handleBubblePressStart) — nada de fileira de ícones sempre
+               visível grudada em cada mensagem. */
+            .msg-bubble{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;}
+            .msg-bubble-actions{display:none;width:0;overflow:hidden;}
+            .msg-bubble-actions.mobile-open{
+              display:flex;position:absolute;bottom:100%;margin-bottom:6px;width:auto;overflow:visible;
+              background:#233138;border-radius:20px;padding:3px 4px;box-shadow:0 4px 14px rgba(0,0,0,.4);z-index:20;
+            }
+            .msg-bubble-row.in .msg-bubble-actions.mobile-open{left:0;}
+            .msg-bubble-row.out .msg-bubble-actions.mobile-open{right:0;order:0;}
+            .msg-bubble-row.actions-open{position:relative;z-index:16;}
+            .msg-bubble-row.actions-open .msg-bubble{filter:brightness(1.18);}
+            .msg-reply-btn{opacity:1;font-size:15px;padding:6px;}
+            .msg-actions-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.32);z-index:15;}
           }
           .msg-reply-btn{background:none;border:none;font-size:13px;color:#8696a0;cursor:pointer;opacity:0;transition:opacity .15s;padding:4px;flex:none;}
           .msg-bubble-row:hover .msg-reply-btn{opacity:1;}
@@ -1231,6 +1258,7 @@ export default function MensagensPage() {
                     )}
                   </div>
                   <div className="msg-body" ref={msgBodyRef}>
+                    {mobileActionsFor && <div className="msg-actions-backdrop" onClick={() => setMobileActionsFor(null)} />}
                     {(searchTerm.trim() ? messages.filter(m => m.body?.toLowerCase().includes(searchTerm.toLowerCase())) : messages).map((m, idx, arr) => {
                       const quoted = m.reply_to_id ? messages.find(x => x.id === m.reply_to_id) : null
                       let location: any = null, vcard: any = null
@@ -1245,9 +1273,15 @@ export default function MensagensPage() {
                       return (
                         <Fragment key={m.id}>
                         {showDateSep && <div className="msg-date-sep">{dateSepLabel(m.sent_at)}</div>}
-                        <div className={`msg-bubble-row ${m.direction === 'out' ? 'out' : 'in'}`}>
+                        <div className={`msg-bubble-row ${m.direction === 'out' ? 'out' : 'in'}${mobileActionsFor === m.id ? ' actions-open' : ''}`}>
                           <div className="msg-bubble-wrap">
-                          <div className="msg-bubble">
+                          <div
+                            className="msg-bubble"
+                            onTouchStart={() => handleBubblePressStart(m.id)}
+                            onTouchMove={cancelBubblePress}
+                            onTouchEnd={cancelBubblePress}
+                            onContextMenu={e => e.preventDefault()}
+                          >
                             {m.deleted_at ? (
                               <div className="msg-deleted">🚫 {m.direction === 'out' ? 'Você apagou essa mensagem' : 'Mensagem apagada'}</div>
                             ) : (
@@ -1292,20 +1326,20 @@ export default function MensagensPage() {
                             {m.starred && !m.deleted_at && <div className="msg-star-badge">⭐</div>}
                           </div>
                           {!m.deleted_at && (
-                            <div className="msg-bubble-actions" style={{ position: 'relative' }}>
+                            <div className={`msg-bubble-actions${mobileActionsFor === m.id ? ' mobile-open' : ''}`}>
                               {reactionPickerFor === m.id && (
                                 <div className="msg-reaction-picker" onMouseLeave={() => setReactionPickerFor(null)}>
                                   {QUICK_REACTIONS.map(em => (
-                                    <button key={em} onClick={() => sendReaction(m, em)} className={m.reaction === em ? 'sel' : ''}>{em}</button>
+                                    <button key={em} onClick={() => { sendReaction(m, em); setMobileActionsFor(null) }} className={m.reaction === em ? 'sel' : ''}>{em}</button>
                                   ))}
                                 </div>
                               )}
                               <button className="msg-reply-btn" title="Reagir" onClick={() => setReactionPickerFor(v => v === m.id ? null : m.id)}>😊</button>
-                              <button className="msg-reply-btn" title="Responder" onClick={() => setReplyTo(m)}>↩</button>
-                              {m.media_type !== 'sticker' && <button className="msg-reply-btn" title="Encaminhar" onClick={() => setContactPicker({ mode: 'forward', forMessage: m })}>➡️</button>}
-                              <button className="msg-reply-btn" title={m.starred ? 'Desmarcar' : 'Marcar'} onClick={() => toggleStar(m)}>{m.starred ? '⭐' : '☆'}</button>
-                              {canEditDelete && !m.media_type && <button className="msg-reply-btn" title="Editar" onClick={() => startEdit(m)}>✏️</button>}
-                              {canEditDelete && <button className="msg-reply-btn" title="Apagar" onClick={() => deleteMessage(m)}>🗑</button>}
+                              <button className="msg-reply-btn" title="Responder" onClick={() => { setReplyTo(m); setMobileActionsFor(null) }}>↩</button>
+                              {m.media_type !== 'sticker' && <button className="msg-reply-btn" title="Encaminhar" onClick={() => { setContactPicker({ mode: 'forward', forMessage: m }); setMobileActionsFor(null) }}>➡️</button>}
+                              <button className="msg-reply-btn" title={m.starred ? 'Desmarcar' : 'Marcar'} onClick={() => { toggleStar(m); setMobileActionsFor(null) }}>{m.starred ? '⭐' : '☆'}</button>
+                              {canEditDelete && !m.media_type && <button className="msg-reply-btn" title="Editar" onClick={() => { startEdit(m); setMobileActionsFor(null) }}>✏️</button>}
+                              {canEditDelete && <button className="msg-reply-btn" title="Apagar" onClick={() => { deleteMessage(m); setMobileActionsFor(null) }}>🗑</button>}
                             </div>
                           )}
                           </div>

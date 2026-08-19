@@ -971,7 +971,7 @@ export default function MensagensPage() {
           .msg-item-tick{color:#8696a0;margin-right:4px;font-size:12px;}
           .msg-item-unread-badge{flex:none;background:#00a884;color:#0b141a;font-size:11.5px;font-weight:800;min-width:21px;height:21px;border-radius:11px;display:flex;align-items:center;justify-content:center;padding:0 6px;}
           .msg-item-actions{display:none;gap:2px;flex:none;}
-          .msg-item:hover .msg-item-actions{display:flex;}
+          @media(hover:hover) and (pointer:fine){.msg-item:hover .msg-item-actions{display:flex;}}
           .msg-item-actions button{background:none;border:none;font-size:19px;cursor:pointer;padding:8px;border-radius:50%;opacity:.75;width:38px;height:38px;display:flex;align-items:center;justify-content:center;}
           .msg-item-actions button:hover{opacity:1;background:#2f3b43;}
           .msg-item-actions button.on{opacity:1;color:#C9951A;}
@@ -1109,7 +1109,7 @@ export default function MensagensPage() {
           .msg-bubble-wrap{display:flex;align-items:center;gap:2px;max-width:84%;}
           .msg-bubble-wrap .msg-bubble{max-width:100%;}
           .msg-bubble-actions{display:flex;gap:0;flex:none;width:0;overflow:hidden;position:relative;}
-          .msg-bubble-row:hover .msg-bubble-actions{width:auto;overflow:visible;}
+          @media(hover:hover) and (pointer:fine){.msg-bubble-row:hover .msg-bubble-actions{width:auto;overflow:visible;}}
           @media(max-width:767px){
             /* Igual ao WhatsApp: os ícones ficam escondidos e só aparecem
                num menu flutuante ao toque-e-segure na bolha (ver
@@ -1129,7 +1129,7 @@ export default function MensagensPage() {
             .msg-actions-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.32);z-index:15;}
           }
           .msg-reply-btn{background:none;border:none;font-size:13px;color:#8696a0;cursor:pointer;opacity:0;transition:opacity .15s;padding:4px;flex:none;}
-          .msg-bubble-row:hover .msg-reply-btn{opacity:1;}
+          @media(hover:hover) and (pointer:fine){.msg-bubble-row:hover .msg-reply-btn{opacity:1;}}
           .msg-reaction-badge{position:absolute;bottom:-9px;right:6px;background:#233138;border:1px solid #2f3b43;border-radius:10px;font-size:12px;padding:1px 5px;line-height:1.3;box-shadow:0 1px 2px rgba(0,0,0,.3);}
           .msg-reaction-picker{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);display:flex;gap:2px;background:#233138;border:1px solid #2f3b43;border-radius:20px;padding:4px 6px;box-shadow:0 4px 12px rgba(0,0,0,.35);margin-bottom:6px;z-index:10;}
           .msg-reaction-picker button{background:none;border:none;font-size:17px;cursor:pointer;padding:3px;border-radius:50%;}

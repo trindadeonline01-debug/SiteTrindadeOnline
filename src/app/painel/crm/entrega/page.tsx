@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { refreshSessionOnce } from '@/lib/authRefresh'
 import EmpresaShell from '@/components/EmpresaShell'
 
 type Wallet = { credits: number; daily_paid_on: string | null }
@@ -100,7 +101,7 @@ export default function EntregaPage() {
 
     let { r: res, data } = await call()
     if (res.status === 401) {
-      await supabase.auth.refreshSession()
+      await refreshSessionOnce()
       ;({ r: res, data } = await call())
     }
     setPaying(null)

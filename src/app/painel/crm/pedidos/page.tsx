@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { refreshSessionOnce } from '@/lib/authRefresh'
 import EmpresaShell from '@/components/EmpresaShell'
 
 type Item = { id: string; product_name: string; unit_price: number; qty: number; selected_options: { name: string; price: number }[] }
@@ -118,6 +119,10 @@ export default function PedidosPage() {
   const [deliveryCalled, setDeliveryCalled] = useState<Set<string>>(new Set())
   const [motoErrors, setMotoErrors] = useState<Record<string, string>>({})
   const [motoLoading, setMotoLoading] = useState<string | null>(null)
+  // Ref (não state) pra travar na hora — o disparo automático e um clique
+  // manual no mesmo pedido não podem rodar ao mesmo tempo, e esperar o
+  // re-render do state seria tarde demais pra evitar a corrida.
+  const callingMotoboyRef = useRef<Set<string>>(new Set())
 
   const [npOpen, setNpOpen] = useState(false)
   const [npProdutos, setNpProdutos] = useState<NpProduto[]>([])
@@ -164,6 +169,8 @@ export default function PedidosPage() {
   }
 
   async function chamarMotoboy(p: Pedido) {
+    if (callingMotoboyRef.current.has(p.id)) return // já tem uma chamada rodando pra esse pedido
+    callingMotoboyRef.current.add(p.id)
     setMotoErrors(prev => { const n = { ...prev }; delete n[p.id]; return n })
     setMotoLoading(p.id)
 
@@ -181,12 +188,14 @@ export default function PedidosPage() {
 
     let { r: res, data } = await call()
     // Token pode ter ficado velho (aba em segundo plano no celular sem
-    // renovar sozinha) — força renovar a sessão e tenta de novo uma vez
-    // antes de mostrar erro pro lojista.
+    // renovar sozinha) — força renovar a sessão (compartilhada, pra não
+    // rodar duas renovações em paralelo) e tenta de novo antes de mostrar
+    // erro pro lojista.
     if (res.status === 401) {
-      await supabase.auth.refreshSession()
+      await refreshSessionOnce()
       ;({ r: res, data } = await call())
     }
+    callingMotoboyRef.current.delete(p.id)
     setMotoLoading(null)
     if (res.status === 401) {
       setMotoErrors(prev => ({ ...prev, [p.id]: (data.error || 'sessão inválida') + ' — atualiza a página (F5) e tenta de novo.' }))

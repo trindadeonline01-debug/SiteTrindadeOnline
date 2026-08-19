@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { refreshSessionOnce } from '@/lib/authRefresh'
 
 type Item = { id: string; product_name: string; qty: number; selected_options: { name: string; price: number }[] }
 type Status = 'recebido' | 'em_preparo' | 'pronto' | 'saiu_entrega' | 'entregue' | 'cancelado'
@@ -58,6 +59,7 @@ export default function CozinhaPage() {
   const [companyName, setCompanyName] = useState('')
   const [pedidos, setPedidos] = useState<Pedido[]>([])
   const [deliveryCalled, setDeliveryCalled] = useState<Set<string>>(new Set())
+  const callingMotoboyRef = useRef<Set<string>>(new Set())
   const companyIdRef = useRef('')
   const autoAceitarRef = useRef(true)
 
@@ -93,17 +95,22 @@ export default function CozinhaPage() {
   // Assim que o pedido entra em preparo, já chama o motoboy — ele viaja até
   // a loja enquanto o prato fica pronto, em vez de ficar esperando parado.
   async function chamarMotoboy(p: Pedido) {
+    if (callingMotoboyRef.current.has(p.id)) return
+    callingMotoboyRef.current.add(p.id)
     setDeliveryCalled(prev => new Set(prev).add(p.id))
-    const { data: { session } } = await supabase.auth.getSession()
-    const call = () => fetch('/api/entrega/criar', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        access_token: session?.access_token, company_id: companyIdRef.current, pedido_id: p.id,
-        customer_name: p.customer_name, customer_phone: p.customer_phone, dropoff_address: p.delivery_address,
-      }),
-    })
+    const call = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      return fetch('/api/entrega/criar', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          access_token: session?.access_token, company_id: companyIdRef.current, pedido_id: p.id,
+          customer_name: p.customer_name, customer_phone: p.customer_phone, dropoff_address: p.delivery_address,
+        }),
+      })
+    }
     let res = await call()
-    if (res.status === 401) { await supabase.auth.refreshSession(); res = await call() }
+    if (res.status === 401) { await refreshSessionOnce(); res = await call() }
+    callingMotoboyRef.current.delete(p.id)
     if (!res.ok) setDeliveryCalled(prev => { const n = new Set(prev); n.delete(p.id); return n })
   }
   function maybeAutoChamarMotoboy(pedido: Pedido) {

@@ -10,18 +10,13 @@ const supabaseAuth = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
-const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'https://evo.trindadeonline.com.br'
 
 function genCode(): string { return String(Math.floor(1000 + Math.random() * 9000)) }
-function formatPhone(phone: string): string {
-  const digits = phone.replace(/\D/g, '')
-  return digits.startsWith('55') ? digits : '55' + digits
-}
 
 // Chamado pelo botão "🏍️ Chamar motoboy" em /painel/crm/pedidos. Cria a
-// entrega, gera o código de confirmação, chama o primeiro motoboy da fila
-// e — se a loja tiver o WhatsApp do CRM conectado — já manda o código pro
-// cliente na mesma conversa.
+// entrega, gera o código de confirmação e chama o primeiro motoboy da fila.
+// O código só é avisado pro cliente (e pro motoboy) quando alguém ACEITA a
+// corrida — ver o branch "aceita" em /api/entrega/webhook.
 export async function POST(req: NextRequest) {
   try {
     const { access_token, company_id, pedido_id, customer_name, customer_phone, dropoff_address } = await req.json()
@@ -32,7 +27,7 @@ export async function POST(req: NextRequest) {
     const { data: userData, error: authError } = await supabaseAuth.auth.getUser(access_token)
     if (!userData?.user) return NextResponse.json({ error: `sessão inválida${authError ? ' — ' + authError.message : ''}` }, { status: 401 })
 
-    const { data: company } = await supabase.from('companies').select('owner_id, address, crm_whatsapp_enabled').eq('id', company_id).maybeSingle()
+    const { data: company } = await supabase.from('companies').select('owner_id, address').eq('id', company_id).maybeSingle()
     if (!company || company.owner_id !== userData.user.id) return NextResponse.json({ error: 'empresa não é sua' }, { status: 403 })
     if (!company.address?.trim()) return NextResponse.json({ error: 'Cadastre o endereço da loja no perfil antes de chamar motoboy.' }, { status: 400 })
 
@@ -54,26 +49,6 @@ export async function POST(req: NextRequest) {
 
     await ensureEntregaWebhookRegistered()
     await offerToNextMotoboy(order.id, 1)
-
-    if (customer_phone && company.crm_whatsapp_enabled) {
-      try {
-        const { data: instance } = await supabase
-          .from('crm_whatsapp_instances').select('instance_name, api_key')
-          .eq('company_id', company_id).eq('status', 'connected').limit(1).maybeSingle()
-        if (instance) {
-          const text = `🏍️ Sua entrega está a caminho de ser confirmada!\n\nSeu código de entrega: *${order.delivery_code}*\nMostre esse código pro motoboy quando ele chegar — é assim que a gente confirma a entrega.`
-          await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json', apikey: instance.api_key },
-            body: JSON.stringify({ number: formatPhone(customer_phone), text }),
-          })
-          const { data: contact } = await supabase.from('crm_contacts').select('id').eq('company_id', company_id).eq('phone', customer_phone).maybeSingle()
-          if (contact) {
-            await supabase.from('crm_messages').insert({ company_id, contact_id: contact.id, direction: 'out', body: text, status: 'sent', sent_at: new Date().toISOString() })
-            await supabase.from('crm_contacts').update({ last_message_at: new Date().toISOString(), last_message_preview: text, last_message_direction: 'out' }).eq('id', contact.id)
-          }
-        }
-      } catch {}
-    }
 
     return NextResponse.json({ ok: true, delivery_order_id: order.id, delivery_code: order.delivery_code })
   } catch (err: any) {

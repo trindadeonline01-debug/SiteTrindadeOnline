@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { sendMotoboyWhatsApp, checkExpiredOffers, offerToNextMotoboy } from '@/lib/entregaDispatch'
+import { sendMotoboyWhatsApp, sendCustomerWhatsApp, checkExpiredOffers, offerToNextMotoboy } from '@/lib/entregaDispatch'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -55,14 +55,21 @@ export async function POST(req: NextRequest) {
         if (YES.test(norm)) {
           await supabase.from('delivery_offers').update({ status: 'aceita', responded_at: new Date().toISOString() }).eq('id', offer.id)
           const { data: order } = await supabase
-            .from('delivery_orders').select('pickup_address, dropoff_address, customer_name')
+            .from('delivery_orders').select('pickup_address, dropoff_address, customer_name, customer_phone, company_id, delivery_code')
             .eq('id', offer.delivery_order_id).maybeSingle()
           await supabase.from('delivery_orders').update({
             status: 'a_caminho', motoboy_id: motoboy.id, motoboy_name: motoboy.name, motoboy_phone: motoboy.phone,
             assigned_at: new Date().toISOString(),
           }).eq('id', offer.delivery_order_id)
           if (order) {
-            await sendMotoboyWhatsApp(motoboy.phone, `Fechado! Retirar em: ${order.pickup_address}\nEntregar pra ${order.customer_name}: ${order.dropoff_address}\n\nBoa corrida! 🙌`)
+            await sendMotoboyWhatsApp(
+              motoboy.phone,
+              `Fechado! Retirar em: ${order.pickup_address}\nEntregar pra ${order.customer_name}: ${order.dropoff_address}\n\nQuando chegar no endereço, o cliente vai te passar um código de 4 dígitos — digita ele aqui pra liberar seu pagamento.\n\nBoa corrida! 🙌`
+            )
+            await sendCustomerWhatsApp(
+              order.company_id, order.customer_phone,
+              `🏍️ Seu pedido saiu para entrega!\n\n${motoboy.name} está a caminho.\n\nSeu código de entrega: *${order.delivery_code}*\nMostre esses números pro motoboy quando ele chegar — é assim que a gente confirma a entrega.`
+            )
           }
         } else if (NO.test(norm)) {
           await supabase.from('delivery_offers').update({ status: 'recusada', responded_at: new Date().toISOString() }).eq('id', offer.id)
@@ -76,7 +83,7 @@ export async function POST(req: NextRequest) {
       // 2) sem oferta pendente — pode ser o código de 4 dígitos de uma entrega já aceita por ele
       if (/^\d{4}$/.test(norm)) {
         const { data: order } = await supabase
-          .from('delivery_orders').select('id, delivery_code, company_id, fee')
+          .from('delivery_orders').select('id, delivery_code, company_id, fee, customer_phone')
           .eq('motoboy_id', motoboy.id).eq('status', 'a_caminho')
           .order('assigned_at', { ascending: false }).limit(1).maybeSingle()
         if (!order) continue
@@ -98,6 +105,7 @@ export async function POST(req: NextRequest) {
 
           const feeLabel = Number(order.fee).toFixed(2).replace('.', ',')
           await sendMotoboyWhatsApp(motoboy.phone, `✅ Código confere! R$ ${feeLabel} liberados. Entra no seu Pix no fechamento.`)
+          await sendCustomerWhatsApp(order.company_id, order.customer_phone, `🎉 Pedido entregue! Obrigado pela preferência.`)
 
           const { data: company } = await supabase.from('companies').select('owner_id, name').eq('id', order.company_id).maybeSingle()
           if (company?.owner_id) {

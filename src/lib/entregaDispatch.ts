@@ -27,6 +27,29 @@ export async function sendMotoboyWhatsApp(phone: string, text: string) {
   } catch {}
 }
 
+// Manda mensagem pro CLIENTE pela instância WhatsApp da PRÓPRIA loja (não a
+// da plataforma) — mesma conversa do CRM dela, se estiver conectado. Sem
+// instância conectada, não tem como mandar; a entrega segue normal mesmo
+// assim (o cliente ainda vê o código pelo /perfil).
+export async function sendCustomerWhatsApp(companyId: string, phone: string | null | undefined, text: string) {
+  if (!phone) return
+  try {
+    const { data: instance } = await supabase
+      .from('crm_whatsapp_instances').select('instance_name, api_key')
+      .eq('company_id', companyId).eq('status', 'connected').limit(1).maybeSingle()
+    if (!instance) return
+    await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', apikey: instance.api_key },
+      body: JSON.stringify({ number: formatPhone(phone), text }),
+    })
+    const { data: contact } = await supabase.from('crm_contacts').select('id').eq('company_id', companyId).eq('phone', phone).maybeSingle()
+    if (contact) {
+      await supabase.from('crm_messages').insert({ company_id: companyId, contact_id: contact.id, direction: 'out', body: text, status: 'sent', sent_at: new Date().toISOString() })
+      await supabase.from('crm_contacts').update({ last_message_at: new Date().toISOString(), last_message_preview: text, last_message_direction: 'out' }).eq('id', contact.id)
+    }
+  } catch {}
+}
+
 // Self-heal do webhook da instância da PLATAFORMA (não é por empresa —
 // é a mesma usada pros disparos do admin) pra receber as respostas dos
 // motoboys. Só registra uma vez; guarda o "já registrei" em settings.

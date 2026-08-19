@@ -1034,8 +1034,9 @@ export default function MensagensPage() {
           .msg-thread{display:flex;flex-direction:column;min-height:0;}
           @media(max-width:767px){.msg-thread{display:${selected ? 'flex' : 'none'};position:fixed;inset:0;z-index:10000;background:#0b141a;}}
           .msg-thead{padding:12px 16px;background:#202c33;border-bottom:1px solid #2f3b43;display:flex;align-items:center;gap:10px;flex:none;color:#e9edef;}
-          .msg-back{display:none;background:none;border:none;font-size:18px;cursor:pointer;color:#aebac1;}
-          @media(max-width:767px){.msg-back{display:block;}}
+          .msg-back{display:none;background:none;border:none;font-size:24px;cursor:pointer;color:#aebac1;width:40px;height:40px;align-items:center;justify-content:center;border-radius:50%;flex:none;transition:background .15s;}
+          .msg-back:hover{background:rgba(255,255,255,.08);}
+          @media(max-width:767px){.msg-back{display:flex;font-size:30px;width:46px;height:46px;}}
           .msg-body{flex:1;min-height:0;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:8px;background-color:#0b141a;background-image:radial-gradient(rgba(255,255,255,.035) 1px,transparent 1px),radial-gradient(rgba(255,255,255,.02) 1px,transparent 1px);background-size:26px 26px,26px 26px;background-position:0 0,13px 13px;scrollbar-width:none;-ms-overflow-style:none;}
           .msg-body::-webkit-scrollbar{display:none;}
           .msg-list{scrollbar-width:none;-ms-overflow-style:none;}
@@ -1076,14 +1077,14 @@ export default function MensagensPage() {
             .msg-bubble{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;}
             .msg-bubble-actions{display:none;width:0;overflow:hidden;}
             .msg-bubble-actions.mobile-open{
-              display:flex;position:absolute;bottom:100%;margin-bottom:6px;width:auto;overflow:visible;
-              background:#233138;border-radius:20px;padding:3px 4px;box-shadow:0 4px 14px rgba(0,0,0,.4);z-index:20;
+              display:flex;position:absolute;bottom:100%;margin-bottom:8px;width:auto;overflow:visible;
+              background:#233138;border-radius:26px;padding:5px 6px;box-shadow:0 4px 14px rgba(0,0,0,.4);z-index:20;
             }
             .msg-bubble-row.in .msg-bubble-actions.mobile-open{left:0;}
             .msg-bubble-row.out .msg-bubble-actions.mobile-open{right:0;order:0;}
             .msg-bubble-row.actions-open{position:relative;z-index:16;}
             .msg-bubble-row.actions-open .msg-bubble{filter:brightness(1.18);}
-            .msg-reply-btn{opacity:1;font-size:15px;padding:6px;}
+            .msg-bubble-actions.mobile-open .msg-reply-btn{opacity:1;font-size:19px;padding:9px;min-width:40px;min-height:40px;display:flex;align-items:center;justify-content:center;}
             .msg-actions-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.32);z-index:15;}
           }
           .msg-reply-btn{background:none;border:none;font-size:13px;color:#8696a0;cursor:pointer;opacity:0;transition:opacity .15s;padding:4px;flex:none;}
@@ -1108,7 +1109,9 @@ export default function MensagensPage() {
           .msg-reply-bar-txt{flex:1;min-width:0;color:#c8ccce;border-left:3px solid #C9951A;padding-left:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
           .msg-reply-bar button{background:none;border:none;font-size:15px;cursor:pointer;color:#8696a0;flex:none;}
           .msg-presence{font-size:11px;color:#53bdeb;font-weight:600;}
-          .msg-thead-search-btn{background:none;border:none;font-size:16px;cursor:pointer;padding:6px;flex:none;color:#aebac1;}
+          .msg-thead-search-btn{background:rgba(255,255,255,.07);border:none;font-size:19px;cursor:pointer;flex:none;color:#e9edef;width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:background .15s;}
+          .msg-thead-search-btn:hover{background:rgba(255,255,255,.14);}
+          @media(max-width:767px){.msg-thead-search-btn{width:48px;height:48px;font-size:22px;}}
           .msg-search-input{flex:1;padding:9px 14px;border-radius:20px;border:1px solid #2f3b43;background:#2a3942;color:#e9edef;font-size:13px;font-family:inherit;}
           .msg-search-hit{background:#FBEEC5;color:#1A1610;border-radius:3px;padding:0 1px;}
           .msg-deleted{font-size:12.5px;color:#8696a0;font-style:italic;}
@@ -1235,7 +1238,7 @@ export default function MensagensPage() {
                           value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
                           onKeyDown={e => e.key === 'Escape' && (setSearchOpen(false), setSearchTerm(''))}
                         />
-                        <button className="msg-back" style={{ display: 'block' }} onClick={() => { setSearchOpen(false); setSearchTerm('') }}>✕</button>
+                        <button className="msg-back" style={{ display: 'flex' }} onClick={() => { setSearchOpen(false); setSearchTerm('') }}>✕</button>
                       </>
                     ) : (
                       <>

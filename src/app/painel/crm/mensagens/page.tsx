@@ -934,19 +934,24 @@ export default function MensagensPage() {
           @media(min-width:768px){.msg-shell{grid-template-columns:280px 1fr;border:1px solid #EDE8E0;border-radius:14px;background:#fff;height:calc(100vh - 140px);}}
           .msg-list{background:#111b21;border-right:1px solid #2f3b43;overflow-y:auto;min-height:0;}
           @media(max-width:767px){.msg-list{display:${selected ? 'none' : 'block'};}}
-          .msg-item{display:flex;gap:10px;padding:12px 14px;border-bottom:1px solid #202c33;cursor:pointer;align-items:center;}
+          .msg-item{display:flex;gap:14px;padding:16px;border-bottom:1px solid #202c33;cursor:pointer;align-items:center;}
           .msg-item.sel{background:#2a3942;}
           .msg-item:hover{background:#202c33;}
           .msg-avatar{width:34px;height:34px;border-radius:50%;background:#374045;border:none;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:#cfd6da;flex:none;overflow:hidden;}
           .msg-avatar img{width:100%;height:100%;object-fit:cover;}
+          .msg-avatar-lg{width:52px;height:52px;font-size:17px;}
           .msg-item-txt{flex:1;min-width:0;}
-          .msg-item-name{font-weight:700;font-size:13px;color:#e9edef;}
-          .msg-item-time{font-size:10.5px;color:#8696a0;}
-          .msg-unread{width:8px;height:8px;border-radius:50%;background:#00a884;flex:none;}
-          .msg-item-actions{display:none;gap:4px;flex:none;}
+          .msg-item-name{font-weight:700;font-size:16px;color:#e9edef;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+          .msg-item-time{font-size:12.5px;color:#8696a0;margin-top:2px;}
+          .msg-unread{width:11px;height:11px;border-radius:50%;background:#00a884;flex:none;}
+          .msg-item-actions{display:none;gap:2px;flex:none;}
           .msg-item:hover .msg-item-actions{display:flex;}
-          .msg-item-actions button{background:none;border:none;font-size:13px;cursor:pointer;padding:4px;border-radius:6px;opacity:.6;}
+          .msg-item-actions button{background:none;border:none;font-size:19px;cursor:pointer;padding:8px;border-radius:50%;opacity:.75;width:38px;height:38px;display:flex;align-items:center;justify-content:center;}
           .msg-item-actions button:hover{opacity:1;background:#2f3b43;}
+          @media(max-width:767px){
+            .msg-item-actions{display:flex;}
+            .msg-item-actions button{opacity:.85;}
+          }
           .msg-list-toolbar{position:sticky;top:0;z-index:5;background:#111b21;padding:10px 12px 8px;display:flex;flex-direction:column;gap:8px;}
           .msg-list-search{width:100%;padding:9px 14px;border-radius:20px;border:none;background:#202c33;color:#e9edef;font-size:13px;font-family:inherit;}
           .msg-list-search::placeholder{color:#8696a0;}
@@ -1207,7 +1212,7 @@ export default function MensagensPage() {
                       const unread = !!c.last_message_at && (!c.last_read_at || c.last_read_at < c.last_message_at)
                       return (
                         <div key={c.id} className={`msg-item ${selected?.id === c.id ? 'sel' : ''}`} onClick={() => openContact(c)}>
-                          <div className="msg-avatar">{c.avatar_url ? <img src={c.avatar_url} alt="" /> : (c.name || c.phone).slice(0, 2).toUpperCase()}</div>
+                          <div className="msg-avatar msg-avatar-lg">{c.avatar_url ? <img src={c.avatar_url} alt="" /> : (c.name || c.phone).slice(0, 2).toUpperCase()}</div>
                           <div className="msg-item-txt">
                             <div className="msg-item-name">{c.pinned && '📌 '}{c.muted && '🔕 '}{c.name || c.phone}</div>
                             <div className="msg-item-time">{c.last_message_at ? fmtTime(c.last_message_at) : ''}</div>

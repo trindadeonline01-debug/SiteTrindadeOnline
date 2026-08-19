@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     if (contact.last_read_at) query = query.gt('sent_at', contact.last_read_at)
     const { data: unread } = await query
 
-    await supabase.from('crm_contacts').update({ last_read_at: now }).eq('id', contact_id)
+    await supabase.from('crm_contacts').update({ last_read_at: now, unread_count: 0 }).eq('id', contact_id)
 
     if (unread && unread.length > 0) {
       const { data: instance } = await supabase

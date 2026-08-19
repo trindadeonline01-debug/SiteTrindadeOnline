@@ -250,19 +250,30 @@ export async function POST(req: NextRequest) {
         }
 
         const { data: existing } = await supabase
-          .from('crm_contacts').select('id, name, muted, last_auto_reply_at')
+          .from('crm_contacts').select('id, name, muted, last_auto_reply_at, unread_count')
           .eq('company_id', inst.company_id).eq('phone', phone).maybeSingle()
+
+        // Prévia mostrada na lista de conversas (estilo WhatsApp) — mesmo
+        // texto usado no push, então calcula uma vez só e reaproveita.
+        const previewText = text && mediaType !== 'location' && mediaType !== 'contact' ? text
+          : mediaType === 'image' ? '📷 Foto' : mediaType === 'video' ? '🎥 Vídeo' : mediaType === 'audio' ? '🎤 Áudio'
+          : mediaType === 'document' ? '📄 Documento' : mediaType === 'sticker' ? '🏷️ Figurinha'
+          : mediaType === 'location' ? '📍 Localização' : mediaType === 'contact' ? '👤 Contato' : 'Nova mensagem'
 
         let contactId: string | undefined
         if (!existing) {
           const { data: created } = await supabase.from('crm_contacts').insert({
             company_id: inst.company_id, phone, name: pushName, last_message_at: sentAt,
+            last_message_preview: previewText, last_message_direction: direction,
+            unread_count: direction === 'in' ? 1 : 0,
           }).select('id').single()
           contactId = created?.id
         } else {
           contactId = existing.id
           await supabase.from('crm_contacts').update({
             last_message_at: sentAt,
+            last_message_preview: previewText, last_message_direction: direction,
+            ...(direction === 'in' ? { unread_count: (existing.unread_count || 0) + 1 } : {}),
             ...(pushName && !existing.name ? { name: pushName } : {}),
           }).eq('id', contactId)
         }
@@ -276,7 +287,7 @@ export async function POST(req: NextRequest) {
 
         if (direction === 'out') {
           // Mandado pelo celular direto (fora do CRM) — marca como lido, não precisa notificar o próprio lojista.
-          await supabase.from('crm_contacts').update({ last_read_at: sentAt }).eq('id', contactId)
+          await supabase.from('crm_contacts').update({ last_read_at: sentAt, unread_count: 0 }).eq('id', contactId)
           continue
         }
 
@@ -285,10 +296,7 @@ export async function POST(req: NextRequest) {
           .select('owner_id, name, crm_auto_reply_enabled, crm_auto_reply_text, flexible_hours')
           .eq('id', inst.company_id).maybeSingle()
         if (company?.owner_id && !existing?.muted) {
-          const notifBody = text && mediaType !== 'location' && mediaType !== 'contact' ? text
-            : mediaType === 'image' ? '📷 Foto' : mediaType === 'video' ? '🎥 Vídeo' : mediaType === 'audio' ? '🎤 Áudio'
-            : mediaType === 'document' ? '📄 Documento' : mediaType === 'sticker' ? '🏷️ Figurinha'
-            : mediaType === 'location' ? '📍 Localização' : mediaType === 'contact' ? '👤 Contato' : 'Nova mensagem'
+          const notifBody = previewText
           // Precisa de `await` de verdade — sem isso a função serverless pode
           // congelar assim que a resposta sai, matando o fetch em segundo plano.
           await fetch(`${SITE_URL}/api/push/send`, {
@@ -317,11 +325,15 @@ export async function POST(req: NextRequest) {
                   headers: { 'Content-Type': 'application/json', apikey: inst.api_key },
                   body: JSON.stringify({ number: phone, text: company.crm_auto_reply_text.trim() }),
                 })
+                const autoReplyAt = new Date().toISOString()
                 await supabase.from('crm_messages').insert({
                   company_id: inst.company_id, contact_id: contactId, direction: 'out',
-                  body: company.crm_auto_reply_text.trim(), status: 'sent', sent_at: new Date().toISOString(),
+                  body: company.crm_auto_reply_text.trim(), status: 'sent', sent_at: autoReplyAt,
                 })
-                await supabase.from('crm_contacts').update({ last_auto_reply_at: new Date().toISOString() }).eq('id', contactId)
+                await supabase.from('crm_contacts').update({
+                  last_auto_reply_at: autoReplyAt, last_message_at: autoReplyAt,
+                  last_message_preview: company.crm_auto_reply_text.trim(), last_message_direction: 'out',
+                }).eq('id', contactId)
               } catch {}
             }
           }

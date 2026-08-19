@@ -144,7 +144,13 @@ export async function POST(req: NextRequest) {
       media_url: media_path || null,
       wa_message_id: waMessageId, sent_at: now, reply_to_id: reply_to_id || null, status: 'sent',
     })
-    await supabase.from('crm_contacts').update({ last_message_at: now, last_read_at: now }).eq('id', contact_id)
+    const preview = text?.trim() ? text.trim()
+      : media_type === 'image' ? '📷 Foto' : media_type === 'video' ? '🎥 Vídeo' : media_type === 'audio' ? '🎤 Áudio'
+      : media_type === 'document' ? '📄 Documento' : location ? '📍 Localização' : contact_share ? '👤 Contato' : ''
+    await supabase.from('crm_contacts').update({
+      last_message_at: now, last_read_at: now, unread_count: 0,
+      last_message_preview: preview, last_message_direction: 'out',
+    }).eq('id', contact_id)
 
     return NextResponse.json({ ok: true })
   } catch (err: any) {

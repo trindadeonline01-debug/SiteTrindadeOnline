@@ -124,7 +124,9 @@ export async function POST(req: NextRequest) {
                 await supabase.from('crm_messages').insert({
                   company_id: companyId, contact_id: contact.id, direction: 'out', body: text, status: 'sent', sent_at: new Date().toISOString(),
                 })
-                await supabase.from('crm_contacts').update({ last_message_at: new Date().toISOString() }).eq('id', contact.id)
+                await supabase.from('crm_contacts').update({
+                  last_message_at: new Date().toISOString(), last_message_preview: text, last_message_direction: 'out',
+                }).eq('id', contact.id)
               }
             } catch {}
           }

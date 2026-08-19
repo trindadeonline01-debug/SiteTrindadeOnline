@@ -13,6 +13,7 @@ type Contact = {
   id: string; phone: string; name: string | null; last_message_at: string | null; last_read_at: string | null
   presence_state?: string | null; presence_until?: string | null; pinned?: boolean; archived?: boolean
   avatar_url?: string | null; muted?: boolean; notes?: string | null
+  last_message_preview?: string | null; last_message_direction?: string | null; unread_count?: number
 }
 type Message = {
   id: string; direction: 'in' | 'out'; body: string | null; media_type: string | null; media_url: string | null
@@ -206,7 +207,7 @@ export default function MensagensPage() {
 
   async function loadContacts(companyId: string) {
     const { data } = await supabase
-      .from('crm_contacts').select('id, phone, name, last_message_at, last_read_at, presence_state, presence_until, pinned, archived, avatar_url, muted, notes')
+      .from('crm_contacts').select('id, phone, name, last_message_at, last_read_at, presence_state, presence_until, pinned, archived, avatar_url, muted, notes, last_message_preview, last_message_direction, unread_count')
       .eq('company_id', companyId).not('last_message_at', 'is', null)
       .order('last_message_at', { ascending: false })
     setContacts((data || []) as Contact[])
@@ -415,7 +416,7 @@ export default function MensagensPage() {
     await loadMessages(c.id)
     if (c.last_message_at && (!c.last_read_at || c.last_read_at < c.last_message_at)) {
       const now = new Date().toISOString()
-      setContacts(prev => prev.map(x => x.id === c.id ? { ...x, last_read_at: now } : x))
+      setContacts(prev => prev.map(x => x.id === c.id ? { ...x, last_read_at: now, unread_count: 0 } : x))
       const { data: { session } } = await supabase.auth.getSession()
       // Marca lido no nosso banco E manda o read receipt real pra Evolution
       // (tique azul do lado do cliente também), não só localmente.
@@ -571,6 +572,8 @@ export default function MensagensPage() {
         setContacts(prev => prev.map(c => c.id === row.id ? {
           ...c, presence_state: row.presence_state, presence_until: row.presence_until, name: row.name,
           last_message_at: row.last_message_at, last_read_at: row.last_read_at, pinned: row.pinned, archived: row.archived,
+          last_message_preview: row.last_message_preview, last_message_direction: row.last_message_direction,
+          unread_count: row.unread_count,
         } : c))
       })
       .subscribe()
@@ -941,13 +944,19 @@ export default function MensagensPage() {
           .msg-avatar img{width:100%;height:100%;object-fit:cover;}
           .msg-avatar-lg{width:52px;height:52px;font-size:17px;}
           .msg-item-txt{flex:1;min-width:0;}
+          .msg-item-row1{display:flex;align-items:baseline;justify-content:space-between;gap:8px;}
+          .msg-item-row2{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:3px;}
           .msg-item-name{font-weight:700;font-size:16px;color:#e9edef;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-          .msg-item-time{font-size:12.5px;color:#8696a0;margin-top:2px;}
-          .msg-unread{width:11px;height:11px;border-radius:50%;background:#00a884;flex:none;}
+          .msg-item-time{font-size:12.5px;color:#8696a0;flex:none;}
+          .msg-item-time.unread{color:#00a884;font-weight:700;}
+          .msg-item-preview{flex:1;min-width:0;font-size:13.5px;color:#8696a0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+          .msg-item-tick{color:#8696a0;margin-right:4px;font-size:12px;}
+          .msg-item-unread-badge{flex:none;background:#00a884;color:#0b141a;font-size:11.5px;font-weight:800;min-width:21px;height:21px;border-radius:11px;display:flex;align-items:center;justify-content:center;padding:0 6px;}
           .msg-item-actions{display:none;gap:2px;flex:none;}
           .msg-item:hover .msg-item-actions{display:flex;}
           .msg-item-actions button{background:none;border:none;font-size:19px;cursor:pointer;padding:8px;border-radius:50%;opacity:.75;width:38px;height:38px;display:flex;align-items:center;justify-content:center;}
           .msg-item-actions button:hover{opacity:1;background:#2f3b43;}
+          .msg-item-actions button.on{opacity:1;color:#C9951A;}
           @media(max-width:767px){
             .msg-item-actions{display:flex;}
             .msg-item-actions button{opacity:.85;}
@@ -1214,15 +1223,23 @@ export default function MensagensPage() {
                         <div key={c.id} className={`msg-item ${selected?.id === c.id ? 'sel' : ''}`} onClick={() => openContact(c)}>
                           <div className="msg-avatar msg-avatar-lg">{c.avatar_url ? <img src={c.avatar_url} alt="" /> : (c.name || c.phone).slice(0, 2).toUpperCase()}</div>
                           <div className="msg-item-txt">
-                            <div className="msg-item-name">{c.pinned && '📌 '}{c.muted && '🔕 '}{c.name || c.phone}</div>
-                            <div className="msg-item-time">{c.last_message_at ? fmtTime(c.last_message_at) : ''}</div>
+                            <div className="msg-item-row1">
+                              <div className="msg-item-name">{c.muted && '🔕 '}{c.name || c.phone}</div>
+                              <div className={`msg-item-time${unread ? ' unread' : ''}`}>{c.last_message_at ? fmtTime(c.last_message_at) : ''}</div>
+                            </div>
+                            <div className="msg-item-row2">
+                              <div className="msg-item-preview">
+                                {c.last_message_direction === 'out' && <span className="msg-item-tick">✓✓</span>}
+                                {c.last_message_preview || ''}
+                              </div>
+                              {!!c.unread_count && <span className="msg-item-unread-badge">{c.unread_count > 99 ? '99+' : c.unread_count}</span>}
+                            </div>
                           </div>
                           <div className="msg-item-actions">
-                            <button title={c.pinned ? 'Desafixar' : 'Fixar'} onClick={e => togglePin(c, e)}>📌</button>
+                            <button title={c.pinned ? 'Desafixar' : 'Fixar'} className={c.pinned ? 'on' : ''} onClick={e => togglePin(c, e)}>📌</button>
                             <button title={c.muted ? 'Reativar notificações' : 'Silenciar'} onClick={e => toggleMute(c, e)}>{c.muted ? '🔔' : '🔕'}</button>
                             <button title={c.archived ? 'Desarquivar' : 'Arquivar'} onClick={e => toggleArchive(c, e)}>🗄</button>
                           </div>
-                          {unread && <div className="msg-unread" />}
                         </div>
                       )
                     })}

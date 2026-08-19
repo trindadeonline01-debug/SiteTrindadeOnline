@@ -189,7 +189,7 @@ export default function PedidosPage() {
     }
     setMotoLoading(null)
     if (res.status === 401) {
-      setMotoErrors(prev => ({ ...prev, [p.id]: 'Sua sessão caiu — atualiza a página (F5) e tenta chamar de novo.' }))
+      setMotoErrors(prev => ({ ...prev, [p.id]: (data.error || 'sessão inválida') + ' — atualiza a página (F5) e tenta de novo.' }))
       return
     }
     if (!res.ok || data.error) { setMotoErrors(prev => ({ ...prev, [p.id]: data.error || 'Não consegui chamar o motoboy.' })); return }

@@ -23,6 +23,7 @@ type NpProduto = { id: string; name: string; sale_price: number; category_id: st
 type NpCartLine = { key: string; produtoId: string; name: string; modifiers: { name: string; price: number }[]; unitPrice: number; qty: number }
 
 const CUSTOMER_MSG: Partial<Record<Status, string>> = {
+  em_preparo: 'Seu pedido já está em preparo!',
   pronto: 'Seu pedido está pronto!',
   saiu_entrega: 'Seu pedido saiu para entrega!',
   entregue: 'Pedido entregue. Bom apetite!',
@@ -34,6 +35,15 @@ function notifyCustomer(customerId: string | null, companyName: string, status: 
   fetch('/api/push/send', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ title: companyName, body: msg, target: 'external_user_id', userId: customerId, url: `${window.location.origin}/perfil` }),
+  }).catch(() => {})
+}
+// Além do push no app, manda a atualização como mensagem de WhatsApp de
+// verdade pro cliente (mesmo canal usado pra confirmar o pedido).
+function notifyCustomerWhatsapp(companyId: string, phone: string | null, status: Status, deliveryType: string) {
+  if (!phone) return
+  fetch('/api/loja/status-pedido', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ companyId, phone, status, deliveryType }),
   }).catch(() => {})
 }
 
@@ -152,13 +162,21 @@ export default function PedidosPage() {
     setPedidos(prev => prev.map(p => p.id === id ? { ...p, status } : p))
     await supabase.from('loja_pedidos').update({ status, updated_at: new Date().toISOString() }).eq('id', id)
     const pedido = pedidos.find(p => p.id === id)
-    if (pedido) notifyCustomer(pedido.customer_id, companyName, status)
+    if (pedido) {
+      notifyCustomer(pedido.customer_id, companyName, status)
+      notifyCustomerWhatsapp(companyId, pedido.customer_phone, status, pedido.delivery_type)
+    }
   }
 
   async function acceptPedido(id: string) {
     const now = new Date().toISOString()
     setPedidos(prev => prev.map(p => p.id === id ? { ...p, accepted_at: now, status: 'em_preparo' } : p))
     await supabase.from('loja_pedidos').update({ accepted_at: now, status: 'em_preparo', updated_at: now }).eq('id', id)
+    const pedido = pedidos.find(p => p.id === id)
+    if (pedido) {
+      notifyCustomer(pedido.customer_id, companyName, 'em_preparo')
+      notifyCustomerWhatsapp(companyId, pedido.customer_phone, 'em_preparo', pedido.delivery_type)
+    }
   }
 
   async function toggleAutoAceitar() {

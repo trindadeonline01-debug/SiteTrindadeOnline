@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase'
 
 type Item = { id: string; product_name: string; qty: number; selected_options: { name: string; price: number }[] }
 type Status = 'recebido' | 'em_preparo' | 'pronto' | 'saiu_entrega' | 'entregue' | 'cancelado'
-type Pedido = { id: string; customer_id: string | null; customer_name: string; status: Status; created_at: string; accepted_at: string | null; delivery_type: 'entrega' | 'retirada'; scheduled_for: string | null; itens: Item[] }
+type Pedido = { id: string; customer_id: string | null; customer_name: string; customer_phone: string | null; status: Status; created_at: string; accepted_at: string | null; delivery_type: 'entrega' | 'retirada'; scheduled_for: string | null; itens: Item[] }
 
 const COLUMNS: { status: Status; label: string; next: Status; action: string; color: string }[] = [
   { status: 'recebido', label: 'Recebido', next: 'em_preparo', action: 'Iniciar preparo', color: '#E24B4A' },
@@ -16,13 +16,20 @@ function nextForCard(p: Pedido, col: typeof COLUMNS[number]) {
   return { next: col.next, action: col.action }
 }
 
-const CUSTOMER_MSG: Partial<Record<Status, string>> = { pronto: 'Seu pedido está pronto!', saiu_entrega: 'Seu pedido saiu para entrega!', entregue: 'Pedido entregue. Bom apetite!' }
+const CUSTOMER_MSG: Partial<Record<Status, string>> = { em_preparo: 'Seu pedido já está em preparo!', pronto: 'Seu pedido está pronto!', saiu_entrega: 'Seu pedido saiu para entrega!', entregue: 'Pedido entregue. Bom apetite!' }
 function notifyCustomer(customerId: string | null, companyName: string, status: Status) {
   const msg = CUSTOMER_MSG[status]
   if (!customerId || !msg) return
   fetch('/api/push/send', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ title: companyName, body: msg, target: 'external_user_id', userId: customerId, url: `${window.location.origin}/perfil` }),
+  }).catch(() => {})
+}
+function notifyCustomerWhatsapp(companyId: string, phone: string | null, status: Status, deliveryType: string) {
+  if (!phone) return
+  fetch('/api/loja/status-pedido', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ companyId, phone, status, deliveryType }),
   }).catch(() => {})
 }
 
@@ -85,7 +92,10 @@ export default function CozinhaPage() {
     const leavesKds = next === 'saiu_entrega' || next === 'entregue'
     setPedidos(prev => leavesKds ? prev.filter(p => p.id !== id) : prev.map(p => p.id === id ? { ...p, status: next } : p))
     await supabase.from('loja_pedidos').update({ status: next, updated_at: new Date().toISOString() }).eq('id', id)
-    if (pedido) notifyCustomer(pedido.customer_id, companyName, next)
+    if (pedido) {
+      notifyCustomer(pedido.customer_id, companyName, next)
+      notifyCustomerWhatsapp(companyIdRef.current, pedido.customer_phone, next, pedido.delivery_type)
+    }
   }
 
   if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter,sans-serif', color: '#AAA', background: '#111' }}>Carregando...</div>

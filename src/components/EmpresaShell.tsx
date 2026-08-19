@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect, useRef } from 'react'
+
 // Navegação única do "Modo Empresa" — desktop (sidebar agrupada) e mobile
 // (barra de abas fixa + tela /painel/mais). Substitui o antigo CrmShell e a
 // sidebar interna de /painel, que eram dois sistemas de menu separados.
@@ -32,6 +34,24 @@ export default function EmpresaShell({
   children: React.ReactNode
 }) {
   const initials = (companyName || '').trim().slice(0, 2).toUpperCase() || 'ST'
+
+  // Mede a altura REAL da barra fixa (varia por aparelho — home indicator do
+  // iPhone, gesto do Android, 74px era só um chute que sobrava/faltava
+  // dependendo do device) e publica numa CSS var pro resto da página
+  // reservar exatamente esse espaço, sem faixa em branco nem sobreposição.
+  const tabbarRef = useRef<HTMLElement>(null)
+  useEffect(() => {
+    const el = tabbarRef.current
+    if (!el) return
+    const update = () => {
+      if (el.offsetHeight > 0) document.documentElement.style.setProperty('--es-tabbar-h', `${el.offsetHeight}px`)
+    }
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    window.addEventListener('orientationchange', update)
+    return () => { ro.disconnect(); window.removeEventListener('orientationchange', update) }
+  }, [])
 
   // Abas do rodapé mobile: se a loja tem cardápio digital/CRM, mostra os
   // atalhos operacionais; senão mostra os itens mais úteis do plano simples.
@@ -84,7 +104,7 @@ export default function EmpresaShell({
         @media(min-width:768px){.es-topbar{display:flex;}}
         .es-topbar-title{font-family:'Bebas Neue',sans-serif;font-size:20px;color:#111;letter-spacing:1px;}
         .es-content{flex:1;min-width:0;}
-        @media(max-width:767px){.es-content{padding-bottom:calc(56px + env(safe-area-inset-bottom, 0px));}}
+        @media(max-width:767px){.es-content{padding-bottom:var(--es-tabbar-h, 74px);}}
 
         .es-tabbar{position:fixed;left:0;right:0;bottom:0;background:#111;display:flex;align-items:center;z-index:9999;padding:6px 4px env(safe-area-inset-bottom);}
         @media(min-width:768px){.es-tabbar{display:none;}}
@@ -158,7 +178,7 @@ export default function EmpresaShell({
         <div className="es-content">{children}</div>
       </div>
 
-      <nav className="es-tabbar">
+      <nav className="es-tabbar" ref={tabbarRef}>
         {mobileTabs.map(t => (
           <a key={t.key} href={t.href} className={`es-tab ${active === t.key ? 'on' : ''}`}>
             <span className="es-tab-ico">{t.ico}</span>

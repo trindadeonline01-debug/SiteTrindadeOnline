@@ -259,6 +259,16 @@ Igrejas:            00000000-0000-0000-0000-000000000008
 - Webhook aceita `type === 'payment'` E `action === 'payment.updated'`
 - Webhook usa `await` em todas operações assíncronas (crítico em Vercel serverless)
 
+### Trindade Entrega (v1 — ago/2026)
+- Motoboy é da plataforma, não da loja. Modelo pré-pago: diária de R$30 pra liberar o dia + créditos de R$5/entrega (pacotes de 10/20/50), tudo via Pix real (Mercado Pago) em `/painel/crm/entrega`
+- Tabelas: `motoboys`, `company_delivery_wallet`, `delivery_credit_ledger`, `delivery_payments`, `delivery_orders`, `delivery_offers`
+- Loja chama o motoboy pelo botão "🏍️ Chamar motoboy" num pedido de entrega em `/painel/crm/pedidos` → `/api/entrega/criar`
+- Motor de disparo (`src/lib/entregaDispatch.ts`): chama o motoboy ativo há mais tempo sem corrida, pelo WhatsApp da **instância da plataforma** (não a de cada empresa) — mensagem pede resposta SIM/NÃO em 45s; recusa ou timeout repassa pro próximo automaticamente
+- Confirmação por código de 4 dígitos: cliente recebe o código (pela conversa do CRM da própria loja, se conectado, e visível em `/perfil` → Meus Pedidos), motoboy digita na chegada pelo mesmo WhatsApp — bate o código, libera o pagamento e desconta 1 crédito da carteira da loja
+- Cadastro de motoboy (nome, telefone, chave Pix) numa aba nova do admin (`MotoboysTab.tsx`)
+- Timeout de 45s é conferido tanto a cada mensagem recebida no webhook quanto por polling do painel da loja a cada 15s (`/api/entrega/tick`) — não depende de cron de minuto em minuto
+- **Pendente**: pagamento em lote pro motoboy (hoje só marca "liberado", ainda não faz o Pix de saída pra ele); app do motoboy com localização/proximidade real (v1 é só WhatsApp, sem geo); reestruturação de planos puxada por essa feature (ver item 9 da fila pendente)
+
 ### Breadcrumb
 - Topbar com grid 3 colunas em todas as páginas internas
 
@@ -331,7 +341,7 @@ DELETE FROM companies WHERE slug LIKE '%-teste';
    - Só dispara se empresa ainda não tiver plano pago
 7. **Painel financeiro/admin** — planos ativos, expirations, receita, renovações manuais/automáticas
 8. **Header mobile do painel** — "Ver site" e "Sair" muito grandes; mover para barra superior
-9. **Sistema de entrega (delivery)** — Ricardo vai detalhar por áudio como pensa que deve funcionar (motoboy próprio, algo simples via WhatsApp, ou algo mais robusto tipo iFood/Uber). Puxa junto disso: reestruturação de planos/preços — pacotes por combinação (só cardápio / cardápio + CRM / cardápio + CRM + entrega), além do plano Visibilidade atual (R$49,90/mês). Aguardando detalhamento antes de desenhar a arquitetura.
+9. ~~Sistema de entrega (delivery)~~ — **v1 implementado em ago/2026**, ver seção 6 "Trindade Entrega". Ainda pendente: reestruturação de planos/preços puxada por isso (pacotes por combinação — só cardápio / cardápio + CRM / cardápio + CRM + entrega), além do plano Visibilidade atual (R$49,90/mês) — Ricardo ainda não detalhou como quer precificar isso.
 10. **Disparos em massa dentro do CRM** (pedido em ago/2026, adiado a pedido do Ricardo — "não vou fazer isso agora, documenta") — hoje o sistema de disparo (`DisparosTab.tsx` + `/api/blast`) é **só do admin da plataforma**: dispara pelo número da própria Trindade Online, filtros fixos (todas empresas/pago/não pago/moradores/etc), tabelas `blast_campaigns`/`blast_logs`/`blast_blacklist` sem `company_id` (cruzam a base toda). Objetivo: dar a cada empresa um disparo em massa **para os próprios contatos do CRM dela**, usando a instância WhatsApp já conectada da empresa (`crm_whatsapp_instances`), com filtros comportamentais que hoje não existem em lugar nenhum: não respondeu (última msg foi da loja, sem resposta há X dias), não compra há X dias, nunca comprou, conversa parada há X dias. Plano combinado com o Ricardo:
     - **Não reaproveitar as tabelas do admin diretamente** — misturaria campanha de plataforma com campanha de empresa e furaria RLS (lojista veria/mexeria em campanha de outra loja). Precisa de tabelas novas com `company_id` obrigatório: `crm_campaigns` (id, company_id, name, message, filter_type, filter_days, status, delay_min, delay_max, total_contacts, sent_count, failed_count, scheduled_at, started_at, completed_at, created_at) + `crm_campaign_logs` (id, campaign_id, contact_id, phone, status, error_message, sent_at).
     - **Reaproveitar o MOTOR**, sim — copiar/adaptar a lógica de `src/app/api/blast/route.ts`: lote com atraso aleatório entre envios, continuação encadeada quando estoura o tempo da função serverless (HARD_LIMIT_MS), watchdog que reativa campanha travada.

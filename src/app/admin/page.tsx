@@ -22,6 +22,9 @@ type Company = {
   created_at: string; owner_id: string; category_id: string
   address: string; phone: string; description?: string; tags?: string[]; cpf_cnpj?: string; external_link?: string
   loja_digital_enabled?: boolean
+  crm_whatsapp_enabled?: boolean
+  entrega_enabled?: boolean
+  trial_modules_until?: string | null
   category?: { name: string; emoji: string }
   owner?: { name: string }
 }
@@ -1054,6 +1057,27 @@ export default function AdminPage() {
     showToast(!enabled ? 'Cardápio Digital ativado.' : 'Cardápio Digital desativado.')
   }
 
+  // Módulos independentes (Cardápio, CRM, Entrega) — cada empresa liga o
+  // que contratou, sem depender dos outros dois.
+  const MODULE_LABEL: Record<'crm_whatsapp_enabled' | 'entrega_enabled', string> = {
+    crm_whatsapp_enabled: 'CRM', entrega_enabled: 'Entrega',
+  }
+  async function toggleModule(id: string, field: 'crm_whatsapp_enabled' | 'entrega_enabled', enabled: boolean) {
+    setCompanies(prev => prev.map(c => c.id === id ? { ...c, [field]: !enabled } : c))
+    await supabase.from('companies').update({ [field]: !enabled }).eq('id', id)
+    showToast(`${MODULE_LABEL[field]} ${!enabled ? 'ativado' : 'desativado'}.`)
+  }
+
+  // Teste liga os 3 módulos de uma vez (Cardápio + CRM + Entrega) por N dias,
+  // sem mexer nos flags reais — quando a data passa, volta a valer só o que
+  // a empresa realmente tem contratado.
+  async function setTrial(id: string, dias: number | null) {
+    const until = dias ? new Date(Date.now() + dias * 86400000).toISOString() : null
+    setCompanies(prev => prev.map(c => c.id === id ? { ...c, trial_modules_until: until } : c))
+    await supabase.from('companies').update({ trial_modules_until: until }).eq('id', id)
+    showToast(dias ? `Teste liberado por ${dias} dias.` : 'Teste removido.')
+  }
+
   async function deleteCompany(id: string, nome: string) {
     if (!confirm(`Tem certeza? Isso apagará TODOS os dados de "${nome}" (fotos, avaliações, banners, etc). Ação irreversível.`)) return
     const typed = prompt(`Para confirmar, digite exatamente o nome da empresa:\n\n${nome}`)
@@ -1858,9 +1882,26 @@ export default function AdminPage() {
                                 <button className="action-btn" style={{background:'#185FA522',color:'#185FA5'}} onClick={() => openEditCompany(c)}>✏️ Editar</button>
                                 {c.status === 'active' && (() => { const n = emailLogs[c.id] || 0; const bg = n===0?'#EDFAF3':n===1?'#FEF3E2':n===2?'#FEE4D0':'#FCEBEB'; const cl = n===0?'#0F8050':n===1?'#C9951A':n===2?'#E07030':'#E24B4A'; return <button className="action-btn" style={{background:bg,color:cl}} onClick={()=>{ fetch('/api/email/aprovacao',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({company_id:c.id})}).then(()=>{showToast('Email enviado para ' + c.name);setEmailLogs(p=>({...p,[c.id]:(p[c.id]||0)+1}))}) }}>📧 {n===0?'Enviar email':n===1?'Enviado 1x':n===2?'Enviado 2x':'Enviado 3x+'}</button> })()}
                                 {c.status === 'active' && (
-                                  <button className="action-btn" style={c.loja_digital_enabled ? {background:'#E4F3EC',color:'#157A52'} : {background:'#F0EDE8',color:'#888'}} onClick={() => toggleLojaDigital(c.id, !!c.loja_digital_enabled)}>
-                                    🧾 {c.loja_digital_enabled ? 'Cardápio ON' : 'Cardápio OFF'}
-                                  </button>
+                                  <>
+                                    <button className="action-btn" style={c.loja_digital_enabled ? {background:'#E4F3EC',color:'#157A52'} : {background:'#F0EDE8',color:'#888'}} onClick={() => toggleLojaDigital(c.id, !!c.loja_digital_enabled)}>
+                                      🧾 {c.loja_digital_enabled ? 'Cardápio ON' : 'Cardápio OFF'}
+                                    </button>
+                                    <button className="action-btn" style={c.crm_whatsapp_enabled ? {background:'#E4F3EC',color:'#157A52'} : {background:'#F0EDE8',color:'#888'}} onClick={() => toggleModule(c.id, 'crm_whatsapp_enabled', !!c.crm_whatsapp_enabled)}>
+                                      💬 {c.crm_whatsapp_enabled ? 'CRM ON' : 'CRM OFF'}
+                                    </button>
+                                    <button className="action-btn" style={c.entrega_enabled ? {background:'#E4F3EC',color:'#157A52'} : {background:'#F0EDE8',color:'#888'}} onClick={() => toggleModule(c.id, 'entrega_enabled', !!c.entrega_enabled)}>
+                                      🏍️ {c.entrega_enabled ? 'Entrega ON' : 'Entrega OFF'}
+                                    </button>
+                                    {c.trial_modules_until && new Date(c.trial_modules_until) > new Date() ? (
+                                      <button className="action-btn" style={{background:'#FEF3E2',color:'#8A6410'}} onClick={() => setTrial(c.id, null)}>
+                                        🧪 Teste até {fmtDate(c.trial_modules_until)} ✕
+                                      </button>
+                                    ) : (
+                                      <button className="action-btn" style={{background:'#F0EDE8',color:'#888'}} onClick={() => { const d = prompt('Liberar teste dos 3 módulos por quantos dias?', '7'); const n = Number(d); if (n > 0) setTrial(c.id, n) }}>
+                                        🧪 Liberar teste
+                                      </button>
+                                    )}
+                                  </>
                                 )}
                               </td>
                             </tr>

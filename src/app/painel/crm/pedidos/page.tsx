@@ -38,6 +38,12 @@ function notifyCustomer(customerId: string | null, companyName: string, status: 
 }
 
 const STATUS_LABEL: Record<Status, string> = { recebido: 'Recebido', em_preparo: 'Em preparo', pronto: 'Pronto', saiu_entrega: 'Saiu p/ entrega', entregue: 'Entregue', cancelado: 'Cancelado' }
+const ORIGIN_INFO: Record<string, { label: string; bg: string; fg: string }> = {
+  cardapio_publico: { label: '🌐 Site', bg: '#E8F0FE', fg: '#1A56B0' },
+  conversa: { label: '💬 WhatsApp', bg: '#E4F3EC', fg: '#157A52' },
+  balcao: { label: '🏪 Balcão', bg: '#F0EDE8', fg: '#6E6656' },
+}
+function originInfo(origin: string) { return ORIGIN_INFO[origin] || { label: origin, bg: '#F0EDE8', fg: '#6E6656' } }
 const STATUS_COLOR: Record<Status, { bg: string; fg: string }> = {
   recebido: { bg: '#FEF0E0', fg: '#B5690C' }, em_preparo: { bg: '#FEF6DC', fg: '#8A6410' },
   pronto: { bg: '#E4F3EC', fg: '#157A52' }, saiu_entrega: { bg: '#E8F0FE', fg: '#1A56B0' },
@@ -257,13 +263,18 @@ export default function PedidosPage() {
   function renderCard(p: Pedido) {
     const open = openId === p.id
     const c = STATUS_COLOR[p.status]
+    const o = originInfo(p.origin)
     const needsAccept = !autoAceitar && p.status === 'recebido' && !p.accepted_at
     return (
-      <div className={`pd-card ${needsAccept ? 'pd-card-pending' : ''}`} key={p.id} style={{ '--accent': c.fg } as React.CSSProperties} onClick={() => setOpenId(open ? null : p.id)}>
+      <div className={`pd-card ${needsAccept ? 'pd-card-pending' : ''}`} key={p.id} style={{ '--accent': c.fg, borderLeft: `4px solid ${o.fg}` } as React.CSSProperties} onClick={() => setOpenId(open ? null : p.id)}>
         <div className="pd-row1">
-          <div><div className="pd-name">{p.customer_name}</div><div className="pd-time">{timeAgo(p.created_at)} atrás · {p.origin === 'cardapio_publico' ? 'Cardápio' : p.origin === 'balcao' ? 'Balcão' : p.origin}</div></div>
+          <div>
+            <div className="pd-name">{p.customer_name}</div>
+            <div className="pd-time">{timeAgo(p.created_at)} atrás</div>
+          </div>
           <span className="pd-badge" style={{ background: c.bg, color: c.fg }}>{STATUS_LABEL[p.status]}</span>
         </div>
+        <div className="pd-origin-badge" style={{ background: o.bg, color: o.fg }}>{o.label}</div>
         <div className="pd-sum">{p.itens?.length || 0} {p.itens?.length === 1 ? 'item' : 'itens'} · {p.payment_method || '—'} · {p.payment_status === 'pago' ? 'pago' : 'pendente'} · {p.delivery_type === 'retirada' ? '🏪 Retirada' : '🚴 Entrega'}</div>
         {p.scheduled_for && <div className="pd-sum" style={{ color: '#B5690C', fontWeight: 700 }}>📅 Agendado pra {fmtSchedule(p.scheduled_for)}</div>}
         <div className="pd-total">{fmt(p.total)}</div>
@@ -321,6 +332,7 @@ export default function PedidosPage() {
         .pd-name{ font-weight:800;font-size:13.5px; }
         .pd-time{ font-size:10.5px;color:#A79E8B; }
         .pd-badge{ font-size:10px;font-weight:800;padding:3px 8px;border-radius:7px; }
+        .pd-origin-badge{ display:inline-block;font-size:10px;font-weight:800;padding:3px 8px;border-radius:7px;margin-bottom:8px; }
         .pd-sum{ font-size:11.5px;color:#6E6656; }
         .pd-total{ font-weight:800;font-size:13px;margin-top:4px; }
         .pd-detail{ margin-top:10px;padding-top:10px;border-top:1px dashed #EDE8E0; }

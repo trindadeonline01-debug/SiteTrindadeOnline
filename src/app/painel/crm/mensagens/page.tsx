@@ -164,6 +164,8 @@ export default function MensagensPage() {
   const [reactionPickerFor, setReactionPickerFor] = useState<string | null>(null)
   const [mobileActionsFor, setMobileActionsFor] = useState<string | null>(null)
   const pressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [contactActionsFor, setContactActionsFor] = useState<string | null>(null)
+  const contactPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [contactPicker, setContactPicker] = useState<{ mode: 'forward' | 'shareContact'; forMessage?: Message } | null>(null)
   const [linkPreviews, setLinkPreviews] = useState<Record<string, { title: string | null; image: string | null; siteName: string | null } | null>>({})
   const linkPreviewFetching = useRef<Set<string>>(new Set())
@@ -259,6 +261,21 @@ export default function MensagensPage() {
   }
   function cancelBubblePress() {
     if (pressTimerRef.current) { clearTimeout(pressTimerRef.current); pressTimerRef.current = null }
+  }
+
+  // Mesma lógica pra fixar/silenciar/arquivar na lista de conversas — fica
+  // escondido e só abre no toque-e-segure do contato, ancorado na borda
+  // direita da tela (em vez de ocupar espaço fixo na fileira o tempo todo).
+  function handleContactPressStart(id: string) {
+    if (contactPressTimerRef.current) clearTimeout(contactPressTimerRef.current)
+    contactPressTimerRef.current = setTimeout(() => {
+      setContactActionsFor(id)
+      contactPressTimerRef.current = null
+      if (navigator.vibrate) navigator.vibrate(12)
+    }, 420)
+  }
+  function cancelContactPress() {
+    if (contactPressTimerRef.current) { clearTimeout(contactPressTimerRef.current); contactPressTimerRef.current = null }
   }
 
   async function loadQuickReplies(companyId: string) {
@@ -937,9 +954,10 @@ export default function MensagensPage() {
           @media(min-width:768px){.msg-shell{grid-template-columns:280px 1fr;border:1px solid #EDE8E0;border-radius:14px;background:#fff;height:calc(100vh - 140px);}}
           .msg-list{background:#111b21;border-right:1px solid #2f3b43;overflow-y:auto;min-height:0;}
           @media(max-width:767px){.msg-list{display:${selected ? 'none' : 'block'};}}
-          .msg-item{display:flex;gap:14px;padding:16px;border-bottom:1px solid #202c33;cursor:pointer;align-items:center;}
+          .msg-item{display:flex;gap:14px;padding:16px;border-bottom:1px solid #202c33;cursor:pointer;align-items:center;position:relative;}
           .msg-item.sel{background:#2a3942;}
           .msg-item:hover{background:#202c33;}
+          .msg-item.actions-open{background:#2a3942;}
           .msg-avatar{width:34px;height:34px;border-radius:50%;background:#374045;border:none;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:#cfd6da;flex:none;overflow:hidden;}
           .msg-avatar img{width:100%;height:100%;object-fit:cover;}
           .msg-avatar-lg{width:52px;height:52px;font-size:17px;}
@@ -958,8 +976,17 @@ export default function MensagensPage() {
           .msg-item-actions button:hover{opacity:1;background:#2f3b43;}
           .msg-item-actions button.on{opacity:1;color:#C9951A;}
           @media(max-width:767px){
-            .msg-item-actions{display:flex;}
-            .msg-item-actions button{opacity:.85;}
+            /* Igual às mensagens: escondido por padrão, só abre no
+               toque-e-segure do contato (ver handleContactPressStart),
+               encostado na borda direita da tela — não ocupa espaço fixo
+               na fileira o tempo todo. */
+            .msg-item{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;}
+            .msg-item-actions{display:none;}
+            .msg-item-actions.mobile-open{
+              display:flex;position:absolute;top:50%;right:0;transform:translateY(-50%);
+              background:#233138;border-radius:26px 0 0 26px;padding:6px 4px 6px 8px;box-shadow:-4px 0 14px rgba(0,0,0,.4);z-index:20;
+            }
+            .msg-item-actions.mobile-open button{opacity:.9;font-size:19px;width:40px;height:40px;}
           }
           .msg-list-toolbar{position:sticky;top:0;z-index:5;background:#111b21;padding:10px 12px 8px;display:flex;flex-direction:column;gap:8px;}
           .msg-list-search{width:100%;padding:9px 14px;border-radius:20px;border:none;background:#202c33;color:#e9edef;font-size:13px;font-family:inherit;}
@@ -1175,6 +1202,7 @@ export default function MensagensPage() {
         ) : (
           <div className="msg-shell">
             <div className="msg-list">
+              {contactActionsFor && <div className="msg-actions-backdrop" onClick={() => setContactActionsFor(null)} />}
               <div className="msg-list-toolbar">
                 <input
                   className="msg-list-search" placeholder="Pesquisar conversa"
@@ -1220,7 +1248,15 @@ export default function MensagensPage() {
                     {rows.map(c => {
                       const unread = !!c.last_message_at && (!c.last_read_at || c.last_read_at < c.last_message_at)
                       return (
-                        <div key={c.id} className={`msg-item ${selected?.id === c.id ? 'sel' : ''}`} onClick={() => openContact(c)}>
+                        <div
+                          key={c.id}
+                          className={`msg-item ${selected?.id === c.id ? 'sel' : ''}${contactActionsFor === c.id ? ' actions-open' : ''}`}
+                          onClick={() => { if (contactActionsFor === c.id) { setContactActionsFor(null); return } openContact(c) }}
+                          onTouchStart={() => handleContactPressStart(c.id)}
+                          onTouchMove={cancelContactPress}
+                          onTouchEnd={cancelContactPress}
+                          onContextMenu={e => e.preventDefault()}
+                        >
                           <div className="msg-avatar msg-avatar-lg">{c.avatar_url ? <img src={c.avatar_url} alt="" /> : (c.name || c.phone).slice(0, 2).toUpperCase()}</div>
                           <div className="msg-item-txt">
                             <div className="msg-item-row1">
@@ -1235,10 +1271,10 @@ export default function MensagensPage() {
                               {!!c.unread_count && <span className="msg-item-unread-badge">{c.unread_count > 99 ? '99+' : c.unread_count}</span>}
                             </div>
                           </div>
-                          <div className="msg-item-actions">
-                            <button title={c.pinned ? 'Desafixar' : 'Fixar'} className={c.pinned ? 'on' : ''} onClick={e => togglePin(c, e)}>📌</button>
-                            <button title={c.muted ? 'Reativar notificações' : 'Silenciar'} onClick={e => toggleMute(c, e)}>{c.muted ? '🔔' : '🔕'}</button>
-                            <button title={c.archived ? 'Desarquivar' : 'Arquivar'} onClick={e => toggleArchive(c, e)}>🗄</button>
+                          <div className={`msg-item-actions${contactActionsFor === c.id ? ' mobile-open' : ''}`}>
+                            <button title={c.pinned ? 'Desafixar' : 'Fixar'} className={c.pinned ? 'on' : ''} onClick={e => { togglePin(c, e); setContactActionsFor(null) }}>📌</button>
+                            <button title={c.muted ? 'Reativar notificações' : 'Silenciar'} onClick={e => { toggleMute(c, e); setContactActionsFor(null) }}>{c.muted ? '🔔' : '🔕'}</button>
+                            <button title={c.archived ? 'Desarquivar' : 'Arquivar'} onClick={e => { toggleArchive(c, e); setContactActionsFor(null) }}>🗄</button>
                           </div>
                         </div>
                       )

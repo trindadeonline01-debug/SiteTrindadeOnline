@@ -108,6 +108,7 @@ export default function PedidosPage() {
   const [npDetailSel, setNpDetailSel] = useState<number[][]>([])
   const [npNome, setNpNome] = useState('')
   const [npTelefone, setNpTelefone] = useState('')
+  const [npDeliveryType, setNpDeliveryType] = useState<'entrega' | 'retirada'>('entrega')
   const [npEndereco, setNpEndereco] = useState('')
   const [npObs, setNpObs] = useState('')
   const [npPay, setNpPay] = useState<'pix' | 'dinheiro' | 'cartao'>('dinheiro')
@@ -170,7 +171,7 @@ export default function PedidosPage() {
     }
   }
   function closeNovoPedido() {
-    setNpOpen(false); setNpCart([]); setNpDetail(null); setNpNome(''); setNpTelefone(''); setNpEndereco(''); setNpObs(''); setNpPay('dinheiro'); setNpError('')
+    setNpOpen(false); setNpCart([]); setNpDetail(null); setNpNome(''); setNpTelefone(''); setNpDeliveryType('entrega'); setNpEndereco(''); setNpObs(''); setNpPay('dinheiro'); setNpError('')
   }
   function npAddToCart(produtoId: string, name: string, price: number, modifiers: { name: string; price: number }[] = []) {
     const key = produtoId + '|' + modifiers.map(m => m.name).sort().join('+')
@@ -210,11 +211,11 @@ export default function PedidosPage() {
     if (!npNome.trim() || npCart.length === 0) return
     setNpSaving(true)
     setNpError('')
-    const deliveryType = npEndereco.trim() ? 'entrega' : 'retirada'
+    if (npDeliveryType === 'entrega' && !npEndereco.trim()) { setNpError('Preenche o endereço de entrega.'); setNpSaving(false); return }
     const { data: pedido, error: pedidoErr } = await supabase.from('loja_pedidos').insert({
       company_id: companyId, customer_id: null,
       customer_name: npNome.trim(), customer_phone: npTelefone.trim() || null,
-      delivery_address: npEndereco.trim() || null, delivery_type: deliveryType, origin: 'balcao', payment_method: npPay,
+      delivery_address: npDeliveryType === 'entrega' ? npEndereco.trim() : null, delivery_type: npDeliveryType, origin: 'balcao', payment_method: npPay,
       subtotal: npTotal, total: npTotal, notes: npObs.trim() || null, accepted_at: new Date().toISOString(),
     }).select('id').single()
     if (pedidoErr || !pedido) {
@@ -234,9 +235,9 @@ export default function PedidosPage() {
     fetch('/api/loja/registrar-pedido', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        companyId, phone: npTelefone.trim() || null, name: npNome.trim(), address: npEndereco.trim() || null,
+        companyId, phone: npTelefone.trim() || null, name: npNome.trim(), address: npDeliveryType === 'entrega' ? npEndereco.trim() : null,
         total: npTotal, subtotal: npTotal, deliveryFee: 0,
-        paymentMethod: npPay, deliveryType, notes: npObs.trim() || null,
+        paymentMethod: npPay, deliveryType: npDeliveryType, notes: npObs.trim() || null,
         items: npCart.map(l => ({ produtoId: l.produtoId, name: l.name, qty: l.qty, unitPrice: l.unitPrice, modifiers: l.modifiers })),
       }),
     }).catch(() => {})
@@ -454,7 +455,15 @@ export default function PedidosPage() {
                 <div className="np-section-label">Cliente</div>
                 <input className="np-input" placeholder="Nome do cliente" value={npNome} onChange={e => setNpNome(e.target.value)} />
                 <input className="np-input" placeholder="Telefone (opcional)" value={npTelefone} onChange={e => setNpTelefone(e.target.value)} />
-                <input className="np-input" placeholder="Endereço (deixe em branco se for retirada)" value={npEndereco} onChange={e => setNpEndereco(e.target.value)} />
+
+                <div className="np-section-label">Entrega</div>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                  <button className={`np-paychip ${npDeliveryType === 'entrega' ? 'active' : ''}`} onClick={() => setNpDeliveryType('entrega')}>🚚 Entrega</button>
+                  <button className={`np-paychip ${npDeliveryType === 'retirada' ? 'active' : ''}`} onClick={() => setNpDeliveryType('retirada')}>🏪 Retirada</button>
+                </div>
+                {npDeliveryType === 'entrega' && (
+                  <input className="np-input" placeholder="Endereço de entrega" value={npEndereco} onChange={e => setNpEndereco(e.target.value)} />
+                )}
                 <input className="np-input" placeholder="Observação (opcional)" value={npObs} onChange={e => setNpObs(e.target.value)} />
 
                 <div className="np-section-label">Pagamento</div>

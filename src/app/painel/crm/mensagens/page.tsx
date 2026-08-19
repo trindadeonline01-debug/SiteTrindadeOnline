@@ -151,6 +151,7 @@ export default function MensagensPage() {
   const [npCartOpen, setNpCartOpen] = useState(false)
   const [npDetail, setNpDetail] = useState<NpProduto | null>(null)
   const [npDetailSel, setNpDetailSel] = useState<number[][]>([])
+  const [npDeliveryType, setNpDeliveryType] = useState<'entrega' | 'retirada'>('entrega')
   const [npEndereco, setNpEndereco] = useState('')
   const [npObs, setNpObs] = useState('')
   const [npPay, setNpPay] = useState<'pix' | 'dinheiro' | 'cartao'>('dinheiro')
@@ -281,7 +282,7 @@ export default function MensagensPage() {
     }
   }
   function closeNovoPedido() {
-    setNpOpen(false); setNpCart([]); setNpDetail(null); setNpEndereco(''); setNpObs(''); setNpPay('dinheiro'); setNpSearch(''); setNpFilterCat('all'); setNpCartOpen(false); setNpError('')
+    setNpOpen(false); setNpCart([]); setNpDetail(null); setNpDeliveryType('entrega'); setNpEndereco(''); setNpObs(''); setNpPay('dinheiro'); setNpSearch(''); setNpFilterCat('all'); setNpCartOpen(false); setNpError('')
   }
   function npAddToCart(produtoId: string, name: string, price: number, modifiers: { name: string; price: number }[] = []) {
     const key = produtoId + '|' + modifiers.map(m => m.name).sort().join('+')
@@ -324,11 +325,11 @@ export default function MensagensPage() {
     if (!company || !selectedLive || npCart.length === 0) return
     setNpSaving(true)
     setNpError('')
-    const deliveryType = npEndereco.trim() ? 'entrega' : 'retirada'
+    if (npDeliveryType === 'entrega' && !npEndereco.trim()) { setNpError('Preenche o endereço de entrega.'); setNpSaving(false); return }
     const { data: pedido, error: pedidoErr } = await supabase.from('loja_pedidos').insert({
       company_id: company.id, customer_id: null,
       customer_name: selectedLive.name || selectedLive.phone, customer_phone: selectedLive.phone,
-      delivery_address: npEndereco.trim() || null, delivery_type: deliveryType, origin: 'crm_conversa', payment_method: npPay,
+      delivery_address: npDeliveryType === 'entrega' ? npEndereco.trim() : null, delivery_type: npDeliveryType, origin: 'conversa', payment_method: npPay,
       subtotal: npTotal, total: npTotal, notes: npObs.trim() || null, accepted_at: new Date().toISOString(),
     }).select('id').single()
     if (pedidoErr || !pedido) {
@@ -349,8 +350,8 @@ export default function MensagensPage() {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         companyId: company.id, phone: selectedLive.phone, name: selectedLive.name || selectedLive.phone,
-        address: npEndereco.trim() || null, total: npTotal, subtotal: npTotal, deliveryFee: 0,
-        paymentMethod: npPay, deliveryType, notes: npObs.trim() || null,
+        address: npDeliveryType === 'entrega' ? npEndereco.trim() : null, total: npTotal, subtotal: npTotal, deliveryFee: 0,
+        paymentMethod: npPay, deliveryType: npDeliveryType, notes: npObs.trim() || null,
         items: npCart.map(l => ({ produtoId: l.produtoId, name: l.name, qty: l.qty, unitPrice: l.unitPrice, modifiers: l.modifiers })),
       }),
     }).catch(() => {})
@@ -1483,7 +1484,13 @@ export default function MensagensPage() {
                             <div className="np-cart-line-price">{fmtMoney(l.unitPrice * l.qty)}</div>
                           </div>
                         ))}
-                        <input className="np-input" placeholder="Endereço de entrega (vazio = retirada)" value={npEndereco} onChange={e => setNpEndereco(e.target.value)} />
+                        <div className="np-pay-row">
+                          <button className={`np-pay-btn ${npDeliveryType === 'entrega' ? 'on' : ''}`} onClick={() => setNpDeliveryType('entrega')}>🚚 Entrega</button>
+                          <button className={`np-pay-btn ${npDeliveryType === 'retirada' ? 'on' : ''}`} onClick={() => setNpDeliveryType('retirada')}>🏪 Retirada</button>
+                        </div>
+                        {npDeliveryType === 'entrega' && (
+                          <input className="np-input" placeholder="Endereço de entrega" value={npEndereco} onChange={e => setNpEndereco(e.target.value)} />
+                        )}
                         <textarea className="np-input" placeholder="Observações" value={npObs} onChange={e => setNpObs(e.target.value)} />
                         <div className="np-pay-row">
                           {(['dinheiro', 'pix', 'cartao'] as const).map(p => (

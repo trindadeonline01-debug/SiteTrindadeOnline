@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { refreshSessionOnce } from '@/lib/authRefresh'
+import { moduleActive } from '@/lib/modules'
 import EmpresaShell from '@/components/EmpresaShell'
 
 type Item = { id: string; product_name: string; unit_price: number; qty: number; selected_options: { name: string; price: number }[] }
@@ -110,6 +111,7 @@ export default function PedidosPage() {
   const [companyId, setCompanyId] = useState('')
   const [companyName, setCompanyName] = useState('')
   const [crmEnabled, setCrmEnabled] = useState(false)
+  const [entregaEnabled, setEntregaEnabled] = useState(false)
   const [autoAceitar, setAutoAceitar] = useState(true)
   const [pedidos, setPedidos] = useState<Pedido[]>([])
   const [mobileStage, setMobileStage] = useState<MobileStageKey>('recebido')
@@ -142,11 +144,12 @@ export default function PedidosPage() {
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { window.location.href = '/login?redirect=/painel/crm/pedidos'; return }
-      const { data: comp } = await supabase.from('companies').select('id, name, loja_digital_enabled, loja_auto_aceitar_pedidos, crm_whatsapp_enabled').eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
-      if (!comp || !comp.loja_digital_enabled) { window.location.href = '/painel/crm'; return }
+      const { data: comp } = await supabase.from('companies').select('id, name, loja_digital_enabled, loja_auto_aceitar_pedidos, crm_whatsapp_enabled, entrega_enabled, trial_modules_until').eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
+      if (!comp || !moduleActive(comp.loja_digital_enabled, comp.trial_modules_until)) { window.location.href = '/painel/crm'; return }
       setCompanyId(comp.id); companyIdRef.current = comp.id
       setCompanyName(comp.name)
-      setCrmEnabled(!!comp.crm_whatsapp_enabled)
+      setCrmEnabled(moduleActive(comp.crm_whatsapp_enabled, comp.trial_modules_until))
+      setEntregaEnabled(moduleActive(comp.entrega_enabled, comp.trial_modules_until))
       setAutoAceitar(comp.loja_auto_aceitar_pedidos !== false)
       await loadAll(comp.id)
       setLoading(false)
@@ -208,7 +211,7 @@ export default function PedidosPage() {
   // Assim que o pedido entra em preparo, já chama o motoboy — ele viaja até
   // a loja enquanto o prato fica pronto, em vez de ficar esperando parado.
   function maybeAutoChamarMotoboy(pedido: Pedido) {
-    if (pedido.delivery_type === 'entrega' && pedido.delivery_address && !deliveryCalled.has(pedido.id)) {
+    if (entregaEnabled && pedido.delivery_type === 'entrega' && pedido.delivery_address && !deliveryCalled.has(pedido.id)) {
       chamarMotoboy(pedido)
     }
   }
@@ -368,7 +371,7 @@ export default function PedidosPage() {
             {p.delivery_address && <div style={{ marginTop: 8, fontSize: 11.5 }}>📍 {p.delivery_address}</div>}
             {p.customer_phone && <div style={{ fontSize: 11.5, marginTop: 2 }}>📞 {p.customer_phone}</div>}
             {p.notes && <div style={{ fontSize: 11.5, marginTop: 2, color: '#6E6656' }}>Obs: {p.notes}</div>}
-            {p.delivery_type === 'entrega' && p.status !== 'cancelado' && (
+            {entregaEnabled && p.delivery_type === 'entrega' && p.status !== 'cancelado' && (
               deliveryCalled.has(p.id) ? (
                 <div style={{ marginTop: 8, fontSize: 11.5, fontWeight: 700, color: '#157A52' }}>🏍️ Motoboy chamado — acompanhe em Entrega</div>
               ) : (
@@ -393,7 +396,7 @@ export default function PedidosPage() {
   const cancelados = searched.filter(p => p.status === 'cancelado')
 
   return (
-    <EmpresaShell active="pedidos" companyName={companyName} lojaDigitalEnabled crmEnabled={crmEnabled}>
+    <EmpresaShell active="pedidos" companyName={companyName} lojaDigitalEnabled crmEnabled={crmEnabled} entregaEnabled={entregaEnabled}>
     <div className="pd-wrap">
       <style>{`
         .pd-wrap{ width:100%;max-width:480px;margin:0 auto;min-height:100vh;background:#F7F5F0;font-family:'Inter',sans-serif;font-size:13px;color:#1A1610;padding-bottom:30px;overflow-x:hidden;min-width:0; }

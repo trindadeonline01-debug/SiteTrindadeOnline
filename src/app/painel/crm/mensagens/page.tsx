@@ -2,10 +2,12 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { compressImage } from '@/lib/compressImage'
+import { moduleActive } from '@/lib/modules'
 import EmpresaShell from '@/components/EmpresaShell'
 
 type Company = {
   id: string; name: string; slug?: string; crm_whatsapp_enabled: boolean; loja_digital_enabled?: boolean
+  entrega_enabled?: boolean
   crm_auto_reply_enabled?: boolean; crm_auto_reply_text?: string | null
 }
 type Instance = { id: string; instance_name: string; status: string; phone: string | null }
@@ -187,12 +189,21 @@ export default function MensagensPage() {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { window.location.href = '/login?redirect=/painel/crm/mensagens'; return }
       const { data: comp } = await supabase
-        .from('companies').select('id, name, slug, crm_whatsapp_enabled, loja_digital_enabled, crm_auto_reply_enabled, crm_auto_reply_text')
+        .from('companies').select('id, name, slug, crm_whatsapp_enabled, loja_digital_enabled, entrega_enabled, trial_modules_until, crm_auto_reply_enabled, crm_auto_reply_text')
         .eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
       if (!comp) { window.location.href = '/painel/crm'; return }
-      setCompany(comp as Company)
-      companyRef.current = comp as Company
-      if (comp.crm_whatsapp_enabled) await loadInstance(comp.id)
+      // Guarda os flags já resolvidos (real OU dentro do período de teste) —
+      // o resto do arquivo lê company.crm_whatsapp_enabled/etc direto, sem
+      // precisar saber se veio do plano de verdade ou de um teste liberado.
+      const effectiveComp = {
+        ...comp,
+        crm_whatsapp_enabled: moduleActive(comp.crm_whatsapp_enabled, comp.trial_modules_until),
+        loja_digital_enabled: moduleActive(comp.loja_digital_enabled, comp.trial_modules_until),
+        entrega_enabled: moduleActive(comp.entrega_enabled, comp.trial_modules_until),
+      }
+      setCompany(effectiveComp as Company)
+      companyRef.current = effectiveComp as Company
+      if (effectiveComp.crm_whatsapp_enabled) await loadInstance(comp.id)
       loadQuickReplies(comp.id)
       setLoading(false)
     })
@@ -939,7 +950,7 @@ export default function MensagensPage() {
   const isOnline = selectedLive?.presence_state === 'available'
 
   return (
-    <EmpresaShell active="mensagens" companyName={company.name} companySlug={company.slug} lojaDigitalEnabled={company.loja_digital_enabled} crmEnabled={company.crm_whatsapp_enabled}>
+    <EmpresaShell active="mensagens" companyName={company.name} companySlug={company.slug} lojaDigitalEnabled={company.loja_digital_enabled} crmEnabled={company.crm_whatsapp_enabled} entregaEnabled={company.entrega_enabled}>
       <div className="msg-page">
         <style>{`
           .msg-page{padding:0;min-width:0;}

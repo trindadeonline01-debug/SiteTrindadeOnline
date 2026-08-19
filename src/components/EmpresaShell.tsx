@@ -19,7 +19,7 @@ const TITLES: Record<EmpresaNavKey, string> = {
 }
 
 export default function EmpresaShell({
-  active, companyName, companySlug, lojaDigitalEnabled, crmEnabled,
+  active, companyName, companySlug, lojaDigitalEnabled, crmEnabled, entregaEnabled,
   avaliacoesBadge, mensagensBadge, companies, onSwitchCompany, children,
 }: {
   active: EmpresaNavKey
@@ -27,6 +27,7 @@ export default function EmpresaShell({
   companySlug?: string
   lojaDigitalEnabled?: boolean
   crmEnabled?: boolean
+  entregaEnabled?: boolean
   avaliacoesBadge?: number
   mensagensBadge?: number
   companies?: Company[]
@@ -149,6 +150,11 @@ export default function EmpresaShell({
               <a href="/painel/crm/catalogo" className={`es-item ${active === 'catalogo' ? 'on' : ''}`}>📋 Catálogo</a>
               <a href="/painel/crm/pedidos" className={`es-item ${active === 'pedidos' ? 'on' : ''}`}>🧾 Pedidos</a>
               <a href="/painel/crm/cozinha" className={`es-item ${active === 'cozinha' ? 'on' : ''}`}>🍳 Cozinha</a>
+            </>
+          )}
+          {entregaEnabled && (
+            <>
+              <div className="es-group-lbl">Entrega</div>
               <a href="/painel/crm/entrega" className={`es-item ${active === 'entrega' ? 'on' : ''}`}>🏍️ Entrega</a>
             </>
           )}

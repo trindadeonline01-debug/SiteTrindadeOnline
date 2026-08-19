@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { refreshSessionOnce } from '@/lib/authRefresh'
+import { moduleActive } from '@/lib/modules'
 
 type Item = { id: string; product_name: string; qty: number; selected_options: { name: string; price: number }[] }
 type Status = 'recebido' | 'em_preparo' | 'pronto' | 'saiu_entrega' | 'entregue' | 'cancelado'
@@ -62,14 +63,16 @@ export default function CozinhaPage() {
   const callingMotoboyRef = useRef<Set<string>>(new Set())
   const companyIdRef = useRef('')
   const autoAceitarRef = useRef(true)
+  const entregaEnabledRef = useRef(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { window.location.href = '/login?redirect=/painel/crm/cozinha'; return }
-      const { data: comp } = await supabase.from('companies').select('id, name, loja_digital_enabled, loja_auto_aceitar_pedidos').eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
-      if (!comp || !comp.loja_digital_enabled) { window.location.href = '/painel/crm'; return }
+      const { data: comp } = await supabase.from('companies').select('id, name, loja_digital_enabled, loja_auto_aceitar_pedidos, entrega_enabled, trial_modules_until').eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
+      if (!comp || !moduleActive(comp.loja_digital_enabled, comp.trial_modules_until)) { window.location.href = '/painel/crm'; return }
       companyIdRef.current = comp.id
       autoAceitarRef.current = comp.loja_auto_aceitar_pedidos !== false
+      entregaEnabledRef.current = moduleActive(comp.entrega_enabled, comp.trial_modules_until)
       setCompanyName(comp.name)
       await loadAll(comp.id)
       setLoading(false)
@@ -114,7 +117,7 @@ export default function CozinhaPage() {
     if (!res.ok) setDeliveryCalled(prev => { const n = new Set(prev); n.delete(p.id); return n })
   }
   function maybeAutoChamarMotoboy(pedido: Pedido) {
-    if (pedido.delivery_type === 'entrega' && pedido.delivery_address && !deliveryCalled.has(pedido.id)) chamarMotoboy(pedido)
+    if (entregaEnabledRef.current && pedido.delivery_type === 'entrega' && pedido.delivery_address && !deliveryCalled.has(pedido.id)) chamarMotoboy(pedido)
   }
 
   async function advance(id: string, next: Status) {

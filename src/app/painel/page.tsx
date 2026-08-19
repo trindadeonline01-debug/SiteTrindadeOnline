@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase'
 import PhotoManager from '@/components/PhotoManager'
 import BusinessHoursEditor from '@/components/BusinessHoursEditor'
 import { IGREJAS_CATEGORY_ID, DIAS_SEMANA, HourRow } from '@/lib/businessHours'
+import { moduleActive } from '@/lib/modules'
 import EmpresaShell, { EmpresaNavKey } from '@/components/EmpresaShell'
 
 type Company = {
@@ -21,6 +22,8 @@ type Company = {
   flexible_hours?: boolean
   loja_digital_enabled?: boolean
   crm_whatsapp_enabled?: boolean
+  entrega_enabled?: boolean
+  trial_modules_until?: string | null
   category?: { name: string; emoji: string }
   photos?: { id: string; url: string; order: number }[]
   hours?: { id: string; label: string; hours: string; order: number; day_of_week: number | null; open_time: string | null; close_time: string | null; closed: boolean }[]
@@ -1098,8 +1101,9 @@ export default function PainelPage() {
         active={(tab === 'painel' ? 'dashboard' : tab) as EmpresaNavKey}
         companyName={company.name}
         companySlug={company.slug}
-        lojaDigitalEnabled={company.loja_digital_enabled}
-        crmEnabled={company.crm_whatsapp_enabled}
+        lojaDigitalEnabled={moduleActive(company.loja_digital_enabled, company.trial_modules_until)}
+        crmEnabled={moduleActive(company.crm_whatsapp_enabled, company.trial_modules_until)}
+        entregaEnabled={moduleActive(company.entrega_enabled, company.trial_modules_until)}
         avaliacoesBadge={pendingReplies}
         companies={companies}
         onSwitchCompany={c => { const full = companies.find(x => x.id === c.id); if (full) { setCompany(full); setTab('painel') } }}

@@ -1,10 +1,11 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { moduleActive } from '@/lib/modules'
 import EmpresaShell from '@/components/EmpresaShell'
 import QRCode from 'qrcode'
 
-type Company = { id: string; name: string; slug: string; loja_digital_enabled: boolean; loja_taxa_entrega: number; loja_pedido_minimo: number; crm_whatsapp_enabled: boolean }
+type Company = { id: string; name: string; slug: string; loja_digital_enabled: boolean; loja_taxa_entrega: number; loja_pedido_minimo: number; crm_whatsapp_enabled: boolean; entrega_enabled: boolean }
 
 function parsePt(v: string) { return parseFloat((v || '0').replace(',', '.')) || 0 }
 
@@ -25,15 +26,22 @@ export default function CrmPage() {
       if (profile?.user_type !== 'company') { window.location.href = '/'; return }
       const { data: comp } = await supabase
         .from('companies')
-        .select('id, name, slug, loja_digital_enabled, loja_taxa_entrega, loja_pedido_minimo, crm_whatsapp_enabled')
+        .select('id, name, slug, loja_digital_enabled, loja_taxa_entrega, loja_pedido_minimo, crm_whatsapp_enabled, entrega_enabled, trial_modules_until')
         .eq('owner_id', session.user.id)
         .order('created_at', { ascending: true })
         .limit(1)
         .maybeSingle()
-      setCompany(comp as Company | null)
       if (comp) {
+        setCompany({
+          ...comp,
+          loja_digital_enabled: moduleActive(comp.loja_digital_enabled, comp.trial_modules_until),
+          crm_whatsapp_enabled: moduleActive(comp.crm_whatsapp_enabled, comp.trial_modules_until),
+          entrega_enabled: moduleActive(comp.entrega_enabled, comp.trial_modules_until),
+        })
         setTaxaInput(Number(comp.loja_taxa_entrega || 0).toFixed(2).replace('.', ','))
         setMinimoInput(Number(comp.loja_pedido_minimo || 0).toFixed(2).replace('.', ','))
+      } else {
+        setCompany(null)
       }
       setLoading(false)
     })
@@ -91,7 +99,7 @@ export default function CrmPage() {
   }
 
   return (
-    <EmpresaShell active="compartilhar" companyName={company.name} companySlug={company.slug} lojaDigitalEnabled crmEnabled={company.crm_whatsapp_enabled}>
+    <EmpresaShell active="compartilhar" companyName={company.name} companySlug={company.slug} lojaDigitalEnabled crmEnabled={company.crm_whatsapp_enabled} entregaEnabled={company.entrega_enabled}>
       <div className="crm-hub-content">
         <style>{`
           .crm-hub-content{padding:24px 16px 80px;min-width:0;}

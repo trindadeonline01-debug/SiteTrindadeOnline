@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { refreshSessionOnce } from '@/lib/authRefresh'
+import { moduleActive } from '@/lib/modules'
 import EmpresaShell from '@/components/EmpresaShell'
 
 type Wallet = { credits: number; daily_paid_on: string | null }
@@ -36,6 +37,7 @@ export default function EntregaPage() {
   const [companyId, setCompanyId] = useState('')
   const [companyName, setCompanyName] = useState('')
   const [crmEnabled, setCrmEnabled] = useState(false)
+  const [lojaDigitalEnabled, setLojaDigitalEnabled] = useState(false)
   const [wallet, setWallet] = useState<Wallet>({ credits: 0, daily_paid_on: null })
   const [orders, setOrders] = useState<DOrder[]>([])
   const [pixModal, setPixModal] = useState<PixModal | null>(null)
@@ -48,11 +50,12 @@ export default function EntregaPage() {
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { window.location.href = '/login?redirect=/painel/crm/entrega'; return }
-      const { data: comp } = await supabase.from('companies').select('id, name, loja_digital_enabled, crm_whatsapp_enabled').eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
-      if (!comp || !comp.loja_digital_enabled) { window.location.href = '/painel/crm'; return }
+      const { data: comp } = await supabase.from('companies').select('id, name, loja_digital_enabled, crm_whatsapp_enabled, entrega_enabled, trial_modules_until').eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
+      if (!comp || !moduleActive(comp.entrega_enabled, comp.trial_modules_until)) { window.location.href = '/painel'; return }
       setCompanyId(comp.id); companyIdRef.current = comp.id
       setCompanyName(comp.name)
-      setCrmEnabled(!!comp.crm_whatsapp_enabled)
+      setCrmEnabled(moduleActive(comp.crm_whatsapp_enabled, comp.trial_modules_until))
+      setLojaDigitalEnabled(moduleActive(comp.loja_digital_enabled, comp.trial_modules_until))
       await loadAll(comp.id)
       setLoading(false)
 
@@ -136,7 +139,7 @@ export default function EntregaPage() {
   if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter,sans-serif', color: '#A79E8B' }}>Carregando...</div>
 
   return (
-    <EmpresaShell active="entrega" companyName={companyName} lojaDigitalEnabled crmEnabled={crmEnabled}>
+    <EmpresaShell active="entrega" companyName={companyName} lojaDigitalEnabled={lojaDigitalEnabled} crmEnabled={crmEnabled} entregaEnabled>
     <div className="en-wrap">
       <style>{`
         .en-wrap{ width:100%;max-width:560px;margin:0 auto;font-family:'Inter',sans-serif;font-size:13px;color:#1A1610;padding:20px 14px 40px; }

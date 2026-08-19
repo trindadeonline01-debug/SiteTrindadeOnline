@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { ensureEntregaWebhookRegistered, offerToNextMotoboy } from '@/lib/entregaDispatch'
+import { moduleActive } from '@/lib/modules'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -27,8 +28,9 @@ export async function POST(req: NextRequest) {
     const { data: userData, error: authError } = await supabaseAuth.auth.getUser(access_token)
     if (!userData?.user) return NextResponse.json({ error: `sessão inválida${authError ? ' — ' + authError.message : ''}` }, { status: 401 })
 
-    const { data: company } = await supabase.from('companies').select('owner_id, address').eq('id', company_id).maybeSingle()
+    const { data: company } = await supabase.from('companies').select('owner_id, address, entrega_enabled, trial_modules_until').eq('id', company_id).maybeSingle()
     if (!company || company.owner_id !== userData.user.id) return NextResponse.json({ error: 'empresa não é sua' }, { status: 403 })
+    if (!moduleActive(company.entrega_enabled, company.trial_modules_until)) return NextResponse.json({ error: 'Módulo de entrega não está ativo pra essa empresa.' }, { status: 403 })
     if (!company.address?.trim()) return NextResponse.json({ error: 'Cadastre o endereço da loja no perfil antes de chamar motoboy.' }, { status: 400 })
 
     const { data: wallet } = await supabase.from('company_delivery_wallet').select('credits, daily_paid_on').eq('company_id', company_id).maybeSingle()

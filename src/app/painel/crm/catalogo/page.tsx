@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { compressImage } from '@/lib/compressImage'
+import { moduleActive } from '@/lib/modules'
 import EmpresaShell from '@/components/EmpresaShell'
 
 type Categoria = { id: string; name: string; display_order: number }
@@ -106,6 +107,7 @@ export default function CatalogoPage() {
   const [companyId, setCompanyId] = useState('')
   const [companyName, setCompanyName] = useState('')
   const [crmEnabled, setCrmEnabled] = useState(false)
+  const [entregaEnabled, setEntregaEnabled] = useState(false)
   const [categorias, setCategorias] = useState<Categoria[]>([])
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [view, setView] = useState<'list' | 'form' | 'bulk'>('list')
@@ -143,11 +145,12 @@ export default function CatalogoPage() {
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { window.location.href = '/login?redirect=/painel/crm/catalogo'; return }
-      const { data: comp } = await supabase.from('companies').select('id, name, loja_digital_enabled, crm_whatsapp_enabled').eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
-      if (!comp || !comp.loja_digital_enabled) { window.location.href = '/painel/crm'; return }
+      const { data: comp } = await supabase.from('companies').select('id, name, loja_digital_enabled, crm_whatsapp_enabled, entrega_enabled, trial_modules_until').eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
+      if (!comp || !moduleActive(comp.loja_digital_enabled, comp.trial_modules_until)) { window.location.href = '/painel/crm'; return }
       setCompanyId(comp.id)
       setCompanyName(comp.name)
-      setCrmEnabled(!!comp.crm_whatsapp_enabled)
+      setCrmEnabled(moduleActive(comp.crm_whatsapp_enabled, comp.trial_modules_until))
+      setEntregaEnabled(moduleActive(comp.entrega_enabled, comp.trial_modules_until))
       await loadAll(comp.id)
       await loadLastImportBatch(comp.id)
       setLoading(false)
@@ -610,7 +613,7 @@ export default function CatalogoPage() {
   const qualidade = produtos.length ? Math.round((pctFoto + pctDesc + pctPromo) / 3) : 0
 
   return (
-    <EmpresaShell active="catalogo" companyName={companyName} lojaDigitalEnabled crmEnabled={crmEnabled}>
+    <EmpresaShell active="catalogo" companyName={companyName} lojaDigitalEnabled crmEnabled={crmEnabled} entregaEnabled={entregaEnabled}>
     <div className="cg-wrap">
       <style>{`
         .cg-wrap{ width:100%; max-width:480px; margin:0 auto; min-height:100vh; background:#F7F5F0; font-family:'Inter',sans-serif; font-size:13px; color:#1A1610; padding-bottom:40px; min-width:0; overflow-x:hidden; }

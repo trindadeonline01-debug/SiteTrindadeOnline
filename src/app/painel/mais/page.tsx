@@ -1,8 +1,9 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { moduleActive } from '@/lib/modules'
 
-type Company = { id: string; name: string; slug: string; loja_digital_enabled: boolean; crm_whatsapp_enabled: boolean; plan: string }
+type Company = { id: string; name: string; slug: string; loja_digital_enabled: boolean; crm_whatsapp_enabled: boolean; entrega_enabled: boolean; trial_modules_until: string | null; plan: string }
 
 export default function MaisPage() {
   const [company, setCompany] = useState<Company | null>(null)
@@ -14,7 +15,7 @@ export default function MaisPage() {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { window.location.href = '/login?redirect=/painel/mais'; return }
       const { data: comp } = await supabase
-        .from('companies').select('id, name, slug, loja_digital_enabled, crm_whatsapp_enabled, plan')
+        .from('companies').select('id, name, slug, loja_digital_enabled, crm_whatsapp_enabled, entrega_enabled, trial_modules_until, plan')
         .eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
       if (!comp) { window.location.href = '/painel'; return }
       setCompany(comp as Company)
@@ -82,7 +83,7 @@ export default function MaisPage() {
           <a className="item" href="/painel?tab=banners"><span className="item-ico">🖼️</span><span className="item-lbl">Banners</span><span className="item-chev">›</span></a>
         </div>
 
-        {company.loja_digital_enabled && (
+        {moduleActive(company.loja_digital_enabled, company.trial_modules_until) && (
           <>
             <div className="sectlbl">Cardápio &amp; vendas</div>
             <div className="list">
@@ -90,10 +91,24 @@ export default function MaisPage() {
               <a className="item" href="/painel/crm/catalogo"><span className="item-ico">📋</span><span className="item-lbl">Catálogo</span><span className="item-chev">›</span></a>
               <a className="item" href="/painel/crm/pedidos"><span className="item-ico">🧾</span><span className="item-lbl">Pedidos</span><span className="item-chev">›</span></a>
               <a className="item" href="/painel/crm/cozinha"><span className="item-ico">🍳</span><span className="item-lbl">Cozinha</span><span className="item-chev">›</span></a>
+            </div>
+          </>
+        )}
+
+        {moduleActive(company.entrega_enabled, company.trial_modules_until) && (
+          <>
+            <div className="sectlbl">Entrega</div>
+            <div className="list">
               <a className="item" href="/painel/crm/entrega"><span className="item-ico">🏍️</span><span className="item-lbl">Entrega</span><span className="item-chev">›</span></a>
-              {company.crm_whatsapp_enabled && (
-                <a className="item" href="/painel/crm/clientes"><span className="item-ico">👥</span><span className="item-lbl">Clientes</span>{clientesCount > 0 && <span className="item-badge">{clientesCount}</span>}<span className="item-chev">›</span></a>
-              )}
+            </div>
+          </>
+        )}
+
+        {moduleActive(company.crm_whatsapp_enabled, company.trial_modules_until) && (
+          <>
+            <div className="sectlbl">Relacionamento</div>
+            <div className="list">
+              <a className="item" href="/painel/crm/clientes"><span className="item-ico">👥</span><span className="item-lbl">Clientes</span>{clientesCount > 0 && <span className="item-badge">{clientesCount}</span>}<span className="item-chev">›</span></a>
             </div>
           </>
         )}

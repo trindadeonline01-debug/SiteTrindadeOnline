@@ -259,6 +259,12 @@ Igrejas:            00000000-0000-0000-0000-000000000008
 - Webhook aceita `type === 'payment'` E `action === 'payment.updated'`
 - Webhook usa `await` em todas operações assíncronas (crítico em Vercel serverless)
 
+### Módulos independentes: Cardápio / CRM / Entrega (ago/2026)
+- Cardápio+Pedidos+Cozinha (`loja_digital_enabled`), CRM WhatsApp (`crm_whatsapp_enabled`) e Entrega (`entrega_enabled`) são 3 flags **independentes** em `companies` — dá pra vender qualquer combinação, inclusive só Entrega sem os outros dois (empresa usa sistema de pedido próprio, só chama motoboy pela tela `/painel/crm/entrega` com "+ Nova entrega" avulsa)
+- `trial_modules_until` (timestamptz): período de teste liberado pelo admin ativa os 3 módulos de uma vez, sem mexer nos flags reais — `moduleActive()` em `src/lib/modules.ts` calcula o efetivo (flag real OU dentro do teste); quando a data passa, volta a valer só o que a empresa tem contratado
+- Admin → aba Empresas: botões ON/OFF por módulo + "Liberar teste" (N dias) por empresa
+- **Preços pensados (ainda não cobrados automaticamente, só o painel de liberação manual existe)**: Cardápio R$49,90/mês · +CRM R$89,90/mês · +Entrega R$129,90/mês — a diária/crédito de entrega continuam sendo cobrados à parte, por fora dessas mensalidades, por ser consumo variável. Falta: checkout automático desses pacotes (hoje só o Plano Visibilidade tem Pix automático — ver seção 7)
+
 ### Trindade Entrega (v1 — ago/2026)
 - Motoboy é da plataforma, não da loja. Modelo pré-pago: diária de R$30 pra liberar o dia + créditos de R$5/entrega (pacotes de 10/20/50), tudo via Pix real (Mercado Pago) em `/painel/crm/entrega`
 - Tabelas: `motoboys`, `company_delivery_wallet`, `delivery_credit_ledger`, `delivery_payments`, `delivery_orders`, `delivery_offers`

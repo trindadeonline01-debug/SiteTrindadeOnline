@@ -188,6 +188,10 @@ export default function PedidosPage() {
       ;({ r: res, data } = await call())
     }
     setMotoLoading(null)
+    if (res.status === 401) {
+      setMotoErrors(prev => ({ ...prev, [p.id]: 'Sua sessão caiu — atualiza a página (F5) e tenta chamar de novo.' }))
+      return
+    }
     if (!res.ok || data.error) { setMotoErrors(prev => ({ ...prev, [p.id]: data.error || 'Não consegui chamar o motoboy.' })); return }
     setDeliveryCalled(prev => new Set(prev).add(p.id))
   }

@@ -104,6 +104,7 @@ export default function EntregaPage() {
       ;({ r: res, data } = await call())
     }
     setPaying(null)
+    if (res.status === 401) { setPayError('Sua sessão caiu — atualiza a página (F5) e tenta de novo.'); return }
     if (!res.ok || data.error) { setPayError(data.error || 'Não consegui gerar o Pix — tenta de novo.'); return }
     setPixModal({ kind, credits, payment_id: String(data.payment_id), qr: data.qr_code_image, copy: data.pix_copy_paste, value: data.value })
     if (pollRef.current) clearInterval(pollRef.current)

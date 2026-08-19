@@ -22,8 +22,8 @@ export async function POST(req: NextRequest) {
     if (!access_token || !company_id || !kind) return NextResponse.json({ error: 'dados faltando' }, { status: 400 })
     if (kind !== 'diaria' && kind !== 'credito') return NextResponse.json({ error: 'kind inválido' }, { status: 400 })
 
-    const { data: userData } = await supabaseAuth.auth.getUser(access_token)
-    if (!userData?.user) return NextResponse.json({ error: 'sessão inválida' }, { status: 401 })
+    const { data: userData, error: authError } = await supabaseAuth.auth.getUser(access_token)
+    if (!userData?.user) return NextResponse.json({ error: `sessão inválida${authError ? ' — ' + authError.message : ''}` }, { status: 401 })
 
     const { data: company } = await supabase.from('companies').select('owner_id, name').eq('id', company_id).maybeSingle()
     if (!company || company.owner_id !== userData.user.id) {

@@ -29,8 +29,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'dados faltando' }, { status: 400 })
     }
 
-    const { data: userData } = await supabaseAuth.auth.getUser(access_token)
-    if (!userData?.user) return NextResponse.json({ error: 'sessão inválida' }, { status: 401 })
+    const { data: userData, error: authError } = await supabaseAuth.auth.getUser(access_token)
+    if (!userData?.user) return NextResponse.json({ error: `sessão inválida${authError ? ' — ' + authError.message : ''}` }, { status: 401 })
 
     const { data: company } = await supabase.from('companies').select('owner_id, address, crm_whatsapp_enabled').eq('id', company_id).maybeSingle()
     if (!company || company.owner_id !== userData.user.id) return NextResponse.json({ error: 'empresa não é sua' }, { status: 403 })

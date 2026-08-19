@@ -84,7 +84,7 @@ export default function EmpresaShell({
         @media(min-width:768px){.es-topbar{display:flex;}}
         .es-topbar-title{font-family:'Bebas Neue',sans-serif;font-size:20px;color:#111;letter-spacing:1px;}
         .es-content{flex:1;min-width:0;}
-        @media(max-width:767px){.es-content{padding-bottom:74px;}}
+        @media(max-width:767px){.es-content{padding-bottom:calc(56px + env(safe-area-inset-bottom, 0px));}}
 
         .es-tabbar{position:fixed;left:0;right:0;bottom:0;background:#111;display:flex;align-items:center;z-index:9999;padding:6px 4px env(safe-area-inset-bottom);}
         @media(min-width:768px){.es-tabbar{display:none;}}

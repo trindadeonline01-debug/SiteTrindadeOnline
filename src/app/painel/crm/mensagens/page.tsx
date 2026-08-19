@@ -950,7 +950,7 @@ export default function MensagensPage() {
           .msg-btn{padding:11px 22px;border-radius:10px;border:none;background:#C9951A;color:#1A1610;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;}
           .msg-btn:disabled{opacity:.5;cursor:not-allowed;}
           .msg-err{color:#C43D3D;font-size:12px;margin-top:12px;line-height:1.5;}
-          .msg-shell{display:grid;grid-template-columns:1fr;border:none;border-radius:0;overflow:hidden;background:#111b21;height:calc(100vh - 74px);min-height:420px;}
+          .msg-shell{display:grid;grid-template-columns:1fr;border:none;border-radius:0;overflow:hidden;background:#111b21;height:calc(100vh - 74px);height:calc(100dvh - 74px);min-height:420px;}
           @media(min-width:768px){.msg-shell{grid-template-columns:280px 1fr;border:1px solid #EDE8E0;border-radius:14px;background:#fff;height:calc(100vh - 140px);}}
           .msg-list{background:#111b21;border-right:1px solid #2f3b43;overflow-y:auto;min-height:0;}
           @media(max-width:767px){.msg-list{display:${selected ? 'none' : 'block'};}}

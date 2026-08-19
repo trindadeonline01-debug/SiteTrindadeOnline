@@ -46,6 +46,10 @@ export default function EntregaPage() {
   const [copied, setCopied] = useState(false)
   const companyIdRef = useRef('')
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [novaOpen, setNovaOpen] = useState(false)
+  const [novaForm, setNovaForm] = useState({ nome: '', telefone: '', endereco: '' })
+  const [novaSaving, setNovaSaving] = useState(false)
+  const [novaError, setNovaError] = useState('')
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -126,6 +130,33 @@ export default function EntregaPage() {
     }, 4000)
   }
 
+  // Entrega avulsa — pra empresa que não tem o módulo Cardápio/Pedidos e
+  // ainda assim quer chamar um motoboy (ela gerencia o pedido por fora,
+  // por telefone, WhatsApp pessoal, balcão, o que for).
+  async function criarEntregaAvulsa() {
+    setNovaError('')
+    if (!novaForm.nome.trim() || !novaForm.endereco.trim()) { setNovaError('Preenche nome e endereço de entrega.'); return }
+    setNovaSaving(true)
+    const call = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      const r = await fetch('/api/entrega/criar', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          access_token: session?.access_token, company_id: companyId,
+          customer_name: novaForm.nome.trim(), customer_phone: novaForm.telefone.trim() || null, dropoff_address: novaForm.endereco.trim(),
+        }),
+      })
+      return { r, data: await r.json() }
+    }
+    let { r: res, data } = await call()
+    if (res.status === 401) { await refreshSessionOnce(); ({ r: res, data } = await call()) }
+    setNovaSaving(false)
+    if (!res.ok || data.error) { setNovaError((data.error || 'Não consegui chamar o motoboy.') + (res.status === 401 ? ' — atualiza a página (F5) e tenta de novo.' : '')); return }
+    setNovaOpen(false)
+    setNovaForm({ nome: '', telefone: '', endereco: '' })
+    await loadOrders(companyId)
+  }
+
   function copiarPix() {
     if (!pixModal?.copy) return
     navigator.clipboard.writeText(pixModal.copy)
@@ -191,10 +222,18 @@ export default function EntregaPage() {
         .en-copy-btn{ background:#C9951A;color:#fff;border:none;padding:9px 14px;border-radius:8px;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap; }
         .en-modal-wait{ font-size:11.5px;color:#A79E8B;margin-bottom:12px; }
         .en-modal-close{ background:none;border:none;color:#8A6410;font-weight:700;font-size:12px;cursor:pointer; }
+        .en-order-code{ margin-top:8px;font-size:11px;color:#6E6656;background:#FEF3E2;border-radius:8px;padding:7px 10px; }
+        .en-order-code b{ font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:2px;color:#8A6410; }
+        .en-order-code span{ color:#A79E8B; }
+        .en-flabel{ display:block;font-size:11px;font-weight:700;color:#6E6656;margin:10px 0 5px; }
+        .en-finput{ width:100%;padding:9px 12px;border-radius:9px;border:1px solid #E6E0D2;font-size:13px;font-family:inherit;box-sizing:border-box; }
       `}</style>
 
       <div className="en-head">
-        <h1>🏍️ Entrega</h1>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+          <h1>🏍️ Entrega</h1>
+          <button className="en-btn en-btn-gold" onClick={() => { setNovaError(''); setNovaOpen(true) }}>+ Nova entrega</button>
+        </div>
         <p>Diária de R$ 30,00 pra liberar o dia, mais R$ 5,00 por entrega dentro da Trindade. O motoboy é da plataforma — só chamar.</p>
       </div>
 
@@ -242,6 +281,9 @@ export default function EntregaPage() {
                 <span className={`en-order-moto ${!o.motoboy_name ? 'empty' : ''}`}>{o.motoboy_name || '— aguardando aceite —'}</span>
                 <span className="en-badge" style={{ background: c.bg, color: c.fg }}>{STATUS_LABEL[o.status]}</span>
               </div>
+              {o.status !== 'entregue' && o.status !== 'cancelada' && (
+                <div className="en-order-code">Código de entrega: <b>{o.delivery_code}</b> <span>— repassa pro cliente se ele não receber pelo WhatsApp</span></div>
+              )}
             </div>
           )
         })}
@@ -263,6 +305,25 @@ export default function EntregaPage() {
             )}
             <div className="en-modal-wait">Assim que o Pix cair, essa tela fecha sozinha.</div>
             <button className="en-modal-close" onClick={fecharModal}>Fechar</button>
+          </div>
+        </div>
+      )}
+
+      {novaOpen && (
+        <div className="en-modal-bg" onClick={e => { if (e.target === e.currentTarget) setNovaOpen(false) }}>
+          <div className="en-modal" style={{ textAlign: 'left' }}>
+            <h3 style={{ marginBottom: 10 }}>Nova entrega</h3>
+            <label className="en-flabel">Nome do cliente</label>
+            <input className="en-finput" value={novaForm.nome} onChange={e => setNovaForm(f => ({ ...f, nome: e.target.value }))} placeholder="Ex: Kelli Verissimo" />
+            <label className="en-flabel">WhatsApp do cliente (opcional)</label>
+            <input className="en-finput" value={novaForm.telefone} onChange={e => setNovaForm(f => ({ ...f, telefone: e.target.value }))} placeholder="21 99999-9999" />
+            <label className="en-flabel">Endereço de entrega</label>
+            <input className="en-finput" value={novaForm.endereco} onChange={e => setNovaForm(f => ({ ...f, endereco: e.target.value }))} placeholder="Rua, número, bairro" />
+            {novaError && <div className="en-error">{novaError}</div>}
+            <button className="en-btn en-btn-gold" style={{ width: '100%', marginTop: 12 }} disabled={novaSaving} onClick={criarEntregaAvulsa}>
+              {novaSaving ? 'Chamando motoboy...' : '🏍️ Chamar motoboy'}
+            </button>
+            <button className="en-modal-close" style={{ width: '100%', marginTop: 8 }} onClick={() => setNovaOpen(false)}>Cancelar</button>
           </div>
         </div>
       )}

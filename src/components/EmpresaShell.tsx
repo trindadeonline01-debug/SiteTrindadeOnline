@@ -41,17 +41,22 @@ export default function EmpresaShell({
   // dependendo do device) e publica numa CSS var pro resto da página
   // reservar exatamente esse espaço, sem faixa em branco nem sobreposição.
   const tabbarRef = useRef<HTMLElement>(null)
+  const topbarRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    const el = tabbarRef.current
-    if (!el) return
-    const update = () => {
-      if (el.offsetHeight > 0) document.documentElement.style.setProperty('--es-tabbar-h', `${el.offsetHeight}px`)
-    }
-    update()
-    const ro = new ResizeObserver(update)
-    ro.observe(el)
-    window.addEventListener('orientationchange', update)
-    return () => { ro.disconnect(); window.removeEventListener('orientationchange', update) }
+    const cleanups: (() => void)[] = []
+    ;[{ ref: tabbarRef, varName: '--es-tabbar-h' }, { ref: topbarRef, varName: '--es-topbar-h' }].forEach(({ ref, varName }) => {
+      const el = ref.current
+      if (!el) return
+      const update = () => {
+        if (el.offsetHeight > 0) document.documentElement.style.setProperty(varName, `${el.offsetHeight}px`)
+      }
+      update()
+      const ro = new ResizeObserver(update)
+      ro.observe(el)
+      window.addEventListener('orientationchange', update)
+      cleanups.push(() => { ro.disconnect(); window.removeEventListener('orientationchange', update) })
+    })
+    return () => cleanups.forEach(fn => fn())
   }, [])
 
   // Abas do rodapé mobile: se a loja tem cardápio digital/CRM, mostra os
@@ -181,7 +186,7 @@ export default function EmpresaShell({
       </aside>
 
       <div className="es-main">
-        <div className="es-topbar"><span className="es-topbar-title">{TITLES[active]}</span></div>
+        <div className="es-topbar" ref={topbarRef}><span className="es-topbar-title">{TITLES[active]}</span></div>
         <div className="es-content">{children}</div>
       </div>
 

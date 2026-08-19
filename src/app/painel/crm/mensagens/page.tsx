@@ -954,7 +954,6 @@ export default function MensagensPage() {
       <div className="msg-page">
         <style>{`
           .msg-page{padding:0;min-width:0;}
-          @media(min-width:768px){.msg-page{padding:28px 32px;}}
           .msg-connect{max-width:360px;margin:40px auto;text-align:center;background:#fff;border:1px solid #EDE8E0;border-radius:16px;padding:28px 22px;}
           .msg-qr{width:200px;height:200px;margin:16px auto;border-radius:12px;border:1px solid #EDE8E0;overflow:hidden;background:#F7F5F0;display:flex;align-items:center;justify-content:center;}
           .msg-qr img{width:100%;height:100%;object-fit:contain;}
@@ -962,7 +961,7 @@ export default function MensagensPage() {
           .msg-btn:disabled{opacity:.5;cursor:not-allowed;}
           .msg-err{color:#C43D3D;font-size:12px;margin-top:12px;line-height:1.5;}
           .msg-shell{display:grid;grid-template-columns:1fr;border:none;border-radius:0;overflow:hidden;background:#111b21;height:calc(100vh - var(--es-tabbar-h, 74px));min-height:420px;}
-          @media(min-width:768px){.msg-shell{grid-template-columns:280px 1fr;border:1px solid #EDE8E0;border-radius:14px;background:#fff;height:calc(100vh - 140px);}}
+          @media(min-width:768px){.msg-shell{grid-template-columns:420px 1fr;border:none;border-radius:0;background:#111b21;height:calc(100vh - var(--es-topbar-h, 65px));}}
           .msg-list{background:#111b21;border-right:1px solid #2f3b43;overflow-y:auto;min-height:0;}
           @media(max-width:767px){.msg-list{display:${selected ? 'none' : 'block'};}}
           .msg-item{display:flex;gap:14px;padding:16px;border-bottom:1px solid #202c33;cursor:pointer;align-items:center;position:relative;}

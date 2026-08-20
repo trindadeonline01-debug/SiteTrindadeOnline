@@ -13,7 +13,7 @@ type Task = {
   id: string; client_id: string; title: string; scheduled_at: string
   video_num: number | null; item_type: 'normal' | 'holiday' | 'special' | 'encerramento' | 'recess'
   segment: string | null; pillar: string | null; gancho: string | null; obs: string | null
-  notes: string | null; video_status: VideoStatus
+  notes: string | null; video_status: VideoStatus; reference_link: string | null
 }
 
 const SEG_SHORT: Record<string, string> = {
@@ -79,6 +79,7 @@ export default function ProducaoPage() {
   const [approvingId, setApprovingId] = useState<string | null>(null)
 
   const noteTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
+  const refLinkTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
   useEffect(() => {
     init()
@@ -207,6 +208,14 @@ export default function ProducaoPage() {
     }, 500)
   }
 
+  function onRefLinkChange(taskId: string, value: string) {
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, reference_link: value } : t))
+    clearTimeout(refLinkTimers.current[taskId])
+    refLinkTimers.current[taskId] = setTimeout(() => {
+      supabase.from('production_tasks').update({ reference_link: value || null }).eq('id', taskId)
+    }, 500)
+  }
+
   const isAdmin = teamRow?.role === 'admin'
 
   // ---- filtered / grouped tasks for calendar ----
@@ -304,6 +313,9 @@ export default function ProducaoPage() {
         .pr-details{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);}
         .pr-details textarea{width:100%;min-height:50px;border-radius:9px;border:1px dashed #D8D3C2;padding:8px 9px;font-size:14.5px;font-family:inherit;resize:vertical;background:rgba(0,0,0,.02);color:var(--ink);}
         .pr-details .obs{font-size:12.5px;color:var(--ink-soft);margin-bottom:8px;line-height:1.4;}
+        .pr-ref-row{display:flex;gap:6px;align-items:center;margin-bottom:8px;}
+        .pr-ref-row input.pr-ref-input{flex:1;padding:8px 9px;border-radius:9px;border:1px dashed #D8D3C2;font-size:13px;background:rgba(0,0,0,.02);color:var(--ink);font-family:inherit;}
+        .pr-ref-open{flex:0 0 auto;font-size:12px;font-weight:700;color:var(--blue);text-decoration:none;background:#fff;border:1px solid var(--line);border-radius:9px;padding:8px 10px;white-space:nowrap;}
         .pr-status-picker{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;}
         .pr-status-opt{font-size:12.5px;font-weight:600;padding:10px 8px;border-radius:10px;border:1px solid var(--line);background:var(--card);cursor:pointer;text-align:center;font-family:inherit;}
         .pr-empty{text-align:center;padding:30px 10px;color:var(--ink-soft);font-size:13.5px;}
@@ -527,6 +539,13 @@ export default function ProducaoPage() {
                                   {s.label}
                                 </div>
                               ))}
+                            </div>
+                            <div className="pr-ref-row" onClick={e => e.stopPropagation()}>
+                              <input type="url" className="pr-ref-input" placeholder="Link do vídeo de referência"
+                                value={t.reference_link || ''} onChange={e => onRefLinkChange(t.id, e.target.value)} />
+                              {t.reference_link && (
+                                <a className="pr-ref-open" href={t.reference_link} target="_blank" rel="noopener noreferrer">🔗 Abrir</a>
+                              )}
                             </div>
                             <textarea placeholder="Anotações..." value={t.notes || ''} onClick={e => e.stopPropagation()}
                               onChange={e => onNotesChange(t.id, e.target.value)} />

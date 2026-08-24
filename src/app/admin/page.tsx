@@ -9,7 +9,6 @@ import DashboardTab from '@/components/admin/DashboardTab'
 import DisparosTab from '@/components/DisparosTab'
 import PalavraPremiadaTab from '@/components/PalavraPremiadaTab'
 import MotoboysTab from '@/components/MotoboysTab'
-import ClarityTab from '@/components/ClarityTab'
 import PhotoManager from '@/components/PhotoManager'
 import { dayOfWeekLabel } from '@/lib/businessHours'
 import dynamic from 'next/dynamic'
@@ -54,7 +53,7 @@ const statusColor = (s: string) => s === 'active' ? '#0F8050' : s === 'pending' 
 const statusLabel = (s: string) => s === 'active' ? 'Ativa' : s === 'pending' ? 'Pendente' : 'Suspensa'
 
 export default function AdminPage() {
-  const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'denuncias'|'usuarios'|'buscas'|'atividade'|'banners'|'pedidos-banner'|'configuracoes'|'recursos'|'planos'|'aparencia'|'subcategorias'|'vendas'|'notificacoes'|'disparos'|'palavra-premiada'|'clarity'|'motoboys'>('dashboard')
+  const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'denuncias'|'usuarios'|'buscas'|'atividade'|'banners'|'pedidos-banner'|'configuracoes'|'recursos'|'planos'|'aparencia'|'subcategorias'|'vendas'|'notificacoes'|'disparos'|'palavra-premiada'|'motoboys'>('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [stats, setStats]           = useState<Stats|null>(null)
   const [companies, setCompanies]   = useState<Company[]>([])
@@ -1757,6 +1756,9 @@ export default function AdminPage() {
           </div>
 
           <nav className="sidebar-nav">
+          {/* Ordem alfabética por label — sempre, inclusive pra itens novos.
+              Não precisa inserir em ordem aqui: o .sort() abaixo garante isso
+              sozinho, então só adicione o item onde for mais conveniente. */}
           {[
             { id: 'dashboard', icon: '📊', label: 'Dashboard' },
             { id: 'empresas',  icon: '🏪', label: 'Empresas', badge: stats?.pending || 0 },
@@ -1777,8 +1779,7 @@ export default function AdminPage() {
             { id: 'disparos', icon: '📤', label: 'Disparos' },
             { id: 'palavra-premiada', icon: '🎁', label: 'Palavra Premiada' },
             { id: 'motoboys', icon: '🏍️', label: 'Motoboys' },
-            { id: 'clarity', icon: '📈', label: 'Clarity' },
-          ].map(n => (
+          ].sort((a, b) => a.label.localeCompare(b.label, 'pt-BR')).map(n => (
             <div
               key={n.id}
               className={`nav-item ${tab === n.id ? 'on' : ''}`}
@@ -1821,7 +1822,6 @@ export default function AdminPage() {
               {tab === 'disparos' && 'Disparos WhatsApp'}
               {tab === 'palavra-premiada' && 'Palavra Premiada'}
               {tab === 'motoboys' && 'Motoboys — Trindade Entrega'}
-              {tab === 'clarity' && 'Microsoft Clarity'}
             </div>
             <div className="topbar-date">{new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}</div>
           </div>
@@ -3431,9 +3431,6 @@ export default function AdminPage() {
           )}
           {tab === 'motoboys' && (
             <MotoboysTab />
-          )}
-          {tab === 'clarity' && (
-            <ClarityTab />
           )}
           {tab === 'notificacoes' && (
             <NotificacoesTab />

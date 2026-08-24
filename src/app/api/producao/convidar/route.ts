@@ -32,7 +32,7 @@ async function sendWhatsApp(phone: string, message: string) {
   }
 }
 
-function inviteEmailHtml(name: string, actionLink: string): string {
+function inviteEmailHtml(name: string): string {
   return `
 <!DOCTYPE html>
 <html>
@@ -44,12 +44,12 @@ function inviteEmailHtml(name: string, actionLink: string): string {
     <div style="font-size:22px;font-weight:bold;letter-spacing:3px;color:#fff;margin-bottom:16px;">TRINDADE<span style="color:#C9951A;">ONLINE</span></div>
     <div style="font-size:12px;color:#8B95A3;letter-spacing:1px;margin-bottom:14px;">AGENDA DE PRODUÇÃO</div>
     <div style="font-size:18px;font-weight:bold;color:#fff;margin-bottom:10px;">Você foi convidado(a) pra equipe! 🎬</div>
-    <div style="font-size:13px;color:#aaa;line-height:1.7;">Olá, <strong style="color:#fff;">${name}</strong>! Você já pode acessar a Agenda de Produção — é por ali que a equipe organiza clientes, pastas de conteúdo e status de gravação/edição.</div>
+    <div style="font-size:13px;color:#aaa;line-height:1.7;">Olá, <strong style="color:#fff;">${name}</strong>! Você já pode criar sua conta na Agenda de Produção — é por ali que a equipe organiza clientes, pastas de conteúdo e status de gravação/edição.</div>
   </td></tr>
   <tr><td style="background:#C9951A;height:3px;"></td></tr>
   <tr><td style="background:#F5F5F5;padding:28px 24px;text-align:center;">
-    <a href="${actionLink}" style="display:inline-block;background:#C9951A;color:#111;padding:14px 28px;border-radius:10px;font-size:14px;font-weight:bold;text-decoration:none;">Criar minha senha</a>
-    <div style="font-size:11px;color:#999;margin-top:16px;">Depois de criar a senha, você já entra direto na agenda.</div>
+    <a href="${SITE_URL}/producao" style="display:inline-block;background:#C9951A;color:#111;padding:14px 28px;border-radius:10px;font-size:14px;font-weight:bold;text-decoration:none;">Criar minha conta</a>
+    <div style="font-size:11px;color:#999;margin-top:16px;">Use exatamente este email pra criar sua conta — assim seu acesso já vem liberado.</div>
   </td></tr>
   <tr><td style="background:#111;padding:16px 20px;text-align:center;border-top:3px solid #C9951A;">
     <div style="font-size:12px;color:#C9951A;">trindadeonline.com.br/producao</div>
@@ -76,28 +76,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Só administradores podem convidar' }, { status: 403 })
     }
 
-    // Cria o login (sem senha) e já gera o link de criar senha
-    const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
-      type: 'invite',
-      email: email.trim().toLowerCase(),
-      options: {
-        data: { name: name.trim() },
-        redirectTo: `${SITE_URL}/redefinir-senha`,
-      },
-    })
-    if (linkError || !linkData?.user) {
-      return NextResponse.json({ error: linkError?.message || 'Não foi possível criar o login (email já cadastrado?)' }, { status: 400 })
-    }
+    const emailLower = email.trim().toLowerCase()
+    const { data: existing } = await supabase.from('production_team').select('id').ilike('email', emailLower).maybeSingle()
+    if (existing) return NextResponse.json({ error: 'Já existe um convite ou conta pra esse email' }, { status: 400 })
 
-    // Já entra ativo — o admin convidando já é a aprovação. joined_at só é
-    // marcado quando a pessoa efetivamente acessa a agenda pela 1ª vez.
+    // Não cria o login aqui — a pessoa cria a própria conta em /producao (com
+    // esse mesmo email) e o sistema reconhece o convite automaticamente. Já
+    // entra ativo porque o admin convidando já é a aprovação; joined_at só é
+    // marcado quando ela efetivamente acessa a agenda pela 1ª vez.
     const { error: teamError } = await supabase.from('production_team').insert({
-      user_id: linkData.user.id, name: name.trim(), email: email.trim().toLowerCase(),
+      user_id: null, name: name.trim(), email: emailLower,
       phone: phone?.trim() || null, role: 'member', status: 'ativo',
     })
     if (teamError) return NextResponse.json({ error: teamError.message }, { status: 500 })
 
-    const actionLink = linkData.properties.action_link
     await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
@@ -105,11 +97,11 @@ export async function POST(req: NextRequest) {
         from: 'Trindade Online <noreply@trindadeonline.com.br>',
         to: email.trim(),
         subject: '🎬 Você foi convidado pra Agenda de Produção',
-        html: inviteEmailHtml(name.trim(), actionLink),
+        html: inviteEmailHtml(name.trim()),
       }),
     })
     if (phone?.trim()) {
-      await sendWhatsApp(phone.trim(), `Oi ${name.trim()}! 🎬 Você foi convidado(a) pra equipe da Agenda de Produção do Trindade Online.\n\nAcesse ${SITE_URL}/producao e crie sua senha com o email ${email.trim()} pra começar.`)
+      await sendWhatsApp(phone.trim(), `Oi ${name.trim()}! 🎬 Você foi convidado(a) pra equipe da Agenda de Produção do Trindade Online.\n\nAcesse ${SITE_URL}/producao e crie sua conta com o email ${emailLower} pra começar — seu acesso já vem liberado.`)
     }
 
     return NextResponse.json({ ok: true })

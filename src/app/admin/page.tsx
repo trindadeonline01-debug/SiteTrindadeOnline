@@ -1794,6 +1794,7 @@ export default function AdminPage() {
 
           <div className="sidebar-footer">
             <a href="/">← Ver site</a>
+            <a href="/producao" target="_blank" rel="noopener noreferrer">🎬 Produção</a>
             <button className="btn-sair-sidebar" onClick={handleSair}>↪ Sair</button>
           </div>
         </aside>

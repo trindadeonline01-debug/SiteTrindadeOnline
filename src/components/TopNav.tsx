@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 export default function TopNav() {
   const [user, setUser] = useState<any>(null)
   const [userType, setUserType] = useState<string|null>(null)
+  const [isProdTeam, setIsProdTeam] = useState(false)
   const pathname = usePathname()
 
   useEffect(() => {
@@ -14,6 +15,8 @@ export default function TopNav() {
       setUser(session.user)
       const { data } = await supabase.from('profiles').select('user_type').eq('id', session.user.id).single()
       setUserType(data?.user_type || null)
+      const { data: team } = await supabase.from('production_team').select('id').eq('user_id', session.user.id).eq('status', 'ativo').maybeSingle()
+      setIsProdTeam(!!team)
     })
   }, [])
 
@@ -61,6 +64,7 @@ export default function TopNav() {
             {userType === 'company' && <a className={`top-nav-link ${pathname==='/painel'?'active':''}`} href="/painel">📊 Meu Painel</a>}
             {userType === 'company' && <a className={`top-nav-link ${pathname.includes('tab=plano')?'active':''}`} href="/painel?tab=plano">💳 Planos</a>}
             {userType === 'admin' && <a className="top-nav-link" href="/admin">⚙️ Admin</a>}
+            {isProdTeam && <a className="top-nav-link" href="/producao">🎬 Produção</a>}
             <a className={`top-nav-link ${pathname==='/perfil'?'active':''}`} href="/perfil">👤 Perfil</a>
           </>}
         </nav>

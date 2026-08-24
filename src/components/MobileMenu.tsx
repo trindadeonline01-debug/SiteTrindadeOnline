@@ -20,6 +20,7 @@ export default function MobileMenu() {
   const [open, setOpen] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [userType, setUserType] = useState<string|null>(null)
+  const [isProdTeam, setIsProdTeam] = useState(false)
   const pathname = usePathname()
 
   useEffect(() => {
@@ -28,6 +29,8 @@ export default function MobileMenu() {
       setUser(session.user)
       const { data } = await supabase.from('profiles').select('user_type').eq('id', session.user.id).single()
       setUserType(data?.user_type || null)
+      const { data: team } = await supabase.from('production_team').select('id').eq('user_id', session.user.id).eq('status', 'ativo').maybeSingle()
+      setIsProdTeam(!!team)
     })
   }, [])
 
@@ -131,6 +134,11 @@ export default function MobileMenu() {
                 {userType === 'admin' && (
                   <a className="mm-link" href="/admin">
                     <span className="mm-link-icon">⚙️</span> Admin
+                  </a>
+                )}
+                {isProdTeam && (
+                  <a className="mm-link" href="/producao">
+                    <span className="mm-link-icon">🎬</span> Produção
                   </a>
                 )}
                 <div className="mm-divider" />

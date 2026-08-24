@@ -127,13 +127,24 @@ export default function ProducaoPage() {
     setScreen('home')
   }
 
+  // Vincula (ou cria) a linha em production_team pro usuário logado — se
+  // já existia um convite pendente com esse email, reconhece automático.
+  async function linkTeamRow(name: string) {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
+    await fetch('/api/producao/vincular', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ access_token: session.access_token, name }),
+    })
+  }
+
   async function handleAuth(e: React.FormEvent) {
     e.preventDefault()
     setErrorMsg(''); setBusy(true)
     if (authMode === 'signup') {
       const { data, error } = await supabase.auth.signUp({ email: authEmail.trim(), password: authPass })
       if (error) { setBusy(false); setErrorMsg(error.message); return }
-      if (data.user) await supabase.from('production_team').insert({ user_id: data.user.id, name: authName.trim() || authEmail.split('@')[0], email: authEmail.trim() })
+      if (data.user) await linkTeamRow(authName.trim())
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email: authEmail.trim(), password: authPass })
       if (error) { setBusy(false); setErrorMsg('Email ou senha incorretos.'); return }
@@ -144,10 +155,8 @@ export default function ProducaoPage() {
 
   async function handleNeedsRegister(e: React.FormEvent) {
     e.preventDefault()
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return
     setBusy(true)
-    await supabase.from('production_team').insert({ user_id: session.user.id, name: authName.trim() || session.user.email!.split('@')[0], email: session.user.email })
+    await linkTeamRow(authName.trim())
     setBusy(false)
     await loadTeamRow()
   }

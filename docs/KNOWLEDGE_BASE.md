@@ -275,6 +275,16 @@ Igrejas:            00000000-0000-0000-0000-000000000008
 - Timeout de 45s é conferido tanto a cada mensagem recebida no webhook quanto por polling do painel da loja a cada 15s (`/api/entrega/tick`) — não depende de cron de minuto em minuto
 - **Pendente**: pagamento em lote pro motoboy (hoje só marca "liberado", ainda não faz o Pix de saída pra ele); app do motoboy com localização/proximidade real (v1 é só WhatsApp, sem geo); reestruturação de planos puxada por essa feature (ver item 9 da fila pendente)
 
+### Agenda de Produção — modelo de pastas (`/producao`, ago/2026)
+- Área interna da equipe de mídia (Ricardo + Rafaella + freelancers), separada do site principal, mesma conta Supabase Auth. Substituiu a antiga `/agenda` (removida) que só listava tarefas atribuídas.
+- Estrutura: **cliente** (`production_clients`) → **pasta** (`production_folders`: evento, semana, o que fizer sentido — quantidade de conteúdo é livre, não fixa) → **conteúdo** (`production_tasks` com `folder_id`; o `title` já existente vira o rótulo livre do conteúdo, ex: "Foto", "Vídeo de Cortes"). Ícone e cor de cada tipo de conteúdo são gerados por hash do rótulo, não vêm de tabela.
+- Cada conteúdo tem: status (`video_status`: a_gravar/gravado/editado/postado, clicável pra avançar), responsável (`assigned_to` → `production_team`, clicável pra alternar entre a equipe ativa), link de referência e anotação (`reference_link`/`notes`, autosave com debounce), e fica com destaque vermelho quando a data de postagem passou sem ter sido postado.
+- Pasta pode ser **arquivada** (`archived`) — abas "Ativas"/"Arquivadas" na lista; conteúdo de pasta arquivada some do calendário e das estatísticas.
+- Calendário por cliente: grade mensal com navegação, cada dia mostra bolinhas por tipo de conteúdo (estilo Google Calendar), clique abre o painel do dia — mesmo layout no desktop e no mobile.
+- Equipe: acesso por convite direto do admin (`✉️ Convidar alguém` → `/api/producao/convidar`, cria o login, já entra ativo, manda email + WhatsApp com link de criar senha) ou pedido de acesso espontâneo (fica "aguardando aprovação" até um admin aprovar). `joined_at` só é marcado no 1º acesso real à página — é isso que diferencia "convite enviado, aguardando 1º acesso" de "equipe ativa" na tela.
+- Lembrete automático por WhatsApp 1 dia antes da data de postagem, pro responsável **e** pros admins: `/api/cron/lembretes-producao`, cron diário via `vercel.json` (13:20 UTC), protegido por `CRON_SECRET`; marca `reminder_sent_at` pra não duplicar envio.
+- Escola Bem Viver (cliente já existente) foi migrada automaticamente: os 90 vídeos já agendados viraram 20 pastas semanais (segunda a sexta), 1 por semana; os 5 feriados do calendário antigo não migraram (não são conteúdo de verdade).
+
 ### Breadcrumb
 - Topbar com grid 3 colunas em todas as páginas internas
 

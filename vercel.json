@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/plan-expiration",
       "schedule": "10 13 * * *"
+    },
+    {
+      "path": "/api/cron/lembretes-producao",
+      "schedule": "20 13 * * *"
     }
   ]
 }

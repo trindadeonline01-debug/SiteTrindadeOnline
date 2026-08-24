@@ -39,8 +39,11 @@ function typeIcon(label: string): string {
 function initialsOf(name: string): string {
   return (name || '').split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase()
 }
+// "YYYY-MM-DD" sozinho é interpretado como meia-noite UTC pelo Date() nativo,
+// o que recua um dia no fuso do Brasil (UTC-3) — monta sempre no fuso local.
 function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+  const [y, m, d] = iso.slice(0, 10).split('-').map(Number)
+  return new Date(y, m - 1, d).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
 }
 function todayIso(): string { return new Date().toISOString().slice(0, 10) }
 function isOverdue(t: { video_status: VideoStatus; scheduled_at: string }): boolean {

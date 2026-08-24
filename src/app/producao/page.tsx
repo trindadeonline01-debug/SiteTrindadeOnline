@@ -78,7 +78,11 @@ export default function ProducaoPage() {
   const [ncName, setNcName] = useState(''); const [ncAddress, setNcAddress] = useState(''); const [ncSaving, setNcSaving] = useState(false)
 
   const [showNewFolder, setShowNewFolder] = useState(false)
+  const [editingFolder, setEditingFolder] = useState<Folder | null>(null)
   const [nfName, setNfName] = useState(''); const [nfDate, setNfDate] = useState(''); const [nfSaving, setNfSaving] = useState(false)
+
+  const [showNewContent, setShowNewContent] = useState(false)
+  const [ntLabel, setNtLabel] = useState(''); const [ntDate, setNtDate] = useState(''); const [ntSaving, setNtSaving] = useState(false)
 
   const [showInvite, setShowInvite] = useState(false)
   const [invName, setInvName] = useState(''); const [invEmail, setInvEmail] = useState(''); const [invPhone, setInvPhone] = useState('')
@@ -224,10 +228,25 @@ export default function ProducaoPage() {
     return () => { supabase.removeChannel(channel) }
   }, [screen, currentClient, currentFolder, folderFilter])
 
-  async function createFolder(e: React.FormEvent) {
+  function openNewFolder() {
+    setEditingFolder(null); setNfName(''); setNfDate(''); setShowNewFolder(true)
+  }
+  function openEditFolder(f: Folder) {
+    setEditingFolder(f); setNfName(f.name); setNfDate(f.date); setShowNewFolder(true)
+  }
+  async function saveFolder(e: React.FormEvent) {
     e.preventDefault()
     if (!currentClient || !nfName.trim() || !nfDate) return
     setNfSaving(true)
+    if (editingFolder) {
+      const { error } = await supabase.from('production_folders').update({ name: nfName.trim(), date: nfDate }).eq('id', editingFolder.id)
+      setNfSaving(false)
+      if (error) { alert(error.message); return }
+      setShowNewFolder(false); setEditingFolder(null)
+      if (currentFolder?.id === editingFolder.id) setCurrentFolder({ ...editingFolder, name: nfName.trim(), date: nfDate })
+      else loadFolders(currentClient.id, folderFilter === 'archived')
+      return
+    }
     const { error } = await supabase.from('production_folders').insert({ client_id: currentClient.id, name: nfName.trim(), date: nfDate, archived: false })
     setNfSaving(false)
     if (error) { alert(error.message); return }
@@ -266,14 +285,21 @@ export default function ProducaoPage() {
     closeFolder()
   }
 
-  async function addContent() {
-    if (!currentClient || !currentFolder) return
-    const label = prompt('Nome do novo conteúdo (ex: Foto, Vídeo de Cortes, Depoimento...):')
-    if (!label || !label.trim()) return
-    await supabase.from('production_tasks').insert({
-      client_id: currentClient.id, folder_id: currentFolder.id, title: label.trim(),
-      scheduled_at: currentFolder.date + 'T12:00:00', video_status: 'a_gravar',
+  function openNewContent() {
+    if (!currentFolder) return
+    setNtLabel(''); setNtDate(currentFolder.date); setShowNewContent(true)
+  }
+  async function saveContent(e: React.FormEvent) {
+    e.preventDefault()
+    if (!currentClient || !currentFolder || !ntLabel.trim() || !ntDate) return
+    setNtSaving(true)
+    const { error } = await supabase.from('production_tasks').insert({
+      client_id: currentClient.id, folder_id: currentFolder.id, title: ntLabel.trim(),
+      scheduled_at: ntDate + 'T12:00:00', video_status: 'a_gravar',
     })
+    setNtSaving(false)
+    if (error) { alert(error.message); return }
+    setShowNewContent(false); setNtLabel(''); setNtDate('')
     loadTasks(currentFolder.id)
   }
 
@@ -656,13 +682,13 @@ export default function ProducaoPage() {
                   {folders.map(f => (
                     <div key={f.id} className={`pr2-fcard ${f.archived ? 'archived' : ''}`} onClick={() => openFolder(f)}>
                       <div className="pr2-ftop">
-                        <div><div className="pr2-fname">{f.name}</div><div className="pr2-fdate">🗂️ {fmtDate(f.date)}</div></div>
+                        <div><div className="pr2-fname">{f.name}</div><div className="pr2-fdate">🎥 Gravação: {fmtDate(f.date)}</div></div>
                         {f.archived && <span className="pr2-archive-tag">🗄️ arquivada</span>}
                       </div>
                     </div>
                   ))}
                 </div>
-                <button className="pr2-invite-btn" onClick={() => setShowNewFolder(true)}>+ Nova pasta</button>
+                <button className="pr2-invite-btn" onClick={openNewFolder}>+ Nova pasta</button>
               </>
             )}
 
@@ -683,16 +709,16 @@ export default function ProducaoPage() {
         )}
 
         {showNewFolder && (
-          <div className="pr2-modal-overlay show" onClick={() => setShowNewFolder(false)}>
+          <div className="pr2-modal-overlay show" onClick={() => { setShowNewFolder(false); setEditingFolder(null) }}>
             <div className="pr2-modal" onClick={e => e.stopPropagation()}>
-              <div className="pr2-detail-title">Nova pasta</div>
-              <div className="pr2-detail-sub">Cada pasta agrupa os conteúdos de um evento ou período.</div>
-              <form onSubmit={createFolder}>
+              <div className="pr2-detail-title">{editingFolder ? 'Editar pasta' : 'Nova pasta'}</div>
+              <div className="pr2-detail-sub">Cada pasta agrupa os conteúdos de um evento ou período. A data é a da gravação — não precisa ser a data do evento.</div>
+              <form onSubmit={saveFolder}>
                 <label>Nome</label><input type="text" value={nfName} onChange={e => setNfName(e.target.value)} placeholder="Ex: Casamento — Marina & Rafael" />
-                <label>Data</label><input type="date" value={nfDate} onChange={e => setNfDate(e.target.value)} />
+                <label>Data de gravação</label><input type="date" value={nfDate} onChange={e => setNfDate(e.target.value)} />
                 <div className="pr2-modal-actions">
-                  <button type="button" className="pr2-modal-cancel" onClick={() => setShowNewFolder(false)}>Cancelar</button>
-                  <button type="submit" className="pr2-modal-save" disabled={nfSaving}>{nfSaving ? '...' : '🗂️ Criar pasta'}</button>
+                  <button type="button" className="pr2-modal-cancel" onClick={() => { setShowNewFolder(false); setEditingFolder(null) }}>Cancelar</button>
+                  <button type="submit" className="pr2-modal-save" disabled={nfSaving}>{nfSaving ? '...' : editingFolder ? '💾 Salvar' : '🗂️ Criar pasta'}</button>
                 </div>
               </form>
             </div>
@@ -703,11 +729,14 @@ export default function ProducaoPage() {
           <div className="pr2-app">
             <header className="pr2-top">
               <button className="pr2-back" onClick={closeFolder}>← Pastas</button>
-              <button className="pr2-back" onClick={toggleArchive}>{currentFolder.archived ? '♻️ Reabrir pasta' : '🗄️ Arquivar pasta'}</button>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button className="pr2-back" onClick={() => openEditFolder(currentFolder)}>✏️ Editar</button>
+                <button className="pr2-back" onClick={toggleArchive}>{currentFolder.archived ? '♻️ Reabrir pasta' : '🗄️ Arquivar pasta'}</button>
+              </div>
             </header>
             <div style={{ marginBottom: 16 }}>
               <div className="pr2-detail-title">{currentFolder.name}{currentFolder.archived && <span className="pr2-archive-tag" style={{ marginLeft: 8 }}>arquivada</span>}</div>
-              <div className="pr2-detail-sub">{fmtDate(currentFolder.date)} · {tasks.length} {tasks.length === 1 ? 'conteúdo programado' : 'conteúdos programados'}</div>
+              <div className="pr2-detail-sub">🎥 Gravação: {fmtDate(currentFolder.date)} · {tasks.length} {tasks.length === 1 ? 'conteúdo programado' : 'conteúdos programados'}</div>
             </div>
             <div className="pr2-content-list">
               {tasks.map(t => {
@@ -734,7 +763,24 @@ export default function ProducaoPage() {
                 )
               })}
             </div>
-            <button className="pr2-add-content" onClick={addContent}>+ Adicionar conteúdo</button>
+            <button className="pr2-add-content" onClick={openNewContent}>+ Adicionar conteúdo</button>
+          </div>
+        )}
+
+        {showNewContent && (
+          <div className="pr2-modal-overlay show" onClick={() => setShowNewContent(false)}>
+            <div className="pr2-modal" onClick={e => e.stopPropagation()}>
+              <div className="pr2-detail-title">Novo conteúdo</div>
+              <div className="pr2-detail-sub">A data de postagem é o que define se vai ficar atrasado ou não.</div>
+              <form onSubmit={saveContent}>
+                <label>Nome</label><input type="text" value={ntLabel} onChange={e => setNtLabel(e.target.value)} placeholder="Ex: Foto, Vídeo de Cortes, Depoimento..." />
+                <label>Data prevista de postagem</label><input type="date" value={ntDate} onChange={e => setNtDate(e.target.value)} />
+                <div className="pr2-modal-actions">
+                  <button type="button" className="pr2-modal-cancel" onClick={() => setShowNewContent(false)}>Cancelar</button>
+                  <button type="submit" className="pr2-modal-save" disabled={ntSaving}>{ntSaving ? '...' : '+ Adicionar'}</button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
       </div>

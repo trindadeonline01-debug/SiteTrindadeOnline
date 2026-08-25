@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup — Portal mobile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#151210;--ink-2:#231F1B;--paper:#fff;--concrete:#E9EAE5;--concrete-2:#F5F6F2;
+  --sign:#FFC531;--sign-dark:#A87200;--open:#0F8A57;--alert:#D6392B;--info:#2A4E7A;
+  --line:#DCDDD6;--muted:#6F6C67;
+  --display:'Anton',Impact,sans-serif;--ui:'Archivo',system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--concrete);color:var(--ink);font-family:var(--ui);
+  font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+
+.chrome{position:sticky;top:0;z-index:900;background:var(--ink);color:#fff;
+  padding:11px 18px;border-bottom:3px solid var(--sign);display:flex;gap:14px;
+  align-items:center;flex-wrap:wrap}
+.chrome b{font-family:var(--display);font-size:15px;text-transform:uppercase;letter-spacing:.03em}
+.chrome b em{font-style:normal;color:var(--sign)}
+.chrome span{font-size:12px;color:rgba(255,255,255,.55)}
+
+.stage{max-width:1200px;margin:0 auto;padding:24px 18px 70px}
+.note{background:#FFFBEE;border:1px solid #F0DFA8;border-left:4px solid var(--sign);
+  padding:12px 15px;border-radius:0 5px 5px 0;font-size:13.5px;color:#4A4136;margin-bottom:8px}
+.rowh{margin:32px 0 14px}
+.rowh .eb{font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--sign-dark);font-weight:700;margin-bottom:4px}
+.rowh h2{font-family:var(--display);font-size:22px;margin:0;text-transform:uppercase;line-height:1}
+.rowh p{margin:5px 0 0;font-size:13.5px;color:#4A4741;max-width:660px}
+.mini{font-size:13px;color:#4A4741;max-width:700px;margin:16px 0 0}
+.mini b{font-weight:700}
+
+.phones{display:flex;gap:22px;flex-wrap:wrap}
+.pw{width:342px}
+.phone{background:var(--ink);border-radius:30px;padding:9px;
+  box-shadow:0 22px 50px -18px rgba(0,0,0,.45)}
+.scr{background:var(--paper);border-radius:22px;overflow:hidden;height:730px;
+  overflow-y:auto;scrollbar-width:none;position:relative}
+.scr::-webkit-scrollbar{display:none}
+.lbl{text-align:center;font-size:11.5px;font-weight:700;letter-spacing:.11em;
+  text-transform:uppercase;color:var(--muted);margin-top:11px}
+
+/* header */
+.mh{background:var(--ink);color:#fff;padding:12px 14px 11px;position:sticky;top:0;z-index:15}
+.mh .t{display:flex;align-items:center;gap:9px;margin-bottom:10px}
+.logo{font-family:var(--display);font-size:14px;text-transform:uppercase;letter-spacing:.02em}
+.logo em{font-style:normal;color:var(--sign)}
+.bai{margin-left:auto;display:flex;align-items:center;gap:5px;font-size:11.5px;
+  font-weight:600;background:rgba(255,255,255,.1);padding:5px 9px;border-radius:20px}
+.bai .p{color:var(--sign);font-size:9px}
+.sr{display:flex;background:#fff;border-radius:7px;align-items:center;padding:0 11px;gap:8px}
+.sr input{flex:1;border:0;padding:11px 0;font-family:inherit;font-size:13.5px;background:transparent}
+.sr input::placeholder{color:#9C9993}
+.sr .mic{opacity:.35;font-size:14px}
+.back{font-size:17px;line-height:1}
+
+/* chips */
+.chips{display:flex;gap:6px;overflow-x:auto;padding:11px 14px;background:var(--concrete-2);
+  border-bottom:1px solid var(--line);scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.ch{background:var(--paper);border:1px solid var(--line);border-radius:18px;
+  padding:6px 12px;font-size:12px;font-weight:600;white-space:nowrap;display:flex;
+  align-items:center;gap:5px}
+.ch.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.ch.gr{background:#E1F3EA;border-color:#8FCFB2;color:#0B6B44}
+.ch i{font-style:normal;font-size:10px;font-weight:700;padding:1px 5px;border-radius:8px;
+  background:var(--concrete);color:var(--muted)}
+.ch.on i{background:rgba(255,255,255,.2);color:#fff}
+
+/* seções */
+.sec{padding:15px 14px}
+.sec.tight{padding-top:11px}
+.sh{display:flex;align-items:baseline;justify-content:space-between;gap:9px;margin-bottom:11px}
+.sh h3{font-family:var(--display);font-size:16px;margin:0;text-transform:uppercase;line-height:1}
+.sh .eb{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--sign-dark);
+  font-weight:700;margin-bottom:3px}
+.sh a{font-size:11.5px;font-weight:700;color:var(--sign-dark);white-space:nowrap}
+.mono{border-radius:5px;display:grid;place-items:center;font-family:var(--display);
+  color:#fff;flex-shrink:0}
+
+/* categorias */
+.cats{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.cat{background:var(--concrete-2);border:1px solid var(--line);border-radius:8px;
+  padding:11px 4px 9px;text-align:center;font-size:10px;font-weight:600;line-height:1.2}
+.cat .ic{font-size:19px;display:block;margin-bottom:5px}
+.cat .n{display:block;font-size:9px;color:var(--muted);font-weight:500;margin-top:2px}
+
+/* produtos 2col */
+.p2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.pc{background:var(--paper);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.pc .im{height:96px;display:grid;place-items:center;font-family:var(--display);
+  font-size:14px;color:#fff;position:relative}
+.pc .im .fl{position:absolute;top:6px;left:6px;font-size:8.5px;font-weight:700;
+  letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:3px;
+  background:var(--alert);color:#fff}
+.pc .b{padding:9px}
+.pc .nm{font-size:12px;font-weight:600;line-height:1.25;min-height:30px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pc .pr{font-family:var(--display);font-size:16px;margin-top:4px}
+.pc .st{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted);
+  margin-top:6px;padding-top:6px;border-top:1px solid var(--concrete)}
+.pc .st .d{width:5px;height:5px;border-radius:50%;background:var(--open);flex-shrink:0}
+.pc .st .d.off{background:var(--line)}
+
+/* aberto agora */
+.nowh{background:var(--sign);padding:11px 14px;display:flex;align-items:center;gap:8px}
+.nowh b{font-family:var(--display);font-size:15px;text-transform:uppercase}
+.nowh .cl{margin-left:auto;font-size:10.5px;font-weight:700;background:var(--ink);
+  color:var(--sign);padding:3px 7px;border-radius:3px}
+.ld{width:8px;height:8px;border-radius:50%;background:var(--open);
+  box-shadow:0 0 0 3px rgba(15,138,87,.25);flex-shrink:0}
+.nowr{background:var(--ink-2);display:flex;gap:9px;padding:13px 14px;overflow-x:auto;
+  scrollbar-width:none}
+.nowr::-webkit-scrollbar{display:none}
+.nc{flex:0 0 156px;background:var(--paper);border-radius:7px;padding:10px}
+.nc .mono{width:34px;height:34px;font-size:12px;margin-bottom:8px}
+.nc b{display:block;font-size:12px;font-weight:600;line-height:1.2}
+.nc .m{font-size:10px;color:var(--muted)}
+.nc .u{font-size:10.5px;color:var(--open);font-weight:700;display:block;margin-top:3px}
+
+/* ofertas */
+.of{background:var(--paper);border:1px solid var(--line);border-radius:8px;
+  overflow:hidden;margin-bottom:9px}
+.of .tg{font-size:9px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;
+  padding:6px 11px;background:var(--alert);color:#fff}
+.of .tg.w{background:var(--ink)}
+.of .bd{padding:11px}
+.of .who{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;
+  letter-spacing:.06em;margin-bottom:4px}
+.of h4{font-family:var(--display);font-size:16px;margin:0 0 4px;line-height:1.05;
+  text-transform:uppercase}
+.of p{margin:0;font-size:12px;color:var(--muted)}
+.of .ft{padding:9px 11px;border-top:1px dashed var(--line);display:flex;
+  justify-content:space-between;font-size:11px}
+.of .ft .l{color:var(--muted);font-weight:600}
+.of .ft .g{font-weight:700;color:var(--sign-dark)}
+
+/* lista comunidade */
+.li{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--concrete)}
+.li:last-child{border-bottom:0}
+.li .sq{width:36px;height:36px;border-radius:6px;background:var(--concrete);
+  display:grid;place-items:center;font-size:15px;flex-shrink:0}
+.li .in{flex:1;min-width:0}
+.li b{display:block;font-size:12.5px;font-weight:600;line-height:1.25}
+.li .m{font-size:10.5px;color:var(--muted)}
+.li .pr{font-family:var(--display);font-size:14px;white-space:nowrap}
+.li .pr small{display:block;font-family:var(--ui);font-size:8.5px;font-weight:700;
+  letter-spacing:.07em;text-transform:uppercase;color:var(--muted);text-align:right}
+
+/* negócio na busca */
+.rb{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:11px;
+  display:flex;gap:10px;align-items:center;margin-bottom:8px}
+.rb .mono{width:44px;height:44px;font-size:14px}
+.rb .in{flex:1;min-width:0}
+.rb b{display:block;font-size:13px;font-weight:600;line-height:1.2}
+.rb .m{font-size:11px;color:var(--muted);margin-top:2px}
+.rb .tags{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+.tm{font-size:8.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  padding:2px 6px;border-radius:3px;background:var(--concrete);color:var(--muted)}
+.tm.op{background:#E1F3EA;color:#0B6B44}
+.tm.cp{background:#F6E7E5;color:#8E2D22}
+.rb .wa{background:var(--open);color:#fff;border:0;padding:9px 12px;border-radius:6px;
+  font-size:11.5px;font-weight:700;flex-shrink:0}
+.rb .lk{border:1px dashed var(--line);color:var(--muted);background:transparent;
+  padding:9px 11px;border-radius:6px;font-size:11px;font-weight:600;flex-shrink:0}
+
+/* faixa cta */
+.cta{background:var(--ink);color:#fff;padding:20px 14px;text-align:center}
+.cta b{font-family:var(--display);font-size:18px;text-transform:uppercase;display:block;
+  line-height:1.05;margin-bottom:6px}
+.cta b em{font-style:normal;color:var(--sign)}
+.cta p{color:rgba(255,255,255,.6);font-size:12.5px;margin:0 0 13px}
+.cta button{width:100%;background:var(--sign);color:var(--ink);border:0;padding:13px;
+  border-radius:6px;font-weight:700;font-size:14px}
+.stats{display:flex;gap:16px;justify-content:center;margin-top:14px}
+.stats div{text-align:center}
+.stats b{font-family:var(--display);font-size:17px;color:var(--sign);display:block;
+  margin:0;line-height:1}
+.stats span{font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:rgba(255,255,255,.45);font-weight:700}
+
+/* tab bar */
+.tb{position:sticky;bottom:0;background:var(--paper);border-top:1px solid var(--line);
+  display:grid;grid-template-columns:repeat(5,1fr);padding:7px 0 10px;z-index:20}
+.ti{text-align:center;font-size:9.5px;font-weight:600;color:var(--muted);line-height:1.3}
+.ti .ic{display:block;font-size:17px;margin-bottom:2px;opacity:.5}
+.ti.on{color:var(--ink)}.ti.on .ic{opacity:1}
+
+/* busca */
+.sres{padding:12px 14px;background:var(--concrete-2);border-bottom:1px solid var(--line)}
+.sres h2{font-family:var(--display);font-size:18px;margin:0;text-transform:uppercase;line-height:1}
+.sres .c{font-size:11.5px;color:var(--muted);margin-top:4px}
+.stabs{display:flex;gap:5px;margin-top:10px;overflow-x:auto;scrollbar-width:none}
+.stabs::-webkit-scrollbar{display:none}
+.sortbar{display:flex;align-items:center;gap:8px;padding:10px 14px;
+  border-bottom:1px solid var(--line);font-size:12px;color:var(--muted);font-weight:600}
+.sortbar .b{margin-left:auto;display:flex;gap:6px}
+.sortbar .b button{border:1px solid var(--line);background:var(--paper);border-radius:18px;
+  padding:5px 11px;font-size:11.5px;font-weight:600}
+
+/* bottom sheet filtros */
+.veil{position:absolute;inset:0;background:rgba(0,0,0,.45);z-index:30}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--paper);
+  border-radius:18px 18px 0 0;z-index:31;padding:8px 0 0;max-height:78%;overflow-y:auto;
+  scrollbar-width:none}
+.sheet::-webkit-scrollbar{display:none}
+.grab{width:38px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 10px}
+.sh2{display:flex;align-items:center;padding:0 15px 12px;border-bottom:1px solid var(--line)}
+.sh2 b{font-family:var(--display);font-size:17px;text-transform:uppercase}
+.sh2 .cl{margin-left:auto;font-size:12px;font-weight:700;color:var(--sign-dark)}
+.fgrp{padding:13px 15px;border-bottom:1px solid var(--concrete)}
+.fgrp h5{font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);
+  font-weight:700;margin:0 0 9px}
+.fo{display:flex;align-items:center;gap:9px;font-size:13.5px;padding:6px 0}
+.fo .bx{width:17px;height:17px;border:1.5px solid var(--line);border-radius:4px;
+  flex-shrink:0;position:relative}
+.fo .bx.on{background:var(--ink);border-color:var(--ink)}
+.fo .bx.on:after{content:"✓";color:#fff;font-size:11px;position:absolute;top:-2px;left:2.5px;
+  font-weight:700}
+.fo .n{margin-left:auto;font-size:11.5px;color:var(--muted)}
+.fo .rd{width:17px;height:17px;border:1.5px solid var(--line);border-radius:50%;flex-shrink:0}
+.fo .rd.on{border:5px solid var(--ink)}
+.sfoot{position:sticky;bottom:0;background:var(--paper);border-top:1px solid var(--line);
+  padding:11px 15px;display:flex;gap:8px}
+.sfoot .a{flex:1;background:var(--ink);color:#fff;border:0;padding:13px;border-radius:6px;
+  font-size:13.5px;font-weight:700}
+.sfoot .b2{border:1px solid var(--line);background:var(--paper);padding:13px 16px;
+  border-radius:6px;font-size:13px;font-weight:600}
+
+/* empresa */
+.ehero{height:172px;display:grid;place-items:center;position:relative}
+.ehero .mono{width:60px;height:60px;font-size:21px;background:rgba(0,0,0,.32)}
+.ehero .gal{position:absolute;bottom:9px;right:11px;background:rgba(0,0,0,.5);color:#fff;
+  font-size:10.5px;font-weight:600;padding:3px 8px;border-radius:12px}
+.ebody{padding:13px 14px}
+.prow{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.opn{background:#E1F3EA;color:#0B6B44;font-size:11px;font-weight:700;padding:3px 9px;
+  border-radius:20px}
+.rt{font-size:11px;color:var(--muted)}
+.ebody h1{font-family:var(--display);font-size:21px;margin:0 0 4px;text-transform:uppercase;
+  line-height:1.04}
+.ebody .sub{font-size:12px;color:var(--muted);line-height:1.4}
+.eact{display:flex;gap:7px;margin-top:12px}
+.eact .w{flex:1;background:var(--open);color:#fff;border:0;padding:12px;border-radius:6px;
+  font-size:13.5px;font-weight:700}
+.eact .s{border:1px solid var(--line);background:var(--paper);padding:12px 14px;
+  border-radius:6px;font-size:14px}
+.etabs{display:flex;gap:2px;border-bottom:1px solid var(--line);padding:0 14px;
+  position:sticky;top:60px;background:var(--paper);z-index:12;overflow-x:auto;
+  scrollbar-width:none}
+.etabs::-webkit-scrollbar{display:none}
+.etb{background:transparent;border:0;padding:11px 12px;font-size:13px;font-weight:600;
+  color:var(--muted);border-bottom:3px solid transparent;white-space:nowrap}
+.etb.on{color:var(--ink);border-bottom-color:var(--sign)}
+.catgrp{padding:12px 14px 0}
+.catgrp h4{font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);
+  font-weight:700;margin:0 0 9px}
+.ci{display:flex;gap:11px;background:var(--paper);border:1px solid var(--line);
+  border-radius:8px;padding:10px;margin-bottom:8px;align-items:center}
+.ci .th{width:58px;height:58px;border-radius:6px;display:grid;place-items:center;
+  font-family:var(--display);font-size:13px;color:#fff;flex-shrink:0}
+.ci .in{flex:1;min-width:0}
+.ci b{display:block;font-size:12.5px;font-weight:600;line-height:1.25}
+.ci .ds{font-size:10.5px;color:var(--muted);line-height:1.35;margin-top:2px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ci .pr{font-family:var(--display);font-size:15px;margin-top:4px}
+.ci .add{width:30px;height:30px;border-radius:6px;background:var(--ink);color:#fff;
+  border:0;font-size:16px;flex-shrink:0}
+.cart{position:sticky;bottom:0;background:var(--ink);color:#fff;padding:11px 14px;
+  display:flex;align-items:center;gap:10px;z-index:20}
+.cart .c{font-size:11.5px;color:rgba(255,255,255,.6)}
+.cart .t{font-family:var(--display);font-size:18px;color:var(--sign)}
+.cart button{margin-left:auto;background:var(--open);color:#fff;border:0;padding:11px 16px;
+  border-radius:6px;font-size:12.5px;font-weight:700}
+
+/* produto */
+.pgal{height:250px;display:grid;place-items:center;font-family:var(--display);
+  font-size:30px;color:#fff;position:relative}
+.pgal .dots{position:absolute;bottom:11px;left:50%;transform:translateX(-50%);
+  display:flex;gap:5px}
+.pgal .dots i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.45)}
+.pgal .dots i.on{background:#fff;width:16px;border-radius:3px}
+.pgal .fav{position:absolute;top:11px;right:11px;width:34px;height:34px;border-radius:50%;
+  background:rgba(0,0,0,.4);display:grid;place-items:center;font-size:15px}
+.pbody{padding:14px}
+.pbody h1{font-family:var(--display);font-size:21px;margin:5px 0 7px;text-transform:uppercase;
+  line-height:1.04}
+.price{font-family:var(--display);font-size:29px;line-height:1}
+.pbody .parc{font-size:11.5px;color:var(--muted);margin-top:3px}
+.pbody .ds{font-size:13px;color:#4A4741;line-height:1.55;margin:12px 0 14px}
+.opts{border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-bottom:13px}
+.opts .oh{background:var(--concrete-2);padding:9px 12px;font-size:11px;font-weight:700;
+  display:flex;align-items:center;gap:7px}
+.opts .oh .rq{font-size:8.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+  background:var(--ink);color:#fff;padding:2px 6px;border-radius:3px}
+.opts .oi{display:flex;align-items:center;gap:9px;padding:10px 12px;
+  border-top:1px solid var(--concrete);font-size:13px}
+.opts .oi .rd{width:17px;height:17px;border:1.5px solid var(--line);border-radius:50%;
+  flex-shrink:0}
+.opts .oi .rd.on{border:5px solid var(--ink)}
+.opts .oi .pl{margin-left:auto;font-size:12px;color:var(--muted);font-weight:600}
+.seller{background:var(--concrete-2);border:1px solid var(--line);border-radius:8px;
+  padding:11px;display:flex;gap:10px;align-items:center;margin-bottom:13px}
+.seller .mono{width:38px;height:38px;font-size:13px}
+.seller b{display:block;font-size:13px}
+.seller .m{font-size:11px;color:var(--muted)}
+.seller .go{margin-left:auto;font-size:11.5px;font-weight:700;color:var(--sign-dark)}
+.obsf{border:1px solid var(--line);border-radius:8px;padding:11px;font-size:12.5px;
+  color:var(--muted);margin-bottom:14px}
+.pbar{position:sticky;bottom:0;background:var(--paper);border-top:1px solid var(--line);
+  padding:10px 14px;display:flex;gap:9px;align-items:center;z-index:20}
+.qbox{display:flex;align-items:center;border:1px solid var(--line);border-radius:7px}
+.qbox button{border:0;background:transparent;padding:9px 11px;font-size:15px;font-weight:700}
+.qbox span{padding:0 4px;font-weight:700;font-size:14px}
+.pbar .main{flex:1;background:var(--open);color:#fff;border:0;padding:13px;border-radius:7px;
+  font-size:13.5px;font-weight:700}
+</style>
+</head>
+<body>
+
+<div class="chrome">
+  <b>Portal <em>mobile</em></b>
+  <span>Refeito — agora com todas as telas</span>
+</div>
+
+<div class="stage">
+
+  <div class="note"><b>O que estava faltando na versão anterior:</b> categorias, ofertas, comunidade e a página da empresa inteira. O mobile tinha virado um resumo da home, não uma versão dela. Aqui estão as seis telas completas.</div>
+
+  <div class="rowh">
+    <div class="eb">Descoberta</div>
+    <h2>Home, busca e filtros</h2>
+    <p>A home mobile agora tem todos os blocos do desktop, na ordem certa pra quem rola com o polegar. E a busca ganhou o painel de filtros que só existia no desktop — em forma de gaveta, que é como funciona bem no celular.</p>
+  </div>
+
+  <div class="phones">
+
+    <!-- ============ HOME ============ -->
+    <div class="pw"><div class="phone"><div class="scr">
+      <div class="mh">
+        <div class="t"><div class="logo">Trindade <em>Online</em></div>
+          <span class="bai"><span class="p">◉</span> Trindade ▾</span></div>
+        <div class="sr"><span style="opacity:.4">⌕</span>
+          <input placeholder="Produto, loja ou segmento"><span class="mic">◉</span></div>
+      </div>
+
+      <div class="chips">
+        <span class="ch gr">● Aberto agora</span><span class="ch">Pizza</span>
+        <span class="ch">Farmácia</span><span class="ch">Camisa</span>
+        <span class="ch">Manicure</span><span class="ch">Com cupom</span>
+      </div>
+
+      <div class="sec tight">
+        <div class="sh"><h3>Categorias</h3></div>
+        <div class="cats">
+          <a class="cat"><span class="ic">🏪</span>Comércios<span class="n">64</span></a>
+          <a class="cat"><span class="ic">🍽️</span>Gastro<span class="n">28</span></a>
+          <a class="cat"><span class="ic">🔧</span>Serviços<span class="n">41</span></a>
+          <a class="cat"><span class="ic">⛪</span>Igrejas<span class="n">9</span></a>
+          <a class="cat"><span class="ic">💼</span>Empregos<span class="n">12</span></a>
+          <a class="cat"><span class="ic">🏠</span>Imóveis<span class="n">18</span></a>
+          <a class="cat"><span class="ic">🏷️</span>Desapega<span class="n">34</span></a>
+          <a class="cat"><span class="ic">📍</span>Achados<span class="n">5</span></a>
+        </div>
+      </div>
+
+      <div class="sec tight">
+        <div class="sh"><div><div class="eb">Novidade · com preço</div><h3>Produtos no bairro</h3></div>
+          <a>Ver todos</a></div>
+        <div class="p2">
+          <a class="pc"><div class="im" style="background:#B3452F">PM</div>
+            <div class="b"><div class="nm">2 pães de picanha</div><div class="pr">R$ 59,90</div>
+              <div class="st"><span class="d"></span> Pastelão · 700m</div></div></a>
+          <a class="pc"><div class="im" style="background:#2A4E7A"><span class="fl">-20%</span>SS</div>
+            <div class="b"><div class="nm">Camisa UV 50+ manga longa</div><div class="pr">R$ 89,90</div>
+              <div class="st"><span class="d"></span> Space Sports · 1,2km</div></div></a>
+          <a class="pc"><div class="im" style="background:#6B4A8A">CD</div>
+            <div class="b"><div class="nm">Bolo de pote · caixa 6un</div><div class="pr">R$ 48,00</div>
+              <div class="st"><span class="d"></span> Chocoday · 400m</div></div></a>
+          <a class="pc"><div class="im" style="background:#3E6B2A">AP</div>
+            <div class="b"><div class="nm">Picanha maturada · kg</div><div class="pr">R$ 84,00</div>
+              <div class="st"><span class="d off"></span> Ponte Seca · fechado</div></div></a>
+        </div>
+      </div>
+
+      <div class="nowh"><span class="ld"></span><b>Aberto agora</b><span class="cl">19:42</span></div>
+      <div class="nowr">
+        <a class="nc"><span class="mono" style="width:34px;height:34px;font-size:12px;background:#B3452F">PM</span>
+          <b>Pastelão Mineiro</b><span class="m">Gastronomia · ★ 5,0</span>
+          <span class="u">Fecha às 23h</span></a>
+        <a class="nc"><span class="mono" style="width:34px;height:34px;font-size:12px;background:#1F6E4A">DL</span>
+          <b>Drogaria Lobo</b><span class="m">Comércios · ★ 5,0</span>
+          <span class="u">Fecha às 22h</span></a>
+        <a class="nc"><span class="mono" style="width:34px;height:34px;font-size:12px;background:#2A4E7A">AE</span>
+          <b>Academia Energia+</b><span class="m">Serviços</span>
+          <span class="u">Fecha às 22h</span></a>
+      </div>
+
+      <div class="sec">
+        <div class="sh"><div><div class="eb">Vale até domingo</div><h3>Ofertas</h3></div>
+          <a>Ver as 14</a></div>
+        <div class="of"><div class="tg">⚡ Cupom relâmpago</div>
+          <div class="bd"><div class="who">Pastelão Mineiro</div><h4>Pizza GG por R$ 90</h4>
+            <p>Com refrigerante 2 litros incluso.</p></div>
+          <div class="ft"><span class="l">Termina em 4h</span><span class="g">Pegar cupom</span></div></div>
+        <div class="of"><div class="tg w">Promoção da semana</div>
+          <div class="bd"><div class="who">Barbearia Carlos Diniz</div><h4>Corte + barba 20% off</h4>
+            <p>De segunda a quinta, sem agendar.</p></div>
+          <div class="ft"><span class="l">Até 30/08</span><span class="g">Ver promoção</span></div></div>
+      </div>
+
+      <div class="sec" style="background:var(--concrete-2);border-top:1px solid var(--line)">
+        <div class="sh"><div><div class="eb">Últimos 30 dias</div><h3>Novos na Trindade</h3></div>
+          <a>Ver todos</a></div>
+        <div class="p2">
+          <a class="pc"><div class="im" style="background:#8A2E4A">HJ</div>
+            <div class="b"><div class="nm">Henrique Jordan Contabilidade</div>
+              <div class="st" style="border:0;padding:0;margin-top:5px">Serviços · MEI e IR</div></div></a>
+          <a class="pc"><div class="im" style="background:#2E6E7A">AP</div>
+            <div class="b"><div class="nm">Ana Paula Corretora</div>
+              <div class="st" style="border:0;padding:0;margin-top:5px">Serviços · Seguros</div></div></a>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sh"><div><div class="eb">Anúncios de moradores</div><h3>Comunidade</h3></div></div>
+        <div class="chips" style="padding:0 0 10px;background:transparent;border:0">
+          <span class="ch on">Empregos <i>12</i></span><span class="ch">Imóveis <i>18</i></span>
+          <span class="ch">Desapega <i>34</i></span><span class="ch">Achados <i>5</i></span>
+        </div>
+        <a class="li"><span class="sq">💼</span><span class="in"><b>Caixa</b>
+          <span class="m">Comércio na Av. José Manna Jr. · há 2 dias</span></span>
+          <span class="pr">CLT<small>Presencial</small></span></a>
+        <a class="li"><span class="sq">💼</span><span class="in"><b>Cuidadora de idoso</b>
+          <span class="m">Residência na Trindade · há 4 dias</span></span>
+          <span class="pr">Diária<small>A combinar</small></span></a>
+        <a class="li"><span class="sq">💼</span><span class="in"><b>Manicure</b>
+          <span class="m">Salão na Trindade · há 5 dias</span></span>
+          <span class="pr">50%<small>Comissão</small></span></a>
+      </div>
+
+      <div class="cta">
+        <b>Seu negócio no bolso <em>de quem mora perto</em></b>
+        <p>WhatsApp, fotos, horário e catálogo. Ativação na hora, no Pix.</p>
+        <button>Anunciar meu negócio</button>
+        <div class="stats">
+          <div><b>142</b><span>negócios</span></div>
+          <div><b>3.480</b><span>buscas/mês</span></div>
+          <div><b>1.126</b><span>cliques</span></div>
+        </div>
+      </div>
+
+      <div class="tb">
+        <a class="ti on"><span class="ic">⌕</span>Buscar</a>
+        <a class="ti"><span class="ic">🏪</span>Empresas</a>
+        <a class="ti"><span class="ic">⚡</span>Ofertas</a>
+        <a class="ti"><span class="ic">💬</span>Comunidade</a>
+        <a class="ti"><span class="ic">👤</span>Perfil</a>
+      </div>
+    </div></div><div class="lbl">Home</div></div>
+
+    <!-- ============ BUSCA ============ -->
+    <div class="pw"><div class="phone"><div class="scr">
+      <div class="mh">
+        <div class="t"><span class="back">←</span>
+          <div class="sr" style="flex:1"><span style="opacity:.4">⌕</span>
+            <input value="picanha"><span class="mic">✕</span></div></div>
+      </div>
+
+      <div class="sres">
+        <h2>Picanha na Trindade</h2>
+        <div class="c">6 produtos em 3 negócios · 2 sem catálogo</div>
+        <div class="stabs"><span class="ch on">Tudo</span><span class="ch">Produtos <i>6</i></span>
+          <span class="ch">Negócios <i>5</i></span></div>
+      </div>
+
+      <div class="sortbar">Relevância
+        <span class="b"><button>⇅ Ordenar</button><button style="border-color:var(--ink);font-weight:700">⚙ Filtros · 2</button></span>
+      </div>
+
+      <div class="sec tight">
+        <div class="sh"><h3>Produtos</h3><a>Ver os 6</a></div>
+        <div class="p2">
+          <a class="pc"><div class="im" style="background:#B3452F">PM</div>
+            <div class="b"><div class="nm">2 pães de picanha</div><div class="pr">R$ 59,90</div>
+              <div class="st"><span class="d"></span> Pastelão · aberto</div></div></a>
+          <a class="pc"><div class="im" style="background:#3E6B2A">AP</div>
+            <div class="b"><div class="nm">Picanha maturada · kg</div><div class="pr">R$ 84,00</div>
+              <div class="st"><span class="d"></span> Ponte Seca · até 20h</div></div></a>
+          <a class="pc"><div class="im" style="background:#8A3A28">PM</div>
+            <div class="b"><div class="nm">Pastel de picanha com queijo</div><div class="pr">R$ 18,00</div>
+              <div class="st"><span class="d"></span> Pastelão · aberto</div></div></a>
+          <a class="pc"><div class="im" style="background:#8A5A1E">FV</div>
+            <div class="b"><div class="nm">Espetinho de picanha</div><div class="pr">R$ 12,00</div>
+              <div class="st"><span class="d"></span> Fênix · aberto</div></div></a>
+          <a class="pc"><div class="im" style="background:#3E6B2A">AP</div>
+            <div class="b"><div class="nm">Picanha fatiada · 500g</div><div class="pr">R$ 46,00</div>
+              <div class="st"><span class="d"></span> Ponte Seca · até 20h</div></div></a>
+          <a class="pc"><div class="im" style="background:#8A5A1E">FV</div>
+            <div class="b"><div class="nm">Hambúrguer de picanha</div><div class="pr">R$ 32,00</div>
+              <div class="st"><span class="d"></span> Fênix · aberto</div></div></a>
+        </div>
+      </div>
+
+      <div class="sec" style="background:var(--concrete-2);border-top:1px solid var(--line)">
+        <div class="sh"><h3>Negócios</h3></div>
+        <a class="rb"><span class="mono" style="width:44px;height:44px;font-size:14px;background:#3E6B2A">AP</span>
+          <span class="in"><b>Açougue Ponte Seca</b>
+            <span class="m">Açougue, carnes · 600 m</span>
+            <span class="tags"><span class="tm op">Fecha 20h</span><span class="tm">★ 5,0</span>
+              <span class="tm">34 itens</span></span></span>
+          <button class="wa">WhatsApp</button></a>
+        <a class="rb"><span class="mono" style="width:44px;height:44px;font-size:14px;background:#B3452F">PM</span>
+          <span class="in"><b>Pastelão Mineiro</b>
+            <span class="m">Pizzaria, pastelaria · 700 m</span>
+            <span class="tags"><span class="tm op">Aberto</span><span class="tm cp">Cupom</span>
+              <span class="tm">★ 5,0</span></span></span>
+          <button class="wa">WhatsApp</button></a>
+        <a class="rb"><span class="mono" style="width:44px;height:44px;font-size:14px;background:#6F6C67">CS</span>
+          <span class="in"><b>Casa de Carnes São Jorge</b>
+            <span class="m">Açougue · 1,4 km</span>
+            <span class="tags"><span class="tm op">Aberto</span>
+              <span class="tm">Sem catálogo</span></span></span>
+          <button class="lk">⌗</button></a>
+      </div>
+
+      <div class="tb">
+        <a class="ti on"><span class="ic">⌕</span>Buscar</a>
+        <a class="ti"><span class="ic">🏪</span>Empresas</a>
+        <a class="ti"><span class="ic">⚡</span>Ofertas</a>
+        <a class="ti"><span class="ic">💬</span>Comunidade</a>
+        <a class="ti"><span class="ic">👤</span>Perfil</a>
+      </div>
+    </div></div><div class="lbl">Busca</div></div>
+
+    <!-- ============ FILTROS ============ -->
+    <div class="pw"><div class="phone"><div class="scr">
+      <div class="mh">
+        <div class="t"><span class="back">←</span>
+          <div class="sr" style="flex:1"><span style="opacity:.4">⌕</span><input value="picanha"></div></div>
+      </div>
+      <div class="sres">
+        <h2>Picanha na Trindade</h2>
+        <div class="c">6 produtos em 3 negócios</div>
+      </div>
+      <div class="sec tight">
+        <div class="p2">
+          <a class="pc"><div class="im" style="background:#B3452F">PM</div>
+            <div class="b"><div class="nm">2 pães de picanha</div><div class="pr">R$ 59,90</div></div></a>
+          <a class="pc"><div class="im" style="background:#3E6B2A">AP</div>
+            <div class="b"><div class="nm">Picanha maturada · kg</div><div class="pr">R$ 84,00</div></div></a>
+        </div>
+      </div>
+
+      <div class="veil"></div>
+      <div class="sheet">
+        <div class="grab"></div>
+        <div class="sh2"><b>Filtros</b><span class="cl">Limpar tudo</span></div>
+
+        <div class="fgrp"><h5>Disponibilidade</h5>
+          <div class="fo"><span class="bx on"></span> Aberto agora <span class="n">4</span></div>
+          <div class="fo"><span class="bx"></span> Faz entrega <span class="n">3</span></div>
+          <div class="fo"><span class="bx"></span> Retirada no local <span class="n">5</span></div>
+        </div>
+        <div class="fgrp"><h5>Distância</h5>
+          <div class="fo"><span class="rd on"></span> Até 1 km <span class="n">4</span></div>
+          <div class="fo"><span class="rd"></span> Até 3 km <span class="n">6</span></div>
+          <div class="fo"><span class="rd"></span> Todo o bairro <span class="n">6</span></div>
+        </div>
+        <div class="fgrp"><h5>Categoria</h5>
+          <div class="fo"><span class="bx"></span> Gastronomia <span class="n">3</span></div>
+          <div class="fo"><span class="bx"></span> Comércios <span class="n">3</span></div>
+        </div>
+        <div class="fgrp"><h5>Extras</h5>
+          <div class="fo"><span class="bx"></span> Com cupom <span class="n">2</span></div>
+          <div class="fo"><span class="bx"></span> Aceita Pix <span class="n">5</span></div>
+          <div class="fo"><span class="bx"></span> Bem avaliados <span class="n">4</span></div>
+        </div>
+        <div class="sfoot">
+          <button class="b2">Cancelar</button>
+          <button class="a">Ver 6 resultados</button>
+        </div>
+      </div>
+    </div></div><div class="lbl">Filtros — gaveta</div></div>
+
+  </div>
+
+  <p class="mini"><b>Filtro no celular não é coluna, é gaveta.</b> Ele abre por cima do resultado, mostra a contagem em cada opção e o botão de baixo já diz quantos resultados vão sobrar — assim ninguém aplica um filtro e cai numa tela vazia sem entender por quê. A barra de ordenação fica fixa no topo da lista com o número de filtros ativos visível.</p>
+
+  <div class="rowh">
+    <div class="eb">Conversão</div>
+    <h2>Empresa e produto</h2>
+    <p>As duas telas que faltavam por completo. São elas que recebem o tráfego do Google e onde a venda acontece.</p>
+  </div>
+
+  <div class="phones">
+
+    <!-- ============ EMPRESA ============ -->
+    <div class="pw"><div class="phone"><div class="scr">
+      <div class="mh" style="padding-bottom:12px">
+        <div class="t" style="margin:0"><span class="back">←</span>
+          <div class="sr" style="flex:1"><span style="opacity:.4">⌕</span>
+            <input placeholder="Buscar no cardápio"></div>
+          <span style="font-size:15px;opacity:.8">↗</span></div>
+      </div>
+
+      <div class="ehero" style="background:linear-gradient(135deg,#B3452F,#7A2A1C)">
+        <span class="mono" style="width:60px;height:60px;font-size:21px;background:rgba(0,0,0,.32)">PM</span>
+        <span class="gal">1 / 5</span>
+      </div>
+
+      <div class="ebody">
+        <div class="prow"><span class="opn">● Aberto · fecha 23h</span>
+          <span class="rt">★ 5,0 (1)</span><span class="rt">· 700 m</span></div>
+        <h1>Pastelão Mineiro</h1>
+        <div class="sub">Gastronomia · Pizzaria, pastelaria, petiscos<br>Av. José Manna Jr., 980 · Entrega ~35 min</div>
+        <div class="eact">
+          <button class="w">Chamar no WhatsApp</button>
+          <button class="s">🤍</button><button class="s">📍</button>
+        </div>
+      </div>
+
+      <div class="etabs">
+        <button class="etb on">Cardápio · 34</button><button class="etb">Ofertas · 1</button>
+        <button class="etb">Avaliações · 1</button><button class="etb">Sobre</button>
+      </div>
+
+      <div class="catgrp">
+        <h4>Mais pedidos</h4>
+        <div class="ci"><span class="th" style="background:#B3452F">PM</span>
+          <span class="in"><b>2 pães de picanha</b>
+            <span class="ds">Pão de alho recheado com picanha maturada e queijo coalho.</span>
+            <span class="pr">R$ 59,90</span></span>
+          <button class="add">+</button></div>
+        <div class="ci"><span class="th" style="background:#8A3A28">PM</span>
+          <span class="in"><b>Pastel de picanha com queijo</b>
+            <span class="ds">Massa artesanal, recheio generoso.</span>
+            <span class="pr">R$ 18,00</span></span>
+          <button class="add">+</button></div>
+      </div>
+
+      <div class="catgrp">
+        <h4>Pizzas</h4>
+        <div class="ci"><span class="th" style="background:#B3452F">PM</span>
+          <span class="in"><b>Pizza calabresa G</b>
+            <span class="ds">Molho da casa, mussarela e calabresa fatiada.</span>
+            <span class="pr">R$ 54,00</span></span>
+          <button class="add">+</button></div>
+        <div class="ci"><span class="th" style="background:#8A3A28">PM</span>
+          <span class="in"><b>Pizza portuguesa GG</b>
+            <span class="ds">Presunto, ovo, cebola, azeitona e mussarela.</span>
+            <span class="pr">R$ 72,00</span></span>
+          <button class="add">+</button></div>
+      </div>
+
+      <div class="catgrp" style="padding-bottom:14px">
+        <h4>Petiscos</h4>
+        <div class="ci"><span class="th" style="background:#8A5A1E">PM</span>
+          <span class="in"><b>Aipim com carne seca</b>
+            <span class="ds">Porção serve 2 pessoas.</span>
+            <span class="pr">R$ 38,00</span></span>
+          <button class="add">+</button></div>
+        <div class="ci"><span class="th" style="background:#7A3A2B">PM</span>
+          <span class="in"><b>Torresmo de rolo</b>
+            <span class="ds">Crocante, com limão e vinagrete.</span>
+            <span class="pr">R$ 32,00</span></span>
+          <button class="add">+</button></div>
+      </div>
+
+      <div class="cart">
+        <span class="c">2 itens</span><span class="t">R$ 77,90</span>
+        <button>Enviar no WhatsApp →</button>
+      </div>
+    </div></div><div class="lbl">Empresa · cardápio</div></div>
+
+    <!-- ============ PRODUTO ============ -->
+    <div class="pw"><div class="phone"><div class="scr">
+      <div class="pgal" style="background:linear-gradient(135deg,#B3452F,#7A2A1C)">PM
+        <span class="fav">🤍</span>
+        <span class="dots"><i class="on"></i><i></i><i></i></span>
+      </div>
+
+      <div class="pbody">
+        <div class="prow"><span class="opn">● Aberto · fecha 23h</span>
+          <span class="rt">Entrega ~35 min · 700 m</span></div>
+        <h1>2 pães de picanha</h1>
+        <div class="price">R$ 59,90</div>
+        <div class="parc">ou 2× de R$ 29,95 no cartão</div>
+        <p class="ds">Dois pães de alho recheados com picanha maturada, queijo coalho e vinagrete da casa. Acompanha molho especial. Serve 2 pessoas.</p>
+
+        <div class="opts">
+          <div class="oh">Ponto da carne <span class="rq">Escolha 1</span></div>
+          <div class="oi"><span class="rd on"></span> Ao ponto</div>
+          <div class="oi"><span class="rd"></span> Mal passada</div>
+          <div class="oi"><span class="rd"></span> Bem passada</div>
+        </div>
+
+        <div class="opts">
+          <div class="oh">Quer adicionar algo?</div>
+          <div class="oi"><span class="rd"></span> Molho extra <span class="pl">+ R$ 4,00</span></div>
+          <div class="oi"><span class="rd"></span> Refrigerante 2L <span class="pl">+ R$ 12,00</span></div>
+        </div>
+
+        <div class="seller">
+          <span class="mono" style="width:38px;height:38px;font-size:13px;background:#B3452F">PM</span>
+          <span><b>Pastelão Mineiro</b><span class="m">★ 5,0 · Gastronomia · 700 m</span></span>
+          <span class="go">Cardápio →</span>
+        </div>
+
+        <div class="obsf">Observação para a loja (ex: sem cebola)</div>
+
+        <div class="sh"><div><div class="eb">Do mesmo negócio</div><h3>Também tem</h3></div></div>
+        <div class="p2">
+          <a class="pc"><div class="im" style="background:#8A3A28">PM</div>
+            <div class="b"><div class="nm">Pastel de picanha</div><div class="pr">R$ 18,00</div></div></a>
+          <a class="pc"><div class="im" style="background:#B3452F">PM</div>
+            <div class="b"><div class="nm">Pizza calabresa G</div><div class="pr">R$ 54,00</div></div></a>
+        </div>
+      </div>
+
+      <div class="pbar">
+        <span class="qbox"><button>−</button><span>1</span><button>+</button></span>
+        <button class="main">Enviar no WhatsApp · R$ 59,90</button>
+      </div>
+    </div></div><div class="lbl">Produto</div></div>
+
+    <!-- ============ EMPRESA GRÁTIS ============ -->
+    <div class="pw"><div class="phone"><div class="scr">
+      <div class="mh" style="padding-bottom:12px">
+        <div class="t" style="margin:0"><span class="back">←</span>
+          <div class="sr" style="flex:1"><span style="opacity:.4">⌕</span>
+            <input placeholder="Buscar no bairro"></div>
+          <span style="font-size:15px;opacity:.8">↗</span></div>
+      </div>
+
+      <div class="ehero" style="background:linear-gradient(135deg,#5F5C55,#3A3833)">
+        <span class="mono" style="width:60px;height:60px;font-size:21px;background:rgba(0,0,0,.32)">CS</span>
+      </div>
+
+      <div class="ebody">
+        <div class="prow"><span class="opn">● Aberto · fecha 19h</span><span class="rt">· 1,4 km</span></div>
+        <h1>Casa de Carnes São Jorge</h1>
+        <div class="sub">Comércios · Açougue<br>Rua Aracaju, 88 · Trindade, São Gonçalo</div>
+        <div class="eact">
+          <button class="s" style="flex:1;text-align:center;font-size:13.5px;font-weight:700">Como chegar</button>
+          <button class="s">🤍</button>
+        </div>
+        <div style="background:var(--concrete-2);border:1px dashed var(--line);border-radius:8px;
+          padding:12px;margin-top:12px;font-size:12px;color:var(--muted);line-height:1.45">
+          <b style="display:block;color:var(--ink);font-size:12.5px;margin-bottom:3px">Este negócio ainda não ativou o contato direto</b>
+          Você pode ir até o endereço acima.<br>
+          É o seu negócio? <a style="color:var(--sign-dark);font-weight:700">Ative o WhatsApp aqui →</a>
+        </div>
+      </div>
+
+      <div class="etabs">
+        <button class="etb on">Sobre</button>
+        <button class="etb" style="color:#B4B2A9">Cardápio ⌗</button>
+        <button class="etb">Avaliações · 0</button>
+      </div>
+
+      <div class="sec">
+        <h4 style="font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 8px">Horário</h4>
+        <div style="font-size:13px;line-height:1.9;color:#4A4741">
+          Segunda a sábado · 7h às 19h<br>Domingo · 7h às 13h</div>
+      </div>
+
+      <div class="sec" style="border-top:1px solid var(--concrete)">
+        <h4 style="font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 8px">Categoria</h4>
+        <div style="font-size:13px;color:#4A4741">Comércios · Açougue, carnes, aves</div>
+      </div>
+
+      <div class="sec" style="background:var(--concrete-2);border-top:1px solid var(--line)">
+        <div class="sh"><div><div class="eb">Perto daqui</div><h3>Açougues com catálogo</h3></div></div>
+        <div class="p2">
+          <a class="pc"><div class="im" style="background:#3E6B2A">AP</div>
+            <div class="b"><div class="nm">Picanha maturada · kg</div><div class="pr">R$ 84,00</div>
+              <div class="st"><span class="d"></span> Ponte Seca · 600m</div></div></a>
+          <a class="pc"><div class="im" style="background:#3E6B2A">AP</div>
+            <div class="b"><div class="nm">Alcatra · kg</div><div class="pr">R$ 52,00</div>
+              <div class="st"><span class="d"></span> Ponte Seca · 600m</div></div></a>
+        </div>
+      </div>
+
+      <div class="tb">
+        <a class="ti"><span class="ic">⌕</span>Buscar</a>
+        <a class="ti on"><span class="ic">🏪</span>Empresas</a>
+        <a class="ti"><span class="ic">⚡</span>Ofertas</a>
+        <a class="ti"><span class="ic">💬</span>Comunidade</a>
+        <a class="ti"><span class="ic">👤</span>Perfil</a>
+      </div>
+    </div></div><div class="lbl">Empresa no plano Grátis</div></div>
+
+  </div>
+
+  <p class="mini"><b>Duas decisões nessas telas.</b> No cardápio, os itens viram lista horizontal com foto pequena — cabe descrição, e é assim que se lê cardápio no celular; grade de dois em dois só funciona quando o nome é curto. E a barra do carrinho gruda no rodapé desde o primeiro item, senão a pessoa adiciona e não descobre como enviar.</p>
+
+  <p class="mini"><b>Na página do produto</b> entraram as opções obrigatórias e os adicionais — sem isso o pedido chega incompleto no WhatsApp e o lojista tem que perguntar tudo de novo na conversa, que é exatamente o trabalho que a gente prometeu tirar dele.</p>
+
+</div>
+</body>
+</html>

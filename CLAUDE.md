@@ -1,2 +1,3 @@
 @AGENTS.md
 @docs/KNOWLEDGE_BASE.md
+@docs/ESPECIFICACAO.md

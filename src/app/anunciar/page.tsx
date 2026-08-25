@@ -58,6 +58,11 @@ export default function AnunciarPage() {
   const [selectedSubs, setSelectedSubs] = useState<string[]>([])
   const [cpfCnpj, setCpfCnpj] = useState('')
   const [endereco, setEndereco] = useState('')
+  const [cep, setCep] = useState('')
+  const [cepLoading, setCepLoading] = useState(false)
+  const [cepError, setCepError] = useState(false)
+  const [numero, setNumero] = useState('')
+  const [cepData, setCepData] = useState<{ logradouro: string; bairro: string; localidade: string; uf: string } | null>(null)
 
   const [phone, setPhone] = useState('')
   const [linkLabel, setLinkLabel] = useState('Ver cardápio')
@@ -99,6 +104,32 @@ export default function AnunciarPage() {
 
   const filteredSubs = subcategories.filter(s => s.category_id === categoryId)
   const catSel = categories.find(c => c.id === categoryId)
+
+  function formatCep(v: string) { return v.replace(/\D/g, '').slice(0, 8).replace(/^(\d{5})(\d)/, '$1-$2') }
+  function buildAddress(data: { logradouro: string; bairro: string; localidade: string; uf: string }, num: string) {
+    return [data.logradouro + (num ? ', ' + num : ''), data.bairro, `${data.localidade}-${data.uf}`].filter(Boolean).join(', ')
+  }
+  async function handleCepChange(v: string) {
+    setCep(formatCep(v))
+    setCepError(false)
+    const digits = v.replace(/\D/g, '')
+    if (digits.length !== 8) return
+    setCepLoading(true)
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`)
+      const data = await res.json()
+      if (data.erro) { setCepError(true); setCepData(null) } else {
+        const parsed = { logradouro: data.logradouro || '', bairro: data.bairro || '', localidade: data.localidade || '', uf: data.uf || '' }
+        setCepData(parsed)
+        setEndereco(buildAddress(parsed, numero))
+      }
+    } catch { setCepError(true) }
+    setCepLoading(false)
+  }
+  function handleNumeroChange(v: string) {
+    setNumero(v)
+    if (cepData) setEndereco(buildAddress(cepData, v))
+  }
 
   function toggleSub(id: string) {
     setSelectedSubs(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id])
@@ -535,8 +566,14 @@ export default function AnunciarPage() {
                     )}
                   </div>
                   <div className="field">
-                    <label>Endereço completo *</label>
-                    <input type="text" placeholder="Rua, número, bairro" value={endereco} onChange={e => setEndereco(e.target.value)} />
+                    <label>Endereço *</label>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                      <input style={{ flex: 1 }} type="text" placeholder="CEP" inputMode="numeric" value={cep} onChange={e => handleCepChange(e.target.value)} />
+                      <input style={{ width: 100 }} type="text" placeholder="Número" value={numero} onChange={e => handleNumeroChange(e.target.value)} />
+                    </div>
+                    {cepLoading && <div className="field-hint" style={{ marginTop: 0, marginBottom: 6 }}>Buscando endereço...</div>}
+                    {cepError && <div className="field-hint" style={{ marginTop: 0, marginBottom: 6, color: '#C43D3D' }}>CEP não encontrado — preenche o endereço direto embaixo</div>}
+                    <input type="text" placeholder="Rua, bairro, complemento" value={endereco} onChange={e => setEndereco(e.target.value)} />
                   </div>
                   {erro && <div className="erro-msg">⚠️ {erro}</div>}
                   <button className="btn-primary" onClick={nextBizStep}>Continuar →</button>

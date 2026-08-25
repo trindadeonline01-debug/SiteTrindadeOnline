@@ -304,7 +304,7 @@ export async function POST(req: NextRequest) {
             body: JSON.stringify({
               title: `💬 ${pushName || phone}`, body: notifBody.slice(0, 120),
               target: 'external_user_id', userId: company.owner_id,
-              url: `${SITE_URL}/painel/crm/mensagens`,
+              url: `${SITE_URL}/painel/mensagens`,
             }),
           }).catch(() => {})
         }

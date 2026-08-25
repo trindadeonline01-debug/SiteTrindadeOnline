@@ -29,7 +29,7 @@ function buildStatusMessage(status: Status, deliveryType: string | null): string
 }
 
 // Chamado (fire-and-forget) sempre que o lojista avança o status de um pedido
-// em /painel/crm/pedidos ou /painel/crm/cozinha — manda a atualização como
+// em /painel/pedidos ou /painel/cozinha — manda a atualização como
 // mensagem de WhatsApp de verdade pro cliente, além do push já existente.
 export async function POST(req: NextRequest) {
   try {

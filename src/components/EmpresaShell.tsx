@@ -64,9 +64,9 @@ export default function EmpresaShell({
   const mobileTabs: { key: EmpresaNavKey; href: string; ico: string; lbl: string; badge?: number }[] = crmEnabled
     ? [
         { key: 'dashboard', href: '/painel', ico: '🏠', lbl: 'Início' },
-        { key: 'pedidos', href: '/painel/crm/pedidos', ico: '🧾', lbl: 'Pedidos' },
-        { key: 'mensagens', href: '/painel/crm/mensagens', ico: '💬', lbl: 'Mensagens', badge: mensagensBadge },
-        { key: 'catalogo', href: '/painel/crm/catalogo', ico: '📋', lbl: 'Catálogo' },
+        { key: 'pedidos', href: '/painel/pedidos', ico: '🧾', lbl: 'Pedidos' },
+        { key: 'mensagens', href: '/painel/mensagens', ico: '💬', lbl: 'Mensagens', badge: mensagensBadge },
+        { key: 'catalogo', href: '/painel/catalogo', ico: '📋', lbl: 'Catálogo' },
       ]
     : [
         { key: 'dashboard', href: '/painel', ico: '🏠', lbl: 'Início' },
@@ -151,25 +151,25 @@ export default function EmpresaShell({
           {lojaDigitalEnabled && (
             <>
               <div className="es-group-lbl">Cardápio &amp; vendas</div>
-              <a href="/painel/crm" className={`es-item ${active === 'compartilhar' ? 'on' : ''}`}>🔗 Compartilhar cardápio</a>
-              <a href="/painel/crm/catalogo" className={`es-item ${active === 'catalogo' ? 'on' : ''}`}>📋 Catálogo</a>
-              <a href="/painel/crm/pedidos" className={`es-item ${active === 'pedidos' ? 'on' : ''}`}>🧾 Pedidos</a>
-              <a href="/painel/crm/cozinha" className={`es-item ${active === 'cozinha' ? 'on' : ''}`}>🍳 Cozinha</a>
+              <a href="/painel/compartilhar" className={`es-item ${active === 'compartilhar' ? 'on' : ''}`}>🔗 Compartilhar cardápio</a>
+              <a href="/painel/catalogo" className={`es-item ${active === 'catalogo' ? 'on' : ''}`}>📋 Catálogo</a>
+              <a href="/painel/pedidos" className={`es-item ${active === 'pedidos' ? 'on' : ''}`}>🧾 Pedidos</a>
+              <a href="/painel/cozinha" className={`es-item ${active === 'cozinha' ? 'on' : ''}`}>🍳 Cozinha</a>
             </>
           )}
           {entregaEnabled && (
             <>
               <div className="es-group-lbl">Entrega</div>
-              <a href="/painel/crm/entrega" className={`es-item ${active === 'entrega' ? 'on' : ''}`}>🏍️ Entrega</a>
+              <a href="/painel/entrega" className={`es-item ${active === 'entrega' ? 'on' : ''}`}>🏍️ Entrega</a>
             </>
           )}
           {crmEnabled && (
             <>
               <div className="es-group-lbl">Relacionamento</div>
-              <a href="/painel/crm/mensagens" className={`es-item ${active === 'mensagens' ? 'on' : ''}`}>
+              <a href="/painel/mensagens" className={`es-item ${active === 'mensagens' ? 'on' : ''}`}>
                 💬 Mensagens{!!mensagensBadge && <span className="es-item-badge">{mensagensBadge}</span>}
               </a>
-              <a href="/painel/crm/clientes" className={`es-item ${active === 'clientes' ? 'on' : ''}`}>👥 Clientes</a>
+              <a href="/painel/clientes" className={`es-item ${active === 'clientes' ? 'on' : ''}`}>👥 Clientes</a>
             </>
           )}
 

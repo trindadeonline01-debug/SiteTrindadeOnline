@@ -87,10 +87,10 @@ export default function MaisPage() {
           <>
             <div className="sectlbl">Cardápio &amp; vendas</div>
             <div className="list">
-              <a className="item" href="/painel/crm"><span className="item-ico">🔗</span><span className="item-lbl">Compartilhar cardápio</span><span className="item-chev">›</span></a>
-              <a className="item" href="/painel/crm/catalogo"><span className="item-ico">📋</span><span className="item-lbl">Catálogo</span><span className="item-chev">›</span></a>
-              <a className="item" href="/painel/crm/pedidos"><span className="item-ico">🧾</span><span className="item-lbl">Pedidos</span><span className="item-chev">›</span></a>
-              <a className="item" href="/painel/crm/cozinha"><span className="item-ico">🍳</span><span className="item-lbl">Cozinha</span><span className="item-chev">›</span></a>
+              <a className="item" href="/painel/compartilhar"><span className="item-ico">🔗</span><span className="item-lbl">Compartilhar cardápio</span><span className="item-chev">›</span></a>
+              <a className="item" href="/painel/catalogo"><span className="item-ico">📋</span><span className="item-lbl">Catálogo</span><span className="item-chev">›</span></a>
+              <a className="item" href="/painel/pedidos"><span className="item-ico">🧾</span><span className="item-lbl">Pedidos</span><span className="item-chev">›</span></a>
+              <a className="item" href="/painel/cozinha"><span className="item-ico">🍳</span><span className="item-lbl">Cozinha</span><span className="item-chev">›</span></a>
             </div>
           </>
         )}
@@ -99,7 +99,7 @@ export default function MaisPage() {
           <>
             <div className="sectlbl">Entrega</div>
             <div className="list">
-              <a className="item" href="/painel/crm/entrega"><span className="item-ico">🏍️</span><span className="item-lbl">Entrega</span><span className="item-chev">›</span></a>
+              <a className="item" href="/painel/entrega"><span className="item-ico">🏍️</span><span className="item-lbl">Entrega</span><span className="item-chev">›</span></a>
             </div>
           </>
         )}
@@ -108,7 +108,7 @@ export default function MaisPage() {
           <>
             <div className="sectlbl">Relacionamento</div>
             <div className="list">
-              <a className="item" href="/painel/crm/clientes"><span className="item-ico">👥</span><span className="item-lbl">Clientes</span>{clientesCount > 0 && <span className="item-badge">{clientesCount}</span>}<span className="item-chev">›</span></a>
+              <a className="item" href="/painel/clientes"><span className="item-ico">👥</span><span className="item-lbl">Clientes</span>{clientesCount > 0 && <span className="item-badge">{clientesCount}</span>}<span className="item-chev">›</span></a>
             </div>
           </>
         )}

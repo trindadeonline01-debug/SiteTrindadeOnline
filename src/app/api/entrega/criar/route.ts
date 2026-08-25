@@ -14,7 +14,7 @@ const supabaseAuth = createClient(
 
 function genCode(): string { return String(Math.floor(1000 + Math.random() * 9000)) }
 
-// Chamado pelo botão "🏍️ Chamar motoboy" em /painel/crm/pedidos. Cria a
+// Chamado pelo botão "🏍️ Chamar motoboy" em /painel/pedidos. Cria a
 // entrega, gera o código de confirmação e chama o primeiro motoboy da fila.
 // O código só é avisado pro cliente (e pro motoboy) quando alguém ACEITA a
 // corrida — ver o branch "aceita" em /api/entrega/webhook.

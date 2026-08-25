@@ -256,7 +256,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
             title: `Novo pedido — ${company.name}`,
             body: `${profile?.name || 'Cliente'} pediu ${fmt(total)}`,
             target: 'external_user_id', userId: company.owner_id,
-            url: `${window.location.origin}/painel/crm/pedidos`,
+            url: `${window.location.origin}/painel/pedidos`,
           }),
         }).catch(() => {})
       }

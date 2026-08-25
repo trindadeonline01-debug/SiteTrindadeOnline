@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
           if (company?.owner_id) {
             fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trindadeonline.com.br'}/api/push/send`, {
               method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ title: '🏍️ Entrega concluída', body: 'O motoboy confirmou a entrega.', target: 'external_user_id', userId: company.owner_id, url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trindadeonline.com.br'}/painel/crm/entrega` }),
+              body: JSON.stringify({ title: '🏍️ Entrega concluída', body: 'O motoboy confirmou a entrega.', target: 'external_user_id', userId: company.owner_id, url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trindadeonline.com.br'}/painel/entrega` }),
             }).catch(() => {})
           }
         } else {

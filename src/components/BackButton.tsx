@@ -14,7 +14,10 @@ export default function BackButton() {
     return () => window.removeEventListener('resize', check)
   }, [])
 
-  if (pathname === '/' || pathname.startsWith('/painel/crm')) return null
+  // Essas páginas usam a navegação própria do EmpresaShell (sidebar/topbar/tabbar) —
+  // o botão flutuante de voltar do site principal ficaria duplicado ali.
+  const empresaShellPaths = ['/painel/compartilhar', '/painel/catalogo', '/painel/pedidos', '/painel/cozinha', '/painel/entrega', '/painel/mensagens', '/painel/clientes']
+  if (pathname === '/' || empresaShellPaths.some(p => pathname.startsWith(p))) return null
 
   return (
     <button

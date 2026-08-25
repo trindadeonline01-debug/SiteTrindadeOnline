@@ -41,7 +41,7 @@ export default function MobileMenu() {
 
   useEffect(() => { setOpen(false) }, [pathname])
 
-  const hideOn = ['/login', '/cadastro', '/admin', '/empresa/cadastrar', '/anunciar', '/producao', '/painel/crm']
+  const hideOn = ['/login', '/cadastro', '/admin', '/empresa/cadastrar', '/anunciar', '/producao', '/painel/compartilhar']
   if (hideOn.some(p => pathname.startsWith(p))) return null
 
   async function handleSair() {

@@ -391,6 +391,12 @@ const DIAS_SEMANA = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Dom
 - **Python heredoc:** usar `repr()` para detectar whitespace exato antes de fazer match — diferenças invisíveis causam falhas silenciosas
 - **Evolution API:** nome da instância deve ser exatamente `Trindade Online` (espaço + maiúsculas); IPs de container Docker podem mudar no restart — usar nome do container ou DNS interno
 - **Supabase MCP** desde jul/2026 aponta pro projeto certo (`plfuznchzuzardkfjmqo`) — sempre confirmar via `list_projects` antes de rodar algo, já que trocar de conta/projeto no futuro é possível
+- **Foto em baixa na importação de cardápio via CSV (Anota Aí):** a URL que vem na coluna `foto_url` do CSV (formato `client-assets.anota.ai/produtos/{id}/{numero}blob`) às vezes é uma miniatura pequena, mesmo a foto aparecendo boa no site público do Anotaí (o CSS deles estica/suaviza na tela). Nosso `/api/loja/importar-foto` não comprime nada, só re-hospeda o que a URL devolver — então a qualidade final depende 100% da URL de origem. Ambiente sandbox do Claude Code não tem acesso de rede a `anota.ai` (bloqueado pelo proxy), então não dá pra inspecionar a página por aqui. Prompt/roteiro pra achar a URL da foto grande, quando isso acontecer de novo:
+  1. Abrir a loja em `pedido.anota.ai/loja/{slug-da-loja}` no Chrome.
+  2. DevTools (F12) → aba Network → filtro Img.
+  3. Clicar no produto pra abrir a foto ampliada/detalhe.
+  4. Ver no Network qual URL foi carregada pra essa imagem grande — copiar.
+  5. Comparar com a URL do CSV: se for diferente (outro domínio/caminho, ou tiver `?w=`/`/original/`), usar essa URL maior no CSV antes de importar. Se for a mesma URL, não tem versão maior — a foto pequena é a original enviada pelo lojista no Anotaí, e o fix é subir foto nova direto no nosso painel (`/painel/crm/catalogo`).
 
 ---
 

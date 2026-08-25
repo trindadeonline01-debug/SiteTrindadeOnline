@@ -25,7 +25,7 @@ interface OpenCompany {
 
 interface Listing {
   id: string; title: string; price: number | null
-  type: string; created_at: string
+  type: string; subtype: string | null; created_at: string
   photos?: { url: string; order: number }[]
 }
 
@@ -100,7 +100,7 @@ export default async function HomePage() {
     )),
     Promise.all(types.map(type =>
       supabaseServer.from('listings')
-        .select('id, title, price, type, created_at, photos:listing_photos(url,order)')
+        .select('id, title, price, type, subtype, created_at, photos:listing_photos(url,order)')
         .eq('type', type).eq('status', 'active')
         .order('created_at', { ascending: false }).limit(5)
     )),
@@ -651,7 +651,7 @@ export default async function HomePage() {
                   ) : '🏠'}
                 </div>
                 <div className="recent-card-title">{l.title}</div>
-                {l.price && <div className="recent-card-price">R$ {l.price.toLocaleString('pt-BR')}/mês</div>}
+                {l.price && <div className="recent-card-price">R$ {l.price.toLocaleString('pt-BR')}{l.subtype === 'aluguel' ? '/mês' : ''}</div>}
               </a>
             ))}
           </div>

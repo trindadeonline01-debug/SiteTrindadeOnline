@@ -15,6 +15,20 @@ function diasAtras(iso: string | null) {
   return Math.floor((Date.now() - new Date(iso).getTime()) / 86400000)
 }
 function waLink(phone: string) { return `https://wa.me/${phone.replace(/\D/g, '')}` }
+function fmtPhone(phone: string) {
+  const d = phone.replace(/\D/g, '').replace(/^55/, '')
+  if (d.length !== 10 && d.length !== 11) return phone
+  const ddd = d.slice(0, 2)
+  const rest = d.slice(2)
+  return `(${ddd}) ${rest.length === 9 ? rest.slice(0, 5) + '-' + rest.slice(5) : rest.slice(0, 4) + '-' + rest.slice(4)}`
+}
+// Nome real ou telefone formatado — "Sem nome", ".", "---" e emoji já
+// apareceram cadastrados como nome (o cliente digita isso na conversa do
+// WhatsApp, a gente só espelha). Sem pelo menos 2 letras de verdade, não é nome.
+function displayName(c: { name: string | null; phone: string }) {
+  const name = (c.name || '').trim()
+  return /\p{L}{2,}/u.test(name) ? name : fmtPhone(c.phone)
+}
 
 export default function ClientesPage() {
   const [loading, setLoading] = useState(true)
@@ -103,7 +117,7 @@ export default function ClientesPage() {
               return (
                 <div className="cl-card" key={c.id}>
                   <div className="cl-row1">
-                    <div><div className="cl-name">{c.name || 'Sem nome'}</div><div className="cl-phone">{c.phone}</div></div>
+                    <div><div className="cl-name">{displayName(c)}</div><div className="cl-phone">{fmtPhone(c.phone)}</div></div>
                     <span className={`cl-badge ${ativo ? 'ativo' : 'inativo'}`}>{ativo ? 'Ativo' : dias === Infinity ? 'Sem compra' : `${dias}d sem comprar`}</span>
                   </div>
                   <div className="cl-stats">

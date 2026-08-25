@@ -118,6 +118,7 @@ export default function CatalogoPage() {
   const [newCatName, setNewCatName] = useState('')
   const [showNewCat, setShowNewCat] = useState(false)
   const [toast, setToast] = useState('')
+  const [showImportMenu, setShowImportMenu] = useState(false)
   const [showCatManager, setShowCatManager] = useState(false)
   const [mgrNewCatName, setMgrNewCatName] = useState('')
   const [editingCatId, setEditingCatId] = useState('')
@@ -696,6 +697,10 @@ export default function CatalogoPage() {
         .cg-opt-field input, .cg-opt-field select{ width:100%;padding:7px 9px;border-radius:7px;border:1px solid #E6E0D2;font-size:11.5px;font-family:inherit;box-sizing:border-box; }
         .cg-add-inline{ font-size:11px;font-weight:700;color:#8A6410;background:#FBF1DC;border:1px dashed #E6E0D2;border-radius:8px;padding:7px;width:100%;cursor:pointer;margin-top:4px; }
         .cg-add-group{ width:100%;padding:10px;border-radius:10px;border:1.5px dashed #E6E0D2;background:transparent;color:#A79E8B;font-weight:700;font-size:12px;cursor:pointer; }
+        .cg-import-menu{ position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid #EDE8E0;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.1);z-index:10;overflow:hidden; }
+        .cg-import-menu button{ display:block;width:100%;text-align:left;padding:11px 14px;border:0;border-bottom:1px solid #F0EDE8;background:#fff;color:#1A1610;font-weight:600;font-size:12.5px;cursor:pointer;font-family:inherit; }
+        .cg-import-menu button:last-child{ border-bottom:0; }
+        .cg-import-menu button:hover{ background:#FBF1DC; }
         .cg-savebar{ position:sticky;bottom:0;padding:12px 0 6px;background:#F7F5F0;display:flex;gap:8px; }
         .cg-savebar .cg-btn{ flex:1; }
         .cg-toast{ position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1A1610;color:#C9951A;padding:11px 18px;border-radius:10px;font-size:12.5px;font-weight:700;z-index:99; }
@@ -749,9 +754,19 @@ export default function CatalogoPage() {
                 <button key={c.id} className={`cg-chip ${filterCat === c.id ? 'active' : ''}`} onClick={() => setFilterCat(c.id)}>{c.name}</button>
               ))}
             </div>
-            <button className="cg-add-group cg-bulk-cta" style={{ marginBottom: 8 }} onClick={openBulk}>⚡ Cadastro rápido — vários produtos de uma vez</button>
-            <button className="cg-add-group cg-bulk-cta" style={{ marginBottom: 8 }} onClick={() => { setShowImportCsv(true); setImportResults(null) }}>📥 Importar de um CSV</button>
-            <button className="cg-add-group cg-bulk-cta" style={{ marginBottom: 14 }} onClick={() => { setShowImportPhotos(true); setPhotoImportResults(null) }}>🖼️ Importar fotos pelo nome do produto</button>
+            {/* As 3 faixas de importação viraram um botão só — são ações de
+                setup feitas uma vez, não precisam ocupar meia tela todo dia
+                acima da lista de produtos (ESPECIFICACAO.md §10.8, §12 #12). */}
+            <div className="cg-import-wrap cg-bulk-cta" style={{ position: 'relative', marginBottom: 14 }}>
+              <button className="cg-add-group" onClick={() => setShowImportMenu(v => !v)}>Importar ▾</button>
+              {showImportMenu && (
+                <div className="cg-import-menu">
+                  <button onClick={() => { setShowImportMenu(false); openBulk() }}>⚡ Cadastro rápido — vários produtos de uma vez</button>
+                  <button onClick={() => { setShowImportMenu(false); setShowImportCsv(true); setImportResults(null) }}>📥 Importar de um CSV</button>
+                  <button onClick={() => { setShowImportMenu(false); setShowImportPhotos(true); setPhotoImportResults(null) }}>🖼️ Importar fotos pelo nome do produto</button>
+                </div>
+              )}
+            </div>
             {filtered.length === 0 && <div className="cg-empty-msg" style={{ textAlign: 'center', color: '#A79E8B', padding: '40px 0', fontSize: 12.5 }}>Nenhum produto ainda. Toca no + pra criar o primeiro.</div>}
             {filtered.map(p => (
               <div key={p.id} className="cg-row" onClick={() => openEdit(p.id)}>
@@ -761,7 +776,13 @@ export default function CatalogoPage() {
                   <div className="cg-cat">{p.category?.name || 'Sem categoria'}{p.promo_type ? ' · promoção' : ''}{p.available_days ? ' · dias limitados' : ''}</div>
                   <div className="cg-price">
                     {fmt(Number(p.sale_price))}
-                    <span className={`cg-badge ${p.active ? 'on' : 'off'}`}>{p.active ? `${margin(Number(p.cost_price), Number(p.sale_price))}% margem` : 'pausado'}</span>
+                    {p.active ? (
+                      // Sem custo cadastrado não dá pra saber a margem de verdade — mostrar
+                      // "100% margem" nesse caso seria um dado falso, não um dado ausente.
+                      Number(p.cost_price) > 0 && <span className="cg-badge on">{margin(Number(p.cost_price), Number(p.sale_price))}% margem</span>
+                    ) : (
+                      <span className="cg-badge off">pausado</span>
+                    )}
                     {p.esgotado && <span className="cg-badge off" style={{ background: '#FBEAEA', color: '#C43D3D' }}>esgotado hoje</span>}
                   </div>
                 </div>
@@ -816,7 +837,9 @@ export default function CatalogoPage() {
               <div className="cg-field"><label>Preço de custo</label><input value={form.cost_price} onChange={e => setForm(f => ({ ...f, cost_price: e.target.value }))} /></div>
               <div className="cg-field"><label>Preço de venda</label><input value={form.sale_price} onChange={e => setForm(f => ({ ...f, sale_price: e.target.value }))} /></div>
             </div>
-            <div className="cg-margin">{margin(parsePt(form.cost_price), parsePt(form.sale_price))}% de margem</div>
+            {parsePt(form.cost_price) > 0
+              ? <div className="cg-margin">{margin(parsePt(form.cost_price), parsePt(form.sale_price))}% de margem</div>
+              : <div className="cg-margin" style={{ color: '#AAA' }}>Preencha o custo pra ver a margem</div>}
 
             <div className="cg-swrow"><div className={`cg-switch ${form.restrictDays ? 'on' : ''}`} onClick={() => setForm(f => ({ ...f, restrictDays: !f.restrictDays }))}><div className="k" /></div><span>Disponibilidade limitada por dia</span></div>
             {form.restrictDays && <div style={{ marginBottom: 12 }}>{DAY_LABELS.map((d, i) => <button key={i} type="button" className={`cg-daychip ${form.days.includes(i) ? 'active' : ''}`} onClick={() => toggleDay(i)}>{d}</button>)}</div>}

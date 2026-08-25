@@ -227,6 +227,18 @@ export default function PedidosPage() {
     }
   }
 
+  // payment_status nunca tinha jeito de mudar depois que o pedido era criado —
+  // ficava travado em "pendente" pra sempre, mesmo entregue e pago, porque não
+  // existe gateway de pagamento automático pro pedido da loja (só a intenção
+  // declarada no checkout). O lojista marca manualmente quando recebeu.
+  async function togglePaymentStatus(id: string) {
+    const pedido = pedidos.find(p => p.id === id)
+    if (!pedido) return
+    const next = pedido.payment_status === 'pago' ? 'pendente' : 'pago'
+    setPedidos(prev => prev.map(p => p.id === id ? { ...p, payment_status: next } : p))
+    await supabase.from('loja_pedidos').update({ payment_status: next, updated_at: new Date().toISOString() }).eq('id', id)
+  }
+
   async function acceptPedido(id: string) {
     const now = new Date().toISOString()
     setPedidos(prev => prev.map(p => p.id === id ? { ...p, accepted_at: now, status: 'em_preparo' } : p))
@@ -353,7 +365,17 @@ export default function PedidosPage() {
           <span className="pd-badge" style={{ background: c.bg, color: c.fg }}>{STATUS_LABEL[p.status]}</span>
         </div>
         <div className="pd-origin-badge" style={{ background: o.bg, color: o.fg }}>{o.label}</div>
-        <div className="pd-sum">{p.itens?.length || 0} {p.itens?.length === 1 ? 'item' : 'itens'} · {p.payment_method || '—'} · {p.payment_status === 'pago' ? 'pago' : 'pendente'} · {p.delivery_type === 'retirada' ? '🏪 Retirada' : '🚴 Entrega'}</div>
+        <div className="pd-sum">
+          {p.itens?.length || 0} {p.itens?.length === 1 ? 'item' : 'itens'} · {p.payment_method || '—'} ·{' '}
+          <span
+            onClick={e => { e.stopPropagation(); togglePaymentStatus(p.id) }}
+            style={{ fontWeight: 700, color: p.payment_status === 'pago' ? '#1B7A3E' : '#C9951A', cursor: 'pointer', textDecoration: 'underline dotted' }}
+            title="Toca pra marcar como pago/pendente"
+          >
+            {p.payment_status === 'pago' ? 'pago ✓' : 'pendente'}
+          </span>
+          {' '}· {p.delivery_type === 'retirada' ? '🏪 Retirada' : '🚴 Entrega'}
+        </div>
         {p.scheduled_for && <div className="pd-sum" style={{ color: '#B5690C', fontWeight: 700 }}>📅 Agendado pra {fmtSchedule(p.scheduled_for)}</div>}
         <div className="pd-total">{fmt(p.total)}</div>
         {needsAccept && <button className="pd-accept" onClick={e => { e.stopPropagation(); acceptPedido(p.id) }}>✓ Aceitar pedido</button>}

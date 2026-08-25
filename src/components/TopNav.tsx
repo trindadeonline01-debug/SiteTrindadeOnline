@@ -71,7 +71,7 @@ export default function TopNav() {
         <div className="top-nav-right">
           {user ? (
             <>
-              <a className="top-nav-btn" href="/anunciar">Cadastrar empresa</a>
+              {userType !== 'company' && <a className="top-nav-btn" href="/anunciar">Cadastrar empresa</a>}
               <button className="top-nav-sair" onClick={handleSair}>Sair</button>
             </>
           ) : (

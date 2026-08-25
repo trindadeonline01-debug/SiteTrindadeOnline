@@ -2,7 +2,7 @@
 
 > Tradução da `ESPECIFICACAO.md` pro código real do repositório. Este documento não substitui a especificação — ele mapeia cada fase pra arquivos/rotas/tabelas que já existem hoje, marca o que precisa ser descoberto e lista o que exige confirmação antes de mexer (schema, coisa destrutiva, decisão ambígua), conforme a regra padrão de trabalho.
 >
-> Status: rascunho pra aprovação do Ricardo. Nenhum item aqui foi implementado ainda.
+> Status: **Fase 0 completa** (itens 0.1 a 0.7, publicados no `main`). Fase 1 em diante ainda não começou.
 
 ---
 

@@ -265,6 +265,57 @@ Igrejas:            00000000-0000-0000-0000-000000000008
 - Admin → aba Empresas: botões ON/OFF por módulo + "Liberar teste" (N dias) por empresa
 - **Preços pensados (ainda não cobrados automaticamente, só o painel de liberação manual existe)**: Cardápio R$49,90/mês · +CRM R$89,90/mês · +Entrega R$129,90/mês — a diária/crédito de entrega continuam sendo cobrados à parte, por fora dessas mensalidades, por ser consumo variável. Falta: checkout automático desses pacotes (hoje só o Plano Visibilidade tem Pix automático — ver seção 7)
 
+### Importação de Cardápio via IA — prompt padrão (FINAL, ago/2026)
+Uso constante pra importar catálogo completo de empresas que já têm cardápio publicado em outro app (Anota Aí, iFood, etc.). Colar na extensão **Claude for Chrome**, com a página do cardápio aberta. Gera CSV pronto pro botão "📥 Importar de um CSV" em Painel → CRM → Catálogo (formato consumido por `handleImportCsv`/`parseGroupsField` em `src/app/painel/crm/catalogo/page.tsx`).
+
+Achado com a Queens Burgers: pegar a foto pelo `src` da lista traz thumbnail em baixa resolução — abrir o modal do produto e capturar a URL da imagem ampliada (via Network/DevTools ou inspecionar o elemento) resolve a qualidade direto na origem, sem ajuste manual depois.
+
+```
+Você vai extrair o cardápio completo desta página (Anota Aí, iFood ou similar) e montar um CSV pronto pra eu importar no meu sistema.
+
+PASSO 1 — Navegar e mapear
+Percorra todas as categorias/abas do cardápio e liste todos os produtos ativos (pule os "esgotados"/indisponíveis, a menos que eu peça o contrário).
+
+PASSO 2 — Pra cada produto, capturar:
+- nome
+- categoria (a aba/seção onde ele está)
+- descricao
+- preco (só número, com ponto decimal, sem "R$", ex: 79.90)
+- grupos de opcionais/adicionais (se tiver)
+- foto (em alta resolução — ver PASSO 3, é o mais importante)
+
+PASSO 3 — Foto em alta resolução (CRÍTICO)
+Não pegue direto o "src" pequeno/thumbnail que aparece na lista de produtos. Pra cada produto:
+1. Clique no produto pra abrir o modal/detalhe com a foto ampliada.
+2. Abra o DevTools → aba Network → filtro "Img" (ou inspecione o elemento da foto ampliada) e pegue a URL real que foi carregada pra essa versão grande.
+3. Só use a URL pequena da lista se não existir nenhuma versão maior disponível.
+
+PASSO 4 — Formato dos grupos de opcionais
+Se o produto tiver grupos de adicionais/opcionais, formate assim dentro de UM campo (entre aspas no CSV, porque tem vírgula):
+NomeDoGrupo | obrigatorio ou opcional | mínimo | máximo | soma ou maior_valor | Opção1=preço ; Opção2=preço ; Opção3=preço
+Se tiver mais de um grupo no mesmo produto, separe os grupos com " && ".
+- "obrigatorio"/"opcional": obrigatorio = cliente tem que escolher pelo menos o mínimo
+- mínimo/máximo: quantas opções pode escolher (ex: 0 e 5 = opcional até 5; 1 e 1 = escolhe exatamente 1)
+- "soma": soma o preço de cada opção escolhida ao preço do produto. "maior_valor": só cobra a opção mais cara escolhida.
+- Preço de opção grátis = 0.00
+Exemplo real de um grupo:
+Adicionais | opcional | 0 | 10 | soma | Cebola roxa=1.50 ; Bacon=4.00 ; Queijo coalho=6.00
+
+PASSO 5 — Montar o CSV
+Cabeçalho exato (primeira linha, sem alterar nomes nem ordem):
+nome,categoria,descricao,preco,grupos,foto_url
+
+Regras do CSV:
+- Todo campo que tiver vírgula, aspas ou quebra de linha precisa ficar entre aspas duplas ("...").
+- Se não tiver descrição, categoria, grupos ou foto pra algum produto, deixe o campo vazio (não invente conteúdo).
+- Uma linha por produto.
+
+PASSO 6 — Entregar
+Me devolva o CSV completo, pronto pra eu copiar/colar ou baixar como arquivo .csv — não resuma, não pule produtos, não trunque.
+```
+
+**Variante sem link** (cardápio só em foto/PDF anexado, sem página pra navegar): não existe URL de imagem real pra extrair — deixar `foto_url` vazio em todas as linhas e importar as fotos depois pelo "🖼️ Importar fotos pelo nome do produto" (renomeando os arquivos de foto pra baterem exatamente com o nome do produto).
+
 ### Trindade Entrega (v1 — ago/2026)
 - Motoboy é da plataforma, não da loja. Modelo pré-pago: diária de R$30 pra liberar o dia + créditos de R$5/entrega (pacotes de 10/20/50), tudo via Pix real (Mercado Pago) em `/painel/crm/entrega`
 - Tabelas: `motoboys`, `company_delivery_wallet`, `delivery_credit_ledger`, `delivery_payments`, `delivery_orders`, `delivery_offers`

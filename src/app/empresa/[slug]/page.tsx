@@ -1,3 +1,5 @@
+import { cache } from 'react'
+import type { Metadata } from 'next'
 import { createServerSupabase } from '@/lib/supabase-server'
 import EmpresaPerfilClient from '@/components/empresa/EmpresaPerfilClient'
 
@@ -27,6 +29,34 @@ type Review = {
 
 const COMPANY_SELECT = '*, owner_id, trial_ends_at, loja_digital_enabled, category:categories(name,emoji,slug), subcategories:company_subcategories(subcategory_id, subcategory:subcategories(name,emoji)), photos:company_photos(id,url,order), hours:company_hours(label,hours,order,day_of_week,open_time,close_time,closed)'
 
+// cache() dedupe: generateMetadata e a página em si pedem a mesma empresa
+// na mesma requisição — sem isso seria uma consulta a mais no Supabase por visita.
+const getCompany = cache(async (slug: string) => {
+  const supabaseServer = await createServerSupabase()
+  const { data } = await supabaseServer.from('companies').select(COMPANY_SELECT).eq('slug', slug).maybeSingle()
+  return data as Company | null
+})
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params
+  const company = await getCompany(slug)
+  if (!company || company.status !== 'active') {
+    return { title: 'Empresa não encontrada — Trindade Online' }
+  }
+  const title = `${company.name} — Trindade Online`
+  const description = (company.description || '').trim()
+    || `${company.name} no bairro Trindade, São Gonçalo/RJ — horário, avaliações e contato pelo Trindade Online.`
+  const image = [...(company.photos || [])].sort((a, b) => a.order - b.order)[0]?.url || 'https://trindadeonline.com.br/og-image.png'
+  const url = `https://trindadeonline.com.br/empresa/${slug}`
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: { title, description, url, siteName: 'Trindade Online', images: [{ url: image, width: 1200, height: 630, alt: company.name }], locale: 'pt_BR', type: 'website' },
+    twitter: { card: 'summary_large_image', title, description, images: [image] },
+  }
+}
+
 export default async function EmpresaPerfilPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   // O login guarda a sessão no localStorage do navegador (não em cookie),
@@ -36,7 +66,7 @@ export default async function EmpresaPerfilPage({ params }: { params: Promise<{ 
   // navegador pelo EmpresaPerfilClient, igual sempre foi.
   const supabaseServer = await createServerSupabase()
 
-  const { data: company } = await supabaseServer.from('companies').select(COMPANY_SELECT).eq('slug', slug).maybeSingle()
+  const company = await getCompany(slug)
 
   if (!company || company.status !== 'active') {
     return (

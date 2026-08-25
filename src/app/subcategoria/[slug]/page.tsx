@@ -1,15 +1,39 @@
+import { cache } from 'react'
+import type { Metadata } from 'next'
 import { createServerSupabase } from '@/lib/supabase-server'
 import SubcategoriaPageClient from '@/components/categoria/SubcategoriaPageClient'
+
+const getSubcat = cache(async (slug: string) => {
+  const supabaseServer = await createServerSupabase()
+  const { data } = await supabaseServer
+    .from('subcategories')
+    .select('*, category:categories(id,name,emoji,slug)')
+    .eq('slug', slug)
+    .maybeSingle()
+  return data
+})
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params
+  const subcat = await getSubcat(slug)
+  if (!subcat) return { title: 'Subcategoria não encontrada — Trindade Online' }
+  const title = `${subcat.name} na Trindade — Trindade Online`
+  const description = `Negócios de ${subcat.name} no bairro Trindade, São Gonçalo/RJ.`
+  const url = `https://trindadeonline.com.br/subcategoria/${slug}`
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: { title, description, url, siteName: 'Trindade Online', locale: 'pt_BR', type: 'website' },
+    twitter: { card: 'summary', title, description },
+  }
+}
 
 export default async function SubcategoriaPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const supabaseServer = await createServerSupabase()
 
-  const { data: subcat } = await supabaseServer
-    .from('subcategories')
-    .select('*, category:categories(id,name,emoji,slug)')
-    .eq('slug', slug)
-    .maybeSingle()
+  const subcat = await getSubcat(slug)
 
   if (!subcat) {
     return (

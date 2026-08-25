@@ -1,5 +1,20 @@
+import type { Metadata } from 'next'
 import { createServerSupabase } from '@/lib/supabase-server'
 import PromocoesPageClient from '@/components/promocoes/PromocoesPageClient'
+
+export const metadata: Metadata = {
+  title: 'Promoções da Semana — Trindade Online',
+  description: 'Promoções ativas dos comércios e serviços do bairro Trindade, São Gonçalo/RJ.',
+  alternates: { canonical: 'https://trindadeonline.com.br/promocoes' },
+  openGraph: {
+    title: 'Promoções da Semana — Trindade Online',
+    description: 'Promoções ativas dos comércios e serviços do bairro Trindade, São Gonçalo/RJ.',
+    url: 'https://trindadeonline.com.br/promocoes',
+    siteName: 'Trindade Online',
+    locale: 'pt_BR',
+    type: 'website',
+  },
+}
 
 export default async function PromocoesPage() {
   const supabaseServer = await createServerSupabase()

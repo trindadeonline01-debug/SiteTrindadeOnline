@@ -15,9 +15,19 @@
 
 ---
 
-## 1. Decisão bloqueante antes da Fase 0
+## 1. Decisão da expansão de bairro — resolvida
 
-A pendência nº 4 da especificação (expansão pra São Gonçalo) muda a rota (`/[bairro]` vs `/` fixo), a busca, o SEO e potencialmente a marca. Fazer isso depois do redesenho é redesenhar de novo. Preciso da sua decisão **antes** de tocar em rotas — pergunta separada logo abaixo desta mensagem.
+Ricardo decidiu: **construir a estrutura multi-bairro já na Fase 0, mas só a Trindade fica visível/ativa** até ele cadastrar outro bairro no admin.
+
+Implicação prática pro schema e pras rotas:
+- Tabela `neighborhoods` (ou `bairros`) nova: `id`, `name`, `slug`, `active`. Seed com uma linha só — Trindade, `active = true`.
+- `companies` (e depois `businesses`, se a seção 3 for adiante) ganha `neighborhood_id`, apontando todo mundo pra Trindade no backfill.
+- Rotas já nascem no formato `/[bairro]/...` (ex: `/trindade`, `/trindade/categoria/comercios`), mas:
+  - `/` continua funcionando — redireciona (ou renderiza direto, a decidir na hora) pro bairro ativo único quando só existe um.
+  - O seletor de bairro no header só lista bairros com `active = true`. Com um só cadastrado, ele nem precisa aparecer como dropdown de verdade — pode ser um rótulo fixo até o segundo bairro existir.
+  - Busca, SEO e categorias já filtram por `neighborhood_id` desde o início, então quando o segundo bairro for ativado não tem nada pra retrabalhar — só cadastrar e marcar `active`.
+
+Essa tabela é schema novo → confirmo com você antes de aplicar a migração, junto com a de `membership` (item 2 abaixo).
 
 ---
 
@@ -26,11 +36,12 @@ A pendência nº 4 da especificação (expansão pra São Gonçalo) muda a rota 
 Ordem sugerida dentro da própria fase (item 1 primeiro, é o de maior retorno e não depende de nada):
 
 1. **SEO por página** — `generateMetadata` dinâmico em: `/empresa/[slug]`, `/categoria/[slug]`, `/subcategoria/[slug]`, `/anuncio/[id]`, `/cupons`, `/promocoes`. Cada um puxando nome/foto/descrição reais do banco pro `og:title`, `og:description`, `og:image` e `canonical` daquela URL específica.
-2. **Tabela `membership`** — migração (peço confirmação explícita antes de aplicar, é mudança de schema). Sem quebrar nada que já lê `companies.owner_id` — os dois convivem até todo ponto de checagem ser migrado.
-3. **Cadastro unificado em `/anunciar`** — reaproveita as 3 etapas que já existem em `/empresa/cadastrar`, só muda o passo 1 pra criar a pessoa implicitamente (hoje precisa investigar exatamente onde a conta de usuário nasce no fluxo atual antes de alterar).
-4. **Reorganizar rotas do painel** — mover as 6 pastas de `/painel/crm/*` pra `/painel/*`, atualizar links internos, e adicionar redirects das URLs antigas (pra não quebrar favoritos/links salvos do Ricardo e da equipe).
-5. **Rota `/empresa/[slug]/item/[id]`** — página de produto individual + `og:image` próprio. Hoje o catálogo inteiro vive em uma view só dentro de `/painel/crm/catalogo` pro lado do lojista e em alguma página pública de cardápio pro lado do cliente (preciso confirmar o nome exato da rota pública atual antes de mexer).
-6. **Dívidas #3 a #12** da seção 12 — a maioria são bugs pontuais e independentes entre si (preço de imóvel exibido como aluguel, "100% margem" falso, filtro "sumidos" quebrado, etc.) — dá pra corrigir em paralelo, cada um é um commit pequeno.
+2. **Tabela `neighborhoods` + `neighborhood_id` em `companies`** — migração (confirmar antes de aplicar). Ver decisão da seção 1.
+3. **Tabela `membership`** — migração (peço confirmação explícita antes de aplicar, é mudança de schema). Sem quebrar nada que já lê `companies.owner_id` — os dois convivem até todo ponto de checagem ser migrado.
+4. **Cadastro unificado em `/anunciar`** — reaproveita as 3 etapas que já existem em `/empresa/cadastrar`, só muda o passo 1 pra criar a pessoa implicitamente (hoje precisa investigar exatamente onde a conta de usuário nasce no fluxo atual antes de alterar).
+5. **Reorganizar rotas do painel** — mover as 6 pastas de `/painel/crm/*` pra `/painel/*`, atualizar links internos, e adicionar redirects das URLs antigas (pra não quebrar favoritos/links salvos do Ricardo e da equipe).
+6. **Rota `/empresa/[slug]/item/[id]`** — página de produto individual + `og:image` próprio. Hoje o catálogo inteiro vive em uma view só dentro de `/painel/crm/catalogo` pro lado do lojista e em alguma página pública de cardápio pro lado do cliente (preciso confirmar o nome exato da rota pública atual antes de mexer).
+7. **Dívidas #3 a #12** da seção 12 — a maioria são bugs pontuais e independentes entre si (preço de imóvel exibido como aluguel, "100% margem" falso, filtro "sumidos" quebrado, etc.) — dá pra corrigir em paralelo, cada um é um commit pequeno.
 
 ## 3. Fase 1 — Portal
 

@@ -201,7 +201,7 @@ export default function CatalogoPage() {
         try {
           const ext = file.name.split('.').pop() || 'jpg'
           const path = `${companyId}/${Date.now()}_${i}.${ext}`
-          const compressed = await compressImage(file)
+          const compressed = await compressImage(file, 0.6)
           const { data: up, error: upErr } = await supabase.storage.from('loja-produtos').upload(path, compressed, { upsert: true })
           if (upErr || !up) throw new Error(upErr?.message || 'falha no upload')
           const photoUrl = supabase.storage.from('loja-produtos').getPublicUrl(path).data.publicUrl
@@ -511,7 +511,7 @@ export default function CatalogoPage() {
     if (photoFile) {
       const ext = photoFile.name.split('.').pop()
       const path = `${companyId}/${Date.now()}.${ext}`
-      const compressed = await compressImage(photoFile)
+      const compressed = await compressImage(photoFile, 0.6)
       const { data: up, error: upErr } = await supabase.storage.from('loja-produtos').upload(path, compressed, { upsert: true })
       if (upErr) throw new Error('foto do produto: ' + upErr.message)
       if (up) photoUrl = supabase.storage.from('loja-produtos').getPublicUrl(path).data.publicUrl
@@ -559,7 +559,7 @@ export default function CatalogoPage() {
           try {
             const ext = o._photoFile.name.split('.').pop()
             const path = `${companyId}/opcoes/${Date.now()}_${gi}_${oi}.${ext}`
-            const compressed = await compressImage(o._photoFile)
+            const compressed = await compressImage(o._photoFile, 0.6)
             const { data: up, error: upErr } = await supabase.storage.from('loja-produtos').upload(path, compressed, { upsert: true })
             if (upErr) throw upErr
             if (up) optPhotoUrl = supabase.storage.from('loja-produtos').getPublicUrl(path).data.publicUrl

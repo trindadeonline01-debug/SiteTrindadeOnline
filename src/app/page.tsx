@@ -667,7 +667,7 @@ export default async function HomePage() {
             <div className="cta-sub">Alcance milhares de moradores do bairro todos os dias</div>
             <div className="cta-note">Ativação imediata · Pagamento via Pix</div>
           </div>
-          <a className="cta-btn" href="/empresa/cadastrar">+ Cadastrar minha empresa</a>
+          <a className="cta-btn" href="/anunciar">+ Cadastrar minha empresa</a>
         </div>
 
       </div>
@@ -696,7 +696,7 @@ export default async function HomePage() {
             </div>
             <div>
               <div className="f-col-title">SUA EMPRESA</div>
-              <a className="f-link" href="/empresa/cadastrar">+ Cadastrar empresa</a>
+              <a className="f-link" href="/anunciar">+ Cadastrar empresa</a>
               <a className="f-link" href="/login">Entrar na plataforma</a>
               <a className="f-link" href="/cadastro">Criar conta grátis</a>
               <a className="f-link" href="/termos">Termos de Uso</a>

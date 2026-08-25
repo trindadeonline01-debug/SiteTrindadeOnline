@@ -80,7 +80,7 @@ export default function CrmPage() {
       <div style={wrap}>
         <div style={{ fontSize: 44, marginBottom: 12 }}>🏪</div>
         <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>Nenhuma empresa encontrada</div>
-        <a href="/empresa/cadastrar" style={btn}>Cadastrar minha empresa</a>
+        <a href="/anunciar" style={btn}>Cadastrar minha empresa</a>
       </div>
     )
   }

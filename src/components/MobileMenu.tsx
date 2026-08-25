@@ -41,7 +41,7 @@ export default function MobileMenu() {
 
   useEffect(() => { setOpen(false) }, [pathname])
 
-  const hideOn = ['/login', '/cadastro', '/admin', '/empresa/cadastrar', '/producao', '/painel/crm']
+  const hideOn = ['/login', '/cadastro', '/admin', '/empresa/cadastrar', '/anunciar', '/producao', '/painel/crm']
   if (hideOn.some(p => pathname.startsWith(p))) return null
 
   async function handleSair() {
@@ -150,7 +150,7 @@ export default function MobileMenu() {
               <>
                 <div className="mm-divider" />
                 <div className="mm-section-label">Cadastre-se</div>
-                <a className="mm-link" href="/empresa/cadastrar">
+                <a className="mm-link" href="/anunciar">
                   <span className="mm-link-icon">➕</span> Cadastrar empresa
                 </a>
                 <a className="mm-link" href="/cadastro">

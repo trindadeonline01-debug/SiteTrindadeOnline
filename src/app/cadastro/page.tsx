@@ -1,14 +1,20 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
 function CadastroForm() {
   const searchParams = useSearchParams()
-  const tipoInicial  = searchParams.get('tipo') === 'empresa' ? 'empresa' : 'usuario'
 
-  const [tipo, setTipo]           = useState(tipoInicial)
+  // Cadastro de empresa virou um fluxo só, em /anunciar (conta + negócio numa
+  // página só, sem o redirect no meio que existia aqui antes). /cadastro fica
+  // exclusivo pra morador — quem chega com ?tipo=empresa ou clica "Tenho
+  // empresa" é mandado pra lá, sem duplicar a lógica de criar conta.
+  useEffect(() => {
+    if (searchParams.get('tipo') === 'empresa') window.location.href = '/anunciar'
+  }, [searchParams])
+
   const [nome, setNome]           = useState('')
   const [email, setEmail]         = useState('')
   const [senha, setSenha]         = useState('')
@@ -49,7 +55,7 @@ function CadastroForm() {
     const data = await res.json()
     setLoading(false)
     if (data.error) { setErro(data.error); return }
-    const pd = { nome, email, senha, tipo, bairro, whatsapp }
+    const pd = { nome, email, senha, bairro, whatsapp }
     setPendingData(pd)
     sessionStorage.setItem('cadastro_pending', JSON.stringify(pd))
     setStep('verify')
@@ -69,18 +75,14 @@ function CadastroForm() {
     const { error } = await supabase.auth.signUp({
       email: pendingData.email,
       password: pendingData.senha,
-      options: { data: { name: pendingData.nome, user_type: pendingData.tipo === 'empresa' ? 'company' : 'user', neighborhood: pendingData.bairro, phone: pendingData.whatsapp } }
+      options: { data: { name: pendingData.nome, user_type: 'user', neighborhood: pendingData.bairro, phone: pendingData.whatsapp } }
     })
     if (error) {
       setErro(error.message.includes('already registered') ? 'Este e-mail já está cadastrado.' : 'Erro ao criar conta.')
       setLoading(false); return
     }
     sessionStorage.removeItem('cadastro_pending')
-    if (pendingData.tipo === 'empresa') {
-      window.location.href = '/empresa/cadastrar'
-    } else {
-      setOk(true)
-    }
+    setOk(true)
     setLoading(false)
   }
 
@@ -135,17 +137,17 @@ function CadastroForm() {
 
       {/* TIPO */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-        <button type="button" onClick={() => setTipo('usuario')} style={{ flex:1, padding:'10px', borderRadius:10, border:'1.5px solid', borderColor:tipo==='usuario'?'#C9951A':'#E0DDD8', background:tipo==='usuario'?'#FEF3E2':'#FAFAF8', color:tipo==='usuario'?'#854F0B':'#888', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'Inter, sans-serif' }}>
+        <button type="button" style={{ flex:1, padding:'10px', borderRadius:10, border:'1.5px solid', borderColor:'#C9951A', background:'#FEF3E2', color:'#854F0B', fontSize:13, fontWeight:600, cursor:'default', fontFamily:'Inter, sans-serif' }}>
           👤 Sou morador
         </button>
-        <button type="button" onClick={() => setTipo('empresa')} style={{ flex:1, padding:'10px', borderRadius:10, border:'1.5px solid', borderColor:tipo==='empresa'?'#C9951A':'#E0DDD8', background:tipo==='empresa'?'#FEF3E2':'#FAFAF8', color:tipo==='empresa'?'#854F0B':'#888', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'Inter, sans-serif' }}>
+        <button type="button" onClick={() => window.location.href = '/anunciar'} style={{ flex:1, padding:'10px', borderRadius:10, border:'1.5px solid #E0DDD8', background:'#FAFAF8', color:'#888', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'Inter, sans-serif' }}>
           🏪 Tenho empresa
         </button>
       </div>
 
       {/* NOME */}
       <div className="field">
-        <label>{tipo === 'empresa' ? 'Nome do responsável' : 'Nome ou apelido'}</label>
+        <label>Nome ou apelido</label>
         <input type="text" placeholder="Como quer ser chamado" value={nome} onChange={e => setNome(e.target.value)} required />
       </div>
 
@@ -230,16 +232,10 @@ function CadastroForm() {
         />
       </div>
 
-      {tipo === 'empresa' && (
-        <div style={{ background:'#FEF3E2', border:'0.5px solid #F5C77A', borderRadius:10, padding:'10px 14px', marginBottom:14, fontSize:12, color:'#854F0B', lineHeight:1.6 }}>
-          ✅ Após criar sua conta, você será direcionado para cadastrar sua empresa e escolher um plano.
-        </div>
-      )}
-
       {erro && <div className="erro-msg">⚠️ {erro}</div>}
 
       <button className="btn-primary" type="submit" disabled={loading}>
-        {loading ? 'Criando conta...' : tipo === 'empresa' ? 'Criar conta e cadastrar empresa →' : 'Criar conta'}
+        {loading ? 'Criando conta...' : 'Criar conta'}
       </button>
 
       <div className="auth-footer">

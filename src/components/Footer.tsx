@@ -40,7 +40,7 @@ export default function Footer() {
           </div>
           <div>
             <div className="sfg-col-title">SUA EMPRESA</div>
-            <a className="sfg-link" href="/empresa/cadastrar">+ Cadastrar empresa</a>
+            <a className="sfg-link" href="/anunciar">+ Cadastrar empresa</a>
             <a className="sfg-link" href="/login">Entrar na plataforma</a>
             <a className="sfg-link" href="/cadastro">Criar conta grátis</a>
             <a className="sfg-link" href="/termos">Termos de Uso</a>

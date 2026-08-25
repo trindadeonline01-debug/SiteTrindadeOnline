@@ -513,7 +513,7 @@ export default function PainelPage() {
         <a href="https://wa.me/55219XXXXXXXX" target="_blank" style={{display:'inline-block',padding:'14px 28px',background:'#25D366',color:'#fff',borderRadius:12,textDecoration:'none',fontSize:15,fontWeight:700,marginBottom:12}}>
           💬 Falar com o suporte
         </a>
-        <a href="/empresa/cadastrar" style={{display:'inline-block',padding:'12px 24px',background:'#C9951A',color:'#fff',borderRadius:12,textDecoration:'none',fontSize:14,fontWeight:700,marginBottom:12}}>
+        <a href="/anunciar" style={{display:'inline-block',padding:'12px 24px',background:'#C9951A',color:'#fff',borderRadius:12,textDecoration:'none',fontSize:14,fontWeight:700,marginBottom:12}}>
           + Cadastrar nova empresa
         </a>
         <a href="/" style={{fontSize:13,color:'#555',textDecoration:'none'}}>← Voltar ao site</a>
@@ -533,7 +533,7 @@ export default function PainelPage() {
         <div style={{fontSize:14,color:'#666',maxWidth:380,lineHeight:1.7,marginBottom:28}}>
           Sua conta está pronta. Agora cadastre sua empresa para aparecer no Trindade Online e ser encontrado pelos moradores do bairro.
         </div>
-        <a href="/empresa/cadastrar" style={{display:'inline-block',padding:'14px 28px',background:'#C9951A',color:'#fff',borderRadius:12,textDecoration:'none',fontSize:15,fontWeight:700,marginBottom:12}}>
+        <a href="/anunciar" style={{display:'inline-block',padding:'14px 28px',background:'#C9951A',color:'#fff',borderRadius:12,textDecoration:'none',fontSize:15,fontWeight:700,marginBottom:12}}>
           + Cadastrar minha empresa
         </a>
         <a href="/" style={{fontSize:13,color:'#555',textDecoration:'none'}}>← Voltar ao site</a>

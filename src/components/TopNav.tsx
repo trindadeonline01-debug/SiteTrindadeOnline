@@ -20,7 +20,7 @@ export default function TopNav() {
     })
   }, [])
 
-  const hideOn = ['/login', '/cadastro', '/admin', '/empresa/cadastrar', '/producao', '/painel']
+  const hideOn = ['/login', '/cadastro', '/admin', '/empresa/cadastrar', '/anunciar', '/producao', '/painel']
   if (hideOn.some(p => pathname.startsWith(p))) return null
 
 
@@ -71,14 +71,14 @@ export default function TopNav() {
         <div className="top-nav-right">
           {user ? (
             <>
-              <a className="top-nav-btn" href="/empresa/cadastrar">Cadastrar empresa</a>
+              <a className="top-nav-btn" href="/anunciar">Cadastrar empresa</a>
               <button className="top-nav-sair" onClick={handleSair}>Sair</button>
             </>
           ) : (
             <>
               <a className="top-nav-sair" href="/login" style={{textDecoration:'none',display:'inline-block'}}>Entrar</a>
               <a className="top-nav-sair" href="/cadastro" style={{textDecoration:'none',display:'inline-block'}}>Cadastrar morador</a>
-              <a className="top-nav-btn" href="/empresa/cadastrar">Cadastrar empresa</a>
+              <a className="top-nav-btn" href="/anunciar">Cadastrar empresa</a>
             </>
           )}
         </div>

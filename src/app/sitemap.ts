@@ -14,7 +14,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/empregos`, changeFrequency: 'daily', priority: 0.8 },
     { url: `${base}/imoveis`, changeFrequency: 'daily', priority: 0.8 },
     { url: `${base}/achados-perdidos`, changeFrequency: 'daily', priority: 0.7 },
-    { url: `${base}/empresa/cadastrar`, changeFrequency: 'monthly', priority: 0.6 },
+    { url: `${base}/anunciar`, changeFrequency: 'monthly', priority: 0.6 },
   ]
 
   const { data: companies } = await supabase

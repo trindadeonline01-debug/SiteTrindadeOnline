@@ -233,7 +233,7 @@ export default function CategoriaPageClient({ slug, category, subcats, companies
           </div>
           <div className="t-actions">
             <a className="t-btn-entrar" href="/login">Entrar</a>
-            <a className="t-btn-cad" href="/empresa/cadastrar">+ Cadastrar empresa</a>
+            <a className="t-btn-cad" href="/anunciar">+ Cadastrar empresa</a>
           </div>
         </div>
       </div>

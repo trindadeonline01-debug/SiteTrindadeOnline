@@ -122,7 +122,7 @@ export default function MaisPage() {
 
         <div className="sectlbl">Conta</div>
         <div className="list">
-          <a className="item" href="/empresa/cadastrar"><span className="item-ico">🔁</span><span className="item-lbl">Cadastrar outra empresa</span><span className="item-chev">›</span></a>
+          <a className="item" href="/anunciar"><span className="item-ico">🔁</span><span className="item-lbl">Cadastrar outra empresa</span><span className="item-chev">›</span></a>
           <a className="item" href="/"><span className="item-ico">🧭</span><span className="item-lbl">Modo Explorar (bairro)</span><span className="item-chev">›</span></a>
           <a className="item" href="/perfil"><span className="item-ico">👤</span><span className="item-lbl">Meu perfil pessoal</span><span className="item-chev">›</span></a>
           <button className="item danger" onClick={signOut}><span className="item-ico">🚪</span><span className="item-lbl">Sair</span></button>

@@ -57,7 +57,7 @@ export default function BottomNav() {
     })
   }, [])
 
-  const hideOn = ['/login', '/cadastro', '/empresa/cadastrar', '/admin', '/producao', '/painel']
+  const hideOn = ['/login', '/cadastro', '/empresa/cadastrar', '/anunciar', '/admin', '/producao', '/painel']
   if (!show || !loaded || !userType || hideOn.some(p => pathname.startsWith(p))) return null
 
   async function signOut() {

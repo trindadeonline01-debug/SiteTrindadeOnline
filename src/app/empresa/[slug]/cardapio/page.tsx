@@ -2,21 +2,8 @@
 import { useEffect, useRef, useState, use } from 'react'
 import { supabase } from '@/lib/supabase'
 import { isOpenNow } from '@/lib/businessHours'
+import { type Produto, fmt, promoPrice, availableToday, isSoldOut, groupContribution, cartStorageKey } from '@/lib/lojaPricing'
 
-type Opcao = { id: string; name: string; price: number; max_qty: number | null; photo_url?: string | null }
-type Grupo = { id: string; name: string; required: boolean; min_select: number; max_select: number; pricing_rule: 'soma' | 'maior_valor'; options: Opcao[] }
-type Produto = {
-  id: string; name: string; description: string | null; photo_url: string | null
-  category_id: string | null; sale_price: number
-  promo_type: 'percent' | 'fixed' | null; promo_value: number | null
-  promo_starts_at: string | null; promo_ends_at: string | null
-  available_days: number[] | null
-  total_pedidos: number
-  esgotado: boolean; track_stock: boolean; stock_qty: number | null
-  groups: Grupo[]
-}
-function isSoldOut(p: Produto) { return p.esgotado || (p.track_stock && (p.stock_qty ?? 0) <= 0) }
-function cartStorageKey(slug: string) { return `cardapio_cart_${slug}` }
 type Categoria = { id: string; name: string; display_order: number }
 type Company = {
   id: string; name: string; slug: string; phone: string | null; address: string | null
@@ -26,24 +13,6 @@ type Company = {
   hours?: any[]
 }
 type CartLine = { key: string; produtoId: string; name: string; modifiers: { name: string; price: number }[]; unitPrice: number; qty: number }
-
-function fmt(n: number) { return 'R$ ' + n.toFixed(2).replace('.', ',') }
-function promoPrice(p: Produto): number | null {
-  if (!p.promo_type || !p.promo_value) return null
-  const now = Date.now()
-  if (p.promo_starts_at && now < new Date(p.promo_starts_at).getTime()) return null
-  if (p.promo_ends_at && now > new Date(p.promo_ends_at).getTime()) return null
-  return p.promo_type === 'percent' ? p.sale_price * (1 - p.promo_value / 100) : Math.max(0, p.sale_price - p.promo_value)
-}
-function availableToday(p: Produto) {
-  if (!p.available_days || p.available_days.length === 0) return true
-  return p.available_days.includes(new Date().getDay())
-}
-function groupContribution(g: Grupo, selectedIdx: number[]): number {
-  const prices = selectedIdx.map(oi => g.options[oi].price)
-  if (prices.length === 0) return 0
-  return g.pricing_rule === 'maior_valor' ? Math.max(...prices) : prices.reduce((a, b) => a + b, 0)
-}
 
 export default function CardapioPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params)

@@ -29,5 +29,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     lastModified: c.updated_at,
   }))
 
-  return [...static_pages, ...company_pages]
+  const { data: produtos } = await supabase
+    .from('loja_produtos')
+    .select('id, updated_at, company:companies!inner(slug, status, loja_digital_enabled)')
+    .eq('active', true)
+    .eq('company.status', 'active')
+    .eq('company.loja_digital_enabled', true)
+
+  const product_pages: MetadataRoute.Sitemap = (produtos || []).map((p: any) => ({
+    url: `${base}/empresa/${p.company.slug}/item/${p.id}`,
+    changeFrequency: 'weekly' as const,
+    priority: 0.6,
+    lastModified: p.updated_at,
+  }))
+
+  return [...static_pages, ...company_pages, ...product_pages]
 }

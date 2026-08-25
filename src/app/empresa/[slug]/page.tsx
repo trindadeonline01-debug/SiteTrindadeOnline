@@ -46,14 +46,16 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const title = `${company.name} — Trindade Online`
   const description = (company.description || '').trim()
     || `${company.name} no bairro Trindade, São Gonçalo/RJ — horário, avaliações e contato pelo Trindade Online.`
-  const image = [...(company.photos || [])].sort((a, b) => a.order - b.order)[0]?.url || 'https://trindadeonline.com.br/og-image.png'
   const url = `https://trindadeonline.com.br/empresa/${slug}`
+  // Não define openGraph.images/twitter.images aqui de propósito — a rota já
+  // tem um opengraph-image.tsx dinâmico (foto da empresa + faixa com o nome).
+  // Se a gente setar aqui, sobrescreve o arquivo e a prévia fica pior, não melhor.
   return {
     title,
     description,
     alternates: { canonical: url },
-    openGraph: { title, description, url, siteName: 'Trindade Online', images: [{ url: image, width: 1200, height: 630, alt: company.name }], locale: 'pt_BR', type: 'website' },
-    twitter: { card: 'summary_large_image', title, description, images: [image] },
+    openGraph: { title, description, url, siteName: 'Trindade Online', locale: 'pt_BR', type: 'website' },
+    twitter: { card: 'summary_large_image', title, description },
   }
 }
 

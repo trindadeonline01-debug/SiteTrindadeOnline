@@ -70,11 +70,12 @@ export default function MobileMenu() {
           .mm-bar{display:flex;align-items:center;justify-content:space-between;background:var(--paper);border-bottom:1px solid var(--line);padding:0 14px;height:54px;box-sizing:border-box;position:sticky;top:0;z-index:9500;}
           .mm-searchrow{display:flex;align-items:center;gap:8px;background:var(--paper);border-bottom:1px solid var(--line);padding:8px 14px;box-sizing:border-box;position:sticky;top:54px;z-index:9400;}
         }
-        .mm-bairro{display:flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap;flex-shrink:0;font-family:'Archivo',sans-serif;}
-        .mm-bairro .pin{color:var(--sign-dark);font-size:10px;}
+        .mm-brand{display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden;}
+        .mm-bairro{display:flex;align-items:center;gap:3px;font-size:10.5px;font-weight:700;color:var(--muted);white-space:nowrap;flex-shrink:0;font-family:'Archivo',sans-serif;background:var(--concrete-2);border-radius:20px;padding:3px 8px;}
+        .mm-bairro .pin{color:var(--sign-dark);font-size:9px;}
         .mm-hamburger{background:none;border:none;cursor:pointer;padding:6px;display:flex;flex-direction:column;gap:4px;width:34px;flex-shrink:0;}
         .mm-hamburger span{display:block;height:2px;background:var(--ink);border-radius:2px;}
-        .mm-logo{font-family:'Anton', sans-serif;font-size:17px;letter-spacing:.3px;color:var(--ink);text-decoration:none;text-transform:uppercase;}
+        .mm-logo{font-family:'Anton', sans-serif;font-size:15px;letter-spacing:.2px;color:var(--ink);text-decoration:none;text-transform:uppercase;white-space:nowrap;flex-shrink:0;}
         .mm-logo span{color:var(--sign-dark);}
         .mm-entrar{background:var(--paper);color:var(--sign-dark);border:1.5px solid var(--sign-dark);border-radius:20px;padding:7px 16px;font-size:12px;font-weight:700;text-decoration:none;font-family:'Archivo',sans-serif;flex-shrink:0;}
         .mm-profile-btn{background:none;border:none;color:var(--ink);cursor:pointer;text-decoration:none;display:flex;flex-shrink:0;}
@@ -95,7 +96,10 @@ export default function MobileMenu() {
         <button className="mm-hamburger" aria-label="Abrir menu" onClick={() => setOpen(true)}>
           <span/><span/><span/>
         </button>
-        <a className="mm-logo" href="/">TRINDADE <span>ONLINE</span></a>
+        <div className="mm-brand">
+          <a className="mm-logo" href="/">TRINDADE <span>ONLINE</span></a>
+          <span className="mm-bairro"><span className="pin">◉</span> Trindade</span>
+        </div>
         {user ? (
           <a className="mm-profile-btn" href="/perfil" aria-label="Meu perfil">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -107,10 +111,15 @@ export default function MobileMenu() {
         )}
       </div>
 
-      <div className="mm-searchrow">
-        <span className="mm-bairro"><span className="pin">◉</span> Trindade</span>
-        <SearchBar compact />
-      </div>
+      {/* Na home o campo grande do hero já resolve a busca — repetir aqui
+          em cima ficava redundante no mobile (feedback direto do Ricardo).
+          Nas outras páginas, que não têm hero próprio, essa é a única
+          busca disponível (ESPECIFICACAO.md §4.2/dívida #2). */}
+      {pathname !== '/' && (
+        <div className="mm-searchrow">
+          <SearchBar compact />
+        </div>
+      )}
 
       {open && (
         <>

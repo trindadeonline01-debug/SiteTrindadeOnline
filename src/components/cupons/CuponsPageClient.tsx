@@ -17,7 +17,7 @@ type RankingItem = {
 const RANKING_CATS = ['Comércios','Serviços','Gastronomia']
 const CAT_EMOJI: Record<string,string> = { Comércios:'🏪', Serviços:'🔧', Gastronomia:'🍕' }
 
-export default function CuponsPageClient() {
+export default function CuponsPageClient({ embedded, search }: { embedded?: boolean; search?: string } = {}) {
   const [coupons, setCoupons] = useState<Coupon[]>([])
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState<string|null>(null)
@@ -115,7 +115,10 @@ export default function CuponsPageClient() {
   }
 
   const EMOJIS: Record<string,string> = { Gastronomia:'🍕', Serviços:'🔧', Comércios:'🏪', Igrejas:'⛪', Imóveis:'🏠', Empregos:'💼', Desapega:'🏷️' }
-  const filtered = filter === 'todos' ? coupons : coupons.filter(c => c.company?.category?.name === filter)
+  const searchTerm = (search || '').trim().toLowerCase()
+  const filtered = coupons
+    .filter(c => filter === 'todos' || c.company?.category?.name === filter)
+    .filter(c => !searchTerm || c.title.toLowerCase().includes(searchTerm) || (c.company?.name || '').toLowerCase().includes(searchTerm))
   const categories = [...new Set(coupons.map(c => c.company?.category?.name).filter(Boolean))]
   const rankingPorCat = (cat: string) => ranking.filter(r => r.category_name === cat).slice(0, 3)
 
@@ -154,28 +157,41 @@ export default function CuponsPageClient() {
         .hero-inner{max-width:1100px;margin:0 auto;padding:20px 20px 22px;}
         .hero-title{font-family:'Anton',sans-serif;font-size:28px;color:#fff;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px;}
         .hero-title span{color:var(--sign);}
-        .hero-sub{font-size:12px;color:rgba(255,255,255,0.45);margin-bottom:16px;}
-        .filters{display:flex;gap:8px;flex-wrap:wrap;}
-        .filter-btn{padding:6px 16px;border-radius:20px;font-size:12px;font-weight:500;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.5);background:transparent;cursor:pointer;font-family:'Archivo',sans-serif;}
-        .filter-btn.on{background:var(--sign);color:var(--ink);border-color:var(--sign);}
+        .hero-sub{font-size:12px;color:rgba(255,255,255,0.45);}
+
+        /* SEGMENTOS — chips pequenos deslizando na horizontal, mesma
+           linguagem das subcategorias da página de categoria. */
+        .seg-wrap{padding:14px 20px 0;max-width:1200px;margin:0 auto;}
+        .seg-row{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding:2px 2px 6px;}
+        .seg-row::-webkit-scrollbar{display:none;}
+        .seg-chip{flex:0 0 auto;width:60px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;text-align:center;}
+        .seg-ico{width:44px;height:44px;border-radius:10px;border:1px solid var(--line);background:var(--paper);display:flex;align-items:center;justify-content:center;font-size:19px;transition:all .15s;}
+        .seg-chip:hover .seg-ico{border-color:var(--sign-dark);}
+        .seg-chip.on .seg-ico{border-color:var(--sign-dark);background:var(--concrete-2);}
+        .seg-label{font-size:10px;font-weight:500;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;}
+        .seg-chip.on .seg-label{color:var(--sign-dark);font-weight:700;}
+
         .body{padding:16px 20px;max-width:1200px;margin:0 auto;}
         .not-logged{background:var(--concrete-2);border:1px solid #F5C77A;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px;margin-bottom:16px;}
         .not-logged-text{font-size:13px;color:#854F0B;flex:1;}
         .not-logged-btn{padding:7px 16px;background:var(--sign);color:var(--ink);border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;text-decoration:none;}
         .sec-label{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.8px;font-weight:500;margin-bottom:10px;}
-        .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-        @media(max-width:640px){.grid{grid-template-columns:1fr;}}
-        .coupon{background:#fff;border-radius:12px;border:0.5px solid var(--line);display:flex;overflow:hidden;height:80px;}@media(max-width:640px){.coupon{height:96px;}}
-        .coupon-left{width:68px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:30px;background:var(--concrete-2);}
-        .coupon-body{flex:1;padding:10px 12px;border-left:1px dashed var(--line);min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px;overflow:hidden;}
-        .coupon-empresa{font-size:10px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-        .coupon-title{font-size:13px;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'Archivo',sans-serif;}
-        .coupon-tags{display:flex;gap:4px;flex-wrap:wrap;}
-        .coupon-tag{font-size:9px;padding:2px 7px;border-radius:8px;white-space:nowrap;}
-        .coupon-right{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 12px;gap:4px;flex-shrink:0;border-left:1px dashed var(--line);}
-        .coupon-valor{font-size:17px;font-weight:600;color:var(--sign-dark);white-space:nowrap;}
-        .coupon-btn{padding:5px 12px;border:none;border-radius:8px;font-size:11px;font-weight:500;cursor:pointer;white-space:nowrap;}
         .empty{text-align:center;padding:40px 20px;color:#888;font-size:14px;}
+
+        /* CARDS — mesmo formato "OFERTAS DO BAIRRO" da home. */
+        .grid{display:grid;grid-template-columns:1fr;gap:12px;}
+        @media(min-width:640px){.grid{grid-template-columns:repeat(2,1fr);}}
+        @media(min-width:1024px){.grid{grid-template-columns:repeat(3,1fr);}}
+        .of-card{background:var(--paper);border:1px solid var(--line);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;}
+        .of-tag{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:6px 12px;color:#fff;background:var(--alert);}
+        .of-body{padding:13px;flex:1;}
+        .of-who{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;}
+        .of-title{font-family:'Anton',sans-serif;font-size:17px;margin:0 0 4px;line-height:1.1;text-transform:uppercase;color:var(--ink);}
+        .of-ft{padding:10px 13px;border-top:1px dashed var(--line);display:flex;justify-content:space-between;align-items:center;font-size:11.5px;}
+        .of-ft .l{color:var(--muted);font-weight:600;}
+        .of-ft .g{font-weight:700;color:var(--sign-dark);}
+        .of-actions{padding:0 13px 13px;display:flex;align-items:center;gap:6px;}
+        .of-btn{flex:1;padding:9px 12px;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;text-align:center;text-decoration:none;font-family:'Archivo',sans-serif;}
 
         /* RANKING */
         .rk-wrap{padding:16px 20px 0;max-width:1200px;margin:0 auto;}
@@ -226,16 +242,26 @@ export default function CuponsPageClient() {
         .rk-mob-name-2,.rk-mob-name-3{color:#888;}
       `}</style>
 
-      <div className="hero"><div className="hero-inner">
-        <div className="hero-title">🎟️ CUPONS <span>RELÂMPAGO</span></div>
-        <div className="hero-sub">Descontos exclusivos das empresas do bairro · Quantidade limitada</div>
-        <div className="filters">
-          <button className={`filter-btn ${filter==='todos'?'on':''}`} onClick={()=>setFilter('todos')}>Todos ({coupons.length})</button>
-          {categories.map(cat => (
-            <button key={cat} className={`filter-btn ${filter===cat?'on':''}`} onClick={()=>setFilter(cat||'')}>{cat}</button>
-          ))}
+      {!embedded && (
+        <div className="hero"><div className="hero-inner">
+          <div className="hero-title">🎟️ CUPONS <span>RELÂMPAGO</span></div>
+          <div className="hero-sub">Descontos exclusivos das empresas do bairro · Quantidade limitada</div>
+        </div></div>
+      )}
+      {categories.length > 0 && (
+        <div className="seg-wrap">
+          <div className="seg-row">
+            <div className={`seg-chip ${filter==='todos'?'on':''}`} onClick={()=>setFilter('todos')}>
+              <span className="seg-ico">🎟️</span><span className="seg-label">Todos</span>
+            </div>
+            {categories.map(cat => (
+              <div key={cat} className={`seg-chip ${filter===cat?'on':''}`} onClick={()=>setFilter(cat||'')}>
+                <span className="seg-ico">{EMOJIS[cat||'']||'🏪'}</span><span className="seg-label">{cat}</span>
+              </div>
+            ))}
+          </div>
         </div>
-      </div></div>
+      )}
 
       {/* RANKING */}
       {showRanking && (
@@ -306,35 +332,31 @@ export default function CuponsPageClient() {
             <div className="grid">
               {filtered.map(c => {
                 const already = myRedemptions.includes(c.id)
-                const emoji = EMOJIS[c.company?.category?.name||''||'🏪']
                 return (
-                  <div key={c.id} className="coupon" style={already?{opacity:.7}:{}}>
-                    <div className="coupon-left">{emoji||'🏪'}</div>
-                    <div className="coupon-body">
-                      <div className="coupon-empresa">{c.company?.name}</div>
-                      <div className="coupon-title">{c.title}</div>
-                      <div className="coupon-tags">
-                        <span className="coupon-tag" style={{background:'#FCEBEB',color:'#A32D2D'}}>⏱ {timeLeft(c.expires_at)}</span>
-                        <span className="coupon-tag" style={{background:'#F5F2EC',color:'#666'}}>{c.total_qty} cupons</span>
-                      </div>
+                  <div key={c.id} className="of-card" style={already?{opacity:.7}:{}}>
+                    <span className="of-tag">🎟️ CUPOM RELÂMPAGO</span>
+                    <div className="of-body">
+                      <div className="of-who">{c.company?.name}</div>
+                      <div className="of-title">{c.title}</div>
                     </div>
-                    <div className="coupon-right">
-                      <div className="coupon-valor">{fmtDiscount(c)}</div>
+                    <div className="of-ft">
+                      <span className="l">⏱ {timeLeft(c.expires_at)} · {c.total_qty} cupons</span>
+                      <span className="g">{fmtDiscount(c)}</span>
+                    </div>
+                    <div className="of-actions">
                       {already ? (
-                        <a href="/perfil?tab=cupons" className="coupon-btn" style={{background:'#EAF3DE',color:'#3B6D11',textDecoration:'none'}}>Ver código</a>
+                        <a href="/perfil?tab=cupons" className="of-btn" style={{background:'#EAF3DE',color:'#3B6D11'}}>Ver código</a>
                       ) : (
-                        <button className="coupon-btn" style={{background:'var(--ink)',color:'var(--sign)'}} onClick={()=>redeem(c)} disabled={redeeming===c.id}>
+                        <button className="of-btn" style={{background:'var(--ink)',color:'var(--sign)'}} onClick={()=>redeem(c)} disabled={redeeming===c.id}>
                           {redeeming===c.id?'...Aguarde':'Resgatar'}
                         </button>
                       )}
-                      <div style={{marginTop:4,display:'flex',justifyContent:'flex-end'}}>
-                        <ShareButton title={c.title} text={`🎟️ Cupom ${c.title} — ${c.company?.name} no Trindade Online!`} url={`${typeof window!=='undefined'?window.location.origin:''}/cupons`} label="" fullWidth={false}/>
-                      </div>
+                      <ShareButton title={c.title} text={`🎟️ Cupom ${c.title} — ${c.company?.name} no Trindade Online!`} url={`${typeof window!=='undefined'?window.location.origin:''}/cupons`} label="" fullWidth={false}/>
                       {userType==='admin' && (
-                        <div style={{display:'flex',gap:4,marginTop:4}}>
-                          <button onClick={()=>{setEditModal(c);setEditForm({title:c.title,discount_value:String(c.discount_value),expires_at:c.expires_at.slice(0,16),min_purchase:c.min_purchase?String(c.min_purchase):''})}} style={{padding:'3px 8px',background:'#FEF3E2',color:'#854F0B',border:'1px solid #F5C77A',borderRadius:6,fontSize:10,cursor:'pointer',fontWeight:600}}>✏️ Editar</button>
-                          <button onClick={async()=>{if(confirm('Deletar cupom?')){await fetch('/api/coupons/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({coupon_id:c.id})});loadCoupons()}}} style={{padding:'3px 8px',background:'#FCEBEB',color:'#E24B4A',border:'1px solid #F7C1C1',borderRadius:6,fontSize:10,cursor:'pointer',fontWeight:600}}>🗑</button>
-                        </div>
+                        <>
+                          <button onClick={()=>{setEditModal(c);setEditForm({title:c.title,discount_value:String(c.discount_value),expires_at:c.expires_at.slice(0,16),min_purchase:c.min_purchase?String(c.min_purchase):''})}} style={{padding:'6px 8px',background:'#FEF3E2',color:'#854F0B',border:'1px solid #F5C77A',borderRadius:6,fontSize:10,cursor:'pointer',fontWeight:600}}>✏️</button>
+                          <button onClick={async()=>{if(confirm('Deletar cupom?')){await fetch('/api/coupons/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({coupon_id:c.id})});loadCoupons()}}} style={{padding:'6px 8px',background:'#FCEBEB',color:'#E24B4A',border:'1px solid #F7C1C1',borderRadius:6,fontSize:10,cursor:'pointer',fontWeight:600}}>🗑</button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -384,7 +406,7 @@ export default function CuponsPageClient() {
           </div>
         </div>
       )}
-      <Footer/>
+      {!embedded && <Footer/>}
     </>
   )
 }

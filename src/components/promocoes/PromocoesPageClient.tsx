@@ -8,7 +8,7 @@ type Promotion = {
   company: { id: string; name: string; slug: string; category?: { name: string; emoji: string } }
 }
 
-export default function PromocoesPageClient({ initialPromos }: { initialPromos: Promotion[] }) {
+export default function PromocoesPageClient({ initialPromos, embedded, search }: { initialPromos: Promotion[]; embedded?: boolean; search?: string }) {
   const [promos] = useState<Promotion[]>(initialPromos)
   const [current, setCurrent] = useState(0)
   const [filter, setFilter] = useState('todos')
@@ -24,7 +24,10 @@ export default function PromocoesPageClient({ initialPromos }: { initialPromos: 
   }, [])
 
   const categories = [...new Set(promos.map(p => p.company?.category?.name).filter(Boolean))]
-  const filtered = filter === 'todos' ? promos : promos.filter(p => p.company?.category?.name === filter)
+  const searchTerm = (search || '').trim().toLowerCase()
+  const filtered = promos
+    .filter(p => filter === 'todos' || p.company?.category?.name === filter)
+    .filter(p => !searchTerm || p.title.toLowerCase().includes(searchTerm) || (p.company?.name || '').toLowerCase().includes(searchTerm))
 
   function prev() { setCurrent(i => Math.max(0, i - 1)) }
   function next() { setCurrent(i => Math.min(filtered.length - 1, i + 1)) }
@@ -72,65 +75,83 @@ export default function PromocoesPageClient({ initialPromos }: { initialPromos: 
     .hero-inner{max-width:1100px;margin:0 auto;}
     .hero-title{font-family:'Anton',sans-serif;font-size:24px;color:#fff;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px;}
     .hero-title span{color:var(--sign);}
-    .hero-sub{font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:14px;}
-    .desktop-filters{display:flex;gap:7px;flex-wrap:wrap;}
-    .desktop-filter-btn{padding:5px 14px;border-radius:20px;font-size:11px;font-weight:500;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.5);background:transparent;cursor:pointer;font-family:'Archivo',sans-serif;}
-    .desktop-filter-btn.on{background:var(--sign);color:var(--ink);border-color:var(--sign);}
+    .hero-sub{font-size:11px;color:rgba(255,255,255,0.4);}
+
+    /* SEGMENTOS — mesma linguagem dos chips de subcategoria/cupom. */
+    .seg-wrap{padding:14px 24px 0;max-width:1100px;margin:0 auto;}
+    .seg-row{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding:2px 2px 6px;}
+    .seg-row::-webkit-scrollbar{display:none;}
+    .seg-chip{flex:0 0 auto;width:60px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;text-align:center;}
+    .seg-ico{width:44px;height:44px;border-radius:10px;border:1px solid var(--line);background:var(--paper);display:flex;align-items:center;justify-content:center;font-size:19px;transition:all .15s;}
+    .seg-chip:hover .seg-ico{border-color:var(--sign-dark);}
+    .seg-chip.on .seg-ico{border-color:var(--sign-dark);background:var(--concrete-2);}
+    .seg-label{font-size:10px;font-weight:500;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;}
+    .seg-chip.on .seg-label{color:var(--sign-dark);font-weight:700;}
+
     .grid-body{padding:20px 24px;max-width:1100px;margin:0 auto;}
-    .promo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
-    .promo-card{background:#fff;border-radius:14px;overflow:hidden;border:0.5px solid var(--line);cursor:pointer;transition:transform .15s;}
-    .promo-card:hover{transform:translateY(-2px);}
-    .promo-card-img{aspect-ratio:9/16;overflow:hidden;display:flex;align-items:center;justify-content:center;background:var(--concrete-2);font-size:60px;position:relative;}
-    .promo-card-img img{width:100%;height:100%;object-fit:cover;}
-    .promo-card-body{padding:12px 14px;}
-    .promo-card-cat{font-size:10px;color:var(--muted);margin-bottom:3px;}
-    .promo-card-empresa{font-size:14px;font-weight:600;color:var(--ink);margin-bottom:3px;font-family:'Archivo',sans-serif;}
-    .promo-card-title{font-size:12px;color:#555;margin-bottom:6px;}
-    .promo-card-validade{font-size:10px;color:var(--sign-dark);margin-bottom:8px;}
-    .promo-card-btn{display:inline-block;padding:6px 14px;background:var(--ink);color:var(--sign);border-radius:20px;font-size:11px;font-weight:500;text-decoration:none;}
+
+    /* CARDS — mesmo formato "OFERTAS DO BAIRRO" da home/cupons. */
+    .promo-grid{display:grid;grid-template-columns:1fr;gap:12px;}
+    @media(min-width:640px){.promo-grid{grid-template-columns:repeat(2,1fr);}}
+    @media(min-width:1024px){.promo-grid{grid-template-columns:repeat(3,1fr);}}
+    .of-card{background:var(--paper);border:1px solid var(--line);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;text-decoration:none;transition:border-color .15s,transform .15s;}
+    .of-card:hover{border-color:var(--ink);transform:translateY(-2px);}
+    .of-tag{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:6px 12px;color:#fff;background:var(--ink);}
+    .of-body{padding:13px;flex:1;}
+    .of-who{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;}
+    .of-title{font-family:'Anton',sans-serif;font-size:17px;margin:0 0 4px;line-height:1.1;text-transform:uppercase;color:var(--ink);}
+    .of-ft{padding:10px 13px;border-top:1px dashed var(--line);display:flex;justify-content:space-between;align-items:center;font-size:11.5px;}
+    .of-ft .l{color:var(--muted);font-weight:600;}
+    .of-ft .g{font-weight:700;color:var(--sign-dark);}
     .empty-desktop{text-align:center;padding:60px 20px;color:#AAA;font-size:14px;}
   `
 
-  // DESKTOP
-  if (!isMobile) return (
+  // DESKTOP (e sempre que embutida em /ofertas, também no mobile — a
+  // versão "stories" fica só na rota /promocoes standalone)
+  if (!isMobile || embedded) return (
     <>
       <style dangerouslySetInnerHTML={{__html: CSS}}/>
       <div className="pg-desktop">
-        <div className="hero">
-          <div className="hero-inner">
-            <div className="hero-title">🏷️ PROMOÇÕES <span>DA SEMANA</span></div>
-            <div className="hero-sub">{filtered.length} promoções ativas · clique para ver a empresa</div>
-            <div className="desktop-filters">
-              <button className={`desktop-filter-btn ${filter==='todos'?'on':''}`} onClick={()=>setFilter('todos')}>Todas ({promos.length})</button>
+        {!embedded && (
+          <div className="hero">
+            <div className="hero-inner">
+              <div className="hero-title">🏷️ PROMOÇÕES <span>DA SEMANA</span></div>
+              <div className="hero-sub">{filtered.length} promoções ativas · clique para ver a empresa</div>
+            </div>
+          </div>
+        )}
+        {categories.length > 0 && (
+          <div className="seg-wrap">
+            <div className="seg-row">
+              <div className={`seg-chip ${filter==='todos'?'on':''}`} onClick={()=>setFilter('todos')}>
+                <span className="seg-ico">🏷️</span><span className="seg-label">Todas</span>
+              </div>
               {categories.map(cat=>(
-                <button key={cat} className={`desktop-filter-btn ${filter===cat?'on':''}`} onClick={()=>setFilter(cat||'')}>{cat}</button>
+                <div key={cat} className={`seg-chip ${filter===cat?'on':''}`} onClick={()=>setFilter(cat||'')}>
+                  <span className="seg-ico">{promos.find(p=>p.company?.category?.name===cat)?.company?.category?.emoji || '🏷️'}</span>
+                  <span className="seg-label">{cat}</span>
+                </div>
               ))}
             </div>
           </div>
-        </div>
+        )}
         <div className="grid-body">
           {filtered.length === 0 ? (
             <div className="empty-desktop">🏷️ Nenhuma promoção ativa no momento</div>
           ) : (
             <div className="promo-grid">
               {filtered.map(p => (
-                <div key={p.id} className="promo-card" style={{position:'relative'}}>
-                  <a href={'/empresa/'+p.company?.slug} style={{display:'block',color:'inherit',textDecoration:'none'}}>
-                    <div className="promo-card-img">
-                      {p.image_url ? <Image unoptimized src={p.image_url} alt={p.title} fill sizes="(max-width:639px) 45vw, 220px" style={{objectFit:'cover'}}/> : (p.company?.category?.emoji || '🏷️')}
-                    </div>
-                    <div className="promo-card-body">
-                      <div className="promo-card-cat">{p.company?.category?.emoji} {p.company?.category?.name}</div>
-                      <div className="promo-card-empresa">{p.company?.name}</div>
-                      <div className="promo-card-title">{p.title}</div>
-                      <div className="promo-card-validade">válido até {new Date(p.expires_at).toLocaleDateString('pt-BR')}</div>
-                      <span className="promo-card-btn">Ver empresa →</span>
-                    </div>
-                  </a>
-                  <div style={{position:'absolute',top:8,right:8,zIndex:5}} onClick={e=>e.stopPropagation()}>
-                    <ShareButton title={p.title} text={`🏷️ ${p.title} — ${p.company?.name} no Trindade Online!`} label="" fullWidth={false}/>
+                <a key={p.id} className="of-card" href={'/empresa/'+p.company?.slug}>
+                  <span className="of-tag">🏷️ PROMOÇÃO DA SEMANA</span>
+                  <div className="of-body">
+                    <div className="of-who">{p.company?.name}</div>
+                    <div className="of-title">{p.title}</div>
                   </div>
-                </div>
+                  <div className="of-ft">
+                    <span className="l">até {new Date(p.expires_at).toLocaleDateString('pt-BR')}</span>
+                    <span className="g">Ver oferta</span>
+                  </div>
+                </a>
               ))}
             </div>
           )}

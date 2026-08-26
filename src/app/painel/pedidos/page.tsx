@@ -82,6 +82,17 @@ function getNextAction(p: Pedido): { next: Status; label: string } | null {
 }
 function flowFor(p: Pedido): Status[] { return p.delivery_type === 'retirada' ? FLOW.filter(s => s !== 'saiu_entrega') : FLOW }
 
+// Pedido "atrasado" — ainda não existe um tempo combinado configurável por
+// loja, então usa um teto razoável fixo: mais de 30min parado em
+// recebido/em_preparo sem avançar (ESPECIFICACAO.md §10.7 — "pedido parado
+// mais tempo que o combinado ganha borda vermelha").
+const LATE_THRESHOLD_MIN = 30
+function isLate(p: Pedido): boolean {
+  if (p.status !== 'recebido' && p.status !== 'em_preparo') return false
+  const mins = (Date.now() - new Date(p.created_at).getTime()) / 60000
+  return mins > LATE_THRESHOLD_MIN
+}
+
 function fmt(n: number) { return 'R$ ' + n.toFixed(2).replace('.', ',') }
 function fmtSchedule(iso: string) {
   const d = new Date(iso)
@@ -355,8 +366,15 @@ export default function PedidosPage() {
     const c = STATUS_COLOR[p.status]
     const o = originInfo(p.origin)
     const needsAccept = !autoAceitar && p.status === 'recebido' && !p.accepted_at
+    const late = isLate(p)
+    // Pagamento é estado do pedido, não um detalhe solto no meio do resumo
+    // (dívida #5 — "entregue · pendente" parecia estado impossível quando
+    // misturado na mesma linha). Continua podendo coexistir de verdade
+    // (COD entregue sem cobrar ainda é real), mas com destaque visual
+    // separado — e mais forte quando já foi entregue e ainda não foi pago.
+    const payUnpaidAfterDelivery = p.payment_status !== 'pago' && (p.status === 'entregue' || p.status === 'saiu_entrega')
     return (
-      <div className={`pd-card ${needsAccept ? 'pd-card-pending' : ''}`} key={p.id} style={{ '--accent': c.fg, borderLeft: `4px solid ${o.fg}` } as React.CSSProperties} onClick={() => setOpenId(open ? null : p.id)}>
+      <div className={`pd-card ${needsAccept ? 'pd-card-pending' : ''} ${late ? 'pd-card-late' : ''}`} key={p.id} style={{ '--accent': c.fg, borderLeft: `4px solid ${o.fg}` } as React.CSSProperties} onClick={() => setOpenId(open ? null : p.id)}>
         <div className="pd-row1">
           <div>
             <div className="pd-name">{p.customer_name}</div>
@@ -365,17 +383,18 @@ export default function PedidosPage() {
           <span className="pd-badge" style={{ background: c.bg, color: c.fg }}>{STATUS_LABEL[p.status]}</span>
         </div>
         <div className="pd-origin-badge" style={{ background: o.bg, color: o.fg }}>{o.label}</div>
+        {late && <div className="pd-late-flag">⚠ Parado há mais de {LATE_THRESHOLD_MIN}min sem avançar</div>}
         <div className="pd-sum">
-          {p.itens?.length || 0} {p.itens?.length === 1 ? 'item' : 'itens'} · {p.payment_method || '—'} ·{' '}
-          <span
-            onClick={e => { e.stopPropagation(); togglePaymentStatus(p.id) }}
-            style={{ fontWeight: 700, color: p.payment_status === 'pago' ? '#1B7A3E' : '#C9951A', cursor: 'pointer', textDecoration: 'underline dotted' }}
-            title="Toca pra marcar como pago/pendente"
-          >
-            {p.payment_status === 'pago' ? 'pago ✓' : 'pendente'}
-          </span>
-          {' '}· {p.delivery_type === 'retirada' ? '🏪 Retirada' : '🚴 Entrega'}
+          {p.itens?.length || 0} {p.itens?.length === 1 ? 'item' : 'itens'} · {p.payment_method || '—'} · {p.delivery_type === 'retirada' ? '🏪 Retirada' : '🚴 Entrega'}
         </div>
+        <span
+          className="pd-pay-chip"
+          onClick={e => { e.stopPropagation(); togglePaymentStatus(p.id) }}
+          style={{ background: p.payment_status === 'pago' ? '#E4F3EC' : payUnpaidAfterDelivery ? '#FBEAEA' : '#FEF6DC', color: p.payment_status === 'pago' ? '#157A52' : payUnpaidAfterDelivery ? '#C43D3D' : '#8A6410' }}
+          title="Toca pra marcar como pago/pendente"
+        >
+          {p.payment_status === 'pago' ? '✓ Pago' : payUnpaidAfterDelivery ? '⚠ Entregue sem cobrar' : '💰 Pagamento pendente'}
+        </span>
         {p.scheduled_for && <div className="pd-sum" style={{ color: '#B5690C', fontWeight: 700 }}>📅 Agendado pra {fmtSchedule(p.scheduled_for)}</div>}
         <div className="pd-total">{fmt(p.total)}</div>
         {needsAccept && <button className="pd-accept" onClick={e => { e.stopPropagation(); acceptPedido(p.id) }}>✓ Aceitar pedido</button>}
@@ -499,13 +518,18 @@ export default function PedidosPage() {
           .pd-autotoggle{ margin-left:auto; }
           .pd-newbtn{ padding:10px 20px; }
           .pd-board{ display:flex;gap:14px;overflow-x:auto;padding:20px 32px 28px; align-items:flex-start; }
-          .pd-board-col{ flex:0 0 250px;background:#EFEBE1;border-radius:14px;padding:10px;max-height:calc(100vh - 190px);display:flex;flex-direction:column;border-top:4px solid var(--accent); }
+          .pd-board-col{ flex:0 0 250px;background:#EFEBE1;border-radius:14px;padding:10px;max-height:calc(100vh - 190px);display:flex;flex-direction:column;border-top:4px solid var(--accent);transition:flex-basis .15s; }
+          .pd-board-col-empty{ flex:0 0 64px;padding:10px 6px;align-items:center; }
           .pd-board-colhead{ display:flex;justify-content:space-between;align-items:center;padding:4px 6px 10px;font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--accent); }
+          .pd-board-col-empty .pd-board-colhead{ flex-direction:column;gap:6px;writing-mode:vertical-rl;padding:6px 0; }
           .pd-board-count{ background:var(--accent);color:#fff;font-size:11px;font-weight:800;padding:1px 8px;border-radius:20px; }
           .pd-board-scroll{ overflow-y:auto;flex:1; }
           .pd-board .pd-card{ margin-bottom:8px; }
-          .pd-board-empty{ text-align:center;color:#A79E8B;font-size:11px;padding:14px 0; }
+          .pd-board-col-empty .pd-board-scroll{ display:none; }
         }
+        .pd-card-late{ border:1.5px solid #C43D3D !important; }
+        .pd-late-flag{ color:#C43D3D;font-weight:800;font-size:10.5px;margin-top:4px; }
+        .pd-pay-chip{ display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:7px;margin-top:6px;cursor:pointer; }
       `}</style>
       <div className="pd-mobile-only">
         <div className="pd-head">
@@ -552,11 +576,11 @@ export default function PedidosPage() {
       <div className="pd-board">
         {BOARD_COLUMNS.map(status => {
           const items = searched.filter(p => p.status === status)
+          const empty = items.length === 0
           return (
-            <div className="pd-board-col" key={status} style={{ '--accent': STATUS_COLOR[status].fg } as React.CSSProperties}>
+            <div className={`pd-board-col ${empty ? 'pd-board-col-empty' : ''}`} key={status} style={{ '--accent': STATUS_COLOR[status].fg } as React.CSSProperties}>
               <div className="pd-board-colhead"><span>{STATUS_LABEL[status]}</span><span className="pd-board-count">{items.length}</span></div>
               <div className="pd-board-scroll">
-                {items.length === 0 && <div className="pd-board-empty">Nada aqui</div>}
                 {items.map(renderCard)}
               </div>
             </div>

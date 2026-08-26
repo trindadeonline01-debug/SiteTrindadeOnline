@@ -35,6 +35,26 @@ interface Banner {
   link_url: string | null; image_url: string | null; image_url_mobile: string | null; display_order: number
 }
 
+interface Oferta {
+  id: string; kind: 'cupom' | 'promocao'; title: string; expires_at: string
+  discount_type?: string; discount_value?: number
+  company: { name: string; slug: string } | null
+}
+
+// Categorias fixas da home (KNOWLEDGE_BASE.md §1) — as 4 primeiras contam
+// empresas cadastradas; as 4 últimas (Comunidade) contam anúncios/vagas
+// ativos, então usam a contagem de listings por tipo, não de companies
+const CAT_DEFS: { slug: string; label: string; categoryId?: string; listingType?: string; icon: string }[] = [
+  { slug: 'comercios',   label: 'Comércios',    categoryId: '00000000-0000-0000-0000-000000000001', icon: 'shop' },
+  { slug: 'servicos',    label: 'Serviços',     categoryId: '00000000-0000-0000-0000-000000000002', icon: 'wrench' },
+  { slug: 'gastronomia', label: 'Gastronomia',  categoryId: '00000000-0000-0000-0000-000000000003', icon: 'food' },
+  { slug: 'empregos',    label: 'Empregos',     listingType: 'emprego', icon: 'job' },
+  { slug: 'imoveis',     label: 'Imóveis',      listingType: 'imovel', icon: 'home' },
+  { slug: 'desapega',    label: 'Desapega',     listingType: 'desapega', icon: 'tag' },
+  { slug: 'achados',     label: 'Achados & Perdidos', listingType: 'achado', icon: 'pin' },
+  { slug: 'igrejas',     label: 'Igrejas',      categoryId: '00000000-0000-0000-0000-000000000008', icon: 'church' },
+]
+
 // Carrosséis de empresas pagas na home — 1 por categoria, ordem pedida:
 // gastronomia primeiro, depois comércios, depois serviços
 const PAID_CAROUSELS: [string, string, string, string][] = [
@@ -59,6 +79,20 @@ function shuffle<T>(arr: T[]): T[] {
 function Stars({ rating }: { rating: number }) {
   const r = Math.round(rating)
   return <span style={{ color: 'var(--sign-dark)', fontSize: 11 }}>{'★'.repeat(r)}{'☆'.repeat(5 - r)}</span>
+}
+
+function fmtDesconto(o: Oferta) {
+  if (o.kind !== 'cupom' || o.discount_value == null) return null
+  return o.discount_type === 'fixed' ? `R$ ${o.discount_value.toFixed(2).replace('.', ',')} off` : `${o.discount_value}% off`
+}
+
+function tempoRestante(expiresAt: string) {
+  const diff = new Date(expiresAt).getTime() - Date.now()
+  if (diff <= 0) return 'Expirado'
+  const h = Math.floor(diff / 3600000)
+  if (h > 24) return `Termina em ${Math.floor(h / 24)}d`
+  if (h > 0) return `Termina em ${h}h`
+  return `Termina em ${Math.floor(diff / 60000)}min`
 }
 
 const TEMAS: Record<string, { heroBg: string, dest: string }> = {
@@ -92,7 +126,9 @@ export default async function HomePage() {
   const types = ['desapega', 'emprego', 'imovel', 'achado']
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
 
-  const [bannersRes, paidResults, listingResults, pulseRes, settingsRes, newCompaniesRes, companiesCountRes, searchesCountRes, waClicksCountRes] = await Promise.all([
+  const nowIso = new Date().toISOString()
+
+  const [bannersRes, paidResults, listingResults, pulseRes, settingsRes, newCompaniesRes, companiesCountRes, searchesCountRes, waClicksCountRes, couponsRes, promotionsRes, catCounts] = await Promise.all([
     supabaseServer.from('banners').select('*').eq('active', true).order('display_order'),
     Promise.all(PAID_CAROUSELS.map(([categoryId]) =>
       supabaseServer.from('companies')
@@ -118,6 +154,22 @@ export default async function HomePage() {
     supabaseServer.from('companies').select('id', { count: 'exact', head: true }).eq('status', 'active'),
     supabaseServer.from('search_logs').select('id', { count: 'exact', head: true }).gte('created_at', thirtyDaysAgo),
     supabaseServer.from('whatsapp_clicks').select('id', { count: 'exact', head: true }).gte('created_at', thirtyDaysAgo),
+    // Ofertas do bairro — cupons e promoções ativos de verdade, no lugar dos
+    // dois banners fixos de imagem (pareciam arte de banco pronta)
+    supabaseServer.from('coupons')
+      .select('id,title,discount_type,discount_value,expires_at,company:companies(name,slug)')
+      .eq('active', true).gt('expires_at', nowIso)
+      .order('created_at', { ascending: false }).limit(6),
+    supabaseServer.from('promotions')
+      .select('id,title,expires_at,company:companies(name,slug)')
+      .eq('status', 'active').lte('starts_at', nowIso).gte('expires_at', nowIso)
+      .order('created_at', { ascending: false }).limit(6),
+    // Contagem por categoria/tipo pros cards de categoria (empresas ativas
+    // ou, pra Comunidade, anúncios/vagas ativos)
+    Promise.all(CAT_DEFS.map(c => c.categoryId
+      ? supabaseServer.from('companies').select('id', { count: 'exact', head: true }).eq('status', 'active').eq('category_id', c.categoryId)
+      : supabaseServer.from('listings').select('id', { count: 'exact', head: true }).eq('status', 'active').eq('type', c.listingType!)
+    )),
   ])
 
   // Reparo de fotos quebradas roda sozinho: dispara em cadeia a partir de
@@ -163,6 +215,16 @@ export default async function HomePage() {
     const comFoto = ((paidResults[i].data || []) as any as PaidCompany[]).filter(c => (c.photos || []).length > 0)
     paidCompanies[key] = shuffle(comFoto).slice(0, PAID_CAROUSEL_SIZE)
   })
+
+  // Ofertas do bairro — cupom e promoção viram uma lista só, mais recentes
+  // primeiro, no lugar dos dois banners de imagem fixa
+  const ofertas: Oferta[] = [
+    ...((couponsRes.data || []) as any[]).map(c => ({ id: c.id, kind: 'cupom' as const, title: c.title, expires_at: c.expires_at, discount_type: c.discount_type, discount_value: c.discount_value, company: c.company })),
+    ...((promotionsRes.data || []) as any[]).map(p => ({ id: p.id, kind: 'promocao' as const, title: p.title, expires_at: p.expires_at, company: p.company })),
+  ].slice(0, 6)
+
+  const categoryCounts: Record<string, number> = {}
+  CAT_DEFS.forEach((c, i) => { categoryCounts[c.slug] = catCounts[i].count || 0 })
 
   const recentListings: Record<string, Listing[]> = {}
   types.forEach((type, i) => { recentListings[type] = (listingResults[i].data || []) as Listing[] })
@@ -339,21 +401,46 @@ export default async function HomePage() {
 
         .cat-overlap { margin-top: -40px; position: relative; z-index: 10; }
         .cat-card-wrap { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 24px 28px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
-        .cat-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; }
-        @media(min-width: 768px) { .cat-grid { grid-template-columns: repeat(8,1fr); gap: 0; } }
-        .cat-item { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 20px 8px; border-radius: 10px; cursor: pointer; text-decoration: none; position: relative; transition: background 0.15s; }
-        .cat-item:not(:last-child)::after { content: ""; position: absolute; right: 0; top: 20%; height: 60%; width: 1px; background: var(--line); }
-        .cat-item:hover { background: var(--concrete-2); }
-        .cat-item:hover svg { stroke: var(--sign-dark); }
-        .cat-item:hover .cat-label { color: var(--sign-dark); }
-        .cat-item svg { width: 70px; height: 70px; stroke: var(--ink); stroke-width: 0.8; fill: none; stroke-linecap: round; stroke-linejoin: round; transition: stroke 0.15s; }
-        .cat-label { font-size: 12px; color: var(--ink); text-align: center; line-height: 1.3; font-weight: 600; font-family: 'Archivo', sans-serif; transition: color 0.15s; } @media(max-width: 767px) { .cat-item { padding: 12px 4px; gap: 8px; } .cat-item svg { width: 40px; height: 40px; } .cat-label { font-size: 10px; } }
+        .cat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+        @media(min-width: 768px) { .cat-grid { grid-template-columns: repeat(4,1fr); gap: 10px; } }
+        .cat-item { display: flex; align-items: center; gap: 12px; padding: 13px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; text-decoration: none; transition: border-color 0.15s, background 0.15s; }
+        .cat-item:hover { border-color: var(--ink); background: var(--concrete-2); }
+        .cat-item .sq { width: 44px; height: 44px; border-radius: 8px; background: var(--concrete); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .cat-item svg { width: 24px; height: 24px; stroke: var(--ink); stroke-width: 1.2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+        .cat-txt { min-width: 0; }
+        .cat-label { font-size: 14px; color: var(--ink); line-height: 1.25; font-weight: 600; font-family: 'Archivo', sans-serif; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .cat-count { font-size: 11.5px; color: var(--muted); font-family: 'Archivo', sans-serif; }
+        @media(max-width: 767px) { .cat-item { padding: 11px; gap: 10px; } .cat-item .sq { width: 38px; height: 38px; } .cat-item svg { width: 20px; height: 20px; } .cat-label { font-size: 13px; } .cat-count { font-size: 11px; } }
 
-        .sec-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; margin-top: 28px; }
-        .sec-title { font-family: 'Anton', sans-serif; font-size: 20px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
-        .sec-link { font-size: 12px; color: var(--sign-dark); font-weight: 600; text-decoration: none; font-family: 'Archivo', sans-serif; }
+        .sec-hdr { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 14px; margin-top: 32px; gap: 14px; }
+        .sec-eyebrow { font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--sign-dark); font-weight: 700; margin-bottom: 4px; display: block; font-family: 'Archivo', sans-serif; }
+        .sec-title { font-family: 'Anton', sans-serif; font-size: 21px; color: var(--ink); letter-spacing: .5px; text-transform: uppercase; line-height: 1; }
+        .sec-link { font-size: 12px; color: var(--sign-dark); font-weight: 600; text-decoration: none; font-family: 'Archivo', sans-serif; white-space: nowrap; }
         .sec-link:hover { text-decoration: underline; }
         .divider { height: 1px; background: var(--line); margin: 20px 0 0; }
+
+        /* OFERTAS DO BAIRRO — cupom/promoção reais, card flat no lugar do
+           banner de imagem fixa */
+        .offs-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 11px; }
+        @media(max-width: 900px) { .offs-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media(max-width: 560px) { .offs-grid { grid-template-columns: 1fr; } }
+        .of-card { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; text-decoration: none; display: flex; flex-direction: column; transition: border-color .15s, transform .15s; }
+        .of-card:hover { border-color: var(--ink); transform: translateY(-2px); }
+        .of-tag { font-size: 9.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 6px 12px; color: #fff; }
+        .of-tag.cupom { background: var(--alert); }
+        .of-tag.promo { background: var(--ink); }
+        .of-body { padding: 13px; flex: 1; }
+        .of-who { font-size: 11px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 5px; }
+        .of-title { font-family: 'Anton', sans-serif; font-size: 17px; margin: 0 0 4px; line-height: 1.1; text-transform: uppercase; color: var(--ink); }
+        .of-ft { padding: 10px 13px; border-top: 1px dashed var(--line); display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; }
+        .of-ft .l { color: var(--muted); font-weight: 600; }
+        .of-ft .g { font-weight: 700; color: var(--sign-dark); }
+
+        /* CHIPS DE BUSCA RÁPIDA — atalhos no hero */
+        .hero-chips { display: flex; gap: 7px; justify-content: center; flex-wrap: wrap; margin-top: 16px; }
+        .hero-chip { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18); color: rgba(255,255,255,.85); padding: 6px 13px; border-radius: 20px; font-size: 12.5px; font-weight: 500; text-decoration: none; font-family: 'Archivo', sans-serif; transition: border-color .15s, background .15s; }
+        .hero-chip:hover { border-color: rgba(255,255,255,.4); background: rgba(255,255,255,.14); }
+        .hero-chip.open { background: rgba(15,138,87,.18); border-color: rgba(15,138,87,.5); color: #6EE7AE; }
 
         .dest-grid { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
         .dest-grid::-webkit-scrollbar { display: none; }
@@ -369,8 +456,8 @@ export default async function HomePage() {
         .badge-dest { position: absolute; top: 6px; right: 6px; background: var(--sign); color: var(--ink); font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 3px; }
 
         .recent-section { margin-top: 22px; }
-        .recent-section-hdr { display: flex; align-items: center; gap: 7px; margin-bottom: 12px; }
-        .recent-section-title { font-family: 'Anton', sans-serif; font-size: 20px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+        .recent-section-hdr { display: flex; align-items: flex-end; gap: 7px; margin-bottom: 12px; }
+        .recent-section-title { font-family: 'Anton', sans-serif; font-size: 21px; color: var(--ink); letter-spacing: .5px; text-transform: uppercase; line-height: 1; }
         .recent-scroll { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
         .recent-scroll::-webkit-scrollbar { display: none; }
         @media(min-width: 768px) { .recent-scroll { display: grid; grid-template-columns: repeat(4,1fr); overflow: visible; } }
@@ -458,6 +545,13 @@ export default async function HomePage() {
         <h1 className="hero-title" style={{color: siteTheme === 'branco-limpo' ? '#111' : '#fff'}}>TRINDADE <span style={{color: tema.dest}}>ONLINE</span></h1>
         <p className="hero-sub">Conectando moradores, comércios e serviços do bairro Trindade</p>
         <HomeSearchBox />
+        <div className="hero-chips">
+          <a className="hero-chip" href="/busca?q=pizza">Pizza</a>
+          <a className="hero-chip" href="/busca?q=farmacia">Farmácia</a>
+          <a className="hero-chip" href="/busca?q=manicure">Manicure</a>
+          <a className="hero-chip" href="/busca?q=camisa+personalizada">Camisa personalizada</a>
+          <a className="hero-chip open" href="/ofertas">🎟️ Com cupom</a>
+        </div>
       </section>
 
       {abertoAgoraEnabled && openCompanies.length > 0 && (
@@ -520,53 +614,71 @@ export default async function HomePage() {
           <div className="cat-card-wrap">
             <div className="cat-grid">
               <a className="cat-item" href="/categoria/comercios">
-                <svg viewBox="0 0 24 24"><path d="M3 9l1-5h16l1 5"/><path d="M3 9a2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0 2 2 2 2 0 0 0 2-2"/><path d="M5 20v-9"/><path d="M19 20v-9"/><rect x="9" y="14" width="6" height="6"/><path d="M3 20h18"/></svg>
-                <span className="cat-label">Comércios</span>
+                <span className="sq"><svg viewBox="0 0 24 24"><path d="M3 9l1-5h16l1 5"/><path d="M3 9a2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0 2 2 2 2 0 0 0 2-2"/><path d="M5 20v-9"/><path d="M19 20v-9"/><rect x="9" y="14" width="6" height="6"/><path d="M3 20h18"/></svg></span>
+                <span className="cat-txt"><span className="cat-label">Comércios</span><span className="cat-count">{categoryCounts.comercios} negócio{categoryCounts.comercios !== 1 ? 's' : ''}</span></span>
               </a>
               <a className="cat-item" href="/categoria/servicos">
-                <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-                <span className="cat-label">Serviços</span>
+                <span className="sq"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span>
+                <span className="cat-txt"><span className="cat-label">Serviços</span><span className="cat-count">{categoryCounts.servicos} negócio{categoryCounts.servicos !== 1 ? 's' : ''}</span></span>
               </a>
               <a className="cat-item" href="/categoria/gastronomia">
-                <svg viewBox="0 0 24 24"><path d="M12 2 L22 20 Q12 23 2 20 Z"/><path d="M5.5 18.5 Q12 22 18.5 18.5"/><circle cx="12" cy="10" r="1"/><circle cx="9" cy="14" r="0.8"/><circle cx="15" cy="14" r="0.8"/></svg>
-                <span className="cat-label">Gastronomia</span>
+                <span className="sq"><svg viewBox="0 0 24 24"><path d="M12 2 L22 20 Q12 23 2 20 Z"/><path d="M5.5 18.5 Q12 22 18.5 18.5"/><circle cx="12" cy="10" r="1"/><circle cx="9" cy="14" r="0.8"/><circle cx="15" cy="14" r="0.8"/></svg></span>
+                <span className="cat-txt"><span className="cat-label">Gastronomia</span><span className="cat-count">{categoryCounts.gastronomia} negócio{categoryCounts.gastronomia !== 1 ? 's' : ''}</span></span>
               </a>
               <a className="cat-item" href="/empregos">
-                <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><path d="M2 12h20"/></svg>
-                <span className="cat-label">Empregos</span>
+                <span className="sq"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><path d="M2 12h20"/></svg></span>
+                <span className="cat-txt"><span className="cat-label">Empregos</span><span className="cat-count">{categoryCounts.empregos} vaga{categoryCounts.empregos !== 1 ? 's' : ''}</span></span>
               </a>
               <a className="cat-item" href="/imoveis">
-                <svg viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>
-                <span className="cat-label">Imóveis</span>
+                <span className="sq"><svg viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg></span>
+                <span className="cat-txt"><span className="cat-label">Imóveis</span><span className="cat-count">{categoryCounts.imoveis} anúncio{categoryCounts.imoveis !== 1 ? 's' : ''}</span></span>
               </a>
               <a className="cat-item" href="/desapega">
-                <svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
-                <span className="cat-label">Desapega</span>
+                <span className="sq"><svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></span>
+                <span className="cat-txt"><span className="cat-label">Desapega</span><span className="cat-count">{categoryCounts.desapega} item{categoryCounts.desapega !== 1 ? 'ns' : ''}</span></span>
               </a>
               <a className="cat-item" href="/achados-perdidos">
-                <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                <span className="cat-label">Achados & Perdidos</span>
+                <span className="sq"><svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span>
+                <span className="cat-txt"><span className="cat-label">Achados & Perdidos</span><span className="cat-count">{categoryCounts.achados} aviso{categoryCounts.achados !== 1 ? 's' : ''}</span></span>
               </a>
               <a className="cat-item" href="/categoria/igrejas">
-                <svg viewBox="0 0 24 24"><path d="M12 2v4M10 4h4"/><path d="M5 10l7-4 7 4v10a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V10z"/><path d="M10 21v-7h4v7"/></svg>
-                <span className="cat-label">Igrejas</span>
+                <span className="sq"><svg viewBox="0 0 24 24"><path d="M12 2v4M10 4h4"/><path d="M5 10l7-4 7 4v10a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V10z"/><path d="M10 21v-7h4v7"/></svg></span>
+                <span className="cat-txt"><span className="cat-label">Igrejas</span><span className="cat-count">{categoryCounts.igrejas} local{categoryCounts.igrejas !== 1 ? 'is' : ''}</span></span>
               </a>
             </div>
           </div>
         </div>
 
         {/* OFERTAS DO BAIRRO — ESPECIFICACAO.md §10.1 item 5, cupons e
-            promoções unificados numa página só (/ofertas, Fase 1.2) */}
-        <div className="cat-overlap" style={{marginTop: 14}}>
-          <div className="cat-card-wrap" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,padding:'0',background:'transparent',border:'none',boxShadow:'none'}}>
-            <a href="/ofertas" style={{borderRadius:16,overflow:'hidden',textDecoration:'none',display:'block'}}>
-              <img src="https://plfuznchzuzardkfjmqo.supabase.co/storage/v1/object/public/company-photos/cupom_banner.png" alt="Cupons Relâmpago" style={{width:'100%',height:'auto',display:'block',borderRadius:16}}/>
-            </a>
-            <a href="/ofertas" style={{borderRadius:16,overflow:'hidden',textDecoration:'none',display:'block'}}>
-              <img src="https://plfuznchzuzardkfjmqo.supabase.co/storage/v1/object/public/company-photos/promocoes_banner.png" alt="Promoções da Semana" style={{width:'100%',height:'auto',display:'block',borderRadius:16}}/>
-            </a>
+            promoções reais (não mais um banner de imagem fixa) */}
+        {ofertas.length > 0 && (
+          <div className="recent-section">
+            <div className="sec-hdr">
+              <div>
+                <span className="sec-eyebrow">Vale por tempo limitado</span>
+                <h2 className="sec-title">Ofertas do bairro</h2>
+              </div>
+              <a href="/ofertas" className="sec-link">Ver todas →</a>
+            </div>
+            <div className="offs-grid">
+              {ofertas.map(o => (
+                <a key={`${o.kind}-${o.id}`} className="of-card" href="/ofertas">
+                  <span className={`of-tag ${o.kind === 'cupom' ? 'cupom' : 'promo'}`}>
+                    {o.kind === 'cupom' ? '⚡ Cupom relâmpago' : '🏷️ Promoção da semana'}
+                  </span>
+                  <div className="of-body">
+                    <div className="of-who">{o.company?.name || 'Trindade Online'}</div>
+                    <div className="of-title">{o.title}</div>
+                  </div>
+                  <div className="of-ft">
+                    <span className="l">{tempoRestante(o.expires_at)}</span>
+                    {fmtDesconto(o) ? <span className="g">{fmtDesconto(o)}</span> : <span className="g">Ver oferta</span>}
+                  </div>
+                </a>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* EMPRESAS PAGAS — 1 carrossel por categoria (gastronomia, comércios,
             serviços), ordem embaralhada a cada carregamento pra dar visibilidade
@@ -579,9 +691,12 @@ export default async function HomePage() {
               if (list.length === 0) return null
               return (
                 <div key={key} className="recent-section">
-                  <div className="recent-section-hdr">
-                    <span className="recent-section-title">{title}</span>
-                    <a href={href} className="sec-link" style={{ marginLeft: 'auto' }}>Ver tudo →</a>
+                  <div className="sec-hdr">
+                    <div>
+                      <span className="sec-eyebrow">Plano pago</span>
+                      <h2 className="recent-section-title">{title}</h2>
+                    </div>
+                    <a href={href} className="sec-link">Ver tudo →</a>
                   </div>
                   <div className="recent-scroll">
                     {list.map(c => {
@@ -611,8 +726,11 @@ export default async function HomePage() {
         {newCompanies.length > 0 && (
           <div className="recent-section">
             <div className="divider" />
-            <div className="recent-section-hdr">
-              <span className="recent-section-title">✨ NOVOS NA TRINDADE</span>
+            <div className="sec-hdr">
+              <div>
+                <span className="sec-eyebrow">Recém-chegados</span>
+                <h2 className="recent-section-title">✨ Novos na Trindade</h2>
+              </div>
             </div>
             <div className="recent-scroll">
               {newCompanies.map(c => {

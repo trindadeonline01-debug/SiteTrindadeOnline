@@ -46,6 +46,7 @@ const daysLeft = (s: string) => Math.max(0, Math.ceil((new Date(s).getTime() - D
 export default function PainelPage() {
   const [tab, setTab]               = useState<'painel'|'destaques'|'banners'|'avaliacoes'|'perfil'|'plano'|'cupons'|'promocoes'>('painel')
   const [myCoupons, setMyCoupons]   = useState<any[]>([])
+  const [produtosSemFoto, setProdutosSemFoto] = useState(0)
   useEffect(() => {
     const p = new URLSearchParams(window.location.search).get('tab')
     if (p) setTab(p as any)
@@ -215,6 +216,10 @@ export default function PainelPage() {
       setBannerRequests(bReqs || [])
       const { data: intReqs } = await supabase.from('contact_requests').select('*').eq('company_id', comp.id).order('created_at', {ascending: false}).limit(50)
       setInteresses(intReqs || [])
+      if (moduleActive(comp.loja_digital_enabled, comp.trial_modules_until)) {
+        const { count } = await supabase.from('loja_produtos').select('id', { count: 'exact', head: true }).eq('company_id', comp.id).is('photo_url', null)
+        setProdutosSemFoto(count || 0)
+      }
       if (comp.category_id === IGREJAS_CATEGORY_ID) {
         setChurchHours(DIAS_SEMANA.map(day => ({
           day,
@@ -576,9 +581,6 @@ export default function PainelPage() {
         .sec-title{font-family:'Bebas Neue',sans-serif;font-size:13px;color:#888;letter-spacing:1.5px;}
         .sec-body{padding:16px 18px;}
         .section-label{font-family:'Bebas Neue',sans-serif;font-size:13px;color:#888;letter-spacing:1.5px;margin:20px 0 12px;}
-        .actions-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
-        .action-btn{flex:1;min-width:140px;padding:12px 16px;border:none;border-radius:12px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px;}
-        .action-btn:hover{opacity:.9;}
 
         .rating-summary{display:flex;align-items:center;gap:16px;background:#FAFAF8;border:0.5px solid #E0DDD8;border-radius:13px;padding:16px;margin-bottom:16px;}
         .rating-big{font-family:'Bebas Neue',sans-serif;font-size:52px;color:#C9951A;letter-spacing:2px;line-height:1;}
@@ -1136,12 +1138,35 @@ export default function PainelPage() {
                 <div className="stat-card"><div className="stat-num" style={{color:'#C9951A'}}>{company.link_clicks||0}</div><div className="stat-lbl">Cliques no link</div></div>
                 <div className="stat-card"><div className="stat-num" style={{color:'#C9951A'}}>{company.avg_rating>0?`${company.avg_rating}★`:'—'}</div><div className="stat-lbl">Nota média</div><div className="stat-sub">{company.total_reviews} avaliações</div></div>
               </div>
-              <div className="section-label">AÇÕES RÁPIDAS</div>
-              <div className="actions-row">
-                {pendingReplies > 0 && <button className="action-btn" style={{background:'#FEF3E2',color:'#854F0B',border:'1px solid #F5C77A'}} onClick={()=>setTab('avaliacoes')}>💬 {pendingReplies} sem resposta</button>}
-              </div>
+              {(() => {
+                const now = new Date()
+                const cuponsAtivos = myCoupons.filter((c:any) => c.active && new Date(c.expires_at) > now).length
+                const semHorario = company.category_id !== IGREJAS_CATEGORY_ID && !company.flexible_hours && (company.hours || []).filter((h:any) => h.day_of_week !== null && !h.closed).length === 0
+                type Pendencia = { icon: string; text: string; btnLabel: string; onClick: () => void }
+                const pendencias: Pendencia[] = []
+                if (semHorario) pendencias.push({ icon: '🕐', text: 'Horário de funcionamento em branco — fica fora do "Aberto agora"', btnLabel: 'Preencher', onClick: () => setTab('perfil') })
+                if (produtosSemFoto > 0) pendencias.push({ icon: '📷', text: `${produtosSemFoto} produto${produtosSemFoto!==1?'s':''} sem foto — fica${produtosSemFoto!==1?'m':''} fora da busca`, btnLabel: 'Ver catálogo', onClick: () => { window.location.href = '/painel/catalogo' } })
+                if (pendingReplies > 0) pendencias.push({ icon: '💬', text: `${pendingReplies} avaliaç${pendingReplies!==1?'ões':'ão'} sem resposta`, btnLabel: 'Responder', onClick: () => setTab('avaliacoes') })
+                if (interesses.length > 0) pendencias.push({ icon: '🔔', text: `${interesses.length} pedido${interesses.length!==1?'s':''} de contato aguardando resposta`, btnLabel: 'Ver', onClick: () => document.getElementById('interesses-recebidos')?.scrollIntoView({behavior:'smooth'}) })
+                if (cuponsAtivos === 0) pendencias.push({ icon: '🎟️', text: 'Nenhum cupom ativo no momento', btnLabel: 'Criar cupom', onClick: () => setTab('cupons') })
+                if (pendencias.length === 0) return null
+                return (
+                  <>
+                    <div className="section-label">PARA FAZER AGORA</div>
+                    <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:20}}>
+                      {pendencias.map((p, i) => (
+                        <div key={i} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 14px',background:'#fff',border:'1px solid #EDE8E0',borderRadius:10}}>
+                          <span style={{fontSize:18,flexShrink:0}}>{p.icon}</span>
+                          <span style={{flex:1,fontSize:13,color:'#333',fontWeight:500}}>{p.text}</span>
+                          <button onClick={p.onClick} style={{background:'#C9951A',color:'#fff',border:'none',padding:'7px 14px',borderRadius:8,fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'Inter,sans-serif',flexShrink:0,whiteSpace:'nowrap'}}>{p.btnLabel} →</button>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )
+              })()}
               {interesses.length > 0 && (
-                <div className="sec-card">
+                <div className="sec-card" id="interesses-recebidos">
                   <div className="sec-hdr">
                     <span className="sec-title">🔔 INTERESSES RECEBIDOS <span style={{background:'#C9951A',color:'#fff',fontSize:11,fontWeight:700,padding:'2px 8px',borderRadius:10,marginLeft:6}}>{interesses.length}</span></span>
                   </div>

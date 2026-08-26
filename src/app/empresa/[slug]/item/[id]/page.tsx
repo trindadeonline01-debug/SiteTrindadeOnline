@@ -38,12 +38,22 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     || `${produto.name} por ${fmt(price)} em ${company.name}, no bairro Trindade, São Gonçalo/RJ.`
   const url = `https://trindadeonline.com.br/empresa/${slug}/item/${id}`
 
+  // Quando tem foto, usa a URL direto (igual /anuncio/[id] — testado e
+  // funcionando) em vez do opengraph-image.tsx gerado por código: o gerador
+  // (Satori) depende do sharp pra decodificar as fotos, que hoje quase todas
+  // estão em webp, e o sharp está quebrando no ambiente serverless da Vercel.
   return {
     title,
     description,
     alternates: { canonical: url },
-    openGraph: { title, description, url, siteName: 'Trindade Online', locale: 'pt_BR', type: 'website' },
-    twitter: { card: 'summary_large_image', title, description },
+    openGraph: {
+      title, description, url, siteName: 'Trindade Online', locale: 'pt_BR', type: 'website',
+      ...(produto.photo_url ? { images: [{ url: produto.photo_url, width: 1200, height: 630, alt: produto.name }] } : {}),
+    },
+    twitter: {
+      card: 'summary_large_image', title, description,
+      ...(produto.photo_url ? { images: [produto.photo_url] } : {}),
+    },
   }
 }
 

@@ -47,15 +47,26 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const description = (company.description || '').trim()
     || `${company.name} no bairro Trindade, São Gonçalo/RJ — horário, avaliações e contato pelo Trindade Online.`
   const url = `https://trindadeonline.com.br/empresa/${slug}`
-  // Não define openGraph.images/twitter.images aqui de propósito — a rota já
-  // tem um opengraph-image.tsx dinâmico (foto da empresa + faixa com o nome).
-  // Se a gente setar aqui, sobrescreve o arquivo e a prévia fica pior, não melhor.
+  const photoUrl = [...(company.photos || [])].sort((a, b) => a.order - b.order)[0]?.url
+
+  // Quando tem foto, usa a URL direto (igual /anuncio/[id] — testado e
+  // funcionando) em vez do opengraph-image.tsx gerado por código: o gerador
+  // (Satori) depende do sharp pra decodificar as fotos, que hoje quase todas
+  // estão em webp (o reparo automático de foto reconverte pra esse formato),
+  // e o sharp está quebrando no ambiente serverless da Vercel. Sem foto, cai
+  // pro opengraph-image.tsx (fundo com gradiente + nome, sem depender de foto).
   return {
     title,
     description,
     alternates: { canonical: url },
-    openGraph: { title, description, url, siteName: 'Trindade Online', locale: 'pt_BR', type: 'website' },
-    twitter: { card: 'summary_large_image', title, description },
+    openGraph: {
+      title, description, url, siteName: 'Trindade Online', locale: 'pt_BR', type: 'website',
+      ...(photoUrl ? { images: [{ url: photoUrl, width: 1200, height: 630, alt: company.name }] } : {}),
+    },
+    twitter: {
+      card: 'summary_large_image', title, description,
+      ...(photoUrl ? { images: [photoUrl] } : {}),
+    },
   }
 }
 

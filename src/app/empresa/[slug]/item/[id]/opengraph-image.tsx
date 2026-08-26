@@ -1,13 +1,9 @@
 import { ImageResponse } from 'next/og'
 import { createClient } from '@supabase/supabase-js'
-import { fetchImageAsDataUri } from '@/lib/ogImageFetch'
 
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 export const alt = 'Trindade Online'
-// Sem cache: se o produto trocar de foto ou preço, o preview do link tem
-// que acompanhar na próxima vez que alguém compartilhar.
-export const dynamic = 'force-dynamic'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -23,15 +19,16 @@ function promoPrice(p: { promo_type: string | null; promo_value: number | null; 
   return p.promo_type === 'percent' ? p.sale_price * (1 - p.promo_value / 100) : Math.max(0, p.sale_price - p.promo_value)
 }
 
-// Preview de link específico do produto — sem isso, colar o link de "2 pães
-// de picanha" no WhatsApp mostrava o card genérico do site inteiro.
+// Fallback só pra produto sem foto nenhuma — quando tem foto, o
+// generateMetadata de page.tsx usa a URL dela direto (mais simples e não
+// depende do Satori conseguir decodificar o formato salvo no Storage).
 export default async function Image({ params }: { params: Promise<{ slug: string; id: string }> }) {
   const { slug, id } = await params
 
   const { data: company } = await supabase.from('companies').select('id, name').eq('slug', slug).maybeSingle()
   const { data: produto } = company
     ? await supabase.from('loja_produtos')
-        .select('name, photo_url, sale_price, promo_type, promo_value, promo_starts_at, promo_ends_at')
+        .select('name, sale_price, promo_type, promo_value, promo_starts_at, promo_ends_at')
         .eq('id', id).eq('company_id', company.id).maybeSingle()
     : { data: null }
 
@@ -39,59 +36,28 @@ export default async function Image({ params }: { params: Promise<{ slug: string
   const companyName = company?.name || 'Trindade Online'
   const price = produto ? (promoPrice(produto as any) ?? produto.sale_price) : null
 
-  // Busca a foto aqui, com timeout e verificação de content-type, em vez de
-  // entregar a URL crua pro <img> e deixar o fetch interno do Satori decidir
-  // sozinho — sem isso, qualquer falha (timeout, webp, resposta estranha)
-  // derrubava a imagem inteira em branco, sem dar pra saber o motivo.
-  const photoDataUri = produto?.photo_url ? await fetchImageAsDataUri(produto.photo_url) : null
+  return new ImageResponse(
+    (
+      <div style={{ width: '100%', height: '100%', display: 'flex', position: 'relative', background: '#111111' }}>
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', background: 'linear-gradient(135deg, #1A0F00 0%, #111111 100%)' }} />
 
-  const priceBadge = price !== null && (
-    <div style={{ position: 'absolute', top: 44, right: 64, display: 'flex', background: '#C9951A', color: '#1A1610', fontSize: 34, fontWeight: 700, padding: '10px 24px', borderRadius: 12 }}>
-      {fmt(price)}
-    </div>
-  )
-  const footer = (
-    <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', padding: '40px 64px 48px', background: 'linear-gradient(0deg, rgba(0,0,0,0.85) 30%, rgba(0,0,0,0) 100%)' }}>
-      <div style={{ display: 'flex', fontSize: 56, fontWeight: 700, color: '#F0EDE8', lineHeight: 1.15, maxWidth: 1050 }}>{name}</div>
-      <div style={{ display: 'flex', fontSize: 26, color: '#C9951A', marginTop: 10, maxWidth: 1000 }}>{companyName}</div>
-    </div>
-  )
-  const wordmark = (
-    <div style={{ position: 'absolute', top: 48, left: 64, display: 'flex', alignItems: 'center' }}>
-      <span style={{ fontSize: 28, fontWeight: 700, color: '#F0EDE8' }}>TRINDADE</span>
-      <span style={{ fontSize: 28, fontWeight: 700, color: '#C9951A', marginLeft: 8 }}>ONLINE</span>
-    </div>
-  )
+        <div style={{ position: 'absolute', top: 48, left: 64, display: 'flex', alignItems: 'center' }}>
+          <span style={{ fontSize: 28, fontWeight: 700, color: '#F0EDE8' }}>TRINDADE</span>
+          <span style={{ fontSize: 28, fontWeight: 700, color: '#C9951A', marginLeft: 8 }}>ONLINE</span>
+        </div>
 
-  try {
-    return new ImageResponse(
-      (
-        <div style={{ width: '100%', height: '100%', display: 'flex', position: 'relative', background: '#111111' }}>
-          {photoDataUri ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={photoDataUri} alt="" width={1200} height={630} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, objectFit: 'cover' }} />
-          ) : (
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', background: 'linear-gradient(135deg, #1A0F00 0%, #111111 100%)' }} />
-          )}
-          {wordmark}
-          {priceBadge}
-          {footer}
+        {price !== null && (
+          <div style={{ position: 'absolute', top: 44, right: 64, display: 'flex', background: '#C9951A', color: '#1A1610', fontSize: 34, fontWeight: 700, padding: '10px 24px', borderRadius: 12 }}>
+            {fmt(price)}
+          </div>
+        )}
+
+        <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', padding: '40px 64px 48px', background: 'linear-gradient(0deg, rgba(0,0,0,0.85) 30%, rgba(0,0,0,0) 100%)' }}>
+          <div style={{ display: 'flex', fontSize: 56, fontWeight: 700, color: '#F0EDE8', lineHeight: 1.15, maxWidth: 1050 }}>{name}</div>
+          <div style={{ display: 'flex', fontSize: 26, color: '#C9951A', marginTop: 10, maxWidth: 1000 }}>{companyName}</div>
         </div>
-      ),
-      { ...size }
-    )
-  } catch {
-    // Rede de segurança final — se até isso falhar, sobe a mesma imagem sem foto.
-    return new ImageResponse(
-      (
-        <div style={{ width: '100%', height: '100%', display: 'flex', position: 'relative', background: '#111111' }}>
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', background: 'linear-gradient(135deg, #1A0F00 0%, #111111 100%)' }} />
-          {wordmark}
-          {priceBadge}
-          {footer}
-        </div>
-      ),
-      { ...size }
-    )
-  }
+      </div>
+    ),
+    { ...size }
+  )
 }

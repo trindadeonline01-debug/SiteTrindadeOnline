@@ -37,7 +37,7 @@ export default async function SubcategoriaPage({ params }: { params: Promise<{ s
 
   if (!subcat) {
     return (
-      <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:'100vh',fontFamily:'Inter,sans-serif',padding:24,background:'#F0EDE8'}}>
+      <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:'100vh',fontFamily:'Archivo,sans-serif',padding:24,background:'var(--concrete)'}}>
         <div style={{fontSize:56,marginBottom:16}}>📂</div>
         <div style={{fontSize:20,fontWeight:700,marginBottom:8}}>Subcategoria não encontrada</div>
         <a href="/" style={{background:'#C9951A',color:'#fff',padding:'12px 28px',borderRadius:12,textDecoration:'none',fontWeight:600,marginTop:16}}>← Voltar ao início</a>

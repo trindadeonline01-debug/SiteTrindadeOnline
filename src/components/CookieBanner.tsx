@@ -20,7 +20,7 @@ export default function CookieBanner() {
   return (
     <div style={{
       position:'fixed', bottom:0, left:0, right:0, zIndex:9999,
-      background:'#111', borderTop:'2px solid #C9951A',
+      background:'var(--ink)', borderTop:'2px solid var(--sign)',
       padding:'16px 24px',
       paddingBottom: typeof window !== 'undefined' && window.innerWidth < 768 ? '80px' : '16px',
       boxShadow:'0 -4px 24px rgba(0,0,0,.5)'
@@ -32,18 +32,18 @@ export default function CookieBanner() {
       }}>
         <div style={{flex:1, minWidth:260}}>
           <div style={{
-            fontFamily:"'Bebas Neue',sans-serif",
+            fontFamily:"'Anton',sans-serif",
             fontSize:15, color:'#fff', letterSpacing:1, marginBottom:5
           }}>
             🍪 Cookies e Notificações
           </div>
           <div style={{fontSize:12, color:'#AAA', lineHeight:1.7}}>
             Usamos cookies essenciais e gostaríamos de enviar notificações sobre novidades do bairro. Veja nossa{' '}
-            <Link href="/termos" style={{color:'#C9951A', fontWeight:700, textDecoration:'none'}}>
+            <Link href="/termos" style={{color:'var(--sign)', fontWeight:700, textDecoration:'none'}}>
               Política de Privacidade
             </Link>{' '}
             e{' '}
-            <Link href="/termos" style={{color:'#C9951A', fontWeight:700, textDecoration:'none'}}>
+            <Link href="/termos" style={{color:'var(--sign)', fontWeight:700, textDecoration:'none'}}>
               Termos de Uso
             </Link>
             , em conformidade com a LGPD.
@@ -61,7 +61,7 @@ export default function CookieBanner() {
               fontSize:13,
               fontWeight:700,
               cursor:'pointer',
-              fontFamily:'Inter,sans-serif',
+              fontFamily:'Archivo,sans-serif',
               whiteSpace:'nowrap',
               lineHeight:1
             }}>
@@ -71,14 +71,14 @@ export default function CookieBanner() {
             onClick={() => accept('all')}
             style={{
               padding:'11px 24px',
-              background:'#C9951A',
-              color:'#ffffff',
+              background:'var(--sign)',
+              color:'var(--ink)',
               border:'none',
               borderRadius:9,
               fontSize:13,
               fontWeight:700,
               cursor:'pointer',
-              fontFamily:'Inter,sans-serif',
+              fontFamily:'Archivo,sans-serif',
               whiteSpace:'nowrap',
               boxShadow:'0 2px 10px rgba(201,149,26,.5)',
               lineHeight:1

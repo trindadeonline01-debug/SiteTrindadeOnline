@@ -24,12 +24,12 @@ function SortableItem({ photo, isMain, onDelete }: { photo: Photo; isMain: boole
       aspectRatio:'1/1',
       borderRadius:10,
       overflow:'hidden',
-      border: isMain ? '2px solid #C9951A' : '1px solid #E0DDD8',
+      border: isMain ? '2px solid var(--sign-dark)' : '1px solid #E0DDD8',
       cursor:'grab',
     }} {...attributes} {...listeners}>
       <Image src={photo.url} alt="" fill sizes="150px" unoptimized style={{objectFit:'cover'}} draggable={false} />
       {isMain && (
-        <div style={{position:'absolute',bottom:4,left:4,background:'#C9951A',color:'#fff',fontSize:9,fontWeight:700,padding:'2px 6px',borderRadius:4,letterSpacing:0.5}}>
+        <div style={{position:'absolute',bottom:4,left:4,background:'var(--sign-dark)',color:'#fff',fontSize:9,fontWeight:700,padding:'2px 6px',borderRadius:4,letterSpacing:0.5}}>
           PRINCIPAL
         </div>
       )}
@@ -139,9 +139,9 @@ export default function PhotoManager({ companyId, onChange }: { companyId: strin
             ))}
             {canAdd && (
               <div onClick={() => fileRef.current?.click()} style={{
-                aspectRatio:'1/1', border:'2px dashed #C9951A', borderRadius:10,
+                aspectRatio:'1/1', border:'2px dashed var(--sign-dark)', borderRadius:10,
                 display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-                cursor:'pointer', background:'#FEF8ED', color:'#C9951A', fontWeight:700,
+                cursor:'pointer', background:'#FEF8ED', color:'var(--sign-dark)', fontWeight:700,
               }}>
                 <div style={{fontSize:28,lineHeight:1}}>+</div>
                 <div style={{fontSize:10,marginTop:4,textAlign:'center',padding:'0 4px'}}>

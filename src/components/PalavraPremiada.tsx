@@ -76,7 +76,7 @@ export function PalavraPremiadaModal({ premio, onClose, waResgateUrl, loginRedir
         {premio.won && (
           <>
             <div style={{ fontSize: 56, marginBottom: 12 }}>🎉</div>
-            <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 26, color: '#111', letterSpacing: 1, marginBottom: 8 }}>PARABÉNS!</div>
+            <div style={{ fontFamily: "'Anton',sans-serif", fontSize: 26, color: 'var(--ink)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>PARABÉNS!</div>
             <div style={{ fontSize: 15, color: '#444', lineHeight: 1.6, marginBottom: 20 }}>
               Você é o <strong>{premio.position}º</strong> a acertar a Palavra Premiada!<br />Prêmio: <strong>{premio.prize_description}</strong>
             </div>
@@ -89,9 +89,9 @@ export function PalavraPremiadaModal({ premio, onClose, waResgateUrl, loginRedir
         {premio.needsLogin && (
           <>
             <div style={{ fontSize: 56, marginBottom: 12 }}>🏆</div>
-            <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 24, color: '#111', letterSpacing: 1, marginBottom: 8 }}>VOCÊ ACHOU A PALAVRA PREMIADA!</div>
+            <div style={{ fontFamily: "'Anton',sans-serif", fontSize: 24, color: 'var(--ink)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>VOCÊ ACHOU A PALAVRA PREMIADA!</div>
             <div style={{ fontSize: 15, color: '#444', lineHeight: 1.6, marginBottom: 20 }}>Faça login (é rápido) pra resgatar seu prêmio.</div>
-            <a href={`/login?redirect=${encodeURIComponent(loginRedirect)}`} style={{ display: 'inline-block', padding: '12px 28px', background: '#C9951A', color: '#fff', borderRadius: 12, textDecoration: 'none', fontSize: 14, fontWeight: 700 }}>Entrar e resgatar</a>
+            <a href={`/login?redirect=${encodeURIComponent(loginRedirect)}`} style={{ display: 'inline-block', padding: '12px 28px', background: 'var(--sign)', color: 'var(--ink)', borderRadius: 12, textDecoration: 'none', fontSize: 14, fontWeight: 700 }}>Entrar e resgatar</a>
           </>
         )}
         {premio.alreadyWon && (

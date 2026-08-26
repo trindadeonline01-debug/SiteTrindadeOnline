@@ -113,7 +113,7 @@ function CadastroForm() {
           <input type="text" inputMode="numeric" maxLength={6} value={code}
             onChange={e => setCode(e.target.value.replace(/[^0-9]/g,''))}
             placeholder="000000"
-            style={{width:'100%',padding:'14px',textAlign:'center',fontSize:28,fontWeight:700,letterSpacing:12,border:'1.5px solid #E0DDD8',borderRadius:12,fontFamily:'Inter,sans-serif',marginBottom:12,outline:'none'}}
+            style={{width:'100%',padding:'14px',textAlign:'center',fontSize:28,fontWeight:700,letterSpacing:12,border:'1.5px solid #E0DDD8',borderRadius:12,fontFamily:'Archivo,sans-serif',marginBottom:12,outline:'none'}}
           />
           {erro && <div style={{color:'#E24B4A',fontSize:13,marginBottom:12}}>{erro}</div>}
           <button type="submit" disabled={loading || code.length < 6}
@@ -121,7 +121,7 @@ function CadastroForm() {
             {loading ? 'Verificando...' : 'Confirmar código'}
           </button>
           <button type="button" onClick={() => { setStep('form'); setCode(''); setErro('') }}
-            style={{width:'100%',padding:'10px',background:'transparent',color:'#AAA',border:'1px solid #ddd',borderRadius:12,fontSize:13,cursor:'pointer',fontFamily:'Inter,sans-serif',marginBottom:8}}>
+            style={{width:'100%',padding:'10px',background:'transparent',color:'#AAA',border:'1px solid #ddd',borderRadius:12,fontSize:13,cursor:'pointer',fontFamily:'Archivo,sans-serif',marginBottom:8}}>
             ← Voltar
           </button>
           <button type="button" onClick={() => handleCadastro({preventDefault:()=>{}} as any)}
@@ -140,7 +140,7 @@ function CadastroForm() {
         <button type="button" style={{ flex:1, padding:'10px', borderRadius:10, border:'1.5px solid', borderColor:'var(--sign-dark)', background:'#FEF3E2', color:'#854F0B', fontSize:13, fontWeight:600, cursor:'default', fontFamily:'Archivo, sans-serif' }}>
           👤 Sou morador
         </button>
-        <button type="button" onClick={() => window.location.href = '/anunciar'} style={{ flex:1, padding:'10px', borderRadius:10, border:'1.5px solid #E0DDD8', background:'#FAFAF8', color:'#888', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'Inter, sans-serif' }}>
+        <button type="button" onClick={() => window.location.href = '/anunciar'} style={{ flex:1, padding:'10px', borderRadius:10, border:'1.5px solid #E0DDD8', background:'#FAFAF8', color:'#888', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'Archivo, sans-serif' }}>
           🏪 Tenho empresa
         </button>
       </div>
@@ -194,7 +194,7 @@ function CadastroForm() {
       <div className="field">
         <label>Bairro</label>
         <select value={bairro} onChange={e => setBairro(e.target.value)}
-          style={{ width:'100%', padding:'12px 14px', border:'1.5px solid #E0DDD8', borderRadius:11, fontSize:14, fontFamily:'Inter, sans-serif', color:'#222', background:'#FAFAF8', outline:'none', cursor:'pointer' }}>
+          style={{ width:'100%', padding:'12px 14px', border:'1.5px solid #E0DDD8', borderRadius:11, fontSize:14, fontFamily:'Archivo, sans-serif', color:'#222', background:'#FAFAF8', outline:'none', cursor:'pointer' }}>
           <option>Trindade</option>
           <option>Alcântara</option>
           <option>Arsenal</option>

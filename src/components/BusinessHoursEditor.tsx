@@ -43,24 +43,24 @@ export default function BusinessHoursEditor({ hours, setHours, flexible, setFlex
       <style>{`
         .bh-editor { display: flex; flex-direction: column; gap: 8px; }
         .bh-flex-toggle { display: flex; align-items: center; justify-content: space-between; background: #fff; border: 0.5px solid #E0DDD8; border-radius: 10px; padding: 10px 14px; margin-bottom: 2px; }
-        .bh-flex-toggle-txt { font-size: 13px; font-weight: 600; color: #111; font-family: 'Inter', sans-serif; }
-        .bh-flex-toggle-sub { font-size: 11px; color: #AAA; margin-top: 2px; font-family: 'Inter', sans-serif; }
+        .bh-flex-toggle-txt { font-size: 13px; font-weight: 600; color: #111; font-family: 'Archivo', sans-serif; }
+        .bh-flex-toggle-sub { font-size: 11px; color: #AAA; margin-top: 2px; font-family: 'Archivo', sans-serif; }
         .bh-flex-switch { width: 44px; height: 24px; border-radius: 12px; cursor: pointer; position: relative; transition: background .2s; flex-shrink: 0; }
         .bh-flex-switch-knob { position: absolute; top: 2px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.2); transition: left .2s; }
-        .bh-flex-note { font-size: 11px; color: #888; padding: 6px 10px; background: rgba(201,149,26,.1); border-radius: 8px; border-left: 3px solid #C9951A; }
+        .bh-flex-note { font-size: 11px; color: #888; padding: 6px 10px; background: rgba(201,149,26,.1); border-radius: 8px; border-left: 3px solid var(--sign-dark); }
         .bh-day { background: #fff; border: 0.5px solid #E0DDD8; border-radius: 10px; padding: 10px 12px; }
         .bh-day-hdr { display: flex; align-items: center; justify-content: space-between; }
-        .bh-day-label { font-size: 13px; font-weight: 700; color: #111; font-family: 'Inter', sans-serif; }
+        .bh-day-label { font-size: 13px; font-weight: 700; color: #111; font-family: 'Archivo', sans-serif; }
         .bh-closed-toggle { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #888; cursor: pointer; user-select: none; }
-        .bh-closed-toggle input { accent-color: #C9951A; width: 15px; height: 15px; cursor: pointer; }
+        .bh-closed-toggle input { accent-color: var(--sign-dark); width: 15px; height: 15px; cursor: pointer; }
         .bh-ranges { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
         .bh-range { display: flex; align-items: center; gap: 6px; }
-        .bh-range input[type="time"] { border: 1.5px solid #E0DDD8; border-radius: 8px; padding: 6px 8px; font-size: 12px; font-family: 'Inter', sans-serif; outline: none; }
-        .bh-range input[type="time"]:focus { border-color: #C9951A; }
+        .bh-range input[type="time"] { border: 1.5px solid #E0DDD8; border-radius: 8px; padding: 6px 8px; font-size: 12px; font-family: 'Archivo', sans-serif; outline: none; }
+        .bh-range input[type="time"]:focus { border-color: var(--sign-dark); }
         .bh-range span { color: #AAA; font-size: 12px; }
         .bh-range-rm { background: #FEF0F0; color: #E24B4A; border: none; border-radius: 6px; width: 24px; height: 24px; cursor: pointer; font-size: 13px; flex-shrink: 0; }
         .bh-empty { font-size: 11px; color: #BBB; font-style: italic; }
-        .bh-add { align-self: flex-start; background: none; border: none; color: #C9951A; font-size: 11px; font-weight: 700; cursor: pointer; padding: 2px 0; font-family: 'Inter', sans-serif; }
+        .bh-add { align-self: flex-start; background: none; border: none; color: var(--sign-dark); font-size: 11px; font-weight: 700; cursor: pointer; padding: 2px 0; font-family: 'Archivo', sans-serif; }
       `}</style>
       <div className="bh-flex-toggle">
         <div>

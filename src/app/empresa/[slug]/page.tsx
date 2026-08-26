@@ -83,11 +83,11 @@ export default async function EmpresaPerfilPage({ params }: { params: Promise<{ 
 
   if (!company || company.status !== 'active') {
     return (
-      <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:'100vh',fontFamily:'Inter,sans-serif',padding:24,background:'#F0EDE8'}}>
+      <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:'100vh',fontFamily:'Archivo,sans-serif',padding:24,background:'var(--concrete)'}}>
         <div style={{fontSize:56,marginBottom:16}}>🏪</div>
         <div style={{fontSize:20,fontWeight:700,marginBottom:8}}>Empresa não encontrada</div>
         <div style={{fontSize:13,color:'#AAA',marginBottom:24}}>Esta empresa não existe ou não está ativa.</div>
-        <a href="/" style={{background:'#C9951A',color:'#fff',padding:'12px 28px',borderRadius:12,textDecoration:'none',fontWeight:600}}>Voltar ao início</a>
+        <a href="/" style={{background:'var(--sign)',color:'var(--ink)',padding:'12px 28px',borderRadius:12,textDecoration:'none',fontWeight:600}}>Voltar ao início</a>
       </div>
     )
   }

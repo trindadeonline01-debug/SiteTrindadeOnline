@@ -71,7 +71,7 @@ export default function ShareButton({ title, text, url, label = 'Compartilhar', 
       ) : (
         <button onClick={handleClick} style={{
           width: fullWidth ? '100%' : 'auto', height: height || 'auto', padding: fullWidth ? '9px' : '6px 10px', background: '#FEF3E2', color: '#854F0B', border: '1px solid #F5C77A',
-          borderRadius: 10, fontSize: 13, fontWeight: 600, fontFamily: "'Inter',sans-serif", cursor: 'pointer', boxSizing: 'border-box',
+          borderRadius: 10, fontSize: 13, fontWeight: 600, fontFamily: "'Archivo',sans-serif", cursor: 'pointer', boxSizing: 'border-box',
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
         }}>
           {shareIcon}
@@ -90,7 +90,7 @@ export default function ShareButton({ title, text, url, label = 'Compartilhar', 
             style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', fontSize: 13, fontWeight: 600, color: '#111', textDecoration: 'none', borderBottom: '1px solid #F0EDE8' }}>
             <span style={{ fontSize: 16 }}>💬</span> WhatsApp
           </a>
-          <button onClick={copyLink} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', fontSize: 13, fontWeight: 600, color: '#111', background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', fontFamily: "'Inter',sans-serif" }}>
+          <button onClick={copyLink} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', fontSize: 13, fontWeight: 600, color: '#111', background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', fontFamily: "'Archivo',sans-serif" }}>
             <span style={{ fontSize: 16 }}>🔗</span> {copied ? 'Link copiado!' : 'Copiar link'}
           </button>
         </div>

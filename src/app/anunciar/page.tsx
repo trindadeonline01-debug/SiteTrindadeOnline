@@ -462,7 +462,7 @@ export default function AnunciarPage() {
               <form onSubmit={handleVerify}>
                 <input type="text" inputMode="numeric" maxLength={6} value={code}
                   onChange={e => setCode(e.target.value.replace(/[^0-9]/g, ''))} placeholder="000000"
-                  style={{ width: '100%', padding: '14px', textAlign: 'center', fontSize: 28, fontWeight: 700, letterSpacing: 12, border: '1.5px solid #E0DDD8', borderRadius: 12, fontFamily: 'Inter,sans-serif', marginBottom: 12, outline: 'none' }} />
+                  style={{ width: '100%', padding: '14px', textAlign: 'center', fontSize: 28, fontWeight: 700, letterSpacing: 12, border: '1.5px solid #E0DDD8', borderRadius: 12, fontFamily: 'Archivo,sans-serif', marginBottom: 12, outline: 'none' }} />
                 {erro && <div className="erro-msg">⚠️ {erro}</div>}
                 <button type="submit" disabled={loading || code.length < 6} className="btn-primary"
                   style={{ background: code.length === 6 ? 'var(--sign)' : '#E0DDD8', color: code.length === 6 ? 'var(--ink)' : '#AAA', cursor: code.length === 6 ? 'pointer' : 'not-allowed' }}>
@@ -550,7 +550,7 @@ export default function AnunciarPage() {
                       <input type="text" placeholder="Ex: Barbearia infantil" value={subcatSugestao}
                         onChange={e => setSubcatSugestao(e.target.value)}
                         onKeyDown={e => { if (e.key === 'Enter' && subcatSugestao.trim()) { e.preventDefault(); setSubcatSugestoes(s => [...s, subcatSugestao.trim()]); setSubcatSugestao('') } }}
-                        style={{ flex: 1, padding: '10px 14px', border: '1.5px solid #E0DDD8', borderRadius: 10, fontSize: 13, fontFamily: 'Inter,sans-serif', outline: 'none' }} />
+                        style={{ flex: 1, padding: '10px 14px', border: '1.5px solid #E0DDD8', borderRadius: 10, fontSize: 13, fontFamily: 'Archivo,sans-serif', outline: 'none' }} />
                       <button type="button" onClick={() => { if (subcatSugestao.trim()) { setSubcatSugestoes(s => [...s, subcatSugestao.trim()]); setSubcatSugestao('') } }}
                         style={{ padding: '10px 16px', background: '#F5F2EC', border: '1.5px solid #E0DDD8', borderRadius: 10, fontSize: 13, cursor: 'pointer', fontWeight: 600, color: '#555' }}>+ Adicionar</button>
                     </div>

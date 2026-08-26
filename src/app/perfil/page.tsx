@@ -122,7 +122,7 @@ function PerfilPageInner() {
         })
     }
   }, [tab, profile?.id])
-  if (loading) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',fontFamily:'Inter,sans-serif',color:'#AAA'}}>Carregando...</div>
+  if (loading) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',fontFamily:'Archivo,sans-serif',color:'#AAA'}}>Carregando...</div>
   if (!profile) return null
 
   const activeListings = listings.filter(l => l.status === 'active' || l.status === 'paused')

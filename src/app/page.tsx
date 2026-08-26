@@ -449,11 +449,8 @@ export default async function HomePage() {
         .recent-section-title { font-family: 'Anton', sans-serif; font-size: 21px; color: var(--ink); letter-spacing: .5px; text-transform: uppercase; line-height: 1; }
         .recent-scroll { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
         .recent-scroll::-webkit-scrollbar { display: none; }
-        @media(min-width: 768px) { .recent-scroll { display: grid; grid-template-columns: repeat(4,1fr); overflow: visible; } }
-        @media(min-width: 1024px) { .recent-scroll { grid-template-columns: repeat(5,1fr); } }
         .recent-card { flex-shrink: 0; width: 46vw; max-width: 210px; text-decoration: none; display: block; }
         @media(min-width: 480px) { .recent-card { width: 190px; } }
-        @media(min-width: 768px) { .recent-card { width: auto; } }
         .recent-card-img { width: 100%; aspect-ratio: 1/1; border-radius: 14px; overflow: hidden; background: var(--concrete-2); display: flex; align-items: center; justify-content: center; font-size: 34px; margin-bottom: 8px; position: relative; }
         .recent-card-img img { width: 100%; height: 100%; object-fit: cover; }
         .recent-card-title { font-size: 14px; font-weight: 600; color: var(--ink); line-height: 1.3; margin-bottom: 2px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-family: 'Archivo', sans-serif; }

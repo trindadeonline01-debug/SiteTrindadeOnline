@@ -2,7 +2,7 @@
 
 > Tradução da `ESPECIFICACAO.md` pro código real do repositório. Este documento não substitui a especificação — ele mapeia cada fase pra arquivos/rotas/tabelas que já existem hoje, marca o que precisa ser descoberto e lista o que exige confirmação antes de mexer (schema, coisa destrutiva, decisão ambígua), conforme a regra padrão de trabalho.
 >
-> Status: **Fase 0 completa** (itens 0.1 a 0.7, publicados no `main`). Fase 1 em andamento: item 1.1 (header fixo com busca + seletor de bairro) publicado.
+> Status: **Fase 0 completa** (itens 0.1 a 0.7). **Fase 1 completa** (itens 1.1 a 1.5 — header com busca + bairro, menu de 3 famílias + menu único do usuário, bottom tab bar mobile, home reestruturada, convite de ativação na página de empresa). Tudo publicado no `main`. Fase 2 em diante ainda não começou.
 
 ---
 

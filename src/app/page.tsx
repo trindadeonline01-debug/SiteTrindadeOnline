@@ -436,12 +436,6 @@ export default async function HomePage() {
         .of-ft .l { color: var(--muted); font-weight: 600; }
         .of-ft .g { font-weight: 700; color: var(--sign-dark); }
 
-        /* CHIPS DE BUSCA RÁPIDA — atalhos no hero */
-        .hero-chips { display: flex; gap: 7px; justify-content: center; flex-wrap: wrap; margin-top: 16px; }
-        .hero-chip { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18); color: rgba(255,255,255,.85); padding: 6px 13px; border-radius: 20px; font-size: 12.5px; font-weight: 500; text-decoration: none; font-family: 'Archivo', sans-serif; transition: border-color .15s, background .15s; }
-        .hero-chip:hover { border-color: rgba(255,255,255,.4); background: rgba(255,255,255,.14); }
-        .hero-chip.open { background: rgba(15,138,87,.18); border-color: rgba(15,138,87,.5); color: #6EE7AE; }
-
         .dest-grid { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
         .dest-grid::-webkit-scrollbar { display: none; }
         @media(min-width: 768px)  { .dest-grid { display: grid; grid-template-columns: repeat(3,1fr); overflow: visible; } }
@@ -545,13 +539,6 @@ export default async function HomePage() {
         <h1 className="hero-title" style={{color: siteTheme === 'branco-limpo' ? '#111' : '#fff'}}>TRINDADE <span style={{color: tema.dest}}>ONLINE</span></h1>
         <p className="hero-sub">Conectando moradores, comércios e serviços do bairro Trindade</p>
         <HomeSearchBox />
-        <div className="hero-chips">
-          <a className="hero-chip" href="/busca?q=pizza">Pizza</a>
-          <a className="hero-chip" href="/busca?q=farmacia">Farmácia</a>
-          <a className="hero-chip" href="/busca?q=manicure">Manicure</a>
-          <a className="hero-chip" href="/busca?q=camisa+personalizada">Camisa personalizada</a>
-          <a className="hero-chip open" href="/ofertas">🎟️ Com cupom</a>
-        </div>
       </section>
 
       {abertoAgoraEnabled && openCompanies.length > 0 && (

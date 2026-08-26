@@ -2,7 +2,7 @@
 
 > Tradução da `ESPECIFICACAO.md` pro código real do repositório. Este documento não substitui a especificação — ele mapeia cada fase pra arquivos/rotas/tabelas que já existem hoje, marca o que precisa ser descoberto e lista o que exige confirmação antes de mexer (schema, coisa destrutiva, decisão ambígua), conforme a regra padrão de trabalho.
 >
-> Status: **Fase 0 completa** (itens 0.1 a 0.7). **Fase 1 completa** (itens 1.1 a 1.5 — header com busca + bairro, menu de 3 famílias + menu único do usuário, bottom tab bar mobile, home reestruturada, convite de ativação na página de empresa). Tudo publicado no `main`. Fase 2 em diante ainda não começou.
+> Status: **Fase 0 completa** (itens 0.1 a 0.7). **Fase 1 completa** (itens 1.1 a 1.5 — header com busca + bairro, menu de 3 famílias + menu único do usuário, bottom tab bar mobile, home reestruturada, convite de ativação na página de empresa). Tudo publicado no `main`. Próxima: **Fase 2 (Painel)**. Ricardo decidiu (26/ago/2026): a troca visual do design system (§11 — fonte Anton, cores novas, visual "placa de comércio") entra **depois** da Fase 2, como Fase 2.5 — assim portal e painel ganham o visual novo juntos, e não duas vezes.
 
 ---
 
@@ -50,6 +50,12 @@ Depende da Fase 0 (rotas e SEO precisam estar prontos primeiro). Cobre: header f
 ## 4. Fase 2 — Painel
 
 Sidebar por frequência de uso (a que já existe no admin foi alfabetizada recentemente — a do painel do lojista é outra tela, ainda com agrupamento por assunto), gating por plano com cadeado (função aparece apagada, não some), Visão Geral com "Para fazer", correções em Pedidos/Catálogo/Clientes descritas na seção 10.7–10.10, modos Cozinha/Atendimento em tela cheia, painel mobile com a barra Hoje·Pedidos·Interesses·Conversas·Mais.
+
+## 4.5. Fase 2.5 — Design system visual (decidido: depois da Fase 2)
+
+Troca visual da seção 11 da especificação — sai o visual atual (dourado premium `#C9951A`/preto) e entra a direção "placa de comércio de bairro": tokens de cor novos (`--ink`, `--sign` amarelo de toldo, `--concrete`, `--open`, `--alert` etc.), fonte Anton no lugar de Bebas Neue pra título/número grande, Archivo no lugar de Inter pro corpo. Regra central: fonte condensada em caixa alta só em título de página e número grande — nunca em nome de empresa/produto/cliente nem rótulo de campo (é isso que hoje deixa nome longo ilegível, ex: "SM KARAOKÊ -ALUGUEL DE KARAOKE /TOTO/ FLIPERAMA").
+
+É transversal — portal inteiro (home, categoria, busca, empresa, ofertas) e painel do lojista, os dois de uma vez. Por isso vem depois da Fase 2: sem isso, teríamos que restilizar o portal agora e o painel de novo depois, quando dá pra fazer as duas juntas.
 
 ## 5. Fase 3 — Catálogo e busca por produto
 

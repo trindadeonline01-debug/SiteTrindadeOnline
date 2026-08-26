@@ -6,8 +6,32 @@ import EmpresaShell from '@/components/EmpresaShell'
 import QRCode from 'qrcode'
 
 type Company = { id: string; name: string; slug: string; loja_digital_enabled: boolean; loja_taxa_entrega: number; loja_pedido_minimo: number; crm_whatsapp_enabled: boolean; entrega_enabled: boolean }
+type Categoria = { id: string; name: string }
+type ProdutoOpt = { id: string; name: string }
 
 function parsePt(v: string) { return parseFloat((v || '0').replace(',', '.')) || 0 }
+
+// Link/QR de uma granularidade só (catálogo inteiro/categoria/produto) —
+// mesmo card visual pras 3, ESPECIFICACAO.md §9.2.
+function ShareCard({ title, link }: { title: string; link: string }) {
+  const [qr, setQr] = useState('')
+  const [copied, setCopied] = useState(false)
+  useEffect(() => {
+    if (!link) { setQr(''); return }
+    QRCode.toDataURL(link, { width: 160, margin: 1, color: { dark: '#1A1610', light: '#FFFFFF' } }).then(setQr).catch(() => {})
+  }, [link])
+  function copy() {
+    navigator.clipboard.writeText(link).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) })
+  }
+  return (
+    <div className="crm-share-card">
+      <div className="crm-share-title">{title}</div>
+      <div className="crm-share-qr">{qr && <img src={qr} alt="QR Code" />}</div>
+      <div className="crm-share-link">{link}</div>
+      <button className="crm-share-btn" onClick={copy}>{copied ? 'Link copiado!' : 'Copiar link'}</button>
+    </div>
+  )
+}
 
 export default function CrmPage() {
   const [loading, setLoading] = useState(true)
@@ -18,6 +42,10 @@ export default function CrmPage() {
   const [minimoInput, setMinimoInput] = useState('0')
   const [savingConfig, setSavingConfig] = useState(false)
   const [configSaved, setConfigSaved] = useState(false)
+  const [categorias, setCategorias] = useState<Categoria[]>([])
+  const [produtosOpt, setProdutosOpt] = useState<ProdutoOpt[]>([])
+  const [selCat, setSelCat] = useState('')
+  const [selProd, setSelProd] = useState('')
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -40,6 +68,14 @@ export default function CrmPage() {
         })
         setTaxaInput(Number(comp.loja_taxa_entrega || 0).toFixed(2).replace('.', ','))
         setMinimoInput(Number(comp.loja_pedido_minimo || 0).toFixed(2).replace('.', ','))
+        if (moduleActive(comp.loja_digital_enabled, comp.trial_modules_until)) {
+          const [{ data: cats }, { data: prods }] = await Promise.all([
+            supabase.from('loja_categorias').select('id,name').eq('company_id', comp.id).order('display_order'),
+            supabase.from('loja_produtos').select('id,name').eq('company_id', comp.id).eq('active', true).order('display_order'),
+          ])
+          setCategorias(cats || [])
+          setProdutosOpt(prods || [])
+        }
       } else {
         setCompany(null)
       }
@@ -120,6 +156,7 @@ export default function CrmPage() {
           .crm-config-field{margin-bottom:10px;}
           .crm-config-field label{display:block;font-size:10.5px;font-weight:700;color:#6E6656;margin-bottom:5px;}
           .crm-config-field input{width:100%;padding:9px 11px;border-radius:9px;border:1px solid #E6E0D2;font-size:12.5px;font-family:inherit;}
+          .crm-select{width:100%;padding:9px 11px;border-radius:9px;border:1px solid #E6E0D2;font-size:12.5px;font-family:inherit;background:#fff;margin-bottom:4px;}
           .crm-config-btn{width:100%;padding:9px;border-radius:9px;border:none;background:#1A1610;color:#C9951A;font-weight:700;font-size:12px;cursor:pointer;margin-top:4px;}
         `}</style>
         <div className="crm-hub-title">Compartilhar cardápio</div>
@@ -129,6 +166,31 @@ export default function CrmPage() {
           <div className="crm-share-link">{cardapioLink}</div>
           <button className="crm-share-btn" onClick={copyLink}>{copied ? 'Link copiado!' : 'Copiar link'}</button>
         </div>
+
+        {categorias.length > 0 && (
+          <div className="crm-config-card">
+            <div className="crm-config-title">🗂️ Link de uma categoria</div>
+            <div className="crm-config-sub">"Olha só os combos" — manda o cardápio já filtrado.</div>
+            <select className="crm-select" value={selCat} onChange={e => setSelCat(e.target.value)}>
+              <option value="">Escolha uma categoria...</option>
+              {categorias.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+            {selCat && <ShareCard title="🗂️ Categoria selecionada" link={`${cardapioLink}?cat=${selCat}`} />}
+          </div>
+        )}
+
+        {produtosOpt.length > 0 && (
+          <div className="crm-config-card">
+            <div className="crm-config-title">🍽️ Link de um produto</div>
+            <div className="crm-config-sub">"É esse aqui, {'{'}preço{'}'}" — o mais usado no dia a dia. Página própria, indexável no Google.</div>
+            <select className="crm-select" value={selProd} onChange={e => setSelProd(e.target.value)}>
+              <option value="">Escolha um produto...</option>
+              {produtosOpt.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+            {selProd && <ShareCard title="🍽️ Produto selecionado" link={`https://trindadeonline.com.br/empresa/${company.slug}/item/${selProd}`} />}
+          </div>
+        )}
+
         <div className="crm-config-card">
           <div className="crm-config-title">🚚 Entrega e pedido mínimo</div>
           <div className="crm-config-sub">Taxa de entrega só é cobrada quando o pedido tem endereço preenchido. Deixe 0 pra não cobrar.</div>

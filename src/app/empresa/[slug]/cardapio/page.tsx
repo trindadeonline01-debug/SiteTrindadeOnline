@@ -21,6 +21,12 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
   const [categorias, setCategorias] = useState<Categoria[]>([])
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [filterCat, setFilterCat] = useState('all')
+  useEffect(() => {
+    // Link de categoria (ESPECIFICACAO.md §9.2 — "olha só os combos") já
+    // abre o cardápio filtrado, sem precisar de rota própria por categoria.
+    const cat = new URLSearchParams(window.location.search).get('cat')
+    if (cat) setFilterCat(cat)
+  }, [])
   const [search, setSearch] = useState('')
   const [cart, setCart] = useState<CartLine[]>([])
   const [detail, setDetail] = useState<Produto | null>(null)

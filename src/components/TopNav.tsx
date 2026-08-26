@@ -94,7 +94,7 @@ export default function TopNav() {
           .top-nav-inner { max-width: 1200px; margin: 0 auto; padding: 0 32px; height: 58px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; }
           .top-nav-left { display: flex; align-items: center; gap: 16px; justify-self: start; min-width: 0; }
           .top-nav-logo { font-family: 'Anton', sans-serif; font-size: 21px; letter-spacing: .5px; color: var(--ink); text-decoration: none; flex-shrink: 0; text-transform: uppercase; }
-          .top-nav-logo span { color: var(--sign-dark); }
+          .top-nav-logo span { color: var(--sign); }
           .top-nav-bairro { display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 600; color: var(--muted); white-space: nowrap; flex-shrink: 0; font-family: 'Archivo', sans-serif; }
           .top-nav-bairro .pin { color: var(--sign-dark); font-size: 11px; }
           .top-nav-center { display: flex; align-items: center; gap: 16px; justify-self: center; min-width: 0; }

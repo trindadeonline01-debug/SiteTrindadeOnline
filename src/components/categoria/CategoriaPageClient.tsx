@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import Image from 'next/image'
 import { CATEGORY_IMAGES } from '@/lib/categoryImages'
 
@@ -24,9 +24,12 @@ type Props = {
 export default function CategoriaPageClient({ slug, category, subcats, companies, highlights }: Props) {
   const [filtered, setFiltered]     = useState<Company[]>(companies)
   const [sortOrder, setSortOrder]     = useState<'az'|'rating'|'recent'>('az')
-  const [showAllSubcats, setShowAllSubcats] = useState(false)
   const [activeSub, setActiveSub]   = useState<string | null>(null)
   const [search, setSearch]         = useState('')
+  const subcatScrollRef = useRef<HTMLDivElement>(null)
+  function scrollSubcats(dir: number) {
+    subcatScrollRef.current?.scrollBy({ left: dir * 240, behavior: 'smooth' })
+  }
 
   function filterBySub(subId: string | null) {
     setActiveSub(subId); setSearch('')
@@ -117,35 +120,39 @@ export default function CategoriaPageClient({ slug, category, subcats, companies
         .dest-name { font-size: 11px; font-weight: 600; color: var(--ink); margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: 'Archivo', sans-serif; }
         .dest-stars { font-size: 10px; color: var(--sign-dark); font-weight: 600; }
 
-        /* SUBCATEGORIAS */
-        .subcat-wrap { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 16px 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 24px; }
-        .subcat-pills { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin-bottom: 20px; }
-        .subcat-pill { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 10px 6px; border-radius: 12px; border: 0.5px solid var(--line); background: var(--paper); cursor: pointer; text-align: center; transition: all .15s; min-height: 70px; }
-        .subcat-pill:hover { border-color: var(--sign-dark); background: var(--concrete-2); }
-        .subcat-pill.on { background: var(--concrete-2); border-color: var(--sign-dark); font-weight: 600; }
-        .subcat-pill-emoji { font-size: 24px; line-height: 1; }
-        .subcat-pill-name { font-size: 10px; line-height: 1.2; font-weight: 500; color: #555; }
-        .subcat-pill.on .subcat-pill-name { color: var(--sign-dark); font-weight: 600; }
-        .subcat-emoji-box { width: 48px; height: 48px; border-radius: 10px; border: 1.5px solid #e0e0e0; background: #fafafa; display: flex; align-items: center; justify-content: center; font-size: 24px; transition: border-color 0.15s; }
-        .subcat-label { font-size: 10.5px; color: #555; text-align: center; line-height: 1.3; font-weight: 500; transition: color 0.15s; }
+        /* SUBCATEGORIAS — chips pequenos, deslizando na horizontal (sem
+           barra de rolagem visível); no desktop, sem como arrastar, uma
+           setinha de cada lado avança a rolagem. */
+        .subcat-wrap { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 14px 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 24px; display: flex; align-items: center; gap: 4px; }
+        .subcat-pills { display: flex; gap: 10px; overflow-x: auto; scroll-behavior: smooth; scrollbar-width: none; flex: 1; min-width: 0; padding: 2px 6px 4px; }
+        .subcat-pills::-webkit-scrollbar { display: none; }
+        .subcat-pill { flex: 0 0 auto; width: 62px; display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer; text-align: center; }
+        .subcat-pill-emoji { width: 46px; height: 46px; border-radius: 10px; border: 1px solid var(--line); background: var(--paper); display: flex; align-items: center; justify-content: center; font-size: 20px; transition: all .15s; }
+        .subcat-pill:hover .subcat-pill-emoji { border-color: var(--sign-dark); }
+        .subcat-pill.on .subcat-pill-emoji { border-color: var(--sign-dark); background: var(--concrete-2); }
+        .subcat-pill-name { font-size: 10.5px; line-height: 1.25; font-weight: 500; color: #555; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
+        .subcat-pill.on .subcat-pill-name { color: var(--sign-dark); font-weight: 700; }
+        .subcat-arrow { display: none; }
+        @media(min-width: 768px) {
+          .subcat-arrow { flex: none; display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line); background: var(--paper); color: var(--ink); font-size: 15px; font-weight: 700; cursor: pointer; }
+          .subcat-arrow:hover { border-color: var(--sign-dark); color: var(--sign-dark); }
+        }
 
         .result-cnt { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
         .result-cnt span { color: var(--ink); font-weight: 600; }
 
-        /* EMPRESAS EM LISTA */
-        .companies-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
-        @media(min-width: 640px) { .companies-grid { grid-template-columns: repeat(2,1fr); } }
-        .cc { background: var(--paper); border: 0.5px solid var(--line); border-radius: 12px; overflow: hidden; text-decoration: none; transition: all .18s; display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
-        .cc:hover { border-color: var(--sign-dark); background: #FDFBF7; }
-        .cc-img { width: 56px; height: 56px; border-radius: 10px; background: var(--concrete-2); display: flex; align-items: center; justify-content: center; font-size: 26px; overflow: hidden; flex-shrink: 0; border: 0.5px solid var(--line); position: relative; }
+        /* EMPRESAS — mesma linguagem visual dos cards da home: foto grande
+           em cima, nome embaixo, sem info extra. */
+        .companies-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 14px; }
+        @media(min-width: 640px) { .companies-grid { grid-template-columns: repeat(3,1fr); } }
+        @media(min-width: 900px) { .companies-grid { grid-template-columns: repeat(4,1fr); } }
+        @media(min-width: 1200px) { .companies-grid { grid-template-columns: repeat(5,1fr); } }
+        .cc { background: var(--paper); border: 0.5px solid var(--line); border-radius: 14px; overflow: hidden; text-decoration: none; transition: all .18s; display: block; }
+        .cc:hover { border-color: var(--sign-dark); box-shadow: 0 6px 18px rgba(0,0,0,.08); }
+        .cc-img { width: 100%; aspect-ratio: 1/1; background: var(--concrete-2); display: flex; align-items: center; justify-content: center; font-size: 32px; overflow: hidden; position: relative; }
         .cc-img img { width: 100%; height: 100%; object-fit: cover; }
-        .cc-body { flex: 1; min-width: 0; }
-        .cc-name { font-size: 15px; font-weight: 600; color: var(--ink); margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: 'Archivo', sans-serif; }
-        .cc-stars { font-size: 13px; color: var(--sign-dark); font-weight: 600; margin-bottom: 4px; }
-        .cc-subs { display: flex; gap: 5px; flex-wrap: nowrap; overflow: hidden; margin-top: 4px; }
-        .cc-sub { font-size: 12px; background: #F5F2EC; color: #555; padding: 3px 9px; border-radius: 10px; white-space: nowrap; flex-shrink: 0; }
-        .cc-addr { font-size: 11px; color: #BBB; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .cc-arrow { flex-shrink: 0; color: #CCC; }
+        .cc-body { padding: 10px 12px 12px; }
+        .cc-name { font-size: 14px; font-weight: 600; color: var(--ink); line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-family: 'Archivo', sans-serif; }
 
         .sk { background: linear-gradient(90deg,#F0EDE8 25%,#E8E4DD 50%,#F0EDE8 75%); background-size: 200% 100%; animation: sh 1.5s infinite; border-radius: 12px; }
         @keyframes sh { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
@@ -246,33 +253,21 @@ export default function CategoriaPageClient({ slug, category, subcats, companies
         {subcats.length > 0 && (
           <>
             <div className="sec-label">SUBCATEGORIAS</div>
-            <div className="subcat-pills">
-              <div className={`subcat-pill ${!activeSub ? 'on' : ''}`} onClick={() => filterBySub(null)}>
-                <span className="subcat-pill-emoji">🏪</span>
-                <span className="subcat-pill-name">Todas ({companies.length})</span>
-              </div>
-              {subcats.filter(s => companies.filter(c => c.subcategories?.some((cs: any) => cs.subcategory?.id === s.id)).length > 0).map((s, idx) => {
-                const cnt = companies.filter(c => c.subcategories?.some((cs: any) => cs.subcategory?.id === s.id)).length
-                if (!showAllSubcats && idx >= 3) return null
-                return (
+            <div className="subcat-wrap">
+              <button className="subcat-arrow" onClick={() => scrollSubcats(-1)} aria-label="Anterior">‹</button>
+              <div className="subcat-pills" ref={subcatScrollRef}>
+                <div className={`subcat-pill ${!activeSub ? 'on' : ''}`} onClick={() => filterBySub(null)}>
+                  <span className="subcat-pill-emoji">🏪</span>
+                  <span className="subcat-pill-name">Todas</span>
+                </div>
+                {subcats.filter(s => companies.filter(c => c.subcategories?.some((cs: any) => cs.subcategory?.id === s.id)).length > 0).map(s => (
                   <div key={s.id} className={`subcat-pill ${activeSub === s.id ? 'on' : ''}`} onClick={() => filterBySub(s.id)}>
                     <span className="subcat-pill-emoji">{s.emoji}</span>
-                    <span className="subcat-pill-name">{s.name} ({cnt})</span>
+                    <span className="subcat-pill-name">{s.name}</span>
                   </div>
-                )
-              })}
-              {!showAllSubcats && subcats.filter(s => companies.filter(c => c.subcategories?.some((cs: any) => cs.subcategory?.id === s.id)).length > 0).length > 3 && (
-                <div className="subcat-pill" onClick={() => setShowAllSubcats(true)}>
-                  <span className="subcat-pill-emoji">➕</span>
-                  <span className="subcat-pill-name">Ver mais</span>
-                </div>
-              )}
-              {showAllSubcats && (
-                <div className="subcat-pill" onClick={() => setShowAllSubcats(false)}>
-                  <span className="subcat-pill-emoji">➖</span>
-                  <span className="subcat-pill-name">Ver menos</span>
-                </div>
-              )}
+                ))}
+              </div>
+              <button className="subcat-arrow" onClick={() => scrollSubcats(1)} aria-label="Próximo">›</button>
             </div>
           </>
         )}
@@ -308,38 +303,17 @@ export default function CategoriaPageClient({ slug, category, subcats, companies
           const outras = sorted.filter(c => c.plan !== 'paid')
           const renderCard = (c: any) => {
               const cover = getCover(c.photos)
-              const subs = c.subcategories?.map((s:any)=>s.subcategory).filter(Boolean) || []
               return (
                 <a key={c.id} className="cc" href={`/empresa/${c.slug}`}>
                   <div className="cc-img">
                     {cover
-                      ? <Image unoptimized src={cover} alt={c.name} fill sizes="56px" style={{objectFit:'cover'}} />
+                      ? <Image unoptimized src={cover} alt={c.name} fill sizes="(max-width:639px) 45vw, 220px" style={{objectFit:'cover'}} />
                       : <span>{category.emoji || '🏪'}</span>
                     }
                   </div>
                   <div className="cc-body">
                     <div className="cc-name">{c.name}</div>
-                    {(c.avg_rating || 0) > 0 && (
-                      <div className="cc-stars">★ {Number(c.avg_rating).toFixed(1)}</div>
-                    )}
-                    {subs.length > 0 && (
-                      <div className="cc-subs">{subs.map((s:any,i:number)=><span key={i} className="cc-sub">{s.emoji} {s.name}</span>)}</div>
-                    )}
-                    {c.address && c.plan === 'paid' && (
-                      <div className="cc-addr">📍 {c.address}</div>
-                    )}
                   </div>
-                  {c.plan === 'paid' ? (
-                    <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:2,flexShrink:0}}>
-                      <svg width="48" height="48" viewBox="0 0 64 64" fill="none">
-                        <circle cx="32" cy="32" r="28" stroke="var(--sign-dark)" strokeWidth="5" fill="none"/>
-                        <path d="M18 32 L27 42 L46 22" stroke="var(--sign-dark)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                      <span style={{fontSize:8,fontWeight:700,color:'var(--sign-dark)',letterSpacing:'.8px',textTransform:'uppercase'}}>Indicado</span>
-                    </div>
-                  ) : (
-                    <svg className="cc-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-                  )}
                 </a>
               )
           }

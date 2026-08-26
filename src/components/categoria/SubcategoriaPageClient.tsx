@@ -29,33 +29,33 @@ export default function SubcategoriaPageClient({ subcat, companies }: Props) {
     <>
       <style>{`
         *{box-sizing:border-box;margin:0;padding:0;}
-        body{font-family:'Inter',sans-serif;background:#fff;}
+        body{font-family:'Archivo',sans-serif;background:#fff;}
 
-        .topbar{background:#111;z-index:50;}
+        .topbar{background:var(--ink);z-index:50;}
         .topbar-inner{max-width:1200px;margin:0 auto;padding:13px 24px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;}
         .t-bc{display:flex;align-items:center;gap:7px;font-size:13px;}
-        .t-bc a{color:#C9951A;font-weight:700;text-decoration:none;}
+        .t-bc a{color:var(--sign);font-weight:700;text-decoration:none;}
         .t-bc a:hover{text-decoration:underline;}
         .t-bc-sep{color:#444;font-size:14px;}
         .t-bc-cur{color:#fff;font-weight:700;}
 
-        .hero{background:#111;padding:28px 24px 24px;border-bottom:2px solid #C9951A;}
+        .hero{background:var(--ink);padding:28px 24px 24px;border-bottom:2px solid var(--sign);}
         .hero-inner{max-width:1200px;margin:0 auto;}
         .bc-hero{display:flex;align-items:center;gap:6px;font-size:11px;color:#555;margin-bottom:12px;}
-        .bc-hero a{color:#C9951A;text-decoration:none;transition:opacity .15s;}
+        .bc-hero a{color:var(--sign);text-decoration:none;transition:opacity .15s;}
         .bc-hero a:hover{opacity:.8;}
         .hero-row{display:flex;align-items:center;gap:18px;}
         .hero-emoji{font-size:52px;flex-shrink:0;}
-        .hero-cat-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(201,149,26,.15);border:1px solid rgba(201,149,26,.3);border-radius:8px;padding:3px 10px;font-size:11px;color:#C9951A;font-weight:600;margin-bottom:6px;}
-        .hero-nm{font-family:'Bebas Neue',sans-serif;font-size:clamp(30px,5vw,46px);color:#fff;letter-spacing:3px;line-height:1;margin-bottom:6px;}
-        .hero-cnt{font-size:13px;color:#666;}
-        .hero-cnt span{color:#C9951A;font-weight:600;}
+        .hero-cat-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(255,197,49,.15);border:1px solid rgba(255,197,49,.3);border-radius:8px;padding:3px 10px;font-size:11px;color:var(--sign);font-weight:600;margin-bottom:6px;}
+        .hero-nm{font-family:'Anton',sans-serif;font-size:clamp(30px,5vw,46px);color:#fff;letter-spacing:1px;text-transform:uppercase;line-height:1;margin-bottom:6px;}
+        .hero-cnt{font-size:13px;color:#666;font-family:'Archivo',sans-serif;}
+        .hero-cnt span{color:var(--sign);font-weight:600;}
 
-        .search-wrap{background:#F0EDE8;padding:0 24px;}
+        .search-wrap{background:var(--concrete);padding:0 24px;}
         .search-inner{max-width:1200px;margin:0 auto;transform:translateY(-20px);}
-        .search-box{display:flex;align-items:center;gap:10px;background:#fff;border:2px solid #C9951A;border-radius:30px;padding:13px 20px;box-shadow:0 4px 20px rgba(0,0,0,.12);}
-        .search-box input{flex:1;border:none;background:transparent;font-size:15px;font-family:'Inter',sans-serif;color:#222;outline:none;}
-        .search-box input::placeholder{color:#BBB;}
+        .search-box{display:flex;align-items:center;gap:10px;background:var(--sign);border:2.5px solid var(--ink);border-radius:14px;padding:13px 20px;box-shadow:4px 4px 0 var(--ink);}
+        .search-box input{flex:1;border:none;background:transparent;font-size:15px;font-family:'Archivo',sans-serif;font-weight:500;color:var(--ink);outline:none;}
+        .search-box input::placeholder{color:var(--ink-2);opacity:.55;}
 
         .page{max-width:1200px;margin:0 auto;padding:8px 24px 48px;min-height:100vh;}
         @media(max-width:767px){
@@ -63,30 +63,30 @@ export default function SubcategoriaPageClient({ subcat, companies }: Props) {
           .search-wrap{padding:0 16px;}
         }
 
-        .result-cnt{font-size:13px;color:#AAA;margin-bottom:16px;}
-        .result-cnt span{color:#111;font-weight:600;}
+        .result-cnt{font-size:13px;color:var(--muted);margin-bottom:16px;}
+        .result-cnt span{color:var(--ink);font-weight:600;}
 
         .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;}
         @media(min-width:640px){.grid{grid-template-columns:repeat(3,1fr);}}
         @media(min-width:1024px){.grid{grid-template-columns:repeat(4,1fr);}}
 
-        .cc{background:#fff;border:0.5px solid #E0DDD8;border-radius:14px;overflow:hidden;text-decoration:none;display:block;transition:all .18s;}
-        .cc:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.1);border-color:#C9951A;}
-        .cc-img{height:110px;background:#FEF3E2;display:flex;align-items:center;justify-content:center;font-size:40px;overflow:hidden;position:relative;}
+        .cc{background:#fff;border:0.5px solid var(--line);border-radius:14px;overflow:hidden;text-decoration:none;display:block;transition:all .18s;}
+        .cc:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.1);border-color:var(--sign-dark);}
+        .cc-img{height:110px;background:var(--concrete-2);display:flex;align-items:center;justify-content:center;font-size:40px;overflow:hidden;position:relative;}
         .cc-img img{width:100%;height:100%;object-fit:cover;}
         .cc-body{padding:11px 12px;}
-        .cc-name{font-size:13px;font-weight:600;color:#222;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-        .cc-stars{font-size:11px;color:#C9951A;font-weight:600;margin-bottom:3px;}
+        .cc-name{font-size:13px;font-weight:600;color:#222;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'Archivo',sans-serif;}
+        .cc-stars{font-size:11px;color:var(--sign-dark);font-weight:600;margin-bottom:3px;}
         .cc-addr{font-size:10px;color:#BBB;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
         .sk{background:linear-gradient(90deg,#F0EDE8 25%,#E8E4DD 50%,#F0EDE8 75%);background-size:200% 100%;animation:sh 1.5s infinite;border-radius:14px;}
         @keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
-        .empty{text-align:center;padding:56px 20px;color:#AAA;}
+        .empty{text-align:center;padding:56px 20px;color:var(--muted);}
         .empty-ico{font-size:48px;margin-bottom:14px;}
         .empty-title{font-size:16px;font-weight:600;color:#555;margin-bottom:6px;}
         .empty-sub{font-size:13px;line-height:1.7;margin-bottom:16px;}
-        .btn-clear{display:inline-block;padding:9px 22px;background:#FEF3E2;color:#C9951A;border:1px solid #C9951A;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;}
+        .btn-clear{display:inline-block;padding:9px 22px;background:var(--concrete-2);color:var(--sign-dark);border:1px solid var(--sign-dark);border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Archivo',sans-serif;}
       `}</style>
 
       {/* TOPBAR */}
@@ -133,7 +133,7 @@ export default function SubcategoriaPageClient({ subcat, companies }: Props) {
       <div className="search-wrap">
         <div className="search-inner">
           <div className="search-box">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9951A" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input
               type="text"
               placeholder={`Buscar ${subcat.name}...`}
@@ -190,7 +190,7 @@ export default function SubcategoriaPageClient({ subcat, companies }: Props) {
               </button>
             )}
             <div style={{marginTop:16}}>
-              <a href={`/categoria/${subcat.category.slug}`} style={{color:'#C9951A',fontSize:13,textDecoration:'none'}}>
+              <a href={`/categoria/${subcat.category.slug}`} style={{color:'var(--sign-dark)',fontSize:13,textDecoration:'none'}}>
                 ← Ver todos em {subcat.category.name}
               </a>
             </div>

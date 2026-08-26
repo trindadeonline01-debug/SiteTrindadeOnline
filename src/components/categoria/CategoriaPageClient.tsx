@@ -13,7 +13,7 @@ type Company     = {
 }
 
 /* ── SVG por slug de categoria (mesmo estilo da home) ── */
-function CategorySVG({ slug, size = 56, color = '#C9951A' }: { slug: string; size?: number; color?: string }) {
+function CategorySVG({ slug, size = 56, color = 'var(--sign)' }: { slug: string; size?: number; color?: string }) {
   const s = { width: size, height: size, stroke: color, strokeWidth: 0.8, fill: "none", strokeLinecap: "round" as const, strokeLinejoin: "round" as const, flexShrink: 0 }
   const paths: Record<string, React.ReactElement> = {
     comercios: (
@@ -128,34 +128,34 @@ export default function CategoriaPageClient({ slug, category, subcats, companies
     <>
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Inter', sans-serif; background: #F0EDE8; }
+        body { font-family: 'Archivo', sans-serif; background: var(--concrete); }
 
         /* ── TOPBAR ── */
-        .topbar { background: #111; z-index: 50; }
+        .topbar { background: var(--ink); z-index: 50; }
         .topbar-inner { max-width: 1200px; margin: 0 auto; padding: 13px 24px; display: flex; align-items: center; justify-content: center; gap: 16px; }
         .t-bc { display: flex; align-items: center; gap: 7px; font-size: 13px; }
-        .t-bc a { color: #C9951A; font-weight: 700; text-decoration: none; }
+        .t-bc a { color: var(--sign); font-weight: 700; text-decoration: none; }
         .t-bc a:hover { text-decoration: underline; }
         .t-bc-sep { color: #444; font-size: 14px; }
         .t-bc-cur { color: #fff; font-weight: 700; }
         .t-actions { display: none; align-items: center; gap: 8px; }
         @media(min-width: 768px) { .t-actions { display: flex; } }
-        .t-btn-entrar { color: #C9951A; font-size: 13px; font-weight: 600; border: 1.5px solid #C9951A; border-radius: 10px; padding: 7px 14px; text-decoration: none; }
-        .t-btn-cad { background: #C9951A; color: #fff; font-size: 13px; font-weight: 600; border-radius: 10px; padding: 8px 14px; text-decoration: none; }
+        .t-btn-entrar { color: var(--sign); font-size: 13px; font-weight: 600; border: 1.5px solid var(--sign); border-radius: 10px; padding: 7px 14px; text-decoration: none; }
+        .t-btn-cad { background: var(--sign); color: var(--ink); font-size: 13px; font-weight: 700; border-radius: 10px; padding: 8px 14px; text-decoration: none; }
 
         /* ── HERO centralizado ── */
-        .cat-hero { background: #111; padding: 32px 24px 28px; border-bottom: 2px solid #C9951A; }
+        .cat-hero { background: var(--ink); padding: 32px 24px 28px; border-bottom: 2px solid var(--sign); }
         .cat-hero-inner { display: flex; align-items: center; justify-content: center; gap: 18px; }
-        .cat-nm { font-family: 'Bebas Neue', sans-serif; font-size: clamp(32px,5vw,48px); color: #fff; letter-spacing: 3px; line-height: 1; margin-bottom: 6px; }
-        .cat-cnt { font-size: 13px; color: #666; }
-        .cat-cnt span { color: #C9951A; font-weight: 600; }
+        .cat-nm { font-family: 'Anton', sans-serif; font-size: clamp(32px,5vw,48px); color: #fff; letter-spacing: 1px; text-transform: uppercase; line-height: 1; margin-bottom: 6px; }
+        .cat-cnt { font-size: 13px; color: #666; font-family: 'Archivo', sans-serif; }
+        .cat-cnt span { color: var(--sign); font-weight: 600; }
 
         /* ── BUSCA ── */
-        .search-bar-wrap { background: #F0EDE8; padding: 0 24px; }
+        .search-bar-wrap { background: var(--concrete); padding: 0 24px; }
         .search-bar-inner { max-width: 640px; margin: 0 auto; transform: translateY(-20px); }
-        .search-bar { display: flex; align-items: center; gap: 10px; background: #fff; border: 2px solid #C9951A; border-radius: 30px; padding: 13px 20px; box-shadow: 0 4px 20px rgba(0,0,0,.12); }
-        .search-bar input { flex: 1; border: none; background: transparent; font-size: 15px; font-family: 'Inter', sans-serif; color: #222; outline: none; }
-        .search-bar input::placeholder { color: #BBB; }
+        .search-bar { display: flex; align-items: center; gap: 10px; background: var(--sign); border: 2.5px solid var(--ink); border-radius: 14px; padding: 13px 20px; box-shadow: 4px 4px 0 var(--ink); }
+        .search-bar input { flex: 1; border: none; background: transparent; font-size: 15px; font-family: 'Archivo', sans-serif; font-weight: 500; color: var(--ink); outline: none; }
+        .search-bar input::placeholder { color: var(--ink-2); opacity: .55; }
 
         .page { max-width: 1200px; margin: 0 auto; padding: 8px 24px 48px; }
 
@@ -167,47 +167,47 @@ export default function CategoriaPageClient({ slug, category, subcats, companies
           .search-bar input { font-size: 13px; }
         }
 
-        .sec-label { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: #AAA; letter-spacing: 1.5px; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
+        .sec-label { font-family: 'Anton', sans-serif; font-size: 20px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
         .sec-label::after { content: ''; flex: 1; height: 0.5px; background: #ddd; }
 
         /* DESTAQUES — carrossel */
         .dest-grid { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; margin-bottom: 28px; }
         .dest-grid::-webkit-scrollbar { display: none; }
-        .dest-card { flex-shrink: 0; width: 140px; background: #fff; border: 1.5px solid #C9951A; border-radius: 12px; overflow: hidden; text-decoration: none; display: block; transition: all .18s; }
+        .dest-card { flex-shrink: 0; width: 140px; background: var(--paper); border: 1.5px solid var(--sign-dark); border-radius: 12px; overflow: hidden; text-decoration: none; display: block; transition: all .18s; }
         .dest-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,.1); }
         @media(min-width: 768px) { .dest-card { width: 180px; } }
-        .dest-img { width: 100%; height: 117px; background: #FEF3E2; display: flex; align-items: center; justify-content: center; font-size: 32px; overflow: hidden; position: relative; }
+        .dest-img { width: 100%; height: 117px; background: var(--concrete-2); display: flex; align-items: center; justify-content: center; font-size: 32px; overflow: hidden; position: relative; }
         .dest-img img { width: 100%; height: 100%; object-fit: cover; }
-        .dest-badge { position: absolute; top: 6px; left: 6px; background: #C9951A; color: #111; font-size: 8px; font-weight: 700; padding: 2px 6px; border-radius: 3px; letter-spacing: 0.5px; }
+        .dest-badge { position: absolute; top: 6px; left: 6px; background: var(--sign); color: var(--ink); font-size: 8px; font-weight: 700; padding: 2px 6px; border-radius: 3px; letter-spacing: 0.5px; }
         .dest-body { padding: 8px 10px; }
-        .dest-name { font-size: 11px; font-weight: 600; color: #111; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .dest-stars { font-size: 10px; color: #C9951A; font-weight: 600; }
+        .dest-name { font-size: 11px; font-weight: 600; color: var(--ink); margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: 'Archivo', sans-serif; }
+        .dest-stars { font-size: 10px; color: var(--sign-dark); font-weight: 600; }
 
         /* SUBCATEGORIAS */
-        .subcat-wrap { background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 16px 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 24px; }
+        .subcat-wrap { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 16px 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 24px; }
         .subcat-pills { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin-bottom: 20px; }
-        .subcat-pill { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 10px 6px; border-radius: 12px; border: 0.5px solid #E0DDD8; background: #fff; cursor: pointer; text-align: center; transition: all .15s; min-height: 70px; }
-        .subcat-pill:hover { border-color: #C9951A; background: #FEF3E2; }
-        .subcat-pill.on { background: #FEF3E2; border-color: #F5C77A; font-weight: 600; }
+        .subcat-pill { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 10px 6px; border-radius: 12px; border: 0.5px solid var(--line); background: var(--paper); cursor: pointer; text-align: center; transition: all .15s; min-height: 70px; }
+        .subcat-pill:hover { border-color: var(--sign-dark); background: var(--concrete-2); }
+        .subcat-pill.on { background: var(--concrete-2); border-color: var(--sign-dark); font-weight: 600; }
         .subcat-pill-emoji { font-size: 24px; line-height: 1; }
         .subcat-pill-name { font-size: 10px; line-height: 1.2; font-weight: 500; color: #555; }
-        .subcat-pill.on .subcat-pill-name { color: #854F0B; font-weight: 600; }
+        .subcat-pill.on .subcat-pill-name { color: var(--sign-dark); font-weight: 600; }
         .subcat-emoji-box { width: 48px; height: 48px; border-radius: 10px; border: 1.5px solid #e0e0e0; background: #fafafa; display: flex; align-items: center; justify-content: center; font-size: 24px; transition: border-color 0.15s; }
         .subcat-label { font-size: 10.5px; color: #555; text-align: center; line-height: 1.3; font-weight: 500; transition: color 0.15s; }
 
-        .result-cnt { font-size: 13px; color: #AAA; margin-bottom: 16px; }
-        .result-cnt span { color: #111; font-weight: 600; }
+        .result-cnt { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+        .result-cnt span { color: var(--ink); font-weight: 600; }
 
         /* EMPRESAS EM LISTA */
         .companies-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
         @media(min-width: 640px) { .companies-grid { grid-template-columns: repeat(2,1fr); } }
-        .cc { background: #fff; border: 0.5px solid #E0DDD8; border-radius: 12px; overflow: hidden; text-decoration: none; transition: all .18s; display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
-        .cc:hover { border-color: #C9951A; background: #FDFBF7; }
-        .cc-img { width: 56px; height: 56px; border-radius: 10px; background: #FEF3E2; display: flex; align-items: center; justify-content: center; font-size: 26px; overflow: hidden; flex-shrink: 0; border: 0.5px solid #E0DDD8; position: relative; }
+        .cc { background: var(--paper); border: 0.5px solid var(--line); border-radius: 12px; overflow: hidden; text-decoration: none; transition: all .18s; display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
+        .cc:hover { border-color: var(--sign-dark); background: #FDFBF7; }
+        .cc-img { width: 56px; height: 56px; border-radius: 10px; background: var(--concrete-2); display: flex; align-items: center; justify-content: center; font-size: 26px; overflow: hidden; flex-shrink: 0; border: 0.5px solid var(--line); position: relative; }
         .cc-img img { width: 100%; height: 100%; object-fit: cover; }
         .cc-body { flex: 1; min-width: 0; }
-        .cc-name { font-size: 15px; font-weight: 600; color: #111; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .cc-stars { font-size: 13px; color: #C9951A; font-weight: 600; margin-bottom: 4px; }
+        .cc-name { font-size: 15px; font-weight: 600; color: var(--ink); margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: 'Archivo', sans-serif; }
+        .cc-stars { font-size: 13px; color: var(--sign-dark); font-weight: 600; margin-bottom: 4px; }
         .cc-subs { display: flex; gap: 5px; flex-wrap: nowrap; overflow: hidden; margin-top: 4px; }
         .cc-sub { font-size: 12px; background: #F5F2EC; color: #555; padding: 3px 9px; border-radius: 10px; white-space: nowrap; flex-shrink: 0; }
         .cc-addr { font-size: 11px; color: #BBB; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -216,11 +216,11 @@ export default function CategoriaPageClient({ slug, category, subcats, companies
         .sk { background: linear-gradient(90deg,#F0EDE8 25%,#E8E4DD 50%,#F0EDE8 75%); background-size: 200% 100%; animation: sh 1.5s infinite; border-radius: 12px; }
         @keyframes sh { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 
-        .empty { text-align: center; padding: 56px 20px; color: #AAA; }
+        .empty { text-align: center; padding: 56px 20px; color: var(--muted); }
         .empty-ico { font-size: 48px; margin-bottom: 14px; }
         .empty-title { font-size: 16px; font-weight: 600; color: #555; margin-bottom: 6px; }
         .empty-sub { font-size: 13px; line-height: 1.7; }
-        .btn-clear { margin-top: 16px; display: inline-block; padding: 9px 22px; background: #FEF3E2; color: #C9951A; border: 1px solid #C9951A; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif; }
+        .btn-clear { margin-top: 16px; display: inline-block; padding: 9px 22px; background: var(--concrete-2); color: var(--sign-dark); border: 1px solid var(--sign-dark); border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'Archivo', sans-serif; }
       `}</style>
 
       {/* TOPBAR */}
@@ -241,7 +241,7 @@ export default function CategoriaPageClient({ slug, category, subcats, companies
       {/* HERO centralizado com SVG */}
       <div className="cat-hero">
         <div className="cat-hero-inner">
-          <CategorySVG slug={slug} size={56} color="#C9951A" />
+          <CategorySVG slug={slug} size={56} color="var(--sign)" />
           <div>
             <div className="cat-nm">{category.name}</div>
             <div className="cat-cnt">
@@ -255,7 +255,7 @@ export default function CategoriaPageClient({ slug, category, subcats, companies
       <div className="search-bar-wrap">
         <div className="search-bar-inner">
           <div className="search-bar">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9951A" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input
               type="text"
               placeholder={`Buscar dentro de ${category.name}...`}
@@ -264,10 +264,10 @@ export default function CategoriaPageClient({ slug, category, subcats, companies
               onKeyDown={e => e.key === 'Enter' && handleSearch({ target: { value: search } } as any)}
             />
             {search && (
-              <button onClick={() => { setSearch(''); setFiltered(companies) }} style={{ background:'none', border:'none', cursor:'pointer', color:'#AAA', fontSize:18, lineHeight:1 }}>✕</button>
+              <button onClick={() => { setSearch(''); setFiltered(companies) }} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink-2)', fontSize:18, lineHeight:1 }}>✕</button>
             )}
             <button onClick={() => handleSearch({ target: { value: search } } as any)}
-              style={{background:'#C9951A',border:'none',borderRadius:20,padding:'7px 18px',color:'#fff',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',whiteSpace:'nowrap'}}>
+              style={{background:'var(--ink)',border:'none',borderRadius:10,padding:'7px 18px',color:'var(--sign)',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'Archivo,sans-serif',whiteSpace:'nowrap'}}>
               Buscar
             </button>
           </div>
@@ -354,7 +354,7 @@ export default function CategoriaPageClient({ slug, category, subcats, companies
               <span style={{fontSize:12,color:'#999',fontWeight:500}}>Ordenar:</span>
               {([['az','A–Z'],['rating','⭐ Avaliado'],['recent','🕐 Recente']] as const).map(([v,l])=>(
                 <button key={v} onClick={()=>setSortOrder(v)}
-                  style={{padding:'7px 14px',borderRadius:20,border:'1.5px solid',borderColor:sortOrder===v?'#C9951A':'#E0DDD8',background:sortOrder===v?'#FEF3E2':'#fff',color:sortOrder===v?'#854F0B':'#888',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',whiteSpace:'nowrap'}}>
+                  style={{padding:'7px 14px',borderRadius:20,border:'1.5px solid',borderColor:sortOrder===v?'var(--sign-dark)':'#E0DDD8',background:sortOrder===v?'var(--concrete-2)':'#fff',color:sortOrder===v?'var(--sign-dark)':'#888',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'Archivo,sans-serif',whiteSpace:'nowrap'}}>
                   {l}
                 </button>
               ))}
@@ -396,10 +396,10 @@ export default function CategoriaPageClient({ slug, category, subcats, companies
                   {c.plan === 'paid' ? (
                     <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:2,flexShrink:0}}>
                       <svg width="48" height="48" viewBox="0 0 64 64" fill="none">
-                        <circle cx="32" cy="32" r="28" stroke="#C9951A" strokeWidth="5" fill="none"/>
-                        <path d="M18 32 L27 42 L46 22" stroke="#C9951A" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <circle cx="32" cy="32" r="28" stroke="var(--sign-dark)" strokeWidth="5" fill="none"/>
+                        <path d="M18 32 L27 42 L46 22" stroke="var(--sign-dark)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
-                      <span style={{fontSize:8,fontWeight:700,color:'#C9951A',letterSpacing:'.8px',textTransform:'uppercase'}}>Indicado</span>
+                      <span style={{fontSize:8,fontWeight:700,color:'var(--sign-dark)',letterSpacing:'.8px',textTransform:'uppercase'}}>Indicado</span>
                     </div>
                   ) : (
                     <svg className="cc-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
@@ -411,8 +411,8 @@ export default function CategoriaPageClient({ slug, category, subcats, companies
             <div>
               {pagas.length > 0 && (
                 <>
-                  <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:13,color:'#C9951A',letterSpacing:'1.5px',marginBottom:10,display:'flex',alignItems:'center',gap:8}}>
-                    <svg width="16" height="16" viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="28" stroke="#C9951A" strokeWidth="5" fill="none"/><path d="M18 32 L27 42 L46 22" stroke="#C9951A" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:11,color:'var(--sign-dark)',letterSpacing:'.08em',marginBottom:10,display:'flex',alignItems:'center',gap:8}}>
+                    <svg width="16" height="16" viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="28" stroke="var(--sign-dark)" strokeWidth="5" fill="none"/><path d="M18 32 L27 42 L46 22" stroke="var(--sign-dark)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     EMPRESAS INDICADAS ({pagas.length})
                   </div>
                   <div className="companies-grid" style={{marginBottom:24}}>{pagas.map(c => renderCard(c))}</div>
@@ -420,7 +420,7 @@ export default function CategoriaPageClient({ slug, category, subcats, companies
               )}
               {outras.length > 0 && (
                 <>
-                  <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:13,color:'#AAA',letterSpacing:'1.5px',marginBottom:10,marginTop:pagas.length>0?8:0}}>
+                  <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:11,color:'#AAA',letterSpacing:'.08em',marginBottom:10,marginTop:pagas.length>0?8:0}}>
                     OUTRAS EMPRESAS ({outras.length})
                   </div>
                   <div className="companies-grid">{outras.map(c => renderCard(c))}</div>

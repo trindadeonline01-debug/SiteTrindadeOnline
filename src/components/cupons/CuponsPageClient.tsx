@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import Footer from '@/components/Footer'
 import { supabase } from '@/lib/supabase'
 import ShareButton from '@/components/ShareButton'
@@ -7,7 +8,7 @@ import ShareButton from '@/components/ShareButton'
 type Coupon = {
   id: string; title: string; discount_type: string; discount_value: number
   total_qty: number; qty_per_person: number; expires_at: string; active: boolean; min_purchase?: number
-  company: { id: string; name: string; phone?: string; category?: { name: string; emoji: string } }
+  company: { id: string; name: string; phone?: string; category?: { name: string; emoji: string }; photos?: { url: string; order: number }[] }
 }
 
 type RankingItem = {
@@ -45,10 +46,15 @@ export default function CuponsPageClient({ embedded, search }: { embedded?: bool
 
   async function loadCoupons() {
     const { data } = await supabase.from('coupons')
-      .select('*, company:companies(id,name,phone,category:categories(name,emoji))')
+      .select('*, company:companies(id,name,phone,category:categories(name,emoji),photos:company_photos(url,order))')
       .eq('active', true).gt('expires_at', new Date().toISOString())
       .order('created_at', { ascending: false })
     setCoupons((data || []) as Coupon[]); setLoading(false)
+  }
+
+  function getCover(photos?: { url: string; order: number }[]): string | null {
+    if (!photos?.length) return null
+    return [...photos].sort((a, b) => a.order - b.order)[0]?.url || null
   }
 
   async function loadRanking() {
@@ -184,7 +190,10 @@ export default function CuponsPageClient({ embedded, search }: { embedded?: bool
         @media(min-width:1024px){.grid{grid-template-columns:repeat(3,1fr);}}
         .of-card{background:var(--paper);border:1px solid var(--line);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;}
         .of-tag{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:6px 12px;color:#fff;background:var(--alert);}
-        .of-body{padding:13px;flex:1;}
+        .of-body{padding:13px;flex:1;display:flex;gap:10px;align-items:flex-start;}
+        .of-img{width:44px;height:44px;border-radius:8px;overflow:hidden;flex-shrink:0;background:var(--concrete-2);display:flex;align-items:center;justify-content:center;font-size:18px;position:relative;}
+        .of-img img{width:100%;height:100%;object-fit:cover;}
+        .of-text{flex:1;min-width:0;}
         .of-who{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;}
         .of-title{font-family:'Anton',sans-serif;font-size:17px;margin:0 0 4px;line-height:1.1;text-transform:uppercase;color:var(--ink);}
         .of-ft{padding:10px 13px;border-top:1px dashed var(--line);display:flex;justify-content:space-between;align-items:center;font-size:11.5px;}
@@ -332,12 +341,18 @@ export default function CuponsPageClient({ embedded, search }: { embedded?: bool
             <div className="grid">
               {filtered.map(c => {
                 const already = myRedemptions.includes(c.id)
+                const cover = getCover(c.company?.photos)
                 return (
                   <div key={c.id} className="of-card" style={already?{opacity:.7}:{}}>
                     <span className="of-tag">🎟️ CUPOM RELÂMPAGO</span>
                     <div className="of-body">
-                      <div className="of-who">{c.company?.name}</div>
-                      <div className="of-title">{c.title}</div>
+                      <div className="of-img">
+                        {cover ? <Image src={cover} alt="" fill sizes="44px" unoptimized style={{objectFit:'cover'}} /> : '🎟️'}
+                      </div>
+                      <div className="of-text">
+                        <div className="of-who">{c.company?.name}</div>
+                        <div className="of-title">{c.title}</div>
+                      </div>
                     </div>
                     <div className="of-ft">
                       <span className="l">⏱ {timeLeft(c.expires_at)} · {c.total_qty} cupons</span>

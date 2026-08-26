@@ -90,7 +90,6 @@ export default function EmpresaShell({
         { key: 'dashboard', href: '/painel', ico: '🏠', lbl: 'Início' },
         { key: 'avaliacoes', href: '/painel?tab=avaliacoes', ico: '⭐', lbl: 'Avaliações', badge: avaliacoesBadge },
         { key: 'cupons', href: '/painel?tab=cupons', ico: '🎟️', lbl: 'Cupons' },
-        { key: 'promocoes', href: '/painel?tab=promocoes', ico: '🏷️', lbl: 'Promoções' },
       ]
   const mobileTabKeys = mobileTabs.map(t => t.key)
   const maisActive = !mobileTabKeys.includes(active)
@@ -184,7 +183,6 @@ export default function EmpresaShell({
 
           <div className="es-group-lbl">Crescer</div>
           <NavItem href="/painel?tab=cupons" active={active === 'cupons'}>🎟️ Cupons</NavItem>
-          <NavItem href="/painel?tab=promocoes" active={active === 'promocoes'}>🏷️ Promoções</NavItem>
           <NavItem href="/painel?tab=destaques" active={active === 'destaques'}>🌟 Destaques</NavItem>
           <NavItem href="/painel?tab=banners" active={active === 'banners'}>🖼️ Banners</NavItem>
 

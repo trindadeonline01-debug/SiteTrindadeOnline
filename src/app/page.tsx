@@ -38,8 +38,8 @@ interface Banner {
 
 interface Oferta {
   id: string; kind: 'cupom' | 'promocao'; title: string; expires_at: string
-  discount_type?: string; discount_value?: number
-  company: { name: string; slug: string } | null
+  discount_type?: string; discount_value?: number; image_url?: string | null
+  company: { name: string; slug: string; photos?: { url: string; order: number }[] } | null
 }
 
 // Categorias fixas da home (KNOWLEDGE_BASE.md §1) — as 4 primeiras contam
@@ -80,6 +80,13 @@ function shuffle<T>(arr: T[]): T[] {
 function fmtDesconto(o: Oferta) {
   if (o.kind !== 'cupom' || o.discount_value == null) return null
   return o.discount_type === 'fixed' ? `R$ ${o.discount_value.toFixed(2).replace('.', ',')} off` : `${o.discount_value}% off`
+}
+
+function ofertaCover(o: Oferta): string | null {
+  if (o.image_url) return o.image_url
+  const photos = o.company?.photos
+  if (!photos?.length) return null
+  return [...photos].sort((a, b) => a.order - b.order)[0]?.url || null
 }
 
 function tempoRestante(expiresAt: string) {
@@ -124,7 +131,7 @@ export default async function HomePage() {
 
   const nowIso = new Date().toISOString()
 
-  const [bannersRes, paidResults, listingResults, pulseRes, settingsRes, newCompaniesRes, companiesCountRes, searchesCountRes, waClicksCountRes, couponsRes, promotionsRes, catCounts] = await Promise.all([
+  const [bannersRes, paidResults, listingResults, pulseRes, settingsRes, newCompaniesRes, companiesCountRes, searchesCountRes, waClicksCountRes, couponsRes, catCounts] = await Promise.all([
     supabaseServer.from('banners').select('*').eq('active', true).order('display_order'),
     Promise.all(PAID_CAROUSELS.map(([categoryId]) =>
       supabaseServer.from('companies')
@@ -150,15 +157,13 @@ export default async function HomePage() {
     supabaseServer.from('companies').select('id', { count: 'exact', head: true }).eq('status', 'active'),
     supabaseServer.from('search_logs').select('id', { count: 'exact', head: true }).gte('created_at', thirtyDaysAgo),
     supabaseServer.from('whatsapp_clicks').select('id', { count: 'exact', head: true }).gte('created_at', thirtyDaysAgo),
-    // Ofertas do bairro — cupons e promoções ativos de verdade, no lugar dos
-    // dois banners fixos de imagem (pareciam arte de banco pronta)
+    // Ofertas do bairro — cupons ativos de verdade, no lugar dos dois
+    // banners fixos de imagem (pareciam arte de banco pronta). Promoções
+    // da Semana ficou fora daqui a pedido do Ricardo (set/2026) — visual
+    // ainda não tem um formato bom, desligado até segunda ordem.
     supabaseServer.from('coupons')
-      .select('id,title,discount_type,discount_value,expires_at,company:companies(name,slug)')
+      .select('id,title,discount_type,discount_value,expires_at,company:companies(name,slug,photos:company_photos(url,order))')
       .eq('active', true).gt('expires_at', nowIso)
-      .order('created_at', { ascending: false }).limit(6),
-    supabaseServer.from('promotions')
-      .select('id,title,expires_at,company:companies(name,slug)')
-      .eq('status', 'active').lte('starts_at', nowIso).gte('expires_at', nowIso)
       .order('created_at', { ascending: false }).limit(6),
     // Contagem por categoria/tipo pros cards de categoria (empresas ativas
     // ou, pra Comunidade, anúncios/vagas ativos)
@@ -212,12 +217,12 @@ export default async function HomePage() {
     paidCompanies[key] = shuffle(comFoto).slice(0, PAID_CAROUSEL_SIZE)
   })
 
-  // Ofertas do bairro — cupom e promoção viram uma lista só, mais recentes
-  // primeiro, no lugar dos dois banners de imagem fixa
-  const ofertas: Oferta[] = [
-    ...((couponsRes.data || []) as any[]).map(c => ({ id: c.id, kind: 'cupom' as const, title: c.title, expires_at: c.expires_at, discount_type: c.discount_type, discount_value: c.discount_value, company: c.company })),
-    ...((promotionsRes.data || []) as any[]).map(p => ({ id: p.id, kind: 'promocao' as const, title: p.title, expires_at: p.expires_at, company: p.company })),
-  ].slice(0, 6)
+  // Ofertas do bairro — só cupons por enquanto (Promoções da Semana
+  // desligada, ver comentário na query acima), no lugar dos dois banners
+  // de imagem fixa
+  const ofertas: Oferta[] = ((couponsRes.data || []) as any[])
+    .map(c => ({ id: c.id, kind: 'cupom' as const, title: c.title, expires_at: c.expires_at, discount_type: c.discount_type, discount_value: c.discount_value, company: c.company }))
+    .slice(0, 6)
 
   const categoryCounts: Record<string, number> = {}
   CAT_DEFS.forEach((c, i) => { categoryCounts[c.slug] = catCounts[i].count || 0 })
@@ -424,7 +429,10 @@ export default async function HomePage() {
         .of-tag { font-size: 9.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 6px 12px; color: #fff; }
         .of-tag.cupom { background: var(--alert); }
         .of-tag.promo { background: var(--ink); }
-        .of-body { padding: 13px; flex: 1; }
+        .of-body { padding: 13px; flex: 1; display: flex; gap: 10px; align-items: flex-start; }
+        .of-img { width: 44px; height: 44px; border-radius: 8px; overflow: hidden; flex-shrink: 0; background: var(--concrete-2); display: flex; align-items: center; justify-content: center; font-size: 18px; position: relative; }
+        .of-img img { width: 100%; height: 100%; object-fit: cover; }
+        .of-text { flex: 1; min-width: 0; }
         .of-who { font-size: 11px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 5px; }
         .of-title { font-family: 'Anton', sans-serif; font-size: 17px; margin: 0 0 4px; line-height: 1.1; text-transform: uppercase; color: var(--ink); }
         .of-ft { padding: 10px 13px; border-top: 1px dashed var(--line); display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; }
@@ -639,21 +647,29 @@ export default async function HomePage() {
               <a href="/ofertas" className="sec-link">Ver todas →</a>
             </div>
             <div className="offs-grid">
-              {ofertas.map(o => (
+              {ofertas.map(o => {
+                const cover = ofertaCover(o)
+                return (
                 <a key={`${o.kind}-${o.id}`} className="of-card" href="/ofertas">
                   <span className={`of-tag ${o.kind === 'cupom' ? 'cupom' : 'promo'}`}>
                     {o.kind === 'cupom' ? '⚡ Cupom relâmpago' : '🏷️ Promoção da semana'}
                   </span>
                   <div className="of-body">
-                    <div className="of-who">{o.company?.name || 'Trindade Online'}</div>
-                    <div className="of-title">{o.title}</div>
+                    <div className="of-img">
+                      {cover ? <Image src={cover} alt="" fill sizes="44px" unoptimized style={{objectFit:'cover'}} /> : (o.kind === 'cupom' ? '🎟️' : '🏷️')}
+                    </div>
+                    <div className="of-text">
+                      <div className="of-who">{o.company?.name || 'Trindade Online'}</div>
+                      <div className="of-title">{o.title}</div>
+                    </div>
                   </div>
                   <div className="of-ft">
                     <span className="l">{tempoRestante(o.expires_at)}</span>
                     {fmtDesconto(o) ? <span className="g">{fmtDesconto(o)}</span> : <span className="g">Ver oferta</span>}
                   </div>
                 </a>
-              ))}
+                )
+              })}
             </div>
           </div>
         )}

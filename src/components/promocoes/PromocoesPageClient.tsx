@@ -97,7 +97,10 @@ export default function PromocoesPageClient({ initialPromos, embedded, search }:
     .of-card{background:var(--paper);border:1px solid var(--line);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;text-decoration:none;transition:border-color .15s,transform .15s;}
     .of-card:hover{border-color:var(--ink);transform:translateY(-2px);}
     .of-tag{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:6px 12px;color:#fff;background:var(--ink);}
-    .of-body{padding:13px;flex:1;}
+    .of-body{padding:13px;flex:1;display:flex;gap:10px;align-items:flex-start;}
+    .of-img{width:44px;height:44px;border-radius:8px;overflow:hidden;flex-shrink:0;background:var(--concrete-2);display:flex;align-items:center;justify-content:center;font-size:18px;position:relative;}
+    .of-img img{width:100%;height:100%;object-fit:cover;}
+    .of-text{flex:1;min-width:0;}
     .of-who{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;}
     .of-title{font-family:'Anton',sans-serif;font-size:17px;margin:0 0 4px;line-height:1.1;text-transform:uppercase;color:var(--ink);}
     .of-ft{padding:10px 13px;border-top:1px dashed var(--line);display:flex;justify-content:space-between;align-items:center;font-size:11.5px;}
@@ -144,8 +147,13 @@ export default function PromocoesPageClient({ initialPromos, embedded, search }:
                 <a key={p.id} className="of-card" href={'/empresa/'+p.company?.slug}>
                   <span className="of-tag">🏷️ PROMOÇÃO DA SEMANA</span>
                   <div className="of-body">
-                    <div className="of-who">{p.company?.name}</div>
-                    <div className="of-title">{p.title}</div>
+                    <div className="of-img">
+                      {p.image_url ? <Image src={p.image_url} alt="" fill sizes="44px" unoptimized style={{objectFit:'cover'}} /> : (p.company?.category?.emoji || '🏷️')}
+                    </div>
+                    <div className="of-text">
+                      <div className="of-who">{p.company?.name}</div>
+                      <div className="of-title">{p.title}</div>
+                    </div>
                   </div>
                   <div className="of-ft">
                     <span className="l">até {new Date(p.expires_at).toLocaleDateString('pt-BR')}</span>

@@ -1,20 +1,16 @@
 'use client'
 import { useState } from 'react'
 import CuponsPageClient from '@/components/cupons/CuponsPageClient'
-import PromocoesPageClient from '@/components/promocoes/PromocoesPageClient'
 import Footer from '@/components/Footer'
 
-type Promotion = {
-  id: string; title: string; image_url: string; starts_at: string; expires_at: string
-  company: { id: string; name: string; slug: string; category?: { name: string; emoji: string } }
-}
-
-// Página unificada de Ofertas (ESPECIFICACAO.md §4.1/§5.1) — mesma
-// linguagem visual da página de categoria: hero escuro centralizado com
-// busca sobreposta, depois cupons e promoções empilhados (não mais em
-// abas), cada seção reaproveitando o client component já existente em
-// modo "embedded" (sem hero/rodapé próprios).
-export default function OfertasPageClient({ initialPromos }: { initialPromos: Promotion[] }) {
+// Página de Ofertas (ESPECIFICACAO.md §4.1/§5.1) — mesma linguagem visual
+// da página de categoria: hero escuro centralizado com busca sobreposta,
+// depois os cupons, reaproveitando o client component já existente em
+// modo "embedded" (sem hero/rodapé próprios). Promoções da Semana ficou
+// fora daqui a pedido do Ricardo (set/2026) — desligada até segunda
+// ordem, sem formato bom ainda; PromocoesPageClient continua existindo,
+// é só voltar a renderizar aqui quando tiver um formato aprovado.
+export default function OfertasPageClient() {
   const [search, setSearch] = useState('')
 
   return (
@@ -39,22 +35,21 @@ export default function OfertasPageClient({ initialPromos }: { initialPromos: Pr
       `}</style>
 
       <div className="of-hero">
-        <div className="of-hero-ico">🎟️🏷️</div>
+        <div className="of-hero-ico">🎟️</div>
         <div className="of-hero-title">OFERTAS <span>DO BAIRRO</span></div>
-        <div className="of-hero-sub">Cupons relâmpago e promoções da semana das empresas da Trindade</div>
+        <div className="of-hero-sub">Cupons relâmpago das empresas da Trindade</div>
       </div>
       <div className="of-search-wrap">
         <div className="of-search-inner">
           <div className="of-search">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" placeholder="Buscar cupom, promoção ou empresa..." value={search} onChange={e => setSearch(e.target.value)} />
+            <input type="text" placeholder="Buscar cupom ou empresa..." value={search} onChange={e => setSearch(e.target.value)} />
             {search && <button className="of-search-btn" onClick={() => setSearch('')}>✕</button>}
           </div>
         </div>
       </div>
 
       <CuponsPageClient embedded search={search} />
-      <PromocoesPageClient embedded search={search} initialPromos={initialPromos} />
       <Footer />
     </div>
   )

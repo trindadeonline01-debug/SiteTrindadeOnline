@@ -367,6 +367,10 @@ DELETE FROM companies WHERE slug LIKE '%-teste';
 
 ---
 
+### Redesenho do site (jul-ago/2026) — ver `docs/ESPECIFICACAO.md` e `docs/PLANO_IMPLEMENTACAO_REDESIGN.md`
+Fases 0, 1, 2 e 3 completas e publicadas (header com busca+bairro, menu de 3 famílias, painel reorganizado, entidade Interesse, índice de produtos). Um ponto que precisa de ação manual do Ricardo quando chegar a hora:
+- **Busca por produto está construída mas desligada de propósito** (ESPECIFICACAO.md §7.4 — vitrine com poucos catálogos "queima a ideia"). Pra ligar: `update feature_flags set enabled = true where key = 'busca_produtos_enabled';` — sem precisar de deploy, é só isso.
+
 ## 10. PADRÕES TÉCNICOS CRÍTICOS
 
 ### TypeScript fix padrão (Supabase joins retornam array)

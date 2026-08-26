@@ -8,14 +8,14 @@ import { useEffect, useRef } from 'react'
 export type EmpresaNavKey =
   | 'dashboard' | 'perfil' | 'avaliacoes' | 'destaques' | 'banners'
   | 'compartilhar' | 'catalogo' | 'pedidos' | 'cozinha' | 'entrega' | 'mensagens' | 'clientes'
-  | 'cupons' | 'promocoes' | 'plano'
+  | 'interesses' | 'cupons' | 'promocoes' | 'plano'
 
 type Company = { id: string; name: string; slug?: string }
 
 const TITLES: Record<EmpresaNavKey, string> = {
   dashboard: 'Visão geral', perfil: 'Perfil e fotos', avaliacoes: 'Avaliações', destaques: 'Destaques',
   banners: 'Banners', compartilhar: 'Compartilhar cardápio', catalogo: 'Catálogo', pedidos: 'Pedidos',
-  cozinha: 'Cozinha', entrega: 'Entrega', mensagens: 'Mensagens', clientes: 'Clientes', cupons: 'Cupons', promocoes: 'Promoções', plano: 'Plano',
+  cozinha: 'Cozinha', entrega: 'Entrega', mensagens: 'Mensagens', clientes: 'Clientes', interesses: 'Interesses', cupons: 'Cupons', promocoes: 'Promoções', plano: 'Plano',
 }
 
 // Item de sidebar que sabe ficar "trancado": função sem o módulo ativo não
@@ -167,6 +167,7 @@ export default function EmpresaShell({
               economiza pixel e perde venda. */}
           <div className="es-group-lbl">Todo dia</div>
           <NavItem href="/painel/pedidos" active={active === 'pedidos'} locked={!lojaDigitalEnabled}>🧾 Pedidos</NavItem>
+          <NavItem href="/painel/interesses" active={active === 'interesses'} locked={!lojaDigitalEnabled}>🔔 Interesses</NavItem>
           <NavItem href="/painel/mensagens" active={active === 'mensagens'} locked={!crmEnabled} badge={mensagensBadge}>💬 Mensagens</NavItem>
           <NavItem href="/atendimento" active={false} locked={!crmEnabled}>🎧 Modo Atendimento</NavItem>
           <NavItem href="/painel/cozinha" active={active === 'cozinha'} locked={!lojaDigitalEnabled}>🍳 Cozinha</NavItem>

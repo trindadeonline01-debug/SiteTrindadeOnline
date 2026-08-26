@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState, use } from 'react'
 import { supabase } from '@/lib/supabase'
 import { isOpenNow } from '@/lib/businessHours'
-import { type Produto, fmt, promoPrice, availableToday, isSoldOut, groupContribution, cartStorageKey } from '@/lib/lojaPricing'
+import { type Produto, fmt, promoPrice, availableToday, isSoldOut, groupContribution, cartStorageKey, criarInteresseEAbrirWhatsapp } from '@/lib/lojaPricing'
 
 type Categoria = { id: string; name: string; display_order: number }
 type Company = {
@@ -236,6 +236,25 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
       setDrawerOpen(false); setSuccess(false); setCart([]); setObs('')
       setAgendarRetirada(false); setScheduleDate(''); setScheduleTime('')
     }, 2500)
+  }
+
+  // Alternativa mais leve ao checkout completo — não pede login nem
+  // endereço, só registra o interesse e abre o WhatsApp com o carrinho já
+  // formatado. O lojista fecha a venda na própria conversa.
+  const [sendingWa, setSendingWa] = useState(false)
+  async function sendCartWhatsapp() {
+    if (!company?.phone || cart.length === 0 || sendingWa) return
+    setSendingWa(true)
+    try {
+      await criarInteresseEAbrirWhatsapp({
+        supabase, companyId: company.id, companyPhone: company.phone,
+        itens: cart.map(l => ({ produto_id: l.produtoId, nome: l.name + (l.modifiers.length ? ' (' + l.modifiers.map(m => m.name).join(', ') + ')' : ''), qtd: l.qty, preco_unitario: l.unitPrice })),
+        valorTotal: orderTotal, deliveryType,
+      })
+      setDrawerOpen(false); setCart([])
+    } finally {
+      setSendingWa(false)
+    }
   }
 
   if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter,sans-serif', color: '#AAA', background: '#F0EDE8' }}>Carregando...</div>
@@ -554,8 +573,13 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
                 )}
                 <div className="cd-totalrow"><span>Total</span><span>{fmt(orderTotal)}</span></div>
               </div>
-              <div style={{ padding: '14px 16px 16px', borderTop: '1px solid #EDE8E0' }}>
+              <div style={{ padding: '14px 16px 16px', borderTop: '1px solid #EDE8E0', display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <button className="cd-addcart" style={{ width: '100%' }} disabled={confirming || (deliveryType === 'entrega' && !address.trim()) || (agendarRetirada && (!scheduleDate || !scheduleTime)) || abaixoMinimo} onClick={confirmOrder}>{confirming ? 'Enviando...' : 'Confirmar pedido'}</button>
+                {company.phone && (
+                  <button className="cd-addcart" style={{ width: '100%', background: '#25D366', color: '#fff' }} disabled={sendingWa} onClick={sendCartWhatsapp}>
+                    {sendingWa ? 'Abrindo...' : '📱 Enviar pedido no WhatsApp'}
+                  </button>
+                )}
               </div>
             </>
           ) : (

@@ -2,7 +2,7 @@
 
 > Tradução da `ESPECIFICACAO.md` pro código real do repositório. Este documento não substitui a especificação — ele mapeia cada fase pra arquivos/rotas/tabelas que já existem hoje, marca o que precisa ser descoberto e lista o que exige confirmação antes de mexer (schema, coisa destrutiva, decisão ambígua), conforme a regra padrão de trabalho.
 >
-> Status: **Fase 0 completa** (itens 0.1 a 0.7). **Fase 1 completa** (itens 1.1 a 1.5). **Fase 2 completa** (itens 2.1 a 2.6 — sidebar por frequência + gating com cadeado, "Para fazer" na visão geral, correções em Pedidos/Catálogo/Clientes, modo Atendimento em tela cheia). Tudo publicado no `main`. Próxima: **Fase 2.5 — design system visual** (§11, fonte Anton + cores novas, decidido em 26/ago/2026 pra vir logo depois da Fase 2), depois **Fase 3** (Catálogo e busca por produto).
+> Status: **Fase 0 completa** (itens 0.1 a 0.7). **Fase 1 completa** (itens 1.1 a 1.5). **Fase 2 completa** (itens 2.1 a 2.6 — sidebar por frequência + gating com cadeado, "Para fazer" na visão geral, correções em Pedidos/Catálogo/Clientes, modo Atendimento em tela cheia). Tudo publicado no `main`. Próxima: **Fase 3** (Catálogo e busca por produto). Ricardo decidiu (26/ago/2026, revisado no mesmo dia): o design system visual (§11) vira a **última fase de todas** — depois da Fase 3 e da Fase 4/roadmap, não logo depois da Fase 2 como cogitado antes.
 
 ---
 
@@ -51,12 +51,6 @@ Depende da Fase 0 (rotas e SEO precisam estar prontos primeiro). Cobre: header f
 
 Sidebar por frequência de uso (a que já existe no admin foi alfabetizada recentemente — a do painel do lojista é outra tela, ainda com agrupamento por assunto), gating por plano com cadeado (função aparece apagada, não some), Visão Geral com "Para fazer", correções em Pedidos/Catálogo/Clientes descritas na seção 10.7–10.10, modos Cozinha/Atendimento em tela cheia, painel mobile com a barra Hoje·Pedidos·Interesses·Conversas·Mais.
 
-## 4.5. Fase 2.5 — Design system visual (decidido: depois da Fase 2)
-
-Troca visual da seção 11 da especificação — sai o visual atual (dourado premium `#C9951A`/preto) e entra a direção "placa de comércio de bairro": tokens de cor novos (`--ink`, `--sign` amarelo de toldo, `--concrete`, `--open`, `--alert` etc.), fonte Anton no lugar de Bebas Neue pra título/número grande, Archivo no lugar de Inter pro corpo. Regra central: fonte condensada em caixa alta só em título de página e número grande — nunca em nome de empresa/produto/cliente nem rótulo de campo (é isso que hoje deixa nome longo ilegível, ex: "SM KARAOKÊ -ALUGUEL DE KARAOKE /TOTO/ FLIPERAMA").
-
-É transversal — portal inteiro (home, categoria, busca, empresa, ofertas) e painel do lojista, os dois de uma vez. Por isso vem depois da Fase 2: sem isso, teríamos que restilizar o portal agora e o painel de novo depois, quando dá pra fazer as duas juntas.
-
 ## 5. Fase 3 — Catálogo e busca por produto
 
 A parte mais nova estruturalmente: entidade **Interesse** (tabela nova — schema, confirmar antes), código curto na mensagem do WhatsApp, link/QR em 3 granularidades, índice de produtos **construído mas desligado** até massa mínima de catálogos, cadastro de horários alimentando "Aberto agora".
@@ -64,6 +58,12 @@ A parte mais nova estruturalmente: entidade **Interesse** (tabela nova — schem
 ## 6. Fase 4 — Roadmap (não entra nesta rodada)
 
 Mesa e balcão, expansão pra outros bairros (a menos que a decisão da seção 1 deste plano mude isso).
+
+## 6.5. Fase 5 — Design system visual (última fase, decidido em 26/ago/2026)
+
+Troca visual da seção 11 da especificação — sai o visual atual (dourado premium `#C9951A`/preto) e entra a direção "placa de comércio de bairro": tokens de cor novos (`--ink`, `--sign` amarelo de toldo, `--concrete`, `--open`, `--alert` etc.), fonte Anton no lugar de Bebas Neue pra título/número grande, Archivo no lugar de Inter pro corpo. Regra central: fonte condensada em caixa alta só em título de página e número grande — nunca em nome de empresa/produto/cliente nem rótulo de campo (é isso que hoje deixa nome longo ilegível, ex: "SM KARAOKÊ -ALUGUEL DE KARAOKE /TOTO/ FLIPERAMA").
+
+É transversal — portal inteiro (home, categoria, busca, empresa, ofertas) e painel do lojista, os dois de uma vez. Ricardo decidiu deixar por último de tudo: primeiro fecha estrutura e funcionalidade (Fase 3 e o que entrar da Fase 4), só depois restiliza tudo de uma vez.
 
 ---
 

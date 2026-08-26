@@ -40,3 +40,39 @@ export function groupContribution(g: Grupo, selectedIdx: number[]): number {
 }
 
 export function cartStorageKey(slug: string) { return `cardapio_cart_${slug}` }
+
+// Entidade Interesse (ESPECIFICACAO.md §8) — carrinho com valor que o
+// cliente monta e ENVIA, sem virar Pedido sozinho (só o lojista fechando
+// a venda na conversa é que confirma). O servidor nunca sabe o telefone
+// de quem mandou — a mensagem carrega um código curto, que quem tem inbox
+// conectado (CRM WhatsApp) lê sozinho e amarra o interesse ao contato.
+export type InteresseItem = { produto_id: string; nome: string; qtd: number; preco_unitario: number; observacoes?: string }
+
+function gerarCodigoInteresse(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // sem O/0/I/1 — confusos de digitar/ler
+  return Array.from({ length: 5 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+}
+
+// Cria o registro no banco (anônimo — RLS permite insert público) e monta
+// o link wa.me já com a mensagem formatada: itens · total · entrega ou
+// retirada · código, legível em 3 segundos (ESPECIFICACAO.md §9.5).
+export async function criarInteresseEAbrirWhatsapp(opts: {
+  supabase: any; companyId: string; companyPhone: string
+  itens: InteresseItem[]; valorTotal: number
+  deliveryType: 'entrega' | 'retirada'; origem?: 'whatsapp_link' | 'qr_balcao' | 'status' | 'portal'
+}) {
+  const codigo = gerarCodigoInteresse()
+  await opts.supabase.from('interesses').insert({
+    company_id: opts.companyId, codigo, itens: opts.itens, valor_total: opts.valorTotal,
+    origem: opts.origem || 'whatsapp_link',
+  })
+  const linhas = [
+    'Olá! Quero fazer este pedido:',
+    ...opts.itens.map(i => `${i.qtd}x ${i.nome}`),
+    `Total: ${fmt(opts.valorTotal)}`,
+    opts.deliveryType === 'entrega' ? '🚴 Entrega' : '🏪 Retirada',
+    `Código: ${codigo}`,
+  ]
+  const url = `https://wa.me/55${opts.companyPhone.replace(/\D/g, '')}?text=${encodeURIComponent(linhas.join('\n'))}`
+  window.open(url, '_blank')
+}

@@ -47,6 +47,7 @@ export default function PainelPage() {
   const [tab, setTab]               = useState<'painel'|'destaques'|'banners'|'avaliacoes'|'perfil'|'plano'|'cupons'|'promocoes'>('painel')
   const [myCoupons, setMyCoupons]   = useState<any[]>([])
   const [produtosSemFoto, setProdutosSemFoto] = useState(0)
+  const [interessesSemResposta, setInteressesSemResposta] = useState(0)
   useEffect(() => {
     const p = new URLSearchParams(window.location.search).get('tab')
     if (p) setTab(p as any)
@@ -219,6 +220,8 @@ export default function PainelPage() {
       if (moduleActive(comp.loja_digital_enabled, comp.trial_modules_until)) {
         const { count } = await supabase.from('loja_produtos').select('id', { count: 'exact', head: true }).eq('company_id', comp.id).is('photo_url', null)
         setProdutosSemFoto(count || 0)
+        const { count: intCount } = await supabase.from('interesses').select('id', { count: 'exact', head: true }).eq('company_id', comp.id).eq('status_venda', 'sem_resposta')
+        setInteressesSemResposta(intCount || 0)
       }
       if (comp.category_id === IGREJAS_CATEGORY_ID) {
         setChurchHours(DIAS_SEMANA.map(day => ({
@@ -1148,6 +1151,7 @@ export default function PainelPage() {
                 if (produtosSemFoto > 0) pendencias.push({ icon: '📷', text: `${produtosSemFoto} produto${produtosSemFoto!==1?'s':''} sem foto — fica${produtosSemFoto!==1?'m':''} fora da busca`, btnLabel: 'Ver catálogo', onClick: () => { window.location.href = '/painel/catalogo' } })
                 if (pendingReplies > 0) pendencias.push({ icon: '💬', text: `${pendingReplies} avaliaç${pendingReplies!==1?'ões':'ão'} sem resposta`, btnLabel: 'Responder', onClick: () => setTab('avaliacoes') })
                 if (interesses.length > 0) pendencias.push({ icon: '🔔', text: `${interesses.length} pedido${interesses.length!==1?'s':''} de contato aguardando resposta`, btnLabel: 'Ver', onClick: () => document.getElementById('interesses-recebidos')?.scrollIntoView({behavior:'smooth'}) })
+                if (interessesSemResposta > 0) pendencias.push({ icon: '🛒', text: `${interessesSemResposta} carrinho${interessesSemResposta!==1?'s':''} de interesse sem resposta`, btnLabel: 'Ver', onClick: () => { window.location.href = '/painel/interesses' } })
                 if (cuponsAtivos === 0) pendencias.push({ icon: '🎟️', text: 'Nenhum cupom ativo no momento', btnLabel: 'Criar cupom', onClick: () => setTab('cupons') })
                 if (pendencias.length === 0) return null
                 return (

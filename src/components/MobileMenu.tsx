@@ -4,24 +4,31 @@ import { usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import SearchBar from './SearchBar'
 
-const PAGES = [
+// 3 famílias de navegação (ESPECIFICACAO.md §4.1) — troca a lista
+// achatada de 8 categorias por Empresas / Ofertas / Comunidade.
+const EMPRESAS_LINKS = [
   { href: '/categoria/comercios',   icon: '🏪', label: 'Comércios' },
-  { href: '/categoria/servicos',    icon: '🔧', label: 'Serviços' },
   { href: '/categoria/gastronomia', icon: '🍕', label: 'Gastronomia' },
-  { href: '/empregos',              icon: '💼', label: 'Empregos' },
-  { href: '/imoveis',               icon: '🏡', label: 'Imóveis' },
-  { href: '/desapega',              icon: '🏷️', label: 'Desapega' },
-  { href: '/achados-perdidos',      icon: '🔍', label: 'Achados & Perdidos' },
+  { href: '/categoria/servicos',    icon: '🔧', label: 'Serviços' },
   { href: '/categoria/igrejas',     icon: '⛪', label: 'Igrejas' },
-  { href: '/cupons',                icon: '🎟️', label: 'Cupons Relâmpago' },
-  { href: '/promocoes',             icon: '📣', label: 'Promoções da Semana' },
 ]
+
+const COMUNIDADE_LINKS = [
+  { href: '/empregos',         icon: '💼', label: 'Empregos' },
+  { href: '/imoveis',          icon: '🏡', label: 'Imóveis' },
+  { href: '/desapega',         icon: '🏷️', label: 'Desapega' },
+  { href: '/achados-perdidos', icon: '🔍', label: 'Achados & Perdidos' },
+]
+
+type Business = { id: string; name: string; slug: string }
 
 export default function MobileMenu() {
   const [open, setOpen] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [userType, setUserType] = useState<string|null>(null)
   const [isProdTeam, setIsProdTeam] = useState(false)
+  const [businesses, setBusinesses] = useState<Business[]>([])
+  const [hasListings, setHasListings] = useState(false)
   const pathname = usePathname()
 
   useEffect(() => {
@@ -32,6 +39,10 @@ export default function MobileMenu() {
       setUserType(data?.user_type || null)
       const { data: team } = await supabase.from('production_team').select('id').eq('user_id', session.user.id).eq('status', 'ativo').maybeSingle()
       setIsProdTeam(!!team)
+      const { data: mem } = await supabase.from('membership').select('business:companies(id,name,slug)').eq('person_id', session.user.id)
+      setBusinesses(((mem || []) as any[]).map(m => m.business).filter(Boolean))
+      const { count } = await supabase.from('listings').select('id', { count: 'exact', head: true }).eq('user_id', session.user.id)
+      setHasListings(!!count)
     })
   }, [])
 
@@ -114,8 +125,21 @@ export default function MobileMenu() {
               <span className="mm-link-icon">🏠</span> Início
             </a>
 
-            <div className="mm-section-label">Explorar</div>
-            {PAGES.map(p => (
+            <div className="mm-section-label">Empresas</div>
+            {EMPRESAS_LINKS.map(p => (
+              <a key={p.href} className={`mm-link ${pathname === p.href ? 'active' : ''}`} href={p.href}>
+                <span className="mm-link-icon">{p.icon}</span> {p.label}
+              </a>
+            ))}
+
+            <div className="mm-divider" />
+            <a className={`mm-link ${pathname === '/ofertas' ? 'active' : ''}`} href="/ofertas">
+              <span className="mm-link-icon">🏷️</span> Ofertas
+            </a>
+
+            <div className="mm-divider" />
+            <div className="mm-section-label">Comunidade</div>
+            {COMUNIDADE_LINKS.map(p => (
               <a key={p.href} className={`mm-link ${pathname === p.href ? 'active' : ''}`} href={p.href}>
                 <span className="mm-link-icon">{p.icon}</span> {p.label}
               </a>
@@ -131,16 +155,46 @@ export default function MobileMenu() {
                 <a className={`mm-link ${pathname === '/perfil' ? 'active' : ''}`} href="/perfil">
                   <span className="mm-link-icon">👤</span> Meu Perfil
                 </a>
-                {userType === 'company' && (
+                <a className="mm-link" href="/perfil?tab=avaliacoes">
+                  <span className="mm-link-icon">⭐</span> Minhas avaliações
+                </a>
+                <a className="mm-link" href="/perfil?tab=pedidos">
+                  <span className="mm-link-icon">🧾</span> Meus pedidos
+                </a>
+
+                {hasListings && (
                   <>
-                    <a className={`mm-link ${pathname === '/painel' ? 'active' : ''}`} href="/painel">
-                      <span className="mm-link-icon">📊</span> Meu Painel
-                    </a>
-                    <a className="mm-link" href="/painel?tab=plano">
-                      <span className="mm-link-icon">💳</span> Planos
+                    <div className="mm-divider" />
+                    <div className="mm-section-label">Meus anúncios</div>
+                    <a className="mm-link" href="/perfil?tab=anuncios">
+                      <span className="mm-link-icon">📋</span> Desapega, vagas, imóveis
                     </a>
                   </>
                 )}
+
+                <div className="mm-divider" />
+                <div className="mm-section-label">Meus negócios</div>
+                {businesses.length === 0 && (
+                  <a className="mm-link" href="/anunciar">
+                    <span className="mm-link-icon">➕</span> Anunciar meu negócio
+                  </a>
+                )}
+                {businesses.map(b => (
+                  <a key={b.id} className={`mm-link ${pathname === '/painel' ? 'active' : ''}`} href="/painel">
+                    <span className="mm-link-icon">📊</span> {b.name}
+                  </a>
+                ))}
+                {businesses.length > 0 && (
+                  <>
+                    <a className="mm-link" href="/painel?tab=plano">
+                      <span className="mm-link-icon">💳</span> Planos
+                    </a>
+                    <a className="mm-link" href="/anunciar">
+                      <span className="mm-link-icon">➕</span> Cadastrar outro negócio
+                    </a>
+                  </>
+                )}
+
                 {userType === 'admin' && (
                   <a className="mm-link" href="/admin">
                     <span className="mm-link-icon">⚙️</span> Admin
@@ -161,7 +215,7 @@ export default function MobileMenu() {
                 <div className="mm-divider" />
                 <div className="mm-section-label">Cadastre-se</div>
                 <a className="mm-link" href="/anunciar">
-                  <span className="mm-link-icon">➕</span> Cadastrar empresa
+                  <span className="mm-link-icon">➕</span> Anunciar meu negócio
                 </a>
                 <a className="mm-link" href="/cadastro">
                   <span className="mm-link-icon">👤</span> Cadastrar morador

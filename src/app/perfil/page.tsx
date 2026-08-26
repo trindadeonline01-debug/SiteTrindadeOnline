@@ -1,7 +1,8 @@
 'use client'
 import Footer from '@/components/Footer'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
 type Profile = { id: string; name: string; email?: string; phone?: string; neighborhood?: string; created_at: string; user_type: string }
@@ -23,13 +24,25 @@ const PEDIDO_STATUS_COLOR: Record<string,{bg:string;fg:string}> = {
 }
 function fmtMoney(n: number) { return 'R$ ' + n.toFixed(2).replace('.', ',') }
 
+const VALID_TABS = ['perfil','anuncios','avaliacoes','favoritos','cupons','pedidos'] as const
+
 export default function PerfilPage() {
+  return (
+    <Suspense fallback={<div style={{minHeight:'100vh',background:'#F5F2EC'}}/>}>
+      <PerfilPageInner />
+    </Suspense>
+  )
+}
+
+function PerfilPageInner() {
+  const searchParams = useSearchParams()
   const [profile, setProfile]   = useState<Profile|null>(null)
   const [listings, setListings] = useState<Listing[]>([])
   const [reviews, setReviews]   = useState<Review[]>([])
   const [favs, setFavs]         = useState<Fav[]>([])
   const [loading, setLoading]   = useState(true)
-  const [tab, setTab]           = useState<'perfil'|'anuncios'|'avaliacoes'|'favoritos'|'cupons'|'pedidos'>('perfil')
+  const initialTab = VALID_TABS.includes(searchParams.get('tab') as any) ? (searchParams.get('tab') as typeof VALID_TABS[number]) : 'perfil'
+  const [tab, setTab]           = useState<'perfil'|'anuncios'|'avaliacoes'|'favoritos'|'cupons'|'pedidos'>(initialTab)
   const [myCoupons, setMyCoupons] = useState<any[]>([])
   const [myPedidos, setMyPedidos] = useState<Pedido[]>([])
   const [entregas, setEntregas] = useState<Record<string, Entrega>>({})

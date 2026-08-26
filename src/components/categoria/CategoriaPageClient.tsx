@@ -79,7 +79,7 @@ export default function CategoriaPageClient({ slug, category, subcats, companies
         /* ── HERO centralizado ── */
         .cat-hero { background: var(--ink); padding: 32px 24px 28px; border-bottom: 2px solid var(--sign); }
         .cat-hero-inner { display: flex; align-items: center; justify-content: center; gap: 18px; }
-        .cat-hero-img { width: 64px; height: 64px; border-radius: 12px; overflow: hidden; position: relative; flex-shrink: 0; border: 2px solid var(--sign); }
+        .cat-hero-img { width: 74px; height: 74px; border-radius: 12px; overflow: hidden; position: relative; flex-shrink: 0; border: 2px solid var(--sign); }
         .cat-nm { font-family: 'Anton', sans-serif; font-size: clamp(32px,5vw,48px); color: #fff; letter-spacing: 1px; text-transform: uppercase; line-height: 1; margin-bottom: 6px; }
         .cat-cnt { font-size: 13px; color: #666; font-family: 'Archivo', sans-serif; }
         .cat-cnt span { color: var(--sign); font-weight: 600; }
@@ -176,7 +176,7 @@ export default function CategoriaPageClient({ slug, category, subcats, companies
       <div className="cat-hero">
         <div className="cat-hero-inner">
           {CATEGORY_IMAGES[slug] && (
-            <div className="cat-hero-img"><Image src={CATEGORY_IMAGES[slug]} alt="" fill sizes="64px" unoptimized style={{objectFit:'cover'}} /></div>
+            <div className="cat-hero-img"><Image src={CATEGORY_IMAGES[slug]} alt="" fill sizes="74px" unoptimized style={{objectFit:'cover'}} /></div>
           )}
           <div>
             <div className="cat-nm">{category.name}</div>

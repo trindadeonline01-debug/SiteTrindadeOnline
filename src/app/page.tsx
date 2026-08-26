@@ -406,11 +406,11 @@ export default async function HomePage() {
         @media(min-width: 768px) { .cat-grid { grid-template-columns: repeat(4,1fr); gap: 10px; } }
         .cat-item { display: flex; align-items: center; gap: 12px; padding: 13px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; text-decoration: none; transition: border-color 0.15s, background 0.15s; }
         .cat-item:hover { border-color: var(--ink); background: var(--concrete-2); }
-        .cat-item .sq { width: 48px; height: 48px; border-radius: 8px; background: var(--concrete); flex-shrink: 0; position: relative; overflow: hidden; }
+        .cat-item .sq { width: 56px; height: 56px; border-radius: 8px; background: var(--concrete); flex-shrink: 0; position: relative; overflow: hidden; }
         .cat-txt { min-width: 0; }
         .cat-label { font-size: 14px; color: var(--ink); line-height: 1.25; font-weight: 600; font-family: 'Archivo', sans-serif; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .cat-count { font-size: 11.5px; color: var(--muted); font-family: 'Archivo', sans-serif; }
-        @media(max-width: 767px) { .cat-item { padding: 11px; gap: 10px; } .cat-item .sq { width: 42px; height: 42px; } .cat-label { font-size: 13px; } .cat-count { font-size: 11px; } }
+        @media(max-width: 767px) { .cat-item { padding: 11px; gap: 10px; } .cat-item .sq { width: 48px; height: 48px; } .cat-label { font-size: 13px; } .cat-count { font-size: 11px; } }
 
         .sec-hdr { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 14px; margin-top: 32px; gap: 14px; }
         .sec-eyebrow { font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--sign-dark); font-weight: 700; margin-bottom: 4px; display: block; font-family: 'Archivo', sans-serif; }
@@ -614,35 +614,35 @@ export default async function HomePage() {
           <div className="cat-card-wrap">
             <div className="cat-grid">
               <a className="cat-item" href="/categoria/comercios">
-                <span className="sq"><Image src={CATEGORY_IMAGES.comercios} alt="" fill sizes="48px" unoptimized style={{objectFit:'cover'}} /></span>
+                <span className="sq"><Image src={CATEGORY_IMAGES.comercios} alt="" fill sizes="56px" unoptimized style={{objectFit:'cover'}} /></span>
                 <span className="cat-txt"><span className="cat-label">Comércios</span><span className="cat-count">{categoryCounts.comercios} negócio{categoryCounts.comercios !== 1 ? 's' : ''}</span></span>
               </a>
               <a className="cat-item" href="/categoria/servicos">
-                <span className="sq"><Image src={CATEGORY_IMAGES.servicos} alt="" fill sizes="48px" unoptimized style={{objectFit:'cover'}} /></span>
+                <span className="sq"><Image src={CATEGORY_IMAGES.servicos} alt="" fill sizes="56px" unoptimized style={{objectFit:'cover'}} /></span>
                 <span className="cat-txt"><span className="cat-label">Serviços</span><span className="cat-count">{categoryCounts.servicos} negócio{categoryCounts.servicos !== 1 ? 's' : ''}</span></span>
               </a>
               <a className="cat-item" href="/categoria/gastronomia">
-                <span className="sq"><Image src={CATEGORY_IMAGES.gastronomia} alt="" fill sizes="48px" unoptimized style={{objectFit:'cover'}} /></span>
+                <span className="sq"><Image src={CATEGORY_IMAGES.gastronomia} alt="" fill sizes="56px" unoptimized style={{objectFit:'cover'}} /></span>
                 <span className="cat-txt"><span className="cat-label">Gastronomia</span><span className="cat-count">{categoryCounts.gastronomia} negócio{categoryCounts.gastronomia !== 1 ? 's' : ''}</span></span>
               </a>
               <a className="cat-item" href="/empregos">
-                <span className="sq"><Image src={CATEGORY_IMAGES.empregos} alt="" fill sizes="48px" unoptimized style={{objectFit:'cover'}} /></span>
+                <span className="sq"><Image src={CATEGORY_IMAGES.empregos} alt="" fill sizes="56px" unoptimized style={{objectFit:'cover'}} /></span>
                 <span className="cat-txt"><span className="cat-label">Empregos</span><span className="cat-count">{categoryCounts.empregos} vaga{categoryCounts.empregos !== 1 ? 's' : ''}</span></span>
               </a>
               <a className="cat-item" href="/imoveis">
-                <span className="sq"><Image src={CATEGORY_IMAGES.imoveis} alt="" fill sizes="48px" unoptimized style={{objectFit:'cover'}} /></span>
+                <span className="sq"><Image src={CATEGORY_IMAGES.imoveis} alt="" fill sizes="56px" unoptimized style={{objectFit:'cover'}} /></span>
                 <span className="cat-txt"><span className="cat-label">Imóveis</span><span className="cat-count">{categoryCounts.imoveis} anúncio{categoryCounts.imoveis !== 1 ? 's' : ''}</span></span>
               </a>
               <a className="cat-item" href="/desapega">
-                <span className="sq"><Image src={CATEGORY_IMAGES.desapega} alt="" fill sizes="48px" unoptimized style={{objectFit:'cover'}} /></span>
+                <span className="sq"><Image src={CATEGORY_IMAGES.desapega} alt="" fill sizes="56px" unoptimized style={{objectFit:'cover'}} /></span>
                 <span className="cat-txt"><span className="cat-label">Desapega</span><span className="cat-count">{categoryCounts.desapega} item{categoryCounts.desapega !== 1 ? 'ns' : ''}</span></span>
               </a>
               <a className="cat-item" href="/achados-perdidos">
-                <span className="sq"><Image src={CATEGORY_IMAGES.achados} alt="" fill sizes="48px" unoptimized style={{objectFit:'cover'}} /></span>
+                <span className="sq"><Image src={CATEGORY_IMAGES.achados} alt="" fill sizes="56px" unoptimized style={{objectFit:'cover'}} /></span>
                 <span className="cat-txt"><span className="cat-label">Achados & Perdidos</span><span className="cat-count">{categoryCounts.achados} aviso{categoryCounts.achados !== 1 ? 's' : ''}</span></span>
               </a>
               <a className="cat-item" href="/categoria/igrejas">
-                <span className="sq"><Image src={CATEGORY_IMAGES.igrejas} alt="" fill sizes="48px" unoptimized style={{objectFit:'cover'}} /></span>
+                <span className="sq"><Image src={CATEGORY_IMAGES.igrejas} alt="" fill sizes="56px" unoptimized style={{objectFit:'cover'}} /></span>
                 <span className="cat-txt"><span className="cat-label">Igrejas</span><span className="cat-count">{categoryCounts.igrejas} local{categoryCounts.igrejas !== 1 ? 'is' : ''}</span></span>
               </a>
             </div>

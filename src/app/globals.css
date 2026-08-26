@@ -13,6 +13,24 @@
   --brand-border: #E0DDD8;
   --brand-muted: #FAFAF8;
   --brand-gray: #AAA;
+
+  /* Design system novo — ESPECIFICACAO.md §11.2. "Placa de comércio de
+     bairro", não "ouro premium": amarelo de toldo em bloco sólido, preto
+     quente, cinza-calçada. Convivem com os tokens --gold/--brand-* acima
+     até cada tela migrar — nada usa isso ainda, é só a fundação. */
+  --ink: #151210;
+  --ink-2: #231F1B;
+  --paper: #FFFFFF;
+  --concrete: #E9EAE5;
+  --concrete-2: #F5F6F2;
+  --sign: #FFC531;
+  --sign-dark: #A87200;
+  --open: #0F8A57;
+  --alert: #D6392B;
+  --info: #2A4E7A;
+  --warn: #C97A0E;
+  --line: #DCDDD6;
+  --muted: #6F6C67;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -32,6 +50,13 @@ body {
 }
 
 .font-bebas { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.05em; }
+
+/* Tipografia nova (ESPECIFICACAO.md §11.3) — Anton só em título de página,
+   número grande e faixa de destaque; nunca em nome de empresa/produto/
+   cliente nem rótulo de campo (isso é o que hoje deixa nome longo
+   ilegível em caixa alta condensada). Archivo é o corpo/interface. */
+.font-anton { font-family: 'Anton', sans-serif; }
+.font-archivo { font-family: 'Archivo', sans-serif; }
 
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: #F0EDE8; }

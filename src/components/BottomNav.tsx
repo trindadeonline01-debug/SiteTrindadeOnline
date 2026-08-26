@@ -25,8 +25,8 @@ function navItemStyle(active: boolean): React.CSSProperties {
   return {
     flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
     padding: '8px 0 10px', textDecoration: 'none', background: 'none', border: 'none',
-    color: active ? '#C9951A' : 'rgba(255,255,255,0.65)',
-    fontSize: 10, fontWeight: active ? 600 : 500, fontFamily: 'Inter,sans-serif', position: 'relative', cursor: 'pointer',
+    color: active ? 'var(--sign)' : 'rgba(255,255,255,0.65)',
+    fontSize: 10, fontWeight: active ? 600 : 500, fontFamily: 'Archivo,sans-serif', position: 'relative', cursor: 'pointer',
   }
 }
 
@@ -79,15 +79,15 @@ export default function BottomNav() {
   return (
     <>
       {sheet && (
-        <div ref={sheetRef} style={{position:'fixed',left:0,right:0,bottom:64,background:'#fff',borderTop:'1px solid #E0DDD8',borderRadius:'16px 16px 0 0',boxShadow:'0 -8px 24px rgba(0,0,0,.12)',zIndex:9998,padding:'10px 8px calc(10px + env(safe-area-inset-bottom))'}}>
+        <div ref={sheetRef} style={{position:'fixed',left:0,right:0,bottom:64,background:'var(--paper)',borderTop:'1px solid var(--line)',borderRadius:'16px 16px 0 0',boxShadow:'0 -8px 24px rgba(0,0,0,.12)',zIndex:9998,padding:'10px 8px calc(10px + env(safe-area-inset-bottom))'}}>
           {(sheet === 'empresas' ? EMPRESAS_LINKS : COMUNIDADE_LINKS).map(l => (
-            <a key={l.href} href={l.href} style={{display:'flex',alignItems:'center',gap:10,padding:'11px 12px',textDecoration:'none',color:'#222',fontSize:14,fontWeight:600,fontFamily:'Inter,sans-serif'}}>
+            <a key={l.href} href={l.href} style={{display:'flex',alignItems:'center',gap:10,padding:'11px 12px',textDecoration:'none',color:'var(--ink)',fontSize:14,fontWeight:600,fontFamily:'Archivo,sans-serif'}}>
               <span>{l.icon}</span> {l.label}
             </a>
           ))}
         </div>
       )}
-      <nav style={{position:'fixed',bottom:0,left:0,right:0,background:'#111',borderTop:'none',display:'flex',zIndex:9999,paddingBottom:'env(safe-area-inset-bottom)'}}>
+      <nav style={{position:'fixed',bottom:0,left:0,right:0,background:'var(--ink)',borderTop:'none',display:'flex',zIndex:9999,paddingBottom:'env(safe-area-inset-bottom)'}}>
         <a href="/busca" style={navItemStyle(pathname === '/busca')}>
           <span style={{lineHeight:1,marginBottom:3,display:'flex'}}><NavIcon name="search" /></span>
           Buscar
@@ -97,7 +97,7 @@ export default function BottomNav() {
           Empresas
         </button>
         <a href="/ofertas" style={navItemStyle(pathname === '/ofertas')}>
-          <span style={{position:'absolute',top:6,right:'calc(50% - 14px)',width:7,height:7,background:'#E24B4A',borderRadius:'50%',border:'1.5px solid #111'}}/>
+          <span style={{position:'absolute',top:6,right:'calc(50% - 14px)',width:7,height:7,background:'var(--alert)',borderRadius:'50%',border:'1.5px solid var(--ink)'}}/>
           <span style={{lineHeight:1,marginBottom:3,display:'flex'}}><NavIcon name="ticket" /></span>
           Ofertas
         </a>

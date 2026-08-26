@@ -90,26 +90,27 @@ export default function TopNav() {
         }
         .top-nav-global { display: none; }
         @media(min-width:768px){
-          .top-nav-global { display: flex; align-items: center; background: #fff; border-bottom: 1px solid #E0DDD8; position: sticky; top: 0; z-index: 9000; padding: 0 32px; height: 58px; gap: 16px; }
-          .top-nav-logo { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 2px; color: #111; text-decoration: none; flex-shrink: 0; }
-          .top-nav-logo span { color: #C9951A; }
-          .top-nav-bairro { display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 600; color: #555; white-space: nowrap; flex-shrink: 0; }
-          .top-nav-bairro .pin { color: #C9951A; font-size: 11px; }
+          .top-nav-global { display: flex; align-items: center; background: var(--paper); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 9000; padding: 0 32px; height: 58px; gap: 16px; }
+          .top-nav-logo { font-family: 'Anton', sans-serif; font-size: 21px; letter-spacing: .5px; color: var(--ink); text-decoration: none; flex-shrink: 0; text-transform: uppercase; }
+          .top-nav-logo span { color: var(--sign-dark); }
+          .top-nav-bairro { display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 600; color: var(--muted); white-space: nowrap; flex-shrink: 0; font-family: 'Archivo', sans-serif; }
+          .top-nav-bairro .pin { color: var(--sign-dark); font-size: 11px; }
           .top-nav-center { flex: 0 1 auto; display: flex; align-items: center; justify-content: center; gap: 2px; }
-          .top-nav-link { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 10px; font-size: 14px; font-weight: 500; color: #555; text-decoration: none; white-space: nowrap; position: relative; font-family: Inter, sans-serif; background: none; border: none; cursor: pointer; }
-          .top-nav-link:hover { background: #F5F2EC; color: #111; }
-          .top-nav-link.active { color: #C9951A; background: #FEF3E2; }
+          .top-nav-link { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 10px; font-size: 14px; font-weight: 500; color: var(--muted); text-decoration: none; white-space: nowrap; position: relative; font-family: 'Archivo', sans-serif; background: none; border: none; cursor: pointer; }
+          .top-nav-link:hover { background: var(--concrete-2); color: var(--ink); }
+          .top-nav-link.active { color: var(--sign-dark); background: var(--concrete-2); }
           .top-nav-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-          .top-nav-btn { background: #C9951A; color: #fff; border: none; border-radius: 10px; padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; white-space: nowrap; font-family: Inter, sans-serif; }
-          .top-nav-sair { background: transparent; color: #666; border: 1px solid #ddd; border-radius: 10px; padding: 7px 14px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: Inter, sans-serif; text-decoration: none; display: inline-block; }
-          .top-nav-dot { position: absolute; top: 6px; right: 8px; width: 7px; height: 7px; background: #E24B4A; border-radius: 50%; border: 1.5px solid #fff; }
-          .nd-dropdown { position: absolute; top: calc(100% + 8px); left: 0; background: #fff; border: 1px solid #E0DDD8; border-radius: 12px; box-shadow: 0 14px 36px rgba(0,0,0,.15); min-width: 200px; z-index: 2000; overflow: hidden; padding: 6px 0; }
-          .nd-item { display: flex; align-items: center; gap: 9px; padding: 9px 14px; text-decoration: none; color: #222; font-size: 13.5px; font-weight: 600; font-family: 'Inter', sans-serif; }
-          .nd-item:hover { background: #F5F2EC; }
-          .nd-static { color: #888; cursor: default; }
+          .top-nav-btn { background: var(--sign); color: var(--ink); border: none; border-radius: 10px; padding: 8px 16px; font-size: 13px; font-weight: 700; cursor: pointer; text-decoration: none; white-space: nowrap; font-family: 'Archivo', sans-serif; }
+          .top-nav-btn:hover { background: var(--sign-dark); color: var(--paper); }
+          .top-nav-sair { background: transparent; color: var(--muted); border: 1px solid var(--line); border-radius: 10px; padding: 7px 14px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: 'Archivo', sans-serif; text-decoration: none; display: inline-block; }
+          .top-nav-dot { position: absolute; top: 6px; right: 8px; width: 7px; height: 7px; background: var(--alert); border-radius: 50%; border: 1.5px solid var(--paper); }
+          .nd-dropdown { position: absolute; top: calc(100% + 8px); left: 0; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 14px 36px rgba(0,0,0,.15); min-width: 200px; z-index: 2000; overflow: hidden; padding: 6px 0; }
+          .nd-item { display: flex; align-items: center; gap: 9px; padding: 9px 14px; text-decoration: none; color: var(--ink); font-size: 13.5px; font-weight: 600; font-family: 'Archivo', sans-serif; }
+          .nd-item:hover { background: var(--concrete-2); }
+          .nd-static { color: var(--muted); cursor: default; }
           .nd-static:hover { background: none; }
-          .nd-divider { height: 1px; background: #F0EDE8; margin: 6px 0; }
-          .nd-label { font-size: 10.5px; font-weight: 700; color: #AAA; letter-spacing: .06em; text-transform: uppercase; padding: 8px 14px 2px; }
+          .nd-divider { height: 1px; background: var(--line); margin: 6px 0; }
+          .nd-label { font-size: 10.5px; font-weight: 700; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; padding: 8px 14px 2px; }
         }
       `}</style>
       <div className="top-nav-global">

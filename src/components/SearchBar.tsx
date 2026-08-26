@@ -57,16 +57,17 @@ export default function SearchBar({ compact }: { compact?: boolean }) {
   return (
     <div ref={wrapRef} style={{ position: 'relative', flex: 1, minWidth: 0, maxWidth: compact ? 420 : 560 }}>
       <style>{`
-        .sb-form{display:flex;align-items:center;gap:8px;background:#fff;border-radius:8px;padding:0 12px;height:${compact ? 36 : 40}px;border:1px solid #E0DDD8;}
-        .sb-form input{flex:1;min-width:0;border:0;outline:0;font-size:13.5px;font-family:'Inter',sans-serif;background:transparent;}
-        .sb-form input::placeholder{color:#AAA;}
-        .sb-icon{flex-shrink:0;opacity:.45;}
-        .sb-list{position:absolute;top:calc(100% + 6px);left:0;right:0;background:#fff;border:1px solid #E0DDD8;border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.14);z-index:1200;overflow:hidden;max-height:340px;overflow-y:auto;}
+        .sb-form{display:flex;align-items:center;gap:8px;background:var(--paper);border-radius:8px;padding:0 12px;height:${compact ? 36 : 40}px;border:1.5px solid var(--line);}
+        .sb-form:focus-within{border-color:var(--sign-dark);}
+        .sb-form input{flex:1;min-width:0;border:0;outline:0;font-size:13.5px;font-family:'Archivo',sans-serif;background:transparent;color:var(--ink);}
+        .sb-form input::placeholder{color:var(--muted);}
+        .sb-icon{flex-shrink:0;opacity:.6;color:var(--muted);}
+        .sb-list{position:absolute;top:calc(100% + 6px);left:0;right:0;background:var(--paper);border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.14);z-index:1200;overflow:hidden;max-height:340px;overflow-y:auto;}
         .sb-item{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;text-align:left;}
-        .sb-item:hover{background:#FEF3E2;}
+        .sb-item:hover{background:var(--concrete-2);}
         .sb-item-ico{font-size:15px;flex-shrink:0;}
-        .sb-item-label{font-size:13px;font-weight:600;color:#111;}
-        .sb-item-sub{font-size:11px;color:#999;}
+        .sb-item-label{font-size:13px;font-weight:600;color:var(--ink);}
+        .sb-item-sub{font-size:11px;color:var(--muted);}
       `}</style>
       <form className="sb-form" onSubmit={handleSubmit}>
         <svg className="sb-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">

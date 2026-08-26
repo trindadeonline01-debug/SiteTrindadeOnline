@@ -39,13 +39,13 @@ export default function UserMenu({ user, userType, isProdTeam }: { user: any; us
   return (
     <div ref={ref} style={{ position: 'relative' }}>
       <style>{`
-        .um-avatar{background:#F5F2EC;border:1px solid #E0DDD8;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#555;}
-        .um-dropdown{position:absolute;top:calc(100% + 8px);right:0;background:#fff;border:1px solid #E0DDD8;border-radius:12px;box-shadow:0 14px 36px rgba(0,0,0,.15);min-width:230px;z-index:2000;overflow:hidden;padding:6px 0;}
-        .um-block-label{font-size:10.5px;font-weight:700;color:#AAA;letter-spacing:.06em;text-transform:uppercase;padding:10px 14px 4px;}
-        .um-item{display:flex;align-items:center;gap:9px;padding:9px 14px;text-decoration:none;color:#222;font-size:13.5px;font-weight:600;font-family:'Inter',sans-serif;width:100%;text-align:left;background:none;border:none;cursor:pointer;}
-        .um-item:hover{background:#F5F2EC;}
-        .um-divider{height:1px;background:#F0EDE8;margin:6px 0;}
-        .um-sair{color:#E24B4A;}
+        .um-avatar{background:var(--concrete-2);border:1px solid var(--line);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);}
+        .um-dropdown{position:absolute;top:calc(100% + 8px);right:0;background:var(--paper);border:1px solid var(--line);border-radius:12px;box-shadow:0 14px 36px rgba(0,0,0,.15);min-width:230px;z-index:2000;overflow:hidden;padding:6px 0;}
+        .um-block-label{font-size:10.5px;font-weight:700;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;padding:10px 14px 4px;}
+        .um-item{display:flex;align-items:center;gap:9px;padding:9px 14px;text-decoration:none;color:var(--ink);font-size:13.5px;font-weight:600;font-family:'Archivo',sans-serif;width:100%;text-align:left;background:none;border:none;cursor:pointer;}
+        .um-item:hover{background:var(--concrete-2);}
+        .um-divider{height:1px;background:var(--line);margin:6px 0;}
+        .um-sair{color:var(--alert);}
       `}</style>
       <button className="um-avatar" onClick={() => setOpen(o => !o)} aria-label="Minha conta">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

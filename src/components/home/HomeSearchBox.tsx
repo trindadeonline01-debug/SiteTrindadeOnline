@@ -77,7 +77,7 @@ export default function HomeSearchBox() {
   return (
     <div ref={searchRef} style={{ position: 'relative', width: '100%', maxWidth: 600, margin: '0 auto' }}>
       <form className="hero-search-wrap" onSubmit={handleSearch}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9951A" strokeWidth="2" strokeLinecap="round">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="2" strokeLinecap="round">
           <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
         </svg>
         <input type="text" value={searchQuery}

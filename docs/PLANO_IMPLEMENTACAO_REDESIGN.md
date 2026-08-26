@@ -2,7 +2,7 @@
 
 > Tradução da `ESPECIFICACAO.md` pro código real do repositório. Este documento não substitui a especificação — ele mapeia cada fase pra arquivos/rotas/tabelas que já existem hoje, marca o que precisa ser descoberto e lista o que exige confirmação antes de mexer (schema, coisa destrutiva, decisão ambígua), conforme a regra padrão de trabalho.
 >
-> Status: **Fase 0 completa** (itens 0.1 a 0.7). **Fase 1 completa** (itens 1.1 a 1.5). **Fase 2 completa** (itens 2.1 a 2.6). **Fase 3 completa** (itens 3.1 a 3.3 — entidade Interesse, link/QR em 3 granularidades, índice de produtos construído mas desligado por trás da flag `busca_produtos_enabled`). Tudo publicado no `main`. Próxima: o que entrar da **Fase 4 (roadmap)** — mesa e balcão, expansão pra outros bairros — e depois, por último de tudo (decidido em 26/ago/2026), o **design system visual** (§11).
+> Status: **Fase 0 completa** (itens 0.1 a 0.7). **Fase 1 completa** (itens 1.1 a 1.5). **Fase 2 completa** (itens 2.1 a 2.6). **Fase 3 completa** (itens 3.1 a 3.3 — entidade Interesse, link/QR em 3 granularidades, índice de produtos construído mas desligado por trás da flag `busca_produtos_enabled`). Tudo publicado no `main`. Ricardo decidiu (26/ago/2026): **Fase 4 (roadmap — mesa/balcão, expansão de bairro) fica de fora por enquanto**, os dois itens dependem de decisão dele sem próximo passo óbvio. Próxima: **design system visual** (§11), direto.
 
 ---
 

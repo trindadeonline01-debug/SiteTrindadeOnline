@@ -247,44 +247,41 @@ export default async function HomePage() {
 
 
         .hero { padding: 28px 16px 8px; text-align: center; margin: 0; }
-        .hero-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(30px, 8vw, 72px); letter-spacing: 4px; line-height: 1; margin-bottom: 8px; display: block; }
-        .hero-title span { color: #C9951A; }
-        .hero-sub { font-size: clamp(12px, 3vw, 16px); color: #888; margin-bottom: 20px; display: block; }
+        .hero-title { font-family: 'Anton', sans-serif; font-size: clamp(30px, 8vw, 72px); letter-spacing: 1px; line-height: 1; margin-bottom: 8px; display: block; text-transform: uppercase; }
+        .hero-title span { color: var(--sign-dark); }
+        .hero-sub { font-size: clamp(12px, 3vw, 16px); color: #888; margin-bottom: 20px; display: block; font-family: 'Archivo', sans-serif; }
+        /* Campo de busca como placa física amarela — elemento assinatura
+           do portal (ESPECIFICACAO.md §11.1). Bloco sólido no lugar do
+           branco-com-borda-dourada de antes; a sombra deslocada imita o
+           efeito de placa impressa/pintada em vez de card flutuante. */
         .hero-search-wrap {
           display: flex; max-width: 600px; margin: 0 auto; align-items: center; gap: 8px;
-          background: #fff; border: 2px solid #C9951A; border-radius: 50px;
-          padding: 6px 6px 6px 16px; box-shadow: 0 4px 20px rgba(201,149,26,.12);
+          background: var(--sign); border: 2.5px solid var(--ink); border-radius: 14px;
+          padding: 6px 6px 6px 16px; box-shadow: 4px 4px 0 var(--ink);
           transform: none; position: relative; z-index: 20;
         }
-        .hero-search-wrap input { flex: 1; border: none; background: transparent; font-size: 16px; font-family: 'Inter', sans-serif; color: #222; outline: none; }
-        .hero-search-wrap input::placeholder { color: #BBB; }
-        .search-suggestions { position:absolute; top:100%; left:0; right:0; background:#fff; border:1.5px solid #C9951A; border-radius:14px; margin-top:6px; box-shadow:0 8px 24px rgba(0,0,0,.12); z-index:100; overflow:hidden; }
-        .sug-item { display:flex; align-items:center; gap:10px; padding:10px 16px; cursor:pointer; transition:background .12s; border-bottom:0.5px solid #F5F2EC; }
+        .hero-search-wrap input { flex: 1; border: none; background: transparent; font-size: 16px; font-family: 'Archivo', sans-serif; font-weight: 500; color: var(--ink); outline: none; }
+        .hero-search-wrap input::placeholder { color: var(--ink-2); opacity: .55; }
+        .search-suggestions { position:absolute; top:100%; left:0; right:0; background:var(--paper); border:2px solid var(--ink); border-radius:12px; margin-top:8px; box-shadow:4px 4px 0 rgba(21,18,16,.25); z-index:100; overflow:hidden; }
+        .sug-item { display:flex; align-items:center; gap:10px; padding:10px 16px; cursor:pointer; transition:background .12s; border-bottom:0.5px solid var(--line); }
         .sug-item:last-child { border-bottom:none; }
-        .sug-item:hover { background:#FEF3E2; }
+        .sug-item:hover { background:var(--concrete-2); }
         .sug-ico { font-size:14px; flex-shrink:0; }
-        .sug-label { font-size:13px; font-weight:600; color:#111; text-align:left; }
-        .sug-sub { font-size:11px; color:#AAA; margin-top:1px; text-align:left; }
-        .hero-search-btn { background: #C9951A; border: none; border-radius: 50px; padding: 9px 16px; color: #fff; font-size: 13px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; flex-shrink: 0; } @media(max-width: 480px) { .hero-search-btn { padding: 8px 10px; font-size: 12px; } .hero-search-wrap { padding: 4px 4px 4px 12px; } }
+        .sug-label { font-size:13px; font-weight:600; color:var(--ink); text-align:left; font-family:'Archivo',sans-serif; }
+        .sug-sub { font-size:11px; color:var(--muted); margin-top:1px; text-align:left; }
+        .hero-search-btn { background: var(--ink); border: none; border-radius: 10px; padding: 9px 16px; color: var(--sign); font-size: 13px; font-weight: 700; font-family: 'Archivo', sans-serif; cursor: pointer; white-space: nowrap; flex-shrink: 0; } @media(max-width: 480px) { .hero-search-btn { padding: 8px 10px; font-size: 12px; } .hero-search-wrap { padding: 4px 4px 4px 12px; } }
         @media(min-width: 768px) {
           .hero { padding: 43px 20px 48px; }
           .hero-title, .hero-sub { display: block; }
           .hero-search-wrap {
             display: flex; max-width: 600px; margin: 0 auto; align-items: center; gap: 8px;
-            background: #fff; border: 2px solid #C9951A; border-radius: 50px;
-            padding: 6px 6px 6px 20px; box-shadow: 0 4px 20px rgba(201,149,26,.12);
+            background: var(--sign); border: 2.5px solid var(--ink); border-radius: 14px;
+            padding: 6px 6px 6px 20px; box-shadow: 5px 5px 0 var(--ink);
             transform: none; position: relative; z-index: 20;
           }
-          .hero-search-wrap input { flex: 1; border: none; background: transparent; font-size: 15px; font-family: 'Inter', sans-serif; color: #222; outline: none; }
-          .hero-search-wrap input::placeholder { color: #BBB; }
-          .search-suggestions { position:absolute; top:100%; left:0; right:0; background:#fff; border:1.5px solid #C9951A; border-radius:14px; margin-top:6px; box-shadow:0 8px 24px rgba(0,0,0,.12); z-index:100; overflow:hidden; }
-        .sug-item { display:flex; align-items:center; gap:10px; padding:10px 16px; cursor:pointer; transition:background .12s; border-bottom:0.5px solid #F5F2EC; }
-        .sug-item:last-child { border-bottom:none; }
-        .sug-item:hover { background:#FEF3E2; }
-        .sug-ico { font-size:14px; flex-shrink:0; }
-        .sug-label { font-size:13px; font-weight:600; color:#111; text-align:left; }
-        .sug-sub { font-size:11px; color:#AAA; margin-top:1px; text-align:left; }
-        .hero-search-btn { background: #C9951A; border: none; border-radius: 50px; padding: 10px 24px; color: #fff; font-size: 14px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+          .hero-search-wrap input { flex: 1; border: none; background: transparent; font-size: 15px; font-family: 'Archivo', sans-serif; font-weight: 500; color: var(--ink); outline: none; }
+          .hero-search-wrap input::placeholder { color: var(--ink-2); opacity: .55; }
+          .hero-search-btn { background: var(--ink); border: none; border-radius: 10px; padding: 10px 24px; color: var(--sign); font-size: 14px; font-weight: 700; font-family: 'Archivo', sans-serif; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
         }
 
         /* BANNER */

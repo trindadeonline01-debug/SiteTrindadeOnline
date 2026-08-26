@@ -97,7 +97,7 @@ function tempoRestante(expiresAt: string) {
 }
 
 const TEMAS: Record<string, { heroBg: string, dest: string }> = {
-  'classico-preto':  { heroBg: '#111111', dest: '#C9951A' },
+  'classico-preto':  { heroBg: '#111111', dest: '#FFC531' },
   'trindade-quente': { heroBg: '#7A2020', dest: '#F0A500' },
   'verde-raiz':      { heroBg: '#1A3A2A', dest: '#5DBF8A' },
   'azul-confianca':  { heroBg: '#0D2B45', dest: '#3A9FD8' },

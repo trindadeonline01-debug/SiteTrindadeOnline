@@ -29,8 +29,8 @@ export default function HomeComunidadeTabs({ listings }: { listings: Record<stri
       <style>{`
         .hct-tabs{display:flex;gap:6px;overflow-x:auto;margin-bottom:12px;scrollbar-width:none;}
         .hct-tabs::-webkit-scrollbar{display:none;}
-        .hct-tab{flex-shrink:0;font-size:12px;font-weight:600;padding:7px 14px;border-radius:20px;background:#fff;border:1px solid #E0DDD8;color:#666;font-family:'Inter',sans-serif;white-space:nowrap;cursor:pointer;}
-        .hct-tab.on{background:#C9951A;border-color:#C9951A;color:#fff;}
+        .hct-tab{flex-shrink:0;font-size:12px;font-weight:600;padding:7px 14px;border-radius:20px;background:var(--paper);border:1px solid var(--line);color:var(--muted);font-family:'Archivo',sans-serif;white-space:nowrap;cursor:pointer;}
+        .hct-tab.on{background:var(--sign);border-color:var(--sign);color:var(--ink);}
       `}</style>
       <div className="recent-section-hdr">
         <span className="recent-section-title">🧭 COMUNIDADE</span>

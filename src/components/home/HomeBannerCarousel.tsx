@@ -56,7 +56,7 @@ export default function HomeBannerCarousel({ banners }: { banners: Banner[] }) {
         <div className="banner-inner-wrap" style={{ justifyContent: 'center' }}>
           <div style={{ textAlign: 'center', color: '#555' }}>
             <div style={{ fontSize: 32, marginBottom: 8 }}>📢</div>
-            <div style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 20, color: '#C9951A' }}>Espaço para anunciante</div>
+            <div style={{ fontFamily: '"Anton", sans-serif', fontSize: 20, color: 'var(--sign)', textTransform: 'uppercase' }}>Espaço para anunciante</div>
             <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>Entre em contato para anunciar aqui</div>
           </div>
         </div>

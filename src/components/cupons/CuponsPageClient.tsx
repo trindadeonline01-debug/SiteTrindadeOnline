@@ -149,79 +149,79 @@ export default function CuponsPageClient() {
     <>
       <style>{`
         *{box-sizing:border-box;margin:0;padding:0;}
-        body{font-family:'Inter',sans-serif;background:#F0EDE8;min-height:100vh;}
-        .hero{background:#111;}
+        body{font-family:'Archivo',sans-serif;background:var(--concrete);min-height:100vh;}
+        .hero{background:var(--ink);}
         .hero-inner{max-width:1100px;margin:0 auto;padding:20px 20px 22px;}
-        .hero-title{font-family:'Bebas Neue',sans-serif;font-size:28px;color:#fff;letter-spacing:2px;margin-bottom:4px;}
-        .hero-title span{color:#C9951A;}
+        .hero-title{font-family:'Anton',sans-serif;font-size:28px;color:#fff;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px;}
+        .hero-title span{color:var(--sign);}
         .hero-sub{font-size:12px;color:rgba(255,255,255,0.45);margin-bottom:16px;}
         .filters{display:flex;gap:8px;flex-wrap:wrap;}
-        .filter-btn{padding:6px 16px;border-radius:20px;font-size:12px;font-weight:500;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.5);background:transparent;cursor:pointer;}
-        .filter-btn.on{background:#C9951A;color:#111;border-color:#C9951A;}
+        .filter-btn{padding:6px 16px;border-radius:20px;font-size:12px;font-weight:500;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.5);background:transparent;cursor:pointer;font-family:'Archivo',sans-serif;}
+        .filter-btn.on{background:var(--sign);color:var(--ink);border-color:var(--sign);}
         .body{padding:16px 20px;max-width:1200px;margin:0 auto;}
-        .not-logged{background:#FEF3E2;border:1px solid #F5C77A;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+        .not-logged{background:var(--concrete-2);border:1px solid #F5C77A;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px;margin-bottom:16px;}
         .not-logged-text{font-size:13px;color:#854F0B;flex:1;}
-        .not-logged-btn{padding:7px 16px;background:#C9951A;color:#111;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;text-decoration:none;}
+        .not-logged-btn{padding:7px 16px;background:var(--sign);color:var(--ink);border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;text-decoration:none;}
         .sec-label{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.8px;font-weight:500;margin-bottom:10px;}
         .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
         @media(max-width:640px){.grid{grid-template-columns:1fr;}}
-        .coupon{background:#fff;border-radius:12px;border:0.5px solid #E0DDD8;display:flex;overflow:hidden;height:80px;}@media(max-width:640px){.coupon{height:96px;}}
-        .coupon-left{width:68px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:30px;background:#FEF3E2;}
-        .coupon-body{flex:1;padding:10px 12px;border-left:1px dashed #E0DDD8;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px;overflow:hidden;}
+        .coupon{background:#fff;border-radius:12px;border:0.5px solid var(--line);display:flex;overflow:hidden;height:80px;}@media(max-width:640px){.coupon{height:96px;}}
+        .coupon-left{width:68px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:30px;background:var(--concrete-2);}
+        .coupon-body{flex:1;padding:10px 12px;border-left:1px dashed var(--line);min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px;overflow:hidden;}
         .coupon-empresa{font-size:10px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-        .coupon-title{font-size:13px;font-weight:500;color:#111;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .coupon-title{font-size:13px;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'Archivo',sans-serif;}
         .coupon-tags{display:flex;gap:4px;flex-wrap:wrap;}
         .coupon-tag{font-size:9px;padding:2px 7px;border-radius:8px;white-space:nowrap;}
-        .coupon-right{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 12px;gap:4px;flex-shrink:0;border-left:1px dashed #E0DDD8;}
-        .coupon-valor{font-size:17px;font-weight:600;color:#C9951A;white-space:nowrap;}
+        .coupon-right{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 12px;gap:4px;flex-shrink:0;border-left:1px dashed var(--line);}
+        .coupon-valor{font-size:17px;font-weight:600;color:var(--sign-dark);white-space:nowrap;}
         .coupon-btn{padding:5px 12px;border:none;border-radius:8px;font-size:11px;font-weight:500;cursor:pointer;white-space:nowrap;}
         .empty{text-align:center;padding:40px 20px;color:#888;font-size:14px;}
 
         /* RANKING */
         .rk-wrap{padding:16px 20px 0;max-width:1200px;margin:0 auto;}
         .rk-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;}
-        .rk-title{font-family:'Bebas Neue',sans-serif;font-size:18px;color:#111;letter-spacing:2px;}
+        .rk-title{font-family:'Anton',sans-serif;font-size:18px;color:var(--ink);letter-spacing:.5px;text-transform:uppercase;}
         .rk-sub{font-size:11px;color:#888;margin-top:2px;}
-        .rk-premio{background:#111;border:1px solid rgba(201,149,26,0.3);border-radius:8px;padding:6px 12px;text-align:center;flex-shrink:0;}
-        .rk-premio-label{font-size:9px;color:#C9951A;font-weight:700;letter-spacing:1px;}
+        .rk-premio{background:var(--ink);border:1px solid rgba(255,197,49,0.3);border-radius:8px;padding:6px 12px;text-align:center;flex-shrink:0;}
+        .rk-premio-label{font-size:9px;color:var(--sign);font-weight:700;letter-spacing:1px;}
         .rk-premio-val{font-size:10px;color:#fff;font-weight:600;}
         .rk-premio-sub{font-size:9px;color:#555;}
 
         /* DESKTOP: 3 colunas */
         .rk-desktop{display:none;}
         @media(min-width:768px){.rk-desktop{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px;}}
-        .rk-col{background:#111;border-radius:12px;overflow:hidden;}
+        .rk-col{background:var(--ink);border-radius:12px;overflow:hidden;}
         .rk-col-hdr{padding:10px 12px;border-bottom:1px solid #1A1A1A;display:flex;align-items:center;gap:6px;}
-        .rk-col-title{font-family:'Bebas Neue',sans-serif;font-size:14px;color:#C9951A;letter-spacing:1px;}
+        .rk-col-title{font-family:'Archivo',sans-serif;font-weight:800;font-size:12px;color:var(--sign);letter-spacing:.06em;text-transform:uppercase;}
         .rk-col-body{padding:8px 10px;display:flex;flex-direction:column;gap:6px;}
         .rk-item{display:flex;align-items:center;gap:8px;border-radius:8px;padding:8px 10px;}
-        .rk-item-1{background:#1A1A1A;border:1px solid rgba(201,149,26,0.3);}
+        .rk-item-1{background:#1A1A1A;border:1px solid rgba(255,197,49,0.3);}
         .rk-item-2,.rk-item-3{background:#161616;border:1px solid #222;}
-        .rk-pos{font-family:'Bebas Neue',sans-serif;font-size:22px;width:18px;flex-shrink:0;}
-        .rk-pos-1{color:#C9951A;}
+        .rk-pos{font-family:'Anton',sans-serif;font-size:22px;width:18px;flex-shrink:0;}
+        .rk-pos-1{color:var(--sign);}
         .rk-pos-2{color:#888;}
         .rk-pos-3{color:#7a4500;}
-        .rk-name{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .rk-name{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'Archivo',sans-serif;}
         .rk-name-1{color:#fff;}
         .rk-name-2,.rk-name-3{color:#888;}
         .rk-count{font-size:9px;color:#555;margin-top:1px;}
-        .rk-badge{font-size:9px;background:rgba(201,149,26,0.2);border:1px solid rgba(201,149,26,0.4);border-radius:5px;padding:2px 6px;color:#C9951A;white-space:nowrap;flex-shrink:0;}
+        .rk-badge{font-size:9px;background:rgba(255,197,49,0.2);border:1px solid rgba(255,197,49,0.4);border-radius:5px;padding:2px 6px;color:var(--sign);white-space:nowrap;flex-shrink:0;}
         .rk-empty{text-align:center;padding:16px 8px;font-size:10px;color:#444;line-height:1.6;}
         .rk-footer{text-align:center;font-size:10px;color:#333;padding:4px 0 10px;}
 
         /* MOBILE: abas */
         .rk-mobile{display:block;margin-bottom:20px;}
         @media(min-width:768px){.rk-mobile{display:none;}}
-        .rk-mobile-box{background:#111;border-radius:14px;overflow:hidden;}
+        .rk-mobile-box{background:var(--ink);border-radius:14px;overflow:hidden;}
         .rk-tabs{display:flex;border-bottom:1px solid #1A1A1A;}
-        .rk-tab{flex:1;padding:9px 4px;text-align:center;font-size:11px;font-weight:600;color:#555;cursor:pointer;border:none;background:transparent;border-bottom:2px solid transparent;font-family:'Inter',sans-serif;}
-        .rk-tab.on{color:#C9951A;border-bottom-color:#C9951A;}
+        .rk-tab{flex:1;padding:9px 4px;text-align:center;font-size:11px;font-weight:600;color:#555;cursor:pointer;border:none;background:transparent;border-bottom:2px solid transparent;font-family:'Archivo',sans-serif;}
+        .rk-tab.on{color:var(--sign);border-bottom-color:var(--sign);}
         .rk-mob-body{padding:10px 12px;display:flex;flex-direction:column;gap:6px;}
         .rk-mob-item{display:flex;align-items:center;gap:10px;border-radius:10px;padding:10px 12px;}
-        .rk-mob-item-1{background:#1A1A1A;border:1px solid rgba(201,149,26,0.3);}
+        .rk-mob-item-1{background:#1A1A1A;border:1px solid rgba(255,197,49,0.3);}
         .rk-mob-item-2,.rk-mob-item-3{background:#161616;border:1px solid #222;}
-        .rk-mob-pos{font-family:'Bebas Neue',sans-serif;font-size:24px;width:22px;flex-shrink:0;}
-        .rk-mob-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .rk-mob-pos{font-family:'Anton',sans-serif;font-size:24px;width:22px;flex-shrink:0;}
+        .rk-mob-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'Archivo',sans-serif;}
         .rk-mob-name-1{color:#fff;}
         .rk-mob-name-2,.rk-mob-name-3{color:#888;}
       `}</style>
@@ -323,7 +323,7 @@ export default function CuponsPageClient() {
                       {already ? (
                         <a href="/perfil?tab=cupons" className="coupon-btn" style={{background:'#EAF3DE',color:'#3B6D11',textDecoration:'none'}}>Ver código</a>
                       ) : (
-                        <button className="coupon-btn" style={{background:'#111',color:'#C9951A'}} onClick={()=>redeem(c)} disabled={redeeming===c.id}>
+                        <button className="coupon-btn" style={{background:'var(--ink)',color:'var(--sign)'}} onClick={()=>redeem(c)} disabled={redeeming===c.id}>
                           {redeeming===c.id?'...Aguarde':'Resgatar'}
                         </button>
                       )}
@@ -349,7 +349,7 @@ export default function CuponsPageClient() {
         <div onClick={()=>setRedeemModal(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.7)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
           <div onClick={e=>e.stopPropagation()} style={{background:'#fff',borderRadius:20,padding:28,width:'100%',maxWidth:420,textAlign:'center'}}>
             <div style={{fontSize:40,marginBottom:8}}>🎟️</div>
-            <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,color:'#111',letterSpacing:1,marginBottom:4}}>CUPOM RESGATADO!</div>
+            <div style={{fontFamily:"'Anton',sans-serif",fontSize:22,color:'var(--ink)',letterSpacing:1,textTransform:'uppercase',marginBottom:4}}>CUPOM RESGATADO!</div>
             <div style={{fontSize:13,color:'#888',marginBottom:20}}>{redeemModal.coupon.title}</div>
             <div style={{background:'#F5F2EC',borderRadius:12,padding:'16px 20px',marginBottom:20}}>
               <div style={{fontSize:11,color:'#888',marginBottom:6,textTransform:'uppercase',letterSpacing:.6}}>Seu código</div>
@@ -374,13 +374,13 @@ export default function CuponsPageClient() {
       {editModal && (
         <div onClick={()=>setEditModal(null)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
           <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:20,padding:28,width:"100%",maxWidth:420}}>
-            <div style={{fontFamily:"Bebas Neue,sans-serif",fontSize:20,color:"#111",letterSpacing:1,marginBottom:16}}>✏️ EDITAR CUPOM</div>
-            <div style={{marginBottom:10}}><label style={{fontSize:12,fontWeight:600,color:"#444",display:"block",marginBottom:4}}>TÍTULO</label><input value={editForm.title} onChange={e=>setEditForm(f=>({...f,title:e.target.value}))} style={{width:"100%",padding:"9px 12px",border:"1.5px solid #E0DDD8",borderRadius:8,fontSize:13,fontFamily:"Inter,sans-serif",outline:"none"}}/></div>
-            <div style={{marginBottom:10}}><label style={{fontSize:12,fontWeight:600,color:"#444",display:"block",marginBottom:4}}>VALOR DO DESCONTO</label><input type="number" value={editForm.discount_value} onChange={e=>setEditForm(f=>({...f,discount_value:e.target.value}))} style={{width:"100%",padding:"9px 12px",border:"1.5px solid #E0DDD8",borderRadius:8,fontSize:13,fontFamily:"Inter,sans-serif",outline:"none"}}/></div>
-            <div style={{marginBottom:10}}><label style={{fontSize:12,fontWeight:600,color:"#444",display:"block",marginBottom:4}}>COMPRA MÍNIMA (R$)</label><input type="number" value={editForm.min_purchase} onChange={e=>setEditForm(f=>({...f,min_purchase:e.target.value}))} placeholder="0 = sem mínimo" style={{width:"100%",padding:"9px 12px",border:"1.5px solid #E0DDD8",borderRadius:8,fontSize:13,fontFamily:"Inter,sans-serif",outline:"none"}}/></div>
-            <div style={{marginBottom:16}}><label style={{fontSize:12,fontWeight:600,color:"#444",display:"block",marginBottom:4}}>VALIDADE</label><input type="datetime-local" value={editForm.expires_at} onChange={e=>setEditForm(f=>({...f,expires_at:e.target.value}))} style={{width:"100%",padding:"9px 12px",border:"1.5px solid #E0DDD8",borderRadius:8,fontSize:13,fontFamily:"Inter,sans-serif",outline:"none"}}/></div>
-            <button onClick={async()=>{if(!editModal)return;setSaving(true);await fetch("/api/coupons/update",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({coupon_id:editModal.id,updates:{title:editForm.title,discount_value:Number(editForm.discount_value),expires_at:new Date(editForm.expires_at).toISOString(),min_purchase:editForm.min_purchase?Number(editForm.min_purchase):0}})});setSaving(false);setEditModal(null);loadCoupons()}} style={{width:"100%",padding:12,background:"#C9951A",color:"#111",border:"none",borderRadius:10,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"Inter,sans-serif",marginBottom:8}}>{saving?"Salvando...":"Salvar alterações"}</button>
-            <button onClick={()=>setEditModal(null)} style={{width:"100%",padding:10,background:"#F5F2EC",color:"#888",border:"none",borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:"Inter,sans-serif"}}>Cancelar</button>
+            <div style={{fontFamily:"'Anton',sans-serif",fontSize:20,color:"var(--ink)",letterSpacing:1,textTransform:'uppercase',marginBottom:16}}>✏️ EDITAR CUPOM</div>
+            <div style={{marginBottom:10}}><label style={{fontSize:12,fontWeight:600,color:"#444",display:"block",marginBottom:4}}>TÍTULO</label><input value={editForm.title} onChange={e=>setEditForm(f=>({...f,title:e.target.value}))} style={{width:"100%",padding:"9px 12px",border:"1.5px solid #E0DDD8",borderRadius:8,fontSize:13,fontFamily:"Archivo,sans-serif",outline:"none"}}/></div>
+            <div style={{marginBottom:10}}><label style={{fontSize:12,fontWeight:600,color:"#444",display:"block",marginBottom:4}}>VALOR DO DESCONTO</label><input type="number" value={editForm.discount_value} onChange={e=>setEditForm(f=>({...f,discount_value:e.target.value}))} style={{width:"100%",padding:"9px 12px",border:"1.5px solid #E0DDD8",borderRadius:8,fontSize:13,fontFamily:"Archivo,sans-serif",outline:"none"}}/></div>
+            <div style={{marginBottom:10}}><label style={{fontSize:12,fontWeight:600,color:"#444",display:"block",marginBottom:4}}>COMPRA MÍNIMA (R$)</label><input type="number" value={editForm.min_purchase} onChange={e=>setEditForm(f=>({...f,min_purchase:e.target.value}))} placeholder="0 = sem mínimo" style={{width:"100%",padding:"9px 12px",border:"1.5px solid #E0DDD8",borderRadius:8,fontSize:13,fontFamily:"Archivo,sans-serif",outline:"none"}}/></div>
+            <div style={{marginBottom:16}}><label style={{fontSize:12,fontWeight:600,color:"#444",display:"block",marginBottom:4}}>VALIDADE</label><input type="datetime-local" value={editForm.expires_at} onChange={e=>setEditForm(f=>({...f,expires_at:e.target.value}))} style={{width:"100%",padding:"9px 12px",border:"1.5px solid #E0DDD8",borderRadius:8,fontSize:13,fontFamily:"Archivo,sans-serif",outline:"none"}}/></div>
+            <button onClick={async()=>{if(!editModal)return;setSaving(true);await fetch("/api/coupons/update",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({coupon_id:editModal.id,updates:{title:editForm.title,discount_value:Number(editForm.discount_value),expires_at:new Date(editForm.expires_at).toISOString(),min_purchase:editForm.min_purchase?Number(editForm.min_purchase):0}})});setSaving(false);setEditModal(null);loadCoupons()}} style={{width:"100%",padding:12,background:"var(--sign)",color:"var(--ink)",border:"none",borderRadius:10,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"Archivo,sans-serif",marginBottom:8}}>{saving?"Salvando...":"Salvar alterações"}</button>
+            <button onClick={()=>setEditModal(null)} style={{width:"100%",padding:10,background:"#F5F2EC",color:"#888",border:"none",borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:"Archivo,sans-serif"}}>Cancelar</button>
           </div>
         </div>
       )}

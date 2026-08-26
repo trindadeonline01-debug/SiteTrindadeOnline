@@ -41,18 +41,18 @@ export default function PromocoesPageClient({ initialPromos }: { initialPromos: 
 
   const CSS = `
     *{box-sizing:border-box;margin:0;padding:0;}
-    body{font-family:'Inter',sans-serif;background:#000;min-height:100vh;}
+    body{font-family:'Archivo',sans-serif;background:#000;min-height:100vh;}
 
     /* MOBILE - stories */
     .pg-mobile{position:fixed;left:0;right:0;top:54px;bottom:0;background:#000;display:flex;flex-direction:column;overflow:hidden;}
     .topbar{background:rgba(0,0,0,0.9);padding:10px 16px;flex-shrink:0;backdrop-filter:blur(10px);}
-    .top-title{font-family:'Bebas Neue',sans-serif;font-size:20px;color:#fff;letter-spacing:2px;margin-bottom:6px;}
-    .top-title span{color:#C9951A;}
+    .top-title{font-family:'Anton',sans-serif;font-size:20px;color:#fff;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;}
+    .top-title span{color:var(--sign);}
     .filters-row{display:flex;align-items:center;gap:10px;}
     .filters{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;flex:1;min-width:0;}
     .filters::-webkit-scrollbar{display:none;}
-    .filter-btn{padding:4px 14px;border-radius:20px;font-size:11px;font-weight:500;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.5);background:transparent;cursor:pointer;white-space:nowrap;flex-shrink:0;}
-    .filter-btn.on{background:#C9951A;color:#111;border-color:#C9951A;}
+    .filter-btn{padding:4px 14px;border-radius:20px;font-size:11px;font-weight:500;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.5);background:transparent;cursor:pointer;white-space:nowrap;flex-shrink:0;font-family:'Archivo',sans-serif;}
+    .filter-btn.on{background:var(--sign);color:var(--ink);border-color:var(--sign);}
     .filters-share{flex-shrink:0;}
     .progress-bar{display:flex;gap:3px;padding:8px 16px 0;flex-shrink:0;}
     .progress-item{flex:1;height:2px;background:rgba(255,255,255,0.2);border-radius:2px;overflow:hidden;cursor:pointer;}
@@ -67,27 +67,27 @@ export default function PromocoesPageClient({ initialPromos }: { initialPromos: 
     .empty-mobile{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;color:#555;gap:8px;font-size:14px;}
 
     /* DESKTOP - grid */
-    .pg-desktop{background:#F0EDE8;min-height:100vh;}
-    .hero{background:#111;padding:18px 24px 20px;}
+    .pg-desktop{background:var(--concrete);min-height:100vh;}
+    .hero{background:var(--ink);padding:18px 24px 20px;}
     .hero-inner{max-width:1100px;margin:0 auto;}
-    .hero-title{font-family:'Bebas Neue',sans-serif;font-size:24px;color:#fff;letter-spacing:2px;margin-bottom:3px;}
-    .hero-title span{color:#C9951A;}
+    .hero-title{font-family:'Anton',sans-serif;font-size:24px;color:#fff;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px;}
+    .hero-title span{color:var(--sign);}
     .hero-sub{font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:14px;}
     .desktop-filters{display:flex;gap:7px;flex-wrap:wrap;}
-    .desktop-filter-btn{padding:5px 14px;border-radius:20px;font-size:11px;font-weight:500;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.5);background:transparent;cursor:pointer;}
-    .desktop-filter-btn.on{background:#C9951A;color:#111;border-color:#C9951A;}
+    .desktop-filter-btn{padding:5px 14px;border-radius:20px;font-size:11px;font-weight:500;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.5);background:transparent;cursor:pointer;font-family:'Archivo',sans-serif;}
+    .desktop-filter-btn.on{background:var(--sign);color:var(--ink);border-color:var(--sign);}
     .grid-body{padding:20px 24px;max-width:1100px;margin:0 auto;}
     .promo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
-    .promo-card{background:#fff;border-radius:14px;overflow:hidden;border:0.5px solid #E0DDD8;cursor:pointer;transition:transform .15s;}
+    .promo-card{background:#fff;border-radius:14px;overflow:hidden;border:0.5px solid var(--line);cursor:pointer;transition:transform .15s;}
     .promo-card:hover{transform:translateY(-2px);}
-    .promo-card-img{aspect-ratio:9/16;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#F5F0E8;font-size:60px;position:relative;}
+    .promo-card-img{aspect-ratio:9/16;overflow:hidden;display:flex;align-items:center;justify-content:center;background:var(--concrete-2);font-size:60px;position:relative;}
     .promo-card-img img{width:100%;height:100%;object-fit:cover;}
     .promo-card-body{padding:12px 14px;}
-    .promo-card-cat{font-size:10px;color:#888;margin-bottom:3px;}
-    .promo-card-empresa{font-size:14px;font-weight:600;color:#111;margin-bottom:3px;}
+    .promo-card-cat{font-size:10px;color:var(--muted);margin-bottom:3px;}
+    .promo-card-empresa{font-size:14px;font-weight:600;color:var(--ink);margin-bottom:3px;font-family:'Archivo',sans-serif;}
     .promo-card-title{font-size:12px;color:#555;margin-bottom:6px;}
-    .promo-card-validade{font-size:10px;color:#C9951A;margin-bottom:8px;}
-    .promo-card-btn{display:inline-block;padding:6px 14px;background:#111;color:#C9951A;border-radius:20px;font-size:11px;font-weight:500;text-decoration:none;}
+    .promo-card-validade{font-size:10px;color:var(--sign-dark);margin-bottom:8px;}
+    .promo-card-btn{display:inline-block;padding:6px 14px;background:var(--ink);color:var(--sign);border-radius:20px;font-size:11px;font-weight:500;text-decoration:none;}
     .empty-desktop{text-align:center;padding:60px 20px;color:#AAA;font-size:14px;}
   `
 

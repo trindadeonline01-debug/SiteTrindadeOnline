@@ -18,9 +18,9 @@ export default function OfertasPageClient({ initialPromos }: { initialPromos: Pr
   return (
     <div style={{ minHeight: '100vh', background: '#F5F2EC' }}>
       <style>{`
-        .of-tabs{position:sticky;top:0;z-index:500;background:#fff;border-bottom:1px solid #E0DDD8;display:flex;gap:4px;padding:10px 16px;max-width:900px;margin:0 auto;}
-        .of-tab{flex:1;text-align:center;padding:10px 12px;border-radius:10px;font-size:13.5px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;color:#888;background:transparent;border:none;}
-        .of-tab.on{background:#FEF3E2;color:#C9951A;}
+        .of-tabs{position:sticky;top:0;z-index:500;background:#fff;border-bottom:1px solid var(--line);display:flex;gap:4px;padding:10px 16px;max-width:900px;margin:0 auto;}
+        .of-tab{flex:1;text-align:center;padding:10px 12px;border-radius:10px;font-size:13.5px;font-weight:700;font-family:'Archivo',sans-serif;cursor:pointer;color:#888;background:transparent;border:none;}
+        .of-tab.on{background:var(--concrete-2);color:var(--sign-dark);}
       `}</style>
       <div className="of-tabs">
         <button className={`of-tab ${tab === 'cupons' ? 'on' : ''}`} onClick={() => setTab('cupons')}>🎟️ Cupons Relâmpago</button>

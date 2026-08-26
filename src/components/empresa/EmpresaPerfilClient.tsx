@@ -798,6 +798,18 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
                   )}
                 </div>
               )}
+
+              {/* Convite pro dono ativar o plano — ESPECIFICACAO.md §10.4:
+                  "o convite fica exatamente onde é visto por quem tentou
+                  falar com ele e não conseguiu" — ao lado do botão de
+                  WhatsApp bloqueado, só visível pro próprio dono */}
+              {isOwner && !isActive && (
+                <div style={{background:'#FEF3E2',border:'1px solid #F5C77A',borderRadius:10,padding:'12px 14px',fontSize:12,color:'#854F0B',lineHeight:1.5}}>
+                  Moradores tentam falar com você por aqui e não conseguem — o WhatsApp só aparece pra quem tem plano ativo.{' '}
+                  <a href="/painel?tab=plano" style={{color:'#C9951A',fontWeight:700,textDecoration:'underline'}}>Ativar agora →</a>
+                </div>
+              )}
+
               <div className="icon-row">
                 <button className={`icon-btn ${isFav ? 'on' : ''}`} onClick={toggleFav}>
                   <span className="icon-circle">{isFav ? '❤️' : '🤍'}</span>

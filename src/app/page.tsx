@@ -77,11 +77,6 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
-function Stars({ rating }: { rating: number }) {
-  const r = Math.round(rating)
-  return <span style={{ color: 'var(--sign-dark)', fontSize: 11 }}>{'★'.repeat(r)}{'☆'.repeat(5 - r)}</span>
-}
-
 function fmtDesconto(o: Oferta) {
   if (o.kind !== 'cupom' || o.discount_value == null) return null
   return o.discount_type === 'fixed' ? `R$ ${o.discount_value.toFixed(2).replace('.', ',')} off` : `${o.discount_value}% off`
@@ -449,7 +444,7 @@ export default async function HomePage() {
         .dest-cat  { font-size: 10px; color: var(--muted); margin-bottom: 4px; }
         .badge-dest { position: absolute; top: 6px; right: 6px; background: var(--sign); color: var(--ink); font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 3px; }
 
-        .recent-section { margin-top: 22px; }
+        .recent-section { margin-top: 48px; }
         .recent-section-hdr { display: flex; align-items: flex-end; gap: 7px; margin-bottom: 12px; }
         .recent-section-title { font-family: 'Anton', sans-serif; font-size: 21px; color: var(--ink); letter-spacing: .5px; text-transform: uppercase; line-height: 1; }
         .recent-scroll { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
@@ -462,7 +457,6 @@ export default async function HomePage() {
         .recent-card-img { width: 100%; aspect-ratio: 1/1; border-radius: 14px; overflow: hidden; background: var(--concrete); display: flex; align-items: center; justify-content: center; font-size: 34px; margin-bottom: 8px; position: relative; }
         .recent-card-img img { width: 100%; height: 100%; object-fit: cover; }
         .recent-card-title { font-size: 14px; font-weight: 600; color: var(--ink); line-height: 1.3; margin-bottom: 2px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-family: 'Archivo', sans-serif; }
-        .recent-card-sub { font-size: 13px; color: var(--muted); }
         .recent-card-price { font-size: 13px; color: var(--sign-dark); font-weight: 700; }
 
         /* ABERTO AGORA / ENTREGANDO AGORA */
@@ -680,7 +674,6 @@ export default async function HomePage() {
                 <div key={key} className="recent-section">
                   <div className="sec-hdr">
                     <div>
-                      <span className="sec-eyebrow">Plano pago</span>
                       <h2 className="recent-section-title">{title}</h2>
                     </div>
                     <a href={href} className="sec-link">Ver tudo →</a>
@@ -694,10 +687,6 @@ export default async function HomePage() {
                             {cover ? <Image src={cover} alt={c.name} fill sizes="(max-width:639px) 45vw, 220px" unoptimized style={{objectFit:'cover'}} /> : (c.category?.emoji || '🏪')}
                           </div>
                           <div className="recent-card-title">{c.name}</div>
-                          <div className="recent-card-sub">
-                            {c.category?.emoji} {c.category?.name || ''}
-                            {c.avg_rating > 0 && <> · <Stars rating={c.avg_rating} /> {c.avg_rating.toFixed(1)}</>}
-                          </div>
                         </a>
                       )
                     })}
@@ -728,10 +717,6 @@ export default async function HomePage() {
                       {cover ? <Image src={cover} alt={c.name} fill sizes="(max-width:639px) 45vw, 220px" unoptimized style={{objectFit:'cover'}} /> : (c.category?.emoji || '🏪')}
                     </div>
                     <div className="recent-card-title">{c.name}</div>
-                    <div className="recent-card-sub">
-                      {c.category?.emoji} {c.category?.name || ''}
-                      {c.avg_rating > 0 && <> · <Stars rating={c.avg_rating} /> {c.avg_rating.toFixed(1)}</>}
-                    </div>
                   </a>
                 )
               })}

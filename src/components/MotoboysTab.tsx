@@ -9,11 +9,11 @@ interface Motoboy {
 
 const s: Record<string, any> = {
   card: { background: '#fff', borderRadius: 16, padding: 24, marginBottom: 20, boxShadow: '0 2px 12px rgba(0,0,0,0.07)' },
-  cardTitle: { fontSize: 11, fontWeight: 700, color: '#C9951A', letterSpacing: 1.5, textTransform: 'uppercase' as const, marginBottom: 18 },
+  cardTitle: { fontSize: 11, fontWeight: 700, color: 'var(--sign-dark)', letterSpacing: 1.5, textTransform: 'uppercase' as const, marginBottom: 18 },
   label: { fontSize: 12, fontWeight: 600, color: '#555', display: 'block', marginBottom: 6, marginTop: 12 },
   input: { width: '100%', background: '#f9f9f9', border: '1.5px solid #e5e5e5', borderRadius: 10, color: '#111', padding: '11px 14px', fontSize: 13, outline: 'none', fontFamily: 'inherit' },
   select: { width: '100%', background: '#f9f9f9', border: '1.5px solid #e5e5e5', borderRadius: 10, color: '#111', padding: '11px 14px', fontSize: 13, outline: 'none', fontFamily: 'inherit' },
-  btnPrimary: { width: '100%', background: '#C9951A', color: '#111', border: 'none', padding: 14, borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer', marginTop: 16 },
+  btnPrimary: { width: '100%', background: 'var(--sign)', color: 'var(--ink)', border: 'none', padding: 14, borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer', marginTop: 16 },
   btnCam: { display: 'flex', alignItems: 'center', gap: 10, background: '#f9f9f9', border: '1.5px dashed #d8d8d8', borderRadius: 10, padding: '11px 14px', fontSize: 13, fontWeight: 600, color: '#555', cursor: 'pointer', width: '100%' },
   row: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '14px 0', borderBottom: '1px solid #F0EDE8' },
   name: { fontSize: 14, fontWeight: 700, color: '#111' },

@@ -44,12 +44,12 @@ interface Attempt {
 
 const s: Record<string, any> = {
   card: { background: '#fff', borderRadius: 16, padding: 24, marginBottom: 20, boxShadow: '0 2px 12px rgba(0,0,0,0.07)' },
-  cardTitle: { fontSize: 11, fontWeight: 700, color: '#C9951A', letterSpacing: 1.5, textTransform: 'uppercase' as const, marginBottom: 18 },
+  cardTitle: { fontSize: 11, fontWeight: 700, color: 'var(--sign-dark)', letterSpacing: 1.5, textTransform: 'uppercase' as const, marginBottom: 18 },
   label: { fontSize: 12, fontWeight: 600, color: '#555', display: 'block', marginBottom: 6, marginTop: 12 },
   input: { width: '100%', background: '#f9f9f9', border: '1.5px solid #e5e5e5', borderRadius: 10, color: '#111', padding: '11px 14px', fontSize: 13, outline: 'none' },
-  btnPrimary: { width: '100%', background: '#C9951A', color: '#111', border: 'none', padding: 14, borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer', marginTop: 16 },
+  btnPrimary: { width: '100%', background: 'var(--sign)', color: 'var(--ink)', border: 'none', padding: 14, borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer', marginTop: 16 },
   btnGhost: { background: '#fff', color: '#E24B4A', border: '1.5px solid #E24B4A', padding: '8px 16px', borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: 'pointer' },
-  scopeBtn: (on: boolean) => ({ flex: 1, padding: '10px 12px', borderRadius: 10, border: on ? '1.5px solid #C9951A' : '1.5px solid #e5e5e5', background: on ? '#FEF3E2' : '#fff', color: on ? '#92600A' : '#666', fontSize: 13, fontWeight: 700, cursor: 'pointer' }),
+  scopeBtn: (on: boolean) => ({ flex: 1, padding: '10px 12px', borderRadius: 10, border: on ? '1.5px solid var(--sign-dark)' : '1.5px solid #e5e5e5', background: on ? '#FEF3E2' : '#fff', color: on ? '#92600A' : '#666', fontSize: 13, fontWeight: 700, cursor: 'pointer' }),
 }
 
 export default function PalavraPremiadaTab() {
@@ -197,7 +197,7 @@ export default function PalavraPremiadaTab() {
             <div style={{ fontSize: 11, fontWeight: 700, color: '#888', marginBottom: 4 }}>{scopeLabel(r)}</div>
             <div style={{ fontSize: 20, fontWeight: 700, color: '#111', marginBottom: 4 }}>"{r.word}"</div>
             <div style={{ fontSize: 13, color: '#666', marginBottom: 10 }}>Prêmio: {r.prize_description}</div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#C9951A', marginBottom: 14 }}>{r.winners_count}/{r.max_winners} ganhadores</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--sign-dark)', marginBottom: 14 }}>{r.winners_count}/{r.max_winners} ganhadores</div>
             {winnersOf(r.id).length > 0 && (
               <div style={{ marginBottom: 14 }}>
                 {winnersOf(r.id).map(w => (
@@ -266,7 +266,7 @@ export default function PalavraPremiadaTab() {
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: i < viewStats.length - 1 ? '1px solid #f2f2f2' : 'none' }}>
             <div style={{ flex: 1, fontSize: 13, fontWeight: 700, color: '#111' }}>🏪 {v.scope}</div>
             <div style={{ fontSize: 12, color: '#666', textAlign: 'right' as const }}>{v.count} visita{v.count === 1 ? '' : 's'}</div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#C9951A', textAlign: 'right' as const }}>{v.unique} única{v.unique === 1 ? '' : 's'}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sign-dark)', textAlign: 'right' as const }}>{v.unique} única{v.unique === 1 ? '' : 's'}</div>
           </div>
         ))}
       </div>
@@ -283,7 +283,7 @@ export default function PalavraPremiadaTab() {
         {scope === 'loja' && (
           <div style={{ marginTop: 12 }}>
             {selectedCompany ? (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#FEF3E2', border: '1.5px solid #C9951A', borderRadius: 10, padding: '10px 14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#FEF3E2', border: '1.5px solid var(--sign-dark)', borderRadius: 10, padding: '10px 14px' }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#92600A' }}>🏪 {selectedCompany.name}</span>
                 <button onClick={() => { setSelectedCompany(null); setCompanySearch('') }} style={{ background: 'none', border: 'none', color: '#92600A', cursor: 'pointer', fontSize: 16 }}>×</button>
               </div>
@@ -324,7 +324,7 @@ export default function PalavraPremiadaTab() {
                 <span>{w.position}º — {w.name || 'sem nome'} · {w.phone || 'sem WhatsApp'}</span>
                 {w.redeemed
                   ? <span style={{ fontSize: 11, color: '#0F6E56', fontWeight: 600 }}>✓ Entregue</span>
-                  : <button onClick={() => marcarEntregue(w.id)} style={{ fontSize: 11, fontWeight: 600, color: '#C9951A', background: 'none', border: '1px solid #C9951A', borderRadius: 8, padding: '3px 10px', cursor: 'pointer' }}>Marcar entregue</button>}
+                  : <button onClick={() => marcarEntregue(w.id)} style={{ fontSize: 11, fontWeight: 600, color: 'var(--sign-dark)', background: 'none', border: '1px solid var(--sign-dark)', borderRadius: 8, padding: '3px 10px', cursor: 'pointer' }}>Marcar entregue</button>}
               </div>
             ))}
           </div>

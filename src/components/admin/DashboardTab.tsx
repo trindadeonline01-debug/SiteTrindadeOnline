@@ -189,7 +189,7 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
           type: 'line',
           data: {
             labels: weeklyViews.map(d => d.day),
-            datasets: [{ label: 'Views', data: weeklyViews.map(d => d.views), borderColor: '#C9951A', backgroundColor: 'rgba(201,149,26,0.08)', borderWidth: 2.5, pointBackgroundColor: '#C9951A', pointRadius: 4, tension: 0.4, fill: true }]
+            datasets: [{ label: 'Views', data: weeklyViews.map(d => d.views), borderColor: '#A87200', backgroundColor: 'rgba(201,149,26,0.08)', borderWidth: 2.5, pointBackgroundColor: '#A87200', pointRadius: 4, tension: 0.4, fill: true }]
           },
           options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#aaa' } }, y: { grid: { color: '#f0f0f0' }, ticks: { font: { size: 11 }, color: '#aaa' } } } }
         })
@@ -198,7 +198,7 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
         if (donutChart.current) donutChart.current.destroy()
         donutChart.current = new Chart(donutRef.current, {
           type: 'doughnut',
-          data: { datasets: [{ data: [stats.paid, stats.free], backgroundColor: ['#16a34a', '#C9951A'], borderWidth: 0 }] },
+          data: { datasets: [{ data: [stats.paid, stats.free], backgroundColor: ['#16a34a', '#A87200'], borderWidth: 0 }] },
           options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, cutout: '70%' }
         })
       }
@@ -208,7 +208,7 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
   const s: Record<string, any> = {
     wrap: { padding: '0 0 40px 0' },
     periodLabel: { fontSize: 12, fontWeight: 600, color: '#888', marginRight: 4 },
-    periodBtn: (on: boolean) => ({ padding: '7px 14px', borderRadius: 8, border: on ? '1.5px solid #111' : '1.5px solid #e0e0e0', background: on ? '#111' : '#fff', color: on ? '#C9951A' : '#666', fontSize: 12, fontWeight: 600, cursor: 'pointer' }),
+    periodBtn: (on: boolean) => ({ padding: '7px 14px', borderRadius: 8, border: on ? '1.5px solid var(--ink)' : '1.5px solid #e0e0e0', background: on ? 'var(--ink)' : '#fff', color: on ? 'var(--sign)' : '#666', fontSize: 12, fontWeight: 600, cursor: 'pointer' }),
     alert: { background: '#fff', borderRadius: 12, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', borderLeft: '4px solid #e24b4a', marginBottom: 24 },
     sectionTitle: { fontSize: 11, fontWeight: 700, color: '#aaa', letterSpacing: 1.5, textTransform: 'uppercase' as const, marginBottom: 12, marginTop: 28 },
     card: { background: '#fff', borderRadius: 14, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', border: '1.5px solid #f0f0f0', position: 'relative' as const, overflow: 'hidden' },
@@ -289,7 +289,7 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
         {[
           { icon: '👁️', label: 'Visualizações', val: stats.views, color: '#2563eb' },
           { icon: '🙋', label: 'Visitantes únicos', val: stats.unique_visitors, color: '#16a34a' },
-          { icon: '💬', label: 'Cliques WhatsApp', val: stats.whatsapp_clicks, color: '#C9951A' },
+          { icon: '💬', label: 'Cliques WhatsApp', val: stats.whatsapp_clicks, color: 'var(--sign-dark)' },
           { icon: '🔗', label: 'Cliques link externo (total geral)', val: stats.link_clicks, color: '#111' },
           { icon: '📍', label: 'Cliques no endereço (total geral)', val: stats.address_clicks, color: '#111' },
         ].map(c => (
@@ -324,10 +324,10 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
         <div style={s.card}>
           <span style={s.cardIcon}>🆓</span>
           <div style={s.cardLabel}>Cadastros gratuitos <span style={{fontSize:10,color:'#aaa',fontWeight:400}}>(total atual)</span></div>
-          {num(stats.free, '#C9951A')}
-          <div style={{ fontSize: 12, color: '#C9951A', marginBottom: 12 }}>Potencial de conversão</div>
+          {num(stats.free, 'var(--sign-dark)')}
+          <div style={{ fontSize: 12, color: 'var(--sign-dark)', marginBottom: 12 }}>Potencial de conversão</div>
           <div style={{ background: '#f0f0f0', borderRadius: 99, height: 5, overflow: 'hidden' }}>
-            <div style={{ background: '#C9951A', height: '100%', borderRadius: 99, width: `${Math.round(stats.free / (stats.paid + stats.free) * 100)}%` }}></div>
+            <div style={{ background: 'var(--sign-dark)', height: '100%', borderRadius: 99, width: `${Math.round(stats.free / (stats.paid + stats.free) * 100)}%` }}></div>
           </div>
         </div>
         <div style={{ ...s.card, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -341,7 +341,7 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
                 <span><strong>{stats.paid}</strong> pagas</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#555' }}>
-                <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#C9951A' }}></div>
+                <div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--sign-dark)' }}></div>
                 <span><strong>{stats.free}</strong> gratuitas</span>
               </div>
             </div>
@@ -361,8 +361,8 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
         <div style={s.card}>
           <span style={s.cardIcon}>🎯</span>
           <div style={s.cardLabel}>Potencial não convertido</div>
-          {num(Math.floor(stats.free * 49.9), '#C9951A')}
-          <div style={{ fontSize: 12, color: '#C9951A' }}>{stats.free} empresas no plano gratuito</div>
+          {num(Math.floor(stats.free * 49.9), 'var(--sign-dark)')}
+          <div style={{ fontSize: 12, color: 'var(--sign-dark)' }}>{stats.free} empresas no plano gratuito</div>
         </div>
       </div>
       {/* ENGAJAMENTO */}
@@ -370,7 +370,7 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
       <div className="dash-grid-4">
         {[
           { icon: '⭐', label: 'Avaliações', val: stats.reviews, color: '#111' },
-          { icon: '🎟️', label: 'Cupons criados', val: stats.coupons, color: '#C9951A' },
+          { icon: '🎟️', label: 'Cupons criados', val: stats.coupons, color: 'var(--sign-dark)' },
           { icon: '📣', label: 'Promoções', val: stats.promotions, color: '#2563eb' },
           { icon: '🔍', label: 'Buscas realizadas', val: stats.total_searches, color: '#111' },
         ].map(c => (
@@ -387,13 +387,13 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {topCompanies.map((c, i) => (
           <div key={c.name} style={{ background: '#fff', border: '1.5px solid #f0f0f0', borderRadius: 12, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 14, boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
-            <div style={{ fontSize: 16, fontWeight: 800, width: 24, textAlign: 'center', color: i === 0 ? '#C9951A' : i === 1 ? '#888' : i === 2 ? '#b87333' : '#aaa' }}>{i + 1}</div>
+            <div style={{ fontSize: 16, fontWeight: 800, width: 24, textAlign: 'center', color: i === 0 ? 'var(--sign-dark)' : i === 1 ? '#888' : i === 2 ? '#b87333' : '#aaa' }}>{i + 1}</div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 13, fontWeight: 700 }}>{c.name}</div>
             </div>
             <div style={{ width: 120 }}>
               <div style={{ background: '#f0f0f0', borderRadius: 99, height: 5, overflow: 'hidden', marginBottom: 3 }}>
-                <div style={{ background: i === 0 ? '#C9951A' : '#aaa', height: '100%', borderRadius: 99, width: `${Math.round((c.views / (topCompanies[0]?.views || 1)) * 100)}%` }}></div>
+                <div style={{ background: i === 0 ? 'var(--sign-dark)' : '#aaa', height: '100%', borderRadius: 99, width: `${Math.round((c.views / (topCompanies[0]?.views || 1)) * 100)}%` }}></div>
               </div>
               <div style={{ fontSize: 11, color: '#aaa', fontWeight: 600, textAlign: 'right' }}>{c.views.toLocaleString()} views</div>
             </div>
@@ -414,7 +414,7 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
         <div style={{ maxHeight: 400, overflowY: 'auto' }}>
           {searchTerms.slice(0, 50).map((t, i) => (
             <div key={t.term} style={{ display: 'grid', gridTemplateColumns: '36px 1fr 70px 130px 130px', gap: 8, padding: '11px 16px', borderBottom: '1px solid #f9f9f9', alignItems: 'center' }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: 6, background: i === 0 ? '#fff8e6' : i === 1 ? '#f5f5f5' : i === 2 ? '#fdf3ec' : '#f0f0f0', color: i === 0 ? '#C9951A' : i === 1 ? '#666' : i === 2 ? '#b87333' : '#888', fontSize: 11, fontWeight: 700 }}>{i + 1}</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: 6, background: i === 0 ? '#fff8e6' : i === 1 ? '#f5f5f5' : i === 2 ? '#fdf3ec' : '#f0f0f0', color: i === 0 ? 'var(--sign-dark)' : i === 1 ? '#666' : i === 2 ? '#b87333' : '#888', fontSize: 11, fontWeight: 700 }}>{i + 1}</span>
               <span style={{ fontSize: 13, fontWeight: 600, color: '#111' }}>{t.term}</span>
               <span style={{ fontSize: 13, fontWeight: 700, color: '#2563eb' }}>{t.count}</span>
               <span style={{ fontSize: 11, fontWeight: 600, background: t.no_result ? '#fff0f0' : '#f0fdf4', color: t.no_result ? '#dc2626' : '#16a34a', padding: '2px 8px', borderRadius: 6, display: 'inline-block' }}>{t.no_result ? '✗ sem resultado' : '✓ encontrou'}</span>
@@ -434,7 +434,7 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
         {searchTerms.slice(0, 50).map((t, i) => (
           <div key={t.term} style={{ background: '#fff', borderRadius: 12, border: '1.5px solid #f0f0f0', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', padding: '12px 14px', marginBottom: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: 6, flexShrink: 0, background: i === 0 ? '#fff8e6' : i === 1 ? '#f5f5f5' : i === 2 ? '#fdf3ec' : '#f0f0f0', color: i === 0 ? '#C9951A' : i === 1 ? '#666' : i === 2 ? '#b87333' : '#888', fontSize: 11, fontWeight: 700 }}>{i + 1}</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: 6, flexShrink: 0, background: i === 0 ? '#fff8e6' : i === 1 ? '#f5f5f5' : i === 2 ? '#fdf3ec' : '#f0f0f0', color: i === 0 ? 'var(--sign-dark)' : i === 1 ? '#666' : i === 2 ? '#b87333' : '#888', fontSize: 11, fontWeight: 700 }}>{i + 1}</span>
               <span style={{ fontSize: 14, fontWeight: 700, color: '#111', flex: 1 }}>{t.term}</span>
               <span style={{ fontSize: 11, fontWeight: 600, background: t.no_result ? '#fff0f0' : '#f0fdf4', color: t.no_result ? '#dc2626' : '#16a34a', padding: '2px 8px', borderRadius: 6, flexShrink: 0 }}>{t.no_result ? '✗ sem resultado' : '✓ encontrou'}</span>
             </div>

@@ -558,13 +558,13 @@ export default function DisparosTab() {
   const s: Record<string, any> = {
     wrap: { padding: '0 0 40px 0' },
     card: { background: '#fff', borderRadius: 16, padding: 24, marginBottom: 20, boxShadow: '0 2px 12px rgba(0,0,0,0.07)' },
-    cardTitle: { fontSize: 11, fontWeight: 700, color: '#C9951A', letterSpacing: 1.5, textTransform: 'uppercase' as const, marginBottom: 18 },
+    cardTitle: { fontSize: 11, fontWeight: 700, color: 'var(--sign-dark)', letterSpacing: 1.5, textTransform: 'uppercase' as const, marginBottom: 18 },
     label: { fontSize: 12, fontWeight: 600, color: '#555', display: 'block', marginBottom: 6, marginTop: 12 },
     input: { width: '100%', background: '#f9f9f9', border: '1.5px solid #e5e5e5', borderRadius: 10, color: '#111', padding: '11px 14px', fontSize: 13, outline: 'none', marginBottom: 0 },
     textarea: { width: '100%', background: '#f9f9f9', border: '1.5px solid #e5e5e5', borderRadius: 10, color: '#111', padding: '11px 14px', fontSize: 13, outline: 'none', height: 75, resize: 'none' as const, fontFamily: 'inherit' },
     select: { width: '100%', background: '#f9f9f9', border: '1.5px solid #e5e5e5', borderRadius: 10, color: '#111', padding: '11px 14px', fontSize: 13, outline: 'none' },
-    btnPrimary: { width: '100%', background: '#C9951A', color: '#111', border: 'none', padding: 14, borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer', marginBottom: 10, marginTop: 16 },
-    btnGhost: { width: '100%', background: '#fff', color: '#C9951A', border: '1.5px solid #C9951A', padding: 12, borderRadius: 12, fontSize: 13, fontWeight: 600, cursor: 'pointer' },
+    btnPrimary: { width: '100%', background: 'var(--sign)', color: 'var(--ink)', border: 'none', padding: 14, borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer', marginBottom: 10, marginTop: 16 },
+    btnGhost: { width: '100%', background: '#fff', color: 'var(--sign-dark)', border: '1.5px solid var(--sign-dark)', padding: 12, borderRadius: 12, fontSize: 13, fontWeight: 600, cursor: 'pointer' },
     btnAdd: { width: '100%', background: '#fafafa', border: '1.5px dashed #ddd', color: '#aaa', padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: 'pointer', marginTop: 6 },
     varTag: { background: '#fff8e6', border: '1px solid #f0d080', color: '#92600a', fontSize: 11, fontWeight: 600, padding: '3px 9px', borderRadius: 6, fontFamily: 'monospace', marginRight: 6 },
     previewBox: { background: 'linear-gradient(135deg,#fff8e6,#fef3c7)', border: '1.5px solid #f0d080', borderRadius: 12, padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16 },
@@ -672,7 +672,7 @@ export default function DisparosTab() {
             <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
               {([['none','Nenhuma'],['audio','🎙️ Áudio'],['video','🎥 Vídeo'],['image','🖼️ Imagem']] as const).map(([val,lbl]) => (
                 <button key={val} onClick={() => updateMessageAt(i, { mediaType: val })}
-                  style={{ position: 'relative', flex: 1, padding: '7px 6px', borderRadius: 8, border: msg.mediaType === val ? '1.5px solid #C9951A' : '1.5px solid #e5e5e5', background: msg.mediaType === val ? '#fff8e6' : '#fff', color: msg.mediaType === val ? '#92600a' : '#666', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter,sans-serif' }}>
+                  style={{ position: 'relative', flex: 1, padding: '7px 6px', borderRadius: 8, border: msg.mediaType === val ? '1.5px solid var(--sign-dark)' : '1.5px solid #e5e5e5', background: msg.mediaType === val ? '#fff8e6' : '#fff', color: msg.mediaType === val ? '#92600a' : '#666', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'Archivo,sans-serif' }}>
                   {lbl}
                   {val !== 'none' && msg.media[val].url && (
                     <span style={{ position: 'absolute', top: -4, right: -4, width: 9, height: 9, borderRadius: '50%', background: '#0F8050', border: '1.5px solid #fff' }} />
@@ -689,7 +689,7 @@ export default function DisparosTab() {
                   {!slot.url && !slot.localUrl && recordingIndex !== i && (
                     <div style={{ display: 'flex', gap: 8 }}>
                       <button onClick={() => startRecording(i)} disabled={recordingIndex !== null} style={{ flex: 1, padding: '9px', background: '#111', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: recordingIndex !== null ? 0.5 : 1 }}>🔴 Gravar agora</button>
-                      <label style={{ flex: 1, padding: '9px', background: '#fff', color: '#C9951A', border: '1.5px solid #C9951A', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', textAlign: 'center' }}>
+                      <label style={{ flex: 1, padding: '9px', background: '#fff', color: 'var(--sign-dark)', border: '1.5px solid var(--sign-dark)', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', textAlign: 'center' }}>
                         📁 Carregar arquivo
                         <input type="file" accept="audio/*" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && handleMediaFile(i, 'audio', e.target.files[0])} />
                       </label>
@@ -715,7 +715,7 @@ export default function DisparosTab() {
                         <span>{mediaUploadProgress[key] || 0}%</span>
                       </div>
                       <div style={{ height: 6, background: '#eee', borderRadius: 99, overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${mediaUploadProgress[key] || 0}%`, background: '#C9951A', borderRadius: 99, transition: 'width .15s' }} />
+                        <div style={{ height: '100%', width: `${mediaUploadProgress[key] || 0}%`, background: 'var(--sign-dark)', borderRadius: 99, transition: 'width .15s' }} />
                       </div>
                     </div>
                   )}
@@ -730,7 +730,7 @@ export default function DisparosTab() {
               return (
                 <div style={{ background: '#fff', border: '1.5px solid #eee', borderRadius: 10, padding: 10 }}>
                   {!slot.url && !slot.localUrl && (
-                    <label style={{ display: 'block', padding: '9px', background: '#fff', color: '#C9951A', border: '1.5px solid #C9951A', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', textAlign: 'center' }}>
+                    <label style={{ display: 'block', padding: '9px', background: '#fff', color: 'var(--sign-dark)', border: '1.5px solid var(--sign-dark)', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', textAlign: 'center' }}>
                       📁 Carregar {type === 'video' ? 'vídeo' : 'imagem'}
                       <input type="file" accept={type === 'video' ? 'video/*' : 'image/*'} style={{ display: 'none' }} onChange={e => e.target.files?.[0] && handleMediaFile(i, type, e.target.files[0])} />
                     </label>
@@ -752,7 +752,7 @@ export default function DisparosTab() {
                         <span>{mediaUploadProgress[key] || 0}%</span>
                       </div>
                       <div style={{ height: 6, background: '#eee', borderRadius: 99, overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${mediaUploadProgress[key] || 0}%`, background: '#C9951A', borderRadius: 99, transition: 'width .15s' }} />
+                        <div style={{ height: '100%', width: `${mediaUploadProgress[key] || 0}%`, background: 'var(--sign-dark)', borderRadius: 99, transition: 'width .15s' }} />
                       </div>
                     </div>
                   )}
@@ -783,7 +783,7 @@ export default function DisparosTab() {
         {previewCount !== null && (
           <div style={s.previewBox}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ fontSize: 36, fontWeight: 800, color: '#C9951A', lineHeight: 1 }}>{previewCount}</div>
+              <div style={{ fontSize: 36, fontWeight: 800, color: 'var(--sign-dark)', lineHeight: 1 }}>{previewCount}</div>
               <div>
                 <div style={{ fontSize: 12, color: '#92600a', fontWeight: 600 }}>contatos encontrados</div>
                 <div style={{ fontSize: 11, color: '#b89030', marginTop: 2 }}>blacklist já removida</div>
@@ -791,7 +791,7 @@ export default function DisparosTab() {
             </div>
             <div style={{ textAlign: 'right', fontSize: 12, color: '#92600a' }}>
               Tempo estimado<br />
-              <strong style={{ fontSize: 16, color: '#C9951A' }}>{estimateTime()}</strong>
+              <strong style={{ fontSize: 16, color: 'var(--sign-dark)' }}>{estimateTime()}</strong>
             </div>
           </div>
         )}
@@ -865,7 +865,7 @@ export default function DisparosTab() {
                   {c.total_contacts} contatos no total{c.list_name ? ` · 📋 ${c.list_name}` : ''}
                 </div>
                 <div style={s.progressBar}>
-                  <div style={{ background: '#C9951A', height: '100%', borderRadius: 99, width: `${pct}%` }} />
+                  <div style={{ background: 'var(--sign-dark)', height: '100%', borderRadius: 99, width: `${pct}%` }} />
                 </div>
                 <div style={{ display: 'flex', gap: 16, fontSize: 12 }}>
                   <span style={{ color: '#166534', fontWeight: 600 }}>✓ {c.sent_count} enviados</span>
@@ -985,7 +985,7 @@ export default function DisparosTab() {
                           <div style={{ fontSize: 13, fontWeight: 600 }}>{r.name}</div>
                           <div style={{ fontSize: 11, color: '#aaa' }}>{r.phone}</div>
                         </div>
-                        <span style={{ fontSize: 11, color: '#C9951A', fontWeight: 600 }}>+ adicionar</span>
+                        <span style={{ fontSize: 11, color: 'var(--sign-dark)', fontWeight: 600 }}>+ adicionar</span>
                       </div>
                     ))}
                   </div>
@@ -995,7 +995,7 @@ export default function DisparosTab() {
                   <input style={{ ...s.input, flex: 1 }} placeholder="Número (contato sem cadastro)" value={manualPhone} onChange={e => setManualPhone(e.target.value)} />
                   <input style={{ ...s.input, flex: 1 }} placeholder="Nome (opcional)" value={manualName} onChange={e => setManualName(e.target.value)} />
                   <button onClick={() => addManualMember(l.id)}
-                    style={{ background: '#fff', border: '1.5px solid #C9951A', color: '#C9951A', padding: '11px 14px', borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                    style={{ background: '#fff', border: '1.5px solid var(--sign-dark)', color: 'var(--sign-dark)', padding: '11px 14px', borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
                     + Manual
                   </button>
                 </div>

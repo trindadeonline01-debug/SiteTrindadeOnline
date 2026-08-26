@@ -2,7 +2,7 @@
 
 > Tradução da `ESPECIFICACAO.md` pro código real do repositório. Este documento não substitui a especificação — ele mapeia cada fase pra arquivos/rotas/tabelas que já existem hoje, marca o que precisa ser descoberto e lista o que exige confirmação antes de mexer (schema, coisa destrutiva, decisão ambígua), conforme a regra padrão de trabalho.
 >
-> Status: **Fase 0 completa** (itens 0.1 a 0.7). **Fase 1 completa** (itens 1.1 a 1.5 — header com busca + bairro, menu de 3 famílias + menu único do usuário, bottom tab bar mobile, home reestruturada, convite de ativação na página de empresa). Tudo publicado no `main`. Próxima: **Fase 2 (Painel)**. Ricardo decidiu (26/ago/2026): a troca visual do design system (§11 — fonte Anton, cores novas, visual "placa de comércio") entra **depois** da Fase 2, como Fase 2.5 — assim portal e painel ganham o visual novo juntos, e não duas vezes.
+> Status: **Fase 0 completa** (itens 0.1 a 0.7). **Fase 1 completa** (itens 1.1 a 1.5). **Fase 2 completa** (itens 2.1 a 2.6 — sidebar por frequência + gating com cadeado, "Para fazer" na visão geral, correções em Pedidos/Catálogo/Clientes, modo Atendimento em tela cheia). Tudo publicado no `main`. Próxima: **Fase 2.5 — design system visual** (§11, fonte Anton + cores novas, decidido em 26/ago/2026 pra vir logo depois da Fase 2), depois **Fase 3** (Catálogo e busca por produto).
 
 ---
 

@@ -35,40 +35,55 @@ export default async function Image({ params }: { params: Promise<{ slug: string
   const companyName = company?.name || 'Trindade Online'
   const price = produto ? (promoPrice(produto as any) ?? produto.sale_price) : null
 
-  return new ImageResponse(
-    (
-      <div style={{ width: '100%', height: '100%', display: 'flex', position: 'relative', background: '#111111' }}>
-        {produto?.photo_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={produto.photo_url} alt="" width={1200} height={630} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, objectFit: 'cover' }} />
-        ) : (
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', background: 'linear-gradient(135deg, #1A0F00 0%, #111111 100%)' }} />
-        )}
+  // Satori (o gerador dessa imagem) não decodifica .webp de forma confiável
+  // — a imagem inteira sai em branco no preview do WhatsApp, sem erro
+  // visível. Bastante foto do Storage está em webp (reparo automático de
+  // foto quebrada, por exemplo), então pula pro fundo com gradiente.
+  let photoUrl = produto?.photo_url || null
+  if (photoUrl && /\.webp(\?|$)/i.test(photoUrl)) photoUrl = null
 
-        <div style={{ position: 'absolute', top: 48, left: 64, display: 'flex', alignItems: 'center' }}>
-          <span style={{ fontSize: 28, fontWeight: 700, color: '#F0EDE8' }}>TRINDADE</span>
-          <span style={{ fontSize: 28, fontWeight: 700, color: '#C9951A', marginLeft: 8 }}>ONLINE</span>
-        </div>
+  function render(withPhoto: boolean) {
+    return new ImageResponse(
+      (
+        <div style={{ width: '100%', height: '100%', display: 'flex', position: 'relative', background: '#111111' }}>
+          {withPhoto && photoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={photoUrl} alt="" width={1200} height={630} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, objectFit: 'cover' }} />
+          ) : (
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', background: 'linear-gradient(135deg, #1A0F00 0%, #111111 100%)' }} />
+          )}
 
-        {price !== null && (
-          <div style={{ position: 'absolute', top: 44, right: 64, display: 'flex', background: '#C9951A', color: '#1A1610', fontSize: 34, fontWeight: 700, padding: '10px 24px', borderRadius: 12 }}>
-            {fmt(price)}
+          <div style={{ position: 'absolute', top: 48, left: 64, display: 'flex', alignItems: 'center' }}>
+            <span style={{ fontSize: 28, fontWeight: 700, color: '#F0EDE8' }}>TRINDADE</span>
+            <span style={{ fontSize: 28, fontWeight: 700, color: '#C9951A', marginLeft: 8 }}>ONLINE</span>
           </div>
-        )}
 
-        <div
-          style={{
-            position: 'absolute', left: 0, right: 0, bottom: 0,
-            display: 'flex', flexDirection: 'column',
-            padding: '40px 64px 48px',
-            background: 'linear-gradient(0deg, rgba(0,0,0,0.85) 30%, rgba(0,0,0,0) 100%)',
-          }}
-        >
-          <div style={{ display: 'flex', fontSize: 56, fontWeight: 700, color: '#F0EDE8', lineHeight: 1.15, maxWidth: 1050 }}>{name}</div>
-          <div style={{ display: 'flex', fontSize: 26, color: '#C9951A', marginTop: 10, maxWidth: 1000 }}>{companyName}</div>
+          {price !== null && (
+            <div style={{ position: 'absolute', top: 44, right: 64, display: 'flex', background: '#C9951A', color: '#1A1610', fontSize: 34, fontWeight: 700, padding: '10px 24px', borderRadius: 12 }}>
+              {fmt(price)}
+            </div>
+          )}
+
+          <div
+            style={{
+              position: 'absolute', left: 0, right: 0, bottom: 0,
+              display: 'flex', flexDirection: 'column',
+              padding: '40px 64px 48px',
+              background: 'linear-gradient(0deg, rgba(0,0,0,0.85) 30%, rgba(0,0,0,0) 100%)',
+            }}
+          >
+            <div style={{ display: 'flex', fontSize: 56, fontWeight: 700, color: '#F0EDE8', lineHeight: 1.15, maxWidth: 1050 }}>{name}</div>
+            <div style={{ display: 'flex', fontSize: 26, color: '#C9951A', marginTop: 10, maxWidth: 1000 }}>{companyName}</div>
+          </div>
         </div>
-      </div>
-    ),
-    { ...size }
-  )
+      ),
+      { ...size }
+    )
+  }
+
+  try {
+    return render(true)
+  } catch {
+    return render(false)
+  }
 }

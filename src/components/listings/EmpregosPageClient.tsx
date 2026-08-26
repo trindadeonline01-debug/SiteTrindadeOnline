@@ -40,64 +40,65 @@ export default function EmpregosPageClient({ initialListings }: { initialListing
   return(<>
     <style>{`
       *{box-sizing:border-box;margin:0;padding:0;}
-      body{font-family:'Inter',sans-serif;background:#fff;}
-      .topbar{background:#111;z-index:50;}
+      body{font-family:'Archivo',sans-serif;background:#fff;}
+      .topbar{background:var(--ink);z-index:50;}
       .ti{max-width:1200px;margin:0 auto;padding:13px 24px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;}
       .bc{display:flex;align-items:center;gap:7px;font-size:13px;}
-      .bc a{color:#C9951A;font-weight:700;text-decoration:none;}
+      .bc a{color:var(--sign);font-weight:700;text-decoration:none;}
       .bcs{color:#444;}.bcc{color:#fff;font-weight:700;}
-      .hero{background:#111;padding:24px;border-bottom:2px solid #C9951A;}
+      .hero{background:var(--ink);padding:24px;border-bottom:2px solid var(--sign);}
       .hi{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
       .hl{display:flex;align-items:center;gap:16px;}
       .he{font-size:52px;flex-shrink:0;}
-      .hn{font-family:'Bebas Neue',sans-serif;font-size:clamp(28px,4vw,44px);color:#fff;letter-spacing:3px;line-height:1;margin-bottom:5px;}
-      .hc{font-size:13px;color:#666;} .hc span{color:#C9951A;font-weight:600;}
-      .btnp{background:#C9951A;color:#fff;border:none;border-radius:11px;padding:12px 20px;font-size:14px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;}
+      .hn{font-family:'Anton',sans-serif;font-size:clamp(28px,4vw,44px);color:#fff;letter-spacing:1px;text-transform:uppercase;line-height:1;margin-bottom:5px;}
+      .hc{font-size:13px;color:#666;} .hc span{color:var(--sign);font-weight:600;}
+      .btnp{background:var(--sign);color:var(--ink);border:none;border-radius:11px;padding:12px 20px;font-size:14px;font-weight:700;font-family:'Archivo',sans-serif;cursor:pointer;}
       .page{max-width:1200px;margin:0 auto;padding:0 24px 48px;}
       .sw{transform:translateY(-20px);}
-      .sb{display:flex;align-items:center;gap:10px;background:#fff;border:2px solid #C9951A;border-radius:30px;padding:13px 20px;box-shadow:0 4px 20px rgba(0,0,0,.12);}
-      .sb input{flex:1;border:none;background:transparent;font-size:15px;font-family:'Inter',sans-serif;color:#222;outline:none;}
+      .sb{display:flex;align-items:center;gap:10px;background:var(--sign);border:2.5px solid var(--ink);border-radius:14px;padding:13px 20px;box-shadow:4px 4px 0 var(--ink);}
+      .sb input{flex:1;border:none;background:transparent;font-size:15px;font-family:'Archivo',sans-serif;color:var(--ink);outline:none;}
+      .sb input::placeholder{color:var(--ink-2);opacity:.55;}
       .sb input::placeholder{color:#BBB;}
       .roles{display:flex;gap:10px;margin:8px 0 18px;}
-      .role-tab{flex:1;text-align:center;padding:13px 12px;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;border:1.5px solid #E0DDD8;background:#FAFAF8;color:#666;transition:all .15s;font-family:'Inter',sans-serif;}
+      .role-tab{flex:1;text-align:center;padding:13px 12px;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;border:1.5px solid #E0DDD8;background:#FAFAF8;color:#666;transition:all .15s;font-family:'Archivo',sans-serif;}
       .role-tab span{font-weight:500;color:#AAA;}
-      .role-tab:hover{border-color:#C9951A;}
-      .role-tab.on{border-color:#C9951A;background:#111;color:#fff;}
-      .role-tab.on span{color:#C9951A;}
+      .role-tab:hover{border-color:var(--sign-dark);}
+      .role-tab.on{border-color:var(--sign);background:var(--ink);color:#fff;}
+      .role-tab.on span{color:var(--sign);}
       .filters{display:flex;gap:7px;flex-wrap:wrap;padding:4px 0 16px;border-bottom:0.5px solid #F0EDE8;margin-bottom:16px;}
-      .chip{padding:7px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid #E0DDD8;background:#FAFAF8;color:#666;transition:all .15s;font-family:'Inter',sans-serif;}
-      .chip:hover{border-color:#C9951A;background:#FEF3E2;}
-      .chip.on{border-color:#C9951A;background:#C9951A;color:#fff;font-weight:600;}
+      .chip{padding:7px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid #E0DDD8;background:#FAFAF8;color:#666;transition:all .15s;font-family:'Archivo',sans-serif;}
+      .chip:hover{border-color:var(--sign-dark);background:#FEF3E2;}
+      .chip.on{border-color:var(--sign);background:var(--sign);color:var(--ink);font-weight:600;}
       .rc{font-size:13px;color:#AAA;margin-bottom:14px;} .rc span{color:#111;font-weight:600;}
       .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
       @media(min-width:640px){.grid{grid-template-columns:repeat(3,1fr);}}
       @media(min-width:1024px){.grid{grid-template-columns:repeat(4,1fr);}}
       .card{background:#fff;border:0.5px solid #E0DDD8;border-radius:14px;overflow:hidden;text-decoration:none;display:block;transition:all .18s;}
-      .card:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.1);border-color:#C9951A;}
+      .card:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.1);border-color:var(--sign-dark);}
       .ci{height:130px;background:#F5F5F5;display:flex;align-items:center;justify-content:center;font-size:40px;overflow:hidden;position:relative;}
       .ci img{width:100%;height:100%;object-fit:cover;}
       .cb{padding:10px 12px;}
       .ct{font-size:13px;font-weight:600;color:#222;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-      .cp{font-size:14px;font-weight:700;color:#C9951A;margin-bottom:3px;}
+      .cp{font-size:14px;font-weight:700;color:var(--sign-dark);margin-bottom:3px;}
       .cm{font-size:10px;color:#AAA;margin-bottom:4px;}
       .cu{font-size:10px;color:#BBB;}
       .sk{background:linear-gradient(90deg,#F0EDE8 25%,#E8E4DD 50%,#F0EDE8 75%);background-size:200% 100%;animation:sh 1.5s infinite;border-radius:14px;}
       @keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
       .empty{text-align:center;padding:48px 20px;color:#AAA;}
       .footer{padding:24px 0 0;text-align:center;font-size:12px;color:#AAA;border-top:0.5px solid #F0EDE8;margin-top:16px;}
-      .footer a{color:#C9951A;text-decoration:none;}
+      .footer a{color:var(--sign-dark);text-decoration:none;}
       .mbg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;display:flex;align-items:flex-end;justify-content:center;}
       @media(min-width:640px){.mbg{align-items:center;}}
       .modal{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:560px;padding:24px;max-height:90vh;overflow-y:auto;}
       @media(min-width:640px){.modal{border-radius:20px;}}
-      .mt{font-family:'Bebas Neue',sans-serif;font-size:22px;color:#111;letter-spacing:1px;margin-bottom:16px;}
+      .mt{font-family:'Anton',sans-serif;font-size:22px;color:var(--ink);letter-spacing:1px;text-transform:uppercase;margin-bottom:16px;}
       .fl{font-size:11px;font-weight:700;color:#AAA;letter-spacing:.5px;margin-bottom:5px;display:block;}
-      .fi{width:100%;padding:10px 13px;border:1.5px solid #E0DDD8;border-radius:10px;font-size:14px;font-family:'Inter',sans-serif;outline:none;transition:border .15s;background:#fff;color:#222;margin-bottom:12px;}
-      .fi:focus{border-color:#C9951A;}
+      .fi{width:100%;padding:10px 13px;border:1.5px solid #E0DDD8;border-radius:10px;font-size:14px;font-family:'Archivo',sans-serif;outline:none;transition:border .15s;background:#fff;color:#222;margin-bottom:12px;}
+      .fi:focus{border-color:var(--sign-dark);}
       .fr{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-      .bts{width:100%;padding:13px;background:#C9951A;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;margin-top:4px;}
+      .bts{width:100%;padding:13px;background:var(--sign);color:var(--ink);border:none;border-radius:12px;font-size:15px;font-weight:700;font-family:'Archivo',sans-serif;cursor:pointer;margin-top:4px;}
       .bts:disabled{opacity:.6;cursor:not-allowed;}
-      .btc{width:100%;padding:10px;background:#FAFAF8;color:#888;border:1px solid #E0DDD8;border-radius:12px;font-size:14px;font-family:'Inter',sans-serif;cursor:pointer;margin-top:8px;}
+      .btc{width:100%;padding:10px;background:#FAFAF8;color:#888;border:1px solid var(--line);border-radius:12px;font-size:14px;font-family:'Archivo',sans-serif;cursor:pointer;margin-top:8px;}
     `}</style>
 
     <div className="topbar"><div className="ti">
@@ -116,7 +117,7 @@ export default function EmpregosPageClient({ initialListings }: { initialListing
 
     <div className="page">
       <div className="sw"><div className="sb">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9951A" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input type="text" placeholder="Buscar no empregos..." value={search} onChange={handleSearch}/>
         {search&&<button onClick={()=>{setSearch('');setFiltered(baseForRole(role))}} style={{background:'none',border:'none',cursor:'pointer',color:'#AAA',fontSize:18,lineHeight:'1'}}>✕</button>}
       </div></div>
@@ -142,7 +143,7 @@ export default function EmpregosPageClient({ initialListings }: { initialListing
             return(
               <a key={l.id} className="card" href={`/anuncio/${l.id}`}>
                 <div className="ci">{cover?<Image unoptimized src={cover} alt={l.title} fill sizes="(max-width:639px) 50vw, (max-width:1023px) 33vw, 300px" style={{objectFit:'cover'}} />:<span>💼</span>}
-                  {badge&&<div style={{position:'absolute',top:8,left:8,padding:'2px 8px',borderRadius:6,fontSize:9,fontWeight:700,...(roleOf(l)==='procura'?{background:'#EAF1FE',color:'#1D4ED8'}:{background:'#FEF3E2',color:'#C9951A'})}}>{badge[1]}</div>}
+                  {badge&&<div style={{position:'absolute',top:8,left:8,padding:'2px 8px',borderRadius:6,fontSize:9,fontWeight:700,...(roleOf(l)==='procura'?{background:'#EAF1FE',color:'#1D4ED8'}:{background:'#FEF3E2',color:'var(--sign-dark)'})}}>{badge[1]}</div>}
                 </div>
                 <div className="cb">
                   <div className="ct">{l.title}</div>
@@ -196,8 +197,8 @@ function FormModal({subtypes,type,userId,initialRole,onClose,onSaved}:{subtypes:
         <div className="mt">Novo anúncio — Empregos</div>
         <label className="fl">O QUE VOCÊ QUER FAZER?</label>
         <div className="fr" style={{marginBottom:12}}>
-          <button type="button" onClick={()=>setFormRole('oferece')} style={{padding:'11px 8px',borderRadius:10,border:role==='oferece'?'1.5px solid #C9951A':'1.5px solid #E0DDD8',background:role==='oferece'?'#FEF3E2':'#fff',color:role==='oferece'?'#92600A':'#666',fontSize:13,fontWeight:700,fontFamily:'Inter,sans-serif',cursor:'pointer'}}>🏢 Estou contratando</button>
-          <button type="button" onClick={()=>setFormRole('procura')} style={{padding:'11px 8px',borderRadius:10,border:role==='procura'?'1.5px solid #C9951A':'1.5px solid #E0DDD8',background:role==='procura'?'#FEF3E2':'#fff',color:role==='procura'?'#92600A':'#666',fontSize:13,fontWeight:700,fontFamily:'Inter,sans-serif',cursor:'pointer'}}>🙋 Busco emprego</button>
+          <button type="button" onClick={()=>setFormRole('oferece')} style={{padding:'11px 8px',borderRadius:10,border:role==='oferece'?'1.5px solid var(--sign-dark)':'1.5px solid #E0DDD8',background:role==='oferece'?'#FEF3E2':'#fff',color:role==='oferece'?'var(--sign-dark)':'#666',fontSize:13,fontWeight:700,fontFamily:'Archivo,sans-serif',cursor:'pointer'}}>🏢 Estou contratando</button>
+          <button type="button" onClick={()=>setFormRole('procura')} style={{padding:'11px 8px',borderRadius:10,border:role==='procura'?'1.5px solid var(--sign-dark)':'1.5px solid #E0DDD8',background:role==='procura'?'#FEF3E2':'#fff',color:role==='procura'?'var(--sign-dark)':'#666',fontSize:13,fontWeight:700,fontFamily:'Archivo,sans-serif',cursor:'pointer'}}>🙋 Busco emprego</button>
         </div>
         {subtypes.length>0&&(<><label className="fl">TIPO</label><select className="fi" value={form.subtype} onChange={e=>setForm(f=>({...f,subtype:e.target.value}))}>{subtypes.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></>)}
         <label className="fl">TÍTULO *</label><input className="fi" placeholder={role==='oferece'?'Ex: Vendedor(a) meio período':'Ex: Busco vaga de auxiliar administrativo'} value={form.title} onChange={e=>setForm(f=>({...f,title:e.target.value}))}/>

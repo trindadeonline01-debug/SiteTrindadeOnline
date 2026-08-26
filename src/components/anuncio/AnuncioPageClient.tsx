@@ -156,29 +156,29 @@ export default function AnuncioPageClient({ id, initialListing }: Props) {
   const subtypeStyle = listing.subtype ? SUBTYPE_COLORS[listing.subtype] : null
   const isOwner = userId === listing.user_id
   if(listing.status === 'paused' && !isOwner) return (
-    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:'100vh',fontFamily:'Inter,sans-serif',padding:24}}>
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:'100vh',fontFamily:'Archivo,sans-serif',padding:24}}>
       <div style={{fontSize:48,marginBottom:12}}>⏸</div>
       <div style={{fontSize:18,fontWeight:700,marginBottom:8}}>Anúncio pausado</div>
       <div style={{fontSize:14,color:'#AAA',marginBottom:24}}>Este anúncio está temporariamente indisponível.</div>
-      <a href="/" style={{color:'#C9951A',fontWeight:600,textDecoration:'none'}}>← Voltar ao início</a>
+      <a href="/" style={{color:'var(--sign-dark)',fontWeight:600,textDecoration:'none'}}>← Voltar ao início</a>
     </div>
   )
   if(listing.status === 'deleted') return (
-    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:'100vh',fontFamily:'Inter,sans-serif',padding:24}}>
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:'100vh',fontFamily:'Archivo,sans-serif',padding:24}}>
       <div style={{fontSize:48,marginBottom:12}}>🗑</div>
       <div style={{fontSize:18,fontWeight:700,marginBottom:8}}>Anúncio removido</div>
-      <a href="/" style={{color:'#C9951A',fontWeight:600,textDecoration:'none'}}>← Voltar ao início</a>
+      <a href="/" style={{color:'var(--sign-dark)',fontWeight:600,textDecoration:'none'}}>← Voltar ao início</a>
     </div>
   )
 
   return(<>
     <style>{`
       *{box-sizing:border-box;margin:0;padding:0;}
-      body{font-family:'Inter',sans-serif;background:#fff;}
+      body{font-family:'Archivo',sans-serif;background:#fff;}
       .topbar{background:#111;z-index:50;}
       .ti{max-width:1200px;margin:0 auto;padding:13px 24px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;}
       .bc{display:flex;align-items:center;gap:7px;font-size:13px;}
-      .bc a{color:#C9951A;font-weight:700;text-decoration:none;}
+      .bc a{color:var(--sign);font-weight:700;text-decoration:none;}
       .bcs{color:#444;}.bcc{color:#fff;font-weight:700;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
       .page{max-width:1100px;margin:0 auto;padding:28px 24px 48px;}
       @media(max-width:767px){.page{padding:16px 16px 40px;}}
@@ -190,37 +190,37 @@ export default function AnuncioPageClient({ id, initialListing }: Props) {
       .gal-nav{position:absolute;bottom:10px;right:10px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;padding:3px 10px;border-radius:12px;}
       .gal-thumbs{display:flex;gap:6px;overflow-x:auto;}
       .gal-thumb{width:56px;height:56px;border-radius:8px;overflow:hidden;flex-shrink:0;cursor:pointer;border:2px solid transparent;position:relative;}
-      .gal-thumb.on{border-color:#C9951A;}
+      .gal-thumb.on{border-color:var(--sign-dark);}
       .gal-thumb img{width:100%;height:100%;object-fit:cover;}
-      .title{font-family:'Bebas Neue',sans-serif;font-size:clamp(24px,3vw,36px);color:#111;letter-spacing:1px;margin-bottom:10px;}
+      .title{font-family:'Archivo',sans-serif;font-weight:700;font-size:clamp(20px,3vw,28px);color:var(--ink);margin-bottom:10px;}
       .tags{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px;}
       .tag{font-size:11px;padding:3px 10px;border-radius:7px;font-weight:600;}
       .desc-section{margin-top:20px;padding-top:20px;border-top:0.5px solid #F0EDE8;}
-      .sec-lbl{font-family:'Bebas Neue',sans-serif;font-size:11px;color:#AAA;letter-spacing:1.5px;margin-bottom:8px;}
+      .sec-lbl{font-family:'Archivo',sans-serif;font-weight:700;font-size:11px;color:#AAA;letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px;}
       .desc-txt{font-size:14px;color:#555;line-height:1.8;}
       .right{position:sticky;top:80px;}
       .price-card{background:#FAFAF8;border:0.5px solid #E0DDD8;border-radius:14px;padding:16px;margin-bottom:12px;}
-      .price-big{font-family:'Bebas Neue',sans-serif;font-size:36px;color:#C9951A;letter-spacing:1px;margin-bottom:4px;}
+      .price-big{font-family:'Anton',sans-serif;font-size:36px;color:var(--sign-dark);letter-spacing:1px;margin-bottom:4px;}
       .price-sub{font-size:12px;color:#AAA;margin-bottom:14px;}
-      .btn-wa{width:100%;padding:12px;background:#25D366;color:#fff;border:none;border-radius:11px;font-size:14px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:8px;}
+      .btn-wa{width:100%;padding:12px;background:#25D366;color:#fff;border:none;border-radius:11px;font-size:14px;font-weight:700;font-family:'Archivo',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:8px;}
       .addr-box{display:flex;align-items:flex-start;gap:8px;background:#FAFAF8;border:0.5px solid #E0DDD8;border-radius:12px;padding:11px 13px;margin-bottom:12px;}
       .addr-txt{font-size:13px;color:#555;line-height:1.5;}
       .user-box{display:flex;align-items:center;gap:10px;background:#FAFAF8;border:0.5px solid #E0DDD8;border-radius:12px;padding:11px 13px;margin-bottom:12px;}
-      .user-av{width:36px;height:36px;border-radius:50%;background:#C9951A;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:14px;color:#fff;flex-shrink:0;}
+      .user-av{width:36px;height:36px;border-radius:50%;background:var(--sign-dark);display:flex;align-items:center;justify-content:center;font-family:'Archivo',sans-serif;font-weight:700;font-size:14px;color:#fff;flex-shrink:0;}
       .user-name{font-size:13px;font-weight:600;color:#222;}
       .user-date{font-size:11px;color:#AAA;}
-      .btn-report{width:100%;padding:9px;background:#FAFAF8;color:#E24B4A;border:0.5px solid #F0C0C0;border-radius:10px;font-size:12px;font-family:'Inter',sans-serif;cursor:pointer;}
-      .btn-resolve{width:100%;padding:11px;background:#EAF3DE;color:#3B6D11;border:1px solid #A8D88A;border-radius:11px;font-size:13px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;margin-bottom:8px;}
+      .btn-report{width:100%;padding:9px;background:#FAFAF8;color:#E24B4A;border:0.5px solid #F0C0C0;border-radius:10px;font-size:12px;font-family:'Archivo',sans-serif;cursor:pointer;}
+      .btn-resolve{width:100%;padding:11px;background:#EAF3DE;color:#3B6D11;border:1px solid #A8D88A;border-radius:11px;font-size:13px;font-weight:700;font-family:'Archivo',sans-serif;cursor:pointer;margin-bottom:8px;}
       .ok-msg{background:#EDFAF3;border:1px solid #A8E6C4;border-radius:10px;padding:10px 14px;font-size:13px;color:#0F5C3A;margin-bottom:12px;}
       .mbg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;display:flex;align-items:center;justify-content:center;}
       .modal{background:#fff;border-radius:16px;width:90%;max-width:440px;padding:22px;}
       .mt{font-size:17px;font-weight:700;color:#111;margin-bottom:12px;}
-      .fi{width:100%;padding:10px 13px;border:1.5px solid #E0DDD8;border-radius:10px;font-size:14px;font-family:'Inter',sans-serif;outline:none;resize:vertical;}
-      .fi:focus{border-color:#C9951A;}
-      .btn-send{width:100%;padding:11px;background:#E24B4A;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;margin-top:10px;}
-      .btn-cancel-r{width:100%;padding:9px;background:#FAFAF8;color:#888;border:1px solid #E0DDD8;border-radius:10px;font-size:13px;font-family:'Inter',sans-serif;cursor:pointer;margin-top:6px;}
+      .fi{width:100%;padding:10px 13px;border:1.5px solid #E0DDD8;border-radius:10px;font-size:14px;font-family:'Archivo',sans-serif;outline:none;resize:vertical;}
+      .fi:focus{border-color:var(--sign-dark);}
+      .btn-send{width:100%;padding:11px;background:#E24B4A;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;font-family:'Archivo',sans-serif;cursor:pointer;margin-top:10px;}
+      .btn-cancel-r{width:100%;padding:9px;background:#FAFAF8;color:#888;border:1px solid #E0DDD8;border-radius:10px;font-size:13px;font-family:'Archivo',sans-serif;cursor:pointer;margin-top:6px;}
       .footer{padding:24px 0 0;text-align:center;font-size:12px;color:#AAA;border-top:0.5px solid #F0EDE8;margin-top:28px;}
-      .footer a{color:#C9951A;text-decoration:none;}
+      .footer a{color:var(--sign-dark);text-decoration:none;}
     `}</style>
 
     <div className="topbar"><div className="ti">
@@ -258,7 +258,7 @@ export default function AnuncioPageClient({ id, initialListing }: Props) {
           <div style={{marginTop:photos.length>1?20:0,paddingTop:photos.length>1?0:16}}>
             <div className="tags">
               <span className="tag" style={{background:'#F0EDE8',color:'#666'}}>{info.emoji} {info.label}</span>
-              {listing.type==='emprego'&&<span className="tag" style={listing.metadata?.role==='procura'?{background:'#EAF1FE',color:'#1D4ED8'}:{background:'#FEF3E2',color:'#C9951A'}}>{listing.metadata?.role==='procura'?'🙋 Busco emprego':'💼 Vaga aberta'}</span>}
+              {listing.type==='emprego'&&<span className="tag" style={listing.metadata?.role==='procura'?{background:'#EAF1FE',color:'#1D4ED8'}:{background:'#FEF3E2',color:'var(--sign-dark)'}}>{listing.metadata?.role==='procura'?'🙋 Busco emprego':'💼 Vaga aberta'}</span>}
               {listing.subtype&&subtypeStyle&&<span className="tag" style={{background:subtypeStyle.bg,color:subtypeStyle.color}}>{listing.subtype.charAt(0).toUpperCase()+listing.subtype.slice(1)}</span>}
             </div>
             <div className="title">{listing.title}</div>
@@ -289,7 +289,7 @@ export default function AnuncioPageClient({ id, initialListing }: Props) {
 
           {listing.address&&(
             <div className="addr-box">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C9951A" strokeWidth="2" strokeLinecap="round" style={{flexShrink:0,marginTop:2}}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--sign-dark)" strokeWidth="2" strokeLinecap="round" style={{flexShrink:0,marginTop:2}}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
               <div className="addr-txt">{listing.address}</div>
             </div>
           )}
@@ -305,15 +305,15 @@ export default function AnuncioPageClient({ id, initialListing }: Props) {
           {(isOwner || userType === 'admin') && (
             <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:12}}>
               <button onClick={pauseListing} disabled={actionLoading}
-                style={{padding:'9px 16px',borderRadius:10,border:'1.5px solid #E0DDD8',background:'#fff',color:'#555',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                style={{padding:'9px 16px',borderRadius:10,border:'1.5px solid #E0DDD8',background:'#fff',color:'#555',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>
                 {listing.status==='active'?'⏸ Pausar':'▶ Reativar'}
               </button>
               <button onClick={openEdit}
-                style={{padding:'9px 16px',borderRadius:10,border:'1.5px solid #C9951A',background:'#FEF3E2',color:'#854F0B',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                style={{padding:'9px 16px',borderRadius:10,border:'1.5px solid var(--sign-dark)',background:'#FEF3E2',color:'#854F0B',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>
                 ✏️ Editar
               </button>
               <button onClick={deleteListing} disabled={actionLoading}
-                style={{padding:'9px 16px',borderRadius:10,border:'1.5px solid #E24B4A',background:'#FEF0F0',color:'#E24B4A',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                style={{padding:'9px 16px',borderRadius:10,border:'1.5px solid #E24B4A',background:'#FEF0F0',color:'#E24B4A',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>
                 🗑 Excluir
               </button>
             </div>
@@ -338,19 +338,19 @@ export default function AnuncioPageClient({ id, initialListing }: Props) {
     {showEdit&&(
       <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.6)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:16}} onClick={e=>e.target===e.currentTarget&&setShowEdit(false)}>
         <div style={{background:'#fff',borderRadius:20,padding:24,width:'100%',maxWidth:500,maxHeight:'90vh',overflowY:'auto'}}>
-          <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,color:'#111',letterSpacing:1,marginBottom:16}}>EDITAR ANÚNCIO</div>
+          <div style={{fontFamily:"'Anton',sans-serif",fontSize:22,color:'var(--ink)',letterSpacing:1,textTransform:'uppercase',marginBottom:16}}>EDITAR ANÚNCIO</div>
           <label style={{fontSize:11,fontWeight:700,color:'#AAA',letterSpacing:.5,marginBottom:5,display:'block'}}>TÍTULO *</label>
-          <input value={editForm.title} onChange={e=>setEditForm(f=>({...f,title:e.target.value}))} style={{width:'100%',padding:'10px 13px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:14,fontFamily:'Inter,sans-serif',outline:'none',marginBottom:12,boxSizing:'border-box'}}/>
+          <input value={editForm.title} onChange={e=>setEditForm(f=>({...f,title:e.target.value}))} style={{width:'100%',padding:'10px 13px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:14,fontFamily:'Archivo,sans-serif',outline:'none',marginBottom:12,boxSizing:'border-box'}}/>
           <label style={{fontSize:11,fontWeight:700,color:'#AAA',letterSpacing:.5,marginBottom:5,display:'block'}}>DESCRIÇÃO</label>
-          <textarea value={editForm.description} onChange={e=>setEditForm(f=>({...f,description:e.target.value}))} rows={3} style={{width:'100%',padding:'10px 13px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:14,fontFamily:'Inter,sans-serif',outline:'none',marginBottom:12,resize:'none',boxSizing:'border-box'}}/>
+          <textarea value={editForm.description} onChange={e=>setEditForm(f=>({...f,description:e.target.value}))} rows={3} style={{width:'100%',padding:'10px 13px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:14,fontFamily:'Archivo,sans-serif',outline:'none',marginBottom:12,resize:'none',boxSizing:'border-box'}}/>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12}}>
             <div>
               <label style={{fontSize:11,fontWeight:700,color:'#AAA',letterSpacing:.5,marginBottom:5,display:'block'}}>VALOR (R$)</label>
-              <input type="number" value={editForm.price} onChange={e=>setEditForm(f=>({...f,price:e.target.value}))} placeholder="Grátis" style={{width:'100%',padding:'10px 13px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:14,fontFamily:'Inter,sans-serif',outline:'none',boxSizing:'border-box'}}/>
+              <input type="number" value={editForm.price} onChange={e=>setEditForm(f=>({...f,price:e.target.value}))} placeholder="Grátis" style={{width:'100%',padding:'10px 13px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:14,fontFamily:'Archivo,sans-serif',outline:'none',boxSizing:'border-box'}}/>
             </div>
             <div>
               <label style={{fontSize:11,fontWeight:700,color:'#AAA',letterSpacing:.5,marginBottom:5,display:'block'}}>BAIRRO</label>
-              <input value={editForm.address} onChange={e=>setEditForm(f=>({...f,address:e.target.value}))} placeholder="Trindade" style={{width:'100%',padding:'10px 13px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:14,fontFamily:'Inter,sans-serif',outline:'none',boxSizing:'border-box'}}/>
+              <input value={editForm.address} onChange={e=>setEditForm(f=>({...f,address:e.target.value}))} placeholder="Trindade" style={{width:'100%',padding:'10px 13px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:14,fontFamily:'Archivo,sans-serif',outline:'none',boxSizing:'border-box'}}/>
             </div>
           </div>
           <label style={{fontSize:11,fontWeight:700,color:'#AAA',letterSpacing:.5,marginBottom:8,display:'block'}}>FOTOS ATUAIS</label>
@@ -366,11 +366,11 @@ export default function AnuncioPageClient({ id, initialListing }: Props) {
             </div>
           )}
           <label style={{fontSize:11,fontWeight:700,color:'#AAA',letterSpacing:.5,marginBottom:5,display:'block'}}>ADICIONAR FOTOS</label>
-          <input type="file" accept="image/*" multiple onChange={e=>setNewFiles(Array.from(e.target.files||[]).slice(0,5-editPhotos.length))} style={{width:'100%',padding:'10px 13px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif',marginBottom:12,boxSizing:'border-box'}}/>
+          <input type="file" accept="image/*" multiple onChange={e=>setNewFiles(Array.from(e.target.files||[]).slice(0,5-editPhotos.length))} style={{width:'100%',padding:'10px 13px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Archivo,sans-serif',marginBottom:12,boxSizing:'border-box'}}/>
           <label style={{fontSize:11,fontWeight:700,color:'#AAA',letterSpacing:.5,marginBottom:5,display:'block'}}>WHATSAPP</label>
-          <input value={editForm.phone} onChange={e=>setEditForm(f=>({...f,phone:e.target.value}))} placeholder="21 99999-9999" style={{width:'100%',padding:'10px 13px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:14,fontFamily:'Inter,sans-serif',outline:'none',marginBottom:16,boxSizing:'border-box'}}/>
-          <button onClick={saveEdit} disabled={actionLoading||!editForm.title.trim()} style={{width:'100%',padding:13,background:'#C9951A',color:'#fff',border:'none',borderRadius:12,fontSize:15,fontWeight:700,cursor:'pointer',fontFamily:'Inter,sans-serif',marginBottom:8}}>{actionLoading?'Salvando...':'Salvar alterações'}</button>
-          <button onClick={()=>setShowEdit(false)} style={{width:'100%',padding:10,background:'#FAFAF8',color:'#888',border:'1px solid #E0DDD8',borderRadius:12,fontSize:14,fontFamily:'Inter,sans-serif',cursor:'pointer'}}>Cancelar</button>
+          <input value={editForm.phone} onChange={e=>setEditForm(f=>({...f,phone:e.target.value}))} placeholder="21 99999-9999" style={{width:'100%',padding:'10px 13px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:14,fontFamily:'Archivo,sans-serif',outline:'none',marginBottom:16,boxSizing:'border-box'}}/>
+          <button onClick={saveEdit} disabled={actionLoading||!editForm.title.trim()} style={{width:'100%',padding:13,background:'var(--sign)',color:'var(--ink)',border:'none',borderRadius:12,fontSize:15,fontWeight:700,cursor:'pointer',fontFamily:'Archivo,sans-serif',marginBottom:8}}>{actionLoading?'Salvando...':'Salvar alterações'}</button>
+          <button onClick={()=>setShowEdit(false)} style={{width:'100%',padding:10,background:'#FAFAF8',color:'#888',border:'1px solid #E0DDD8',borderRadius:12,fontSize:14,fontFamily:'Archivo,sans-serif',cursor:'pointer'}}>Cancelar</button>
         </div>
       </div>
     )}

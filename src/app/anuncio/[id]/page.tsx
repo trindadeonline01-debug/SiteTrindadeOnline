@@ -39,10 +39,10 @@ export default async function AnuncioPage({ params }: { params: Promise<{ id: st
 
   if (!listing) {
     return (
-      <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:'100vh',fontFamily:'Inter,sans-serif',padding:24}}>
+      <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:'100vh',fontFamily:'Archivo,sans-serif',padding:24}}>
         <div style={{fontSize:48,marginBottom:12}}>🔍</div>
         <div style={{fontSize:18,fontWeight:700,marginBottom:16}}>Anúncio não encontrado</div>
-        <a href="/" style={{color:'#C9951A'}}>← Voltar ao início</a>
+        <a href="/" style={{color:'var(--sign-dark)'}}>← Voltar ao início</a>
       </div>
     )
   }

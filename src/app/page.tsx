@@ -6,6 +6,7 @@ import CookieBanner from '@/components/CookieBanner'
 import HomeSearchBox from '@/components/home/HomeSearchBox'
 import HomeBannerCarousel from '@/components/home/HomeBannerCarousel'
 import HomeAbertoAgora from '@/components/home/HomeAbertoAgora'
+import HomeComunidadeTabs from '@/components/home/HomeComunidadeTabs'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { isOpenNow, HourRow } from '@/lib/businessHours'
 
@@ -88,9 +89,10 @@ export default async function HomePage() {
   // em vez de uma esperar a outra terminar, o que cortava bastante o tempo
   // até a home aparecer com conteúdo de verdade. Agora rodam no servidor,
   // antes de mandar qualquer HTML pro navegador — sem tela de carregando.
-  const types = ['desapega', 'emprego', 'imovel']
+  const types = ['desapega', 'emprego', 'imovel', 'achado']
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
 
-  const [bannersRes, paidResults, listingResults, pulseRes, settingsRes] = await Promise.all([
+  const [bannersRes, paidResults, listingResults, pulseRes, settingsRes, newCompaniesRes, companiesCountRes, searchesCountRes, waClicksCountRes] = await Promise.all([
     supabaseServer.from('banners').select('*').eq('active', true).order('display_order'),
     Promise.all(PAID_CAROUSELS.map(([categoryId]) =>
       supabaseServer.from('companies')
@@ -106,6 +108,16 @@ export default async function HomePage() {
     )),
     supabaseServer.from('pulse_messages').select('id, message').eq('active', true).order('display_order'),
     supabaseServer.from('site_settings').select('key,value'),
+    // Novos na Trindade (ESPECIFICACAO.md §10.1) — recém-cadastrados dos
+    // últimos 30 dias, recompensa quem acabou de pagar aparecendo na home
+    supabaseServer.from('companies')
+      .select('id, name, slug, avg_rating, total_reviews, category:categories(name,emoji), photos:company_photos(url,order)')
+      .eq('status', 'active').gte('created_at', thirtyDaysAgo)
+      .order('created_at', { ascending: false }).limit(10),
+    // Faixa "anuncie" com números reais (ESPECIFICACAO.md §10.1 item 8)
+    supabaseServer.from('companies').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+    supabaseServer.from('search_logs').select('id', { count: 'exact', head: true }).gte('created_at', thirtyDaysAgo),
+    supabaseServer.from('whatsapp_clicks').select('id', { count: 'exact', head: true }).gte('created_at', thirtyDaysAgo),
   ])
 
   // Reparo de fotos quebradas roda sozinho: dispara em cadeia a partir de
@@ -154,6 +166,14 @@ export default async function HomePage() {
 
   const recentListings: Record<string, Listing[]> = {}
   types.forEach((type, i) => { recentListings[type] = (listingResults[i].data || []) as Listing[] })
+
+  const newCompanies = (((newCompaniesRes.data || []) as any) as PaidCompany[]).filter(c => (c.photos || []).length > 0)
+
+  const stats = {
+    companies: companiesCountRes.count || 0,
+    searches: searchesCountRes.count || 0,
+    waClicks: waClicksCountRes.count || 0,
+  }
 
   const pulseMessages = pulseRes.data || []
 
@@ -497,20 +517,9 @@ export default async function HomePage() {
       {/* CONTEÚDO */}
       <div className="main-wrap">
 
-        {/* CARDS CUPONS + PROMOÇÕES */}
+        {/* CATEGORIAS — ESPECIFICACAO.md §10.1 item 3, logo depois do
+            hero de busca */}
         <div className="cat-overlap" style={{marginTop:24,marginBottom:0}}>
-          <div className="cat-card-wrap" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,padding:'0',background:'transparent',border:'none',boxShadow:'none'}}>
-            <a href="/cupons" style={{borderRadius:16,overflow:'hidden',textDecoration:'none',display:'block'}}>
-              <img src="https://plfuznchzuzardkfjmqo.supabase.co/storage/v1/object/public/company-photos/cupom_banner.png" alt="Cupons Relâmpago" style={{width:'100%',height:'auto',display:'block',borderRadius:16}}/>
-            </a>
-            <a href="/promocoes" style={{borderRadius:16,overflow:'hidden',textDecoration:'none',display:'block'}}>
-              <img src="https://plfuznchzuzardkfjmqo.supabase.co/storage/v1/object/public/company-photos/promocoes_banner.png" alt="Promoções da Semana" style={{width:'100%',height:'auto',display:'block',borderRadius:16}}/>
-            </a>
-          </div>
-        </div>
-
-        {/* CATEGORIAS */}
-        <div className="cat-overlap" style={{marginTop: 14}}>
           <div className="cat-card-wrap">
             <div className="cat-grid">
               <a className="cat-item" href="/categoria/comercios">
@@ -546,6 +555,19 @@ export default async function HomePage() {
                 <span className="cat-label">Igrejas</span>
               </a>
             </div>
+          </div>
+        </div>
+
+        {/* OFERTAS DO BAIRRO — ESPECIFICACAO.md §10.1 item 5, cupons e
+            promoções unificados numa página só (/ofertas, Fase 1.2) */}
+        <div className="cat-overlap" style={{marginTop: 14}}>
+          <div className="cat-card-wrap" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,padding:'0',background:'transparent',border:'none',boxShadow:'none'}}>
+            <a href="/ofertas" style={{borderRadius:16,overflow:'hidden',textDecoration:'none',display:'block'}}>
+              <img src="https://plfuznchzuzardkfjmqo.supabase.co/storage/v1/object/public/company-photos/cupom_banner.png" alt="Cupons Relâmpago" style={{width:'100%',height:'auto',display:'block',borderRadius:16}}/>
+            </a>
+            <a href="/ofertas" style={{borderRadius:16,overflow:'hidden',textDecoration:'none',display:'block'}}>
+              <img src="https://plfuznchzuzardkfjmqo.supabase.co/storage/v1/object/public/company-photos/promocoes_banner.png" alt="Promoções da Semana" style={{width:'100%',height:'auto',display:'block',borderRadius:16}}/>
+            </a>
           </div>
         </div>
 
@@ -587,84 +609,51 @@ export default async function HomePage() {
           </>
         )}
 
-        {/* ANÚNCIOS RECENTES — estilo Airbnb, sem container */}
-        {((recentListings['desapega']||[]).length > 0 || (recentListings['emprego']||[]).length > 0 || (recentListings['imovel']||[]).length > 0) && (
-        <>
-        <div className="divider" />
-
-        {(recentListings['desapega'] || []).length > 0 && (
-        <div className="recent-section">
-          <div className="recent-section-hdr">
-            <span className="recent-section-title">🏷️ DESAPEGA</span>
-            <a href="/desapega" className="sec-link" style={{marginLeft:'auto'}}>Ver tudo →</a>
+        {/* NOVOS NA TRINDADE — ESPECIFICACAO.md §10.1 item 6, recompensa
+            quem acabou de pagar aparecendo na home nos primeiros 30 dias */}
+        {newCompanies.length > 0 && (
+          <div className="recent-section">
+            <div className="divider" />
+            <div className="recent-section-hdr">
+              <span className="recent-section-title">✨ NOVOS NA TRINDADE</span>
+            </div>
+            <div className="recent-scroll">
+              {newCompanies.map(c => {
+                const cover = [...(c.photos || [])].sort((a, b) => a.order - b.order)[0]?.url
+                return (
+                  <a key={c.id} className="recent-card" href={`/empresa/${c.slug}`}>
+                    <div className="recent-card-img">
+                      {cover ? <Image src={cover} alt={c.name} fill sizes="(max-width:639px) 45vw, 220px" unoptimized style={{objectFit:'cover'}} /> : (c.category?.emoji || '🏪')}
+                    </div>
+                    <div className="recent-card-title">{c.name}</div>
+                    <div className="recent-card-sub">
+                      {c.category?.emoji} {c.category?.name || ''}
+                      {c.avg_rating > 0 && <> · <Stars rating={c.avg_rating} /> {c.avg_rating.toFixed(1)}</>}
+                    </div>
+                  </a>
+                )
+              })}
+            </div>
           </div>
-          <div className="recent-scroll">
-            {(recentListings['desapega'] || []).map(l => (
-              <a key={l.id} className="recent-card" href={`/anuncio/${l.id}`}>
-                <div className="recent-card-img">
-                  {l.photos?.length ? (
-                    <Image unoptimized src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title} fill sizes="(max-width:639px) 45vw, 220px" style={{objectFit:'cover'}}/>
-                  ) : '🏷️'}
-                </div>
-                <div className="recent-card-title">{l.title}</div>
-                {l.price && <div className="recent-card-price">R$ {l.price.toLocaleString('pt-BR')}</div>}
-              </a>
-            ))}
-          </div>
-        </div>
         )}
 
-        {(recentListings['emprego'] || []).length > 0 && (
-        <div className="recent-section">
-          <div className="recent-section-hdr">
-            <span className="recent-section-title">💼 EMPREGOS</span>
-            <a href="/empregos" className="sec-link" style={{marginLeft:'auto'}}>Ver tudo →</a>
-          </div>
-          <div className="recent-scroll">
-            {(recentListings['emprego'] || []).map(l => (
-              <a key={l.id} className="recent-card" href={`/anuncio/${l.id}`}>
-                <div className="recent-card-img">
-                  {l.photos?.length ? (
-                    <Image unoptimized src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title} fill sizes="(max-width:639px) 45vw, 220px" style={{objectFit:'cover'}}/>
-                  ) : '💼'}
-                </div>
-                <div className="recent-card-title">{l.title}</div>
-                <div className="recent-card-sub">Vaga de emprego</div>
-              </a>
-            ))}
-          </div>
-        </div>
+        {/* COMUNIDADE — bloco único com abas, ESPECIFICACAO.md §10.1 item 7 */}
+        {((recentListings['desapega']||[]).length > 0 || (recentListings['emprego']||[]).length > 0 || (recentListings['imovel']||[]).length > 0 || (recentListings['achado']||[]).length > 0) && (
+          <>
+            <div className="divider" />
+            <HomeComunidadeTabs listings={recentListings} />
+          </>
         )}
 
-        {(recentListings['imovel'] || []).length > 0 && (
-        <div className="recent-section">
-          <div className="recent-section-hdr">
-            <span className="recent-section-title">🏠 IMÓVEIS</span>
-            <a href="/imoveis" className="sec-link" style={{marginLeft:'auto'}}>Ver tudo →</a>
-          </div>
-          <div className="recent-scroll">
-            {(recentListings['imovel'] || []).map(l => (
-              <a key={l.id} className="recent-card" href={`/anuncio/${l.id}`}>
-                <div className="recent-card-img">
-                  {l.photos?.length ? (
-                    <Image unoptimized src={[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url} alt={l.title} fill sizes="(max-width:639px) 45vw, 220px" style={{objectFit:'cover'}}/>
-                  ) : '🏠'}
-                </div>
-                <div className="recent-card-title">{l.title}</div>
-                {l.price && <div className="recent-card-price">R$ {l.price.toLocaleString('pt-BR')}{l.subtype === 'aluguel' ? '/mês' : ''}</div>}
-              </a>
-            ))}
-          </div>
-        </div>
-        )}
-        </>
-        )}
-
-        {/* CTA */}
+        {/* CTA — números reais, ESPECIFICACAO.md §10.1 item 8 */}
         <div className="cta-section">
           <div>
             <div className="cta-title">SEU NEGÓCIO NO <span>TRINDADE ONLINE</span></div>
-            <div className="cta-sub">Alcance milhares de moradores do bairro todos os dias</div>
+            <div className="cta-sub">
+              {stats.companies > 0 ? `${stats.companies} negócios já estão no ar` : 'Alcance milhares de moradores do bairro todos os dias'}
+              {stats.searches > 0 && ` · ${stats.searches} buscas nos últimos 30 dias`}
+              {stats.waClicks > 0 && ` · ${stats.waClicks} cliques no WhatsApp`}
+            </div>
             <div className="cta-note">Ativação imediata · Pagamento via Pix</div>
           </div>
           <a className="cta-btn" href="/anunciar">+ Cadastrar minha empresa</a>

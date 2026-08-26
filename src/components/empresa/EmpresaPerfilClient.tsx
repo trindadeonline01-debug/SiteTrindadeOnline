@@ -527,7 +527,7 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
         .pill-cardapio:hover{opacity:.9;}
         .pill-wa{flex:1;height:44px;padding:0 8px;background:#25D366;color:#fff;border:none;border-radius:999px;font-size:13px;font-weight:700;font-family:'Archivo',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-sizing:border-box;transition:opacity .15s;}
         .pill-wa:hover{opacity:.9;}
-        .pill-wa-locked{flex:1;height:44px;padding:0 8px;background:var(--concrete);color:#888;border:1px solid var(--line);border-radius:999px;font-size:13px;font-weight:700;font-family:'Archivo',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-sizing:border-box;transition:all .15s;}
+        .pill-wa-locked{flex:1;height:44px;padding:0 8px;background:var(--concrete-2);color:#888;border:1px solid var(--line);border-radius:999px;font-size:13px;font-weight:700;font-family:'Archivo',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-sizing:border-box;transition:all .15s;}
         .pill-wa-locked:hover:not(:disabled){background:var(--concrete-2);border-color:var(--sign-dark);color:var(--sign-dark);}
         .pill-wa-locked:disabled{cursor:not-allowed;opacity:.6;}
 
@@ -536,7 +536,7 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
         .icon-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;background:none;border:none;font-family:'Archivo',sans-serif;cursor:pointer;padding:2px 0;}
         .icon-circle{width:42px;height:42px;border-radius:50%;background:#FAFAF8;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:16px;color:#666;transition:all .15s;}
         .icon-btn.on .icon-circle{background:var(--concrete-2);border-color:var(--sign-dark);color:var(--sign-dark);}
-        .icon-btn.locked .icon-circle{background:var(--concrete);color:#999;}
+        .icon-btn.locked .icon-circle{background:var(--concrete-2);color:#999;}
         .icon-btn:disabled{cursor:not-allowed;opacity:.7;}
         .icon-lbl{font-size:9px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:#888;}
 

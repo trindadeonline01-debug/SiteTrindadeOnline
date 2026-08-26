@@ -225,7 +225,7 @@ export default function BuscaPageClient({ initialQuery, initialResults, produtos
         @media(min-width:640px){.results-grid{grid-template-columns:repeat(3,1fr);}}
         .result-card{display:flex;flex-direction:column;background:#FAFAF8;border:0.5px solid var(--line);border-radius:12px;overflow:hidden;text-decoration:none;transition:all .15s;}
         .result-card:hover{border-color:var(--sign-dark);box-shadow:0 2px 8px rgba(0,0,0,0.08);}
-        .rc-img{height:100px;background:var(--concrete);display:flex;align-items:center;justify-content:center;font-size:28px;overflow:hidden;flex-shrink:0;position:relative;}
+        .rc-img{height:100px;background:var(--concrete-2);display:flex;align-items:center;justify-content:center;font-size:28px;overflow:hidden;flex-shrink:0;position:relative;}
         .rc-img img{width:100%;height:100%;object-fit:cover;}
         .rc-body{padding:8px 10px;}
         .rc-name{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:2px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;font-family:'Archivo',sans-serif;}

@@ -401,7 +401,7 @@ export default async function HomePage() {
         @media(min-width: 768px) { .cat-grid { grid-template-columns: repeat(4,1fr); gap: 10px; } }
         .cat-item { display: flex; align-items: center; gap: 12px; padding: 13px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; text-decoration: none; transition: border-color 0.15s, background 0.15s; }
         .cat-item:hover { border-color: var(--ink); background: var(--concrete-2); }
-        .cat-item .sq { width: 56px; height: 56px; border-radius: 8px; background: var(--concrete); flex-shrink: 0; position: relative; overflow: hidden; }
+        .cat-item .sq { width: 56px; height: 56px; border-radius: 8px; background: var(--concrete-2); flex-shrink: 0; position: relative; overflow: hidden; }
         .cat-txt { min-width: 0; }
         .cat-label { font-size: 14px; color: var(--ink); line-height: 1.25; font-weight: 600; font-family: 'Archivo', sans-serif; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .cat-count { font-size: 11.5px; color: var(--muted); font-family: 'Archivo', sans-serif; }
@@ -454,7 +454,7 @@ export default async function HomePage() {
         .recent-card { flex-shrink: 0; width: 46vw; max-width: 210px; text-decoration: none; display: block; }
         @media(min-width: 480px) { .recent-card { width: 190px; } }
         @media(min-width: 768px) { .recent-card { width: auto; } }
-        .recent-card-img { width: 100%; aspect-ratio: 1/1; border-radius: 14px; overflow: hidden; background: var(--concrete); display: flex; align-items: center; justify-content: center; font-size: 34px; margin-bottom: 8px; position: relative; }
+        .recent-card-img { width: 100%; aspect-ratio: 1/1; border-radius: 14px; overflow: hidden; background: var(--concrete-2); display: flex; align-items: center; justify-content: center; font-size: 34px; margin-bottom: 8px; position: relative; }
         .recent-card-img img { width: 100%; height: 100%; object-fit: cover; }
         .recent-card-title { font-size: 14px; font-weight: 600; color: var(--ink); line-height: 1.3; margin-bottom: 2px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-family: 'Archivo', sans-serif; }
         .recent-card-price { font-size: 13px; color: var(--sign-dark); font-weight: 700; }

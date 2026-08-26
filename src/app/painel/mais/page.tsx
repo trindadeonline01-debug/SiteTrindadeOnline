@@ -5,6 +5,19 @@ import { moduleActive } from '@/lib/modules'
 
 type Company = { id: string; name: string; slug: string; loja_digital_enabled: boolean; crm_whatsapp_enabled: boolean; entrega_enabled: boolean; trial_modules_until: string | null; plan: string }
 
+// Mesma regra da sidebar desktop (EmpresaShell) — função sem módulo ativo
+// não some, fica trancada e leva pra venda do plano (ESPECIFICACAO.md §4.3).
+function Item({ href, icon, label, locked, badge }: { href: string; icon: string; label: string; locked?: boolean; badge?: number }) {
+  return (
+    <a className="item" href={locked ? '/painel?tab=plano' : href} style={locked ? { opacity: 0.5 } : undefined}>
+      <span className="item-ico">{locked ? '🔒' : icon}</span>
+      <span className="item-lbl">{label}</span>
+      {!locked && !!badge && <span className="item-badge">{badge}</span>}
+      <span className="item-chev">›</span>
+    </a>
+  )
+}
+
 export default function MaisPage() {
   const [company, setCompany] = useState<Company | null>(null)
   const [avaliacoesBadge, setAvaliacoesBadge] = useState(0)
@@ -83,35 +96,23 @@ export default function MaisPage() {
           <a className="item" href="/painel?tab=banners"><span className="item-ico">🖼️</span><span className="item-lbl">Banners</span><span className="item-chev">›</span></a>
         </div>
 
-        {moduleActive(company.loja_digital_enabled, company.trial_modules_until) && (
-          <>
-            <div className="sectlbl">Cardápio &amp; vendas</div>
-            <div className="list">
-              <a className="item" href="/painel/compartilhar"><span className="item-ico">🔗</span><span className="item-lbl">Compartilhar cardápio</span><span className="item-chev">›</span></a>
-              <a className="item" href="/painel/catalogo"><span className="item-ico">📋</span><span className="item-lbl">Catálogo</span><span className="item-chev">›</span></a>
-              <a className="item" href="/painel/pedidos"><span className="item-ico">🧾</span><span className="item-lbl">Pedidos</span><span className="item-chev">›</span></a>
-              <a className="item" href="/painel/cozinha"><span className="item-ico">🍳</span><span className="item-lbl">Cozinha</span><span className="item-chev">›</span></a>
-            </div>
-          </>
-        )}
+        <div className="sectlbl">Cardápio &amp; vendas</div>
+        <div className="list">
+          <Item href="/painel/compartilhar" icon="🔗" label="Compartilhar cardápio" locked={!moduleActive(company.loja_digital_enabled, company.trial_modules_until)} />
+          <Item href="/painel/catalogo" icon="📋" label="Catálogo" locked={!moduleActive(company.loja_digital_enabled, company.trial_modules_until)} />
+          <Item href="/painel/pedidos" icon="🧾" label="Pedidos" locked={!moduleActive(company.loja_digital_enabled, company.trial_modules_until)} />
+          <Item href="/painel/cozinha" icon="🍳" label="Cozinha" locked={!moduleActive(company.loja_digital_enabled, company.trial_modules_until)} />
+        </div>
 
-        {moduleActive(company.entrega_enabled, company.trial_modules_until) && (
-          <>
-            <div className="sectlbl">Entrega</div>
-            <div className="list">
-              <a className="item" href="/painel/entrega"><span className="item-ico">🏍️</span><span className="item-lbl">Entrega</span><span className="item-chev">›</span></a>
-            </div>
-          </>
-        )}
+        <div className="sectlbl">Entrega</div>
+        <div className="list">
+          <Item href="/painel/entrega" icon="🏍️" label="Entrega" locked={!moduleActive(company.entrega_enabled, company.trial_modules_until)} />
+        </div>
 
-        {moduleActive(company.crm_whatsapp_enabled, company.trial_modules_until) && (
-          <>
-            <div className="sectlbl">Relacionamento</div>
-            <div className="list">
-              <a className="item" href="/painel/clientes"><span className="item-ico">👥</span><span className="item-lbl">Clientes</span>{clientesCount > 0 && <span className="item-badge">{clientesCount}</span>}<span className="item-chev">›</span></a>
-            </div>
-          </>
-        )}
+        <div className="sectlbl">Relacionamento</div>
+        <div className="list">
+          <Item href="/painel/clientes" icon="👥" label="Clientes" badge={clientesCount} locked={!moduleActive(company.crm_whatsapp_enabled, company.trial_modules_until)} />
+        </div>
 
         <div className="sectlbl">Marketing</div>
         <div className="list">

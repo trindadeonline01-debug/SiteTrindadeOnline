@@ -607,7 +607,8 @@ export default function CatalogoPage() {
 
   if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter,sans-serif', color: '#AAA' }}>Carregando...</div>
 
-  const filtered = produtos.filter(p => filterCat === 'all' || p.category_id === filterCat)
+  const filtered = produtos.filter(p => filterCat === 'all' || (filterCat === 'sem-foto' ? !p.photo_url : p.category_id === filterCat))
+  const semFotoCount = produtos.filter(p => !p.photo_url).length
   const pctFoto = produtos.length ? Math.round(produtos.filter(p => p.photo_url).length / produtos.length * 100) : 0
   const pctDesc = produtos.length ? Math.round(produtos.filter(p => p.description && p.description.trim()).length / produtos.length * 100) : 0
   const pctPromo = produtos.length ? Math.round(produtos.filter(p => p.promo_type).length / produtos.length * 100) : 0
@@ -750,6 +751,9 @@ export default function CatalogoPage() {
             )}
             <div className="cg-filters">
               <button className={`cg-chip ${filterCat === 'all' ? 'active' : ''}`} onClick={() => setFilterCat('all')}>Tudo</button>
+              {semFotoCount > 0 && (
+                <button className={`cg-chip ${filterCat === 'sem-foto' ? 'active' : ''}`} onClick={() => setFilterCat('sem-foto')}>📷 Sem foto ({semFotoCount})</button>
+              )}
               {categorias.map(c => (
                 <button key={c.id} className={`cg-chip ${filterCat === c.id ? 'active' : ''}`} onClick={() => setFilterCat(c.id)}>{c.name}</button>
               ))}

@@ -2798,7 +2798,7 @@ export default function AdminPage() {
                 </div>
 
                 <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:12,color:'#888',letterSpacing:.8,textTransform:'uppercase',marginBottom:12}}>
-                <input placeholder="🔍 Buscar subcategoria..." value={subcatSearch} onChange={e=>setSubcatSearch(e.target.value)} style={{width:"100%",padding:"10px 14px",border:"1.5px solid #E0DDD8",borderRadius:10,fontSize:13,fontFamily:"Inter,sans-serif",outline:"none",marginBottom:12}}/>
+                <input placeholder="🔍 Buscar subcategoria..." value={subcatSearch} onChange={e=>setSubcatSearch(e.target.value)} style={{width:"100%",padding:"10px 14px",border:"1.5px solid #E0DDD8",borderRadius:10,fontSize:13,fontFamily:"Archivo,sans-serif",outline:"none",marginBottom:12}}/>
                   SUBCATEGORIAS CADASTRADAS ({subcatsList.length})
                 </div>
                 {catOpts.map((cat:any) => {

@@ -14,10 +14,11 @@
   --brand-muted: #FAFAF8;
   --brand-gray: #AAA;
 
-  /* Design system novo — ESPECIFICACAO.md §11.2. "Placa de comércio de
+  /* Design system — ESPECIFICACAO.md §11.2. "Placa de comércio de
      bairro", não "ouro premium": amarelo de toldo em bloco sólido, preto
-     quente, cinza-calçada. Convivem com os tokens --gold/--brand-* acima
-     até cada tela migrar — nada usa isso ainda, é só a fundação. */
+     quente, cinza-calçada. Portal, painel e admin usam esses tokens desde
+     ago/2026. Os --gold/--brand-* acima seguem vivos só pela /producao
+     (área interna da equipe de mídia, fora do escopo do redesenho). */
   --ink: #151210;
   --ink-2: #231F1B;
   --paper: #FFFFFF;
@@ -44,14 +45,12 @@ button:focus:not(:focus-visible) {
 
 body {
   background: #FFFFFF;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Archivo', sans-serif;
   color: #111111;
   -webkit-font-smoothing: antialiased;
 }
 
-.font-bebas { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.05em; }
-
-/* Tipografia nova (ESPECIFICACAO.md §11.3) — Anton só em título de página,
+/* Tipografia (ESPECIFICACAO.md §11.3) — Anton só em título de página,
    número grande e faixa de destaque; nunca em nome de empresa/produto/
    cliente nem rótulo de campo (isso é o que hoje deixa nome longo
    ilegível em caixa alta condensada). Archivo é o corpo/interface. */

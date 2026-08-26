@@ -38,11 +38,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         {/* Fonte carregada uma única vez aqui, em vez de @import repetido (e
             bloqueante) em cada página — mesmas famílias/pesos usados no site inteiro.
-            Anton/Archivo são o design system novo (ESPECIFICACAO.md §11.3) — convivem
-            com Bebas Neue/Inter até cada tela migrar pro visual novo. */}
+            Anton/Archivo são o design system (ESPECIFICACAO.md §11.3) — Bebas
+            Neue/Inter foram removidas depois que a última tela migrou (ago/2026). */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=Anton&family=Archivo:wght@400;500;600;700;800&display=swap" />
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700;800&display=swap" />
         <Script
           id="gtm-head"
           strategy="afterInteractive"

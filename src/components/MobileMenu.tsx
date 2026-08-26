@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import SearchBar from './SearchBar'
 
 const PAGES = [
   { href: '/categoria/comercios',   icon: '🏪', label: 'Comércios' },
@@ -53,9 +54,13 @@ export default function MobileMenu() {
     <>
       <style>{`
         .mm-bar{display:none;}
+        .mm-searchrow{display:none;}
         @media(max-width:767px){
           .mm-bar{display:flex;align-items:center;justify-content:space-between;background:#fff;border-bottom:1px solid #E0DDD8;padding:0 14px;height:54px;box-sizing:border-box;position:sticky;top:0;z-index:9500;}
+          .mm-searchrow{display:flex;align-items:center;gap:8px;background:#fff;border-bottom:1px solid #E0DDD8;padding:8px 14px;box-sizing:border-box;position:sticky;top:54px;z-index:9400;}
         }
+        .mm-bairro{display:flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:#555;white-space:nowrap;flex-shrink:0;}
+        .mm-bairro .pin{color:#C9951A;font-size:10px;}
         .mm-hamburger{background:none;border:none;cursor:pointer;padding:6px;display:flex;flex-direction:column;gap:4px;width:34px;flex-shrink:0;}
         .mm-hamburger span{display:block;height:2px;background:#111;border-radius:2px;}
         .mm-logo{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1.5px;color:#111;text-decoration:none;}
@@ -89,6 +94,11 @@ export default function MobileMenu() {
         ) : (
           <a className="mm-entrar" href="/login">Entrar</a>
         )}
+      </div>
+
+      <div className="mm-searchrow">
+        <span className="mm-bairro"><span className="pin">◉</span> Trindade</span>
+        <SearchBar compact />
       </div>
 
       {open && (

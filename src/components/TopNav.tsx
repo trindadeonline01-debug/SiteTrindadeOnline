@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import SearchBar from './SearchBar'
 
 export default function TopNav() {
   const [user, setUser] = useState<any>(null)
@@ -38,10 +39,12 @@ export default function TopNav() {
         }
         .top-nav-global { display: none; }
         @media(min-width:768px){
-          .top-nav-global { display: flex; align-items: center; background: #fff; border-bottom: 1px solid #E0DDD8; position: sticky; top: 0; z-index: 9000; padding: 0 32px; height: 58px; gap: 24px; }
+          .top-nav-global { display: flex; align-items: center; background: #fff; border-bottom: 1px solid #E0DDD8; position: sticky; top: 0; z-index: 9000; padding: 0 32px; height: 58px; gap: 16px; }
           .top-nav-logo { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 2px; color: #111; text-decoration: none; flex-shrink: 0; }
           .top-nav-logo span { color: #C9951A; }
-          .top-nav-center { flex: 1; display: flex; align-items: center; justify-content: center; gap: 2px; }
+          .top-nav-bairro { display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 600; color: #555; white-space: nowrap; flex-shrink: 0; }
+          .top-nav-bairro .pin { color: #C9951A; font-size: 11px; }
+          .top-nav-center { flex: 0 1 auto; display: flex; align-items: center; justify-content: center; gap: 2px; }
           .top-nav-link { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 10px; font-size: 14px; font-weight: 500; color: #555; text-decoration: none; white-space: nowrap; position: relative; font-family: Inter, sans-serif; }
           .top-nav-link:hover { background: #F5F2EC; color: #111; }
           .top-nav-link.active { color: #C9951A; background: #FEF3E2; }
@@ -53,6 +56,8 @@ export default function TopNav() {
       `}</style>
       <div className="top-nav-global">
         <a className="top-nav-logo" href="/">TRINDADE <span>ONLINE</span></a>
+        <div className="top-nav-bairro"><span className="pin">◉</span> Trindade</div>
+        <SearchBar compact />
         <nav className="top-nav-center">
           {user && <>
             <a className={`top-nav-link ${pathname==='/'?'active':''}`} href="/">🏠 Início</a>

@@ -66,33 +66,33 @@ export default function LoginPage() {
     <>
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Inter', sans-serif; background: #F0EDE8; }
+        body { font-family: 'Archivo', sans-serif; background: var(--concrete); }
         .auth-page { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px 16px; }
         .auth-card { background: #fff; border-radius: 20px; padding: 36px 32px; width: 100%; max-width: 420px; box-shadow: 0 4px 24px rgba(0,0,0,.08); }
         .auth-logo { text-align: center; margin-bottom: 28px; }
-        .auth-logo a { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 2px; text-decoration: none; color: #111; }
-        .auth-logo span { color: #C9951A; }
+        .auth-logo a { font-family: 'Anton', sans-serif; font-size: 28px; letter-spacing: 1px; text-decoration: none; color: var(--ink); text-transform: uppercase; }
+        .auth-logo span { color: var(--sign-dark); }
         .auth-title { font-size: 20px; font-weight: 700; color: #111; margin-bottom: 6px; }
         .auth-sub { font-size: 13px; color: #AAA; margin-bottom: 24px; }
         .field { margin-bottom: 14px; }
         .field label { display: block; font-size: 12px; font-weight: 600; color: #444; margin-bottom: 6px; }
-        .field input { width: 100%; padding: 12px 14px; border: 1.5px solid #E0DDD8; border-radius: 11px; font-size: 14px; font-family: 'Inter', sans-serif; color: #222; background: #FAFAF8; outline: none; transition: border-color .15s; }
-        .field input:focus { border-color: #C9951A; background: #fff; }
+        .field input { width: 100%; padding: 12px 14px; border: 1.5px solid #E0DDD8; border-radius: 11px; font-size: 14px; font-family: 'Archivo', sans-serif; color: #222; background: #FAFAF8; outline: none; transition: border-color .15s; }
+        .field input:focus { border-color: var(--sign-dark); background: #fff; }
         .field-senha { position: relative; }
         .field-senha input { padding-right: 44px; }
         .olho-btn { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #AAA; padding: 4px; display: flex; align-items: center; }
-        .olho-btn:hover { color: #C9951A; }
+        .olho-btn:hover { color: var(--sign-dark); }
         .erro-msg { background: #FEF0F0; border: 1px solid #F5BCBC; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #C0392B; margin-bottom: 14px; }
         .ok-msg { background: #EDFAF3; border: 1px solid #A8E6C4; border-radius: 10px; padding: 12px 14px; font-size: 13px; color: #0F5C3A; margin-bottom: 14px; line-height: 1.6; }
-        .btn-primary { width: 100%; padding: 13px; background: #C9951A; color: #fff; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; transition: background .15s; margin-bottom: 12px; }
+        .btn-primary { width: 100%; padding: 13px; background: var(--sign); color: var(--ink); border: none; border-radius: 12px; font-size: 15px; font-weight: 600; font-family: 'Archivo', sans-serif; cursor: pointer; transition: background .15s; margin-bottom: 12px; }
         .btn-primary:hover:not(:disabled) { background: #B8841A; }
         .btn-primary:disabled { opacity: .6; cursor: not-allowed; }
-        .btn-link { width: 100%; padding: 10px; background: transparent; color: #888; border: 1.5px solid #E0DDD8; border-radius: 12px; font-size: 13px; font-family: 'Inter', sans-serif; cursor: pointer; transition: all .15s; margin-bottom: 16px; }
+        .btn-link { width: 100%; padding: 10px; background: transparent; color: #888; border: 1.5px solid #E0DDD8; border-radius: 12px; font-size: 13px; font-family: 'Archivo', sans-serif; cursor: pointer; transition: all .15s; margin-bottom: 16px; }
         .btn-link:hover { border-color: #CCC; color: #555; }
-        .forgot-link { display: block; text-align: right; font-size: 12px; color: #C9951A; cursor: pointer; margin-bottom: 16px; font-weight: 500; background: none; border: none; font-family: 'Inter', sans-serif; }
+        .forgot-link { display: block; text-align: right; font-size: 12px; color: var(--sign-dark); cursor: pointer; margin-bottom: 16px; font-weight: 500; background: none; border: none; font-family: 'Archivo', sans-serif; }
         .forgot-link:hover { text-decoration: underline; }
         .auth-footer { text-align: center; font-size: 13px; color: #AAA; line-height: 2; }
-        .auth-footer a { color: #C9951A; font-weight: 500; text-decoration: none; }
+        .auth-footer a { color: var(--sign-dark); font-weight: 500; text-decoration: none; }
         .auth-footer a:hover { text-decoration: underline; }
       `}</style>
 

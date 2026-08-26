@@ -132,18 +132,18 @@ function PerfilPageInner() {
     <>
       <style>{`
         *{box-sizing:border-box;margin:0;padding:0;}
-        body{font-family:'Inter',sans-serif;background:#fff;}
+        body{font-family:'Archivo',sans-serif;background:#fff;}
 
-        .topbar{background:#111;z-index:50;}
+        .topbar{background:var(--ink);z-index:50;}
         .ti{max-width:1200px;margin:0 auto;padding:13px 24px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;}
         .bc{display:flex;align-items:center;gap:7px;font-size:13px;}
-        .bc a{color:#C9951A;font-weight:700;text-decoration:none;}
+        .bc a{color:var(--sign);font-weight:700;text-decoration:none;}
         .bcs{color:#444;font-size:14px;} .bcc{color:#fff;font-weight:700;}
 
-        .hero{background:linear-gradient(160deg,#111,#1a1a1a);padding:28px 24px;border-bottom:2px solid #C9951A;}
+        .hero{background:linear-gradient(160deg,var(--ink),#1a1a1a);padding:28px 24px;border-bottom:2px solid var(--sign);}
         .hi{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:18px;}
-        .avatar{width:72px;height:72px;border-radius:50%;background:#C9951A;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:32px;color:#fff;flex-shrink:0;border:3px solid #C9951A;}
-        .hname{font-family:'Bebas Neue',sans-serif;font-size:clamp(22px,3vw,32px);color:#fff;letter-spacing:1px;margin-bottom:5px;}
+        .avatar{width:72px;height:72px;border-radius:50%;background:var(--sign-dark);display:flex;align-items:center;justify-content:center;font-family:'Archivo',sans-serif;font-weight:700;font-size:32px;color:#fff;flex-shrink:0;border:3px solid var(--sign);}
+        .hname{font-family:'Anton',sans-serif;font-size:clamp(22px,3vw,32px);color:#fff;letter-spacing:1px;text-transform:uppercase;margin-bottom:5px;}
         .hmeta{font-size:15px;color:#666;display:flex;gap:14px;flex-wrap:wrap;}
 
         .page{max-width:1200px;margin:0 auto;padding:24px 24px 48px;}
@@ -151,26 +151,26 @@ function PerfilPageInner() {
         .layout{display:block;max-width:860px;margin:0 auto;}
 
         .card{background:#FAFAF8;border:0.5px solid #E0DDD8;border-radius:14px;padding:18px;margin-bottom:14px;}
-        .card-title{font-family:'Bebas Neue',sans-serif;font-size:12px;color:#AAA;letter-spacing:1.5px;margin-bottom:14px;}
+        .card-title{font-family:'Archivo',sans-serif;font-weight:700;font-size:11px;color:#AAA;letter-spacing:.8px;text-transform:uppercase;margin-bottom:14px;}
         .field{margin-bottom:12px;}
         .fl{font-size:13px;font-weight:700;color:#AAA;letter-spacing:.5px;margin-bottom:4px;display:block;}
         .fv{font-size:17px;color:#222;font-weight:500;}
-        .fi{width:100%;padding:11px 14px;border:1.5px solid #E0DDD8;border-radius:9px;font-size:16px;font-family:'Inter',sans-serif;outline:none;transition:border .15s;background:#fff;color:#222;}
-        .fi:focus{border-color:#C9951A;}
-        .btn-edit{width:100%;padding:10px;background:#FEF3E2;color:#C9951A;border:1.5px solid #C9951A;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;}
-        .btn-save{width:100%;padding:10px;background:#C9951A;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;margin-bottom:6px;}
-        .btn-cancel{width:100%;padding:8px;background:#FAFAF8;color:#888;border:0.5px solid #E0DDD8;border-radius:10px;font-size:12px;cursor:pointer;font-family:'Inter',sans-serif;}
+        .fi{width:100%;padding:11px 14px;border:1.5px solid #E0DDD8;border-radius:9px;font-size:16px;font-family:'Archivo',sans-serif;outline:none;transition:border .15s;background:#fff;color:#222;}
+        .fi:focus{border-color:var(--sign-dark);}
+        .btn-edit{width:100%;padding:10px;background:#FEF3E2;color:var(--sign-dark);border:1.5px solid var(--sign-dark);border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Archivo',sans-serif;}
+        .btn-save{width:100%;padding:10px;background:var(--sign);color:var(--ink);border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Archivo',sans-serif;margin-bottom:6px;}
+        .btn-cancel{width:100%;padding:8px;background:#FAFAF8;color:#888;border:0.5px solid #E0DDD8;border-radius:10px;font-size:12px;cursor:pointer;font-family:'Archivo',sans-serif;}
         .ok-msg{background:#EDFAF3;border:1px solid #A8E6C4;border-radius:8px;padding:8px 12px;font-size:12px;color:#0F5C3A;margin-bottom:10px;}
 
         .stats-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
         .stat{background:#FAFAF8;border:0.5px solid #E0DDD8;border-radius:10px;padding:12px;text-align:center;text-decoration:none;display:block;transition:all .15s;}
-        .stat:hover{border-color:#C9951A;background:#FEF3E2;}
-        .stat-n{font-family:'Bebas Neue',sans-serif;font-size:36px;color:#C9951A;line-height:1;}
+        .stat:hover{border-color:var(--sign-dark);background:#FEF3E2;}
+        .stat-n{font-family:'Anton',sans-serif;font-size:36px;color:var(--sign-dark);line-height:1;}
         .stat-l{font-size:13px;color:#AAA;margin-top:2px;font-weight:500;}
 
         .tabs{display:flex;gap:4px;margin-bottom:20px;background:#FAFAF8;padding:5px;border-radius:12px;border:0.5px solid #E0DDD8;}
-        .tab{flex:1;padding:8px 4px;text-align:center;font-size:12px;font-weight:600;color:#888;cursor:pointer;border-radius:9px;transition:all .15s;font-family:'Inter',sans-serif;}
-        .tab.on{background:#fff;color:#C9951A;box-shadow:0 1px 4px rgba(0,0,0,.08);}
+        .tab{flex:1;padding:8px 4px;text-align:center;font-size:12px;font-weight:600;color:#888;cursor:pointer;border-radius:9px;transition:all .15s;font-family:'Archivo',sans-serif;}
+        .tab.on{background:#fff;color:var(--sign-dark);box-shadow:0 1px 4px rgba(0,0,0,.08);}
 
         .an-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
         @media(min-width:640px){.an-grid{grid-template-columns:repeat(3,1fr);}}
@@ -186,15 +186,15 @@ function PerfilPageInner() {
 
         .rv-list{display:flex;flex-direction:column;gap:10px;}
         .rv-item{background:#FAFAF8;border:0.5px solid #E0DDD8;border-radius:11px;padding:12px;}
-        .rv-empresa{font-size:13px;font-weight:600;color:#C9951A;text-decoration:none;margin-bottom:4px;display:block;}
-        .rv-stars{font-size:13px;color:#C9951A;margin-bottom:4px;}
+        .rv-empresa{font-size:13px;font-weight:600;color:var(--sign-dark);text-decoration:none;margin-bottom:4px;display:block;}
+        .rv-stars{font-size:13px;color:var(--sign-dark);margin-bottom:4px;}
         .rv-txt{font-size:12px;color:#555;line-height:1.6;}
         .rv-date{font-size:10px;color:#AAA;margin-top:5px;}
 
         .fav-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
         @media(min-width:640px){.fav-grid{grid-template-columns:repeat(3,1fr);}}
         .fav-card{background:#FAFAF8;border:0.5px solid #E0DDD8;border-radius:11px;padding:10px 12px;text-decoration:none;display:flex;align-items:center;gap:8px;transition:all .15s;}
-        .fav-card:hover{border-color:#C9951A;background:#FEF3E2;}
+        .fav-card:hover{border-color:var(--sign-dark);background:#FEF3E2;}
         .fav-emoji{font-size:20px;flex-shrink:0;}
         .fav-name{font-size:12px;font-weight:600;color:#222;}
         .fav-cat{font-size:10px;color:#AAA;}
@@ -202,7 +202,7 @@ function PerfilPageInner() {
         .empty-tab{text-align:center;padding:32px 20px;color:#AAA;}
 
         .footer{padding:24px 0 0;text-align:center;font-size:12px;color:#AAA;border-top:0.5px solid #F0EDE8;margin-top:24px;}
-        .footer a{color:#C9951A;text-decoration:none;}
+        .footer a{color:var(--sign-dark);text-decoration:none;}
       `}</style>
 
       <div className="topbar">
@@ -282,7 +282,7 @@ function PerfilPageInner() {
                   <div style={{fontSize:40,marginBottom:10}}>📋</div>
                   <div style={{fontSize:14,fontWeight:600,color:'#555',marginBottom:6}}>Nenhum anúncio ativo</div>
                   <div style={{fontSize:12,marginBottom:16}}>Publique no Desapega, Empregos ou Imóveis!</div>
-                  <a href="/desapega" style={{color:'#C9951A',fontSize:13,fontWeight:600,textDecoration:'none'}}>+ Criar anúncio →</a>
+                  <a href="/desapega" style={{color:'var(--sign-dark)',fontSize:13,fontWeight:600,textDecoration:'none'}}>+ Criar anúncio →</a>
                 </div>
               ) : (
                 <div className="an-grid">
@@ -332,7 +332,7 @@ function PerfilPageInner() {
                   <div style={{fontSize:40,marginBottom:10}}>🎟️</div>
                   <div style={{fontSize:14,fontWeight:600,color:'#555',marginBottom:6}}>Nenhum cupom resgatado</div>
                   <div style={{fontSize:12,marginBottom:16}}>Resgate cupons das empresas do bairro!</div>
-                  <a href="/cupons" style={{color:'#C9951A',fontSize:13,fontWeight:600,textDecoration:'none'}}>Ver cupons disponíveis →</a>
+                  <a href="/cupons" style={{color:'var(--sign-dark)',fontSize:13,fontWeight:600,textDecoration:'none'}}>Ver cupons disponíveis →</a>
                 </div>
               ) : (
                 <div style={{display:'flex',flexDirection:'column',gap:8}}>
@@ -347,7 +347,7 @@ function PerfilPageInner() {
                         <div style={{flex:1,padding:'10px 12px',borderLeft:'1px dashed #E0DDD8',minWidth:0,display:'flex',flexDirection:'column',justifyContent:'center',gap:2}}>
                           <div style={{fontSize:11,color:'#888'}}>{r.coupon?.company?.name}</div>
                           <div style={{fontSize:13,fontWeight:500,color:used?'#AAA':'#111',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.coupon?.title}</div>
-                          <div style={{fontSize:13,fontWeight:600,color:used?'#BBB':'#C9951A',letterSpacing:2,fontFamily:'monospace'}}>{r.code}</div>
+                          <div style={{fontSize:13,fontWeight:600,color:used?'#BBB':'var(--sign-dark)',letterSpacing:2,fontFamily:'monospace'}}>{r.code}</div>
                         </div>
                         <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'8px 12px',gap:4,flexShrink:0,borderLeft:'1px dashed #E0DDD8'}}>
                           {used ? (
@@ -391,14 +391,14 @@ function PerfilPageInner() {
                         ))}
                         {p.delivery_type === 'entrega' && entregas[p.id] && (
                           <div style={{marginTop:8,background:'#1A1610',borderRadius:10,padding:'10px 12px'}}>
-                            <div style={{fontSize:10.5,fontWeight:700,color:'#C9951A',letterSpacing:'.04em',textTransform:'uppercase'}}>
+                            <div style={{fontSize:10.5,fontWeight:700,color:'var(--sign)',letterSpacing:'.04em',textTransform:'uppercase'}}>
                               🏍️ {ENTREGA_STATUS_LABEL[entregas[p.id].status] || entregas[p.id].status}
                             </div>
                             {entregas[p.id].status === 'a_caminho' && (
                               <>
                                 {entregas[p.id].motoboy_name && <div style={{fontSize:11.5,color:'#F0EDE8',marginTop:3}}>{entregas[p.id].motoboy_name} está a caminho</div>}
-                                <div style={{fontSize:10,color:'#C9951A',marginTop:6}}>Seu código de entrega</div>
-                                <div style={{fontFamily:'Bebas Neue,sans-serif',fontSize:26,letterSpacing:8,color:'#fff'}}>{entregas[p.id].delivery_code}</div>
+                                <div style={{fontSize:10,color:'var(--sign)',marginTop:6}}>Seu código de entrega</div>
+                                <div style={{fontFamily:'Anton,sans-serif',fontSize:26,letterSpacing:8,color:'#fff'}}>{entregas[p.id].delivery_code}</div>
                                 <div style={{fontSize:10,color:'#b6ab97',lineHeight:1.5}}>Mostre esses números pro motoboy na entrega.</div>
                               </>
                             )}

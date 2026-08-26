@@ -51,20 +51,20 @@ export default function RedefinirSenhaPage() {
     <>
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Inter', sans-serif; background: #F0EDE8; }
+        body { font-family: 'Archivo', sans-serif; background: var(--concrete); }
         .auth-page { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px 16px; }
         .auth-card { background: #fff; border-radius: 20px; padding: 36px 32px; width: 100%; max-width: 420px; box-shadow: 0 4px 24px rgba(0,0,0,.08); }
         .auth-logo { text-align: center; margin-bottom: 28px; }
-        .auth-logo a { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 2px; text-decoration: none; color: #111; }
-        .auth-logo span { color: #C9951A; }
+        .auth-logo a { font-family: 'Anton', sans-serif; font-size: 28px; letter-spacing: 1px; text-decoration: none; color: var(--ink); text-transform: uppercase; }
+        .auth-logo span { color: var(--sign-dark); }
         .auth-title { font-size: 20px; font-weight: 700; color: #111; margin-bottom: 6px; }
         .auth-sub { font-size: 13px; color: #AAA; margin-bottom: 24px; }
         .field { margin-bottom: 14px; }
         .field label { display: block; font-size: 12px; font-weight: 600; color: #444; margin-bottom: 6px; }
-        .field input { width: 100%; padding: 12px 14px; border: 1.5px solid #E0DDD8; border-radius: 11px; font-size: 14px; font-family: 'Inter', sans-serif; color: #222; background: #FAFAF8; outline: none; transition: border-color .15s; }
-        .field input:focus { border-color: #C9951A; background: #fff; }
+        .field input { width: 100%; padding: 12px 14px; border: 1.5px solid #E0DDD8; border-radius: 11px; font-size: 14px; font-family: 'Archivo', sans-serif; color: #222; background: #FAFAF8; outline: none; transition: border-color .15s; }
+        .field input:focus { border-color: var(--sign-dark); background: #fff; }
         .erro-msg { background: #FEF0F0; border: 1px solid #F5BCBC; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #C0392B; margin-bottom: 14px; }
-        .btn-primary { width: 100%; padding: 13px; background: #C9951A; color: #fff; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; transition: background .15s; }
+        .btn-primary { width: 100%; padding: 13px; background: var(--sign); color: var(--ink); border: none; border-radius: 12px; font-size: 15px; font-weight: 600; font-family: 'Archivo', sans-serif; cursor: pointer; transition: background .15s; }
         .btn-primary:hover:not(:disabled) { background: #B8841A; }
         .btn-primary:disabled { opacity: .6; cursor: not-allowed; }
         .senha-strength { height: 4px; border-radius: 2px; margin-top: 6px; transition: all .3s; }
@@ -96,7 +96,7 @@ export default function RedefinirSenhaPage() {
                   {senha.length > 0 && (
                     <div className="senha-strength" style={{
                       width: '100%',
-                      background: senha.length < 6 ? '#E24B4A' : senha.length < 10 ? '#C9951A' : '#0F8050'
+                      background: senha.length < 6 ? '#E24B4A' : senha.length < 10 ? 'var(--warn)' : '#0F8050'
                     }} />
                   )}
                 </div>

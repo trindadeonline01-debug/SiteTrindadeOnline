@@ -51,21 +51,21 @@ export default function FavoritosPage() {
     <>
       <style>{`
         *{box-sizing:border-box;margin:0;padding:0;}
-        body{font-family:'Inter',sans-serif;background:#fff;}
+        body{font-family:'Archivo',sans-serif;background:#fff;}
 
         .topbar{background:#111;z-index:50;}
         .ti{max-width:1200px;margin:0 auto;padding:13px 24px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;}
         .bc{display:flex;align-items:center;gap:7px;font-size:13px;}
-        .bc a{color:#C9951A;font-weight:700;text-decoration:none;}
+        .bc a{color:var(--sign);font-weight:700;text-decoration:none;}
         .bcs{color:#444;font-size:14px;}
         .bcc{color:#fff;font-weight:700;}
 
         .hero{background:linear-gradient(160deg,#fff 0%,#FEF8EC 100%);padding:28px 24px;border-bottom:1px solid #F0EDE8;}
         .hi{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:16px;}
         .he{font-size:44px;flex-shrink:0;}
-        .hn{font-family:'Bebas Neue',sans-serif;font-size:clamp(28px,4vw,40px);color:#111;letter-spacing:2px;margin-bottom:4px;}
+        .hn{font-family:'Anton',sans-serif;font-size:clamp(28px,4vw,40px);color:var(--ink);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;}
         .hc{font-size:13px;color:#888;}
-        .hc span{color:#C9951A;font-weight:600;}
+        .hc span{color:var(--sign-dark);font-weight:600;}
 
         .page{max-width:1200px;margin:0 auto;padding:28px 24px 48px;}
         @media(max-width:767px){.page{padding:20px 16px 40px;}}
@@ -75,13 +75,13 @@ export default function FavoritosPage() {
         @media(min-width:1024px){.grid{grid-template-columns:repeat(4,1fr);}}
 
         .card{background:#fff;border:0.5px solid #E0DDD8;border-radius:14px;overflow:hidden;text-decoration:none;display:block;transition:all .18s;position:relative;}
-        .card:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.1);border-color:#C9951A;}
+        .card:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.1);border-color:var(--sign-dark);}
         .ci{height:120px;background:#FEF3E2;display:flex;align-items:center;justify-content:center;font-size:40px;overflow:hidden;position:relative;}
         .ci img{width:100%;height:100%;object-fit:cover;}
         .cb{padding:11px 12px;}
         .ct{font-size:13px;font-weight:600;color:#222;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
         .cc{font-size:10px;color:#AAA;margin-bottom:4px;}
-        .cs{font-size:11px;color:#C9951A;font-weight:600;}
+        .cs{font-size:11px;color:var(--sign-dark);font-weight:600;}
         .ca{font-size:10px;color:#BBB;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px;}
 
         .rm-btn{position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.95);border:0.5px solid #E0DDD8;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 6px rgba(0,0,0,.1);transition:all .15s;z-index:2;}
@@ -94,11 +94,11 @@ export default function FavoritosPage() {
         .empty-ico{font-size:56px;margin-bottom:16px;}
         .empty-title{font-size:20px;font-weight:700;color:#111;margin-bottom:8px;}
         .empty-sub{font-size:13px;color:#AAA;margin-bottom:24px;line-height:1.7;}
-        .btn-explore{display:inline-block;padding:12px 28px;background:#C9951A;color:#fff;border-radius:12px;text-decoration:none;font-size:14px;font-weight:700;transition:opacity .15s;}
+        .btn-explore{display:inline-block;padding:12px 28px;background:var(--sign);color:var(--ink);border-radius:12px;text-decoration:none;font-size:14px;font-weight:700;transition:opacity .15s;}
         .btn-explore:hover{opacity:.9;}
 
         .footer{padding:24px 0 0;text-align:center;font-size:12px;color:#AAA;border-top:0.5px solid #F0EDE8;margin-top:24px;}
-        .footer a{color:#C9951A;text-decoration:none;}
+        .footer a{color:var(--sign-dark);text-decoration:none;}
       `}</style>
 
       <div className="topbar">

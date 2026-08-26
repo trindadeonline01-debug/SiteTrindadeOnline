@@ -34,7 +34,7 @@ function CadastroForm() {
   function senhaForca() {
     if (senha.length === 0) return null
     if (senha.length < 6)  return { cor: '#E24B4A', label: 'Muito fraca', pct: '25%' }
-    if (senha.length < 8)  return { cor: '#C9951A', label: 'Fraca',       pct: '50%' }
+    if (senha.length < 8)  return { cor: 'var(--warn)', label: 'Fraca',       pct: '50%' }
     if (senha.length < 12) return { cor: '#185FA5', label: 'Boa',         pct: '75%' }
     return                        { cor: '#0F8050', label: 'Forte',        pct: '100%' }
   }
@@ -94,7 +94,7 @@ function CadastroForm() {
         <div style={{ fontSize: 13, color: '#888', lineHeight: 1.7, marginBottom: 24 }}>
           Bem-vindo ao Trindade Online, <strong>{nome}</strong>!
         </div>
-        <a href="/" style={{ background: '#C9951A', color: '#fff', padding: '12px 28px', borderRadius: 12, fontSize: 14, fontWeight: 600, textDecoration: 'none', display: 'inline-block' }}>
+        <a href="/" style={{ background: 'var(--sign)', color: 'var(--ink)', padding: '12px 28px', borderRadius: 12, fontSize: 14, fontWeight: 600, textDecoration: 'none', display: 'inline-block' }}>
           Explorar o Guia →
         </a>
       </div>
@@ -117,7 +117,7 @@ function CadastroForm() {
           />
           {erro && <div style={{color:'#E24B4A',fontSize:13,marginBottom:12}}>{erro}</div>}
           <button type="submit" disabled={loading || code.length < 6}
-            style={{width:'100%',padding:'13px',background:code.length===6?'#C9951A':'#E0DDD8',color:code.length===6?'#fff':'#AAA',border:'none',borderRadius:12,fontSize:14,fontWeight:700,cursor:code.length===6?'pointer':'not-allowed',fontFamily:'Inter,sans-serif',marginBottom:12}}>
+            style={{width:'100%',padding:'13px',background:code.length===6?'var(--sign)':'#E0DDD8',color:code.length===6?'var(--ink)':'#AAA',border:'none',borderRadius:12,fontSize:14,fontWeight:700,cursor:code.length===6?'pointer':'not-allowed',fontFamily:'Archivo,sans-serif',marginBottom:12}}>
             {loading ? 'Verificando...' : 'Confirmar código'}
           </button>
           <button type="button" onClick={() => { setStep('form'); setCode(''); setErro('') }}
@@ -125,7 +125,7 @@ function CadastroForm() {
             ← Voltar
           </button>
           <button type="button" onClick={() => handleCadastro({preventDefault:()=>{}} as any)}
-            style={{fontSize:12,color:'#C9951A',background:'none',border:'none',cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+            style={{fontSize:12,color:'var(--sign-dark)',background:'none',border:'none',cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>
             Reenviar código
           </button>
         </form>
@@ -137,7 +137,7 @@ function CadastroForm() {
 
       {/* TIPO */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-        <button type="button" style={{ flex:1, padding:'10px', borderRadius:10, border:'1.5px solid', borderColor:'#C9951A', background:'#FEF3E2', color:'#854F0B', fontSize:13, fontWeight:600, cursor:'default', fontFamily:'Inter, sans-serif' }}>
+        <button type="button" style={{ flex:1, padding:'10px', borderRadius:10, border:'1.5px solid', borderColor:'var(--sign-dark)', background:'#FEF3E2', color:'#854F0B', fontSize:13, fontWeight:600, cursor:'default', fontFamily:'Archivo, sans-serif' }}>
           👤 Sou morador
         </button>
         <button type="button" onClick={() => window.location.href = '/anunciar'} style={{ flex:1, padding:'10px', borderRadius:10, border:'1.5px solid #E0DDD8', background:'#FAFAF8', color:'#888', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'Inter, sans-serif' }}>
@@ -250,24 +250,24 @@ export default function CadastroPage() {
     <>
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Inter', sans-serif; background: #F0EDE8; }
+        body { font-family: 'Archivo', sans-serif; background: var(--concrete); }
         .auth-page { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px 16px; }
         .auth-card { background: #fff; border-radius: 20px; padding: 36px 32px; width: 100%; max-width: 420px; box-shadow: 0 4px 24px rgba(0,0,0,.08); }
         .auth-logo { text-align: center; margin-bottom: 28px; }
-        .auth-logo a { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 2px; text-decoration: none; color: #111; }
-        .auth-logo span { color: #C9951A; }
+        .auth-logo a { font-family: 'Anton', sans-serif; font-size: 28px; letter-spacing: 1px; text-decoration: none; color: var(--ink); text-transform: uppercase; }
+        .auth-logo span { color: var(--sign-dark); }
         .auth-title { font-size: 20px; font-weight: 700; color: #111; margin-bottom: 6px; }
         .auth-sub { font-size: 13px; color: #AAA; margin-bottom: 24px; }
         .field { margin-bottom: 14px; }
         .field label { display: block; font-size: 12px; font-weight: 600; color: #444; margin-bottom: 6px; }
-        .field input { width: 100%; padding: 12px 14px; border: 1.5px solid #E0DDD8; border-radius: 11px; font-size: 14px; font-family: 'Inter', sans-serif; color: #222; background: #FAFAF8; outline: none; transition: border-color .15s; }
-        .field input:focus { border-color: #C9951A; background: #fff; }
+        .field input { width: 100%; padding: 12px 14px; border: 1.5px solid #E0DDD8; border-radius: 11px; font-size: 14px; font-family: 'Archivo', sans-serif; color: #222; background: #FAFAF8; outline: none; transition: border-color .15s; }
+        .field input:focus { border-color: var(--sign-dark); background: #fff; }
         .erro-msg { background: #FEF0F0; border: 1px solid #F5BCBC; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #C0392B; margin-bottom: 14px; }
-        .btn-primary { width: 100%; padding: 13px; background: #C9951A; color: #fff; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; transition: background .15s; margin-bottom: 16px; }
+        .btn-primary { width: 100%; padding: 13px; background: var(--sign); color: var(--ink); border: none; border-radius: 12px; font-size: 15px; font-weight: 600; font-family: 'Archivo', sans-serif; cursor: pointer; transition: background .15s; margin-bottom: 16px; }
         .btn-primary:hover:not(:disabled) { background: #B8841A; }
         .btn-primary:disabled { opacity: .6; cursor: not-allowed; }
         .auth-footer { text-align: center; font-size: 13px; color: #AAA; }
-        .auth-footer a { color: #C9951A; font-weight: 500; text-decoration: none; }
+        .auth-footer a { color: var(--sign-dark); font-weight: 500; text-decoration: none; }
         .auth-footer a:hover { text-decoration: underline; }
       `}</style>
 

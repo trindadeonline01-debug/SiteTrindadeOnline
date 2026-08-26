@@ -22,12 +22,12 @@ export function sectionOgImage(title: string, subtitle: string, emoji?: string) 
       >
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <span style={{ fontSize: 34, fontWeight: 700, color: '#F0EDE8' }}>TRINDADE</span>
-          <span style={{ fontSize: 34, fontWeight: 700, color: '#C9951A', marginLeft: 10 }}>ONLINE</span>
+          <span style={{ fontSize: 34, fontWeight: 700, color: '#FFC531', marginLeft: 10 }}>ONLINE</span>
         </div>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           {emoji && <div style={{ display: 'flex', fontSize: 90, marginBottom: 16 }}>{emoji}</div>}
           <div style={{ display: 'flex', fontSize: 68, fontWeight: 700, lineHeight: 1.15, maxWidth: 1000 }}>{title}</div>
-          <div style={{ display: 'flex', fontSize: 32, color: '#C9951A', marginTop: 22, maxWidth: 940 }}>{subtitle}</div>
+          <div style={{ display: 'flex', fontSize: 32, color: '#FFC531', marginTop: 22, maxWidth: 940 }}>{subtitle}</div>
         </div>
         <div style={{ display: 'flex', fontSize: 24, color: '#F0EDE8', opacity: 0.7 }}>trindadeonline.com.br</div>
       </div>

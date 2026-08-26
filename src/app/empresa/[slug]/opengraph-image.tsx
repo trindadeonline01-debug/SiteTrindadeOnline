@@ -33,7 +33,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
 
         <div style={{ position: 'absolute', top: 48, left: 64, display: 'flex', alignItems: 'center' }}>
           <span style={{ fontSize: 28, fontWeight: 700, color: '#F0EDE8' }}>TRINDADE</span>
-          <span style={{ fontSize: 28, fontWeight: 700, color: '#C9951A', marginLeft: 8 }}>ONLINE</span>
+          <span style={{ fontSize: 28, fontWeight: 700, color: '#FFC531', marginLeft: 8 }}>ONLINE</span>
         </div>
 
         <div
@@ -45,7 +45,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
           }}
         >
           <div style={{ display: 'flex', fontSize: 56, fontWeight: 700, color: '#F0EDE8', lineHeight: 1.15, maxWidth: 1050 }}>{name}</div>
-          <div style={{ display: 'flex', fontSize: 26, color: '#C9951A', marginTop: 10, maxWidth: 1000 }}>{description}</div>
+          <div style={{ display: 'flex', fontSize: 26, color: '#FFC531', marginTop: 10, maxWidth: 1000 }}>{description}</div>
         </div>
       </div>
     ),

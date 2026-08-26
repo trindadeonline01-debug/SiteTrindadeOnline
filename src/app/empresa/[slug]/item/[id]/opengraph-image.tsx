@@ -43,18 +43,18 @@ export default async function Image({ params }: { params: Promise<{ slug: string
 
         <div style={{ position: 'absolute', top: 48, left: 64, display: 'flex', alignItems: 'center' }}>
           <span style={{ fontSize: 28, fontWeight: 700, color: '#F0EDE8' }}>TRINDADE</span>
-          <span style={{ fontSize: 28, fontWeight: 700, color: '#C9951A', marginLeft: 8 }}>ONLINE</span>
+          <span style={{ fontSize: 28, fontWeight: 700, color: '#FFC531', marginLeft: 8 }}>ONLINE</span>
         </div>
 
         {price !== null && (
-          <div style={{ position: 'absolute', top: 44, right: 64, display: 'flex', background: '#C9951A', color: '#1A1610', fontSize: 34, fontWeight: 700, padding: '10px 24px', borderRadius: 12 }}>
+          <div style={{ position: 'absolute', top: 44, right: 64, display: 'flex', background: '#FFC531', color: '#151210', fontSize: 34, fontWeight: 700, padding: '10px 24px', borderRadius: 12 }}>
             {fmt(price)}
           </div>
         )}
 
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', padding: '40px 64px 48px', background: 'linear-gradient(0deg, rgba(0,0,0,0.85) 30%, rgba(0,0,0,0) 100%)' }}>
           <div style={{ display: 'flex', fontSize: 56, fontWeight: 700, color: '#F0EDE8', lineHeight: 1.15, maxWidth: 1050 }}>{name}</div>
-          <div style={{ display: 'flex', fontSize: 26, color: '#C9951A', marginTop: 10, maxWidth: 1000 }}>{companyName}</div>
+          <div style={{ display: 'flex', fontSize: 26, color: '#FFC531', marginTop: 10, maxWidth: 1000 }}>{companyName}</div>
         </div>
       </div>
     ),

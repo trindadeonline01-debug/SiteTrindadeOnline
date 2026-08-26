@@ -10,27 +10,27 @@ export default function TermosPage() {
     <>
       <style>{`
         *{box-sizing:border-box;margin:0;padding:0;}
-        body{font-family:'Inter',sans-serif;background:#fff;}
+        body{font-family:'Archivo',sans-serif;background:#fff;}
         .hero{background:linear-gradient(160deg,#fff,#FEF8EC);padding:36px 24px;border-bottom:1px solid #F0EDE8;text-align:center;}
-        .hero-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(28px,4vw,40px);color:#111;letter-spacing:2px;margin-bottom:6px;}
+        .hero-title{font-family:'Anton',sans-serif;font-size:clamp(28px,4vw,40px);color:var(--ink);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;}
         .hero-sub{font-size:13px;color:#AAA;}
         .page{max-width:760px;margin:0 auto;padding:32px 24px 56px;}
         @media(max-width:767px){.page{padding:24px 16px 48px;}}
         .tabs{display:flex;gap:4px;background:#FAFAF8;padding:5px;border-radius:12px;border:0.5px solid #E0DDD8;margin-bottom:28px;}
-        .tab{flex:1;padding:9px;text-align:center;font-size:13px;font-weight:600;color:#888;cursor:pointer;border-radius:9px;transition:all .15s;font-family:'Inter',sans-serif;}
-        .tab.on{background:#fff;color:#C9951A;box-shadow:0 1px 4px rgba(0,0,0,.08);}
+        .tab{flex:1;padding:9px;text-align:center;font-size:13px;font-weight:600;color:#888;cursor:pointer;border-radius:9px;transition:all .15s;font-family:'Archivo',sans-serif;}
+        .tab.on{background:#fff;color:var(--sign-dark);box-shadow:0 1px 4px rgba(0,0,0,.08);}
         .date{font-size:11px;color:#AAA;margin-bottom:24px;}
         .sec{margin-bottom:0;}
-        .sec-title{font-family:'Bebas Neue',sans-serif;font-size:14px;color:#111;letter-spacing:1px;margin-bottom:8px;margin-top:28px;padding-top:28px;border-top:0.5px solid #F0EDE8;}
+        .sec-title{font-family:'Archivo',sans-serif;font-weight:700;font-size:13px;color:var(--ink);letter-spacing:.3px;margin-bottom:8px;margin-top:28px;padding-top:28px;border-top:0.5px solid #F0EDE8;}
         .sec-title:first-of-type{margin-top:0;padding-top:0;border-top:none;}
-        .sec-num{color:#C9951A;}
+        .sec-num{color:var(--sign-dark);}
         p{font-size:13px;color:#555;line-height:1.85;margin-bottom:10px;}
         ul{font-size:13px;color:#555;line-height:1.85;margin-bottom:10px;padding-left:20px;}
         li{margin-bottom:4px;}
         strong{color:#222;font-weight:600;}
-        .highlight{background:#FEF3E2;border-left:3px solid #C9951A;border-radius:0 8px 8px 0;padding:12px 14px;margin:12px 0;font-size:13px;color:#554010;line-height:1.7;}
+        .highlight{background:#FEF3E2;border-left:3px solid var(--sign-dark);border-radius:0 8px 8px 0;padding:12px 14px;margin:12px 0;font-size:13px;color:#554010;line-height:1.7;}
         .footer{padding:28px 0 0;text-align:center;font-size:12px;color:#AAA;border-top:0.5px solid #F0EDE8;margin-top:32px;}
-        .footer a{color:#C9951A;text-decoration:none;}
+        .footer a{color:var(--sign-dark);text-decoration:none;}
       `}</style>
 
       <div className="hero">

@@ -6,13 +6,22 @@ import EmpresaShell from '@/components/EmpresaShell'
 
 type Contact = {
   id: string; phone: string; name: string | null; address: string | null
-  last_purchase_at: string | null; total_orders: number; total_spent: number
+  last_purchase_at: string | null; last_message_at: string | null; created_at: string
+  total_orders: number; total_spent: number
 }
 
 function fmt(n: number) { return 'R$ ' + n.toFixed(2).replace('.', ',') }
 function diasAtras(iso: string | null) {
   if (!iso) return Infinity
   return Math.floor((Date.now() - new Date(iso).getTime()) / 86400000)
+}
+// "Sumidos 30d+" media pela última COMPRA — quem só conversou (nunca
+// comprou, maioria dos contatos de WhatsApp) caía sempre em "sumido"
+// mesmo tendo mandado mensagem ontem, o que fazia o filtro não filtrar
+// nada de útil (dívida #7). Última atividade de verdade é a mais recente
+// entre mensagem e compra — com fallback pro cadastro do contato.
+function lastActivity(c: Contact): string | null {
+  return [c.last_message_at, c.last_purchase_at, c.created_at].filter(Boolean).sort().pop() || null
 }
 function waLink(phone: string) { return `https://wa.me/${phone.replace(/\D/g, '')}` }
 function fmtPhone(phone: string) {
@@ -36,7 +45,7 @@ export default function ClientesPage() {
   const [crmEnabled, setCrmEnabled] = useState(false)
   const [entregaEnabled, setEntregaEnabled] = useState(false)
   const [contacts, setContacts] = useState<Contact[]>([])
-  const [filter, setFilter] = useState<'todos' | 'ativos' | 'inativos'>('todos')
+  const [filter, setFilter] = useState<'todos' | 'compraram' | 'conversaram' | 'sumidos'>('todos')
   const [search, setSearch] = useState('')
 
   useEffect(() => {
@@ -56,11 +65,20 @@ export default function ClientesPage() {
   if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter,sans-serif', color: '#AAA' }}>Carregando...</div>
 
   const searchTerm = search.trim().toLowerCase()
+  const isSumido = (c: Contact) => diasAtras(lastActivity(c)) > 30
+  const isConversou = (c: Contact) => c.total_orders === 0 && !!c.last_message_at
   const filtered = contacts
-    .filter(c => filter === 'todos' || (filter === 'ativos' ? diasAtras(c.last_purchase_at) <= 30 : diasAtras(c.last_purchase_at) > 30))
+    .filter(c => {
+      if (filter === 'compraram') return c.total_orders > 0
+      if (filter === 'conversaram') return isConversou(c)
+      if (filter === 'sumidos') return isSumido(c)
+      return true
+    })
     .filter(c => !searchTerm || (c.name || '').toLowerCase().includes(searchTerm) || c.phone.includes(searchTerm))
 
-  const ativosCount = contacts.filter(c => diasAtras(c.last_purchase_at) <= 30).length
+  const compraramCount = contacts.filter(c => c.total_orders > 0).length
+  const conversaramCount = contacts.filter(isConversou).length
+  const sumidosCount = contacts.filter(isSumido).length
 
   return (
     <EmpresaShell active="clientes" companyName={companyName} lojaDigitalEnabled crmEnabled={crmEnabled} entregaEnabled={entregaEnabled}>
@@ -72,8 +90,8 @@ export default function ClientesPage() {
           .cl-back{ width:32px;height:32px;border-radius:50%;border:1px solid #E6E0D2;background:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;text-decoration:none;color:#1A1610; }
           .cl-body{ padding:0 16px; }
           .cl-search{ width:100%;padding:9px 12px;border-radius:9px;border:1px solid #E6E0D2;background:#fff;font-size:12.5px;font-family:inherit;margin-bottom:12px; }
-          .cl-tabs{ display:flex;gap:8px;margin-bottom:12px; }
-          .cl-tab{ flex:1;padding:8px;border-radius:9px;border:1px solid #E6E0D2;background:#fff;font-weight:700;font-size:12px;color:#6E6656;cursor:pointer; }
+          .cl-tabs{ display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap; }
+          .cl-tab{ flex:1;min-width:120px;padding:8px 6px;border-radius:9px;border:1px solid #E6E0D2;background:#fff;font-weight:700;font-size:11px;color:#6E6656;cursor:pointer;white-space:nowrap; }
           .cl-tab.active{ background:#1A1610;color:#C9951A;border-color:#1A1610; }
           .cl-empty{ text-align:center;color:#A79E8B;padding:40px 0;font-size:12.5px; }
           .cl-card{ background:#fff;border:1px solid #EDE8E0;border-radius:12px;padding:12px;margin-bottom:10px; }
@@ -103,8 +121,9 @@ export default function ClientesPage() {
             <input className="cl-search" placeholder="Buscar por nome ou telefone..." value={search} onChange={e => setSearch(e.target.value)} />
             <div className="cl-tabs">
               <button className={`cl-tab ${filter === 'todos' ? 'active' : ''}`} onClick={() => setFilter('todos')}>Todos ({contacts.length})</button>
-              <button className={`cl-tab ${filter === 'ativos' ? 'active' : ''}`} onClick={() => setFilter('ativos')}>Ativos ({ativosCount})</button>
-              <button className={`cl-tab ${filter === 'inativos' ? 'active' : ''}`} onClick={() => setFilter('inativos')}>Sumidos 30d+ ({contacts.length - ativosCount})</button>
+              <button className={`cl-tab ${filter === 'compraram' ? 'active' : ''}`} onClick={() => setFilter('compraram')}>Compraram ({compraramCount})</button>
+              <button className={`cl-tab ${filter === 'conversaram' ? 'active' : ''}`} onClick={() => setFilter('conversaram')}>Só conversaram ({conversaramCount})</button>
+              <button className={`cl-tab ${filter === 'sumidos' ? 'active' : ''}`} onClick={() => setFilter('sumidos')}>Sumidos 30d+ ({sumidosCount})</button>
             </div>
           </div>
           {filtered.length === 0 && (
@@ -112,13 +131,13 @@ export default function ClientesPage() {
           )}
           <div className="cl-grid">
             {filtered.map(c => {
-              const dias = diasAtras(c.last_purchase_at)
+              const dias = diasAtras(lastActivity(c))
               const ativo = dias <= 30
               return (
                 <div className="cl-card" key={c.id}>
                   <div className="cl-row1">
                     <div><div className="cl-name">{displayName(c)}</div><div className="cl-phone">{fmtPhone(c.phone)}</div></div>
-                    <span className={`cl-badge ${ativo ? 'ativo' : 'inativo'}`}>{ativo ? 'Ativo' : dias === Infinity ? 'Sem compra' : `${dias}d sem comprar`}</span>
+                    <span className={`cl-badge ${ativo ? 'ativo' : 'inativo'}`}>{ativo ? 'Ativo' : dias === Infinity ? 'Sem atividade' : `${dias}d sumido`}</span>
                   </div>
                   <div className="cl-stats">
                     <span>{c.total_orders} {c.total_orders === 1 ? 'pedido' : 'pedidos'}</span>

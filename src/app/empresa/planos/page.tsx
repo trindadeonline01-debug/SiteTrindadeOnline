@@ -87,18 +87,18 @@ export default function PlanosPage() {
     <>
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #111; font-family: 'Inter', sans-serif; }
+        body { background: var(--ink); font-family: 'Archivo', sans-serif; }
         .wrap { min-height: 100vh; padding: 32px 20px; max-width: 420px; margin: 0 auto; display: flex; flex-direction: column; justify-content: center; }
         @media(max-width:480px){ .wrap { padding: 24px 16px; } }
 
         .header { text-align: center; margin-bottom: 24px; }
-        .logo { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: #fff; letter-spacing: 3px; margin-bottom: 4px; }
-        .logo span { color: #C9951A; }
+        .logo { font-family: 'Anton', sans-serif; font-size: 22px; color: #fff; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
+        .logo span { color: var(--sign); }
         .tagline { font-size: 14px; color: #888; font-weight: 600; }
 
         .main-card { background: #1a1a1a; border: 1.5px solid #2a2a2a; border-radius: 20px; padding: 28px 24px; margin-bottom: 12px; text-align: center; }
         .plan-label { font-size: 13px; font-weight: 700; color: #888; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 10px; }
-        .price-big { font-family: 'Bebas Neue', sans-serif; font-size: 72px; color: #fff; line-height: 1; }
+        .price-big { font-family: 'Anton', sans-serif; font-size: 72px; color: #fff; line-height: 1; }
         .price-big sup { font-size: 28px; vertical-align: super; }
         .price-big small { font-size: 28px; }
         .price-sub { font-size: 13px; color: #888; font-weight: 600; margin-top: 4px; margin-bottom: 20px; }
@@ -106,11 +106,11 @@ export default function PlanosPage() {
         .features { text-align: left; }
         .feature { font-size: 14px; color: #ccc; font-weight: 600; padding: 6px 0; display: flex; align-items: center; gap: 10px; }
         .feature .ok { color: #4ADE80; font-weight: 800; font-size: 16px; }
-        .btn-mensal { width: 100%; background: #C9951A; color: #111; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 800; cursor: pointer; font-family: 'Inter', sans-serif; margin-top: 20px; }
+        .btn-mensal { width: 100%; background: var(--sign); color: var(--ink); border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 800; cursor: pointer; font-family: 'Archivo', sans-serif; margin-top: 20px; }
         .btn-mensal:disabled { opacity: 0.6; cursor: not-allowed; }
 
-        .discount-btn { width: 100%; background: #1a1a1a; border: 1.5px solid #333; border-radius: 14px; padding: 18px 20px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; text-align: left; transition: all 0.2s; gap: 12px; font-family: 'Inter', sans-serif; }
-        .discount-btn:hover { border-color: #C9951A; background: #1e1a12; }
+        .discount-btn { width: 100%; background: #1a1a1a; border: 1.5px solid #333; border-radius: 14px; padding: 18px 20px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; text-align: left; transition: all 0.2s; gap: 12px; font-family: 'Archivo', sans-serif; }
+        .discount-btn:hover { border-color: var(--sign); background: #1e1a12; }
         .discount-btn:disabled { opacity: 0.6; cursor: not-allowed; }
         .discount-left { flex: 1; }
         .discount-title { font-size: 15px; font-weight: 800; color: #fff; margin-bottom: 4px; }
@@ -121,21 +121,21 @@ export default function PlanosPage() {
         .footer { text-align: center; margin-top: 18px; }
         .footer-note { font-size: 13px; color: #666; font-weight: 600; margin-bottom: 10px; }
         .back { font-size: 13px; color: #555; text-decoration: none; font-weight: 600; }
-        .back:hover { color: #C9951A; }
+        .back:hover { color: var(--sign); }
 
         .pix-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
         .pix-modal { background: #fff; border-radius: 20px; padding: 32px 28px; max-width: 420px; width: 100%; position: relative; text-align: center; max-height: 90vh; overflow-y: auto; }
         .pix-close { position: absolute; top: 12px; right: 16px; font-size: 28px; color: #888; cursor: pointer; line-height: 1; background: none; border: none; }
-        .pix-title { font-family: 'Bebas Neue', sans-serif; font-size: 26px; color: #111; letter-spacing: 2px; margin-bottom: 4px; }
-        .pix-title span { color: #C9951A; }
+        .pix-title { font-family: 'Anton', sans-serif; font-size: 26px; color: var(--ink); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
+        .pix-title span { color: var(--sign-dark); }
         .pix-plano { font-size: 13px; color: #666; margin-bottom: 20px; font-weight: 600; }
         .pix-qr-wrap { background: #fff; padding: 8px; border: 2px solid #EDE8E0; border-radius: 12px; display: inline-block; margin-bottom: 16px; }
         .pix-qr { width: 220px; height: 220px; display: block; }
         .pix-instr { font-size: 12px; color: #888; margin-bottom: 16px; line-height: 1.5; }
         .pix-copy-wrap { display: flex; gap: 6px; margin-bottom: 20px; }
         .pix-copy-input { flex: 1; padding: 10px 12px; border: 1.5px solid #E0DDD8; border-radius: 8px; font-size: 11px; font-family: monospace; color: #333; background: #FAFAF8; outline: none; }
-        .pix-copy-btn { background: #C9951A; color: #fff; border: none; padding: 10px 16px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; font-family: 'Inter', sans-serif; }
-        .pix-done-btn { width: 100%; background: #111; color: #fff; border: none; padding: 14px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: 'Inter', sans-serif; margin-bottom: 12px; }
+        .pix-copy-btn { background: var(--sign); color: var(--ink); border: none; padding: 10px 16px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; font-family: 'Archivo', sans-serif; }
+        .pix-done-btn { width: 100%; background: var(--ink); color: #fff; border: none; padding: 14px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: 'Archivo', sans-serif; margin-bottom: 12px; }
         .pix-note { font-size: 11px; color: #999; line-height: 1.5; }
       `}</style>
 
@@ -143,15 +143,15 @@ export default function PlanosPage() {
         <div className="wrap">
           <div style={{textAlign:'center',padding:'40px 20px'}}>
             <div style={{fontSize:64,marginBottom:16}}>🎉</div>
-            <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:32,color:'#fff',letterSpacing:2,marginBottom:8}}>PLANO <span style={{color:'#C9951A'}}>ATIVO</span></div>
+            <div style={{fontFamily:"'Anton',sans-serif",fontSize:32,color:'#fff',letterSpacing:1,textTransform:'uppercase',marginBottom:8}}>PLANO <span style={{color:'var(--sign)'}}>ATIVO</span></div>
             <div style={{fontSize:14,color:'#888',marginBottom:32}}>Sua empresa <strong style={{color:'#fff'}}>{activePlan.name}</strong> já tem um plano ativo</div>
-            <div style={{background:'linear-gradient(135deg,#C9951A 0%,#B8841A 100%)',borderRadius:20,padding:'28px 24px',color:'#fff',marginBottom:20}}>
+            <div style={{background:'linear-gradient(135deg,var(--sign-dark) 0%,#B8841A 100%)',borderRadius:20,padding:'28px 24px',color:'#fff',marginBottom:20}}>
               <div style={{fontSize:13,fontWeight:700,letterSpacing:1,opacity:0.9,marginBottom:6}}>✓ VÁLIDO ATÉ</div>
-              <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:36,marginBottom:8}}>{new Date(activePlan.endsAt).toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'})}</div>
+              <div style={{fontFamily:"'Anton',sans-serif",fontSize:36,marginBottom:8}}>{new Date(activePlan.endsAt).toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'})}</div>
               <div style={{fontSize:14,fontWeight:600,opacity:0.9}}>{activePlan.daysLeft} dias restantes</div>
             </div>
-            <div style={{background:'#1A1A1A',borderRadius:12,padding:'14px 18px',fontSize:13,color:'#888',lineHeight:1.6,marginBottom:24}}>💡 A renovação estará disponível quando faltarem <strong style={{color:'#C9951A'}}>60 dias</strong> para o vencimento.</div>
-            <button onClick={()=>router.push('/painel')} style={{width:'100%',background:'#C9951A',color:'#111',border:'none',padding:'16px',borderRadius:12,fontSize:15,fontWeight:800,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>← Ir para o painel</button>
+            <div style={{background:'#1A1A1A',borderRadius:12,padding:'14px 18px',fontSize:13,color:'#888',lineHeight:1.6,marginBottom:24}}>💡 A renovação estará disponível quando faltarem <strong style={{color:'var(--sign)'}}>60 dias</strong> para o vencimento.</div>
+            <button onClick={()=>router.push('/painel')} style={{width:'100%',background:'var(--sign)',color:'var(--ink)',border:'none',padding:'16px',borderRadius:12,fontSize:15,fontWeight:800,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>← Ir para o painel</button>
           </div>
         </div>
       ) : (

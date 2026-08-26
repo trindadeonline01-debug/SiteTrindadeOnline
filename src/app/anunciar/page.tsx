@@ -306,7 +306,7 @@ export default function AnunciarPage() {
   function senhaForca() {
     if (senha.length === 0) return null
     if (senha.length < 6) return { cor: '#E24B4A', label: 'Muito fraca', pct: '25%' }
-    if (senha.length < 8) return { cor: '#C9951A', label: 'Fraca', pct: '50%' }
+    if (senha.length < 8) return { cor: 'var(--warn)', label: 'Fraca', pct: '50%' }
     if (senha.length < 12) return { cor: '#185FA5', label: 'Boa', pct: '75%' }
     return { cor: '#0F8050', label: 'Forte', pct: '100%' }
   }
@@ -314,67 +314,67 @@ export default function AnunciarPage() {
 
   const styles = `
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Inter', sans-serif; background: #F0EDE8; }
+    body { font-family: 'Archivo', sans-serif; background: var(--concrete); }
     .page { min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 24px 16px 48px; }
     .card { background: #fff; border-radius: 20px; padding: 32px 28px; width: 100%; max-width: 520px; box-shadow: 0 4px 24px rgba(0,0,0,.08); }
     .logo { text-align: center; margin-bottom: 24px; }
-    .logo a { font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 2px; text-decoration: none; color: #111; }
-    .logo span { color: #C9951A; }
+    .logo a { font-family: 'Anton', sans-serif; font-size: 26px; letter-spacing: 1px; text-decoration: none; color: var(--ink); text-transform: uppercase; }
+    .logo span { color: var(--sign-dark); }
     .page-title { font-size: 18px; font-weight: 700; color: #111; margin-bottom: 4px; }
     .page-sub { font-size: 13px; color: #AAA; margin-bottom: 24px; }
-    .stage-tag { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: #C9951A; background: #FEF3E2; border-radius: 20px; padding: 3px 10px; margin-bottom: 10px; }
+    .stage-tag { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: var(--sign-dark); background: #FEF3E2; border-radius: 20px; padding: 3px 10px; margin-bottom: 10px; }
 
     .steps { display: flex; align-items: center; gap: 6px; margin-bottom: 28px; }
     .step-grp { display: flex; align-items: center; gap: 5px; flex: 1; }
     .step-circle { width: 28px; height: 28px; border-radius: 50%; border: 2px solid #E0DDD8; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #AAA; flex-shrink: 0; transition: all .2s; }
-    .step-circle.on { border-color: #C9951A; background: #C9951A; color: #fff; }
+    .step-circle.on { border-color: var(--sign); background: var(--sign); color: var(--ink); }
     .step-circle.done { border-color: #0F8050; background: #0F8050; color: #fff; }
     .step-lbl { font-size: 10px; color: #AAA; }
-    .step-lbl.on { color: #C9951A; font-weight: 600; }
+    .step-lbl.on { color: var(--sign-dark); font-weight: 600; }
     .step-line { flex: 1; height: 2px; background: #E0DDD8; border-radius: 2px; margin: 0 4px; }
     .step-line.done { background: #0F8050; }
 
     .field { margin-bottom: 14px; }
     .field label { display: block; font-size: 12px; font-weight: 600; color: #444; margin-bottom: 6px; }
-    .field input, .field textarea, .field select { width: 100%; padding: 12px 14px; border: 1.5px solid #E0DDD8; border-radius: 11px; font-size: 14px; font-family: 'Inter', sans-serif; color: #222; background: #FAFAF8; outline: none; transition: border-color .15s; }
-    .field input:focus, .field textarea:focus, .field select:focus { border-color: #C9951A; background: #fff; }
+    .field input, .field textarea, .field select { width: 100%; padding: 12px 14px; border: 1.5px solid #E0DDD8; border-radius: 11px; font-size: 14px; font-family: 'Archivo', sans-serif; color: #222; background: #FAFAF8; outline: none; transition: border-color .15s; }
+    .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--sign-dark); background: #fff; }
     .field textarea { resize: none; }
     .field-hint { font-size: 11px; color: #AAA; margin-top: 5px; }
-    .uppercase-input { text-transform: uppercase; letter-spacing: 1px; font-family: 'Bebas Neue', sans-serif !important; }
+    .uppercase-input { text-transform: uppercase; letter-spacing: .5px; font-family: 'Archivo', sans-serif !important; }
 
     .subcat-dropdown-wrap { position: relative; }
     .subcat-dropdown-btn { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border: 1px solid #E0DDD8; background: #fff; border-radius: 10px; cursor: pointer; font-size: 14px; color: #333; }
-    .subcat-dropdown-btn:hover { border-color: #C9951A; }
+    .subcat-dropdown-btn:hover { border-color: var(--sign-dark); }
     .subcat-dropdown-arrow { font-size: 10px; color: #888; margin-left: 8px; }
     .subcat-dropdown-panel { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid #E0DDD8; border-radius: 10px; margin-top: 4px; max-height: 260px; overflow-y: auto; z-index: 20; box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
     .subcat-option { display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer; font-size: 13px; color: #333; transition: background .15s; }
     .subcat-option:hover { background: #FEF3E2; }
-    .subcat-option input[type=checkbox] { accent-color: #C9951A; width: 16px; height: 16px; cursor: pointer; }
+    .subcat-option input[type=checkbox] { accent-color: var(--sign-dark); width: 16px; height: 16px; cursor: pointer; }
 
     .church-row { display: grid; grid-template-columns: 72px 1fr 1fr; gap: 8px; align-items: center; padding: 8px 10px; background: #FAFAF8; border: 0.5px solid #E0DDD8; border-radius: 10px; margin-bottom: 6px; }
     .church-day { font-size: 12px; font-weight: 600; color: #222; }
     .church-period { display: flex; flex-direction: column; gap: 3px; }
     .church-period-lbl { font-size: 9px; color: #AAA; font-weight: 700; letter-spacing: .3px; }
-    .church-time { width: 100%; padding: 6px 8px; border: 1px solid #E0DDD8; border-radius: 7px; font-size: 12px; font-family: 'Inter',sans-serif; color: #222; background: #fff; outline: none; }
-    .church-time:focus { border-color: #C9951A; }
+    .church-time { width: 100%; padding: 6px 8px; border: 1px solid #E0DDD8; border-radius: 7px; font-size: 12px; font-family: 'Archivo',sans-serif; color: #222; background: #fff; outline: none; }
+    .church-time:focus { border-color: var(--sign-dark); }
 
     .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px; }
     .photo-slot { height: 90px; border: 2px dashed #E0DDD8; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 24px; transition: all .15s; background: #FAFAF8; position: relative; overflow: hidden; }
-    .photo-slot:hover { border-color: #C9951A; background: #FEF3E2; }
+    .photo-slot:hover { border-color: var(--sign-dark); background: #FEF3E2; }
     .photo-slot img { width: 100%; height: 100%; object-fit: cover; }
     .photo-remove { position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; border-radius: 50%; background: rgba(0,0,0,.6); color: #fff; border: none; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-    .photo-add-btn { height: 90px; border: 2px dashed #C9951A; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; cursor: pointer; background: #FEF3E2; color: #C9951A; font-size: 11px; font-weight: 600; transition: all .15s; }
+    .photo-add-btn { height: 90px; border: 2px dashed var(--sign-dark); border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; cursor: pointer; background: #FEF3E2; color: var(--sign-dark); font-size: 11px; font-weight: 600; transition: all .15s; }
     .photo-add-btn:hover { background: #FDE8C0; }
 
     .note-box { background: #FEF3E2; border: 0.5px solid #F5C77A; border-radius: 10px; padding: 10px 14px; font-size: 12px; color: #854F0B; margin-bottom: 14px; line-height: 1.6; }
-    .btn-primary { width: 100%; padding: 13px; background: #C9951A; color: #fff; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; transition: background .15s; margin-bottom: 10px; }
+    .btn-primary { width: 100%; padding: 13px; background: var(--sign); color: var(--ink); border: none; border-radius: 12px; font-size: 15px; font-weight: 600; font-family: 'Archivo', sans-serif; cursor: pointer; transition: background .15s; margin-bottom: 10px; }
     .btn-primary:hover:not(:disabled) { background: #B8841A; }
     .btn-primary:disabled { opacity: .6; cursor: not-allowed; }
-    .btn-secondary { width: 100%; padding: 11px; background: #fff; color: #888; border: 1.5px solid #E0DDD8; border-radius: 12px; font-size: 13px; font-family: 'Inter', sans-serif; cursor: pointer; transition: all .15s; }
+    .btn-secondary { width: 100%; padding: 11px; background: #fff; color: #888; border: 1.5px solid #E0DDD8; border-radius: 12px; font-size: 13px; font-family: 'Archivo', sans-serif; cursor: pointer; transition: all .15s; }
     .btn-secondary:hover { border-color: #CCC; color: #555; }
     .erro-msg { background: #FEF0F0; border: 1px solid #F5BCBC; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #C0392B; margin-bottom: 14px; }
     .auth-footer { text-align: center; font-size: 13px; color: #AAA; }
-    .auth-footer a { color: #C9951A; font-weight: 500; text-decoration: none; }
+    .auth-footer a { color: var(--sign-dark); font-weight: 500; text-decoration: none; }
   `
 
   if (checkingSession) {
@@ -465,7 +465,7 @@ export default function AnunciarPage() {
                   style={{ width: '100%', padding: '14px', textAlign: 'center', fontSize: 28, fontWeight: 700, letterSpacing: 12, border: '1.5px solid #E0DDD8', borderRadius: 12, fontFamily: 'Inter,sans-serif', marginBottom: 12, outline: 'none' }} />
                 {erro && <div className="erro-msg">⚠️ {erro}</div>}
                 <button type="submit" disabled={loading || code.length < 6} className="btn-primary"
-                  style={{ background: code.length === 6 ? '#C9951A' : '#E0DDD8', color: code.length === 6 ? '#fff' : '#AAA', cursor: code.length === 6 ? 'pointer' : 'not-allowed' }}>
+                  style={{ background: code.length === 6 ? 'var(--sign)' : '#E0DDD8', color: code.length === 6 ? 'var(--ink)' : '#AAA', cursor: code.length === 6 ? 'pointer' : 'not-allowed' }}>
                   {loading ? 'Verificando...' : 'Confirmar código'}
                 </button>
                 <button type="button" className="btn-secondary" onClick={() => { setPhase('conta'); setCode(''); setErro('') }}>← Voltar</button>
@@ -559,7 +559,7 @@ export default function AnunciarPage() {
                         {subcatSugestoes.map((s, i) => (
                           <span key={i} style={{ background: '#FEF3E2', border: '1px solid #F5C77A', borderRadius: 20, padding: '3px 10px', fontSize: 12, color: '#854F0B', display: 'flex', alignItems: 'center', gap: 4 }}>
                             {s}
-                            <button type="button" onClick={() => setSubcatSugestoes(ss => ss.filter((_, j) => j !== i))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C9951A', fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
+                            <button type="button" onClick={() => setSubcatSugestoes(ss => ss.filter((_, j) => j !== i))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--sign-dark)', fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
                           </span>
                         ))}
                       </div>
@@ -601,7 +601,7 @@ export default function AnunciarPage() {
                     </label>
                     {categoryId === IGREJAS_CATEGORY_ID ? (
                       <div style={{ marginTop: 8 }}>
-                        <div style={{ fontSize: 11, color: '#888', marginBottom: 10, padding: '6px 10px', background: '#FEF3E2', borderRadius: 8, borderLeft: '3px solid #C9951A' }}>
+                        <div style={{ fontSize: 11, color: '#888', marginBottom: 10, padding: '6px 10px', background: '#FEF3E2', borderRadius: 8, borderLeft: '3px solid var(--sign-dark)' }}>
                           Preencha os horários dos cultos. Deixe em branco os dias sem culto.
                         </div>
                         {churchHours.map((ch, i) => (
@@ -652,7 +652,7 @@ export default function AnunciarPage() {
                         <div key={i} className="photo-slot">
                           <img src={p} alt={`foto ${i + 1}`} />
                           <button type="button" className="photo-remove" onClick={() => removePhoto(i)}>✕</button>
-                          {i === 0 && <div style={{ position: 'absolute', bottom: 4, left: 4, background: '#C9951A', color: '#fff', fontSize: 8, fontWeight: 700, padding: '1px 6px', borderRadius: 5 }}>CAPA</div>}
+                          {i === 0 && <div style={{ position: 'absolute', bottom: 4, left: 4, background: 'var(--sign-dark)', color: '#fff', fontSize: 8, fontWeight: 700, padding: '1px 6px', borderRadius: 5 }}>CAPA</div>}
                         </div>
                       ))}
                       {photos.length < 5 && (
@@ -673,9 +673,9 @@ export default function AnunciarPage() {
                     <label>Tags <span style={{ fontSize: 11, color: '#AAA', fontWeight: 400 }}>Digite e pressione Enter (máx. 30)</span></label>
                     <div style={{ border: '1.5px solid #E0DDD8', borderRadius: 11, padding: '8px 10px', background: '#FAFAF8', display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
                       {tags.map((tag, i) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 10px', background: '#FEF3E2', border: '1px solid #C9951A', borderRadius: 20, fontSize: 12, color: '#854F0B', fontWeight: 600 }}>
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 10px', background: '#FEF3E2', border: '1px solid var(--sign-dark)', borderRadius: 20, fontSize: 12, color: '#854F0B', fontWeight: 600 }}>
                           #{tag}
-                          <button onClick={() => setTags(prev => prev.filter((_, j) => j !== i))} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#C9951A', padding: 0, lineHeight: 1 }}>×</button>
+                          <button onClick={() => setTags(prev => prev.filter((_, j) => j !== i))} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: 'var(--sign-dark)', padding: 0, lineHeight: 1 }}>×</button>
                         </div>
                       ))}
                       <input type="text" value={tagInput} onChange={e => setTagInput(e.target.value)}
@@ -688,7 +688,7 @@ export default function AnunciarPage() {
                           }
                         }}
                         placeholder={tags.length === 0 ? 'ex: pizza, delivery, hambúrguer...' : ''}
-                        style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: 13, fontFamily: "'Inter',sans-serif", minWidth: 120, flex: 1 }} />
+                        style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: 13, fontFamily: "'Archivo',sans-serif", minWidth: 120, flex: 1 }} />
                     </div>
                     <div style={{ fontSize: 11, color: '#AAA', marginTop: 4 }}>{tags.length} tags</div>
                   </div>

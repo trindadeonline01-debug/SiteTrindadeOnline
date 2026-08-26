@@ -29,19 +29,19 @@ export default function BemVindoPage() {
     <>
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #111; font-family: 'Inter', sans-serif; }
+        body { background: var(--ink); font-family: 'Archivo', sans-serif; }
         .wrap { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 20px; text-align: center; }
-        .logo { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: #fff; letter-spacing: 3px; margin-bottom: 4px; }
-        .logo span { color: #C9951A; }
-        .divider { width: 40px; height: 2px; background: #C9951A; margin: 16px auto; }
-        .badge { font-size: 11px; font-weight: 700; color: #C9951A; letter-spacing: 1px; margin-bottom: 12px; }
-        .title { font-family: 'Bebas Neue', sans-serif; font-size: 36px; color: #fff; letter-spacing: 2px; line-height: 1.1; margin-bottom: 16px; }
+        .logo { font-family: 'Anton', sans-serif; font-size: 28px; color: #fff; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
+        .logo span { color: var(--sign); }
+        .divider { width: 40px; height: 2px; background: var(--sign); margin: 16px auto; }
+        .badge { font-size: 11px; font-weight: 700; color: var(--sign); letter-spacing: 1px; margin-bottom: 12px; }
+        .title { font-family: 'Anton', sans-serif; font-size: 36px; color: #fff; letter-spacing: 1px; text-transform: uppercase; line-height: 1.1; margin-bottom: 16px; }
         .desc { font-size: 15px; color: #aaa; max-width: 400px; line-height: 1.7; margin-bottom: 32px; }
-        .btn { background: #C9951A; color: #111; border: none; border-radius: 10px; padding: 16px 40px; font-size: 16px; font-weight: 800; cursor: pointer; font-family: 'Inter', sans-serif; }
+        .btn { background: var(--sign); color: var(--ink); border: none; border-radius: 10px; padding: 16px 40px; font-size: 16px; font-weight: 800; cursor: pointer; font-family: 'Archivo', sans-serif; }
         .btn:hover { background: #B8841A; }
         .note { font-size: 12px; color: #555; margin-top: 16px; }
         .skip { margin-top: 20px; font-size: 12px; color: #666; text-decoration: none; }
-        .skip:hover { color: #C9951A; }
+        .skip:hover { color: var(--sign); }
       `}</style>
       <div className="wrap">
         <div className="logo">TRINDADE <span>ONLINE</span></div>

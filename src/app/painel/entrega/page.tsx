@@ -167,18 +167,18 @@ export default function EntregaPage() {
     setPixModal(null)
   }
 
-  if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter,sans-serif', color: '#A79E8B' }}>Carregando...</div>
+  if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Archivo,sans-serif', color: '#A79E8B' }}>Carregando...</div>
 
   return (
     <EmpresaShell active="entrega" companyName={companyName} lojaDigitalEnabled={lojaDigitalEnabled} crmEnabled={crmEnabled} entregaEnabled>
     <div className="en-wrap">
       <style>{`
-        .en-wrap{ width:100%;max-width:560px;margin:0 auto;font-family:'Inter',sans-serif;font-size:13px;color:#1A1610;padding:20px 14px 40px; }
+        .en-wrap{ width:100%;max-width:560px;margin:0 auto;font-family:'Archivo',sans-serif;font-size:13px;color:var(--ink);padding:20px 14px 40px; }
         .en-head{ margin-bottom:18px; }
-        .en-head h1{ font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.5px;margin:0 0 4px; }
+        .en-head h1{ font-family:'Anton',sans-serif;font-size:22px;letter-spacing:.5px;margin:0 0 4px; }
         .en-head p{ font-size:12.5px;color:#6E6656;margin:0;line-height:1.5; }
         .en-summary{ display:flex;gap:20px;flex-wrap:wrap;margin-bottom:16px; }
-        .en-summary-item .n{ font-family:'Bebas Neue',sans-serif;font-size:24px;color:#1A1610;line-height:1; }
+        .en-summary-item .n{ font-family:'Anton',sans-serif;font-size:24px;color:var(--ink);line-height:1; }
         .en-summary-item .l{ font-size:10.5px;color:#A79E8B;margin-top:2px; }
         .en-card{ background:#fff;border:1px solid #EDE8E0;border-radius:14px;padding:16px;margin-bottom:14px; }
         .en-kicker{ font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#A79E8B;margin-bottom:10px; }
@@ -189,10 +189,10 @@ export default function EntregaPage() {
         .en-dot{ width:7px;height:7px;border-radius:50%;background:currentColor; }
         .en-hint{ font-size:11.5px;color:#A79E8B;margin-top:8px;line-height:1.5; }
         .en-btn{ font-family:inherit;font-size:12.5px;font-weight:750;border-radius:9px;border:none;padding:9px 15px;cursor:pointer; }
-        .en-btn-gold{ background:#C9951A;color:#1A1610; }
+        .en-btn-gold{ background:var(--sign);color:var(--ink); }
         .en-btn-gold:disabled{ opacity:.5;cursor:not-allowed; }
         .en-credit-hero{ display:flex;align-items:baseline;gap:8px;margin:2px 0 2px; }
-        .en-credit-num{ font-family:'Bebas Neue',sans-serif;font-size:36px;color:#8A6410;line-height:1; }
+        .en-credit-num{ font-family:'Anton',sans-serif;font-size:36px;color:#8A6410;line-height:1; }
         .en-credit-label{ font-size:12.5px;color:#6E6656; }
         .en-credit-note{ font-size:11.5px;color:#A79E8B;margin-bottom:12px; }
         .en-buy-row{ display:flex;gap:8px;flex-wrap:wrap; }
@@ -213,17 +213,17 @@ export default function EntregaPage() {
         .en-empty{ text-align:center;color:#A79E8B;padding:24px 0;font-size:12.5px; }
         .en-modal-bg{ position:fixed;inset:0;background:rgba(26,22,14,.55);display:flex;align-items:center;justify-content:center;z-index:200;padding:16px; }
         .en-modal{ background:#fff;border-radius:16px;padding:24px;max-width:340px;width:100%;text-align:center; }
-        .en-modal h3{ font-family:'Bebas Neue',sans-serif;font-size:19px;margin:0 0 4px; }
+        .en-modal h3{ font-family:'Anton',sans-serif;font-size:19px;margin:0 0 4px; }
         .en-modal-val{ font-size:13px;color:#6E6656;margin-bottom:14px; }
         .en-qr-wrap{ background:#fff;padding:8px;border:2px solid #EDE8E0;border-radius:12px;display:inline-block;margin-bottom:14px; }
         .en-qr{ width:190px;height:190px;display:block; }
         .en-copy-wrap{ display:flex;gap:6px;margin-bottom:14px; }
         .en-copy-input{ flex:1;min-width:0;padding:9px 10px;border:1.5px solid #E0DDD8;border-radius:8px;font-size:10.5px;font-family:monospace;color:#333;background:#FAFAF8; }
-        .en-copy-btn{ background:#C9951A;color:#fff;border:none;padding:9px 14px;border-radius:8px;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap; }
+        .en-copy-btn{ background:var(--sign);color:var(--ink);border:none;padding:9px 14px;border-radius:8px;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap; }
         .en-modal-wait{ font-size:11.5px;color:#A79E8B;margin-bottom:12px; }
         .en-modal-close{ background:none;border:none;color:#8A6410;font-weight:700;font-size:12px;cursor:pointer; }
         .en-order-code{ margin-top:8px;font-size:11px;color:#6E6656;background:#FEF3E2;border-radius:8px;padding:7px 10px; }
-        .en-order-code b{ font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:2px;color:#8A6410; }
+        .en-order-code b{ font-family:'Anton',sans-serif;font-size:15px;letter-spacing:2px;color:#8A6410; }
         .en-order-code span{ color:#A79E8B; }
         .en-flabel{ display:block;font-size:11px;font-weight:700;color:#6E6656;margin:10px 0 5px; }
         .en-finput{ width:100%;padding:9px 12px;border-radius:9px;border:1px solid #E6E0D2;font-size:13px;font-family:inherit;box-sizing:border-box; }

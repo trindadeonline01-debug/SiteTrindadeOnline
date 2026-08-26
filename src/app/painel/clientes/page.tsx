@@ -62,7 +62,7 @@ export default function ClientesPage() {
     })
   }, [])
 
-  if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter,sans-serif', color: '#AAA' }}>Carregando...</div>
+  if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Archivo,sans-serif', color: '#AAA' }}>Carregando...</div>
 
   const searchTerm = search.trim().toLowerCase()
   const isSumido = (c: Contact) => diasAtras(lastActivity(c)) > 30
@@ -84,7 +84,7 @@ export default function ClientesPage() {
     <EmpresaShell active="clientes" companyName={companyName} lojaDigitalEnabled crmEnabled={crmEnabled} entregaEnabled={entregaEnabled}>
       <div className="cl-wrap">
         <style>{`
-          .cl-wrap{ width:100%;max-width:480px;margin:0 auto;min-height:100vh;background:#F7F5F0;font-family:'Inter',sans-serif;font-size:13px;color:#1A1610;padding-bottom:30px;min-width:0;overflow-x:hidden; }
+          .cl-wrap{ width:100%;max-width:480px;margin:0 auto;min-height:100vh;background:var(--concrete);font-family:'Archivo',sans-serif;font-size:13px;color:var(--ink);padding-bottom:30px;min-width:0;overflow-x:hidden; }
           .cl-head{ padding:22px 16px 14px;display:flex;align-items:center;gap:10px;position:sticky;top:0;background:#F7F5F0;z-index:5; }
           .cl-head h1{ font-size:18px;margin:0;flex:1;font-weight:800; }
           .cl-back{ width:32px;height:32px;border-radius:50%;border:1px solid #E6E0D2;background:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;text-decoration:none;color:#1A1610; }
@@ -92,7 +92,7 @@ export default function ClientesPage() {
           .cl-search{ width:100%;padding:9px 12px;border-radius:9px;border:1px solid #E6E0D2;background:#fff;font-size:12.5px;font-family:inherit;margin-bottom:12px; }
           .cl-tabs{ display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap; }
           .cl-tab{ flex:1;min-width:120px;padding:8px 6px;border-radius:9px;border:1px solid #E6E0D2;background:#fff;font-weight:700;font-size:11px;color:#6E6656;cursor:pointer;white-space:nowrap; }
-          .cl-tab.active{ background:#1A1610;color:#C9951A;border-color:#1A1610; }
+          .cl-tab.active{ background:var(--ink);color:var(--sign);border-color:var(--ink); }
           .cl-empty{ text-align:center;color:#A79E8B;padding:40px 0;font-size:12.5px; }
           .cl-card{ background:#fff;border:1px solid #EDE8E0;border-radius:12px;padding:12px;margin-bottom:10px; }
           .cl-row1{ display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px; }

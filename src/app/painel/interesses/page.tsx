@@ -47,7 +47,7 @@ export default function InteressesPage() {
     await supabase.from('interesses').update({ status_venda: status }).eq('id', id)
   }
 
-  if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter,sans-serif', color: '#AAA' }}>Carregando...</div>
+  if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Archivo,sans-serif', color: '#AAA' }}>Carregando...</div>
 
   const filtered = interesses.filter(i => filter === 'todos' || i.status_venda === filter)
   const totalValor = interesses.reduce((s, i) => s + Number(i.valor_total), 0)
@@ -60,7 +60,7 @@ export default function InteressesPage() {
     <EmpresaShell active="interesses" companyName={companyName} lojaDigitalEnabled crmEnabled={crmEnabled} entregaEnabled={entregaEnabled}>
       <div className="it-wrap">
         <style>{`
-          .it-wrap{ width:100%;max-width:480px;margin:0 auto;min-height:100vh;background:#F7F5F0;font-family:'Inter',sans-serif;font-size:13px;color:#1A1610;padding-bottom:30px;min-width:0;overflow-x:hidden; }
+          .it-wrap{ width:100%;max-width:480px;margin:0 auto;min-height:100vh;background:var(--concrete);font-family:'Archivo',sans-serif;font-size:13px;color:var(--ink);padding-bottom:30px;min-width:0;overflow-x:hidden; }
           .it-head{ padding:22px 16px 6px; }
           .it-head h1{ font-size:18px;margin:0 0 3px;font-weight:800; }
           .it-sub{ font-size:11.5px;color:#A79E8B; }
@@ -71,7 +71,7 @@ export default function InteressesPage() {
           .it-kpi-lbl{ font-size:10.5px;color:#A79E8B;margin-top:2px; }
           .it-tabs{ display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap; }
           .it-tab{ flex:1;min-width:100px;padding:8px 6px;border-radius:9px;border:1px solid #E6E0D2;background:#fff;font-weight:700;font-size:11px;color:#6E6656;cursor:pointer;white-space:nowrap; }
-          .it-tab.active{ background:#1A1610;color:#C9951A;border-color:#1A1610; }
+          .it-tab.active{ background:var(--ink);color:var(--sign);border-color:var(--ink); }
           .it-empty{ text-align:center;color:#A79E8B;padding:40px 0;font-size:12.5px; }
           .it-card{ background:#fff;border:1px solid #EDE8E0;border-radius:12px;padding:12px;margin-bottom:10px; }
           .it-row1{ display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;gap:8px; }

@@ -353,7 +353,7 @@ export default function PedidosPage() {
     await loadAll(companyId)
   }
 
-  if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter,sans-serif', color: '#AAA' }}>Carregando...</div>
+  if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Archivo,sans-serif', color: '#AAA' }}>Carregando...</div>
 
   const searched = search.trim()
     ? pedidos.filter(p => p.customer_name.toLowerCase().includes(search.trim().toLowerCase()) || p.id.startsWith(search.trim()))
@@ -440,7 +440,7 @@ export default function PedidosPage() {
     <EmpresaShell active="pedidos" companyName={companyName} lojaDigitalEnabled crmEnabled={crmEnabled} entregaEnabled={entregaEnabled}>
     <div className="pd-wrap">
       <style>{`
-        .pd-wrap{ width:100%;max-width:480px;margin:0 auto;min-height:100vh;background:#F7F5F0;font-family:'Inter',sans-serif;font-size:13px;color:#1A1610;padding-bottom:30px;overflow-x:hidden;min-width:0; }
+        .pd-wrap{ width:100%;max-width:480px;margin:0 auto;min-height:100vh;background:var(--concrete);font-family:'Archivo',sans-serif;font-size:13px;color:var(--ink);padding-bottom:30px;overflow-x:hidden;min-width:0; }
         .pd-head{ padding:22px 12px 10px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 10px;position:sticky;top:0;background:#F7F5F0;z-index:5; }
         .pd-head-left{ display:flex;align-items:center;gap:6px;min-width:0; }
         .pd-head-right{ display:flex;align-items:center;gap:6px;flex:none; }
@@ -450,7 +450,7 @@ export default function PedidosPage() {
         .pd-auto-pill .pd-switch{ width:24px;height:15px;border-radius:8px; }
         .pd-auto-pill .pd-switch .k{ width:11px;height:11px;top:2px;left:2px; }
         .pd-auto-pill .pd-switch.on .k{ left:11px; }
-        .pd-new-pill{ flex:none;width:26px;height:26px;border-radius:50%;background:#C9951A;color:#1A1610;border:none;font-size:15px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center; }
+        .pd-new-pill{ flex:none;width:26px;height:26px;border-radius:50%;background:var(--sign);color:var(--ink);border:none;font-size:15px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center; }
         .pd-searchbar{ padding:0 16px 12px; }
         .pd-tabs{ display:flex;gap:8px;padding:0 16px 12px;overflow-x:auto; }
         .pd-tab{ flex:none;display:flex;align-items:center;gap:6px;padding:8px 13px;border-radius:20px;border:1.5px solid #E6E0D2;background:#fff;font-weight:700;font-size:12.5px;color:#6E6656;cursor:pointer;white-space:nowrap; }
@@ -471,7 +471,7 @@ export default function PedidosPage() {
         .pd-mods{ font-size:10.5px;color:#A79E8B;padding-left:12px; }
         .pd-chips{ display:flex;flex-wrap:wrap;gap:6px;margin-top:10px; }
         .pd-chip{ font-size:10.5px;font-weight:700;padding:6px 10px;border-radius:8px;border:1px solid #E6E0D2;background:#fff;cursor:pointer;color:#6E6656; }
-        .pd-chip.current{ background:#C9951A;color:#1A1610;border-color:#C9951A; }
+        .pd-chip.current{ background:var(--sign);color:var(--ink);border-color:var(--sign); }
         .pd-cancel{ font-size:10.5px;color:#C43D3D;font-weight:700;background:none;border:none;cursor:pointer;margin-top:8px; }
         .pd-empty{ text-align:center;color:#A79E8B;padding:40px 0;font-size:12.5px; }
         .pd-card-pending{ border:1.5px solid var(--accent); }
@@ -484,7 +484,7 @@ export default function PedidosPage() {
         .pd-switch.on{ background:#157A52; }
         .pd-switch .k{ position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .15s; }
         .pd-switch.on .k{ left:18px; }
-        .pd-newbtn{ padding:10px;border-radius:9px;border:none;background:#C9951A;color:#1A1610;font-weight:800;font-size:12.5px;cursor:pointer; }
+        .pd-newbtn{ padding:10px;border-radius:9px;border:none;background:var(--sign);color:var(--ink);font-weight:800;font-size:12.5px;cursor:pointer; }
         .np-overlay{ position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:60;display:flex;align-items:flex-end;justify-content:center; }
         .np-drawer{ background:#F7F5F0;width:100%;max-width:480px;max-height:92vh;border-radius:18px 18px 0 0;display:flex;flex-direction:column;overflow:hidden; }
         .np-head{ padding:16px;border-bottom:1px solid #EDE8E0;display:flex;justify-content:space-between;align-items:center;background:#fff; }
@@ -493,7 +493,7 @@ export default function PedidosPage() {
         .np-section-label{ font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#A79E8B;margin:12px 0 6px; }
         .np-input{ width:100%;padding:9px 12px;border-radius:9px;border:1px solid #E6E0D2;background:#fff;font-size:12.5px;font-family:inherit;margin-bottom:8px; }
         .np-paychip{ flex:1;padding:9px;border-radius:9px;border:1.5px solid #E6E0D2;background:#fff;font-size:12px;font-weight:700;cursor:pointer; }
-        .np-paychip.active{ background:#1A1610;color:#C9951A;border-color:#1A1610; }
+        .np-paychip.active{ background:var(--ink);color:var(--sign);border-color:var(--ink); }
         .np-prodgrid{ display:grid;grid-template-columns:1fr 1fr;gap:8px; }
         .np-prod{ background:#fff;border:1px solid #E6E0D2;border-radius:10px;padding:10px;cursor:pointer; }
         .np-prod-name{ font-size:12px;font-weight:700; }
@@ -503,8 +503,8 @@ export default function PedidosPage() {
         .np-totalrow{ display:flex;justify-content:space-between;font-weight:800;font-size:14px;padding-top:10px;margin-top:6px;border-top:1px dashed #E6E0D2; }
         .np-back{ background:none;border:none;color:#8A6410;font-weight:700;font-size:12px;cursor:pointer;padding:0; }
         .np-opt{ display:flex;justify-content:space-between;padding:9px 10px;border:1px solid #E6E0D2;border-radius:9px;margin-bottom:6px;font-size:12px;cursor:pointer;background:#fff; }
-        .np-opt.active{ border-color:#C9951A;background:#FEF3E2; }
-        .np-addcart{ width:100%;padding:12px;border-radius:10px;border:none;background:#C9951A;color:#1A1610;font-weight:800;cursor:pointer; }
+        .np-opt.active{ border-color:var(--sign-dark);background:#FEF3E2; }
+        .np-addcart{ width:100%;padding:12px;border-radius:10px;border:none;background:var(--sign);color:var(--ink);font-weight:800;cursor:pointer; }
         .np-addcart:disabled{ background:#E2DCCB;color:#A79E8B; }
         .np-foot{ padding:12px 16px 16px;border-top:1px solid #EDE8E0;background:#fff; }
         .np-createbtn{ width:100%;padding:13px;border-radius:10px;border:none;background:#157A52;color:#fff;font-weight:800;cursor:pointer; }

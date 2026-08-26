@@ -132,15 +132,15 @@ export default function CozinhaPage() {
     }
   }
 
-  if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter,sans-serif', color: '#AAA', background: '#111' }}>Carregando...</div>
+  if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Archivo,sans-serif', color: '#AAA', background: 'var(--ink)' }}>Carregando...</div>
 
   return (
     <div className="cz-wrap">
       <style>{`
-        .cz-wrap{ min-height:100vh;background:#141210;font-family:'Inter',sans-serif;color:#fff; }
+        .cz-wrap{ min-height:100vh;background:#141210;font-family:'Archivo',sans-serif;color:#fff; }
         .cz-head{ display:flex;align-items:center;gap:12px;padding:16px 20px;background:#0D0B09;border-bottom:1px solid #2A2620; }
         .cz-head h1{ font-size:20px;font-weight:800;margin:0;flex:1; }
-        .cz-back{ color:#C9951A;text-decoration:none;font-size:14px;font-weight:700; }
+        .cz-back{ color:var(--sign);text-decoration:none;font-size:14px;font-weight:700; }
         .cz-cols{ display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:16px; min-height:calc(100vh - 64px); }
         .cz-col{ background:#1C1914;border-radius:14px;padding:12px;display:flex;flex-direction:column;min-height:200px;border-top:4px solid var(--accent); }
         .cz-colhead{ display:flex;justify-content:space-between;align-items:center;padding:4px 6px 12px;font-weight:800;font-size:15px;text-transform:uppercase;letter-spacing:.04em;color:var(--accent); }
@@ -150,7 +150,7 @@ export default function CozinhaPage() {
         .cz-cname{ font-weight:800;font-size:16px;margin-bottom:2px; }
         .cz-ctime{ font-size:11px;color:#A79E8B;margin-bottom:8px; }
         .cz-citem{ font-size:13.5px;padding:2px 0;color:#F0EDE8; }
-        .cz-cmods{ font-size:11px;color:#C9951A;padding-left:14px; }
+        .cz-cmods{ font-size:11px;color:var(--sign);padding-left:14px; }
         .cz-cbtn{ margin-top:10px;width:100%;padding:10px;border-radius:9px;border:none;background:var(--accent);color:#141210;font-weight:800;font-size:13px;cursor:pointer; }
         .cz-empty{ text-align:center;color:#5A5346;font-size:12.5px;padding:30px 0; }
         @media(max-width:820px){ .cz-cols{ grid-template-columns:1fr; } }

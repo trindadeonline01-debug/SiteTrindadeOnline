@@ -148,7 +148,7 @@ export default function CrmPage() {
           .crm-share-qr{width:160px;height:160px;margin:0 auto 12px;border-radius:10px;overflow:hidden;background:#F0EDE8;}
           .crm-share-qr img{width:100%;height:100%;}
           .crm-share-link{font-size:10.5px;color:#888;word-break:break-all;margin-bottom:10px;}
-          .crm-share-btn{width:100%;padding:9px;border-radius:9px;border:none;background:#C9951A;color:#1A1610;font-weight:700;font-size:12px;cursor:pointer;}
+          .crm-share-btn{width:100%;padding:9px;border-radius:9px;border:none;background:var(--sign);color:var(--ink);font-weight:700;font-size:12px;cursor:pointer;}
           .crm-config-card{margin:16px auto 0;max-width:320px;background:#fff;border:1px solid #EDE8E0;border-radius:14px;padding:18px;}
           @media(min-width:768px){.crm-config-card{max-width:280px;margin:16px 0 0;}}
           .crm-config-title{font-weight:800;font-size:13.5px;margin-bottom:4px;}
@@ -157,7 +157,7 @@ export default function CrmPage() {
           .crm-config-field label{display:block;font-size:10.5px;font-weight:700;color:#6E6656;margin-bottom:5px;}
           .crm-config-field input{width:100%;padding:9px 11px;border-radius:9px;border:1px solid #E6E0D2;font-size:12.5px;font-family:inherit;}
           .crm-select{width:100%;padding:9px 11px;border-radius:9px;border:1px solid #E6E0D2;font-size:12.5px;font-family:inherit;background:#fff;margin-bottom:4px;}
-          .crm-config-btn{width:100%;padding:9px;border-radius:9px;border:none;background:#1A1610;color:#C9951A;font-weight:700;font-size:12px;cursor:pointer;margin-top:4px;}
+          .crm-config-btn{width:100%;padding:9px;border-radius:9px;border:none;background:var(--ink);color:var(--sign);font-weight:700;font-size:12px;cursor:pointer;margin-top:4px;}
         `}</style>
         <div className="crm-hub-title">Compartilhar cardápio</div>
         <div className="crm-share-card">
@@ -205,9 +205,9 @@ export default function CrmPage() {
 
 const wrap: React.CSSProperties = {
   display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-  minHeight: '100vh', padding: 24, fontFamily: 'Inter,sans-serif', background: '#F0EDE8', textAlign: 'center'
+  minHeight: '100vh', padding: 24, fontFamily: 'Archivo,sans-serif', background: 'var(--concrete)', textAlign: 'center'
 }
 const btn: React.CSSProperties = {
-  background: '#C9951A', color: '#fff', padding: '11px 24px', borderRadius: 10,
+  background: 'var(--sign)', color: 'var(--ink)', padding: '11px 24px', borderRadius: 10,
   textDecoration: 'none', fontWeight: 700, fontSize: 13
 }

@@ -940,17 +940,17 @@ export default function MensagensPage() {
     setRecording(false)
   }
 
-  if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter,sans-serif', color: '#AAA' }}>Carregando...</div>
+  if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Archivo,sans-serif', color: '#AAA' }}>Carregando...</div>
 
   if (!company?.crm_whatsapp_enabled) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, fontFamily: 'Inter,sans-serif', background: '#F0EDE8', textAlign: 'center' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, fontFamily: 'Archivo,sans-serif', background: 'var(--concrete)', textAlign: 'center' }}>
         <div style={{ fontSize: 44, marginBottom: 12 }}>💬</div>
         <div style={{ fontSize: 17, fontWeight: 800, marginBottom: 8 }}>CRM de WhatsApp</div>
         <div style={{ fontSize: 13, color: '#666', maxWidth: 300, lineHeight: 1.6, marginBottom: 20 }}>
           Atenda seus clientes pelo WhatsApp direto do painel, com histórico de conversa e filtros de quem sumiu. Ainda não está ativo pra {company?.name}.
         </div>
-        <a href="/painel/compartilhar" style={{ background: '#C9951A', color: '#fff', padding: '11px 24px', borderRadius: 10, textDecoration: 'none', fontWeight: 700, fontSize: 13 }}>Voltar</a>
+        <a href="/painel/compartilhar" style={{ background: 'var(--sign)', color: 'var(--ink)', padding: '11px 24px', borderRadius: 10, textDecoration: 'none', fontWeight: 700, fontSize: 13 }}>Voltar</a>
       </div>
     )
   }
@@ -969,7 +969,7 @@ export default function MensagensPage() {
           .msg-connect{max-width:360px;margin:40px auto;text-align:center;background:#fff;border:1px solid #EDE8E0;border-radius:16px;padding:28px 22px;}
           .msg-qr{width:200px;height:200px;margin:16px auto;border-radius:12px;border:1px solid #EDE8E0;overflow:hidden;background:#F7F5F0;display:flex;align-items:center;justify-content:center;}
           .msg-qr img{width:100%;height:100%;object-fit:contain;}
-          .msg-btn{padding:11px 22px;border-radius:10px;border:none;background:#C9951A;color:#1A1610;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;}
+          .msg-btn{padding:11px 22px;border-radius:10px;border:none;background:var(--sign);color:var(--ink);font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;}
           .msg-btn:disabled{opacity:.5;cursor:not-allowed;}
           .msg-err{color:#C43D3D;font-size:12px;margin-top:12px;line-height:1.5;}
           .msg-shell{display:grid;grid-template-columns:1fr;border:none;border-radius:0;overflow:hidden;background:#111b21;height:calc(100vh - var(--es-tabbar-h, 74px));min-height:420px;}
@@ -998,7 +998,7 @@ export default function MensagensPage() {
           @media(hover:hover) and (pointer:fine){.msg-item:hover .msg-item-actions{display:flex;}}
           .msg-item-actions button{background:none;border:none;font-size:19px;cursor:pointer;padding:8px;border-radius:50%;opacity:.75;width:38px;height:38px;display:flex;align-items:center;justify-content:center;}
           .msg-item-actions button:hover{opacity:1;background:#2f3b43;}
-          .msg-item-actions button.on{opacity:1;color:#C9951A;}
+          .msg-item-actions button.on{opacity:1;color:var(--sign);}
           @media(max-width:767px){
             /* Igual às mensagens: escondido por padrão, só abre no
                toque-e-segure do contato (ver handleContactPressStart),
@@ -1124,7 +1124,7 @@ export default function MensagensPage() {
           .msg-doc-ico,.msg-loc-ico,.msg-vcard-ico{font-size:22px;flex:none;}
           .msg-doc-name{font-size:12.5px;font-weight:600;word-break:break-all;}
           .msg-loc a,.msg-vcard-name{color:#e9edef;font-weight:700;font-size:12.5px;text-decoration:none;}
-          .msg-reply-quote{background:rgba(255,255,255,.08);border-left:3px solid #C9951A;border-radius:6px;padding:5px 8px;margin-bottom:5px;font-size:11.5px;color:#c8ccce;max-height:36px;overflow:hidden;}
+          .msg-reply-quote{background:rgba(255,255,255,.08);border-left:3px solid var(--sign);border-radius:6px;padding:5px 8px;margin-bottom:5px;font-size:11.5px;color:#c8ccce;max-height:36px;overflow:hidden;}
           .msg-link-preview{display:block;background:rgba(0,0,0,.18);border-radius:8px;overflow:hidden;margin-top:2px;margin-bottom:2px;text-decoration:none;color:inherit;}
           .msg-link-preview-img{display:block;width:100%;max-height:180px;object-fit:cover;background:#0b141a;}
           .msg-link-preview-body{padding:7px 9px;}
@@ -1171,7 +1171,7 @@ export default function MensagensPage() {
           .msg-picker-item:hover{background:#F7F5F0;}
           .msg-picker-cancel{padding:14px;border:none;border-top:1px solid #EDE8E0;background:none;font-weight:700;font-size:13px;color:#C43D3D;cursor:pointer;font-family:inherit;}
           .msg-reply-bar{display:flex;align-items:center;gap:10px;padding:8px 14px;background:#202c33;border-top:1px solid #2f3b43;font-size:12px;}
-          .msg-reply-bar-txt{flex:1;min-width:0;color:#c8ccce;border-left:3px solid #C9951A;padding-left:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+          .msg-reply-bar-txt{flex:1;min-width:0;color:#c8ccce;border-left:3px solid var(--sign);padding-left:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
           .msg-reply-bar button{background:none;border:none;font-size:15px;cursor:pointer;color:#8696a0;flex:none;}
           .msg-presence{font-size:11px;color:#53bdeb;font-weight:600;}
           .msg-thead-search-btn{background:rgba(255,255,255,.07);border:none;font-size:19px;cursor:pointer;flex:none;color:#e9edef;width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:background .15s;}
@@ -1332,7 +1332,7 @@ export default function MensagensPage() {
                         <div style={{ flex: 1, minWidth: 0 }} onClick={() => { setNotesDraft(selectedLive?.notes || ''); setNotesOpen(true) }}>
                           <div style={{ fontWeight: 700, fontSize: 14, color: '#e9edef', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedLive?.muted && '🔕 '}{selectedLive?.name || selectedLive?.phone}</div>
                           <div style={{ fontSize: 11.5, color: '#8696a0' }}>
-                            {isTyping ? <span className="msg-presence">digitando...</span> : isOnline ? <span className="msg-presence">online</span> : selectedLive?.notes ? <span style={{ color: '#C9951A' }}>📝 {selectedLive.notes}</span> : selectedLive?.phone}
+                            {isTyping ? <span className="msg-presence">digitando...</span> : isOnline ? <span className="msg-presence">online</span> : selectedLive?.notes ? <span style={{ color: 'var(--sign)' }}>📝 {selectedLive.notes}</span> : selectedLive?.phone}
                           </div>
                         </div>
                         {company?.loja_digital_enabled && (

@@ -47,7 +47,7 @@ export default function MaisPage() {
     window.location.href = '/'
   }
 
-  if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter,sans-serif', color: '#AAA' }}>Carregando...</div>
+  if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Archivo,sans-serif', color: '#AAA' }}>Carregando...</div>
   if (!company) return null
 
   const initials = company.name.trim().slice(0, 2).toUpperCase()
@@ -56,11 +56,11 @@ export default function MaisPage() {
     <div className="mais-page">
       <style>{`
         *{box-sizing:border-box;}
-        body{margin:0;font-family:'Inter',sans-serif;background:#F7F5F0;}
+        body{margin:0;font-family:'Archivo',sans-serif;background:var(--concrete);}
         .mais-page{min-height:100vh;padding-bottom:90px;}
         .mais-body{padding:20px 18px 16px;max-width:600px;margin:0 auto;}
         .company-card{background:#111;border-radius:16px;padding:16px;display:flex;align-items:center;gap:12px;margin-bottom:20px;text-decoration:none;}
-        .company-avatar{width:46px;height:46px;border-radius:12px;background:#C9951A;color:#1A1610;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex:none;}
+        .company-avatar{width:46px;height:46px;border-radius:12px;background:var(--sign-dark);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex:none;}
         .company-name{color:#fff;font-weight:800;font-size:14px;}
         .company-sub{color:rgba(255,255,255,.55);font-size:11px;margin-top:2px;}
         .company-arrow{color:rgba(255,255,255,.4);font-size:18px;margin-left:auto;}
@@ -71,7 +71,7 @@ export default function MaisPage() {
         .item:last-child{border-bottom:none;}
         .item-ico{font-size:17px;width:22px;text-align:center;flex:none;}
         .item-lbl{flex:1;font-size:13px;font-weight:600;color:#1A1610;}
-        .item-badge{background:#C9951A;color:#1A1610;font-size:10px;font-weight:800;padding:2px 7px;border-radius:8px;margin-right:6px;}
+        .item-badge{background:var(--sign);color:var(--ink);font-size:10px;font-weight:800;padding:2px 7px;border-radius:8px;margin-right:6px;}
         .item-chev{color:#C9C4B5;font-size:15px;}
         .item.danger{cursor:pointer;border:none;width:100%;text-align:left;background:none;font-family:inherit;}
         .item.danger .item-lbl{color:#C43D3D;}

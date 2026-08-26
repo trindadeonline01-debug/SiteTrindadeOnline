@@ -3,6 +3,7 @@ import Image from 'next/image'
 import { compressImage } from '@/lib/compressImage'
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { CATEGORY_IMAGES } from '@/lib/categoryImages'
 
 type Listing = { id:string; title:string; description?:string; price?:number; price_label?:string; address?:string; subtype?:string; created_at:string; status:string; user?:any; photos?:any[] }
 
@@ -39,16 +40,17 @@ export default function AchadosPerdidosPageClient({ initialListings }: { initial
       .bc{display:flex;align-items:center;gap:7px;font-size:13px;}
       .bc a{color:var(--sign);font-weight:700;text-decoration:none;}
       .bcs{color:#444;}.bcc{color:#fff;font-weight:700;}
-      .hero{background:var(--ink);padding:24px;border-bottom:2px solid var(--sign);}
-      .hi{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
-      .hl{display:flex;align-items:center;gap:16px;}
-      .he{font-size:52px;flex-shrink:0;}
-      .hn{font-family:'Anton',sans-serif;font-size:clamp(28px,4vw,44px);color:#fff;letter-spacing:1px;text-transform:uppercase;line-height:1;margin-bottom:5px;}
-      .hc{font-size:13px;color:#666;} .hc span{color:var(--sign);font-weight:600;}
+      .hero{background:var(--ink);padding:32px 24px 28px;border-bottom:2px solid var(--sign);}
+      .hi{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:center;gap:18px;}
+      .he{width:74px;height:74px;border-radius:12px;overflow:hidden;position:relative;flex-shrink:0;border:2px solid var(--sign);}
+      .hn{font-family:'Anton',sans-serif;font-size:clamp(32px,5vw,48px);color:#fff;letter-spacing:1px;text-transform:uppercase;line-height:1;margin-bottom:6px;}
+      .hc{font-size:13px;color:#666;font-family:'Archivo',sans-serif;} .hc span{color:var(--sign);font-weight:600;}
       .btnp{background:var(--sign);color:var(--ink);border:none;border-radius:11px;padding:12px 20px;font-size:14px;font-weight:700;font-family:'Archivo',sans-serif;cursor:pointer;}
       .page{max-width:1200px;margin:0 auto;padding:0 24px 48px;}
       .sw{transform:translateY(-20px);}
-      .sb{display:flex;align-items:center;gap:10px;background:var(--sign);border:2.5px solid var(--ink);border-radius:14px;padding:13px 20px;box-shadow:4px 4px 0 var(--ink);}
+      .sw-row{display:flex;gap:10px;flex-wrap:wrap;}
+      .sw-row .btnp{flex-shrink:0;}
+      .sb{flex:1;min-width:240px;display:flex;align-items:center;gap:10px;background:var(--sign);border:2.5px solid var(--ink);border-radius:14px;padding:13px 20px;box-shadow:4px 4px 0 var(--ink);}
       .sb input{flex:1;border:none;background:transparent;font-size:15px;font-family:'Archivo',sans-serif;color:var(--ink);outline:none;}
       .sb input::placeholder{color:var(--ink-2);opacity:.55;}
       .sb input::placeholder{color:#BBB;}
@@ -95,18 +97,20 @@ export default function AchadosPerdidosPageClient({ initialListings }: { initial
     </div></div>
 
     <div className="hero"><div className="hi">
-      <div className="hl">
-        <div className="he">🔍</div>
-        <div><div className="hn">ACHADOS & PERDIDOS</div><div className="hc"><span>{filtered.length}</span> itens disponíveis</div></div>
-      </div>
-      <button className="btnp" onClick={()=>userId?setShowForm(true):window.location.href='/login'}>+ Publicar</button>
+      {CATEGORY_IMAGES.achados && (
+        <div className="he"><Image src={CATEGORY_IMAGES.achados} alt="" fill sizes="74px" unoptimized style={{objectFit:'cover'}} /></div>
+      )}
+      <div><div className="hn">ACHADOS & PERDIDOS</div><div className="hc"><span>{filtered.length}</span> itens disponíveis</div></div>
     </div></div>
 
     <div className="page">
-      <div className="sw"><div className="sb">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" placeholder="Buscar no achados-perdidos..." value={search} onChange={handleSearch}/>
-        {search&&<button onClick={()=>{setSearch('');setFiltered(listings)}} style={{background:'none',border:'none',cursor:'pointer',color:'#AAA',fontSize:18,lineHeight:'1'}}>✕</button>}
+      <div className="sw"><div className="sw-row">
+        <div className="sb">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" placeholder="Buscar no achados-perdidos..." value={search} onChange={handleSearch}/>
+          {search&&<button onClick={()=>{setSearch('');setFiltered(listings)}} style={{background:'none',border:'none',cursor:'pointer',color:'#AAA',fontSize:18,lineHeight:'1'}}>✕</button>}
+        </div>
+        <button className="btnp" onClick={()=>userId?setShowForm(true):window.location.href='/login'}>+ Publicar</button>
       </div></div>
 
       <div className="filters">

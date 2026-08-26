@@ -13,16 +13,31 @@ type Company = {
 type Category = { id: string; name: string; emoji: string; slug: string }
 type Listing  = { id: string; type: string; title: string; price?: number; address?: string; subtype?: string; created_at: string; photos?: any[] }
 type Subcategory = { id: string; name: string; emoji: string }
+type Produto = {
+  id: string; name: string; sale_price: number; photo_url: string | null
+  promo_type: 'percent' | 'fixed' | null; promo_value: number | null
+  promo_starts_at: string | null; promo_ends_at: string | null
+  company: { id: string; name: string; slug: string }
+}
 
 type InitialResults = {
   empresas: Company[]; cats: Category[]; subcats: Subcategory[]
   desapega: Listing[]; empregos: Listing[]; imoveis: Listing[]; achados: Listing[]
+  produtos: Produto[]
   total: number
 }
 
 const SUGGESTIONS = ['Padaria','Barbearia','Restaurante','Mercado','Farmácia','Mecânico','Salão','Eletricista','Igreja','Academia']
 
-export default function BuscaPageClient({ initialQuery, initialResults }: { initialQuery: string; initialResults: InitialResults | null }) {
+function produtoPrice(p: Produto): number {
+  if (!p.promo_type || !p.promo_value) return p.sale_price
+  const now = Date.now()
+  if (p.promo_starts_at && now < new Date(p.promo_starts_at).getTime()) return p.sale_price
+  if (p.promo_ends_at && now > new Date(p.promo_ends_at).getTime()) return p.sale_price
+  return p.promo_type === 'percent' ? p.sale_price * (1 - p.promo_value / 100) : Math.max(0, p.sale_price - p.promo_value)
+}
+
+export default function BuscaPageClient({ initialQuery, initialResults, produtosEnabled }: { initialQuery: string; initialResults: InitialResults | null; produtosEnabled: boolean }) {
   const [input, setInput]         = useState(initialQuery)
   const [query, setQuery]         = useState(initialQuery)
   const [buscou, setBuscou]       = useState(!!initialResults)
@@ -34,6 +49,7 @@ export default function BuscaPageClient({ initialQuery, initialResults }: { init
   const [empregos, setEmpregos]   = useState<Listing[]>(initialResults?.empregos || [])
   const [imoveis, setImoveis]     = useState<Listing[]>(initialResults?.imoveis || [])
   const [achados, setAchados]     = useState<Listing[]>(initialResults?.achados || [])
+  const [produtos, setProdutos]   = useState<Produto[]>(initialResults?.produtos || [])
   const [total, setTotal]         = useState(initialResults?.total || 0)
   const { premio, setPremio, checarPalavraPremiada, waResgateUrl } = usePalavraPremiada()
 
@@ -86,11 +102,24 @@ export default function BuscaPageClient({ initialQuery, initialResults }: { init
     setImoveis(imoveisData)
     setAchados(achadosData)
 
-    setTotal(emp.length + cat.length + sub.length + desapegaData.length + empregosData.length + imoveisData.length + achadosData.length)
+    let prod: Produto[] = []
+    if (produtosEnabled) {
+      const { data } = await supabase
+        .from('loja_produtos')
+        .select('id,name,sale_price,photo_url,promo_type,promo_value,promo_starts_at,promo_ends_at,company:companies!inner(id,name,slug,status,loja_digital_enabled)')
+        .eq('active', true).not('photo_url', 'is', null)
+        .eq('company.status', 'active').eq('company.loja_digital_enabled', true)
+        .or(`name.ilike.%${term}%,description.ilike.%${term}%`)
+        .limit(12)
+      prod = ((data || []) as any[]).map(p => ({ ...p, company: Array.isArray(p.company) ? p.company[0] : p.company }))
+    }
+    setProdutos(prod)
+
+    setTotal(emp.length + cat.length + sub.length + desapegaData.length + empregosData.length + imoveisData.length + achadosData.length + prod.length)
 
     await supabase.from('search_logs').insert({
       query: term.toLowerCase(),
-      results_count: emp.length + cat.length + sub.length + desapegaData.length + empregosData.length + imoveisData.length + achadosData.length
+      results_count: emp.length + cat.length + sub.length + desapegaData.length + empregosData.length + imoveisData.length + achadosData.length + prod.length
     })
 
     setLoading(false)
@@ -202,6 +231,7 @@ export default function BuscaPageClient({ initialQuery, initialResults }: { init
         .rc-name{font-size:13px;font-weight:600;color:#111;margin-bottom:2px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
         .rc-cat{font-size:12px;color:#C9951A;font-weight:600;margin-bottom:2px;}
         .rc-addr{font-size:11px;color:#999;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .rc-price{font-size:14px;font-weight:800;color:#111;margin-bottom:2px;}
       `}</style>
 
       {premio && (
@@ -263,7 +293,7 @@ export default function BuscaPageClient({ initialQuery, initialResults }: { init
             <div className="result-hdr">
               <div className="result-title">Resultados para <span>"{query}"</span></div>
               <div className="result-sub">
-                {total === 0 ? 'Nenhum resultado encontrado' : `${total} resultado${total !== 1 ? 's' : ''} — ${empresas.length} empresa${empresas.length !== 1 ? 's' : ''}${cats.length > 0 ? ` · ${cats.length} categoria${cats.length !== 1 ? 's' : ''}` : ''}${subcats.length > 0 ? ` · ${subcats.length} subcategoria${subcats.length !== 1 ? 's' : ''}` : ''}`}
+                {total === 0 ? 'Nenhum resultado encontrado' : `${total} resultado${total !== 1 ? 's' : ''} — ${produtos.length > 0 ? `${produtos.length} produto${produtos.length !== 1 ? 's' : ''} · ` : ''}${empresas.length} empresa${empresas.length !== 1 ? 's' : ''}${cats.length > 0 ? ` · ${cats.length} categoria${cats.length !== 1 ? 's' : ''}` : ''}${subcats.length > 0 ? ` · ${subcats.length} subcategoria${subcats.length !== 1 ? 's' : ''}` : ''}`}
               </div>
             </div>
 
@@ -280,6 +310,32 @@ export default function BuscaPageClient({ initialQuery, initialResults }: { init
             )}
 
             <div className="sections-grid">
+
+            {/* PRODUTOS — vem primeiro, foi o que a pessoa digitou; empresa
+                vem depois, como contexto (ESPECIFICACAO.md §10.2) */}
+            {produtos.length > 0 && (
+            <div className="section">
+              <div className="sec-hdr">
+                <span className="sec-lbl">PRODUTOS</span>
+                <span className="sec-cnt">{produtos.length} encontrado{produtos.length !== 1 ? 's' : ''}</span>
+                <div className="sec-line"/>
+              </div>
+              <div className="results-grid">
+                {produtos.map(p => (
+                  <a key={p.id} className="result-card" href={`/empresa/${p.company.slug}/item/${p.id}`}>
+                    <div className="rc-img">
+                      {p.photo_url ? <Image unoptimized src={p.photo_url} alt={p.name} fill sizes="(max-width:639px) 50vw, 33vw" style={{objectFit:'cover'}} /> : <span>🍽️</span>}
+                    </div>
+                    <div className="rc-body">
+                      <div className="rc-name">{p.name}</div>
+                      <div className="rc-price">R$ {produtoPrice(p).toFixed(2).replace('.', ',')}</div>
+                      <div className="rc-addr">{p.company.name}</div>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </div>
+            )}
 
             {/* EMPRESAS */}
             {empresas.length > 0 && (

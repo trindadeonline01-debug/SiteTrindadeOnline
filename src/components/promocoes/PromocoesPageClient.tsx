@@ -1,7 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
-import { supabase } from '@/lib/supabase'
 import ShareButton from '@/components/ShareButton'
 
 type Promotion = {
@@ -14,7 +13,6 @@ export default function PromocoesPageClient({ initialPromos }: { initialPromos: 
   const [current, setCurrent] = useState(0)
   const [filter, setFilter] = useState('todos')
   const [isMobile, setIsMobile] = useState(false)
-  const [hasBottomNav, setHasBottomNav] = useState(false)
   const touchStartX = useRef(0)
   const touchEndX = useRef(0)
 
@@ -22,7 +20,6 @@ export default function PromocoesPageClient({ initialPromos }: { initialPromos: 
     const check = () => setIsMobile(window.innerWidth < 768)
     check()
     window.addEventListener('resize', check)
-    supabase.auth.getSession().then(({ data: { session } }) => setHasBottomNav(!!session))
     return () => window.removeEventListener('resize', check)
   }, [])
 
@@ -146,7 +143,7 @@ export default function PromocoesPageClient({ initialPromos }: { initialPromos: 
   return (
     <>
       <style dangerouslySetInnerHTML={{__html: CSS}}/>
-      <div className="pg-mobile" style={{bottom: hasBottomNav ? 'calc(64px + env(safe-area-inset-bottom))' : '0'}}>
+      <div className="pg-mobile" style={{bottom: 'calc(64px + env(safe-area-inset-bottom))'}}>
         <div className="topbar">
           <div className="top-title">🏷️ PROMOÇÕES <span>DA SEMANA</span></div>
           <div className="filters-row">

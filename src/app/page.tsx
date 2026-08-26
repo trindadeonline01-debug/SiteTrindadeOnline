@@ -9,6 +9,7 @@ import HomeAbertoAgora from '@/components/home/HomeAbertoAgora'
 import HomeComunidadeTabs from '@/components/home/HomeComunidadeTabs'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { isOpenNow, HourRow } from '@/lib/businessHours'
+import { CATEGORY_IMAGES } from '@/lib/categoryImages'
 
 interface PaidCompany {
   id: string; name: string; slug: string; avg_rating: number; total_reviews: number
@@ -405,12 +406,11 @@ export default async function HomePage() {
         @media(min-width: 768px) { .cat-grid { grid-template-columns: repeat(4,1fr); gap: 10px; } }
         .cat-item { display: flex; align-items: center; gap: 12px; padding: 13px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; text-decoration: none; transition: border-color 0.15s, background 0.15s; }
         .cat-item:hover { border-color: var(--ink); background: var(--concrete-2); }
-        .cat-item .sq { width: 44px; height: 44px; border-radius: 8px; background: var(--concrete); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .cat-item svg { width: 24px; height: 24px; stroke: var(--ink); stroke-width: 1.2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+        .cat-item .sq { width: 48px; height: 48px; border-radius: 8px; background: var(--concrete); flex-shrink: 0; position: relative; overflow: hidden; }
         .cat-txt { min-width: 0; }
         .cat-label { font-size: 14px; color: var(--ink); line-height: 1.25; font-weight: 600; font-family: 'Archivo', sans-serif; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .cat-count { font-size: 11.5px; color: var(--muted); font-family: 'Archivo', sans-serif; }
-        @media(max-width: 767px) { .cat-item { padding: 11px; gap: 10px; } .cat-item .sq { width: 38px; height: 38px; } .cat-item svg { width: 20px; height: 20px; } .cat-label { font-size: 13px; } .cat-count { font-size: 11px; } }
+        @media(max-width: 767px) { .cat-item { padding: 11px; gap: 10px; } .cat-item .sq { width: 42px; height: 42px; } .cat-label { font-size: 13px; } .cat-count { font-size: 11px; } }
 
         .sec-hdr { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 14px; margin-top: 32px; gap: 14px; }
         .sec-eyebrow { font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--sign-dark); font-weight: 700; margin-bottom: 4px; display: block; font-family: 'Archivo', sans-serif; }
@@ -614,35 +614,35 @@ export default async function HomePage() {
           <div className="cat-card-wrap">
             <div className="cat-grid">
               <a className="cat-item" href="/categoria/comercios">
-                <span className="sq"><svg viewBox="0 0 24 24"><path d="M3 9l1-5h16l1 5"/><path d="M3 9a2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0 2 2 2 2 0 0 0 2-2"/><path d="M5 20v-9"/><path d="M19 20v-9"/><rect x="9" y="14" width="6" height="6"/><path d="M3 20h18"/></svg></span>
+                <span className="sq"><Image src={CATEGORY_IMAGES.comercios} alt="" fill sizes="48px" unoptimized style={{objectFit:'cover'}} /></span>
                 <span className="cat-txt"><span className="cat-label">Comércios</span><span className="cat-count">{categoryCounts.comercios} negócio{categoryCounts.comercios !== 1 ? 's' : ''}</span></span>
               </a>
               <a className="cat-item" href="/categoria/servicos">
-                <span className="sq"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span>
+                <span className="sq"><Image src={CATEGORY_IMAGES.servicos} alt="" fill sizes="48px" unoptimized style={{objectFit:'cover'}} /></span>
                 <span className="cat-txt"><span className="cat-label">Serviços</span><span className="cat-count">{categoryCounts.servicos} negócio{categoryCounts.servicos !== 1 ? 's' : ''}</span></span>
               </a>
               <a className="cat-item" href="/categoria/gastronomia">
-                <span className="sq"><svg viewBox="0 0 24 24"><path d="M12 2 L22 20 Q12 23 2 20 Z"/><path d="M5.5 18.5 Q12 22 18.5 18.5"/><circle cx="12" cy="10" r="1"/><circle cx="9" cy="14" r="0.8"/><circle cx="15" cy="14" r="0.8"/></svg></span>
+                <span className="sq"><Image src={CATEGORY_IMAGES.gastronomia} alt="" fill sizes="48px" unoptimized style={{objectFit:'cover'}} /></span>
                 <span className="cat-txt"><span className="cat-label">Gastronomia</span><span className="cat-count">{categoryCounts.gastronomia} negócio{categoryCounts.gastronomia !== 1 ? 's' : ''}</span></span>
               </a>
               <a className="cat-item" href="/empregos">
-                <span className="sq"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><path d="M2 12h20"/></svg></span>
+                <span className="sq"><Image src={CATEGORY_IMAGES.empregos} alt="" fill sizes="48px" unoptimized style={{objectFit:'cover'}} /></span>
                 <span className="cat-txt"><span className="cat-label">Empregos</span><span className="cat-count">{categoryCounts.empregos} vaga{categoryCounts.empregos !== 1 ? 's' : ''}</span></span>
               </a>
               <a className="cat-item" href="/imoveis">
-                <span className="sq"><svg viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg></span>
+                <span className="sq"><Image src={CATEGORY_IMAGES.imoveis} alt="" fill sizes="48px" unoptimized style={{objectFit:'cover'}} /></span>
                 <span className="cat-txt"><span className="cat-label">Imóveis</span><span className="cat-count">{categoryCounts.imoveis} anúncio{categoryCounts.imoveis !== 1 ? 's' : ''}</span></span>
               </a>
               <a className="cat-item" href="/desapega">
-                <span className="sq"><svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></span>
+                <span className="sq"><Image src={CATEGORY_IMAGES.desapega} alt="" fill sizes="48px" unoptimized style={{objectFit:'cover'}} /></span>
                 <span className="cat-txt"><span className="cat-label">Desapega</span><span className="cat-count">{categoryCounts.desapega} item{categoryCounts.desapega !== 1 ? 'ns' : ''}</span></span>
               </a>
               <a className="cat-item" href="/achados-perdidos">
-                <span className="sq"><svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span>
+                <span className="sq"><Image src={CATEGORY_IMAGES.achados} alt="" fill sizes="48px" unoptimized style={{objectFit:'cover'}} /></span>
                 <span className="cat-txt"><span className="cat-label">Achados & Perdidos</span><span className="cat-count">{categoryCounts.achados} aviso{categoryCounts.achados !== 1 ? 's' : ''}</span></span>
               </a>
               <a className="cat-item" href="/categoria/igrejas">
-                <span className="sq"><svg viewBox="0 0 24 24"><path d="M12 2v4M10 4h4"/><path d="M5 10l7-4 7 4v10a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V10z"/><path d="M10 21v-7h4v7"/></svg></span>
+                <span className="sq"><Image src={CATEGORY_IMAGES.igrejas} alt="" fill sizes="48px" unoptimized style={{objectFit:'cover'}} /></span>
                 <span className="cat-txt"><span className="cat-label">Igrejas</span><span className="cat-count">{categoryCounts.igrejas} local{categoryCounts.igrejas !== 1 ? 'is' : ''}</span></span>
               </a>
             </div>

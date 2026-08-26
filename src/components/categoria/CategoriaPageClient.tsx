@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import Image from 'next/image'
+import { CATEGORY_IMAGES } from '@/lib/categoryImages'
 
 type Category    = { id: string; name: string; emoji: string; slug: string }
 type Subcategory = { id: string; name: string; emoji: string; slug?: string }
@@ -10,74 +11,6 @@ type Company     = {
   id: string; name: string; slug: string
   avg_rating?: number; address?: string; plan?: string; description?: string; tags?: string[]
   photos?: any[]; subcategories?: any[]
-}
-
-/* ── SVG por slug de categoria (mesmo estilo da home) ── */
-function CategorySVG({ slug, size = 56, color = 'var(--sign)' }: { slug: string; size?: number; color?: string }) {
-  const s = { width: size, height: size, stroke: color, strokeWidth: 0.8, fill: "none", strokeLinecap: "round" as const, strokeLinejoin: "round" as const, flexShrink: 0 }
-  const paths: Record<string, React.ReactElement> = {
-    comercios: (
-      <svg viewBox="0 0 24 24" style={s}>
-        <path d="M3 9l1-5h16l1 5"/>
-        <path d="M3 9a2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0 2 2 2 2 0 0 0 2-2"/>
-        <path d="M5 20v-9"/><path d="M19 20v-9"/>
-        <rect x="9" y="14" width="6" height="6"/>
-        <path d="M3 20h18"/>
-      </svg>
-    ),
-    servicos: (
-      <svg viewBox="0 0 24 24" style={s}>
-        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
-      </svg>
-    ),
-    gastronomia: (
-      <svg viewBox="0 0 24 24" style={s}>
-        <path d="M12 2 L22 20 Q12 23 2 20 Z"/>
-        <path d="M5.5 18.5 Q12 22 18.5 18.5"/>
-        <circle cx="12" cy="10" r="1"/>
-        <circle cx="9" cy="14" r="0.8"/>
-        <circle cx="15" cy="14" r="0.8"/>
-      </svg>
-    ),
-    empregos: (
-      <svg viewBox="0 0 24 24" style={s}>
-        <rect x="2" y="7" width="20" height="14" rx="2"/>
-        <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-        <path d="M2 12h20"/>
-      </svg>
-    ),
-    imoveis: (
-      <svg viewBox="0 0 24 24" style={s}>
-        <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/>
-        <path d="M9 21V12h6v9"/>
-      </svg>
-    ),
-    desapega: (
-      <svg viewBox="0 0 24 24" style={s}>
-        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
-        <line x1="7" y1="7" x2="7.01" y2="7"/>
-      </svg>
-    ),
-    'achados-perdidos': (
-      <svg viewBox="0 0 24 24" style={s}>
-        <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/>
-        <circle cx="12" cy="10" r="3"/>
-      </svg>
-    ),
-    igrejas: (
-      <svg viewBox="0 0 24 24" style={s}>
-        <path d="M12 2v4M10 4h4"/>
-        <path d="M5 10l7-4 7 4v10a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V10z"/>
-        <path d="M10 21v-7h4v7"/>
-      </svg>
-    ),
-  }
-  return paths[slug] || (
-    <svg viewBox="0 0 24 24" style={s}>
-      <rect x="3" y="3" width="18" height="18" rx="2"/>
-      <path d="M3 9h18M9 21V9"/>
-    </svg>
-  )
 }
 
 type Props = {
@@ -146,6 +79,7 @@ export default function CategoriaPageClient({ slug, category, subcats, companies
         /* ── HERO centralizado ── */
         .cat-hero { background: var(--ink); padding: 32px 24px 28px; border-bottom: 2px solid var(--sign); }
         .cat-hero-inner { display: flex; align-items: center; justify-content: center; gap: 18px; }
+        .cat-hero-img { width: 64px; height: 64px; border-radius: 12px; overflow: hidden; position: relative; flex-shrink: 0; border: 2px solid var(--sign); }
         .cat-nm { font-family: 'Anton', sans-serif; font-size: clamp(32px,5vw,48px); color: #fff; letter-spacing: 1px; text-transform: uppercase; line-height: 1; margin-bottom: 6px; }
         .cat-cnt { font-size: 13px; color: #666; font-family: 'Archivo', sans-serif; }
         .cat-cnt span { color: var(--sign); font-weight: 600; }
@@ -238,10 +172,12 @@ export default function CategoriaPageClient({ slug, category, subcats, companies
         </div>
       </div>
 
-      {/* HERO centralizado com SVG */}
+      {/* HERO centralizado com foto da categoria */}
       <div className="cat-hero">
         <div className="cat-hero-inner">
-          <CategorySVG slug={slug} size={56} color="var(--sign)" />
+          {CATEGORY_IMAGES[slug] && (
+            <div className="cat-hero-img"><Image src={CATEGORY_IMAGES[slug]} alt="" fill sizes="64px" unoptimized style={{objectFit:'cover'}} /></div>
+          )}
           <div>
             <div className="cat-nm">{category.name}</div>
             <div className="cat-cnt">

@@ -1,9 +1,18 @@
 'use client'
 import { Fragment, useEffect, useRef, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { compressImage } from '@/lib/compressImage'
 import { moduleActive } from '@/lib/modules'
 import EmpresaShell from '@/components/EmpresaShell'
+
+// Modo Atendimento (ESPECIFICACAO.md §4.4) — mesmo inbox de sempre, mas em
+// tela cheia, sem sidebar/topbar/tabbar do painel: "modo não é página de
+// menu, ocupa a tela toda". /atendimento reusa este componente inteiro (ver
+// src/app/atendimento/page.tsx) só trocando o wrapper externo.
+function FullScreenShell({ children }: { children: React.ReactNode }) {
+  return <div style={{ minHeight: '100vh' }}>{children}</div>
+}
 
 type Company = {
   id: string; name: string; slug?: string; crm_whatsapp_enabled: boolean; loja_digital_enabled?: boolean
@@ -113,6 +122,8 @@ function replySnippet(m: Message): string {
 }
 
 export default function MensagensPage() {
+  const pathname = usePathname()
+  const fullScreen = pathname === '/atendimento'
   const [loading, setLoading] = useState(true)
   const [company, setCompany] = useState<Company | null>(null)
   const [instance, setInstance] = useState<Instance | null>(null)
@@ -949,9 +960,10 @@ export default function MensagensPage() {
     && !!selectedLive.presence_until && new Date(selectedLive.presence_until) > new Date()
   const isOnline = selectedLive?.presence_state === 'available'
 
+  const Shell: any = fullScreen ? FullScreenShell : EmpresaShell
   return (
-    <EmpresaShell active="mensagens" companyName={company.name} companySlug={company.slug} lojaDigitalEnabled={company.loja_digital_enabled} crmEnabled={company.crm_whatsapp_enabled} entregaEnabled={company.entrega_enabled}>
-      <div className="msg-page">
+    <Shell active="mensagens" companyName={company.name} companySlug={company.slug} lojaDigitalEnabled={company.loja_digital_enabled} crmEnabled={company.crm_whatsapp_enabled} entregaEnabled={company.entrega_enabled}>
+      <div className={`msg-page ${fullScreen ? 'msg-page-full' : ''}`}>
         <style>{`
           .msg-page{padding:0;min-width:0;}
           .msg-connect{max-width:360px;margin:40px auto;text-align:center;background:#fff;border:1px solid #EDE8E0;border-radius:16px;padding:28px 22px;}
@@ -962,6 +974,8 @@ export default function MensagensPage() {
           .msg-err{color:#C43D3D;font-size:12px;margin-top:12px;line-height:1.5;}
           .msg-shell{display:grid;grid-template-columns:1fr;border:none;border-radius:0;overflow:hidden;background:#111b21;height:calc(100vh - var(--es-tabbar-h, 74px));min-height:420px;}
           @media(min-width:768px){.msg-shell{grid-template-columns:420px 1fr;border:none;border-radius:0;background:#111b21;height:calc(100vh - var(--es-topbar-h, 65px));}}
+          .msg-page-full .msg-shell{height:100vh;}
+          @media(min-width:768px){.msg-page-full .msg-shell{height:100vh;}}
           .msg-list{background:#111b21;border-right:1px solid #2f3b43;overflow-y:auto;min-height:0;}
           @media(max-width:767px){.msg-list{display:${selected ? 'none' : 'block'};}}
           .msg-item{display:flex;gap:14px;padding:16px;border-bottom:1px solid #202c33;cursor:pointer;align-items:center;position:relative;}
@@ -1753,7 +1767,7 @@ export default function MensagensPage() {
           />
         )}
       </div>
-    </EmpresaShell>
+    </Shell>
   )
 }
 

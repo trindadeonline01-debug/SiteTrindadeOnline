@@ -168,6 +168,7 @@ export default function EmpresaShell({
           <div className="es-group-lbl">Todo dia</div>
           <NavItem href="/painel/pedidos" active={active === 'pedidos'} locked={!lojaDigitalEnabled}>🧾 Pedidos</NavItem>
           <NavItem href="/painel/mensagens" active={active === 'mensagens'} locked={!crmEnabled} badge={mensagensBadge}>💬 Mensagens</NavItem>
+          <NavItem href="/atendimento" active={false} locked={!crmEnabled}>🎧 Modo Atendimento</NavItem>
           <NavItem href="/painel/cozinha" active={active === 'cozinha'} locked={!lojaDigitalEnabled}>🍳 Cozinha</NavItem>
 
           <div className="es-group-lbl">Minha loja</div>

@@ -49,7 +49,7 @@ type Banner = {
 const today = () => new Date().toISOString().split('T')[0]
 const weekAgo = () => { const d = new Date(); d.setDate(d.getDate()-7); return d.toISOString() }
 const fmtDate = (s: string) => new Date(s).toLocaleDateString('pt-BR')
-const statusColor = (s: string) => s === 'active' ? '#0F8050' : s === 'pending' ? '#C9951A' : '#E24B4A'
+const statusColor = (s: string) => s === 'active' ? '#0F8050' : s === 'pending' ? 'var(--sign-dark)' : '#E24B4A'
 const statusLabel = (s: string) => s === 'active' ? 'Ativa' : s === 'pending' ? 'Pendente' : 'Suspensa'
 
 export default function AdminPage() {
@@ -1266,8 +1266,8 @@ export default function AdminPage() {
     setTimeout(() => setToast(''), 3000)
   }
 
-  if (authorized === null) return <div style={{ display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',fontFamily:'Inter,sans-serif',color:'#AAA' }}>Verificando acesso...</div>
-  if (authorized === false) return <div style={{ display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',fontFamily:'Inter,sans-serif' }}><div style={{ textAlign:'center' }}><div style={{ fontSize:48,marginBottom:16 }}>🚫</div><div style={{ fontSize:20,fontWeight:700 }}>Acesso negado</div><div style={{ color:'#AAA',marginTop:8 }}>Você não tem permissão para acessar esta página.</div></div></div>
+  if (authorized === null) return <div style={{ display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',fontFamily:'Archivo,sans-serif',color:'#AAA' }}>Verificando acesso...</div>
+  if (authorized === false) return <div style={{ display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',fontFamily:'Archivo,sans-serif' }}><div style={{ textAlign:'center' }}><div style={{ fontSize:48,marginBottom:16 }}>🚫</div><div style={{ fontSize:20,fontWeight:700 }}>Acesso negado</div><div style={{ color:'#AAA',marginTop:8 }}>Você não tem permissão para acessar esta página.</div></div></div>
 
   const filteredCompanies = companies.filter(c => (filterStatus === 'all' || c.status === filterStatus) && (filterPlan === 'all' || (filterPlan === 'paid' ? c.plan === 'paid' : c.plan !== 'paid')) && (searchCompany === '' || c.name.toLowerCase().includes(searchCompany.toLowerCase()) || (c.owner?.name||'').toLowerCase().includes(searchCompany.toLowerCase())))
 
@@ -1275,7 +1275,7 @@ export default function AdminPage() {
     <>
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Inter', sans-serif; background: #F0EDE8; }
+        body { font-family: 'Archivo', sans-serif; background: var(--concrete); }
 
         .admin-layout { display: flex; min-height: 100vh; }
 
@@ -1314,15 +1314,16 @@ export default function AdminPage() {
         }
         .sidebar-logo {
           padding: 24px 20px 20px;
-          font-family: 'Bebas Neue', sans-serif;
-          font-size: 20px; letter-spacing: 2px; color: #fff;
+          font-family: 'Anton', sans-serif;
+          font-size: 20px; letter-spacing: 1px; color: #fff;
+          text-transform: uppercase;
           border-bottom: 1px solid #222;
         }
-        .sidebar-logo span { color: #C9951A; }
+        .sidebar-logo span { color: var(--sign); }
         .sidebar-badge {
-          font-size: 10px; background: #C9951A; color: #fff;
+          font-size: 10px; background: var(--sign); color: var(--ink);
           padding: 2px 8px; border-radius: 8px;
-          font-family: 'Inter', sans-serif; font-weight: 600;
+          font-family: 'Archivo', sans-serif; font-weight: 600;
           display: inline-block; margin-top: 4px;
         }
         .nav-item {
@@ -1332,7 +1333,7 @@ export default function AdminPage() {
           border-left: 3px solid transparent;
         }
         .nav-item:hover { background: #1A1A1A; color: #fff; }
-        .nav-item.on { background: #1A1A1A; color: #C9951A; border-left-color: #C9951A; }
+        .nav-item.on { background: #1A1A1A; color: var(--sign); border-left-color: var(--sign); }
         .nav-badge {
           margin-left: auto; background: #E24B4A; color: #fff;
           font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 10px;
@@ -1345,7 +1346,7 @@ export default function AdminPage() {
         .sidebar-footer a:hover { color: #888; }
         .btn-sair-sidebar {
           font-size: 12px; color: #E24B4A; background: none; border: none;
-          cursor: pointer; font-family: 'Inter', sans-serif;
+          cursor: pointer; font-family: 'Archivo', sans-serif;
           display: flex; align-items: center; gap: 6px; padding: 0;
         }
         .btn-sair-sidebar:hover { color: #ff6b6b; }
@@ -1356,7 +1357,7 @@ export default function AdminPage() {
           padding: 14px 28px; display: flex; align-items: center;
           justify-content: space-between; position: sticky; top: 0; z-index: 20;
         }
-        .topbar-title { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: #111; letter-spacing: 1px; }
+        .topbar-title { font-family: 'Anton', sans-serif; font-size: 20px; color: var(--ink); letter-spacing: 1px; text-transform: uppercase; }
         .topbar-date { font-size: 12px; color: #AAA; }
         .admin-body { padding: 28px; }
 
@@ -1371,19 +1372,19 @@ export default function AdminPage() {
           padding: 18px 20px; border: 0.5px solid #EDE8E0;
         }
         .stat-label { font-size: 11px; color: #AAA; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px; }
-        .stat-num   { font-family: 'Bebas Neue', sans-serif; font-size: 36px; letter-spacing: 1px; line-height: 1; margin-bottom: 4px; }
+        .stat-num   { font-family: 'Anton', sans-serif; font-size: 36px; letter-spacing: 1px; line-height: 1; margin-bottom: 4px; }
         .stat-sub   { font-size: 11px; color: #AAA; }
         .stat-up    { color: #0F8050; }
-        .stat-warn  { color: #C9951A; }
+        .stat-warn  { color: var(--sign-dark); }
         .stat-danger{ color: #E24B4A; }
 
         .section-card { background: #fff; border-radius: 14px; border: 0.5px solid #EDE8E0; margin-bottom: 20px; overflow: hidden; }
         .section-hdr  { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 0.5px solid #F0EDE8; }
-        .section-title{ font-family: 'Bebas Neue', sans-serif; font-size: 14px; color: #888; letter-spacing: 1.5px; }
+        .section-title{ font-family: 'Archivo', sans-serif; font-weight: 700; font-size: 12px; color: #888; letter-spacing: .8px; text-transform: uppercase; }
 
         .filter-row { display: flex; gap: 8px; flex-wrap: wrap; }
-        .filter-btn { padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid #E0DDD8; background: #FAFAF8; color: #666; transition: all .15s; font-family: 'Inter', sans-serif; }
-        .filter-btn.on { border-color: #C9951A; background: #FEF3E2; color: #854F0B; font-weight: 600; }
+        .filter-btn { padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid #E0DDD8; background: #FAFAF8; color: #666; transition: all .15s; font-family: 'Archivo', sans-serif; }
+        .filter-btn.on { border-color: var(--sign-dark); background: #FEF3E2; color: #854F0B; font-weight: 600; }
 
         .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
         .data-table th { text-align: left; padding: 10px 16px; font-size: 11px; font-weight: 600; color: #AAA; text-transform: uppercase; letter-spacing: .04em; background: #FAFAF8; border-bottom: 0.5px solid #F0EDE8; }
@@ -1391,20 +1392,20 @@ export default function AdminPage() {
         .data-table tr:last-child td { border-bottom: none; }
         .data-table tr:hover td { background: #FAFAF8; }
         .status-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 10px; }
-        .action-btn { padding: 5px 12px; border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer; border: none; font-family: 'Inter', sans-serif; margin-right: 4px; transition: opacity .15s; }
+        .action-btn { padding: 5px 12px; border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer; border: none; font-family: 'Archivo', sans-serif; margin-right: 4px; transition: opacity .15s; }
         .action-btn:hover { opacity: .8; }
         .btn-approve  { background: #EDFAF3; color: #0F8050; }
         .btn-suspend  { background: #FEF0F0; color: #E24B4A; }
         .btn-view     { background: #F0F4FF; color: #185FA5; }
 
-        .search-bar-wrap { display: flex; align-items: center; gap: 8px; background: #F5F2EC; border: 1.5px solid #C9951A; border-radius: 10px; padding: 8px 14px; }
-        .search-bar-wrap input { flex: 1; border: none; background: transparent; font-size: 13px; font-family: 'Inter', sans-serif; outline: none; }
-        .rank-num { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: #DDD; width: 30px; }
-        .rank-1 { color: #C9951A; }
+        .search-bar-wrap { display: flex; align-items: center; gap: 8px; background: #F5F2EC; border: 1.5px solid var(--sign-dark); border-radius: 10px; padding: 8px 14px; }
+        .search-bar-wrap input { flex: 1; border: none; background: transparent; font-size: 13px; font-family: 'Archivo', sans-serif; outline: none; }
+        .rank-num { font-family: 'Anton', sans-serif; font-size: 20px; color: #DDD; width: 30px; }
+        .rank-1 { color: var(--sign-dark); }
         .rank-2 { color: #888; }
         .rank-3 { color: #B87333; }
         .progress-bar { height: 6px; background: #F0EDE8; border-radius: 3px; overflow: hidden; flex: 1; }
-        .progress-fill { height: 100%; background: #C9951A; border-radius: 3px; }
+        .progress-fill { height: 100%; background: var(--sign-dark); border-radius: 3px; }
         .no-result-badge { font-size: 10px; background: #FEF0F0; color: #E24B4A; padding: 2px 7px; border-radius: 6px; font-weight: 600; }
 
         .toast {
@@ -1421,14 +1422,14 @@ export default function AdminPage() {
         .user-type-badge { font-size: 10px; padding: 2px 8px; border-radius: 8px; font-weight: 600; }
         .type-user    { background: #EBF4FF; color: #185FA5; }
         .type-company { background: #FEF3E2; color: #854F0B; }
-        .type-admin   { background: #111; color: #C9951A; }
+        .type-admin   { background: var(--ink); color: var(--sign); }
 
-        .banner-form-input { width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; font-family: 'Inter', sans-serif; outline: none; }
-        .banner-form-input:focus { border-color: #C9951A; }
+        .banner-form-input { width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; font-family: 'Archivo', sans-serif; outline: none; }
+        .banner-form-input:focus { border-color: var(--sign-dark); }
         .banner-form-label { font-size: 11px; color: #888; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; display: block; margin-bottom: 5px; }
         .upload-area { border: 2px dashed #ddd; border-radius: 10px; padding: 24px; text-align: center; cursor: pointer; transition: all .15s; background: #fafafa; }
-        .upload-area:hover { border-color: #C9951A; background: #fffdf5; }
-        .upload-area-filled { border: 2px solid #C9951A; border-radius: 10px; overflow: hidden; cursor: pointer; }
+        .upload-area:hover { border-color: var(--sign-dark); background: #fffdf5; }
+        .upload-area-filled { border: 2px solid var(--sign-dark); border-radius: 10px; overflow: hidden; cursor: pointer; }
       `}</style>
 
       {previewModal.open && (
@@ -1469,7 +1470,7 @@ export default function AdminPage() {
                 {previewModal.company?.external_link && (
                   <div style={{background:'#fafafa',borderRadius:10,padding:'10px 14px'}}>
                     <div style={{fontSize:11,color:'#999',fontWeight:600,marginBottom:2}}>LINK EXTERNO</div>
-                    <div style={{fontSize:13,color:'#C9951A',wordBreak:'break-all'}}>{previewModal.company.external_link}</div>
+                    <div style={{fontSize:13,color:'var(--sign-dark)',wordBreak:'break-all'}}>{previewModal.company.external_link}</div>
                   </div>
                 )}
                 {previewModal.company?.owner?.name && (
@@ -1496,7 +1497,7 @@ export default function AdminPage() {
                 </div>
               )}
               {previewModal.company?.flexible_hours && (
-                <div style={{marginBottom:20,fontSize:12,color:'#854F0B',background:'rgba(201,149,26,.1)',borderRadius:8,padding:'8px 12px',borderLeft:'3px solid #C9951A'}}>
+                <div style={{marginBottom:20,fontSize:12,color:'#854F0B',background:'rgba(201,149,26,.1)',borderRadius:8,padding:'8px 12px',borderLeft:'3px solid var(--sign-dark)'}}>
                   🕐 Horário flexível — empresa sem horário fixo cadastrado
                 </div>
               )}
@@ -1540,17 +1541,17 @@ export default function AdminPage() {
       {editCompanyModal.open && editCompanyModal.company && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:16,overflowY:'auto'}}>
           <div style={{background:'#fff',borderRadius:20,padding:28,maxWidth:560,width:'100%',maxHeight:'90vh',overflowY:'auto'}}>
-            <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,color:'#111',letterSpacing:1,marginBottom:20}}>EDITAR EMPRESA</div>
+            <div style={{fontFamily:"'Anton',sans-serif",fontSize:22,color:'var(--ink)',letterSpacing:1,textTransform:'uppercase',marginBottom:20}}>EDITAR EMPRESA</div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:14}}>
               <div style={{gridColumn:'1/-1'}}>
                 <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Nome</label>
                 <input value={editCompanyModal.company.name||''} onChange={e=>setEditCompanyModal(p=>({...p,company:{...p.company,name:e.target.value}}))}
-                  style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+                  style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Archivo,sans-serif'}}/>
               </div>
               <div>
                 <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Categoria</label>
                 <select value={editCompanyModal.company.category_id||''} onChange={e=>setEditCompanyModal(p=>({...p,company:{...p.company,category_id:e.target.value}}))}
-                  style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}>
+                  style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Archivo,sans-serif'}}>
                   <option value="">Selecionar...</option>
                   {allCategories.map(c=><option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
                 </select>
@@ -1558,7 +1559,7 @@ export default function AdminPage() {
               <div>
                 <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Status</label>
                 <select value={editCompanyModal.company.status||''} onChange={e=>setEditCompanyModal(p=>({...p,company:{...p.company,status:e.target.value}}))}
-                  style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}>
+                  style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Archivo,sans-serif'}}>
                   <option value="pending">Pendente</option>
                   <option value="active">Ativa</option>
                   <option value="suspended">Suspensa</option>
@@ -1570,9 +1571,9 @@ export default function AdminPage() {
                   onChange={e=>setAdminSubcatSearch(e.target.value)}
                   onFocus={()=>{ if(!adminSubcatSearch) setAdminSubcatSearch(' ') }}
                   onBlur={()=>setTimeout(()=>setAdminSubcatSearch(''),200)}
-                  style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+                  style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Archivo,sans-serif'}}/>
                 {adminSubcatSearch && (
-                  <div style={{position:'absolute',top:68,left:0,right:0,background:'#fff',border:'1.5px solid #C9951A',borderRadius:10,maxHeight:180,overflowY:'auto',zIndex:50,boxShadow:'0 4px 16px rgba(0,0,0,.08)'}}>
+                  <div style={{position:'absolute',top:68,left:0,right:0,background:'#fff',border:'1.5px solid var(--sign-dark)',borderRadius:10,maxHeight:180,overflowY:'auto',zIndex:50,boxShadow:'0 4px 16px rgba(0,0,0,.08)'}}>
                     {allSubcats.filter(s=>s.category_id===editCompanyModal.company.category_id && s.name.toLowerCase().includes(adminSubcatSearch.trim().toLowerCase())).map(s=>{
                       const selected = companySubcatIds.includes(s.id)
                       const maxed = companySubcatIds.length >= 5 && !selected
@@ -1580,7 +1581,7 @@ export default function AdminPage() {
                         <div key={s.id} onMouseDown={()=>{ if(!maxed) setCompanySubcatIds(prev=>prev.includes(s.id)?prev.filter(x=>x!==s.id):[...prev,s.id]) }}
                           style={{padding:'10px 14px',fontSize:13,cursor:maxed?'not-allowed':'pointer',display:'flex',justifyContent:'space-between',background:selected?'#FEF3E2':undefined,color:maxed?'#CCC':'#333'}}>
                           <span>{s.emoji} {s.name}</span>
-                          {selected ? <span style={{color:'#C9951A',fontWeight:700}}>✓</span> : !maxed ? <span style={{color:'#AAA',fontSize:11}}>+ Adicionar</span> : <span style={{fontSize:11,color:'#CCC'}}>máx. 3</span>}
+                          {selected ? <span style={{color:'var(--sign-dark)',fontWeight:700}}>✓</span> : !maxed ? <span style={{color:'#AAA',fontSize:11}}>+ Adicionar</span> : <span style={{fontSize:11,color:'#CCC'}}>máx. 3</span>}
                         </div>
                       )
                     })}
@@ -1591,7 +1592,7 @@ export default function AdminPage() {
                     {companySubcatIds.map(sid=>{
                       const s = allSubcats.find(x=>x.id===sid)
                       if(!s) return null
-                      return <div key={sid} style={{display:'flex',alignItems:'center',gap:4,padding:'4px 10px',background:'#FEF3E2',border:'1px solid #C9951A',borderRadius:20,fontSize:12,color:'#854F0B',fontWeight:600}}>{s.emoji} {s.name}<button onClick={()=>setCompanySubcatIds(prev=>prev.filter(x=>x!==sid))} style={{background:'none',border:'none',cursor:'pointer',fontSize:14,color:'#C9951A',padding:0}}>×</button></div>
+                      return <div key={sid} style={{display:'flex',alignItems:'center',gap:4,padding:'4px 10px',background:'#FEF3E2',border:'1px solid var(--sign-dark)',borderRadius:20,fontSize:12,color:'#854F0B',fontWeight:600}}>{s.emoji} {s.name}<button onClick={()=>setCompanySubcatIds(prev=>prev.filter(x=>x!==sid))} style={{background:'none',border:'none',cursor:'pointer',fontSize:14,color:'var(--sign-dark)',padding:0}}>×</button></div>
                     })}
                   </div>
                 )}
@@ -1599,35 +1600,35 @@ export default function AdminPage() {
               <div>
                 <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>WhatsApp</label>
                 <input value={editCompanyModal.company.phone||''} onChange={e=>setEditCompanyModal(p=>({...p,company:{...p.company,phone:e.target.value}}))}
-                  style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+                  style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Archivo,sans-serif'}}/>
               </div>
               <div>
                 <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>CPF/CNPJ</label>
                 <input value={editCompanyModal.company.cpf_cnpj||''} onChange={e=>setEditCompanyModal(p=>({...p,company:{...p.company,cpf_cnpj:e.target.value}}))}
-                  style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+                  style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Archivo,sans-serif'}}/>
               </div>
               <div style={{gridColumn:'1/-1'}}>
                 <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Endereço</label>
                 <input value={editCompanyModal.company.address||''} onChange={e=>setEditCompanyModal(p=>({...p,company:{...p.company,address:e.target.value}}))}
-                  style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+                  style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Archivo,sans-serif'}}/>
               </div>
               <div style={{gridColumn:'1/-1'}}>
                 <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Link externo</label>
                 <input value={editCompanyModal.company.external_link||''} onChange={e=>setEditCompanyModal(p=>({...p,company:{...p.company,external_link:e.target.value}}))}
-                  style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+                  style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Archivo,sans-serif'}}/>
               </div>
               <div style={{gridColumn:'1/-1'}}>
                 <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Descrição</label>
                 <textarea rows={3} value={editCompanyModal.company.description||''} onChange={e=>setEditCompanyModal(p=>({...p,company:{...p.company,description:e.target.value}}))}
-                  style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif',resize:'none'}}/>
+                  style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Archivo,sans-serif',resize:'none'}}/>
               </div>
               <div style={{gridColumn:'1/-1'}}>
                 <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Tags <span style={{fontSize:11,color:'#AAA',fontWeight:400}}>Digite e pressione Enter para adicionar</span></label>
                 <div style={{border:'1.5px solid #E0DDD8',borderRadius:10,padding:'8px 10px',background:'#FAFAF8',display:'flex',flexWrap:'wrap',gap:6,alignItems:'center',minHeight:44}}>
                   {(editCompanyModal.company.tags || []).map((tag:string, i:number) => (
-                    <div key={i} style={{display:'flex',alignItems:'center',gap:4,padding:'3px 10px',background:'#FEF3E2',border:'1px solid #C9951A',borderRadius:20,fontSize:12,color:'#854F0B',fontWeight:600}}>
+                    <div key={i} style={{display:'flex',alignItems:'center',gap:4,padding:'3px 10px',background:'#FEF3E2',border:'1px solid var(--sign-dark)',borderRadius:20,fontSize:12,color:'#854F0B',fontWeight:600}}>
                       #{tag}
-                      <button onClick={()=>setEditCompanyModal(p=>({...p,company:{...p.company,tags:(p.company.tags||[]).filter((_:any,j:number)=>j!==i)}}))} style={{background:'none',border:'none',cursor:'pointer',fontSize:14,color:'#C9951A',padding:0,lineHeight:1}}>×</button>
+                      <button onClick={()=>setEditCompanyModal(p=>({...p,company:{...p.company,tags:(p.company.tags||[]).filter((_:any,j:number)=>j!==i)}}))} style={{background:'none',border:'none',cursor:'pointer',fontSize:14,color:'var(--sign-dark)',padding:0,lineHeight:1}}>×</button>
                     </div>
                   ))}
                   <input type="text" value={tagInputAdmin} onChange={e=>setTagInputAdmin(e.target.value)} onKeyDown={e=>{
@@ -1640,14 +1641,14 @@ export default function AdminPage() {
                       }
                       setTagInputAdmin('')
                     }
-                  }} placeholder={(editCompanyModal.company.tags||[]).length===0?"ex: pizza, delivery, hambúrguer...":""} style={{border:'none',background:'transparent',outline:'none',fontSize:13,fontFamily:"'Inter',sans-serif",minWidth:120,flex:1}}/>
+                  }} placeholder={(editCompanyModal.company.tags||[]).length===0?"ex: pizza, delivery, hambúrguer...":""} style={{border:'none',background:'transparent',outline:'none',fontSize:13,fontFamily:"'Archivo',sans-serif",minWidth:120,flex:1}}/>
                 </div>
                 <div style={{fontSize:11,color:'#AAA',marginTop:4}}>{(editCompanyModal.company.tags||[]).length} tags</div>
               </div>
               <div>
                 <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Plano</label>
                 <select value={editCompanyModal.company.plan||''} onChange={e=>setEditCompanyModal(p=>({...p,company:{...p.company,plan:e.target.value}}))}
-                  style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}>
+                  style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Archivo,sans-serif'}}>
                   <option value="free">Grátis</option>
                   <option value="paid">Pago</option>
                 </select>
@@ -1657,7 +1658,7 @@ export default function AdminPage() {
                     <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:6}}>
                       {[30,60,90,180,365].map(d=>(
                         <button key={d} type="button" onClick={()=>setEditCompanyModal(p=>({...p,company:{...p.company,plan_days:d}}))}
-                          style={{padding:'5px 12px',borderRadius:8,border:'1.5px solid',borderColor:editCompanyModal.company.plan_days===d?'#C9951A':'#E0DDD8',background:editCompanyModal.company.plan_days===d?'#FEF3E2':'#fff',color:editCompanyModal.company.plan_days===d?'#854F0B':'#888',fontSize:12,cursor:'pointer',fontWeight:600}}>
+                          style={{padding:'5px 12px',borderRadius:8,border:'1.5px solid',borderColor:editCompanyModal.company.plan_days===d?'var(--sign-dark)':'#E0DDD8',background:editCompanyModal.company.plan_days===d?'#FEF3E2':'#fff',color:editCompanyModal.company.plan_days===d?'#854F0B':'#888',fontSize:12,cursor:'pointer',fontWeight:600}}>
                           {d}d
                         </button>
                       ))}
@@ -1665,7 +1666,7 @@ export default function AdminPage() {
                     <input type="number" placeholder="Ou digite os dias" min={1} max={365}
                       value={editCompanyModal.company.plan_days||''}
                       onChange={e=>setEditCompanyModal(p=>({...p,company:{...p.company,plan_days:Number(e.target.value)}}))}
-                      style={{width:'100%',padding:'8px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none'}}/>
+                      style={{width:'100%',padding:'8px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Archivo,sans-serif',outline:'none'}}/>
                     {editCompanyModal.company.plan_ends_at && (
                       <div style={{fontSize:11,color:'#888',marginTop:4}}>
                         Vence atual: {new Date(editCompanyModal.company.plan_ends_at).toLocaleDateString('pt-BR')}
@@ -1680,14 +1681,14 @@ export default function AdminPage() {
               <PhotoManager companyId={editCompanyModal.company.id} />
             </div>
             <div style={{display:'flex',gap:10}}>
-              <button onClick={saveCompanyEdit} disabled={savingEdit} style={{flex:1,padding:'12px',background:'#C9951A',color:'#fff',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+              <button onClick={saveCompanyEdit} disabled={savingEdit} style={{flex:1,padding:'12px',background:'var(--sign)',color:'var(--ink)',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>
                 {savingEdit?'Salvando...':'Salvar alterações'}
               </button>
-              <button onClick={()=>setEditCompanyModal({open:false,company:null})} style={{padding:'12px 20px',background:'transparent',color:'#AAA',border:'1px solid #ddd',borderRadius:10,fontSize:13,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>Cancelar</button>
+              <button onClick={()=>setEditCompanyModal({open:false,company:null})} style={{padding:'12px 20px',background:'transparent',color:'#AAA',border:'1px solid #ddd',borderRadius:10,fontSize:13,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>Cancelar</button>
             </div>
             <div style={{marginTop:20,paddingTop:20,borderTop:'1px solid #EDE8E0'}}>
               <div style={{fontSize:11,color:'#888',marginBottom:10,textTransform:'uppercase',letterSpacing:1,fontWeight:700}}>Zona de perigo</div>
-              <button onClick={()=>deleteCompany(editCompanyModal.company.id, editCompanyModal.company.name)} style={{width:'100%',padding:'12px',background:'transparent',color:'#E24B4A',border:'1.5px solid #E24B4A',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+              <button onClick={()=>deleteCompany(editCompanyModal.company.id, editCompanyModal.company.name)} style={{width:'100%',padding:'12px',background:'transparent',color:'#E24B4A',border:'1.5px solid #E24B4A',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>
                 🗑️ Excluir empresa permanentemente
               </button>
               <div style={{fontSize:11,color:'#AAA',marginTop:6,textAlign:'center'}}>Apaga todos os dados. Ação irreversível.</div>
@@ -1699,45 +1700,45 @@ export default function AdminPage() {
       {editUserModal.open && editUserModal.user && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:16,overflowY:'auto'}}>
           <div style={{background:'#fff',borderRadius:20,padding:28,maxWidth:440,width:'100%'}}>
-            <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,color:'#111',letterSpacing:1,marginBottom:20}}>EDITAR USUÁRIO</div>
+            <div style={{fontFamily:"'Anton',sans-serif",fontSize:22,color:'var(--ink)',letterSpacing:1,textTransform:'uppercase',marginBottom:20}}>EDITAR USUÁRIO</div>
             <div style={{marginBottom:14}}>
               <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Nome</label>
               <input value={editUserModal.user.name||''} onChange={e=>setEditUserModal(p=>({...p,user:{...p.user,name:e.target.value}}))}
-                style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+                style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Archivo,sans-serif'}}/>
             </div>
             <div style={{marginBottom:14}}>
               <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Email</label>
               <input value={editUserModal.user.email||''} onChange={e=>setEditUserModal(p=>({...p,user:{...p.user,email:e.target.value}}))}
-                style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+                style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Archivo,sans-serif'}}/>
             </div>
             <div style={{marginBottom:14}}>
               <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Bairro</label>
               <input value={editUserModal.user.neighborhood||''} onChange={e=>setEditUserModal(p=>({...p,user:{...p.user,neighborhood:e.target.value}}))}
-                style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+                style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Archivo,sans-serif'}}/>
             </div>
             <div style={{marginBottom:20}}>
               <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>WhatsApp</label>
               <input value={editUserModal.user.phone||''} onChange={e=>setEditUserModal(p=>({...p,user:{...p.user,phone:e.target.value.replace(/[^0-9]/g,'')}}))}
                 placeholder="21999999999" maxLength={11}
-                style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+                style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Archivo,sans-serif'}}/>
             </div>
-            <button onClick={saveUserEdit} disabled={savingEdit} style={{width:'100%',padding:'12px',background:'#C9951A',color:'#fff',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',marginBottom:16}}>
+            <button onClick={saveUserEdit} disabled={savingEdit} style={{width:'100%',padding:'12px',background:'var(--sign)',color:'var(--ink)',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Archivo,sans-serif',marginBottom:16}}>
               {savingEdit?'Salvando...':'Salvar alterações'}
             </button>
 
             <div style={{borderTop:'1px solid #EDE8E0',paddingTop:16}}>
               <div style={{fontSize:12,fontWeight:700,color:'#888',letterSpacing:1,marginBottom:10}}>SENHA</div>
-              <button onClick={sendResetLink} style={{width:'100%',padding:'10px',background:'#FEF3E2',color:'#854F0B',border:'1px solid #F5C77A',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',marginBottom:10}}>
+              <button onClick={sendResetLink} style={{width:'100%',padding:'10px',background:'#FEF3E2',color:'#854F0B',border:'1px solid #F5C77A',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Archivo,sans-serif',marginBottom:10}}>
                 ✉️ Enviar link de redefinição
               </button>
               <div style={{display:'flex',gap:8}}>
                 <input type="text" placeholder="Nova senha (mín. 6 caracteres)" value={newPassword} onChange={e=>setNewPassword(e.target.value)}
-                  style={{flex:1,padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
-                <button onClick={setNewPasswordDirect} style={{padding:'10px 16px',background:'#111',color:'#fff',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>Definir</button>
+                  style={{flex:1,padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Archivo,sans-serif'}}/>
+                <button onClick={setNewPasswordDirect} style={{padding:'10px 16px',background:'#111',color:'#fff',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>Definir</button>
               </div>
             </div>
 
-            <button onClick={()=>setEditUserModal({open:false,user:null})} style={{width:'100%',padding:'10px',background:'transparent',color:'#AAA',border:'1px solid #ddd',borderRadius:10,fontSize:13,cursor:'pointer',fontFamily:'Inter,sans-serif',marginTop:16}}>Fechar</button>
+            <button onClick={()=>setEditUserModal({open:false,user:null})} style={{width:'100%',padding:'10px',background:'transparent',color:'#AAA',border:'1px solid #ddd',borderRadius:10,fontSize:13,cursor:'pointer',fontFamily:'Archivo,sans-serif',marginTop:16}}>Fechar</button>
           </div>
         </div>
       )}
@@ -1837,7 +1838,7 @@ export default function AdminPage() {
               <div className="section-card">
                 <div className="section-hdr">
                   <span className="section-title">EMPRESAS ({filteredCompanies.length})</span>
-                  <input value={searchCompany} onChange={e=>setSearchCompany(e.target.value)} placeholder="🔍 Buscar empresa ou responsável..." style={{padding:'7px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none',width:260}}/>
+                  <input value={searchCompany} onChange={e=>setSearchCompany(e.target.value)} placeholder="🔍 Buscar empresa ou responsável..." style={{padding:'7px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Archivo,sans-serif',outline:'none',width:260}}/>
                   <div className="filter-row">
                     {['all','pending','active','suspended'].map(f => (
                       <button key={f} className={`filter-btn ${filterStatus===f?'on':''}`} onClick={() => setFilter(f)}>
@@ -1862,7 +1863,7 @@ export default function AdminPage() {
                             <tr key={c.id}>
                               <td><strong>{c.name}</strong><br/><span style={{fontSize:11,color:'#AAA'}}>{c.address || '—'}</span></td>
                               <td>{c.owner?.name || '—'}</td>
-                              <td>{c.phone ? <button onClick={()=>navigator.clipboard.writeText(c.phone||'').then(()=>showToast('Número copiado!'))} style={{background:'none',border:'none',cursor:'pointer',color:'#25D366',fontSize:12,padding:0,fontFamily:'Inter,sans-serif'}}>📋 {c.phone}</button> : '—'}</td>
+                              <td>{c.phone ? <button onClick={()=>navigator.clipboard.writeText(c.phone||'').then(()=>showToast('Número copiado!'))} style={{background:'none',border:'none',cursor:'pointer',color:'#25D366',fontSize:12,padding:0,fontFamily:'Archivo,sans-serif'}}>📋 {c.phone}</button> : '—'}</td>
                               <td>{c.category?.emoji} {c.category?.name || '—'}</td>
                               <td><span style={{fontSize:11,fontWeight:600,color:c.plan==='paid'?'#0F8050':'#AAA'}}>{c.plan==='paid'?'Pago':'Grátis'}</span></td>
                               <td>
@@ -1878,7 +1879,7 @@ export default function AdminPage() {
                                 {c.status === 'suspended' && <button className="action-btn btn-approve" onClick={() => approveCompany(c.id)}>Reativar</button>}
                                 <button className="action-btn btn-view" onClick={() => openPreviewCompany(c)}>Ver</button>
                                 <button className="action-btn" style={{background:'#185FA522',color:'#185FA5'}} onClick={() => openEditCompany(c)}>✏️ Editar</button>
-                                {c.status === 'active' && (() => { const n = emailLogs[c.id] || 0; const bg = n===0?'#EDFAF3':n===1?'#FEF3E2':n===2?'#FEE4D0':'#FCEBEB'; const cl = n===0?'#0F8050':n===1?'#C9951A':n===2?'#E07030':'#E24B4A'; return <button className="action-btn" style={{background:bg,color:cl}} onClick={()=>{ fetch('/api/email/aprovacao',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({company_id:c.id})}).then(()=>{showToast('Email enviado para ' + c.name);setEmailLogs(p=>({...p,[c.id]:(p[c.id]||0)+1}))}) }}>📧 {n===0?'Enviar email':n===1?'Enviado 1x':n===2?'Enviado 2x':'Enviado 3x+'}</button> })()}
+                                {c.status === 'active' && (() => { const n = emailLogs[c.id] || 0; const bg = n===0?'#EDFAF3':n===1?'#FEF3E2':n===2?'#FEE4D0':'#FCEBEB'; const cl = n===0?'#0F8050':n===1?'var(--sign-dark)':n===2?'#E07030':'#E24B4A'; return <button className="action-btn" style={{background:bg,color:cl}} onClick={()=>{ fetch('/api/email/aprovacao',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({company_id:c.id})}).then(()=>{showToast('Email enviado para ' + c.name);setEmailLogs(p=>({...p,[c.id]:(p[c.id]||0)+1}))}) }}>📧 {n===0?'Enviar email':n===1?'Enviado 1x':n===2?'Enviado 2x':'Enviado 3x+'}</button> })()}
                                 {c.status === 'active' && (
                                   <>
                                     <button className="action-btn" style={c.loja_digital_enabled ? {background:'#E4F3EC',color:'#157A52'} : {background:'#F0EDE8',color:'#888'}} onClick={() => toggleLojaDigital(c.id, !!c.loja_digital_enabled)}>
@@ -1917,23 +1918,23 @@ export default function AdminPage() {
                 <div className="section-hdr" style={{flexWrap:'wrap',gap:8,alignItems:'center'}}>
                   <span className="section-title">USUÁRIOS ({users.filter(u=>(searchUser===''||u.name.toLowerCase().includes(searchUser.toLowerCase())||(u.email||'').toLowerCase().includes(searchUser.toLowerCase()))&&(filterUserType==='all'||u.user_type===filterUserType)&&(filterUserBairro==='all'||(u.neighborhood||'')===filterUserBairro)&&(!filterNoCompany||(u.user_type==='company'&&!companies.find(c=>c.owner_id===u.id)))).length})</span>
                   <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
-                    <input value={searchUser} onChange={e=>setSearchUser(e.target.value)} placeholder="🔍 Buscar..." style={{padding:'7px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none',width:180}}/>
+                    <input value={searchUser} onChange={e=>setSearchUser(e.target.value)} placeholder="🔍 Buscar..." style={{padding:'7px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Archivo,sans-serif',outline:'none',width:180}}/>
                     {['all','user','company'].map(t=>(
                       <button key={t} onClick={()=>setFilterUserType(t)}
-                        style={{padding:'6px 14px',borderRadius:8,border:'1.5px solid',borderColor:filterUserType===t?'#C9951A':'#E0DDD8',background:filterUserType===t?'#FEF3E2':'#fff',color:filterUserType===t?'#854F0B':'#888',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                        style={{padding:'6px 14px',borderRadius:8,border:'1.5px solid',borderColor:filterUserType===t?'var(--sign-dark)':'#E0DDD8',background:filterUserType===t?'#FEF3E2':'#fff',color:filterUserType===t?'#854F0B':'#888',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>
                         {t==='all'?'Todos':t==='user'?'Moradores':'Lojistas'}
                       </button>
                     ))}
                     <button onClick={()=>{ setFilterNoCompany(v=>!v); if(!filterNoCompany) setFilterUserType('company') }}
-                      style={{padding:'6px 14px',borderRadius:8,border:'1.5px solid',borderColor:filterNoCompany?'#C9951A':'#E0DDD8',background:filterNoCompany?'#FEF3E2':'#fff',color:filterNoCompany?'#854F0B':'#888',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                      style={{padding:'6px 14px',borderRadius:8,border:'1.5px solid',borderColor:filterNoCompany?'var(--sign-dark)':'#E0DDD8',background:filterNoCompany?'#FEF3E2':'#fff',color:filterNoCompany?'#854F0B':'#888',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>
                       ⚠️ Sem empresa
                     </button>
-                    <select value={filterUserPlan} onChange={e=>setFilterUserPlan(e.target.value)} style={{padding:'7px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none',background:'#fff'}}>
+                    <select value={filterUserPlan} onChange={e=>setFilterUserPlan(e.target.value)} style={{padding:'7px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Archivo,sans-serif',outline:'none',background:'#fff'}}>
                       <option value="all">Todos os planos</option>
                       <option value="paid">Pago</option>
                       <option value="free">Gratuito</option>
                     </select>
-                    <select value={filterUserBairro} onChange={e=>setFilterUserBairro(e.target.value)} style={{padding:'7px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none',background:'#fff'}}>
+                    <select value={filterUserBairro} onChange={e=>setFilterUserBairro(e.target.value)} style={{padding:'7px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Archivo,sans-serif',outline:'none',background:'#fff'}}>
                       <option value="all">Todos os bairros</option>
                       {[...new Set(users.map(u=>u.neighborhood).filter(Boolean))].sort().map(b=>(
                         <option key={b} value={b}>{b}</option>
@@ -1960,7 +1961,7 @@ export default function AdminPage() {
                                 if (!comp) return <span style={{fontSize:11,color:'#AAA'}}>—</span>
                                 return <span style={{fontSize:11,fontWeight:600,color:comp.plan==='paid'?'#0F8050':'#AAA'}}>{comp.plan==='paid'?'Pago':'Grátis'}</span>
                               })()}</td>
-                              <td>{u.phone ? <button onClick={()=>navigator.clipboard.writeText(u.phone||'').then(()=>showToast('Número copiado!'))} style={{background:'none',border:'none',cursor:'pointer',color:'#25D366',fontSize:12,padding:0,fontFamily:'Inter,sans-serif'}}>📋 {u.phone}</button> : '—'}</td>
+                              <td>{u.phone ? <button onClick={()=>navigator.clipboard.writeText(u.phone||'').then(()=>showToast('Número copiado!'))} style={{background:'none',border:'none',cursor:'pointer',color:'#25D366',fontSize:12,padding:0,fontFamily:'Archivo,sans-serif'}}>📋 {u.phone}</button> : '—'}</td>
                               <td style={{fontSize:12,color:'#666'}}>{u.email || '—'}</td>
                               <td style={{textAlign:'center'}}>
                                 <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
@@ -2066,11 +2067,11 @@ export default function AdminPage() {
                       {!r.resolved && r.listing?.status === 'active' && (
                         <div style={{display:'flex',gap:6,flexShrink:0}}>
                           <button onClick={() => deleteListingFromReport(r.listing.id, r.id)}
-                            style={{padding:'5px 10px',background:'#2A0A0A',color:'#E24B4A',border:'0.5px solid #4A1515',borderRadius:7,fontSize:11,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                            style={{padding:'5px 10px',background:'#2A0A0A',color:'#E24B4A',border:'0.5px solid #4A1515',borderRadius:7,fontSize:11,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>
                             Excluir
                           </button>
                           <button onClick={() => resolveReport(r.id)}
-                            style={{padding:'5px 10px',background:'#0A1A0A',color:'#4CAF50',border:'0.5px solid #1A4A1A',borderRadius:7,fontSize:11,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                            style={{padding:'5px 10px',background:'#0A1A0A',color:'#4CAF50',border:'0.5px solid #1A4A1A',borderRadius:7,fontSize:11,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>
                             Ignorar
                           </button>
                         </div>
@@ -2092,12 +2093,12 @@ export default function AdminPage() {
                 </div>
 
                 {hlFormOpen && (
-                  <div style={{background:'#1A1A1A',border:'1px solid #C9951A',borderRadius:12,padding:16,marginBottom:16}}>
+                  <div style={{background:'#1A1A1A',border:'1px solid var(--sign)',borderRadius:12,padding:16,marginBottom:16}}>
                     <div style={{fontSize:12,fontWeight:600,color:'#fff',marginBottom:12}}>Novo destaque</div>
                     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:10}}>
                       <div>
                         <div style={{fontSize:10,color:'#888',marginBottom:4}}>EMPRESA</div>
-                        <select style={{width:'100%',padding:'7px 10px',borderRadius:8,border:'0.5px solid #333',background:'#111',color:'#fff',fontSize:12,fontFamily:'Inter,sans-serif'}}
+                        <select style={{width:'100%',padding:'7px 10px',borderRadius:8,border:'0.5px solid #333',background:'#111',color:'#fff',fontSize:12,fontFamily:'Archivo,sans-serif'}}
                           value={hlForm.company_id} onChange={e => setHlForm(f => ({...f,company_id:e.target.value}))}>
                           <option value="">Selecionar empresa...</option>
                           {companies.filter(c=>c.status==='active').map(c => (
@@ -2107,7 +2108,7 @@ export default function AdminPage() {
                       </div>
                       <div>
                         <div style={{fontSize:10,color:'#888',marginBottom:4}}>TIPO</div>
-                        <select style={{width:'100%',padding:'7px 10px',borderRadius:8,border:'0.5px solid #333',background:'#111',color:'#fff',fontSize:12,fontFamily:'Inter,sans-serif'}}
+                        <select style={{width:'100%',padding:'7px 10px',borderRadius:8,border:'0.5px solid #333',background:'#111',color:'#fff',fontSize:12,fontFamily:'Archivo,sans-serif'}}
                           value={hlForm.highlight_type} onChange={e => setHlForm(f => ({...f,highlight_type:e.target.value}))}>
                           <option value="manual">Manual (gratuito)</option>
                           <option value="paid">Pago</option>
@@ -2117,7 +2118,7 @@ export default function AdminPage() {
                     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:10}}>
                       <div>
                         <div style={{fontSize:10,color:'#888',marginBottom:4}}>ONDE APARECE</div>
-                        <select style={{width:'100%',padding:'7px 10px',borderRadius:8,border:'0.5px solid #333',background:'#111',color:'#fff',fontSize:12,fontFamily:'Inter,sans-serif'}}
+                        <select style={{width:'100%',padding:'7px 10px',borderRadius:8,border:'0.5px solid #333',background:'#111',color:'#fff',fontSize:12,fontFamily:'Archivo,sans-serif'}}
                           value={hlForm.scope_type} onChange={e => setHlForm(f => ({...f,scope_type:e.target.value,scope_id:''}))}>
                           <option value="global">Em toda a home</option>
                           <option value="category">Em uma categoria</option>
@@ -2129,14 +2130,14 @@ export default function AdminPage() {
                           {hlForm.scope_type === 'category' ? 'CATEGORIA' : hlForm.scope_type === 'subcategory' ? 'SUBCATEGORIA' : 'ESCOPO'}
                         </div>
                         {hlForm.scope_type === 'category' && (
-                          <select style={{width:'100%',padding:'7px 10px',borderRadius:8,border:'0.5px solid #333',background:'#111',color:'#fff',fontSize:12,fontFamily:'Inter,sans-serif'}}
+                          <select style={{width:'100%',padding:'7px 10px',borderRadius:8,border:'0.5px solid #333',background:'#111',color:'#fff',fontSize:12,fontFamily:'Archivo,sans-serif'}}
                             value={hlForm.scope_id} onChange={e => setHlForm(f => ({...f,scope_id:e.target.value}))}>
                             <option value="">Selecionar...</option>
                             {catOpts.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
                           </select>
                         )}
                         {hlForm.scope_type === 'subcategory' && (
-                          <select style={{width:'100%',padding:'7px 10px',borderRadius:8,border:'0.5px solid #333',background:'#111',color:'#fff',fontSize:12,fontFamily:'Inter,sans-serif'}}
+                          <select style={{width:'100%',padding:'7px 10px',borderRadius:8,border:'0.5px solid #333',background:'#111',color:'#fff',fontSize:12,fontFamily:'Archivo,sans-serif'}}
                             value={hlForm.scope_id} onChange={e => setHlForm(f => ({...f,scope_id:e.target.value}))}>
                             <option value="">Selecionar...</option>
                             {subcatOpts.map(s => <option key={s.id} value={s.id}>{s.emoji} {s.name}</option>)}
@@ -2149,7 +2150,7 @@ export default function AdminPage() {
                     </div>
                     <div style={{marginBottom:12}}>
                       <div style={{fontSize:10,color:'#888',marginBottom:4}}>EXPIRAÇÃO</div>
-                      <select style={{padding:'7px 10px',borderRadius:8,border:'0.5px solid #333',background:'#111',color:'#fff',fontSize:12,fontFamily:'Inter,sans-serif'}}
+                      <select style={{padding:'7px 10px',borderRadius:8,border:'0.5px solid #333',background:'#111',color:'#fff',fontSize:12,fontFamily:'Archivo,sans-serif'}}
                         value={hlForm.expires_at} onChange={e => setHlForm(f => ({...f,expires_at:e.target.value}))}>
                         <option value="">Sem expiração</option>
                         <option value="1">1 dia</option>
@@ -2164,7 +2165,7 @@ export default function AdminPage() {
                       </select>
                     </div>
                     <button onClick={saveHighlight} disabled={hlLoading || !hlForm.company_id}
-                      style={{padding:'9px 20px',background:'#C9951A',color:'#fff',border:'none',borderRadius:9,fontSize:13,fontWeight:600,fontFamily:'Inter,sans-serif',cursor:'pointer',opacity:(!hlForm.company_id||hlLoading)?0.6:1}}>
+                      style={{padding:'9px 20px',background:'var(--sign)',color:'var(--ink)',border:'none',borderRadius:9,fontSize:13,fontWeight:600,fontFamily:'Archivo,sans-serif',cursor:'pointer',opacity:(!hlForm.company_id||hlLoading)?0.6:1}}>
                       {hlLoading ? 'Salvando...' : 'Salvar destaque'}
                     </button>
                   </div>
@@ -2187,7 +2188,7 @@ export default function AdminPage() {
                         <div style={{flex:1,minWidth:0}}>
                           <div style={{fontSize:13,fontWeight:600,color:'#fff',marginBottom:3}}>{h.company?.name||'—'}</div>
                           <div style={{fontSize:11,color:'#666',display:'flex',gap:6,flexWrap:'wrap'}}>
-                            <span style={{background:h.highlight_type==='paid'?'#1A3A1A':'#2A1F0A',color:h.highlight_type==='paid'?'#4CAF50':'#C9951A',padding:'1px 8px',borderRadius:5,fontWeight:600,fontSize:10}}>
+                            <span style={{background:h.highlight_type==='paid'?'#1A3A1A':'#2A1F0A',color:h.highlight_type==='paid'?'#4CAF50':'var(--sign)',padding:'1px 8px',borderRadius:5,fontWeight:600,fontSize:10}}>
                               {h.highlight_type==='paid'?'Pago':'Manual'}
                             </span>
                             <span style={{background:'#1A1F2A',color:'#7aacf0',padding:'1px 8px',borderRadius:5,fontSize:10}}>{scopeLabel}</span>
@@ -2195,7 +2196,7 @@ export default function AdminPage() {
                           </div>
                         </div>
                         <button onClick={() => removeHighlight(h.id)}
-                          style={{padding:'5px 10px',background:'#2A0A0A',color:'#E24B4A',border:'0.5px solid #4A1515',borderRadius:7,fontSize:11,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                          style={{padding:'5px 10px',background:'#2A0A0A',color:'#E24B4A',border:'0.5px solid #4A1515',borderRadius:7,fontSize:11,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>
                           Remover
                         </button>
                       </div>
@@ -2278,18 +2279,18 @@ export default function AdminPage() {
                       {(bannerImagePreview || bannerCurrentImage) && (
                         <div style={{display:'flex',gap:8,marginTop:8}}>
                           <button onClick={() => fileInputRef.current?.click()}
-                            style={{fontSize:11,color:'#185FA5',background:'#f0f4ff',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Inter,sans-serif',fontWeight:600}}>
+                            style={{fontSize:11,color:'#185FA5',background:'#f0f4ff',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Archivo,sans-serif',fontWeight:600}}>
                             Trocar imagem
                           </button>
                           <button onClick={() => { setBannerImageFile(null); setBannerImagePreview(null); setBannerCurrentImage(null) }}
-                            style={{fontSize:11,color:'#dc2626',background:'#fef2f2',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                            style={{fontSize:11,color:'#dc2626',background:'#fef2f2',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>
                             Remover imagem
                           </button>
                         </div>
                       )}
                       {uploadProgress > 0 && uploadProgress < 100 && (
                         <div style={{marginTop:8,background:'#f0f0f0',borderRadius:4,overflow:'hidden',height:4}}>
-                          <div style={{height:'100%',background:'#C9951A',width:`${uploadProgress}%`,transition:'width 0.3s'}} />
+                          <div style={{height:'100%',background:'var(--sign-dark)',width:`${uploadProgress}%`,transition:'width 0.3s'}} />
                         </div>
                       )}
                       </div>
@@ -2309,11 +2310,11 @@ export default function AdminPage() {
                       {(bannerImagePreviewMobile || bannerCurrentImageMobile) && (
                         <div style={{display:'flex',gap:8,marginTop:8}}>
                           <button onClick={() => fileInputRefMobile.current?.click()}
-                            style={{fontSize:11,color:'#185FA5',background:'#f0f4ff',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Inter,sans-serif',fontWeight:600}}>
+                            style={{fontSize:11,color:'#185FA5',background:'#f0f4ff',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Archivo,sans-serif',fontWeight:600}}>
                             Trocar
                           </button>
                           <button onClick={() => { setBannerImageFileMobile(null); setBannerImagePreviewMobile(null); setBannerCurrentImageMobile(null) }}
-                            style={{fontSize:11,color:'#dc2626',background:'#fef2f2',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                            style={{fontSize:11,color:'#dc2626',background:'#fef2f2',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>
                             Remover
                           </button>
                         </div>
@@ -2371,11 +2372,11 @@ export default function AdminPage() {
 
                     <div style={{display:'flex',gap:8}}>
                       <button onClick={saveBanner} disabled={bannerLoading || (!bannerCurrentImage && !bannerImageFile)}
-                        style={{background:'#C9951A',color:'#111',border:'none',padding:'9px 22px',borderRadius:7,fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'Inter,sans-serif',opacity:(bannerLoading||(!bannerCurrentImage&&!bannerImageFile))?0.6:1}}>
+                        style={{background:'var(--sign)',color:'var(--ink)',border:'none',padding:'9px 22px',borderRadius:7,fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'Archivo,sans-serif',opacity:(bannerLoading||(!bannerCurrentImage&&!bannerImageFile))?0.6:1}}>
                         {bannerLoading ? 'Salvando...' : editingBannerId ? 'Salvar alterações' : 'Criar banner'}
                       </button>
                       <button onClick={() => { setBannerFormOpen(false); setEditingBannerId(null); setBannerForm({ title:'', subtitle:'', description:'', link_url:'', display_order:0 }); setBannerImageFile(null); setBannerImagePreview(null); setBannerCurrentImage(null); setBannerImageFileMobile(null); setBannerImagePreviewMobile(null); setBannerCurrentImageMobile(null); setBannerCompanySearch(''); setBannerCompanyResults([]) }}
-                        style={{background:'transparent',color:'#666',border:'1px solid #ddd',padding:'9px 16px',borderRadius:7,fontSize:13,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                        style={{background:'transparent',color:'#666',border:'1px solid #ddd',padding:'9px 16px',borderRadius:7,fontSize:13,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>
                         Cancelar
                       </button>
                     </div>
@@ -2396,7 +2397,7 @@ export default function AdminPage() {
                           <div style={{height:80,overflow:'hidden',position:'relative'}}>
                             <Image unoptimized src={b.image_url} alt={b.title} fill sizes="300px" style={{objectFit:'cover'}} />
                             <div style={{position:'absolute',inset:0,background:'linear-gradient(90deg,rgba(0,0,0,0.55),transparent)'}} />
-                            <div style={{position:'absolute',left:14,top:'50%',transform:'translateY(-50%)',color:'#fff',fontFamily:'"Bebas Neue",sans-serif',fontSize:20,letterSpacing:1}}>
+                            <div style={{position:'absolute',left:14,top:'50%',transform:'translateY(-50%)',color:'#fff',fontFamily:'"Anton",sans-serif',fontSize:20,letterSpacing:1}}>
                               {b.title}
                             </div>
                           </div>
@@ -2410,7 +2411,7 @@ export default function AdminPage() {
                               {!b.image_url && <div style={{fontSize:14,fontWeight:600,color:'#111',marginBottom:2}}>{b.title}</div>}
                               {b.subtitle && <div style={{fontSize:12,color:'#888'}}>{b.subtitle}</div>}
                               {b.link_url && (
-                                <div style={{fontSize:11,color:'#C9951A',marginTop:3,display:'flex',alignItems:'center',gap:4}}>
+                                <div style={{fontSize:11,color:'var(--sign-dark)',marginTop:3,display:'flex',alignItems:'center',gap:4}}>
                                   🔗 <span style={{wordBreak:'break-all'}}>{b.link_url}</span>
                                 </div>
                               )}
@@ -2423,15 +2424,15 @@ export default function AdminPage() {
                               {b.active ? 'Ativo' : 'Inativo'}
                             </span>
                             <button onClick={() => { openEditBanner(b); setBannerFormOpen(true) }}
-                              style={{fontSize:11,color:'#185FA5',background:'#f0f4ff',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Inter,sans-serif',fontWeight:600}}>
+                              style={{fontSize:11,color:'#185FA5',background:'#f0f4ff',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Archivo,sans-serif',fontWeight:600}}>
                               Editar
                             </button>
                             <button onClick={() => toggleBanner(b.id, b.active)}
-                              style={{fontSize:11,color:'#555',background:'#f5f5f5',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                              style={{fontSize:11,color:'#555',background:'#f5f5f5',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>
                               {b.active ? 'Desativar' : 'Ativar'}
                             </button>
                             <button onClick={() => deleteBanner(b.id)}
-                              style={{fontSize:11,color:'#dc2626',background:'#fef2f2',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Inter,sans-serif',fontWeight:600}}>
+                              style={{fontSize:11,color:'#dc2626',background:'#fef2f2',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Archivo,sans-serif',fontWeight:600}}>
                               Excluir
                             </button>
                           </div>
@@ -2447,13 +2448,13 @@ export default function AdminPage() {
             {!loading && tab === 'pedidos-banner' && (
               <div>
                 <div style={{display:'flex',gap:10,marginBottom:16,flexWrap:'wrap',alignItems:'center'}}>
-                  <select value={bannerFilter} onChange={e=>setBannerFilter(e.target.value as any)} style={{padding:'8px 12px',borderRadius:8,border:'1px solid #E0DDD8',fontSize:12,fontFamily:'Inter,sans-serif',background:'#fff'}}>
+                  <select value={bannerFilter} onChange={e=>setBannerFilter(e.target.value as any)} style={{padding:'8px 12px',borderRadius:8,border:'1px solid #E0DDD8',fontSize:12,fontFamily:'Archivo,sans-serif',background:'#fff'}}>
                     <option value="all">Todos os status</option>
                     <option value="pending">⏳ Pendente</option>
                     <option value="in_progress">🔄 Em produção</option>
                     <option value="delivered">✅ Entregue</option>
                   </select>
-                  <select value={bannerSort} onChange={e=>setBannerSort(e.target.value as any)} style={{padding:'8px 12px',borderRadius:8,border:'1px solid #E0DDD8',fontSize:12,fontFamily:'Inter,sans-serif',background:'#fff'}}>
+                  <select value={bannerSort} onChange={e=>setBannerSort(e.target.value as any)} style={{padding:'8px 12px',borderRadius:8,border:'1px solid #E0DDD8',fontSize:12,fontFamily:'Archivo,sans-serif',background:'#fff'}}>
                     <option value="recent">Mais recentes primeiro</option>
                     <option value="urgent">Vencendo primeiro</option>
                     <option value="far">Mais tempo restante primeiro</option>
@@ -2503,7 +2504,7 @@ export default function AdminPage() {
                               }
                               await supabase.from('banner_requests').update(updates).eq('id', req.id)
                               loadBannerRequests()
-                            }} style={{padding:'6px 10px',borderRadius:8,border:'1px solid #E0DDD8',fontSize:11,fontFamily:'Inter,sans-serif',background:'#fff'}}>
+                            }} style={{padding:'6px 10px',borderRadius:8,border:'1px solid #E0DDD8',fontSize:11,fontFamily:'Archivo,sans-serif',background:'#fff'}}>
                               <option value="pending">⏳ Pendente</option>
                               <option value="in_progress">🔄 Em produção</option>
                               <option value="delivered">✅ Entregue</option>
@@ -2522,7 +2523,7 @@ export default function AdminPage() {
                                   <a href={req.file_desktop_url} target="_blank" rel="noopener noreferrer">
                                     <Image unoptimized src={req.file_desktop_url} width={180} height={45} style={{objectFit:'cover',borderRadius:6,border:'1px solid #EDE8E0',cursor:'pointer'}} alt="desktop" title="Clique para ampliar"/>
                                   </a>
-                                  <a href={`/api/download-banner?url=${encodeURIComponent(req.file_desktop_url)}&filename=banner-desktop-${req.company?.name||'empresa'}.png`} style={{display:'block',fontSize:10,color:'#C9951A',fontWeight:600,textDecoration:'none',marginTop:3,textAlign:'center'}}>⬇ Download</a>
+                                  <a href={`/api/download-banner?url=${encodeURIComponent(req.file_desktop_url)}&filename=banner-desktop-${req.company?.name||'empresa'}.png`} style={{display:'block',fontSize:10,color:'var(--sign-dark)',fontWeight:600,textDecoration:'none',marginTop:3,textAlign:'center'}}>⬇ Download</a>
                                 </div>
                               )}
                               {req.file_mobile_url && (
@@ -2531,7 +2532,7 @@ export default function AdminPage() {
                                   <a href={req.file_mobile_url} target="_blank" rel="noopener noreferrer">
                                     <Image unoptimized src={req.file_mobile_url} width={68} height={45} style={{objectFit:'cover',borderRadius:6,border:'1px solid #EDE8E0',cursor:'pointer'}} alt="mobile" title="Clique para ampliar"/>
                                   </a>
-                                  <a href={`/api/download-banner?url=${encodeURIComponent(req.file_mobile_url)}&filename=banner-mobile-${req.company?.name||'empresa'}.png`} style={{display:'block',fontSize:10,color:'#C9951A',fontWeight:600,textDecoration:'none',marginTop:3,textAlign:'center'}}>⬇ Download</a>
+                                  <a href={`/api/download-banner?url=${encodeURIComponent(req.file_mobile_url)}&filename=banner-mobile-${req.company?.name||'empresa'}.png`} style={{display:'block',fontSize:10,color:'var(--sign-dark)',fontWeight:600,textDecoration:'none',marginTop:3,textAlign:'center'}}>⬇ Download</a>
                                 </div>
                               )}
                             </div>
@@ -2551,14 +2552,14 @@ export default function AdminPage() {
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
                   <div style={{fontSize:13,color:'#888'}}>Gerencie os planos disponíveis para os lojistas.</div>
                   <button onClick={()=>setPlanForm({name:'',type:'subscription',days:30,value:'',description:'',highlight:false,highlight_label:'',active:true,display_order:99})}
-                    style={{padding:'8px 16px',background:'#C9951A',color:'#fff',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                    style={{padding:'8px 16px',background:'var(--sign)',color:'var(--ink)',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>
                     + Novo plano
                   </button>
                 </div>
 
                 {['subscription','banner','highlight'].map(type => (
                   <div key={type} style={{marginBottom:24}}>
-                    <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:16,color:'#AAA',letterSpacing:1,marginBottom:10}}>
+                    <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:12,color:'#AAA',letterSpacing:.8,textTransform:'uppercase',marginBottom:10}}>
                       {type === 'subscription' ? '📋 PLANOS DE VISIBILIDADE' : type === 'banner' ? '📢 PLANOS DE BANNER' : '⭐ PLANOS DE DESTAQUE'}
                     </div>
                     <div style={{display:'flex',flexDirection:'column',gap:8}}>
@@ -2567,17 +2568,17 @@ export default function AdminPage() {
                           <div style={{flex:1,minWidth:0}}>
                             <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:3}}>
                               <span style={{fontWeight:600,fontSize:14,color:'#111'}}>{p.name}</span>
-                              {p.highlight && <span style={{fontSize:10,background:'#C9951A',color:'#fff',padding:'2px 7px',borderRadius:4,fontWeight:700}}>{p.highlight_label||'DESTAQUE'}</span>}
+                              {p.highlight && <span style={{fontSize:10,background:'var(--sign)',color:'var(--ink)',padding:'2px 7px',borderRadius:4,fontWeight:700}}>{p.highlight_label||'DESTAQUE'}</span>}
                               <span style={{fontSize:11,color:p.active?'#0F8050':'#E24B4A',fontWeight:600}}>{p.active?'● Ativo':'● Inativo'}</span>
                             </div>
                             <div style={{fontSize:12,color:'#888'}}>{p.days} dias · R$ {Number(p.value).toFixed(2)} · {p.description}</div>
                           </div>
                           <div style={{display:'flex',gap:8,flexShrink:0}}>
-                            <button onClick={()=>togglePlan(p.id, !p.active)} style={{padding:'6px 12px',background:p.active?'#FAEEDA':'#EAF3DE',color:p.active?'#854F0B':'#0F6E56',border:'none',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                            <button onClick={()=>togglePlan(p.id, !p.active)} style={{padding:'6px 12px',background:p.active?'#FAEEDA':'#EAF3DE',color:p.active?'#854F0B':'#0F6E56',border:'none',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>
                               {p.active ? '⏸ Desativar' : '▶ Ativar'}
                             </button>
-                            <button onClick={()=>setPlanForm({...p})} style={{padding:'6px 12px',background:'#F5F0E8',color:'#854F0B',border:'none',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>✏️ Editar</button>
-                            <button onClick={()=>deletePlan(p.id)} style={{padding:'6px 12px',background:'#FCEBEB',color:'#E24B4A',border:'none',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>🗑️</button>
+                            <button onClick={()=>setPlanForm({...p})} style={{padding:'6px 12px',background:'#F5F0E8',color:'#854F0B',border:'none',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>✏️ Editar</button>
+                            <button onClick={()=>deletePlan(p.id)} style={{padding:'6px 12px',background:'#FCEBEB',color:'#E24B4A',border:'none',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>🗑️</button>
                           </div>
                         </div>
                       ))}
@@ -2588,17 +2589,17 @@ export default function AdminPage() {
                 {planForm && (
                   <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
                     <div style={{background:'#fff',borderRadius:20,padding:28,maxWidth:480,width:'100%',maxHeight:'90vh',overflowY:'auto'}}>
-                      <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,color:'#111',letterSpacing:1,marginBottom:20}}>{planForm.id ? 'EDITAR PLANO' : 'NOVO PLANO'}</div>
+                      <div style={{fontFamily:"'Anton',sans-serif",fontSize:22,color:'var(--ink)',letterSpacing:1,textTransform:'uppercase',marginBottom:20}}>{planForm.id ? 'EDITAR PLANO' : 'NOVO PLANO'}</div>
                       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
                         <div style={{gridColumn:'1/-1'}}>
                           <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Nome do plano</label>
                           <input value={planForm.name} onChange={e=>setPlanForm((p:any)=>({...p,name:e.target.value}))}
-                            style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+                            style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Archivo,sans-serif'}}/>
                         </div>
                         <div>
                           <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Tipo</label>
                           <select value={planForm.type} onChange={e=>setPlanForm((p:any)=>({...p,type:e.target.value}))}
-                            style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}>
+                            style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Archivo,sans-serif'}}>
                             <option value="subscription">Visibilidade</option>
                             <option value="banner">Banner</option>
                           </select>
@@ -2606,27 +2607,27 @@ export default function AdminPage() {
                         <div>
                           <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Dias</label>
                           <input type="number" value={planForm.days} onChange={e=>setPlanForm((p:any)=>({...p,days:e.target.value}))}
-                            style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+                            style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Archivo,sans-serif'}}/>
                         </div>
                         <div>
                           <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Valor (R$)</label>
                           <input type="number" step="0.01" value={planForm.value} onChange={e=>setPlanForm((p:any)=>({...p,value:e.target.value}))}
-                            style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+                            style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Archivo,sans-serif'}}/>
                         </div>
                         <div style={{gridColumn:'1/-1'}}>
                           <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Descrição</label>
                           <input value={planForm.description||''} onChange={e=>setPlanForm((p:any)=>({...p,description:e.target.value}))}
-                            style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+                            style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Archivo,sans-serif'}}/>
                         </div>
                         <div>
                           <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Ordem</label>
                           <input type="number" value={planForm.display_order} onChange={e=>setPlanForm((p:any)=>({...p,display_order:e.target.value}))}
-                            style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+                            style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Archivo,sans-serif'}}/>
                         </div>
                         <div>
                           <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Status</label>
                           <select value={planForm.active?'true':'false'} onChange={e=>setPlanForm((p:any)=>({...p,active:e.target.value==='true'}))}
-                            style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}>
+                            style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Archivo,sans-serif'}}>
                             <option value="true">Ativo</option>
                             <option value="false">Inativo</option>
                           </select>
@@ -2639,15 +2640,15 @@ export default function AdminPage() {
                           <div>
                             <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Label do destaque</label>
                             <input value={planForm.highlight_label||''} onChange={e=>setPlanForm((p:any)=>({...p,highlight_label:e.target.value}))} placeholder="ex: MAIS POPULAR"
-                              style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+                              style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Archivo,sans-serif'}}/>
                           </div>
                         )}
                       </div>
                       <div style={{display:'flex',gap:10,marginTop:20}}>
-                        <button onClick={savePlan} disabled={savingPlan} style={{flex:1,padding:'12px',background:'#C9951A',color:'#fff',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                        <button onClick={savePlan} disabled={savingPlan} style={{flex:1,padding:'12px',background:'var(--sign)',color:'var(--ink)',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>
                           {savingPlan?'Salvando...':'Salvar plano'}
                         </button>
-                        <button onClick={()=>setPlanForm(null)} style={{padding:'12px 20px',background:'transparent',color:'#AAA',border:'1px solid #ddd',borderRadius:10,fontSize:13,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>Cancelar</button>
+                        <button onClick={()=>setPlanForm(null)} style={{padding:'12px 20px',background:'transparent',color:'#AAA',border:'1px solid #ddd',borderRadius:10,fontSize:13,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>Cancelar</button>
                       </div>
                     </div>
                   </div>
@@ -2690,11 +2691,11 @@ export default function AdminPage() {
 
                 <div style={{display:'flex',gap:8,marginBottom:20}}>
                   <button onClick={()=>setSubcatInnerTab('lista')}
-                    style={{padding:'8px 16px',borderRadius:10,border:subcatInnerTab==='lista'?'1.5px solid #C9951A':'1.5px solid #E0DDD8',background:subcatInnerTab==='lista'?'#FEF3E2':'#fff',color:subcatInnerTab==='lista'?'#92600A':'#666',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                    style={{padding:'8px 16px',borderRadius:10,border:subcatInnerTab==='lista'?'1.5px solid var(--sign-dark)':'1.5px solid #E0DDD8',background:subcatInnerTab==='lista'?'#FEF3E2':'#fff',color:subcatInnerTab==='lista'?'#92600A':'#666',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>
                     🏷️ Subcategorias
                   </button>
                   <button onClick={()=>setSubcatInnerTab('sugestoes')}
-                    style={{padding:'8px 16px',borderRadius:10,border:subcatInnerTab==='sugestoes'?'1.5px solid #C9951A':'1.5px solid #E0DDD8',background:subcatInnerTab==='sugestoes'?'#FEF3E2':'#fff',color:subcatInnerTab==='sugestoes'?'#92600A':'#666',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                    style={{padding:'8px 16px',borderRadius:10,border:subcatInnerTab==='sugestoes'?'1.5px solid var(--sign-dark)':'1.5px solid #E0DDD8',background:subcatInnerTab==='sugestoes'?'#FEF3E2':'#fff',color:subcatInnerTab==='sugestoes'?'#92600A':'#666',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>
                     💡 Sugestões {sugestoesList.length > 0 ? `(${sugestoesList.length})` : ''}
                   </button>
                 </div>
@@ -2746,7 +2747,7 @@ export default function AdminPage() {
                 )}
 
                 <div style={{background:'#fff',border:'0.5px solid #EDE8E0',borderRadius:14,padding:'20px 24px',marginBottom:24}}>
-                  <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:14,color:'#888',letterSpacing:1,marginBottom:16}}>
+                  <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:12,color:'#888',letterSpacing:.8,textTransform:'uppercase',marginBottom:16}}>
                     {editingSubcatId ? '✏️ EDITAR SUBCATEGORIA' : '+ NOVA SUBCATEGORIA'}
                   </div>
                   <div style={{display:'grid',gridTemplateColumns:'auto 1fr 1fr',gap:12,alignItems:'end'}}>
@@ -2771,12 +2772,12 @@ export default function AdminPage() {
                       <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Nome</label>
                       <input value={subcatForm.name} onChange={e=>setSubcatForm((p:any)=>({...p,name:e.target.value}))}
                         placeholder="Ex: Pizzaria"
-                        style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+                        style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Archivo,sans-serif'}}/>
                     </div>
                     <div>
                       <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Categoria pai</label>
                       <select value={subcatForm.category_id} onChange={e=>setSubcatForm((p:any)=>({...p,category_id:e.target.value}))}
-                        style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}>
+                        style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Archivo,sans-serif'}}>
                         <option value="">Selecione...</option>
                         {catOpts.map((c:any)=><option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
                       </select>
@@ -2784,19 +2785,19 @@ export default function AdminPage() {
                   </div>
                   <div style={{display:'flex',gap:10,marginTop:16}}>
                     <button onClick={saveSubcat} disabled={savingSubcat}
-                      style={{padding:'10px 24px',background:'#C9951A',color:'#fff',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',opacity:savingSubcat?0.6:1}}>
+                      style={{padding:'10px 24px',background:'var(--sign)',color:'var(--ink)',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Archivo,sans-serif',opacity:savingSubcat?0.6:1}}>
                       {savingSubcat ? 'Salvando...' : editingSubcatId ? 'Salvar alterações' : 'Criar subcategoria'}
                     </button>
                     {editingSubcatId && (
                       <button onClick={()=>{ setSubcatForm({name:'',emoji:'',category_id:''}); setEditingSubcatId(null); setSubcatEmojiOpen(false) }}
-                        style={{padding:'10px 20px',background:'transparent',color:'#888',border:'1px solid #E0DDD8',borderRadius:10,fontSize:13,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                        style={{padding:'10px 20px',background:'transparent',color:'#888',border:'1px solid #E0DDD8',borderRadius:10,fontSize:13,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>
                         Cancelar
                       </button>
                     )}
                   </div>
                 </div>
 
-                <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:14,color:'#888',letterSpacing:1,marginBottom:12}}>
+                <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:12,color:'#888',letterSpacing:.8,textTransform:'uppercase',marginBottom:12}}>
                 <input placeholder="🔍 Buscar subcategoria..." value={subcatSearch} onChange={e=>setSubcatSearch(e.target.value)} style={{width:"100%",padding:"10px 14px",border:"1.5px solid #E0DDD8",borderRadius:10,fontSize:13,fontFamily:"Inter,sans-serif",outline:"none",marginBottom:12}}/>
                   SUBCATEGORIAS CADASTRADAS ({subcatsList.length})
                 </div>
@@ -2814,11 +2815,11 @@ export default function AdminPage() {
                             <span style={{fontSize:20}}>{sc.emoji}</span>
                             <span style={{flex:1,fontSize:13,fontWeight:500,color:'#333'}}>{sc.name}</span>
                             <button onClick={()=>editSubcat(sc)} title="Editar"
-                              style={{padding:'4px 8px',background:'#F0F4FF',color:'#185FA5',border:'none',borderRadius:6,fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                              style={{padding:'4px 8px',background:'#F0F4FF',color:'#185FA5',border:'none',borderRadius:6,fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>
                               ✏️
                             </button>
                             <button onClick={()=>deleteSubcat(sc.id)} title="Excluir"
-                              style={{padding:'4px 8px',background:'#FEF0F0',color:'#E24B4A',border:'none',borderRadius:6,fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                              style={{padding:'4px 8px',background:'#FEF0F0',color:'#E24B4A',border:'none',borderRadius:6,fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>
                               🗑️
                             </button>
                           </div>
@@ -2837,7 +2838,7 @@ export default function AdminPage() {
                 <div style={{fontSize:13,color:'#888',marginBottom:24,lineHeight:1.6}}>Personalize a aparência do site. As mudanças têm efeito imediato para todos os visitantes.</div>
 
                 <div style={{background:'#fff',border:'0.5px solid #EDE8E0',borderRadius:14,padding:'20px 24px',marginBottom:20}}>
-                  <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:14,color:'#888',letterSpacing:1,marginBottom:16}}>BANNER DA HOME</div>
+                  <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:12,color:'#888',letterSpacing:.8,textTransform:'uppercase',marginBottom:16}}>BANNER DA HOME</div>
                   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
                     <div>
                       <div style={{fontWeight:600,fontSize:14,color:'#111',marginBottom:4}}>Exibir banner na home</div>
@@ -2854,7 +2855,7 @@ export default function AdminPage() {
                 </div>
 
                 <div style={{background:'#fff',border:'0.5px solid #EDE8E0',borderRadius:14,padding:'20px 24px',marginBottom:20}}>
-                  <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:14,color:'#888',letterSpacing:1,marginBottom:6}}>NOVAS SEÇÕES DA HOME</div>
+                  <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:12,color:'#888',letterSpacing:.8,textTransform:'uppercase',marginBottom:6}}>NOVAS SEÇÕES DA HOME</div>
                   <div style={{fontSize:12,color:'#AAA',marginBottom:16,lineHeight:1.6}}>Dependem de dado cadastrado pelas empresas (horário e entrega) — deixe desativado até ter cobertura suficiente, senão a seção sai vazia ou incompleta.</div>
 
                   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 0',borderBottom:'0.5px solid #F0EDE8'}}>
@@ -2887,7 +2888,7 @@ export default function AdminPage() {
                 </div>
 
                 <div style={{background:'#fff',border:'0.5px solid #EDE8E0',borderRadius:14,padding:'20px 24px'}}>
-                  <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:14,color:'#888',letterSpacing:1,marginBottom:16}}>TEMA DE CORES</div>
+                  <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:12,color:'#888',letterSpacing:.8,textTransform:'uppercase',marginBottom:16}}>TEMA DE CORES</div>
                   <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12}}>
                     {[
                       {id:'classico-preto',nome:'Clássico Preto',hero:'#111111',dest:'#C9951A'},
@@ -2898,21 +2899,21 @@ export default function AdminPage() {
                       {id:'branco-limpo',nome:'Branco Limpo',hero:'#F5F5F5',dest:'#C9951A'},
                     ].map(t=>(
                       <div key={t.id} onClick={()=>{ setSiteTheme(t.id); saveAppearance(t.id,bannerEnabled) }}
-                        style={{border:siteTheme===t.id?'2px solid #C9951A':'1.5px solid #EDE8E0',borderRadius:12,padding:12,cursor:'pointer',background:siteTheme===t.id?'#FEF3E2':'#FAFAF8',transition:'all .15s'}}>
+                        style={{border:siteTheme===t.id?'2px solid var(--sign-dark)':'1.5px solid #EDE8E0',borderRadius:12,padding:12,cursor:'pointer',background:siteTheme===t.id?'#FEF3E2':'#FAFAF8',transition:'all .15s'}}>
                         <div style={{display:'flex',gap:6,marginBottom:8}}>
                           <div style={{flex:1,height:28,borderRadius:6,background:t.hero}}/>
                           <div style={{width:28,height:28,borderRadius:6,background:t.dest}}/>
                         </div>
                         <div style={{fontSize:12,fontWeight:600,color:'#111',marginBottom:4}}>{t.nome}</div>
-                        {siteTheme===t.id && <div style={{fontSize:10,color:'#C9951A',fontWeight:700}}>✓ ATIVO</div>}
+                        {siteTheme===t.id && <div style={{fontSize:10,color:'var(--sign-dark)',fontWeight:700}}>✓ ATIVO</div>}
                       </div>
                     ))}
                   </div>
-                  {savingAppearance && <div style={{fontSize:12,color:'#C9951A',marginTop:12}}>Salvando...</div>}
+                  {savingAppearance && <div style={{fontSize:12,color:'var(--sign-dark)',marginTop:12}}>Salvando...</div>}
                 </div>
 
                 <div style={{background:'#fff',border:'0.5px solid #EDE8E0',borderRadius:14,padding:'20px 24px',marginTop:20}}>
-                  <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:14,color:'#888',letterSpacing:1,marginBottom:6}}>PULSO DO BAIRRO</div>
+                  <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:12,color:'#888',letterSpacing:.8,textTransform:'uppercase',marginBottom:6}}>PULSO DO BAIRRO</div>
                   <div style={{fontSize:12,color:'#AAA',marginBottom:16}}>Frases que rodam em loop na faixa abaixo da busca, na home. Frases inativas ficam salvas mas não aparecem no site.</div>
 
                   <div style={{fontSize:11,fontWeight:700,color:'#666',letterSpacing:0.5,marginBottom:8,textTransform:'uppercase' as const}}>Cor da faixa</div>
@@ -2925,10 +2926,10 @@ export default function AdminPage() {
                       {id:'elegante', nome:'Elegante', bg:'#FFFFFF', txt:'#111111'},
                     ].map(c=>(
                       <div key={c.id} onClick={()=>savePulseColor(c.id)}
-                        style={{border:pulseColorPreset===c.id?'2px solid #C9951A':'1.5px solid #EDE8E0',borderRadius:10,padding:6,cursor:'pointer',textAlign:'center' as const}}>
+                        style={{border:pulseColorPreset===c.id?'2px solid var(--sign-dark)':'1.5px solid #EDE8E0',borderRadius:10,padding:6,cursor:'pointer',textAlign:'center' as const}}>
                         <div style={{background:c.bg,color:c.txt,borderRadius:6,padding:'8px 2px',fontSize:10,fontWeight:700,marginBottom:4,border:c.bg==='#FFFFFF'?'0.5px solid #E0DDD8':'none'}}>Abc</div>
                         <div style={{fontSize:10,color:'#888',fontWeight:600}}>{c.nome}</div>
-                        {pulseColorPreset===c.id && <div style={{fontSize:9,color:'#C9951A',fontWeight:700}}>✓</div>}
+                        {pulseColorPreset===c.id && <div style={{fontSize:9,color:'var(--sign-dark)',fontWeight:700}}>✓</div>}
                       </div>
                     ))}
                   </div>
@@ -2937,7 +2938,7 @@ export default function AdminPage() {
                     {pulseMessages.map(p => (
                       <div key={p.id} style={{display:'flex',alignItems:'center',gap:8}}>
                         <input value={p.message} onChange={e=>updatePulseMessage(p.id,{message:e.target.value})} placeholder="Ex: 🎉 Bem-vindo à Trindade!"
-                          style={{flex:1,padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none'}}/>
+                          style={{flex:1,padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Archivo,sans-serif',outline:'none'}}/>
                         <div onClick={()=>updatePulseMessage(p.id,{active:!p.active})}
                           style={{width:40,height:22,borderRadius:11,background:p.active?'#0F8050':'#E0DDD8',cursor:'pointer',position:'relative',transition:'background .2s',flexShrink:0}}>
                           <div style={{position:'absolute',top:2,left:p.active?20:2,width:18,height:18,borderRadius:'50%',background:'#fff',boxShadow:'0 1px 4px rgba(0,0,0,.2)',transition:'left .2s'}}/>
@@ -2947,7 +2948,7 @@ export default function AdminPage() {
                     ))}
                   </div>
                   <button onClick={addPulseMessage} style={{width:'100%',marginTop:10,padding:'9px',background:'#fafafa',border:'1.5px dashed #ddd',color:'#aaa',borderRadius:10,fontSize:12,fontWeight:600,cursor:'pointer'}}>+ Adicionar frase</button>
-                  <button onClick={savePulseMessages} disabled={savingPulse} style={{width:'100%',marginTop:14,padding:11,background:'#C9951A',color:'#111',border:'none',borderRadius:10,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',opacity:savingPulse?0.6:1}}>
+                  <button onClick={savePulseMessages} disabled={savingPulse} style={{width:'100%',marginTop:14,padding:11,background:'var(--sign)',color:'var(--ink)',border:'none',borderRadius:10,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'Archivo,sans-serif',opacity:savingPulse?0.6:1}}>
                     {savingPulse?'Salvando...':'Salvar alterações'}
                   </button>
                 </div>
@@ -2964,7 +2965,7 @@ export default function AdminPage() {
                   <div style={{padding:'20px 24px'}}>
                     <div style={{fontSize:13,color:'#666',marginBottom:16,lineHeight:1.6}}>
                       Cole aqui o <strong>Access Token de produção</strong> do Mercado Pago.<br/>
-                      Encontre em: <span style={{color:'#C9951A'}}>mercadopago.com.br/developers → Credenciais de produção</span>
+                      Encontre em: <span style={{color:'var(--sign-dark)'}}>mercadopago.com.br/developers → Credenciais de produção</span>
                     </div>
                     <div className="field">
                       <label>Access Token</label>
@@ -2999,7 +3000,7 @@ export default function AdminPage() {
                     <button
                       onClick={saveMpToken}
                       disabled={mpTokenSaving}
-                      style={{padding:'10px 24px',background:'#C9951A',color:'#fff',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',opacity:mpTokenSaving?0.6:1}}
+                      style={{padding:'10px 24px',background:'var(--sign)',color:'var(--ink)',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Archivo,sans-serif',opacity:mpTokenSaving?0.6:1}}
                     >
                       {mpTokenSaving ? 'Salvando...' : 'Salvar token'}
                     </button>
@@ -3021,7 +3022,7 @@ export default function AdminPage() {
                       </div>
                     )}
                     <button onClick={runRepairPhotos} disabled={repairRunning}
-                      style={{padding:'10px 24px',background:'#C9951A',color:'#fff',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',opacity:repairRunning?0.6:1}}>
+                      style={{padding:'10px 24px',background:'var(--sign)',color:'var(--ink)',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Archivo,sans-serif',opacity:repairRunning?0.6:1}}>
                       {repairRunning ? 'Rodando...' : 'Reparar fotos quebradas'}
                     </button>
                   </div>
@@ -3042,7 +3043,7 @@ export default function AdminPage() {
                       </div>
                     )}
                     <button onClick={runRecompressPhotos} disabled={recompressRunning}
-                      style={{padding:'10px 24px',background:'#C9951A',color:'#fff',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',opacity:recompressRunning?0.6:1}}>
+                      style={{padding:'10px 24px',background:'var(--sign)',color:'var(--ink)',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Archivo,sans-serif',opacity:recompressRunning?0.6:1}}>
                       {recompressRunning ? 'Rodando...' : 'Recomprimir fotos antigas'}
                     </button>
                   </div>
@@ -3073,12 +3074,12 @@ export default function AdminPage() {
                       <div style={{marginBottom:20}}>
                         <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Quantidade de dias</label>
                         <input type="number" min="1" max="90" value={trialDays} onChange={e=>setTrialDays(Number(e.target.value)||7)}
-                          style={{width:120,padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+                          style={{width:120,padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Archivo,sans-serif'}}/>
                         <div style={{fontSize:11,color:'#AAA',marginTop:6}}>Entre 1 e 90 dias</div>
                       </div>
                     )}
                     <button onClick={saveTrialSettings} disabled={savingTrial}
-                      style={{padding:'10px 24px',background:'#C9951A',color:'#fff',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',opacity:savingTrial?0.6:1}}>
+                      style={{padding:'10px 24px',background:'var(--sign)',color:'var(--ink)',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Archivo,sans-serif',opacity:savingTrial?0.6:1}}>
                       {savingTrial ? 'Salvando...' : 'Salvar configurações'}
                     </button>
                   </div>
@@ -3100,7 +3101,7 @@ export default function AdminPage() {
                             <div>
                               <label style={{fontSize:11,fontWeight:600,color:'#888',display:'block',marginBottom:4}}>Dias antes de vencer</label>
                               <input type="number" value={r.days_before} onChange={e=>updateTrialReminder(r.id,{days_before:Number(e.target.value)||0})}
-                                style={{width:90,padding:'8px 10px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+                                style={{width:90,padding:'8px 10px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Archivo,sans-serif'}}/>
                             </div>
                             <div onClick={()=>updateTrialReminder(r.id,{active:!r.active})}
                               style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer',marginTop:16}}>
@@ -3118,26 +3119,26 @@ export default function AdminPage() {
                           <label style={{fontSize:11,fontWeight:600,color:'#888',display:'block',marginBottom:4}}>Mensagem WhatsApp</label>
                           <textarea value={r.whatsapp_message||''} onChange={e=>updateTrialReminder(r.id,{whatsapp_message:e.target.value})}
                             placeholder="Use {{nome}} pra inserir o nome da empresa"
-                            style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',minHeight:60,resize:'vertical',marginBottom:10}}/>
+                            style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Archivo,sans-serif',minHeight:60,resize:'vertical',marginBottom:10}}/>
                           <label style={{fontSize:11,fontWeight:600,color:'#888',display:'block',marginBottom:4}}>Assunto do e-mail</label>
                           <input value={r.email_subject||''} onChange={e=>updateTrialReminder(r.id,{email_subject:e.target.value})}
-                            style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',marginBottom:10}}/>
+                            style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Archivo,sans-serif',marginBottom:10}}/>
                           <label style={{fontSize:11,fontWeight:600,color:'#888',display:'block',marginBottom:4}}>Corpo do e-mail</label>
                           <textarea value={r.email_body||''} onChange={e=>updateTrialReminder(r.id,{email_body:e.target.value})}
                             placeholder="Use {{nome}} pra inserir o nome da empresa"
-                            style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',minHeight:60,resize:'vertical'}}/>
+                            style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Archivo,sans-serif',minHeight:60,resize:'vertical'}}/>
 
                           <div style={{marginTop:14,paddingTop:14,borderTop:'1px dashed #E0DDD8'}}>
                             <label style={{fontSize:11,fontWeight:600,color:'#888',display:'block',marginBottom:6}}>🧪 Testar este lembrete (envia pra você, com o texto acima)</label>
                             <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
                               <input placeholder="Seu WhatsApp (ex: 21980239006)" value={testInputs[r.id]?.phone||''}
                                 onChange={e=>setTestInputs(prev=>({...prev,[r.id]:{phone:e.target.value,email:prev[r.id]?.email||''}}))}
-                                style={{flex:1,minWidth:160,padding:'8px 10px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:12,fontFamily:'Inter,sans-serif'}}/>
+                                style={{flex:1,minWidth:160,padding:'8px 10px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:12,fontFamily:'Archivo,sans-serif'}}/>
                               <input placeholder="Seu email" value={testInputs[r.id]?.email||''}
                                 onChange={e=>setTestInputs(prev=>({...prev,[r.id]:{phone:prev[r.id]?.phone||'',email:e.target.value}}))}
-                                style={{flex:1,minWidth:160,padding:'8px 10px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:12,fontFamily:'Inter,sans-serif'}}/>
+                                style={{flex:1,minWidth:160,padding:'8px 10px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:12,fontFamily:'Archivo,sans-serif'}}/>
                               <button onClick={()=>sendReminderTest(r)} disabled={testSending[r.id]}
-                                style={{padding:'8px 16px',background:'#111',color:'#C9951A',border:'none',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer',whiteSpace:'nowrap',opacity:testSending[r.id]?0.6:1}}>
+                                style={{padding:'8px 16px',background:'var(--ink)',color:'var(--sign)',border:'none',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer',whiteSpace:'nowrap',opacity:testSending[r.id]?0.6:1}}>
                                 {testSending[r.id]?'Enviando...':'Enviar teste'}
                               </button>
                             </div>
@@ -3149,7 +3150,7 @@ export default function AdminPage() {
 
                     <button onClick={addTrialReminder} style={{width:'100%',marginTop:12,padding:'9px',background:'#fafafa',border:'1.5px dashed #ddd',color:'#aaa',borderRadius:10,fontSize:12,fontWeight:600,cursor:'pointer'}}>+ Adicionar lembrete</button>
                     <button onClick={saveTrialReminders} disabled={savingReminders}
-                      style={{width:'100%',marginTop:14,padding:11,background:'#C9951A',color:'#111',border:'none',borderRadius:10,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',opacity:savingReminders?0.6:1}}>
+                      style={{width:'100%',marginTop:14,padding:11,background:'var(--sign)',color:'var(--ink)',border:'none',borderRadius:10,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'Archivo,sans-serif',opacity:savingReminders?0.6:1}}>
                       {savingReminders ? 'Salvando...' : 'Salvar lembretes'}
                     </button>
 
@@ -3159,7 +3160,7 @@ export default function AdminPage() {
                         Executa a mesma varredura que roda sozinha todo dia às 10h — útil pra conferir se está tudo certo sem esperar o horário. Só dispara pra empresas que realmente baterem um gatilho hoje (e só uma vez por empresa/lembrete).
                       </div>
                       <button onClick={runCronNow} disabled={cronRunning}
-                        style={{padding:'10px 24px',background:'#111',color:'#C9951A',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',opacity:cronRunning?0.6:1}}>
+                        style={{padding:'10px 24px',background:'var(--ink)',color:'var(--sign)',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Archivo,sans-serif',opacity:cronRunning?0.6:1}}>
                         {cronRunning ? 'Rodando...' : 'Rodar agora'}
                       </button>
                       {cronResult && (
@@ -3199,7 +3200,7 @@ export default function AdminPage() {
                             <div>
                               <label style={{fontSize:11,fontWeight:600,color:'#888',display:'block',marginBottom:4}}>Dias antes de vencer</label>
                               <input type="number" value={r.days_before} onChange={e=>updatePlanReminder(r.id,{days_before:Number(e.target.value)||0})}
-                                style={{width:90,padding:'8px 10px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif'}}/>
+                                style={{width:90,padding:'8px 10px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Archivo,sans-serif'}}/>
                             </div>
                             <div onClick={()=>updatePlanReminder(r.id,{active:!r.active})}
                               style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer',marginTop:16}}>
@@ -3217,26 +3218,26 @@ export default function AdminPage() {
                           <label style={{fontSize:11,fontWeight:600,color:'#888',display:'block',marginBottom:4}}>Mensagem WhatsApp</label>
                           <textarea value={r.whatsapp_message||''} onChange={e=>updatePlanReminder(r.id,{whatsapp_message:e.target.value})}
                             placeholder="Use {{nome}} pra inserir o nome da empresa"
-                            style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',minHeight:60,resize:'vertical',marginBottom:10}}/>
+                            style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Archivo,sans-serif',minHeight:60,resize:'vertical',marginBottom:10}}/>
                           <label style={{fontSize:11,fontWeight:600,color:'#888',display:'block',marginBottom:4}}>Assunto do e-mail</label>
                           <input value={r.email_subject||''} onChange={e=>updatePlanReminder(r.id,{email_subject:e.target.value})}
-                            style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',marginBottom:10}}/>
+                            style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Archivo,sans-serif',marginBottom:10}}/>
                           <label style={{fontSize:11,fontWeight:600,color:'#888',display:'block',marginBottom:4}}>Corpo do e-mail</label>
                           <textarea value={r.email_body||''} onChange={e=>updatePlanReminder(r.id,{email_body:e.target.value})}
                             placeholder="Use {{nome}} pra inserir o nome da empresa"
-                            style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Inter,sans-serif',minHeight:60,resize:'vertical'}}/>
+                            style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Archivo,sans-serif',minHeight:60,resize:'vertical'}}/>
 
                           <div style={{marginTop:14,paddingTop:14,borderTop:'1px dashed #E0DDD8'}}>
                             <label style={{fontSize:11,fontWeight:600,color:'#888',display:'block',marginBottom:6}}>🧪 Testar este lembrete (envia pra você, com o texto acima)</label>
                             <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
                               <input placeholder="Seu WhatsApp (ex: 21980239006)" value={planTestInputs[r.id]?.phone||''}
                                 onChange={e=>setPlanTestInputs(prev=>({...prev,[r.id]:{phone:e.target.value,email:prev[r.id]?.email||''}}))}
-                                style={{flex:1,minWidth:160,padding:'8px 10px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:12,fontFamily:'Inter,sans-serif'}}/>
+                                style={{flex:1,minWidth:160,padding:'8px 10px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:12,fontFamily:'Archivo,sans-serif'}}/>
                               <input placeholder="Seu email" value={planTestInputs[r.id]?.email||''}
                                 onChange={e=>setPlanTestInputs(prev=>({...prev,[r.id]:{phone:prev[r.id]?.phone||'',email:e.target.value}}))}
-                                style={{flex:1,minWidth:160,padding:'8px 10px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:12,fontFamily:'Inter,sans-serif'}}/>
+                                style={{flex:1,minWidth:160,padding:'8px 10px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:12,fontFamily:'Archivo,sans-serif'}}/>
                               <button onClick={()=>sendPlanReminderTest(r)} disabled={planTestSending[r.id]}
-                                style={{padding:'8px 16px',background:'#111',color:'#C9951A',border:'none',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer',whiteSpace:'nowrap',opacity:planTestSending[r.id]?0.6:1}}>
+                                style={{padding:'8px 16px',background:'var(--ink)',color:'var(--sign)',border:'none',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer',whiteSpace:'nowrap',opacity:planTestSending[r.id]?0.6:1}}>
                                 {planTestSending[r.id]?'Enviando...':'Enviar teste'}
                               </button>
                             </div>
@@ -3248,7 +3249,7 @@ export default function AdminPage() {
 
                     <button onClick={addPlanReminder} style={{width:'100%',marginTop:12,padding:'9px',background:'#fafafa',border:'1.5px dashed #ddd',color:'#aaa',borderRadius:10,fontSize:12,fontWeight:600,cursor:'pointer'}}>+ Adicionar lembrete</button>
                     <button onClick={savePlanReminders} disabled={savingPlanReminders}
-                      style={{width:'100%',marginTop:14,padding:11,background:'#C9951A',color:'#111',border:'none',borderRadius:10,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',opacity:savingPlanReminders?0.6:1}}>
+                      style={{width:'100%',marginTop:14,padding:11,background:'var(--sign)',color:'var(--ink)',border:'none',borderRadius:10,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'Archivo,sans-serif',opacity:savingPlanReminders?0.6:1}}>
                       {savingPlanReminders ? 'Salvando...' : 'Salvar lembretes'}
                     </button>
 
@@ -3258,7 +3259,7 @@ export default function AdminPage() {
                         Executa a mesma varredura que roda sozinha todo dia às 10h10 — lembretes de vencimento + rebaixamento de quem já venceu. Útil pra conferir sem esperar o horário.
                       </div>
                       <button onClick={runPlanCronNow} disabled={planCronRunning}
-                        style={{padding:'10px 24px',background:'#111',color:'#C9951A',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',opacity:planCronRunning?0.6:1}}>
+                        style={{padding:'10px 24px',background:'var(--ink)',color:'var(--sign)',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Archivo,sans-serif',opacity:planCronRunning?0.6:1}}>
                         {planCronRunning ? 'Rodando...' : 'Rodar agora'}
                       </button>
                       {planCronResult && (
@@ -3321,7 +3322,7 @@ export default function AdminPage() {
                 <input type="date" value={salesDateTo} onChange={e=>setSalesDateTo(e.target.value)}
                   style={{fontSize:12,padding:'6px 10px',borderRadius:8,border:'0.5px solid #E0DDD8',outline:'none'}}/>
                 <button onClick={()=>{setSalesFilter('today');loadSales('custom',salesDateFrom,salesDateTo)}}
-                  style={{fontSize:12,fontWeight:600,padding:'6px 14px',borderRadius:8,border:'none',background:'#C9951A',color:'#fff',cursor:'pointer'}}>Filtrar</button>
+                  style={{fontSize:12,fontWeight:600,padding:'6px 14px',borderRadius:8,border:'none',background:'var(--sign)',color:'var(--ink)',cursor:'pointer'}}>Filtrar</button>
 
               </div>
 
@@ -3338,8 +3339,8 @@ export default function AdminPage() {
                       {label:'Total arrecadado',val:`R$ ${allTotal.toFixed(2).replace('.',',')}`,color:'#0F8050'},
                       {label:'Pagamentos',val:String(salesData.length),color:'#111'},
                       {label:'Ticket médio',val:`R$ ${avg.toFixed(2).replace('.',',')}`,color:'#111'},
-                      {label:'Vendas hoje',val:`R$ ${todayTotal.toFixed(2).replace('.',',')}`,color:'#C9951A'},
-                      {label:'Pagamentos hoje',val:String(todaySales.length),color:'#C9951A'},
+                      {label:'Vendas hoje',val:`R$ ${todayTotal.toFixed(2).replace('.',',')}`,color:'var(--sign-dark)'},
+                      {label:'Pagamentos hoje',val:String(todaySales.length),color:'var(--sign-dark)'},
                     ].map((item,i) => (
                       <div key={i} style={{display:'flex',flexDirection:'column',gap:3}}>
                         <div style={{fontSize:11,color:'#854F0B',fontWeight:500,textTransform:'uppercase',letterSpacing:.5}}>{item.label}</div>
@@ -3354,7 +3355,7 @@ export default function AdminPage() {
               <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:20}}>
                 {[
                   {label:'Planos ativos',val:planStats.paid,color:'#0F8050',pct:planStats.paid},
-                  {label:'Em trial',val:planStats.trial,color:'#C9951A',pct:planStats.trial},
+                  {label:'Em trial',val:planStats.trial,color:'var(--sign-dark)',pct:planStats.trial},
                   {label:'Vencendo em 3 dias',val:planStats.expiring,color:'#E24B4A',pct:planStats.expiring},
                   {label:'Trial vencido',val:planStats.expired,color:'#AAA',pct:planStats.expired},
                 ].map((item,i) => (
@@ -3372,7 +3373,7 @@ export default function AdminPage() {
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
                 <div className="section-card" style={{margin:0}}>
                   <div style={{padding:'14px 16px',borderBottom:'0.5px solid #EDE8E0',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                    <span style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:15,letterSpacing:1}}>PAGAMENTOS RECENTES</span>
+                    <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:.3}}>PAGAMENTOS RECENTES</span>
                     <span style={{fontSize:12,color:'#999'}}>{salesData.length} registros</span>
                   </div>
                   {salesLoading ? <div style={{padding:32,textAlign:'center',color:'#999'}}>Carregando...</div> : salesData.length === 0 ?
@@ -3397,7 +3398,7 @@ export default function AdminPage() {
 
                 <div className="section-card" style={{margin:0}}>
                   <div style={{padding:'14px 16px',borderBottom:'0.5px solid #EDE8E0'}}>
-                    <span style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:15,letterSpacing:1}}>VENCENDO EM BREVE</span>
+                    <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:.3}}>VENCENDO EM BREVE</span>
                   </div>
                   {expiringPlans.length === 0 ?
                     <div style={{padding:32,textAlign:'center',color:'#999'}}>Nenhum plano vencendo</div> :
@@ -3410,8 +3411,8 @@ export default function AdminPage() {
                             return (
                               <tr key={c.id}>
                                 <td><strong>{c.name}</strong></td>
-                                <td style={{fontWeight:600,color:days<=2?'#E24B4A':'#C9951A'}}>{days} dia{days!==1?'s':''}</td>
-                                <td><span style={{fontSize:11,fontWeight:600,padding:'3px 10px',borderRadius:20,background:days<=2?'#E24B4A22':'#C9951A22',color:days<=2?'#E24B4A':'#854F0B'}}>{days<=2?'Urgente':'Atenção'}</span></td>
+                                <td style={{fontWeight:600,color:days<=2?'#E24B4A':'var(--sign-dark)'}}>{days} dia{days!==1?'s':''}</td>
+                                <td><span style={{fontSize:11,fontWeight:600,padding:'3px 10px',borderRadius:20,background:days<=2?'#E24B4A22':'#A8720022',color:days<=2?'#E24B4A':'#854F0B'}}>{days<=2?'Urgente':'Atenção'}</span></td>
                               </tr>
                             )
                           })}

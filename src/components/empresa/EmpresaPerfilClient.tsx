@@ -439,12 +439,12 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
     <>
       <style>{`
         *{box-sizing:border-box;margin:0;padding:0;}
-        body{font-family:'Inter',sans-serif;background:#F0EDE8;}
+        body{font-family:'Archivo',sans-serif;background:var(--concrete);}
 
-        .topbar{background:#111;z-index:50;}
+        .topbar{background:var(--ink);z-index:50;}
         .topbar-inner{max-width:1200px;margin:0 auto;padding:12px 24px;display:flex;align-items:center;justify-content:center;}
         .t-bc{display:flex;align-items:center;gap:7px;font-size:13px;}
-        .t-bc a{color:#C9951A;font-weight:700;text-decoration:none;}
+        .t-bc a{color:var(--sign);font-weight:700;text-decoration:none;}
         .t-bc a:hover{text-decoration:underline;}
         .t-bc-sep{color:#444;font-size:14px;}
         .t-bc-cur{color:#fff;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;}
@@ -464,7 +464,7 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
         .gallery-badge{position:absolute;bottom:10px;right:10px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;font-weight:500;padding:3px 10px;border-radius:12px;}
         .gallery-thumbs{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;}
         .gallery-thumb{flex-shrink:0;width:64px;height:64px;border-radius:10px;overflow:hidden;cursor:pointer;position:relative;border:2.5px solid transparent;opacity:.7;transition:opacity .15s,border-color .15s;}
-        .gallery-thumb.active{border-color:#C9951A;opacity:1;}
+        .gallery-thumb.active{border-color:var(--sign-dark);opacity:1;}
         /* Desktop: foto horizontal + miniaturas quadradas na lateral. */
         @media(min-width:768px){
           .gallery-flex{flex-direction:row;align-items:stretch;}
@@ -490,86 +490,89 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
         }
 
         /* COLUNA ESQUERDA */
-        .info-card{background:#fff;border:0.5px solid #EDE8E0;border-radius:14px;padding:18px 16px;min-width:0;}
+        .info-card{background:var(--paper);border:0.5px solid var(--line);border-radius:14px;padding:18px 16px;min-width:0;}
         /* Sem flex-wrap: a linha nunca quebra, então o selo fica sempre
            fixo na ponta direita, no topo — é o nome que quebra dentro da
            própria caixa dele (flex:1 + min-width:0), não a linha inteira. */
         .name-row{display:flex;align-items:flex-start;gap:7px;margin-bottom:8px;}
-        .empresa-name{flex:1;min-width:0;font-family:'Bebas Neue',sans-serif;font-size:clamp(24px,4vw,34px);color:#111;letter-spacing:1px;line-height:1.05;}
-        .verified-badge{flex-shrink:0;margin-top:3px;width:19px;height:19px;border-radius:50%;background:#C9951A;color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;}
+        /* Nome de empresa em caixa normal, nunca no display condensado —
+           regra explícita do design system (ESPECIFICACAO.md §11.3): nome
+           longo em caixa alta/condensada vira ilegível. */
+        .empresa-name{flex:1;min-width:0;font-family:'Archivo',sans-serif;font-weight:800;font-size:clamp(21px,3.6vw,28px);color:var(--ink);letter-spacing:0;line-height:1.15;}
+        .verified-badge{flex-shrink:0;margin-top:3px;width:19px;height:19px;border-radius:50%;background:var(--sign);color:var(--ink);font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;}
         .tag-cat-edit{font-size:12.5px;color:#666;}
         .meta-line{display:flex;align-items:center;flex-wrap:wrap;gap:6px;font-size:12.5px;font-weight:500;color:#666;margin-bottom:12px;}
         .meta-line .sep{color:#D8D2C4;}
-        .meta-line .status-open{color:#0F6E56;font-weight:700;}
-        .meta-line .status-closed{color:#E24B4A;font-weight:700;}
-        .meta-line .st{color:#C9951A;font-size:12px;letter-spacing:.5px;}
-        .meta-line .rc{color:#AAA;font-size:12px;}
-        .btn-write-rv{background:none;border:none;padding:0;color:#C9951A;font-weight:700;font-size:12.5px;font-family:'Inter',sans-serif;cursor:pointer;text-decoration:underline;text-underline-offset:2px;white-space:nowrap;}
-        .sec-lbl{font-family:'Bebas Neue',sans-serif;font-size:11px;color:#AAA;letter-spacing:1.5px;margin-bottom:8px;}
+        .meta-line .status-open{color:var(--open);font-weight:700;}
+        .meta-line .status-closed{color:var(--alert);font-weight:700;}
+        .meta-line .st{color:var(--sign-dark);font-size:12px;letter-spacing:.5px;}
+        .meta-line .rc{color:var(--muted);font-size:12px;}
+        .btn-write-rv{background:none;border:none;padding:0;color:var(--sign-dark);font-weight:700;font-size:12.5px;font-family:'Archivo',sans-serif;cursor:pointer;text-decoration:underline;text-underline-offset:2px;white-space:nowrap;}
+        .sec-lbl{font-family:'Archivo',sans-serif;font-weight:800;font-size:10.5px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;}
         .desc{font-size:14px;color:#555;line-height:1.8;}
 
         /* COLUNA DIREITA */
         .right-col{display:flex;flex-direction:column;gap:10px;grid-area:right;min-width:0;}
         @media(min-width:768px){.right-col{position:sticky;top:60px;max-height:calc(100vh - 80px);overflow-y:auto;}}
 
-        .action-card{background:#fff;border:0.5px solid #EDE8E0;border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px;}
-        .btn-solicitar{width:100%;padding:12px;background:#C9951A;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .15s;}
-        .btn-solicitar:hover:not(:disabled){background:#B8841A;}
+        .action-card{background:var(--paper);border:0.5px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px;}
+        .btn-solicitar{width:100%;padding:12px;background:var(--sign);color:var(--ink);border:none;border-radius:10px;font-size:14px;font-weight:700;font-family:'Archivo',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .15s;}
+        .btn-solicitar:hover:not(:disabled){background:var(--sign-dark);color:#fff;}
         .btn-solicitar:disabled{cursor:not-allowed;}
         .btn-solicitar.sent{background:#E8F5E9;color:#2E7D32;border:1.5px solid #A5D6A7;}
 
         /* Cardápio + WhatsApp — cápsulas lado a lado */
         .pill-row{display:flex;gap:8px;}
-        .pill-cardapio{flex:1;height:44px;padding:0 8px;background:#C9951A;color:#fff;border:none;border-radius:999px;font-size:13px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;box-sizing:border-box;transition:opacity .15s;}
+        .pill-cardapio{flex:1;height:44px;padding:0 8px;background:var(--sign);color:var(--ink);border:none;border-radius:999px;font-size:13px;font-weight:700;font-family:'Archivo',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;box-sizing:border-box;transition:opacity .15s;}
         .pill-cardapio:hover{opacity:.9;}
-        .pill-wa{flex:1;height:44px;padding:0 8px;background:#25D366;color:#fff;border:none;border-radius:999px;font-size:13px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-sizing:border-box;transition:opacity .15s;}
+        .pill-wa{flex:1;height:44px;padding:0 8px;background:#25D366;color:#fff;border:none;border-radius:999px;font-size:13px;font-weight:700;font-family:'Archivo',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-sizing:border-box;transition:opacity .15s;}
         .pill-wa:hover{opacity:.9;}
-        .pill-wa-locked{flex:1;height:44px;padding:0 8px;background:#F0EDE8;color:#888;border:1px solid #DDD9D0;border-radius:999px;font-size:13px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-sizing:border-box;transition:all .15s;}
-        .pill-wa-locked:hover:not(:disabled){background:#E5E1D9;border-color:#C9951A;color:#C9951A;}
+        .pill-wa-locked{flex:1;height:44px;padding:0 8px;background:var(--concrete);color:#888;border:1px solid var(--line);border-radius:999px;font-size:13px;font-weight:700;font-family:'Archivo',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-sizing:border-box;transition:all .15s;}
+        .pill-wa-locked:hover:not(:disabled){background:var(--concrete-2);border-color:var(--sign-dark);color:var(--sign-dark);}
         .pill-wa-locked:disabled{cursor:not-allowed;opacity:.6;}
 
         /* Favoritar / Compartilhar / Site — círculos de apoio */
         .icon-row{display:flex;gap:8px;}
-        .icon-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;background:none;border:none;font-family:'Inter',sans-serif;cursor:pointer;padding:2px 0;}
-        .icon-circle{width:42px;height:42px;border-radius:50%;background:#FAFAF8;border:1px solid #E0DDD8;display:flex;align-items:center;justify-content:center;font-size:16px;color:#666;transition:all .15s;}
-        .icon-btn.on .icon-circle{background:#FEF3E2;border-color:#C9951A;color:#C9951A;}
-        .icon-btn.locked .icon-circle{background:#F0EDE8;color:#999;}
+        .icon-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;background:none;border:none;font-family:'Archivo',sans-serif;cursor:pointer;padding:2px 0;}
+        .icon-circle{width:42px;height:42px;border-radius:50%;background:#FAFAF8;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:16px;color:#666;transition:all .15s;}
+        .icon-btn.on .icon-circle{background:var(--concrete-2);border-color:var(--sign-dark);color:var(--sign-dark);}
+        .icon-btn.locked .icon-circle{background:var(--concrete);color:#999;}
         .icon-btn:disabled{cursor:not-allowed;opacity:.7;}
         .icon-lbl{font-size:9px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:#888;}
 
-        .addr-box{display:flex;align-items:flex-start;gap:9px;background:#fff;border:0.5px solid #EDE8E0;border-radius:12px;padding:12px 14px;}
+        .addr-box{display:flex;align-items:flex-start;gap:9px;background:var(--paper);border:0.5px solid var(--line);border-radius:12px;padding:12px 14px;}
         .addr-txt{font-size:12px;color:#555;line-height:1.6;flex:1;}
 
-        .map-card{background:#fff;border:0.5px solid #EDE8E0;border-radius:14px;overflow:hidden;}
+        .map-card{background:var(--paper);border:0.5px solid var(--line);border-radius:14px;overflow:hidden;}
         .map-frame{width:100%;height:150px;border:none;display:block;}
-        .map-open-btn{width:100%;padding:10px;background:#fff;border:none;border-top:0.5px solid #EDE8E0;font-size:12px;font-weight:600;color:#185FA5;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;justify-content:center;gap:5px;}
+        .map-open-btn{width:100%;padding:10px;background:var(--paper);border:none;border-top:0.5px solid var(--line);font-size:12px;font-weight:600;color:var(--info);cursor:pointer;font-family:'Archivo',sans-serif;display:flex;align-items:center;justify-content:center;gap:5px;}
 
         /* AVALIAÇÕES */
-        .rv-section{margin-top:24px;border-top:0.5px solid #F0EDE8;padding-top:28px;}
-        .rv-form{background:#FAFAF8;border:1.5px solid #C9951A;border-radius:14px;padding:16px;margin-bottom:16px;}
+        .rv-section{margin-top:24px;border-top:0.5px solid var(--line);padding-top:28px;}
+        .rv-form{background:#FAFAF8;border:1.5px solid var(--sign-dark);border-radius:14px;padding:16px;margin-bottom:16px;}
         .star-row{display:flex;gap:8px;margin-bottom:10px;}
         .star-btn{font-size:26px;cursor:pointer;background:none;border:none;line-height:1;transition:transform .1s;}
         .star-btn:hover{transform:scale(1.2);}
-        .rv-textarea{width:100%;padding:11px 13px;border:1.5px solid #E0DDD8;border-radius:11px;font-size:13px;font-family:'Inter',sans-serif;outline:none;resize:none;transition:border-color .15s;}
-        .rv-textarea:focus{border-color:#C9951A;}
-        .btn-rv-submit{width:100%;padding:12px;background:#C9951A;color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;margin-top:10px;}
+        .rv-textarea{width:100%;padding:11px 13px;border:1.5px solid var(--line);border-radius:11px;font-size:13px;font-family:'Archivo',sans-serif;outline:none;resize:none;transition:border-color .15s;}
+        .rv-textarea:focus{border-color:var(--sign-dark);}
+        .btn-rv-submit{width:100%;padding:12px;background:var(--sign);color:var(--ink);border:none;border-radius:12px;font-size:14px;font-weight:700;font-family:'Archivo',sans-serif;cursor:pointer;margin-top:10px;}
         .btn-rv-submit:disabled{opacity:.6;cursor:not-allowed;}
         .rv-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
         @media(max-width:900px){.rv-grid{grid-template-columns:repeat(2,1fr);}}
         @media(max-width:600px){.rv-grid{grid-template-columns:1fr;}}
-        .rv-card{background:#FAFAF8;border:0.5px solid #EDE8E0;border-radius:12px;padding:14px;}
+        .rv-card{background:#FAFAF8;border:0.5px solid var(--line);border-radius:12px;padding:14px;}
         .rv-top{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
-        .rv-av{width:32px;height:32px;border-radius:50%;background:#C9951A;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:13px;color:#fff;flex-shrink:0;}
+        .rv-av{width:32px;height:32px;border-radius:50%;background:var(--sign);display:flex;align-items:center;justify-content:center;font-family:'Archivo',sans-serif;font-weight:800;font-size:13px;color:var(--ink);flex-shrink:0;}
         .rv-name{font-size:13px;font-weight:600;color:#222;}
         .rv-date{font-size:10px;color:#CCC;margin-left:auto;}
-        .rv-stars{font-size:12px;color:#C9951A;margin-bottom:5px;}
+        .rv-stars{font-size:12px;color:var(--sign-dark);margin-bottom:5px;}
         .rv-txt{font-size:12px;color:#555;line-height:1.6;}
-        .rv-resp{background:#FEF3E2;border:0.5px solid #F5C77A;border-radius:8px;padding:8px 10px;margin-top:8px;}
+        .rv-resp{background:var(--concrete-2);border:0.5px solid #F5C77A;border-radius:8px;padding:8px 10px;margin-top:8px;}
         .rv-resp-l{font-size:10px;font-weight:600;color:#854F0B;margin-bottom:2px;}
         .rv-resp-t{font-size:11px;color:#854F0B;line-height:1.5;}
 
-        .page-footer{padding:28px 0 8px;text-align:center;font-size:12px;color:#AAA;border-top:0.5px solid #F0EDE8;margin-top:32px;}
-        .page-footer a{color:#C9951A;text-decoration:none;}
+        .page-footer{padding:28px 0 8px;text-align:center;font-size:12px;color:#AAA;border-top:0.5px solid var(--line);margin-top:32px;}
+        .page-footer a{color:var(--sign-dark);text-decoration:none;}
         .ok-msg{background:#EDFAF3;border:1px solid #A8E6C4;border-radius:10px;padding:10px 14px;font-size:13px;color:#0F5C3A;margin-bottom:14px;}
 
         /* PALAVRA PREMIADA — feedback de erro */
@@ -620,9 +623,9 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
                 onChange={e => setPremiadaInput(e.target.value)}
                 placeholder={premiadaCooldown > 0 ? `Espera ${premiadaCooldown}s...` : 'Digite a palavra premiada...'}
                 disabled={premiadaCooldown > 0}
-                style={{flex:1,padding:'11px 14px',borderRadius:10,border:'1.5px solid #C9951A',background:'#1A1A1A',color:'#fff',fontSize:14,outline:'none',opacity:premiadaCooldown>0?0.6:1}}
+                style={{flex:1,padding:'11px 14px',borderRadius:10,border:'1.5px solid var(--sign-dark)',background:'#1A1A1A',color:'#fff',fontSize:14,outline:'none',opacity:premiadaCooldown>0?0.6:1}}
               />
-              <button type="submit" disabled={premiadaCooldown > 0} style={{background:premiadaCooldown>0?'#5A4008':'#C9951A',border:'none',borderRadius:10,padding:'0 20px',color:premiadaCooldown>0?'#B8860B':'#111',fontWeight:700,fontSize:14,cursor:premiadaCooldown>0?'not-allowed':'pointer',whiteSpace:'nowrap'}}>
+              <button type="submit" disabled={premiadaCooldown > 0} style={{background:premiadaCooldown>0?'#5A4008':'var(--sign-dark)',border:'none',borderRadius:10,padding:'0 20px',color:premiadaCooldown>0?'#B8860B':'#111',fontWeight:700,fontSize:14,cursor:premiadaCooldown>0?'not-allowed':'pointer',whiteSpace:'nowrap'}}>
                 {premiadaCooldown > 0 ? `⏳ ${premiadaCooldown}s` : 'Enviar'}
               </button>
             </div>
@@ -641,7 +644,7 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
                   style={{position:'absolute',top:2,right:2,background:'rgba(0,0,0,.7)',color:'#fff',border:'none',borderRadius:10,width:18,height:18,fontSize:11,lineHeight:1,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
               </div>
             ))}
-            <label style={{width:64,height:64,borderRadius:8,border:'1.5px dashed #C9951A',display:'flex',alignItems:'center',justifyContent:'center',cursor:uploadingPhoto?'wait':'pointer',color:'#C9951A',fontSize:22,flexShrink:0}}>
+            <label style={{width:64,height:64,borderRadius:8,border:'1.5px dashed var(--sign-dark)',display:'flex',alignItems:'center',justifyContent:'center',cursor:uploadingPhoto?'wait':'pointer',color:'var(--sign-dark)',fontSize:22,flexShrink:0}}>
               {uploadingPhoto ? '…' : '+'}
               <input type="file" accept="image/*" style={{display:'none'}} onChange={addPhoto} disabled={uploadingPhoto}/>
             </label>
@@ -659,9 +662,9 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
               {editingName ? (
                 <div style={{display:'flex',gap:8,alignItems:'center',flex:1,minWidth:220}}>
                   <input value={nameText} onChange={e=>setNameText(e.target.value)} autoFocus
-                    style={{flex:1,fontSize:20,fontFamily:"'Bebas Neue',sans-serif",letterSpacing:1,padding:'8px 12px',border:'1.5px solid #C9951A',borderRadius:8,outline:'none'}}/>
+                    style={{flex:1,fontSize:18,fontWeight:800,fontFamily:"'Archivo',sans-serif",padding:'8px 12px',border:'1.5px solid var(--sign-dark)',borderRadius:8,outline:'none'}}/>
                   <button onClick={saveName} disabled={savingName || !nameText.trim()}
-                    style={{padding:'7px 14px',background:'#C9951A',color:'#fff',border:'none',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer'}}>
+                    style={{padding:'7px 14px',background:'var(--sign-dark)',color:'#fff',border:'none',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer'}}>
                     {savingName?'...':'Salvar'}
                   </button>
                   <button onClick={()=>setEditingName(false)}
@@ -682,11 +685,11 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
               {editingCategory ? (
                 <div style={{display:'flex',gap:6,alignItems:'center'}}>
                   <select value={categorySelId} onChange={e=>setCategorySelId(e.target.value)}
-                    style={{fontSize:12,padding:'5px 8px',borderRadius:8,border:'1.5px solid #C9951A',fontFamily:'Inter,sans-serif',outline:'none'}}>
+                    style={{fontSize:12,padding:'5px 8px',borderRadius:8,border:'1.5px solid var(--sign-dark)',fontFamily:'Archivo,sans-serif',outline:'none'}}>
                     {allCategories.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
                   </select>
                   <button onClick={saveCategory} disabled={savingCategory}
-                    style={{padding:'5px 10px',background:'#C9951A',color:'#fff',border:'none',borderRadius:8,fontSize:11,fontWeight:600,cursor:'pointer'}}>
+                    style={{padding:'5px 10px',background:'var(--sign-dark)',color:'#fff',border:'none',borderRadius:8,fontSize:11,fontWeight:600,cursor:'pointer'}}>
                     {savingCategory?'...':'✓'}
                   </button>
                   <button onClick={()=>setEditingCategory(false)}
@@ -734,13 +737,13 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
                 dado de busca/filtro, editável pelo admin abaixo. */}
             {isAdmin && !editingSubcats && (
               <button onClick={()=>{setSubcatSelIds((company.subcategories||[]).map(s=>s.subcategory_id).filter(Boolean) as string[]);setEditingSubcats(true)}}
-                style={{fontSize:11,color:'#C9951A',background:'none',border:'none',cursor:'pointer',fontWeight:600,padding:0,marginBottom:10,display:'block'}}>✏️ Editar subcategorias {company.subcategories && company.subcategories.length > 0 ? `(${company.subcategories.length})` : ''}</button>
+                style={{fontSize:11,color:'var(--sign-dark)',background:'none',border:'none',cursor:'pointer',fontWeight:600,padding:0,marginBottom:10,display:'block'}}>✏️ Editar subcategorias {company.subcategories && company.subcategories.length > 0 ? `(${company.subcategories.length})` : ''}</button>
             )}
             {editingSubcats && (
               <div style={{background:'#FAFAF8',border:'1px solid #E0DDD8',borderRadius:10,padding:12,marginBottom:14}}>
                 <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:10}}>
                   {allSubcats.filter(s => s.category_id === company.category_id).map(s => (
-                    <label key={s.id} style={{display:'flex',alignItems:'center',gap:5,fontSize:12,background:subcatSelIds.includes(s.id)?'#FEF3E2':'#fff',border:'1px solid '+(subcatSelIds.includes(s.id)?'#C9951A':'#E0DDD8'),borderRadius:8,padding:'5px 9px',cursor:'pointer'}}>
+                    <label key={s.id} style={{display:'flex',alignItems:'center',gap:5,fontSize:12,background:subcatSelIds.includes(s.id)?'#FEF3E2':'#fff',border:'1px solid '+(subcatSelIds.includes(s.id)?'var(--sign-dark)':'#E0DDD8'),borderRadius:8,padding:'5px 9px',cursor:'pointer'}}>
                       <input type="checkbox" checked={subcatSelIds.includes(s.id)} onChange={()=>toggleSubcat(s.id)} style={{margin:0}}/>
                       {s.emoji} {s.name}
                     </label>
@@ -751,7 +754,7 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
                 </div>
                 <div style={{display:'flex',gap:8}}>
                   <button onClick={saveSubcats} disabled={savingSubcats}
-                    style={{padding:'7px 16px',background:'#C9951A',color:'#fff',border:'none',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer'}}>
+                    style={{padding:'7px 16px',background:'var(--sign-dark)',color:'#fff',border:'none',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer'}}>
                     {savingSubcats?'Salvando...':'Salvar'}
                   </button>
                   <button onClick={()=>setEditingSubcats(false)}
@@ -806,7 +809,7 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
               {isOwner && !isActive && (
                 <div style={{background:'#FEF3E2',border:'1px solid #F5C77A',borderRadius:10,padding:'12px 14px',fontSize:12,color:'#854F0B',lineHeight:1.5}}>
                   Moradores tentam falar com você por aqui e não conseguem — o WhatsApp só aparece pra quem tem plano ativo.{' '}
-                  <a href="/painel?tab=plano" style={{color:'#C9951A',fontWeight:700,textDecoration:'underline'}}>Ativar agora →</a>
+                  <a href="/painel?tab=plano" style={{color:'var(--sign-dark)',fontWeight:700,textDecoration:'underline'}}>Ativar agora →</a>
                 </div>
               )}
 
@@ -836,11 +839,11 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
             {/* Endereço */}
             {company.address && (
               <div className="addr-box" style={{position:'relative'}}>
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#C9951A" strokeWidth="2" strokeLinecap="round" style={{flexShrink:0,marginTop:2}}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--sign-dark)" strokeWidth="2" strokeLinecap="round" style={{flexShrink:0,marginTop:2}}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                 <div className="addr-txt" style={!isActive ? {filter:'blur(5px)',userSelect:'none'} : {}}>{company.address}</div>
                 {!isActive && (
                   <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(255,255,255,0.5)',borderRadius:10,cursor:'pointer'}} onClick={solicitarContato}>
-                    <span style={{fontSize:12,fontWeight:700,color:'#C9951A',background:'#fff',padding:'4px 10px',borderRadius:8,border:'1px solid #C9951A'}}>🔒 Solicitar contato</span>
+                    <span style={{fontSize:12,fontWeight:700,color:'var(--sign-dark)',background:'#fff',padding:'4px 10px',borderRadius:8,border:'1px solid var(--sign-dark)'}}>🔒 Solicitar contato</span>
                   </div>
                 )}
               </div>
@@ -860,7 +863,7 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
                 />
                 {!isActive ? (
                   <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}} onClick={solicitarContato}>
-                    <span style={{fontSize:13,fontWeight:700,color:'#C9951A',background:'#fff',padding:'8px 16px',borderRadius:10,border:'1.5px solid #C9951A',boxShadow:'0 2px 8px rgba(0,0,0,.1)'}}>🔒 Solicitar contato para ver no mapa</span>
+                    <span style={{fontSize:13,fontWeight:700,color:'var(--sign-dark)',background:'#fff',padding:'8px 16px',borderRadius:10,border:'1.5px solid var(--sign-dark)',boxShadow:'0 2px 8px rgba(0,0,0,.1)'}}>🔒 Solicitar contato para ver no mapa</span>
                   </div>
                 ) : (
                   <button className="map-open-btn" onClick={() => { window.open(`https://maps.google.com?q=${encodeURIComponent(company.address || '')}`, '_blank'); fetch(`/api/company/${company.id}/track`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'address_click'})}) }}>
@@ -880,13 +883,13 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
               <div style={{fontSize:11,fontWeight:600,color:'#AAA',letterSpacing:'.6px',textTransform:'uppercase'}}>Sobre</div>
               {isAdmin && !editingDesc && (
                 <button onClick={()=>{setDescText(company.description||'');setEditingDesc(true)}}
-                  style={{fontSize:11,color:'#C9951A',background:'none',border:'none',cursor:'pointer',fontWeight:600,padding:'2px 6px'}}>✏️ Editar</button>
+                  style={{fontSize:11,color:'var(--sign-dark)',background:'none',border:'none',cursor:'pointer',fontWeight:600,padding:'2px 6px'}}>✏️ Editar</button>
               )}
             </div>
             {editingDesc ? (
               <div>
                 <textarea value={descText} onChange={e=>setDescText(e.target.value)} rows={4}
-                  style={{width:'100%',padding:'10px 12px',border:'1.5px solid #C9951A',borderRadius:10,fontSize:14,fontFamily:'Inter,sans-serif',resize:'vertical',outline:'none',lineHeight:1.6,marginBottom:8}}/>
+                  style={{width:'100%',padding:'10px 12px',border:'1.5px solid var(--sign-dark)',borderRadius:10,fontSize:14,fontFamily:'Archivo,sans-serif',resize:'vertical',outline:'none',lineHeight:1.6,marginBottom:8}}/>
                 <div style={{display:'flex',gap:8}}>
                   <button onClick={async()=>{
                     setSavingDesc(true)
@@ -895,7 +898,7 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
                     setEditingDesc(false)
                     setSavingDesc(false)
                   }} disabled={savingDesc}
-                    style={{padding:'7px 16px',background:'#C9951A',color:'#fff',border:'none',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer'}}>
+                    style={{padding:'7px 16px',background:'var(--sign-dark)',color:'#fff',border:'none',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer'}}>
                     {savingDesc?'Salvando...':'Salvar'}
                   </button>
                   <button onClick={()=>setEditingDesc(false)}
@@ -915,21 +918,21 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
           <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
             <div style={{background:'#fff',borderRadius:20,padding:28,maxWidth:420,width:'100%',position:'relative'}}>
               <button onClick={()=>{setShowReview(false);setMyRating(0);setMyText('')}} style={{position:'absolute',top:14,right:14,background:'#f0f0f0',border:'none',borderRadius:50,width:30,height:30,cursor:'pointer',fontSize:15,display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
-              <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:20,letterSpacing:1,color:'#111',marginBottom:4}}>AVALIAR</div>
+              <div style={{fontFamily:"'Anton',sans-serif",fontSize:20,letterSpacing:.5,textTransform:'uppercase',color:'var(--ink)',marginBottom:4}}>AVALIAR</div>
               <div style={{fontSize:13,color:'#888',marginBottom:20}}>{company.name}</div>
               <div style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:10}}>Sua nota</div>
               <div style={{display:'flex',gap:8,marginBottom:20}}>
                 {[1,2,3,4,5].map(s => (
                   <button key={s} onClick={()=>setMyRating(s)}
-                    style={{fontSize:28,background:'none',border:'none',cursor:'pointer',color:s<=myRating?'#C9951A':'#DDD',padding:0,lineHeight:1}}>★</button>
+                    style={{fontSize:28,background:'none',border:'none',cursor:'pointer',color:s<=myRating?'var(--sign-dark)':'#DDD',padding:0,lineHeight:1}}>★</button>
                 ))}
-                {myRating > 0 && <span style={{fontSize:12,color:'#C9951A',fontWeight:600,alignSelf:'center',marginLeft:4}}>{['','Ruim','Regular','Bom','Muito bom','Excelente'][myRating]}</span>}
+                {myRating > 0 && <span style={{fontSize:12,color:'var(--sign-dark)',fontWeight:600,alignSelf:'center',marginLeft:4}}>{['','Ruim','Regular','Bom','Muito bom','Excelente'][myRating]}</span>}
               </div>
               <div style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:8}}>Comentário <span style={{color:'#AAA',fontWeight:400}}>(opcional)</span></div>
               <textarea rows={3} placeholder="Conte sua experiência..." value={myText} onChange={e=>setMyText(e.target.value)}
-                style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Inter,sans-serif',resize:'none',outline:'none',marginBottom:16}}/>
+                style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Archivo,sans-serif',resize:'none',outline:'none',marginBottom:16}}/>
               <button onClick={submitReview} disabled={myRating===0||revLoading}
-                style={{width:'100%',padding:'12px',background:myRating>0?'#C9951A':'#E0DDD8',color:myRating>0?'#fff':'#AAA',border:'none',borderRadius:10,fontSize:14,fontWeight:600,cursor:myRating>0?'pointer':'not-allowed',fontFamily:'Inter,sans-serif'}}>
+                style={{width:'100%',padding:'12px',background:myRating>0?'var(--sign-dark)':'#E0DDD8',color:myRating>0?'#fff':'#AAA',border:'none',borderRadius:10,fontSize:14,fontWeight:600,cursor:myRating>0?'pointer':'not-allowed',fontFamily:'Archivo,sans-serif'}}>
                 {revLoading?'Enviando...':'Publicar avaliação'}
               </button>
             </div>
@@ -939,7 +942,7 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
         {isActive && (
           <div className="rv-section">
             <div style={{marginBottom:16}}>
-              <span style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:12,color:'#AAA',letterSpacing:'1.5px'}}>
+              <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:10.5,color:'#AAA',letterSpacing:'.1em',textTransform:'uppercase'}}>
                 AVALIAÇÕES ({company.total_reviews || 0})
               </span>
             </div>
@@ -959,7 +962,7 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
                 {reviews.map(r => (
                   <div key={r.id} className="rv-card">
                     <div className="rv-top">
-                      <div className="rv-av" style={{background:['#C9951A','#185FA5','#0F6E56','#854F0B','#E24B4A'][r.rating % 5]}}>{r.user?.name?.[0] || '?'}</div>
+                      <div className="rv-av" style={{background:['var(--sign-dark)','#185FA5','#0F6E56','#854F0B','#E24B4A'][r.rating % 5]}}>{r.user?.name?.[0] || '?'}</div>
                       <div className="rv-name">{r.user?.name || 'Usuário'}</div>
                       <span className="rv-date">{fmtDate(r.created_at)}</span>
                       {isAdmin && (

@@ -63,10 +63,10 @@ export default async function ItemPage({ params }: { params: Promise<{ slug: str
 
   if (!company || !produto) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', fontFamily: 'Inter,sans-serif', padding: 24, background: '#F0EDE8' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', fontFamily: 'Archivo,sans-serif', padding: 24, background: 'var(--concrete)' }}>
         <div style={{ fontSize: 48, marginBottom: 12 }}>🔍</div>
         <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>Produto não encontrado</div>
-        <a href={`/empresa/${slug}/cardapio`} style={{ color: '#C9951A' }}>← Ver cardápio</a>
+        <a href={`/empresa/${slug}/cardapio`} style={{ color: 'var(--sign-dark)' }}>← Ver cardápio</a>
       </div>
     )
   }

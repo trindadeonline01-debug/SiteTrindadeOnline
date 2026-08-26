@@ -62,48 +62,48 @@ export default function ProdutoDetailClient({ slug, company, produto, related }:
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F0EDE8', fontFamily: "'Inter',sans-serif", paddingBottom: 90 }}>
+    <div style={{ minHeight: '100vh', background: 'var(--concrete)', fontFamily: "'Archivo',sans-serif", paddingBottom: 90 }}>
       <style>{`
         .id-crumb{max-width:760px;margin:0 auto;padding:14px 16px 0;font-size:12px;color:#888;}
-        .id-crumb a{color:#C9951A;font-weight:600;text-decoration:none;}
+        .id-crumb a{color:var(--sign-dark);font-weight:600;text-decoration:none;}
         .id-wrap{max-width:760px;margin:0 auto;padding:14px 16px 24px;}
-        .id-photo{width:100%;height:280px;border-radius:14px;overflow:hidden;background:#111;display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Bebas Neue',sans-serif;font-size:26px;}
+        .id-photo{width:100%;height:280px;border-radius:14px;overflow:hidden;background:var(--ink);display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Archivo',sans-serif;font-weight:700;font-size:26px;}
         .id-photo img{width:100%;height:100%;object-fit:cover;}
         .id-pillrow{display:flex;align-items:center;gap:8px;margin:14px 0 6px;font-size:12px;color:#888;flex-wrap:wrap;}
         .id-open{background:#E6F4EA;color:#1B7A3E;font-weight:700;padding:3px 9px;border-radius:20px;font-size:11.5px;}
         .id-closed{background:#F0EDE8;color:#888;font-weight:700;padding:3px 9px;border-radius:20px;font-size:11.5px;}
-        .id-name{font-family:'Bebas Neue',sans-serif;font-size:26px;color:#111;letter-spacing:.5px;line-height:1.05;margin:2px 0 8px;}
-        .id-price{font-family:'Bebas Neue',sans-serif;font-size:32px;color:#111;}
+        .id-name{font-family:'Archivo',sans-serif;font-weight:700;font-size:22px;color:var(--ink);line-height:1.15;margin:2px 0 8px;}
+        .id-price{font-family:'Anton',sans-serif;font-size:32px;color:var(--ink);}
         .id-price-old{font-size:15px;color:#AAA;text-decoration:line-through;margin-left:8px;}
         .id-desc{font-size:13.5px;color:#4A4741;line-height:1.6;margin:12px 0 18px;}
         .id-opts{background:#fff;border:1px solid #E0DDD8;border-radius:12px;overflow:hidden;margin-bottom:14px;}
         .id-opts-h{background:#F5F2EC;padding:10px 14px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:8px;}
-        .id-opts-req{font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;background:#111;color:#fff;padding:2px 7px;border-radius:4px;}
+        .id-opts-req{font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;background:var(--ink);color:#fff;padding:2px 7px;border-radius:4px;}
         .id-opt{display:flex;align-items:center;gap:10px;padding:11px 14px;border-top:1px solid #F0EDE8;font-size:13.5px;cursor:pointer;}
         .id-opt-radio{width:18px;height:18px;border-radius:50%;border:1.5px solid #DDD;flex-shrink:0;position:relative;}
-        .id-opt-radio.on{border:5px solid #C9951A;}
+        .id-opt-radio.on{border:5px solid var(--sign-dark);}
         .id-opt-name{flex:1;}
         .id-opt-price{font-size:12px;color:#888;font-weight:600;}
         .id-seller{background:#fff;border:1px solid #E0DDD8;border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:12px;margin-bottom:16px;text-decoration:none;color:inherit;}
-        .id-seller-av{width:42px;height:42px;border-radius:10px;background:#C9951A;color:#1A1610;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0;}
-        .id-seller-name{font-weight:700;font-size:13.5px;color:#111;}
+        .id-seller-av{width:42px;height:42px;border-radius:10px;background:var(--sign-dark);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0;}
+        .id-seller-name{font-weight:700;font-size:13.5px;color:var(--ink);}
         .id-seller-m{font-size:11.5px;color:#888;margin-top:2px;}
-        .id-seller-go{margin-left:auto;font-size:12px;font-weight:700;color:#C9951A;white-space:nowrap;}
+        .id-seller-go{margin-left:auto;font-size:12px;font-weight:700;color:var(--sign-dark);white-space:nowrap;}
         .id-obs{width:100%;border:1px solid #E0DDD8;border-radius:10px;padding:11px 12px;font-size:13px;font-family:inherit;color:#333;resize:none;margin-bottom:18px;background:#fff;}
         .id-related-h{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#888;margin:0 0 10px;}
         .id-related{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
         @media(min-width:600px){.id-related{grid-template-columns:repeat(4,1fr);}}
         .id-rp{background:#fff;border:1px solid #E0DDD8;border-radius:10px;overflow:hidden;text-decoration:none;color:inherit;}
-        .id-rp-im{height:80px;background:#111;display:flex;align-items:center;justify-content:center;}
+        .id-rp-im{height:80px;background:var(--ink);display:flex;align-items:center;justify-content:center;}
         .id-rp-im img{width:100%;height:100%;object-fit:cover;}
         .id-rp-b{padding:8px 10px;}
         .id-rp-nm{font-size:11.5px;font-weight:600;line-height:1.25;min-height:28px;}
-        .id-rp-pr{font-family:'Bebas Neue',sans-serif;font-size:15px;color:#111;margin-top:3px;}
+        .id-rp-pr{font-family:'Anton',sans-serif;font-size:15px;color:var(--ink);margin-top:3px;}
         .id-bar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #E0DDD8;padding:10px 16px;display:flex;align-items:center;gap:10px;z-index:40;}
         .id-qty{display:flex;align-items:center;border:1px solid #E0DDD8;border-radius:8px;background:#fff;flex-shrink:0;}
         .id-qty button{border:0;background:transparent;padding:9px 13px;font-size:15px;font-weight:700;cursor:pointer;}
         .id-qty span{padding:0 6px;font-weight:700;font-size:14px;}
-        .id-main-btn{flex:1;background:#0F8050;color:#fff;border:0;padding:13px;border-radius:9px;font-size:13.5px;font-weight:700;cursor:pointer;}
+        .id-main-btn{flex:1;background:var(--open);color:#fff;border:0;padding:13px;border-radius:9px;font-size:13.5px;font-weight:700;cursor:pointer;}
         .id-main-btn:disabled{opacity:.55;cursor:not-allowed;}
       `}</style>
 
@@ -169,7 +169,7 @@ export default function ProdutoDetailClient({ slug, company, produto, related }:
                 const rPromo = promoPrice(r as any)
                 return (
                   <a className="id-rp" key={r.id} href={`/empresa/${slug}/item/${r.id}`}>
-                    <div className="id-rp-im">{r.photo_url ? <img src={r.photo_url} alt={r.name} /> : <span style={{ color: '#fff', fontFamily: "'Bebas Neue',sans-serif" }}>{r.name.slice(0, 2).toUpperCase()}</span>}</div>
+                    <div className="id-rp-im">{r.photo_url ? <img src={r.photo_url} alt={r.name} /> : <span style={{ color: '#fff', fontFamily: "'Archivo',sans-serif", fontWeight: 700 }}>{r.name.slice(0, 2).toUpperCase()}</span>}</div>
                     <div className="id-rp-b">
                       <div className="id-rp-nm">{r.name}</div>
                       <div className="id-rp-pr">{fmt(rPromo ?? r.sale_price)}</div>

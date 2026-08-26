@@ -263,9 +263,9 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
     }
   }
 
-  if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter,sans-serif', color: '#AAA', background: '#F0EDE8' }}>Carregando...</div>
+  if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Archivo,sans-serif', color: '#AAA', background: 'var(--concrete)' }}>Carregando...</div>
   if (!company) return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter,sans-serif', background: '#F0EDE8', padding: 24, textAlign: 'center' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'Archivo,sans-serif', background: 'var(--concrete)', padding: 24, textAlign: 'center' }}>
       <div style={{ fontSize: 44, marginBottom: 12 }}>🍽️</div>
       <div style={{ fontWeight: 700 }}>Cardápio não disponível</div>
     </div>
@@ -284,15 +284,15 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
   return (
     <div className="cd-wrap">
       <style>{`
-        .cd-wrap{ max-width:480px;margin:0 auto;min-height:100vh;background:#F0EDE8;font-family:'Inter',sans-serif;font-size:13px;color:#111;position:relative;padding-bottom:${cart.length ? '90px' : '20px'}; }
-        .cd-top{ background:#111;padding:22px 16px 10px;text-align:center; }
+        .cd-wrap{ max-width:480px;margin:0 auto;min-height:100vh;background:var(--concrete);font-family:'Archivo',sans-serif;font-size:13px;color:var(--ink);position:relative;padding-bottom:${cart.length ? '90px' : '20px'}; }
+        .cd-top{ background:var(--ink);padding:22px 16px 10px;text-align:center; }
         .cd-bc{ font-size:11px;color:#fff;font-weight:700; }
-        .cd-bc a{ color:#C9951A;text-decoration:none; }
+        .cd-bc a{ color:var(--sign);text-decoration:none; }
         .cd-head{ padding:14px 16px 0; }
         .cd-card{ background:#fff;border:1px solid #EDE8E0;border-radius:14px;padding:16px; }
         .cd-top2{ display:flex;align-items:center;gap:12px;margin-bottom:10px; }
-        .cd-av{ width:46px;height:46px;border-radius:12px;background:linear-gradient(155deg,#C9951A,#B8841A);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px; }
-        .cd-name{ font-size:19px;font-weight:800;text-transform:uppercase;color:#111; }
+        .cd-av{ width:46px;height:46px;border-radius:12px;background:linear-gradient(155deg,var(--sign-dark),#B8841A);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px; }
+        .cd-name{ font-size:19px;font-weight:800;color:var(--ink); }
         .cd-sub{ font-size:11.5px;color:#AAA; }
         .cd-tag{ font-size:10.5px;padding:3px 9px;border-radius:7px;font-weight:600;display:inline-block; }
         .cd-tag.open{ background:#EDFAF3;color:#0F6E56; }
@@ -303,16 +303,16 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
         .cd-search input{ width:100%;padding:11px 14px;border-radius:12px;border:1px solid #EDE8E0;background:#fff;font-size:13px;font-family:inherit; }
         .cd-catbar{ position:sticky;top:0;z-index:15;background:#F0EDE8;padding:12px 16px 8px;display:flex;gap:8px;overflow-x:auto; }
         .cd-catchip{ flex:none;font-size:12px;font-weight:700;padding:7px 14px;border-radius:20px;background:#fff;border:1px solid #EDE8E0;color:#555;cursor:pointer; }
-        .cd-catchip.active{ background:#111;color:#C9951A;border-color:#111; }
+        .cd-catchip.active{ background:var(--ink);color:var(--sign);border-color:var(--ink); }
         .cd-menu{ padding:2px 16px; }
         .cd-hot-row{ display:flex;gap:10px;overflow-x:auto;padding:2px 2px 10px; }
         .cd-hot-card{ flex:none;width:140px;background:#fff;border:1px solid #EDE8E0;border-radius:12px;padding:8px;cursor:pointer;transition:transform .3s; }
-        .cd-hot-card.cd-flash{ animation:cdFlash .5s ease; border-color:#C9951A; }
+        .cd-hot-card.cd-flash{ animation:cdFlash .5s ease; border-color:var(--sign-dark); }
         .cd-hot-photo{ width:100%;height:82px;border-radius:8px;background:linear-gradient(135deg,#FBF1DC,#F0EDE8);display:flex;align-items:center;justify-content:center;font-size:22px;overflow:hidden;margin-bottom:6px; }
         .cd-hot-photo img{ width:100%;height:100%;object-fit:cover; }
         .cd-hot-name{ font-size:11px;font-weight:700;line-height:1.3; }
         .cd-hot-price{ font-size:11px;font-weight:800;margin-top:3px; }
-        .cd-sec{ font-size:17px;font-weight:800;letter-spacing:.01em;color:#1A1610;margin:26px 2px 10px;padding-left:11px;border-left:4px solid #C9951A;line-height:1.2; }
+        .cd-sec{ font-size:17px;font-weight:800;letter-spacing:.01em;color:#1A1610;margin:26px 2px 10px;padding-left:11px;border-left:4px solid var(--sign-dark);line-height:1.2; }
         .cd-prowgroup{ background:#fff;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.04);overflow:hidden; }
         .cd-prow{ display:flex;gap:11px;padding:11px 12px;border-bottom:1px solid #EFEAE0;align-items:center;cursor:pointer;transition:background .3s,transform .3s; }
         .cd-prowgroup .cd-prow:last-child{ border-bottom:none; }
@@ -328,10 +328,10 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
         .cd-pdesc{ font-size:11px;color:#AAA;margin-top:2px; }
         .cd-pprice{ font-size:13px;font-weight:800;margin-top:4px; }
         .cd-pprice.was{ font-size:10.5px;color:#AAA;text-decoration:line-through;margin-left:5px;font-weight:600; }
-        .cd-addbtn{ flex:none;width:30px;height:30px;border-radius:9px;border:1.5px solid #C9951A;background:#FEF3E2;color:#C9951A;font-size:16px;font-weight:800;cursor:pointer;transition:background .2s,color .2s,transform .2s; }
-        .cd-addbtn.added{ background:#C9951A;color:#fff;transform:scale(1.12); }
+        .cd-addbtn{ flex:none;width:30px;height:30px;border-radius:9px;border:1.5px solid var(--sign-dark);background:#FEF3E2;color:var(--sign-dark);font-size:16px;font-weight:800;cursor:pointer;transition:background .2s,color .2s,transform .2s; }
+        .cd-addbtn.added{ background:var(--sign-dark);color:#fff;transform:scale(1.12); }
         .cd-chev{ flex:none;width:26px;height:26px;border-radius:50%;border:none;background:#F0EDE8;color:#AAA;font-size:13px;font-weight:800;cursor:pointer; }
-        .cd-cartbar{ position:fixed;left:50%;transform:translateX(-50%);bottom:16px;width:calc(100% - 32px);max-width:448px;padding:13px 16px;border-radius:16px;background:#C9951A;color:#1A1610;display:flex;align-items:center;justify-content:space-between;box-shadow:0 10px 24px -8px rgba(0,0,0,.35);cursor:pointer;z-index:10000; }
+        .cd-cartbar{ position:fixed;left:50%;transform:translateX(-50%);bottom:16px;width:calc(100% - 32px);max-width:448px;padding:13px 16px;border-radius:16px;background:var(--sign);color:var(--ink);display:flex;align-items:center;justify-content:space-between;box-shadow:0 10px 24px -8px rgba(0,0,0,.35);cursor:pointer;z-index:10000; }
         .cd-overlay{ position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9990;display:${detail || drawerOpen ? 'block' : 'none'}; }
         .cd-detail{ position:fixed;top:0;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:#F0EDE8;z-index:10000;display:flex;flex-direction:column;overflow:hidden; }
         .cd-hero{ height:200px;flex:none;background:linear-gradient(135deg,#FBF1DC,#E7DCC2);display:flex;align-items:center;justify-content:center;font-size:54px;position:relative;overflow:hidden; }
@@ -345,25 +345,25 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
         .cd-og-name{ font-weight:800;font-size:13.5px; }
         .cd-og-sub{ font-size:10px;color:#8A6410;margin-top:1px; }
         .cd-og-req{ flex:none;background:#C43D3D;color:#fff;font-size:9px;font-weight:800;padding:3px 7px;border-radius:6px;letter-spacing:.03em; }
-        .cd-og-count{ flex:none;background:#C9951A;color:#fff;font-size:10px;font-weight:800;padding:3px 8px;border-radius:20px;font-variant-numeric:tabular-nums; }
+        .cd-og-count{ flex:none;background:var(--sign-dark);color:#fff;font-size:10px;font-weight:800;padding:3px 8px;border-radius:20px;font-variant-numeric:tabular-nums; }
         .cd-orow{ display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:0.5px solid #EDE8E0;cursor:pointer; }
         .cd-oimg{ width:42px;height:42px;border-radius:9px;overflow:hidden;flex:none;background:#F0EDE8; }
         .cd-oimg img{ width:100%;height:100%;object-fit:cover; }
         .cd-omax{ font-size:9.5px;color:#AAA;margin-top:1px; }
         .cd-ocheck{ width:20px;height:20px;border:1.5px solid #D8D2C4;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex:none; }
         .cd-ocheck.radio{ border-radius:50%; }
-        .cd-ocheck.active{ background:#C9951A;border-color:#C9951A; }
-        .cd-oplus{ flex:none;width:26px;height:26px;border-radius:50%;border:1.5px solid #C9951A;color:#8A6410;background:#FEF3E2;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center; }
-        .cd-oplus.active{ background:#C9951A;color:#fff;border-color:#C9951A; }
+        .cd-ocheck.active{ background:var(--sign-dark);border-color:var(--sign-dark); }
+        .cd-oplus{ flex:none;width:26px;height:26px;border-radius:50%;border:1.5px solid var(--sign-dark);color:#8A6410;background:#FEF3E2;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center; }
+        .cd-oplus.active{ background:var(--sign-dark);color:#fff;border-color:var(--sign-dark); }
         .cd-dfoot{ flex:none;background:#fff;border-top:1px solid #EDE8E0;padding:12px 16px 16px;display:flex;gap:10px; }
-        .cd-addcart{ flex:1;padding:14px;border-radius:12px;border:none;background:#C9951A;color:#1A1610;font-weight:800;font-size:13px;cursor:pointer; }
+        .cd-addcart{ flex:1;padding:14px;border-radius:12px;border:none;background:var(--sign);color:var(--ink);font-weight:800;font-size:13px;cursor:pointer; }
         .cd-addcart:disabled{ background:#E2DCCB;color:#A79E8B; }
         .cd-drawer{ position:fixed;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:#fff;z-index:10000;border-radius:20px 20px 0 0;max-height:88vh;display:flex;flex-direction:column; }
         .cd-dhead{ padding:16px;border-bottom:1px solid #EDE8E0;display:flex;justify-content:space-between;align-items:center; }
         .cd-dbody{ flex:1;overflow-y:auto;padding:14px 16px; }
         .cd-diinput{ width:100%;padding:10px 12px;border-radius:10px;border:1px solid #EDE8E0;background:#F0EDE8;font-size:13px;font-family:inherit; }
         .cd-paychip{ padding:8px 13px;border-radius:20px;border:1.5px solid #EDE8E0;background:#fff;font-size:12px;font-weight:700;cursor:pointer;margin-right:8px; }
-        .cd-paychip.active{ background:#111;color:#C9951A;border-color:#111; }
+        .cd-paychip.active{ background:var(--ink);color:var(--sign);border-color:var(--ink); }
         .cd-totalrow{ display:flex;justify-content:space-between;padding-top:12px;margin-top:8px;border-top:1px dashed #EDE8E0;font-weight:800;font-size:16px; }
       `}</style>
 
@@ -376,7 +376,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
           </div>
           <div className="cd-statusrow">
             <span className={`cd-tag ${open ? 'open' : 'closed'}`}>{open ? '● Aberto agora' : '● Fechado agora'}</span>
-            <div className="cd-rating"><span style={{ color: '#C9951A' }}>★★★★★</span><b>{Number(company.avg_rating || 0).toFixed(1)}</b><span style={{ color: '#AAA' }}>({company.total_reviews || 0})</span></div>
+            <div className="cd-rating"><span style={{ color: 'var(--sign-dark)' }}>★★★★★</span><b>{Number(company.avg_rating || 0).toFixed(1)}</b><span style={{ color: '#AAA' }}>({company.total_reviews || 0})</span></div>
           </div>
         </div>
       </div>
@@ -501,10 +501,10 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
             })}
           </div>
           <div className="cd-dfoot">
-            <div style={{ display: 'flex', border: '1.5px solid #C9951A', borderRadius: 12, overflow: 'hidden' }}>
-              <button onClick={() => setDetailQty(q => Math.max(1, q - 1))} style={{ width: 34, border: 'none', background: '#FEF3E2', color: '#C9951A', fontWeight: 800 }}>−</button>
+            <div style={{ display: 'flex', border: '1.5px solid var(--sign-dark)', borderRadius: 12, overflow: 'hidden' }}>
+              <button onClick={() => setDetailQty(q => Math.max(1, q - 1))} style={{ width: 34, border: 'none', background: '#FEF3E2', color: 'var(--sign-dark)', fontWeight: 800 }}>−</button>
               <span style={{ width: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>{detailQty}</span>
-              <button onClick={() => setDetailQty(q => q + 1)} style={{ width: 34, border: 'none', background: '#FEF3E2', color: '#C9951A', fontWeight: 800 }}>+</button>
+              <button onClick={() => setDetailQty(q => q + 1)} style={{ width: 34, border: 'none', background: '#FEF3E2', color: 'var(--sign-dark)', fontWeight: 800 }}>+</button>
             </div>
             <button className="cd-addcart" disabled={!detailReqMet} onClick={confirmAddDetail}>Adicionar — {fmt(detailUnitPrice * detailQty)}</button>
           </div>

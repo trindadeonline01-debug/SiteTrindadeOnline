@@ -285,10 +285,12 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
     <div className="cd-wrap">
       <style>{`
         .cd-wrap{ max-width:480px;margin:0 auto;min-height:100vh;background:var(--concrete);font-family:'Archivo',sans-serif;font-size:13px;color:var(--ink);position:relative;padding-bottom:${cart.length ? '90px' : '20px'}; }
+        @media(min-width:900px){ .cd-wrap{ max-width:1120px; } }
         .cd-top{ background:var(--ink);padding:22px 16px 10px;text-align:center; }
         .cd-bc{ font-size:11px;color:#fff;font-weight:700; }
         .cd-bc a{ color:var(--sign);text-decoration:none; }
         .cd-head{ padding:14px 16px 0; }
+        @media(min-width:900px){ .cd-head{ max-width:760px;margin:0 auto; } }
         .cd-card{ background:#fff;border:1px solid #EDE8E0;border-radius:14px;padding:16px; }
         .cd-top2{ display:flex;align-items:center;gap:12px;margin-bottom:10px; }
         .cd-av{ width:46px;height:46px;border-radius:12px;background:linear-gradient(155deg,var(--sign-dark),#B8841A);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px; }
@@ -300,6 +302,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
         .cd-statusrow{ display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 0;border-top:0.5px solid #F0EDE8; }
         .cd-rating{ display:flex;align-items:center;gap:6px;font-size:12.5px;flex:none; }
         .cd-search{ padding:12px 16px 0; }
+        @media(min-width:900px){ .cd-search{ max-width:760px;margin:0 auto; } }
         .cd-search input{ width:100%;padding:11px 14px;border-radius:12px;border:1px solid #EDE8E0;background:#fff;font-size:13px;font-family:inherit; }
         .cd-catbar{ position:sticky;top:0;z-index:15;background:#F0EDE8;padding:12px 16px 8px;display:flex;gap:8px;overflow-x:auto; }
         .cd-catchip{ flex:none;font-size:12px;font-weight:700;padding:7px 14px;border-radius:20px;background:#fff;border:1px solid #EDE8E0;color:#555;cursor:pointer; }
@@ -331,6 +334,19 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
         .cd-addbtn{ flex:none;width:30px;height:30px;border-radius:9px;border:1.5px solid var(--sign-dark);background:#FEF3E2;color:var(--sign-dark);font-size:16px;font-weight:800;cursor:pointer;transition:background .2s,color .2s,transform .2s; }
         .cd-addbtn.added{ background:var(--sign-dark);color:#fff;transform:scale(1.12); }
         .cd-chev{ flex:none;width:26px;height:26px;border-radius:50%;border:none;background:#F0EDE8;color:#AAA;font-size:13px;font-weight:800;cursor:pointer; }
+        /* Desktop — vira grade de cards (ESPECIFICACAO.md §10.3): mobile é
+           lista compacta com foto pequena, desktop é grade com foto grande
+           no topo do card, um card por produto. */
+        @media(min-width:768px){
+          .cd-prowgroup{ display:grid;grid-template-columns:repeat(3,1fr);gap:14px;background:transparent;box-shadow:none;border-radius:0; }
+          .cd-prow{ flex-direction:column;align-items:stretch;background:#fff;border:1px solid #EFEAE0;border-radius:14px;padding:12px;border-bottom:none; }
+          .cd-pphoto{ width:100%;height:150px;border-radius:10px; }
+          .cd-badge{ top:8px;left:8px; }
+          .cd-pmid{ margin-top:10px; }
+          .cd-pname{ font-size:14px; }
+          .cd-prow > .cd-chev, .cd-prow > .cd-addbtn{ align-self:flex-end;margin-top:10px; }
+        }
+        @media(min-width:1024px){ .cd-prowgroup{ grid-template-columns:repeat(4,1fr); } }
         .cd-cartbar{ position:fixed;left:50%;transform:translateX(-50%);bottom:16px;width:calc(100% - 32px);max-width:448px;padding:13px 16px;border-radius:16px;background:var(--sign);color:var(--ink);display:flex;align-items:center;justify-content:space-between;box-shadow:0 10px 24px -8px rgba(0,0,0,.35);cursor:pointer;z-index:10000; }
         .cd-overlay{ position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9990;display:${detail || drawerOpen ? 'block' : 'none'}; }
         .cd-detail{ position:fixed;top:0;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:#F0EDE8;z-index:10000;display:flex;flex-direction:column;overflow:hidden; }

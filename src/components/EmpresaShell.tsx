@@ -121,12 +121,13 @@ export default function EmpresaShell({
         .es-item-locked:hover{color:rgba(255,255,255,.6);background:var(--ink-2);}
         .es-item-badge{margin-left:auto;background:var(--sign);color:var(--ink);font-size:9.5px;font-weight:800;padding:1px 6px;border-radius:8px;}
         .es-footer{padding:14px 20px;border-top:1px solid #222;display:flex;flex-direction:column;gap:8px;}
-        .es-btn{display:flex;align-items:center;justify-content:center;gap:7px;text-decoration:none;font-weight:700;font-family:'Archivo',sans-serif;border-radius:10px;border:none;cursor:pointer;}
-        .es-btn-primary{background:var(--sign);color:var(--ink);padding:11px 14px;font-size:13px;}
+        .es-footer-row{display:flex;gap:8px;}
+        .es-btn{display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;font-weight:700;font-family:'Archivo',sans-serif;border-radius:10px;border:none;cursor:pointer;flex:1;min-width:0;white-space:nowrap;}
+        .es-btn-primary{background:var(--sign);color:var(--ink);padding:11px 10px;font-size:12.5px;}
         .es-btn-primary:hover{background:var(--sign-dark);}
-        .es-btn-secondary{background:var(--ink-2);color:#fff;border:1px solid #333;padding:10px 14px;font-size:12.5px;}
+        .es-btn-secondary{background:var(--ink-2);color:#fff;border:1px solid #333;padding:10px 10px;font-size:12px;}
         .es-btn-secondary:hover{border-color:var(--sign);color:var(--sign);}
-        .es-btn-small{background:none;color:#888;padding:5px 8px;font-size:11px;font-weight:600;align-self:center;}
+        .es-btn-small{background:none;color:#888;padding:5px 8px;font-size:11px;font-weight:600;align-self:center;flex:none;}
         .es-btn-small:hover{color:var(--alert);}
 
         .es-main{flex:1;overflow-x:hidden;display:flex;flex-direction:column;min-width:0;}
@@ -195,8 +196,10 @@ export default function EmpresaShell({
           <NavItem href="/painel?tab=plano" active={active === 'plano'}>💳 Plano e pagamento</NavItem>
         </nav>
         <div className="es-footer">
-          {companySlug && <a className="es-btn es-btn-primary" href={`/empresa/${companySlug}`}>📄 Minha página</a>}
-          <a className="es-btn es-btn-secondary" href="/">🏠 Início</a>
+          <div className="es-footer-row">
+            {companySlug && <a className="es-btn es-btn-primary" href={`/empresa/${companySlug}`}>📄 Minha página</a>}
+            <a className="es-btn es-btn-secondary" href="/">🏠 Início</a>
+          </div>
           <a className="es-btn es-btn-small" href="/sair">🚪 Sair</a>
         </div>
       </aside>

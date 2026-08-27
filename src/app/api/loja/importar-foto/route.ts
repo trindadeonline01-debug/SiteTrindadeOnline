@@ -29,8 +29,14 @@ export async function POST(req: NextRequest) {
     if (!userData?.user) return NextResponse.json({ error: 'sessão inválida' }, { status: 401 })
 
     const { data: company } = await supabase.from('companies').select('owner_id').eq('id', company_id).maybeSingle()
-    if (!company || company.owner_id !== userData.user.id) {
-      return NextResponse.json({ error: 'empresa não é sua' }, { status: 403 })
+    if (!company) return NextResponse.json({ error: 'empresa não encontrada' }, { status: 404 })
+    if (company.owner_id !== userData.user.id) {
+      // Admin pode montar/importar o catálogo de qualquer empresa (Modo admin
+      // em /painel/catalogo?empresa=<id>) — só o dono da empresa não passa aqui.
+      const { data: profile } = await supabase.from('profiles').select('user_type').eq('id', userData.user.id).maybeSingle()
+      if (profile?.user_type !== 'admin') {
+        return NextResponse.json({ error: 'empresa não é sua' }, { status: 403 })
+      }
     }
 
     // Muitos CDNs de cardápio (Anota Aí, iFood etc.) bloqueiam pedidos que não

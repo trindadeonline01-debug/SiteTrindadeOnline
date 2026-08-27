@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { moduleActive } from '@/lib/modules'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -39,8 +40,8 @@ export async function POST(req: NextRequest) {
     const text = buildStatusMessage(status, deliveryType || null)
     if (!text) return NextResponse.json({ ok: true })
 
-    const { data: company } = await supabase.from('companies').select('crm_whatsapp_enabled').eq('id', companyId).maybeSingle()
-    if (!company?.crm_whatsapp_enabled) return NextResponse.json({ ok: true })
+    const { data: company } = await supabase.from('companies').select('crm_whatsapp_enabled, trial_modules_until').eq('id', companyId).maybeSingle()
+    if (!company || !moduleActive(company.crm_whatsapp_enabled, company.trial_modules_until)) return NextResponse.json({ ok: true })
 
     const { data: instance } = await supabase
       .from('crm_whatsapp_instances').select('instance_name, api_key')

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { moduleActive } from '@/lib/modules'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -27,12 +28,12 @@ export async function POST(req: NextRequest) {
 
     const { data: company } = await supabase
       .from('companies')
-      .select('id, owner_id, crm_whatsapp_enabled, crm_phone_limit')
+      .select('id, owner_id, crm_whatsapp_enabled, crm_phone_limit, trial_modules_until')
       .eq('id', company_id).maybeSingle()
     if (!company || company.owner_id !== userData.user.id) {
       return NextResponse.json({ error: 'empresa não é sua' }, { status: 403 })
     }
-    if (!company.crm_whatsapp_enabled) {
+    if (!moduleActive(company.crm_whatsapp_enabled, company.trial_modules_until)) {
       return NextResponse.json({ error: 'CRM de WhatsApp não está ativo pra essa empresa' }, { status: 403 })
     }
 

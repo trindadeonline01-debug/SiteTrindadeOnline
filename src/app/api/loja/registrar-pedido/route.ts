@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { moduleActive } from '@/lib/modules'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -99,8 +100,8 @@ export async function POST(req: NextRequest) {
     // chamadas antigas sem esses campos simplesmente pulam essa parte, sem
     // quebrar o resto da rota).
     if (Array.isArray(items) && items.length > 0 && items.every((it: any) => it.name && it.unitPrice != null)) {
-      const { data: company } = await supabase.from('companies').select('owner_id, crm_whatsapp_enabled').eq('id', companyId).maybeSingle()
-      if (company?.crm_whatsapp_enabled) {
+      const { data: company } = await supabase.from('companies').select('owner_id, crm_whatsapp_enabled, trial_modules_until').eq('id', companyId).maybeSingle()
+      if (company && moduleActive(company.crm_whatsapp_enabled, company.trial_modules_until)) {
         const { data: instance } = await supabase
           .from('crm_whatsapp_instances').select('instance_name, api_key')
           .eq('company_id', companyId).eq('status', 'connected').limit(1).maybeSingle()

@@ -339,7 +339,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
            no topo do card, um card por produto. */
         @media(min-width:768px){
           .cd-prowgroup{ display:grid;grid-template-columns:repeat(3,1fr);gap:14px;background:transparent;box-shadow:none;border-radius:0; }
-          .cd-prow{ display:grid;grid-template-columns:1fr auto;align-items:end;gap:0 8px;background:#fff;border:1px solid #EFEAE0;border-radius:14px;padding:12px;border-bottom:none; }
+          .cd-prow{ display:grid;grid-template-columns:1fr auto;align-items:end;gap:0 8px;background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:12px;border-bottom:1.5px solid var(--line);box-shadow:0 1px 3px rgba(0,0,0,.06); }
           .cd-pphoto{ grid-column:1/-1;width:100%;height:150px;border-radius:10px; }
           .cd-badge{ top:8px;left:8px; }
           .cd-pmid{ margin-top:10px; }

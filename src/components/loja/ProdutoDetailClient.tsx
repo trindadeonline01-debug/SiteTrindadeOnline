@@ -47,7 +47,7 @@ export default function ProdutoDetailClient({ slug, company, produto, related }:
   }
 
   function addToCartAndGo() {
-    if (!reqMet || adding) return
+    if (!reqMet || adding || !open) return
     setAdding(true)
     const modifiers: { name: string; price: number }[] = []
     produto.groups.forEach((g, gi) => sel[gi].forEach(oi => modifiers.push({ name: g.options[oi].name, price: g.options[oi].price })))
@@ -70,6 +70,8 @@ export default function ProdutoDetailClient({ slug, company, produto, related }:
         .id-wrap{max-width:760px;margin:0 auto;padding:14px 16px 24px;}
         .id-photo{width:100%;height:280px;border-radius:14px;overflow:hidden;background:var(--ink);display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Archivo',sans-serif;font-weight:700;font-size:26px;}
         .id-photo img{width:100%;height:100%;object-fit:cover;}
+        .id-photo-closed img{filter:grayscale(1);}
+        .id-bar-closed{padding:12px 16px;background:#FBEAEA;color:#A83232;font-size:12.5px;font-weight:600;text-align:center;}
         .id-pillrow{display:flex;align-items:center;gap:8px;margin:14px 0 6px;font-size:12px;color:#888;flex-wrap:wrap;}
         .id-open{background:#E6F4EA;color:#1B7A3E;font-weight:700;padding:3px 9px;border-radius:20px;font-size:11.5px;}
         .id-closed{background:#F0EDE8;color:#888;font-weight:700;padding:3px 9px;border-radius:20px;font-size:11.5px;}
@@ -115,7 +117,7 @@ export default function ProdutoDetailClient({ slug, company, produto, related }:
       </div>
 
       <div className="id-wrap">
-        <div className="id-photo">
+        <div className={`id-photo ${!open ? 'id-photo-closed' : ''}`}>
           {produto.photo_url ? <img src={produto.photo_url} alt={produto.name} /> : initials}
         </div>
 
@@ -183,16 +185,20 @@ export default function ProdutoDetailClient({ slug, company, produto, related }:
         )}
       </div>
 
-      <div className="id-bar">
-        <div className="id-qty">
-          <button onClick={() => setQty(q => Math.max(1, q - 1))}>−</button>
-          <span>{qty}</span>
-          <button onClick={() => setQty(q => q + 1)}>+</button>
+      {open ? (
+        <div className="id-bar">
+          <div className="id-qty">
+            <button onClick={() => setQty(q => Math.max(1, q - 1))}>−</button>
+            <span>{qty}</span>
+            <button onClick={() => setQty(q => q + 1)}>+</button>
+          </div>
+          <button className="id-main-btn" disabled={!reqMet} onClick={addToCartAndGo}>
+            {adding ? 'Adicionando...' : `Adicionar · ${fmt(unitPrice * qty)}`}
+          </button>
         </div>
-        <button className="id-main-btn" disabled={!reqMet} onClick={addToCartAndGo}>
-          {adding ? 'Adicionando...' : `Adicionar · ${fmt(unitPrice * qty)}`}
-        </button>
-      </div>
+      ) : (
+        <div className="id-bar id-bar-closed">🔒 {company.store_paused ? 'A loja pausou o recebimento de pedidos no momento.' : 'A loja está fechada no momento.'}</div>
+      )}
     </div>
   )
 }

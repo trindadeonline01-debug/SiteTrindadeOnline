@@ -120,9 +120,14 @@ export default function EmpresaShell({
         .es-item-locked{color:rgba(255,255,255,.35);}
         .es-item-locked:hover{color:rgba(255,255,255,.6);background:var(--ink-2);}
         .es-item-badge{margin-left:auto;background:var(--sign);color:var(--ink);font-size:9.5px;font-weight:800;padding:1px 6px;border-radius:8px;}
-        .es-footer{padding:14px 20px;border-top:1px solid #222;display:flex;flex-direction:column;gap:10px;}
-        .es-footer a{color:#999;text-decoration:none;font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px;}
-        .es-footer a:hover{color:var(--sign);}
+        .es-footer{padding:14px 20px;border-top:1px solid #222;display:flex;flex-direction:column;gap:8px;}
+        .es-btn{display:flex;align-items:center;justify-content:center;gap:7px;text-decoration:none;font-weight:700;font-family:'Archivo',sans-serif;border-radius:10px;border:none;cursor:pointer;}
+        .es-btn-primary{background:var(--sign);color:var(--ink);padding:11px 14px;font-size:13px;}
+        .es-btn-primary:hover{background:var(--sign-dark);}
+        .es-btn-secondary{background:var(--ink-2);color:#fff;border:1px solid #333;padding:10px 14px;font-size:12.5px;}
+        .es-btn-secondary:hover{border-color:var(--sign);color:var(--sign);}
+        .es-btn-small{background:none;color:#888;padding:5px 8px;font-size:11px;font-weight:600;align-self:center;}
+        .es-btn-small:hover{color:var(--alert);}
 
         .es-main{flex:1;overflow-x:hidden;display:flex;flex-direction:column;min-width:0;}
         .es-topbar{background:#fff;border-bottom:1px solid #EDE8E0;padding:16px 32px;display:none;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20;}
@@ -190,9 +195,9 @@ export default function EmpresaShell({
           <NavItem href="/painel?tab=plano" active={active === 'plano'}>💳 Plano e pagamento</NavItem>
         </nav>
         <div className="es-footer">
-          {companySlug && <a href={`/empresa/${companySlug}`}>↗ Ver site</a>}
-          <a href="/">🧭 Modo Explorar</a>
-          <a href="/sair">🚪 Sair</a>
+          {companySlug && <a className="es-btn es-btn-primary" href={`/empresa/${companySlug}`}>📄 Minha página</a>}
+          <a className="es-btn es-btn-secondary" href="/">🏠 Início</a>
+          <a className="es-btn es-btn-small" href="/sair">🚪 Sair</a>
         </div>
       </aside>
 

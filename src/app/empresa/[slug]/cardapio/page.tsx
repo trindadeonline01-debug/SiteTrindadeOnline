@@ -32,6 +32,8 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
   const [detail, setDetail] = useState<Produto | null>(null)
   const [detailSel, setDetailSel] = useState<number[][]>([])
   const groupRefs = useRef<(HTMLDivElement | null)[]>([])
+  const catScrollRef = useRef<HTMLDivElement>(null)
+  function scrollCats(dir: number) { catScrollRef.current?.scrollBy({ left: dir * 220, behavior: 'smooth' }) }
   const [detailQty, setDetailQty] = useState(1)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [deliveryType, setDeliveryType] = useState<'entrega' | 'retirada'>('entrega')
@@ -289,24 +291,31 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
         .cd-top{ background:var(--ink);padding:22px 16px 10px;text-align:center; }
         .cd-bc{ font-size:11px;color:#fff;font-weight:700; }
         .cd-bc a{ color:var(--sign);text-decoration:none; }
-        .cd-head{ padding:14px 16px 0; }
-        @media(min-width:900px){ .cd-head{ max-width:760px;margin:0 auto; } }
-        .cd-card{ background:#fff;border:1px solid #EDE8E0;border-radius:14px;padding:16px; }
-        .cd-top2{ display:flex;align-items:center;gap:12px;margin-bottom:10px; }
-        .cd-av{ width:46px;height:46px;border-radius:12px;background:linear-gradient(155deg,var(--sign-dark),#B8841A);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px; }
-        .cd-name{ font-size:19px;font-weight:800;color:var(--ink); }
-        .cd-sub{ font-size:11.5px;color:#AAA; }
+        .cd-hero{ background:var(--ink);padding:32px 16px 28px;border-bottom:2px solid var(--sign);text-align:center; }
+        .cd-hero-av{ width:64px;height:64px;border-radius:14px;background:linear-gradient(155deg,var(--sign-dark),#B8841A);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:22px;margin:0 auto 12px; }
+        .cd-hero-title{ font-family:'Anton',sans-serif;font-size:clamp(28px,5vw,42px);color:#fff;letter-spacing:1px;text-transform:uppercase;line-height:1;margin-bottom:6px; }
+        .cd-hero-store{ font-size:14px;color:#ccc;margin-bottom:10px; }
+        .cd-hero-meta{ display:flex;align-items:center;justify-content:center;gap:10px;font-size:12px;color:#999;flex-wrap:wrap; }
         .cd-tag{ font-size:10.5px;padding:3px 9px;border-radius:7px;font-weight:600;display:inline-block; }
         .cd-tag.open{ background:#EDFAF3;color:#0F6E56; }
         .cd-tag.closed{ background:#FEF0F0;color:#E24B4A; }
-        .cd-statusrow{ display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 0;border-top:0.5px solid #F0EDE8; }
-        .cd-rating{ display:flex;align-items:center;gap:6px;font-size:12.5px;flex:none; }
-        .cd-search{ padding:12px 16px 0; }
-        @media(min-width:900px){ .cd-search{ max-width:760px;margin:0 auto; } }
-        .cd-search input{ width:100%;padding:11px 14px;border-radius:12px;border:1px solid #EDE8E0;background:#fff;font-size:13px;font-family:inherit; }
-        .cd-catbar{ position:sticky;top:0;z-index:15;background:#F0EDE8;padding:12px 16px 8px;display:flex;gap:8px;overflow-x:auto; }
+        .cd-rating{ display:flex;align-items:center;gap:6px;font-size:12.5px;color:#999; }
+        .cd-search-wrap{ background:var(--concrete);padding:0 16px; }
+        @media(min-width:900px){ .cd-search-wrap{ max-width:760px;margin:0 auto; } }
+        .cd-search-inner{ transform:translateY(-20px); }
+        .cd-search-bar{ display:flex;align-items:center;gap:10px;background:var(--sign);border:2.5px solid var(--ink);border-radius:14px;padding:13px 18px;box-shadow:4px 4px 0 var(--ink); }
+        .cd-search-bar input{ flex:1;border:none;background:transparent;font-size:14px;font-family:'Archivo',sans-serif;font-weight:500;color:var(--ink);outline:none; }
+        .cd-search-bar input::placeholder{ color:var(--ink-2);opacity:.55; }
+        .cd-catbar-wrap{ position:sticky;top:0;z-index:15;background:#F0EDE8;display:flex;align-items:center;gap:6px;padding:10px 12px; }
+        .cd-catbar{ display:flex;gap:8px;overflow-x:auto;scroll-behavior:smooth;scrollbar-width:none;flex:1;min-width:0; }
+        .cd-catbar::-webkit-scrollbar{ display:none; }
         .cd-catchip{ flex:none;font-size:12px;font-weight:700;padding:7px 14px;border-radius:20px;background:#fff;border:1px solid #EDE8E0;color:#555;cursor:pointer; }
         .cd-catchip.active{ background:var(--ink);color:var(--sign);border-color:var(--ink); }
+        .cd-cat-arrow{ display:none; }
+        @media(min-width:768px){
+          .cd-cat-arrow{ flex:none;display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;border:1px solid #EDE8E0;background:#fff;color:var(--ink);font-size:15px;font-weight:700;cursor:pointer; }
+          .cd-cat-arrow:hover{ border-color:var(--sign-dark);color:var(--sign-dark); }
+        }
         .cd-menu{ padding:2px 16px; }
         .cd-hot-row{ display:flex;gap:10px;overflow-x:auto;padding:2px 2px 10px; }
         .cd-hot-card{ flex:none;width:140px;background:#fff;border:1px solid #EDE8E0;border-radius:12px;padding:8px;cursor:pointer;transition:transform .3s; }
@@ -385,26 +394,31 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
       `}</style>
 
       <div className="cd-top"><div className="cd-bc"><a href="/">Trindade Online</a> › <a href={`/empresa/${company.slug}`}>{company.name}</a> › Cardápio</div></div>
-      <div className="cd-head">
-        <div className="cd-card">
-          <div className="cd-top2">
-            <div className="cd-av">{company.name.slice(0, 2).toUpperCase()}</div>
-            <div><div className="cd-name">{company.name}</div><div className="cd-sub">{company.address || ''}</div></div>
-          </div>
-          <div className="cd-statusrow">
-            <span className={`cd-tag ${open ? 'open' : 'closed'}`}>{open ? '● Aberto agora' : '● Fechado agora'}</span>
-            <div className="cd-rating"><span style={{ color: 'var(--sign-dark)' }}>★★★★★</span><b>{Number(company.avg_rating || 0).toFixed(1)}</b><span style={{ color: '#AAA' }}>({company.total_reviews || 0})</span></div>
-          </div>
+
+      <div className="cd-hero">
+        <div className="cd-hero-av">{company.name.slice(0, 2).toUpperCase()}</div>
+        <div className="cd-hero-title">CARDÁPIO</div>
+        <div className="cd-hero-store">{company.name}</div>
+        <div className="cd-hero-meta">
+          <span className={`cd-tag ${open ? 'open' : 'closed'}`}>{open ? '● Aberto agora' : '● Fechado agora'}</span>
+          {Number(company.avg_rating || 0) > 0 && (
+            <div className="cd-rating"><span style={{ color: 'var(--sign)' }}>★★★★★</span><b style={{ color: '#fff' }}>{Number(company.avg_rating).toFixed(1)}</b><span>({company.total_reviews || 0})</span></div>
+          )}
         </div>
       </div>
 
-      <div className="cd-search">
+      <div className="cd-search-wrap"><div className="cd-search-inner"><div className="cd-search-bar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input placeholder="Buscar no cardápio..." value={search} onChange={e => setSearch(e.target.value)} />
-      </div>
+      </div></div></div>
 
-      <div className="cd-catbar">
-        <button className={`cd-catchip ${filterCat === 'all' ? 'active' : ''}`} onClick={() => setFilterCat('all')}>Tudo</button>
-        {categorias.map(c => <button key={c.id} className={`cd-catchip ${filterCat === c.id ? 'active' : ''}`} onClick={() => setFilterCat(c.id)}>{c.name}</button>)}
+      <div className="cd-catbar-wrap">
+        <button className="cd-cat-arrow" onClick={() => scrollCats(-1)} aria-label="Anterior">‹</button>
+        <div className="cd-catbar" ref={catScrollRef}>
+          <button className={`cd-catchip ${filterCat === 'all' ? 'active' : ''}`} onClick={() => setFilterCat('all')}>Tudo</button>
+          {categorias.map(c => <button key={c.id} className={`cd-catchip ${filterCat === c.id ? 'active' : ''}`} onClick={() => setFilterCat(c.id)}>{c.name}</button>)}
+        </div>
+        <button className="cd-cat-arrow" onClick={() => scrollCats(1)} aria-label="Próximo">›</button>
       </div>
 
       {maisPedidos.length > 0 && (

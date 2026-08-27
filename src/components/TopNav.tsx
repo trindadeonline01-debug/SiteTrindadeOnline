@@ -80,6 +80,14 @@ export default function TopNav() {
   const hideOn = ['/login', '/cadastro', '/admin', '/empresa/cadastrar', '/anunciar', '/producao', '/painel', '/atendimento']
   if (hideOn.some(p => pathname.startsWith(p))) return null
 
+  // Páginas que já têm busca própria no hero (categoria, comunidade,
+  // cardápio, ofertas, busca) não precisam da busca compacta duplicada
+  // aqui em cima — mesma lógica já aplicada no MobileMenu.
+  const hasOwnSearch = pathname === '/' || pathname === '/ofertas' || pathname === '/busca' ||
+    pathname.startsWith('/categoria/') ||
+    ['/empregos', '/imoveis', '/desapega', '/achados-perdidos'].includes(pathname) ||
+    /^\/empresa\/[^/]+\/cardapio$/.test(pathname)
+
 
   return (
     <>
@@ -123,7 +131,7 @@ export default function TopNav() {
             <div className="top-nav-bairro"><span className="pin">◉</span> Trindade</div>
           </div>
           <div className="top-nav-center">
-            {pathname !== '/' && <SearchBar compact />}
+            {!hasOwnSearch && <SearchBar compact />}
             <nav className="top-nav-links">
               <a className={`top-nav-link ${pathname==='/'?'active':''}`} href="/">🏠 Início</a>
               <NavDropdown label="Empresas" items={EMPRESAS_LINKS} />

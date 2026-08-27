@@ -121,10 +121,7 @@ export default function EmpresaShell({
         .es-item-locked:hover{color:rgba(255,255,255,.6);background:var(--ink-2);}
         .es-item-badge{margin-left:auto;background:var(--sign);color:var(--ink);font-size:9.5px;font-weight:800;padding:1px 6px;border-radius:8px;}
         .es-footer{padding:14px 20px;border-top:1px solid #222;display:flex;flex-direction:column;gap:8px;}
-        .es-footer-row{display:flex;gap:8px;}
-        .es-btn{display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;font-weight:700;font-family:'Archivo',sans-serif;border-radius:10px;border:none;cursor:pointer;flex:1;min-width:0;white-space:nowrap;}
-        .es-btn-primary{background:var(--sign);color:var(--ink);padding:11px 10px;font-size:12.5px;}
-        .es-btn-primary:hover{background:var(--sign-dark);}
+        .es-btn{display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;font-weight:700;font-family:'Archivo',sans-serif;border-radius:10px;border:none;cursor:pointer;min-width:0;white-space:nowrap;}
         .es-btn-secondary{background:var(--ink-2);color:#fff;border:1px solid #333;padding:10px 10px;font-size:12px;}
         .es-btn-secondary:hover{border-color:var(--sign);color:var(--sign);}
         .es-btn-small{background:none;color:#888;padding:5px 8px;font-size:11px;font-weight:600;align-self:center;flex:none;}
@@ -180,6 +177,7 @@ export default function EmpresaShell({
           <div className="es-group-lbl">Minha loja</div>
           <NavItem href="/painel/catalogo" active={active === 'catalogo'} locked={!lojaDigitalEnabled}>📋 Catálogo</NavItem>
           <NavItem href="/painel?tab=perfil" active={active === 'perfil'}>✏️ Perfil e fotos</NavItem>
+          {companySlug && <NavItem href={`/empresa/${companySlug}`} active={false}>🔗 Página da loja</NavItem>}
           <NavItem href="/painel/compartilhar" active={active === 'compartilhar'} locked={!lojaDigitalEnabled}>🔗 Compartilhar cardápio</NavItem>
           <NavItem href="/painel/entrega" active={active === 'entrega'} locked={!entregaEnabled}>🏍️ Entrega e retirada</NavItem>
 
@@ -196,10 +194,7 @@ export default function EmpresaShell({
           <NavItem href="/painel?tab=plano" active={active === 'plano'}>💳 Plano e pagamento</NavItem>
         </nav>
         <div className="es-footer">
-          <div className="es-footer-row">
-            {companySlug && <a className="es-btn es-btn-primary" href={`/empresa/${companySlug}`}>📄 Minha página</a>}
-            <a className="es-btn es-btn-secondary" href="/">🏠 Início</a>
-          </div>
+          <a className="es-btn es-btn-secondary" href="/">🏠 Início</a>
           <a className="es-btn es-btn-small" href="/sair">🚪 Sair</a>
         </div>
       </aside>

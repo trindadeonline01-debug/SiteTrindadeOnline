@@ -18,6 +18,7 @@ type Company = {
   category_id?: string; trial_ends_at?: string; plan_ends_at?: string; cpf_cnpj?: string
   delivery_available?: boolean
   flexible_hours?: boolean
+  store_paused?: boolean
   loja_digital_enabled?: boolean
   crm_whatsapp_enabled?: boolean
   entrega_enabled?: boolean
@@ -497,6 +498,14 @@ export default function PainelPage() {
     if (!session || !company) return
     await supabase.from('review_flags').insert({review_id:reviewId, flagged_by:session.user.id, reason:'Possível avaliação falsa'})
     showToast('Avaliação sinalizada para análise.')
+  }
+
+  async function toggleStorePaused() {
+    if (!company) return
+    const next = !company.store_paused
+    setCompany(prev => prev ? { ...prev, store_paused: next } : prev)
+    await supabase.from('companies').update({ store_paused: next }).eq('id', company.id)
+    showToast(next ? 'Loja pausada — não recebe pedido novo' : 'Loja reaberta')
   }
 
   function showToast(msg: string) { setToast(msg); setTimeout(()=>setToast(''), 3000) }
@@ -1133,6 +1142,18 @@ export default function PainelPage() {
               {company.status === 'pending' && (
                 <div className="alert-pending">⏳ Sua empresa está aguardando aprovação da nossa equipe. Você receberá uma notificação em até 24h.</div>
               )}
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap',padding:'14px 16px',borderRadius:12,marginBottom:18,background:company.store_paused?'#FBEAEA':'#EDFAF3',border:`1px solid ${company.store_paused?'#F0B8B8':'#B9E8D0'}`}}>
+                <div style={{display:'flex',alignItems:'center',gap:10}}>
+                  <span style={{fontSize:20}}>{company.store_paused ? '🔴' : '🟢'}</span>
+                  <div>
+                    <div style={{fontSize:13.5,fontWeight:800,color:company.store_paused?'#A83232':'#0F6E56'}}>{company.store_paused ? 'Loja pausada' : 'Loja aberta'}</div>
+                    <div style={{fontSize:11.5,color:'#666'}}>{company.store_paused ? 'Não está recebendo pedido novo agora, mesmo dentro do horário' : 'Recebendo pedido normalmente, conforme o horário cadastrado'}</div>
+                  </div>
+                </div>
+                <button onClick={toggleStorePaused} style={{background:company.store_paused?'var(--open)':'var(--alert)',color:'#fff',border:'none',padding:'9px 16px',borderRadius:9,fontSize:12.5,fontWeight:700,cursor:'pointer',fontFamily:'Archivo,sans-serif',flexShrink:0,whiteSpace:'nowrap'}}>
+                  {company.store_paused ? 'Reabrir loja' : 'Pausar loja'}
+                </button>
+              </div>
               <div className="stat-grid">
                 <div className="stat-card"><div className="stat-num" style={{color:'#185FA5'}}>{company.views_count||0}</div><div className="stat-lbl">Visualizações</div></div>
                 <div className="stat-card"><div className="stat-num" style={{color:'#25D366'}}>{company.whatsapp_clicks||0}</div><div className="stat-lbl">Cliques WhatsApp</div></div>

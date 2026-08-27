@@ -10,7 +10,7 @@ import ProdutoDetailClient from '@/components/loja/ProdutoDetailClient'
 const getData = cache(async (slug: string, id: string) => {
   const supabaseServer = await createServerSupabase()
   const { data: company } = await supabaseServer.from('companies')
-    .select('id,name,slug,phone,address,avg_rating,total_reviews,status,loja_digital_enabled,flexible_hours,loja_taxa_entrega,loja_pedido_minimo,category:categories(name,slug),hours:company_hours(label,hours,order,day_of_week,open_time,close_time,closed)')
+    .select('id,name,slug,phone,address,avg_rating,total_reviews,status,loja_digital_enabled,flexible_hours,store_paused,loja_taxa_entrega,loja_pedido_minimo,category:categories(name,slug),hours:company_hours(label,hours,order,day_of_week,open_time,close_time,closed)')
     .eq('slug', slug).maybeSingle()
   if (!company || company.status !== 'active' || !company.loja_digital_enabled) return { company: null, produto: null, related: [] }
 

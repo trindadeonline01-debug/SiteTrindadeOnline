@@ -24,6 +24,7 @@ type Company = {
   photos?: CompanyPhoto[]
   hours?: CompanyHour[]
   flexible_hours?: boolean
+  store_paused?: boolean
   loja_digital_enabled?: boolean
 }
 type SimpleCategory    = { id: string; name: string; emoji: string }
@@ -443,7 +444,7 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
   const isActive = company.plan === 'paid' || (!!company.trial_ends_at && new Date(company.trial_ends_at) > new Date())
   const trialDaysLeft = company.trial_ends_at ? Math.ceil((new Date(company.trial_ends_at).getTime() - Date.now()) / 86400000) : 0
   const photos = (company.photos || []).sort((a,b) => a.order - b.order)
-  const open = isOpenNow(company.hours, company.flexible_hours)
+  const open = isOpenNow(company.hours, company.flexible_hours, company.store_paused)
   const avgRating = company.avg_rating || 0
   const mapsUrl = company.address ? `https://maps.google.com/maps?q=${encodeURIComponent(company.address)}&output=embed` : null
 
@@ -729,7 +730,7 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
               {(company.flexible_hours || (company.hours && company.hours.length > 0)) && (
                 <>
                   <span className="sep">·</span>
-                  <span className={open ? 'status-open' : 'status-closed'}>{company.flexible_hours ? '● Horário flexível' : (open ? '● Aberto agora' : '● Fechado')}</span>
+                  <span className={open ? 'status-open' : 'status-closed'}>{company.store_paused ? '● Pausado no momento' : company.flexible_hours ? '● Horário flexível' : (open ? '● Aberto agora' : '● Fechado')}</span>
                 </>
               )}
               <span className="sep">·</span>

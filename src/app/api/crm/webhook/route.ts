@@ -293,7 +293,7 @@ export async function POST(req: NextRequest) {
 
         const { data: company } = await supabase
           .from('companies')
-          .select('owner_id, name, crm_auto_reply_enabled, crm_auto_reply_text, flexible_hours')
+          .select('owner_id, name, crm_auto_reply_enabled, crm_auto_reply_text, flexible_hours, store_paused')
           .eq('id', inst.company_id).maybeSingle()
         if (company?.owner_id && !existing?.muted) {
           const notifBody = previewText
@@ -318,7 +318,7 @@ export async function POST(req: NextRequest) {
             const { data: hours } = await supabase
               .from('company_hours').select('day_of_week, open_time, close_time, closed')
               .eq('company_id', inst.company_id)
-            if (!isOpenNow(hours || [], company.flexible_hours)) {
+            if (!isOpenNow(hours || [], company.flexible_hours, company.store_paused)) {
               try {
                 await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(instanceName)}`, {
                   method: 'POST',

@@ -8,7 +8,7 @@ type Categoria = { id: string; name: string; display_order: number }
 type Company = {
   id: string; name: string; slug: string; phone: string | null; address: string | null
   avg_rating: number; total_reviews: number; status: string
-  loja_digital_enabled: boolean; flexible_hours?: boolean; owner_id?: string
+  loja_digital_enabled: boolean; flexible_hours?: boolean; store_paused?: boolean; owner_id?: string
   loja_taxa_entrega: number; loja_pedido_minimo: number
   hours?: any[]; photos?: { url: string; order: number }[]
 }
@@ -83,7 +83,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
 
   useEffect(() => {
     supabase.from('companies')
-      .select('id,name,slug,phone,address,avg_rating,total_reviews,status,loja_digital_enabled,flexible_hours,owner_id,loja_taxa_entrega,loja_pedido_minimo,hours:company_hours(label,hours,order,day_of_week,open_time,close_time,closed),photos:company_photos(url,order)')
+      .select('id,name,slug,phone,address,avg_rating,total_reviews,status,loja_digital_enabled,flexible_hours,store_paused,owner_id,loja_taxa_entrega,loja_pedido_minimo,hours:company_hours(label,hours,order,day_of_week,open_time,close_time,closed),photos:company_photos(url,order)')
       .eq('slug', slug).maybeSingle()
       .then(async ({ data: comp }) => {
         if (!comp || comp.status !== 'active' || !comp.loja_digital_enabled) { setCompany(null); setLoading(false); return }
@@ -277,7 +277,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
     </div>
   )
 
-  const open = isOpenNow(company.hours as any, company.flexible_hours)
+  const open = isOpenNow(company.hours as any, company.flexible_hours, company.store_paused)
   const taxaEntrega = deliveryType === 'entrega' ? Number(company.loja_taxa_entrega || 0) : 0
   const orderTotal = cartTotal + taxaEntrega
   const abaixoMinimo = Number(company.loja_pedido_minimo || 0) > 0 && cartTotal < Number(company.loja_pedido_minimo)
@@ -622,11 +622,19 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
                 <div className="cd-totalrow"><span>Total</span><span>{fmt(orderTotal)}</span></div>
               </div>
               <div style={{ padding: '14px 16px 16px', borderTop: '1px solid #EDE8E0', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <button className="cd-addcart" style={{ width: '100%' }} disabled={confirming || (deliveryType === 'entrega' && !address.trim()) || (agendarRetirada && (!scheduleDate || !scheduleTime)) || abaixoMinimo} onClick={confirmOrder}>{confirming ? 'Enviando...' : 'Confirmar pedido'}</button>
-                {company.phone && (
-                  <button className="cd-addcart" style={{ width: '100%', background: '#25D366', color: '#fff' }} disabled={sendingWa} onClick={sendCartWhatsapp}>
-                    {sendingWa ? 'Abrindo...' : '📱 Enviar pedido no WhatsApp'}
-                  </button>
+                {!open ? (
+                  <div style={{ padding: '12px 14px', borderRadius: 10, background: '#FBEAEA', color: '#A83232', fontSize: 12.5, fontWeight: 600, textAlign: 'center' }}>
+                    🔒 {company.store_paused ? 'A loja pausou o recebimento de pedidos no momento.' : 'A loja está fechada no momento.'} Tenta de novo mais tarde.
+                  </div>
+                ) : (
+                  <>
+                    <button className="cd-addcart" style={{ width: '100%' }} disabled={confirming || (deliveryType === 'entrega' && !address.trim()) || (agendarRetirada && (!scheduleDate || !scheduleTime)) || abaixoMinimo} onClick={confirmOrder}>{confirming ? 'Enviando...' : 'Confirmar pedido'}</button>
+                    {company.phone && (
+                      <button className="cd-addcart" style={{ width: '100%', background: '#25D366', color: '#fff' }} disabled={sendingWa} onClick={sendCartWhatsapp}>
+                        {sendingWa ? 'Abrindo...' : '📱 Enviar pedido no WhatsApp'}
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             </>

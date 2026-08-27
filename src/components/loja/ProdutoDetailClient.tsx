@@ -7,6 +7,7 @@ type Company = {
   id: string; name: string; slug: string; phone: string | null; address: string | null
   avg_rating: number; total_reviews: number
   flexible_hours?: boolean
+  store_paused?: boolean
   category?: { name: string; slug: string } | null
   hours?: any[]
 }
@@ -19,7 +20,7 @@ export default function ProdutoDetailClient({ slug, company, produto, related }:
   const [adding, setAdding] = useState(false)
   const groupRefs = useRef<(HTMLDivElement | null)[]>([])
 
-  const open = isOpenNow(company.hours, company.flexible_hours)
+  const open = isOpenNow(company.hours, company.flexible_hours, company.store_paused)
   const promo = promoPrice(produto)
   const basePrice = promo ?? produto.sale_price
   const unitPrice = basePrice + produto.groups.reduce((s, g, gi) => s + groupContribution(g, sel[gi]), 0)

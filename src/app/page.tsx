@@ -7,6 +7,7 @@ import HomeSearchBox from '@/components/home/HomeSearchBox'
 import HomeBannerCarousel from '@/components/home/HomeBannerCarousel'
 import HomeAbertoAgora from '@/components/home/HomeAbertoAgora'
 import HomeComunidadeTabs from '@/components/home/HomeComunidadeTabs'
+import ScrollRow from '@/components/home/ScrollRow'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { isOpenNow, HourRow } from '@/lib/businessHours'
 import { CATEGORY_IMAGES } from '@/lib/categoryImages'
@@ -691,7 +692,7 @@ export default async function HomePage() {
                     </div>
                     <a href={href} className="sec-link">Ver tudo →</a>
                   </div>
-                  <div className="recent-scroll">
+                  <ScrollRow trackClassName="recent-scroll">
                     {list.map(c => {
                       const cover = [...(c.photos || [])].sort((a, b) => a.order - b.order)[0]?.url
                       return (
@@ -703,7 +704,7 @@ export default async function HomePage() {
                         </a>
                       )
                     })}
-                  </div>
+                  </ScrollRow>
                 </div>
               )
             })}
@@ -721,7 +722,7 @@ export default async function HomePage() {
                 <h2 className="recent-section-title">✨ Novos na Trindade</h2>
               </div>
             </div>
-            <div className="recent-scroll">
+            <ScrollRow trackClassName="recent-scroll">
               {newCompanies.map(c => {
                 const cover = [...(c.photos || [])].sort((a, b) => a.order - b.order)[0]?.url
                 return (
@@ -733,7 +734,7 @@ export default async function HomePage() {
                   </a>
                 )
               })}
-            </div>
+            </ScrollRow>
           </div>
         )}
 

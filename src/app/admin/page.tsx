@@ -1885,6 +1885,9 @@ export default function AdminPage() {
                                     <button className="action-btn" style={c.loja_digital_enabled ? {background:'#E4F3EC',color:'#157A52'} : {background:'#F0EDE8',color:'#888'}} onClick={() => toggleLojaDigital(c.id, !!c.loja_digital_enabled)}>
                                       🧾 {c.loja_digital_enabled ? 'Cardápio ON' : 'Cardápio OFF'}
                                     </button>
+                                    <a className="action-btn" href={`/painel/catalogo?empresa=${c.id}`} style={{background:'#185FA522',color:'#185FA5',textDecoration:'none',display:'inline-flex',alignItems:'center'}}>
+                                      📋 Editar cardápio
+                                    </a>
                                     <button className="action-btn" style={c.crm_whatsapp_enabled ? {background:'#E4F3EC',color:'#157A52'} : {background:'#F0EDE8',color:'#888'}} onClick={() => toggleModule(c.id, 'crm_whatsapp_enabled', !!c.crm_whatsapp_enabled)}>
                                       💬 {c.crm_whatsapp_enabled ? 'CRM ON' : 'CRM OFF'}
                                     </button>

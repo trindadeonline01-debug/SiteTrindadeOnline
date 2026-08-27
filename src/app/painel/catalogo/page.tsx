@@ -106,6 +106,7 @@ export default function CatalogoPage() {
   const [loading, setLoading] = useState(true)
   const [companyId, setCompanyId] = useState('')
   const [companyName, setCompanyName] = useState('')
+  const [adminMode, setAdminMode] = useState(false)
   const [crmEnabled, setCrmEnabled] = useState(false)
   const [entregaEnabled, setEntregaEnabled] = useState(false)
   const [categorias, setCategorias] = useState<Categoria[]>([])
@@ -146,6 +147,27 @@ export default function CatalogoPage() {
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { window.location.href = '/login?redirect=/painel/catalogo'; return }
+
+      // Admin pode montar o cardápio de qualquer empresa antes de entregar
+      // pro dono — abre com ?empresa=<id> a partir do painel admin.
+      const empresaParam = new URLSearchParams(window.location.search).get('empresa')
+      if (empresaParam) {
+        const { data: profile } = await supabase.from('profiles').select('user_type').eq('id', session.user.id).single()
+        if (profile?.user_type === 'admin') {
+          const { data: comp } = await supabase.from('companies').select('id, name, loja_digital_enabled, crm_whatsapp_enabled, entrega_enabled, trial_modules_until').eq('id', empresaParam).maybeSingle()
+          if (!comp) { window.location.href = '/admin?tab=empresas'; return }
+          setAdminMode(true)
+          setCompanyId(comp.id)
+          setCompanyName(comp.name)
+          setCrmEnabled(moduleActive(comp.crm_whatsapp_enabled, comp.trial_modules_until))
+          setEntregaEnabled(moduleActive(comp.entrega_enabled, comp.trial_modules_until))
+          await loadAll(comp.id)
+          await loadLastImportBatch(comp.id)
+          setLoading(false)
+          return
+        }
+      }
+
       const { data: comp } = await supabase.from('companies').select('id, name, loja_digital_enabled, crm_whatsapp_enabled, entrega_enabled, trial_modules_until').eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
       if (!comp || !moduleActive(comp.loja_digital_enabled, comp.trial_modules_until)) { window.location.href = '/painel/compartilhar'; return }
       setCompanyId(comp.id)
@@ -617,6 +639,12 @@ export default function CatalogoPage() {
   return (
     <EmpresaShell active="catalogo" companyName={companyName} lojaDigitalEnabled crmEnabled={crmEnabled} entregaEnabled={entregaEnabled}>
     <div className="cg-wrap">
+      {adminMode && (
+        <div style={{ position:'sticky', top:0, zIndex:30, background:'#1A0F00', color:'#F0EDE8', padding:'9px 16px', fontSize:12, fontWeight:600, display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
+          <span>🛠️ Modo admin — montando o cardápio de <strong>{companyName}</strong></span>
+          <a href="/admin?tab=empresas" style={{ color:'var(--sign)', fontWeight:700, textDecoration:'none', whiteSpace:'nowrap' }}>← Voltar ao admin</a>
+        </div>
+      )}
       <style>{`
         .cg-wrap{ width:100%; max-width:480px; margin:0 auto; min-height:100vh; background:var(--concrete); font-family:'Archivo',sans-serif; font-size:13px; color:var(--ink); padding-bottom:40px; min-width:0; overflow-x:hidden; }
         @media(min-width:768px){

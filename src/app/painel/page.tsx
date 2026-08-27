@@ -1,7 +1,5 @@
 'use client'
-import Footer from '@/components/Footer'
 import Image from 'next/image'
-
 import { compressImage } from '@/lib/compressImage'
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -2097,8 +2095,6 @@ export default function PainelPage() {
             </div>
           )}
       </EmpresaShell>
-
-      <Footer/>
     </>
   )
 }

@@ -290,20 +290,23 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
   return (
     <div className="cd-wrap">
       <style>{`
-        .cd-wrap{ max-width:480px;margin:0 auto;min-height:100vh;background:var(--concrete);font-family:'Archivo',sans-serif;font-size:13px;color:var(--ink);position:relative;padding-bottom:${cart.length ? '90px' : '20px'}; }
+        .cd-wrap{ max-width:480px;margin:0 auto;min-height:100vh;background:var(--concrete);font-family:'Archivo',sans-serif;font-size:13px;color:var(--ink);position:relative;overflow-x:hidden;padding-bottom:${cart.length ? '90px' : '20px'}; }
         @media(min-width:900px){ .cd-wrap{ max-width:1120px; } }
-        .cd-top{ background:var(--ink);padding:22px 16px 10px;text-align:center; }
+        /* Topo e hero escapam do max-width do .cd-wrap pra ficar de ponta a
+           ponta na tela, igual à página de categoria — só o conteúdo abaixo
+           (busca, categorias, cardápio) fica limitado a 1120px. */
+        .cd-top{ background:var(--ink);padding:22px 16px 10px;text-align:center;width:100vw;margin-left:calc(50% - 50vw); }
         .cd-bc{ font-size:11px;color:#fff;font-weight:700; }
         .cd-bc a{ color:var(--sign);text-decoration:none; }
-        .cd-hero{ background:var(--ink);padding:32px 24px 28px;border-bottom:2px solid var(--sign); }
-        .cd-hero-inner{ display:flex;align-items:center;justify-content:center;gap:18px; }
-        .cd-hero-img{ width:74px;height:74px;border-radius:12px;overflow:hidden;position:relative;flex-shrink:0;border:2px solid var(--sign);display:flex;align-items:center;justify-content:center;background:linear-gradient(155deg,var(--sign-dark),#B8841A);color:#fff;font-weight:800;font-size:22px; }
-        .cd-hero-img img{ width:100%;height:100%;object-fit:cover; }
-        .cd-hero-title{ font-family:'Anton',sans-serif;font-size:clamp(28px,5vw,42px);color:#fff;letter-spacing:1px;text-transform:uppercase;line-height:1;margin-bottom:6px; }
-        .cd-hero-cnt{ display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px;font-size:13px;color:#999;font-family:'Archivo',sans-serif; }
-        .cd-hero-cnt .op{ color:#4ADE80;font-weight:600; }
-        .cd-hero-cnt .cl{ color:#F87171;font-weight:600; }
-        .cd-hero-cnt .st{ color:var(--sign); }
+        .cd-pagehero{ background:var(--ink);padding:32px 24px 28px;border-bottom:2px solid var(--sign);width:100vw;margin-left:calc(50% - 50vw); }
+        .cd-pagehero-inner{ display:flex;align-items:center;justify-content:center;gap:18px; }
+        .cd-pagehero-img{ width:74px;height:74px;border-radius:12px;overflow:hidden;position:relative;flex-shrink:0;border:2px solid var(--sign);display:flex;align-items:center;justify-content:center;background:linear-gradient(155deg,var(--sign-dark),#B8841A);color:#fff;font-weight:800;font-size:22px; }
+        .cd-pagehero-img img{ width:100%;height:100%;object-fit:cover; }
+        .cd-pagehero-title{ font-family:'Anton',sans-serif;font-size:clamp(28px,5vw,42px);color:#fff;letter-spacing:1px;text-transform:uppercase;line-height:1;margin-bottom:6px; }
+        .cd-pagehero-cnt{ display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px;font-size:13px;color:#999;font-family:'Archivo',sans-serif; }
+        .cd-pagehero-cnt .op{ color:#4ADE80;font-weight:600; }
+        .cd-pagehero-cnt .cl{ color:#F87171;font-weight:600; }
+        .cd-pagehero-cnt .st{ color:var(--sign); }
         .cd-search-wrap{ background:var(--concrete);padding:0 16px; }
         @media(min-width:900px){ .cd-search-wrap{ max-width:760px;margin:0 auto; } }
         .cd-search-inner{ transform:translateY(-20px); }
@@ -399,13 +402,13 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
 
       <div className="cd-top"><div className="cd-bc"><a href="/">Trindade Online</a> › <a href={`/empresa/${company.slug}`}>{company.name}</a> › Cardápio</div></div>
 
-      <div className="cd-hero"><div className="cd-hero-inner">
-        <div className="cd-hero-img">
+      <div className="cd-pagehero"><div className="cd-pagehero-inner">
+        <div className="cd-pagehero-img">
           {getCompanyCover(company.photos) ? <img src={getCompanyCover(company.photos)!} alt="" /> : company.name.slice(0, 2).toUpperCase()}
         </div>
         <div>
-          <div className="cd-hero-title">CARDÁPIO</div>
-          <div className="cd-hero-cnt">
+          <div className="cd-pagehero-title">CARDÁPIO</div>
+          <div className="cd-pagehero-cnt">
             <span>{company.name}</span>
             <span className={open ? 'op' : 'cl'}>· {open ? '● Aberto agora' : '● Fechado agora'}</span>
             {Number(company.avg_rating || 0) > 0 && (

@@ -10,7 +10,7 @@ type Company = {
   avg_rating: number; total_reviews: number; status: string
   loja_digital_enabled: boolean; flexible_hours?: boolean; owner_id?: string
   loja_taxa_entrega: number; loja_pedido_minimo: number
-  hours?: any[]
+  hours?: any[]; photos?: { url: string; order: number }[]
 }
 type CartLine = { key: string; produtoId: string; name: string; modifiers: { name: string; price: number }[]; unitPrice: number; qty: number }
 
@@ -51,6 +51,10 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
   const [success, setSuccess] = useState(false)
   const [confirming, setConfirming] = useState(false)
 
+  function getCompanyCover(photos?: { url: string; order: number }[]): string | null {
+    if (!photos?.length) return null
+    return [...photos].sort((a, b) => a.order - b.order)[0]?.url || null
+  }
   function formatCep(v: string) { return v.replace(/\D/g, '').slice(0, 8).replace(/^(\d{5})(\d)/, '$1-$2') }
   function buildAddress(data: { logradouro: string; bairro: string; localidade: string; uf: string }, num: string) {
     return [data.logradouro + (num ? ', ' + num : ''), data.bairro, `${data.localidade}-${data.uf}`].filter(Boolean).join(', ')
@@ -79,7 +83,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
 
   useEffect(() => {
     supabase.from('companies')
-      .select('id,name,slug,phone,address,avg_rating,total_reviews,status,loja_digital_enabled,flexible_hours,owner_id,loja_taxa_entrega,loja_pedido_minimo,hours:company_hours(label,hours,order,day_of_week,open_time,close_time,closed)')
+      .select('id,name,slug,phone,address,avg_rating,total_reviews,status,loja_digital_enabled,flexible_hours,owner_id,loja_taxa_entrega,loja_pedido_minimo,hours:company_hours(label,hours,order,day_of_week,open_time,close_time,closed),photos:company_photos(url,order)')
       .eq('slug', slug).maybeSingle()
       .then(async ({ data: comp }) => {
         if (!comp || comp.status !== 'active' || !comp.loja_digital_enabled) { setCompany(null); setLoading(false); return }
@@ -291,22 +295,22 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
         .cd-top{ background:var(--ink);padding:22px 16px 10px;text-align:center; }
         .cd-bc{ font-size:11px;color:#fff;font-weight:700; }
         .cd-bc a{ color:var(--sign);text-decoration:none; }
-        .cd-hero{ background:var(--ink);padding:32px 16px 28px;border-bottom:2px solid var(--sign);text-align:center; }
-        .cd-hero-av{ width:64px;height:64px;border-radius:14px;background:linear-gradient(155deg,var(--sign-dark),#B8841A);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:22px;margin:0 auto 12px; }
+        .cd-hero{ background:var(--ink);padding:32px 24px 28px;border-bottom:2px solid var(--sign); }
+        .cd-hero-inner{ display:flex;align-items:center;justify-content:center;gap:18px; }
+        .cd-hero-img{ width:74px;height:74px;border-radius:12px;overflow:hidden;position:relative;flex-shrink:0;border:2px solid var(--sign);display:flex;align-items:center;justify-content:center;background:linear-gradient(155deg,var(--sign-dark),#B8841A);color:#fff;font-weight:800;font-size:22px; }
+        .cd-hero-img img{ width:100%;height:100%;object-fit:cover; }
         .cd-hero-title{ font-family:'Anton',sans-serif;font-size:clamp(28px,5vw,42px);color:#fff;letter-spacing:1px;text-transform:uppercase;line-height:1;margin-bottom:6px; }
-        .cd-hero-store{ font-size:14px;color:#ccc;margin-bottom:10px; }
-        .cd-hero-meta{ display:flex;align-items:center;justify-content:center;gap:10px;font-size:12px;color:#999;flex-wrap:wrap; }
-        .cd-tag{ font-size:10.5px;padding:3px 9px;border-radius:7px;font-weight:600;display:inline-block; }
-        .cd-tag.open{ background:#EDFAF3;color:#0F6E56; }
-        .cd-tag.closed{ background:#FEF0F0;color:#E24B4A; }
-        .cd-rating{ display:flex;align-items:center;gap:6px;font-size:12.5px;color:#999; }
+        .cd-hero-cnt{ display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px;font-size:13px;color:#999;font-family:'Archivo',sans-serif; }
+        .cd-hero-cnt .op{ color:#4ADE80;font-weight:600; }
+        .cd-hero-cnt .cl{ color:#F87171;font-weight:600; }
+        .cd-hero-cnt .st{ color:var(--sign); }
         .cd-search-wrap{ background:var(--concrete);padding:0 16px; }
         @media(min-width:900px){ .cd-search-wrap{ max-width:760px;margin:0 auto; } }
         .cd-search-inner{ transform:translateY(-20px); }
         .cd-search-bar{ display:flex;align-items:center;gap:10px;background:var(--sign);border:2.5px solid var(--ink);border-radius:14px;padding:13px 18px;box-shadow:4px 4px 0 var(--ink); }
         .cd-search-bar input{ flex:1;border:none;background:transparent;font-size:14px;font-family:'Archivo',sans-serif;font-weight:500;color:var(--ink);outline:none; }
         .cd-search-bar input::placeholder{ color:var(--ink-2);opacity:.55; }
-        .cd-catbar-wrap{ position:sticky;top:0;z-index:15;background:#F0EDE8;display:flex;align-items:center;gap:6px;padding:10px 12px; }
+        .cd-catbar-wrap{ position:sticky;top:0;z-index:15;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:6px;padding:10px 12px; }
         .cd-catbar{ display:flex;gap:8px;overflow-x:auto;scroll-behavior:smooth;scrollbar-width:none;flex:1;min-width:0; }
         .cd-catbar::-webkit-scrollbar{ display:none; }
         .cd-catchip{ flex:none;font-size:12px;font-weight:700;padding:7px 14px;border-radius:20px;background:#fff;border:1px solid #EDE8E0;color:#555;cursor:pointer; }
@@ -395,17 +399,21 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
 
       <div className="cd-top"><div className="cd-bc"><a href="/">Trindade Online</a> › <a href={`/empresa/${company.slug}`}>{company.name}</a> › Cardápio</div></div>
 
-      <div className="cd-hero">
-        <div className="cd-hero-av">{company.name.slice(0, 2).toUpperCase()}</div>
-        <div className="cd-hero-title">CARDÁPIO</div>
-        <div className="cd-hero-store">{company.name}</div>
-        <div className="cd-hero-meta">
-          <span className={`cd-tag ${open ? 'open' : 'closed'}`}>{open ? '● Aberto agora' : '● Fechado agora'}</span>
-          {Number(company.avg_rating || 0) > 0 && (
-            <div className="cd-rating"><span style={{ color: 'var(--sign)' }}>★★★★★</span><b style={{ color: '#fff' }}>{Number(company.avg_rating).toFixed(1)}</b><span>({company.total_reviews || 0})</span></div>
-          )}
+      <div className="cd-hero"><div className="cd-hero-inner">
+        <div className="cd-hero-img">
+          {getCompanyCover(company.photos) ? <img src={getCompanyCover(company.photos)!} alt="" /> : company.name.slice(0, 2).toUpperCase()}
         </div>
-      </div>
+        <div>
+          <div className="cd-hero-title">CARDÁPIO</div>
+          <div className="cd-hero-cnt">
+            <span>{company.name}</span>
+            <span className={open ? 'op' : 'cl'}>· {open ? '● Aberto agora' : '● Fechado agora'}</span>
+            {Number(company.avg_rating || 0) > 0 && (
+              <span><span className="st">★</span> {Number(company.avg_rating).toFixed(1)} ({company.total_reviews || 0})</span>
+            )}
+          </div>
+        </div>
+      </div></div>
 
       <div className="cd-search-wrap"><div className="cd-search-inner"><div className="cd-search-bar">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>

@@ -403,6 +403,9 @@ export default async function HomePage() {
 
         .cat-overlap { margin-top: -40px; position: relative; z-index: 10; }
         .cat-card-wrap { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 24px 28px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+        /* No mobile o container fica solto na página, sem a caixa branca —
+           pedido direto do Ricardo (a caixa tava ocupando espaço à toa). */
+        @media(max-width: 767px) { .cat-card-wrap { background: transparent; border: none; border-radius: 0; padding: 0; box-shadow: none; } }
         .cat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
         @media(min-width: 768px) { .cat-grid { grid-template-columns: repeat(4,1fr); gap: 10px; } }
         .cat-item { display: flex; align-items: center; gap: 12px; padding: 13px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; text-decoration: none; transition: border-color 0.15s, background 0.15s; }

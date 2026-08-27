@@ -3,13 +3,15 @@ import { useState, useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
-type IconKey = 'search' | 'store' | 'users' | 'ticket' | 'person'
+type IconKey = 'search' | 'home' | 'store' | 'users' | 'ticket' | 'person'
 
 function NavIcon({ name }: { name: IconKey }) {
   const common = { width: 22, height: 22, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
   switch (name) {
     case 'search':
       return <svg {...common}><circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+    case 'home':
+      return <svg {...common}><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z" /><path d="M9 21v-6h6v6" /></svg>
     case 'store':
       return <svg {...common}><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z" /><path d="M9 21v-9h6v9" /></svg>
     case 'users':
@@ -88,10 +90,17 @@ export default function BottomNav() {
         </div>
       )}
       <nav style={{position:'fixed',bottom:0,left:0,right:0,background:'var(--ink)',borderTop:'none',display:'flex',zIndex:9999,paddingBottom:'env(safe-area-inset-bottom)'}}>
-        <a href="/busca" style={navItemStyle(pathname === '/busca')}>
-          <span style={{lineHeight:1,marginBottom:3,display:'flex'}}><NavIcon name="search" /></span>
-          Buscar
-        </a>
+        {user ? (
+          <a href="/" style={navItemStyle(pathname === '/')}>
+            <span style={{lineHeight:1,marginBottom:3,display:'flex'}}><NavIcon name="home" /></span>
+            Início
+          </a>
+        ) : (
+          <a href="/busca" style={navItemStyle(pathname === '/busca')}>
+            <span style={{lineHeight:1,marginBottom:3,display:'flex'}}><NavIcon name="search" /></span>
+            Buscar
+          </a>
+        )}
         <button onClick={() => setSheet(s => s === 'empresas' ? null : 'empresas')} style={navItemStyle(empresasActive || sheet === 'empresas')}>
           <span style={{lineHeight:1,marginBottom:3,display:'flex'}}><NavIcon name="store" /></span>
           Empresas

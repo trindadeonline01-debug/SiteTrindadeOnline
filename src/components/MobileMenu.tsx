@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import SearchBar from './SearchBar'
 
 // 3 famílias de navegação (ESPECIFICACAO.md §4.1) — troca a lista
 // achatada de 8 categorias por Empresas / Ofertas / Comunidade.
@@ -65,10 +64,8 @@ export default function MobileMenu() {
     <>
       <style>{`
         .mm-bar{display:none;}
-        .mm-searchrow{display:none;}
         @media(max-width:767px){
           .mm-bar{display:flex;align-items:center;justify-content:space-between;background:var(--paper);border-bottom:1px solid var(--line);padding:0 14px;height:54px;box-sizing:border-box;position:sticky;top:0;z-index:9500;}
-          .mm-searchrow{display:flex;align-items:center;gap:8px;background:var(--paper);border-bottom:1px solid var(--line);padding:8px 14px;box-sizing:border-box;position:sticky;top:54px;z-index:9400;}
         }
         .mm-brand{display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden;}
         .mm-bairro{display:flex;align-items:center;gap:3px;font-size:10.5px;font-weight:700;color:var(--muted);white-space:nowrap;flex-shrink:0;font-family:'Archivo',sans-serif;background:var(--concrete-2);border-radius:20px;padding:3px 8px;}
@@ -110,16 +107,6 @@ export default function MobileMenu() {
           <a className="mm-entrar" href="/login">Entrar</a>
         )}
       </div>
-
-      {/* Na home o campo grande do hero já resolve a busca — repetir aqui
-          em cima ficava redundante no mobile (feedback direto do Ricardo).
-          Nas outras páginas, que não têm hero próprio, essa é a única
-          busca disponível (ESPECIFICACAO.md §4.2/dívida #2). */}
-      {pathname !== '/' && (
-        <div className="mm-searchrow">
-          <SearchBar compact />
-        </div>
-      )}
 
       {open && (
         <>

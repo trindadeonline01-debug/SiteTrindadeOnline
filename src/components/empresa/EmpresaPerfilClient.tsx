@@ -409,6 +409,18 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
     await refreshCompany()
   }
 
+  // Põe a foto escolhida em primeiro lugar (vira a capa) — reordena as demais
+  // mantendo a ordem relativa entre elas.
+  async function setCoverPhoto(photoId: string) {
+    const current = [...(company.photos || [])].sort((a, b) => a.order - b.order)
+    if (current[0]?.id === photoId) return
+    const reordered = [current.find(p => p.id === photoId), ...current.filter(p => p.id !== photoId)].filter(Boolean) as CompanyPhoto[]
+    setUploadingPhoto(true)
+    await Promise.all(reordered.map((p, i) => supabase.from('company_photos').update({ order: i }).eq('id', p.id)))
+    await refreshCompany()
+    setUploadingPhoto(false)
+  }
+
   async function submitReview() {
     if (!userId) { window.location.href = '/login'; return }
     if (myRating === 0) return
@@ -637,11 +649,19 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
 
         {isAdmin && (
           <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:12,alignItems:'center'}}>
-            {photos.map(p => (
-              <div key={p.id} style={{position:'relative',width:64,height:64,borderRadius:8,overflow:'hidden',border:'1px solid #E0DDD8',flexShrink:0}}>
+            {photos.map((p, i) => (
+              <div key={p.id} style={{position:'relative',width:64,height:64,borderRadius:8,overflow:'hidden',border:i===0?'2px solid var(--sign-dark)':'1px solid #E0DDD8',flexShrink:0}}>
                 <Image src={p.url} alt="" fill sizes="64px" unoptimized style={{objectFit:'cover'}}/>
                 <button onClick={()=>deletePhoto(p.id)}
                   style={{position:'absolute',top:2,right:2,background:'rgba(0,0,0,.7)',color:'#fff',border:'none',borderRadius:10,width:18,height:18,fontSize:11,lineHeight:1,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
+                {i === 0 ? (
+                  <div style={{position:'absolute',bottom:0,left:0,right:0,background:'var(--sign-dark)',color:'#fff',fontSize:8,fontWeight:700,textAlign:'center',padding:'2px 0',letterSpacing:.3}}>CAPA</div>
+                ) : (
+                  <button onClick={()=>setCoverPhoto(p.id)} disabled={uploadingPhoto}
+                    style={{position:'absolute',bottom:0,left:0,right:0,background:'rgba(0,0,0,.7)',color:'#fff',border:'none',fontSize:8,fontWeight:700,textAlign:'center',padding:'2px 0',letterSpacing:.3,cursor:uploadingPhoto?'wait':'pointer'}}>
+                    ★ TORNAR CAPA
+                  </button>
+                )}
               </div>
             ))}
             <label style={{width:64,height:64,borderRadius:8,border:'1.5px dashed var(--sign-dark)',display:'flex',alignItems:'center',justifyContent:'center',cursor:uploadingPhoto?'wait':'pointer',color:'var(--sign-dark)',fontSize:22,flexShrink:0}}>

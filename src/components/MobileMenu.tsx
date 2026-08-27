@@ -77,7 +77,7 @@ export default function MobileMenu() {
         .mm-entrar{background:var(--paper);color:var(--sign-dark);border:1.5px solid var(--sign-dark);border-radius:20px;padding:7px 16px;font-size:12px;font-weight:700;text-decoration:none;font-family:'Archivo',sans-serif;flex-shrink:0;}
         .mm-profile-btn{background:none;border:none;color:var(--ink);cursor:pointer;text-decoration:none;display:flex;flex-shrink:0;}
         .mm-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9998;}
-        .mm-drawer{position:fixed;top:0;left:0;bottom:0;width:82%;max-width:320px;background:var(--paper);z-index:9999;overflow-y:auto;box-shadow:2px 0 24px rgba(0,0,0,0.2);}
+        .mm-drawer{position:fixed;top:0;left:0;bottom:0;width:82%;max-width:320px;background:var(--paper);z-index:10000;overflow-y:auto;box-shadow:2px 0 24px rgba(0,0,0,0.2);padding-bottom:calc(80px + env(safe-area-inset-bottom));}
         .mm-drawer-head{display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1px solid var(--line);}
         .mm-close{background:var(--concrete-2);border:none;border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer;color:var(--muted);display:flex;align-items:center;justify-content:center;}
         .mm-section-label{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;padding:14px 16px 6px;}
@@ -145,7 +145,7 @@ export default function MobileMenu() {
               <>
                 <div className="mm-divider" />
                 <div className="mm-section-label">Minha conta</div>
-                <a className={`mm-link ${pathname === '/favoritos' ? 'active' : ''}`} href="/favoritos">
+                <a className="mm-link" href="/perfil?tab=favoritos">
                   <span className="mm-link-icon">❤️</span> Favoritos
                 </a>
                 <a className={`mm-link ${pathname === '/perfil' ? 'active' : ''}`} href="/perfil">

@@ -56,7 +56,7 @@ export default function UserMenu({ user, userType, isProdTeam }: { user: any; us
         <div className="um-dropdown">
           <div className="um-block-label">Minha conta</div>
           <a className="um-item" href="/perfil">👤 Meu perfil</a>
-          <a className="um-item" href="/favoritos">❤️ Favoritos</a>
+          <a className="um-item" href="/perfil?tab=favoritos">❤️ Favoritos</a>
           <a className="um-item" href="/perfil?tab=avaliacoes">⭐ Minhas avaliações</a>
           <a className="um-item" href="/perfil?tab=pedidos">🧾 Meus pedidos</a>
 

@@ -132,7 +132,7 @@ function PerfilPageInner() {
     <>
       <style>{`
         *{box-sizing:border-box;margin:0;padding:0;}
-        body{font-family:'Archivo',sans-serif;background:#fff;}
+        body{font-family:'Archivo',sans-serif;background:#fff;overflow-x:hidden;}
 
         .topbar{background:var(--ink);z-index:50;}
         .ti{max-width:1200px;margin:0 auto;padding:13px 24px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;}
@@ -168,8 +168,10 @@ function PerfilPageInner() {
         .stat-n{font-family:'Anton',sans-serif;font-size:36px;color:var(--sign-dark);line-height:1;}
         .stat-l{font-size:13px;color:#AAA;margin-top:2px;font-weight:500;}
 
-        .tabs{display:flex;gap:4px;margin-bottom:20px;background:#FAFAF8;padding:5px;border-radius:12px;border:0.5px solid #E0DDD8;}
-        .tab{flex:1;padding:8px 4px;text-align:center;font-size:12px;font-weight:600;color:#888;cursor:pointer;border-radius:9px;transition:all .15s;font-family:'Archivo',sans-serif;}
+        .tabs{display:flex;gap:4px;margin-bottom:20px;background:#FAFAF8;padding:5px;border-radius:12px;border:0.5px solid #E0DDD8;overflow-x:auto;scrollbar-width:none;}
+        .tabs::-webkit-scrollbar{display:none;}
+        .tab{flex:0 0 auto;padding:8px 14px;text-align:center;font-size:12px;font-weight:600;color:#888;cursor:pointer;border-radius:9px;transition:all .15s;font-family:'Archivo',sans-serif;white-space:nowrap;}
+        @media(min-width:640px){.tab{flex:1;}}
         .tab.on{background:#fff;color:var(--sign-dark);box-shadow:0 1px 4px rgba(0,0,0,.08);}
 
         .an-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}

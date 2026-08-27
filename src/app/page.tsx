@@ -417,14 +417,23 @@ export default async function HomePage() {
 
         /* TRILHO DE CATEGORIAS — só no mobile, estilo OLX: círculo + nome,
            desliza na horizontal, sem contagem (mockup aprovado por Ricardo). */
+        .cat-scroll-wrap { position: relative; }
         .cat-scroll { display: none; }
         @media(max-width: 767px) {
-          .cat-scroll { display: flex; gap: 18px; overflow-x: auto; padding: 4px 4px 8px; scrollbar-width: none; }
+          .cat-scroll { display: flex; gap: 16px; overflow-x: auto; padding: 4px 4px 8px; scrollbar-width: none; }
           .cat-scroll::-webkit-scrollbar { display: none; }
         }
-        .cat-circ-item { flex: 0 0 auto; width: 64px; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; text-decoration: none; }
-        .cat-circ { width: 56px; height: 56px; border-radius: 50%; background: var(--concrete-2); border: 1px solid var(--line); position: relative; overflow: hidden; }
-        .cat-circ-lbl { font-size: 11px; font-weight: 600; color: var(--ink); line-height: 1.25; font-family: 'Archivo', sans-serif; }
+        .cat-circ-item { flex: 0 0 auto; width: 72px; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; text-decoration: none; }
+        .cat-circ { width: 64px; height: 64px; border-radius: 50%; background: var(--concrete-2); border: 1px solid var(--line); position: relative; overflow: hidden; }
+        .cat-circ-lbl { font-size: 12px; font-weight: 600; color: var(--ink); line-height: 1.25; font-family: 'Archivo', sans-serif; }
+        /* Setinhas pretas discretas nas bordas — só indicam que dá pra
+           correr o dedo pros dois lados, não têm função de clique. */
+        .cat-scroll-hint { display: none; }
+        @media(max-width: 767px) {
+          .cat-scroll-hint { display: flex; align-items: center; justify-content: center; position: absolute; top: 36px; transform: translateY(-50%); width: 16px; height: 16px; color: var(--ink); font-size: 13px; font-weight: 800; pointer-events: none; opacity: .55; }
+          .cat-scroll-hint.left { left: -6px; }
+          .cat-scroll-hint.right { right: -6px; }
+        }
 
         .sec-hdr { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 14px; margin-top: 32px; gap: 14px; }
         .sec-eyebrow { font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--sign-dark); font-weight: 700; margin-bottom: 4px; display: block; font-family: 'Archivo', sans-serif; }
@@ -611,39 +620,43 @@ export default async function HomePage() {
         {/* CATEGORIAS — ESPECIFICACAO.md §10.1 item 3, logo depois do
             hero de busca */}
         <div className="cat-overlap" style={{marginTop:24,marginBottom:0}}>
+          <div className="cat-scroll-wrap">
+          <span className="cat-scroll-hint left">‹</span>
+          <span className="cat-scroll-hint right">›</span>
           <div className="cat-scroll">
             <a className="cat-circ-item" href="/categoria/comercios">
-              <span className="cat-circ"><Image src={CATEGORY_IMAGES.comercios} alt="" fill sizes="56px" unoptimized style={{objectFit:'cover'}} /></span>
+              <span className="cat-circ"><Image src={CATEGORY_IMAGES.comercios} alt="" fill sizes="64px" unoptimized style={{objectFit:'cover'}} /></span>
               <span className="cat-circ-lbl">Comércios</span>
             </a>
             <a className="cat-circ-item" href="/categoria/servicos">
-              <span className="cat-circ"><Image src={CATEGORY_IMAGES.servicos} alt="" fill sizes="56px" unoptimized style={{objectFit:'cover'}} /></span>
+              <span className="cat-circ"><Image src={CATEGORY_IMAGES.servicos} alt="" fill sizes="64px" unoptimized style={{objectFit:'cover'}} /></span>
               <span className="cat-circ-lbl">Serviços</span>
             </a>
             <a className="cat-circ-item" href="/categoria/gastronomia">
-              <span className="cat-circ"><Image src={CATEGORY_IMAGES.gastronomia} alt="" fill sizes="56px" unoptimized style={{objectFit:'cover'}} /></span>
+              <span className="cat-circ"><Image src={CATEGORY_IMAGES.gastronomia} alt="" fill sizes="64px" unoptimized style={{objectFit:'cover'}} /></span>
               <span className="cat-circ-lbl">Gastronomia</span>
             </a>
             <a className="cat-circ-item" href="/empregos">
-              <span className="cat-circ"><Image src={CATEGORY_IMAGES.empregos} alt="" fill sizes="56px" unoptimized style={{objectFit:'cover'}} /></span>
+              <span className="cat-circ"><Image src={CATEGORY_IMAGES.empregos} alt="" fill sizes="64px" unoptimized style={{objectFit:'cover'}} /></span>
               <span className="cat-circ-lbl">Empregos</span>
             </a>
             <a className="cat-circ-item" href="/imoveis">
-              <span className="cat-circ"><Image src={CATEGORY_IMAGES.imoveis} alt="" fill sizes="56px" unoptimized style={{objectFit:'cover'}} /></span>
+              <span className="cat-circ"><Image src={CATEGORY_IMAGES.imoveis} alt="" fill sizes="64px" unoptimized style={{objectFit:'cover'}} /></span>
               <span className="cat-circ-lbl">Imóveis</span>
             </a>
             <a className="cat-circ-item" href="/desapega">
-              <span className="cat-circ"><Image src={CATEGORY_IMAGES.desapega} alt="" fill sizes="56px" unoptimized style={{objectFit:'cover'}} /></span>
+              <span className="cat-circ"><Image src={CATEGORY_IMAGES.desapega} alt="" fill sizes="64px" unoptimized style={{objectFit:'cover'}} /></span>
               <span className="cat-circ-lbl">Desapega</span>
             </a>
             <a className="cat-circ-item" href="/achados-perdidos">
-              <span className="cat-circ"><Image src={CATEGORY_IMAGES.achados} alt="" fill sizes="56px" unoptimized style={{objectFit:'cover'}} /></span>
+              <span className="cat-circ"><Image src={CATEGORY_IMAGES.achados} alt="" fill sizes="64px" unoptimized style={{objectFit:'cover'}} /></span>
               <span className="cat-circ-lbl">Achados & Perdidos</span>
             </a>
             <a className="cat-circ-item" href="/categoria/igrejas">
-              <span className="cat-circ"><Image src={CATEGORY_IMAGES.igrejas} alt="" fill sizes="56px" unoptimized style={{objectFit:'cover'}} /></span>
+              <span className="cat-circ"><Image src={CATEGORY_IMAGES.igrejas} alt="" fill sizes="64px" unoptimized style={{objectFit:'cover'}} /></span>
               <span className="cat-circ-lbl">Igrejas</span>
             </a>
+          </div>
           </div>
           <div className="cat-card-wrap">
             <div className="cat-grid">

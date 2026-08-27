@@ -544,8 +544,8 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
         .pill-wa-locked:disabled{cursor:not-allowed;opacity:.6;}
 
         /* Favoritar / Compartilhar / Site — círculos de apoio */
-        .icon-row{display:flex;gap:8px;}
-        .icon-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;background:none;border:none;font-family:'Archivo',sans-serif;cursor:pointer;padding:2px 0;}
+        .icon-row{display:flex;gap:28px;justify-content:center;}
+        .icon-btn{display:flex;flex-direction:column;align-items:center;gap:5px;background:none;border:none;font-family:'Archivo',sans-serif;cursor:pointer;padding:2px 0;}
         .icon-circle{width:42px;height:42px;border-radius:50%;background:#FAFAF8;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:16px;color:#666;transition:all .15s;}
         .icon-btn.on .icon-circle{background:var(--concrete-2);border-color:var(--sign-dark);color:var(--sign-dark);}
         .icon-btn.locked .icon-circle{background:var(--concrete-2);color:#999;}

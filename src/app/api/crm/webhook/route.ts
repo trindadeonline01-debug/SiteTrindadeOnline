@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { isOpenNow } from '@/lib/businessHours'
+import { normalizePhone } from '@/lib/phone'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -113,7 +114,7 @@ export async function POST(req: NextRequest) {
     // "Digitando..." / "online" — estado efêmero, guardado com validade curta
     if (event.includes('presence.update') || event.includes('presence_update')) {
       const remoteJid: string = data?.id || data?.remoteJid || ''
-      const phone = remoteJid.split('@')[0]
+      const phone = normalizePhone(remoteJid.split('@')[0])
       const presences = data?.presences || {}
       const first: any = Object.values(presences)[0]
       const state: string | null = first?.lastKnownPresence || data?.presence || null
@@ -132,7 +133,7 @@ export async function POST(req: NextRequest) {
       for (const msg of msgs) {
         const remoteJid: string = msg?.key?.remoteJid || ''
         if (!remoteJid || remoteJid.includes('@g.us')) continue // ignora grupo, CRM é 1:1
-        const phone = remoteJid.split('@')[0]
+        const phone = normalizePhone(remoteJid.split('@')[0])
         const fromMe: boolean = !!msg?.key?.fromMe
         const direction: 'in' | 'out' = fromMe ? 'out' : 'in'
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { moduleActive } from '@/lib/modules'
+import { normalizePhone } from '@/lib/phone'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -8,15 +9,12 @@ const supabase = createClient(
 )
 const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'https://evo.trindadeonline.com.br'
 
-function formatPhone(phone: string): string {
-  const digits = phone.replace(/\D/g, '')
-  return digits.startsWith('55') ? digits : '55' + digits
-}
-
 type Status = 'recebido' | 'em_preparo' | 'pronto' | 'saiu_entrega' | 'entregue' | 'cancelado'
 
 function buildStatusMessage(status: Status, deliveryType: string | null): string | null {
-  const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+  // Servidor roda em UTC (Vercel) — sem timeZone explícito aqui a mensagem
+  // saía com a hora certa em Londres, não na Trindade.
+  const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
   switch (status) {
     case 'em_preparo': return '👨‍🍳 Seu pedido já está em preparo!'
     case 'pronto': return deliveryType === 'retirada' ? '✅ Seu pedido está pronto! Pode vir retirar.' : '✅ Seu pedido está pronto e já vai sair para entrega!'
@@ -34,8 +32,9 @@ function buildStatusMessage(status: Status, deliveryType: string | null): string
 // mensagem de WhatsApp de verdade pro cliente, além do push já existente.
 export async function POST(req: NextRequest) {
   try {
-    const { companyId, phone, status, deliveryType } = await req.json()
-    if (!companyId || !phone || !status) return NextResponse.json({ error: 'dados obrigatórios' }, { status: 400 })
+    const { companyId, phone: rawPhone, status, deliveryType } = await req.json()
+    if (!companyId || !rawPhone || !status) return NextResponse.json({ error: 'dados obrigatórios' }, { status: 400 })
+    const phone = normalizePhone(rawPhone)
 
     const text = buildStatusMessage(status, deliveryType || null)
     if (!text) return NextResponse.json({ ok: true })
@@ -51,7 +50,7 @@ export async function POST(req: NextRequest) {
     await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', apikey: instance.api_key },
-      body: JSON.stringify({ number: formatPhone(phone), text }),
+      body: JSON.stringify({ number: phone, text }),
     })
 
     const { data: contact } = await supabase.from('crm_contacts').select('id').eq('company_id', companyId).eq('phone', phone).maybeSingle()

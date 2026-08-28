@@ -64,7 +64,9 @@ const EMOJI_PICKER_LIST = '😀😁😂🤣😊😍😘😉😎🥳🤔😅😢�
 function fmtMoney(n: number) { return 'R$ ' + Number(n || 0).toFixed(2).replace('.', ',') }
 
 function fmtTime(iso: string) {
-  return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+  // Fuso fixo em Brasília — sem isso o horário exibido depende do fuso
+  // configurado no dispositivo de quem tá vendo, não da Trindade.
+  return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
 }
 
 function tickIcon(status?: string | null) {

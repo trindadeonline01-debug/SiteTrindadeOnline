@@ -54,6 +54,8 @@ export default function UserMenu({ user, userType, isProdTeam }: { user: any; us
         .um-idtag{margin-left:auto;font-size:10.5px;color:var(--sign-dark);font-weight:800;}
         .um-idarrow{margin-left:auto;color:var(--muted);font-size:13px;}
         .um-idadd{font-size:11.5px;font-weight:700;color:var(--sign-dark);padding:6px 14px 2px;text-decoration:none;display:block;}
+        .um-idcard-add{border-style:dashed;border-color:var(--sign-dark);color:var(--sign-dark);}
+        .um-idcard-add .um-idico{background:none;color:var(--sign-dark);font-size:16px;}
       `}</style>
       <button className="um-avatar" onClick={() => setOpen(o => !o)} aria-label="Minha conta">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -71,8 +73,15 @@ export default function UserMenu({ user, userType, isProdTeam }: { user: any; us
                 <span className="um-idico">📊</span> {b.name} <span className="um-idarrow">→</span>
               </a>
             ))}
+            {businesses.length === 0 && (
+              <a className="um-idcard um-idcard-add" href="/anunciar">
+                <span className="um-idico">➕</span> Cadastrar minha empresa
+              </a>
+            )}
           </div>
-          <a className="um-idadd" href="/anunciar">➕ {businesses.length === 0 ? 'Anunciar meu negócio' : 'Cadastrar outro negócio'}</a>
+          {businesses.length > 0 && (
+            <a className="um-idadd" href="/anunciar">➕ Cadastrar outro negócio</a>
+          )}
           <div className="um-divider" />
 
           <div className="um-block-label">Minha conta</div>

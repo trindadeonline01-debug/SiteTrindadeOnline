@@ -125,6 +125,9 @@ export default function EmpresaShell({
         .es-idcard.on .es-idico{background:var(--sign);color:var(--ink);}
         .es-idname{color:#fff;font-size:12px;font-weight:700;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px;}
         .es-idtag{margin-left:auto;font-size:9px;font-weight:800;color:var(--sign);flex:none;}
+        .es-idcard-add{border-style:dashed;border-color:rgba(255,255,255,.35);}
+        .es-idcard-add .es-idico{background:none;color:var(--sign);font-size:15px;}
+        .es-idcard-add .es-idname{color:rgba(255,255,255,.85);}
         .es-nav{padding:14px 0;flex:1;overflow-y:auto;}
         .es-group-lbl{font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.35);padding:16px 20px 8px;}
         .es-group-lbl:first-child{padding-top:4px;}
@@ -166,11 +169,16 @@ export default function EmpresaShell({
               <span className="es-idname">Pessoal</span>
               {isPessoal && <span className="es-idtag">● aqui</span>}
             </a>
-            {companyName && (
+            {companyName ? (
               <a href="/painel" className={`es-idcard ${!isPessoal ? 'on' : ''}`}>
                 <span className="es-idico">{initials}</span>
                 <span className="es-idname">{companyName}</span>
                 {!isPessoal && <span className="es-idtag">● aqui</span>}
+              </a>
+            ) : (
+              <a href="/anunciar" className="es-idcard es-idcard-add">
+                <span className="es-idico">➕</span>
+                <span className="es-idname">Cadastrar minha empresa</span>
               </a>
             )}
           </div>

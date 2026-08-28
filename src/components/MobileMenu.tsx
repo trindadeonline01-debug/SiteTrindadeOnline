@@ -87,6 +87,14 @@ export default function MobileMenu() {
         .mm-link-icon{font-size:18px;width:22px;text-align:center;flex-shrink:0;}
         .mm-divider{height:1px;background:var(--line);margin:8px 0;}
         .mm-sair{color:var(--alert);}
+        .mm-switcher{padding:6px 16px 2px;display:flex;flex-direction:column;gap:6px;}
+        .mm-idcard{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:9px;border:1.5px solid var(--line);font-size:13px;font-weight:700;color:var(--ink-2);text-decoration:none;}
+        .mm-idcard.active{border-color:var(--sign-dark);background:rgba(168,114,0,.08);}
+        .mm-idico{width:24px;height:24px;border-radius:6px;background:var(--concrete-2);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;}
+        .mm-idcard.active .mm-idico{background:var(--sign);}
+        .mm-idtag{margin-left:auto;font-size:10px;color:var(--sign-dark);font-weight:800;}
+        .mm-idarrow{margin-left:auto;color:var(--muted);font-size:13px;}
+        .mm-idadd{font-size:11.5px;font-weight:700;color:var(--sign-dark);padding:6px 16px 2px;text-decoration:none;display:block;}
       `}</style>
 
       <div className="mm-bar">
@@ -144,7 +152,20 @@ export default function MobileMenu() {
             {user ? (
               <>
                 <div className="mm-divider" />
-                <div className="mm-section-label">Minha conta</div>
+                <div className="mm-section-label">Sua conta</div>
+                <div className="mm-switcher">
+                  <div className="mm-idcard active">
+                    <span className="mm-idico">👤</span> Pessoal <span className="mm-idtag">● aqui</span>
+                  </div>
+                  {businesses.map(b => (
+                    <a key={b.id} className="mm-idcard" href="/painel">
+                      <span className="mm-idico">📊</span> {b.name} <span className="mm-idarrow">→</span>
+                    </a>
+                  ))}
+                </div>
+                <a className="mm-idadd" href="/anunciar">➕ {businesses.length === 0 ? 'Anunciar meu negócio' : 'Cadastrar outro negócio'}</a>
+
+                <div className="mm-divider" />
                 <a className="mm-link" href="/perfil?tab=favoritos">
                   <span className="mm-link-icon">❤️</span> Favoritos
                 </a>
@@ -164,29 +185,6 @@ export default function MobileMenu() {
                     <div className="mm-section-label">Meus anúncios</div>
                     <a className="mm-link" href="/perfil?tab=anuncios">
                       <span className="mm-link-icon">📋</span> Desapega, vagas, imóveis
-                    </a>
-                  </>
-                )}
-
-                <div className="mm-divider" />
-                <div className="mm-section-label">Meus negócios</div>
-                {businesses.length === 0 && (
-                  <a className="mm-link" href="/anunciar">
-                    <span className="mm-link-icon">➕</span> Anunciar meu negócio
-                  </a>
-                )}
-                {businesses.map(b => (
-                  <a key={b.id} className={`mm-link ${pathname === '/painel' ? 'active' : ''}`} href="/painel">
-                    <span className="mm-link-icon">📊</span> {b.name}
-                  </a>
-                ))}
-                {businesses.length > 0 && (
-                  <>
-                    <a className="mm-link" href="/painel?tab=plano">
-                      <span className="mm-link-icon">💳</span> Planos
-                    </a>
-                    <a className="mm-link" href="/anunciar">
-                      <span className="mm-link-icon">➕</span> Cadastrar outro negócio
                     </a>
                   </>
                 )}

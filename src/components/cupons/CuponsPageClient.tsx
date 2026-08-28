@@ -8,7 +8,7 @@ import ShareButton from '@/components/ShareButton'
 type Coupon = {
   id: string; title: string; discount_type: string; discount_value: number
   total_qty: number; qty_per_person: number; expires_at: string; active: boolean; min_purchase?: number
-  company: { id: string; name: string; phone?: string; category?: { name: string; emoji: string }; photos?: { url: string; order: number }[] }
+  company: { id: string; name: string; slug: string; phone?: string; category?: { name: string; emoji: string }; photos?: { url: string; order: number }[] }
 }
 
 type RankingItem = {
@@ -46,7 +46,7 @@ export default function CuponsPageClient({ embedded, search }: { embedded?: bool
 
   async function loadCoupons() {
     const { data } = await supabase.from('coupons')
-      .select('*, company:companies(id,name,phone,category:categories(name,emoji),photos:company_photos(url,order))')
+      .select('*, company:companies(id,name,slug,phone,category:categories(name,emoji),photos:company_photos(url,order))')
       .eq('active', true).gt('expires_at', new Date().toISOString())
       .order('created_at', { ascending: false })
     setCoupons((data || []) as Coupon[]); setLoading(false)
@@ -362,9 +362,12 @@ export default function CuponsPageClient({ embedded, search }: { embedded?: bool
                       {already ? (
                         <a href="/perfil?tab=cupons" className="of-btn" style={{background:'#EAF3DE',color:'#3B6D11'}}>Ver código</a>
                       ) : (
-                        <button className="of-btn" style={{background:'var(--ink)',color:'var(--sign)'}} onClick={()=>redeem(c)} disabled={redeeming===c.id}>
+                        <button className="of-btn" style={{background:'#157A52',color:'#fff'}} onClick={()=>redeem(c)} disabled={redeeming===c.id}>
                           {redeeming===c.id?'...Aguarde':'Resgatar'}
                         </button>
+                      )}
+                      {c.company?.slug && (
+                        <a href={`/empresa/${c.company.slug}`} className="of-btn" style={{background:'var(--concrete-2)',color:'var(--ink)'}}>Ver loja</a>
                       )}
                       <ShareButton title={c.title} text={`🎟️ Cupom ${c.title} — ${c.company?.name} no Trindade Online!`} url={`${typeof window!=='undefined'?window.location.origin:''}/cupons`} label="" fullWidth={false}/>
                       {userType==='admin' && (

@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
-type IconKey = 'home' | 'store' | 'users' | 'ticket' | 'person'
+type IconKey = 'home' | 'store' | 'users' | 'ticket' | 'person' | 'menu'
 
 function NavIcon({ name }: { name: IconKey }) {
   const common = { width: 22, height: 22, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
@@ -18,6 +18,8 @@ function NavIcon({ name }: { name: IconKey }) {
       return <svg {...common}><path d="M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v1.5a1.5 1.5 0 0 0 0 3V15a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1.5a1.5 1.5 0 0 0 0-3V9z" /><line x1="10" y1="7" x2="10" y2="17" strokeDasharray="1.6 2.4" /></svg>
     case 'person':
       return <svg {...common}><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 4-6 8-6s8 2 8 6" /></svg>
+    case 'menu':
+      return <svg {...common}><line x1="4" y1="7" x2="20" y2="7" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="17" x2="20" y2="17" /></svg>
   }
 }
 
@@ -44,6 +46,15 @@ const COMUNIDADE_LINKS = [
   { href: '/achados-perdidos', icon: '🔍', label: 'Achados & Perdidos' },
 ]
 
+const PESSOAL_LINKS = [
+  { href: '/perfil',                icon: '👤', label: 'Meu perfil' },
+  { href: '/perfil?tab=favoritos',  icon: '❤️', label: 'Favoritos' },
+  { href: '/perfil?tab=avaliacoes', icon: '⭐', label: 'Minhas avaliações' },
+  { href: '/perfil?tab=pedidos',    icon: '🧾', label: 'Meus pedidos' },
+  { href: '/perfil?tab=anuncios',   icon: '📋', label: 'Meus anúncios' },
+  { href: '/perfil?tab=cupons',     icon: '🎟️', label: 'Meus cupons' },
+]
+
 // Bottom tab bar do portal (ESPECIFICACAO.md §4.2) — 5 destinos fixos,
 // visível pra todo mundo (não só logado): Buscar · Empresas · Ofertas ·
 // Comunidade · Perfil. Empresas/Comunidade abrem uma folha compacta com
@@ -52,7 +63,7 @@ const COMUNIDADE_LINKS = [
 export default function BottomNav() {
   const [user, setUser] = useState<any>(null)
   const [show, setShow] = useState(false)
-  const [sheet, setSheet] = useState<'empresas' | 'comunidade' | null>(null)
+  const [sheet, setSheet] = useState<'empresas' | 'comunidade' | 'mais' | null>(null)
   const pathname = usePathname()
   const sheetRef = useRef<HTMLDivElement>(null)
 
@@ -80,11 +91,17 @@ export default function BottomNav() {
     <>
       {sheet && (
         <div ref={sheetRef} style={{position:'fixed',left:0,right:0,bottom:64,background:'var(--paper)',borderTop:'1px solid var(--line)',borderRadius:'16px 16px 0 0',boxShadow:'0 -8px 24px rgba(0,0,0,.12)',zIndex:9998,padding:'10px 8px calc(10px + env(safe-area-inset-bottom))'}}>
-          {(sheet === 'empresas' ? EMPRESAS_LINKS : COMUNIDADE_LINKS).map(l => (
-            <a key={l.href} href={l.href} style={{display:'flex',alignItems:'center',gap:10,padding:'11px 12px',textDecoration:'none',color:'var(--ink)',fontSize:14,fontWeight:600,fontFamily:'Archivo,sans-serif'}}>
-              <span>{l.icon}</span> {l.label}
+          {sheet === 'mais' && !user ? (
+            <a href="/login" style={{display:'flex',alignItems:'center',gap:10,padding:'11px 12px',textDecoration:'none',color:'var(--ink)',fontSize:14,fontWeight:600,fontFamily:'Archivo,sans-serif'}}>
+              <span>👤</span> Entrar
             </a>
-          ))}
+          ) : (
+            (sheet === 'empresas' ? EMPRESAS_LINKS : sheet === 'comunidade' ? COMUNIDADE_LINKS : PESSOAL_LINKS).map(l => (
+              <a key={l.href} href={l.href} style={{display:'flex',alignItems:'center',gap:10,padding:'11px 12px',textDecoration:'none',color:'var(--ink)',fontSize:14,fontWeight:600,fontFamily:'Archivo,sans-serif'}}>
+                <span>{l.icon}</span> {l.label}
+              </a>
+            ))
+          )}
         </div>
       )}
       <nav style={{position:'fixed',bottom:0,left:0,right:0,background:'var(--ink)',borderTop:'none',display:'flex',zIndex:9999,paddingBottom:'env(safe-area-inset-bottom)'}}>
@@ -105,10 +122,10 @@ export default function BottomNav() {
           <span style={{lineHeight:1,marginBottom:3,display:'flex'}}><NavIcon name="users" /></span>
           Comunidade
         </button>
-        <a href={user ? '/perfil' : '/login'} style={navItemStyle(pathname === '/perfil')}>
-          <span style={{lineHeight:1,marginBottom:3,display:'flex'}}><NavIcon name="person" /></span>
-          Perfil
-        </a>
+        <button onClick={() => setSheet(s => s === 'mais' ? null : 'mais')} style={navItemStyle(pathname === '/perfil' || sheet === 'mais')}>
+          <span style={{lineHeight:1,marginBottom:3,display:'flex'}}><NavIcon name="menu" /></span>
+          Mais
+        </button>
       </nav>
       <div style={{height:64,background:'transparent'}}/>
     </>

@@ -518,14 +518,12 @@ export default function PedidosPage() {
           .pd-autotoggle{ margin-left:auto; }
           .pd-newbtn{ padding:10px 20px; }
           .pd-board{ display:flex;gap:14px;overflow-x:auto;padding:20px 32px 28px; align-items:flex-start; }
-          .pd-board-col{ flex:0 0 250px;background:#EFEBE1;border-radius:14px;padding:10px;max-height:calc(100vh - 190px);display:flex;flex-direction:column;border-top:4px solid var(--accent);transition:flex-basis .15s; }
-          .pd-board-col-empty{ flex:0 0 64px;padding:10px 6px;align-items:center; }
+          .pd-board-col{ flex:0 0 250px;background:#EFEBE1;border-radius:14px;padding:10px;max-height:calc(100vh - 190px);display:flex;flex-direction:column;border-top:4px solid var(--accent); }
           .pd-board-colhead{ display:flex;justify-content:space-between;align-items:center;padding:4px 6px 10px;font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--accent); }
-          .pd-board-col-empty .pd-board-colhead{ flex-direction:column;gap:6px;writing-mode:vertical-rl;padding:6px 0; }
           .pd-board-count{ background:var(--accent);color:#fff;font-size:11px;font-weight:800;padding:1px 8px;border-radius:20px; }
           .pd-board-scroll{ overflow-y:auto;flex:1; }
           .pd-board .pd-card{ margin-bottom:8px; }
-          .pd-board-col-empty .pd-board-scroll{ display:none; }
+          .pd-board-empty-msg{ text-align:center;color:#A79E8B;font-size:11.5px;padding:20px 8px; }
         }
         .pd-card-late{ border:1.5px solid #C43D3D !important; }
         .pd-late-flag{ color:#C43D3D;font-weight:800;font-size:10.5px;margin-top:4px; }
@@ -576,12 +574,11 @@ export default function PedidosPage() {
       <div className="pd-board">
         {BOARD_COLUMNS.map(status => {
           const items = searched.filter(p => p.status === status)
-          const empty = items.length === 0
           return (
-            <div className={`pd-board-col ${empty ? 'pd-board-col-empty' : ''}`} key={status} style={{ '--accent': STATUS_COLOR[status].fg } as React.CSSProperties}>
+            <div className="pd-board-col" key={status} style={{ '--accent': STATUS_COLOR[status].fg } as React.CSSProperties}>
               <div className="pd-board-colhead"><span>{STATUS_LABEL[status]}</span><span className="pd-board-count">{items.length}</span></div>
               <div className="pd-board-scroll">
-                {items.map(renderCard)}
+                {items.length === 0 ? <div className="pd-board-empty-msg">Nenhum pedido</div> : items.map(renderCard)}
               </div>
             </div>
           )

@@ -103,6 +103,7 @@ export default function MaisPage() {
           <Item href="/painel/pedidos" icon="🧾" label="Pedidos" locked={!moduleActive(company.loja_digital_enabled, company.trial_modules_until)} />
           <Item href="/painel/interesses" icon="🔔" label="Interesses" locked={!moduleActive(company.loja_digital_enabled, company.trial_modules_until)} />
           <Item href="/painel/cozinha" icon="🍳" label="Cozinha" locked={!moduleActive(company.loja_digital_enabled, company.trial_modules_until)} />
+          <Item href="/painel/relatorios" icon="📈" label="Relatórios" locked={!moduleActive(company.loja_digital_enabled, company.trial_modules_until)} />
         </div>
 
         <div className="sectlbl">Entrega</div>

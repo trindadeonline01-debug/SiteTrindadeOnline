@@ -8,7 +8,7 @@ import { useEffect, useRef } from 'react'
 export type EmpresaNavKey =
   | 'dashboard' | 'perfil' | 'avaliacoes' | 'destaques' | 'banners'
   | 'compartilhar' | 'catalogo' | 'pedidos' | 'cozinha' | 'entrega' | 'mensagens' | 'clientes'
-  | 'interesses' | 'cupons' | 'promocoes' | 'plano'
+  | 'interesses' | 'cupons' | 'promocoes' | 'plano' | 'relatorios'
   | 'pessoal-perfil' | 'pessoal-favoritos' | 'pessoal-avaliacoes' | 'pessoal-pedidos' | 'pessoal-anuncios' | 'pessoal-cupons'
 
 type Company = { id: string; name: string; slug?: string }
@@ -16,7 +16,7 @@ type Company = { id: string; name: string; slug?: string }
 const TITLES: Record<EmpresaNavKey, string> = {
   dashboard: 'Visão geral', perfil: 'Perfil e fotos', avaliacoes: 'Avaliações', destaques: 'Destaques',
   banners: 'Banners', compartilhar: 'Compartilhar cardápio', catalogo: 'Catálogo', pedidos: 'Pedidos',
-  cozinha: 'Cozinha', entrega: 'Entrega', mensagens: 'Mensagens', clientes: 'Clientes', interesses: 'Interesses', cupons: 'Cupons', promocoes: 'Promoções', plano: 'Plano',
+  cozinha: 'Cozinha', entrega: 'Entrega', mensagens: 'Mensagens', clientes: 'Clientes', interesses: 'Interesses', cupons: 'Cupons', promocoes: 'Promoções', plano: 'Plano', relatorios: 'Relatórios',
   'pessoal-perfil': 'Meu perfil', 'pessoal-favoritos': 'Favoritos', 'pessoal-avaliacoes': 'Minhas avaliações',
   'pessoal-pedidos': 'Meus pedidos', 'pessoal-anuncios': 'Meus anúncios', 'pessoal-cupons': 'Meus cupons',
 }
@@ -235,6 +235,7 @@ export default function EmpresaShell({
               <NavItem href="/painel?tab=cupons" active={active === 'cupons'}>🎟️ Cupons</NavItem>
               <NavItem href="/painel?tab=destaques" active={active === 'destaques'}>🌟 Destaques</NavItem>
               <NavItem href="/painel?tab=banners" active={active === 'banners'}>🖼️ Banners</NavItem>
+              <NavItem href="/painel/relatorios" active={active === 'relatorios'} locked={!lojaDigitalEnabled}>📈 Relatórios</NavItem>
 
               <div className="es-group-lbl">Conta</div>
               <NavItem href="/painel?tab=plano" active={active === 'plano'}>💳 Plano e pagamento</NavItem>

@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { refreshSessionOnce } from '@/lib/authRefresh'
 import { moduleActive } from '@/lib/modules'
 import EmpresaShell from '@/components/EmpresaShell'
+import { qzListPrinters, qzPrintRaw, buildReceipt } from '@/lib/qzPrint'
 
 type Item = { id: string; product_name: string; unit_price: number; qty: number; selected_options: { name: string; price: number }[] }
 type Status = 'recebido' | 'em_preparo' | 'pronto' | 'saiu_entrega' | 'entregue' | 'cancelado'
@@ -144,6 +145,20 @@ export default function PedidosPage() {
   const [crmEnabled, setCrmEnabled] = useState(false)
   const [entregaEnabled, setEntregaEnabled] = useState(false)
   const [autoAceitar, setAutoAceitar] = useState(true)
+  const [printerName, setPrinterName] = useState('')
+  const [showPrinterModal, setShowPrinterModal] = useState(false)
+  const [qzStatus, setQzStatus] = useState<'idle' | 'connecting' | 'connected' | 'error'>('idle')
+  const [qzError, setQzError] = useState('')
+  const [foundPrinters, setFoundPrinters] = useState<string[]>([])
+  const [printerSaving, setPrinterSaving] = useState(false)
+  const [printError, setPrintError] = useState<string | null>(null)
+  // Refs pra leitura dentro do handler de realtime, que foi criado uma vez
+  // só no mount — sem isso ele sempre veria autoAceitar/printerName do
+  // primeiro render, mesmo depois de mudar nas telas.
+  const autoAceitarRef = useRef(true)
+  const printerNameRef = useRef('')
+  useEffect(() => { autoAceitarRef.current = autoAceitar }, [autoAceitar])
+  useEffect(() => { printerNameRef.current = printerName }, [printerName])
   const [pedidos, setPedidos] = useState<Pedido[]>([])
   const [mobileStage, setMobileStage] = useState<MobileStageKey>('recebido')
   const [openId, setOpenId] = useState<string | null>(null)
@@ -175,19 +190,48 @@ export default function PedidosPage() {
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { window.location.href = '/login?redirect=/painel/pedidos'; return }
-      const { data: comp } = await supabase.from('companies').select('id, name, loja_digital_enabled, loja_auto_aceitar_pedidos, crm_whatsapp_enabled, entrega_enabled, trial_modules_until').eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
+      const { data: comp } = await supabase.from('companies').select('id, name, loja_digital_enabled, loja_auto_aceitar_pedidos, loja_impressora_nome, crm_whatsapp_enabled, entrega_enabled, trial_modules_until').eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
       if (!comp || !moduleActive(comp.loja_digital_enabled, comp.trial_modules_until)) { window.location.href = '/painel/compartilhar'; return }
       setCompanyId(comp.id); companyIdRef.current = comp.id
       setCompanyName(comp.name)
       setCrmEnabled(moduleActive(comp.crm_whatsapp_enabled, comp.trial_modules_until))
       setEntregaEnabled(moduleActive(comp.entrega_enabled, comp.trial_modules_until))
       setAutoAceitar(comp.loja_auto_aceitar_pedidos !== false)
+      setPrinterName(comp.loja_impressora_nome || '')
       await loadAll(comp.id)
       setLoading(false)
 
+      // Só imprime sozinho quando aceitar automático está ligado — pedido que
+      // precisa de revisão manual não deveria sair na impressora antes de
+      // alguém decidir aceitar. Falha de impressão nunca trava o fluxo do
+      // pedido (QZ Tray fechado, impressora sem papel etc. não podem quebrar
+      // o resto da tela).
+      const compName = comp.name
+      async function autoPrintIfNeeded(pedidoId: string) {
+        if (!autoAceitarRef.current || !printerNameRef.current) return
+        try {
+          const { data } = await supabase.from('loja_pedidos').select('*, itens:loja_pedido_itens(*)').eq('id', pedidoId).single()
+          if (!data) return
+          const content = buildReceipt({
+            companyName: compName,
+            pedidoShortId: data.id.slice(0, 8),
+            createdAt: data.created_at,
+            customerName: data.customer_name,
+            customerPhone: data.customer_phone,
+            deliveryType: data.delivery_type,
+            address: data.delivery_address,
+            paymentMethod: data.payment_method,
+            notes: data.notes,
+            items: (data.itens || []).map((it: any) => ({ qty: it.qty, name: it.product_name, unitPrice: it.unit_price, options: it.selected_options })),
+            total: data.total,
+          })
+          await qzPrintRaw(printerNameRef.current, content)
+        } catch {}
+      }
+
       const channel = supabase.channel(`pedidos-${comp.id}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'loja_pedidos', filter: `company_id=eq.${comp.id}` }, payload => {
-          if (payload.eventType === 'INSERT') { beep(); loadAll(companyIdRef.current) }
+          if (payload.eventType === 'INSERT') { beep(); loadAll(companyIdRef.current); autoPrintIfNeeded(payload.new.id as string) }
           else loadAll(companyIdRef.current)
         })
         .subscribe()
@@ -286,6 +330,52 @@ export default function PedidosPage() {
     const next = !autoAceitar
     setAutoAceitar(next)
     await supabase.from('companies').update({ loja_auto_aceitar_pedidos: next }).eq('id', companyId)
+  }
+
+  async function printPedido(p: Pedido) {
+    if (!printerName) { setShowPrinterModal(true); return }
+    setPrintError(null)
+    try {
+      const content = buildReceipt({
+        companyName, pedidoShortId: p.id.slice(0, 8), createdAt: p.created_at,
+        customerName: p.customer_name, customerPhone: p.customer_phone,
+        deliveryType: p.delivery_type, address: p.delivery_address,
+        paymentMethod: p.payment_method, notes: p.notes,
+        items: (p.itens || []).map(it => ({ qty: it.qty, name: it.product_name, unitPrice: it.unit_price, options: it.selected_options })),
+        total: p.total,
+      })
+      await qzPrintRaw(printerName, content)
+    } catch (err: any) {
+      setPrintError('Não consegui imprimir — confere se o QZ Tray está aberto no computador. ' + (err?.message || ''))
+    }
+  }
+
+  async function openPrinterModal() {
+    setShowPrinterModal(true)
+    setQzStatus('connecting')
+    setQzError('')
+    try {
+      const list = await qzListPrinters()
+      setFoundPrinters(list)
+      setQzStatus('connected')
+    } catch (err: any) {
+      setQzStatus('error')
+      setQzError(err?.message || 'Não consegui falar com o QZ Tray. Confere se ele está instalado e aberto.')
+    }
+  }
+
+  async function selectPrinter(name: string) {
+    setPrinterSaving(true)
+    await supabase.from('companies').update({ loja_impressora_nome: name }).eq('id', companyId)
+    setPrinterName(name)
+    setPrinterSaving(false)
+  }
+
+  async function removePrinter() {
+    setPrinterSaving(true)
+    await supabase.from('companies').update({ loja_impressora_nome: null }).eq('id', companyId)
+    setPrinterName('')
+    setPrinterSaving(false)
   }
 
   async function openNovoPedido() {
@@ -447,6 +537,8 @@ export default function PedidosPage() {
             <div className="pd-chips">
               {flowFor(p).map(s => <button key={s} className={`pd-chip ${p.status === s ? 'current' : ''}`} onClick={() => setStatus(p.id, s)}>{STATUS_LABEL[s]}</button>)}
             </div>
+            <button className="pd-print-btn" onClick={e => { e.stopPropagation(); printPedido(p) }}>🖨️ Imprimir pedido</button>
+            {printError && <div style={{ color: '#C43D3D', fontSize: 11, marginTop: 4 }}>{printError}</div>}
             {p.status !== 'cancelado' && p.status !== 'entregue' && <button className="pd-cancel" onClick={() => setStatus(p.id, 'cancelado')}>Cancelar pedido</button>}
           </div>
         )}
@@ -493,6 +585,21 @@ export default function PedidosPage() {
         .pd-chip{ font-size:10.5px;font-weight:700;padding:6px 10px;border-radius:8px;border:1px solid #E6E0D2;background:#fff;cursor:pointer;color:#6E6656; }
         .pd-chip.current{ background:var(--sign);color:var(--ink);border-color:var(--sign); }
         .pd-cancel{ font-size:10.5px;color:#C43D3D;font-weight:700;background:none;border:none;cursor:pointer;margin-top:8px; }
+        .pd-print-btn{ width:100%;margin-top:8px;padding:9px;border-radius:9px;border:1.5px solid #E6E0D2;background:#fff;color:#6E6656;font-weight:700;font-size:12px;cursor:pointer;font-family:inherit; }
+        .pd-printer-pill{ padding:9px 14px;border-radius:9px;border:1.5px solid #E6E0D2;background:#fff;color:#8A6410;font-weight:700;font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap; }
+        .pp-overlay{ position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:70;display:flex;align-items:center;justify-content:center;padding:16px; }
+        .pp-modal{ background:#fff;border-radius:16px;max-width:400px;width:100%;padding:22px;max-height:88vh;overflow-y:auto; }
+        .pp-modal h2{ font-size:15px;margin:0 0 4px;font-weight:800; }
+        .pp-modal p{ font-size:12px;color:#6E6656;line-height:1.6;margin:0 0 14px; }
+        .pp-step{ display:flex;gap:10px;margin-bottom:14px; }
+        .pp-step-n{ flex:none;width:22px;height:22px;border-radius:50%;background:#F0EDE8;color:#6E6656;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center; }
+        .pp-step-txt{ font-size:12.5px;color:#3A342A;line-height:1.5;padding-top:2px; }
+        .pp-dl-btn{ display:inline-block;margin-top:6px;padding:8px 14px;border-radius:8px;background:var(--ink);color:var(--sign);font-weight:700;font-size:12px;text-decoration:none; }
+        .pp-retry{ width:100%;padding:10px;border-radius:9px;border:1.5px solid #E6E0D2;background:#fff;color:#3A342A;font-weight:700;font-size:12.5px;cursor:pointer;margin-top:6px;font-family:inherit; }
+        .pp-printer-item{ display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border:1.5px solid #E6E0D2;border-radius:9px;margin-bottom:8px;cursor:pointer; }
+        .pp-printer-item.sel{ border-color:#157A52;background:#E4F3EC; }
+        .pp-close{ width:100%;padding:10px;border-radius:9px;border:none;background:#F0EDE8;color:#6E6656;font-weight:700;font-size:12.5px;cursor:pointer;margin-top:10px;font-family:inherit; }
+        .pp-err{ background:#FBEAEA;color:#C43D3D;font-size:11.5px;padding:9px 11px;border-radius:8px;margin-bottom:12px;line-height:1.5; }
         .pd-empty{ text-align:center;color:#A79E8B;padding:40px 0;font-size:12.5px; }
         .pd-card-pending{ border:1.5px solid var(--accent); }
         .pd-accept{ width:100%;margin-top:8px;padding:9px;border-radius:9px;border:none;background:var(--accent);color:#fff;font-weight:800;font-size:12px;cursor:pointer; }
@@ -560,6 +667,7 @@ export default function PedidosPage() {
           </div>
           <div className="pd-head-right">
             <button className="pd-new-pill" onClick={openNovoPedido} title="Novo pedido">+</button>
+            <button onClick={openPrinterModal} style={{ fontSize: 11, fontWeight: 700, color: printerName ? '#157A52' : '#8A6410', background: printerName ? '#E4F3EC' : '#FBF1DC', padding: '7px 10px', borderRadius: 8, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>🖨️ {printerName ? 'Impressora' : 'Configurar'}</button>
             <a href="/painel/cozinha" style={{ fontSize: 11, fontWeight: 700, color: '#8A6410', background: '#FBF1DC', padding: '7px 12px', borderRadius: 8, textDecoration: 'none' }}>🍳 Cozinha</a>
           </div>
         </div>
@@ -588,6 +696,9 @@ export default function PedidosPage() {
           <div className={`pd-switch ${autoAceitar ? 'on' : ''}`} onClick={toggleAutoAceitar}><div className="k" /></div>
           Aceitar pedidos automaticamente
         </label>
+        <button className="pd-printer-pill" onClick={openPrinterModal} style={printerName ? { background: '#E4F3EC', color: '#157A52', borderColor: '#B7DFC9' } : {}}>
+          🖨️ {printerName ? `Impressora: ${printerName}` : 'Configurar impressora'}
+        </button>
         <button className="pd-newbtn" onClick={openNovoPedido}>+ Novo pedido</button>
       </div>
 
@@ -698,6 +809,57 @@ export default function PedidosPage() {
                 <button className="np-createbtn" disabled={npSaving || !npNome.trim() || npCart.length === 0} onClick={npCriarPedido}>{npSaving ? 'Criando...' : 'Criar pedido'}</button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {showPrinterModal && (
+        <div className="pp-overlay" onClick={() => setShowPrinterModal(false)}>
+          <div className="pp-modal" onClick={e => e.stopPropagation()}>
+            <h2>🖨️ Impressora de pedidos</h2>
+            <p>Imprime o pedido automaticamente numa impressora térmica de 80mm ligada por USB no computador, quando "Aceitar pedidos automaticamente" estiver ligado.</p>
+
+            {qzStatus !== 'connected' && (
+              <>
+                <div className="pp-step">
+                  <span className="pp-step-n">1</span>
+                  <span className="pp-step-txt">
+                    Baixa e instala o app de impressão (uma vez só, no computador da impressora):<br/>
+                    <a className="pp-dl-btn" href="https://qz.io/download/" target="_blank" rel="noopener noreferrer">Baixar app de impressão</a>
+                  </span>
+                </div>
+                <div className="pp-step">
+                  <span className="pp-step-n">2</span>
+                  <span className="pp-step-txt">Abre o app instalado (fica rodando quietinho, sem precisar mexer de novo) e volta aqui.</span>
+                </div>
+                <div className="pp-step">
+                  <span className="pp-step-n">3</span>
+                  <span className="pp-step-txt">Clica em "Testar conexão" — na primeira vez o app vai perguntar se pode confiar nesse site; marca "lembrar" pra não perguntar de novo.</span>
+                </div>
+                {qzStatus === 'error' && <div className="pp-err">{qzError}</div>}
+                <button className="pp-retry" onClick={openPrinterModal} disabled={qzStatus === 'connecting'}>
+                  {qzStatus === 'connecting' ? 'Conectando...' : '🔄 Testar conexão'}
+                </button>
+              </>
+            )}
+
+            {qzStatus === 'connected' && (
+              <>
+                <div style={{ fontSize: 11, fontWeight: 800, color: '#6E6656', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 8 }}>Escolhe a impressora</div>
+                {foundPrinters.length === 0 && <div className="pp-err">Nenhuma impressora encontrada no computador. Confere se ela está ligada e instalada no Windows/Mac.</div>}
+                {foundPrinters.map(name => (
+                  <div key={name} className={`pp-printer-item ${printerName === name ? 'sel' : ''}`} onClick={() => selectPrinter(name)}>
+                    <span style={{ fontSize: 12.5, fontWeight: 600 }}>{name}</span>
+                    {printerName === name && <span style={{ color: '#157A52', fontSize: 12, fontWeight: 800 }}>✓ Selecionada</span>}
+                  </div>
+                ))}
+              </>
+            )}
+
+            {printerName && (
+              <button className="pp-retry" style={{ color: '#C43D3D' }} onClick={removePrinter} disabled={printerSaving}>✕ Remover impressora configurada</button>
+            )}
+            <button className="pp-close" onClick={() => setShowPrinterModal(false)}>Fechar</button>
           </div>
         </div>
       )}

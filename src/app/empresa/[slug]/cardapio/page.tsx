@@ -5,6 +5,7 @@ import { isOpenNow } from '@/lib/businessHours'
 import { type Produto, fmt, promoPrice, availableToday, isSoldOut, groupContribution, cartStorageKey, criarInteresseEAbrirWhatsapp } from '@/lib/lojaPricing'
 
 type Categoria = { id: string; name: string; display_order: number }
+type Coupon = { id: string; title: string; discount_type: 'fixed' | 'percent'; discount_value: number; min_purchase: number }
 type Company = {
   id: string; name: string; slug: string; phone: string | null; address: string | null
   avg_rating: number; total_reviews: number; status: string
@@ -50,6 +51,8 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
   const [payMethod, setPayMethod] = useState<'pix' | 'dinheiro' | 'cartao'>('pix')
   const [success, setSuccess] = useState(false)
   const [confirming, setConfirming] = useState(false)
+  const [coupons, setCoupons] = useState<Coupon[]>([])
+  const [selectedCouponId, setSelectedCouponId] = useState<string | null>(null)
 
   function getCompanyCover(photos?: { url: string; order: number }[]): string | null {
     if (!photos?.length) return null
@@ -88,12 +91,14 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
       .then(async ({ data: comp }) => {
         if (!comp || comp.status !== 'active' || !comp.loja_digital_enabled) { setCompany(null); setLoading(false); return }
         setCompany(comp as any)
-        const [{ data: cats }, { data: prods }] = await Promise.all([
+        const [{ data: cats }, { data: prods }, { data: cps }] = await Promise.all([
           supabase.from('loja_categorias').select('*').eq('company_id', comp.id).order('display_order'),
           supabase.from('loja_produtos').select('*, groups:loja_opcoes_grupo(*, options:loja_opcoes(*))').eq('company_id', comp.id).eq('active', true).order('display_order'),
+          supabase.from('coupons').select('id,title,discount_type,discount_value,min_purchase').eq('company_id', comp.id).eq('active', true).gt('expires_at', new Date().toISOString()).order('created_at', { ascending: false }),
         ])
         setCategorias(cats || [])
         setProdutos(((prods || []) as any[]).filter(availableToday))
+        setCoupons((cps || []) as Coupon[])
         setLoading(false)
       })
     let restoredCart = false
@@ -224,6 +229,10 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
         pedido_id: pedido.id, produto_id: l.produtoId, product_name: l.name, unit_price: l.unitPrice, qty: l.qty,
         selected_options: l.modifiers,
       })))
+      if (selectedCoupon && couponEligible(selectedCoupon)) {
+        const code = 'TRD-' + Math.random().toString(36).substring(2, 6).toUpperCase()
+        await supabase.from('coupon_redemptions').insert({ coupon_id: selectedCoupon.id, user_id: session.user.id, code, status: 'used', used_at: new Date().toISOString() })
+      }
       fetch('/api/loja/registrar-pedido', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -250,7 +259,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
     setSuccess(true)
     setTimeout(() => {
       setDrawerOpen(false); setSuccess(false); setCart([]); setObs('')
-      setAgendarRetirada(false); setScheduleDate(''); setScheduleTime('')
+      setAgendarRetirada(false); setScheduleDate(''); setScheduleTime(''); setSelectedCouponId(null)
     }, 2500)
   }
 
@@ -262,12 +271,20 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
     if (!company?.phone || cart.length === 0 || sendingWa) return
     setSendingWa(true)
     try {
+      if (selectedCoupon && couponEligible(selectedCoupon)) {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session) {
+          const code = 'TRD-' + Math.random().toString(36).substring(2, 6).toUpperCase()
+          await supabase.from('coupon_redemptions').insert({ coupon_id: selectedCoupon.id, user_id: session.user.id, code, status: 'used', used_at: new Date().toISOString() })
+        }
+      }
       await criarInteresseEAbrirWhatsapp({
         supabase, companyId: company.id, companyPhone: company.phone,
         itens: cart.map(l => ({ produto_id: l.produtoId, nome: l.name + (l.modifiers.length ? ' (' + l.modifiers.map(m => m.name).join(', ') + ')' : ''), qtd: l.qty, preco_unitario: l.unitPrice })),
         valorTotal: orderTotal, deliveryType,
+        cupomLabel: discount > 0 && selectedCoupon ? `${selectedCoupon.title} (− ${fmt(discount)})` : undefined,
       })
-      setDrawerOpen(false); setCart([])
+      setDrawerOpen(false); setCart([]); setSelectedCouponId(null)
     } finally {
       setSendingWa(false)
     }
@@ -283,7 +300,11 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
 
   const open = isOpenNow(company.hours as any, company.flexible_hours, company.store_paused)
   const taxaEntrega = deliveryType === 'entrega' ? Number(company.loja_taxa_entrega || 0) : 0
-  const orderTotal = cartTotal + taxaEntrega
+  const couponEligible = (c: Coupon) => cartTotal >= Number(c.min_purchase || 0)
+  const couponDiscount = (c: Coupon) => c.discount_type === 'fixed' ? Math.min(Number(c.discount_value), cartTotal) : Math.round(cartTotal * (Number(c.discount_value) / 100) * 100) / 100
+  const selectedCoupon = coupons.find(c => c.id === selectedCouponId) || null
+  const discount = selectedCoupon && couponEligible(selectedCoupon) ? couponDiscount(selectedCoupon) : 0
+  const orderTotal = Math.max(0, cartTotal - discount) + taxaEntrega
   const abaixoMinimo = Number(company.loja_pedido_minimo || 0) > 0 && cartTotal < Number(company.loja_pedido_minimo)
   const searchTerm = search.trim().toLowerCase()
   const filtered = produtos
@@ -311,6 +332,13 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
         .cd-pagehero-cnt .op{ color:#4ADE80;font-weight:600; }
         .cd-pagehero-cnt .cl{ color:#F87171;font-weight:600; }
         .cd-pagehero-cnt .st{ color:var(--sign); }
+        .cd-coupon-strip-wrap{ background:#fff;padding:8px 0;border-bottom:1px solid var(--line); }
+        .cd-coupon-strip{ display:flex;gap:6px;overflow-x:auto;padding:0 16px;scrollbar-width:none; }
+        .cd-coupon-strip::-webkit-scrollbar{ display:none; }
+        @media(min-width:900px){ .cd-coupon-strip{ max-width:1120px;margin:0 auto; } }
+        .cd-coupon-chip{ flex:0 0 auto;display:flex;align-items:center;gap:6px;background:var(--ink);border-radius:20px;padding:6px 12px 6px 8px;white-space:nowrap; }
+        .cd-coupon-chip-val{ color:var(--sign);font-size:11px;font-weight:800; }
+        .cd-coupon-chip-rule{ color:#B8B0A0;font-size:9.5px; }
         .cd-search-wrap{ background:var(--concrete);padding:0 16px; }
         @media(min-width:900px){ .cd-search-wrap{ max-width:760px;margin:0 auto; } }
         .cd-search-inner{ transform:translateY(-20px); }
@@ -406,6 +434,19 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
         .cd-paychip{ padding:8px 13px;border-radius:20px;border:1.5px solid #EDE8E0;background:#fff;font-size:12px;font-weight:700;cursor:pointer;margin-right:8px; }
         .cd-paychip.active{ background:var(--ink);color:var(--sign);border-color:var(--ink); }
         .cd-totalrow{ display:flex;justify-content:space-between;padding-top:12px;margin-top:8px;border-top:1px dashed #EDE8E0;font-weight:800;font-size:16px; }
+        .cd-coupon-card{ display:flex;align-items:center;gap:8px;border-radius:10px;padding:8px 10px;margin-bottom:6px;cursor:pointer;border:1.5px solid #EDE8E0;background:#fff; }
+        .cd-coupon-card-icon{ flex:none;width:34px;height:34px;border-radius:8px;background:#F0EDE8;color:var(--sign-dark);font-family:'Anton',sans-serif;font-size:9.5px;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.05; }
+        .cd-coupon-card-mid{ flex:1;min-width:0; }
+        .cd-coupon-card-title{ font-size:12px;font-weight:800; }
+        .cd-coupon-card-sub{ font-size:10px;color:#AAA;margin-top:1px; }
+        .cd-coupon-card-radio{ flex:none;width:18px;height:18px;border-radius:50%;border:1.5px solid #EDE8E0;position:relative; }
+        .cd-coupon-card.selected{ border-color:var(--open);background:rgba(15,138,87,.06); }
+        .cd-coupon-card.selected .cd-coupon-card-icon{ background:var(--open);color:#fff; }
+        .cd-coupon-card.selected .cd-coupon-card-radio{ border-color:var(--open);background:var(--open); }
+        .cd-coupon-card.selected .cd-coupon-card-radio::after{ content:'✓';position:absolute;inset:0;color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center; }
+        .cd-coupon-card.selected .cd-coupon-card-sub{ color:var(--open);font-weight:700; }
+        .cd-coupon-card.locked{ cursor:default;opacity:.6; }
+        .cd-coupon-card.locked .cd-coupon-card-radio{ display:flex;align-items:center;justify-content:center;font-size:9.5px;border:none; }
       `}</style>
 
       <div className="cd-top"><div className="cd-bc"><a href="/">Trindade Online</a> › <a href={`/empresa/${company.slug}`}>{company.name}</a> › Cardápio</div></div>
@@ -425,6 +466,18 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
           </div>
         </div>
       </div></div>
+
+      {coupons.length > 0 && (
+        <div className="cd-coupon-strip-wrap"><div className="cd-coupon-strip">
+          {coupons.map(c => (
+            <div className="cd-coupon-chip" key={c.id}>
+              <span>🎟️</span>
+              <span className="cd-coupon-chip-val">{c.discount_type === 'fixed' ? fmt(Number(c.discount_value)) : `${c.discount_value}%`} OFF</span>
+              {Number(c.min_purchase || 0) > 0 && <span className="cd-coupon-chip-rule">acima de {fmt(Number(c.min_purchase))}</span>}
+            </div>
+          ))}
+        </div></div>
+      )}
 
       <div className="cd-search-wrap"><div className="cd-search-inner"><div className="cd-search-bar">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -619,6 +672,31 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
                 <textarea className="cd-diinput" style={{ minHeight: 56, resize: 'vertical' }} value={obs} onChange={e => setObs(e.target.value)} placeholder="Ex: sem cebola, troco pra R$50..." />
                 <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', margin: '14px 0 8px', fontWeight: 800 }}>Pagamento</div>
                 {(['pix', 'dinheiro', 'cartao'] as const).map(m => <button key={m} className={`cd-paychip ${payMethod === m ? 'active' : ''}`} onClick={() => setPayMethod(m)}>{m === 'pix' ? 'Pix' : m === 'dinheiro' ? 'Dinheiro' : 'Cartão'}</button>)}
+
+                {coupons.length > 0 && (
+                  <>
+                    <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', margin: '14px 0 8px', fontWeight: 800 }}>🎟️ Cupom de desconto</div>
+                    {coupons.map(c => {
+                      const eligible = couponEligible(c)
+                      const selected = selectedCouponId === c.id
+                      const falta = Number(c.min_purchase || 0) - cartTotal
+                      return (
+                        <div key={c.id} className={`cd-coupon-card ${eligible ? '' : 'locked'} ${selected ? 'selected' : ''}`}
+                          onClick={() => { if (!eligible) return; setSelectedCouponId(id => id === c.id ? null : c.id) }}>
+                          <div className="cd-coupon-card-icon">{c.discount_type === 'fixed' ? fmt(Number(c.discount_value)) : `${c.discount_value}%`}<br />OFF</div>
+                          <div className="cd-coupon-card-mid">
+                            <div className="cd-coupon-card-title">{c.title}</div>
+                            <div className="cd-coupon-card-sub">
+                              {eligible ? (selected ? '✓ Aplicado no seu pedido' : `✓ Disponível — seu pedido já passa de ${fmt(Number(c.min_purchase || 0))}`) : `🔒 Faltam ${fmt(falta)} pra liberar (mínimo ${fmt(Number(c.min_purchase || 0))})`}
+                            </div>
+                          </div>
+                          <div className="cd-coupon-card-radio">{!eligible && '🔒'}</div>
+                        </div>
+                      )
+                    })}
+                  </>
+                )}
+
                 {abaixoMinimo && (
                   <div style={{ marginTop: 12, padding: '10px 12px', borderRadius: 10, background: '#FEF0E0', color: '#B5690C', fontSize: 11.5, fontWeight: 600 }}>
                     Pedido mínimo de {fmt(Number(company.loja_pedido_minimo))} — faltam {fmt(Number(company.loja_pedido_minimo) - cartTotal)}
@@ -626,6 +704,9 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
                 )}
                 {taxaEntrega > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0 0', fontSize: 12, color: '#555' }}><span>Taxa de entrega</span><span>{fmt(taxaEntrega)}</span></div>
+                )}
+                {discount > 0 && selectedCoupon && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0 0', fontSize: 12, color: 'var(--open)', fontWeight: 700 }}><span>Cupom {selectedCoupon.title}</span><span>− {fmt(discount)}</span></div>
                 )}
                 <div className="cd-totalrow"><span>Total</span><span>{fmt(orderTotal)}</span></div>
               </div>

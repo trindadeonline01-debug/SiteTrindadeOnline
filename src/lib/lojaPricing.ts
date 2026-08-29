@@ -60,6 +60,7 @@ export async function criarInteresseEAbrirWhatsapp(opts: {
   supabase: any; companyId: string; companyPhone: string
   itens: InteresseItem[]; valorTotal: number
   deliveryType: 'entrega' | 'retirada'; origem?: 'whatsapp_link' | 'qr_balcao' | 'status' | 'portal'
+  cupomLabel?: string
 }) {
   const codigo = gerarCodigoInteresse()
   await opts.supabase.from('interesses').insert({
@@ -69,6 +70,7 @@ export async function criarInteresseEAbrirWhatsapp(opts: {
   const linhas = [
     'Olá! Quero fazer este pedido:',
     ...opts.itens.map(i => `${i.qtd}x ${i.nome}`),
+    ...(opts.cupomLabel ? [`Cupom aplicado: ${opts.cupomLabel}`] : []),
     `Total: ${fmt(opts.valorTotal)}`,
     opts.deliveryType === 'entrega' ? '🚴 Entrega' : '🏪 Retirada',
     `Código: ${codigo}`,

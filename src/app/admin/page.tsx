@@ -1173,6 +1173,7 @@ export default function AdminPage() {
     }
     const { data: compSubs } = await supabase.from('company_subcategories').select('subcategory_id').eq('company_id', c.id)
     setCompanySubcatIds((compSubs || []).map((s: any) => s.subcategory_id))
+    setNewPassword('')
     setEditCompanyModal({ open: true, company: { ...c } })
   }
 
@@ -1228,6 +1229,35 @@ export default function AdminPage() {
     showToast('Usuário atualizado!')
     setEditUserModal({ open: false, user: null })
     loadUsers()
+  }
+
+  // Reset de senha pedido direto da tela de Empresas — antes só dava pra
+  // fazer isso achando o dono na aba Usuários (moradores e lojistas
+  // misturados na mesma lista, confuso pra achar quem é dono de qual
+  // empresa). Reaproveita a mesma rota, só muda de onde vem o e-mail/id.
+  async function sendResetLinkForOwner() {
+    const owner = users.find(u => u.id === editCompanyModal.company?.owner_id)
+    if (!owner?.email) { showToast('Responsável sem email cadastrado'); return }
+    const res = await adminFetch('/api/admin/reset-password', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ send_reset_link: true, email: owner.email })
+    })
+    const data = await res.json()
+    if (data.error) { showToast('Erro: ' + data.error); return }
+    showToast('Link de redefinição enviado!')
+  }
+
+  async function setOwnerPasswordDirect() {
+    if (!newPassword.trim() || newPassword.length < 6) { showToast('Senha deve ter no mínimo 6 caracteres'); return }
+    const ownerId = editCompanyModal.company?.owner_id
+    const res = await adminFetch('/api/admin/reset-password', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: ownerId, new_password: newPassword })
+    })
+    const data = await res.json()
+    if (data.error) { showToast('Erro: ' + data.error); return }
+    showToast('Senha atualizada!')
+    setNewPassword('')
   }
 
   async function sendResetLink() {
@@ -1687,6 +1717,23 @@ export default function AdminPage() {
               </button>
               <button onClick={()=>setEditCompanyModal({open:false,company:null})} style={{padding:'12px 20px',background:'transparent',color:'#AAA',border:'1px solid #ddd',borderRadius:10,fontSize:13,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>Cancelar</button>
             </div>
+            {(() => {
+              const owner = users.find(u => u.id === editCompanyModal.company.owner_id)
+              return (
+                <div style={{marginTop:20,paddingTop:20,borderTop:'1px solid #EDE8E0'}}>
+                  <div style={{fontSize:12,fontWeight:700,color:'#888',letterSpacing:1,marginBottom:2}}>SENHA DO RESPONSÁVEL</div>
+                  <div style={{fontSize:11,color:'#AAA',marginBottom:10}}>{owner ? `${owner.name}${owner.email ? ' · ' + owner.email : ''}` : 'Dono não encontrado entre os usuários'}</div>
+                  <button onClick={sendResetLinkForOwner} disabled={!owner} style={{width:'100%',padding:'10px',background:'#FEF3E2',color:'#854F0B',border:'1px solid #F5C77A',borderRadius:10,fontSize:13,fontWeight:600,cursor:owner?'pointer':'not-allowed',fontFamily:'Archivo,sans-serif',marginBottom:10,opacity:owner?1:.5}}>
+                    ✉️ Enviar link de redefinição
+                  </button>
+                  <div style={{display:'flex',gap:8}}>
+                    <input type="text" placeholder="Nova senha (mín. 6 caracteres)" value={newPassword} onChange={e=>setNewPassword(e.target.value)}
+                      style={{flex:1,padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Archivo,sans-serif'}}/>
+                    <button onClick={setOwnerPasswordDirect} disabled={!owner} style={{padding:'10px 16px',background:'#111',color:'#fff',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:owner?'pointer':'not-allowed',fontFamily:'Archivo,sans-serif',opacity:owner?1:.5}}>Definir</button>
+                  </div>
+                </div>
+              )
+            })()}
             <div style={{marginTop:20,paddingTop:20,borderTop:'1px solid #EDE8E0'}}>
               <div style={{fontSize:11,color:'#888',marginBottom:10,textTransform:'uppercase',letterSpacing:1,fontWeight:700}}>Zona de perigo</div>
               <button onClick={()=>deleteCompany(editCompanyModal.company.id, editCompanyModal.company.name)} style={{width:'100%',padding:'12px',background:'transparent',color:'#E24B4A',border:'1.5px solid #E24B4A',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>
@@ -1863,7 +1910,15 @@ export default function AdminPage() {
                           {filteredCompanies.map(c => (
                             <tr key={c.id}>
                               <td><strong>{c.name}</strong><br/><span style={{fontSize:11,color:'#AAA'}}>{c.address || '—'}</span></td>
-                              <td>{c.owner?.name || '—'}</td>
+                              <td>
+                                {c.owner?.name || '—'}
+                                {(() => {
+                                  const owner = users.find(u => u.id === c.owner_id)
+                                  return owner ? (
+                                    <button onClick={() => openEditUser(owner)} title="Editar usuário / redefinir senha" style={{marginLeft:6,background:'none',border:'none',cursor:'pointer',fontSize:12,padding:0}}>👤✏️</button>
+                                  ) : null
+                                })()}
+                              </td>
                               <td>{c.phone ? <button onClick={()=>navigator.clipboard.writeText(c.phone||'').then(()=>showToast('Número copiado!'))} style={{background:'none',border:'none',cursor:'pointer',color:'#25D366',fontSize:12,padding:0,fontFamily:'Archivo,sans-serif'}}>📋 {c.phone}</button> : '—'}</td>
                               <td>{c.category?.emoji} {c.category?.name || '—'}</td>
                               <td><span style={{fontSize:11,fontWeight:600,color:c.plan==='paid'?'#0F8050':'#AAA'}}>{c.plan==='paid'?'Pago':'Grátis'}</span></td>

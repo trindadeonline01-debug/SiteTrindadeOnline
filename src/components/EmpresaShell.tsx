@@ -119,12 +119,14 @@ export default function EmpresaShell({
         .es-switch-item:first-child{border-top:none;}
         .es-switch-item.on{color:var(--sign);font-weight:700;}
         .es-idswitcher{display:flex;flex-direction:column;gap:6px;margin-top:14px;}
-        .es-idcard{display:flex;align-items:center;gap:9px;background:var(--ink-2);border-radius:10px;padding:9px 10px;text-decoration:none;border:1.5px solid transparent;}
-        .es-idcard.on{border-color:var(--sign);}
+        .es-idcard{display:flex;align-items:center;gap:9px;background:var(--ink);border-radius:10px;padding:9px 10px;text-decoration:none;border:1.5px solid var(--sign);}
+        .es-idcard.on{background:var(--sign);border-color:var(--sign);}
         .es-idico{width:26px;height:26px;border-radius:7px;background:#333;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;flex:none;}
-        .es-idcard.on .es-idico{background:var(--sign);color:var(--ink);}
+        .es-idcard.on .es-idico{background:var(--ink);color:var(--sign);}
         .es-idname{color:#fff;font-size:12px;font-weight:700;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px;}
+        .es-idcard.on .es-idname{color:var(--ink);}
         .es-idtag{margin-left:auto;font-size:9px;font-weight:800;color:var(--sign);flex:none;}
+        .es-idcard.on .es-idtag{color:var(--ink);}
         .es-idcard-add{border-style:dashed;border-color:rgba(255,255,255,.35);}
         .es-idcard-add .es-idico{background:none;color:var(--sign);font-size:15px;}
         .es-idcard-add .es-idname{color:rgba(255,255,255,.85);}

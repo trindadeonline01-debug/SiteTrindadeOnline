@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 export async function GET() {
   try {
     const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'https://evo.trindadeonline.com.br'
-    const EVOLUTION_KEY = process.env.EVOLUTION_API_KEY || 'trindade2024'
+    const EVOLUTION_KEY = process.env.EVOLUTION_API_KEY || ''
 
     const res = await fetch(`${EVOLUTION_URL}/instance/fetchInstances`, {
       headers: { 'apikey': EVOLUTION_KEY },

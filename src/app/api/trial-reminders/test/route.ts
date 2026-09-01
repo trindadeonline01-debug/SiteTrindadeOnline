@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { buildEmailHtml } from '@/lib/trialReminders'
 
 const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'https://evo.trindadeonline.com.br'
-const EVOLUTION_KEY = process.env.EVOLUTION_API_KEY || 'trindade2024'
+const EVOLUTION_KEY = process.env.EVOLUTION_API_KEY || ''
 const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE || 'Trindade Online'
 
 function formatPhone(phone: string): string {

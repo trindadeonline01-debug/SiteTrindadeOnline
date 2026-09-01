@@ -96,16 +96,14 @@ export default function MobileMenu() {
         .mm-divider{height:1px;background:var(--line);margin:8px 0;}
         .mm-sair{color:var(--alert);}
         .mm-switcher{padding:6px 16px 2px;display:flex;flex-direction:column;gap:6px;}
-        .mm-idcard{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:9px;border:1.5px solid var(--sign);background:var(--ink);font-size:13px;font-weight:700;color:#fff;text-decoration:none;}
-        .mm-idcard.active{background:var(--sign);border-color:var(--sign);color:var(--ink);}
+        .mm-idcard{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:9px;border:1.5px dotted var(--sign);background:transparent;font-size:13px;font-weight:700;color:var(--ink-2);text-decoration:none;}
+        .mm-idcard.active{background:var(--sign);border-style:solid;border-color:var(--sign);color:var(--ink);}
         .mm-idico{width:24px;height:24px;border-radius:6px;background:#333;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;}
         .mm-idcard.active .mm-idico{background:var(--ink);color:var(--sign);}
-        .mm-idtag{margin-left:auto;font-size:10px;color:var(--sign);font-weight:800;}
+        .mm-idtag{margin-left:auto;font-size:10px;color:var(--sign-dark);font-weight:800;}
         .mm-idcard.active .mm-idtag{color:var(--ink);}
-        .mm-idarrow{margin-left:auto;color:rgba(255,255,255,.5);font-size:13px;}
+        .mm-idarrow{margin-left:auto;color:var(--muted);font-size:13px;}
         .mm-idadd{font-size:11.5px;font-weight:700;color:var(--sign-dark);padding:6px 16px 2px;text-decoration:none;display:block;}
-        .mm-idcard-add{border-style:dashed;border-color:rgba(255,255,255,.35);color:rgba(255,255,255,.85);}
-        .mm-idcard-add .mm-idico{background:none;color:var(--sign);font-size:15px;}
       `}</style>
 
       <div className="mm-bar">

@@ -47,16 +47,14 @@ export default function UserMenu({ user, userType, isProdTeam }: { user: any; us
         .um-divider{height:1px;background:var(--line);margin:6px 0;}
         .um-sair{color:var(--alert);}
         .um-switcher{padding:8px 10px 4px;display:flex;flex-direction:column;gap:6px;}
-        .um-idcard{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;border:1.5px solid var(--sign);background:var(--ink);font-size:13px;font-weight:700;color:#fff;text-decoration:none;}
-        .um-idcard.active{background:var(--sign);border-color:var(--sign);color:var(--ink);}
+        .um-idcard{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;border:1.5px dotted var(--sign);background:transparent;font-size:13px;font-weight:700;color:var(--ink);text-decoration:none;}
+        .um-idcard.active{background:var(--sign);border-style:solid;border-color:var(--sign);color:var(--ink);}
         .um-idico{width:26px;height:26px;border-radius:7px;background:#333;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
         .um-idcard.active .um-idico{background:var(--ink);color:var(--sign);}
-        .um-idtag{margin-left:auto;font-size:10.5px;color:var(--sign);font-weight:800;}
+        .um-idtag{margin-left:auto;font-size:10.5px;color:var(--sign-dark);font-weight:800;}
         .um-idcard.active .um-idtag{color:var(--ink);}
-        .um-idarrow{margin-left:auto;color:rgba(255,255,255,.5);font-size:13px;}
+        .um-idarrow{margin-left:auto;color:var(--muted);font-size:13px;}
         .um-idadd{font-size:11.5px;font-weight:700;color:var(--sign-dark);padding:6px 14px 2px;text-decoration:none;display:block;}
-        .um-idcard-add{border-style:dashed;border-color:rgba(255,255,255,.35);color:rgba(255,255,255,.85);}
-        .um-idcard-add .um-idico{background:none;color:var(--sign);font-size:16px;}
       `}</style>
       <button className="um-avatar" onClick={() => setOpen(o => !o)} aria-label="Minha conta">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

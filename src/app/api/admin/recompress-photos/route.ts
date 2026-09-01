@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import sharp from 'sharp'
+import { requireAdmin } from '@/lib/requireAdmin'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -13,12 +14,11 @@ const WEBP_QUALITY = 78
 const SKIP_UNDER_BYTES = 150 * 1024
 
 export async function POST(req: NextRequest) {
-  try {
-    const { user_id, offset = 0 } = await req.json()
-    if (!user_id) return NextResponse.json({ error: 'user_id obrigatório' }, { status: 400 })
+  const auth = await requireAdmin(req)
+  if (auth instanceof NextResponse) return auth
 
-    const { data: profile } = await supabaseAdmin.from('profiles').select('user_type').eq('id', user_id).single()
-    if (profile?.user_type !== 'admin') return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
+  try {
+    const { offset = 0 } = await req.json()
 
     const { data: photos, error } = await supabaseAdmin
       .from('company_photos')

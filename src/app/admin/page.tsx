@@ -4,6 +4,7 @@ import { compressImage } from '@/lib/compressImage'
 import Image from 'next/image'
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
+import { adminFetch } from '@/lib/adminFetch'
 import NotificacoesTab from '@/components/admin/NotificacoesTab'
 import DashboardTab from '@/components/admin/DashboardTab'
 import DisparosTab from '@/components/DisparosTab'
@@ -280,7 +281,7 @@ export default function AdminPage() {
 
   async function loadUsers() {
     try {
-      const res = await fetch('/api/admin/list-users')
+      const res = await adminFetch('/api/admin/list-users')
       const data = await res.json()
       const us = data.users || []
       setUsers(us)
@@ -438,7 +439,7 @@ export default function AdminPage() {
       // Avisa no WhatsApp toda empresa que sugeriu esse nome (pode ser mais
       // de uma) e já limpa as sugestões correspondentes da lista
       try {
-        const res = await fetch('/api/admin/notify-subcategoria', {
+        const res = await adminFetch('/api/admin/notify-subcategoria', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ subcategory_name: subcatForm.name.trim() })
@@ -653,7 +654,7 @@ export default function AdminPage() {
     setCronRunning(true)
     setCronResult(null)
     try {
-      const res = await fetch('/api/admin/run-trial-reminders', { method: 'POST' })
+      const res = await adminFetch('/api/admin/run-trial-reminders', { method: 'POST' })
       const data = await res.json()
       setCronResult({ sent: data.sent || 0, checked: data.checked || 0, details: data.details || [] })
     } catch (err: any) {
@@ -749,7 +750,7 @@ export default function AdminPage() {
     setPlanCronRunning(true)
     setPlanCronResult(null)
     try {
-      const res = await fetch('/api/admin/run-plan-expiration', { method: 'POST' })
+      const res = await adminFetch('/api/admin/run-plan-expiration', { method: 'POST' })
       const data = await res.json()
       setPlanCronResult({ sent: data.sent || 0, checked: data.checked || 0, downgraded: data.downgraded || 0, details: data.details || [] })
       setPlanDowngradedCount(prev => prev + (data.downgraded || 0))
@@ -778,7 +779,7 @@ export default function AdminPage() {
     setRecompressStats({ offset: 0, processed: 0, skipped: 0, failed: 0 })
     let offset = 0
     while (true) {
-      const res = await fetch('/api/admin/recompress-photos', {
+      const res = await adminFetch('/api/admin/recompress-photos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: session.user.id, offset }),
@@ -805,7 +806,7 @@ export default function AdminPage() {
     setRepairStats({ offset: 0, migrated: 0, failed: 0 })
     let offset = 0
     while (true) {
-      const res = await fetch('/api/admin/repair-photos', {
+      const res = await adminFetch('/api/admin/repair-photos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: session.user.id, offset }),
@@ -1127,7 +1128,7 @@ export default function AdminPage() {
   }
   async function loadSales(filter: string, dateFrom?: string, dateTo?: string) {
     setSalesLoading(true)
-    const res = await fetch('/api/admin/sales', {
+    const res = await adminFetch('/api/admin/sales', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ filter, dateFrom, dateTo })
@@ -1151,7 +1152,7 @@ export default function AdminPage() {
   }
   async function deleteUser(id: string, nome: string) {
     if (!confirm(`Excluir o usuário "${nome}"? Esta ação é irreversível.`)) return
-    const res = await fetch('/api/admin/delete-user', {
+    const res = await adminFetch('/api/admin/delete-user', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user_id: id })
@@ -1216,7 +1217,7 @@ export default function AdminPage() {
   async function saveUserEdit() {
     const u = editUserModal.user
     setSavingEdit(true)
-    const res = await fetch('/api/admin/update-user', {
+    const res = await adminFetch('/api/admin/update-user', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user_id: u.id, updates: { name: u.name, neighborhood: u.neighborhood, phone: u.phone || null }, new_email: u.email || null })
@@ -1232,7 +1233,7 @@ export default function AdminPage() {
   async function sendResetLink() {
     const u = editUserModal.user
     if (!u.email) { showToast('Usuário sem email cadastrado'); return }
-    const res = await fetch('/api/admin/reset-password', {
+    const res = await adminFetch('/api/admin/reset-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ send_reset_link: true, email: u.email })
@@ -1245,7 +1246,7 @@ export default function AdminPage() {
   async function setNewPasswordDirect() {
     if (!newPassword.trim() || newPassword.length < 6) { showToast('Senha deve ter no mínimo 6 caracteres'); return }
     const u = editUserModal.user
-    const res = await fetch('/api/admin/reset-password', {
+    const res = await adminFetch('/api/admin/reset-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user_id: u.id, new_password: newPassword })
@@ -1975,7 +1976,7 @@ export default function AdminPage() {
                                     const val = e.target.checked
                                     const now = val ? new Date().toISOString() : null
                                     setGroupStatus(prev=>({...prev,[u.id]:{checked:val,at:now}}))
-                                    await fetch('/api/admin/update-user',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:u.id,updates:{whatsapp_group:val,whatsapp_group_at:now}})})
+                                    await adminFetch('/api/admin/update-user',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:u.id,updates:{whatsapp_group:val,whatsapp_group_at:now}})})
                                   }} style={{width:16,height:16,cursor:'pointer',accentColor:'#25D366'}}/>
                                   {groupStatus[u.id]?.checked && groupStatus[u.id]?.at && (
                                     <span style={{fontSize:9,color:'#25D366',whiteSpace:'nowrap'}}>{new Date(groupStatus[u.id].at!).toLocaleDateString('pt-BR')} {new Date(groupStatus[u.id].at!).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span>

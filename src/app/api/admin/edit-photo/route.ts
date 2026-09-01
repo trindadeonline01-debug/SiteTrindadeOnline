@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import sharp from 'sharp'
+import { requireAdmin } from '@/lib/requireAdmin'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -8,6 +9,9 @@ const supabaseAdmin = createClient(
 )
 
 export async function POST(req: NextRequest) {
+  const auth = await requireAdmin(req)
+  if (auth instanceof NextResponse) return auth
+
   try {
     const { photo_id, photo_url, regions } = await req.json()
     if (!photo_id || !photo_url || !regions?.length) {

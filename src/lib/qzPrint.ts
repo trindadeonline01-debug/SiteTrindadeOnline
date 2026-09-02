@@ -9,34 +9,37 @@
 // /api/qz/sign) em vez do modo "anônimo". Isso é o que faz o "Site
 // Manager" do QZ Tray lembrar da permissão de vez — no modo anônimo ele
 // volta a perguntar quase toda hora, mesmo marcando "lembrar".
-// v2 — a v1 tinha "Basic Constraints: CA:TRUE" (padrão do openssl pra
-// certificado autoassinado) e o QZ Tray recusava com "Invalid Certificate"
-// mesmo mostrando a identidade certinha no popup, porque um certificado
-// de identidade de cliente precisa ser "end-entity" (CA:FALSE), não uma
-// autoridade certificadora. Mesma chave privada de antes — só o
-// certificado público mudou, não precisa mexer na variável de ambiente.
+// v3 — a v2 tinha CA:FALSE certo, mas era AUTOASSINADA (issuer == subject),
+// e o QZ Tray não deixa marcar "Remember this decision" (persistir a
+// permissão) pra uma identidade que não é emitida por uma autoridade em
+// quem ele confia — só dá pra clicar "Allow" avulso a cada pedido. Agora
+// esse certificado é emitido por uma Autoridade Certificadora própria
+// ("Trindade Online Root CA", fica só guardada localmente, nunca sobe pro
+// servidor) — falta configurar essa raiz como confiável no QZ Tray da loja
+// (arquivo qz-tray.properties, propriedade trustedRootCert) pra "Remember"
+// funcionar de vez. Mesma chave privada de sempre — não mexe na Vercel.
 const QZ_CERTIFICATE = `-----BEGIN CERTIFICATE-----
-MIID2TCCAsGgAwIBAgIUPLnHBJrGJr4ztnJjKgqyW80BkbcwDQYJKoZIhvcNAQEN
-BQAwajELMAkGA1UEBhMCQlIxCzAJBgNVBAgMAlJKMRQwEgYDVQQHDAtTYW8gR29u
+MIID2zCCAsOgAwIBAgIUTSSU/zV7+ZPK/3aXw1C9+gdbwy8wDQYJKoZIhvcNAQEN
+BQAwbDELMAkGA1UEBhMCQlIxCzAJBgNVBAgMAlJKMRQwEgYDVQQHDAtTYW8gR29u
+Y2FsbzEYMBYGA1UECgwPVHJpbmRhZGUgT25saW5lMSAwHgYDVQQDDBdUcmluZGFk
+ZSBPbmxpbmUgUm9vdCBDQTAgFw0yNjA5MDIxMzM3NDBaGA8yMDU2MDgyNTEzMzc0
+MFowajELMAkGA1UEBhMCQlIxCzAJBgNVBAgMAlJKMRQwEgYDVQQHDAtTYW8gR29u
 Y2FsbzEYMBYGA1UECgwPVHJpbmRhZGUgT25saW5lMR4wHAYDVQQDDBV0cmluZGFk
-ZW9ubGluZS5jb20uYnIwIBcNMjYwOTAyMDI1MTQ3WhgPMjA1NjA4MjUwMjUxNDda
-MGoxCzAJBgNVBAYTAkJSMQswCQYDVQQIDAJSSjEUMBIGA1UEBwwLU2FvIEdvbmNh
-bG8xGDAWBgNVBAoMD1RyaW5kYWRlIE9ubGluZTEeMBwGA1UEAwwVdHJpbmRhZGVv
-bmxpbmUuY29tLmJyMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA3qhi
-RP5bxwp2B7c8rkeUzDU+9jCnXgPxb3e32EWihOIhymP62vEbSAM+ZsbZO+BKgeUq
-v1HDC3WeLdDhx0uRUP6YTN942uqrNgXoVGivVMs83tE9r5mlu9HBernUzHjiA+Rl
-xALQytW3u5CHajwfBskrZ4kcWzXGr7cMipLWEserXW9zcyGd+E17an2VLWhVNA52
-lBAI5zWu3iBEiJ+u8HMZBxWVaDIYHype8+jS63WpE+aEjRK7TFdBXVZHh/w7OMOq
-I02VC2+V4zHu5UnhYbm5CFmhMUmLnXkeZ0hnahjF5G3h+NVBWtnW6bUNLeDRkTsf
-4yT1T4PyCV0xa93RYwIDAQABo3UwczAdBgNVHQ4EFgQUP1Ag6oJJ8u+QhCQo5RO7
-u7l1l00wHwYDVR0jBBgwFoAUP1Ag6oJJ8u+QhCQo5RO7u7l1l00wDAYDVR0TAQH/
-BAIwADAOBgNVHQ8BAf8EBAMCBaAwEwYDVR0lBAwwCgYIKwYBBQUHAwIwDQYJKoZI
-hvcNAQENBQADggEBAC/gj8W+C1/NzYv87yZy4Yi8sGURLY6/D6GqjEol6ecEA9x8
-4oKGVNutKFxFXyAA4oYpC2p3n2vIj1sZT1qeN77/ftQhrfodYezKfXme8TFTbNFc
-o/eSffsEraP+BHlWHeaCv3sG9Hi8oGrBmICwH8iAQq6jo6R8KmACyDR3sS+/Lwfo
-YsUFxXgfPhP/wGXSG57/RVnhhya7DIToaWFpJRHadwj7QZ4sYRPQpCCwFkmEU7cG
-DFzXWmAJvIMY86KvazH5hp18fThCOhLzq0AR75nqimPfZjdattM0KQLmyUoJnrdo
-WvbUYG+HlNIOAAU8j99YaoECfS715V+AtXNEoJs=
+ZW9ubGluZS5jb20uYnIwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDe
+qGJE/lvHCnYHtzyuR5TMNT72MKdeA/Fvd7fYRaKE4iHKY/ra8RtIAz5mxtk74EqB
+5Sq/UcMLdZ4t0OHHS5FQ/phM33ja6qs2BehUaK9Uyzze0T2vmaW70cF6udTMeOID
+5GXEAtDK1be7kIdqPB8GyStniRxbNcavtwyKktYSx6tdb3NzIZ34TXtqfZUtaFU0
+DnaUEAjnNa7eIESIn67wcxkHFZVoMhgfKl7z6NLrdakT5oSNErtMV0FdVkeH/Ds4
+w6ojTZULb5XjMe7lSeFhubkIWaExSYudeR5nSGdqGMXkbeH41UFa2dbptQ0t4NGR
+Ox/jJPVPg/IJXTFr3dFjAgMBAAGjdTBzMAwGA1UdEwEB/wQCMAAwDgYDVR0PAQH/
+BAQDAgWgMBMGA1UdJQQMMAoGCCsGAQUFBwMCMB0GA1UdDgQWBBQ/UCDqgkny75CE
+JCjlE7u7uXWXTTAfBgNVHSMEGDAWgBT9gJsNCFQZIOyE5rz6534/QDM3ojANBgkq
+hkiG9w0BAQ0FAAOCAQEAdRRTEJa7koFMozJEeQqWgN5vKPWPio/Ka+BT9ikpoUHf
+rXsq/wOPETDhLbshybI5yp5xjLShpkBM+6OmjBGVLXTG42h/P7iEemSL3SGb6TG+
+muLx3utI5i+j8kC7vhUmQ9bXEiLqO4bDC3a7chm27wH4KP1QPPJ4Kzt+tTsMNT5j
+vwFlOWb/B5dNMry36Vaoy3Be3pSZbBJbhgUscKoMtmjbQW/PsDzjfCdIejtnmNMZ
+4/C/Pg3I8E36za+ykfpoXt2HclgcGaKMG5fTkt2uG5fOv2F71oru2boQULiu5UOi
+c+s3sQ/l0gYGez9PF04bX0ldUyYH42X2OkW7CORHIw==
 -----END CERTIFICATE-----`
 
 let qzModule: Promise<any> | null = null

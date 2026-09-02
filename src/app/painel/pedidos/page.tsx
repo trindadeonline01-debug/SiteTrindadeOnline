@@ -9,7 +9,7 @@ import { qzListPrinters, qzPrintRaw, buildReceipt, buildKitchenTicket } from '@/
 type Item = { id: string; product_name: string; unit_price: number; qty: number; selected_options: { name: string; price: number }[] }
 type Status = 'recebido' | 'em_preparo' | 'pronto' | 'saiu_entrega' | 'entregue' | 'cancelado'
 type Pedido = {
-  id: string; customer_id: string | null; customer_name: string; customer_phone: string | null; delivery_address: string | null
+  id: string; order_number: number | null; customer_id: string | null; customer_name: string; customer_phone: string | null; delivery_address: string | null
   origin: string; status: Status; payment_method: string | null; payment_status: string
   delivery_type: 'entrega' | 'retirada'; scheduled_for: string | null
   notes: string | null; subtotal: number; total: number; created_at: string; accepted_at: string | null
@@ -218,7 +218,7 @@ export default function PedidosPage() {
           const items = (data.itens || []).map((it: any) => ({ qty: it.qty, name: it.product_name, unitPrice: it.unit_price, options: it.selected_options }))
           const content = buildReceipt({
             companyName: compName,
-            pedidoShortId: data.id.slice(0, 8),
+            pedidoShortId: String(data.order_number ?? data.id.slice(0, 8)),
             createdAt: data.created_at,
             customerName: data.customer_name,
             customerPhone: data.customer_phone,
@@ -235,7 +235,7 @@ export default function PedidosPage() {
           // Segunda via pra cozinha — sem preço, sem endereço, sem forma de
           // pagamento, só o que precisa pra produzir (KNOWLEDGE_BASE.md).
           const kitchenContent = buildKitchenTicket({
-            pedidoShortId: data.id.slice(0, 8),
+            pedidoShortId: String(data.order_number ?? data.id.slice(0, 8)),
             createdAt: data.created_at,
             deliveryType: data.delivery_type,
             items,
@@ -354,7 +354,7 @@ export default function PedidosPage() {
     try {
       const items = (p.itens || []).map(it => ({ qty: it.qty, name: it.product_name, unitPrice: it.unit_price, options: it.selected_options }))
       const content = buildReceipt({
-        companyName, pedidoShortId: p.id.slice(0, 8), createdAt: p.created_at,
+        companyName, pedidoShortId: String(p.order_number ?? p.id.slice(0, 8)), createdAt: p.created_at,
         customerName: p.customer_name, customerPhone: p.customer_phone,
         deliveryType: p.delivery_type, address: p.delivery_address,
         paymentMethod: p.payment_method, notes: p.notes,
@@ -365,7 +365,7 @@ export default function PedidosPage() {
       })
       await qzPrintRaw(printerName, content)
       const kitchenContent = buildKitchenTicket({
-        pedidoShortId: p.id.slice(0, 8), createdAt: p.created_at,
+        pedidoShortId: String(p.order_number ?? p.id.slice(0, 8)), createdAt: p.created_at,
         deliveryType: p.delivery_type, items, notes: p.notes,
       })
       await qzPrintRaw(printerName, kitchenContent)
@@ -526,7 +526,7 @@ export default function PedidosPage() {
       <div className={`pd-card ${needsAccept ? 'pd-card-pending' : ''} ${late ? 'pd-card-late' : ''}`} key={p.id} style={{ '--accent': c.fg, borderLeft: `4px solid ${o.fg}` } as React.CSSProperties} onClick={() => setOpenId(open ? null : p.id)}>
         <div className="pd-row1">
           <div>
-            <div className="pd-name">{p.customer_name}</div>
+            <div className="pd-name">{p.order_number ? `#${p.order_number} · ` : ''}{p.customer_name}</div>
             <div className="pd-time">{timeAgo(p.created_at)} atrás</div>
           </div>
           <span className="pd-badge" style={{ background: c.bg, color: c.fg }}>{STATUS_LABEL[p.status]}</span>

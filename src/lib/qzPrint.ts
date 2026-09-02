@@ -176,7 +176,7 @@ export function buildReceipt(d: ReceiptData): string {
 
   lines.push('\n', CMD.alignCenter)
   lines.push('Fornecido por Trindade Online', '\n')
-  lines.push('IMPRESSO PELO SISTEMA', '\n')
+  lines.push('Impresso em ' + new Date().toLocaleString('pt-BR'), '\n')
   lines.push('NÃO É DOCUMENTO FISCAL', '\n')
 
   // A faca de corte da impressora fica alguns milímetros abaixo da cabeça
@@ -214,6 +214,7 @@ export function buildKitchenTicket(d: KitchenTicketData): string {
     if (it.options?.length) lines.push('  ' + it.options.map(o => o.name).join(', '), '\n')
   }
   if (d.notes) { lines.push('-'.repeat(WIDTH), '\n', CMD.boldOn, 'Obs: ', CMD.boldOff, '\n'); wrap(d.notes).forEach(l => lines.push(l, '\n')) }
+  lines.push('\n', CMD.alignCenter, 'Impresso em ' + new Date().toLocaleString('pt-BR'), '\n')
   lines.push(CMD.feed(6), CMD.cut)
   return lines.join('')
 }

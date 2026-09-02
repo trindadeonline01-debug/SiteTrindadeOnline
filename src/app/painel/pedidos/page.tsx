@@ -355,8 +355,23 @@ export default function PedidosPage() {
     setQzStatus('connecting')
     setQzError('')
     try {
-      const list = await qzListPrinters()
-      setFoundPrinters(list)
+      const { real, defaultPrinter } = await qzListPrinters()
+      // Detecção automática: sobrou só uma impressora de verdade na lista
+      // (depois de tirar PDF/Fax/OneNote e afins) — assume que é ela, sem
+      // precisar a pessoa escolher na mão.
+      if (real.length === 1) {
+        setFoundPrinters(real)
+        setQzStatus('connected')
+        await selectPrinter(real[0])
+        return
+      }
+      // Mais de uma impressora real: não dá pra saber sozinho qual tá
+      // conectada de verdade, mas põe a impressora padrão do Windows/Mac
+      // primeiro na lista — geralmente é a certa.
+      const ordered = defaultPrinter && real.includes(defaultPrinter)
+        ? [defaultPrinter, ...real.filter(n => n !== defaultPrinter)]
+        : real
+      setFoundPrinters(ordered)
       setQzStatus('connected')
     } catch (err: any) {
       setQzStatus('error')
@@ -845,7 +860,9 @@ export default function PedidosPage() {
 
             {qzStatus === 'connected' && (
               <>
-                <div style={{ fontSize: 11, fontWeight: 800, color: '#6E6656', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 8 }}>Escolhe a impressora</div>
+                <div style={{ fontSize: 11, fontWeight: 800, color: '#6E6656', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 8 }}>
+                  {foundPrinters.length === 1 ? 'Impressora detectada automaticamente' : 'Escolhe a impressora'}
+                </div>
                 {foundPrinters.length === 0 && <div className="pp-err">Nenhuma impressora encontrada no computador. Confere se ela está ligada e instalada no Windows/Mac.</div>}
                 {foundPrinters.map(name => (
                   <div key={name} className={`pp-printer-item ${printerName === name ? 'sel' : ''}`} onClick={() => selectPrinter(name)}>

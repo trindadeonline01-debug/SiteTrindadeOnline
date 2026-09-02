@@ -42,11 +42,25 @@ export async function qzConnect(): Promise<void> {
   }
 }
 
-export async function qzListPrinters(): Promise<string[]> {
+// Nomes de "impressora" que o Windows/Mac já vem com de fábrica e não são
+// uma impressora térmica de verdade — aparecem na mesma lista que a
+// impressora real e só atrapalham quem tá escolhendo qual usar.
+const VIRTUAL_PRINTER_PATTERNS = /pdf|xps|fax|onenote|send to|microsoft print|adobe|documentwriter|print to file|onedrive/i
+
+export async function qzListPrinters(): Promise<{ real: string[]; all: string[]; defaultPrinter: string | null }> {
   await qzConnect()
   const qz = await getQz()
   const found = await qz.printers.find()
-  return Array.isArray(found) ? found : [found]
+  const all: string[] = Array.isArray(found) ? found : [found]
+  const real = all.filter(name => !VIRTUAL_PRINTER_PATTERNS.test(name))
+  let defaultPrinter: string | null = null
+  try {
+    defaultPrinter = await qz.printers.getDefault()
+  } catch {}
+  // Se o filtro por acaso zerar a lista (nome real bateu com algum padrão
+  // acima, coincidência rara), volta pra lista completa em vez de mostrar
+  // "nenhuma impressora encontrada" com a impressora ligada bem ali.
+  return { real: real.length > 0 ? real : all, all, defaultPrinter }
 }
 
 export async function qzPrintRaw(printerName: string, content: string): Promise<void> {

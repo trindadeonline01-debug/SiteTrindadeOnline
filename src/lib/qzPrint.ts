@@ -119,29 +119,40 @@ export type ReceiptData = {
   paymentMethod?: string | null
   notes?: string | null
   items: ReceiptItem[]
+  subtotal: number
+  deliveryFee?: number
   total: number
 }
 
 const PAY_LABEL: Record<string, string> = { pix: 'Pix', dinheiro: 'Dinheiro', cartao: 'Cartão' }
 
+// Formato espelhado no recibo do Cardápio Web (referência trazida pelo
+// Ricardo do teste real na Satolo's) — seções tituladas em vez de texto
+// corrido, subtotal/taxa separados do total, e um rodapé deixando claro
+// que não é nota fiscal (mesmo aviso que sistemas do tipo já usam).
 export function buildReceipt(d: ReceiptData): string {
   const lines: string[] = []
   lines.push(CMD.init, CMD.alignCenter, CMD.boldOn, CMD.doubleOn)
   lines.push(d.companyName.toUpperCase(), '\n')
   lines.push(CMD.doubleOff, CMD.boldOff)
-  lines.push(`Pedido #${d.pedidoShortId}`, '\n')
+  lines.push(`Pedido Nº ${d.pedidoShortId}`, '\n')
   lines.push(new Date(d.createdAt).toLocaleString('pt-BR'), '\n')
   lines.push('-'.repeat(WIDTH), '\n')
   lines.push(CMD.alignLeft)
 
-  lines.push(CMD.boldOn + (d.deliveryType === 'retirada' ? 'RETIRADA NO LOCAL' : 'ENTREGA') + CMD.boldOff, '\n')
-  lines.push(d.customerName, '\n')
-  if (d.customerPhone) lines.push(d.customerPhone, '\n')
-  if (d.deliveryType === 'entrega' && d.address) {
-    wrap(d.address).forEach(l => lines.push(l, '\n'))
+  lines.push('Cliente: ' + d.customerName, '\n')
+  if (d.customerPhone) lines.push('Telefone: ' + d.customerPhone, '\n')
+
+  if (d.deliveryType === 'entrega') {
+    lines.push('\n', CMD.boldOn, 'ENDEREÇO PARA ENTREGA:', CMD.boldOff, '\n')
+    if (d.address) wrap(d.address).forEach(l => lines.push(l, '\n'))
+  } else {
+    lines.push('\n', CMD.boldOn, 'RETIRADA NO LOCAL', CMD.boldOff, '\n')
   }
   lines.push('-'.repeat(WIDTH), '\n')
 
+  lines.push(CMD.boldOn, 'ITENS DO PEDIDO', CMD.boldOff, '\n')
+  lines.push('-'.repeat(WIDTH), '\n')
   for (const it of d.items) {
     wrap(`${it.qty}x ${it.name}`).forEach((l, i) => {
       if (i === 0) lines.push(padRow(l, money(it.unitPrice * it.qty)), '\n')
@@ -150,12 +161,27 @@ export function buildReceipt(d: ReceiptData): string {
     if (it.options?.length) lines.push('  ' + it.options.map(o => o.name).join(', '), '\n')
   }
   lines.push('-'.repeat(WIDTH), '\n')
-  lines.push(CMD.boldOn, CMD.doubleOn, padRow('TOTAL', money(d.total)), CMD.doubleOff, CMD.boldOff, '\n')
-  if (d.paymentMethod) lines.push('Pagamento: ' + (PAY_LABEL[d.paymentMethod] || d.paymentMethod), '\n')
-  if (d.notes) { lines.push('-'.repeat(WIDTH), '\n', 'Obs: ', '\n'); wrap(d.notes).forEach(l => lines.push(l, '\n')) }
+
+  lines.push(padRow('Subtotal', money(d.subtotal)), '\n')
+  if (d.deliveryType === 'entrega') lines.push(padRow('Taxa de entrega', money(d.deliveryFee || 0)), '\n')
+  lines.push('='.repeat(WIDTH), '\n')
+  lines.push(CMD.boldOn, CMD.doubleOn, padRow('Total', money(d.total)), CMD.doubleOff, CMD.boldOff, '\n')
+  lines.push('='.repeat(WIDTH), '\n')
+
+  if (d.paymentMethod) {
+    lines.push('\n', CMD.boldOn, 'FORMAS DE PAGAMENTO', CMD.boldOff, '\n')
+    lines.push(PAY_LABEL[d.paymentMethod] || d.paymentMethod, '\n')
+  }
+  if (d.notes) { lines.push('-'.repeat(WIDTH), '\n', CMD.boldOn, 'Obs: ', CMD.boldOff, '\n'); wrap(d.notes).forEach(l => lines.push(l, '\n')) }
+
+  lines.push('\n', CMD.alignCenter)
+  lines.push('Fornecido por Trindade Online', '\n')
+  lines.push('IMPRESSO PELO SISTEMA', '\n')
+  lines.push('NÃO É DOCUMENTO FISCAL', '\n')
+
   // A faca de corte da impressora fica alguns milímetros abaixo da cabeça
   // de impressão — 3 linhas de avanço não era o bastante e cortava em cima
-  // da última linha (forma de pagamento). 6 dá folga de sobra.
+  // da última linha. 6 dá folga de sobra.
   lines.push(CMD.feed(6), CMD.cut)
   return lines.join('')
 }

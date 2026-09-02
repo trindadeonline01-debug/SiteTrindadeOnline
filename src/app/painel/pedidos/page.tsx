@@ -142,6 +142,7 @@ export default function PedidosPage() {
   const [loading, setLoading] = useState(true)
   const [companyId, setCompanyId] = useState('')
   const [companyName, setCompanyName] = useState('')
+  const [companyDeliveryFee, setCompanyDeliveryFee] = useState(0)
   const [crmEnabled, setCrmEnabled] = useState(false)
   const [entregaEnabled, setEntregaEnabled] = useState(false)
   const [autoAceitar, setAutoAceitar] = useState(true)
@@ -190,10 +191,11 @@ export default function PedidosPage() {
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { window.location.href = '/login?redirect=/painel/pedidos'; return }
-      const { data: comp } = await supabase.from('companies').select('id, name, loja_digital_enabled, loja_auto_aceitar_pedidos, loja_impressora_nome, crm_whatsapp_enabled, entrega_enabled, trial_modules_until').eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
+      const { data: comp } = await supabase.from('companies').select('id, name, loja_digital_enabled, loja_auto_aceitar_pedidos, loja_impressora_nome, loja_taxa_entrega, crm_whatsapp_enabled, entrega_enabled, trial_modules_until').eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
       if (!comp || !moduleActive(comp.loja_digital_enabled, comp.trial_modules_until)) { window.location.href = '/painel/compartilhar'; return }
       setCompanyId(comp.id); companyIdRef.current = comp.id
       setCompanyName(comp.name)
+      setCompanyDeliveryFee(Number(comp.loja_taxa_entrega || 0))
       setCrmEnabled(moduleActive(comp.crm_whatsapp_enabled, comp.trial_modules_until))
       setEntregaEnabled(moduleActive(comp.entrega_enabled, comp.trial_modules_until))
       setAutoAceitar(comp.loja_auto_aceitar_pedidos !== false)
@@ -207,6 +209,7 @@ export default function PedidosPage() {
       // pedido (QZ Tray fechado, impressora sem papel etc. não podem quebrar
       // o resto da tela).
       const compName = comp.name
+      const compTaxa = Number(comp.loja_taxa_entrega || 0)
       async function autoPrintIfNeeded(pedidoId: string) {
         if (!autoAceitarRef.current || !printerNameRef.current) return
         try {
@@ -224,6 +227,8 @@ export default function PedidosPage() {
             paymentMethod: data.payment_method,
             notes: data.notes,
             items,
+            subtotal: data.subtotal,
+            deliveryFee: compTaxa,
             total: data.total,
           })
           await qzPrintRaw(printerNameRef.current, content)
@@ -354,6 +359,8 @@ export default function PedidosPage() {
         deliveryType: p.delivery_type, address: p.delivery_address,
         paymentMethod: p.payment_method, notes: p.notes,
         items,
+        subtotal: p.subtotal,
+        deliveryFee: companyDeliveryFee,
         total: p.total,
       })
       await qzPrintRaw(printerName, content)

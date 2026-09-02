@@ -4,17 +4,57 @@
 // impressora USB sozinho (bloqueio de segurança de todo navegador), então
 // tudo aqui depende do app estar instalado e aberto.
 //
-// Modo "não assinado": QZ Tray mostra um aviso pedindo pra permitir o site
-// na primeira conexão — se a pessoa marcar "lembrar", não pergunta de novo
-// nesse computador. Não precisa de certificado nem de nada no back-end pra
-// esse modo funcionar.
+// Modo assinado: o QZ Tray confirma a identidade do site com um
+// certificado + assinatura (a chave privada fica só no servidor, em
+// /api/qz/sign) em vez do modo "anônimo". Isso é o que faz o "Site
+// Manager" do QZ Tray lembrar da permissão de vez — no modo anônimo ele
+// volta a perguntar quase toda hora, mesmo marcando "lembrar".
+const QZ_CERTIFICATE = `-----BEGIN CERTIFICATE-----
+MIIDtzCCAp+gAwIBAgIUcX+opAttoorFk/JONddGMBPgfqUwDQYJKoZIhvcNAQEN
+BQAwajELMAkGA1UEBhMCQlIxCzAJBgNVBAgMAlJKMRQwEgYDVQQHDAtTYW8gR29u
+Y2FsbzEYMBYGA1UECgwPVHJpbmRhZGUgT25saW5lMR4wHAYDVQQDDBV0cmluZGFk
+ZW9ubGluZS5jb20uYnIwIBcNMjYwOTAyMDEwMTE0WhgPMjA1NjA4MjUwMTAxMTRa
+MGoxCzAJBgNVBAYTAkJSMQswCQYDVQQIDAJSSjEUMBIGA1UEBwwLU2FvIEdvbmNh
+bG8xGDAWBgNVBAoMD1RyaW5kYWRlIE9ubGluZTEeMBwGA1UEAwwVdHJpbmRhZGVv
+bmxpbmUuY29tLmJyMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA3qhi
+RP5bxwp2B7c8rkeUzDU+9jCnXgPxb3e32EWihOIhymP62vEbSAM+ZsbZO+BKgeUq
+v1HDC3WeLdDhx0uRUP6YTN942uqrNgXoVGivVMs83tE9r5mlu9HBernUzHjiA+Rl
+xALQytW3u5CHajwfBskrZ4kcWzXGr7cMipLWEserXW9zcyGd+E17an2VLWhVNA52
+lBAI5zWu3iBEiJ+u8HMZBxWVaDIYHype8+jS63WpE+aEjRK7TFdBXVZHh/w7OMOq
+I02VC2+V4zHu5UnhYbm5CFmhMUmLnXkeZ0hnahjF5G3h+NVBWtnW6bUNLeDRkTsf
+4yT1T4PyCV0xa93RYwIDAQABo1MwUTAdBgNVHQ4EFgQUP1Ag6oJJ8u+QhCQo5RO7
+u7l1l00wHwYDVR0jBBgwFoAUP1Ag6oJJ8u+QhCQo5RO7u7l1l00wDwYDVR0TAQH/
+BAUwAwEB/zANBgkqhkiG9w0BAQ0FAAOCAQEAY9la5itAx/tcU6Z4AzqiHHHrvIN4
+QhTHXHOiObMfcn9iAEN5gUWISoGxvj1Iyv3v1grO9Cp0J2pRE8d9vRrprMyJ5qBv
+pqdhJdqJ2ChEn7ORg6xxhWB6as/9McRo+234PSVs4dxbVqKcTaeHQOnQn28Fqxon
+2mTMM9KlBk8x+jMNHCKyAx5qONskqyvdDRFkedgFhvbONhArEaz4+RpCjc18psbm
+5L0wFjm17A/S+TQ+p+lwpQUdCZJfBl0sOAv1BkCIm3x0WNVI9HIfTMh0VORsfj6L
+awbEfIVMQJEFbRMycpSrqcNv2mMRBtLVufizhlAEBcl378gCTStfQU1FcA==
+-----END CERTIFICATE-----`
 
 let qzModule: Promise<any> | null = null
+let qzSecurityConfigured = false
 async function getQz(): Promise<any> {
   if (!qzModule) {
     qzModule = import('qz-tray').then((m: any) => m.default || m)
   }
-  return qzModule
+  const qz = await qzModule
+  if (!qzSecurityConfigured) {
+    qzSecurityConfigured = true
+    qz.security.setCertificatePromise((resolve: (v: string) => void) => resolve(QZ_CERTIFICATE))
+    qz.security.setSignatureAlgorithm('SHA512')
+    qz.security.setSignaturePromise((toSign: string) => (resolve: (v: string) => void, reject: (e: any) => void) => {
+      fetch('/api/qz/sign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ toSign }),
+      })
+        .then(r => r.json())
+        .then(data => (data?.signature ? resolve(data.signature) : reject(new Error(data?.error || 'Falha ao assinar'))))
+        .catch(reject)
+    })
+  }
+  return qz
 }
 
 export async function qzIsInstalled(): Promise<boolean> {

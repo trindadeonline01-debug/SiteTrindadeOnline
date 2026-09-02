@@ -10,13 +10,37 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 
+// Campo de variável de ambiente da Vercel costuma comer as quebras de
+// linha do meio da chave quando é colada (vira tudo uma linha só, ou os
+// "\n" viram texto literal de duas letras em vez de quebra de linha de
+// verdade) — isso quebra o formato PEM mesmo com o conteúdo certo.
+// Em vez de depender de colar perfeito, reconstrói o PEM certo a partir
+// do que sobrou: acha os marcadores BEGIN/END, tira todo espaço/quebra
+// de linha do meio e recoloca uma quebra a cada 64 caracteres, que é o
+// formato que todo parser de PEM espera.
+function normalizePrivateKey(raw: string): string {
+  const unescaped = raw.trim().replace(/\\n/g, '\n')
+  const match = unescaped.match(/-----BEGIN (?:RSA )?PRIVATE KEY-----([\s\S]*?)-----END (?:RSA )?PRIVATE KEY-----/)
+  if (!match) return unescaped
+  const header = unescaped.includes('BEGIN RSA PRIVATE KEY') ? 'RSA PRIVATE KEY' : 'PRIVATE KEY'
+  const body = match[1].replace(/\s+/g, '')
+  const lines = body.match(/.{1,64}/g) || []
+  return `-----BEGIN ${header}-----\n${lines.join('\n')}\n-----END ${header}-----\n`
+}
+
+function loadPrivateKey(): string | null {
+  const raw = process.env.QZ_PRIVATE_KEY
+  if (!raw) return null
+  return normalizePrivateKey(raw)
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { toSign } = await req.json()
     if (!toSign || typeof toSign !== 'string') {
       return NextResponse.json({ error: 'toSign obrigatório' }, { status: 400 })
     }
-    const privateKey = process.env.QZ_PRIVATE_KEY
+    const privateKey = loadPrivateKey()
     if (!privateKey) {
       return NextResponse.json({ error: 'QZ_PRIVATE_KEY não configurada' }, { status: 500 })
     }
@@ -31,7 +55,7 @@ export async function POST(req: NextRequest) {
 // endereço na barra do navegador (sem precisar copiar/colar nada) que ele
 // já assina uma frase de teste e mostra em texto simples se funcionou.
 export async function GET() {
-  const privateKey = process.env.QZ_PRIVATE_KEY
+  const privateKey = loadPrivateKey()
   if (!privateKey) {
     return new NextResponse('QZ_PRIVATE_KEY não está configurada na Vercel — precisa adicionar essa variável de ambiente.', {
       status: 500, headers: { 'Content-Type': 'text/plain; charset=utf-8' },
@@ -43,7 +67,7 @@ export async function GET() {
       status: 200, headers: { 'Content-Type': 'text/plain; charset=utf-8' },
     })
   } catch (e: any) {
-    return new NextResponse('ERRO — a chave privada está configurada mas não é válida (provavelmente colada errado na Vercel — quebra de linha ou texto cortado). Detalhe técnico: ' + (e?.message || ''), {
+    return new NextResponse('ERRO — a chave privada está configurada mas não é válida. Detalhe técnico: ' + (e?.message || ''), {
       status: 500, headers: { 'Content-Type': 'text/plain; charset=utf-8' },
     })
   }

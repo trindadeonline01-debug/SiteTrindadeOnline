@@ -49,6 +49,8 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
   const [scheduleTime, setScheduleTime] = useState('')
   const [obs, setObs] = useState('')
   const [payMethod, setPayMethod] = useState<'pix' | 'dinheiro' | 'cartao'>('pix')
+  const [precisaTroco, setPrecisaTroco] = useState<boolean | null>(null)
+  const [trocoPara, setTrocoPara] = useState('')
   const [success, setSuccess] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const [coupons, setCoupons] = useState<Coupon[]>([])
@@ -118,6 +120,8 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
           setScheduleTime(parsed.scheduleTime || '')
           setObs(parsed.obs || '')
           setPayMethod(parsed.payMethod || 'pix')
+          setPrecisaTroco(parsed.precisaTroco ?? null)
+          setTrocoPara(parsed.trocoPara || '')
           setDrawerOpen(true)
           restoredCart = true
         }
@@ -202,7 +206,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
     if (!session) {
       try {
         localStorage.setItem(cartStorageKey(slug), JSON.stringify({
-          cart, deliveryType, cep, numero, cepData, address, agendarRetirada, scheduleDate, scheduleTime, obs, payMethod,
+          cart, deliveryType, cep, numero, cepData, address, agendarRetirada, scheduleDate, scheduleTime, obs, payMethod, precisaTroco, trocoPara,
         }))
       } catch {}
       window.location.href = `/login?redirect=/empresa/${slug}/cardapio`
@@ -211,9 +215,13 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
     if (!company || cart.length === 0) return
     if (Number(company.loja_pedido_minimo || 0) > 0 && cartTotal < Number(company.loja_pedido_minimo)) return
     if (deliveryType === 'entrega' && !address.trim()) return
+    if (trocoIncompleto) return
     setConfirming(true)
     const taxa = deliveryType === 'entrega' ? Number(company.loja_taxa_entrega || 0) : 0
-    const total = cartTotal + taxa
+    // orderTotal já desconta o cupom aplicado (var. calculada no corpo do
+    // componente) — usar cartTotal+taxa aqui de novo ignorava o desconto no
+    // pedido salvo de verdade, mesmo a tela mostrando o valor certo.
+    const total = orderTotal
     const scheduledFor = deliveryType === 'retirada' && agendarRetirada && scheduleDate && scheduleTime
       ? new Date(`${scheduleDate}T${scheduleTime}`).toISOString() : null
     const { data: profile } = await supabase.from('profiles').select('name, phone').eq('id', session.user.id).maybeSingle()
@@ -222,7 +230,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
       customer_name: profile?.name || 'Cliente', customer_phone: profile?.phone || null,
       delivery_address: deliveryType === 'entrega' ? address : null, delivery_type: deliveryType, scheduled_for: scheduledFor,
       origin: 'cardapio_publico', payment_method: payMethod,
-      subtotal: cartTotal, total, notes: obs.trim() || null,
+      subtotal: cartTotal, total, notes: finalNotes || null,
     }).select('id').single()
     if (pedido) {
       await supabase.from('loja_pedido_itens').insert(cart.map(l => ({
@@ -238,7 +246,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
         body: JSON.stringify({
           companyId: company.id, phone: profile?.phone || null, name: profile?.name || 'Cliente',
           address: deliveryType === 'entrega' ? address : null, total, subtotal: cartTotal, deliveryFee: taxa,
-          paymentMethod: payMethod, deliveryType, notes: obs.trim() || null,
+          paymentMethod: payMethod, deliveryType, notes: finalNotes || null,
           items: cart.map(l => ({ produtoId: l.produtoId, name: l.name, qty: l.qty, unitPrice: l.unitPrice, modifiers: l.modifiers })),
         }),
       }).catch(() => {})
@@ -260,6 +268,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
     setTimeout(() => {
       setDrawerOpen(false); setSuccess(false); setCart([]); setObs('')
       setAgendarRetirada(false); setScheduleDate(''); setScheduleTime(''); setSelectedCouponId(null)
+      setPrecisaTroco(null); setTrocoPara('')
     }, 2500)
   }
 
@@ -283,8 +292,10 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
         itens: cart.map(l => ({ produto_id: l.produtoId, nome: l.name + (l.modifiers.length ? ' (' + l.modifiers.map(m => m.name).join(', ') + ')' : ''), qtd: l.qty, preco_unitario: l.unitPrice })),
         valorTotal: orderTotal, deliveryType,
         cupomLabel: discount > 0 && selectedCoupon ? `${selectedCoupon.title} (− ${fmt(discount)})` : undefined,
+        notasLabel: finalNotes || undefined,
       })
       setDrawerOpen(false); setCart([]); setSelectedCouponId(null)
+      setPrecisaTroco(null); setTrocoPara('')
     } finally {
       setSendingWa(false)
     }
@@ -306,6 +317,14 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
   const discount = selectedCoupon && couponEligible(selectedCoupon) ? couponDiscount(selectedCoupon) : 0
   const orderTotal = Math.max(0, cartTotal - discount) + taxaEntrega
   const abaixoMinimo = Number(company.loja_pedido_minimo || 0) > 0 && cartTotal < Number(company.loja_pedido_minimo)
+  const trocoParaNum = Number(trocoPara.replace(',', '.')) || 0
+  // Troco só é obrigatório escolher (sim/não) quando o pagamento é dinheiro;
+  // se escolheu "sim", o valor tem que pelo menos cobrir o total do pedido.
+  const trocoIncompleto = payMethod === 'dinheiro' && (precisaTroco === null || (precisaTroco === true && (!trocoPara || trocoParaNum < orderTotal)))
+  const finalNotes = [
+    payMethod === 'dinheiro' && precisaTroco === true && trocoParaNum > 0 ? `Troco para ${fmt(trocoParaNum)}` : null,
+    obs.trim() || null,
+  ].filter(Boolean).join(' · ')
   const searchTerm = search.trim().toLowerCase()
   const filtered = produtos
     .filter(p => filterCat === 'all' || p.category_id === filterCat)
@@ -673,6 +692,19 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
                 <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', margin: '14px 0 8px', fontWeight: 800 }}>Pagamento</div>
                 {(['pix', 'dinheiro', 'cartao'] as const).map(m => <button key={m} className={`cd-paychip ${payMethod === m ? 'active' : ''}`} onClick={() => setPayMethod(m)}>{m === 'pix' ? 'Pix' : m === 'dinheiro' ? 'Dinheiro' : 'Cartão'}</button>)}
 
+                {payMethod === 'dinheiro' && (
+                  <div style={{ marginTop: 10, padding: '10px 12px', background: '#F7F5F0', borderRadius: 10 }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, marginBottom: 8 }}>Precisa de troco?</div>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: precisaTroco ? 8 : 0 }}>
+                      <button className={`cd-paychip ${precisaTroco === true ? 'active' : ''}`} style={{ flex: 1, textAlign: 'center', marginRight: 0 }} onClick={() => setPrecisaTroco(true)}>Sim</button>
+                      <button className={`cd-paychip ${precisaTroco === false ? 'active' : ''}`} style={{ flex: 1, textAlign: 'center', marginRight: 0 }} onClick={() => { setPrecisaTroco(false); setTrocoPara('') }}>Não</button>
+                    </div>
+                    {precisaTroco === true && (
+                      <input className="cd-diinput" inputMode="decimal" value={trocoPara} onChange={e => setTrocoPara(e.target.value.replace(/[^0-9,]/g, ''))} placeholder="Troco para quanto? Ex: 50,00" />
+                    )}
+                  </div>
+                )}
+
                 {coupons.length > 0 && (
                   <>
                     <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', margin: '14px 0 8px', fontWeight: 800 }}>🎟️ Cupom de desconto</div>
@@ -717,9 +749,14 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
                   </div>
                 ) : (
                   <>
-                    <button className="cd-addcart" style={{ width: '100%' }} disabled={confirming || (deliveryType === 'entrega' && !address.trim()) || (agendarRetirada && (!scheduleDate || !scheduleTime)) || abaixoMinimo} onClick={confirmOrder}>{confirming ? 'Enviando...' : 'Confirmar pedido'}</button>
+                    {trocoIncompleto && (
+                      <div style={{ marginBottom: 8, fontSize: 11.5, color: '#B5690C', fontWeight: 600, textAlign: 'center' }}>
+                        {precisaTroco === null ? 'Escolhe se precisa de troco' : `Troco precisa ser pelo menos ${fmt(orderTotal)}`}
+                      </div>
+                    )}
+                    <button className="cd-addcart" style={{ width: '100%' }} disabled={confirming || (deliveryType === 'entrega' && !address.trim()) || (agendarRetirada && (!scheduleDate || !scheduleTime)) || abaixoMinimo || trocoIncompleto} onClick={confirmOrder}>{confirming ? 'Enviando...' : 'Confirmar pedido'}</button>
                     {company.phone && (
-                      <button className="cd-addcart" style={{ width: '100%', background: '#25D366', color: '#fff' }} disabled={sendingWa} onClick={sendCartWhatsapp}>
+                      <button className="cd-addcart" style={{ width: '100%', background: '#25D366', color: '#fff' }} disabled={sendingWa || trocoIncompleto} onClick={sendCartWhatsapp}>
                         {sendingWa ? 'Abrindo...' : '📱 Enviar pedido no WhatsApp'}
                       </button>
                     )}

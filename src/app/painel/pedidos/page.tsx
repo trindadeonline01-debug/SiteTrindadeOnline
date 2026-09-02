@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { refreshSessionOnce } from '@/lib/authRefresh'
 import { moduleActive } from '@/lib/modules'
 import EmpresaShell from '@/components/EmpresaShell'
-import { qzListPrinters, qzPrintRaw, buildReceipt } from '@/lib/qzPrint'
+import { qzListPrinters, qzPrintRaw, buildReceipt, buildKitchenTicket } from '@/lib/qzPrint'
 
 type Item = { id: string; product_name: string; unit_price: number; qty: number; selected_options: { name: string; price: number }[] }
 type Status = 'recebido' | 'em_preparo' | 'pronto' | 'saiu_entrega' | 'entregue' | 'cancelado'
@@ -212,6 +212,7 @@ export default function PedidosPage() {
         try {
           const { data } = await supabase.from('loja_pedidos').select('*, itens:loja_pedido_itens(*)').eq('id', pedidoId).single()
           if (!data) return
+          const items = (data.itens || []).map((it: any) => ({ qty: it.qty, name: it.product_name, unitPrice: it.unit_price, options: it.selected_options }))
           const content = buildReceipt({
             companyName: compName,
             pedidoShortId: data.id.slice(0, 8),
@@ -222,10 +223,20 @@ export default function PedidosPage() {
             address: data.delivery_address,
             paymentMethod: data.payment_method,
             notes: data.notes,
-            items: (data.itens || []).map((it: any) => ({ qty: it.qty, name: it.product_name, unitPrice: it.unit_price, options: it.selected_options })),
+            items,
             total: data.total,
           })
           await qzPrintRaw(printerNameRef.current, content)
+          // Segunda via pra cozinha — sem preço, sem endereço, sem forma de
+          // pagamento, só o que precisa pra produzir (KNOWLEDGE_BASE.md).
+          const kitchenContent = buildKitchenTicket({
+            pedidoShortId: data.id.slice(0, 8),
+            createdAt: data.created_at,
+            deliveryType: data.delivery_type,
+            items,
+            notes: data.notes,
+          })
+          await qzPrintRaw(printerNameRef.current, kitchenContent)
         } catch {}
       }
 
@@ -336,15 +347,21 @@ export default function PedidosPage() {
     if (!printerName) { setShowPrinterModal(true); return }
     setPrintError(null)
     try {
+      const items = (p.itens || []).map(it => ({ qty: it.qty, name: it.product_name, unitPrice: it.unit_price, options: it.selected_options }))
       const content = buildReceipt({
         companyName, pedidoShortId: p.id.slice(0, 8), createdAt: p.created_at,
         customerName: p.customer_name, customerPhone: p.customer_phone,
         deliveryType: p.delivery_type, address: p.delivery_address,
         paymentMethod: p.payment_method, notes: p.notes,
-        items: (p.itens || []).map(it => ({ qty: it.qty, name: it.product_name, unitPrice: it.unit_price, options: it.selected_options })),
+        items,
         total: p.total,
       })
       await qzPrintRaw(printerName, content)
+      const kitchenContent = buildKitchenTicket({
+        pedidoShortId: p.id.slice(0, 8), createdAt: p.created_at,
+        deliveryType: p.delivery_type, items, notes: p.notes,
+      })
+      await qzPrintRaw(printerName, kitchenContent)
     } catch (err: any) {
       setPrintError('Não consegui imprimir — confere se o QZ Tray está aberto no computador. ' + (err?.message || ''))
     }

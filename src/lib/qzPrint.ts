@@ -153,6 +153,41 @@ export function buildReceipt(d: ReceiptData): string {
   lines.push(CMD.boldOn, CMD.doubleOn, padRow('TOTAL', money(d.total)), CMD.doubleOff, CMD.boldOff, '\n')
   if (d.paymentMethod) lines.push('Pagamento: ' + (PAY_LABEL[d.paymentMethod] || d.paymentMethod), '\n')
   if (d.notes) { lines.push('-'.repeat(WIDTH), '\n', 'Obs: ', '\n'); wrap(d.notes).forEach(l => lines.push(l, '\n')) }
-  lines.push(CMD.feed(3), CMD.cut)
+  // A faca de corte da impressora fica alguns milímetros abaixo da cabeça
+  // de impressão — 3 linhas de avanço não era o bastante e cortava em cima
+  // da última linha (forma de pagamento). 6 dá folga de sobra.
+  lines.push(CMD.feed(6), CMD.cut)
+  return lines.join('')
+}
+
+// Segunda via — vai pra cozinha quando o pedido é aceito automaticamente.
+// Só o essencial pra produzir: número do pedido bem grande, itens com
+// variação/observação, e a observação geral do cliente. Sem preço, sem
+// endereço, sem forma de pagamento — isso fica só na via do caixa.
+export type KitchenTicketData = {
+  pedidoShortId: string
+  createdAt: string
+  deliveryType: 'entrega' | 'retirada'
+  items: ReceiptItem[]
+  notes?: string | null
+}
+
+export function buildKitchenTicket(d: KitchenTicketData): string {
+  const lines: string[] = []
+  lines.push(CMD.init, CMD.alignCenter)
+  lines.push(CMD.boldOn, CMD.doubleOn, `PEDIDO #${d.pedidoShortId}`, CMD.doubleOff, CMD.boldOff, '\n')
+  lines.push(new Date(d.createdAt).toLocaleString('pt-BR'), '\n')
+  lines.push(CMD.boldOn + (d.deliveryType === 'retirada' ? 'RETIRADA NO LOCAL' : 'ENTREGA') + CMD.boldOff, '\n')
+  lines.push('-'.repeat(WIDTH), '\n')
+  lines.push(CMD.alignLeft)
+
+  for (const it of d.items) {
+    lines.push(CMD.boldOn)
+    wrap(`${it.qty}x ${it.name}`).forEach(l => lines.push(l, '\n'))
+    lines.push(CMD.boldOff)
+    if (it.options?.length) lines.push('  ' + it.options.map(o => o.name).join(', '), '\n')
+  }
+  if (d.notes) { lines.push('-'.repeat(WIDTH), '\n', CMD.boldOn, 'Obs: ', CMD.boldOff, '\n'); wrap(d.notes).forEach(l => lines.push(l, '\n')) }
+  lines.push(CMD.feed(6), CMD.cut)
   return lines.join('')
 }

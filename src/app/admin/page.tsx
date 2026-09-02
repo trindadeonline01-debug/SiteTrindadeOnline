@@ -183,6 +183,8 @@ export default function AdminPage() {
   const [pulseColorPreset, setPulseColorPreset] = useState('classico')
   const [savingPulse, setSavingPulse] = useState(false)
   const fileInputRefMobile = useRef<HTMLInputElement>(null)
+  const [qzInstallers, setQzInstallers] = useState<Record<'win'|'mac', { url: string; size: number; updatedAt: string } | null>>({ win: null, mac: null })
+  const [qzInstallerUploading, setQzInstallerUploading] = useState<Record<'win'|'mac', boolean>>({ win: false, mac: false })
 
   useEffect(() => {
     if (tab === 'vendas') loadSales(salesFilter)
@@ -201,7 +203,7 @@ export default function AdminPage() {
 
   async function loadAll() {
     setLoading(true)
-    await Promise.all([loadStats(), loadCompanies(), loadUsers(), loadSearches(), loadHighlights(), loadReports(), loadBanners(), loadSettings(), loadAppearance(), loadPulseMessages(), loadTrialSettings(), loadTrialReminders(), loadPlanReminders(), loadBannerRequests(), loadFeatureFlags(), loadPlans(), loadSubcats()])
+    await Promise.all([loadStats(), loadCompanies(), loadUsers(), loadSearches(), loadHighlights(), loadReports(), loadBanners(), loadSettings(), loadAppearance(), loadPulseMessages(), loadTrialSettings(), loadTrialReminders(), loadPlanReminders(), loadBannerRequests(), loadFeatureFlags(), loadPlans(), loadSubcats(), loadQzInstallers()])
 
     // Realtime — atualiza automaticamente
     const channel = supabase
@@ -407,6 +409,38 @@ export default function AdminPage() {
       const sec = data.find((s: any) => s.key === 'mp_webhook_secret')
       if (sec) setMpSecret(sec.value || '')
     }
+  }
+
+  // Nome fixo do arquivo no bucket, independente do nome original enviado
+  // — assim o link de download que fica no painel do lojista nunca muda,
+  // mesmo quando a gente sobe uma versão nova do instalador.
+  const QZ_INSTALLER_PATH: Record<'win'|'mac', string> = { win: 'qz-tray-windows.exe', mac: 'qz-tray-mac.pkg' }
+
+  async function loadQzInstallers() {
+    const { data } = await supabase.storage.from('app-downloads').list('', { limit: 100 })
+    const next: typeof qzInstallers = { win: null, mac: null }
+    for (const platform of ['win', 'mac'] as const) {
+      const file = data?.find(f => f.name === QZ_INSTALLER_PATH[platform])
+      if (file) {
+        const { data: { publicUrl } } = supabase.storage.from('app-downloads').getPublicUrl(QZ_INSTALLER_PATH[platform])
+        next[platform] = { url: publicUrl, size: file.metadata?.size || 0, updatedAt: file.updated_at || '' }
+      }
+    }
+    setQzInstallers(next)
+  }
+
+  async function uploadQzInstaller(platform: 'win'|'mac', file: File) {
+    setQzInstallerUploading(u => ({ ...u, [platform]: true }))
+    const { error } = await supabase.storage.from('app-downloads').upload(QZ_INSTALLER_PATH[platform], file, { upsert: true })
+    setQzInstallerUploading(u => ({ ...u, [platform]: false }))
+    if (error) { showToast('Erro ao enviar: ' + error.message); return }
+    await loadQzInstallers()
+    showToast('Instalador enviado!')
+  }
+
+  async function removeQzInstaller(platform: 'win'|'mac') {
+    await supabase.storage.from('app-downloads').remove([QZ_INSTALLER_PATH[platform]])
+    await loadQzInstallers()
   }
 
   async function loadSubcats() {
@@ -3339,6 +3373,48 @@ export default function AdminPage() {
                         </div>
                       )}
                     </div>
+                  </div>
+                </div>
+
+                <div className="section-card" style={{marginTop:20}}>
+                  <div className="section-hdr">
+                    <span className="section-title">🖨️ INSTALADOR DO QZ TRAY</span>
+                  </div>
+                  <div style={{padding:'20px 24px'}}>
+                    <div style={{fontSize:13,color:'#666',marginBottom:20,lineHeight:1.6}}>
+                      Programa que a loja precisa ter instalado no computador pra imprimir pedido automático. Hospedando aqui, o lojista baixa direto do nosso painel em vez de procurar no site da QZ. Enviando um arquivo novo aqui, o link de download no painel do lojista continua o mesmo (não precisa avisar ninguém).
+                    </div>
+                    {(['win','mac'] as const).map(platform => (
+                      <div key={platform} style={{border:'1.5px solid #EDE8E0',borderRadius:12,padding:16,marginBottom:platform==='win'?14:0}}>
+                        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
+                          <div>
+                            <div style={{fontWeight:600,fontSize:14,color:'#111'}}>{platform === 'win' ? '🪟 Windows' : '🍎 Mac'}</div>
+                            {qzInstallers[platform] ? (
+                              <div style={{fontSize:12,color:'#0F8050',marginTop:4}}>
+                                ✓ {(qzInstallers[platform]!.size / (1024*1024)).toFixed(1)} MB — enviado {qzInstallers[platform]!.updatedAt ? new Date(qzInstallers[platform]!.updatedAt).toLocaleString('pt-BR') : ''}
+                              </div>
+                            ) : (
+                              <div style={{fontSize:12,color:'#AAA',marginTop:4}}>Nenhum arquivo enviado ainda</div>
+                            )}
+                          </div>
+                          <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                            {qzInstallers[platform] && (
+                              <>
+                                <a href={qzInstallers[platform]!.url} target="_blank" rel="noopener noreferrer"
+                                  style={{fontSize:12,fontWeight:600,color:'var(--sign-dark)',textDecoration:'none'}}>Ver link</a>
+                                <button onClick={()=>removeQzInstaller(platform)}
+                                  style={{padding:'8px 12px',background:'#FBEAEA',color:'#A83232',border:'none',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>Remover</button>
+                              </>
+                            )}
+                            <label style={{padding:'8px 16px',background:'var(--sign)',color:'var(--ink)',border:'none',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'Archivo,sans-serif',opacity:qzInstallerUploading[platform]?0.6:1}}>
+                              {qzInstallerUploading[platform] ? 'Enviando...' : qzInstallers[platform] ? 'Trocar arquivo' : 'Enviar arquivo'}
+                              <input type="file" accept={platform==='win' ? '.exe,.msi' : '.pkg,.dmg'} style={{display:'none'}} disabled={qzInstallerUploading[platform]}
+                                onChange={e => { const f = e.target.files?.[0]; if (f) uploadQzInstaller(platform, f); e.target.value = '' }} />
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>

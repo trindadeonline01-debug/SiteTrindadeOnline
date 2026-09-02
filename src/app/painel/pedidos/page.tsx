@@ -864,7 +864,8 @@ export default function PedidosPage() {
                   <span className="pp-step-n">1</span>
                   <span className="pp-step-txt">
                     Baixa e instala o app de impressão (uma vez só, no computador da impressora):<br/>
-                    <a className="pp-dl-btn" href="https://qz.io/download/" target="_blank" rel="noopener noreferrer">Baixar app de impressão</a>
+                    <a className="pp-dl-btn" href={supabase.storage.from('app-downloads').getPublicUrl('qz-tray-windows.exe').data.publicUrl} target="_blank" rel="noopener noreferrer">🪟 Baixar app de impressão (Windows)</a>{' '}
+                    <a className="pp-dl-btn" href={supabase.storage.from('app-downloads').getPublicUrl('qz-tray-mac.pkg').data.publicUrl} target="_blank" rel="noopener noreferrer">🍎 Baixar app de impressão (Mac)</a>
                   </span>
                 </div>
                 <div className="pp-step">

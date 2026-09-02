@@ -9,11 +9,17 @@
 // /api/qz/sign) em vez do modo "anônimo". Isso é o que faz o "Site
 // Manager" do QZ Tray lembrar da permissão de vez — no modo anônimo ele
 // volta a perguntar quase toda hora, mesmo marcando "lembrar".
+// v2 — a v1 tinha "Basic Constraints: CA:TRUE" (padrão do openssl pra
+// certificado autoassinado) e o QZ Tray recusava com "Invalid Certificate"
+// mesmo mostrando a identidade certinha no popup, porque um certificado
+// de identidade de cliente precisa ser "end-entity" (CA:FALSE), não uma
+// autoridade certificadora. Mesma chave privada de antes — só o
+// certificado público mudou, não precisa mexer na variável de ambiente.
 const QZ_CERTIFICATE = `-----BEGIN CERTIFICATE-----
-MIIDtzCCAp+gAwIBAgIUcX+opAttoorFk/JONddGMBPgfqUwDQYJKoZIhvcNAQEN
+MIID2TCCAsGgAwIBAgIUPLnHBJrGJr4ztnJjKgqyW80BkbcwDQYJKoZIhvcNAQEN
 BQAwajELMAkGA1UEBhMCQlIxCzAJBgNVBAgMAlJKMRQwEgYDVQQHDAtTYW8gR29u
 Y2FsbzEYMBYGA1UECgwPVHJpbmRhZGUgT25saW5lMR4wHAYDVQQDDBV0cmluZGFk
-ZW9ubGluZS5jb20uYnIwIBcNMjYwOTAyMDEwMTE0WhgPMjA1NjA4MjUwMTAxMTRa
+ZW9ubGluZS5jb20uYnIwIBcNMjYwOTAyMDI1MTQ3WhgPMjA1NjA4MjUwMjUxNDda
 MGoxCzAJBgNVBAYTAkJSMQswCQYDVQQIDAJSSjEUMBIGA1UEBwwLU2FvIEdvbmNh
 bG8xGDAWBgNVBAoMD1RyaW5kYWRlIE9ubGluZTEeMBwGA1UEAwwVdHJpbmRhZGVv
 bmxpbmUuY29tLmJyMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA3qhi
@@ -22,14 +28,15 @@ v1HDC3WeLdDhx0uRUP6YTN942uqrNgXoVGivVMs83tE9r5mlu9HBernUzHjiA+Rl
 xALQytW3u5CHajwfBskrZ4kcWzXGr7cMipLWEserXW9zcyGd+E17an2VLWhVNA52
 lBAI5zWu3iBEiJ+u8HMZBxWVaDIYHype8+jS63WpE+aEjRK7TFdBXVZHh/w7OMOq
 I02VC2+V4zHu5UnhYbm5CFmhMUmLnXkeZ0hnahjF5G3h+NVBWtnW6bUNLeDRkTsf
-4yT1T4PyCV0xa93RYwIDAQABo1MwUTAdBgNVHQ4EFgQUP1Ag6oJJ8u+QhCQo5RO7
-u7l1l00wHwYDVR0jBBgwFoAUP1Ag6oJJ8u+QhCQo5RO7u7l1l00wDwYDVR0TAQH/
-BAUwAwEB/zANBgkqhkiG9w0BAQ0FAAOCAQEAY9la5itAx/tcU6Z4AzqiHHHrvIN4
-QhTHXHOiObMfcn9iAEN5gUWISoGxvj1Iyv3v1grO9Cp0J2pRE8d9vRrprMyJ5qBv
-pqdhJdqJ2ChEn7ORg6xxhWB6as/9McRo+234PSVs4dxbVqKcTaeHQOnQn28Fqxon
-2mTMM9KlBk8x+jMNHCKyAx5qONskqyvdDRFkedgFhvbONhArEaz4+RpCjc18psbm
-5L0wFjm17A/S+TQ+p+lwpQUdCZJfBl0sOAv1BkCIm3x0WNVI9HIfTMh0VORsfj6L
-awbEfIVMQJEFbRMycpSrqcNv2mMRBtLVufizhlAEBcl378gCTStfQU1FcA==
+4yT1T4PyCV0xa93RYwIDAQABo3UwczAdBgNVHQ4EFgQUP1Ag6oJJ8u+QhCQo5RO7
+u7l1l00wHwYDVR0jBBgwFoAUP1Ag6oJJ8u+QhCQo5RO7u7l1l00wDAYDVR0TAQH/
+BAIwADAOBgNVHQ8BAf8EBAMCBaAwEwYDVR0lBAwwCgYIKwYBBQUHAwIwDQYJKoZI
+hvcNAQENBQADggEBAC/gj8W+C1/NzYv87yZy4Yi8sGURLY6/D6GqjEol6ecEA9x8
+4oKGVNutKFxFXyAA4oYpC2p3n2vIj1sZT1qeN77/ftQhrfodYezKfXme8TFTbNFc
+o/eSffsEraP+BHlWHeaCv3sG9Hi8oGrBmICwH8iAQq6jo6R8KmACyDR3sS+/Lwfo
+YsUFxXgfPhP/wGXSG57/RVnhhya7DIToaWFpJRHadwj7QZ4sYRPQpCCwFkmEU7cG
+DFzXWmAJvIMY86KvazH5hp18fThCOhLzq0AR75nqimPfZjdattM0KQLmyUoJnrdo
+WvbUYG+HlNIOAAU8j99YaoECfS715V+AtXNEoJs=
 -----END CERTIFICATE-----`
 
 let qzModule: Promise<any> | null = null

@@ -53,6 +53,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
   const [trocoPara, setTrocoPara] = useState('')
   const [success, setSuccess] = useState(false)
   const [confirming, setConfirming] = useState(false)
+  const [orderError, setOrderError] = useState<string | null>(null)
   const [coupons, setCoupons] = useState<Coupon[]>([])
   const [selectedCouponId, setSelectedCouponId] = useState<string | null>(null)
 
@@ -217,6 +218,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
     if (deliveryType === 'entrega' && !address.trim()) return
     if (trocoIncompleto) return
     setConfirming(true)
+    setOrderError(null)
     const taxa = deliveryType === 'entrega' ? Number(company.loja_taxa_entrega || 0) : 0
     // orderTotal já desconta o cupom aplicado (var. calculada no corpo do
     // componente) — usar cartTotal+taxa aqui de novo ignorava o desconto no
@@ -225,43 +227,50 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
     const scheduledFor = deliveryType === 'retirada' && agendarRetirada && scheduleDate && scheduleTime
       ? new Date(`${scheduleDate}T${scheduleTime}`).toISOString() : null
     const { data: profile } = await supabase.from('profiles').select('name, phone').eq('id', session.user.id).maybeSingle()
-    const { data: pedido } = await supabase.from('loja_pedidos').insert({
+    const { data: pedido, error: pedidoError } = await supabase.from('loja_pedidos').insert({
       company_id: company.id, customer_id: session.user.id,
       customer_name: profile?.name || 'Cliente', customer_phone: profile?.phone || null,
       delivery_address: deliveryType === 'entrega' ? address : null, delivery_type: deliveryType, scheduled_for: scheduledFor,
       origin: 'cardapio_publico', payment_method: payMethod,
       subtotal: cartTotal, total, notes: finalNotes || null,
     }).select('id').single()
-    if (pedido) {
-      await supabase.from('loja_pedido_itens').insert(cart.map(l => ({
-        pedido_id: pedido.id, produto_id: l.produtoId, product_name: l.name, unit_price: l.unitPrice, qty: l.qty,
-        selected_options: l.modifiers,
-      })))
-      if (selectedCoupon && couponEligible(selectedCoupon)) {
-        const code = 'TRD-' + Math.random().toString(36).substring(2, 6).toUpperCase()
-        await supabase.from('coupon_redemptions').insert({ coupon_id: selectedCoupon.id, user_id: session.user.id, code, status: 'used', used_at: new Date().toISOString() })
-      }
-      fetch('/api/loja/registrar-pedido', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+    // Antes, um erro aqui (RLS, rede, etc.) passava batido: `pedido` vinha
+    // null, o bloco abaixo era pulado, mas `setSuccess(true)` rodava do
+    // mesmo jeito — cliente via "Pedido enviado!" e nada chegava na loja.
+    if (pedidoError || !pedido) {
+      console.error('Erro ao criar pedido:', pedidoError)
+      setConfirming(false)
+      setOrderError('Não deu pra enviar seu pedido agora. Tenta de novo em alguns segundos.')
+      return
+    }
+    await supabase.from('loja_pedido_itens').insert(cart.map(l => ({
+      pedido_id: pedido.id, produto_id: l.produtoId, product_name: l.name, unit_price: l.unitPrice, qty: l.qty,
+      selected_options: l.modifiers,
+    })))
+    if (selectedCoupon && couponEligible(selectedCoupon)) {
+      const code = 'TRD-' + Math.random().toString(36).substring(2, 6).toUpperCase()
+      await supabase.from('coupon_redemptions').insert({ coupon_id: selectedCoupon.id, user_id: session.user.id, code, status: 'used', used_at: new Date().toISOString() })
+    }
+    fetch('/api/loja/registrar-pedido', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        companyId: company.id, phone: profile?.phone || null, name: profile?.name || 'Cliente',
+        address: deliveryType === 'entrega' ? address : null, total, subtotal: cartTotal, deliveryFee: taxa,
+        paymentMethod: payMethod, deliveryType, notes: finalNotes || null,
+        items: cart.map(l => ({ produtoId: l.produtoId, name: l.name, qty: l.qty, unitPrice: l.unitPrice, modifiers: l.modifiers })),
+      }),
+    }).catch(() => {})
+    if (company.owner_id) {
+      fetch('/api/push/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          companyId: company.id, phone: profile?.phone || null, name: profile?.name || 'Cliente',
-          address: deliveryType === 'entrega' ? address : null, total, subtotal: cartTotal, deliveryFee: taxa,
-          paymentMethod: payMethod, deliveryType, notes: finalNotes || null,
-          items: cart.map(l => ({ produtoId: l.produtoId, name: l.name, qty: l.qty, unitPrice: l.unitPrice, modifiers: l.modifiers })),
+          title: `Novo pedido — ${company.name}`,
+          body: `${profile?.name || 'Cliente'} pediu ${fmt(total)}`,
+          target: 'external_user_id', userId: company.owner_id,
+          url: `${window.location.origin}/painel/pedidos`,
         }),
       }).catch(() => {})
-      if (company.owner_id) {
-        fetch('/api/push/send', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: `Novo pedido — ${company.name}`,
-            body: `${profile?.name || 'Cliente'} pediu ${fmt(total)}`,
-            target: 'external_user_id', userId: company.owner_id,
-            url: `${window.location.origin}/painel/pedidos`,
-          }),
-        }).catch(() => {})
-      }
     }
     setConfirming(false)
     setSuccess(true)
@@ -752,6 +761,11 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
                     {trocoIncompleto && (
                       <div style={{ marginBottom: 8, fontSize: 11.5, color: '#B5690C', fontWeight: 600, textAlign: 'center' }}>
                         {precisaTroco === null ? 'Escolhe se precisa de troco' : `Troco precisa ser pelo menos ${fmt(orderTotal)}`}
+                      </div>
+                    )}
+                    {orderError && (
+                      <div style={{ marginBottom: 8, padding: '10px 12px', borderRadius: 10, background: '#FBEAEA', color: '#A83232', fontSize: 12, fontWeight: 600, textAlign: 'center' }}>
+                        ⚠️ {orderError}
                       </div>
                     )}
                     <button className="cd-addcart" style={{ width: '100%' }} disabled={confirming || (deliveryType === 'entrega' && !address.trim()) || (agendarRetirada && (!scheduleDate || !scheduleTime)) || abaixoMinimo || trocoIncompleto} onClick={confirmOrder}>{confirming ? 'Enviando...' : 'Confirmar pedido'}</button>

@@ -15,6 +15,22 @@ type Pedido = {
   notes: string | null; subtotal: number; total: number; created_at: string; accepted_at: string | null
   itens: Item[]
 }
+// O checkout insere o pedido e os itens em dois inserts separados — o
+// pedido é inserido primeiro, então quem escuta pedido novo (realtime ou
+// reimpressão manual logo em seguida) pode pegar o pedido antes dos itens
+// terminarem de salvar. Tenta de novo algumas vezes antes de desistir e
+// usar o que tiver, em vez de imprimir/mostrar a seção de itens vazia.
+async function fetchPedidoComItensComRetry(pedidoId: string) {
+  let data: any = null
+  for (let tentativa = 0; tentativa < 5; tentativa++) {
+    const { data: d } = await supabase.from('loja_pedidos').select('*, itens:loja_pedido_itens(*)').eq('id', pedidoId).single()
+    data = d
+    if (data?.itens?.length > 0) break
+    await new Promise(r => setTimeout(r, 700))
+  }
+  return data
+}
+
 type NpOpcao = { id: string; name: string; price: number; max_qty: number | null }
 type NpGrupo = { id: string; name: string; required: boolean; min_select: number; max_select: number; pricing_rule: 'soma' | 'maior_valor'; options: NpOpcao[] }
 function npGroupContribution(g: NpGrupo, selectedIdx: number[]): number {
@@ -213,7 +229,7 @@ export default function PedidosPage() {
       async function autoPrintIfNeeded(pedidoId: string) {
         if (!autoAceitarRef.current || !printerNameRef.current) return
         try {
-          const { data } = await supabase.from('loja_pedidos').select('*, itens:loja_pedido_itens(*)').eq('id', pedidoId).single()
+          const data = await fetchPedidoComItensComRetry(pedidoId)
           if (!data) return
           const items = (data.itens || []).map((it: any) => ({ qty: it.qty, name: it.product_name, unitPrice: it.unit_price, options: it.selected_options }))
           const content = buildReceipt({
@@ -243,6 +259,12 @@ export default function PedidosPage() {
           })
           await qzPrintRaw(printerNameRef.current, kitchenContent)
         } catch {}
+        // O primeiro loadAll (disparado junto com o evento de pedido novo,
+        // antes deste retry) pode ter carregado o pedido sem os itens pelo
+        // mesmo motivo do comentário acima — atualiza de novo agora que
+        // já esperou os itens aparecerem, pra o card no quadro não ficar
+        // preso mostrando "0 itens".
+        loadAll(companyIdRef.current)
       }
 
       const channel = supabase.channel(`pedidos-${comp.id}`)
@@ -352,7 +374,11 @@ export default function PedidosPage() {
     if (!printerName) { setShowPrinterModal(true); return }
     setPrintError(null)
     try {
-      const items = (p.itens || []).map(it => ({ qty: it.qty, name: it.product_name, unitPrice: it.unit_price, options: it.selected_options }))
+      // Se o pedido foi carregado na tela antes dos itens terminarem de
+      // salvar (pedido recém-chegado), busca de novo com retry em vez de
+      // imprimir a segunda via já sem os itens.
+      const pedidoParaImprimir = (p.itens?.length || 0) > 0 ? p : (await fetchPedidoComItensComRetry(p.id)) || p
+      const items = (pedidoParaImprimir.itens || []).map((it: Item) => ({ qty: it.qty, name: it.product_name, unitPrice: it.unit_price, options: it.selected_options }))
       const content = buildReceipt({
         companyName, pedidoShortId: String(p.order_number ?? p.id.slice(0, 8)), createdAt: p.created_at,
         customerName: p.customer_name, customerPhone: p.customer_phone,

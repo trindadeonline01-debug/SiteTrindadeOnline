@@ -243,10 +243,22 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
       setOrderError('Não deu pra enviar seu pedido agora. Tenta de novo em alguns segundos.')
       return
     }
-    await supabase.from('loja_pedido_itens').insert(cart.map(l => ({
+    const { error: itensError } = await supabase.from('loja_pedido_itens').insert(cart.map(l => ({
       pedido_id: pedido.id, produto_id: l.produtoId, product_name: l.name, unit_price: l.unitPrice, qty: l.qty,
       selected_options: l.modifiers,
     })))
+    // Sem isso, um erro aqui deixava o pedido salvo com o valor total mas
+    // ZERO itens — a loja recebia um pedido "vazio" e o cliente via
+    // "Pedido enviado!" do mesmo jeito. Desfaz o pedido (compensação, já
+    // que não dá pra fazer os dois inserts numa transação única daqui) e
+    // avisa o cliente pra tentar de novo, em vez de fingir sucesso.
+    if (itensError) {
+      console.error('Erro ao salvar itens do pedido:', itensError)
+      await supabase.from('loja_pedidos').delete().eq('id', pedido.id)
+      setConfirming(false)
+      setOrderError('Não deu pra enviar seu pedido agora. Tenta de novo em alguns segundos.')
+      return
+    }
     if (selectedCoupon && couponEligible(selectedCoupon)) {
       const code = 'TRD-' + Math.random().toString(36).substring(2, 6).toUpperCase()
       await supabase.from('coupon_redemptions').insert({ coupon_id: selectedCoupon.id, user_id: session.user.id, code, status: 'used', used_at: new Date().toISOString() })
@@ -285,9 +297,15 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
   // endereço, só registra o interesse e abre o WhatsApp com o carrinho já
   // formatado. O lojista fecha a venda na própria conversa.
   const [sendingWa, setSendingWa] = useState(false)
+  const [waFallbackUrl, setWaFallbackUrl] = useState<string | null>(null)
   async function sendCartWhatsapp() {
     if (!company?.phone || cart.length === 0 || sendingWa) return
     setSendingWa(true)
+    setWaFallbackUrl(null)
+    // Abre a aba em branco JÁ, antes de qualquer await — depois de um
+    // await o navegador não trata mais isso como resposta direta ao
+    // clique e bloqueia como pop-up (Safari principalmente).
+    const waWindow = window.open('', '_blank')
     try {
       if (selectedCoupon && couponEligible(selectedCoupon)) {
         const { data: { session } } = await supabase.auth.getSession()
@@ -296,15 +314,20 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
           await supabase.from('coupon_redemptions').insert({ coupon_id: selectedCoupon.id, user_id: session.user.id, code, status: 'used', used_at: new Date().toISOString() })
         }
       }
-      await criarInteresseEAbrirWhatsapp({
+      const { url, blocked } = await criarInteresseEAbrirWhatsapp({
         supabase, companyId: company.id, companyPhone: company.phone,
         itens: cart.map(l => ({ produto_id: l.produtoId, nome: l.name + (l.modifiers.length ? ' (' + l.modifiers.map(m => m.name).join(', ') + ')' : ''), qtd: l.qty, preco_unitario: l.unitPrice })),
         valorTotal: orderTotal, deliveryType,
         cupomLabel: discount > 0 && selectedCoupon ? `${selectedCoupon.title} (− ${fmt(discount)})` : undefined,
         notasLabel: finalNotes || undefined,
+        waWindow,
       })
+      if (blocked) { setWaFallbackUrl(url); return }
       setDrawerOpen(false); setCart([]); setSelectedCouponId(null)
       setPrecisaTroco(null); setTrocoPara('')
+    } catch {
+      waWindow?.close()
+      setOrderError('Não deu pra abrir o WhatsApp agora. Tenta de novo em alguns segundos.')
     } finally {
       setSendingWa(false)
     }
@@ -771,8 +794,15 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
                     <button className="cd-addcart" style={{ width: '100%' }} disabled={confirming || (deliveryType === 'entrega' && !address.trim()) || (agendarRetirada && (!scheduleDate || !scheduleTime)) || abaixoMinimo || trocoIncompleto} onClick={confirmOrder}>{confirming ? 'Enviando...' : 'Confirmar pedido'}</button>
                     {company.phone && (
                       <button className="cd-addcart" style={{ width: '100%', background: '#25D366', color: '#fff' }} disabled={sendingWa || trocoIncompleto} onClick={sendCartWhatsapp}>
-                        {sendingWa ? 'Abrindo...' : '📱 Enviar pedido no WhatsApp'}
+                        {sendingWa ? 'Abrindo…' : '📱 Enviar pedido no WhatsApp'}
                       </button>
+                    )}
+                    {waFallbackUrl && (
+                      <a href={waFallbackUrl} target="_blank" rel="noopener noreferrer"
+                        style={{ textAlign: 'center', fontSize: 12, fontWeight: 700, color: '#157A52', padding: '8px 0' }}
+                        onClick={() => setWaFallbackUrl(null)}>
+                        O navegador bloqueou o WhatsApp — toca aqui pra abrir
+                      </a>
                     )}
                   </>
                 )}

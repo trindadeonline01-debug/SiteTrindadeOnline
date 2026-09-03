@@ -1022,6 +1022,7 @@ export default function AdminPage() {
   }
 
   async function deleteListingFromReport(listingId: string, reportId: string) {
+    if (!confirm('Excluir esse anúncio de vez? O morador que publicou não vai poder recuperar.')) return
     await supabase.from('listings').update({ status: 'deleted' }).eq('id', listingId)
     await supabase.from('listing_reports').update({ resolved: true }).eq('id', reportId)
     await loadReports()

@@ -200,6 +200,7 @@ export default function AnunciarPage() {
       if (!nome.trim()) { setErro('Digite o nome da empresa.'); return }
       if (!categoryId) { setErro('Selecione uma categoria.'); return }
       if (!endereco.trim()) { setErro('Digite o endereço.'); return }
+      if (!cpfCnpj.trim()) { setErro('Digite o CPF ou CNPJ.'); return }
     }
     if (bizStep === 2) {
       if (!phone.trim()) { setErro('Digite o WhatsApp da empresa.'); return }
@@ -227,6 +228,7 @@ export default function AnunciarPage() {
           description: descricao || null,
           tags,
           address: endereco || null,
+          cpf_cnpj: cpfCnpj || null,
           phone: phone || null,
           external_link: linkUrl || null,
           external_link_label: linkUrl ? linkLabel : null,

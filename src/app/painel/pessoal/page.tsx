@@ -113,6 +113,7 @@ function PainelPessoalInner() {
   }
 
   async function deleteListing(id: string) {
+    if (!confirm('Excluir esse anúncio? Não dá pra desfazer.')) return
     await supabase.from('listings').update({ status: 'deleted' }).eq('id', id)
     setListings(l => l.filter(x => x.id !== id))
   }

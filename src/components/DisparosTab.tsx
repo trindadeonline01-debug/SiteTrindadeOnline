@@ -446,6 +446,10 @@ export default function DisparosTab() {
 
   async function createCampaign(startNow: boolean) {
     if (!name.trim()) return alert('Dê um nome para a campanha')
+    // Disparo em massa de verdade, pro número da própria plataforma — sem
+    // essa confirmação um clique errado manda mensagem pra base inteira
+    // (pode ser milhares de contatos) sem chance de voltar atrás.
+    if (startNow && !confirm(`Disparar agora para ${previewCount ?? 'todos os'} contato${previewCount === 1 ? '' : 's'}? Essa ação não pode ser desfeita.`)) return
     const validMessages = messages
       .filter(m => m.text.trim() || (m.mediaType !== 'none' && m.media[m.mediaType as MediaKind]?.url))
       .map(m => ({ text: m.text.trim(), media_url: m.mediaType !== 'none' ? m.media[m.mediaType as MediaKind].url : null, media_type: m.mediaType !== 'none' ? m.mediaType : null }))

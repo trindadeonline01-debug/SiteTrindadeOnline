@@ -169,6 +169,7 @@ export default function CozinhaPage() {
         .cz-cname{ font-weight:800;font-size:16px;margin-bottom:2px; }
         .cz-ctime{ font-size:11px;color:#A79E8B;margin-bottom:8px; }
         .cz-citem{ font-size:13.5px;padding:2px 0;color:#F0EDE8; }
+        .cz-cqty{ color:#FFC531;font-weight:800; }
         .cz-cmods{ font-size:11px;color:var(--sign);padding-left:14px; }
         .cz-cbtn{ margin-top:10px;width:100%;padding:10px;border-radius:9px;border:none;background:var(--accent);color:#141210;font-weight:800;font-size:13px;cursor:pointer; }
         .cz-empty{ text-align:center;color:#5A5346;font-size:12.5px;padding:30px 0; }
@@ -193,7 +194,7 @@ export default function CozinhaPage() {
                     <div className="cz-ctime">{timeAgo(p.created_at)} atrás · {p.delivery_type === 'retirada' ? '🏪 Retirada' : '🚴 Entrega'}{p.scheduled_for ? ` · 📅 ${fmtSchedule(p.scheduled_for)}` : ''}</div>
                     {p.itens?.map(it => (
                       <div key={it.id}>
-                        <div className="cz-citem">{it.qty}x {it.product_name}</div>
+                        <div className="cz-citem"><span className="cz-cqty">{it.qty}x</span> {it.product_name}</div>
                         {it.selected_options?.length > 0 && <div className="cz-cmods">{it.selected_options.map(o => o.name).join(', ')}</div>}
                       </div>
                     ))}

@@ -29,7 +29,7 @@ export default function ImoveisPageClient({ initialListings }: { initialListings
   function applyFilter(f:string){setFilter(f);setSearch('');setFiltered(f==='todos'?listings:listings.filter(l=>l.subtype===f))}
   function handleSearch(e:React.ChangeEvent<HTMLInputElement>){const q=e.target.value;setSearch(q);setFilter('todos');setFiltered(!q.trim()?listings:listings.filter(l=>l.title.toLowerCase().includes(q.toLowerCase())||l.address?.toLowerCase().includes(q.toLowerCase())))}
   function getCover(l:Listing){if(!l.photos?.length)return null;return[...l.photos].sort((a,b)=>a.order-b.order)[0]?.url||null}
-  function fmtPrice(l:Listing){if(!l.price)return'Grátis';return`R$ ${l.price.toLocaleString('pt-BR')}`}
+  function fmtPrice(l:Listing){if(!l.price)return'Grátis';return`R$ ${l.price.toLocaleString('pt-BR')}${l.subtype==='aluguel'?'/mês':''}`}
 
   return(<>
     <style>{`
@@ -180,10 +180,10 @@ function FormModal({subtypes,type,userId,onClose,onSaved}:{subtypes:[string,stri
       <div className="modal">
         <div className="mt">Novo anúncio — Imóveis</div>
         {subtypes.length>0&&(<><label className="fl">TIPO</label><select className="fi" value={form.subtype} onChange={e=>setForm(f=>({...f,subtype:e.target.value}))}>{subtypes.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></>)}
-        <label className="fl">TÍTULO *</label><input className="fi" placeholder="Ex: Sofá 3 lugares azul" value={form.title} onChange={e=>setForm(f=>({...f,title:e.target.value}))}/>
-        <label className="fl">DESCRIÇÃO</label><textarea className="fi" placeholder="Estado, medidas, motivo da venda..." value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} rows={3}/>
+        <label className="fl">TÍTULO *</label><input className="fi" placeholder="Ex: Apartamento 2 quartos na Trindade" value={form.title} onChange={e=>setForm(f=>({...f,title:e.target.value}))}/>
+        <label className="fl">DESCRIÇÃO</label><textarea className="fi" placeholder="Quartos, banheiros, vaga de garagem, condomínio..." value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} rows={3}/>
         <div className="fr">
-          <div><label className="fl">VALOR (R$)</label><input className="fi" type="number" placeholder="Deixe vazio = Grátis" value={form.price} onChange={e=>setForm(f=>({...f,price:e.target.value}))}/></div>
+          <div><label className="fl">VALOR (R$){form.subtype==='aluguel'?' — POR MÊS':''}</label><input className="fi" type="number" placeholder="Deixe vazio = A combinar" value={form.price} onChange={e=>setForm(f=>({...f,price:e.target.value}))}/></div>
           <div><label className="fl">BAIRRO</label><input className="fi" placeholder="Trindade" value={form.address} onChange={e=>setForm(f=>({...f,address:e.target.value}))}/></div>
         </div>
         <label className="fl">SEU WHATSAPP</label><input className="fi" placeholder="21 99999-9999" value={form.phone} onChange={e=>setForm(f=>({...f,phone:e.target.value}))}/>

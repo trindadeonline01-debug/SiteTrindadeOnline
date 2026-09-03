@@ -34,8 +34,13 @@ export default function NotificacoesTab() {
     setSavingFlags(false)
   }
 
+  const TARGET_LABEL: Record<typeof target, string> = { all: 'TODOS os moradores e empresas', user: 'todos os moradores', company: 'todas as empresas' }
+
   async function sendNotification() {
     if (!title.trim() || !body.trim()) return
+    // Notificação push manual dispara na hora, sem preview de quantos
+    // dispositivos vai atingir — um clique errado manda pra base inteira.
+    if (!confirm(`Enviar essa notificação push para ${TARGET_LABEL[target]} agora?`)) return
     setSending(true); setResult(null)
     try {
       const res = await fetch('/api/push/send', {

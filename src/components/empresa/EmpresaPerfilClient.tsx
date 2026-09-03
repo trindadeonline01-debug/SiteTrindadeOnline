@@ -347,15 +347,25 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
     setSendingContato(false)
   }
 
-  async function handleWhatsApp() {
+  function handleWhatsApp() {
     if (!company.phone) return
-    if (!userId) { window.location.href = '/login'; return }
-    await supabase.from('companies').update({ whatsapp_clicks: ((company.whatsapp_clicks as number) || 0) + 1 }).eq('id', company.id)
-    await supabase.from('whatsapp_clicks').insert({ company_id: company.id, user_id: userId })
-    window.open(`https://wa.me/55${company.phone.replace(/\D/g,'')}?text=${encodeURIComponent('Olá, vim pelo site do Trindade Online e quero fazer meu pedido.')}`, '_blank')
+    // Não exige login antes de abrir o WhatsApp — ESPECIFICACAO.md §8.3 é
+    // explícito que pedir cadastro aqui é o maior matador de conversão do
+    // fluxo. Abre a aba já, antes de qualquer await, senão o navegador
+    // trata como pop-up e bloqueia (Safari principalmente).
+    const win = window.open('', '_blank')
+    const url = `https://wa.me/55${company.phone.replace(/\D/g,'')}?text=${encodeURIComponent('Olá, vim pelo site do Trindade Online e quero fazer meu pedido.')}`
+    if (win) win.location.href = url; else window.open(url, '_blank')
+    // A atualização direta em companies.whatsapp_clicks exigia ser dono
+    // da empresa (RLS) — pra qualquer outra pessoa clicando, esse update
+    // sempre falhava calado e o contador nunca subia. A rota /track já
+    // existe pra isso (roda com service role, contorna essa trava).
+    fetch(`/api/company/${company.id}/track`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'whatsapp_click' }) }).catch(() => {})
+    supabase.from('whatsapp_clicks').insert({ company_id: company.id, user_id: userId || null }).then(() => {})
   }
 
   async function deleteReview(reviewId: string) {
+    if (!confirm('Excluir essa avaliação?')) return
     await supabase.from('reviews').delete().eq('id', reviewId)
     loadCompany()
   }

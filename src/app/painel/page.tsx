@@ -478,6 +478,7 @@ export default function PainelPage() {
   }
 
   async function removePhoto(photoId: string) {
+    if (!confirm('Remover essa foto?')) return
     await supabase.from('company_photos').delete().eq('id', photoId)
     showToast('Foto removida.')
     const { data:{session} } = await supabase.auth.getSession()

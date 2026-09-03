@@ -8,7 +8,7 @@ type Categoria = { id: string; name: string; display_order: number }
 type Company = {
   id: string; name: string; slug: string; phone: string | null; address: string | null
   avg_rating: number; total_reviews: number; status: string
-  loja_digital_enabled: boolean; flexible_hours?: boolean; store_paused?: boolean; owner_id?: string
+  loja_digital_enabled: boolean; flexible_hours?: boolean; store_paused?: boolean; store_forced_open?: boolean; owner_id?: string
   loja_taxa_entrega: number; loja_pedido_minimo: number
   hours?: any[]; photos?: { url: string; order: number }[]
 }
@@ -83,7 +83,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
 
   useEffect(() => {
     supabase.from('companies')
-      .select('id,name,slug,phone,address,avg_rating,total_reviews,status,loja_digital_enabled,flexible_hours,store_paused,owner_id,loja_taxa_entrega,loja_pedido_minimo,hours:company_hours(label,hours,order,day_of_week,open_time,close_time,closed),photos:company_photos(url,order)')
+      .select('id,name,slug,phone,address,avg_rating,total_reviews,status,loja_digital_enabled,flexible_hours,store_paused,store_forced_open,owner_id,loja_taxa_entrega,loja_pedido_minimo,hours:company_hours(label,hours,order,day_of_week,open_time,close_time,closed),photos:company_photos(url,order)')
       .eq('slug', slug).maybeSingle()
       .then(async ({ data: comp }) => {
         if (!comp || comp.status !== 'active' || !comp.loja_digital_enabled) { setCompany(null); setLoading(false); return }
@@ -131,7 +131,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
     // Segunda trava, além dos cliques já bloqueados na lista — protege
     // contra qualquer chamada que escape do fluxo normal (ex: modal já
     // aberto no momento em que a loja é pausada).
-    if (company && !isOpenNow(company.hours as any, company.flexible_hours, company.store_paused)) return
+    if (company && !isOpenNow(company.hours as any, company.flexible_hours, company.store_paused, company.store_forced_open)) return
     const key = produtoId + '|' + modifiers.map(m => m.name).sort().join('+')
     setCart(prev => {
       const existing = prev.find(l => l.key === key)
@@ -281,7 +281,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
     </div>
   )
 
-  const open = isOpenNow(company.hours as any, company.flexible_hours, company.store_paused)
+  const open = isOpenNow(company.hours as any, company.flexible_hours, company.store_paused, company.store_forced_open)
   const taxaEntrega = deliveryType === 'entrega' ? Number(company.loja_taxa_entrega || 0) : 0
   const orderTotal = cartTotal + taxaEntrega
   const abaixoMinimo = Number(company.loja_pedido_minimo || 0) > 0 && cartTotal < Number(company.loja_pedido_minimo)

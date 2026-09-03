@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import PhotoManager from '@/components/PhotoManager'
 import BusinessHoursEditor from '@/components/BusinessHoursEditor'
-import { IGREJAS_CATEGORY_ID, DIAS_SEMANA, HourRow } from '@/lib/businessHours'
+import { IGREJAS_CATEGORY_ID, DIAS_SEMANA, HourRow, isOpenNow } from '@/lib/businessHours'
 import { moduleActive } from '@/lib/modules'
 import EmpresaShell, { EmpresaNavKey } from '@/components/EmpresaShell'
 
@@ -19,6 +19,7 @@ type Company = {
   delivery_available?: boolean
   flexible_hours?: boolean
   store_paused?: boolean
+  store_forced_open?: boolean
   loja_digital_enabled?: boolean
   crm_whatsapp_enabled?: boolean
   entrega_enabled?: boolean
@@ -500,12 +501,15 @@ export default function PainelPage() {
     showToast('Avaliação sinalizada para análise.')
   }
 
-  async function toggleStorePaused() {
+  // 3 estados, mutuamente exclusivos: automático (segue o horário
+  // cadastrado), forçado aberto (ex: abrir num horário/dia excepcional) e
+  // forçado fechado/pausado (ex: imprevisto durante o horário normal).
+  async function setStoreMode(mode: 'auto' | 'open' | 'closed') {
     if (!company) return
-    const next = !company.store_paused
-    setCompany(prev => prev ? { ...prev, store_paused: next } : prev)
-    await supabase.from('companies').update({ store_paused: next }).eq('id', company.id)
-    showToast(next ? 'Loja pausada — não recebe pedido novo' : 'Loja reaberta')
+    const patch = { store_paused: mode === 'closed', store_forced_open: mode === 'open' }
+    setCompany(prev => prev ? { ...prev, ...patch } : prev)
+    await supabase.from('companies').update(patch).eq('id', company.id)
+    showToast(mode === 'closed' ? 'Loja pausada — não recebe pedido novo' : mode === 'open' ? 'Loja forçada aberta' : 'Loja voltou a seguir o horário cadastrado')
   }
 
   function showToast(msg: string) { setToast(msg); setTimeout(()=>setToast(''), 3000) }
@@ -1142,18 +1146,36 @@ export default function PainelPage() {
               {company.status === 'pending' && (
                 <div className="alert-pending">⏳ Sua empresa está aguardando aprovação da nossa equipe. Você receberá uma notificação em até 24h.</div>
               )}
-              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap',padding:'14px 16px',borderRadius:12,marginBottom:18,background:company.store_paused?'#FBEAEA':'#EDFAF3',border:`1px solid ${company.store_paused?'#F0B8B8':'#B9E8D0'}`}}>
-                <div style={{display:'flex',alignItems:'center',gap:10}}>
-                  <span style={{fontSize:20}}>{company.store_paused ? '🔴' : '🟢'}</span>
-                  <div>
-                    <div style={{fontSize:13.5,fontWeight:800,color:company.store_paused?'#A83232':'#0F6E56'}}>{company.store_paused ? 'Loja pausada' : 'Loja aberta'}</div>
-                    <div style={{fontSize:11.5,color:'#666'}}>{company.store_paused ? 'Não está recebendo pedido novo agora, mesmo dentro do horário' : 'Recebendo pedido normalmente, conforme o horário cadastrado'}</div>
+              {(() => {
+                const mode: 'auto' | 'open' | 'closed' = company.store_paused ? 'closed' : company.store_forced_open ? 'open' : 'auto'
+                const scheduleOpenNow = isOpenNow(company.hours as any, company.flexible_hours, false, false)
+                const cfg = {
+                  auto:   { bg: '#F5F2EC', border: '#E6E0D2', dot: scheduleOpenNow ? '🟢' : '⚪', color: '#555',    label: 'Automático (segue o horário)', sub: scheduleOpenNow ? 'Dentro do horário cadastrado — aberta agora' : 'Fora do horário cadastrado — fechada agora' },
+                  open:   { bg: '#EDFAF3', border: '#B9E8D0', dot: '🟢',                          color: '#0F6E56', label: 'Forçada aberta',                sub: 'Recebendo pedido mesmo fora do horário cadastrado' },
+                  closed: { bg: '#FBEAEA', border: '#F0B8B8', dot: '🔴',                          color: '#A83232', label: 'Pausada',                       sub: 'Não recebe pedido novo, mesmo dentro do horário' },
+                }[mode]
+                return (
+                  <div style={{padding:'14px 16px',borderRadius:12,marginBottom:18,background:cfg.bg,border:`1px solid ${cfg.border}`}}>
+                    <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
+                      <span style={{fontSize:20}}>{cfg.dot}</span>
+                      <div>
+                        <div style={{fontSize:13.5,fontWeight:800,color:cfg.color}}>{cfg.label}</div>
+                        <div style={{fontSize:11.5,color:'#666'}}>{cfg.sub}</div>
+                      </div>
+                    </div>
+                    <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+                      {(['auto','open','closed'] as const).map(m => (
+                        <button key={m} onClick={() => setStoreMode(m)} disabled={mode === m} style={{
+                          flex:'1 1 auto',minWidth:110,padding:'8px 10px',borderRadius:8,fontSize:11.5,fontWeight:700,fontFamily:'Archivo,sans-serif',cursor:mode===m?'default':'pointer',
+                          border:`1px solid ${mode===m?cfg.color:'#DDD'}`,
+                          background:mode===m?cfg.color:'#fff',
+                          color:mode===m?'#fff':'#555',
+                        }}>{m === 'auto' ? 'Automático' : m === 'open' ? 'Forçar aberto' : 'Pausar loja'}</button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-                <button onClick={toggleStorePaused} style={{background:company.store_paused?'var(--open)':'var(--alert)',color:'#fff',border:'none',padding:'9px 16px',borderRadius:9,fontSize:12.5,fontWeight:700,cursor:'pointer',fontFamily:'Archivo,sans-serif',flexShrink:0,whiteSpace:'nowrap'}}>
-                  {company.store_paused ? 'Reabrir loja' : 'Pausar loja'}
-                </button>
-              </div>
+                )
+              })()}
               <div className="stat-grid">
                 <div className="stat-card"><div className="stat-num" style={{color:'#185FA5'}}>{company.views_count||0}</div><div className="stat-lbl">Visualizações</div></div>
                 <div className="stat-card"><div className="stat-num" style={{color:'#25D366'}}>{company.whatsapp_clicks||0}</div><div className="stat-lbl">Cliques WhatsApp</div></div>

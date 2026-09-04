@@ -121,6 +121,9 @@ export default function CatalogoPage() {
   const [toast, setToast] = useState('')
   const [showImportMenu, setShowImportMenu] = useState(false)
   const [showCatManager, setShowCatManager] = useState(false)
+  const [selectMode, setSelectMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkActing, setBulkActing] = useState(false)
   const [mgrNewCatName, setMgrNewCatName] = useState('')
   const [editingCatId, setEditingCatId] = useState('')
   const [editCatName, setEditCatName] = useState('')
@@ -657,6 +660,67 @@ export default function CatalogoPage() {
     setProdutos(prev => prev.filter(x => x.id !== id))
   }
 
+  function toggleSelectMode() {
+    setSelectMode(v => !v)
+    setSelectedIds(new Set())
+  }
+
+  function toggleSelected(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }
+
+  function exitSelectMode() {
+    setSelectMode(false)
+    setSelectedIds(new Set())
+  }
+
+  async function bulkDelete() {
+    const ids = Array.from(selectedIds)
+    if (ids.length === 0) return
+    if (!confirm(`Excluir ${ids.length} produto${ids.length > 1 ? 's' : ''}? Não dá pra desfazer.`)) return
+    setBulkActing(true)
+    const { data } = await supabase
+      .from('loja_produtos')
+      .select('id, photo_url, groups:loja_opcoes_grupo(options:loja_opcoes(photo_url))')
+      .in('id', ids)
+    const paths = ((data as any[]) || []).flatMap(p => [
+      storagePathFromUrl(p.photo_url),
+      ...((p.groups || []).flatMap((g: any) => (g.options || []).map((o: any) => storagePathFromUrl(o.photo_url)))),
+    ]).filter((p): p is string => !!p)
+    await supabase.from('loja_produtos').delete().in('id', ids)
+    if (paths.length) await supabase.storage.from('loja-produtos').remove(paths)
+    setProdutos(prev => prev.filter(x => !selectedIds.has(x.id)))
+    showToast(`${ids.length} produto${ids.length > 1 ? 's excluídos' : ' excluído'}`)
+    setBulkActing(false)
+    exitSelectMode()
+  }
+
+  async function bulkSetActive(active: boolean) {
+    const ids = Array.from(selectedIds)
+    if (ids.length === 0) return
+    setBulkActing(true)
+    await supabase.from('loja_produtos').update({ active }).in('id', ids)
+    setProdutos(prev => prev.map(x => selectedIds.has(x.id) ? { ...x, active } : x))
+    showToast(`${ids.length} produto${ids.length > 1 ? 's' : ''} ${active ? 'reativado' + (ids.length > 1 ? 's' : '') : 'pausado' + (ids.length > 1 ? 's' : '')}`)
+    setBulkActing(false)
+    exitSelectMode()
+  }
+
+  async function bulkSetEsgotado(esgotado: boolean) {
+    const ids = Array.from(selectedIds)
+    if (ids.length === 0) return
+    setBulkActing(true)
+    await supabase.from('loja_produtos').update({ esgotado }).in('id', ids)
+    setProdutos(prev => prev.map(x => selectedIds.has(x.id) ? { ...x, esgotado } : x))
+    showToast(`${ids.length} produto${ids.length > 1 ? 's' : ''} marcado${ids.length > 1 ? 's' : ''} como ${esgotado ? 'esgotado' : 'disponível'}`)
+    setBulkActing(false)
+    exitSelectMode()
+  }
+
   if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Archivo,sans-serif', color: '#AAA' }}>Carregando...</div>
 
   const filtered = produtos.filter(p => filterCat === 'all' || (filterCat === 'sem-foto' ? !p.photo_url : p.category_id === filterCat))
@@ -679,21 +743,27 @@ export default function CatalogoPage() {
         .cg-wrap{ width:100%; max-width:480px; margin:0 auto; min-height:100vh; background:var(--concrete); font-family:'Archivo',sans-serif; font-size:13px; color:var(--ink); padding-bottom:40px; min-width:0; overflow-x:hidden; }
         @media(min-width:768px){
           .cg-wrap{ max-width:none; margin:0; min-height:0; padding-bottom:60px; }
-          .cg-head{ padding:28px 32px 16px; position:static; }
+          .cg-head{ padding:28px 32px 16px; position:static; flex-wrap:wrap; }
+          .cg-head-actions{ display:flex; align-items:center; gap:8px; }
+          .cg-import-desktop{ display:block; position:relative; }
+          .cg-import-mobile{ display:none; }
           .cg-body{ padding:0 32px; }
           .cg-list-view .cg-body{ display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:14px; align-content:start; }
           .cg-list-view .cg-filters{ grid-column:1/-1; }
           .cg-list-view .cg-quality{ grid-column:1/-1; }
           .cg-list-view .cg-empty-msg{ grid-column:1/-1; }
-          .cg-list-view .cg-bulk-cta{ grid-column:1/-1; }
-          .cg-row{ flex-direction:column; align-items:stretch; gap:0; border:1px solid #E6E0D2; border-radius:14px; padding:0; overflow:hidden; background:#fff; }
+          .cg-row{ flex-direction:column; align-items:stretch; gap:0; border:1px solid #E6E0D2; border-radius:14px; padding:0; overflow:hidden; background:#fff; position:relative; }
           .cg-row .cg-photo{ width:100%; height:130px; border-radius:0; font-size:34px; }
           .cg-row .cg-mid{ padding:12px 14px 4px; }
           .cg-row-actions{ padding:0 14px 12px; }
+          .cg-row .cg-checkbox{ position:absolute; top:8px; left:8px; z-index:2; background:#fff; box-shadow:0 1px 6px rgba(0,0,0,.2); }
           .cg-fab{ right:32px; }
           .cg-form-view .cg-body{ max-width:640px; margin:0 auto; padding:0 32px; }
         }
-        .cg-head{ padding:22px 16px 14px; display:flex; align-items:center; gap:10px; background:#F7F5F0; position:sticky; top:0; z-index:5; }
+        .cg-import-desktop{ display:none; }
+        .cg-head{ padding:22px 16px 14px; display:flex; align-items:center; gap:10px; background:#F7F5F0; position:sticky; top:0; z-index:5; flex-wrap:wrap; }
+        .cg-head h1{ min-width:80px; }
+        .cg-head-actions{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
         .cg-head h1{ font-size:18px; margin:0; flex:1; font-weight:800; }
         .cg-back{ width:32px;height:32px;border-radius:50%;border:1px solid #E6E0D2;background:#fff;font-size:15px;cursor:pointer; }
         .cg-body{ padding:0 16px; }
@@ -712,12 +782,23 @@ export default function CatalogoPage() {
         .cg-filters{ display:flex; gap:6px; overflow-x:auto; padding-bottom:10px; }
         .cg-chip{ flex:none;font-size:11px;font-weight:700;padding:6px 12px;border-radius:20px;border:1px solid #E6E0D2;background:#fff;color:#6E6656;cursor:pointer; }
         .cg-chip.active{ background:var(--ink);color:var(--sign);border-color:var(--ink); }
-        .cg-row{ display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid #E6E0D2;cursor:pointer; }
+        .cg-row{ display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid #E6E0D2;cursor:pointer;position:relative; }
+        .cg-row.selecting{ cursor:default; }
+        .cg-row.selected{ background:#FBF1DC; }
+        @media(min-width:768px){ .cg-row.selected{ outline:2px solid var(--sign); outline-offset:-2px; } }
+        .cg-checkbox{ flex:none;width:24px;height:24px;border-radius:7px;border:2px solid #D8CFBB;background:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;cursor:pointer; }
+        .cg-checkbox.on{ background:var(--ink);border-color:var(--ink); }
         .cg-photo{ width:48px;height:48px;border-radius:10px;background:linear-gradient(135deg,#FBF1DC,#FCFAF5);display:flex;align-items:center;justify-content:center;font-size:20px;flex:none;overflow:hidden; }
         .cg-photo img{ width:100%;height:100%;object-fit:cover; }
         .cg-mid{ flex:1;min-width:0; }
-        .cg-row-actions{ display:flex;gap:6px;flex:none; }
+        .cg-row-actions{ display:flex;gap:8px;flex:none; }
         .cg-btn-danger{ background:#FBEAEA;border-color:#F3C6C6; }
+        .cg-icon-btn{ width:38px;height:38px;border-radius:10px;border:1.5px solid #E6E0D2;background:#fff;display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer;flex:none;color:#1A1610;line-height:1; }
+        .cg-icon-btn.esgotar{ border-color:#F3C6C6;color:#C43D3D;font-weight:900; }
+        .cg-icon-btn.esgotar.on{ background:#C43D3D;border-color:#C43D3D;color:#fff; }
+        .cg-icon-btn.pausar.on-pause{ color:#8A6410; }
+        .cg-icon-btn.pausar.on-play{ background:#E4F3EC;border-color:#BFE3D2;color:#157A52; }
+        .cg-icon-btn.excluir{ background:#FBEAEA;border-color:#F3C6C6;color:#C43D3D; }
         .cg-name{ font-weight:700;font-size:12.5px; }
         .cg-cat{ font-size:10.5px;color:#A79E8B; }
         .cg-price{ font-size:12px;font-weight:800;margin-top:2px; }
@@ -763,6 +844,13 @@ export default function CatalogoPage() {
         .cg-savebar{ position:sticky;bottom:0;padding:12px 0 6px;background:#F7F5F0;display:flex;gap:8px; }
         .cg-savebar .cg-btn{ flex:1; }
         .cg-toast{ position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--sign);padding:11px 18px;border-radius:10px;font-size:12.5px;font-weight:700;z-index:99; }
+        .cg-selbar{ position:sticky;top:0;z-index:20;background:var(--ink);color:#fff;border-radius:12px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap; }
+        @media(min-width:768px){ .cg-selbar{ grid-column:1/-1; top:0; } }
+        .cg-selbar-count{ font-size:12.5px;font-weight:800;color:var(--sign);flex:1;min-width:120px; }
+        .cg-selbar-btn{ display:flex;align-items:center;gap:6px;padding:8px 12px;border-radius:9px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#fff;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap; }
+        .cg-selbar-btn:disabled{ opacity:.4;cursor:default; }
+        .cg-selbar-btn.danger{ background:#C43D3D;border-color:#C43D3D; }
+        .cg-selbar-btn.cancel{ background:transparent;border-color:transparent;color:#C9BFA6; }
         .cg-photo-input{ display:flex;align-items:center;gap:12px;margin-bottom:14px; }
         .cg-photo-big{ width:64px;height:64px;border-radius:12px;background:linear-gradient(135deg,#FBF1DC,#FCFAF5);display:flex;align-items:center;justify-content:center;font-size:26px;overflow:hidden;flex:none; }
         .cg-photo-big img{ width:100%;height:100%;object-fit:cover; }
@@ -794,7 +882,26 @@ export default function CatalogoPage() {
           <div className="cg-head">
             <a href="/painel/compartilhar" className="cg-back" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', color: '#1A1610' }}>‹</a>
             <h1>Catálogo</h1>
-            <button className="cg-btn-ghost" style={{ padding: '8px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700 }} onClick={() => setShowCatManager(true)}>🏷️ Categorias</button>
+            <div className="cg-head-actions">
+              <button className={`cg-btn-ghost ${selectMode ? 'cg-btn-danger' : ''}`} style={{ padding: '8px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }} onClick={toggleSelectMode}>
+                {selectMode ? '✕ Cancelar' : '☑️ Selecionar'}
+              </button>
+              <button className="cg-btn-ghost" style={{ padding: '8px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700 }} onClick={() => setShowCatManager(true)}>🏷️ Categorias</button>
+              {/* No desktop o "Importar" sai da faixa gigante acima da lista e
+                  vem pra cá, do lado de Categorias — é ação de setup, não
+                  precisa de destaque toda vez que a tela abre. No mobile
+                  continua no lugar de sempre (cg-import-mobile abaixo). */}
+              <div className="cg-import-desktop">
+                <button className="cg-btn-ghost" style={{ padding: '8px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700 }} onClick={() => setShowImportMenu(v => !v)}>📥 Importar ▾</button>
+                {showImportMenu && (
+                  <div className="cg-import-menu" style={{ right: 0, left: 'auto', minWidth: 280 }}>
+                    <button onClick={() => { setShowImportMenu(false); openBulk() }}>⚡ Cadastro rápido — vários produtos de uma vez</button>
+                    <button onClick={() => { setShowImportMenu(false); setShowImportCsv(true); setImportResults(null); setImportUpdateMode(false) }}>📥 Importar de um CSV</button>
+                    <button onClick={() => { setShowImportMenu(false); setShowImportPhotos(true); setPhotoImportResults(null) }}>🖼️ Importar fotos pelo nome do produto</button>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
           <div className="cg-body">
             {produtos.length > 0 && (
@@ -816,10 +923,11 @@ export default function CatalogoPage() {
                 <button key={c.id} className={`cg-chip ${filterCat === c.id ? 'active' : ''}`} onClick={() => setFilterCat(c.id)}>{c.name}</button>
               ))}
             </div>
-            {/* As 3 faixas de importação viraram um botão só — são ações de
-                setup feitas uma vez, não precisam ocupar meia tela todo dia
-                acima da lista de produtos (ESPECIFICACAO.md §10.8, §12 #12). */}
-            <div className="cg-import-wrap cg-bulk-cta" style={{ position: 'relative', marginBottom: 14 }}>
+            {/* No mobile o "Importar" continua aqui, faixa única (era 3
+                antes) — ação de setup, feita uma vez (ESPECIFICACAO.md
+                §10.8, §12 #12). No desktop essa faixa some: o botão
+                equivalente foi pro cabeçalho, do lado de Categorias. */}
+            <div className="cg-import-wrap cg-import-mobile" style={{ position: 'relative', marginBottom: 14 }}>
               <button className="cg-add-group" onClick={() => setShowImportMenu(v => !v)}>Importar ▾</button>
               {showImportMenu && (
                 <div className="cg-import-menu">
@@ -829,9 +937,26 @@ export default function CatalogoPage() {
                 </div>
               )}
             </div>
+            {selectMode && (
+              <div className="cg-selbar">
+                <span className="cg-selbar-count">{selectedIds.size} selecionado{selectedIds.size !== 1 ? 's' : ''}</span>
+                <button className="cg-selbar-btn" disabled={selectedIds.size === 0} onClick={() => setSelectedIds(new Set(filtered.map(p => p.id)))}>Selecionar tudo</button>
+                <button className="cg-selbar-btn" disabled={selectedIds.size === 0 || bulkActing} onClick={() => bulkSetActive(false)}>⏸ Pausar</button>
+                <button className="cg-selbar-btn" disabled={selectedIds.size === 0 || bulkActing} onClick={() => bulkSetEsgotado(true)}>✕ Esgotar</button>
+                <button className="cg-selbar-btn danger" disabled={selectedIds.size === 0 || bulkActing} onClick={bulkDelete}>🗑 Excluir</button>
+                <button className="cg-selbar-btn cancel" onClick={exitSelectMode}>Cancelar</button>
+              </div>
+            )}
             {filtered.length === 0 && <div className="cg-empty-msg" style={{ textAlign: 'center', color: '#A79E8B', padding: '40px 0', fontSize: 12.5 }}>Nenhum produto ainda. Toca no + pra criar o primeiro.</div>}
             {filtered.map(p => (
-              <div key={p.id} className="cg-row" onClick={() => openEdit(p.id)}>
+              <div
+                key={p.id}
+                className={`cg-row ${selectMode ? 'selecting' : ''} ${selectedIds.has(p.id) ? 'selected' : ''}`}
+                onClick={() => selectMode ? toggleSelected(p.id) : openEdit(p.id)}
+              >
+                {selectMode && (
+                  <span className={`cg-checkbox ${selectedIds.has(p.id) ? 'on' : ''}`} onClick={e => { e.stopPropagation(); toggleSelected(p.id) }}>{selectedIds.has(p.id) ? '✓' : ''}</span>
+                )}
                 <div className="cg-photo">{p.photo_url ? <img src={p.photo_url} alt="" /> : '🍽️'}</div>
                 <div className="cg-mid">
                   <div className="cg-name">{p.name}</div>
@@ -848,11 +973,13 @@ export default function CatalogoPage() {
                     {p.esgotado && <span className="cg-badge off" style={{ background: '#FBEAEA', color: '#C43D3D' }}>esgotado hoje</span>}
                   </div>
                 </div>
-                <div className="cg-row-actions">
-                  <button className={`cg-btn-ghost ${p.esgotado ? 'cg-btn-danger' : ''}`} style={{ padding: '6px 10px', borderRadius: 8, fontSize: 11 }} title="Esgotar hoje" onClick={e => { e.stopPropagation(); toggleEsgotado(p) }}>{p.esgotado ? '🚫' : '🈹'}</button>
-                  <button className="cg-btn-ghost" style={{ padding: '6px 10px', borderRadius: 8, fontSize: 11 }} onClick={e => { e.stopPropagation(); toggleActive(p) }}>{p.active ? '⏸' : '▶'}</button>
-                  <button className="cg-del" onClick={e => { e.stopPropagation(); deleteProduto(p.id) }}>🗑</button>
-                </div>
+                {!selectMode && (
+                  <div className="cg-row-actions">
+                    <button className={`cg-icon-btn esgotar ${p.esgotado ? 'on' : ''}`} title={p.esgotado ? 'Esgotado hoje — toca pra voltar' : 'Marcar esgotado hoje'} onClick={e => { e.stopPropagation(); toggleEsgotado(p) }}>✕</button>
+                    <button className={`cg-icon-btn pausar ${p.active ? 'on-pause' : 'on-play'}`} title={p.active ? 'Pausar produto' : 'Produto pausado — toca pra reativar'} onClick={e => { e.stopPropagation(); toggleActive(p) }}>{p.active ? '⏸' : '▶'}</button>
+                    <button className="cg-icon-btn excluir" title="Excluir produto" onClick={e => { e.stopPropagation(); deleteProduto(p.id) }}>🗑</button>
+                  </div>
+                )}
               </div>
             ))}
           </div>

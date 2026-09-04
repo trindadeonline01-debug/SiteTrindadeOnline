@@ -12,6 +12,8 @@ import DisparosTab from '@/components/DisparosTab'
 import PalavraPremiadaTab from '@/components/PalavraPremiadaTab'
 import MotoboysTab from '@/components/MotoboysTab'
 import EntregaConfigTab from '@/components/admin/EntregaConfigTab'
+import PagamentosTab from '@/components/admin/PagamentosTab'
+import RelatoriosTab from '@/components/admin/RelatoriosTab'
 import PhotoManager from '@/components/PhotoManager'
 import { dayOfWeekLabel } from '@/lib/businessHours'
 import dynamic from 'next/dynamic'
@@ -3591,16 +3593,8 @@ export default function AdminPage() {
               </div>
               {entregaInnerTab === 'config' && <EntregaConfigTab />}
               {entregaInnerTab === 'motoboys' && <MotoboysTab />}
-              {entregaInnerTab === 'pagamentos' && (
-                <div style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 2px 12px rgba(0,0,0,0.07)', color: '#888', fontSize: 13 }}>
-                  🚧 Em construção — próxima etapa (repasses aos motoboys, comprovante de Pix, relatório filtrado).
-                </div>
-              )}
-              {entregaInnerTab === 'relatorios' && (
-                <div style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 2px 12px rgba(0,0,0,0.07)', color: '#888', fontSize: 13 }}>
-                  🚧 Em construção — próxima etapa (entregas por empresa, desempenho por motoboy).
-                </div>
-              )}
+              {entregaInnerTab === 'pagamentos' && <PagamentosTab />}
+              {entregaInnerTab === 'relatorios' && <RelatoriosTab />}
             </div>
           )}
           {tab === 'notificacoes' && (

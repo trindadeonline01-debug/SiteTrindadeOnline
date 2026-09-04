@@ -36,7 +36,8 @@ export type HourRow = {
 // almoço 11h-14h e janta 18h-23h). Empresas sem horário fixo (flexible=true,
 // ex: ambulantes) contam sempre como abertas, sem depender de "hours".
 // paused=true (pausa manual do lojista, ex: imprevisto) força fechado mesmo
-// dentro do horário — tem prioridade sobre tudo o resto.
+// dentro do horário — tem prioridade sobre tudo, inclusive forcedOpen.
+// forcedOpen=true força aberto mesmo fora do horário cadastrado.
 // Um intervalo cujo fechamento é <= abertura (ex: 18:00-00:00, 22:00-02:00)
 // atravessa a meia-noite — soma 24h ao horário de fechamento pra comparação.
 function rowCoversMinute(h: HourRow, minutesSinceOpenDay: number): boolean {
@@ -49,8 +50,9 @@ function rowCoversMinute(h: HourRow, minutesSinceOpenDay: number): boolean {
   return minutesSinceOpenDay >= openMin && minutesSinceOpenDay <= closeMin
 }
 
-export function isOpenNow(hours?: HourRow[], flexible?: boolean, paused?: boolean): boolean {
+export function isOpenNow(hours?: HourRow[], flexible?: boolean, paused?: boolean, forcedOpen?: boolean): boolean {
   if (paused) return false
+  if (forcedOpen) return true
   if (flexible) return true
   if (!hours || hours.length === 0) return false
   const now = new Date()

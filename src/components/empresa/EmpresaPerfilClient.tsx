@@ -25,6 +25,7 @@ type Company = {
   hours?: CompanyHour[]
   flexible_hours?: boolean
   store_paused?: boolean
+  store_forced_open?: boolean
   loja_digital_enabled?: boolean
 }
 type SimpleCategory    = { id: string; name: string; emoji: string }
@@ -465,7 +466,7 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
   const isActive = company.plan === 'paid' || (!!company.trial_ends_at && new Date(company.trial_ends_at) > new Date())
   const trialDaysLeft = company.trial_ends_at ? Math.ceil((new Date(company.trial_ends_at).getTime() - Date.now()) / 86400000) : 0
   const photos = (company.photos || []).sort((a,b) => a.order - b.order)
-  const open = isOpenNow(company.hours, company.flexible_hours, company.store_paused)
+  const open = isOpenNow(company.hours, company.flexible_hours, company.store_paused, company.store_forced_open)
   const avgRating = company.avg_rating || 0
   const mapsUrl = company.address ? `https://maps.google.com/maps?q=${encodeURIComponent(company.address)}&output=embed` : null
 

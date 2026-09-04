@@ -59,6 +59,26 @@ export async function GET(req: NextRequest) {
     : { data: [] as any[] }
   const termsByMotoboy = new Map((terms || []).map(t => [t.motoboy_id, t]))
 
+  // Estatísticas por motoboy pro card de "aprovados" — mesmas contas do
+  // painel dele, só que em lote pra todo mundo de uma vez.
+  const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - 7)
+  const { data: weekOrders } = ids.length
+    ? await supabase.from('delivery_orders').select('motoboy_id, status').in('motoboy_id', ids).gte('created_at', weekStart.toISOString())
+    : { data: [] as any[] }
+  const entregasSemanaByMotoboy = new Map<string, number>()
+  for (const o of weekOrders || []) {
+    if (o.status === 'entregue') entregasSemanaByMotoboy.set(o.motoboy_id, (entregasSemanaByMotoboy.get(o.motoboy_id) || 0) + 1)
+  }
+  const { data: payouts } = ids.length
+    ? await supabase.from('motoboy_payouts').select('motoboy_id, valor, status').in('motoboy_id', ids)
+    : { data: [] as any[] }
+  const aReceberByMotoboy = new Map<string, number>()
+  const jaRecebidoByMotoboy = new Map<string, number>()
+  for (const p of payouts || []) {
+    if (p.status === 'pendente') aReceberByMotoboy.set(p.motoboy_id, (aReceberByMotoboy.get(p.motoboy_id) || 0) + Number(p.valor))
+    if (p.status === 'pago') jaRecebidoByMotoboy.set(p.motoboy_id, (jaRecebidoByMotoboy.get(p.motoboy_id) || 0) + Number(p.valor))
+  }
+
   const motoboys = await Promise.all((data || []).map(async m => {
     const term = termsByMotoboy.get(m.id)
     return {
@@ -69,6 +89,9 @@ export async function GET(req: NextRequest) {
       documento_moto_photo_url: await signedUrl(m.documento_moto_photo_path),
       selfie_photo_url: await signedUrl(m.selfie_photo_path),
       terms: term ? { ...term, pdf_url: await signedUrl(term.pdf_path) } : null,
+      entregas_semana: entregasSemanaByMotoboy.get(m.id) || 0,
+      a_receber: aReceberByMotoboy.get(m.id) || 0,
+      ja_recebido: jaRecebidoByMotoboy.get(m.id) || 0,
     }
   }))
   return NextResponse.json({ motoboys })
@@ -102,7 +125,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === 'update') {
-      const { id, name, phone, address, cpf, cnh_photo_base64, pix_key, pix_key_type } = body
+      const { id, name, phone, address, cpf, cnh_photo_base64, pix_key, pix_key_type, active } = body
       if (!(await requireAdmin(body.access_token))) return NextResponse.json({ error: 'acesso negado' }, { status: 403 })
       if (!id) return NextResponse.json({ error: 'id obrigatório' }, { status: 400 })
       if (cpf && onlyDigits(cpf).length !== 11) return NextResponse.json({ error: 'CPF inválido — precisa ter 11 números.' }, { status: 400 })
@@ -111,6 +134,7 @@ export async function POST(req: NextRequest) {
         name: name?.trim(), phone: phone ? formatPhone(phone) : undefined,
         address: address?.trim(), cpf: cpf ? onlyDigits(cpf) : undefined,
         pix_key: pix_key?.trim() || null, pix_key_type: pix_key_type || null,
+        active: typeof active === 'boolean' ? active : undefined,
       }
       if (cnh_photo_base64) {
         const { path: cnhPath, error: uploadError } = await uploadCnhPhoto(cnh_photo_base64)

@@ -318,6 +318,16 @@ Me devolva o CSV completo, pronto pra eu copiar/colar ou baixar como arquivo .cs
 
 **Variante sem link** (cardápio só em foto/PDF anexado, sem página pra navegar): não existe URL de imagem real pra extrair — deixar `foto_url` vazio em todas as linhas e importar as fotos depois pelo "🖼️ Importar fotos pelo nome do produto" (renomeando os arquivos de foto pra baterem exatamente com o nome do produto).
 
+**Variante app.jotaja.com** (testada com sucesso na Peixaria Divina Providência, set/2026): mesmo prompt acima, mais um PASSO 2.1 antes do PASSO 3, pra tratar preço por peso — muito comum em peixaria/hortifruti, onde o produto é vendido por kg em vez de preço fechado:
+```
+PASSO 2.1 — Preço por peso (IMPORTANTE, comum em peixaria/hortifruti)
+Se o preço do produto for por quilo (ex: "R$ 49,90/kg", "R$ 89,90 o kg"), NÃO tente converter pra um preço fechado. Em vez disso:
+- Coloque o valor por kg (só número, ex: 49.90) no campo preco.
+- Na descricao, deixe claro que é por kg — acrescente " (preço por kg)" no final da descrição existente, ou escreva isso se não houver descrição.
+Se o produto tiver preço fechado por unidade/pacote normal (ex: "Filé de tilápia 500g — R$ 22,90"), trate como preço normal, só número, sem "R$", ex: 22.90 — e mantenha o peso/unidade (500g, kg, dúzia, bandeja etc.) na descrição, já que isso é informação do produto, não do preço.
+```
+Nesse site as fotos já vêm em `imagens.jotaja.com/produtos/{uuid}.jpg` na resolução final direto na listagem — não tem o problema de thumbnail pequeno que existe no Anota Aí, então o PASSO 3 (clicar pra abrir o modal e pegar a URL ampliada via Network) não chegou a ser necessário nesse teste, mas mantém no prompt por segurança pra outros sites Jotaja que possam servir thumbnail pequeno.
+
 ### Trindade Entrega (v1 — ago/2026)
 - Motoboy é da plataforma, não da loja. Modelo pré-pago: diária de R$30 pra liberar o dia + créditos de R$5/entrega (pacotes de 10/20/50), tudo via Pix real (Mercado Pago) em `/painel/crm/entrega`
 - Tabelas: `motoboys`, `company_delivery_wallet`, `delivery_credit_ledger`, `delivery_payments`, `delivery_orders`, `delivery_offers`

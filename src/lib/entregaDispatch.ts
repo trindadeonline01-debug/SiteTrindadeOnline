@@ -75,7 +75,7 @@ export async function ensureEntregaWebhookRegistered() {
 // mesma entrega. Entre os elegíveis, chama primeiro quem está há mais
 // tempo sem corrida (round-robin simples — sem geolocalização ainda).
 async function pickNextMotoboy(deliveryOrderId: string): Promise<{ id: string; name: string; phone: string } | null> {
-  const { data: active } = await supabase.from('motoboys').select('id, name, phone').eq('active', true)
+  const { data: active } = await supabase.from('motoboys').select('id, name, phone').eq('active', true).eq('available', true).eq('status', 'aprovado')
   if (!active || active.length === 0) return null
 
   const { data: pending } = await supabase.from('delivery_offers').select('motoboy_id').eq('status', 'pendente')

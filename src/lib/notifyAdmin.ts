@@ -14,6 +14,7 @@ export type AdminEvent =
   | { type: 'nova_empresa'; nome: string; categoria?: string }
   | { type: 'nova_sugestao'; empresa: string; sugestoes: string[] }
   | { type: 'nova_assinatura'; empresa: string; plano: string; valor: number }
+  | { type: 'motoboy_reenviou'; nome: string }
 
 function buildMessage(event: AdminEvent): string {
   if (event.type === 'nova_empresa') {
@@ -21,6 +22,9 @@ function buildMessage(event: AdminEvent): string {
   }
   if (event.type === 'nova_sugestao') {
     return `💡 Nova sugestão de subcategoria!\n\n${event.empresa} sugeriu:\n${event.sugestoes.map(s => `• ${s}`).join('\n')}`
+  }
+  if (event.type === 'motoboy_reenviou') {
+    return `🏍️ ${event.nome} reenviou os ajustes do cadastro de motoboy — confere em Admin → Entregas → Motoboys.`
   }
   return `💰 Nova assinatura!\n\n${event.empresa} assinou o ${event.plano} · R$ ${event.valor.toFixed(2).replace('.', ',')}`
 }

@@ -28,30 +28,48 @@ export default function ProdutoDetailClient({ slug, company, produto, related }:
   const reqMet = produto.groups.every((g, gi) => !g.required || sel[gi].length >= g.min_select)
   const initials = company.name.trim().slice(0, 2).toUpperCase()
 
-  function toggleOpt(gi: number, oi: number) {
+  // Grupo com máximo 1 (ex: tamanho) continua radio. Grupos com máximo maior
+  // permitem repetir a MESMA opção várias vezes (pedir o mesmo molho 3x, em
+  // vez de ser forçado a escolher 3 molhos diferentes).
+  function toggleRadio(gi: number, oi: number) {
+    setSel(prev => prev.map((s, i) => (i === gi ? (s.includes(oi) ? [] : [oi]) : s)))
+  }
+  function addOpt(gi: number, oi: number) {
     const g = produto.groups[gi]
+    const o = g.options[oi]
     setSel(prev => {
-      const next = prev.map((s, i) => {
-        if (i !== gi) return s
-        const active = s.includes(oi)
-        if (g.max_select === 1) return active ? [] : [oi]
-        if (active) return s.filter(x => x !== oi)
-        if (s.length < g.max_select) return [...s, oi]
-        return s
-      })
-      if (next[gi].length === g.max_select && next[gi].length !== prev[gi].length) {
+      const cur = prev[gi] || []
+      if (cur.length >= g.max_select) return prev
+      if (o.max_qty != null && cur.filter(x => x === oi).length >= o.max_qty) return prev
+      const next = prev.map((s, i) => (i === gi ? [...s, oi] : s))
+      if (next[gi].length === g.max_select && next[gi].length !== cur.length) {
         const nextEl = groupRefs.current[gi + 1]
         if (nextEl) setTimeout(() => nextEl.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150)
       }
       return next
     })
   }
+  function removeOpt(gi: number, oi: number) {
+    setSel(prev => prev.map((s, i) => {
+      if (i !== gi) return s
+      const idx = s.indexOf(oi)
+      if (idx === -1) return s
+      const next = [...s]; next.splice(idx, 1); return next
+    }))
+  }
 
   function addToCartAndGo() {
     if (!reqMet || adding || !open) return
     setAdding(true)
     const modifiers: { name: string; price: number }[] = []
-    produto.groups.forEach((g, gi) => sel[gi].forEach(oi => modifiers.push({ name: g.options[oi].name, price: g.options[oi].price })))
+    produto.groups.forEach((g, gi) => {
+      const counts = new Map<number, number>()
+      ;(sel[gi] || []).forEach(oi => counts.set(oi, (counts.get(oi) || 0) + 1))
+      counts.forEach((qtyN, oi) => {
+        const o = g.options[oi]
+        modifiers.push({ name: qtyN > 1 ? `${o.name} x${qtyN}` : o.name, price: o.price * qtyN })
+      })
+    })
     const key = produto.id + '|' + modifiers.map(m => m.name).sort().join('+')
     try {
       localStorage.setItem(cartStorageKey(slug), JSON.stringify({
@@ -86,6 +104,12 @@ export default function ProdutoDetailClient({ slug, company, produto, related }:
         .id-opt{display:flex;align-items:center;gap:10px;padding:11px 14px;border-top:1px solid #F0EDE8;font-size:13.5px;cursor:pointer;}
         .id-opt-radio{width:18px;height:18px;border-radius:50%;border:1.5px solid #DDD;flex-shrink:0;position:relative;}
         .id-opt-radio.on{border:5px solid var(--sign-dark);}
+        .id-opt-plus{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--sign-dark);color:#8A6410;background:#FEF3E2;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+        .id-opt-plus.disabled{opacity:.35;border-color:#DDD;color:#AAA;background:#F5F2EC;}
+        .id-opt-stepper{display:flex;align-items:center;gap:7px;flex-shrink:0;}
+        .id-opt-stepper b{min-width:12px;text-align:center;font-size:12.5px;}
+        .id-opt-stepper button{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--sign-dark);background:var(--sign-dark);color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+        .id-opt-stepper button:disabled{opacity:.35;border-color:#DDD;background:#DDD;cursor:default;}
         .id-opt-name{flex:1;}
         .id-opt-price{font-size:12px;color:#888;font-weight:600;}
         .id-seller{background:#fff;border:1px solid #E0DDD8;border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:12px;margin-bottom:16px;text-decoration:none;color:inherit;}
@@ -143,9 +167,24 @@ export default function ProdutoDetailClient({ slug, company, produto, related }:
             </div>
             {g.options.map((o, oi) => {
               const on = sel[gi].includes(oi)
+              const qtyForOpt = sel[gi].filter(x => x === oi).length
+              const groupFull = sel[gi].length >= g.max_select
+              const optAtMax = o.max_qty != null && qtyForOpt >= o.max_qty
+              const canAddMore = !groupFull && !optAtMax
               return (
-                <div className="id-opt" key={o.id} onClick={() => toggleOpt(gi, oi)}>
-                  <span className={`id-opt-radio ${on ? 'on' : ''}`} />
+                <div className="id-opt" key={o.id}
+                  onClick={() => { if (g.max_select === 1) toggleRadio(gi, oi); else if (canAddMore) addOpt(gi, oi) }}>
+                  {g.max_select === 1
+                    ? <span className={`id-opt-radio ${on ? 'on' : ''}`} />
+                    : qtyForOpt === 0
+                      ? <span className={`id-opt-plus ${canAddMore ? '' : 'disabled'}`}>+</span>
+                      : (
+                        <span className="id-opt-stepper" onClick={e => e.stopPropagation()}>
+                          <button type="button" aria-label={`Tirar um ${o.name}`} onClick={() => removeOpt(gi, oi)}>−</button>
+                          <b>{qtyForOpt}</b>
+                          <button type="button" aria-label={`Adicionar mais um ${o.name}`} disabled={!canAddMore} onClick={() => canAddMore && addOpt(gi, oi)}>+</button>
+                        </span>
+                      )}
                   <span className="id-opt-name">{o.name}</span>
                   {o.price > 0 && <span className="id-opt-price">+ {fmt(o.price)}</span>}
                 </div>

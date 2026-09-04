@@ -43,13 +43,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'CRM de WhatsApp não está ativo pra essa empresa' }, { status: 403 })
     }
 
+    // Conta só instância CONECTADA de verdade — contar toda linha da tabela
+    // (inclusive "disconnected") travava pra sempre quem tentou conectar uma
+    // vez, não completou o QR code (ou desconectou depois) e nunca mais
+    // conseguia gerar um QR novo, mesmo tendo zero número ativo.
     const { count } = await supabase
       .from('crm_whatsapp_instances')
       .select('id', { count: 'exact', head: true })
       .eq('company_id', company_id)
+      .eq('status', 'connected')
     if ((count || 0) >= (company.crm_phone_limit || 1)) {
       return NextResponse.json({ error: `limite de ${company.crm_phone_limit || 1} número(s) já atingido` }, { status: 400 })
     }
+    // Limpa instâncias antigas desconectadas dessa empresa antes de criar
+    // uma nova — sem isso a tabela acumula uma linha morta a cada tentativa
+    // que não completou o QR code.
+    await supabase.from('crm_whatsapp_instances').delete().eq('company_id', company_id).eq('status', 'disconnected')
 
     const instanceName = `crm-${company_id.replace(/-/g, '').slice(0, 12)}-${Date.now().toString(36)}`
 

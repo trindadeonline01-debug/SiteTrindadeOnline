@@ -169,27 +169,40 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
   const cartCount = cart.reduce((s, l) => s + l.qty, 0)
 
   function openDetail(p: Produto) { setDetail(p); setDetailSel(p.groups.map(() => [])); setDetailQty(1) }
-  function toggleOpt(gi: number, oi: number) {
+  // Grupo com máximo 1 (ex: tamanho) continua radio — escolher a mesma opção
+  // duas vezes não faz sentido aí. Grupos com máximo maior (ex: "escolha até
+  // 3 molhos") permitem repetir a MESMA opção várias vezes (pedir o mesmo
+  // molho 3x, em vez de ser forçado a escolher 3 molhos diferentes).
+  function toggleRadio(gi: number, oi: number) {
+    if (!detail) return
+    setDetailSel(sel => sel.map((s, i) => (i === gi ? (s.includes(oi) ? [] : [oi]) : s)))
+  }
+  function addOpt(gi: number, oi: number) {
     if (!detail) return
     const g = detail.groups[gi]
+    const o = g.options[oi]
     setDetailSel(sel => {
-      const next = sel.map((s, i) => {
-        if (i !== gi) return s
-        const active = s.includes(oi)
-        if (g.max_select === 1) return active ? [] : [oi]
-        if (active) return s.filter(x => x !== oi)
-        if (s.length < g.max_select) return [...s, oi]
-        return s
-      })
+      const cur = sel[gi] || []
+      if (cur.length >= g.max_select) return sel
+      if (o.max_qty != null && cur.filter(x => x === oi).length >= o.max_qty) return sel
+      const next = sel.map((s, i) => (i === gi ? [...s, oi] : s))
       // Ao completar um grupo (bater o máximo de escolhas), rola sozinho até
       // o próximo grupo — evita o cliente ter que descer a tela na mão pra
       // achar a próxima etapa (ex: escolheu os 2 sabores, já mostra a borda).
-      if (next[gi].length === g.max_select && next[gi].length !== sel[gi].length) {
+      if (next[gi].length === g.max_select && next[gi].length !== cur.length) {
         const nextEl = groupRefs.current[gi + 1]
         if (nextEl) setTimeout(() => nextEl.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150)
       }
       return next
     })
+  }
+  function removeOpt(gi: number, oi: number) {
+    setDetailSel(sel => sel.map((s, i) => {
+      if (i !== gi) return s
+      const idx = s.indexOf(oi)
+      if (idx === -1) return s
+      const next = [...s]; next.splice(idx, 1); return next
+    }))
   }
   const detailUnitPrice = detail ? (promoPrice(detail) ?? detail.sale_price) + detail.groups.reduce((s, g, gi) => s + groupContribution(g, detailSel[gi]), 0) : 0
   const detailReqMet = detail ? detail.groups.every((g, gi) => !g.required || detailSel[gi].length >= g.min_select) : true
@@ -197,7 +210,14 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
   function confirmAddDetail() {
     if (!detail || !detailReqMet) return
     const modifiers: { name: string; price: number }[] = []
-    detail.groups.forEach((g, gi) => detailSel[gi].forEach(oi => modifiers.push({ name: g.options[oi].name, price: g.options[oi].price })))
+    detail.groups.forEach((g, gi) => {
+      const counts = new Map<number, number>()
+      ;(detailSel[gi] || []).forEach(oi => counts.set(oi, (counts.get(oi) || 0) + 1))
+      counts.forEach((qty, oi) => {
+        const o = g.options[oi]
+        modifiers.push({ name: qty > 1 ? `${o.name} x${qty}` : o.name, price: o.price * qty })
+      })
+    })
     addToCart(detail.id, detail.name, detailUnitPrice, detailQty, modifiers)
     setDetail(null)
   }
@@ -475,6 +495,11 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
         .cd-ocheck.active{ background:var(--sign-dark);border-color:var(--sign-dark); }
         .cd-oplus{ flex:none;width:26px;height:26px;border-radius:50%;border:1.5px solid var(--sign-dark);color:#8A6410;background:#FEF3E2;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center; }
         .cd-oplus.active{ background:var(--sign-dark);color:#fff;border-color:var(--sign-dark); }
+        .cd-oplus.disabled{ opacity:.35;border-color:#D8D2C4;color:#AAA;background:#F5F2EC; }
+        .cd-ostepper{ flex:none;display:flex;align-items:center;gap:8px; }
+        .cd-ostepper span{ min-width:14px;text-align:center;font-weight:800;font-size:13px; }
+        .cd-ostepper button{ width:24px;height:24px;border-radius:50%;border:1.5px solid var(--sign-dark);background:var(--sign-dark);color:#fff;font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer; }
+        .cd-ostepper button:disabled{ opacity:.35;border-color:#D8D2C4;background:#D8D2C4;cursor:default; }
         .cd-dfoot{ flex:none;background:#fff;border-top:1px solid #EDE8E0;padding:12px 16px 16px;display:flex;gap:10px; }
         .cd-addcart{ flex:1;padding:14px;border-radius:12px;border:none;background:var(--sign);color:var(--ink);font-weight:800;font-size:13px;cursor:pointer; }
         .cd-addcart:disabled{ background:#E2DCCB;color:#A79E8B; }
@@ -636,17 +661,30 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
                 </div>
                 {g.options.map((o, oi) => {
                   const active = detailSel[gi]?.includes(oi)
+                  const qtyForOpt = detailSel[gi]?.filter(x => x === oi).length || 0
+                  const groupFull = selCount >= g.max_select
+                  const optAtMax = o.max_qty != null && qtyForOpt >= o.max_qty
+                  const canAddMore = !groupFull && !optAtMax
                   return (
-                    <div className="cd-orow" key={o.id} onClick={() => toggleOpt(gi, oi)}>
+                    <div className="cd-orow" key={o.id}
+                      onClick={() => { if (g.max_select === 1) toggleRadio(gi, oi); else if (canAddMore) addOpt(gi, oi) }}>
                       {o.photo_url && <div className="cd-oimg"><img src={o.photo_url} alt="" /></div>}
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 12.5, fontWeight: 700 }}>{o.name}</div>
                         <div style={{ fontSize: 11, color: '#555' }}>{o.price > 0 ? '+ ' + fmt(o.price) : 'Grátis'}</div>
-                        {o.max_qty != null && <div className="cd-omax">Máx {o.max_qty}</div>}
+                        {o.max_qty != null && o.max_qty > 1 && <div className="cd-omax">Máx {o.max_qty}</div>}
                       </div>
-                      {g.max_select === 1
-                        ? <div className={`cd-ocheck radio ${active ? 'active' : ''}`}>{active ? '●' : ''}</div>
-                        : <div className={`cd-oplus ${active ? 'active' : ''}`}>{active ? '✓' : '+'}</div>}
+                      {g.max_select === 1 ? (
+                        <div className={`cd-ocheck radio ${active ? 'active' : ''}`}>{active ? '●' : ''}</div>
+                      ) : qtyForOpt === 0 ? (
+                        <div className={`cd-oplus ${canAddMore ? '' : 'disabled'}`}>+</div>
+                      ) : (
+                        <div className="cd-ostepper" onClick={e => e.stopPropagation()}>
+                          <button type="button" aria-label={`Tirar um ${o.name}`} onClick={() => removeOpt(gi, oi)}>−</button>
+                          <span>{qtyForOpt}</span>
+                          <button type="button" aria-label={`Adicionar mais um ${o.name}`} disabled={!canAddMore} onClick={() => canAddMore && addOpt(gi, oi)}>+</button>
+                        </div>
+                      )}
                     </div>
                   )
                 })}

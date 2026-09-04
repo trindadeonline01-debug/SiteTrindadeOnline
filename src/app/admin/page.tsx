@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { adminFetch } from '@/lib/adminFetch'
 import NotificacoesTab from '@/components/admin/NotificacoesTab'
 import DashboardTab from '@/components/admin/DashboardTab'
+import SalaDeVendasTab from '@/components/admin/SalaDeVendasTab'
 import DisparosTab from '@/components/DisparosTab'
 import PalavraPremiadaTab from '@/components/PalavraPremiadaTab'
 import MotoboysTab from '@/components/MotoboysTab'
@@ -54,7 +55,7 @@ const statusColor = (s: string) => s === 'active' ? '#0F8050' : s === 'pending' 
 const statusLabel = (s: string) => s === 'active' ? 'Ativa' : s === 'pending' ? 'Pendente' : 'Suspensa'
 
 export default function AdminPage() {
-  const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'denuncias'|'usuarios'|'buscas'|'atividade'|'banners'|'pedidos-banner'|'configuracoes'|'recursos'|'planos'|'aparencia'|'subcategorias'|'vendas'|'notificacoes'|'disparos'|'palavra-premiada'|'motoboys'>('dashboard')
+  const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'denuncias'|'usuarios'|'buscas'|'atividade'|'banners'|'pedidos-banner'|'configuracoes'|'recursos'|'planos'|'aparencia'|'subcategorias'|'vendas'|'sala-de-vendas'|'notificacoes'|'disparos'|'palavra-premiada'|'motoboys'>('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [stats, setStats]           = useState<Stats|null>(null)
   const [companies, setCompanies]   = useState<Company[]>([])
@@ -1855,6 +1856,7 @@ export default function AdminPage() {
     { id: 'pedidos-banner', icon: '🖼️', label: 'Ped. Banner' },
     { id: 'planos', icon: '💰', label: 'Planos' },
             { id: 'vendas', icon: '📈', label: 'Vendas' },
+            { id: 'sala-de-vendas', icon: '🛒', label: 'Sala de Vendas' },
     { id: 'recursos', icon: '🔧', label: 'Recursos' },
     { id: 'configuracoes', icon: '⚙️', label: 'Configurações' },
     { id: 'aparencia', icon: '🎨', label: 'Aparência' },
@@ -1899,6 +1901,7 @@ export default function AdminPage() {
               {tab === 'pedidos-banner' && 'Pedidos de Banner'}
               {tab === 'planos' && 'Gestão de Planos'}
               {tab === 'vendas' && 'Painel de Vendas'}
+              {tab === 'sala-de-vendas' && 'Sala de Vendas'}
               {tab === 'recursos' && 'Recursos do Site'}
               {tab === 'configuracoes' && 'Configurações'}
               {tab === 'aparencia' && 'Aparência do Site'}
@@ -3562,6 +3565,10 @@ export default function AdminPage() {
                 </div>
               </div>
             </div>
+          )}
+
+          {tab === 'sala-de-vendas' && (
+            <SalaDeVendasTab />
           )}
 
           {tab === 'disparos' && (

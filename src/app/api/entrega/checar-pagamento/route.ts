@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { applyDeliveryWalletPayment } from '@/lib/entregaWallet'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -24,27 +25,12 @@ export async function POST(req: NextRequest) {
     const payment = await res.json()
     if (payment.status !== 'approved') return NextResponse.json({ paid: false })
 
-    const { data: dp } = await supabase.from('delivery_payments').select('id, status, kind, credits').eq('payment_id', String(payment_id)).maybeSingle()
+    const { data: dp } = await supabase.from('delivery_payments').select('id, status, kind, credits, dias, value').eq('payment_id', String(payment_id)).maybeSingle()
     if (!dp) return NextResponse.json({ paid: false })
 
     if (dp.status !== 'paid') {
       await supabase.from('delivery_payments').update({ status: 'paid', paid_at: new Date().toISOString() }).eq('id', dp.id)
-      if (dp.kind === 'diaria') {
-        const today = new Date().toISOString().slice(0, 10)
-        await supabase.from('company_delivery_wallet').upsert(
-          { company_id, daily_paid_on: today, updated_at: new Date().toISOString() },
-          { onConflict: 'company_id' }
-        )
-        await supabase.from('delivery_credit_ledger').insert({ company_id, kind: 'diaria', amount: payment.transaction_amount, credits_delta: 0 })
-      } else {
-        const { data: wallet } = await supabase.from('company_delivery_wallet').select('credits').eq('company_id', company_id).maybeSingle()
-        const newCredits = (wallet?.credits || 0) + Number(dp.credits || 0)
-        await supabase.from('company_delivery_wallet').upsert(
-          { company_id, credits: newCredits, updated_at: new Date().toISOString() },
-          { onConflict: 'company_id' }
-        )
-        await supabase.from('delivery_credit_ledger').insert({ company_id, kind: 'compra_credito', amount: payment.transaction_amount, credits_delta: Number(dp.credits || 0) })
-      }
+      await applyDeliveryWalletPayment({ companyId: company_id, kind: dp.kind, credits: Number(dp.credits || 0), dias: Number(dp.dias || 0), value: Number(dp.value || payment.transaction_amount) })
     }
 
     return NextResponse.json({ paid: true })

@@ -5,14 +5,15 @@ import { refreshSessionOnce } from '@/lib/authRefresh'
 import { moduleActive } from '@/lib/modules'
 import EmpresaShell from '@/components/EmpresaShell'
 
-type Wallet = { credits: number; daily_paid_on: string | null }
+type Wallet = { credits: number; daily_paid_until: string | null }
+type Precos = { today: string; dayType: 'util' | 'fds' | 'feriado'; diaria: number; entrega: number; pacoteDias: number; pacoteDesconto: number }
 type DStatus = 'buscando_motoboy' | 'a_caminho' | 'entregue' | 'cancelada' | 'sem_credito'
 type DOrder = {
   id: string; customer_name: string; customer_phone: string | null; dropoff_address: string
   status: DStatus; fee: number; motoboy_name: string | null; delivery_code: string
   created_at: string; delivered_at: string | null
 }
-type PixModal = { kind: 'diaria' | 'credito'; credits: number; payment_id: string; qr: string | null; copy: string | null; value: number }
+type PixModal = { kind: 'diaria' | 'credito' | 'combo'; credits: number; dias: number; payment_id: string; qr: string | null; copy: string | null; value: number }
 
 const STATUS_LABEL: Record<DStatus, string> = {
   buscando_motoboy: 'Chamando motoboy', a_caminho: 'A caminho', entregue: 'Entregue', cancelada: 'Cancelada', sem_credito: 'Sem crédito',
@@ -21,10 +22,7 @@ const STATUS_COLOR: Record<DStatus, { bg: string; fg: string }> = {
   buscando_motoboy: { bg: '#FEF0E0', fg: '#B5690C' }, a_caminho: { bg: '#E8F0FE', fg: '#1A56B0' },
   entregue: { bg: '#E4F3EC', fg: '#157A52' }, cancelada: { bg: '#FBEAEA', fg: '#C43D3D' }, sem_credito: { bg: '#F0EDE8', fg: '#6E6656' },
 }
-const CREDIT_PACKS: { credits: number; value: number }[] = [{ credits: 10, value: 50 }, { credits: 20, value: 100 }, { credits: 50, value: 250 }]
-
 function fmt(n: number) { return 'R$ ' + n.toFixed(2).replace('.', ',') }
-function todayStr() { return new Date().toISOString().slice(0, 10) }
 function timeAgo(iso: string) {
   const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
   if (mins < 1) return 'agora'
@@ -38,7 +36,10 @@ export default function EntregaPage() {
   const [companyName, setCompanyName] = useState('')
   const [crmEnabled, setCrmEnabled] = useState(false)
   const [lojaDigitalEnabled, setLojaDigitalEnabled] = useState(false)
-  const [wallet, setWallet] = useState<Wallet>({ credits: 0, daily_paid_on: null })
+  const [wallet, setWallet] = useState<Wallet>({ credits: 0, daily_paid_until: null })
+  const [precos, setPrecos] = useState<Precos | null>(null)
+  const [diasSel, setDiasSel] = useState(1)
+  const [creditosSel, setCreditosSel] = useState(0)
   const [orders, setOrders] = useState<DOrder[]>([])
   const [pixModal, setPixModal] = useState<PixModal | null>(null)
   const [paying, setPaying] = useState<string | null>(null)
@@ -61,6 +62,7 @@ export default function EntregaPage() {
       setCrmEnabled(moduleActive(comp.crm_whatsapp_enabled, comp.trial_modules_until))
       setLojaDigitalEnabled(moduleActive(comp.loja_digital_enabled, comp.trial_modules_until))
       await loadAll(comp.id)
+      fetch('/api/entrega/precos').then(r => r.json()).then(setPrecos).catch(() => {})
       setLoading(false)
 
       const channel = supabase.channel(`entrega-${comp.id}`)
@@ -82,8 +84,8 @@ export default function EntregaPage() {
     await Promise.all([loadWallet(cid), loadOrders(cid)])
   }
   async function loadWallet(cid: string) {
-    const { data } = await supabase.from('company_delivery_wallet').select('credits, daily_paid_on').eq('company_id', cid).maybeSingle()
-    setWallet({ credits: data?.credits || 0, daily_paid_on: data?.daily_paid_on || null })
+    const { data } = await supabase.from('company_delivery_wallet').select('credits, daily_paid_until').eq('company_id', cid).maybeSingle()
+    setWallet({ credits: data?.credits || 0, daily_paid_until: data?.daily_paid_until || null })
   }
   async function loadOrders(cid: string) {
     const since = new Date(); since.setHours(0, 0, 0, 0)
@@ -91,17 +93,20 @@ export default function EntregaPage() {
     setOrders((data || []) as DOrder[])
   }
 
-  const ativaHoje = wallet.daily_paid_on === todayStr()
+  const ativaHoje = !!(precos && wallet.daily_paid_until && wallet.daily_paid_until >= precos.today)
+  const diasFaltando = ativaHoje && wallet.daily_paid_until && precos
+    ? Math.round((new Date(wallet.daily_paid_until + 'T00:00:00Z').getTime() - new Date(precos.today + 'T00:00:00Z').getTime()) / 86400000) + 1
+    : 0
 
-  async function iniciarPagamento(kind: 'diaria' | 'credito', credits = 0) {
+  async function iniciarPagamento(kind: 'diaria' | 'credito' | 'combo', dias = 0, credits = 0) {
     setPayError('')
-    setPaying(kind + credits)
+    setPaying(`${kind}${dias}${credits}`)
 
     const call = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       const r = await fetch('/api/entrega/pagar', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ access_token: session?.access_token, company_id: companyId, kind, credits }),
+        body: JSON.stringify({ access_token: session?.access_token, company_id: companyId, kind, dias, credits }),
       })
       return { r, data: await r.json() }
     }
@@ -114,7 +119,7 @@ export default function EntregaPage() {
     setPaying(null)
     if (res.status === 401) { setPayError((data.error || 'sessão inválida') + ' — atualiza a página (F5) e tenta de novo.'); return }
     if (!res.ok || data.error) { setPayError(data.error || 'Não consegui gerar o Pix — tenta de novo.'); return }
-    setPixModal({ kind, credits, payment_id: String(data.payment_id), qr: data.qr_code_image, copy: data.pix_copy_paste, value: data.value })
+    setPixModal({ kind, credits, dias, payment_id: String(data.payment_id), qr: data.qr_code_image, copy: data.pix_copy_paste, value: data.value })
     if (pollRef.current) clearInterval(pollRef.current)
     pollRef.current = setInterval(async () => {
       const r = await fetch('/api/entrega/checar-pagamento', {
@@ -129,6 +134,21 @@ export default function EntregaPage() {
       }
     }, 4000)
   }
+
+  function comprar() {
+    const dias = ativaHoje ? 0 : diasSel
+    const credits = creditosSel
+    if (dias === 0 && credits === 0) return
+    const kind = dias > 0 && credits > 0 ? 'combo' : dias > 0 ? 'diaria' : 'credito'
+    iniciarPagamento(kind, dias, credits)
+  }
+
+  const totalPreview = precos ? (() => {
+    const dias = ativaHoje ? 0 : diasSel
+    const diariaTotal = dias * precos.diaria
+    const desconto = dias === precos.pacoteDias ? precos.pacoteDesconto : 0
+    return Math.max(0, diariaTotal - desconto) + creditosSel * precos.entrega
+  })() : 0
 
   // Entrega avulsa — pra empresa que não tem o módulo Cardápio/Pedidos e
   // ainda assim quer chamar um motoboy (ela gerencia o pedido por fora,
@@ -234,7 +254,7 @@ export default function EntregaPage() {
           <h1>🏍️ Entrega</h1>
           <button className="en-btn en-btn-gold" onClick={() => { setNovaError(''); setNovaOpen(true) }}>+ Nova entrega</button>
         </div>
-        <p>Diária de R$ 30,00 pra liberar o dia, mais R$ 5,00 por entrega dentro da Trindade. O motoboy é da plataforma — só chamar.</p>
+        <p>{precos ? `Diária de ${fmt(precos.diaria)} hoje pra liberar o dia, mais ${fmt(precos.entrega)} por entrega dentro da Trindade.` : 'Carregando preços...'} O motoboy é da plataforma — só chamar.</p>
       </div>
 
       <div className="en-summary">
@@ -246,22 +266,47 @@ export default function EntregaPage() {
         <div className="en-kicker">Status de hoje</div>
         <div className="en-status-row">
           <span className={`en-pill ${ativaHoje ? 'on' : 'off'}`}><span className="en-dot" /> {ativaHoje ? 'Diária ativa' : 'Diária não paga'}</span>
-          {!ativaHoje && <button className="en-btn en-btn-gold" disabled={paying === 'diaria0'} onClick={() => iniciarPagamento('diaria')}>{paying === 'diaria0' ? 'Gerando Pix...' : 'Pagar diária — R$ 30,00'}</button>}
         </div>
-        <div className="en-hint">A diária vale só pra hoje — amanhã cedo ela zera e precisa pagar de novo pra liberar as entregas (mesmo com crédito sobrando).</div>
+        <div className="en-hint">
+          {ativaHoje
+            ? `Cobre ${diasFaltando} dia${diasFaltando !== 1 ? 's' : ''} (até ${wallet.daily_paid_until?.split('-').reverse().join('/')}).`
+            : 'Sem a diária de hoje, o motoboy não pode ser chamado — mesmo com crédito sobrando.'}
+        </div>
       </div>
 
       <div className="en-card">
         <div className="en-kicker">Crédito de entrega</div>
         <div className="en-credit-hero"><span className="en-credit-num">{wallet.credits}</span><span className="en-credit-label">entregas disponíveis</span></div>
-        <div className="en-credit-note">R$ 5,00 por entrega dentro da Trindade · consumido a cada corrida concluída</div>
-        <div className="en-buy-row">
-          {CREDIT_PACKS.map(p => (
-            <button key={p.credits} className="en-buy-chip" disabled={paying === 'credito' + p.credits} onClick={() => iniciarPagamento('credito', p.credits)}>
-              <b>+{p.credits} entregas</b> {paying === 'credito' + p.credits ? 'Gerando Pix...' : fmt(p.value)}
+        <div className="en-credit-note">{precos ? `${fmt(precos.entrega)} por entrega hoje dentro da Trindade` : ''} · consumido a cada corrida concluída</div>
+      </div>
+
+      <div className="en-card">
+        <div className="en-kicker">Comprar diária e crédito</div>
+        {!ativaHoje && precos && (
+          <>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#6E6656', marginBottom: 6 }}>Diária</div>
+            <div className="en-buy-row" style={{ marginBottom: 14 }}>
+              <button className="en-buy-chip" style={diasSel === 1 ? { borderColor: 'var(--sign)', background: '#FEF3E2' } : undefined} onClick={() => setDiasSel(1)}>
+                <b>Hoje</b> {fmt(precos.diaria)}
+              </button>
+              <button className="en-buy-chip" style={diasSel === precos.pacoteDias ? { borderColor: 'var(--sign)', background: '#FEF3E2' } : undefined} onClick={() => setDiasSel(precos.pacoteDias)}>
+                <b>Pacote — {precos.pacoteDias} dias</b> {fmt(precos.diaria * precos.pacoteDias - precos.pacoteDesconto)} <span style={{ color: '#157A52', fontWeight: 700 }}>(economiza {fmt(precos.pacoteDesconto)})</span>
+              </button>
+            </div>
+          </>
+        )}
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#6E6656', marginBottom: 6 }}>Créditos de entrega (opcional)</div>
+        <div className="en-buy-row" style={{ marginBottom: 14 }}>
+          {[0, 10, 20, 50].map(c => (
+            <button key={c} className="en-buy-chip" style={creditosSel === c ? { borderColor: 'var(--sign)', background: '#FEF3E2' } : undefined} onClick={() => setCreditosSel(c)}>
+              <b>{c === 0 ? 'Nenhum' : `+${c} entregas`}</b> {c > 0 && precos ? fmt(c * precos.entrega) : ''}
             </button>
           ))}
         </div>
+        <button className="en-btn en-btn-gold" style={{ width: '100%' }} disabled={!precos || (ativaHoje && creditosSel === 0) || paying !== null}
+          onClick={comprar}>
+          {paying ? 'Gerando Pix...' : `Pagar ${fmt(totalPreview)} via Pix`}
+        </button>
         {payError && <div className="en-error">{payError}</div>}
       </div>
 
@@ -292,7 +337,11 @@ export default function EntregaPage() {
       {pixModal && (
         <div className="en-modal-bg" onClick={e => { if (e.target === e.currentTarget) fecharModal() }}>
           <div className="en-modal">
-            <h3>{pixModal.kind === 'diaria' ? 'Diária de entrega' : `+${pixModal.credits} entregas`}</h3>
+            <h3>
+              {pixModal.kind === 'diaria' && (pixModal.dias > 1 ? `Diária — ${pixModal.dias} dias` : 'Diária de entrega')}
+              {pixModal.kind === 'credito' && `+${pixModal.credits} entregas`}
+              {pixModal.kind === 'combo' && `Diária${pixModal.dias > 1 ? ` (${pixModal.dias}d)` : ''} + ${pixModal.credits} entregas`}
+            </h3>
             <div className="en-modal-val">{fmt(pixModal.value)} via Pix</div>
             {pixModal.qr && (
               <div className="en-qr-wrap"><img src={`data:image/png;base64,${pixModal.qr}`} alt="QR Code Pix" className="en-qr" /></div>

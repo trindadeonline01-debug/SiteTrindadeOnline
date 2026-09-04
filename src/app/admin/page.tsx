@@ -11,6 +11,7 @@ import SalaDeVendasTab from '@/components/admin/SalaDeVendasTab'
 import DisparosTab from '@/components/DisparosTab'
 import PalavraPremiadaTab from '@/components/PalavraPremiadaTab'
 import MotoboysTab from '@/components/MotoboysTab'
+import EntregaConfigTab from '@/components/admin/EntregaConfigTab'
 import PhotoManager from '@/components/PhotoManager'
 import { dayOfWeekLabel } from '@/lib/businessHours'
 import dynamic from 'next/dynamic'
@@ -55,7 +56,7 @@ const statusColor = (s: string) => s === 'active' ? '#0F8050' : s === 'pending' 
 const statusLabel = (s: string) => s === 'active' ? 'Ativa' : s === 'pending' ? 'Pendente' : 'Suspensa'
 
 export default function AdminPage() {
-  const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'denuncias'|'usuarios'|'buscas'|'atividade'|'banners'|'pedidos-banner'|'configuracoes'|'recursos'|'planos'|'aparencia'|'subcategorias'|'vendas'|'sala-de-vendas'|'notificacoes'|'disparos'|'palavra-premiada'|'motoboys'>('dashboard')
+  const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'denuncias'|'usuarios'|'buscas'|'atividade'|'banners'|'pedidos-banner'|'configuracoes'|'recursos'|'planos'|'aparencia'|'subcategorias'|'vendas'|'sala-de-vendas'|'notificacoes'|'disparos'|'palavra-premiada'|'entregas'>('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [stats, setStats]           = useState<Stats|null>(null)
   const [companies, setCompanies]   = useState<Company[]>([])
@@ -168,6 +169,7 @@ export default function AdminPage() {
   const [subcatsList, setSubcatsList]       = useState<any[]>([])
   const [subcatSearch, setSubcatSearch]     = useState('')
   const [subcatInnerTab, setSubcatInnerTab] = useState<'lista'|'sugestoes'>('lista')
+  const [entregaInnerTab, setEntregaInnerTab] = useState<'config'|'motoboys'|'pagamentos'|'relatorios'>('config')
   const [sugestoesList, setSugestoesList]   = useState<any[]>([])
   const [subcatForm, setSubcatForm]         = useState<any>({ name:'', emoji:'', category_id:'' })
   const [pendingSuggestionId, setPendingSuggestionId] = useState<string|null>(null)
@@ -1864,7 +1866,7 @@ export default function AdminPage() {
             { id: 'notificacoes', icon: '🔔', label: 'Notificações' },
             { id: 'disparos', icon: '📤', label: 'Disparos' },
             { id: 'palavra-premiada', icon: '🎁', label: 'Palavra Premiada' },
-            { id: 'motoboys', icon: '🏍️', label: 'Motoboys' },
+            { id: 'entregas', icon: '🏍️', label: 'Entregas' },
           ].sort((a, b) => a.label.localeCompare(b.label, 'pt-BR')).map(n => (
             <div
               key={n.id}
@@ -1909,7 +1911,7 @@ export default function AdminPage() {
               {tab === 'notificacoes' && 'Notificações Push'}
               {tab === 'disparos' && 'Disparos WhatsApp'}
               {tab === 'palavra-premiada' && 'Palavra Premiada'}
-              {tab === 'motoboys' && 'Motoboys — Trindade Entrega'}
+              {tab === 'entregas' && 'Entregas — Trindade Entrega'}
             </div>
             <div className="topbar-date">{new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}</div>
           </div>
@@ -3577,8 +3579,29 @@ export default function AdminPage() {
           {tab === 'palavra-premiada' && (
             <PalavraPremiadaTab />
           )}
-          {tab === 'motoboys' && (
-            <MotoboysTab />
+          {tab === 'entregas' && (
+            <div>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+                {([['config', '⚙️ Configurações'], ['motoboys', '🏍️ Motoboys'], ['pagamentos', '💸 Pagamentos'], ['relatorios', '📊 Relatórios']] as const).map(([id, label]) => (
+                  <button key={id} onClick={() => setEntregaInnerTab(id)}
+                    style={{ padding: '8px 16px', borderRadius: 10, border: entregaInnerTab === id ? '1.5px solid var(--sign-dark)' : '1.5px solid #E0DDD8', background: entregaInnerTab === id ? '#FEF3E2' : '#fff', color: entregaInnerTab === id ? '#92600A' : '#666', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'Archivo,sans-serif' }}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {entregaInnerTab === 'config' && <EntregaConfigTab />}
+              {entregaInnerTab === 'motoboys' && <MotoboysTab />}
+              {entregaInnerTab === 'pagamentos' && (
+                <div style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 2px 12px rgba(0,0,0,0.07)', color: '#888', fontSize: 13 }}>
+                  🚧 Em construção — próxima etapa (repasses aos motoboys, comprovante de Pix, relatório filtrado).
+                </div>
+              )}
+              {entregaInnerTab === 'relatorios' && (
+                <div style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 2px 12px rgba(0,0,0,0.07)', color: '#888', fontSize: 13 }}>
+                  🚧 Em construção — próxima etapa (entregas por empresa, desempenho por motoboy).
+                </div>
+              )}
+            </div>
           )}
           {tab === 'notificacoes' && (
             <NotificacoesTab />

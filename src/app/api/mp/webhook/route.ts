@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { notifyAdmin } from '@/lib/notifyAdmin'
+import { applyDeliveryWalletPayment } from '@/lib/entregaWallet'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -93,25 +94,10 @@ async function processPayment(paymentId: string) {
 
     // TRINDADE ENTREGA — diária ou pacote de créditos
     if (ext.type === 'delivery_wallet' && ext.company_id) {
-      const { data: dp } = await supabase.from('delivery_payments').select('id, status').eq('payment_id', String(paymentId)).maybeSingle()
+      const { data: dp } = await supabase.from('delivery_payments').select('id, status, kind, credits, dias, value').eq('payment_id', String(paymentId)).maybeSingle()
       if (dp && dp.status !== 'paid') {
         await supabase.from('delivery_payments').update({ status: 'paid', paid_at: new Date().toISOString() }).eq('id', dp.id)
-        if (ext.kind === 'diaria') {
-          const today = new Date().toISOString().slice(0, 10)
-          await supabase.from('company_delivery_wallet').upsert(
-            { company_id: ext.company_id, daily_paid_on: today, updated_at: new Date().toISOString() },
-            { onConflict: 'company_id' }
-          )
-          await supabase.from('delivery_credit_ledger').insert({ company_id: ext.company_id, kind: 'diaria', amount: payment.transaction_amount, credits_delta: 0 })
-        } else if (ext.kind === 'credito') {
-          const { data: wallet } = await supabase.from('company_delivery_wallet').select('credits').eq('company_id', ext.company_id).maybeSingle()
-          const newCredits = (wallet?.credits || 0) + Number(ext.credits || 0)
-          await supabase.from('company_delivery_wallet').upsert(
-            { company_id: ext.company_id, credits: newCredits, updated_at: new Date().toISOString() },
-            { onConflict: 'company_id' }
-          )
-          await supabase.from('delivery_credit_ledger').insert({ company_id: ext.company_id, kind: 'compra_credito', amount: payment.transaction_amount, credits_delta: Number(ext.credits || 0) })
-        }
+        await applyDeliveryWalletPayment({ companyId: ext.company_id, kind: dp.kind, credits: Number(dp.credits ?? ext.credits ?? 0), dias: Number(dp.dias ?? ext.dias ?? 0), value: Number(dp.value || payment.transaction_amount) })
       }
       return
     }

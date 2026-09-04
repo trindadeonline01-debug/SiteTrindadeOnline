@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { moduleActive } from '@/lib/modules'
+import { getTodayValues } from '@/lib/entregaPricing'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -144,9 +145,9 @@ export async function criarEntregaEChamarMotoboy(opts: {
   if (!moduleActive(company.entrega_enabled, company.trial_modules_until)) return { ok: false, error: 'Módulo de entrega não está ativo pra essa empresa.' }
   if (!company.address?.trim()) return { ok: false, error: 'Cadastre o endereço da loja no perfil antes de chamar motoboy.' }
 
-  const { data: wallet } = await supabase.from('company_delivery_wallet').select('credits, daily_paid_on').eq('company_id', companyId).maybeSingle()
-  const today = new Date().toISOString().slice(0, 10)
-  if (wallet?.daily_paid_on !== today) return { ok: false, error: 'Diária de hoje ainda não foi paga — ativa em Entrega no painel.' }
+  const { data: wallet } = await supabase.from('company_delivery_wallet').select('credits, daily_paid_until').eq('company_id', companyId).maybeSingle()
+  const { entrega: entregaFee, today } = await getTodayValues()
+  if (!wallet?.daily_paid_until || wallet.daily_paid_until < today) return { ok: false, error: 'Diária de hoje ainda não foi paga — ativa em Entrega no painel.' }
   if (!wallet?.credits || wallet.credits < 1) return { ok: false, error: 'Sem crédito de entrega — compra mais em Entrega no painel.' }
 
   if (pedidoId) {
@@ -156,7 +157,7 @@ export async function criarEntregaEChamarMotoboy(opts: {
 
   const { data: order, error: insertErr } = await supabase.from('delivery_orders').insert({
     company_id: companyId, pedido_id: pedidoId || null, customer_name: customerName.trim(), customer_phone: customerPhone || null,
-    pickup_address: company.address.trim(), dropoff_address: dropoffAddress.trim(), delivery_code: genDeliveryCode(), fee: 5.00,
+    pickup_address: company.address.trim(), dropoff_address: dropoffAddress.trim(), delivery_code: genDeliveryCode(), fee: entregaFee,
   }).select('id, delivery_code').single()
   if (insertErr || !order) return { ok: false, error: insertErr?.message || 'falha ao criar entrega' }
 

@@ -286,7 +286,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
     fetch('/api/loja/registrar-pedido', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        companyId: company.id, phone: profile?.phone || null, name: profile?.name || 'Cliente',
+        companyId: company.id, pedidoId: pedido.id, phone: profile?.phone || null, name: profile?.name || 'Cliente',
         address: deliveryType === 'entrega' ? address : null, total, subtotal: cartTotal, deliveryFee: taxa,
         paymentMethod: payMethod, deliveryType, notes: finalNotes || null,
         items: cart.map(l => ({ produtoId: l.produtoId, name: l.name, qty: l.qty, unitPrice: l.unitPrice, modifiers: l.modifiers })),

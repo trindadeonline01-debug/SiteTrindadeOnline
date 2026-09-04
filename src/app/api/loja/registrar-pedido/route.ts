@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { moduleActive } from '@/lib/modules'
 import { normalizePhone } from '@/lib/phone'
+import { criarEntregaEChamarMotoboy } from '@/lib/entregaDispatch'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -64,11 +65,28 @@ function buildOwnerMessage(opts: OrderInfo & { customerName: string; customerPho
 export async function POST(req: NextRequest) {
   try {
     const {
-      companyId, phone: rawPhone, name, address, total, items,
+      companyId, pedidoId, phone: rawPhone, name, address, total, items,
       subtotal, deliveryFee, paymentMethod, deliveryType, notes,
     } = await req.json()
     if (!companyId) return NextResponse.json({ error: 'companyId obrigatório' }, { status: 400 })
     const phone = rawPhone ? normalizePhone(rawPhone) : null
+
+    // Chama o motoboy JÁ, assim que o pedido de entrega é confirmado — não
+    // espera a loja mover pra "em preparo". Precisa de `await` mesmo sendo
+    // melhor esforço: função serverless da Vercel encerra assim que a
+    // resposta HTTP sai, então uma chamada solta sem await morre pela
+    // metade (lição documentada — ver KNOWLEDGE_BASE.md §10). Se faltar
+    // crédito, diária não paga, módulo desligado etc., simplesmente não
+    // dispara — a loja ainda consegue chamar na mão em /painel/pedidos, e o
+    // gatilho de "em preparo" (maybeAutoChamarMotoboy) serve de rede de
+    // segurança caso isso aqui falhe por qualquer outro motivo.
+    if (deliveryType === 'entrega' && address && pedidoId) {
+      try {
+        await criarEntregaEChamarMotoboy({
+          companyId, pedidoId, customerName: name || 'Cliente', customerPhone: phone, dropoffAddress: address,
+        })
+      } catch {}
+    }
 
     if (phone) {
       const { data: existing } = await supabase

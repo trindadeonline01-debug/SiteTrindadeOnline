@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { moduleActive } from '@/lib/modules'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -95,9 +96,74 @@ async function pickNextMotoboy(deliveryOrderId: string): Promise<{ id: string; n
   return eligible[0]
 }
 
+// Link de busca do Google Maps a partir do endereço em texto — não temos
+// lat/lng geocodado, então usa o formato de busca (funciona igual, abre com
+// o pino no endereço certo tanto no app quanto no navegador).
+function mapsLink(address: string): string {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
+}
+
 function offerMessage(order: { pickup_address: string; dropoff_address: string; customer_name: string; fee: number }): string {
   const fee = Number(order.fee).toFixed(2).replace('.', ',')
-  return `🏍️ *Tem entrega!*\nRetirar em: ${order.pickup_address}\nEntregar pra ${order.customer_name}: ${order.dropoff_address}\nTaxa: R$ ${fee}\n\nResponde *SIM* ou *NÃO* em até 45s.`
+  return [
+    '🏍️ *Tem entrega!*',
+    '',
+    `📍 Retirar em: ${order.pickup_address}`,
+    mapsLink(order.pickup_address),
+    '',
+    `🏠 Entregar pra ${order.customer_name}: ${order.dropoff_address}`,
+    mapsLink(order.dropoff_address),
+    '',
+    `Taxa: R$ ${fee}`,
+    '',
+    'Responde *SIM* ou *NÃO* em até 45s.',
+  ].join('\n')
+}
+
+function genDeliveryCode(): string { return String(Math.floor(1000 + Math.random() * 9000)) }
+
+// Cria a entrega e chama o primeiro motoboy da fila — usado tanto pelo botão
+// manual "🏍️ Chamar motoboy" (/painel/pedidos) quanto pelo disparo automático
+// assim que o cliente confirma um pedido de entrega no cardápio público
+// (/api/loja/registrar-pedido). Não faz checagem de dono/sessão — quem chama
+// já validou isso quando fizer sentido (o botão manual valida a sessão antes
+// de chegar aqui; o disparo automático roda com o pedido que acabou de ser
+// criado de verdade no banco, não com dado vindo direto do navegador).
+export async function criarEntregaEChamarMotoboy(opts: {
+  companyId: string
+  pedidoId?: string | null
+  customerName: string
+  customerPhone?: string | null
+  dropoffAddress: string
+}): Promise<{ ok: true; deliveryOrderId: string; deliveryCode: string } | { ok: false; error: string }> {
+  const { companyId, pedidoId, customerName, customerPhone, dropoffAddress } = opts
+  if (!customerName?.trim() || !dropoffAddress?.trim()) return { ok: false, error: 'dados faltando' }
+
+  const { data: company } = await supabase.from('companies').select('address, entrega_enabled, trial_modules_until').eq('id', companyId).maybeSingle()
+  if (!company) return { ok: false, error: 'empresa não encontrada' }
+  if (!moduleActive(company.entrega_enabled, company.trial_modules_until)) return { ok: false, error: 'Módulo de entrega não está ativo pra essa empresa.' }
+  if (!company.address?.trim()) return { ok: false, error: 'Cadastre o endereço da loja no perfil antes de chamar motoboy.' }
+
+  const { data: wallet } = await supabase.from('company_delivery_wallet').select('credits, daily_paid_on').eq('company_id', companyId).maybeSingle()
+  const today = new Date().toISOString().slice(0, 10)
+  if (wallet?.daily_paid_on !== today) return { ok: false, error: 'Diária de hoje ainda não foi paga — ativa em Entrega no painel.' }
+  if (!wallet?.credits || wallet.credits < 1) return { ok: false, error: 'Sem crédito de entrega — compra mais em Entrega no painel.' }
+
+  if (pedidoId) {
+    const { data: existing } = await supabase.from('delivery_orders').select('id').eq('pedido_id', pedidoId).maybeSingle()
+    if (existing) return { ok: false, error: 'Esse pedido já tem uma entrega chamada.' }
+  }
+
+  const { data: order, error: insertErr } = await supabase.from('delivery_orders').insert({
+    company_id: companyId, pedido_id: pedidoId || null, customer_name: customerName.trim(), customer_phone: customerPhone || null,
+    pickup_address: company.address.trim(), dropoff_address: dropoffAddress.trim(), delivery_code: genDeliveryCode(), fee: 5.00,
+  }).select('id, delivery_code').single()
+  if (insertErr || !order) return { ok: false, error: insertErr?.message || 'falha ao criar entrega' }
+
+  await ensureEntregaWebhookRegistered()
+  await offerToNextMotoboy(order.id, 1)
+
+  return { ok: true, deliveryOrderId: order.id, deliveryCode: order.delivery_code }
 }
 
 // Chama o próximo motoboy disponível pra essa entrega — usado na criação e

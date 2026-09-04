@@ -148,7 +148,7 @@ export default function AnuncioPageClient({ id, initialListing }: Props) {
     await fetch('/api/listings/update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({listing_id:listing.id,user_id:userId,updates:{status:'deleted'}})})
     window.location.href = '/' + (TYPE_INFO[listing.type]?.slug || '')
   }
-  function fmtPrice(l:Listing){if(!l.price)return l.type==='emprego'?'A combinar':'Grátis';return`R$ ${l.price.toLocaleString('pt-BR')}${l.price_label?` /${l.price_label}`:''}`}
+  function fmtPrice(l:Listing){if(!l.price)return(l.type==='emprego'||l.type==='imovel')?'A combinar':'Grátis';return`R$ ${l.price.toLocaleString('pt-BR')}${l.type==='imovel'&&l.subtype==='aluguel'?'/mês':''}`}
   function fmtDate(d:string){return new Date(d).toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'})}
 
   const info = TYPE_INFO[listing.type] || TYPE_INFO.desapega

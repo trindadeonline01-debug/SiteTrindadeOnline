@@ -44,6 +44,13 @@ async function processPayment(paymentId: string) {
 
     // DESTAQUE
     if (ext.type === 'highlight' && ext.company_id) {
+      // Mercado Pago pode reenviar o mesmo webhook mais de uma vez (retry
+      // deles é documentado) — sem essa trava, cada reenvio criava outro
+      // destaque do zero pro mesmo pagamento, dobrando o período de graça.
+      const { data: already } = await supabase.from('payments').select('id').eq('payment_id', String(paymentId)).maybeSingle()
+      if (already) return
+      await supabase.from('payments').insert({ company_id: ext.company_id, payment_id: String(paymentId), plan: `highlight_${ext.level}`, value: ext.value, days: ext.days, status: 'paid', paid_at: new Date().toISOString() })
+
       const startsAt = new Date()
       const expiresAt = new Date(Date.now() + ext.days * 86400000)
       await supabase.from('highlights').insert({

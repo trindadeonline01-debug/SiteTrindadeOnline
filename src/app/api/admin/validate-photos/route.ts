@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { after } from 'next/server'
 import sharp from 'sharp'
+import { requireAdmin } from '@/lib/requireAdmin'
 
 export const maxDuration = 300 // Vercel limita ao teto do plano — só pede o máximo possível
 
@@ -91,12 +92,13 @@ async function validateBatch(photos: { id: string; url: string }[]) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { user_id, auto, offset = 0 } = await req.json()
+    const { auto, offset = 0 } = await req.json()
 
+    // auto:true = a própria rota se re-chamando (servidor-a-servidor); pedido
+    // manual do painel precisa provar sessão de admin de verdade.
     if (!auto) {
-      if (!user_id) return NextResponse.json({ error: 'user_id obrigatório' }, { status: 400 })
-      const { data: profile } = await supabaseAdmin.from('profiles').select('user_type').eq('id', user_id).single()
-      if (profile?.user_type !== 'admin') return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
+      const auth = await requireAdmin(req)
+      if (auth instanceof NextResponse) return auth
     }
 
     if (auto && offset === 0) {

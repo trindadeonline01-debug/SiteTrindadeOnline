@@ -5,6 +5,7 @@ import { isOpenNow } from '@/lib/businessHours'
 import { type Produto, fmt, promoPrice, availableToday, isSoldOut, groupContribution, cartStorageKey, criarInteresseEAbrirWhatsapp } from '@/lib/lojaPricing'
 
 type Categoria = { id: string; name: string; display_order: number }
+type Coupon = { id: string; title: string; discount_type: 'fixed' | 'percent'; discount_value: number; min_purchase: number }
 type Company = {
   id: string; name: string; slug: string; phone: string | null; address: string | null
   avg_rating: number; total_reviews: number; status: string
@@ -48,8 +49,13 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
   const [scheduleTime, setScheduleTime] = useState('')
   const [obs, setObs] = useState('')
   const [payMethod, setPayMethod] = useState<'pix' | 'dinheiro' | 'cartao'>('pix')
+  const [precisaTroco, setPrecisaTroco] = useState<boolean | null>(null)
+  const [trocoPara, setTrocoPara] = useState('')
   const [success, setSuccess] = useState(false)
   const [confirming, setConfirming] = useState(false)
+  const [orderError, setOrderError] = useState<string | null>(null)
+  const [coupons, setCoupons] = useState<Coupon[]>([])
+  const [selectedCouponId, setSelectedCouponId] = useState<string | null>(null)
 
   function getCompanyCover(photos?: { url: string; order: number }[]): string | null {
     if (!photos?.length) return null
@@ -88,12 +94,14 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
       .then(async ({ data: comp }) => {
         if (!comp || comp.status !== 'active' || !comp.loja_digital_enabled) { setCompany(null); setLoading(false); return }
         setCompany(comp as any)
-        const [{ data: cats }, { data: prods }] = await Promise.all([
+        const [{ data: cats }, { data: prods }, { data: cps }] = await Promise.all([
           supabase.from('loja_categorias').select('*').eq('company_id', comp.id).order('display_order'),
           supabase.from('loja_produtos').select('*, groups:loja_opcoes_grupo(*, options:loja_opcoes(*))').eq('company_id', comp.id).eq('active', true).order('display_order'),
+          supabase.from('coupons').select('id,title,discount_type,discount_value,min_purchase').eq('company_id', comp.id).eq('active', true).gt('expires_at', new Date().toISOString()).order('created_at', { ascending: false }),
         ])
         setCategorias(cats || [])
         setProdutos(((prods || []) as any[]).filter(availableToday))
+        setCoupons((cps || []) as Coupon[])
         setLoading(false)
       })
     let restoredCart = false
@@ -113,6 +121,8 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
           setScheduleTime(parsed.scheduleTime || '')
           setObs(parsed.obs || '')
           setPayMethod(parsed.payMethod || 'pix')
+          setPrecisaTroco(parsed.precisaTroco ?? null)
+          setTrocoPara(parsed.trocoPara || '')
           setDrawerOpen(true)
           restoredCart = true
         }
@@ -197,7 +207,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
     if (!session) {
       try {
         localStorage.setItem(cartStorageKey(slug), JSON.stringify({
-          cart, deliveryType, cep, numero, cepData, address, agendarRetirada, scheduleDate, scheduleTime, obs, payMethod,
+          cart, deliveryType, cep, numero, cepData, address, agendarRetirada, scheduleDate, scheduleTime, obs, payMethod, precisaTroco, trocoPara,
         }))
       } catch {}
       window.location.href = `/login?redirect=/empresa/${slug}/cardapio`
@@ -206,51 +216,80 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
     if (!company || cart.length === 0) return
     if (Number(company.loja_pedido_minimo || 0) > 0 && cartTotal < Number(company.loja_pedido_minimo)) return
     if (deliveryType === 'entrega' && !address.trim()) return
+    if (trocoIncompleto) return
     setConfirming(true)
+    setOrderError(null)
     const taxa = deliveryType === 'entrega' ? Number(company.loja_taxa_entrega || 0) : 0
-    const total = cartTotal + taxa
+    // orderTotal já desconta o cupom aplicado (var. calculada no corpo do
+    // componente) — usar cartTotal+taxa aqui de novo ignorava o desconto no
+    // pedido salvo de verdade, mesmo a tela mostrando o valor certo.
+    const total = orderTotal
     const scheduledFor = deliveryType === 'retirada' && agendarRetirada && scheduleDate && scheduleTime
       ? new Date(`${scheduleDate}T${scheduleTime}`).toISOString() : null
     const { data: profile } = await supabase.from('profiles').select('name, phone').eq('id', session.user.id).maybeSingle()
-    const { data: pedido } = await supabase.from('loja_pedidos').insert({
+    const { data: pedido, error: pedidoError } = await supabase.from('loja_pedidos').insert({
       company_id: company.id, customer_id: session.user.id,
       customer_name: profile?.name || 'Cliente', customer_phone: profile?.phone || null,
       delivery_address: deliveryType === 'entrega' ? address : null, delivery_type: deliveryType, scheduled_for: scheduledFor,
       origin: 'cardapio_publico', payment_method: payMethod,
-      subtotal: cartTotal, total, notes: obs.trim() || null,
+      subtotal: cartTotal, total, notes: finalNotes || null,
     }).select('id').single()
-    if (pedido) {
-      await supabase.from('loja_pedido_itens').insert(cart.map(l => ({
-        pedido_id: pedido.id, produto_id: l.produtoId, product_name: l.name, unit_price: l.unitPrice, qty: l.qty,
-        selected_options: l.modifiers,
-      })))
-      fetch('/api/loja/registrar-pedido', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+    // Antes, um erro aqui (RLS, rede, etc.) passava batido: `pedido` vinha
+    // null, o bloco abaixo era pulado, mas `setSuccess(true)` rodava do
+    // mesmo jeito — cliente via "Pedido enviado!" e nada chegava na loja.
+    if (pedidoError || !pedido) {
+      console.error('Erro ao criar pedido:', pedidoError)
+      setConfirming(false)
+      setOrderError('Não deu pra enviar seu pedido agora. Tenta de novo em alguns segundos.')
+      return
+    }
+    const { error: itensError } = await supabase.from('loja_pedido_itens').insert(cart.map(l => ({
+      pedido_id: pedido.id, produto_id: l.produtoId, product_name: l.name, unit_price: l.unitPrice, qty: l.qty,
+      selected_options: l.modifiers,
+    })))
+    // Sem isso, um erro aqui deixava o pedido salvo com o valor total mas
+    // ZERO itens — a loja recebia um pedido "vazio" e o cliente via
+    // "Pedido enviado!" do mesmo jeito. Desfaz o pedido (compensação, já
+    // que não dá pra fazer os dois inserts numa transação única daqui) e
+    // avisa o cliente pra tentar de novo, em vez de fingir sucesso.
+    if (itensError) {
+      console.error('Erro ao salvar itens do pedido:', itensError)
+      await supabase.from('loja_pedidos').delete().eq('id', pedido.id)
+      setConfirming(false)
+      setOrderError('Não deu pra enviar seu pedido agora. Tenta de novo em alguns segundos.')
+      return
+    }
+    if (selectedCoupon && couponEligible(selectedCoupon)) {
+      const code = 'TRD-' + Math.random().toString(36).substring(2, 6).toUpperCase()
+      await supabase.from('coupon_redemptions').insert({ coupon_id: selectedCoupon.id, user_id: session.user.id, code, status: 'used', used_at: new Date().toISOString() })
+    }
+    fetch('/api/loja/registrar-pedido', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        companyId: company.id, phone: profile?.phone || null, name: profile?.name || 'Cliente',
+        address: deliveryType === 'entrega' ? address : null, total, subtotal: cartTotal, deliveryFee: taxa,
+        paymentMethod: payMethod, deliveryType, notes: finalNotes || null,
+        items: cart.map(l => ({ produtoId: l.produtoId, name: l.name, qty: l.qty, unitPrice: l.unitPrice, modifiers: l.modifiers })),
+      }),
+    }).catch(() => {})
+    if (company.owner_id) {
+      fetch('/api/push/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          companyId: company.id, phone: profile?.phone || null, name: profile?.name || 'Cliente',
-          address: deliveryType === 'entrega' ? address : null, total, subtotal: cartTotal, deliveryFee: taxa,
-          paymentMethod: payMethod, deliveryType, notes: obs.trim() || null,
-          items: cart.map(l => ({ produtoId: l.produtoId, name: l.name, qty: l.qty, unitPrice: l.unitPrice, modifiers: l.modifiers })),
+          title: `Novo pedido — ${company.name}`,
+          body: `${profile?.name || 'Cliente'} pediu ${fmt(total)}`,
+          target: 'external_user_id', userId: company.owner_id,
+          url: `${window.location.origin}/painel/pedidos`,
         }),
       }).catch(() => {})
-      if (company.owner_id) {
-        fetch('/api/push/send', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: `Novo pedido — ${company.name}`,
-            body: `${profile?.name || 'Cliente'} pediu ${fmt(total)}`,
-            target: 'external_user_id', userId: company.owner_id,
-            url: `${window.location.origin}/painel/pedidos`,
-          }),
-        }).catch(() => {})
-      }
     }
     setConfirming(false)
     setSuccess(true)
     setTimeout(() => {
       setDrawerOpen(false); setSuccess(false); setCart([]); setObs('')
-      setAgendarRetirada(false); setScheduleDate(''); setScheduleTime('')
+      setAgendarRetirada(false); setScheduleDate(''); setScheduleTime(''); setSelectedCouponId(null)
+      setPrecisaTroco(null); setTrocoPara('')
     }, 2500)
   }
 
@@ -258,16 +297,37 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
   // endereço, só registra o interesse e abre o WhatsApp com o carrinho já
   // formatado. O lojista fecha a venda na própria conversa.
   const [sendingWa, setSendingWa] = useState(false)
+  const [waFallbackUrl, setWaFallbackUrl] = useState<string | null>(null)
   async function sendCartWhatsapp() {
     if (!company?.phone || cart.length === 0 || sendingWa) return
     setSendingWa(true)
+    setWaFallbackUrl(null)
+    // Abre a aba em branco JÁ, antes de qualquer await — depois de um
+    // await o navegador não trata mais isso como resposta direta ao
+    // clique e bloqueia como pop-up (Safari principalmente).
+    const waWindow = window.open('', '_blank')
     try {
-      await criarInteresseEAbrirWhatsapp({
+      if (selectedCoupon && couponEligible(selectedCoupon)) {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session) {
+          const code = 'TRD-' + Math.random().toString(36).substring(2, 6).toUpperCase()
+          await supabase.from('coupon_redemptions').insert({ coupon_id: selectedCoupon.id, user_id: session.user.id, code, status: 'used', used_at: new Date().toISOString() })
+        }
+      }
+      const { url, blocked } = await criarInteresseEAbrirWhatsapp({
         supabase, companyId: company.id, companyPhone: company.phone,
         itens: cart.map(l => ({ produto_id: l.produtoId, nome: l.name + (l.modifiers.length ? ' (' + l.modifiers.map(m => m.name).join(', ') + ')' : ''), qtd: l.qty, preco_unitario: l.unitPrice })),
         valorTotal: orderTotal, deliveryType,
+        cupomLabel: discount > 0 && selectedCoupon ? `${selectedCoupon.title} (− ${fmt(discount)})` : undefined,
+        notasLabel: finalNotes || undefined,
+        waWindow,
       })
-      setDrawerOpen(false); setCart([])
+      if (blocked) { setWaFallbackUrl(url); return }
+      setDrawerOpen(false); setCart([]); setSelectedCouponId(null)
+      setPrecisaTroco(null); setTrocoPara('')
+    } catch {
+      waWindow?.close()
+      setOrderError('Não deu pra abrir o WhatsApp agora. Tenta de novo em alguns segundos.')
     } finally {
       setSendingWa(false)
     }
@@ -283,8 +343,20 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
 
   const open = isOpenNow(company.hours as any, company.flexible_hours, company.store_paused, company.store_forced_open)
   const taxaEntrega = deliveryType === 'entrega' ? Number(company.loja_taxa_entrega || 0) : 0
-  const orderTotal = cartTotal + taxaEntrega
+  const couponEligible = (c: Coupon) => cartTotal >= Number(c.min_purchase || 0)
+  const couponDiscount = (c: Coupon) => c.discount_type === 'fixed' ? Math.min(Number(c.discount_value), cartTotal) : Math.round(cartTotal * (Number(c.discount_value) / 100) * 100) / 100
+  const selectedCoupon = coupons.find(c => c.id === selectedCouponId) || null
+  const discount = selectedCoupon && couponEligible(selectedCoupon) ? couponDiscount(selectedCoupon) : 0
+  const orderTotal = Math.max(0, cartTotal - discount) + taxaEntrega
   const abaixoMinimo = Number(company.loja_pedido_minimo || 0) > 0 && cartTotal < Number(company.loja_pedido_minimo)
+  const trocoParaNum = Number(trocoPara.replace(',', '.')) || 0
+  // Troco só é obrigatório escolher (sim/não) quando o pagamento é dinheiro;
+  // se escolheu "sim", o valor tem que pelo menos cobrir o total do pedido.
+  const trocoIncompleto = payMethod === 'dinheiro' && (precisaTroco === null || (precisaTroco === true && (!trocoPara || trocoParaNum < orderTotal)))
+  const finalNotes = [
+    payMethod === 'dinheiro' && precisaTroco === true && trocoParaNum > 0 ? `Troco para ${fmt(trocoParaNum)}` : null,
+    obs.trim() || null,
+  ].filter(Boolean).join(' · ')
   const searchTerm = search.trim().toLowerCase()
   const filtered = produtos
     .filter(p => filterCat === 'all' || p.category_id === filterCat)
@@ -311,6 +383,13 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
         .cd-pagehero-cnt .op{ color:#4ADE80;font-weight:600; }
         .cd-pagehero-cnt .cl{ color:#F87171;font-weight:600; }
         .cd-pagehero-cnt .st{ color:var(--sign); }
+        .cd-coupon-strip-wrap{ background:#fff;padding:8px 0;border-bottom:1px solid var(--line); }
+        .cd-coupon-strip{ display:flex;gap:6px;overflow-x:auto;padding:0 16px;scrollbar-width:none; }
+        .cd-coupon-strip::-webkit-scrollbar{ display:none; }
+        @media(min-width:900px){ .cd-coupon-strip{ max-width:1120px;margin:0 auto; } }
+        .cd-coupon-chip{ flex:0 0 auto;display:flex;align-items:center;gap:6px;background:var(--ink);border-radius:20px;padding:6px 12px 6px 8px;white-space:nowrap; }
+        .cd-coupon-chip-val{ color:var(--sign);font-size:11px;font-weight:800; }
+        .cd-coupon-chip-rule{ color:#B8B0A0;font-size:9.5px; }
         .cd-search-wrap{ background:var(--concrete);padding:0 16px; }
         @media(min-width:900px){ .cd-search-wrap{ max-width:760px;margin:0 auto; } }
         .cd-search-inner{ transform:translateY(-20px); }
@@ -406,6 +485,19 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
         .cd-paychip{ padding:8px 13px;border-radius:20px;border:1.5px solid #EDE8E0;background:#fff;font-size:12px;font-weight:700;cursor:pointer;margin-right:8px; }
         .cd-paychip.active{ background:var(--ink);color:var(--sign);border-color:var(--ink); }
         .cd-totalrow{ display:flex;justify-content:space-between;padding-top:12px;margin-top:8px;border-top:1px dashed #EDE8E0;font-weight:800;font-size:16px; }
+        .cd-coupon-card{ display:flex;align-items:center;gap:8px;border-radius:10px;padding:8px 10px;margin-bottom:6px;cursor:pointer;border:1.5px solid #EDE8E0;background:#fff; }
+        .cd-coupon-card-icon{ flex:none;width:34px;height:34px;border-radius:8px;background:#F0EDE8;color:var(--sign-dark);font-family:'Anton',sans-serif;font-size:9.5px;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.05; }
+        .cd-coupon-card-mid{ flex:1;min-width:0; }
+        .cd-coupon-card-title{ font-size:12px;font-weight:800; }
+        .cd-coupon-card-sub{ font-size:10px;color:#AAA;margin-top:1px; }
+        .cd-coupon-card-radio{ flex:none;width:18px;height:18px;border-radius:50%;border:1.5px solid #EDE8E0;position:relative; }
+        .cd-coupon-card.selected{ border-color:var(--open);background:rgba(15,138,87,.06); }
+        .cd-coupon-card.selected .cd-coupon-card-icon{ background:var(--open);color:#fff; }
+        .cd-coupon-card.selected .cd-coupon-card-radio{ border-color:var(--open);background:var(--open); }
+        .cd-coupon-card.selected .cd-coupon-card-radio::after{ content:'✓';position:absolute;inset:0;color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center; }
+        .cd-coupon-card.selected .cd-coupon-card-sub{ color:var(--open);font-weight:700; }
+        .cd-coupon-card.locked{ cursor:default;opacity:.6; }
+        .cd-coupon-card.locked .cd-coupon-card-radio{ display:flex;align-items:center;justify-content:center;font-size:9.5px;border:none; }
       `}</style>
 
       <div className="cd-top"><div className="cd-bc"><a href="/">Trindade Online</a> › <a href={`/empresa/${company.slug}`}>{company.name}</a> › Cardápio</div></div>
@@ -425,6 +517,18 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
           </div>
         </div>
       </div></div>
+
+      {coupons.length > 0 && (
+        <div className="cd-coupon-strip-wrap"><div className="cd-coupon-strip">
+          {coupons.map(c => (
+            <div className="cd-coupon-chip" key={c.id}>
+              <span>🎟️</span>
+              <span className="cd-coupon-chip-val">{c.discount_type === 'fixed' ? fmt(Number(c.discount_value)) : `${c.discount_value}%`} OFF</span>
+              {Number(c.min_purchase || 0) > 0 && <span className="cd-coupon-chip-rule">acima de {fmt(Number(c.min_purchase))}</span>}
+            </div>
+          ))}
+        </div></div>
+      )}
 
       <div className="cd-search-wrap"><div className="cd-search-inner"><div className="cd-search-bar">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -619,6 +723,44 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
                 <textarea className="cd-diinput" style={{ minHeight: 56, resize: 'vertical' }} value={obs} onChange={e => setObs(e.target.value)} placeholder="Ex: sem cebola, troco pra R$50..." />
                 <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', margin: '14px 0 8px', fontWeight: 800 }}>Pagamento</div>
                 {(['pix', 'dinheiro', 'cartao'] as const).map(m => <button key={m} className={`cd-paychip ${payMethod === m ? 'active' : ''}`} onClick={() => setPayMethod(m)}>{m === 'pix' ? 'Pix' : m === 'dinheiro' ? 'Dinheiro' : 'Cartão'}</button>)}
+
+                {payMethod === 'dinheiro' && (
+                  <div style={{ marginTop: 10, padding: '10px 12px', background: '#F7F5F0', borderRadius: 10 }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, marginBottom: 8 }}>Precisa de troco?</div>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: precisaTroco ? 8 : 0 }}>
+                      <button className={`cd-paychip ${precisaTroco === true ? 'active' : ''}`} style={{ flex: 1, textAlign: 'center', marginRight: 0 }} onClick={() => setPrecisaTroco(true)}>Sim</button>
+                      <button className={`cd-paychip ${precisaTroco === false ? 'active' : ''}`} style={{ flex: 1, textAlign: 'center', marginRight: 0 }} onClick={() => { setPrecisaTroco(false); setTrocoPara('') }}>Não</button>
+                    </div>
+                    {precisaTroco === true && (
+                      <input className="cd-diinput" inputMode="decimal" value={trocoPara} onChange={e => setTrocoPara(e.target.value.replace(/[^0-9,]/g, ''))} placeholder="Troco para quanto? Ex: 50,00" />
+                    )}
+                  </div>
+                )}
+
+                {coupons.length > 0 && (
+                  <>
+                    <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', margin: '14px 0 8px', fontWeight: 800 }}>🎟️ Cupom de desconto</div>
+                    {coupons.map(c => {
+                      const eligible = couponEligible(c)
+                      const selected = selectedCouponId === c.id
+                      const falta = Number(c.min_purchase || 0) - cartTotal
+                      return (
+                        <div key={c.id} className={`cd-coupon-card ${eligible ? '' : 'locked'} ${selected ? 'selected' : ''}`}
+                          onClick={() => { if (!eligible) return; setSelectedCouponId(id => id === c.id ? null : c.id) }}>
+                          <div className="cd-coupon-card-icon">{c.discount_type === 'fixed' ? fmt(Number(c.discount_value)) : `${c.discount_value}%`}<br />OFF</div>
+                          <div className="cd-coupon-card-mid">
+                            <div className="cd-coupon-card-title">{c.title}</div>
+                            <div className="cd-coupon-card-sub">
+                              {eligible ? (selected ? '✓ Aplicado no seu pedido' : `✓ Disponível — seu pedido já passa de ${fmt(Number(c.min_purchase || 0))}`) : `🔒 Faltam ${fmt(falta)} pra liberar (mínimo ${fmt(Number(c.min_purchase || 0))})`}
+                            </div>
+                          </div>
+                          <div className="cd-coupon-card-radio">{!eligible && '🔒'}</div>
+                        </div>
+                      )
+                    })}
+                  </>
+                )}
+
                 {abaixoMinimo && (
                   <div style={{ marginTop: 12, padding: '10px 12px', borderRadius: 10, background: '#FEF0E0', color: '#B5690C', fontSize: 11.5, fontWeight: 600 }}>
                     Pedido mínimo de {fmt(Number(company.loja_pedido_minimo))} — faltam {fmt(Number(company.loja_pedido_minimo) - cartTotal)}
@@ -626,6 +768,9 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
                 )}
                 {taxaEntrega > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0 0', fontSize: 12, color: '#555' }}><span>Taxa de entrega</span><span>{fmt(taxaEntrega)}</span></div>
+                )}
+                {discount > 0 && selectedCoupon && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0 0', fontSize: 12, color: 'var(--open)', fontWeight: 700 }}><span>Cupom {selectedCoupon.title}</span><span>− {fmt(discount)}</span></div>
                 )}
                 <div className="cd-totalrow"><span>Total</span><span>{fmt(orderTotal)}</span></div>
               </div>
@@ -636,11 +781,28 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
                   </div>
                 ) : (
                   <>
-                    <button className="cd-addcart" style={{ width: '100%' }} disabled={confirming || (deliveryType === 'entrega' && !address.trim()) || (agendarRetirada && (!scheduleDate || !scheduleTime)) || abaixoMinimo} onClick={confirmOrder}>{confirming ? 'Enviando...' : 'Confirmar pedido'}</button>
+                    {trocoIncompleto && (
+                      <div style={{ marginBottom: 8, fontSize: 11.5, color: '#B5690C', fontWeight: 600, textAlign: 'center' }}>
+                        {precisaTroco === null ? 'Escolhe se precisa de troco' : `Troco precisa ser pelo menos ${fmt(orderTotal)}`}
+                      </div>
+                    )}
+                    {orderError && (
+                      <div style={{ marginBottom: 8, padding: '10px 12px', borderRadius: 10, background: '#FBEAEA', color: '#A83232', fontSize: 12, fontWeight: 600, textAlign: 'center' }}>
+                        ⚠️ {orderError}
+                      </div>
+                    )}
+                    <button className="cd-addcart" style={{ width: '100%' }} disabled={confirming || (deliveryType === 'entrega' && !address.trim()) || (agendarRetirada && (!scheduleDate || !scheduleTime)) || abaixoMinimo || trocoIncompleto} onClick={confirmOrder}>{confirming ? 'Enviando...' : 'Confirmar pedido'}</button>
                     {company.phone && (
-                      <button className="cd-addcart" style={{ width: '100%', background: '#25D366', color: '#fff' }} disabled={sendingWa} onClick={sendCartWhatsapp}>
-                        {sendingWa ? 'Abrindo...' : '📱 Enviar pedido no WhatsApp'}
+                      <button className="cd-addcart" style={{ width: '100%', background: '#25D366', color: '#fff' }} disabled={sendingWa || trocoIncompleto} onClick={sendCartWhatsapp}>
+                        {sendingWa ? 'Abrindo…' : '📱 Enviar pedido no WhatsApp'}
                       </button>
+                    )}
+                    {waFallbackUrl && (
+                      <a href={waFallbackUrl} target="_blank" rel="noopener noreferrer"
+                        style={{ textAlign: 'center', fontSize: 12, fontWeight: 700, color: '#157A52', padding: '8px 0' }}
+                        onClick={() => setWaFallbackUrl(null)}>
+                        O navegador bloqueou o WhatsApp — toca aqui pra abrir
+                      </a>
                     )}
                   </>
                 )}

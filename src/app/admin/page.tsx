@@ -4,6 +4,7 @@ import { compressImage } from '@/lib/compressImage'
 import Image from 'next/image'
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
+import { adminFetch } from '@/lib/adminFetch'
 import NotificacoesTab from '@/components/admin/NotificacoesTab'
 import DashboardTab from '@/components/admin/DashboardTab'
 import DisparosTab from '@/components/DisparosTab'
@@ -182,6 +183,8 @@ export default function AdminPage() {
   const [pulseColorPreset, setPulseColorPreset] = useState('classico')
   const [savingPulse, setSavingPulse] = useState(false)
   const fileInputRefMobile = useRef<HTMLInputElement>(null)
+  const [qzInstallers, setQzInstallers] = useState<Record<'win'|'mac', { url: string; size: number; updatedAt: string } | null>>({ win: null, mac: null })
+  const [qzInstallerUploading, setQzInstallerUploading] = useState<Record<'win'|'mac', boolean>>({ win: false, mac: false })
 
   useEffect(() => {
     if (tab === 'vendas') loadSales(salesFilter)
@@ -200,7 +203,7 @@ export default function AdminPage() {
 
   async function loadAll() {
     setLoading(true)
-    await Promise.all([loadStats(), loadCompanies(), loadUsers(), loadSearches(), loadHighlights(), loadReports(), loadBanners(), loadSettings(), loadAppearance(), loadPulseMessages(), loadTrialSettings(), loadTrialReminders(), loadPlanReminders(), loadBannerRequests(), loadFeatureFlags(), loadPlans(), loadSubcats()])
+    await Promise.all([loadStats(), loadCompanies(), loadUsers(), loadSearches(), loadHighlights(), loadReports(), loadBanners(), loadSettings(), loadAppearance(), loadPulseMessages(), loadTrialSettings(), loadTrialReminders(), loadPlanReminders(), loadBannerRequests(), loadFeatureFlags(), loadPlans(), loadSubcats(), loadQzInstallers()])
 
     // Realtime — atualiza automaticamente
     const channel = supabase
@@ -280,7 +283,7 @@ export default function AdminPage() {
 
   async function loadUsers() {
     try {
-      const res = await fetch('/api/admin/list-users')
+      const res = await adminFetch('/api/admin/list-users')
       const data = await res.json()
       const us = data.users || []
       setUsers(us)
@@ -408,6 +411,38 @@ export default function AdminPage() {
     }
   }
 
+  // Nome fixo do arquivo no bucket, independente do nome original enviado
+  // — assim o link de download que fica no painel do lojista nunca muda,
+  // mesmo quando a gente sobe uma versão nova do instalador.
+  const QZ_INSTALLER_PATH: Record<'win'|'mac', string> = { win: 'qz-tray-windows.exe', mac: 'qz-tray-mac.pkg' }
+
+  async function loadQzInstallers() {
+    const { data } = await supabase.storage.from('app-downloads').list('', { limit: 100 })
+    const next: typeof qzInstallers = { win: null, mac: null }
+    for (const platform of ['win', 'mac'] as const) {
+      const file = data?.find(f => f.name === QZ_INSTALLER_PATH[platform])
+      if (file) {
+        const { data: { publicUrl } } = supabase.storage.from('app-downloads').getPublicUrl(QZ_INSTALLER_PATH[platform])
+        next[platform] = { url: publicUrl, size: file.metadata?.size || 0, updatedAt: file.updated_at || '' }
+      }
+    }
+    setQzInstallers(next)
+  }
+
+  async function uploadQzInstaller(platform: 'win'|'mac', file: File) {
+    setQzInstallerUploading(u => ({ ...u, [platform]: true }))
+    const { error } = await supabase.storage.from('app-downloads').upload(QZ_INSTALLER_PATH[platform], file, { upsert: true })
+    setQzInstallerUploading(u => ({ ...u, [platform]: false }))
+    if (error) { showToast('Erro ao enviar: ' + error.message); return }
+    await loadQzInstallers()
+    showToast('Instalador enviado!')
+  }
+
+  async function removeQzInstaller(platform: 'win'|'mac') {
+    await supabase.storage.from('app-downloads').remove([QZ_INSTALLER_PATH[platform]])
+    await loadQzInstallers()
+  }
+
   async function loadSubcats() {
     const { data } = await supabase.from('subcategories').select('id,name,emoji,category_id,category:categories(name,emoji)').order('name', {ascending: true})
     setSubcatsList(data || [])
@@ -438,7 +473,7 @@ export default function AdminPage() {
       // Avisa no WhatsApp toda empresa que sugeriu esse nome (pode ser mais
       // de uma) e já limpa as sugestões correspondentes da lista
       try {
-        const res = await fetch('/api/admin/notify-subcategoria', {
+        const res = await adminFetch('/api/admin/notify-subcategoria', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ subcategory_name: subcatForm.name.trim() })
@@ -653,7 +688,7 @@ export default function AdminPage() {
     setCronRunning(true)
     setCronResult(null)
     try {
-      const res = await fetch('/api/admin/run-trial-reminders', { method: 'POST' })
+      const res = await adminFetch('/api/admin/run-trial-reminders', { method: 'POST' })
       const data = await res.json()
       setCronResult({ sent: data.sent || 0, checked: data.checked || 0, details: data.details || [] })
     } catch (err: any) {
@@ -749,7 +784,7 @@ export default function AdminPage() {
     setPlanCronRunning(true)
     setPlanCronResult(null)
     try {
-      const res = await fetch('/api/admin/run-plan-expiration', { method: 'POST' })
+      const res = await adminFetch('/api/admin/run-plan-expiration', { method: 'POST' })
       const data = await res.json()
       setPlanCronResult({ sent: data.sent || 0, checked: data.checked || 0, downgraded: data.downgraded || 0, details: data.details || [] })
       setPlanDowngradedCount(prev => prev + (data.downgraded || 0))
@@ -778,7 +813,7 @@ export default function AdminPage() {
     setRecompressStats({ offset: 0, processed: 0, skipped: 0, failed: 0 })
     let offset = 0
     while (true) {
-      const res = await fetch('/api/admin/recompress-photos', {
+      const res = await adminFetch('/api/admin/recompress-photos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: session.user.id, offset }),
@@ -805,7 +840,7 @@ export default function AdminPage() {
     setRepairStats({ offset: 0, migrated: 0, failed: 0 })
     let offset = 0
     while (true) {
-      const res = await fetch('/api/admin/repair-photos', {
+      const res = await adminFetch('/api/admin/repair-photos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: session.user.id, offset }),
@@ -987,6 +1022,7 @@ export default function AdminPage() {
   }
 
   async function deleteListingFromReport(listingId: string, reportId: string) {
+    if (!confirm('Excluir esse anúncio de vez? O morador que publicou não vai poder recuperar.')) return
     await supabase.from('listings').update({ status: 'deleted' }).eq('id', listingId)
     await supabase.from('listing_reports').update({ resolved: true }).eq('id', reportId)
     await loadReports()
@@ -1127,7 +1163,7 @@ export default function AdminPage() {
   }
   async function loadSales(filter: string, dateFrom?: string, dateTo?: string) {
     setSalesLoading(true)
-    const res = await fetch('/api/admin/sales', {
+    const res = await adminFetch('/api/admin/sales', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ filter, dateFrom, dateTo })
@@ -1151,7 +1187,7 @@ export default function AdminPage() {
   }
   async function deleteUser(id: string, nome: string) {
     if (!confirm(`Excluir o usuário "${nome}"? Esta ação é irreversível.`)) return
-    const res = await fetch('/api/admin/delete-user', {
+    const res = await adminFetch('/api/admin/delete-user', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user_id: id })
@@ -1172,6 +1208,7 @@ export default function AdminPage() {
     }
     const { data: compSubs } = await supabase.from('company_subcategories').select('subcategory_id').eq('company_id', c.id)
     setCompanySubcatIds((compSubs || []).map((s: any) => s.subcategory_id))
+    setNewPassword('')
     setEditCompanyModal({ open: true, company: { ...c } })
   }
 
@@ -1216,7 +1253,7 @@ export default function AdminPage() {
   async function saveUserEdit() {
     const u = editUserModal.user
     setSavingEdit(true)
-    const res = await fetch('/api/admin/update-user', {
+    const res = await adminFetch('/api/admin/update-user', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user_id: u.id, updates: { name: u.name, neighborhood: u.neighborhood, phone: u.phone || null }, new_email: u.email || null })
@@ -1229,10 +1266,39 @@ export default function AdminPage() {
     loadUsers()
   }
 
+  // Reset de senha pedido direto da tela de Empresas — antes só dava pra
+  // fazer isso achando o dono na aba Usuários (moradores e lojistas
+  // misturados na mesma lista, confuso pra achar quem é dono de qual
+  // empresa). Reaproveita a mesma rota, só muda de onde vem o e-mail/id.
+  async function sendResetLinkForOwner() {
+    const owner = users.find(u => u.id === editCompanyModal.company?.owner_id)
+    if (!owner?.email) { showToast('Responsável sem email cadastrado'); return }
+    const res = await adminFetch('/api/admin/reset-password', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ send_reset_link: true, email: owner.email })
+    })
+    const data = await res.json()
+    if (data.error) { showToast('Erro: ' + data.error); return }
+    showToast('Link de redefinição enviado!')
+  }
+
+  async function setOwnerPasswordDirect() {
+    if (!newPassword.trim() || newPassword.length < 6) { showToast('Senha deve ter no mínimo 6 caracteres'); return }
+    const ownerId = editCompanyModal.company?.owner_id
+    const res = await adminFetch('/api/admin/reset-password', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: ownerId, new_password: newPassword })
+    })
+    const data = await res.json()
+    if (data.error) { showToast('Erro: ' + data.error); return }
+    showToast('Senha atualizada!')
+    setNewPassword('')
+  }
+
   async function sendResetLink() {
     const u = editUserModal.user
     if (!u.email) { showToast('Usuário sem email cadastrado'); return }
-    const res = await fetch('/api/admin/reset-password', {
+    const res = await adminFetch('/api/admin/reset-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ send_reset_link: true, email: u.email })
@@ -1245,7 +1311,7 @@ export default function AdminPage() {
   async function setNewPasswordDirect() {
     if (!newPassword.trim() || newPassword.length < 6) { showToast('Senha deve ter no mínimo 6 caracteres'); return }
     const u = editUserModal.user
-    const res = await fetch('/api/admin/reset-password', {
+    const res = await adminFetch('/api/admin/reset-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user_id: u.id, new_password: newPassword })
@@ -1686,6 +1752,23 @@ export default function AdminPage() {
               </button>
               <button onClick={()=>setEditCompanyModal({open:false,company:null})} style={{padding:'12px 20px',background:'transparent',color:'#AAA',border:'1px solid #ddd',borderRadius:10,fontSize:13,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>Cancelar</button>
             </div>
+            {(() => {
+              const owner = users.find(u => u.id === editCompanyModal.company.owner_id)
+              return (
+                <div style={{marginTop:20,paddingTop:20,borderTop:'1px solid #EDE8E0'}}>
+                  <div style={{fontSize:12,fontWeight:700,color:'#888',letterSpacing:1,marginBottom:2}}>SENHA DO RESPONSÁVEL</div>
+                  <div style={{fontSize:11,color:'#AAA',marginBottom:10}}>{owner ? `${owner.name}${owner.email ? ' · ' + owner.email : ''}` : 'Dono não encontrado entre os usuários'}</div>
+                  <button onClick={sendResetLinkForOwner} disabled={!owner} style={{width:'100%',padding:'10px',background:'#FEF3E2',color:'#854F0B',border:'1px solid #F5C77A',borderRadius:10,fontSize:13,fontWeight:600,cursor:owner?'pointer':'not-allowed',fontFamily:'Archivo,sans-serif',marginBottom:10,opacity:owner?1:.5}}>
+                    ✉️ Enviar link de redefinição
+                  </button>
+                  <div style={{display:'flex',gap:8}}>
+                    <input type="text" placeholder="Nova senha (mín. 6 caracteres)" value={newPassword} onChange={e=>setNewPassword(e.target.value)}
+                      style={{flex:1,padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Archivo,sans-serif'}}/>
+                    <button onClick={setOwnerPasswordDirect} disabled={!owner} style={{padding:'10px 16px',background:'#111',color:'#fff',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:owner?'pointer':'not-allowed',fontFamily:'Archivo,sans-serif',opacity:owner?1:.5}}>Definir</button>
+                  </div>
+                </div>
+              )
+            })()}
             <div style={{marginTop:20,paddingTop:20,borderTop:'1px solid #EDE8E0'}}>
               <div style={{fontSize:11,color:'#888',marginBottom:10,textTransform:'uppercase',letterSpacing:1,fontWeight:700}}>Zona de perigo</div>
               <button onClick={()=>deleteCompany(editCompanyModal.company.id, editCompanyModal.company.name)} style={{width:'100%',padding:'12px',background:'transparent',color:'#E24B4A',border:'1.5px solid #E24B4A',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>
@@ -1862,7 +1945,15 @@ export default function AdminPage() {
                           {filteredCompanies.map(c => (
                             <tr key={c.id}>
                               <td><strong>{c.name}</strong><br/><span style={{fontSize:11,color:'#AAA'}}>{c.address || '—'}</span></td>
-                              <td>{c.owner?.name || '—'}</td>
+                              <td>
+                                {c.owner?.name || '—'}
+                                {(() => {
+                                  const owner = users.find(u => u.id === c.owner_id)
+                                  return owner ? (
+                                    <button onClick={() => openEditUser(owner)} title="Editar usuário / redefinir senha" style={{marginLeft:6,background:'none',border:'none',cursor:'pointer',fontSize:12,padding:0}}>👤✏️</button>
+                                  ) : null
+                                })()}
+                              </td>
                               <td>{c.phone ? <button onClick={()=>navigator.clipboard.writeText(c.phone||'').then(()=>showToast('Número copiado!'))} style={{background:'none',border:'none',cursor:'pointer',color:'#25D366',fontSize:12,padding:0,fontFamily:'Archivo,sans-serif'}}>📋 {c.phone}</button> : '—'}</td>
                               <td>{c.category?.emoji} {c.category?.name || '—'}</td>
                               <td><span style={{fontSize:11,fontWeight:600,color:c.plan==='paid'?'#0F8050':'#AAA'}}>{c.plan==='paid'?'Pago':'Grátis'}</span></td>
@@ -1887,6 +1978,9 @@ export default function AdminPage() {
                                     </button>
                                     <a className="action-btn" href={`/painel/catalogo?empresa=${c.id}`} style={{background:'#185FA522',color:'#185FA5',textDecoration:'none',display:'inline-flex',alignItems:'center'}}>
                                       📋 Editar cardápio
+                                    </a>
+                                    <a className="action-btn" href={`/painel/mensagens?empresa=${c.id}`} style={{background:'#0F805022',color:'#0F8050',textDecoration:'none',display:'inline-flex',alignItems:'center'}}>
+                                      💬 Conectar WhatsApp
                                     </a>
                                     <button className="action-btn" style={c.crm_whatsapp_enabled ? {background:'#E4F3EC',color:'#157A52'} : {background:'#F0EDE8',color:'#888'}} onClick={() => toggleModule(c.id, 'crm_whatsapp_enabled', !!c.crm_whatsapp_enabled)}>
                                       💬 {c.crm_whatsapp_enabled ? 'CRM ON' : 'CRM OFF'}
@@ -1972,7 +2066,7 @@ export default function AdminPage() {
                                     const val = e.target.checked
                                     const now = val ? new Date().toISOString() : null
                                     setGroupStatus(prev=>({...prev,[u.id]:{checked:val,at:now}}))
-                                    await fetch('/api/admin/update-user',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:u.id,updates:{whatsapp_group:val,whatsapp_group_at:now}})})
+                                    await adminFetch('/api/admin/update-user',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:u.id,updates:{whatsapp_group:val,whatsapp_group_at:now}})})
                                   }} style={{width:16,height:16,cursor:'pointer',accentColor:'#25D366'}}/>
                                   {groupStatus[u.id]?.checked && groupStatus[u.id]?.at && (
                                     <span style={{fontSize:9,color:'#25D366',whiteSpace:'nowrap'}}>{new Date(groupStatus[u.id].at!).toLocaleDateString('pt-BR')} {new Date(groupStatus[u.id].at!).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span>
@@ -3280,6 +3374,48 @@ export default function AdminPage() {
                         </div>
                       )}
                     </div>
+                  </div>
+                </div>
+
+                <div className="section-card" style={{marginTop:20}}>
+                  <div className="section-hdr">
+                    <span className="section-title">🖨️ INSTALADOR DO QZ TRAY</span>
+                  </div>
+                  <div style={{padding:'20px 24px'}}>
+                    <div style={{fontSize:13,color:'#666',marginBottom:20,lineHeight:1.6}}>
+                      Programa que a loja precisa ter instalado no computador pra imprimir pedido automático. Hospedando aqui, o lojista baixa direto do nosso painel em vez de procurar no site da QZ. Enviando um arquivo novo aqui, o link de download no painel do lojista continua o mesmo (não precisa avisar ninguém).
+                    </div>
+                    {(['win','mac'] as const).map(platform => (
+                      <div key={platform} style={{border:'1.5px solid #EDE8E0',borderRadius:12,padding:16,marginBottom:platform==='win'?14:0}}>
+                        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
+                          <div>
+                            <div style={{fontWeight:600,fontSize:14,color:'#111'}}>{platform === 'win' ? '🪟 Windows' : '🍎 Mac'}</div>
+                            {qzInstallers[platform] ? (
+                              <div style={{fontSize:12,color:'#0F8050',marginTop:4}}>
+                                ✓ {(qzInstallers[platform]!.size / (1024*1024)).toFixed(1)} MB — enviado {qzInstallers[platform]!.updatedAt ? new Date(qzInstallers[platform]!.updatedAt).toLocaleString('pt-BR') : ''}
+                              </div>
+                            ) : (
+                              <div style={{fontSize:12,color:'#AAA',marginTop:4}}>Nenhum arquivo enviado ainda</div>
+                            )}
+                          </div>
+                          <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                            {qzInstallers[platform] && (
+                              <>
+                                <a href={qzInstallers[platform]!.url} target="_blank" rel="noopener noreferrer"
+                                  style={{fontSize:12,fontWeight:600,color:'var(--sign-dark)',textDecoration:'none'}}>Ver link</a>
+                                <button onClick={()=>removeQzInstaller(platform)}
+                                  style={{padding:'8px 12px',background:'#FBEAEA',color:'#A83232',border:'none',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>Remover</button>
+                              </>
+                            )}
+                            <label style={{padding:'8px 16px',background:'var(--sign)',color:'var(--ink)',border:'none',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'Archivo,sans-serif',opacity:qzInstallerUploading[platform]?0.6:1}}>
+                              {qzInstallerUploading[platform] ? 'Enviando...' : qzInstallers[platform] ? 'Trocar arquivo' : 'Enviar arquivo'}
+                              <input type="file" accept={platform==='win' ? '.exe,.msi' : '.pkg,.dmg'} style={{display:'none'}} disabled={qzInstallerUploading[platform]}
+                                onChange={e => { const f = e.target.files?.[0]; if (f) uploadQzInstaller(platform, f); e.target.value = '' }} />
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>

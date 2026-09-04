@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { requireAdmin } from '@/lib/requireAdmin'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -7,7 +8,7 @@ const supabase = createClient(
 )
 
 const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'https://evo.trindadeonline.com.br'
-const EVOLUTION_KEY = process.env.EVOLUTION_API_KEY || 'trindade2024'
+const EVOLUTION_KEY = process.env.EVOLUTION_API_KEY || ''
 const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE || 'Trindade Online'
 
 function formatPhone(phone: string): string {
@@ -35,6 +36,9 @@ function buildMessage(subcategoryName: string): string {
 // Notifica TODAS as empresas que sugeriram esse mesmo nome (pode ter mais
 // de uma pedindo a mesma coisa) e limpa as sugestões correspondentes
 export async function POST(req: NextRequest) {
+  const auth = await requireAdmin(req)
+  if (auth instanceof NextResponse) return auth
+
   try {
     const { subcategory_name } = await req.json()
     const name = (subcategory_name || '').trim()

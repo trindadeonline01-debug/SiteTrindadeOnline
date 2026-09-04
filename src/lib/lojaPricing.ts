@@ -56,23 +56,46 @@ function gerarCodigoInteresse(): string {
 // Cria o registro no banco (anônimo — RLS permite insert público) e monta
 // o link wa.me já com a mensagem formatada: itens · total · entrega ou
 // retirada · código, legível em 3 segundos (ESPECIFICACAO.md §9.5).
+//
+// `waWindow` precisa ser aberto pelo CHAMADOR com `window.open('', '_blank')`
+// como a primeiríssima linha do clique, antes de qualquer `await` — depois
+// de um await o navegador não considera mais a abertura de janela como
+// resposta direta a um clique do usuário e bloqueia como pop-up (Safari
+// principalmente). Aqui a gente só troca a URL dessa aba já aberta.
 export async function criarInteresseEAbrirWhatsapp(opts: {
   supabase: any; companyId: string; companyPhone: string
   itens: InteresseItem[]; valorTotal: number
   deliveryType: 'entrega' | 'retirada'; origem?: 'whatsapp_link' | 'qr_balcao' | 'status' | 'portal'
-}) {
+  cupomLabel?: string
+  notasLabel?: string
+  waWindow?: Window | null
+}): Promise<{ url: string; blocked: boolean }> {
   const codigo = gerarCodigoInteresse()
-  await opts.supabase.from('interesses').insert({
+  const { error } = await opts.supabase.from('interesses').insert({
     company_id: opts.companyId, codigo, itens: opts.itens, valor_total: opts.valorTotal,
     origem: opts.origem || 'whatsapp_link',
   })
+  if (error) {
+    opts.waWindow?.close()
+    throw error
+  }
   const linhas = [
     'Olá! Quero fazer este pedido:',
     ...opts.itens.map(i => `${i.qtd}x ${i.nome}`),
+    ...(opts.cupomLabel ? [`Cupom aplicado: ${opts.cupomLabel}`] : []),
     `Total: ${fmt(opts.valorTotal)}`,
     opts.deliveryType === 'entrega' ? '🚴 Entrega' : '🏪 Retirada',
+    ...(opts.notasLabel ? [opts.notasLabel] : []),
     `Código: ${codigo}`,
   ]
   const url = `https://wa.me/55${opts.companyPhone.replace(/\D/g, '')}?text=${encodeURIComponent(linhas.join('\n'))}`
-  window.open(url, '_blank')
+  if (opts.waWindow) {
+    opts.waWindow.location.href = url
+    return { url, blocked: false }
+  }
+  // Não tinha janela aberta de antemão (chamador não seguiu o padrão) —
+  // tenta abrir direto mesmo assim; se o navegador bloquear, `blocked`
+  // avisa o chamador pra mostrar um link manual de fallback.
+  const w = window.open(url, '_blank')
+  return { url, blocked: !w }
 }

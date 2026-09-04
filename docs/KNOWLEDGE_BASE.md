@@ -266,9 +266,11 @@ Igrejas:            00000000-0000-0000-0000-000000000008
 - **Preços pensados (ainda não cobrados automaticamente, só o painel de liberação manual existe)**: Cardápio R$49,90/mês · +CRM R$89,90/mês · +Entrega R$129,90/mês — a diária/crédito de entrega continuam sendo cobrados à parte, por fora dessas mensalidades, por ser consumo variável. Falta: checkout automático desses pacotes (hoje só o Plano Visibilidade tem Pix automático — ver seção 7)
 
 ### Importação de Cardápio via IA — prompt padrão (FINAL, ago/2026)
-Uso constante pra importar catálogo completo de empresas que já têm cardápio publicado em outro app (Anota Aí, iFood, etc.). Colar na extensão **Claude for Chrome**, com a página do cardápio aberta. Gera CSV pronto pro botão "📥 Importar de um CSV" em Painel → CRM → Catálogo (formato consumido por `handleImportCsv`/`parseGroupsField` em `src/app/painel/crm/catalogo/page.tsx`).
+Uso constante pra importar catálogo completo de empresas que já têm cardápio publicado em outro app (Anota Aí, iFood, etc.). Colar na extensão **Claude for Chrome**, com a página do cardápio aberta. Gera CSV pronto pro botão "📥 Importar de um CSV" em Painel → Catálogo (formato consumido por `handleImportCsv`/`parseGroupsField` em `src/app/painel/catalogo/page.tsx`).
 
 Achado com a Queens Burgers: pegar a foto pelo `src` da lista traz thumbnail em baixa resolução — abrir o modal do produto e capturar a URL da imagem ampliada (via Network/DevTools ou inspecionar o elemento) resolve a qualidade direto na origem, sem ajuste manual depois.
+
+**Atualizar um cardápio já importado (set/2026):** a importação é sempre `insert` — reimportar o mesmo CSV sem cuidado duplica tudo. Pra rodar o mesmo prompt de novo depois de um tempo só pra sincronizar preço/descrição/foto de quem já existe, marca a caixinha **"🔄 Atualizar quem já existe (por nome)"** antes de escolher o arquivo: casa por nome (sem diferenciar maiúscula/minúscula) e faz `update` em vez de criar duplicado; produto com nome novo continua sendo criado normal. Só atualiza a foto se a linha do CSV trouxer uma `foto_url` nova, e só mexe nos grupos de opcionais se a coluna `grupos` da linha não estiver vazia — coluna vazia não apaga complemento configurado na mão.
 
 ```
 Você vai extrair o cardápio completo desta página (Anota Aí, iFood ou similar) e montar um CSV pronto pra eu importar no meu sistema.

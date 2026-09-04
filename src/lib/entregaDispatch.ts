@@ -6,7 +6,7 @@ const supabase = createClient(
 )
 
 const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'https://evo.trindadeonline.com.br'
-const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY || 'trindade2024'
+const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY || ''
 const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE || 'Trindade Online'
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trindadeonline.com.br'
 

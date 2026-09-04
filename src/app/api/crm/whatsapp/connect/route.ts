@@ -30,8 +30,14 @@ export async function POST(req: NextRequest) {
       .from('companies')
       .select('id, owner_id, crm_whatsapp_enabled, crm_phone_limit, trial_modules_until')
       .eq('id', company_id).maybeSingle()
-    if (!company || company.owner_id !== userData.user.id) {
-      return NextResponse.json({ error: 'empresa não é sua' }, { status: 403 })
+    if (!company) return NextResponse.json({ error: 'empresa não encontrada' }, { status: 404 })
+    if (company.owner_id !== userData.user.id) {
+      // Admin pode conectar o WhatsApp de qualquer empresa (Modo admin em
+      // /painel/mensagens?empresa=<id>) — só o dono da empresa não passa aqui.
+      const { data: profile } = await supabase.from('profiles').select('user_type').eq('id', userData.user.id).maybeSingle()
+      if (profile?.user_type !== 'admin') {
+        return NextResponse.json({ error: 'empresa não é sua' }, { status: 403 })
+      }
     }
     if (!moduleActive(company.crm_whatsapp_enabled, company.trial_modules_until)) {
       return NextResponse.json({ error: 'CRM de WhatsApp não está ativo pra essa empresa' }, { status: 403 })

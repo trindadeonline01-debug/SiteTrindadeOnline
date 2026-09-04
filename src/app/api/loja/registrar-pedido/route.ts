@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { moduleActive } from '@/lib/modules'
+import { normalizePhone } from '@/lib/phone'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -9,11 +10,6 @@ const supabase = createClient(
 const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'https://evo.trindadeonline.com.br'
 
 const PAY_LABEL: Record<string, string> = { pix: 'Pix', dinheiro: 'Dinheiro', cartao: 'Cartão' }
-
-function formatPhone(phone: string): string {
-  const digits = phone.replace(/\D/g, '')
-  return digits.startsWith('55') ? digits : '55' + digits
-}
 
 type OrderItem = { name: string; qty: number; unitPrice: number; modifiers?: { name: string; price: number }[] }
 type OrderInfo = {
@@ -68,10 +64,11 @@ function buildOwnerMessage(opts: OrderInfo & { customerName: string; customerPho
 export async function POST(req: NextRequest) {
   try {
     const {
-      companyId, phone, name, address, total, items,
+      companyId, phone: rawPhone, name, address, total, items,
       subtotal, deliveryFee, paymentMethod, deliveryType, notes,
     } = await req.json()
     if (!companyId) return NextResponse.json({ error: 'companyId obrigatório' }, { status: 400 })
+    const phone = rawPhone ? normalizePhone(rawPhone) : null
 
     if (phone) {
       const { data: existing } = await supabase
@@ -118,7 +115,7 @@ export async function POST(req: NextRequest) {
               await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', apikey: instance.api_key },
-                body: JSON.stringify({ number: formatPhone(phone), text }),
+                body: JSON.stringify({ number: phone, text }),
               })
               const { data: contact } = await supabase.from('crm_contacts').select('id').eq('company_id', companyId).eq('phone', phone).maybeSingle()
               if (contact) {
@@ -144,7 +141,7 @@ export async function POST(req: NextRequest) {
               await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', apikey: instance.api_key },
-                body: JSON.stringify({ number: formatPhone(owner.phone), text: ownerText }),
+                body: JSON.stringify({ number: normalizePhone(owner.phone), text: ownerText }),
               })
             }
           } catch {}

@@ -136,7 +136,8 @@ export default function CatalogoPage() {
   const importPausedRef = useRef(false)
   const importCancelledRef = useRef(false)
   const [importProgress, setImportProgress] = useState({ done: 0, total: 0 })
-  const [importResults, setImportResults] = useState<{ ok: number; errors: string[]; photoWarnings: string[]; cancelled: boolean } | null>(null)
+  const [importResults, setImportResults] = useState<{ ok: number; updated: number; errors: string[]; photoWarnings: string[]; cancelled: boolean } | null>(null)
+  const [importUpdateMode, setImportUpdateMode] = useState(false)
   const [lastImportBatch, setLastImportBatch] = useState<{ id: string; count: number } | null>(null)
   const [deletingLastImport, setDeletingLastImport] = useState(false)
   const [showImportPhotos, setShowImportPhotos] = useState(false)
@@ -336,9 +337,11 @@ export default function CatalogoPage() {
     const errors: string[] = []
     const photoWarnings: string[] = []
     let createdCount = 0
+    let updatedCount = 0
     let ok = 0
     let cancelled = false
     let localCats = [...categorias]
+    let localProdutos = [...produtos]
 
     for (let i = 0; i < dataRows.length; i++) {
       if (importCancelledRef.current) { cancelled = true; break }
@@ -386,28 +389,55 @@ export default function CatalogoPage() {
             }
           }
 
-          const { data: prod, error: prodErr } = await supabase.from('loja_produtos').insert({
-            company_id: companyId, category_id: categoryId, name: nome,
-            description: iDesc >= 0 ? ((r[iDesc] || '').trim() || null) : null,
-            photo_url: photoUrl,
-            cost_price: 0, sale_price: iPreco >= 0 ? parsePt(r[iPreco]) : 0,
-            track_stock: false, esgotado: false, active: true, display_order: produtos.length + i,
-            import_batch_id: batchId,
-          }).select('id').single()
-          if (prodErr || !prod) throw new Error(prodErr?.message || 'falha ao criar produto')
-          createdCount++
-
+          // Modo "atualizar existentes" (ligado pelo usuário): casa por nome
+          // (sem diferenciar maiúscula/minúscula) com o que já tá cadastrado
+          // pra essa empresa, em vez de criar tudo de novo duplicado — é o
+          // que permite reimportar o mesmo CSV depois de um tempo só pra
+          // sincronizar preço/descrição/foto, sem virar catálogo duplicado.
+          const existing = importUpdateMode ? localProdutos.find(p => p.name.trim().toLowerCase() === nome.toLowerCase()) : null
           const groups = iGrupos >= 0 ? parseGroupsField(r[iGrupos] || '') : []
-          for (let gi = 0; gi < groups.length; gi++) {
-            const g = groups[gi]
-            const { data: gData } = await supabase.from('loja_opcoes_grupo').insert({
-              produto_id: prod.id, name: g.name, required: g.required, min_select: g.min_select, max_select: g.max_select || 1, pricing_rule: g.pricing_rule, display_order: gi,
+          let produtoId: string
+
+          if (existing) {
+            const updatePayload: Record<string, any> = { sale_price: iPreco >= 0 ? parsePt(r[iPreco]) : existing.sale_price }
+            if (iDesc >= 0 && (r[iDesc] || '').trim()) updatePayload.description = (r[iDesc] || '').trim()
+            if (catName) updatePayload.category_id = categoryId
+            if (photoUrl) updatePayload.photo_url = photoUrl // sem foto_url na linha, mantém a foto que já tinha
+            const { error: updErr } = await supabase.from('loja_produtos').update(updatePayload).eq('id', existing.id)
+            if (updErr) throw new Error(updErr.message)
+            produtoId = existing.id
+            if (groups.length > 0) await supabase.from('loja_opcoes_grupo').delete().eq('produto_id', produtoId)
+            updatedCount++
+          } else {
+            const { data: prod, error: prodErr } = await supabase.from('loja_produtos').insert({
+              company_id: companyId, category_id: categoryId, name: nome,
+              description: iDesc >= 0 ? ((r[iDesc] || '').trim() || null) : null,
+              photo_url: photoUrl,
+              cost_price: 0, sale_price: iPreco >= 0 ? parsePt(r[iPreco]) : 0,
+              track_stock: false, esgotado: false, active: true, display_order: produtos.length + i,
+              import_batch_id: batchId,
             }).select('id').single()
-            if (!gData) continue
-            if (g.options.length) {
-              await supabase.from('loja_opcoes').insert(g.options.map((o, oi) => ({
-                grupo_id: gData.id, name: o.name || 'Opção', price: o.price, display_order: oi,
-              })))
+            if (prodErr || !prod) throw new Error(prodErr?.message || 'falha ao criar produto')
+            produtoId = prod.id
+            localProdutos.push({ id: prod.id, name: nome } as Produto)
+            createdCount++
+          }
+
+          // Grupos de opcionais só são recriados quando a linha do CSV traz
+          // algo em "grupos" — coluna vazia num produto já existente não
+          // apaga complementos configurados manualmente por engano.
+          if (!existing || groups.length > 0) {
+            for (let gi = 0; gi < groups.length; gi++) {
+              const g = groups[gi]
+              const { data: gData } = await supabase.from('loja_opcoes_grupo').insert({
+                produto_id: produtoId, name: g.name, required: g.required, min_select: g.min_select, max_select: g.max_select || 1, pricing_rule: g.pricing_rule, display_order: gi,
+              }).select('id').single()
+              if (!gData) continue
+              if (g.options.length) {
+                await supabase.from('loja_opcoes').insert(g.options.map((o, oi) => ({
+                  grupo_id: gData.id, name: o.name || 'Opção', price: o.price, display_order: oi,
+                })))
+              }
             }
           }
           ok++
@@ -423,7 +453,7 @@ export default function CatalogoPage() {
     setImporting(false)
     setImportPaused(false)
     if (createdCount > 0) setLastImportBatch({ id: batchId, count: createdCount })
-    setImportResults({ ok, errors, photoWarnings, cancelled })
+    setImportResults({ ok, updated: updatedCount, errors, photoWarnings, cancelled })
   }
 
   function togglePauseImport() {
@@ -794,7 +824,7 @@ export default function CatalogoPage() {
               {showImportMenu && (
                 <div className="cg-import-menu">
                   <button onClick={() => { setShowImportMenu(false); openBulk() }}>⚡ Cadastro rápido — vários produtos de uma vez</button>
-                  <button onClick={() => { setShowImportMenu(false); setShowImportCsv(true); setImportResults(null) }}>📥 Importar de um CSV</button>
+                  <button onClick={() => { setShowImportMenu(false); setShowImportCsv(true); setImportResults(null); setImportUpdateMode(false) }}>📥 Importar de um CSV</button>
                   <button onClick={() => { setShowImportMenu(false); setShowImportPhotos(true); setPhotoImportResults(null) }}>🖼️ Importar fotos pelo nome do produto</button>
                 </div>
               )}
@@ -1077,6 +1107,10 @@ export default function CatalogoPage() {
                       Sabores | obrigatorio | 1 | 2 | maior_valor | Calabresa=39.90 ; Mussarela=35.90
                     </span>
                   </div>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 11.5, color: '#444', marginBottom: 14, cursor: 'pointer', lineHeight: 1.5 }}>
+                    <input type="checkbox" checked={importUpdateMode} onChange={e => setImportUpdateMode(e.target.checked)} style={{ marginTop: 2 }} />
+                    <span>🔄 Atualizar quem já existe (por nome) em vez de duplicar — bom pra reimportar o mesmo cardápio depois de um tempo só pra atualizar preço/descrição/foto. Produto novo continua sendo criado normal.</span>
+                  </label>
                   <label className="cg-btn cg-btn-gold" style={{ display: 'block', textAlign: 'center', cursor: 'pointer', marginBottom: lastImportBatch ? 10 : 16 }}>
                     Escolher arquivo CSV
                     <input type="file" accept=".csv,text/csv" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) handleImportCsv(f) }} />
@@ -1103,7 +1137,9 @@ export default function CatalogoPage() {
                 <div style={{ padding: '10px 0' }}>
                   <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8 }}>
                     {importResults.cancelled && <span style={{ color: '#C43D3D' }}>Importação cancelada. </span>}
-                    {importResults.ok} produto{importResults.ok !== 1 ? 's' : ''} importado{importResults.ok !== 1 ? 's' : ''}!
+                    {importResults.updated > 0
+                      ? <>{importResults.ok - importResults.updated} novo{(importResults.ok - importResults.updated) !== 1 ? 's' : ''} · {importResults.updated} atualizado{importResults.updated !== 1 ? 's' : ''}!</>
+                      : <>{importResults.ok} produto{importResults.ok !== 1 ? 's' : ''} importado{importResults.ok !== 1 ? 's' : ''}!</>}
                   </div>
                   {importResults.errors.length > 0 && (
                     <>

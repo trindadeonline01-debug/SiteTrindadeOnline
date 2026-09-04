@@ -43,6 +43,8 @@ type Props = {
 }
 
 const fmtDate = (s: string) => new Date(s).toLocaleDateString('pt-BR')
+const fmtMoney = (n: number) => 'R$ ' + n.toFixed(2).replace('.', ',')
+type Coupon = { id: string; title: string; discount_type: 'fixed' | 'percent'; discount_value: number; min_purchase: number }
 
 const PALAVRA_ERRO_MSGS = ['❌ Ainda não é essa... tenta de novo!', '😅 Quase! Mas não é essa palavra.', '🔍 Não foi dessa vez, continua tentando!']
 
@@ -159,6 +161,15 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
   const premiadaErroTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const premiadaCooldownTimer = useRef<ReturnType<typeof setInterval> | null>(null)
   const { premio, setPremio, checarPalavraPremiada, waResgateUrl } = usePalavraPremiada()
+  const [coupons, setCoupons] = useState<Coupon[]>([])
+
+  useEffect(() => {
+    supabase.from('coupons').select('id,title,discount_type,discount_value,min_purchase')
+      .eq('company_id', company.id).eq('active', true).gt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false })
+      .then(({ data }) => setCoupons((data || []) as Coupon[]))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [company.id])
 
   // Empresa/avaliações já vieram prontas do servidor (dado público). A
   // sessão do site fica no localStorage do navegador, não em cookie, então
@@ -337,15 +348,25 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
     setSendingContato(false)
   }
 
-  async function handleWhatsApp() {
+  function handleWhatsApp() {
     if (!company.phone) return
-    if (!userId) { window.location.href = '/login'; return }
-    await supabase.from('companies').update({ whatsapp_clicks: ((company.whatsapp_clicks as number) || 0) + 1 }).eq('id', company.id)
-    await supabase.from('whatsapp_clicks').insert({ company_id: company.id, user_id: userId })
-    window.open(`https://wa.me/55${company.phone.replace(/\D/g,'')}?text=${encodeURIComponent('Olá, vim pelo site do Trindade Online e quero fazer meu pedido.')}`, '_blank')
+    // Não exige login antes de abrir o WhatsApp — ESPECIFICACAO.md §8.3 é
+    // explícito que pedir cadastro aqui é o maior matador de conversão do
+    // fluxo. Abre a aba já, antes de qualquer await, senão o navegador
+    // trata como pop-up e bloqueia (Safari principalmente).
+    const win = window.open('', '_blank')
+    const url = `https://wa.me/55${company.phone.replace(/\D/g,'')}?text=${encodeURIComponent('Olá, vim pelo site do Trindade Online e quero fazer meu pedido.')}`
+    if (win) win.location.href = url; else window.open(url, '_blank')
+    // A atualização direta em companies.whatsapp_clicks exigia ser dono
+    // da empresa (RLS) — pra qualquer outra pessoa clicando, esse update
+    // sempre falhava calado e o contador nunca subia. A rota /track já
+    // existe pra isso (roda com service role, contorna essa trava).
+    fetch(`/api/company/${company.id}/track`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'whatsapp_click' }) }).catch(() => {})
+    supabase.from('whatsapp_clicks').insert({ company_id: company.id, user_id: userId || null }).then(() => {})
   }
 
   async function deleteReview(reviewId: string) {
+    if (!confirm('Excluir essa avaliação?')) return
     await supabase.from('reviews').delete().eq('id', reviewId)
     loadCompany()
   }
@@ -544,6 +565,17 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
         .pill-wa-locked{flex:1;height:44px;padding:0 8px;background:var(--concrete-2);color:#888;border:1px solid var(--line);border-radius:999px;font-size:13px;font-weight:700;font-family:'Archivo',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-sizing:border-box;transition:all .15s;}
         .pill-wa-locked:hover:not(:disabled){background:var(--concrete-2);border-color:var(--sign-dark);color:var(--sign-dark);}
         .pill-wa-locked:disabled{cursor:not-allowed;opacity:.6;}
+
+        /* Faixa de cupons — mesma linguagem visual do cardápio, dentro de
+           uma caixa tracejada pra separar dos botões de ação sem competir
+           com eles (ESPECIFICACAO.md — mockup aprovado) */
+        .coupon-box{position:relative;background:var(--paper);border:1.5px dashed var(--sign-dark);border-radius:12px;padding:10px 12px 8px;}
+        .coupon-flag{position:absolute;top:-9px;left:14px;background:var(--sign);color:var(--ink);font-size:8.5px;font-weight:800;padding:2px 8px;border-radius:20px;letter-spacing:.03em;text-transform:uppercase;}
+        .coupon-strip{display:flex;gap:6px;overflow-x:auto;margin:2px 0 0;scrollbar-width:none;}
+        .coupon-strip::-webkit-scrollbar{display:none;}
+        .coupon-chip{flex:0 0 auto;display:flex;align-items:center;gap:6px;background:var(--ink);border-radius:20px;padding:6px 12px 6px 8px;white-space:nowrap;}
+        .coupon-chip-val{color:var(--sign);font-size:11px;font-weight:800;}
+        .coupon-chip-rule{color:#B8B0A0;font-size:9.5px;}
 
         /* Favoritar / Compartilhar / Site — círculos de apoio */
         .icon-row{display:flex;gap:28px;justify-content:center;}
@@ -821,6 +853,21 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
                       🔒 WhatsApp
                     </button>
                   )}
+                </div>
+              )}
+
+              {isActive && coupons.length > 0 && (
+                <div className="coupon-box">
+                  <span className="coupon-flag">Cupom ativo</span>
+                  <div className="coupon-strip">
+                    {coupons.map(c => (
+                      <div className="coupon-chip" key={c.id}>
+                        <span>🎟️</span>
+                        <span className="coupon-chip-val">{c.discount_type === 'fixed' ? fmtMoney(Number(c.discount_value)) : `${c.discount_value}%`} OFF</span>
+                        {Number(c.min_purchase || 0) > 0 && <span className="coupon-chip-rule">acima de {fmtMoney(Number(c.min_purchase))}</span>}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 

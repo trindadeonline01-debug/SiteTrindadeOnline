@@ -38,20 +38,29 @@ export type HourRow = {
 // paused=true (pausa manual do lojista, ex: imprevisto) força fechado mesmo
 // dentro do horário — tem prioridade sobre tudo, inclusive forcedOpen.
 // forcedOpen=true força aberto mesmo fora do horário cadastrado.
+// Um intervalo cujo fechamento é <= abertura (ex: 18:00-00:00, 22:00-02:00)
+// atravessa a meia-noite — soma 24h ao horário de fechamento pra comparação.
+function rowCoversMinute(h: HourRow, minutesSinceOpenDay: number): boolean {
+  if (h.closed || !h.open_time || !h.close_time) return false
+  const [oh, om] = h.open_time.split(':').map(Number)
+  const [ch, cm] = h.close_time.split(':').map(Number)
+  const openMin = oh * 60 + om
+  let closeMin = ch * 60 + cm
+  if (closeMin <= openMin) closeMin += 1440
+  return minutesSinceOpenDay >= openMin && minutesSinceOpenDay <= closeMin
+}
+
 export function isOpenNow(hours?: HourRow[], flexible?: boolean, paused?: boolean, forcedOpen?: boolean): boolean {
   if (paused) return false
   if (forcedOpen) return true
   if (flexible) return true
   if (!hours || hours.length === 0) return false
-  const today = new Date().getDay()
-  const todayRows = hours.filter(h => h.day_of_week === today)
-  if (todayRows.length === 0) return false
-  if (todayRows.some(h => h.closed)) return false
-  const nowMin = new Date().getHours() * 60 + new Date().getMinutes()
-  return todayRows.some(h => {
-    if (!h.open_time || !h.close_time) return false
-    const [oh, om] = h.open_time.split(':').map(Number)
-    const [ch, cm] = h.close_time.split(':').map(Number)
-    return nowMin >= oh * 60 + om && nowMin <= ch * 60 + cm
-  })
+  const now = new Date()
+  const today = now.getDay()
+  const yesterday = (today + 6) % 7
+  const nowMin = now.getHours() * 60 + now.getMinutes()
+
+  if (hours.some(h => h.day_of_week === today && rowCoversMinute(h, nowMin))) return true
+  // Turno de ontem que começou antes da meia-noite e ainda não fechou hoje
+  return hours.some(h => h.day_of_week === yesterday && rowCoversMinute(h, nowMin + 1440))
 }

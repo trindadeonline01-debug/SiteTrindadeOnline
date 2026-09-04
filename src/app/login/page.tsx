@@ -33,8 +33,12 @@ export default function LoginPage() {
 
     const params = new URLSearchParams(window.location.search)
     const redirect = params.get('redirect')
-    if (redirect) {
-      window.location.href = redirect
+    // Só aceita caminho relativo do próprio site — sem isso, um link tipo
+    // /login?redirect=https://site-falso.com engana a vítima: ela loga de
+    // verdade aqui (com a senha real dela) e sai redirecionada pra fora.
+    const safeRedirect = redirect && redirect.startsWith('/') && !redirect.startsWith('//') ? redirect : null
+    if (safeRedirect) {
+      window.location.href = safeRedirect
     } else if (profile?.user_type === 'company') {
       window.location.href = '/painel'
     } else if (profile?.user_type === 'admin') {

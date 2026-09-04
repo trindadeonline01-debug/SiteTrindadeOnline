@@ -7,7 +7,7 @@ const supabase = createClient(
 )
 
 const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'https://evo.trindadeonline.com.br'
-const EVOLUTION_KEY = process.env.EVOLUTION_API_KEY || 'trindade2024'
+const EVOLUTION_KEY = process.env.EVOLUTION_API_KEY || ''
 const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE || 'Trindade Online'
 
 const STATUS_LABEL: Record<string, string> = { a_gravar: 'A gravar', gravado: 'Gravado', editado: 'Editado', postado: 'Postado' }

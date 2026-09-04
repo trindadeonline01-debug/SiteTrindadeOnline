@@ -45,13 +45,32 @@ function timeAgo(iso: string) {
   if (mins < 60) return `${mins}min`
   return `${Math.floor(mins / 60)}h${mins % 60}`
 }
+// Mesmo alerta de /painel/pedidos — quadrada, mais alto, dois toques em par
+// repetidos, com cara de campainha de pedido chegando (não de notificação
+// discreta). Cozinha é tablet na parede — precisa ainda mais de ser ouvido.
 function beep() {
   try {
     const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
-    const osc = ctx.createOscillator(); const gain = ctx.createGain()
-    osc.connect(gain); gain.connect(ctx.destination)
-    osc.frequency.value = 880; gain.gain.value = 0.12
-    osc.start(); osc.stop(ctx.currentTime + 0.18)
+    const master = ctx.createGain()
+    master.gain.value = 0.55
+    master.connect(ctx.destination)
+
+    function note(freq: number, start: number, dur: number) {
+      const osc = ctx.createOscillator()
+      const g = ctx.createGain()
+      osc.type = 'square'
+      osc.frequency.value = freq
+      osc.connect(g); g.connect(master)
+      const t0 = ctx.currentTime + start
+      g.gain.setValueAtTime(0, t0)
+      g.gain.linearRampToValueAtTime(1, t0 + 0.012)
+      g.gain.linearRampToValueAtTime(0, t0 + dur)
+      osc.start(t0)
+      osc.stop(t0 + dur + 0.02)
+    }
+
+    const NOTE_A = 987.77, NOTE_B = 1318.51
+    ;[[NOTE_A, 0], [NOTE_B, 0.15], [NOTE_A, 0.5], [NOTE_B, 0.65]].forEach(([freq, t]) => note(freq, t, 0.14))
   } catch {}
 }
 
@@ -150,6 +169,7 @@ export default function CozinhaPage() {
         .cz-cname{ font-weight:800;font-size:16px;margin-bottom:2px; }
         .cz-ctime{ font-size:11px;color:#A79E8B;margin-bottom:8px; }
         .cz-citem{ font-size:13.5px;padding:2px 0;color:#F0EDE8; }
+        .cz-cqty{ color:#FFC531;font-weight:800; }
         .cz-cmods{ font-size:11px;color:var(--sign);padding-left:14px; }
         .cz-cbtn{ margin-top:10px;width:100%;padding:10px;border-radius:9px;border:none;background:var(--accent);color:#141210;font-weight:800;font-size:13px;cursor:pointer; }
         .cz-empty{ text-align:center;color:#5A5346;font-size:12.5px;padding:30px 0; }
@@ -174,7 +194,7 @@ export default function CozinhaPage() {
                     <div className="cz-ctime">{timeAgo(p.created_at)} atrás · {p.delivery_type === 'retirada' ? '🏪 Retirada' : '🚴 Entrega'}{p.scheduled_for ? ` · 📅 ${fmtSchedule(p.scheduled_for)}` : ''}</div>
                     {p.itens?.map(it => (
                       <div key={it.id}>
-                        <div className="cz-citem">{it.qty}x {it.product_name}</div>
+                        <div className="cz-citem"><span className="cz-cqty">{it.qty}x</span> {it.product_name}</div>
                         {it.selected_options?.length > 0 && <div className="cz-cmods">{it.selected_options.map(o => o.name).join(', ')}</div>}
                       </div>
                     ))}

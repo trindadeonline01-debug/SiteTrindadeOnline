@@ -14,6 +14,7 @@ import { CATEGORY_IMAGES } from '@/lib/categoryImages'
 
 interface PaidCompany {
   id: string; name: string; slug: string; avg_rating: number; total_reviews: number
+  plan?: string
   category?: { name: string; emoji?: string } | null
   photos?: { url: string; order: number }[]
 }
@@ -64,8 +65,6 @@ const PAID_CAROUSELS: [string, string, string, string][] = [
   ['00000000-0000-0000-0000-000000000001', 'comercios',   '🏪 COMÉRCIOS',    '/categoria/comercios'],
   ['00000000-0000-0000-0000-000000000002', 'servicos',    '🔧 SERVIÇOS',     '/categoria/servicos'],
 ]
-const PAID_CAROUSEL_SIZE = 10
-
 // sort(() => Math.random()-0.5) é um shuffle enviesado — pra listas
 // pequenas, mistura pouco e sempre deixa os mesmos no topo. Fisher-Yates
 // é o shuffle de verdade, com distribuição uniforme
@@ -136,9 +135,9 @@ export default async function HomePage() {
     supabaseServer.from('banners').select('*').eq('active', true).order('display_order'),
     Promise.all(PAID_CAROUSELS.map(([categoryId]) =>
       supabaseServer.from('companies')
-        .select('id, name, slug, avg_rating, total_reviews, category:categories(name,emoji), photos:company_photos(url,order)')
-        .eq('plan', 'paid').eq('status', 'active').eq('category_id', categoryId)
-        .limit(80) // amostra grande o bastante pro shuffle continuar variado, sem escalar sem limite conforme mais empresas assinam
+        .select('id, name, slug, plan, avg_rating, total_reviews, category:categories(name,emoji), photos:company_photos(url,order)')
+        .eq('status', 'active').eq('category_id', categoryId)
+        .limit(500) // teto de segurança, bem acima de qualquer categoria hoje — não corta exibição de verdade
     )),
     Promise.all(types.map(type =>
       supabaseServer.from('listings')
@@ -201,10 +200,12 @@ export default async function HomePage() {
   // SHUFFLE — ordem aleatória a cada carregamento
   const banners = shuffle((bannersRes.data || []) as Banner[])
 
-  // Empresas pagas por categoria — todo mundo no plano pago é buscado (sem
-  // limite na consulta), embaralhado de verdade e só então cortado nas
-  // primeiras 10 — assim a cada carregamento é um recorte diferente do
-  // total, não sempre as mesmas
+  // Empresas por categoria — TODAS as empresas ativas aparecem (pagas e
+  // grátis), mas as pagas sempre vêm primeiro: dois blocos embaralhados
+  // separadamente (pago, depois grátis) e concatenados, cada bloco com uma
+  // ordem nova a cada carregamento de página. Isso é a regra — nunca uma
+  // grátis passa na frente de uma paga, mas dentro de cada grupo todo
+  // mundo tem a mesma chance de aparecer primeiro.
   //
   // REGRA TEMPORÁRIA: empresa sem nenhuma foto cadastrada não aparece nos
   // destaques da home (fica só com o emoji da categoria, o que não fica bom
@@ -215,7 +216,9 @@ export default async function HomePage() {
   const paidCompanies: Record<string, PaidCompany[]> = {}
   PAID_CAROUSELS.forEach(([, key], i) => {
     const comFoto = ((paidResults[i].data || []) as any as PaidCompany[]).filter(c => (c.photos || []).length > 0)
-    paidCompanies[key] = shuffle(comFoto).slice(0, PAID_CAROUSEL_SIZE)
+    const pagas = shuffle(comFoto.filter(c => c.plan === 'paid'))
+    const gratis = shuffle(comFoto.filter(c => c.plan !== 'paid'))
+    paidCompanies[key] = [...pagas, ...gratis]
   })
 
   // Ofertas do bairro — só cupons por enquanto (Promoções da Semana
@@ -735,9 +738,10 @@ export default async function HomePage() {
           </div>
         )}
 
-        {/* EMPRESAS PAGAS — 1 carrossel por categoria (gastronomia, comércios,
-            serviços), ordem embaralhada a cada carregamento pra dar visibilidade
-            igual a todo mundo no plano pago */}
+        {/* EMPRESAS POR SEGMENTO — 1 carrossel por categoria (gastronomia,
+            comércios, serviços) com TODAS as empresas ativas, pagas primeiro
+            (bloco embaralhado) e grátis depois (outro bloco embaralhado),
+            ordem nova a cada carregamento de página */}
         {PAID_CAROUSELS.some(([, key]) => (paidCompanies[key] || []).length > 0) && (
           <>
             <div className="divider" />

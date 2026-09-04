@@ -18,7 +18,7 @@ type EvoInstance = { name: string; key: string }
 // variável de ambiente configurada, o array fica só com a principal e o
 // disparo funciona exatamente como antes, sem failover
 const INSTANCES: EvoInstance[] = [
-  { name: process.env.EVOLUTION_INSTANCE || 'Trindade Online', key: process.env.EVOLUTION_API_KEY || 'trindade2024' },
+  { name: process.env.EVOLUTION_INSTANCE || 'Trindade Online', key: process.env.EVOLUTION_API_KEY || '' },
   { name: process.env.EVOLUTION_INSTANCE_2 || '', key: process.env.EVOLUTION_API_KEY_2 || '' },
 ].filter(i => i.name && i.key)
 

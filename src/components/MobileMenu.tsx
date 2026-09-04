@@ -23,6 +23,7 @@ type Business = { id: string; name: string; slug: string }
 
 export default function MobileMenu() {
   const [open, setOpen] = useState(false)
+  const [profOpen, setProfOpen] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [userType, setUserType] = useState<string|null>(null)
   const [isProdTeam, setIsProdTeam] = useState(false)
@@ -50,10 +51,14 @@ export default function MobileMenu() {
     return () => { document.body.style.overflow = '' }
   }, [open])
 
-  useEffect(() => { setOpen(false) }, [pathname])
+  useEffect(() => { setOpen(false); setProfOpen(false) }, [pathname])
 
   const hideOn = ['/login', '/cadastro', '/admin', '/empresa/cadastrar', '/anunciar', '/producao', '/painel/compartilhar', '/atendimento']
   if (hideOn.some(p => pathname.startsWith(p))) return null
+
+  // /painel/pessoal é "modo negócio" só de endereço — visualmente é pessoal,
+  // então não conta como "dentro do painel" pra escolher o ícone certo.
+  const inPainel = pathname.startsWith('/painel') && !pathname.startsWith('/painel/pessoal')
 
   async function handleSair() {
     await supabase.auth.signOut()
@@ -75,7 +80,10 @@ export default function MobileMenu() {
         .mm-logo{font-family:'Anton', sans-serif;font-size:15px;letter-spacing:.2px;color:var(--ink);text-decoration:none;text-transform:uppercase;white-space:nowrap;flex-shrink:0;}
         .mm-logo span{color:var(--sign-dark);}
         .mm-entrar{background:var(--paper);color:var(--sign-dark);border:1.5px solid var(--sign-dark);border-radius:20px;padding:7px 16px;font-size:12px;font-weight:700;text-decoration:none;font-family:'Archivo',sans-serif;flex-shrink:0;}
-        .mm-profile-btn{background:none;border:none;color:var(--ink);cursor:pointer;text-decoration:none;display:flex;flex-shrink:0;}
+        .mm-profile-btn{background:none;border:none;color:var(--ink);cursor:pointer;text-decoration:none;display:flex;align-items:center;justify-content:center;flex-shrink:0;width:28px;height:28px;font-size:19px;line-height:1;}
+        .mm-profile-backdrop{position:fixed;inset:0;z-index:9499;background:transparent;border:none;padding:0;}
+        .mm-profpop{position:fixed;top:58px;right:12px;background:var(--paper);border:1px solid var(--line);border-radius:12px;box-shadow:0 14px 32px rgba(0,0,0,.18);z-index:9600;min-width:220px;padding:8px;}
+        .mm-profpop-lbl{font-size:10px;font-weight:800;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;padding:4px 8px 6px;}
         .mm-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9998;}
         .mm-drawer{position:fixed;top:0;left:0;bottom:0;width:82%;max-width:320px;background:var(--paper);z-index:10000;overflow-y:auto;box-shadow:2px 0 24px rgba(0,0,0,0.2);padding-bottom:calc(80px + env(safe-area-inset-bottom));}
         .mm-drawer-head{display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1px solid var(--line);}
@@ -87,6 +95,15 @@ export default function MobileMenu() {
         .mm-link-icon{font-size:18px;width:22px;text-align:center;flex-shrink:0;}
         .mm-divider{height:1px;background:var(--line);margin:8px 0;}
         .mm-sair{color:var(--alert);}
+        .mm-switcher{padding:6px 16px 2px;display:flex;flex-direction:column;gap:6px;}
+        .mm-idcard{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:9px;border:1.5px dotted var(--sign);background:transparent;font-size:13px;font-weight:700;color:var(--ink-2);text-decoration:none;}
+        .mm-idcard.active{background:var(--sign);border-style:solid;border-color:var(--sign);color:var(--ink);}
+        .mm-idico{width:24px;height:24px;border-radius:6px;background:#333;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;}
+        .mm-idcard.active .mm-idico{background:var(--ink);color:var(--sign);}
+        .mm-idtag{margin-left:auto;font-size:10px;color:var(--sign-dark);font-weight:800;}
+        .mm-idcard.active .mm-idtag{color:var(--ink);}
+        .mm-idarrow{margin-left:auto;color:var(--muted);font-size:13px;}
+        .mm-idadd{font-size:11.5px;font-weight:700;color:var(--sign-dark);padding:6px 16px 2px;text-decoration:none;display:block;}
       `}</style>
 
       <div className="mm-bar">
@@ -98,15 +115,42 @@ export default function MobileMenu() {
           <span className="mm-bairro"><span className="pin">◉</span> Trindade</span>
         </div>
         {user ? (
-          <a className="mm-profile-btn" href="/perfil" aria-label="Meu perfil">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 4-6 8-6s8 2 8 6" />
-            </svg>
-          </a>
+          businesses.length === 0 ? (
+            <a className="mm-profile-btn" href="/perfil" aria-label="Meu perfil">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 4-6 8-6s8 2 8 6" />
+              </svg>
+            </a>
+          ) : (
+            <button className="mm-profile-btn" onClick={() => setProfOpen(o => !o)} aria-label="Pessoal ou negócio">
+              {inPainel ? '🏭' : (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 4-6 8-6s8 2 8 6" />
+                </svg>
+              )}
+            </button>
+          )
         ) : (
           <a className="mm-entrar" href="/login">Entrar</a>
         )}
       </div>
+
+      {profOpen && (
+        <>
+          <button className="mm-profile-backdrop" onClick={() => setProfOpen(false)} aria-label="Fechar" />
+          <div className="mm-profpop">
+            <div className="mm-profpop-lbl">Ver como</div>
+            <a className={`mm-idcard ${!inPainel ? 'active' : ''}`} href="/perfil">
+              <span className="mm-idico">👤</span> Pessoal {!inPainel && <span className="mm-idtag">● aqui</span>}
+            </a>
+            {businesses.map(b => (
+              <a key={b.id} className={`mm-idcard ${inPainel ? 'active' : ''}`} href="/painel" style={{ marginTop: 6 }}>
+                <span className="mm-idico">🏭</span> {b.name} {inPainel && <span className="mm-idtag">● aqui</span>}
+              </a>
+            ))}
+          </div>
+        </>
+      )}
 
       {open && (
         <>
@@ -116,6 +160,30 @@ export default function MobileMenu() {
               <a className="mm-logo" href="/">TRINDADE <span>ONLINE</span></a>
               <button className="mm-close" onClick={() => setOpen(false)} aria-label="Fechar menu">✕</button>
             </div>
+
+            {user && (
+              <>
+                <div className="mm-switcher" style={{ paddingTop: 12 }}>
+                  <div className="mm-idcard active">
+                    <span className="mm-idico">👤</span> Pessoal <span className="mm-idtag">● aqui</span>
+                  </div>
+                  {businesses.map(b => (
+                    <a key={b.id} className="mm-idcard" href="/painel">
+                      <span className="mm-idico">🏭</span> {b.name} <span className="mm-idarrow">→</span>
+                    </a>
+                  ))}
+                  {businesses.length === 0 && (
+                    <a className="mm-idcard mm-idcard-add" href="/anunciar">
+                      <span className="mm-idico">➕</span> Cadastrar minha empresa
+                    </a>
+                  )}
+                </div>
+                {businesses.length > 0 && (
+                  <a className="mm-idadd" href="/anunciar">➕ Cadastrar outro negócio</a>
+                )}
+                <div className="mm-divider" />
+              </>
+            )}
 
             <a className={`mm-link ${pathname === '/' ? 'active' : ''}`} href="/">
               <span className="mm-link-icon">🏠</span> Início
@@ -144,7 +212,7 @@ export default function MobileMenu() {
             {user ? (
               <>
                 <div className="mm-divider" />
-                <div className="mm-section-label">Minha conta</div>
+                <div className="mm-section-label">Sua conta</div>
                 <a className="mm-link" href="/perfil?tab=favoritos">
                   <span className="mm-link-icon">❤️</span> Favoritos
                 </a>
@@ -164,29 +232,6 @@ export default function MobileMenu() {
                     <div className="mm-section-label">Meus anúncios</div>
                     <a className="mm-link" href="/perfil?tab=anuncios">
                       <span className="mm-link-icon">📋</span> Desapega, vagas, imóveis
-                    </a>
-                  </>
-                )}
-
-                <div className="mm-divider" />
-                <div className="mm-section-label">Meus negócios</div>
-                {businesses.length === 0 && (
-                  <a className="mm-link" href="/anunciar">
-                    <span className="mm-link-icon">➕</span> Anunciar meu negócio
-                  </a>
-                )}
-                {businesses.map(b => (
-                  <a key={b.id} className={`mm-link ${pathname === '/painel' ? 'active' : ''}`} href="/painel">
-                    <span className="mm-link-icon">📊</span> {b.name}
-                  </a>
-                ))}
-                {businesses.length > 0 && (
-                  <>
-                    <a className="mm-link" href="/painel?tab=plano">
-                      <span className="mm-link-icon">💳</span> Planos
-                    </a>
-                    <a className="mm-link" href="/anunciar">
-                      <span className="mm-link-icon">➕</span> Cadastrar outro negócio
                     </a>
                   </>
                 )}

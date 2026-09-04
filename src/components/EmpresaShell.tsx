@@ -8,14 +8,17 @@ import { useEffect, useRef } from 'react'
 export type EmpresaNavKey =
   | 'dashboard' | 'perfil' | 'avaliacoes' | 'destaques' | 'banners'
   | 'compartilhar' | 'catalogo' | 'pedidos' | 'cozinha' | 'entrega' | 'mensagens' | 'clientes'
-  | 'interesses' | 'cupons' | 'promocoes' | 'plano'
+  | 'interesses' | 'cupons' | 'promocoes' | 'plano' | 'relatorios'
+  | 'pessoal-perfil' | 'pessoal-favoritos' | 'pessoal-avaliacoes' | 'pessoal-pedidos' | 'pessoal-anuncios' | 'pessoal-cupons'
 
 type Company = { id: string; name: string; slug?: string }
 
 const TITLES: Record<EmpresaNavKey, string> = {
   dashboard: 'Visão geral', perfil: 'Perfil e fotos', avaliacoes: 'Avaliações', destaques: 'Destaques',
   banners: 'Banners', compartilhar: 'Compartilhar cardápio', catalogo: 'Catálogo', pedidos: 'Pedidos',
-  cozinha: 'Cozinha', entrega: 'Entrega', mensagens: 'Mensagens', clientes: 'Clientes', interesses: 'Interesses', cupons: 'Cupons', promocoes: 'Promoções', plano: 'Plano',
+  cozinha: 'Cozinha', entrega: 'Entrega', mensagens: 'Mensagens', clientes: 'Clientes', interesses: 'Interesses', cupons: 'Cupons', promocoes: 'Promoções', plano: 'Plano', relatorios: 'Relatórios',
+  'pessoal-perfil': 'Meu perfil', 'pessoal-favoritos': 'Favoritos', 'pessoal-avaliacoes': 'Minhas avaliações',
+  'pessoal-pedidos': 'Meus pedidos', 'pessoal-anuncios': 'Meus anúncios', 'pessoal-cupons': 'Meus cupons',
 }
 
 // Item de sidebar que sabe ficar "trancado": função sem o módulo ativo não
@@ -53,6 +56,7 @@ export default function EmpresaShell({
   children: React.ReactNode
 }) {
   const initials = (companyName || '').trim().slice(0, 2).toUpperCase() || 'ST'
+  const isPessoal = active.startsWith('pessoal-')
 
   // Mede a altura REAL da barra fixa (varia por aparelho — home indicator do
   // iPhone, gesto do Android, 74px era só um chute que sobrava/faltava
@@ -79,7 +83,14 @@ export default function EmpresaShell({
 
   // Abas do rodapé mobile: se a loja tem cardápio digital/CRM, mostra os
   // atalhos operacionais; senão mostra os itens mais úteis do plano simples.
-  const mobileTabs: { key: EmpresaNavKey; href: string; ico: string; lbl: string; badge?: number }[] = crmEnabled
+  // Em página pessoal (dentro do painel), mostra atalhos pessoais.
+  const mobileTabs: { key: EmpresaNavKey; href: string; ico: string; lbl: string; badge?: number }[] = isPessoal
+    ? [
+        { key: 'pessoal-perfil', href: '/painel/pessoal', ico: '👤', lbl: 'Perfil' },
+        { key: 'pessoal-favoritos', href: '/painel/pessoal?tab=favoritos', ico: '❤️', lbl: 'Favoritos' },
+        { key: 'pessoal-pedidos', href: '/painel/pessoal?tab=pedidos', ico: '🧾', lbl: 'Pedidos' },
+      ]
+    : crmEnabled
     ? [
         { key: 'dashboard', href: '/painel', ico: '🏠', lbl: 'Início' },
         { key: 'pedidos', href: '/painel/pedidos', ico: '🧾', lbl: 'Pedidos' },
@@ -103,14 +114,22 @@ export default function EmpresaShell({
         .es-logo{padding:22px 20px 16px;border-bottom:1px solid #222;}
         .es-logo-txt{font-family:'Anton',sans-serif;font-size:19px;color:#fff;letter-spacing:1px;text-transform:uppercase;}
         .es-logo-txt span{color:var(--sign);}
-        .es-company{display:flex;align-items:center;gap:10px;margin-top:14px;background:var(--ink-2);border-radius:10px;padding:9px 10px;}
-        .es-company-avatar{width:30px;height:30px;border-radius:8px;background:var(--sign);color:var(--ink);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;flex:none;}
-        .es-company-name{color:#fff;font-size:12px;font-weight:700;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px;}
-        .es-company-switch{color:rgba(255,255,255,.4);font-size:10px;margin-top:1px;cursor:pointer;}
         .es-switch-list{margin-top:6px;background:var(--ink-2);border-radius:8px;overflow:hidden;}
         .es-switch-item{padding:7px 10px;font-size:11.5px;color:#999;cursor:pointer;border-top:1px solid #222;}
         .es-switch-item:first-child{border-top:none;}
         .es-switch-item.on{color:var(--sign);font-weight:700;}
+        .es-idswitcher{display:flex;flex-direction:column;gap:6px;margin-top:14px;}
+        .es-idcard{display:flex;align-items:center;gap:9px;background:transparent;border-radius:10px;padding:9px 10px;text-decoration:none;border:1.5px dotted var(--sign);}
+        .es-idcard.on{background:var(--sign);border-style:solid;border-color:var(--sign);}
+        .es-idico{width:26px;height:26px;border-radius:7px;background:#333;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;flex:none;}
+        .es-idcard.on .es-idico{background:var(--ink);color:var(--sign);}
+        .es-idname{color:#fff;font-size:12px;font-weight:700;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px;}
+        .es-idcard.on .es-idname{color:var(--ink);}
+        .es-idtag{margin-left:auto;font-size:9px;font-weight:800;color:var(--sign);flex:none;}
+        .es-idcard.on .es-idtag{color:var(--ink);}
+        .es-idcard-add{border-style:dotted;border-color:rgba(255,255,255,.35);}
+        .es-idcard-add .es-idico{background:none;color:var(--sign);font-size:15px;}
+        .es-idcard-add .es-idname{color:rgba(255,255,255,.85);}
         .es-nav{padding:14px 0;flex:1;overflow-y:auto;}
         .es-group-lbl{font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.35);padding:16px 20px 8px;}
         .es-group-lbl:first-child{padding-top:4px;}
@@ -146,13 +165,26 @@ export default function EmpresaShell({
       <aside className="es-sidebar">
         <div className="es-logo">
           <div className="es-logo-txt">TRINDADE <span>EMPRESA</span></div>
-          {companyName && (
-            <div className="es-company">
-              <div className="es-company-avatar">{initials}</div>
-              <div className="es-company-name">{companyName}</div>
-            </div>
-          )}
-          {companies && companies.length > 1 && (
+          <div className="es-idswitcher">
+            <a href="/painel/pessoal" className={`es-idcard ${isPessoal ? 'on' : ''}`}>
+              <span className="es-idico">👤</span>
+              <span className="es-idname">Pessoal</span>
+              {isPessoal && <span className="es-idtag">● aqui</span>}
+            </a>
+            {companyName ? (
+              <a href="/painel" className={`es-idcard ${!isPessoal ? 'on' : ''}`}>
+                <span className="es-idico">{initials}</span>
+                <span className="es-idname">{companyName}</span>
+                {!isPessoal && <span className="es-idtag">● aqui</span>}
+              </a>
+            ) : (
+              <a href="/anunciar" className="es-idcard es-idcard-add">
+                <span className="es-idico">➕</span>
+                <span className="es-idname">Cadastrar minha empresa</span>
+              </a>
+            )}
+          </div>
+          {!isPessoal && companies && companies.length > 1 && (
             <div className="es-switch-list">
               {companies.map(c => (
                 <div key={c.id} className={`es-switch-item ${c.name === companyName ? 'on' : ''}`} onClick={() => onSwitchCompany?.(c)}>{c.name}</div>
@@ -161,37 +193,56 @@ export default function EmpresaShell({
           )}
         </div>
         <nav className="es-nav">
-          <a href="/painel" className={`es-item ${active === 'dashboard' ? 'on' : ''}`}>📊 Visão geral</a>
+          {isPessoal ? (
+            <>
+              <div className="es-group-lbl">Minha conta</div>
+              <NavItem href="/painel/pessoal" active={active === 'pessoal-perfil'}>👤 Meu perfil</NavItem>
+              <NavItem href="/painel/pessoal?tab=favoritos" active={active === 'pessoal-favoritos'}>❤️ Favoritos</NavItem>
+              <NavItem href="/painel/pessoal?tab=avaliacoes" active={active === 'pessoal-avaliacoes'}>⭐ Minhas avaliações</NavItem>
+              <NavItem href="/painel/pessoal?tab=pedidos" active={active === 'pessoal-pedidos'}>🧾 Meus pedidos</NavItem>
 
-          {/* Agrupado por frequência de uso, não por assunto —
-              ESPECIFICACAO.md §4.3. Função sem módulo ativo não some: fica
-              com cadeado e leva pra tela de venda do plano — esconder
-              economiza pixel e perde venda. */}
-          <div className="es-group-lbl">Todo dia</div>
-          <NavItem href="/painel/pedidos" active={active === 'pedidos'} locked={!lojaDigitalEnabled}>🧾 Pedidos</NavItem>
-          <NavItem href="/painel/interesses" active={active === 'interesses'} locked={!lojaDigitalEnabled}>🔔 Interesses</NavItem>
-          <NavItem href="/painel/mensagens" active={active === 'mensagens'} locked={!crmEnabled} badge={mensagensBadge}>💬 Mensagens</NavItem>
-          <NavItem href="/atendimento" active={false} locked={!crmEnabled}>🎧 Modo Atendimento</NavItem>
-          <NavItem href="/painel/cozinha" active={active === 'cozinha'} locked={!lojaDigitalEnabled}>🍳 Cozinha</NavItem>
+              <div className="es-group-lbl">Meus anúncios</div>
+              <NavItem href="/painel/pessoal?tab=anuncios" active={active === 'pessoal-anuncios'}>📋 Desapega, vagas, imóveis</NavItem>
 
-          <div className="es-group-lbl">Minha loja</div>
-          <NavItem href="/painel/catalogo" active={active === 'catalogo'} locked={!lojaDigitalEnabled}>📋 Catálogo</NavItem>
-          <NavItem href="/painel?tab=perfil" active={active === 'perfil'}>✏️ Perfil e fotos</NavItem>
-          {companySlug && <NavItem href={`/empresa/${companySlug}`} active={false}>🔗 Página da loja</NavItem>}
-          <NavItem href="/painel/compartilhar" active={active === 'compartilhar'} locked={!lojaDigitalEnabled}>🔗 Compartilhar cardápio</NavItem>
-          <NavItem href="/painel/entrega" active={active === 'entrega'} locked={!entregaEnabled}>🏍️ Entrega e retirada</NavItem>
+              <div className="es-group-lbl">Vantagens</div>
+              <NavItem href="/painel/pessoal?tab=cupons" active={active === 'pessoal-cupons'}>🎟️ Meus cupons</NavItem>
+            </>
+          ) : (
+            <>
+              <a href="/painel" className={`es-item ${active === 'dashboard' ? 'on' : ''}`}>📊 Visão geral</a>
 
-          <div className="es-group-lbl">Clientes</div>
-          <NavItem href="/painel/clientes" active={active === 'clientes'} locked={!crmEnabled}>👥 CRM</NavItem>
-          <NavItem href="/painel?tab=avaliacoes" active={active === 'avaliacoes'} badge={avaliacoesBadge}>⭐ Avaliações</NavItem>
+              {/* Agrupado por frequência de uso, não por assunto —
+                  ESPECIFICACAO.md §4.3. Função sem módulo ativo não some: fica
+                  com cadeado e leva pra tela de venda do plano — esconder
+                  economiza pixel e perde venda. */}
+              <div className="es-group-lbl">Todo dia</div>
+              <NavItem href="/painel/pedidos" active={active === 'pedidos'} locked={!lojaDigitalEnabled}>🧾 Pedidos</NavItem>
+              <NavItem href="/painel/interesses" active={active === 'interesses'} locked={!lojaDigitalEnabled}>🔔 Interesses</NavItem>
+              <NavItem href="/painel/mensagens" active={active === 'mensagens'} locked={!crmEnabled} badge={mensagensBadge}>💬 Mensagens</NavItem>
+              <NavItem href="/atendimento" active={false} locked={!crmEnabled}>🎧 Modo Atendimento</NavItem>
+              <NavItem href="/painel/cozinha" active={active === 'cozinha'} locked={!lojaDigitalEnabled}>🍳 Cozinha</NavItem>
 
-          <div className="es-group-lbl">Crescer</div>
-          <NavItem href="/painel?tab=cupons" active={active === 'cupons'}>🎟️ Cupons</NavItem>
-          <NavItem href="/painel?tab=destaques" active={active === 'destaques'}>🌟 Destaques</NavItem>
-          <NavItem href="/painel?tab=banners" active={active === 'banners'}>🖼️ Banners</NavItem>
+              <div className="es-group-lbl">Minha loja</div>
+              <NavItem href="/painel/catalogo" active={active === 'catalogo'} locked={!lojaDigitalEnabled}>📋 Catálogo</NavItem>
+              <NavItem href="/painel?tab=perfil" active={active === 'perfil'}>✏️ Perfil e fotos</NavItem>
+              {companySlug && <NavItem href={`/empresa/${companySlug}`} active={false}>🔗 Página da loja</NavItem>}
+              <NavItem href="/painel/compartilhar" active={active === 'compartilhar'} locked={!lojaDigitalEnabled}>🔗 Compartilhar cardápio</NavItem>
+              <NavItem href="/painel/entrega" active={active === 'entrega'} locked={!entregaEnabled}>🏍️ Entrega e retirada</NavItem>
 
-          <div className="es-group-lbl">Conta</div>
-          <NavItem href="/painel?tab=plano" active={active === 'plano'}>💳 Plano e pagamento</NavItem>
+              <div className="es-group-lbl">Clientes</div>
+              <NavItem href="/painel/clientes" active={active === 'clientes'} locked={!crmEnabled}>👥 CRM</NavItem>
+              <NavItem href="/painel?tab=avaliacoes" active={active === 'avaliacoes'} badge={avaliacoesBadge}>⭐ Avaliações</NavItem>
+
+              <div className="es-group-lbl">Crescer</div>
+              <NavItem href="/painel?tab=cupons" active={active === 'cupons'}>🎟️ Cupons</NavItem>
+              <NavItem href="/painel?tab=destaques" active={active === 'destaques'}>🌟 Destaques</NavItem>
+              <NavItem href="/painel?tab=banners" active={active === 'banners'}>🖼️ Banners</NavItem>
+              <NavItem href="/painel/relatorios" active={active === 'relatorios'} locked={!lojaDigitalEnabled}>📈 Relatórios</NavItem>
+
+              <div className="es-group-lbl">Conta</div>
+              <NavItem href="/painel?tab=plano" active={active === 'plano'}>💳 Plano e pagamento</NavItem>
+            </>
+          )}
         </nav>
         <div className="es-footer">
           <a className="es-btn es-btn-secondary" href="/">🏠 Home</a>

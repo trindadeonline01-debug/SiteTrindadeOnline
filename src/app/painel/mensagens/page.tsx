@@ -64,7 +64,9 @@ const EMOJI_PICKER_LIST = '😀😁😂🤣😊😍😘😉😎🥳🤔😅😢�
 function fmtMoney(n: number) { return 'R$ ' + Number(n || 0).toFixed(2).replace('.', ',') }
 
 function fmtTime(iso: string) {
-  return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+  // Fuso fixo em Brasília — sem isso o horário exibido depende do fuso
+  // configurado no dispositivo de quem tá vendo, não da Trindade.
+  return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
 }
 
 function tickIcon(status?: string | null) {
@@ -125,6 +127,7 @@ export default function MensagensPage() {
   const pathname = usePathname()
   const fullScreen = pathname === '/atendimento'
   const [loading, setLoading] = useState(true)
+  const [adminMode, setAdminMode] = useState(false)
   const [company, setCompany] = useState<Company | null>(null)
   const [instance, setInstance] = useState<Instance | null>(null)
   const [connecting, setConnecting] = useState(false)
@@ -199,10 +202,29 @@ export default function MensagensPage() {
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { window.location.href = '/login?redirect=/painel/mensagens'; return }
-      const { data: comp } = await supabase
-        .from('companies').select('id, name, slug, crm_whatsapp_enabled, loja_digital_enabled, entrega_enabled, trial_modules_until, crm_auto_reply_enabled, crm_auto_reply_text')
-        .eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
-      if (!comp) { window.location.href = '/painel/compartilhar'; return }
+
+      // Admin pode conectar/gerenciar o WhatsApp de qualquer empresa antes de
+      // entregar pro dono — abre com ?empresa=<id> a partir do painel admin.
+      const empresaParam = new URLSearchParams(window.location.search).get('empresa')
+      let comp: any = null
+      if (empresaParam) {
+        const { data: profile } = await supabase.from('profiles').select('user_type').eq('id', session.user.id).single()
+        if (profile?.user_type === 'admin') {
+          const { data } = await supabase
+            .from('companies').select('id, name, slug, crm_whatsapp_enabled, loja_digital_enabled, entrega_enabled, trial_modules_until, crm_auto_reply_enabled, crm_auto_reply_text')
+            .eq('id', empresaParam).maybeSingle()
+          if (!data) { window.location.href = '/admin?tab=empresas'; return }
+          comp = data
+          setAdminMode(true)
+        }
+      }
+      if (!comp) {
+        const { data } = await supabase
+          .from('companies').select('id, name, slug, crm_whatsapp_enabled, loja_digital_enabled, entrega_enabled, trial_modules_until, crm_auto_reply_enabled, crm_auto_reply_text')
+          .eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
+        if (!data) { window.location.href = '/painel/compartilhar'; return }
+        comp = data
+      }
       // Guarda os flags já resolvidos (real OU dentro do período de teste) —
       // o resto do arquivo lê company.crm_whatsapp_enabled/etc direto, sem
       // precisar saber se veio do plano de verdade ou de um teste liberado.
@@ -964,6 +986,12 @@ export default function MensagensPage() {
   return (
     <Shell active="mensagens" companyName={company.name} companySlug={company.slug} lojaDigitalEnabled={company.loja_digital_enabled} crmEnabled={company.crm_whatsapp_enabled} entregaEnabled={company.entrega_enabled}>
       <div className={`msg-page ${fullScreen ? 'msg-page-full' : ''}`}>
+        {adminMode && (
+          <div style={{ position:'sticky', top:0, zIndex:30, background:'#1A0F00', color:'#F0EDE8', padding:'9px 16px', fontSize:12, fontWeight:600, display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
+            <span>🛠️ Modo admin — WhatsApp de <strong>{company.name}</strong></span>
+            <a href="/admin?tab=empresas" style={{ color:'var(--sign)', fontWeight:700, textDecoration:'none', whiteSpace:'nowrap' }}>← Voltar ao admin</a>
+          </div>
+        )}
         <style>{`
           .msg-page{padding:0;min-width:0;}
           .msg-connect{max-width:360px;margin:40px auto;text-align:center;background:#fff;border:1px solid #EDE8E0;border-radius:16px;padding:28px 22px;}

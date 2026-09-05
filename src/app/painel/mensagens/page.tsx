@@ -1178,7 +1178,7 @@ export default function MensagensPage() {
           .msg-addtag-btn{width:24px;height:24px;border-radius:50%;border:1.5px dashed #2f3b43;background:transparent;color:#8696a0;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none;}
           .msg-addtag-btn:hover{border-color:#00a884;color:#00a884;}
           .msg-addtag-pop{position:absolute;top:32px;left:0;width:250px;background:#233138;border:1px solid #2f3b43;border-radius:12px;box-shadow:0 10px 26px rgba(0,0,0,.45);z-index:30;padding:10px;}
-          .msg-addtag-pop input{width:100%;padding:8px 11px;border-radius:8px;border:1px solid #2f3b43;background:#2a3942;color:#e9edef;font-size:12.5px;font-family:inherit;margin-bottom:6px;}
+          .msg-addtag-pop > input{width:100%;padding:8px 11px;border-radius:8px;border:1px solid #2f3b43;background:#2a3942;color:#e9edef;font-size:12.5px;font-family:inherit;margin-bottom:6px;box-sizing:border-box;}
           .msg-addtag-create{font-size:12px;color:#00a884;padding:8px 6px;cursor:pointer;border-top:1px solid #2f3b43;margin-top:2px;}
 
           .msg-tagblock{border-bottom:1px solid #202c33;padding:10px 4px;}

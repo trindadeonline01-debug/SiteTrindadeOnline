@@ -47,10 +47,13 @@ function CadastroForm() {
     if (senha !== confirma) { setErro('As senhas não coincidem.'); return }
     if (whatsapp.length < 10) { setErro('Informe um número de WhatsApp válido.'); return }
     setLoading(true)
-    const res = await fetch('/api/auth/send-code', {
+    // Email continua sendo pedido (é o que vira o login), mas quem confirma
+    // que tem alguém de verdade ali é o WhatsApp — email sozinho tira gente
+    // do fluxo de compra pra checar a caixa de entrada e não volta.
+    const res = await fetch('/api/auth/send-code-whatsapp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email })
+      body: JSON.stringify({ email, phone: whatsapp })
     })
     const data = await res.json()
     setLoading(false)
@@ -65,10 +68,10 @@ function CadastroForm() {
     e.preventDefault()
     setErro('')
     setLoading(true)
-    const res = await fetch('/api/auth/verify-code', {
+    const res = await fetch('/api/auth/verify-code-whatsapp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: pendingData.email, code })
+      body: JSON.stringify({ phone: pendingData.whatsapp, code })
     })
     const data = await res.json()
     if (data.error) { setErro(data.error); setLoading(false); return }
@@ -104,10 +107,10 @@ function CadastroForm() {
   if (step === 'verify') {
     return (
       <div style={{textAlign:'center',padding:'20px 0'}}>
-        <div style={{fontSize:48,marginBottom:12}}>📧</div>
-        <div style={{fontSize:20,fontWeight:700,color:'#111',marginBottom:8}}>Verifique seu email</div>
+        <div style={{fontSize:48,marginBottom:12}}>📱</div>
+        <div style={{fontSize:20,fontWeight:700,color:'#111',marginBottom:8}}>Verifique seu WhatsApp</div>
         <div style={{fontSize:13,color:'#888',lineHeight:1.7,marginBottom:24}}>
-          Enviamos um código de 6 dígitos para<br/><strong>{pendingData?.email}</strong>
+          Enviamos um código de 6 dígitos pro WhatsApp<br/><strong>{pendingData?.whatsapp}</strong>
         </div>
         <form onSubmit={handleVerify}>
           <input type="text" inputMode="numeric" maxLength={6} value={code}

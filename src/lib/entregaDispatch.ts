@@ -19,7 +19,12 @@ function formatPhone(phone: string): string {
   return digits.startsWith('55') ? digits : '55' + digits
 }
 
-export async function sendMotoboyWhatsApp(phone: string, text: string) {
+// Manda pela instância WhatsApp da PLATAFORMA (Trindade Online) — usado
+// pros motoboys e também pra qualquer outro fluxo que precise mandar
+// mensagem sem ser pelo número de uma empresa específica (ex: código de
+// verificação do cadastro de morador). Nome mantido por compatibilidade
+// com quem já importa sendMotoboyWhatsApp.
+export async function sendPlatformWhatsApp(phone: string, text: string) {
   try {
     await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(EVOLUTION_INSTANCE)}`, {
       method: 'POST',
@@ -28,6 +33,7 @@ export async function sendMotoboyWhatsApp(phone: string, text: string) {
     })
   } catch {}
 }
+export const sendMotoboyWhatsApp = sendPlatformWhatsApp
 
 // Manda mensagem pro CLIENTE pela instância WhatsApp da PRÓPRIA loja (não a
 // da plataforma) — mesma conversa do CRM dela, se estiver conectado. Sem

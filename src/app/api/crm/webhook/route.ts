@@ -18,6 +18,28 @@ const STATUS_MAP: Record<string, 'sent' | 'delivered' | 'read'> = {
   PENDING: 'sent', SERVER_ACK: 'sent', DELIVERY_ACK: 'delivered', READ: 'read', PLAYED: 'read',
 }
 
+function normalizeForMatch(s: string): string {
+  return s.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+}
+
+// Etiqueta com gatilho — só mensagem do CLIENTE aciona (nunca a nossa),
+// bate qualquer palavra da lista (não precisa todas), e só aplica quem
+// nunca teve essa etiqueta nessa conversa (aplicada e removida na mão não
+// volta sozinha — por isso o filtro é "sem linha nenhuma", não "sem
+// etiqueta visível agora").
+async function applyAutoTags(companyId: string, contactId: string, text: string) {
+  const norm = normalizeForMatch(text)
+  if (!norm) return
+  const { data: allTags } = await supabase.from('crm_tags').select('id, keywords').eq('company_id', companyId)
+  const candidates = (allTags || []).filter(t => (t.keywords || []).some((kw: string) => norm.includes(normalizeForMatch(kw))))
+  if (!candidates.length) return
+  const { data: existingRows } = await supabase
+    .from('crm_contact_tags').select('tag_id').eq('contact_id', contactId).in('tag_id', candidates.map(t => t.id))
+  const existingIds = new Set((existingRows || []).map(r => r.tag_id))
+  const toInsert = candidates.filter(t => !existingIds.has(t.id)).map(t => ({ contact_id: contactId, tag_id: t.id, auto: true }))
+  if (toInsert.length) await supabase.from('crm_contact_tags').insert(toInsert)
+}
+
 function findContextInfo(m: any): any {
   return m?.extendedTextMessage?.contextInfo || m?.imageMessage?.contextInfo || m?.videoMessage?.contextInfo ||
     m?.audioMessage?.contextInfo || m?.documentMessage?.contextInfo || m?.stickerMessage?.contextInfo ||
@@ -285,6 +307,8 @@ export async function POST(req: NextRequest) {
           body: text, media_type: mediaType, media_url: mediaPath, wa_message_id: waMessageId, sent_at: sentAt,
           reply_to_id: replyToId, status: direction === 'out' ? 'sent' : null,
         })
+
+        if (direction === 'in' && text) await applyAutoTags(inst.company_id, contactId, text)
 
         if (direction === 'out') {
           // Mandado pelo celular direto (fora do CRM) — marca como lido, não precisa notificar o próprio lojista.

@@ -33,6 +33,9 @@ type Message = {
   starred?: boolean
 }
 type QuickReply = { id: string; shortcut: string; body: string }
+type Tag = { id: string; name: string; color: string; keywords: string[] }
+type ContactTagRef = { tag_id: string; auto: boolean }
+const TAG_PALETTE = ['#ff9f43', '#35c98f', '#53a7ff', '#a48af0', '#ff6b6b', '#ffd43b', '#f083ac', '#8696a0']
 
 type NpOpcao = { id: string; name: string; price: number; max_qty: number | null; photo_url?: string | null }
 type NpGrupo = { id: string; name: string; required: boolean; min_select: number; max_select: number; pricing_rule: 'soma' | 'maior_valor'; options: NpOpcao[] }
@@ -158,6 +161,16 @@ export default function MensagensPage() {
   const [autoReplyOpen, setAutoReplyOpen] = useState(false)
   const [autoReplyDraft, setAutoReplyDraft] = useState({ enabled: false, text: '' })
   const [savingAutoReply, setSavingAutoReply] = useState(false)
+  const [tags, setTags] = useState<Tag[]>([])
+  const [contactTagsMap, setContactTagsMap] = useState<Record<string, ContactTagRef[]>>({})
+  const [tagFilterIds, setTagFilterIds] = useState<string[]>([])
+  const [tagFilterOpen, setTagFilterOpen] = useState(false)
+  const [manageTagsOpen, setManageTagsOpen] = useState(false)
+  const [kwDraft, setKwDraft] = useState<Record<string, string>>({})
+  const [newTagName, setNewTagName] = useState('')
+  const [newTagColor, setNewTagColor] = useState(TAG_PALETTE[0])
+  const [addTagOpen, setAddTagOpen] = useState(false)
+  const [addTagSearch, setAddTagSearch] = useState('')
   const [npOpen, setNpOpen] = useState(false)
   const [npProdutos, setNpProdutos] = useState<NpProduto[]>([])
   const [npCategorias, setNpCategorias] = useState<NpCategoria[]>([])
@@ -238,6 +251,7 @@ export default function MensagensPage() {
       companyRef.current = effectiveComp as Company
       if (effectiveComp.crm_whatsapp_enabled) await loadInstance(comp.id)
       loadQuickReplies(comp.id)
+      loadTags(comp.id)
       setLoading(false)
     })
   }, [])
@@ -257,6 +271,97 @@ export default function MensagensPage() {
       .eq('company_id', companyId).not('last_message_at', 'is', null)
       .order('last_message_at', { ascending: false })
     setContacts((data || []) as Contact[])
+    loadContactTags(companyId)
+  }
+
+  async function loadTags(companyId: string) {
+    const { data } = await supabase.from('crm_tags').select('id, name, color, keywords').eq('company_id', companyId).order('created_at')
+    setTags((data || []) as Tag[])
+  }
+
+  // Só as visíveis (removed_at nulo) — etiqueta removida na mão fica
+  // registrada pra nunca mais ser reaplicada sozinha pelo gatilho, mas some
+  // da tela (ver applyTag/removeContactTag mais abaixo).
+  async function loadContactTags(companyId: string) {
+    const { data } = await supabase
+      .from('crm_contact_tags')
+      .select('contact_id, tag_id, auto, crm_contacts!inner(company_id)')
+      .is('removed_at', null)
+      .eq('crm_contacts.company_id', companyId)
+    const map: Record<string, ContactTagRef[]> = {}
+    for (const row of (data || []) as any[]) {
+      if (!map[row.contact_id]) map[row.contact_id] = []
+      map[row.contact_id].push({ tag_id: row.tag_id, auto: row.auto })
+    }
+    setContactTagsMap(map)
+  }
+
+  async function createTag(name: string, color: string): Promise<Tag | null> {
+    if (!company || !name.trim()) return null
+    const { data } = await supabase.from('crm_tags')
+      .insert({ company_id: company.id, name: name.trim(), color, keywords: [] })
+      .select('id, name, color, keywords').single()
+    if (!data) return null
+    setTags(prev => [...prev, data as Tag])
+    return data as Tag
+  }
+
+  async function renameTag(id: string, name: string) {
+    setTags(prev => prev.map(t => t.id === id ? { ...t, name } : t))
+    await supabase.from('crm_tags').update({ name }).eq('id', id)
+  }
+
+  async function recolorTag(id: string, color: string) {
+    setTags(prev => prev.map(t => t.id === id ? { ...t, color } : t))
+    await supabase.from('crm_tags').update({ color }).eq('id', id)
+  }
+
+  async function addKeyword(id: string, kwRaw: string) {
+    const kw = kwRaw.trim()
+    const tag = tags.find(t => t.id === id)
+    if (!tag || !kw || tag.keywords.includes(kw)) return
+    const keywords = [...tag.keywords, kw]
+    setTags(prev => prev.map(t => t.id === id ? { ...t, keywords } : t))
+    await supabase.from('crm_tags').update({ keywords }).eq('id', id)
+  }
+
+  async function removeKeyword(id: string, kw: string) {
+    const tag = tags.find(t => t.id === id)
+    if (!tag) return
+    const keywords = tag.keywords.filter(k => k !== kw)
+    setTags(prev => prev.map(t => t.id === id ? { ...t, keywords } : t))
+    await supabase.from('crm_tags').update({ keywords }).eq('id', id)
+  }
+
+  async function deleteTag(id: string) {
+    if (!confirm('Apagar essa etiqueta? Ela some de todas as conversas — nenhuma conversa ou mensagem é apagada.')) return
+    setTags(prev => prev.filter(t => t.id !== id))
+    setContactTagsMap(prev => {
+      const next: typeof prev = {}
+      for (const [cid, list] of Object.entries(prev)) next[cid] = list.filter(t => t.tag_id !== id)
+      return next
+    })
+    setTagFilterIds(prev => prev.filter(x => x !== id))
+    await supabase.from('crm_tags').delete().eq('id', id)
+  }
+
+  // Aplicar/tirar etiqueta na mão — se já tinha sido removida antes, o
+  // upsert só limpa o removed_at (nunca duplica a linha).
+  async function applyTag(contactId: string, tagId: string) {
+    setContactTagsMap(prev => {
+      const list = prev[contactId] || []
+      if (list.some(t => t.tag_id === tagId)) return prev
+      return { ...prev, [contactId]: [...list, { tag_id: tagId, auto: false }] }
+    })
+    await supabase.from('crm_contact_tags')
+      .upsert({ contact_id: contactId, tag_id: tagId, auto: false, removed_at: null }, { onConflict: 'contact_id,tag_id' })
+  }
+
+  async function removeContactTag(contactId: string, tagId: string) {
+    setContactTagsMap(prev => ({ ...prev, [contactId]: (prev[contactId] || []).filter(t => t.tag_id !== tagId) }))
+    await supabase.from('crm_contact_tags')
+      .update({ removed_at: new Date().toISOString() })
+      .eq('contact_id', contactId).eq('tag_id', tagId)
   }
 
   async function togglePin(c: Contact, e: React.MouseEvent) {
@@ -981,6 +1086,8 @@ export default function MensagensPage() {
   const isTyping = !!selectedLive?.presence_state && (selectedLive.presence_state === 'composing' || selectedLive.presence_state === 'recording')
     && !!selectedLive.presence_until && new Date(selectedLive.presence_until) > new Date()
   const isOnline = selectedLive?.presence_state === 'available'
+  const selectedTagIds = selectedLive ? (contactTagsMap[selectedLive.id] || []) : []
+  const tagById = new Map(tags.map(t => [t.id, t]))
 
   const Shell: any = fullScreen ? FullScreenShell : EmpresaShell
   return (
@@ -1047,6 +1154,49 @@ export default function MensagensPage() {
           .msg-list-chips::-webkit-scrollbar{display:none;}
           .msg-list-chip{flex:none;padding:6px 14px;border-radius:16px;border:none;background:#202c33;color:#cfd6da;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;}
           .msg-list-chip.on{background:#00a884;color:#fff;}
+
+          /* ── Etiquetas ── */
+          .msg-tag-dot{width:10px;height:10px;border-radius:50%;flex:none;display:inline-block;}
+          .msg-tag-pill{display:inline-flex;align-items:center;gap:4px;padding:2.5px 6px 2.5px 9px;border-radius:20px;font-size:11px;font-weight:700;color:#0b141a;white-space:nowrap;}
+          .msg-tag-auto{font-size:9.5px;margin-left:1px;}
+          .msg-tag-remove{background:none;border:none;color:#0b141a;opacity:.55;cursor:pointer;font-size:12px;padding:0 2px 0 3px;line-height:1;}
+          .msg-tag-remove:hover{opacity:1;}
+          .msg-item-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;}
+
+          .msg-tagfilter-pop{position:absolute;top:78px;left:12px;right:12px;background:#233138;border:1px solid #2f3b43;border-radius:12px;box-shadow:0 10px 26px rgba(0,0,0,.45);z-index:30;padding:6px;max-height:60vh;overflow-y:auto;}
+          .msg-tagfilter-hd{font-size:10.5px;font-weight:800;color:#8696a0;text-transform:uppercase;letter-spacing:.5px;padding:8px 10px 4px;}
+          .msg-tagfilter-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:13px;color:#e9edef;}
+          .msg-tagfilter-row:hover{background:#202c33;}
+          .msg-tagfilter-row input{accent-color:#00a884;width:15px;height:15px;flex:none;}
+          .msg-tagfilter-cnt{margin-left:auto;font-size:11.5px;color:#8696a0;font-variant-numeric:tabular-nums;}
+          .msg-tagfilter-foot{border-top:1px solid #2f3b43;margin-top:4px;padding:8px 6px 4px;display:flex;gap:6px;}
+          .msg-tf-btn{flex:1;padding:8px;border-radius:8px;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+          .msg-tf-btn.new{background:#2a3942;color:#e9edef;}
+          .msg-tf-btn.manage{background:transparent;color:#00a884;}
+
+          .msg-tagsrow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:10px 16px;background:#182229;border-bottom:1px solid #2f3b43;position:relative;flex:none;}
+          .msg-addtag-btn{width:24px;height:24px;border-radius:50%;border:1.5px dashed #2f3b43;background:transparent;color:#8696a0;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none;}
+          .msg-addtag-btn:hover{border-color:#00a884;color:#00a884;}
+          .msg-addtag-pop{position:absolute;top:32px;left:0;width:250px;background:#233138;border:1px solid #2f3b43;border-radius:12px;box-shadow:0 10px 26px rgba(0,0,0,.45);z-index:30;padding:10px;}
+          .msg-addtag-pop input{width:100%;padding:8px 11px;border-radius:8px;border:1px solid #2f3b43;background:#2a3942;color:#e9edef;font-size:12.5px;font-family:inherit;margin-bottom:6px;}
+          .msg-addtag-create{font-size:12px;color:#00a884;padding:8px 6px;cursor:pointer;border-top:1px solid #2f3b43;margin-top:2px;}
+
+          .msg-tagblock{border-bottom:1px solid #202c33;padding:10px 4px;}
+          .msg-tagrow{display:flex;align-items:center;gap:10px;padding:2px 4px;}
+          .msg-tagrow-name{flex:1;font-size:13.5px;font-weight:600;background:transparent;border:none;color:#e9edef;font-family:inherit;padding:6px 8px;border-radius:6px;min-width:0;}
+          .msg-tagrow-name:focus{background:#2a3942;outline:none;}
+          .msg-tagrow button{background:none;border:none;color:#8696a0;font-size:14px;cursor:pointer;padding:5px;}
+          .msg-tagrow button:hover{color:#e9edef;}
+          .msg-tagrow-palette{display:flex;gap:6px;padding:6px 4px 4px 34px;}
+          .msg-pal-dot{width:15px;height:15px;border-radius:50%;cursor:pointer;border:2px solid transparent;display:inline-block;}
+          .msg-pal-dot.on{border-color:#e9edef;}
+          .msg-triggerrow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:6px 4px 2px 34px;}
+          .msg-trigger-label{font-size:10px;color:#8696a0;font-weight:800;text-transform:uppercase;letter-spacing:.4px;flex:none;margin-right:2px;}
+          .msg-kw-chip{display:inline-flex;align-items:center;gap:4px;background:#2a3942;color:#e9edef;font-size:11.5px;padding:4px 5px 4px 10px;border-radius:14px;}
+          .msg-kw-chip button{background:none;border:none;color:#8696a0;cursor:pointer;font-size:12px;padding:0 3px;line-height:1;}
+          .msg-kw-add{background:transparent;border:1px dashed #2f3b43;border-radius:14px;padding:4px 10px;font-size:11.5px;color:#8696a0;font-family:inherit;width:96px;}
+          .msg-newtag-row{display:flex;align-items:center;gap:10px;padding:14px 4px 4px;margin-top:6px;border-top:1px solid #2f3b43;flex-wrap:wrap;}
+          .msg-newtag-row input{flex:1;min-width:120px;padding:9px 12px;border-radius:8px;border:1px solid #2f3b43;background:#2a3942;color:#e9edef;font-size:13px;font-family:inherit;}
           .msg-search-hits{padding:4px 0 2px;}
           .msg-search-hit-row{padding:8px 12px;cursor:pointer;border-bottom:1px solid #202c33;}
           .msg-search-hit-row:hover{background:#202c33;}
@@ -1265,11 +1415,34 @@ export default function MensagensPage() {
                   <button className={`msg-list-chip ${contactFilter === 'nao_lidas' ? 'on' : ''}`} onClick={() => setContactFilter('nao_lidas')}>Não lidas</button>
                   <button className={`msg-list-chip ${contactFilter === 'arquivadas' ? 'on' : ''}`} onClick={() => setContactFilter('arquivadas')}>Arquivadas</button>
                   <button className="msg-list-chip" onClick={() => setStarredOpen(true)}>⭐ Marcadas</button>
+                  <button className={`msg-list-chip ${tagFilterIds.length ? 'on' : ''}`} onClick={() => setTagFilterOpen(v => !v)}>🏷️ Etiquetas{tagFilterIds.length > 0 ? ` (${tagFilterIds.length})` : ''} ▾</button>
                   <button
                     className="msg-list-chip" title="Resposta automática fora do horário"
                     onClick={() => { setAutoReplyDraft({ enabled: !!company?.crm_auto_reply_enabled, text: company?.crm_auto_reply_text || '' }); setAutoReplyOpen(true) }}
                   >⚙️</button>
                 </div>
+                {tagFilterOpen && (
+                  <div className="msg-tagfilter-pop">
+                    <div className="msg-tagfilter-hd">Filtrar por etiqueta</div>
+                    {tags.length === 0 && <div style={{ padding: '8px 10px', fontSize: 12, color: '#8696a0' }}>Nenhuma etiqueta criada ainda.</div>}
+                    {tags.map(t => {
+                      const count = contacts.filter(c => (contactTagsMap[c.id] || []).some(ct => ct.tag_id === t.id)).length
+                      const on = tagFilterIds.includes(t.id)
+                      return (
+                        <label key={t.id} className="msg-tagfilter-row">
+                          <input type="checkbox" checked={on} onChange={() => setTagFilterIds(prev => on ? prev.filter(x => x !== t.id) : [...prev, t.id])} />
+                          <span className="msg-tag-dot" style={{ background: t.color }} />
+                          {t.name}
+                          <span className="msg-tagfilter-cnt">{count}</span>
+                        </label>
+                      )
+                    })}
+                    <div className="msg-tagfilter-foot">
+                      <button className="msg-tf-btn new" onClick={() => { setTagFilterOpen(false); setManageTagsOpen(true) }}>+ Nova etiqueta</button>
+                      <button className="msg-tf-btn manage" onClick={() => { setTagFilterOpen(false); setManageTagsOpen(true) }}>⚙️ Gerenciar</button>
+                    </div>
+                  </div>
+                )}
                 {messageSearchHits.length > 0 && (
                   <div className="msg-search-hits">
                     {messageSearchHits.map(h => (
@@ -1287,6 +1460,7 @@ export default function MensagensPage() {
                   .filter(c => contactFilter === 'arquivadas' ? c.archived : !c.archived)
                   .filter(c => contactFilter !== 'nao_lidas' || (!!c.last_message_at && (!c.last_read_at || c.last_read_at < c.last_message_at)))
                   .filter(c => !term || (c.name || '').toLowerCase().includes(term) || c.phone.includes(term))
+                  .filter(c => tagFilterIds.length === 0 || (contactTagsMap[c.id] || []).some(ct => tagFilterIds.includes(ct.tag_id)))
                 const pinned = base.filter(c => c.pinned)
                 const rest = base.filter(c => !c.pinned)
                 const rows = [...pinned, ...rest]
@@ -1322,6 +1496,19 @@ export default function MensagensPage() {
                               </div>
                               {!!c.unread_count && <span className="msg-item-unread-badge">{c.unread_count > 99 ? '99+' : c.unread_count}</span>}
                             </div>
+                            {(contactTagsMap[c.id] || []).length > 0 && (
+                              <div className="msg-item-tags">
+                                {(contactTagsMap[c.id] || []).map(ct => {
+                                  const t = tagById.get(ct.tag_id)
+                                  if (!t) return null
+                                  return (
+                                    <span key={t.id} className="msg-tag-pill" style={{ background: t.color }}>
+                                      {t.name}{ct.auto && <span className="msg-tag-auto" title="Aplicada sozinha por gatilho">🤖</span>}
+                                    </span>
+                                  )
+                                })}
+                              </div>
+                            )}
                           </div>
                           <div className={`msg-item-actions${contactActionsFor === c.id ? ' mobile-open' : ''}`}>
                             <button title={c.pinned ? 'Desafixar' : 'Fixar'} className={c.pinned ? 'on' : ''} onClick={e => { togglePin(c, e); setContactActionsFor(null) }}>📌</button>
@@ -1370,6 +1557,51 @@ export default function MensagensPage() {
                       </>
                     )}
                   </div>
+                  {!searchOpen && selectedLive && (
+                    <div className="msg-tagsrow">
+                      {selectedTagIds.map(ct => {
+                        const t = tagById.get(ct.tag_id)
+                        if (!t) return null
+                        return (
+                          <span key={t.id} className="msg-tag-pill" style={{ background: t.color }}>
+                            {t.name}{ct.auto && <span className="msg-tag-auto" title="Aplicada sozinha por gatilho">🤖</span>}
+                            <button className="msg-tag-remove" title="Remover" onClick={() => removeContactTag(selectedLive.id, t.id)}>×</button>
+                          </span>
+                        )
+                      })}
+                      <div style={{ position: 'relative' }}>
+                        <button className="msg-addtag-btn" title="Adicionar etiqueta" onClick={() => { setAddTagOpen(v => !v); setAddTagSearch('') }}>+</button>
+                        {addTagOpen && (() => {
+                          const term = addTagSearch.trim().toLowerCase()
+                          const visible = tags.filter(t => !term || t.name.toLowerCase().includes(term))
+                          const exact = tags.some(t => t.name.toLowerCase() === term)
+                          return (
+                            <div className="msg-addtag-pop">
+                              <input autoFocus placeholder="Buscar ou criar etiqueta..." value={addTagSearch} onChange={e => setAddTagSearch(e.target.value)} />
+                              {visible.map(t => {
+                                const on = selectedTagIds.some(ct => ct.tag_id === t.id)
+                                return (
+                                  <label key={t.id} className="msg-tagfilter-row">
+                                    <input type="checkbox" checked={on} onChange={() => on ? removeContactTag(selectedLive.id, t.id) : applyTag(selectedLive.id, t.id)} />
+                                    <span className="msg-tag-dot" style={{ background: t.color }} />
+                                    {t.name}
+                                  </label>
+                                )
+                              })}
+                              {term && !exact && (
+                                <div className="msg-addtag-create" onClick={async () => {
+                                  const color = TAG_PALETTE[tags.length % TAG_PALETTE.length]
+                                  const created = await createTag(addTagSearch, color)
+                                  if (created) applyTag(selectedLive.id, created.id)
+                                  setAddTagOpen(false)
+                                }}>+ Criar etiqueta "{addTagSearch}"</div>
+                              )}
+                            </div>
+                          )
+                        })()}
+                      </div>
+                    </div>
+                  )}
                   <div className="msg-body" ref={msgBodyRef}>
                     {mobileActionsFor && <div className="msg-actions-backdrop" onClick={() => setMobileActionsFor(null)} />}
                     {(searchTerm.trim() ? messages.filter(m => m.body?.toLowerCase().includes(searchTerm.toLowerCase())) : messages).map((m, idx, arr) => {
@@ -1782,6 +2014,58 @@ export default function MensagensPage() {
                 )}
               </div>
               <button className="msg-picker-cancel" onClick={() => { setQuickRepliesOpen(false); setQuickReplyForm(null) }}>Fechar</button>
+            </div>
+          </div>
+        )}
+
+        {manageTagsOpen && (
+          <div className="msg-lightbox" onClick={() => setManageTagsOpen(false)}>
+            <div className="msg-picker" onClick={e => e.stopPropagation()}>
+              <div className="msg-picker-title">🏷️ Gerenciar etiquetas</div>
+              <div style={{ padding: '0 16px 8px', fontSize: 11.5, color: '#8696a0', lineHeight: 1.5 }}>
+                Só suas — cada loja tem as próprias. Gatilhos são opcionais: sem nenhum, a etiqueta só é aplicada na mão.
+              </div>
+              <div className="msg-picker-list">
+                {tags.length === 0 && <div style={{ padding: 16, fontSize: 12.5, color: '#8696a0' }}>Nenhuma etiqueta criada ainda.</div>}
+                {tags.map(t => (
+                  <div key={t.id} className="msg-tagblock">
+                    <div className="msg-tagrow">
+                      <span className="msg-tag-dot" style={{ background: t.color }} />
+                      <input className="msg-tagrow-name" defaultValue={t.name} onBlur={e => { if (e.target.value.trim() && e.target.value !== t.name) renameTag(t.id, e.target.value.trim()) }} />
+                      <button title="Apagar etiqueta" onClick={() => deleteTag(t.id)}>🗑</button>
+                    </div>
+                    <div className="msg-tagrow-palette">
+                      {TAG_PALETTE.map(c => (
+                        <span key={c} className={`msg-pal-dot${t.color === c ? ' on' : ''}`} style={{ background: c }} onClick={() => recolorTag(t.id, c)} />
+                      ))}
+                    </div>
+                    <div className="msg-triggerrow">
+                      <span className={`msg-trigger-label${t.keywords.length === 0 ? ' off' : ''}`}>{t.keywords.length === 0 ? 'sem gatilho — só manual' : '🤖 gatilhos'}</span>
+                      {t.keywords.map(kw => (
+                        <span key={kw} className="msg-kw-chip">{kw}<button onClick={() => removeKeyword(t.id, kw)}>×</button></span>
+                      ))}
+                      <input
+                        className="msg-kw-add" placeholder="+ palavra"
+                        value={kwDraft[t.id] || ''} onChange={e => setKwDraft(d => ({ ...d, [t.id]: e.target.value }))}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' && kwDraft[t.id]?.trim()) { addKeyword(t.id, kwDraft[t.id]); setKwDraft(d => ({ ...d, [t.id]: '' })) }
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+                <div className="msg-newtag-row">
+                  <div className="msg-tagrow-palette">
+                    {TAG_PALETTE.map(c => (
+                      <span key={c} className={`msg-pal-dot${newTagColor === c ? ' on' : ''}`} style={{ background: c }} onClick={() => setNewTagColor(c)} />
+                    ))}
+                  </div>
+                  <input placeholder="Nome da nova etiqueta" value={newTagName} onChange={e => setNewTagName(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter' && newTagName.trim()) { createTag(newTagName, newTagColor); setNewTagName('') } }} />
+                  <button className="msg-notes-save" onClick={() => { if (newTagName.trim()) { createTag(newTagName, newTagColor); setNewTagName('') } }}>+ Criar</button>
+                </div>
+              </div>
+              <button className="msg-picker-cancel" onClick={() => setManageTagsOpen(false)}>Fechar</button>
             </div>
           </div>
         )}

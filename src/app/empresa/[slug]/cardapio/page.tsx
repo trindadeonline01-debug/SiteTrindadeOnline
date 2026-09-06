@@ -10,9 +10,10 @@ type Company = {
   id: string; name: string; slug: string; phone: string | null; address: string | null
   avg_rating: number; total_reviews: number; status: string
   loja_digital_enabled: boolean; flexible_hours?: boolean; store_paused?: boolean; store_forced_open?: boolean; owner_id?: string
-  loja_taxa_entrega: number; loja_pedido_minimo: number
+  loja_taxa_entrega: number; loja_pedido_minimo: number; loja_payment_methods?: string[]
   hours?: any[]; photos?: { url: string; order: number }[]
 }
+const PAYMENT_LABELS: Record<string, string> = { pix: 'Pix', dinheiro: 'Dinheiro', cartao: 'Cartão' }
 type CartLine = { key: string; produtoId: string; name: string; modifiers: { name: string; price: number }[]; unitPrice: number; qty: number }
 
 export default function CardapioPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -89,11 +90,13 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
 
   useEffect(() => {
     supabase.from('companies')
-      .select('id,name,slug,phone,address,avg_rating,total_reviews,status,loja_digital_enabled,flexible_hours,store_paused,store_forced_open,owner_id,loja_taxa_entrega,loja_pedido_minimo,hours:company_hours(label,hours,order,day_of_week,open_time,close_time,closed),photos:company_photos(url,order)')
+      .select('id,name,slug,phone,address,avg_rating,total_reviews,status,loja_digital_enabled,flexible_hours,store_paused,store_forced_open,owner_id,loja_taxa_entrega,loja_pedido_minimo,loja_payment_methods,hours:company_hours(label,hours,order,day_of_week,open_time,close_time,closed),photos:company_photos(url,order)')
       .eq('slug', slug).maybeSingle()
       .then(async ({ data: comp }) => {
         if (!comp || comp.status !== 'active' || !comp.loja_digital_enabled) { setCompany(null); setLoading(false); return }
         setCompany(comp as any)
+        const accepted = comp.loja_payment_methods?.length ? comp.loja_payment_methods : ['pix', 'dinheiro', 'cartao']
+        setPayMethod(prev => (accepted.includes(prev) ? prev : accepted[0]) as any)
         const [{ data: cats }, { data: prods }, { data: cps }] = await Promise.all([
           supabase.from('loja_categorias').select('*').eq('company_id', comp.id).order('display_order'),
           supabase.from('loja_produtos').select('*, groups:loja_opcoes_grupo(*, options:loja_opcoes(*))').eq('company_id', comp.id).eq('active', true).order('display_order'),
@@ -760,7 +763,9 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
                 <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', margin: '14px 0 8px', fontWeight: 800 }}>Observações (opcional)</div>
                 <textarea className="cd-diinput" style={{ minHeight: 56, resize: 'vertical' }} value={obs} onChange={e => setObs(e.target.value)} placeholder="Ex: sem cebola, troco pra R$50..." />
                 <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', margin: '14px 0 8px', fontWeight: 800 }}>Pagamento</div>
-                {(['pix', 'dinheiro', 'cartao'] as const).map(m => <button key={m} className={`cd-paychip ${payMethod === m ? 'active' : ''}`} onClick={() => setPayMethod(m)}>{m === 'pix' ? 'Pix' : m === 'dinheiro' ? 'Dinheiro' : 'Cartão'}</button>)}
+                {(company?.loja_payment_methods?.length ? company.loja_payment_methods : ['pix', 'dinheiro', 'cartao']).map(m => (
+                  <button key={m} className={`cd-paychip ${payMethod === m ? 'active' : ''}`} onClick={() => setPayMethod(m as any)}>{PAYMENT_LABELS[m] || m}</button>
+                ))}
 
                 {payMethod === 'dinheiro' && (
                   <div style={{ marginTop: 10, padding: '10px 12px', background: '#F7F5F0', borderRadius: 10 }}>

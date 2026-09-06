@@ -5,7 +5,8 @@ import { moduleActive } from '@/lib/modules'
 import EmpresaShell from '@/components/EmpresaShell'
 import QRCode from 'qrcode'
 
-type Company = { id: string; name: string; slug: string; loja_digital_enabled: boolean; loja_taxa_entrega: number; loja_pedido_minimo: number; crm_whatsapp_enabled: boolean; entrega_enabled: boolean }
+type Company = { id: string; name: string; slug: string; loja_digital_enabled: boolean; loja_taxa_entrega: number; loja_pedido_minimo: number; loja_payment_methods: string[]; crm_whatsapp_enabled: boolean; entrega_enabled: boolean }
+const PAYMENT_LABELS: Record<string, string> = { pix: 'Pix', dinheiro: 'Dinheiro', cartao: 'Cartão (na entrega/retirada)' }
 type Categoria = { id: string; name: string }
 type ProdutoOpt = { id: string; name: string }
 
@@ -42,6 +43,9 @@ export default function CrmPage() {
   const [minimoInput, setMinimoInput] = useState('0')
   const [savingConfig, setSavingConfig] = useState(false)
   const [configSaved, setConfigSaved] = useState(false)
+  const [paymentMethods, setPaymentMethods] = useState<string[]>(['pix', 'dinheiro', 'cartao'])
+  const [savingPayment, setSavingPayment] = useState(false)
+  const [paymentSaved, setPaymentSaved] = useState(false)
   const [categorias, setCategorias] = useState<Categoria[]>([])
   const [produtosOpt, setProdutosOpt] = useState<ProdutoOpt[]>([])
   const [selCat, setSelCat] = useState('')
@@ -54,7 +58,7 @@ export default function CrmPage() {
       if (profile?.user_type !== 'company') { window.location.href = '/'; return }
       const { data: comp } = await supabase
         .from('companies')
-        .select('id, name, slug, loja_digital_enabled, loja_taxa_entrega, loja_pedido_minimo, crm_whatsapp_enabled, entrega_enabled, trial_modules_until')
+        .select('id, name, slug, loja_digital_enabled, loja_taxa_entrega, loja_pedido_minimo, loja_payment_methods, crm_whatsapp_enabled, entrega_enabled, trial_modules_until')
         .eq('owner_id', session.user.id)
         .order('created_at', { ascending: true })
         .limit(1)
@@ -68,6 +72,7 @@ export default function CrmPage() {
         })
         setTaxaInput(Number(comp.loja_taxa_entrega || 0).toFixed(2).replace('.', ','))
         setMinimoInput(Number(comp.loja_pedido_minimo || 0).toFixed(2).replace('.', ','))
+        setPaymentMethods(comp.loja_payment_methods?.length ? comp.loja_payment_methods : ['pix', 'dinheiro', 'cartao'])
         if (moduleActive(comp.loja_digital_enabled, comp.trial_modules_until)) {
           const [{ data: cats }, { data: prods }] = await Promise.all([
             supabase.from('loja_categorias').select('id,name').eq('company_id', comp.id).order('display_order'),
@@ -93,6 +98,19 @@ export default function CrmPage() {
     setSavingConfig(false)
     setConfigSaved(true)
     setTimeout(() => setConfigSaved(false), 2000)
+  }
+
+  function togglePaymentMethod(m: string) {
+    setPaymentMethods(prev => prev.includes(m) ? prev.filter(x => x !== m) : [...prev, m])
+  }
+
+  async function savePaymentMethods() {
+    if (!company || paymentMethods.length === 0) return
+    setSavingPayment(true)
+    await supabase.from('companies').update({ loja_payment_methods: paymentMethods }).eq('id', company.id)
+    setSavingPayment(false)
+    setPaymentSaved(true)
+    setTimeout(() => setPaymentSaved(false), 2000)
   }
 
   const cardapioLink = company ? `https://trindadeonline.com.br/empresa/${company.slug}/cardapio` : ''
@@ -158,6 +176,8 @@ export default function CrmPage() {
           .crm-config-field input{width:100%;padding:9px 11px;border-radius:9px;border:1px solid #E6E0D2;font-size:12.5px;font-family:inherit;}
           .crm-select{width:100%;padding:9px 11px;border-radius:9px;border:1px solid #E6E0D2;font-size:12.5px;font-family:inherit;background:#fff;margin-bottom:4px;}
           .crm-config-btn{width:100%;padding:9px;border-radius:9px;border:none;background:var(--ink);color:var(--sign);font-weight:700;font-size:12px;cursor:pointer;margin-top:4px;}
+          .crm-payment-row{display:flex;align-items:center;gap:9px;font-size:12.5px;padding:7px 0;cursor:pointer;}
+          .crm-payment-row input{width:15px;height:15px;accent-color:var(--ink);}
         `}</style>
         <div className="crm-hub-title">Compartilhar cardápio</div>
         <div className="crm-share-card">
@@ -197,6 +217,19 @@ export default function CrmPage() {
           <div className="crm-config-field"><label>Taxa de entrega (R$)</label><input value={taxaInput} onChange={e => setTaxaInput(e.target.value)} /></div>
           <div className="crm-config-field"><label>Pedido mínimo (R$)</label><input value={minimoInput} onChange={e => setMinimoInput(e.target.value)} /></div>
           <button className="crm-config-btn" disabled={savingConfig} onClick={saveConfig}>{configSaved ? 'Salvo!' : savingConfig ? 'Salvando...' : 'Salvar'}</button>
+        </div>
+
+        <div className="crm-config-card">
+          <div className="crm-config-title">💳 Formas de pagamento</div>
+          <div className="crm-config-sub">Só aparece pro cliente escolher no cardápio o que você marcar aqui.</div>
+          {(['pix', 'dinheiro', 'cartao'] as const).map(m => (
+            <label key={m} className="crm-payment-row">
+              <input type="checkbox" checked={paymentMethods.includes(m)} onChange={() => togglePaymentMethod(m)} />
+              {PAYMENT_LABELS[m]}
+            </label>
+          ))}
+          {paymentMethods.length === 0 && <div style={{ fontSize: 11, color: '#C43D3D', margin: '4px 0 0' }}>Marque pelo menos uma forma de pagamento.</div>}
+          <button className="crm-config-btn" disabled={savingPayment || paymentMethods.length === 0} onClick={savePaymentMethods}>{paymentSaved ? 'Salvo!' : savingPayment ? 'Salvando...' : 'Salvar'}</button>
         </div>
       </div>
     </EmpresaShell>

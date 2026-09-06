@@ -106,8 +106,6 @@ export default function CatalogoPage() {
   const [loading, setLoading] = useState(true)
   const [companyId, setCompanyId] = useState('')
   const [companyName, setCompanyName] = useState('')
-  const [companySlug, setCompanySlug] = useState('')
-  const [linkCopied, setLinkCopied] = useState(false)
   const [adminMode, setAdminMode] = useState(false)
   const [crmEnabled, setCrmEnabled] = useState(false)
   const [entregaEnabled, setEntregaEnabled] = useState(false)
@@ -160,12 +158,11 @@ export default function CatalogoPage() {
       if (empresaParam) {
         const { data: profile } = await supabase.from('profiles').select('user_type').eq('id', session.user.id).single()
         if (profile?.user_type === 'admin') {
-          const { data: comp } = await supabase.from('companies').select('id, name, slug, loja_digital_enabled, crm_whatsapp_enabled, entrega_enabled, trial_modules_until').eq('id', empresaParam).maybeSingle()
+          const { data: comp } = await supabase.from('companies').select('id, name, loja_digital_enabled, crm_whatsapp_enabled, entrega_enabled, trial_modules_until').eq('id', empresaParam).maybeSingle()
           if (!comp) { window.location.href = '/admin?tab=empresas'; return }
           setAdminMode(true)
           setCompanyId(comp.id)
           setCompanyName(comp.name)
-          setCompanySlug(comp.slug)
           setCrmEnabled(moduleActive(comp.crm_whatsapp_enabled, comp.trial_modules_until))
           setEntregaEnabled(moduleActive(comp.entrega_enabled, comp.trial_modules_until))
           await loadAll(comp.id)
@@ -175,11 +172,10 @@ export default function CatalogoPage() {
         }
       }
 
-      const { data: comp } = await supabase.from('companies').select('id, name, slug, loja_digital_enabled, crm_whatsapp_enabled, entrega_enabled, trial_modules_until').eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
+      const { data: comp } = await supabase.from('companies').select('id, name, loja_digital_enabled, crm_whatsapp_enabled, entrega_enabled, trial_modules_until').eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
       if (!comp || !moduleActive(comp.loja_digital_enabled, comp.trial_modules_until)) { window.location.href = '/painel/compartilhar'; return }
       setCompanyId(comp.id)
       setCompanyName(comp.name)
-      setCompanySlug(comp.slug)
       setCrmEnabled(moduleActive(comp.crm_whatsapp_enabled, comp.trial_modules_until))
       setEntregaEnabled(moduleActive(comp.entrega_enabled, comp.trial_modules_until))
       await loadAll(comp.id)
@@ -301,12 +297,6 @@ export default function CatalogoPage() {
     const reindexed = next.map((c, i) => ({ ...c, display_order: i }))
     setCategorias(reindexed)
     await Promise.all(reindexed.map(c => supabase.from('loja_categorias').update({ display_order: c.display_order }).eq('id', c.id)))
-  }
-
-  function copyCardapioLink() {
-    if (!companySlug) return
-    navigator.clipboard.writeText(`https://trindadeonline.com.br/empresa/${companySlug}/cardapio`)
-      .then(() => { setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000) })
   }
 
   function openNew() { setForm(emptyForm()); setPhotoFile(null); setView('form') }
@@ -778,7 +768,6 @@ export default function CatalogoPage() {
           .cg-list-view .cg-body{ display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:14px; align-content:start; }
           .cg-list-view .cg-filters{ grid-column:1/-1; }
           .cg-list-view .cg-quality{ grid-column:1/-1; }
-          .cg-list-view .cg-linkcard{ grid-column:1/-1; }
           .cg-list-view .cg-empty-msg{ grid-column:1/-1; }
           .cg-row{ flex-direction:column; align-items:stretch; gap:0; border:1px solid #E6E0D2; border-radius:14px; padding:0; overflow:hidden; background:#fff; position:relative; }
           .cg-row .cg-photo{ width:100%; height:130px; border-radius:0; font-size:34px; }
@@ -799,10 +788,6 @@ export default function CatalogoPage() {
         .cg-btn-ghost{ background:#fff;border:1px solid #E6E0D2;color:#1A1610; }
         .cg-fab{ position:fixed; right:calc(50% - 240px + 16px); bottom:24px; width:50px;height:50px;border-radius:50%;background:var(--sign);color:var(--ink);border:none;font-size:24px;font-weight:800;box-shadow:0 8px 18px -6px rgba(0,0,0,.35);cursor:pointer; }
         @media(max-width:520px){ .cg-fab{ right:16px; } }
-        .cg-linkcard{ display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #E6E0D2;border-radius:14px;padding:12px 14px;margin-bottom:14px; }
-        .cg-linkcard-ico{ font-size:16px;flex:none; }
-        .cg-linkcard-input{ flex:1;min-width:0;border:none;background:transparent;font-size:12px;color:#6E6656;font-family:inherit;padding:6px 0; }
-        .cg-linkcard-input:focus{ outline:none; }
         .cg-quality{ display:flex;align-items:center;gap:14px;background:#fff;border:1px solid #E6E0D2;border-radius:14px;padding:14px;margin-bottom:14px; }
         .cg-quality-num{ font-family:'Anton',sans-serif;font-size:30px;color:var(--sign-dark);letter-spacing:1px;line-height:1;flex:none; }
         .cg-quality-mid{ flex:1;min-width:0; }
@@ -935,15 +920,6 @@ export default function CatalogoPage() {
             </div>
           </div>
           <div className="cg-body">
-            {companySlug && (
-              <div className="cg-linkcard">
-                <span className="cg-linkcard-ico">🔗</span>
-                <input readOnly className="cg-linkcard-input" value={`trindadeonline.com.br/empresa/${companySlug}/cardapio`} onClick={e => (e.target as HTMLInputElement).select()} />
-                <button className="cg-btn-gold" style={{ padding: '8px 14px', borderRadius: 8, fontSize: 11.5, fontWeight: 700, whiteSpace: 'nowrap' }} onClick={copyCardapioLink}>
-                  {linkCopied ? '✓ Copiado!' : '📋 Copiar link'}
-                </button>
-              </div>
-            )}
             {produtos.length > 0 && (
               <div className="cg-quality">
                 <div className="cg-quality-num">{qualidade}%</div>

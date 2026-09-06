@@ -2,7 +2,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { moduleActive } from '@/lib/modules'
-import EmpresaShell from '@/components/EmpresaShell'
 import { fmt, type InteresseItem } from '@/lib/lojaPricing'
 
 type StatusVenda = 'sem_resposta' | 'virou_venda' | 'nao_fechou'
@@ -57,7 +56,7 @@ export default function InteressesPage() {
   const ticketMedio = interesses.length > 0 ? totalValor / interesses.length : 0
 
   return (
-    <EmpresaShell active="interesses" companyName={companyName} lojaDigitalEnabled crmEnabled={crmEnabled} entregaEnabled={entregaEnabled}>
+    <>
       <div className="it-wrap">
         <style>{`
           .it-wrap{ width:100%;max-width:480px;margin:0 auto;min-height:100vh;background:var(--concrete);font-family:'Archivo',sans-serif;font-size:13px;color:var(--ink);padding-bottom:30px;min-width:0;overflow-x:hidden; }
@@ -141,6 +140,6 @@ export default function InteressesPage() {
           </div>
         </div>
       </div>
-    </EmpresaShell>
+    </>
   )
 }

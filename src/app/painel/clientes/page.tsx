@@ -2,7 +2,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { moduleActive } from '@/lib/modules'
-import EmpresaShell from '@/components/EmpresaShell'
 
 type Contact = {
   id: string; phone: string; name: string | null; address: string | null
@@ -130,7 +129,7 @@ export default function ClientesPage() {
   const sumidosCount = contacts.filter(isSumido).length
 
   return (
-    <EmpresaShell active="clientes" companyName={companyName} lojaDigitalEnabled crmEnabled={crmEnabled} entregaEnabled={entregaEnabled}>
+    <>
       <div className="cl-wrap">
         <style>{`
           .cl-wrap{ width:100%;max-width:480px;margin:0 auto;min-height:100vh;background:var(--concrete);font-family:'Archivo',sans-serif;font-size:13px;color:var(--ink);padding-bottom:30px;min-width:0;overflow-x:hidden; }
@@ -256,6 +255,6 @@ export default function ClientesPage() {
           </div>
         </div>
       </div>
-    </EmpresaShell>
+    </>
   )
 }

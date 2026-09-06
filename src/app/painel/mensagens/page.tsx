@@ -4,7 +4,6 @@ import { usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { compressImage } from '@/lib/compressImage'
 import { moduleActive } from '@/lib/modules'
-import EmpresaShell from '@/components/EmpresaShell'
 
 // Modo Atendimento (ESPECIFICACAO.md §4.4) — mesmo inbox de sempre, mas em
 // tela cheia, sem sidebar/topbar/tabbar do painel: "modo não é página de
@@ -12,6 +11,11 @@ import EmpresaShell from '@/components/EmpresaShell'
 // src/app/atendimento/page.tsx) só trocando o wrapper externo.
 function FullScreenShell({ children }: { children: React.ReactNode }) {
   return <div style={{ minHeight: '100vh' }}>{children}</div>
+}
+// Dentro de /painel/mensagens (não fullScreen) o EmpresaShell já vem do
+// layout persistente de /painel — aqui só passa os children adiante.
+function ShellPassthrough({ children }: { children: React.ReactNode }) {
+  return <>{children}</>
 }
 
 type Company = {
@@ -1089,7 +1093,10 @@ export default function MensagensPage() {
   const selectedTagIds = selectedLive ? (contactTagsMap[selectedLive.id] || []) : []
   const tagById = new Map(tags.map(t => [t.id, t]))
 
-  const Shell: any = fullScreen ? FullScreenShell : EmpresaShell
+  // /painel/mensagens vive dentro do layout persistente (que já bota o
+  // EmpresaShell); só /atendimento (fullScreen) precisa do wrapper aqui,
+  // já que essa rota fica fora do layout de /painel.
+  const Shell: any = fullScreen ? FullScreenShell : ShellPassthrough
   return (
     <Shell active="mensagens" companyName={company.name} companySlug={company.slug} lojaDigitalEnabled={company.loja_digital_enabled} crmEnabled={company.crm_whatsapp_enabled} entregaEnabled={company.entrega_enabled}>
       <div className={`msg-page ${fullScreen ? 'msg-page-full' : ''}`}>

@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { refreshSessionOnce } from '@/lib/authRefresh'
 import { moduleActive } from '@/lib/modules'
-import EmpresaShell from '@/components/EmpresaShell'
 import { qzListPrinters, qzPrintRaw, buildReceipt, buildKitchenTicket } from '@/lib/qzPrint'
 
 type Item = { id: string; product_name: string; unit_price: number; qty: number; selected_options: { name: string; price: number }[] }
@@ -614,7 +613,7 @@ export default function PedidosPage() {
   const cancelados = searched.filter(p => p.status === 'cancelado')
 
   return (
-    <EmpresaShell active="pedidos" companyName={companyName} lojaDigitalEnabled crmEnabled={crmEnabled} entregaEnabled={entregaEnabled}>
+    <>
     <div className="pd-wrap">
       <style>{`
         .pd-wrap{ width:100%;max-width:480px;margin:0 auto;min-height:100vh;background:var(--concrete);font-family:'Archivo',sans-serif;font-size:13px;color:var(--ink);padding-bottom:30px;overflow-x:hidden;min-width:0; }
@@ -932,6 +931,6 @@ export default function PedidosPage() {
         </div>
       )}
     </div>
-    </EmpresaShell>
+    </>
   )
 }

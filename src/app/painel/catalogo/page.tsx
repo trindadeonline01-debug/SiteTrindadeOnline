@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { compressImage } from '@/lib/compressImage'
 import { moduleActive } from '@/lib/modules'
-import EmpresaShell from '@/components/EmpresaShell'
 
 type Categoria = { id: string; name: string; display_order: number }
 type Opcao = { id?: string; name: string; price: string; max_qty: number | null; linked_produto_id: string | null; photo_url?: string | null; _photoFile?: File | null }
@@ -747,7 +746,7 @@ export default function CatalogoPage() {
   const qualidade = produtos.length ? Math.round((pctFoto + pctDesc + pctPromo) / 3) : 0
 
   return (
-    <EmpresaShell active="catalogo" companyName={companyName} lojaDigitalEnabled crmEnabled={crmEnabled} entregaEnabled={entregaEnabled}>
+    <>
     <div className="cg-wrap">
       {adminMode && (
         <div style={{ position:'sticky', top:0, zIndex:30, background:'#1A0F00', color:'#F0EDE8', padding:'9px 16px', fontSize:12, fontWeight:600, display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
@@ -1359,6 +1358,6 @@ export default function CatalogoPage() {
 
       {toast && <div className="cg-toast">{toast}</div>}
     </div>
-    </EmpresaShell>
+    </>
   )
 }

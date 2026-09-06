@@ -2,7 +2,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { moduleActive } from '@/lib/modules'
-import EmpresaShell from '@/components/EmpresaShell'
 import QRCode from 'qrcode'
 import { BAIRROS_SAO_GONCALO, normalizeBairro } from '@/lib/bairrosSaoGoncalo'
 
@@ -288,7 +287,7 @@ export default function CompartilharPage() {
     : `Por distância · ${kmTiers.length + 1} faixas`
 
   return (
-    <EmpresaShell active="compartilhar" companyName={company.name} companySlug={company.slug} lojaDigitalEnabled crmEnabled={company.crm_whatsapp_enabled} entregaEnabled={company.entrega_enabled}>
+    <>
       <div className="crm-hub-content">
         <style>{`
           .crm-hub-content{padding:24px 16px 80px;min-width:0;}
@@ -624,7 +623,7 @@ export default function CompartilharPage() {
           </div>
         )}
       </div>
-    </EmpresaShell>
+    </>
   )
 }
 

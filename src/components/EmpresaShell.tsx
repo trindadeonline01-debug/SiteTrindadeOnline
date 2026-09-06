@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import Link from 'next/link'
 
 // Navegação única do "Modo Empresa" — desktop (sidebar agrupada) e mobile
 // (barra de abas fixa + tela /painel/mais). Substitui o antigo CrmShell e a
@@ -27,15 +28,15 @@ const TITLES: Record<EmpresaNavKey, string> = {
 function NavItem({ href, active, locked, badge, children }: { href: string; active: boolean; locked?: boolean; badge?: number; children: React.ReactNode }) {
   if (locked) {
     return (
-      <a href="/painel?tab=plano" className="es-item es-item-locked">
+      <Link href="/painel?tab=plano" className="es-item es-item-locked">
         🔒 {children}
-      </a>
+      </Link>
     )
   }
   return (
-    <a href={href} className={`es-item ${active ? 'on' : ''}`}>
+    <Link href={href} className={`es-item ${active ? 'on' : ''}`}>
       {children}{!!badge && <span className="es-item-badge">{badge}</span>}
-    </a>
+    </Link>
   )
 }
 
@@ -166,22 +167,22 @@ export default function EmpresaShell({
         <div className="es-logo">
           <div className="es-logo-txt">TRINDADE <span>EMPRESA</span></div>
           <div className="es-idswitcher">
-            <a href="/painel/pessoal" className={`es-idcard ${isPessoal ? 'on' : ''}`}>
+            <Link href="/painel/pessoal" className={`es-idcard ${isPessoal ? 'on' : ''}`}>
               <span className="es-idico">👤</span>
               <span className="es-idname">Pessoal</span>
               {isPessoal && <span className="es-idtag">● aqui</span>}
-            </a>
+            </Link>
             {companyName ? (
-              <a href="/painel" className={`es-idcard ${!isPessoal ? 'on' : ''}`}>
+              <Link href="/painel" className={`es-idcard ${!isPessoal ? 'on' : ''}`}>
                 <span className="es-idico">{initials}</span>
                 <span className="es-idname">{companyName}</span>
                 {!isPessoal && <span className="es-idtag">● aqui</span>}
-              </a>
+              </Link>
             ) : (
-              <a href="/anunciar" className="es-idcard es-idcard-add">
+              <Link href="/anunciar" className="es-idcard es-idcard-add">
                 <span className="es-idico">➕</span>
                 <span className="es-idname">Cadastrar minha empresa</span>
-              </a>
+              </Link>
             )}
           </div>
           {!isPessoal && companies && companies.length > 1 && (
@@ -209,7 +210,7 @@ export default function EmpresaShell({
             </>
           ) : (
             <>
-              <a href="/painel" className={`es-item ${active === 'dashboard' ? 'on' : ''}`}>📊 Visão geral</a>
+              <Link href="/painel" className={`es-item ${active === 'dashboard' ? 'on' : ''}`}>📊 Visão geral</Link>
 
               {/* Agrupado por frequência de uso, não por assunto —
                   ESPECIFICACAO.md §4.3. Função sem módulo ativo não some: fica
@@ -245,8 +246,8 @@ export default function EmpresaShell({
           )}
         </nav>
         <div className="es-footer">
-          <a className="es-btn es-btn-secondary" href="/">🏠 Home</a>
-          <a className="es-btn es-btn-small" href="/sair">🚪 Sair</a>
+          <Link className="es-btn es-btn-secondary" href="/">🏠 Home</Link>
+          <Link className="es-btn es-btn-small" href="/sair">🚪 Sair</Link>
         </div>
       </aside>
 
@@ -257,16 +258,16 @@ export default function EmpresaShell({
 
       <nav className="es-tabbar" ref={tabbarRef}>
         {mobileTabs.map(t => (
-          <a key={t.key} href={t.href} className={`es-tab ${active === t.key ? 'on' : ''}`}>
+          <Link key={t.key} href={t.href} className={`es-tab ${active === t.key ? 'on' : ''}`}>
             <span className="es-tab-ico">{t.ico}</span>
             <span className="es-tab-lbl">{t.lbl}</span>
             {!!t.badge && <span className="es-tab-dot" />}
-          </a>
+          </Link>
         ))}
-        <a href="/painel/mais" className={`es-tab ${maisActive ? 'on' : ''}`}>
+        <Link href="/painel/mais" className={`es-tab ${maisActive ? 'on' : ''}`}>
           <span className="es-tab-ico">☰</span>
           <span className="es-tab-lbl">Mais</span>
-        </a>
+        </Link>
       </nav>
     </div>
   )

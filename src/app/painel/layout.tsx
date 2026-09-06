@@ -1,0 +1,123 @@
+'use client'
+import { Suspense, useEffect, useState } from 'react'
+import { usePathname, useSearchParams } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
+import { moduleActive } from '@/lib/modules'
+import EmpresaShell, { type EmpresaNavKey } from '@/components/EmpresaShell'
+import { PainelShellContext } from '@/contexts/PainelShellContext'
+
+type ShellCompany = { id: string; name: string; slug: string; loja_digital_enabled: boolean; crm_whatsapp_enabled: boolean; entrega_enabled: boolean }
+type SwitcherCompany = { id: string; name: string; slug?: string }
+
+// Rotas que são "modos" de tela cheia (ESPECIFICACAO.md §4.4 — "modo não é
+// página de menu") ou a tela "Mais" do mobile: não levam a sidebar/topbar
+// do painel, cada uma cuida do próprio layout.
+const BARE_ROUTES = ['/painel/mais', '/painel/cozinha']
+
+const TAB_TO_KEY_PAINEL: Record<string, EmpresaNavKey> = {
+  destaques: 'destaques', banners: 'banners', avaliacoes: 'avaliacoes', perfil: 'perfil',
+  plano: 'plano', cupons: 'cupons', promocoes: 'promocoes',
+}
+const TAB_TO_KEY_PESSOAL: Record<string, EmpresaNavKey> = {
+  perfil: 'pessoal-perfil', anuncios: 'pessoal-anuncios', avaliacoes: 'pessoal-avaliacoes',
+  favoritos: 'pessoal-favoritos', cupons: 'pessoal-cupons', pedidos: 'pessoal-pedidos',
+}
+
+// Palpite de qual item da sidebar destacar, só a partir da URL — cobre toda
+// rota 1-pra-1. /painel e /painel/pessoal têm abas que às vezes trocam sem
+// mudar a URL (setTab interno) — essas duas se corrigem via override no
+// contexto (ver PainelShellContext), isso aqui é só o valor inicial/fallback.
+function deriveActiveKey(pathname: string, tab: string | null): EmpresaNavKey {
+  if (pathname === '/painel') return (tab && TAB_TO_KEY_PAINEL[tab]) || 'dashboard'
+  if (pathname === '/painel/pessoal') return (tab && TAB_TO_KEY_PESSOAL[tab]) || 'pessoal-perfil'
+  if (pathname.startsWith('/painel/pedidos')) return 'pedidos'
+  if (pathname.startsWith('/painel/interesses')) return 'interesses'
+  if (pathname.startsWith('/painel/mensagens')) return 'mensagens'
+  if (pathname.startsWith('/painel/catalogo')) return 'catalogo'
+  if (pathname.startsWith('/painel/compartilhar')) return 'compartilhar'
+  if (pathname.startsWith('/painel/entrega')) return 'entrega'
+  if (pathname.startsWith('/painel/clientes')) return 'clientes'
+  if (pathname.startsWith('/painel/relatorios')) return 'relatorios'
+  return 'dashboard'
+}
+
+export default function PainelLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh', background: 'var(--concrete)' }} />}>
+      <PainelLayoutInner>{children}</PainelLayoutInner>
+    </Suspense>
+  )
+}
+
+function PainelLayoutInner({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const bare = BARE_ROUTES.includes(pathname)
+
+  const [loading, setLoading] = useState(true)
+  const [company, setCompany] = useState<ShellCompany | null>(null)
+  const [avaliacoesBadge, setAvaliacoesBadge] = useState(0)
+  const [activeOverride, setActiveOverride] = useState<EmpresaNavKey | null>(null)
+  const [switcherExtras, setSwitcherExtras] = useState<{ companies?: SwitcherCompany[]; onSwitchCompany?: (c: SwitcherCompany) => void } | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session) { window.location.href = `/login?redirect=${pathname}`; return }
+      const { data: profile } = await supabase.from('profiles').select('user_type').eq('id', session.user.id).single()
+      const empresaParam = new URLSearchParams(window.location.search).get('empresa')
+
+      let comp: any = null
+      if (profile?.user_type === 'admin' && empresaParam) {
+        const { data } = await supabase.from('companies')
+          .select('id,name,slug,loja_digital_enabled,crm_whatsapp_enabled,entrega_enabled,trial_modules_until')
+          .eq('id', empresaParam).maybeSingle()
+        comp = data
+      } else if (profile?.user_type === 'company') {
+        const { data } = await supabase.from('companies')
+          .select('id,name,slug,loja_digital_enabled,crm_whatsapp_enabled,entrega_enabled,trial_modules_until')
+          .eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
+        comp = data
+      } else if (profile?.user_type !== 'admin') {
+        window.location.href = '/'; return
+      }
+      if (cancelled) return
+
+      if (comp) {
+        setCompany({
+          id: comp.id, name: comp.name, slug: comp.slug,
+          loja_digital_enabled: moduleActive(comp.loja_digital_enabled, comp.trial_modules_until),
+          crm_whatsapp_enabled: moduleActive(comp.crm_whatsapp_enabled, comp.trial_modules_until),
+          entrega_enabled: moduleActive(comp.entrega_enabled, comp.trial_modules_until),
+        })
+        const { data: revs } = await supabase.from('reviews').select('*, response:review_responses(text)').eq('company_id', comp.id)
+        if (!cancelled) setAvaliacoesBadge((revs || []).filter((r: any) => !r.response || (Array.isArray(r.response) && r.response.length === 0)).length)
+      }
+      setLoading(false)
+    })
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  if (bare) return <>{children}</>
+
+  const active = activeOverride || deriveActiveKey(pathname, searchParams.get('tab'))
+
+  return (
+    <PainelShellContext.Provider value={{ setActiveOverride, setSwitcherExtras }}>
+      <EmpresaShell
+        active={active}
+        companyName={company?.name}
+        companySlug={company?.slug}
+        lojaDigitalEnabled={company?.loja_digital_enabled}
+        crmEnabled={company?.crm_whatsapp_enabled}
+        entregaEnabled={company?.entrega_enabled}
+        avaliacoesBadge={avaliacoesBadge}
+        companies={switcherExtras?.companies as any}
+        onSwitchCompany={switcherExtras?.onSwitchCompany as any}
+      >
+        {loading ? <div style={{ padding: 40, textAlign: 'center', color: '#AAA', fontFamily: 'Archivo,sans-serif', fontSize: 13 }}>Carregando...</div> : children}
+      </EmpresaShell>
+    </PainelShellContext.Provider>
+  )
+}

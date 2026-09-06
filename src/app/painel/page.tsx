@@ -7,7 +7,8 @@ import PhotoManager from '@/components/PhotoManager'
 import BusinessHoursEditor from '@/components/BusinessHoursEditor'
 import { IGREJAS_CATEGORY_ID, DIAS_SEMANA, HourRow, isOpenNow } from '@/lib/businessHours'
 import { moduleActive } from '@/lib/modules'
-import EmpresaShell, { EmpresaNavKey } from '@/components/EmpresaShell'
+import type { EmpresaNavKey } from '@/components/EmpresaShell'
+import { usePainelShell } from '@/contexts/PainelShellContext'
 
 type Company = {
   id: string; name: string; slug?: string; status: string; plan: string
@@ -89,6 +90,22 @@ export default function PainelPage() {
     }
   }, [tab, company?.id])
   const [companies, setCompanies]   = useState<Company[]>([])
+
+  // A sidebar mora no layout persistente de /painel — essa página troca de
+  // aba sem sempre mudar a URL, então avisa o layout via contexto qual item
+  // destacar e (só aqui) qual seletor de negócio mostrar.
+  const { setActiveOverride, setSwitcherExtras } = usePainelShell()
+  useEffect(() => {
+    setActiveOverride((tab === 'painel' ? 'dashboard' : tab) as EmpresaNavKey)
+    return () => setActiveOverride(null)
+  }, [tab])
+  useEffect(() => {
+    setSwitcherExtras({
+      companies,
+      onSwitchCompany: (c) => { const full = companies.find(x => x.id === c.id); if (full) { setCompany(full); setTab('painel') } },
+    })
+    return () => setSwitcherExtras(null)
+  }, [companies])
 
   const [reviews, setReviews]       = useState<Review[]>([])
   const [highlights, setHighlights] = useState<Highlight[]>([])
@@ -1114,17 +1131,7 @@ export default function PainelPage() {
       )}
       {toast && <div className="toast">✓ {toast}</div>}
 
-      <EmpresaShell
-        active={(tab === 'painel' ? 'dashboard' : tab) as EmpresaNavKey}
-        companyName={company.name}
-        companySlug={company.slug}
-        lojaDigitalEnabled={moduleActive(company.loja_digital_enabled, company.trial_modules_until)}
-        crmEnabled={moduleActive(company.crm_whatsapp_enabled, company.trial_modules_until)}
-        entregaEnabled={moduleActive(company.entrega_enabled, company.trial_modules_until)}
-        avaliacoesBadge={pendingReplies}
-        companies={companies}
-        onSwitchCompany={c => { const full = companies.find(x => x.id === c.id); if (full) { setCompany(full); setTab('painel') } }}
-      >
+      <>
 
           {company.plan !== 'paid' && company.trial_ends_at && (() => {
             const expired = new Date(company.trial_ends_at) < new Date()
@@ -2138,7 +2145,7 @@ export default function PainelPage() {
               </div>
             </div>
           )}
-      </EmpresaShell>
+      </>
     </>
   )
 }

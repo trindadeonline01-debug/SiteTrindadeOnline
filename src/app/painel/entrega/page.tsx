@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { refreshSessionOnce } from '@/lib/authRefresh'
 import { moduleActive } from '@/lib/modules'
-import EmpresaShell from '@/components/EmpresaShell'
 
 type Wallet = { credits: number; daily_paid_until: string | null }
 type Precos = { today: string; dayType: 'util' | 'fds' | 'feriado'; diaria: number; entrega: number; pacoteDias: number; pacoteDesconto: number }
@@ -190,7 +189,7 @@ export default function EntregaPage() {
   if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Archivo,sans-serif', color: '#A79E8B' }}>Carregando...</div>
 
   return (
-    <EmpresaShell active="entrega" companyName={companyName} lojaDigitalEnabled={lojaDigitalEnabled} crmEnabled={crmEnabled} entregaEnabled>
+    <>
     <div className="en-wrap">
       <style>{`
         .en-wrap{ width:100%;max-width:560px;margin:0 auto;font-family:'Archivo',sans-serif;font-size:13px;color:var(--ink);padding:20px 14px 40px; }
@@ -377,6 +376,6 @@ export default function EntregaPage() {
         </div>
       )}
     </div>
-    </EmpresaShell>
+    </>
   )
 }

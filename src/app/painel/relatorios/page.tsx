@@ -2,7 +2,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { moduleActive } from '@/lib/modules'
-import EmpresaShell from '@/components/EmpresaShell'
 
 type Status = 'recebido' | 'em_preparo' | 'pronto' | 'saiu_entrega' | 'entregue' | 'cancelado'
 type Pedido = {
@@ -196,7 +195,7 @@ export default function RelatoriosPage() {
   const PERIOD_LABEL: Record<Period, string> = { today: 'Hoje', week: '7 dias', month: 'Este mês', year: 'Este ano' }
 
   return (
-    <EmpresaShell active="relatorios" companyName={companyName} lojaDigitalEnabled crmEnabled={crmEnabled} entregaEnabled={entregaEnabled}>
+    <>
       <div className="rp-wrap">
         <style>{`
           .rp-wrap{ padding:20px 16px 48px; }
@@ -301,6 +300,6 @@ export default function RelatoriosPage() {
           </>
         )}
       </div>
-    </EmpresaShell>
+    </>
   )
 }

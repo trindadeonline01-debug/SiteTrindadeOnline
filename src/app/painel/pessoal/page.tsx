@@ -3,7 +3,6 @@ import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { moduleActive } from '@/lib/modules'
-import EmpresaShell, { type EmpresaNavKey } from '@/components/EmpresaShell'
 
 type Profile = { id: string; name: string; email?: string; phone?: string; neighborhood?: string; created_at: string; user_type: string }
 type Listing = { id: string; type: string; title: string; price?: number; subtype?: string; status: string; created_at: string }
@@ -26,10 +25,6 @@ function fmtMoney(n: number) { return 'R$ ' + n.toFixed(2).replace('.', ',') }
 
 const VALID_TABS = ['perfil','anuncios','avaliacoes','favoritos','cupons','pedidos'] as const
 type Tab = typeof VALID_TABS[number]
-const TAB_KEY: Record<Tab, EmpresaNavKey> = {
-  perfil: 'pessoal-perfil', anuncios: 'pessoal-anuncios', avaliacoes: 'pessoal-avaliacoes',
-  favoritos: 'pessoal-favoritos', cupons: 'pessoal-cupons', pedidos: 'pessoal-pedidos',
-}
 
 // Mesmas telas de /perfil (perfil, favoritos, avaliações, pedidos, anúncios,
 // cupons), só que dentro do shell do painel — pro dono de negócio não
@@ -152,7 +147,7 @@ function PainelPessoalInner() {
   const activeListings = listings.filter(l => l.status === 'active' || l.status === 'paused')
 
   return (
-    <EmpresaShell active={TAB_KEY[tab]} companyName={companyName} lojaDigitalEnabled={lojaDigitalEnabled} crmEnabled={crmEnabled} entregaEnabled={entregaEnabled}>
+    <>
       <div className="pp-wrap">
         <style>{`
           .pp-wrap{ padding:20px 16px 40px; max-width:760px; }
@@ -380,6 +375,6 @@ function PainelPessoalInner() {
           )
         )}
       </div>
-    </EmpresaShell>
+    </>
   )
 }

@@ -10,7 +10,7 @@ const supabase = createClient(
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://trindadeonline.com.br'
 
 function slugify(name: string): string {
-  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now()
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
 }
 
 async function uploadPhoto(companyId: string, index: number, dataUrl: string): Promise<string | null> {
@@ -84,27 +84,38 @@ export async function POST(req: NextRequest) {
     const actionLink = linkData.properties.action_link
 
     // 2. Cria a empresa já ativa (Ricardo já validou o negócio pessoalmente)
-    const slug = slugify(name)
-    const { data: company, error: companyError } = await supabase
-      .from('companies')
-      .insert({
-        owner_id: ownerId,
-        name: name.trim().toUpperCase(),
-        slug,
-        category_id,
-        description: description?.trim() || null,
-        tags: Array.isArray(tags) ? tags : [],
-        address: address?.trim() || null,
-        phone: phone.trim(),
-        external_link: external_link?.trim() || null,
-        external_link_label: external_link?.trim() ? (external_link_label?.trim() || null) : null,
-        status: 'active',
-        plan: 'free',
-      })
-      .select()
-      .single()
+    // Sufixo numérico só entra se já existir outra empresa com slug igual
+    // (índice único em companies.slug) — sem isso todo cadastro carregava
+    // um timestamp de 13 dígitos colado no link pra sempre.
+    const baseSlug = slugify(name)
+    let company: any = null
+    let companyError: any = null
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const slug = attempt === 0 ? baseSlug : `${baseSlug}-${attempt + 1}`
+      const { data, error } = await supabase
+        .from('companies')
+        .insert({
+          owner_id: ownerId,
+          name: name.trim().toUpperCase(),
+          slug,
+          category_id,
+          description: description?.trim() || null,
+          tags: Array.isArray(tags) ? tags : [],
+          address: address?.trim() || null,
+          phone: phone.trim(),
+          external_link: external_link?.trim() || null,
+          external_link_label: external_link?.trim() ? (external_link_label?.trim() || null) : null,
+          status: 'active',
+          plan: 'free',
+        })
+        .select()
+        .single()
+      if (!error) { company = data; break }
+      if (error.code !== '23505') { companyError = error; break }
+      companyError = error
+    }
 
-    if (companyError || !company) {
+    if (!company) {
       return NextResponse.json({ error: companyError?.message || 'Erro ao criar empresa' }, { status: 500 })
     }
 

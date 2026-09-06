@@ -216,31 +216,45 @@ export default function AnunciarPage() {
 
     setLoading(true)
     try {
-      const slug = nome.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now()
+      // Link do cardápio/perfil é feito a partir daqui — sem número de
+      // timestamp colado no fim, que ficava enorme e feio de compartilhar
+      // (ex: trindadeonline.com.br/empresa/frangoso-frango-frito-no-box).
+      // Só ganha sufixo (-2, -3...) se já existir outra empresa com o
+      // nome idêntico — o índice único em companies.slug garante isso: a
+      // tentativa de insert falha com 23505 e a gente tenta de novo com o
+      // próximo número, sem precisar de uma consulta separada antes.
+      const baseSlug = nome.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+      let company: any = null
+      let companyError: any = null
+      for (let attempt = 0; attempt < 20; attempt++) {
+        const slug = attempt === 0 ? baseSlug : `${baseSlug}-${attempt + 1}`
+        const { data, error } = await supabase
+          .from('companies')
+          .insert({
+            owner_id: userId,
+            name: nome.toUpperCase(),
+            slug,
+            category_id: categoryId || null,
+            description: descricao || null,
+            tags,
+            address: endereco || null,
+            cpf_cnpj: cpfCnpj || null,
+            phone: phone || null,
+            external_link: linkUrl || null,
+            external_link_label: linkUrl ? linkLabel : null,
+            delivery_available: deliveryAvailable,
+            flexible_hours: flexibleHours,
+            status: 'pending',
+            plan: 'free',
+          })
+          .select()
+          .single()
+        if (!error) { company = data; break }
+        if (error.code !== '23505') { companyError = error; break }
+        companyError = error
+      }
 
-      const { data: company, error: companyError } = await supabase
-        .from('companies')
-        .insert({
-          owner_id: userId,
-          name: nome.toUpperCase(),
-          slug,
-          category_id: categoryId || null,
-          description: descricao || null,
-          tags,
-          address: endereco || null,
-          cpf_cnpj: cpfCnpj || null,
-          phone: phone || null,
-          external_link: linkUrl || null,
-          external_link_label: linkUrl ? linkLabel : null,
-          delivery_available: deliveryAvailable,
-          flexible_hours: flexibleHours,
-          status: 'pending',
-          plan: 'free',
-        })
-        .select()
-        .single()
-
-      if (companyError) throw new Error('Erro ao criar empresa.')
+      if (!company) throw new Error('Erro ao criar empresa.')
 
       fetch('/api/admin/notify-whatsapp', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },

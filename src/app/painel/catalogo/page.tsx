@@ -283,6 +283,22 @@ export default function CatalogoPage() {
     showToast('Categoria apagada')
   }
 
+  // Ordem das categorias aqui é a mesma ordem das seções no cardápio
+  // público (/empresa/[slug]/cardapio já busca por display_order) — subir
+  // ou descer aqui move a seção de verdade pro cliente. Renumera tudo do
+  // zero a cada troca em vez de só trocar os dois valores, pra nunca
+  // depender de display_order já estar sem furo/duplicata.
+  async function moveCategoria(id: string, dir: -1 | 1) {
+    const idx = categorias.findIndex(c => c.id === id)
+    const swapIdx = idx + dir
+    if (idx === -1 || swapIdx < 0 || swapIdx >= categorias.length) return
+    const next = [...categorias]
+    ;[next[idx], next[swapIdx]] = [next[swapIdx], next[idx]]
+    const reindexed = next.map((c, i) => ({ ...c, display_order: i }))
+    setCategorias(reindexed)
+    await Promise.all(reindexed.map(c => supabase.from('loja_categorias').update({ display_order: c.display_order }).eq('id', c.id)))
+  }
+
   function openNew() { setForm(emptyForm()); setPhotoFile(null); setView('form') }
 
   function openBulk() { setView('bulk') }
@@ -1157,7 +1173,10 @@ export default function CatalogoPage() {
             </div>
             <div className="cg-cat-modal-body">
               {categorias.length === 0 && <div style={{ fontSize: 12, color: '#A79E8B', padding: '12px 0' }}>Nenhuma categoria ainda.</div>}
-              {categorias.map(c => (
+              {categorias.length > 1 && (
+                <div style={{ fontSize: 11, color: '#A79E8B', padding: '0 0 8px' }}>Use as setas pra decidir a ordem das seções no cardápio — quem vê primeiro é o que sobe aqui.</div>
+              )}
+              {categorias.map((c, i) => (
                 <div className="cg-cat-row" key={c.id}>
                   {editingCatId === c.id ? (
                     <>
@@ -1167,6 +1186,10 @@ export default function CatalogoPage() {
                     </>
                   ) : (
                     <>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 'none' }}>
+                        <button className="cg-btn-ghost" disabled={i === 0} style={{ padding: '2px 7px', borderRadius: 6, fontSize: 10, lineHeight: 1.4, opacity: i === 0 ? 0.35 : 1 }} onClick={() => moveCategoria(c.id, -1)}>▲</button>
+                        <button className="cg-btn-ghost" disabled={i === categorias.length - 1} style={{ padding: '2px 7px', borderRadius: 6, fontSize: 10, lineHeight: 1.4, opacity: i === categorias.length - 1 ? 0.35 : 1 }} onClick={() => moveCategoria(c.id, 1)}>▼</button>
+                      </div>
                       <span className="cg-cat-row-name">{c.name}</span>
                       <span className="cg-cat-row-count">{produtos.filter(p => p.category_id === c.id).length} produto{produtos.filter(p => p.category_id === c.id).length !== 1 ? 's' : ''}</span>
                       <button className="cg-btn-ghost" style={{ padding: '6px 9px', borderRadius: 8, fontSize: 11 }} onClick={() => { setEditingCatId(c.id); setEditCatName(c.name) }}>✏️</button>

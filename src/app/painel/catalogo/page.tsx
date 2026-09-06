@@ -741,6 +741,7 @@ export default function CatalogoPage() {
       )}
       <style>{`
         .cg-wrap{ width:100%; max-width:480px; margin:0 auto; min-height:100vh; background:var(--concrete); font-family:'Archivo',sans-serif; font-size:13px; color:var(--ink); padding-bottom:40px; min-width:0; overflow-x:hidden; }
+        .cg-import-desktop{ display:none; }
         @media(min-width:768px){
           .cg-wrap{ max-width:none; margin:0; min-height:0; padding-bottom:60px; }
           .cg-head{ padding:28px 32px 16px; position:static; flex-wrap:wrap; }
@@ -760,7 +761,6 @@ export default function CatalogoPage() {
           .cg-fab{ right:32px; }
           .cg-form-view .cg-body{ max-width:640px; margin:0 auto; padding:0 32px; }
         }
-        .cg-import-desktop{ display:none; }
         .cg-head{ padding:22px 16px 14px; display:flex; align-items:center; gap:10px; background:#F7F5F0; position:sticky; top:0; z-index:5; flex-wrap:wrap; }
         .cg-head h1{ min-width:80px; }
         .cg-head-actions{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }

@@ -11,9 +11,14 @@ type Company = {
   avg_rating: number; total_reviews: number; status: string
   loja_digital_enabled: boolean; flexible_hours?: boolean; store_paused?: boolean; store_forced_open?: boolean; owner_id?: string
   loja_taxa_entrega: number; loja_pedido_minimo: number; loja_payment_methods?: string[]
+  loja_taxa_metodo?: 'bairro' | 'distancia'; loja_frete_gratis_acima?: number | null
   hours?: any[]; photos?: { url: string; order: number }[]
 }
-const PAYMENT_LABELS: Record<string, string> = { pix: 'Pix', dinheiro: 'Dinheiro', cartao: 'Cartão' }
+const PAYMENT_LABELS: Record<string, string> = {
+  pix: 'Pix', dinheiro: 'Dinheiro', cartao: 'Cartão', cartao_credito: 'Cartão de crédito', cartao_debito: 'Cartão de débito',
+  vale_refeicao: 'Vale-refeição', vale_alimentacao: 'Vale-alimentação', picpay: 'PicPay',
+}
+type FreteInfo = { fee: number; blocked: boolean; reason?: string }
 type CartLine = { key: string; produtoId: string; name: string; modifiers: { name: string; price: number }[]; unitPrice: number; qty: number }
 
 export default function CardapioPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -49,7 +54,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
   const [scheduleDate, setScheduleDate] = useState('')
   const [scheduleTime, setScheduleTime] = useState('')
   const [obs, setObs] = useState('')
-  const [payMethod, setPayMethod] = useState<'pix' | 'dinheiro' | 'cartao'>('pix')
+  const [payMethod, setPayMethod] = useState<string>('pix')
   const [precisaTroco, setPrecisaTroco] = useState<boolean | null>(null)
   const [trocoPara, setTrocoPara] = useState('')
   const [success, setSuccess] = useState(false)
@@ -57,6 +62,8 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
   const [orderError, setOrderError] = useState<string | null>(null)
   const [coupons, setCoupons] = useState<Coupon[]>([])
   const [selectedCouponId, setSelectedCouponId] = useState<string | null>(null)
+  const [freteInfo, setFreteInfo] = useState<FreteInfo | null>(null)
+  const [freteLoading, setFreteLoading] = useState(false)
 
   function getCompanyCover(photos?: { url: string; order: number }[]): string | null {
     if (!photos?.length) return null
@@ -90,12 +97,12 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
 
   useEffect(() => {
     supabase.from('companies')
-      .select('id,name,slug,phone,address,avg_rating,total_reviews,status,loja_digital_enabled,flexible_hours,store_paused,store_forced_open,owner_id,loja_taxa_entrega,loja_pedido_minimo,loja_payment_methods,hours:company_hours(label,hours,order,day_of_week,open_time,close_time,closed),photos:company_photos(url,order)')
+      .select('id,name,slug,phone,address,avg_rating,total_reviews,status,loja_digital_enabled,flexible_hours,store_paused,store_forced_open,owner_id,loja_taxa_entrega,loja_pedido_minimo,loja_payment_methods,loja_taxa_metodo,loja_frete_gratis_acima,hours:company_hours(label,hours,order,day_of_week,open_time,close_time,closed),photos:company_photos(url,order)')
       .eq('slug', slug).maybeSingle()
       .then(async ({ data: comp }) => {
         if (!comp || comp.status !== 'active' || !comp.loja_digital_enabled) { setCompany(null); setLoading(false); return }
         setCompany(comp as any)
-        const accepted = comp.loja_payment_methods?.length ? comp.loja_payment_methods : ['pix', 'dinheiro', 'cartao']
+        const accepted = comp.loja_payment_methods?.length ? comp.loja_payment_methods : ['pix', 'dinheiro', 'cartao_credito']
         setPayMethod(prev => (accepted.includes(prev) ? prev : accepted[0]) as any)
         const [{ data: cats }, { data: prods }, { data: cps }] = await Promise.all([
           supabase.from('loja_categorias').select('*').eq('company_id', comp.id).order('display_order'),
@@ -139,6 +146,24 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
       if (profile?.address) setAddress(profile.address)
     })
   }, [slug])
+
+  // Taxa de entrega por bairro/distância (ESPECIFICACAO — cálculo mora no
+  // servidor porque a chave do OpenRouteService não pode vazar pro cliente).
+  // Sem CEP resolvido ainda, cai no fallback de company.loja_taxa_entrega.
+  useEffect(() => {
+    if (!company || deliveryType !== 'entrega' || !cepData?.bairro) { setFreteInfo(null); return }
+    let cancelled = false
+    setFreteLoading(true)
+    fetch('/api/loja/calcular-frete', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ company_id: company.id, bairro: cepData.bairro, cidade: cepData.localidade, uf: cepData.uf, logradouro: cepData.logradouro, numero }),
+    }).then(r => r.json()).then(data => {
+      if (cancelled) return
+      setFreteInfo(data?.ok ? { fee: Number(data.fee) || 0, blocked: !!data.blocked, reason: data.reason } : null)
+    }).catch(() => { if (!cancelled) setFreteInfo(null) })
+      .finally(() => { if (!cancelled) setFreteLoading(false) })
+    return () => { cancelled = true }
+  }, [company?.id, deliveryType, cepData?.bairro, cepData?.localidade, cepData?.uf, cepData?.logradouro, numero])
 
   function addToCart(produtoId: string, name: string, price: number, qty: number, modifiers: { name: string; price: number }[] = []) {
     // Segunda trava, além dos cliques já bloqueados na lista — protege
@@ -239,10 +264,11 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
     if (!company || cart.length === 0) return
     if (Number(company.loja_pedido_minimo || 0) > 0 && cartTotal < Number(company.loja_pedido_minimo)) return
     if (deliveryType === 'entrega' && !address.trim()) return
+    if (deliveryType === 'entrega' && freteBlocked) return
     if (trocoIncompleto) return
     setConfirming(true)
     setOrderError(null)
-    const taxa = deliveryType === 'entrega' ? Number(company.loja_taxa_entrega || 0) : 0
+    const taxa = taxaEntrega
     // orderTotal já desconta o cupom aplicado (var. calculada no corpo do
     // componente) — usar cartTotal+taxa aqui de novo ignorava o desconto no
     // pedido salvo de verdade, mesmo a tela mostrando o valor certo.
@@ -365,7 +391,10 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
   )
 
   const open = isOpenNow(company.hours as any, company.flexible_hours, company.store_paused, company.store_forced_open)
-  const taxaEntrega = deliveryType === 'entrega' ? Number(company.loja_taxa_entrega || 0) : 0
+  const freteBaseFee = freteInfo ? freteInfo.fee : Number(company.loja_taxa_entrega || 0)
+  const freteBlocked = deliveryType === 'entrega' && !!freteInfo?.blocked
+  const freteGratisAcima = Number(company.loja_frete_gratis_acima || 0)
+  const taxaEntrega = deliveryType === 'entrega' ? (freteGratisAcima > 0 && cartTotal >= freteGratisAcima ? 0 : freteBaseFee) : 0
   const couponEligible = (c: Coupon) => cartTotal >= Number(c.min_purchase || 0)
   const couponDiscount = (c: Coupon) => c.discount_type === 'fixed' ? Math.min(Number(c.discount_value), cartTotal) : Math.round(cartTotal * (Number(c.discount_value) / 100) * 100) / 100
   const selectedCoupon = coupons.find(c => c.id === selectedCouponId) || null
@@ -744,6 +773,12 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
                     {cepLoading && <div style={{ fontSize: 11, color: '#AAA', marginBottom: 6 }}>Buscando endereço...</div>}
                     {cepError && <div style={{ fontSize: 11, color: '#C43D3D', marginBottom: 6 }}>CEP não encontrado — preenche o endereço direto embaixo</div>}
                     <input className="cd-diinput" value={address} onChange={e => setAddress(e.target.value)} placeholder="Rua, bairro, complemento" />
+                    {freteLoading && <div style={{ fontSize: 11, color: '#AAA', marginTop: 6 }}>Calculando taxa de entrega...</div>}
+                    {freteBlocked && (
+                      <div style={{ marginTop: 8, padding: '10px 12px', borderRadius: 10, background: '#FBEAEA', color: '#A83232', fontSize: 11.5, fontWeight: 600 }}>
+                        🚫 {freteInfo?.reason || 'Não entregamos nesse endereço no momento.'}
+                      </div>
+                    )}
                   </>
                 ) : (
                   <>
@@ -763,8 +798,8 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
                 <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', margin: '14px 0 8px', fontWeight: 800 }}>Observações (opcional)</div>
                 <textarea className="cd-diinput" style={{ minHeight: 56, resize: 'vertical' }} value={obs} onChange={e => setObs(e.target.value)} placeholder="Ex: sem cebola, troco pra R$50..." />
                 <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', margin: '14px 0 8px', fontWeight: 800 }}>Pagamento</div>
-                {(company?.loja_payment_methods?.length ? company.loja_payment_methods : ['pix', 'dinheiro', 'cartao']).map(m => (
-                  <button key={m} className={`cd-paychip ${payMethod === m ? 'active' : ''}`} onClick={() => setPayMethod(m as any)}>{PAYMENT_LABELS[m] || m}</button>
+                {(company?.loja_payment_methods?.length ? company.loja_payment_methods : ['pix', 'dinheiro', 'cartao_credito']).map(m => (
+                  <button key={m} className={`cd-paychip ${payMethod === m ? 'active' : ''}`} onClick={() => setPayMethod(m)}>{PAYMENT_LABELS[m] || m}</button>
                 ))}
 
                 {payMethod === 'dinheiro' && (
@@ -812,6 +847,9 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
                 {taxaEntrega > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0 0', fontSize: 12, color: '#555' }}><span>Taxa de entrega</span><span>{fmt(taxaEntrega)}</span></div>
                 )}
+                {deliveryType === 'entrega' && taxaEntrega === 0 && freteBaseFee > 0 && freteGratisAcima > 0 && cartTotal >= freteGratisAcima && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0 0', fontSize: 12, color: 'var(--open)', fontWeight: 700 }}><span>🎉 Frete grátis</span><span>R$ 0,00</span></div>
+                )}
                 {discount > 0 && selectedCoupon && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0 0', fontSize: 12, color: 'var(--open)', fontWeight: 700 }}><span>Cupom {selectedCoupon.title}</span><span>− {fmt(discount)}</span></div>
                 )}
@@ -834,7 +872,7 @@ export default function CardapioPage({ params }: { params: Promise<{ slug: strin
                         ⚠️ {orderError}
                       </div>
                     )}
-                    <button className="cd-addcart" style={{ width: '100%' }} disabled={confirming || (deliveryType === 'entrega' && !address.trim()) || (agendarRetirada && (!scheduleDate || !scheduleTime)) || abaixoMinimo || trocoIncompleto} onClick={confirmOrder}>{confirming ? 'Enviando...' : 'Confirmar pedido'}</button>
+                    <button className="cd-addcart" style={{ width: '100%' }} disabled={confirming || (deliveryType === 'entrega' && !address.trim()) || freteBlocked || (agendarRetirada && (!scheduleDate || !scheduleTime)) || abaixoMinimo || trocoIncompleto} onClick={confirmOrder}>{confirming ? 'Enviando...' : 'Confirmar pedido'}</button>
                     {company.phone && (
                       <button className="cd-addcart" style={{ width: '100%', background: '#25D366', color: '#fff' }} disabled={sendingWa || trocoIncompleto} onClick={sendCartWhatsapp}>
                         {sendingWa ? 'Abrindo…' : '📱 Enviar pedido no WhatsApp'}

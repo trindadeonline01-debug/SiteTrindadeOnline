@@ -335,6 +335,85 @@ Se o produto tiver preço fechado por unidade/pacote normal (ex: "Filé de tilá
 ```
 Nesse site as fotos já vêm em `imagens.jotaja.com/produtos/{uuid}.jpg` na resolução final direto na listagem — não tem o problema de thumbnail pequeno que existe no Anota Aí, então o PASSO 3 (clicar pra abrir o modal e pegar a URL ampliada via Network) não chegou a ser necessário nesse teste, mas mantém no prompt por segurança pra outros sites Jotaja que possam servir thumbnail pequeno.
 
+### Importação de Catálogo de LOJA ONLINE (moda/varejo) via IA — prompt padrão (set/2026)
+Variante do prompt de cardápio acima, para empresas do Trindade Online que **já têm site/e-commerce próprio** (Shopify, Nuvemshop, Loja Integrada, WooCommerce, Wix) em vez de app de delivery. Caso típico: loja de moda feminina com categorias (Blusas, Calças, Vestidos) e vários produtos dentro de cada uma. Mesmo destino: CSV pro botão "📥 Importar de um CSV" em Painel → Catálogo.
+
+**O que a estrutura atual comporta (levantado em set/2026):**
+
+| Precisa | Situação | Onde |
+|---|---|---|
+| Categoria (Blusas, Calças) | ✅ | `loja_categorias` |
+| Produto: nome, preço, descrição, 1 foto | ✅ | `loja_produtos` |
+| Tamanho (P/M/G) | ✅ vira grupo de opção `obrigatorio \| 1 \| 1` | `loja_opcoes_grupo` |
+| Cor | ✅ outro grupo, mesma lógica | `loja_opcoes_grupo` |
+| Preço diferente por variação (GG +R$10) | ✅ preço da opção, regra `soma` | `loja_opcoes.price` |
+| Promoção de/por | ✅ | `promo_type` / `promo_value` |
+| **Subcategoria** | ❌ `loja_categorias` é plana, sem `parent_id` | — |
+| **Galeria (várias fotos por produto)** | ❌ `loja_produtos.photo_url` é campo único | — |
+| **Estoque por variação** ("P esgotou, M tem") | ❌ `stock_qty` é por produto | — |
+
+**Workaround adotado enquanto não tem `parent_id`:** a coluna `categoria` do CSV recebe `"Categoria · Subcategoria"` (ex: `Blusas · Cropped`). Vira uma seção por subcategoria no cardápio público, o que funciona bem visualmente pra loja de roupa. Acima de ~12 subcategorias, aí sim vale adicionar `parent_id` de verdade (migração de schema — pedir confirmação).
+
+**Duas limitações do CSV a lembrar:** a coluna `fotos_extras` **é ignorada pelo importador hoje** (pedimos mesmo assim pra não ter que raspar o site de novo quando a galeria existir); e foto por cor (`loja_opcoes.photo_url` existe no banco) não entra pelo CSV, porque `parseGroupsField` só lê `nome=preço` — só na mão, produto a produto.
+
+```
+Você vai extrair o catálogo completo desta loja online e montar um CSV pronto pra importar no meu sistema.
+
+PASSO 1 — Mapear a árvore de categorias
+Percorra o menu da loja e liste TODAS as categorias e subcategorias (ex: Blusas > Cropped, Blusas > Regata, Calças > Jeans). Anote a árvore inteira antes de começar a extrair produto.
+
+PASSO 2 — Listar todos os produtos de cada subcategoria
+Entre em cada subcategoria e role até o fim. Atenção: muitas lojas usam paginação ou botão "carregar mais" — role/clique até não aparecer produto novo. Pule os esgotados, a menos que eu peça o contrário.
+
+PASSO 3 — Abrir CADA produto individualmente
+Não extraia da grade de listagem. Abra a página de cada produto: é só lá que aparecem as variações reais, a descrição completa e as fotos em alta.
+
+PASSO 4 — Preço (crítico — o cliente decide comprar vendo esse número)
+1. Se tiver preço riscado do lado de um preço novo, use o preço NOVO (o que ele paga), nunca o riscado.
+2. Se aparecer parcelamento ("ou 3x de R$29,97"), IGNORE o parcelado. Use sempre o preço à vista / total.
+3. Se aparecer "à vista no Pix com X% de desconto", use o preço cheio, não o do Pix — o desconto de Pix é condição de pagamento, não preço do produto.
+4. Se o preço variar por tamanho/cor, use o MENOR como preço base do produto e coloque a diferença como preço da opção (ver PASSO 6).
+5. Se a página ainda estiver carregando (skeleton, "R$ 0,00", campo em branco), espere carregar antes de anotar.
+6. Antes de entregar, releia todos os preços: qualquer valor abaixo de R$5, ou muito destoante de produtos parecidos, provavelmente foi lido errado — volte naquele produto e confirme.
+
+PASSO 5 — Foto em alta resolução (CRÍTICO)
+Não pegue o "src" da miniatura da grade. Na página do produto:
+1. Clique na foto principal pra abrir a versão ampliada/zoom.
+2. DevTools → aba Network → filtro "Img" (ou inspecione o elemento) e pegue a URL real carregada pra essa versão grande.
+3. Cuidado com URL que tem parâmetro de redimensionamento (?width=300, /300x400/, _small, -thumb): troque pelo tamanho maior disponível ou remova o parâmetro.
+4. Se houver várias fotos, use a PRIMEIRA (frente do produto) na coluna foto_url e liste as demais na coluna fotos_extras.
+
+PASSO 6 — Variações (tamanho, cor) viram grupos de opção
+Formate dentro de UM campo, entre aspas:
+NomeDoGrupo | obrigatorio ou opcional | mínimo | máximo | soma ou maior_valor | Opção1=preço ; Opção2=preço
+Vários grupos no mesmo produto: separe com " && ".
+- Tamanho e cor são quase sempre: obrigatorio | 1 | 1 | soma
+- Se a variação não muda o preço, use 0.00 em todas as opções
+- Se muda (ex: GG custa R$10 a mais), o preco do produto é o menor valor e a opção mais cara recebe a diferença: Tamanho | obrigatorio | 1 | 1 | soma | P=0.00 ; M=0.00 ; G=0.00 ; GG=10.00
+- Liste só as variações DISPONÍVEIS. Tamanho riscado/esgotado no site fica de fora.
+Exemplo real:
+"Tamanho | obrigatorio | 1 | 1 | soma | P=0.00 ; M=0.00 ; G=0.00 && Cor | obrigatorio | 1 | 1 | soma | Preto=0.00 ; Off white=0.00 ; Vinho=0.00"
+
+PASSO 7 — Montar o CSV
+Cabeçalho exato (primeira linha, sem alterar nome nem ordem):
+nome,categoria,descricao,preco,grupos,foto_url,fotos_extras
+
+Regras:
+- "categoria" recebe a subcategoria no formato "Categoria · Subcategoria" (ex: "Blusas · Cropped"). Se o produto só tiver categoria, use ela sozinha.
+- "fotos_extras": demais URLs de foto em alta, separadas por " ; ". Vazio se só tiver uma.
+- Todo campo com vírgula, aspas ou quebra de linha entre aspas duplas.
+- Campo sem informação fica vazio. Não invente conteúdo.
+- Uma linha por produto (não uma por variação).
+
+PASSO 8 — Entregar
+CSV completo, pronto pra copiar ou baixar como .csv. Não resuma, não pule produto, não trunque. No fim, me diga: quantos produtos, quantas categorias, e liste qualquer produto onde você teve dúvida no preço.
+```
+
+**Fila de melhorias que esse caso levantou (não implementadas):**
+1. **Galeria de fotos por produto** — tabela nova + importador lendo `fotos_extras` + carrossel na página do produto. É o buraco que mais dói em moda (cliente quer frente, costas, detalhe, na modelo).
+2. **Subcategoria real** — `parent_id` em `loja_categorias`, só se aparecer loja com árvore grande.
+3. **Estoque por variação** — hoje `stock_qty` é do produto inteiro; em moda o normal é acabar um tamanho e não o produto.
+
 ### Trindade Entrega (v1 — ago/2026)
 - Motoboy é da plataforma, não da loja. Modelo pré-pago: diária de R$30 pra liberar o dia + créditos de R$5/entrega (pacotes de 10/20/50), tudo via Pix real (Mercado Pago) em `/painel/crm/entrega`
 - Tabelas: `motoboys`, `company_delivery_wallet`, `delivery_credit_ledger`, `delivery_payments`, `delivery_orders`, `delivery_offers`

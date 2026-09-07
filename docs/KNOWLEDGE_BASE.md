@@ -286,6 +286,13 @@ PASSO 2 — Pra cada produto, capturar:
 - grupos de opcionais/adicionais (se tiver)
 - foto (em alta resolução — ver PASSO 3, é o mais importante)
 
+PASSO 2.1 — Confira o preço antes de anotar (evita preço errado)
+Preço é informação crítica — ao contrário da foto, não tem como o cliente "perceber que tá errado e clicar de novo": ele decide comprar ou não já vendo esse número. Antes de anotar o preço de cada produto:
+1. Se aparecer preço riscado do lado de um preço novo (promoção), use o preço novo — o que o cliente paga de fato — nunca o riscado.
+2. Se for um item customizável com "a partir de R$X" (ex: monte seu combo), anote esse valor mesmo, mas registre "(a partir de)" na descrição — não invente qual seria o preço final montado.
+3. Se a página ainda estiver carregando quando você for ler o preço (skeleton, "R$0,00", campo em branco), espere carregar de verdade antes de anotar — nunca registre um valor de placeholder.
+4. Antes de entregar o CSV, releia todos os preços uma última vez: qualquer valor abaixo de R$3 pra um prato/combo, ou muito destoante dos produtos parecidos ao lado, provavelmente foi lido errado — volte na página daquele produto específico e confirme o valor certo antes de finalizar.
+
 PASSO 3 — Foto em alta resolução (CRÍTICO)
 Não pegue direto o "src" pequeno/thumbnail que aparece na lista de produtos. Pra cada produto:
 1. Clique no produto pra abrir o modal/detalhe com a foto ampliada.
@@ -318,9 +325,9 @@ Me devolva o CSV completo, pronto pra eu copiar/colar ou baixar como arquivo .cs
 
 **Variante sem link** (cardápio só em foto/PDF anexado, sem página pra navegar): não existe URL de imagem real pra extrair — deixar `foto_url` vazio em todas as linhas e importar as fotos depois pelo "🖼️ Importar fotos pelo nome do produto" (renomeando os arquivos de foto pra baterem exatamente com o nome do produto).
 
-**Variante app.jotaja.com** (testada com sucesso na Peixaria Divina Providência, set/2026): mesmo prompt acima, mais um PASSO 2.1 antes do PASSO 3, pra tratar preço por peso — muito comum em peixaria/hortifruti, onde o produto é vendido por kg em vez de preço fechado:
+**Variante app.jotaja.com** (testada com sucesso na Peixaria Divina Providência, set/2026): mesmo prompt acima, mais um PASSO 2.2 antes do PASSO 3 (depois do PASSO 2.1 de conferência de preço), pra tratar preço por peso — muito comum em peixaria/hortifruti, onde o produto é vendido por kg em vez de preço fechado:
 ```
-PASSO 2.1 — Preço por peso (IMPORTANTE, comum em peixaria/hortifruti)
+PASSO 2.2 — Preço por peso (IMPORTANTE, comum em peixaria/hortifruti)
 Se o preço do produto for por quilo (ex: "R$ 49,90/kg", "R$ 89,90 o kg"), NÃO tente converter pra um preço fechado. Em vez disso:
 - Coloque o valor por kg (só número, ex: 49.90) no campo preco.
 - Na descricao, deixe claro que é por kg — acrescente " (preço por kg)" no final da descrição existente, ou escreva isso se não houver descrição.
@@ -465,6 +472,7 @@ const DIAS_SEMANA = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Dom
   4. Ver no Network qual URL foi carregada pra essa imagem grande — copiar.
   5. Comparar com a URL do CSV: se for diferente (outro domínio/caminho, ou tiver `?w=`/`/original/`), usar essa URL maior no CSV antes de importar. Se for a mesma URL, não tem versão maior — a foto pequena é a original enviada pelo lojista no Anotaí, e o fix é subir foto nova direto no nosso painel (`/painel/crm/catalogo`).
 - **Foto sumindo no preview de link (WhatsApp) — não usar Satori/`sharp` pra decodificar foto do Storage:** o reparo automático de foto quebrada reconverte quase toda foto de empresa pra `.webp` (às vezes até com nome de arquivo `.jpg`/`.png` — confirma sempre pelo `metadata->>'mimetype'` em `storage.objects`, nunca pela extensão). O gerador de OG image por código (`opengraph-image.tsx`, biblioteca Satori do `next/og`) não decodifica webp — a imagem sai em branco, sem erro visível no preview. Tentativa de corrigir decodificando com `sharp` no próprio `opengraph-image.tsx` quebrou em produção (`FUNCTION_INVOCATION_FAILED`, ~10ms — crash na inicialização do módulo, o binário nativo do sharp não carrega nesse ambiente serverless da Vercel, nem com `serverExternalPackages: ['sharp']` no `next.config.ts`, que resolve o empacotamento mas não esse crash). **Solução que funcionou:** quando tem foto, nem gerar imagem por código — usar a URL da foto direto em `openGraph.images`/`twitter.images` no `generateMetadata` da página (mesmo padrão que já funcionava em `/anuncio/[id]`). WhatsApp/Facebook buscam e decodificam a imagem sozinhos, sem passar pelo Satori, e lidam bem com webp. `opengraph-image.tsx` (Satori) fica só pra quando não tem foto nenhuma — fundo com gradiente + nome, sem imagem externa envolvida.
+- **Preço errado na importação de cardápio via CSV (Frangoso, set/2026):** produto importado com `sale_price = 0.01` — claramente um valor lido errado na extração (preço riscado/promocional confundido com o preço real, "a partir de" de item customizável, ou página ainda carregando quando a extensão leu a tela). O prompt padrão de extração já mandava conferir a foto em duas fontes (lista + modal via Network), mas não mandava conferir o preço de jeito nenhum — só "olha e anota". Diferença importante: se a foto sai errada o lojista percebe na hora e troca; se o preço sai errado, o cliente vê aquele valor errado direto na loja até alguém notar. Corrigido adicionando o **PASSO 2.1 — Confira o preço antes de anotar** no prompt padrão (seção "Importação de Cardápio via IA" abaixo): usar o preço "por" nunca o riscado, registrar "(a partir de)" quando for item customizável em vez de inventar um valor fechado, esperar a página carregar de verdade antes de anotar, e releitura final de todos os preços flagrando qualquer valor abaixo de R$3 como suspeito antes de entregar o CSV.
 
 ---
 

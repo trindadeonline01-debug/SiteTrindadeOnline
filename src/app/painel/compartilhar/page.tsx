@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { moduleActive } from '@/lib/modules'
 import QRCode from 'qrcode'
 import { BAIRROS_SAO_GONCALO, normalizeBairro } from '@/lib/bairrosSaoGoncalo'
+import { usePainelShell } from '@/contexts/PainelShellContext'
 
 type TaxaMetodo = 'bairro' | 'distancia'
 type Company = {
@@ -59,6 +60,7 @@ function defaultKmTiers(): KmTier[] {
 }
 
 export default function CompartilharPage() {
+  const { company: shellCompany, loading: shellLoading } = usePainelShell()
   const [loading, setLoading] = useState(true)
   const [company, setCompany] = useState<Company | null>(null)
   const [view, setView] = useState<'hub' | 'share' | 'entrega' | 'pagamento'>('hub')
@@ -91,17 +93,14 @@ export default function CompartilharPage() {
   const [paymentSaved, setPaymentSaved] = useState(false)
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session) { window.location.href = '/login?redirect=/painel/compartilhar'; return }
-      const { data: profile } = await supabase.from('profiles').select('user_type').eq('id', session.user.id).single()
-      if (profile?.user_type !== 'company') { window.location.href = '/'; return }
-      const { data: comp } = await supabase
-        .from('companies')
-        .select('id, name, slug, address, loja_digital_enabled, loja_taxa_entrega, loja_pedido_minimo, loja_payment_methods, loja_taxa_metodo, loja_frete_gratis_acima, loja_taxa_fora_area, loja_lat, loja_lng, crm_whatsapp_enabled, entrega_enabled, trial_modules_until')
-        .eq('owner_id', session.user.id)
-        .order('created_at', { ascending: true })
-        .limit(1)
-        .maybeSingle()
+    if (shellLoading) return
+    if (!shellCompany) { setCompany(null); setLoading(false); return }
+    supabase
+      .from('companies')
+      .select('id, name, slug, address, loja_digital_enabled, loja_taxa_entrega, loja_pedido_minimo, loja_payment_methods, loja_taxa_metodo, loja_frete_gratis_acima, loja_taxa_fora_area, loja_lat, loja_lng, crm_whatsapp_enabled, entrega_enabled, trial_modules_until')
+      .eq('id', shellCompany.id)
+      .maybeSingle()
+      .then(async ({ data: comp }) => {
       if (comp) {
         setCompany({
           ...comp,
@@ -141,7 +140,7 @@ export default function CompartilharPage() {
       }
       setLoading(false)
     })
-  }, [])
+  }, [shellLoading, shellCompany?.id])
 
   const cardapioLink = company ? `https://trindadeonline.com.br/empresa/${company.slug}/cardapio` : ''
 

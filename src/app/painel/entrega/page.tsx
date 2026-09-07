@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { refreshSessionOnce } from '@/lib/authRefresh'
-import { moduleActive } from '@/lib/modules'
+import { usePainelShell } from '@/contexts/PainelShellContext'
 
 type Wallet = { credits: number; daily_paid_until: string | null }
 type Precos = { today: string; dayType: 'util' | 'fds' | 'feriado'; diaria: number; entrega: number; pacoteDias: number; pacoteDesconto: number }
@@ -30,6 +30,7 @@ function timeAgo(iso: string) {
 }
 
 export default function EntregaPage() {
+  const { company, loading: shellLoading } = usePainelShell()
   const [loading, setLoading] = useState(true)
   const [companyId, setCompanyId] = useState('')
   const [companyName, setCompanyName] = useState('')
@@ -52,32 +53,28 @@ export default function EntregaPage() {
   const [novaError, setNovaError] = useState('')
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session) { window.location.href = '/login?redirect=/painel/entrega'; return }
-      const { data: comp } = await supabase.from('companies').select('id, name, loja_digital_enabled, crm_whatsapp_enabled, entrega_enabled, trial_modules_until').eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
-      if (!comp || !moduleActive(comp.entrega_enabled, comp.trial_modules_until)) { window.location.href = '/painel'; return }
-      setCompanyId(comp.id); companyIdRef.current = comp.id
-      setCompanyName(comp.name)
-      setCrmEnabled(moduleActive(comp.crm_whatsapp_enabled, comp.trial_modules_until))
-      setLojaDigitalEnabled(moduleActive(comp.loja_digital_enabled, comp.trial_modules_until))
-      await loadAll(comp.id)
-      fetch('/api/entrega/precos').then(r => r.json()).then(setPrecos).catch(() => {})
-      setLoading(false)
+    if (shellLoading) return
+    if (!company || !company.entrega_enabled) { window.location.href = '/painel'; return }
+    setCompanyId(company.id); companyIdRef.current = company.id
+    setCompanyName(company.name)
+    setCrmEnabled(company.crm_whatsapp_enabled)
+    setLojaDigitalEnabled(company.loja_digital_enabled)
+    loadAll(company.id)
+    fetch('/api/entrega/precos').then(r => r.json()).then(setPrecos).catch(() => {})
+    setLoading(false)
 
-      const channel = supabase.channel(`entrega-${comp.id}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'delivery_orders', filter: `company_id=eq.${comp.id}` }, () => loadOrders(companyIdRef.current))
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'company_delivery_wallet', filter: `company_id=eq.${comp.id}` }, () => loadWallet(companyIdRef.current))
-        .subscribe()
+    const channel = supabase.channel(`entrega-${company.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'delivery_orders', filter: `company_id=eq.${company.id}` }, () => loadOrders(companyIdRef.current))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'company_delivery_wallet', filter: `company_id=eq.${company.id}` }, () => loadWallet(companyIdRef.current))
+      .subscribe()
 
-      // Enquanto essa tela estiver aberta, garante que oferta de motoboy que
-      // estourou o prazo de resposta seja repassada mesmo sem nenhuma
-      // mensagem nova no WhatsApp pra disparar isso.
-      const tickIv = setInterval(() => { fetch('/api/entrega/tick').catch(() => {}) }, 15000)
+    // Enquanto essa tela estiver aberta, garante que oferta de motoboy que
+    // estourou o prazo de resposta seja repassada mesmo sem nenhuma
+    // mensagem nova no WhatsApp pra disparar isso.
+    const tickIv = setInterval(() => { fetch('/api/entrega/tick').catch(() => {}) }, 15000)
 
-      return () => { supabase.removeChannel(channel); clearInterval(tickIv) }
-    })
-    return () => { if (pollRef.current) clearInterval(pollRef.current) }
-  }, [])
+    return () => { supabase.removeChannel(channel); clearInterval(tickIv); if (pollRef.current) clearInterval(pollRef.current) }
+  }, [shellLoading, company?.id])
 
   async function loadAll(cid: string) {
     await Promise.all([loadWallet(cid), loadOrders(cid)])

@@ -22,19 +22,29 @@ const TITLES: Record<EmpresaNavKey, string> = {
   'pessoal-pedidos': 'Meus pedidos', 'pessoal-anuncios': 'Meus anúncios', 'pessoal-cupons': 'Meus cupons',
 }
 
+// Admin editando uma empresa que não é dele (ex: veio de "Editar cardápio"
+// em /admin) precisa que TODO link do menu carregue ?empresa=<id> junto —
+// senão o primeiro clique em qualquer outro item devolve pro próprio
+// admin (sem empresa nenhuma) e ele tem que ir lá em /admin procurar de
+// novo. Cola o parâmetro preservando querystring já existente no href.
+function withAdmin(href: string, adminEmpresaId?: string): string {
+  if (!adminEmpresaId) return href
+  return href + (href.includes('?') ? '&' : '?') + 'empresa=' + adminEmpresaId
+}
+
 // Item de sidebar que sabe ficar "trancado": função sem o módulo ativo não
 // some (ESPECIFICACAO.md — "esconder economiza pixel e perde venda"), fica
 // apagada com cadeado e o clique leva direto pra venda do plano.
-function NavItem({ href, active, locked, badge, children }: { href: string; active: boolean; locked?: boolean; badge?: number; children: React.ReactNode }) {
+function NavItem({ href, active, locked, badge, adminEmpresaId, children }: { href: string; active: boolean; locked?: boolean; badge?: number; adminEmpresaId?: string; children: React.ReactNode }) {
   if (locked) {
     return (
-      <Link href="/painel?tab=plano" className="es-item es-item-locked">
+      <Link href={withAdmin('/painel?tab=plano', adminEmpresaId)} className="es-item es-item-locked">
         🔒 {children}
       </Link>
     )
   }
   return (
-    <Link href={href} className={`es-item ${active ? 'on' : ''}`}>
+    <Link href={withAdmin(href, adminEmpresaId)} className={`es-item ${active ? 'on' : ''}`}>
       {children}{!!badge && <span className="es-item-badge">{badge}</span>}
     </Link>
   )
@@ -42,7 +52,7 @@ function NavItem({ href, active, locked, badge, children }: { href: string; acti
 
 export default function EmpresaShell({
   active, companyName, companySlug, lojaDigitalEnabled, crmEnabled, entregaEnabled,
-  avaliacoesBadge, mensagensBadge, companies, onSwitchCompany, children,
+  avaliacoesBadge, mensagensBadge, companies, onSwitchCompany, adminEmpresaId, children,
 }: {
   active: EmpresaNavKey
   companyName?: string
@@ -54,6 +64,7 @@ export default function EmpresaShell({
   mensagensBadge?: number
   companies?: Company[]
   onSwitchCompany?: (c: Company) => void
+  adminEmpresaId?: string
   children: React.ReactNode
 }) {
   const initials = (companyName || '').trim().slice(0, 2).toUpperCase() || 'ST'
@@ -173,7 +184,7 @@ export default function EmpresaShell({
               {isPessoal && <span className="es-idtag">● aqui</span>}
             </Link>
             {companyName ? (
-              <Link href="/painel" className={`es-idcard ${!isPessoal ? 'on' : ''}`}>
+              <Link href={withAdmin('/painel', adminEmpresaId)} className={`es-idcard ${!isPessoal ? 'on' : ''}`}>
                 <span className="es-idico">{initials}</span>
                 <span className="es-idname">{companyName}</span>
                 {!isPessoal && <span className="es-idtag">● aqui</span>}
@@ -210,38 +221,38 @@ export default function EmpresaShell({
             </>
           ) : (
             <>
-              <Link href="/painel" className={`es-item ${active === 'dashboard' ? 'on' : ''}`}>📊 Visão geral</Link>
+              <Link href={withAdmin('/painel', adminEmpresaId)} className={`es-item ${active === 'dashboard' ? 'on' : ''}`}>📊 Visão geral</Link>
 
               {/* Agrupado por frequência de uso, não por assunto —
                   ESPECIFICACAO.md §4.3. Função sem módulo ativo não some: fica
                   com cadeado e leva pra tela de venda do plano — esconder
                   economiza pixel e perde venda. */}
               <div className="es-group-lbl">Todo dia</div>
-              <NavItem href="/painel/pedidos" active={active === 'pedidos'} locked={!lojaDigitalEnabled}>🧾 Pedidos</NavItem>
-              <NavItem href="/painel/interesses" active={active === 'interesses'} locked={!lojaDigitalEnabled}>🔔 Interesses</NavItem>
-              <NavItem href="/painel/mensagens" active={active === 'mensagens'} locked={!crmEnabled} badge={mensagensBadge}>💬 Mensagens</NavItem>
-              <NavItem href="/atendimento" active={false} locked={!crmEnabled}>🎧 Modo Atendimento</NavItem>
-              <NavItem href="/painel/cozinha" active={active === 'cozinha'} locked={!lojaDigitalEnabled}>🍳 Cozinha</NavItem>
+              <NavItem href="/painel/pedidos" active={active === 'pedidos'} locked={!lojaDigitalEnabled} adminEmpresaId={adminEmpresaId}>🧾 Pedidos</NavItem>
+              <NavItem href="/painel/interesses" active={active === 'interesses'} locked={!lojaDigitalEnabled} adminEmpresaId={adminEmpresaId}>🔔 Interesses</NavItem>
+              <NavItem href="/painel/mensagens" active={active === 'mensagens'} locked={!crmEnabled} badge={mensagensBadge} adminEmpresaId={adminEmpresaId}>💬 Mensagens</NavItem>
+              <NavItem href="/atendimento" active={false} locked={!crmEnabled} adminEmpresaId={adminEmpresaId}>🎧 Modo Atendimento</NavItem>
+              <NavItem href="/painel/cozinha" active={active === 'cozinha'} locked={!lojaDigitalEnabled} adminEmpresaId={adminEmpresaId}>🍳 Cozinha</NavItem>
 
               <div className="es-group-lbl">Minha loja</div>
-              <NavItem href="/painel/catalogo" active={active === 'catalogo'} locked={!lojaDigitalEnabled}>📋 Catálogo</NavItem>
-              <NavItem href="/painel?tab=perfil" active={active === 'perfil'}>✏️ Perfil e fotos</NavItem>
+              <NavItem href="/painel/catalogo" active={active === 'catalogo'} locked={!lojaDigitalEnabled} adminEmpresaId={adminEmpresaId}>📋 Catálogo</NavItem>
+              <NavItem href="/painel?tab=perfil" active={active === 'perfil'} adminEmpresaId={adminEmpresaId}>✏️ Perfil e fotos</NavItem>
               {companySlug && <NavItem href={`/empresa/${companySlug}`} active={false}>🔗 Página da loja</NavItem>}
-              <NavItem href="/painel/compartilhar" active={active === 'compartilhar'} locked={!lojaDigitalEnabled}>🔗 Compartilhar cardápio</NavItem>
-              <NavItem href="/painel/entrega" active={active === 'entrega'} locked={!entregaEnabled}>🏍️ Entrega e retirada</NavItem>
+              <NavItem href="/painel/compartilhar" active={active === 'compartilhar'} locked={!lojaDigitalEnabled} adminEmpresaId={adminEmpresaId}>🔗 Compartilhar cardápio</NavItem>
+              <NavItem href="/painel/entrega" active={active === 'entrega'} locked={!entregaEnabled} adminEmpresaId={adminEmpresaId}>🏍️ Entrega e retirada</NavItem>
 
               <div className="es-group-lbl">Clientes</div>
-              <NavItem href="/painel/clientes" active={active === 'clientes'} locked={!crmEnabled}>👥 CRM</NavItem>
-              <NavItem href="/painel?tab=avaliacoes" active={active === 'avaliacoes'} badge={avaliacoesBadge}>⭐ Avaliações</NavItem>
+              <NavItem href="/painel/clientes" active={active === 'clientes'} locked={!crmEnabled} adminEmpresaId={adminEmpresaId}>👥 CRM</NavItem>
+              <NavItem href="/painel?tab=avaliacoes" active={active === 'avaliacoes'} badge={avaliacoesBadge} adminEmpresaId={adminEmpresaId}>⭐ Avaliações</NavItem>
 
               <div className="es-group-lbl">Crescer</div>
-              <NavItem href="/painel?tab=cupons" active={active === 'cupons'}>🎟️ Cupons</NavItem>
-              <NavItem href="/painel?tab=destaques" active={active === 'destaques'}>🌟 Destaques</NavItem>
-              <NavItem href="/painel?tab=banners" active={active === 'banners'}>🖼️ Banners</NavItem>
-              <NavItem href="/painel/relatorios" active={active === 'relatorios'} locked={!lojaDigitalEnabled}>📈 Relatórios</NavItem>
+              <NavItem href="/painel?tab=cupons" active={active === 'cupons'} adminEmpresaId={adminEmpresaId}>🎟️ Cupons</NavItem>
+              <NavItem href="/painel?tab=destaques" active={active === 'destaques'} adminEmpresaId={adminEmpresaId}>🌟 Destaques</NavItem>
+              <NavItem href="/painel?tab=banners" active={active === 'banners'} adminEmpresaId={adminEmpresaId}>🖼️ Banners</NavItem>
+              <NavItem href="/painel/relatorios" active={active === 'relatorios'} locked={!lojaDigitalEnabled} adminEmpresaId={adminEmpresaId}>📈 Relatórios</NavItem>
 
               <div className="es-group-lbl">Conta</div>
-              <NavItem href="/painel?tab=plano" active={active === 'plano'}>💳 Plano e pagamento</NavItem>
+              <NavItem href="/painel?tab=plano" active={active === 'plano'} adminEmpresaId={adminEmpresaId}>💳 Plano e pagamento</NavItem>
             </>
           )}
         </nav>
@@ -258,13 +269,13 @@ export default function EmpresaShell({
 
       <nav className="es-tabbar" ref={tabbarRef}>
         {mobileTabs.map(t => (
-          <Link key={t.key} href={t.href} className={`es-tab ${active === t.key ? 'on' : ''}`}>
+          <Link key={t.key} href={withAdmin(t.href, isPessoal ? undefined : adminEmpresaId)} className={`es-tab ${active === t.key ? 'on' : ''}`}>
             <span className="es-tab-ico">{t.ico}</span>
             <span className="es-tab-lbl">{t.lbl}</span>
             {!!t.badge && <span className="es-tab-dot" />}
           </Link>
         ))}
-        <Link href="/painel/mais" className={`es-tab ${maisActive ? 'on' : ''}`}>
+        <Link href={withAdmin('/painel/mais', isPessoal ? undefined : adminEmpresaId)} className={`es-tab ${maisActive ? 'on' : ''}`}>
           <span className="es-tab-ico">☰</span>
           <span className="es-tab-lbl">Mais</span>
         </Link>

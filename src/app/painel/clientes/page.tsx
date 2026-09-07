@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { moduleActive } from '@/lib/modules'
+import { usePainelShell } from '@/contexts/PainelShellContext'
 
 type Contact = {
   id: string; phone: string; name: string | null; address: string | null
@@ -41,10 +41,8 @@ function displayName(c: { name: string | null; phone: string }) {
 }
 
 export default function ClientesPage() {
+  const { company, loading: shellLoading } = usePainelShell()
   const [loading, setLoading] = useState(true)
-  const [companyName, setCompanyName] = useState('')
-  const [crmEnabled, setCrmEnabled] = useState(false)
-  const [entregaEnabled, setEntregaEnabled] = useState(false)
   const [contacts, setContacts] = useState<Contact[]>([])
   const [filter, setFilter] = useState<'todos' | 'compraram' | 'conversaram' | 'sumidos'>('todos')
   const [search, setSearch] = useState('')
@@ -56,20 +54,17 @@ export default function ClientesPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session) { window.location.href = '/login?redirect=/painel/clientes'; return }
-      const { data: comp } = await supabase.from('companies').select('id, name, loja_digital_enabled, crm_whatsapp_enabled, entrega_enabled, trial_modules_until').eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
-      if (!comp || !moduleActive(comp.loja_digital_enabled, comp.trial_modules_until)) { window.location.href = '/painel/compartilhar'; return }
-      setCompanyName(comp.name)
-      setCrmEnabled(moduleActive(comp.crm_whatsapp_enabled, comp.trial_modules_until))
-      setEntregaEnabled(moduleActive(comp.entrega_enabled, comp.trial_modules_until))
-      const { data } = await supabase.from('crm_contacts').select('*').eq('company_id', comp.id).order('last_purchase_at', { ascending: false })
+    if (shellLoading) return
+    if (!company || !company.loja_digital_enabled) { window.location.href = '/painel/compartilhar'; return }
+    const companyId = company.id
+    ;(async () => {
+      const { data } = await supabase.from('crm_contacts').select('*').eq('company_id', companyId).order('last_purchase_at', { ascending: false })
       setContacts((data || []) as Contact[])
-      const { data: tagRows } = await supabase.from('crm_tags').select('id, name, color').eq('company_id', comp.id).order('created_at')
+      const { data: tagRows } = await supabase.from('crm_tags').select('id, name, color').eq('company_id', companyId).order('created_at')
       setTags((tagRows || []) as Tag[])
       const { data: ctRows } = await supabase
         .from('crm_contact_tags').select('contact_id, tag_id, auto, crm_contacts!inner(company_id)')
-        .is('removed_at', null).eq('crm_contacts.company_id', comp.id)
+        .is('removed_at', null).eq('crm_contacts.company_id', companyId)
       const map: Record<string, ContactTagRef[]> = {}
       for (const row of (ctRows || []) as any[]) {
         if (!map[row.contact_id]) map[row.contact_id] = []
@@ -77,8 +72,8 @@ export default function ClientesPage() {
       }
       setContactTagsMap(map)
       setLoading(false)
-    })
-  }, [])
+    })()
+  }, [shellLoading, company?.id, company?.loja_digital_enabled])
 
   function toggleSelect(id: string) {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])

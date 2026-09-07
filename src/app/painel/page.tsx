@@ -94,7 +94,7 @@ export default function PainelPage() {
   // A sidebar mora no layout persistente de /painel — essa página troca de
   // aba sem sempre mudar a URL, então avisa o layout via contexto qual item
   // destacar e (só aqui) qual seletor de negócio mostrar.
-  const { setActiveOverride, setSwitcherExtras } = usePainelShell()
+  const { company: shellCompany, loading: shellLoading, isAdminMode, setActiveOverride, setSwitcherExtras } = usePainelShell()
   useEffect(() => {
     setActiveOverride((tab === 'painel' ? 'dashboard' : tab) as EmpresaNavKey)
     return () => setActiveOverride(null)
@@ -180,25 +180,40 @@ export default function PainelPage() {
     supabase.from('feature_flags').select('key,enabled').then(({ data }) => {
       if (data) setFeatureFlags(Object.fromEntries(data.map((f:any) => [f.key, f.enabled])))
     })
+    if (shellLoading) return
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { window.location.href = '/login'; return }
       const { data: profile } = await supabase.from('profiles').select('user_type, name').eq('id', session.user.id).single()
-      if (profile?.user_type === 'admin') { window.location.href = '/admin'; return }
+      if (profile?.user_type === 'admin') {
+        // Admin só cai aqui vindo de "Editar cardápio"/etc com ?empresa=<id>
+        // (o layout já resolveu qual empresa é essa) — sem isso, não tem o
+        // que mostrar, volta pro painel admin.
+        if (!shellCompany) { window.location.href = '/admin'; return }
+        setOwnerEmail(session.user.email || '')
+        setOwnerName(profile?.name || '')
+        loadData(session.user.id, shellCompany.id)
+        return
+      }
       setOwnerEmail(session.user.email || '')
       setOwnerName(profile?.name || '')
       if (profile?.user_type !== 'company') { window.location.href = '/'; return }
       loadData(session.user.id)
     })
-  }, [])
+  }, [shellLoading, shellCompany?.id])
 
-  async function loadData(userId: string) {
+  async function loadData(userId: string, forceCompanyId?: string) {
     setLoading(true)
-    const { data: comps } = await supabase
-      .from('companies')
-      .select('*, category_id, category:categories(name,emoji), photos:company_photos(id,url,order), hours:company_hours(id,label,hours,order,day_of_week,open_time,close_time,closed)')
-      .eq('owner_id', userId)
-      .order('created_at', {ascending: true})
-    
+    const { data: comps } = forceCompanyId
+      ? await supabase
+          .from('companies')
+          .select('*, category_id, category:categories(name,emoji), photos:company_photos(id,url,order), hours:company_hours(id,label,hours,order,day_of_week,open_time,close_time,closed)')
+          .eq('id', forceCompanyId)
+      : await supabase
+          .from('companies')
+          .select('*, category_id, category:categories(name,emoji), photos:company_photos(id,url,order), hours:company_hours(id,label,hours,order,day_of_week,open_time,close_time,closed)')
+          .eq('owner_id', userId)
+          .order('created_at', {ascending: true})
+
     const comp = comps?.[0] || null
     setCompanies((comps || []) as any)
 

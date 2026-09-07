@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { compressImage } from '@/lib/compressImage'
 import { moduleActive } from '@/lib/modules'
+import { usePainelShell } from '@/contexts/PainelShellContext'
 
 // Modo Atendimento (ESPECIFICACAO.md §4.4) — mesmo inbox de sempre, mas em
 // tela cheia, sem sidebar/topbar/tabbar do painel: "modo não é página de
@@ -133,6 +134,9 @@ function replySnippet(m: Message): string {
 export default function MensagensPage() {
   const pathname = usePathname()
   const fullScreen = pathname === '/atendimento'
+  // /atendimento fica fora do layout de /painel (é modo tela cheia, sem
+  // sidebar) — só /painel/mensagens usa o contexto do layout persistente.
+  const { company: shellCompany, loading: shellLoading, isAdminMode: ctxAdminMode } = usePainelShell()
   const [loading, setLoading] = useState(true)
   const [adminMode, setAdminMode] = useState(false)
   const [company, setCompany] = useState<Company | null>(null)
@@ -216,49 +220,48 @@ export default function MensagensPage() {
   const mediaUrlCacheRef = useRef<Map<string, string>>(new Map())
   const msgBodyRef = useRef<HTMLDivElement | null>(null)
 
-  useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session) { window.location.href = '/login?redirect=/painel/mensagens'; return }
+  const COMPANY_SELECT = 'id, name, slug, crm_whatsapp_enabled, loja_digital_enabled, entrega_enabled, trial_modules_until, crm_auto_reply_enabled, crm_auto_reply_text'
+  async function finishCompanySetup(comp: any) {
+    // Guarda os flags já resolvidos (real OU dentro do período de teste) —
+    // o resto do arquivo lê company.crm_whatsapp_enabled/etc direto, sem
+    // precisar saber se veio do plano de verdade ou de um teste liberado.
+    const effectiveComp = {
+      ...comp,
+      crm_whatsapp_enabled: moduleActive(comp.crm_whatsapp_enabled, comp.trial_modules_until),
+      loja_digital_enabled: moduleActive(comp.loja_digital_enabled, comp.trial_modules_until),
+      entrega_enabled: moduleActive(comp.entrega_enabled, comp.trial_modules_until),
+    }
+    setCompany(effectiveComp as Company)
+    companyRef.current = effectiveComp as Company
+    if (effectiveComp.crm_whatsapp_enabled) await loadInstance(comp.id)
+    loadQuickReplies(comp.id)
+    loadTags(comp.id)
+    setLoading(false)
+  }
 
-      // Admin pode conectar/gerenciar o WhatsApp de qualquer empresa antes de
-      // entregar pro dono — abre com ?empresa=<id> a partir do painel admin.
-      const empresaParam = new URLSearchParams(window.location.search).get('empresa')
-      let comp: any = null
-      if (empresaParam) {
-        const { data: profile } = await supabase.from('profiles').select('user_type').eq('id', session.user.id).single()
-        if (profile?.user_type === 'admin') {
-          const { data } = await supabase
-            .from('companies').select('id, name, slug, crm_whatsapp_enabled, loja_digital_enabled, entrega_enabled, trial_modules_until, crm_auto_reply_enabled, crm_auto_reply_text')
-            .eq('id', empresaParam).maybeSingle()
-          if (!data) { window.location.href = '/admin?tab=empresas'; return }
-          comp = data
-          setAdminMode(true)
-        }
-      }
-      if (!comp) {
-        const { data } = await supabase
-          .from('companies').select('id, name, slug, crm_whatsapp_enabled, loja_digital_enabled, entrega_enabled, trial_modules_until, crm_auto_reply_enabled, crm_auto_reply_text')
+  useEffect(() => {
+    if (fullScreen) {
+      // /atendimento fica fora do layout de /painel (tela cheia, sem
+      // sidebar) — não tem o contexto do layout pra puxar daí, resolve
+      // sozinho do jeito que sempre foi.
+      supabase.auth.getSession().then(async ({ data: { session } }) => {
+        if (!session) { window.location.href = '/login?redirect=/atendimento'; return }
+        const { data } = await supabase.from('companies').select(COMPANY_SELECT)
           .eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
         if (!data) { window.location.href = '/painel/compartilhar'; return }
-        comp = data
-      }
-      // Guarda os flags já resolvidos (real OU dentro do período de teste) —
-      // o resto do arquivo lê company.crm_whatsapp_enabled/etc direto, sem
-      // precisar saber se veio do plano de verdade ou de um teste liberado.
-      const effectiveComp = {
-        ...comp,
-        crm_whatsapp_enabled: moduleActive(comp.crm_whatsapp_enabled, comp.trial_modules_until),
-        loja_digital_enabled: moduleActive(comp.loja_digital_enabled, comp.trial_modules_until),
-        entrega_enabled: moduleActive(comp.entrega_enabled, comp.trial_modules_until),
-      }
-      setCompany(effectiveComp as Company)
-      companyRef.current = effectiveComp as Company
-      if (effectiveComp.crm_whatsapp_enabled) await loadInstance(comp.id)
-      loadQuickReplies(comp.id)
-      loadTags(comp.id)
-      setLoading(false)
-    })
-  }, [])
+        await finishCompanySetup(data)
+      })
+      return
+    }
+    if (shellLoading) return
+    if (!shellCompany) { window.location.href = '/painel/compartilhar'; return }
+    if (ctxAdminMode) setAdminMode(true)
+    supabase.from('companies').select(COMPANY_SELECT).eq('id', shellCompany.id).maybeSingle()
+      .then(({ data }) => {
+        if (!data) { window.location.href = '/painel/compartilhar'; return }
+        finishCompanySetup(data)
+      })
+  }, [fullScreen, shellLoading, shellCompany?.id, ctxAdminMode])
 
   async function loadInstance(companyId: string) {
     const { data } = await supabase
@@ -1100,7 +1103,7 @@ export default function MensagensPage() {
   return (
     <Shell active="mensagens" companyName={company.name} companySlug={company.slug} lojaDigitalEnabled={company.loja_digital_enabled} crmEnabled={company.crm_whatsapp_enabled} entregaEnabled={company.entrega_enabled}>
       <div className={`msg-page ${fullScreen ? 'msg-page-full' : ''}`}>
-        {adminMode && (
+        {fullScreen && adminMode && (
           <div style={{ position:'sticky', top:0, zIndex:30, background:'#1A0F00', color:'#F0EDE8', padding:'9px 16px', fontSize:12, fontWeight:600, display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
             <span>🛠️ Modo admin — WhatsApp de <strong>{company.name}</strong></span>
             <a href="/admin?tab=empresas" style={{ color:'var(--sign)', fontWeight:700, textDecoration:'none', whiteSpace:'nowrap' }}>← Voltar ao admin</a>

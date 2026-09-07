@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { compressImage } from '@/lib/compressImage'
-import { moduleActive } from '@/lib/modules'
+import { usePainelShell } from '@/contexts/PainelShellContext'
 
 type Categoria = { id: string; name: string; display_order: number }
 type Opcao = { id?: string; name: string; price: string; max_qty: number | null; linked_produto_id: string | null; photo_url?: string | null; _photoFile?: File | null }
@@ -102,10 +102,10 @@ function storagePathFromUrl(url: string | null | undefined): string | null {
 }
 
 export default function CatalogoPage() {
+  const { company, loading: shellLoading, isAdminMode } = usePainelShell()
   const [loading, setLoading] = useState(true)
   const [companyId, setCompanyId] = useState('')
   const [companyName, setCompanyName] = useState('')
-  const [adminMode, setAdminMode] = useState(false)
   const [crmEnabled, setCrmEnabled] = useState(false)
   const [entregaEnabled, setEntregaEnabled] = useState(false)
   const [categorias, setCategorias] = useState<Categoria[]>([])
@@ -148,40 +148,18 @@ export default function CatalogoPage() {
   const [photoImportResults, setPhotoImportResults] = useState<{ matched: number; unmatched: string[] } | null>(null)
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session) { window.location.href = '/login?redirect=/painel/catalogo'; return }
-
-      // Admin pode montar o cardápio de qualquer empresa antes de entregar
-      // pro dono — abre com ?empresa=<id> a partir do painel admin.
-      const empresaParam = new URLSearchParams(window.location.search).get('empresa')
-      if (empresaParam) {
-        const { data: profile } = await supabase.from('profiles').select('user_type').eq('id', session.user.id).single()
-        if (profile?.user_type === 'admin') {
-          const { data: comp } = await supabase.from('companies').select('id, name, loja_digital_enabled, crm_whatsapp_enabled, entrega_enabled, trial_modules_until').eq('id', empresaParam).maybeSingle()
-          if (!comp) { window.location.href = '/admin?tab=empresas'; return }
-          setAdminMode(true)
-          setCompanyId(comp.id)
-          setCompanyName(comp.name)
-          setCrmEnabled(moduleActive(comp.crm_whatsapp_enabled, comp.trial_modules_until))
-          setEntregaEnabled(moduleActive(comp.entrega_enabled, comp.trial_modules_until))
-          await loadAll(comp.id)
-          await loadLastImportBatch(comp.id)
-          setLoading(false)
-          return
-        }
-      }
-
-      const { data: comp } = await supabase.from('companies').select('id, name, loja_digital_enabled, crm_whatsapp_enabled, entrega_enabled, trial_modules_until').eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
-      if (!comp || !moduleActive(comp.loja_digital_enabled, comp.trial_modules_until)) { window.location.href = '/painel/compartilhar'; return }
-      setCompanyId(comp.id)
-      setCompanyName(comp.name)
-      setCrmEnabled(moduleActive(comp.crm_whatsapp_enabled, comp.trial_modules_until))
-      setEntregaEnabled(moduleActive(comp.entrega_enabled, comp.trial_modules_until))
-      await loadAll(comp.id)
-      await loadLastImportBatch(comp.id)
+    if (shellLoading) return
+    if (!company || !company.loja_digital_enabled) { window.location.href = '/painel/compartilhar'; return }
+    setCompanyId(company.id)
+    setCompanyName(company.name)
+    setCrmEnabled(company.crm_whatsapp_enabled)
+    setEntregaEnabled(company.entrega_enabled)
+    ;(async () => {
+      await loadAll(company.id)
+      await loadLastImportBatch(company.id)
       setLoading(false)
-    })
-  }, [])
+    })()
+  }, [shellLoading, company?.id, company?.loja_digital_enabled])
 
   async function loadAll(cid: string) {
     const [{ data: cats }, { data: prods }] = await Promise.all([
@@ -748,12 +726,6 @@ export default function CatalogoPage() {
   return (
     <>
     <div className="cg-wrap">
-      {adminMode && (
-        <div style={{ position:'sticky', top:0, zIndex:30, background:'#1A0F00', color:'#F0EDE8', padding:'9px 16px', fontSize:12, fontWeight:600, display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
-          <span>🛠️ Modo admin — montando o cardápio de <strong>{companyName}</strong></span>
-          <a href="/admin?tab=empresas" style={{ color:'var(--sign)', fontWeight:700, textDecoration:'none', whiteSpace:'nowrap' }}>← Voltar ao admin</a>
-        </div>
-      )}
       <style>{`
         .cg-wrap{ width:100%; max-width:480px; margin:0 auto; min-height:100vh; background:var(--concrete); font-family:'Archivo',sans-serif; font-size:13px; color:var(--ink); padding-bottom:40px; min-width:0; overflow-x:hidden; }
         .cg-import-desktop{ display:none; }
@@ -895,7 +867,7 @@ export default function CatalogoPage() {
       {view === 'list' && (
         <div className="cg-list-view">
           <div className="cg-head">
-            <a href="/painel/compartilhar" className="cg-back" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', color: '#1A1610' }}>‹</a>
+            <a href={isAdminMode ? `/painel/compartilhar?empresa=${company?.id}` : '/painel/compartilhar'} className="cg-back" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', color: '#1A1610' }}>‹</a>
             <h1>Catálogo</h1>
             <div className="cg-head-actions">
               <button className={`cg-btn-ghost ${selectMode ? 'cg-btn-danger' : ''}`} style={{ padding: '8px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }} onClick={toggleSelectMode}>

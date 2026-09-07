@@ -1,8 +1,8 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { moduleActive } from '@/lib/modules'
 import { fmt, type InteresseItem } from '@/lib/lojaPricing'
+import { usePainelShell } from '@/contexts/PainelShellContext'
 
 type StatusVenda = 'sem_resposta' | 'virou_venda' | 'nao_fechou'
 type Interesse = {
@@ -20,26 +20,17 @@ const STATUS_COLOR: Record<StatusVenda, { bg: string; fg: string }> = {
 function fmtDateTime(iso: string) { return new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) }
 
 export default function InteressesPage() {
+  const { company, loading: shellLoading } = usePainelShell()
   const [loading, setLoading] = useState(true)
-  const [companyName, setCompanyName] = useState('')
-  const [crmEnabled, setCrmEnabled] = useState(false)
-  const [entregaEnabled, setEntregaEnabled] = useState(false)
   const [interesses, setInteresses] = useState<Interesse[]>([])
   const [filter, setFilter] = useState<'todos' | 'sem_resposta' | 'virou_venda'>('todos')
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session) { window.location.href = '/login?redirect=/painel/interesses'; return }
-      const { data: comp } = await supabase.from('companies').select('id, name, loja_digital_enabled, crm_whatsapp_enabled, entrega_enabled, trial_modules_until').eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
-      if (!comp || !moduleActive(comp.loja_digital_enabled, comp.trial_modules_until)) { window.location.href = '/painel/compartilhar'; return }
-      setCompanyName(comp.name)
-      setCrmEnabled(moduleActive(comp.crm_whatsapp_enabled, comp.trial_modules_until))
-      setEntregaEnabled(moduleActive(comp.entrega_enabled, comp.trial_modules_until))
-      const { data } = await supabase.from('interesses').select('*').eq('company_id', comp.id).order('created_at', { ascending: false }).limit(200)
-      setInteresses((data || []) as Interesse[])
-      setLoading(false)
-    })
-  }, [])
+    if (shellLoading) return
+    if (!company || !company.loja_digital_enabled) { window.location.href = '/painel/compartilhar'; return }
+    supabase.from('interesses').select('*').eq('company_id', company.id).order('created_at', { ascending: false }).limit(200)
+      .then(({ data }) => { setInteresses((data || []) as Interesse[]); setLoading(false) })
+  }, [shellLoading, company?.id, company?.loja_digital_enabled])
 
   async function setStatus(id: string, status: StatusVenda) {
     setInteresses(prev => prev.map(i => i.id === id ? { ...i, status_venda: status } : i))

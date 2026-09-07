@@ -56,6 +56,8 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
 
   const [loading, setLoading] = useState(true)
   const [company, setCompany] = useState<ShellCompany | null>(null)
+  const [isAdminMode, setIsAdminMode] = useState(false)
+  const [adminEmpresaId, setAdminEmpresaId] = useState<string | null>(null)
   const [avaliacoesBadge, setAvaliacoesBadge] = useState(0)
   const [activeOverride, setActiveOverride] = useState<EmpresaNavKey | null>(null)
   const [switcherExtras, setSwitcherExtras] = useState<{ companies?: SwitcherCompany[]; onSwitchCompany?: (c: SwitcherCompany) => void } | null>(null)
@@ -73,6 +75,7 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
           .select('id,name,slug,loja_digital_enabled,crm_whatsapp_enabled,entrega_enabled,trial_modules_until')
           .eq('id', empresaParam).maybeSingle()
         comp = data
+        if (!cancelled) { setIsAdminMode(true); setAdminEmpresaId(empresaParam) }
       } else if (profile?.user_type === 'company') {
         const { data } = await supabase.from('companies')
           .select('id,name,slug,loja_digital_enabled,crm_whatsapp_enabled,entrega_enabled,trial_modules_until')
@@ -104,7 +107,7 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
   const active = activeOverride || deriveActiveKey(pathname, searchParams.get('tab'))
 
   return (
-    <PainelShellContext.Provider value={{ setActiveOverride, setSwitcherExtras }}>
+    <PainelShellContext.Provider value={{ company, loading, isAdminMode, setActiveOverride, setSwitcherExtras }}>
       <EmpresaShell
         active={active}
         companyName={company?.name}
@@ -115,7 +118,14 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
         avaliacoesBadge={avaliacoesBadge}
         companies={switcherExtras?.companies as any}
         onSwitchCompany={switcherExtras?.onSwitchCompany as any}
+        adminEmpresaId={isAdminMode ? adminEmpresaId ?? undefined : undefined}
       >
+        {isAdminMode && (
+          <div style={{ position: 'sticky', top: 0, zIndex: 30, background: '#1A0F00', color: '#F0EDE8', padding: '9px 16px', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+            <span>🛠️ Modo admin — vendo como <strong>{company?.name || 'carregando...'}</strong></span>
+            <a href="/admin?tab=empresas" style={{ color: 'var(--sign)', fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}>← Voltar ao admin</a>
+          </div>
+        )}
         {loading ? <div style={{ padding: 40, textAlign: 'center', color: '#AAA', fontFamily: 'Archivo,sans-serif', fontSize: 13 }}>Carregando...</div> : children}
       </EmpresaShell>
     </PainelShellContext.Provider>

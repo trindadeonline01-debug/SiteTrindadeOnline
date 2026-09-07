@@ -2,8 +2,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { refreshSessionOnce } from '@/lib/authRefresh'
-import { moduleActive } from '@/lib/modules'
 import { qzListPrinters, qzPrintRaw, buildReceipt, buildKitchenTicket } from '@/lib/qzPrint'
+import { usePainelShell } from '@/contexts/PainelShellContext'
 
 type Item = { id: string; product_name: string; unit_price: number; qty: number; selected_options: { name: string; price: number }[] }
 type Status = 'recebido' | 'em_preparo' | 'pronto' | 'saiu_entrega' | 'entregue' | 'cancelado'
@@ -154,6 +154,7 @@ function beep() {
 }
 
 export default function PedidosPage() {
+  const { company, loading: shellLoading } = usePainelShell()
   const [loading, setLoading] = useState(true)
   const [companyId, setCompanyId] = useState('')
   const [companyName, setCompanyName] = useState('')
@@ -204,18 +205,20 @@ export default function PedidosPage() {
   const [npError, setNpError] = useState('')
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session) { window.location.href = '/login?redirect=/painel/pedidos'; return }
-      const { data: comp } = await supabase.from('companies').select('id, name, loja_digital_enabled, loja_auto_aceitar_pedidos, loja_impressora_nome, loja_taxa_entrega, crm_whatsapp_enabled, entrega_enabled, trial_modules_until').eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
-      if (!comp || !moduleActive(comp.loja_digital_enabled, comp.trial_modules_until)) { window.location.href = '/painel/compartilhar'; return }
-      setCompanyId(comp.id); companyIdRef.current = comp.id
-      setCompanyName(comp.name)
-      setCompanyDeliveryFee(Number(comp.loja_taxa_entrega || 0))
-      setCrmEnabled(moduleActive(comp.crm_whatsapp_enabled, comp.trial_modules_until))
-      setEntregaEnabled(moduleActive(comp.entrega_enabled, comp.trial_modules_until))
-      setAutoAceitar(comp.loja_auto_aceitar_pedidos !== false)
-      setPrinterName(comp.loja_impressora_nome || '')
-      await loadAll(comp.id)
+    if (shellLoading) return
+    if (!company || !company.loja_digital_enabled) { window.location.href = '/painel/compartilhar'; return }
+    let unsub: (() => void) | null = null
+    ;(async () => {
+      const { data: extra } = await supabase.from('companies').select('loja_auto_aceitar_pedidos, loja_impressora_nome, loja_taxa_entrega').eq('id', company.id).maybeSingle()
+      setCompanyId(company.id); companyIdRef.current = company.id
+      setCompanyName(company.name)
+      const compTaxa = Number(extra?.loja_taxa_entrega || 0)
+      setCompanyDeliveryFee(compTaxa)
+      setCrmEnabled(company.crm_whatsapp_enabled)
+      setEntregaEnabled(company.entrega_enabled)
+      setAutoAceitar(extra?.loja_auto_aceitar_pedidos !== false)
+      setPrinterName(extra?.loja_impressora_nome || '')
+      await loadAll(company.id)
       setLoading(false)
 
       // Só imprime sozinho quando aceitar automático está ligado — pedido que
@@ -223,8 +226,7 @@ export default function PedidosPage() {
       // alguém decidir aceitar. Falha de impressão nunca trava o fluxo do
       // pedido (QZ Tray fechado, impressora sem papel etc. não podem quebrar
       // o resto da tela).
-      const compName = comp.name
-      const compTaxa = Number(comp.loja_taxa_entrega || 0)
+      const compName = company.name
       async function autoPrintIfNeeded(pedidoId: string) {
         if (!autoAceitarRef.current || !printerNameRef.current) return
         try {
@@ -266,15 +268,16 @@ export default function PedidosPage() {
         loadAll(companyIdRef.current)
       }
 
-      const channel = supabase.channel(`pedidos-${comp.id}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'loja_pedidos', filter: `company_id=eq.${comp.id}` }, payload => {
+      const channel = supabase.channel(`pedidos-${company.id}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'loja_pedidos', filter: `company_id=eq.${company.id}` }, payload => {
           if (payload.eventType === 'INSERT') { beep(); loadAll(companyIdRef.current); autoPrintIfNeeded(payload.new.id as string) }
           else loadAll(companyIdRef.current)
         })
         .subscribe()
-      return () => { supabase.removeChannel(channel) }
-    })
-  }, [])
+      unsub = () => supabase.removeChannel(channel)
+    })()
+    return () => { if (unsub) unsub() }
+  }, [shellLoading, company?.id])
 
   async function loadAll(cid: string) {
     const { data } = await supabase.from('loja_pedidos').select('*, itens:loja_pedido_itens(*)').eq('company_id', cid).order('created_at', { ascending: false }).limit(100)

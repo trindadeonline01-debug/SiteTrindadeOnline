@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { moduleActive } from '@/lib/modules'
+import { usePainelShell } from '@/contexts/PainelShellContext'
 
 type Status = 'recebido' | 'em_preparo' | 'pronto' | 'saiu_entrega' | 'entregue' | 'cancelado'
 type Pedido = {
@@ -25,11 +25,8 @@ function fmt(n: number) { return 'R$ ' + n.toFixed(2).replace('.', ',') }
 // porque são as perguntas que todo dono de negócio local faz primeiro:
 // quanto vendi, quantos pedidos, hora de pico, o que mais vende.
 export default function RelatoriosPage() {
+  const { company, loading: shellLoading } = usePainelShell()
   const [loading, setLoading] = useState(true)
-  const [companyId, setCompanyId] = useState('')
-  const [companyName, setCompanyName] = useState('')
-  const [crmEnabled, setCrmEnabled] = useState(false)
-  const [entregaEnabled, setEntregaEnabled] = useState(false)
   const [period, setPeriod] = useState<Period>('week')
   const [pedidos, setPedidos] = useState<Pedido[]>([])
   const [itens, setItens] = useState<ItemRow[]>([])
@@ -43,17 +40,10 @@ export default function RelatoriosPage() {
   const charts = useRef<Record<string, any>>({})
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session) { window.location.href = '/login?redirect=/painel/relatorios'; return }
-      const { data: comp } = await supabase.from('companies').select('id, name, loja_digital_enabled, crm_whatsapp_enabled, entrega_enabled, trial_modules_until').eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
-      if (!comp || !moduleActive(comp.loja_digital_enabled, comp.trial_modules_until)) { window.location.href = '/painel/compartilhar'; return }
-      setCompanyId(comp.id)
-      setCompanyName(comp.name)
-      setCrmEnabled(moduleActive(comp.crm_whatsapp_enabled, comp.trial_modules_until))
-      setEntregaEnabled(moduleActive(comp.entrega_enabled, comp.trial_modules_until))
-      setLoading(false)
-    })
-  }, [])
+    if (shellLoading) return
+    if (!company || !company.loja_digital_enabled) { window.location.href = '/painel/compartilhar'; return }
+    setLoading(false)
+  }, [shellLoading, company?.id, company?.loja_digital_enabled])
 
   function getRange(): { from: string; to: string } {
     const now = new Date()
@@ -65,12 +55,12 @@ export default function RelatoriosPage() {
   }
 
   useEffect(() => {
-    if (!companyId) return
+    if (!company?.id) return
     setLoadingData(true)
     const { from, to } = getRange()
     supabase.from('loja_pedidos')
       .select('id,status,origin,payment_method,payment_status,delivery_type,total,created_at')
-      .eq('company_id', companyId).gte('created_at', from).lte('created_at', to).order('created_at', { ascending: true })
+      .eq('company_id', company.id).gte('created_at', from).lte('created_at', to).order('created_at', { ascending: true })
       .then(async ({ data }) => {
         const rows = (data || []) as Pedido[]
         setPedidos(rows)
@@ -81,7 +71,7 @@ export default function RelatoriosPage() {
         } else setItens([])
         setLoadingData(false)
       })
-  }, [companyId, period])
+  }, [company?.id, period])
 
   const validos = pedidos.filter(p => p.status !== 'cancelado')
   const faturamento = validos.reduce((s, p) => s + Number(p.total), 0)

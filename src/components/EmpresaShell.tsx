@@ -16,7 +16,7 @@ type Company = { id: string; name: string; slug?: string }
 
 const TITLES: Record<EmpresaNavKey, string> = {
   dashboard: 'Visão geral', perfil: 'Perfil e fotos', avaliacoes: 'Avaliações', destaques: 'Destaques',
-  banners: 'Banners', compartilhar: 'Compartilhar cardápio', catalogo: 'Catálogo', pedidos: 'Pedidos',
+  banners: 'Banners', compartilhar: 'Configurar cardápio', catalogo: 'Cardápio', pedidos: 'Pedidos',
   cozinha: 'Cozinha', entrega: 'Entrega', mensagens: 'Mensagens', clientes: 'Clientes', interesses: 'Interesses', cupons: 'Cupons', promocoes: 'Promoções', plano: 'Plano', relatorios: 'Relatórios',
   'pessoal-perfil': 'Meu perfil', 'pessoal-favoritos': 'Favoritos', 'pessoal-avaliacoes': 'Minhas avaliações',
   'pessoal-pedidos': 'Meus pedidos', 'pessoal-anuncios': 'Meus anúncios', 'pessoal-cupons': 'Meus cupons',
@@ -107,7 +107,7 @@ export default function EmpresaShell({
         { key: 'dashboard', href: '/painel', ico: '🏠', lbl: 'Início' },
         { key: 'pedidos', href: '/painel/pedidos', ico: '🧾', lbl: 'Pedidos' },
         { key: 'mensagens', href: '/painel/mensagens', ico: '💬', lbl: 'Mensagens', badge: mensagensBadge },
-        { key: 'catalogo', href: '/painel/catalogo', ico: '📋', lbl: 'Catálogo' },
+        { key: 'catalogo', href: '/painel/catalogo', ico: '📋', lbl: 'Cardápio' },
       ]
     : [
         { key: 'dashboard', href: '/painel', ico: '🏠', lbl: 'Início' },
@@ -235,10 +235,10 @@ export default function EmpresaShell({
               <NavItem href="/painel/cozinha" active={active === 'cozinha'} locked={!lojaDigitalEnabled} adminEmpresaId={adminEmpresaId}>🍳 Cozinha</NavItem>
 
               <div className="es-group-lbl">Minha loja</div>
-              <NavItem href="/painel/catalogo" active={active === 'catalogo'} locked={!lojaDigitalEnabled} adminEmpresaId={adminEmpresaId}>📋 Catálogo</NavItem>
+              <NavItem href="/painel/catalogo" active={active === 'catalogo'} locked={!lojaDigitalEnabled} adminEmpresaId={adminEmpresaId}>📋 Cardápio</NavItem>
+              <NavItem href="/painel/compartilhar" active={active === 'compartilhar'} locked={!lojaDigitalEnabled} adminEmpresaId={adminEmpresaId}>⚙️ Configurar cardápio</NavItem>
               <NavItem href="/painel?tab=perfil" active={active === 'perfil'} adminEmpresaId={adminEmpresaId}>✏️ Perfil e fotos</NavItem>
               {companySlug && <NavItem href={`/empresa/${companySlug}`} active={false}>🔗 Página da loja</NavItem>}
-              <NavItem href="/painel/compartilhar" active={active === 'compartilhar'} locked={!lojaDigitalEnabled} adminEmpresaId={adminEmpresaId}>🔗 Compartilhar cardápio</NavItem>
               <NavItem href="/painel/entrega" active={active === 'entrega'} locked={!entregaEnabled} adminEmpresaId={adminEmpresaId}>🏍️ Entrega e retirada</NavItem>
 
               <div className="es-group-lbl">Clientes</div>

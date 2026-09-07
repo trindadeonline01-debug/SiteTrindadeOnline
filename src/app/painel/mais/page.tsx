@@ -98,8 +98,8 @@ export default function MaisPage() {
 
         <div className="sectlbl">Cardápio &amp; vendas</div>
         <div className="list">
-          <Item href="/painel/compartilhar" icon="🔗" label="Compartilhar cardápio" locked={!moduleActive(company.loja_digital_enabled, company.trial_modules_until)} />
-          <Item href="/painel/catalogo" icon="📋" label="Catálogo" locked={!moduleActive(company.loja_digital_enabled, company.trial_modules_until)} />
+          <Item href="/painel/catalogo" icon="📋" label="Cardápio" locked={!moduleActive(company.loja_digital_enabled, company.trial_modules_until)} />
+          <Item href="/painel/compartilhar" icon="⚙️" label="Configurar cardápio" locked={!moduleActive(company.loja_digital_enabled, company.trial_modules_until)} />
           <Item href="/painel/pedidos" icon="🧾" label="Pedidos" locked={!moduleActive(company.loja_digital_enabled, company.trial_modules_until)} />
           <Item href="/painel/interesses" icon="🔔" label="Interesses" locked={!moduleActive(company.loja_digital_enabled, company.trial_modules_until)} />
           <Item href="/painel/cozinha" icon="🍳" label="Cozinha" locked={!moduleActive(company.loja_digital_enabled, company.trial_modules_until)} />

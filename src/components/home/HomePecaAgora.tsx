@@ -1,0 +1,79 @@
+'use client'
+import { useState } from 'react'
+import Image from 'next/image'
+import { fmt } from '@/lib/lojaPricing'
+
+export type PecaVitrineItem = {
+  id: string; name: string; photo_url: string; price: number
+  companyName: string; companySlug: string; open: boolean
+}
+export type PecaGroup = { key: string; label: string; emoji: string; items: PecaVitrineItem[] }
+
+const PRICE_FILTERS = [
+  { label: 'Qualquer preço', max: 0 },
+  { label: 'Até R$ 10', max: 10 },
+  { label: 'Até R$ 20', max: 20 },
+  { label: 'Até R$ 30', max: 30 },
+  { label: 'Até R$ 40', max: 40 },
+]
+
+// Vitrine cruzando o catálogo de todas as empresas com cardápio digital
+// ativo — ESPECIFICACAO.md §7 (índice de produtos), mas aplicado aqui numa
+// versão simples: sem busca por palavra, só recorte por subcategoria e por
+// faixa de preço, direto na home. Grupos e itens já vêm prontos do servidor
+// (page.tsx), incluindo se a empresa está aberta agora.
+export default function HomePecaAgora({ groups }: { groups: PecaGroup[] }) {
+  const [activeKey, setActiveKey] = useState('todas')
+  const [maxPrice, setMaxPrice] = useState(0)
+
+  if (groups.length === 0) return null
+
+  const active = groups.find(g => g.key === activeKey) || groups[0]
+  const items = maxPrice > 0 ? active.items.filter(i => i.price <= maxPrice) : active.items
+
+  return (
+    <div className="recent-section">
+      <div className="sec-hdr">
+        <div>
+          <span className="sec-eyebrow">Delivery na Trindade</span>
+          <h2 className="recent-section-title">🍔 Peça agora</h2>
+        </div>
+      </div>
+
+      <div className="pa-scroll">
+        {groups.map(g => (
+          <div key={g.key} className={`pa-item ${activeKey === g.key ? 'on' : ''}`} onClick={() => setActiveKey(g.key)}>
+            <div className="pa-photo">{g.emoji}</div>
+            <span className="pa-lbl">{g.label}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="pa-filters">
+        {PRICE_FILTERS.map(f => (
+          <button type="button" key={f.max} className={`pa-chip ${maxPrice === f.max ? 'on' : ''}`} onClick={() => setMaxPrice(f.max)}>{f.label}</button>
+        ))}
+      </div>
+
+      {items.length === 0 ? (
+        <div className="oa-empty">Nenhum produto nessa faixa de preço ainda.</div>
+      ) : (
+        <div className="pa-grid">
+          {items.map(p => (
+            <a key={p.id} className="pa-card" href={`/empresa/${p.companySlug}/item/${p.id}`}>
+              <div className="pa-card-img">
+                <Image src={p.photo_url} alt={p.name} fill sizes="(max-width:639px) 45vw, 220px" unoptimized style={{objectFit:'cover'}} />
+                {p.open && <span className="pa-open"><span className="oa-badge-dot" />Aberto agora</span>}
+              </div>
+              <div className="pa-body">
+                <div className="pa-name">{p.name}</div>
+                <div className="pa-biz">{p.companyName}</div>
+                <div className="pa-price">{fmt(p.price)}</div>
+              </div>
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}

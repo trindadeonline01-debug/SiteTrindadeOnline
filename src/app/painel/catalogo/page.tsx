@@ -3,6 +3,9 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { compressImage } from '@/lib/compressImage'
 import { usePainelShell } from '@/contexts/PainelShellContext'
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 type Categoria = { id: string; name: string; display_order: number }
 type Opcao = { id?: string; name: string; price: string; max_qty: number | null; linked_produto_id: string | null; photo_url?: string | null; _photoFile?: File | null }
@@ -92,6 +95,43 @@ function normalizeName(s: string) {
   return (s || '').trim().toLowerCase().normalize('NFD').replace(DIACRITICS_RE, '').replace(/\s+/g, ' ')
 }
 
+// Linha de categoria arrastável (drag handle) no gerenciador — clicar e
+// arrastar pelo ⠿ reordena a seção no cardápio público, sem precisar de
+// setinha de subir/descer.
+function SortableCatRow({ cat, count, isEditing, editName, onEditNameChange, onSaveName, onCancelEdit, onStartEdit, onDelete }: {
+  cat: { id: string; name: string }
+  count: number
+  isEditing: boolean
+  editName: string
+  onEditNameChange: (v: string) => void
+  onSaveName: () => void
+  onCancelEdit: () => void
+  onStartEdit: () => void
+  onDelete: () => void
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: cat.id })
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }
+  return (
+    <div className="cg-cat-row" ref={setNodeRef} style={style}>
+      {isEditing ? (
+        <>
+          <input value={editName} onChange={e => onEditNameChange(e.target.value)} autoFocus onKeyDown={e => e.key === 'Enter' && onSaveName()} />
+          <button className="cg-btn cg-btn-gold" style={{ padding: '7px 12px' }} onClick={onSaveName}>OK</button>
+          <button className="cg-btn-ghost" style={{ padding: '7px 10px', borderRadius: 8 }} onClick={onCancelEdit}>✕</button>
+        </>
+      ) : (
+        <>
+          <button className="cg-drag-handle" {...attributes} {...listeners} aria-label="Arrastar pra reordenar">⠿</button>
+          <span className="cg-cat-row-name">{cat.name}</span>
+          <span className="cg-cat-row-count">{count} produto{count !== 1 ? 's' : ''}</span>
+          <button className="cg-btn-ghost" style={{ padding: '6px 9px', borderRadius: 8, fontSize: 11 }} onClick={onStartEdit}>✏️</button>
+          <button className="cg-del" onClick={onDelete}>🗑</button>
+        </>
+      )}
+    </div>
+  )
+}
+
 // Extrai o caminho dentro do bucket a partir da URL pública, pra poder
 // apagar o arquivo do Storage (a URL pública não serve de argumento pro remove()).
 function storagePathFromUrl(url: string | null | undefined): string | null {
@@ -146,6 +186,10 @@ export default function CatalogoPage() {
   const [importingPhotos, setImportingPhotos] = useState(false)
   const [photoImportProgress, setPhotoImportProgress] = useState({ done: 0, total: 0 })
   const [photoImportResults, setPhotoImportResults] = useState<{ matched: number; unmatched: string[] } | null>(null)
+  const catSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
 
   useEffect(() => {
     if (shellLoading) return
@@ -261,17 +305,17 @@ export default function CatalogoPage() {
   }
 
   // Ordem das categorias aqui é a mesma ordem das seções no cardápio
-  // público (/empresa/[slug]/cardapio já busca por display_order) — subir
-  // ou descer aqui move a seção de verdade pro cliente. Renumera tudo do
+  // público (/empresa/[slug]/cardapio já busca por display_order) —
+  // arrastar aqui move a seção de verdade pro cliente. Renumera tudo do
   // zero a cada troca em vez de só trocar os dois valores, pra nunca
   // depender de display_order já estar sem furo/duplicata.
-  async function moveCategoria(id: string, dir: -1 | 1) {
-    const idx = categorias.findIndex(c => c.id === id)
-    const swapIdx = idx + dir
-    if (idx === -1 || swapIdx < 0 || swapIdx >= categorias.length) return
-    const next = [...categorias]
-    ;[next[idx], next[swapIdx]] = [next[swapIdx], next[idx]]
-    const reindexed = next.map((c, i) => ({ ...c, display_order: i }))
+  async function handleDragEndCat(e: DragEndEvent) {
+    const { active, over } = e
+    if (!over || active.id === over.id) return
+    const oldIdx = categorias.findIndex(c => c.id === active.id)
+    const newIdx = categorias.findIndex(c => c.id === over.id)
+    if (oldIdx === -1 || newIdx === -1) return
+    const reindexed = arrayMove(categorias, oldIdx, newIdx).map((c, i) => ({ ...c, display_order: i }))
     setCategorias(reindexed)
     await Promise.all(reindexed.map(c => supabase.from('loja_categorias').update({ display_order: c.display_order }).eq('id', c.id)))
   }
@@ -854,6 +898,8 @@ export default function CatalogoPage() {
         .cg-cat-row input{ flex:1;min-width:0;padding:7px 10px;border-radius:8px;border:1px solid #E6E0D2;font-size:12.5px;font-family:inherit; }
         .cg-cat-row-name{ flex:1;min-width:0;font-weight:700;font-size:12.5px; }
         .cg-cat-row-count{ font-size:10.5px;color:#A79E8B;flex:none;white-space:nowrap; }
+        .cg-drag-handle{ flex:none;width:26px;height:26px;border:none;background:transparent;color:#A79E8B;font-size:16px;line-height:1;cursor:grab;touch-action:none;border-radius:6px; }
+        .cg-drag-handle:active{ cursor:grabbing;background:#F0EDE8; }
         .cg-cat-modal-foot{ padding:12px 16px 16px;border-top:1px solid #EDE8E0;background:#fff;display:flex;gap:8px; }
         .cg-cat-modal-foot input{ flex:1;min-width:0;padding:9px 11px;border-radius:9px;border:1px solid #E6E0D2;font-size:12.5px;font-family:inherit; }
         .cg-bulk-hint{ font-size:11.5px;color:#A79E8B;margin-bottom:12px;line-height:1.5; }
@@ -1145,30 +1191,26 @@ export default function CatalogoPage() {
             <div className="cg-cat-modal-body">
               {categorias.length === 0 && <div style={{ fontSize: 12, color: '#A79E8B', padding: '12px 0' }}>Nenhuma categoria ainda.</div>}
               {categorias.length > 1 && (
-                <div style={{ fontSize: 11, color: '#A79E8B', padding: '0 0 8px' }}>Use as setas pra decidir a ordem das seções no cardápio — quem vê primeiro é o que sobe aqui.</div>
+                <div style={{ fontSize: 11, color: '#A79E8B', padding: '0 0 8px' }}>Arraste pelo ⠿ pra decidir a ordem das seções no cardápio — quem vê primeiro é o que sobe aqui.</div>
               )}
-              {categorias.map((c, i) => (
-                <div className="cg-cat-row" key={c.id}>
-                  {editingCatId === c.id ? (
-                    <>
-                      <input value={editCatName} onChange={e => setEditCatName(e.target.value)} autoFocus onKeyDown={e => e.key === 'Enter' && saveCategoriaName(c.id)} />
-                      <button className="cg-btn cg-btn-gold" style={{ padding: '7px 12px' }} onClick={() => saveCategoriaName(c.id)}>OK</button>
-                      <button className="cg-btn-ghost" style={{ padding: '7px 10px', borderRadius: 8 }} onClick={() => setEditingCatId('')}>✕</button>
-                    </>
-                  ) : (
-                    <>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 'none' }}>
-                        <button className="cg-btn-ghost" disabled={i === 0} style={{ padding: '2px 7px', borderRadius: 6, fontSize: 10, lineHeight: 1.4, opacity: i === 0 ? 0.35 : 1 }} onClick={() => moveCategoria(c.id, -1)}>▲</button>
-                        <button className="cg-btn-ghost" disabled={i === categorias.length - 1} style={{ padding: '2px 7px', borderRadius: 6, fontSize: 10, lineHeight: 1.4, opacity: i === categorias.length - 1 ? 0.35 : 1 }} onClick={() => moveCategoria(c.id, 1)}>▼</button>
-                      </div>
-                      <span className="cg-cat-row-name">{c.name}</span>
-                      <span className="cg-cat-row-count">{produtos.filter(p => p.category_id === c.id).length} produto{produtos.filter(p => p.category_id === c.id).length !== 1 ? 's' : ''}</span>
-                      <button className="cg-btn-ghost" style={{ padding: '6px 9px', borderRadius: 8, fontSize: 11 }} onClick={() => { setEditingCatId(c.id); setEditCatName(c.name) }}>✏️</button>
-                      <button className="cg-del" onClick={() => deleteCategoria(c.id)}>🗑</button>
-                    </>
-                  )}
-                </div>
-              ))}
+              <DndContext sensors={catSensors} collisionDetection={closestCenter} onDragEnd={handleDragEndCat}>
+                <SortableContext items={categorias.map(c => c.id)} strategy={verticalListSortingStrategy}>
+                  {categorias.map(c => (
+                    <SortableCatRow
+                      key={c.id}
+                      cat={c}
+                      count={produtos.filter(p => p.category_id === c.id).length}
+                      isEditing={editingCatId === c.id}
+                      editName={editCatName}
+                      onEditNameChange={setEditCatName}
+                      onSaveName={() => saveCategoriaName(c.id)}
+                      onCancelEdit={() => setEditingCatId('')}
+                      onStartEdit={() => { setEditingCatId(c.id); setEditCatName(c.name) }}
+                      onDelete={() => deleteCategoria(c.id)}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
             </div>
             <div className="cg-cat-modal-foot">
               <input placeholder="Nova categoria" value={mgrNewCatName} onChange={e => setMgrNewCatName(e.target.value)} onKeyDown={e => e.key === 'Enter' && addCategoriaFromManager()} />

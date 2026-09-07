@@ -7,9 +7,11 @@ import HomeSearchBox from '@/components/home/HomeSearchBox'
 import HomeBannerCarousel from '@/components/home/HomeBannerCarousel'
 import HomeAbertoAgora from '@/components/home/HomeAbertoAgora'
 import HomeComunidadeTabs from '@/components/home/HomeComunidadeTabs'
+import HomePecaAgora, { PecaGroup, PecaVitrineItem } from '@/components/home/HomePecaAgora'
 import ScrollRow from '@/components/home/ScrollRow'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { isOpenNow, HourRow } from '@/lib/businessHours'
+import { promoPrice, isSoldOut, availableToday, Produto } from '@/lib/lojaPricing'
 import { CATEGORY_IMAGES } from '@/lib/categoryImages'
 
 interface PaidCompany {
@@ -31,6 +33,21 @@ interface Listing {
   id: string; title: string; price: number | null
   type: string; subtype: string | null; created_at: string
   photos?: { url: string; order: number }[]
+}
+
+interface PecaCompanyRow {
+  id: string; name: string; slug: string
+  flexible_hours: boolean; store_paused?: boolean; store_forced_open?: boolean
+  subcategories?: { subcategory: { id: string; name: string; emoji: string } | null }[]
+  hours?: HourRow[]
+}
+
+interface PecaProdutoRow {
+  id: string; name: string; photo_url: string | null; sale_price: number
+  promo_type: 'percent' | 'fixed' | null; promo_value: number | null
+  promo_starts_at: string | null; promo_ends_at: string | null
+  available_days: number[] | null; esgotado: boolean; track_stock: boolean; stock_qty: number | null
+  company_id: string
 }
 
 interface Banner {
@@ -249,6 +266,7 @@ export default async function HomePage() {
   let pulseColorPreset = 'classico'
   let abertoAgoraEnabled = false
   let entregandoAgoraEnabled = false
+  let pecaAgoraEnabled = false
   const siteSettings = settingsRes.data
   if (siteSettings) {
     const theme = siteSettings.find((s: any) => s.key === 'active_theme')
@@ -256,11 +274,13 @@ export default async function HomePage() {
     const pulseColor = siteSettings.find((s: any) => s.key === 'pulse_color_preset')
     const abertoAgora = siteSettings.find((s: any) => s.key === 'aberto_agora_enabled')
     const entregandoAgora = siteSettings.find((s: any) => s.key === 'entregando_agora_enabled')
+    const pecaAgora = siteSettings.find((s: any) => s.key === 'peca_agora_enabled')
     if (theme) siteTheme = theme.value || 'classico-preto'
     if (bannerSetting) bannerEnabled = bannerSetting.value === 'true'
     if (pulseColor) pulseColorPreset = pulseColor.value || 'classico'
     abertoAgoraEnabled = abertoAgora?.value === 'true'
     entregandoAgoraEnabled = entregandoAgora?.value === 'true'
+    pecaAgoraEnabled = pecaAgora?.value === 'true'
   }
 
   const tema = TEMAS[siteTheme] || TEMAS['classico-preto']
@@ -302,6 +322,83 @@ export default async function HomePage() {
         })
       })
       abertoAgoraChips = [...counts.values()].sort((a, b) => b.count - a.count).slice(0, 8)
+    }
+  }
+
+  // "Peça agora" — vitrine cruzando o catálogo de todas as empresas com
+  // cardápio digital ativo (ESPECIFICACAO.md §7), recortada por subcategoria
+  // (Lanches, Padaria, Açougue...) e aberta primeiro pra quem tá funcionando
+  // agora. Só entra no índice produto com foto e disponível hoje (§7.2) —
+  // sem estoque zerado nem fora do dia cadastrado.
+  let pecaAgoraGroups: PecaGroup[] = []
+
+  if (pecaAgoraEnabled) {
+    const { data: pecaCompaniesData } = await supabaseServer
+      .from('companies')
+      .select('id, name, slug, flexible_hours, store_paused, store_forced_open, subcategories:company_subcategories(subcategory:subcategories(id,name,emoji)), hours:company_hours(day_of_week,open_time,close_time,closed)')
+      .eq('status', 'active').eq('loja_digital_enabled', true)
+
+    const pecaCompanies = (pecaCompaniesData || []) as any as PecaCompanyRow[]
+
+    if (pecaCompanies.length > 0) {
+      const { data: pecaProdutosData } = await supabaseServer
+        .from('loja_produtos')
+        .select('id, name, photo_url, sale_price, promo_type, promo_value, promo_starts_at, promo_ends_at, available_days, esgotado, track_stock, stock_qty, company_id')
+        .in('company_id', pecaCompanies.map(c => c.id))
+        .eq('active', true)
+        .not('photo_url', 'is', null)
+        .order('display_order')
+
+      const companyMap = new Map(pecaCompanies.map(c => [c.id, c]))
+      const byCompany = new Map<string, PecaProdutoRow[]>()
+      ;((pecaProdutosData || []) as any as PecaProdutoRow[]).forEach(p => {
+        const arr = byCompany.get(p.company_id) || []
+        arr.push(p)
+        byCompany.set(p.company_id, arr)
+      })
+
+      const allItems: PecaVitrineItem[] = []
+      const bucketMap = new Map<string, { label: string; emoji: string; items: PecaVitrineItem[] }>()
+
+      byCompany.forEach((rows, companyId) => {
+        const company = companyMap.get(companyId)
+        if (!company) return
+        const open = isOpenNow(company.hours, company.flexible_hours, company.store_paused, company.store_forced_open)
+        // Até 8 produtos por empresa na vitrine, embaralhado — Satolo's
+        // sozinho tem 77 produtos ativos; sem esse teto ela tomaria conta
+        // da seção inteira em vez de dividir espaço com o resto do bairro.
+        const disponiveis = rows.filter(p => {
+          const produto = { ...p, description: null, category_id: null, total_pedidos: 0, groups: [] } as unknown as Produto
+          return !isSoldOut(produto) && availableToday(produto)
+        })
+        shuffle(disponiveis).slice(0, 8).forEach(p => {
+          const produto = { ...p, description: null, category_id: null, total_pedidos: 0, groups: [] } as unknown as Produto
+          const item: PecaVitrineItem = {
+            id: p.id, name: p.name, photo_url: p.photo_url!, price: promoPrice(produto) ?? p.sale_price,
+            companyName: company.name, companySlug: company.slug, open,
+          }
+          allItems.push(item)
+          ;(company.subcategories || []).forEach(s => {
+            const sub = s.subcategory
+            if (!sub) return
+            const bucket = bucketMap.get(sub.id) || { label: sub.name, emoji: sub.emoji, items: [] }
+            bucket.items.push(item)
+            bucketMap.set(sub.id, bucket)
+          })
+        })
+      })
+
+      const sortOpenFirst = (items: PecaVitrineItem[]) => [...items].sort((a, b) => (b.open ? 1 : 0) - (a.open ? 1 : 0))
+
+      if (allItems.length > 0) {
+        pecaAgoraGroups = [
+          { key: 'todas', label: 'Todas', emoji: '🍽️', items: sortOpenFirst(allItems) },
+          ...[...bucketMap.entries()]
+            .map(([id, b]) => ({ key: id, label: b.label, emoji: b.emoji, items: sortOpenFirst(b.items) }))
+            .sort((a, b) => b.items.length - a.items.length)
+            .slice(0, 8),
+        ]
+      }
     }
   }
 
@@ -528,6 +625,30 @@ export default async function HomePage() {
           .dv-badge { font-size: 9px; padding: 3px 4px; top: 4px; left: 4px; }
         }
 
+        /* PEÇA AGORA — vitrine de delivery entre categorias e ofertas */
+        .pa-scroll { display: flex; gap: 16px; overflow-x: auto; padding: 4px 4px 10px; scrollbar-width: none; }
+        .pa-scroll::-webkit-scrollbar { display: none; }
+        .pa-item { flex: 0 0 auto; width: 84px; display: flex; flex-direction: column; align-items: center; gap: 7px; text-align: center; cursor: pointer; }
+        .pa-photo { width: 76px; height: 76px; border-radius: 50%; background: var(--concrete-2); border: 2.5px solid transparent; display: flex; align-items: center; justify-content: center; font-size: 32px; transition: border-color .15s, transform .15s; }
+        .pa-item:hover .pa-photo, .pa-item.on .pa-photo { border-color: var(--sign); transform: translateY(-2px); }
+        .pa-lbl { font-size: 12px; font-weight: 700; color: var(--ink); line-height: 1.2; font-family: 'Archivo', sans-serif; }
+        .pa-item.on .pa-lbl { color: var(--sign-dark); }
+        .pa-filters { display: flex; gap: 8px; flex-wrap: nowrap; overflow-x: auto; padding: 2px 4px 6px; margin: 2px 0 16px; scrollbar-width: none; }
+        .pa-filters::-webkit-scrollbar { display: none; }
+        .pa-chip { flex: 0 0 auto; padding: 7px 15px; border-radius: 20px; border: 1px solid var(--line); background: var(--paper); font-size: 12px; font-weight: 700; color: var(--ink); cursor: pointer; font-family: 'Archivo', sans-serif; white-space: nowrap; }
+        .pa-chip.on { background: var(--sign); border-color: var(--sign-dark); color: var(--ink); }
+        .pa-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+        @media(max-width: 1023px) { .pa-grid { grid-template-columns: repeat(3,1fr); } }
+        @media(max-width: 639px)  { .pa-grid { grid-template-columns: repeat(2,1fr); gap: 9px; } }
+        .pa-card { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; text-decoration: none; color: inherit; transition: border-color .15s, transform .15s; }
+        .pa-card:hover { border-color: var(--ink); transform: translateY(-2px); }
+        .pa-card-img { aspect-ratio: 1/0.8; position: relative; background: var(--concrete-2); }
+        .pa-open { position: absolute; top: 8px; left: 8px; display: flex; align-items: center; gap: 4px; background: rgba(17,17,17,.85); color: #6FE3A0; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .3px; padding: 3px 8px 3px 6px; border-radius: 20px; }
+        .pa-body { padding: 10px 12px 12px; }
+        .pa-name { font-size: 13.5px; font-weight: 700; color: var(--ink); line-height: 1.25; margin-bottom: 2px; font-family: 'Archivo', sans-serif; }
+        .pa-biz { font-size: 11px; color: var(--muted); margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .pa-price { font-size: 14px; font-weight: 800; color: var(--sign-dark); }
+
         .cta-section { margin: 36px 0 48px; background: linear-gradient(135deg,var(--ink),var(--ink-2)); border-radius: 20px; padding: 36px 32px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 16px; }
         @media(min-width: 768px) { .cta-section { flex-direction: row; text-align: left; justify-content: space-between; padding: 36px 48px; } }
         .cta-title { font-family: 'Anton', sans-serif; font-size: clamp(22px,3vw,30px); color: #fff; letter-spacing: .5px; margin-bottom: 6px; text-transform: uppercase; }
@@ -698,6 +819,10 @@ export default async function HomePage() {
             </div>
           </div>
         </div>
+
+        {/* PEÇA AGORA — vitrine de delivery entre categorias e ofertas,
+            ESPECIFICACAO.md §7 (índice de produtos) */}
+        {pecaAgoraGroups.length > 0 && <HomePecaAgora groups={pecaAgoraGroups} />}
 
         {/* OFERTAS DO BAIRRO — ESPECIFICACAO.md §10.1 item 5, cupons e
             promoções reais (não mais um banner de imagem fixa) */}

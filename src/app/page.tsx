@@ -12,6 +12,7 @@ import ScrollRow from '@/components/home/ScrollRow'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { isOpenNow, HourRow } from '@/lib/businessHours'
 import { promoPrice, isSoldOut, availableToday, Produto } from '@/lib/lojaPricing'
+import { VITRINE_TIPOS } from '@/lib/vitrineTipos'
 import { CATEGORY_IMAGES } from '@/lib/categoryImages'
 
 interface PaidCompany {
@@ -38,7 +39,6 @@ interface Listing {
 interface PecaCompanyRow {
   id: string; name: string; slug: string
   flexible_hours: boolean; store_paused?: boolean; store_forced_open?: boolean
-  subcategories?: { subcategory: { id: string; name: string; emoji: string } | null }[]
   hours?: HourRow[]
 }
 
@@ -47,6 +47,7 @@ interface PecaProdutoRow {
   promo_type: 'percent' | 'fixed' | null; promo_value: number | null
   promo_starts_at: string | null; promo_ends_at: string | null
   available_days: number[] | null; esgotado: boolean; track_stock: boolean; stock_qty: number | null
+  tipo_vitrine: string | null
   company_id: string
 }
 
@@ -326,16 +327,21 @@ export default async function HomePage() {
   }
 
   // "Peça agora" — vitrine cruzando o catálogo de todas as empresas com
-  // cardápio digital ativo (ESPECIFICACAO.md §7), recortada por subcategoria
-  // (Lanches, Padaria, Açougue...) e aberta primeiro pra quem tá funcionando
-  // agora. Só entra no índice produto com foto e disponível hoje (§7.2) —
-  // sem estoque zerado nem fora do dia cadastrado.
+  // cardápio digital ativo (ESPECIFICACAO.md §7), recortada pelo TIPO do
+  // produto (Hambúrguer, Bebida, Doce...), não pela categoria/subcategoria
+  // da empresa — uma hamburgueria vende Coca-Cola e batata frita também, e
+  // agrupar pela subcategoria da loja jogava esses itens dentro da aba
+  // "Hambúrguer" junto com os hambúrgueres de verdade. "Todas" continua
+  // juntando tudo, classificado ou não; as abas por tipo só mostram quem
+  // o lojista já classificou em loja_produtos.tipo_vitrine (ver
+  // /painel/catalogo). Só entra no índice produto com foto e disponível
+  // hoje (§7.2) — sem estoque zerado nem fora do dia cadastrado.
   let pecaAgoraGroups: PecaGroup[] = []
 
   if (pecaAgoraEnabled) {
     const { data: pecaCompaniesData } = await supabaseServer
       .from('companies')
-      .select('id, name, slug, flexible_hours, store_paused, store_forced_open, subcategories:company_subcategories(subcategory:subcategories(id,name,emoji)), hours:company_hours(day_of_week,open_time,close_time,closed)')
+      .select('id, name, slug, flexible_hours, store_paused, store_forced_open, hours:company_hours(day_of_week,open_time,close_time,closed)')
       .eq('status', 'active').eq('loja_digital_enabled', true)
 
     const pecaCompanies = (pecaCompaniesData || []) as any as PecaCompanyRow[]
@@ -343,7 +349,7 @@ export default async function HomePage() {
     if (pecaCompanies.length > 0) {
       const { data: pecaProdutosData } = await supabaseServer
         .from('loja_produtos')
-        .select('id, name, photo_url, sale_price, promo_type, promo_value, promo_starts_at, promo_ends_at, available_days, esgotado, track_stock, stock_qty, company_id')
+        .select('id, name, photo_url, sale_price, promo_type, promo_value, promo_starts_at, promo_ends_at, available_days, esgotado, track_stock, stock_qty, tipo_vitrine, company_id')
         .in('company_id', pecaCompanies.map(c => c.id))
         .eq('active', true)
         .not('photo_url', 'is', null)
@@ -358,7 +364,7 @@ export default async function HomePage() {
       })
 
       const allItems: PecaVitrineItem[] = []
-      const bucketMap = new Map<string, { label: string; emoji: string; items: PecaVitrineItem[] }>()
+      const bucketMap = new Map<string, PecaVitrineItem[]>()
 
       byCompany.forEach((rows, companyId) => {
         const company = companyMap.get(companyId)
@@ -378,13 +384,11 @@ export default async function HomePage() {
             companyName: company.name, companySlug: company.slug, open,
           }
           allItems.push(item)
-          ;(company.subcategories || []).forEach(s => {
-            const sub = s.subcategory
-            if (!sub) return
-            const bucket = bucketMap.get(sub.id) || { label: sub.name, emoji: sub.emoji, items: [] }
-            bucket.items.push(item)
-            bucketMap.set(sub.id, bucket)
-          })
+          if (p.tipo_vitrine) {
+            const bucket = bucketMap.get(p.tipo_vitrine) || []
+            bucket.push(item)
+            bucketMap.set(p.tipo_vitrine, bucket)
+          }
         })
       })
 
@@ -393,10 +397,11 @@ export default async function HomePage() {
       if (allItems.length > 0) {
         pecaAgoraGroups = [
           { key: 'todas', label: 'Todas', emoji: '🍽️', items: sortOpenFirst(allItems) },
-          ...[...bucketMap.entries()]
-            .map(([id, b]) => ({ key: id, label: b.label, emoji: b.emoji, items: sortOpenFirst(b.items) }))
-            .sort((a, b) => b.items.length - a.items.length)
-            .slice(0, 8),
+          // Ordem fixa da lista canônica de tipos, não por contagem — fica
+          // estável entre carregamentos, só pula quem não tem item nenhum.
+          ...VITRINE_TIPOS
+            .filter(t => bucketMap.has(t.value))
+            .map(t => ({ key: t.value, label: t.label, emoji: t.emoji, items: sortOpenFirst(bucketMap.get(t.value)!) })),
         ]
       }
     }

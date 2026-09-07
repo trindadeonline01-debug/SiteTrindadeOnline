@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { compressImage } from '@/lib/compressImage'
 import { usePainelShell } from '@/contexts/PainelShellContext'
+import { VITRINE_TIPOS } from '@/lib/vitrineTipos'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -18,6 +19,7 @@ type Produto = {
   promo_type: 'percent' | 'fixed' | null; promo_value: number | null
   promo_starts_at: string | null; promo_ends_at: string | null
   active: boolean; esgotado: boolean; display_order: number
+  tipo_vitrine: string | null
   category?: { name: string } | null
 }
 
@@ -25,7 +27,7 @@ const DAY_LABELS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
 const emptyForm = () => ({
   id: '' as string,
   name: '', description: '', photo_url: '' as string | null,
-  category_id: '', cost_price: '0', sale_price: '0',
+  category_id: '', tipo_vitrine: '' as string, cost_price: '0', sale_price: '0',
   track_stock: false, stock_qty: '', stock_alert_qty: '',
   restrictDays: false, days: [] as number[],
   hasPromo: false, promo_type: 'percent' as 'percent' | 'fixed', promo_value: '15',
@@ -537,7 +539,7 @@ export default function CatalogoPage() {
     if (!data) return
     setForm({
       id: data.id, name: data.name, description: data.description || '', photo_url: data.photo_url,
-      category_id: data.category_id || '', cost_price: Number(data.cost_price).toFixed(2).replace('.', ','),
+      category_id: data.category_id || '', tipo_vitrine: data.tipo_vitrine || '', cost_price: Number(data.cost_price).toFixed(2).replace('.', ','),
       sale_price: Number(data.sale_price).toFixed(2).replace('.', ','),
       track_stock: data.track_stock, stock_qty: data.stock_qty ?? '', stock_alert_qty: data.stock_alert_qty ?? '',
       restrictDays: !!(data.available_days && data.available_days.length), days: data.available_days || [],
@@ -612,6 +614,7 @@ export default function CatalogoPage() {
     const payload = {
       company_id: companyId,
       category_id: form.category_id || null,
+      tipo_vitrine: form.tipo_vitrine || null,
       name: form.name.trim(),
       description: form.description.trim() || null,
       photo_url: photoUrl,
@@ -1051,6 +1054,14 @@ export default function CatalogoPage() {
                     <input placeholder="Nome da categoria" value={newCatName} onChange={e => setNewCatName(e.target.value)} />
                     <button className="cg-btn cg-btn-gold" style={{ padding: '9px 14px' }} onClick={addCategoria}>OK</button>
                   </div>}
+            </div>
+
+            <div className="cg-field">
+              <label>Tipo do produto (pra aparecer certinho na home)</label>
+              <select value={form.tipo_vitrine} onChange={e => setForm(f => ({ ...f, tipo_vitrine: e.target.value }))}>
+                <option value="">— não classificar —</option>
+                {VITRINE_TIPOS.map(t => <option key={t.value} value={t.value}>{t.emoji} {t.label}</option>)}
+              </select>
             </div>
 
             <div className="cg-field"><label>Descrição</label><textarea style={{ minHeight: 56 }} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>

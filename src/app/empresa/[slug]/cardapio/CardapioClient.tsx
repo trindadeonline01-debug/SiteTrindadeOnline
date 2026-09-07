@@ -1,0 +1,903 @@
+'use client'
+import { useEffect, useRef, useState, use } from 'react'
+import { supabase } from '@/lib/supabase'
+import { isOpenNow } from '@/lib/businessHours'
+import { type Produto, fmt, promoPrice, availableToday, isSoldOut, groupContribution, cartStorageKey, criarInteresseEAbrirWhatsapp } from '@/lib/lojaPricing'
+
+type Categoria = { id: string; name: string; display_order: number }
+type Coupon = { id: string; title: string; discount_type: 'fixed' | 'percent'; discount_value: number; min_purchase: number }
+type Company = {
+  id: string; name: string; slug: string; phone: string | null; address: string | null
+  avg_rating: number; total_reviews: number; status: string
+  loja_digital_enabled: boolean; flexible_hours?: boolean; store_paused?: boolean; store_forced_open?: boolean; owner_id?: string
+  loja_taxa_entrega: number; loja_pedido_minimo: number; loja_payment_methods?: string[]
+  loja_taxa_metodo?: 'bairro' | 'distancia'; loja_frete_gratis_acima?: number | null
+  hours?: any[]; photos?: { url: string; order: number }[]
+}
+const PAYMENT_LABELS: Record<string, string> = {
+  pix: 'Pix', dinheiro: 'Dinheiro', cartao: 'Cartão', cartao_credito: 'Cartão de crédito', cartao_debito: 'Cartão de débito',
+  vale_refeicao: 'Vale-refeição', vale_alimentacao: 'Vale-alimentação', picpay: 'PicPay',
+}
+type FreteInfo = { fee: number; blocked: boolean; reason?: string }
+type CartLine = { key: string; produtoId: string; name: string; modifiers: { name: string; price: number }[]; unitPrice: number; qty: number }
+
+export default function CardapioClient({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = use(params)
+  const [loading, setLoading] = useState(true)
+  const [company, setCompany] = useState<Company | null>(null)
+  const [categorias, setCategorias] = useState<Categoria[]>([])
+  const [produtos, setProdutos] = useState<Produto[]>([])
+  const [filterCat, setFilterCat] = useState('all')
+  useEffect(() => {
+    // Link de categoria (ESPECIFICACAO.md §9.2 — "olha só os combos") já
+    // abre o cardápio filtrado, sem precisar de rota própria por categoria.
+    const cat = new URLSearchParams(window.location.search).get('cat')
+    if (cat) setFilterCat(cat)
+  }, [])
+  const [search, setSearch] = useState('')
+  const [cart, setCart] = useState<CartLine[]>([])
+  const [detail, setDetail] = useState<Produto | null>(null)
+  const [detailSel, setDetailSel] = useState<number[][]>([])
+  const groupRefs = useRef<(HTMLDivElement | null)[]>([])
+  const catScrollRef = useRef<HTMLDivElement>(null)
+  function scrollCats(dir: number) { catScrollRef.current?.scrollBy({ left: dir * 220, behavior: 'smooth' }) }
+  const [detailQty, setDetailQty] = useState(1)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [deliveryType, setDeliveryType] = useState<'entrega' | 'retirada'>('entrega')
+  const [cep, setCep] = useState('')
+  const [cepLoading, setCepLoading] = useState(false)
+  const [cepError, setCepError] = useState(false)
+  const [numero, setNumero] = useState('')
+  const [cepData, setCepData] = useState<{ logradouro: string; bairro: string; localidade: string; uf: string } | null>(null)
+  const [address, setAddress] = useState('')
+  const [agendarRetirada, setAgendarRetirada] = useState(false)
+  const [scheduleDate, setScheduleDate] = useState('')
+  const [scheduleTime, setScheduleTime] = useState('')
+  const [obs, setObs] = useState('')
+  const [payMethod, setPayMethod] = useState<string>('pix')
+  const [precisaTroco, setPrecisaTroco] = useState<boolean | null>(null)
+  const [trocoPara, setTrocoPara] = useState('')
+  const [success, setSuccess] = useState(false)
+  const [confirming, setConfirming] = useState(false)
+  const [orderError, setOrderError] = useState<string | null>(null)
+  const [coupons, setCoupons] = useState<Coupon[]>([])
+  const [selectedCouponId, setSelectedCouponId] = useState<string | null>(null)
+  const [freteInfo, setFreteInfo] = useState<FreteInfo | null>(null)
+  const [freteLoading, setFreteLoading] = useState(false)
+
+  function getCompanyCover(photos?: { url: string; order: number }[]): string | null {
+    if (!photos?.length) return null
+    return [...photos].sort((a, b) => a.order - b.order)[0]?.url || null
+  }
+  function formatCep(v: string) { return v.replace(/\D/g, '').slice(0, 8).replace(/^(\d{5})(\d)/, '$1-$2') }
+  function buildAddress(data: { logradouro: string; bairro: string; localidade: string; uf: string }, num: string) {
+    return [data.logradouro + (num ? ', ' + num : ''), data.bairro, `${data.localidade}-${data.uf}`].filter(Boolean).join(', ')
+  }
+  async function handleCepChange(v: string) {
+    setCep(formatCep(v))
+    setCepError(false)
+    const digits = v.replace(/\D/g, '')
+    if (digits.length !== 8) return
+    setCepLoading(true)
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`)
+      const data = await res.json()
+      if (data.erro) { setCepError(true); setCepData(null) } else {
+        const parsed = { logradouro: data.logradouro || '', bairro: data.bairro || '', localidade: data.localidade || '', uf: data.uf || '' }
+        setCepData(parsed)
+        setAddress(buildAddress(parsed, numero))
+      }
+    } catch { setCepError(true) }
+    setCepLoading(false)
+  }
+  function handleNumeroChange(v: string) {
+    setNumero(v)
+    if (cepData) setAddress(buildAddress(cepData, v))
+  }
+
+  useEffect(() => {
+    supabase.from('companies')
+      .select('id,name,slug,phone,address,avg_rating,total_reviews,status,loja_digital_enabled,flexible_hours,store_paused,store_forced_open,owner_id,loja_taxa_entrega,loja_pedido_minimo,loja_payment_methods,loja_taxa_metodo,loja_frete_gratis_acima,hours:company_hours(label,hours,order,day_of_week,open_time,close_time,closed),photos:company_photos(url,order)')
+      .eq('slug', slug).maybeSingle()
+      .then(async ({ data: comp }) => {
+        if (!comp || comp.status !== 'active' || !comp.loja_digital_enabled) { setCompany(null); setLoading(false); return }
+        setCompany(comp as any)
+        const accepted = comp.loja_payment_methods?.length ? comp.loja_payment_methods : ['pix', 'dinheiro', 'cartao_credito']
+        setPayMethod(prev => (accepted.includes(prev) ? prev : accepted[0]) as any)
+        const [{ data: cats }, { data: prods }, { data: cps }] = await Promise.all([
+          supabase.from('loja_categorias').select('*').eq('company_id', comp.id).order('display_order'),
+          supabase.from('loja_produtos').select('*, groups:loja_opcoes_grupo(*, options:loja_opcoes(*))').eq('company_id', comp.id).eq('active', true).order('display_order'),
+          supabase.from('coupons').select('id,title,discount_type,discount_value,min_purchase').eq('company_id', comp.id).eq('active', true).gt('expires_at', new Date().toISOString()).order('created_at', { ascending: false }),
+        ])
+        setCategorias(cats || [])
+        setProdutos(((prods || []) as any[]).filter(availableToday))
+        setCoupons((cps || []) as Coupon[])
+        setLoading(false)
+      })
+    let restoredCart = false
+    try {
+      const saved = localStorage.getItem(cartStorageKey(slug))
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed.cart) && parsed.cart.length > 0) {
+          setCart(parsed.cart)
+          setDeliveryType(parsed.deliveryType || 'entrega')
+          setCep(parsed.cep || '')
+          setNumero(parsed.numero || '')
+          setCepData(parsed.cepData || null)
+          setAddress(parsed.address || '')
+          setAgendarRetirada(!!parsed.agendarRetirada)
+          setScheduleDate(parsed.scheduleDate || '')
+          setScheduleTime(parsed.scheduleTime || '')
+          setObs(parsed.obs || '')
+          setPayMethod(parsed.payMethod || 'pix')
+          setPrecisaTroco(parsed.precisaTroco ?? null)
+          setTrocoPara(parsed.trocoPara || '')
+          setDrawerOpen(true)
+          restoredCart = true
+        }
+        localStorage.removeItem(cartStorageKey(slug))
+      }
+    } catch {}
+
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session || restoredCart) return
+      const { data: profile } = await supabase.from('profiles').select('address').eq('id', session.user.id).maybeSingle()
+      if (profile?.address) setAddress(profile.address)
+    })
+  }, [slug])
+
+  // Taxa de entrega por bairro/distância (ESPECIFICACAO — cálculo mora no
+  // servidor porque a chave do OpenRouteService não pode vazar pro cliente).
+  // Sem CEP resolvido ainda, cai no fallback de company.loja_taxa_entrega.
+  useEffect(() => {
+    if (!company || deliveryType !== 'entrega' || !cepData?.bairro) { setFreteInfo(null); return }
+    let cancelled = false
+    setFreteLoading(true)
+    fetch('/api/loja/calcular-frete', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ company_id: company.id, bairro: cepData.bairro, cidade: cepData.localidade, uf: cepData.uf, logradouro: cepData.logradouro, numero }),
+    }).then(r => r.json()).then(data => {
+      if (cancelled) return
+      setFreteInfo(data?.ok ? { fee: Number(data.fee) || 0, blocked: !!data.blocked, reason: data.reason } : null)
+    }).catch(() => { if (!cancelled) setFreteInfo(null) })
+      .finally(() => { if (!cancelled) setFreteLoading(false) })
+    return () => { cancelled = true }
+  }, [company?.id, deliveryType, cepData?.bairro, cepData?.localidade, cepData?.uf, cepData?.logradouro, numero])
+
+  function addToCart(produtoId: string, name: string, price: number, qty: number, modifiers: { name: string; price: number }[] = []) {
+    // Segunda trava, além dos cliques já bloqueados na lista — protege
+    // contra qualquer chamada que escape do fluxo normal (ex: modal já
+    // aberto no momento em que a loja é pausada).
+    if (company && !isOpenNow(company.hours as any, company.flexible_hours, company.store_paused, company.store_forced_open)) return
+    const key = produtoId + '|' + modifiers.map(m => m.name).sort().join('+')
+    setCart(prev => {
+      const existing = prev.find(l => l.key === key)
+      if (existing) return prev.map(l => l.key === key ? { ...l, qty: l.qty + qty } : l)
+      return [...prev, { key, produtoId, name, modifiers, unitPrice: price, qty }]
+    })
+  }
+  const [flashId, setFlashId] = useState<string | null>(null)
+  function quickAdd(p: Produto, price: number) {
+    addToCart(p.id, p.name, price, 1)
+    setFlashId(p.id)
+    setTimeout(() => setFlashId(id => id === p.id ? null : id), 500)
+  }
+  function changeCartQty(key: string, delta: number) {
+    setCart(prev => prev.flatMap(l => {
+      if (l.key !== key) return [l]
+      const qty = l.qty + delta
+      return qty <= 0 ? [] : [{ ...l, qty }]
+    }))
+  }
+  function removeCartLine(key: string) {
+    setCart(prev => prev.filter(l => l.key !== key))
+  }
+  const cartTotal = cart.reduce((s, l) => s + l.unitPrice * l.qty, 0)
+  const cartCount = cart.reduce((s, l) => s + l.qty, 0)
+
+  function openDetail(p: Produto) { setDetail(p); setDetailSel(p.groups.map(() => [])); setDetailQty(1) }
+  // Grupo com máximo 1 (ex: tamanho) continua radio — escolher a mesma opção
+  // duas vezes não faz sentido aí. Grupos com máximo maior (ex: "escolha até
+  // 3 molhos") permitem repetir a MESMA opção várias vezes (pedir o mesmo
+  // molho 3x, em vez de ser forçado a escolher 3 molhos diferentes).
+  function toggleRadio(gi: number, oi: number) {
+    if (!detail) return
+    setDetailSel(sel => sel.map((s, i) => (i === gi ? (s.includes(oi) ? [] : [oi]) : s)))
+  }
+  function addOpt(gi: number, oi: number) {
+    if (!detail) return
+    const g = detail.groups[gi]
+    const o = g.options[oi]
+    setDetailSel(sel => {
+      const cur = sel[gi] || []
+      if (cur.length >= g.max_select) return sel
+      if (o.max_qty != null && cur.filter(x => x === oi).length >= o.max_qty) return sel
+      const next = sel.map((s, i) => (i === gi ? [...s, oi] : s))
+      // Ao completar um grupo (bater o máximo de escolhas), rola sozinho até
+      // o próximo grupo — evita o cliente ter que descer a tela na mão pra
+      // achar a próxima etapa (ex: escolheu os 2 sabores, já mostra a borda).
+      if (next[gi].length === g.max_select && next[gi].length !== cur.length) {
+        const nextEl = groupRefs.current[gi + 1]
+        if (nextEl) setTimeout(() => nextEl.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150)
+      }
+      return next
+    })
+  }
+  function removeOpt(gi: number, oi: number) {
+    setDetailSel(sel => sel.map((s, i) => {
+      if (i !== gi) return s
+      const idx = s.indexOf(oi)
+      if (idx === -1) return s
+      const next = [...s]; next.splice(idx, 1); return next
+    }))
+  }
+  const detailUnitPrice = detail ? (promoPrice(detail) ?? detail.sale_price) + detail.groups.reduce((s, g, gi) => s + groupContribution(g, detailSel[gi]), 0) : 0
+  const detailReqMet = detail ? detail.groups.every((g, gi) => !g.required || detailSel[gi].length >= g.min_select) : true
+
+  function confirmAddDetail() {
+    if (!detail || !detailReqMet) return
+    const modifiers: { name: string; price: number }[] = []
+    detail.groups.forEach((g, gi) => {
+      const counts = new Map<number, number>()
+      ;(detailSel[gi] || []).forEach(oi => counts.set(oi, (counts.get(oi) || 0) + 1))
+      counts.forEach((qty, oi) => {
+        const o = g.options[oi]
+        modifiers.push({ name: qty > 1 ? `${o.name} x${qty}` : o.name, price: o.price * qty })
+      })
+    })
+    addToCart(detail.id, detail.name, detailUnitPrice, detailQty, modifiers)
+    setDetail(null)
+  }
+
+  async function confirmOrder() {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      try {
+        localStorage.setItem(cartStorageKey(slug), JSON.stringify({
+          cart, deliveryType, cep, numero, cepData, address, agendarRetirada, scheduleDate, scheduleTime, obs, payMethod, precisaTroco, trocoPara,
+        }))
+      } catch {}
+      window.location.href = `/login?redirect=/empresa/${slug}/cardapio`
+      return
+    }
+    if (!company || cart.length === 0) return
+    if (Number(company.loja_pedido_minimo || 0) > 0 && cartTotal < Number(company.loja_pedido_minimo)) return
+    if (deliveryType === 'entrega' && !address.trim()) return
+    if (deliveryType === 'entrega' && freteBlocked) return
+    if (trocoIncompleto) return
+    setConfirming(true)
+    setOrderError(null)
+    const taxa = taxaEntrega
+    // orderTotal já desconta o cupom aplicado (var. calculada no corpo do
+    // componente) — usar cartTotal+taxa aqui de novo ignorava o desconto no
+    // pedido salvo de verdade, mesmo a tela mostrando o valor certo.
+    const total = orderTotal
+    const scheduledFor = deliveryType === 'retirada' && agendarRetirada && scheduleDate && scheduleTime
+      ? new Date(`${scheduleDate}T${scheduleTime}`).toISOString() : null
+    const { data: profile } = await supabase.from('profiles').select('name, phone').eq('id', session.user.id).maybeSingle()
+    const { data: pedido, error: pedidoError } = await supabase.from('loja_pedidos').insert({
+      company_id: company.id, customer_id: session.user.id,
+      customer_name: profile?.name || 'Cliente', customer_phone: profile?.phone || null,
+      delivery_address: deliveryType === 'entrega' ? address : null, delivery_type: deliveryType, scheduled_for: scheduledFor,
+      origin: 'cardapio_publico', payment_method: payMethod,
+      subtotal: cartTotal, total, notes: finalNotes || null,
+    }).select('id').single()
+    // Antes, um erro aqui (RLS, rede, etc.) passava batido: `pedido` vinha
+    // null, o bloco abaixo era pulado, mas `setSuccess(true)` rodava do
+    // mesmo jeito — cliente via "Pedido enviado!" e nada chegava na loja.
+    if (pedidoError || !pedido) {
+      console.error('Erro ao criar pedido:', pedidoError)
+      setConfirming(false)
+      setOrderError('Não deu pra enviar seu pedido agora. Tenta de novo em alguns segundos.')
+      return
+    }
+    const { error: itensError } = await supabase.from('loja_pedido_itens').insert(cart.map(l => ({
+      pedido_id: pedido.id, produto_id: l.produtoId, product_name: l.name, unit_price: l.unitPrice, qty: l.qty,
+      selected_options: l.modifiers,
+    })))
+    // Sem isso, um erro aqui deixava o pedido salvo com o valor total mas
+    // ZERO itens — a loja recebia um pedido "vazio" e o cliente via
+    // "Pedido enviado!" do mesmo jeito. Desfaz o pedido (compensação, já
+    // que não dá pra fazer os dois inserts numa transação única daqui) e
+    // avisa o cliente pra tentar de novo, em vez de fingir sucesso.
+    if (itensError) {
+      console.error('Erro ao salvar itens do pedido:', itensError)
+      await supabase.from('loja_pedidos').delete().eq('id', pedido.id)
+      setConfirming(false)
+      setOrderError('Não deu pra enviar seu pedido agora. Tenta de novo em alguns segundos.')
+      return
+    }
+    if (selectedCoupon && couponEligible(selectedCoupon)) {
+      const code = 'TRD-' + Math.random().toString(36).substring(2, 6).toUpperCase()
+      await supabase.from('coupon_redemptions').insert({ coupon_id: selectedCoupon.id, user_id: session.user.id, code, status: 'used', used_at: new Date().toISOString() })
+    }
+    fetch('/api/loja/registrar-pedido', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        companyId: company.id, pedidoId: pedido.id, phone: profile?.phone || null, name: profile?.name || 'Cliente',
+        address: deliveryType === 'entrega' ? address : null, total, subtotal: cartTotal, deliveryFee: taxa,
+        paymentMethod: payMethod, deliveryType, notes: finalNotes || null,
+        items: cart.map(l => ({ produtoId: l.produtoId, name: l.name, qty: l.qty, unitPrice: l.unitPrice, modifiers: l.modifiers })),
+      }),
+    }).catch(() => {})
+    if (company.owner_id) {
+      fetch('/api/push/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: `Novo pedido — ${company.name}`,
+          body: `${profile?.name || 'Cliente'} pediu ${fmt(total)}`,
+          target: 'external_user_id', userId: company.owner_id,
+          url: `${window.location.origin}/painel/pedidos`,
+        }),
+      }).catch(() => {})
+    }
+    setConfirming(false)
+    setSuccess(true)
+    setTimeout(() => {
+      setDrawerOpen(false); setSuccess(false); setCart([]); setObs('')
+      setAgendarRetirada(false); setScheduleDate(''); setScheduleTime(''); setSelectedCouponId(null)
+      setPrecisaTroco(null); setTrocoPara('')
+    }, 2500)
+  }
+
+  // Alternativa mais leve ao checkout completo — não pede login nem
+  // endereço, só registra o interesse e abre o WhatsApp com o carrinho já
+  // formatado. O lojista fecha a venda na própria conversa.
+  const [sendingWa, setSendingWa] = useState(false)
+  const [waFallbackUrl, setWaFallbackUrl] = useState<string | null>(null)
+  async function sendCartWhatsapp() {
+    if (!company?.phone || cart.length === 0 || sendingWa) return
+    setSendingWa(true)
+    setWaFallbackUrl(null)
+    // Abre a aba em branco JÁ, antes de qualquer await — depois de um
+    // await o navegador não trata mais isso como resposta direta ao
+    // clique e bloqueia como pop-up (Safari principalmente).
+    const waWindow = window.open('', '_blank')
+    try {
+      if (selectedCoupon && couponEligible(selectedCoupon)) {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session) {
+          const code = 'TRD-' + Math.random().toString(36).substring(2, 6).toUpperCase()
+          await supabase.from('coupon_redemptions').insert({ coupon_id: selectedCoupon.id, user_id: session.user.id, code, status: 'used', used_at: new Date().toISOString() })
+        }
+      }
+      const { url, blocked } = await criarInteresseEAbrirWhatsapp({
+        supabase, companyId: company.id, companyPhone: company.phone,
+        itens: cart.map(l => ({ produto_id: l.produtoId, nome: l.name + (l.modifiers.length ? ' (' + l.modifiers.map(m => m.name).join(', ') + ')' : ''), qtd: l.qty, preco_unitario: l.unitPrice })),
+        valorTotal: orderTotal, deliveryType,
+        cupomLabel: discount > 0 && selectedCoupon ? `${selectedCoupon.title} (− ${fmt(discount)})` : undefined,
+        notasLabel: finalNotes || undefined,
+        waWindow,
+      })
+      if (blocked) { setWaFallbackUrl(url); return }
+      setDrawerOpen(false); setCart([]); setSelectedCouponId(null)
+      setPrecisaTroco(null); setTrocoPara('')
+    } catch {
+      waWindow?.close()
+      setOrderError('Não deu pra abrir o WhatsApp agora. Tenta de novo em alguns segundos.')
+    } finally {
+      setSendingWa(false)
+    }
+  }
+
+  if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Archivo,sans-serif', color: '#AAA', background: 'var(--concrete)' }}>Carregando...</div>
+  if (!company) return (
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'Archivo,sans-serif', background: 'var(--concrete)', padding: 24, textAlign: 'center' }}>
+      <div style={{ fontSize: 44, marginBottom: 12 }}>🍽️</div>
+      <div style={{ fontWeight: 700 }}>Cardápio não disponível</div>
+    </div>
+  )
+
+  const open = isOpenNow(company.hours as any, company.flexible_hours, company.store_paused, company.store_forced_open)
+  const freteBaseFee = freteInfo ? freteInfo.fee : Number(company.loja_taxa_entrega || 0)
+  const freteBlocked = deliveryType === 'entrega' && !!freteInfo?.blocked
+  const freteGratisAcima = Number(company.loja_frete_gratis_acima || 0)
+  const taxaEntrega = deliveryType === 'entrega' ? (freteGratisAcima > 0 && cartTotal >= freteGratisAcima ? 0 : freteBaseFee) : 0
+  const couponEligible = (c: Coupon) => cartTotal >= Number(c.min_purchase || 0)
+  const couponDiscount = (c: Coupon) => c.discount_type === 'fixed' ? Math.min(Number(c.discount_value), cartTotal) : Math.round(cartTotal * (Number(c.discount_value) / 100) * 100) / 100
+  const selectedCoupon = coupons.find(c => c.id === selectedCouponId) || null
+  const discount = selectedCoupon && couponEligible(selectedCoupon) ? couponDiscount(selectedCoupon) : 0
+  const orderTotal = Math.max(0, cartTotal - discount) + taxaEntrega
+  const abaixoMinimo = Number(company.loja_pedido_minimo || 0) > 0 && cartTotal < Number(company.loja_pedido_minimo)
+  const trocoParaNum = Number(trocoPara.replace(',', '.')) || 0
+  // Troco só é obrigatório escolher (sim/não) quando o pagamento é dinheiro;
+  // se escolheu "sim", o valor tem que pelo menos cobrir o total do pedido.
+  const trocoIncompleto = payMethod === 'dinheiro' && (precisaTroco === null || (precisaTroco === true && (!trocoPara || trocoParaNum < orderTotal)))
+  const finalNotes = [
+    payMethod === 'dinheiro' && precisaTroco === true && trocoParaNum > 0 ? `Troco para ${fmt(trocoParaNum)}` : null,
+    obs.trim() || null,
+  ].filter(Boolean).join(' · ')
+  const searchTerm = search.trim().toLowerCase()
+  const filtered = produtos
+    .filter(p => filterCat === 'all' || p.category_id === filterCat)
+    .filter(p => !searchTerm || p.name.toLowerCase().includes(searchTerm))
+  const maisPedidos = !searchTerm ? [...produtos].filter(p => p.total_pedidos > 0 && !isSoldOut(p)).sort((a, b) => b.total_pedidos - a.total_pedidos).slice(0, 4) : []
+
+  return (
+    <div className="cd-wrap">
+      <style>{`
+        .cd-wrap{ max-width:480px;margin:0 auto;min-height:100vh;background:var(--concrete);font-family:'Archivo',sans-serif;font-size:13px;color:var(--ink);position:relative;overflow-x:hidden;padding-bottom:${cart.length ? '90px' : '20px'}; }
+        @media(min-width:900px){ .cd-wrap{ max-width:1120px; } }
+        /* Topo e hero escapam do max-width do .cd-wrap pra ficar de ponta a
+           ponta na tela, igual à página de categoria — só o conteúdo abaixo
+           (busca, categorias, cardápio) fica limitado a 1120px. */
+        .cd-top{ background:var(--ink);padding:22px 16px 10px;text-align:center;width:100vw;margin-left:calc(50% - 50vw); }
+        .cd-bc{ font-size:11px;color:#fff;font-weight:700; }
+        .cd-bc a{ color:var(--sign);text-decoration:none; }
+        .cd-pagehero{ background:var(--ink);padding:32px 24px 28px;border-bottom:2px solid var(--sign);width:100vw;margin-left:calc(50% - 50vw); }
+        .cd-pagehero-inner{ display:flex;align-items:center;justify-content:center;gap:18px; }
+        .cd-pagehero-img{ width:74px;height:74px;border-radius:12px;overflow:hidden;position:relative;flex-shrink:0;border:2px solid var(--sign);display:flex;align-items:center;justify-content:center;background:linear-gradient(155deg,var(--sign-dark),#B8841A);color:#fff;font-weight:800;font-size:22px; }
+        .cd-pagehero-img img{ width:100%;height:100%;object-fit:cover; }
+        .cd-pagehero-title{ font-family:'Anton',sans-serif;font-size:clamp(28px,5vw,42px);color:#fff;letter-spacing:1px;text-transform:uppercase;line-height:1;margin-bottom:6px; }
+        .cd-pagehero-cnt{ display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px;font-size:13px;color:#999;font-family:'Archivo',sans-serif; }
+        .cd-pagehero-cnt .op{ color:#4ADE80;font-weight:600; }
+        .cd-pagehero-cnt .cl{ color:#F87171;font-weight:600; }
+        .cd-pagehero-cnt .st{ color:var(--sign); }
+        .cd-coupon-strip-wrap{ background:#fff;padding:8px 0;border-bottom:1px solid var(--line); }
+        .cd-coupon-strip{ display:flex;gap:6px;overflow-x:auto;padding:0 16px;scrollbar-width:none; }
+        .cd-coupon-strip::-webkit-scrollbar{ display:none; }
+        @media(min-width:900px){ .cd-coupon-strip{ max-width:1120px;margin:0 auto; } }
+        .cd-coupon-chip{ flex:0 0 auto;display:flex;align-items:center;gap:6px;background:var(--ink);border-radius:20px;padding:6px 12px 6px 8px;white-space:nowrap; }
+        .cd-coupon-chip-val{ color:var(--sign);font-size:11px;font-weight:800; }
+        .cd-coupon-chip-rule{ color:#B8B0A0;font-size:9.5px; }
+        .cd-search-wrap{ background:var(--concrete);padding:0 16px; }
+        @media(min-width:900px){ .cd-search-wrap{ max-width:760px;margin:0 auto; } }
+        .cd-search-inner{ transform:translateY(-20px); }
+        .cd-search-bar{ display:flex;align-items:center;gap:10px;background:var(--sign);border:2.5px solid var(--ink);border-radius:14px;padding:13px 18px;box-shadow:4px 4px 0 var(--ink); }
+        .cd-search-bar input{ flex:1;border:none;background:transparent;font-size:14px;font-family:'Archivo',sans-serif;font-weight:500;color:var(--ink);outline:none; }
+        .cd-search-bar input::placeholder{ color:var(--ink-2);opacity:.55; }
+        .cd-catbar-wrap{ position:sticky;top:0;z-index:15;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:6px;padding:10px 12px; }
+        .cd-catbar{ display:flex;gap:8px;overflow-x:auto;scroll-behavior:smooth;scrollbar-width:none;flex:1;min-width:0; }
+        .cd-catbar::-webkit-scrollbar{ display:none; }
+        .cd-catchip{ flex:none;font-size:12px;font-weight:700;padding:7px 14px;border-radius:20px;background:#fff;border:1px solid #EDE8E0;color:#555;cursor:pointer; }
+        .cd-catchip.active{ background:var(--ink);color:var(--sign);border-color:var(--ink); }
+        .cd-cat-arrow{ display:none; }
+        @media(min-width:768px){
+          .cd-cat-arrow{ flex:none;display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;border:1px solid #EDE8E0;background:#fff;color:var(--ink);font-size:15px;font-weight:700;cursor:pointer; }
+          .cd-cat-arrow:hover{ border-color:var(--sign-dark);color:var(--sign-dark); }
+        }
+        .cd-menu{ padding:2px 16px; }
+        .cd-hot-row{ display:flex;gap:10px;overflow-x:auto;padding:2px 2px 10px; }
+        .cd-hot-card{ flex:none;width:140px;background:#fff;border:1px solid #EDE8E0;border-radius:12px;padding:8px;cursor:pointer;transition:transform .3s; }
+        .cd-hot-card.cd-flash{ animation:cdFlash .5s ease; border-color:var(--sign-dark); }
+        .cd-hot-photo{ width:100%;height:82px;border-radius:8px;background:linear-gradient(135deg,#FBF1DC,#F0EDE8);display:flex;align-items:center;justify-content:center;font-size:22px;overflow:hidden;margin-bottom:6px; }
+        .cd-hot-photo img{ width:100%;height:100%;object-fit:cover; }
+        .cd-hot-name{ font-size:11px;font-weight:700;line-height:1.3; }
+        .cd-hot-price{ font-size:11px;font-weight:800;margin-top:3px; }
+        .cd-sec{ font-size:17px;font-weight:800;letter-spacing:.01em;color:#1A1610;margin:26px 2px 10px;padding-left:11px;border-left:4px solid var(--sign-dark);line-height:1.2; }
+        .cd-prowgroup{ background:#fff;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.04);overflow:hidden; }
+        .cd-prow{ display:flex;gap:11px;padding:11px 12px;border-bottom:1px solid #EFEAE0;align-items:center;cursor:pointer;transition:background .3s,transform .3s; }
+        .cd-prowgroup .cd-prow:last-child{ border-bottom:none; }
+        .cd-prow.cd-flash{ animation:cdFlash .5s ease; }
+        @keyframes cdFlash{ 0%{ background:#FBF1DC; } 35%{ background:#F5DFA0; transform:scale(1.012); } 100%{ background:transparent; transform:scale(1); } }
+        .cd-prow-soldout{ cursor:default;opacity:.55; }
+        .cd-prow-soldout .cd-pphoto{ filter:grayscale(1); }
+        .cd-prow-closed{ cursor:default;opacity:.65; }
+        .cd-prow-closed .cd-pphoto{ filter:grayscale(1); }
+        .cd-hot-card-closed{ cursor:default;opacity:.65; }
+        .cd-hot-card-closed .cd-hot-photo{ filter:grayscale(1); }
+        .cd-pphoto{ width:66px;height:66px;border-radius:11px;background:linear-gradient(135deg,#FBF1DC,#F0EDE8);display:flex;align-items:center;justify-content:center;font-size:22px;position:relative;overflow:hidden; }
+        .cd-pphoto img{ width:100%;height:100%;object-fit:cover; }
+        .cd-badge{ position:absolute;top:-6px;left:-6px;background:#E24B4A;color:#fff;font-size:9px;font-weight:800;padding:2px 6px;border-radius:6px; }
+        .cd-pmid{ flex:1;min-width:0; }
+        .cd-pname{ font-size:13px;font-weight:700; }
+        .cd-pdesc{ font-size:11px;color:#AAA;margin-top:2px; }
+        .cd-pprice{ font-size:13px;font-weight:800;margin-top:4px; }
+        .cd-pprice.was{ font-size:10.5px;color:#AAA;text-decoration:line-through;margin-left:5px;font-weight:600; }
+        .cd-addbtn{ flex:none;width:30px;height:30px;border-radius:9px;border:1.5px solid var(--sign-dark);background:#FEF3E2;color:var(--sign-dark);font-size:16px;font-weight:800;cursor:pointer;transition:background .2s,color .2s,transform .2s; }
+        .cd-addbtn.added{ background:var(--sign-dark);color:#fff;transform:scale(1.12); }
+        .cd-chev{ flex:none;width:26px;height:26px;border-radius:50%;border:none;background:#F0EDE8;color:#AAA;font-size:13px;font-weight:800;cursor:pointer; }
+        /* Desktop — vira grade de cards (ESPECIFICACAO.md §10.3): mobile é
+           lista compacta com foto pequena, desktop é grade com foto grande
+           no topo do card, um card por produto. */
+        @media(min-width:768px){
+          .cd-prowgroup{ display:grid;grid-template-columns:repeat(3,1fr);gap:14px;background:transparent;box-shadow:none;border-radius:0; }
+          .cd-prow{ display:grid;grid-template-columns:1fr auto;grid-template-rows:auto 1fr;gap:0 8px;background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:12px;border-bottom:1.5px solid var(--line);box-shadow:0 1px 3px rgba(0,0,0,.06); }
+          .cd-pphoto{ grid-column:1/-1;grid-row:1;align-self:start;width:100%;height:150px;border-radius:10px; }
+          .cd-badge{ top:8px;left:8px; }
+          .cd-pmid{ grid-row:2;align-self:end;margin-top:10px; }
+          .cd-pname{ font-size:14px; }
+          .cd-pprice{ font-size:17px;margin-top:8px; }
+          .cd-prow > .cd-chev, .cd-prow > .cd-addbtn{ grid-row:2;align-self:end;margin:0; }
+        }
+        @media(min-width:1024px){ .cd-prowgroup{ grid-template-columns:repeat(4,1fr); } }
+        .cd-cartbar{ position:fixed;left:50%;transform:translateX(-50%);bottom:16px;width:calc(100% - 32px);max-width:448px;padding:13px 16px;border-radius:16px;background:var(--sign);color:var(--ink);display:flex;align-items:center;justify-content:space-between;box-shadow:0 10px 24px -8px rgba(0,0,0,.35);cursor:pointer;z-index:10000; }
+        .cd-overlay{ position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9990;display:${detail || drawerOpen ? 'block' : 'none'}; }
+        .cd-detail{ position:fixed;top:0;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:#F0EDE8;z-index:10000;display:flex;flex-direction:column;overflow:hidden; }
+        .cd-hero{ height:200px;flex:none;background:linear-gradient(135deg,#FBF1DC,#E7DCC2);display:flex;align-items:center;justify-content:center;font-size:54px;position:relative;overflow:hidden; }
+        .cd-hero img{ width:100%;height:100%;object-fit:cover; }
+        .cd-hero-scrim{ position:absolute;top:0;left:0;right:0;height:70px;background:linear-gradient(180deg,rgba(0,0,0,.32),transparent);z-index:1; }
+        .cd-herobtn{ position:absolute;top:14px;right:14px;width:38px;height:38px;border-radius:50%;background:rgba(20,15,8,.55);backdrop-filter:blur(3px);border:1px solid rgba(255,255,255,.3);font-size:19px;font-weight:800;color:#fff;cursor:pointer;z-index:2;box-shadow:0 3px 10px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center; }
+        .cd-dscroll{ flex:1;overflow-y:auto;padding:16px; }
+        .cd-optgroup{ border-top:7px solid #F0EDE8;margin:0 -16px; }
+        .cd-og-head{ background:#FBF1DC;padding:11px 16px;display:flex;align-items:center;gap:8px; }
+        .cd-og-mid{ flex:1;min-width:0; }
+        .cd-og-name{ font-weight:800;font-size:13.5px; }
+        .cd-og-sub{ font-size:10px;color:#8A6410;margin-top:1px; }
+        .cd-og-req{ flex:none;background:#C43D3D;color:#fff;font-size:9px;font-weight:800;padding:3px 7px;border-radius:6px;letter-spacing:.03em; }
+        .cd-og-count{ flex:none;background:var(--sign-dark);color:#fff;font-size:10px;font-weight:800;padding:3px 8px;border-radius:20px;font-variant-numeric:tabular-nums; }
+        .cd-orow{ display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:0.5px solid #EDE8E0;cursor:pointer; }
+        .cd-oimg{ width:42px;height:42px;border-radius:9px;overflow:hidden;flex:none;background:#F0EDE8; }
+        .cd-oimg img{ width:100%;height:100%;object-fit:cover; }
+        .cd-omax{ font-size:9.5px;color:#AAA;margin-top:1px; }
+        .cd-ocheck{ width:20px;height:20px;border:1.5px solid #D8D2C4;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex:none; }
+        .cd-ocheck.radio{ border-radius:50%; }
+        .cd-ocheck.active{ background:var(--sign-dark);border-color:var(--sign-dark); }
+        .cd-oplus{ flex:none;width:26px;height:26px;border-radius:50%;border:1.5px solid var(--sign-dark);color:#8A6410;background:#FEF3E2;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center; }
+        .cd-oplus.active{ background:var(--sign-dark);color:#fff;border-color:var(--sign-dark); }
+        .cd-oplus.disabled{ opacity:.35;border-color:#D8D2C4;color:#AAA;background:#F5F2EC; }
+        .cd-ostepper{ flex:none;display:flex;align-items:center;gap:8px; }
+        .cd-ostepper span{ min-width:14px;text-align:center;font-weight:800;font-size:13px; }
+        .cd-ostepper button{ width:24px;height:24px;border-radius:50%;border:1.5px solid var(--sign-dark);background:var(--sign-dark);color:#fff;font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer; }
+        .cd-ostepper button:disabled{ opacity:.35;border-color:#D8D2C4;background:#D8D2C4;cursor:default; }
+        .cd-dfoot{ flex:none;background:#fff;border-top:1px solid #EDE8E0;padding:12px 16px 16px;display:flex;gap:10px; }
+        .cd-addcart{ flex:1;padding:14px;border-radius:12px;border:none;background:var(--sign);color:var(--ink);font-weight:800;font-size:13px;cursor:pointer; }
+        .cd-addcart:disabled{ background:#E2DCCB;color:#A79E8B; }
+        .cd-drawer{ position:fixed;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:#fff;z-index:10000;border-radius:20px 20px 0 0;max-height:88vh;display:flex;flex-direction:column; }
+        .cd-dhead{ padding:16px;border-bottom:1px solid #EDE8E0;display:flex;justify-content:space-between;align-items:center; }
+        .cd-dbody{ flex:1;overflow-y:auto;padding:14px 16px; }
+        .cd-diinput{ width:100%;padding:10px 12px;border-radius:10px;border:1px solid #EDE8E0;background:#F0EDE8;font-size:13px;font-family:inherit; }
+        .cd-paychip{ padding:8px 13px;border-radius:20px;border:1.5px solid #EDE8E0;background:#fff;font-size:12px;font-weight:700;cursor:pointer;margin-right:8px; }
+        .cd-paychip.active{ background:var(--ink);color:var(--sign);border-color:var(--ink); }
+        .cd-totalrow{ display:flex;justify-content:space-between;padding-top:12px;margin-top:8px;border-top:1px dashed #EDE8E0;font-weight:800;font-size:16px; }
+        .cd-coupon-card{ display:flex;align-items:center;gap:8px;border-radius:10px;padding:8px 10px;margin-bottom:6px;cursor:pointer;border:1.5px solid #EDE8E0;background:#fff; }
+        .cd-coupon-card-icon{ flex:none;width:34px;height:34px;border-radius:8px;background:#F0EDE8;color:var(--sign-dark);font-family:'Anton',sans-serif;font-size:9.5px;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.05; }
+        .cd-coupon-card-mid{ flex:1;min-width:0; }
+        .cd-coupon-card-title{ font-size:12px;font-weight:800; }
+        .cd-coupon-card-sub{ font-size:10px;color:#AAA;margin-top:1px; }
+        .cd-coupon-card-radio{ flex:none;width:18px;height:18px;border-radius:50%;border:1.5px solid #EDE8E0;position:relative; }
+        .cd-coupon-card.selected{ border-color:var(--open);background:rgba(15,138,87,.06); }
+        .cd-coupon-card.selected .cd-coupon-card-icon{ background:var(--open);color:#fff; }
+        .cd-coupon-card.selected .cd-coupon-card-radio{ border-color:var(--open);background:var(--open); }
+        .cd-coupon-card.selected .cd-coupon-card-radio::after{ content:'✓';position:absolute;inset:0;color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center; }
+        .cd-coupon-card.selected .cd-coupon-card-sub{ color:var(--open);font-weight:700; }
+        .cd-coupon-card.locked{ cursor:default;opacity:.6; }
+        .cd-coupon-card.locked .cd-coupon-card-radio{ display:flex;align-items:center;justify-content:center;font-size:9.5px;border:none; }
+      `}</style>
+
+      <div className="cd-top"><div className="cd-bc"><a href="/">Trindade Online</a> › <a href={`/empresa/${company.slug}`}>{company.name}</a> › Cardápio</div></div>
+
+      <div className="cd-pagehero"><div className="cd-pagehero-inner">
+        <div className="cd-pagehero-img">
+          {getCompanyCover(company.photos) ? <img src={getCompanyCover(company.photos)!} alt="" /> : company.name.slice(0, 2).toUpperCase()}
+        </div>
+        <div>
+          <div className="cd-pagehero-title">CARDÁPIO</div>
+          <div className="cd-pagehero-cnt">
+            <span>{company.name}</span>
+            <span className={open ? 'op' : 'cl'}>· {open ? '● Aberto agora' : '● Fechado agora'}</span>
+            {Number(company.avg_rating || 0) > 0 && (
+              <span><span className="st">★</span> {Number(company.avg_rating).toFixed(1)} ({company.total_reviews || 0})</span>
+            )}
+          </div>
+        </div>
+      </div></div>
+
+      {coupons.length > 0 && (
+        <div className="cd-coupon-strip-wrap"><div className="cd-coupon-strip">
+          {coupons.map(c => (
+            <div className="cd-coupon-chip" key={c.id}>
+              <span>🎟️</span>
+              <span className="cd-coupon-chip-val">{c.discount_type === 'fixed' ? fmt(Number(c.discount_value)) : `${c.discount_value}%`} OFF</span>
+              {Number(c.min_purchase || 0) > 0 && <span className="cd-coupon-chip-rule">acima de {fmt(Number(c.min_purchase))}</span>}
+            </div>
+          ))}
+        </div></div>
+      )}
+
+      <div className="cd-search-wrap"><div className="cd-search-inner"><div className="cd-search-bar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input placeholder="Buscar no cardápio..." value={search} onChange={e => setSearch(e.target.value)} />
+      </div></div></div>
+
+      <div className="cd-catbar-wrap">
+        <button className="cd-cat-arrow" onClick={() => scrollCats(-1)} aria-label="Anterior">‹</button>
+        <div className="cd-catbar" ref={catScrollRef}>
+          <button className={`cd-catchip ${filterCat === 'all' ? 'active' : ''}`} onClick={() => setFilterCat('all')}>Tudo</button>
+          {categorias.map(c => <button key={c.id} className={`cd-catchip ${filterCat === c.id ? 'active' : ''}`} onClick={() => setFilterCat(c.id)}>{c.name}</button>)}
+        </div>
+        <button className="cd-cat-arrow" onClick={() => scrollCats(1)} aria-label="Próximo">›</button>
+      </div>
+
+      {maisPedidos.length > 0 && (
+        <div className="cd-menu">
+          <div className="cd-sec">🔥 Mais pedidos</div>
+          <div className="cd-hot-row">
+            {maisPedidos.map(p => {
+              const promo = promoPrice(p)
+              const hasOpts = p.groups && p.groups.length > 0
+              return (
+                <div className={`cd-hot-card ${!open ? 'cd-hot-card-closed' : ''} ${flashId === p.id ? 'cd-flash' : ''}`} key={p.id} onClick={() => { if (!open) return; hasOpts ? openDetail(p) : quickAdd(p, promo ?? p.sale_price) }}>
+                  <div className="cd-hot-photo">{p.photo_url ? <img src={p.photo_url} alt="" /> : '🍽️'}</div>
+                  <div className="cd-hot-name">{p.name}</div>
+                  {(promo ?? p.sale_price) > 0 && <div className="cd-hot-price">{fmt(promo ?? p.sale_price)}</div>}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="cd-menu">
+        {searchTerm && filtered.length === 0 && (
+          <div style={{ textAlign: 'center', color: '#AAA', padding: '30px 0', fontSize: 12.5 }}>Nenhum produto encontrado pra "{search.trim()}"</div>
+        )}
+        {categorias.filter(c => filterCat === 'all' || filterCat === c.id).map(cat => {
+          const items = filtered.filter(p => p.category_id === cat.id)
+          if (!items.length) return null
+          return (
+            <div key={cat.id}>
+              <div className="cd-sec">{cat.name}</div>
+              <div className="cd-prowgroup">
+              {items.map(p => {
+                const promo = promoPrice(p)
+                const hasOpts = p.groups && p.groups.length > 0
+                const soldOut = isSoldOut(p)
+                return (
+                  <div className={`cd-prow ${soldOut ? 'cd-prow-soldout' : !open ? 'cd-prow-closed' : ''} ${flashId === p.id ? 'cd-flash' : ''}`} key={p.id} onClick={() => { if (soldOut || !open) return; hasOpts ? openDetail(p) : quickAdd(p, promo ?? p.sale_price) }}>
+                    <div className="cd-pphoto">
+                      {p.photo_url ? <img src={p.photo_url} alt="" /> : '🍽️'}
+                      {!soldOut && promo != null && <span className="cd-badge">{p.promo_type === 'percent' ? `-${p.promo_value}%` : `-${fmt(p.promo_value!)}`}</span>}
+                    </div>
+                    <div className="cd-pmid">
+                      <div className="cd-pname">{p.name}</div>
+                      {p.description && <div className="cd-pdesc">{p.description}</div>}
+                      {soldOut
+                        ? <div className="cd-pprice" style={{ color: '#C43D3D' }}>Esgotado</div>
+                        : (promo ?? p.sale_price) > 0 && <div className="cd-pprice">{fmt(promo ?? p.sale_price)}{promo != null && <span className="was">{fmt(p.sale_price)}</span>}</div>}
+                    </div>
+                    {!soldOut && open && (hasOpts ? <button className="cd-chev">›</button> : <button className={`cd-addbtn ${flashId === p.id ? 'added' : ''}`}>{flashId === p.id ? '✓' : '+'}</button>)}
+                  </div>
+                )
+              })}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {cart.length > 0 && (
+        <div className="cd-cartbar" onClick={() => setDrawerOpen(true)}>
+          <span>{cartCount} {cartCount === 1 ? 'item' : 'itens'} · Ver carrinho</span><b>{fmt(cartTotal)}</b>
+        </div>
+      )}
+
+      <div className="cd-overlay" onClick={() => { setDetail(null); setDrawerOpen(false) }} />
+
+      {detail && (
+        <div className="cd-detail">
+          <div className="cd-hero">
+            {detail.photo_url ? <img src={detail.photo_url} alt="" /> : detail.name[0]}
+            <div className="cd-hero-scrim" />
+            <button className="cd-herobtn" onClick={() => setDetail(null)}>‹</button>
+          </div>
+          <div className="cd-dscroll">
+            <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 4 }}>{detail.name}</div>
+            {(promoPrice(detail) ?? detail.sale_price) > 0 && (
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#555', marginBottom: 9 }}>{fmt(promoPrice(detail) ?? detail.sale_price)}</div>
+            )}
+            {detail.description && <div style={{ fontSize: 12.5, color: '#555', lineHeight: 1.6, marginBottom: 14 }}>{detail.description}</div>}
+            {detail.groups.map((g, gi) => {
+              const selCount = detailSel[gi]?.length || 0
+              return (
+              <div className="cd-optgroup" key={g.id} ref={el => { groupRefs.current[gi] = el }}>
+                <div className="cd-og-head">
+                  <div className="cd-og-mid">
+                    <div className="cd-og-name">{g.name}</div>
+                    <div className="cd-og-sub">{g.required ? `Escolha ${g.min_select}${g.max_select > g.min_select ? '-' + g.max_select : ''} ${g.max_select > 1 ? 'itens' : 'item'}` : `Escolha até ${g.max_select} ${g.max_select > 1 ? 'itens' : 'item'}`}</div>
+                  </div>
+                  {g.required && <span className="cd-og-req">OBRIGATÓRIO</span>}
+                  <span className="cd-og-count">{selCount}/{g.max_select}</span>
+                </div>
+                {g.options.map((o, oi) => {
+                  const active = detailSel[gi]?.includes(oi)
+                  const qtyForOpt = detailSel[gi]?.filter(x => x === oi).length || 0
+                  const groupFull = selCount >= g.max_select
+                  const optAtMax = o.max_qty != null && qtyForOpt >= o.max_qty
+                  const canAddMore = !groupFull && !optAtMax
+                  return (
+                    <div className="cd-orow" key={o.id}
+                      onClick={() => { if (g.max_select === 1) toggleRadio(gi, oi); else if (canAddMore) addOpt(gi, oi) }}>
+                      {o.photo_url && <div className="cd-oimg"><img src={o.photo_url} alt="" /></div>}
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 12.5, fontWeight: 700 }}>{o.name}</div>
+                        <div style={{ fontSize: 11, color: '#555' }}>{o.price > 0 ? '+ ' + fmt(o.price) : 'Grátis'}</div>
+                        {o.max_qty != null && o.max_qty > 1 && <div className="cd-omax">Máx {o.max_qty}</div>}
+                      </div>
+                      {g.max_select === 1 ? (
+                        <div className={`cd-ocheck radio ${active ? 'active' : ''}`}>{active ? '●' : ''}</div>
+                      ) : qtyForOpt === 0 ? (
+                        <div className={`cd-oplus ${canAddMore ? '' : 'disabled'}`}>+</div>
+                      ) : (
+                        <div className="cd-ostepper" onClick={e => e.stopPropagation()}>
+                          <button type="button" aria-label={`Tirar um ${o.name}`} onClick={() => removeOpt(gi, oi)}>−</button>
+                          <span>{qtyForOpt}</span>
+                          <button type="button" aria-label={`Adicionar mais um ${o.name}`} disabled={!canAddMore} onClick={() => canAddMore && addOpt(gi, oi)}>+</button>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+              )
+            })}
+          </div>
+          <div className="cd-dfoot">
+            <div style={{ display: 'flex', border: '1.5px solid var(--sign-dark)', borderRadius: 12, overflow: 'hidden' }}>
+              <button onClick={() => setDetailQty(q => Math.max(1, q - 1))} style={{ width: 34, border: 'none', background: '#FEF3E2', color: 'var(--sign-dark)', fontWeight: 800 }}>−</button>
+              <span style={{ width: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>{detailQty}</span>
+              <button onClick={() => setDetailQty(q => q + 1)} style={{ width: 34, border: 'none', background: '#FEF3E2', color: 'var(--sign-dark)', fontWeight: 800 }}>+</button>
+            </div>
+            <button className="cd-addcart" disabled={!detailReqMet} onClick={confirmAddDetail}>Adicionar — {fmt(detailUnitPrice * detailQty)}</button>
+          </div>
+        </div>
+      )}
+
+      {drawerOpen && (
+        <div className="cd-drawer">
+          <div className="cd-dhead"><b>Seu pedido</b><button onClick={() => setDrawerOpen(false)} style={{ width: 30, height: 30, borderRadius: '50%', border: '1px solid #EDE8E0', background: '#F0EDE8' }}>✕</button></div>
+          {!success ? (
+            <>
+              <div className="cd-dbody">
+                <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', marginBottom: 8, fontWeight: 800 }}>Itens</div>
+                {cart.map(l => (
+                  <div key={l.key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '0.5px solid #EDE8E0', fontSize: 12 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <span>{l.name}</span>
+                      {l.modifiers.length > 0 && <span style={{ display: 'block', fontSize: 10.5, color: '#AAA' }}>{l.modifiers.map(m => m.name).join(', ')}</span>}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 'none' }}>
+                      <button onClick={() => changeCartQty(l.key, -1)} style={{ width: 24, height: 24, borderRadius: '50%', border: '1px solid #E2DCCB', background: '#F7F5F0', fontWeight: 800, fontSize: 13, lineHeight: 1, cursor: 'pointer' }}>−</button>
+                      <b style={{ minWidth: 14, textAlign: 'center' }}>{l.qty}</b>
+                      <button onClick={() => changeCartQty(l.key, 1)} style={{ width: 24, height: 24, borderRadius: '50%', border: '1px solid #E2DCCB', background: '#F7F5F0', fontWeight: 800, fontSize: 13, lineHeight: 1, cursor: 'pointer' }}>+</button>
+                    </div>
+                    <b style={{ flex: 'none', minWidth: 60, textAlign: 'right' }}>{fmt(l.qty * l.unitPrice)}</b>
+                    <button onClick={() => removeCartLine(l.key)} aria-label="Remover item" style={{ flex: 'none', width: 24, height: 24, borderRadius: '50%', border: 'none', background: 'transparent', color: '#C43D3D', fontSize: 14, cursor: 'pointer' }}>🗑</button>
+                  </div>
+                ))}
+                <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', margin: '14px 0 8px', fontWeight: 800 }}>Como você quer receber?</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className={`cd-paychip ${deliveryType === 'entrega' ? 'active' : ''}`} style={{ flex: 1, marginRight: 0, textAlign: 'center' }} onClick={() => setDeliveryType('entrega')}>🚴 Entrega</button>
+                  <button className={`cd-paychip ${deliveryType === 'retirada' ? 'active' : ''}`} style={{ flex: 1, marginRight: 0, textAlign: 'center' }} onClick={() => setDeliveryType('retirada')}>🏪 Retirar na loja</button>
+                </div>
+
+                {deliveryType === 'entrega' ? (
+                  <>
+                    <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', margin: '14px 0 8px', fontWeight: 800 }}>Endereço</div>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                      <input className="cd-diinput" style={{ flex: 1 }} value={cep} onChange={e => handleCepChange(e.target.value)} placeholder="CEP" inputMode="numeric" />
+                      <input className="cd-diinput" style={{ width: 90 }} value={numero} onChange={e => handleNumeroChange(e.target.value)} placeholder="Número" />
+                    </div>
+                    {cepLoading && <div style={{ fontSize: 11, color: '#AAA', marginBottom: 6 }}>Buscando endereço...</div>}
+                    {cepError && <div style={{ fontSize: 11, color: '#C43D3D', marginBottom: 6 }}>CEP não encontrado — preenche o endereço direto embaixo</div>}
+                    <input className="cd-diinput" value={address} onChange={e => setAddress(e.target.value)} placeholder="Rua, bairro, complemento" />
+                    {freteLoading && <div style={{ fontSize: 11, color: '#AAA', marginTop: 6 }}>Calculando taxa de entrega...</div>}
+                    {freteBlocked && (
+                      <div style={{ marginTop: 8, padding: '10px 12px', borderRadius: 10, background: '#FBEAEA', color: '#A83232', fontSize: 11.5, fontWeight: 600 }}>
+                        🚫 {freteInfo?.reason || 'Não entregamos nesse endereço no momento.'}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <input type="checkbox" checked={agendarRetirada} onChange={e => setAgendarRetirada(e.target.checked)} id="cd-agendar" />
+                      <label htmlFor="cd-agendar" style={{ fontSize: 12, fontWeight: 600 }}>Agendar retirada pra outro dia/horário</label>
+                    </div>
+                    {agendarRetirada && (
+                      <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                        <input className="cd-diinput" type="date" value={scheduleDate} onChange={e => setScheduleDate(e.target.value)} />
+                        <input className="cd-diinput" type="time" value={scheduleTime} onChange={e => setScheduleTime(e.target.value)} />
+                      </div>
+                    )}
+                  </>
+                )}
+
+                <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', margin: '14px 0 8px', fontWeight: 800 }}>Observações (opcional)</div>
+                <textarea className="cd-diinput" style={{ minHeight: 56, resize: 'vertical' }} value={obs} onChange={e => setObs(e.target.value)} placeholder="Ex: sem cebola, troco pra R$50..." />
+                <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', margin: '14px 0 8px', fontWeight: 800 }}>Pagamento</div>
+                {(company?.loja_payment_methods?.length ? company.loja_payment_methods : ['pix', 'dinheiro', 'cartao_credito']).map(m => (
+                  <button key={m} className={`cd-paychip ${payMethod === m ? 'active' : ''}`} onClick={() => setPayMethod(m)}>{PAYMENT_LABELS[m] || m}</button>
+                ))}
+
+                {payMethod === 'dinheiro' && (
+                  <div style={{ marginTop: 10, padding: '10px 12px', background: '#F7F5F0', borderRadius: 10 }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, marginBottom: 8 }}>Precisa de troco?</div>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: precisaTroco ? 8 : 0 }}>
+                      <button className={`cd-paychip ${precisaTroco === true ? 'active' : ''}`} style={{ flex: 1, textAlign: 'center', marginRight: 0 }} onClick={() => setPrecisaTroco(true)}>Sim</button>
+                      <button className={`cd-paychip ${precisaTroco === false ? 'active' : ''}`} style={{ flex: 1, textAlign: 'center', marginRight: 0 }} onClick={() => { setPrecisaTroco(false); setTrocoPara('') }}>Não</button>
+                    </div>
+                    {precisaTroco === true && (
+                      <input className="cd-diinput" inputMode="decimal" value={trocoPara} onChange={e => setTrocoPara(e.target.value.replace(/[^0-9,]/g, ''))} placeholder="Troco para quanto? Ex: 50,00" />
+                    )}
+                  </div>
+                )}
+
+                {coupons.length > 0 && (
+                  <>
+                    <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', margin: '14px 0 8px', fontWeight: 800 }}>🎟️ Cupom de desconto</div>
+                    {coupons.map(c => {
+                      const eligible = couponEligible(c)
+                      const selected = selectedCouponId === c.id
+                      const falta = Number(c.min_purchase || 0) - cartTotal
+                      return (
+                        <div key={c.id} className={`cd-coupon-card ${eligible ? '' : 'locked'} ${selected ? 'selected' : ''}`}
+                          onClick={() => { if (!eligible) return; setSelectedCouponId(id => id === c.id ? null : c.id) }}>
+                          <div className="cd-coupon-card-icon">{c.discount_type === 'fixed' ? fmt(Number(c.discount_value)) : `${c.discount_value}%`}<br />OFF</div>
+                          <div className="cd-coupon-card-mid">
+                            <div className="cd-coupon-card-title">{c.title}</div>
+                            <div className="cd-coupon-card-sub">
+                              {eligible ? (selected ? '✓ Aplicado no seu pedido' : `✓ Disponível — seu pedido já passa de ${fmt(Number(c.min_purchase || 0))}`) : `🔒 Faltam ${fmt(falta)} pra liberar (mínimo ${fmt(Number(c.min_purchase || 0))})`}
+                            </div>
+                          </div>
+                          <div className="cd-coupon-card-radio">{!eligible && '🔒'}</div>
+                        </div>
+                      )
+                    })}
+                  </>
+                )}
+
+                {abaixoMinimo && (
+                  <div style={{ marginTop: 12, padding: '10px 12px', borderRadius: 10, background: '#FEF0E0', color: '#B5690C', fontSize: 11.5, fontWeight: 600 }}>
+                    Pedido mínimo de {fmt(Number(company.loja_pedido_minimo))} — faltam {fmt(Number(company.loja_pedido_minimo) - cartTotal)}
+                  </div>
+                )}
+                {taxaEntrega > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0 0', fontSize: 12, color: '#555' }}><span>Taxa de entrega</span><span>{fmt(taxaEntrega)}</span></div>
+                )}
+                {deliveryType === 'entrega' && taxaEntrega === 0 && freteBaseFee > 0 && freteGratisAcima > 0 && cartTotal >= freteGratisAcima && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0 0', fontSize: 12, color: 'var(--open)', fontWeight: 700 }}><span>🎉 Frete grátis</span><span>R$ 0,00</span></div>
+                )}
+                {discount > 0 && selectedCoupon && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0 0', fontSize: 12, color: 'var(--open)', fontWeight: 700 }}><span>Cupom {selectedCoupon.title}</span><span>− {fmt(discount)}</span></div>
+                )}
+                <div className="cd-totalrow"><span>Total</span><span>{fmt(orderTotal)}</span></div>
+              </div>
+              <div style={{ padding: '14px 16px 16px', borderTop: '1px solid #EDE8E0', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {!open ? (
+                  <div style={{ padding: '12px 14px', borderRadius: 10, background: '#FBEAEA', color: '#A83232', fontSize: 12.5, fontWeight: 600, textAlign: 'center' }}>
+                    🔒 {company.store_paused ? 'A loja pausou o recebimento de pedidos no momento.' : 'A loja está fechada no momento.'} Tenta de novo mais tarde.
+                  </div>
+                ) : (
+                  <>
+                    {trocoIncompleto && (
+                      <div style={{ marginBottom: 8, fontSize: 11.5, color: '#B5690C', fontWeight: 600, textAlign: 'center' }}>
+                        {precisaTroco === null ? 'Escolhe se precisa de troco' : `Troco precisa ser pelo menos ${fmt(orderTotal)}`}
+                      </div>
+                    )}
+                    {orderError && (
+                      <div style={{ marginBottom: 8, padding: '10px 12px', borderRadius: 10, background: '#FBEAEA', color: '#A83232', fontSize: 12, fontWeight: 600, textAlign: 'center' }}>
+                        ⚠️ {orderError}
+                      </div>
+                    )}
+                    <button className="cd-addcart" style={{ width: '100%' }} disabled={confirming || (deliveryType === 'entrega' && !address.trim()) || freteBlocked || (agendarRetirada && (!scheduleDate || !scheduleTime)) || abaixoMinimo || trocoIncompleto} onClick={confirmOrder}>{confirming ? 'Enviando...' : 'Confirmar pedido'}</button>
+                    {company.phone && (
+                      <button className="cd-addcart" style={{ width: '100%', background: '#25D366', color: '#fff' }} disabled={sendingWa || trocoIncompleto} onClick={sendCartWhatsapp}>
+                        {sendingWa ? 'Abrindo…' : '📱 Enviar pedido no WhatsApp'}
+                      </button>
+                    )}
+                    {waFallbackUrl && (
+                      <a href={waFallbackUrl} target="_blank" rel="noopener noreferrer"
+                        style={{ textAlign: 'center', fontSize: 12, fontWeight: 700, color: '#157A52', padding: '8px 0' }}
+                        onClick={() => setWaFallbackUrl(null)}>
+                        O navegador bloqueou o WhatsApp — toca aqui pra abrir
+                      </a>
+                    )}
+                  </>
+                )}
+              </div>
+            </>
+          ) : (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 30, gap: 10 }}>
+              <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#EDFAF3', color: '#0F6E56', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26 }}>✓</div>
+              <b style={{ fontSize: 15 }}>Pedido enviado!</b>
+              <p style={{ fontSize: 12.5, color: '#555', maxWidth: 260 }}>A {company.name} recebeu seu pedido.</p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}

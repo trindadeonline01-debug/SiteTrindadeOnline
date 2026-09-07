@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { compressImage } from '@/lib/compressImage'
 import { usePainelShell } from '@/contexts/PainelShellContext'
-import { VITRINE_TIPOS } from '@/lib/vitrineTipos'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -151,6 +150,7 @@ export default function CatalogoPage() {
   const [crmEnabled, setCrmEnabled] = useState(false)
   const [entregaEnabled, setEntregaEnabled] = useState(false)
   const [categorias, setCategorias] = useState<Categoria[]>([])
+  const [tiposVitrine, setTiposVitrine] = useState<{ value: string; label: string; emoji: string }[]>([])
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [view, setView] = useState<'list' | 'form' | 'bulk'>('list')
   const [filterCat, setFilterCat] = useState('all')
@@ -208,12 +208,14 @@ export default function CatalogoPage() {
   }, [shellLoading, company?.id, company?.loja_digital_enabled])
 
   async function loadAll(cid: string) {
-    const [{ data: cats }, { data: prods }] = await Promise.all([
+    const [{ data: cats }, { data: prods }, { data: tipos }] = await Promise.all([
       supabase.from('loja_categorias').select('*').eq('company_id', cid).order('display_order'),
       supabase.from('loja_produtos').select('*, category:loja_categorias(name)').eq('company_id', cid).order('display_order'),
+      supabase.from('vitrine_tipos').select('value,label,emoji').eq('active', true).order('display_order'),
     ])
     setCategorias(cats || [])
     setProdutos((prods || []) as any)
+    setTiposVitrine(tipos || [])
   }
 
   // Guardado no banco (não só em memória) pra o botão "excluir última
@@ -1060,7 +1062,7 @@ export default function CatalogoPage() {
               <label>Tipo do produto (pra aparecer certinho na home)</label>
               <select value={form.tipo_vitrine} onChange={e => setForm(f => ({ ...f, tipo_vitrine: e.target.value }))}>
                 <option value="">— não classificar —</option>
-                {VITRINE_TIPOS.map(t => <option key={t.value} value={t.value}>{t.emoji} {t.label}</option>)}
+                {tiposVitrine.map(t => <option key={t.value} value={t.value}>{t.emoji} {t.label}</option>)}
               </select>
             </div>
 

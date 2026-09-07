@@ -14,6 +14,7 @@ import MotoboysTab from '@/components/MotoboysTab'
 import EntregaConfigTab from '@/components/admin/EntregaConfigTab'
 import PagamentosTab from '@/components/admin/PagamentosTab'
 import RelatoriosTab from '@/components/admin/RelatoriosTab'
+import PecaAgoraTab from '@/components/admin/PecaAgoraTab'
 import PhotoManager from '@/components/PhotoManager'
 import { dayOfWeekLabel } from '@/lib/businessHours'
 import dynamic from 'next/dynamic'
@@ -58,7 +59,7 @@ const statusColor = (s: string) => s === 'active' ? '#0F8050' : s === 'pending' 
 const statusLabel = (s: string) => s === 'active' ? 'Ativa' : s === 'pending' ? 'Pendente' : 'Suspensa'
 
 export default function AdminPage() {
-  const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'denuncias'|'usuarios'|'buscas'|'atividade'|'banners'|'pedidos-banner'|'configuracoes'|'recursos'|'planos'|'aparencia'|'subcategorias'|'vendas'|'sala-de-vendas'|'notificacoes'|'disparos'|'palavra-premiada'|'entregas'>('dashboard')
+  const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'denuncias'|'usuarios'|'buscas'|'atividade'|'banners'|'pedidos-banner'|'configuracoes'|'recursos'|'planos'|'aparencia'|'subcategorias'|'vendas'|'sala-de-vendas'|'notificacoes'|'disparos'|'palavra-premiada'|'entregas'|'peca-agora'>('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [stats, setStats]           = useState<Stats|null>(null)
   const [companies, setCompanies]   = useState<Company[]>([])
@@ -1869,6 +1870,7 @@ export default function AdminPage() {
             { id: 'disparos', icon: '📤', label: 'Disparos' },
             { id: 'palavra-premiada', icon: '🎁', label: 'Palavra Premiada' },
             { id: 'entregas', icon: '🏍️', label: 'Entregas' },
+            { id: 'peca-agora', icon: '🍔', label: 'Peça Agora' },
           ].sort((a, b) => a.label.localeCompare(b.label, 'pt-BR')).map(n => (
             <div
               key={n.id}
@@ -1914,6 +1916,7 @@ export default function AdminPage() {
               {tab === 'disparos' && 'Disparos WhatsApp'}
               {tab === 'palavra-premiada' && 'Palavra Premiada'}
               {tab === 'entregas' && 'Entregas — Trindade Entrega'}
+              {tab === 'peca-agora' && 'Peça Agora — Vitrine da Home'}
             </div>
             <div className="topbar-date">{new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}</div>
           </div>
@@ -3596,6 +3599,9 @@ export default function AdminPage() {
               {entregaInnerTab === 'pagamentos' && <PagamentosTab />}
               {entregaInnerTab === 'relatorios' && <RelatoriosTab />}
             </div>
+          )}
+          {tab === 'peca-agora' && (
+            <PecaAgoraTab />
           )}
           {tab === 'notificacoes' && (
             <NotificacoesTab />

@@ -12,7 +12,6 @@ import ScrollRow from '@/components/home/ScrollRow'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { isOpenNow, HourRow } from '@/lib/businessHours'
 import { promoPrice, isSoldOut, availableToday, Produto } from '@/lib/lojaPricing'
-import { VITRINE_TIPOS } from '@/lib/vitrineTipos'
 import { CATEGORY_IMAGES } from '@/lib/categoryImages'
 
 interface PaidCompany {
@@ -339,12 +338,17 @@ export default async function HomePage() {
   let pecaAgoraGroups: PecaGroup[] = []
 
   if (pecaAgoraEnabled) {
-    const { data: pecaCompaniesData } = await supabaseServer
-      .from('companies')
-      .select('id, name, slug, flexible_hours, store_paused, store_forced_open, hours:company_hours(day_of_week,open_time,close_time,closed)')
-      .eq('status', 'active').eq('loja_digital_enabled', true)
+    const [{ data: pecaCompaniesData }, { data: pecaTiposData }] = await Promise.all([
+      supabaseServer.from('companies')
+        .select('id, name, slug, flexible_hours, store_paused, store_forced_open, hours:company_hours(day_of_week,open_time,close_time,closed)')
+        .eq('status', 'active').eq('loja_digital_enabled', true),
+      // Lista de tipos e ordem definidas pelo admin (aba "Peça Agora"),
+      // não mais fixa no código — ver src/components/admin/PecaAgoraTab.tsx
+      supabaseServer.from('vitrine_tipos').select('value,label,emoji').eq('active', true).order('display_order'),
+    ])
 
     const pecaCompanies = (pecaCompaniesData || []) as any as PecaCompanyRow[]
+    const pecaTipos = (pecaTiposData || []) as { value: string; label: string; emoji: string }[]
 
     if (pecaCompanies.length > 0) {
       const { data: pecaProdutosData } = await supabaseServer
@@ -397,9 +401,10 @@ export default async function HomePage() {
       if (allItems.length > 0) {
         pecaAgoraGroups = [
           { key: 'todas', label: 'Todas', emoji: '🍽️', items: sortOpenFirst(allItems) },
-          // Ordem fixa da lista canônica de tipos, não por contagem — fica
-          // estável entre carregamentos, só pula quem não tem item nenhum.
-          ...VITRINE_TIPOS
+          // Ordem definida pelo admin (vitrine_tipos.display_order), não por
+          // contagem — fica estável entre carregamentos, só pula tipo sem
+          // item nenhum.
+          ...pecaTipos
             .filter(t => bucketMap.has(t.value))
             .map(t => ({ key: t.value, label: t.label, emoji: t.emoji, items: sortOpenFirst(bucketMap.get(t.value)!) })),
         ]

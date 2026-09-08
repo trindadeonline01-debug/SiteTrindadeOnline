@@ -1,6 +1,7 @@
 'use client'
 import { useRef, useState } from 'react'
 import { MOTOBOY_TERMS_SECTIONS } from '@/lib/motoboyTerms'
+import { compressImage } from '@/lib/compressImage'
 
 type PhotoKey = 'cnh' | 'moto_frente' | 'moto_tras' | 'documento_moto' | 'selfie'
 const PHOTO_SLOTS: { key: PhotoKey; label: string; icon: string }[] = [
@@ -77,8 +78,18 @@ export default function MotoboyCadastroClient() {
     e.target.value = ''
     if (!file) return
     setPhotos(p => ({ ...p, [key]: null }))
-    const b64 = await readFileAsBase64(file)
-    setPhotos(p => ({ ...p, [key]: b64 }))
+    try {
+      // Foto direto da câmera do celular pode vir com vários MB — as 5
+      // juntas sem comprimir passavam fácil do limite de corpo de
+      // requisição do servidor (~4,5MB) e o envio final ficava travado em
+      // "Enviando..." pra sempre, sem erro nenhum. Mantém resolução
+      // suficiente pra ler CNH/placa (1280px), só reduz o peso do arquivo.
+      const compressed = await compressImage(file, 0.4, 1280)
+      const b64 = await readFileAsBase64(compressed)
+      setPhotos(p => ({ ...p, [key]: b64 }))
+    } catch (err: any) {
+      setErro(err?.message || 'Não deu pra processar essa foto — tenta outra.')
+    }
   }
 
   const allPhotosOk = PHOTO_SLOTS.every(p => !!photos[p.key])
@@ -87,19 +98,27 @@ export default function MotoboyCadastroClient() {
   async function enviarCadastro() {
     setErro('')
     setEnviando(true)
-    const res = await fetch('/api/motoboy/cadastrar', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        nome, cpf, endereco, email, phone: whatsapp,
-        cnh_base64: photos.cnh, moto_frente_base64: photos.moto_frente, moto_tras_base64: photos.moto_tras,
-        documento_moto_base64: photos.documento_moto, selfie_base64: photos.selfie,
-        pix_key: pixKey, pix_key_type: pixType, nome_digitado: nomeDigitado,
-      }),
-    })
-    const data = await res.json()
-    setEnviando(false)
-    if (data.error) { setErro(data.error); return }
-    setStep(6)
+    // Antes, um erro de rede/corpo grande demais aqui derrubava a função
+    // sem nunca chegar no setEnviando(false) — o botão ficava preso em
+    // "Enviando..." pro resto da vida, sem nenhum aviso.
+    try {
+      const res = await fetch('/api/motoboy/cadastrar', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nome, cpf, endereco, email, phone: whatsapp,
+          cnh_base64: photos.cnh, moto_frente_base64: photos.moto_frente, moto_tras_base64: photos.moto_tras,
+          documento_moto_base64: photos.documento_moto, selfie_base64: photos.selfie,
+          pix_key: pixKey, pix_key_type: pixType, nome_digitado: nomeDigitado,
+        }),
+      })
+      const data = await res.json().catch(() => ({ error: `O servidor respondeu algo inesperado (status ${res.status}). Tenta de novo.` }))
+      if (data.error) { setErro(data.error); return }
+      setStep(6)
+    } catch (err: any) {
+      setErro(err?.message || 'Não deu pra enviar o cadastro agora — confere sua internet e tenta de novo.')
+    } finally {
+      setEnviando(false)
+    }
   }
 
   return (

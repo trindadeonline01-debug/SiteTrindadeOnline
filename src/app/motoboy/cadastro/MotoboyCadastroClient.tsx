@@ -51,7 +51,11 @@ export default function MotoboyCadastroClient() {
     })
     const data = await res.json()
     setSendingCode(false)
-    if (data.error) { setErro(data.error); return }
+    // Precisa marcar os dois — esse mesmo botão manda o código tanto na
+    // etapa 1 (que mostra "erro") quanto no "Reenviar código" da etapa 2
+    // (que só mostra "codeError"); sem isso, uma falha no reenvio ficava
+    // muda pro usuário, mesmo com o erro já sendo devolvido pela API.
+    if (data.error) { setErro(data.error); setCodeError(data.error); return }
     setStep(2)
   }
 

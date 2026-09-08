@@ -24,14 +24,31 @@ function formatPhone(phone: string): string {
 // mensagem sem ser pelo número de uma empresa específica (ex: código de
 // verificação do cadastro de morador). Nome mantido por compatibilidade
 // com quem já importa sendMotoboyWhatsApp.
-export async function sendPlatformWhatsApp(phone: string, text: string) {
+//
+// Devolve se REALMENTE saiu (a Evolution API respondeu ok) — antes isso
+// engolia qualquer falha em silêncio (`catch {}` sem checar `res.ok`), o
+// que deixava telas de "digite o código" esperando pra sempre sem
+// nenhum aviso de erro quando a instância cai/desconecta. Quem só dispara
+// notificação (sem bloquear o fluxo do usuário nisso) pode continuar
+// ignorando o retorno; quem depende do envio (ex: código de OTP) agora
+// consegue checar e avisar de verdade.
+export async function sendPlatformWhatsApp(phone: string, text: string): Promise<boolean> {
   try {
-    await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(EVOLUTION_INSTANCE)}`, {
+    const res = await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(EVOLUTION_INSTANCE)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', apikey: EVOLUTION_API_KEY },
       body: JSON.stringify({ number: formatPhone(phone), text }),
     })
-  } catch {}
+    if (!res.ok) {
+      const body = await res.text().catch(() => '')
+      console.error(`[sendPlatformWhatsApp] Evolution respondeu ${res.status}: ${body.slice(0, 500)}`)
+      return false
+    }
+    return true
+  } catch (err: any) {
+    console.error(`[sendPlatformWhatsApp] falha ao chamar a Evolution API: ${err?.message || err}`)
+    return false
+  }
 }
 export const sendMotoboyWhatsApp = sendPlatformWhatsApp
 

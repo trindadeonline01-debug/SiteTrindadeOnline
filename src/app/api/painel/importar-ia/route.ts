@@ -154,7 +154,11 @@ export async function POST(req: NextRequest) {
     const anthropic = new Anthropic()
     const response = await anthropic.messages.parse({
       model: 'claude-sonnet-5',
-      max_tokens: 32000,
+      // Acima de ~21.333 o SDK exige streaming (calcula um tempo esperado
+      // pelo teto de tokens e recusa non-streaming além de 10min) — 20.000
+      // fica seguro abaixo disso e ainda dá folga generosa pro maior
+      // catálogo que já vimos aqui (Satolo's, 77 produtos ativos).
+      max_tokens: 20000,
       output_config: { format: zodOutputFormat(CardapioSchema) },
       messages: [{ role: 'user', content }],
     })

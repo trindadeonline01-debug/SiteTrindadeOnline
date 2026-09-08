@@ -31,8 +31,10 @@ function formatPhone(phone: string): string {
 // nenhum aviso de erro quando a instância cai/desconecta. Quem só dispara
 // notificação (sem bloquear o fluxo do usuário nisso) pode continuar
 // ignorando o retorno; quem depende do envio (ex: código de OTP) agora
-// consegue checar e avisar de verdade.
-export async function sendPlatformWhatsApp(phone: string, text: string): Promise<boolean> {
+// consegue checar e avisar de verdade. `detail` vem junto (além do log no
+// servidor) pra dar pro Ricardo diagnosticar direto pela tela, sem precisar
+// caçar log na Vercel — só ele usa esse fluxo por enquanto.
+export async function sendPlatformWhatsApp(phone: string, text: string): Promise<{ ok: boolean; detail?: string }> {
   try {
     const res = await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(EVOLUTION_INSTANCE)}`, {
       method: 'POST',
@@ -41,13 +43,15 @@ export async function sendPlatformWhatsApp(phone: string, text: string): Promise
     })
     if (!res.ok) {
       const body = await res.text().catch(() => '')
-      console.error(`[sendPlatformWhatsApp] Evolution respondeu ${res.status}: ${body.slice(0, 500)}`)
-      return false
+      const detail = `Evolution respondeu ${res.status}: ${body.slice(0, 300)}`
+      console.error(`[sendPlatformWhatsApp] ${detail}`)
+      return { ok: false, detail }
     }
-    return true
+    return { ok: true }
   } catch (err: any) {
-    console.error(`[sendPlatformWhatsApp] falha ao chamar a Evolution API: ${err?.message || err}`)
-    return false
+    const detail = `falha ao chamar a Evolution API: ${err?.message || err}`
+    console.error(`[sendPlatformWhatsApp] ${detail}`)
+    return { ok: false, detail }
   }
 }
 export const sendMotoboyWhatsApp = sendPlatformWhatsApp

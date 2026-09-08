@@ -34,10 +34,12 @@ export async function POST(req: NextRequest) {
     await supabase.from('motoboy_otp_codes').insert({ phone, code, purpose, expires_at: expiresAt })
 
     const sent = await sendMotoboyWhatsApp(phone, `🔐 Seu código Trindade Online: *${code}*\n\nVale por 10 minutos. Não compartilha com ninguém.`)
-    if (!sent) {
+    if (!sent.ok) {
       // Antes isso retornava {ok:true} mesmo com o envio falhando — a tela
       // ficava esperando um código que nunca ia chegar, sem erro nenhum.
-      return NextResponse.json({ error: 'Não deu pra mandar o código pro WhatsApp agora (o número de WhatsApp da Trindade Online pode estar desconectado). Tenta de novo em alguns minutos ou fala com a gente.' }, { status: 502 })
+      // Detalhe técnico incluído na mensagem pra dar pra diagnosticar
+      // direto pela tela (só o Ricardo usa esse fluxo por enquanto).
+      return NextResponse.json({ error: `Não deu pra mandar o código pro WhatsApp agora. Detalhe técnico: ${sent.detail || 'desconhecido'}` }, { status: 502 })
     }
 
     return NextResponse.json({ ok: true })

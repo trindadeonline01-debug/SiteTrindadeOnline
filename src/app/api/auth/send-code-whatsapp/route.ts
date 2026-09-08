@@ -30,8 +30,8 @@ export async function POST(req: NextRequest) {
     await supabase.from('whatsapp_verifications').insert({ phone, code, expires_at: expiresAt })
 
     const sent = await sendPlatformWhatsApp(phone, `🔑 Seu código de verificação da Trindade Online: *${code}*\n\nVálido por 10 minutos. Se não foi você, ignore essa mensagem.`)
-    if (!sent) {
-      return NextResponse.json({ error: 'Não deu pra mandar o código pro WhatsApp agora (o número de WhatsApp da Trindade Online pode estar desconectado). Tenta de novo em alguns minutos.' }, { status: 502 })
+    if (!sent.ok) {
+      return NextResponse.json({ error: `Não deu pra mandar o código pro WhatsApp agora. Detalhe técnico: ${sent.detail || 'desconhecido'}` }, { status: 502 })
     }
 
     return NextResponse.json({ ok: true })

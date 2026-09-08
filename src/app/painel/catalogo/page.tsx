@@ -188,6 +188,12 @@ export default function CatalogoPage() {
   const [importingPhotos, setImportingPhotos] = useState(false)
   const [photoImportProgress, setPhotoImportProgress] = useState({ done: 0, total: 0 })
   const [photoImportResults, setPhotoImportResults] = useState<{ matched: number; unmatched: string[] } | null>(null)
+  const [showImportIA, setShowImportIA] = useState(false)
+  const [importIAStep, setImportIAStep] = useState<'choose' | 'loading' | 'preview' | 'error'>('choose')
+  const [importIASource, setImportIASource] = useState<'url' | 'pdf' | 'fotos'>('url')
+  const [importIAUrl, setImportIAUrl] = useState('')
+  const [importIAError, setImportIAError] = useState('')
+  const [importIAPreview, setImportIAPreview] = useState<{ categorias: number; produtos: number; imagens: number; grupos: number; csv: string } | null>(null)
   const catSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -269,6 +275,100 @@ export default function CatalogoPage() {
     await loadAll(companyId)
     setImportingPhotos(false)
     setPhotoImportResults({ matched, unmatched })
+  }
+
+  function fileToBase64(file: File | Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(((reader.result as string) || '').split(',')[1] || '')
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
+  }
+
+  function openImportIA() {
+    setShowImportIA(true)
+    setImportIAStep('choose')
+    setImportIASource('url')
+    setImportIAUrl('')
+    setImportIAError('')
+    setImportIAPreview(null)
+  }
+
+  // Importador universal — a mesma IA que já uso manualmente pra ler
+  // cardápio de outros sites (ver docs/KNOWLEDGE_BASE.md), só que chamada
+  // direto pela API em vez de rodar na mão via extensão. Lê link, PDF ou
+  // fotos e devolve um CSV no mesmo formato que "Importar de um CSV" já
+  // consome — por isso a confirmação reaproveita handleImportCsv inteiro
+  // (undo, atualizar existentes, progresso, importação de foto etc).
+  async function runImportIAUrl() {
+    if (!importIAUrl.trim()) { setImportIAError('Cola o link do cardápio'); setImportIAStep('error'); return }
+    setImportIAStep('loading')
+    const { data: { session } } = await supabase.auth.getSession()
+    try {
+      const res = await fetch('/api/painel/importar-ia', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token: session?.access_token, company_id: companyId, source: 'url', url: importIAUrl.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setImportIAError(data.error || 'não deu pra ler esse cardápio'); setImportIAStep('error'); return }
+      setImportIAPreview(data)
+      setImportIAStep('preview')
+    } catch (err: any) {
+      setImportIAError(err?.message || 'falha ao ler o cardápio'); setImportIAStep('error')
+    }
+  }
+
+  async function runImportIAPdf(file: File) {
+    setImportIAStep('loading')
+    const { data: { session } } = await supabase.auth.getSession()
+    try {
+      const pdf_base64 = await fileToBase64(file)
+      const res = await fetch('/api/painel/importar-ia', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token: session?.access_token, company_id: companyId, source: 'pdf', pdf_base64 }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setImportIAError(data.error || 'não deu pra ler esse PDF'); setImportIAStep('error'); return }
+      setImportIAPreview(data)
+      setImportIAStep('preview')
+    } catch (err: any) {
+      setImportIAError(err?.message || 'falha ao ler o cardápio'); setImportIAStep('error')
+    }
+  }
+
+  async function runImportIAFotos(files: FileList) {
+    const fileArr = Array.from(files).filter(f => f.type.startsWith('image/')).slice(0, 8)
+    if (!fileArr.length) { setImportIAError('Escolhe pelo menos uma foto'); setImportIAStep('error'); return }
+    setImportIAStep('loading')
+    const { data: { session } } = await supabase.auth.getSession()
+    try {
+      const fotos = await Promise.all(fileArr.map(async f => {
+        const compressed = await compressImage(f, 1.2)
+        const data = await fileToBase64(compressed)
+        return { data, media_type: compressed.type || 'image/jpeg' }
+      }))
+      const res = await fetch('/api/painel/importar-ia', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token: session?.access_token, company_id: companyId, source: 'fotos', fotos }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setImportIAError(data.error || 'não deu pra ler essas fotos'); setImportIAStep('error'); return }
+      setImportIAPreview(data)
+      setImportIAStep('preview')
+    } catch (err: any) {
+      setImportIAError(err?.message || 'falha ao ler o cardápio'); setImportIAStep('error')
+    }
+  }
+
+  function confirmImportIA() {
+    if (!importIAPreview) return
+    const file = new File([importIAPreview.csv], 'cardapio-importado-ia.csv', { type: 'text/csv' })
+    setShowImportIA(false)
+    setShowImportCsv(true)
+    setImportResults(null)
+    setImportUpdateMode(false)
+    handleImportCsv(file)
   }
 
   async function addCategoria() {
@@ -933,6 +1033,7 @@ export default function CatalogoPage() {
                 <button className="cg-btn-ghost" style={{ padding: '8px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700 }} onClick={() => setShowImportMenu(v => !v)}>📥 Importar ▾</button>
                 {showImportMenu && (
                   <div className="cg-import-menu" style={{ right: 0, left: 'auto', minWidth: 280 }}>
+                    <button onClick={() => { setShowImportMenu(false); openImportIA() }}>🤖 Importar cardápio com IA — link, PDF ou fotos</button>
                     <button onClick={() => { setShowImportMenu(false); openBulk() }}>⚡ Cadastro rápido — vários produtos de uma vez</button>
                     <button onClick={() => { setShowImportMenu(false); setShowImportCsv(true); setImportResults(null); setImportUpdateMode(false) }}>📥 Importar de um CSV</button>
                     <button onClick={() => { setShowImportMenu(false); setShowImportPhotos(true); setPhotoImportResults(null) }}>🖼️ Importar fotos pelo nome do produto</button>
@@ -969,6 +1070,7 @@ export default function CatalogoPage() {
               <button className="cg-add-group" onClick={() => setShowImportMenu(v => !v)}>Importar ▾</button>
               {showImportMenu && (
                 <div className="cg-import-menu">
+                  <button onClick={() => { setShowImportMenu(false); openImportIA() }}>🤖 Importar cardápio com IA — link, PDF ou fotos</button>
                   <button onClick={() => { setShowImportMenu(false); openBulk() }}>⚡ Cadastro rápido — vários produtos de uma vez</button>
                   <button onClick={() => { setShowImportMenu(false); setShowImportCsv(true); setImportResults(null); setImportUpdateMode(false) }}>📥 Importar de um CSV</button>
                   <button onClick={() => { setShowImportMenu(false); setShowImportPhotos(true); setPhotoImportResults(null) }}>🖼️ Importar fotos pelo nome do produto</button>
@@ -1376,6 +1478,79 @@ export default function CatalogoPage() {
                     </>
                   )}
                   <button className="cg-btn cg-btn-gold" style={{ width: '100%', marginTop: 14 }} onClick={() => { setShowImportPhotos(false); setPhotoImportResults(null) }}>Fechar</button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showImportIA && (
+        <div className="cg-cat-overlay" onClick={() => importIAStep !== 'loading' && setShowImportIA(false)}>
+          <div className="cg-cat-modal" onClick={e => e.stopPropagation()}>
+            <div className="cg-cat-modal-head">
+              <b>🤖 Importar cardápio com IA</b>
+              {importIAStep !== 'loading' && <button className="cg-close" onClick={() => setShowImportIA(false)}>✕</button>}
+            </div>
+            <div className="cg-cat-modal-body">
+              {importIAStep === 'choose' && (
+                <>
+                  <div style={{ fontSize: 11.5, color: '#6E6656', lineHeight: 1.6, padding: '10px 0' }}>
+                    De onde vem seu cardápio hoje (iFood, Anota Aí, Cardápio Web, Goomer, outro site, PDF ou fotos de um cardápio físico)? A IA lê e monta a lista pra você revisar antes de importar de verdade.
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+                    <button className={`cg-chip ${importIASource === 'url' ? 'active' : ''}`} onClick={() => setImportIASource('url')}>🔗 Link</button>
+                    <button className={`cg-chip ${importIASource === 'pdf' ? 'active' : ''}`} onClick={() => setImportIASource('pdf')}>📄 PDF</button>
+                    <button className={`cg-chip ${importIASource === 'fotos' ? 'active' : ''}`} onClick={() => setImportIASource('fotos')}>📷 Fotos</button>
+                  </div>
+                  {importIASource === 'url' && (
+                    <>
+                      <input placeholder="Cola aqui o link do seu cardápio" value={importIAUrl} onChange={e => setImportIAUrl(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #E6E0D2', fontSize: 13, marginBottom: 10 }} />
+                      <div style={{ fontSize: 10.5, color: '#A79E8B', marginBottom: 10 }}>Sites que carregam o cardápio inteiro por JavaScript (comum no app do iFood/Anota Aí) podem não trazer conteúdo suficiente — nesse caso, tenta por PDF ou fotos.</div>
+                      <button className="cg-btn cg-btn-gold" style={{ width: '100%' }} onClick={runImportIAUrl}>Ler cardápio</button>
+                    </>
+                  )}
+                  {importIASource === 'pdf' && (
+                    <label className="cg-btn cg-btn-gold" style={{ display: 'block', textAlign: 'center', cursor: 'pointer' }}>
+                      Escolher PDF
+                      <input type="file" accept="application/pdf" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) runImportIAPdf(f) }} />
+                    </label>
+                  )}
+                  {importIASource === 'fotos' && (
+                    <>
+                      <div style={{ fontSize: 10.5, color: '#A79E8B', marginBottom: 10 }}>Até 8 fotos por vez — pode ser cardápio impresso, quadro, o que tiver.</div>
+                      <label className="cg-btn cg-btn-gold" style={{ display: 'block', textAlign: 'center', cursor: 'pointer' }}>
+                        Escolher fotos
+                        <input type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={e => { if (e.target.files?.length) runImportIAFotos(e.target.files) }} />
+                      </label>
+                    </>
+                  )}
+                </>
+              )}
+              {importIAStep === 'loading' && (
+                <div style={{ textAlign: 'center', padding: '30px 0', fontSize: 13, fontWeight: 700 }}>
+                  Lendo seu cardápio com IA...
+                  <div style={{ fontSize: 11, fontWeight: 500, color: '#A79E8B', marginTop: 6 }}>Pode levar até um minuto num cardápio grande.</div>
+                </div>
+              )}
+              {importIAStep === 'error' && (
+                <div style={{ padding: '10px 0' }}>
+                  <div style={{ fontSize: 12.5, color: '#C43D3D', marginBottom: 14, lineHeight: 1.5 }}>{importIAError}</div>
+                  <button className="cg-btn cg-btn-gold" style={{ width: '100%' }} onClick={() => setImportIAStep('choose')}>Tentar de novo</button>
+                </div>
+              )}
+              {importIAStep === 'preview' && importIAPreview && (
+                <div style={{ padding: '10px 0' }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10 }}>Encontrei no seu cardápio:</div>
+                  <div style={{ fontSize: 12.5, lineHeight: 2 }}>
+                    🏷️ {importIAPreview.categorias} categoria{importIAPreview.categorias !== 1 ? 's' : ''}<br />
+                    🍽️ {importIAPreview.produtos} produto{importIAPreview.produtos !== 1 ? 's' : ''}<br />
+                    🖼️ {importIAPreview.imagens} imagem{importIAPreview.imagens !== 1 ? 'ns' : ''}<br />
+                    🧩 {importIAPreview.grupos} grupo{importIAPreview.grupos !== 1 ? 's' : ''} de complemento
+                  </div>
+                  <div style={{ fontSize: 11, color: '#A79E8B', margin: '10px 0 14px' }}>Confere se bate com o que você esperava antes de importar — depois dá pra revisar/corrigir cada produto normalmente no catálogo.</div>
+                  <button className="cg-btn cg-btn-gold" style={{ width: '100%', marginBottom: 8 }} onClick={confirmImportIA}>Importar {importIAPreview.produtos} produtos</button>
+                  <button className="cg-btn-ghost" style={{ width: '100%', padding: 10, borderRadius: 10 }} onClick={() => setImportIAStep('choose')}>Cancelar</button>
                 </div>
               )}
             </div>

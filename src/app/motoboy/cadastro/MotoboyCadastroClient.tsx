@@ -1,7 +1,19 @@
 'use client'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { MOTOBOY_TERMS_SECTIONS } from '@/lib/motoboyTerms'
 import { compressImage } from '@/lib/compressImage'
+
+// Cadastro inteiro guardado no sessionStorage a cada mudança e restaurado
+// ao abrir a página — tirar foto pela câmera do celular manda o navegador
+// pro app nativo da câmera, e ao voltar o Safari/Chrome mobile às vezes
+// recarrega a aba do zero (pressão de memória), o que apagava tudo (nome,
+// CPF, fotos já tiradas) sem aviso nenhum e obrigava recomeçar do zero —
+// era exatamente o "volta pro cadastro" relatado depois de tirar 2-4 fotos.
+const DRAFT_KEY = 'motoboy_cadastro_draft_v1'
+type Draft = {
+  step: number; nome: string; cpf: string; endereco: string; email: string; whatsapp: string
+  photos: Record<PhotoKey, string | null>; pixKey: string; pixType: string; nomeDigitado: string
+}
 
 type PhotoKey = 'cnh' | 'moto_frente' | 'moto_tras' | 'documento_moto' | 'selfie'
 const PHOTO_SLOTS: { key: PhotoKey; label: string; icon: string }[] = [
@@ -40,6 +52,33 @@ export default function MotoboyCadastroClient() {
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState('')
   const fileInputs = useRef<Record<PhotoKey, HTMLInputElement | null>>({ cnh: null, moto_frente: null, moto_tras: null, documento_moto: null, selfie: null })
+  const hydrated = useRef(false)
+
+  // Restaura o rascunho (se tiver) assim que a página monta — cobre tanto
+  // reload forçado pelo navegador (câmera) quanto o usuário só fechar a
+  // aba sem querer no meio do cadastro.
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(DRAFT_KEY)
+      if (raw) {
+        const d: Draft = JSON.parse(raw)
+        setStep(d.step); setNome(d.nome); setCpf(d.cpf); setEndereco(d.endereco); setEmail(d.email); setWhatsapp(d.whatsapp)
+        setPhotos(d.photos); setPixKey(d.pixKey); setPixType(d.pixType); setNomeDigitado(d.nomeDigitado)
+      }
+    } catch {}
+    hydrated.current = true
+  }, [])
+
+  // Salva a cada mudança — só depois de já ter tentado restaurar (senão o
+  // primeiro render com os valores em branco sobrescreveria o rascunho
+  // salvo antes mesmo de ler ele).
+  useEffect(() => {
+    if (!hydrated.current) return
+    try {
+      const draft: Draft = { step, nome, cpf, endereco, email, whatsapp, photos, pixKey, pixType, nomeDigitado }
+      sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft))
+    } catch {}
+  }, [step, nome, cpf, endereco, email, whatsapp, photos, pixKey, pixType, nomeDigitado])
 
   async function enviarCodigo() {
     setCodeError('')
@@ -113,6 +152,7 @@ export default function MotoboyCadastroClient() {
       })
       const data = await res.json().catch(() => ({ error: `O servidor respondeu algo inesperado (status ${res.status}). Tenta de novo.` }))
       if (data.error) { setErro(data.error); return }
+      try { sessionStorage.removeItem(DRAFT_KEY) } catch {}
       setStep(6)
     } catch (err: any) {
       setErro(err?.message || 'Não deu pra enviar o cadastro agora — confere sua internet e tenta de novo.')

@@ -241,6 +241,31 @@ export default function MotoboysTab() {
     load()
   }
 
+  async function toggleActive(m: Motoboy) {
+    setBusyId(m.id)
+    const { token } = await authHeader()
+    await fetch('/api/motoboys', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'toggle', access_token: token, id: m.id, active: !m.active }),
+    })
+    setBusyId(null)
+    load()
+  }
+
+  async function deleteMotoboy(m: Motoboy) {
+    if (!confirm(`Excluir o cadastro de ${m.name}? Não dá pra desfazer.`)) return
+    setBusyId(m.id)
+    const { token } = await authHeader()
+    const res = await fetch('/api/motoboys', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete', access_token: token, id: m.id }),
+    })
+    const data = await res.json()
+    setBusyId(null)
+    if (data.error) { alert(data.error); return }
+    load()
+  }
+
   const aguardando = motoboys.filter(m => m.status === 'aguardando_aprovacao')
   const standby = motoboys.filter(m => m.status === 'standby')
   const aprovados = motoboys.filter(m => m.status === 'aprovado' || m.status === 'pendencia')
@@ -424,6 +449,8 @@ export default function MotoboysTab() {
               </div>
               <div style={s.actionsCol}>
                 <button style={s.btnGhostSm} onClick={() => editingId === m.id ? setEditingId(null) : startEdit(m)}>{editingId === m.id ? '✕ Fechar' : '✎ Editar'}</button>
+                <button style={s.btnGhostSm} disabled={busyId === m.id} onClick={() => toggleActive(m)}>{m.active ? '⏸ Pausar' : '▶ Ativar'}</button>
+                <button style={{ ...s.btnGhostSm, borderColor: '#FBEAEA', color: '#C43D3D' }} disabled={busyId === m.id} onClick={() => deleteMotoboy(m)}>🗑 Excluir</button>
                 {m.terms && <button style={s.btnGhostSm} onClick={() => setLightbox({ url: m.terms!.pdf_url, label: `Termo assinado — ${m.terms!.nome_digitado}` })}>📄 Termo assinado</button>}
               </div>
             </div>

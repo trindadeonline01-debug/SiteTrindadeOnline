@@ -156,6 +156,38 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
+    if (action === 'delete') {
+      const { id } = body
+      if (!(await requireAdmin(body.access_token))) return NextResponse.json({ error: 'acesso negado' }, { status: 403 })
+      if (!id) return NextResponse.json({ error: 'id obrigatório' }, { status: 400 })
+
+      // delivery_orders/delivery_offers apontam pro motoboy sem cascade
+      // (perderia o histórico de entrega/pagamento se apagasse mesmo
+      // assim) — em vez de deixar o banco recusar com um erro cru,
+      // confere antes e devolve mensagem clara pedindo pra pausar em
+      // vez de excluir.
+      const [{ count: ordersCount }, { count: offersCount }, { count: payoutsCount }] = await Promise.all([
+        supabase.from('delivery_orders').select('id', { count: 'exact', head: true }).eq('motoboy_id', id),
+        supabase.from('delivery_offers').select('id', { count: 'exact', head: true }).eq('motoboy_id', id),
+        supabase.from('motoboy_payouts').select('id', { count: 'exact', head: true }).eq('motoboy_id', id),
+      ])
+      if ((ordersCount || 0) > 0 || (offersCount || 0) > 0 || (payoutsCount || 0) > 0) {
+        return NextResponse.json({ error: 'Esse motoboy já tem entrega ou pagamento registrado — excluir apagaria esse histórico. Usa "Pausar" em vez de excluir.' }, { status: 400 })
+      }
+
+      const { data: motoboy } = await supabase.from('motoboys')
+        .select('cnh_photo_path, moto_frente_photo_path, moto_tras_photo_path, documento_moto_photo_path, selfie_photo_path')
+        .eq('id', id).maybeSingle()
+      const paths = motoboy
+        ? [motoboy.cnh_photo_path, motoboy.moto_frente_photo_path, motoboy.moto_tras_photo_path, motoboy.documento_moto_photo_path, motoboy.selfie_photo_path].filter((p): p is string => !!p)
+        : []
+
+      const { error } = await supabase.from('motoboys').delete().eq('id', id)
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      if (paths.length) await supabase.storage.from('motoboy-docs').remove(paths)
+      return NextResponse.json({ ok: true })
+    }
+
     // ── aprovação do auto-cadastro ──────────────────────────────────────
     if (action === 'approve' || action === 'send_pendencias' || action === 'reject') {
       if (!(await requireAdmin(body.access_token))) return NextResponse.json({ error: 'acesso negado' }, { status: 403 })

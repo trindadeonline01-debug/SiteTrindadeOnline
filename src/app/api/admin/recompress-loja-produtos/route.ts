@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import sharp from 'sharp'
-import { requireAdmin } from '@/lib/requireAdmin'
+import { requireAdminOrSecret } from '@/lib/requireAdminOrSecret'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -72,7 +72,7 @@ async function processBatch(table: 'loja_produtos' | 'loja_opcoes', offset: numb
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await requireAdmin(req)
+  const auth = await requireAdminOrSecret(req)
   if (auth instanceof NextResponse) return auth
 
   try {

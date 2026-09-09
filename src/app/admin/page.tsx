@@ -143,9 +143,6 @@ export default function AdminPage() {
   const [recompressRunning, setRecompressRunning] = useState(false)
   const [recompressStats, setRecompressStats] = useState({ offset: 0, processed: 0, skipped: 0, failed: 0 })
   const [recompressDone, setRecompressDone] = useState(false)
-  const [recompressProdRunning, setRecompressProdRunning] = useState(false)
-  const [recompressProdStats, setRecompressProdStats] = useState({ processed: 0, skipped: 0, failed: 0 })
-  const [recompressProdDone, setRecompressProdDone] = useState(false)
   const [repairRunning, setRepairRunning] = useState(false)
   const [repairStats, setRepairStats] = useState({ offset: 0, migrated: 0, failed: 0 })
   const [repairDone, setRepairDone] = useState(false)
@@ -839,34 +836,6 @@ export default function AdminPage() {
       offset = data.nextOffset
     }
     setRecompressRunning(false)
-  }
-
-  async function runRecompressLojaProdutos() {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return
-    setRecompressProdRunning(true)
-    setRecompressProdDone(false)
-    setRecompressProdStats({ processed: 0, skipped: 0, failed: 0 })
-    let phase: 'produtos' | 'opcoes' = 'produtos'
-    let offset = 0
-    while (true) {
-      const res = await adminFetch('/api/admin/recompress-loja-produtos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phase, offset }),
-      })
-      const data = await res.json()
-      if (data.error) { showToast('Erro: ' + data.error); break }
-      setRecompressProdStats(s => ({
-        processed: s.processed + (data.processed || 0),
-        skipped: s.skipped + (data.skipped || 0),
-        failed: s.failed + (data.failed || 0),
-      }))
-      if (data.done && !data.nextPhase) { setRecompressProdDone(true); break }
-      phase = data.nextPhase
-      offset = data.nextOffset
-    }
-    setRecompressProdRunning(false)
   }
 
   async function runRepairPhotos() {
@@ -3185,22 +3154,6 @@ export default function AdminPage() {
                     <button onClick={runRecompressPhotos} disabled={recompressRunning}
                       style={{padding:'10px 24px',background:'var(--sign)',color:'var(--ink)',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Archivo,sans-serif',opacity:recompressRunning?0.6:1}}>
                       {recompressRunning ? 'Rodando...' : 'Recomprimir fotos antigas'}
-                    </button>
-
-                    <div style={{height:1,background:'#EDE8E0',margin:'20px 0'}} />
-
-                    <div style={{fontSize:13,color:'#666',marginBottom:16,lineHeight:1.6}}>
-                      Recomprime as fotos de produto do cardápio (e das opções/adicionais) já salvas no Storage — inclui as importadas por link antes da compressão automática existir. Fotos já pequenas são puladas. Pode rodar mais de uma vez sem problema.
-                    </div>
-                    {(recompressProdRunning || recompressProdStats.processed + recompressProdStats.skipped + recompressProdStats.failed > 0) && (
-                      <div style={{fontSize:12,color:'#555',marginBottom:14,background:'#FAFAF8',border:'1px solid #EDE8E0',borderRadius:10,padding:'10px 14px'}}>
-                        {recompressProdRunning ? '⏳ Processando... ' : recompressProdDone ? '✓ Concluído — ' : '⏸ Parado — '}
-                        {recompressProdStats.processed} recomprimidas · {recompressProdStats.skipped} já pequenas · {recompressProdStats.failed} falharam
-                      </div>
-                    )}
-                    <button onClick={runRecompressLojaProdutos} disabled={recompressProdRunning}
-                      style={{padding:'10px 24px',background:'var(--sign)',color:'var(--ink)',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Archivo,sans-serif',opacity:recompressProdRunning?0.6:1}}>
-                      {recompressProdRunning ? 'Rodando...' : 'Recomprimir fotos do cardápio'}
                     </button>
                   </div>
                 </div>

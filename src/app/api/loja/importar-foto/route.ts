@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import sharp from 'sharp'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
+
+const MAX_DIMENSION = 1000
+const WEBP_QUALITY = 78
 
 // Cliente separado (chave anon) só pra validar o access_token de quem chamou
 const supabaseAuth = createClient(
@@ -72,10 +76,26 @@ export async function POST(req: NextRequest) {
     if (buf.byteLength === 0) return NextResponse.json({ error: 'a URL respondeu vazia' }, { status: 400 })
     if (buf.byteLength > MAX_BYTES) return NextResponse.json({ error: 'imagem grande demais' }, { status: 400 })
 
-    const ext = contentTypeHeader.startsWith('image/') ? contentTypeHeader.split('/')[1].split(';')[0] : (extFromUrl === 'jpg' || extFromUrl === 'jpeg' ? 'jpeg' : extFromUrl || 'jpg')
-    const contentType = contentTypeHeader.startsWith('image/') ? contentTypeHeader : `image/${ext}`
+    // Redimensiona + converte pra webp antes de subir — a URL de origem
+    // (Anota Aí, iFood etc.) às vezes manda foto de vários MB, e sem isso
+    // ela ia pro nosso Storage do jeito que veio, inflando bandwidth toda
+    // vez que o cardápio é visitado (ver docs/KNOWLEDGE_BASE.md).
+    let out: Buffer
+    let ext = 'webp'
+    let contentType = 'image/webp'
+    try {
+      out = await sharp(buf)
+        .resize({ width: MAX_DIMENSION, height: MAX_DIMENSION, fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: WEBP_QUALITY })
+        .toBuffer()
+    } catch {
+      // gif animado ou formato que o sharp não decodifica — sobe original
+      out = buf
+      ext = contentTypeHeader.startsWith('image/') ? contentTypeHeader.split('/')[1].split(';')[0] : (extFromUrl === 'jpg' || extFromUrl === 'jpeg' ? 'jpeg' : extFromUrl || 'jpg')
+      contentType = contentTypeHeader.startsWith('image/') ? contentTypeHeader : `image/${ext}`
+    }
     const path = `${company_id}/importado/${Date.now()}.${ext}`
-    const { error: upErr } = await supabase.storage.from('loja-produtos').upload(path, buf, { contentType, upsert: true })
+    const { error: upErr } = await supabase.storage.from('loja-produtos').upload(path, out, { contentType, upsert: true })
     if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 })
 
     const photo_url = supabase.storage.from('loja-produtos').getPublicUrl(path).data.publicUrl

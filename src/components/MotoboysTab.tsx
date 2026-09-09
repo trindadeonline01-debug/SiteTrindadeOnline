@@ -425,11 +425,11 @@ export default function MotoboysTab() {
           <div key={m.id}>
             <div style={s.row}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flex: '1 1 260px', minWidth: 0 }}>
-                {m.cnh_photo_url ? (
+                {m.selfie_photo_url || m.cnh_photo_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={m.cnh_photo_url} alt="CNH" style={{ width: 42, height: 42, borderRadius: 8, objectFit: 'cover', border: '1px solid #eee', flex: 'none' }} />
+                  <img src={m.selfie_photo_url || m.cnh_photo_url!} alt={m.name} style={{ width: 42, height: 42, borderRadius: '50%', objectFit: 'cover', border: '1px solid #eee', flex: 'none' }} />
                 ) : (
-                  <div style={{ width: 42, height: 42, borderRadius: 8, background: '#F5F0E8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flex: 'none' }}>🏍️</div>
+                  <div style={{ width: 42, height: 42, borderRadius: '50%', background: '#F5F0E8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flex: 'none' }}>🏍️</div>
                 )}
                 <div style={{ minWidth: 0 }}>
                   <div style={s.name}>

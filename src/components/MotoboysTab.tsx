@@ -274,11 +274,11 @@ export default function MotoboysTab() {
         <label style={s.label}>Nome</label>
         <input style={s.input} value={f.name} onChange={e => setF(x => ({ ...x, name: e.target.value }))} placeholder="Ex: Zezinho" />
         <label style={s.label}>WhatsApp</label>
-        <input style={s.input} value={f.phone} onChange={e => setF(x => ({ ...x, phone: e.target.value }))} placeholder="21 99999-9999" />
+        <input style={s.input} value={f.phone} onChange={e => setF(x => ({ ...x, phone: e.target.value }))} placeholder="21 99999-9999" inputMode="tel" />
         <label style={s.label}>Endereço</label>
         <input style={s.input} value={f.address} onChange={e => setF(x => ({ ...x, address: e.target.value }))} placeholder="Rua, número, bairro" />
         <label style={s.label}>CPF</label>
-        <input style={s.input} value={f.cpf} onChange={e => setF(x => ({ ...x, cpf: e.target.value }))} placeholder="Só números" />
+        <input style={s.input} value={f.cpf} onChange={e => setF(x => ({ ...x, cpf: e.target.value }))} placeholder="Só números" inputMode="numeric" pattern="[0-9]*" />
 
         <label style={s.label}>Foto da CNH {photo === null && '(deixe em branco pra manter a atual)'}</label>
         <input type="file" accept="image/*" capture="environment" ref={inputRef} style={{ display: 'none' }} onChange={onPickPhoto} />

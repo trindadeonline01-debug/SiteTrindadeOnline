@@ -1672,11 +1672,13 @@ export default function AdminPage() {
               <div>
                 <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>WhatsApp</label>
                 <input value={editCompanyModal.company.phone||''} onChange={e=>setEditCompanyModal(p=>({...p,company:{...p.company,phone:e.target.value}}))}
+                  inputMode="tel"
                   style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Archivo,sans-serif'}}/>
               </div>
               <div>
                 <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>CPF/CNPJ</label>
                 <input value={editCompanyModal.company.cpf_cnpj||''} onChange={e=>setEditCompanyModal(p=>({...p,company:{...p.company,cpf_cnpj:e.target.value}}))}
+                  inputMode="numeric" pattern="[0-9]*"
                   style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Archivo,sans-serif'}}/>
               </div>
               <div style={{gridColumn:'1/-1'}}>

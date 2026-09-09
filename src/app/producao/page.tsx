@@ -656,7 +656,7 @@ export default function ProducaoPage() {
               <form onSubmit={sendInvite}>
                 <label>Nome</label><input type="text" value={invName} onChange={e => setInvName(e.target.value)} placeholder="Nome da pessoa" />
                 <label>E-mail</label><input type="email" value={invEmail} onChange={e => setInvEmail(e.target.value)} placeholder="email@exemplo.com" />
-                <label>WhatsApp (opcional)</label><input type="text" value={invPhone} onChange={e => setInvPhone(e.target.value)} placeholder="(21) 90000-0000" />
+                <label>WhatsApp (opcional)</label><input type="text" value={invPhone} onChange={e => setInvPhone(e.target.value)} placeholder="(21) 90000-0000" inputMode="tel" />
                 {invError && <div className="pr2-error">{invError}</div>}
                 <div className="pr2-modal-actions">
                   <button type="button" className="pr2-modal-cancel" onClick={() => setShowInvite(false)}>Cancelar</button>

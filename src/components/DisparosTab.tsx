@@ -996,7 +996,7 @@ export default function DisparosTab() {
                 )}
 
                 <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-                  <input style={{ ...s.input, flex: 1 }} placeholder="Número (contato sem cadastro)" value={manualPhone} onChange={e => setManualPhone(e.target.value)} />
+                  <input style={{ ...s.input, flex: 1 }} placeholder="Número (contato sem cadastro)" value={manualPhone} onChange={e => setManualPhone(e.target.value)} inputMode="tel" />
                   <input style={{ ...s.input, flex: 1 }} placeholder="Nome (opcional)" value={manualName} onChange={e => setManualName(e.target.value)} />
                   <button onClick={() => addManualMember(l.id)}
                     style={{ background: '#fff', border: '1.5px solid var(--sign-dark)', color: 'var(--sign-dark)', padding: '11px 14px', borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
@@ -1028,7 +1028,7 @@ export default function DisparosTab() {
       <div style={s.card}>
         <div style={s.cardTitle}>🚫 Blacklist — Não Perturbe</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 8, marginBottom: 14 }}>
-          <input style={s.input} placeholder="Número" value={blPhone} onChange={e => setBlPhone(e.target.value)} />
+          <input style={s.input} placeholder="Número" value={blPhone} onChange={e => setBlPhone(e.target.value)} inputMode="tel" />
           <input style={s.input} placeholder="Nome (opcional)" value={blName} onChange={e => setBlName(e.target.value)} />
           <input style={s.input} placeholder="Motivo (opcional)" value={blReason} onChange={e => setBlReason(e.target.value)} />
           <button onClick={addBlacklist}

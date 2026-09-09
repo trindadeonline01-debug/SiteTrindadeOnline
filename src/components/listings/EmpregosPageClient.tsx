@@ -211,7 +211,7 @@ function FormModal({subtypes,type,userId,initialRole,onClose,onSaved}:{subtypes:
           <div><label className="fl">{role==='oferece'?'SALÁRIO (R$)':'PRETENSÃO SALARIAL (R$)'}</label><input className="fi" type="number" placeholder="Deixe vazio = A combinar" value={form.price} onChange={e=>setForm(f=>({...f,price:e.target.value}))}/></div>
           <div><label className="fl">BAIRRO</label><input className="fi" placeholder="Trindade" value={form.address} onChange={e=>setForm(f=>({...f,address:e.target.value}))}/></div>
         </div>
-        <label className="fl">SEU WHATSAPP</label><input className="fi" placeholder="21 99999-9999" value={form.phone} onChange={e=>setForm(f=>({...f,phone:e.target.value}))}/>
+        <label className="fl">SEU WHATSAPP</label><input className="fi" placeholder="21 99999-9999" value={form.phone} onChange={e=>setForm(f=>({...f,phone:e.target.value}))} inputMode="tel"/>
         <label className="fl">FOTOS (até 5)</label><input className="fi" type="file" accept="image/*" multiple onChange={e=>setFiles(Array.from(e.target.files||[]).slice(0,5))}/>
         <button className="bts" onClick={submit} disabled={loading||!form.title.trim()}>{loading?'Publicando...':'Publicar anúncio'}</button>
         <button className="btc" onClick={onClose}>Cancelar</button>

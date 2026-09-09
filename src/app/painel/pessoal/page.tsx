@@ -197,7 +197,7 @@ function PainelPessoalInner() {
             {editing ? (
               <>
                 <div className="pp-field"><label className="pp-fl">NOME</label><input className="pp-fi" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))}/></div>
-                <div className="pp-field"><label className="pp-fl">WHATSAPP</label><input className="pp-fi" placeholder="21 99999-9999" value={form.phone} onChange={e=>setForm(f=>({...f,phone:e.target.value}))}/></div>
+                <div className="pp-field"><label className="pp-fl">WHATSAPP</label><input className="pp-fi" placeholder="21 99999-9999" value={form.phone} onChange={e=>setForm(f=>({...f,phone:e.target.value}))} inputMode="tel"/></div>
                 <div className="pp-field"><label className="pp-fl">BAIRRO</label><input className="pp-fi" placeholder="Ex: Trindade" value={form.neighborhood} onChange={e=>setForm(f=>({...f,neighborhood:e.target.value}))}/></div>
                 <button className="pp-btn-save" onClick={saveProfile} disabled={saving}>{saving?'Salvando...':'Salvar alterações'}</button>
                 <button className="pp-btn-cancel" onClick={()=>setEditing(false)}>Cancelar</button>

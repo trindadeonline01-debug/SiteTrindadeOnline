@@ -248,7 +248,7 @@ function PerfilPageInner() {
                 {editing ? (
                   <>
                     <div className="field"><label className="fl">NOME</label><input className="fi" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))}/></div>
-                    <div className="field"><label className="fl">WHATSAPP</label><input className="fi" placeholder="21 99999-9999" value={form.phone} onChange={e=>setForm(f=>({...f,phone:e.target.value}))}/></div>
+                    <div className="field"><label className="fl">WHATSAPP</label><input className="fi" placeholder="21 99999-9999" value={form.phone} onChange={e=>setForm(f=>({...f,phone:e.target.value}))} inputMode="tel"/></div>
                     <div className="field"><label className="fl">BAIRRO</label><input className="fi" placeholder="Ex: Trindade" value={form.neighborhood} onChange={e=>setForm(f=>({...f,neighborhood:e.target.value}))}/></div>
                     <button className="btn-save" onClick={saveProfile} disabled={saving}>{saving?'Salvando...':'Salvar alterações'}</button>
                     <button className="btn-cancel" onClick={()=>setEditing(false)}>Cancelar</button>

@@ -519,7 +519,7 @@ export default function AnunciarPage() {
                   </div>
                   <div className="field">
                     <label>CPF / CNPJ *</label>
-                    <input type="text" placeholder="000.000.000-00 ou 00.000.000/0001-00" value={cpfCnpj} onChange={e => setCpfCnpj(e.target.value)} />
+                    <input type="text" placeholder="000.000.000-00 ou 00.000.000/0001-00" inputMode="numeric" value={cpfCnpj} onChange={e => setCpfCnpj(e.target.value)} />
                   </div>
                   <div className="field">
                     <label>Categoria *</label>

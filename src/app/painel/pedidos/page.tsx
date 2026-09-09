@@ -797,7 +797,7 @@ export default function PedidosPage() {
               <div className="np-body">
                 <div className="np-section-label">Cliente</div>
                 <input className="np-input" placeholder="Nome do cliente" value={npNome} onChange={e => setNpNome(e.target.value)} />
-                <input className="np-input" placeholder="Telefone (opcional)" value={npTelefone} onChange={e => setNpTelefone(e.target.value)} />
+                <input className="np-input" placeholder="Telefone (opcional)" value={npTelefone} onChange={e => setNpTelefone(e.target.value)} inputMode="tel" />
 
                 <div className="np-section-label">Entrega</div>
                 <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>

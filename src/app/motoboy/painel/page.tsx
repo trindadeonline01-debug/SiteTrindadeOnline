@@ -197,7 +197,7 @@ export default function MotoboyPainelPage() {
               waStep === 1 ? (
                 <>
                   <div style={{ fontSize: 12, color: '#8A8478', textAlign: 'center', marginBottom: 14 }}>Digite o WhatsApp que você usou no cadastro — mandamos um código pra entrar.</div>
-                  <div className="p-field"><label>Seu WhatsApp</label><input value={phone} onChange={e => setPhone(e.target.value)} placeholder="(21) 98123-4567" /></div>
+                  <div className="p-field"><label>Seu WhatsApp</label><input value={phone} onChange={e => setPhone(e.target.value)} placeholder="(21) 98123-4567" inputMode="tel" /></div>
                   {erro && <div className="p-error">{erro}</div>}
                   <button className="p-btn" disabled={sending} onClick={enviarCodigo}>{sending ? 'Enviando...' : 'Enviar código →'}</button>
                 </>
@@ -215,7 +215,7 @@ export default function MotoboyPainelPage() {
             ) : (
               <>
                 <div style={{ fontSize: 12, color: '#8A8478', textAlign: 'center', marginBottom: 14 }}>Entra com o WhatsApp e a senha que você criou.</div>
-                <div className="p-field"><label>Seu WhatsApp</label><input value={phone} onChange={e => setPhone(e.target.value)} placeholder="(21) 98123-4567" /></div>
+                <div className="p-field"><label>Seu WhatsApp</label><input value={phone} onChange={e => setPhone(e.target.value)} placeholder="(21) 98123-4567" inputMode="tel" /></div>
                 <div className="p-field"><label>Senha</label><input type="password" value={senha} onChange={e => setSenha(e.target.value)} /></div>
                 {erro && <div className="p-error">{erro}</div>}
                 <button className="p-btn" disabled={sending} onClick={loginComSenha}>{sending ? 'Entrando...' : 'Entrar'}</button>

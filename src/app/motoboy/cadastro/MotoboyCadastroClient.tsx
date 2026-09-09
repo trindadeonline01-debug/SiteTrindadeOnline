@@ -210,14 +210,14 @@ export default function MotoboyCadastroClient() {
             <div className="mc-title">Seus dados</div>
             <div className="mc-sub">É rápido — leva uns 3 minutos. Precisamos disso pra você já poder receber corridas.</div>
             <div className="mc-field"><label>Nome completo <span className="req">*</span></label><input value={nome} onChange={e => setNome(e.target.value)} /></div>
-            <div className="mc-field"><label>CPF <span className="req">*</span></label><input value={cpf} onChange={e => setCpf(e.target.value)} placeholder="Só números" /></div>
+            <div className="mc-field"><label>CPF <span className="req">*</span></label><input value={cpf} onChange={e => setCpf(e.target.value)} placeholder="Só números" inputMode="numeric" pattern="[0-9]*" /></div>
             <div className="mc-field"><label>Endereço completo <span className="req">*</span></label><input value={endereco} onChange={e => setEndereco(e.target.value)} /></div>
             <div className="mc-field">
               <label>E-mail</label>
               <input value={email} onChange={e => setEmail(e.target.value)} />
               <div className="mc-hint">Só pra registro — a confirmação do cadastro é pelo WhatsApp, não precisa clicar em nada no e-mail.</div>
             </div>
-            <div className="mc-field"><label>Seu WhatsApp <span className="req">*</span></label><input value={whatsapp} onChange={e => setWhatsapp(e.target.value)} placeholder="(21) 99999-9999" /></div>
+            <div className="mc-field"><label>Seu WhatsApp <span className="req">*</span></label><input value={whatsapp} onChange={e => setWhatsapp(e.target.value)} placeholder="(21) 99999-9999" inputMode="tel" /></div>
             {erro && <div className="mc-error">{erro}</div>}
             <button className="mc-btn" disabled={sendingCode} onClick={enviarCodigo}>{sendingCode ? 'Enviando código...' : 'Continuar →'}</button>
           </>

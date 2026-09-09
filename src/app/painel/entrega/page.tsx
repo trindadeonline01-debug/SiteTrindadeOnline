@@ -361,7 +361,7 @@ export default function EntregaPage() {
             <label className="en-flabel">Nome do cliente</label>
             <input className="en-finput" value={novaForm.nome} onChange={e => setNovaForm(f => ({ ...f, nome: e.target.value }))} placeholder="Ex: Kelli Verissimo" />
             <label className="en-flabel">WhatsApp do cliente (opcional)</label>
-            <input className="en-finput" value={novaForm.telefone} onChange={e => setNovaForm(f => ({ ...f, telefone: e.target.value }))} placeholder="21 99999-9999" />
+            <input className="en-finput" value={novaForm.telefone} onChange={e => setNovaForm(f => ({ ...f, telefone: e.target.value }))} placeholder="21 99999-9999" inputMode="tel" />
             <label className="en-flabel">Endereço de entrega</label>
             <input className="en-finput" value={novaForm.endereco} onChange={e => setNovaForm(f => ({ ...f, endereco: e.target.value }))} placeholder="Rua, número, bairro" />
             {novaError && <div className="en-error">{novaError}</div>}

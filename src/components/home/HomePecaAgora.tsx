@@ -58,17 +58,19 @@ export default function HomePecaAgora({ groups }: { groups: PecaGroup[] }) {
       {items.length === 0 ? (
         <div className="oa-empty">Nenhum produto nessa faixa de preço ainda.</div>
       ) : (
-        <div className="pa-grid">
+        <div className="pa-list">
           {items.map(p => (
-            <a key={p.id} className="pa-card" href={`/empresa/${p.companySlug}/item/${p.id}`}>
-              <div className="pa-card-img">
-                <Image src={p.photo_url} alt={p.name} fill sizes="(max-width:639px) 45vw, 220px" unoptimized style={{objectFit:'cover'}} />
-                {p.open && <span className="pa-open"><span className="oa-badge-dot" />Aberto agora</span>}
+            <a key={p.id} className="pa-row" href={`/empresa/${p.companySlug}/item/${p.id}`}>
+              <div className="pa-row-img">
+                <Image src={p.photo_url} alt={p.name} fill sizes="56px" unoptimized style={{objectFit:'cover'}} />
               </div>
-              <div className="pa-body">
+              <div className="pa-row-body">
                 <div className="pa-name">{p.name}</div>
                 <div className="pa-biz">{p.companyName}</div>
+              </div>
+              <div className="pa-row-end">
                 <div className="pa-price">{fmt(p.price)}</div>
+                {p.open && <div className="pa-open"><span className="pa-dot" />Aberto</div>}
               </div>
             </a>
           ))}

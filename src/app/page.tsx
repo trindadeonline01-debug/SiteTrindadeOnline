@@ -647,17 +647,17 @@ export default async function HomePage() {
         .pa-filters::-webkit-scrollbar { display: none; }
         .pa-chip { flex: 0 0 auto; padding: 7px 15px; border-radius: 20px; border: 1px solid var(--line); background: var(--paper); font-size: 12px; font-weight: 700; color: var(--ink); cursor: pointer; font-family: 'Archivo', sans-serif; white-space: nowrap; }
         .pa-chip.on { background: var(--sign); border-color: var(--sign-dark); color: var(--ink); }
-        .pa-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
-        @media(max-width: 1023px) { .pa-grid { grid-template-columns: repeat(3,1fr); } }
-        @media(max-width: 639px)  { .pa-grid { grid-template-columns: repeat(2,1fr); gap: 9px; } }
-        .pa-card { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; text-decoration: none; color: inherit; transition: border-color .15s, transform .15s; }
-        .pa-card:hover { border-color: var(--ink); transform: translateY(-2px); }
-        .pa-card-img { aspect-ratio: 1/0.8; position: relative; background: var(--concrete-2); }
-        .pa-open { position: absolute; top: 8px; left: 8px; display: flex; align-items: center; gap: 4px; background: rgba(17,17,17,.85); color: #6FE3A0; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .3px; padding: 3px 8px 3px 6px; border-radius: 20px; }
-        .pa-body { padding: 10px 12px 12px; }
-        .pa-name { font-size: 13.5px; font-weight: 700; color: var(--ink); line-height: 1.25; margin-bottom: 2px; font-family: 'Archivo', sans-serif; }
-        .pa-biz { font-size: 11px; color: var(--muted); margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .pa-price { font-size: 14px; font-weight: 800; color: var(--sign-dark); }
+        .pa-list { display: flex; flex-direction: column; gap: 7px; }
+        .pa-row { display: flex; align-items: center; gap: 10px; background: var(--paper); border: 1px solid var(--line); border-radius: 13px; padding: 8px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .pa-row:hover { border-color: var(--ink); }
+        .pa-row-img { width: 52px; height: 52px; border-radius: 10px; flex-shrink: 0; position: relative; overflow: hidden; background: var(--concrete-2); }
+        .pa-row-body { flex: 1; min-width: 0; }
+        .pa-row-end { flex-shrink: 0; text-align: right; }
+        .pa-name { font-size: 13px; font-weight: 700; color: var(--ink); line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: 'Archivo', sans-serif; }
+        .pa-biz { font-size: 11px; color: var(--muted); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .pa-price { font-size: 13px; font-weight: 800; color: var(--sign-dark); font-variant-numeric: tabular-nums; }
+        .pa-open { display: flex; align-items: center; gap: 4px; justify-content: flex-end; margin-top: 3px; font-size: 9.5px; font-weight: 700; color: var(--open); text-transform: uppercase; letter-spacing: .2px; }
+        .pa-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--open); display: inline-block; flex-shrink: 0; }
 
         .cta-section { margin: 36px 0 48px; background: linear-gradient(135deg,var(--ink),var(--ink-2)); border-radius: 20px; padding: 36px 32px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 16px; }
         @media(min-width: 768px) { .cta-section { flex-direction: row; text-align: left; justify-content: space-between; padding: 36px 48px; } }

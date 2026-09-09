@@ -387,7 +387,10 @@ export default async function HomePage() {
             id: p.id, name: p.name, photo_url: p.photo_url!, price: promoPrice(produto) ?? p.sale_price,
             companyName: company.name, companySlug: company.slug, open,
           }
-          allItems.push(item)
+          // Bebida nunca entra em "Todas" — só some quando o morador clica
+          // na aba Bebida de propósito, senão a aba geral vira refrigerante
+          // e água intercalado com o resto do cardápio.
+          if (p.tipo_vitrine !== 'Bebida') allItems.push(item)
           if (p.tipo_vitrine) {
             const bucket = bucketMap.get(p.tipo_vitrine) || []
             bucket.push(item)

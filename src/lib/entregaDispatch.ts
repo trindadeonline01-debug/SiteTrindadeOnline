@@ -56,6 +56,30 @@ export async function sendPlatformWhatsApp(phone: string, text: string): Promise
 }
 export const sendMotoboyWhatsApp = sendPlatformWhatsApp
 
+// Mesma instância da plataforma, mas manda a legenda junto de uma imagem
+// (foto da loja) em vez de só texto — o motoboy passa a reconhecer o ponto
+// de retirada pela foto, não só pelo endereço escrito.
+export async function sendPlatformWhatsAppImage(phone: string, imageUrl: string, caption: string): Promise<{ ok: boolean; detail?: string }> {
+  try {
+    const res = await fetch(`${EVOLUTION_URL}/message/sendMedia/${encodeURIComponent(EVOLUTION_INSTANCE)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: EVOLUTION_API_KEY },
+      body: JSON.stringify({ number: formatPhone(phone), mediatype: 'image', media: imageUrl, caption }),
+    })
+    if (!res.ok) {
+      const body = await res.text().catch(() => '')
+      const detail = `Evolution respondeu ${res.status}: ${body.slice(0, 300)}`
+      console.error(`[sendPlatformWhatsAppImage] ${detail}`)
+      return { ok: false, detail }
+    }
+    return { ok: true }
+  } catch (err: any) {
+    const detail = `falha ao chamar a Evolution API: ${err?.message || err}`
+    console.error(`[sendPlatformWhatsAppImage] ${detail}`)
+    return { ok: false, detail }
+  }
+}
+
 // Manda mensagem pro CLIENTE pela instância WhatsApp da PRÓPRIA loja (não a
 // da plataforma) — mesma conversa do CRM dela, se estiver conectado. Sem
 // instância conectada, não tem como mandar; a entrega segue normal mesmo
@@ -126,21 +150,29 @@ async function pickNextMotoboy(deliveryOrderId: string): Promise<{ id: string; n
 
 // Link de busca do Google Maps a partir do endereço em texto — não temos
 // lat/lng geocodado, então usa o formato de busca (funciona igual, abre com
-// o pino no endereço certo tanto no app quanto no navegador).
-function mapsLink(address: string): string {
+// o pino no endereço certo tanto no app quanto no navegador). Exportado pra
+// ser usado pelo redirect curto em /e/[id]/[tipo].
+export function mapsLink(address: string): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
 }
 
-function offerMessage(order: { pickup_address: string; dropoff_address: string; customer_name: string; fee: number }): string {
+// Link curto (nosso próprio domínio) que redireciona pro Maps de verdade —
+// o link cru do Maps com endereço codificado passa de 100 caracteres e
+// polui a mensagem/legenda; esse fica na casa de 60, mesmo com o UUID.
+function shortMapsLink(deliveryOrderId: string, tipo: 'r' | 'd'): string {
+  return `${SITE_URL}/e/${deliveryOrderId}/${tipo}`
+}
+
+function offerMessage(order: { pickup_address: string; dropoff_address: string; customer_name: string; fee: number }, deliveryOrderId: string): string {
   const fee = Number(order.fee).toFixed(2).replace('.', ',')
   return [
     '🏍️ *Tem entrega!*',
     '',
     `📍 Retirar em: ${order.pickup_address}`,
-    mapsLink(order.pickup_address),
+    shortMapsLink(deliveryOrderId, 'r'),
     '',
     `🏠 Entregar pra ${order.customer_name}: ${order.dropoff_address}`,
-    mapsLink(order.dropoff_address),
+    shortMapsLink(deliveryOrderId, 'd'),
     '',
     `Taxa: R$ ${fee}`,
     '',
@@ -199,7 +231,7 @@ export async function criarEntregaEChamarMotoboy(opts: {
 // esperando (a loja vê "aguardando aceite") até algum motoboy ficar livre.
 export async function offerToNextMotoboy(deliveryOrderId: string, sequenceNo: number) {
   const { data: order } = await supabase
-    .from('delivery_orders').select('pickup_address, dropoff_address, customer_name, fee, status')
+    .from('delivery_orders').select('company_id, pickup_address, dropoff_address, customer_name, fee, status')
     .eq('id', deliveryOrderId).maybeSingle()
   if (!order || order.status !== 'buscando_motoboy') return
 
@@ -210,7 +242,17 @@ export async function offerToNextMotoboy(deliveryOrderId: string, sequenceNo: nu
   await supabase.from('delivery_offers').insert({
     delivery_order_id: deliveryOrderId, motoboy_id: motoboy.id, sequence_no: sequenceNo, status: 'pendente', expires_at: expiresAt,
   })
-  await sendMotoboyWhatsApp(motoboy.phone, offerMessage(order))
+
+  const text = offerMessage(order, deliveryOrderId)
+  const { data: photo } = await supabase
+    .from('company_photos').select('url').eq('company_id', order.company_id).order('order').limit(1).maybeSingle()
+
+  // Foto da loja como preview visual (o motoboy aprende o ponto de retirada
+  // de cara, com o tempo) — se não tiver foto cadastrada, ou se o envio de
+  // mídia falhar por qualquer motivo, cai pro texto puro. A oferta PRECISA
+  // sair de um jeito ou de outro, a foto é só um extra.
+  const sentAsImage = photo?.url ? (await sendPlatformWhatsAppImage(motoboy.phone, photo.url, text)).ok : false
+  if (!sentAsImage) await sendMotoboyWhatsApp(motoboy.phone, text)
 }
 
 // Varre ofertas que estouraram o prazo sem resposta, marca como expiradas

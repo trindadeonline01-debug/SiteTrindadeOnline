@@ -697,7 +697,24 @@ export default async function HomePage() {
           .dv-badge { font-size: 9px; padding: 3px 4px; top: 4px; left: 4px; }
         }
 
-        /* PEÇA AGORA — vitrine de delivery entre categorias e ofertas */
+        /* PEÇA AGORA — vitrine de delivery entre categorias e ofertas.
+           .recent-section/.sec-hdr empilhavam 48px + 32px de margem-topo
+           (~80px de vazio antes do título) — aqui isso é resetado pra 20px,
+           e o título+abas+filtros ganham uma faixa amarela (cor de
+           assinatura da marca) destacando o bloco inteiro; a lista de
+           produtos continua fora da faixa, em fundo branco normal
+           (aprovado por Ricardo, set/2026). */
+        .pa-wrap { margin-top: 20px; }
+        .pa-band { background: var(--sign); border-radius: 18px; padding: 16px 16px 12px; margin-bottom: 16px; }
+        .pa-hdr { margin: 0 0 12px; }
+        .pa-eyebrow { color: rgba(21,18,16,.68); }
+        .pa-band .pa-scroll { padding: 4px 4px 8px; }
+        .pa-band .pa-photo { background: var(--paper); border-color: transparent; }
+        .pa-band .pa-item:hover .pa-photo, .pa-band .pa-item.on .pa-photo { border-color: var(--ink); transform: translateY(-2px); }
+        .pa-band .pa-lbl, .pa-band .pa-item.on .pa-lbl { color: var(--ink); }
+        .pa-band .pa-filters { margin: 2px 0 0; padding: 2px 4px 2px; }
+        .pa-band .pa-chip { background: rgba(255,255,255,.55); border-color: transparent; color: var(--ink); }
+        .pa-band .pa-chip.on { background: var(--ink); border-color: var(--ink); color: var(--sign); }
         .pa-scroll { display: flex; gap: 16px; overflow-x: auto; padding: 4px 4px 10px; scrollbar-width: none; }
         .pa-scroll::-webkit-scrollbar { display: none; }
         .pa-item { flex: 0 0 auto; width: 84px; display: flex; flex-direction: column; align-items: center; gap: 7px; text-align: center; cursor: pointer; }

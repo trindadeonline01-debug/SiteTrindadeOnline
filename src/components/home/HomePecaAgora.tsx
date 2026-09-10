@@ -133,27 +133,29 @@ export default function HomePecaAgora({ groups }: { groups: PecaGroup[] }) {
   const visibleItems = items.slice(0, visibleCount)
 
   return (
-    <div className="recent-section">
-      <div className="sec-hdr">
-        <div>
-          <span className="sec-eyebrow">Delivery na Trindade</span>
-          <h2 className="recent-section-title">🍔 Peça agora</h2>
-        </div>
-      </div>
-
-      <div className="pa-scroll">
-        {groups.map(g => (
-          <div key={g.key} className={`pa-item ${activeKey === g.key ? 'on' : ''}`} onClick={() => changeTab(g.key)}>
-            <div className="pa-photo">{g.emoji}</div>
-            <span className="pa-lbl">{g.label}</span>
+    <div className="recent-section pa-wrap">
+      <div className="pa-band">
+        <div className="sec-hdr pa-hdr">
+          <div>
+            <span className="sec-eyebrow pa-eyebrow">Delivery na Trindade</span>
+            <h2 className="recent-section-title">🍔 Peça agora</h2>
           </div>
-        ))}
-      </div>
+        </div>
 
-      <div className="pa-filters">
-        {PRICE_FILTERS.map(f => (
-          <button type="button" key={f.max} className={`pa-chip ${maxPrice === f.max ? 'on' : ''}`} onClick={() => changePrice(f.max)}>{f.label}</button>
-        ))}
+        <div className="pa-scroll">
+          {groups.map(g => (
+            <div key={g.key} className={`pa-item ${activeKey === g.key ? 'on' : ''}`} onClick={() => changeTab(g.key)}>
+              <div className="pa-photo">{g.emoji}</div>
+              <span className="pa-lbl">{g.label}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="pa-filters">
+          {PRICE_FILTERS.map(f => (
+            <button type="button" key={f.max} className={`pa-chip ${maxPrice === f.max ? 'on' : ''}`} onClick={() => changePrice(f.max)}>{f.label}</button>
+          ))}
+        </div>
       </div>
 
       {items.length === 0 ? (

@@ -135,11 +135,9 @@ export default function HomePecaAgora({ groups }: { groups: PecaGroup[] }) {
   return (
     <div className="recent-section pa-wrap">
       <div className="pa-band">
-        <div className="sec-hdr pa-hdr">
-          <div>
-            <span className="sec-eyebrow pa-eyebrow">Delivery na Trindade</span>
-            <h2 className="recent-section-title">🍔 Peça agora</h2>
-          </div>
+        <div className="pa-hdr">
+          <h2 className="recent-section-title">🍔 Peça agora</h2>
+          <span className="sec-eyebrow pa-eyebrow">Delivery na Trindade</span>
         </div>
 
         <div className="pa-scroll">

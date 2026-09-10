@@ -601,7 +601,7 @@ export default async function HomePage() {
         .cat-scroll { display: none; }
         @media(max-width: 767px) {
           .cat-scroll-wrap { width: 100vw; margin-left: calc(50% - 50vw); }
-          .cat-scroll { display: flex; gap: 16px; overflow-x: auto; padding: 4px 20px 8px; scrollbar-width: none; }
+          .cat-scroll { display: flex; gap: 8px; overflow-x: auto; padding: 4px 20px 8px; scrollbar-width: none; }
           .cat-scroll::-webkit-scrollbar { display: none; }
         }
         .cat-circ-item { flex: 0 0 auto; width: 72px; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; text-decoration: none; }
@@ -720,9 +720,14 @@ export default async function HomePage() {
            (set/2026). padding lateral em 20px pra alinhar o conteúdo de
            dentro com o resto da página (cat-grid, pa-list), que continua
            dentro do .main-wrap normal. */
-        .pa-band { background: var(--sign); width: 100vw; margin-left: calc(50% - 50vw); padding: 16px 20px 14px; margin-bottom: 16px; }
-        .pa-hdr { margin: 0 0 12px; }
-        .pa-eyebrow { color: rgba(21,18,16,.68); }
+        .pa-band { background: var(--sign); width: 100vw; margin-left: calc(50% - 50vw); padding: 10px 20px 10px; margin-bottom: 16px; }
+        /* Título e "Delivery na Trindade" na mesma linha (alinhados pela
+           base), em vez de empilhados — junto com os quadrados mais baixos
+           logo abaixo, é o que deixa a faixa inteira mais baixa (Ricardo
+           pediu o mínimo de altura possível, pra sobrar mais tela pro
+           conteúdo, set/2026). */
+        .pa-hdr { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 0 0 8px; }
+        .pa-eyebrow { color: rgba(21,18,16,.68); margin-bottom: 0; white-space: nowrap; }
         /* O carrossel de subcategorias (dentro da faixa) tinha o mesmo
            problema que o de categorias tinha antes de ir de ponta a ponta —
            só que aqui em vez do .main-wrap é o padding lateral do próprio
@@ -730,11 +735,15 @@ export default async function HomePage() {
            igual ao padding do pai cancela isso; o padding interno mantém o
            primeiro/último item alinhados com o resto da página, mas a área
            de rolagem em si vai até a borda da tela (Ricardo, set/2026). */
-        .pa-band .pa-scroll { margin: 0 -20px; padding: 4px 20px 8px; }
-        .pa-band .pa-photo { background: var(--paper); border-color: transparent; }
-        .pa-band .pa-item:hover .pa-photo, .pa-band .pa-item.on .pa-photo { border-color: var(--ink); transform: translateY(-2px); }
-        .pa-band .pa-lbl, .pa-band .pa-item.on .pa-lbl { color: var(--ink); }
-        .pa-band .pa-filters { margin: 2px 0 0; padding: 2px 4px 2px; }
+        .pa-band .pa-scroll { margin: 0 -20px; padding: 2px 20px 8px; gap: 8px; }
+        /* Quadrado (não mais círculo/retângulo alto) com fundo branco
+           translúcido em vez de chapado, coladinhos entre si — 3 pedidos
+           de ajuste do Ricardo depois do mockup (set/2026). */
+        .pa-band .pa-item { width: 66px; gap: 6px; }
+        .pa-band .pa-photo { width: 64px; height: 64px; border-radius: 14px; background: rgba(255,255,255,.8); border-color: transparent; font-size: 26px; }
+        .pa-band .pa-item:hover .pa-photo, .pa-band .pa-item.on .pa-photo { border-color: var(--ink); background: rgba(255,255,255,.95); }
+        .pa-band .pa-lbl, .pa-band .pa-item.on .pa-lbl { color: var(--ink); font-size: 10.5px; }
+        .pa-band .pa-filters { margin: 0; padding: 2px 4px 2px; }
         .pa-band .pa-chip { background: rgba(255,255,255,.55); border-color: transparent; color: var(--ink); }
         .pa-band .pa-chip.on { background: var(--ink); border-color: var(--ink); color: var(--sign); }
         .pa-scroll { display: flex; gap: 16px; overflow-x: auto; padding: 4px 4px 10px; scrollbar-width: none; }

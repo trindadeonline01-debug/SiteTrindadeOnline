@@ -723,7 +723,14 @@ export default async function HomePage() {
         .pa-band { background: var(--sign); width: 100vw; margin-left: calc(50% - 50vw); padding: 16px 20px 14px; margin-bottom: 16px; }
         .pa-hdr { margin: 0 0 12px; }
         .pa-eyebrow { color: rgba(21,18,16,.68); }
-        .pa-band .pa-scroll { padding: 4px 4px 8px; }
+        /* O carrossel de subcategorias (dentro da faixa) tinha o mesmo
+           problema que o de categorias tinha antes de ir de ponta a ponta —
+           só que aqui em vez do .main-wrap é o padding lateral do próprio
+           .pa-band que segura ele "dentro de um container". Margem negativa
+           igual ao padding do pai cancela isso; o padding interno mantém o
+           primeiro/último item alinhados com o resto da página, mas a área
+           de rolagem em si vai até a borda da tela (Ricardo, set/2026). */
+        .pa-band .pa-scroll { margin: 0 -20px; padding: 4px 20px 8px; }
         .pa-band .pa-photo { background: var(--paper); border-color: transparent; }
         .pa-band .pa-item:hover .pa-photo, .pa-band .pa-item.on .pa-photo { border-color: var(--ink); transform: translateY(-2px); }
         .pa-band .pa-lbl, .pa-band .pa-item.on .pa-lbl { color: var(--ink); }

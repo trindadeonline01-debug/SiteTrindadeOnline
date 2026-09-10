@@ -48,6 +48,12 @@ body {
   font-family: 'Archivo', sans-serif;
   color: #111111;
   -webkit-font-smoothing: antialiased;
+  /* Seções full-bleed (faixa do Peça Agora, carrossel de categorias) usam
+     o truque width:100vw + margin-left:calc(50% - 50vw) pra escapar do
+     .main-wrap centralizado — em telas com scrollbar "clássica" (Windows)
+     isso pode sobrar alguns px além da viewport; sem isso a página ganha
+     scroll horizontal fantasma. */
+  overflow-x: hidden;
 }
 
 /* Tipografia (ESPECIFICACAO.md §11.3) — Anton só em título de página,

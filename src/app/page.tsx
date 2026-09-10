@@ -593,11 +593,15 @@ export default async function HomePage() {
         .cat-count { font-size: 11.5px; color: var(--muted); font-family: 'Archivo', sans-serif; }
 
         /* TRILHO DE CATEGORIAS — só no mobile, estilo OLX: círculo + nome,
-           desliza na horizontal, sem contagem (mockup aprovado por Ricardo). */
+           desliza na horizontal, sem contagem (mockup aprovado por Ricardo).
+           O carrossel bleeda de ponta a ponta da tela (mesmo truque do
+           .pa-band abaixo) — Ricardo apontou que estava com lateral, igual
+           qualquer container comum, e ele tem que ir até a borda (set/2026). */
         .cat-scroll-wrap { position: relative; }
         .cat-scroll { display: none; }
         @media(max-width: 767px) {
-          .cat-scroll { display: flex; gap: 16px; overflow-x: auto; padding: 4px 4px 8px; scrollbar-width: none; }
+          .cat-scroll-wrap { width: 100vw; margin-left: calc(50% - 50vw); }
+          .cat-scroll { display: flex; gap: 16px; overflow-x: auto; padding: 4px 20px 8px; scrollbar-width: none; }
           .cat-scroll::-webkit-scrollbar { display: none; }
         }
         .cat-circ-item { flex: 0 0 auto; width: 72px; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; text-decoration: none; }
@@ -608,8 +612,8 @@ export default async function HomePage() {
         .cat-scroll-hint { display: none; }
         @media(max-width: 767px) {
           .cat-scroll-hint { display: flex; align-items: center; justify-content: center; position: absolute; top: 36px; transform: translateY(-50%); width: 16px; height: 16px; color: var(--ink); font-size: 13px; font-weight: 800; pointer-events: none; opacity: .55; }
-          .cat-scroll-hint.left { left: -6px; }
-          .cat-scroll-hint.right { right: -6px; }
+          .cat-scroll-hint.left { left: 4px; }
+          .cat-scroll-hint.right { right: 4px; }
         }
 
         .sec-hdr { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 14px; margin-top: 32px; gap: 14px; }
@@ -710,7 +714,13 @@ export default async function HomePage() {
            produtos continua fora da faixa, em fundo branco normal
            (aprovado por Ricardo, set/2026). */
         .pa-wrap { margin-top: 20px; }
-        .pa-band { background: var(--sign); border-radius: 18px; padding: 16px 16px 12px; margin-bottom: 16px; }
+        /* Faixa de ponta a ponta da tela (mesmo truque do .hero, que também
+           não fica preso à largura do .main-wrap) — Ricardo pediu depois de
+           ver a primeira versão, que tinha lateral igual container comum
+           (set/2026). padding lateral em 20px pra alinhar o conteúdo de
+           dentro com o resto da página (cat-grid, pa-list), que continua
+           dentro do .main-wrap normal. */
+        .pa-band { background: var(--sign); width: 100vw; margin-left: calc(50% - 50vw); padding: 16px 20px 14px; margin-bottom: 16px; }
         .pa-hdr { margin: 0 0 12px; }
         .pa-eyebrow { color: rgba(21,18,16,.68); }
         .pa-band .pa-scroll { padding: 4px 4px 8px; }

@@ -5,28 +5,20 @@ import { refreshSessionOnce } from '@/lib/authRefresh'
 import { qzListPrinters, qzPrintRaw, buildReceipt, buildKitchenTicket } from '@/lib/qzPrint'
 import { fetchPedidoComItensComRetry } from '@/lib/autoprint'
 import { usePainelShell } from '@/contexts/PainelShellContext'
+import { npGroupContribution, type NpOpcao, type NpGrupo, type NpProduto, type NpCartLine } from '@/lib/produtoCart'
+import EditarPedidoPanel from '@/components/painel/EditarPedidoPanel'
 
 type Item = { id: string; product_name: string; unit_price: number; qty: number; selected_options: { name: string; price: number }[] }
 type Status = 'recebido' | 'em_preparo' | 'pronto' | 'saiu_entrega' | 'entregue' | 'cancelado'
 type Pedido = {
   id: string; order_number: number | null; customer_id: string | null; customer_name: string; customer_phone: string | null; delivery_address: string | null
   origin: string; status: Status; payment_method: string | null; payment_status: string
-  delivery_type: 'entrega' | 'retirada'; scheduled_for: string | null
+  delivery_type: 'entrega' | 'retirada' | 'balcao'; scheduled_for: string | null
   notes: string | null; subtotal: number; total: number; delivery_fee: number; motoboy_id: string | null
   created_at: string; accepted_at: string | null
   itens: Item[]
 }
 type LojaMotoboy = { id: string; nome: string; whatsapp: string; ativo: boolean }
-
-type NpOpcao = { id: string; name: string; price: number; max_qty: number | null }
-type NpGrupo = { id: string; name: string; required: boolean; min_select: number; max_select: number; pricing_rule: 'soma' | 'maior_valor'; options: NpOpcao[] }
-function npGroupContribution(g: NpGrupo, selectedIdx: number[]): number {
-  const prices = selectedIdx.map(oi => g.options[oi].price)
-  if (prices.length === 0) return 0
-  return g.pricing_rule === 'maior_valor' ? Math.max(...prices) : prices.reduce((a, b) => a + b, 0)
-}
-type NpProduto = { id: string; name: string; sale_price: number; category_id: string | null; groups: NpGrupo[] }
-type NpCartLine = { key: string; produtoId: string; name: string; modifiers: { name: string; price: number }[]; unitPrice: number; qty: number }
 
 const CUSTOMER_MSG: Partial<Record<Status, string>> = {
   em_preparo: 'Seu pedido já está em preparo!',
@@ -79,12 +71,13 @@ function getNextAction(p: Pedido): { next: Status; label: string } | null {
   if (p.status === 'recebido') return { next: 'em_preparo', label: 'Iniciar preparo' }
   if (p.status === 'em_preparo') return { next: 'pronto', label: 'Marcar pronto' }
   if (p.status === 'pronto') {
-    return p.delivery_type === 'retirada' ? { next: 'entregue', label: 'Cliente retirou' } : { next: 'saiu_entrega', label: 'Saiu para entrega' }
+    if (p.delivery_type === 'entrega') return { next: 'saiu_entrega', label: 'Saiu para entrega' }
+    return { next: 'entregue', label: p.delivery_type === 'balcao' ? 'Finalizar pedido' : 'Cliente retirou' }
   }
   if (p.status === 'saiu_entrega') return { next: 'entregue', label: 'Marcar entregue' }
   return null
 }
-function flowFor(p: Pedido): Status[] { return p.delivery_type === 'retirada' ? FLOW.filter(s => s !== 'saiu_entrega') : FLOW }
+function flowFor(p: Pedido): Status[] { return p.delivery_type !== 'entrega' ? FLOW.filter(s => s !== 'saiu_entrega') : FLOW }
 
 // Pedido "atrasado" — ainda não existe um tempo combinado configurável por
 // loja, então usa um teto razoável fixo: mais de 30min parado em
@@ -143,6 +136,8 @@ export default function PedidosPage() {
   // manual no mesmo pedido não podem rodar ao mesmo tempo, e esperar o
   // re-render do state seria tarde demais pra evitar a corrida.
   const callingMotoboyRef = useRef<Set<string>>(new Set())
+
+  const [editId, setEditId] = useState<string | null>(null)
 
   const [npOpen, setNpOpen] = useState(false)
   const [npProdutos, setNpProdutos] = useState<NpProduto[]>([])
@@ -464,12 +459,15 @@ export default function PedidosPage() {
             <div className="pd-name">{p.order_number ? `#${p.order_number} · ` : ''}{p.customer_name}</div>
             <div className="pd-time">{timeAgo(p.created_at)} atrás</div>
           </div>
-          <span className="pd-badge" style={{ background: c.bg, color: c.fg }}>{STATUS_LABEL[p.status]}</span>
+          <div className="pd-row1-right">
+            <button className="pd-edit-btn" title="Editar pedido" onClick={e => { e.stopPropagation(); setEditId(p.id) }}>✏️</button>
+            <span className="pd-badge" style={{ background: c.bg, color: c.fg }}>{STATUS_LABEL[p.status]}</span>
+          </div>
         </div>
         <div className="pd-origin-badge" style={{ background: o.bg, color: o.fg }}>{o.label}</div>
         {late && <div className="pd-late-flag">⚠ Parado há mais de {LATE_THRESHOLD_MIN}min sem avançar</div>}
         <div className="pd-sum">
-          {p.itens?.length || 0} {p.itens?.length === 1 ? 'item' : 'itens'} · {p.payment_method || '—'} · {p.delivery_type === 'retirada' ? '🏪 Retirada' : '🚴 Entrega'}
+          {p.itens?.length || 0} {p.itens?.length === 1 ? 'item' : 'itens'} · {p.payment_method || '—'} · {p.delivery_type === 'entrega' ? '🚴 Entrega' : p.delivery_type === 'balcao' ? '🧾 Balcão' : '🏪 Retirada'}
         </div>
         <span
           className="pd-pay-chip"
@@ -575,6 +573,8 @@ export default function PedidosPage() {
         .pd-body{ padding:0 16px; }
         .pd-card{ background:#fff;border:1px solid #EDE8E0;border-radius:12px;padding:12px;margin-bottom:10px;cursor:pointer; }
         .pd-row1{ display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px; }
+        .pd-row1-right{ display:flex;align-items:center;gap:6px;flex:none; }
+        .pd-edit-btn{ width:24px;height:24px;border-radius:7px;border:1px solid #E6E0D2;background:#F7F5F0;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;flex:none;padding:0; }
         .pd-name{ font-weight:800;font-size:13.5px; }
         .pd-time{ font-size:10.5px;color:#A79E8B; }
         .pd-badge{ font-size:10px;font-weight:800;padding:3px 8px;border-radius:7px; }
@@ -878,6 +878,19 @@ export default function PedidosPage() {
           </div>
         </div>
       )}
+
+      {editId && (() => {
+        const pedido = pedidos.find(p => p.id === editId)
+        if (!pedido) return null
+        return (
+          <EditarPedidoPanel
+            pedido={pedido}
+            companyId={companyId}
+            onClose={() => setEditId(null)}
+            onSaved={() => loadAll(companyId)}
+          />
+        )
+      })()}
     </div>
     </>
   )

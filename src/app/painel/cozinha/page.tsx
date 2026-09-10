@@ -6,7 +6,7 @@ import { moduleActive } from '@/lib/modules'
 
 type Item = { id: string; product_name: string; qty: number; selected_options: { name: string; price: number }[] }
 type Status = 'recebido' | 'em_preparo' | 'pronto' | 'saiu_entrega' | 'entregue' | 'cancelado'
-type Pedido = { id: string; customer_id: string | null; customer_name: string; customer_phone: string | null; delivery_address: string | null; status: Status; created_at: string; accepted_at: string | null; delivery_type: 'entrega' | 'retirada'; scheduled_for: string | null; itens: Item[] }
+type Pedido = { id: string; customer_id: string | null; customer_name: string; customer_phone: string | null; delivery_address: string | null; status: Status; created_at: string; accepted_at: string | null; delivery_type: 'entrega' | 'retirada' | 'balcao'; scheduled_for: string | null; itens: Item[] }
 
 const COLUMNS: { status: Status; label: string; next: Status; action: string; color: string }[] = [
   { status: 'recebido', label: 'Recebido', next: 'em_preparo', action: 'Iniciar preparo', color: '#E24B4A' },
@@ -14,7 +14,9 @@ const COLUMNS: { status: Status; label: string; next: Status; action: string; co
   { status: 'pronto', label: 'Pronto', next: 'saiu_entrega', action: 'Concluir', color: '#3FBE7A' },
 ]
 function nextForCard(p: Pedido, col: typeof COLUMNS[number]) {
-  if (col.status === 'pronto' && p.delivery_type === 'retirada') return { next: 'entregue' as Status, action: 'Cliente retirou' }
+  if (col.status === 'pronto' && p.delivery_type !== 'entrega') {
+    return { next: 'entregue' as Status, action: p.delivery_type === 'balcao' ? 'Finalizar pedido' : 'Cliente retirou' }
+  }
   return { next: col.next, action: col.action }
 }
 
@@ -191,7 +193,7 @@ export default function CozinhaPage() {
                 return (
                   <div className="cz-card" key={p.id} onClick={() => advance(p.id, next)}>
                     <div className="cz-cname">{p.customer_name}</div>
-                    <div className="cz-ctime">{timeAgo(p.created_at)} atrás · {p.delivery_type === 'retirada' ? '🏪 Retirada' : '🚴 Entrega'}{p.scheduled_for ? ` · 📅 ${fmtSchedule(p.scheduled_for)}` : ''}</div>
+                    <div className="cz-ctime">{timeAgo(p.created_at)} atrás · {p.delivery_type === 'entrega' ? '🚴 Entrega' : p.delivery_type === 'balcao' ? '🧾 Balcão' : '🏪 Retirada'}{p.scheduled_for ? ` · 📅 ${fmtSchedule(p.scheduled_for)}` : ''}</div>
                     {p.itens?.map(it => (
                       <div key={it.id}>
                         <div className="cz-citem"><span className="cz-cqty">{it.qty}x</span> {it.product_name}</div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 
 // Navegação única do "Modo Empresa" — desktop (sidebar agrupada) e mobile
@@ -70,6 +70,24 @@ export default function EmpresaShell({
   const initials = (companyName || '').trim().slice(0, 2).toUpperCase() || 'ST'
   const isPessoal = active.startsWith('pessoal-')
 
+  // Menu recolhível (desktop) — pedido do Ricardo, set/2026, olhando o
+  // concorrente Brendi: telas de produção (Pedidos, Cozinha) ganham a
+  // largura toda escondendo a sidebar. Só existe em telas >=768px (no
+  // mobile a sidebar já não aparece, tem a tabbar do rodapé no lugar).
+  // Preferência fica salva por aparelho, não por conta — não precisa ir
+  // pro banco pra isso.
+  const [collapsed, setCollapsed] = useState(false)
+  useEffect(() => {
+    try { setCollapsed(localStorage.getItem('es-sidebar-collapsed') === '1') } catch {}
+  }, [])
+  function toggleCollapsed() {
+    setCollapsed(c => {
+      const next = !c
+      try { localStorage.setItem('es-sidebar-collapsed', next ? '1' : '0') } catch {}
+      return next
+    })
+  }
+
   // Mede a altura REAL da barra fixa (varia por aparelho — home indicator do
   // iPhone, gesto do Android, 74px era só um chute que sobrava/faltava
   // dependendo do device) e publica numa CSS var pro resto da página
@@ -121,8 +139,10 @@ export default function EmpresaShell({
     <div className="es-shell">
       <style>{`
         .es-shell{display:flex;min-height:100vh;background:var(--concrete);}
-        .es-sidebar{width:246px;background:var(--ink);flex-shrink:0;display:none;flex-direction:column;position:sticky;top:0;height:100vh;}
+        .es-sidebar{width:246px;background:var(--ink);flex-shrink:0;display:none;flex-direction:column;position:sticky;top:0;height:100vh;overflow:hidden;transition:width .2s ease;}
         @media(min-width:768px){.es-sidebar{display:flex;}}
+        .es-sidebar.collapsed{width:0;}
+        .es-sidebar-inner{width:246px;flex-shrink:0;display:flex;flex-direction:column;height:100%;}
         .es-logo{padding:22px 20px 16px;border-bottom:1px solid #222;}
         .es-logo-txt{font-family:'Anton',sans-serif;font-size:19px;color:#fff;letter-spacing:1px;text-transform:uppercase;}
         .es-logo-txt span{color:var(--sign);}
@@ -159,8 +179,10 @@ export default function EmpresaShell({
         .es-btn-small:hover{color:var(--alert);}
 
         .es-main{flex:1;overflow-x:hidden;display:flex;flex-direction:column;min-width:0;}
-        .es-topbar{background:#fff;border-bottom:1px solid #EDE8E0;padding:16px 32px;display:none;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20;}
+        .es-topbar{background:#fff;border-bottom:1px solid #EDE8E0;padding:16px 32px;display:none;align-items:center;gap:14px;justify-content:flex-start;position:sticky;top:0;z-index:20;}
         @media(min-width:768px){.es-topbar{display:flex;}}
+        .es-topbar-burger{flex:none;width:34px;height:34px;border-radius:9px;border:1.5px solid #E6E0D2;background:#fff;color:var(--ink);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+        .es-topbar-burger:hover{border-color:var(--sign-dark,#A87200);}
         .es-topbar-title{font-family:'Anton',sans-serif;font-size:20px;color:var(--ink);letter-spacing:1px;text-transform:uppercase;}
         .es-content{flex:1;min-width:0;}
         @media(max-width:767px){.es-content{padding-bottom:var(--es-tabbar-h, 74px);}}
@@ -174,7 +196,8 @@ export default function EmpresaShell({
         .es-tab-dot{position:absolute;top:2px;right:calc(50% - 15px);width:7px;height:7px;background:#E24B4A;border-radius:50%;border:1.5px solid var(--ink);}
       `}</style>
 
-      <aside className="es-sidebar">
+      <aside className={`es-sidebar ${collapsed ? 'collapsed' : ''}`}>
+       <div className="es-sidebar-inner">
         <div className="es-logo">
           <div className="es-logo-txt">TRINDADE <span>EMPRESA</span></div>
           <div className="es-idswitcher">
@@ -261,10 +284,14 @@ export default function EmpresaShell({
           <Link className="es-btn es-btn-secondary" href="/">🏠 Home</Link>
           <Link className="es-btn es-btn-small" href="/sair">🚪 Sair</Link>
         </div>
+       </div>
       </aside>
 
       <div className="es-main">
-        <div className="es-topbar" ref={topbarRef}><span className="es-topbar-title">{TITLES[active]}</span></div>
+        <div className="es-topbar" ref={topbarRef}>
+          <button className="es-topbar-burger" onClick={toggleCollapsed} title={collapsed ? 'Expandir menu' : 'Recolher menu'}>☰</button>
+          <span className="es-topbar-title">{TITLES[active]}</span>
+        </div>
         <div className="es-content">{children}</div>
       </div>
 

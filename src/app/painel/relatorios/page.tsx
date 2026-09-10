@@ -6,7 +6,7 @@ import { usePainelShell } from '@/contexts/PainelShellContext'
 type Status = 'recebido' | 'em_preparo' | 'pronto' | 'saiu_entrega' | 'entregue' | 'cancelado'
 type Pedido = {
   id: string; status: Status; origin: string; payment_method: string | null; payment_status: string
-  delivery_type: 'entrega' | 'retirada'; total: number; created_at: string
+  delivery_type: 'entrega' | 'retirada' | 'balcao'; total: number; created_at: string
 }
 type ItemRow = { pedido_id: string; product_name: string; unit_price: number; qty: number }
 type Period = 'today' | 'week' | 'month' | 'year'

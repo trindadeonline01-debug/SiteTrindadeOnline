@@ -174,7 +174,7 @@ export type ReceiptData = {
   createdAt: string
   customerName: string
   customerPhone?: string | null
-  deliveryType: 'entrega' | 'retirada'
+  deliveryType: 'entrega' | 'retirada' | 'balcao'
   address?: string | null
   paymentMethod?: string | null
   notes?: string | null
@@ -206,6 +206,8 @@ export function buildReceipt(d: ReceiptData): string {
   if (d.deliveryType === 'entrega') {
     lines.push('\n', CMD.boldOn, 'ENDEREÇO PARA ENTREGA:', CMD.boldOff, '\n')
     if (d.address) wrap(d.address).forEach(l => lines.push(l, '\n'))
+  } else if (d.deliveryType === 'balcao') {
+    lines.push('\n', CMD.boldOn, 'PEDIDO DE BALCÃO', CMD.boldOff, '\n')
   } else {
     lines.push('\n', CMD.boldOn, 'RETIRADA NO LOCAL', CMD.boldOff, '\n')
   }
@@ -253,9 +255,13 @@ export function buildReceipt(d: ReceiptData): string {
 export type KitchenTicketData = {
   pedidoShortId: string
   createdAt: string
-  deliveryType: 'entrega' | 'retirada'
+  deliveryType: 'entrega' | 'retirada' | 'balcao'
   items: ReceiptItem[]
   notes?: string | null
+}
+
+const KITCHEN_DELIVERY_LABEL: Record<KitchenTicketData['deliveryType'], string> = {
+  entrega: 'ENTREGA', retirada: 'RETIRADA NO LOCAL', balcao: 'BALCÃO',
 }
 
 export function buildKitchenTicket(d: KitchenTicketData): string {
@@ -263,7 +269,7 @@ export function buildKitchenTicket(d: KitchenTicketData): string {
   lines.push(CMD.init, CMD.alignCenter)
   lines.push(CMD.boldOn, CMD.doubleOn, `PEDIDO #${d.pedidoShortId}`, CMD.doubleOff, CMD.boldOff, '\n')
   lines.push(new Date(d.createdAt).toLocaleString('pt-BR'), '\n')
-  lines.push(CMD.boldOn + (d.deliveryType === 'retirada' ? 'RETIRADA NO LOCAL' : 'ENTREGA') + CMD.boldOff, '\n')
+  lines.push(CMD.boldOn + KITCHEN_DELIVERY_LABEL[d.deliveryType] + CMD.boldOff, '\n')
   lines.push('-'.repeat(WIDTH), '\n')
   lines.push(CMD.alignLeft)
 

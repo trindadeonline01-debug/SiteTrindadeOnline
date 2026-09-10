@@ -44,7 +44,7 @@ interface PecaCompanyRow {
 }
 
 interface PecaProdutoRow {
-  id: string; name: string; description: string | null; photo_url: string | null; sale_price: number
+  id: string; name: string; photo_url: string | null; sale_price: number
   promo_type: 'percent' | 'fixed' | null; promo_value: number | null
   promo_starts_at: string | null; promo_ends_at: string | null
   available_days: number[] | null; esgotado: boolean; track_stock: boolean; stock_qty: number | null
@@ -376,7 +376,7 @@ export default async function HomePage() {
     if (pecaCompanies.length > 0) {
       const { data: pecaProdutosData } = await supabaseServer
         .from('loja_produtos')
-        .select('id, name, description, photo_url, sale_price, promo_type, promo_value, promo_starts_at, promo_ends_at, available_days, esgotado, track_stock, stock_qty, tipo_vitrine, company_id')
+        .select('id, name, photo_url, sale_price, promo_type, promo_value, promo_starts_at, promo_ends_at, available_days, esgotado, track_stock, stock_qty, tipo_vitrine, company_id')
         .in('company_id', pecaCompanies.map(c => c.id))
         .eq('active', true)
         .not('photo_url', 'is', null)
@@ -404,7 +404,7 @@ export default async function HomePage() {
         const toItem = (p: PecaProdutoRow): PecaVitrineItem => {
           const produto = { ...p, description: null, category_id: null, total_pedidos: 0, groups: [] } as unknown as Produto
           return {
-            id: p.id, name: p.name, description: p.description, photo_url: p.photo_url!, price: promoPrice(produto) ?? p.sale_price,
+            id: p.id, name: p.name, photo_url: p.photo_url!, price: promoPrice(produto) ?? p.sale_price,
             companyName: company.name, companySlug: company.slug, open,
           }
         }
@@ -715,7 +715,6 @@ export default async function HomePage() {
         .pa-row-end { flex-shrink: 0; text-align: right; }
         .pa-name { font-size: 13px; font-weight: 700; color: var(--ink); line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: 'Archivo', sans-serif; }
         .pa-biz { font-size: 11px; color: var(--muted); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .pa-desc { font-size: 10.5px; color: var(--muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: .8; }
         .pa-price { font-size: 13px; font-weight: 800; color: var(--sign-dark); font-variant-numeric: tabular-nums; }
         .pa-open { display: flex; align-items: center; gap: 4px; justify-content: flex-end; margin-top: 3px; font-size: 9.5px; font-weight: 700; color: var(--open); text-transform: uppercase; letter-spacing: .2px; }
         .pa-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--open); display: inline-block; flex-shrink: 0; }

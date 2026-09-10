@@ -437,17 +437,36 @@ export default async function HomePage() {
         })
       })
 
-      const sortOpenFirst = (items: PecaVitrineItem[]) => [...items].sort((a, b) => (b.open ? 1 : 0) - (a.open ? 1 : 0))
+      // Intercala por empresa em vez de só ordenar aberta-primeiro — sem
+      // isso, uma loja com catálogo grande enchia os primeiros 8 (a página
+      // inteira antes do "Ver mais") sozinha, e as outras só apareciam
+      // depois de rolar/clicar bastante. Dentro de cada loja continua
+      // aberta-primeiro; entre lojas, revezamento 1 a 1 (loja A, loja B,
+      // loja C, loja A de novo...).
+      const interleaveByCompany = (items: PecaVitrineItem[]) => {
+        const bySlug = new Map<string, PecaVitrineItem[]>()
+        items.forEach(i => {
+          const arr = bySlug.get(i.companySlug) || []
+          arr.push(i)
+          bySlug.set(i.companySlug, arr)
+        })
+        const groups = [...bySlug.values()].map(arr => [...arr].sort((a, b) => (b.open ? 1 : 0) - (a.open ? 1 : 0)))
+        const result: PecaVitrineItem[] = []
+        for (let i = 0; result.length < items.length; i++) {
+          for (const g of groups) if (i < g.length) result.push(g[i])
+        }
+        return result
+      }
 
       if (allItems.length > 0) {
         pecaAgoraGroups = [
-          { key: 'todas', label: 'Todas', emoji: '🍽️', items: sortOpenFirst(allItems) },
+          { key: 'todas', label: 'Todas', emoji: '🍽️', items: interleaveByCompany(allItems) },
           // Ordem definida pelo admin (vitrine_tipos.display_order), não por
           // contagem — fica estável entre carregamentos, só pula tipo sem
           // item nenhum.
           ...pecaTipos
             .filter(t => bucketMap.has(t.value))
-            .map(t => ({ key: t.value, label: t.label, emoji: t.emoji, items: sortOpenFirst(bucketMap.get(t.value)!) })),
+            .map(t => ({ key: t.value, label: t.label, emoji: t.emoji, items: interleaveByCompany(bucketMap.get(t.value)!) })),
         ]
       }
     }

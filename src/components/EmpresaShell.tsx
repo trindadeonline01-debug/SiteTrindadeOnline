@@ -8,7 +8,7 @@ import Link from 'next/link'
 // sidebar interna de /painel, que eram dois sistemas de menu separados.
 export type EmpresaNavKey =
   | 'dashboard' | 'perfil' | 'avaliacoes' | 'destaques' | 'banners'
-  | 'compartilhar' | 'catalogo' | 'pedidos' | 'cozinha' | 'entrega' | 'mensagens' | 'clientes'
+  | 'compartilhar' | 'catalogo' | 'pedidos' | 'cozinha' | 'entrega' | 'motoboys' | 'mensagens' | 'clientes'
   | 'interesses' | 'cupons' | 'promocoes' | 'plano' | 'relatorios'
   | 'pessoal-perfil' | 'pessoal-favoritos' | 'pessoal-avaliacoes' | 'pessoal-pedidos' | 'pessoal-anuncios' | 'pessoal-cupons'
 
@@ -17,7 +17,7 @@ type Company = { id: string; name: string; slug?: string }
 const TITLES: Record<EmpresaNavKey, string> = {
   dashboard: 'Visão geral', perfil: 'Perfil e fotos', avaliacoes: 'Avaliações', destaques: 'Destaques',
   banners: 'Banners', compartilhar: 'Configurar cardápio', catalogo: 'Cardápio', pedidos: 'Pedidos',
-  cozinha: 'Cozinha', entrega: 'Entrega', mensagens: 'Mensagens', clientes: 'Clientes', interesses: 'Interesses', cupons: 'Cupons', promocoes: 'Promoções', plano: 'Plano', relatorios: 'Relatórios',
+  cozinha: 'Cozinha', entrega: 'Entrega', motoboys: 'Meus motoboys', mensagens: 'Mensagens', clientes: 'Clientes', interesses: 'Interesses', cupons: 'Cupons', promocoes: 'Promoções', plano: 'Plano', relatorios: 'Relatórios',
   'pessoal-perfil': 'Meu perfil', 'pessoal-favoritos': 'Favoritos', 'pessoal-avaliacoes': 'Minhas avaliações',
   'pessoal-pedidos': 'Meus pedidos', 'pessoal-anuncios': 'Meus anúncios', 'pessoal-cupons': 'Meus cupons',
 }
@@ -240,6 +240,7 @@ export default function EmpresaShell({
               <NavItem href="/painel?tab=perfil" active={active === 'perfil'} adminEmpresaId={adminEmpresaId}>✏️ Perfil e fotos</NavItem>
               {companySlug && <NavItem href={`/empresa/${companySlug}`} active={false}>🔗 Página da loja</NavItem>}
               <NavItem href="/painel/entrega" active={active === 'entrega'} locked={!entregaEnabled} adminEmpresaId={adminEmpresaId}>🏍️ Entrega e retirada</NavItem>
+              <NavItem href="/painel/motoboys" active={active === 'motoboys'} locked={!lojaDigitalEnabled} adminEmpresaId={adminEmpresaId}>🏍️ Meus motoboys</NavItem>
 
               <div className="es-group-lbl">Clientes</div>
               <NavItem href="/painel/clientes" active={active === 'clientes'} locked={!crmEnabled} adminEmpresaId={adminEmpresaId}>👥 CRM</NavItem>

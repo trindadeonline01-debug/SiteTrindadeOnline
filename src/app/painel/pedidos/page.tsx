@@ -11,9 +11,11 @@ type Pedido = {
   id: string; order_number: number | null; customer_id: string | null; customer_name: string; customer_phone: string | null; delivery_address: string | null
   origin: string; status: Status; payment_method: string | null; payment_status: string
   delivery_type: 'entrega' | 'retirada'; scheduled_for: string | null
-  notes: string | null; subtotal: number; total: number; created_at: string; accepted_at: string | null
+  notes: string | null; subtotal: number; total: number; delivery_fee: number; motoboy_id: string | null
+  created_at: string; accepted_at: string | null
   itens: Item[]
 }
+type LojaMotoboy = { id: string; nome: string; whatsapp: string; ativo: boolean }
 // O checkout insere o pedido e os itens em dois inserts separados — o
 // pedido é inserido primeiro, então quem escuta pedido novo (realtime ou
 // reimpressão manual logo em seguida) pode pegar o pedido antes dos itens
@@ -158,7 +160,8 @@ export default function PedidosPage() {
   const [loading, setLoading] = useState(true)
   const [companyId, setCompanyId] = useState('')
   const [companyName, setCompanyName] = useState('')
-  const [companyDeliveryFee, setCompanyDeliveryFee] = useState(0)
+  const [motoboys, setMotoboys] = useState<LojaMotoboy[]>([])
+  const [motoboySel, setMotoboySel] = useState<Record<string, string>>({})
   const [crmEnabled, setCrmEnabled] = useState(false)
   const [entregaEnabled, setEntregaEnabled] = useState(false)
   const [autoAceitar, setAutoAceitar] = useState(true)
@@ -209,15 +212,15 @@ export default function PedidosPage() {
     if (!company || !company.loja_digital_enabled) { window.location.href = '/painel/compartilhar'; return }
     let unsub: (() => void) | null = null
     ;(async () => {
-      const { data: extra } = await supabase.from('companies').select('loja_auto_aceitar_pedidos, loja_impressora_nome, loja_taxa_entrega').eq('id', company.id).maybeSingle()
+      const { data: extra } = await supabase.from('companies').select('loja_auto_aceitar_pedidos, loja_impressora_nome').eq('id', company.id).maybeSingle()
       setCompanyId(company.id); companyIdRef.current = company.id
       setCompanyName(company.name)
-      const compTaxa = Number(extra?.loja_taxa_entrega || 0)
-      setCompanyDeliveryFee(compTaxa)
       setCrmEnabled(company.crm_whatsapp_enabled)
       setEntregaEnabled(company.entrega_enabled)
       setAutoAceitar(extra?.loja_auto_aceitar_pedidos !== false)
       setPrinterName(extra?.loja_impressora_nome || '')
+      const { data: mb } = await supabase.from('loja_motoboys').select('*').eq('company_id', company.id).order('created_at')
+      setMotoboys((mb || []) as LojaMotoboy[])
       await loadAll(company.id)
       setLoading(false)
 
@@ -245,7 +248,7 @@ export default function PedidosPage() {
             notes: data.notes,
             items,
             subtotal: data.subtotal,
-            deliveryFee: compTaxa,
+            deliveryFee: data.delivery_fee || 0,
             total: data.total,
           })
           await qzPrintRaw(printerNameRef.current, content)
@@ -331,9 +334,15 @@ export default function PedidosPage() {
     }
   }
 
-  async function setStatus(id: string, status: Status) {
-    setPedidos(prev => prev.map(p => p.id === id ? { ...p, status } : p))
-    await supabase.from('loja_pedidos').update({ status, updated_at: new Date().toISOString() }).eq('id', id)
+  // motoboyId só é passado ao virar "saiu_entrega" com motoboy PRÓPRIO
+  // cadastrado (loja_motoboys) — não tem nada a ver com o motoboy da
+  // plataforma (chamarMotoboy/Trindade Entrega, fluxo à parte). É só um
+  // registro de quem entregou, pra alimentar o relatório.
+  async function setStatus(id: string, status: Status, motoboyId?: string) {
+    setPedidos(prev => prev.map(p => p.id === id ? { ...p, status, ...(motoboyId ? { motoboy_id: motoboyId } : {}) } : p))
+    await supabase.from('loja_pedidos').update({
+      status, updated_at: new Date().toISOString(), ...(motoboyId ? { motoboy_id: motoboyId } : {}),
+    }).eq('id', id)
     const pedido = pedidos.find(p => p.id === id)
     if (pedido) {
       notifyCustomer(pedido.customer_id, companyName, status)
@@ -388,7 +397,7 @@ export default function PedidosPage() {
         paymentMethod: p.payment_method, notes: p.notes,
         items,
         subtotal: p.subtotal,
-        deliveryFee: companyDeliveryFee,
+        deliveryFee: p.delivery_fee || 0,
         total: p.total,
       })
       await qzPrintRaw(printerName, content)
@@ -573,11 +582,40 @@ export default function PedidosPage() {
           {p.payment_status === 'pago' ? '✓ Pago' : payUnpaidAfterDelivery ? '⚠ Entregue sem cobrar' : '💰 Pagamento pendente'}
         </span>
         {p.scheduled_for && <div className="pd-sum" style={{ color: '#B5690C', fontWeight: 700 }}>📅 Agendado pra {fmtSchedule(p.scheduled_for)}</div>}
+        {p.motoboy_id && <div className="pd-sum">🏍️ Entregou: <b>{motoboys.find(m => m.id === p.motoboy_id)?.nome || '—'}</b></div>}
         <div className="pd-total">{fmt(p.total)}</div>
         {needsAccept && <button className="pd-accept" onClick={e => { e.stopPropagation(); acceptPedido(p.id) }}>✓ Aceitar pedido</button>}
-        {!needsAccept && !open && getNextAction(p) && (
-          <button className="pd-next" onClick={e => { e.stopPropagation(); setStatus(p.id, getNextAction(p)!.next) }}>{getNextAction(p)!.label} →</button>
-        )}
+        {!needsAccept && !open && getNextAction(p) && (() => {
+          const action = getNextAction(p)!
+          const ativos = motoboys.filter(m => m.ativo)
+          // Vira "saiu pra entrega" com motoboy PRÓPRIO cadastrado — com 2+
+          // ativos, o dropdown aparece ACIMA do botão (escolhe primeiro,
+          // depois clica); com 1 só, atribui sozinho; sem nenhum, segue sem
+          // atribuir nada (a função é opcional, não trava o fluxo de quem
+          // não usa). Pedido do Ricardo, set/2026.
+          const precisaEscolher = action.next === 'saiu_entrega' && ativos.length > 1
+          return (
+            <>
+              {precisaEscolher && (
+                <select
+                  className="pd-mb-select"
+                  value={motoboySel[p.id] || ativos[0].id}
+                  onClick={e => e.stopPropagation()}
+                  onChange={e => setMotoboySel(prev => ({ ...prev, [p.id]: e.target.value }))}
+                >
+                  {ativos.map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
+                </select>
+              )}
+              <button className="pd-next" onClick={e => {
+                e.stopPropagation()
+                const motoboyId = action.next === 'saiu_entrega'
+                  ? (ativos.length > 1 ? (motoboySel[p.id] || ativos[0].id) : ativos.length === 1 ? ativos[0].id : undefined)
+                  : undefined
+                setStatus(p.id, action.next, motoboyId)
+              }}>{action.label} →</button>
+            </>
+          )
+        })()}
         {open && (
           <div className="pd-detail" onClick={e => e.stopPropagation()}>
             {p.itens?.map(it => (
@@ -671,6 +709,7 @@ export default function PedidosPage() {
         .pd-card-pending{ border:1.5px solid var(--accent); }
         .pd-accept{ width:100%;margin-top:8px;padding:9px;border-radius:9px;border:none;background:var(--accent);color:#fff;font-weight:800;font-size:12px;cursor:pointer; }
         .pd-next{ width:100%;margin-top:8px;padding:10px;border-radius:9px;border:none;background:var(--accent);color:#fff;font-weight:800;font-size:12.5px;cursor:pointer; }
+        .pd-mb-select{ width:100%;margin-top:8px;padding:9px 10px;border-radius:9px;border:1.5px solid #E0DDD8;background:#fff;color:#111;font-weight:700;font-size:12.5px;font-family:inherit; }
         .pd-toolbar{ display:none; }
         .pd-search{ width:100%;padding:9px 12px;border-radius:9px;border:1px solid #E6E0D2;background:#F7F5F0;font-size:12.5px;font-family:inherit; }
         .pd-autotoggle{ display:flex;align-items:center;gap:10px;font-size:11.5px;font-weight:600;color:#6E6656;cursor:pointer; }

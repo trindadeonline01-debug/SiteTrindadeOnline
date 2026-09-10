@@ -289,7 +289,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
       customer_name: profile?.name || 'Cliente', customer_phone: profile?.phone || null,
       delivery_address: deliveryType === 'entrega' ? address : null, delivery_type: deliveryType, scheduled_for: scheduledFor,
       origin: 'cardapio_publico', payment_method: payMethod,
-      subtotal: cartTotal, total, notes: finalNotes || null,
+      subtotal: cartTotal, total, delivery_fee: taxa, notes: finalNotes || null,
     }).select('id').single()
     // Antes, um erro aqui (RLS, rede, etc.) passava batido: `pedido` vinha
     // null, o bloco abaixo era pulado, mas `setSuccess(true)` rodava do

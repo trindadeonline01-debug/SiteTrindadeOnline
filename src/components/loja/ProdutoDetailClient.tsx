@@ -98,20 +98,28 @@ export default function ProdutoDetailClient({ slug, company, produto, related }:
         .id-price{font-family:'Anton',sans-serif;font-size:32px;color:var(--ink);}
         .id-price-old{font-size:15px;color:#AAA;text-decoration:line-through;margin-left:8px;}
         .id-desc{font-size:13.5px;color:#4A4741;line-height:1.6;margin:12px 0 18px;}
-        .id-opts{background:#fff;border:1px solid #E0DDD8;border-radius:12px;overflow:hidden;margin-bottom:14px;}
-        .id-opts-h{background:#F5F2EC;padding:10px 14px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:8px;}
-        .id-opts-req{font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;background:var(--ink);color:#fff;padding:2px 7px;border-radius:4px;}
-        .id-opt{display:flex;align-items:center;gap:10px;padding:11px 14px;border-top:1px solid #F0EDE8;font-size:13.5px;cursor:pointer;}
-        .id-opt-radio{width:18px;height:18px;border-radius:50%;border:1.5px solid #DDD;flex-shrink:0;position:relative;}
-        .id-opt-radio.on{border:5px solid var(--sign-dark);}
-        .id-opt-plus{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--sign-dark);color:#8A6410;background:#FEF3E2;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-        .id-opt-plus.disabled{opacity:.35;border-color:#DDD;color:#AAA;background:#F5F2EC;}
-        .id-opt-stepper{display:flex;align-items:center;gap:7px;flex-shrink:0;}
-        .id-opt-stepper b{min-width:12px;text-align:center;font-size:12.5px;}
-        .id-opt-stepper button{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--sign-dark);background:var(--sign-dark);color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer;}
-        .id-opt-stepper button:disabled{opacity:.35;border-color:#DDD;background:#DDD;cursor:default;}
-        .id-opt-name{flex:1;}
-        .id-opt-price{font-size:12px;color:#888;font-weight:600;}
+        .id-opts{border-top:7px solid #F0EDE8;margin:0 -16px 14px;}
+        .id-opts-h{background:#FBF1DC;padding:11px 16px;display:flex;align-items:center;gap:8px;}
+        .id-opts-mid{flex:1;min-width:0;}
+        .id-opts-name{font-weight:800;font-size:13.5px;}
+        .id-opts-sub{font-size:10px;color:#8A6410;margin-top:1px;}
+        .id-opts-req{flex:none;background:#C43D3D;color:#fff;font-size:9px;font-weight:800;padding:3px 7px;border-radius:6px;letter-spacing:.03em;}
+        .id-opts-count{flex:none;background:var(--sign-dark);color:#fff;font-size:10px;font-weight:800;padding:3px 8px;border-radius:20px;font-variant-numeric:tabular-nums;}
+        .id-opt{display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:0.5px solid #EDE8E0;cursor:pointer;}
+        .id-opt-img{width:42px;height:42px;border-radius:9px;overflow:hidden;flex:none;background:#F0EDE8;}
+        .id-opt-img img{width:100%;height:100%;object-fit:cover;}
+        .id-opt-mid{flex:1;min-width:0;}
+        .id-opt-nm{font-size:12.5px;font-weight:700;}
+        .id-opt-pr{font-size:11px;color:#555;margin-top:1px;}
+        .id-opt-max{font-size:9.5px;color:#AAA;margin-top:1px;}
+        .id-opt-radio{width:20px;height:20px;border-radius:50%;border:1.5px solid #D8D2C4;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;}
+        .id-opt-radio.on{background:var(--sign-dark);border-color:var(--sign-dark);}
+        .id-opt-plus{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--sign-dark);color:#8A6410;background:#FEF3E2;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+        .id-opt-plus.disabled{opacity:.35;border-color:#D8D2C4;color:#AAA;background:#F5F2EC;}
+        .id-opt-stepper{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+        .id-opt-stepper span{min-width:14px;text-align:center;font-weight:800;font-size:13px;}
+        .id-opt-stepper button{width:24px;height:24px;border-radius:50%;border:1.5px solid var(--sign-dark);background:var(--sign-dark);color:#fff;font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+        .id-opt-stepper button:disabled{opacity:.35;border-color:#D8D2C4;background:#D8D2C4;cursor:default;}
         .id-seller{background:#fff;border:1px solid #E0DDD8;border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:12px;margin-bottom:16px;text-decoration:none;color:inherit;}
         .id-seller-av{width:42px;height:42px;border-radius:10px;background:var(--sign-dark);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0;}
         .id-seller-name{font-weight:700;font-size:13.5px;color:var(--ink);}
@@ -127,7 +135,7 @@ export default function ProdutoDetailClient({ slug, company, produto, related }:
         .id-rp-b{padding:8px 10px;}
         .id-rp-nm{font-size:11.5px;font-weight:600;line-height:1.25;min-height:28px;}
         .id-rp-pr{font-family:'Anton',sans-serif;font-size:15px;color:var(--ink);margin-top:3px;}
-        .id-bar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #E0DDD8;padding:10px 16px;display:flex;align-items:center;gap:10px;z-index:40;}
+        .id-bar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #E0DDD8;padding:10px 16px;display:flex;align-items:center;gap:10px;z-index:10000;}
         .id-qty{display:flex;align-items:center;border:1px solid #E0DDD8;border-radius:8px;background:#fff;flex-shrink:0;}
         .id-qty button{border:0;background:transparent;padding:9px 13px;font-size:15px;font-weight:700;cursor:pointer;}
         .id-qty span{padding:0 6px;font-weight:700;font-size:14px;}
@@ -159,11 +167,17 @@ export default function ProdutoDetailClient({ slug, company, produto, related }:
 
         {produto.description && <p className="id-desc">{produto.description}</p>}
 
-        {produto.groups.map((g, gi) => (
+        {produto.groups.map((g, gi) => {
+          const selCount = sel[gi]?.length || 0
+          return (
           <div className="id-opts" key={g.id} ref={el => { groupRefs.current[gi] = el }}>
             <div className="id-opts-h">
-              {g.name}
-              {g.required && <span className="id-opts-req">Obrigatório</span>}
+              <div className="id-opts-mid">
+                <div className="id-opts-name">{g.name}</div>
+                <div className="id-opts-sub">{g.required ? `Escolha ${g.min_select}${g.max_select > g.min_select ? '-' + g.max_select : ''} ${g.max_select > 1 ? 'itens' : 'item'}` : `Escolha até ${g.max_select} ${g.max_select > 1 ? 'itens' : 'item'}`}</div>
+              </div>
+              {g.required && <span className="id-opts-req">OBRIGATÓRIO</span>}
+              <span className="id-opts-count">{selCount}/{g.max_select}</span>
             </div>
             {g.options.map((o, oi) => {
               const on = sel[gi].includes(oi)
@@ -174,24 +188,29 @@ export default function ProdutoDetailClient({ slug, company, produto, related }:
               return (
                 <div className="id-opt" key={o.id}
                   onClick={() => { if (g.max_select === 1) toggleRadio(gi, oi); else if (canAddMore) addOpt(gi, oi) }}>
+                  {o.photo_url && <div className="id-opt-img"><img src={o.photo_url} alt="" /></div>}
+                  <div className="id-opt-mid">
+                    <div className="id-opt-nm">{o.name}</div>
+                    <div className="id-opt-pr">{o.price > 0 ? '+ ' + fmt(o.price) : 'Grátis'}</div>
+                    {o.max_qty != null && o.max_qty > 1 && <div className="id-opt-max">Máx {o.max_qty}</div>}
+                  </div>
                   {g.max_select === 1
-                    ? <span className={`id-opt-radio ${on ? 'on' : ''}`} />
+                    ? <span className={`id-opt-radio ${on ? 'on' : ''}`}>{on ? '●' : ''}</span>
                     : qtyForOpt === 0
                       ? <span className={`id-opt-plus ${canAddMore ? '' : 'disabled'}`}>+</span>
                       : (
                         <span className="id-opt-stepper" onClick={e => e.stopPropagation()}>
                           <button type="button" aria-label={`Tirar um ${o.name}`} onClick={() => removeOpt(gi, oi)}>−</button>
-                          <b>{qtyForOpt}</b>
+                          <span>{qtyForOpt}</span>
                           <button type="button" aria-label={`Adicionar mais um ${o.name}`} disabled={!canAddMore} onClick={() => canAddMore && addOpt(gi, oi)}>+</button>
                         </span>
                       )}
-                  <span className="id-opt-name">{o.name}</span>
-                  {o.price > 0 && <span className="id-opt-price">+ {fmt(o.price)}</span>}
                 </div>
               )
             })}
           </div>
-        ))}
+          )
+        })}
 
         <a className="id-seller" href={`/empresa/${slug}/cardapio`}>
           <span className="id-seller-av">{initials}</span>

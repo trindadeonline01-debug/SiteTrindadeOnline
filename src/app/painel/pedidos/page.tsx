@@ -904,6 +904,14 @@ export default function PedidosPage() {
                   <span className="pp-step-n">3</span>
                   <span className="pp-step-txt">Clica em "Testar conexão" — na primeira vez o app vai perguntar se pode confiar nesse site; marca "lembrar" pra não perguntar de novo.</span>
                 </div>
+                <div className="pp-step">
+                  <span className="pp-step-n">4</span>
+                  <span className="pp-step-txt">
+                    Se continuar pedindo permissão toda hora mesmo marcando "lembrar", baixa os dois certificados abaixo e importa o certificado <b>raiz</b> como confiável nas configurações avançadas do app de impressão (pede ajuda ao suporte se precisar):<br/>
+                    <a className="pp-dl-btn" href="/api/qz/certificado/raiz" target="_blank" rel="noopener noreferrer">🔐 Baixar certificado raiz</a>{' '}
+                    <a className="pp-dl-btn" href="/api/qz/certificado/site" target="_blank" rel="noopener noreferrer">📄 Baixar certificado do site</a>
+                  </span>
+                </div>
                 {qzStatus === 'error' && <div className="pp-err">{qzError}</div>}
                 <button className="pp-retry" onClick={openPrinterModal} disabled={qzStatus === 'connecting'}>
                   {qzStatus === 'connecting' ? 'Conectando...' : '🔄 Testar conexão'}

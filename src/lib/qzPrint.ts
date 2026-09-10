@@ -9,37 +9,47 @@
 // /api/qz/sign) em vez do modo "anônimo". Isso é o que faz o "Site
 // Manager" do QZ Tray lembrar da permissão de vez — no modo anônimo ele
 // volta a perguntar quase toda hora, mesmo marcando "lembrar".
-// v3 — a v2 tinha CA:FALSE certo, mas era AUTOASSINADA (issuer == subject),
-// e o QZ Tray não deixa marcar "Remember this decision" (persistir a
-// permissão) pra uma identidade que não é emitida por uma autoridade em
-// quem ele confia — só dá pra clicar "Allow" avulso a cada pedido. Agora
-// esse certificado é emitido por uma Autoridade Certificadora própria
-// ("Trindade Online Root CA", fica só guardada localmente, nunca sobe pro
-// servidor) — falta configurar essa raiz como confiável no QZ Tray da loja
-// (arquivo qz-tray.properties, propriedade trustedRootCert) pra "Remember"
-// funcionar de vez. Mesma chave privada de sempre — não mexe na Vercel.
-const QZ_CERTIFICATE = `-----BEGIN CERTIFICATE-----
-MIID2zCCAsOgAwIBAgIUTSSU/zV7+ZPK/3aXw1C9+gdbwy8wDQYJKoZIhvcNAQEN
-BQAwbDELMAkGA1UEBhMCQlIxCzAJBgNVBAgMAlJKMRQwEgYDVQQHDAtTYW8gR29u
-Y2FsbzEYMBYGA1UECgwPVHJpbmRhZGUgT25saW5lMSAwHgYDVQQDDBdUcmluZGFk
-ZSBPbmxpbmUgUm9vdCBDQTAgFw0yNjA5MDIxMzM3NDBaGA8yMDU2MDgyNTEzMzc0
-MFowajELMAkGA1UEBhMCQlIxCzAJBgNVBAgMAlJKMRQwEgYDVQQHDAtTYW8gR29u
-Y2FsbzEYMBYGA1UECgwPVHJpbmRhZGUgT25saW5lMR4wHAYDVQQDDBV0cmluZGFk
-ZW9ubGluZS5jb20uYnIwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDe
-qGJE/lvHCnYHtzyuR5TMNT72MKdeA/Fvd7fYRaKE4iHKY/ra8RtIAz5mxtk74EqB
-5Sq/UcMLdZ4t0OHHS5FQ/phM33ja6qs2BehUaK9Uyzze0T2vmaW70cF6udTMeOID
-5GXEAtDK1be7kIdqPB8GyStniRxbNcavtwyKktYSx6tdb3NzIZ34TXtqfZUtaFU0
-DnaUEAjnNa7eIESIn67wcxkHFZVoMhgfKl7z6NLrdakT5oSNErtMV0FdVkeH/Ds4
-w6ojTZULb5XjMe7lSeFhubkIWaExSYudeR5nSGdqGMXkbeH41UFa2dbptQ0t4NGR
-Ox/jJPVPg/IJXTFr3dFjAgMBAAGjdTBzMAwGA1UdEwEB/wQCMAAwDgYDVR0PAQH/
-BAQDAgWgMBMGA1UdJQQMMAoGCCsGAQUFBwMCMB0GA1UdDgQWBBQ/UCDqgkny75CE
-JCjlE7u7uXWXTTAfBgNVHSMEGDAWgBT9gJsNCFQZIOyE5rz6534/QDM3ojANBgkq
-hkiG9w0BAQ0FAAOCAQEAdRRTEJa7koFMozJEeQqWgN5vKPWPio/Ka+BT9ikpoUHf
-rXsq/wOPETDhLbshybI5yp5xjLShpkBM+6OmjBGVLXTG42h/P7iEemSL3SGb6TG+
-muLx3utI5i+j8kC7vhUmQ9bXEiLqO4bDC3a7chm27wH4KP1QPPJ4Kzt+tTsMNT5j
-vwFlOWb/B5dNMry36Vaoy3Be3pSZbBJbhgUscKoMtmjbQW/PsDzjfCdIejtnmNMZ
-4/C/Pg3I8E36za+ykfpoXt2HclgcGaKMG5fTkt2uG5fOv2F71oru2boQULiu5UOi
-c+s3sQ/l0gYGez9PF04bX0ldUyYH42X2OkW7CORHIw==
+// v4 — a Root CA v1 se perdeu (gerada numa sessão anterior, nunca foi
+// salva em lugar nenhum de propósito — chave de CA é sensível demais pra
+// commitar). Sem ela, o certificado do site ficava órfão e o "Remember
+// this decision" nunca tinha como funcionar mesmo (achado pelo Ricardo,
+// set/2026, tentando instalar numa loja nova). Gerada uma "Trindade
+// Online Root CA v2" nova (chave privada da CA, de novo, só existiu
+// aqui na hora de assinar — nunca commitada) + certificado do site
+// reemitido por ela, com uma chave privada NOVA (a antiga também se
+// perdeu junto) — por isso a QZ_PRIVATE_KEY da Vercel também precisou
+// ser trocada dessa vez (raro; normalmente só o certificado público muda).
+// DESSA VEZ o certificado da Root CA (público, sem problema nenhum expor)
+// fica hospedado de verdade em /api/qz/certificado/raiz — ver
+// src/lib/qzRootCa.ts — pra nunca mais se perder.
+export const QZ_CERTIFICATE = `-----BEGIN CERTIFICATE-----
+MIIE3jCCAsagAwIBAgIUJrlazyzgTcsdfc0j361nhei7iDEwDQYJKoZIhvcNAQEN
+BQAwbzELMAkGA1UEBhMCQlIxCzAJBgNVBAgMAlJKMRQwEgYDVQQHDAtTYW8gR29u
+Y2FsbzEYMBYGA1UECgwPVHJpbmRhZGUgT25saW5lMSMwIQYDVQQDDBpUcmluZGFk
+ZSBPbmxpbmUgUm9vdCBDQSB2MjAgFw0yNjA5MTAyMjA4MzFaGA8yMDU2MDkwMjIy
+MDgzMVowajELMAkGA1UEBhMCQlIxCzAJBgNVBAgMAlJKMRQwEgYDVQQHDAtTYW8g
+R29uY2FsbzEYMBYGA1UECgwPVHJpbmRhZGUgT25saW5lMR4wHAYDVQQDDBV0cmlu
+ZGFkZW9ubGluZS5jb20uYnIwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIB
+AQCdqnsimmdrLRqK5TsroK+nYubAWlGO1W7tga7xZ0bQS/gRPvGh46kpBlQMcE9E
+hvQQ3110zvSOZsE5SPuxyZIA++f+zHJSAtL3V5z4DVXndUze6hM1tZ5x6A6XFfah
+puoYmRkuwMzlk/D5Lv7kj6WYjE9w9rKQaz2MzJOwvlGb2IBEU/eaQsr20aBY4GL+
+36pjrkCfu2AWm65sjlslikmuJbsnacBKzlLemz1dp4D6/k2QyluYxGpC45j25kXl
+spiNXthgmVY8Zjpl+J6v5m0QiA/ag/pvaiEE7DYu5I7cAiXhwaKUScybbmjM2yIO
+EEIPLVqnN2jQ0eKb8NWWk+KjAgMBAAGjdTBzMAwGA1UdEwEB/wQCMAAwDgYDVR0P
+AQH/BAQDAgWgMBMGA1UdJQQMMAoGCCsGAQUFBwMCMB0GA1UdDgQWBBTX21aLdzQK
+Z+u2DU/KJqq6zFtrPDAfBgNVHSMEGDAWgBTByRFlFeaRiPCzjywXkobUL9O7jDAN
+BgkqhkiG9w0BAQ0FAAOCAgEAYSMynbwblyr5fVNUCjwZFN3tlqqQM/dao2102CTA
+GnACX5T0IwgXuAaAL+x7cG/AtsPkBFp8pnfWU1aAVKr5Jf5MFI8ZvwRpfy0vHP24
+bJllStoU8W8+0S3qCHv71OxzbIAZ9VxGCxNWDHmEJkoYetfKJvWrGOqGRdqHo9nZ
+sci+z4l+5MhRjasG8Xxplis1UqhHJjTZ92oIfkendGkz9uXkO6HNwHjYUAeYly8l
+e3EH5rVJxzJIbyHyLv4yFZMRu8UasdI1VP41kQntpj8EKCIKVgTKDXoK7LqeACqr
+6oSxT6zQOxDFH3sCofcXBIXIpXW7sTbv2+HCJgAgdxowh2lrkvYKZodyqfPIDj6R
+9YDqIHZDIj3k/QFaW05qJBKzs9Mk16qcTrscQIGX1jHZdc54r3axcnJKabroWsKc
+hHxjDwdCrfnmtB66jLAGt5aLkTwRdiZFQirYf0947cqyi8Nj4Aag5wrfVzrbJauk
+bex1rCcHEZu/C5y+gZXG8ip2MYJsRr0jywr9M49ZjBF2VxxeeoJZuWuhkz6y4tTS
+xtDNgbVPnxQ3He3lifeVx29VQ+yhKyvGyBlYsCmg8RgRUzthhaq/WM57kZr7pcfI
+Cd4XyQDH2q/xbGKkaYsKPSOC/KzOQ3Uqpr2k3XSuloW4lEALd2fFYAIXCtZp8oxm
+/y0=
 -----END CERTIFICATE-----`
 
 let qzModule: Promise<any> | null = null

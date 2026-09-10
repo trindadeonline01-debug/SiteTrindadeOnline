@@ -17,6 +17,8 @@ const PRICE_FILTERS = [
   { label: 'Até R$ 40', max: 40 },
 ]
 
+const PAGE_SIZE = 8
+
 // Vitrine cruzando o catálogo de todas as empresas com cardápio digital
 // ativo — ESPECIFICACAO.md §7 (índice de produtos), mas aplicado aqui numa
 // versão simples: sem busca por palavra, só recorte por subcategoria e por
@@ -25,11 +27,16 @@ const PRICE_FILTERS = [
 export default function HomePecaAgora({ groups }: { groups: PecaGroup[] }) {
   const [activeKey, setActiveKey] = useState('todas')
   const [maxPrice, setMaxPrice] = useState(0)
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
 
   if (groups.length === 0) return null
 
+  function changeTab(key: string) { setActiveKey(key); setVisibleCount(PAGE_SIZE) }
+  function changePrice(max: number) { setMaxPrice(max); setVisibleCount(PAGE_SIZE) }
+
   const active = groups.find(g => g.key === activeKey) || groups[0]
   const items = maxPrice > 0 ? active.items.filter(i => i.price <= maxPrice) : active.items
+  const visibleItems = items.slice(0, visibleCount)
 
   return (
     <div className="recent-section">
@@ -42,7 +49,7 @@ export default function HomePecaAgora({ groups }: { groups: PecaGroup[] }) {
 
       <div className="pa-scroll">
         {groups.map(g => (
-          <div key={g.key} className={`pa-item ${activeKey === g.key ? 'on' : ''}`} onClick={() => setActiveKey(g.key)}>
+          <div key={g.key} className={`pa-item ${activeKey === g.key ? 'on' : ''}`} onClick={() => changeTab(g.key)}>
             <div className="pa-photo">{g.emoji}</div>
             <span className="pa-lbl">{g.label}</span>
           </div>
@@ -51,30 +58,37 @@ export default function HomePecaAgora({ groups }: { groups: PecaGroup[] }) {
 
       <div className="pa-filters">
         {PRICE_FILTERS.map(f => (
-          <button type="button" key={f.max} className={`pa-chip ${maxPrice === f.max ? 'on' : ''}`} onClick={() => setMaxPrice(f.max)}>{f.label}</button>
+          <button type="button" key={f.max} className={`pa-chip ${maxPrice === f.max ? 'on' : ''}`} onClick={() => changePrice(f.max)}>{f.label}</button>
         ))}
       </div>
 
       {items.length === 0 ? (
         <div className="oa-empty">Nenhum produto nessa faixa de preço ainda.</div>
       ) : (
-        <div className="pa-list">
-          {items.map(p => (
-            <a key={p.id} className="pa-row" href={`/empresa/${p.companySlug}/item/${p.id}`}>
-              <div className="pa-row-img">
-                <Image src={p.photo_url} alt={p.name} fill sizes="56px" unoptimized style={{objectFit:'cover'}} />
-              </div>
-              <div className="pa-row-body">
-                <div className="pa-name">{p.name}</div>
-                <div className="pa-biz">{p.companyName}</div>
-              </div>
-              <div className="pa-row-end">
-                <div className="pa-price">{fmt(p.price)}</div>
-                {p.open && <div className="pa-open"><span className="pa-dot" />Aberto</div>}
-              </div>
-            </a>
-          ))}
-        </div>
+        <>
+          <div className="pa-list">
+            {visibleItems.map(p => (
+              <a key={p.id} className="pa-row" href={`/empresa/${p.companySlug}/item/${p.id}`}>
+                <div className="pa-row-img">
+                  <Image src={p.photo_url} alt={p.name} fill sizes="56px" unoptimized style={{objectFit:'cover'}} />
+                </div>
+                <div className="pa-row-body">
+                  <div className="pa-name">{p.name}</div>
+                  <div className="pa-biz">{p.companyName}</div>
+                </div>
+                <div className="pa-row-end">
+                  <div className="pa-price">{fmt(p.price)}</div>
+                  {p.open && <div className="pa-open"><span className="pa-dot" />Aberto</div>}
+                </div>
+              </a>
+            ))}
+          </div>
+          {visibleCount < items.length && (
+            <button type="button" className="pa-more" onClick={() => setVisibleCount(v => v + PAGE_SIZE)}>
+              Ver mais {Math.min(PAGE_SIZE, items.length - visibleCount)}
+            </button>
+          )}
+        </>
       )}
     </div>
   )

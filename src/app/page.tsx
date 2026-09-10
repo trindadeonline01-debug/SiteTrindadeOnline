@@ -397,28 +397,43 @@ export default async function HomePage() {
         const company = companyMap.get(companyId)
         if (!company) return
         const open = isOpenNow(company.hours, company.flexible_hours, company.store_paused, company.store_forced_open)
-        // Até 8 produtos por empresa na vitrine, embaralhado — Satolo's
-        // sozinho tem 77 produtos ativos; sem esse teto ela tomaria conta
-        // da seção inteira em vez de dividir espaço com o resto do bairro.
         const disponiveis = rows.filter(p => {
           const produto = { ...p, description: null, category_id: null, total_pedidos: 0, groups: [] } as unknown as Produto
           return !isSoldOut(produto) && availableToday(produto)
         })
-        shuffle(disponiveis).slice(0, 8).forEach(p => {
+        const toItem = (p: PecaProdutoRow): PecaVitrineItem => {
           const produto = { ...p, description: null, category_id: null, total_pedidos: 0, groups: [] } as unknown as Produto
-          const item: PecaVitrineItem = {
+          return {
             id: p.id, name: p.name, photo_url: p.photo_url!, price: promoPrice(produto) ?? p.sale_price,
             companyName: company.name, companySlug: company.slug, open,
           }
-          // Bebida nunca entra em "Todas" — só some quando o morador clica
-          // na aba Bebida de propósito, senão a aba geral vira refrigerante
-          // e água intercalado com o resto do cardápio.
-          if (p.tipo_vitrine !== 'Bebida') allItems.push(item)
-          if (p.tipo_vitrine) {
-            const bucket = bucketMap.get(p.tipo_vitrine) || []
-            bucket.push(item)
-            bucketMap.set(p.tipo_vitrine, bucket)
-          }
+        }
+
+        // "Todas" — até 8 produtos por empresa, sorteados do catálogo
+        // inteiro (sem bebida, ver comentário acima). Satolo's sozinho tem
+        // 77 produtos ativos; sem esse teto ela tomaria conta da seção
+        // inteira em vez de dividir espaço com o resto do bairro.
+        shuffle(disponiveis.filter(p => p.tipo_vitrine !== 'Bebida')).slice(0, 8)
+          .forEach(p => allItems.push(toItem(p)))
+
+        // Por tipo — até 8 produtos DAQUELE TIPO por empresa, sorteados à
+        // parte do corte de "Todas" acima. Antes, a aba de tipo só herdava
+        // o que sobrava do sorteio de "Todas" por acaso — uma hamburgueria
+        // com 20 hambúrgueres podia aparecer com só 1 na aba Hambúrguer,
+        // porque os outros 19 nem entraram no sorteio genérico.
+        const porTipo = new Map<string, PecaProdutoRow[]>()
+        disponiveis.forEach(p => {
+          if (!p.tipo_vitrine) return
+          const arr = porTipo.get(p.tipo_vitrine) || []
+          arr.push(p)
+          porTipo.set(p.tipo_vitrine, arr)
+        })
+        porTipo.forEach((prods, tipo) => {
+          shuffle(prods).slice(0, 8).forEach(p => {
+            const bucket = bucketMap.get(tipo) || []
+            bucket.push(toItem(p))
+            bucketMap.set(tipo, bucket)
+          })
         })
       })
 
@@ -684,6 +699,8 @@ export default async function HomePage() {
         .pa-price { font-size: 13px; font-weight: 800; color: var(--sign-dark); font-variant-numeric: tabular-nums; }
         .pa-open { display: flex; align-items: center; gap: 4px; justify-content: flex-end; margin-top: 3px; font-size: 9.5px; font-weight: 700; color: var(--open); text-transform: uppercase; letter-spacing: .2px; }
         .pa-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--open); display: inline-block; flex-shrink: 0; }
+        .pa-more { width: 100%; margin-top: 10px; padding: 11px; background: var(--paper); border: 1.5px dashed var(--line); border-radius: 12px; font-size: 12.5px; font-weight: 700; color: var(--sign-dark); cursor: pointer; font-family: 'Archivo', sans-serif; }
+        .pa-more:hover { border-color: var(--sign-dark); background: var(--concrete-2); }
 
         /* LOJAS — lista final, mesmo estilo de linha do Peça Agora */
         .lj-chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; }

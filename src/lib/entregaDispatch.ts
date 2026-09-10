@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import sharp from 'sharp'
 import { moduleActive } from '@/lib/modules'
 import { getTodayValues } from '@/lib/entregaPricing'
 
@@ -163,21 +164,56 @@ function shortMapsLink(deliveryOrderId: string, tipo: 'r' | 'd'): string {
   return `${SITE_URL}/e/${deliveryOrderId}/${tipo}`
 }
 
-function offerMessage(order: { pickup_address: string; dropoff_address: string; customer_name: string; fee: number }, deliveryOrderId: string): string {
+// Nome da loja em linha própria, caixa alta e negrito — o motoboy lê em 3
+// segundos quem é quem, em vez de vasculhar o endereço pra reconhecer o
+// ponto de retirada (pedido do Ricardo, set/2026). Endereço e link também
+// cada um na sua linha — nada dividendo espaço com o rótulo antes.
+function offerMessage(order: { pickup_address: string; dropoff_address: string; customer_name: string; fee: number }, deliveryOrderId: string, companyName: string): string {
   const fee = Number(order.fee).toFixed(2).replace('.', ',')
-  return [
-    '🏍️ *Tem entrega!*',
-    '',
-    `📍 Retirar em: ${order.pickup_address}`,
+  const lines = ['🏍️ *Tem entrega!*', '', '📍 Retirar em:']
+  if (companyName) lines.push(`*${companyName.toUpperCase()}*`)
+  lines.push(
+    order.pickup_address,
     shortMapsLink(deliveryOrderId, 'r'),
     '',
-    `🏠 Entregar pra ${order.customer_name}: ${order.dropoff_address}`,
+    `🏠 Entregar pra ${order.customer_name}:`,
+    order.dropoff_address,
     shortMapsLink(deliveryOrderId, 'd'),
     '',
     `Taxa: R$ ${fee}`,
     '',
     'Responde *SIM* ou *NÃO* em até 45s.',
-  ].join('\n')
+  )
+  return lines.join('\n')
+}
+
+// Recorta a foto da loja (que geralmente vem quadrada/retrato) pra um
+// formato bem mais achatado — 2:1, bem mais estreito de altura do que a
+// foto original — porque no WhatsApp uma foto quadrada/retrato ocupa a
+// tela toda (reclamação direta do Ricardo, set/2026). `position: 'attention'`
+// deixa o sharp escolher o recorte que preserva a parte mais "interessante"
+// da imagem (rosto, objeto, texto) em vez de cortar sempre pelo centro.
+// Path com timestamp (nunca sobrescreve) — mesma lição do recompress-photos:
+// o CDN do Supabase não invalida direito quando o arquivo muda no mesmo link.
+const BANNER_WIDTH = 800
+const BANNER_HEIGHT = 400
+async function buildDeliveryBanner(photoUrl: string, companyId: string): Promise<string | null> {
+  try {
+    const res = await fetch(photoUrl)
+    if (!res.ok) return null
+    const buf = Buffer.from(await res.arrayBuffer())
+    const out = await sharp(buf)
+      .resize({ width: BANNER_WIDTH, height: BANNER_HEIGHT, fit: 'cover', position: 'attention' })
+      .webp({ quality: 78 })
+      .toBuffer()
+    const path = `banners/${companyId}-${Date.now()}.webp`
+    const { error } = await supabase.storage.from('company-photos').upload(path, out, { contentType: 'image/webp', upsert: false })
+    if (error) return null
+    const { data } = supabase.storage.from('company-photos').getPublicUrl(path)
+    return data.publicUrl
+  } catch {
+    return null
+  }
 }
 
 function genDeliveryCode(): string { return String(Math.floor(1000 + Math.random() * 9000)) }
@@ -232,15 +268,21 @@ export async function criarEntregaEChamarMotoboy(opts: {
 // teste do admin (que só quer ver como a mensagem chega, sem mexer no
 // estado de nenhuma entrega de verdade).
 async function sendOfferMessage(order: { company_id: string; pickup_address: string; dropoff_address: string; customer_name: string; fee: number }, deliveryOrderId: string, motoboyPhone: string) {
-  const text = offerMessage(order, deliveryOrderId)
-  const { data: photo } = await supabase
-    .from('company_photos').select('url').eq('company_id', order.company_id).order('order').limit(1).maybeSingle()
+  const [{ data: company }, { data: photo }] = await Promise.all([
+    supabase.from('companies').select('name').eq('id', order.company_id).maybeSingle(),
+    supabase.from('company_photos').select('url').eq('company_id', order.company_id).order('order').limit(1).maybeSingle(),
+  ])
+  const text = offerMessage(order, deliveryOrderId, company?.name || '')
 
-  // Foto da loja como preview visual (o motoboy aprende o ponto de retirada
-  // de cara, com o tempo) — se não tiver foto cadastrada, ou se o envio de
-  // mídia falhar por qualquer motivo, cai pro texto puro. A oferta PRECISA
-  // sair de um jeito ou de outro, a foto é só um extra.
-  const sentAsImage = photo?.url ? (await sendPlatformWhatsAppImage(motoboyPhone, photo.url, text)).ok : false
+  // Foto da loja (recortada em banner achatado) como preview visual — se
+  // não tiver foto cadastrada, se o recorte falhar, ou se o envio de mídia
+  // falhar por qualquer motivo, cai pro texto puro. A oferta PRECISA sair
+  // de um jeito ou de outro, a foto é só um extra.
+  let sentAsImage = false
+  if (photo?.url) {
+    const bannerUrl = await buildDeliveryBanner(photo.url, order.company_id)
+    sentAsImage = (await sendPlatformWhatsAppImage(motoboyPhone, bannerUrl || photo.url, text)).ok
+  }
   if (!sentAsImage) await sendMotoboyWhatsApp(motoboyPhone, text)
 }
 

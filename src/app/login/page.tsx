@@ -17,7 +17,11 @@ export default function LoginPage() {
     setErro('')
     setLoading(true)
 
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password: senha })
+    // .trim() no e-mail — espaço invisível no início/fim (comum em
+    // autofill de celular) faz o login falhar com "credenciais inválidas"
+    // mesmo com e-mail e senha certos, sem nenhum jeito de o lojista notar
+    // o espaço a olho nu (achado real: JBurguer, set/2026).
+    const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password: senha })
 
     if (error) {
       setErro('E-mail ou senha incorretos.')
@@ -54,7 +58,7 @@ export default function LoginPage() {
     setErro('')
     setLoading(true)
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
       redirectTo: `${window.location.origin}/redefinir-senha`,
     })
 

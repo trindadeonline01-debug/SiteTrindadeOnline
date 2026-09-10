@@ -8,6 +8,7 @@ import HomeBannerCarousel from '@/components/home/HomeBannerCarousel'
 import HomeAbertoAgora from '@/components/home/HomeAbertoAgora'
 import HomeComunidadeTabs from '@/components/home/HomeComunidadeTabs'
 import HomePecaAgora, { PecaGroup, PecaVitrineItem } from '@/components/home/HomePecaAgora'
+import HomeLojas, { LojaItem } from '@/components/home/HomeLojas'
 import ScrollRow from '@/components/home/ScrollRow'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { isOpenNow, HourRow } from '@/lib/businessHours'
@@ -17,6 +18,7 @@ import { CATEGORY_IMAGES } from '@/lib/categoryImages'
 interface PaidCompany {
   id: string; name: string; slug: string; avg_rating: number; total_reviews: number
   plan?: string
+  flexible_hours?: boolean; store_paused?: boolean; store_forced_open?: boolean; hours?: HourRow[]
   category?: { name: string; emoji?: string } | null
   photos?: { url: string; order: number }[]
 }
@@ -82,6 +84,14 @@ const PAID_CAROUSELS: [string, string, string, string][] = [
   ['00000000-0000-0000-0000-000000000001', 'comercios',   '🏪 COMÉRCIOS',    '/categoria/comercios'],
   ['00000000-0000-0000-0000-000000000002', 'servicos',    '🔧 SERVIÇOS',     '/categoria/servicos'],
 ]
+
+// Metadados de exibição pra seção "Lojas" (lista única no fim da home, ver
+// HomeLojas.tsx) — reaproveita as mesmas 3 categorias do PAID_CAROUSELS.
+const LOJAS_CAT_META: Record<string, { label: string; emoji: string }> = {
+  gastronomia: { label: 'Gastronomia', emoji: '🍽️' },
+  comercios:   { label: 'Comércios',   emoji: '🛒' },
+  servicos:    { label: 'Serviços',    emoji: '🔧' },
+}
 // sort(() => Math.random()-0.5) é um shuffle enviesado — pra listas
 // pequenas, mistura pouco e sempre deixa os mesmos no topo. Fisher-Yates
 // é o shuffle de verdade, com distribuição uniforme
@@ -152,7 +162,7 @@ export default async function HomePage() {
     supabaseServer.from('banners').select('*').eq('active', true).order('display_order'),
     Promise.all(PAID_CAROUSELS.map(([categoryId]) =>
       supabaseServer.from('companies')
-        .select('id, name, slug, plan, avg_rating, total_reviews, category:categories(name,emoji), photos:company_photos(url,order)')
+        .select('id, name, slug, plan, avg_rating, total_reviews, flexible_hours, store_paused, store_forced_open, hours:company_hours(day_of_week,open_time,close_time,closed), category:categories(name,emoji), photos:company_photos(url,order)')
         .eq('status', 'active').eq('category_id', categoryId)
         .limit(500) // teto de segurança, bem acima de qualquer categoria hoje — não corta exibição de verdade
     )),
@@ -236,6 +246,19 @@ export default async function HomePage() {
     const pagas = shuffle(comFoto.filter(c => c.plan === 'paid'))
     const gratis = shuffle(comFoto.filter(c => c.plan !== 'paid'))
     paidCompanies[key] = [...pagas, ...gratis]
+  })
+
+  // "Lojas" — lista única no fim da home cruzando as 3 categorias acima
+  // (ver HomeLojas.tsx), no lugar dos 3 carrosséis separados.
+  const lojasItems: LojaItem[] = PAID_CAROUSELS.flatMap(([, key]) => {
+    const meta = LOJAS_CAT_META[key]
+    return (paidCompanies[key] || []).map(c => ({
+      id: c.id, name: c.name, slug: c.slug,
+      categoryKey: key, categoryLabel: meta.label, categoryEmoji: meta.emoji,
+      avgRating: c.avg_rating || 0,
+      cover: [...(c.photos || [])].sort((a, b) => a.order - b.order)[0]?.url || null,
+      open: isOpenNow(c.hours, c.flexible_hours, c.store_paused, c.store_forced_open),
+    }))
   })
 
   // Ofertas do bairro — só cupons por enquanto (Promoções da Semana
@@ -662,6 +685,24 @@ export default async function HomePage() {
         .pa-open { display: flex; align-items: center; gap: 4px; justify-content: flex-end; margin-top: 3px; font-size: 9.5px; font-weight: 700; color: var(--open); text-transform: uppercase; letter-spacing: .2px; }
         .pa-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--open); display: inline-block; flex-shrink: 0; }
 
+        /* LOJAS — lista final, mesmo estilo de linha do Peça Agora */
+        .lj-chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; }
+        .lj-chips::-webkit-scrollbar { display: none; }
+        .lj-chip { flex: 0 0 auto; padding: 7px 15px; border-radius: 20px; border: 1px solid var(--line); background: var(--paper); font-size: 12px; font-weight: 700; color: var(--ink); cursor: pointer; font-family: 'Archivo', sans-serif; white-space: nowrap; }
+        .lj-chip.on { background: var(--sign); border-color: var(--sign-dark); }
+        .lj-list { display: flex; flex-direction: column; gap: 7px; }
+        .lj-row { display: flex; align-items: center; gap: 10px; background: var(--paper); border: 1px solid var(--line); border-radius: 13px; padding: 8px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lj-row:hover { border-color: var(--ink); }
+        .lj-row-img { width: 52px; height: 52px; border-radius: 50%; flex-shrink: 0; position: relative; overflow: hidden; background: var(--concrete-2); display: flex; align-items: center; justify-content: center; font-size: 20px; }
+        .lj-row-body { flex: 1; min-width: 0; }
+        .lj-row-end { flex-shrink: 0; text-align: right; }
+        .lj-name { font-size: 13px; font-weight: 700; color: var(--ink); line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: 'Archivo', sans-serif; }
+        .lj-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+        .lj-stars { font-size: 12px; font-weight: 700; color: var(--sign-dark); }
+        .lj-open { display: flex; align-items: center; gap: 4px; justify-content: flex-end; margin-top: 3px; font-size: 9.5px; font-weight: 700; color: var(--open); text-transform: uppercase; letter-spacing: .2px; }
+        .lj-closed { font-size: 9.5px; font-weight: 700; color: var(--muted); margin-top: 3px; text-transform: uppercase; letter-spacing: .2px; }
+        .lj-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--open); display: inline-block; flex-shrink: 0; }
+
         .cta-section { margin: 36px 0 48px; background: linear-gradient(135deg,var(--ink),var(--ink-2)); border-radius: 20px; padding: 36px 32px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 16px; }
         @media(min-width: 768px) { .cta-section { flex-direction: row; text-align: left; justify-content: space-between; padding: 36px 48px; } }
         .cta-title { font-family: 'Anton', sans-serif; font-size: clamp(22px,3vw,30px); color: #fff; letter-spacing: .5px; margin-bottom: 6px; text-transform: uppercase; }
@@ -695,8 +736,7 @@ export default async function HomePage() {
 
       {/* HERO */}
       <section className="hero" style={{background: tema.heroBg}}>
-        <h1 className="hero-title" style={{color: siteTheme === 'branco-limpo' ? '#111' : '#fff'}}>TRINDADE <span style={{color: tema.dest}}>ONLINE</span></h1>
-        <p className="hero-sub">Conectando moradores, comércios e serviços do bairro Trindade</p>
+        <h1 className="hero-title" style={{color: siteTheme === 'branco-limpo' ? '#111' : '#fff', marginBottom: 14}}>TRINDADE <span style={{color: tema.dest}}>ONLINE</span></h1>
         <HomeSearchBox />
       </section>
 
@@ -876,40 +916,14 @@ export default async function HomePage() {
           </div>
         )}
 
-        {/* EMPRESAS POR SEGMENTO — 1 carrossel por categoria (gastronomia,
-            comércios, serviços) com TODAS as empresas ativas, pagas primeiro
-            (bloco embaralhado) e grátis depois (outro bloco embaralhado),
-            ordem nova a cada carregamento de página */}
-        {PAID_CAROUSELS.some(([, key]) => (paidCompanies[key] || []).length > 0) && (
+        {/* LOJAS — lista única cruzando gastronomia/comércios/serviços, no
+            lugar dos 3 carrosséis quase idênticos que existiam aqui antes.
+            ESPECIFICACAO.md — redesenho set/2026, mockup aprovado em
+            conversa. */}
+        {lojasItems.length > 0 && (
           <>
             <div className="divider" />
-            {PAID_CAROUSELS.map(([, key, title, href]) => {
-              const list = paidCompanies[key] || []
-              if (list.length === 0) return null
-              return (
-                <div key={key} className="recent-section">
-                  <div className="sec-hdr">
-                    <div>
-                      <h2 className="recent-section-title">{title}</h2>
-                    </div>
-                    <a href={href} className="sec-link">Ver tudo →</a>
-                  </div>
-                  <ScrollRow trackClassName="recent-scroll">
-                    {list.map(c => {
-                      const cover = [...(c.photos || [])].sort((a, b) => a.order - b.order)[0]?.url
-                      return (
-                        <a key={c.id} className="recent-card" href={`/empresa/${c.slug}`}>
-                          <div className="recent-card-img">
-                            {cover ? <Image src={cover} alt={c.name} fill sizes="(max-width:639px) 45vw, 220px" unoptimized style={{objectFit:'cover'}} /> : (c.category?.emoji || '🏪')}
-                          </div>
-                          <div className="recent-card-title">{c.name}</div>
-                        </a>
-                      )
-                    })}
-                  </ScrollRow>
-                </div>
-              )
-            })}
+            <HomeLojas items={lojasItems} />
           </>
         )}
 

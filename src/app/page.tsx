@@ -726,7 +726,7 @@ export default async function HomePage() {
            logo abaixo, é o que deixa a faixa inteira mais baixa (Ricardo
            pediu o mínimo de altura possível, pra sobrar mais tela pro
            conteúdo, set/2026). */
-        .pa-hdr { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 0 0 8px; }
+        .pa-hdr { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 0 0 14px; }
         .pa-eyebrow { color: rgba(21,18,16,.68); margin-bottom: 0; white-space: nowrap; }
         /* O carrossel de subcategorias (dentro da faixa) tinha o mesmo
            problema que o de categorias tinha antes de ir de ponta a ponta —

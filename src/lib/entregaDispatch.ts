@@ -226,6 +226,24 @@ export async function criarEntregaEChamarMotoboy(opts: {
   return { ok: true, deliveryOrderId: order.id, deliveryCode: order.delivery_code }
 }
 
+// Monta a mensagem de oferta (texto + foto da loja quando tiver) e manda pro
+// telefone informado — usado tanto pelo disparo real (offerToNextMotoboy,
+// que antes registra a oferta em delivery_offers) quanto pelo botão de
+// teste do admin (que só quer ver como a mensagem chega, sem mexer no
+// estado de nenhuma entrega de verdade).
+async function sendOfferMessage(order: { company_id: string; pickup_address: string; dropoff_address: string; customer_name: string; fee: number }, deliveryOrderId: string, motoboyPhone: string) {
+  const text = offerMessage(order, deliveryOrderId)
+  const { data: photo } = await supabase
+    .from('company_photos').select('url').eq('company_id', order.company_id).order('order').limit(1).maybeSingle()
+
+  // Foto da loja como preview visual (o motoboy aprende o ponto de retirada
+  // de cara, com o tempo) — se não tiver foto cadastrada, ou se o envio de
+  // mídia falhar por qualquer motivo, cai pro texto puro. A oferta PRECISA
+  // sair de um jeito ou de outro, a foto é só um extra.
+  const sentAsImage = photo?.url ? (await sendPlatformWhatsAppImage(motoboyPhone, photo.url, text)).ok : false
+  if (!sentAsImage) await sendMotoboyWhatsApp(motoboyPhone, text)
+}
+
 // Chama o próximo motoboy disponível pra essa entrega — usado na criação e
 // depois de um NÃO/expiração. Se ninguém estiver livre, a entrega fica
 // esperando (a loja vê "aguardando aceite") até algum motoboy ficar livre.
@@ -243,16 +261,20 @@ export async function offerToNextMotoboy(deliveryOrderId: string, sequenceNo: nu
     delivery_order_id: deliveryOrderId, motoboy_id: motoboy.id, sequence_no: sequenceNo, status: 'pendente', expires_at: expiresAt,
   })
 
-  const text = offerMessage(order, deliveryOrderId)
-  const { data: photo } = await supabase
-    .from('company_photos').select('url').eq('company_id', order.company_id).order('order').limit(1).maybeSingle()
+  await sendOfferMessage(order, deliveryOrderId, motoboy.phone)
+}
 
-  // Foto da loja como preview visual (o motoboy aprende o ponto de retirada
-  // de cara, com o tempo) — se não tiver foto cadastrada, ou se o envio de
-  // mídia falhar por qualquer motivo, cai pro texto puro. A oferta PRECISA
-  // sair de um jeito ou de outro, a foto é só um extra.
-  const sentAsImage = photo?.url ? (await sendPlatformWhatsAppImage(motoboy.phone, photo.url, text)).ok : false
-  if (!sentAsImage) await sendMotoboyWhatsApp(motoboy.phone, text)
+// Reenvia a mensagem de uma entrega já existente (qualquer status) pro
+// telefone informado, sem criar oferta nem mexer no fluxo real — só pra
+// visualizar como a mensagem chega no WhatsApp. Usado pelo botão
+// "📨 Testar oferta" no admin (Entregas → Motoboys).
+export async function sendTestOfferMessage(deliveryOrderId: string, motoboyPhone: string): Promise<{ ok: boolean; error?: string }> {
+  const { data: order } = await supabase
+    .from('delivery_orders').select('company_id, pickup_address, dropoff_address, customer_name, fee')
+    .eq('id', deliveryOrderId).maybeSingle()
+  if (!order) return { ok: false, error: 'entrega não encontrada' }
+  await sendOfferMessage(order, deliveryOrderId, motoboyPhone)
+  return { ok: true }
 }
 
 // Varre ofertas que estouraram o prazo sem resposta, marca como expiradas

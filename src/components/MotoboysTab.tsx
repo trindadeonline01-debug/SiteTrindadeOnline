@@ -81,6 +81,7 @@ export default function MotoboysTab() {
   const [flagged, setFlagged] = useState<Record<string, Record<string, PendingFlag>>>({}) // motoboyId -> key -> flag
   const [flagging, setFlagging] = useState<{ motoboyId: string; key: string; label: string; reason: string } | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [testingId, setTestingId] = useState<string | null>(null)
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState(EMPTY_FORM)
@@ -250,6 +251,19 @@ export default function MotoboysTab() {
     })
     setBusyId(null)
     load()
+  }
+
+  async function testarOferta(m: Motoboy) {
+    setTestingId(m.id)
+    const { token } = await authHeader()
+    const res = await fetch('/api/admin/entrega/testar-oferta', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: token ? `Bearer ${token}` : '' },
+      body: JSON.stringify({ motoboyId: m.id }),
+    })
+    const data = await res.json()
+    setTestingId(null)
+    if (data.error) { alert(data.error); return }
+    alert(`Mandado pro WhatsApp de ${m.name}! Confere lá como ficou.`)
   }
 
   async function deleteMotoboy(m: Motoboy) {
@@ -449,6 +463,7 @@ export default function MotoboysTab() {
               </div>
               <div style={s.actionsCol}>
                 <button style={s.btnGhostSm} onClick={() => editingId === m.id ? setEditingId(null) : startEdit(m)}>{editingId === m.id ? '✕ Fechar' : '✎ Editar'}</button>
+                <button style={s.btnGhostSm} disabled={testingId === m.id} onClick={() => testarOferta(m)}>{testingId === m.id ? 'Enviando...' : '📨 Testar oferta'}</button>
                 <button style={s.btnGhostSm} disabled={busyId === m.id} onClick={() => toggleActive(m)}>{m.active ? '⏸ Pausar' : '▶ Ativar'}</button>
                 <button style={{ ...s.btnGhostSm, borderColor: '#FBEAEA', color: '#C43D3D' }} disabled={busyId === m.id} onClick={() => deleteMotoboy(m)}>🗑 Excluir</button>
                 {m.terms && <button style={s.btnGhostSm} onClick={() => setLightbox({ url: m.terms!.pdf_url, label: `Termo assinado — ${m.terms!.nome_digitado}` })}>📄 Termo assinado</button>}

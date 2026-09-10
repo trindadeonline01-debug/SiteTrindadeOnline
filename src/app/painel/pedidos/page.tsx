@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { refreshSessionOnce } from '@/lib/authRefresh'
 import { qzListPrinters, qzPrintRaw, buildReceipt, buildKitchenTicket } from '@/lib/qzPrint'
+import { fetchPedidoComItensComRetry } from '@/lib/autoprint'
 import { usePainelShell } from '@/contexts/PainelShellContext'
 
 type Item = { id: string; product_name: string; unit_price: number; qty: number; selected_options: { name: string; price: number }[] }
@@ -16,21 +17,6 @@ type Pedido = {
   itens: Item[]
 }
 type LojaMotoboy = { id: string; nome: string; whatsapp: string; ativo: boolean }
-// O checkout insere o pedido e os itens em dois inserts separados — o
-// pedido é inserido primeiro, então quem escuta pedido novo (realtime ou
-// reimpressão manual logo em seguida) pode pegar o pedido antes dos itens
-// terminarem de salvar. Tenta de novo algumas vezes antes de desistir e
-// usar o que tiver, em vez de imprimir/mostrar a seção de itens vazia.
-async function fetchPedidoComItensComRetry(pedidoId: string) {
-  let data: any = null
-  for (let tentativa = 0; tentativa < 5; tentativa++) {
-    const { data: d } = await supabase.from('loja_pedidos').select('*, itens:loja_pedido_itens(*)').eq('id', pedidoId).single()
-    data = d
-    if (data?.itens?.length > 0) break
-    await new Promise(r => setTimeout(r, 700))
-  }
-  return data
-}
 
 type NpOpcao = { id: string; name: string; price: number; max_qty: number | null }
 type NpGrupo = { id: string; name: string; required: boolean; min_select: number; max_select: number; pricing_rule: 'soma' | 'maior_valor'; options: NpOpcao[] }
@@ -124,39 +110,14 @@ function timeAgo(iso: string) {
   if (hrs < 24) return `${hrs}h`
   return `${Math.floor(hrs / 24)}d`
 }
-// Alerta de pedido novo — o beep antigo (um sine bem baixinho, gain 0.12)
-// passava despercebido na correria da cozinha. Onda quadrada (mais "elétrica"/
-// alarme que sine) + volume bem mais alto + 2 toques em par, repetidos, pra
-// ficar com cara de campainha de pedido chegando, não de notificação discreta.
-function beep() {
-  try {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
-    const master = ctx.createGain()
-    master.gain.value = 0.55
-    master.connect(ctx.destination)
-
-    function note(freq: number, start: number, dur: number) {
-      const osc = ctx.createOscillator()
-      const g = ctx.createGain()
-      osc.type = 'square'
-      osc.frequency.value = freq
-      osc.connect(g); g.connect(master)
-      const t0 = ctx.currentTime + start
-      g.gain.setValueAtTime(0, t0)
-      g.gain.linearRampToValueAtTime(1, t0 + 0.012)
-      g.gain.linearRampToValueAtTime(0, t0 + dur)
-      osc.start(t0)
-      osc.stop(t0 + dur + 0.02)
-    }
-
-    // B5 → E6, duas vezes — padrão de "ding-ding" de campainha de balcão
-    const NOTE_A = 987.77, NOTE_B = 1318.51
-    ;[[NOTE_A, 0], [NOTE_B, 0.15], [NOTE_A, 0.5], [NOTE_B, 0.65]].forEach(([freq, t]) => note(freq, t, 0.14))
-  } catch {}
-}
-
 export default function PedidosPage() {
-  const { company, loading: shellLoading } = usePainelShell()
+  // printerName/autoAceitar moraram aqui antes — agora vivem no layout do
+  // painel (persiste entre navegações), pra impressão automática continuar
+  // funcionando mesmo com outra tela do painel aberta (achado real do
+  // Ricardo, set/2026). Beep e o disparo de impressão em si também
+  // migraram pra lá; esta página só lê os valores e continua deixando
+  // configurar (o "single source of truth" é o contexto).
+  const { company, loading: shellLoading, printerName, autoAceitar, setPrinterName, setAutoAceitar } = usePainelShell()
   const [loading, setLoading] = useState(true)
   const [companyId, setCompanyId] = useState('')
   const [companyName, setCompanyName] = useState('')
@@ -164,21 +125,12 @@ export default function PedidosPage() {
   const [motoboySel, setMotoboySel] = useState<Record<string, string>>({})
   const [crmEnabled, setCrmEnabled] = useState(false)
   const [entregaEnabled, setEntregaEnabled] = useState(false)
-  const [autoAceitar, setAutoAceitar] = useState(true)
-  const [printerName, setPrinterName] = useState('')
   const [showPrinterModal, setShowPrinterModal] = useState(false)
   const [qzStatus, setQzStatus] = useState<'idle' | 'connecting' | 'connected' | 'error'>('idle')
   const [qzError, setQzError] = useState('')
   const [foundPrinters, setFoundPrinters] = useState<string[]>([])
   const [printerSaving, setPrinterSaving] = useState(false)
   const [printError, setPrintError] = useState<string | null>(null)
-  // Refs pra leitura dentro do handler de realtime, que foi criado uma vez
-  // só no mount — sem isso ele sempre veria autoAceitar/printerName do
-  // primeiro render, mesmo depois de mudar nas telas.
-  const autoAceitarRef = useRef(true)
-  const printerNameRef = useRef('')
-  useEffect(() => { autoAceitarRef.current = autoAceitar }, [autoAceitar])
-  useEffect(() => { printerNameRef.current = printerName }, [printerName])
   const [pedidos, setPedidos] = useState<Pedido[]>([])
   const [mobileStage, setMobileStage] = useState<MobileStageKey>('recebido')
   const [openId, setOpenId] = useState<string | null>(null)
@@ -212,69 +164,21 @@ export default function PedidosPage() {
     if (!company || !company.loja_digital_enabled) { window.location.href = '/painel/compartilhar'; return }
     let unsub: (() => void) | null = null
     ;(async () => {
-      const { data: extra } = await supabase.from('companies').select('loja_auto_aceitar_pedidos, loja_impressora_nome').eq('id', company.id).maybeSingle()
       setCompanyId(company.id); companyIdRef.current = company.id
       setCompanyName(company.name)
       setCrmEnabled(company.crm_whatsapp_enabled)
       setEntregaEnabled(company.entrega_enabled)
-      setAutoAceitar(extra?.loja_auto_aceitar_pedidos !== false)
-      setPrinterName(extra?.loja_impressora_nome || '')
       const { data: mb } = await supabase.from('loja_motoboys').select('*').eq('company_id', company.id).order('created_at')
       setMotoboys((mb || []) as LojaMotoboy[])
       await loadAll(company.id)
       setLoading(false)
 
-      // Só imprime sozinho quando aceitar automático está ligado — pedido que
-      // precisa de revisão manual não deveria sair na impressora antes de
-      // alguém decidir aceitar. Falha de impressão nunca trava o fluxo do
-      // pedido (QZ Tray fechado, impressora sem papel etc. não podem quebrar
-      // o resto da tela).
-      const compName = company.name
-      async function autoPrintIfNeeded(pedidoId: string) {
-        if (!autoAceitarRef.current || !printerNameRef.current) return
-        try {
-          const data = await fetchPedidoComItensComRetry(pedidoId)
-          if (!data) return
-          const items = (data.itens || []).map((it: any) => ({ qty: it.qty, name: it.product_name, unitPrice: it.unit_price, options: it.selected_options }))
-          const content = buildReceipt({
-            companyName: compName,
-            pedidoShortId: String(data.order_number ?? data.id.slice(0, 8)),
-            createdAt: data.created_at,
-            customerName: data.customer_name,
-            customerPhone: data.customer_phone,
-            deliveryType: data.delivery_type,
-            address: data.delivery_address,
-            paymentMethod: data.payment_method,
-            notes: data.notes,
-            items,
-            subtotal: data.subtotal,
-            deliveryFee: data.delivery_fee || 0,
-            total: data.total,
-          })
-          await qzPrintRaw(printerNameRef.current, content)
-          // Segunda via pra cozinha — sem preço, sem endereço, sem forma de
-          // pagamento, só o que precisa pra produzir (KNOWLEDGE_BASE.md).
-          const kitchenContent = buildKitchenTicket({
-            pedidoShortId: String(data.order_number ?? data.id.slice(0, 8)),
-            createdAt: data.created_at,
-            deliveryType: data.delivery_type,
-            items,
-            notes: data.notes,
-          })
-          await qzPrintRaw(printerNameRef.current, kitchenContent)
-        } catch {}
-        // O primeiro loadAll (disparado junto com o evento de pedido novo,
-        // antes deste retry) pode ter carregado o pedido sem os itens pelo
-        // mesmo motivo do comentário acima — atualiza de novo agora que
-        // já esperou os itens aparecerem, pra o card no quadro não ficar
-        // preso mostrando "0 itens".
-        loadAll(companyIdRef.current)
-      }
-
+      // Beep + impressão automática de pedido novo agora rodam no layout do
+      // painel (src/app/painel/layout.tsx), que persiste entre navegações —
+      // essa assinatura aqui só atualiza a lista visível na tela.
       const channel = supabase.channel(`pedidos-${company.id}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'loja_pedidos', filter: `company_id=eq.${company.id}` }, payload => {
-          if (payload.eventType === 'INSERT') { beep(); loadAll(companyIdRef.current); autoPrintIfNeeded(payload.new.id as string) }
-          else loadAll(companyIdRef.current)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'loja_pedidos', filter: `company_id=eq.${company.id}` }, () => {
+          loadAll(companyIdRef.current)
         })
         .subscribe()
       unsub = () => supabase.removeChannel(channel)
@@ -375,11 +279,7 @@ export default function PedidosPage() {
     }
   }
 
-  async function toggleAutoAceitar() {
-    const next = !autoAceitar
-    setAutoAceitar(next)
-    await supabase.from('companies').update({ loja_auto_aceitar_pedidos: next }).eq('id', companyId)
-  }
+  function toggleAutoAceitar() { setAutoAceitar(!autoAceitar) }
 
   async function printPedido(p: Pedido) {
     if (!printerName) { setShowPrinterModal(true); return }
@@ -442,14 +342,12 @@ export default function PedidosPage() {
 
   async function selectPrinter(name: string) {
     setPrinterSaving(true)
-    await supabase.from('companies').update({ loja_impressora_nome: name }).eq('id', companyId)
     setPrinterName(name)
     setPrinterSaving(false)
   }
 
   async function removePrinter() {
     setPrinterSaving(true)
-    await supabase.from('companies').update({ loja_impressora_nome: null }).eq('id', companyId)
     setPrinterName('')
     setPrinterSaving(false)
   }

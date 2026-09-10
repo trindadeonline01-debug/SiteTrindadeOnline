@@ -31,6 +31,15 @@ type PainelShellValue = {
   // Só /painel usa hoje (troca entre negócios do mesmo dono) — as outras
   // páginas nunca chamam isso, então o seletor simplesmente não aparece.
   setSwitcherExtras: (extras: { companies?: SwitcherCompany[]; onSwitchCompany?: (c: SwitcherCompany) => void } | null) => void
+  // Nome da impressora configurada e se aceita pedido automático — moraram
+  // antes só dentro de /painel/pedidos, mas a impressão automática precisa
+  // rodar a partir do layout (persiste entre navegações) pra não depender
+  // da tela de Pedidos estar aberta (achado real do Ricardo, set/2026).
+  // As páginas continuam podendo ler/mudar por aqui, single source of truth.
+  printerName: string
+  autoAceitar: boolean
+  setPrinterName: (name: string) => void
+  setAutoAceitar: (v: boolean) => void
 }
 
 export const PainelShellContext = createContext<PainelShellValue>({
@@ -39,6 +48,10 @@ export const PainelShellContext = createContext<PainelShellValue>({
   isAdminMode: false,
   setActiveOverride: () => {},
   setSwitcherExtras: () => {},
+  printerName: '',
+  autoAceitar: true,
+  setPrinterName: () => {},
+  setAutoAceitar: () => {},
 })
 
 export function usePainelShell() {

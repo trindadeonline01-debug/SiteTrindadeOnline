@@ -1,8 +1,10 @@
 'use client'
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { moduleActive } from '@/lib/modules'
+import { beep } from '@/lib/beep'
+import { autoImprimirPedido } from '@/lib/autoprint'
 import EmpresaShell, { type EmpresaNavKey } from '@/components/EmpresaShell'
 import { PainelShellContext } from '@/contexts/PainelShellContext'
 
@@ -62,6 +64,24 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
   const [avaliacoesBadge, setAvaliacoesBadge] = useState(0)
   const [activeOverride, setActiveOverride] = useState<EmpresaNavKey | null>(null)
   const [switcherExtras, setSwitcherExtras] = useState<{ companies?: SwitcherCompany[]; onSwitchCompany?: (c: SwitcherCompany) => void } | null>(null)
+  const [printerName, setPrinterNameState] = useState('')
+  const [autoAceitar, setAutoAceitarState] = useState(true)
+  // Refs pra leitura dentro do handler de realtime, criado uma vez só por
+  // company.id — sem isso ele sempre veria o valor do momento em que foi
+  // registrado, mesmo depois de mudar a impressora ou o auto-aceitar.
+  const printerNameRef = useRef('')
+  const autoAceitarRef = useRef(true)
+  useEffect(() => { printerNameRef.current = printerName }, [printerName])
+  useEffect(() => { autoAceitarRef.current = autoAceitar }, [autoAceitar])
+
+  function setPrinterName(name: string) {
+    setPrinterNameState(name)
+    if (company) supabase.from('companies').update({ loja_impressora_nome: name || null }).eq('id', company.id).then(() => {})
+  }
+  function setAutoAceitar(v: boolean) {
+    setAutoAceitarState(v)
+    if (company) supabase.from('companies').update({ loja_auto_aceitar_pedidos: v }).eq('id', company.id).then(() => {})
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -70,16 +90,17 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
       const { data: profile } = await supabase.from('profiles').select('user_type').eq('id', session.user.id).single()
       const empresaParam = new URLSearchParams(window.location.search).get('empresa')
 
+      const COMPANY_SELECT = 'id,name,slug,loja_digital_enabled,crm_whatsapp_enabled,entrega_enabled,trial_modules_until,loja_auto_aceitar_pedidos,loja_impressora_nome'
       let comp: any = null
       if (profile?.user_type === 'admin' && empresaParam) {
         const { data } = await supabase.from('companies')
-          .select('id,name,slug,loja_digital_enabled,crm_whatsapp_enabled,entrega_enabled,trial_modules_until')
+          .select(COMPANY_SELECT)
           .eq('id', empresaParam).maybeSingle()
         comp = data
         if (!cancelled) { setIsAdminMode(true); setAdminEmpresaId(empresaParam) }
       } else if (profile?.user_type === 'company') {
         const { data } = await supabase.from('companies')
-          .select('id,name,slug,loja_digital_enabled,crm_whatsapp_enabled,entrega_enabled,trial_modules_until')
+          .select(COMPANY_SELECT)
           .eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
         comp = data
       } else if (profile?.user_type !== 'admin') {
@@ -94,6 +115,8 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
           crm_whatsapp_enabled: moduleActive(comp.crm_whatsapp_enabled, comp.trial_modules_until),
           entrega_enabled: moduleActive(comp.entrega_enabled, comp.trial_modules_until),
         })
+        setAutoAceitarState(comp.loja_auto_aceitar_pedidos !== false)
+        setPrinterNameState(comp.loja_impressora_nome || '')
         const { data: revs } = await supabase.from('reviews').select('*, response:review_responses(text)').eq('company_id', comp.id)
         if (!cancelled) setAvaliacoesBadge((revs || []).filter((r: any) => !r.response || (Array.isArray(r.response) && r.response.length === 0)).length)
       }
@@ -103,12 +126,29 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Impressão automática de pedido novo — mora aqui (não em /painel/pedidos)
+  // de propósito: o layout persiste entre navegações, então continua
+  // imprimindo mesmo com outra tela do painel aberta (achado real do
+  // Ricardo, set/2026 — antes só imprimia com a tela de Pedidos em foco).
+  useEffect(() => {
+    if (!company?.id) return
+    const channel = supabase.channel(`pedidos-print-${company.id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'loja_pedidos', filter: `company_id=eq.${company.id}` }, payload => {
+        beep()
+        if (autoAceitarRef.current && printerNameRef.current) {
+          autoImprimirPedido(company.name, payload.new.id as string, printerNameRef.current)
+        }
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [company?.id, company?.name])
+
   if (bare) return <>{children}</>
 
   const active = activeOverride || deriveActiveKey(pathname, searchParams.get('tab'))
 
   return (
-    <PainelShellContext.Provider value={{ company, loading, isAdminMode, setActiveOverride, setSwitcherExtras }}>
+    <PainelShellContext.Provider value={{ company, loading, isAdminMode, setActiveOverride, setSwitcherExtras, printerName, autoAceitar, setPrinterName, setAutoAceitar }}>
       <EmpresaShell
         active={active}
         companyName={company?.name}

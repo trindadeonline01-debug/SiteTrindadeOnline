@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
-import { fmt, cartStorageKey } from '@/lib/lojaPricing'
+import { fmt, cartStorageKey, checkCartConflict, setActiveCart } from '@/lib/lojaPricing'
 
 export type PecaVitrineItem = {
   id: string; name: string; photo_url: string; price: number
@@ -83,12 +83,32 @@ export default function HomePecaAgora({ groups }: { groups: PecaGroup[] }) {
     ;(showToast as any)._t = window.setTimeout(() => setToast(null), 3500)
   }
 
+  // Cliente só compra de uma loja por vez — se o carrinho ativo é de outra
+  // empresa, confirma antes de esvaziar aquele carrinho e trocar. Sem essa
+  // checagem, dava pra ir clicando "+" em produtos de lojas diferentes e
+  // misturar tudo (que nenhuma das duas lojas ia conseguir separar depois).
+  function ensureStore(slug: string, companyName: string): boolean {
+    const conflict = checkCartConflict(slug)
+    if (!conflict) return true
+    const ok = window.confirm(`Seu carrinho tem ${conflict.count} ${conflict.count === 1 ? 'item' : 'itens'} de ${conflict.companyName}. Trocar pro carrinho de ${companyName}? O carrinho anterior será esvaziado.`)
+    if (!ok) return false
+    localStorage.removeItem(cartStorageKey(conflict.slug))
+    setQtyById(m => {
+      const copy = { ...m }
+      groups.forEach(g => g.items.forEach(i => { if (i.companySlug === conflict.slug) delete copy[i.id] }))
+      return copy
+    })
+    return true
+  }
+
   function quickAdd(p: PecaVitrineItem) {
+    if (!ensureStore(p.companySlug, p.companyName)) return
     const data = readCart(p.companySlug)
     const existing = data.cart.find(c => c.key === p.id)
     if (existing) existing.qty += 1
     else data.cart.push({ key: p.id, produtoId: p.id, name: p.name, modifiers: [], unitPrice: p.price, qty: 1 })
     localStorage.setItem(cartStorageKey(p.companySlug), JSON.stringify(data))
+    setActiveCart(p.companySlug, p.companyName, data.cart.reduce((s, c) => s + c.qty, 0))
     setQtyById(m => ({ ...m, [p.id]: (m[p.id] || 0) + 1 }))
     showToast(p.name, p.companySlug)
   }
@@ -101,6 +121,7 @@ export default function HomePecaAgora({ groups }: { groups: PecaGroup[] }) {
       if (item.qty <= 0) data.cart = data.cart.filter(c => c.key !== p.id)
     }
     localStorage.setItem(cartStorageKey(p.companySlug), JSON.stringify(data))
+    setActiveCart(p.companySlug, p.companyName, data.cart.reduce((s, c) => s + c.qty, 0))
     setQtyById(m => {
       const next = Math.max(0, (m[p.id] || 0) + delta)
       const copy = { ...m }

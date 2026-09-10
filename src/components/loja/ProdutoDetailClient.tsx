@@ -1,7 +1,7 @@
 'use client'
 import { useRef, useState } from 'react'
 import { isOpenNow } from '@/lib/businessHours'
-import { type Produto, fmt, promoPrice, groupContribution, cartStorageKey } from '@/lib/lojaPricing'
+import { type Produto, fmt, promoPrice, groupContribution, cartStorageKey, checkCartConflict, setActiveCart } from '@/lib/lojaPricing'
 
 type Company = {
   id: string; name: string; slug: string; phone: string | null; address: string | null
@@ -60,6 +60,14 @@ export default function ProdutoDetailClient({ slug, company, produto, related }:
 
   function addToCartAndGo() {
     if (!reqMet || adding || !open) return
+    // Cliente só compra de uma loja por vez — se o carrinho ativo é de
+    // outra empresa, confirma antes de esvaziar e trocar.
+    const conflict = checkCartConflict(slug)
+    if (conflict) {
+      const ok = window.confirm(`Seu carrinho tem ${conflict.count} ${conflict.count === 1 ? 'item' : 'itens'} de ${conflict.companyName}. Trocar pro carrinho de ${company.name}? O carrinho anterior será esvaziado.`)
+      if (!ok) return
+      try { localStorage.removeItem(cartStorageKey(conflict.slug)) } catch {}
+    }
     setAdding(true)
     const modifiers: { name: string; price: number }[] = []
     produto.groups.forEach((g, gi) => {
@@ -72,11 +80,22 @@ export default function ProdutoDetailClient({ slug, company, produto, related }:
     })
     const key = produto.id + '|' + modifiers.map(m => m.name).sort().join('+')
     try {
+      // Funde com o que já estiver pendente pra essa mesma loja (ex: item
+      // adicionado pelo "+" rápido da home) em vez de sobrescrever.
+      let existingCart: any[] = []
+      try {
+        const saved = localStorage.getItem(cartStorageKey(slug))
+        if (saved) existingCart = JSON.parse(saved).cart || []
+      } catch {}
+      const already = existingCart.find(c => c.key === key)
+      if (already) already.qty += qty
+      else existingCart.push({ key, produtoId: produto.id, name: produto.name, modifiers, unitPrice, qty })
       localStorage.setItem(cartStorageKey(slug), JSON.stringify({
-        cart: [{ key, produtoId: produto.id, name: produto.name, modifiers, unitPrice, qty }],
+        cart: existingCart,
         deliveryType: 'entrega', cep: '', numero: '', cepData: null, address: '',
         agendarRetirada: false, scheduleDate: '', scheduleTime: '', obs: obs.trim(), payMethod: 'pix',
       }))
+      setActiveCart(slug, company.name, existingCart.reduce((s, c) => s + c.qty, 0))
     } catch {}
     window.location.href = `/empresa/${slug}/cardapio`
   }

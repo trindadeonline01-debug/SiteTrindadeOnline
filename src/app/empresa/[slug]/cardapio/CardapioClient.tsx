@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState, use } from 'react'
 import { supabase } from '@/lib/supabase'
 import { isOpenNow } from '@/lib/businessHours'
-import { type Produto, fmt, promoPrice, availableToday, isSoldOut, groupContribution, cartStorageKey, criarInteresseEAbrirWhatsapp } from '@/lib/lojaPricing'
+import { type Produto, fmt, promoPrice, availableToday, isSoldOut, groupContribution, cartStorageKey, criarInteresseEAbrirWhatsapp, setActiveCart } from '@/lib/lojaPricing'
 
 type Categoria = { id: string; name: string; display_order: number }
 type Coupon = { id: string; title: string; discount_type: 'fixed' | 'percent'; discount_value: number; min_purchase: number }
@@ -36,6 +36,14 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
   }, [])
   const [search, setSearch] = useState('')
   const [cart, setCart] = useState<CartLine[]>([])
+  // Mantém o ícone de carrinho global (TopNav/MobileMenu) em dia enquanto
+  // o cliente navega e mexe no carrinho aqui dentro — o carrinho em si vive
+  // só nesse state, não no localStorage, então sem isso o ícone ficava
+  // desatualizado assim que o cliente mudasse alguma coisa nessa tela.
+  useEffect(() => {
+    if (!company) return
+    setActiveCart(slug, company.name, cart.reduce((s, l) => s + l.qty, 0))
+  }, [cart, slug, company])
   const [detail, setDetail] = useState<Produto | null>(null)
   const [detailSel, setDetailSel] = useState<number[][]>([])
   const groupRefs = useRef<(HTMLDivElement | null)[]>([])

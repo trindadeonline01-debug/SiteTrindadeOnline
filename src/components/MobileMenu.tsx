@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import CartIndicator from '@/components/CartIndicator'
 
 // 3 famílias de navegação (ESPECIFICACAO.md §4.1) — troca a lista
 // achatada de 8 categorias por Empresas / Ofertas / Comunidade.
@@ -114,25 +115,28 @@ export default function MobileMenu() {
           <a className="mm-logo" href="/">TRINDADE <span>ONLINE</span></a>
           <span className="mm-bairro"><span className="pin">◉</span> Trindade</span>
         </div>
-        {user ? (
-          businesses.length === 0 ? (
-            <a className="mm-profile-btn" href="/perfil" aria-label="Meu perfil">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 4-6 8-6s8 2 8 6" />
-              </svg>
-            </a>
-          ) : (
-            <button className="mm-profile-btn" onClick={() => setProfOpen(o => !o)} aria-label="Pessoal ou negócio">
-              {inPainel ? '🏭' : (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+          <CartIndicator variant="mobile" />
+          {user ? (
+            businesses.length === 0 ? (
+              <a className="mm-profile-btn" href="/perfil" aria-label="Meu perfil">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 4-6 8-6s8 2 8 6" />
                 </svg>
-              )}
-            </button>
-          )
-        ) : (
-          <a className="mm-entrar" href="/login">Entrar</a>
-        )}
+              </a>
+            ) : (
+              <button className="mm-profile-btn" onClick={() => setProfOpen(o => !o)} aria-label="Pessoal ou negócio">
+                {inPainel ? '🏭' : (
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 4-6 8-6s8 2 8 6" />
+                  </svg>
+                )}
+              </button>
+            )
+          ) : (
+            <a className="mm-entrar" href="/login">Entrar</a>
+          )}
+        </div>
       </div>
 
       {profOpen && (

@@ -41,6 +41,52 @@ export function groupContribution(g: Grupo, selectedIdx: number[]): number {
 
 export function cartStorageKey(slug: string) { return `cardapio_cart_${slug}` }
 
+// Ponteiro pra "qual loja tem carrinho ativo agora" — o carrinho em si
+// continua por loja (cardapio_cart_<slug>), isso aqui só existe pro ícone
+// de carrinho global (TopNav/MobileMenu) saber pra onde apontar sem
+// precisar varrer localStorage procurando qual chave tem item. Cliente só
+// compra de uma loja por vez, então um ponteiro só já basta.
+const ACTIVE_CART_KEY = 'trindade_active_cart'
+export type ActiveCart = { slug: string; companyName: string; count: number }
+
+function notifyCartChanged() {
+  try { window.dispatchEvent(new Event('trindade-cart-changed')) } catch {}
+}
+
+export function getActiveCart(): ActiveCart | null {
+  try {
+    const raw = localStorage.getItem(ACTIVE_CART_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch { return null }
+}
+
+export function setActiveCart(slug: string, companyName: string, count: number) {
+  try {
+    if (count <= 0) {
+      // Só apaga se o ponteiro já era dessa loja — carrinho zerado aqui não
+      // pode apagar o carrinho ativo de OUTRA loja.
+      const current = getActiveCart()
+      if (current?.slug === slug) localStorage.removeItem(ACTIVE_CART_KEY)
+    } else {
+      localStorage.setItem(ACTIVE_CART_KEY, JSON.stringify({ slug, companyName, count }))
+    }
+  } catch {}
+  notifyCartChanged()
+}
+
+export function clearActiveCart() {
+  try { localStorage.removeItem(ACTIVE_CART_KEY) } catch {}
+  notifyCartChanged()
+}
+
+// Devolve o carrinho de OUTRA loja se ele existir e tiver item — quem
+// chama decide o que fazer (perguntar antes de trocar, etc), essa função
+// só avisa que existe conflito.
+export function checkCartConflict(slug: string): ActiveCart | null {
+  const active = getActiveCart()
+  return active && active.slug !== slug && active.count > 0 ? active : null
+}
+
 // Entidade Interesse (ESPECIFICACAO.md §8) — carrinho com valor que o
 // cliente monta e ENVIA, sem virar Pedido sozinho (só o lojista fechando
 // a venda na conversa é que confirma). O servidor nunca sabe o telefone

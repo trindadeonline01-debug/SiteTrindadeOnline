@@ -535,6 +535,8 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
         .cd-dfoot{ flex:none;background:#fff;border-top:1px solid #EDE8E0;padding:12px 16px 16px;display:flex;gap:10px; }
         .cd-addcart{ flex:1;padding:14px;border-radius:12px;border:none;background:var(--sign);color:var(--ink);font-weight:800;font-size:13px;cursor:pointer; }
         .cd-addcart:disabled{ background:#E2DCCB;color:#A79E8B; }
+        .cd-addcart-ghost{ background:#fff;border:1.5px solid #E0DDD8;color:var(--ink); }
+        .cd-checkout-row{ display:flex;gap:8px; }
         .cd-drawer{ position:fixed;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:#fff;z-index:10000;border-radius:20px 20px 0 0;max-height:88vh;display:flex;flex-direction:column; }
         .cd-dhead{ padding:16px;border-bottom:1px solid #EDE8E0;display:flex;justify-content:space-between;align-items:center; }
         .cd-dbody{ flex:1;overflow-y:auto;padding:14px 16px; }
@@ -872,7 +874,10 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
                         ⚠️ {orderError}
                       </div>
                     )}
-                    <button className="cd-addcart" style={{ width: '100%' }} disabled={confirming || (deliveryType === 'entrega' && !address.trim()) || freteBlocked || (agendarRetirada && (!scheduleDate || !scheduleTime)) || abaixoMinimo || trocoIncompleto} onClick={confirmOrder}>{confirming ? 'Enviando...' : 'Confirmar pedido'}</button>
+                    <div className="cd-checkout-row">
+                      <button type="button" className="cd-addcart cd-addcart-ghost" onClick={() => setDrawerOpen(false)}>Continuar comprando</button>
+                      <button className="cd-addcart" disabled={confirming || (deliveryType === 'entrega' && !address.trim()) || freteBlocked || (agendarRetirada && (!scheduleDate || !scheduleTime)) || abaixoMinimo || trocoIncompleto} onClick={confirmOrder}>{confirming ? 'Enviando...' : 'Finalizar pedido'}</button>
+                    </div>
                     {company.phone && (
                       <button className="cd-addcart" style={{ width: '100%', background: '#25D366', color: '#fff' }} disabled={sendingWa || trocoIncompleto} onClick={sendCartWhatsapp}>
                         {sendingWa ? 'Abrindo…' : '📱 Enviar pedido no WhatsApp'}

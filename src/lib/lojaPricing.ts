@@ -47,7 +47,7 @@ export function cartStorageKey(slug: string) { return `cardapio_cart_${slug}` }
 // precisar varrer localStorage procurando qual chave tem item. Cliente só
 // compra de uma loja por vez, então um ponteiro só já basta.
 const ACTIVE_CART_KEY = 'trindade_active_cart'
-export type ActiveCart = { slug: string; companyName: string; count: number }
+export type ActiveCart = { slug: string; companyName: string; count: number; total: number }
 
 function notifyCartChanged() {
   try { window.dispatchEvent(new Event('trindade-cart-changed')) } catch {}
@@ -60,7 +60,7 @@ export function getActiveCart(): ActiveCart | null {
   } catch { return null }
 }
 
-export function setActiveCart(slug: string, companyName: string, count: number) {
+export function setActiveCart(slug: string, companyName: string, count: number, total: number) {
   try {
     if (count <= 0) {
       // Só apaga se o ponteiro já era dessa loja — carrinho zerado aqui não
@@ -68,7 +68,7 @@ export function setActiveCart(slug: string, companyName: string, count: number) 
       const current = getActiveCart()
       if (current?.slug === slug) localStorage.removeItem(ACTIVE_CART_KEY)
     } else {
-      localStorage.setItem(ACTIVE_CART_KEY, JSON.stringify({ slug, companyName, count }))
+      localStorage.setItem(ACTIVE_CART_KEY, JSON.stringify({ slug, companyName, count, total }))
     }
   } catch {}
   notifyCartChanged()

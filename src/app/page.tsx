@@ -730,11 +730,6 @@ export default async function HomePage() {
         .pa-stepper b { color: #fff; font-size: 11.5px; min-width: 11px; text-align: center; font-family: 'Archivo', sans-serif; }
         .pa-pick { display: inline-flex; align-items: center; gap: 3px; background: var(--concrete-2); border: 1px solid var(--line); color: var(--ink-2); font-size: 10px; font-weight: 800; padding: 6px 10px; border-radius: 20px; text-decoration: none; white-space: nowrap; }
         .pa-pick:hover { border-color: var(--sign-dark); }
-        .pa-toast { position: fixed; left: 16px; right: 16px; bottom: 84px; max-width: 420px; margin: 0 auto; background: var(--ink); color: #fff; border-radius: 13px; padding: 12px 14px; display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 26px rgba(0,0,0,.3); z-index: 60; }
-        .pa-toast-check { width: 24px; height: 24px; border-radius: 50%; background: var(--open); display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
-        .pa-toast-txt { flex: 1; font-size: 12px; line-height: 1.4; }
-        .pa-toast-txt a { color: var(--sign); font-weight: 800; text-decoration: none; }
-        .pa-toast-close { background: none; border: none; color: #8a857c; font-size: 14px; cursor: pointer; padding: 2px; flex-shrink: 0; }
 
         /* LOJAS — lista final, mesmo estilo de linha do Peça Agora */
         .lj-chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; }

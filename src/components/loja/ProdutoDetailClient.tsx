@@ -95,7 +95,7 @@ export default function ProdutoDetailClient({ slug, company, produto, related }:
         deliveryType: 'entrega', cep: '', numero: '', cepData: null, address: '',
         agendarRetirada: false, scheduleDate: '', scheduleTime: '', obs: obs.trim(), payMethod: 'pix',
       }))
-      setActiveCart(slug, company.name, existingCart.reduce((s, c) => s + c.qty, 0))
+      setActiveCart(slug, company.name, existingCart.reduce((s, c) => s + c.qty, 0), existingCart.reduce((s, c) => s + c.unitPrice * c.qty, 0))
     } catch {}
     window.location.href = `/empresa/${slug}/cardapio`
   }

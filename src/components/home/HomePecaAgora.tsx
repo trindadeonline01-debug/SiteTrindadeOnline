@@ -58,7 +58,6 @@ export default function HomePecaAgora({ groups }: { groups: PecaGroup[] }) {
   const [maxPrice, setMaxPrice] = useState(0)
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const [qtyById, setQtyById] = useState<Record<string, number>>({})
-  const [toast, setToast] = useState<{ name: string; slug: string } | null>(null)
 
   // Se já tem item pendente daquela loja (adicionado antes, sem ter
   // visitado o cardápio pra "consumir" o handoff), reflete a quantidade
@@ -76,12 +75,6 @@ export default function HomePecaAgora({ groups }: { groups: PecaGroup[] }) {
 
   function changeTab(key: string) { setActiveKey(key); setVisibleCount(PAGE_SIZE) }
   function changePrice(max: number) { setMaxPrice(max); setVisibleCount(PAGE_SIZE) }
-
-  function showToast(name: string, slug: string) {
-    setToast({ name, slug })
-    window.clearTimeout((showToast as any)._t)
-    ;(showToast as any)._t = window.setTimeout(() => setToast(null), 3500)
-  }
 
   // Cliente só compra de uma loja por vez — se o carrinho ativo é de outra
   // empresa, confirma antes de esvaziar aquele carrinho e trocar. Sem essa
@@ -101,6 +94,12 @@ export default function HomePecaAgora({ groups }: { groups: PecaGroup[] }) {
     return true
   }
 
+  function syncActiveCart(slug: string, companyName: string, data: CartPayload) {
+    const count = data.cart.reduce((s, c) => s + c.qty, 0)
+    const total = data.cart.reduce((s, c) => s + c.unitPrice * c.qty, 0)
+    setActiveCart(slug, companyName, count, total)
+  }
+
   function quickAdd(p: PecaVitrineItem) {
     if (!ensureStore(p.companySlug, p.companyName)) return
     const data = readCart(p.companySlug)
@@ -108,9 +107,8 @@ export default function HomePecaAgora({ groups }: { groups: PecaGroup[] }) {
     if (existing) existing.qty += 1
     else data.cart.push({ key: p.id, produtoId: p.id, name: p.name, modifiers: [], unitPrice: p.price, qty: 1 })
     localStorage.setItem(cartStorageKey(p.companySlug), JSON.stringify(data))
-    setActiveCart(p.companySlug, p.companyName, data.cart.reduce((s, c) => s + c.qty, 0))
+    syncActiveCart(p.companySlug, p.companyName, data)
     setQtyById(m => ({ ...m, [p.id]: (m[p.id] || 0) + 1 }))
-    showToast(p.name, p.companySlug)
   }
 
   function changeQty(p: PecaVitrineItem, delta: number) {
@@ -121,7 +119,7 @@ export default function HomePecaAgora({ groups }: { groups: PecaGroup[] }) {
       if (item.qty <= 0) data.cart = data.cart.filter(c => c.key !== p.id)
     }
     localStorage.setItem(cartStorageKey(p.companySlug), JSON.stringify(data))
-    setActiveCart(p.companySlug, p.companyName, data.cart.reduce((s, c) => s + c.qty, 0))
+    syncActiveCart(p.companySlug, p.companyName, data)
     setQtyById(m => {
       const next = Math.max(0, (m[p.id] || 0) + delta)
       const copy = { ...m }
@@ -201,14 +199,6 @@ export default function HomePecaAgora({ groups }: { groups: PecaGroup[] }) {
             </button>
           )}
         </>
-      )}
-
-      {toast && (
-        <div className="pa-toast">
-          <span className="pa-toast-check">✓</span>
-          <div className="pa-toast-txt"><b>{toast.name}</b> adicionado — <a href={`/empresa/${toast.slug}/cardapio`}>ver cardápio completo →</a></div>
-          <button type="button" className="pa-toast-close" aria-label="Fechar" onClick={() => setToast(null)}>✕</button>
-        </div>
       )}
     </div>
   )

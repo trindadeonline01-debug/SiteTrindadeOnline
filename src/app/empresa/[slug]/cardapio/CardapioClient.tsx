@@ -42,7 +42,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
   // desatualizado assim que o cliente mudasse alguma coisa nessa tela.
   useEffect(() => {
     if (!company) return
-    setActiveCart(slug, company.name, cart.reduce((s, l) => s + l.qty, 0))
+    setActiveCart(slug, company.name, cart.reduce((s, l) => s + l.qty, 0), cart.reduce((s, l) => s + l.unitPrice * l.qty, 0))
   }, [cart, slug, company])
   const [detail, setDetail] = useState<Produto | null>(null)
   const [detailSel, setDetailSel] = useState<number[][]>([])

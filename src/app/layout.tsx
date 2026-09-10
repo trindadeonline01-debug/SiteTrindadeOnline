@@ -5,6 +5,7 @@ import BottomNav from '@/components/BottomNav'
 import TopNav from '@/components/TopNav'
 import MobileMenu from '@/components/MobileMenu'
 import BackButton from '@/components/BackButton'
+import CartBar from '@/components/CartBar'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://trindadeonline.com.br'),
@@ -64,6 +65,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <MobileMenu />
         {children}
         <BackButton />
+        <CartBar />
         <BottomNav />
         <Script src='https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js' strategy='afterInteractive'/>
       </body>

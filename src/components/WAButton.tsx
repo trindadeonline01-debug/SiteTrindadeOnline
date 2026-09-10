@@ -1,9 +1,23 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+
+// Só aparece depois de 1min de navegação na home (não no primeiro
+// instante) — Ricardo fechava toda hora porque abria na cara assim que
+// a página carregava. Some de novo se fechar, mas volta a contar do zero
+// (e reaparecer) se sair e voltar pra home — comportamento mantido de
+// propósito, pedido do Ricardo (set/2026).
+const DELAY_MS = 60_000
 
 export default function WAButton() {
   const [closed, setClosed] = useState(false)
-  if (closed) return null
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => {
+    const t = setTimeout(() => setVisible(true), DELAY_MS)
+    return () => clearTimeout(t)
+  }, [])
+
+  if (closed || !visible) return null
   const msg = encodeURIComponent('Olá! Vim pelo Trindade Online e quero saber mais.')
   const url = `https://wa.me/5521986210551?text=${msg}`
   return (

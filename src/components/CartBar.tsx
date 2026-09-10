@@ -33,7 +33,14 @@ export default function CartBar() {
   return (
     <>
       <style>{`
-        .global-cartbar{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;width:calc(100% - 32px);max-width:448px;padding:13px 16px;border-radius:16px;background:var(--sign);color:var(--ink);display:flex;align-items:center;justify-content:space-between;gap:10px;box-shadow:0 10px 24px -8px rgba(0,0,0,.35);text-decoration:none;font-family:'Archivo',sans-serif;z-index:10000;}
+        /* bottom fixo em 16px ficava embaixo do próprio BottomNav do site
+           (mobile, 64px + safe-area) — a barra amarela cobria os botões
+           Início/Empresas/Ofertas/Comunidade/Mais em vez de flutuar por
+           cima deles (achado pelo Ricardo, set/2026). No mobile a barra
+           agora sobe pra cima do BottomNav; no desktop (onde o BottomNav
+           nem existe) continua nos 16px de antes. */
+        .global-cartbar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(64px + env(safe-area-inset-bottom) + 12px);width:calc(100% - 32px);max-width:448px;padding:13px 16px;border-radius:16px;background:var(--sign);color:var(--ink);display:flex;align-items:center;justify-content:space-between;gap:10px;box-shadow:0 10px 24px -8px rgba(0,0,0,.35);text-decoration:none;font-family:'Archivo',sans-serif;z-index:10000;}
+        @media(min-width:768px){ .global-cartbar{bottom:16px;} }
         .global-cartbar-txt{font-size:13px;font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
         .global-cartbar-txt b{font-weight:800;}
         .global-cartbar-price{font-size:14.5px;font-weight:800;flex-shrink:0;}

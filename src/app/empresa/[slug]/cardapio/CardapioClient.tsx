@@ -511,7 +511,11 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
           .cd-prow > .cd-chev, .cd-prow > .cd-addbtn{ grid-row:2;align-self:end;margin:0; }
         }
         @media(min-width:1024px){ .cd-prowgroup{ grid-template-columns:repeat(4,1fr); } }
-        .cd-cartbar{ position:fixed;left:50%;transform:translateX(-50%);bottom:16px;width:calc(100% - 32px);max-width:448px;padding:13px 16px;border-radius:16px;background:var(--sign);color:var(--ink);display:flex;align-items:center;justify-content:space-between;box-shadow:0 10px 24px -8px rgba(0,0,0,.35);cursor:pointer;z-index:10000; }
+        /* bottom fixo em 16px ficava embaixo do BottomNav do site (mobile,
+           64px + safe-area) — a barra cobria Início/Empresas/Ofertas/
+           Comunidade/Mais em vez de flutuar por cima (Ricardo, set/2026). */
+        .cd-cartbar{ position:fixed;left:50%;transform:translateX(-50%);bottom:calc(64px + env(safe-area-inset-bottom) + 12px);width:calc(100% - 32px);max-width:448px;padding:13px 16px;border-radius:16px;background:var(--sign);color:var(--ink);display:flex;align-items:center;justify-content:space-between;box-shadow:0 10px 24px -8px rgba(0,0,0,.35);cursor:pointer;z-index:10000; }
+        @media(min-width:768px){ .cd-cartbar{bottom:16px;} }
         .cd-overlay{ position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9990;display:${detail || drawerOpen ? 'block' : 'none'}; }
         .cd-detail{ position:fixed;top:0;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:#F0EDE8;z-index:10000;display:flex;flex-direction:column;overflow:hidden; }
         .cd-hero{ height:200px;flex:none;background:linear-gradient(135deg,#FBF1DC,#E7DCC2);display:flex;align-items:center;justify-content:center;font-size:54px;position:relative;overflow:hidden; }

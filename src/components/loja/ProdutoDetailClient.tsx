@@ -154,7 +154,12 @@ export default function ProdutoDetailClient({ slug, company, produto, related }:
         .id-rp-b{padding:8px 10px;}
         .id-rp-nm{font-size:11.5px;font-weight:600;line-height:1.25;min-height:28px;}
         .id-rp-pr{font-family:'Anton',sans-serif;font-size:15px;color:var(--ink);margin-top:3px;}
-        .id-bar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #E0DDD8;padding:10px 16px;display:flex;align-items:center;gap:10px;z-index:10000;}
+        /* bottom:0 ficava embaixo do BottomNav do site (mobile, 64px +
+           safe-area) — a barra de "Adicionar" cobria Início/Empresas/
+           Ofertas/Comunidade/Mais em vez de ficar por cima deles, mesmo
+           bug do carrinho do cardápio (Ricardo, set/2026). */
+        .id-bar{position:fixed;left:0;right:0;bottom:calc(64px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid #E0DDD8;padding:10px 16px;display:flex;align-items:center;gap:10px;z-index:10000;}
+        @media(min-width:768px){ .id-bar{bottom:0;} }
         .id-qty{display:flex;align-items:center;border:1px solid #E0DDD8;border-radius:8px;background:#fff;flex-shrink:0;}
         .id-qty button{border:0;background:transparent;padding:9px 13px;font-size:15px;font-weight:700;cursor:pointer;}
         .id-qty span{padding:0 6px;font-weight:700;font-size:14px;}

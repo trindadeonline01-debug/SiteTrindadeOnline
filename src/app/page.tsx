@@ -45,6 +45,7 @@ interface PecaCompanyRow {
 
 interface PecaProdutoRow {
   id: string; name: string; photo_url: string | null; sale_price: number
+  groups?: { id: string }[]
   promo_type: 'percent' | 'fixed' | null; promo_value: number | null
   promo_starts_at: string | null; promo_ends_at: string | null
   available_days: number[] | null; esgotado: boolean; track_stock: boolean; stock_qty: number | null
@@ -376,7 +377,7 @@ export default async function HomePage() {
     if (pecaCompanies.length > 0) {
       const { data: pecaProdutosData } = await supabaseServer
         .from('loja_produtos')
-        .select('id, name, photo_url, sale_price, promo_type, promo_value, promo_starts_at, promo_ends_at, available_days, esgotado, track_stock, stock_qty, tipo_vitrine, company_id')
+        .select('id, name, photo_url, sale_price, promo_type, promo_value, promo_starts_at, promo_ends_at, available_days, esgotado, track_stock, stock_qty, tipo_vitrine, company_id, groups:loja_opcoes_grupo(id)')
         .in('company_id', pecaCompanies.map(c => c.id))
         .eq('active', true)
         .not('photo_url', 'is', null)
@@ -406,6 +407,7 @@ export default async function HomePage() {
           return {
             id: p.id, name: p.name, photo_url: p.photo_url!, price: promoPrice(produto) ?? p.sale_price,
             companyName: company.name, companySlug: company.slug, open,
+            hasOptions: (p.groups?.length || 0) > 0,
           }
         }
 
@@ -708,18 +710,31 @@ export default async function HomePage() {
         .pa-chip { flex: 0 0 auto; padding: 7px 15px; border-radius: 20px; border: 1px solid var(--line); background: var(--paper); font-size: 12px; font-weight: 700; color: var(--ink); cursor: pointer; font-family: 'Archivo', sans-serif; white-space: nowrap; }
         .pa-chip.on { background: var(--sign); border-color: var(--sign-dark); color: var(--ink); }
         .pa-list { display: flex; flex-direction: column; gap: 7px; }
-        .pa-row { display: flex; align-items: center; gap: 10px; background: var(--paper); border: 1px solid var(--line); border-radius: 13px; padding: 8px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .pa-row { display: flex; align-items: center; gap: 10px; background: var(--paper); border: 1px solid var(--line); border-radius: 13px; padding: 8px; transition: border-color .15s; }
         .pa-row:hover { border-color: var(--ink); }
+        .pa-row-link { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; text-decoration: none; color: inherit; }
         .pa-row-img { width: 52px; height: 52px; border-radius: 10px; flex-shrink: 0; position: relative; overflow: hidden; background: var(--concrete-2); }
         .pa-row-body { flex: 1; min-width: 0; }
-        .pa-row-end { flex-shrink: 0; text-align: right; }
+        .pa-row-end { flex-shrink: 0; text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
         .pa-name { font-size: 13px; font-weight: 700; color: var(--ink); line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: 'Archivo', sans-serif; }
         .pa-biz { font-size: 11px; color: var(--muted); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .pa-price { font-size: 13px; font-weight: 800; color: var(--sign-dark); font-variant-numeric: tabular-nums; }
-        .pa-open { display: flex; align-items: center; gap: 4px; justify-content: flex-end; margin-top: 3px; font-size: 9.5px; font-weight: 700; color: var(--open); text-transform: uppercase; letter-spacing: .2px; }
+        .pa-open { display: flex; align-items: center; gap: 4px; justify-content: flex-end; font-size: 9.5px; font-weight: 700; color: var(--open); text-transform: uppercase; letter-spacing: .2px; }
         .pa-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--open); display: inline-block; flex-shrink: 0; }
         .pa-more { width: 100%; margin-top: 10px; padding: 11px; background: var(--paper); border: 1.5px dashed var(--line); border-radius: 12px; font-size: 12.5px; font-weight: 700; color: var(--sign-dark); cursor: pointer; font-family: 'Archivo', sans-serif; }
         .pa-more:hover { border-color: var(--sign-dark); background: var(--concrete-2); }
+        .pa-qadd { width: 30px; height: 30px; border-radius: 50%; border: none; background: var(--open); color: #fff; font-size: 16px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; }
+        .pa-qadd:active { transform: scale(.9); }
+        .pa-stepper { display: flex; align-items: center; gap: 7px; background: var(--ink); border-radius: 20px; padding: 3px 5px; }
+        .pa-stepper button { width: 19px; height: 19px; border-radius: 50%; border: none; background: rgba(255,255,255,.15); color: #fff; font-size: 12px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .pa-stepper b { color: #fff; font-size: 11.5px; min-width: 11px; text-align: center; font-family: 'Archivo', sans-serif; }
+        .pa-pick { display: inline-flex; align-items: center; gap: 3px; background: var(--concrete-2); border: 1px solid var(--line); color: var(--ink-2); font-size: 10px; font-weight: 800; padding: 6px 10px; border-radius: 20px; text-decoration: none; white-space: nowrap; }
+        .pa-pick:hover { border-color: var(--sign-dark); }
+        .pa-toast { position: fixed; left: 16px; right: 16px; bottom: 84px; max-width: 420px; margin: 0 auto; background: var(--ink); color: #fff; border-radius: 13px; padding: 12px 14px; display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 26px rgba(0,0,0,.3); z-index: 60; }
+        .pa-toast-check { width: 24px; height: 24px; border-radius: 50%; background: var(--open); display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+        .pa-toast-txt { flex: 1; font-size: 12px; line-height: 1.4; }
+        .pa-toast-txt a { color: var(--sign); font-weight: 800; text-decoration: none; }
+        .pa-toast-close { background: none; border: none; color: #8a857c; font-size: 14px; cursor: pointer; padding: 2px; flex-shrink: 0; }
 
         /* LOJAS — lista final, mesmo estilo de linha do Peça Agora */
         .lj-chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; }

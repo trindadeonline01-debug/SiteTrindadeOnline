@@ -149,11 +149,12 @@ export default function HomePecaAgora({ groups }: { groups: PecaGroup[] }) {
           ))}
         </div>
 
-        <div className="pa-filters">
-          {PRICE_FILTERS.map(f => (
-            <button type="button" key={f.max} className={`pa-chip ${maxPrice === f.max ? 'on' : ''}`} onClick={() => changePrice(f.max)}>{f.label}</button>
-          ))}
-        </div>
+      </div>
+
+      <div className="pa-filters">
+        {PRICE_FILTERS.map(f => (
+          <button type="button" key={f.max} className={`pa-chip ${maxPrice === f.max ? 'on' : ''}`} onClick={() => changePrice(f.max)}>{f.label}</button>
+        ))}
       </div>
 
       {items.length === 0 ? (

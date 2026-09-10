@@ -743,9 +743,6 @@ export default async function HomePage() {
         .pa-band .pa-photo { width: 64px; height: 64px; border-radius: 14px; background: rgba(255,255,255,.8); border-color: transparent; font-size: 26px; }
         .pa-band .pa-item:hover .pa-photo, .pa-band .pa-item.on .pa-photo { border-color: var(--ink); background: rgba(255,255,255,.95); }
         .pa-band .pa-lbl, .pa-band .pa-item.on .pa-lbl { color: var(--ink); font-size: 10.5px; }
-        .pa-band .pa-filters { margin: 0; padding: 2px 4px 2px; }
-        .pa-band .pa-chip { background: rgba(255,255,255,.55); border-color: transparent; color: var(--ink); }
-        .pa-band .pa-chip.on { background: var(--ink); border-color: var(--ink); color: var(--sign); }
         .pa-scroll { display: flex; gap: 16px; overflow-x: auto; padding: 4px 4px 10px; scrollbar-width: none; }
         .pa-scroll::-webkit-scrollbar { display: none; }
         .pa-item { flex: 0 0 auto; width: 84px; display: flex; flex-direction: column; align-items: center; gap: 7px; text-align: center; cursor: pointer; }

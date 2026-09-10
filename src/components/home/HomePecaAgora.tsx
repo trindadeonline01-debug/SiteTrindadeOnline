@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { fmt } from '@/lib/lojaPricing'
 
 export type PecaVitrineItem = {
-  id: string; name: string; photo_url: string; price: number
+  id: string; name: string; description?: string | null; photo_url: string; price: number
   companyName: string; companySlug: string; open: boolean
 }
 export type PecaGroup = { key: string; label: string; emoji: string; items: PecaVitrineItem[] }
@@ -75,6 +75,7 @@ export default function HomePecaAgora({ groups }: { groups: PecaGroup[] }) {
                 <div className="pa-row-body">
                   <div className="pa-name">{p.name}</div>
                   <div className="pa-biz">{p.companyName}</div>
+                  {p.description && <div className="pa-desc">{p.description}</div>}
                 </div>
                 <div className="pa-row-end">
                   <div className="pa-price">{fmt(p.price)}</div>

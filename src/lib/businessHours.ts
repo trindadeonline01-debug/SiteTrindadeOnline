@@ -50,15 +50,31 @@ function rowCoversMinute(h: HourRow, minutesSinceOpenDay: number): boolean {
   return minutesSinceOpenDay >= openMin && minutesSinceOpenDay <= closeMin
 }
 
+// `new Date().getHours()/getDay()` usa o fuso do AMBIENTE onde o código
+// roda — no navegador do morador isso costuma ser horário de Brasília,
+// mas nas funções serverless da Vercel é UTC. Resultado: a Home (calculada
+// no servidor) e a página da loja (calculada no navegador) discordavam em
+// até 3h sobre se a loja estava aberta — achado pelo Ricardo, set/2026
+// (Jburguer/Satolo's apareciam "Aberto" na Home e "Fechado" ao entrar).
+// Fixando explicitamente em America/Sao_Paulo, os dois lugares sempre
+// concordam, não importa onde o código rodou.
+function nowInSaoPaulo(): { day: number; minutes: number } {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Sao_Paulo', weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).formatToParts(new Date())
+  const map: Record<string, string> = {}
+  parts.forEach(p => { map[p.type] = p.value })
+  const weekdayMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }
+  return { day: weekdayMap[map.weekday] ?? new Date().getDay(), minutes: parseInt(map.hour, 10) * 60 + parseInt(map.minute, 10) }
+}
+
 export function isOpenNow(hours?: HourRow[], flexible?: boolean, paused?: boolean, forcedOpen?: boolean): boolean {
   if (paused) return false
   if (forcedOpen) return true
   if (flexible) return true
   if (!hours || hours.length === 0) return false
-  const now = new Date()
-  const today = now.getDay()
+  const { day: today, minutes: nowMin } = nowInSaoPaulo()
   const yesterday = (today + 6) % 7
-  const nowMin = now.getHours() * 60 + now.getMinutes()
 
   if (hours.some(h => h.day_of_week === today && rowCoversMinute(h, nowMin))) return true
   // Turno de ontem que começou antes da meia-noite e ainda não fechou hoje

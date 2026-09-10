@@ -398,6 +398,11 @@ export default async function HomePage() {
         const company = companyMap.get(companyId)
         if (!company) return
         const open = isOpenNow(company.hours, company.flexible_hours, company.store_paused, company.store_forced_open)
+        // Peça Agora é "peça AGORA" — loja fechada não entra, mesmo que
+        // esteja ativa/em dia (pedido do Ricardo, set/2026: antes entrava
+        // junto, só sem o selo "Aberto", o que dava a entender que dava
+        // pra pedir mesmo fechada).
+        if (!open) return
         const disponiveis = rows.filter(p => {
           const produto = { ...p, description: null, category_id: null, total_pedidos: 0, groups: [] } as unknown as Produto
           return !isSoldOut(produto) && availableToday(produto)

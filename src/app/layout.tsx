@@ -6,6 +6,7 @@ import TopNav from '@/components/TopNav'
 import MobileMenu from '@/components/MobileMenu'
 import BackButton from '@/components/BackButton'
 import CartBar from '@/components/CartBar'
+import SilentErrorBoundary from '@/components/SilentErrorBoundary'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://trindadeonline.com.br'),
@@ -65,7 +66,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <MobileMenu />
         {children}
         <BackButton />
-        <CartBar />
+        <SilentErrorBoundary><CartBar /></SilentErrorBoundary>
         <BottomNav />
         <Script src='https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js' strategy='afterInteractive'/>
       </body>

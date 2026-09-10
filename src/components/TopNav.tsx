@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import SearchBar from './SearchBar'
 import UserMenu from './UserMenu'
 import CartIndicator from './CartIndicator'
+import SilentErrorBoundary from './SilentErrorBoundary'
 
 const EMPRESAS_LINKS = [
   { href: '/categoria/comercios',   icon: '🏪', label: 'Comércios' },
@@ -143,7 +144,7 @@ export default function TopNav() {
             </nav>
           </div>
           <div className="top-nav-right">
-            <CartIndicator variant="desktop" />
+            <SilentErrorBoundary><CartIndicator variant="desktop" /></SilentErrorBoundary>
             {user ? (
               <>
                 {userType !== 'company' && <a className="top-nav-btn" href="/anunciar">Cadastrar empresa</a>}

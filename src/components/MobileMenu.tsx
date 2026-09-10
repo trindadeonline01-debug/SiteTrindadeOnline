@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import CartIndicator from '@/components/CartIndicator'
+import SilentErrorBoundary from '@/components/SilentErrorBoundary'
 
 // 3 famílias de navegação (ESPECIFICACAO.md §4.1) — troca a lista
 // achatada de 8 categorias por Empresas / Ofertas / Comunidade.
@@ -116,7 +117,7 @@ export default function MobileMenu() {
           <span className="mm-bairro"><span className="pin">◉</span> Trindade</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-          <CartIndicator variant="mobile" />
+          <SilentErrorBoundary><CartIndicator variant="mobile" /></SilentErrorBoundary>
           {user ? (
             businesses.length === 0 ? (
               <a className="mm-profile-btn" href="/perfil" aria-label="Meu perfil">

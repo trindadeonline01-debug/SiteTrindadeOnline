@@ -16,7 +16,7 @@ export type Produto = {
   groups: Grupo[]
 }
 
-export function fmt(n: number) { return 'R$ ' + n.toFixed(2).replace('.', ',') }
+export function fmt(n: number) { return 'R$ ' + (Number.isFinite(n) ? n : 0).toFixed(2).replace('.', ',') }
 
 export function promoPrice(p: Produto): number | null {
   if (!p.promo_type || !p.promo_value) return null
@@ -56,7 +56,17 @@ function notifyCartChanged() {
 export function getActiveCart(): ActiveCart | null {
   try {
     const raw = localStorage.getItem(ACTIVE_CART_KEY)
-    return raw ? JSON.parse(raw) : null
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    // Formato antigo (de antes do campo `total` existir) ou qualquer coisa
+    // corrompida — trata como "sem carrinho ativo" em vez de devolver algo
+    // que quebra quem usa isso (CartBar/CartIndicator), que ficam montados
+    // em TODA página do site.
+    if (!parsed || typeof parsed.slug !== 'string' || typeof parsed.count !== 'number' || typeof parsed.total !== 'number') {
+      try { localStorage.removeItem(ACTIVE_CART_KEY) } catch {}
+      return null
+    }
+    return parsed
   } catch { return null }
 }
 

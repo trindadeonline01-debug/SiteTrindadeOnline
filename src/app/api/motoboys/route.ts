@@ -79,16 +79,34 @@ export async function GET(req: NextRequest) {
     if (p.status === 'pago') jaRecebidoByMotoboy.set(p.motoboy_id, (jaRecebidoByMotoboy.get(p.motoboy_id) || 0) + Number(p.valor))
   }
 
+  // Cada URL assinada é uma chamada de rede à parte — pra 3 motoboys isso
+  // já eram até 18 chamadas em SÉRIE (5 fotos + termo, uma esperando a
+  // outra, por motoboy), o que deixava a tela de Motoboys lenta pra
+  // carregar (achado pelo Ricardo, set/2026). Duas correções: (1) as
+  // chamadas de um mesmo motoboy agora saem em paralelo, não em fila; (2)
+  // moto/documento só é assinado pra quem está "aguardando aprovação" —
+  // é a única tela que mostra essas 3 fotos (renderPhotoRow); aprovado só
+  // usa CNH/selfie (avatar) e o PDF do termo, então nem vale gerar as
+  // outras 3 URLs à toa.
   const motoboys = await Promise.all((data || []).map(async m => {
     const term = termsByMotoboy.get(m.id)
+    const needsAllDocs = m.status === 'aguardando_aprovacao'
+    const [cnh, selfie, motoFrente, motoTras, documentoMoto, termPdf] = await Promise.all([
+      signedUrl(m.cnh_photo_path),
+      signedUrl(m.selfie_photo_path),
+      needsAllDocs ? signedUrl(m.moto_frente_photo_path) : Promise.resolve(null),
+      needsAllDocs ? signedUrl(m.moto_tras_photo_path) : Promise.resolve(null),
+      needsAllDocs ? signedUrl(m.documento_moto_photo_path) : Promise.resolve(null),
+      term ? signedUrl(term.pdf_path) : Promise.resolve(null),
+    ])
     return {
       ...m,
-      cnh_photo_url: await signedUrl(m.cnh_photo_path),
-      moto_frente_photo_url: await signedUrl(m.moto_frente_photo_path),
-      moto_tras_photo_url: await signedUrl(m.moto_tras_photo_path),
-      documento_moto_photo_url: await signedUrl(m.documento_moto_photo_path),
-      selfie_photo_url: await signedUrl(m.selfie_photo_path),
-      terms: term ? { ...term, pdf_url: await signedUrl(term.pdf_path) } : null,
+      cnh_photo_url: cnh,
+      selfie_photo_url: selfie,
+      moto_frente_photo_url: motoFrente,
+      moto_tras_photo_url: motoTras,
+      documento_moto_photo_url: documentoMoto,
+      terms: term ? { ...term, pdf_url: termPdf } : null,
       entregas_semana: entregasSemanaByMotoboy.get(m.id) || 0,
       a_receber: aReceberByMotoboy.get(m.id) || 0,
       ja_recebido: jaRecebidoByMotoboy.get(m.id) || 0,

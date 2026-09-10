@@ -33,7 +33,6 @@ const s: Record<string, any> = {
   badge: (bg: string, fg: string) => ({ fontSize: 10, fontWeight: 800, textTransform: 'uppercase' as const, padding: '3px 9px', borderRadius: 20, background: bg, color: fg }),
   photoRow: { display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' as const },
   photoThumb: { width: 48, height: 48, borderRadius: 8, background: '#fff', border: '1px solid #eee', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, cursor: 'pointer', overflow: 'hidden' },
-  actionsCol: { display: 'flex', flexDirection: 'column' as const, gap: 6, alignItems: 'flex-end', flex: 'none' },
   btnApprove: { background: '#157A52', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: 8, fontSize: 11.5, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap' as const },
   btnReject: { background: '#fff', color: '#C43D3D', border: '1.5px solid #FBEAEA', padding: '8px 14px', borderRadius: 8, fontSize: 11.5, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap' as const },
   btnGhostSm: { background: '#fff', color: '#111', border: '1.5px solid #E0DDD8', padding: '7px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' as const },
@@ -351,6 +350,16 @@ export default function MotoboysTab() {
 
   return (
     <div>
+      <style>{`
+        .mb-actions { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; flex: none; }
+        @media (max-width: 640px) {
+          /* Botão embaixo do outro desperdiçava muito espaço vertical no
+             celular — Ricardo pediu lado a lado (set/2026). Reaproveita a
+             largura toda em vez de empilhar 5 botões numa coluna só. */
+          .mb-actions { flex-direction: row; flex-wrap: wrap; justify-content: flex-start; align-items: stretch; width: 100%; gap: 8px; }
+          .mb-actions button { flex: 1 1 auto; }
+        }
+      `}</style>
       <div style={s.card}>
         <div style={s.cardTitle}>🔗 Cadastro de motoboy</div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' as const, alignItems: 'center' }}>
@@ -389,7 +398,7 @@ export default function MotoboysTab() {
                     <button style={{ ...s.btnGhostSm, marginTop: 8 }} onClick={() => setLightbox({ url: m.terms!.pdf_url, label: `Termo assinado — ${m.terms!.nome_digitado}` })}>📄 Ver termo assinado</button>
                   )}
                 </div>
-                <div style={s.actionsCol}>
+                <div className="mb-actions">
                   <button style={s.btnApprove} disabled={busyId === m.id} onClick={() => approve(m)}>{flags.length ? `✅ Aprovar c/ pendência (${flags.length})` : '✅ Aprovar'}</button>
                   {flags.length > 0 && <button style={{ ...s.btnGhostSm, borderColor: '#C43D3D', color: '#C43D3D' }} disabled={busyId === m.id} onClick={() => sendPendencias(m)}>📲 Enviar pendências</button>}
                   <button style={s.btnReject} disabled={busyId === m.id} onClick={() => reject(m)}>✕ Recusar tudo</button>
@@ -461,7 +470,7 @@ export default function MotoboysTab() {
                   </div>
                 </div>
               </div>
-              <div style={s.actionsCol}>
+              <div className="mb-actions">
                 <button style={s.btnGhostSm} onClick={() => editingId === m.id ? setEditingId(null) : startEdit(m)}>{editingId === m.id ? '✕ Fechar' : '✎ Editar'}</button>
                 <button style={s.btnGhostSm} disabled={testingId === m.id} onClick={() => testarOferta(m)}>{testingId === m.id ? 'Enviando...' : '📨 Testar oferta'}</button>
                 <button style={s.btnGhostSm} disabled={busyId === m.id} onClick={() => toggleActive(m)}>{m.active ? '⏸ Pausar' : '▶ Ativar'}</button>

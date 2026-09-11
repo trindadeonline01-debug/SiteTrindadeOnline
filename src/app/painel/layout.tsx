@@ -91,17 +91,22 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
     setPedidosBadge(count || 0)
   }
 
-  // Destrava o áudio no primeiro toque/clique na tela — celular exige um
-  // gesto do usuário antes de deixar tocar som, e o pedido chega pelo
-  // WebSocket (sem gesto nenhum). Sem isso o beep de pedido novo simplesmente
-  // não toca no celular (achado real do Ricardo testando no celular da
-  // Vivi, set/2026). Roda só uma vez por sessão de página.
+  // Destrava o áudio a cada toque/clique na tela — celular exige um gesto
+  // do usuário antes de deixar tocar som, e o pedido chega pelo WebSocket
+  // (sem gesto nenhum). Não é "só uma vez": iOS volta a suspender o
+  // AudioContext depois que a aba fica em segundo plano (tela apagada,
+  // trocou de app), então cada toque tenta destravar de novo — resume() num
+  // contexto que já está rodando não custa nada. Mesmo assim, no iPhone o
+  // som sintetizado ainda pode sair mudo se o interruptor físico lateral
+  // estiver no modo silencioso — Safari trata som via Web Audio como
+  // "ambiente" por padrão, categoria que respeita esse interruptor; ver
+  // setPlaybackAudioSession() em src/lib/beep.ts pra pedir categoria
+  // "playback" (Safari 17+), que ignora o interruptor igual app de música.
   useEffect(() => {
     const handler = () => unlockAudio()
-    const opts = { once: true } as const
-    document.addEventListener('pointerdown', handler, opts)
-    document.addEventListener('touchstart', handler, opts)
-    document.addEventListener('keydown', handler, opts)
+    document.addEventListener('pointerdown', handler)
+    document.addEventListener('touchstart', handler)
+    document.addEventListener('keydown', handler)
     return () => {
       document.removeEventListener('pointerdown', handler)
       document.removeEventListener('touchstart', handler)
@@ -166,6 +171,7 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!company?.id) return
     refreshSessionOnce().catch(() => {})
+    unlockAudio()
     refreshPedidosBadge(company.id)
     const channel = supabase.channel(`pedidos-print-${company.id}-${resyncTick}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'loja_pedidos', filter: `company_id=eq.${company.id}` }, payload => {

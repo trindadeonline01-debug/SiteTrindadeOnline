@@ -19,13 +19,30 @@ function getCtx(): AudioContext | null {
   } catch { return null }
 }
 
+// iPhone resolve o desbloqueio do AudioContext (o problema descrito acima),
+// mas mesmo destravado o som de onda quadrada continua mudo se o
+// interruptor físico lateral (campainha/silencioso) estiver no modo mudo —
+// o Safari trata som sintetizado via Web Audio como categoria "ambiente" por
+// padrão, que respeita esse interruptor. A AudioSession API (Safari 17+)
+// deixa marcar explicitamente como "playback" — mesma categoria que apps
+// de música usam pra tocar mesmo com o aparelho no silencioso. Sem efeito
+// em navegadores que não suportam (Android, Safari mais antigo).
+function setPlaybackAudioSession() {
+  try {
+    const session = (navigator as any).audioSession
+    if (session) session.type = 'playback'
+  } catch {}
+}
+
 export function unlockAudio() {
+  setPlaybackAudioSession()
   const c = getCtx()
   if (c && c.state === 'suspended') c.resume().catch(() => {})
 }
 
 export function beep() {
   try {
+    setPlaybackAudioSession()
     const c = getCtx()
     if (!c) return
     if (c.state === 'suspended') c.resume().catch(() => {})

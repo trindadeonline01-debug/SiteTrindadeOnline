@@ -1,5 +1,6 @@
 'use client'
 import { useRef, useState } from 'react'
+import Image from 'next/image'
 import { isOpenNow } from '@/lib/businessHours'
 import { type Produto, fmt, promoPrice, groupContribution, cartStorageKey, checkCartConflict, setActiveCart } from '@/lib/lojaPricing'
 
@@ -106,7 +107,7 @@ export default function ProdutoDetailClient({ slug, company, produto, related }:
         .id-crumb{max-width:760px;margin:0 auto;padding:14px 16px 0;font-size:12px;color:#888;}
         .id-crumb a{color:var(--sign-dark);font-weight:600;text-decoration:none;}
         .id-wrap{max-width:760px;margin:0 auto;padding:14px 16px 24px;}
-        .id-photo{width:100%;height:280px;border-radius:14px;overflow:hidden;background:var(--ink);display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Archivo',sans-serif;font-weight:700;font-size:26px;}
+        .id-photo{width:100%;height:280px;border-radius:14px;overflow:hidden;background:var(--ink);display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Archivo',sans-serif;font-weight:700;font-size:26px;position:relative;}
         .id-photo img{width:100%;height:100%;object-fit:cover;}
         .id-photo-closed img{filter:grayscale(1);}
         .id-bar-closed{padding:12px 16px;background:#FBEAEA;color:#A83232;font-size:12.5px;font-weight:600;text-align:center;}
@@ -125,7 +126,7 @@ export default function ProdutoDetailClient({ slug, company, produto, related }:
         .id-opts-req{flex:none;background:#C43D3D;color:#fff;font-size:9px;font-weight:800;padding:3px 7px;border-radius:6px;letter-spacing:.03em;}
         .id-opts-count{flex:none;background:var(--sign-dark);color:#fff;font-size:10px;font-weight:800;padding:3px 8px;border-radius:20px;font-variant-numeric:tabular-nums;}
         .id-opt{display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:0.5px solid #EDE8E0;cursor:pointer;}
-        .id-opt-img{width:42px;height:42px;border-radius:9px;overflow:hidden;flex:none;background:#F0EDE8;}
+        .id-opt-img{width:42px;height:42px;border-radius:9px;overflow:hidden;flex:none;background:#F0EDE8;position:relative;}
         .id-opt-img img{width:100%;height:100%;object-fit:cover;}
         .id-opt-mid{flex:1;min-width:0;}
         .id-opt-nm{font-size:12.5px;font-weight:700;}
@@ -149,7 +150,7 @@ export default function ProdutoDetailClient({ slug, company, produto, related }:
         .id-related{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
         @media(min-width:600px){.id-related{grid-template-columns:repeat(4,1fr);}}
         .id-rp{background:#fff;border:1px solid #E0DDD8;border-radius:10px;overflow:hidden;text-decoration:none;color:inherit;}
-        .id-rp-im{height:80px;background:var(--ink);display:flex;align-items:center;justify-content:center;}
+        .id-rp-im{height:80px;background:var(--ink);display:flex;align-items:center;justify-content:center;position:relative;}
         .id-rp-im img{width:100%;height:100%;object-fit:cover;}
         .id-rp-b{padding:8px 10px;}
         .id-rp-nm{font-size:11.5px;font-weight:600;line-height:1.25;min-height:28px;}
@@ -175,7 +176,7 @@ export default function ProdutoDetailClient({ slug, company, produto, related }:
 
       <div className="id-wrap">
         <div className={`id-photo ${!open ? 'id-photo-closed' : ''}`}>
-          {produto.photo_url ? <img src={produto.photo_url} alt={produto.name} /> : initials}
+          {produto.photo_url ? <Image src={produto.photo_url} alt={produto.name} fill sizes="(min-width: 760px) 760px, 100vw" style={{ objectFit: 'cover' }} priority /> : initials}
         </div>
 
         <div className="id-pillrow">
@@ -212,7 +213,7 @@ export default function ProdutoDetailClient({ slug, company, produto, related }:
               return (
                 <div className="id-opt" key={o.id}
                   onClick={() => { if (g.max_select === 1) toggleRadio(gi, oi); else if (canAddMore) addOpt(gi, oi) }}>
-                  {o.photo_url && <div className="id-opt-img"><img src={o.photo_url} alt="" /></div>}
+                  {o.photo_url && <div className="id-opt-img"><Image src={o.photo_url} alt="" fill sizes="42px" style={{ objectFit: 'cover' }} /></div>}
                   <div className="id-opt-mid">
                     <div className="id-opt-nm">{o.name}</div>
                     <div className="id-opt-pr">{o.price > 0 ? '+ ' + fmt(o.price) : 'Grátis'}</div>
@@ -255,7 +256,7 @@ export default function ProdutoDetailClient({ slug, company, produto, related }:
                 const rPromo = promoPrice(r as any)
                 return (
                   <a className="id-rp" key={r.id} href={`/empresa/${slug}/item/${r.id}`}>
-                    <div className="id-rp-im">{r.photo_url ? <img src={r.photo_url} alt={r.name} /> : <span style={{ color: '#fff', fontFamily: "'Archivo',sans-serif", fontWeight: 700 }}>{r.name.slice(0, 2).toUpperCase()}</span>}</div>
+                    <div className="id-rp-im">{r.photo_url ? <Image src={r.photo_url} alt={r.name} fill sizes="(min-width: 600px) 25vw, 50vw" style={{ objectFit: 'cover' }} /> : <span style={{ color: '#fff', fontFamily: "'Archivo',sans-serif", fontWeight: 700 }}>{r.name.slice(0, 2).toUpperCase()}</span>}</div>
                     <div className="id-rp-b">
                       <div className="id-rp-nm">{r.name}</div>
                       <div className="id-rp-pr">{fmt(rPromo ?? r.sale_price)}</div>

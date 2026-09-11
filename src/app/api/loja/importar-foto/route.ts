@@ -47,22 +47,39 @@ export async function POST(req: NextRequest) {
     // parecem vir de um navegador de verdade — sem User-Agent/Referer/Accept
     // "normais" a resposta pode vir vazia, com erro, ou sem content-type de
     // imagem. Simula um navegador real pra passar por essa proteção.
+    // Alguns CDNs (ex: images.brendi.com.br) recusam com 403 mesmo assim —
+    // ali o bloqueio parece ser por reputação de IP de datacenter, não só
+    // header, então nenhuma variante abaixo resolve; mas outros só checam o
+    // Referer de um jeito estranho (ex: recusam qualquer Referer, ou só
+    // aceitam sem Referer nenhum), e pra esses vale tentar mais de uma vez
+    // antes de desistir.
     let origin = ''
     try { origin = new URL(image_url).origin } catch {}
-    let imgRes: Response
-    try {
-      imgRes = await fetch(image_url, {
-        signal: AbortSignal.timeout(15000),
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-          'Accept': 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
-          ...(origin ? { Referer: origin + '/' } : {}),
-        },
-      })
-    } catch {
-      return NextResponse.json({ error: 'não deu pra acessar essa URL (fora do ar ou demorou demais)' }, { status: 400 })
+    const headerVariants: Record<string, string>[] = [
+      {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+        ...(origin ? { Referer: origin + '/' } : {}),
+      },
+      {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+      },
+    ]
+    let imgRes: Response | null = null
+    let lastStatus = 0
+    for (const headers of headerVariants) {
+      try {
+        const res = await fetch(image_url, { signal: AbortSignal.timeout(15000), headers })
+        if (res.ok) { imgRes = res; break }
+        lastStatus = res.status
+      } catch {
+        // tenta a próxima variante antes de desistir
+      }
     }
-    if (!imgRes.ok) return NextResponse.json({ error: 'URL não respondeu (status ' + imgRes.status + ')' }, { status: 400 })
+    if (!imgRes) {
+      return NextResponse.json({ error: lastStatus ? `URL não respondeu (status ${lastStatus})` : 'não deu pra acessar essa URL (fora do ar ou demorou demais)' }, { status: 400 })
+    }
 
     const contentTypeHeader = imgRes.headers.get('content-type') || ''
     // Alguns servidores mandam um content-type genérico (ex: application/octet-stream)

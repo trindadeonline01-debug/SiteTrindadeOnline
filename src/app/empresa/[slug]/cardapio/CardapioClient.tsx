@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useRef, useState, use } from 'react'
+import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import { isOpenNow } from '@/lib/businessHours'
 import { type Produto, fmt, promoPrice, availableToday, isSoldOut, groupContribution, cartStorageKey, criarInteresseEAbrirWhatsapp, setActiveCart } from '@/lib/lojaPricing'
@@ -470,7 +471,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
         .cd-hot-row{ display:flex;gap:10px;overflow-x:auto;padding:2px 2px 10px; }
         .cd-hot-card{ flex:none;width:140px;background:#fff;border:1px solid #EDE8E0;border-radius:12px;padding:8px;cursor:pointer;transition:transform .3s; }
         .cd-hot-card.cd-flash{ animation:cdFlash .5s ease; border-color:var(--sign-dark); }
-        .cd-hot-photo{ width:100%;height:82px;border-radius:8px;background:linear-gradient(135deg,#FBF1DC,#F0EDE8);display:flex;align-items:center;justify-content:center;font-size:22px;overflow:hidden;margin-bottom:6px; }
+        .cd-hot-photo{ width:100%;height:82px;border-radius:8px;background:linear-gradient(135deg,#FBF1DC,#F0EDE8);display:flex;align-items:center;justify-content:center;font-size:22px;overflow:hidden;margin-bottom:6px;position:relative; }
         .cd-hot-photo img{ width:100%;height:100%;object-fit:cover; }
         .cd-hot-name{ font-size:11px;font-weight:700;line-height:1.3; }
         .cd-hot-price{ font-size:11px;font-weight:800;margin-top:3px; }
@@ -531,7 +532,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
         .cd-og-req{ flex:none;background:#C43D3D;color:#fff;font-size:9px;font-weight:800;padding:3px 7px;border-radius:6px;letter-spacing:.03em; }
         .cd-og-count{ flex:none;background:var(--sign-dark);color:#fff;font-size:10px;font-weight:800;padding:3px 8px;border-radius:20px;font-variant-numeric:tabular-nums; }
         .cd-orow{ display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:0.5px solid #EDE8E0;cursor:pointer; }
-        .cd-oimg{ width:42px;height:42px;border-radius:9px;overflow:hidden;flex:none;background:#F0EDE8; }
+        .cd-oimg{ width:42px;height:42px;border-radius:9px;overflow:hidden;flex:none;background:#F0EDE8;position:relative; }
         .cd-oimg img{ width:100%;height:100%;object-fit:cover; }
         .cd-omax{ font-size:9.5px;color:#AAA;margin-top:1px; }
         .cd-ocheck{ width:20px;height:20px;border:1.5px solid #D8D2C4;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex:none; }
@@ -575,7 +576,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
 
       <div className="cd-pagehero"><div className="cd-pagehero-inner">
         <div className="cd-pagehero-img">
-          {getCompanyCover(company.photos) ? <img src={getCompanyCover(company.photos)!} alt="" /> : company.name.slice(0, 2).toUpperCase()}
+          {getCompanyCover(company.photos) ? <Image src={getCompanyCover(company.photos)!} alt="" fill sizes="74px" style={{ objectFit: 'cover' }} priority /> : company.name.slice(0, 2).toUpperCase()}
         </div>
         <div>
           <div className="cd-pagehero-title">CARDÁPIO</div>
@@ -624,7 +625,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
               const hasOpts = p.groups && p.groups.length > 0
               return (
                 <div className={`cd-hot-card ${!open ? 'cd-hot-card-closed' : ''} ${flashId === p.id ? 'cd-flash' : ''}`} key={p.id} onClick={() => { if (!open) return; hasOpts ? openDetail(p) : quickAdd(p, promo ?? p.sale_price) }}>
-                  <div className="cd-hot-photo">{p.photo_url ? <img src={p.photo_url} alt="" /> : '🍽️'}</div>
+                  <div className="cd-hot-photo">{p.photo_url ? <Image src={p.photo_url} alt="" fill sizes="140px" style={{ objectFit: 'cover' }} /> : '🍽️'}</div>
                   <div className="cd-hot-name">{p.name}</div>
                   {(promo ?? p.sale_price) > 0 && <div className="cd-hot-price">{fmt(promo ?? p.sale_price)}</div>}
                 </div>
@@ -652,7 +653,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
                 return (
                   <div className={`cd-prow ${soldOut ? 'cd-prow-soldout' : !open ? 'cd-prow-closed' : ''} ${flashId === p.id ? 'cd-flash' : ''}`} key={p.id} onClick={() => { if (soldOut || !open) return; hasOpts ? openDetail(p) : quickAdd(p, promo ?? p.sale_price) }}>
                     <div className="cd-pphoto">
-                      {p.photo_url ? <img src={p.photo_url} alt="" /> : '🍽️'}
+                      {p.photo_url ? <Image src={p.photo_url} alt="" fill sizes="(min-width: 900px) 20vw, 66px" style={{ objectFit: 'cover' }} /> : '🍽️'}
                       {!soldOut && promo != null && <span className="cd-badge">{p.promo_type === 'percent' ? `-${p.promo_value}%` : `-${fmt(p.promo_value!)}`}</span>}
                     </div>
                     <div className="cd-pmid">
@@ -683,7 +684,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
       {detail && (
         <div className="cd-detail">
           <div className="cd-hero">
-            {detail.photo_url ? <img src={detail.photo_url} alt="" /> : detail.name[0]}
+            {detail.photo_url ? <Image src={detail.photo_url} alt="" fill sizes="100vw" style={{ objectFit: 'cover' }} /> : detail.name[0]}
             <div className="cd-hero-scrim" />
             <button className="cd-herobtn" onClick={() => setDetail(null)}>‹</button>
           </div>
@@ -714,7 +715,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
                   return (
                     <div className="cd-orow" key={o.id}
                       onClick={() => { if (g.max_select === 1) toggleRadio(gi, oi); else if (canAddMore) addOpt(gi, oi) }}>
-                      {o.photo_url && <div className="cd-oimg"><img src={o.photo_url} alt="" /></div>}
+                      {o.photo_url && <div className="cd-oimg"><Image src={o.photo_url} alt="" fill sizes="42px" style={{ objectFit: 'cover' }} /></div>}
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 12.5, fontWeight: 700 }}>{o.name}</div>
                         <div style={{ fontSize: 11, color: '#555' }}>{o.price > 0 ? '+ ' + fmt(o.price) : 'Grátis'}</div>

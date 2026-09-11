@@ -7,6 +7,46 @@ import { CSS } from '@dnd-kit/utilities'
 
 type Tipo = { id: string; value: string; label: string; emoji: string; display_order: number; active: boolean }
 
+// Paleta curada de comida/loja — cobre a maioria dos tipos de produto que
+// entram na vitrine "Peça agora". O campo continua aceitando digitação
+// livre (emoji raro que não está na lista), isso aqui é só um atalho.
+const FOOD_EMOJIS = [
+  '🍔','🌭','🍕','🍟','🌮','🌯','🥙','🍗','🍖','🥩','🍤','🍱','🍣','🍜','🍝','🍲',
+  '🥘','🍛','🍚','🍙','🍥','🥗','🥪','🥟','🧇','🥞','🍳','🧀','🥐','🍞','🥖','🥨',
+  '🍩','🍪','🎂','🧁','🍰','🍨','🍦','🍮','🍫','🍬','🍭','🍿','🥤','🧃','🧋','☕',
+  '🍵','🍺','🍷','🍹','🍸','🥂','🧊','🍎','🍇','🍓','🍉','🍊','🍌','🥭','🍒','🥥',
+  '🥑','🍅','🥕','🌽','🥒','🥦','🧄','🧅','🥔','🍠','🥚','🐟','🦐','🦀','🍽️','🛒',
+  '🏪','🥡','🎁','🍽',
+]
+
+function EmojiField({ value, onChange, width = 44 }: { value: string; onChange: (v: string) => void; width?: number }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div style={{ position: 'relative', flex: 'none' }}>
+      <div style={{ display: 'flex', gap: 4 }}>
+        <input style={{ ...s.input, width, textAlign: 'center' }} value={value} onChange={e => onChange(e.target.value)} />
+        <button type="button" style={{ ...s.btnGhost, padding: '7px 9px' }} onClick={() => setOpen(o => !o)} aria-label="Escolher emoji">😀</button>
+      </div>
+      {open && (
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 49 }} />
+          <div style={{
+            position: 'absolute', top: '100%', left: 0, marginTop: 4, zIndex: 50, background: '#fff',
+            border: '1.5px solid #E0DDD8', borderRadius: 10, padding: 8, boxShadow: '0 8px 24px rgba(0,0,0,.18)',
+            display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 2, width: 260, maxHeight: 220, overflowY: 'auto',
+          }}>
+            {FOOD_EMOJIS.map((em, i) => (
+              <button key={em + i} type="button"
+                style={{ border: 'none', background: 'none', fontSize: 18, cursor: 'pointer', padding: 4, borderRadius: 6, lineHeight: 1 }}
+                onClick={() => { onChange(em); setOpen(false) }}>{em}</button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 const s: Record<string, any> = {
   card: { background: '#fff', borderRadius: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.07)', overflow: 'hidden', marginBottom: 16 },
   cardHd: { padding: '15px 20px', borderBottom: '1px solid #F0EDE8', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
@@ -43,7 +83,7 @@ function SortableTipoRow({ tipo, count, onToggleActive, onSaveEdit, onDelete }: 
       <button style={s.handle} {...attributes} {...listeners} aria-label="Arrastar pra reordenar">⠿</button>
       {editing ? (
         <>
-          <input style={{ ...s.input, width: 44, textAlign: 'center' }} value={emoji} onChange={e => setEmoji(e.target.value)} />
+          <EmojiField value={emoji} onChange={setEmoji} />
           <input style={{ ...s.input, flex: 1 }} value={label} onChange={e => setLabel(e.target.value)} autoFocus onKeyDown={e => e.key === 'Enter' && (onSaveEdit(label, emoji), setEditing(false))} />
           <button style={s.btnSave} onClick={() => { onSaveEdit(label, emoji); setEditing(false) }}>OK</button>
           <button style={s.btnGhost} onClick={() => { setLabel(tipo.label); setEmoji(tipo.emoji); setEditing(false) }}>✕</button>
@@ -194,7 +234,7 @@ export default function PecaAgoraTab() {
           </DndContext>
 
           <div style={s.addRow}>
-            <input style={{ ...s.input, width: 50, textAlign: 'center' }} placeholder="🍔" value={newEmoji} onChange={e => setNewEmoji(e.target.value)} />
+            <EmojiField value={newEmoji} onChange={setNewEmoji} width={50} />
             <input style={{ ...s.input, flex: 1 }} placeholder="Nome do tipo (ex: Espetinho)" value={newLabel} onChange={e => setNewLabel(e.target.value)} onKeyDown={e => e.key === 'Enter' && addTipo()} />
             <button style={s.btnSave} disabled={saving} onClick={addTipo}>+ Adicionar</button>
           </div>

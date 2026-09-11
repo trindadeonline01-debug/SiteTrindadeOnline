@@ -242,7 +242,15 @@ export async function criarEntregaEChamarMotoboy(opts: {
 
   const { data: wallet } = await supabase.from('company_delivery_wallet').select('credits, daily_paid_until').eq('company_id', companyId).maybeSingle()
   const { entrega: entregaFee, today } = await getTodayValues()
-  if (!wallet?.daily_paid_until || wallet.daily_paid_until < today) return { ok: false, error: 'Diária de hoje ainda não foi paga — ativa em Entrega no painel.' }
+  // Pedido com pedido_id nasceu na própria plataforma (checkout do cardápio
+  // ou "Novo Pedido" no painel) — exige só crédito carregado, sem diária.
+  // Sem pedido_id é solicitação avulsa (tela "+ Nova entrega", pedido vindo
+  // de fora), que continua exigindo diária + crédito como sempre foi.
+  // Crédito pago antecipadamente nunca deixa de ser exigido em nenhum caso —
+  // regra inegociável do Ricardo, set/2026.
+  if (!pedidoId && (!wallet?.daily_paid_until || wallet.daily_paid_until < today)) {
+    return { ok: false, error: 'Diária de hoje ainda não foi paga — ativa em Entrega no painel.' }
+  }
   if (!wallet?.credits || wallet.credits < 1) return { ok: false, error: 'Sem crédito de entrega — compra mais em Entrega no painel.' }
 
   if (pedidoId) {

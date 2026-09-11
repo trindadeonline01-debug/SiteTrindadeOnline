@@ -250,7 +250,7 @@ export default function EntregaPage() {
           <h1>🏍️ Entrega</h1>
           <button className="en-btn en-btn-gold" onClick={() => { setNovaError(''); setNovaOpen(true) }}>+ Nova entrega</button>
         </div>
-        <p>{precos ? `Diária de ${fmt(precos.diaria)} hoje pra liberar o dia, mais ${fmt(precos.entrega)} por entrega dentro da Trindade.` : 'Carregando preços...'} O motoboy é da plataforma — só chamar.</p>
+        <p>{precos ? `${fmt(precos.entrega)} por entrega dentro da Trindade, sempre descontado do crédito. A diária de ${fmt(precos.diaria)} só é cobrada pra chamar motoboy avulso (pedido de fora) — pedido feito pela própria plataforma usa só o crédito.` : 'Carregando preços...'} O motoboy é da plataforma — só chamar.</p>
       </div>
 
       <div className="en-summary">
@@ -266,7 +266,7 @@ export default function EntregaPage() {
         <div className="en-hint">
           {ativaHoje
             ? `Cobre ${diasFaltando} dia${diasFaltando !== 1 ? 's' : ''} (até ${wallet.daily_paid_until?.split('-').reverse().join('/')}).`
-            : 'Sem a diária de hoje, o motoboy não pode ser chamado — mesmo com crédito sobrando.'}
+            : 'Sem a diária de hoje só trava o botão "+ Nova entrega" (pedido avulso, de fora). Pedido feito pela própria plataforma continua sendo chamado normal, descontando só o crédito.'}
         </div>
       </div>
 

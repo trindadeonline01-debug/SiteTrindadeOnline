@@ -25,7 +25,7 @@ type Produto = {
 const DAY_LABELS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
 const emptyForm = () => ({
   id: '' as string,
-  name: '', description: '', photo_url: '' as string | null,
+  name: '', description: '', photo_url: null as string | null,
   category_id: '', tipo_vitrine: '' as string, cost_price: '0', sale_price: '0',
   track_stock: false, stock_qty: '', stock_alert_qty: '',
   restrictDays: false, days: [] as number[],
@@ -640,7 +640,7 @@ export default function CatalogoPage() {
       .eq('id', id).single()
     if (!data) return
     setForm({
-      id: data.id, name: data.name, description: data.description || '', photo_url: data.photo_url,
+      id: data.id, name: data.name, description: data.description || '', photo_url: data.photo_url || null,
       category_id: data.category_id || '', tipo_vitrine: data.tipo_vitrine || '', cost_price: Number(data.cost_price).toFixed(2).replace('.', ','),
       sale_price: Number(data.sale_price).toFixed(2).replace('.', ','),
       track_stock: data.track_stock, stock_qty: data.stock_qty ?? '', stock_alert_qty: data.stock_alert_qty ?? '',

@@ -169,12 +169,12 @@ export default function MobileMenu() {
             {user && (
               <>
                 <div className="mm-switcher" style={{ paddingTop: 12 }}>
-                  <div className="mm-idcard active">
-                    <span className="mm-idico">👤</span> Pessoal <span className="mm-idtag">● aqui</span>
-                  </div>
+                  <a className={`mm-idcard ${!inPainel ? 'active' : ''}`} href="/perfil">
+                    <span className="mm-idico">👤</span> Pessoal {!inPainel && <span className="mm-idtag">● aqui</span>}
+                  </a>
                   {businesses.map(b => (
-                    <a key={b.id} className="mm-idcard" href="/painel">
-                      <span className="mm-idico">🏭</span> {b.name} <span className="mm-idarrow">→</span>
+                    <a key={b.id} className={`mm-idcard ${inPainel ? 'active' : ''}`} href="/painel">
+                      <span className="mm-idico">🏭</span> {b.name} {inPainel ? <span className="mm-idtag">● aqui</span> : <span className="mm-idarrow">→</span>}
                     </a>
                   ))}
                   {businesses.length === 0 && (

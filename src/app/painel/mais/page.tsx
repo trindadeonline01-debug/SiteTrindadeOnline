@@ -109,6 +109,7 @@ export default function MaisPage() {
         <div className="sectlbl">Entrega</div>
         <div className="list">
           <Item href="/painel/entrega" icon="🏍️" label="Entrega" locked={!moduleActive(company.entrega_enabled, company.trial_modules_until)} />
+          <Item href="/painel/motoboys" icon="🏍️" label="Meus motoboys" locked={!moduleActive(company.loja_digital_enabled, company.trial_modules_until)} />
         </div>
 
         <div className="sectlbl">Relacionamento</div>

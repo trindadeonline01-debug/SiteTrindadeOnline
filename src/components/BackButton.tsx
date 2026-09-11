@@ -14,10 +14,13 @@ export default function BackButton() {
     return () => window.removeEventListener('resize', check)
   }, [])
 
-  // Essas páginas usam a navegação própria do EmpresaShell (sidebar/topbar/tabbar) —
-  // o botão flutuante de voltar do site principal ficaria duplicado ali.
-  const empresaShellPaths = ['/painel/compartilhar', '/painel/catalogo', '/painel/pedidos', '/painel/cozinha', '/painel/entrega', '/painel/mensagens', '/painel/clientes']
-  if (pathname === '/' || empresaShellPaths.some(p => pathname.startsWith(p))) return null
+  // Essas páginas usam a navegação própria do EmpresaShell (sidebar
+  // desktop/tabbar mobile), mas nenhuma delas tem um "voltar" de verdade —
+  // a tabbar do celular não cobre toda rota, e cair numa tela funda (ex:
+  // Configurar cardápio) sem esse botão prende o lojista lá (achado real
+  // do Ricardo testando no iPhone, set/2026). Só a home (que não tem "voltar"
+  // que faça sentido) continua de fora.
+  if (pathname === '/') return null
 
   return (
     <button

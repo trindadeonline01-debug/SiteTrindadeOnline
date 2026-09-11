@@ -156,14 +156,23 @@ export default function EditarPedidoPanel({ pedido, companyId, onClose, onSaved 
            no celular (achado real do Ricardo testando no celular da Vivi,
            set/2026). O layout de 3 colunas lado a lado é só a versão
            >=768px, não o padrão. */
-        .ep-overlay{ position:fixed;inset:0;background:rgba(10,8,6,.55);z-index:200;display:flex;align-items:center;justify-content:center;padding:0; }
+        /* z-index acima da tabbar do rodapé mobile (9999) e do CartBar
+           global (10000) — o painel é um modal de tela cheia, então precisa
+           cobrir os dois de ponta a ponta, não ficar atrás deles (achado
+           real do Ricardo, set/2026: rodapé do site tampando o fim da
+           tela de editar pedido). */
+        .ep-overlay{ position:fixed;inset:0;background:rgba(10,8,6,.55);z-index:10050;display:flex;align-items:center;justify-content:center;padding:0; }
         .ep-panel{ background:#fff;border-radius:0;width:100%;max-width:100%;max-height:100vh;min-width:0;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.35);font-family:'Archivo',sans-serif;color:var(--ink); }
-        .ep-hd{ display:flex;align-items:center;gap:10px;padding:14px 14px;border-bottom:1px solid #EDE8E0;flex:none;min-width:0; }
+        /* Tela cheia no mobile encosta direto na borda do aparelho — soma a
+           área segura (notch/ilha dinâmica em cima, indicador de home
+           embaixo) além do padding normal, senão o cabeçalho e os botões
+           "Cancelar/Salvar" ficam parcialmente cobertos pelo hardware. */
+        .ep-hd{ display:flex;align-items:center;gap:10px;padding:calc(14px + env(safe-area-inset-top)) 14px 14px;border-bottom:1px solid #EDE8E0;flex:none;min-width:0; }
         .ep-hd-num{ font-family:'Anton',sans-serif;font-size:15px;letter-spacing:.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
         .ep-timer{ display:flex;align-items:center;gap:5px;background:#F5F6F2;color:#6E6656;font-size:10.5px;font-weight:700;padding:5px 8px;border-radius:20px;flex:none;white-space:nowrap; }
         .ep-close{ margin-left:0;width:30px;height:30px;border-radius:9px;border:1.5px solid #E6E0D2;background:#fff;color:var(--ink);font-size:15px;cursor:pointer;flex:none; }
         .ep-body{ flex:1;overflow-y:auto;overflow-x:hidden;padding:12px;display:grid;grid-template-columns:1fr;gap:10px;align-items:start; }
-        .ep-footer{ flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-top:1px solid #EDE8E0; }
+        .ep-footer{ flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px calc(12px + env(safe-area-inset-bottom));border-top:1px solid #EDE8E0; }
         @media(min-width:768px){
           .ep-overlay{ padding:16px; }
           .ep-panel{ border-radius:18px;max-width:1180px;max-height:92vh; }
@@ -220,8 +229,8 @@ export default function EditarPedidoPanel({ pedido, companyId, onClose, onSaved 
         .ep-picker-item{ display:flex;justify-content:space-between;align-items:center;padding:9px 6px;border-bottom:1px solid #F0EDE8;cursor:pointer;font-size:12.5px; }
         .ep-picker-close{ width:100%;padding:8px;border-radius:8px;border:none;background:#F5F6F2;color:#6E6656;font-weight:700;font-size:11.5px;cursor:pointer;margin-top:6px; }
 
-        .ep-detail-overlay{ position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:210;display:flex;align-items:flex-end;justify-content:center; }
-        .ep-detail{ background:#fff;border-radius:18px 18px 0 0;max-width:460px;width:100%;max-height:80vh;overflow-y:auto;padding:18px; }
+        .ep-detail-overlay{ position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10060;display:flex;align-items:flex-end;justify-content:center; }
+        .ep-detail{ background:#fff;border-radius:18px 18px 0 0;max-width:460px;width:100%;max-height:80vh;overflow-y:auto;padding:18px 18px calc(18px + env(safe-area-inset-bottom)); }
         .ep-grp{ margin:14px 0 6px;font-weight:800;font-size:12.5px; }
         .ep-opt{ display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #F0EDE8;cursor:pointer;font-size:12.5px; }
         .ep-opt.sel{ color:var(--open);font-weight:700; }

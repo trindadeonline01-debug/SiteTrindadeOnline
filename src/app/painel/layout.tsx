@@ -3,7 +3,7 @@ import { Suspense, useEffect, useRef, useState } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { moduleActive } from '@/lib/modules'
-import { beep } from '@/lib/beep'
+import { beep, unlockAudio } from '@/lib/beep'
 import { autoImprimirPedido } from '@/lib/autoprint'
 import EmpresaShell, { type EmpresaNavKey } from '@/components/EmpresaShell'
 import { PainelShellContext } from '@/contexts/PainelShellContext'
@@ -62,6 +62,7 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
   const [isAdminMode, setIsAdminMode] = useState(false)
   const [adminEmpresaId, setAdminEmpresaId] = useState<string | null>(null)
   const [avaliacoesBadge, setAvaliacoesBadge] = useState(0)
+  const [pedidosBadge, setPedidosBadge] = useState(0)
   const [activeOverride, setActiveOverride] = useState<EmpresaNavKey | null>(null)
   const [switcherExtras, setSwitcherExtras] = useState<{ companies?: SwitcherCompany[]; onSwitchCompany?: (c: SwitcherCompany) => void } | null>(null)
   const [printerName, setPrinterNameState] = useState('')
@@ -82,6 +83,29 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
     setAutoAceitarState(v)
     if (company) supabase.from('companies').update({ loja_auto_aceitar_pedidos: v }).eq('id', company.id).then(() => {})
   }
+
+  async function refreshPedidosBadge(companyId: string) {
+    const { count } = await supabase.from('loja_pedidos').select('id', { count: 'exact', head: true }).eq('company_id', companyId).eq('status', 'recebido')
+    setPedidosBadge(count || 0)
+  }
+
+  // Destrava o áudio no primeiro toque/clique na tela — celular exige um
+  // gesto do usuário antes de deixar tocar som, e o pedido chega pelo
+  // WebSocket (sem gesto nenhum). Sem isso o beep de pedido novo simplesmente
+  // não toca no celular (achado real do Ricardo testando no celular da
+  // Vivi, set/2026). Roda só uma vez por sessão de página.
+  useEffect(() => {
+    const handler = () => unlockAudio()
+    const opts = { once: true } as const
+    document.addEventListener('pointerdown', handler, opts)
+    document.addEventListener('touchstart', handler, opts)
+    document.addEventListener('keydown', handler, opts)
+    return () => {
+      document.removeEventListener('pointerdown', handler)
+      document.removeEventListener('touchstart', handler)
+      document.removeEventListener('keydown', handler)
+    }
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -119,6 +143,7 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
         setPrinterNameState(comp.loja_impressora_nome || '')
         const { data: revs } = await supabase.from('reviews').select('*, response:review_responses(text)').eq('company_id', comp.id)
         if (!cancelled) setAvaliacoesBadge((revs || []).filter((r: any) => !r.response || (Array.isArray(r.response) && r.response.length === 0)).length)
+        if (!cancelled) refreshPedidosBadge(comp.id)
       }
       setLoading(false)
     })
@@ -135,12 +160,19 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
     const channel = supabase.channel(`pedidos-print-${company.id}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'loja_pedidos', filter: `company_id=eq.${company.id}` }, payload => {
         beep()
+        refreshPedidosBadge(company.id)
         if (autoAceitarRef.current && printerNameRef.current) {
           autoImprimirPedido(company.name, payload.new.id as string, printerNameRef.current)
         }
       })
+      // Recontagem do badge "N pedidos pendentes" da tabbar do mobile — some
+      // sozinha quando o pedido sai de "recebido" (lojista aceita/avança) ou
+      // é cancelado/excluído.
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'loja_pedidos', filter: `company_id=eq.${company.id}` }, () => refreshPedidosBadge(company.id))
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'loja_pedidos', filter: `company_id=eq.${company.id}` }, () => refreshPedidosBadge(company.id))
       .subscribe()
     return () => { supabase.removeChannel(channel) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [company?.id, company?.name])
 
   if (bare) return <>{children}</>
@@ -157,6 +189,7 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
         crmEnabled={company?.crm_whatsapp_enabled}
         entregaEnabled={company?.entrega_enabled}
         avaliacoesBadge={avaliacoesBadge}
+        pedidosBadge={pedidosBadge}
         companies={switcherExtras?.companies as any}
         onSwitchCompany={switcherExtras?.onSwitchCompany as any}
         adminEmpresaId={isAdminMode ? adminEmpresaId ?? undefined : undefined}

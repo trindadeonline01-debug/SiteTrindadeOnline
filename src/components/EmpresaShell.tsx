@@ -52,7 +52,7 @@ function NavItem({ href, active, locked, badge, adminEmpresaId, children }: { hr
 
 export default function EmpresaShell({
   active, companyName, companySlug, lojaDigitalEnabled, crmEnabled, entregaEnabled,
-  avaliacoesBadge, mensagensBadge, companies, onSwitchCompany, adminEmpresaId, children,
+  avaliacoesBadge, mensagensBadge, pedidosBadge, companies, onSwitchCompany, adminEmpresaId, children,
 }: {
   active: EmpresaNavKey
   companyName?: string
@@ -62,6 +62,7 @@ export default function EmpresaShell({
   entregaEnabled?: boolean
   avaliacoesBadge?: number
   mensagensBadge?: number
+  pedidosBadge?: number
   companies?: Company[]
   onSwitchCompany?: (c: Company) => void
   adminEmpresaId?: string
@@ -123,7 +124,7 @@ export default function EmpresaShell({
     : crmEnabled
     ? [
         { key: 'dashboard', href: '/painel', ico: '🏠', lbl: 'Início' },
-        { key: 'pedidos', href: '/painel/pedidos', ico: '🧾', lbl: 'Pedidos' },
+        { key: 'pedidos', href: '/painel/pedidos', ico: '🧾', lbl: 'Pedidos', badge: pedidosBadge },
         { key: 'mensagens', href: '/painel/mensagens', ico: '💬', lbl: 'Mensagens', badge: mensagensBadge },
         { key: 'catalogo', href: '/painel/catalogo', ico: '📋', lbl: 'Cardápio' },
       ]
@@ -193,7 +194,7 @@ export default function EmpresaShell({
         .es-tab-ico{font-size:20px;line-height:1;}
         .es-tab-lbl{font-size:9.5px;font-weight:600;font-family:'Archivo',sans-serif;color:rgba(255,255,255,.55);}
         .es-tab.on .es-tab-lbl{color:var(--sign);font-weight:700;}
-        .es-tab-dot{position:absolute;top:2px;right:calc(50% - 15px);width:7px;height:7px;background:#E24B4A;border-radius:50%;border:1.5px solid var(--ink);}
+        .es-tab-dot{position:absolute;top:2px;right:calc(50% - 15px);min-width:15px;height:15px;padding:0 3px;background:#E24B4A;color:#fff;border-radius:20px;border:1.5px solid var(--ink);font-size:9.5px;font-weight:800;line-height:1;display:flex;align-items:center;justify-content:center;font-family:'Archivo',sans-serif;}
       `}</style>
 
       <aside className={`es-sidebar ${collapsed ? 'collapsed' : ''}`}>
@@ -251,7 +252,7 @@ export default function EmpresaShell({
                   com cadeado e leva pra tela de venda do plano — esconder
                   economiza pixel e perde venda. */}
               <div className="es-group-lbl">Todo dia</div>
-              <NavItem href="/painel/pedidos" active={active === 'pedidos'} locked={!lojaDigitalEnabled} adminEmpresaId={adminEmpresaId}>🧾 Pedidos</NavItem>
+              <NavItem href="/painel/pedidos" active={active === 'pedidos'} locked={!lojaDigitalEnabled} badge={pedidosBadge} adminEmpresaId={adminEmpresaId}>🧾 Pedidos</NavItem>
               <NavItem href="/painel/interesses" active={active === 'interesses'} locked={!lojaDigitalEnabled} adminEmpresaId={adminEmpresaId}>🔔 Interesses</NavItem>
               <NavItem href="/painel/mensagens" active={active === 'mensagens'} locked={!crmEnabled} badge={mensagensBadge} adminEmpresaId={adminEmpresaId}>💬 Mensagens</NavItem>
               <NavItem href="/atendimento" active={false} locked={!crmEnabled} adminEmpresaId={adminEmpresaId}>🎧 Modo Atendimento</NavItem>
@@ -300,7 +301,7 @@ export default function EmpresaShell({
           <Link key={t.key} href={withAdmin(t.href, isPessoal ? undefined : adminEmpresaId)} className={`es-tab ${active === t.key ? 'on' : ''}`}>
             <span className="es-tab-ico">{t.ico}</span>
             <span className="es-tab-lbl">{t.lbl}</span>
-            {!!t.badge && <span className="es-tab-dot" />}
+            {!!t.badge && <span className="es-tab-dot">{t.badge > 99 ? '99+' : t.badge}</span>}
           </Link>
         ))}
         <Link href={withAdmin('/painel/mais', isPessoal ? undefined : adminEmpresaId)} className={`es-tab ${maisActive ? 'on' : ''}`}>

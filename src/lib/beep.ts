@@ -2,20 +2,44 @@
 // passava despercebido na correria da cozinha. Onda quadrada (mais "elétrica"/
 // alarme que sine) + volume bem mais alto + 2 toques em par, repetidos, pra
 // ficar com cara de campainha de pedido chegando, não de notificação discreta.
+//
+// AudioContext único e reaproveitado (não um novo por beep) — celular
+// (Safari/Chrome Android) só libera áudio depois de um gesto do usuário na
+// página, e um contexto criado "do nada" dentro do callback do realtime
+// (pedido chegando via WebSocket, sem gesto nenhum) nasce suspenso e nunca
+// toca som. unlockAudio() é chamado no primeiro toque/clique na tela do
+// painel (ver src/app/painel/layout.tsx) pra destravar esse mesmo contexto
+// antes do primeiro pedido chegar — achado real do Ricardo testando no
+// celular da Vivi, set/2026: chegou pedido, não fez barulho nenhum.
+let ctx: AudioContext | null = null
+function getCtx(): AudioContext | null {
+  try {
+    if (!ctx) ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+    return ctx
+  } catch { return null }
+}
+
+export function unlockAudio() {
+  const c = getCtx()
+  if (c && c.state === 'suspended') c.resume().catch(() => {})
+}
+
 export function beep() {
   try {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
-    const master = ctx.createGain()
+    const c = getCtx()
+    if (!c) return
+    if (c.state === 'suspended') c.resume().catch(() => {})
+    const master = c.createGain()
     master.gain.value = 0.55
-    master.connect(ctx.destination)
+    master.connect(c.destination)
 
     function note(freq: number, start: number, dur: number) {
-      const osc = ctx.createOscillator()
-      const g = ctx.createGain()
+      const osc = c!.createOscillator()
+      const g = c!.createGain()
       osc.type = 'square'
       osc.frequency.value = freq
       osc.connect(g); g.connect(master)
-      const t0 = ctx.currentTime + start
+      const t0 = c!.currentTime + start
       g.gain.setValueAtTime(0, t0)
       g.gain.linearRampToValueAtTime(1, t0 + 0.012)
       g.gain.linearRampToValueAtTime(0, t0 + dur)

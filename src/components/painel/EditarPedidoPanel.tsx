@@ -151,14 +151,30 @@ export default function EditarPedidoPanel({ pedido, companyId, onClose, onSaved 
   return (
     <div className="ep-overlay" onClick={onClose}>
       <style>{`
-        .ep-overlay{ position:fixed;inset:0;background:rgba(10,8,6,.55);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px; }
-        .ep-panel{ background:#fff;border-radius:18px;width:100%;max-width:1180px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.35);font-family:'Archivo',sans-serif;color:var(--ink); }
-        .ep-hd{ display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid #EDE8E0;flex:none; }
-        .ep-hd-num{ font-family:'Anton',sans-serif;font-size:17px;letter-spacing:.5px; }
-        .ep-timer{ display:flex;align-items:center;gap:6px;background:#F5F6F2;color:#6E6656;font-size:11.5px;font-weight:700;padding:5px 10px;border-radius:20px;flex:none; }
-        .ep-close{ margin-left:auto;width:32px;height:32px;border-radius:9px;border:1.5px solid #E6E0D2;background:#fff;color:var(--ink);font-size:15px;cursor:pointer;flex:none; }
-        .ep-body{ flex:1;overflow-y:auto;padding:16px 20px;display:grid;grid-template-columns:270px 1fr 290px;gap:12px;align-items:start; }
-        .ep-footer{ flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 20px;border-top:1px solid #EDE8E0; }
+        /* Mobile primeiro (igual o resto do painel — corte em 768px): tela
+           cheia, 1 coluna só, sem o "cartão flutuante" que sobrava largura
+           no celular (achado real do Ricardo testando no celular da Vivi,
+           set/2026). O layout de 3 colunas lado a lado é só a versão
+           >=768px, não o padrão. */
+        .ep-overlay{ position:fixed;inset:0;background:rgba(10,8,6,.55);z-index:200;display:flex;align-items:center;justify-content:center;padding:0; }
+        .ep-panel{ background:#fff;border-radius:0;width:100%;max-width:100%;max-height:100vh;min-width:0;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.35);font-family:'Archivo',sans-serif;color:var(--ink); }
+        .ep-hd{ display:flex;align-items:center;gap:10px;padding:14px 14px;border-bottom:1px solid #EDE8E0;flex:none;min-width:0; }
+        .ep-hd-num{ font-family:'Anton',sans-serif;font-size:15px;letter-spacing:.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+        .ep-timer{ display:flex;align-items:center;gap:5px;background:#F5F6F2;color:#6E6656;font-size:10.5px;font-weight:700;padding:5px 8px;border-radius:20px;flex:none;white-space:nowrap; }
+        .ep-close{ margin-left:0;width:30px;height:30px;border-radius:9px;border:1.5px solid #E6E0D2;background:#fff;color:var(--ink);font-size:15px;cursor:pointer;flex:none; }
+        .ep-body{ flex:1;overflow-y:auto;overflow-x:hidden;padding:12px;display:grid;grid-template-columns:1fr;gap:10px;align-items:start; }
+        .ep-footer{ flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-top:1px solid #EDE8E0; }
+        @media(min-width:768px){
+          .ep-overlay{ padding:16px; }
+          .ep-panel{ border-radius:18px;max-width:1180px;max-height:92vh; }
+          .ep-hd{ gap:12px;padding:16px 20px; }
+          .ep-hd-num{ font-size:17px; }
+          .ep-timer{ font-size:11.5px;padding:5px 10px; }
+          .ep-close{ width:32px;height:32px;margin-left:auto; }
+          .ep-body{ padding:16px 20px;grid-template-columns:270px 1fr 290px;gap:12px; }
+          .ep-footer{ padding:13px 20px; }
+          .ep-sec-produtos{ grid-row:span 2; }
+        }
         .ep-err{ color:var(--alert);font-size:12px;font-weight:600; }
         .ep-btn{ border:none;border-radius:9px;padding:11px 18px;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit; }
         .ep-btn-primary{ background:var(--ink);color:var(--sign); }
@@ -168,7 +184,7 @@ export default function EditarPedidoPanel({ pedido, companyId, onClose, onSaved 
         .ep-sec{ background:#F5F6F2;border-radius:12px;padding:13px 13px 14px;border-left:4px solid transparent; }
         .ep-sec h4{ margin:0 0 9px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em; }
         .ep-sec-cliente{ border-left-color:var(--alert); } .ep-sec-cliente h4{ color:var(--alert); }
-        .ep-sec-produtos{ border-left-color:#7A3FB0;grid-row:span 2; } .ep-sec-produtos h4{ color:#7A3FB0; }
+        .ep-sec-produtos{ border-left-color:#7A3FB0; } .ep-sec-produtos h4{ color:#7A3FB0; }
         .ep-sec-endereco{ border-left-color:var(--info); } .ep-sec-endereco h4{ color:var(--info); }
         .ep-sec-agenda{ border-left-color:#0E7C86; } .ep-sec-agenda h4{ color:#0E7C86; }
         .ep-sec-pagamento{ border-left-color:var(--open); } .ep-sec-pagamento h4{ color:var(--open); }
@@ -212,8 +228,6 @@ export default function EditarPedidoPanel({ pedido, companyId, onClose, onSaved 
         .ep-detail-confirm{ width:100%;margin-top:14px;padding:12px;border-radius:9px;border:none;background:var(--ink);color:var(--sign);font-weight:800;font-size:13px;cursor:pointer; }
         .ep-detail-confirm:disabled{ opacity:.5; }
 
-        @media(max-width:1024px){ .ep-body{ grid-template-columns:1fr 1fr; } .ep-sec-produtos{ grid-column:span 2;grid-row:auto; } }
-        @media(max-width:680px){ .ep-body{ grid-template-columns:1fr;padding:12px; } .ep-sec-produtos{ grid-column:auto; } .ep-panel{ max-height:100vh;border-radius:0; } }
       `}</style>
 
       <div className="ep-panel" onClick={e => e.stopPropagation()}>

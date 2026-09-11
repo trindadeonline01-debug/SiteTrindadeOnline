@@ -19,7 +19,8 @@ const PAYMENT_LABELS: Record<string, string> = {
   pix: 'Pix', dinheiro: 'Dinheiro', cartao: 'Cartão', cartao_credito: 'Cartão de crédito', cartao_debito: 'Cartão de débito',
   vale_refeicao: 'Vale-refeição', vale_alimentacao: 'Vale-alimentação', picpay: 'PicPay',
 }
-type FreteInfo = { fee: number; blocked: boolean; reason?: string }
+type TempoInfo = { prepMin: number; travelMin: number | null; min: number; max: number }
+type FreteInfo = { fee: number; blocked: boolean; reason?: string; tempo?: TempoInfo | null }
 type CartLine = { key: string; produtoId: string; name: string; modifiers: { name: string; price: number }[]; unitPrice: number; qty: number }
 
 export default function CardapioClient({ params }: { params: Promise<{ slug: string }> }) {
@@ -168,7 +169,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
       body: JSON.stringify({ company_id: company.id, bairro: cepData.bairro, cidade: cepData.localidade, uf: cepData.uf, logradouro: cepData.logradouro, numero }),
     }).then(r => r.json()).then(data => {
       if (cancelled) return
-      setFreteInfo(data?.ok ? { fee: Number(data.fee) || 0, blocked: !!data.blocked, reason: data.reason } : null)
+      setFreteInfo(data?.ok ? { fee: Number(data.fee) || 0, blocked: !!data.blocked, reason: data.reason, tempo: data.tempo || null } : null)
     }).catch(() => { if (!cancelled) setFreteInfo(null) })
       .finally(() => { if (!cancelled) setFreteLoading(false) })
     return () => { cancelled = true }
@@ -792,6 +793,11 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
                     {freteBlocked && (
                       <div style={{ marginTop: 8, padding: '10px 12px', borderRadius: 10, background: '#FBEAEA', color: '#A83232', fontSize: 11.5, fontWeight: 600 }}>
                         🚫 {freteInfo?.reason || 'Não entregamos nesse endereço no momento.'}
+                      </div>
+                    )}
+                    {!freteLoading && !freteBlocked && freteInfo?.tempo && (
+                      <div style={{ marginTop: 8, fontSize: 11.5, fontWeight: 700, color: '#157A52' }}>
+                        🕒 Chega em {freteInfo.tempo.min}–{freteInfo.tempo.max} min
                       </div>
                     )}
                   </>

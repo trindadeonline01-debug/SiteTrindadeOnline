@@ -11,7 +11,7 @@ type Company = {
   id: string; name: string; slug: string; address: string; loja_digital_enabled: boolean
   loja_taxa_entrega: number; loja_pedido_minimo: number; loja_payment_methods: string[]
   loja_taxa_metodo: TaxaMetodo; loja_frete_gratis_acima: number | null; loja_taxa_fora_area: number | null
-  loja_lat: number | null; loja_lng: number | null
+  loja_lat: number | null; loja_lng: number | null; loja_tempo_preparo_min: number
   crm_whatsapp_enabled: boolean; entrega_enabled: boolean
 }
 type Categoria = { id: string; name: string }
@@ -76,6 +76,7 @@ export default function CompartilharPage() {
   const [selProd, setSelProd] = useState('')
 
   const [minimoInput, setMinimoInput] = useState('0')
+  const [tempoPreparoInput, setTempoPreparoInput] = useState('20')
   const [freteGratisInput, setFreteGratisInput] = useState('0')
   const [foraAreaInput, setForaAreaInput] = useState('')
   const [bairros, setBairros] = useState<BairroRow[]>(BAIRROS_SAO_GONCALO.map(name => ({ name, price: '', disabled: false })))
@@ -97,7 +98,7 @@ export default function CompartilharPage() {
     if (!shellCompany) { setCompany(null); setLoading(false); return }
     supabase
       .from('companies')
-      .select('id, name, slug, address, loja_digital_enabled, loja_taxa_entrega, loja_pedido_minimo, loja_payment_methods, loja_taxa_metodo, loja_frete_gratis_acima, loja_taxa_fora_area, loja_lat, loja_lng, crm_whatsapp_enabled, entrega_enabled, trial_modules_until')
+      .select('id, name, slug, address, loja_digital_enabled, loja_taxa_entrega, loja_pedido_minimo, loja_payment_methods, loja_taxa_metodo, loja_frete_gratis_acima, loja_taxa_fora_area, loja_lat, loja_lng, loja_tempo_preparo_min, crm_whatsapp_enabled, entrega_enabled, trial_modules_until')
       .eq('id', shellCompany.id)
       .maybeSingle()
       .then(async ({ data: comp }) => {
@@ -110,6 +111,7 @@ export default function CompartilharPage() {
         })
         setViewingMethod((comp.loja_taxa_metodo as TaxaMetodo) || 'bairro')
         setMinimoInput(Number(comp.loja_pedido_minimo || 0).toFixed(2).replace('.', ','))
+        setTempoPreparoInput(String(comp.loja_tempo_preparo_min || 20))
         setFreteGratisInput(Number(comp.loja_frete_gratis_acima || 0).toFixed(2).replace('.', ','))
         setForaAreaInput(fmtPt(comp.loja_taxa_fora_area))
         setPaymentMethods(comp.loja_payment_methods?.length ? comp.loja_payment_methods : ['pix', 'dinheiro', 'cartao_credito'])
@@ -210,8 +212,9 @@ export default function CompartilharPage() {
     const loja_pedido_minimo = parsePt(minimoInput)
     const loja_frete_gratis_acima = parsePt(freteGratisInput)
     const loja_taxa_fora_area = foraAreaInput.trim() === '' ? null : parsePt(foraAreaInput)
+    const loja_tempo_preparo_min = Math.max(1, parseInt(tempoPreparoInput) || 20)
 
-    await supabase.from('companies').update({ loja_pedido_minimo, loja_frete_gratis_acima, loja_taxa_fora_area }).eq('id', company.id)
+    await supabase.from('companies').update({ loja_pedido_minimo, loja_frete_gratis_acima, loja_taxa_fora_area, loja_tempo_preparo_min }).eq('id', company.id)
 
     await supabase.from('company_delivery_bairros').delete().eq('company_id', company.id)
     const bairroRows = bairros
@@ -479,6 +482,14 @@ export default function CompartilharPage() {
                 <div className="crm-config-field"><label>Frete grátis a partir de (R$)</label><input value={freteGratisInput} onChange={e => setFreteGratisInput(e.target.value)} /></div>
               </div>
               <div className="crm-config-sub" style={{ margin: 0 }}>Pedido igual ou acima do valor de frete grátis não paga taxa — não importa o método escolhido abaixo. Deixe 0 se você não quiser oferecer frete grátis.</div>
+            </div>
+
+            <div className="entrega-card">
+              <div className="crm-config-title">⏱️ Tempo médio de preparo</div>
+              <div className="field-row">
+                <div className="crm-config-field" style={{ maxWidth: 140 }}><label>Minutos</label><input value={tempoPreparoInput} onChange={e => setTempoPreparoInput(e.target.value.replace(/\D/g, ''))} /></div>
+              </div>
+              <div className="crm-config-sub" style={{ margin: 0 }}>Some com o tempo de trajeto até o cliente pra mostrar uma estimativa de entrega no cardápio (ex: "35–50 min").</div>
             </div>
 
             <div className="crm-config-title" style={{ marginBottom: 10 }}>Como calcular a taxa de entrega?</div>

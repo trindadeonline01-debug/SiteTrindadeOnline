@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { moduleActive } from '@/lib/modules'
+import { PAINEL_NAV_GROUPS, isPainelNavItemLocked } from '@/lib/painelNavItems'
 
 type Company = { id: string; name: string; slug: string; loja_digital_enabled: boolean; crm_whatsapp_enabled: boolean; entrega_enabled: boolean; trial_modules_until: string | null; plan: string }
 
@@ -51,6 +52,10 @@ export default function MaisPage() {
   if (!company) return null
 
   const initials = company.name.trim().slice(0, 2).toUpperCase()
+  const flags = { loja_digital_enabled: moduleActive(company.loja_digital_enabled, company.trial_modules_until), crm_whatsapp_enabled: moduleActive(company.crm_whatsapp_enabled, company.trial_modules_until), entrega_enabled: moduleActive(company.entrega_enabled, company.trial_modules_until) }
+  // Badge é dado dinâmico (contagem), não faz parte da lista estática
+  // compartilhada com a gaveta do menu hambúrguer — mapeado à parte aqui.
+  const badgeByHref: Record<string, number> = { '/painel?tab=avaliacoes': avaliacoesBadge, '/painel/clientes': clientesCount }
 
   return (
     <div className="mais-page">
@@ -88,41 +93,16 @@ export default function MaisPage() {
           <div className="company-arrow">›</div>
         </a>
 
-        <div className="sectlbl">Minha loja</div>
-        <div className="list">
-          <a className="item" href="/painel?tab=perfil"><span className="item-ico">✏️</span><span className="item-lbl">Perfil e fotos</span><span className="item-chev">›</span></a>
-          <a className="item" href="/painel?tab=avaliacoes"><span className="item-ico">⭐</span><span className="item-lbl">Avaliações</span>{avaliacoesBadge > 0 && <span className="item-badge">{avaliacoesBadge}</span>}<span className="item-chev">›</span></a>
-          <a className="item" href="/painel?tab=destaques"><span className="item-ico">🌟</span><span className="item-lbl">Destaques</span><span className="item-chev">›</span></a>
-          <a className="item" href="/painel?tab=banners"><span className="item-ico">🖼️</span><span className="item-lbl">Banners</span><span className="item-chev">›</span></a>
-        </div>
-
-        <div className="sectlbl">Cardápio &amp; vendas</div>
-        <div className="list">
-          <Item href="/painel/catalogo" icon="📋" label="Cardápio" locked={!moduleActive(company.loja_digital_enabled, company.trial_modules_until)} />
-          <Item href="/painel/compartilhar" icon="⚙️" label="Configurar cardápio" locked={!moduleActive(company.loja_digital_enabled, company.trial_modules_until)} />
-          <Item href="/painel/pedidos" icon="🧾" label="Pedidos" locked={!moduleActive(company.loja_digital_enabled, company.trial_modules_until)} />
-          <Item href="/painel/interesses" icon="🔔" label="Interesses" locked={!moduleActive(company.loja_digital_enabled, company.trial_modules_until)} />
-          <Item href="/painel/cozinha" icon="🍳" label="Cozinha" locked={!moduleActive(company.loja_digital_enabled, company.trial_modules_until)} />
-          <Item href="/painel/relatorios" icon="📈" label="Relatórios" locked={!moduleActive(company.loja_digital_enabled, company.trial_modules_until)} />
-        </div>
-
-        <div className="sectlbl">Entrega</div>
-        <div className="list">
-          <Item href="/painel/entrega" icon="🏍️" label="Entrega" locked={!moduleActive(company.entrega_enabled, company.trial_modules_until)} />
-          <Item href="/painel/motoboys" icon="🏍️" label="Meus motoboys" locked={!moduleActive(company.loja_digital_enabled, company.trial_modules_until)} />
-        </div>
-
-        <div className="sectlbl">Relacionamento</div>
-        <div className="list">
-          <Item href="/painel/clientes" icon="👥" label="Clientes" badge={clientesCount} locked={!moduleActive(company.crm_whatsapp_enabled, company.trial_modules_until)} />
-        </div>
-
-        <div className="sectlbl">Marketing</div>
-        <div className="list">
-          <a className="item" href="/painel?tab=cupons"><span className="item-ico">🎟️</span><span className="item-lbl">Cupons</span><span className="item-chev">›</span></a>
-          <a className="item" href="/painel?tab=promocoes"><span className="item-ico">🏷️</span><span className="item-lbl">Promoções</span><span className="item-chev">›</span></a>
-          <a className="item" href="/painel?tab=plano"><span className="item-ico">💳</span><span className="item-lbl">Plano</span><span className="item-chev">›</span></a>
-        </div>
+        {PAINEL_NAV_GROUPS.map(group => (
+          <div key={group.label}>
+            <div className="sectlbl">{group.label}</div>
+            <div className="list">
+              {group.items.map(item => (
+                <Item key={item.href} href={item.href} icon={item.icon} label={item.label} badge={badgeByHref[item.href]} locked={isPainelNavItemLocked(item, flags)} />
+              ))}
+            </div>
+          </div>
+        ))}
 
         <div className="sectlbl">Conta</div>
         <div className="list">

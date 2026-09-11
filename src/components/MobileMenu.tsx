@@ -2,6 +2,8 @@
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { moduleActive } from '@/lib/modules'
+import { PAINEL_NAV_GROUPS, isPainelNavItemLocked } from '@/lib/painelNavItems'
 import CartIndicator from '@/components/CartIndicator'
 import SilentErrorBoundary from '@/components/SilentErrorBoundary'
 
@@ -21,7 +23,7 @@ const COMUNIDADE_LINKS = [
   { href: '/achados-perdidos', icon: '🔍', label: 'Achados & Perdidos' },
 ]
 
-type Business = { id: string; name: string; slug: string }
+type Business = { id: string; name: string; slug: string; loja_digital_enabled: boolean; crm_whatsapp_enabled: boolean; entrega_enabled: boolean; trial_modules_until: string | null }
 
 export default function MobileMenu() {
   const [open, setOpen] = useState(false)
@@ -41,7 +43,7 @@ export default function MobileMenu() {
       setUserType(data?.user_type || null)
       const { data: team } = await supabase.from('production_team').select('id').eq('user_id', session.user.id).eq('status', 'ativo').maybeSingle()
       setIsProdTeam(!!team)
-      const { data: mem } = await supabase.from('membership').select('business:companies(id,name,slug)').eq('person_id', session.user.id)
+      const { data: mem } = await supabase.from('membership').select('business:companies(id,name,slug,loja_digital_enabled,crm_whatsapp_enabled,entrega_enabled,trial_modules_until)').eq('person_id', session.user.id)
       setBusinesses(((mem || []) as any[]).map(m => m.business).filter(Boolean))
       const { count } = await supabase.from('listings').select('id', { count: 'exact', head: true }).eq('user_id', session.user.id)
       setHasListings(!!count)
@@ -94,6 +96,7 @@ export default function MobileMenu() {
         .mm-link{display:flex;align-items:center;gap:12px;padding:12px 16px;text-decoration:none;color:var(--ink-2);font-size:14px;font-weight:600;font-family:'Archivo',sans-serif;}
         .mm-link:active{background:var(--concrete-2);}
         .mm-link.active{color:var(--sign-dark);background:var(--concrete-2);}
+        .mm-link-locked{opacity:.55;}
         .mm-link-icon{font-size:18px;width:22px;text-align:center;flex-shrink:0;}
         .mm-divider{height:1px;background:var(--line);margin:8px 0;}
         .mm-sair{color:var(--alert);}
@@ -194,25 +197,53 @@ export default function MobileMenu() {
               <span className="mm-link-icon">🏠</span> Início
             </a>
 
-            <div className="mm-section-label">Empresas</div>
-            {EMPRESAS_LINKS.map(p => (
-              <a key={p.href} className={`mm-link ${pathname === p.href ? 'active' : ''}`} href={p.href}>
-                <span className="mm-link-icon">{p.icon}</span> {p.label}
-              </a>
-            ))}
+            {inPainel && businesses.length > 0 ? (
+              // No modo empresarial mostra a navegação do painel (mesma lista
+              // de /painel/mais) em vez das categorias públicas — achado
+              // real do Ricardo, set/2026: o menu lateral trocava de aba mas
+              // continuava mostrando Comércios/Gastronomia/Ofertas/Comunidade,
+              // que não fazem sentido gerenciando a própria empresa.
+              (() => {
+                const biz = businesses[0]
+                const flags = { loja_digital_enabled: moduleActive(biz.loja_digital_enabled, biz.trial_modules_until), crm_whatsapp_enabled: moduleActive(biz.crm_whatsapp_enabled, biz.trial_modules_until), entrega_enabled: moduleActive(biz.entrega_enabled, biz.trial_modules_until) }
+                return PAINEL_NAV_GROUPS.map(group => (
+                  <div key={group.label}>
+                    <div className="mm-divider" />
+                    <div className="mm-section-label">{group.label}</div>
+                    {group.items.map(item => {
+                      const locked = isPainelNavItemLocked(item, flags)
+                      return (
+                        <a key={item.href} className={`mm-link ${pathname === item.href ? 'active' : ''} ${locked ? 'mm-link-locked' : ''}`} href={locked ? '/painel?tab=plano' : item.href}>
+                          <span className="mm-link-icon">{locked ? '🔒' : item.icon}</span> {item.label}
+                        </a>
+                      )
+                    })}
+                  </div>
+                ))
+              })()
+            ) : (
+              <>
+                <div className="mm-section-label">Empresas</div>
+                {EMPRESAS_LINKS.map(p => (
+                  <a key={p.href} className={`mm-link ${pathname === p.href ? 'active' : ''}`} href={p.href}>
+                    <span className="mm-link-icon">{p.icon}</span> {p.label}
+                  </a>
+                ))}
 
-            <div className="mm-divider" />
-            <a className={`mm-link ${pathname === '/ofertas' ? 'active' : ''}`} href="/ofertas">
-              <span className="mm-link-icon">🏷️</span> Ofertas
-            </a>
+                <div className="mm-divider" />
+                <a className={`mm-link ${pathname === '/ofertas' ? 'active' : ''}`} href="/ofertas">
+                  <span className="mm-link-icon">🏷️</span> Ofertas
+                </a>
 
-            <div className="mm-divider" />
-            <div className="mm-section-label">Comunidade</div>
-            {COMUNIDADE_LINKS.map(p => (
-              <a key={p.href} className={`mm-link ${pathname === p.href ? 'active' : ''}`} href={p.href}>
-                <span className="mm-link-icon">{p.icon}</span> {p.label}
-              </a>
-            ))}
+                <div className="mm-divider" />
+                <div className="mm-section-label">Comunidade</div>
+                {COMUNIDADE_LINKS.map(p => (
+                  <a key={p.href} className={`mm-link ${pathname === p.href ? 'active' : ''}`} href={p.href}>
+                    <span className="mm-link-icon">{p.icon}</span> {p.label}
+                  </a>
+                ))}
+              </>
+            )}
 
             {user ? (
               <>

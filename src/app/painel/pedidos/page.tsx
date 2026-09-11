@@ -129,6 +129,15 @@ export default function PedidosPage() {
   const [mobileStage, setMobileStage] = useState<MobileStageKey>('recebido')
   const [openId, setOpenId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  // Coluna recolhida no board desktop — pedido do Ricardo, set/2026: nunca
+  // pode ter scroll lateral no board, as colunas têm que sempre caber
+  // 100% na tela (mockup aprovado). Grid com fração pra cada coluna
+  // aberta + uma faixa estreita fixa pra cada recolhida, em vez de largura
+  // fixa por coluna — assim elas encolhem sozinhas conforme a tela.
+  const [collapsedCols, setCollapsedCols] = useState<Set<string>>(new Set())
+  function toggleColCollapse(key: string) {
+    setCollapsedCols(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n })
+  }
   const companyIdRef = useRef('')
   const [deliveryCalled, setDeliveryCalled] = useState<Set<string>>(new Set())
   const [motoErrors, setMotoErrors] = useState<Record<string, string>>({})
@@ -659,13 +668,26 @@ export default function PedidosPage() {
           .pd-search{ max-width:280px; }
           .pd-autotoggle{ margin-left:auto; }
           .pd-newbtn{ padding:10px 20px; }
-          .pd-board{ display:flex;gap:14px;overflow-x:auto;padding:20px 32px 28px; align-items:flex-start; }
-          .pd-board-col{ flex:0 0 250px;background:#EFEBE1;border-radius:14px;padding:10px;max-height:calc(100vh - 190px);display:flex;flex-direction:column;border-top:4px solid var(--accent); }
-          .pd-board-colhead{ display:flex;justify-content:space-between;align-items:center;padding:4px 6px 10px;font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--accent); }
-          .pd-board-count{ background:var(--accent);color:#fff;font-size:11px;font-weight:800;padding:1px 8px;border-radius:20px; }
-          .pd-board-scroll{ overflow-y:auto;flex:1; }
+          /* display:grid em vez de flex+overflow-x:auto — sem scroll
+             lateral nunca, as colunas dividem a largura disponível (uma
+             fração cada, definida via JS em gridTemplateColumns) e
+             encolhem sozinhas conforme a tela fica menor. */
+          .pd-board{ display:grid;gap:10px;padding:20px 24px 28px;align-items:start; }
+          .pd-board-col{ min-width:0;background:#EFEBE1;border-radius:14px;padding:10px;max-height:calc(100vh - 190px);display:flex;flex-direction:column;border-top:4px solid var(--accent); }
+          .pd-board-colhead{ display:flex;align-items:center;gap:4px;padding:4px 4px 10px;font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--accent); }
+          .pd-board-colhead-lbl{ flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+          .pd-board-count{ background:var(--accent);color:#fff;font-size:11px;font-weight:800;padding:1px 8px;border-radius:20px;flex:none; }
+          .pd-board-collapse{ width:20px;height:20px;border-radius:6px;border:none;background:rgba(0,0,0,.06);color:var(--accent);cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;flex:none;padding:0; }
+          .pd-board-scroll{ overflow-y:auto;overflow-x:hidden;flex:1;min-height:0; }
           .pd-board .pd-card{ margin-bottom:8px; }
           .pd-board-empty-msg{ text-align:center;color:#A79E8B;font-size:11.5px;padding:20px 8px; }
+          /* Coluna recolhida: tira estreita fixa, só rótulo (na vertical) +
+             contador — pedido do Ricardo, set/2026. */
+          .pd-board-col.collapsed{ padding:8px 4px; }
+          .pd-board-col.collapsed .pd-board-colhead{ flex-direction:column;padding:0;gap:8px; }
+          .pd-board-col.collapsed .pd-board-colhead-lbl{ writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;font-size:10.5px;flex:none;overflow:visible; }
+          .pd-board-col.collapsed .pd-board-count{ writing-mode:horizontal-tb; }
+          .pd-board-col.collapsed .pd-board-scroll{ display:none; }
         }
         .pd-card-late{ border:1.5px solid #C43D3D !important; }
         .pd-late-flag{ color:#C43D3D;font-weight:800;font-size:10.5px;margin-top:4px; }
@@ -717,25 +739,47 @@ export default function PedidosPage() {
         <button className="pd-newbtn" onClick={openNovoPedido}>+ Novo pedido</button>
       </div>
 
-      <div className="pd-board">
-        {BOARD_COLUMNS.map(status => {
-          const items = searched.filter(p => p.status === status)
-          return (
-            <div className="pd-board-col" key={status} style={{ '--accent': STATUS_COLOR[status].fg } as React.CSSProperties}>
-              <div className="pd-board-colhead"><span>{STATUS_LABEL[status]}</span><span className="pd-board-count">{items.length}</span></div>
-              <div className="pd-board-scroll">
-                {items.length === 0 ? <div className="pd-board-empty-msg">Nenhum pedido</div> : items.map(renderCard)}
-              </div>
-            </div>
-          )
-        })}
-        {cancelados.length > 0 && (
-          <div className="pd-board-col" key="cancelado" style={{ '--accent': '#C43D3D' } as React.CSSProperties}>
-            <div className="pd-board-colhead"><span>Cancelados</span><span className="pd-board-count">{cancelados.length}</span></div>
-            <div className="pd-board-scroll">{cancelados.map(renderCard)}</div>
+      {(() => {
+        const showCancelados = cancelados.length > 0
+        const colKeys: string[] = [...BOARD_COLUMNS, ...(showCancelados ? ['cancelado'] : [])]
+        // Uma fração igual pra cada coluna aberta, faixa fixa estreita pra
+        // cada recolhida — nunca soma mais que a largura disponível, então
+        // nunca precisa de scroll lateral (pedido do Ricardo, set/2026).
+        const gridTemplateColumns = colKeys.map(k => collapsedCols.has(k) ? '44px' : 'minmax(0,1fr)').join(' ')
+        return (
+          <div className="pd-board" style={{ gridTemplateColumns }}>
+            {BOARD_COLUMNS.map(status => {
+              const items = searched.filter(p => p.status === status)
+              const isCollapsed = collapsedCols.has(status)
+              return (
+                <div className={`pd-board-col ${isCollapsed ? 'collapsed' : ''}`} key={status} style={{ '--accent': STATUS_COLOR[status].fg } as React.CSSProperties}>
+                  <div className="pd-board-colhead">
+                    <button className="pd-board-collapse" onClick={() => toggleColCollapse(status)} title={isCollapsed ? 'Expandir coluna' : 'Recolher coluna'}>{isCollapsed ? '›' : '‹'}</button>
+                    <span className="pd-board-colhead-lbl">{STATUS_LABEL[status]}</span>
+                    <span className="pd-board-count">{items.length}</span>
+                  </div>
+                  <div className="pd-board-scroll">
+                    {items.length === 0 ? <div className="pd-board-empty-msg">Nenhum pedido</div> : items.map(renderCard)}
+                  </div>
+                </div>
+              )
+            })}
+            {showCancelados && (() => {
+              const isCollapsed = collapsedCols.has('cancelado')
+              return (
+                <div className={`pd-board-col ${isCollapsed ? 'collapsed' : ''}`} key="cancelado" style={{ '--accent': '#C43D3D' } as React.CSSProperties}>
+                  <div className="pd-board-colhead">
+                    <button className="pd-board-collapse" onClick={() => toggleColCollapse('cancelado')} title={isCollapsed ? 'Expandir coluna' : 'Recolher coluna'}>{isCollapsed ? '›' : '‹'}</button>
+                    <span className="pd-board-colhead-lbl">Cancelados</span>
+                    <span className="pd-board-count">{cancelados.length}</span>
+                  </div>
+                  <div className="pd-board-scroll">{cancelados.map(renderCard)}</div>
+                </div>
+              )
+            })()}
           </div>
-        )}
-      </div>
+        )
+      })()}
 
       {npOpen && (
         <div className="np-overlay" onClick={closeNovoPedido}>

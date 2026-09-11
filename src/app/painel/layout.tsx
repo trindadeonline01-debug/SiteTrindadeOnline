@@ -5,6 +5,8 @@ import { supabase } from '@/lib/supabase'
 import { moduleActive } from '@/lib/modules'
 import { beep, unlockAudio } from '@/lib/beep'
 import { autoImprimirPedido } from '@/lib/autoprint'
+import { refreshSessionOnce } from '@/lib/authRefresh'
+import { useRealtimeResync } from '@/hooks/useRealtimeResync'
 import EmpresaShell, { type EmpresaNavKey } from '@/components/EmpresaShell'
 import { PainelShellContext } from '@/contexts/PainelShellContext'
 
@@ -155,9 +157,17 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
   // de propósito: o layout persiste entre navegações, então continua
   // imprimindo mesmo com outra tela do painel aberta (achado real do
   // Ricardo, set/2026 — antes só imprimia com a tela de Pedidos em foco).
+  // Recria o canal (e força renovar o token) sempre que a aba volta a
+  // ficar visível/em foco/com internet — celular com tela apagada deixa o
+  // WebSocket "vivo" mas surdo, sem erro nenhum, e foi exatamente o que
+  // aconteceu na loja da Vivi (set/2026): pedido chegou sem som e sem
+  // atualizar a tela, só voltou ao normal com F5. Ver useRealtimeResync.
+  const resyncTick = useRealtimeResync()
   useEffect(() => {
     if (!company?.id) return
-    const channel = supabase.channel(`pedidos-print-${company.id}`)
+    refreshSessionOnce().catch(() => {})
+    refreshPedidosBadge(company.id)
+    const channel = supabase.channel(`pedidos-print-${company.id}-${resyncTick}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'loja_pedidos', filter: `company_id=eq.${company.id}` }, payload => {
         beep()
         refreshPedidosBadge(company.id)
@@ -173,7 +183,7 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
       .subscribe()
     return () => { supabase.removeChannel(channel) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [company?.id, company?.name])
+  }, [company?.id, company?.name, resyncTick])
 
   if (bare) return <>{children}</>
 

@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { refreshSessionOnce } from '@/lib/authRefresh'
 import { qzListPrinters, qzPrintRaw, buildReceipt, buildKitchenTicket } from '@/lib/qzPrint'
 import { fetchPedidoComItensComRetry } from '@/lib/autoprint'
+import { useRealtimeResync } from '@/hooks/useRealtimeResync'
 import { usePainelShell } from '@/contexts/PainelShellContext'
 import { npGroupContribution, type NpOpcao, type NpGrupo, type NpProduto, type NpCartLine } from '@/lib/produtoCart'
 import EditarPedidoPanel from '@/components/painel/EditarPedidoPanel'
@@ -157,7 +158,6 @@ export default function PedidosPage() {
   useEffect(() => {
     if (shellLoading) return
     if (!company || !company.loja_digital_enabled) { window.location.href = '/painel/compartilhar'; return }
-    let unsub: (() => void) | null = null
     ;(async () => {
       setCompanyId(company.id); companyIdRef.current = company.id
       setCompanyName(company.name)
@@ -167,19 +167,30 @@ export default function PedidosPage() {
       setMotoboys((mb || []) as LojaMotoboy[])
       await loadAll(company.id)
       setLoading(false)
-
-      // Beep + impressão automática de pedido novo agora rodam no layout do
-      // painel (src/app/painel/layout.tsx), que persiste entre navegações —
-      // essa assinatura aqui só atualiza a lista visível na tela.
-      const channel = supabase.channel(`pedidos-${company.id}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'loja_pedidos', filter: `company_id=eq.${company.id}` }, () => {
-          loadAll(companyIdRef.current)
-        })
-        .subscribe()
-      unsub = () => supabase.removeChannel(channel)
     })()
-    return () => { if (unsub) unsub() }
   }, [shellLoading, company?.id])
+
+  // Canal realtime isolado do carregamento inicial de propósito, e recriado
+  // sempre que a aba volta a ficar visível/em foco/com internet — celular
+  // com a tela apagada deixa o WebSocket "vivo" mas surdo (sem erro nenhum,
+  // só para de entregar evento), e foi exatamente o que aconteceu na loja
+  // da Vivi (set/2026): pedido chegou sem avisar, só normalizou com F5. A
+  // rebusca da lista aqui embaixo garante que o pedido aparece na hora,
+  // mesmo que o canal antigo tenha perdido o evento por completo (não
+  // depende só dele se recuperar sozinho). Ver useRealtimeResync.
+  const resyncTick = useRealtimeResync()
+  useEffect(() => {
+    if (!companyId) return
+    refreshSessionOnce().catch(() => {})
+    loadAll(companyId)
+    const channel = supabase.channel(`pedidos-${companyId}-${resyncTick}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'loja_pedidos', filter: `company_id=eq.${companyId}` }, () => {
+        loadAll(companyIdRef.current)
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyId, resyncTick])
 
   async function loadAll(cid: string) {
     const { data } = await supabase.from('loja_pedidos').select('*, itens:loja_pedido_itens(*)').eq('company_id', cid).order('created_at', { ascending: false }).limit(100)

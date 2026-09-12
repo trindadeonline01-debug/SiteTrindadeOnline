@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { refreshSessionOnce } from '@/lib/authRefresh'
 import { usePainelShell } from '@/contexts/PainelShellContext'
 
-type Wallet = { credits: number; daily_paid_until: string | null }
+type Wallet = { credits: number; diasDisponiveis: number }
 type Precos = { today: string; dayType: 'util' | 'fds' | 'feriado'; diaria: number; entrega: number; pacoteDias: number; pacoteDesconto: number }
 type DStatus = 'buscando_motoboy' | 'a_caminho' | 'entregue' | 'cancelada' | 'sem_credito'
 type DOrder = {
@@ -12,7 +12,10 @@ type DOrder = {
   status: DStatus; fee: number; motoboy_name: string | null; delivery_code: string
   created_at: string; delivered_at: string | null
 }
+type LedgerKind = 'diaria' | 'compra_credito' | 'consumo' | 'diaria_consumo'
+type LedgerRow = { id: string; kind: LedgerKind; amount: number; credits_delta: number; delivery_order_id: string | null; created_at: string }
 type PixModal = { kind: 'diaria' | 'credito' | 'combo'; credits: number; dias: number; payment_id: string; qr: string | null; copy: string | null; value: number }
+type View = 'geral' | 'relatorio'
 
 const STATUS_LABEL: Record<DStatus, string> = {
   buscando_motoboy: 'Chamando motoboy', a_caminho: 'A caminho', entregue: 'Entregue', cancelada: 'Cancelada', sem_credito: 'Sem crédito',
@@ -21,6 +24,9 @@ const STATUS_COLOR: Record<DStatus, { bg: string; fg: string }> = {
   buscando_motoboy: { bg: '#FEF0E0', fg: '#B5690C' }, a_caminho: { bg: '#E8F0FE', fg: '#1A56B0' },
   entregue: { bg: '#E4F3EC', fg: '#157A52' }, cancelada: { bg: '#FBEAEA', fg: '#C43D3D' }, sem_credito: { bg: '#F0EDE8', fg: '#6E6656' },
 }
+const LEDGER_LABEL: Record<LedgerKind, string> = {
+  diaria: 'Compra de diária', compra_credito: 'Compra de crédito', consumo: 'Entrega confirmada (crédito)', diaria_consumo: 'Diária consumida',
+}
 function fmt(n: number) { return 'R$ ' + n.toFixed(2).replace('.', ',') }
 function timeAgo(iso: string) {
   const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
@@ -28,19 +34,24 @@ function timeAgo(iso: string) {
   if (mins < 60) return `${mins}min`
   return `${Math.floor(mins / 60)}h`
 }
+function fmtDataHora(iso: string) {
+  return new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+}
 
 export default function EntregaPage() {
   const { company, loading: shellLoading } = usePainelShell()
   const [loading, setLoading] = useState(true)
+  const [view, setView] = useState<View>('geral')
   const [companyId, setCompanyId] = useState('')
   const [companyName, setCompanyName] = useState('')
   const [crmEnabled, setCrmEnabled] = useState(false)
   const [lojaDigitalEnabled, setLojaDigitalEnabled] = useState(false)
-  const [wallet, setWallet] = useState<Wallet>({ credits: 0, daily_paid_until: null })
+  const [wallet, setWallet] = useState<Wallet>({ credits: 0, diasDisponiveis: 0 })
   const [precos, setPrecos] = useState<Precos | null>(null)
   const [diasSel, setDiasSel] = useState(1)
   const [creditosSel, setCreditosSel] = useState(0)
   const [orders, setOrders] = useState<DOrder[]>([])
+  const [ledger, setLedger] = useState<LedgerRow[] | null>(null)
   const [pixModal, setPixModal] = useState<PixModal | null>(null)
   const [paying, setPaying] = useState<string | null>(null)
   const [payError, setPayError] = useState('')
@@ -76,23 +87,30 @@ export default function EntregaPage() {
     return () => { supabase.removeChannel(channel); clearInterval(tickIv); if (pollRef.current) clearInterval(pollRef.current) }
   }, [shellLoading, company?.id])
 
+  useEffect(() => {
+    if (view === 'relatorio' && ledger === null && companyId) loadLedger(companyId)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, companyId])
+
   async function loadAll(cid: string) {
     await Promise.all([loadWallet(cid), loadOrders(cid)])
   }
   async function loadWallet(cid: string) {
-    const { data } = await supabase.from('company_delivery_wallet').select('credits, daily_paid_until').eq('company_id', cid).maybeSingle()
-    setWallet({ credits: data?.credits || 0, daily_paid_until: data?.daily_paid_until || null })
+    const { data } = await supabase.from('company_delivery_wallet').select('credits, dias_diaria_disponiveis').eq('company_id', cid).maybeSingle()
+    setWallet({ credits: data?.credits || 0, diasDisponiveis: data?.dias_diaria_disponiveis || 0 })
   }
   async function loadOrders(cid: string) {
     const since = new Date(); since.setHours(0, 0, 0, 0)
     const { data } = await supabase.from('delivery_orders').select('*').eq('company_id', cid).gte('created_at', since.toISOString()).order('created_at', { ascending: false })
     setOrders((data || []) as DOrder[])
   }
+  async function loadLedger(cid: string) {
+    const { data } = await supabase.from('delivery_credit_ledger').select('*').eq('company_id', cid).order('created_at', { ascending: false }).limit(100)
+    setLedger((data || []) as LedgerRow[])
+  }
 
-  const ativaHoje = !!(precos && wallet.daily_paid_until && wallet.daily_paid_until >= precos.today)
-  const diasFaltando = ativaHoje && wallet.daily_paid_until && precos
-    ? Math.round((new Date(wallet.daily_paid_until + 'T00:00:00Z').getTime() - new Date(precos.today + 'T00:00:00Z').getTime()) / 86400000) + 1
-    : 0
+  const diasDisponiveis = wallet.diasDisponiveis
+  const ativaHoje = diasDisponiveis > 0
 
   async function iniciarPagamento(kind: 'diaria' | 'credito' | 'combo', dias = 0, credits = 0) {
     setPayError('')
@@ -132,7 +150,7 @@ export default function EntregaPage() {
   }
 
   function comprar() {
-    const dias = ativaHoje ? 0 : diasSel
+    const dias = diasSel
     const credits = creditosSel
     if (dias === 0 && credits === 0) return
     const kind = dias > 0 && credits > 0 ? 'combo' : dias > 0 ? 'diaria' : 'credito'
@@ -140,7 +158,7 @@ export default function EntregaPage() {
   }
 
   const totalPreview = precos ? (() => {
-    const dias = ativaHoje ? 0 : diasSel
+    const dias = diasSel
     const diariaTotal = dias * precos.diaria
     const desconto = dias === precos.pacoteDias ? precos.pacoteDesconto : 0
     return Math.max(0, diariaTotal - desconto) + creditosSel * precos.entrega
@@ -185,14 +203,34 @@ export default function EntregaPage() {
 
   if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Archivo,sans-serif', color: '#A79E8B' }}>Carregando...</div>
 
+  const diariaOptions = precos ? [
+    { dias: 0, label: 'Nenhuma', price: 0 },
+    { dias: 1, label: 'Hoje', price: precos.diaria },
+    { dias: precos.pacoteDias, label: `Pacote — ${precos.pacoteDias} dias`, price: precos.diaria * precos.pacoteDias - precos.pacoteDesconto, save: precos.pacoteDesconto },
+  ] : []
+
   return (
     <>
     <div className="en-wrap">
       <style>{`
-        .en-wrap{ width:100%;max-width:560px;margin:0 auto;font-family:'Archivo',sans-serif;font-size:13px;color:var(--ink);padding:20px 14px 40px; }
-        .en-head{ margin-bottom:18px; }
-        .en-head h1{ font-family:'Anton',sans-serif;font-size:22px;letter-spacing:.5px;margin:0 0 4px; }
-        .en-head p{ font-size:12.5px;color:#6E6656;margin:0;line-height:1.5; }
+        /* Mobile primeiro (mesmo corte de 768px do resto do painel) — tela
+           cheia sem cartão flutuante estreito. A versão >=1024px usa duas
+           colunas de verdade em vez da coluna única esticada que sobrava
+           mobile em tela de desktop (achado real do Ricardo, set/2026). */
+        *{box-sizing:border-box;}
+        .en-wrap{ width:100%;font-family:'Archivo',sans-serif;font-size:13px;color:var(--ink);padding:16px 14px 40px; }
+        .en-topbar{ display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:16px; }
+        .en-title{ font-family:'Anton',sans-serif;font-size:20px;letter-spacing:.5px;margin:0;flex:none; }
+        .en-tabs{ display:flex;gap:6px;background:#F0EDE8;border-radius:10px;padding:3px;flex:none; }
+        .en-tab{ border:none;background:none;padding:7px 13px;border-radius:8px;font-size:12px;font-weight:700;color:#6E6656;cursor:pointer;font-family:inherit; }
+        .en-tab.on{ background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12); }
+        .en-chips{ display:flex;gap:8px;flex-wrap:wrap; }
+        .en-chip{ display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #EDE8E0;border-radius:20px;padding:6px 12px;font-size:12px;font-weight:800; }
+        .en-chip b{ font-family:'Anton',sans-serif;font-size:14px; }
+        .en-chip.warn{ background:#FBEAEA;border-color:#F3C6C6;color:#A83232; }
+        .en-chip.ok{ background:#E4F3EC;border-color:#BFE4D2;color:#157A52; }
+        .en-topbar-spacer{ flex:1 1 auto; }
+        .en-head-sub{ font-size:12px;color:#6E6656;margin:0 0 16px;line-height:1.5; }
         .en-summary{ display:flex;gap:20px;flex-wrap:wrap;margin-bottom:16px; }
         .en-summary-item .n{ font-family:'Anton',sans-serif;font-size:24px;color:var(--ink);line-height:1; }
         .en-summary-item .l{ font-size:10.5px;color:#A79E8B;margin-top:2px; }
@@ -227,7 +265,7 @@ export default function EntregaPage() {
         .en-order-moto.empty{ color:#A79E8B;font-style:italic; }
         .en-badge{ font-size:11px;font-weight:750;padding:5px 10px;border-radius:16px; }
         .en-empty{ text-align:center;color:#A79E8B;padding:24px 0;font-size:12.5px; }
-        .en-modal-bg{ position:fixed;inset:0;background:rgba(26,22,14,.55);display:flex;align-items:center;justify-content:center;z-index:200;padding:16px; }
+        .en-modal-bg{ position:fixed;inset:0;background:rgba(26,22,14,.55);display:flex;align-items:center;justify-content:center;z-index:10050;padding:16px; }
         .en-modal{ background:#fff;border-radius:16px;padding:24px;max-width:340px;width:100%;text-align:center; }
         .en-modal h3{ font-family:'Anton',sans-serif;font-size:19px;margin:0 0 4px; }
         .en-modal-val{ font-size:13px;color:#6E6656;margin-bottom:14px; }
@@ -243,92 +281,151 @@ export default function EntregaPage() {
         .en-order-code span{ color:#A79E8B; }
         .en-flabel{ display:block;font-size:11px;font-weight:700;color:#6E6656;margin:10px 0 5px; }
         .en-finput{ width:100%;padding:9px 12px;border-radius:9px;border:1px solid #E6E0D2;font-size:13px;font-family:inherit;box-sizing:border-box; }
+        .en-grid{ display:block; }
+        .en-ledger{ width:100%;border-collapse:collapse;font-size:12px; }
+        .en-ledger th{ text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#A79E8B;padding:6px 8px;border-bottom:1px solid #EDE8E0; }
+        .en-ledger td{ padding:9px 8px;border-bottom:1px solid #F5F3EE;color:#3A342A; }
+        .en-ledger tr:last-child td{ border-bottom:none; }
+        .en-ledger-pos{ color:#157A52;font-weight:700; }
+        .en-ledger-neg{ color:#A83232;font-weight:700; }
+        @media(min-width:1024px){
+          .en-wrap{ padding:24px 32px 40px; }
+          .en-grid{ display:grid;grid-template-columns:1fr 360px;gap:16px;align-items:start; }
+          .en-grid-main{ order:1; }
+          .en-grid-side{ order:2;display:flex;flex-direction:column; }
+        }
       `}</style>
 
-      <div className="en-head">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
-          <h1>🏍️ Entrega</h1>
-          <button className="en-btn en-btn-gold" onClick={() => { setNovaError(''); setNovaOpen(true) }}>+ Nova entrega</button>
+      <div className="en-topbar">
+        <h1 className="en-title">🏍️ Entrega</h1>
+        <div className="en-tabs">
+          <button className={`en-tab ${view === 'geral' ? 'on' : ''}`} onClick={() => setView('geral')}>Visão geral</button>
+          <button className={`en-tab ${view === 'relatorio' ? 'on' : ''}`} onClick={() => setView('relatorio')}>Relatório</button>
         </div>
-        <p>{precos ? `${fmt(precos.entrega)} por entrega dentro da Trindade, sempre descontado do crédito. A diária de ${fmt(precos.diaria)} só é cobrada pra chamar motoboy avulso (pedido de fora) — pedido feito pela própria plataforma usa só o crédito.` : 'Carregando preços...'} O motoboy é da plataforma — só chamar.</p>
-      </div>
-
-      <div className="en-summary">
-        <div className="en-summary-item"><div className="n">{orders.length}</div><div className="l">entregas hoje</div></div>
-        <div className="en-summary-item"><div className="n">{fmt(orders.filter(o => o.status !== 'cancelada' && o.status !== 'sem_credito').reduce((s, o) => s + Number(o.fee), 0))}</div><div className="l">em taxas hoje</div></div>
-      </div>
-
-      <div className="en-card">
-        <div className="en-kicker">Status de hoje</div>
-        <div className="en-status-row">
-          <span className={`en-pill ${ativaHoje ? 'on' : 'off'}`}><span className="en-dot" /> {ativaHoje ? 'Diária ativa' : 'Diária não paga'}</span>
+        <div className="en-topbar-spacer" />
+        <div className="en-chips">
+          <span className={`en-chip ${ativaHoje ? 'ok' : 'warn'}`}>🗓️ <b>{diasDisponiveis}</b> diária{diasDisponiveis !== 1 ? 's' : ''}</span>
+          <span className="en-chip">🏍️ <b>{wallet.credits}</b> crédito{wallet.credits !== 1 ? 's' : ''}</span>
         </div>
-        <div className="en-hint">
-          {ativaHoje
-            ? `Cobre ${diasFaltando} dia${diasFaltando !== 1 ? 's' : ''} (até ${wallet.daily_paid_until?.split('-').reverse().join('/')}).`
-            : 'Sem a diária de hoje só trava o botão "+ Nova entrega" (pedido avulso, de fora). Pedido feito pela própria plataforma continua sendo chamado normal, descontando só o crédito.'}
-        </div>
+        <button className="en-btn en-btn-gold" onClick={() => { setNovaError(''); setNovaOpen(true) }}>+ Nova entrega</button>
       </div>
 
-      <div className="en-card">
-        <div className="en-kicker">Crédito de entrega</div>
-        <div className="en-credit-hero"><span className="en-credit-num">{wallet.credits}</span><span className="en-credit-label">entregas disponíveis</span></div>
-        <div className="en-credit-note">{precos ? `${fmt(precos.entrega)} por entrega hoje dentro da Trindade` : ''} · consumido a cada corrida concluída</div>
-      </div>
+      {view === 'geral' && (
+        <>
+          <p className="en-head-sub">{precos ? `${fmt(precos.entrega)} por entrega dentro da Trindade, sempre descontado do crédito. A diária de ${fmt(precos.diaria)} só é cobrada pra chamar motoboy avulso (pedido de fora) — pedido feito pela própria plataforma usa só o crédito.` : 'Carregando preços...'} O motoboy é da plataforma — só chamar.</p>
 
-      <div className="en-card">
-        <div className="en-kicker">Comprar diária e crédito</div>
-        {!ativaHoje && precos && (
-          <>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#6E6656', marginBottom: 6 }}>Diária</div>
-            <div className="en-buy-row" style={{ marginBottom: 14 }}>
-              <button className="en-buy-chip" style={diasSel === 1 ? { borderColor: 'var(--sign)', background: '#FEF3E2' } : undefined} onClick={() => setDiasSel(1)}>
-                <b>Hoje</b> {fmt(precos.diaria)}
-              </button>
-              <button className="en-buy-chip" style={diasSel === precos.pacoteDias ? { borderColor: 'var(--sign)', background: '#FEF3E2' } : undefined} onClick={() => setDiasSel(precos.pacoteDias)}>
-                <b>Pacote — {precos.pacoteDias} dias</b> {fmt(precos.diaria * precos.pacoteDias - precos.pacoteDesconto)} <span style={{ color: '#157A52', fontWeight: 700 }}>(economiza {fmt(precos.pacoteDesconto)})</span>
-              </button>
-            </div>
-          </>
-        )}
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#6E6656', marginBottom: 6 }}>Créditos de entrega (opcional)</div>
-        <div className="en-buy-row" style={{ marginBottom: 14 }}>
-          {[0, 10, 20, 50].map(c => (
-            <button key={c} className="en-buy-chip" style={creditosSel === c ? { borderColor: 'var(--sign)', background: '#FEF3E2' } : undefined} onClick={() => setCreditosSel(c)}>
-              <b>{c === 0 ? 'Nenhum' : `+${c} entregas`}</b> {c > 0 && precos ? fmt(c * precos.entrega) : ''}
-            </button>
-          ))}
-        </div>
-        <button className="en-btn en-btn-gold" style={{ width: '100%' }} disabled={!precos || (ativaHoje && creditosSel === 0) || paying !== null}
-          onClick={comprar}>
-          {paying ? 'Gerando Pix...' : `Pagar ${fmt(totalPreview)} via Pix`}
-        </button>
-        {payError && <div className="en-error">{payError}</div>}
-      </div>
+          <div className="en-summary">
+            <div className="en-summary-item"><div className="n">{orders.length}</div><div className="l">entregas hoje</div></div>
+            <div className="en-summary-item"><div className="n">{fmt(orders.filter(o => o.status !== 'cancelada' && o.status !== 'sem_credito').reduce((s, o) => s + Number(o.fee), 0))}</div><div className="l">em taxas hoje</div></div>
+          </div>
 
-      <div className="en-card">
-        <div className="en-kicker">Entregas de hoje</div>
-        {orders.length === 0 && <div className="en-empty">Nenhuma entrega hoje ainda.</div>}
-        {orders.map(o => {
-          const c = STATUS_COLOR[o.status]
-          return (
-            <div className="en-order" key={o.id}>
-              <div className="en-order-row1">
-                <span className="en-order-name">{o.customer_name}</span>
-                <span className="en-order-time">{timeAgo(o.created_at)} atrás</span>
+          <div className="en-grid">
+            <div className="en-grid-main">
+              <div className="en-card">
+                <div className="en-kicker">Entregas de hoje</div>
+                {orders.length === 0 && <div className="en-empty">Nenhuma entrega hoje ainda.</div>}
+                {orders.map(o => {
+                  const c = STATUS_COLOR[o.status]
+                  return (
+                    <div className="en-order" key={o.id}>
+                      <div className="en-order-row1">
+                        <span className="en-order-name">{o.customer_name}</span>
+                        <span className="en-order-time">{timeAgo(o.created_at)} atrás</span>
+                      </div>
+                      <div className="en-order-addr">{o.dropoff_address}</div>
+                      <div className="en-order-row2">
+                        <span className={`en-order-moto ${!o.motoboy_name ? 'empty' : ''}`}>{o.motoboy_name || '— aguardando aceite —'}</span>
+                        <span className="en-badge" style={{ background: c.bg, color: c.fg }}>{STATUS_LABEL[o.status]}</span>
+                      </div>
+                      {o.status !== 'entregue' && o.status !== 'cancelada' && (
+                        <div className="en-order-code">Código de entrega: <b>{o.delivery_code}</b> <span>— repassa pro cliente se ele não receber pelo WhatsApp</span></div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
-              <div className="en-order-addr">{o.dropoff_address}</div>
-              <div className="en-order-row2">
-                <span className={`en-order-moto ${!o.motoboy_name ? 'empty' : ''}`}>{o.motoboy_name || '— aguardando aceite —'}</span>
-                <span className="en-badge" style={{ background: c.bg, color: c.fg }}>{STATUS_LABEL[o.status]}</span>
-              </div>
-              {o.status !== 'entregue' && o.status !== 'cancelada' && (
-                <div className="en-order-code">Código de entrega: <b>{o.delivery_code}</b> <span>— repassa pro cliente se ele não receber pelo WhatsApp</span></div>
-              )}
             </div>
-          )
-        })}
-      </div>
+
+            <div className="en-grid-side">
+              <div className="en-card">
+                <div className="en-kicker">Status de hoje</div>
+                <div className="en-status-row">
+                  <span className={`en-pill ${ativaHoje ? 'on' : 'off'}`}><span className="en-dot" /> {ativaHoje ? `${diasDisponiveis} diária${diasDisponiveis !== 1 ? 's' : ''} disponível${diasDisponiveis !== 1 ? 'eis' : ''}` : 'Sem diária disponível'}</span>
+                </div>
+                <div className="en-hint">
+                  {ativaHoje
+                    ? 'Só é descontada 1 diária no dia em que a primeira entrega avulsa é confirmada — dia sem nenhuma entrega não gasta nada, fica pro próximo.'
+                    : 'Sem diária só trava o botão "+ Nova entrega" (pedido avulso, de fora). Pedido feito pela própria plataforma continua sendo chamado normal, descontando só o crédito.'}
+                </div>
+              </div>
+
+              <div className="en-card">
+                <div className="en-kicker">Crédito de entrega</div>
+                <div className="en-credit-hero"><span className="en-credit-num">{wallet.credits}</span><span className="en-credit-label">entregas disponíveis</span></div>
+                <div className="en-credit-note">{precos ? `${fmt(precos.entrega)} por entrega hoje dentro da Trindade` : ''} · consumido a cada corrida concluída</div>
+              </div>
+
+              <div className="en-card">
+                <div className="en-kicker">Comprar diária e crédito</div>
+                {precos && (
+                  <>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: '#6E6656', marginBottom: 6 }}>Diária {ativaHoje && <span style={{ fontWeight: 400, color: '#A79E8B' }}>· você já tem {diasDisponiveis}</span>}</div>
+                    <div className="en-buy-row" style={{ marginBottom: 14 }}>
+                      {diariaOptions.map(opt => (
+                        <button key={opt.dias} className="en-buy-chip" style={diasSel === opt.dias ? { borderColor: 'var(--sign)', background: '#FEF3E2' } : undefined} onClick={() => setDiasSel(opt.dias)}>
+                          <b>{opt.label}</b> {opt.dias > 0 ? fmt(opt.price) : ''} {opt.save ? <span style={{ color: '#157A52', fontWeight: 700 }}>(economiza {fmt(opt.save)})</span> : null}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#6E6656', marginBottom: 6 }}>Créditos de entrega (opcional)</div>
+                <div className="en-buy-row" style={{ marginBottom: 14 }}>
+                  {[0, 10, 20, 50].map(c => (
+                    <button key={c} className="en-buy-chip" style={creditosSel === c ? { borderColor: 'var(--sign)', background: '#FEF3E2' } : undefined} onClick={() => setCreditosSel(c)}>
+                      <b>{c === 0 ? 'Nenhum' : `+${c} entregas`}</b> {c > 0 && precos ? fmt(c * precos.entrega) : ''}
+                    </button>
+                  ))}
+                </div>
+                <button className="en-btn en-btn-gold" style={{ width: '100%' }} disabled={!precos || (diasSel === 0 && creditosSel === 0) || paying !== null}
+                  onClick={comprar}>
+                  {paying ? 'Gerando Pix...' : `Pagar ${fmt(totalPreview)} via Pix`}
+                </button>
+                {payError && <div className="en-error">{payError}</div>}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {view === 'relatorio' && (
+        <div className="en-card">
+          <div className="en-kicker">Extrato — diária e crédito</div>
+          {ledger === null && <div className="en-empty">Carregando...</div>}
+          {ledger !== null && ledger.length === 0 && <div className="en-empty">Nenhum movimento ainda.</div>}
+          {ledger !== null && ledger.length > 0 && (
+            <div style={{ overflowX: 'auto' }}>
+              <table className="en-ledger">
+                <thead>
+                  <tr><th>Quando</th><th>Movimento</th><th>Valor</th><th>Crédito</th></tr>
+                </thead>
+                <tbody>
+                  {ledger.map(l => (
+                    <tr key={l.id}>
+                      <td>{fmtDataHora(l.created_at)}</td>
+                      <td>{LEDGER_LABEL[l.kind] || l.kind}</td>
+                      <td>{l.amount > 0 ? fmt(Number(l.amount)) : '—'}</td>
+                      <td className={l.credits_delta > 0 ? 'en-ledger-pos' : l.credits_delta < 0 ? 'en-ledger-neg' : undefined}>
+                        {l.credits_delta > 0 ? `+${l.credits_delta}` : l.credits_delta < 0 ? l.credits_delta : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       {pixModal && (
         <div className="en-modal-bg" onClick={e => { if (e.target === e.currentTarget) fecharModal() }}>

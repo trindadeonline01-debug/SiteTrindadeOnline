@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
     supabase.from('delivery_payments').select('company_id, kind, value, status, paid_at').eq('status', 'paid').gte('paid_at', weekStart.toISOString()),
     supabase.from('motoboy_payouts').select('motoboy_id, valor, status'),
     supabase.from('companies').select('id, name'),
-    supabase.from('company_delivery_wallet').select('company_id, credits, daily_paid_until'),
+    supabase.from('company_delivery_wallet').select('company_id, credits, dias_diaria_disponiveis'),
     supabase.from('motoboys').select('id, name'),
   ])
 
@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
   }
   const porEmpresa = Array.from(porEmpresaMap.entries()).map(([company_id, v]) => {
     const wallet = walletByCompany.get(company_id)
-    const diariaPaga = !!(wallet?.daily_paid_until && wallet.daily_paid_until >= today)
+    const diariaPaga = (wallet?.dias_diaria_disponiveis || 0) > 0
     return {
       company_id, company_name: nameByCompany.get(company_id) || '—',
       diaria_paga: diariaPaga, creditos: wallet?.credits || 0,

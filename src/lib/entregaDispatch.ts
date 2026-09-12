@@ -240,16 +240,18 @@ export async function criarEntregaEChamarMotoboy(opts: {
   if (!moduleActive(company.entrega_enabled, company.trial_modules_until)) return { ok: false, error: 'Módulo de entrega não está ativo pra essa empresa.' }
   if (!company.address?.trim()) return { ok: false, error: 'Cadastre o endereço da loja no perfil antes de chamar motoboy.' }
 
-  const { data: wallet } = await supabase.from('company_delivery_wallet').select('credits, daily_paid_until').eq('company_id', companyId).maybeSingle()
-  const { entrega: entregaFee, today } = await getTodayValues()
+  const { data: wallet } = await supabase.from('company_delivery_wallet').select('credits, dias_diaria_disponiveis').eq('company_id', companyId).maybeSingle()
+  const { entrega: entregaFee } = await getTodayValues()
   // Pedido com pedido_id nasceu na própria plataforma (checkout do cardápio
   // ou "Novo Pedido" no painel) — exige só crédito carregado, sem diária.
   // Sem pedido_id é solicitação avulsa (tela "+ Nova entrega", pedido vindo
-  // de fora), que continua exigindo diária + crédito como sempre foi.
-  // Crédito pago antecipadamente nunca deixa de ser exigido em nenhum caso —
-  // regra inegociável do Ricardo, set/2026.
-  if (!pedidoId && (!wallet?.daily_paid_until || wallet.daily_paid_until < today)) {
-    return { ok: false, error: 'Diária de hoje ainda não foi paga — ativa em Entrega no painel.' }
+  // de fora), que continua exigindo ter diária disponível + crédito como
+  // sempre foi — mas a diária só é DESCONTADA na confirmação da entrega
+  // (ver src/app/api/entrega/webhook), não aqui na criação. Crédito pago
+  // antecipadamente nunca deixa de ser exigido em nenhum caso — regra
+  // inegociável do Ricardo, set/2026.
+  if (!pedidoId && (!wallet?.dias_diaria_disponiveis || wallet.dias_diaria_disponiveis < 1)) {
+    return { ok: false, error: 'Sem diária disponível — compra em Entrega no painel.' }
   }
   if (!wallet?.credits || wallet.credits < 1) return { ok: false, error: 'Sem crédito de entrega — compra mais em Entrega no painel.' }
 

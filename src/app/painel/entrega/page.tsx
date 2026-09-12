@@ -236,19 +236,9 @@ export default function EntregaPage() {
         .en-summary-item .l{ font-size:10.5px;color:#A79E8B;margin-top:2px; }
         .en-card{ background:#fff;border:1px solid #EDE8E0;border-radius:14px;padding:16px;margin-bottom:14px; }
         .en-kicker{ font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#A79E8B;margin-bottom:10px; }
-        .en-status-row{ display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap; }
-        .en-pill{ display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:750;padding:6px 12px;border-radius:20px; }
-        .en-pill.on{ background:#E4F3EC;color:#157A52; }
-        .en-pill.off{ background:#FBEAEA;color:#C43D3D; }
-        .en-dot{ width:7px;height:7px;border-radius:50%;background:currentColor; }
-        .en-hint{ font-size:11.5px;color:#A79E8B;margin-top:8px;line-height:1.5; }
         .en-btn{ font-family:inherit;font-size:12.5px;font-weight:750;border-radius:9px;border:none;padding:9px 15px;cursor:pointer; }
         .en-btn-gold{ background:var(--sign);color:var(--ink); }
         .en-btn-gold:disabled{ opacity:.5;cursor:not-allowed; }
-        .en-credit-hero{ display:flex;align-items:baseline;gap:8px;margin:2px 0 2px; }
-        .en-credit-num{ font-family:'Anton',sans-serif;font-size:36px;color:#8A6410;line-height:1; }
-        .en-credit-label{ font-size:12.5px;color:#6E6656; }
-        .en-credit-note{ font-size:11.5px;color:#A79E8B;margin-bottom:12px; }
         .en-buy-row{ display:flex;gap:8px;flex-wrap:wrap; }
         .en-buy-chip{ font-size:12px;font-weight:700;color:#1A1610;background:#fff;border:1px solid #E6E0D2;border-radius:9px;padding:9px 12px;cursor:pointer;text-align:left;line-height:1.4; }
         .en-buy-chip:disabled{ opacity:.5;cursor:not-allowed; }
@@ -312,7 +302,7 @@ export default function EntregaPage() {
 
       {view === 'geral' && (
         <>
-          <p className="en-head-sub">{precos ? `${fmt(precos.entrega)} por entrega dentro da Trindade, sempre descontado do crédito. A diária de ${fmt(precos.diaria)} só é cobrada pra chamar motoboy avulso (pedido de fora) — pedido feito pela própria plataforma usa só o crédito.` : 'Carregando preços...'} O motoboy é da plataforma — só chamar.</p>
+          <p className="en-head-sub">{precos ? `${fmt(precos.entrega)} por entrega dentro da Trindade, sempre descontado do crédito. A diária de ${fmt(precos.diaria)} só é cobrada pra chamar motoboy avulso (pedido de fora) — pedido feito pela própria plataforma usa só o crédito.` : 'Carregando preços...'} O motoboy é da plataforma — só chamar. {ativaHoje ? 'Só é descontada 1 diária no dia em que a primeira entrega avulsa é confirmada — dia sem nenhuma entrega não gasta nada, fica pro próximo.' : 'Sem diária disponível só trava o botão "+ Nova entrega" (pedido avulso).'}</p>
 
           <div className="en-summary">
             <div className="en-summary-item"><div className="n">{orders.length}</div><div className="l">entregas hoje</div></div>
@@ -347,24 +337,6 @@ export default function EntregaPage() {
             </div>
 
             <div className="en-grid-side">
-              <div className="en-card">
-                <div className="en-kicker">Status de hoje</div>
-                <div className="en-status-row">
-                  <span className={`en-pill ${ativaHoje ? 'on' : 'off'}`}><span className="en-dot" /> {ativaHoje ? `${diasDisponiveis} diária${diasDisponiveis !== 1 ? 's' : ''} disponível${diasDisponiveis !== 1 ? 'eis' : ''}` : 'Sem diária disponível'}</span>
-                </div>
-                <div className="en-hint">
-                  {ativaHoje
-                    ? 'Só é descontada 1 diária no dia em que a primeira entrega avulsa é confirmada — dia sem nenhuma entrega não gasta nada, fica pro próximo.'
-                    : 'Sem diária só trava o botão "+ Nova entrega" (pedido avulso, de fora). Pedido feito pela própria plataforma continua sendo chamado normal, descontando só o crédito.'}
-                </div>
-              </div>
-
-              <div className="en-card">
-                <div className="en-kicker">Crédito de entrega</div>
-                <div className="en-credit-hero"><span className="en-credit-num">{wallet.credits}</span><span className="en-credit-label">entregas disponíveis</span></div>
-                <div className="en-credit-note">{precos ? `${fmt(precos.entrega)} por entrega hoje dentro da Trindade` : ''} · consumido a cada corrida concluída</div>
-              </div>
-
               <div className="en-card">
                 <div className="en-kicker">Comprar diária e crédito</div>
                 {precos && (

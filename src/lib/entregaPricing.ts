@@ -1,26 +1,20 @@
 import { createClient } from '@supabase/supabase-js'
+import { BAIRROS_SAO_GONCALO, normalizeBairro } from '@/lib/bairrosSaoGoncalo'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-export type DayType = 'util' | 'fds' | 'feriado'
-
 export interface EntregaPricing {
-  diaria_util: number
-  diaria_fds: number
-  diaria_feriado: number
-  entrega_util: number
-  entrega_fds: number
-  entrega_feriado: number
-  pacote_dias: number
-  pacote_desconto: number
+  diaria: number
+  entrega_taxa_metodo: 'bairro' | 'distancia'
+  entrega_taxa_padrao: number
 }
 
 // Servidor roda em UTC (Vercel) — sem timeZone explícito aqui a data vira
-// amanhã/ontem dependendo da hora, e feriado/fim de semana saem errados
-// perto da meia-noite. Sempre calcular o dia certo na Trindade.
+// amanhã/ontem dependendo da hora, perto da meia-noite. Ainda usado pra saber
+// se a primeira entrega avulsa confirmada é "hoje" (ver /api/entrega/webhook).
 export function todaySaoPaulo(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 }
@@ -28,39 +22,94 @@ export function todaySaoPaulo(): string {
 export async function getEntregaPricing(): Promise<EntregaPricing> {
   const { data } = await supabase.from('entrega_pricing').select('*').eq('id', true).maybeSingle()
   return {
-    diaria_util: Number(data?.diaria_util ?? 20),
-    diaria_fds: Number(data?.diaria_fds ?? 30),
-    diaria_feriado: Number(data?.diaria_feriado ?? 30),
-    entrega_util: Number(data?.entrega_util ?? 5),
-    entrega_fds: Number(data?.entrega_fds ?? 6),
-    entrega_feriado: Number(data?.entrega_feriado ?? 8),
-    pacote_dias: Number(data?.pacote_dias ?? 5),
-    pacote_desconto: Number(data?.pacote_desconto ?? 10),
+    diaria: Number(data?.diaria ?? 20),
+    entrega_taxa_metodo: (data?.entrega_taxa_metodo === 'distancia' ? 'distancia' : 'bairro'),
+    entrega_taxa_padrao: Number(data?.entrega_taxa_padrao ?? 5),
   }
 }
 
-export async function getDayType(dateStr: string): Promise<DayType> {
-  const { data: feriado } = await supabase.from('entrega_feriados').select('data').eq('data', dateStr).maybeSingle()
-  if (feriado) return 'feriado'
-  // new Date('YYYY-MM-DD') é interpretado como UTC meia-noite — getUTCDay()
-  // evita o dia da semana escorregar um dia pra trás em fusos negativos.
-  const dow = new Date(dateStr + 'T00:00:00Z').getUTCDay()
-  return (dow === 0 || dow === 6) ? 'fds' : 'util'
+// Acha o bairro mais específico (nome mais longo primeiro, pra "Boa Vista"
+// não perder pra um bairro cujo nome seja substring de outro) dentro de um
+// endereço em texto livre — o dropoff da entrega da plataforma não vem
+// estruturado em campos, é só uma string digitada pelo lojista ou montada
+// no checkout do cliente.
+function matchBairroInAddress(address: string): string | null {
+  const norm = normalizeBairro(address)
+  const ordenados = [...BAIRROS_SAO_GONCALO].sort((a, b) => b.length - a.length)
+  for (const bairro of ordenados) {
+    if (norm.includes(normalizeBairro(bairro))) return bairro
+  }
+  return null
 }
 
-export function diariaValueFor(pricing: EntregaPricing, dayType: DayType): number {
-  return dayType === 'feriado' ? pricing.diaria_feriado : dayType === 'fds' ? pricing.diaria_fds : pricing.diaria_util
+async function geocodeAndMatrixPlataforma(
+  lojaLat: number, lojaLng: number, dropoffAddress: string
+): Promise<{ km: number } | null> {
+  const orsKey = process.env.ORS_API_KEY
+  if (!orsKey) return null
+  let custLat: number, custLng: number
+  try {
+    const geoUrl = `https://api.openrouteservice.org/geocode/search?api_key=${encodeURIComponent(orsKey)}&text=${encodeURIComponent(dropoffAddress + ', São Gonçalo, RJ, Brasil')}&boundary.country=BR&size=1`
+    const geoRes = await fetch(geoUrl, { signal: AbortSignal.timeout(8000) })
+    const geo = await geoRes.json()
+    const feature = geo?.features?.[0]
+    if (!feature) return null
+    ;[custLng, custLat] = feature.geometry.coordinates
+  } catch {
+    return null
+  }
+  try {
+    const matrixRes = await fetch('https://api.openrouteservice.org/v2/matrix/driving-car', {
+      method: 'POST',
+      headers: { Authorization: orsKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        locations: [[lojaLng, lojaLat], [custLng, custLat]],
+        sources: [0], destinations: [1], metrics: ['distance'],
+      }),
+      signal: AbortSignal.timeout(8000),
+    })
+    const matrix = await matrixRes.json()
+    const metros = matrix?.distances?.[0]?.[0]
+    if (typeof metros !== 'number') return null
+    return { km: metros / 1000 }
+  } catch {
+    return null
+  }
 }
 
-export function entregaValueFor(pricing: EntregaPricing, dayType: DayType): number {
-  return dayType === 'feriado' ? pricing.entrega_feriado : dayType === 'fds' ? pricing.entrega_fds : pricing.entrega_util
-}
-
-// Preço de hoje, pronto — é o caso de uso mais comum (cobrar a diária/crédito
-// no momento da compra, ou o fee de uma corrida sendo despachada agora).
-export async function getTodayValues(): Promise<{ pricing: EntregaPricing; dayType: DayType; diaria: number; entrega: number; today: string }> {
-  const today = todaySaoPaulo()
+// Preço que a PLATAFORMA cobra da loja por uma corrida (debitado do crédito
+// da carteira) — por bairro ou por distância percorrida (pickup = endereço
+// da loja, dropoff = endereço do cliente), igual ao padrão que cada loja já
+// usa pra cobrar o próprio cliente, mas configurado globalmente pelo admin.
+// Nunca trava a criação da entrega por falha externa: sem geocodificação
+// possível ou sem faixa configurada, cai pro valor padrão do admin.
+export async function getEntregaFeeForDelivery(
+  dropoffAddress: string,
+  loja: { loja_lat: number | null; loja_lng: number | null }
+): Promise<{ fee: number; blocked: boolean; reason?: string }> {
   const pricing = await getEntregaPricing()
-  const dayType = await getDayType(today)
-  return { pricing, dayType, diaria: diariaValueFor(pricing, dayType), entrega: entregaValueFor(pricing, dayType), today }
+
+  if (pricing.entrega_taxa_metodo === 'distancia') {
+    if (loja.loja_lat == null || loja.loja_lng == null) {
+      return { fee: pricing.entrega_taxa_padrao, blocked: false }
+    }
+    const trajeto = await geocodeAndMatrixPlataforma(loja.loja_lat, loja.loja_lng, dropoffAddress)
+    if (!trajeto) return { fee: pricing.entrega_taxa_padrao, blocked: false }
+
+    const { data: tiers } = await supabase
+      .from('entrega_km_tiers').select('km_until, price, blocked').order('position', { ascending: true })
+    if (!tiers?.length) return { fee: pricing.entrega_taxa_padrao, blocked: false }
+    const tier = tiers.find(t => t.km_until == null || trajeto.km <= Number(t.km_until))
+    if (!tier) return { fee: pricing.entrega_taxa_padrao, blocked: false }
+    if (tier.blocked) return { fee: 0, blocked: true, reason: 'Fora da área de entrega da plataforma.' }
+    return { fee: Number(tier.price), blocked: false }
+  }
+
+  // método "bairro" (padrão)
+  const bairro = matchBairroInAddress(dropoffAddress)
+  if (!bairro) return { fee: pricing.entrega_taxa_padrao, blocked: false }
+  const { data: match } = await supabase.from('entrega_bairros').select('price, disabled').ilike('bairro', bairro).maybeSingle()
+  if (!match) return { fee: pricing.entrega_taxa_padrao, blocked: false }
+  if (match.disabled) return { fee: 0, blocked: true, reason: 'Fora da área de entrega da plataforma.' }
+  return { fee: Number(match.price), blocked: false }
 }

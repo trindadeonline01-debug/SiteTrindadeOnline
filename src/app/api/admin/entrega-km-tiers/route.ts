@@ -18,27 +18,29 @@ async function requireAdmin(accessToken: string | undefined) {
   return profile?.user_type === 'admin'
 }
 
+// Preço da entrega da PLATAFORMA por faixa de km — global. Salva sempre
+// substituindo a lista inteira, igual ao editor de km que cada loja já usa
+// pro próprio frete.
 export async function GET() {
-  const { data } = await supabase.from('entrega_pricing').select('*').eq('id', true).maybeSingle()
-  return NextResponse.json({ pricing: data })
+  const { data } = await supabase.from('entrega_km_tiers').select('km_until, price, blocked, position').order('position')
+  return NextResponse.json({ tiers: data || [] })
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const { access_token, ...fields } = await req.json()
+    const { access_token, tiers } = await req.json()
     if (!(await requireAdmin(access_token))) return NextResponse.json({ error: 'acesso negado' }, { status: 403 })
+    if (!Array.isArray(tiers)) return NextResponse.json({ error: 'lista inválida' }, { status: 400 })
 
-    const numericFields = ['diaria', 'entrega_taxa_padrao']
-    const update: Record<string, number | string> = {}
-    for (const key of numericFields) {
-      if (fields[key] != null) update[key] = Number(fields[key])
+    await supabase.from('entrega_km_tiers').delete().not('id', 'is', null)
+    const rows = tiers.map((t: any, i: number) => ({
+      position: i, km_until: t.km_until != null ? Number(t.km_until) : null,
+      price: t.price != null ? Number(t.price) : null, blocked: !!t.blocked,
+    }))
+    if (rows.length) {
+      const { error } = await supabase.from('entrega_km_tiers').insert(rows)
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     }
-    if (fields.entrega_taxa_metodo === 'bairro' || fields.entrega_taxa_metodo === 'distancia') {
-      update.entrega_taxa_metodo = fields.entrega_taxa_metodo
-    }
-
-    const { error } = await supabase.from('entrega_pricing').update({ ...update, updated_at: new Date().toISOString() }).eq('id', true)
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json({ ok: true })
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'falha ao salvar' }, { status: 500 })

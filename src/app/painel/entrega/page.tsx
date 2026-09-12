@@ -5,7 +5,8 @@ import { refreshSessionOnce } from '@/lib/authRefresh'
 import { usePainelShell } from '@/contexts/PainelShellContext'
 
 type Wallet = { credits: number; diasDisponiveis: number }
-type Precos = { today: string; dayType: 'util' | 'fds' | 'feriado'; diaria: number; entrega: number; pacoteDias: number; pacoteDesconto: number }
+type Pacote = { id: string; categoria: 'diaria' | 'entrega'; nome: string; quantidade: number; preco: number }
+type Precos = { diaria: number; pacotes: Pacote[] }
 type DStatus = 'buscando_motoboy' | 'a_caminho' | 'entregue' | 'cancelada' | 'sem_credito'
 type DOrder = {
   id: string; customer_name: string; customer_phone: string | null; dropoff_address: string
@@ -48,8 +49,9 @@ export default function EntregaPage() {
   const [lojaDigitalEnabled, setLojaDigitalEnabled] = useState(false)
   const [wallet, setWallet] = useState<Wallet>({ credits: 0, diasDisponiveis: 0 })
   const [precos, setPrecos] = useState<Precos | null>(null)
-  const [diasSel, setDiasSel] = useState(1)
-  const [creditosSel, setCreditosSel] = useState(0)
+  const [diasAvulso, setDiasAvulso] = useState(0)
+  const [creditoAvulso, setCreditoAvulso] = useState(0)
+  const [pacotesSel, setPacotesSel] = useState<Set<string>>(new Set())
   const [orders, setOrders] = useState<DOrder[]>([])
   const [ledger, setLedger] = useState<LedgerRow[] | null>(null)
   const [pixModal, setPixModal] = useState<PixModal | null>(null)
@@ -112,7 +114,7 @@ export default function EntregaPage() {
   const diasDisponiveis = wallet.diasDisponiveis
   const ativaHoje = diasDisponiveis > 0
 
-  async function iniciarPagamento(kind: 'diaria' | 'credito' | 'combo', dias = 0, credits = 0) {
+  async function iniciarPagamento(kind: 'diaria' | 'credito' | 'combo', dias: number, credits: number, diasAvulsoReq: number, creditoAvulsoReq: number, pacoteIds: string[]) {
     setPayError('')
     setPaying(`${kind}${dias}${credits}`)
 
@@ -120,7 +122,7 @@ export default function EntregaPage() {
       const { data: { session } } = await supabase.auth.getSession()
       const r = await fetch('/api/entrega/pagar', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ access_token: session?.access_token, company_id: companyId, kind, dias, credits }),
+        body: JSON.stringify({ access_token: session?.access_token, company_id: companyId, dias_avulso: diasAvulsoReq, credito_avulso: creditoAvulsoReq, pacote_ids: pacoteIds }),
       })
       return { r, data: await r.json() }
     }
@@ -144,25 +146,37 @@ export default function EntregaPage() {
       if (j.paid) {
         if (pollRef.current) clearInterval(pollRef.current)
         setPixModal(null)
+        setDiasAvulso(0); setCreditoAvulso(0); setPacotesSel(new Set())
         await loadWallet(companyId)
       }
     }, 4000)
   }
 
-  function comprar() {
-    const dias = diasSel
-    const credits = creditosSel
-    if (dias === 0 && credits === 0) return
-    const kind = dias > 0 && credits > 0 ? 'combo' : dias > 0 ? 'diaria' : 'credito'
-    iniciarPagamento(kind, dias, credits)
+  const pacotesDiaria = precos?.pacotes.filter(p => p.categoria === 'diaria') || []
+  const pacotesCredito = precos?.pacotes.filter(p => p.categoria === 'entrega') || []
+
+  const resumo = (() => {
+    let diasGranted = diasAvulso
+    let creditsGranted = creditoAvulso
+    let diariaTotal = precos ? diasAvulso * precos.diaria : 0
+    let creditoTotal = creditoAvulso
+    for (const p of precos?.pacotes || []) {
+      if (!pacotesSel.has(p.id)) continue
+      if (p.categoria === 'diaria') { diasGranted += Number(p.quantidade); diariaTotal += Number(p.preco) }
+      else { creditsGranted += Number(p.quantidade); creditoTotal += Number(p.preco) }
+    }
+    return { diasGranted, creditsGranted, diariaTotal, creditoTotal, total: diariaTotal + creditoTotal }
+  })()
+
+  function togglePacote(id: string) {
+    setPacotesSel(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
   }
 
-  const totalPreview = precos ? (() => {
-    const dias = diasSel
-    const diariaTotal = dias * precos.diaria
-    const desconto = dias === precos.pacoteDias ? precos.pacoteDesconto : 0
-    return Math.max(0, diariaTotal - desconto) + creditosSel * precos.entrega
-  })() : 0
+  function comprar() {
+    if (resumo.total <= 0) return
+    const kind = resumo.diasGranted > 0 && resumo.creditsGranted > 0 ? 'combo' : resumo.diasGranted > 0 ? 'diaria' : 'credito'
+    iniciarPagamento(kind, resumo.diasGranted, resumo.creditsGranted, diasAvulso, creditoAvulso, Array.from(pacotesSel))
+  }
 
   // Entrega avulsa — pra empresa que não tem o módulo Cardápio/Pedidos e
   // ainda assim quer chamar um motoboy (ela gerencia o pedido por fora,
@@ -203,12 +217,6 @@ export default function EntregaPage() {
 
   if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Archivo,sans-serif', color: '#A79E8B' }}>Carregando...</div>
 
-  const diariaOptions = precos ? [
-    { dias: 0, label: 'Nenhuma', price: 0 },
-    { dias: 1, label: 'Hoje', price: precos.diaria },
-    { dias: precos.pacoteDias, label: `Pacote — ${precos.pacoteDias} dias`, price: precos.diaria * precos.pacoteDias - precos.pacoteDesconto, save: precos.pacoteDesconto },
-  ] : []
-
   return (
     <>
     <div className="en-wrap">
@@ -239,10 +247,26 @@ export default function EntregaPage() {
         .en-btn{ font-family:inherit;font-size:12.5px;font-weight:750;border-radius:9px;border:none;padding:9px 15px;cursor:pointer; }
         .en-btn-gold{ background:var(--sign);color:var(--ink); }
         .en-btn-gold:disabled{ opacity:.5;cursor:not-allowed; }
-        .en-buy-row{ display:flex;gap:8px;flex-wrap:wrap; }
-        .en-buy-chip{ font-size:12px;font-weight:700;color:#1A1610;background:#fff;border:1px solid #E6E0D2;border-radius:9px;padding:9px 12px;cursor:pointer;text-align:left;line-height:1.4; }
-        .en-buy-chip:disabled{ opacity:.5;cursor:not-allowed; }
-        .en-buy-chip b{ display:block;color:#8A6410;font-size:13px; }
+        .en-unit-row{ display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px; }
+        .en-unit-info{ display:flex;flex-direction:column; }
+        .en-unit-price{ font-family:'Anton',sans-serif;font-size:20px;color:#8A6410; }
+        .en-unit-label{ font-size:11px;color:#A79E8B; }
+        .en-stepper{ display:flex;align-items:center;gap:8px;background:#F5F3EE;border-radius:10px;padding:5px 7px; }
+        .en-stepper button{ width:28px;height:28px;border-radius:7px;border:none;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.12);font-size:15px;font-weight:800;cursor:pointer;color:var(--ink);font-family:inherit; }
+        .en-stepper button:disabled{ opacity:.35;cursor:not-allowed; }
+        .en-qty{ font-family:'Anton',sans-serif;font-size:16px;min-width:28px;text-align:center; }
+        .en-quick-row{ display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px; }
+        .en-quick-chip{ border:1.5px solid #E6E0D2;background:#fff;border-radius:18px;padding:6px 11px;font-size:11.5px;font-weight:700;cursor:pointer;color:var(--ink);font-family:inherit; }
+        .en-quick-chip.on{ background:var(--sign);border-color:var(--sign); }
+        .en-offers-label{ font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#A79E8B;margin:10px 0 7px; }
+        .en-offers-list{ display:flex;flex-direction:column;gap:6px; }
+        .en-offer-card{ display:flex;align-items:center;gap:9px;border:1.5px solid #E6E0D2;background:#fff;border-radius:9px;padding:8px 11px;cursor:pointer;font-family:inherit;text-align:left;width:100%; }
+        .en-offer-card.on{ border-color:var(--open,#0F8A57);background:#EEF8F3; }
+        .en-offer-check{ width:16px;height:16px;border-radius:50%;border:1.5px solid #E6E0D2;flex:none; }
+        .en-offer-card.on .en-offer-check{ background:#0F8A57;border-color:#0F8A57; }
+        .en-offer-title{ font-size:12px;font-weight:800; }
+        .en-offer-sub{ font-size:10.5px;color:#6E6656; }
+        .en-total-row{ display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700;color:#6E6656; }
         .en-error{ color:#C43D3D;font-size:11.5px;margin-top:10px; }
         .en-order{ border-bottom:1px solid #EDE8E0;padding:11px 0; }
         .en-order:last-child{ border-bottom:none; }
@@ -295,14 +319,14 @@ export default function EntregaPage() {
         <div className="en-topbar-spacer" />
         <div className="en-chips">
           <span className={`en-chip ${ativaHoje ? 'ok' : 'warn'}`}>🗓️ <b>{diasDisponiveis}</b> diária{diasDisponiveis !== 1 ? 's' : ''}</span>
-          <span className="en-chip">🏍️ <b>{wallet.credits}</b> crédito{wallet.credits !== 1 ? 's' : ''}</span>
+          <span className="en-chip">🏍️ <b>{fmt(wallet.credits)}</b> de crédito</span>
         </div>
         <button className="en-btn en-btn-gold" onClick={() => { setNovaError(''); setNovaOpen(true) }}>+ Nova entrega</button>
       </div>
 
       {view === 'geral' && (
         <>
-          <p className="en-head-sub">{precos ? `${fmt(precos.entrega)} por entrega dentro da Trindade, sempre descontado do crédito. A diária de ${fmt(precos.diaria)} só é cobrada pra chamar motoboy avulso (pedido de fora) — pedido feito pela própria plataforma usa só o crédito.` : 'Carregando preços...'} O motoboy é da plataforma — só chamar. {ativaHoje ? 'Só é descontada 1 diária no dia em que a primeira entrega avulsa é confirmada — dia sem nenhuma entrega não gasta nada, fica pro próximo.' : 'Sem diária disponível só trava o botão "+ Nova entrega" (pedido avulso).'}</p>
+          <p className="en-head-sub">{precos ? `A diária de ${fmt(precos.diaria)} só é cobrada pra chamar motoboy avulso (pedido de fora) — pedido feito pela própria plataforma usa só o crédito. O crédito é um saldo em R$, descontado pelo valor real de cada entrega (calculado por bairro/distância).` : 'Carregando preços...'} O motoboy é da plataforma — só chamar. {ativaHoje ? 'Só é descontada 1 diária no dia em que a primeira entrega avulsa é confirmada — dia sem nenhuma entrega não gasta nada, fica pro próximo.' : 'Sem diária disponível só trava o botão "+ Nova entrega" (pedido avulso).'}</p>
 
           <div className="en-summary">
             <div className="en-summary-item"><div className="n">{orders.length}</div><div className="l">entregas hoje</div></div>
@@ -338,30 +362,71 @@ export default function EntregaPage() {
 
             <div className="en-grid-side">
               <div className="en-card">
-                <div className="en-kicker">Comprar diária e crédito</div>
-                {precos && (
+                <div className="en-kicker">Diária</div>
+                <div className="en-unit-row">
+                  <div className="en-unit-info">
+                    <span className="en-unit-price">{precos ? fmt(precos.diaria) : '—'}</span>
+                    <span className="en-unit-label">preço único da diária</span>
+                  </div>
+                  <div className="en-stepper">
+                    <button disabled={diasAvulso <= 0} onClick={() => setDiasAvulso(v => Math.max(0, v - 1))}>−</button>
+                    <span className="en-qty">{diasAvulso}</span>
+                    <button onClick={() => setDiasAvulso(v => v + 1)}>+</button>
+                  </div>
+                </div>
+                {pacotesDiaria.length > 0 && (
                   <>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: '#6E6656', marginBottom: 6 }}>Diária {ativaHoje && <span style={{ fontWeight: 400, color: '#A79E8B' }}>· você já tem {diasDisponiveis}</span>}</div>
-                    <div className="en-buy-row" style={{ marginBottom: 14 }}>
-                      {diariaOptions.map(opt => (
-                        <button key={opt.dias} className="en-buy-chip" style={diasSel === opt.dias ? { borderColor: 'var(--sign)', background: '#FEF3E2' } : undefined} onClick={() => setDiasSel(opt.dias)}>
-                          <b>{opt.label}</b> {opt.dias > 0 ? fmt(opt.price) : ''} {opt.save ? <span style={{ color: '#157A52', fontWeight: 700 }}>(economiza {fmt(opt.save)})</span> : null}
+                    <div className="en-offers-label">🎁 Ofertas</div>
+                    <div className="en-offers-list">
+                      {pacotesDiaria.map(p => (
+                        <button key={p.id} className={`en-offer-card ${pacotesSel.has(p.id) ? 'on' : ''}`} onClick={() => togglePacote(p.id)}>
+                          <span className="en-offer-check" />
+                          <span><div className="en-offer-title">{p.nome}</div><div className="en-offer-sub">{fmt(Number(p.preco))}</div></span>
                         </button>
                       ))}
                     </div>
                   </>
                 )}
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#6E6656', marginBottom: 6 }}>Créditos de entrega (opcional)</div>
-                <div className="en-buy-row" style={{ marginBottom: 14 }}>
-                  {[0, 10, 20, 50].map(c => (
-                    <button key={c} className="en-buy-chip" style={creditosSel === c ? { borderColor: 'var(--sign)', background: '#FEF3E2' } : undefined} onClick={() => setCreditosSel(c)}>
-                      <b>{c === 0 ? 'Nenhum' : `+${c} entregas`}</b> {c > 0 && precos ? fmt(c * precos.entrega) : ''}
-                    </button>
+              </div>
+
+              <div className="en-card">
+                <div className="en-kicker">Crédito de entrega</div>
+                <div className="en-quick-row">
+                  {[5, 10, 20, 50, 100].map(v => (
+                    <button key={v} className={`en-quick-chip ${creditoAvulso === v ? 'on' : ''}`} onClick={() => setCreditoAvulso(v)}>R$ {v}</button>
                   ))}
                 </div>
-                <button className="en-btn en-btn-gold" style={{ width: '100%' }} disabled={!precos || (diasSel === 0 && creditosSel === 0) || paying !== null}
+                <div className="en-unit-row">
+                  <div className="en-unit-info">
+                    <span className="en-unit-price">{fmt(creditoAvulso)}</span>
+                    <span className="en-unit-label">saldo avulso a comprar</span>
+                  </div>
+                  <div className="en-stepper">
+                    <button disabled={creditoAvulso <= 0} onClick={() => setCreditoAvulso(v => Math.max(0, v - 10))}>−</button>
+                    <span className="en-qty" style={{ fontSize: 13, minWidth: 44 }}>{fmt(creditoAvulso)}</span>
+                    <button onClick={() => setCreditoAvulso(v => v + 10)}>+</button>
+                  </div>
+                </div>
+                {pacotesCredito.length > 0 && (
+                  <>
+                    <div className="en-offers-label">🎁 Ofertas</div>
+                    <div className="en-offers-list">
+                      {pacotesCredito.map(p => (
+                        <button key={p.id} className={`en-offer-card ${pacotesSel.has(p.id) ? 'on' : ''}`} onClick={() => togglePacote(p.id)}>
+                          <span className="en-offer-check" />
+                          <span><div className="en-offer-title">{p.nome}</div><div className="en-offer-sub">por {fmt(Number(p.preco))}</div></span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="en-card">
+                <div className="en-total-row"><span>Você recebe</span><span>{resumo.diasGranted > 0 ? `${resumo.diasGranted} diária${resumo.diasGranted !== 1 ? 's' : ''}` : ''}{resumo.diasGranted > 0 && resumo.creditsGranted > 0 ? ' + ' : ''}{resumo.creditsGranted > 0 ? `${fmt(resumo.creditsGranted)} de crédito` : ''}{resumo.diasGranted === 0 && resumo.creditsGranted === 0 ? '—' : ''}</span></div>
+                <button className="en-btn en-btn-gold" style={{ width: '100%', marginTop: 10 }} disabled={!precos || resumo.total <= 0 || paying !== null}
                   onClick={comprar}>
-                  {paying ? 'Gerando Pix...' : `Pagar ${fmt(totalPreview)} via Pix`}
+                  {paying ? 'Gerando Pix...' : `Pagar ${fmt(resumo.total)} via Pix`}
                 </button>
                 {payError && <div className="en-error">{payError}</div>}
               </div>
@@ -388,7 +453,7 @@ export default function EntregaPage() {
                       <td>{LEDGER_LABEL[l.kind] || l.kind}</td>
                       <td>{l.amount > 0 ? fmt(Number(l.amount)) : '—'}</td>
                       <td className={l.credits_delta > 0 ? 'en-ledger-pos' : l.credits_delta < 0 ? 'en-ledger-neg' : undefined}>
-                        {l.credits_delta > 0 ? `+${l.credits_delta}` : l.credits_delta < 0 ? l.credits_delta : '—'}
+                        {l.credits_delta > 0 ? `+${fmt(l.credits_delta)}` : l.credits_delta < 0 ? `-${fmt(Math.abs(l.credits_delta))}` : '—'}
                       </td>
                     </tr>
                   ))}
@@ -404,8 +469,8 @@ export default function EntregaPage() {
           <div className="en-modal">
             <h3>
               {pixModal.kind === 'diaria' && (pixModal.dias > 1 ? `Diária — ${pixModal.dias} dias` : 'Diária de entrega')}
-              {pixModal.kind === 'credito' && `+${pixModal.credits} entregas`}
-              {pixModal.kind === 'combo' && `Diária${pixModal.dias > 1 ? ` (${pixModal.dias}d)` : ''} + ${pixModal.credits} entregas`}
+              {pixModal.kind === 'credito' && `+${fmt(pixModal.credits)} de crédito`}
+              {pixModal.kind === 'combo' && `Diária${pixModal.dias > 1 ? ` (${pixModal.dias}d)` : ''} + ${fmt(pixModal.credits)} de crédito`}
             </h3>
             <div className="en-modal-val">{fmt(pixModal.value)} via Pix</div>
             {pixModal.qr && (

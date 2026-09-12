@@ -118,13 +118,17 @@ export async function POST(req: NextRequest) {
             status: 'entregue', delivered_at: new Date().toISOString(), payout_status: 'liberado',
           }).eq('id', order.id)
 
+          // Crédito é saldo em R$ (não mais contador de entregas) — desconta
+          // o valor real dessa corrida (order.fee, calculado por bairro/km na
+          // criação), não mais um fixo de "1 unidade" por entrega.
           const { data: wallet } = await supabase.from('company_delivery_wallet').select('credits, dias_diaria_disponiveis').eq('company_id', order.company_id).maybeSingle()
-          const newCredits = Math.max(0, (wallet?.credits || 0) - 1)
+          const fee = Number(order.fee) || 0
+          const newCredits = Math.max(0, (wallet?.credits || 0) - fee)
           const walletUpdate: Record<string, any> = { company_id: order.company_id, credits: newCredits, updated_at: new Date().toISOString() }
           if (diariaConsumidaAgora) walletUpdate.dias_diaria_disponiveis = Math.max(0, (wallet?.dias_diaria_disponiveis || 0) - 1)
           await supabase.from('company_delivery_wallet').upsert(walletUpdate, { onConflict: 'company_id' })
           await supabase.from('delivery_credit_ledger').insert({
-            company_id: order.company_id, kind: 'consumo', credits_delta: -1, delivery_order_id: order.id,
+            company_id: order.company_id, kind: 'consumo', amount: -fee, credits_delta: -fee, delivery_order_id: order.id,
           })
           if (diariaConsumidaAgora) {
             await supabase.from('delivery_credit_ledger').insert({

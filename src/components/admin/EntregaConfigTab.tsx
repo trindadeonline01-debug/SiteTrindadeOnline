@@ -1,194 +1,357 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { BAIRROS_SAO_GONCALO, normalizeBairro } from '@/lib/bairrosSaoGoncalo'
 
-interface Pricing {
-  diaria_util: number; diaria_fds: number; diaria_feriado: number
-  entrega_util: number; entrega_fds: number; entrega_feriado: number
-  pacote_dias: number; pacote_desconto: number
-}
-interface Feriado { id: string; data: string; nome: string }
+interface Pricing { diaria: number; entrega_taxa_metodo: 'bairro' | 'distancia'; entrega_taxa_padrao: number }
+interface BairroRow { name: string; price: string; disabled: boolean }
+interface KmTier { kmUntil: string; price: string }
+interface Pacote { id: string; categoria: 'diaria' | 'entrega'; nome: string; quantidade: number; preco: number; ativo: boolean }
 
 const s: Record<string, any> = {
   grid2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 },
-  card: { background: '#fff', borderRadius: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.07)', overflow: 'hidden' },
-  cardHd: { padding: '15px 20px', borderBottom: '1px solid #F0EDE8', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  card: { background: '#fff', borderRadius: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.07)', overflow: 'hidden', marginBottom: 16 },
+  cardHd: { padding: '15px 20px', borderBottom: '1px solid #F0EDE8', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' },
   cardTitle: { fontSize: 12.5, fontWeight: 800, color: '#111' },
   cardHint: { fontSize: 11, color: '#999' },
   cardBody: { padding: 18 },
   cardFoot: { padding: '13px 20px', borderTop: '1px solid #F0EDE8', display: 'flex', justifyContent: 'flex-end', gap: 8 },
-  priceRow: { display: 'grid', gridTemplateColumns: '26px 1fr 130px', gap: 12, alignItems: 'center', padding: '11px 0', borderBottom: '1px solid #F0EDE8' },
+  priceRow: { display: 'grid', gridTemplateColumns: '1fr 130px', gap: 12, alignItems: 'center', padding: '11px 0', borderBottom: '1px solid #F0EDE8' },
   priceLabel: { fontSize: 12.5, fontWeight: 700 },
   priceSub: { fontSize: 10.5, color: '#999' },
   priceInputWrap: { display: 'flex', alignItems: 'center', gap: 4, background: '#FAFAF8', border: '1.5px solid #E0DDD8', borderRadius: 9, padding: '7px 10px' },
   priceInput: { border: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: 13, fontWeight: 800, color: '#111', width: 70, outline: 'none' },
   btnSave: { background: 'var(--sign)', color: 'var(--ink)', border: 'none', padding: '9px 18px', borderRadius: 9, fontSize: 12, fontWeight: 800, cursor: 'pointer' },
   btnGhost: { background: '#fff', color: '#111', border: '1.5px solid #E0DDD8', padding: '9px 16px', borderRadius: 9, fontSize: 12, fontWeight: 700, cursor: 'pointer' },
-  holRow: { display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '1px solid #F0EDE8', fontSize: 12.5 },
-  holDate: { fontWeight: 800, width: 56, flex: 'none', color: 'var(--sign-dark)' },
-  holName: { flex: 1 },
-  holDel: { background: 'none', border: 'none', color: '#C43D3D', fontSize: 15, cursor: 'pointer', padding: '2px 6px' },
+  methodTabs: { display: 'flex', gap: 8, marginBottom: 14 },
+  methodTab: { flex: 1, padding: '9px 12px', borderRadius: 9, border: '1.5px solid #E0DDD8', background: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', textAlign: 'center' as const },
+  methodTabOn: { background: '#111', color: 'var(--sign)', borderColor: '#111' },
+  bairroToolbar: { marginBottom: 10 },
+  bairroGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 8, maxHeight: 380, overflowY: 'auto' as const, paddingRight: 4 },
+  bairroCell: { border: '1.5px solid #E0DDD8', borderRadius: 9, padding: '8px 10px' },
+  bairroCellOff: { background: '#FBEAEA', borderColor: '#E4A3A3' },
+  bairroCellName: { fontSize: 11, fontWeight: 700, marginBottom: 5 },
+  bairroRow: { display: 'flex', gap: 6, alignItems: 'center' },
+  bairroInput: { flex: 1, minWidth: 0, border: '1.5px solid #E0DDD8', borderRadius: 7, padding: '5px 7px', fontFamily: 'inherit', fontSize: 12 },
+  offBtn: { background: '#fff', border: '1.5px solid #E0DDD8', borderRadius: 7, width: 26, height: 26, cursor: 'pointer', fontSize: 12, flex: 'none' as const },
+  offBtnOn: { background: '#C43D3D', color: '#fff', borderColor: '#C43D3D' },
+  kmRow: { display: 'grid', gridTemplateColumns: '1fr 110px 30px', gap: 8, alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #F0EDE8' },
+  kmLabel: { fontSize: 12, color: '#555' },
+  kmNum: { width: 46, border: '1.5px solid #E0DDD8', borderRadius: 7, padding: '5px 6px', fontFamily: 'inherit', fontSize: 12, textAlign: 'center' as const },
+  pacoteRow: { display: 'grid', gridTemplateColumns: '1fr 90px 90px 70px auto auto', gap: 8, alignItems: 'center', padding: '9px 0', borderBottom: '1px solid #F0EDE8', fontSize: 12.5 },
+  pacoteHead: { display: 'grid', gridTemplateColumns: '1fr 90px 90px 70px auto auto', gap: 8, fontSize: 10, fontWeight: 700, color: '#999', textTransform: 'uppercase' as const, paddingBottom: 6 },
 }
 
 function fmt(n: number) { return 'R$ ' + n.toFixed(2).replace('.', ',') }
+function parsePt(v: string) { return parseFloat((v || '0').replace(',', '.')) || 0 }
+function fmtPt(n: number | null | undefined) { return n == null ? '' : String(n).replace('.', ',') }
+
+function defaultKmTiers(): KmTier[] { return [{ kmUntil: '3', price: '' }, { kmUntil: '6', price: '' }] }
 
 export default function EntregaConfigTab() {
   const [pricing, setPricing] = useState<Pricing | null>(null)
-  const [feriados, setFeriados] = useState<Feriado[]>([])
   const [savingDiaria, setSavingDiaria] = useState(false)
   const [savingEntrega, setSavingEntrega] = useState(false)
-  const [savingPacote, setSavingPacote] = useState(false)
   const [msg, setMsg] = useState('')
-  const [novaData, setNovaData] = useState('')
-  const [novoNome, setNovoNome] = useState('')
+
+  const [metodo, setMetodo] = useState<'bairro' | 'distancia'>('bairro')
+  const [padraoInput, setPadraoInput] = useState('')
+  const [bairroSearch, setBairroSearch] = useState('')
+  const [bairros, setBairros] = useState<BairroRow[]>(BAIRROS_SAO_GONCALO.map(name => ({ name, price: '', disabled: false })))
+  const [kmTiers, setKmTiers] = useState<KmTier[]>(defaultKmTiers())
+  const [kmLastPrice, setKmLastPrice] = useState('')
+  const [kmLastBlocked, setKmLastBlocked] = useState(false)
+
+  const [pacotes, setPacotes] = useState<Pacote[]>([])
+  const [novoPacote, setNovoPacote] = useState<{ categoria: 'diaria' | 'entrega'; nome: string; quantidade: string; preco: string } | null>(null)
+  const [editPacote, setEditPacote] = useState<Record<string, { nome: string; quantidade: string; preco: string }>>({})
 
   useEffect(() => { load() }, [])
 
   async function load() {
-    const [precoRes, ferRes] = await Promise.all([
+    const [precoRes, bairroRes, kmRes, pacoteRes] = await Promise.all([
       fetch('/api/admin/entrega-pricing').then(r => r.json()),
-      fetch('/api/admin/entrega-feriados').then(r => r.json()),
+      fetch('/api/admin/entrega-bairros').then(r => r.json()),
+      fetch('/api/admin/entrega-km-tiers').then(r => r.json()),
+      fetch('/api/admin/entrega-pacotes').then(r => r.json()),
     ])
-    setPricing(precoRes.pricing)
-    setFeriados(ferRes.feriados || [])
+    const p: Pricing = precoRes.pricing
+    setPricing(p)
+    setMetodo(p?.entrega_taxa_metodo === 'distancia' ? 'distancia' : 'bairro')
+    setPadraoInput(fmtPt(p?.entrega_taxa_padrao))
+
+    const bairroRows = bairroRes.bairros || []
+    setBairros(BAIRROS_SAO_GONCALO.map(name => {
+      const row = bairroRows.find((r: any) => normalizeBairro(r.bairro) === normalizeBairro(name))
+      return { name, price: row?.price != null && !row.disabled ? fmtPt(Number(row.price)) : '', disabled: row?.disabled || false }
+    }))
+
+    const tierRows = kmRes.tiers || []
+    const finitos = tierRows.filter((t: any) => t.km_until != null)
+    const ultimo = tierRows.find((t: any) => t.km_until == null)
+    if (finitos.length) setKmTiers(finitos.map((t: any) => ({ kmUntil: String(t.km_until), price: t.price != null ? fmtPt(Number(t.price)) : '' })))
+    if (ultimo) { setKmLastBlocked(!!ultimo.blocked); setKmLastPrice(ultimo.price != null ? fmtPt(Number(ultimo.price)) : '') }
+
+    setPacotes(pacoteRes.pacotes || [])
   }
 
-  async function salvar(fields: Partial<Pricing>, setSaving: (b: boolean) => void) {
-    setSaving(true); setMsg('')
+  async function getToken() {
     const { data: { session } } = await supabase.auth.getSession()
+    return session?.access_token
+  }
+
+  async function salvarDiaria() {
+    if (!pricing) return
+    setSavingDiaria(true); setMsg('')
+    const access_token = await getToken()
     const res = await fetch('/api/admin/entrega-pricing', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ access_token: session?.access_token, ...fields }),
+      body: JSON.stringify({ access_token, diaria: pricing.diaria }),
     })
     const data = await res.json()
-    setSaving(false)
+    setSavingDiaria(false)
     if (data.error) { setMsg(data.error); return }
-    setMsg('Salvo!')
-    setTimeout(() => setMsg(''), 2000)
-    load()
+    setMsg('Salvo!'); setTimeout(() => setMsg(''), 2000)
   }
 
-  async function addFeriado() {
-    if (!novaData || !novoNome.trim()) return
-    const { data: { session } } = await supabase.auth.getSession()
-    await fetch('/api/admin/entrega-feriados', {
+  async function salvarEntrega() {
+    setSavingEntrega(true); setMsg('')
+    const access_token = await getToken()
+
+    await fetch('/api/admin/entrega-pricing', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ access_token: session?.access_token, data: novaData, nome: novoNome.trim() }),
+      body: JSON.stringify({ access_token, entrega_taxa_metodo: metodo, entrega_taxa_padrao: parsePt(padraoInput) }),
     })
-    setNovaData(''); setNovoNome('')
+
+    if (metodo === 'bairro') {
+      const rows = bairros.filter(b => b.price !== '' || b.disabled).map(b => ({ bairro: b.name, price: b.disabled ? null : parsePt(b.price), disabled: b.disabled }))
+      await fetch('/api/admin/entrega-bairros', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token, bairros: rows }),
+      })
+    } else {
+      const rows = [
+        ...kmTiers.map(t => ({ km_until: parsePt(t.kmUntil) || null, price: t.price !== '' ? parsePt(t.price) : null, blocked: false })),
+        { km_until: null, price: kmLastBlocked ? null : (parsePt(kmLastPrice) || null), blocked: kmLastBlocked },
+      ]
+      await fetch('/api/admin/entrega-km-tiers', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token, tiers: rows }),
+      })
+    }
+
+    setSavingEntrega(false)
+    setMsg('Salvo!'); setTimeout(() => setMsg(''), 2000)
     load()
   }
 
-  async function delFeriado(id: string) {
-    const { data: { session } } = await supabase.auth.getSession()
-    setFeriados(prev => prev.filter(f => f.id !== id))
-    await fetch('/api/admin/entrega-feriados', {
-      method: 'DELETE', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ access_token: session?.access_token, id }),
+  function updateBairro(name: string, patch: Partial<BairroRow>) {
+    setBairros(prev => prev.map(b => b.name === name ? { ...b, ...patch } : b))
+  }
+  function toggleBairroOff(name: string) {
+    setBairros(prev => prev.map(b => b.name === name ? { ...b, disabled: !b.disabled } : b))
+  }
+  function updateKmTier(i: number, patch: Partial<KmTier>) {
+    setKmTiers(prev => prev.map((t, idx) => idx === i ? { ...t, ...patch } : t))
+  }
+  function addKmRow() {
+    const prevMax = kmTiers.length ? Number(kmTiers[kmTiers.length - 1].kmUntil) || 0 : 0
+    setKmTiers(prev => [...prev, { kmUntil: String(prevMax + 3), price: '' }])
+  }
+  function removeKmRow(i: number) {
+    if (kmTiers.length <= 1) return
+    setKmTiers(prev => prev.filter((_, idx) => idx !== i))
+  }
+
+  const bairrosFiltrados = useMemo(() => {
+    const q = normalizeBairro(bairroSearch)
+    return q ? bairros.filter(b => normalizeBairro(b.name).includes(q)) : bairros
+  }, [bairros, bairroSearch])
+  const bairroConfiguredCount = useMemo(() => bairros.filter(b => b.price !== '' || b.disabled).length, [bairros])
+
+  async function salvarNovoPacote() {
+    if (!novoPacote) return
+    const access_token = await getToken()
+    const res = await fetch('/api/admin/entrega-pacotes', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ access_token, categoria: novoPacote.categoria, nome: novoPacote.nome, quantidade: parsePt(novoPacote.quantidade), preco: parsePt(novoPacote.preco) }),
     })
+    const data = await res.json()
+    if (data.error) { setMsg(data.error); return }
+    setNovoPacote(null)
+    load()
+  }
+
+  async function salvarEdicaoPacote(id: string) {
+    const edit = editPacote[id]
+    if (!edit) return
+    const access_token = await getToken()
+    await fetch('/api/admin/entrega-pacotes', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ access_token, id, nome: edit.nome, quantidade: parsePt(edit.quantidade), preco: parsePt(edit.preco) }),
+    })
+    setEditPacote(prev => { const n = { ...prev }; delete n[id]; return n })
+    load()
+  }
+
+  async function toggleAtivo(p: Pacote) {
+    const access_token = await getToken()
+    await fetch('/api/admin/entrega-pacotes', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ access_token, id: p.id, ativo: !p.ativo }),
+    })
+    load()
+  }
+
+  async function excluirPacote(id: string) {
+    const access_token = await getToken()
+    await fetch('/api/admin/entrega-pacotes', {
+      method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ access_token, id }),
+    })
+    load()
+  }
+
+  function PacotesList({ categoria, label }: { categoria: 'diaria' | 'entrega'; label: string }) {
+    const lista = pacotes.filter(p => p.categoria === categoria)
+    const unidade = categoria === 'diaria' ? 'dias' : 'R$ crédito'
+    return (
+      <div style={s.card}>
+        <div style={s.cardHd}>
+          <span style={s.cardTitle}>{categoria === 'diaria' ? '📦' : '🎁'} Pacotes de {label}</span>
+          <button style={s.btnGhost} onClick={() => setNovoPacote({ categoria, nome: '', quantidade: '', preco: '' })}>+ Novo pacote</button>
+        </div>
+        <div style={s.cardBody}>
+          {lista.length === 0 && !novoPacote && <div style={{ color: '#999', fontSize: 12.5 }}>Nenhum pacote de {label} cadastrado ainda.</div>}
+          {lista.length > 0 && (
+            <div style={s.pacoteHead}><span>Nome</span><span>Qtd ({unidade})</span><span>Preço</span><span>Status</span><span /><span /></div>
+          )}
+          {lista.map(p => {
+            const edit = editPacote[p.id]
+            if (edit) {
+              return (
+                <div key={p.id} style={s.pacoteRow}>
+                  <input style={s.bairroInput} value={edit.nome} onChange={e => setEditPacote(prev => ({ ...prev, [p.id]: { ...edit, nome: e.target.value } }))} />
+                  <input style={s.bairroInput} value={edit.quantidade} onChange={e => setEditPacote(prev => ({ ...prev, [p.id]: { ...edit, quantidade: e.target.value } }))} />
+                  <input style={s.bairroInput} value={edit.preco} onChange={e => setEditPacote(prev => ({ ...prev, [p.id]: { ...edit, preco: e.target.value } }))} />
+                  <span />
+                  <button style={s.btnSave} onClick={() => salvarEdicaoPacote(p.id)}>Salvar</button>
+                  <button style={s.btnGhost} onClick={() => setEditPacote(prev => { const n = { ...prev }; delete n[p.id]; return n })}>Cancelar</button>
+                </div>
+              )
+            }
+            return (
+              <div key={p.id} style={{ ...s.pacoteRow, opacity: p.ativo ? 1 : 0.5 }}>
+                <span style={{ fontWeight: 700 }}>{p.nome}</span>
+                <span>{p.quantidade}</span>
+                <span>{fmt(Number(p.preco))}</span>
+                <span>{p.ativo ? '🟢 Ativo' : '⚪ Inativo'}</span>
+                <button style={s.btnGhost} onClick={() => setEditPacote(prev => ({ ...prev, [p.id]: { nome: p.nome, quantidade: fmtPt(p.quantidade), preco: fmtPt(p.preco) } }))}>Editar</button>
+                <span style={{ display: 'flex', gap: 6 }}>
+                  <button style={s.btnGhost} onClick={() => toggleAtivo(p)}>{p.ativo ? 'Desativar' : 'Ativar'}</button>
+                  <button style={{ ...s.btnGhost, color: '#C43D3D' }} onClick={() => excluirPacote(p.id)}>Excluir</button>
+                </span>
+              </div>
+            )
+          })}
+          {novoPacote?.categoria === categoria && (
+            <div style={{ ...s.pacoteRow, borderTop: '2px dashed #E0DDD8', marginTop: 4 }}>
+              <input style={s.bairroInput} placeholder="Nome (ex: 7 diárias)" value={novoPacote.nome} onChange={e => setNovoPacote({ ...novoPacote, nome: e.target.value })} />
+              <input style={s.bairroInput} placeholder={unidade} value={novoPacote.quantidade} onChange={e => setNovoPacote({ ...novoPacote, quantidade: e.target.value })} />
+              <input style={s.bairroInput} placeholder="Preço" value={novoPacote.preco} onChange={e => setNovoPacote({ ...novoPacote, preco: e.target.value })} />
+              <span />
+              <button style={s.btnSave} onClick={salvarNovoPacote}>Criar</button>
+              <button style={s.btnGhost} onClick={() => setNovoPacote(null)}>Cancelar</button>
+            </div>
+          )}
+        </div>
+      </div>
+    )
   }
 
   if (!pricing) return <div style={{ color: '#888', fontSize: 13 }}>Carregando...</div>
-
-  const p = pricing
-  const set = (patch: Partial<Pricing>) => setPricing({ ...p, ...patch })
 
   return (
     <div>
       {msg && <div style={{ marginBottom: 14, fontSize: 12.5, fontWeight: 700, color: msg === 'Salvo!' ? '#157A52' : '#C43D3D' }}>{msg}</div>}
 
-      <div style={s.grid2}>
-        <div style={s.card}>
-          <div style={s.cardHd}><span style={s.cardTitle}>💳 Preço da diária</span><span style={s.cardHint}>liberar o dia pra chamar motoboy</span></div>
-          <div style={s.cardBody}>
-            <div style={s.priceRow}>
-              <span /><span><div style={s.priceLabel}>Dias úteis</div><div style={s.priceSub}>segunda a sexta</div></span>
-              <span style={s.priceInputWrap}><span>R$</span><input style={s.priceInput} type="number" step="0.01" value={p.diaria_util} onChange={e => set({ diaria_util: Number(e.target.value) })} /></span>
-            </div>
-            <div style={s.priceRow}>
-              <span /><span><div style={s.priceLabel}>Fim de semana</div><div style={s.priceSub}>sábado e domingo</div></span>
-              <span style={s.priceInputWrap}><span>R$</span><input style={s.priceInput} type="number" step="0.01" value={p.diaria_fds} onChange={e => set({ diaria_fds: Number(e.target.value) })} /></span>
-            </div>
-            <div style={{ ...s.priceRow, borderBottom: 'none' }}>
-              <span /><span><div style={s.priceLabel}>Feriados</div><div style={s.priceSub}>ver lista ao lado →</div></span>
-              <span style={s.priceInputWrap}><span>R$</span><input style={s.priceInput} type="number" step="0.01" value={p.diaria_feriado} onChange={e => set({ diaria_feriado: Number(e.target.value) })} /></span>
-            </div>
-          </div>
-          <div style={s.cardFoot}>
-            <button style={s.btnSave} disabled={savingDiaria} onClick={() => salvar({ diaria_util: p.diaria_util, diaria_fds: p.diaria_fds, diaria_feriado: p.diaria_feriado }, setSavingDiaria)}>
-              {savingDiaria ? 'Salvando...' : 'Salvar diária'}
-            </button>
+      <div style={s.card}>
+        <div style={s.cardHd}><span style={s.cardTitle}>💳 Preço da diária</span><span style={s.cardHint}>liberar o dia pra chamar motoboy — preço único, não muda por dia</span></div>
+        <div style={s.cardBody}>
+          <div style={{ ...s.priceRow, borderBottom: 'none', gridTemplateColumns: '200px 130px' }}>
+            <span style={s.priceLabel}>Diária</span>
+            <span style={s.priceInputWrap}><span>R$</span><input style={s.priceInput} type="number" step="0.01" value={pricing.diaria} onChange={e => setPricing({ ...pricing, diaria: Number(e.target.value) })} /></span>
           </div>
         </div>
+        <div style={s.cardFoot}>
+          <button style={s.btnSave} disabled={savingDiaria} onClick={salvarDiaria}>{savingDiaria ? 'Salvando...' : 'Salvar diária'}</button>
+        </div>
+      </div>
 
-        <div style={s.card}>
-          <div style={s.cardHd}><span style={s.cardTitle}>🏍️ Preço por entrega</span><span style={s.cardHint}>consumido a cada corrida concluída</span></div>
-          <div style={s.cardBody}>
-            <div style={s.priceRow}>
-              <span /><span><div style={s.priceLabel}>Dias úteis</div><div style={s.priceSub}>segunda a sexta</div></span>
-              <span style={s.priceInputWrap}><span>R$</span><input style={s.priceInput} type="number" step="0.01" value={p.entrega_util} onChange={e => set({ entrega_util: Number(e.target.value) })} /></span>
-            </div>
-            <div style={s.priceRow}>
-              <span /><span><div style={s.priceLabel}>Fim de semana</div><div style={s.priceSub}>sábado e domingo</div></span>
-              <span style={s.priceInputWrap}><span>R$</span><input style={s.priceInput} type="number" step="0.01" value={p.entrega_fds} onChange={e => set({ entrega_fds: Number(e.target.value) })} /></span>
-            </div>
-            <div style={{ ...s.priceRow, borderBottom: 'none' }}>
-              <span /><span><div style={s.priceLabel}>Feriados</div><div style={s.priceSub}>ver lista ao lado →</div></span>
-              <span style={s.priceInputWrap}><span>R$</span><input style={s.priceInput} type="number" step="0.01" value={p.entrega_feriado} onChange={e => set({ entrega_feriado: Number(e.target.value) })} /></span>
-            </div>
+      <div style={s.card}>
+        <div style={s.cardHd}><span style={s.cardTitle}>🏍️ Preço por entrega</span><span style={s.cardHint}>debitado do crédito no valor real de cada corrida</span></div>
+        <div style={s.cardBody}>
+          <div style={s.methodTabs}>
+            <div style={{ ...s.methodTab, ...(metodo === 'bairro' ? s.methodTabOn : {}) }} onClick={() => setMetodo('bairro')}>📍 Por bairro</div>
+            <div style={{ ...s.methodTab, ...(metodo === 'distancia' ? s.methodTabOn : {}) }} onClick={() => setMetodo('distancia')}>📏 Por distância (km)</div>
           </div>
-          <div style={s.cardFoot}>
-            <button style={s.btnSave} disabled={savingEntrega} onClick={() => salvar({ entrega_util: p.entrega_util, entrega_fds: p.entrega_fds, entrega_feriado: p.entrega_feriado }, setSavingEntrega)}>
-              {savingEntrega ? 'Salvando...' : 'Salvar entrega'}
-            </button>
+
+          <div style={{ ...s.priceRow, gridTemplateColumns: '1fr 130px' }}>
+            <span><div style={s.priceLabel}>Taxa padrão (fallback)</div><div style={s.priceSub}>usada quando não dá pra calcular bairro/km</div></span>
+            <span style={s.priceInputWrap}><span>R$</span><input style={s.priceInput} value={padraoInput} onChange={e => setPadraoInput(e.target.value)} /></span>
           </div>
+
+          {metodo === 'bairro' ? (
+            <>
+              <div style={{ ...s.bairroToolbar, marginTop: 12 }}>
+                <input style={{ ...s.bairroInput, width: '100%' }} placeholder="🔎 Buscar bairro..." value={bairroSearch} onChange={e => setBairroSearch(e.target.value)} />
+              </div>
+              <div style={{ fontSize: 11, color: '#999', marginBottom: 8 }}><b>{bairroConfiguredCount}</b> de <b>{BAIRROS_SAO_GONCALO.length}</b> bairros configurados — o resto usa a taxa padrão acima.</div>
+              <div style={s.bairroGrid}>
+                {bairrosFiltrados.map(b => (
+                  <div key={b.name} style={{ ...s.bairroCell, ...(b.disabled ? s.bairroCellOff : {}) }}>
+                    <div style={s.bairroCellName}>{b.name}</div>
+                    <div style={s.bairroRow}>
+                      {b.disabled
+                        ? <span style={{ fontSize: 11, color: '#C43D3D', flex: 1 }}>Sem entrega</span>
+                        : <input style={s.bairroInput} placeholder="0,00" value={b.price} onChange={e => updateBairro(b.name, { price: e.target.value })} />}
+                      <button style={{ ...s.offBtn, ...(b.disabled ? s.offBtnOn : {}) }} onClick={() => toggleBairroOff(b.name)} title={b.disabled ? 'Reativar' : 'Marcar sem entrega'}>✕</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div style={{ marginTop: 12 }}>
+              {kmTiers.map((t, i) => (
+                <div key={i} style={s.kmRow}>
+                  <div style={s.kmLabel}>
+                    {i === 0 ? 'Até' : <>De <input style={s.kmNum} value={kmTiers[i - 1].kmUntil} disabled /> até</>}{' '}
+                    <input style={s.kmNum} value={t.kmUntil} onChange={e => updateKmTier(i, { kmUntil: e.target.value })} /> km
+                  </div>
+                  <input style={s.priceInputWrap} placeholder="0,00" value={t.price} onChange={e => updateKmTier(i, { price: e.target.value })} />
+                  <button style={s.offBtn} onClick={() => removeKmRow(i)} title="Remover faixa">×</button>
+                </div>
+              ))}
+              <div style={s.kmRow}>
+                <div style={s.kmLabel}>Acima de {kmTiers[kmTiers.length - 1]?.kmUntil || '0'} km</div>
+                {kmLastBlocked
+                  ? <span style={{ fontSize: 11, color: '#C43D3D' }}>Não entrego</span>
+                  : <input style={s.priceInputWrap} placeholder="0,00" value={kmLastPrice} onChange={e => setKmLastPrice(e.target.value)} />}
+                <button style={{ ...s.offBtn, ...(kmLastBlocked ? s.offBtnOn : {}) }} onClick={() => setKmLastBlocked(v => !v)} title={kmLastBlocked ? 'Permitir cobrando taxa' : 'Marcar como não entrego'}>✕</button>
+              </div>
+              <button style={{ ...s.btnGhost, marginTop: 10 }} onClick={addKmRow}>+ Adicionar faixa</button>
+            </div>
+          )}
+        </div>
+        <div style={s.cardFoot}>
+          <button style={s.btnSave} disabled={savingEntrega} onClick={salvarEntrega}>{savingEntrega ? 'Salvando...' : 'Salvar entrega'}</button>
         </div>
       </div>
 
       <div style={s.grid2}>
-        <div style={s.card}>
-          <div style={s.cardHd}><span style={s.cardTitle}>📦 Pacote semanal com desconto</span><span style={s.cardHint}>contratar vários dias de diária de uma vez</span></div>
-          <div style={s.cardBody}>
-            <div style={{ display: 'flex', gap: 14, marginBottom: 14, flexWrap: 'wrap' }}>
-              <div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: '#999', textTransform: 'uppercase', marginBottom: 5 }}>Dias no pacote</div>
-                <span style={s.priceInputWrap}><input style={{ ...s.priceInput, width: 40 }} type="number" value={p.pacote_dias} onChange={e => set({ pacote_dias: Number(e.target.value) })} /></span>
-              </div>
-              <div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: '#999', textTransform: 'uppercase', marginBottom: 5 }}>Desconto (R$ fixo)</div>
-                <span style={s.priceInputWrap}><span>R$</span><input style={s.priceInput} type="number" step="0.01" value={p.pacote_desconto} onChange={e => set({ pacote_desconto: Number(e.target.value) })} /></span>
-              </div>
-            </div>
-            <div style={{ background: '#E4F3EC', border: '1px dashed #157A52', borderRadius: 10, padding: '12px 14px', fontSize: 12, lineHeight: 1.6 }}>
-              Empresa contrata <b>{p.pacote_dias} diárias</b> de uma vez → <span style={{ textDecoration: 'line-through', color: '#999' }}>{fmt(p.diaria_util * p.pacote_dias)}</span> <b style={{ color: '#157A52' }}>{fmt(Math.max(0, p.diaria_util * p.pacote_dias - p.pacote_desconto))}</b>
-              <br />({p.pacote_dias} × {fmt(p.diaria_util)} de dia útil − {fmt(p.pacote_desconto)} de desconto)
-            </div>
-          </div>
-          <div style={s.cardFoot}>
-            <button style={s.btnSave} disabled={savingPacote} onClick={() => salvar({ pacote_dias: p.pacote_dias, pacote_desconto: p.pacote_desconto }, setSavingPacote)}>
-              {savingPacote ? 'Salvando...' : 'Salvar pacote'}
-            </button>
-          </div>
-        </div>
-
-        <div style={s.card}>
-          <div style={s.cardHd}><span style={s.cardTitle}>📅 Feriados cadastrados</span><span style={s.cardHint}>pra saber quando cobrar o preço de feriado</span></div>
-          <div style={s.cardBody}>
-            {feriados.length === 0 && <div style={{ color: '#999', fontSize: 12.5 }}>Nenhum feriado cadastrado ainda.</div>}
-            {feriados.map(f => (
-              <div key={f.id} style={s.holRow}>
-                <span style={s.holDate}>{f.data.split('-').reverse().slice(0, 2).join('/')}</span>
-                <span style={s.holName}>{f.nome}</span>
-                <button style={s.holDel} onClick={() => delFeriado(f.id)}>×</button>
-              </div>
-            ))}
-            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-              <input type="date" style={{ ...s.priceInputWrap, flex: 'none', width: 140 } as any} value={novaData} onChange={e => setNovaData(e.target.value)} />
-              <input placeholder="Nome do feriado" style={{ flex: 1, minWidth: 0, border: '1.5px solid #E0DDD8', borderRadius: 8, padding: '8px 10px', fontFamily: 'inherit', fontSize: 12 }} value={novoNome} onChange={e => setNovoNome(e.target.value)} />
-              <button style={s.btnGhost} onClick={addFeriado}>+ Add</button>
-            </div>
-          </div>
-        </div>
+        <PacotesList categoria="diaria" label="diária" />
+        <PacotesList categoria="entrega" label="crédito" />
       </div>
     </div>
   )

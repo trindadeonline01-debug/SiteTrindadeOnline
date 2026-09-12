@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import sharp from 'sharp'
 import { moduleActive } from '@/lib/modules'
-import { getTodayValues } from '@/lib/entregaPricing'
+import { getEntregaPricing, getEntregaFeeForDelivery } from '@/lib/entregaPricing'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -235,13 +235,18 @@ export async function criarEntregaEChamarMotoboy(opts: {
   const { companyId, pedidoId, customerName, customerPhone, dropoffAddress } = opts
   if (!customerName?.trim() || !dropoffAddress?.trim()) return { ok: false, error: 'dados faltando' }
 
-  const { data: company } = await supabase.from('companies').select('address, entrega_enabled, trial_modules_until').eq('id', companyId).maybeSingle()
+  const { data: company } = await supabase.from('companies').select('address, entrega_enabled, trial_modules_until, loja_lat, loja_lng').eq('id', companyId).maybeSingle()
   if (!company) return { ok: false, error: 'empresa não encontrada' }
   if (!moduleActive(company.entrega_enabled, company.trial_modules_until)) return { ok: false, error: 'Módulo de entrega não está ativo pra essa empresa.' }
   if (!company.address?.trim()) return { ok: false, error: 'Cadastre o endereço da loja no perfil antes de chamar motoboy.' }
 
   const { data: wallet } = await supabase.from('company_delivery_wallet').select('credits, dias_diaria_disponiveis').eq('company_id', companyId).maybeSingle()
-  const { entrega: entregaFee } = await getTodayValues()
+  // Preço da corrida calculado por bairro ou distância (igual ao que cada
+  // loja já usa pra cobrar o próprio cliente, mas configurado globalmente
+  // pelo admin) — é o valor de fato debitado do saldo em R$ da carteira na
+  // confirmação (ver src/app/api/entrega/webhook), não mais um fixo do dia.
+  const { fee: entregaFee, blocked, reason } = await getEntregaFeeForDelivery(dropoffAddress, { loja_lat: company.loja_lat, loja_lng: company.loja_lng })
+  if (blocked) return { ok: false, error: reason || 'Fora da área de entrega da plataforma.' }
   // Pedido com pedido_id nasceu na própria plataforma (checkout do cardápio
   // ou "Novo Pedido" no painel) — exige só crédito carregado, sem diária.
   // Sem pedido_id é solicitação avulsa (tela "+ Nova entrega", pedido vindo
@@ -253,7 +258,9 @@ export async function criarEntregaEChamarMotoboy(opts: {
   if (!pedidoId && (!wallet?.dias_diaria_disponiveis || wallet.dias_diaria_disponiveis < 1)) {
     return { ok: false, error: 'Sem diária disponível — compra em Entrega no painel.' }
   }
-  if (!wallet?.credits || wallet.credits < 1) return { ok: false, error: 'Sem crédito de entrega — compra mais em Entrega no painel.' }
+  // Crédito agora é saldo em R$ (não mais contador de entregas) — precisa
+  // cobrir o valor real dessa corrida específica, calculado acima.
+  if (!wallet?.credits || wallet.credits < entregaFee) return { ok: false, error: 'Sem crédito de entrega suficiente — compra mais em Entrega no painel.' }
 
   if (pedidoId) {
     const { data: existing } = await supabase.from('delivery_orders').select('id').eq('pedido_id', pedidoId).maybeSingle()

@@ -9,7 +9,7 @@ interface KmTier { kmUntil: string; price: string }
 interface Pacote { id: string; categoria: 'diaria' | 'entrega'; nome: string; quantidade: number; preco: number; ativo: boolean }
 
 const s: Record<string, any> = {
-  grid2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 },
+  topRow: { display: 'grid', gridTemplateColumns: '1fr 1fr 260px', gap: 16, marginBottom: 16, alignItems: 'start' },
   card: { background: '#fff', borderRadius: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.07)', overflow: 'hidden', marginBottom: 16 },
   cardHd: { padding: '15px 20px', borderBottom: '1px solid #F0EDE8', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' },
   cardTitle: { fontSize: 12.5, fontWeight: 800, color: '#111' },
@@ -38,8 +38,12 @@ const s: Record<string, any> = {
   kmRow: { display: 'grid', gridTemplateColumns: '1fr 110px 30px', gap: 8, alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #F0EDE8' },
   kmLabel: { fontSize: 12, color: '#555' },
   kmNum: { width: 46, border: '1.5px solid #E0DDD8', borderRadius: 7, padding: '5px 6px', fontFamily: 'inherit', fontSize: 12, textAlign: 'center' as const },
-  pacoteRow: { display: 'grid', gridTemplateColumns: '1fr 90px 90px 70px auto auto', gap: 8, alignItems: 'center', padding: '9px 0', borderBottom: '1px solid #F0EDE8', fontSize: 12.5 },
-  pacoteHead: { display: 'grid', gridTemplateColumns: '1fr 90px 90px 70px auto auto', gap: 8, fontSize: 10, fontWeight: 700, color: '#999', textTransform: 'uppercase' as const, paddingBottom: 6 },
+  pacoteItem: { padding: '10px 0', borderBottom: '1px solid #F0EDE8' },
+  pacoteTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 4 },
+  pacoteMeta: { display: 'flex', justifyContent: 'space-between', fontSize: 11.5, color: '#6E6656', marginBottom: 6 },
+  pacoteActions: { display: 'flex', gap: 6, flexWrap: 'wrap' as const },
+  btnGhostSm: { background: '#fff', color: '#111', border: '1.5px solid #E0DDD8', padding: '5px 9px', borderRadius: 7, fontSize: 11, fontWeight: 700, cursor: 'pointer' },
+  pacoteFormInput: { width: '100%', border: '1.5px solid #E0DDD8', borderRadius: 7, padding: '6px 8px', fontFamily: 'inherit', fontSize: 12, marginBottom: 6, boxSizing: 'border-box' as const },
 }
 
 function fmt(n: number) { return 'R$ ' + n.toFixed(2).replace('.', ',') }
@@ -223,45 +227,48 @@ export default function EntregaConfigTab() {
         </div>
         <div style={s.cardBody}>
           {lista.length === 0 && !novoPacote && <div style={{ color: '#999', fontSize: 12.5 }}>Nenhum pacote de {label} cadastrado ainda.</div>}
-          {lista.length > 0 && (
-            <div style={s.pacoteHead}><span>Nome</span><span>Qtd ({unidade})</span><span>Preço</span><span>Status</span><span /><span /></div>
-          )}
           {lista.map(p => {
             const edit = editPacote[p.id]
             if (edit) {
               return (
-                <div key={p.id} style={s.pacoteRow}>
-                  <input style={s.bairroInput} value={edit.nome} onChange={e => setEditPacote(prev => ({ ...prev, [p.id]: { ...edit, nome: e.target.value } }))} />
-                  <input style={s.bairroInput} value={edit.quantidade} onChange={e => setEditPacote(prev => ({ ...prev, [p.id]: { ...edit, quantidade: e.target.value } }))} />
-                  <input style={s.bairroInput} value={edit.preco} onChange={e => setEditPacote(prev => ({ ...prev, [p.id]: { ...edit, preco: e.target.value } }))} />
-                  <span />
-                  <button style={s.btnSave} onClick={() => salvarEdicaoPacote(p.id)}>Salvar</button>
-                  <button style={s.btnGhost} onClick={() => setEditPacote(prev => { const n = { ...prev }; delete n[p.id]; return n })}>Cancelar</button>
+                <div key={p.id} style={s.pacoteItem}>
+                  <input style={s.pacoteFormInput} placeholder="Nome" value={edit.nome} onChange={e => setEditPacote(prev => ({ ...prev, [p.id]: { ...edit, nome: e.target.value } }))} />
+                  <input style={s.pacoteFormInput} placeholder={`Qtd (${unidade})`} value={edit.quantidade} onChange={e => setEditPacote(prev => ({ ...prev, [p.id]: { ...edit, quantidade: e.target.value } }))} />
+                  <input style={s.pacoteFormInput} placeholder="Preço" value={edit.preco} onChange={e => setEditPacote(prev => ({ ...prev, [p.id]: { ...edit, preco: e.target.value } }))} />
+                  <div style={s.pacoteActions}>
+                    <button style={s.btnGhostSm} onClick={() => salvarEdicaoPacote(p.id)}>Salvar</button>
+                    <button style={s.btnGhostSm} onClick={() => setEditPacote(prev => { const n = { ...prev }; delete n[p.id]; return n })}>Cancelar</button>
+                  </div>
                 </div>
               )
             }
             return (
-              <div key={p.id} style={{ ...s.pacoteRow, opacity: p.ativo ? 1 : 0.5 }}>
-                <span style={{ fontWeight: 700 }}>{p.nome}</span>
-                <span>{p.quantidade}</span>
-                <span>{fmt(Number(p.preco))}</span>
-                <span>{p.ativo ? '🟢 Ativo' : '⚪ Inativo'}</span>
-                <button style={s.btnGhost} onClick={() => setEditPacote(prev => ({ ...prev, [p.id]: { nome: p.nome, quantidade: fmtPt(p.quantidade), preco: fmtPt(p.preco) } }))}>Editar</button>
-                <span style={{ display: 'flex', gap: 6 }}>
-                  <button style={s.btnGhost} onClick={() => toggleAtivo(p)}>{p.ativo ? 'Desativar' : 'Ativar'}</button>
-                  <button style={{ ...s.btnGhost, color: '#C43D3D' }} onClick={() => excluirPacote(p.id)}>Excluir</button>
-                </span>
+              <div key={p.id} style={{ ...s.pacoteItem, opacity: p.ativo ? 1 : 0.5 }}>
+                <div style={s.pacoteTop}>
+                  <span style={{ fontWeight: 700 }}>{p.nome}</span>
+                  <span style={{ fontSize: 11 }}>{p.ativo ? '🟢 Ativo' : '⚪ Inativo'}</span>
+                </div>
+                <div style={s.pacoteMeta}>
+                  <span>{p.quantidade} {unidade}</span>
+                  <span>{fmt(Number(p.preco))}</span>
+                </div>
+                <div style={s.pacoteActions}>
+                  <button style={s.btnGhostSm} onClick={() => setEditPacote(prev => ({ ...prev, [p.id]: { nome: p.nome, quantidade: fmtPt(p.quantidade), preco: fmtPt(p.preco) } }))}>Editar</button>
+                  <button style={s.btnGhostSm} onClick={() => toggleAtivo(p)}>{p.ativo ? 'Desativar' : 'Ativar'}</button>
+                  <button style={{ ...s.btnGhostSm, color: '#C43D3D' }} onClick={() => excluirPacote(p.id)}>Excluir</button>
+                </div>
               </div>
             )
           })}
           {novoPacote?.categoria === categoria && (
-            <div style={{ ...s.pacoteRow, borderTop: '2px dashed #E0DDD8', marginTop: 4 }}>
-              <input style={s.bairroInput} placeholder="Nome (ex: 7 diárias)" value={novoPacote.nome} onChange={e => setNovoPacote({ ...novoPacote, nome: e.target.value })} />
-              <input style={s.bairroInput} placeholder={unidade} value={novoPacote.quantidade} onChange={e => setNovoPacote({ ...novoPacote, quantidade: e.target.value })} />
-              <input style={s.bairroInput} placeholder="Preço" value={novoPacote.preco} onChange={e => setNovoPacote({ ...novoPacote, preco: e.target.value })} />
-              <span />
-              <button style={s.btnSave} onClick={salvarNovoPacote}>Criar</button>
-              <button style={s.btnGhost} onClick={() => setNovoPacote(null)}>Cancelar</button>
+            <div style={{ ...s.pacoteItem, borderTop: '2px dashed #E0DDD8', marginTop: 4, paddingTop: 10 }}>
+              <input style={s.pacoteFormInput} placeholder="Nome (ex: 7 diárias)" value={novoPacote.nome} onChange={e => setNovoPacote({ ...novoPacote, nome: e.target.value })} />
+              <input style={s.pacoteFormInput} placeholder={`Qtd (${unidade})`} value={novoPacote.quantidade} onChange={e => setNovoPacote({ ...novoPacote, quantidade: e.target.value })} />
+              <input style={s.pacoteFormInput} placeholder="Preço" value={novoPacote.preco} onChange={e => setNovoPacote({ ...novoPacote, preco: e.target.value })} />
+              <div style={s.pacoteActions}>
+                <button style={s.btnGhostSm} onClick={salvarNovoPacote}>Criar</button>
+                <button style={s.btnGhostSm} onClick={() => setNovoPacote(null)}>Cancelar</button>
+              </div>
             </div>
           )}
         </div>
@@ -275,16 +282,21 @@ export default function EntregaConfigTab() {
     <div>
       {msg && <div style={{ marginBottom: 14, fontSize: 12.5, fontWeight: 700, color: msg === 'Salvo!' ? '#157A52' : '#C43D3D' }}>{msg}</div>}
 
-      <div style={s.card}>
-        <div style={s.cardHd}><span style={s.cardTitle}>💳 Preço da diária</span><span style={s.cardHint}>liberar o dia pra chamar motoboy — preço único, não muda por dia</span></div>
-        <div style={s.cardBody}>
-          <div style={{ ...s.priceRow, borderBottom: 'none', gridTemplateColumns: '200px 130px' }}>
-            <span style={s.priceLabel}>Diária</span>
-            <span style={s.priceInputWrap}><span>R$</span><input style={s.priceInput} type="number" step="0.01" value={pricing.diaria} onChange={e => setPricing({ ...pricing, diaria: Number(e.target.value) })} /></span>
+      <div style={s.topRow}>
+        <PacotesList categoria="diaria" label="diária" />
+        <PacotesList categoria="entrega" label="crédito" />
+        <div style={s.card}>
+          <div style={s.cardHd}><span style={s.cardTitle}>💳 Preço da diária</span></div>
+          <div style={s.cardBody}>
+            <div style={s.priceSub}>Liberar o dia pra chamar motoboy — preço único, não muda por dia.</div>
+            <div style={{ ...s.priceRow, borderBottom: 'none', gridTemplateColumns: '1fr 100px', marginTop: 8 }}>
+              <span style={s.priceLabel}>Diária</span>
+              <span style={s.priceInputWrap}><span>R$</span><input style={s.priceInput} type="number" step="0.01" value={pricing.diaria} onChange={e => setPricing({ ...pricing, diaria: Number(e.target.value) })} /></span>
+            </div>
           </div>
-        </div>
-        <div style={s.cardFoot}>
-          <button style={s.btnSave} disabled={savingDiaria} onClick={salvarDiaria}>{savingDiaria ? 'Salvando...' : 'Salvar diária'}</button>
+          <div style={s.cardFoot}>
+            <button style={s.btnSave} disabled={savingDiaria} onClick={salvarDiaria}>{savingDiaria ? 'Salvando...' : 'Salvar diária'}</button>
+          </div>
         </div>
       </div>
 
@@ -349,10 +361,6 @@ export default function EntregaConfigTab() {
         </div>
       </div>
 
-      <div style={s.grid2}>
-        <PacotesList categoria="diaria" label="diária" />
-        <PacotesList categoria="entrega" label="crédito" />
-      </div>
     </div>
   )
 }

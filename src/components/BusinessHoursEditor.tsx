@@ -38,6 +38,33 @@ export default function BusinessHoursEditor({ hours, setHours, flexible, setFlex
     setHours(hours.map((h, i) => i === idx ? { ...h, [field]: val } : h))
   }
 
+  // Copia o horário de um dia pra todos os outros de uma vez (pedido do
+  // Ricardo, set/2026 — maioria das empresas abre igual de segunda a
+  // sábado, não faz sentido preencher dia por dia). É uma cópia pontual,
+  // não um vínculo — depois de aplicar, o lojista pode clicar em qualquer
+  // dia específico e mudar só aquele, sem afetar os outros. "Feriados"
+  // (day 7) fica de fora por ser um caso especial, não um dia da semana.
+  function applyToAllDays(sourceDay: number) {
+    const sourceRows = hours.filter(h => h.day_of_week === sourceDay)
+    const sourceClosed = isDayClosed(sourceDay)
+    const kept = hours.filter(h => h.day_of_week === sourceDay || h.day_of_week === 7)
+    const otherDays = DAYS_OF_WEEK.map(d => d.value).filter(d => d !== sourceDay && d !== 7)
+    const copied: HourRow[] = []
+    for (const day of otherDays) {
+      if (sourceClosed) {
+        copied.push({ day_of_week: day, open_time: null, close_time: null, closed: true })
+      } else {
+        sourceRows.forEach(r => copied.push({ day_of_week: day, open_time: r.open_time, close_time: r.close_time, closed: false }))
+      }
+    }
+    setHours([...kept, ...copied])
+  }
+
+  function canApplyToAll(day: number) {
+    const rows = rowsFor(day)
+    return isDayClosed(day) || (rows.length > 0 && rows.every(r => r.open_time && r.close_time))
+  }
+
   return (
     <div className="bh-editor">
       <style>{`
@@ -61,6 +88,7 @@ export default function BusinessHoursEditor({ hours, setHours, flexible, setFlex
         .bh-range-rm { background: #FEF0F0; color: #E24B4A; border: none; border-radius: 6px; width: 24px; height: 24px; cursor: pointer; font-size: 13px; flex-shrink: 0; }
         .bh-empty { font-size: 11px; color: #BBB; font-style: italic; }
         .bh-add { align-self: flex-start; background: none; border: none; color: var(--sign-dark); font-size: 11px; font-weight: 700; cursor: pointer; padding: 2px 0; font-family: 'Archivo', sans-serif; }
+        .bh-apply-all { margin-top: 8px; background: rgba(201,149,26,.1); border: none; border-radius: 8px; color: var(--sign-dark); font-size: 11px; font-weight: 700; cursor: pointer; padding: 7px 10px; font-family: 'Archivo', sans-serif; }
       `}</style>
       <div className="bh-flex-toggle">
         <div>
@@ -99,6 +127,12 @@ export default function BusinessHoursEditor({ hours, setHours, flexible, setFlex
                   ))}
                   <button type="button" className="bh-add" onClick={() => addRange(day)}>+ adicionar outro horário nesse dia</button>
                 </div>
+              )}
+              {closed && canApplyToAll(day) && (
+                <button type="button" className="bh-apply-all" onClick={() => applyToAllDays(day)}>📋 Aplicar "fechado" a todos os dias</button>
+              )}
+              {!closed && canApplyToAll(day) && (
+                <button type="button" className="bh-apply-all" onClick={() => applyToAllDays(day)}>📋 Aplicar esse horário a todos os dias</button>
               )}
             </div>
           )

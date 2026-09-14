@@ -138,9 +138,9 @@ export default function AnunciarPage() {
   function handlePhotos(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || [])
     const total = photos.length + files.length
-    if (total > 5) { setErro('Máximo de 5 fotos.'); return }
+    if (total > 10) { setErro('Máximo de 10 fotos.'); return }
     setErro('')
-    const newFiles = [...photos, ...files].slice(0, 5)
+    const newFiles = [...photos, ...files].slice(0, 10)
     setPhotos(newFiles)
     setPreviews(newFiles.map(f => URL.createObjectURL(f)))
   }
@@ -662,7 +662,7 @@ export default function AnunciarPage() {
               {bizStep === 3 && (
                 <form onSubmit={handleSubmit}>
                   <div className="field">
-                    <label>Fotos da empresa * <span style={{ fontSize: 11, color: '#AAA', fontWeight: 400 }}>mínimo 1 · máximo 5 · primeira é a capa</span></label>
+                    <label>Fotos da empresa * <span style={{ fontSize: 11, color: '#AAA', fontWeight: 400 }}>mínimo 1 · máximo 10 · primeira é a capa</span></label>
                     <div className="photo-grid">
                       {previews.map((p, i) => (
                         <div key={i} className="photo-slot">
@@ -671,7 +671,7 @@ export default function AnunciarPage() {
                           {i === 0 && <div style={{ position: 'absolute', bottom: 4, left: 4, background: 'var(--sign-dark)', color: '#fff', fontSize: 8, fontWeight: 700, padding: '1px 6px', borderRadius: 5 }}>CAPA</div>}
                         </div>
                       ))}
-                      {photos.length < 5 && (
+                      {photos.length < 10 && (
                         <div className="photo-add-btn" onClick={() => fileRef.current?.click()}>
                           <span style={{ fontSize: 24 }}>📷</span>
                           <span>Adicionar foto</span>

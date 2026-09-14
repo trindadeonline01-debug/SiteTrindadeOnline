@@ -50,7 +50,7 @@ export default function PhotoManager({ companyId, onChange }: { companyId: strin
   const [uploading, setUploading] = useState(false)
   const [loading, setLoading] = useState(true)
   const fileRef = useRef<HTMLInputElement>(null)
-  const MAX = 5
+  const MAX = 10
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })

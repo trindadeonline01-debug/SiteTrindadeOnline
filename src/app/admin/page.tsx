@@ -1222,7 +1222,13 @@ export default function AdminPage() {
     const c = editCompanyModal.company
     setSavingEdit(true)
     try {
-      const { error: updateError } = await supabase.from('companies').update({
+      // O seletor de "Dias de validade" só mexia em estado local — nunca
+      // salvava plan_ends_at. Resultado: admin marcava "Pago" com 30 dias,
+      // o plano ficava com a data de vencimento antiga (já passada), e na
+      // próxima checagem de expiração (cron ou botão "rodar agora") a
+      // empresa voltava pra "free" sozinha, como se nada tivesse sido feito
+      // (bug relatado pelo Ricardo, set/2026: Expresso Delícia).
+      const update: Record<string, any> = {
         name: c.name,
         category_id: c.category_id,
         address: c.address,
@@ -1233,7 +1239,11 @@ export default function AdminPage() {
         tags: c.tags || [],
         status: c.status,
         plan: c.plan,
-      }).eq('id', c.id)
+      }
+      if (c.plan === 'paid' && Number(c.plan_days) > 0) {
+        update.plan_ends_at = new Date(Date.now() + Number(c.plan_days) * 86400000).toISOString()
+      }
+      const { error: updateError } = await supabase.from('companies').update(update).eq('id', c.id)
       if (updateError) throw new Error(updateError.message)
       await supabase.from('company_subcategories').delete().eq('company_id', c.id)
       if (companySubcatIds.length > 0) {
@@ -1728,7 +1738,7 @@ export default function AdminPage() {
                 </select>
                 {editCompanyModal.company.plan === 'paid' && (
                   <div style={{marginTop:8}}>
-                    <label style={{fontSize:11,color:'#888',marginBottom:4,display:'block'}}>Dias de validade</label>
+                    <label style={{fontSize:11,color:'#888',marginBottom:4,display:'block'}}>Dias de validade (a partir de hoje)</label>
                     <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:6}}>
                       {[30,60,90,180,365].map(d=>(
                         <button key={d} type="button" onClick={()=>setEditCompanyModal(p=>({...p,company:{...p.company,plan_days:d}}))}

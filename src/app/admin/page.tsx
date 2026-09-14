@@ -16,7 +16,8 @@ import PagamentosTab from '@/components/admin/PagamentosTab'
 import RelatoriosTab from '@/components/admin/RelatoriosTab'
 import PecaAgoraTab from '@/components/admin/PecaAgoraTab'
 import PhotoManager from '@/components/PhotoManager'
-import { dayOfWeekLabel } from '@/lib/businessHours'
+import { dayOfWeekLabel, IGREJAS_CATEGORY_ID, DIAS_SEMANA, HourRow } from '@/lib/businessHours'
+import BusinessHoursEditor from '@/components/BusinessHoursEditor'
 import dynamic from 'next/dynamic'
 const EmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false })
 
@@ -123,6 +124,9 @@ export default function AdminPage() {
   const [allCategories, setAllCategories] = useState<CatOpt[]>([])
   const [allSubcats, setAllSubcats] = useState<SubcatOpt[]>([])
   const [companySubcatIds, setCompanySubcatIds] = useState<string[]>([])
+  const [editHours, setEditHours] = useState<HourRow[]>([])
+  const [editFlexible, setEditFlexible] = useState(false)
+  const [editChurchHours, setEditChurchHours] = useState<{day:string;manha:string;noite:string}[]>(DIAS_SEMANA.map(day=>({day,manha:'',noite:''})))
   const [savingEdit, setSavingEdit] = useState(false)
   const [tagInputAdmin, setTagInputAdmin] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -1214,6 +1218,27 @@ export default function AdminPage() {
     }
     const { data: compSubs } = await supabase.from('company_subcategories').select('subcategory_id').eq('company_id', c.id)
     setCompanySubcatIds((compSubs || []).map((s: any) => s.subcategory_id))
+
+    // Horário de funcionamento não dava pra editar por aqui — só pelo painel
+    // do próprio lojista (achado do Ricardo, set/2026). Mesmo componente e
+    // mesma lógica de carregar/salvar já usados em /painel.
+    const { data: savedHoursRaw } = await supabase.from('company_hours').select('*').eq('company_id', c.id).order('order')
+    const savedHours = savedHoursRaw || []
+    setEditFlexible(!!c.flexible_hours)
+    setEditHours(savedHours.filter((h: any) => h.day_of_week !== null).map((h: any) => ({
+      day_of_week: h.day_of_week,
+      open_time: h.open_time ? h.open_time.slice(0, 5) : null,
+      close_time: h.close_time ? h.close_time.slice(0, 5) : null,
+      closed: h.closed,
+    })))
+    if (c.category_id === IGREJAS_CATEGORY_ID) {
+      setEditChurchHours(DIAS_SEMANA.map(day => ({
+        day,
+        manha: savedHours.find((h: any) => h.label === `${day} manhã`)?.hours || '',
+        noite: savedHours.find((h: any) => h.label === `${day} noite`)?.hours || '',
+      })))
+    }
+
     setNewPassword('')
     setEditCompanyModal({ open: true, company: { ...c } })
   }
@@ -1239,6 +1264,7 @@ export default function AdminPage() {
         tags: c.tags || [],
         status: c.status,
         plan: c.plan,
+        flexible_hours: editFlexible,
       }
       if (c.plan === 'paid' && Number(c.plan_days) > 0) {
         update.plan_ends_at = new Date(Date.now() + Number(c.plan_days) * 86400000).toISOString()
@@ -1251,6 +1277,24 @@ export default function AdminPage() {
           companySubcatIds.map((sid: string, i: number) => ({ company_id: c.id, subcategory_id: sid, is_primary: i === 0 }))
         )
       }
+
+      await supabase.from('company_hours').delete().eq('company_id', c.id)
+      if (c.category_id === IGREJAS_CATEGORY_ID) {
+        const cultosEntries: any[] = []; let order = 0
+        editChurchHours.forEach(({ day, manha, noite }) => {
+          if (manha.trim()) cultosEntries.push({ company_id: c.id, label: `${day} manhã`, hours: manha.trim(), order: order++ })
+          if (noite.trim()) cultosEntries.push({ company_id: c.id, label: `${day} noite`, hours: noite.trim(), order: order++ })
+        })
+        if (cultosEntries.length > 0) await supabase.from('company_hours').insert(cultosEntries)
+      } else if (!editFlexible) {
+        const validH = editHours.filter(h => h.closed || (h.open_time?.trim() && h.close_time?.trim()))
+        if (validH.length > 0) await supabase.from('company_hours').insert(validH.map((h, i) => ({
+          company_id: c.id, day_of_week: h.day_of_week,
+          open_time: h.closed ? null : h.open_time, close_time: h.closed ? null : h.close_time,
+          closed: h.closed, order: i,
+        })))
+      }
+
       setSavingEdit(false)
       showToast('Empresa atualizada!')
       setEditCompanyModal({ open: false, company: null })
@@ -1728,6 +1772,35 @@ export default function AdminPage() {
                   }} placeholder={(editCompanyModal.company.tags||[]).length===0?"ex: pizza, delivery, hambúrguer...":""} style={{border:'none',background:'transparent',outline:'none',fontSize:13,fontFamily:"'Archivo',sans-serif",minWidth:120,flex:1}}/>
                 </div>
                 <div style={{fontSize:11,color:'#AAA',marginTop:4}}>{(editCompanyModal.company.tags||[]).length} tags</div>
+              </div>
+              <div style={{gridColumn:'1/-1'}}>
+                <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>
+                  {editCompanyModal.company.category_id === IGREJAS_CATEGORY_ID ? '⛪ Horários de culto' : 'Horário de funcionamento'}
+                </label>
+                {editCompanyModal.company.category_id === IGREJAS_CATEGORY_ID ? (
+                  <div>
+                    <div style={{fontSize:11,color:'#888',marginBottom:10,padding:'6px 10px',background:'rgba(201,149,26,.1)',borderRadius:8,borderLeft:'3px solid var(--sign-dark)'}}>
+                      Preencha os horários dos cultos. Deixe em branco os dias sem culto.
+                    </div>
+                    {editChurchHours.map((ch,i)=>(
+                      <div key={i} style={{display:'grid',gridTemplateColumns:'72px 1fr 1fr',gap:8,alignItems:'center',padding:'8px 10px',background:'#FAFAF8',border:'1px solid #E0DDD8',borderRadius:10,marginBottom:6}}>
+                        <div style={{fontSize:12,fontWeight:700,color:'#111'}}>{ch.day}</div>
+                        <div style={{display:'flex',flexDirection:'column',gap:3}}>
+                          <div style={{fontSize:9,color:'#999',fontWeight:700,letterSpacing:.3}}>MANHÃ</div>
+                          <input type="time" value={ch.manha} onChange={e=>{const n=[...editChurchHours];n[i]={...n[i],manha:e.target.value};setEditChurchHours(n)}}
+                            style={{width:'100%',padding:'6px 8px',border:'1px solid #E0DDD8',borderRadius:7,fontSize:12,fontFamily:'Archivo,sans-serif'}}/>
+                        </div>
+                        <div style={{display:'flex',flexDirection:'column',gap:3}}>
+                          <div style={{fontSize:9,color:'#999',fontWeight:700,letterSpacing:.3}}>NOITE</div>
+                          <input type="time" value={ch.noite} onChange={e=>{const n=[...editChurchHours];n[i]={...n[i],noite:e.target.value};setEditChurchHours(n)}}
+                            style={{width:'100%',padding:'6px 8px',border:'1px solid #E0DDD8',borderRadius:7,fontSize:12,fontFamily:'Archivo,sans-serif'}}/>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <BusinessHoursEditor hours={editHours} setHours={setEditHours} flexible={editFlexible} setFlexible={setEditFlexible} />
+                )}
               </div>
               <div>
                 <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>Plano</label>

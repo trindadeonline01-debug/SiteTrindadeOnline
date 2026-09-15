@@ -334,7 +334,6 @@ export default function PedidosPage() {
         deliveryFee: p.delivery_fee || 0,
         total: p.total,
       })
-      await qzPrintRaw(printerName, content)
       const kitchenContent = buildKitchenTicket({
         pedidoShortId: String(p.order_number ?? p.id.slice(0, 8)), createdAt: p.created_at,
         deliveryType: p.delivery_type, items, notes: p.notes,

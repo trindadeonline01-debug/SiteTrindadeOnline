@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { refreshSessionOnce } from '@/lib/authRefresh'
-import { qzListPrinters, qzPrintRaw, buildReceipt, buildKitchenTicket } from '@/lib/qzPrint'
+import { qzListPrinters, qzPrintRaw, buildReceipt, buildKitchenTicket, isRawBtMode, printViaRawBt, RAWBT_SENTINEL } from '@/lib/qzPrint'
 import { fetchPedidoComItensComRetry } from '@/lib/autoprint'
 import { useRealtimeResync } from '@/hooks/useRealtimeResync'
 import { usePainelShell } from '@/contexts/PainelShellContext'
@@ -131,6 +131,7 @@ export default function PedidosPage() {
   const [crmEnabled, setCrmEnabled] = useState(false)
   const [entregaEnabled, setEntregaEnabled] = useState(false)
   const [showPrinterModal, setShowPrinterModal] = useState(false)
+  const [printerModalMode, setPrinterModalMode] = useState<'qz' | 'rawbt'>('qz')
   const [qzStatus, setQzStatus] = useState<'idle' | 'connecting' | 'connected' | 'error'>('idle')
   const [qzError, setQzError] = useState('')
   const [foundPrinters, setFoundPrinters] = useState<string[]>([])
@@ -338,14 +339,33 @@ export default function PedidosPage() {
         pedidoShortId: String(p.order_number ?? p.id.slice(0, 8)), createdAt: p.created_at,
         deliveryType: p.delivery_type, items, notes: p.notes,
       })
-      await qzPrintRaw(printerName, kitchenContent)
+      if (isRawBtMode(printerName)) {
+        // Duas chamadas de `intent:` em sequência imediata perdem a segunda
+        // — o Android ainda está trocando de app pra a primeira. Um respiro
+        // curto entre elas é o suficiente.
+        printViaRawBt(content)
+        setTimeout(() => printViaRawBt(kitchenContent), 600)
+      } else {
+        await qzPrintRaw(printerName, content)
+        await qzPrintRaw(printerName, kitchenContent)
+      }
     } catch (err: any) {
-      setPrintError('Não consegui imprimir — confere se o QZ Tray está aberto no computador. ' + (err?.message || ''))
+      setPrintError(isRawBtMode(printerName)
+        ? 'Não consegui imprimir — confere se o RawBT está instalado e a impressora pareada nele. ' + (err?.message || '')
+        : 'Não consegui imprimir — confere se o QZ Tray está aberto no computador. ' + (err?.message || ''))
     }
   }
 
-  async function openPrinterModal() {
+  // Só abre o modal e mostra a escolha de modo — não tenta falar com o QZ
+  // Tray de cara, porque quem usa RawBT (tablet) não tem QZ Tray nenhum
+  // rodando, e a tentativa de conexão só ia mostrar erro à toa.
+  function openPrinterModal() {
     setShowPrinterModal(true)
+    setPrinterModalMode(isRawBtMode(printerName) ? 'rawbt' : 'qz')
+  }
+
+  async function startQzSetup() {
+    setPrinterModalMode('qz')
     setQzStatus('connecting')
     setQzError('')
     try {
@@ -632,6 +652,9 @@ export default function PedidosPage() {
         .pp-modal{ background:#fff;border-radius:16px;max-width:400px;width:100%;padding:22px;max-height:88vh;overflow-y:auto; }
         .pp-modal h2{ font-size:15px;margin:0 0 4px;font-weight:800; }
         .pp-modal p{ font-size:12px;color:#6E6656;line-height:1.6;margin:0 0 14px; }
+        .pp-mode-tabs{ display:flex;gap:6px;margin-bottom:16px;background:#F0EDE8;border-radius:10px;padding:4px; }
+        .pp-mode-tab{ flex:1;padding:8px;border:none;border-radius:7px;background:transparent;color:#6E6656;font-weight:700;font-size:12.5px;cursor:pointer;font-family:inherit; }
+        .pp-mode-tab.sel{ background:#fff;color:#1A1610;box-shadow:0 1px 3px rgba(0,0,0,.1); }
         .pp-step{ display:flex;gap:10px;margin-bottom:14px; }
         .pp-step-n{ flex:none;width:22px;height:22px;border-radius:50%;background:#F0EDE8;color:#6E6656;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center; }
         .pp-step-txt{ font-size:12.5px;color:#3A342A;line-height:1.5;padding-top:2px; }
@@ -752,7 +775,7 @@ export default function PedidosPage() {
           Aceitar pedidos automaticamente
         </label>
         <button className="pd-printer-pill" onClick={openPrinterModal} style={printerName ? { background: '#E4F3EC', color: '#157A52', borderColor: '#B7DFC9' } : {}}>
-          🖨️ {printerName ? `Impressora: ${printerName}` : 'Configurar impressora'}
+          🖨️ {printerName ? `Impressora: ${isRawBtMode(printerName) ? 'RawBT (tablet)' : printerName}` : 'Configurar impressora'}
         </button>
         <button className="pd-newbtn" onClick={openNovoPedido}>+ Novo pedido</button>
       </div>
@@ -894,53 +917,91 @@ export default function PedidosPage() {
         <div className="pp-overlay" onClick={() => setShowPrinterModal(false)}>
           <div className="pp-modal" onClick={e => e.stopPropagation()}>
             <h2>🖨️ Impressora de pedidos</h2>
-            <p>Imprime o pedido automaticamente numa impressora térmica de 80mm ligada por USB no computador, quando "Aceitar pedidos automaticamente" estiver ligado.</p>
+            <p>Imprime o pedido automaticamente numa impressora térmica de 80mm, quando "Aceitar pedidos automaticamente" estiver ligado.</p>
 
-            {qzStatus !== 'connected' && (
+            <div className="pp-mode-tabs">
+              <button className={`pp-mode-tab ${printerModalMode === 'qz' ? 'sel' : ''}`} onClick={() => setPrinterModalMode('qz')}>💻 Computador</button>
+              <button className={`pp-mode-tab ${printerModalMode === 'rawbt' ? 'sel' : ''}`} onClick={() => setPrinterModalMode('rawbt')}>📱 Tablet</button>
+            </div>
+
+            {printerModalMode === 'qz' && (
               <>
-                <div className="pp-step">
-                  <span className="pp-step-n">1</span>
-                  <span className="pp-step-txt">
-                    Baixa e instala o app de impressão (uma vez só, no computador da impressora):<br/>
-                    <a className="pp-dl-btn" href={supabase.storage.from('app-downloads').getPublicUrl('qz-tray-windows.exe').data.publicUrl} target="_blank" rel="noopener noreferrer">🪟 Baixar app de impressão (Windows)</a>{' '}
-                    <a className="pp-dl-btn" href={supabase.storage.from('app-downloads').getPublicUrl('qz-tray-mac.pkg').data.publicUrl} target="_blank" rel="noopener noreferrer">🍎 Baixar app de impressão (Mac)</a>
-                  </span>
-                </div>
-                <div className="pp-step">
-                  <span className="pp-step-n">2</span>
-                  <span className="pp-step-txt">Abre o app instalado (fica rodando quietinho, sem precisar mexer de novo) e volta aqui.</span>
-                </div>
-                <div className="pp-step">
-                  <span className="pp-step-n">3</span>
-                  <span className="pp-step-txt">Clica em "Testar conexão" — na primeira vez o app vai perguntar se pode confiar nesse site; marca "lembrar" pra não perguntar de novo.</span>
-                </div>
-                <div className="pp-step">
-                  <span className="pp-step-n">4</span>
-                  <span className="pp-step-txt">
-                    Se continuar pedindo permissão toda hora mesmo marcando "lembrar", baixa os dois certificados abaixo e importa o certificado <b>raiz</b> como confiável nas configurações avançadas do app de impressão (pede ajuda ao suporte se precisar):<br/>
-                    <a className="pp-dl-btn" href="/api/qz/certificado/raiz" target="_blank" rel="noopener noreferrer">🔐 Baixar certificado raiz</a>{' '}
-                    <a className="pp-dl-btn" href="/api/qz/certificado/site" target="_blank" rel="noopener noreferrer">📄 Baixar certificado do site</a>
-                  </span>
-                </div>
-                {qzStatus === 'error' && <div className="pp-err">{qzError}</div>}
-                <button className="pp-retry" onClick={openPrinterModal} disabled={qzStatus === 'connecting'}>
-                  {qzStatus === 'connecting' ? 'Conectando...' : '🔄 Testar conexão'}
-                </button>
+                {!isRawBtMode(printerName) && printerName && (
+                  <div style={{ fontSize: 11, fontWeight: 800, color: '#157A52', marginBottom: 8 }}>✓ Impressora configurada: {printerName}</div>
+                )}
+                {qzStatus !== 'connected' && (
+                  <>
+                    <div className="pp-step">
+                      <span className="pp-step-n">1</span>
+                      <span className="pp-step-txt">
+                        Baixa e instala o app de impressão (uma vez só, no computador da impressora):<br/>
+                        <a className="pp-dl-btn" href={supabase.storage.from('app-downloads').getPublicUrl('qz-tray-windows.exe').data.publicUrl} target="_blank" rel="noopener noreferrer">🪟 Baixar app de impressão (Windows)</a>{' '}
+                        <a className="pp-dl-btn" href={supabase.storage.from('app-downloads').getPublicUrl('qz-tray-mac.pkg').data.publicUrl} target="_blank" rel="noopener noreferrer">🍎 Baixar app de impressão (Mac)</a>
+                      </span>
+                    </div>
+                    <div className="pp-step">
+                      <span className="pp-step-n">2</span>
+                      <span className="pp-step-txt">Abre o app instalado (fica rodando quietinho, sem precisar mexer de novo) e volta aqui.</span>
+                    </div>
+                    <div className="pp-step">
+                      <span className="pp-step-n">3</span>
+                      <span className="pp-step-txt">Clica em "Testar conexão" — na primeira vez o app vai perguntar se pode confiar nesse site; marca "lembrar" pra não perguntar de novo.</span>
+                    </div>
+                    <div className="pp-step">
+                      <span className="pp-step-n">4</span>
+                      <span className="pp-step-txt">
+                        Se continuar pedindo permissão toda hora mesmo marcando "lembrar", baixa os dois certificados abaixo e importa o certificado <b>raiz</b> como confiável nas configurações avançadas do app de impressão (pede ajuda ao suporte se precisar):<br/>
+                        <a className="pp-dl-btn" href="/api/qz/certificado/raiz" target="_blank" rel="noopener noreferrer">🔐 Baixar certificado raiz</a>{' '}
+                        <a className="pp-dl-btn" href="/api/qz/certificado/site" target="_blank" rel="noopener noreferrer">📄 Baixar certificado do site</a>
+                      </span>
+                    </div>
+                    {qzStatus === 'error' && <div className="pp-err">{qzError}</div>}
+                    <button className="pp-retry" onClick={startQzSetup} disabled={qzStatus === 'connecting'}>
+                      {qzStatus === 'connecting' ? 'Conectando...' : '🔄 Testar conexão'}
+                    </button>
+                  </>
+                )}
+
+                {qzStatus === 'connected' && (
+                  <>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: '#6E6656', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 8 }}>
+                      {foundPrinters.length === 1 ? 'Impressora detectada automaticamente' : 'Escolhe a impressora'}
+                    </div>
+                    {foundPrinters.length === 0 && <div className="pp-err">Nenhuma impressora encontrada no computador. Confere se ela está ligada e instalada no Windows/Mac.</div>}
+                    {foundPrinters.map(name => (
+                      <div key={name} className={`pp-printer-item ${printerName === name ? 'sel' : ''}`} onClick={() => selectPrinter(name)}>
+                        <span style={{ fontSize: 12.5, fontWeight: 600 }}>{name}</span>
+                        {printerName === name && <span style={{ color: '#157A52', fontSize: 12, fontWeight: 800 }}>✓ Selecionada</span>}
+                      </div>
+                    ))}
+                  </>
+                )}
               </>
             )}
 
-            {qzStatus === 'connected' && (
+            {printerModalMode === 'rawbt' && (
               <>
-                <div style={{ fontSize: 11, fontWeight: 800, color: '#6E6656', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 8 }}>
-                  {foundPrinters.length === 1 ? 'Impressora detectada automaticamente' : 'Escolhe a impressora'}
+                {isRawBtMode(printerName) && (
+                  <div style={{ fontSize: 11, fontWeight: 800, color: '#157A52', marginBottom: 8 }}>✓ Impressão por RawBT ativada</div>
+                )}
+                <div className="pp-step">
+                  <span className="pp-step-n">1</span>
+                  <span className="pp-step-txt">Instala o app <b>RawBT</b> (grátis, Play Store) no tablet.</span>
                 </div>
-                {foundPrinters.length === 0 && <div className="pp-err">Nenhuma impressora encontrada no computador. Confere se ela está ligada e instalada no Windows/Mac.</div>}
-                {foundPrinters.map(name => (
-                  <div key={name} className={`pp-printer-item ${printerName === name ? 'sel' : ''}`} onClick={() => selectPrinter(name)}>
-                    <span style={{ fontSize: 12.5, fontWeight: 600 }}>{name}</span>
-                    {printerName === name && <span style={{ color: '#157A52', fontSize: 12, fontWeight: 800 }}>✓ Selecionada</span>}
-                  </div>
-                ))}
+                <div className="pp-step">
+                  <span className="pp-step-n">2</span>
+                  <span className="pp-step-txt">Abre o RawBT, pareia a impressora térmica por Bluetooth por dentro dele e escolhe o idioma/página de código Português nas configurações do app.</span>
+                </div>
+                <div className="pp-step">
+                  <span className="pp-step-n">3</span>
+                  <span className="pp-step-txt">Clica no botão abaixo pra ativar. Não precisa "conectar" com nada aqui — é o próprio botão "🖨️ Imprimir" no pedido que vai abrir o RawBT na hora.</span>
+                </div>
+                <button className="pp-retry" onClick={() => selectPrinter(RAWBT_SENTINEL)} disabled={printerSaving}>
+                  {isRawBtMode(printerName) ? '✓ Ativado' : 'Ativar impressão por RawBT'}
+                </button>
+                <div style={{ fontSize: 11, color: '#8A6410', marginTop: 8, lineHeight: 1.5 }}>
+                  ⚠ No tablet, a impressão automática de pedido novo não funciona — o Android só deixa abrir o RawBT depois de um toque de verdade na tela. Precisa tocar em "🖨️ Imprimir" em cada pedido.
+                </div>
               </>
             )}
 

@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { moduleActive } from '@/lib/modules'
 import { beep, unlockAudio } from '@/lib/beep'
 import { autoImprimirPedido } from '@/lib/autoprint'
+import { isRawBtMode } from '@/lib/qzPrint'
 import { refreshSessionOnce } from '@/lib/authRefresh'
 import { useRealtimeResync } from '@/hooks/useRealtimeResync'
 import EmpresaShell, { type EmpresaNavKey } from '@/components/EmpresaShell'
@@ -184,7 +185,12 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'loja_pedidos', filter: `company_id=eq.${company.id}` }, payload => {
         beep()
         refreshPedidosBadge(company.id)
-        if (autoAceitarRef.current && printerNameRef.current) {
+        // RawBT (tablet) fica de fora da impressão automática de propósito —
+        // o Android só deixa abrir outro app (RawBT) a partir de um toque de
+        // verdade na tela; chamado sozinho aqui (sem gesto nenhum, veio do
+        // realtime) o navegador bloqueia silenciosamente. Só o QZ Tray
+        // (computador) consegue imprimir sem alguém tocar em nada.
+        if (autoAceitarRef.current && printerNameRef.current && !isRawBtMode(printerNameRef.current)) {
           autoImprimirPedido(company.name, payload.new.id as string, printerNameRef.current)
         }
       })

@@ -130,6 +130,46 @@ export async function qzPrintRaw(printerName: string, content: string): Promise<
   await qz.print(config, [content])
 }
 
+// ── RawBT — caminho alternativo pra tablet Android, onde QZ Tray não roda
+// (é um app de computador). Achado com o Crepe Cone, set/2026: o Chrome do
+// tablet nem suporta Web Bluetooth ("not supported on this platform"), e a
+// maioria dessas impressoras portáteis baratas fala Bluetooth clássico
+// (SPP), que a Web Bluetooth API nunca enxerga de jeito nenhum, em nenhum
+// navegador — não dava pra imprimir direto do site. RawBT (app grátis,
+// Play Store) já resolve isso: vira "impressora" do Android pareada com a
+// térmica, e entende um link especial (`intent:`) que qualquer site pode
+// abrir pra mandar o conteúdo. Guardamos esse "modo" no mesmo campo que já
+// guarda o nome da impressora do QZ Tray (`loja_impressora_nome`) — em vez
+// de criar coluna nova só pra isso, um valor sentinela mesmo (nenhuma
+// impressora QZ de verdade se chamaria assim).
+export const RAWBT_SENTINEL = 'rawbt'
+export function isRawBtMode(printerName: string): boolean {
+  return printerName === RAWBT_SENTINEL
+}
+
+// Empacota o mesmo texto ESC/POS que já vai pro QZ Tray (buildReceipt/
+// buildKitchenTicket) num link que o Android entrega pro RawBT. Precisa ser
+// UTF-8 de verdade (não Latin1/btoa direto) — é assim que o RawBT reconhece
+// e converte sozinho os acentos do português pra página de código de uma
+// impressora térmica (CP860 e afins, configurável nas opções do app RawBT);
+// os bytes de comando ESC/POS (\x1B, \x1D...) são todos ASCII (<128), então
+// saem intactos na conversão UTF-8 — só o texto acentuado muda de tamanho.
+function toRawBtIntentUrl(content: string): string {
+  const bytes = new TextEncoder().encode(content)
+  let binary = ''
+  bytes.forEach(b => { binary += String.fromCharCode(b) })
+  const base64 = btoa(binary)
+  return `intent:base64,${base64}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`
+}
+
+// Precisa ser chamado a partir de um clique de verdade (o Android/Chrome
+// bloqueia abrir outro app via link sem gesto do usuário) — por isso não dá
+// pra usar isso na impressão automática de pedido novo (essa continua só
+// pro QZ Tray/computador; ver comentário em painel/layout.tsx).
+export function printViaRawBt(content: string): void {
+  window.location.href = toRawBtIntentUrl(content)
+}
+
 // ── Recibo ESC/POS pra impressora térmica de 80mm (largura padrão de
 // 42 colunas na fonte A, que é o tamanho mais comum de impressora de
 // cupom — Epson, Elgin, Bematech e afins entendem esses comandos) ──

@@ -175,6 +175,28 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
     return () => { cancelled = true }
   }, [company?.id, deliveryType, cepData?.bairro, cepData?.localidade, cepData?.uf, cepData?.logradouro, numero])
 
+  // Cliente logado tem o endereço pré-preenchido a partir do perfil (texto
+  // livre salvo antes, sem passar pelo CEP) — sem isso aqui, esse caso nunca
+  // calculava taxa nenhuma e caía sempre no fallback fixo da loja, mesmo com
+  // preço de bairro cadastrado (achado do Ricardo, set/2026). Debounced
+  // porque `address` muda a cada tecla se o cliente editar o texto à mão.
+  useEffect(() => {
+    if (!company || deliveryType !== 'entrega' || cepData?.bairro || !address.trim()) return
+    let cancelled = false
+    const t = setTimeout(() => {
+      setFreteLoading(true)
+      fetch('/api/loja/calcular-frete', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ company_id: company.id, enderecoLivre: address }),
+      }).then(r => r.json()).then(data => {
+        if (cancelled) return
+        setFreteInfo(data?.ok ? { fee: Number(data.fee) || 0, blocked: !!data.blocked, reason: data.reason, tempo: data.tempo || null } : null)
+      }).catch(() => { if (!cancelled) setFreteInfo(null) })
+        .finally(() => { if (!cancelled) setFreteLoading(false) })
+    }, 600)
+    return () => { cancelled = true; clearTimeout(t) }
+  }, [company?.id, deliveryType, cepData?.bairro, address])
+
   function addToCart(produtoId: string, name: string, price: number, qty: number, modifiers: { name: string; price: number }[] = []) {
     // Segunda trava, além dos cliques já bloqueados na lista — protege
     // contra qualquer chamada que escape do fluxo normal (ex: modal já

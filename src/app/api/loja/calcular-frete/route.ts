@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { normalizeBairro } from '@/lib/bairrosSaoGoncalo'
+import { normalizeBairro, BAIRROS_SAO_GONCALO } from '@/lib/bairrosSaoGoncalo'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -10,6 +10,23 @@ const supabase = createClient(
 type Endereco = { bairro?: string; cidade?: string; uf?: string; logradouro?: string; numero?: string }
 type CompanyRow = { id: string; loja_lat: number | null; loja_lng: number | null; loja_tempo_preparo_min: number | null }
 
+// Cliente logado tem o endereço pré-preenchido a partir do perfil (texto
+// livre salvo antes, sem passar pelo CEP) — nesse caso não existe bairro
+// estruturado nenhum, e a taxa caía sempre no fallback fixo (R$0 quando a
+// loja não configura esse campo), mesmo com preço de bairro cadastrado
+// (achado do Ricardo, set/2026: Crepe Cone com "Trindade" a R$3 configurado,
+// mas pedido saindo com taxa R$0 porque o endereço veio pronto do perfil).
+// Acha o nome de bairro mais específico (mais longo primeiro) dentro do
+// texto livre do endereço, mesmo padrão já usado pro motoboy da plataforma.
+function matchBairroInFreeText(address: string): string | null {
+  const norm = normalizeBairro(address)
+  const ordenados = [...BAIRROS_SAO_GONCALO].sort((a, b) => b.length - a.length)
+  for (const bairro of ordenados) {
+    if (norm.includes(normalizeBairro(bairro))) return bairro
+  }
+  return null
+}
+
 // Rota pública (sem login — é chamada no checkout do cardápio assim que o
 // CEP resolve). Nunca deixa o checkout travado por causa de uma falha
 // externa: qualquer problema (geocodificação, ORS fora do ar, loja sem
@@ -18,7 +35,7 @@ type CompanyRow = { id: string; loja_lat: number | null; loja_lng: number | null
 // tempo de preparo (pedido do Ricardo, set/2026).
 export async function POST(req: NextRequest) {
   try {
-    const { company_id, bairro, cidade, uf, logradouro, numero } = await req.json()
+    const { company_id, bairro: bairroRaw, cidade, uf, logradouro, numero, enderecoLivre } = await req.json()
     if (!company_id) return NextResponse.json({ error: 'company_id faltando' }, { status: 400 })
 
     const { data: company } = await supabase
@@ -29,13 +46,17 @@ export async function POST(req: NextRequest) {
     if (!company) return NextResponse.json({ error: 'empresa não encontrada' }, { status: 404 })
 
     const flatFallback = Number(company.loja_taxa_entrega || 0)
+    // Sem bairro estruturado (endereço veio pronto do perfil, sem passar
+    // pelo CEP), tenta achar um bairro conhecido dentro do texto livre antes
+    // de desistir e cair no fallback fixo.
+    const bairro = bairroRaw || (enderecoLivre ? matchBairroInFreeText(enderecoLivre) || undefined : undefined)
     const endereco: Endereco = { bairro, cidade, uf, logradouro, numero }
 
     // Trajeto real via OpenRouteService — calculado sempre, independente do
     // método de cobrança da taxa (bairro ou distância). No método distância
     // a mesma chamada já resolve o km pra taxa também, sem duplicar
     // requisição à API.
-    const trajeto = await geocodeAndMatrix(company, endereco)
+    const trajeto = await geocodeAndMatrix(company, endereco, enderecoLivre)
     const tempo = buildTempo(company.loja_tempo_preparo_min, trajeto?.durationMin ?? null)
 
     if (company.loja_taxa_metodo === 'distancia') {
@@ -73,7 +94,7 @@ function buildTempo(prepMinRaw: number | null, travelMin: number | null) {
   return { prepMin, travelMin, min: Math.max(5, total - 10), max: total + 10 }
 }
 
-async function geocodeAndMatrix(company: CompanyRow, endereco: Endereco): Promise<{ km: number; durationMin: number } | null> {
+async function geocodeAndMatrix(company: CompanyRow, endereco: Endereco, enderecoLivre?: string): Promise<{ km: number; durationMin: number } | null> {
   if (company.loja_lat == null || company.loja_lng == null) return null
   const orsKey = process.env.ORS_API_KEY
   if (!orsKey) return null
@@ -82,11 +103,14 @@ async function geocodeAndMatrix(company: CompanyRow, endereco: Endereco): Promis
     endereco.logradouro && endereco.numero ? `${endereco.logradouro}, ${endereco.numero}` : endereco.logradouro,
     endereco.bairro, endereco.cidade && endereco.uf ? `${endereco.cidade} - ${endereco.uf}` : endereco.cidade,
   ].filter(Boolean)
-  if (partes.length === 0) return null
+  // Sem nenhum campo estruturado (endereço veio pronto do perfil), usa o
+  // texto livre direto como busca — melhor que desistir do trajeto.
+  const textoBusca = partes.length > 0 ? partes.join(', ') : (enderecoLivre || '')
+  if (!textoBusca) return null
 
   let custLat: number, custLng: number
   try {
-    const geoUrl = `https://api.openrouteservice.org/geocode/search?api_key=${encodeURIComponent(orsKey)}&text=${encodeURIComponent(partes.join(', ') + ', Brasil')}&boundary.country=BR&size=1`
+    const geoUrl = `https://api.openrouteservice.org/geocode/search?api_key=${encodeURIComponent(orsKey)}&text=${encodeURIComponent(textoBusca + ', Brasil')}&boundary.country=BR&size=1`
     const geoRes = await fetch(geoUrl, { signal: AbortSignal.timeout(8000) })
     const geo = await geoRes.json()
     const feature = geo?.features?.[0]

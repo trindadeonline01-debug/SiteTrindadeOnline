@@ -634,43 +634,43 @@ export default function PedidosPage() {
            que já cabia mais coisa (achado do Ricardo, set/2026, testando no
            tablet do Crepe Cone). Fluido até o breakpoint de desktop (768px),
            que troca pra outro layout de qualquer forma. */
-        .pd-wrap{ width:100%;max-width:100%;margin:0 auto;min-height:100vh;background:var(--concrete);font-family:'Archivo',sans-serif;font-size:13px;color:var(--ink);padding-bottom:30px;overflow-x:hidden;min-width:0; }
+        .pd-wrap{ width:100%;max-width:100%;margin:0 auto;min-height:100vh;background:var(--concrete);font-family:'Archivo',sans-serif;font-size:15px;color:var(--ink);padding-bottom:30px;overflow-x:hidden;min-width:0; }
         .pd-head{ padding:22px 12px 10px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 10px;position:sticky;top:0;background:#F7F5F0;z-index:5; }
         .pd-head-left{ display:flex;align-items:center;gap:6px;min-width:0; }
         .pd-head-right{ display:flex;align-items:center;gap:6px;flex:none; }
-        .pd-head h1{ font-size:16.5px;margin:0;font-weight:800;flex:none;white-space:nowrap; }
+        .pd-head h1{ font-size:19px;margin:0;font-weight:800;flex:none;white-space:nowrap; }
         .pd-back{ flex:none;width:30px;height:30px;border-radius:50%;border:1px solid #E6E0D2;background:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;text-decoration:none;color:#1A1610; }
         .pd-auto-pill{ flex:none;display:flex;align-items:center;gap:4px;background:#fff;border:1px solid #E6E0D2;border-radius:20px;padding:5px 8px;cursor:pointer; }
         .pd-auto-pill .pd-switch{ width:24px;height:15px;border-radius:8px; }
         .pd-auto-pill .pd-switch .k{ width:11px;height:11px;top:2px;left:2px; }
         .pd-auto-pill .pd-switch.on .k{ left:11px; }
-        .pd-new-pill{ flex:none;width:26px;height:26px;border-radius:50%;background:var(--sign);color:var(--ink);border:none;font-size:15px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center; }
+        .pd-new-pill{ flex:none;width:26px;height:26px;border-radius:50%;background:var(--sign);color:var(--ink);border:none;font-size:16px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center; }
         .pd-searchbar{ padding:0 16px 12px; }
         .pd-tabs{ display:flex;gap:8px;padding:0 16px 12px;overflow-x:auto; }
-        .pd-tab{ flex:none;display:flex;align-items:center;gap:6px;padding:8px 13px;border-radius:20px;border:1.5px solid #E6E0D2;background:#fff;font-weight:700;font-size:12.5px;color:#6E6656;cursor:pointer;white-space:nowrap; }
+        .pd-tab{ flex:none;display:flex;align-items:center;gap:6px;padding:8px 13px;border-radius:20px;border:1.5px solid #E6E0D2;background:#fff;font-weight:700;font-size:14.5px;color:#6E6656;cursor:pointer;white-space:nowrap; }
         .pd-tab.active{ background:var(--accent);color:#fff;border-color:var(--accent); }
-        .pd-tab-count{ font-variant-numeric:tabular-nums;background:#EDE8E0;color:#6E6656;font-size:10.5px;font-weight:800;padding:1px 7px;border-radius:20px; }
+        .pd-tab-count{ font-variant-numeric:tabular-nums;background:#EDE8E0;color:#6E6656;font-size:12px;font-weight:800;padding:1px 7px;border-radius:20px; }
         .pd-tab.active .pd-tab-count{ background:rgba(255,255,255,.3);color:#fff; }
         .pd-body{ padding:0 16px; }
         .pd-card{ background:#fff;border:1px solid #EDE8E0;border-radius:12px;padding:12px;margin-bottom:10px;cursor:pointer; }
         .pd-row1{ display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px; }
         .pd-row1-right{ display:flex;align-items:center;gap:6px;flex:none; }
-        .pd-edit-btn{ width:24px;height:24px;border-radius:7px;border:1px solid #E6E0D2;background:#F7F5F0;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;flex:none;padding:0; }
-        .pd-name{ font-weight:800;font-size:13.5px; }
-        .pd-time{ font-size:10.5px;color:#A79E8B; }
-        .pd-badge{ font-size:10px;font-weight:800;padding:3px 8px;border-radius:7px; }
-        .pd-origin-badge{ display:inline-block;font-size:10px;font-weight:800;padding:3px 8px;border-radius:7px;margin-bottom:8px; }
-        .pd-sum{ font-size:11.5px;color:#6E6656; }
-        .pd-total{ font-weight:800;font-size:13px;margin-top:4px; }
+        .pd-edit-btn{ width:24px;height:24px;border-radius:7px;border:1px solid #E6E0D2;background:#F7F5F0;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;flex:none;padding:0; }
+        .pd-name{ font-weight:800;font-size:16px; }
+        .pd-time{ font-size:12.5px;color:#A79E8B; }
+        .pd-badge{ font-size:12px;font-weight:800;padding:3px 8px;border-radius:7px; }
+        .pd-origin-badge{ display:inline-block;font-size:12px;font-weight:800;padding:3px 8px;border-radius:7px;margin-bottom:8px; }
+        .pd-sum{ font-size:13.5px;color:#6E6656; }
+        .pd-total{ font-weight:800;font-size:16px;margin-top:4px; }
         .pd-detail{ margin-top:10px;padding-top:10px;border-top:1px dashed #EDE8E0; }
-        .pd-item{ display:flex;justify-content:space-between;font-size:11.5px;padding:3px 0; }
-        .pd-mods{ font-size:10.5px;color:#A79E8B;padding-left:12px; }
+        .pd-item{ display:flex;justify-content:space-between;font-size:14px;padding:3px 0; }
+        .pd-mods{ font-size:13px;color:#A79E8B;padding-left:12px; }
         .pd-chips{ display:flex;flex-wrap:wrap;gap:6px;margin-top:10px; }
-        .pd-chip{ font-size:10.5px;font-weight:700;padding:6px 10px;border-radius:8px;border:1px solid #E6E0D2;background:#fff;cursor:pointer;color:#6E6656; }
+        .pd-chip{ font-size:12.5px;font-weight:700;padding:6px 10px;border-radius:8px;border:1px solid #E6E0D2;background:#fff;cursor:pointer;color:#6E6656; }
         .pd-chip.current{ background:var(--sign);color:var(--ink);border-color:var(--sign); }
-        .pd-cancel{ font-size:10.5px;color:#C43D3D;font-weight:700;background:none;border:none;cursor:pointer;margin-top:8px; }
-        .pd-print-btn{ width:100%;margin-top:8px;padding:9px;border-radius:9px;border:1.5px solid #E6E0D2;background:#fff;color:#6E6656;font-weight:700;font-size:12px;cursor:pointer;font-family:inherit; }
-        .pd-printer-pill{ padding:9px 14px;border-radius:9px;border:1.5px solid #E6E0D2;background:#fff;color:#8A6410;font-weight:700;font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap; }
+        .pd-cancel{ font-size:12px;color:#C43D3D;font-weight:700;background:none;border:none;cursor:pointer;margin-top:8px; }
+        .pd-print-btn{ width:100%;margin-top:8px;padding:9px;border-radius:9px;border:1.5px solid #E6E0D2;background:#fff;color:#6E6656;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit; }
+        .pd-printer-pill{ padding:9px 14px;border-radius:9px;border:1.5px solid #E6E0D2;background:#fff;color:#8A6410;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit;white-space:nowrap; }
         .pp-overlay{ position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:70;display:flex;align-items:center;justify-content:center;padding:16px; }
         .pp-modal{ background:#fff;border-radius:16px;max-width:400px;width:100%;padding:22px;max-height:88vh;overflow-y:auto; }
         .pp-modal h2{ font-size:15px;margin:0 0 4px;font-weight:800; }
@@ -687,19 +687,19 @@ export default function PedidosPage() {
         .pp-printer-item.sel{ border-color:#157A52;background:#E4F3EC; }
         .pp-close{ width:100%;padding:10px;border-radius:9px;border:none;background:#F0EDE8;color:#6E6656;font-weight:700;font-size:12.5px;cursor:pointer;margin-top:10px;font-family:inherit; }
         .pp-err{ background:#FBEAEA;color:#C43D3D;font-size:11.5px;padding:9px 11px;border-radius:8px;margin-bottom:12px;line-height:1.5; }
-        .pd-empty{ text-align:center;color:#A79E8B;padding:40px 0;font-size:12.5px; }
+        .pd-empty{ text-align:center;color:#A79E8B;padding:40px 0;font-size:14px; }
         .pd-card-pending{ border:1.5px solid var(--accent); }
-        .pd-accept{ width:100%;margin-top:8px;padding:9px;border-radius:9px;border:none;background:var(--accent);color:#fff;font-weight:800;font-size:12px;cursor:pointer; }
-        .pd-next{ width:100%;margin-top:8px;padding:10px;border-radius:9px;border:none;background:var(--accent);color:#fff;font-weight:800;font-size:12.5px;cursor:pointer; }
-        .pd-mb-select{ width:100%;margin-top:8px;padding:9px 10px;border-radius:9px;border:1.5px solid #E0DDD8;background:#fff;color:#111;font-weight:700;font-size:12.5px;font-family:inherit; }
+        .pd-accept{ width:100%;margin-top:8px;padding:9px;border-radius:9px;border:none;background:var(--accent);color:#fff;font-weight:800;font-size:14.5px;cursor:pointer; }
+        .pd-next{ width:100%;margin-top:8px;padding:10px;border-radius:9px;border:none;background:var(--accent);color:#fff;font-weight:800;font-size:14.5px;cursor:pointer; }
+        .pd-mb-select{ width:100%;margin-top:8px;padding:9px 10px;border-radius:9px;border:1.5px solid #E0DDD8;background:#fff;color:#111;font-weight:700;font-size:14px;font-family:inherit; }
         .pd-toolbar{ display:none; }
-        .pd-search{ width:100%;padding:9px 12px;border-radius:9px;border:1px solid #E6E0D2;background:#F7F5F0;font-size:12.5px;font-family:inherit; }
-        .pd-autotoggle{ display:flex;align-items:center;gap:10px;font-size:11.5px;font-weight:600;color:#6E6656;cursor:pointer; }
+        .pd-search{ width:100%;padding:9px 12px;border-radius:9px;border:1px solid #E6E0D2;background:#F7F5F0;font-size:14px;font-family:inherit; }
+        .pd-autotoggle{ display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;color:#6E6656;cursor:pointer; }
         .pd-switch{ width:36px;height:20px;border-radius:11px;background:#E6E0D2;position:relative;cursor:pointer;flex:none; }
         .pd-switch.on{ background:#157A52; }
         .pd-switch .k{ position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .15s; }
         .pd-switch.on .k{ left:18px; }
-        .pd-newbtn{ padding:10px;border-radius:9px;border:none;background:var(--sign);color:var(--ink);font-weight:800;font-size:12.5px;cursor:pointer; }
+        .pd-newbtn{ padding:10px;border-radius:9px;border:none;background:var(--sign);color:var(--ink);font-weight:800;font-size:14px;cursor:pointer; }
         .np-overlay{ position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:60;display:flex;align-items:flex-end;justify-content:center; }
         .np-drawer{ background:#F7F5F0;width:100%;max-width:480px;max-height:92vh;border-radius:18px 18px 0 0;display:flex;flex-direction:column;overflow:hidden; }
         .np-head{ padding:16px;border-bottom:1px solid #EDE8E0;display:flex;justify-content:space-between;align-items:center;background:#fff; }
@@ -738,13 +738,13 @@ export default function PedidosPage() {
              encolhem sozinhas conforme a tela fica menor. */
           .pd-board{ display:grid;gap:10px;padding:20px 24px 28px;align-items:start; }
           .pd-board-col{ min-width:0;background:#EFEBE1;border-radius:14px;padding:10px;max-height:calc(100vh - 190px);display:flex;flex-direction:column;border-top:4px solid var(--accent); }
-          .pd-board-colhead{ display:flex;align-items:center;gap:4px;padding:4px 4px 10px;font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--accent); }
+          .pd-board-colhead{ display:flex;align-items:center;gap:4px;padding:4px 4px 10px;font-weight:800;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--accent); }
           .pd-board-colhead-lbl{ flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
-          .pd-board-count{ background:var(--accent);color:#fff;font-size:11px;font-weight:800;padding:1px 8px;border-radius:20px;flex:none; }
+          .pd-board-count{ background:var(--accent);color:#fff;font-size:12.5px;font-weight:800;padding:1px 8px;border-radius:20px;flex:none; }
           .pd-board-collapse{ width:20px;height:20px;border-radius:6px;border:none;background:rgba(0,0,0,.06);color:var(--accent);cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;flex:none;padding:0; }
           .pd-board-scroll{ overflow-y:auto;overflow-x:hidden;flex:1;min-height:0; }
           .pd-board .pd-card{ margin-bottom:8px; }
-          .pd-board-empty-msg{ text-align:center;color:#A79E8B;font-size:11.5px;padding:20px 8px; }
+          .pd-board-empty-msg{ text-align:center;color:#A79E8B;font-size:13px;padding:20px 8px; }
           /* Coluna recolhida: tira estreita fixa, só rótulo (na vertical) +
              contador — pedido do Ricardo, set/2026. */
           .pd-board-col.collapsed{ padding:8px 4px; }
@@ -758,15 +758,15 @@ export default function PedidosPage() {
            mesmo tempo brigam pelo mesmo espaço. No desktop nada mais é
            sticky, então aqui pode grudar sem colidir com nada. */
         .pd-newalert{ position:relative;z-index:6;display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between;background:#C43D3D;color:#fff;padding:14px 16px;animation:pd-newalert-pulse 1.2s ease-in-out infinite; }
-        .pd-newalert-txt{ font-size:13px;font-weight:800;flex:1;min-width:180px; }
+        .pd-newalert-txt{ font-size:14px;font-weight:800;flex:1;min-width:180px; }
         .pd-newalert-more{ font-weight:700;opacity:.85; }
         .pd-newalert-btn{ flex:none;padding:14px 22px;border-radius:11px;border:none;background:#fff;color:#C43D3D;font-weight:900;font-size:14px;cursor:pointer;white-space:nowrap; }
         @keyframes pd-newalert-pulse{ 0%,100%{ background:#C43D3D; } 50%{ background:#A82F2F; } }
         @media(min-width:768px){ .pd-newalert{ position:sticky;top:0;padding:18px 32px; } .pd-newalert-txt{ font-size:15px; } .pd-newalert-btn{ padding:16px 28px;font-size:15.5px; } }
-        .pd-newalert-err{ background:#FBEAEA;color:#C43D3D;font-size:12px;font-weight:700;padding:10px 16px;line-height:1.5; }
+        .pd-newalert-err{ background:#FBEAEA;color:#C43D3D;font-size:13px;font-weight:700;padding:10px 16px;line-height:1.5; }
         .pd-card-late{ border:1.5px solid #C43D3D !important; }
-        .pd-late-flag{ color:#C43D3D;font-weight:800;font-size:10.5px;margin-top:4px; }
-        .pd-pay-chip{ display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:7px;margin-top:6px;cursor:pointer; }
+        .pd-late-flag{ color:#C43D3D;font-weight:800;font-size:12px;margin-top:4px; }
+        .pd-pay-chip{ display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:800;padding:3px 9px;border-radius:7px;margin-top:6px;cursor:pointer; }
       `}</style>
       {pedidosNovos.length > 0 && (
         <div className="pd-newalert">

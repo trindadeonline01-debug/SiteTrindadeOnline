@@ -38,11 +38,11 @@ function notifyCustomer(customerId: string | null, companyName: string, status: 
 }
 // Além do push no app, manda a atualização como mensagem de WhatsApp de
 // verdade pro cliente (mesmo canal usado pra confirmar o pedido).
-function notifyCustomerWhatsapp(companyId: string, phone: string | null, status: Status, deliveryType: string) {
+function notifyCustomerWhatsapp(companyId: string, phone: string | null, status: Status, deliveryType: string, pedidoId?: string) {
   if (!phone) return
   fetch('/api/loja/status-pedido', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ companyId, phone, status, deliveryType }),
+    body: JSON.stringify({ companyId, phone, status, deliveryType, pedidoId }),
   }).catch(() => {})
 }
 // Ao escolher um motoboy PRÓPRIO (loja_motoboys) pra sair com o pedido,
@@ -276,7 +276,7 @@ export default function PedidosPage() {
     const pedido = pedidos.find(p => p.id === id)
     if (pedido) {
       notifyCustomer(pedido.customer_id, companyName, status)
-      notifyCustomerWhatsapp(companyId, pedido.customer_phone, status, pedido.delivery_type)
+      notifyCustomerWhatsapp(companyId, pedido.customer_phone, status, pedido.delivery_type, id)
       if (status === 'em_preparo') maybeAutoChamarMotoboy(pedido)
       if (motoboyId) notifyMotoboyWhatsapp(companyId, id, motoboyId)
     }
@@ -301,7 +301,7 @@ export default function PedidosPage() {
     const pedido = pedidos.find(p => p.id === id)
     if (pedido) {
       notifyCustomer(pedido.customer_id, companyName, 'em_preparo')
-      notifyCustomerWhatsapp(companyId, pedido.customer_phone, 'em_preparo', pedido.delivery_type)
+      notifyCustomerWhatsapp(companyId, pedido.customer_phone, 'em_preparo', pedido.delivery_type, id)
       maybeAutoChamarMotoboy(pedido)
     }
   }

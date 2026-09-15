@@ -29,11 +29,11 @@ function notifyCustomer(customerId: string | null, companyName: string, status: 
     body: JSON.stringify({ title: companyName, body: msg, target: 'external_user_id', userId: customerId, url: `${window.location.origin}/perfil` }),
   }).catch(() => {})
 }
-function notifyCustomerWhatsapp(companyId: string, phone: string | null, status: Status, deliveryType: string) {
+function notifyCustomerWhatsapp(companyId: string, phone: string | null, status: Status, deliveryType: string, pedidoId?: string) {
   if (!phone) return
   fetch('/api/loja/status-pedido', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ companyId, phone, status, deliveryType }),
+    body: JSON.stringify({ companyId, phone, status, deliveryType, pedidoId }),
   }).catch(() => {})
 }
 
@@ -89,11 +89,22 @@ export default function CozinhaPage() {
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { window.location.href = '/login?redirect=/painel/cozinha'; return }
-      const { data: comp } = await supabase.from('companies').select('id, name, loja_digital_enabled, loja_auto_aceitar_pedidos, entrega_enabled, trial_modules_until').eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
-      if (!comp || !moduleActive(comp.loja_digital_enabled, comp.trial_modules_until)) { window.location.href = '/painel/compartilhar'; return }
+      // Cozinha é rota "bare" (tela cheia, sem o layout de /painel por trás)
+      // — não tem o contexto compartilhado pra herdar o modo admin, resolve
+      // sozinha: admin abrindo por uma empresa (?empresa=) usa essa empresa
+      // em vez de procurar pelo próprio owner_id (que nem existe pro admin),
+      // e libera o módulo mesmo sem o plano ativo — pedido do Ricardo, set/2026.
+      const { data: profile } = await supabase.from('profiles').select('user_type').eq('id', session.user.id).maybeSingle()
+      const empresaParam = new URLSearchParams(window.location.search).get('empresa')
+      const isAdmin = profile?.user_type === 'admin' && !!empresaParam
+      const COZINHA_SELECT = 'id, name, loja_digital_enabled, loja_auto_aceitar_pedidos, entrega_enabled, trial_modules_until'
+      const { data: comp } = isAdmin
+        ? await supabase.from('companies').select(COZINHA_SELECT).eq('id', empresaParam).maybeSingle()
+        : await supabase.from('companies').select(COZINHA_SELECT).eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
+      if (!comp || (!isAdmin && !moduleActive(comp.loja_digital_enabled, comp.trial_modules_until))) { window.location.href = '/painel/compartilhar'; return }
       companyIdRef.current = comp.id
       autoAceitarRef.current = comp.loja_auto_aceitar_pedidos !== false
-      entregaEnabledRef.current = moduleActive(comp.entrega_enabled, comp.trial_modules_until)
+      entregaEnabledRef.current = isAdmin || moduleActive(comp.entrega_enabled, comp.trial_modules_until)
       setCompanyName(comp.name)
       await loadAll(comp.id)
       setLoading(false)
@@ -148,7 +159,7 @@ export default function CozinhaPage() {
     await supabase.from('loja_pedidos').update({ status: next, updated_at: new Date().toISOString() }).eq('id', id)
     if (pedido) {
       notifyCustomer(pedido.customer_id, companyName, next)
-      notifyCustomerWhatsapp(companyIdRef.current, pedido.customer_phone, next, pedido.delivery_type)
+      notifyCustomerWhatsapp(companyIdRef.current, pedido.customer_phone, next, pedido.delivery_type, id)
       if (next === 'em_preparo') maybeAutoChamarMotoboy(pedido)
     }
   }

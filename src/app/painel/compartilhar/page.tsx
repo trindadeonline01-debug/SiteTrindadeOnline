@@ -60,7 +60,7 @@ function defaultKmTiers(): KmTier[] {
 }
 
 export default function CompartilharPage() {
-  const { company: shellCompany, loading: shellLoading } = usePainelShell()
+  const { company: shellCompany, loading: shellLoading, isAdminMode } = usePainelShell()
   const [loading, setLoading] = useState(true)
   const [company, setCompany] = useState<Company | null>(null)
   const [view, setView] = useState<'hub' | 'share' | 'entrega' | 'pagamento'>('hub')
@@ -105,9 +105,9 @@ export default function CompartilharPage() {
       if (comp) {
         setCompany({
           ...comp,
-          loja_digital_enabled: moduleActive(comp.loja_digital_enabled, comp.trial_modules_until),
-          crm_whatsapp_enabled: moduleActive(comp.crm_whatsapp_enabled, comp.trial_modules_until),
-          entrega_enabled: moduleActive(comp.entrega_enabled, comp.trial_modules_until),
+          loja_digital_enabled: isAdminMode || moduleActive(comp.loja_digital_enabled, comp.trial_modules_until),
+          crm_whatsapp_enabled: isAdminMode || moduleActive(comp.crm_whatsapp_enabled, comp.trial_modules_until),
+          entrega_enabled: isAdminMode || moduleActive(comp.entrega_enabled, comp.trial_modules_until),
         })
         setViewingMethod((comp.loja_taxa_metodo as TaxaMetodo) || 'bairro')
         setMinimoInput(Number(comp.loja_pedido_minimo || 0).toFixed(2).replace('.', ','))
@@ -115,7 +115,7 @@ export default function CompartilharPage() {
         setFreteGratisInput(Number(comp.loja_frete_gratis_acima || 0).toFixed(2).replace('.', ','))
         setForaAreaInput(fmtPt(comp.loja_taxa_fora_area))
         setPaymentMethods(comp.loja_payment_methods?.length ? comp.loja_payment_methods : ['pix', 'dinheiro', 'cartao_credito'])
-        if (moduleActive(comp.loja_digital_enabled, comp.trial_modules_until)) {
+        if (isAdminMode || moduleActive(comp.loja_digital_enabled, comp.trial_modules_until)) {
           const [{ data: cats }, { data: prods }, { data: bairroRows }, { data: tierRows }] = await Promise.all([
             supabase.from('loja_categorias').select('id,name').eq('company_id', comp.id).order('display_order'),
             supabase.from('loja_produtos').select('id,name').eq('company_id', comp.id).eq('active', true).order('display_order'),
@@ -142,7 +142,7 @@ export default function CompartilharPage() {
       }
       setLoading(false)
     })
-  }, [shellLoading, shellCompany?.id])
+  }, [shellLoading, shellCompany?.id, isAdminMode])
 
   const cardapioLink = company ? `https://trindadeonline.com.br/empresa/${company.slug}/cardapio` : ''
 

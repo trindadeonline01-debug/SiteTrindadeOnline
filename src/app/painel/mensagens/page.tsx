@@ -221,15 +221,17 @@ export default function MensagensPage() {
   const msgBodyRef = useRef<HTMLDivElement | null>(null)
 
   const COMPANY_SELECT = 'id, name, slug, crm_whatsapp_enabled, loja_digital_enabled, entrega_enabled, trial_modules_until, crm_auto_reply_enabled, crm_auto_reply_text'
-  async function finishCompanySetup(comp: any) {
-    // Guarda os flags já resolvidos (real OU dentro do período de teste) —
-    // o resto do arquivo lê company.crm_whatsapp_enabled/etc direto, sem
-    // precisar saber se veio do plano de verdade ou de um teste liberado.
+  async function finishCompanySetup(comp: any, isAdmin = false) {
+    // Guarda os flags já resolvidos (real OU dentro do período de teste, OU
+    // liberado porque é admin editando por ela — pedido do Ricardo, set/2026:
+    // cadeado de plano não pode travar o próprio admin) — o resto do arquivo
+    // lê company.crm_whatsapp_enabled/etc direto, sem precisar saber a
+    // origem.
     const effectiveComp = {
       ...comp,
-      crm_whatsapp_enabled: moduleActive(comp.crm_whatsapp_enabled, comp.trial_modules_until),
-      loja_digital_enabled: moduleActive(comp.loja_digital_enabled, comp.trial_modules_until),
-      entrega_enabled: moduleActive(comp.entrega_enabled, comp.trial_modules_until),
+      crm_whatsapp_enabled: isAdmin || moduleActive(comp.crm_whatsapp_enabled, comp.trial_modules_until),
+      loja_digital_enabled: isAdmin || moduleActive(comp.loja_digital_enabled, comp.trial_modules_until),
+      entrega_enabled: isAdmin || moduleActive(comp.entrega_enabled, comp.trial_modules_until),
     }
     setCompany(effectiveComp as Company)
     companyRef.current = effectiveComp as Company
@@ -246,10 +248,18 @@ export default function MensagensPage() {
       // sozinho do jeito que sempre foi.
       supabase.auth.getSession().then(async ({ data: { session } }) => {
         if (!session) { window.location.href = '/login?redirect=/atendimento'; return }
-        const { data } = await supabase.from('companies').select(COMPANY_SELECT)
-          .eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
+        const { data: profile } = await supabase.from('profiles').select('user_type').eq('id', session.user.id).maybeSingle()
+        const empresaParam = new URLSearchParams(window.location.search).get('empresa')
+        // Admin abrindo o Modo Atendimento por uma empresa (?empresa=) — essa
+        // tela fica fora do layout de /painel, então precisa resolver isso
+        // sozinha em vez de herdar do contexto (que aqui não existe).
+        const isAdmin = profile?.user_type === 'admin' && !!empresaParam
+        const { data } = isAdmin
+          ? await supabase.from('companies').select(COMPANY_SELECT).eq('id', empresaParam).maybeSingle()
+          : await supabase.from('companies').select(COMPANY_SELECT).eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
         if (!data) { window.location.href = '/painel/compartilhar'; return }
-        await finishCompanySetup(data)
+        if (isAdmin) setAdminMode(true)
+        await finishCompanySetup(data, isAdmin)
       })
       return
     }
@@ -259,7 +269,7 @@ export default function MensagensPage() {
     supabase.from('companies').select(COMPANY_SELECT).eq('id', shellCompany.id).maybeSingle()
       .then(({ data }) => {
         if (!data) { window.location.href = '/painel/compartilhar'; return }
-        finishCompanySetup(data)
+        finishCompanySetup(data, ctxAdminMode)
       })
   }, [fullScreen, shellLoading, shellCompany?.id, ctxAdminMode])
 

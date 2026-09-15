@@ -6,11 +6,20 @@ import { PAINEL_NAV_GROUPS, isPainelNavItemLocked } from '@/lib/painelNavItems'
 
 type Company = { id: string; name: string; slug: string; loja_digital_enabled: boolean; crm_whatsapp_enabled: boolean; entrega_enabled: boolean; trial_modules_until: string | null; plan: string }
 
+// Admin navegando por uma empresa (?empresa=) precisa que todo link daqui
+// carregue esse parâmetro junto — senão o primeiro clique devolve pro
+// próprio admin sem empresa nenhuma (mesmo problema já resolvido no
+// EmpresaShell da sidebar desktop).
+function withAdmin(href: string, adminEmpresaId?: string): string {
+  if (!adminEmpresaId) return href
+  return href + (href.includes('?') ? '&' : '?') + 'empresa=' + adminEmpresaId
+}
+
 // Mesma regra da sidebar desktop (EmpresaShell) — função sem módulo ativo
 // não some, fica trancada e leva pra venda do plano (ESPECIFICACAO.md §4.3).
-function Item({ href, icon, label, locked, badge }: { href: string; icon: string; label: string; locked?: boolean; badge?: number }) {
+function Item({ href, icon, label, locked, badge, adminEmpresaId }: { href: string; icon: string; label: string; locked?: boolean; badge?: number; adminEmpresaId?: string }) {
   return (
-    <a className="item" href={locked ? '/painel?tab=plano' : href} style={locked ? { opacity: 0.5 } : undefined}>
+    <a className="item" href={withAdmin(locked ? '/painel?tab=plano' : href, adminEmpresaId)} style={locked ? { opacity: 0.5 } : undefined}>
       <span className="item-ico">{locked ? '🔒' : icon}</span>
       <span className="item-lbl">{label}</span>
       {!locked && !!badge && <span className="item-badge">{badge}</span>}
@@ -25,12 +34,24 @@ export default function MaisPage() {
   const [clientesCount, setClientesCount] = useState(0)
   const [loading, setLoading] = useState(true)
 
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [adminEmpresaId, setAdminEmpresaId] = useState<string | undefined>(undefined)
+
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { window.location.href = '/login?redirect=/painel/mais'; return }
-      const { data: comp } = await supabase
-        .from('companies').select('id, name, slug, loja_digital_enabled, crm_whatsapp_enabled, entrega_enabled, trial_modules_until, plan')
-        .eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
+      // Rota "bare" (sem o layout de /painel por trás) — resolve o modo
+      // admin sozinha, igual Cozinha e Atendimento (pedido do Ricardo,
+      // set/2026: cadeado de plano não pode travar o próprio admin).
+      const { data: profile } = await supabase.from('profiles').select('user_type').eq('id', session.user.id).maybeSingle()
+      const empresaParam = new URLSearchParams(window.location.search).get('empresa')
+      const admin = profile?.user_type === 'admin' && !!empresaParam
+      setIsAdmin(admin)
+      if (admin) setAdminEmpresaId(empresaParam!)
+      const MAIS_SELECT = 'id, name, slug, loja_digital_enabled, crm_whatsapp_enabled, entrega_enabled, trial_modules_until, plan'
+      const { data: comp } = admin
+        ? await supabase.from('companies').select(MAIS_SELECT).eq('id', empresaParam).maybeSingle()
+        : await supabase.from('companies').select(MAIS_SELECT).eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
       if (!comp) { window.location.href = '/painel'; return }
       setCompany(comp as Company)
       const [{ count: revCount }, { count: cliCount }] = await Promise.all([
@@ -52,7 +73,11 @@ export default function MaisPage() {
   if (!company) return null
 
   const initials = company.name.trim().slice(0, 2).toUpperCase()
-  const flags = { loja_digital_enabled: moduleActive(company.loja_digital_enabled, company.trial_modules_until), crm_whatsapp_enabled: moduleActive(company.crm_whatsapp_enabled, company.trial_modules_until), entrega_enabled: moduleActive(company.entrega_enabled, company.trial_modules_until) }
+  const flags = {
+    loja_digital_enabled: isAdmin || moduleActive(company.loja_digital_enabled, company.trial_modules_until),
+    crm_whatsapp_enabled: isAdmin || moduleActive(company.crm_whatsapp_enabled, company.trial_modules_until),
+    entrega_enabled: isAdmin || moduleActive(company.entrega_enabled, company.trial_modules_until),
+  }
   // Badge é dado dinâmico (contagem), não faz parte da lista estática
   // compartilhada com a gaveta do menu hambúrguer — mapeado à parte aqui.
   const badgeByHref: Record<string, number> = { '/painel?tab=avaliacoes': avaliacoesBadge, '/painel/clientes': clientesCount }
@@ -98,7 +123,7 @@ export default function MaisPage() {
             <div className="sectlbl">{group.label}</div>
             <div className="list">
               {group.items.map(item => (
-                <Item key={item.href} href={item.href} icon={item.icon} label={item.label} badge={badgeByHref[item.href]} locked={isPainelNavItemLocked(item, flags)} />
+                <Item key={item.href} href={item.href} icon={item.icon} label={item.label} badge={badgeByHref[item.href]} locked={isPainelNavItemLocked(item, flags)} adminEmpresaId={adminEmpresaId} />
               ))}
             </div>
           </div>

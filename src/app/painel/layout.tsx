@@ -123,7 +123,8 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
 
       const COMPANY_SELECT = 'id,name,slug,loja_digital_enabled,crm_whatsapp_enabled,entrega_enabled,trial_modules_until,loja_auto_aceitar_pedidos,loja_impressora_nome'
       let comp: any = null
-      if (profile?.user_type === 'admin' && empresaParam) {
+      const adminOverride = profile?.user_type === 'admin' && !!empresaParam
+      if (adminOverride) {
         const { data } = await supabase.from('companies')
           .select(COMPANY_SELECT)
           .eq('id', empresaParam).maybeSingle()
@@ -140,11 +141,17 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
       if (cancelled) return
 
       if (comp) {
+        // Admin editando o cardápio de uma empresa (?empresa=) precisa
+        // acessar toda função do painel pra configurar/testar por ela,
+        // mesmo que o plano dela não tenha os módulos ativos — pedido do
+        // Ricardo, set/2026: cadeado de plano não pode travar o próprio
+        // admin. Só afeta o que aparece nessa sessão de impersonação; não
+        // muda o módulo real da empresa no banco.
         setCompany({
           id: comp.id, name: comp.name, slug: comp.slug,
-          loja_digital_enabled: moduleActive(comp.loja_digital_enabled, comp.trial_modules_until),
-          crm_whatsapp_enabled: moduleActive(comp.crm_whatsapp_enabled, comp.trial_modules_until),
-          entrega_enabled: moduleActive(comp.entrega_enabled, comp.trial_modules_until),
+          loja_digital_enabled: adminOverride || moduleActive(comp.loja_digital_enabled, comp.trial_modules_until),
+          crm_whatsapp_enabled: adminOverride || moduleActive(comp.crm_whatsapp_enabled, comp.trial_modules_until),
+          entrega_enabled: adminOverride || moduleActive(comp.entrega_enabled, comp.trial_modules_until),
         })
         setAutoAceitarState(comp.loja_auto_aceitar_pedidos !== false)
         setPrinterNameState(comp.loja_impressora_nome || '')

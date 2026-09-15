@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { refreshSessionOnce } from '@/lib/authRefresh'
 import { moduleActive } from '@/lib/modules'
+import { beep, unlockAudio } from '@/lib/beep'
 
 type Item = { id: string; product_name: string; qty: number; selected_options: { name: string; price: number }[] }
 type Status = 'recebido' | 'em_preparo' | 'pronto' | 'saiu_entrega' | 'entregue' | 'cancelado'
@@ -47,34 +48,6 @@ function timeAgo(iso: string) {
   if (mins < 60) return `${mins}min`
   return `${Math.floor(mins / 60)}h${mins % 60}`
 }
-// Mesmo alerta de /painel/pedidos — quadrada, mais alto, dois toques em par
-// repetidos, com cara de campainha de pedido chegando (não de notificação
-// discreta). Cozinha é tablet na parede — precisa ainda mais de ser ouvido.
-function beep() {
-  try {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
-    const master = ctx.createGain()
-    master.gain.value = 0.55
-    master.connect(ctx.destination)
-
-    function note(freq: number, start: number, dur: number) {
-      const osc = ctx.createOscillator()
-      const g = ctx.createGain()
-      osc.type = 'square'
-      osc.frequency.value = freq
-      osc.connect(g); g.connect(master)
-      const t0 = ctx.currentTime + start
-      g.gain.setValueAtTime(0, t0)
-      g.gain.linearRampToValueAtTime(1, t0 + 0.012)
-      g.gain.linearRampToValueAtTime(0, t0 + dur)
-      osc.start(t0)
-      osc.stop(t0 + dur + 0.02)
-    }
-
-    const NOTE_A = 987.77, NOTE_B = 1318.51
-    ;[[NOTE_A, 0], [NOTE_B, 0.15], [NOTE_A, 0.5], [NOTE_B, 0.65]].forEach(([freq, t]) => note(freq, t, 0.14))
-  } catch {}
-}
 
 export default function CozinhaPage() {
   const [loading, setLoading] = useState(true)
@@ -85,6 +58,23 @@ export default function CozinhaPage() {
   const companyIdRef = useRef('')
   const autoAceitarRef = useRef(true)
   const entregaEnabledRef = useRef(false)
+
+  // Destrava o áudio a cada toque na tela — mesma lição de /painel/layout.tsx:
+  // celular exige gesto do usuário antes de deixar tocar som, e o pedido
+  // chega pelo WebSocket sem gesto nenhum. Cozinha é rota "bare" (fora do
+  // layout), então precisa do próprio listener.
+  useEffect(() => {
+    const handler = () => unlockAudio()
+    document.addEventListener('pointerdown', handler)
+    document.addEventListener('touchstart', handler)
+    document.addEventListener('keydown', handler)
+    unlockAudio()
+    return () => {
+      document.removeEventListener('pointerdown', handler)
+      document.removeEventListener('touchstart', handler)
+      document.removeEventListener('keydown', handler)
+    }
+  }, [])
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {

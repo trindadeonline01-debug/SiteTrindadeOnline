@@ -207,6 +207,15 @@ function wrap(text: string, width = WIDTH): string[] {
 }
 function money(n: number) { return 'R$ ' + Number(n || 0).toFixed(2).replace('.', ',') }
 
+// Acento vindo mal na impressora térmica (achado do Ricardo, set/2026, no
+// tablet com RawBT: "ENDEREI-ÇO", "S-úo Gonçalo" etc) — em vez de brigar com
+// página de código de impressora, tira o acento de tudo antes de imprimir.
+// NFD decompõe a letra acentuada em base + marca (é → e + ´) e o regex tira
+// só a marca; º/ª (Pedido Nº) não decompõem por esse caminho, tiram à parte.
+function stripAccents(s: string): string {
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[ºª]/g, '')
+}
+
 type ReceiptItem = { qty: number; name: string; unitPrice: number; options?: { name: string }[] }
 export type ReceiptData = {
   companyName: string
@@ -235,7 +244,7 @@ export function buildReceipt(d: ReceiptData): string {
   lines.push(CMD.init, CMD.alignCenter, CMD.boldOn, CMD.doubleOn)
   lines.push(d.companyName.toUpperCase(), '\n')
   lines.push(CMD.doubleOff, CMD.boldOff)
-  lines.push(`Pedido Nº ${d.pedidoShortId}`, '\n')
+  lines.push(`Pedido ${d.pedidoShortId}`, '\n')
   lines.push(new Date(d.createdAt).toLocaleString('pt-BR'), '\n')
   lines.push('-'.repeat(WIDTH), '\n')
   lines.push(CMD.alignLeft)
@@ -260,7 +269,10 @@ export function buildReceipt(d: ReceiptData): string {
       if (i === 0) lines.push(padRow(l, money(it.unitPrice * it.qty)), '\n')
       else lines.push(l, '\n')
     })
-    if (it.options?.length) lines.push('  ' + it.options.map(o => o.name).join(', '), '\n')
+    // Um adicional por linha (igual ao recibo do Anota Aí, referência que o
+    // Ricardo trouxe, set/2026) — numa linha só ficava difícil de ler
+    // pedido com muito complemento.
+    it.options?.forEach(o => wrap('- ' + o.name, WIDTH - 2).forEach(l => lines.push('  ' + l, '\n')))
   }
   lines.push('-'.repeat(WIDTH), '\n')
 
@@ -285,7 +297,7 @@ export function buildReceipt(d: ReceiptData): string {
   // de impressão — 3 linhas de avanço não era o bastante e cortava em cima
   // da última linha. 6 dá folga de sobra.
   lines.push(CMD.feed(6), CMD.cut)
-  return lines.join('')
+  return stripAccents(lines.join(''))
 }
 
 // Segunda via — vai pra cozinha quando o pedido é aceito automaticamente.
@@ -317,10 +329,10 @@ export function buildKitchenTicket(d: KitchenTicketData): string {
     lines.push(CMD.boldOn)
     wrap(`${it.qty}x ${it.name}`).forEach(l => lines.push(l, '\n'))
     lines.push(CMD.boldOff)
-    if (it.options?.length) lines.push('  ' + it.options.map(o => o.name).join(', '), '\n')
+    it.options?.forEach(o => wrap('- ' + o.name, WIDTH - 2).forEach(l => lines.push('  ' + l, '\n')))
   }
   if (d.notes) { lines.push('-'.repeat(WIDTH), '\n', CMD.boldOn, 'Obs: ', CMD.boldOff, '\n'); wrap(d.notes).forEach(l => lines.push(l, '\n')) }
   lines.push('\n', CMD.alignCenter, 'Impresso em ' + new Date().toLocaleString('pt-BR'), '\n')
   lines.push(CMD.feed(6), CMD.cut)
-  return lines.join('')
+  return stripAccents(lines.join(''))
 }

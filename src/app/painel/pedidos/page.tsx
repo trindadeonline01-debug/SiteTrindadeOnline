@@ -45,6 +45,17 @@ function notifyCustomerWhatsapp(companyId: string, phone: string | null, status:
     body: JSON.stringify({ companyId, phone, status, deliveryType }),
   }).catch(() => {})
 }
+// Ao escolher um motoboy PRÓPRIO (loja_motoboys) pra sair com o pedido,
+// manda pro WhatsApp dele endereço (com link do Maps), itens, forma de
+// pagamento e valor — pedido do Ricardo, set/2026: ele tinha que ligar
+// avisando tudo na mão. Sem instância de WhatsApp conectada, a rota
+// simplesmente não faz nada (fire-and-forget).
+function notifyMotoboyWhatsapp(companyId: string, pedidoId: string, motoboyId: string) {
+  fetch('/api/loja/notificar-motoboy', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ companyId, pedidoId, motoboyId }),
+  }).catch(() => {})
+}
 
 const STATUS_LABEL: Record<Status, string> = { recebido: 'Recebido', em_preparo: 'Em preparo', pronto: 'Pronto', saiu_entrega: 'Saiu p/ entrega', entregue: 'Entregue', cancelado: 'Cancelado' }
 const ORIGIN_INFO: Record<string, { label: string; bg: string; fg: string }> = {
@@ -267,6 +278,7 @@ export default function PedidosPage() {
       notifyCustomer(pedido.customer_id, companyName, status)
       notifyCustomerWhatsapp(companyId, pedido.customer_phone, status, pedido.delivery_type)
       if (status === 'em_preparo') maybeAutoChamarMotoboy(pedido)
+      if (motoboyId) notifyMotoboyWhatsapp(companyId, id, motoboyId)
     }
   }
 

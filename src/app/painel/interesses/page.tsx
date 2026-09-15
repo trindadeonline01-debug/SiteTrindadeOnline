@@ -50,7 +50,11 @@ export default function InteressesPage() {
     <>
       <div className="it-wrap">
         <style>{`
-          .it-wrap{ width:100%;max-width:480px;margin:0 auto;min-height:100vh;background:var(--concrete);font-family:'Archivo',sans-serif;font-size:13px;color:var(--ink);padding-bottom:30px;min-width:0;overflow-x:hidden; }
+          /* Sem tampa de 480px — travava a tela numa coluna de celular mesmo
+             em tablet, sobrando margem vazia dos dois lados (achado do
+             Ricardo, set/2026, testando no tablet). Fluido até o breakpoint
+             de desktop, que troca pra outro layout de qualquer forma. */
+          .it-wrap{ width:100%;max-width:100%;margin:0 auto;min-height:100vh;background:var(--concrete);font-family:'Archivo',sans-serif;font-size:13px;color:var(--ink);padding-bottom:30px;min-width:0;overflow-x:hidden; }
           .it-head{ padding:22px 16px 6px; }
           .it-head h1{ font-size:18px;margin:0 0 3px;font-weight:800; }
           .it-sub{ font-size:11.5px;color:#A79E8B; }

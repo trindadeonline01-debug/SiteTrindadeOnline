@@ -876,7 +876,11 @@ export default function CatalogoPage() {
     <>
     <div className="cg-wrap">
       <style>{`
-        .cg-wrap{ width:100%; max-width:480px; margin:0 auto; min-height:100vh; background:var(--concrete); font-family:'Archivo',sans-serif; font-size:13px; color:var(--ink); padding-bottom:40px; min-width:0; overflow-x:hidden; }
+        /* Sem tampa de 480px — travava a tela numa coluna de celular mesmo
+           em tablet, sobrando margem vazia dos dois lados (achado do
+           Ricardo, set/2026, testando no tablet). Fluido até o breakpoint
+           de desktop, que troca pra outro layout de qualquer forma. */
+        .cg-wrap{ width:100%; max-width:100%; margin:0 auto; min-height:100vh; background:var(--concrete); font-family:'Archivo',sans-serif; font-size:13px; color:var(--ink); padding-bottom:40px; min-width:0; overflow-x:hidden; }
         .cg-import-desktop{ display:none; }
         @media(min-width:768px){
           .cg-wrap{ max-width:none; margin:0; min-height:0; padding-bottom:60px; }

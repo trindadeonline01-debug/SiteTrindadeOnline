@@ -610,7 +610,12 @@ export default function PedidosPage() {
     <>
     <div className="pd-wrap">
       <style>{`
-        .pd-wrap{ width:100%;max-width:480px;margin:0 auto;min-height:100vh;background:var(--concrete);font-family:'Archivo',sans-serif;font-size:13px;color:var(--ink);padding-bottom:30px;overflow-x:hidden;min-width:0; }
+        /* Sem tampa de 480px aqui — travava a tela numa coluna de celular
+           mesmo em tablet, sobrando margem vazia dos dois lados numa largura
+           que já cabia mais coisa (achado do Ricardo, set/2026, testando no
+           tablet do Crepe Cone). Fluido até o breakpoint de desktop (768px),
+           que troca pra outro layout de qualquer forma. */
+        .pd-wrap{ width:100%;max-width:100%;margin:0 auto;min-height:100vh;background:var(--concrete);font-family:'Archivo',sans-serif;font-size:13px;color:var(--ink);padding-bottom:30px;overflow-x:hidden;min-width:0; }
         .pd-head{ padding:22px 12px 10px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 10px;position:sticky;top:0;background:#F7F5F0;z-index:5; }
         .pd-head-left{ display:flex;align-items:center;gap:6px;min-width:0; }
         .pd-head-right{ display:flex;align-items:center;gap:6px;flex:none; }

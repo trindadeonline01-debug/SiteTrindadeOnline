@@ -17,6 +17,7 @@ type OrderInfo = {
   items: OrderItem[]
   subtotal: number; deliveryFee: number; total: number
   paymentMethod: string | null; deliveryType: string | null; address: string | null; notes: string | null
+  orderNumber: number | string | null
 }
 
 function itemLines(items: OrderItem[]): string[] {
@@ -30,7 +31,9 @@ function itemLines(items: OrderItem[]): string[] {
 // Mensagem que o CLIENTE recebe, confirmando o pedido dele.
 function buildCustomerMessage(opts: OrderInfo): string {
   const fmt = (n: number) => 'R$ ' + Number(n || 0).toFixed(2).replace('.', ',')
-  const parts = ['🧾 *Pedido recebido!*', '', ...itemLines(opts.items), '', `Subtotal: ${fmt(opts.subtotal)}`]
+  const parts = ['🧾 *Pedido recebido!*']
+  if (opts.orderNumber != null) parts.push(`📦 Pedido nº ${opts.orderNumber}`)
+  parts.push('', ...itemLines(opts.items), '', `Subtotal: ${fmt(opts.subtotal)}`)
   if (opts.deliveryFee > 0) parts.push(`Taxa de entrega: ${fmt(opts.deliveryFee)}`)
   parts.push(`*Total: ${fmt(opts.total)}*`, '')
   if (opts.paymentMethod) parts.push(`💳 Pagamento: ${PAY_LABEL[opts.paymentMethod] || opts.paymentMethod}`)
@@ -47,6 +50,7 @@ function buildOwnerMessage(opts: OrderInfo & { customerName: string; customerPho
   const fmt = (n: number) => 'R$ ' + Number(n || 0).toFixed(2).replace('.', ',')
   const parts = [
     '🔔 *Novo pedido!*',
+    ...(opts.orderNumber != null ? [`📦 Pedido nº ${opts.orderNumber}`] : []),
     `👤 ${opts.customerName}${opts.customerPhone ? ` · ${opts.customerPhone}` : ''}`,
     '',
     ...itemLines(opts.items),
@@ -121,30 +125,46 @@ export async function POST(req: NextRequest) {
           .from('crm_whatsapp_instances').select('instance_name, api_key')
           .eq('company_id', companyId).eq('status', 'connected').limit(1).maybeSingle()
         if (instance) {
+          const { data: pedidoRow } = pedidoId
+            ? await supabase.from('loja_pedidos').select('order_number').eq('id', pedidoId).maybeSingle()
+            : { data: null }
           const orderInfo = {
             items, subtotal: Number(subtotal ?? total ?? 0), deliveryFee: Number(deliveryFee || 0), total: Number(total || 0),
             paymentMethod: paymentMethod || null, deliveryType: deliveryType || null, address: address || null, notes: notes || null,
+            orderNumber: pedidoRow?.order_number ?? null,
           }
 
-          // Pro cliente — vira mensagem na conversa do CRM também.
+          // Pro cliente — vira mensagem na conversa do CRM também. Erro aqui
+          // era engolido em silêncio (`catch {}`) — sem log nenhum não dava
+          // pra saber se a confirmação não chegava porque falhou de verdade
+          // (Evolution fora do ar, número errado) ou porque nunca tentou
+          // (achado do Ricardo, set/2026 — Crepe Cone com CRM conectado e
+          // módulo ativo, mas confirmação nunca registrada em crm_messages).
           if (phone) {
             try {
               const text = buildCustomerMessage(orderInfo)
-              await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}`, {
+              const res = await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', apikey: instance.api_key },
                 body: JSON.stringify({ number: phone, text }),
               })
-              const { data: contact } = await supabase.from('crm_contacts').select('id').eq('company_id', companyId).eq('phone', phone).maybeSingle()
-              if (contact) {
-                await supabase.from('crm_messages').insert({
-                  company_id: companyId, contact_id: contact.id, direction: 'out', body: text, status: 'sent', sent_at: new Date().toISOString(),
-                })
-                await supabase.from('crm_contacts').update({
-                  last_message_at: new Date().toISOString(), last_message_preview: text, last_message_direction: 'out',
-                }).eq('id', contact.id)
+              if (!res.ok) {
+                const body = await res.text().catch(() => '')
+                console.error(`[registrar-pedido] confirmação pro cliente falhou (${res.status}): ${body.slice(0, 300)}`)
+              } else {
+                const { data: contact } = await supabase.from('crm_contacts').select('id').eq('company_id', companyId).eq('phone', phone).maybeSingle()
+                if (contact) {
+                  await supabase.from('crm_messages').insert({
+                    company_id: companyId, contact_id: contact.id, direction: 'out', body: text, status: 'sent', sent_at: new Date().toISOString(),
+                  })
+                  await supabase.from('crm_contacts').update({
+                    last_message_at: new Date().toISOString(), last_message_preview: text, last_message_direction: 'out',
+                  }).eq('id', contact.id)
+                }
               }
-            } catch {}
+            } catch (err: any) {
+              console.error('[registrar-pedido] falha ao chamar Evolution API (cliente):', err?.message || err)
+            }
           }
 
           // Pro WhatsApp da própria loja (número pessoal do dono cadastrado
@@ -156,19 +176,26 @@ export async function POST(req: NextRequest) {
               : { data: null }
             if (owner?.phone) {
               const ownerText = buildOwnerMessage({ ...orderInfo, customerName: name || 'Cliente', customerPhone: phone || null })
-              await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}`, {
+              const res = await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', apikey: instance.api_key },
                 body: JSON.stringify({ number: normalizePhone(owner.phone), text: ownerText }),
               })
+              if (!res.ok) {
+                const body = await res.text().catch(() => '')
+                console.error(`[registrar-pedido] aviso pro dono falhou (${res.status}): ${body.slice(0, 300)}`)
+              }
             }
-          } catch {}
+          } catch (err: any) {
+            console.error('[registrar-pedido] falha ao chamar Evolution API (dono):', err?.message || err)
+          }
         }
       }
     }
 
     return NextResponse.json({ ok: true })
-  } catch {
+  } catch (err: any) {
+    console.error('[registrar-pedido] falha geral:', err?.message || err)
     return NextResponse.json({ error: 'falha ao registrar' }, { status: 500 })
   }
 }

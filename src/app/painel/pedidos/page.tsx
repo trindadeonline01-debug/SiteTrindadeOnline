@@ -605,6 +605,13 @@ export default function PedidosPage() {
   }
 
   const cancelados = searched.filter(p => p.status === 'cancelado')
+  // Faixa de "imprime agora" — pedido do Ricardo, set/2026, testando no
+  // tablet: além do som alto que já toca, quer o botão de imprimir bem
+  // grande aparecendo sozinho assim que o pedido chega, sem precisar abrir
+  // o card pra achar o botão lá dentro. Some sozinha quando o pedido sai de
+  // "recebido" (aceito/avançado) — não precisa de "marcar como impresso" à
+  // parte.
+  const pedidosNovos = pedidos.filter(p => p.status === 'recebido').sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
 
   return (
     <>
@@ -734,10 +741,31 @@ export default function PedidosPage() {
           .pd-board-col.collapsed .pd-board-count{ writing-mode:horizontal-tb; }
           .pd-board-col.collapsed .pd-board-scroll{ display:none; }
         }
+        /* Não fica sticky no mobile de propósito — a faixa do título
+           (.pd-head) já é sticky lá, e duas coisas grudadas no topo ao
+           mesmo tempo brigam pelo mesmo espaço. No desktop nada mais é
+           sticky, então aqui pode grudar sem colidir com nada. */
+        .pd-newalert{ position:relative;z-index:6;display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between;background:#C43D3D;color:#fff;padding:14px 16px;animation:pd-newalert-pulse 1.2s ease-in-out infinite; }
+        .pd-newalert-txt{ font-size:13px;font-weight:800;flex:1;min-width:180px; }
+        .pd-newalert-more{ font-weight:700;opacity:.85; }
+        .pd-newalert-btn{ flex:none;padding:14px 22px;border-radius:11px;border:none;background:#fff;color:#C43D3D;font-weight:900;font-size:14px;cursor:pointer;white-space:nowrap; }
+        @keyframes pd-newalert-pulse{ 0%,100%{ background:#C43D3D; } 50%{ background:#A82F2F; } }
+        @media(min-width:768px){ .pd-newalert{ position:sticky;top:0;padding:18px 32px; } .pd-newalert-txt{ font-size:15px; } .pd-newalert-btn{ padding:16px 28px;font-size:15.5px; } }
+        .pd-newalert-err{ background:#FBEAEA;color:#C43D3D;font-size:12px;font-weight:700;padding:10px 16px;line-height:1.5; }
         .pd-card-late{ border:1.5px solid #C43D3D !important; }
         .pd-late-flag{ color:#C43D3D;font-weight:800;font-size:10.5px;margin-top:4px; }
         .pd-pay-chip{ display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:7px;margin-top:6px;cursor:pointer; }
       `}</style>
+      {pedidosNovos.length > 0 && (
+        <div className="pd-newalert">
+          <div className="pd-newalert-txt">
+            🔔 Pedido {pedidosNovos[0].order_number ? `#${pedidosNovos[0].order_number}` : ''} — {pedidosNovos[0].customer_name} — {fmt(pedidosNovos[0].total)}
+            {pedidosNovos.length > 1 && <span className="pd-newalert-more"> · +{pedidosNovos.length - 1} outro(s) aguardando</span>}
+          </div>
+          <button className="pd-newalert-btn" onClick={() => printPedido(pedidosNovos[0])}>🖨️ IMPRIMIR PEDIDO</button>
+        </div>
+      )}
+      {pedidosNovos.length > 0 && printError && <div className="pd-newalert-err">{printError}</div>}
       <div className="pd-mobile-only">
         <div className="pd-head">
           <div className="pd-head-left">

@@ -213,7 +213,7 @@ export default function CozinhaPage() {
                     {p.itens?.map(it => (
                       <div key={it.id}>
                         <div className="cz-citem"><span className="cz-cqty">{it.qty}x</span> {it.product_name}</div>
-                        {it.selected_options?.length > 0 && <div className="cz-cmods">{it.selected_options.map(o => o.name).join(', ')}</div>}
+                        {it.selected_options?.map((o, i) => <div key={i} className="cz-cmods">- {o.name}</div>)}
                       </div>
                     ))}
                     <button className="cz-cbtn" onClick={e => { e.stopPropagation(); advance(p.id, next) }}>{action}</button>

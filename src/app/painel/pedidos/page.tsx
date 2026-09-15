@@ -574,7 +574,7 @@ export default function PedidosPage() {
             {p.itens?.map(it => (
               <div key={it.id}>
                 <div className="pd-item"><span>{it.qty}x {it.product_name}</span><span>{fmt(it.unit_price * it.qty)}</span></div>
-                {it.selected_options?.length > 0 && <div className="pd-mods">{it.selected_options.map(o => o.name).join(', ')}</div>}
+                {it.selected_options?.map((o, i) => <div key={i} className="pd-mods">- {o.name}</div>)}
               </div>
             ))}
             {p.delivery_address && <div style={{ marginTop: 8, fontSize: 11.5 }}>📍 {p.delivery_address}</div>}

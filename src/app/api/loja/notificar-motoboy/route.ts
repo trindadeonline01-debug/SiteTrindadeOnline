@@ -27,12 +27,14 @@ export async function POST(req: NextRequest) {
 
     const [{ data: pedido }, { data: motoboy }, { data: instance }] = await Promise.all([
       supabase.from('loja_pedidos')
-        .select('order_number, customer_name, delivery_address, payment_method, total, notes, itens:loja_pedido_itens(product_name, unit_price, qty, selected_options)')
+        .select('order_number, customer_name, delivery_address, payment_method, total, delivery_fee, notes, itens:loja_pedido_itens(product_name, unit_price, qty, selected_options)')
         .eq('id', pedidoId).eq('company_id', companyId).maybeSingle(),
       supabase.from('loja_motoboys').select('whatsapp').eq('id', motoboyId).eq('company_id', companyId).maybeSingle(),
       supabase.from('crm_whatsapp_instances').select('instance_name, api_key').eq('company_id', companyId).eq('status', 'connected').limit(1).maybeSingle(),
     ])
-    if (!pedido || !motoboy?.whatsapp || !instance) return NextResponse.json({ ok: true })
+    if (!pedido) { console.error('[notificar-motoboy] pedido não encontrado', { pedidoId, companyId }); return NextResponse.json({ ok: true }) }
+    if (!motoboy?.whatsapp) { console.error('[notificar-motoboy] motoboy sem whatsapp cadastrado', { motoboyId }); return NextResponse.json({ ok: true }) }
+    if (!instance) { console.error('[notificar-motoboy] sem instância de WhatsApp conectada', { companyId }); return NextResponse.json({ ok: true }) }
 
     const phone = normalizePhone(motoboy.whatsapp)
     const itens: { product_name: string; unit_price: number; qty: number; selected_options: { name: string }[] | null }[] = pedido.itens || []
@@ -51,19 +53,25 @@ export async function POST(req: NextRequest) {
     }
     lines.push('')
     lines.push(`💳 Pagamento: ${PAY_LABEL[pedido.payment_method || ''] || pedido.payment_method || '—'}`)
-    lines.push(`💰 Valor total do pedido: ${money(pedido.total)}`)
+    lines.push(`💰 Valor do pedido: ${money(pedido.total)}`)
+    if (Number(pedido.delivery_fee) > 0) lines.push(`🏍️ Valor da entrega: ${money(pedido.delivery_fee)}`)
     if (pedido.notes) lines.push('', '📝 Obs: ' + pedido.notes)
 
     const text = lines.join('\n')
 
-    await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}`, {
+    const res = await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', apikey: instance.api_key },
       body: JSON.stringify({ number: phone, text }),
     })
+    if (!res.ok) {
+      const body = await res.text().catch(() => '')
+      console.error(`[notificar-motoboy] envio falhou (${res.status}): ${body.slice(0, 300)}`)
+    }
 
     return NextResponse.json({ ok: true })
-  } catch {
+  } catch (err: any) {
+    console.error('[notificar-motoboy] falha geral:', err?.message || err)
     return NextResponse.json({ error: 'falha ao notificar motoboy' }, { status: 500 })
   }
 }

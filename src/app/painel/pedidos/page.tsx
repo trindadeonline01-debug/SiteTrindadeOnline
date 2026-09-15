@@ -43,7 +43,7 @@ function notifyCustomerWhatsapp(companyId: string, phone: string | null, status:
   fetch('/api/loja/status-pedido', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ companyId, phone, status, deliveryType, pedidoId }),
-  }).catch(() => {})
+  }).then(r => { if (!r.ok) console.error('[notifyCustomerWhatsapp] falhou', r.status) }).catch(err => console.error('[notifyCustomerWhatsapp] falhou', err))
 }
 // Ao escolher um motoboy PRÓPRIO (loja_motoboys) pra sair com o pedido,
 // manda pro WhatsApp dele endereço (com link do Maps), itens, forma de
@@ -54,7 +54,7 @@ function notifyMotoboyWhatsapp(companyId: string, pedidoId: string, motoboyId: s
   fetch('/api/loja/notificar-motoboy', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ companyId, pedidoId, motoboyId }),
-  }).catch(() => {})
+  }).then(r => { if (!r.ok) console.error('[notifyMotoboyWhatsapp] falhou', r.status) }).catch(err => console.error('[notifyMotoboyWhatsapp] falhou', err))
 }
 
 const STATUS_LABEL: Record<Status, string> = { recebido: 'Recebido', em_preparo: 'Em preparo', pronto: 'Pronto', saiu_entrega: 'Saiu p/ entrega', entregue: 'Entregue', cancelado: 'Cancelado' }

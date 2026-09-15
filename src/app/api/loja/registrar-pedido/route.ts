@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { moduleActive } from '@/lib/modules'
 import { normalizePhone } from '@/lib/phone'
-import { criarEntregaEChamarMotoboy } from '@/lib/entregaDispatch'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -74,23 +73,6 @@ export async function POST(req: NextRequest) {
     } = await req.json()
     if (!companyId) return NextResponse.json({ error: 'companyId obrigatório' }, { status: 400 })
     const phone = rawPhone ? normalizePhone(rawPhone) : null
-
-    // Chama o motoboy JÁ, assim que o pedido de entrega é confirmado — não
-    // espera a loja mover pra "em preparo". Precisa de `await` mesmo sendo
-    // melhor esforço: função serverless da Vercel encerra assim que a
-    // resposta HTTP sai, então uma chamada solta sem await morre pela
-    // metade (lição documentada — ver KNOWLEDGE_BASE.md §10). Se faltar
-    // crédito, diária não paga, módulo desligado etc., simplesmente não
-    // dispara — a loja ainda consegue chamar na mão em /painel/pedidos, e o
-    // gatilho de "em preparo" (maybeAutoChamarMotoboy) serve de rede de
-    // segurança caso isso aqui falhe por qualquer outro motivo.
-    if (deliveryType === 'entrega' && address && pedidoId) {
-      try {
-        await criarEntregaEChamarMotoboy({
-          companyId, pedidoId, customerName: name || 'Cliente', customerPhone: phone, dropoffAddress: address,
-        })
-      } catch {}
-    }
 
     if (phone) {
       const { data: existing } = await supabase
@@ -190,6 +172,30 @@ export async function POST(req: NextRequest) {
             console.error('[registrar-pedido] falha ao chamar Evolution API (dono):', err?.message || err)
           }
         }
+      }
+    }
+
+    // Chama o motoboy da PLATAFORMA (Trindade Entrega), quando a loja usa
+    // esse módulo — roda por último e isolado (import dinâmico) de propósito.
+    // Achado nesta rodada: essa chamada estava importada no topo do arquivo
+    // (`import { criarEntregaEChamarMotoboy } from '@/lib/entregaDispatch'`),
+    // e entregaDispatch.ts importa `sharp` (binário nativo) pra recortar a
+    // foto da loja na oferta pro motoboy. Desde que esse import entrou aqui
+    // (04/09), a confirmação de pedido por WhatsApp parou de sair — pra
+    // NENHUMA loja, entrega ou não — indício forte de que o carregamento do
+    // módulo falhava e derrubava a function inteira antes de chegar no bloco
+    // acima (mesma família de crash já documentada no opengraph-image.tsx,
+    // KNOWLEDGE_BASE.md §10). Import dinâmico + try/catch aqui garante que,
+    // se esse módulo falhar de novo, só ele quebra — o resto da rota (que já
+    // rodou acima) não é afetado.
+    if (deliveryType === 'entrega' && address && pedidoId) {
+      try {
+        const { criarEntregaEChamarMotoboy } = await import('@/lib/entregaDispatch')
+        await criarEntregaEChamarMotoboy({
+          companyId, pedidoId, customerName: name || 'Cliente', customerPhone: phone, dropoffAddress: address,
+        })
+      } catch (err: any) {
+        console.error('[registrar-pedido] falha ao chamar motoboy da plataforma:', err?.message || err)
       }
     }
 

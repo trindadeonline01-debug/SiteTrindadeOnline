@@ -445,6 +445,12 @@ DELETE FROM companies WHERE slug LIKE '%-teste';
     - Cuidado extra de rate-limit: como usa o número pessoal/comercial da própria empresa (não um número dedicado da plataforma), o risco de bloqueio pelo WhatsApp é maior — limite diário de envios mais conservador, pula contatos silenciados/arquivados.
     - Tela nova sugerida: `/painel/crm/campanhas` (ou aba dentro de Mensagens), com contador de quantos contatos batem no filtro antes de disparar, e histórico de campanhas anteriores.
     - Implica migração de schema — pedir confirmação antes de aplicar, conforme regra padrão.
+11. **Código de confirmação de entrega + liberação de pagamento pro motoboy PRÓPRIO da loja** (pedido em set/2026, "anota pra não esquecer" — não implementar ainda). Hoje `loja_motoboys` (motoboy próprio da empresa, diferente do motoboy da plataforma/Trindade Entrega) não tem nenhum controle de pagamento nem confirmação de entrega — a loja só manda o aviso por WhatsApp (`/api/loja/notificar-motoboy`) e marca "entregue" na mão. Objetivo do Ricardo:
+    - Cliente recebe um código curto (tipo o `delivery_code` de 4 dígitos que já existe na Trindade Entrega, `src/lib/entregaDispatch.ts` → `genDeliveryCode()`) junto da confirmação do pedido.
+    - Motoboy confirma a entrega informando esse código (provavelmente pelo mesmo WhatsApp que já recebe o aviso da corrida — teria que cair num webhook que casa o código com o pedido, igual o fluxo que já existe em `/api/entrega/webhook` pra motoboy da plataforma).
+    - **Liberação do pagamento do motoboy só acontece depois da confirmação do código** — hoje não existe nem o conceito de "pagamento do motoboy próprio" registrado em lugar nenhum (a plataforma paga o motoboy dela via `delivery_payments`/`payout_status`, mas o motoboy da LOJA é ela quem paga, direto, fora do sistema — precisa decidir se isso vira só um registro/controle, ou se mexe em dinheiro de verdade).
+    - Relatório novo: lista de entregas confirmadas por código (por motoboy próprio, por período) — provavelmente uma aba nova em `/painel` ou dentro de `/painel/motoboys`.
+    - Ainda sem desenho de schema — precisa decidir se reaproveita `loja_pedidos.motoboy_id` (já existe) mais um campo de código/confirmado_em, ou se cria tabela própria tipo `loja_entregas_confirmadas`. Implica migração — pedir confirmação antes de aplicar, conforme regra padrão.
 
 ---
 

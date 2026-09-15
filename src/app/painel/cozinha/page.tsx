@@ -156,7 +156,12 @@ export default function CozinhaPage() {
     const pedido = pedidos.find(p => p.id === id)
     const leavesKds = next === 'saiu_entrega' || next === 'entregue'
     setPedidos(prev => leavesKds ? prev.filter(p => p.id !== id) : prev.map(p => p.id === id ? { ...p, status: next } : p))
-    await supabase.from('loja_pedidos').update({ status: next, updated_at: new Date().toISOString() }).eq('id', id)
+    // Sem gateway automático — todo pagamento é cobrado na hora (motoboy ou
+    // balcão), então "entregue" confirma o pagamento sozinho (pedido do
+    // Ricardo, set/2026 — mesma regra aplicada em /painel/pedidos).
+    await supabase.from('loja_pedidos').update({
+      status: next, updated_at: new Date().toISOString(), ...(next === 'entregue' ? { payment_status: 'pago' } : {}),
+    }).eq('id', id)
     if (pedido) {
       notifyCustomer(pedido.customer_id, companyName, next)
       notifyCustomerWhatsapp(companyIdRef.current, pedido.customer_phone, next, pedido.delivery_type, id)

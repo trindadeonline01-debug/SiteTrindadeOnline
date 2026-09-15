@@ -269,9 +269,15 @@ export default function PedidosPage() {
   // plataforma (chamarMotoboy/Trindade Entrega, fluxo à parte). É só um
   // registro de quem entregou, pra alimentar o relatório.
   async function setStatus(id: string, status: Status, motoboyId?: string) {
-    setPedidos(prev => prev.map(p => p.id === id ? { ...p, status, ...(motoboyId ? { motoboy_id: motoboyId } : {}) } : p))
+    // Pedido do Ricardo, set/2026: não existe gateway automático aqui — todo
+    // pagamento (Pix, dinheiro ou cartão) é cobrado na hora, pelo motoboy ou
+    // no balcão. "Entregue" com pagamento "pendente" era um estado que nem
+    // deveria existir (ESPECIFICACAO.md §12 #5) — em vez de só sinalizar o
+    // problema, marca pago sozinho nessa transição.
+    const autoPago = status === 'entregue' ? { payment_status: 'pago' as const } : {}
+    setPedidos(prev => prev.map(p => p.id === id ? { ...p, status, ...(motoboyId ? { motoboy_id: motoboyId } : {}), ...autoPago } : p))
     await supabase.from('loja_pedidos').update({
-      status, updated_at: new Date().toISOString(), ...(motoboyId ? { motoboy_id: motoboyId } : {}),
+      status, updated_at: new Date().toISOString(), ...(motoboyId ? { motoboy_id: motoboyId } : {}), ...autoPago,
     }).eq('id', id)
     const pedido = pedidos.find(p => p.id === id)
     if (pedido) {

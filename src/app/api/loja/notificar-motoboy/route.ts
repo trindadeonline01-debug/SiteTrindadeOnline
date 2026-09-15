@@ -13,6 +13,14 @@ function money(n: number) { return 'R$ ' + Number(n || 0).toFixed(2).replace('.'
 function mapsLink(address: string): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
 }
+// (XX) XXXXX-XXXX pra ler fácil — o motoboy PRECISA conseguir discar isso
+// de cabeça se a buzina não funcionar.
+function formatPhoneDisplay(raw: string): string {
+  const d = raw.replace(/\D/g, '').replace(/^55/, '')
+  if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
+  if (d.length === 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`
+  return raw
+}
 
 // Chamado (fire-and-forget) quando o lojista marca "saiu pra entrega" com um
 // motoboy PRÓPRIO cadastrado (loja_motoboys) — não tem nada a ver com o
@@ -27,7 +35,7 @@ export async function POST(req: NextRequest) {
 
     const [{ data: pedido }, { data: motoboy }, { data: instance }] = await Promise.all([
       supabase.from('loja_pedidos')
-        .select('order_number, customer_name, delivery_address, payment_method, total, delivery_fee, notes, itens:loja_pedido_itens(product_name, unit_price, qty, selected_options)')
+        .select('order_number, customer_name, customer_phone, delivery_address, payment_method, total, delivery_fee, notes, itens:loja_pedido_itens(product_name, unit_price, qty, selected_options)')
         .eq('id', pedidoId).eq('company_id', companyId).maybeSingle(),
       supabase.from('loja_motoboys').select('whatsapp').eq('id', motoboyId).eq('company_id', companyId).maybeSingle(),
       supabase.from('crm_whatsapp_instances').select('instance_name, api_key').eq('company_id', companyId).eq('status', 'connected').limit(1).maybeSingle(),
@@ -43,6 +51,10 @@ export async function POST(req: NextRequest) {
     lines.push('🏍️ *Nova entrega!*', '')
     lines.push(`📦 Pedido nº ${pedido.order_number ?? '—'}`)
     lines.push(`👤 Cliente: ${pedido.customer_name}`)
+    // Pedido do Ricardo, set/2026: se a buzina não for atendida, o motoboy
+    // usa esse número (o mesmo que o cliente informou no pedido/cadastro)
+    // pra chamar direto — sem precisar ligar de volta pra loja perguntando.
+    if (pedido.customer_phone) lines.push(`📞 Contato: ${formatPhoneDisplay(pedido.customer_phone)}`)
     if (pedido.delivery_address) {
       lines.push('', '📍 Endereço:', pedido.delivery_address, mapsLink(pedido.delivery_address))
     }

@@ -37,12 +37,23 @@ function buildStatusMessage(status: Status, deliveryType: string | null): string
 // o Ricardo pediu pra tirar (set/2026): a partir daqui é só status curto.
 export async function POST(req: NextRequest) {
   try {
-    const { companyId, phone: rawPhone, status, deliveryType } = await req.json()
+    const { companyId, pedidoId, phone: rawPhone, status, deliveryType } = await req.json()
     if (!companyId || !rawPhone || !status) return NextResponse.json({ error: 'dados obrigatórios' }, { status: 400 })
     const phone = normalizePhone(rawPhone)
 
-    const text = buildStatusMessage(status, deliveryType || null)
+    let text = buildStatusMessage(status, deliveryType || null)
     if (!text) return NextResponse.json({ ok: true })
+
+    // Saiu com motoboy PRÓPRIO (código gerado em /painel/pedidos ao
+    // atribuir) — o cliente precisa desse número na mão pra dar pro
+    // entregador na entrega. Pedido do Ricardo, set/2026.
+    if (status === 'saiu_entrega' && pedidoId) {
+      const { data: pedido } = await supabase
+        .from('loja_pedidos').select('delivery_confirm_code, motoboy_id').eq('id', pedidoId).eq('company_id', companyId).maybeSingle()
+      if (pedido?.motoboy_id && pedido.delivery_confirm_code) {
+        text += `\n\n🔑 Código de confirmação: *${pedido.delivery_confirm_code}*\nInforme esse número pro entregador quando ele chegar.`
+      }
+    }
 
     const { data: company } = await supabase.from('companies').select('crm_whatsapp_enabled, trial_modules_until').eq('id', companyId).maybeSingle()
     if (!company || !moduleActive(company.crm_whatsapp_enabled, company.trial_modules_until)) return NextResponse.json({ ok: true })

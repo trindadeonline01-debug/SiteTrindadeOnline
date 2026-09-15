@@ -46,6 +46,66 @@ function findContextInfo(m: any): any {
     m?.locationMessage?.contextInfo || m?.contactMessage?.contextInfo || null
 }
 
+async function sendWhatsapp(instanceName: string, apiKey: string, phone: string, text: string) {
+  try {
+    await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(instanceName)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: apiKey },
+      body: JSON.stringify({ number: phone, text }),
+    })
+  } catch {}
+}
+
+// Motoboy PRÓPRIO da loja (não o da plataforma) respondendo o código de 4
+// dígitos de confirmação de entrega, direto no WhatsApp da própria loja —
+// pedido do Ricardo, set/2026. Roda ANTES do processamento normal de
+// mensagem: se for de fato uma confirmação (ou tentativa errada) de
+// motoboy, resolve aqui e não vira mensagem de conversa no CRM (não é bate-
+// papo, é só operação). Devolve true quando tratou a mensagem (o chamador
+// deve pular o resto do processamento pra esse texto).
+async function tryHandleMotoboyCode(companyId: string, motoboyPhone: string, text: string | null, instanceName: string, apiKey: string): Promise<boolean> {
+  const code = (text || '').trim()
+  if (!/^\d{4}$/.test(code)) return false
+
+  const { data: motoboys } = await supabase.from('loja_motoboys').select('id, whatsapp').eq('company_id', companyId).eq('ativo', true)
+  const motoboy = (motoboys || []).find(m => normalizePhone(m.whatsapp) === motoboyPhone)
+  if (!motoboy) return false
+
+  const { data: abertas } = await supabase
+    .from('loja_pedidos')
+    .select('id, order_number, customer_id, customer_phone, delivery_type, delivery_confirm_code')
+    .eq('company_id', companyId).eq('motoboy_id', motoboy.id).eq('status', 'saiu_entrega').is('delivery_confirmed_at', null)
+  if (!abertas || abertas.length === 0) return false // sem entrega em aberto — não é código, é mensagem normal
+
+  const bate = abertas.find(p => p.delivery_confirm_code === code)
+  if (!bate) {
+    // Só avisa "não confere" quando não sobra dúvida de qual entrega ele
+    // quis dizer — com 2+ em aberto, fica em silêncio (pedido do Ricardo).
+    if (abertas.length === 1) await sendWhatsapp(instanceName, apiKey, motoboyPhone, '❌ Código não confere — confere com o cliente e tenta de novo.')
+    return abertas.length === 1
+  }
+
+  const agora = new Date().toISOString()
+  await supabase.from('loja_pedidos').update({
+    status: 'entregue', delivery_confirmed_at: agora, motoboy_payment_status: 'liberado',
+    payment_status: 'pago', updated_at: agora,
+  }).eq('id', bate.id)
+
+  await sendWhatsapp(instanceName, apiKey, motoboyPhone, `✅ Codigo confirmado! Pedido #${bate.order_number ?? ''} entregue.`)
+
+  // Avisa o cliente também — esse caminho não passa pelo notifyCustomerWhatsapp
+  // client-side normal (a confirmação chega pelo motoboy, não por quem tem o
+  // painel aberto), então manda direto por aqui.
+  if (bate.customer_phone) {
+    const msgCliente = bate.delivery_type === 'retirada'
+      ? '📦 Retirada confirmada. Obrigado pela preferencia!'
+      : '🎉 Pedido entregue! Obrigado pela preferencia, bom apetite!'
+    await sendWhatsapp(instanceName, apiKey, normalizePhone(bate.customer_phone), msgCliente)
+  }
+
+  return true
+}
+
 // Webhook público chamado pela Evolution API pra toda instância criada em
 // /api/crm/whatsapp/connect (uma por empresa). Não tem autenticação de usuário
 // — a única validação é o nome da instância bater com uma linha nossa; evento
@@ -158,6 +218,14 @@ export async function POST(req: NextRequest) {
         const phone = normalizePhone(remoteJid.split('@')[0])
         const fromMe: boolean = !!msg?.key?.fromMe
         const direction: 'in' | 'out' = fromMe ? 'out' : 'in'
+
+        // Confirmação de entrega do motoboy PRÓPRIO (código de 4 dígitos) —
+        // checa antes de tudo; se for isso, resolve e pula pro próximo
+        // evento sem virar mensagem de conversa no CRM.
+        if (direction === 'in') {
+          const rawText: string | null = msg?.message?.conversation || msg?.message?.extendedTextMessage?.text || null
+          if (await tryHandleMotoboyCode(inst.company_id, phone, rawText, instanceName, inst.api_key)) continue
+        }
 
         // Reação é um "mensagem" à parte que referencia outra pelo key.id —
         // não cria linha nova, só atualiza a mensagem alvo. Texto vazio = removeu a reação.

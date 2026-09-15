@@ -5,6 +5,7 @@ import { usePainelShell } from '@/contexts/PainelShellContext'
 
 type LojaMotoboy = { id: string; nome: string; whatsapp: string; ativo: boolean; created_at: string }
 type PedidoEntrega = { motoboy_id: string; delivery_fee: number; created_at: string }
+type EntregaConfirmada = { id: string; order_number: number | null; motoboy_id: string; customer_name: string; delivery_confirmed_at: string; motoboy_payment_status: string | null }
 type Filtro = 'hoje' | 'ontem' | '7d' | 'mes'
 
 function fmt(n: number) { return 'R$ ' + n.toFixed(2).replace('.', ',') }
@@ -27,6 +28,7 @@ export default function MotoboysPage() {
 
   const [motoboys, setMotoboys] = useState<LojaMotoboy[]>([])
   const [entregas, setEntregas] = useState<PedidoEntrega[]>([])
+  const [confirmadas, setConfirmadas] = useState<EntregaConfirmada[]>([])
 
   const [nome, setNome] = useState('')
   const [whatsapp, setWhatsapp] = useState('')
@@ -54,6 +56,13 @@ export default function MotoboysPage() {
     const { data: ped } = await supabase.from('loja_pedidos').select('motoboy_id, delivery_fee, created_at')
       .eq('company_id', companyId).not('motoboy_id', 'is', null).gte('created_at', desde)
     setEntregas((ped || []) as PedidoEntrega[])
+    // Entregas fechadas pelo código de 4 dígitos que o motoboy responde no
+    // WhatsApp da loja — relatório à parte pedido pelo Ricardo, set/2026.
+    const { data: conf } = await supabase.from('loja_pedidos')
+      .select('id, order_number, motoboy_id, customer_name, delivery_confirmed_at, motoboy_payment_status')
+      .eq('company_id', companyId).not('delivery_confirmed_at', 'is', null).gte('delivery_confirmed_at', desde)
+      .order('delivery_confirmed_at', { ascending: false })
+    setConfirmadas((conf || []) as EntregaConfirmada[])
   }
 
   async function addMotoboy() {
@@ -98,6 +107,7 @@ export default function MotoboysPage() {
   })
   const totalCount = filtradas.length
   const totalValor = filtradas.reduce((s, e) => s + (Number(e.delivery_fee) || 0), 0)
+  const confirmadasNoPeriodo = confirmadas.filter(c => noPeriodo(new Date(c.delivery_confirmed_at)))
 
   const periodoLabel = diaPersonalizado
     ? diaPersonalizado.toLocaleDateString('pt-BR')
@@ -230,6 +240,25 @@ export default function MotoboysPage() {
                     </tr>
                   </>
                 )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mb-card">
+            <div className="mb-kicker">Entregas confirmadas por código</div>
+            <table className="mb-rep">
+              <thead><tr><th>Pedido</th><th>Motoboy</th><th>Cliente</th><th>Confirmado em</th></tr></thead>
+              <tbody>
+                {confirmadasNoPeriodo.length === 0 ? (
+                  <tr><td colSpan={4} className="mb-empty">Nenhuma entrega confirmada por código nesse período.</td></tr>
+                ) : confirmadasNoPeriodo.map(c => (
+                  <tr key={c.id}>
+                    <td>{c.order_number ? `#${c.order_number}` : '—'}</td>
+                    <td>{motoboys.find(m => m.id === c.motoboy_id)?.nome || 'Motoboy removido'}</td>
+                    <td>{c.customer_name}</td>
+                    <td className="mb-num">{new Date(c.delivery_confirmed_at).toLocaleString('pt-BR')}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

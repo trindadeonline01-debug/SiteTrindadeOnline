@@ -103,6 +103,13 @@ function isLate(p: Pedido): boolean {
 }
 
 function fmt(n: number) { return 'R$ ' + n.toFixed(2).replace('.', ',') }
+// Código que o cliente informa pro motoboy próprio na entrega — motoboy
+// responde esse número no WhatsApp da própria loja pra confirmar (pedido do
+// Ricardo, set/2026). 4 dígitos, nada criptográfico, só uma senha de
+// entrega — mesma ideia (e mesmo tamanho) do código de 4 dígitos que já
+// existe pro motoboy da PLATAFORMA (Trindade Entrega, genDeliveryCode em
+// src/lib/entregaDispatch.ts), agora espelhada pro motoboy da própria loja.
+function gen4DigitCode(): string { return String(Math.floor(1000 + Math.random() * 9000)) }
 function fmtSchedule(iso: string) {
   const d = new Date(iso)
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' às ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
@@ -276,9 +283,14 @@ export default function PedidosPage() {
     // deveria existir (ESPECIFICACAO.md §12 #5) — em vez de só sinalizar o
     // problema, marca pago sozinho nessa transição.
     const autoPago = status === 'entregue' ? { payment_status: 'pago' as const } : {}
+    // Motoboy próprio recebendo a corrida ganha um código novo — o cliente
+    // informa esse número na entrega, o motoboy confirma respondendo no
+    // WhatsApp da loja (webhook em /api/crm/webhook fecha o pedido sozinho
+    // quando bate). Pedido do Ricardo, set/2026.
+    const codigoEntrega = motoboyId ? { delivery_confirm_code: gen4DigitCode(), delivery_confirmed_at: null, motoboy_payment_status: 'pendente' } : {}
     setPedidos(prev => prev.map(p => p.id === id ? { ...p, status, ...(motoboyId ? { motoboy_id: motoboyId } : {}), ...autoPago } : p))
     await supabase.from('loja_pedidos').update({
-      status, updated_at: new Date().toISOString(), ...(motoboyId ? { motoboy_id: motoboyId } : {}), ...autoPago,
+      status, updated_at: new Date().toISOString(), ...(motoboyId ? { motoboy_id: motoboyId } : {}), ...autoPago, ...codigoEntrega,
     }).eq('id', id)
     const pedido = pedidos.find(p => p.id === id)
     if (pedido) {

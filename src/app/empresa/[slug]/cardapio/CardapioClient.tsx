@@ -686,7 +686,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
                         ? <div className="cd-pprice" style={{ color: '#C43D3D' }}>Esgotado</div>
                         : (promo ?? p.sale_price) > 0 && <div className="cd-pprice">{fmt(promo ?? p.sale_price)}{promo != null && <span className="was">{fmt(p.sale_price)}</span>}</div>}
                     </div>
-                    {!soldOut && open && (hasOpts ? <button className="cd-chev">›</button> : <button className={`cd-addbtn ${flashId === p.id ? 'added' : ''}`}>{flashId === p.id ? '✓' : '+'}</button>)}
+                    {!soldOut && open && (hasOpts ? <button className="cd-chev" aria-label="Ver opções">›</button> : <button className={`cd-addbtn ${flashId === p.id ? 'added' : ''}`} aria-label={flashId === p.id ? 'Adicionado ao carrinho' : 'Adicionar ao carrinho'}>{flashId === p.id ? '✓' : '+'}</button>)}
                   </div>
                 )
               })}

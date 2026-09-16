@@ -1717,7 +1717,7 @@ export default function MensagensPage() {
                   {editingMessage ? (
                     <div className="msg-reply-bar">
                       <div className="msg-reply-bar-txt">✏️ Editando mensagem</div>
-                      <button onClick={cancelEdit}>✕</button>
+                      <button onClick={cancelEdit} aria-label="Cancelar edição">✕</button>
                     </div>
                   ) : replyTo && (
                     <div className="msg-reply-bar">
@@ -1733,7 +1733,7 @@ export default function MensagensPage() {
                       <div className="msg-composer-pill msg-recording-pill">
                         <span className="msg-recording-dot" />
                         <span className="msg-recording-txt">Gravando... {Math.floor(recordSeconds / 60)}:{String(recordSeconds % 60).padStart(2, '0')}</span>
-                        <button className="msg-composer-icon" title="Cancelar gravação" onClick={cancelRecording}>🗑</button>
+                        <button className="msg-composer-icon" title="Cancelar gravação" aria-label="Cancelar gravação" onClick={cancelRecording}>🗑</button>
                       </div>
                     ) : (
                       <div className="msg-composer-pill">
@@ -1863,9 +1863,9 @@ export default function MensagensPage() {
                 ) : npCartOpen ? (
                   <>
                     <div className="np-head">
-                      <button className="np-back" onClick={() => setNpCartOpen(false)}>‹</button>
+                      <button className="np-back" onClick={() => setNpCartOpen(false)} aria-label="Voltar">‹</button>
                       <b>Carrinho — {selectedLive.name || selectedLive.phone}</b>
-                      <button className="np-close" onClick={closeNovoPedido}>✕</button>
+                      <button className="np-close" onClick={closeNovoPedido} aria-label="Fechar">✕</button>
                     </div>
                     <div className="np-body">
                       <div className="np-cart">
@@ -1876,9 +1876,9 @@ export default function MensagensPage() {
                               {l.modifiers.length > 0 && <div className="np-cart-line-mods">{l.modifiers.map(m => m.name).join(', ')}</div>}
                             </div>
                             <div className="np-cart-line-qty">
-                              <button onClick={() => npChangeQty(l.key, -1)}>−</button>
+                              <button onClick={() => npChangeQty(l.key, -1)} aria-label="Diminuir quantidade">−</button>
                               <span>{l.qty}</span>
-                              <button onClick={() => npChangeQty(l.key, 1)}>+</button>
+                              <button onClick={() => npChangeQty(l.key, 1)} aria-label="Aumentar quantidade">+</button>
                             </div>
                             <div className="np-cart-line-price">{fmtMoney(l.unitPrice * l.qty)}</div>
                           </div>
@@ -1903,7 +1903,7 @@ export default function MensagensPage() {
                   </>
                 ) : (
                   <>
-                    <div className="np-head"><b>🧾 Novo pedido — {selectedLive.name || selectedLive.phone}</b><button className="np-close" onClick={closeNovoPedido}>✕</button></div>
+                    <div className="np-head"><b>🧾 Novo pedido — {selectedLive.name || selectedLive.phone}</b><button className="np-close" onClick={closeNovoPedido} aria-label="Fechar">✕</button></div>
                     <div className="np-search"><input placeholder="Buscar produto..." value={npSearch} onChange={e => setNpSearch(e.target.value)} /></div>
                     <div className="np-catbar">
                       <button className={`np-catchip ${npFilterCat === 'all' ? 'on' : ''}`} onClick={() => setNpFilterCat('all')}>Tudo</button>
@@ -1936,7 +1936,7 @@ export default function MensagensPage() {
                                         ? <div className="np-prod-price" style={{ color: '#e0645a' }}>Esgotado</div>
                                         : <div className="np-prod-price">{fmtMoney(promo ?? p.sale_price)}{promo != null && <span className="was">{fmtMoney(p.sale_price)}</span>}</div>}
                                     </div>
-                                    {!soldOut && (hasOpts ? <button className="np-chev">›</button> : <button className="np-addbtn">+</button>)}
+                                    {!soldOut && (hasOpts ? <button className="np-chev" aria-label="Ver opções">›</button> : <button className="np-addbtn" aria-label="Adicionar ao carrinho">+</button>)}
                                   </div>
                                 )
                               })}
@@ -1961,7 +1961,7 @@ export default function MensagensPage() {
                                       ? <div className="np-prod-price" style={{ color: '#e0645a' }}>Esgotado</div>
                                       : <div className="np-prod-price">{fmtMoney(promo ?? p.sale_price)}{promo != null && <span className="was">{fmtMoney(p.sale_price)}</span>}</div>}
                                   </div>
-                                  {!soldOut && (hasOpts ? <button className="np-chev">›</button> : <button className="np-addbtn">+</button>)}
+                                  {!soldOut && (hasOpts ? <button className="np-chev" aria-label="Ver opções">›</button> : <button className="np-addbtn" aria-label="Adicionar ao carrinho">+</button>)}
                                 </div>
                               )
                             })}

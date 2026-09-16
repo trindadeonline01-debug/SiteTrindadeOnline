@@ -94,8 +94,8 @@ function SortableTipoRow({ tipo, count, onToggleActive, onSaveEdit, onDelete }: 
           <span style={s.label}>{tipo.label}</span>
           <span style={s.count}>{count} produto{count !== 1 ? 's' : ''}</span>
           <button style={s.btnGhost} onClick={onToggleActive}>{tipo.active ? 'Ativo' : 'Oculto'}</button>
-          <button style={s.btnGhost} onClick={() => setEditing(true)}>✏️</button>
-          <button style={s.btnDel} onClick={onDelete}>🗑</button>
+          <button style={s.btnGhost} onClick={() => setEditing(true)} aria-label="Editar" title="Editar">✏️</button>
+          <button style={s.btnDel} onClick={onDelete} aria-label="Excluir" title="Excluir">🗑</button>
         </>
       )}
     </div>

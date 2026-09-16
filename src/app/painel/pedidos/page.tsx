@@ -869,7 +869,7 @@ export default function PedidosPage() {
       {npOpen && (
         <div className="np-overlay" onClick={closeNovoPedido}>
           <div className="np-drawer" onClick={e => e.stopPropagation()}>
-            <div className="np-head"><b>Novo pedido — Balcão/Telefone</b><button className="np-close" onClick={closeNovoPedido}>✕</button></div>
+            <div className="np-head"><b>Novo pedido — Balcão/Telefone</b><button className="np-close" onClick={closeNovoPedido} aria-label="Fechar">✕</button></div>
             {!npDetail ? (
               <div className="np-body">
                 <div className="np-section-label">Cliente</div>

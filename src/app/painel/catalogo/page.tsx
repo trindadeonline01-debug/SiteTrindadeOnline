@@ -118,15 +118,15 @@ function SortableCatRow({ cat, count, isEditing, editName, onEditNameChange, onS
         <>
           <input value={editName} onChange={e => onEditNameChange(e.target.value)} autoFocus onKeyDown={e => e.key === 'Enter' && onSaveName()} />
           <button className="cg-btn cg-btn-gold" style={{ padding: '7px 12px' }} onClick={onSaveName}>OK</button>
-          <button className="cg-btn-ghost" style={{ padding: '7px 10px', borderRadius: 8 }} onClick={onCancelEdit}>✕</button>
+          <button className="cg-btn-ghost" style={{ padding: '7px 10px', borderRadius: 8 }} onClick={onCancelEdit} aria-label="Cancelar edição" title="Cancelar edição">✕</button>
         </>
       ) : (
         <>
           <button className="cg-drag-handle" {...attributes} {...listeners} aria-label="Arrastar pra reordenar">⠿</button>
           <span className="cg-cat-row-name">{cat.name}</span>
           <span className="cg-cat-row-count">{count} produto{count !== 1 ? 's' : ''}</span>
-          <button className="cg-btn-ghost" style={{ padding: '6px 9px', borderRadius: 8, fontSize: 11 }} onClick={onStartEdit}>✏️</button>
-          <button className="cg-del" onClick={onDelete}>🗑</button>
+          <button className="cg-btn-ghost" style={{ padding: '6px 9px', borderRadius: 8, fontSize: 11 }} onClick={onStartEdit} aria-label="Editar categoria" title="Editar categoria">✏️</button>
+          <button className="cg-del" onClick={onDelete} aria-label="Excluir categoria" title="Excluir categoria">🗑</button>
         </>
       )}
     </div>

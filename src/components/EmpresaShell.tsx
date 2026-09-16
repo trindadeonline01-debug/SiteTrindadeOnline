@@ -290,7 +290,7 @@ export default function EmpresaShell({
 
       <div className="es-main">
         <div className="es-topbar" ref={topbarRef}>
-          <button className="es-topbar-burger" onClick={toggleCollapsed} title={collapsed ? 'Expandir menu' : 'Recolher menu'}>☰</button>
+          <button className="es-topbar-burger" onClick={toggleCollapsed} title={collapsed ? 'Expandir menu' : 'Recolher menu'} aria-label={collapsed ? 'Expandir menu' : 'Recolher menu'}>☰</button>
           <span className="es-topbar-title">{TITLES[active]}</span>
         </div>
         <div className="es-content">{children}</div>

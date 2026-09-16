@@ -243,7 +243,7 @@ export default function EditarPedidoPanel({ pedido, companyId, onClose, onSaved 
         <div className="ep-hd">
           <div className="ep-hd-num">{pedido.order_number ? `#${pedido.order_number}` : `#${pedido.id.slice(0, 8)}`} · {pedido.customer_name}</div>
           <div className="ep-timer">⏱ Há {timeAgo(pedido.created_at)}</div>
-          <button className="ep-close" onClick={onClose}>✕</button>
+          <button className="ep-close" onClick={onClose} aria-label="Fechar">✕</button>
         </div>
 
         <div className="ep-body">

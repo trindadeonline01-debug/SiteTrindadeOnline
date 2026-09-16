@@ -87,11 +87,24 @@ export async function POST(req: NextRequest) {
       }, { onConflict: 'company_id,phone' })
     }
 
+    // Contador "total_pedidos" de cada produto — antes fazia 1 leitura + 1
+    // gravação POR ITEM, em sequência (pedido de 5 itens = 10 idas ao banco
+    // uma esperando a outra, achado numa auditoria de performance, set/2026).
+    // Agora: 1 leitura só (todos os produtos de uma vez) + gravações em
+    // paralelo. Soma as quantidades por produto antes de ler — se o mesmo
+    // produto aparecer 2x no carrinho (variações diferentes), sem isso as
+    // duas gravações partiriam do mesmo valor lido e uma pisaria na outra.
     if (Array.isArray(items)) {
+      const qtyByProduto = new Map<string, number>()
       for (const it of items) {
         if (!it?.produtoId || !it?.qty) continue
-        const { data: prod } = await supabase.from('loja_produtos').select('total_pedidos').eq('id', it.produtoId).maybeSingle()
-        if (prod) await supabase.from('loja_produtos').update({ total_pedidos: (prod.total_pedidos || 0) + Number(it.qty) }).eq('id', it.produtoId)
+        qtyByProduto.set(it.produtoId, (qtyByProduto.get(it.produtoId) || 0) + Number(it.qty))
+      }
+      if (qtyByProduto.size > 0) {
+        const { data: produtos } = await supabase.from('loja_produtos').select('id, total_pedidos').in('id', [...qtyByProduto.keys()])
+        await Promise.all((produtos || []).map(p =>
+          supabase.from('loja_produtos').update({ total_pedidos: (p.total_pedidos || 0) + (qtyByProduto.get(p.id) || 0) }).eq('id', p.id)
+        ))
       }
     }
 

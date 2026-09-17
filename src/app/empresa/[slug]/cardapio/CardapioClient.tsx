@@ -415,6 +415,17 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
   }
 
   if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Archivo,sans-serif', color: '#AAA', background: 'var(--concrete)' }}>Carregando...</div>
+  function handleWhatsAppCardapio() {
+    if (!company?.phone) return
+    // Mesmo padrão do handleWhatsApp em EmpresaPerfilClient.tsx: abre a aba
+    // antes de qualquer await pra não ser bloqueado como pop-up no Safari.
+    const win = window.open('', '_blank')
+    const url = `https://wa.me/55${company.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá, vim pelo cardápio da ${company.name} no Trindade Online e queria tirar uma dúvida.`)}`
+    if (win) win.location.href = url; else window.open(url, '_blank')
+    fetch(`/api/company/${company.id}/track`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'whatsapp_click' }) }).catch(() => {})
+    supabase.from('whatsapp_clicks').insert({ company_id: company.id }).then(() => {})
+  }
+
   if (!company) return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'Archivo,sans-serif', background: 'var(--concrete)', padding: 24, textAlign: 'center' }}>
       <div style={{ fontSize: 44, marginBottom: 12 }}>🍽️</div>
@@ -467,6 +478,10 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
         .cd-pagehero-cnt .op{ color:#4ADE80;font-weight:600; }
         .cd-pagehero-cnt .cl{ color:#F87171;font-weight:600; }
         .cd-pagehero-cnt .st{ color:var(--sign); }
+        .cd-heroactions{ display:flex;align-items:center;justify-content:center;gap:8px;margin-top:16px;flex-wrap:wrap; }
+        .cd-back-btn{ display:inline-flex;align-items:center;gap:4px;background:transparent;color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:20px;padding:7px 14px;font-size:12px;font-weight:700;text-decoration:none;font-family:'Archivo',sans-serif; }
+        .cd-back-btn:hover{ border-color:var(--sign);color:var(--sign); }
+        .cd-wa-btn{ display:inline-flex;align-items:center;gap:4px;background:#25D366;color:#0B2E13;border:none;border-radius:20px;padding:7px 14px;font-size:12px;font-weight:800;cursor:pointer;font-family:'Archivo',sans-serif; }
         .cd-coupon-strip-wrap{ background:#fff;padding:8px 0;border-bottom:1px solid var(--line); }
         .cd-coupon-strip{ display:flex;gap:6px;overflow-x:auto;padding:0 16px;scrollbar-width:none; }
         .cd-coupon-strip::-webkit-scrollbar{ display:none; }
@@ -597,21 +612,27 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
 
       <div className="cd-top"><div className="cd-bc"><a href="/">Trindade Online</a> › <a href={`/empresa/${company.slug}`}>{company.name}</a> › Cardápio</div></div>
 
-      <div className="cd-pagehero"><div className="cd-pagehero-inner">
-        <div className="cd-pagehero-img">
-          {getCompanyCover(company.photos) ? <Image src={getCompanyCover(company.photos)!} alt="" fill sizes="74px" style={{ objectFit: 'cover' }} priority /> : company.name.slice(0, 2).toUpperCase()}
-        </div>
-        <div>
-          <div className="cd-pagehero-title">CARDÁPIO</div>
-          <div className="cd-pagehero-cnt">
-            <span>{company.name}</span>
-            <span className={open ? 'op' : 'cl'}>· {open ? '● Aberto agora' : '● Fechado agora'}</span>
-            {Number(company.avg_rating || 0) > 0 && (
-              <span><span className="st">★</span> {Number(company.avg_rating).toFixed(1)} ({company.total_reviews || 0})</span>
-            )}
+      <div className="cd-pagehero">
+        <div className="cd-pagehero-inner">
+          <div className="cd-pagehero-img">
+            {getCompanyCover(company.photos) ? <Image src={getCompanyCover(company.photos)!} alt="" fill sizes="74px" style={{ objectFit: 'cover' }} priority /> : company.name.slice(0, 2).toUpperCase()}
+          </div>
+          <div>
+            <div className="cd-pagehero-title">CARDÁPIO</div>
+            <div className="cd-pagehero-cnt">
+              <span>{company.name}</span>
+              <span className={open ? 'op' : 'cl'}>· {open ? '● Aberto agora' : '● Fechado agora'}</span>
+              {Number(company.avg_rating || 0) > 0 && (
+                <span><span className="st">★</span> {Number(company.avg_rating).toFixed(1)} ({company.total_reviews || 0})</span>
+              )}
+            </div>
           </div>
         </div>
-      </div></div>
+        <div className="cd-heroactions">
+          <a href={`/empresa/${company.slug}`} className="cd-back-btn">‹ Perfil da empresa</a>
+          {company.phone && <button className="cd-wa-btn" onClick={handleWhatsAppCardapio}>💬 WhatsApp</button>}
+        </div>
+      </div>
 
       {coupons.length > 0 && (
         <div className="cd-coupon-strip-wrap"><div className="cd-coupon-strip">

@@ -114,6 +114,24 @@ function fmtSchedule(iso: string) {
   const d = new Date(iso)
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' às ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 }
+// Dia operacional do painel de pedidos (pedido do Ricardo, set/2026): a tela
+// vira um mini-PDV — abre sempre no dia de hoje, zerado, e pra ver o que
+// aconteceu ontem é só trocar a data no seletor. Data em string local
+// 'AAAA-MM-DD' (não usa toISOString, que converte pra UTC e pode virar o
+// dia errado perto da meia-noite).
+function todayStr() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+function addDaysToDateStr(dateStr: string, delta: number) {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  const dt = new Date(y, m - 1, d + delta)
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
+}
+function fmtDateLabel(dateStr: string) {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  return new Date(y, m - 1, d).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' })
+}
 function timeAgo(iso: string) {
   const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
   if (mins < 1) return 'agora'
@@ -145,6 +163,14 @@ export default function PedidosPage() {
   const [printerSaving, setPrinterSaving] = useState(false)
   const [printError, setPrintError] = useState<string | null>(null)
   const [pedidos, setPedidos] = useState<Pedido[]>([])
+  const [selectedDate, setSelectedDate] = useState(todayStr())
+  const isToday = selectedDate === todayStr()
+  // Guarda a "data de hoje" conhecida da última checagem — se o dia virar
+  // com a tela aberta (aba em segundo plano à noite, tablet ligado direto),
+  // reaproveita os mesmos eventos de "aba voltou a existir" do
+  // useRealtimeResync pra zerar sozinho pro novo dia. Só avança se o
+  // lojista não tiver navegado pra uma data antiga de propósito.
+  const autoTodayRef = useRef(todayStr())
   const [mobileStage, setMobileStage] = useState<MobileStageKey>('recebido')
   const [openId, setOpenId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
@@ -193,9 +219,10 @@ export default function PedidosPage() {
       setEntregaEnabled(company.entrega_enabled)
       const { data: mb } = await supabase.from('loja_motoboys').select('*').eq('company_id', company.id).order('created_at')
       setMotoboys((mb || []) as LojaMotoboy[])
-      await loadAll(company.id)
+      await loadAll(company.id, selectedDate)
       setLoading(false)
     })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shellLoading, company?.id])
 
   // Canal realtime isolado do carregamento inicial de propósito, e recriado
@@ -207,21 +234,41 @@ export default function PedidosPage() {
   // mesmo que o canal antigo tenha perdido o evento por completo (não
   // depende só dele se recuperar sozinho). Ver useRealtimeResync.
   const resyncTick = useRealtimeResync()
+
+  // Detecta a virada do dia enquanto a tela fica aberta, reaproveitando os
+  // mesmos gatilhos ("aba voltou a existir") do useRealtimeResync — não
+  // mexe se o lojista tiver navegado de propósito pra uma data antiga.
+  useEffect(() => {
+    const nowStr = todayStr()
+    if (nowStr !== autoTodayRef.current && selectedDate === autoTodayRef.current) {
+      setSelectedDate(nowStr)
+    }
+    autoTodayRef.current = nowStr
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resyncTick])
+
   useEffect(() => {
     if (!companyId) return
     refreshSessionOnce().catch(() => {})
-    loadAll(companyId)
+    loadAll(companyId, selectedDate)
     const channel = supabase.channel(`pedidos-${companyId}-${resyncTick}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'loja_pedidos', filter: `company_id=eq.${companyId}` }, () => {
-        loadAll(companyIdRef.current)
+        loadAll(companyIdRef.current, selectedDate)
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [companyId, resyncTick])
+  }, [companyId, resyncTick, selectedDate])
 
-  async function loadAll(cid: string) {
-    const { data } = await supabase.from('loja_pedidos').select('*, itens:loja_pedido_itens(*)').eq('company_id', cid).order('created_at', { ascending: false }).limit(100)
+  // Lista sempre presa a um único dia — mini-PDV, não um histórico infinito
+  // (pedido do Ricardo, set/2026): a tela abre zerada no dia de hoje e só
+  // mostra pedido de outro dia se o lojista trocar a data no seletor.
+  async function loadAll(cid: string, dateStr: string) {
+    const from = new Date(dateStr + 'T00:00:00')
+    const to = new Date(from.getTime() + 24 * 60 * 60 * 1000)
+    const { data } = await supabase.from('loja_pedidos').select('*, itens:loja_pedido_itens(*)').eq('company_id', cid)
+      .gte('created_at', from.toISOString()).lt('created_at', to.toISOString())
+      .order('created_at', { ascending: false })
     setPedidos((data || []) as any)
     const { data: entregas } = await supabase.from('delivery_orders').select('pedido_id').eq('company_id', cid).not('pedido_id', 'is', null)
     setDeliveryCalled(new Set((entregas || []).map(e => e.pedido_id as string)))
@@ -498,7 +545,14 @@ export default function PedidosPage() {
     }).catch(() => {})
     setNpSaving(false)
     closeNovoPedido()
-    await loadAll(companyId)
+    await loadAll(companyId, selectedDate)
+  }
+
+  function shiftDate(delta: number) {
+    setSelectedDate(prev => {
+      const next = addDaysToDateStr(prev, delta)
+      return next > todayStr() ? todayStr() : next
+    })
   }
 
   if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Archivo,sans-serif', color: '#AAA' }}>Carregando...</div>
@@ -549,8 +603,8 @@ export default function PedidosPage() {
         {p.scheduled_for && <div className="pd-sum" style={{ color: '#B5690C', fontWeight: 700 }}>📅 Agendado pra {fmtSchedule(p.scheduled_for)}</div>}
         {p.motoboy_id && <div className="pd-sum">🏍️ Entregou: <b>{motoboys.find(m => m.id === p.motoboy_id)?.nome || '—'}</b></div>}
         <div className="pd-total">{fmt(p.total)}</div>
-        {needsAccept && <button className="pd-accept" onClick={e => { e.stopPropagation(); acceptPedido(p.id) }}>✓ Aceitar pedido</button>}
-        {!needsAccept && !open && getNextAction(p) && (() => {
+        {isToday && needsAccept && <button className="pd-accept" onClick={e => { e.stopPropagation(); acceptPedido(p.id) }}>✓ Aceitar pedido</button>}
+        {isToday && !needsAccept && !open && getNextAction(p) && (() => {
           const action = getNextAction(p)!
           const ativos = motoboys.filter(m => m.ativo)
           // Vira "saiu pra entrega" com motoboy PRÓPRIO cadastrado — com 2+
@@ -592,7 +646,7 @@ export default function PedidosPage() {
             {p.delivery_address && <div style={{ marginTop: 8, fontSize: 11.5 }}>📍 {p.delivery_address}</div>}
             {p.customer_phone && <div style={{ fontSize: 11.5, marginTop: 2 }}>📞 {p.customer_phone}</div>}
             {p.notes && <div style={{ fontSize: 11.5, marginTop: 2, color: '#6E6656' }}>Obs: {p.notes}</div>}
-            {entregaEnabled && p.delivery_type === 'entrega' && p.status !== 'cancelado' && (
+            {isToday && entregaEnabled && p.delivery_type === 'entrega' && p.status !== 'cancelado' && (
               deliveryCalled.has(p.id) ? (
                 <div style={{ marginTop: 8, fontSize: 11.5, fontWeight: 700, color: '#157A52' }}>🏍️ Motoboy chamado — acompanhe em Entrega</div>
               ) : (
@@ -604,12 +658,14 @@ export default function PedidosPage() {
                 </>
               )
             )}
-            <div className="pd-chips">
-              {flowFor(p).map(s => <button key={s} className={`pd-chip ${p.status === s ? 'current' : ''}`} onClick={() => setStatus(p.id, s)}>{STATUS_LABEL[s]}</button>)}
-            </div>
+            {isToday && (
+              <div className="pd-chips">
+                {flowFor(p).map(s => <button key={s} className={`pd-chip ${p.status === s ? 'current' : ''}`} onClick={() => setStatus(p.id, s)}>{STATUS_LABEL[s]}</button>)}
+              </div>
+            )}
             <button className="pd-print-btn" onClick={e => { e.stopPropagation(); printPedido(p) }}>🖨️ Imprimir pedido</button>
             {printError && <div style={{ color: '#C43D3D', fontSize: 11, marginTop: 4 }}>{printError}</div>}
-            {p.status !== 'cancelado' && p.status !== 'entregue' && <button className="pd-cancel" onClick={() => setStatus(p.id, 'cancelado')}>Cancelar pedido</button>}
+            {isToday && p.status !== 'cancelado' && p.status !== 'entregue' && <button className="pd-cancel" onClick={() => setStatus(p.id, 'cancelado')}>Cancelar pedido</button>}
           </div>
         )}
       </div>
@@ -623,7 +679,10 @@ export default function PedidosPage() {
   // o card pra achar o botão lá dentro. Some sozinha quando o pedido sai de
   // "recebido" (aceito/avançado) — não precisa de "marcar como impresso" à
   // parte.
-  const pedidosNovos = pedidos.filter(p => p.status === 'recebido').sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+  // Só dispara em cima do dia de hoje — pedido "recebido" esquecido num dia
+  // antigo (histórico) não é uma urgência de agora, não deve piscar nem
+  // oferecer reimpressão como se tivesse acabado de chegar.
+  const pedidosNovos = isToday ? pedidos.filter(p => p.status === 'recebido').sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) : []
 
   return (
     <>
@@ -645,6 +704,12 @@ export default function PedidosPage() {
         .pd-auto-pill .pd-switch .k{ width:11px;height:11px;top:2px;left:2px; }
         .pd-auto-pill .pd-switch.on .k{ left:11px; }
         .pd-new-pill{ flex:none;width:26px;height:26px;border-radius:50%;background:var(--sign);color:var(--ink);border:none;font-size:16px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center; }
+        .pd-datebar{ display:flex;align-items:center;gap:8px;padding:0 16px 12px; }
+        .pd-date-arrow{ flex:none;width:30px;height:30px;border-radius:8px;border:1px solid #E6E0D2;background:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit; }
+        .pd-date-arrow:disabled{ opacity:.35;cursor:default; }
+        .pd-date-input{ flex:1;min-width:0;padding:8px 10px;border-radius:9px;border:1px solid #E6E0D2;background:#fff;font-size:13.5px;font-family:inherit;color:var(--ink); }
+        .pd-today-btn{ flex:none;padding:8px 12px;border-radius:9px;border:none;background:var(--sign);color:var(--ink);font-weight:800;font-size:12.5px;cursor:pointer;white-space:nowrap;font-family:inherit; }
+        .pd-hist-banner{ background:#FEF6DC;color:#8A6410;font-size:12.5px;font-weight:700;padding:9px 16px;text-align:center; }
         .pd-searchbar{ padding:0 16px 12px; }
         .pd-tabs{ display:flex;gap:8px;padding:0 16px 12px;overflow-x:auto; }
         .pd-tab{ flex:none;display:flex;align-items:center;gap:6px;padding:8px 13px;border-radius:20px;border:1.5px solid #E6E0D2;background:#fff;font-weight:700;font-size:14.5px;color:#6E6656;cursor:pointer;white-space:nowrap; }
@@ -730,6 +795,8 @@ export default function PedidosPage() {
           .pd-mobile-only{ display:none; }
           .pd-toolbar{ display:flex;flex-direction:row;align-items:center;padding:16px 32px;gap:10px;background:#fff;border-bottom:1px solid #EDE8E0; }
           .pd-search{ max-width:280px; }
+          .pd-datebar{ padding:0;flex:none; }
+          .pd-date-input{ flex:none;width:150px; }
           .pd-autotoggle{ margin-left:auto; }
           .pd-newbtn{ padding:10px 20px; }
           /* display:grid em vez de flex+overflow-x:auto — sem scroll
@@ -788,11 +855,18 @@ export default function PedidosPage() {
             </label>
           </div>
           <div className="pd-head-right">
-            <button className="pd-new-pill" onClick={openNovoPedido} title="Novo pedido">+</button>
+            {isToday && <button className="pd-new-pill" onClick={openNovoPedido} title="Novo pedido">+</button>}
             <button onClick={openPrinterModal} style={{ fontSize: 11, fontWeight: 700, color: printerName ? '#157A52' : '#8A6410', background: printerName ? '#E4F3EC' : '#FBF1DC', padding: '7px 10px', borderRadius: 8, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>🖨️ {printerName ? 'Impressora' : 'Configurar'}</button>
             <a href="/painel/cozinha" style={{ fontSize: 11, fontWeight: 700, color: '#8A6410', background: '#FBF1DC', padding: '7px 12px', borderRadius: 8, textDecoration: 'none' }}>🍳 Cozinha</a>
           </div>
         </div>
+        <div className="pd-datebar">
+          <button className="pd-date-arrow" onClick={() => shiftDate(-1)} aria-label="Dia anterior">‹</button>
+          <input type="date" className="pd-date-input" value={selectedDate} max={todayStr()} onChange={e => e.target.value && setSelectedDate(e.target.value)} />
+          <button className="pd-date-arrow" onClick={() => shiftDate(1)} disabled={isToday} aria-label="Próximo dia">›</button>
+          {!isToday && <button className="pd-today-btn" onClick={() => setSelectedDate(todayStr())}>Hoje</button>}
+        </div>
+        {!isToday && <div className="pd-hist-banner">📅 Vendo {fmtDateLabel(selectedDate)} — histórico, só consulta</div>}
         <div className="pd-searchbar">
           <input className="pd-search" placeholder="Buscar por cliente..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
@@ -813,6 +887,12 @@ export default function PedidosPage() {
       </div>
 
       <div className="pd-toolbar">
+        <div className="pd-datebar">
+          <button className="pd-date-arrow" onClick={() => shiftDate(-1)} aria-label="Dia anterior">‹</button>
+          <input type="date" className="pd-date-input" value={selectedDate} max={todayStr()} onChange={e => e.target.value && setSelectedDate(e.target.value)} />
+          <button className="pd-date-arrow" onClick={() => shiftDate(1)} disabled={isToday} aria-label="Próximo dia">›</button>
+          {!isToday && <button className="pd-today-btn" onClick={() => setSelectedDate(todayStr())}>Hoje</button>}
+        </div>
         <input className="pd-search" placeholder="Buscar por cliente..." value={search} onChange={e => setSearch(e.target.value)} />
         <label className="pd-autotoggle">
           <div className={`pd-switch ${autoAceitar ? 'on' : ''}`} onClick={toggleAutoAceitar}><div className="k" /></div>
@@ -821,8 +901,9 @@ export default function PedidosPage() {
         <button className="pd-printer-pill" onClick={openPrinterModal} style={printerName ? { background: '#E4F3EC', color: '#157A52', borderColor: '#B7DFC9' } : {}}>
           🖨️ {printerName ? `Impressora: ${isRawBtMode(printerName) ? 'RawBT (tablet)' : printerName}` : 'Configurar impressora'}
         </button>
-        <button className="pd-newbtn" onClick={openNovoPedido}>+ Novo pedido</button>
+        {isToday && <button className="pd-newbtn" onClick={openNovoPedido}>+ Novo pedido</button>}
       </div>
+      {!isToday && <div className="pd-hist-banner">📅 Vendo {fmtDateLabel(selectedDate)} — histórico, só consulta</div>}
 
       {(() => {
         const showCancelados = cancelados.length > 0
@@ -1065,7 +1146,7 @@ export default function PedidosPage() {
             pedido={pedido}
             companyId={companyId}
             onClose={() => setEditId(null)}
-            onSaved={() => loadAll(companyId)}
+            onSaved={() => loadAll(companyId, selectedDate)}
           />
         )
       })()}

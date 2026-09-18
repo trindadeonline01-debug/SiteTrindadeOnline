@@ -47,6 +47,9 @@ function periodStart(p: Period): string | null {
   return null
 }
 
+function periodLabel(p: Period) {
+  return p === 'today' ? 'hoje' : p === 'all' ? 'tudo' : p === '7d' ? '7 dias' : '30 dias'
+}
 function fmtMoney(n: number) {
   return 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
@@ -107,8 +110,12 @@ export default function SalaDeVendasTab() {
       setPedidosPrev([])
     }
 
-    // feed recente — últimos 20, sem filtro de período (mas respeita loja)
-    let qf = supabase.from('loja_pedidos').select('id, company_id, customer_name, status, payment_method, delivery_type, total, created_at, order_number').order('created_at', { ascending: false }).limit(20)
+    // Feed recente — pedido do Ricardo, set/2026: tinha que respeitar o
+    // mesmo período escolhido no topo (igual ao que a gente fez em
+    // /painel/pedidos), senão o feed "ao vivo" mostrava pedido de qualquer
+    // dia mesmo com "Hoje" selecionado, contradizendo os KPIs ao lado.
+    let qf = supabase.from('loja_pedidos').select('id, company_id, customer_name, status, payment_method, delivery_type, total, created_at, order_number').order('created_at', { ascending: false }).limit(50)
+    if (from) qf = qf.gte('created_at', from)
     if (storeFilter !== 'all') qf = qf.eq('company_id', storeFilter)
     const { data: feedData } = await qf
     setFeed((feedData || []) as Pedido[])
@@ -397,7 +404,7 @@ export default function SalaDeVendasTab() {
         <div style={s.card}>
           <div style={s.cardHd}>
             <span style={s.cardTitle}>Pedidos em tempo real</span>
-            <span style={s.cardHint}>atualiza sozinho</span>
+            <span style={s.cardHint}>{periodLabel(period)} · atualiza sozinho</span>
           </div>
           <div>
             {feed.length === 0 && <div style={{ padding: 24, textAlign: 'center', color: '#aaa', fontSize: 13 }}>Nenhum pedido ainda.</div>}
@@ -428,7 +435,7 @@ export default function SalaDeVendasTab() {
           <div style={s.card}>
             <div style={s.cardHd}>
               <span style={s.cardTitle}>Ranking por loja</span>
-              <span style={s.cardHint}>{period === 'today' ? 'hoje' : period === 'all' ? 'tudo' : period === '7d' ? '7 dias' : '30 dias'}</span>
+              <span style={s.cardHint}>{periodLabel(period)}</span>
             </div>
             <div>
               {ranking.length === 0 && <div style={{ padding: 24, textAlign: 'center', color: '#aaa', fontSize: 13 }}>Sem vendas no período.</div>}

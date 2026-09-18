@@ -3,6 +3,7 @@ import { after } from 'next/server'
 import WAButton from '@/components/WAButton'
 import OneSignalInit from '@/components/OneSignalInit'
 import CookieBanner from '@/components/CookieBanner'
+import NotificationPrompt from '@/components/NotificationPrompt'
 import HomeSearchBox from '@/components/home/HomeSearchBox'
 import HomeBannerCarousel from '@/components/home/HomeBannerCarousel'
 import HomeAbertoAgora from '@/components/home/HomeAbertoAgora'
@@ -1112,6 +1113,7 @@ export default async function HomePage() {
       </footer>
 
       <CookieBanner />
+      <NotificationPrompt />
       <WAButton/>
       <OneSignalInit/>
     </>

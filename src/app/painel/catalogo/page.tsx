@@ -659,6 +659,38 @@ export default function CatalogoPage() {
     setView('form')
   }
 
+  // Duplicar o produto inteiro (não só um grupo de opção) — pedido do
+  // Ricardo, set/2026: pra criar uma variação de um produto que já existe
+  // (ex: mesma pizza noutro tamanho) sem digitar tudo de novo. Carrega os
+  // dados completos + grupos/opções no formulário como se fosse um produto
+  // NOVO (form.id vazio) — nada é salvo até o lojista revisar e clicar em
+  // "Salvar produto", igual o "Duplicar de outro produto" já faz pra grupos.
+  async function duplicateProduto(id: string) {
+    const { data } = await supabase
+      .from('loja_produtos')
+      .select('*, groups:loja_opcoes_grupo(*, options:loja_opcoes(*))')
+      .eq('id', id).single()
+    if (!data) return
+    setForm({
+      id: '', name: `${data.name} (cópia)`, description: data.description || '', photo_url: data.photo_url || null,
+      category_id: data.category_id || '', tipo_vitrine: data.tipo_vitrine || '', cost_price: Number(data.cost_price).toFixed(2).replace('.', ','),
+      sale_price: Number(data.sale_price).toFixed(2).replace('.', ','),
+      track_stock: data.track_stock, stock_qty: data.stock_qty ?? '', stock_alert_qty: data.stock_alert_qty ?? '',
+      restrictDays: !!(data.available_days && data.available_days.length), days: data.available_days || [],
+      hasPromo: !!data.promo_type, promo_type: data.promo_type || 'percent', promo_value: data.promo_value ?? '15',
+      promo_starts_at: data.promo_starts_at ? data.promo_starts_at.slice(0, 10) : '',
+      promo_ends_at: data.promo_ends_at ? data.promo_ends_at.slice(0, 10) : '',
+      active: data.active,
+      groups: (data.groups || []).map((g: any) => ({
+        name: g.name, required: g.required, min_select: g.min_select, max_select: g.max_select, pricing_rule: g.pricing_rule || 'soma',
+        options: (g.options || []).map((o: any) => ({ name: o.name, price: Number(o.price || 0).toFixed(2).replace('.', ','), max_qty: o.max_qty, linked_produto_id: o.linked_produto_id, photo_url: o.photo_url || null, _photoFile: null })),
+      })),
+    })
+    setPhotoFile(null)
+    setView('form')
+    showToast(`"${data.name}" duplicado — revisa e toca em "Salvar produto"`)
+  }
+
   function addGroup() { setForm(f => ({ ...f, groups: [...f.groups, { name: '', required: false, min_select: 0, max_select: 1, pricing_rule: 'soma', options: [] }] })) }
   function removeGroup(gi: number) { setForm(f => ({ ...f, groups: f.groups.filter((_, i) => i !== gi) })) }
 
@@ -945,6 +977,7 @@ export default function CatalogoPage() {
         .cg-icon-btn.esgotar.on{ background:#C43D3D;border-color:#C43D3D;color:#fff; }
         .cg-icon-btn.pausar.on-pause{ color:#8A6410; }
         .cg-icon-btn.pausar.on-play{ background:#E4F3EC;border-color:#BFE3D2;color:#157A52; }
+        .cg-icon-btn.duplicar{ font-size:15px; }
         .cg-icon-btn.excluir{ background:#FBEAEA;border-color:#F3C6C6;color:#C43D3D; }
         .cg-name{ font-weight:700;font-size:12.5px; }
         .cg-cat{ font-size:10.5px;color:#A79E8B; }
@@ -1135,6 +1168,7 @@ export default function CatalogoPage() {
                   <div className="cg-row-actions">
                     <button className={`cg-icon-btn esgotar ${p.esgotado ? 'on' : ''}`} title={p.esgotado ? 'Esgotado hoje — toca pra voltar' : 'Marcar esgotado hoje'} onClick={e => { e.stopPropagation(); toggleEsgotado(p) }}>✕</button>
                     <button className={`cg-icon-btn pausar ${p.active ? 'on-pause' : 'on-play'}`} title={p.active ? 'Pausar produto' : 'Produto pausado — toca pra reativar'} onClick={e => { e.stopPropagation(); toggleActive(p) }}>{p.active ? '⏸' : '▶'}</button>
+                    <button className="cg-icon-btn duplicar" title="Duplicar produto" onClick={e => { e.stopPropagation(); duplicateProduto(p.id) }}>⧉</button>
                     <button className="cg-icon-btn excluir" title="Excluir produto" onClick={e => { e.stopPropagation(); deleteProduto(p.id) }}>🗑</button>
                   </div>
                 )}

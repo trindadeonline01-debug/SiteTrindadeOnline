@@ -40,7 +40,12 @@ export default function BackButton() {
         alignItems: 'center',
         justifyContent: 'center',
         cursor: 'pointer',
-        zIndex: 500,
+        // Precisa ficar abaixo do overlay de QUALQUER modal do site (o mais
+        // baixo em uso é z-index:60, no catálogo) — senão esse botão fica
+        // flutuando por cima do modal, escondendo e capturando o toque de
+        // controles dele (achado real do Ricardo, set/2026: modal "Duplicar
+        // grupo de outro produto" com o seletor de produto inacessível).
+        zIndex: 40,
       }}
     >
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">

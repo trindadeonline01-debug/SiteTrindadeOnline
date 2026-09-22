@@ -127,6 +127,13 @@ export default function AdminPage() {
   const [editHours, setEditHours] = useState<HourRow[]>([])
   const [editFlexible, setEditFlexible] = useState(false)
   const [editChurchHours, setEditChurchHours] = useState<{day:string;manha:string;noite:string}[]>(DIAS_SEMANA.map(day=>({day,manha:'',noite:''})))
+  // Copiar valores de entrega (taxa por bairro/distância) de outra empresa
+  // que já tenha isso configurado — pedido do Ricardo, set/2026, pra não
+  // ter que preencher os 91 bairros de São Gonçalo na mão toda vez que uma
+  // empresa nova pede o mesmo método/preço de uma que já usa.
+  const [companiesWithDelivery, setCompaniesWithDelivery] = useState<{id:string; name:string}[]>([])
+  const [deliveryCopySource, setDeliveryCopySource] = useState('')
+  const [copyingDelivery, setCopyingDelivery] = useState(false)
   const [savingEdit, setSavingEdit] = useState(false)
   const [tagInputAdmin, setTagInputAdmin] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -1239,8 +1246,64 @@ export default function AdminPage() {
       })))
     }
 
+    if (companiesWithDelivery.length === 0) {
+      const { data: withDelivery } = await supabase.from('companies').select('id,name').not('loja_taxa_metodo', 'is', null).order('name')
+      setCompaniesWithDelivery((withDelivery || []) as { id: string; name: string }[])
+    }
+    setDeliveryCopySource('')
+
     setNewPassword('')
     setEditCompanyModal({ open: true, company: { ...c } })
+  }
+
+  // Copia método (bairro/distância), pedido mínimo, frete grátis, taxa
+  // fora da área, tempo de preparo e a lista de bairros/faixas de km de
+  // outra empresa que já tem isso tudo configurado — poupa preencher os 91
+  // bairros de São Gonçalo na mão pra cada empresa nova que usa o mesmo
+  // preço de uma já existente. Não copia lat/lng (é a localização física
+  // da OUTRA loja, não faz sentido aqui).
+  async function copyDeliveryFrom() {
+    const target = editCompanyModal.company
+    const source = companiesWithDelivery.find(c => c.id === deliveryCopySource)
+    if (!target || !source) return
+    if (!confirm(`Copiar os valores de entrega de "${source.name}" pra "${target.name}"? Isso substitui o método, os preços e a lista de bairros/km que "${target.name}" já tiver configurado.`)) return
+    setCopyingDelivery(true)
+    try {
+      const { data: srcCompany, error: srcErr } = await supabase.from('companies')
+        .select('loja_taxa_metodo, loja_pedido_minimo, loja_frete_gratis_acima, loja_taxa_fora_area, loja_tempo_preparo_min')
+        .eq('id', source.id).single()
+      if (srcErr || !srcCompany) throw new Error(srcErr?.message || 'não achei os dados da empresa de origem')
+
+      const { error: updErr } = await supabase.from('companies').update(srcCompany).eq('id', target.id)
+      if (updErr) throw new Error(updErr.message)
+
+      const [{ data: srcBairros }, { data: srcTiers }] = await Promise.all([
+        supabase.from('company_delivery_bairros').select('bairro, price, disabled').eq('company_id', source.id),
+        supabase.from('company_delivery_km_tiers').select('position, km_until, price, blocked').eq('company_id', source.id),
+      ])
+
+      const { error: delBError } = await supabase.from('company_delivery_bairros').delete().eq('company_id', target.id)
+      if (delBError) throw new Error(delBError.message)
+      if (srcBairros?.length) {
+        const { error } = await supabase.from('company_delivery_bairros').insert(srcBairros.map(b => ({ ...b, company_id: target.id })))
+        if (error) throw new Error(error.message)
+      }
+
+      const { error: delTError } = await supabase.from('company_delivery_km_tiers').delete().eq('company_id', target.id)
+      if (delTError) throw new Error(delTError.message)
+      if (srcTiers?.length) {
+        const { error } = await supabase.from('company_delivery_km_tiers').insert(srcTiers.map(t => ({ ...t, company_id: target.id })))
+        if (error) throw new Error(error.message)
+      }
+
+      setEditCompanyModal(p => ({ ...p, company: { ...p.company, ...srcCompany } }))
+      setDeliveryCopySource('')
+      showToast(`Valores de entrega copiados de "${source.name}"!`)
+    } catch (err: any) {
+      showToast('Erro ao copiar: ' + (err.message || 'desconhecido'))
+    } finally {
+      setCopyingDelivery(false)
+    }
   }
 
   async function saveCompanyEdit() {
@@ -1807,6 +1870,24 @@ export default function AdminPage() {
                   </div>
                 ) : (
                   <BusinessHoursEditor hours={editHours} setHours={setEditHours} flexible={editFlexible} setFlexible={setEditFlexible} />
+                )}
+              </div>
+              <div style={{gridColumn:'1/-1'}}>
+                <label style={{fontSize:12,fontWeight:600,color:'#444',marginBottom:6,display:'block'}}>🚚 Copiar valores de entrega de outra empresa</label>
+                <div style={{fontSize:11,color:'#888',marginBottom:8}}>Método (bairro/distância), pedido mínimo, frete grátis, taxa fora da área, tempo de preparo e a lista de bairros/faixas de km — tudo de uma vez, de qualquer empresa que já tenha isso configurado.</div>
+                <div style={{display:'flex',gap:8}}>
+                  <select value={deliveryCopySource} onChange={e=>setDeliveryCopySource(e.target.value)}
+                    style={{flex:1,minWidth:0,padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:'Archivo,sans-serif'}}>
+                    <option value="">Selecionar empresa...</option>
+                    {companiesWithDelivery.filter(c=>c.id!==editCompanyModal.company.id).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                  <button onClick={copyDeliveryFrom} disabled={!deliveryCopySource || copyingDelivery}
+                    style={{padding:'10px 16px',background:'#111',color:'#fff',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:deliveryCopySource?'pointer':'not-allowed',fontFamily:'Archivo,sans-serif',opacity:deliveryCopySource?1:.5,whiteSpace:'nowrap'}}>
+                    {copyingDelivery?'Copiando...':'Copiar'}
+                  </button>
+                </div>
+                {companiesWithDelivery.length === 0 && (
+                  <div style={{fontSize:11,color:'#AAA',marginTop:6}}>Nenhuma empresa com entrega configurada ainda.</div>
                 )}
               </div>
               <div>

@@ -1278,21 +1278,28 @@ export default function AdminPage() {
         )
       }
 
-      await supabase.from('company_hours').delete().eq('company_id', c.id)
+      const { error: delHoursError } = await supabase.from('company_hours').delete().eq('company_id', c.id)
+      if (delHoursError) throw new Error('Horário: ' + delHoursError.message)
       if (c.category_id === IGREJAS_CATEGORY_ID) {
         const cultosEntries: any[] = []; let order = 0
         editChurchHours.forEach(({ day, manha, noite }) => {
           if (manha.trim()) cultosEntries.push({ company_id: c.id, label: `${day} manhã`, hours: manha.trim(), order: order++ })
           if (noite.trim()) cultosEntries.push({ company_id: c.id, label: `${day} noite`, hours: noite.trim(), order: order++ })
         })
-        if (cultosEntries.length > 0) await supabase.from('company_hours').insert(cultosEntries)
+        if (cultosEntries.length > 0) {
+          const { error } = await supabase.from('company_hours').insert(cultosEntries)
+          if (error) throw new Error('Horário: ' + error.message)
+        }
       } else if (!editFlexible) {
         const validH = editHours.filter(h => h.closed || (h.open_time?.trim() && h.close_time?.trim()))
-        if (validH.length > 0) await supabase.from('company_hours').insert(validH.map((h, i) => ({
-          company_id: c.id, day_of_week: h.day_of_week,
-          open_time: h.closed ? null : h.open_time, close_time: h.closed ? null : h.close_time,
-          closed: h.closed, order: i,
-        })))
+        if (validH.length > 0) {
+          const { error } = await supabase.from('company_hours').insert(validH.map((h, i) => ({
+            company_id: c.id, day_of_week: h.day_of_week,
+            open_time: h.closed ? null : h.open_time, close_time: h.closed ? null : h.close_time,
+            closed: h.closed, order: i,
+          })))
+          if (error) throw new Error('Horário: ' + error.message)
+        }
       }
 
       setSavingEdit(false)

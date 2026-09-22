@@ -154,6 +154,7 @@ export default function CatalogoPage() {
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [view, setView] = useState<'list' | 'form' | 'bulk'>('list')
   const [filterCat, setFilterCat] = useState('all')
+  const [search, setSearch] = useState('')
   const [form, setForm] = useState(emptyForm())
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [savingProd, setSavingProd] = useState(false)
@@ -865,7 +866,10 @@ export default function CatalogoPage() {
 
   if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Archivo,sans-serif', color: '#AAA' }}>Carregando...</div>
 
-  const filtered = produtos.filter(p => filterCat === 'all' || (filterCat === 'sem-foto' ? !p.photo_url : p.category_id === filterCat))
+  const searchTerm = search.trim().toLowerCase()
+  const filtered = produtos
+    .filter(p => filterCat === 'all' || (filterCat === 'sem-foto' ? !p.photo_url : p.category_id === filterCat))
+    .filter(p => !searchTerm || p.name.toLowerCase().includes(searchTerm))
   const semFotoCount = produtos.filter(p => !p.photo_url).length
   const pctFoto = produtos.length ? Math.round(produtos.filter(p => p.photo_url).length / produtos.length * 100) : 0
   const pctDesc = produtos.length ? Math.round(produtos.filter(p => p.description && p.description.trim()).length / produtos.length * 100) : 0
@@ -890,6 +894,7 @@ export default function CatalogoPage() {
           .cg-import-mobile{ display:none; }
           .cg-body{ padding:0 32px; }
           .cg-list-view .cg-body{ display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:14px; align-content:start; }
+          .cg-list-view .cg-search-wrap{ grid-column:1/-1; }
           .cg-list-view .cg-filters{ grid-column:1/-1; }
           .cg-list-view .cg-quality{ grid-column:1/-1; }
           .cg-list-view .cg-empty-msg{ grid-column:1/-1; }
@@ -912,6 +917,8 @@ export default function CatalogoPage() {
         .cg-btn-ghost{ background:#fff;border:1px solid #E6E0D2;color:#1A1610; }
         .cg-fab{ position:fixed; right:calc(50% - 240px + 16px); bottom:24px; width:50px;height:50px;border-radius:50%;background:var(--sign);color:var(--ink);border:none;font-size:24px;font-weight:800;box-shadow:0 8px 18px -6px rgba(0,0,0,.35);cursor:pointer; }
         @media(max-width:520px){ .cg-fab{ right:16px; } }
+        .cg-search-wrap{ margin-bottom:10px; }
+        .cg-search{ width:100%;padding:10px 14px;border-radius:10px;border:1px solid #E6E0D2;background:#fff;font-size:13px;font-family:inherit;box-sizing:border-box; }
         .cg-quality{ display:flex;align-items:center;gap:14px;background:#fff;border:1px solid #E6E0D2;border-radius:14px;padding:14px;margin-bottom:14px; }
         .cg-quality-num{ font-family:'Anton',sans-serif;font-size:30px;color:var(--sign-dark);letter-spacing:1px;line-height:1;flex:none; }
         .cg-quality-mid{ flex:1;min-width:0; }
@@ -1057,6 +1064,9 @@ export default function CatalogoPage() {
                 </div>
               </div>
             )}
+            <div className="cg-search-wrap">
+              <input className="cg-search" placeholder="Buscar produto pelo nome..." value={search} onChange={e => setSearch(e.target.value)} />
+            </div>
             <div className="cg-filters">
               <button className={`cg-chip ${filterCat === 'all' ? 'active' : ''}`} onClick={() => setFilterCat('all')}>Tudo</button>
               {semFotoCount > 0 && (
@@ -1091,7 +1101,11 @@ export default function CatalogoPage() {
                 <button className="cg-selbar-btn cancel" onClick={exitSelectMode}>Cancelar</button>
               </div>
             )}
-            {filtered.length === 0 && <div className="cg-empty-msg" style={{ textAlign: 'center', color: '#A79E8B', padding: '40px 0', fontSize: 12.5 }}>Nenhum produto ainda. Toca no + pra criar o primeiro.</div>}
+            {filtered.length === 0 && (
+              <div className="cg-empty-msg" style={{ textAlign: 'center', color: '#A79E8B', padding: '40px 0', fontSize: 12.5 }}>
+                {searchTerm ? `Nenhum produto encontrado pra "${search.trim()}".` : 'Nenhum produto ainda. Toca no + pra criar o primeiro.'}
+              </div>
+            )}
             {filtered.map(p => (
               <div
                 key={p.id}

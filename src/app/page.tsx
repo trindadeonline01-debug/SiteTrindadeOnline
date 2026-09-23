@@ -8,13 +8,13 @@ import HomeSearchBox from '@/components/home/HomeSearchBox'
 import HomeBannerCarousel from '@/components/home/HomeBannerCarousel'
 import HomeAbertoAgora from '@/components/home/HomeAbertoAgora'
 import HomeComunidadeTabs from '@/components/home/HomeComunidadeTabs'
-import HomePecaAgora, { PecaGroup, PecaVitrineItem } from '@/components/home/HomePecaAgora'
 import HomeLojas, { LojaItem } from '@/components/home/HomeLojas'
 import ScrollRow from '@/components/home/ScrollRow'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { isOpenNow, HourRow } from '@/lib/businessHours'
-import { promoPrice, isSoldOut, availableToday, Produto } from '@/lib/lojaPricing'
 import { CATEGORY_IMAGES } from '@/lib/categoryImages'
+import { buildPecaAgoraGroups } from '@/lib/pecaAgora.server'
+import { shuffle } from '@/lib/shuffle'
 
 interface PaidCompany {
   id: string; name: string; slug: string; avg_rating: number; total_reviews: number
@@ -36,22 +36,6 @@ interface Listing {
   id: string; title: string; price: number | null
   type: string; subtype: string | null; created_at: string
   photos?: { url: string; order: number }[]
-}
-
-interface PecaCompanyRow {
-  id: string; name: string; slug: string
-  flexible_hours: boolean; store_paused?: boolean; store_forced_open?: boolean
-  hours?: HourRow[]
-}
-
-interface PecaProdutoRow {
-  id: string; name: string; photo_url: string | null; sale_price: number
-  groups?: { id: string }[]
-  promo_type: 'percent' | 'fixed' | null; promo_value: number | null
-  promo_starts_at: string | null; promo_ends_at: string | null
-  available_days: number[] | null; esgotado: boolean; track_stock: boolean; stock_qty: number | null
-  tipo_vitrine: string | null
-  company_id: string
 }
 
 interface Banner {
@@ -93,17 +77,6 @@ const LOJAS_CAT_META: Record<string, { label: string; emoji: string }> = {
   gastronomia: { label: 'Gastronomia', emoji: '🍽️' },
   comercios:   { label: 'Comércios',   emoji: '🛒' },
   servicos:    { label: 'Serviços',    emoji: '🔧' },
-}
-// sort(() => Math.random()-0.5) é um shuffle enviesado — pra listas
-// pequenas, mistura pouco e sempre deixa os mesmos no topo. Fisher-Yates
-// é o shuffle de verdade, com distribuição uniforme
-function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr]
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
 }
 
 function fmtDesconto(o: Oferta) {
@@ -350,135 +323,16 @@ export default async function HomePage() {
     }
   }
 
-  // "Peça agora" — vitrine cruzando o catálogo de todas as empresas com
-  // cardápio digital ativo (ESPECIFICACAO.md §7), recortada pelo TIPO do
-  // produto (Hambúrguer, Bebida, Doce...), não pela categoria/subcategoria
-  // da empresa — uma hamburgueria vende Coca-Cola e batata frita também, e
-  // agrupar pela subcategoria da loja jogava esses itens dentro da aba
-  // "Hambúrguer" junto com os hambúrgueres de verdade. "Todas" continua
-  // juntando tudo, classificado ou não; as abas por tipo só mostram quem
-  // o lojista já classificou em loja_produtos.tipo_vitrine (ver
-  // /painel/catalogo). Só entra no índice produto com foto e disponível
-  // hoje (§7.2) — sem estoque zerado nem fora do dia cadastrado.
-  let pecaAgoraGroups: PecaGroup[] = []
-
-  if (pecaAgoraEnabled) {
-    const [{ data: pecaCompaniesData }, { data: pecaTiposData }] = await Promise.all([
-      supabaseServer.from('companies')
-        .select('id, name, slug, flexible_hours, store_paused, store_forced_open, hours:company_hours(day_of_week,open_time,close_time,closed)')
-        .eq('status', 'active').eq('loja_digital_enabled', true),
-      // Lista de tipos e ordem definidas pelo admin (aba "Peça Agora"),
-      // não mais fixa no código — ver src/components/admin/PecaAgoraTab.tsx
-      supabaseServer.from('vitrine_tipos').select('value,label,emoji').eq('active', true).order('display_order'),
-    ])
-
-    const pecaCompanies = (pecaCompaniesData || []) as any as PecaCompanyRow[]
-    const pecaTipos = (pecaTiposData || []) as { value: string; label: string; emoji: string }[]
-
-    if (pecaCompanies.length > 0) {
-      const { data: pecaProdutosData } = await supabaseServer
-        .from('loja_produtos')
-        .select('id, name, photo_url, sale_price, promo_type, promo_value, promo_starts_at, promo_ends_at, available_days, esgotado, track_stock, stock_qty, tipo_vitrine, company_id, groups:loja_opcoes_grupo(id)')
-        .in('company_id', pecaCompanies.map(c => c.id))
-        .eq('active', true)
-        .not('photo_url', 'is', null)
-        .order('display_order')
-
-      const companyMap = new Map(pecaCompanies.map(c => [c.id, c]))
-      const byCompany = new Map<string, PecaProdutoRow[]>()
-      ;((pecaProdutosData || []) as any as PecaProdutoRow[]).forEach(p => {
-        const arr = byCompany.get(p.company_id) || []
-        arr.push(p)
-        byCompany.set(p.company_id, arr)
-      })
-
-      const allItems: PecaVitrineItem[] = []
-      const bucketMap = new Map<string, PecaVitrineItem[]>()
-
-      byCompany.forEach((rows, companyId) => {
-        const company = companyMap.get(companyId)
-        if (!company) return
-        const open = isOpenNow(company.hours, company.flexible_hours, company.store_paused, company.store_forced_open)
-        // Peça Agora é "peça AGORA" — loja fechada não entra, mesmo que
-        // esteja ativa/em dia (pedido do Ricardo, set/2026: antes entrava
-        // junto, só sem o selo "Aberto", o que dava a entender que dava
-        // pra pedir mesmo fechada).
-        if (!open) return
-        const disponiveis = rows.filter(p => {
-          const produto = { ...p, description: null, category_id: null, total_pedidos: 0, groups: [] } as unknown as Produto
-          return !isSoldOut(produto) && availableToday(produto)
-        })
-        const toItem = (p: PecaProdutoRow): PecaVitrineItem => {
-          const produto = { ...p, description: null, category_id: null, total_pedidos: 0, groups: [] } as unknown as Produto
-          return {
-            id: p.id, name: p.name, photo_url: p.photo_url!, price: promoPrice(produto) ?? p.sale_price,
-            companyName: company.name, companySlug: company.slug, open,
-            hasOptions: (p.groups?.length || 0) > 0,
-          }
-        }
-
-        // "Todas" — até 8 produtos por empresa, sorteados do catálogo
-        // inteiro (sem bebida, ver comentário acima). Satolo's sozinho tem
-        // 77 produtos ativos; sem esse teto ela tomaria conta da seção
-        // inteira em vez de dividir espaço com o resto do bairro.
-        shuffle(disponiveis.filter(p => p.tipo_vitrine !== 'Bebida')).slice(0, 8)
-          .forEach(p => allItems.push(toItem(p)))
-
-        // Por tipo — até 8 produtos DAQUELE TIPO por empresa, sorteados à
-        // parte do corte de "Todas" acima. Antes, a aba de tipo só herdava
-        // o que sobrava do sorteio de "Todas" por acaso — uma hamburgueria
-        // com 20 hambúrgueres podia aparecer com só 1 na aba Hambúrguer,
-        // porque os outros 19 nem entraram no sorteio genérico.
-        const porTipo = new Map<string, PecaProdutoRow[]>()
-        disponiveis.forEach(p => {
-          if (!p.tipo_vitrine) return
-          const arr = porTipo.get(p.tipo_vitrine) || []
-          arr.push(p)
-          porTipo.set(p.tipo_vitrine, arr)
-        })
-        porTipo.forEach((prods, tipo) => {
-          shuffle(prods).slice(0, 8).forEach(p => {
-            const bucket = bucketMap.get(tipo) || []
-            bucket.push(toItem(p))
-            bucketMap.set(tipo, bucket)
-          })
-        })
-      })
-
-      // Intercala por empresa em vez de só ordenar aberta-primeiro — sem
-      // isso, uma loja com catálogo grande enchia os primeiros 8 (a página
-      // inteira antes do "Ver mais") sozinha, e as outras só apareciam
-      // depois de rolar/clicar bastante. Dentro de cada loja continua
-      // aberta-primeiro; entre lojas, revezamento 1 a 1 (loja A, loja B,
-      // loja C, loja A de novo...).
-      const interleaveByCompany = (items: PecaVitrineItem[]) => {
-        const bySlug = new Map<string, PecaVitrineItem[]>()
-        items.forEach(i => {
-          const arr = bySlug.get(i.companySlug) || []
-          arr.push(i)
-          bySlug.set(i.companySlug, arr)
-        })
-        const groups = [...bySlug.values()].map(arr => [...arr].sort((a, b) => (b.open ? 1 : 0) - (a.open ? 1 : 0)))
-        const result: PecaVitrineItem[] = []
-        for (let i = 0; result.length < items.length; i++) {
-          for (const g of groups) if (i < g.length) result.push(g[i])
-        }
-        return result
-      }
-
-      if (allItems.length > 0) {
-        pecaAgoraGroups = [
-          { key: 'todas', label: 'Todas', emoji: '🍽️', items: interleaveByCompany(allItems) },
-          // Ordem definida pelo admin (vitrine_tipos.display_order), não por
-          // contagem — fica estável entre carregamentos, só pula tipo sem
-          // item nenhum.
-          ...pecaTipos
-            .filter(t => bucketMap.has(t.value))
-            .map(t => ({ key: t.value, label: t.label, emoji: t.emoji, items: interleaveByCompany(bucketMap.get(t.value)!) })),
-        ]
-      }
-    }
-  }
+  // "Peça agora" na home agora é só um banner levando pra /peca-agora (a
+  // vitrine completa mudou pra lá, ver mockup aprovado set/2026 — a home
+  // tinha virado "cardápio primeiro" em vez de "bairro primeiro"). Ainda
+  // precisa dos grupos aqui só pra calcular os números do banner (contagem
+  // de produtos/empresas) — mesma lógica de construção, extraída pra
+  // src/lib/pecaAgora.server.ts e reaproveitada pela página nova.
+  const pecaAgoraGroups = pecaAgoraEnabled ? await buildPecaAgoraGroups(supabaseServer) : []
+  const pecaAgoraTodas = pecaAgoraGroups.find(g => g.key === 'todas')
+  const pecaAgoraProdutoCount = pecaAgoraTodas?.items.length || 0
+  const pecaAgoraEmpresaCount = new Set((pecaAgoraTodas?.items || []).map(i => i.companySlug)).size
 
   return (
     <>
@@ -707,75 +561,16 @@ export default async function HomePage() {
           .dv-badge { font-size: 9px; padding: 3px 4px; top: 4px; left: 4px; }
         }
 
-        /* PEÇA AGORA — vitrine de delivery entre categorias e ofertas.
-           .recent-section/.sec-hdr empilhavam 48px + 32px de margem-topo
-           (~80px de vazio antes do título) — aqui isso é resetado pra 20px,
-           e o título+abas+filtros ganham uma faixa amarela (cor de
-           assinatura da marca) destacando o bloco inteiro; a lista de
-           produtos continua fora da faixa, em fundo branco normal
-           (aprovado por Ricardo, set/2026). */
-        .pa-wrap { margin-top: 20px; }
-        /* Faixa de ponta a ponta da tela (mesmo truque do .hero, que também
-           não fica preso à largura do .main-wrap) — Ricardo pediu depois de
-           ver a primeira versão, que tinha lateral igual container comum
-           (set/2026). padding lateral em 20px pra alinhar o conteúdo de
-           dentro com o resto da página (cat-grid, pa-list), que continua
-           dentro do .main-wrap normal. */
-        .pa-band { background: var(--sign); width: 100vw; margin-left: calc(50% - 50vw); padding: 10px 20px 10px; margin-bottom: 16px; }
-        /* Título e "Delivery na Trindade" na mesma linha (alinhados pela
-           base), em vez de empilhados — junto com os quadrados mais baixos
-           logo abaixo, é o que deixa a faixa inteira mais baixa (Ricardo
-           pediu o mínimo de altura possível, pra sobrar mais tela pro
-           conteúdo, set/2026). */
-        .pa-hdr { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 0 0 14px; }
-        .pa-eyebrow { color: rgba(21,18,16,.68); margin-bottom: 0; white-space: nowrap; }
-        /* O carrossel de subcategorias (dentro da faixa) tinha o mesmo
-           problema que o de categorias tinha antes de ir de ponta a ponta —
-           só que aqui em vez do .main-wrap é o padding lateral do próprio
-           .pa-band que segura ele "dentro de um container". Margem negativa
-           igual ao padding do pai cancela isso; o padding interno mantém o
-           primeiro/último item alinhados com o resto da página, mas a área
-           de rolagem em si vai até a borda da tela (Ricardo, set/2026). */
-        .pa-band .pa-scroll { margin: 0 -20px; padding: 2px 20px 8px; gap: 8px; }
-        /* Quadrado (não mais círculo/retângulo alto) com fundo branco
-           translúcido em vez de chapado, coladinhos entre si — 3 pedidos
-           de ajuste do Ricardo depois do mockup (set/2026). */
-        .pa-band .pa-item { width: 66px; gap: 6px; }
-        .pa-band .pa-photo { width: 64px; height: 64px; border-radius: 14px; background: rgba(255,255,255,.8); border-color: transparent; font-size: 26px; }
-        .pa-band .pa-item:hover .pa-photo, .pa-band .pa-item.on .pa-photo { border-color: var(--ink); background: rgba(255,255,255,.95); }
-        .pa-band .pa-lbl, .pa-band .pa-item.on .pa-lbl { color: var(--ink); font-size: 10.5px; }
-        .pa-scroll { display: flex; gap: 16px; overflow-x: auto; padding: 4px 4px 10px; scrollbar-width: none; }
-        .pa-scroll::-webkit-scrollbar { display: none; }
-        .pa-item { flex: 0 0 auto; width: 84px; display: flex; flex-direction: column; align-items: center; gap: 7px; text-align: center; cursor: pointer; }
-        .pa-photo { width: 76px; height: 76px; border-radius: 50%; background: var(--concrete-2); border: 2.5px solid transparent; display: flex; align-items: center; justify-content: center; font-size: 32px; transition: border-color .15s, transform .15s; }
-        .pa-item:hover .pa-photo, .pa-item.on .pa-photo { border-color: var(--sign); transform: translateY(-2px); }
-        .pa-lbl { font-size: 12px; font-weight: 700; color: var(--ink); line-height: 1.2; font-family: 'Archivo', sans-serif; }
-        .pa-item.on .pa-lbl { color: var(--sign-dark); }
-        .pa-filters { display: flex; gap: 8px; flex-wrap: nowrap; overflow-x: auto; padding: 2px 4px 6px; margin: 2px 0 16px; scrollbar-width: none; }
-        .pa-filters::-webkit-scrollbar { display: none; }
-        .pa-chip { flex: 0 0 auto; padding: 7px 15px; border-radius: 20px; border: 1px solid var(--line); background: var(--paper); font-size: 12px; font-weight: 700; color: var(--ink); cursor: pointer; font-family: 'Archivo', sans-serif; white-space: nowrap; }
-        .pa-chip.on { background: var(--sign); border-color: var(--sign-dark); color: var(--ink); }
-        .pa-list { display: flex; flex-direction: column; gap: 7px; }
-        .pa-row { display: flex; align-items: center; gap: 10px; background: var(--paper); border: 1px solid var(--line); border-radius: 13px; padding: 8px; transition: border-color .15s; }
-        .pa-row:hover { border-color: var(--ink); }
-        .pa-row-link { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; text-decoration: none; color: inherit; }
-        .pa-row-img { width: 52px; height: 52px; border-radius: 10px; flex-shrink: 0; position: relative; overflow: hidden; background: var(--concrete-2); }
-        .pa-row-body { flex: 1; min-width: 0; }
-        .pa-row-end { flex-shrink: 0; text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
-        .pa-name { font-size: 13px; font-weight: 700; color: var(--ink); line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: 'Archivo', sans-serif; }
-        .pa-biz { font-size: 11px; color: var(--muted); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .pa-price { font-size: 13px; font-weight: 800; color: var(--sign-dark); font-variant-numeric: tabular-nums; }
-        .pa-open { display: flex; align-items: center; gap: 4px; justify-content: flex-end; font-size: 9.5px; font-weight: 700; color: var(--open); text-transform: uppercase; letter-spacing: .2px; }
-        .pa-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--open); display: inline-block; flex-shrink: 0; }
-        .pa-more { width: 100%; margin-top: 10px; padding: 11px; background: var(--paper); border: 1.5px dashed var(--line); border-radius: 12px; font-size: 12.5px; font-weight: 700; color: var(--sign-dark); cursor: pointer; font-family: 'Archivo', sans-serif; }
-        .pa-more:hover { border-color: var(--sign-dark); background: var(--concrete-2); }
-        .pa-qadd { width: 30px; height: 30px; border-radius: 50%; border: none; background: var(--open); color: #fff; font-size: 16px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; }
-        .pa-qadd:active { transform: scale(.9); }
-        .pa-stepper { display: flex; align-items: center; gap: 7px; background: var(--ink); border-radius: 20px; padding: 3px 5px; }
-        .pa-stepper button { width: 19px; height: 19px; border-radius: 50%; border: none; background: rgba(255,255,255,.15); color: #fff; font-size: 12px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .pa-stepper b { color: #fff; font-size: 11.5px; min-width: 11px; text-align: center; font-family: 'Archivo', sans-serif; }
-        .pa-pick { display: inline-flex; align-items: center; gap: 3px; background: var(--concrete-2); border: 1px solid var(--line); color: var(--ink-2); font-size: 10px; font-weight: 800; padding: 6px 10px; border-radius: 20px; text-decoration: none; white-space: nowrap; }
-        .pa-pick:hover { border-color: var(--sign-dark); }
+        /* PEÇA AGORA saiu da home de propósito — virou banner levando pra
+           /peca-agora, que agora carrega as próprias regras .pa-* junto
+           com o componente (HomePecaAgora.tsx), pra funcionar sozinho em
+           qualquer página. Ver .home-peca-cta abaixo. */
+        .home-peca-cta { display: block; margin: 20px 0 0; border-radius: 18px; background: var(--sign); padding: 20px 20px 22px; position: relative; overflow: hidden; text-decoration: none; }
+        .home-peca-cta-emojis { position: absolute; right: -8px; top: -14px; font-size: 64px; opacity: .16; transform: rotate(8deg); line-height: 1; pointer-events: none; }
+        .home-peca-cta-eye { font-size: 10.5px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; color: var(--ink); opacity: .65; }
+        .home-peca-cta-title { font-family: 'Anton', sans-serif; font-size: clamp(24px,4vw,30px); color: var(--ink); letter-spacing: .3px; margin: 3px 0 5px; }
+        .home-peca-cta-sub { font-size: 11.5px; font-weight: 700; color: var(--ink); opacity: .75; margin-bottom: 14px; }
+        .home-peca-cta-btn { display: inline-flex; align-items: center; gap: 6px; background: var(--ink); color: #fff; font-size: 12px; font-weight: 800; padding: 11px 18px; border-radius: 11px; }
 
         /* LOJAS — lista final, mesmo estilo de linha do Peça Agora */
         .lj-chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; }
@@ -965,9 +760,21 @@ export default async function HomePage() {
           </div>
         </div>
 
-        {/* PEÇA AGORA — vitrine de delivery entre categorias e ofertas,
-            ESPECIFICACAO.md §7 (índice de produtos) */}
-        {pecaAgoraGroups.length > 0 && <HomePecaAgora groups={pecaAgoraGroups} />}
+        {/* PEÇA AGORA — banner levando pra vitrine completa em /peca-agora,
+            no lugar da vitrine inteira embutida aqui (mockup aprovado,
+            set/2026 — a home tinha virado "cardápio primeiro" em vez de
+            "bairro primeiro", ver ESPECIFICACAO.md §7). */}
+        {pecaAgoraGroups.length > 0 && (
+          <a className="home-peca-cta" href="/peca-agora">
+            <span className="home-peca-cta-emojis">🍔🍕🍣</span>
+            <span className="home-peca-cta-eye">Delivery na Trindade</span>
+            <div className="home-peca-cta-title">PEÇA AGORA</div>
+            <div className="home-peca-cta-sub">
+              {pecaAgoraProdutoCount} produto{pecaAgoraProdutoCount !== 1 ? 's' : ''} · {pecaAgoraEmpresaCount} empresa{pecaAgoraEmpresaCount !== 1 ? 's' : ''} com cardápio aberto agora
+            </div>
+            <span className="home-peca-cta-btn">Ver cardápios →</span>
+          </a>
+        )}
 
         {/* OFERTAS DO BAIRRO — ESPECIFICACAO.md §10.1 item 5, cupons e
             promoções reais (não mais um banner de imagem fixa) */}

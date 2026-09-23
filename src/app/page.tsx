@@ -333,6 +333,11 @@ export default async function HomePage() {
   const pecaAgoraTodas = pecaAgoraGroups.find(g => g.key === 'todas')
   const pecaAgoraProdutoCount = pecaAgoraTodas?.items.length || 0
   const pecaAgoraEmpresaCount = new Set((pecaAgoraTodas?.items || []).map(i => i.companySlug)).size
+  // Ícones dos tipos disponíveis pro banner da home — mesmos emoji/label já
+  // configurados pelo admin (vitrine_tipos), então reflete o catálogo de
+  // verdade em vez de uma lista fixa no código (pedido do Ricardo, set/2026:
+  // "peixaria, comércio, lanche, farmácia, papelaria" — o que tiver).
+  const pecaAgoraTipoChips = pecaAgoraGroups.filter(g => g.key !== 'todas').slice(0, 6)
 
   return (
     <>
@@ -565,12 +570,27 @@ export default async function HomePage() {
            /peca-agora, que agora carrega as próprias regras .pa-* junto
            com o componente (HomePecaAgora.tsx), pra funcionar sozinho em
            qualquer página. Ver .home-peca-cta abaixo. */
-        .home-peca-cta { display: block; margin: 20px 0 0; border-radius: 18px; background: var(--sign); padding: 20px 20px 22px; position: relative; overflow: hidden; text-decoration: none; }
-        .home-peca-cta-emojis { position: absolute; right: -8px; top: -14px; font-size: 64px; opacity: .16; transform: rotate(8deg); line-height: 1; pointer-events: none; }
+        .home-peca-cta { display: flex; flex-direction: column; gap: 16px; margin: 20px 0 0; border-radius: 18px; background: var(--sign); padding: 20px 20px 22px; text-decoration: none; }
+        .home-peca-cta-body { flex: none; }
         .home-peca-cta-eye { font-size: 10.5px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; color: var(--ink); opacity: .65; }
         .home-peca-cta-title { font-family: 'Anton', sans-serif; font-size: clamp(24px,4vw,30px); color: var(--ink); letter-spacing: .3px; margin: 3px 0 5px; }
         .home-peca-cta-sub { font-size: 11.5px; font-weight: 700; color: var(--ink); opacity: .75; margin-bottom: 14px; }
         .home-peca-cta-btn { display: inline-flex; align-items: center; gap: 6px; background: var(--ink); color: #fff; font-size: 12px; font-weight: 800; padding: 11px 18px; border-radius: 11px; }
+        /* Ícones do que tem disponível (peixaria, lanche, farmácia...) — em
+           vez do emoji decorativo solto de antes, mostra os tipos de
+           verdade configurados pelo admin (vitrine_tipos), com carinha de
+           "placa" (bolha translúcida sobre o amarelo, mesmo tratamento do
+           .pa-band). Pedido do Ricardo, set/2026. */
+        .home-peca-cta-types { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+        .home-peca-cta-types::-webkit-scrollbar { display: none; }
+        .home-peca-cta-type { flex: 0 0 auto; width: 58px; display: flex; flex-direction: column; align-items: center; gap: 5px; text-align: center; }
+        .home-peca-cta-type-ico { width: 50px; height: 50px; border-radius: 50%; background: rgba(255,255,255,.55); display: flex; align-items: center; justify-content: center; font-size: 22px; }
+        .home-peca-cta-type-lbl { font-size: 9.5px; font-weight: 800; color: var(--ink); line-height: 1.15; }
+        @media(min-width: 768px) {
+          .home-peca-cta { flex-direction: row; align-items: center; justify-content: space-between; gap: 28px; padding: 26px 34px; }
+          .home-peca-cta-sub { margin-bottom: 16px; }
+          .home-peca-cta-types { flex: 1; justify-content: flex-end; overflow-x: visible; flex-wrap: wrap; }
+        }
 
         /* LOJAS — lista final, mesmo estilo de linha do Peça Agora */
         .lj-chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; }
@@ -589,6 +609,19 @@ export default async function HomePage() {
         .lj-open { display: flex; align-items: center; gap: 4px; justify-content: flex-end; margin-top: 3px; font-size: 9.5px; font-weight: 700; color: var(--open); text-transform: uppercase; letter-spacing: .2px; }
         .lj-closed { font-size: 9.5px; font-weight: 700; color: var(--muted); margin-top: 3px; text-transform: uppercase; letter-spacing: .2px; }
         .lj-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--open); display: inline-block; flex-shrink: 0; }
+        /* No desktop, linha horizontal vira card com foto em cima — 4 por
+           fileira em vez de uma lista de linha inteira (pedido do Ricardo,
+           set/2026: "dá pra botar quatro cards de loja um do lado do
+           outro"). Mobile continua com a lista de linha, mais rápida de
+           escanear rolando com o polegar. */
+        @media(min-width: 900px) {
+          .lj-list { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+          .lj-row { flex-direction: column; align-items: stretch; gap: 0; border-radius: 14px; padding: 0; overflow: hidden; }
+          .lj-row-img { width: 100%; height: 150px; border-radius: 0; font-size: 36px; }
+          .lj-row-body { padding: 11px 13px 4px; }
+          .lj-row-end { padding: 0 13px 13px; text-align: left; }
+          .lj-open, .lj-closed { justify-content: flex-start; }
+        }
 
         .cta-section { margin: 36px 0 48px; background: linear-gradient(135deg,var(--ink),var(--ink-2)); border-radius: 20px; padding: 36px 32px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 16px; }
         @media(min-width: 768px) { .cta-section { flex-direction: row; text-align: left; justify-content: space-between; padding: 36px 48px; } }
@@ -766,13 +799,24 @@ export default async function HomePage() {
             "bairro primeiro", ver ESPECIFICACAO.md §7). */}
         {pecaAgoraGroups.length > 0 && (
           <a className="home-peca-cta" href="/peca-agora">
-            <span className="home-peca-cta-emojis">🍔🍕🍣</span>
-            <span className="home-peca-cta-eye">Delivery na Trindade</span>
-            <div className="home-peca-cta-title">PEÇA AGORA</div>
-            <div className="home-peca-cta-sub">
-              {pecaAgoraProdutoCount} produto{pecaAgoraProdutoCount !== 1 ? 's' : ''} · {pecaAgoraEmpresaCount} empresa{pecaAgoraEmpresaCount !== 1 ? 's' : ''} com cardápio aberto agora
+            <div className="home-peca-cta-body">
+              <span className="home-peca-cta-eye">Delivery na Trindade</span>
+              <div className="home-peca-cta-title">PEÇA AGORA</div>
+              <div className="home-peca-cta-sub">
+                {pecaAgoraProdutoCount} produto{pecaAgoraProdutoCount !== 1 ? 's' : ''} · {pecaAgoraEmpresaCount} empresa{pecaAgoraEmpresaCount !== 1 ? 's' : ''} com cardápio aberto agora
+              </div>
+              <span className="home-peca-cta-btn">Ver cardápios →</span>
             </div>
-            <span className="home-peca-cta-btn">Ver cardápios →</span>
+            {pecaAgoraTipoChips.length > 0 && (
+              <div className="home-peca-cta-types">
+                {pecaAgoraTipoChips.map(g => (
+                  <div key={g.key} className="home-peca-cta-type">
+                    <span className="home-peca-cta-type-ico">{g.emoji}</span>
+                    <span className="home-peca-cta-type-lbl">{g.label}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </a>
         )}
 

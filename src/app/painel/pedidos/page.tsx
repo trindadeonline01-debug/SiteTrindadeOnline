@@ -167,6 +167,10 @@ export default function PedidosPage() {
   const [foundPrinters, setFoundPrinters] = useState<string[]>([])
   const [printerSaving, setPrinterSaving] = useState(false)
   const [printError, setPrintError] = useState<string | null>(null)
+  // Pedido do Ricardo, set/2026 (loja Satoshi): o botão "IMPRIMIR PEDIDO" da
+  // tarja vermelha tem que sumir assim que imprime — antes ficava lá até o
+  // pedido mudar de status, mesmo já impresso.
+  const [printedIds, setPrintedIds] = useState<Set<string>>(new Set())
   const [pedidos, setPedidos] = useState<Pedido[]>([])
   const [selectedDate, setSelectedDate] = useState(todayStr())
   const isToday = selectedDate === todayStr()
@@ -446,6 +450,7 @@ export default function PedidosPage() {
         await qzPrintRaw(printerName, content)
         await qzPrintRaw(printerName, kitchenContent)
       }
+      setPrintedIds(prev => new Set(prev).add(p.id))
     } catch (err: any) {
       setPrintError(isRawBtMode(printerName)
         ? 'Não consegui imprimir — confere se o RawBT está instalado e a impressora pareada nele. ' + (err?.message || '')
@@ -721,7 +726,7 @@ export default function PedidosPage() {
   // Só dispara em cima do dia de hoje — pedido "recebido" esquecido num dia
   // antigo (histórico) não é uma urgência de agora, não deve piscar nem
   // oferecer reimpressão como se tivesse acabado de chegar.
-  const pedidosNovos = isToday ? pedidos.filter(p => p.status === 'recebido').sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) : []
+  const pedidosNovos = isToday ? pedidos.filter(p => p.status === 'recebido' && !printedIds.has(p.id)).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) : []
   // Pedidos cuja entrega esgotou os motoboys disponíveis (status sem_motoboy)
   // — precisa aparecer bem visível aqui, não só em /painel/entrega, porque é
   // aqui que o lojista fica de olho (pedido do Ricardo, set/2026).

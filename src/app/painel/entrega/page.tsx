@@ -7,7 +7,7 @@ import { usePainelShell } from '@/contexts/PainelShellContext'
 type Wallet = { credits: number; diasDisponiveis: number }
 type Pacote = { id: string; categoria: 'diaria' | 'entrega'; nome: string; quantidade: number; preco: number }
 type Precos = { diaria: number; pacotes: Pacote[] }
-type DStatus = 'buscando_motoboy' | 'a_caminho' | 'entregue' | 'cancelada' | 'sem_credito'
+type DStatus = 'buscando_motoboy' | 'sem_motoboy' | 'a_caminho' | 'entregue' | 'cancelada' | 'sem_credito'
 type DOrder = {
   id: string; customer_name: string; customer_phone: string | null; dropoff_address: string
   status: DStatus; fee: number; motoboy_name: string | null; delivery_code: string
@@ -19,10 +19,10 @@ type PixModal = { kind: 'diaria' | 'credito' | 'combo'; credits: number; dias: n
 type View = 'geral' | 'relatorio'
 
 const STATUS_LABEL: Record<DStatus, string> = {
-  buscando_motoboy: 'Chamando motoboy', a_caminho: 'A caminho', entregue: 'Entregue', cancelada: 'Cancelada', sem_credito: 'Sem crédito',
+  buscando_motoboy: 'Chamando motoboy', sem_motoboy: 'Nenhum motoboy aceitou', a_caminho: 'A caminho', entregue: 'Entregue', cancelada: 'Cancelada', sem_credito: 'Sem crédito',
 }
 const STATUS_COLOR: Record<DStatus, { bg: string; fg: string }> = {
-  buscando_motoboy: { bg: '#FEF0E0', fg: '#B5690C' }, a_caminho: { bg: '#E8F0FE', fg: '#1A56B0' },
+  buscando_motoboy: { bg: '#FEF0E0', fg: '#B5690C' }, sem_motoboy: { bg: '#FBEAEA', fg: '#C43D3D' }, a_caminho: { bg: '#E8F0FE', fg: '#1A56B0' },
   entregue: { bg: '#E4F3EC', fg: '#157A52' }, cancelada: { bg: '#FBEAEA', fg: '#C43D3D' }, sem_credito: { bg: '#F0EDE8', fg: '#6E6656' },
 }
 const LEDGER_LABEL: Record<LedgerKind, string> = {
@@ -64,6 +64,7 @@ export default function EntregaPage() {
   const [novaForm, setNovaForm] = useState({ nome: '', telefone: '', endereco: '' })
   const [novaSaving, setNovaSaving] = useState(false)
   const [novaError, setNovaError] = useState('')
+  const [retrying, setRetrying] = useState<string | null>(null)
 
   useEffect(() => {
     if (shellLoading) return
@@ -205,6 +206,17 @@ export default function EntregaPage() {
     await loadOrders(companyId)
   }
 
+  async function tentarDeNovo(orderId: string) {
+    setRetrying(orderId)
+    const { data: { session } } = await supabase.auth.getSession()
+    await fetch('/api/entrega/retry', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ access_token: session?.access_token, company_id: companyId, delivery_order_id: orderId }),
+    }).catch(() => {})
+    setRetrying(null)
+    await loadOrders(companyId)
+  }
+
   function copiarPix() {
     if (!pixModal?.copy) return
     navigator.clipboard.writeText(pixModal.copy)
@@ -330,7 +342,7 @@ export default function EntregaPage() {
 
           <div className="en-summary">
             <div className="en-summary-item"><div className="n">{orders.length}</div><div className="l">entregas hoje</div></div>
-            <div className="en-summary-item"><div className="n">{fmt(orders.filter(o => o.status !== 'cancelada' && o.status !== 'sem_credito').reduce((s, o) => s + Number(o.fee), 0))}</div><div className="l">em taxas hoje</div></div>
+            <div className="en-summary-item"><div className="n">{fmt(orders.filter(o => o.status !== 'cancelada' && o.status !== 'sem_credito' && o.status !== 'sem_motoboy').reduce((s, o) => s + Number(o.fee), 0))}</div><div className="l">em taxas hoje</div></div>
           </div>
 
           <div className="en-grid">
@@ -353,6 +365,14 @@ export default function EntregaPage() {
                       </div>
                       {o.status !== 'entregue' && o.status !== 'cancelada' && (
                         <div className="en-order-code">Código de entrega: <b>{o.delivery_code}</b> <span>— repassa pro cliente se ele não receber pelo WhatsApp</span></div>
+                      )}
+                      {o.status === 'sem_motoboy' && (
+                        <>
+                          <div className="en-order-code" style={{ background: '#FBEAEA', color: '#A83232' }}>Nenhum motoboy aceitou ou respondeu a tempo. Chama de novo quando alguém estiver livre.</div>
+                          <button className="en-btn en-btn-gold" style={{ marginTop: 8 }} disabled={retrying === o.id} onClick={() => tentarDeNovo(o.id)}>
+                            {retrying === o.id ? 'Chamando...' : '🔁 Tentar de novo'}
+                          </button>
+                        </>
                       )}
                     </div>
                   )

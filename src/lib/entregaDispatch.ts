@@ -126,7 +126,7 @@ export async function ensureEntregaWebhookRegistered() {
 // pendente em outra corrida (ocupado) e que ainda não foi chamado nessa
 // mesma entrega. Entre os elegíveis, chama primeiro quem está há mais
 // tempo sem corrida (round-robin simples — sem geolocalização ainda).
-async function pickNextMotoboy(deliveryOrderId: string): Promise<{ id: string; name: string; phone: string } | null> {
+async function pickNextMotoboy(deliveryOrderId: string, opts?: { ignoreAlreadyTried?: boolean }): Promise<{ id: string; name: string; phone: string } | null> {
   const { data: active } = await supabase.from('motoboys').select('id, name, phone').eq('active', true).eq('available', true).eq('status', 'aprovado')
   if (!active || active.length === 0) return null
 
@@ -136,7 +136,7 @@ async function pickNextMotoboy(deliveryOrderId: string): Promise<{ id: string; n
   const { data: tried } = await supabase.from('delivery_offers').select('motoboy_id').eq('delivery_order_id', deliveryOrderId)
   const alreadyTried = new Set((tried || []).map(o => o.motoboy_id))
 
-  const eligible = active.filter(m => !busy.has(m.id) && !alreadyTried.has(m.id))
+  const eligible = active.filter(m => !busy.has(m.id) && (opts?.ignoreAlreadyTried || !alreadyTried.has(m.id)))
   if (eligible.length === 0) return null
 
   const { data: lastOffers } = await supabase
@@ -306,14 +306,22 @@ async function sendOfferMessage(order: { company_id: string; pickup_address: str
 // Chama o próximo motoboy disponível pra essa entrega — usado na criação e
 // depois de um NÃO/expiração. Se ninguém estiver livre, a entrega fica
 // esperando (a loja vê "aguardando aceite") até algum motoboy ficar livre.
-export async function offerToNextMotoboy(deliveryOrderId: string, sequenceNo: number) {
+export async function offerToNextMotoboy(deliveryOrderId: string, sequenceNo: number, opts?: { ignoreAlreadyTried?: boolean }) {
   const { data: order } = await supabase
     .from('delivery_orders').select('company_id, pickup_address, dropoff_address, customer_name, fee, status')
     .eq('id', deliveryOrderId).maybeSingle()
   if (!order || order.status !== 'buscando_motoboy') return
 
-  const motoboy = await pickNextMotoboy(deliveryOrderId)
-  if (!motoboy) return
+  const motoboy = await pickNextMotoboy(deliveryOrderId, opts)
+  if (!motoboy) {
+    // Ninguém elegível (todo mundo recusou/expirou, ou nenhum motoboy ativo
+    // sobrou pra tentar) — antes ficava silenciosamente parado em
+    // "buscando_motoboy" pra sempre, sem a loja nunca saber o motivo. Achado
+    // real: com só 2 motoboys ativos, basta os 2 não responderem pra
+    // esgotar a fila (Ricardo, set/2026).
+    await supabase.from('delivery_orders').update({ status: 'sem_motoboy' }).eq('id', deliveryOrderId)
+    return
+  }
 
   const expiresAt = new Date(Date.now() + OFFER_TIMEOUT_MS).toISOString()
   await supabase.from('delivery_offers').insert({
@@ -333,6 +341,21 @@ export async function sendTestOfferMessage(deliveryOrderId: string, motoboyPhone
     .eq('id', deliveryOrderId).maybeSingle()
   if (!order) return { ok: false, error: 'entrega não encontrada' }
   await sendOfferMessage(order, deliveryOrderId, motoboyPhone)
+  return { ok: true }
+}
+
+// Botão "🔁 Tentar de novo" em /painel/entrega, só aparece quando o status é
+// sem_motoboy. Reabre a busca ignorando quem já foi tentado antes nessa
+// mesma entrega — sem isso, um motoboy que recusou primeiro nunca mais
+// seria considerado, mesmo se agora estivesse livre de novo.
+export async function retryMotoboyDispatch(deliveryOrderId: string): Promise<{ ok: boolean; error?: string }> {
+  const { data: order } = await supabase.from('delivery_orders').select('status').eq('id', deliveryOrderId).maybeSingle()
+  if (!order) return { ok: false, error: 'entrega não encontrada' }
+  if (order.status !== 'sem_motoboy') return { ok: false, error: 'essa entrega não está aguardando novo motoboy' }
+
+  const { count } = await supabase.from('delivery_offers').select('id', { count: 'exact', head: true }).eq('delivery_order_id', deliveryOrderId)
+  await supabase.from('delivery_orders').update({ status: 'buscando_motoboy' }).eq('id', deliveryOrderId)
+  await offerToNextMotoboy(deliveryOrderId, (count || 0) + 1, { ignoreAlreadyTried: true })
   return { ok: true }
 }
 

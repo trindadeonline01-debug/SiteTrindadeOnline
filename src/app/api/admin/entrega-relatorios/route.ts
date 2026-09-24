@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
     const cur = porEmpresaMap.get(o.company_id) || { cadastradas: 0, realizadas: 0, pendentes: 0, canceladas: 0, gasto: 0 }
     cur.cadastradas += 1
     if (o.status === 'entregue') cur.realizadas += 1
-    else if (o.status === 'buscando_motoboy' || o.status === 'a_caminho') cur.pendentes += 1
+    else if (o.status === 'buscando_motoboy' || o.status === 'sem_motoboy' || o.status === 'a_caminho') cur.pendentes += 1
     else if (o.status === 'cancelada' || o.status === 'sem_credito') cur.canceladas += 1
     porEmpresaMap.set(o.company_id, cur)
   }

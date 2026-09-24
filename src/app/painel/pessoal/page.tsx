@@ -12,7 +12,7 @@ type PedidoItem = { id: string; product_name: string; unit_price: number; qty: n
 type Pedido = { id: string; status: string; total: number; created_at: string; delivery_type: string; company?: { name: string; slug: string }; itens?: PedidoItem[] }
 type Entrega = { pedido_id: string; status: string; delivery_code: string; motoboy_name: string | null }
 
-const ENTREGA_STATUS_LABEL: Record<string, string> = { buscando_motoboy: 'Chamando motoboy', a_caminho: 'Motoboy a caminho', entregue: 'Entregue', cancelada: 'Cancelada', sem_credito: 'Aguardando loja' }
+const ENTREGA_STATUS_LABEL: Record<string, string> = { buscando_motoboy: 'Chamando motoboy', sem_motoboy: 'Loja está chamando de novo', a_caminho: 'Motoboy a caminho', entregue: 'Entregue', cancelada: 'Cancelada', sem_credito: 'Aguardando loja' }
 const TYPE_EMOJI: Record<string,string> = { desapega:'🏷️', emprego:'💼', imovel:'🏠', achado:'🔍' }
 const TYPE_LABEL: Record<string,string> = { desapega:'Desapega', emprego:'Emprego', imovel:'Imóvel', achado:'Achado/Perdido' }
 const PEDIDO_STATUS_LABEL: Record<string,string> = { recebido:'Recebido', em_preparo:'Em preparo', pronto:'Pronto', saiu_entrega:'Saiu p/ entrega', entregue:'Entregue', cancelado:'Cancelado' }

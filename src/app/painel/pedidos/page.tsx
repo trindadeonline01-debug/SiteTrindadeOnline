@@ -185,6 +185,11 @@ export default function PedidosPage() {
   }
   const companyIdRef = useRef('')
   const [deliveryCalled, setDeliveryCalled] = useState<Set<string>>(new Set())
+  // pedido_id -> { id, status } do delivery_orders correspondente — usado
+  // pra mostrar a faixa "Nenhum motoboy aceitou" quando status vira
+  // sem_motoboy (Ricardo, set/2026).
+  const [deliveryByPedido, setDeliveryByPedido] = useState<Record<string, { id: string; status: string }>>({})
+  const [retryingMotoId, setRetryingMotoId] = useState<string | null>(null)
   const [motoErrors, setMotoErrors] = useState<Record<string, string>>({})
   const [motoLoading, setMotoLoading] = useState<string | null>(null)
   // Ref (não state) pra travar na hora — o disparo automático e um clique
@@ -255,6 +260,9 @@ export default function PedidosPage() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'loja_pedidos', filter: `company_id=eq.${companyId}` }, () => {
         loadAll(companyIdRef.current, selectedDate)
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'delivery_orders', filter: `company_id=eq.${companyId}` }, () => {
+        loadAll(companyIdRef.current, selectedDate)
+      })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -270,8 +278,11 @@ export default function PedidosPage() {
       .gte('created_at', from.toISOString()).lt('created_at', to.toISOString())
       .order('created_at', { ascending: false })
     setPedidos((data || []) as any)
-    const { data: entregas } = await supabase.from('delivery_orders').select('pedido_id').eq('company_id', cid).not('pedido_id', 'is', null)
+    const { data: entregas } = await supabase.from('delivery_orders').select('id, pedido_id, status').eq('company_id', cid).not('pedido_id', 'is', null)
     setDeliveryCalled(new Set((entregas || []).map(e => e.pedido_id as string)))
+    const byPedido: Record<string, { id: string; status: string }> = {}
+    for (const e of entregas || []) if (e.pedido_id) byPedido[e.pedido_id as string] = { id: e.id as string, status: e.status as string }
+    setDeliveryByPedido(byPedido)
   }
 
   async function chamarMotoboy(p: Pedido) {
@@ -309,6 +320,19 @@ export default function PedidosPage() {
     }
     if (!res.ok || data.error) { setMotoErrors(prev => ({ ...prev, [p.id]: data.error || 'Não consegui chamar o motoboy.' })); return }
     setDeliveryCalled(prev => new Set(prev).add(p.id))
+  }
+
+  // Botão "🔁 Solicitar de novo" da faixa "Nenhum motoboy aceitou" — reabre
+  // a busca pra essa entrega específica (Ricardo, set/2026).
+  async function retryMotoboy(deliveryOrderId: string) {
+    setRetryingMotoId(deliveryOrderId)
+    const { data: { session } } = await supabase.auth.getSession()
+    await fetch('/api/entrega/retry', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ access_token: session?.access_token, company_id: companyId, delivery_order_id: deliveryOrderId }),
+    }).catch(() => {})
+    setRetryingMotoId(null)
+    loadAll(companyIdRef.current, selectedDate)
   }
 
   // Assim que o pedido entra em preparo, já chama o motoboy — ele viaja até
@@ -683,6 +707,12 @@ export default function PedidosPage() {
   // antigo (histórico) não é uma urgência de agora, não deve piscar nem
   // oferecer reimpressão como se tivesse acabado de chegar.
   const pedidosNovos = isToday ? pedidos.filter(p => p.status === 'recebido').sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) : []
+  // Pedidos cuja entrega esgotou os motoboys disponíveis (status sem_motoboy)
+  // — precisa aparecer bem visível aqui, não só em /painel/entrega, porque é
+  // aqui que o lojista fica de olho (pedido do Ricardo, set/2026).
+  const pedidosSemMotoboy = isToday
+    ? pedidos.filter(p => deliveryByPedido[p.id]?.status === 'sem_motoboy').sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+    : []
 
   return (
     <>
@@ -831,6 +861,17 @@ export default function PedidosPage() {
         @keyframes pd-newalert-pulse{ 0%,100%{ background:#C43D3D; } 50%{ background:#A82F2F; } }
         @media(min-width:768px){ .pd-newalert{ position:sticky;top:0;padding:18px 32px; } .pd-newalert-txt{ font-size:15px; } .pd-newalert-btn{ padding:16px 28px;font-size:15.5px; } }
         .pd-newalert-err{ background:#FBEAEA;color:#C43D3D;font-size:13px;font-weight:700;padding:10px 16px;line-height:1.5; }
+        .pd-motoalert{ position:relative;z-index:6;display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between;background:#B5690C;color:#fff;padding:14px 16px;animation:pd-motoalert-pulse 1.2s ease-in-out infinite; }
+        .pd-motoalert-txt{ font-size:14px;font-weight:800;flex:1;min-width:180px; }
+        .pd-motoalert-more{ font-weight:700;opacity:.85; }
+        .pd-motoalert-btn{ flex:none;padding:14px 22px;border-radius:11px;border:none;background:#fff;color:#B5690C;font-weight:900;font-size:14px;cursor:pointer;white-space:nowrap; }
+        .pd-motoalert-btn:disabled{ opacity:.6;cursor:not-allowed; }
+        @keyframes pd-motoalert-pulse{ 0%,100%{ background:#B5690C; } 50%{ background:#8F5209; } }
+        /* Nunca sticky (mesmo no desktop) de propósito — se essa faixa e a
+           de "pedido novo" aparecerem juntas, duas sticky top:0 brigam pelo
+           mesmo espaço em vez de empilhar direito. Essa aqui só acompanha o
+           scroll normal, sempre logo abaixo da outra quando as duas existem. */
+        @media(min-width:768px){ .pd-motoalert{ padding:18px 32px; } .pd-motoalert-txt{ font-size:15px; } .pd-motoalert-btn{ padding:16px 28px;font-size:15.5px; } }
         .pd-card-late{ border:1.5px solid #C43D3D !important; }
         .pd-late-flag{ color:#C43D3D;font-weight:800;font-size:12px;margin-top:4px; }
         .pd-pay-chip{ display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:800;padding:3px 9px;border-radius:7px;margin-top:6px;cursor:pointer; }
@@ -845,6 +886,18 @@ export default function PedidosPage() {
         </div>
       )}
       {pedidosNovos.length > 0 && printError && <div className="pd-newalert-err">{printError}</div>}
+      {pedidosSemMotoboy.length > 0 && (
+        <div className="pd-motoalert">
+          <div className="pd-motoalert-txt">
+            🏍️ NENHUM MOTOBOY ACEITOU A CORRIDA — Pedido {pedidosSemMotoboy[0].order_number ? `#${pedidosSemMotoboy[0].order_number}` : ''} — {pedidosSemMotoboy[0].customer_name}
+            {pedidosSemMotoboy.length > 1 && <span className="pd-motoalert-more"> · +{pedidosSemMotoboy.length - 1} outro(s)</span>}
+          </div>
+          <button className="pd-motoalert-btn" disabled={retryingMotoId === deliveryByPedido[pedidosSemMotoboy[0].id]?.id}
+            onClick={() => { const d = deliveryByPedido[pedidosSemMotoboy[0].id]; if (d) retryMotoboy(d.id) }}>
+            {retryingMotoId === deliveryByPedido[pedidosSemMotoboy[0].id]?.id ? 'Chamando...' : '🔁 SOLICITAR DE NOVO'}
+          </button>
+        </div>
+      )}
       <div className="pd-mobile-only">
         <div className="pd-head">
           <div className="pd-head-left">

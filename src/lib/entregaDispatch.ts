@@ -12,7 +12,9 @@ const supabase = createClient(
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trindadeonline.com.br'
 
-const OFFER_TIMEOUT_MS = 45_000
+// 45s era pouco tempo pro motoboy ver a mensagem e responder — subiu pra
+// 1 minuto (pedido do Ricardo, set/2026).
+const OFFER_TIMEOUT_MS = 60_000
 
 // Reexportadas de @/lib/whatsapp (módulo sem sharp — ver o porquê lá) só
 // pra quem já importava daqui não precisar trocar o caminho do import.
@@ -84,7 +86,7 @@ function offerMessage(order: { pickup_address: string; dropoff_address: string; 
     '',
     `Taxa: R$ ${fee}`,
     '',
-    'Responde *SIM* ou *NÃO* em até 45s.',
+    'Responde *SIM* ou *NÃO* em até 1 minuto.',
   )
   return lines.join('\n')
 }
@@ -254,7 +256,7 @@ export async function offerToNextMotoboy(deliveryOrderId: string, sequenceNo: nu
 
   const sent = await sendOfferMessage(order, deliveryOrderId, motoboy.phone)
   // Se o envio falhar de verdade (Evolution fora do ar, etc), a oferta
-  // continua pendente e só expira em 45s pro próximo motoboy — sem isso
+  // continua pendente e só expira em 1min pro próximo motoboy — sem isso
   // registrado, essa falha nunca aparecia em lugar nenhum pra investigar.
   if (!sent.ok) console.error(`[offerToNextMotoboy] falha ao mandar oferta pro motoboy ${motoboy.id}:`, sent.detail)
 }
@@ -291,7 +293,7 @@ export async function retryMotoboyDispatch(deliveryOrderId: string): Promise<{ o
 // Varre ofertas que estouraram o prazo sem resposta, marca como expiradas
 // e repassa pro próximo motoboy — chamado tanto pelo webhook (toda vez que
 // um motoboy manda mensagem) quanto pelo polling do painel da loja, já que
-// não dá pra confiar só num cron de minuto em minuto pra um prazo de 45s.
+// não dá pra confiar só num cron de minuto em minuto pra um prazo de 1min.
 export async function checkExpiredOffers() {
   const nowIso = new Date().toISOString()
   const { data: expired } = await supabase

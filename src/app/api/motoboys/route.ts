@@ -12,6 +12,12 @@ const supabaseAuth = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
+// Roda em Node.js (não Edge) e nunca cacheado — precisa ser explícito porque
+// esse arquivo importa entregaDispatch.ts, que importa sharp (binário
+// nativo, só funciona no runtime Node.js da Vercel — ver next.config.ts).
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
 async function requireAdmin(accessToken: string | undefined): Promise<boolean> {
   if (!accessToken) return false
   const { data: userData } = await supabaseAuth.auth.getUser(accessToken)
@@ -42,8 +48,15 @@ async function uploadCnhPhoto(base64: string): Promise<{ path: string | null; er
 
 async function signedUrl(path: string | null): Promise<string | null> {
   if (!path) return null
-  const { data } = await supabase.storage.from('motoboy-docs').createSignedUrl(path, 3600)
-  return data?.signedUrl || null
+  try {
+    const { data } = await supabase.storage.from('motoboy-docs').createSignedUrl(path, 3600)
+    return data?.signedUrl || null
+  } catch (err) {
+    // Uma foto com path inválido/corrompido não pode derrubar a lista
+    // inteira — melhor faltar uma foto do que a tela toda não carregar.
+    console.error('[signedUrl]', path, err)
+    return null
+  }
 }
 
 export async function GET(req: NextRequest) {
@@ -90,27 +103,39 @@ export async function GET(req: NextRequest) {
   // usa CNH/selfie (avatar) e o PDF do termo, então nem vale gerar as
   // outras 3 URLs à toa.
   const motoboys = await Promise.all((data || []).map(async m => {
-    const term = termsByMotoboy.get(m.id)
-    const needsAllDocs = m.status === 'aguardando_aprovacao'
-    const [cnh, selfie, motoFrente, motoTras, documentoMoto, termPdf] = await Promise.all([
-      signedUrl(m.cnh_photo_path),
-      signedUrl(m.selfie_photo_path),
-      needsAllDocs ? signedUrl(m.moto_frente_photo_path) : Promise.resolve(null),
-      needsAllDocs ? signedUrl(m.moto_tras_photo_path) : Promise.resolve(null),
-      needsAllDocs ? signedUrl(m.documento_moto_photo_path) : Promise.resolve(null),
-      term ? signedUrl(term.pdf_path) : Promise.resolve(null),
-    ])
-    return {
-      ...m,
-      cnh_photo_url: cnh,
-      selfie_photo_url: selfie,
-      moto_frente_photo_url: motoFrente,
-      moto_tras_photo_url: motoTras,
-      documento_moto_photo_url: documentoMoto,
-      terms: term ? { ...term, pdf_url: termPdf } : null,
-      entregas_semana: entregasSemanaByMotoboy.get(m.id) || 0,
-      a_receber: aReceberByMotoboy.get(m.id) || 0,
-      ja_recebido: jaRecebidoByMotoboy.get(m.id) || 0,
+    try {
+      const term = termsByMotoboy.get(m.id)
+      const needsAllDocs = m.status === 'aguardando_aprovacao'
+      const [cnh, selfie, motoFrente, motoTras, documentoMoto, termPdf] = await Promise.all([
+        signedUrl(m.cnh_photo_path),
+        signedUrl(m.selfie_photo_path),
+        needsAllDocs ? signedUrl(m.moto_frente_photo_path) : Promise.resolve(null),
+        needsAllDocs ? signedUrl(m.moto_tras_photo_path) : Promise.resolve(null),
+        needsAllDocs ? signedUrl(m.documento_moto_photo_path) : Promise.resolve(null),
+        term ? signedUrl(term.pdf_path) : Promise.resolve(null),
+      ])
+      return {
+        ...m,
+        cnh_photo_url: cnh,
+        selfie_photo_url: selfie,
+        moto_frente_photo_url: motoFrente,
+        moto_tras_photo_url: motoTras,
+        documento_moto_photo_url: documentoMoto,
+        terms: term ? { ...term, pdf_url: termPdf } : null,
+        entregas_semana: entregasSemanaByMotoboy.get(m.id) || 0,
+        a_receber: aReceberByMotoboy.get(m.id) || 0,
+        ja_recebido: jaRecebidoByMotoboy.get(m.id) || 0,
+      }
+    } catch (err) {
+      // Um motoboy problemático não pode derrubar a lista inteira — melhor
+      // ele aparecer sem foto do que a tela toda não carregar (Ricardo, set/2026).
+      console.error('[GET /api/motoboys] motoboy', m.id, err)
+      return {
+        ...m, cnh_photo_url: null, selfie_photo_url: null, moto_frente_photo_url: null,
+        moto_tras_photo_url: null, documento_moto_photo_url: null, terms: null,
+        entregas_semana: entregasSemanaByMotoboy.get(m.id) || 0,
+        a_receber: aReceberByMotoboy.get(m.id) || 0, ja_recebido: jaRecebidoByMotoboy.get(m.id) || 0,
+      }
     }
   }))
   return NextResponse.json({ motoboys })

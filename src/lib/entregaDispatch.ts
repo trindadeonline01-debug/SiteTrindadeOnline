@@ -1,5 +1,4 @@
 import { createClient } from '@supabase/supabase-js'
-import sharp from 'sharp'
 import { moduleActive } from '@/lib/modules'
 import { getEntregaPricing, getEntregaFeeForDelivery } from '@/lib/entregaPricing'
 import {
@@ -102,6 +101,18 @@ const BANNER_WIDTH = 800
 const BANNER_HEIGHT = 400
 async function buildDeliveryBanner(photoUrl: string, companyId: string): Promise<string | null> {
   try {
+    // sharp importado sob demanda, só aqui dentro — não no topo do arquivo.
+    // entregaDispatch.ts é importado (estático ou dinâmico) por várias rotas
+    // que NUNCA chamam essa função (testar-oferta, webhook, tick...); um
+    // import estático de sharp lá em cima crasha o carregamento do módulo
+    // inteiro se o binário nativo não sobe naquele bundle específico da
+    // Vercel — e isso acontece ANTES de qualquer try/catch conseguir pegar,
+    // derrubando a function inteira (mesma família de bug já documentada
+    // com opengraph-image.tsx). Import dinâmico aqui dentro faz a falha cair
+    // dentro do try/catch de verdade — pior caso, essa função devolve null
+    // e a oferta sai só com o texto, sem foto (Ricardo, set/2026 — "Testar
+    // oferta" ficava preso em "Enviando..." pra sempre, sem erro nenhum).
+    const sharp = (await import('sharp')).default
     const res = await fetch(photoUrl)
     if (!res.ok) return null
     const buf = Buffer.from(await res.arrayBuffer())
@@ -114,7 +125,8 @@ async function buildDeliveryBanner(photoUrl: string, companyId: string): Promise
     if (error) return null
     const { data } = supabase.storage.from('company-photos').getPublicUrl(path)
     return data.publicUrl
-  } catch {
+  } catch (err) {
+    console.error('[buildDeliveryBanner]', err)
     return null
   }
 }

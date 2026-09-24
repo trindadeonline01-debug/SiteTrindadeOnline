@@ -13,20 +13,28 @@ const supabase = createClient(
 // usa o pedido de entrega mais recente do banco só pra ter conteúdo real
 // pra visualizar, sem criar oferta nem mexer no status de nada.
 export async function POST(req: NextRequest) {
-  const auth = await requireAdmin(req)
-  if (auth instanceof NextResponse) return auth
+  try {
+    const auth = await requireAdmin(req)
+    if (auth instanceof NextResponse) return auth
 
-  const { motoboyId } = await req.json()
-  if (!motoboyId) return NextResponse.json({ error: 'motoboyId obrigatório' }, { status: 400 })
+    const { motoboyId } = await req.json()
+    if (!motoboyId) return NextResponse.json({ error: 'motoboyId obrigatório' }, { status: 400 })
 
-  const { data: motoboy } = await supabase.from('motoboys').select('phone').eq('id', motoboyId).maybeSingle()
-  if (!motoboy) return NextResponse.json({ error: 'motoboy não encontrado' }, { status: 404 })
+    const { data: motoboy } = await supabase.from('motoboys').select('phone').eq('id', motoboyId).maybeSingle()
+    if (!motoboy) return NextResponse.json({ error: 'motoboy não encontrado' }, { status: 404 })
 
-  const { data: order } = await supabase
-    .from('delivery_orders').select('id').order('created_at', { ascending: false }).limit(1).maybeSingle()
-  if (!order) return NextResponse.json({ error: 'nenhum pedido de entrega no banco ainda pra usar de exemplo' }, { status: 404 })
+    const { data: order } = await supabase
+      .from('delivery_orders').select('id').order('created_at', { ascending: false }).limit(1).maybeSingle()
+    if (!order) return NextResponse.json({ error: 'nenhum pedido de entrega no banco ainda pra usar de exemplo' }, { status: 404 })
 
-  const result = await sendTestOfferMessage(order.id, motoboy.phone)
-  if (!result.ok) return NextResponse.json({ error: result.error || 'falha ao enviar' }, { status: 500 })
-  return NextResponse.json({ ok: true })
+    const result = await sendTestOfferMessage(order.id, motoboy.phone)
+    if (!result.ok) return NextResponse.json({ error: result.error || 'falha ao enviar' }, { status: 500 })
+    return NextResponse.json({ ok: true })
+  } catch (err: any) {
+    // Sem isso, qualquer exceção aqui (ex: falha de módulo nativo) virava
+    // resposta não-JSON e o botão "Testar oferta" ficava preso em
+    // "Enviando..." pra sempre, sem nenhum erro visível (Ricardo, set/2026).
+    console.error('[POST /api/admin/entrega/testar-oferta]', err)
+    return NextResponse.json({ error: err.message || 'falha ao testar oferta' }, { status: 500 })
+  }
 }

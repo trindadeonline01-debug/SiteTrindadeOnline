@@ -274,15 +274,22 @@ export default function MotoboysTab() {
 
   async function testarOferta(m: Motoboy) {
     setTestingId(m.id)
-    const { token } = await authHeader()
-    const res = await fetch('/api/admin/entrega/testar-oferta', {
-      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: token ? `Bearer ${token}` : '' },
-      body: JSON.stringify({ motoboyId: m.id }),
-    })
-    const data = await res.json()
-    setTestingId(null)
-    if (data.error) { alert(data.error); return }
-    alert(`Mandado pro WhatsApp de ${m.name}! Confere lá como ficou.`)
+    try {
+      const { token } = await authHeader()
+      const res = await fetch('/api/admin/entrega/testar-oferta', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: token ? `Bearer ${token}` : '' },
+        body: JSON.stringify({ motoboyId: m.id }),
+      })
+      const data = await res.json()
+      if (!res.ok || data.error) { alert(data.error || `erro ${res.status}`); return }
+      alert(`Mandado pro WhatsApp de ${m.name}! Confere lá como ficou.`)
+    } catch (err: any) {
+      // Sem isso, uma resposta não-JSON (crash no servidor) deixava o botão
+      // preso em "Enviando..." pra sempre, sem nenhum aviso (Ricardo, set/2026).
+      alert('Não deu pra testar agora: ' + (err.message || 'erro desconhecido'))
+    } finally {
+      setTestingId(null)
+    }
   }
 
   async function deleteMotoboy(m: Motoboy) {

@@ -618,6 +618,10 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
         .cd-addcart{ flex:1;padding:14px;border-radius:12px;border:none;background:var(--sign);color:var(--ink);font-weight:800;font-size:13px;cursor:pointer; }
         .cd-addcart:disabled{ background:#E2DCCB;color:#A79E8B; }
         .cd-addcart-ghost{ background:#fff;border:1.5px solid #E0DDD8;color:var(--ink); }
+        .cd-addcart-stacked{ display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;line-height:1.25; }
+        .cd-addcart-stacked b{ font-size:15px; }
+        .cd-wa-link{ display:block;width:100%;text-align:center;background:none;border:none;padding:10px 0 2px;font-size:12.5px;font-weight:700;color:#157A52;cursor:pointer;font-family:inherit; }
+        .cd-wa-link:disabled{ color:#AAA;cursor:not-allowed; }
         .cd-checkout-row{ display:flex;gap:8px; }
         .cd-drawer{ position:fixed;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:#fff;z-index:10000;border-radius:20px 20px 0 0;max-height:88vh;display:flex;flex-direction:column; }
         .cd-dhead-wrap{ flex:none;background:#fff;border-radius:20px 20px 0 0; }
@@ -629,6 +633,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
         .cd-step-seg{ height:4px;flex:1;border-radius:3px;background:#EDE8E0; }
         .cd-step-seg.on{ background:var(--sign); }
         .cd-step-h1{ font-family:'Anton',sans-serif;font-size:21px;line-height:1.15;letter-spacing:.3px;margin-bottom:6px; }
+        .cd-step-h1-1line{ white-space:nowrap;font-size:min(21px,6.2vw); }
         .cd-step-sub{ font-size:12px;color:#888;line-height:1.5;margin-bottom:18px; }
         .cd-step-hint{ font-size:11px;color:#AAA;line-height:1.5;margin-top:6px; }
         .cd-dfooter{ flex:none;padding:14px 16px 16px;border-top:1px solid #EDE8E0;display:flex;flex-direction:column;gap:8px; }
@@ -895,7 +900,10 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
                     ) : (
                       <div className="cd-checkout-row">
                         <button type="button" className="cd-addcart cd-addcart-ghost" onClick={closeDrawer}>Continuar comprando</button>
-                        <button className="cd-addcart" disabled={abaixoMinimo} onClick={goStep}>Finalizar pedido — {fmt(cartTotal)} →</button>
+                        <button className="cd-addcart cd-addcart-stacked" disabled={abaixoMinimo} onClick={goStep}>
+                          <span>Finalizar Pedido</span>
+                          <b>{fmt(cartTotal)}</b>
+                        </button>
                       </div>
                     )}
                   </div>
@@ -905,7 +913,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
               {step === 'contato' && (
                 <>
                   <div className="cd-dbody">
-                    <div className="cd-step-h1">Pra quem é<br />esse pedido?</div>
+                    <div className="cd-step-h1 cd-step-h1-1line">Pra quem é esse pedido?</div>
                     <div className="cd-step-sub">Só pra loja confirmar com você e falar caso precise. Não pedimos senha nem criamos conta.</div>
                     <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', margin: '4px 0 8px', fontWeight: 800 }}>Nome</div>
                     <input className="cd-diinput" value={guestName} onChange={e => setGuestName(e.target.value)} placeholder="Como a loja deve te chamar?" />
@@ -1053,8 +1061,8 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
                     )}
                     <button className="cd-addcart" style={{ width: '100%' }} disabled={confirming || trocoIncompleto} onClick={confirmOrder}>{confirming ? 'Enviando...' : `Confirmar pedido — ${fmt(orderTotal)}`}</button>
                     {company.phone && (
-                      <button className="cd-addcart" style={{ width: '100%', background: '#25D366', color: '#fff', marginTop: 8 }} disabled={sendingWa || trocoIncompleto} onClick={sendCartWhatsapp}>
-                        {sendingWa ? 'Abrindo…' : '📱 Enviar pedido no WhatsApp'}
+                      <button type="button" className="cd-wa-link" disabled={sendingWa || trocoIncompleto} onClick={sendCartWhatsapp}>
+                        {sendingWa ? 'Abrindo…' : '📱 Prefiro pedir pelo WhatsApp'}
                       </button>
                     )}
                     {waFallbackUrl && (

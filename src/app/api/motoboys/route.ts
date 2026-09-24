@@ -47,6 +47,7 @@ async function signedUrl(path: string | null): Promise<string | null> {
 }
 
 export async function GET(req: NextRequest) {
+  try {
   const accessToken = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '')
   if (!(await requireAdmin(accessToken))) return NextResponse.json({ error: 'acesso negado' }, { status: 403 })
 
@@ -113,6 +114,15 @@ export async function GET(req: NextRequest) {
     }
   }))
   return NextResponse.json({ motoboys })
+  } catch (err: any) {
+    // Antes essa rota não tinha try/catch: qualquer exceção (ex: geração de
+    // URL assinada falhando) virava uma página de erro HTML crua da Vercel
+    // em vez de JSON — o painel tentava fazer res.json() nisso, estourava
+    // exceção no cliente (sem try/catch lá também) e a tela ficava presa em
+    // "Carregando..." pra sempre, sem nenhum erro visível (Ricardo, set/2026).
+    console.error('[GET /api/motoboys]', err)
+    return NextResponse.json({ error: err.message || 'falha ao carregar motoboys' }, { status: 500 })
+  }
 }
 
 export async function POST(req: NextRequest) {

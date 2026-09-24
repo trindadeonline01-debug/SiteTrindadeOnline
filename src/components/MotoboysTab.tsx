@@ -69,6 +69,7 @@ function brl(n: number): string {
 export default function MotoboysTab() {
   const [motoboys, setMotoboys] = useState<Motoboy[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [saving, setSaving] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
@@ -104,10 +105,18 @@ export default function MotoboysTab() {
 
   async function load() {
     setLoading(true)
-    const { token } = await authHeader()
-    const res = await fetch('/api/motoboys', { headers: token ? { Authorization: `Bearer ${token}` } : {} })
-    const data = await res.json()
-    setMotoboys(data.motoboys || [])
+    setLoadError('')
+    try {
+      const { token } = await authHeader()
+      const res = await fetch('/api/motoboys', { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      const data = await res.json()
+      if (!res.ok || data.error) throw new Error(data.error || `erro ${res.status}`)
+      setMotoboys(data.motoboys || [])
+    } catch (err: any) {
+      // Antes uma falha aqui (timeout, resposta não-JSON etc) deixava a tela
+      // presa em "Carregando..." pra sempre, sem nenhum aviso (Ricardo, set/2026).
+      setLoadError(err.message || 'Não consegui carregar os motoboys.')
+    }
     setLoading(false)
   }
 
@@ -443,7 +452,13 @@ export default function MotoboysTab() {
         )}
 
         {loading && <div style={{ color: '#888', fontSize: 13 }}>Carregando...</div>}
-        {!loading && aprovados.length === 0 && <div style={{ color: '#888', fontSize: 13 }}>Nenhum motoboy aprovado ainda.</div>}
+        {!loading && loadError && (
+          <div style={{ ...s.pendBox, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 12.5, color: '#C43D3D' }}>⚠️ {loadError}</span>
+            <button style={s.btnGhostSm} onClick={load}>🔁 Tentar de novo</button>
+          </div>
+        )}
+        {!loading && !loadError && aprovados.length === 0 && <div style={{ color: '#888', fontSize: 13 }}>Nenhum motoboy aprovado ainda.</div>}
         {aprovados.map(m => (
           <div key={m.id}>
             <div style={s.row}>

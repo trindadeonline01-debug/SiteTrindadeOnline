@@ -56,6 +56,17 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
   function scrollCats(dir: number) { catScrollRef.current?.scrollBy({ left: dir * 220, behavior: 'smooth' }) }
   const [detailQty, setDetailQty] = useState(1)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  // Checkout em etapas (mockup aprovado pelo Ricardo, set/2026): revisão do
+  // carrinho → dados do cliente (pulado pra quem já está logado) → entrega
+  // → pagamento. `loggedIn` só vira true depois que a sessão é checada no
+  // efeito de montagem — até lá, assume convidado (pior caso: pede nome/
+  // WhatsApp de quem na real já tinha conta, corrige sozinho quando a sessão
+  // chega antes do cliente sair da revisão do carrinho).
+  const [step, setStep] = useState<'cart' | 'contato' | 'entrega' | 'pagamento'>('cart')
+  const [loggedIn, setLoggedIn] = useState(false)
+  const [guestName, setGuestName] = useState('')
+  const [guestPhone, setGuestPhone] = useState('')
+  function closeDrawer() { setDrawerOpen(false); setStep('cart') }
   const [deliveryType, setDeliveryType] = useState<'entrega' | 'retirada'>('entrega')
   const [cep, setCep] = useState('')
   const [cepLoading, setCepLoading] = useState(false)
@@ -89,13 +100,13 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
     try {
       if (cart.length > 0) {
         localStorage.setItem(cartStorageKey(slug), JSON.stringify({
-          cart, deliveryType, cep, numero, cepData, address, agendarRetirada, scheduleDate, scheduleTime, obs, payMethod, precisaTroco, trocoPara,
+          cart, deliveryType, cep, numero, cepData, address, agendarRetirada, scheduleDate, scheduleTime, obs, payMethod, precisaTroco, trocoPara, guestName, guestPhone,
         }))
       } else {
         localStorage.removeItem(cartStorageKey(slug))
       }
     } catch {}
-  }, [cart, deliveryType, cep, numero, cepData, address, agendarRetirada, scheduleDate, scheduleTime, obs, payMethod, precisaTroco, trocoPara, slug])
+  }, [cart, deliveryType, cep, numero, cepData, address, agendarRetirada, scheduleDate, scheduleTime, obs, payMethod, precisaTroco, trocoPara, guestName, guestPhone, slug])
 
   function getCompanyCover(photos?: { url: string; order: number }[]): string | null {
     if (!photos?.length) return null
@@ -165,6 +176,8 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
           setPayMethod(parsed.payMethod || 'pix')
           setPrecisaTroco(parsed.precisaTroco ?? null)
           setTrocoPara(parsed.trocoPara || '')
+          setGuestName(parsed.guestName || '')
+          setGuestPhone(parsed.guestPhone || '')
           setDrawerOpen(true)
           restoredCart = true
         } else {
@@ -177,9 +190,12 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
     hydratedRef.current = true
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session || restoredCart) return
-      const { data: profile } = await supabase.from('profiles').select('address').eq('id', session.user.id).maybeSingle()
-      if (profile?.address) setAddress(profile.address)
+      if (!session) return
+      setLoggedIn(true)
+      const { data: profile } = await supabase.from('profiles').select('name, phone, address').eq('id', session.user.id).maybeSingle()
+      if (profile?.name && !restoredCart) setGuestName(profile.name)
+      if (profile?.phone && !restoredCart) setGuestPhone(profile.phone)
+      if (profile?.address && !restoredCart) setAddress(profile.address)
     })
   }, [slug])
 
@@ -308,22 +324,19 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
     setDetail(null)
   }
 
+  // Cria o pedido pela nova rota server-side (/api/loja/criar-pedido) — ela
+  // que decide se é cliente logado (usa a sessão) ou convidado (usa
+  // guestName/guestPhone coletados na etapa "Seus dados"). Antes disso, sem
+  // sessão o botão só redirecionava pro /login — não existia checkout
+  // completo sem conta, só o "Enviar no WhatsApp" anônimo (pedido do
+  // Ricardo, set/2026: pelo menos nome+WhatsApp do convidado no fechamento).
   async function confirmOrder() {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) {
-      try {
-        localStorage.setItem(cartStorageKey(slug), JSON.stringify({
-          cart, deliveryType, cep, numero, cepData, address, agendarRetirada, scheduleDate, scheduleTime, obs, payMethod, precisaTroco, trocoPara,
-        }))
-      } catch {}
-      window.location.href = `/login?redirect=/empresa/${slug}/cardapio`
-      return
-    }
     if (!company || cart.length === 0) return
     if (Number(company.loja_pedido_minimo || 0) > 0 && cartTotal < Number(company.loja_pedido_minimo)) return
     if (deliveryType === 'entrega' && !address.trim()) return
     if (deliveryType === 'entrega' && freteBlocked) return
     if (trocoIncompleto) return
+    if (!loggedIn && (!guestName.trim() || guestPhone.replace(/\D/g, '').length < 10)) { setStep('contato'); return }
     setConfirming(true)
     setOrderError(null)
     const taxa = taxaEntrega
@@ -333,68 +346,34 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
     const total = orderTotal
     const scheduledFor = deliveryType === 'retirada' && agendarRetirada && scheduleDate && scheduleTime
       ? new Date(`${scheduleDate}T${scheduleTime}`).toISOString() : null
-    const { data: profile } = await supabase.from('profiles').select('name, phone').eq('id', session.user.id).maybeSingle()
-    const { data: pedido, error: pedidoError } = await supabase.from('loja_pedidos').insert({
-      company_id: company.id, customer_id: session.user.id,
-      customer_name: profile?.name || 'Cliente', customer_phone: profile?.phone || null,
-      delivery_address: deliveryType === 'entrega' ? address : null, delivery_type: deliveryType, scheduled_for: scheduledFor,
-      origin: 'cardapio_publico', payment_method: payMethod,
-      subtotal: cartTotal, total, delivery_fee: taxa, notes: finalNotes || null,
-    }).select('id').single()
-    // Antes, um erro aqui (RLS, rede, etc.) passava batido: `pedido` vinha
-    // null, o bloco abaixo era pulado, mas `setSuccess(true)` rodava do
-    // mesmo jeito — cliente via "Pedido enviado!" e nada chegava na loja.
-    if (pedidoError || !pedido) {
-      console.error('Erro ao criar pedido:', pedidoError)
-      setConfirming(false)
-      setOrderError('Não deu pra enviar seu pedido agora. Tenta de novo em alguns segundos.')
-      return
-    }
-    const { error: itensError } = await supabase.from('loja_pedido_itens').insert(cart.map(l => ({
-      pedido_id: pedido.id, produto_id: l.produtoId, product_name: l.name, unit_price: l.unitPrice, qty: l.qty,
-      selected_options: l.modifiers,
-    })))
-    // Sem isso, um erro aqui deixava o pedido salvo com o valor total mas
-    // ZERO itens — a loja recebia um pedido "vazio" e o cliente via
-    // "Pedido enviado!" do mesmo jeito. Desfaz o pedido (compensação, já
-    // que não dá pra fazer os dois inserts numa transação única daqui) e
-    // avisa o cliente pra tentar de novo, em vez de fingir sucesso.
-    if (itensError) {
-      console.error('Erro ao salvar itens do pedido:', itensError)
-      await supabase.from('loja_pedidos').delete().eq('id', pedido.id)
-      setConfirming(false)
-      setOrderError('Não deu pra enviar seu pedido agora. Tenta de novo em alguns segundos.')
-      return
-    }
-    if (selectedCoupon && couponEligible(selectedCoupon)) {
-      const code = 'TRD-' + Math.random().toString(36).substring(2, 6).toUpperCase()
-      await supabase.from('coupon_redemptions').insert({ coupon_id: selectedCoupon.id, user_id: session.user.id, code, status: 'used', used_at: new Date().toISOString() })
-    }
-    fetch('/api/loja/registrar-pedido', {
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch('/api/loja/criar-pedido', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        companyId: company.id, pedidoId: pedido.id, phone: profile?.phone || null, name: profile?.name || 'Cliente',
-        address: deliveryType === 'entrega' ? address : null, total, subtotal: cartTotal, deliveryFee: taxa,
-        paymentMethod: payMethod, deliveryType, notes: finalNotes || null,
-        items: cart.map(l => ({ produtoId: l.produtoId, name: l.name, qty: l.qty, unitPrice: l.unitPrice, modifiers: l.modifiers })),
+        access_token: session?.access_token || null,
+        companyId: company.id, customerName: guestName.trim(), customerPhone: guestPhone.trim(),
+        items: cart.map(l => ({ produtoId: l.produtoId, name: l.name, unitPrice: l.unitPrice, qty: l.qty, modifiers: l.modifiers })),
+        deliveryType, address: deliveryType === 'entrega' ? address : null, scheduledFor,
+        paymentMethod: payMethod, notes: finalNotes || null,
+        subtotal: cartTotal, deliveryFee: taxa, total,
+        couponId: selectedCoupon && couponEligible(selectedCoupon) ? selectedCoupon.id : null,
       }),
-    }).catch(() => {})
-    if (company.owner_id) {
-      fetch('/api/push/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: `Novo pedido — ${company.name}`,
-          body: `${profile?.name || 'Cliente'} pediu ${fmt(total)}`,
-          target: 'external_user_id', userId: company.owner_id,
-          url: `${window.location.origin}/painel/pedidos`,
-        }),
-      }).catch(() => {})
+    })
+    const data = await res.json().catch(() => ({}))
+    // Antes, um erro aqui (RLS, rede, etc.) passava batido — o cliente via
+    // "Pedido enviado!" e nada chegava na loja. A rota agora só devolve
+    // ok:true depois de garantir pedido + itens salvos, então basta checar
+    // a resposta em vez de assumir sucesso.
+    if (!res.ok || data.error) {
+      console.error('Erro ao criar pedido:', data.error)
+      setConfirming(false)
+      setOrderError(data.error || 'Não deu pra enviar seu pedido agora. Tenta de novo em alguns segundos.')
+      return
     }
     setConfirming(false)
     setSuccess(true)
     setTimeout(() => {
-      setDrawerOpen(false); setSuccess(false); setCart([]); setObs('')
+      closeDrawer(); setSuccess(false); setCart([]); setObs('')
       setAgendarRetirada(false); setScheduleDate(''); setScheduleTime(''); setSelectedCouponId(null)
       setPrecisaTroco(null); setTrocoPara('')
     }, 2500)
@@ -483,6 +462,32 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
     .filter(p => filterCat === 'all' || p.category_id === filterCat)
     .filter(p => !searchTerm || p.name.toLowerCase().includes(searchTerm))
   const maisPedidos = !searchTerm ? [...produtos].filter(p => p.total_pedidos > 0 && !isSoldOut(p)).sort((a, b) => b.total_pedidos - a.total_pedidos).slice(0, 4) : []
+
+  // Checkout em 4 etapas (3 pra quem já está logado, pula "Seus dados") —
+  // mockup aprovado pelo Ricardo, set/2026. `stepsList` é a ordem real das
+  // telas pra essa sessão; `goStep`/`goBackStep` navegam por ela em vez de
+  // hardcoded, então funciona igual com ou sem a etapa de contato.
+  const stepsList: (typeof step)[] = loggedIn ? ['cart', 'entrega', 'pagamento'] : ['cart', 'contato', 'entrega', 'pagamento']
+  const stepIndex = Math.max(0, stepsList.indexOf(step))
+  const STEP_TITLE: Record<typeof step, string> = { cart: 'Seu pedido', contato: 'Seus dados', entrega: 'Entrega', pagamento: 'Pagamento' }
+  function goStep() {
+    if (step === 'cart') {
+      if (!open || abaixoMinimo) return
+      setStep(loggedIn ? 'entrega' : 'contato')
+    } else if (step === 'contato') {
+      if (!guestName.trim() || guestPhone.replace(/\D/g, '').length < 10) return
+      setStep('entrega')
+    } else if (step === 'entrega') {
+      if (deliveryType === 'entrega' && (!address.trim() || freteBlocked)) return
+      if (deliveryType === 'retirada' && agendarRetirada && (!scheduleDate || !scheduleTime)) return
+      setStep('pagamento')
+    }
+  }
+  function goBackStep() {
+    if (step === 'contato') setStep('cart')
+    else if (step === 'entrega') setStep(loggedIn ? 'cart' : 'contato')
+    else if (step === 'pagamento') setStep('entrega')
+  }
 
   return (
     <div className="cd-wrap">
@@ -615,7 +620,18 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
         .cd-addcart-ghost{ background:#fff;border:1.5px solid #E0DDD8;color:var(--ink); }
         .cd-checkout-row{ display:flex;gap:8px; }
         .cd-drawer{ position:fixed;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:#fff;z-index:10000;border-radius:20px 20px 0 0;max-height:88vh;display:flex;flex-direction:column; }
-        .cd-dhead{ padding:16px;border-bottom:1px solid #EDE8E0;display:flex;justify-content:space-between;align-items:center; }
+        .cd-dhead-wrap{ flex:none;background:#fff;border-radius:20px 20px 0 0; }
+        .cd-dhead{ padding:16px 16px 10px;display:flex;align-items:center;gap:10px; }
+        .cd-dhead b{ flex-grow:1;font-size:15px; }
+        .cd-dhead-btn{ width:30px;height:30px;border-radius:50%;border:1px solid #EDE8E0;background:#F0EDE8;flex:none;cursor:pointer;font-size:14px; }
+        .cd-step-pill{ flex:none;font-size:10.5px;font-weight:800;color:var(--sign-dark);background:#FFF3D6;padding:4px 9px;border-radius:20px;white-space:nowrap; }
+        .cd-step-bar{ display:flex;gap:4px;padding:0 16px 12px;border-bottom:1px solid #EDE8E0; }
+        .cd-step-seg{ height:4px;flex:1;border-radius:3px;background:#EDE8E0; }
+        .cd-step-seg.on{ background:var(--sign); }
+        .cd-step-h1{ font-family:'Anton',sans-serif;font-size:21px;line-height:1.15;letter-spacing:.3px;margin-bottom:6px; }
+        .cd-step-sub{ font-size:12px;color:#888;line-height:1.5;margin-bottom:18px; }
+        .cd-step-hint{ font-size:11px;color:#AAA;line-height:1.5;margin-top:6px; }
+        .cd-dfooter{ flex:none;padding:14px 16px 16px;border-top:1px solid #EDE8E0;display:flex;flex-direction:column;gap:8px; }
         .cd-dbody{ flex:1;overflow-y:auto;padding:14px 16px; }
         .cd-diinput{ width:100%;padding:10px 12px;border-radius:10px;border:1px solid #EDE8E0;background:#F0EDE8;font-size:13px;font-family:inherit; }
         .cd-paychip{ padding:8px 13px;border-radius:20px;border:1.5px solid #EDE8E0;background:#fff;font-size:12px;font-weight:700;cursor:pointer;margin-right:8px; }
@@ -744,12 +760,12 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
       </div>
 
       {cart.length > 0 && (
-        <div className="cd-cartbar" onClick={() => setDrawerOpen(true)}>
+        <div className="cd-cartbar" onClick={() => { setStep('cart'); setDrawerOpen(true) }}>
           <span>{cartCount} {cartCount === 1 ? 'item' : 'itens'} · Ver carrinho</span><b>{fmt(cartTotal)}</b>
         </div>
       )}
 
-      <div className="cd-overlay" onClick={() => { setDetail(null); setDrawerOpen(false) }} />
+      <div className="cd-overlay" onClick={() => { setDetail(null); closeDrawer() }} />
 
       {detail && (
         <div className="cd-detail">
@@ -822,136 +838,209 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
 
       {drawerOpen && (
         <div className="cd-drawer">
-          <div className="cd-dhead"><b>Seu pedido</b><button onClick={() => setDrawerOpen(false)} style={{ width: 30, height: 30, borderRadius: '50%', border: '1px solid #EDE8E0', background: '#F0EDE8' }}>✕</button></div>
+          <div className="cd-dhead-wrap">
+            <div className="cd-dhead">
+              {step === 'cart' ? (
+                <button onClick={closeDrawer} aria-label="Fechar carrinho" className="cd-dhead-btn">✕</button>
+              ) : (
+                <button onClick={goBackStep} aria-label="Voltar" className="cd-dhead-btn">←</button>
+              )}
+              <b>{STEP_TITLE[step]}</b>
+              {!success && <span className="cd-step-pill">Passo {stepIndex + 1} de {stepsList.length}</span>}
+            </div>
+            {!success && (
+              <div className="cd-step-bar">
+                {stepsList.map((s, i) => <div key={s} className={`cd-step-seg ${i <= stepIndex ? 'on' : ''}`} />)}
+              </div>
+            )}
+          </div>
           {!success ? (
             <>
-              <div className="cd-dbody">
-                <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', marginBottom: 8, fontWeight: 800 }}>Itens</div>
-                {cart.map(l => (
-                  <div key={l.key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '0.5px solid #EDE8E0', fontSize: 12 }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <span>{l.name}</span>
-                      {l.modifiers.length > 0 && <span style={{ display: 'block', fontSize: 10.5, color: '#AAA' }}>{l.modifiers.map(m => m.name).join(', ')}</span>}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 'none' }}>
-                      <button onClick={() => changeCartQty(l.key, -1)} style={{ width: 24, height: 24, borderRadius: '50%', border: '1px solid #E2DCCB', background: '#F7F5F0', fontWeight: 800, fontSize: 13, lineHeight: 1, cursor: 'pointer' }}>−</button>
-                      <b style={{ minWidth: 14, textAlign: 'center' }}>{l.qty}</b>
-                      <button onClick={() => changeCartQty(l.key, 1)} style={{ width: 24, height: 24, borderRadius: '50%', border: '1px solid #E2DCCB', background: '#F7F5F0', fontWeight: 800, fontSize: 13, lineHeight: 1, cursor: 'pointer' }}>+</button>
-                    </div>
-                    <b style={{ flex: 'none', minWidth: 60, textAlign: 'right' }}>{fmt(l.qty * l.unitPrice)}</b>
-                    <button onClick={() => removeCartLine(l.key)} aria-label="Remover item" style={{ flex: 'none', width: 24, height: 24, borderRadius: '50%', border: 'none', background: 'transparent', color: '#C43D3D', fontSize: 14, cursor: 'pointer' }}>🗑</button>
-                  </div>
-                ))}
-                <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', margin: '14px 0 8px', fontWeight: 800 }}>Como você quer receber?</div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button className={`cd-paychip ${deliveryType === 'entrega' ? 'active' : ''}`} style={{ flex: 1, marginRight: 0, textAlign: 'center' }} onClick={() => setDeliveryType('entrega')}>🚴 Entrega</button>
-                  <button className={`cd-paychip ${deliveryType === 'retirada' ? 'active' : ''}`} style={{ flex: 1, marginRight: 0, textAlign: 'center' }} onClick={() => setDeliveryType('retirada')}>🏪 Retirar na loja</button>
-                </div>
-
-                {deliveryType === 'entrega' ? (
-                  <>
-                    <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', margin: '14px 0 8px', fontWeight: 800 }}>Endereço</div>
-                    <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                      <input className="cd-diinput" style={{ flex: 1 }} value={cep} onChange={e => handleCepChange(e.target.value)} placeholder="CEP" inputMode="numeric" />
-                      <input className="cd-diinput" style={{ width: 90 }} value={numero} onChange={e => handleNumeroChange(e.target.value)} placeholder="Número" />
-                    </div>
-                    {cepLoading && <div style={{ fontSize: 11, color: '#AAA', marginBottom: 6 }}>Buscando endereço...</div>}
-                    {cepError && <div style={{ fontSize: 11, color: '#C43D3D', marginBottom: 6 }}>CEP não encontrado — preenche o endereço direto embaixo</div>}
-                    <input className="cd-diinput" value={address} onChange={e => setAddress(e.target.value)} placeholder="Rua, bairro, complemento" />
-                    {freteLoading && <div style={{ fontSize: 11, color: '#AAA', marginTop: 6 }}>Calculando taxa de entrega...</div>}
-                    {freteBlocked && (
-                      <div style={{ marginTop: 8, padding: '10px 12px', borderRadius: 10, background: '#FBEAEA', color: '#A83232', fontSize: 11.5, fontWeight: 600 }}>
-                        🚫 {freteInfo?.reason || 'Não entregamos nesse endereço no momento.'}
-                      </div>
-                    )}
-                    {!freteLoading && !freteBlocked && freteInfo?.tempo && (
-                      <div style={{ marginTop: 8, fontSize: 11.5, fontWeight: 700, color: '#157A52' }}>
-                        🕒 Chega em {freteInfo.tempo.min}–{freteInfo.tempo.max} min
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <input type="checkbox" checked={agendarRetirada} onChange={e => setAgendarRetirada(e.target.checked)} id="cd-agendar" />
-                      <label htmlFor="cd-agendar" style={{ fontSize: 12, fontWeight: 600 }}>Agendar retirada pra outro dia/horário</label>
-                    </div>
-                    {agendarRetirada && (
-                      <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                        <input className="cd-diinput" type="date" value={scheduleDate} onChange={e => setScheduleDate(e.target.value)} />
-                        <input className="cd-diinput" type="time" value={scheduleTime} onChange={e => setScheduleTime(e.target.value)} />
-                      </div>
-                    )}
-                  </>
-                )}
-
-                <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', margin: '14px 0 8px', fontWeight: 800 }}>Observações (opcional)</div>
-                <textarea className="cd-diinput" style={{ minHeight: 56, resize: 'vertical' }} value={obs} onChange={e => setObs(e.target.value)} placeholder="Ex: sem cebola, troco pra R$50..." />
-                <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', margin: '14px 0 8px', fontWeight: 800 }}>Pagamento</div>
-                {(company?.loja_payment_methods?.length ? company.loja_payment_methods : ['pix', 'dinheiro', 'cartao_credito']).map(m => (
-                  <button key={m} className={`cd-paychip ${payMethod === m ? 'active' : ''}`} onClick={() => setPayMethod(m)}>{PAYMENT_LABELS[m] || m}</button>
-                ))}
-
-                {payMethod === 'dinheiro' && (
-                  <div style={{ marginTop: 10, padding: '10px 12px', background: '#F7F5F0', borderRadius: 10 }}>
-                    <div style={{ fontSize: 11.5, fontWeight: 700, marginBottom: 8 }}>Precisa de troco?</div>
-                    <div style={{ display: 'flex', gap: 8, marginBottom: precisaTroco ? 8 : 0 }}>
-                      <button className={`cd-paychip ${precisaTroco === true ? 'active' : ''}`} style={{ flex: 1, textAlign: 'center', marginRight: 0 }} onClick={() => setPrecisaTroco(true)}>Sim</button>
-                      <button className={`cd-paychip ${precisaTroco === false ? 'active' : ''}`} style={{ flex: 1, textAlign: 'center', marginRight: 0 }} onClick={() => { setPrecisaTroco(false); setTrocoPara('') }}>Não</button>
-                    </div>
-                    {precisaTroco === true && (
-                      <input className="cd-diinput" inputMode="decimal" value={trocoPara} onChange={e => setTrocoPara(e.target.value.replace(/[^0-9,]/g, ''))} placeholder="Troco para quanto? Ex: 50,00" />
-                    )}
-                  </div>
-                )}
-
-                {coupons.length > 0 && (
-                  <>
-                    <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', margin: '14px 0 8px', fontWeight: 800 }}>🎟️ Cupom de desconto</div>
-                    {coupons.map(c => {
-                      const eligible = couponEligible(c)
-                      const selected = selectedCouponId === c.id
-                      const falta = Number(c.min_purchase || 0) - cartTotal
-                      return (
-                        <div key={c.id} className={`cd-coupon-card ${eligible ? '' : 'locked'} ${selected ? 'selected' : ''}`}
-                          onClick={() => { if (!eligible) return; setSelectedCouponId(id => id === c.id ? null : c.id) }}>
-                          <div className="cd-coupon-card-icon">{c.discount_type === 'fixed' ? fmt(Number(c.discount_value)) : `${c.discount_value}%`}<br />OFF</div>
-                          <div className="cd-coupon-card-mid">
-                            <div className="cd-coupon-card-title">{c.title}</div>
-                            <div className="cd-coupon-card-sub">
-                              {eligible ? (selected ? '✓ Aplicado no seu pedido' : `✓ Disponível — seu pedido já passa de ${fmt(Number(c.min_purchase || 0))}`) : `🔒 Faltam ${fmt(falta)} pra liberar (mínimo ${fmt(Number(c.min_purchase || 0))})`}
-                            </div>
-                          </div>
-                          <div className="cd-coupon-card-radio">{!eligible && '🔒'}</div>
+              {step === 'cart' && (
+                <>
+                  <div className="cd-dbody">
+                    <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', marginBottom: 8, fontWeight: 800 }}>Itens</div>
+                    {cart.map(l => (
+                      <div key={l.key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '0.5px solid #EDE8E0', fontSize: 12 }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <span>{l.name}</span>
+                          {l.modifiers.length > 0 && <span style={{ display: 'block', fontSize: 10.5, color: '#AAA' }}>{l.modifiers.map(m => m.name).join(', ')}</span>}
                         </div>
-                      )
-                    })}
-                  </>
-                )}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 'none' }}>
+                          <button onClick={() => changeCartQty(l.key, -1)} style={{ width: 24, height: 24, borderRadius: '50%', border: '1px solid #E2DCCB', background: '#F7F5F0', fontWeight: 800, fontSize: 13, lineHeight: 1, cursor: 'pointer' }}>−</button>
+                          <b style={{ minWidth: 14, textAlign: 'center' }}>{l.qty}</b>
+                          <button onClick={() => changeCartQty(l.key, 1)} style={{ width: 24, height: 24, borderRadius: '50%', border: '1px solid #E2DCCB', background: '#F7F5F0', fontWeight: 800, fontSize: 13, lineHeight: 1, cursor: 'pointer' }}>+</button>
+                        </div>
+                        <b style={{ flex: 'none', minWidth: 60, textAlign: 'right' }}>{fmt(l.qty * l.unitPrice)}</b>
+                        <button onClick={() => removeCartLine(l.key)} aria-label="Remover item" style={{ flex: 'none', width: 24, height: 24, borderRadius: '50%', border: 'none', background: 'transparent', color: '#C43D3D', fontSize: 14, cursor: 'pointer' }}>🗑</button>
+                      </div>
+                    ))}
+                    <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1.5px dashed #E2DCCB', display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
+                      <span style={{ color: '#888' }}>Subtotal</span><b>{fmt(cartTotal)}</b>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, color: '#AAA', marginTop: 4 }}>
+                      <span>Taxa de entrega</span><span>calculada no próximo passo</span>
+                    </div>
+                    {abaixoMinimo && (
+                      <div style={{ marginTop: 12, padding: '10px 12px', borderRadius: 10, background: '#FEF0E0', color: '#B5690C', fontSize: 11.5, fontWeight: 600 }}>
+                        Pedido mínimo de {fmt(Number(company.loja_pedido_minimo))} — faltam {fmt(Number(company.loja_pedido_minimo) - cartTotal)}
+                      </div>
+                    )}
+                  </div>
+                  <div className="cd-dfooter">
+                    {!open ? (
+                      <div style={{ padding: '12px 14px', borderRadius: 10, background: '#FBEAEA', color: '#A83232', fontSize: 12.5, fontWeight: 600, textAlign: 'center' }}>
+                        🔒 {company.store_paused ? 'A loja pausou o recebimento de pedidos no momento.' : 'A loja está fechada no momento.'} Tenta de novo mais tarde.
+                      </div>
+                    ) : (
+                      <div className="cd-checkout-row">
+                        <button type="button" className="cd-addcart cd-addcart-ghost" onClick={closeDrawer}>Continuar comprando</button>
+                        <button className="cd-addcart" disabled={abaixoMinimo} onClick={goStep}>Finalizar pedido — {fmt(cartTotal)} →</button>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
 
-                {abaixoMinimo && (
-                  <div style={{ marginTop: 12, padding: '10px 12px', borderRadius: 10, background: '#FEF0E0', color: '#B5690C', fontSize: 11.5, fontWeight: 600 }}>
-                    Pedido mínimo de {fmt(Number(company.loja_pedido_minimo))} — faltam {fmt(Number(company.loja_pedido_minimo) - cartTotal)}
+              {step === 'contato' && (
+                <>
+                  <div className="cd-dbody">
+                    <div className="cd-step-h1">Pra quem é<br />esse pedido?</div>
+                    <div className="cd-step-sub">Só pra loja confirmar com você e falar caso precise. Não pedimos senha nem criamos conta.</div>
+                    <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', margin: '4px 0 8px', fontWeight: 800 }}>Nome</div>
+                    <input className="cd-diinput" value={guestName} onChange={e => setGuestName(e.target.value)} placeholder="Como a loja deve te chamar?" />
+                    <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', margin: '14px 0 8px', fontWeight: 800 }}>WhatsApp</div>
+                    <input className="cd-diinput" value={guestPhone} onChange={e => setGuestPhone(e.target.value)} placeholder="(21) 99999-9999" inputMode="tel" />
+                    <div className="cd-step-hint">É por aqui que a loja te chama se faltar item ou o pedido atrasar.</div>
                   </div>
-                )}
-                {taxaEntrega > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0 0', fontSize: 12, color: '#555' }}><span>Taxa de entrega</span><span>{fmt(taxaEntrega)}</span></div>
-                )}
-                {deliveryType === 'entrega' && taxaEntrega === 0 && freteBaseFee > 0 && freteGratisAcima > 0 && cartTotal >= freteGratisAcima && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0 0', fontSize: 12, color: 'var(--open)', fontWeight: 700 }}><span>🎉 Frete grátis</span><span>R$ 0,00</span></div>
-                )}
-                {discount > 0 && selectedCoupon && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0 0', fontSize: 12, color: 'var(--open)', fontWeight: 700 }}><span>Cupom {selectedCoupon.title}</span><span>− {fmt(discount)}</span></div>
-                )}
-                <div className="cd-totalrow"><span>Total</span><span>{fmt(orderTotal)}</span></div>
-              </div>
-              <div style={{ padding: '14px 16px 16px', borderTop: '1px solid #EDE8E0', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {!open ? (
-                  <div style={{ padding: '12px 14px', borderRadius: 10, background: '#FBEAEA', color: '#A83232', fontSize: 12.5, fontWeight: 600, textAlign: 'center' }}>
-                    🔒 {company.store_paused ? 'A loja pausou o recebimento de pedidos no momento.' : 'A loja está fechada no momento.'} Tenta de novo mais tarde.
+                  <div className="cd-dfooter">
+                    <button className="cd-addcart" disabled={!guestName.trim() || guestPhone.replace(/\D/g, '').length < 10} onClick={goStep}>Avançar →</button>
                   </div>
-                ) : (
-                  <>
+                </>
+              )}
+
+              {step === 'entrega' && (
+                <>
+                  <div className="cd-dbody">
+                    <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', marginBottom: 8, fontWeight: 800 }}>Como você quer receber?</div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button className={`cd-paychip ${deliveryType === 'entrega' ? 'active' : ''}`} style={{ flex: 1, marginRight: 0, textAlign: 'center' }} onClick={() => setDeliveryType('entrega')}>🚴 Entrega</button>
+                      <button className={`cd-paychip ${deliveryType === 'retirada' ? 'active' : ''}`} style={{ flex: 1, marginRight: 0, textAlign: 'center' }} onClick={() => setDeliveryType('retirada')}>🏪 Retirar na loja</button>
+                    </div>
+
+                    {deliveryType === 'entrega' ? (
+                      <>
+                        <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', margin: '14px 0 8px', fontWeight: 800 }}>Endereço</div>
+                        <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                          <input className="cd-diinput" style={{ flex: 1 }} value={cep} onChange={e => handleCepChange(e.target.value)} placeholder="CEP" inputMode="numeric" />
+                          <input className="cd-diinput" style={{ width: 90 }} value={numero} onChange={e => handleNumeroChange(e.target.value)} placeholder="Número" />
+                        </div>
+                        {cepLoading && <div style={{ fontSize: 11, color: '#AAA', marginBottom: 6 }}>Buscando endereço...</div>}
+                        {cepError && <div style={{ fontSize: 11, color: '#C43D3D', marginBottom: 6 }}>CEP não encontrado — preenche o endereço direto embaixo</div>}
+                        <input className="cd-diinput" value={address} onChange={e => setAddress(e.target.value)} placeholder="Rua, bairro, complemento" />
+                        {freteLoading && <div style={{ fontSize: 11, color: '#AAA', marginTop: 6 }}>Calculando taxa de entrega...</div>}
+                        {freteBlocked && (
+                          <div style={{ marginTop: 8, padding: '10px 12px', borderRadius: 10, background: '#FBEAEA', color: '#A83232', fontSize: 11.5, fontWeight: 600 }}>
+                            🚫 {freteInfo?.reason || 'Não entregamos nesse endereço no momento.'}
+                          </div>
+                        )}
+                        {!freteLoading && !freteBlocked && freteInfo?.tempo && (
+                          <div style={{ marginTop: 8, fontSize: 11.5, fontWeight: 700, color: '#157A52' }}>
+                            🕒 Chega em {freteInfo.tempo.min}–{freteInfo.tempo.max} min
+                          </div>
+                        )}
+                        {taxaEntrega > 0 && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0 0', fontSize: 12, color: '#555' }}><span>Taxa de entrega</span><span>{fmt(taxaEntrega)}</span></div>
+                        )}
+                        {taxaEntrega === 0 && freteBaseFee > 0 && freteGratisAcima > 0 && cartTotal >= freteGratisAcima && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0 0', fontSize: 12, color: 'var(--open)', fontWeight: 700 }}><span>🎉 Frete grátis</span><span>R$ 0,00</span></div>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <input type="checkbox" checked={agendarRetirada} onChange={e => setAgendarRetirada(e.target.checked)} id="cd-agendar" />
+                          <label htmlFor="cd-agendar" style={{ fontSize: 12, fontWeight: 600 }}>Agendar retirada pra outro dia/horário</label>
+                        </div>
+                        {agendarRetirada && (
+                          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                            <input className="cd-diinput" type="date" value={scheduleDate} onChange={e => setScheduleDate(e.target.value)} />
+                            <input className="cd-diinput" type="time" value={scheduleTime} onChange={e => setScheduleTime(e.target.value)} />
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', margin: '14px 0 8px', fontWeight: 800 }}>Observações (opcional)</div>
+                    <textarea className="cd-diinput" style={{ minHeight: 56, resize: 'vertical' }} value={obs} onChange={e => setObs(e.target.value)} placeholder="Ex: sem cebola, troco pra R$50..." />
+                  </div>
+                  <div className="cd-dfooter">
+                    <button className="cd-addcart" disabled={(deliveryType === 'entrega' && (!address.trim() || freteBlocked)) || (deliveryType === 'retirada' && agendarRetirada && (!scheduleDate || !scheduleTime))} onClick={goStep}>Avançar →</button>
+                  </div>
+                </>
+              )}
+
+              {step === 'pagamento' && (
+                <>
+                  <div className="cd-dbody">
+                    <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', marginBottom: 8, fontWeight: 800 }}>Pagamento</div>
+                    {(company?.loja_payment_methods?.length ? company.loja_payment_methods : ['pix', 'dinheiro', 'cartao_credito']).map(m => (
+                      <button key={m} className={`cd-paychip ${payMethod === m ? 'active' : ''}`} onClick={() => setPayMethod(m)}>{PAYMENT_LABELS[m] || m}</button>
+                    ))}
+
+                    {payMethod === 'dinheiro' && (
+                      <div style={{ marginTop: 10, padding: '10px 12px', background: '#F7F5F0', borderRadius: 10 }}>
+                        <div style={{ fontSize: 11.5, fontWeight: 700, marginBottom: 8 }}>Precisa de troco?</div>
+                        <div style={{ display: 'flex', gap: 8, marginBottom: precisaTroco ? 8 : 0 }}>
+                          <button className={`cd-paychip ${precisaTroco === true ? 'active' : ''}`} style={{ flex: 1, textAlign: 'center', marginRight: 0 }} onClick={() => setPrecisaTroco(true)}>Sim</button>
+                          <button className={`cd-paychip ${precisaTroco === false ? 'active' : ''}`} style={{ flex: 1, textAlign: 'center', marginRight: 0 }} onClick={() => { setPrecisaTroco(false); setTrocoPara('') }}>Não</button>
+                        </div>
+                        {precisaTroco === true && (
+                          <input className="cd-diinput" inputMode="decimal" value={trocoPara} onChange={e => setTrocoPara(e.target.value.replace(/[^0-9,]/g, ''))} placeholder="Troco para quanto? Ex: 50,00" />
+                        )}
+                      </div>
+                    )}
+
+                    {coupons.length > 0 && (
+                      <>
+                        <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', margin: '14px 0 8px', fontWeight: 800 }}>🎟️ Cupom de desconto</div>
+                        {coupons.map(c => {
+                          const eligible = couponEligible(c)
+                          const selected = selectedCouponId === c.id
+                          const falta = Number(c.min_purchase || 0) - cartTotal
+                          return (
+                            <div key={c.id} className={`cd-coupon-card ${eligible ? '' : 'locked'} ${selected ? 'selected' : ''}`}
+                              onClick={() => { if (!eligible) return; setSelectedCouponId(id => id === c.id ? null : c.id) }}>
+                              <div className="cd-coupon-card-icon">{c.discount_type === 'fixed' ? fmt(Number(c.discount_value)) : `${c.discount_value}%`}<br />OFF</div>
+                              <div className="cd-coupon-card-mid">
+                                <div className="cd-coupon-card-title">{c.title}</div>
+                                <div className="cd-coupon-card-sub">
+                                  {eligible ? (selected ? '✓ Aplicado no seu pedido' : `✓ Disponível — seu pedido já passa de ${fmt(Number(c.min_purchase || 0))}`) : `🔒 Faltam ${fmt(falta)} pra liberar (mínimo ${fmt(Number(c.min_purchase || 0))})`}
+                                </div>
+                              </div>
+                              <div className="cd-coupon-card-radio">{!eligible && '🔒'}</div>
+                            </div>
+                          )
+                        })}
+                      </>
+                    )}
+
+                    <div style={{ marginTop: 14, padding: 12, background: '#F7F5F0', borderRadius: 10 }}>
+                      <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', marginBottom: 8, fontWeight: 800 }}>Resumo do pedido</div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}><span>Subtotal</span><span>{fmt(cartTotal)}</span></div>
+                      {taxaEntrega > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}><span>Taxa de entrega</span><span>{fmt(taxaEntrega)}</span></div>
+                      )}
+                      {deliveryType === 'entrega' && taxaEntrega === 0 && freteBaseFee > 0 && freteGratisAcima > 0 && cartTotal >= freteGratisAcima && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4, color: 'var(--open)', fontWeight: 700 }}><span>🎉 Frete grátis</span><span>R$ 0,00</span></div>
+                      )}
+                      {discount > 0 && selectedCoupon && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4, color: 'var(--open)', fontWeight: 700 }}><span>Cupom {selectedCoupon.title}</span><span>− {fmt(discount)}</span></div>
+                      )}
+                      <div className="cd-totalrow" style={{ marginTop: 6, paddingTop: 8 }}><span>Total</span><span>{fmt(orderTotal)}</span></div>
+                    </div>
+                  </div>
+                  <div className="cd-dfooter">
                     {trocoIncompleto && (
                       <div style={{ marginBottom: 8, fontSize: 11.5, color: '#B5690C', fontWeight: 600, textAlign: 'center' }}>
                         {precisaTroco === null ? 'Escolhe se precisa de troco' : `Troco precisa ser pelo menos ${fmt(orderTotal)}`}
@@ -962,25 +1051,22 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
                         ⚠️ {orderError}
                       </div>
                     )}
-                    <div className="cd-checkout-row">
-                      <button type="button" className="cd-addcart cd-addcart-ghost" onClick={() => setDrawerOpen(false)}>Continuar comprando</button>
-                      <button className="cd-addcart" disabled={confirming || (deliveryType === 'entrega' && !address.trim()) || freteBlocked || (agendarRetirada && (!scheduleDate || !scheduleTime)) || abaixoMinimo || trocoIncompleto} onClick={confirmOrder}>{confirming ? 'Enviando...' : 'Finalizar pedido'}</button>
-                    </div>
+                    <button className="cd-addcart" style={{ width: '100%' }} disabled={confirming || trocoIncompleto} onClick={confirmOrder}>{confirming ? 'Enviando...' : `Confirmar pedido — ${fmt(orderTotal)}`}</button>
                     {company.phone && (
-                      <button className="cd-addcart" style={{ width: '100%', background: '#25D366', color: '#fff' }} disabled={sendingWa || trocoIncompleto} onClick={sendCartWhatsapp}>
+                      <button className="cd-addcart" style={{ width: '100%', background: '#25D366', color: '#fff', marginTop: 8 }} disabled={sendingWa || trocoIncompleto} onClick={sendCartWhatsapp}>
                         {sendingWa ? 'Abrindo…' : '📱 Enviar pedido no WhatsApp'}
                       </button>
                     )}
                     {waFallbackUrl && (
                       <a href={waFallbackUrl} target="_blank" rel="noopener noreferrer"
-                        style={{ textAlign: 'center', fontSize: 12, fontWeight: 700, color: '#157A52', padding: '8px 0' }}
+                        style={{ display: 'block', textAlign: 'center', fontSize: 12, fontWeight: 700, color: '#157A52', padding: '8px 0' }}
                         onClick={() => setWaFallbackUrl(null)}>
                         O navegador bloqueou o WhatsApp — toca aqui pra abrir
                       </a>
                     )}
-                  </>
-                )}
-              </div>
+                  </div>
+                </>
+              )}
             </>
           ) : (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 30, gap: 10 }}>

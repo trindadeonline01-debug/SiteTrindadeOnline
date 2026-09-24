@@ -6,7 +6,7 @@ type SwitcherCompany = { id: string; name: string; slug?: string }
 
 export type ShellCompany = {
   id: string; name: string; slug: string
-  loja_digital_enabled: boolean; crm_whatsapp_enabled: boolean; entrega_enabled: boolean
+  loja_digital_enabled: boolean; crm_whatsapp_enabled: boolean; entrega_enabled: boolean; entrega_chamada_automatica: boolean
 }
 
 type PainelShellValue = {

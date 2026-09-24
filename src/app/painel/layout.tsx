@@ -11,7 +11,7 @@ import { useRealtimeResync } from '@/hooks/useRealtimeResync'
 import EmpresaShell, { type EmpresaNavKey } from '@/components/EmpresaShell'
 import { PainelShellContext } from '@/contexts/PainelShellContext'
 
-type ShellCompany = { id: string; name: string; slug: string; loja_digital_enabled: boolean; crm_whatsapp_enabled: boolean; entrega_enabled: boolean }
+type ShellCompany = { id: string; name: string; slug: string; loja_digital_enabled: boolean; crm_whatsapp_enabled: boolean; entrega_enabled: boolean; entrega_chamada_automatica: boolean }
 type SwitcherCompany = { id: string; name: string; slug?: string }
 
 // Rotas que são "modos" de tela cheia (ESPECIFICACAO.md §4.4 — "modo não é
@@ -122,7 +122,7 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
       const { data: profile } = await supabase.from('profiles').select('user_type').eq('id', session.user.id).single()
       const empresaParam = new URLSearchParams(window.location.search).get('empresa')
 
-      const COMPANY_SELECT = 'id,name,slug,loja_digital_enabled,crm_whatsapp_enabled,entrega_enabled,trial_modules_until,loja_auto_aceitar_pedidos,loja_impressora_nome'
+      const COMPANY_SELECT = 'id,name,slug,loja_digital_enabled,crm_whatsapp_enabled,entrega_enabled,entrega_chamada_automatica,trial_modules_until,loja_auto_aceitar_pedidos,loja_impressora_nome'
       let comp: any = null
       const adminOverride = profile?.user_type === 'admin' && !!empresaParam
       if (adminOverride) {
@@ -153,6 +153,7 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
           loja_digital_enabled: adminOverride || moduleActive(comp.loja_digital_enabled, comp.trial_modules_until),
           crm_whatsapp_enabled: adminOverride || moduleActive(comp.crm_whatsapp_enabled, comp.trial_modules_until),
           entrega_enabled: adminOverride || moduleActive(comp.entrega_enabled, comp.trial_modules_until),
+          entrega_chamada_automatica: comp.entrega_chamada_automatica !== false,
         })
         setAutoAceitarState(comp.loja_auto_aceitar_pedidos !== false)
         setPrinterNameState(comp.loja_impressora_nome || '')

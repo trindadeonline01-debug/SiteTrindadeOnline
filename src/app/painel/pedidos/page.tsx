@@ -155,6 +155,11 @@ export default function PedidosPage() {
   const [motoboySel, setMotoboySel] = useState<Record<string, string>>({})
   const [crmEnabled, setCrmEnabled] = useState(false)
   const [entregaEnabled, setEntregaEnabled] = useState(false)
+  // Chavinha por empresa — desliga a chamada AUTOMÁTICA do motoboy da
+  // plataforma (pra quem já tem motoboy próprio); o botão manual "🏍️ Chamar
+  // motoboy" no card do pedido continua sempre disponível, independente
+  // disso (Ricardo, set/2026).
+  const [autoChamarMoto, setAutoChamarMoto] = useState(true)
   const [showPrinterModal, setShowPrinterModal] = useState(false)
   const [printerModalMode, setPrinterModalMode] = useState<'qz' | 'rawbt'>('qz')
   const [qzStatus, setQzStatus] = useState<'idle' | 'connecting' | 'connected' | 'error'>('idle')
@@ -222,6 +227,7 @@ export default function PedidosPage() {
       setCompanyName(company.name)
       setCrmEnabled(company.crm_whatsapp_enabled)
       setEntregaEnabled(company.entrega_enabled)
+      setAutoChamarMoto(company.entrega_chamada_automatica)
       const { data: mb } = await supabase.from('loja_motoboys').select('*').eq('company_id', company.id).order('created_at')
       setMotoboys((mb || []) as LojaMotoboy[])
       await loadAll(company.id, selectedDate)
@@ -338,7 +344,7 @@ export default function PedidosPage() {
   // Assim que o pedido entra em preparo, já chama o motoboy — ele viaja até
   // a loja enquanto o prato fica pronto, em vez de ficar esperando parado.
   function maybeAutoChamarMotoboy(pedido: Pedido) {
-    if (entregaEnabled && pedido.delivery_type === 'entrega' && pedido.delivery_address && !deliveryCalled.has(pedido.id)) {
+    if (entregaEnabled && autoChamarMoto && pedido.delivery_type === 'entrega' && pedido.delivery_address && !deliveryCalled.has(pedido.id)) {
       chamarMotoboy(pedido)
     }
   }
@@ -397,6 +403,15 @@ export default function PedidosPage() {
   }
 
   function toggleAutoAceitar() { setAutoAceitar(!autoAceitar) }
+
+  // Persiste na própria empresa (não é preferência de aparelho como
+  // autoAceitar/impressora) — o disparo automático roda no servidor
+  // (registrar-pedido), então precisa estar no banco pra ele conseguir ler.
+  async function toggleAutoChamarMoto() {
+    const next = !autoChamarMoto
+    setAutoChamarMoto(next)
+    await supabase.from('companies').update({ entrega_chamada_automatica: next }).eq('id', companyId)
+  }
 
   async function printPedido(p: Pedido) {
     if (!printerName) { setShowPrinterModal(true); return }
@@ -906,6 +921,12 @@ export default function PedidosPage() {
             <label className="pd-auto-pill" title="Aceitar pedidos automaticamente">
               <div className={`pd-switch ${autoAceitar ? 'on' : ''}`} onClick={toggleAutoAceitar}><div className="k" /></div>
             </label>
+            {entregaEnabled && (
+              <label className="pd-auto-pill" title="Chamar motoboy da plataforma automaticamente">
+                <span>🏍️</span>
+                <div className={`pd-switch ${autoChamarMoto ? 'on' : ''}`} onClick={toggleAutoChamarMoto}><div className="k" /></div>
+              </label>
+            )}
           </div>
           <div className="pd-head-right">
             {isToday && <button className="pd-new-pill" onClick={openNovoPedido} title="Novo pedido">+</button>}
@@ -951,6 +972,12 @@ export default function PedidosPage() {
           <div className={`pd-switch ${autoAceitar ? 'on' : ''}`} onClick={toggleAutoAceitar}><div className="k" /></div>
           Aceitar pedidos automaticamente
         </label>
+        {entregaEnabled && (
+          <label className="pd-autotoggle" title="Desliga se a loja já usa motoboy próprio — o botão 'Chamar motoboy' do card continua disponível de qualquer jeito">
+            <div className={`pd-switch ${autoChamarMoto ? 'on' : ''}`} onClick={toggleAutoChamarMoto}><div className="k" /></div>
+            🏍️ Chamar motoboy da plataforma automático
+          </label>
+        )}
         <button className="pd-printer-pill" onClick={openPrinterModal} style={printerName ? { background: '#E4F3EC', color: '#157A52', borderColor: '#B7DFC9' } : {}}>
           🖨️ {printerName ? `Impressora: ${isRawBtMode(printerName) ? 'RawBT (tablet)' : printerName}` : 'Configurar impressora'}
         </button>

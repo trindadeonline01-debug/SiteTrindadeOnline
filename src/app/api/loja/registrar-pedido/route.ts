@@ -201,7 +201,13 @@ export async function POST(req: NextRequest) {
     // KNOWLEDGE_BASE.md §10). Import dinâmico + try/catch aqui garante que,
     // se esse módulo falhar de novo, só ele quebra — o resto da rota (que já
     // rodou acima) não é afetado.
-    if (deliveryType === 'entrega' && address && pedidoId) {
+    // Chavinha por empresa (Admin → Pedidos) — quem já tem motoboy próprio
+    // pode desligar a chamada automática da plataforma sem perder o botão
+    // manual "🏍️ Chamar motoboy" do card do pedido, que continua igual
+    // (chama criarEntregaEChamarMotoboy direto por /api/entrega/criar, sem
+    // passar por aqui). Pedido do Ricardo, set/2026.
+    const { data: autoConfig } = await supabase.from('companies').select('entrega_chamada_automatica').eq('id', companyId).maybeSingle()
+    if (deliveryType === 'entrega' && address && pedidoId && autoConfig?.entrega_chamada_automatica !== false) {
       try {
         const { criarEntregaEChamarMotoboy } = await import('@/lib/entregaDispatch')
         await criarEntregaEChamarMotoboy({

@@ -206,6 +206,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
+    // Motoboy preferencial — sempre o primeiro chamado antes do round-robin
+    // (pedido do Ricardo, set/2026). Só um por vez: marcar um desmarca
+    // qualquer outro, pra não ficar ambíguo quem é "o preferencial".
+    if (action === 'toggle_priority') {
+      const { id, priority } = body
+      if (!(await requireAdmin(body.access_token))) return NextResponse.json({ error: 'acesso negado' }, { status: 403 })
+      if (!id) return NextResponse.json({ error: 'id obrigatório' }, { status: 400 })
+      if (priority) await supabase.from('motoboys').update({ priority: false }).neq('id', id)
+      const { error } = await supabase.from('motoboys').update({ priority: !!priority }).eq('id', id)
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ ok: true })
+    }
+
     if (action === 'delete') {
       const { id } = body
       if (!(await requireAdmin(body.access_token))) return NextResponse.json({ error: 'acesso negado' }, { status: 403 })

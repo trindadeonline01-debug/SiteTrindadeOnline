@@ -24,7 +24,7 @@ export { sendPlatformWhatsApp, sendMotoboyWhatsApp, sendPlatformWhatsAppImage, s
 // mesma entrega. Entre os elegíveis, chama primeiro quem está há mais
 // tempo sem corrida (round-robin simples — sem geolocalização ainda).
 async function pickNextMotoboy(deliveryOrderId: string, opts?: { ignoreAlreadyTried?: boolean }): Promise<{ id: string; name: string; phone: string } | null> {
-  const { data: active } = await supabase.from('motoboys').select('id, name, phone').eq('active', true).eq('available', true).eq('status', 'aprovado')
+  const { data: active } = await supabase.from('motoboys').select('id, name, phone, priority').eq('active', true).eq('available', true).eq('status', 'aprovado')
   if (!active || active.length === 0) return null
 
   const { data: pending } = await supabase.from('delivery_offers').select('motoboy_id').eq('status', 'pendente')
@@ -42,7 +42,9 @@ async function pickNextMotoboy(deliveryOrderId: string, opts?: { ignoreAlreadyTr
   const lastMap = new Map<string, number>()
   for (const o of lastOffers || []) if (!lastMap.has(o.motoboy_id)) lastMap.set(o.motoboy_id, new Date(o.offered_at).getTime())
 
-  eligible.sort((a, b) => (lastMap.get(a.id) || 0) - (lastMap.get(b.id) || 0))
+  // Motoboy marcado como preferencial (admin → Entregas → Motoboys) sempre
+  // vem primeiro, antes do round-robin — pedido do Ricardo, set/2026.
+  eligible.sort((a, b) => (b.priority ? 1 : 0) - (a.priority ? 1 : 0) || (lastMap.get(a.id) || 0) - (lastMap.get(b.id) || 0))
   return eligible[0]
 }
 
@@ -65,13 +67,17 @@ function shortMapsLink(deliveryOrderId: string, tipo: 'r' | 'd'): string {
 // segundos quem é quem, em vez de vasculhar o endereço pra reconhecer o
 // ponto de retirada (pedido do Ricardo, set/2026). Endereço e link também
 // cada um na sua linha — nada dividendo espaço com o rótulo antes.
-function offerMessage(order: { pickup_address: string; dropoff_address: string; customer_name: string; fee: number }, deliveryOrderId: string, companyName: string): string {
+function offerMessage(order: { pickup_address: string; dropoff_address: string; customer_name: string; fee: number }, deliveryOrderId: string, companyName: string, prepMin: number): string {
   const fee = Number(order.fee).toFixed(2).replace('.', ',')
   const lines = ['🏍️ *Tem entrega!*', '', '📍 Retirar em:']
   if (companyName) lines.push(`*${companyName.toUpperCase()}*`)
   lines.push(
     order.pickup_address,
     shortMapsLink(deliveryOrderId, 'r'),
+    '',
+    // Prazo de preparo em negrito e linha própria — é o que diz pro motoboy
+    // até quando ele tem pra chegar na loja (pedido do Ricardo, set/2026).
+    `*⏱️ Fica pronto em ${prepMin} min — chega até lá!*`,
     '',
     `🏠 Entregar pra ${order.customer_name}:`,
     order.dropoff_address,
@@ -183,10 +189,13 @@ export async function criarEntregaEChamarMotoboy(opts: {
 // estado de nenhuma entrega de verdade).
 async function sendOfferMessage(order: { company_id: string; pickup_address: string; dropoff_address: string; customer_name: string; fee: number }, deliveryOrderId: string, motoboyPhone: string) {
   const [{ data: company }, { data: photo }] = await Promise.all([
-    supabase.from('companies').select('name').eq('id', order.company_id).maybeSingle(),
+    supabase.from('companies').select('name, loja_tempo_preparo_min').eq('id', order.company_id).maybeSingle(),
     supabase.from('company_photos').select('url').eq('company_id', order.company_id).order('order').limit(1).maybeSingle(),
   ])
-  const text = offerMessage(order, deliveryOrderId, company?.name || '')
+  // Mesmo fallback de 20min usado no cálculo de frete (/api/loja/calcular-frete)
+  // quando a loja não configurou o próprio tempo de preparo.
+  const prepMin = company?.loja_tempo_preparo_min || 20
+  const text = offerMessage(order, deliveryOrderId, company?.name || '', prepMin)
 
   // Foto da loja (recortada em banner achatado) como preview visual — se
   // não tiver foto cadastrada, se o recorte falhar, ou se o envio de mídia

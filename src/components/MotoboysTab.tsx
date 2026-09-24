@@ -13,7 +13,7 @@ interface Motoboy {
   cnh_photo_url: string | null; moto_frente_photo_url: string | null; moto_tras_photo_url: string | null
   documento_moto_photo_url: string | null; selfie_photo_url: string | null
   pix_key: string | null; pix_key_type: string | null; status: Status
-  active: boolean; available: boolean; created_at: string; terms: TermsInfo | null
+  active: boolean; available: boolean; priority: boolean; created_at: string; terms: TermsInfo | null
   entregas_semana: number; a_receber: number; ja_recebido: number
 }
 
@@ -261,6 +261,17 @@ export default function MotoboysTab() {
     load()
   }
 
+  async function togglePriority(m: Motoboy) {
+    setBusyId(m.id)
+    const { token } = await authHeader()
+    await fetch('/api/motoboys', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'toggle_priority', access_token: token, id: m.id, priority: !m.priority }),
+    })
+    setBusyId(null)
+    load()
+  }
+
   async function testarOferta(m: Motoboy) {
     setTestingId(m.id)
     const { token } = await authHeader()
@@ -471,7 +482,7 @@ export default function MotoboysTab() {
                 )}
                 <div style={{ minWidth: 0 }}>
                   <div style={s.name}>
-                    {m.name}{' '}
+                    {m.priority && <span title="Motoboy preferencial — sempre o primeiro chamado">⭐</span>} {m.name}{' '}
                     <span style={s.pill(m.available)}>{m.available ? 'Disponível' : 'Ausente'}</span>
                     {m.status === 'pendencia' && <span style={{ ...s.badge('#FEF3E2', '#92600A'), marginLeft: 6 }}>pendência aberta</span>}
                     {!m.active && <span style={{ ...s.badge('#FBEAEA', '#C43D3D'), marginLeft: 6 }}>bloqueado</span>}
@@ -489,6 +500,7 @@ export default function MotoboysTab() {
                 <button style={s.btnGhostSm} onClick={() => editingId === m.id ? setEditingId(null) : startEdit(m)}>{editingId === m.id ? '✕ Fechar' : '✎ Editar'}</button>
                 <button style={s.btnGhostSm} disabled={testingId === m.id} onClick={() => testarOferta(m)}>{testingId === m.id ? 'Enviando...' : '📨 Testar oferta'}</button>
                 <button style={s.btnGhostSm} disabled={busyId === m.id} onClick={() => toggleActive(m)}>{m.active ? '⏸ Pausar' : '▶ Ativar'}</button>
+                <button style={m.priority ? { ...s.btnGhostSm, borderColor: '#FFC531', background: '#FFF3D6' } : s.btnGhostSm} disabled={busyId === m.id} onClick={() => togglePriority(m)}>{m.priority ? '⭐ Preferencial' : '☆ Tornar preferencial'}</button>
                 <button style={{ ...s.btnGhostSm, borderColor: '#FBEAEA', color: '#C43D3D' }} disabled={busyId === m.id} onClick={() => deleteMotoboy(m)}>🗑 Excluir</button>
                 {m.terms && <button style={s.btnGhostSm} onClick={() => setLightbox({ url: m.terms!.pdf_url, label: `Termo assinado — ${m.terms!.nome_digitado}` })}>📄 Termo assinado</button>}
               </div>

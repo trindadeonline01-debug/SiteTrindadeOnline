@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { sendMotoboyWhatsApp } from '@/lib/entregaDispatch'
+import { sendMotoboyWhatsApp } from '@/lib/whatsapp'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,

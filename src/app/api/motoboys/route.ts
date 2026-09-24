@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import crypto from 'crypto'
-import { sendMotoboyWhatsApp } from '@/lib/entregaDispatch'
+import { sendMotoboyWhatsApp } from '@/lib/whatsapp'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -12,10 +12,7 @@ const supabaseAuth = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-// Roda em Node.js (não Edge) e nunca cacheado — precisa ser explícito porque
-// esse arquivo importa entregaDispatch.ts, que importa sharp (binário
-// nativo, só funciona no runtime Node.js da Vercel — ver next.config.ts).
-export const runtime = 'nodejs'
+// Nunca cacheado — sempre busca a lista atual de motoboys.
 export const dynamic = 'force-dynamic'
 
 async function requireAdmin(accessToken: string | undefined): Promise<boolean> {

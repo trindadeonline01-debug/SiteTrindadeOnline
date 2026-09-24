@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { sendMotoboyWhatsApp } from '@/lib/entregaDispatch'
+import { sendMotoboyWhatsApp } from '@/lib/whatsapp'
 import { notifyAdmin } from '@/lib/notifyAdmin'
 
 const supabase = createClient(

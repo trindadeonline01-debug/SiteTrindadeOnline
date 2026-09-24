@@ -38,10 +38,13 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
   }, [])
   const [search, setSearch] = useState('')
   const [cart, setCart] = useState<CartLine[]>([])
+  // Só passa a persistir depois que o efeito de montagem já tentou restaurar
+  // o carrinho salvo — sem essa trava, o primeiro render (cart ainda [])
+  // apagaria do localStorage o carrinho que esse mesmo efeito de montagem
+  // está prestes a devolver pro state.
+  const hydratedRef = useRef(false)
   // Mantém o ícone de carrinho global (TopNav/MobileMenu) em dia enquanto
-  // o cliente navega e mexe no carrinho aqui dentro — o carrinho em si vive
-  // só nesse state, não no localStorage, então sem isso o ícone ficava
-  // desatualizado assim que o cliente mudasse alguma coisa nessa tela.
+  // o cliente navega e mexe no carrinho aqui dentro.
   useEffect(() => {
     if (!company) return
     setActiveCart(slug, company.name, cart.reduce((s, l) => s + l.qty, 0), cart.reduce((s, l) => s + l.unitPrice * l.qty, 0))
@@ -74,6 +77,25 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
   const [selectedCouponId, setSelectedCouponId] = useState<string | null>(null)
   const [freteInfo, setFreteInfo] = useState<FreteInfo | null>(null)
   const [freteLoading, setFreteLoading] = useState(false)
+
+  // O carrinho em si (itens, endereço, forma de pagamento...) só ficava em
+  // memória — sumia sozinho em qualquer atualização de página (F5) ou ao
+  // navegar de volta pra cá pelo ícone do carrinho, mesmo o badge no topo
+  // continuando a mostrar a contagem antiga (achado do Ricardo, set/2026).
+  // Agora fica salvo por loja em cardapio_cart_<slug> a cada mudança, e
+  // limpo sozinho quando o carrinho esvazia (pedido enviado ou removido).
+  useEffect(() => {
+    if (!hydratedRef.current) return
+    try {
+      if (cart.length > 0) {
+        localStorage.setItem(cartStorageKey(slug), JSON.stringify({
+          cart, deliveryType, cep, numero, cepData, address, agendarRetirada, scheduleDate, scheduleTime, obs, payMethod, precisaTroco, trocoPara,
+        }))
+      } else {
+        localStorage.removeItem(cartStorageKey(slug))
+      }
+    } catch {}
+  }, [cart, deliveryType, cep, numero, cepData, address, agendarRetirada, scheduleDate, scheduleTime, obs, payMethod, precisaTroco, trocoPara, slug])
 
   function getCompanyCover(photos?: { url: string; order: number }[]): string | null {
     if (!photos?.length) return null
@@ -145,10 +167,14 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
           setTrocoPara(parsed.trocoPara || '')
           setDrawerOpen(true)
           restoredCart = true
+        } else {
+          // Lixo (formato antigo, JSON quebrado, carrinho já vazio) — não
+          // deixa acumular no localStorage à toa.
+          localStorage.removeItem(cartStorageKey(slug))
         }
-        localStorage.removeItem(cartStorageKey(slug))
       }
     } catch {}
+    hydratedRef.current = true
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session || restoredCart) return

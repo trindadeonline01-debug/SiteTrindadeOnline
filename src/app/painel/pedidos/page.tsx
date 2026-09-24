@@ -274,7 +274,16 @@ export default function PedidosPage() {
         loadAll(companyIdRef.current, selectedDate)
       })
       .subscribe()
-    return () => { supabase.removeChannel(channel) }
+    // Rede de segurança: o canal realtime pode perder um evento sem nenhum
+    // sinal de erro (achado real do Ricardo, set/2026, loja Satoshi — pedido
+    // chegou, a impressora rodou — prova que o evento existiu — mas essa
+    // tela não atualizou sozinha, só com F5). useRealtimeResync já cobre
+    // "aba saiu e voltou", mas essa falha aconteceu com a tela ligada o
+    // tempo todo, sem nenhuma dessas transições pra disparar a reconexão.
+    // Rebusca a cada 20s garante que, na pior das hipóteses, a tela se
+    // corrige sozinha rápido, sem depender do realtime ter funcionado.
+    const pollIv = setInterval(() => loadAll(companyIdRef.current, selectedDate), 20000)
+    return () => { supabase.removeChannel(channel); clearInterval(pollIv) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [companyId, resyncTick, selectedDate])
 

@@ -187,7 +187,7 @@ export async function criarEntregaEChamarMotoboy(opts: {
 // que antes registra a oferta em delivery_offers) quanto pelo botão de
 // teste do admin (que só quer ver como a mensagem chega, sem mexer no
 // estado de nenhuma entrega de verdade).
-async function sendOfferMessage(order: { company_id: string; pickup_address: string; dropoff_address: string; customer_name: string; fee: number }, deliveryOrderId: string, motoboyPhone: string) {
+async function sendOfferMessage(order: { company_id: string; pickup_address: string; dropoff_address: string; customer_name: string; fee: number }, deliveryOrderId: string, motoboyPhone: string): Promise<{ ok: boolean; detail?: string }> {
   const [{ data: company }, { data: photo }] = await Promise.all([
     supabase.from('companies').select('name, loja_tempo_preparo_min').eq('id', order.company_id).maybeSingle(),
     supabase.from('company_photos').select('url').eq('company_id', order.company_id).order('order').limit(1).maybeSingle(),
@@ -206,7 +206,13 @@ async function sendOfferMessage(order: { company_id: string; pickup_address: str
     const bannerUrl = await buildDeliveryBanner(photo.url, order.company_id)
     sentAsImage = (await sendPlatformWhatsAppImage(motoboyPhone, bannerUrl || photo.url, text)).ok
   }
-  if (!sentAsImage) await sendMotoboyWhatsApp(motoboyPhone, text)
+  // Antes o resultado desse envio era descartado — "Testar oferta" sempre
+  // dizia que tinha mandado, mesmo quando a Evolution API falhava de
+  // verdade (instância caída, número errado etc). Agora devolve pra quem
+  // chamou saber e mostrar o erro real (Ricardo, set/2026 — clicou em
+  // "Testar oferta" e não chegou nada, sem nenhum aviso de erro).
+  if (!sentAsImage) return sendMotoboyWhatsApp(motoboyPhone, text)
+  return { ok: true }
 }
 
 // Chama o próximo motoboy disponível pra essa entrega — usado na criação e
@@ -234,7 +240,11 @@ export async function offerToNextMotoboy(deliveryOrderId: string, sequenceNo: nu
     delivery_order_id: deliveryOrderId, motoboy_id: motoboy.id, sequence_no: sequenceNo, status: 'pendente', expires_at: expiresAt,
   })
 
-  await sendOfferMessage(order, deliveryOrderId, motoboy.phone)
+  const sent = await sendOfferMessage(order, deliveryOrderId, motoboy.phone)
+  // Se o envio falhar de verdade (Evolution fora do ar, etc), a oferta
+  // continua pendente e só expira em 45s pro próximo motoboy — sem isso
+  // registrado, essa falha nunca aparecia em lugar nenhum pra investigar.
+  if (!sent.ok) console.error(`[offerToNextMotoboy] falha ao mandar oferta pro motoboy ${motoboy.id}:`, sent.detail)
 }
 
 // Reenvia a mensagem de uma entrega já existente (qualquer status) pro
@@ -246,7 +256,8 @@ export async function sendTestOfferMessage(deliveryOrderId: string, motoboyPhone
     .from('delivery_orders').select('company_id, pickup_address, dropoff_address, customer_name, fee')
     .eq('id', deliveryOrderId).maybeSingle()
   if (!order) return { ok: false, error: 'entrega não encontrada' }
-  await sendOfferMessage(order, deliveryOrderId, motoboyPhone)
+  const sent = await sendOfferMessage(order, deliveryOrderId, motoboyPhone)
+  if (!sent.ok) return { ok: false, error: sent.detail || 'falha ao mandar pro WhatsApp' }
   return { ok: true }
 }
 

@@ -453,17 +453,13 @@ DELETE FROM companies WHERE slug LIKE '%-teste';
     - Ainda sem desenho de schema — precisa decidir se reaproveita `loja_pedidos.motoboy_id` (já existe) mais um campo de código/confirmado_em, ou se cria tabela própria tipo `loja_entregas_confirmadas`. Implica migração — pedir confirmação antes de aplicar, conforme regra padrão.
 12. **Novo modelo de monetização — mensalidade única + reforma da economia de entrega** (discutido com Ricardo, set/2026 — "segura um momento e já documenta essa ação". Detalha e substitui a observação solta que estava no item 9. **Frente A ainda não implementada** — aguardando a decisão pendente abaixo antes de mexer em schema/cobrança. **Frente B já implementada** — ver detalhes no final da subseção, aprovada por Ricardo com "Frente B ok tb".)
 
-    **Mensalidade (substitui o Plano Visibilidade atual, R$49,90/mês)**
-    - Plano único de R$199,00/mês dá acesso completo à plataforma (CRM, cardápio, mensagens, entrega — tudo), independente de a empresa usar entrega própria ou a da plataforma
-    - Cada empresa nova ganha N meses grátis antes de começar a cobrar (N configurável no admin, ex: 1, 2, 3, 6...) — depois disso, cobra o valor cheio direto, **sem rampa de valores crescentes**. A ideia inicial (degraus 49,90 → 99 → 149,90 → 199 conforme o mês) foi descartada por decisão do Ricardo: *"melhor não termos a rampa de valores... melhor negociar meses sem cobrar mesmo"*
+    **Mensalidade — dois planos permanentes, não substituição (decisão revista, set/2026)**
+    - **Plano Básico — R$49,90/mês**: continua existindo, permanente, pra quem quer só estar visível e ser contatado (WhatsApp/contato liberado) — **sem** cardápio, **sem** entrega, **sem** CRM. Não é "legado"/descontinuado — é o Plano Visibilidade atual, renomeado no conceito mas mantido no preço, e continua disponível pra quem assina de novo também, não só pra quem já paga hoje. Decisão do Ricardo: *"A Assinatura do 49,90 vamos manter para quem quer ter apenas os contatos disponíveis, sem cardápio, sem entrega e sem crm"*
+    - **Plano Completo — R$199,00/mês**: acesso a tudo (CRM, cardápio, mensagens, entrega), independente de a empresa usar entrega própria ou a da plataforma
+    - Cada empresa nova ganha N meses grátis do Completo antes de começar a cobrar (N configurável no admin, ex: 1, 2, 3, 6...) — depois disso, cobra o valor cheio direto, **sem rampa de valores crescentes**. A ideia inicial (degraus 49,90 → 99 → 149,90 → 199 conforme o mês) foi descartada por decisão do Ricardo: *"melhor não termos a rampa de valores... melhor negociar meses sem cobrar mesmo"*
     - Nº de meses grátis: regra geral configurável no admin, com override individual por empresa (só o **número de meses**, não um valor de mensalidade customizado por empresa — decisão tomada pra não duplicar a complexidade de uma rampa por empresa)
     - Cobrança **tem que ser automática** (Ricardo: *"não dá pra ser manual"*) — reaproveitar o motor que já existe pro Plano Visibilidade (`/api/mp/create-charge` + webhook Mercado Pago), só trocando o valor/regra de quando cobra. Não criar mecanismo de cobrança novo do zero.
-    - **Pendente — decisão do Ricardo antes de implementar qualquer coisa:** o que acontece com quem já paga R$49,90/mês hoje?
-      1. Sobe pra R$199 na próxima renovação, automaticamente
-      2. Fica "legado" no R$49,90 enquanto continuar renovando; só quem entra daqui pra frente paga R$199
-      3. Decisão caso a caso, sem regra automática
-
-      Isso muda o que precisa ser construído (se existe conceito de "plano legado" por empresa no schema ou não) — não mexer em nada de cobrança até essa resposta vir.
+    - Com os dois planos coexistindo, a pergunta antiga ("o que acontece com quem já paga R$49,90 hoje?") muda de figura: quem só quer contato fica no Básico normalmente, sem upgrade forçado; upgrade pro Completo só acontece se a própria empresa quiser cardápio/entrega/CRM. **Ainda falta decidir**: se o valor do Completo (R$199) muda pra quem já é assinante do Básico e decide fazer upgrade (desconto de transição?) ou é o preço cheio igual pra todo mundo — não implementar cobrança/checkout do Completo até essa parte ser confirmada com o Ricardo.
 
     **Economia de entrega (Trindade Entrega) — "Frente B", implementada em set/2026, aprovada por Ricardo ("Frente B ok tb")**
     1. ✅ Diária cobrada em **qualquer** entrega confirmada no dia, não só avulsa — pedido vindo do cardápio/checkout da própria plataforma agora também paga diária normalmente

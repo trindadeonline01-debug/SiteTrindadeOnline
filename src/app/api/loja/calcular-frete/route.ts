@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { normalizeBairro, BAIRROS_SAO_GONCALO } from '@/lib/bairrosSaoGoncalo'
+import { moduleActive } from '@/lib/modules'
+import { getEntregaFeeForDelivery } from '@/lib/entregaPricing'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -9,6 +11,19 @@ const supabase = createClient(
 
 type Endereco = { bairro?: string; cidade?: string; uf?: string; logradouro?: string; numero?: string }
 type CompanyRow = { id: string; loja_lat: number | null; loja_lng: number | null; loja_tempo_preparo_min: number | null }
+
+// Monta o texto do endereço do jeito que o motor de preço da plataforma
+// espera (uma string só) — mesma lógica de junção usada em geocodeAndMatrix
+// abaixo, só que aqui fica disponível pro branch da taxa do admin também,
+// que não passa pelo geocode (o método "bairro" da plataforma casa o nome
+// do bairro direto no texto, sem precisar de coordenadas).
+function buildEnderecoTexto(endereco: Endereco, enderecoLivre?: string): string {
+  const partes = [
+    endereco.logradouro && endereco.numero ? `${endereco.logradouro}, ${endereco.numero}` : endereco.logradouro,
+    endereco.bairro, endereco.cidade && endereco.uf ? `${endereco.cidade} - ${endereco.uf}` : endereco.cidade,
+  ].filter(Boolean)
+  return partes.length > 0 ? partes.join(', ') : (enderecoLivre || '')
+}
 
 // Cliente logado tem o endereço pré-preenchido a partir do perfil (texto
 // livre salvo antes, sem passar pelo CEP) — nesse caso não existe bairro
@@ -40,7 +55,7 @@ export async function POST(req: NextRequest) {
 
     const { data: company } = await supabase
       .from('companies')
-      .select('id, loja_taxa_metodo, loja_taxa_entrega, loja_taxa_fora_area, loja_lat, loja_lng, loja_tempo_preparo_min')
+      .select('id, loja_taxa_metodo, loja_taxa_entrega, loja_taxa_fora_area, loja_lat, loja_lng, loja_tempo_preparo_min, entrega_enabled, trial_modules_until')
       .eq('id', company_id)
       .maybeSingle()
     if (!company) return NextResponse.json({ error: 'empresa não encontrada' }, { status: 404 })
@@ -58,6 +73,21 @@ export async function POST(req: NextRequest) {
     // requisição à API.
     const trajeto = await geocodeAndMatrix(company, endereco, enderecoLivre)
     const tempo = buildTempo(company.loja_tempo_preparo_min, trajeto?.durationMin ?? null)
+
+    // Quem entrega é o motoboy da PLATAFORMA (módulo Entrega ativo) — quem
+    // determina o preço que o cliente paga tem que ser o admin, não a loja:
+    // é o admin quem organiza/banca essa entrega, a loja não tem como saber
+    // (nem deveria decidir) quanto custa um motoboy que não é dela. Só cai
+    // na taxa da própria loja (abaixo) quando ela usa motoboy próprio, ou
+    // seja, quando esse módulo está desligado. Pedido do Ricardo, set/2026,
+    // "urgente" — Roberta pediu entrega numa loja com Entrega ativo e saiu
+    // cobrando R$0 porque a loja nunca configurou taxa própria, sem nem
+    // olhar pra taxa do admin que já existe cadastrada.
+    if (moduleActive(company.entrega_enabled, company.trial_modules_until)) {
+      const enderecoTexto = buildEnderecoTexto(endereco, enderecoLivre)
+      const { fee, blocked, reason } = await getEntregaFeeForDelivery(enderecoTexto, { loja_lat: company.loja_lat, loja_lng: company.loja_lng })
+      return NextResponse.json({ ok: true, method: 'admin', blocked, fee, reason, tempo })
+    }
 
     if (company.loja_taxa_metodo === 'distancia') {
       const result = await calcularPorDistancia(company, flatFallback, trajeto)

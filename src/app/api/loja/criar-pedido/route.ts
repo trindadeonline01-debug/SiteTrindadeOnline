@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { sendPlatformWhatsApp } from '@/lib/whatsapp'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -122,6 +123,36 @@ export async function POST(req: NextRequest) {
         }),
       }).catch(() => {})
     }
+
+    // Alerta pro(s) admin(s) da plataforma em TODO pedido novo, de
+    // qualquer loja — push (mesma musiquinha que ele já recebe hoje como
+    // admin) + WhatsApp da instância da plataforma. Pedido do Ricardo,
+    // set/2026: quer saber na hora, independente de qual loja for, sem
+    // precisar ficar de olho em cada painel separado.
+    ;(async () => {
+      try {
+        const { data: admins } = await supabase.from('profiles').select('id, phone').eq('user_type', 'admin')
+        if (!admins?.length) return
+        const origin = new URL(req.url).origin
+        const valorFmt = `R$ ${Number(total || 0).toFixed(2).replace('.', ',')}`
+        const pushUrl = `${origin}/painel/pedidos?empresa=${companyId}`
+        for (const admin of admins) {
+          fetch(new URL('/api/push/send', req.url), {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              title: `🔔 Novo pedido — ${company.name}`,
+              body: `${finalName || 'Cliente'} pediu ${valorFmt}`,
+              target: 'external_user_id', userId: admin.id, url: pushUrl,
+            }),
+          }).catch(() => {})
+          if (admin.phone) {
+            sendPlatformWhatsApp(admin.phone, `🔔 *Novo pedido na Trindade Online!*\n\nLoja: *${company.name}*\nCliente: ${finalName || 'Cliente'}\nValor: ${valorFmt}\n\n${pushUrl}`).catch(() => {})
+          }
+        }
+      } catch (err) {
+        console.error('[criar-pedido] falha ao notificar admin', err)
+      }
+    })()
 
     return NextResponse.json({ ok: true, pedidoId: pedido.id })
   } catch (err: any) {

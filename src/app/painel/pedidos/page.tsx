@@ -64,6 +64,23 @@ const ORIGIN_INFO: Record<string, { label: string; bg: string; fg: string }> = {
   balcao: { label: '🏪 Balcão', bg: '#F0EDE8', fg: '#6E6656' },
 }
 function originInfo(origin: string) { return ORIGIN_INFO[origin] || { label: origin, bg: '#F0EDE8', fg: '#6E6656' } }
+const PAY_LABEL: Record<string, string> = { pix: '💳 Pix', dinheiro: '💵 Dinheiro', cartao: '💳 Cartão' }
+function payLabel(m: string | null) { return m ? (PAY_LABEL[m] || `💳 ${m}`) : '💳 —' }
+// Containerzinho dividido ao meio — forma de pagamento de um lado, status do
+// outro — reaproveitado tanto no resumo (card fechado) quanto no detalhe
+// (card aberto, perto do item), pedido do Ricardo, set/2026.
+function PaymentPill({ p, payUnpaidAfterDelivery, onToggle }: { p: Pedido; payUnpaidAfterDelivery: boolean; onToggle: (e: React.MouseEvent) => void }) {
+  const pago = p.payment_status === 'pago'
+  const bg = pago ? '#E4F3EC' : payUnpaidAfterDelivery ? '#FBEAEA' : '#FEF6DC'
+  const leftColor = pago ? '#0F5C3C' : payUnpaidAfterDelivery ? '#8A251F' : '#6B4A0A'
+  const rightColor = pago ? '#157A52' : payUnpaidAfterDelivery ? '#C43D3D' : '#8A6410'
+  return (
+    <div className="pd-pillrow pd-pillrow-click" style={{ background: bg }} onClick={onToggle} title="Toca pra marcar como pago/pendente">
+      <div className="pd-pillhalf" style={{ color: leftColor }}>{payLabel(p.payment_method)}</div>
+      <div className="pd-pillhalf" style={{ color: rightColor }}>{pago ? '✓ Pago' : '⚠ Cobrar na entrega'}</div>
+    </div>
+  )
+}
 const STATUS_COLOR: Record<Status, { bg: string; fg: string }> = {
   recebido: { bg: '#FEF0E0', fg: '#B5690C' }, em_preparo: { bg: '#FEF6DC', fg: '#8A6410' },
   pronto: { bg: '#E4F3EC', fg: '#157A52' }, saiu_entrega: { bg: '#E8F0FE', fg: '#1A56B0' },
@@ -644,48 +661,47 @@ export default function PedidosPage() {
           </div>
         </div>
         {late && <div className="pd-late-flag">⚠ Parado há mais de {LATE_THRESHOLD_MIN}min sem avançar</div>}
-        <div className="pd-sum">
-          {p.itens?.length || 0} {p.itens?.length === 1 ? 'item' : 'itens'} · {p.payment_method || '—'} · {p.delivery_type === 'entrega' ? '🚴 Entrega' : p.delivery_type === 'balcao' ? '🧾 Balcão' : '🏪 Retirada'}
+        {/* Containerzinhos divididos ao meio, cada um com sua cor conforme o
+            significado, em vez das pílulas soltas de tamanhos diferentes
+            (e do texto pequeno "1 item · pix · Entrega") que existiam antes
+            — pedido do Ricardo, set/2026: "organiza melhor visualmente". */}
+        <div className="pd-pillrow" style={{ background: '#F7F5F0' }}>
+          <div className="pd-pillhalf" style={{ color: '#3A342A' }}>📦 {p.itens?.length || 0} {p.itens?.length === 1 ? 'item' : 'itens'}</div>
+          <div className="pd-pillhalf" style={{ color: '#3A342A' }}>{p.delivery_type === 'entrega' ? '🚴 Entrega' : p.delivery_type === 'balcao' ? '🧾 Balcão' : '🏪 Retirada'}</div>
         </div>
-        {p.scheduled_for && <div className="pd-sum" style={{ color: '#B5690C', fontWeight: 700 }}>📅 Agendado pra {fmtSchedule(p.scheduled_for)}</div>}
-        {/* Um painel só agrupando pagamento + motoboy — cada linha com sua
-            própria cor de fundo conforme o estado (verde=ok, âmbar=pendente,
-            vermelho=urgente), em vez de pílulas soltas de tamanhos
-            diferentes espalhadas pelo card (pedido do Ricardo, set/2026:
-            "tá bagunçado, organiza melhor visualmente"). */}
-        <div className="pd-infobox">
-          <div
-            className="pd-inforow pd-inforow-click"
-            onClick={e => { e.stopPropagation(); togglePaymentStatus(p.id) }}
-            style={{ background: p.payment_status === 'pago' ? '#E4F3EC' : payUnpaidAfterDelivery ? '#FBEAEA' : '#FEF6DC', color: p.payment_status === 'pago' ? '#157A52' : payUnpaidAfterDelivery ? '#C43D3D' : '#8A6410' }}
-            title="Toca pra marcar como pago/pendente"
-          >
-            <span>{p.payment_status === 'pago' ? '✓ Pago' : payUnpaidAfterDelivery ? '⚠ Entregue sem cobrar' : '💰 Pagamento pendente'}</span>
-          </div>
-          {p.motoboy_id && (
-            <div className="pd-inforow" style={{ background: '#E8F0FE', color: '#1A56B0' }}>
-              <span>🏍️ Entregou: <b>{motoboys.find(m => m.id === p.motoboy_id)?.nome || '—'}</b></span>
-            </div>
-          )}
-          {deliveryByPedido[p.id] && (() => {
-            const d = deliveryByPedido[p.id]
-            // Antes de confirmar retirada, o código que importa pra loja é o
-            // de RETIRADA — é ela quem passa esse número pro motoboy na mão.
-            // Depois de retirado, o código de entrega vira só um fallback
-            // (o cliente já recebeu o dele pelo WhatsApp) — pedido do
-            // Ricardo, set/2026: nunca o mesmo código pros dois casos.
-            const aindaNaoRetirou = !!d.motoboy_name && !d.picked_up_at && !!d.pickup_code
-            return (
-              <div className="pd-inforow" style={{ background: d.status === 'sem_motoboy' ? '#FBEAEA' : '#E8F0FE', color: d.status === 'sem_motoboy' ? '#C43D3D' : '#1A56B0' }}>
-                <span>
-                  🏍️ {d.motoboy_name ? <b>{d.motoboy_name}</b> : d.status === 'sem_motoboy' ? <b>Nenhum motoboy aceitou</b> : 'Chamando motoboy...'}
-                  {aindaNaoRetirou && <> — retirada</>}
-                </span>
-                {aindaNaoRetirou ? (d.pickup_code && <span className="pd-code">{d.pickup_code}</span>) : (d.delivery_code && <span className="pd-code">{d.delivery_code}</span>)}
+        {p.scheduled_for && <div className="pd-sum" style={{ color: '#B5690C', fontWeight: 700, marginTop: 6 }}>📅 Agendado pra {fmtSchedule(p.scheduled_for)}</div>}
+        {/* Só aparece aqui em cima quando o card está FECHADO — quando abre,
+            essa mesma informação desce pra perto do item no detalhe, e
+            mostrar os dois ao mesmo tempo ficaria redundante (Ricardo,
+            set/2026). */}
+        {!open && <PaymentPill p={p} payUnpaidAfterDelivery={payUnpaidAfterDelivery} onToggle={e => { e.stopPropagation(); togglePaymentStatus(p.id) }} />}
+        {(p.motoboy_id || deliveryByPedido[p.id]) && (
+          <div className="pd-infobox">
+            {p.motoboy_id && (
+              <div className="pd-inforow" style={{ background: '#E8F0FE', color: '#1A56B0' }}>
+                <span>🏍️ Entregou: <b>{motoboys.find(m => m.id === p.motoboy_id)?.nome || '—'}</b></span>
               </div>
-            )
-          })()}
-        </div>
+            )}
+            {deliveryByPedido[p.id] && (() => {
+              const d = deliveryByPedido[p.id]
+              // Antes de confirmar retirada, o código que importa pra loja é o
+              // de RETIRADA — é ela quem passa esse número pro motoboy na mão.
+              // Depois de retirado, o código de entrega vira só um fallback
+              // (o cliente já recebeu o dele pelo WhatsApp) — pedido do
+              // Ricardo, set/2026: nunca o mesmo código pros dois casos.
+              const aindaNaoRetirou = !!d.motoboy_name && !d.picked_up_at && !!d.pickup_code
+              return (
+                <div className="pd-inforow" style={{ background: d.status === 'sem_motoboy' ? '#FBEAEA' : '#E8F0FE', color: d.status === 'sem_motoboy' ? '#C43D3D' : '#1A56B0' }}>
+                  <span>
+                    🏍️ {d.motoboy_name ? <b>{d.motoboy_name}</b> : d.status === 'sem_motoboy' ? <b>Nenhum motoboy aceitou</b> : 'Chamando motoboy...'}
+                    {aindaNaoRetirou && <> — retirada</>}
+                  </span>
+                  {aindaNaoRetirou ? (d.pickup_code && <span className="pd-code">{d.pickup_code}</span>) : (d.delivery_code && <span className="pd-code">{d.delivery_code}</span>)}
+                </div>
+              )
+            })()}
+          </div>
+        )}
         <div className="pd-total">{fmt(p.total)}</div>
         {isToday && needsAccept && <button className="pd-accept" onClick={e => { e.stopPropagation(); acceptPedido(p.id) }}>✓ Aceitar pedido</button>}
         {isToday && !needsAccept && !open && getNextAction(p) && (() => {
@@ -727,6 +743,7 @@ export default function PedidosPage() {
                 {it.selected_options?.map((o, i) => <div key={i} className="pd-mods">- {o.name}</div>)}
               </div>
             ))}
+            <PaymentPill p={p} payUnpaidAfterDelivery={payUnpaidAfterDelivery} onToggle={e => { e.stopPropagation(); togglePaymentStatus(p.id) }} />
             {(p.delivery_address || p.customer_phone || p.notes) && (
               <div className="pd-detail-meta">
                 {p.delivery_address && <div className="pd-meta-row">📍 {p.delivery_address}</div>}
@@ -823,11 +840,17 @@ export default function PedidosPage() {
            só no conjunto, com um traço fino separando as linhas. Substitui
            as pílulas soltas de tamanhos inconsistentes que existiam antes
            (Ricardo, set/2026: "tá bagunçado"). */
-        .pd-infobox{ margin-top:10px;border-radius:10px;overflow:hidden; }
+        .pd-infobox{ margin-top:8px;border-radius:10px;overflow:hidden; }
         .pd-inforow{ display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 11px;font-size:13px;font-weight:700; }
         .pd-inforow + .pd-inforow{ border-top:1px solid rgba(0,0,0,.06); }
-        .pd-inforow-click{ cursor:pointer; }
         .pd-code{ flex:none;font-family:'Courier New',monospace;font-weight:800;background:#1A1610;color:var(--sign,#FFC531);padding:2px 9px;border-radius:6px;font-size:13px;letter-spacing:2px; }
+        /* Containerzinho dividido ao meio (item|entrega, forma de
+           pagamento|status) — mesmo padrão visual do pd-infobox, só que em 2
+           colunas lado a lado em vez de empilhado. */
+        .pd-pillrow{ margin-top:8px;display:flex;border-radius:10px;overflow:hidden; }
+        .pd-pillhalf{ flex:1;padding:8px 11px;font-size:13.5px;font-weight:700;display:flex;align-items:center;gap:6px;min-width:0; }
+        .pd-pillhalf + .pd-pillhalf{ border-left:1px solid rgba(0,0,0,.08); }
+        .pd-pillrow-click{ cursor:pointer; }
         .pd-total{ font-weight:800;font-size:17px;margin-top:10px; }
         .pd-detail{ margin-top:12px;padding-top:12px;border-top:1px dashed #EDE8E0; }
         .pd-item{ display:flex;justify-content:space-between;font-size:14px;padding:3px 0; }

@@ -99,29 +99,42 @@ export async function POST(req: NextRequest) {
       await supabase.from('coupon_redemptions').insert({ coupon_id: couponId, user_id: customerId, code, status: 'used', used_at: new Date().toISOString() })
     }
 
-    // Confirmação por WhatsApp (cliente + dono), contador de produto e
-    // chamada do motoboy da plataforma — tudo centralizado nessa rota, que
-    // já fazia isso quando o insert acontecia direto no navegador.
-    fetch(new URL('/api/loja/registrar-pedido', req.url), {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        companyId, pedidoId: pedido.id, phone: finalPhone || null, name: finalName || 'Cliente',
-        address: deliveryType === 'entrega' ? address : null, total: Number(total || 0), subtotal: Number(subtotal || 0), deliveryFee: Number(deliveryFee || 0),
-        paymentMethod: paymentMethod || null, deliveryType, notes: notes || null,
-        items: (items as ItemIn[]).map(l => ({ produtoId: l.produtoId, name: l.name, qty: l.qty, unitPrice: l.unitPrice, modifiers: l.modifiers || [] })),
-      }),
-    }).catch(() => {})
+    // Confirmação por WhatsApp (cliente + dono), contador de produto,
+    // chamada do motoboy da plataforma, push do dono e alerta do(s)
+    // admin(s) — tudo disparado em paralelo, mas com AWAIT no conjunto
+    // antes de responder. Sem isso a função serverless da Vercel pode
+    // congelar/matar o processo assim que devolve a resposta, cortando
+    // fetch ainda em voo (mesma lição já documentada pro webhook do MP —
+    // bug real, Ricardo set/2026: pedido chegou na Calçada do Peixe e nem
+    // o dono nem o admin foram avisados, tudo silencioso, sem erro).
+    const origin = new URL(req.url).origin
+    const valorFmt = `R$ ${Number(total || 0).toFixed(2).replace('.', ',')}`
+    const notifyJobs: Promise<any>[] = []
 
-    if (company.owner_id) {
-      fetch(new URL('/api/push/send', req.url), {
+    notifyJobs.push(
+      fetch(new URL('/api/loja/registrar-pedido', req.url), {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: `Novo pedido — ${company.name}`,
-          body: `${finalName || 'Cliente'} pediu R$ ${Number(total || 0).toFixed(2).replace('.', ',')}`,
-          target: 'external_user_id', userId: company.owner_id,
-          url: `${new URL(req.url).origin}/painel/pedidos`,
+          companyId, pedidoId: pedido.id, phone: finalPhone || null, name: finalName || 'Cliente',
+          address: deliveryType === 'entrega' ? address : null, total: Number(total || 0), subtotal: Number(subtotal || 0), deliveryFee: Number(deliveryFee || 0),
+          paymentMethod: paymentMethod || null, deliveryType, notes: notes || null,
+          items: (items as ItemIn[]).map(l => ({ produtoId: l.produtoId, name: l.name, qty: l.qty, unitPrice: l.unitPrice, modifiers: l.modifiers || [] })),
         }),
-      }).catch(() => {})
+      }).catch(err => console.error('[criar-pedido] falha registrar-pedido', err))
+    )
+
+    if (company.owner_id) {
+      notifyJobs.push(
+        fetch(new URL('/api/push/send', req.url), {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: `Novo pedido — ${company.name}`,
+            body: `${finalName || 'Cliente'} pediu ${valorFmt}`,
+            target: 'external_user_id', userId: company.owner_id,
+            url: `${origin}/painel/pedidos`,
+          }),
+        }).catch(err => console.error('[criar-pedido] falha push dono', err))
+      )
     }
 
     // Alerta pro(s) admin(s) da plataforma em TODO pedido novo, de
@@ -129,14 +142,12 @@ export async function POST(req: NextRequest) {
     // admin) + WhatsApp da instância da plataforma. Pedido do Ricardo,
     // set/2026: quer saber na hora, independente de qual loja for, sem
     // precisar ficar de olho em cada painel separado.
-    ;(async () => {
+    notifyJobs.push((async () => {
       try {
         const { data: admins } = await supabase.from('profiles').select('id, phone').eq('user_type', 'admin')
         if (!admins?.length) return
-        const origin = new URL(req.url).origin
-        const valorFmt = `R$ ${Number(total || 0).toFixed(2).replace('.', ',')}`
         const pushUrl = `${origin}/painel/pedidos?empresa=${companyId}`
-        for (const admin of admins) {
+        await Promise.allSettled(admins.flatMap(admin => [
           fetch(new URL('/api/push/send', req.url), {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -144,15 +155,17 @@ export async function POST(req: NextRequest) {
               body: `${finalName || 'Cliente'} pediu ${valorFmt}`,
               target: 'external_user_id', userId: admin.id, url: pushUrl,
             }),
-          }).catch(() => {})
-          if (admin.phone) {
-            sendPlatformWhatsApp(admin.phone, `🔔 *Novo pedido na Trindade Online!*\n\nLoja: *${company.name}*\nCliente: ${finalName || 'Cliente'}\nValor: ${valorFmt}\n\n${pushUrl}`).catch(() => {})
-          }
-        }
+          }).catch(err => console.error('[criar-pedido] falha push admin', err)),
+          admin.phone
+            ? sendPlatformWhatsApp(admin.phone, `🔔 *Novo pedido na Trindade Online!*\n\nLoja: *${company.name}*\nCliente: ${finalName || 'Cliente'}\nValor: ${valorFmt}\n\n${pushUrl}`).catch(err => console.error('[criar-pedido] falha whatsapp admin', err))
+            : Promise.resolve(),
+        ]))
       } catch (err) {
         console.error('[criar-pedido] falha ao notificar admin', err)
       }
-    })()
+    })())
+
+    await Promise.allSettled(notifyJobs)
 
     return NextResponse.json({ ok: true, pedidoId: pedido.id })
   } catch (err: any) {

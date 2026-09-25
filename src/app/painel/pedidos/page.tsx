@@ -287,7 +287,23 @@ export default function PedidosPage() {
     refreshSessionOnce().catch(() => {})
     loadAll(companyId, selectedDate)
     const channel = supabase.channel(`pedidos-${companyId}-${resyncTick}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'loja_pedidos', filter: `company_id=eq.${companyId}` }, () => {
+      // UPDATE aplica o payload direto no estado, sem rebuscar — bug real,
+      // Ricardo set/2026 (Peixaria Trindade, pedido da Roberta): clicar em
+      // "Aceitar" mudava a tela na hora, mas o UPDATE que esse próprio clique
+      // gerou disparava esse canal de volta, chamando loadAll() — e se essa
+      // rebusca (via PostgREST) pegasse o dado ainda não replicado, ela
+      // sobrescrevia o estado certo com o valor antigo, travando a tela até
+      // sair e voltar. O payload do realtime já traz a linha atualizada de
+      // verdade (vem do WAL do Postgres, sem esse risco de réplica atrasada)
+      // — usa ele direto em vez de arriscar uma leitura relida.
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'loja_pedidos', filter: `company_id=eq.${companyId}` }, payload => {
+        const row = payload.new as Partial<Pedido> & { id: string }
+        setPedidos(prev => prev.map(p => p.id === row.id ? { ...p, ...row } : p))
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'loja_pedidos', filter: `company_id=eq.${companyId}` }, () => {
+        loadAll(companyIdRef.current, selectedDate)
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'loja_pedidos', filter: `company_id=eq.${companyId}` }, () => {
         loadAll(companyIdRef.current, selectedDate)
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'delivery_orders', filter: `company_id=eq.${companyId}` }, () => {
@@ -398,15 +414,24 @@ export default function PedidosPage() {
     // WhatsApp da loja (webhook em /api/crm/webhook fecha o pedido sozinho
     // quando bate). Pedido do Ricardo, set/2026.
     const codigoEntrega = motoboyId ? { delivery_confirm_code: gen4DigitCode(), delivery_confirmed_at: null, motoboy_payment_status: 'pendente' } : {}
-    setPedidos(prev => prev.map(p => p.id === id ? { ...p, status, ...(motoboyId ? { motoboy_id: motoboyId } : {}), ...autoPago } : p))
+    // Pega o pedido de dentro do próprio updater (prev), não da variável
+    // `pedidos` de fora — essa fecha sobre o array de quando o card foi
+    // renderizado, que pode já estar velho na hora do clique (bug real,
+    // Ricardo set/2026: notificação/motoboy não disparava depois de mudar
+    // status, mesmo a tela em si já tendo atualizado certo).
+    let pedidoRef: Pedido | undefined
+    setPedidos(prev => prev.map(p => {
+      if (p.id !== id) return p
+      pedidoRef = p
+      return { ...p, status, ...(motoboyId ? { motoboy_id: motoboyId } : {}), ...autoPago }
+    }))
     await supabase.from('loja_pedidos').update({
       status, updated_at: new Date().toISOString(), ...(motoboyId ? { motoboy_id: motoboyId } : {}), ...autoPago, ...codigoEntrega,
     }).eq('id', id)
-    const pedido = pedidos.find(p => p.id === id)
-    if (pedido) {
-      notifyCustomer(pedido.customer_id, companyName, status)
-      notifyCustomerWhatsapp(companyId, pedido.customer_phone, status, pedido.delivery_type, id)
-      if (status === 'em_preparo') maybeAutoChamarMotoboy(pedido)
+    if (pedidoRef) {
+      notifyCustomer(pedidoRef.customer_id, companyName, status)
+      notifyCustomerWhatsapp(companyId, pedidoRef.customer_phone, status, pedidoRef.delivery_type, id)
+      if (status === 'em_preparo') maybeAutoChamarMotoboy(pedidoRef)
       if (motoboyId) notifyMotoboyWhatsapp(companyId, id, motoboyId)
     }
   }
@@ -416,22 +441,31 @@ export default function PedidosPage() {
   // existe gateway de pagamento automático pro pedido da loja (só a intenção
   // declarada no checkout). O lojista marca manualmente quando recebeu.
   async function togglePaymentStatus(id: string) {
-    const pedido = pedidos.find(p => p.id === id)
-    if (!pedido) return
-    const next = pedido.payment_status === 'pago' ? 'pendente' : 'pago'
-    setPedidos(prev => prev.map(p => p.id === id ? { ...p, payment_status: next } : p))
+    let next: 'pago' | 'pendente' = 'pago'
+    let found = false
+    setPedidos(prev => prev.map(p => {
+      if (p.id !== id) return p
+      found = true
+      next = p.payment_status === 'pago' ? 'pendente' : 'pago'
+      return { ...p, payment_status: next }
+    }))
+    if (!found) return
     await supabase.from('loja_pedidos').update({ payment_status: next, updated_at: new Date().toISOString() }).eq('id', id)
   }
 
   async function acceptPedido(id: string) {
     const now = new Date().toISOString()
-    setPedidos(prev => prev.map(p => p.id === id ? { ...p, accepted_at: now, status: 'em_preparo' } : p))
+    let pedidoRef: Pedido | undefined
+    setPedidos(prev => prev.map(p => {
+      if (p.id !== id) return p
+      pedidoRef = p
+      return { ...p, accepted_at: now, status: 'em_preparo' }
+    }))
     await supabase.from('loja_pedidos').update({ accepted_at: now, status: 'em_preparo', updated_at: now }).eq('id', id)
-    const pedido = pedidos.find(p => p.id === id)
-    if (pedido) {
-      notifyCustomer(pedido.customer_id, companyName, 'em_preparo')
-      notifyCustomerWhatsapp(companyId, pedido.customer_phone, 'em_preparo', pedido.delivery_type, id)
-      maybeAutoChamarMotoboy(pedido)
+    if (pedidoRef) {
+      notifyCustomer(pedidoRef.customer_id, companyName, 'em_preparo')
+      notifyCustomerWhatsapp(companyId, pedidoRef.customer_phone, 'em_preparo', pedidoRef.delivery_type, id)
+      maybeAutoChamarMotoboy(pedidoRef)
     }
   }
 

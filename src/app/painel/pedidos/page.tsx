@@ -634,34 +634,52 @@ export default function PedidosPage() {
         <div className="pd-row1">
           <div>
             <div className="pd-name">{p.order_number ? `#${p.order_number} · ` : ''}{p.customer_name}</div>
-            <div className="pd-time">{timeAgo(p.created_at)} atrás</div>
+            <div className="pd-time">{timeAgo(p.created_at)} atrás <span className="pd-origin-tag" style={{ color: o.fg }}>· {o.label}</span></div>
           </div>
           <div className="pd-row1-right">
             <button className="pd-edit-btn" title="Editar pedido" onClick={e => { e.stopPropagation(); setEditId(p.id) }}>✏️</button>
             <span className="pd-badge" style={{ background: c.bg, color: c.fg }}>{STATUS_LABEL[p.status]}</span>
           </div>
         </div>
-        <div className="pd-origin-badge" style={{ background: o.bg, color: o.fg }}>{o.label}</div>
         {late && <div className="pd-late-flag">⚠ Parado há mais de {LATE_THRESHOLD_MIN}min sem avançar</div>}
         <div className="pd-sum">
           {p.itens?.length || 0} {p.itens?.length === 1 ? 'item' : 'itens'} · {p.payment_method || '—'} · {p.delivery_type === 'entrega' ? '🚴 Entrega' : p.delivery_type === 'balcao' ? '🧾 Balcão' : '🏪 Retirada'}
         </div>
-        <span
-          className="pd-pay-chip"
-          onClick={e => { e.stopPropagation(); togglePaymentStatus(p.id) }}
-          style={{ background: p.payment_status === 'pago' ? '#E4F3EC' : payUnpaidAfterDelivery ? '#FBEAEA' : '#FEF6DC', color: p.payment_status === 'pago' ? '#157A52' : payUnpaidAfterDelivery ? '#C43D3D' : '#8A6410' }}
-          title="Toca pra marcar como pago/pendente"
-        >
-          {p.payment_status === 'pago' ? '✓ Pago' : payUnpaidAfterDelivery ? '⚠ Entregue sem cobrar' : '💰 Pagamento pendente'}
-        </span>
         {p.scheduled_for && <div className="pd-sum" style={{ color: '#B5690C', fontWeight: 700 }}>📅 Agendado pra {fmtSchedule(p.scheduled_for)}</div>}
-        {p.motoboy_id && <div className="pd-sum">🏍️ Entregou: <b>{motoboys.find(m => m.id === p.motoboy_id)?.nome || '—'}</b></div>}
-        {deliveryByPedido[p.id] && (
-          <div className="pd-moto-info">
-            🏍️ {deliveryByPedido[p.id].motoboy_name ? <>Motoboy: <b>{deliveryByPedido[p.id].motoboy_name}</b></> : deliveryByPedido[p.id].status === 'sem_motoboy' ? <b>Nenhum motoboy aceitou</b> : 'Chamando motoboy...'}
-            {deliveryByPedido[p.id].delivery_code && <> · Código <b>{deliveryByPedido[p.id].delivery_code}</b></>}
+        {/* Um painel só agrupando pagamento + motoboy — cada linha com sua
+            própria cor de fundo conforme o estado (verde=ok, âmbar=pendente,
+            vermelho=urgente), em vez de pílulas soltas de tamanhos
+            diferentes espalhadas pelo card (pedido do Ricardo, set/2026:
+            "tá bagunçado, organiza melhor visualmente"). */}
+        <div className="pd-infobox">
+          <div
+            className="pd-inforow pd-inforow-click"
+            onClick={e => { e.stopPropagation(); togglePaymentStatus(p.id) }}
+            style={{ background: p.payment_status === 'pago' ? '#E4F3EC' : payUnpaidAfterDelivery ? '#FBEAEA' : '#FEF6DC', color: p.payment_status === 'pago' ? '#157A52' : payUnpaidAfterDelivery ? '#C43D3D' : '#8A6410' }}
+            title="Toca pra marcar como pago/pendente"
+          >
+            <span>{p.payment_status === 'pago' ? '✓ Pago' : payUnpaidAfterDelivery ? '⚠ Entregue sem cobrar' : '💰 Pagamento pendente'}</span>
           </div>
-        )}
+          {p.motoboy_id && (
+            <div className="pd-inforow" style={{ background: '#E8F0FE', color: '#1A56B0' }}>
+              <span>🏍️ Entregou: <b>{motoboys.find(m => m.id === p.motoboy_id)?.nome || '—'}</b></span>
+            </div>
+          )}
+          {deliveryByPedido[p.id] && (
+            <div
+              className="pd-inforow"
+              style={{
+                background: deliveryByPedido[p.id].status === 'sem_motoboy' ? '#FBEAEA' : '#E8F0FE',
+                color: deliveryByPedido[p.id].status === 'sem_motoboy' ? '#C43D3D' : '#1A56B0',
+              }}
+            >
+              <span>
+                🏍️ {deliveryByPedido[p.id].motoboy_name ? <b>{deliveryByPedido[p.id].motoboy_name}</b> : deliveryByPedido[p.id].status === 'sem_motoboy' ? <b>Nenhum motoboy aceitou</b> : 'Chamando motoboy...'}
+              </span>
+              {deliveryByPedido[p.id].delivery_code && <span className="pd-code">{deliveryByPedido[p.id].delivery_code}</span>}
+            </div>
+          )}
+        </div>
         <div className="pd-total">{fmt(p.total)}</div>
         {isToday && needsAccept && <button className="pd-accept" onClick={e => { e.stopPropagation(); acceptPedido(p.id) }}>✓ Aceitar pedido</button>}
         {isToday && !needsAccept && !open && getNextAction(p) && (() => {
@@ -703,9 +721,13 @@ export default function PedidosPage() {
                 {it.selected_options?.map((o, i) => <div key={i} className="pd-mods">- {o.name}</div>)}
               </div>
             ))}
-            {p.delivery_address && <div style={{ marginTop: 8, fontSize: 11.5 }}>📍 {p.delivery_address}</div>}
-            {p.customer_phone && <div style={{ fontSize: 11.5, marginTop: 2 }}>📞 {p.customer_phone}</div>}
-            {p.notes && <div style={{ fontSize: 11.5, marginTop: 2, color: '#6E6656' }}>Obs: {p.notes}</div>}
+            {(p.delivery_address || p.customer_phone || p.notes) && (
+              <div className="pd-detail-meta">
+                {p.delivery_address && <div className="pd-meta-row">📍 {p.delivery_address}</div>}
+                {p.customer_phone && <div className="pd-meta-row">📞 {p.customer_phone}</div>}
+                {p.notes && <div className="pd-meta-row pd-meta-notes">📝 {p.notes}</div>}
+              </div>
+            )}
             {isToday && entregaEnabled && p.delivery_type === 'entrega' && p.status !== 'cancelado' && (
               deliveryCalled.has(p.id) ? null : (
                 <>
@@ -781,22 +803,34 @@ export default function PedidosPage() {
         .pd-tab-count{ font-variant-numeric:tabular-nums;background:#EDE8E0;color:#6E6656;font-size:12px;font-weight:800;padding:1px 7px;border-radius:20px; }
         .pd-tab.active .pd-tab-count{ background:rgba(255,255,255,.3);color:#fff; }
         .pd-body{ padding:0 16px; }
-        .pd-card{ background:#fff;border:1px solid #EDE8E0;border-radius:12px;padding:12px;margin-bottom:10px;cursor:pointer; }
-        .pd-row1{ display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px; }
+        .pd-card{ background:#fff;border:1px solid #EDE8E0;border-radius:12px;padding:14px;margin-bottom:10px;cursor:pointer; }
+        .pd-row1{ display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px; }
         .pd-row1-right{ display:flex;align-items:center;gap:6px;flex:none; }
         .pd-edit-btn{ width:24px;height:24px;border-radius:7px;border:1px solid #E6E0D2;background:#F7F5F0;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;flex:none;padding:0; }
         .pd-name{ font-weight:800;font-size:16px; }
         .pd-time{ font-size:12.5px;color:#A79E8B; }
+        .pd-origin-tag{ font-weight:700; }
         .pd-badge{ font-size:12px;font-weight:800;padding:3px 8px;border-radius:7px; }
-        .pd-origin-badge{ display:inline-block;font-size:12px;font-weight:800;padding:3px 8px;border-radius:7px;margin-bottom:8px; }
-        .pd-sum{ font-size:13.5px;color:#6E6656; }
-        .pd-moto-info{ font-size:13px;font-weight:600;color:#8A5A0C;background:#FEF6DC;border-radius:7px;padding:4px 8px;margin-top:4px;display:inline-block; }
-        .pd-total{ font-weight:800;font-size:16px;margin-top:4px; }
-        .pd-detail{ margin-top:10px;padding-top:10px;border-top:1px dashed #EDE8E0; }
+        .pd-sum{ font-size:13.5px;color:#6E6656;margin-bottom:2px; }
+        /* Painel único agrupando pagamento + motoboy — cada linha tinta
+           conforme o estado (verde/âmbar/vermelho/azul), bordas arredondadas
+           só no conjunto, com um traço fino separando as linhas. Substitui
+           as pílulas soltas de tamanhos inconsistentes que existiam antes
+           (Ricardo, set/2026: "tá bagunçado"). */
+        .pd-infobox{ margin-top:10px;border-radius:10px;overflow:hidden; }
+        .pd-inforow{ display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 11px;font-size:13px;font-weight:700; }
+        .pd-inforow + .pd-inforow{ border-top:1px solid rgba(0,0,0,.06); }
+        .pd-inforow-click{ cursor:pointer; }
+        .pd-code{ flex:none;font-family:'Courier New',monospace;font-weight:800;background:#1A1610;color:var(--sign,#FFC531);padding:2px 9px;border-radius:6px;font-size:13px;letter-spacing:2px; }
+        .pd-total{ font-weight:800;font-size:17px;margin-top:10px; }
+        .pd-detail{ margin-top:12px;padding-top:12px;border-top:1px dashed #EDE8E0; }
         .pd-item{ display:flex;justify-content:space-between;font-size:14px;padding:3px 0; }
         .pd-mods{ font-size:13px;color:#A79E8B;padding-left:12px; }
-        .pd-chips{ display:flex;flex-wrap:wrap;gap:6px;margin-top:10px; }
-        .pd-chip{ font-size:12.5px;font-weight:700;padding:6px 10px;border-radius:8px;border:1px solid #E6E0D2;background:#fff;cursor:pointer;color:#6E6656; }
+        .pd-detail-meta{ margin-top:10px;display:flex;flex-direction:column;gap:4px;background:#F7F5F0;border-radius:9px;padding:9px 11px; }
+        .pd-meta-row{ font-size:12.5px;color:#3A342A; }
+        .pd-meta-notes{ color:#6E6656; }
+        .pd-chips{ display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px; }
+        .pd-chip{ font-size:12.5px;font-weight:700;padding:8px 10px;border-radius:8px;border:1px solid #E6E0D2;background:#fff;cursor:pointer;color:#6E6656;text-align:center; }
         .pd-chip.current{ background:var(--sign);color:var(--ink);border-color:var(--sign); }
         .pd-cancel{ font-size:12px;color:#C43D3D;font-weight:700;background:none;border:none;cursor:pointer;margin-top:8px; }
         .pd-print-btn{ width:100%;margin-top:8px;padding:9px;border-radius:9px;border:1.5px solid #E6E0D2;background:#fff;color:#6E6656;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit; }
@@ -909,7 +943,6 @@ export default function PedidosPage() {
         @media(min-width:768px){ .pd-motoalert{ padding:18px 32px; } .pd-motoalert-txt{ font-size:15px; } .pd-motoalert-btn{ padding:16px 28px;font-size:15.5px; } }
         .pd-card-late{ border:1.5px solid #C43D3D !important; }
         .pd-late-flag{ color:#C43D3D;font-weight:800;font-size:12px;margin-top:4px; }
-        .pd-pay-chip{ display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:800;padding:3px 9px;border-radius:7px;margin-top:6px;cursor:pointer; }
       `}</style>
       {pedidosNovos.length > 0 && (
         <div className="pd-newalert">

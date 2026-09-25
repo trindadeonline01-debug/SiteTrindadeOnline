@@ -175,15 +175,14 @@ export async function criarEntregaEChamarMotoboy(opts: {
   // confirmação (ver src/app/api/entrega/webhook), não mais um fixo do dia.
   const { fee: entregaFee, blocked, reason } = await getEntregaFeeForDelivery(dropoffAddress, { loja_lat: company.loja_lat, loja_lng: company.loja_lng })
   if (blocked) return { ok: false, error: reason || 'Fora da área de entrega da plataforma.' }
-  // Pedido com pedido_id nasceu na própria plataforma (checkout do cardápio
-  // ou "Novo Pedido" no painel) — exige só crédito carregado, sem diária.
-  // Sem pedido_id é solicitação avulsa (tela "+ Nova entrega", pedido vindo
-  // de fora), que continua exigindo ter diária disponível + crédito como
-  // sempre foi — mas a diária só é DESCONTADA na confirmação da entrega
-  // (ver src/app/api/entrega/webhook), não aqui na criação. Crédito pago
-  // antecipadamente nunca deixa de ser exigido em nenhum caso — regra
-  // inegociável do Ricardo, set/2026.
-  if (!pedidoId && (!wallet?.dias_diaria_disponiveis || wallet.dias_diaria_disponiveis < 1)) {
+  // Diária agora é exigida pra QUALQUER entrega, não só avulsa — Ricardo,
+  // set/2026: "cobra a diária independente de qualquer coisa", pedido vindo
+  // do cardápio da própria plataforma também consome. A diária em si só é
+  // DESCONTADA na confirmação da entrega (ver src/app/api/entrega/webhook),
+  // não aqui na criação — aqui só trava se não tiver nenhuma disponível.
+  // Crédito pago antecipadamente nunca deixa de ser exigido em nenhum caso
+  // — regra inegociável do Ricardo, set/2026.
+  if (!wallet?.dias_diaria_disponiveis || wallet.dias_diaria_disponiveis < 1) {
     return { ok: false, error: 'Sem diária disponível — compra em Entrega no painel.' }
   }
   // Crédito agora é saldo em R$ (não mais contador de entregas) — precisa

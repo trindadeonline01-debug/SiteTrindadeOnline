@@ -10,6 +10,9 @@ export interface EntregaPricing {
   diaria: number
   entrega_taxa_metodo: 'bairro' | 'distancia'
   entrega_taxa_padrao: number
+  diaria_inclui: number
+  diaria_extra_valor: number
+  motoboy_corte_plataforma: number
 }
 
 // Servidor roda em UTC (Vercel) — sem timeZone explícito aqui a data vira
@@ -25,6 +28,14 @@ export async function getEntregaPricing(): Promise<EntregaPricing> {
     diaria: Number(data?.diaria ?? 20),
     entrega_taxa_metodo: (data?.entrega_taxa_metodo === 'distancia' ? 'distancia' : 'bairro'),
     entrega_taxa_padrao: Number(data?.entrega_taxa_padrao ?? 5),
+    // Escalonamento por volume (Ricardo, set/2026): a diária já cobre as N
+    // primeiras entregas confirmadas no dia pra empresa; cada uma além
+    // dessa cobra esse valor extra, descontado direto do crédito em R$.
+    diaria_inclui: Number(data?.diaria_inclui ?? 10),
+    diaria_extra_valor: Number(data?.diaria_extra_valor ?? 0.5),
+    // Quanto a plataforma retém de cada corrida antes de repassar o resto
+    // pro motoboy (Ricardo, set/2026 — motoboy recebia 100% do fee antes).
+    motoboy_corte_plataforma: Number(data?.motoboy_corte_plataforma ?? 1),
   }
 }
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendMotoboyWhatsApp, sendCustomerWhatsApp, checkExpiredOffers, offerToNextMotoboy } from '@/lib/entregaDispatch'
-import { todaySaoPaulo } from '@/lib/entregaPricing'
+import { todaySaoPaulo, getEntregaPricing } from '@/lib/entregaPricing'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -112,29 +112,32 @@ export async function POST(req: NextRequest) {
         }
 
         if (norm === order.delivery_code) {
-          // Diária avulsa só é descontada aqui — na CONFIRMAÇÃO da entrega,
-          // não na hora de chamar o motoboy — e só na primeira confirmada
-          // do dia pra essa empresa. Checa isso ANTES de marcar esse pedido
-          // como entregue, senão ele mesmo já apareceria como "de hoje" na
-          // consulta (pedido do Ricardo, set/2026: dia sem entrega nenhuma
-          // não pode gastar a diária — reverte sozinho pro dia seguinte
-          // porque simplesmente nunca desconta).
-          let diariaConsumidaAgora = false
-          if (!order.pedido_id) {
-            const hoje = todaySaoPaulo()
-            const { data: confirmadasHoje } = await supabase
-              .from('delivery_orders')
-              .select('id, delivered_at')
-              .eq('company_id', order.company_id)
-              .is('pedido_id', null)
-              .eq('status', 'entregue')
-              .order('delivered_at', { ascending: false })
-              .limit(10)
-            const jaTinhaHoje = (confirmadasHoje || []).some(o =>
-              o.delivered_at && new Date(o.delivered_at).toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }) === hoje
-            )
-            diariaConsumidaAgora = !jaTinhaHoje
-          }
+          const pricing = await getEntregaPricing()
+          // Diária e escalonamento por volume: contam TODA entrega
+          // confirmada hoje pra essa empresa, não só avulsa — Ricardo,
+          // set/2026: "cobra a diária independente de qualquer coisa".
+          // Checa isso ANTES de marcar esse pedido como entregue, senão ele
+          // mesmo já apareceria como "de hoje" na consulta (dia sem entrega
+          // nenhuma não pode gastar a diária — reverte sozinho pro dia
+          // seguinte porque simplesmente nunca desconta).
+          const hoje = todaySaoPaulo()
+          const { data: confirmadasHoje } = await supabase
+            .from('delivery_orders')
+            .select('id, delivered_at')
+            .eq('company_id', order.company_id)
+            .eq('status', 'entregue')
+            .order('delivered_at', { ascending: false })
+            .limit(200)
+          const countHoje = (confirmadasHoje || []).filter(o =>
+            o.delivered_at && new Date(o.delivered_at).toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }) === hoje
+          ).length
+          const diariaConsumidaAgora = countHoje === 0
+          // Essa é a Nª confirmada do dia (1-based, contando essa mesma) —
+          // a diária já cobre as `diaria_inclui` primeiras; a partir da
+          // próxima, cada uma cobra um extra fixo (escalonamento por
+          // volume, Ricardo set/2026: "quem usa mais paga mais").
+          const numeroDoDia = countHoje + 1
+          const extraVolume = numeroDoDia > pricing.diaria_inclui ? pricing.diaria_extra_valor : 0
 
           await supabase.from('delivery_orders').update({
             status: 'entregue', delivered_at: new Date().toISOString(), payout_status: 'liberado',
@@ -155,10 +158,10 @@ export async function POST(req: NextRequest) {
 
           // Crédito é saldo em R$ (não mais contador de entregas) — desconta
           // o valor real dessa corrida (order.fee, calculado por bairro/km na
-          // criação), não mais um fixo de "1 unidade" por entrega.
+          // criação) mais o extra de volume, quando houver.
           const { data: wallet } = await supabase.from('company_delivery_wallet').select('credits, dias_diaria_disponiveis').eq('company_id', order.company_id).maybeSingle()
           const fee = Number(order.fee) || 0
-          const newCredits = Math.max(0, (wallet?.credits || 0) - fee)
+          const newCredits = Math.max(0, (wallet?.credits || 0) - fee - extraVolume)
           const walletUpdate: Record<string, any> = { company_id: order.company_id, credits: newCredits, updated_at: new Date().toISOString() }
           if (diariaConsumidaAgora) walletUpdate.dias_diaria_disponiveis = Math.max(0, (wallet?.dias_diaria_disponiveis || 0) - 1)
           await supabase.from('company_delivery_wallet').upsert(walletUpdate, { onConflict: 'company_id' })
@@ -170,8 +173,16 @@ export async function POST(req: NextRequest) {
               company_id: order.company_id, kind: 'diaria_consumo', credits_delta: 0, delivery_order_id: order.id,
             })
           }
+          if (extraVolume > 0) {
+            await supabase.from('delivery_credit_ledger').insert({
+              company_id: order.company_id, kind: 'diaria_extra_volume', amount: -extraVolume, credits_delta: -extraVolume, delivery_order_id: order.id,
+            })
+          }
 
-          const feeLabel = Number(order.fee).toFixed(2).replace('.', ',')
+          // Repasse ao motoboy já sai com o corte da plataforma retido —
+          // motoboy_payouts (admin) soma isso na hora de gerar o repasse.
+          const valorMotoboy = Math.max(0, fee - pricing.motoboy_corte_plataforma)
+          const feeLabel = valorMotoboy.toFixed(2).replace('.', ',')
           await sendMotoboyWhatsApp(motoboy.phone, `✅ Código confere! R$ ${feeLabel} liberados. Entra no seu Pix no fechamento.`)
           await sendCustomerWhatsApp(order.company_id, order.customer_phone, `🎉 Pedido entregue! Obrigado pela preferência.`)
 

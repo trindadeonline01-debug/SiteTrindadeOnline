@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { getEntregaPricing } from '@/lib/entregaPricing'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -57,12 +58,16 @@ export async function GET(req: NextRequest) {
   const { data: pendentesOrders } = await supabase
     .from('delivery_orders').select('motoboy_id, fee, delivered_at')
     .eq('status', 'entregue').eq('payout_status', 'liberado').is('payout_id', null)
+  // Repasse já sai com o corte da plataforma retido — motoboy recebia
+  // 100% do fee antes (Ricardo, set/2026: "não existe divisão nenhuma
+  // hoje" — corrigido).
+  const pricing = await getEntregaPricing()
   const prontosByMotoboy = new Map<string, { count: number; valor: number }>()
   for (const o of pendentesOrders || []) {
     if (!o.motoboy_id) continue
     const cur = prontosByMotoboy.get(o.motoboy_id) || { count: 0, valor: 0 }
     cur.count += 1
-    cur.valor += Number(o.fee)
+    cur.valor += Math.max(0, Number(o.fee) - pricing.motoboy_corte_plataforma)
     prontosByMotoboy.set(o.motoboy_id, cur)
   }
   const prontos = Array.from(prontosByMotoboy.entries()).map(([motoboy_id, v]) => ({
@@ -99,10 +104,11 @@ export async function POST(req: NextRequest) {
         .eq('motoboy_id', motoboy_id).eq('status', 'entregue').eq('payout_status', 'liberado').is('payout_id', null)
       if (!orders || orders.length === 0) return NextResponse.json({ error: 'nenhuma entrega pendente de repasse pra esse motoboy' }, { status: 400 })
 
+      const pricing = await getEntregaPricing()
       const dates = orders.map(o => new Date(o.delivered_at)).sort((a, b) => a.getTime() - b.getTime())
       const periodStart = dates[0].toISOString().slice(0, 10)
       const periodEnd = dates[dates.length - 1].toISOString().slice(0, 10)
-      const valor = orders.reduce((a, o) => a + Number(o.fee), 0)
+      const valor = orders.reduce((a, o) => a + Math.max(0, Number(o.fee) - pricing.motoboy_corte_plataforma), 0)
 
       const { data: payout, error } = await supabase.from('motoboy_payouts').insert({
         motoboy_id, period_start: periodStart, period_end: periodEnd, entregas_count: orders.length, valor,

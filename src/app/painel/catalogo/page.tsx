@@ -948,7 +948,10 @@ export default function CatalogoPage() {
         .cg-btn-gold{ background:var(--sign);color:var(--ink); }
         .cg-btn-ghost{ background:#fff;border:1px solid #E6E0D2;color:#1A1610; }
         .cg-fab{ position:fixed; right:calc(50% - 240px + 16px); bottom:24px; width:50px;height:50px;border-radius:50%;background:var(--sign);color:var(--ink);border:none;font-size:24px;font-weight:800;box-shadow:0 8px 18px -6px rgba(0,0,0,.35);cursor:pointer; }
-        @media(max-width:520px){ .cg-fab{ right:16px; } }
+        /* No mobile ele ficava meio escondido embaixo da barra de navegação
+           fixa (.es-tabbar, ~60px de altura) — centraliza e sobe pra cima
+           dela (Ricardo, set/2026). */
+        @media(max-width:520px){ .cg-fab{ left:50%; right:auto; transform:translateX(-50%); bottom:calc(74px + env(safe-area-inset-bottom)); } }
         .cg-search-wrap{ margin-bottom:10px; }
         .cg-search{ width:100%;padding:10px 14px;border-radius:10px;border:1px solid #E6E0D2;background:#fff;font-size:13px;font-family:inherit;box-sizing:border-box; }
         .cg-quality{ display:flex;align-items:center;gap:14px;background:#fff;border:1px solid #E6E0D2;border-radius:14px;padding:14px;margin-bottom:14px; }

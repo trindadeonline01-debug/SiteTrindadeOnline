@@ -196,9 +196,11 @@ export default function PedidosPage() {
   const [deliveryCalled, setDeliveryCalled] = useState<Set<string>>(new Set())
   // pedido_id -> dados do delivery_orders correspondente — usado pra mostrar
   // a faixa "Nenhum motoboy aceitou" quando status vira sem_motoboy, e pra
-  // mostrar motoboy + código de entrega direto no card fechado, sem precisar
-  // ir em Entrega (Ricardo, set/2026).
-  const [deliveryByPedido, setDeliveryByPedido] = useState<Record<string, { id: string; status: string; motoboy_name: string | null; delivery_code: string | null }>>({})
+  // mostrar motoboy + código direto no card fechado, sem precisar ir em
+  // Entrega (Ricardo, set/2026). Dois códigos: pickup_code (retirada na
+  // loja, mostra só até o motoboy confirmar que pegou) e delivery_code
+  // (cliente, sempre visível como fallback caso o WhatsApp falhe).
+  const [deliveryByPedido, setDeliveryByPedido] = useState<Record<string, { id: string; status: string; motoboy_name: string | null; pickup_code: string | null; picked_up_at: string | null; delivery_code: string | null }>>({})
   const [retryingMotoId, setRetryingMotoId] = useState<string | null>(null)
   const [motoErrors, setMotoErrors] = useState<Record<string, string>>({})
   const [motoLoading, setMotoLoading] = useState<string | null>(null)
@@ -298,10 +300,10 @@ export default function PedidosPage() {
       .gte('created_at', from.toISOString()).lt('created_at', to.toISOString())
       .order('created_at', { ascending: false })
     setPedidos((data || []) as any)
-    const { data: entregas } = await supabase.from('delivery_orders').select('id, pedido_id, status, motoboy_name, delivery_code').eq('company_id', cid).not('pedido_id', 'is', null)
+    const { data: entregas } = await supabase.from('delivery_orders').select('id, pedido_id, status, motoboy_name, pickup_code, picked_up_at, delivery_code').eq('company_id', cid).not('pedido_id', 'is', null)
     setDeliveryCalled(new Set((entregas || []).map(e => e.pedido_id as string)))
-    const byPedido: Record<string, { id: string; status: string; motoboy_name: string | null; delivery_code: string | null }> = {}
-    for (const e of entregas || []) if (e.pedido_id) byPedido[e.pedido_id as string] = { id: e.id as string, status: e.status as string, motoboy_name: e.motoboy_name as string | null, delivery_code: e.delivery_code as string | null }
+    const byPedido: Record<string, { id: string; status: string; motoboy_name: string | null; pickup_code: string | null; picked_up_at: string | null; delivery_code: string | null }> = {}
+    for (const e of entregas || []) if (e.pedido_id) byPedido[e.pedido_id as string] = { id: e.id as string, status: e.status as string, motoboy_name: e.motoboy_name as string | null, pickup_code: e.pickup_code as string | null, picked_up_at: e.picked_up_at as string | null, delivery_code: e.delivery_code as string | null }
     setDeliveryByPedido(byPedido)
   }
 
@@ -665,20 +667,24 @@ export default function PedidosPage() {
               <span>🏍️ Entregou: <b>{motoboys.find(m => m.id === p.motoboy_id)?.nome || '—'}</b></span>
             </div>
           )}
-          {deliveryByPedido[p.id] && (
-            <div
-              className="pd-inforow"
-              style={{
-                background: deliveryByPedido[p.id].status === 'sem_motoboy' ? '#FBEAEA' : '#E8F0FE',
-                color: deliveryByPedido[p.id].status === 'sem_motoboy' ? '#C43D3D' : '#1A56B0',
-              }}
-            >
-              <span>
-                🏍️ {deliveryByPedido[p.id].motoboy_name ? <b>{deliveryByPedido[p.id].motoboy_name}</b> : deliveryByPedido[p.id].status === 'sem_motoboy' ? <b>Nenhum motoboy aceitou</b> : 'Chamando motoboy...'}
-              </span>
-              {deliveryByPedido[p.id].delivery_code && <span className="pd-code">{deliveryByPedido[p.id].delivery_code}</span>}
-            </div>
-          )}
+          {deliveryByPedido[p.id] && (() => {
+            const d = deliveryByPedido[p.id]
+            // Antes de confirmar retirada, o código que importa pra loja é o
+            // de RETIRADA — é ela quem passa esse número pro motoboy na mão.
+            // Depois de retirado, o código de entrega vira só um fallback
+            // (o cliente já recebeu o dele pelo WhatsApp) — pedido do
+            // Ricardo, set/2026: nunca o mesmo código pros dois casos.
+            const aindaNaoRetirou = !!d.motoboy_name && !d.picked_up_at && !!d.pickup_code
+            return (
+              <div className="pd-inforow" style={{ background: d.status === 'sem_motoboy' ? '#FBEAEA' : '#E8F0FE', color: d.status === 'sem_motoboy' ? '#C43D3D' : '#1A56B0' }}>
+                <span>
+                  🏍️ {d.motoboy_name ? <b>{d.motoboy_name}</b> : d.status === 'sem_motoboy' ? <b>Nenhum motoboy aceitou</b> : 'Chamando motoboy...'}
+                  {aindaNaoRetirou && <> — retirada</>}
+                </span>
+                {aindaNaoRetirou ? (d.pickup_code && <span className="pd-code">{d.pickup_code}</span>) : (d.delivery_code && <span className="pd-code">{d.delivery_code}</span>)}
+              </div>
+            )
+          })()}
         </div>
         <div className="pd-total">{fmt(p.total)}</div>
         {isToday && needsAccept && <button className="pd-accept" onClick={e => { e.stopPropagation(); acceptPedido(p.id) }}>✓ Aceitar pedido</button>}

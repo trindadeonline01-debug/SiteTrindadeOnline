@@ -134,6 +134,17 @@ async function buildDeliveryBanner(photoUrl: string, companyId: string): Promise
 }
 
 function genDeliveryCode(): string { return String(Math.floor(1000 + Math.random() * 9000)) }
+// Dois códigos, sempre diferentes: um pra retirada na loja (a loja passa pro
+// motoboy pessoalmente na hora de entregar o pacote) e outro pra confirmação
+// com o cliente (só esse libera o pagamento). Se fossem o mesmo código, o
+// motoboy já saberia o código do cliente assim que retirasse na loja — não
+// confirma mais nada de verdade. Pedido do Ricardo, set/2026.
+function genDeliveryCodes(): { pickupCode: string; deliveryCode: string } {
+  const pickupCode = genDeliveryCode()
+  let deliveryCode = genDeliveryCode()
+  while (deliveryCode === pickupCode) deliveryCode = genDeliveryCode()
+  return { pickupCode, deliveryCode }
+}
 
 // Cria a entrega e chama o primeiro motoboy da fila — usado tanto pelo botão
 // manual "🏍️ Chamar motoboy" (/painel/pedidos) quanto pelo disparo automático
@@ -184,9 +195,10 @@ export async function criarEntregaEChamarMotoboy(opts: {
     if (existing) return { ok: false, error: 'Esse pedido já tem uma entrega chamada.' }
   }
 
+  const { pickupCode, deliveryCode } = genDeliveryCodes()
   const { data: order, error: insertErr } = await supabase.from('delivery_orders').insert({
     company_id: companyId, pedido_id: pedidoId || null, customer_name: customerName.trim(), customer_phone: customerPhone || null,
-    pickup_address: company.address.trim(), dropoff_address: dropoffAddress.trim(), delivery_code: genDeliveryCode(), fee: entregaFee,
+    pickup_address: company.address.trim(), dropoff_address: dropoffAddress.trim(), pickup_code: pickupCode, delivery_code: deliveryCode, fee: entregaFee,
   }).select('id, delivery_code').single()
   if (insertErr || !order) return { ok: false, error: insertErr?.message || 'falha ao criar entrega' }
 

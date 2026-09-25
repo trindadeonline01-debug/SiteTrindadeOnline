@@ -10,7 +10,7 @@ type Precos = { diaria: number; pacotes: Pacote[] }
 type DStatus = 'buscando_motoboy' | 'sem_motoboy' | 'a_caminho' | 'entregue' | 'cancelada' | 'sem_credito'
 type DOrder = {
   id: string; customer_name: string; customer_phone: string | null; dropoff_address: string
-  status: DStatus; fee: number; motoboy_name: string | null; delivery_code: string
+  status: DStatus; fee: number; motoboy_name: string | null; pickup_code: string | null; picked_up_at: string | null; delivery_code: string
   created_at: string; delivered_at: string | null
 }
 type LedgerKind = 'diaria' | 'compra_credito' | 'consumo' | 'diaria_consumo'
@@ -364,7 +364,12 @@ export default function EntregaPage() {
                         <span className="en-badge" style={{ background: c.bg, color: c.fg }}>{STATUS_LABEL[o.status]}</span>
                       </div>
                       {o.status !== 'entregue' && o.status !== 'cancelada' && (
-                        <div className="en-order-code">Código de entrega: <b>{o.delivery_code}</b> <span>— repassa pro cliente se ele não receber pelo WhatsApp</span></div>
+                        <>
+                          {o.motoboy_name && !o.picked_up_at && o.pickup_code && (
+                            <div className="en-order-code" style={{ background: '#FEF0E0', color: '#B5690C' }}>Código de retirada: <b>{o.pickup_code}</b> <span>— informe pro motoboy quando ele chegar pra buscar</span></div>
+                          )}
+                          <div className="en-order-code">Código de entrega: <b>{o.delivery_code}</b> <span>— repassa pro cliente se ele não receber pelo WhatsApp</span></div>
+                        </>
                       )}
                       {o.status === 'sem_motoboy' && (
                         <>

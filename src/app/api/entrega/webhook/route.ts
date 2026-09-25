@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
           if (order) {
             await sendMotoboyWhatsApp(
               motoboy.phone,
-              `Fechado! Retirar em: ${order.pickup_address}\nEntregar pra ${order.customer_name}: ${order.dropoff_address}\n\nQuando chegar no endereço, o cliente vai te passar um código de 4 dígitos — digita ele aqui pra liberar seu pagamento.\n\nBoa corrida! 🙌`
+              `Fechado! Retirar em: ${order.pickup_address}\nEntregar pra ${order.customer_name}: ${order.dropoff_address}\n\nQuando chegar na loja, peça o código de retirada de 4 dígitos e digita ele aqui.\nDepois, quando entregar, o cliente vai te passar outro código — digita esse aqui também pra liberar seu pagamento.\n\nBoa corrida! 🙌`
             )
           }
         } else if (NO.test(norm)) {
@@ -83,13 +83,33 @@ export async function POST(req: NextRequest) {
         continue
       }
 
-      // 2) sem oferta pendente — pode ser o código de 4 dígitos de uma entrega já aceita por ele
+      // 2) sem oferta pendente — pode ser um dos dois códigos de 4 dígitos
+      // de uma entrega já aceita por ele: primeiro o de RETIRADA (a loja
+      // passa pro motoboy pessoalmente, na hora de entregar o pacote a ele),
+      // só depois o do CLIENTE (só esse libera o pagamento). Pedido do
+      // Ricardo, set/2026 — sem essa ordem, o motoboy aprende o código do
+      // cliente já na retirada e a confirmação de entrega vira formalidade.
       if (/^\d{4}$/.test(norm)) {
         const { data: order } = await supabase
-          .from('delivery_orders').select('id, delivery_code, company_id, fee, customer_phone, pedido_id')
+          .from('delivery_orders').select('id, delivery_code, pickup_code, picked_up_at, company_id, fee, customer_phone, pedido_id')
           .eq('motoboy_id', motoboy.id).eq('status', 'a_caminho')
           .order('assigned_at', { ascending: false }).limit(1).maybeSingle()
         if (!order) continue
+
+        // Pickup_code pode ser nulo numa entrega antiga que já estava em
+        // andamento quando essa coluna foi criada — nesse caso só existe o
+        // código de entrega mesmo, segue direto pra ele (não trava entrega
+        // em andamento por falta de dado retroativo).
+        const precisaConfirmarRetirada = !!order.pickup_code && !order.picked_up_at
+        if (precisaConfirmarRetirada) {
+          if (norm === order.pickup_code) {
+            await supabase.from('delivery_orders').update({ picked_up_at: new Date().toISOString() }).eq('id', order.id)
+            await sendMotoboyWhatsApp(motoboy.phone, '✅ Retirada confirmada! Segue pro cliente — quando entregar, peça o código dele pra liberar seu pagamento.')
+          } else {
+            await sendMotoboyWhatsApp(motoboy.phone, 'Esse código não confere — confirma o código de retirada com o lojista e tenta de novo.')
+          }
+          continue
+        }
 
         if (norm === order.delivery_code) {
           // Diária avulsa só é descontada aqui — na CONFIRMAÇÃO da entrega,

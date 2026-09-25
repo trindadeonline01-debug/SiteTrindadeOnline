@@ -44,14 +44,24 @@ export async function POST(req: NextRequest) {
     let text = buildStatusMessage(status, deliveryType || null)
     if (!text) return NextResponse.json({ ok: true })
 
-    // Saiu com motoboy PRÓPRIO (código gerado em /painel/pedidos ao
-    // atribuir) — o cliente precisa desse número na mão pra dar pro
-    // entregador na entrega. Pedido do Ricardo, set/2026.
+    // Código de confirmação vai junto só aqui — quando a LOJA de fato marca
+    // saiu_entrega — nunca antes disso. Cobre os dois motoboys possíveis:
+    // PRÓPRIO (código gerado em /painel/pedidos ao atribuir) ou da
+    // PLATAFORMA/Trindade Entrega (código em delivery_orders, motoboy aceita
+    // por conta própria via WhatsApp e pode aceitar antes do pedido ficar
+    // pronto — por isso esse aviso não pode disparar na hora do aceite,
+    // bug real reportado pelo Ricardo, set/2026).
     if (status === 'saiu_entrega' && pedidoId) {
       const { data: pedido } = await supabase
         .from('loja_pedidos').select('delivery_confirm_code, motoboy_id').eq('id', pedidoId).eq('company_id', companyId).maybeSingle()
       if (pedido?.motoboy_id && pedido.delivery_confirm_code) {
         text += `\n\n🔑 Código de confirmação: *${pedido.delivery_confirm_code}*\nInforme esse número pro entregador quando ele chegar.`
+      } else {
+        const { data: entrega } = await supabase
+          .from('delivery_orders').select('delivery_code, motoboy_name').eq('pedido_id', pedidoId).eq('company_id', companyId).maybeSingle()
+        if (entrega?.delivery_code) {
+          text += `\n\n🏍️ ${entrega.motoboy_name ? `${entrega.motoboy_name} está a caminho.\n` : ''}🔑 Código de entrega: *${entrega.delivery_code}*\nMostre esse número pro motoboy quando ele chegar.`
+        }
       }
     }
 

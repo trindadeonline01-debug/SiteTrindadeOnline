@@ -56,20 +56,22 @@ export async function POST(req: NextRequest) {
         if (YES.test(norm)) {
           await supabase.from('delivery_offers').update({ status: 'aceita', responded_at: new Date().toISOString() }).eq('id', offer.id)
           const { data: order } = await supabase
-            .from('delivery_orders').select('pickup_address, dropoff_address, customer_name, customer_phone, company_id, delivery_code')
+            .from('delivery_orders').select('pickup_address, dropoff_address, customer_name')
             .eq('id', offer.delivery_order_id).maybeSingle()
           await supabase.from('delivery_orders').update({
             status: 'a_caminho', motoboy_id: motoboy.id, motoboy_name: motoboy.name, motoboy_phone: motoboy.phone,
             assigned_at: new Date().toISOString(),
           }).eq('id', offer.delivery_order_id)
+          // O cliente só é avisado "saiu para entrega" (com o código) quando
+          // a LOJA de fato marca o pedido como saiu_entrega, não quando o
+          // motoboy aceita a corrida aqui — aceitar só significa que ele foi
+          // buscar, o pedido pode nem estar pronto ainda (bug real, Ricardo
+          // set/2026: cliente recebeu "saiu para entrega" com o pedido ainda
+          // em preparo). Ver /api/loja/status-pedido, que já cobre isso.
           if (order) {
             await sendMotoboyWhatsApp(
               motoboy.phone,
               `Fechado! Retirar em: ${order.pickup_address}\nEntregar pra ${order.customer_name}: ${order.dropoff_address}\n\nQuando chegar no endereço, o cliente vai te passar um código de 4 dígitos — digita ele aqui pra liberar seu pagamento.\n\nBoa corrida! 🙌`
-            )
-            await sendCustomerWhatsApp(
-              order.company_id, order.customer_phone,
-              `🏍️ Seu pedido saiu para entrega!\n\n${motoboy.name} está a caminho.\n\nSeu código de entrega: *${order.delivery_code}*\nMostre esses números pro motoboy quando ele chegar — é assim que a gente confirma a entrega.`
             )
           }
         } else if (NO.test(norm)) {

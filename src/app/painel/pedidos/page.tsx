@@ -194,10 +194,11 @@ export default function PedidosPage() {
   }
   const companyIdRef = useRef('')
   const [deliveryCalled, setDeliveryCalled] = useState<Set<string>>(new Set())
-  // pedido_id -> { id, status } do delivery_orders correspondente — usado
-  // pra mostrar a faixa "Nenhum motoboy aceitou" quando status vira
-  // sem_motoboy (Ricardo, set/2026).
-  const [deliveryByPedido, setDeliveryByPedido] = useState<Record<string, { id: string; status: string }>>({})
+  // pedido_id -> dados do delivery_orders correspondente — usado pra mostrar
+  // a faixa "Nenhum motoboy aceitou" quando status vira sem_motoboy, e pra
+  // mostrar motoboy + código de entrega direto no card fechado, sem precisar
+  // ir em Entrega (Ricardo, set/2026).
+  const [deliveryByPedido, setDeliveryByPedido] = useState<Record<string, { id: string; status: string; motoboy_name: string | null; delivery_code: string | null }>>({})
   const [retryingMotoId, setRetryingMotoId] = useState<string | null>(null)
   const [motoErrors, setMotoErrors] = useState<Record<string, string>>({})
   const [motoLoading, setMotoLoading] = useState<string | null>(null)
@@ -297,10 +298,10 @@ export default function PedidosPage() {
       .gte('created_at', from.toISOString()).lt('created_at', to.toISOString())
       .order('created_at', { ascending: false })
     setPedidos((data || []) as any)
-    const { data: entregas } = await supabase.from('delivery_orders').select('id, pedido_id, status').eq('company_id', cid).not('pedido_id', 'is', null)
+    const { data: entregas } = await supabase.from('delivery_orders').select('id, pedido_id, status, motoboy_name, delivery_code').eq('company_id', cid).not('pedido_id', 'is', null)
     setDeliveryCalled(new Set((entregas || []).map(e => e.pedido_id as string)))
-    const byPedido: Record<string, { id: string; status: string }> = {}
-    for (const e of entregas || []) if (e.pedido_id) byPedido[e.pedido_id as string] = { id: e.id as string, status: e.status as string }
+    const byPedido: Record<string, { id: string; status: string; motoboy_name: string | null; delivery_code: string | null }> = {}
+    for (const e of entregas || []) if (e.pedido_id) byPedido[e.pedido_id as string] = { id: e.id as string, status: e.status as string, motoboy_name: e.motoboy_name as string | null, delivery_code: e.delivery_code as string | null }
     setDeliveryByPedido(byPedido)
   }
 
@@ -655,6 +656,12 @@ export default function PedidosPage() {
         </span>
         {p.scheduled_for && <div className="pd-sum" style={{ color: '#B5690C', fontWeight: 700 }}>📅 Agendado pra {fmtSchedule(p.scheduled_for)}</div>}
         {p.motoboy_id && <div className="pd-sum">🏍️ Entregou: <b>{motoboys.find(m => m.id === p.motoboy_id)?.nome || '—'}</b></div>}
+        {deliveryByPedido[p.id] && (
+          <div className="pd-moto-info">
+            🏍️ {deliveryByPedido[p.id].motoboy_name ? <>Motoboy: <b>{deliveryByPedido[p.id].motoboy_name}</b></> : deliveryByPedido[p.id].status === 'sem_motoboy' ? <b>Nenhum motoboy aceitou</b> : 'Chamando motoboy...'}
+            {deliveryByPedido[p.id].delivery_code && <> · Código <b>{deliveryByPedido[p.id].delivery_code}</b></>}
+          </div>
+        )}
         <div className="pd-total">{fmt(p.total)}</div>
         {isToday && needsAccept && <button className="pd-accept" onClick={e => { e.stopPropagation(); acceptPedido(p.id) }}>✓ Aceitar pedido</button>}
         {isToday && !needsAccept && !open && getNextAction(p) && (() => {
@@ -700,9 +707,7 @@ export default function PedidosPage() {
             {p.customer_phone && <div style={{ fontSize: 11.5, marginTop: 2 }}>📞 {p.customer_phone}</div>}
             {p.notes && <div style={{ fontSize: 11.5, marginTop: 2, color: '#6E6656' }}>Obs: {p.notes}</div>}
             {isToday && entregaEnabled && p.delivery_type === 'entrega' && p.status !== 'cancelado' && (
-              deliveryCalled.has(p.id) ? (
-                <div style={{ marginTop: 8, fontSize: 11.5, fontWeight: 700, color: '#157A52' }}>🏍️ Motoboy chamado — acompanhe em Entrega</div>
-              ) : (
+              deliveryCalled.has(p.id) ? null : (
                 <>
                   <button className="pd-next" style={{ marginTop: 8 }} disabled={motoLoading === p.id} onClick={e => { e.stopPropagation(); chamarMotoboy(p) }}>
                     {motoLoading === p.id ? 'Chamando...' : '🏍️ Chamar motoboy'}
@@ -785,6 +790,7 @@ export default function PedidosPage() {
         .pd-badge{ font-size:12px;font-weight:800;padding:3px 8px;border-radius:7px; }
         .pd-origin-badge{ display:inline-block;font-size:12px;font-weight:800;padding:3px 8px;border-radius:7px;margin-bottom:8px; }
         .pd-sum{ font-size:13.5px;color:#6E6656; }
+        .pd-moto-info{ font-size:13px;font-weight:600;color:#8A5A0C;background:#FEF6DC;border-radius:7px;padding:4px 8px;margin-top:4px;display:inline-block; }
         .pd-total{ font-weight:800;font-size:16px;margin-top:4px; }
         .pd-detail{ margin-top:10px;padding-top:10px;border-top:1px dashed #EDE8E0; }
         .pd-item{ display:flex;justify-content:space-between;font-size:14px;padding:3px 0; }

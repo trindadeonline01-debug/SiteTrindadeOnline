@@ -140,6 +140,19 @@ export async function POST(req: NextRequest) {
             status: 'entregue', delivered_at: new Date().toISOString(), payout_status: 'liberado',
           }).eq('id', order.id)
 
+          // Pedido do Ricardo, set/2026: código do cliente confirmado pelo
+          // motoboy já fecha o pedido lá na loja também, sem precisar de
+          // ninguém tocar em nada — "saiu para entrega" pula direto pra
+          // "entregue" e o pagamento é dado como recebido (motoboy cobrou na
+          // entrega, seja cartão, pix ou dinheiro — mesma regra que já vale
+          // quando a própria loja marca "entregue" na mão: não existe
+          // gateway automático aqui, o pagamento sempre acontece na hora).
+          if (order.pedido_id) {
+            await supabase.from('loja_pedidos').update({
+              status: 'entregue', payment_status: 'pago', updated_at: new Date().toISOString(),
+            }).eq('id', order.pedido_id)
+          }
+
           // Crédito é saldo em R$ (não mais contador de entregas) — desconta
           // o valor real dessa corrida (order.fee, calculado por bairro/km na
           // criação), não mais um fixo de "1 unidade" por entrega.

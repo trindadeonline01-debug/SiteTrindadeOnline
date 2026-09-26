@@ -206,13 +206,30 @@ export async function POST(req: NextRequest) {
     // manual "🏍️ Chamar motoboy" do card do pedido, que continua igual
     // (chama criarEntregaEChamarMotoboy direto por /api/entrega/criar, sem
     // passar por aqui). Pedido do Ricardo, set/2026.
-    const { data: autoConfig } = await supabase.from('companies').select('entrega_chamada_automatica').eq('id', companyId).maybeSingle()
+    const { data: autoConfig } = await supabase.from('companies').select('entrega_chamada_automatica, owner_id').eq('id', companyId).maybeSingle()
     if (deliveryType === 'entrega' && address && pedidoId && autoConfig?.entrega_chamada_automatica !== false) {
       try {
         const { criarEntregaEChamarMotoboy } = await import('@/lib/entregaDispatch')
-        await criarEntregaEChamarMotoboy({
+        const dispatch = await criarEntregaEChamarMotoboy({
           companyId, pedidoId, customerName: name || 'Cliente', customerPhone: phone, dropoffAddress: address,
         })
+        // `dispatch.ok === false` (sem crédito, sem diária, área fora de
+        // alcance etc.) era engolido em silêncio — o pedido saía normal, mas
+        // nenhum motoboy era chamado e ninguém sabia (achado real, set/2026:
+        // pedido de entrega da Fabiana na EMPADAY sem diária disponível na
+        // carteira — sumiu sem aviso pra ninguém). Push pro dono avisa na
+        // hora que precisa chamar manualmente ou comprar diária/crédito.
+        if (!dispatch.ok && autoConfig?.owner_id) {
+          const site = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trindadeonline.com.br'
+          fetch(`${site}/api/push/send`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              title: '⚠️ Motoboy não chamado',
+              body: `Pedido de ${name || 'cliente'} com entrega: ${dispatch.error}`,
+              target: 'external_user_id', userId: autoConfig.owner_id, url: `${site}/painel/entrega`,
+            }),
+          }).catch(() => {})
+        }
       } catch (err: any) {
         console.error('[registrar-pedido] falha ao chamar motoboy da plataforma:', err?.message || err)
       }

@@ -30,6 +30,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
   const [categorias, setCategorias] = useState<Categoria[]>([])
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [filterCat, setFilterCat] = useState('all')
+  const [linkCopied, setLinkCopied] = useState(false)
   useEffect(() => {
     // Link de categoria (ESPECIFICACAO.md §9.2 — "olha só os combos") já
     // abre o cardápio filtrado, sem precisar de rota própria por categoria.
@@ -430,6 +431,26 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
     fetch(`/api/company/${company.id}/track`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'whatsapp_click' }) }).catch(() => {})
     supabase.from('whatsapp_clicks').insert({ company_id: company.id }).then(() => {})
   }
+  async function handleShareCardapio() {
+    if (!company) return
+    const url = window.location.href
+    const nav = navigator as Navigator & { share?: (data: ShareData) => Promise<void> }
+    if (nav.share) {
+      try {
+        await nav.share({ title: `Cardápio ${company.name}`, text: `Dá uma olhada no cardápio da ${company.name} no Trindade Online!`, url })
+        return
+      } catch {
+        // usuário cancelou o compartilhamento nativo — cai pro copiar link
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url)
+    } catch {
+      // clipboard bloqueado (raro) — só ignora, o link já está na barra do navegador
+    }
+    setLinkCopied(true)
+    setTimeout(() => setLinkCopied(false), 2000)
+  }
 
   if (!company) return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'Archivo,sans-serif', background: 'var(--concrete)', padding: 24, textAlign: 'center' }}>
@@ -513,6 +534,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
         .cd-back-btn{ display:inline-flex;align-items:center;gap:4px;background:transparent;color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:20px;padding:7px 14px;font-size:12px;font-weight:700;text-decoration:none;font-family:'Archivo',sans-serif; }
         .cd-back-btn:hover{ border-color:var(--sign);color:var(--sign); }
         .cd-wa-btn{ display:inline-flex;align-items:center;gap:4px;background:#25D366;color:#0B2E13;border:none;border-radius:20px;padding:7px 14px;font-size:12px;font-weight:800;cursor:pointer;font-family:'Archivo',sans-serif; }
+        .cd-share-btn{ display:inline-flex;align-items:center;gap:4px;background:var(--sign);color:var(--ink);border:none;border-radius:20px;padding:7px 14px;font-size:12px;font-weight:800;cursor:pointer;font-family:'Archivo',sans-serif; }
         .cd-coupon-strip-wrap{ background:#fff;padding:8px 0;border-bottom:1px solid var(--line); }
         .cd-coupon-strip{ display:flex;gap:6px;overflow-x:auto;padding:0 16px;scrollbar-width:none; }
         .cd-coupon-strip::-webkit-scrollbar{ display:none; }
@@ -678,6 +700,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
         <div className="cd-heroactions">
           <a href={`/empresa/${company.slug}`} className="cd-back-btn">‹ Perfil da empresa</a>
           {company.phone && <button className="cd-wa-btn" onClick={handleWhatsAppCardapio}>💬 WhatsApp</button>}
+          <button className="cd-share-btn" onClick={handleShareCardapio}>{linkCopied ? '✓ Link copiado!' : '🔗 Compartilhar'}</button>
         </div>
       </div>
 

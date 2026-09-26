@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { sendMotoboyWhatsApp, sendCustomerWhatsApp, checkExpiredOffers, offerToNextMotoboy } from '@/lib/entregaDispatch'
+import { sendMotoboyWhatsApp, sendCustomerWhatsApp, checkExpiredOffers, offerToNextMotoboy, shortMapsLink } from '@/lib/entregaDispatch'
 import { todaySaoPaulo, getEntregaPricing } from '@/lib/entregaPricing'
 
 const supabase = createClient(
@@ -69,9 +69,13 @@ export async function POST(req: NextRequest) {
           // set/2026: cliente recebeu "saiu para entrega" com o pedido ainda
           // em preparo). Ver /api/loja/status-pedido, que já cobre isso.
           if (order) {
+            // Links de mapa só entram aqui, depois do aceite — na oferta
+            // inicial o motoboy ainda nem decidiu se pega a corrida, não faz
+            // sentido mandar link de navegação pra esse momento (pedido do
+            // Ricardo, set/2026).
             await sendMotoboyWhatsApp(
               motoboy.phone,
-              `Fechado! Retirar em: ${order.pickup_address}\nEntregar pra ${order.customer_name}: ${order.dropoff_address}\n\nQuando chegar na loja, peça o código de retirada de 4 dígitos e digita ele aqui.\nDepois, quando entregar, o cliente vai te passar outro código — digita esse aqui também pra liberar seu pagamento.\n\nBoa corrida! 🙌`
+              `Fechado! Retirar em: ${order.pickup_address}\n${shortMapsLink(offer.delivery_order_id, 'r')}\n\nEntregar pra ${order.customer_name}: ${order.dropoff_address}\n${shortMapsLink(offer.delivery_order_id, 'd')}\n\nQuando chegar na loja, peça o código de retirada de 4 dígitos e digita ele aqui.\nDepois, quando entregar, o cliente vai te passar outro código — digita esse aqui também pra liberar seu pagamento.\n\nBoa corrida! 🙌`
             )
           }
         } else if (NO.test(norm)) {

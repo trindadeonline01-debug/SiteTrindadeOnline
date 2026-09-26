@@ -60,31 +60,37 @@ export function mapsLink(address: string): string {
 // Link curto (nosso próprio domínio) que redireciona pro Maps de verdade —
 // o link cru do Maps com endereço codificado passa de 100 caracteres e
 // polui a mensagem/legenda; esse fica na casa de 60, mesmo com o UUID.
-function shortMapsLink(deliveryOrderId: string, tipo: 'r' | 'd'): string {
+// Exportado: usado só na confirmação pós-aceite (webhook.ts) — antes também
+// entrava na oferta inicial, mas o motoboy ainda nem decidiu se pega a
+// corrida, não faz sentido mandar link de navegação pra esse momento
+// (pedido do Ricardo, set/2026: "essa primeira mensagem tem que ser enxuta").
+export function shortMapsLink(deliveryOrderId: string, tipo: 'r' | 'd'): string {
   return `${SITE_URL}/e/${deliveryOrderId}/${tipo}`
 }
 
 // Nome da loja em linha própria, caixa alta e negrito — o motoboy lê em 3
 // segundos quem é quem, em vez de vasculhar o endereço pra reconhecer o
-// ponto de retirada (pedido do Ricardo, set/2026). Endereço e link também
-// cada um na sua linha — nada dividendo espaço com o rótulo antes.
-function offerMessage(order: { pickup_address: string; dropoff_address: string; customer_name: string; fee: number }, deliveryOrderId: string, companyName: string, prepMin: number): string {
-  const fee = Number(order.fee).toFixed(2).replace('.', ',')
+// ponto de retirada (pedido do Ricardo, set/2026). Mensagem enxuta de
+// propósito (sem link de mapa, sem nome do cliente) — nesse momento o
+// motoboy só está decidindo se aceita ou não, ainda não tem nada disso pra
+// usar. `valorMotoboy` (não `order.fee`) porque o que o motoboy recebe já
+// sai descontado o corte da plataforma — mostrar a taxa cheia (o que o
+// cliente paga) inflava a expectativa (pedido do Ricardo, set/2026).
+function offerMessage(order: { pickup_address: string; dropoff_address: string; customer_name: string; fee: number }, companyName: string, prepMin: number, valorMotoboy: number): string {
+  const fee = valorMotoboy.toFixed(2).replace('.', ',')
   const lines = ['🏍️ *Tem entrega!*', '', '📍 Retirar em:']
   if (companyName) lines.push(`*${companyName.toUpperCase()}*`)
   lines.push(
     order.pickup_address,
-    shortMapsLink(deliveryOrderId, 'r'),
     '',
     // Prazo de preparo em negrito e linha própria — é o que diz pro motoboy
     // até quando ele tem pra chegar na loja (pedido do Ricardo, set/2026).
     `*⏱️ Fica pronto em ${prepMin} min — chega até lá!*`,
     '',
-    `🏠 Entregar pra ${order.customer_name}:`,
+    '🏠 Entregar em:',
     order.dropoff_address,
-    shortMapsLink(deliveryOrderId, 'd'),
     '',
-    `Taxa: R$ ${fee}`,
+    `Você recebe: R$ ${fee}`,
     '',
     'Responde *SIM* ou *NÃO* em até 1 minuto.',
   )
@@ -213,14 +219,16 @@ export async function criarEntregaEChamarMotoboy(opts: {
 // teste do admin (que só quer ver como a mensagem chega, sem mexer no
 // estado de nenhuma entrega de verdade).
 async function sendOfferMessage(order: { company_id: string; pickup_address: string; dropoff_address: string; customer_name: string; fee: number }, deliveryOrderId: string, motoboyPhone: string): Promise<{ ok: boolean; detail?: string }> {
-  const [{ data: company }, { data: photo }] = await Promise.all([
+  const [{ data: company }, { data: photo }, pricing] = await Promise.all([
     supabase.from('companies').select('name, loja_tempo_preparo_min').eq('id', order.company_id).maybeSingle(),
     supabase.from('company_photos').select('url').eq('company_id', order.company_id).order('order').limit(1).maybeSingle(),
+    getEntregaPricing(),
   ])
   // Mesmo fallback de 20min usado no cálculo de frete (/api/loja/calcular-frete)
   // quando a loja não configurou o próprio tempo de preparo.
   const prepMin = company?.loja_tempo_preparo_min || 20
-  const text = offerMessage(order, deliveryOrderId, company?.name || '', prepMin)
+  const valorMotoboy = Math.max(0, Number(order.fee) - pricing.motoboy_corte_plataforma)
+  const text = offerMessage(order, company?.name || '', prepMin, valorMotoboy)
 
   // Foto da loja (recortada em banner achatado) como preview visual — se
   // não tiver foto cadastrada, se o recorte falhar, ou se o envio de mídia

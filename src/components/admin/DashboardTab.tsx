@@ -1,13 +1,13 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@supabase/supabase-js'
+import PeriodFilterBar from '@/components/admin/PeriodFilterBar'
+import { PeriodSel, periodRange } from '@/lib/periodFilter'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
-
-type Period = 'today' | 'week' | 'month' | 'year' | 'custom'
 
 interface DashStats {
   views: number
@@ -45,9 +45,7 @@ interface DayData {
 }
 
 export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) => void }) {
-  const [period, setPeriod] = useState<Period>('week')
-  const [dateFrom, setDateFrom] = useState('')
-  const [dateTo, setDateTo] = useState('')
+  const [period, setPeriod] = useState<PeriodSel>({ kind: 'week' })
   const [stats, setStats] = useState<DashStats | null>(null)
   const [searchTerms, setSearchTerms] = useState<SearchTerm[]>([])
   const [topCompanies, setTopCompanies] = useState<TopCompany[]>([])
@@ -58,31 +56,15 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
   const lineChart = useRef<any>(null)
   const donutChart = useRef<any>(null)
 
-  function getDateRange(): { from: string; to: string } {
-    const now = new Date()
-    const to = now.toISOString()
-    if (period === 'today') {
-      const from = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
-      return { from, to }
-    }
-    if (period === 'week') {
-      const from = new Date(Date.now() - 7 * 86400000).toISOString()
-      return { from, to }
-    }
-    if (period === 'month') {
-      const from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
-      return { from, to }
-    }
-    if (period === 'year') {
-      const from = new Date(now.getFullYear(), 0, 1).toISOString()
-      return { from, to }
-    }
-    return { from: dateFrom ? new Date(dateFrom).toISOString() : to, to: dateTo ? new Date(dateTo + 'T23:59:59').toISOString() : to }
-  }
-
   async function loadDashboard() {
     setLoading(true)
-    const { from, to } = getDateRange()
+    // periodRange() devolve `to` exclusivo e `from`/`to` podem vir null (sem
+    // limite) — "Tudo" e as RPCs abaixo exigem timestamp de verdade, nunca
+    // null (null em >= / <= no SQL derruba a linha toda, silenciosamente).
+    // Substitui por uma janela bem larga quando não tem limite.
+    const { from, to } = periodRange(period)
+    const effectiveFrom = from || '2000-01-01T00:00:00.000Z'
+    const effectiveTo = to || new Date().toISOString()
 
     const [
       { data: companies },
@@ -103,18 +85,18 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
       supabase.from('companies').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
       supabase.from('companies').select('*', { count: 'exact', head: true }).eq('status', 'active').eq('plan', 'paid'),
       supabase.from('companies').select('*', { count: 'exact', head: true }).eq('status', 'active').neq('plan', 'paid'),
-      supabase.from('companies').select('*', { count: 'exact', head: true }).eq('status', 'active').gte('created_at', from).lte('created_at', to),
-      supabase.from('search_logs').select('query, results_count').gte('created_at', from).lte('created_at', to),
-      supabase.from('reviews').select('*', { count: 'exact', head: true }).gte('created_at', from).lte('created_at', to),
-      supabase.from('coupons').select('*', { count: 'exact', head: true }).gte('created_at', from).lte('created_at', to),
-      supabase.from('promotions').select('*', { count: 'exact', head: true }).gte('created_at', from).lte('created_at', to),
-      supabase.from('page_views').select('*', { count: 'exact', head: true }).eq('page', '/empresa').gte('created_at', from).lte('created_at', to),
-      supabase.from('whatsapp_clicks').select('*', { count: 'exact', head: true }).gte('created_at', from).lte('created_at', to),
+      supabase.from('companies').select('*', { count: 'exact', head: true }).eq('status', 'active').gte('created_at', effectiveFrom).lt('created_at', effectiveTo),
+      supabase.from('search_logs').select('query, results_count').gte('created_at', effectiveFrom).lt('created_at', effectiveTo),
+      supabase.from('reviews').select('*', { count: 'exact', head: true }).gte('created_at', effectiveFrom).lt('created_at', effectiveTo),
+      supabase.from('coupons').select('*', { count: 'exact', head: true }).gte('created_at', effectiveFrom).lt('created_at', effectiveTo),
+      supabase.from('promotions').select('*', { count: 'exact', head: true }).gte('created_at', effectiveFrom).lt('created_at', effectiveTo),
+      supabase.from('page_views').select('*', { count: 'exact', head: true }).eq('page', '/empresa').gte('created_at', effectiveFrom).lt('created_at', effectiveTo),
+      supabase.from('whatsapp_clicks').select('*', { count: 'exact', head: true }).gte('created_at', effectiveFrom).lt('created_at', effectiveTo),
       // Agregado no banco (RPC), não trazendo linha por linha pro navegador —
       // o SELECT do Supabase corta em 1000 linhas, então em períodos longos
       // (ano todo) a contagem por empresa saía cortada e errada
-      supabase.rpc('dashboard_top_companies', { p_from: from, p_to: to, p_limit: 5 }),
-      supabase.rpc('dashboard_unique_visitors', { p_from: from, p_to: to }),
+      supabase.rpc('dashboard_top_companies', { p_from: effectiveFrom, p_to: effectiveTo, p_limit: 5 }),
+      supabase.rpc('dashboard_unique_visitors', { p_from: effectiveFrom, p_to: effectiveTo }),
     ])
 
     // Cliques em link externo e endereço não têm log por data — soma acumulada (total geral)
@@ -177,7 +159,7 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
     setLoading(false)
   }
 
-  useEffect(() => { loadDashboard() }, [period, dateFrom, dateTo])
+  useEffect(() => { loadDashboard() }, [period])
 
   useEffect(() => {
     if (!stats || weeklyViews.length === 0) return
@@ -207,8 +189,6 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
 
   const s: Record<string, any> = {
     wrap: { padding: '0 0 40px 0' },
-    periodLabel: { fontSize: 12, fontWeight: 600, color: '#888', marginRight: 4 },
-    periodBtn: (on: boolean) => ({ padding: '7px 14px', borderRadius: 8, border: on ? '1.5px solid var(--ink)' : '1.5px solid #e0e0e0', background: on ? 'var(--ink)' : '#fff', color: on ? 'var(--sign)' : '#666', fontSize: 12, fontWeight: 600, cursor: 'pointer' }),
     alert: { background: '#fff', borderRadius: 12, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', borderLeft: '4px solid #e24b4a', marginBottom: 24 },
     sectionTitle: { fontSize: 11, fontWeight: 700, color: '#aaa', letterSpacing: 1.5, textTransform: 'uppercase' as const, marginBottom: 12, marginTop: 28 },
     card: { background: '#fff', borderRadius: 14, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', border: '1.5px solid #f0f0f0', position: 'relative' as const, overflow: 'hidden' },
@@ -232,12 +212,6 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
         .dash-grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:14px;}
         .dash-donut-row{display:flex;align-items:center;gap:20px;flex-wrap:wrap;justify-content:center;}
         .dash-terms-mobile{display:none;}
-        .dash-period-presets{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
-        .dash-period-custom{display:flex;align-items:flex-end;gap:10px;background:#fff;border:1.5px solid #e0e0e0;border-radius:10px;padding:10px 12px;flex-wrap:wrap;}
-        .dash-date-field{display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px;}
-        .dash-date-field label{font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.5px;}
-        .dash-date-field input{border:1.5px solid #e0e0e0;border-radius:8px;padding:7px 8px;font-size:12px;color:#555;width:100%;}
-        .dash-date-sep{color:#ccc;font-size:15px;padding-bottom:8px;flex-shrink:0;}
         @media(max-width:700px){
           .dash-grid-5{grid-template-columns:repeat(2,1fr);}
           .dash-grid-4{grid-template-columns:repeat(2,1fr);}
@@ -246,32 +220,11 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
           .dash-terms-table{display:none;}
           .dash-terms-mobile{display:flex;flex-direction:column;}
         }
-        @media(max-width:420px){
-          .dash-date-sep{display:none;}
-        }
       `}</style>
 
-      {/* FILTRO */}
+      {/* FILTRO — padrão do site, igual Sala de Vendas */}
       <div style={{ marginBottom: 24 }}>
-        <div className="dash-period-presets">
-          <span style={s.periodLabel}>Período:</span>
-          {(['today','week','month','year'] as Period[]).map(p => (
-            <button key={p} style={s.periodBtn(period === p)} onClick={() => setPeriod(p)}>
-              {p === 'today' ? 'Hoje' : p === 'week' ? 'Esta semana' : p === 'month' ? 'Este mês' : 'Este ano'}
-            </button>
-          ))}
-        </div>
-        <div className="dash-period-custom">
-          <div className="dash-date-field">
-            <label>Personalizado — de</label>
-            <input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setPeriod('custom') }} />
-          </div>
-          <span className="dash-date-sep">→</span>
-          <div className="dash-date-field">
-            <label>Até</label>
-            <input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setPeriod('custom') }} />
-          </div>
-        </div>
+        <PeriodFilterBar value={period} onChange={setPeriod} />
       </div>
 
       {/* ALERTA */}

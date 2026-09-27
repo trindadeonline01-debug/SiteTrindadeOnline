@@ -2,6 +2,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { usePainelShell } from '@/contexts/PainelShellContext'
+import PeriodFilterBar from '@/components/admin/PeriodFilterBar'
+import { PeriodSel, periodRange, periodLabel } from '@/lib/periodFilter'
 
 type Status = 'recebido' | 'em_preparo' | 'pronto' | 'saiu_entrega' | 'entregue' | 'cancelado'
 type Pedido = {
@@ -9,7 +11,6 @@ type Pedido = {
   delivery_type: 'entrega' | 'retirada' | 'balcao'; total: number; created_at: string
 }
 type ItemRow = { pedido_id: string; product_name: string; unit_price: number; qty: number }
-type Period = 'today' | 'week' | 'month' | 'year'
 
 const ORIGIN_LABEL: Record<string, string> = { cardapio_publico: '🌐 Site', conversa: '💬 WhatsApp', balcao: '🏪 Balcão' }
 const PAY_LABEL: Record<string, string> = { pix: 'Pix', dinheiro: 'Dinheiro', cartao: 'Cartão' }
@@ -27,7 +28,7 @@ function fmt(n: number) { return 'R$ ' + n.toFixed(2).replace('.', ',') }
 export default function RelatoriosPage() {
   const { company, loading: shellLoading } = usePainelShell()
   const [loading, setLoading] = useState(true)
-  const [period, setPeriod] = useState<Period>('week')
+  const [period, setPeriod] = useState<PeriodSel>({ kind: 'week' })
   const [pedidos, setPedidos] = useState<Pedido[]>([])
   const [itens, setItens] = useState<ItemRow[]>([])
   const [loadingData, setLoadingData] = useState(true)
@@ -45,22 +46,20 @@ export default function RelatoriosPage() {
     setLoading(false)
   }, [shellLoading, company?.id, company?.loja_digital_enabled])
 
-  function getRange(): { from: string; to: string } {
-    const now = new Date()
-    const to = now.toISOString()
-    if (period === 'today') return { from: new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString(), to }
-    if (period === 'week') return { from: new Date(Date.now() - 7 * 86400000).toISOString(), to }
-    if (period === 'month') return { from: new Date(now.getFullYear(), now.getMonth(), 1).toISOString(), to }
-    return { from: new Date(now.getFullYear(), 0, 1).toISOString(), to }
-  }
-
   useEffect(() => {
     if (!company?.id) return
     setLoadingData(true)
-    const { from, to } = getRange()
-    supabase.from('loja_pedidos')
+    // periodRange() pode devolver from/to null (ex: "Tudo") — sem limite
+    // inferior/superior de verdade, então não precisa de fallback aqui como
+    // no Dashboard (que usa RPC exigindo timestamp não-nulo); a query normal
+    // do Supabase já lida bem com só aplicar o filtro que existir.
+    const { from, to } = periodRange(period)
+    let q = supabase.from('loja_pedidos')
       .select('id,status,origin,payment_method,payment_status,delivery_type,total,created_at')
-      .eq('company_id', company.id).gte('created_at', from).lte('created_at', to).order('created_at', { ascending: true })
+      .eq('company_id', company.id)
+    if (from) q = q.gte('created_at', from)
+    if (to) q = q.lt('created_at', to)
+    q.order('created_at', { ascending: true })
       .then(async ({ data }) => {
         const rows = (data || []) as Pedido[]
         setPedidos(rows)
@@ -81,12 +80,12 @@ export default function RelatoriosPage() {
   const pendenteRecebimento = validos.filter(p => p.payment_status !== 'pago').reduce((s, p) => s + Number(p.total), 0)
 
   function revenueBuckets(): { label: string; value: number }[] {
-    if (period === 'today') {
+    if (period.kind === 'today' || period.kind === 'yesterday') {
       const b = Array.from({ length: 24 }, (_, h) => ({ label: `${h}h`, value: 0 }))
       validos.forEach(p => { b[new Date(p.created_at).getHours()].value += Number(p.total) })
       return b
     }
-    if (period === 'year') {
+    if (period.kind === 'year') {
       const b = Array.from({ length: 12 }, (_, m) => ({ label: MES_LABEL[m], value: 0 }))
       validos.forEach(p => { b[new Date(p.created_at).getMonth()].value += Number(p.total) })
       return b
@@ -136,8 +135,8 @@ export default function RelatoriosPage() {
       const rev = revenueBuckets()
       if (revRef.current) {
         charts.current.rev = new Chart(revRef.current, {
-          type: period === 'today' || period === 'year' ? 'bar' : 'line',
-          data: { labels: rev.map(b => b.label), datasets: [{ label: 'Faturamento', data: rev.map(b => b.value), borderColor: '#A87200', backgroundColor: period === 'today' || period === 'year' ? '#A87200' : 'rgba(168,114,0,.1)', borderWidth: 2.5, pointRadius: 3, tension: 0.35, fill: true, borderRadius: 4 }] },
+          type: period.kind === 'today' || period.kind === 'yesterday' || period.kind === 'year' ? 'bar' : 'line',
+          data: { labels: rev.map(b => b.label), datasets: [{ label: 'Faturamento', data: rev.map(b => b.value), borderColor: '#A87200', backgroundColor: period.kind === 'today' || period.kind === 'yesterday' || period.kind === 'year' ? '#A87200' : 'rgba(168,114,0,.1)', borderWidth: 2.5, pointRadius: 3, tension: 0.35, fill: true, borderRadius: 4 }] },
           options: {
             responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx: any) => fmt(ctx.parsed.y) } } },
             scales: { x: { grid: { display: false }, ticks: { font: { size: 10.5 }, color: '#A79E8B', maxRotation: 0 } }, y: { grid: { color: '#F0EDE8' }, ticks: { font: { size: 10.5 }, color: '#A79E8B', callback: (v: any) => 'R$' + v } } },
@@ -182,17 +181,12 @@ export default function RelatoriosPage() {
 
   if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Archivo,sans-serif', color: '#AAA' }}>Carregando...</div>
 
-  const PERIOD_LABEL: Record<Period, string> = { today: 'Hoje', week: '7 dias', month: 'Este mês', year: 'Este ano' }
-
   return (
     <>
       <div className="rp-wrap">
         <style>{`
           .rp-wrap{ padding:20px 16px 48px; }
           @media(min-width:768px){ .rp-wrap{ padding:28px 32px 48px; } }
-          .rp-periods{ display:flex;gap:8px;margin-bottom:18px;overflow-x:auto; }
-          .rp-period-btn{ flex:none;padding:8px 16px;border-radius:20px;border:1.5px solid var(--line);background:#fff;font-weight:700;font-size:12.5px;color:var(--muted);cursor:pointer;font-family:'Archivo',sans-serif; }
-          .rp-period-btn.on{ background:var(--ink);color:var(--sign);border-color:var(--ink); }
           .rp-kpis{ display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px; }
           @media(min-width:768px){ .rp-kpis{ grid-template-columns:repeat(4,1fr); } }
           .rp-kpi{ background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px; }
@@ -216,16 +210,14 @@ export default function RelatoriosPage() {
           .rp-rank{ display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:var(--concrete-2);font-size:10.5px;font-weight:800;color:var(--muted);margin-right:6px; }
         `}</style>
 
-        <div className="rp-periods">
-          {(['today', 'week', 'month', 'year'] as Period[]).map(p => (
-            <button key={p} className={`rp-period-btn ${period === p ? 'on' : ''}`} onClick={() => setPeriod(p)}>{PERIOD_LABEL[p]}</button>
-          ))}
+        <div style={{ marginBottom: 18 }}>
+          <PeriodFilterBar value={period} onChange={setPeriod} />
         </div>
 
         {loadingData ? (
           <div className="rp-empty">Carregando relatório...</div>
         ) : pedidos.length === 0 ? (
-          <div className="rp-empty">Nenhum pedido em {PERIOD_LABEL[period].toLowerCase()}.</div>
+          <div className="rp-empty">Nenhum pedido em {periodLabel(period)}.</div>
         ) : (
           <>
             <div className="rp-kpis">

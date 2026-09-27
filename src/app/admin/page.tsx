@@ -8,6 +8,8 @@ import { adminFetch } from '@/lib/adminFetch'
 import NotificacoesTab from '@/components/admin/NotificacoesTab'
 import DashboardTab from '@/components/admin/DashboardTab'
 import SalaDeVendasTab from '@/components/admin/SalaDeVendasTab'
+import PeriodFilterBar from '@/components/admin/PeriodFilterBar'
+import { PeriodSel } from '@/lib/periodFilter'
 import DisparosTab from '@/components/DisparosTab'
 import PalavraPremiadaTab from '@/components/PalavraPremiadaTab'
 import MotoboysTab from '@/components/MotoboysTab'
@@ -142,9 +144,7 @@ export default function AdminPage() {
   const [previewLoading, setPreviewLoading] = useState(false)
   const [bannerFilter, setBannerFilter] = useState<'all'|'pending'|'in_progress'|'delivered'>('all')
   const [salesData, setSalesData] = useState<any[]>([])
-  const [salesFilter, setSalesFilter] = useState<'today'|'week'|'month'|'30d'|'90d'|'all'>('today')
-  const [salesDateFrom, setSalesDateFrom] = useState('')
-  const [salesDateTo, setSalesDateTo] = useState('')
+  const [salesFilter, setSalesFilter] = useState<PeriodSel>({ kind: 'today' })
   const [salesLoading, setSalesLoading] = useState(false)
   const [expiringPlans, setExpiringPlans] = useState<any[]>([])
   const [bannerSort, setBannerSort] = useState<'recent'|'urgent'|'far'>('recent')
@@ -1178,12 +1178,12 @@ export default function AdminPage() {
       .order('created_at', { ascending: false })
     setSugestoesList(data || [])
   }
-  async function loadSales(filter: string, dateFrom?: string, dateTo?: string) {
+  async function loadSales(period: PeriodSel) {
     setSalesLoading(true)
     const res = await adminFetch('/api/admin/sales', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ filter, dateFrom, dateTo })
+      body: JSON.stringify({ period })
     })
     const data = await res.json()
     setSalesData(data.payments || [])
@@ -3640,23 +3640,9 @@ export default function AdminPage() {
 
           {tab === 'vendas' && (
             <div>
-              {/* FILTROS */}
-              <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:20,flexWrap:'wrap'}}>
-                <span style={{fontSize:12,color:'#999',fontWeight:500}}>Período:</span>
-                {(['today','week','month','30d','90d','all'] as const).map(f => (
-                  <button key={f} onClick={()=>{setSalesFilter(f);loadSales(f)}}
-                    style={{fontSize:12,fontWeight:500,padding:'6px 14px',borderRadius:8,border:'0.5px solid',borderColor:salesFilter===f?'#888':'#E0DDD8',background:salesFilter===f?'#F5F2EC':'#fff',color:salesFilter===f?'#111':'#888',cursor:'pointer'}}>
-                    {f==='today'?'Hoje':f==='week'?'Esta semana':f==='month'?'Este mês':f==='30d'?'30 dias':f==='90d'?'90 dias':'Total'}
-                  </button>
-                ))}
-                <input type="date" value={salesDateFrom} onChange={e=>setSalesDateFrom(e.target.value)}
-                  style={{fontSize:12,padding:'6px 10px',borderRadius:8,border:'0.5px solid #E0DDD8',outline:'none'}}/>
-                <span style={{fontSize:12,color:'#999'}}>até</span>
-                <input type="date" value={salesDateTo} onChange={e=>setSalesDateTo(e.target.value)}
-                  style={{fontSize:12,padding:'6px 10px',borderRadius:8,border:'0.5px solid #E0DDD8',outline:'none'}}/>
-                <button onClick={()=>{setSalesFilter('today');loadSales('custom',salesDateFrom,salesDateTo)}}
-                  style={{fontSize:12,fontWeight:600,padding:'6px 14px',borderRadius:8,border:'none',background:'var(--sign)',color:'var(--ink)',cursor:'pointer'}}>Filtrar</button>
-
+              {/* FILTRO — padrão do site, igual Sala de Vendas */}
+              <div style={{marginBottom:20}}>
+                <PeriodFilterBar value={salesFilter} onChange={p => { setSalesFilter(p); loadSales(p) }} />
               </div>
 
               {/* HOJE DESTAQUE */}

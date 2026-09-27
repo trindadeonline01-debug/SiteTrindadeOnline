@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/requireAdmin'
+import { periodRange, PeriodSel } from '@/lib/periodFilter'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -11,21 +12,13 @@ export async function POST(req: NextRequest) {
   const auth = await requireAdmin(req)
   if (auth instanceof NextResponse) return auth
 
-  const { filter, dateFrom, dateTo } = await req.json()
+  const { period } = await req.json() as { period: PeriodSel }
+  const { from, to } = periodRange(period)
   const now = new Date()
-  let from: string | null = null
-  let to: string | null = null
-
-  if (filter === 'today') { from = now.toISOString().split('T')[0] + 'T00:00:00Z'; to = now.toISOString() }
-  else if (filter === 'week') { const d = new Date(now); d.setDate(d.getDate()-7); from = d.toISOString() }
-  else if (filter === 'month') { from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString() }
-  else if (filter === '30d') { const d = new Date(now); d.setDate(d.getDate()-30); from = d.toISOString() }
-  else if (filter === '90d') { const d = new Date(now); d.setDate(d.getDate()-90); from = d.toISOString() }
-  else if (filter === 'custom' && dateFrom) { from = dateFrom + 'T00:00:00Z'; to = dateTo ? dateTo + 'T23:59:59Z' : now.toISOString() }
 
   let q = supabaseAdmin.from('payments').select('id, payment_id, plan, value, days, status, paid_at, company_id').eq('status','paid').order('paid_at', { ascending: false })
   if (from) q = q.gte('paid_at', from)
-  if (to) q = q.lte('paid_at', to)
+  if (to) q = q.lt('paid_at', to)
   const { data: payments, error } = await q
 
   // Buscar nomes das empresas separado

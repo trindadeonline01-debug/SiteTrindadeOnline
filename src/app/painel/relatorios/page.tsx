@@ -167,7 +167,11 @@ export default function RelatoriosPage() {
           options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { position: 'bottom', labels: { font: { size: 10.5 }, boxWidth: 10, color: '#6E6656' } } } },
         })
       }
-      const pay = countBy(p => p.payment_method || '—', PAY_LABEL)
+      // "cartao_credito"/"cartao_debito" (formas reais salvas no checkout —
+      // ver PAY_LABEL em CardapioClient.tsx) viravam fatia separada de
+      // "cartao" nesse donut, fragmentando o que devia ser 1 categoria só
+      // (mesma causa do bug real achado em Sala de Vendas, set/2026).
+      const pay = countBy(p => (p.payment_method || '').startsWith('cartao') ? 'cartao' : (p.payment_method || '—'), PAY_LABEL)
       if (payRef.current) {
         charts.current.pay = new Chart(payRef.current, {
           type: 'doughnut',

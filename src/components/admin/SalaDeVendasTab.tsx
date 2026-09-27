@@ -289,15 +289,33 @@ export default function SalaDeVendasTab() {
 
   const lojasSemVenda = companies.filter(c => !ranking.some(r => r.id === c.id))
 
-  // mix de pagamento / entrega, no período
+  // mix de pagamento / entrega, no período — achado real do Ricardo, set/2026:
+  // a Peixaria Trindade teve 1 pedido no cartão e 1 no Pix, mas o Mix de
+  // Pagamento só mostrava o Pix. Causa: `payment_method` no banco vem como
+  // "cartao_credito"/"cartao_debito" (não só "cartao" — ver PAY_LABEL em
+  // CardapioClient.tsx), e o agregador só somava a chave "cartao" — o
+  // pedido no crédito ficava contado numa chave "cartao_credito" que
+  // ninguém lia, sumindo da tela E do total (a % de Pix parecia 100%).
+  // Normaliza qualquer variante de cartão pra "cartao", e qualquer valor
+  // fora do esperado (delivery_type "balcao", por exemplo) cai num balde
+  // "outro" que entra na conta — nunca mais um pedido some sem aparecer
+  // em lugar nenhum.
   const mixPagamento = useMemo(() => {
-    const m: Record<string, number> = { cartao: 0, dinheiro: 0, pix: 0 }
-    naoCancelados.forEach(p => { const k = p.payment_method || 'outro'; m[k] = (m[k] || 0) + 1 })
+    const m: Record<string, number> = { cartao: 0, dinheiro: 0, pix: 0, outro: 0 }
+    naoCancelados.forEach(p => {
+      const raw = p.payment_method || ''
+      const k = raw.startsWith('cartao') ? 'cartao' : (raw === 'dinheiro' || raw === 'pix') ? raw : 'outro'
+      m[k] += 1
+    })
     return m
   }, [naoCancelados])
   const mixEntrega = useMemo(() => {
-    const m: Record<string, number> = { entrega: 0, retirada: 0 }
-    naoCancelados.forEach(p => { const k = p.delivery_type || 'outro'; m[k] = (m[k] || 0) + 1 })
+    const m: Record<string, number> = { entrega: 0, retirada: 0, outro: 0 }
+    naoCancelados.forEach(p => {
+      const raw = p.delivery_type || ''
+      const k = raw === 'entrega' || raw === 'retirada' ? raw : 'outro'
+      m[k] += 1
+    })
     return m
   }, [naoCancelados])
 
@@ -323,8 +341,8 @@ export default function SalaDeVendasTab() {
 
   const maxRankTotal = ranking[0]?.total || 1
   const maxWeekly = Math.max(...weekly.map(d => d.total), 1)
-  const totalMix = mixPagamento.cartao + mixPagamento.dinheiro + mixPagamento.pix
-  const totalMixEntrega = mixEntrega.entrega + mixEntrega.retirada
+  const totalMix = mixPagamento.cartao + mixPagamento.dinheiro + mixPagamento.pix + mixPagamento.outro
+  const totalMixEntrega = mixEntrega.entrega + mixEntrega.retirada + mixEntrega.outro
 
   const s = {
     card: { background: '#fff', borderRadius: 14, border: '1.5px solid #f0f0f0', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', overflow: 'hidden' as const },
@@ -561,17 +579,23 @@ export default function SalaDeVendasTab() {
             <>
               <div style={{ padding: '14px 18px 16px' }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', marginBottom: 9 }}>Forma de pagamento</div>
-                <div className="sv-mix-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                <div className="sv-mix-grid" style={{ gridTemplateColumns: `repeat(${mixPagamento.outro > 0 ? 4 : 3}, 1fr)` }}>
                   <div className="sv-mix-tile"><div className="n" style={{ color: '#2a78d6' }}>{mixPagamento.cartao}</div><div className="l">Cartão · {totalMix > 0 ? Math.round((mixPagamento.cartao / totalMix) * 100) : 0}%</div></div>
                   <div className="sv-mix-tile"><div className="n" style={{ color: '#eb6834' }}>{mixPagamento.dinheiro}</div><div className="l">Dinheiro · {totalMix > 0 ? Math.round((mixPagamento.dinheiro / totalMix) * 100) : 0}%</div></div>
                   <div className="sv-mix-tile"><div className="n" style={{ color: '#1baf7a' }}>{mixPagamento.pix}</div><div className="l">Pix · {totalMix > 0 ? Math.round((mixPagamento.pix / totalMix) * 100) : 0}%</div></div>
+                  {mixPagamento.outro > 0 && (
+                    <div className="sv-mix-tile"><div className="n" style={{ color: '#888' }}>{mixPagamento.outro}</div><div className="l">Outro · {Math.round((mixPagamento.outro / totalMix) * 100)}%</div></div>
+                  )}
                 </div>
               </div>
               <div style={{ padding: '14px 18px 16px', borderTop: '1px solid #f5f5f5' }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', marginBottom: 9 }}>Entrega ou retirada</div>
-                <div className="sv-mix-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+                <div className="sv-mix-grid" style={{ gridTemplateColumns: `repeat(${mixEntrega.outro > 0 ? 3 : 2}, 1fr)` }}>
                   <div className="sv-mix-tile"><div className="n" style={{ color: '#008300' }}>{mixEntrega.entrega}</div><div className="l">Entrega · {totalMixEntrega > 0 ? Math.round((mixEntrega.entrega / totalMixEntrega) * 100) : 0}%</div></div>
                   <div className="sv-mix-tile"><div className="n" style={{ color: '#4a3aa7' }}>{mixEntrega.retirada}</div><div className="l">Retirada · {totalMixEntrega > 0 ? Math.round((mixEntrega.retirada / totalMixEntrega) * 100) : 0}%</div></div>
+                  {mixEntrega.outro > 0 && (
+                    <div className="sv-mix-tile"><div className="n" style={{ color: '#888' }}>{mixEntrega.outro}</div><div className="l">Outro · {Math.round((mixEntrega.outro / totalMixEntrega) * 100)}%</div></div>
+                  )}
                 </div>
               </div>
             </>

@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
 
       // 1) tem oferta pendente esperando resposta dele?
       const { data: offer } = await supabase
-        .from('delivery_offers').select('id, delivery_order_id, sequence_no')
+        .from('delivery_offers').select('id, delivery_order_id, sequence_no, round_no')
         .eq('motoboy_id', motoboy.id).eq('status', 'pendente')
         .order('offered_at', { ascending: false }).limit(1).maybeSingle()
 
@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
           }
         } else if (NO.test(norm)) {
           await supabase.from('delivery_offers').update({ status: 'recusada', responded_at: new Date().toISOString() }).eq('id', offer.id)
-          await offerToNextMotoboy(offer.delivery_order_id, offer.sequence_no + 1)
+          await offerToNextMotoboy(offer.delivery_order_id, offer.sequence_no + 1, offer.round_no)
         } else {
           await sendMotoboyWhatsApp(motoboy.phone, 'Não entendi — responde só *SIM* ou *NÃO* pra essa entrega.')
         }

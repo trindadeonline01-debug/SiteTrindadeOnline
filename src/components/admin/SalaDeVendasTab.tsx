@@ -380,6 +380,8 @@ export default function SalaDeVendasTab() {
         .sv-mix-tile{text-align:center;padding:10px 6px;background:#f7f7f5;border-radius:10px;}
         .sv-mix-tile .n{font-size:19px;font-weight:800;line-height:1.1;}
         .sv-mix-tile .l{font-size:10.5px;color:#999;margin-top:2px;}
+        .sv-store-filter{max-width:220px;box-sizing:border-box;}
+        @media(max-width:560px){ .sv-store-filter{max-width:100%;width:100%;} }
       `}</style>
 
       {/* CARDÁPIOS ATIVOS — acesso rápido pra editar, sem precisar entrar na empresa */}
@@ -413,7 +415,7 @@ export default function SalaDeVendasTab() {
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
           <PeriodFilterBar value={period} onChange={setPeriod} />
-          <select value={storeFilter} onChange={e => setStoreFilter(e.target.value)} style={{ fontSize: 12.5, fontWeight: 600, color: '#333', background: '#fff', border: '1.5px solid #e0e0e0', borderRadius: 10, padding: '8px 12px' }}>
+          <select className="sv-store-filter" value={storeFilter} onChange={e => setStoreFilter(e.target.value)} style={{ fontSize: 12.5, fontWeight: 600, color: '#333', background: '#fff', border: '1.5px solid #e0e0e0', borderRadius: 10, padding: '8px 12px' }}>
             <option value="all">Todas as lojas</option>
             {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>

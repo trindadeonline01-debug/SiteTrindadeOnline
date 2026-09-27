@@ -13,20 +13,31 @@ const QUICK: [PeriodKind, string][] = [
 
 export default function PeriodFilterBar({ value, onChange }: { value: PeriodSel; onChange: (p: PeriodSel) => void }) {
   return (
-    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+    <div className="pf-wrap">
       <style>{`
+        .pf-wrap{display:flex;flex-wrap:wrap;gap:10px;width:100%;box-sizing:border-box;align-items:center;}
+        .pf-pillgroup{display:flex;gap:4px;background:#fafafa;border:1.5px solid #e0e0e0;border-radius:10px;padding:3px;flex-wrap:wrap;box-sizing:border-box;max-width:100%;}
         .pf-pill{border:1.5px solid #e0e0e0;background:#fff;font-size:12px;font-weight:700;color:#888;padding:7px 13px;border-radius:8px;cursor:pointer;}
         .pf-pill.on{background:var(--ink);border-color:var(--ink);color:var(--sign);}
-        .pf-select{font-size:12.5px;font-weight:700;color:#888;background:#fff;border:1.5px solid #e0e0e0;border-radius:10px;padding:8px 10px;cursor:pointer;}
+        .pf-select{font-size:12.5px;font-weight:700;color:#888;background:#fff;border:1.5px solid #e0e0e0;border-radius:10px;padding:8px 10px;cursor:pointer;box-sizing:border-box;max-width:100%;}
         .pf-select.on{color:var(--sign);background:var(--ink);}
-        .pf-range{display:flex;align-items:center;gap:6px;border:1.5px solid #e0e0e0;border-radius:10px;padding:4px 8px;background:#fff;}
+        /* flex-basis 0 (não auto) é o que faz os 2 campos de data
+           conseguirem encolher de verdade dentro da caixa -- sem isso, o
+           Android/Chrome desenha o campo de data nativo mais largo que o
+           iOS/Safari e ele nunca cabe, empurrando a caixa inteira pra fora
+           da tela (achado real do Ricardo, set/2026: "no iPhone ajusta, no
+           Android nao"). */
+        .pf-range{display:flex;align-items:center;gap:6px;border:1.5px solid #e0e0e0;border-radius:10px;padding:4px 8px;background:#fff;flex:1 1 240px;min-width:0;max-width:100%;box-sizing:border-box;}
         .pf-range.on{border-color:var(--sign-dark);background:#fdf6e8;}
-        .pf-range-label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;color:#aaa;}
+        .pf-range-label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;color:#aaa;flex:none;}
         .pf-range.on .pf-range-label{color:var(--sign-dark);}
-        .pf-range input{font-size:12.5px;font-weight:600;color:#333;border:none;background:transparent;padding:4px 2px;cursor:pointer;}
+        .pf-range input{font-size:12.5px;font-weight:600;color:#333;border:none;background:transparent;padding:4px 2px;cursor:pointer;flex:1 1 0;min-width:0;box-sizing:border-box;}
+        @media(max-width:560px){
+          .pf-pillgroup, .pf-select, .pf-range { width:100%; }
+        }
       `}</style>
 
-      <div style={{ display: 'flex', gap: 4, background: '#fafafa', border: '1.5px solid #e0e0e0', borderRadius: 10, padding: 3, flexWrap: 'wrap' }}>
+      <div className="pf-pillgroup">
         {QUICK.map(([kind, label]) => (
           <button key={kind} className={`pf-pill ${value.kind === kind ? 'on' : ''}`} onClick={() => onChange({ kind })}>{label}</button>
         ))}

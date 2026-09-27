@@ -1627,7 +1627,7 @@ export default function AdminPage() {
         .stat-danger{ color: #E24B4A; }
 
         .section-card { background: #fff; border-radius: 14px; border: 0.5px solid #EDE8E0; margin-bottom: 20px; overflow: hidden; }
-        .section-hdr  { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 0.5px solid #F0EDE8; }
+        .section-hdr  { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 0.5px solid #F0EDE8; flex-wrap: wrap; row-gap: 8px; }
         .section-title{ font-family: 'Archivo', sans-serif; font-weight: 700; font-size: 12px; color: #888; letter-spacing: .8px; text-transform: uppercase; }
 
         .filter-row { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -1700,7 +1700,7 @@ export default function AdminPage() {
         .emp-card { background: #fff; border: 1.5px solid #f0f0f0; border-radius: 14px; padding: 12px 14px; margin-bottom: 10px; }
         .emp-card-name { font-size: 13.5px; font-weight: 800; color: #151210; }
         .emp-card-meta { font-size: 11px; color: #999; margin-top: 3px; line-height: 1.5; }
-        .emp-card-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+        .emp-card-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; row-gap: 6px; }
         .emp-card-more { font-size: 11px; font-weight: 800; color: #A87200; background: none; border: none; cursor: pointer; font-family: 'Archivo', sans-serif; padding: 0; }
         .emp-card-expand { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #eee; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
         .emp-card-pill { display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 11px; font-weight: 700; padding: 8px 8px; border-radius: 8px; text-decoration: none; border: none; cursor: pointer; font-family: 'Archivo', sans-serif; }
@@ -2192,7 +2192,7 @@ export default function AdminPage() {
               <div className="section-card">
                 <div className="section-hdr">
                   <span className="section-title">EMPRESAS ({filteredCompanies.length})</span>
-                  <input value={searchCompany} onChange={e=>setSearchCompany(e.target.value)} placeholder="🔍 Buscar empresa ou responsável..." style={{padding:'7px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Archivo,sans-serif',outline:'none',width:260}}/>
+                  <input value={searchCompany} onChange={e=>setSearchCompany(e.target.value)} placeholder="🔍 Buscar empresa ou responsável..." style={{padding:'7px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Archivo,sans-serif',outline:'none',width:'100%',maxWidth:260,boxSizing:'border-box',flex:'1 1 200px'}}/>
                   <div className="filter-row">
                     {['all','pending','active','suspended'].map(f => (
                       <button key={f} className={`filter-btn ${filterStatus===f?'on':''}`} onClick={() => setFilter(f)}>

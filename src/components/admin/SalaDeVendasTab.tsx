@@ -7,8 +7,11 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-type Period = 'today' | '7d' | '30d' | 'all'
+type PeriodKind = 'today' | 'yesterday' | 'week' | 'month' | 'other_month' | 'custom' | 'all'
+interface PeriodSel { kind: PeriodKind; monthIndex?: number; customDate?: string }
 type StatusPedido = 'recebido' | 'em_preparo' | 'pronto' | 'saiu_entrega' | 'entregue' | 'cancelado'
+
+const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
 
 interface Pedido {
   id: string
@@ -39,16 +42,60 @@ const STATUS_COLOR: Record<StatusPedido, string> = {
   saiu_entrega: 'var(--info)', entregue: 'var(--open)', cancelado: 'var(--alert)',
 }
 
-function periodStart(p: Period): string | null {
+// `to` null = sem limite superior (vai até agora). Precisa de `to` de verdade
+// pra "ontem"/mês passado/data específica — antes só existia `from` (sempre
+// "desde X até agora"), o que nem dava pra expressar "só o dia de ontem".
+function periodRange(p: PeriodSel): { from: string | null; to: string | null } {
   const now = new Date()
-  if (p === 'today') return new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
-  if (p === '7d') return new Date(Date.now() - 7 * 86400000).toISOString()
-  if (p === '30d') return new Date(Date.now() - 30 * 86400000).toISOString()
-  return null
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate())
+  switch (p.kind) {
+    case 'today':
+      return { from: startOfDay(now).toISOString(), to: null }
+    case 'yesterday': {
+      const y = new Date(now); y.setDate(now.getDate() - 1)
+      return { from: startOfDay(y).toISOString(), to: startOfDay(now).toISOString() }
+    }
+    case 'week': {
+      // Semana começando na segunda-feira.
+      const day = now.getDay()
+      const diffToMonday = day === 0 ? 6 : day - 1
+      const monday = new Date(now); monday.setDate(now.getDate() - diffToMonday)
+      return { from: startOfDay(monday).toISOString(), to: null }
+    }
+    case 'month':
+      return { from: new Date(now.getFullYear(), now.getMonth(), 1).toISOString(), to: null }
+    case 'other_month': {
+      if (p.monthIndex == null) return { from: null, to: null }
+      // Mês escolhido só pelo nome (sem ano) — se ainda não chegou esse mês
+      // esse ano, assume o ano passado (ex: escolher "Dezembro" em março só
+      // pode ser dezembro do ano anterior).
+      const year = p.monthIndex > now.getMonth() ? now.getFullYear() - 1 : now.getFullYear()
+      return {
+        from: new Date(year, p.monthIndex, 1).toISOString(),
+        to: new Date(year, p.monthIndex + 1, 1).toISOString(),
+      }
+    }
+    case 'custom': {
+      if (!p.customDate) return { from: null, to: null }
+      const d = new Date(p.customDate + 'T00:00:00')
+      const to = new Date(d); to.setDate(d.getDate() + 1)
+      return { from: d.toISOString(), to: to.toISOString() }
+    }
+    default:
+      return { from: null, to: null }
+  }
 }
 
-function periodLabel(p: Period) {
-  return p === 'today' ? 'hoje' : p === 'all' ? 'tudo' : p === '7d' ? '7 dias' : '30 dias'
+function periodLabel(p: PeriodSel): string {
+  switch (p.kind) {
+    case 'today': return 'hoje'
+    case 'yesterday': return 'ontem'
+    case 'week': return 'esta semana'
+    case 'month': return 'este mês'
+    case 'other_month': return p.monthIndex != null ? MESES[p.monthIndex].toLowerCase() : 'mês'
+    case 'custom': return p.customDate ? new Date(p.customDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'data'
+    default: return 'tudo'
+  }
 }
 function fmtMoney(n: number) {
   return 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -62,7 +109,9 @@ function pctDelta(curr: number, prev: number): { label: string; pos: boolean } |
 }
 
 export default function SalaDeVendasTab() {
-  const [period, setPeriod] = useState<Period>('today')
+  const [period, setPeriod] = useState<PeriodSel>({ kind: 'today' })
+  const [customDateInput, setCustomDateInput] = useState('')
+  const [paradosModalOpen, setParadosModalOpen] = useState(false)
   const [storeFilter, setStoreFilter] = useState<string>('all')
   const [loading, setLoading] = useState(true)
   const [companies, setCompanies] = useState<{ id: string; name: string }[]>([])
@@ -87,20 +136,37 @@ export default function SalaDeVendasTab() {
     setCompanies(withModule.map((c: any) => ({ id: c.id, name: c.name })))
   }
 
+  // Exclusão de verdade (não só cancelar) — pedido do Ricardo, set/2026:
+  // pedido de teste fica sujando o relatório pra sempre se só existisse
+  // "cancelar". A tabela cascade nos itens do pedido sozinha.
+  async function excluirPedido(p: Pedido) {
+    if (!window.confirm(`Excluir o pedido #${p.order_number ?? '—'} (${companyName[p.company_id] || '—'})? Não dá pra desfazer.`)) return
+    await supabase.from('loja_pedidos').delete().eq('id', p.id)
+    // A realtime subscription já recarrega sozinha no evento DELETE.
+  }
+
+  async function cancelarPedido(p: Pedido) {
+    if (!window.confirm(`Cancelar o pedido #${p.order_number ?? '—'} (${companyName[p.company_id] || '—'})?`)) return
+    await supabase.from('loja_pedidos').update({ status: 'cancelado' }).eq('id', p.id)
+  }
+
   async function loadAll() {
     setLoading(true)
-    const from = periodStart(period)
+    const { from, to } = periodRange(period)
     const now = new Date()
 
     let q = supabase.from('loja_pedidos').select('id, company_id, customer_name, status, payment_method, delivery_type, total, created_at, order_number')
     if (from) q = q.gte('created_at', from)
+    if (to) q = q.lt('created_at', to)
     if (storeFilter !== 'all') q = q.eq('company_id', storeFilter)
     const { data: curr } = await q.order('created_at', { ascending: false })
     setPedidos((curr || []) as Pedido[])
 
-    // período anterior equivalente, só pra "today"/"7d"/"30d" — pra "all" não existe anterior
+    // período anterior equivalente (mesma duração, imediatamente antes) —
+    // pra "tudo" não existe anterior.
     if (from) {
-      const ms = now.getTime() - new Date(from).getTime()
+      const effectiveTo = to ? new Date(to).getTime() : now.getTime()
+      const ms = effectiveTo - new Date(from).getTime()
       const prevFrom = new Date(new Date(from).getTime() - ms).toISOString()
       let qp = supabase.from('loja_pedidos').select('id, company_id, customer_name, status, payment_method, delivery_type, total, created_at, order_number').gte('created_at', prevFrom).lt('created_at', from)
       if (storeFilter !== 'all') qp = qp.eq('company_id', storeFilter)
@@ -116,6 +182,7 @@ export default function SalaDeVendasTab() {
     // dia mesmo com "Hoje" selecionado, contradizendo os KPIs ao lado.
     let qf = supabase.from('loja_pedidos').select('id, company_id, customer_name, status, payment_method, delivery_type, total, created_at, order_number').order('created_at', { ascending: false }).limit(50)
     if (from) qf = qf.gte('created_at', from)
+    if (to) qf = qf.lt('created_at', to)
     if (storeFilter !== 'all') qf = qf.eq('company_id', storeFilter)
     const { data: feedData } = await qf
     setFeed((feedData || []) as Pedido[])
@@ -296,6 +363,30 @@ export default function SalaDeVendasTab() {
         .sv-mix-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:#888;}
       `}</style>
 
+      {/* CARDÁPIOS ATIVOS — acesso rápido pra editar, sem precisar entrar na empresa */}
+      {companies.length > 0 && (
+        <div style={{ ...s.card, marginBottom: 16 }}>
+          <div style={s.cardHd}>
+            <span style={s.cardTitle}>Cardápios ativos</span>
+            <span style={s.cardHint}>{companies.length} loja{companies.length !== 1 ? 's' : ''} · acesso rápido</span>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, padding: 14 }}>
+            {companies.map(c => (
+              <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, border: '1.5px solid #f0f0f0', borderRadius: 12, padding: '8px 8px 8px 10px', minWidth: 210 }}>
+                <span style={{ width: 32, height: 32, borderRadius: 8, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5f6f2', border: '1px solid #f0f0f0', fontSize: 11.5, fontWeight: 800, color: 'var(--sign-dark)' }}>
+                  {c.name.slice(0, 2).toUpperCase()}
+                </span>
+                <span style={{ fontSize: 12.5, fontWeight: 700, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
+                <a href={`/painel/catalogo?empresa=${c.id}`} target="_blank" rel="noreferrer"
+                  style={{ fontSize: 11, fontWeight: 800, color: 'var(--sign-dark)', background: '#fdf6e8', border: '1px solid #f0e0b8', borderRadius: 8, padding: '6px 9px', textDecoration: 'none', flex: 'none' }}>
+                  ✏️ Editar
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* CONTROLES */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -305,11 +396,26 @@ export default function SalaDeVendasTab() {
           </span>
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', gap: 4, background: '#fafafa', border: '1.5px solid #e0e0e0', borderRadius: 10, padding: 3 }}>
-            {([['today', 'Hoje'], ['7d', '7 dias'], ['30d', '30 dias'], ['all', 'Tudo']] as [Period, string][]).map(([p, label]) => (
-              <button key={p} className={`sv-period-btn ${period === p ? 'on' : ''}`} onClick={() => setPeriod(p)}>{label}</button>
+          <div style={{ display: 'flex', gap: 4, background: '#fafafa', border: '1.5px solid #e0e0e0', borderRadius: 10, padding: 3, flexWrap: 'wrap' }}>
+            {([['today', 'Hoje'], ['yesterday', 'Ontem'], ['week', 'Esta semana'], ['month', 'Este mês'], ['all', 'Tudo']] as [PeriodKind, string][]).map(([kind, label]) => (
+              <button key={kind} className={`sv-period-btn ${period.kind === kind ? 'on' : ''}`} onClick={() => { setCustomDateInput(''); setPeriod({ kind }) }}>{label}</button>
             ))}
           </div>
+          <select
+            value={period.kind === 'other_month' && period.monthIndex != null ? String(period.monthIndex) : ''}
+            onChange={e => { setCustomDateInput(''); setPeriod({ kind: 'other_month', monthIndex: Number(e.target.value) }) }}
+            style={{ fontSize: 12.5, fontWeight: 700, color: period.kind === 'other_month' ? 'var(--sign)' : '#888', background: period.kind === 'other_month' ? 'var(--ink)' : '#fff', border: '1.5px solid #e0e0e0', borderRadius: 10, padding: '8px 10px', cursor: 'pointer' }}
+          >
+            <option value="" disabled>Outro mês</option>
+            {MESES.map((m, i) => <option key={m} value={i}>{m}</option>)}
+          </select>
+          <input
+            type="date"
+            value={customDateInput}
+            onChange={e => { setCustomDateInput(e.target.value); if (e.target.value) setPeriod({ kind: 'custom', customDate: e.target.value }) }}
+            title="Data personalizada"
+            style={{ fontSize: 12.5, fontWeight: 600, color: period.kind === 'custom' ? '#111' : '#888', background: period.kind === 'custom' ? '#fdf6e8' : '#fff', border: `1.5px solid ${period.kind === 'custom' ? 'var(--sign-dark)' : '#e0e0e0'}`, borderRadius: 10, padding: '7px 10px', cursor: 'pointer' }}
+          />
           <select value={storeFilter} onChange={e => setStoreFilter(e.target.value)} style={{ fontSize: 12.5, fontWeight: 600, color: '#333', background: '#fff', border: '1.5px solid #e0e0e0', borderRadius: 10, padding: '8px 12px' }}>
             <option value="all">Todas as lojas</option>
             {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -324,7 +430,7 @@ export default function SalaDeVendasTab() {
       {/* KPIs */}
       <div className="sv-kpis">
         <div style={{ ...s.card, padding: '16px 18px' }}>
-          <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: '#aaa', marginBottom: 6 }}>Faturado {period === 'today' ? 'hoje' : period === 'all' ? '(tudo)' : `(${period === '7d' ? '7 dias' : '30 dias'})`}</div>
+          <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: '#aaa', marginBottom: 6 }}>Faturado {period.kind === 'all' ? '(tudo)' : `(${periodLabel(period)})`}</div>
           <div style={{ fontFamily: 'inherit', fontWeight: 800, fontSize: 28, color: 'var(--sign-dark)' }}>{fmtMoney(faturado)}</div>
           {deltaFaturado ? (
             <div style={{ fontSize: 11.5, marginTop: 4 }}>
@@ -357,7 +463,9 @@ export default function SalaDeVendasTab() {
           <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: '#aaa', marginBottom: 6 }}>Em aberto agora</div>
           <div style={{ fontWeight: 800, fontSize: 28, color: openOrders.length > 0 ? 'var(--warn)' : '#111' }}>{openOrders.length}</div>
           <div style={{ fontSize: 11.5, color: '#aaa', marginTop: 4 }}>
-            {pedidosParados.length > 0 ? <span style={{ color: 'var(--alert)', fontWeight: 700 }}>{pedidosParados.length} parado{pedidosParados.length !== 1 ? 's' : ''} há 2h+</span> : (openOrders.length > 0 ? 'dentro do prazo' : 'nenhum agora')}
+            {pedidosParados.length > 0
+              ? <span onClick={() => setParadosModalOpen(true)} style={{ color: 'var(--alert)', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}>{pedidosParados.length} parado{pedidosParados.length !== 1 ? 's' : ''} há 2h+</span>
+              : (openOrders.length > 0 ? 'dentro do prazo' : 'nenhum agora')}
           </div>
         </div>
       </div>
@@ -366,10 +474,10 @@ export default function SalaDeVendasTab() {
       {(pedidosParados.length > 0 || lojaInativa || (cancelados.length > 0 && taxaCancelamento >= 5)) && (
         <div className="sv-alerts">
           {pedidosParados.length > 0 && (
-            <div style={{ ...s.card, display: 'flex', gap: 12, alignItems: 'flex-start', padding: '13px 16px', borderLeft: '4px solid var(--alert)' }}>
+            <div onClick={() => setParadosModalOpen(true)} style={{ ...s.card, display: 'flex', gap: 12, alignItems: 'flex-start', padding: '13px 16px', borderLeft: '4px solid var(--alert)', cursor: 'pointer' }}>
               <span style={{ width: 30, height: 30, borderRadius: 9, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, background: '#fbeaea' }}>⏱️</span>
               <span>
-                <div style={{ fontSize: 12.5, fontWeight: 800, marginBottom: 2 }}>{pedidosParados.length} pedido{pedidosParados.length !== 1 ? 's' : ''} parado{pedidosParados.length !== 1 ? 's' : ''}</div>
+                <div style={{ fontSize: 12.5, fontWeight: 800, marginBottom: 2 }}>{pedidosParados.length} pedido{pedidosParados.length !== 1 ? 's' : ''} parado{pedidosParados.length !== 1 ? 's' : ''} <span style={{ fontWeight: 600, color: '#aaa', textDecoration: 'underline' }}>ver</span></div>
                 <div style={{ fontSize: 11.5, color: '#888', lineHeight: 1.4 }}>
                   {parados15dMaisAntigo && <b style={{ color: '#111' }}>{companyName[parados15dMaisAntigo.company_id] || '—'}</b>} sem avançar há mais de 2h — {fmtMoney(valorParado)} parado.
                 </div>
@@ -426,6 +534,7 @@ export default function SalaDeVendasTab() {
                     {STATUS_LABEL[p.status]}
                   </span>
                 </span>
+                <button onClick={() => excluirPedido(p)} title="Excluir pedido" style={{ flex: 'none', border: 'none', background: 'none', color: '#ccc', cursor: 'pointer', fontSize: 14, padding: '4px 2px 4px 6px' }}>🗑️</button>
               </div>
             ))}
           </div>
@@ -457,7 +566,7 @@ export default function SalaDeVendasTab() {
             </div>
             {lojasSemVenda.length > 0 && (
               <div style={{ padding: '10px 18px 14px', fontSize: 11, color: '#aaa', borderTop: '1px solid #f5f5f5' }}>
-                {lojasSemVenda.map(l => l.name).join(', ')} não vendeu {period === 'today' ? 'hoje' : period === 'all' ? 'ainda' : 'no período'}.
+                {lojasSemVenda.map(l => l.name).join(', ')} não vendeu {period.kind === 'today' ? 'hoje' : period.kind === 'all' ? 'ainda' : 'no período'}.
               </div>
             )}
           </div>
@@ -560,6 +669,36 @@ export default function SalaDeVendasTab() {
           </div>
         </div>
       </div>
+
+      {/* MODAL: pedidos parados — clicável a partir do KPI/alerta acima */}
+      {paradosModalOpen && (
+        <div onClick={() => setParadosModalOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div onClick={e => e.stopPropagation()} style={{ ...s.card, width: '100%', maxWidth: 640, maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={s.cardHd}>
+              <span style={s.cardTitle}>Pedidos parados (2h+)</span>
+              <button onClick={() => setParadosModalOpen(false)} style={{ border: 'none', background: 'none', fontSize: 18, color: '#999', cursor: 'pointer', lineHeight: 1 }}>✕</button>
+            </div>
+            <div style={{ overflowY: 'auto' }}>
+              {pedidosParados.length === 0 && <div style={{ padding: 24, textAlign: 'center', color: '#aaa', fontSize: 13 }}>Nenhum pedido parado agora.</div>}
+              {pedidosParados.map(p => {
+                const horas = Math.floor((agora - new Date(p.created_at).getTime()) / 3600000)
+                return (
+                  <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 18px', borderBottom: '1px solid #f5f5f5' }}>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{companyName[p.company_id] || '—'} · #{p.order_number ?? '—'}</div>
+                      <div style={{ fontSize: 11, color: '#aaa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {p.customer_name || 'sem nome'} · {STATUS_LABEL[p.status]} · parado há {horas}h · {fmtMoney(Number(p.total || 0))}
+                      </div>
+                    </span>
+                    <button onClick={() => cancelarPedido(p)} style={{ flex: 'none', fontSize: 11, fontWeight: 700, padding: '6px 10px', borderRadius: 8, border: '1.5px solid var(--warn)', background: '#fff', color: 'var(--warn)', cursor: 'pointer' }}>Cancelar</button>
+                    <button onClick={() => excluirPedido(p)} style={{ flex: 'none', fontSize: 11, fontWeight: 700, padding: '6px 10px', borderRadius: 8, border: '1.5px solid var(--alert)', background: '#fff', color: 'var(--alert)', cursor: 'pointer' }}>Excluir</button>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
       </>
       )}
     </div>

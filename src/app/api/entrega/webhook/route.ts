@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendMotoboyWhatsApp, sendCustomerWhatsApp, checkExpiredOffers, offerToNextMotoboy, shortMapsLink } from '@/lib/entregaDispatch'
 import { todaySaoPaulo, getEntregaPricing } from '@/lib/entregaPricing'
+import { formatPhoneDisplay } from '@/lib/phone'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -11,9 +12,64 @@ const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE || 'Trindade Online'
 
 const YES = /^(sim|s|ok|vou|posso|aceito|topo|👍|bora)\b/
 const NO = /^(n[ãa]o|n)\b/
+const PAY_LABEL: Record<string, string> = { pix: 'Pix', dinheiro: 'Dinheiro', cartao: 'Cartão' }
 
 function normalize(s: string): string {
   return s.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+}
+
+// Mensagem de confirmação, mandada só depois do motoboy aceitar (SIM) — nesse
+// momento ele já pode ter tudo que precisa pra fazer a corrida de verdade,
+// diferente da oferta inicial (enxuta de propósito, ver offerMessage em
+// entregaDispatch.ts). Achado real, set/2026: motoboy leva a maquininha do
+// próprio estabelecimento pro cliente pagar na entrega — sem nome, WhatsApp
+// do cliente, valor do pedido e forma de pagamento aqui, ele chega sem saber
+// quem procurar nem quanto/como cobrar.
+async function buildAcceptedMessage(order: {
+  pickup_address: string; dropoff_address: string; customer_name: string; customer_phone: string | null
+  company_id: string; pedido_id: string | null; fee: number
+}, deliveryOrderId: string): Promise<string> {
+  const [{ data: company }, pricing] = await Promise.all([
+    supabase.from('companies').select('name').eq('id', order.company_id).maybeSingle(),
+    getEntregaPricing(),
+  ])
+  const valorMotoboy = Math.max(0, Number(order.fee) - pricing.motoboy_corte_plataforma)
+
+  const lines = ['✅ *Corrida confirmada!*', '']
+  lines.push('📍 *RETIRAR NA LOJA*')
+  if (company?.name) lines.push(`• ${company.name.toUpperCase()}`)
+  lines.push(`• ${order.pickup_address}`, `• 🗺️ ${shortMapsLink(deliveryOrderId, 'r')}`, '')
+
+  lines.push('🏠 *ENTREGAR PARA*')
+  lines.push(`• ${order.customer_name}`)
+  if (order.customer_phone) lines.push(`• 📱 ${formatPhoneDisplay(order.customer_phone)}`)
+  lines.push(`• ${order.dropoff_address}`, `• 🗺️ ${shortMapsLink(deliveryOrderId, 'd')}`, '')
+
+  // Valor e forma de pagamento do PEDIDO (o que o cliente deve pra loja, não
+  // a taxa da corrida) só existem quando a entrega veio de um pedido de
+  // verdade (pedido_id) — avulsa (chamada manual sem pedido vinculado) não
+  // tem esse dado pra mostrar.
+  if (order.pedido_id) {
+    const { data: pedido } = await supabase
+      .from('loja_pedidos').select('payment_method, payment_status, total').eq('id', order.pedido_id).maybeSingle()
+    if (pedido) {
+      const metodo = PAY_LABEL[pedido.payment_method || ''] || pedido.payment_method || '—'
+      lines.push('💳 *PAGAMENTO*')
+      if (pedido.payment_status === 'pago') {
+        lines.push('• ✅ Já pago — não precisa cobrar nada', `• _(${metodo})_`)
+      } else {
+        lines.push(`• 💵 Cobrar *R$ ${Number(pedido.total).toFixed(2).replace('.', ',')}* na entrega`, `• _(${metodo})_`)
+      }
+      lines.push('')
+    }
+  }
+
+  lines.push(`💰 *SUA CORRIDA:* R$ ${valorMotoboy.toFixed(2).replace('.', ',')}`, '')
+  lines.push('🔑 *CÓDIGOS*')
+  lines.push('• Na loja: peça o código de retirada e digite aqui')
+  lines.push('• Na entrega: o cliente passa outro código — digite aqui pra liberar seu pagamento', '')
+  lines.push('Boa corrida! 🙌')
+  return lines.join('\n')
 }
 
 // Webhook da instância da PLATAFORMA (a mesma usada pelos disparos do
@@ -56,7 +112,7 @@ export async function POST(req: NextRequest) {
         if (YES.test(norm)) {
           await supabase.from('delivery_offers').update({ status: 'aceita', responded_at: new Date().toISOString() }).eq('id', offer.id)
           const { data: order } = await supabase
-            .from('delivery_orders').select('pickup_address, dropoff_address, customer_name')
+            .from('delivery_orders').select('pickup_address, dropoff_address, customer_name, customer_phone, company_id, pedido_id, fee')
             .eq('id', offer.delivery_order_id).maybeSingle()
           await supabase.from('delivery_orders').update({
             status: 'a_caminho', motoboy_id: motoboy.id, motoboy_name: motoboy.name, motoboy_phone: motoboy.phone,
@@ -69,14 +125,7 @@ export async function POST(req: NextRequest) {
           // set/2026: cliente recebeu "saiu para entrega" com o pedido ainda
           // em preparo). Ver /api/loja/status-pedido, que já cobre isso.
           if (order) {
-            // Links de mapa só entram aqui, depois do aceite — na oferta
-            // inicial o motoboy ainda nem decidiu se pega a corrida, não faz
-            // sentido mandar link de navegação pra esse momento (pedido do
-            // Ricardo, set/2026).
-            await sendMotoboyWhatsApp(
-              motoboy.phone,
-              `Fechado! Retirar em: ${order.pickup_address}\n${shortMapsLink(offer.delivery_order_id, 'r')}\n\nEntregar pra ${order.customer_name}: ${order.dropoff_address}\n${shortMapsLink(offer.delivery_order_id, 'd')}\n\nQuando chegar na loja, peça o código de retirada de 4 dígitos e digita ele aqui.\nDepois, quando entregar, o cliente vai te passar outro código — digita esse aqui também pra liberar seu pagamento.\n\nBoa corrida! 🙌`
-            )
+            await sendMotoboyWhatsApp(motoboy.phone, await buildAcceptedMessage(order, offer.delivery_order_id))
           }
         } else if (NO.test(norm)) {
           await supabase.from('delivery_offers').update({ status: 'recusada', responded_at: new Date().toISOString() }).eq('id', offer.id)

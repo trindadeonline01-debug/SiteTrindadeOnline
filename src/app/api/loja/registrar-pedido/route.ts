@@ -42,6 +42,42 @@ function buildCustomerMessage(opts: OrderInfo): string {
   return parts.join('\n')
 }
 
+// Manda uma mensagem de WhatsApp pro CLIENTE e já registra na conversa do
+// CRM — usada tanto pra confirmação do pedido quanto pro aviso separado do
+// código do motoboy (pedido do Ricardo, set/2026: código sempre numa
+// mensagem à parte, nunca grudado no texto, senão o cliente não repara).
+async function sendCustomerWhatsApp(companyId: string, phone: string, text: string) {
+  try {
+    const { data: company } = await supabase.from('companies').select('crm_whatsapp_enabled, trial_modules_until').eq('id', companyId).maybeSingle()
+    if (!company || !moduleActive(company.crm_whatsapp_enabled, company.trial_modules_until)) return
+    const { data: instance } = await supabase
+      .from('crm_whatsapp_instances').select('instance_name, api_key')
+      .eq('company_id', companyId).eq('status', 'connected').limit(1).maybeSingle()
+    if (!instance) return
+    const res = await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: instance.api_key },
+      body: JSON.stringify({ number: phone, text }),
+    })
+    if (!res.ok) {
+      const body = await res.text().catch(() => '')
+      console.error(`[registrar-pedido] envio falhou (${res.status}): ${body.slice(0, 300)}`)
+      return
+    }
+    const { data: contact } = await supabase.from('crm_contacts').select('id').eq('company_id', companyId).eq('phone', phone).maybeSingle()
+    if (contact) {
+      await supabase.from('crm_messages').insert({
+        company_id: companyId, contact_id: contact.id, direction: 'out', body: text, status: 'sent', sent_at: new Date().toISOString(),
+      })
+      await supabase.from('crm_contacts').update({
+        last_message_at: new Date().toISOString(), last_message_preview: text, last_message_direction: 'out',
+      }).eq('id', contact.id)
+    }
+  } catch (err: any) {
+    console.error('[registrar-pedido] falha ao mandar WhatsApp pro cliente:', err?.message || err)
+  }
+}
+
 // Mensagem que a LOJA recebe (no WhatsApp de verdade, além da notificação
 // no app) — precisa dizer quem pediu, já que essa parte some na versão
 // que vai pro cliente.
@@ -136,30 +172,7 @@ export async function POST(req: NextRequest) {
           // (achado do Ricardo, set/2026 — Crepe Cone com CRM conectado e
           // módulo ativo, mas confirmação nunca registrada em crm_messages).
           if (phone) {
-            try {
-              const text = buildCustomerMessage(orderInfo)
-              const res = await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', apikey: instance.api_key },
-                body: JSON.stringify({ number: phone, text }),
-              })
-              if (!res.ok) {
-                const body = await res.text().catch(() => '')
-                console.error(`[registrar-pedido] confirmação pro cliente falhou (${res.status}): ${body.slice(0, 300)}`)
-              } else {
-                const { data: contact } = await supabase.from('crm_contacts').select('id').eq('company_id', companyId).eq('phone', phone).maybeSingle()
-                if (contact) {
-                  await supabase.from('crm_messages').insert({
-                    company_id: companyId, contact_id: contact.id, direction: 'out', body: text, status: 'sent', sent_at: new Date().toISOString(),
-                  })
-                  await supabase.from('crm_contacts').update({
-                    last_message_at: new Date().toISOString(), last_message_preview: text, last_message_direction: 'out',
-                  }).eq('id', contact.id)
-                }
-              }
-            } catch (err: any) {
-              console.error('[registrar-pedido] falha ao chamar Evolution API (cliente):', err?.message || err)
-            }
+            await sendCustomerWhatsApp(companyId, phone, buildCustomerMessage(orderInfo))
           }
 
           // Pro WhatsApp da própria loja (número pessoal do dono cadastrado
@@ -213,6 +226,17 @@ export async function POST(req: NextRequest) {
         const dispatch = await criarEntregaEChamarMotoboy({
           companyId, pedidoId, customerName: name || 'Cliente', customerPhone: phone, dropoffAddress: address,
         })
+        // Código já sai numa mensagem separada aqui, logo após a
+        // confirmação — pedido do Ricardo, set/2026, pra grudar o código na
+        // cabeça do cliente cedo. Só dá pra mandar quando o motoboy da
+        // PLATAFORMA é chamado automaticamente (código nasce junto com a
+        // entrega, antes até do motoboy aceitar); motoboy próprio é
+        // atribuído manualmente depois em /painel/pedidos, então esse
+        // aviso não sai aqui — ele ainda chega de qualquer jeito no
+        // "saiu para entrega" (status-pedido/route.ts).
+        if (dispatch.ok && phone) {
+          await sendCustomerWhatsApp(companyId, phone, `🔑 Guarda esse código: *${dispatch.deliveryCode}*\nQuando o motoboy chegar, informe esse número pra ele.`)
+        }
         // `dispatch.ok === false` (sem crédito, sem diária, área fora de
         // alcance etc.) era engolido em silêncio — o pedido saía normal, mas
         // nenhum motoboy era chamado e ninguém sabia (achado real, set/2026:

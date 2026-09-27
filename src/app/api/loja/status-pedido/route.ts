@@ -41,26 +41,31 @@ export async function POST(req: NextRequest) {
     if (!companyId || !rawPhone || !status) return NextResponse.json({ error: 'dados obrigatórios' }, { status: 400 })
     const phone = normalizePhone(rawPhone)
 
-    let text = buildStatusMessage(status, deliveryType || null)
+    const text = buildStatusMessage(status, deliveryType || null)
     if (!text) return NextResponse.json({ ok: true })
 
-    // Código de confirmação vai junto só aqui — quando a LOJA de fato marca
-    // saiu_entrega — nunca antes disso. Cobre os dois motoboys possíveis:
-    // PRÓPRIO (código gerado em /painel/pedidos ao atribuir) ou da
-    // PLATAFORMA/Trindade Entrega (código em delivery_orders, motoboy aceita
-    // por conta própria via WhatsApp e pode aceitar antes do pedido ficar
-    // pronto — por isso esse aviso não pode disparar na hora do aceite,
-    // bug real reportado pelo Ricardo, set/2026).
+    // Código de confirmação sai numa mensagem SEPARADA, logo depois da de
+    // status — só aqui, quando a LOJA de fato marca saiu_entrega, nunca
+    // antes disso. Cobre os dois motoboys possíveis: PRÓPRIO (código gerado
+    // em /painel/pedidos ao atribuir) ou da PLATAFORMA/Trindade Entrega
+    // (código em delivery_orders, motoboy aceita por conta própria via
+    // WhatsApp e pode aceitar antes do pedido ficar pronto — por isso esse
+    // aviso não pode disparar na hora do aceite, bug real reportado pelo
+    // Ricardo, set/2026). Mandar separado (em vez de grudado no texto de
+    // status) é pedido do Ricardo, set/2026: repete o código que já foi
+    // mandado lá na confirmação do pedido, pra reforçar antes do motoboy
+    // chegar — o cliente não pode esquecer de informar.
+    let codeText: string | null = null
     if (status === 'saiu_entrega' && pedidoId) {
       const { data: pedido } = await supabase
         .from('loja_pedidos').select('delivery_confirm_code, motoboy_id').eq('id', pedidoId).eq('company_id', companyId).maybeSingle()
       if (pedido?.motoboy_id && pedido.delivery_confirm_code) {
-        text += `\n\n🔑 Código de confirmação: *${pedido.delivery_confirm_code}*\nInforme esse número pro entregador quando ele chegar.`
+        codeText = `🔑 Lembrando: quando o entregador chegar, informe este código pra ele: *${pedido.delivery_confirm_code}*`
       } else {
         const { data: entrega } = await supabase
           .from('delivery_orders').select('delivery_code, motoboy_name').eq('pedido_id', pedidoId).eq('company_id', companyId).maybeSingle()
         if (entrega?.delivery_code) {
-          text += `\n\n🏍️ ${entrega.motoboy_name ? `${entrega.motoboy_name} está a caminho.\n` : ''}🔑 Código de entrega: *${entrega.delivery_code}*\nMostre esse número pro motoboy quando ele chegar.`
+          codeText = `🏍️ ${entrega.motoboy_name ? `${entrega.motoboy_name} está a caminho.\n` : ''}🔑 Lembrando: quando o motoboy chegar, informe este código pra ele: *${entrega.delivery_code}*`
         }
       }
     }
@@ -73,26 +78,33 @@ export async function POST(req: NextRequest) {
       .eq('company_id', companyId).eq('status', 'connected').limit(1).maybeSingle()
     if (!instance) return NextResponse.json({ ok: true })
 
-    const res = await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', apikey: instance.api_key },
-      body: JSON.stringify({ number: phone, text }),
-    })
-    if (!res.ok) {
-      const body = await res.text().catch(() => '')
-      console.error(`[status-pedido] envio falhou (${res.status}): ${body.slice(0, 300)}`)
-      return NextResponse.json({ ok: true })
+    async function sendAndLog(msg: string): Promise<boolean> {
+      const res = await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(instance!.instance_name)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: instance!.api_key },
+        body: JSON.stringify({ number: phone, text: msg }),
+      })
+      if (!res.ok) {
+        const body = await res.text().catch(() => '')
+        console.error(`[status-pedido] envio falhou (${res.status}): ${body.slice(0, 300)}`)
+        return false
+      }
+      const { data: contact } = await supabase.from('crm_contacts').select('id').eq('company_id', companyId).eq('phone', phone).maybeSingle()
+      if (contact) {
+        await supabase.from('crm_messages').insert({
+          company_id: companyId, contact_id: contact.id, direction: 'out', body: msg, status: 'sent', sent_at: new Date().toISOString(),
+        })
+        await supabase.from('crm_contacts').update({
+          last_message_at: new Date().toISOString(), last_message_preview: msg, last_message_direction: 'out',
+        }).eq('id', contact.id)
+      }
+      return true
     }
 
-    const { data: contact } = await supabase.from('crm_contacts').select('id').eq('company_id', companyId).eq('phone', phone).maybeSingle()
-    if (contact) {
-      await supabase.from('crm_messages').insert({
-        company_id: companyId, contact_id: contact.id, direction: 'out', body: text, status: 'sent', sent_at: new Date().toISOString(),
-      })
-      await supabase.from('crm_contacts').update({
-        last_message_at: new Date().toISOString(), last_message_preview: text, last_message_direction: 'out',
-      }).eq('id', contact.id)
-    }
+    await sendAndLog(text)
+    // Mensagem do código sempre à parte, nunca grudada na de status —
+    // pedido do Ricardo, set/2026.
+    if (codeText) await sendAndLog(codeText)
 
     return NextResponse.json({ ok: true })
   } catch (err: any) {

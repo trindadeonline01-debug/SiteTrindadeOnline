@@ -358,8 +358,10 @@ export default function SalaDeVendasTab() {
         .sv-cardapio-name{font-size:12px;font-weight:700;color:#333;line-height:1.3;width:100%;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
         .sv-cardapio-open-tag{display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:800;color:var(--open);text-transform:uppercase;letter-spacing:.03em;}
         .sv-cardapio-open-tag span{width:6px;height:6px;border-radius:50%;background:var(--open);display:inline-block;}
-        .sv-mix-bar{display:flex;height:18px;border-radius:6px;overflow:hidden;margin-bottom:8px;background:#f0f0f0;}
-        .sv-mix-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:#888;}
+        .sv-mix-grid{display:grid;gap:8px;}
+        .sv-mix-tile{text-align:center;padding:10px 6px;background:#f7f7f5;border-radius:10px;}
+        .sv-mix-tile .n{font-size:19px;font-weight:800;line-height:1.1;}
+        .sv-mix-tile .l{font-size:10.5px;color:#999;margin-top:2px;}
       `}</style>
 
       {/* CARDÁPIOS ATIVOS — acesso rápido pra editar, sem precisar entrar na empresa */}
@@ -559,26 +561,17 @@ export default function SalaDeVendasTab() {
             <>
               <div style={{ padding: '14px 18px 16px' }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', marginBottom: 9 }}>Forma de pagamento</div>
-                <div className="sv-mix-bar">
-                  <span style={{ width: `${(mixPagamento.cartao / totalMix) * 100}%`, background: 'var(--sign)' }} />
-                  <span style={{ width: `${(mixPagamento.dinheiro / totalMix) * 100}%`, background: 'var(--sign-dark)' }} />
-                  <span style={{ width: `${(mixPagamento.pix / totalMix) * 100}%`, background: '#e8e8e8' }} />
-                </div>
-                <div className="sv-mix-legend">
-                  <span>🟨 Cartão <b style={{ color: '#111' }}>{mixPagamento.cartao}</b></span>
-                  <span>🟧 Dinheiro <b style={{ color: '#111' }}>{mixPagamento.dinheiro}</b></span>
-                  <span>⬜ Pix <b style={{ color: '#111' }}>{mixPagamento.pix}</b></span>
+                <div className="sv-mix-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                  <div className="sv-mix-tile"><div className="n" style={{ color: '#2a78d6' }}>{mixPagamento.cartao}</div><div className="l">Cartão · {totalMix > 0 ? Math.round((mixPagamento.cartao / totalMix) * 100) : 0}%</div></div>
+                  <div className="sv-mix-tile"><div className="n" style={{ color: '#eb6834' }}>{mixPagamento.dinheiro}</div><div className="l">Dinheiro · {totalMix > 0 ? Math.round((mixPagamento.dinheiro / totalMix) * 100) : 0}%</div></div>
+                  <div className="sv-mix-tile"><div className="n" style={{ color: '#1baf7a' }}>{mixPagamento.pix}</div><div className="l">Pix · {totalMix > 0 ? Math.round((mixPagamento.pix / totalMix) * 100) : 0}%</div></div>
                 </div>
               </div>
               <div style={{ padding: '14px 18px 16px', borderTop: '1px solid #f5f5f5' }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', marginBottom: 9 }}>Entrega ou retirada</div>
-                <div className="sv-mix-bar">
-                  <span style={{ width: totalMixEntrega > 0 ? `${(mixEntrega.entrega / totalMixEntrega) * 100}%` : '0%', background: 'var(--info)' }} />
-                  <span style={{ width: totalMixEntrega > 0 ? `${(mixEntrega.retirada / totalMixEntrega) * 100}%` : '0%', background: '#e8e8e8' }} />
-                </div>
-                <div className="sv-mix-legend">
-                  <span>🟦 Entrega <b style={{ color: '#111' }}>{mixEntrega.entrega}</b></span>
-                  <span>⬜ Retirada <b style={{ color: '#111' }}>{mixEntrega.retirada}</b></span>
+                <div className="sv-mix-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+                  <div className="sv-mix-tile"><div className="n" style={{ color: '#008300' }}>{mixEntrega.entrega}</div><div className="l">Entrega · {totalMixEntrega > 0 ? Math.round((mixEntrega.entrega / totalMixEntrega) * 100) : 0}%</div></div>
+                  <div className="sv-mix-tile"><div className="n" style={{ color: '#4a3aa7' }}>{mixEntrega.retirada}</div><div className="l">Retirada · {totalMixEntrega > 0 ? Math.round((mixEntrega.retirada / totalMixEntrega) * 100) : 0}%</div></div>
                 </div>
               </div>
             </>

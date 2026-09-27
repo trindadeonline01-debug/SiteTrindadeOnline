@@ -145,6 +145,12 @@ export default function AdminPage() {
   const [bannerFilter, setBannerFilter] = useState<'all'|'pending'|'in_progress'|'delivered'>('all')
   const [salesData, setSalesData] = useState<any[]>([])
   const [salesFilter, setSalesFilter] = useState<PeriodSel>({ kind: 'today' })
+  // Coluna de Ações de Gestão de Empresas: menu ⋯ (desktop) e "ver mais
+  // ações" (mobile) — antes eram ~10 botões soltos, quebrando em 3 linhas
+  // e pesando MUITO no mobile (pedido do Ricardo, set/2026, aprovado via
+  // mockup: ícones + toggles + menu no desktop, card + expandir no mobile).
+  const [empresaMenuOpen, setEmpresaMenuOpen] = useState<string | null>(null)
+  const [empresaCardExpanded, setEmpresaCardExpanded] = useState<Set<string>>(new Set())
   const [salesLoading, setSalesLoading] = useState(false)
   const [expiringPlans, setExpiringPlans] = useState<any[]>([])
   const [bannerSort, setBannerSort] = useState<'recent'|'urgent'|'far'>('recent')
@@ -1467,6 +1473,47 @@ export default function AdminPage() {
 
   const filteredCompanies = companies.filter(c => (filterStatus === 'all' || c.status === filterStatus) && (filterPlan === 'all' || (filterPlan === 'paid' ? c.plan === 'paid' : c.plan !== 'paid')) && (searchCompany === '' || c.name.toLowerCase().includes(searchCompany.toLowerCase()) || (c.owner?.name||'').toLowerCase().includes(searchCompany.toLowerCase())))
 
+  // Itens secundários da coluna de Ações de uma empresa (menu ⋯ no desktop,
+  // grade "mais ações" no mobile) — só o que sobra depois de Ver/Editar/
+  // status (aprovar-recusar-suspender-reativar) e dos 3 toggles de módulo,
+  // que ficam sempre visíveis fora do menu.
+  function companySecondaryActions(c: any): { label: string; icon: string; href?: string; onClick?: () => void; danger?: boolean }[] {
+    if (c.status !== 'active') return []
+    const n = emailLogs[c.id] || 0
+    const emailLabel = n===0?'Enviar email':n===1?'Enviado 1x':n===2?'Enviado 2x':'Enviado 3x+'
+    const items: { label: string; icon: string; href?: string; onClick?: () => void; danger?: boolean }[] = [
+      { label: emailLabel, icon: '📧', onClick: () => {
+        fetch('/api/email/aprovacao',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({company_id:c.id})}).then(()=>{showToast('Email enviado para ' + c.name);setEmailLogs(p=>({...p,[c.id]:(p[c.id]||0)+1}))})
+      }},
+      { label: 'Conectar WhatsApp', icon: '💬', href: `/painel/mensagens?empresa=${c.id}` },
+      { label: 'Editar cardápio', icon: '📋', href: `/painel/catalogo?empresa=${c.id}` },
+    ]
+    if (c.trial_modules_until && new Date(c.trial_modules_until) > new Date()) {
+      items.push({ label: `Teste até ${fmtDate(c.trial_modules_until)} ✕`, icon: '🧪', onClick: () => setTrial(c.id, null) })
+    } else {
+      items.push({ label: 'Liberar teste', icon: '🧪', onClick: () => { const d = prompt('Liberar teste dos 3 módulos por quantos dias?', '7'); const dn = Number(d); if (dn > 0) setTrial(c.id, dn) } })
+    }
+    return items
+  }
+
+  // Botão(ões) de status primário (Aprovar/Recusar/Suspender/Reativar) — os
+  // únicos que continuam com texto visível fora do menu, junto de Ver/Editar.
+  function companyStatusActions(c: any): { label: string; onClick: () => void; danger?: boolean }[] {
+    if (c.status === 'pending') return [
+      { label: '✓ Aprovar', onClick: () => approveCompany(c.id) },
+      { label: '✗ Recusar', onClick: () => suspendCompany(c.id), danger: true },
+    ]
+    if (c.status === 'active') return [{ label: 'Suspender', onClick: () => suspendCompany(c.id), danger: true }]
+    if (c.status === 'suspended') return [{ label: 'Reativar', onClick: () => approveCompany(c.id) }]
+    return []
+  }
+
+  const MODULE_TOGGLES: { key: 'loja_digital_enabled' | 'crm_whatsapp_enabled' | 'entrega_enabled'; icon: string; label: string }[] = [
+    { key: 'loja_digital_enabled', icon: '🧾', label: 'Cardápio' },
+    { key: 'crm_whatsapp_enabled', icon: '💬', label: 'CRM' },
+    { key: 'entrega_enabled', icon: '🏍️', label: 'Entrega' },
+  ]
+
   return (
     <>
       <style>{`
@@ -1631,6 +1678,36 @@ export default function AdminPage() {
         .upload-area { border: 2px dashed #ddd; border-radius: 10px; padding: 24px; text-align: center; cursor: pointer; transition: all .15s; background: #fafafa; }
         .upload-area:hover { border-color: var(--sign-dark); background: #fffdf5; }
         .upload-area-filled { border: 2px solid var(--sign-dark); border-radius: 10px; overflow: hidden; cursor: pointer; }
+
+        /* Gestão de Empresas — coluna de Ações enxuta (set/2026, aprovado
+           via mockup): ícones + toggles + menu ⋯ no desktop, card + "ver
+           mais ações" no mobile — antes eram ~10 botões soltos por linha. */
+        .emp-actions { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; white-space: nowrap; }
+        .emp-icon-btn { width: 28px; height: 28px; border-radius: 8px; border: 1.5px solid #E0DDD8; background: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; cursor: pointer; flex: none; text-decoration: none; }
+        .emp-icon-btn:hover { border-color: var(--sign-dark); }
+        .emp-toggle { width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; cursor: pointer; border: none; flex: none; }
+        .emp-toggle.on { background: #E4F3EC; color: #157A52; border: 1.5px solid #bfe3d2; }
+        .emp-toggle.off { background: #F5F5F5; color: #bbb; border: 1.5px solid #ececec; }
+        .emp-sep { width: 1px; height: 20px; background: #eee; flex: none; margin: 0 2px; }
+        .emp-kebab-wrap { position: relative; flex: none; }
+        .emp-menu-backdrop { position: fixed; inset: 0; z-index: 25; }
+        .emp-menu { position: absolute; top: calc(100% + 4px); right: 0; width: 220px; background: #fff; border: 1px solid #eee; border-radius: 12px; box-shadow: 0 10px 28px rgba(0,0,0,.14); overflow: hidden; z-index: 30; }
+        .emp-menu-row { display: flex; align-items: center; gap: 8px; padding: 9px 14px; font-size: 12px; font-weight: 600; color: #333; cursor: pointer; text-decoration: none; background: none; border: none; width: 100%; text-align: left; font-family: 'Archivo', sans-serif; }
+        .emp-menu-row:hover { background: #FAF7F0; }
+
+        .empresas-desktop-wrap { display: block; }
+        .empresas-mobile-wrap { display: none; }
+        .emp-card { background: #fff; border: 1.5px solid #f0f0f0; border-radius: 14px; padding: 12px 14px; margin-bottom: 10px; }
+        .emp-card-name { font-size: 13.5px; font-weight: 800; color: #151210; }
+        .emp-card-meta { font-size: 11px; color: #999; margin-top: 3px; line-height: 1.5; }
+        .emp-card-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+        .emp-card-more { font-size: 11px; font-weight: 800; color: #A87200; background: none; border: none; cursor: pointer; font-family: 'Archivo', sans-serif; padding: 0; }
+        .emp-card-expand { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #eee; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        .emp-card-pill { display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 11px; font-weight: 700; padding: 8px 8px; border-radius: 8px; text-decoration: none; border: none; cursor: pointer; font-family: 'Archivo', sans-serif; }
+        @media(max-width: 880px) {
+          .empresas-desktop-wrap { display: none; }
+          .empresas-mobile-wrap { display: block; }
+        }
       `}</style>
 
       {previewModal.open && (
@@ -2132,7 +2209,8 @@ export default function AdminPage() {
                 </div>
                 {filteredCompanies.length === 0
                   ? <div className="empty-state"><div>🏪</div><div>Nenhuma empresa encontrada</div></div>
-                  : <div style={{ overflowX:'auto' }}>
+                  : <>
+                    <div className="empresas-desktop-wrap" style={{ overflowX:'auto' }}>
                       <table className="data-table">
                         <thead><tr><th>Nome</th><th>Responsável</th><th>WhatsApp</th><th>Categoria</th><th>Plano</th><th>Status</th><th>Data</th><th>Ações</th></tr></thead>
                         <tbody>
@@ -2158,47 +2236,93 @@ export default function AdminPage() {
                               </td>
                               <td>{fmtDate(c.created_at)}</td>
                               <td>
-                                {c.status === 'pending'   && <button className="action-btn btn-approve" onClick={() => approveCompany(c.id)}>✓ Aprovar</button>}
-                                {c.status === 'pending'   && <button className="action-btn btn-suspend" onClick={() => suspendCompany(c.id)}>✗ Recusar</button>}
-                                {c.status === 'active'    && <button className="action-btn btn-suspend" onClick={() => suspendCompany(c.id)}>Suspender</button>}
-                                {c.status === 'suspended' && <button className="action-btn btn-approve" onClick={() => approveCompany(c.id)}>Reativar</button>}
-                                <button className="action-btn btn-view" onClick={() => openPreviewCompany(c)}>Ver</button>
-                                <button className="action-btn" style={{background:'#185FA522',color:'#185FA5'}} onClick={() => openEditCompany(c)}>✏️ Editar</button>
-                                {c.status === 'active' && (() => { const n = emailLogs[c.id] || 0; const bg = n===0?'#EDFAF3':n===1?'#FEF3E2':n===2?'#FEE4D0':'#FCEBEB'; const cl = n===0?'#0F8050':n===1?'var(--sign-dark)':n===2?'#E07030':'#E24B4A'; return <button className="action-btn" style={{background:bg,color:cl}} onClick={()=>{ fetch('/api/email/aprovacao',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({company_id:c.id})}).then(()=>{showToast('Email enviado para ' + c.name);setEmailLogs(p=>({...p,[c.id]:(p[c.id]||0)+1}))}) }}>📧 {n===0?'Enviar email':n===1?'Enviado 1x':n===2?'Enviado 2x':'Enviado 3x+'}</button> })()}
-                                {c.status === 'active' && (
-                                  <>
-                                    <button className="action-btn" style={c.loja_digital_enabled ? {background:'#E4F3EC',color:'#157A52'} : {background:'#F0EDE8',color:'#888'}} onClick={() => toggleLojaDigital(c.id, !!c.loja_digital_enabled)}>
-                                      🧾 {c.loja_digital_enabled ? 'Cardápio ON' : 'Cardápio OFF'}
-                                    </button>
-                                    <a className="action-btn" href={`/painel/catalogo?empresa=${c.id}`} style={{background:'#185FA522',color:'#185FA5',textDecoration:'none',display:'inline-flex',alignItems:'center'}}>
-                                      📋 Editar cardápio
-                                    </a>
-                                    <a className="action-btn" href={`/painel/mensagens?empresa=${c.id}`} style={{background:'#0F805022',color:'#0F8050',textDecoration:'none',display:'inline-flex',alignItems:'center'}}>
-                                      💬 Conectar WhatsApp
-                                    </a>
-                                    <button className="action-btn" style={c.crm_whatsapp_enabled ? {background:'#E4F3EC',color:'#157A52'} : {background:'#F0EDE8',color:'#888'}} onClick={() => toggleModule(c.id, 'crm_whatsapp_enabled', !!c.crm_whatsapp_enabled)}>
-                                      💬 {c.crm_whatsapp_enabled ? 'CRM ON' : 'CRM OFF'}
-                                    </button>
-                                    <button className="action-btn" style={c.entrega_enabled ? {background:'#E4F3EC',color:'#157A52'} : {background:'#F0EDE8',color:'#888'}} onClick={() => toggleModule(c.id, 'entrega_enabled', !!c.entrega_enabled)}>
-                                      🏍️ {c.entrega_enabled ? 'Entrega ON' : 'Entrega OFF'}
-                                    </button>
-                                    {c.trial_modules_until && new Date(c.trial_modules_until) > new Date() ? (
-                                      <button className="action-btn" style={{background:'#FEF3E2',color:'#8A6410'}} onClick={() => setTrial(c.id, null)}>
-                                        🧪 Teste até {fmtDate(c.trial_modules_until)} ✕
-                                      </button>
-                                    ) : (
-                                      <button className="action-btn" style={{background:'#F0EDE8',color:'#888'}} onClick={() => { const d = prompt('Liberar teste dos 3 módulos por quantos dias?', '7'); const n = Number(d); if (n > 0) setTrial(c.id, n) }}>
-                                        🧪 Liberar teste
-                                      </button>
-                                    )}
-                                  </>
-                                )}
+                                <div className="emp-actions">
+                                  {companyStatusActions(c).map((a, i) => (
+                                    <button key={i} className="action-btn" style={a.danger ? {background:'#FEF0F0',color:'#E24B4A'} : {background:'#EDFAF3',color:'#0F8050'}} onClick={a.onClick}>{a.label}</button>
+                                  ))}
+                                  <button className="emp-icon-btn" title="Ver" onClick={() => openPreviewCompany(c)}>👁️</button>
+                                  <button className="emp-icon-btn" title="Editar" onClick={() => openEditCompany(c)}>✏️</button>
+                                  {c.status === 'active' && (
+                                    <>
+                                      <span className="emp-sep" />
+                                      {MODULE_TOGGLES.map(m => (
+                                        <button key={m.key} className={`emp-toggle ${c[m.key] ? 'on' : 'off'}`} title={`${m.label}: ${c[m.key] ? 'ligado' : 'desligado'}`}
+                                          onClick={() => m.key === 'loja_digital_enabled' ? toggleLojaDigital(c.id, !!c.loja_digital_enabled) : toggleModule(c.id, m.key, !!c[m.key])}>
+                                          {m.icon}
+                                        </button>
+                                      ))}
+                                    </>
+                                  )}
+                                  {companySecondaryActions(c).length > 0 && (
+                                    <div className="emp-kebab-wrap">
+                                      <button className="emp-icon-btn" style={empresaMenuOpen === c.id ? {borderColor:'var(--sign-dark)',color:'#A87200',fontWeight:800} : {}} onClick={() => setEmpresaMenuOpen(empresaMenuOpen === c.id ? null : c.id)}>⋯</button>
+                                      {empresaMenuOpen === c.id && (
+                                        <>
+                                          <div className="emp-menu-backdrop" onClick={() => setEmpresaMenuOpen(null)} />
+                                          <div className="emp-menu">
+                                            {companySecondaryActions(c).map((item, i) => item.href ? (
+                                              <a key={i} className="emp-menu-row" href={item.href} onClick={() => setEmpresaMenuOpen(null)}>{item.icon} {item.label}</a>
+                                            ) : (
+                                              <button key={i} className="emp-menu-row" style={item.danger ? {color:'#E24B4A'} : {}} onClick={() => { item.onClick?.(); setEmpresaMenuOpen(null) }}>{item.icon} {item.label}</button>
+                                            ))}
+                                          </div>
+                                        </>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
                               </td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
                     </div>
+
+                    <div className="empresas-mobile-wrap">
+                      {filteredCompanies.map(c => {
+                        const expanded = empresaCardExpanded.has(c.id)
+                        const secondary = companySecondaryActions(c)
+                        return (
+                          <div className="emp-card" key={c.id}>
+                            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}>
+                              <div>
+                                <div className="emp-card-name">{c.name}</div>
+                                <div className="emp-card-meta">{c.owner?.name || '—'} · {c.phone || '—'} · {c.category?.name || '—'}</div>
+                              </div>
+                              <span className="status-badge" style={{ background: statusColor(c.status)+'22', color: statusColor(c.status), flex:'none' }}>● {statusLabel(c.status)}</span>
+                            </div>
+                            <div className="emp-card-row">
+                              {companyStatusActions(c).map((a, i) => (
+                                <button key={i} className="action-btn" style={a.danger ? {background:'#FEF0F0',color:'#E24B4A'} : {background:'#EDFAF3',color:'#0F8050'}} onClick={a.onClick}>{a.label}</button>
+                              ))}
+                              <button className="emp-icon-btn" title="Ver" onClick={() => openPreviewCompany(c)}>👁️</button>
+                              <button className="emp-icon-btn" title="Editar" onClick={() => openEditCompany(c)}>✏️</button>
+                              {c.status === 'active' && MODULE_TOGGLES.map(m => (
+                                <button key={m.key} className={`emp-toggle ${c[m.key] ? 'on' : 'off'}`} title={`${m.label}: ${c[m.key] ? 'ligado' : 'desligado'}`}
+                                  onClick={() => m.key === 'loja_digital_enabled' ? toggleLojaDigital(c.id, !!c.loja_digital_enabled) : toggleModule(c.id, m.key, !!c[m.key])}>
+                                  {m.icon}
+                                </button>
+                              ))}
+                              {secondary.length > 0 && (
+                                <button className="emp-card-more" style={{marginLeft:'auto'}} onClick={() => setEmpresaCardExpanded(prev => { const next = new Set(prev); if (next.has(c.id)) next.delete(c.id); else next.add(c.id); return next })}>
+                                  {expanded ? 'Ações abertas ▴' : 'Ver mais ações ▾'}
+                                </button>
+                              )}
+                            </div>
+                            {expanded && secondary.length > 0 && (
+                              <div className="emp-card-expand">
+                                {secondary.map((item, i) => item.href ? (
+                                  <a key={i} className="emp-card-pill" style={{background:'#f2f2f2',color:'#555'}} href={item.href}>{item.icon} {item.label}</a>
+                                ) : (
+                                  <button key={i} className="emp-card-pill" style={item.danger ? {background:'#fbeaea',color:'#c43d3d'} : {background:'#f2f2f2',color:'#555'}} onClick={item.onClick}>{item.icon} {item.label}</button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </>
                 }
               </div>
             )}

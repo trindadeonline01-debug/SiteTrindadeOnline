@@ -83,6 +83,17 @@ function tickIcon(status?: string | null) {
   return <span style={{ color: 'rgba(233,237,239,.6)' }}>✓</span>
 }
 
+// Hora quando é hoje, senão "Ontem"/dia da semana/data — igual dateSepLabel
+// (usada no separador dentro da conversa), só que na LISTA de conversas
+// sempre aparecia só a hora, mesmo pra mensagem de dias atrás (achado real,
+// set/2026: impossível saber se "07:39" foi hoje ou faz dias).
+function fmtListDate(iso: string) {
+  const d = new Date(iso)
+  const today = new Date()
+  if (d.toDateString() === today.toDateString()) return fmtTime(iso)
+  return dateSepLabel(iso)
+}
+
 function dateSepLabel(iso: string) {
   const d = new Date(iso)
   const today = new Date()
@@ -1507,7 +1518,7 @@ export default function MensagensPage() {
                           <div className="msg-item-txt">
                             <div className="msg-item-row1">
                               <div className="msg-item-name">{c.muted && '🔕 '}{c.name || c.phone}</div>
-                              <div className={`msg-item-time${unread ? ' unread' : ''}`}>{c.last_message_at ? fmtTime(c.last_message_at) : ''}</div>
+                              <div className={`msg-item-time${unread ? ' unread' : ''}`}>{c.last_message_at ? fmtListDate(c.last_message_at) : ''}</div>
                             </div>
                             <div className="msg-item-row2">
                               <div className="msg-item-preview">

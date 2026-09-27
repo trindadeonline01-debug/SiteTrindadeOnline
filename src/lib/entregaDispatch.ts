@@ -13,8 +13,9 @@ const supabase = createClient(
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trindadeonline.com.br'
 
 // 45s era pouco tempo pro motoboy ver a mensagem e responder — subiu pra
-// 1 minuto (pedido do Ricardo, set/2026).
-const OFFER_TIMEOUT_MS = 60_000
+// 1 minuto (pedido do Ricardo, set/2026) e depois pra 2 minutos (pedido do
+// Ricardo, set/2026).
+const OFFER_TIMEOUT_MS = 120_000
 
 // Reexportadas de @/lib/whatsapp (módulo sem sharp — ver o porquê lá) só
 // pra quem já importava daqui não precisar trocar o caminho do import.
@@ -92,7 +93,7 @@ function offerMessage(order: { pickup_address: string; dropoff_address: string; 
     '',
     `Você recebe: R$ ${fee}`,
     '',
-    'Responde *SIM* ou *NÃO* em até 1 minuto.',
+    'Responde *SIM* ou *NÃO* em até 2 minutos.',
   )
   return lines.join('\n')
 }
@@ -275,7 +276,7 @@ export async function offerToNextMotoboy(deliveryOrderId: string, sequenceNo: nu
 
   const sent = await sendOfferMessage(order, deliveryOrderId, motoboy.phone)
   // Se o envio falhar de verdade (Evolution fora do ar, etc), a oferta
-  // continua pendente e só expira em 1min pro próximo motoboy — sem isso
+  // continua pendente e só expira em 2min pro próximo motoboy — sem isso
   // registrado, essa falha nunca aparecia em lugar nenhum pra investigar.
   if (!sent.ok) console.error(`[offerToNextMotoboy] falha ao mandar oferta pro motoboy ${motoboy.id}:`, sent.detail)
 }
@@ -312,7 +313,7 @@ export async function retryMotoboyDispatch(deliveryOrderId: string): Promise<{ o
 // Varre ofertas que estouraram o prazo sem resposta, marca como expiradas
 // e repassa pro próximo motoboy — chamado tanto pelo webhook (toda vez que
 // um motoboy manda mensagem) quanto pelo polling do painel da loja, já que
-// não dá pra confiar só num cron de minuto em minuto pra um prazo de 1min.
+// não dá pra confiar só num cron de minuto em minuto pra um prazo de 2min.
 export async function checkExpiredOffers() {
   const nowIso = new Date().toISOString()
   const { data: expired } = await supabase

@@ -2,17 +2,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import ScrollRow from '@/components/home/ScrollRow'
+import PeriodFilterBar from '@/components/admin/PeriodFilterBar'
+import { PeriodSel, periodRange, periodLabel } from '@/lib/periodFilter'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-type PeriodKind = 'today' | 'yesterday' | 'week' | 'month' | 'other_month' | 'custom' | 'all'
-interface PeriodSel { kind: PeriodKind; monthIndex?: number; customDate?: string }
 type StatusPedido = 'recebido' | 'em_preparo' | 'pronto' | 'saiu_entrega' | 'entregue' | 'cancelado'
-
-const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
 
 interface Pedido {
   id: string
@@ -43,61 +41,6 @@ const STATUS_COLOR: Record<StatusPedido, string> = {
   saiu_entrega: 'var(--info)', entregue: 'var(--open)', cancelado: 'var(--alert)',
 }
 
-// `to` null = sem limite superior (vai até agora). Precisa de `to` de verdade
-// pra "ontem"/mês passado/data específica — antes só existia `from` (sempre
-// "desde X até agora"), o que nem dava pra expressar "só o dia de ontem".
-function periodRange(p: PeriodSel): { from: string | null; to: string | null } {
-  const now = new Date()
-  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate())
-  switch (p.kind) {
-    case 'today':
-      return { from: startOfDay(now).toISOString(), to: null }
-    case 'yesterday': {
-      const y = new Date(now); y.setDate(now.getDate() - 1)
-      return { from: startOfDay(y).toISOString(), to: startOfDay(now).toISOString() }
-    }
-    case 'week': {
-      // Semana começando na segunda-feira.
-      const day = now.getDay()
-      const diffToMonday = day === 0 ? 6 : day - 1
-      const monday = new Date(now); monday.setDate(now.getDate() - diffToMonday)
-      return { from: startOfDay(monday).toISOString(), to: null }
-    }
-    case 'month':
-      return { from: new Date(now.getFullYear(), now.getMonth(), 1).toISOString(), to: null }
-    case 'other_month': {
-      if (p.monthIndex == null) return { from: null, to: null }
-      // Mês escolhido só pelo nome (sem ano) — se ainda não chegou esse mês
-      // esse ano, assume o ano passado (ex: escolher "Dezembro" em março só
-      // pode ser dezembro do ano anterior).
-      const year = p.monthIndex > now.getMonth() ? now.getFullYear() - 1 : now.getFullYear()
-      return {
-        from: new Date(year, p.monthIndex, 1).toISOString(),
-        to: new Date(year, p.monthIndex + 1, 1).toISOString(),
-      }
-    }
-    case 'custom': {
-      if (!p.customDate) return { from: null, to: null }
-      const d = new Date(p.customDate + 'T00:00:00')
-      const to = new Date(d); to.setDate(d.getDate() + 1)
-      return { from: d.toISOString(), to: to.toISOString() }
-    }
-    default:
-      return { from: null, to: null }
-  }
-}
-
-function periodLabel(p: PeriodSel): string {
-  switch (p.kind) {
-    case 'today': return 'hoje'
-    case 'yesterday': return 'ontem'
-    case 'week': return 'esta semana'
-    case 'month': return 'este mês'
-    case 'other_month': return p.monthIndex != null ? MESES[p.monthIndex].toLowerCase() : 'mês'
-    case 'custom': return p.customDate ? new Date(p.customDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'data'
-    default: return 'tudo'
-  }
-}
 function fmtMoney(n: number) {
   return 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
@@ -111,7 +54,6 @@ function pctDelta(curr: number, prev: number): { label: string; pos: boolean } |
 
 export default function SalaDeVendasTab() {
   const [period, setPeriod] = useState<PeriodSel>({ kind: 'today' })
-  const [customDateInput, setCustomDateInput] = useState('')
   const [paradosModalOpen, setParadosModalOpen] = useState(false)
   const [storeFilter, setStoreFilter] = useState<string>('all')
   const [loading, setLoading] = useState(true)
@@ -385,8 +327,6 @@ export default function SalaDeVendasTab() {
         .sv-cardapio-card:hover .sv-cardapio-avatar{border-color:var(--sign-dark);}
         .sv-cardapio-avatar img{width:100%;height:100%;object-fit:cover;}
         .sv-cardapio-name{font-size:12px;font-weight:700;color:#333;line-height:1.3;width:100%;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-        .sv-period-btn{border:1.5px solid #e0e0e0;background:#fff;font-size:12px;font-weight:700;color:#888;padding:7px 13px;border-radius:8px;cursor:pointer;}
-        .sv-period-btn.on{background:var(--ink);border-color:var(--ink);color:var(--sign);}
         .sv-mix-bar{display:flex;height:18px;border-radius:6px;overflow:hidden;margin-bottom:8px;background:#f0f0f0;}
         .sv-mix-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:#888;}
       `}</style>
@@ -419,27 +359,8 @@ export default function SalaDeVendasTab() {
             Ao vivo
           </span>
         </div>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', gap: 4, background: '#fafafa', border: '1.5px solid #e0e0e0', borderRadius: 10, padding: 3, flexWrap: 'wrap' }}>
-            {([['today', 'Hoje'], ['yesterday', 'Ontem'], ['week', 'Esta semana'], ['month', 'Este mês'], ['all', 'Tudo']] as [PeriodKind, string][]).map(([kind, label]) => (
-              <button key={kind} className={`sv-period-btn ${period.kind === kind ? 'on' : ''}`} onClick={() => { setCustomDateInput(''); setPeriod({ kind }) }}>{label}</button>
-            ))}
-          </div>
-          <select
-            value={period.kind === 'other_month' && period.monthIndex != null ? String(period.monthIndex) : ''}
-            onChange={e => { setCustomDateInput(''); setPeriod({ kind: 'other_month', monthIndex: Number(e.target.value) }) }}
-            style={{ fontSize: 12.5, fontWeight: 700, color: period.kind === 'other_month' ? 'var(--sign)' : '#888', background: period.kind === 'other_month' ? 'var(--ink)' : '#fff', border: '1.5px solid #e0e0e0', borderRadius: 10, padding: '8px 10px', cursor: 'pointer' }}
-          >
-            <option value="" disabled>Outro mês</option>
-            {MESES.map((m, i) => <option key={m} value={i}>{m}</option>)}
-          </select>
-          <input
-            type="date"
-            value={customDateInput}
-            onChange={e => { setCustomDateInput(e.target.value); if (e.target.value) setPeriod({ kind: 'custom', customDate: e.target.value }) }}
-            title="Data personalizada"
-            style={{ fontSize: 12.5, fontWeight: 600, color: period.kind === 'custom' ? '#111' : '#888', background: period.kind === 'custom' ? '#fdf6e8' : '#fff', border: `1.5px solid ${period.kind === 'custom' ? 'var(--sign-dark)' : '#e0e0e0'}`, borderRadius: 10, padding: '7px 10px', cursor: 'pointer' }}
-          />
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+          <PeriodFilterBar value={period} onChange={setPeriod} />
           <select value={storeFilter} onChange={e => setStoreFilter(e.target.value)} style={{ fontSize: 12.5, fontWeight: 600, color: '#333', background: '#fff', border: '1.5px solid #e0e0e0', borderRadius: 10, padding: '8px 12px' }}>
             <option value="all">Todas as lojas</option>
             {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}

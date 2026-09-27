@@ -492,6 +492,11 @@ const IGREJAS_CATEGORY_ID = '00000000-0000-0000-0000-000000000008'
 const DIAS_SEMANA = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo']
 ```
 
+### Filtro de período — padrão obrigatório pra qualquer tela nova/atualizada (set/2026)
+Definido em Sala de Vendas (admin), que Ricardo aprovou como referência visual ("ficou top"). Qualquer filtro de data novo, ou um já existente que for mexido, deve reaproveitar `src/lib/periodFilter.ts` (tipos `PeriodSel`/`PeriodKind` + `periodRange()`/`periodLabel()`) e o componente `src/components/admin/PeriodFilterBar.tsx` — não reinventar o próprio conjunto de botões. Padrão: pills **Hoje · Ontem · Esta semana · Este mês · Este ano · Tudo** + dropdown **Outro mês** + intervalo personalizado com dois campos, **De** (início) **até** (término) — nunca um único campo de data solto pra período personalizado (era o bug em Sala de Vendas antes desse padrão existir).
+
+
+
 ### Lições aprendidas (não repetir erros)
 - **Webhook Vercel:** sempre `await` em operações assíncronas — funções serverless terminam antes de completar sem isso
 - **Email HTML:** sempre table-based (não CSS grid/flex) para compatibilidade com clientes de email; mesclar tudo em um `<td>` para evitar colapso no Gmail

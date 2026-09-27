@@ -1634,7 +1634,6 @@ export default function MensagensPage() {
                       const showDateSep = !prev || new Date(prev.sent_at).toDateString() !== new Date(m.sent_at).toDateString()
                       const url = !m.media_type && !m.deleted_at && m.body ? extractFirstUrl(m.body) : null
                       const preview = url ? linkPreviews[url] : null
-                      const textWithoutUrl = url && m.body ? m.body.replace(url, '').trim() : m.body
                       return (
                         <Fragment key={m.id}>
                         {showDateSep && <div className="msg-date-sep">{dateSepLabel(m.sent_at)}</div>}
@@ -1668,11 +1667,15 @@ export default function MensagensPage() {
                                   <div className="msg-vcard"><span className="msg-vcard-ico">👤</span><span className="msg-vcard-name">{vcard.name || vcard.phone || 'Contato'}</span></div>
                                 )}
                                 {m.media_type !== 'location' && m.media_type !== 'contact' && m.media_type !== 'document' && m.body && (
-                                  searchTerm.trim()
-                                    ? highlightMatch(m.body, searchTerm)
-                                    : (url ? (textWithoutUrl && <div style={{ marginBottom: 4 }}>{linkifyText(textWithoutUrl)}</div>) : linkifyText(m.body))
+                                  searchTerm.trim() ? highlightMatch(m.body, searchTerm) : linkifyText(m.body)
                                 )}
-                                {url && preview !== null && (
+                                {/* Link some da tela quando a prévia (imagem/título) não vinha —
+                                    o texto já tirava o link de vista antes de saber se a prévia ia
+                                    aparecer (achado real, set/2026: mensagem com link pra um
+                                    cardápio sumiu inteira, sem link nem prévia, pro cliente Roseli).
+                                    Agora o texto sempre mostra o link (clicável) e a prévia, quando
+                                    vem, só complementa por baixo — igual o WhatsApp de verdade faz. */}
+                                {url && preview && (
                                   <a className="msg-link-preview" href={url} target="_blank" rel="noreferrer">
                                     {preview?.image && <img className="msg-link-preview-img" src={preview.image} alt="" />}
                                     <div className="msg-link-preview-body">

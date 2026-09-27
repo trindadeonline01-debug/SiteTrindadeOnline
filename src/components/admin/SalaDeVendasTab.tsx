@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import ScrollRow from '@/components/home/ScrollRow'
 import PeriodFilterBar from '@/components/admin/PeriodFilterBar'
 import { PeriodSel, periodRange, periodLabel } from '@/lib/periodFilter'
+import { isOpenNow, HourRow } from '@/lib/businessHours'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -57,7 +58,7 @@ export default function SalaDeVendasTab() {
   const [paradosModalOpen, setParadosModalOpen] = useState(false)
   const [storeFilter, setStoreFilter] = useState<string>('all')
   const [loading, setLoading] = useState(true)
-  const [companies, setCompanies] = useState<{ id: string; name: string; photo: string | null }[]>([])
+  const [companies, setCompanies] = useState<{ id: string; name: string; photo: string | null; open: boolean }[]>([])
   const [pedidos, setPedidos] = useState<Pedido[]>([])       // período atual
   const [pedidosPrev, setPedidosPrev] = useState<Pedido[]>([]) // período anterior equivalente, pra delta
   const [feed, setFeed] = useState<Pedido[]>([])             // recentes, sem filtro de período
@@ -69,18 +70,23 @@ export default function SalaDeVendasTab() {
   async function loadCompanies() {
     const { data } = await supabase
       .from('companies')
-      .select('id, name, loja_digital_enabled, trial_modules_until, photos:company_photos(url, order)')
+      .select('id, name, loja_digital_enabled, trial_modules_until, flexible_hours, store_paused, store_forced_open, photos:company_photos(url, order), hours:company_hours(day_of_week,open_time,close_time,closed)')
       .order('name')
     const withModule = (data || []).filter((c: any) => {
       if (c.loja_digital_enabled) return true
       if (c.trial_modules_until && new Date(c.trial_modules_until).getTime() > Date.now()) return true
       return false
     })
-    setCompanies(withModule.map((c: any) => ({
+    // Abertas agora primeiro (pedido do Ricardo, set/2026) — dentro de cada
+    // grupo mantém a ordem alfabética que já veio do `.order('name')`.
+    const withOpenFlag = withModule.map((c: any) => ({
       id: c.id,
       name: c.name,
       photo: [...(c.photos || [])].sort((a: any, b: any) => a.order - b.order)[0]?.url || null,
-    })))
+      open: isOpenNow(c.hours as HourRow[], c.flexible_hours, c.store_paused, c.store_forced_open),
+    }))
+    withOpenFlag.sort((a, b) => (a.open === b.open ? 0 : a.open ? -1 : 1))
+    setCompanies(withOpenFlag)
   }
 
   // Exclusão de verdade (não só cancelar) — pedido do Ricardo, set/2026:
@@ -220,6 +226,28 @@ export default function SalaDeVendasTab() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [period, storeFilter])
 
+  // ao vivo — recarrega a lista de cardápios quando alguma empresa muda
+  // (ex: desligou o cardápio) — achado real do Ricardo, set/2026: desativou
+  // o cardápio da Julia Eventos e ela continuou aparecendo em Sala de
+  // Vendas até dar F5. `companies` não estava na publicação de realtime do
+  // Supabase (corrigido via migração), só `loja_pedidos` estava.
+  useEffect(() => {
+    const channel = supabase.channel('admin-sala-de-vendas-empresas')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'companies' }, () => { loadCompanies() })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'company_hours' }, () => { loadCompanies() })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [])
+
+  // "Aberto agora" muda sozinho com o relógio (ex: loja fecha às 18h), não
+  // só quando alguma linha do banco muda — recalcula a cada minuto pra não
+  // ficar com uma loja fechada ainda marcada como aberta até algo mais
+  // disparar um reload.
+  useEffect(() => {
+    const id = setInterval(() => { loadCompanies() }, 60_000)
+    return () => clearInterval(id)
+  }, [])
+
   const companyName = useMemo(() => {
     const m: Record<string, string> = {}
     companies.forEach(c => { m[c.id] = c.name })
@@ -322,11 +350,14 @@ export default function SalaDeVendasTab() {
         }
         .sv-cardapios-scroll{display:flex;gap:12px;overflow-x:auto;padding:4px 2px 6px;scrollbar-width:none;}
         .sv-cardapios-scroll::-webkit-scrollbar{display:none;}
-        .sv-cardapio-card{flex:none;width:112px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;text-decoration:none;cursor:pointer;}
-        .sv-cardapio-avatar{width:112px;height:112px;border-radius:16px;background:#f5f6f2;border:1px solid #f0f0f0;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800;color:var(--sign-dark);overflow:hidden;transition:border-color .15s;}
+        .sv-cardapio-card{flex:none;box-sizing:border-box;width:112px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;text-decoration:none;cursor:pointer;padding:8px 8px 10px;border-radius:16px;border:1.5px solid transparent;background:transparent;}
+        .sv-cardapio-card.open{background:#e4f3ec;border-color:#bfe3d2;}
+        .sv-cardapio-avatar{width:96px;height:96px;border-radius:14px;background:#f5f6f2;border:1px solid #f0f0f0;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;color:var(--sign-dark);overflow:hidden;transition:border-color .15s;}
         .sv-cardapio-card:hover .sv-cardapio-avatar{border-color:var(--sign-dark);}
         .sv-cardapio-avatar img{width:100%;height:100%;object-fit:cover;}
         .sv-cardapio-name{font-size:12px;font-weight:700;color:#333;line-height:1.3;width:100%;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+        .sv-cardapio-open-tag{display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:800;color:var(--open);text-transform:uppercase;letter-spacing:.03em;}
+        .sv-cardapio-open-tag span{width:6px;height:6px;border-radius:50%;background:var(--open);display:inline-block;}
         .sv-mix-bar{display:flex;height:18px;border-radius:6px;overflow:hidden;margin-bottom:8px;background:#f0f0f0;}
         .sv-mix-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:#888;}
       `}</style>
@@ -340,11 +371,12 @@ export default function SalaDeVendasTab() {
           </div>
           <ScrollRow trackClassName="sv-cardapios-scroll">
             {companies.map(c => (
-              <a key={c.id} href={`/painel/catalogo?empresa=${c.id}`} target="_blank" rel="noreferrer" className="sv-cardapio-card">
+              <a key={c.id} href={`/painel/catalogo?empresa=${c.id}`} target="_blank" rel="noreferrer" className={`sv-cardapio-card ${c.open ? 'open' : ''}`}>
                 <div className="sv-cardapio-avatar">
                   {c.photo ? <img src={c.photo} alt={c.name} /> : c.name.slice(0, 2).toUpperCase()}
                 </div>
                 <div className="sv-cardapio-name">{c.name}</div>
+                {c.open && <span className="sv-cardapio-open-tag"><span />Aberto agora</span>}
               </a>
             ))}
           </ScrollRow>

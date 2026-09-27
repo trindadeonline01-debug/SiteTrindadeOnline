@@ -437,7 +437,13 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
     const nav = navigator as Navigator & { share?: (data: ShareData) => Promise<void> }
     if (nav.share) {
       try {
-        await nav.share({ title: `Cardápio ${company.name}`, text: `Dá uma olhada no cardápio da ${company.name} no Trindade Online!`, url })
+        // `url` num campo separado do `text` — vários apps que recebem o
+        // compartilhamento (inclusive o WhatsApp em alguns fluxos do iOS) só
+        // repassam um dos dois campos, nunca os dois juntos. Achado real,
+        // set/2026: mensagem chegava no CRM/WhatsApp só com o texto, sem o
+        // link nenhum. Concatenar aqui garante que quem só lê `text` ainda
+        // recebe o link.
+        await nav.share({ title: `Cardápio ${company.name}`, text: `Dá uma olhada no cardápio da ${company.name} no Trindade Online!\n${url}` })
         return
       } catch {
         // usuário cancelou o compartilhamento nativo — cai pro copiar link

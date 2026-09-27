@@ -34,7 +34,12 @@ export default function ShareButton({ title, text, url, label = 'Compartilhar', 
     const nav = typeof navigator !== 'undefined' ? (navigator as Navigator & { share?: (data: ShareData) => Promise<void> }) : undefined
     if (nav?.share) {
       try {
-        await nav.share({ title, text, url: shareUrl })
+        // `url` num campo separado do `text` — vários apps que recebem o
+        // compartilhamento (inclusive o WhatsApp em alguns fluxos do iOS) só
+        // repassam um dos dois campos, nunca os dois juntos. Achado real,
+        // set/2026: link sumia da mensagem, só o texto chegava. Concatenar
+        // aqui garante que quem só lê `text` ainda recebe o link.
+        await nav.share({ title, text: text ? `${text}\n${shareUrl}` : shareUrl })
       } catch {
         // usuário cancelou o compartilhamento nativo — sem erro
       }

@@ -1471,7 +1471,12 @@ export default function AdminPage() {
     <>
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Archivo', sans-serif; background: var(--concrete); }
+        /* --concrete é branco puro (igual ao fundo dos cards) — sem contraste
+           nenhum entre página e conteúdo. --concrete-2 já existe no projeto
+           (cinza-bege bem suave) e só é usado aqui dentro do admin, então o
+           resto do site (portal, painel do lojista) não muda. Aprovado por
+           mockup, set/2026. */
+        body { font-family: 'Archivo', sans-serif; background: var(--concrete-2); }
 
         .admin-layout { display: flex; min-height: 100vh; }
 

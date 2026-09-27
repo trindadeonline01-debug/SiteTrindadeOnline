@@ -357,6 +357,12 @@ export default function SalaDeVendasTab() {
           .sv-body{grid-template-columns:1fr;}
           .sv-bottom{grid-template-columns:1fr;}
         }
+        .sv-cardapios-scroll{display:flex;gap:12px;overflow-x:auto;padding:4px 2px 6px;scrollbar-width:none;}
+        .sv-cardapios-scroll::-webkit-scrollbar{display:none;}
+        .sv-cardapio-card{flex:none;width:112px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;}
+        .sv-cardapio-avatar{width:112px;height:112px;border-radius:16px;background:#f5f6f2;border:1px solid #f0f0f0;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800;color:var(--sign-dark);}
+        .sv-cardapio-name{font-size:12px;font-weight:700;color:#333;line-height:1.3;width:100%;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+        .sv-cardapio-edit{font-size:11px;font-weight:800;color:var(--sign-dark);background:#fdf6e8;border:1px solid #f0e0b8;border-radius:8px;padding:6px 10px;text-decoration:none;white-space:nowrap;}
         .sv-period-btn{border:1.5px solid #e0e0e0;background:#fff;font-size:12px;font-weight:700;color:#888;padding:7px 13px;border-radius:8px;cursor:pointer;}
         .sv-period-btn.on{background:var(--ink);border-color:var(--ink);color:var(--sign);}
         .sv-mix-bar{display:flex;height:18px;border-radius:6px;overflow:hidden;margin-bottom:8px;background:#f0f0f0;}
@@ -370,17 +376,12 @@ export default function SalaDeVendasTab() {
             <span style={s.cardTitle}>Cardápios ativos</span>
             <span style={s.cardHint}>{companies.length} loja{companies.length !== 1 ? 's' : ''} · acesso rápido</span>
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, padding: 14 }}>
+          <div className="sv-cardapios-scroll">
             {companies.map(c => (
-              <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, border: '1.5px solid #f0f0f0', borderRadius: 12, padding: '8px 8px 8px 10px', minWidth: 210 }}>
-                <span style={{ width: 32, height: 32, borderRadius: 8, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5f6f2', border: '1px solid #f0f0f0', fontSize: 11.5, fontWeight: 800, color: 'var(--sign-dark)' }}>
-                  {c.name.slice(0, 2).toUpperCase()}
-                </span>
-                <span style={{ fontSize: 12.5, fontWeight: 700, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
-                <a href={`/painel/catalogo?empresa=${c.id}`} target="_blank" rel="noreferrer"
-                  style={{ fontSize: 11, fontWeight: 800, color: 'var(--sign-dark)', background: '#fdf6e8', border: '1px solid #f0e0b8', borderRadius: 8, padding: '6px 9px', textDecoration: 'none', flex: 'none' }}>
-                  ✏️ Editar
-                </a>
+              <div key={c.id} className="sv-cardapio-card">
+                <div className="sv-cardapio-avatar">{c.name.slice(0, 2).toUpperCase()}</div>
+                <div className="sv-cardapio-name">{c.name}</div>
+                <a href={`/painel/catalogo?empresa=${c.id}`} target="_blank" rel="noreferrer" className="sv-cardapio-edit">✏️ Editar</a>
               </div>
             ))}
           </div>

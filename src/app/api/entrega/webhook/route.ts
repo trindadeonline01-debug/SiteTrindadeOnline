@@ -12,7 +12,12 @@ const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE || 'Trindade Online'
 
 const YES = /^(sim|s|ok|vou|posso|aceito|topo|👍|bora)\b/
 const NO = /^(n[ãa]o|n)\b/
-const PAY_LABEL: Record<string, string> = { pix: 'Pix', dinheiro: 'Dinheiro', cartao: 'Cartão' }
+// loja_pedidos.payment_method vem como cartao_credito/cartao_debito (não
+// "cartao" genérico) — achado real, set/2026: mapa incompleto mostraria o
+// valor cru ("cartao_credito") pro motoboy em vez do rótulo em português.
+const PAY_LABEL: Record<string, string> = {
+  pix: 'Pix', dinheiro: 'Dinheiro', cartao: 'Cartão', cartao_credito: 'Cartão de crédito', cartao_debito: 'Cartão de débito',
+}
 
 function normalize(s: string): string {
   return s.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')

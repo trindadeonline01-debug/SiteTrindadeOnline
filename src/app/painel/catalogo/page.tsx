@@ -157,6 +157,7 @@ export default function CatalogoPage() {
   const [search, setSearch] = useState('')
   const [form, setForm] = useState(emptyForm())
   const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [photoLightbox, setPhotoLightbox] = useState<string | null>(null)
   const [savingProd, setSavingProd] = useState(false)
   const [newCatName, setNewCatName] = useState('')
   const [showNewCat, setShowNewCat] = useState(false)
@@ -1037,6 +1038,8 @@ export default function CatalogoPage() {
         .cg-photo-input{ display:flex;align-items:center;gap:12px;margin-bottom:14px; }
         .cg-photo-big{ width:64px;height:64px;border-radius:12px;background:linear-gradient(135deg,#FBF1DC,#FCFAF5);display:flex;align-items:center;justify-content:center;font-size:26px;overflow:hidden;flex:none; }
         .cg-photo-big img{ width:100%;height:100%;object-fit:cover; }
+        .cg-photo-lightbox{ position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:200;display:flex;align-items:center;justify-content:center;padding:24px;cursor:zoom-out; }
+        .cg-photo-lightbox img{ max-width:100%;max-height:100%;border-radius:12px;object-fit:contain;cursor:default; }
         .cg-cat-overlay{ position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:60;display:flex;align-items:flex-end;justify-content:center; }
         .cg-cat-modal{ background:#F7F5F0;width:100%;max-width:480px;max-height:80vh;border-radius:18px 18px 0 0;display:flex;flex-direction:column;overflow:hidden; }
         @media(min-width:768px){
@@ -1190,7 +1193,14 @@ export default function CatalogoPage() {
           </div>
           <div className="cg-body">
             <div className="cg-photo-input">
-              <div className="cg-photo-big">
+              <div
+                className="cg-photo-big"
+                style={(photoFile || form.photo_url) ? { cursor: 'zoom-in' } : undefined}
+                onClick={() => {
+                  const src = photoFile ? URL.createObjectURL(photoFile) : form.photo_url
+                  if (src) setPhotoLightbox(src)
+                }}
+              >
                 {photoFile ? <img src={URL.createObjectURL(photoFile)} alt="" /> : form.photo_url ? <img src={form.photo_url} alt="" /> : '🍽️'}
               </div>
               <label className="cg-btn cg-btn-ghost" style={{ cursor: 'pointer' }}>
@@ -1610,6 +1620,13 @@ export default function CatalogoPage() {
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {photoLightbox && (
+        <div className="cg-photo-lightbox" onClick={() => setPhotoLightbox(null)}>
+          <button className="cg-close" style={{ position: 'absolute', top: 16, right: 16 }} onClick={() => setPhotoLightbox(null)}>✕</button>
+          <img src={photoLightbox} alt="" onClick={e => e.stopPropagation()} />
         </div>
       )}
 

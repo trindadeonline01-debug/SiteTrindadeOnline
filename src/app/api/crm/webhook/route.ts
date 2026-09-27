@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { isOpenNow } from '@/lib/businessHours'
 import { normalizePhone } from '@/lib/phone'
+import { sendCustomerWhatsApp } from '@/lib/whatsapp'
+import { pedeHumano, gerarRespostaIA } from '@/lib/crmIA'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -341,7 +343,7 @@ export async function POST(req: NextRequest) {
         }
 
         const { data: existing } = await supabase
-          .from('crm_contacts').select('id, name, muted, last_auto_reply_at, unread_count')
+          .from('crm_contacts').select('id, name, muted, last_auto_reply_at, unread_count, atendimento_modo, pediu_humano_em')
           .eq('company_id', inst.company_id).eq('phone', phone).maybeSingle()
 
         // Prévia mostrada na lista de conversas (estilo WhatsApp) — mesmo
@@ -386,7 +388,7 @@ export async function POST(req: NextRequest) {
 
         const { data: company } = await supabase
           .from('companies')
-          .select('owner_id, name, crm_auto_reply_enabled, crm_auto_reply_text, flexible_hours, store_paused, store_forced_open')
+          .select('owner_id, name, crm_auto_reply_enabled, crm_auto_reply_text, flexible_hours, store_paused, store_forced_open, crm_ia_enabled')
           .eq('id', inst.company_id).maybeSingle()
         if (company?.owner_id && !existing?.muted) {
           const notifBody = previewText
@@ -428,6 +430,39 @@ export async function POST(req: NextRequest) {
                   last_message_preview: company.crm_auto_reply_text.trim(), last_message_direction: 'out',
                 }).eq('id', contactId)
               } catch {}
+            }
+          }
+        }
+
+        // Atendente de IA — responde perguntas básicas (horário, endereço,
+        // entrega, link do cardápio) reaproveitando os dados já cadastrados
+        // da empresa. Convive com o atendimento humano: só roda enquanto o
+        // contato está em modo 'ia'. Pedido de humano só transfere de fato
+        // na segunda insistência — a primeira vez só pergunta qual é a
+        // dúvida, pra dar chance da IA responder (Ricardo, set/2026: "se o
+        // humano insistir, aí só depois da insistência a gente transfere").
+        if (company?.crm_ia_enabled && text) {
+          const modoAtual = existing?.atendimento_modo || 'ia'
+          if (modoAtual === 'ia') {
+            const jaPediu = !!existing?.pediu_humano_em
+            if (pedeHumano(text)) {
+              if (jaPediu) {
+                await supabase.from('crm_contacts').update({ atendimento_modo: 'humano', pediu_humano_em: null }).eq('id', contactId)
+                await sendCustomerWhatsApp(inst.company_id, phone, 'Beleza! Já vou chamar alguém daqui pra te atender, só um instante 🙏')
+              } else {
+                await supabase.from('crm_contacts').update({ pediu_humano_em: new Date().toISOString() }).eq('id', contactId)
+                await sendCustomerWhatsApp(inst.company_id, phone, 'Posso te ajudar por aqui mesmo! Só pra eu entender melhor: qual é a sua dúvida?')
+              }
+            } else {
+              const { data: historico } = await supabase
+                .from('crm_messages').select('direction, body')
+                .eq('contact_id', contactId).not('body', 'is', null)
+                .order('sent_at', { ascending: false }).limit(20)
+              const respostaIA = await gerarRespostaIA(inst.company_id, ((historico || []) as any[]).reverse())
+              if (respostaIA) {
+                await sendCustomerWhatsApp(inst.company_id, phone, respostaIA)
+                if (jaPediu) await supabase.from('crm_contacts').update({ pediu_humano_em: null }).eq('id', contactId)
+              }
             }
           }
         }

@@ -23,6 +23,7 @@ type Company = {
   id: string; name: string; slug?: string; crm_whatsapp_enabled: boolean; loja_digital_enabled?: boolean
   entrega_enabled?: boolean
   crm_auto_reply_enabled?: boolean; crm_auto_reply_text?: string | null
+  crm_ia_enabled?: boolean; crm_ia_prompt_extra?: string | null
 }
 type Instance = { id: string; instance_name: string; status: string; phone: string | null }
 type Contact = {
@@ -30,6 +31,7 @@ type Contact = {
   presence_state?: string | null; presence_until?: string | null; pinned?: boolean; archived?: boolean
   avatar_url?: string | null; muted?: boolean; notes?: string | null
   last_message_preview?: string | null; last_message_direction?: string | null; unread_count?: number
+  atendimento_modo?: 'ia' | 'humano'
 }
 type Message = {
   id: string; direction: 'in' | 'out'; body: string | null; media_type: string | null; media_url: string | null
@@ -180,6 +182,7 @@ export default function MensagensPage() {
   const [autoReplyOpen, setAutoReplyOpen] = useState(false)
   const [autoReplyDraft, setAutoReplyDraft] = useState({ enabled: false, text: '' })
   const [savingAutoReply, setSavingAutoReply] = useState(false)
+  const [iaDraft, setIaDraft] = useState({ enabled: false, extra: '' })
   const [tags, setTags] = useState<Tag[]>([])
   const [contactTagsMap, setContactTagsMap] = useState<Record<string, ContactTagRef[]>>({})
   const [tagFilterIds, setTagFilterIds] = useState<string[]>([])
@@ -231,7 +234,7 @@ export default function MensagensPage() {
   const mediaUrlCacheRef = useRef<Map<string, string>>(new Map())
   const msgBodyRef = useRef<HTMLDivElement | null>(null)
 
-  const COMPANY_SELECT = 'id, name, slug, crm_whatsapp_enabled, loja_digital_enabled, entrega_enabled, trial_modules_until, crm_auto_reply_enabled, crm_auto_reply_text'
+  const COMPANY_SELECT = 'id, name, slug, crm_whatsapp_enabled, loja_digital_enabled, entrega_enabled, trial_modules_until, crm_auto_reply_enabled, crm_auto_reply_text, crm_ia_enabled, crm_ia_prompt_extra'
   async function finishCompanySetup(comp: any, isAdmin = false) {
     // Guarda os flags já resolvidos (real OU dentro do período de teste, OU
     // liberado porque é admin editando por ela — pedido do Ricardo, set/2026:
@@ -295,7 +298,7 @@ export default function MensagensPage() {
 
   async function loadContacts(companyId: string) {
     const { data } = await supabase
-      .from('crm_contacts').select('id, phone, name, last_message_at, last_read_at, presence_state, presence_until, pinned, archived, avatar_url, muted, notes, last_message_preview, last_message_direction, unread_count')
+      .from('crm_contacts').select('id, phone, name, last_message_at, last_read_at, presence_state, presence_until, pinned, archived, avatar_url, muted, notes, last_message_preview, last_message_direction, unread_count, atendimento_modo')
       .eq('company_id', companyId).not('last_message_at', 'is', null)
       .order('last_message_at', { ascending: false })
     setContacts((data || []) as Contact[])
@@ -576,10 +579,23 @@ export default function MensagensPage() {
     setSavingAutoReply(true)
     const crm_auto_reply_enabled = autoReplyDraft.enabled
     const crm_auto_reply_text = autoReplyDraft.text.trim() || null
-    await supabase.from('companies').update({ crm_auto_reply_enabled, crm_auto_reply_text }).eq('id', company.id)
-    setCompany({ ...company, crm_auto_reply_enabled, crm_auto_reply_text })
+    const crm_ia_enabled = iaDraft.enabled
+    const crm_ia_prompt_extra = iaDraft.extra.trim() || null
+    await supabase.from('companies').update({ crm_auto_reply_enabled, crm_auto_reply_text, crm_ia_enabled, crm_ia_prompt_extra }).eq('id', company.id)
+    setCompany({ ...company, crm_auto_reply_enabled, crm_auto_reply_text, crm_ia_enabled, crm_ia_prompt_extra })
     setSavingAutoReply(false)
     setAutoReplyOpen(false)
+  }
+
+  // Toggle manual do dono pra assumir a conversa (tira do modo IA) ou
+  // devolver pra IA — handoff automático (cliente insistindo) fica no
+  // webhook (src/app/api/crm/webhook/route.ts); esse aqui é só a via manual
+  // que o Ricardo pediu ("pode ser manual quando o humano quiser aceitar").
+  async function toggleAtendimentoModo(c: Contact) {
+    const atendimento_modo = c.atendimento_modo === 'humano' ? 'ia' : 'humano'
+    setContacts(prev => prev.map(x => x.id === c.id ? { ...x, atendimento_modo } : x))
+    if (selected?.id === c.id) setSelected(s => s ? { ...s, atendimento_modo } : s)
+    await supabase.from('crm_contacts').update({ atendimento_modo, pediu_humano_em: null }).eq('id', c.id)
   }
 
   async function loadMessages(contactId: string) {
@@ -767,7 +783,7 @@ export default function MensagensPage() {
           ...c, presence_state: row.presence_state, presence_until: row.presence_until, name: row.name,
           last_message_at: row.last_message_at, last_read_at: row.last_read_at, pinned: row.pinned, archived: row.archived,
           last_message_preview: row.last_message_preview, last_message_direction: row.last_message_direction,
-          unread_count: row.unread_count,
+          unread_count: row.unread_count, atendimento_modo: row.atendimento_modo,
         } : c))
       })
       .subscribe()
@@ -1194,6 +1210,13 @@ export default function MensagensPage() {
           .msg-tag-remove:hover{opacity:1;}
           .msg-item-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;}
 
+          /* ── Atendente IA ── */
+          .msg-modo-badge{display:inline-block;margin-left:6px;padding:1.5px 6px;border-radius:8px;font-size:9.5px;font-weight:800;letter-spacing:.02em;vertical-align:middle;}
+          .msg-modo-badge.ia{background:rgba(83,167,255,.18);color:#7fc0ff;}
+          .msg-modo-badge.humano{background:rgba(0,168,132,.18);color:#3fbf6f;}
+          .msg-modo-toggle{display:flex;align-items:center;gap:5px;background:#2a3942;border:1px solid #3a4a52;color:#cfd6da;font-size:11px;font-weight:700;padding:5px 10px;border-radius:16px;cursor:pointer;white-space:nowrap;}
+          .msg-modo-toggle.humano{background:rgba(0,168,132,.18);border-color:rgba(0,168,132,.4);color:#3fbf6f;}
+
           .msg-tagfilter-pop{position:absolute;top:78px;left:12px;right:12px;background:#233138;border:1px solid #2f3b43;border-radius:12px;box-shadow:0 10px 26px rgba(0,0,0,.45);z-index:30;padding:6px;max-height:60vh;overflow-y:auto;}
           .msg-tagfilter-hd{font-size:10.5px;font-weight:800;color:#8696a0;text-transform:uppercase;letter-spacing:.5px;padding:8px 10px 4px;}
           .msg-tagfilter-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:13px;color:#e9edef;}
@@ -1448,8 +1471,12 @@ export default function MensagensPage() {
                   <button className="msg-list-chip" onClick={() => setStarredOpen(true)}>⭐ Marcadas</button>
                   <button className={`msg-list-chip ${tagFilterIds.length ? 'on' : ''}`} onClick={() => setTagFilterOpen(v => !v)}>🏷️ Etiquetas{tagFilterIds.length > 0 ? ` (${tagFilterIds.length})` : ''} ▾</button>
                   <button
-                    className="msg-list-chip" title="Resposta automática fora do horário"
-                    onClick={() => { setAutoReplyDraft({ enabled: !!company?.crm_auto_reply_enabled, text: company?.crm_auto_reply_text || '' }); setAutoReplyOpen(true) }}
+                    className="msg-list-chip" title="Atendente IA e resposta automática"
+                    onClick={() => {
+                      setIaDraft({ enabled: !!company?.crm_ia_enabled, extra: company?.crm_ia_prompt_extra || '' })
+                      setAutoReplyDraft({ enabled: !!company?.crm_auto_reply_enabled, text: company?.crm_auto_reply_text || '' })
+                      setAutoReplyOpen(true)
+                    }}
                   >⚙️</button>
                 </div>
                 {tagFilterOpen && (
@@ -1517,7 +1544,14 @@ export default function MensagensPage() {
                           <div className="msg-avatar msg-avatar-lg">{c.avatar_url ? <img src={c.avatar_url} alt="" /> : (c.name || c.phone).slice(0, 2).toUpperCase()}</div>
                           <div className="msg-item-txt">
                             <div className="msg-item-row1">
-                              <div className="msg-item-name">{c.muted && '🔕 '}{c.name || c.phone}</div>
+                              <div className="msg-item-name">
+                                {c.muted && '🔕 '}{c.name || c.phone}
+                                {company?.crm_ia_enabled && (
+                                  <span className={`msg-modo-badge ${c.atendimento_modo === 'humano' ? 'humano' : 'ia'}`}>
+                                    {c.atendimento_modo === 'humano' ? '🧑 Você' : '🤖 IA'}
+                                  </span>
+                                )}
+                              </div>
                               <div className={`msg-item-time${unread ? ' unread' : ''}`}>{c.last_message_at ? fmtListDate(c.last_message_at) : ''}</div>
                             </div>
                             <div className="msg-item-row2">
@@ -1581,6 +1615,15 @@ export default function MensagensPage() {
                             {isTyping ? <span className="msg-presence">digitando...</span> : isOnline ? <span className="msg-presence">online</span> : selectedLive?.notes ? <span style={{ color: 'var(--sign)' }}>📝 {selectedLive.notes}</span> : selectedLive?.phone}
                           </div>
                         </div>
+                        {company?.crm_ia_enabled && selectedLive && (
+                          <button
+                            className={`msg-modo-toggle ${selectedLive.atendimento_modo === 'humano' ? 'humano' : ''}`}
+                            title={selectedLive.atendimento_modo === 'humano' ? 'Devolver a conversa pra IA' : 'Assumir a conversa'}
+                            onClick={() => toggleAtendimentoModo(selectedLive)}
+                          >
+                            {selectedLive.atendimento_modo === 'humano' ? '🧑 Você' : '🤖 IA'}
+                          </button>
+                        )}
                         {company?.loja_digital_enabled && (
                           <button className="msg-thead-search-btn" title="Novo pedido" onClick={openNovoPedido}>🧾</button>
                         )}
@@ -1999,7 +2042,20 @@ export default function MensagensPage() {
         {autoReplyOpen && (
           <div className="msg-lightbox" onClick={() => setAutoReplyOpen(false)}>
             <div className="msg-notes-box" onClick={e => e.stopPropagation()}>
-              <h4>🤖 Resposta automática fora do horário</h4>
+              <h4>🤖 Atendente IA</h4>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: '#cfd6da', marginBottom: 10, cursor: 'pointer' }}>
+                <input type="checkbox" checked={iaDraft.enabled} onChange={e => setIaDraft(d => ({ ...d, enabled: e.target.checked }))} />
+                Ativar atendente IA
+              </label>
+              <div style={{ fontSize: 11, color: '#8696a0', marginBottom: 8, lineHeight: 1.5 }}>
+                Responde sozinha perguntas básicas (horário, endereço, formas de pagamento, valor de entrega por bairro e o link do cardápio), sempre lendo os dados já cadastrados da loja. Não cria pedido nem cobrança. Se o cliente insistir em falar com uma pessoa, a conversa passa pro atendimento humano.
+              </div>
+              <textarea
+                placeholder='Instruções extras pra IA (opcional). Ex: "Não entregamos no Colubandê."'
+                value={iaDraft.extra} onChange={e => setIaDraft(d => ({ ...d, extra: e.target.value }))}
+              />
+
+              <h4 style={{ marginTop: 18 }}>⏰ Resposta automática fora do horário</h4>
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: '#cfd6da', marginBottom: 10, cursor: 'pointer' }}>
                 <input type="checkbox" checked={autoReplyDraft.enabled} onChange={e => setAutoReplyDraft(d => ({ ...d, enabled: e.target.checked }))} />
                 Ativar resposta automática

@@ -2019,8 +2019,9 @@ export default function AdminPage() {
           </div>
 
           <nav className="sidebar-nav">
-          {/* Ordem alfabética por label — sempre, inclusive pra itens novos.
-              Não precisa inserir em ordem aqui: o .sort() abaixo garante isso
+          {/* Ordem fixa pros 5 primeiros (pedido do Ricardo, set/2026); o
+              resto continua em ordem alfabética por label, sempre — não
+              precisa inserir em ordem aqui, o .sort() abaixo garante isso
               sozinho, então só adicione o item onde for mais conveniente. */}
           {[
             { id: 'dashboard', icon: '📊', label: 'Dashboard' },
@@ -2044,7 +2045,12 @@ export default function AdminPage() {
             { id: 'palavra-premiada', icon: '🎁', label: 'Palavra Premiada' },
             { id: 'entregas', icon: '🏍️', label: 'Entregas' },
             { id: 'peca-agora', icon: '🍔', label: 'Peça Agora' },
-          ].sort((a, b) => a.label.localeCompare(b.label, 'pt-BR')).map(n => (
+          ].sort((a, b) => {
+            const PINNED = ['dashboard', 'sala-de-vendas', 'empresas', 'usuarios', 'entregas']
+            const ia = PINNED.indexOf(a.id), ib = PINNED.indexOf(b.id)
+            if (ia !== -1 || ib !== -1) return ia === -1 ? 1 : ib === -1 ? -1 : ia - ib
+            return a.label.localeCompare(b.label, 'pt-BR')
+          }).map(n => (
             <div
               key={n.id}
               className={`nav-item ${tab === n.id ? 'on' : ''}`}

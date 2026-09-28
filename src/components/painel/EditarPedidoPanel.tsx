@@ -25,11 +25,19 @@ type PedidoParaEditar = {
 // com qty travado em 1) é unitPrice × pesoKg. Reabrindo a edição depois,
 // recupera o preço por kg de volta dividindo o total salvo pelo peso_kg
 // salvo — não perde a informação entre uma correção e outra.
-type EditItem = NpCartLine & { pesoModo: boolean; pesoKg: number }
+// pesoKg fica como TEXTO (não number) de propósito: campo number ligado
+// direto a um valor já convertido brigava com quem estava digitando decimal
+// (achado real do Ricardo, set/2026 — cada tecla arredondava/resetava o
+// campo no meio da digitação e o zero da frente empacava, ex: "01,2"). Só
+// converte pra número na hora de calcular o total e de salvar.
+type EditItem = NpCartLine & { pesoModo: boolean; pesoKg: string }
 const PESO_REGEX = /\bkg\b/i
 
+function pesoNum(s: string): number {
+  return Math.max(0, Number(s.replace(',', '.')) || 0)
+}
 function lineTotal(l: EditItem): number {
-  return l.pesoModo ? l.unitPrice * l.pesoKg : l.unitPrice * l.qty
+  return l.pesoModo ? l.unitPrice * pesoNum(l.pesoKg) : l.unitPrice * l.qty
 }
 
 const PAY_BASE = [{ key: 'pix', label: 'Pix' }, { key: 'dinheiro', label: 'Dinheiro' }, { key: 'cartao', label: 'Cartão' }]
@@ -77,7 +85,7 @@ export default function EditarPedidoPanel({ pedido, companyId, onClose, onSaved 
       unitPrice: temPeso ? it.unit_price / it.peso_kg! : it.unit_price,
       qty: it.qty,
       pesoModo: temPeso || PESO_REGEX.test(it.product_name),
-      pesoKg: temPeso ? it.peso_kg! : (it.qty || 1),
+      pesoKg: String(temPeso ? it.peso_kg! : (it.qty || 1)).replace('.', ','),
     }
   }))
 
@@ -116,15 +124,17 @@ export default function EditarPedidoPanel({ pedido, companyId, onClose, onSaved 
     setItems(prev => prev.map(l => l.key === key ? { ...l, qty: l.qty + delta } : l).filter(l => l.qty > 0))
   }
   function togglePesoModo(key: string) {
-    setItems(prev => prev.map(l => l.key === key ? { ...l, pesoModo: !l.pesoModo } : l))
+    setItems(prev => prev.map(l => l.key === key ? { ...l, pesoModo: !l.pesoModo, pesoKg: l.pesoKg || String(l.qty || 1) } : l))
   }
   function setPesoKg(key: string, valor: string) {
-    const n = Math.max(0, Number(valor.replace(',', '.')) || 0)
-    setItems(prev => prev.map(l => l.key === key ? { ...l, pesoKg: n } : l))
+    // Só filtra caractere inválido — não converte/arredonda a cada tecla,
+    // senão o campo briga com quem está no meio de digitar um decimal.
+    const cleaned = valor.replace(/[^\d,.]/g, '')
+    setItems(prev => prev.map(l => l.key === key ? { ...l, pesoKg: cleaned } : l))
   }
   function removeItem(key: string) { setItems(prev => prev.filter(l => l.key !== key)) }
   function addSimple(p: NpProduto) {
-    setItems(prev => [...prev, { key: `${p.id}-${Date.now()}`, produtoId: p.id, name: p.name, modifiers: [], unitPrice: p.sale_price, qty: 1, pesoModo: PESO_REGEX.test(p.name), pesoKg: 1 }])
+    setItems(prev => [...prev, { key: `${p.id}-${Date.now()}`, produtoId: p.id, name: p.name, modifiers: [], unitPrice: p.sale_price, qty: 1, pesoModo: PESO_REGEX.test(p.name), pesoKg: '1' }])
     setPickerOpen(false)
   }
   function openDetail(p: NpProduto) { setDetail(p); setDetailSel(p.groups.map(() => [])); setPickerOpen(false) }
@@ -146,7 +156,7 @@ export default function EditarPedidoPanel({ pedido, companyId, onClose, onSaved 
     if (!detail || !detailReqMet) return
     const modifiers: { name: string; price: number }[] = []
     detail.groups.forEach((g, gi) => detailSel[gi].forEach(oi => modifiers.push({ name: g.options[oi].name, price: g.options[oi].price })))
-    setItems(prev => [...prev, { key: `${detail.id}-${Date.now()}`, produtoId: detail.id, name: detail.name, modifiers, unitPrice: detailPrice, qty: 1, pesoModo: PESO_REGEX.test(detail.name), pesoKg: 1 }])
+    setItems(prev => [...prev, { key: `${detail.id}-${Date.now()}`, produtoId: detail.id, name: detail.name, modifiers, unitPrice: detailPrice, qty: 1, pesoModo: PESO_REGEX.test(detail.name), pesoKg: '1' }])
     setDetail(null)
   }
 
@@ -174,9 +184,9 @@ export default function EditarPedidoPanel({ pedido, companyId, onClose, onSaved 
     await supabase.from('loja_pedido_itens').delete().eq('pedido_id', pedido.id)
     const { error: itErr } = await supabase.from('loja_pedido_itens').insert(items.map(l => ({
       pedido_id: pedido.id, product_name: l.name,
-      unit_price: l.pesoModo ? Math.round(l.unitPrice * l.pesoKg * 100) / 100 : l.unitPrice,
+      unit_price: l.pesoModo ? Math.round(l.unitPrice * pesoNum(l.pesoKg) * 100) / 100 : l.unitPrice,
       qty: l.pesoModo ? 1 : l.qty,
-      peso_kg: l.pesoModo ? l.pesoKg : null,
+      peso_kg: l.pesoModo ? pesoNum(l.pesoKg) : null,
       selected_options: l.modifiers,
     })))
     if (itErr) { setError('Pedido atualizado, mas falhou ao salvar os itens: ' + itErr.message); setSaving(false); return }
@@ -260,7 +270,7 @@ export default function EditarPedidoPanel({ pedido, companyId, onClose, onSaved 
         .ep-peso-toggle{ flex:none;width:22px;height:22px;border-radius:6px;border:1px solid #E6E0D2;background:#F5F6F2;cursor:pointer;font-size:11px;line-height:1;opacity:.5; }
         .ep-peso-toggle.on{ background:#7A3FB0;border-color:#7A3FB0;opacity:1; }
         .ep-peso{ display:flex;align-items:center;gap:4px;flex:none; }
-        .ep-peso input{ width:52px;padding:4px 5px;border-radius:6px;border:1.5px solid #7A3FB0;background:#fff;font-size:11.5px;font-weight:700;text-align:right;font-family:inherit; }
+        .ep-peso input{ width:64px;padding:5px 6px;border-radius:6px;border:1.5px solid #7A3FB0;background:#fff;font-size:12.5px;font-weight:700;text-align:right;font-family:inherit;box-sizing:border-box; }
         .ep-peso span{ font-size:10.5px;color:#6E6656;font-weight:700; }
         .ep-item-price{ flex:none;font-weight:800;font-size:11.5px;width:58px;text-align:right; }
         .ep-item-rm{ flex:none;border:none;background:none;color:var(--alert);cursor:pointer;font-size:13px;padding:0 2px; }
@@ -313,7 +323,7 @@ export default function EditarPedidoPanel({ pedido, companyId, onClose, onSaved 
                   {l.pesoModo ? (
                     <div className="ep-peso">
                       <input
-                        type="number" step="0.001" min="0" inputMode="decimal"
+                        type="text" inputMode="decimal" placeholder="1,000"
                         value={l.pesoKg} onChange={e => setPesoKg(l.key, e.target.value)}
                       />
                       <span>kg</span>

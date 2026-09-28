@@ -117,19 +117,22 @@ async function buildContext(companyId: string): Promise<string | null> {
   // "Filé" ou "Posta") — pedido do Ricardo, set/2026: cliente perguntou por
   // áudio "o camarão já vem limpo?" e a IA só sabia mandar pro link do
   // cardápio, mesmo essa informação já estando cadastrada no produto (grupo
-  // de opcionais). Só nome das opções, nunca preço — preço de adicional
-  // continua sendo só no cardápio, igual preço de produto.
+  // de opcionais). Preço da opção ENTRA (é dado real cadastrado, ex: "paga
+  // pra limpar? quanto custa?" — achado do Ricardo logo em seguida: sem o
+  // preço, a IA não sabia dizer se cobrava e quanto). O que continua de fora
+  // é o preço BASE do produto — esse sim só pelo link do cardápio.
   const { data: produtos } = await supabase
     .from('loja_produtos')
-    .select('name, groups:loja_opcoes_grupo(name, options:loja_opcoes(name))')
+    .select('name, groups:loja_opcoes_grupo(name, options:loja_opcoes(name, price))')
     .eq('company_id', companyId).eq('active', true)
   const comOpcionais = (produtos || []).filter((p: any) => (p.groups || []).some((g: any) => (g.options || []).length > 0))
   if (comOpcionais.length > 0) {
+    const opcaoLabel = (o: any) => `${o.name}${Number(o.price) > 0 ? ` (+${fmtMoney(Number(o.price))})` : ' (grátis)'}`
     const linhasProdutos = comOpcionais.slice(0, 60).map((p: any) =>
       `${p.name}: ` + p.groups.filter((g: any) => (g.options || []).length > 0)
-        .map((g: any) => `${g.name} (${g.options.map((o: any) => o.name).join(', ')})`).join(' · ')
+        .map((g: any) => `${g.name} (${g.options.map(opcaoLabel).join(', ')})`).join(' · ')
     )
-    linhas.push('Opções/variações cadastradas por produto (use isso SÓ pra responder pergunta sobre opcional/variação de um produto específico, ex: "o camarão vem limpo?" — nunca pra confirmar preço ou se um produto existe, isso continua sendo só pelo link do cardápio):\n' + linhasProdutos.join('\n'))
+    linhas.push('Opções/variações cadastradas por produto, com o valor de cada uma (use isso pra responder pergunta sobre opcional/variação de um produto específico, incluindo se cobra e quanto — ex: "o camarão vem limpo?", "cobra pra limpar? quanto?" — mas isso NÃO é o preço base do produto, esse continua sendo só pelo link do cardápio):\n' + linhasProdutos.join('\n'))
   }
 
   if (company.crm_ia_prompt_extra?.trim()) {
@@ -150,7 +153,7 @@ CONTEXTO DA CONVERSA — leia com atenção antes de responder:
 REGRAS RÍGIDAS — nunca quebre nenhuma delas:
 - Responda SOMENTE com base nos dados da loja fornecidos abaixo. Nunca invente horário, endereço, preço, produto ou qualquer informação que não esteja explícita aqui.
 - Você NUNCA cria pedidos, NUNCA gera link de pagamento/cobrança e NUNCA promete prazo exato de entrega.
-- Pergunta sobre produto específico, preço de produto ou "vocês têm tal coisa?": sempre direcione para o link do cardápio — nunca tente adivinhar se um produto existe ou seu preço. EXCEÇÃO: se a pergunta for sobre opcional/variação de um produto que já está na lista "Opções/variações cadastradas por produto" abaixo (ex: "o camarão vem limpo ou com casca?", "o peixe é em filé ou posta?"), responda direto com base nessa lista — sem precisar mandar pro cardápio pra isso.
+- Pergunta sobre produto específico, PREÇO BASE do produto ou "vocês têm tal coisa?": sempre direcione para o link do cardápio — nunca tente adivinhar se um produto existe ou seu preço. EXCEÇÃO: se a pergunta for sobre opcional/variação de um produto que já está na lista "Opções/variações cadastradas por produto" abaixo (ex: "o camarão vem limpo ou com casca?", "cobra pra limpar? quanto custa?", "o peixe é em filé ou posta?"), responda direto com base nessa lista, incluindo o valor de cada opção quando perguntarem — isso é dado real cadastrado, pode informar sem medo.
 - Pergunta sobre valor de entrega: NUNCA informe um valor sem antes saber o bairro (ou endereço) do cliente. Se ele ainda não disse, pergunte primeiro qual é o bairro dele. Nunca escolha um valor "de exemplo" da lista de bairros nem invente um número — se os dados da loja abaixo disserem que a taxa é calculada por distância ou que não há taxa configurada, siga exatamente a instrução dada ali.
 - Você serve só para atendimento básico e direto: boas-vindas, horário de funcionamento, endereço, formas de pagamento, valor de entrega por bairro, link do cardápio. Nada de bate-papo, opinião pessoal ou assunto fora disso.
 - Pergunta sem relação nenhuma com a loja: responda educadamente algo como "Minha função aqui é te ajudar com informações da loja 🙂 Posso ajudar com horário, endereço, entrega ou o link do cardápio?" — e pare por aí.

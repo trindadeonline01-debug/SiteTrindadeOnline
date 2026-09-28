@@ -52,16 +52,21 @@ const s: Record<string, any> = {
   cardTitle: { fontSize: 12.5, fontWeight: 800, color: '#111' },
   cardHint: { fontSize: 11, color: '#999', marginTop: 2 },
   cardBody: { padding: 18 },
-  row: { display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '1px solid #F0EDE8' },
+  // flexWrap:'wrap' nos dois — no mobile (Android, achado real do Ricardo,
+  // set/2026) essas linhas tinham gente demais numa só (arrastar + emoji +
+  // nome + contagem + Ativo + editar + excluir) e o que não cabia ficava
+  // cortado fora da tela em vez de quebrar linha. Com wrap, nome fica na
+  // primeira linha e contagem+ações descem pra segunda quando precisa.
+  row: { display: 'flex', alignItems: 'center', flexWrap: 'wrap' as const, gap: 10, padding: '9px 0', borderBottom: '1px solid #F0EDE8' },
   handle: { flex: 'none', width: 26, height: 26, border: 'none', background: 'transparent', color: '#A79E8B', fontSize: 16, lineHeight: 1, cursor: 'grab', touchAction: 'none', borderRadius: 6 },
   emoji: { flex: 'none', width: 32, fontSize: 18, textAlign: 'center' as const },
-  label: { flex: 1, fontSize: 13, fontWeight: 700, color: '#111' },
+  label: { flex: 1, minWidth: 90, fontSize: 13, fontWeight: 700, color: '#111' },
   count: { fontSize: 11, color: '#999', flex: 'none', whiteSpace: 'nowrap' as const },
   input: { border: '1.5px solid #E0DDD8', borderRadius: 8, padding: '7px 10px', fontSize: 12.5, fontFamily: 'inherit' },
   btnSave: { background: 'var(--sign)', color: 'var(--ink)', border: 'none', padding: '9px 18px', borderRadius: 9, fontSize: 12, fontWeight: 800, cursor: 'pointer' },
   btnGhost: { background: '#fff', color: '#111', border: '1.5px solid #E0DDD8', padding: '7px 12px', borderRadius: 8, fontSize: 11.5, fontWeight: 700, cursor: 'pointer' },
   btnDel: { background: 'none', border: 'none', color: '#C43D3D', fontSize: 15, cursor: 'pointer', padding: '2px 6px' },
-  addRow: { display: 'flex', gap: 8, marginTop: 14 },
+  addRow: { display: 'flex', flexWrap: 'wrap' as const, gap: 8, marginTop: 14 },
   msg: { fontSize: 12, color: '#0F8050', fontWeight: 700 },
 }
 
@@ -83,7 +88,7 @@ function SortableTipoRow({ tipo, count, onToggleActive, onSaveEdit, onDelete }: 
       {editing ? (
         <>
           <EmojiField value={emoji} onChange={setEmoji} />
-          <input style={{ ...s.input, flex: 1 }} value={label} onChange={e => setLabel(e.target.value)} autoFocus onKeyDown={e => e.key === 'Enter' && (onSaveEdit(label, emoji), setEditing(false))} />
+          <input style={{ ...s.input, flex: '1 1 140px', minWidth: 0 }} value={label} onChange={e => setLabel(e.target.value)} autoFocus onKeyDown={e => e.key === 'Enter' && (onSaveEdit(label, emoji), setEditing(false))} />
           <button style={s.btnSave} onClick={() => { onSaveEdit(label, emoji); setEditing(false) }}>OK</button>
           <button style={s.btnGhost} onClick={() => { setLabel(tipo.label); setEmoji(tipo.emoji); setEditing(false) }}>✕</button>
         </>
@@ -234,7 +239,7 @@ export default function PecaAgoraTab() {
 
           <div style={s.addRow}>
             <EmojiField value={newEmoji} onChange={setNewEmoji} width={50} />
-            <input style={{ ...s.input, flex: 1 }} placeholder="Nome do tipo (ex: Espetinho)" value={newLabel} onChange={e => setNewLabel(e.target.value)} onKeyDown={e => e.key === 'Enter' && addTipo()} />
+            <input style={{ ...s.input, flex: '1 1 140px', minWidth: 0 }} placeholder="Nome do tipo (ex: Espetinho)" value={newLabel} onChange={e => setNewLabel(e.target.value)} onKeyDown={e => e.key === 'Enter' && addTipo()} />
             <button style={s.btnSave} disabled={saving} onClick={addTipo}>+ Adicionar</button>
           </div>
         </div>

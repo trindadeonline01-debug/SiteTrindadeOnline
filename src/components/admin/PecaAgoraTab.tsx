@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
@@ -21,17 +21,31 @@ const FOOD_EMOJIS = [
 
 function EmojiField({ value, onChange, width = 44 }: { value: string; onChange: (v: string) => void; width?: number }) {
   const [open, setOpen] = useState(false)
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
+
+  // A grade de emoji vira position:fixed (coordenada calculada na hora do
+  // clique) em vez de absolute — cada card dessa tela tem overflow:hidden
+  // (pras bordas arredondadas), que recortava a grade toda vez que ela
+  // tentava abrir logo abaixo do campo, sobrando só uma tirinha visível
+  // (achado real do Ricardo, set/2026, ao cadastrar "Pão de Queijo").
+  function openPicker() {
+    const r = btnRef.current?.getBoundingClientRect()
+    if (r) setPos({ top: r.bottom + 4, left: Math.min(r.left, window.innerWidth - 268) })
+    setOpen(true)
+  }
+
   return (
     <div style={{ position: 'relative', flex: 'none' }}>
       <div style={{ display: 'flex', gap: 4 }}>
         <input style={{ ...s.input, width, textAlign: 'center' }} value={value} onChange={e => onChange(e.target.value)} />
-        <button type="button" style={{ ...s.btnGhost, padding: '7px 9px' }} onClick={() => setOpen(o => !o)} aria-label="Escolher emoji">😀</button>
+        <button ref={btnRef} type="button" style={{ ...s.btnGhost, padding: '7px 9px' }} onClick={() => (open ? setOpen(false) : openPicker())} aria-label="Escolher emoji">😀</button>
       </div>
-      {open && (
+      {open && pos && (
         <>
           <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 49 }} />
           <div style={{
-            position: 'absolute', top: '100%', left: 0, marginTop: 4, zIndex: 50, background: '#fff',
+            position: 'fixed', top: pos.top, left: pos.left, zIndex: 50, background: '#fff',
             border: '1.5px solid #E0DDD8', borderRadius: 10, padding: 8, boxShadow: '0 8px 24px rgba(0,0,0,.18)',
             display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 2, width: 260, maxHeight: 220, overflowY: 'auto',
           }}>

@@ -150,6 +150,13 @@ export default function AdminPage() {
   // e pesando MUITO no mobile (pedido do Ricardo, set/2026, aprovado via
   // mockup: ícones + toggles + menu no desktop, card + expandir no mobile).
   const [empresaMenuOpen, setEmpresaMenuOpen] = useState<string | null>(null)
+  // Posição calculada na hora do clique (rect do botão ⋯) — o menu vira
+  // position:fixed em vez de absolute porque a tabela de empresas mora
+  // dentro de um container com overflow-x:auto (scroll horizontal), que
+  // recorta qualquer position:absolute que tentasse "vazar" pra fora dele
+  // (achado do Ricardo, set/2026: menu abria escondido/cortado). Mesmo
+  // truque que o .emp-menu-backdrop já usava com sucesso.
+  const [empresaMenuPos, setEmpresaMenuPos] = useState<{ top: number; left: number } | null>(null)
   const [empresaCardExpanded, setEmpresaCardExpanded] = useState<Set<string>>(new Set())
   const [salesLoading, setSalesLoading] = useState(false)
   const [expiringPlans, setExpiringPlans] = useState<any[]>([])
@@ -213,6 +220,17 @@ export default function AdminPage() {
     if (tab === 'vendas') loadSales(salesFilter)
     if (tab === 'subcategorias') loadSugestoes()
   }, [tab])
+
+  // Menu ⋯ de empresa é position:fixed calculado na hora do clique (ver
+  // empresaMenuPos) — se a página ou a tabela rolar com o menu aberto, ele
+  // fica preso no lugar velho, descolado do botão. Fecha sozinho em vez de
+  // deixar isso acontecer.
+  useEffect(() => {
+    if (!empresaMenuOpen) return
+    const close = () => setEmpresaMenuOpen(null)
+    window.addEventListener('scroll', close, true)
+    return () => window.removeEventListener('scroll', close, true)
+  }, [empresaMenuOpen])
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -1691,7 +1709,7 @@ export default function AdminPage() {
         .emp-sep { width: 1px; height: 20px; background: #eee; flex: none; margin: 0 2px; }
         .emp-kebab-wrap { position: relative; flex: none; }
         .emp-menu-backdrop { position: fixed; inset: 0; z-index: 25; }
-        .emp-menu { position: absolute; top: calc(100% + 4px); right: 0; width: 220px; background: #fff; border: 1px solid #eee; border-radius: 12px; box-shadow: 0 10px 28px rgba(0,0,0,.14); overflow: hidden; z-index: 30; }
+        .emp-menu { position: fixed; width: 220px; background: #fff; border: 1px solid #eee; border-radius: 12px; box-shadow: 0 10px 28px rgba(0,0,0,.14); overflow: hidden; z-index: 30; }
         .emp-menu-row { display: flex; align-items: center; gap: 8px; padding: 9px 14px; font-size: 12px; font-weight: 600; color: #333; cursor: pointer; text-decoration: none; background: none; border: none; width: 100%; text-align: left; font-family: 'Archivo', sans-serif; }
         .emp-menu-row:hover { background: #FAF7F0; }
 
@@ -2255,11 +2273,17 @@ export default function AdminPage() {
                                   )}
                                   {companySecondaryActions(c).length > 0 && (
                                     <div className="emp-kebab-wrap">
-                                      <button className="emp-icon-btn" style={empresaMenuOpen === c.id ? {borderColor:'var(--sign-dark)',color:'#A87200',fontWeight:800} : {}} onClick={() => setEmpresaMenuOpen(empresaMenuOpen === c.id ? null : c.id)}>⋯</button>
-                                      {empresaMenuOpen === c.id && (
+                                      <button className="emp-icon-btn" style={empresaMenuOpen === c.id ? {borderColor:'var(--sign-dark)',color:'#A87200',fontWeight:800} : {}} onClick={(e) => {
+                                        if (empresaMenuOpen === c.id) { setEmpresaMenuOpen(null); return }
+                                        const r = e.currentTarget.getBoundingClientRect()
+                                        const left = Math.max(8, Math.min(r.right - 220, window.innerWidth - 228))
+                                        setEmpresaMenuPos({ top: r.bottom + 4, left })
+                                        setEmpresaMenuOpen(c.id)
+                                      }}>⋯</button>
+                                      {empresaMenuOpen === c.id && empresaMenuPos && (
                                         <>
                                           <div className="emp-menu-backdrop" onClick={() => setEmpresaMenuOpen(null)} />
-                                          <div className="emp-menu">
+                                          <div className="emp-menu" style={{ top: empresaMenuPos.top, left: empresaMenuPos.left }}>
                                             {companySecondaryActions(c).map((item, i) => item.href ? (
                                               <a key={i} className="emp-menu-row" href={item.href} onClick={() => setEmpresaMenuOpen(null)}>{item.icon} {item.label}</a>
                                             ) : (

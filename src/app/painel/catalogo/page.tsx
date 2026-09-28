@@ -985,11 +985,27 @@ export default function CatalogoPage() {
           .cg-row .cg-checkbox{ position:absolute; top:8px; left:8px; z-index:2; background:#fff; box-shadow:0 1px 6px rgba(0,0,0,.2); }
           .cg-fab{ right:32px; }
           .cg-form-view .cg-body{ max-width:640px; margin:0 auto; padding:0 32px; }
+          /* Cabeçalho do form de produto continua fixo no desktop também —
+             a regra geral de ".cg-head" acima trava em position:static a
+             partir daqui, então precisa reafirmar sticky com uma seletor
+             mais específico (pedido do Ricardo, set/2026: Salvar/Cancelar
+             sempre visíveis, não só lá embaixo do formulário). */
+          .cg-head.cg-head-centered{ position:sticky; top:0; z-index:5; }
         }
         .cg-head{ padding:22px 16px 14px; display:flex; align-items:center; gap:10px; background:#F7F5F0; position:sticky; top:0; z-index:5; flex-wrap:wrap; }
         .cg-head h1{ min-width:80px; }
         .cg-head-actions{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
         .cg-head h1{ font-size:18px; margin:0; flex:1; font-weight:800; }
+        /* Cabeçalho do form de produto: Salvar/Cancelar centralizados na
+           barra (não encostados num canto) — 3 colunas (voltar+título |
+           botões | vazio), a 3ª coluna equilibra o peso da 1ª pra o grupo
+           ficar centralizado de verdade. Só nesse cabeçalho (classe extra
+           .cg-head-centered) — lista e cadastro rápido continuam com o
+           layout de sempre. Mockup aprovado, set/2026. */
+        .cg-head.cg-head-centered{ display:grid; grid-template-columns:1fr auto 1fr; }
+        .cg-head-left{ display:flex; align-items:center; gap:10px; min-width:0; }
+        .cg-head-left h1{ flex:none; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .cg-head-center{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
         .cg-back{ width:32px;height:32px;border-radius:50%;border:1px solid #E6E0D2;background:#fff;font-size:15px;cursor:pointer; }
         .cg-body{ padding:0 16px; }
         .cg-btn{ padding:10px 18px;border-radius:10px;border:none;font-weight:800;font-size:13px;cursor:pointer; }
@@ -1236,9 +1252,16 @@ export default function CatalogoPage() {
 
       {view === 'form' && (
         <div className="cg-form-view">
-          <div className="cg-head">
-            <button className="cg-back" onClick={() => setView('list')}>‹</button>
-            <h1>{form.id ? 'Editar produto' : 'Novo produto'}</h1>
+          <div className="cg-head cg-head-centered">
+            <div className="cg-head-left">
+              <button className="cg-back" onClick={() => setView('list')}>‹</button>
+              <h1>{form.id ? 'Editar produto' : 'Novo produto'}</h1>
+            </div>
+            <div className="cg-head-center">
+              <button type="button" className="cg-btn cg-btn-ghost" onClick={() => setView('list')}>Cancelar edição</button>
+              <button className="cg-btn cg-btn-gold" disabled={savingProd} onClick={saveProduto}>{savingProd ? 'Salvando...' : 'Salvar produto'}</button>
+            </div>
+            <div />
           </div>
           <div className="cg-body">
             <div className="cg-photo-input">
@@ -1252,9 +1275,9 @@ export default function CatalogoPage() {
               >
                 {photoFile ? <img src={URL.createObjectURL(photoFile)} alt="" /> : form.photo_url ? <img src={form.photo_url} alt="" /> : '🍽️'}
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 <label className="cg-btn cg-btn-ghost" style={{ cursor: 'pointer' }}>
-                  Trocar foto
+                  Carregar foto
                   <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => setPhotoFile(e.target.files?.[0] || null)} />
                 </label>
                 <button type="button" className="cg-btn cg-btn-ghost" onClick={openCopyPhoto}>📋 Copiar de outro produto</button>
@@ -1376,6 +1399,7 @@ export default function CatalogoPage() {
 
             <div className="cg-savebar">
               <button className="cg-btn cg-btn-gold" disabled={savingProd} onClick={saveProduto}>{savingProd ? 'Salvando...' : 'Salvar produto'}</button>
+              <button type="button" className="cg-btn cg-btn-ghost" onClick={() => setView('list')}>Cancelar edição</button>
             </div>
           </div>
         </div>

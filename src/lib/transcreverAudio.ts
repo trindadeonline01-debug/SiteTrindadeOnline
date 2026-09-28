@@ -1,4 +1,22 @@
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
+
 const OPENAI_TRANSCRICOES_URL = 'https://api.openai.com/v1/audio/transcriptions'
+
+// DEBUG temporário (set/2026): grava o motivo exato de qualquer falha na
+// tabela crm_webhook_debug (já existe, reaproveitada) — sem isso não dava
+// pra saber se falhava por chave errada, sem crédito, etc., já que essa
+// função roda na Vercel e os console.error não ficam visíveis por aqui.
+// Remover depois de confirmar que a transcrição está funcionando de verdade.
+async function logDebug(motivo: string, detalhe: any) {
+  try {
+    await supabase.from('crm_webhook_debug').insert({ event: 'transcricao_audio', payload: { motivo, detalhe } })
+  } catch {}
+}
 
 // Transcreve áudio de WhatsApp (voz, formato ogg/opus) pra texto — única
 // exceção no projeto chamando um provedor de IA que não é a Anthropic, porque
@@ -10,7 +28,7 @@ const OPENAI_TRANSCRICOES_URL = 'https://api.openai.com/v1/audio/transcriptions'
 // consigo ouvir áudio, pode escrever?" nesse caso.
 export async function transcreverAudioWhatsApp(buffer: Buffer, mimetype: string): Promise<string | null> {
   const apiKey = process.env.OPENAI_API_KEY
-  if (!apiKey) return null
+  if (!apiKey) { await logDebug('sem_chave', { temChave: false }); return null }
   try {
     const ext = mimetype.includes('ogg') ? 'ogg' : mimetype.includes('mp4') || mimetype.includes('m4a') ? 'm4a' : 'ogg'
     const form = new FormData()
@@ -25,13 +43,16 @@ export async function transcreverAudioWhatsApp(buffer: Buffer, mimetype: string)
     if (!res.ok) {
       const body = await res.text().catch(() => '')
       console.error(`[transcreverAudioWhatsApp] OpenAI respondeu ${res.status}: ${body.slice(0, 300)}`)
+      await logDebug('openai_erro', { status: res.status, body: body.slice(0, 500), chaveComeca: apiKey.slice(0, 8) })
       return null
     }
     const json: any = await res.json()
     const texto = String(json?.text || '').trim()
+    if (!texto) await logDebug('transcricao_vazia', { json })
     return texto || null
   } catch (err: any) {
     console.error('[transcreverAudioWhatsApp] falha:', err?.message || err)
+    await logDebug('excecao', { erro: String(err?.message || err) })
     return null
   }
 }

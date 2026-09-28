@@ -290,6 +290,20 @@ export default function CatalogoPage() {
     })
   }
 
+  // A Vercel rejeita corpo de requisição grande demais (~4,5MB) devolvendo
+  // texto puro ("Request Entity Too Large"), não JSON — `res.json()` direto
+  // nisso quebra com "Unexpected token 'R'..." (achado real do Ricardo,
+  // set/2026, ao importar fotos de cardápio). Lê como texto primeiro e só
+  // faz JSON.parse depois, com mensagem amigável se não der.
+  async function readImportIAResponse(res: Response): Promise<any> {
+    const text = await res.text()
+    try { return JSON.parse(text) } catch {
+      return { error: /entity too large/i.test(text) || res.status === 413
+        ? 'Arquivo grande demais pro servidor aceitar de uma vez. Tenta menos fotos por vez, ou fotos em resolução menor.'
+        : `Erro inesperado do servidor (${res.status}). Tenta de novo.` }
+    }
+  }
+
   function openImportIA() {
     setShowImportIA(true)
     setImportIAStep('choose')
@@ -314,7 +328,7 @@ export default function CatalogoPage() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ access_token: session?.access_token, company_id: companyId, source: 'url', url: importIAUrl.trim() }),
       })
-      const data = await res.json()
+      const data = await readImportIAResponse(res)
       if (!res.ok) { setImportIAError(data.error || 'não deu pra ler esse cardápio'); setImportIAStep('error'); return }
       setImportIAPreview(data)
       setImportIAStep('preview')
@@ -332,7 +346,7 @@ export default function CatalogoPage() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ access_token: session?.access_token, company_id: companyId, source: 'pdf', pdf_base64 }),
       })
-      const data = await res.json()
+      const data = await readImportIAResponse(res)
       if (!res.ok) { setImportIAError(data.error || 'não deu pra ler esse PDF'); setImportIAStep('error'); return }
       setImportIAPreview(data)
       setImportIAStep('preview')
@@ -346,22 +360,38 @@ export default function CatalogoPage() {
     if (!fileArr.length) { setImportIAError('Escolhe pelo menos uma foto'); setImportIAStep('error'); return }
     setImportIAStep('loading')
     const { data: { session } } = await supabase.auth.getSession()
+    const tmpPaths: string[] = []
     try {
-      const fotos = await Promise.all(fileArr.map(async f => {
+      // Sobe cada foto pro Storage e manda só a URL — não mais a foto em
+      // base64 dentro do corpo do POST. O corpo de uma função da Vercel
+      // tem teto de ~4,5MB, e algumas fotos de cardápio (mesmo já
+      // comprimidas) já estouravam isso sozinhas, fazendo a Vercel
+      // recusar o corpo ANTES do código da rota rodar — devolvia "Request
+      // Entity Too Large" em texto puro, e o `res.json()` de então quebrava
+      // com "Unexpected token 'R'..." (achado real do Ricardo, set/2026).
+      // São arquivos temporários — apagados no `finally` abaixo, dê certo
+      // ou não a importação.
+      const foto_urls = await Promise.all(fileArr.map(async (f, i) => {
+        const ext = (f.name.split('.').pop() || 'jpg').toLowerCase()
+        const path = `${companyId}/import-ia-tmp/${Date.now()}_${i}.${ext}`
         const compressed = await compressImage(f, 1.2)
-        const data = await fileToBase64(compressed)
-        return { data, media_type: compressed.type || 'image/jpeg' }
+        const { error: upErr } = await supabase.storage.from('loja-produtos').upload(path, compressed, { upsert: true })
+        if (upErr) throw new Error('Falha ao enviar uma das fotos. Tenta de novo.')
+        tmpPaths.push(path)
+        return supabase.storage.from('loja-produtos').getPublicUrl(path).data.publicUrl
       }))
       const res = await fetch('/api/painel/importar-ia', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ access_token: session?.access_token, company_id: companyId, source: 'fotos', fotos }),
+        body: JSON.stringify({ access_token: session?.access_token, company_id: companyId, source: 'fotos', foto_urls }),
       })
-      const data = await res.json()
+      const data = await readImportIAResponse(res)
       if (!res.ok) { setImportIAError(data.error || 'não deu pra ler essas fotos'); setImportIAStep('error'); return }
       setImportIAPreview(data)
       setImportIAStep('preview')
     } catch (err: any) {
       setImportIAError(err?.message || 'falha ao ler o cardápio'); setImportIAStep('error')
+    } finally {
+      if (tmpPaths.length) supabase.storage.from('loja-produtos').remove(tmpPaths).catch(() => {})
     }
   }
 

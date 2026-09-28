@@ -18,7 +18,16 @@ const supabaseAuth = createClient(
 )
 
 const MAX_PAGE_TEXT = 60000 // ~15-20k tokens, teto de segurança pro custo/tamanho do request
-const MAX_PAYLOAD_BYTES = 6 * 1024 * 1024 // pdf/fotos em base64 — acima disso a Vercel já rejeitaria o corpo da requisição
+// PDF ainda vai em base64 dentro do corpo do POST. O limite real da Vercel
+// pra corpo de função serverless é ~4,5MB — ficando abaixo disso, quem
+// responde é a NOSSA mensagem de erro (JSON), não o 413 em texto puro da
+// própria Vercel (que quebrava o `res.json()` do cliente com "Unexpected
+// token 'R', 'Request En'... is not valid JSON" — achado do Ricardo,
+// set/2026, ver também o comentário no bloco `fotos` abaixo).
+const MAX_PAYLOAD_BYTES = 4 * 1024 * 1024
+const MAX_PHOTO_BYTES = 8 * 1024 * 1024 // teto de sanidade por foto baixada (compressImage do cliente já mira bem menos que isso)
+type ImgMediaType = 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'
+const ALLOWED_IMG_TYPES: ImgMediaType[] = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
 
 const OpcaoSchema = z.object({ nome: z.string(), preco: z.number() })
 const GrupoSchema = z.object({
@@ -139,12 +148,32 @@ export async function POST(req: NextRequest) {
       content.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdf_base64 } })
       content.push({ type: 'text', text: `${INSTRUCOES}\n\nO cardápio a ler é o PDF anexado.` })
     } else if (source === 'fotos') {
-      const fotos: { data: string; media_type: string }[] = body.fotos || []
-      if (!fotos.length) return NextResponse.json({ error: 'nenhuma foto enviada' }, { status: 400 })
-      const totalBytes = fotos.reduce((n, f) => n + Buffer.byteLength(f.data, 'base64'), 0)
-      if (totalBytes > MAX_PAYLOAD_BYTES) return NextResponse.json({ error: 'fotos grandes demais no total — tenta enviar menos fotos por vez' }, { status: 413 })
-      for (const f of fotos) {
-        content.push({ type: 'image', source: { type: 'base64', media_type: f.media_type as 'image/jpeg', data: f.data } })
+      // As fotos chegam como URL pública (já enviadas pro Storage pelo
+      // cliente), não mais em base64 dentro do corpo do POST — o corpo de
+      // uma função da Vercel tem teto de ~4,5MB, e 2-3 fotos de cardápio
+      // (celular moderno, mesmo comprimidas) já estouravam isso sozinhas.
+      // Quando estourava, a Vercel devolvia "Request Entity Too Large" em
+      // TEXTO PURO antes do código desta rota sequer rodar — o cliente
+      // tentava `res.json()` nessa resposta e quebrava com "Unexpected
+      // token 'R', 'Request En'..." (achado real do Ricardo, set/2026).
+      // Mandando só a URL (string pequena) e baixando a foto aqui, do lado
+      // do servidor, esse teto de corpo de requisição nem entra em jogo.
+      const foto_urls: string[] = body.foto_urls || []
+      if (!foto_urls.length) return NextResponse.json({ error: 'nenhuma foto enviada' }, { status: 400 })
+      if (foto_urls.length > 8) return NextResponse.json({ error: 'no máximo 8 fotos por vez' }, { status: 400 })
+      for (const url of foto_urls) {
+        let imgRes: Response
+        try {
+          imgRes = await fetch(url, { signal: AbortSignal.timeout(20000) })
+        } catch {
+          return NextResponse.json({ error: 'não consegui baixar uma das fotos enviadas' }, { status: 400 })
+        }
+        if (!imgRes.ok) return NextResponse.json({ error: 'não consegui baixar uma das fotos enviadas' }, { status: 400 })
+        const buf = Buffer.from(await imgRes.arrayBuffer())
+        if (buf.byteLength > MAX_PHOTO_BYTES) return NextResponse.json({ error: 'uma das fotos ficou grande demais' }, { status: 413 })
+        const contentType = imgRes.headers.get('content-type') || ''
+        const media_type: ImgMediaType = (ALLOWED_IMG_TYPES as string[]).includes(contentType) ? (contentType as ImgMediaType) : 'image/jpeg'
+        content.push({ type: 'image', source: { type: 'base64', media_type, data: buf.toString('base64') } })
       }
       content.push({ type: 'text', text: `${INSTRUCOES}\n\nO cardápio a ler são as fotos anexadas (podem ser várias páginas/ângulos de um cardápio físico).` })
     } else {

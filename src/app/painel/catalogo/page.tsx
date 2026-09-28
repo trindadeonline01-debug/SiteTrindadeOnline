@@ -1001,11 +1001,20 @@ export default function CatalogoPage() {
            botões | vazio), a 3ª coluna equilibra o peso da 1ª pra o grupo
            ficar centralizado de verdade. Só nesse cabeçalho (classe extra
            .cg-head-centered) — lista e cadastro rápido continuam com o
-           layout de sempre. Mockup aprovado, set/2026. */
-        .cg-head.cg-head-centered{ display:grid; grid-template-columns:1fr auto 1fr; }
+           layout de sempre. Mockup aprovado, set/2026.
+           minmax(0,1fr) em vez de só "1fr": sem isso, no iPhone (achado
+           real do Ricardo, set/2026) a barra toda sumia — as colunas de
+           1fr não aceitavam ficar menor que o conteúdo (título + botões),
+           a grade toda "estourava" mais larga que a tela, e o
+           overflow-x:hidden do .cg-wrap recortava a barra inteira em vez
+           de só a sobra. Com minmax(0,1fr) a coluna do título pode
+           encolher até truncar (title já tem ellipsis) e a barra nunca
+           mais passa da largura da tela. */
+        .cg-head.cg-head-centered{ display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); }
         .cg-head-left{ display:flex; align-items:center; gap:10px; min-width:0; }
-        .cg-head-left h1{ flex:none; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-        .cg-head-center{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+        .cg-head-left h1{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .cg-head-center{ display:flex; gap:6px; justify-content:center; flex-wrap:wrap; }
+        .cg-btn-sm{ padding:8px 13px; font-size:12px; }
         .cg-back{ width:32px;height:32px;border-radius:50%;border:1px solid #E6E0D2;background:#fff;font-size:15px;cursor:pointer; }
         .cg-body{ padding:0 16px; }
         .cg-btn{ padding:10px 18px;border-radius:10px;border:none;font-weight:800;font-size:13px;cursor:pointer; }
@@ -1258,8 +1267,8 @@ export default function CatalogoPage() {
               <h1>{form.id ? 'Editar produto' : 'Novo produto'}</h1>
             </div>
             <div className="cg-head-center">
-              <button type="button" className="cg-btn cg-btn-ghost" onClick={() => setView('list')}>Cancelar edição</button>
-              <button className="cg-btn cg-btn-gold" disabled={savingProd} onClick={saveProduto}>{savingProd ? 'Salvando...' : 'Salvar produto'}</button>
+              <button type="button" className="cg-btn cg-btn-ghost cg-btn-sm" onClick={() => setView('list')}>Cancelar</button>
+              <button className="cg-btn cg-btn-gold cg-btn-sm" disabled={savingProd} onClick={saveProduto}>{savingProd ? 'Salvando...' : 'Salvar'}</button>
             </div>
             <div />
           </div>

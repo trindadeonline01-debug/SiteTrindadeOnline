@@ -520,15 +520,21 @@ export default function PainelPage() {
     showToast('Avaliação sinalizada para análise.')
   }
 
-  // 3 estados, mutuamente exclusivos: automático (segue o horário
-  // cadastrado), forçado aberto (ex: abrir num horário/dia excepcional) e
-  // forçado fechado/pausado (ex: imprevisto durante o horário normal).
-  async function setStoreMode(mode: 'auto' | 'open' | 'closed') {
+  // 2 estados, mutuamente exclusivos: automático (segue o horário
+  // cadastrado) e pausado (ex: imprevisto durante o horário normal).
+  // Existia um 3º estado ("forçada aberta") — removido a pedido do
+  // Ricardo, set/2026: sem expiração automática, era fácil esquecer
+  // ligado (aconteceu de verdade com 2 lojas — Crepe Cone e Espaço Janny
+  // Alves — mostrando "Aberto" dias depois de quando deveriam ter
+  // fechado, inclusive levando produto pra dentro do Peça Agora fora do
+  // horário real). store_forced_open continua existindo na tabela (não é
+  // migração de schema), só não tem mais como ligar por aqui.
+  async function setStoreMode(mode: 'auto' | 'closed') {
     if (!company) return
-    const patch = { store_paused: mode === 'closed', store_forced_open: mode === 'open' }
+    const patch = { store_paused: mode === 'closed' }
     setCompany(prev => prev ? { ...prev, ...patch } : prev)
     await supabase.from('companies').update(patch).eq('id', company.id)
-    showToast(mode === 'closed' ? 'Loja pausada — não recebe pedido novo' : mode === 'open' ? 'Loja forçada aberta' : 'Loja voltou a seguir o horário cadastrado')
+    showToast(mode === 'closed' ? 'Loja pausada — não recebe pedido novo' : 'Loja voltou a seguir o horário cadastrado')
   }
 
   function showToast(msg: string) { setToast(msg); setTimeout(()=>setToast(''), 3000) }
@@ -1156,11 +1162,10 @@ export default function PainelPage() {
                 <div className="alert-pending">⏳ Sua empresa está aguardando aprovação da nossa equipe. Você receberá uma notificação em até 24h.</div>
               )}
               {(() => {
-                const mode: 'auto' | 'open' | 'closed' = company.store_paused ? 'closed' : company.store_forced_open ? 'open' : 'auto'
+                const mode: 'auto' | 'closed' = company.store_paused ? 'closed' : 'auto'
                 const scheduleOpenNow = isOpenNow(company.hours as any, company.flexible_hours, false, false)
                 const cfg = {
                   auto:   { bg: '#F5F2EC', border: '#E6E0D2', dot: scheduleOpenNow ? '🟢' : '⚪', color: '#555',    label: 'Automático (segue o horário)', sub: scheduleOpenNow ? 'Dentro do horário cadastrado — aberta agora' : 'Fora do horário cadastrado — fechada agora' },
-                  open:   { bg: '#EDFAF3', border: '#B9E8D0', dot: '🟢',                          color: '#0F6E56', label: 'Forçada aberta',                sub: 'Recebendo pedido mesmo fora do horário cadastrado' },
                   closed: { bg: '#FBEAEA', border: '#F0B8B8', dot: '🔴',                          color: '#A83232', label: 'Pausada',                       sub: 'Não recebe pedido novo, mesmo dentro do horário' },
                 }[mode]
                 return (
@@ -1173,13 +1178,13 @@ export default function PainelPage() {
                       </div>
                     </div>
                     <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-                      {(['auto','open','closed'] as const).map(m => (
+                      {(['auto','closed'] as const).map(m => (
                         <button key={m} onClick={() => setStoreMode(m)} disabled={mode === m} style={{
                           flex:'1 1 auto',minWidth:110,padding:'8px 10px',borderRadius:8,fontSize:11.5,fontWeight:700,fontFamily:'Archivo,sans-serif',cursor:mode===m?'default':'pointer',
                           border:`1px solid ${mode===m?cfg.color:'#DDD'}`,
                           background:mode===m?cfg.color:'#fff',
                           color:mode===m?'#fff':'#555',
-                        }}>{m === 'auto' ? 'Automático' : m === 'open' ? 'Forçar aberto' : 'Pausar loja'}</button>
+                        }}>{m === 'auto' ? 'Automático' : 'Pausar loja'}</button>
                       ))}
                     </div>
                   </div>

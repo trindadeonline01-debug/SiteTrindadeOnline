@@ -15,11 +15,19 @@ export default function PeriodFilterBar({ value, onChange }: { value: PeriodSel;
   return (
     <div className="pf-wrap">
       <style>{`
-        .pf-wrap{display:flex;flex-wrap:wrap;gap:10px;width:100%;box-sizing:border-box;align-items:center;}
-        .pf-pillgroup{display:flex;gap:4px;background:#fafafa;border:1.5px solid #e0e0e0;border-radius:10px;padding:3px;flex-wrap:wrap;box-sizing:border-box;max-width:100%;}
+        /* min-width:0 no .pf-wrap: essencial porque em várias telas (ex:
+           Sala de Vendas) esse componente é usado como filho de outro flex
+           container (junto do select "Todas as lojas"). Um item de flex
+           sem min-width:0 se recusa a ficar menor que o próprio conteúdo —
+           e o conteúdo mais largo aqui dentro (os 2 campos de data nativos
+           do Android, mais largos que no iOS) empurrava a barra inteira
+           pra fora da tela, cortando as pills de período (achado real do
+           Ricardo, set/2026). */
+        .pf-wrap{display:flex;flex-wrap:wrap;gap:10px;width:100%;min-width:0;box-sizing:border-box;align-items:center;}
+        .pf-pillgroup{display:flex;gap:4px;background:#fafafa;border:1.5px solid #e0e0e0;border-radius:10px;padding:3px;flex-wrap:wrap;box-sizing:border-box;max-width:100%;min-width:0;}
         .pf-pill{border:1.5px solid #e0e0e0;background:#fff;font-size:12px;font-weight:700;color:#888;padding:7px 13px;border-radius:8px;cursor:pointer;}
         .pf-pill.on{background:var(--ink);border-color:var(--ink);color:var(--sign);}
-        .pf-select{font-size:12.5px;font-weight:700;color:#888;background:#fff;border:1.5px solid #e0e0e0;border-radius:10px;padding:8px 10px;cursor:pointer;box-sizing:border-box;max-width:100%;}
+        .pf-select{font-size:12.5px;font-weight:700;color:#888;background:#fff;border:1.5px solid #e0e0e0;border-radius:10px;padding:8px 10px;cursor:pointer;box-sizing:border-box;max-width:100%;min-width:0;}
         .pf-select.on{color:var(--sign);background:var(--ink);}
         /* flex-basis 0 (não auto) é o que faz os 2 campos de data
            conseguirem encolher de verdade dentro da caixa -- sem isso, o

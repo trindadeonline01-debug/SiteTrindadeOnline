@@ -413,7 +413,7 @@ export default function SalaDeVendasTab() {
             Ao vivo
           </span>
         </div>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', minWidth: 0, width: '100%' }}>
           <PeriodFilterBar value={period} onChange={setPeriod} />
           <select className="sv-store-filter" value={storeFilter} onChange={e => setStoreFilter(e.target.value)} style={{ fontSize: 12.5, fontWeight: 600, color: '#333', background: '#fff', border: '1.5px solid #e0e0e0', borderRadius: 10, padding: '8px 12px' }}>
             <option value="all">Todas as lojas</option>

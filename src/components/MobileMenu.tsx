@@ -57,7 +57,14 @@ export default function MobileMenu() {
 
   useEffect(() => { setOpen(false); setProfOpen(false) }, [pathname])
 
-  const hideOn = ['/login', '/cadastro', '/admin', '/empresa/cadastrar', '/anunciar', '/producao', '/painel/compartilhar', '/atendimento']
+  // /painel inteiro (não só /painel/compartilhar) tem sua própria navegação
+  // completa (EmpresaShell — sidebar/topbar desktop, barra de abas mobile),
+  // então o header do site (esse componente) não deveria aparecer lá.
+  // Achado real do Ricardo, set/2026, no iPhone: esse header ficava
+  // empilhado ACIMA do cabeçalho fixo do Catálogo (.cg-head, também
+  // sticky), empurrando ele pra fora da tela — "escondendo o menu" até
+  // rolar a página pra cima de novo.
+  const hideOn = ['/login', '/cadastro', '/admin', '/empresa/cadastrar', '/anunciar', '/producao', '/painel', '/atendimento']
   if (hideOn.some(p => pathname.startsWith(p))) return null
 
   // /painel/pessoal é "modo negócio" só de endereço — visualmente é pessoal,

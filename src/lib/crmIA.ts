@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 import { isOpenNow, dayOfWeekLabel, type HourRow } from '@/lib/businessHours'
+import { moduleActive } from '@/lib/modules'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -52,6 +53,7 @@ async function buildContext(companyId: string): Promise<string | null> {
     .select(`
       name, slug, phone, address, flexible_hours, store_paused, store_forced_open,
       loja_taxa_metodo, loja_taxa_entrega, loja_taxa_fora_area, loja_payment_methods,
+      entrega_enabled, trial_modules_until,
       crm_ia_prompt_extra,
       hours:company_hours(day_of_week, open_time, close_time, closed)
     `)
@@ -82,19 +84,32 @@ async function buildContext(companyId: string): Promise<string | null> {
   const metodos = (company.loja_payment_methods?.length ? company.loja_payment_methods : ['pix', 'dinheiro', 'cartao_credito']) as string[]
   linhas.push(`Formas de pagamento aceitas: ${metodos.map(m => PAY_LABEL[m] || m).join(', ')}`)
 
-  if (company.loja_taxa_metodo === 'distancia') {
+  // Entrega feita pelo motoboy da PLATAFORMA (Trindade Entrega) — quando esse
+  // módulo está ativo ele SEMPRE manda na cobrança, a loja nem configura
+  // bairro/taxa própria pra isso (mesma prioridade do cálculo real do
+  // checkout em /api/loja/calcular-frete). Achado real do Ricardo, set/2026:
+  // Peixaria Trindade usa Trindade Entrega e não tem taxa própria cadastrada
+  // (loja_taxa_entrega ficou em R$0 por padrão) — sem essa checagem aqui
+  // primeiro, a IA lia "taxa padrão: R$0,00" do fallback da loja e informava
+  // isso pro cliente como se fosse o valor real, o que é errado: a taxa de
+  // verdade é calculada por distância até o endereço, nunca um valor fixo.
+  if (moduleActive(company.entrega_enabled, company.trial_modules_until)) {
+    linhas.push('A entrega é feita por motoboy da plataforma (Trindade Entrega) — a taxa é calculada automaticamente pela distância até o endereço do cliente, não existe valor fixo nem tabela por bairro pra essa loja. NUNCA informe um valor de entrega aqui (nem R$0, nem um valor "padrão") — oriente o cliente a fazer o pedido pelo link do cardápio e preencher o endereço no carrinho, que o valor exato aparece automaticamente antes de fechar o pedido.')
+  } else if (company.loja_taxa_metodo === 'distancia') {
     linhas.push('A taxa de entrega varia por distância — não dá pra informar um valor exato aqui. Oriente o cliente a colocar o endereço no carrinho do cardápio pra ver o valor calculado na hora.')
   } else {
     const { data: bairros } = await supabase
       .from('company_delivery_bairros').select('bairro, price, disabled').eq('company_id', companyId)
     const ativos = (bairros || []).filter(b => !b.disabled)
     if (ativos.length > 0) {
-      linhas.push('Valores de entrega por bairro:\n' + ativos.map(b => `${b.bairro}: ${fmtMoney(Number(b.price))}`).join('\n'))
+      linhas.push('Valores de entrega por bairro (SÓ informe o valor de um bairro específico depois que o cliente disser qual é o bairro dele — nunca escolha um da lista por conta própria):\n' + ativos.map(b => `${b.bairro}: ${fmtMoney(Number(b.price))}`).join('\n'))
       if (company.loja_taxa_fora_area != null) {
         linhas.push(`Bairro fora da lista acima: ${fmtMoney(Number(company.loja_taxa_fora_area))} (taxa padrão fora de área)`)
       }
-    } else if (company.loja_taxa_entrega != null) {
+    } else if (company.loja_taxa_entrega) {
       linhas.push(`Taxa de entrega padrão: ${fmtMoney(Number(company.loja_taxa_entrega))}`)
+    } else {
+      linhas.push('Não há taxa de entrega configurada pra essa loja ainda. Não informe R$0 nem invente um valor — diga que vai confirmar o valor da entrega e, se o cliente insistir, sugira perguntar direto pela loja.')
     }
   }
 
@@ -117,6 +132,7 @@ REGRAS RÍGIDAS — nunca quebre nenhuma delas:
 - Responda SOMENTE com base nos dados da loja fornecidos abaixo. Nunca invente horário, endereço, preço, produto ou qualquer informação que não esteja explícita aqui.
 - Você NUNCA cria pedidos, NUNCA gera link de pagamento/cobrança e NUNCA promete prazo exato de entrega.
 - Pergunta sobre produto específico, preço de produto ou "vocês têm tal coisa?": sempre direcione para o link do cardápio — nunca tente adivinhar se um produto existe ou seu preço.
+- Pergunta sobre valor de entrega: NUNCA informe um valor sem antes saber o bairro (ou endereço) do cliente. Se ele ainda não disse, pergunte primeiro qual é o bairro dele. Nunca escolha um valor "de exemplo" da lista de bairros nem invente um número — se os dados da loja abaixo disserem que a taxa é calculada por distância ou que não há taxa configurada, siga exatamente a instrução dada ali.
 - Você serve só para atendimento básico e direto: boas-vindas, horário de funcionamento, endereço, formas de pagamento, valor de entrega por bairro, link do cardápio. Nada de bate-papo, opinião pessoal ou assunto fora disso.
 - Pergunta sem relação nenhuma com a loja: responda educadamente algo como "Minha função aqui é te ajudar com informações da loja 🙂 Posso ajudar com horário, endereço, entrega ou o link do cardápio?" — e pare por aí.
 - Seja breve: no máximo 2 a 4 linhas, português informal e cordial, no máximo 1 emoji por mensagem.

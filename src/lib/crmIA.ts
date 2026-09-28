@@ -42,6 +42,20 @@ function fmtMoney(n: number): string {
   return 'R$ ' + Number(n || 0).toFixed(2).replace('.', ',')
 }
 
+// Mesma regra de promoção usada no cardápio de verdade (ver npPromoPrice em
+// src/app/painel/mensagens/page.tsx) — só considera promoção dentro da
+// janela de vigência.
+function promoPrice(p: any): number | null {
+  if (!p.promo_type || !p.promo_value) return null
+  const now = Date.now()
+  if (p.promo_starts_at && now < new Date(p.promo_starts_at).getTime()) return null
+  if (p.promo_ends_at && now > new Date(p.promo_ends_at).getTime()) return null
+  return p.promo_type === 'percent' ? p.sale_price * (1 - p.promo_value / 100) : Math.max(0, p.sale_price - p.promo_value)
+}
+function isSoldOut(p: any): boolean {
+  return !!p.esgotado || (!!p.track_stock && (p.stock_qty ?? 0) <= 0)
+}
+
 // Monta o contexto em texto puro com tudo que já existe cadastrado da loja
 // (horário, endereço, pagamento, entrega por bairro, cardápio) — lido ao
 // vivo do banco a cada resposta, nunca copiado/colado à mão (decisão com o
@@ -68,7 +82,7 @@ async function buildContext(companyId: string): Promise<string | null> {
   linhas.push(`Nome da loja: ${company.name}`)
   linhas.push(`Status agora: ${aberta ? 'ABERTA' : 'FECHADA'}`)
   if (company.address) linhas.push(`Endereço: ${company.address}`)
-  linhas.push(`Link do cardápio (sempre mande esse link quando perguntarem sobre produto, preço ou disponibilidade — nunca tente responder o preço de cabeça): ${cardapioLink}`)
+  linhas.push(`Link do cardápio (só mande esse link quando o cliente sinalizar que quer FECHAR/CONFIRMAR o pedido — pergunta simples de produto/preço você já responde direto com o catálogo listado abaixo, sem precisar mandar o link): ${cardapioLink}`)
 
   if (company.flexible_hours) {
     linhas.push('Horário: funcionamento livre, sem grade fixa cadastrada (considere sempre aberta).')
@@ -113,26 +127,46 @@ async function buildContext(companyId: string): Promise<string | null> {
     }
   }
 
+  // Catálogo ativo (nome + preço real) — pedido do Ricardo, set/2026: antes a
+  // IA mandava todo mundo pro link pra qualquer pergunta de produto/preço, o
+  // que ficava "grosseiro"; como ela já lê o catálogo ativo/pausado direto do
+  // banco, pode responder na hora. O link do cardápio vira só o passo de
+  // FECHAR o pedido (ver regra no prompt), não mais a resposta padrão pra
+  // toda pergunta de produto. Esgotado (manual ou por estoque zerado) fica de
+  // fora da lista — segue a mesma regra de disponibilidade do cardápio real.
+  const { data: produtos } = await supabase
+    .from('loja_produtos')
+    .select(`
+      name, sale_price, promo_type, promo_value, promo_starts_at, promo_ends_at, esgotado, track_stock, stock_qty,
+      groups:loja_opcoes_grupo(name, options:loja_opcoes(name, price))
+    `)
+    .eq('company_id', companyId).eq('active', true)
+  const disponiveis = (produtos || []).filter((p: any) => !isSoldOut(p))
+
+  if (disponiveis.length > 0) {
+    const catalogoLinhas = disponiveis.slice(0, 100).map((p: any) => {
+      const promo = promoPrice(p)
+      const preco = promo != null ? `${fmtMoney(promo)} (de ${fmtMoney(Number(p.sale_price))}, em promoção)` : fmtMoney(Number(p.sale_price))
+      return `${p.name} — ${preco}`
+    })
+    linhas.push('Catálogo ativo agora, com preço real e atualizado (responda pergunta de produto/preço direto com base nessa lista — se o produto perguntado NÃO estiver aqui, diga que não achou esse item disponível agora, sem inventar):\n' + catalogoLinhas.join('\n'))
+  }
+
   // Opcionais/variações do produto (ex: camarão "Limpo" ou "Com casca", peixe
   // "Filé" ou "Posta") — pedido do Ricardo, set/2026: cliente perguntou por
   // áudio "o camarão já vem limpo?" e a IA só sabia mandar pro link do
   // cardápio, mesmo essa informação já estando cadastrada no produto (grupo
   // de opcionais). Preço da opção ENTRA (é dado real cadastrado, ex: "paga
   // pra limpar? quanto custa?" — achado do Ricardo logo em seguida: sem o
-  // preço, a IA não sabia dizer se cobrava e quanto). O que continua de fora
-  // é o preço BASE do produto — esse sim só pelo link do cardápio.
-  const { data: produtos } = await supabase
-    .from('loja_produtos')
-    .select('name, groups:loja_opcoes_grupo(name, options:loja_opcoes(name, price))')
-    .eq('company_id', companyId).eq('active', true)
-  const comOpcionais = (produtos || []).filter((p: any) => (p.groups || []).some((g: any) => (g.options || []).length > 0))
+  // preço, a IA não sabia dizer se cobrava e quanto).
+  const comOpcionais = disponiveis.filter((p: any) => (p.groups || []).some((g: any) => (g.options || []).length > 0))
   if (comOpcionais.length > 0) {
     const opcaoLabel = (o: any) => `${o.name}${Number(o.price) > 0 ? ` (+${fmtMoney(Number(o.price))})` : ' (grátis)'}`
     const linhasProdutos = comOpcionais.slice(0, 60).map((p: any) =>
       `${p.name}: ` + p.groups.filter((g: any) => (g.options || []).length > 0)
         .map((g: any) => `${g.name} (${g.options.map(opcaoLabel).join(', ')})`).join(' · ')
     )
-    linhas.push('Opções/variações cadastradas por produto, com o valor de cada uma (use isso pra responder pergunta sobre opcional/variação de um produto específico, incluindo se cobra e quanto — ex: "o camarão vem limpo?", "cobra pra limpar? quanto?" — mas isso NÃO é o preço base do produto, esse continua sendo só pelo link do cardápio). IMPORTANTE sobre esse valor: é sempre por UNIDADE do produto (ou por kg, quando o produto é vendido por peso) — se o cliente pedir mais de uma unidade ou mais peso, o valor da opção multiplica junto, mesma lógica do carrinho de verdade. Ex: "a limpeza do camarão é R$X por quilo — se pedir 2kg com limpeza, fica R$X×2". Deixe isso claro quando o cliente perguntar sobre quantidade maior que 1.\n' + linhasProdutos.join('\n'))
+    linhas.push('Opções/variações cadastradas por produto, com o valor de cada uma (ex: "o camarão vem limpo?", "cobra pra limpar? quanto?"). IMPORTANTE sobre esse valor: é sempre por UNIDADE do produto (ou por kg, quando o produto é vendido por peso) — se o cliente pedir mais de uma unidade ou mais peso, o valor da opção multiplica junto, mesma lógica do carrinho de verdade. Ex: "a limpeza do camarão é R$X por quilo — se pedir 2kg com limpeza, fica R$X×2". Deixe isso claro quando o cliente perguntar sobre quantidade maior que 1.\n' + linhasProdutos.join('\n'))
   }
 
   if (company.crm_ia_prompt_extra?.trim()) {
@@ -153,9 +187,10 @@ CONTEXTO DA CONVERSA — leia com atenção antes de responder:
 REGRAS RÍGIDAS — nunca quebre nenhuma delas:
 - Responda SOMENTE com base nos dados da loja fornecidos abaixo. Nunca invente horário, endereço, preço, produto ou qualquer informação que não esteja explícita aqui.
 - Você NUNCA cria pedidos, NUNCA gera link de pagamento/cobrança e NUNCA promete prazo exato de entrega.
-- Pergunta sobre produto específico, PREÇO BASE do produto ou "vocês têm tal coisa?": sempre direcione para o link do cardápio — nunca tente adivinhar se um produto existe ou seu preço. EXCEÇÃO: se a pergunta for sobre opcional/variação de um produto que já está na lista "Opções/variações cadastradas por produto" abaixo (ex: "o camarão vem limpo ou com casca?", "cobra pra limpar? quanto custa?", "o peixe é em filé ou posta?"), responda direto com base nessa lista, incluindo o valor de cada opção quando perguntarem — isso é dado real cadastrado, pode informar sem medo.
+- Pergunta sobre produto, preço, opcional/variação ou "vocês têm tal coisa?": você TEM o catálogo ativo e atualizado logo abaixo — responda direto com nome, preço e opcionais reais, sem enrolar nem mandar pro link à toa. Só diga que não tem quando o produto de fato não estiver na lista (nesse caso não invente, apenas diga que não encontrou esse item disponível agora). Nunca informe preço ou produto que não esteja explícito na lista.
+- O link do cardápio é o passo de FECHAR o pedido, não a resposta padrão. Só mande o link quando o cliente der sinal de que quer confirmar/fechar a compra (frases como "separa pra mim", "vou querer", "fecha o pedido", "quero comprar", "pode fechar", "manda o link" ou parecido) — nesse momento, diga algo como "Show! Pra fechar seu pedido é só acessar o link e finalizar por lá: [link]". Você nunca cria o pedido nem processa pagamento — o cardápio é sempre quem fecha de verdade.
 - Pergunta sobre valor de entrega: NUNCA informe um valor sem antes saber o bairro (ou endereço) do cliente. Se ele ainda não disse, pergunte primeiro qual é o bairro dele. Nunca escolha um valor "de exemplo" da lista de bairros nem invente um número — se os dados da loja abaixo disserem que a taxa é calculada por distância ou que não há taxa configurada, siga exatamente a instrução dada ali.
-- Você serve só para atendimento básico e direto: boas-vindas, horário de funcionamento, endereço, formas de pagamento, valor de entrega por bairro, link do cardápio. Nada de bate-papo, opinião pessoal ou assunto fora disso.
+- Você serve só para atendimento básico e direto: boas-vindas, horário de funcionamento, endereço, formas de pagamento, valor de entrega por bairro, produtos/preços do catálogo, link do cardápio pra fechar. Nada de bate-papo, opinião pessoal ou assunto fora disso.
 - Pergunta sem relação nenhuma com a loja: responda educadamente algo como "Minha função aqui é te ajudar com informações da loja 🙂 Posso ajudar com horário, endereço, entrega ou o link do cardápio?" — e pare por aí.
 - Seja breve: no máximo 2 a 4 linhas, português informal e cordial, no máximo 1 emoji por mensagem.
 - Nunca use markdown (sem **negrito**, sem listas com traço) — é WhatsApp, texto corrido normal.

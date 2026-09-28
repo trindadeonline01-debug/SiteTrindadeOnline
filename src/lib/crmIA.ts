@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 import { isOpenNow, dayOfWeekLabel, type HourRow } from '@/lib/businessHours'
 import { moduleActive } from '@/lib/modules'
+import { getEntregaPricing } from '@/lib/entregaPricing'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -101,14 +102,29 @@ async function buildContext(companyId: string): Promise<string | null> {
   // Entrega feita pelo motoboy da PLATAFORMA (Trindade Entrega) — quando esse
   // módulo está ativo ele SEMPRE manda na cobrança, a loja nem configura
   // bairro/taxa própria pra isso (mesma prioridade do cálculo real do
-  // checkout em /api/loja/calcular-frete). Achado real do Ricardo, set/2026:
-  // Peixaria Trindade usa Trindade Entrega e não tem taxa própria cadastrada
-  // (loja_taxa_entrega ficou em R$0 por padrão) — sem essa checagem aqui
-  // primeiro, a IA lia "taxa padrão: R$0,00" do fallback da loja e informava
-  // isso pro cliente como se fosse o valor real, o que é errado: a taxa de
-  // verdade é calculada por distância até o endereço, nunca um valor fixo.
+  // checkout em /api/loja/calcular-frete). A taxa da PLATAFORMA (não a da
+  // loja) é quem vale aqui — hoje o admin usa método "bairro" de verdade
+  // (entrega_pricing.entrega_taxa_metodo + tabela entrega_bairros), então dá
+  // pra responder direto igual a tabela por bairro da própria loja. Achado
+  // do Ricardo, set/2026: perguntou a taxa pro Galo Branco na Peixaria
+  // Trindade e a IA mandou pro link à toa, mesmo a regra "sem motoboy
+  // próprio usa a taxa do admin, que já é por bairro" já valendo pra
+  // plataforma inteira — documentada aqui.
   if (moduleActive(company.entrega_enabled, company.trial_modules_until)) {
-    linhas.push('A entrega é feita por motoboy da plataforma (Trindade Entrega) — a taxa é calculada automaticamente pela distância até o endereço do cliente, não existe valor fixo nem tabela por bairro pra essa loja. NUNCA informe um valor de entrega aqui (nem R$0, nem um valor "padrão") — oriente o cliente a fazer o pedido pelo link do cardápio e preencher o endereço no carrinho, que o valor exato aparece automaticamente antes de fechar o pedido.')
+    const pricingPlataforma = await getEntregaPricing()
+    if (pricingPlataforma.entrega_taxa_metodo === 'distancia') {
+      linhas.push('A entrega é feita por motoboy da plataforma (Trindade Entrega) — a taxa é calculada automaticamente pela distância até o endereço do cliente, não existe tabela por bairro pra essa loja. NUNCA informe um valor de entrega aqui — oriente o cliente a fazer o pedido pelo link do cardápio e preencher o endereço no carrinho, que o valor exato aparece automaticamente antes de fechar o pedido.')
+    } else {
+      const { data: bairrosPlataforma } = await supabase.from('entrega_bairros').select('bairro, price, disabled')
+      const ativosPlataforma = (bairrosPlataforma || []).filter((b: any) => !b.disabled)
+      const desativadosPlataforma = (bairrosPlataforma || []).filter((b: any) => b.disabled)
+      linhas.push('A entrega é feita por motoboy da plataforma (Trindade Entrega), com valores por bairro (SÓ informe o valor de um bairro específico depois que o cliente disser qual é o bairro dele — nunca escolha um da lista por conta própria):\n'
+        + (ativosPlataforma.length ? ativosPlataforma.map((b: any) => `${b.bairro}: ${fmtMoney(Number(b.price))}`).join('\n') : '(nenhum bairro com preço específico cadastrado)')
+        + `\nBairro fora da lista acima: ${fmtMoney(pricingPlataforma.entrega_taxa_padrao)} (taxa padrão)`)
+      if (desativadosPlataforma.length > 0) {
+        linhas.push('Bairros SEM entrega no momento — se o cliente perguntar por um desses, diga educadamente que infelizmente não tem entrega pra esse bairro agora (não informe valor nenhum): ' + desativadosPlataforma.map((b: any) => b.bairro).join(', '))
+      }
+    }
   } else if (company.loja_taxa_metodo === 'distancia') {
     linhas.push('A taxa de entrega varia por distância — não dá pra informar um valor exato aqui. Oriente o cliente a colocar o endereço no carrinho do cardápio pra ver o valor calculado na hora.')
   } else {

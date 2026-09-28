@@ -154,10 +154,13 @@ export default function HomePecaAgora({ groups }: { groups: PecaGroup[] }) {
         /* Faixa de ponta a ponta da tela (mesmo truque do .hero, que também
            não fica preso à largura do .main-wrap) — Ricardo pediu depois de
            ver a primeira versão, que tinha lateral igual container comum
-           (set/2026). padding lateral em 20px pra alinhar o conteúdo de
-           dentro com o resto da página (cat-grid, pa-list), que continua
-           dentro do .main-wrap normal. */
-        .pa-band { background: var(--sign); width: 100vw; margin-left: calc(50% - 50vw); padding: 10px 20px 10px; margin-bottom: 16px; }
+           (set/2026). A cor continua indo até a borda, mas o CONTEÚDO
+           (.pa-band-inner) fica contido em max-width 1120px — igual
+           .pca-main — pra não ficar colado na borda esquerda da tela em
+           telas largas, desalinhado da lista de produtos logo abaixo
+           (achado do Ricardo, set/2026). */
+        .pa-band { background: var(--sign); width: 100vw; margin-left: calc(50% - 50vw); padding: 10px 0; margin-bottom: 16px; }
+        .pa-band-inner { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
         /* Título e "Delivery na Trindade" na mesma linha (alinhados pela
            base), em vez de empilhados — junto com os quadrados mais baixos
            logo abaixo, é o que deixa a faixa inteira mais baixa (Ricardo
@@ -167,11 +170,12 @@ export default function HomePecaAgora({ groups }: { groups: PecaGroup[] }) {
         .pa-eyebrow { color: rgba(21,18,16,.68); margin-bottom: 0; white-space: nowrap; }
         /* O carrossel de subcategorias (dentro da faixa) tinha o mesmo
            problema que o de categorias tinha antes de ir de ponta a ponta —
-           só que aqui em vez do .main-wrap é o padding lateral do próprio
-           .pa-band que segura ele "dentro de um container". Margem negativa
-           igual ao padding do pai cancela isso; o padding interno mantém o
-           primeiro/último item alinhados com o resto da página, mas a área
-           de rolagem em si vai até a borda da tela (Ricardo, set/2026). */
+           só que aqui quem segura ele "dentro de um container" é o padding
+           lateral do .pa-band-inner. Margem negativa igual a esse padding
+           cancela isso; o padding interno mantém o primeiro/último item
+           alinhados com o resto da página, mas a área de rolagem em si vai
+           até a borda do container (a borda da tela em mobile, onde o
+           container já ocupa 100% da largura) (Ricardo, set/2026). */
         .pa-band .pa-scroll { margin: 0 -20px; padding: 2px 20px 8px; gap: 8px; }
         /* Quadrado (não mais círculo/retângulo alto) com fundo branco
            translúcido em vez de chapado, coladinhos entre si — 3 pedidos
@@ -214,20 +218,21 @@ export default function HomePecaAgora({ groups }: { groups: PecaGroup[] }) {
         .pa-pick:hover { border-color: var(--sign-dark); }
       `}</style>
       <div className="pa-band">
-        <div className="pa-hdr">
-          <h2 className="recent-section-title">🍔 Peça agora</h2>
-          <span className="sec-eyebrow pa-eyebrow">Delivery na Trindade</span>
-        </div>
+        <div className="pa-band-inner">
+          <div className="pa-hdr">
+            <h2 className="recent-section-title">🍔 Peça agora</h2>
+            <span className="sec-eyebrow pa-eyebrow">Delivery na Trindade</span>
+          </div>
 
-        <div className="pa-scroll">
-          {groups.map(g => (
-            <div key={g.key} className={`pa-item ${activeKey === g.key ? 'on' : ''}`} onClick={() => changeTab(g.key)}>
-              <div className="pa-photo">{g.emoji}</div>
-              <span className="pa-lbl">{g.label}</span>
-            </div>
-          ))}
+          <div className="pa-scroll">
+            {groups.map(g => (
+              <div key={g.key} className={`pa-item ${activeKey === g.key ? 'on' : ''}`} onClick={() => changeTab(g.key)}>
+                <div className="pa-photo">{g.emoji}</div>
+                <span className="pa-lbl">{g.label}</span>
+              </div>
+            ))}
+          </div>
         </div>
-
       </div>
 
       <div className="pa-filters">

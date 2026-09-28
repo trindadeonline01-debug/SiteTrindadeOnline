@@ -29,7 +29,7 @@ export async function autoImprimirPedido(companyName: string, pedidoId: string, 
   try {
     const data = await fetchPedidoComItensComRetry(pedidoId)
     if (!data) return
-    const items = (data.itens || []).map((it: any) => ({ qty: it.qty, name: it.product_name, unitPrice: it.unit_price, options: it.selected_options }))
+    const items = (data.itens || []).map((it: any) => ({ qty: it.qty, pesoKg: it.peso_kg, name: it.product_name, unitPrice: it.unit_price, options: it.selected_options }))
     const content = buildReceipt({
       companyName,
       pedidoShortId: String(data.order_number ?? data.id.slice(0, 8)),

@@ -9,7 +9,7 @@ import { usePainelShell } from '@/contexts/PainelShellContext'
 import { npGroupContribution, type NpOpcao, type NpGrupo, type NpProduto, type NpCartLine } from '@/lib/produtoCart'
 import EditarPedidoPanel from '@/components/painel/EditarPedidoPanel'
 
-type Item = { id: string; product_name: string; unit_price: number; qty: number; selected_options: { name: string; price: number }[] }
+type Item = { id: string; product_name: string; unit_price: number; qty: number; peso_kg: number | null; selected_options: { name: string; price: number }[] }
 type Status = 'recebido' | 'em_preparo' | 'pronto' | 'saiu_entrega' | 'entregue' | 'cancelado'
 type Pedido = {
   id: string; order_number: number | null; customer_id: string | null; customer_name: string; customer_phone: string | null; delivery_address: string | null
@@ -488,7 +488,7 @@ export default function PedidosPage() {
       // salvar (pedido recém-chegado), busca de novo com retry em vez de
       // imprimir a segunda via já sem os itens.
       const pedidoParaImprimir = (p.itens?.length || 0) > 0 ? p : (await fetchPedidoComItensComRetry(p.id)) || p
-      const items = (pedidoParaImprimir.itens || []).map((it: Item) => ({ qty: it.qty, name: it.product_name, unitPrice: it.unit_price, options: it.selected_options }))
+      const items = (pedidoParaImprimir.itens || []).map((it: Item) => ({ qty: it.qty, pesoKg: it.peso_kg, name: it.product_name, unitPrice: it.unit_price, options: it.selected_options }))
       const content = buildReceipt({
         companyName, pedidoShortId: String(p.order_number ?? p.id.slice(0, 8)), createdAt: p.created_at,
         customerName: p.customer_name, customerPhone: p.customer_phone,
@@ -773,7 +773,7 @@ export default function PedidosPage() {
           <div className="pd-detail" onClick={e => e.stopPropagation()}>
             {p.itens?.map(it => (
               <div key={it.id}>
-                <div className="pd-item"><span>{it.qty}x {it.product_name}</span><span>{fmt(it.unit_price * it.qty)}</span></div>
+                <div className="pd-item"><span>{it.peso_kg != null ? `${it.peso_kg}kg` : `${it.qty}x`} {it.product_name}</span><span>{fmt(it.unit_price * it.qty)}</span></div>
                 {it.selected_options?.map((o, i) => <div key={i} className="pd-mods">- {o.name}</div>)}
               </div>
             ))}

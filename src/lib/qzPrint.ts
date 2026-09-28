@@ -216,7 +216,14 @@ function stripAccents(s: string): string {
   return s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[ºª]/g, '')
 }
 
-type ReceiptItem = { qty: number; name: string; unitPrice: number; options?: { name: string }[] }
+type ReceiptItem = { qty: number; pesoKg?: number | null; name: string; unitPrice: number; options?: { name: string }[] }
+
+// Peso apurado na balança (corrigido em /painel/pedidos → editar) manda mais
+// que a quantidade — sem isso o recibo mostrava sempre "1x Camarão kg", que
+// não diz pro lojista quantos kg de verdade foram pesados/embalados.
+function itemLabel(it: ReceiptItem): string {
+  return it.pesoKg != null ? `${it.pesoKg}kg ${it.name}` : `${it.qty}x ${it.name}`
+}
 export type ReceiptData = {
   companyName: string
   pedidoShortId: string
@@ -265,7 +272,7 @@ export function buildReceipt(d: ReceiptData): string {
   lines.push(CMD.boldOn, 'ITENS DO PEDIDO', CMD.boldOff, '\n')
   lines.push('-'.repeat(WIDTH), '\n')
   for (const it of d.items) {
-    wrap(`${it.qty}x ${it.name}`).forEach((l, i) => {
+    wrap(itemLabel(it)).forEach((l, i) => {
       if (i === 0) lines.push(padRow(l, money(it.unitPrice * it.qty)), '\n')
       else lines.push(l, '\n')
     })
@@ -327,7 +334,7 @@ export function buildKitchenTicket(d: KitchenTicketData): string {
 
   for (const it of d.items) {
     lines.push(CMD.boldOn)
-    wrap(`${it.qty}x ${it.name}`).forEach(l => lines.push(l, '\n'))
+    wrap(itemLabel(it)).forEach(l => lines.push(l, '\n'))
     lines.push(CMD.boldOff)
     it.options?.forEach(o => wrap('- ' + o.name, WIDTH - 2).forEach(l => lines.push('  ' + l, '\n')))
   }

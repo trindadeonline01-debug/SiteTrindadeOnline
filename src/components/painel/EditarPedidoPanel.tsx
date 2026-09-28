@@ -10,7 +10,26 @@ type PedidoParaEditar = {
   delivery_type: DeliveryType; delivery_address: string | null
   scheduled_for: string | null; payment_method: string | null
   delivery_fee: number; created_at: string
-  itens: { id: string; product_name: string; unit_price: number; qty: number; selected_options: { name: string; price: number }[] }[]
+  itens: { id: string; product_name: string; unit_price: number; qty: number; peso_kg: number | null; selected_options: { name: string; price: number }[] }[]
+}
+
+// Linha do carrinho na edição, com o extra de peso variável — produto pesado
+// na loja (carne, peixe) raramente bate exatamente 1kg/500g redondo, então o
+// lojista precisa poder corrigir o valor final pelo peso real apurado na
+// balança (pedido do Ricardo, set/2026, caso real: pediu 1kg de peixe, pesou
+// 1,250kg). Detecta automaticamente pelo nome ("... Kg" no catálogo, ver
+// padrão já documentado no KNOWLEDGE_BASE pra produto vendido por peso), mas
+// dá pra ligar/desligar por item também, pra cobrir qualquer caso.
+// unitPrice aqui SEMPRE representa o preço por kg quando pesoModo é true —
+// o total da linha (o que de fato é salvo em loja_pedido_itens.unit_price,
+// com qty travado em 1) é unitPrice × pesoKg. Reabrindo a edição depois,
+// recupera o preço por kg de volta dividindo o total salvo pelo peso_kg
+// salvo — não perde a informação entre uma correção e outra.
+type EditItem = NpCartLine & { pesoModo: boolean; pesoKg: number }
+const PESO_REGEX = /\bkg\b/i
+
+function lineTotal(l: EditItem): number {
+  return l.pesoModo ? l.unitPrice * l.pesoKg : l.unitPrice * l.qty
 }
 
 const PAY_BASE = [{ key: 'pix', label: 'Pix' }, { key: 'dinheiro', label: 'Dinheiro' }, { key: 'cartao', label: 'Cartão' }]
@@ -51,9 +70,16 @@ export default function EditarPedidoPanel({ pedido, companyId, onClose, onSaved 
   const [agendado, setAgendado] = useState(!!pedido.scheduled_for)
   const [scheduledFor, setScheduledFor] = useState(toLocalInputValue(pedido.scheduled_for))
   const [payMethod, setPayMethod] = useState(pedido.payment_method || '')
-  const [items, setItems] = useState<NpCartLine[]>(pedido.itens.map(it => ({
-    key: it.id, produtoId: '', name: it.product_name, modifiers: it.selected_options || [], unitPrice: it.unit_price, qty: it.qty,
-  })))
+  const [items, setItems] = useState<EditItem[]>(pedido.itens.map(it => {
+    const temPeso = it.peso_kg != null && it.peso_kg > 0
+    return {
+      key: it.id, produtoId: '', name: it.product_name, modifiers: it.selected_options || [],
+      unitPrice: temPeso ? it.unit_price / it.peso_kg! : it.unit_price,
+      qty: it.qty,
+      pesoModo: temPeso || PESO_REGEX.test(it.product_name),
+      pesoKg: temPeso ? it.peso_kg! : (it.qty || 1),
+    }
+  }))
 
   const [produtos, setProdutos] = useState<NpProduto[]>([])
   const [loadingProdutos, setLoadingProdutos] = useState(true)
@@ -89,9 +115,16 @@ export default function EditarPedidoPanel({ pedido, companyId, onClose, onSaved 
   function changeQty(key: string, delta: number) {
     setItems(prev => prev.map(l => l.key === key ? { ...l, qty: l.qty + delta } : l).filter(l => l.qty > 0))
   }
+  function togglePesoModo(key: string) {
+    setItems(prev => prev.map(l => l.key === key ? { ...l, pesoModo: !l.pesoModo } : l))
+  }
+  function setPesoKg(key: string, valor: string) {
+    const n = Math.max(0, Number(valor.replace(',', '.')) || 0)
+    setItems(prev => prev.map(l => l.key === key ? { ...l, pesoKg: n } : l))
+  }
   function removeItem(key: string) { setItems(prev => prev.filter(l => l.key !== key)) }
   function addSimple(p: NpProduto) {
-    setItems(prev => [...prev, { key: `${p.id}-${Date.now()}`, produtoId: p.id, name: p.name, modifiers: [], unitPrice: p.sale_price, qty: 1 }])
+    setItems(prev => [...prev, { key: `${p.id}-${Date.now()}`, produtoId: p.id, name: p.name, modifiers: [], unitPrice: p.sale_price, qty: 1, pesoModo: PESO_REGEX.test(p.name), pesoKg: 1 }])
     setPickerOpen(false)
   }
   function openDetail(p: NpProduto) { setDetail(p); setDetailSel(p.groups.map(() => [])); setPickerOpen(false) }
@@ -113,11 +146,11 @@ export default function EditarPedidoPanel({ pedido, companyId, onClose, onSaved 
     if (!detail || !detailReqMet) return
     const modifiers: { name: string; price: number }[] = []
     detail.groups.forEach((g, gi) => detailSel[gi].forEach(oi => modifiers.push({ name: g.options[oi].name, price: g.options[oi].price })))
-    setItems(prev => [...prev, { key: `${detail.id}-${Date.now()}`, produtoId: detail.id, name: detail.name, modifiers, unitPrice: detailPrice, qty: 1 }])
+    setItems(prev => [...prev, { key: `${detail.id}-${Date.now()}`, produtoId: detail.id, name: detail.name, modifiers, unitPrice: detailPrice, qty: 1, pesoModo: PESO_REGEX.test(detail.name), pesoKg: 1 }])
     setDetail(null)
   }
 
-  const subtotal = items.reduce((s, l) => s + l.unitPrice * l.qty, 0)
+  const subtotal = items.reduce((s, l) => s + lineTotal(l), 0)
   const deliveryFee = deliveryType === 'entrega' ? (pedido.delivery_fee || 0) : 0
   const total = subtotal + deliveryFee
 
@@ -140,7 +173,11 @@ export default function EditarPedidoPanel({ pedido, companyId, onClose, onSaved 
     if (upErr) { setError(upErr.message); setSaving(false); return }
     await supabase.from('loja_pedido_itens').delete().eq('pedido_id', pedido.id)
     const { error: itErr } = await supabase.from('loja_pedido_itens').insert(items.map(l => ({
-      pedido_id: pedido.id, product_name: l.name, unit_price: l.unitPrice, qty: l.qty, selected_options: l.modifiers,
+      pedido_id: pedido.id, product_name: l.name,
+      unit_price: l.pesoModo ? Math.round(l.unitPrice * l.pesoKg * 100) / 100 : l.unitPrice,
+      qty: l.pesoModo ? 1 : l.qty,
+      peso_kg: l.pesoModo ? l.pesoKg : null,
+      selected_options: l.modifiers,
     })))
     if (itErr) { setError('Pedido atualizado, mas falhou ao salvar os itens: ' + itErr.message); setSaving(false); return }
     setSaving(false)
@@ -220,6 +257,11 @@ export default function EditarPedidoPanel({ pedido, companyId, onClose, onSaved 
         .ep-qty{ display:flex;align-items:center;gap:5px;flex:none; }
         .ep-qty button{ width:20px;height:20px;border-radius:6px;border:1px solid #E6E0D2;background:#F5F6F2;cursor:pointer;font-weight:800;line-height:1; }
         .ep-qty span{ min-width:14px;text-align:center;font-weight:700;font-size:11.5px; }
+        .ep-peso-toggle{ flex:none;width:22px;height:22px;border-radius:6px;border:1px solid #E6E0D2;background:#F5F6F2;cursor:pointer;font-size:11px;line-height:1;opacity:.5; }
+        .ep-peso-toggle.on{ background:#7A3FB0;border-color:#7A3FB0;opacity:1; }
+        .ep-peso{ display:flex;align-items:center;gap:4px;flex:none; }
+        .ep-peso input{ width:52px;padding:4px 5px;border-radius:6px;border:1.5px solid #7A3FB0;background:#fff;font-size:11.5px;font-weight:700;text-align:right;font-family:inherit; }
+        .ep-peso span{ font-size:10.5px;color:#6E6656;font-weight:700; }
         .ep-item-price{ flex:none;font-weight:800;font-size:11.5px;width:58px;text-align:right; }
         .ep-item-rm{ flex:none;border:none;background:none;color:var(--alert);cursor:pointer;font-size:13px;padding:0 2px; }
         .ep-add{ width:100%;padding:9px;border-radius:9px;border:1.5px dashed #7A3FB0;background:none;color:#7A3FB0;font-weight:700;font-size:12px;cursor:pointer;margin-bottom:9px; }
@@ -261,13 +303,29 @@ export default function EditarPedidoPanel({ pedido, companyId, onClose, onSaved 
                   <div className="ep-item-name">
                     <b>{l.name}</b>
                     {l.modifiers.length > 0 && <div className="ep-item-mods">{l.modifiers.map(m => m.name).join(', ')}</div>}
+                    {l.pesoModo && <div className="ep-item-mods">{fmt(l.unitPrice)}/kg</div>}
                   </div>
-                  <div className="ep-qty">
-                    <button onClick={() => changeQty(l.key, -1)}>−</button>
-                    <span>{l.qty}</span>
-                    <button onClick={() => changeQty(l.key, 1)}>+</button>
-                  </div>
-                  <div className="ep-item-price">{fmt(l.unitPrice * l.qty)}</div>
+                  <button
+                    className={`ep-peso-toggle ${l.pesoModo ? 'on' : ''}`}
+                    title={l.pesoModo ? 'Vendido por peso — clique pra voltar a unidade' : 'Marcar como vendido por peso (kg)'}
+                    onClick={() => togglePesoModo(l.key)}
+                  >⚖️</button>
+                  {l.pesoModo ? (
+                    <div className="ep-peso">
+                      <input
+                        type="number" step="0.001" min="0" inputMode="decimal"
+                        value={l.pesoKg} onChange={e => setPesoKg(l.key, e.target.value)}
+                      />
+                      <span>kg</span>
+                    </div>
+                  ) : (
+                    <div className="ep-qty">
+                      <button onClick={() => changeQty(l.key, -1)}>−</button>
+                      <span>{l.qty}</span>
+                      <button onClick={() => changeQty(l.key, 1)}>+</button>
+                    </div>
+                  )}
+                  <div className="ep-item-price">{fmt(lineTotal(l))}</div>
                   <button className="ep-item-rm" onClick={() => removeItem(l.key)} title="Remover">✕</button>
                 </div>
               ))}

@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { fmt, cartStorageKey, checkCartConflict, setActiveCart } from '@/lib/lojaPricing'
 
@@ -58,6 +58,7 @@ export default function HomePecaAgora({ groups }: { groups: PecaGroup[] }) {
   const [maxPrice, setMaxPrice] = useState(0)
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const [qtyById, setQtyById] = useState<Record<string, number>>({})
+  const sentinelRef = useRef<HTMLDivElement>(null)
 
   // Se já tem item pendente daquela loja (adicionado antes, sem ter
   // visitado o cardápio pra "consumir" o handoff), reflete a quantidade
@@ -70,6 +71,24 @@ export default function HomePecaAgora({ groups }: { groups: PecaGroup[] }) {
     setQtyById(map)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  const active = groups.find(g => g.key === activeKey) || groups[0]
+  const items = active ? (maxPrice > 0 ? active.items.filter(i => i.price <= maxPrice) : active.items) : []
+
+  // Rolou até perto do fim da lista carregada → revela mais PAGE_SIZE, sem
+  // precisar clicar em "Ver mais" (pedido do Ricardo, set/2026: com o teto
+  // de 8 produtos por empresa removido — ver pecaAgora.server.ts — a lista
+  // completa pode passar de 200 itens, então carregar aos poucos conforme
+  // o scroll evita jogar isso tudo na tela de uma vez).
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el || visibleCount >= items.length) return
+    const observer = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) setVisibleCount(v => Math.min(v + PAGE_SIZE, items.length))
+    }, { rootMargin: '600px' })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [visibleCount, items.length, activeKey, maxPrice])
 
   if (groups.length === 0) return null
 
@@ -128,8 +147,6 @@ export default function HomePecaAgora({ groups }: { groups: PecaGroup[] }) {
     })
   }
 
-  const active = groups.find(g => g.key === activeKey) || groups[0]
-  const items = maxPrice > 0 ? active.items.filter(i => i.price <= maxPrice) : active.items
   const visibleItems = items.slice(0, visibleCount)
 
   return (
@@ -207,8 +224,11 @@ export default function HomePecaAgora({ groups }: { groups: PecaGroup[] }) {
         .pa-price { font-size: 13px; font-weight: 800; color: var(--sign-dark); font-variant-numeric: tabular-nums; }
         .pa-open { display: flex; align-items: center; gap: 4px; justify-content: flex-end; font-size: 9.5px; font-weight: 700; color: var(--open); text-transform: uppercase; letter-spacing: .2px; }
         .pa-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--open); display: inline-block; flex-shrink: 0; }
-        .pa-more { width: 100%; margin-top: 10px; padding: 11px; background: var(--paper); border: 1.5px dashed var(--line); border-radius: 12px; font-size: 12.5px; font-weight: 700; color: var(--sign-dark); cursor: pointer; font-family: 'Archivo', sans-serif; }
-        .pa-more:hover { border-color: var(--sign-dark); background: var(--concrete-2); }
+        /* Sentinela que dispara o carregamento automático ao entrar na
+           tela (IntersectionObserver) — substituiu o botão "Ver mais"
+           (set/2026). Sem interação nenhuma do lado do usuário: rola a
+           página, mais produtos aparecem sozinhos. */
+        .pa-loadmore { width: 100%; margin-top: 10px; padding: 14px; text-align: center; font-size: 12px; font-weight: 700; color: var(--muted); font-family: 'Archivo', sans-serif; }
         .pa-qadd { width: 30px; height: 30px; border-radius: 50%; border: none; background: var(--open); color: #fff; font-size: 16px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; }
         .pa-qadd:active { transform: scale(.9); }
         .pa-stepper { display: flex; align-items: center; gap: 7px; background: var(--ink); border-radius: 20px; padding: 3px 5px; }
@@ -279,9 +299,7 @@ export default function HomePecaAgora({ groups }: { groups: PecaGroup[] }) {
             })}
           </div>
           {visibleCount < items.length && (
-            <button type="button" className="pa-more" onClick={() => setVisibleCount(v => v + PAGE_SIZE)}>
-              Ver mais {Math.min(PAGE_SIZE, items.length - visibleCount)}
-            </button>
+            <div ref={sentinelRef} className="pa-loadmore">Carregando mais produtos…</div>
           )}
         </>
       )}

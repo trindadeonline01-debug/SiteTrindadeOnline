@@ -83,15 +83,22 @@ export async function buildPecaAgoraGroups(supabaseServer: any): Promise<PecaGro
       }
     }
 
-    // "Todas" — até 8 produtos por empresa, sorteados do catálogo inteiro
-    // (sem bebida, ver comentário acima). Satolo's sozinho tem 77 produtos
-    // ativos; sem esse teto ela tomaria conta da seção inteira em vez de
-    // dividir espaço com o resto do bairro.
-    shuffle(disponiveis.filter((p) => p.tipo_vitrine !== 'Bebida')).slice(0, 8)
+    // "Todas" — todo o catálogo disponível da empresa (sem bebida, ver
+    // comentário acima), sorteado pra não repetir sempre a mesma ordem.
+    // Antes cortava em 8 por empresa pra Satolo's (77 produtos) não tomar
+    // conta da seção — mas isso também escondia produto de verdade da
+    // busca (achado do Ricardo, set/2026: "mesmo que tenham mais produtos
+    // não aparecem na relação"). Quem seguia impedindo uma empresa grande
+    // de lotar o topo da lista já era o interleaveByCompany() abaixo
+    // (revezamento 1 a 1 entre empresas); o corte de 8 era redundante com
+    // isso e só cortava dado real. O peso de mandar tudo de uma vez fica
+    // resolvido do lado do cliente (carregamento por scroll, não mais
+    // botão "Ver mais" — ver HomePecaAgora.tsx).
+    shuffle(disponiveis.filter((p) => p.tipo_vitrine !== 'Bebida'))
       .forEach((p) => allItems.push(toItem(p)))
 
-    // Por tipo — até 8 produtos DAQUELE TIPO por empresa, sorteados à
-    // parte do corte de "Todas" acima.
+    // Por tipo — todo produto DAQUELE TIPO da empresa, à parte do recorte
+    // de "Todas" acima.
     const porTipo = new Map<string, PecaProdutoRow[]>()
     disponiveis.forEach((p) => {
       if (!p.tipo_vitrine) return
@@ -100,7 +107,7 @@ export async function buildPecaAgoraGroups(supabaseServer: any): Promise<PecaGro
       porTipo.set(p.tipo_vitrine, arr)
     })
     porTipo.forEach((prods, tipo) => {
-      shuffle(prods).slice(0, 8).forEach((p) => {
+      shuffle(prods).forEach((p) => {
         const bucket = bucketMap.get(tipo) || []
         bucket.push(toItem(p))
         bucketMap.set(tipo, bucket)

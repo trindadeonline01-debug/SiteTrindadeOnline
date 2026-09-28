@@ -25,16 +25,29 @@ type PedidoParaEditar = {
 // com qty travado em 1) é unitPrice × pesoKg. Reabrindo a edição depois,
 // recupera o preço por kg de volta dividindo o total salvo pelo peso_kg
 // salvo — não perde a informação entre uma correção e outra.
-// pesoKg fica como TEXTO (não number) de propósito: campo number ligado
-// direto a um valor já convertido brigava com quem estava digitando decimal
-// (achado real do Ricardo, set/2026 — cada tecla arredondava/resetava o
-// campo no meio da digitação e o zero da frente empacava, ex: "01,2"). Só
-// converte pra número na hora de calcular o total e de salvar.
+// pesoKg guarda só os DÍGITOS digitados (nunca vírgula/ponto) — igual
+// máscara de dinheiro de PDV: os últimos 3 dígitos sempre viram a casa
+// decimal (kg até grama), a vírgula é só de exibição. Ricardo pediu pra não
+// precisar digitar vírgula/ponto na mão (set/2026). Campo number ligado
+// direto a um valor já convertido também brigava com quem estava digitando
+// (achado real: cada tecla resetava o campo no meio da digitação e o zero
+// da frente empacava, ex: "01,2") — guardar só dígitos crus evita isso.
 type EditItem = NpCartLine & { pesoModo: boolean; pesoKg: string }
 const PESO_REGEX = /\bkg\b/i
 
-function pesoNum(s: string): number {
-  return Math.max(0, Number(s.replace(',', '.')) || 0)
+function pesoDigitsFromKg(n: number): string {
+  return String(Math.max(0, Math.round(n * 1000)))
+}
+function pesoNum(digits: string): number {
+  const clean = digits.replace(/\D/g, '')
+  return clean ? parseInt(clean, 10) / 1000 : 0
+}
+function pesoDisplay(digits: string): string {
+  const clean = digits.replace(/\D/g, '')
+  if (!clean) return ''
+  const padded = clean.padStart(4, '0')
+  const whole = padded.slice(0, -3).replace(/^0+(?=\d)/, '')
+  return `${whole},${padded.slice(-3)}`
 }
 function lineTotal(l: EditItem): number {
   return l.pesoModo ? l.unitPrice * pesoNum(l.pesoKg) : l.unitPrice * l.qty
@@ -85,7 +98,7 @@ export default function EditarPedidoPanel({ pedido, companyId, onClose, onSaved 
       unitPrice: temPeso ? it.unit_price / it.peso_kg! : it.unit_price,
       qty: it.qty,
       pesoModo: temPeso || PESO_REGEX.test(it.product_name),
-      pesoKg: String(temPeso ? it.peso_kg! : (it.qty || 1)).replace('.', ','),
+      pesoKg: pesoDigitsFromKg(temPeso ? it.peso_kg! : (it.qty || 1)),
     }
   }))
 
@@ -124,17 +137,18 @@ export default function EditarPedidoPanel({ pedido, companyId, onClose, onSaved 
     setItems(prev => prev.map(l => l.key === key ? { ...l, qty: l.qty + delta } : l).filter(l => l.qty > 0))
   }
   function togglePesoModo(key: string) {
-    setItems(prev => prev.map(l => l.key === key ? { ...l, pesoModo: !l.pesoModo, pesoKg: l.pesoKg || String(l.qty || 1) } : l))
+    setItems(prev => prev.map(l => l.key === key ? { ...l, pesoModo: !l.pesoModo, pesoKg: l.pesoKg || pesoDigitsFromKg(l.qty || 1) } : l))
   }
   function setPesoKg(key: string, valor: string) {
-    // Só filtra caractere inválido — não converte/arredonda a cada tecla,
-    // senão o campo briga com quem está no meio de digitar um decimal.
-    const cleaned = valor.replace(/[^\d,.]/g, '')
-    setItems(prev => prev.map(l => l.key === key ? { ...l, pesoKg: cleaned } : l))
+    // Máscara de PDV: guarda só os dígitos digitados, sem limite de tamanho
+    // artificial — a exibição (pesoDisplay) é que decide onde entra a
+    // vírgula, sempre 3 casas a partir da direita.
+    const digits = valor.replace(/\D/g, '')
+    setItems(prev => prev.map(l => l.key === key ? { ...l, pesoKg: digits } : l))
   }
   function removeItem(key: string) { setItems(prev => prev.filter(l => l.key !== key)) }
   function addSimple(p: NpProduto) {
-    setItems(prev => [...prev, { key: `${p.id}-${Date.now()}`, produtoId: p.id, name: p.name, modifiers: [], unitPrice: p.sale_price, qty: 1, pesoModo: PESO_REGEX.test(p.name), pesoKg: '1' }])
+    setItems(prev => [...prev, { key: `${p.id}-${Date.now()}`, produtoId: p.id, name: p.name, modifiers: [], unitPrice: p.sale_price, qty: 1, pesoModo: PESO_REGEX.test(p.name), pesoKg: '1000' }])
     setPickerOpen(false)
   }
   function openDetail(p: NpProduto) { setDetail(p); setDetailSel(p.groups.map(() => [])); setPickerOpen(false) }
@@ -156,7 +170,7 @@ export default function EditarPedidoPanel({ pedido, companyId, onClose, onSaved 
     if (!detail || !detailReqMet) return
     const modifiers: { name: string; price: number }[] = []
     detail.groups.forEach((g, gi) => detailSel[gi].forEach(oi => modifiers.push({ name: g.options[oi].name, price: g.options[oi].price })))
-    setItems(prev => [...prev, { key: `${detail.id}-${Date.now()}`, produtoId: detail.id, name: detail.name, modifiers, unitPrice: detailPrice, qty: 1, pesoModo: PESO_REGEX.test(detail.name), pesoKg: '1' }])
+    setItems(prev => [...prev, { key: `${detail.id}-${Date.now()}`, produtoId: detail.id, name: detail.name, modifiers, unitPrice: detailPrice, qty: 1, pesoModo: PESO_REGEX.test(detail.name), pesoKg: '1000' }])
     setDetail(null)
   }
 
@@ -270,7 +284,7 @@ export default function EditarPedidoPanel({ pedido, companyId, onClose, onSaved 
         .ep-peso-toggle{ flex:none;width:22px;height:22px;border-radius:6px;border:1px solid #E6E0D2;background:#F5F6F2;cursor:pointer;font-size:11px;line-height:1;opacity:.5; }
         .ep-peso-toggle.on{ background:#7A3FB0;border-color:#7A3FB0;opacity:1; }
         .ep-peso{ display:flex;align-items:center;gap:4px;flex:none; }
-        .ep-peso input{ width:64px;padding:5px 6px;border-radius:6px;border:1.5px solid #7A3FB0;background:#fff;font-size:12.5px;font-weight:700;text-align:right;font-family:inherit;box-sizing:border-box; }
+        .ep-peso input{ width:70px;padding:5px 6px;border-radius:6px;border:1.5px solid #7A3FB0;background:#fff;font-size:12.5px;font-weight:700;text-align:right;font-family:inherit;box-sizing:border-box; }
         .ep-peso span{ font-size:10.5px;color:#6E6656;font-weight:700; }
         .ep-item-price{ flex:none;font-weight:800;font-size:11.5px;width:58px;text-align:right; }
         .ep-item-rm{ flex:none;border:none;background:none;color:var(--alert);cursor:pointer;font-size:13px;padding:0 2px; }
@@ -323,8 +337,8 @@ export default function EditarPedidoPanel({ pedido, companyId, onClose, onSaved 
                   {l.pesoModo ? (
                     <div className="ep-peso">
                       <input
-                        type="text" inputMode="decimal" placeholder="1,000"
-                        value={l.pesoKg} onChange={e => setPesoKg(l.key, e.target.value)}
+                        type="text" inputMode="numeric" placeholder="0,000"
+                        value={pesoDisplay(l.pesoKg)} onChange={e => setPesoKg(l.key, e.target.value)}
                       />
                       <span>kg</span>
                     </div>

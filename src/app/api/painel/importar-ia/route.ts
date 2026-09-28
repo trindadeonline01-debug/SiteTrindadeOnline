@@ -18,14 +18,20 @@ const supabaseAuth = createClient(
 )
 
 const MAX_PAGE_TEXT = 60000 // ~15-20k tokens, teto de segurança pro custo/tamanho do request
-// PDF ainda vai em base64 dentro do corpo do POST. O limite real da Vercel
-// pra corpo de função serverless é ~4,5MB — ficando abaixo disso, quem
-// responde é a NOSSA mensagem de erro (JSON), não o 413 em texto puro da
-// própria Vercel (que quebrava o `res.json()` do cliente com "Unexpected
-// token 'R', 'Request En'... is not valid JSON" — achado do Ricardo,
-// set/2026, ver também o comentário no bloco `fotos` abaixo).
-const MAX_PAYLOAD_BYTES = 4 * 1024 * 1024
-const MAX_PHOTO_BYTES = 8 * 1024 * 1024 // teto de sanidade por foto baixada (compressImage do cliente já mira bem menos que isso)
+// PDF e fotos chegam como URL do Storage, não mais em base64 dentro do
+// corpo do POST — o corpo de uma função da Vercel tem teto de ~4,5MB,
+// aplicado pela própria plataforma ANTES do código desta rota rodar
+// (tentar checar o tamanho aqui dentro, como um `if` no começo da função,
+// não adianta: se o corpo já estourou o teto, o código nunca chega a
+// executar). A Vercel recusa com "Request Entity Too Large" em texto
+// puro, e o `res.json()` do cliente quebrava nisso com "Unexpected token
+// 'R', 'Request En'..." — aconteceu de verdade duas vezes (fotos e depois
+// PDF) com o Ricardo, set/2026. Baixando o arquivo aqui, do lado do
+// servidor, a partir de uma URL pequena, esse teto de corpo nem entra em
+// jogo — só o teto de sanidade abaixo (bem mais generoso, é só pra não
+// tentar processar algo absurdo).
+const MAX_PHOTO_BYTES = 8 * 1024 * 1024 // teto por foto baixada (compressImage do cliente já mira bem menos que isso)
+const MAX_PDF_BYTES = 25 * 1024 * 1024 // teto pro PDF baixado
 type ImgMediaType = 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'
 const ALLOWED_IMG_TYPES: ImgMediaType[] = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
 
@@ -142,10 +148,18 @@ export async function POST(req: NextRequest) {
         text: `${INSTRUCOES}\n\nConteúdo da página (texto extraído do HTML):\n${text.slice(0, MAX_PAGE_TEXT)}\n\nURLs de imagem encontradas nessa mesma página (podem ser fotos de produtos — combine pelo contexto/proximidade no texto, nunca chute):\n${resolvedImages.join('\n')}`,
       })
     } else if (source === 'pdf') {
-      const pdf_base64: string = body.pdf_base64
-      if (!pdf_base64) return NextResponse.json({ error: 'PDF não enviado' }, { status: 400 })
-      if (Buffer.byteLength(pdf_base64, 'base64') > MAX_PAYLOAD_BYTES) return NextResponse.json({ error: 'PDF grande demais' }, { status: 413 })
-      content.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdf_base64 } })
+      const pdf_url: string = body.pdf_url
+      if (!pdf_url) return NextResponse.json({ error: 'PDF não enviado' }, { status: 400 })
+      let pdfRes: Response
+      try {
+        pdfRes = await fetch(pdf_url, { signal: AbortSignal.timeout(20000) })
+      } catch {
+        return NextResponse.json({ error: 'não consegui baixar o PDF enviado' }, { status: 400 })
+      }
+      if (!pdfRes.ok) return NextResponse.json({ error: 'não consegui baixar o PDF enviado' }, { status: 400 })
+      const pdfBuf = Buffer.from(await pdfRes.arrayBuffer())
+      if (pdfBuf.byteLength > MAX_PDF_BYTES) return NextResponse.json({ error: 'PDF grande demais' }, { status: 413 })
+      content.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdfBuf.toString('base64') } })
       content.push({ type: 'text', text: `${INSTRUCOES}\n\nO cardápio a ler é o PDF anexado.` })
     } else if (source === 'fotos') {
       // As fotos chegam como URL pública (já enviadas pro Storage pelo

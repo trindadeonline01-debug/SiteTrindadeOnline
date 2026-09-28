@@ -281,15 +281,6 @@ export default function CatalogoPage() {
     setPhotoImportResults({ matched, unmatched })
   }
 
-  function fileToBase64(file: File | Blob): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = () => resolve(((reader.result as string) || '').split(',')[1] || '')
-      reader.onerror = reject
-      reader.readAsDataURL(file)
-    })
-  }
-
   // A Vercel rejeita corpo de requisição grande demais (~4,5MB) devolvendo
   // texto puro ("Request Entity Too Large"), não JSON — `res.json()` direto
   // nisso quebra com "Unexpected token 'R'..." (achado real do Ricardo,
@@ -340,11 +331,20 @@ export default function CatalogoPage() {
   async function runImportIAPdf(file: File) {
     setImportIAStep('loading')
     const { data: { session } } = await supabase.auth.getSession()
+    let tmpPath = ''
     try {
-      const pdf_base64 = await fileToBase64(file)
+      // Mesmo ajuste feito nas fotos (ver runImportIAFotos): manda a URL do
+      // Storage em vez do PDF em base64 no corpo do POST, senão o mesmo
+      // teto de ~4,5MB da Vercel estoura de novo pra PDF grande — foi
+      // exatamente o que aconteceu (achado real do Ricardo, set/2026).
+      const ext = (file.name.split('.').pop() || 'pdf').toLowerCase()
+      tmpPath = `${companyId}/import-ia-tmp/${Date.now()}.${ext}`
+      const { error: upErr } = await supabase.storage.from('loja-produtos').upload(tmpPath, file, { upsert: true, contentType: 'application/pdf' })
+      if (upErr) throw new Error('Falha ao enviar o PDF. Tenta de novo.')
+      const pdf_url = supabase.storage.from('loja-produtos').getPublicUrl(tmpPath).data.publicUrl
       const res = await fetch('/api/painel/importar-ia', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ access_token: session?.access_token, company_id: companyId, source: 'pdf', pdf_base64 }),
+        body: JSON.stringify({ access_token: session?.access_token, company_id: companyId, source: 'pdf', pdf_url }),
       })
       const data = await readImportIAResponse(res)
       if (!res.ok) { setImportIAError(data.error || 'não deu pra ler esse PDF'); setImportIAStep('error'); return }
@@ -352,6 +352,8 @@ export default function CatalogoPage() {
       setImportIAStep('preview')
     } catch (err: any) {
       setImportIAError(err?.message || 'falha ao ler o cardápio'); setImportIAStep('error')
+    } finally {
+      if (tmpPath) supabase.storage.from('loja-produtos').remove([tmpPath]).catch(() => {})
     }
   }
 

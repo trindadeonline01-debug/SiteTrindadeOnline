@@ -27,10 +27,13 @@ const BAIRROS = [
 // pra /empresa/cadastrar, ou seja, dois cadastros percebidos como um só que quebrava
 // no meio. Quem já está logado (ex: "cadastrar outro negócio" no menu) pula direto
 // pra fase "negocio".
+type MinhaEmpresa = { id: string; name: string; slug: string; status: string }
+
 export default function AnunciarPage() {
   const [checkingSession, setCheckingSession] = useState(true)
-  const [phase, setPhase] = useState<'conta' | 'verify' | 'negocio'>('conta')
+  const [phase, setPhase] = useState<'conta' | 'verify' | 'negocio' | 'ja-tem'>('conta')
   const [userId, setUserId] = useState<string | null>(null)
+  const [minhasEmpresas, setMinhasEmpresas] = useState<MinhaEmpresa[]>([])
 
   const [loading, setLoading] = useState(false)
   const [erro, setErro] = useState('')
@@ -86,8 +89,27 @@ export default function AnunciarPage() {
   const [subcatSugestoes, setSubcatSugestoes] = useState<string[]>([])
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) { setUserId(session.user.id); setPhase('negocio') }
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session) {
+        setUserId(session.user.id)
+        // Achado real do Ricardo, set/2026: dono do Point do Lanche caiu
+        // aqui várias vezes já logado (sessão existente) e cada vez o
+        // formulário abria vazio, sem avisar que ele já tinha empresa —
+        // resultado, 9 cadastros duplicados em 10 minutos. Antes de pular
+        // direto pro formulário vazio, confere se essa conta já tem
+        // negócio(s) e mostra pra pessoa em vez de deixar recadastrar às
+        // cegas; "cadastrar um negócio diferente" continua possível, só
+        // deixou de ser o caminho automático e silencioso.
+        const { data: empresas } = await supabase
+          .from('companies').select('id, name, slug, status')
+          .eq('owner_id', session.user.id).order('created_at', { ascending: false })
+        if (empresas && empresas.length > 0) {
+          setMinhasEmpresas(empresas as MinhaEmpresa[])
+          setPhase('ja-tem')
+        } else {
+          setPhase('negocio')
+        }
+      }
       setCheckingSession(false)
     })
     supabase.from('categories').select('*').order('order').then(({ data }) => setCategories(data || []))
@@ -420,6 +442,32 @@ export default function AnunciarPage() {
               </div>
               <button className="btn-primary" onClick={() => window.location.href = '/empresa/planos'}>🚀 Destaque sua empresa agora</button>
               <div style={{ marginTop: 12 }}><a href="/" style={{ fontSize: 12, color: '#aaa', textDecoration: 'none' }}>Voltar ao início</a></div>
+            </div>
+          ) : phase === 'ja-tem' ? (
+            <div>
+              <div className="page-title">Você já tem negócio cadastrado</div>
+              <div className="page-sub">Encontramos {minhasEmpresas.length === 1 ? 'este cadastro' : 'estes cadastros'} nessa conta:</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+                {minhasEmpresas.map(emp => {
+                  const statusLabel = emp.status === 'active' ? 'Ativo' : emp.status === 'pending' ? 'Em análise' : emp.status
+                  const statusColor = emp.status === 'active' ? '#0F8050' : '#92600a'
+                  return (
+                    <div
+                      key={emp.id}
+                      style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10,
+                        border: '1.5px solid #E0DDD8', borderRadius: 12, padding: '12px 14px',
+                      }}
+                    >
+                      <span style={{ fontSize: 13.5, fontWeight: 700, color: '#111' }}>{emp.name}</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: statusColor, whiteSpace: 'nowrap' }}>{statusLabel}</span>
+                    </div>
+                  )
+                })}
+              </div>
+              <button className="btn-primary" style={{ width: '100%', marginBottom: 10 }} onClick={() => window.location.href = '/painel'}>Ir para o painel</button>
+              <button type="button" className="btn-secondary" style={{ width: '100%' }} onClick={() => setPhase('negocio')}>+ Cadastrar um negócio diferente</button>
+              <div style={{ marginTop: 12, textAlign: 'center' }}><a href="/" style={{ fontSize: 12, color: '#aaa', textDecoration: 'none' }}>Voltar ao início</a></div>
             </div>
           ) : phase === 'conta' ? (
             <>

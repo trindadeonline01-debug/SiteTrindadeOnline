@@ -571,11 +571,16 @@ export default async function HomePage() {
            com o componente (HomePecaAgora.tsx), pra funcionar sozinho em
            qualquer página. Ver .home-peca-cta abaixo. */
         .home-peca-cta { display: flex; flex-direction: column; gap: 16px; margin: 20px 0 0; border-radius: 18px; background: var(--sign); padding: 20px 20px 22px; text-decoration: none; }
-        .home-peca-cta-body { flex: none; }
-        .home-peca-cta-eye { font-size: 10.5px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; color: var(--ink); opacity: .65; }
-        .home-peca-cta-title { font-family: 'Anton', sans-serif; font-size: clamp(24px,4vw,30px); color: var(--ink); letter-spacing: .3px; margin: 3px 0 5px; }
-        .home-peca-cta-sub { font-size: 11.5px; font-weight: 700; color: var(--ink); opacity: .75; margin-bottom: 14px; }
-        .home-peca-cta-btn { display: inline-flex; align-items: center; gap: 6px; background: var(--ink); color: #fff; font-size: 12px; font-weight: 800; padding: 11px 18px; border-radius: 11px; }
+        /* Mobile: título e botão dividem a mesma linha (botão encostado na
+           borda direita), subtítulo desce pra linha de baixo — pedido do
+           Ricardo, set/2026, mockup aprovado. Desktop fica exatamente como
+           estava — todo esse flex/order some no @media(min-width:768px)
+           abaixo. */
+        .home-peca-cta-body { flex: none; display: flex; flex-wrap: wrap; align-items: center; column-gap: 10px; }
+        .home-peca-cta-eye { flex-basis: 100%; font-size: 10.5px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; color: var(--ink); opacity: .65; }
+        .home-peca-cta-title { order: 1; flex: none; white-space: nowrap; font-family: 'Anton', sans-serif; font-size: 21px; color: var(--ink); letter-spacing: .2px; margin: 0; }
+        .home-peca-cta-sub { order: 3; flex-basis: 100%; font-size: 11.5px; font-weight: 700; color: var(--ink); opacity: .75; margin: 6px 0 14px; }
+        .home-peca-cta-btn { order: 2; margin-left: auto; display: inline-flex; align-items: center; gap: 5px; background: var(--ink); color: #fff; font-size: 11px; font-weight: 800; padding: 9px 13px; border-radius: 10px; white-space: nowrap; }
         /* Ícones do que tem disponível (peixaria, lanche, farmácia...) — em
            vez do emoji decorativo solto de antes, mostra os tipos de
            verdade configurados pelo admin (vitrine_tipos), com carinha de
@@ -588,7 +593,13 @@ export default async function HomePage() {
         .home-peca-cta-type-lbl { font-size: 9.5px; font-weight: 800; color: var(--ink); line-height: 1.15; }
         @media(min-width: 768px) {
           .home-peca-cta { flex-direction: row; align-items: center; justify-content: space-between; gap: 28px; padding: 26px 34px; }
-          .home-peca-cta-sub { margin-bottom: 16px; }
+          /* Desfaz o layout mobile (título+botão na mesma linha) — desktop
+             continua igual a antes, empilhado dentro de .home-peca-cta-body. */
+          .home-peca-cta-body { display: block; }
+          .home-peca-cta-eye { flex-basis: auto; }
+          .home-peca-cta-title { order: 0; flex: initial; white-space: normal; font-size: clamp(24px,4vw,30px); margin: 3px 0 5px; }
+          .home-peca-cta-sub { order: 0; flex-basis: auto; margin: 0 0 16px; }
+          .home-peca-cta-btn { order: 0; margin-left: 0; font-size: 12px; padding: 11px 18px; }
           .home-peca-cta-types { flex: 1; justify-content: flex-end; overflow-x: visible; flex-wrap: wrap; }
         }
 

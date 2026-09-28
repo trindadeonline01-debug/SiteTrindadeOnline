@@ -1,59 +1,44 @@
 'use client'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { supabase } from '@/lib/supabase'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
-type Tipo = { id: string; value: string; label: string; emoji: string; display_order: number; active: boolean }
+// Mesma lib já usada em Subcategorias (src/app/admin/page.tsx) — emoji
+// nativo do sistema (o mesmo repertório do seletor do Windows/Mac), não
+// uma lista curada nossa. carrega só no cliente (usa APIs de browser).
+const EmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false })
 
-// Paleta curada de comida/loja — cobre a maioria dos tipos de produto que
-// entram na vitrine "Peça agora". O campo continua aceitando digitação
-// livre (emoji raro que não está na lista), isso aqui é só um atalho.
-const FOOD_EMOJIS = [
-  '🍔','🌭','🍕','🍟','🌮','🌯','🥙','🍗','🍖','🥩','🍤','🍱','🍣','🍜','🍝','🍲',
-  '🥘','🍛','🍚','🍙','🍥','🥗','🥪','🥟','🧇','🥞','🍳','🧀','🥐','🍞','🥖','🥨',
-  '🍩','🍪','🎂','🧁','🍰','🍨','🍦','🍮','🍫','🍬','🍭','🍿','🥤','🧃','🧋','☕',
-  '🍵','🍺','🍷','🍹','🍸','🥂','🧊','🍎','🍇','🍓','🍉','🍊','🍌','🥭','🍒','🥥',
-  '🥑','🍅','🥕','🌽','🥒','🥦','🧄','🧅','🥔','🍠','🥚','🐟','🦐','🦀','🍽️','🛒',
-  '🏪','🥡','🎁','🍽',
-]
+type Tipo = { id: string; value: string; label: string; emoji: string; display_order: number; active: boolean }
 
 function EmojiField({ value, onChange, width = 44 }: { value: string; onChange: (v: string) => void; width?: number }) {
   const [open, setOpen] = useState(false)
-  const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
-  const btnRef = useRef<HTMLButtonElement>(null)
 
-  // A grade de emoji vira position:fixed (coordenada calculada na hora do
-  // clique) em vez de absolute — cada card dessa tela tem overflow:hidden
-  // (pras bordas arredondadas), que recortava a grade toda vez que ela
-  // tentava abrir logo abaixo do campo, sobrando só uma tirinha visível
-  // (achado real do Ricardo, set/2026, ao cadastrar "Pão de Queijo").
-  function openPicker() {
-    const r = btnRef.current?.getBoundingClientRect()
-    if (r) setPos({ top: r.bottom + 4, left: Math.min(r.left, window.innerWidth - 268) })
-    setOpen(true)
-  }
-
+  // Modal central com busca (troca a grade de 64 emoji fixos + dropdown
+  // ancorado, que continuava aparecendo cortado dependendo de onde o
+  // campo estava na tela) — pedido real do Ricardo, set/2026: "trazer uma
+  // tela no centro da página com todas as opções de emoji... e campo de
+  // busca". position:fixed centralizado não depende de onde o botão está
+  // nem de overflow:hidden de card nenhum.
   return (
     <div style={{ position: 'relative', flex: 'none' }}>
       <div style={{ display: 'flex', gap: 4 }}>
         <input style={{ ...s.input, width, textAlign: 'center' }} value={value} onChange={e => onChange(e.target.value)} />
-        <button ref={btnRef} type="button" style={{ ...s.btnGhost, padding: '7px 9px' }} onClick={() => (open ? setOpen(false) : openPicker())} aria-label="Escolher emoji">😀</button>
+        <button type="button" style={{ ...s.btnGhost, padding: '7px 9px' }} onClick={() => setOpen(o => !o)} aria-label="Escolher emoji">😀</button>
       </div>
-      {open && pos && (
+      {open && (
         <>
-          <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 49 }} />
-          <div style={{
-            position: 'fixed', top: pos.top, left: pos.left, zIndex: 50, background: '#fff',
-            border: '1.5px solid #E0DDD8', borderRadius: 10, padding: 8, boxShadow: '0 8px 24px rgba(0,0,0,.18)',
-            display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 2, width: 260, maxHeight: 220, overflowY: 'auto',
-          }}>
-            {FOOD_EMOJIS.map((em, i) => (
-              <button key={em + i} type="button"
-                style={{ border: 'none', background: 'none', fontSize: 18, cursor: 'pointer', padding: 4, borderRadius: 6, lineHeight: 1 }}
-                onClick={() => { onChange(em); setOpen(false) }}>{em}</button>
-            ))}
+          <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 199, background: 'rgba(20,16,10,.45)' }} />
+          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 200 }}>
+            <EmojiPicker
+              onEmojiClick={(e: any) => { onChange(e.emoji); setOpen(false) }}
+              searchPlaceholder="Buscar emoji..."
+              autoFocusSearch
+              width={360}
+              height={460}
+            />
           </div>
         </>
       )}

@@ -441,9 +441,9 @@ export async function POST(req: NextRequest) {
         // na segunda insistência — a primeira vez só pergunta qual é a
         // dúvida, pra dar chance da IA responder (Ricardo, set/2026: "se o
         // humano insistir, aí só depois da insistência a gente transfere").
-        if (company?.crm_ia_enabled && text) {
+        if (company?.crm_ia_enabled) {
           const modoAtual = existing?.atendimento_modo || 'ia'
-          if (modoAtual === 'ia') {
+          if (modoAtual === 'ia' && text) {
             const jaPediu = !!existing?.pediu_humano_em
             if (pedeHumano(text)) {
               if (jaPediu) {
@@ -464,6 +464,11 @@ export async function POST(req: NextRequest) {
                 if (jaPediu) await supabase.from('crm_contacts').update({ pediu_humano_em: null }).eq('id', contactId)
               }
             }
+          } else if (modoAtual === 'ia' && !text && mediaType === 'audio') {
+            // A IA ainda não ouve áudio (a API do Claude não recebe áudio
+            // como entrada, só texto/imagem) — em vez de ficar muda, pede
+            // pra escrever, em vez de deixar o cliente sem resposta nenhuma.
+            await sendCustomerWhatsApp(inst.company_id, phone, 'Recebi seu áudio, mas por aqui eu só consigo ouvir mensagem escrita ainda 🙂 Pode escrever o que você precisa?')
           }
         }
       }

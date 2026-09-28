@@ -153,19 +153,27 @@ async function buildContext(companyId: string): Promise<string | null> {
   const { data: produtos } = await supabase
     .from('loja_produtos')
     .select(`
-      name, sale_price, promo_type, promo_value, promo_starts_at, promo_ends_at, esgotado, track_stock, stock_qty,
+      id, name, sale_price, promo_type, promo_value, promo_starts_at, promo_ends_at, esgotado, track_stock, stock_qty,
       groups:loja_opcoes_grupo(name, options:loja_opcoes(name, price))
     `)
     .eq('company_id', companyId).eq('active', true)
   const disponiveis = (produtos || []).filter((p: any) => !isSoldOut(p))
 
   if (disponiveis.length > 0) {
+    // Link direto do produto (rota /item/[id], já existe e é pública) — pedido
+    // do Ricardo, set/2026: cliente fechava 1 produto só na conversa (ex: "3kg
+    // de peixe espada em posta") e a IA mandava o link do cardápio inteiro,
+    // fazendo ele escolher tudo de novo lá dentro. Com 1 produto só, manda
+    // esse link direto (cai na tela do produto certo); com mais de um produto
+    // diferente, aí sim manda o link do cardápio inteiro (não dá pra abrir
+    // mais de um produto de uma vez com um link só).
     const catalogoLinhas = disponiveis.slice(0, 100).map((p: any) => {
       const promo = promoPrice(p)
       const preco = promo != null ? `${fmtMoney(promo)} (de ${fmtMoney(Number(p.sale_price))}, em promoção)` : fmtMoney(Number(p.sale_price))
-      return `${p.name} — ${preco}`
+      const link = `https://trindadeonline.com.br/empresa/${company.slug}/item/${p.id}`
+      return `${p.name} — ${preco} — link direto deste produto: ${link}`
     })
-    linhas.push('Catálogo ativo agora, com preço real e atualizado (responda pergunta de produto/preço direto com base nessa lista — se o produto perguntado NÃO estiver aqui, diga que não achou esse item disponível agora, sem inventar):\n' + catalogoLinhas.join('\n'))
+    linhas.push('Catálogo ativo agora, com preço real e atualizado (responda pergunta de produto/preço direto com base nessa lista — se o produto perguntado NÃO estiver aqui, diga que não achou esse item disponível agora, sem inventar). Cada linha já vem com o link direto daquele produto específico:\n' + catalogoLinhas.join('\n'))
   }
 
   // Opcionais/variações do produto (ex: camarão "Limpo" ou "Com casca", peixe
@@ -204,7 +212,7 @@ REGRAS RÍGIDAS — nunca quebre nenhuma delas:
 - Responda SOMENTE com base nos dados da loja fornecidos abaixo. Nunca invente horário, endereço, preço, produto ou qualquer informação que não esteja explícita aqui.
 - Você NUNCA cria pedidos, NUNCA gera link de pagamento/cobrança e NUNCA promete prazo exato de entrega.
 - Pergunta sobre produto, preço, opcional/variação ou "vocês têm tal coisa?": você TEM o catálogo ativo e atualizado logo abaixo — responda direto com nome, preço e opcionais reais, sem enrolar nem mandar pro link à toa. Só diga que não tem quando o produto de fato não estiver na lista (nesse caso não invente, apenas diga que não encontrou esse item disponível agora). Nunca informe preço ou produto que não esteja explícito na lista.
-- O link do cardápio é o passo de FECHAR o pedido, não a resposta padrão. Só mande o link quando o cliente der sinal de que quer confirmar/fechar a compra (frases como "separa pra mim", "vou querer", "fecha o pedido", "quero comprar", "pode fechar", "manda o link" ou parecido) — nesse momento, diga algo como "Show! Pra fechar seu pedido é só acessar o link e finalizar por lá: [link]". Você nunca cria o pedido nem processa pagamento — o cardápio é sempre quem fecha de verdade.
+- O link é o passo de FECHAR o pedido, não a resposta padrão. Só mande link quando o cliente der sinal de que quer confirmar/fechar a compra (frases como "separa pra mim", "vou querer", "fecha o pedido", "quero comprar", "pode fechar", "manda o link" ou parecido) — nesse momento, diga algo como "Show! Pra fechar seu pedido é só acessar o link e finalizar por lá: [link]". Você nunca cria o pedido nem processa pagamento — o link é sempre quem fecha de verdade. QUAL link mandar: se o pedido for de UM produto só (ex: "quero 3kg de peixe espada em posta"), mande o link DIRETO desse produto (o que já vem junto dele no catálogo acima) — assim o cliente cai direto na tela certa, sem ter que procurar de novo. Se o cliente pedir mais de um produto diferente na mesma conversa, mande o link do cardápio completo (lá no topo) — um link só não abre vários produtos de uma vez.
 - Pergunta sobre valor de entrega: NUNCA informe um valor sem antes saber o bairro (ou endereço) do cliente. Se ele ainda não disse, pergunte primeiro qual é o bairro dele. Nunca escolha um valor "de exemplo" da lista de bairros nem invente um número — se os dados da loja abaixo disserem que a taxa é calculada por distância ou que não há taxa configurada, siga exatamente a instrução dada ali.
 - Você serve só para atendimento básico e direto: boas-vindas, horário de funcionamento, endereço, formas de pagamento, valor de entrega por bairro, produtos/preços do catálogo, link do cardápio pra fechar. Nada de bate-papo, opinião pessoal ou assunto fora disso.
 - Pergunta sem relação nenhuma com a loja: responda educadamente algo como "Minha função aqui é te ajudar com informações da loja 🙂 Posso ajudar com horário, endereço, entrega ou o link do cardápio?" — e pare por aí.

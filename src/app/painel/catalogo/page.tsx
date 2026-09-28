@@ -176,6 +176,8 @@ export default function CatalogoPage() {
   const [dupSourceId, setDupSourceId] = useState('')
   const [dupGroups, setDupGroups] = useState<Grupo[]>([])
   const [dupLoading, setDupLoading] = useState(false)
+  const [showCopyPhoto, setShowCopyPhoto] = useState(false)
+  const [copyPhotoSearch, setCopyPhotoSearch] = useState('')
   const [showImportCsv, setShowImportCsv] = useState(false)
   const [importing, setImporting] = useState(false)
   const [importPaused, setImportPaused] = useState(false)
@@ -715,6 +717,19 @@ export default function CatalogoPage() {
     setShowDupGroup(false)
     showToast(`Grupo "${g.name}" copiado — dá uma revisada e ajusta o que precisar`)
   }
+
+  function openCopyPhoto() { setShowCopyPhoto(true); setCopyPhotoSearch('') }
+  // Reaproveita a mesma foto já hospedada (mesma URL, sem duplicar arquivo no
+  // Storage) — pedido do Ricardo, set/2026: produtos parecidos (ex: variações
+  // do mesmo peixe) não precisam de foto nova cada vez, só aproveitar a que
+  // já existe. Salvar nunca apaga a foto antiga do Storage (ver
+  // saveProdutoInner), então os dois produtos podem apontar pra mesma URL sem
+  // risco de um sumir a foto do outro.
+  function applyCopiedPhoto(url: string) {
+    setForm(f => ({ ...f, photo_url: url }))
+    setPhotoFile(null)
+    setShowCopyPhoto(false)
+  }
   function updateGroup(gi: number, patch: Partial<Grupo>) { setForm(f => ({ ...f, groups: f.groups.map((g, i) => i === gi ? { ...g, ...patch } : g) })) }
   function addOption(gi: number) { updateGroup(gi, { options: [...form.groups[gi].options, { name: '', price: '0', max_qty: 1, linked_produto_id: null, photo_url: null, _photoFile: null }] }) }
   function removeOption(gi: number, oi: number) { updateGroup(gi, { options: form.groups[gi].options.filter((_, i) => i !== oi) }) }
@@ -1053,6 +1068,8 @@ export default function CatalogoPage() {
         .cg-cat-row input{ flex:1;min-width:0;padding:7px 10px;border-radius:8px;border:1px solid #E6E0D2;font-size:12.5px;font-family:inherit; }
         .cg-cat-row-name{ flex:1;min-width:0;font-weight:700;font-size:12.5px; }
         .cg-cat-row-count{ font-size:10.5px;color:#A79E8B;flex:none;white-space:nowrap; }
+        .cg-copy-photo-thumb{ width:36px;height:36px;border-radius:8px;overflow:hidden;flex:none;background:#F0EDE8; }
+        .cg-copy-photo-thumb img{ width:100%;height:100%;object-fit:cover; }
         .cg-drag-handle{ flex:none;width:26px;height:26px;border:none;background:transparent;color:#A79E8B;font-size:16px;line-height:1;cursor:grab;touch-action:none;border-radius:6px; }
         .cg-drag-handle:active{ cursor:grabbing;background:#F0EDE8; }
         .cg-cat-modal-foot{ padding:12px 16px 16px;border-top:1px solid #EDE8E0;background:#fff;display:flex;gap:8px; }
@@ -1203,10 +1220,13 @@ export default function CatalogoPage() {
               >
                 {photoFile ? <img src={URL.createObjectURL(photoFile)} alt="" /> : form.photo_url ? <img src={form.photo_url} alt="" /> : '🍽️'}
               </div>
-              <label className="cg-btn cg-btn-ghost" style={{ cursor: 'pointer' }}>
-                Trocar foto
-                <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => setPhotoFile(e.target.files?.[0] || null)} />
-              </label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label className="cg-btn cg-btn-ghost" style={{ cursor: 'pointer' }}>
+                  Trocar foto
+                  <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => setPhotoFile(e.target.files?.[0] || null)} />
+                </label>
+                <button type="button" className="cg-btn cg-btn-ghost" onClick={openCopyPhoto}>📋 Copiar de outro produto</button>
+              </div>
             </div>
 
             <div className="cg-field"><label>Nome do produto</label><input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} /></div>
@@ -1426,6 +1446,37 @@ export default function CatalogoPage() {
                   <button className="cg-btn cg-btn-gold" style={{ padding: '7px 12px', fontSize: 11 }} onClick={() => copyGroup(g)}>Copiar</button>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCopyPhoto && (
+        <div className="cg-cat-overlay" onClick={() => setShowCopyPhoto(false)}>
+          <div className="cg-cat-modal" onClick={e => e.stopPropagation()}>
+            <div className="cg-cat-modal-head">
+              <b>Copiar foto de outro produto</b>
+              <button className="cg-close" onClick={() => setShowCopyPhoto(false)}>✕</button>
+            </div>
+            <div className="cg-cat-modal-body">
+              <div className="cg-field" style={{ marginTop: 10 }}>
+                <input placeholder="Buscar produto..." autoFocus value={copyPhotoSearch} onChange={e => setCopyPhotoSearch(e.target.value)} />
+              </div>
+              {(() => {
+                const term = copyPhotoSearch.trim().toLowerCase()
+                const opcoes = produtos
+                  .filter(p => p.id !== form.id && p.photo_url)
+                  .filter(p => !term || p.name.toLowerCase().includes(term))
+                if (opcoes.length === 0) {
+                  return <div style={{ fontSize: 12, color: '#A79E8B', padding: '8px 0' }}>Nenhum produto com foto encontrado.</div>
+                }
+                return opcoes.map(p => (
+                  <div key={p.id} className="cg-cat-row" style={{ cursor: 'pointer' }} onClick={() => applyCopiedPhoto(p.photo_url!)}>
+                    <div className="cg-copy-photo-thumb"><img src={p.photo_url!} alt="" /></div>
+                    <span className="cg-cat-row-name">{p.name}</span>
+                  </div>
+                ))
+              })()}
             </div>
           </div>
         </div>

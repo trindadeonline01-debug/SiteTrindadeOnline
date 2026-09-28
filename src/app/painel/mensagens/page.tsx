@@ -233,6 +233,10 @@ export default function MensagensPage() {
   const discardRecordingRef = useRef(false)
   const mediaUrlCacheRef = useRef<Map<string, string>>(new Map())
   const msgBodyRef = useRef<HTMLDivElement | null>(null)
+  const chipsScrollRef = useRef<HTMLDivElement | null>(null)
+  function scrollChips(dir: 1 | -1) {
+    chipsScrollRef.current?.scrollBy({ left: dir * 140, behavior: 'smooth' })
+  }
 
   const COMPANY_SELECT = 'id, name, slug, crm_whatsapp_enabled, loja_digital_enabled, entrega_enabled, trial_modules_until, crm_auto_reply_enabled, crm_auto_reply_text, crm_ia_enabled, crm_ia_prompt_extra'
   async function finishCompanySetup(comp: any, isAdmin = false) {
@@ -1197,8 +1201,21 @@ export default function MensagensPage() {
           .msg-list-toolbar{position:sticky;top:0;z-index:5;background:#111b21;padding:10px 12px 8px;display:flex;flex-direction:column;gap:8px;}
           .msg-list-search{width:100%;padding:9px 14px;border-radius:20px;border:none;background:#202c33;color:#e9edef;font-size:13px;font-family:inherit;}
           .msg-list-search::placeholder{color:#8696a0;}
-          .msg-list-chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;}
+          .msg-list-chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0;}
           .msg-list-chips::-webkit-scrollbar{display:none;}
+          .msg-list-chiprow{display:flex;align-items:center;gap:4px;}
+          /* Fileira de chips cortava sem nenhuma pista de que dava pra rolar
+             (achado real do Ricardo, set/2026) — setinhas nas pontas pra
+             clicar e rolar, só no desktop (no mobile já rola por toque). O
+             ⚙️ saiu da fileira e virou botão fixo ao lado da busca, sempre
+             visível — antes ficava enterrado no fim da fila. */
+          .msg-chip-arrow{display:none;}
+          @media(min-width:768px){
+            .msg-chip-arrow{flex:none;width:24px;height:24px;border-radius:50%;background:#0b141a;border:1px solid #3a4a52;color:#cfd6da;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;}
+            .msg-chip-arrow:hover{background:#2a3942;}
+          }
+          .msg-list-gear{flex:none;width:34px;height:34px;border-radius:50%;background:#202c33;border:1.5px solid #2f3b43;color:#e9edef;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;}
+          .msg-list-gear:hover{background:#2a3942;}
           .msg-list-chip{flex:none;padding:6px 14px;border-radius:16px;border:none;background:#202c33;color:#cfd6da;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;}
           .msg-list-chip.on{background:#00a884;color:#fff;}
 
@@ -1460,24 +1477,30 @@ export default function MensagensPage() {
             <div className="msg-list">
               {contactActionsFor && <div className="msg-actions-backdrop" onClick={() => setContactActionsFor(null)} />}
               <div className="msg-list-toolbar">
-                <input
-                  className="msg-list-search" placeholder="Pesquisar conversa"
-                  value={contactSearch} onChange={e => setContactSearch(e.target.value)}
-                />
-                <div className="msg-list-chips">
-                  <button className={`msg-list-chip ${contactFilter === 'todas' ? 'on' : ''}`} onClick={() => setContactFilter('todas')}>Todas</button>
-                  <button className={`msg-list-chip ${contactFilter === 'nao_lidas' ? 'on' : ''}`} onClick={() => setContactFilter('nao_lidas')}>Não lidas</button>
-                  <button className={`msg-list-chip ${contactFilter === 'arquivadas' ? 'on' : ''}`} onClick={() => setContactFilter('arquivadas')}>Arquivadas</button>
-                  <button className="msg-list-chip" onClick={() => setStarredOpen(true)}>⭐ Marcadas</button>
-                  <button className={`msg-list-chip ${tagFilterIds.length ? 'on' : ''}`} onClick={() => setTagFilterOpen(v => !v)}>🏷️ Etiquetas{tagFilterIds.length > 0 ? ` (${tagFilterIds.length})` : ''} ▾</button>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input
+                    className="msg-list-search" placeholder="Pesquisar conversa"
+                    value={contactSearch} onChange={e => setContactSearch(e.target.value)}
+                  />
                   <button
-                    className="msg-list-chip" title="Atendente IA e resposta automática"
+                    className="msg-list-gear" title="Atendente IA e resposta automática"
                     onClick={() => {
                       setIaDraft({ enabled: !!company?.crm_ia_enabled, extra: company?.crm_ia_prompt_extra || '' })
                       setAutoReplyDraft({ enabled: !!company?.crm_auto_reply_enabled, text: company?.crm_auto_reply_text || '' })
                       setAutoReplyOpen(true)
                     }}
                   >⚙️</button>
+                </div>
+                <div className="msg-list-chiprow">
+                  <button className="msg-chip-arrow" title="Rolar pra trás" onClick={() => scrollChips(-1)}>‹</button>
+                  <div className="msg-list-chips" ref={chipsScrollRef}>
+                    <button className={`msg-list-chip ${contactFilter === 'todas' ? 'on' : ''}`} onClick={() => setContactFilter('todas')}>Todas</button>
+                    <button className={`msg-list-chip ${contactFilter === 'nao_lidas' ? 'on' : ''}`} onClick={() => setContactFilter('nao_lidas')}>Não lidas</button>
+                    <button className={`msg-list-chip ${contactFilter === 'arquivadas' ? 'on' : ''}`} onClick={() => setContactFilter('arquivadas')}>Arquivadas</button>
+                    <button className="msg-list-chip" onClick={() => setStarredOpen(true)}>⭐ Marcadas</button>
+                    <button className={`msg-list-chip ${tagFilterIds.length ? 'on' : ''}`} onClick={() => setTagFilterOpen(v => !v)}>🏷️ Etiquetas{tagFilterIds.length > 0 ? ` (${tagFilterIds.length})` : ''} ▾</button>
+                  </div>
+                  <button className="msg-chip-arrow" title="Rolar pra frente" onClick={() => scrollChips(1)}>›</button>
                 </div>
                 {tagFilterOpen && (
                   <div className="msg-tagfilter-pop">

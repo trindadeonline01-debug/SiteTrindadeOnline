@@ -132,7 +132,7 @@ async function buildContext(companyId: string): Promise<string | null> {
       `${p.name}: ` + p.groups.filter((g: any) => (g.options || []).length > 0)
         .map((g: any) => `${g.name} (${g.options.map(opcaoLabel).join(', ')})`).join(' · ')
     )
-    linhas.push('Opções/variações cadastradas por produto, com o valor de cada uma (use isso pra responder pergunta sobre opcional/variação de um produto específico, incluindo se cobra e quanto — ex: "o camarão vem limpo?", "cobra pra limpar? quanto?" — mas isso NÃO é o preço base do produto, esse continua sendo só pelo link do cardápio):\n' + linhasProdutos.join('\n'))
+    linhas.push('Opções/variações cadastradas por produto, com o valor de cada uma (use isso pra responder pergunta sobre opcional/variação de um produto específico, incluindo se cobra e quanto — ex: "o camarão vem limpo?", "cobra pra limpar? quanto?" — mas isso NÃO é o preço base do produto, esse continua sendo só pelo link do cardápio). IMPORTANTE sobre esse valor: é sempre por UNIDADE do produto (ou por kg, quando o produto é vendido por peso) — se o cliente pedir mais de uma unidade ou mais peso, o valor da opção multiplica junto, mesma lógica do carrinho de verdade. Ex: "a limpeza do camarão é R$X por quilo — se pedir 2kg com limpeza, fica R$X×2". Deixe isso claro quando o cliente perguntar sobre quantidade maior que 1.\n' + linhasProdutos.join('\n'))
   }
 
   if (company.crm_ia_prompt_extra?.trim()) {

@@ -4,6 +4,7 @@ import { isOpenNow } from '@/lib/businessHours'
 import { normalizePhone } from '@/lib/phone'
 import { sendCustomerWhatsApp } from '@/lib/whatsapp'
 import { pedeHumano, gerarRespostaIA } from '@/lib/crmIA'
+import { transcreverAudioWhatsApp } from '@/lib/transcreverAudio'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -214,6 +215,12 @@ export async function POST(req: NextRequest) {
 
     if (event.includes('messages.upsert') || event.includes('messages_upsert')) {
       const msgs: any[] = Array.isArray(data?.messages) ? data.messages : Array.isArray(data) ? data : data ? [data] : []
+      // Mesma empresa pro lote inteiro — busca uma vez só fora do loop (antes
+      // vinha depois, refeita a cada mensagem individual à toa).
+      const { data: company } = await supabase
+        .from('companies')
+        .select('owner_id, name, crm_auto_reply_enabled, crm_auto_reply_text, flexible_hours, store_paused, store_forced_open, crm_ia_enabled')
+        .eq('id', inst.company_id).maybeSingle()
       for (const msg of msgs) {
         const remoteJid: string = msg?.key?.remoteJid || ''
         if (!remoteJid || remoteJid.includes('@g.us')) continue // ignora grupo, CRM é 1:1
@@ -327,6 +334,15 @@ export async function POST(req: NextRequest) {
               contentType: mimetype || 'application/octet-stream',
             })
             if (!upErr) mediaPath = path
+
+            // Transcreve voz recebida pra texto — só nas empresas com o
+            // atendente de IA ativo (é o motivo de existir; ver
+            // src/lib/transcreverAudio.ts). Falha ou sem chave configurada
+            // deixa `text` como estava (null), e o fluxo mais abaixo já cai
+            // sozinho no aviso de "ainda não consigo ouvir áudio".
+            if (mediaType === 'audio' && direction === 'in' && company?.crm_ia_enabled) {
+              text = await transcreverAudioWhatsApp(buf, mimetype || 'audio/ogg')
+            }
           } catch {}
         }
 
@@ -386,10 +402,6 @@ export async function POST(req: NextRequest) {
           continue
         }
 
-        const { data: company } = await supabase
-          .from('companies')
-          .select('owner_id, name, crm_auto_reply_enabled, crm_auto_reply_text, flexible_hours, store_paused, store_forced_open, crm_ia_enabled')
-          .eq('id', inst.company_id).maybeSingle()
         if (company?.owner_id && !existing?.muted) {
           const notifBody = previewText
           // Precisa de `await` de verdade — sem isso a função serverless pode

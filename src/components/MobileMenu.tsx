@@ -69,6 +69,14 @@ export default function MobileMenu() {
     window.location.href = '/'
   }
 
+  // Dono com mais de 1 negócio (membership) — grava qual empresa abrir
+  // antes de navegar pro painel, senão ele sempre cai na mais antiga (ver
+  // seletor real em /painel/layout.tsx, que lê essa mesma chave).
+  function abrirNegocio(businessId: string) {
+    if (user) { try { localStorage.setItem(`painel_empresa_ativa_${user.id}`, businessId) } catch {} }
+    window.location.href = '/painel'
+  }
+
   return (
     <>
       <style>{`
@@ -101,7 +109,7 @@ export default function MobileMenu() {
         .mm-divider{height:1px;background:var(--line);margin:8px 0;}
         .mm-sair{color:var(--alert);}
         .mm-switcher{padding:6px 16px 2px;display:flex;flex-direction:column;gap:6px;}
-        .mm-idcard{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:9px;border:1.5px dotted var(--sign);background:transparent;font-size:13px;font-weight:700;color:var(--ink-2);text-decoration:none;}
+        .mm-idcard{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:9px;border:1.5px dotted var(--sign);background:transparent;font-size:13px;font-weight:700;color:var(--ink-2);text-decoration:none;width:100%;text-align:left;font-family:inherit;cursor:pointer;}
         .mm-idcard.active{background:var(--sign);border-style:solid;border-color:var(--sign);color:var(--ink);}
         .mm-idico{width:24px;height:24px;border-radius:6px;background:#333;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;}
         .mm-idcard.active .mm-idico{background:var(--ink);color:var(--sign);}
@@ -152,9 +160,9 @@ export default function MobileMenu() {
               <span className="mm-idico">👤</span> Pessoal {!inPainel && <span className="mm-idtag">● aqui</span>}
             </a>
             {businesses.map(b => (
-              <a key={b.id} className={`mm-idcard ${inPainel ? 'active' : ''}`} href="/painel" style={{ marginTop: 6 }}>
+              <button key={b.id} className={`mm-idcard ${inPainel ? 'active' : ''}`} style={{ marginTop: 6 }} onClick={() => abrirNegocio(b.id)}>
                 <span className="mm-idico">🏭</span> {b.name} {inPainel && <span className="mm-idtag">● aqui</span>}
-              </a>
+              </button>
             ))}
           </div>
         </>
@@ -176,9 +184,9 @@ export default function MobileMenu() {
                     <span className="mm-idico">👤</span> Pessoal {!inPainel && <span className="mm-idtag">● aqui</span>}
                   </a>
                   {businesses.map(b => (
-                    <a key={b.id} className={`mm-idcard ${inPainel ? 'active' : ''}`} href="/painel">
+                    <button key={b.id} className={`mm-idcard ${inPainel ? 'active' : ''}`} onClick={() => abrirNegocio(b.id)}>
                       <span className="mm-idico">🏭</span> {b.name} {inPainel ? <span className="mm-idtag">● aqui</span> : <span className="mm-idarrow">→</span>}
-                    </a>
+                    </button>
                   ))}
                   {businesses.length === 0 && (
                     <a className="mm-idcard mm-idcard-add" href="/anunciar">

@@ -67,7 +67,13 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
   const [avaliacoesBadge, setAvaliacoesBadge] = useState(0)
   const [pedidosBadge, setPedidosBadge] = useState(0)
   const [activeOverride, setActiveOverride] = useState<EmpresaNavKey | null>(null)
-  const [switcherExtras, setSwitcherExtras] = useState<{ companies?: SwitcherCompany[]; onSwitchCompany?: (c: SwitcherCompany) => void } | null>(null)
+  // Todos os negócios do dono logado (não só o ativo) — alimenta o
+  // seletor "es-switch-list" da sidebar em QUALQUER tela do painel, não só
+  // no Dashboard. Fica vazio pro admin em modo impersonação (?empresa=),
+  // que nunca vê seletor. set/2026: caso real Marilene (Calçada do Peixe +
+  // Peixaria Trindade LTDA), dono com 2+ negócios só ligados via
+  // membership/owner_id, precisando trocar de um pro outro sem deslogar.
+  const [ownerCompanies, setOwnerCompanies] = useState<any[]>([])
   const [printerName, setPrinterNameState] = useState('')
   const [autoAceitar, setAutoAceitarState] = useState(true)
   // Refs pra leitura dentro do handler de realtime, criado uma vez só por
@@ -90,6 +96,38 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
   async function refreshPedidosBadge(companyId: string) {
     const { count } = await supabase.from('loja_pedidos').select('id', { count: 'exact', head: true }).eq('company_id', companyId).eq('status', 'recebido')
     setPedidosBadge(count || 0)
+  }
+  async function refreshAvaliacoesBadge(companyId: string) {
+    const { data: revs } = await supabase.from('reviews').select('*, response:review_responses(text)').eq('company_id', companyId)
+    setAvaliacoesBadge((revs || []).filter((r: any) => !r.response || (Array.isArray(r.response) && r.response.length === 0)).length)
+  }
+  // Aplica os dados da empresa ativa no shell — usado tanto na resolução
+  // inicial quanto ao trocar de negócio pelo seletor da sidebar.
+  // forceUnlocked só é true pro admin em impersonação (?empresa=): cadeado
+  // de plano não pode travar o próprio admin testando/configurando.
+  function applyActiveCompany(comp: any, forceUnlocked = false) {
+    setCompany({
+      id: comp.id, name: comp.name, slug: comp.slug,
+      loja_digital_enabled: forceUnlocked || moduleActive(comp.loja_digital_enabled, comp.trial_modules_until),
+      crm_whatsapp_enabled: forceUnlocked || moduleActive(comp.crm_whatsapp_enabled, comp.trial_modules_until),
+      entrega_enabled: forceUnlocked || moduleActive(comp.entrega_enabled, comp.trial_modules_until),
+      entrega_chamada_automatica: comp.entrega_chamada_automatica !== false,
+    })
+    setAutoAceitarState(comp.loja_auto_aceitar_pedidos !== false)
+    setPrinterNameState(comp.loja_impressora_nome || '')
+    refreshAvaliacoesBadge(comp.id)
+    refreshPedidosBadge(comp.id)
+  }
+  // Troca a empresa ativa entre os negócios do mesmo dono — a seleção fica
+  // salva por conta (localStorage) pra sobreviver a reload/navegação.
+  function switchCompany(id: string) {
+    const comp = ownerCompanies.find((c: any) => c.id === id)
+    if (!comp) return
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) return
+      try { localStorage.setItem(`painel_empresa_ativa_${session.user.id}`, id) } catch {}
+    })
+    applyActiveCompany(comp)
   }
 
   // Destrava o áudio a cada toque/clique na tela — celular exige um gesto
@@ -134,33 +172,28 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
       } else if (profile?.user_type === 'company') {
         const { data } = await supabase.from('companies')
           .select(COMPANY_SELECT)
-          .eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
-        comp = data
+          .eq('owner_id', session.user.id).order('created_at', { ascending: true })
+        const list = data || []
+        if (!cancelled) setOwnerCompanies(list)
+        // Empresa ativa: a última escolhida no seletor (persistida por
+        // conta), se ainda estiver na lista — senão a mais antiga, como
+        // sempre foi. Dono com 1 negócio só nunca vê o seletor (ownerCompanies
+        // com 1 item), então esse ramo é irrelevante pra ele.
+        let savedId: string | null = null
+        try { savedId = localStorage.getItem(`painel_empresa_ativa_${session.user.id}`) } catch {}
+        comp = (savedId && list.find((c: any) => c.id === savedId)) || list[0] || null
       } else if (profile?.user_type !== 'admin') {
         window.location.href = '/'; return
       }
       if (cancelled) return
 
-      if (comp) {
-        // Admin editando o cardápio de uma empresa (?empresa=) precisa
-        // acessar toda função do painel pra configurar/testar por ela,
-        // mesmo que o plano dela não tenha os módulos ativos — pedido do
-        // Ricardo, set/2026: cadeado de plano não pode travar o próprio
-        // admin. Só afeta o que aparece nessa sessão de impersonação; não
-        // muda o módulo real da empresa no banco.
-        setCompany({
-          id: comp.id, name: comp.name, slug: comp.slug,
-          loja_digital_enabled: adminOverride || moduleActive(comp.loja_digital_enabled, comp.trial_modules_until),
-          crm_whatsapp_enabled: adminOverride || moduleActive(comp.crm_whatsapp_enabled, comp.trial_modules_until),
-          entrega_enabled: adminOverride || moduleActive(comp.entrega_enabled, comp.trial_modules_until),
-          entrega_chamada_automatica: comp.entrega_chamada_automatica !== false,
-        })
-        setAutoAceitarState(comp.loja_auto_aceitar_pedidos !== false)
-        setPrinterNameState(comp.loja_impressora_nome || '')
-        const { data: revs } = await supabase.from('reviews').select('*, response:review_responses(text)').eq('company_id', comp.id)
-        if (!cancelled) setAvaliacoesBadge((revs || []).filter((r: any) => !r.response || (Array.isArray(r.response) && r.response.length === 0)).length)
-        if (!cancelled) refreshPedidosBadge(comp.id)
-      }
+      // Admin editando o cardápio de uma empresa (?empresa=) precisa
+      // acessar toda função do painel pra configurar/testar por ela, mesmo
+      // que o plano dela não tenha os módulos ativos — pedido do Ricardo,
+      // set/2026: cadeado de plano não pode travar o próprio admin. Só
+      // afeta o que aparece nessa sessão de impersonação; não muda o
+      // módulo real da empresa no banco.
+      if (comp) applyActiveCompany(comp, adminOverride)
       setLoading(false)
     })
     return () => { cancelled = true }
@@ -209,8 +242,10 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
 
   const active = activeOverride || deriveActiveKey(pathname, searchParams.get('tab'))
 
+  const switcherList: SwitcherCompany[] = ownerCompanies.map((c: any) => ({ id: c.id, name: c.name, slug: c.slug }))
+
   return (
-    <PainelShellContext.Provider value={{ company, loading, isAdminMode, setActiveOverride, setSwitcherExtras, printerName, autoAceitar, setPrinterName, setAutoAceitar }}>
+    <PainelShellContext.Provider value={{ company, loading, isAdminMode, setActiveOverride, printerName, autoAceitar, setPrinterName, setAutoAceitar }}>
       <EmpresaShell
         active={active}
         companyName={company?.name}
@@ -220,8 +255,8 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
         entregaEnabled={company?.entrega_enabled}
         avaliacoesBadge={avaliacoesBadge}
         pedidosBadge={pedidosBadge}
-        companies={switcherExtras?.companies as any}
-        onSwitchCompany={switcherExtras?.onSwitchCompany as any}
+        companies={switcherList.length > 1 ? switcherList : undefined}
+        onSwitchCompany={switcherList.length > 1 ? (c) => switchCompany(c.id) : undefined}
         adminEmpresaId={isAdminMode ? adminEmpresaId ?? undefined : undefined}
       >
         {isAdminMode && (

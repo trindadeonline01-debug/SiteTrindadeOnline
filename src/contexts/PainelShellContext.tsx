@@ -2,8 +2,6 @@
 import { createContext, useContext } from 'react'
 import type { EmpresaNavKey } from '@/components/EmpresaShell'
 
-type SwitcherCompany = { id: string; name: string; slug?: string }
-
 export type ShellCompany = {
   id: string; name: string; slug: string
   loja_digital_enabled: boolean; crm_whatsapp_enabled: boolean; entrega_enabled: boolean; entrega_chamada_automatica: boolean
@@ -28,9 +26,6 @@ type PainelShellValue = {
   // páginas, mas /painel e /painel/pessoal trocam de aba sem sempre mudar
   // a URL — essas páginas usam esse override pra corrigir o destaque.
   setActiveOverride: (key: EmpresaNavKey | null) => void
-  // Só /painel usa hoje (troca entre negócios do mesmo dono) — as outras
-  // páginas nunca chamam isso, então o seletor simplesmente não aparece.
-  setSwitcherExtras: (extras: { companies?: SwitcherCompany[]; onSwitchCompany?: (c: SwitcherCompany) => void } | null) => void
   // Nome da impressora configurada e se aceita pedido automático — moraram
   // antes só dentro de /painel/pedidos, mas a impressão automática precisa
   // rodar a partir do layout (persiste entre navegações) pra não depender
@@ -47,7 +42,6 @@ export const PainelShellContext = createContext<PainelShellValue>({
   loading: true,
   isAdminMode: false,
   setActiveOverride: () => {},
-  setSwitcherExtras: () => {},
   printerName: '',
   autoAceitar: true,
   setPrinterName: () => {},

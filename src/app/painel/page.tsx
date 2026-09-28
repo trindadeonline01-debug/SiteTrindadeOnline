@@ -89,23 +89,17 @@ export default function PainelPage() {
       supabase.from('coupons').select('*, redemptions:coupon_redemptions(id,status)').eq('company_id', company.id).order('created_at', {ascending:false}).then(({data}) => setMyCoupons(data||[]))
     }
   }, [tab, company?.id])
-  const [companies, setCompanies]   = useState<Company[]>([])
-
   // A sidebar mora no layout persistente de /painel — essa página troca de
   // aba sem sempre mudar a URL, então avisa o layout via contexto qual item
-  // destacar e (só aqui) qual seletor de negócio mostrar.
-  const { company: shellCompany, loading: shellLoading, isAdminMode, setActiveOverride, setSwitcherExtras } = usePainelShell()
+  // destacar. O seletor de negócio (troca entre empresas do mesmo dono)
+  // também mora lá agora, funciona em qualquer tela do painel, não só
+  // aqui — essa página só reage quando shellCompany.id muda (ver useEffect
+  // de loadData abaixo).
+  const { company: shellCompany, loading: shellLoading, isAdminMode, setActiveOverride } = usePainelShell()
   useEffect(() => {
     setActiveOverride((tab === 'painel' ? 'dashboard' : tab) as EmpresaNavKey)
     return () => setActiveOverride(null)
   }, [tab])
-  useEffect(() => {
-    setSwitcherExtras({
-      companies,
-      onSwitchCompany: (c) => { const full = companies.find(x => x.id === c.id); if (full) { setCompany(full); setTab('painel') } },
-    })
-    return () => setSwitcherExtras(null)
-  }, [companies])
 
   const [reviews, setReviews]       = useState<Review[]>([])
   const [highlights, setHighlights] = useState<Highlight[]>([])
@@ -184,38 +178,33 @@ export default function PainelPage() {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { window.location.href = '/login'; return }
       const { data: profile } = await supabase.from('profiles').select('user_type, name').eq('id', session.user.id).single()
+      setOwnerEmail(session.user.email || '')
+      setOwnerName(profile?.name || '')
       if (profile?.user_type === 'admin') {
         // Admin só cai aqui vindo de "Editar cardápio"/etc com ?empresa=<id>
         // (o layout já resolveu qual empresa é essa) — sem isso, não tem o
         // que mostrar, volta pro painel admin.
         if (!shellCompany) { window.location.href = '/admin'; return }
-        setOwnerEmail(session.user.email || '')
-        setOwnerName(profile?.name || '')
-        loadData(session.user.id, shellCompany.id)
+        loadData(shellCompany.id)
         return
       }
-      setOwnerEmail(session.user.email || '')
-      setOwnerName(profile?.name || '')
       if (profile?.user_type !== 'company') { window.location.href = '/'; return }
-      loadData(session.user.id)
+      // shellCompany é a empresa ATIVA (dono pode ter mais de uma — ver
+      // seletor na sidebar, resolvido em /painel/layout.tsx). Sem empresa
+      // nenhuma ainda (não deveria acontecer fora do onboarding), só para
+      // de carregar em vez de travar num loadData sem id.
+      if (!shellCompany) { setLoading(false); return }
+      loadData(shellCompany.id)
     })
   }, [shellLoading, shellCompany?.id])
 
-  async function loadData(userId: string, forceCompanyId?: string) {
+  async function loadData(companyId: string) {
     setLoading(true)
-    const { data: comps } = forceCompanyId
-      ? await supabase
-          .from('companies')
-          .select('*, category_id, category:categories(name,emoji), photos:company_photos(id,url,order), hours:company_hours(id,label,hours,order,day_of_week,open_time,close_time,closed)')
-          .eq('id', forceCompanyId)
-      : await supabase
-          .from('companies')
-          .select('*, category_id, category:categories(name,emoji), photos:company_photos(id,url,order), hours:company_hours(id,label,hours,order,day_of_week,open_time,close_time,closed)')
-          .eq('owner_id', userId)
-          .order('created_at', {ascending: true})
-
-    const comp = comps?.[0] || null
-    setCompanies((comps || []) as any)
+    const { data: comp } = await supabase
+      .from('companies')
+      .select('*, category_id, category:categories(name,emoji), photos:company_photos(id,url,order), hours:company_hours(id,label,hours,order,day_of_week,open_time,close_time,closed)')
+      .eq('id', companyId)
+      .maybeSingle()
 
     if (comp) {
       setCompany(comp)
@@ -505,17 +494,15 @@ export default function PainelPage() {
       const { data: url } = supabase.storage.from('company-photos').getPublicUrl(path)
       await supabase.from('company_photos').insert({company_id:company.id, url:url.publicUrl, order})
       showToast('Foto adicionada!')
-      const { data:{session} } = await supabase.auth.getSession()
-      if (session) loadData(session.user.id)
+      loadData(company.id)
     }
   }
 
   async function removePhoto(photoId: string) {
-    if (!confirm('Remover essa foto?')) return
+    if (!confirm('Remover essa foto?') || !company) return
     await supabase.from('company_photos').delete().eq('id', photoId)
     showToast('Foto removida.')
-    const { data:{session} } = await supabase.auth.getSession()
-    if (session) loadData(session.user.id)
+    loadData(company.id)
   }
 
   async function sendReply(reviewId: string) {
@@ -523,8 +510,7 @@ export default function PainelPage() {
     await supabase.from('review_responses').insert({review_id:reviewId, company_id:company.id, text:replyText})
     setReplyId(null); setReplyText('')
     showToast('Resposta publicada!')
-    const { data:{session} } = await supabase.auth.getSession()
-    if (session) loadData(session.user.id)
+    loadData(company.id)
   }
 
   async function flagReview(reviewId: string) {

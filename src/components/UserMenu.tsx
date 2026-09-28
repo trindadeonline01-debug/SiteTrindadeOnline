@@ -34,6 +34,14 @@ export default function UserMenu({ user, userType, isProdTeam }: { user: any; us
     window.location.href = '/'
   }
 
+  // Dono com mais de 1 negócio (membership) — grava qual empresa abrir
+  // antes de navegar pro painel, senão ele sempre cai na mais antiga (ver
+  // seletor real em /painel/layout.tsx, que lê essa mesma chave).
+  function abrirNegocio(businessId: string) {
+    if (user) { try { localStorage.setItem(`painel_empresa_ativa_${user.id}`, businessId) } catch {} }
+    window.location.href = '/painel'
+  }
+
   if (!user) return null
 
   return (
@@ -47,7 +55,7 @@ export default function UserMenu({ user, userType, isProdTeam }: { user: any; us
         .um-divider{height:1px;background:var(--line);margin:6px 0;}
         .um-sair{color:var(--alert);}
         .um-switcher{padding:8px 10px 4px;display:flex;flex-direction:column;gap:6px;}
-        .um-idcard{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;border:1.5px dotted var(--sign);background:transparent;font-size:13px;font-weight:700;color:var(--ink);text-decoration:none;}
+        .um-idcard{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;border:1.5px dotted var(--sign);background:transparent;font-size:13px;font-weight:700;color:var(--ink);text-decoration:none;width:100%;text-align:left;font-family:inherit;cursor:pointer;}
         .um-idcard.active{background:var(--sign);border-style:solid;border-color:var(--sign);color:var(--ink);}
         .um-idico{width:26px;height:26px;border-radius:7px;background:#333;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
         .um-idcard.active .um-idico{background:var(--ink);color:var(--sign);}
@@ -68,9 +76,9 @@ export default function UserMenu({ user, userType, isProdTeam }: { user: any; us
               <span className="um-idico">👤</span> Pessoal <span className="um-idtag">● aqui</span>
             </div>
             {businesses.map(b => (
-              <a key={b.id} className="um-idcard" href="/painel">
+              <button key={b.id} className="um-idcard" onClick={() => abrirNegocio(b.id)}>
                 <span className="um-idico">📊</span> {b.name} <span className="um-idarrow">→</span>
-              </a>
+              </button>
             ))}
             {businesses.length === 0 && (
               <a className="um-idcard um-idcard-add" href="/anunciar">

@@ -1705,7 +1705,7 @@ export default function AdminPage() {
         .emp-icon-btn:hover { border-color: var(--sign-dark); }
         .emp-toggle { width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; cursor: pointer; border: none; flex: none; }
         .emp-toggle.on { background: #E4F3EC; color: #157A52; border: 1.5px solid #bfe3d2; }
-        .emp-toggle.off { background: #F5F5F5; color: #bbb; border: 1.5px solid #ececec; }
+        .emp-toggle.off { background: #FEF0F0; color: #E24B4A; border: 1.5px solid #F3C6C6; }
         .emp-sep { width: 1px; height: 20px; background: #eee; flex: none; margin: 0 2px; }
         .emp-kebab-wrap { position: relative; flex: none; }
         .emp-menu-backdrop { position: fixed; inset: 0; z-index: 25; }

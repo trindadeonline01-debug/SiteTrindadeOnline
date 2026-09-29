@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
-type IconKey = 'home' | 'store' | 'users' | 'ticket' | 'person' | 'menu'
+type IconKey = 'home' | 'store' | 'users' | 'ticket' | 'person' | 'menu' | 'utensils'
 
 function NavIcon({ name }: { name: IconKey }) {
   const common = { width: 22, height: 22, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
@@ -20,6 +20,8 @@ function NavIcon({ name }: { name: IconKey }) {
       return <svg {...common}><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 4-6 8-6s8 2 8 6" /></svg>
     case 'menu':
       return <svg {...common}><line x1="4" y1="7" x2="20" y2="7" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="17" x2="20" y2="17" /></svg>
+    case 'utensils':
+      return <svg {...common}><path d="M7 3v7a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V3" /><path d="M9 12v9" /><path d="M16 3c-1.1 0-2 1.34-2 3v4c0 1.1.9 2 2 2s2-.9 2-2" /><path d="M16 3v18" /></svg>
   }
 }
 
@@ -60,6 +62,9 @@ const PESSOAL_LINKS = [
 // Comunidade · Perfil. Empresas/Comunidade abrem uma folha compacta com
 // os links da família, em vez de navegar — não existe hoje uma página
 // "todas as empresas" nem "toda a comunidade" pra linkar direto.
+// O 3º item vira Cardápio (→ /peca-agora) pra quem está logado — pedido
+// do Ricardo, set/2026, mockup aprovado: bolinha de destaque amarela em
+// vez da vermelha de Ofertas. Deslogado continua vendo Ofertas normal.
 export default function BottomNav() {
   const [user, setUser] = useState<any>(null)
   const [show, setShow] = useState(false)
@@ -113,11 +118,19 @@ export default function BottomNav() {
           <span style={{lineHeight:1,marginBottom:3,display:'flex'}}><NavIcon name="store" /></span>
           Empresas
         </button>
-        <a href="/ofertas" style={navItemStyle(pathname === '/ofertas')}>
-          <span style={{position:'absolute',top:6,right:'calc(50% - 14px)',width:7,height:7,background:'var(--alert)',borderRadius:'50%',border:'1.5px solid var(--ink)'}}/>
-          <span style={{lineHeight:1,marginBottom:3,display:'flex'}}><NavIcon name="ticket" /></span>
-          Ofertas
-        </a>
+        {user ? (
+          <a href="/peca-agora" style={navItemStyle(pathname === '/peca-agora')}>
+            <span style={{position:'absolute',top:6,right:'calc(50% - 14px)',width:7,height:7,background:'var(--sign)',borderRadius:'50%',border:'1.5px solid var(--ink)'}}/>
+            <span style={{lineHeight:1,marginBottom:3,display:'flex'}}><NavIcon name="utensils" /></span>
+            Cardápio
+          </a>
+        ) : (
+          <a href="/ofertas" style={navItemStyle(pathname === '/ofertas')}>
+            <span style={{position:'absolute',top:6,right:'calc(50% - 14px)',width:7,height:7,background:'var(--alert)',borderRadius:'50%',border:'1.5px solid var(--ink)'}}/>
+            <span style={{lineHeight:1,marginBottom:3,display:'flex'}}><NavIcon name="ticket" /></span>
+            Ofertas
+          </a>
+        )}
         <button onClick={() => setSheet(s => s === 'comunidade' ? null : 'comunidade')} style={navItemStyle(comunidadeActive || sheet === 'comunidade')}>
           <span style={{lineHeight:1,marginBottom:3,display:'flex'}}><NavIcon name="users" /></span>
           Comunidade

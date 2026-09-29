@@ -1704,8 +1704,8 @@ export default function AdminPage() {
         .emp-icon-btn { width: 28px; height: 28px; border-radius: 8px; border: 1.5px solid #E0DDD8; background: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; cursor: pointer; flex: none; text-decoration: none; }
         .emp-icon-btn:hover { border-color: var(--sign-dark); }
         .emp-toggle { width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; cursor: pointer; border: none; flex: none; }
-        .emp-toggle.on { background: #E4F3EC; color: #157A52; border: 1.5px solid #bfe3d2; }
-        .emp-toggle.off { background: #FEF0F0; color: #E24B4A; border: 1.5px solid #F3C6C6; }
+        .emp-toggle.on { background: #0F8A57; color: #fff; border: 1.5px solid #0F8A57; }
+        .emp-toggle.off { background: #E0342A; color: #fff; border: 1.5px solid #E0342A; }
         .emp-sep { width: 1px; height: 20px; background: #eee; flex: none; margin: 0 2px; }
         .emp-kebab-wrap { position: relative; flex: none; }
         .emp-menu-backdrop { position: fixed; inset: 0; z-index: 25; }

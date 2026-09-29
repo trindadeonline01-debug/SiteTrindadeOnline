@@ -22,7 +22,7 @@ const getData = cache(async (slug: string, id: string) => {
   const { data: related } = await supabaseServer.from('loja_produtos')
     .select('id,name,photo_url,sale_price,promo_type,promo_value,promo_starts_at,promo_ends_at')
     .eq('company_id', company.id).eq('active', true).neq('id', id)
-    .order('display_order').limit(4)
+    .order('display_order').limit(10)
 
   return { company, produto, related: related || [] }
 })

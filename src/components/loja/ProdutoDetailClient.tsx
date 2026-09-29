@@ -144,7 +144,7 @@ export default function ProdutoDetailClient({ slug, company, produto, related }:
         .id-seller-av{width:42px;height:42px;border-radius:10px;background:var(--sign-dark);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0;}
         .id-seller-name{font-weight:700;font-size:13.5px;color:var(--ink);}
         .id-seller-m{font-size:11.5px;color:#888;margin-top:2px;}
-        .id-seller-go{margin-left:auto;font-size:12px;font-weight:700;color:var(--sign-dark);white-space:nowrap;}
+        .id-seller-go{margin-left:auto;flex-shrink:0;display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:800;color:var(--ink);white-space:nowrap;background:var(--sign);padding:9px 14px;border-radius:20px;}
         .id-obs{width:100%;border:1px solid #E0DDD8;border-radius:10px;padding:11px 12px;font-size:13px;font-family:inherit;color:#333;resize:none;margin-bottom:18px;background:#fff;}
         .id-related-h{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#888;margin:0 0 10px;}
         .id-related{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}

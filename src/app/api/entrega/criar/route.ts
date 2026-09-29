@@ -19,9 +19,16 @@ const supabaseAuth = createClient(
 // alguém ACEITA a corrida — ver o branch "aceita" em /api/entrega/webhook.
 export async function POST(req: NextRequest) {
   try {
-    const { access_token, company_id, pedido_id, customer_name, customer_phone, dropoff_address } = await req.json()
+    const { access_token, company_id, pedido_id, customer_name, customer_phone, dropoff_address, payment_method, order_value } = await req.json()
     if (!access_token || !company_id || !customer_name?.trim() || !dropoff_address?.trim()) {
       return NextResponse.json({ error: 'dados faltando' }, { status: 400 })
+    }
+    // "Nova entrega" avulsa (sem pedido_id) não tem de onde puxar forma de
+    // pagamento/valor — exige os dois no formulário. Entrega vinculada a um
+    // pedido do cardápio continua puxando isso do próprio pedido (ver
+    // entregaDispatch.ts), sem precisar mandar aqui.
+    if (!pedido_id && (!customer_phone?.trim() || !payment_method || order_value == null || Number(order_value) <= 0)) {
+      return NextResponse.json({ error: 'WhatsApp, forma de pagamento e valor do pedido são obrigatórios' }, { status: 400 })
     }
 
     const { data: userData, error: authError } = await supabaseAuth.auth.getUser(access_token)
@@ -36,6 +43,7 @@ export async function POST(req: NextRequest) {
 
     const result = await criarEntregaEChamarMotoboy({
       companyId: company_id, pedidoId: pedido_id || null, customerName: customer_name, customerPhone: customer_phone, dropoffAddress: dropoff_address,
+      paymentMethod: payment_method || null, orderValue: order_value != null ? Number(order_value) : null,
     })
     if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 })
 

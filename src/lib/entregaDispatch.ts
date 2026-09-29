@@ -169,9 +169,23 @@ export async function criarEntregaEChamarMotoboy(opts: {
   customerName: string
   customerPhone?: string | null
   dropoffAddress: string
+  paymentMethod?: string | null
+  orderValue?: number | null
 }): Promise<{ ok: true; deliveryOrderId: string; deliveryCode: string } | { ok: false; error: string }> {
   const { companyId, pedidoId, customerName, customerPhone, dropoffAddress } = opts
+  let { paymentMethod, orderValue } = opts
   if (!customerName?.trim() || !dropoffAddress?.trim()) return { ok: false, error: 'dados faltando' }
+
+  // Entrega vinculada a um pedido do próprio cardápio já tem forma de
+  // pagamento e valor lá — reaproveita em vez de pedir de novo (só a
+  // "Nova entrega" avulsa, sem pedido_id, exige isso no formulário).
+  if (pedidoId && (paymentMethod == null || orderValue == null)) {
+    const { data: pedido } = await supabase.from('loja_pedidos').select('payment_method, total').eq('id', pedidoId).maybeSingle()
+    if (pedido) {
+      if (paymentMethod == null) paymentMethod = pedido.payment_method
+      if (orderValue == null) orderValue = pedido.total != null ? Number(pedido.total) : null
+    }
+  }
 
   const { data: company } = await supabase.from('companies').select('address, entrega_enabled, trial_modules_until, loja_lat, loja_lng').eq('id', companyId).maybeSingle()
   if (!company) return { ok: false, error: 'empresa não encontrada' }
@@ -208,6 +222,7 @@ export async function criarEntregaEChamarMotoboy(opts: {
   const { data: order, error: insertErr } = await supabase.from('delivery_orders').insert({
     company_id: companyId, pedido_id: pedidoId || null, customer_name: customerName.trim(), customer_phone: customerPhone || null,
     pickup_address: company.address.trim(), dropoff_address: dropoffAddress.trim(), pickup_code: pickupCode, delivery_code: deliveryCode, fee: entregaFee,
+    payment_method: paymentMethod || null, order_value: orderValue ?? null,
   }).select('id, delivery_code').single()
   if (insertErr || !order) return { ok: false, error: insertErr?.message || 'falha ao criar entrega' }
 

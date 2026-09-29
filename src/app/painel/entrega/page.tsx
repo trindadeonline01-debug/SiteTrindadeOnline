@@ -61,7 +61,7 @@ export default function EntregaPage() {
   const companyIdRef = useRef('')
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const [novaOpen, setNovaOpen] = useState(false)
-  const [novaForm, setNovaForm] = useState({ nome: '', telefone: '', endereco: '' })
+  const [novaForm, setNovaForm] = useState({ nome: '', telefone: '', endereco: '', pagamento: '', valor: '' })
   const [novaSaving, setNovaSaving] = useState(false)
   const [novaError, setNovaError] = useState('')
   const [retrying, setRetrying] = useState<string | null>(null)
@@ -184,7 +184,11 @@ export default function EntregaPage() {
   // por telefone, WhatsApp pessoal, balcão, o que for).
   async function criarEntregaAvulsa() {
     setNovaError('')
-    if (!novaForm.nome.trim() || !novaForm.endereco.trim()) { setNovaError('Preenche nome e endereço de entrega.'); return }
+    const valorNum = Number(novaForm.valor.replace(',', '.'))
+    if (!novaForm.nome.trim() || !novaForm.telefone.trim() || !novaForm.endereco.trim() || !novaForm.pagamento || !valorNum || valorNum <= 0) {
+      setNovaError('Preenche todos os campos: nome, WhatsApp, endereço, forma de pagamento e valor do pedido.')
+      return
+    }
     setNovaSaving(true)
     const call = async () => {
       const { data: { session } } = await supabase.auth.getSession()
@@ -192,7 +196,8 @@ export default function EntregaPage() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           access_token: session?.access_token, company_id: companyId,
-          customer_name: novaForm.nome.trim(), customer_phone: novaForm.telefone.trim() || null, dropoff_address: novaForm.endereco.trim(),
+          customer_name: novaForm.nome.trim(), customer_phone: novaForm.telefone.trim(), dropoff_address: novaForm.endereco.trim(),
+          payment_method: novaForm.pagamento, order_value: valorNum,
         }),
       })
       return { r, data: await r.json() }
@@ -202,7 +207,7 @@ export default function EntregaPage() {
     setNovaSaving(false)
     if (!res.ok || data.error) { setNovaError((data.error || 'Não consegui chamar o motoboy.') + (res.status === 401 ? ' — atualiza a página (F5) e tenta de novo.' : '')); return }
     setNovaOpen(false)
-    setNovaForm({ nome: '', telefone: '', endereco: '' })
+    setNovaForm({ nome: '', telefone: '', endereco: '', pagamento: '', valor: '' })
     await loadOrders(companyId)
   }
 
@@ -519,10 +524,20 @@ export default function EntregaPage() {
             <h3 style={{ marginBottom: 10 }}>Nova entrega</h3>
             <label className="en-flabel">Nome do cliente</label>
             <input className="en-finput" value={novaForm.nome} onChange={e => setNovaForm(f => ({ ...f, nome: e.target.value }))} placeholder="Ex: Kelli Verissimo" />
-            <label className="en-flabel">WhatsApp do cliente (opcional)</label>
+            <label className="en-flabel">WhatsApp do cliente</label>
             <input className="en-finput" value={novaForm.telefone} onChange={e => setNovaForm(f => ({ ...f, telefone: e.target.value }))} placeholder="21 99999-9999" inputMode="tel" />
             <label className="en-flabel">Endereço de entrega</label>
             <input className="en-finput" value={novaForm.endereco} onChange={e => setNovaForm(f => ({ ...f, endereco: e.target.value }))} placeholder="Rua, número, bairro" />
+            <label className="en-flabel">Forma de pagamento</label>
+            <select className="en-finput" value={novaForm.pagamento} onChange={e => setNovaForm(f => ({ ...f, pagamento: e.target.value }))}>
+              <option value="">Selecionar...</option>
+              <option value="pix">Pix</option>
+              <option value="dinheiro">Dinheiro</option>
+              <option value="cartao_credito">Cartão de crédito</option>
+              <option value="cartao_debito">Cartão de débito</option>
+            </select>
+            <label className="en-flabel">Valor total do pedido</label>
+            <input className="en-finput" value={novaForm.valor} onChange={e => setNovaForm(f => ({ ...f, valor: e.target.value }))} placeholder="Ex: 45,90" inputMode="decimal" />
             {novaError && <div className="en-error">{novaError}</div>}
             <button className="en-btn en-btn-gold" style={{ width: '100%', marginTop: 12 }} disabled={novaSaving} onClick={criarEntregaAvulsa}>
               {novaSaving ? 'Chamando motoboy...' : '🏍️ Chamar motoboy'}

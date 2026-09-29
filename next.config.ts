@@ -27,6 +27,19 @@ const nextConfig: NextConfig = {
     // cota paga, e para de quebrar quando ela estoura.
     unoptimized: true,
   },
+  // Link do cardápio mudou de /empresa/[slug]/cardapio pra /cardapio/[slug]
+  // (pedido do Ricardo, set/2026) — redireciona pra sempre (301) porque já
+  // tem link antigo espalhado (QR code impresso, mensagem de WhatsApp já
+  // mandada pelos clientes/pela IA, link salvo em algum lugar).
+  async redirects() {
+    return [
+      {
+        source: '/empresa/:slug/cardapio',
+        destination: '/cardapio/:slug',
+        permanent: true,
+      },
+    ]
+  },
 };
 
 export default nextConfig;

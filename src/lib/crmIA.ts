@@ -77,7 +77,7 @@ async function buildContext(companyId: string): Promise<string | null> {
 
   const hours = (company.hours || []) as HourRow[]
   const aberta = isOpenNow(hours, company.flexible_hours, company.store_paused, company.store_forced_open)
-  const cardapioLink = `https://trindadeonline.com.br/empresa/${company.slug}/cardapio`
+  const cardapioLink = `https://trindadeonline.com.br/cardapio/${company.slug}`
 
   const linhas: string[] = []
   linhas.push(`Nome da loja: ${company.name}`)

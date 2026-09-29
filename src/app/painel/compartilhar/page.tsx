@@ -144,7 +144,7 @@ export default function CompartilharPage() {
     })
   }, [shellLoading, shellCompany?.id, isAdminMode])
 
-  const cardapioLink = company ? `https://trindadeonline.com.br/empresa/${company.slug}/cardapio` : ''
+  const cardapioLink = company ? `https://trindadeonline.com.br/cardapio/${company.slug}` : ''
 
   useEffect(() => {
     if (!cardapioLink) return

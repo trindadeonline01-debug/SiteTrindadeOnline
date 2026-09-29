@@ -445,7 +445,7 @@ export default function CatalogoPage() {
   }
 
   // Ordem das categorias aqui é a mesma ordem das seções no cardápio
-  // público (/empresa/[slug]/cardapio já busca por display_order) —
+  // público (/cardapio/[slug] já busca por display_order) —
   // arrastar aqui move a seção de verdade pro cliente. Renumera tudo do
   // zero a cada troca em vez de só trocar os dois valores, pra nunca
   // depender de display_order já estar sem furo/duplicata.

@@ -4,7 +4,7 @@ import MotoboyCadastroClient from './MotoboyCadastroClient'
 // Página estática (sem dado dinâmico) — por isso metadata fixa em vez de
 // generateMetadata. Antes essa rota herdava og:title/og:image genéricos do
 // layout raiz (tela da home), por isso o preview no WhatsApp não dizia nada
-// sobre motoboy — mesma causa já corrigida em /empresa/[slug]/cardapio.
+// sobre motoboy — mesma causa já corrigida em /cardapio/[slug].
 export const metadata: Metadata = {
   title: 'Seja motoboy parceiro — Trindade Entrega',
   description: 'Cadastro rápido pra rodar como motoboy parceiro do Trindade Entrega — pagamento por corrida, direto no WhatsApp.',

@@ -28,7 +28,7 @@ export default function CartBar() {
   // Dentro do próprio cardápio dessa loja a página já tem a barra dela,
   // calculada ao vivo do carrinho em memória — mostrar essa aqui também
   // duplicaria.
-  if (pathname === `/empresa/${cart.slug}/cardapio`) return null
+  if (pathname === `/cardapio/${cart.slug}`) return null
 
   return (
     <>
@@ -45,7 +45,7 @@ export default function CartBar() {
         .global-cartbar-txt b{font-weight:800;}
         .global-cartbar-price{font-size:14.5px;font-weight:800;flex-shrink:0;}
       `}</style>
-      <a className="global-cartbar" href={`/empresa/${cart.slug}/cardapio`}>
+      <a className="global-cartbar" href={`/cardapio/${cart.slug}`}>
         <span className="global-cartbar-txt">{cart.count} {cart.count === 1 ? 'item' : 'itens'} · Ver carrinho <b>— {cart.companyName}</b></span>
         <span className="global-cartbar-price">{fmt(cart.total)}</span>
       </a>

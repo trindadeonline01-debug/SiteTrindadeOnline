@@ -98,7 +98,7 @@ export default function ProdutoDetailClient({ slug, company, produto, related }:
       }))
       setActiveCart(slug, company.name, existingCart.reduce((s, c) => s + c.qty, 0), existingCart.reduce((s, c) => s + c.unitPrice * c.qty, 0))
     } catch {}
-    window.location.href = `/empresa/${slug}/cardapio`
+    window.location.href = `/cardapio/${slug}`
   }
 
   return (
@@ -237,7 +237,7 @@ export default function ProdutoDetailClient({ slug, company, produto, related }:
           )
         })}
 
-        <a className="id-seller" href={`/empresa/${slug}/cardapio`}>
+        <a className="id-seller" href={`/cardapio/${slug}`}>
           <span className="id-seller-av">{initials}</span>
           <span>
             <div className="id-seller-name">{company.name}</div>

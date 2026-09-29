@@ -1,7 +1,7 @@
 // Regras de preço/disponibilidade do cardápio digital — extraído de
-// /empresa/[slug]/cardapio pra ser reaproveitado também na página de
-// produto (/empresa/[slug]/item/[id]), sem duplicar a lógica de promoção
-// e de grupos de opcionais em dois lugares que podem divergir com o tempo.
+// /cardapio/[slug] pra ser reaproveitado também na página de produto
+// (/empresa/[slug]/item/[id]), sem duplicar a lógica de promoção e de
+// grupos de opcionais em dois lugares que podem divergir com o tempo.
 
 export type Opcao = { id: string; name: string; price: number; max_qty: number | null; photo_url?: string | null }
 export type Grupo = { id: string; name: string; required: boolean; min_select: number; max_select: number; pricing_rule: 'soma' | 'maior_valor'; options: Opcao[] }

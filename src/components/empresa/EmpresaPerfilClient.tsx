@@ -838,7 +838,7 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
               {(company.phone || (isActive && company.loja_digital_enabled)) && (
                 <div className="pill-row">
                   {isActive && company.loja_digital_enabled && (
-                    <a className="pill-cardapio" href={`/empresa/${company.slug}/cardapio`}>
+                    <a className="pill-cardapio" href={`/cardapio/${company.slug}`}>
                       🧾 Cardápio
                     </a>
                   )}

@@ -29,7 +29,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const title = `Cardápio ${company.name} — Trindade Online`
   const description = (company.description || '').trim()
     || `Peça pelo cardápio digital de ${company.name}, direto pelo Trindade Online.`
-  const url = `https://trindadeonline.com.br/empresa/${slug}/cardapio`
+  const url = `https://trindadeonline.com.br/cardapio/${slug}`
 
   return {
     title,

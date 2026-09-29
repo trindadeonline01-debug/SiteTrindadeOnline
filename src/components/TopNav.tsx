@@ -88,7 +88,7 @@ export default function TopNav() {
   const hasOwnSearch = pathname === '/' || pathname === '/ofertas' || pathname === '/busca' ||
     pathname.startsWith('/categoria/') ||
     ['/empregos', '/imoveis', '/desapega', '/achados-perdidos'].includes(pathname) ||
-    /^\/empresa\/[^/]+\/cardapio$/.test(pathname)
+    /^\/cardapio\/[^/]+$/.test(pathname)
 
 
   return (

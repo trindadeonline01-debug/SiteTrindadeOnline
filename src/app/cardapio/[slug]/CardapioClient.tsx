@@ -527,20 +527,36 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
         .cd-top{ background:var(--ink);padding:22px 16px 10px;text-align:center;width:100vw;margin-left:calc(50% - 50vw); }
         .cd-bc{ font-size:11px;color:#fff;font-weight:700; }
         .cd-bc a{ color:var(--sign);text-decoration:none; }
-        .cd-pagehero{ background:var(--ink);padding:32px 24px 28px;border-bottom:2px solid var(--sign);width:100vw;margin-left:calc(50% - 50vw); }
-        .cd-pagehero-inner{ display:flex;align-items:center;justify-content:center;gap:18px; }
-        .cd-pagehero-img{ width:74px;height:74px;border-radius:12px;overflow:hidden;position:relative;flex-shrink:0;border:2px solid var(--sign);display:flex;align-items:center;justify-content:center;background:linear-gradient(155deg,var(--sign-dark),#B8841A);color:#fff;font-weight:800;font-size:22px; }
+        /* Card do topo remodelado (mockup aprovado por Ricardo, set/2026):
+           nome da empresa vira o texto grande (Anton), "Cardápio" passa a
+           ser só uma etiqueta pequena acima — antes era o oposto (CARDÁPIO
+           gigante, nome pequeno numa linha só com status e nota). Os 3
+           botões de texto (Perfil/WhatsApp/Compartilhar), que empilhavam
+           numa faixa própria e às vezes quebravam em 2 linhas, viram
+           círculos só com ícone numa segunda linha ao lado do status —
+           ganha espaço vertical antes do produto aparecer. */
+        .cd-pagehero{ background:var(--ink);padding:26px 20px 26px;border-bottom:2px solid var(--sign);width:100vw;margin-left:calc(50% - 50vw); }
+        .cd-pagehero-inner{ }
+        @media(min-width:900px){ .cd-pagehero-inner{ max-width:1120px;margin:0 auto; } }
+        .cd-pagehero-top{ display:flex;align-items:center;gap:16px; }
+        .cd-pagehero-img{ width:clamp(58px,9vw,72px);height:clamp(58px,9vw,72px);border-radius:12px;overflow:hidden;position:relative;flex-shrink:0;border:2px solid var(--sign);display:flex;align-items:center;justify-content:center;background:linear-gradient(155deg,var(--sign-dark),#B8841A);color:#fff;font-weight:800;font-size:20px; }
         .cd-pagehero-img img{ width:100%;height:100%;object-fit:cover; }
-        .cd-pagehero-title{ font-family:'Anton',sans-serif;font-size:clamp(28px,5vw,42px);color:#fff;letter-spacing:1px;text-transform:uppercase;line-height:1;margin-bottom:6px; }
-        .cd-pagehero-cnt{ display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px;font-size:13px;color:#999;font-family:'Archivo',sans-serif; }
-        .cd-pagehero-cnt .op{ color:#4ADE80;font-weight:600; }
-        .cd-pagehero-cnt .cl{ color:#F87171;font-weight:600; }
-        .cd-pagehero-cnt .st{ color:var(--sign); }
-        .cd-heroactions{ display:flex;align-items:center;justify-content:center;gap:8px;margin-top:16px;flex-wrap:wrap; }
-        .cd-back-btn{ display:inline-flex;align-items:center;gap:4px;background:transparent;color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:20px;padding:7px 14px;font-size:12px;font-weight:700;text-decoration:none;font-family:'Archivo',sans-serif; }
-        .cd-back-btn:hover{ border-color:var(--sign);color:var(--sign); }
-        .cd-wa-btn{ display:inline-flex;align-items:center;gap:4px;background:#25D366;color:#0B2E13;border:none;border-radius:20px;padding:7px 14px;font-size:12px;font-weight:800;cursor:pointer;font-family:'Archivo',sans-serif; }
-        .cd-share-btn{ display:inline-flex;align-items:center;gap:4px;background:var(--sign);color:var(--ink);border:none;border-radius:20px;padding:7px 14px;font-size:12px;font-weight:800;cursor:pointer;font-family:'Archivo',sans-serif; }
+        .cd-pagehero-eyebrow{ font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--sign);margin-bottom:5px;font-family:'Archivo',sans-serif; }
+        .cd-pagehero-name{ font-family:'Anton',sans-serif;font-size:clamp(24px,5vw,34px);color:#fff;letter-spacing:.4px;line-height:1.08; }
+        .cd-pagehero-bottom{ display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-top:18px; }
+        .cd-pagehero-statusrow{ display:flex;align-items:center;flex-wrap:wrap;gap:10px; }
+        .cd-pagehero-status{ display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:800;padding:6px 13px;border-radius:20px;background:rgba(15,138,87,.18);color:#4ADE80;font-family:'Archivo',sans-serif; }
+        .cd-pagehero-status .dot{ width:6px;height:6px;border-radius:50%;background:#4ADE80; }
+        .cd-pagehero-status.closed{ background:rgba(248,113,113,.18);color:#F87171; }
+        .cd-pagehero-status.closed .dot{ background:#F87171; }
+        .cd-pagehero-rating{ font-size:12px;color:#999;font-family:'Archivo',sans-serif; }
+        .cd-pagehero-rating .st{ color:var(--sign); }
+        .cd-heroactions{ display:flex;align-items:center;gap:12px;flex-shrink:0; }
+        .cd-icobtn{ width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;border:none;cursor:pointer;text-decoration:none; }
+        .cd-icobtn.profile{ background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.28); }
+        .cd-icobtn.profile:hover{ border-color:var(--sign);color:var(--sign); }
+        .cd-icobtn.wa{ background:#25D366;color:#0B2E13; }
+        .cd-icobtn.share{ background:var(--sign);color:var(--ink); }
         .cd-coupon-strip-wrap{ background:#fff;padding:8px 0;border-bottom:1px solid var(--line); }
         .cd-coupon-strip{ display:flex;gap:6px;overflow-x:auto;padding:0 16px;scrollbar-width:none; }
         .cd-coupon-strip::-webkit-scrollbar{ display:none; }
@@ -689,24 +705,28 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
 
       <div className="cd-pagehero">
         <div className="cd-pagehero-inner">
-          <div className="cd-pagehero-img">
-            {getCompanyCover(company.photos) ? <Image src={getCompanyCover(company.photos)!} alt="" fill sizes="74px" style={{ objectFit: 'cover' }} priority /> : company.name.slice(0, 2).toUpperCase()}
-          </div>
-          <div>
-            <div className="cd-pagehero-title">CARDÁPIO</div>
-            <div className="cd-pagehero-cnt">
-              <span>{company.name}</span>
-              <span className={open ? 'op' : 'cl'}>· {open ? '● Aberto agora' : '● Fechado agora'}</span>
-              {Number(company.avg_rating || 0) > 0 && (
-                <span><span className="st">★</span> {Number(company.avg_rating).toFixed(1)} ({company.total_reviews || 0})</span>
-              )}
+          <div className="cd-pagehero-top">
+            <div className="cd-pagehero-img">
+              {getCompanyCover(company.photos) ? <Image src={getCompanyCover(company.photos)!} alt="" fill sizes="74px" style={{ objectFit: 'cover' }} priority /> : company.name.slice(0, 2).toUpperCase()}
+            </div>
+            <div>
+              <div className="cd-pagehero-eyebrow">Cardápio</div>
+              <div className="cd-pagehero-name">{company.name}</div>
             </div>
           </div>
-        </div>
-        <div className="cd-heroactions">
-          <a href={`/empresa/${company.slug}`} className="cd-back-btn">‹ Perfil da empresa</a>
-          {company.phone && <button className="cd-wa-btn" onClick={handleWhatsAppCardapio}>💬 WhatsApp</button>}
-          <button className="cd-share-btn" onClick={handleShareCardapio}>{linkCopied ? '✓ Link copiado!' : '🔗 Compartilhar'}</button>
+          <div className="cd-pagehero-bottom">
+            <div className="cd-pagehero-statusrow">
+              <span className={`cd-pagehero-status ${open ? '' : 'closed'}`}><span className="dot" />{open ? 'Aberto agora' : 'Fechado agora'}</span>
+              {Number(company.avg_rating || 0) > 0 && (
+                <span className="cd-pagehero-rating"><span className="st">★</span> {Number(company.avg_rating).toFixed(1)} ({company.total_reviews || 0})</span>
+              )}
+            </div>
+            <div className="cd-heroactions">
+              <a href={`/empresa/${company.slug}`} className="cd-icobtn profile" aria-label="Ver perfil da empresa">👤</a>
+              {company.phone && <button className="cd-icobtn wa" onClick={handleWhatsAppCardapio} aria-label="Chamar no WhatsApp">💬</button>}
+              <button className="cd-icobtn share" onClick={handleShareCardapio} aria-label={linkCopied ? 'Link copiado' : 'Compartilhar'}>{linkCopied ? '✓' : '🔗'}</button>
+            </div>
+          </div>
         </div>
       </div>
 

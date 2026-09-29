@@ -18,7 +18,7 @@
     },
     {
       "path": "/api/cron/blast-watchdog",
-      "schedule": "*/5 * * * *"
+      "schedule": "40 13 * * *"
     }
   ]
 }

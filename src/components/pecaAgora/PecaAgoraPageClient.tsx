@@ -1,6 +1,6 @@
 'use client'
+import { useState } from 'react'
 import HomePecaAgora, { PecaGroup } from '@/components/home/HomePecaAgora'
-import HomeSearchBox from '@/components/home/HomeSearchBox'
 import Footer from '@/components/Footer'
 
 // Página própria da vitrine de delivery (ESPECIFICACAO.md §7) — antes
@@ -10,6 +10,7 @@ import Footer from '@/components/Footer'
 // título/abas/filtros (faixa amarela), então essa página não duplica
 // hero nenhum, só dá a moldura (breadcrumb + busca + rodapé).
 export default function PecaAgoraPageClient({ groups }: { groups: PecaGroup[] }) {
+  const [query, setQuery] = useState('')
   return (
     <div style={{ minHeight: '100vh', background: 'var(--concrete)' }}>
       <style>{`
@@ -17,30 +18,28 @@ export default function PecaAgoraPageClient({ groups }: { groups: PecaGroup[] })
            vazio — pedido do Ricardo, set/2026 (mockup aprovado, opção
            "preto"): a barra preta cresce e absorve a busca, virando um
            bloco só até a faixa amarela começar, em vez de sobrar espaço
-           em branco à toa. Mesmo campo de busca da home (HomeSearchBox),
-           classes .hero-search-* duplicadas aqui de propósito — mesmo
-           padrão já usado em HomePecaAgora.tsx, pra essa página funcionar
-           sozinha sem depender do <style> de src/app/page.tsx. */
+           em branco à toa. Fundo branco (não amarelo) no campo — pedido
+           do Ricardo logo em seguida: "tá tudo muito amarelo", queria
+           destacar o campo por contraste com a faixa preta em vez de
+           repetir a cor da faixa amarela logo abaixo. E busca só de
+           PRODUTO, filtrando a própria vitrine em tempo real (nome do
+           produto) — não é a busca geral de empresa da home (essa usa
+           HomeSearchBox/busca); aqui o campo é local e passa a query
+           pro HomePecaAgora via prop search, que já sabe fazer esse
+           filtro (ver HomePecaAgora.tsx). */
         .pca-top { background: var(--ink); padding: 14px 20px 22px; }
         .pca-bc { max-width: 1120px; margin: 0 auto 16px; font-size: 11px; color: #fff; font-weight: 700; }
         .pca-bc a { color: var(--sign); text-decoration: none; }
         .pca-top-search { max-width: 1120px; margin: 0 auto; }
-        .hero-search-wrap { display: flex; max-width: 600px; margin: 0 auto; align-items: center; gap: 8px; background: var(--sign); border: 2.5px solid var(--ink); border-radius: 14px; padding: 6px 6px 6px 16px; box-shadow: 4px 4px 0 rgba(0,0,0,.35); }
-        .hero-search-wrap input { flex: 1; border: none; background: transparent; font-size: 15px; font-family: 'Archivo', sans-serif; font-weight: 500; color: var(--ink); outline: none; }
-        .hero-search-wrap input::placeholder { color: var(--ink-2); opacity: .55; }
-        .hero-search-btn { background: var(--ink); border: none; border-radius: 10px; padding: 9px 16px; color: var(--sign); font-size: 13px; font-weight: 700; font-family: 'Archivo', sans-serif; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
-        .search-suggestions { position: absolute; top: 100%; left: 0; right: 0; background: var(--paper); border: 2px solid var(--ink); border-radius: 12px; margin-top: 8px; box-shadow: 4px 4px 0 rgba(21,18,16,.25); z-index: 100; overflow: hidden; }
-        .sug-item { display: flex; align-items: center; gap: 10px; padding: 10px 16px; cursor: pointer; transition: background .12s; border-bottom: .5px solid var(--line); }
-        .sug-item:last-child { border-bottom: none; }
-        .sug-item:hover { background: var(--concrete-2); }
-        .sug-ico { font-size: 14px; flex-shrink: 0; }
-        .sug-label { font-size: 13px; font-weight: 600; color: var(--ink); text-align: left; font-family: 'Archivo', sans-serif; }
-        .sug-sub { font-size: 11px; color: var(--muted); margin-top: 1px; text-align: left; }
+        .pca-search-wrap { display: flex; max-width: 600px; margin: 0 auto; align-items: center; gap: 8px; background: var(--paper); border: 2.5px solid var(--sign); border-radius: 14px; padding: 6px 6px 6px 16px; box-shadow: 4px 4px 0 rgba(0,0,0,.35); }
+        .pca-search-wrap input { flex: 1; border: none; background: transparent; font-size: 15px; font-family: 'Archivo', sans-serif; font-weight: 500; color: var(--ink); outline: none; }
+        .pca-search-wrap input::placeholder { color: var(--muted); }
+        .pca-search-ico { font-size: 15px; flex-shrink: 0; color: var(--muted); }
+        .pca-search-clear { background: var(--concrete-2); border: none; border-radius: 50%; width: 22px; height: 22px; color: var(--ink-2); font-size: 13px; font-weight: 700; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; line-height: 1; }
         @media(min-width: 768px) {
           .pca-top { padding: 18px 20px 30px; }
-          .hero-search-wrap { padding: 6px 6px 6px 20px; box-shadow: 5px 5px 0 rgba(0,0,0,.35); }
-          .hero-search-wrap input { font-size: 16px; }
-          .hero-search-btn { padding: 10px 24px; font-size: 14px; }
+          .pca-search-wrap { padding: 6px 6px 6px 20px; box-shadow: 5px 5px 0 rgba(0,0,0,.35); }
+          .pca-search-wrap input { font-size: 16px; }
         }
         .pca-main { max-width: 1120px; margin: 0 auto; padding: 0 20px 40px; }
         .pca-main .pa-wrap { margin-top: 0; }
@@ -53,12 +52,25 @@ export default function PecaAgoraPageClient({ groups }: { groups: PecaGroup[] })
 
       <div className="pca-top">
         <div className="pca-bc"><a href="/">Trindade Online</a> › Peça Agora</div>
-        <div className="pca-top-search"><HomeSearchBox /></div>
+        <div className="pca-top-search">
+          <div className="pca-search-wrap">
+            <span className="pca-search-ico">🔍</span>
+            <input
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Buscar produto, tipo empadão, pizza..."
+              aria-label="Buscar produto"
+            />
+            {query && (
+              <button type="button" className="pca-search-clear" aria-label="Limpar busca" onClick={() => setQuery('')}>✕</button>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="pca-main">
         {groups.length > 0 ? (
-          <HomePecaAgora groups={groups} />
+          <HomePecaAgora groups={groups} search={query} />
         ) : (
           <div className="pca-empty">
             <div className="pca-empty-ico">🍽️</div>

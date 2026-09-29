@@ -53,7 +53,7 @@ function readCart(slug: string): CartPayload {
 // set/2026). Produto com opcional (combo, sabor, tamanho) continua indo
 // pra página do produto — lá já existe a escolha obrigatória, não vale a
 // pena duplicar essa lógica aqui.
-export default function HomePecaAgora({ groups }: { groups: PecaGroup[] }) {
+export default function HomePecaAgora({ groups, search = '' }: { groups: PecaGroup[]; search?: string }) {
   const [activeKey, setActiveKey] = useState('todas')
   const [maxPrice, setMaxPrice] = useState(0)
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
@@ -73,7 +73,18 @@ export default function HomePecaAgora({ groups }: { groups: PecaGroup[] }) {
   }, [])
 
   const active = groups.find(g => g.key === activeKey) || groups[0]
-  const items = active ? (maxPrice > 0 ? active.items.filter(i => i.price <= maxPrice) : active.items) : []
+  // Busca (pedido do Ricardo, set/2026: "ali é pra buscar produto, não
+  // aquela busca completa de empresa") — digitou algo, ignora aba e faixa
+  // de preço e procura por nome em TODO o catálogo ("Todas", que já reúne
+  // tudo exceto bebida), não só na aba selecionada.
+  const query = search.trim().toLowerCase()
+  const searching = query.length > 0
+  const todasGroup = groups.find(g => g.key === 'todas')
+  const items = searching
+    ? (todasGroup?.items || []).filter(i => i.name.toLowerCase().includes(query))
+    : active ? (maxPrice > 0 ? active.items.filter(i => i.price <= maxPrice) : active.items) : []
+
+  useEffect(() => { setVisibleCount(PAGE_SIZE) }, [search])
 
   // Rolou até perto do fim da lista carregada → revela mais PAGE_SIZE, sem
   // precisar clicar em "Ver mais" (pedido do Ricardo, set/2026: com o teto
@@ -88,7 +99,7 @@ export default function HomePecaAgora({ groups }: { groups: PecaGroup[] }) {
     }, { rootMargin: '600px' })
     observer.observe(el)
     return () => observer.disconnect()
-  }, [visibleCount, items.length, activeKey, maxPrice])
+  }, [visibleCount, items.length, activeKey, maxPrice, query])
 
   if (groups.length === 0) return null
 
@@ -160,6 +171,13 @@ export default function HomePecaAgora({ groups }: { groups: PecaGroup[] }) {
         .recent-section-title { font-family: 'Anton', sans-serif; font-size: 21px; color: var(--ink); letter-spacing: .5px; text-transform: uppercase; line-height: 1; }
         .sec-eyebrow { font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--sign-dark); font-weight: 700; margin-bottom: 4px; display: block; font-family: 'Archivo', sans-serif; }
         .oa-empty { font-size: 13px; color: var(--muted); padding: 12px 0 4px; }
+        /* Buscando produto (pedido do Ricardo, set/2026): troca a faixa
+           amarela de categorias + filtro de preço por essa linha simples
+           dizendo o que foi buscado — a busca já filtra o catálogo inteiro,
+           não faz sentido manter aba/faixa de preço junto. */
+        .pa-search-hdr { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 0 0 16px; padding: 0 2px; font-size: 13px; color: var(--ink-2); font-family: 'Archivo', sans-serif; }
+        .pa-search-hdr b { color: var(--ink); }
+        .pa-search-count { font-size: 11.5px; color: var(--muted); white-space: nowrap; }
 
         /* PEÇA AGORA — vitrine de delivery. .recent-section/.sec-hdr
            empilhavam 48px + 32px de margem-topo (~80px de vazio antes do
@@ -237,32 +255,41 @@ export default function HomePecaAgora({ groups }: { groups: PecaGroup[] }) {
         .pa-pick { display: inline-flex; align-items: center; gap: 3px; background: var(--concrete-2); border: 1px solid var(--line); color: var(--ink-2); font-size: 10px; font-weight: 800; padding: 6px 10px; border-radius: 20px; text-decoration: none; white-space: nowrap; }
         .pa-pick:hover { border-color: var(--sign-dark); }
       `}</style>
-      <div className="pa-band">
-        <div className="pa-band-inner">
-          <div className="pa-hdr">
-            <h2 className="recent-section-title">🍔 Peça agora</h2>
-            <span className="sec-eyebrow pa-eyebrow">Delivery na Trindade</span>
+      {searching ? (
+        <div className="pa-search-hdr">
+          <span>Resultados para <b>&ldquo;{search.trim()}&rdquo;</b></span>
+          <span className="pa-search-count">{items.length} {items.length === 1 ? 'produto' : 'produtos'}</span>
+        </div>
+      ) : (
+        <>
+          <div className="pa-band">
+            <div className="pa-band-inner">
+              <div className="pa-hdr">
+                <h2 className="recent-section-title">🍔 Peça agora</h2>
+                <span className="sec-eyebrow pa-eyebrow">Delivery na Trindade</span>
+              </div>
+
+              <div className="pa-scroll">
+                {groups.map(g => (
+                  <div key={g.key} className={`pa-item ${activeKey === g.key ? 'on' : ''}`} onClick={() => changeTab(g.key)}>
+                    <div className="pa-photo">{g.emoji}</div>
+                    <span className="pa-lbl">{g.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
-          <div className="pa-scroll">
-            {groups.map(g => (
-              <div key={g.key} className={`pa-item ${activeKey === g.key ? 'on' : ''}`} onClick={() => changeTab(g.key)}>
-                <div className="pa-photo">{g.emoji}</div>
-                <span className="pa-lbl">{g.label}</span>
-              </div>
+          <div className="pa-filters">
+            {PRICE_FILTERS.map(f => (
+              <button type="button" key={f.max} className={`pa-chip ${maxPrice === f.max ? 'on' : ''}`} onClick={() => changePrice(f.max)}>{f.label}</button>
             ))}
           </div>
-        </div>
-      </div>
-
-      <div className="pa-filters">
-        {PRICE_FILTERS.map(f => (
-          <button type="button" key={f.max} className={`pa-chip ${maxPrice === f.max ? 'on' : ''}`} onClick={() => changePrice(f.max)}>{f.label}</button>
-        ))}
-      </div>
+        </>
+      )}
 
       {items.length === 0 ? (
-        <div className="oa-empty">Nenhum produto nessa faixa de preço ainda.</div>
+        <div className="oa-empty">{searching ? `Nenhum produto encontrado para "${search.trim()}".` : 'Nenhum produto nessa faixa de preço ainda.'}</div>
       ) : (
         <>
           <div className="pa-list">

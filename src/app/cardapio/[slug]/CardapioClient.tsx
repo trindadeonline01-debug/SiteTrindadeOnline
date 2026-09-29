@@ -779,9 +779,8 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
           <div className="cd-hot-row">
             {maisPedidos.map(p => {
               const promo = promoPrice(p)
-              const hasOpts = p.groups && p.groups.length > 0
               return (
-                <div className={`cd-hot-card ${!open ? 'cd-hot-card-closed' : ''} ${flashId === p.id ? 'cd-flash' : ''}`} key={p.id} onClick={() => { if (!open) return; hasOpts ? openDetail(p) : quickAdd(p, promo ?? p.sale_price) }}>
+                <div className={`cd-hot-card ${!open ? 'cd-hot-card-closed' : ''} ${flashId === p.id ? 'cd-flash' : ''}`} key={p.id} onClick={() => { if (!open) return; openDetail(p) }}>
                   <div className="cd-hot-photo">{p.photo_url ? <Image src={p.photo_url} alt="" fill sizes="140px" style={{ objectFit: 'cover' }} /> : '🍽️'}</div>
                   <div className="cd-hot-name">{p.name}</div>
                   {(promo ?? p.sale_price) > 0 && <div className="cd-hot-price">{fmt(promo ?? p.sale_price)}</div>}
@@ -808,7 +807,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
                 const hasOpts = p.groups && p.groups.length > 0
                 const soldOut = isSoldOut(p)
                 return (
-                  <div className={`cd-prow ${soldOut ? 'cd-prow-soldout' : !open ? 'cd-prow-closed' : ''} ${flashId === p.id ? 'cd-flash' : ''}`} key={p.id} onClick={() => { if (soldOut || !open) return; hasOpts ? openDetail(p) : quickAdd(p, promo ?? p.sale_price) }}>
+                  <div className={`cd-prow ${soldOut ? 'cd-prow-soldout' : !open ? 'cd-prow-closed' : ''} ${flashId === p.id ? 'cd-flash' : ''}`} key={p.id} onClick={() => { if (soldOut || !open) return; openDetail(p) }}>
                     <div className="cd-pphoto">
                       {p.photo_url ? <Image src={p.photo_url} alt="" fill sizes="(min-width: 900px) 20vw, 76px" style={{ objectFit: 'cover' }} /> : '🍽️'}
                       {!soldOut && promo != null && <span className="cd-badge">{p.promo_type === 'percent' ? `-${p.promo_value}%` : `-${fmt(p.promo_value!)}`}</span>}
@@ -820,7 +819,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
                         ? <div className="cd-pprice" style={{ color: '#C43D3D' }}>Esgotado</div>
                         : (promo ?? p.sale_price) > 0 && <div className="cd-pprice">{fmt(promo ?? p.sale_price)}{promo != null && <span className="was">{fmt(p.sale_price)}</span>}</div>}
                     </div>
-                    {!soldOut && open && (hasOpts ? <button className="cd-chev" aria-label="Ver opções">›</button> : <button className={`cd-addbtn ${flashId === p.id ? 'added' : ''}`} aria-label={flashId === p.id ? 'Adicionado ao carrinho' : 'Adicionar ao carrinho'}>{flashId === p.id ? '✓' : '+'}</button>)}
+                    {!soldOut && open && (hasOpts ? <button className="cd-chev" aria-label="Ver opções">›</button> : <button className={`cd-addbtn ${flashId === p.id ? 'added' : ''}`} aria-label={flashId === p.id ? 'Adicionado ao carrinho' : 'Adicionar ao carrinho'} onClick={e => { e.stopPropagation(); quickAdd(p, promo ?? p.sale_price) }}>{flashId === p.id ? '✓' : '+'}</button>)}
                   </div>
                 )
               })}

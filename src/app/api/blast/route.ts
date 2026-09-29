@@ -22,19 +22,35 @@ const INSTANCES: EvoInstance[] = [
   { name: process.env.EVOLUTION_INSTANCE_2 || '', key: process.env.EVOLUTION_API_KEY_2 || '' },
 ].filter(i => i.name && i.key)
 
-// Delay aleatório em ms
-function randomDelay(min: number, max: number): Promise<void> {
-  const ms = (Math.floor(Math.random() * (max - min + 1)) + min) * 1000
+// Delay aleatório em ms — capMs (opcional) nunca deixa o delay passar do
+// tempo seguro que resta antes do limite da função (ver uso em
+// runCampaignBatch)
+function randomDelay(min: number, max: number, capMs?: number): Promise<void> {
+  let ms = (Math.floor(Math.random() * (max - min + 1)) + min) * 1000
+  if (capMs != null) ms = Math.min(ms, capMs)
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
 // Vercel mata a função depois de maxDuration (300s) — inclusive no meio de
 // um await, sem chance de rodar código depois. Por isso o orçamento não pode
-// ser um numero fixo: ele precisa sobrar espaço pro delay aleatorio (até
-// delay_max) que vem DEPOIS do envio, senão a função é morta durante esse
-// delay antes mesmo de checar o tempo de novo ou encadear a continuação.
+// ser um numero fixo: ele precisa sobrar espaço pro delay aleatorio que vem
+// DEPOIS do envio, senão a função é morta durante esse delay antes mesmo de
+// checar o tempo de novo ou encadear a continuação.
 const HARD_LIMIT_MS = 300_000
 const SEND_BUFFER_MS = 15_000 // margem pro envio em si + disparo da continuação
+// Antes o orçamento reservava o delay_max INTEIRO da campanha — com
+// delay_max perto de 300s (comum: Ricardo já configurou 180-300 e 60-300
+// em campanhas reais), a conta zerava/ficava negativa e a função virava
+// "1 mensagem por invocação", 100% dependente da corrente de auto-chamada
+// nunca falhar. Achado real, set/2026: campanha com delay_max=300 mandou 5
+// mensagens e parou quando essa corrente quebrou silenciosamente, sem
+// nenhum aviso em lugar nenhum. Agora reserva um teto fixo pro "pior delay
+// que ainda pode vir", e o delay de cada envio (randomDelay abaixo) é
+// limitado ao que sobra com segurança — pode ficar mais curto que o
+// configurado perto do fim da invocação, mas a função nunca é morta no
+// meio do delay, e processa mais de 1 mensagem por invocação mesmo com
+// delay_max alto (menos chance de a corrente quebrar).
+const DELAY_RESERVE_CAP_MS = 90_000
 
 interface MessageVariation {
   text: string
@@ -144,10 +160,11 @@ async function runCampaignBatch(campaign: any, logs: any[], origin: string) {
   // do lote as mensagens seguintes já saem direto pela segunda
   let activeInstance = await pickActiveInstance()
 
-  // Orçamento desconta o pior caso do delay que vem depois do envio (até
-  // delay_max) — senão a função pode ser morta pela Vercel durante esse
-  // delay, sem chance de encadear a continuação
-  const budgetMs = HARD_LIMIT_MS - (campaign.delay_max * 1000) - SEND_BUFFER_MS
+  // Orçamento desconta um teto fixo (não o delay_max inteiro — ver
+  // DELAY_RESERVE_CAP_MS acima) pro pior caso do delay que vem depois do
+  // envio, senão a função pode ser morta pela Vercel durante esse delay,
+  // sem chance de encadear a continuação
+  const budgetMs = HARD_LIMIT_MS - Math.min(campaign.delay_max * 1000, DELAY_RESERVE_CAP_MS) - SEND_BUFFER_MS
 
   for (const log of logs) {
     // Sempre manda pelo menos 1 nessa invocação, mesmo que o delay_max
@@ -212,8 +229,10 @@ async function runCampaignBatch(campaign: any, logs: any[], origin: string) {
       await supabase.from('blast_campaigns').update({ failed_count: (freshCampaign?.failed_count || 0) + 1 }).eq('id', campaign.id)
     }
 
-    // Delay aleatório
-    await randomDelay(campaign.delay_min, campaign.delay_max)
+    // Delay aleatório — limitado (capMs) ao tempo seguro que resta antes
+    // do limite da função, pra nunca arriscar ser morta no meio do delay
+    const safeRemainingMs = Math.max(0, HARD_LIMIT_MS - SEND_BUFFER_MS - (Date.now() - loopStart))
+    await randomDelay(campaign.delay_min, campaign.delay_max, safeRemainingMs)
   }
 
   if (ranOutOfTime) {
@@ -410,6 +429,40 @@ export async function POST(req: NextRequest) {
   }
 }
 
+// Detecta campanha "running" travada (nada enviado além do delay_max
+// esperado) e reativa sozinha — cobre o caso do próprio encadeamento
+// (fetch de continue) falhar silenciosamente e deixar a campanha presa.
+// Reaproveitada em dois lugares: no polling do painel (GET abaixo, só
+// roda enquanto a aba Disparos está aberta) e no cron /api/cron/
+// blast-watchdog (roda sozinho, sem depender de ninguém com a aba
+// aberta — achado real do Ricardo, set/2026: campanha travou por quase
+// 1h porque ele saiu da tela e não tinha ninguém rodando o vigia).
+export async function runBlastWatchdog(origin: string) {
+  const { data: campaigns } = await supabase.from('blast_campaigns').select('*').eq('status', 'running')
+  const WATCHDOG_BUFFER_MS = 60_000
+  let resumed = 0
+  for (const campaign of campaigns || []) {
+    const { data: lastLog } = await supabase
+      .from('blast_logs')
+      .select('sent_at')
+      .eq('campaign_id', campaign.id)
+      .not('sent_at', 'is', null)
+      .order('sent_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    const lastActivity = new Date(lastLog?.sent_at || campaign.started_at || campaign.created_at).getTime()
+    const stalledFor = Date.now() - lastActivity
+    if (stalledFor > campaign.delay_max * 1000 + WATCHDOG_BUFFER_MS) {
+      const { data: pending } = await supabase.from('blast_logs').select('*').eq('campaign_id', campaign.id).eq('status', 'pending').limit(500)
+      if (pending && pending.length > 0) {
+        after(() => runCampaignBatch(campaign, pending, origin))
+        resumed++
+      }
+    }
+  }
+  return { checked: campaigns?.length || 0, resumed }
+}
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
@@ -425,31 +478,9 @@ export async function GET(req: NextRequest) {
     // Lista todas as campanhas
     const { data: campaigns } = await supabase.from('blast_campaigns').select('*').order('created_at', { ascending: false })
 
-    // Watchdog: o painel faz polling desse endpoint a cada 8s enquanto a aba
-    // Disparos está aberta. Aproveita esse ping pra detectar campanha "running"
-    // travada (nada enviado além do delay_max esperado) e reativar sozinho —
-    // cobre o caso raro do próprio encadeamento (fetch de continue) falhar
-    // silenciosamente (rede) e deixar a campanha presa sem ninguém tentar de novo
-    const WATCHDOG_BUFFER_MS = 60_000
-    for (const campaign of (campaigns || []).filter((c: any) => c.status === 'running')) {
-      const { data: lastLog } = await supabase
-        .from('blast_logs')
-        .select('sent_at')
-        .eq('campaign_id', campaign.id)
-        .not('sent_at', 'is', null)
-        .order('sent_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-      const lastActivity = new Date(lastLog?.sent_at || campaign.started_at || campaign.created_at).getTime()
-      const stalledFor = Date.now() - lastActivity
-      if (stalledFor > campaign.delay_max * 1000 + WATCHDOG_BUFFER_MS) {
-        const { data: pending } = await supabase.from('blast_logs').select('*').eq('campaign_id', campaign.id).eq('status', 'pending').limit(500)
-        if (pending && pending.length > 0) {
-          const origin = new URL(req.url).origin
-          after(() => runCampaignBatch(campaign, pending, origin))
-        }
-      }
-    }
+    // Painel faz polling desse endpoint a cada 8s enquanto a aba Disparos
+    // está aberta — aproveita esse ping pra rodar o vigia também
+    await runBlastWatchdog(new URL(req.url).origin)
 
     return NextResponse.json({ campaigns })
   } catch (err: any) {

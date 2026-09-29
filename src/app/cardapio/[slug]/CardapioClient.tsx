@@ -537,7 +537,19 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
            ganha espaço vertical antes do produto aparecer. */
         .cd-pagehero{ background:var(--ink);padding:26px 20px 26px;border-bottom:2px solid var(--sign);width:100vw;margin-left:calc(50% - 50vw); }
         .cd-pagehero-inner{ }
-        @media(min-width:900px){ .cd-pagehero-inner{ max-width:1120px;margin:0 auto; } }
+        /* Desktop: o conteúdo (logo/nome/status/ícones) precisa cair
+           exatamente na mesma borda que a barra de categorias e a lista de
+           produtos usam mais abaixo (.cd-wrap max-width:1120 + .cd-menu
+           padding:16px) — antes o hero tinha seu próprio padding (20px)
+           "parecido" mas não igual, o que deixava tudo espremido nos
+           cantos em telas largas (achado do Ricardo, set/2026). Zera o
+           padding do próprio .cd-pagehero (que só existe pra escapar o
+           max-width do .cd-wrap e ir de ponta a ponta) e repete a MESMA
+           largura+respiro do resto da página no .cd-pagehero-inner. */
+        @media(min-width:900px){
+          .cd-pagehero{ padding-left:0;padding-right:0; }
+          .cd-pagehero-inner{ max-width:1120px;margin:0 auto;padding:0 16px; }
+        }
         .cd-pagehero-top{ display:flex;align-items:center;gap:16px; }
         .cd-pagehero-img{ width:clamp(58px,9vw,72px);height:clamp(58px,9vw,72px);border-radius:12px;overflow:hidden;position:relative;flex-shrink:0;border:2px solid var(--sign);display:flex;align-items:center;justify-content:center;background:linear-gradient(155deg,var(--sign-dark),#B8841A);color:#fff;font-weight:800;font-size:20px; }
         .cd-pagehero-img img{ width:100%;height:100%;object-fit:cover; }

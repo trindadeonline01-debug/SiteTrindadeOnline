@@ -612,7 +612,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
         .cd-prow-closed .cd-pphoto{ filter:grayscale(1); }
         .cd-hot-card-closed{ cursor:default;opacity:.65; }
         .cd-hot-card-closed .cd-hot-photo{ filter:grayscale(1); }
-        .cd-pphoto{ width:66px;height:66px;border-radius:11px;background:linear-gradient(135deg,#FBF1DC,#F0EDE8);display:flex;align-items:center;justify-content:center;font-size:22px;position:relative;overflow:hidden; }
+        .cd-pphoto{ width:76px;height:76px;border-radius:12px;background:linear-gradient(135deg,#FBF1DC,#F0EDE8);display:flex;align-items:center;justify-content:center;font-size:24px;position:relative;overflow:hidden;flex-shrink:0; }
         .cd-pphoto img{ width:100%;height:100%;object-fit:cover; }
         .cd-badge{ position:absolute;top:-6px;left:-6px;background:#E24B4A;color:#fff;font-size:9px;font-weight:800;padding:2px 6px;border-radius:6px; }
         .cd-pmid{ flex:1;min-width:0; }
@@ -805,7 +805,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
                 return (
                   <div className={`cd-prow ${soldOut ? 'cd-prow-soldout' : !open ? 'cd-prow-closed' : ''} ${flashId === p.id ? 'cd-flash' : ''}`} key={p.id} onClick={() => { if (soldOut || !open) return; hasOpts ? openDetail(p) : quickAdd(p, promo ?? p.sale_price) }}>
                     <div className="cd-pphoto">
-                      {p.photo_url ? <Image src={p.photo_url} alt="" fill sizes="(min-width: 900px) 20vw, 66px" style={{ objectFit: 'cover' }} /> : '🍽️'}
+                      {p.photo_url ? <Image src={p.photo_url} alt="" fill sizes="(min-width: 900px) 20vw, 76px" style={{ objectFit: 'cover' }} /> : '🍽️'}
                       {!soldOut && promo != null && <span className="cd-badge">{p.promo_type === 'percent' ? `-${p.promo_value}%` : `-${fmt(p.promo_value!)}`}</span>}
                     </div>
                     <div className="cd-pmid">

@@ -1,6 +1,8 @@
 'use client'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
+import { supabase } from '@/lib/supabase'
+import { getVisitorId } from '@/components/PalavraPremiada'
 import { isOpenNow } from '@/lib/businessHours'
 import { type Produto, fmt, promoPrice, groupContribution, cartStorageKey, checkCartConflict, setActiveCart } from '@/lib/lojaPricing'
 
@@ -21,6 +23,13 @@ export default function ProdutoDetailClient({ slug, company, produto, related }:
   const [obs, setObs] = useState('')
   const [adding, setAdding] = useState(false)
   const groupRefs = useRef<(HTMLDivElement | null)[]>([])
+
+  // Visita à página do produto — base do "Produto mais visto" na Sala de
+  // Vendas (pedido do Ricardo, set/2026), independente de virar pedido.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    supabase.from('page_views').insert({ page: '/produto', entity_id: produto.id, session_id: getVisitorId() }).then(() => {})
+  }, [produto.id])
 
   const open = isOpenNow(company.hours, company.flexible_hours, company.store_paused, company.store_forced_open)
   const promo = promoPrice(produto)

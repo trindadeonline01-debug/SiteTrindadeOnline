@@ -65,6 +65,9 @@ export default function SalaDeVendasTab() {
   const [openOrders, setOpenOrders] = useState<Pedido[]>([]) // em aberto agora, sem filtro de período
   const [weekly, setWeekly] = useState<{ day: string; label: string; total: number; isToday: boolean }[]>([])
   const [topProducts, setTopProducts] = useState<{ name: string; store: string; qty: number; orders: number }[]>([])
+  const [cardapioViews, setCardapioViews] = useState<{ total: number; lojasVisitadas: number; ranking: { id: string; name: string; count: number }[] }>({ total: 0, lojasVisitadas: 0, ranking: [] })
+  const [produtoViews, setProdutoViews] = useState<{ totalVistos: number; totalAtivos: number; ranking: { id: string; name: string; store: string; count: number }[] }>({ totalVistos: 0, totalAtivos: 0, ranking: [] })
+  const [topClientes, setTopClientes] = useState<{ name: string; phone: string; total: number; count: number }[]>([])
   const chartRef = useRef<HTMLDivElement>(null)
 
   async function loadCompanies() {
@@ -214,8 +217,77 @@ export default function SalaDeVendasTab() {
     setLoading(false)
   }
 
+  // Quadro "Visitas no Cardápio" (pedido do Ricardo, set/2026) — usa a
+  // mesma tabela genérica page_views que /empresa já usava, com
+  // page:'/cardapio' e page:'/produto' novos (inserts em CardapioClient.tsx
+  // e ProdutoDetailClient.tsx). "Quem mais compra" cruza loja_pedidos por
+  // telefone, sem precisar de rastreamento novo nenhum.
+  async function loadVisitas() {
+    const { from, to } = periodRange(period)
+
+    let qcv = supabase.from('page_views').select('entity_id').eq('page', '/cardapio').limit(10000)
+    if (from) qcv = qcv.gte('created_at', from)
+    if (to) qcv = qcv.lt('created_at', to)
+    if (storeFilter !== 'all') qcv = qcv.eq('entity_id', storeFilter)
+    const { data: cvRows } = await qcv
+    const cvAgg: Record<string, number> = {}
+    ;(cvRows || []).forEach((r: any) => { cvAgg[r.entity_id] = (cvAgg[r.entity_id] || 0) + 1 })
+    const cvRanking = Object.entries(cvAgg)
+      .map(([id, count]) => ({ id, name: companyName[id] || '—', count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5)
+    setCardapioViews({ total: cvRows?.length || 0, lojasVisitadas: Object.keys(cvAgg).length, ranking: cvRanking })
+
+    // Produtos vistos (independente de venda) — exclui bebida, mesma lógica
+    // do Peça Agora (pecaAgora.server.ts)
+    let qpv = supabase.from('page_views').select('entity_id').eq('page', '/produto').limit(10000)
+    if (from) qpv = qpv.gte('created_at', from)
+    if (to) qpv = qpv.lt('created_at', to)
+    const { data: pvRows } = await qpv
+    const pvAggAll: Record<string, number> = {}
+    ;(pvRows || []).forEach((r: any) => { pvAggAll[r.entity_id] = (pvAggAll[r.entity_id] || 0) + 1 })
+    const produtoIds = Object.keys(pvAggAll)
+    let produtoRanking: { id: string; name: string; store: string; count: number }[] = []
+    let totalVistos = 0
+    if (produtoIds.length > 0) {
+      const { data: prodInfo } = await supabase.from('loja_produtos').select('id, name, company_id, tipo_vitrine').in('id', produtoIds)
+      const filtered = (prodInfo || []).filter((p: any) => p.tipo_vitrine !== 'Bebida' && (storeFilter === 'all' || p.company_id === storeFilter))
+      totalVistos = filtered.length
+      produtoRanking = filtered
+        .map((p: any) => ({ id: p.id, name: p.name, store: companyName[p.company_id] || '—', count: pvAggAll[p.id] || 0 }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5)
+    }
+    let qpa = supabase.from('loja_produtos').select('id', { count: 'exact', head: true }).eq('active', true).neq('tipo_vitrine', 'Bebida')
+    if (storeFilter !== 'all') qpa = qpa.eq('company_id', storeFilter)
+    const { count: totalAtivos } = await qpa
+    setProdutoViews({ totalVistos, totalAtivos: totalAtivos || 0, ranking: produtoRanking })
+
+    // Quem mais compra — cruza por telefone, todas as lojas (ou a filtrada)
+    let qc = supabase.from('loja_pedidos').select('customer_name, customer_phone, total, status').neq('status', 'cancelado').limit(10000)
+    if (from) qc = qc.gte('created_at', from)
+    if (to) qc = qc.lt('created_at', to)
+    if (storeFilter !== 'all') qc = qc.eq('company_id', storeFilter)
+    const { data: custRows } = await qc
+    const custAgg: Record<string, { name: string; total: number; count: number }> = {}
+    ;(custRows || []).forEach((r: any) => {
+      const phone = (r.customer_phone || '').trim()
+      if (!phone) return
+      if (!custAgg[phone]) custAgg[phone] = { name: r.customer_name || 'Sem nome', total: 0, count: 0 }
+      custAgg[phone].total += Number(r.total || 0)
+      custAgg[phone].count++
+      if (r.customer_name) custAgg[phone].name = r.customer_name
+    })
+    const custRanking = Object.entries(custAgg)
+      .map(([phone, v]) => ({ phone, ...v }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 5)
+    setTopClientes(custRanking)
+  }
+
   useEffect(() => { loadCompanies() }, [])
   useEffect(() => { loadAll() }, [period, storeFilter])
+  useEffect(() => { if (companies.length > 0) loadVisitas() }, [period, storeFilter, companies])
 
   // ao vivo — atualiza sozinho quando qualquer pedido muda
   useEffect(() => {
@@ -382,6 +454,27 @@ export default function SalaDeVendasTab() {
         .sv-mix-tile .l{font-size:10.5px;color:#999;margin-top:2px;}
         .sv-store-filter{max-width:220px;box-sizing:border-box;}
         @media(max-width:560px){ .sv-store-filter{max-width:100%;width:100%;} }
+
+        /* Visitas no Cardápio — 4 rankings lado a lado com barra vertical
+           (pedido do Ricardo, set/2026: a versão de barra horizontal em
+           lista ocupava altura demais) */
+        .sv-vc-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px;}
+        .sv-vc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+        @media(max-width:980px){ .sv-vc-grid{grid-template-columns:1fr 1fr;} .sv-vc-kpis{grid-template-columns:1fr;} }
+        @media(max-width:520px){ .sv-vc-grid{grid-template-columns:1fr;} }
+        .sv-vc-card{background:#fff;border-radius:14px;border:1.5px solid #f0f0f0;box-shadow:0 1px 4px rgba(0,0,0,.05);padding:14px 14px 12px;min-width:0;}
+        .sv-vc-hd{display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding-bottom:9px;margin-bottom:4px;border-bottom:1px solid #f0f0f0;}
+        .sv-vc-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.01em;line-height:1.25;}
+        .sv-vc-hint{font-size:10px;color:#aaa;font-weight:600;}
+        .sv-vc-hint.ready{color:var(--open);}
+        .sv-vbars{display:flex;align-items:flex-end;gap:5px;height:100px;margin:14px 0 4px;}
+        .sv-vbar-col{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;}
+        .sv-vbar-val{font-size:9px;font-weight:800;margin-bottom:4px;white-space:nowrap;}
+        .sv-vbar-fill{width:100%;max-width:22px;border-radius:4px 4px 0 0;background:#f0edE8;}
+        .sv-vbar-col.n1 .sv-vbar-fill{background:var(--sign-dark);}
+        .sv-vbar-lbl{font-size:8.5px;font-weight:700;color:#999;margin-top:6px;text-align:center;line-height:1.2;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+        .sv-vbar-col.n1 .sv-vbar-lbl{color:#111;}
+        .sv-vc-empty{height:100px;display:flex;align-items:center;justify-content:center;text-align:center;color:#aaa;font-size:11px;line-height:1.5;padding:0 6px;}
       `}</style>
 
       {/* CARDÁPIOS ATIVOS — acesso rápido pra editar, sem precisar entrar na empresa */}
@@ -662,6 +755,89 @@ export default function SalaDeVendasTab() {
           </div>
           <div style={{ padding: '18px', fontSize: 12, color: '#888', lineHeight: 1.6 }}>
             Ainda não existe rastreio de carrinho abandonado — o cardápio só grava o pedido quando o cliente confirma. Pra medir isso de verdade, precisa salvar o carrinho como rascunho assim que a pessoa começa a montar.
+          </div>
+        </div>
+      </div>
+
+      {/* VISITAS NO CARDÁPIO — quantas visitas, loja/produto mais visto
+          (independente de venda) e quem mais compra (pedido do Ricardo,
+          set/2026) */}
+      <div style={{ marginTop: 14 }}>
+        <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.5, textTransform: 'uppercase', color: '#888', marginBottom: 10 }}>👀 Visitas no Cardápio</div>
+
+        <div className="sv-vc-kpis">
+          <div style={{ ...s.card, padding: '14px 16px' }}>
+            <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: '#aaa', marginBottom: 6 }}>Visitas ao cardápio</div>
+            <div style={{ fontWeight: 800, fontSize: 26 }}>{cardapioViews.total}</div>
+            <div style={{ fontSize: 11, color: '#aaa', marginTop: 3 }}>{periodLabel(period)}</div>
+          </div>
+          <div style={{ ...s.card, padding: '14px 16px' }}>
+            <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: '#aaa', marginBottom: 6 }}>Lojas com cardápio visitado</div>
+            <div style={{ fontWeight: 800, fontSize: 26 }}>{cardapioViews.lojasVisitadas}</div>
+            {storeFilter === 'all' && <div style={{ fontSize: 11, color: '#aaa', marginTop: 3 }}>de {companies.length} com cardápio ativo</div>}
+          </div>
+          <div style={{ ...s.card, padding: '14px 16px' }}>
+            <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: '#aaa', marginBottom: 6 }}>Produtos vistos ao menos 1x</div>
+            <div style={{ fontWeight: 800, fontSize: 26 }}>{produtoViews.totalVistos}</div>
+            <div style={{ fontSize: 11, color: '#aaa', marginTop: 3 }}>de {produtoViews.totalAtivos} cadastrados</div>
+          </div>
+        </div>
+
+        <div className="sv-vc-grid">
+          <div className="sv-vc-card">
+            <div className="sv-vc-hd"><span className="sv-vc-title">🏪 Ranking por loja</span><span className="sv-vc-hint">visitas ao cardápio</span></div>
+            {cardapioViews.ranking.length === 0 ? (
+              <div className="sv-vc-empty">Sem visita no período.</div>
+            ) : (
+              <div className="sv-vbars">
+                {cardapioViews.ranking.map((r, i) => (
+                  <div key={r.id} className={`sv-vbar-col ${i === 0 ? 'n1' : ''}`}>
+                    <div className="sv-vbar-val">{r.count}</div>
+                    <div className="sv-vbar-fill" style={{ height: `${Math.max((r.count / (cardapioViews.ranking[0]?.count || 1)) * 100, 4)}%` }} />
+                    <div className="sv-vbar-lbl">{r.name}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="sv-vc-card">
+            <div className="sv-vc-hd"><span className="sv-vc-title">🔍 Ranking por produto</span><span className="sv-vc-hint">visto, não é venda</span></div>
+            {produtoViews.ranking.length === 0 ? (
+              <div className="sv-vc-empty">Sem visita no período.</div>
+            ) : (
+              <div className="sv-vbars">
+                {produtoViews.ranking.map((p, i) => (
+                  <div key={p.id} className={`sv-vbar-col ${i === 0 ? 'n1' : ''}`}>
+                    <div className="sv-vbar-val">{p.count}</div>
+                    <div className="sv-vbar-fill" style={{ height: `${Math.max((p.count / (produtoViews.ranking[0]?.count || 1)) * 100, 4)}%` }} />
+                    <div className="sv-vbar-lbl">{p.name}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="sv-vc-card">
+            <div className="sv-vc-hd"><span className="sv-vc-title">🙋 Quem mais compra</span><span className="sv-vc-hint">{periodLabel(period)}</span></div>
+            {topClientes.length === 0 ? (
+              <div className="sv-vc-empty">Sem pedido identificado no período.</div>
+            ) : (
+              <div className="sv-vbars">
+                {topClientes.map((c, i) => (
+                  <div key={c.phone} className={`sv-vbar-col ${i === 0 ? 'n1' : ''}`}>
+                    <div className="sv-vbar-val">{fmtMoney(c.total)}</div>
+                    <div className="sv-vbar-fill" style={{ height: `${Math.max((c.total / (topClientes[0]?.total || 1)) * 100, 4)}%` }} />
+                    <div className="sv-vbar-lbl">{c.name.split(' ')[0]}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="sv-vc-card">
+            <div className="sv-vc-hd"><span className="sv-vc-title">👀 Acessa mas quase não compra</span><span className="sv-vc-hint">fase 2</span></div>
+            <div className="sv-vc-empty">Precisa ligar a visita ao telefone do cliente pra existir — ainda não dá.</div>
           </div>
         </div>
       </div>

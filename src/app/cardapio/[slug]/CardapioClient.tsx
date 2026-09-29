@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import { isOpenNow } from '@/lib/businessHours'
 import { type Produto, fmt, promoPrice, availableToday, isSoldOut, groupContribution, cartStorageKey, criarInteresseEAbrirWhatsapp, setActiveCart } from '@/lib/lojaPricing'
+import { getVisitorId } from '@/components/PalavraPremiada'
 
 type Categoria = { id: string; name: string; display_order: number }
 type Coupon = { id: string; title: string; discount_type: 'fixed' | 'percent'; discount_value: number; min_purchase: number }
@@ -146,6 +147,10 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
       .then(async ({ data: comp }) => {
         if (!comp || comp.status !== 'active' || !comp.loja_digital_enabled) { setCompany(null); setLoading(false); return }
         setCompany(comp as any)
+        // Visita ao cardápio — base do quadro "Visitas no Cardápio" na Sala
+        // de Vendas (pedido do Ricardo, set/2026). Mesma tabela/padrão que
+        // /empresa já usa (EmpresaPerfilClient.tsx), só troca o `page`.
+        supabase.from('page_views').insert({ page: '/cardapio', entity_id: comp.id, session_id: getVisitorId() }).then(() => {})
         const accepted = comp.loja_payment_methods?.length ? comp.loja_payment_methods : ['pix', 'dinheiro', 'cartao_credito']
         setPayMethod(prev => (accepted.includes(prev) ? prev : accepted[0]) as any)
         const [{ data: cats }, { data: prods }, { data: cps }] = await Promise.all([

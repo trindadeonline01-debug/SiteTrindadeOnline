@@ -32,7 +32,7 @@ function normalize(s: string): string {
 // quem procurar nem quanto/como cobrar.
 async function buildAcceptedMessage(order: {
   pickup_address: string; dropoff_address: string; customer_name: string; customer_phone: string | null
-  company_id: string; pedido_id: string | null; fee: number
+  company_id: string; pedido_id: string | null; fee: number; payment_method: string | null; order_value: number | null
 }, deliveryOrderId: string): Promise<string> {
   const [{ data: company }, pricing] = await Promise.all([
     supabase.from('companies').select('name').eq('id', order.company_id).maybeSingle(),
@@ -51,22 +51,28 @@ async function buildAcceptedMessage(order: {
   lines.push(`• ${order.dropoff_address}`, `• 🗺️ ${shortMapsLink(deliveryOrderId, 'd')}`, '')
 
   // Valor e forma de pagamento do PEDIDO (o que o cliente deve pra loja, não
-  // a taxa da corrida) só existem quando a entrega veio de um pedido de
-  // verdade (pedido_id) — avulsa (chamada manual sem pedido vinculado) não
-  // tem esse dado pra mostrar.
-  if (order.pedido_id) {
-    const { data: pedido } = await supabase
-      .from('loja_pedidos').select('payment_method, payment_status, total').eq('id', order.pedido_id).maybeSingle()
-    if (pedido) {
-      const metodo = PAY_LABEL[pedido.payment_method || ''] || pedido.payment_method || '—'
-      lines.push('💳 *PAGAMENTO*')
-      if (pedido.payment_status === 'pago') {
-        lines.push('• ✅ Já pago — não precisa cobrar nada', `• _(${metodo})_`)
-      } else {
-        lines.push(`• 💵 Cobrar *R$ ${Number(pedido.total).toFixed(2).replace('.', ',')}* na entrega`, `• _(${metodo})_`)
-      }
-      lines.push('')
+  // a taxa da corrida) — vem direto de delivery_orders (preenchido na
+  // criação, tanto pra pedido do cardápio quanto pra entrega avulsa), sem
+  // precisar mais reconsultar loja_pedidos pra achar o valor. Achado real:
+  // antes esse bloco só existia quando tinha pedido_id — entrega avulsa
+  // nunca mostrava isso pro motoboy (Ricardo, set/2026).
+  if (order.payment_method && order.order_value != null) {
+    const metodo = PAY_LABEL[order.payment_method] || order.payment_method
+    lines.push('💳 *PAGAMENTO*')
+    // "Já pago" só existe pra pedido feito pelo cardápio (pode ter Pix pago
+    // antes da saída) — entrega avulsa não tem esse conceito, cobra sempre
+    // na entrega.
+    let jaPago = false
+    if (order.pedido_id) {
+      const { data: pedido } = await supabase.from('loja_pedidos').select('payment_status').eq('id', order.pedido_id).maybeSingle()
+      jaPago = pedido?.payment_status === 'pago'
     }
+    if (jaPago) {
+      lines.push('• ✅ Já pago — não precisa cobrar nada', `• _(${metodo})_`)
+    } else {
+      lines.push(`• 💵 Cobrar *R$ ${Number(order.order_value).toFixed(2).replace('.', ',')}* na entrega`, `• _(${metodo})_`)
+    }
+    lines.push('')
   }
 
   lines.push(`💰 *SUA CORRIDA:* R$ ${valorMotoboy.toFixed(2).replace('.', ',')}`, '')
@@ -117,7 +123,7 @@ export async function POST(req: NextRequest) {
         if (YES.test(norm)) {
           await supabase.from('delivery_offers').update({ status: 'aceita', responded_at: new Date().toISOString() }).eq('id', offer.id)
           const { data: order } = await supabase
-            .from('delivery_orders').select('pickup_address, dropoff_address, customer_name, customer_phone, company_id, pedido_id, fee')
+            .from('delivery_orders').select('pickup_address, dropoff_address, customer_name, customer_phone, company_id, pedido_id, fee, payment_method, order_value')
             .eq('id', offer.delivery_order_id).maybeSingle()
           await supabase.from('delivery_orders').update({
             status: 'a_caminho', motoboy_id: motoboy.id, motoboy_name: motoboy.name, motoboy_phone: motoboy.phone,

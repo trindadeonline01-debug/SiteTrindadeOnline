@@ -58,13 +58,13 @@ const PESSOAL_LINKS = [
 ]
 
 // Bottom tab bar do portal (ESPECIFICACAO.md §4.2) — 5 destinos fixos,
-// visível pra todo mundo (não só logado): Buscar · Empresas · Ofertas ·
-// Comunidade · Perfil. Empresas/Comunidade abrem uma folha compacta com
-// os links da família, em vez de navegar — não existe hoje uma página
-// "todas as empresas" nem "toda a comunidade" pra linkar direto.
-// O 3º item vira Cardápio (→ /peca-agora) pra quem está logado — pedido
-// do Ricardo, set/2026, mockup aprovado: bolinha de destaque amarela em
-// vez da vermelha de Ofertas. Deslogado continua vendo Ofertas normal.
+// visível pra todo mundo: Buscar · Empresas · Cardápio · Comunidade ·
+// Perfil. Empresas/Comunidade abrem uma folha compacta com os links da
+// família, em vez de navegar — não existe hoje uma página "todas as
+// empresas" nem "toda a comunidade" pra linkar direto.
+// 3º item é Cardápio (→ /peca-agora, bolinha de destaque amarela) pra
+// todo mundo, logado ou não — antes era Ofertas; pedido do Ricardo,
+// set/2026, mockup aprovado.
 export default function BottomNav() {
   const [user, setUser] = useState<any>(null)
   const [show, setShow] = useState(false)
@@ -118,19 +118,11 @@ export default function BottomNav() {
           <span style={{lineHeight:1,marginBottom:3,display:'flex'}}><NavIcon name="store" /></span>
           Empresas
         </button>
-        {user ? (
-          <a href="/peca-agora" style={navItemStyle(pathname === '/peca-agora')}>
-            <span style={{position:'absolute',top:6,right:'calc(50% - 14px)',width:7,height:7,background:'var(--sign)',borderRadius:'50%',border:'1.5px solid var(--ink)'}}/>
-            <span style={{lineHeight:1,marginBottom:3,display:'flex'}}><NavIcon name="utensils" /></span>
-            Cardápio
-          </a>
-        ) : (
-          <a href="/ofertas" style={navItemStyle(pathname === '/ofertas')}>
-            <span style={{position:'absolute',top:6,right:'calc(50% - 14px)',width:7,height:7,background:'var(--alert)',borderRadius:'50%',border:'1.5px solid var(--ink)'}}/>
-            <span style={{lineHeight:1,marginBottom:3,display:'flex'}}><NavIcon name="ticket" /></span>
-            Ofertas
-          </a>
-        )}
+        <a href="/peca-agora" style={navItemStyle(pathname === '/peca-agora')}>
+          <span style={{position:'absolute',top:6,right:'calc(50% - 14px)',width:7,height:7,background:'var(--sign)',borderRadius:'50%',border:'1.5px solid var(--ink)'}}/>
+          <span style={{lineHeight:1,marginBottom:3,display:'flex'}}><NavIcon name="utensils" /></span>
+          Cardápio
+        </a>
         <button onClick={() => setSheet(s => s === 'comunidade' ? null : 'comunidade')} style={navItemStyle(comunidadeActive || sheet === 'comunidade')}>
           <span style={{lineHeight:1,marginBottom:3,display:'flex'}}><NavIcon name="users" /></span>
           Comunidade

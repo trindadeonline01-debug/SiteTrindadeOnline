@@ -102,6 +102,14 @@ export default function MotoboysTab() {
     refreshSessionOnce().catch(() => {})
     load()
     setCadastroLink(`${window.location.origin}/motoboy/cadastro`)
+
+    // Disponível/ausente é status em tempo real do motoboy (ele liga/
+    // desliga do próprio painel) — sem isso, a tela só mostrava o que
+    // tinha quando a aba abriu, e o admin achava que o toggle do motoboy
+    // não funcionava, quando na verdade só a tela não tinha atualizado
+    // sozinha (achado real do Ricardo, set/2026).
+    const interval = setInterval(() => load(true), 20000)
+    return () => clearInterval(interval)
   }, [])
 
   async function authHeader() {
@@ -109,8 +117,11 @@ export default function MotoboysTab() {
     return { token: session?.access_token }
   }
 
-  async function load() {
-    setLoading(true)
+  async function load(silent = false) {
+    // silent=true (usado pelo polling em segundo plano) não mostra o
+    // "Carregando..." por cima da lista — senão a tela inteira piscava a
+    // cada 20s só pra atualizar disponível/ausente.
+    if (!silent) setLoading(true)
     setLoadError('')
     try {
       let { token } = await authHeader()
@@ -129,9 +140,11 @@ export default function MotoboysTab() {
     } catch (err: any) {
       // Antes uma falha aqui (timeout, resposta não-JSON etc) deixava a tela
       // presa em "Carregando..." pra sempre, sem nenhum aviso (Ricardo, set/2026).
-      setLoadError(err.message || 'Não consegui carregar os motoboys.')
+      // Numa atualização silenciosa em segundo plano, uma falha passageira
+      // (ex: 1 request perdido) não precisa virar aviso de erro na tela.
+      if (!silent) setLoadError(err.message || 'Não consegui carregar os motoboys.')
     }
-    setLoading(false)
+    if (!silent) setLoading(false)
   }
 
   function copyLink() {
@@ -472,7 +485,10 @@ export default function MotoboysTab() {
       <div style={s.card}>
         <div style={s.cardHeadRow}>
           <div style={{ ...s.cardTitle, marginBottom: 0 }}>🏍️ Motoboys aprovados ({aprovados.length})</div>
-          <button style={s.btnDark} onClick={() => { setShowCreate(v => !v); setError('') }}>{showCreate ? '✕ Fechar' : '+ Cadastrar na mão'}</button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button style={s.btnGhostSm} onClick={() => load()} title="Atualizar disponibilidade e status">🔄 Atualizar</button>
+            <button style={s.btnDark} onClick={() => { setShowCreate(v => !v); setError('') }}>{showCreate ? '✕ Fechar' : '+ Cadastrar na mão'}</button>
+          </div>
         </div>
 
         {showCreate && (
@@ -487,7 +503,7 @@ export default function MotoboysTab() {
         {!loading && loadError && (
           <div style={{ ...s.pendBox, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: 12.5, color: '#C43D3D' }}>⚠️ {loadError}</span>
-            <button style={s.btnGhostSm} onClick={load}>🔁 Tentar de novo</button>
+            <button style={s.btnGhostSm} onClick={() => load()}>🔁 Tentar de novo</button>
           </div>
         )}
         {!loading && !loadError && aprovados.length === 0 && <div style={{ color: '#888', fontSize: 13 }}>Nenhum motoboy aprovado ainda.</div>}

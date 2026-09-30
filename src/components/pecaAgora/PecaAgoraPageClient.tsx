@@ -11,6 +11,32 @@ import Footer from '@/components/Footer'
 // hero nenhum, só dá a moldura (breadcrumb + busca + rodapé).
 export default function PecaAgoraPageClient({ groups }: { groups: PecaGroup[] }) {
   const [query, setQuery] = useState('')
+  const [linkCopied, setLinkCopied] = useState(false)
+
+  // Mesmo padrão do compartilhar do cardápio de loja (CardapioClient.tsx):
+  // nativo do celular primeiro, com o link sempre dentro do `text` (nem
+  // todo app que recebe repassa os dois campos) — cai pra copiar link se
+  // não tiver nativo ou o usuário cancelar (pedido do Ricardo, set/2026).
+  async function handleShare() {
+    const url = window.location.href
+    const nav = navigator as Navigator & { share?: (data: ShareData) => Promise<void> }
+    if (nav.share) {
+      try {
+        await nav.share({ title: 'Peça Agora — Trindade Online', text: `Dá uma olhada no que tá rolando pra pedir agora na Trindade!\n${url}` })
+        return
+      } catch {
+        // usuário cancelou o compartilhamento nativo — cai pro copiar link
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url)
+    } catch {
+      // clipboard bloqueado (raro) — só ignora, o link já está na barra do navegador
+    }
+    setLinkCopied(true)
+    setTimeout(() => setLinkCopied(false), 2000)
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--concrete)' }}>
       <style>{`
@@ -28,8 +54,10 @@ export default function PecaAgoraPageClient({ groups }: { groups: PecaGroup[] })
            pro HomePecaAgora via prop search, que já sabe fazer esse
            filtro (ver HomePecaAgora.tsx). */
         .pca-top { background: var(--ink); padding: 14px 20px 22px; }
-        .pca-bc { max-width: 1120px; margin: 0 auto 16px; font-size: 11px; color: #fff; font-weight: 700; }
+        .pca-bc-row { max-width: 1120px; margin: 0 auto 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .pca-bc { font-size: 11px; color: #fff; font-weight: 700; }
         .pca-bc a { color: var(--sign); text-decoration: none; }
+        .pca-share-btn { display: flex; align-items: center; gap: 6px; background: var(--sign); color: var(--ink); border: none; border-radius: 10px; padding: 8px 13px; font-family: 'Archivo', sans-serif; font-size: 12px; font-weight: 800; flex-shrink: 0; white-space: nowrap; cursor: pointer; }
         .pca-top-search { max-width: 1120px; margin: 0 auto; }
         .pca-search-wrap { display: flex; max-width: 600px; margin: 0 auto; align-items: center; gap: 8px; background: var(--paper); border: 2.5px solid var(--sign); border-radius: 14px; padding: 6px 6px 6px 16px; box-shadow: 4px 4px 0 rgba(0,0,0,.35); }
         .pca-search-wrap input { flex: 1; border: none; background: transparent; font-size: 15px; font-family: 'Archivo', sans-serif; font-weight: 500; color: var(--ink); outline: none; }
@@ -51,7 +79,12 @@ export default function PecaAgoraPageClient({ groups }: { groups: PecaGroup[] })
       `}</style>
 
       <div className="pca-top">
-        <div className="pca-bc"><a href="/">Trindade Online</a> › Peça Agora</div>
+        <div className="pca-bc-row">
+          <div className="pca-bc"><a href="/">Trindade Online</a> › Peça Agora</div>
+          <button type="button" className="pca-share-btn" onClick={handleShare} aria-label={linkCopied ? 'Link copiado' : 'Compartilhar'}>
+            <span>🔗</span> {linkCopied ? 'Copiado!' : 'Compartilhar'}
+          </button>
+        </div>
         <div className="pca-top-search">
           <div className="pca-search-wrap">
             <span className="pca-search-ico">🔍</span>

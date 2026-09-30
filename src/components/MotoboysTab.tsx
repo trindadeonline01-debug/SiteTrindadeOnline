@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { refreshSessionOnce } from '@/lib/authRefresh'
 
 type Status = 'aguardando_aprovacao' | 'aprovado' | 'pendencia' | 'standby' | 'recusado'
 
@@ -94,6 +95,11 @@ export default function MotoboysTab() {
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
+    // Renova o token proativamente antes da 1ª busca — sem isso, reabrir a
+    // aba do admin depois de um tempo parado manda um token JWT já vencido
+    // e a API responde "acesso negado" mesmo sendo admin de verdade
+    // (achado real do Ricardo, set/2026).
+    refreshSessionOnce().catch(() => {})
     load()
     setCadastroLink(`${window.location.origin}/motoboy/cadastro`)
   }, [])
@@ -107,8 +113,16 @@ export default function MotoboysTab() {
     setLoading(true)
     setLoadError('')
     try {
-      const { token } = await authHeader()
-      const res = await fetch('/api/motoboys', { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      let { token } = await authHeader()
+      let res = await fetch('/api/motoboys', { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      // Token expirado (aba do admin ficou aberta um tempo) — renova UMA vez
+      // e tenta de novo antes de mostrar "acesso negado" pra quem é admin
+      // de verdade (mesmo padrão já usado em /painel/pedidos).
+      if (res.status === 403) {
+        await refreshSessionOnce()
+        ;({ token } = await authHeader())
+        res = await fetch('/api/motoboys', { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      }
       const data = await res.json()
       if (!res.ok || data.error) throw new Error(data.error || `erro ${res.status}`)
       setMotoboys(data.motoboys || [])

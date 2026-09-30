@@ -8,7 +8,7 @@ interface Payout {
   period_start: string; period_end: string; entregas_count: number; valor: number
   status: 'pendente' | 'pago'; comprovante_path: string | null; comprovante_url: string | null; paid_at: string | null
 }
-interface Pronto { motoboy_id: string; motoboy_name: string; count: number; valor: number }
+interface Pronto { motoboy_id: string; motoboy_name: string; count: number; valor: number; atrasado: boolean }
 
 const s: Record<string, any> = {
   grid3: { display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14, marginBottom: 16 },
@@ -31,11 +31,6 @@ const s: Record<string, any> = {
 
 function brl(n: number): string { return `R$ ${(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` }
 function fmtDate(d: string): string { return d.split('-').reverse().join('/') }
-function isAtrasado(p: Payout): boolean {
-  if (p.status === 'pago') return false
-  const prazo = new Date(p.period_end); prazo.setDate(prazo.getDate() + 2)
-  return prazo < new Date()
-}
 
 function readFileAsBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -80,23 +75,12 @@ export default function PagamentosTab() {
     setLoading(false)
   }
 
-  async function gerarRepasse(motoboyId: string) {
+  async function pagarAgora(motoboyId: string) {
     setBusyId(motoboyId)
     const { token } = await authHeader()
     await fetch('/api/admin/motoboy-payouts', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'generate', access_token: token, motoboy_id: motoboyId }),
-    })
-    setBusyId(null)
-    load()
-  }
-
-  async function marcarPago(id: string) {
-    setBusyId(id)
-    const { token } = await authHeader()
-    await fetch('/api/admin/motoboy-payouts', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'mark_paid', access_token: token, id }),
+      body: JSON.stringify({ action: 'pay_now', access_token: token, motoboy_id: motoboyId }),
     })
     setBusyId(null)
     load()
@@ -125,7 +109,7 @@ export default function PagamentosTab() {
   function exportarCsv() {
     const linhas = [['Motoboy', 'Período início', 'Período fim', 'Entregas', 'Valor', 'Chave Pix', 'Status', 'Pago em']]
     for (const p of filtrados) {
-      linhas.push([p.motoboy_name, p.period_start, p.period_end, String(p.entregas_count), p.valor.toFixed(2), p.pix_key || '', isAtrasado(p) ? 'atrasado' : p.status, p.paid_at ? p.paid_at.slice(0, 10) : ''])
+      linhas.push([p.motoboy_name, p.period_start, p.period_end, String(p.entregas_count), p.valor.toFixed(2), p.pix_key || '', p.status, p.paid_at ? p.paid_at.slice(0, 10) : ''])
     }
     const csv = linhas.map(l => l.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
@@ -142,16 +126,19 @@ export default function PagamentosTab() {
     return null
   })()
 
+  // Pagamento agora é criado direto como "pago" (um clique só, no momento
+  // em que o Pix sai de verdade) — não existe mais estado "pendente"/
+  // "atrasado" num repasse já registrado, então o filtro de status só
+  // distingue "todos" de "pago". O que ainda está pendente/atrasado vive
+  // em `prontos` (calculado na hora), não em `payouts`.
   const filtrados = payouts.filter(p => {
     if (fMotoboy !== 'todos' && p.motoboy_id !== fMotoboy) return false
     if (periodoLimite && new Date(p.period_end) < periodoLimite) return false
-    if (fStatus === 'pendente' && (p.status !== 'pendente' || isAtrasado(p))) return false
-    if (fStatus === 'atrasado' && !isAtrasado(p)) return false
     if (fStatus === 'pago' && p.status !== 'pago') return false
     return true
   })
 
-  const atrasados = payouts.filter(isAtrasado)
+  const atrasados = prontos.filter(p => p.atrasado)
 
   if (loading) return <div style={{ color: '#888', fontSize: 13 }}>Carregando...</div>
 
@@ -161,10 +148,10 @@ export default function PagamentosTab() {
         <div style={s.alert}>
           <span style={{ fontSize: 20 }}>⏰</span>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 800, color: '#C43D3D', marginBottom: 4 }}>{atrasados.length} pagamento{atrasados.length > 1 ? 's' : ''} atrasado{atrasados.length > 1 ? 's' : ''}</div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#C43D3D', marginBottom: 4 }}>{atrasados.length} motoboy{atrasados.length > 1 ? 's' : ''} com pagamento atrasado</div>
             {atrasados.map(p => (
-              <div key={p.id} style={{ fontSize: 12, color: '#8A4444' }}>
-                <b>{p.motoboy_name}</b> — repasse de {fmtDate(p.period_start)} a {fmtDate(p.period_end)} ({brl(p.valor)}), já passou do prazo.
+              <div key={p.motoboy_id} style={{ fontSize: 12, color: '#8A4444' }}>
+                <b>{p.motoboy_name}</b> — {brl(p.valor)} parado há mais de 7 dias sem pagamento.
               </div>
             ))}
           </div>
@@ -179,12 +166,15 @@ export default function PagamentosTab() {
 
       {prontos.length > 0 && (
         <div style={s.card}>
-          <div style={s.cardHd}><span style={s.cardTitle}>🆕 Prontas pra virar repasse</span></div>
+          <div style={s.cardHd}><span style={s.cardTitle}>💰 A receber</span></div>
           <div style={{ padding: '10px 20px 16px' }}>
             {prontos.map(pr => (
               <div key={pr.motoboy_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #F0EDE8', gap: 10 }}>
-                <div style={{ fontSize: 13 }}><b>{pr.motoboy_name}</b> — {pr.count} entrega{pr.count > 1 ? 's' : ''} · {brl(pr.valor)}</div>
-                <button style={s.btnSave} disabled={busyId === pr.motoboy_id} onClick={() => gerarRepasse(pr.motoboy_id)}>{busyId === pr.motoboy_id ? 'Gerando...' : '+ Gerar repasse'}</button>
+                <div style={{ fontSize: 13 }}>
+                  <b>{pr.motoboy_name}</b> — {pr.count} entrega{pr.count > 1 ? 's' : ''} · {brl(pr.valor)}
+                  {pr.atrasado && <span style={{ ...s.badge('#FBEAEA', '#C43D3D'), marginLeft: 8 }}>⏰ atrasado</span>}
+                </div>
+                <button style={s.btnSave} disabled={busyId === pr.motoboy_id} onClick={() => pagarAgora(pr.motoboy_id)}>{busyId === pr.motoboy_id ? 'Pagando...' : '✅ Marcar como pago'}</button>
               </div>
             ))}
           </div>
@@ -208,52 +198,38 @@ export default function PagamentosTab() {
           </select>
           <select style={s.select} value={fStatus} onChange={e => setFStatus(e.target.value)}>
             <option value="todos">Todos os status</option>
-            <option value="pendente">Pendente</option>
-            <option value="atrasado">Atrasado</option>
             <option value="pago">Pago</option>
           </select>
         </div>
         <div style={{ overflowX: 'auto', marginTop: 10 }}>
           <table className="data-table">
-            <thead><tr><th>Motoboy</th><th>Período</th><th>Entregas</th><th>Valor</th><th>Chave Pix</th><th>Status</th><th>Comprovante</th><th></th></tr></thead>
+            <thead><tr><th>Motoboy</th><th>Período</th><th>Entregas</th><th>Valor</th><th>Chave Pix</th><th>Status</th><th>Comprovante</th></tr></thead>
             <tbody>
-              {filtrados.length === 0 && <tr><td colSpan={8} style={{ textAlign: 'center', color: '#999', padding: 24 }}>Nenhum repasse encontrado.</td></tr>}
-              {filtrados.map(p => {
-                const atrasado = isAtrasado(p)
-                return (
-                  <tr key={p.id}>
-                    <td><b>{p.motoboy_name}</b></td>
-                    <td>{fmtDate(p.period_start)} – {fmtDate(p.period_end)}</td>
-                    <td style={{ fontVariantNumeric: 'tabular-nums' }}>{p.entregas_count}</td>
-                    <td style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>{brl(p.valor)}</td>
-                    <td>
-                      {p.pix_key ? (
-                        <div style={s.pixCell}>{p.pix_key}<button style={s.pixCopy} onClick={() => copyPix(p)}>{copiedId === p.id ? '✓' : 'copiar'}</button></div>
-                      ) : <span style={{ color: '#999' }}>—</span>}
-                    </td>
-                    <td>
-                      {p.status === 'pago'
-                        ? <span style={s.badge('#E4F3EC', '#157A52')}>Pago em {p.paid_at ? fmtDate(p.paid_at.slice(0, 10)) : ''}</span>
-                        : atrasado ? <span style={s.badge('#FBEAEA', '#C43D3D')}>Atrasado</span> : <span style={s.badge('#FEF3E2', '#92600A')}>Pendente</span>}
-                    </td>
-                    <td>
-                      {p.comprovante_url ? (
-                        <span style={{ cursor: 'pointer', fontSize: 18 }} title="Ver comprovante" onClick={() => setLightbox({ url: p.comprovante_url!, title: `Comprovante — ${p.motoboy_name}, ${fmtDate(p.period_start)} a ${fmtDate(p.period_end)}` })}>🧾</span>
-                      ) : (
-                        <label style={{ ...s.btnGhostSm, display: 'inline-block' }}>
-                          📎 Anexar
-                          <input type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) anexarComprovante(p.id, f) }} />
-                        </label>
-                      )}
-                    </td>
-                    <td>
-                      {p.status === 'pago'
-                        ? <span style={{ color: '#999', fontSize: 11 }}>só você vê</span>
-                        : <button style={s.btnSave} disabled={busyId === p.id} onClick={() => marcarPago(p.id)}>{busyId === p.id ? '...' : 'Marcar pago'}</button>}
-                    </td>
-                  </tr>
-                )
-              })}
+              {filtrados.length === 0 && <tr><td colSpan={7} style={{ textAlign: 'center', color: '#999', padding: 24 }}>Nenhum pagamento encontrado.</td></tr>}
+              {filtrados.map(p => (
+                <tr key={p.id}>
+                  <td><b>{p.motoboy_name}</b></td>
+                  <td>{fmtDate(p.period_start)} – {fmtDate(p.period_end)}</td>
+                  <td style={{ fontVariantNumeric: 'tabular-nums' }}>{p.entregas_count}</td>
+                  <td style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>{brl(p.valor)}</td>
+                  <td>
+                    {p.pix_key ? (
+                      <div style={s.pixCell}>{p.pix_key}<button style={s.pixCopy} onClick={() => copyPix(p)}>{copiedId === p.id ? '✓' : 'copiar'}</button></div>
+                    ) : <span style={{ color: '#999' }}>—</span>}
+                  </td>
+                  <td><span style={s.badge('#E4F3EC', '#157A52')}>Pago em {p.paid_at ? fmtDate(p.paid_at.slice(0, 10)) : ''}</span></td>
+                  <td>
+                    {p.comprovante_url ? (
+                      <span style={{ cursor: 'pointer', fontSize: 18 }} title="Ver comprovante" onClick={() => setLightbox({ url: p.comprovante_url!, title: `Comprovante — ${p.motoboy_name}, ${fmtDate(p.period_start)} a ${fmtDate(p.period_end)}` })}>🧾</span>
+                    ) : (
+                      <label style={{ ...s.btnGhostSm, display: 'inline-block' }}>
+                        📎 Anexar
+                        <input type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) anexarComprovante(p.id, f) }} />
+                      </label>
+                    )}
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

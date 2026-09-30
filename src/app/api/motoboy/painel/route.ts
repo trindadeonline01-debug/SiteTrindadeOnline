@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getMotoboyFromRequest } from '@/lib/motoboySession'
+import { getEntregaPricing } from '@/lib/entregaPricing'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -27,9 +28,18 @@ export async function GET(req: NextRequest) {
   const { data: weekOrders } = await supabase.from('delivery_orders').select('fee, status').eq('motoboy_id', motoboy.id).gte('created_at', weekStart.toISOString())
   const entregasSemana = (weekOrders || []).filter(o => o.status === 'entregue').length
 
-  const { data: payouts } = await supabase.from('motoboy_payouts').select('*').eq('motoboy_id', motoboy.id).order('period_end', { ascending: false }).limit(10)
-  const aReceber = (payouts || []).filter(p => p.status === 'pendente').reduce((a, p) => a + Number(p.valor), 0)
-  const jaRecebido = (payouts || []).filter(p => p.status === 'pago').reduce((a, p) => a + Number(p.valor), 0)
+  // "A receber" é calculado na hora, direto das entregas já confirmadas
+  // que ainda não viraram pagamento — não depende mais de nenhuma ação do
+  // admin pra aparecer (antes só existia depois de alguém "gerar repasse",
+  // e até lá o motoboy via zerado mesmo já tendo rodado — Ricardo, set/2026).
+  const { data: pendentesOrders } = await supabase
+    .from('delivery_orders').select('fee')
+    .eq('motoboy_id', motoboy.id).eq('status', 'entregue').eq('payout_status', 'liberado').is('payout_id', null)
+  const pricing = await getEntregaPricing()
+  const aReceber = (pendentesOrders || []).reduce((a, o) => a + Math.max(0, Number(o.fee) - pricing.motoboy_corte_plataforma), 0)
+
+  const { data: payouts } = await supabase.from('motoboy_payouts').select('*').eq('motoboy_id', motoboy.id).eq('status', 'pago').order('paid_at', { ascending: false }).limit(10)
+  const jaRecebido = (payouts || []).reduce((a, p) => a + Number(p.valor), 0)
 
   return NextResponse.json({
     motoboy: { name: full?.name, phone: full?.phone, pix_key: full?.pix_key, pix_key_type: full?.pix_key_type, status: full?.status, available: full?.available, has_password: !!full?.password_hash },

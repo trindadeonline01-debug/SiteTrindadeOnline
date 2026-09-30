@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import crypto from 'crypto'
 import { sendMotoboyWhatsApp } from '@/lib/whatsapp'
+import { getEntregaPricing } from '@/lib/entregaPricing'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -80,14 +81,24 @@ export async function GET(req: NextRequest) {
   for (const o of weekOrders || []) {
     if (o.status === 'entregue') entregasSemanaByMotoboy.set(o.motoboy_id, (entregasSemanaByMotoboy.get(o.motoboy_id) || 0) + 1)
   }
-  const { data: payouts } = ids.length
-    ? await supabase.from('motoboy_payouts').select('motoboy_id, valor, status').in('motoboy_id', ids)
+  // "A receber" é calculado na hora, direto das entregas já confirmadas que
+  // ainda não viraram pagamento — não depende mais de alguém "gerar
+  // repasse" primeiro (antes ficava zerado até esse clique, mesmo com
+  // corrida de verdade feita — Ricardo, set/2026).
+  const { data: pendentesOrders } = ids.length
+    ? await supabase.from('delivery_orders').select('motoboy_id, fee').in('motoboy_id', ids).eq('status', 'entregue').eq('payout_status', 'liberado').is('payout_id', null)
     : { data: [] as any[] }
+  const pricing = await getEntregaPricing()
   const aReceberByMotoboy = new Map<string, number>()
+  for (const o of pendentesOrders || []) {
+    aReceberByMotoboy.set(o.motoboy_id, (aReceberByMotoboy.get(o.motoboy_id) || 0) + Math.max(0, Number(o.fee) - pricing.motoboy_corte_plataforma))
+  }
+  const { data: payouts } = ids.length
+    ? await supabase.from('motoboy_payouts').select('motoboy_id, valor').in('motoboy_id', ids).eq('status', 'pago')
+    : { data: [] as any[] }
   const jaRecebidoByMotoboy = new Map<string, number>()
   for (const p of payouts || []) {
-    if (p.status === 'pendente') aReceberByMotoboy.set(p.motoboy_id, (aReceberByMotoboy.get(p.motoboy_id) || 0) + Number(p.valor))
-    if (p.status === 'pago') jaRecebidoByMotoboy.set(p.motoboy_id, (jaRecebidoByMotoboy.get(p.motoboy_id) || 0) + Number(p.valor))
+    jaRecebidoByMotoboy.set(p.motoboy_id, (jaRecebidoByMotoboy.get(p.motoboy_id) || 0) + Number(p.valor))
   }
 
   // Cada URL assinada é uma chamada de rede à parte — pra 3 motoboys isso

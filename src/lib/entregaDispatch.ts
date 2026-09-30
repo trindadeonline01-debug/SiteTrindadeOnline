@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { moduleActive } from '@/lib/modules'
-import { getEntregaPricing, getEntregaFeeForDelivery } from '@/lib/entregaPricing'
+import { getEntregaPricing, getEntregaFeeForDelivery, todaySaoPaulo } from '@/lib/entregaPricing'
 import {
   sendPlatformWhatsApp, sendMotoboyWhatsApp, sendPlatformWhatsAppImage, sendCustomerWhatsApp, ensureEntregaWebhookRegistered,
 } from '@/lib/whatsapp'
@@ -207,7 +207,24 @@ export async function criarEntregaEChamarMotoboy(opts: {
   // Crédito pago antecipadamente nunca deixa de ser exigido em nenhum caso
   // — regra inegociável do Ricardo, set/2026.
   if (!wallet?.dias_diaria_disponiveis || wallet.dias_diaria_disponiveis < 1) {
-    return { ok: false, error: 'Sem diária disponível — compra em Entrega no painel.' }
+    // dias_diaria_disponiveis vai a 0 assim que a 1ª entrega do dia
+    // confirma — é a própria diária de hoje sendo consumida do banco de
+    // dias pagos (ver src/app/api/entrega/webhook). Sem essa checagem
+    // extra, a 2ª entrega do MESMO dia já pago era bloqueada aqui achando
+    // que não tinha diária nenhuma, mesmo a diária de hoje já estando ativa
+    // (achado real do Ricardo, set/2026 — Confeitaria da Juju: 2ª entrega
+    // do dia negada por "sem diária" mesmo com crédito de sobra).
+    const hoje = todaySaoPaulo()
+    const { data: entreguesHoje } = await supabase
+      .from('delivery_orders').select('id, delivered_at')
+      .eq('company_id', companyId).eq('status', 'entregue')
+      .order('delivered_at', { ascending: false }).limit(50)
+    const diariaJaAtivaHoje = (entreguesHoje || []).some(o =>
+      o.delivered_at && new Date(o.delivered_at).toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }) === hoje
+    )
+    if (!diariaJaAtivaHoje) {
+      return { ok: false, error: 'Sem diária disponível — compra em Entrega no painel.' }
+    }
   }
   // Crédito agora é saldo em R$ (não mais contador de entregas) — precisa
   // cobrir o valor real dessa corrida específica, calculado acima.

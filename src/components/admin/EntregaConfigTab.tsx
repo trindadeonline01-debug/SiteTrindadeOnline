@@ -9,7 +9,10 @@ interface KmTier { kmUntil: string; price: string }
 interface Pacote { id: string; categoria: 'diaria' | 'entrega'; nome: string; quantidade: number; preco: number; ativo: boolean }
 
 const s: Record<string, any> = {
-  topRow: { display: 'grid', gridTemplateColumns: '1fr 1fr 260px', gap: 16, marginBottom: 16, alignItems: 'start' },
+  // auto-fit + minmax em vez de 3 colunas fixas: no mobile não cabe
+  // nenhuma coluna de 260px de sobra, então empilha sozinho (1 por linha)
+  // em vez de espremer os 3 cards lado a lado (Ricardo, set/2026).
+  topRow: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16, marginBottom: 16, alignItems: 'start' },
   card: { background: '#fff', borderRadius: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.07)', overflow: 'hidden', marginBottom: 16 },
   cardHd: { padding: '15px 20px', borderBottom: '1px solid #F0EDE8', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' },
   cardTitle: { fontSize: 12.5, fontWeight: 800, color: '#111' },

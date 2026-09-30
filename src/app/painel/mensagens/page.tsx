@@ -1145,7 +1145,10 @@ export default function MensagensPage() {
     <Shell active="mensagens" companyName={company.name} companySlug={company.slug} lojaDigitalEnabled={company.loja_digital_enabled} crmEnabled={company.crm_whatsapp_enabled} entregaEnabled={company.entrega_enabled}>
       <div className={`msg-page ${fullScreen ? 'msg-page-full' : ''}`}>
         {fullScreen && adminMode && (
-          <div style={{ position:'sticky', top:0, zIndex:30, background:'#1A0F00', color:'#F0EDE8', padding:'9px 16px', fontSize:12, fontWeight:600, display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
+          // Não-sticky de propósito — mesmo ajuste do banner equivalente em
+          // painel/layout.tsx (Ricardo, set/2026: sticky grudando por cima
+          // do topo da tela no mobile).
+          <div style={{ position:'relative', zIndex:30, background:'#1A0F00', color:'#F0EDE8', padding:'9px 16px', fontSize:12, fontWeight:600, display:'flex', flexWrap:'wrap', alignItems:'center', justifyContent:'space-between', gap:8 }}>
             <span>🛠️ Modo admin — WhatsApp de <strong>{company.name}</strong></span>
             <a href="/admin?tab=empresas" style={{ color:'var(--sign)', fontWeight:700, textDecoration:'none', whiteSpace:'nowrap' }}>← Voltar ao admin</a>
           </div>

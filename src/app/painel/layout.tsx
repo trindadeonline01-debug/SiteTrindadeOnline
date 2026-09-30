@@ -260,7 +260,16 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
         adminEmpresaId={isAdminMode ? adminEmpresaId ?? undefined : undefined}
       >
         {isAdminMode && (
-          <div style={{ position: 'sticky', top: 0, zIndex: 30, background: '#1A0F00', color: '#F0EDE8', padding: '9px 16px', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          // Não-sticky de propósito (Ricardo, set/2026, no mobile): já tinha
+          // sido corrigido uma vez um header grudado sobrepondo o topo do
+          // painel (783b50e — header do site sobre o cabeçalho do Catálogo)
+          // e voltou a acontecer aqui, cortando o topo da tela mesmo
+          // rolando. Essa faixa é só um aviso pro admin (nenhum lojista
+          // normal chega a ver) — não vale manter sticky e correr o risco
+          // de grudar por cima de conteúdo de novo. flexWrap garante que
+          // "Voltar ao admin" nunca fica espremido/cortado se o nome da
+          // empresa for longo em tela estreita.
+          <div style={{ position: 'relative', zIndex: 30, background: '#1A0F00', color: '#F0EDE8', padding: '9px 16px', fontSize: 12, fontWeight: 600, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
             <span>🛠️ Modo admin — vendo como <strong>{company?.name || 'carregando...'}</strong></span>
             <a href="/admin?tab=empresas" style={{ color: 'var(--sign)', fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}>← Voltar ao admin</a>
           </div>

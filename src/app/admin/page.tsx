@@ -1576,7 +1576,11 @@ export default function AdminPage() {
           .btn-hamburger { display: block; }
           .admin-body { padding: 16px; }
           .stats-grid { grid-template-columns: repeat(2,1fr) !important; }
-          .admin-topbar { padding: 12px 16px; }
+          /* Título comprido ("ENTREGAS — TRINDADE") espremido contra a data
+             no mesmo espaço estreito da linha, os dois quebrando em várias
+             linhas atropelados — empilha em vez de lado a lado, cada um na
+             sua própria linha inteira (Ricardo, set/2026). */
+          .admin-topbar { padding: 12px 16px; flex-direction: column; align-items: flex-start; gap: 4px; }
         }
         .sidebar-logo {
           padding: 24px 20px 20px;
@@ -1623,6 +1627,7 @@ export default function AdminPage() {
           padding: 14px 28px; display: flex; align-items: center;
           justify-content: space-between; position: sticky; top: 0; z-index: 20;
         }
+        .topbar-title-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
         .topbar-title { font-family: 'Anton', sans-serif; font-size: 20px; color: var(--ink); letter-spacing: 1px; text-transform: uppercase; }
         .topbar-date { font-size: 12px; color: #AAA; }
         .admin-body { padding: 28px; }
@@ -2173,8 +2178,9 @@ export default function AdminPage() {
         {/* MAIN */}
         <main className="admin-main">
           <div className="admin-topbar">
+            <div className="topbar-title-row">
               <button className="btn-hamburger" onClick={() => setSidebarOpen(true)}>☰</button>
-            <div className="topbar-title">
+              <div className="topbar-title">
               {tab === 'dashboard' && 'Dashboard'}
               {tab === 'empresas'  && 'Gestão de Empresas'}
               {tab === 'usuarios'  && 'Usuários Cadastrados'}
@@ -2194,8 +2200,9 @@ export default function AdminPage() {
               {tab === 'notificacoes' && 'Notificações Push'}
               {tab === 'disparos' && 'Disparos WhatsApp'}
               {tab === 'palavra-premiada' && 'Palavra Premiada'}
-              {tab === 'entregas' && 'Entregas — Trindade Entrega'}
+              {tab === 'entregas' && 'Entregas — Trindade'}
               {tab === 'peca-agora' && 'Peça Agora — Vitrine da Home'}
+              </div>
             </div>
             <div className="topbar-date">{new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}</div>
           </div>

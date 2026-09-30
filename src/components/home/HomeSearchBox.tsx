@@ -91,9 +91,11 @@ export default function HomeSearchBox() {
     const raw = e.currentTarget.querySelector('input')?.value ?? searchQuery
     if (raw.trim()) {
       const q = raw.trim()
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        supabase.from('search_logs').insert({ query: q, user_id: session?.user?.id || null }).then(() => {})
-      })
+      // O registro em search_logs sai só uma vez, em /busca (BuscaPageClient)
+      // — já sabe o resultado real e quem buscou. Registrar aqui também
+      // criava um segundo log incompleto (sem resultado nenhum, porque a
+      // busca ainda nem rodou) que fazia termo com busca válida aparecer
+      // como "sem resultado" no admin (achado real do Ricardo, set/2026).
       router.push(`/busca?q=${encodeURIComponent(q)}`)
     }
   }

@@ -70,9 +70,9 @@ export default function SearchBar({ compact }: { compact?: boolean }) {
     const raw = e.currentTarget.querySelector('input')?.value ?? q
     if (!raw.trim()) return
     const term = raw.trim()
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      supabase.from('search_logs').insert({ query: term, user_id: session?.user?.id || null }).then(() => {})
-    })
+    // Registro em search_logs sai só em /busca (BuscaPageClient), que já
+    // sabe o resultado real e quem buscou — ver mesmo ajuste em
+    // HomeSearchBox.tsx.
     setOpen(false)
     router.push(`/busca?q=${encodeURIComponent(term)}`)
   }

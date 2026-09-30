@@ -53,10 +53,24 @@ export default function BuscaPageClient({ initialQuery, initialResults, produtos
   const [total, setTotal]         = useState(initialResults?.total || 0)
   const { premio, setPremio, checarPalavraPremiada, waResgateUrl } = usePalavraPremiada()
 
-  // A busca inicial (vinda de ?q=) já veio pronta do servidor — só falta
-  // conferir a Palavra Premiada, que depende do visitor_id do navegador
+  // A busca inicial (vinda de ?q=) já veio pronta do servidor (resultado
+  // real já calculado) — só falta conferir a Palavra Premiada (depende do
+  // visitor_id do navegador) e registrar o log de busca. O servidor não
+  // registra sozinho porque não vê sessão (login fica no localStorage, não
+  // em cookie) — esse é o ÚNICO lugar que registra busca no banco agora,
+  // sempre com resultado real + quem buscou (achado real do Ricardo,
+  // set/2026: log duplicado e incompleto fazia termo com busca válida
+  // aparecer como "sem resultado" no admin).
   useEffect(() => {
-    if (initialQuery.trim()) checarPalavraPremiada(initialQuery)
+    if (!initialQuery.trim()) return
+    checarPalavraPremiada(initialQuery)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      supabase.from('search_logs').insert({
+        query: initialQuery.trim().toLowerCase(),
+        results_count: initialResults?.total ?? 0,
+        user_id: session?.user?.id || null,
+      }).then(() => {})
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -117,9 +131,11 @@ export default function BuscaPageClient({ initialQuery, initialResults, produtos
 
     setTotal(emp.length + cat.length + sub.length + desapegaData.length + empregosData.length + imoveisData.length + achadosData.length + prod.length)
 
+    const { data: { session } } = await supabase.auth.getSession()
     await supabase.from('search_logs').insert({
       query: term.toLowerCase(),
-      results_count: emp.length + cat.length + sub.length + desapegaData.length + empregosData.length + imoveisData.length + achadosData.length + prod.length
+      results_count: emp.length + cat.length + sub.length + desapegaData.length + empregosData.length + imoveisData.length + achadosData.length + prod.length,
+      user_id: session?.user?.id || null,
     })
 
     setLoading(false)

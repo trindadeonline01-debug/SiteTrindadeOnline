@@ -61,7 +61,10 @@ export default async function BuscaPage({ searchParams }: { searchParams: Promis
 
   const total = empresas.length + cats.length + subcats.length + desapega.length + empregos.length + imoveis.length + achados.length + produtos.length
 
-  await supabaseServer.from('search_logs').insert({ query: query.toLowerCase(), results_count: total })
+  // Registro em search_logs sai do BuscaPageClient (cliente), não daqui —
+  // o servidor não vê sessão (login fica no localStorage do navegador, não
+  // em cookie), então um log daqui nunca sabe quem buscou. Ver comentário
+  // em BuscaPageClient.tsx.
 
   return (
     <BuscaPageClient

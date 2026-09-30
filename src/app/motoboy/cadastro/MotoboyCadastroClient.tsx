@@ -43,6 +43,7 @@ export default function MotoboyCadastroClient() {
   const [whatsapp, setWhatsapp] = useState('')
   const [code, setCode] = useState('')
   const [sendingCode, setSendingCode] = useState(false)
+  const [resendCooldown, setResendCooldown] = useState(0)
   const [verifyingCode, setVerifyingCode] = useState(false)
   const [codeError, setCodeError] = useState('')
   const [photos, setPhotos] = useState<Record<PhotoKey, string | null>>({ cnh: null, moto_frente: null, moto_tras: null, documento_moto: null, selfie: null })
@@ -81,6 +82,12 @@ export default function MotoboyCadastroClient() {
   }, [step, nome, cpf, endereco, email, whatsapp, photos, pixKey, pixType, nomeDigitado])
 
   async function enviarCodigo() {
+    // Sem essa trava, o link "Reenviar código" deixava disparar vários
+    // POSTs seguidos num toque duplo/ansioso (achado real, set/2026: um
+    // motoboy mandou 10 pedidos de código em 2 minutos sem nenhum chegar) —
+    // cada um gera uma chamada nova pra Evolution API à toa, sem ajudar em
+    // nada quando o problema é a instância, não a quantidade de tentativas.
+    if (sendingCode || resendCooldown > 0) return
     setCodeError('')
     if (!nome.trim() || !cpf.trim() || !endereco.trim() || !whatsapp.trim()) { setErro('Preenche todos os campos obrigatórios.'); return }
     setErro('')
@@ -96,8 +103,15 @@ export default function MotoboyCadastroClient() {
     // (que só mostra "codeError"); sem isso, uma falha no reenvio ficava
     // muda pro usuário, mesmo com o erro já sendo devolvido pela API.
     if (data.error) { setErro(data.error); setCodeError(data.error); return }
+    setResendCooldown(30)
     setStep(2)
   }
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return
+    const t = setTimeout(() => setResendCooldown(s => s - 1), 1000)
+    return () => clearTimeout(t)
+  }, [resendCooldown])
 
   async function confirmarCodigo() {
     setCodeError('')
@@ -231,7 +245,13 @@ export default function MotoboyCadastroClient() {
               <div className="mc-title" style={{ fontSize: 20 }}>Confirme seu WhatsApp</div>
               <div className="mc-sub">Mandamos um código de 6 dígitos pro seu WhatsApp<br /><b>{whatsapp}</b></div>
               <input className="mc-code" maxLength={6} inputMode="numeric" value={code} onChange={e => setCode(e.target.value.replace(/\D/g, ''))} placeholder="000000" />
-              <a style={{ display: 'block', textAlign: 'center', fontSize: 11.5, color: 'var(--sign-dark)', fontWeight: 700, marginTop: 12, cursor: 'pointer' }} onClick={enviarCodigo}>Não chegou? Reenviar código</a>
+              {sendingCode || resendCooldown > 0 ? (
+                <span style={{ display: 'block', textAlign: 'center', fontSize: 11.5, color: '#8A8478', fontWeight: 700, marginTop: 12 }}>
+                  {sendingCode ? 'Enviando...' : `Reenviar em ${resendCooldown}s`}
+                </span>
+              ) : (
+                <a style={{ display: 'block', textAlign: 'center', fontSize: 11.5, color: 'var(--sign-dark)', fontWeight: 700, marginTop: 12, cursor: 'pointer' }} onClick={enviarCodigo}>Não chegou? Reenviar código</a>
+              )}
             </div>
             {codeError && <div className="mc-error">{codeError}</div>}
             <button className="mc-btn" disabled={verifyingCode || code.length < 6} onClick={confirmarCodigo}>{verifyingCode ? 'Verificando...' : 'Confirmar código'}</button>

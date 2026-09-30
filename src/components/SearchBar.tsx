@@ -1,10 +1,10 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
-type Suggestion = { type: string; label: string; sub: string; slug?: string; categorySlug?: string }
+type Suggestion = { type: string; label: string; sub: string; slug?: string; categorySlug?: string; produtoId?: string }
 
 // Versão compacta da busca — mesma lógica de sugestões da home
 // (HomeSearchBox), mas dimensionada pra caber numa barra de header fina em
@@ -16,6 +16,13 @@ export default function SearchBar({ compact }: { compact?: boolean }) {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
   const [open, setOpen] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
+  // Mesmo flag que liga/desliga o índice de produtos em /busca e na home
+  // (ESPECIFICACAO.md §7.4) — lido uma vez ao montar, não a cada tecla.
+  const [produtosEnabled, setProdutosEnabled] = useState(false)
+  useEffect(() => {
+    supabase.from('feature_flags').select('enabled').eq('key', 'busca_produtos_enabled').maybeSingle()
+      .then(({ data }) => setProdutosEnabled(!!data?.enabled))
+  }, [])
 
   async function fetchSuggestions(term: string) {
     if (term.length < 2) { setSuggestions([]); return }
@@ -25,6 +32,22 @@ export default function SearchBar({ compact }: { compact?: boolean }) {
       data.slice(0, 5).forEach((c: any) => {
         results.push({ type: 'empresa', label: c.name, sub: c.category_name || '', slug: c.slug })
       })
+    }
+    if (produtosEnabled) {
+      const { data: prodData } = await supabase
+        .from('loja_produtos')
+        .select('id, name, sale_price, company:companies!inner(slug, name, status, loja_digital_enabled)')
+        .eq('active', true).not('photo_url', 'is', null)
+        .eq('company.status', 'active').eq('company.loja_digital_enabled', true)
+        .ilike('name', `%${term}%`).limit(4)
+      if (prodData) {
+        prodData.forEach((p: any) => {
+          const company = Array.isArray(p.company) ? p.company[0] : p.company
+          if (!company?.slug) return
+          const preco = Number(p.sale_price) > 0 ? `R$ ${Number(p.sale_price).toFixed(2).replace('.', ',')} · ` : ''
+          results.push({ type: 'produto', label: p.name, sub: `${preco}${company.name}`, slug: company.slug, produtoId: p.id })
+        })
+      }
     }
     const { data: subcatData } = await supabase
       .from('subcategories')
@@ -86,10 +109,11 @@ export default function SearchBar({ compact }: { compact?: boolean }) {
             <div key={i} className="sb-item" onMouseDown={() => {
               setOpen(false)
               if (s.type === 'empresa' && s.slug) window.location.href = `/empresa/${s.slug}`
+              else if (s.type === 'produto' && s.slug && s.produtoId) window.location.href = `/empresa/${s.slug}/item/${s.produtoId}`
               else if (s.type === 'subcat' && s.categorySlug && s.slug) window.location.href = `/categoria/${s.categorySlug}?sub=${s.slug}`
               else window.location.href = `/busca?q=${encodeURIComponent(s.label)}`
             }}>
-              <span className="sb-item-ico">{s.type === 'empresa' ? '🏪' : '📂'}</span>
+              <span className="sb-item-ico">{s.type === 'empresa' ? '🏪' : s.type === 'produto' ? '🛍️' : '📂'}</span>
               <span>
                 <span className="sb-item-label" style={{ display: 'block' }}>{s.label}</span>
                 {s.sub && <span className="sb-item-sub">{s.sub}</span>}

@@ -1,10 +1,10 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
-type Suggestion = { type: string; label: string; sub: string; slug?: string; categorySlug?: string }
+type Suggestion = { type: string; label: string; sub: string; slug?: string; categorySlug?: string; produtoId?: string }
 
 export default function HomeSearchBox() {
   const router = useRouter()
@@ -12,6 +12,14 @@ export default function HomeSearchBox() {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
+  // Índice de produtos fica desligado até ter massa mínima de catálogos
+  // (ESPECIFICACAO.md §7.4) — mesmo flag que liga/desliga em /busca. Lido
+  // uma vez ao montar, não a cada tecla digitada.
+  const [produtosEnabled, setProdutosEnabled] = useState(false)
+  useEffect(() => {
+    supabase.from('feature_flags').select('enabled').eq('key', 'busca_produtos_enabled').maybeSingle()
+      .then(({ data }) => setProdutosEnabled(!!data?.enabled))
+  }, [])
 
   async function fetchSuggestions(q: string) {
     if (q.length < 2) { setSuggestions([]); return }
@@ -25,6 +33,22 @@ export default function HomeSearchBox() {
         else if (c.category_name) motivo = c.category_name
         results.push({ type: 'empresa', label: c.name, sub: motivo, slug: c.slug })
       })
+    }
+    if (produtosEnabled) {
+      const { data: prodData } = await supabase
+        .from('loja_produtos')
+        .select('id, name, sale_price, company:companies!inner(slug, name, status, loja_digital_enabled)')
+        .eq('active', true).not('photo_url', 'is', null)
+        .eq('company.status', 'active').eq('company.loja_digital_enabled', true)
+        .ilike('name', `%${q}%`).limit(5)
+      if (prodData) {
+        prodData.forEach((p: any) => {
+          const company = Array.isArray(p.company) ? p.company[0] : p.company
+          if (!company?.slug) return
+          const preco = Number(p.sale_price) > 0 ? `R$ ${Number(p.sale_price).toFixed(2).replace('.', ',')} · ` : ''
+          results.push({ type: 'produto', label: p.name, sub: `${preco}${company.name}`, slug: company.slug, produtoId: p.id })
+        })
+      }
     }
     const { data: tagData } = await supabase
       .from('companies')
@@ -95,13 +119,15 @@ export default function HomeSearchBox() {
               setShowSuggestions(false)
               if (s.type === 'empresa' && s.slug) {
                 window.location.href = `/empresa/${s.slug}`
+              } else if (s.type === 'produto' && s.slug && s.produtoId) {
+                window.location.href = `/empresa/${s.slug}/item/${s.produtoId}`
               } else if (s.type === 'subcat' && s.categorySlug && s.slug) {
                 window.location.href = `/categoria/${s.categorySlug}?sub=${s.slug}`
               } else {
                 window.location.href = `/busca?q=${encodeURIComponent(s.label)}`
               }
             }}>
-              <div className="sug-ico">{s.type === 'empresa' ? '🏪' : s.type === 'subcat' ? '📂' : '🏷️'}</div>
+              <div className="sug-ico">{s.type === 'empresa' ? '🏪' : s.type === 'produto' ? '🛍️' : s.type === 'subcat' ? '📂' : '🏷️'}</div>
               <div>
                 <div className="sug-label">{s.label}</div>
                 {s.sub && <div className="sug-sub">{s.type === 'tag' ? `em ${s.sub}` : s.sub}</div>}

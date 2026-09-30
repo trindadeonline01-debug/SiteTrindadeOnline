@@ -1060,6 +1060,12 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
                     {(company?.loja_payment_methods?.length ? company.loja_payment_methods : ['pix', 'dinheiro', 'cartao_credito']).map(m => (
                       <button key={m} className={`cd-paychip ${payMethod === m ? 'active' : ''}`} onClick={() => setPayMethod(m)}>{PAYMENT_LABELS[m] || m}</button>
                     ))}
+                    {/* Sem gateway automático aqui — o pedido nunca é pago
+                        pelo site, só combina a forma. Sem esse aviso o
+                        cliente não tem como saber disso (Ricardo, set/2026). */}
+                    <div style={{ marginTop: 10, padding: '9px 12px', background: '#F7F5F0', borderRadius: 10, fontSize: 11.5, color: '#6E6656', lineHeight: 1.5 }}>
+                      💵 Isso é só a forma escolhida — o pagamento é cobrado {deliveryType === 'entrega' ? 'na entrega, pelo motoboy' : 'na retirada, na loja'}, não agora pelo site.
+                    </div>
 
                     {payMethod === 'dinheiro' && (
                       <div style={{ marginTop: 10, padding: '10px 12px', background: '#F7F5F0', borderRadius: 10 }}>

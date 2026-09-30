@@ -35,7 +35,12 @@ function buildCustomerMessage(opts: OrderInfo): string {
   parts.push('', ...itemLines(opts.items), '', `Subtotal: ${fmt(opts.subtotal)}`)
   if (opts.deliveryFee > 0) parts.push(`Taxa de entrega: ${fmt(opts.deliveryFee)}`)
   parts.push(`*Total: ${fmt(opts.total)}*`, '')
-  if (opts.paymentMethod) parts.push(`💳 Pagamento: ${PAY_LABEL[opts.paymentMethod] || opts.paymentMethod}`)
+  if (opts.paymentMethod) {
+    parts.push(`💳 Pagamento: ${PAY_LABEL[opts.paymentMethod] || opts.paymentMethod}`)
+    // Sem isso o cliente não tem como saber que o site não cobra nada agora
+    // — reforça o mesmo aviso já mostrado na tela de checkout (Ricardo, set/2026).
+    parts.push(opts.deliveryType === 'entrega' ? '_(cobrado na entrega, não é pago agora)_' : '_(cobrado na retirada, não é pago agora)_')
+  }
   parts.push(opts.deliveryType === 'entrega' && opts.address ? `🚚 Entrega: ${opts.address}` : '🏪 Retirada no local')
   if (opts.notes) parts.push(`📝 Obs: ${opts.notes}`)
   parts.push('', 'Assim que confirmarmos, te avisamos por aqui!')

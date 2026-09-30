@@ -1,5 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { PeriodSel, periodRange, periodLabel } from '@/lib/periodFilter'
+import PeriodFilterBar from '@/components/admin/PeriodFilterBar'
 
 const TOKEN_KEY = 'motoboy_session_token'
 
@@ -8,11 +10,28 @@ const STATUS_LABEL: Record<string, string> = {
 }
 
 function fmt(n: number) { return 'R$ ' + Number(n || 0).toFixed(2).replace('.', ',') }
+function fmtDT(iso: string | null) {
+  if (!iso) return null
+  const d = new Date(iso)
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+}
+// Antes mostrava só "30/09/2026 · Entregue" — não dava pra saber ONDE nem
+// A QUE HORAS retirou/entregou. Agora mostra o bairro e as duas horas
+// quando existem (pedido do Ricardo, set/2026).
+function orderSubtitle(o: { status: string; created_at: string; bairro: string | null; picked_up_at: string | null; delivered_at: string | null }) {
+  const partes: string[] = []
+  if (o.bairro) partes.push(o.bairro)
+  if (o.picked_up_at && o.delivered_at) partes.push(`Retirou ${fmtDT(o.picked_up_at)} · Entregou ${fmtDT(o.delivered_at)}`)
+  else if (o.picked_up_at) partes.push(`Retirou ${fmtDT(o.picked_up_at)} · ${STATUS_LABEL[o.status] || o.status}`)
+  else partes.push(`${new Date(o.created_at).toLocaleDateString('pt-BR')} · ${STATUS_LABEL[o.status] || o.status}`)
+  return partes.join(' · ')
+}
 
 interface PainelData {
   motoboy: { name: string; phone: string; pix_key: string | null; pix_key_type: string | null; status: string; available: boolean; has_password: boolean }
   entregasSemana: number; aReceber: number; jaRecebido: number
-  recentOrders: { id: string; company_name: string; customer_name: string; status: string; fee: number; created_at: string; pago: boolean }[]
+  periodAReceber: number; periodRecebido: number
+  recentOrders: { id: string; company_name: string; customer_name: string; status: string; fee: number; created_at: string; pago: boolean; bairro: string | null; picked_up_at: string | null; delivered_at: string | null }[]
   payouts: { id: string; period_start: string; period_end: string; valor: number; status: string; paid_at: string | null }[]
 }
 
@@ -37,15 +56,28 @@ export default function MotoboyPainelPage() {
   const [novaSenha, setNovaSenha] = useState('')
   const [editSenha, setEditSenha] = useState(false)
   const [msg, setMsg] = useState('')
+  const [period, setPeriod] = useState<PeriodSel>({ kind: 'week' })
 
   useEffect(() => {
     const saved = typeof window !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null
-    if (saved) { setToken(saved); loadData(saved) }
+    if (saved) setToken(saved)
   }, [])
 
-  async function loadData(tok: string) {
+  // Busca de novo sempre que o token mudar (login) ou o filtro de período
+  // mudar — pedido do Ricardo, set/2026: motoboy precisa ver o que tem a
+  // receber/já recebeu dentro de um período escolhido, não só um total fixo.
+  useEffect(() => {
+    if (!token) return
+    loadData(token, period)
+  }, [token, period])
+
+  async function loadData(tok: string, p: PeriodSel) {
     setLoadingData(true)
-    const res = await fetch('/api/motoboy/painel', { headers: { Authorization: `Bearer ${tok}` } })
+    const { from, to } = periodRange(p)
+    const qs = new URLSearchParams()
+    if (from) qs.set('from', from)
+    if (to) qs.set('to', to)
+    const res = await fetch(`/api/motoboy/painel${qs.toString() ? `?${qs.toString()}` : ''}`, { headers: { Authorization: `Bearer ${tok}` } })
     if (res.status === 401) { localStorage.removeItem(TOKEN_KEY); setToken(null); setLoadingData(false); return }
     const j = await res.json()
     setData(j)
@@ -74,7 +106,6 @@ export default function MotoboyPainelPage() {
     if (j.error) { setErro(j.error); return }
     localStorage.setItem(TOKEN_KEY, j.token)
     setToken(j.token)
-    loadData(j.token)
   }
 
   async function loginComSenha() {
@@ -87,7 +118,6 @@ export default function MotoboyPainelPage() {
     if (j.error) { setErro(j.error); return }
     localStorage.setItem(TOKEN_KEY, j.token)
     setToken(j.token)
-    loadData(j.token)
   }
 
   async function sair() {
@@ -175,6 +205,10 @@ export default function MotoboyPainelPage() {
     .p-row-val{font-weight:800;font-size:13px;}
     .p-pill{font-size:9.5px;font-weight:800;text-transform:uppercase;padding:2px 7px;border-radius:20px;display:inline-block;margin-top:3px;}
     .p-empty{padding:22px 16px;text-align:center;color:#8A8478;font-size:12px;}
+    .p-period-totals{display:flex;gap:10px;padding:0 16px 14px;}
+    .p-period-totals > div{flex:1;background:#FAFAF8;border:1px solid #E0DDD8;border-radius:10px;padding:9px 11px;}
+    .p-period-totals .l{display:block;font-size:9.5px;font-weight:700;color:#8A8478;text-transform:uppercase;}
+    .p-period-totals .v{display:block;font-size:14px;font-weight:800;margin-top:2px;}
     .p-field-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;border-bottom:1px solid #E0DDD8;font-size:13px;font-weight:600;}
     .p-field-row:last-child{border-bottom:none;}
     .p-field-edit{font-size:11px;color:var(--sign-dark);font-weight:800;cursor:pointer;flex:none;background:none;border:none;}
@@ -274,13 +308,20 @@ export default function MotoboyPainelPage() {
         </div>
 
         <div className="p-card2">
-          <div className="p-card2-hd">📦 Entregas recentes</div>
-          {data.recentOrders.length === 0 && <div className="p-empty">Nenhuma entrega ainda.</div>}
+          <div className="p-card2-hd">📦 Entregas — {periodLabel(period)}</div>
+          <div style={{ padding: '2px 16px 14px' }}>
+            <PeriodFilterBar value={period} onChange={setPeriod} />
+          </div>
+          <div className="p-period-totals">
+            <div><span className="l">A receber no período</span><span className="v" style={{ color: '#C97A0E' }}>{fmt(data.periodAReceber)}</span></div>
+            <div><span className="l">Recebido no período</span><span className="v" style={{ color: '#0F8A57' }}>{fmt(data.periodRecebido)}</span></div>
+          </div>
+          {data.recentOrders.length === 0 && <div className="p-empty">Nenhuma entrega nesse período.</div>}
           {data.recentOrders.map(o => (
             <div className="p-row" key={o.id}>
               <div className="p-row-mid">
                 <div className="p-row-title">{o.company_name}</div>
-                <div className="p-row-sub">{new Date(o.created_at).toLocaleDateString('pt-BR')} · {STATUS_LABEL[o.status] || o.status}</div>
+                <div className="p-row-sub">{orderSubtitle(o)}</div>
               </div>
               <div className="p-row-right">
                 <div className="p-row-val">{fmt(o.fee)}</div>

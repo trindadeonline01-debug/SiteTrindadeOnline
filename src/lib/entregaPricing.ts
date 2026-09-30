@@ -44,7 +44,7 @@ export async function getEntregaPricing(): Promise<EntregaPricing> {
 // endereço em texto livre — o dropoff da entrega da plataforma não vem
 // estruturado em campos, é só uma string digitada pelo lojista ou montada
 // no checkout do cliente.
-function matchBairroInAddress(address: string): string | null {
+export function matchBairroInAddress(address: string): string | null {
   const norm = normalizeBairro(address)
   const ordenados = [...BAIRROS_SAO_GONCALO].sort((a, b) => b.length - a.length)
   for (const bairro of ordenados) {

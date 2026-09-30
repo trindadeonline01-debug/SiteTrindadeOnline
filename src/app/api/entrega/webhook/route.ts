@@ -154,28 +154,44 @@ export async function POST(req: NextRequest) {
       // Ricardo, set/2026 — sem essa ordem, o motoboy aprende o código do
       // cliente já na retirada e a confirmação de entrega vira formalidade.
       if (/^\d{4}$/.test(norm)) {
-        const { data: order } = await supabase
+        // Motoboy pode ter mais de uma corrida "a_caminho" ao mesmo tempo —
+        // aceitou uma corrida nova antes de terminar a anterior (fica
+        // disponível pra oferta mesmo no meio de uma entrega). Antes essa
+        // busca trazia só a corrida aceita mais recentemente (limit 1), então
+        // digitar o código da corrida ANTERIOR (ainda em andamento) comparava
+        // contra o código da corrida nova errada e nunca batia (achado real,
+        // Ricardo set/2026 — Gustavo no meio de uma entrega, aceitou outra, e
+        // o código da primeira parou de confirmar). Agora busca todas as
+        // corridas dele em andamento e acha qual delas o código digitado
+        // pertence de verdade — o código é que identifica a corrida, nunca
+        // "a mais recente".
+        const { data: orders } = await supabase
           .from('delivery_orders').select('id, delivery_code, pickup_code, picked_up_at, company_id, fee, customer_phone, pedido_id')
           .eq('motoboy_id', motoboy.id).eq('status', 'a_caminho')
-          .order('assigned_at', { ascending: false }).limit(1).maybeSingle()
-        if (!order) continue
+          .order('assigned_at', { ascending: false })
+        if (!orders || orders.length === 0) continue
 
         // Pickup_code pode ser nulo numa entrega antiga que já estava em
         // andamento quando essa coluna foi criada — nesse caso só existe o
-        // código de entrega mesmo, segue direto pra ele (não trava entrega
+        // código de entrega mesmo, compara direto com ele (não trava entrega
         // em andamento por falta de dado retroativo).
-        const precisaConfirmarRetirada = !!order.pickup_code && !order.picked_up_at
-        if (precisaConfirmarRetirada) {
-          if (norm === order.pickup_code) {
-            await supabase.from('delivery_orders').update({ picked_up_at: new Date().toISOString() }).eq('id', order.id)
-            await sendMotoboyWhatsApp(motoboy.phone, '✅ Retirada confirmada! Segue pro cliente — quando entregar, peça o código dele pra liberar seu pagamento.')
-          } else {
-            await sendMotoboyWhatsApp(motoboy.phone, 'Esse código não confere — confirma o código de retirada com o lojista e tenta de novo.')
-          }
+        const order = orders.find(o => (!!o.pickup_code && !o.picked_up_at) ? norm === o.pickup_code : norm === o.delivery_code)
+        if (!order) {
+          const mensagem = orders.length > 1
+            ? 'Esse código não confere com nenhuma das suas corridas em andamento — confirma e tenta de novo.'
+            : 'Esse código não confere — confirma com o cliente e tenta de novo.'
+          await sendMotoboyWhatsApp(motoboy.phone, mensagem)
           continue
         }
 
-        if (norm === order.delivery_code) {
+        const precisaConfirmarRetirada = !!order.pickup_code && !order.picked_up_at
+        if (precisaConfirmarRetirada) {
+          await supabase.from('delivery_orders').update({ picked_up_at: new Date().toISOString() }).eq('id', order.id)
+          await sendMotoboyWhatsApp(motoboy.phone, '✅ Retirada confirmada! Segue pro cliente — quando entregar, peça o código dele pra liberar seu pagamento.')
+          continue
+        }
+
+        {
           const pricing = await getEntregaPricing()
           // Diária e escalonamento por volume: contam TODA entrega
           // confirmada hoje pra essa empresa, não só avulsa — Ricardo,
@@ -257,8 +273,6 @@ export async function POST(req: NextRequest) {
               body: JSON.stringify({ title: '🏍️ Entrega concluída', body: 'O motoboy confirmou a entrega.', target: 'external_user_id', userId: company.owner_id, url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trindadeonline.com.br'}/painel/entrega` }),
             }).catch(() => {})
           }
-        } else {
-          await sendMotoboyWhatsApp(motoboy.phone, 'Esse código não confere — confirma com o cliente e tenta de novo.')
         }
       }
     }

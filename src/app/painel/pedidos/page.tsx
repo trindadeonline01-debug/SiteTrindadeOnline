@@ -8,6 +8,7 @@ import { useRealtimeResync } from '@/hooks/useRealtimeResync'
 import { usePainelShell } from '@/contexts/PainelShellContext'
 import { npGroupContribution, type NpOpcao, type NpGrupo, type NpProduto, type NpCartLine } from '@/lib/produtoCart'
 import EditarPedidoPanel from '@/components/painel/EditarPedidoPanel'
+import BairrosEntregaModal from '@/components/painel/BairrosEntregaModal'
 
 type Item = { id: string; product_name: string; unit_price: number; qty: number; peso_kg: number | null; selected_options: { name: string; price: number }[] }
 type Status = 'recebido' | 'em_preparo' | 'pronto' | 'saiu_entrega' | 'entregue' | 'cancelado'
@@ -172,6 +173,7 @@ export default function PedidosPage() {
   const [motoboySel, setMotoboySel] = useState<Record<string, string>>({})
   const [crmEnabled, setCrmEnabled] = useState(false)
   const [entregaEnabled, setEntregaEnabled] = useState(false)
+  const [showBairrosModal, setShowBairrosModal] = useState(false)
   // Chavinha por empresa — desliga a chamada AUTOMÁTICA do motoboy da
   // plataforma (pra quem já tem motoboy próprio); o botão manual "🏍️ Chamar
   // motoboy" no card do pedido continua sempre disponível, independente
@@ -847,6 +849,7 @@ export default function PedidosPage() {
         .pd-auto-pill .pd-switch .k{ width:11px;height:11px;top:2px;left:2px; }
         .pd-auto-pill .pd-switch.on .k{ left:11px; }
         .pd-new-pill{ flex:none;width:26px;height:26px;border-radius:50%;background:var(--sign);color:var(--ink);border:none;font-size:16px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center; }
+        .pd-icon-pill{ flex:none;width:26px;height:26px;border-radius:50%;border:none;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit; }
         .pd-datebar{ display:flex;align-items:center;gap:8px;padding:0 16px 12px; }
         .pd-date-arrow{ flex:none;width:30px;height:30px;border-radius:8px;border:1px solid #E6E0D2;background:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit; }
         .pd-date-arrow:disabled{ opacity:.35;cursor:default; }
@@ -1046,7 +1049,10 @@ export default function PedidosPage() {
           </div>
           <div className="pd-head-right">
             {isToday && <button className="pd-new-pill" onClick={openNovoPedido} title="Novo pedido">+</button>}
-            <button onClick={openPrinterModal} style={{ fontSize: 11, fontWeight: 700, color: printerName ? '#157A52' : '#8A6410', background: printerName ? '#E4F3EC' : '#FBF1DC', padding: '7px 10px', borderRadius: 8, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>🖨️ {printerName ? 'Impressora' : 'Configurar'}</button>
+            <button className="pd-icon-pill" onClick={openPrinterModal} title={printerName ? `Impressora: ${isRawBtMode(printerName) ? 'RawBT (tablet)' : printerName}` : 'Configurar impressora'} style={{ background: printerName ? '#E4F3EC' : '#FBF1DC', color: printerName ? '#157A52' : '#8A6410' }}>🖨️</button>
+            {entregaEnabled && (
+              <button className="pd-icon-pill" onClick={() => setShowBairrosModal(true)} title="Bairros e valores de entrega" style={{ background: '#F5EAD0', color: '#8A6410' }}>📍</button>
+            )}
             <a href="/painel/cozinha" style={{ fontSize: 11, fontWeight: 700, color: '#8A6410', background: '#FBF1DC', padding: '7px 12px', borderRadius: 8, textDecoration: 'none' }}>🍳 Cozinha</a>
           </div>
         </div>
@@ -1084,21 +1090,26 @@ export default function PedidosPage() {
           {!isToday && <button className="pd-today-btn" onClick={() => setSelectedDate(todayStr())}>Hoje</button>}
         </div>
         <input className="pd-search" placeholder="Buscar por cliente..." value={search} onChange={e => setSearch(e.target.value)} />
-        <label className="pd-autotoggle">
+        <label className="pd-autotoggle" title="Aceitar pedidos automaticamente">
           <div className={`pd-switch ${autoAceitar ? 'on' : ''}`} onClick={toggleAutoAceitar}><div className="k" /></div>
-          Aceitar pedidos automaticamente
+          Aceitar automaticamente
         </label>
         {entregaEnabled && (
-          <label className="pd-autotoggle" title="Desliga se a loja já usa motoboy próprio — o botão 'Chamar motoboy' do card continua disponível de qualquer jeito">
+          <label className="pd-autotoggle" title="Chamar motoboy da plataforma automaticamente. Desliga se a loja já usa motoboy próprio — o botão 'Chamar motoboy' do card continua disponível de qualquer jeito">
             <div className={`pd-switch ${autoChamarMoto ? 'on' : ''}`} onClick={toggleAutoChamarMoto}><div className="k" /></div>
-            🏍️ Chamar motoboy da plataforma automático
+            🏍️ Motoboy automático
           </label>
         )}
-        <button className="pd-printer-pill" onClick={openPrinterModal} style={printerName ? { background: '#E4F3EC', color: '#157A52', borderColor: '#B7DFC9' } : {}}>
-          🖨️ {printerName ? `Impressora: ${isRawBtMode(printerName) ? 'RawBT (tablet)' : printerName}` : 'Configurar impressora'}
+        <div style={{ flex: 1 }} />
+        {entregaEnabled && (
+          <button className="pd-printer-pill" onClick={() => setShowBairrosModal(true)}>📍 Bairros e valores</button>
+        )}
+        <button className="pd-printer-pill" onClick={openPrinterModal} title={printerName ? `Impressora: ${isRawBtMode(printerName) ? 'RawBT (tablet)' : printerName}` : 'Configurar impressora'} style={printerName ? { background: '#E4F3EC', color: '#157A52', borderColor: '#B7DFC9' } : {}}>
+          🖨️ {printerName ? 'Impressora' : 'Configurar impressora'}
         </button>
         {isToday && <button className="pd-newbtn" onClick={openNovoPedido}>+ Novo pedido</button>}
       </div>
+      {showBairrosModal && <BairrosEntregaModal onClose={() => setShowBairrosModal(false)} />}
       {!isToday && <div className="pd-hist-banner">📅 Vendo {fmtDateLabel(selectedDate)} — histórico, só consulta</div>}
 
       {(() => {

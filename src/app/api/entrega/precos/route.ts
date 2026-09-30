@@ -19,5 +19,7 @@ export async function GET() {
   return NextResponse.json({
     diaria: pricing.diaria,
     pacotes: pacotes || [],
+    taxaMetodo: pricing.entrega_taxa_metodo,
+    taxaPadrao: pricing.entrega_taxa_padrao,
   })
 }

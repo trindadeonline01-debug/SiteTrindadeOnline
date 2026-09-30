@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { refreshSessionOnce } from '@/lib/authRefresh'
 import { usePainelShell } from '@/contexts/PainelShellContext'
+import BairrosEntregaModal from '@/components/painel/BairrosEntregaModal'
 
 type Wallet = { credits: number; diasDisponiveis: number }
 type Pacote = { id: string; categoria: 'diaria' | 'entrega'; nome: string; quantidade: number; preco: number }
@@ -61,6 +62,7 @@ export default function EntregaPage() {
   const companyIdRef = useRef('')
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const [novaOpen, setNovaOpen] = useState(false)
+  const [showBairrosModal, setShowBairrosModal] = useState(false)
   const [novaForm, setNovaForm] = useState({ nome: '', telefone: '', endereco: '', pagamento: '', valor: '' })
   const [novaSaving, setNovaSaving] = useState(false)
   const [novaError, setNovaError] = useState('')
@@ -264,6 +266,7 @@ export default function EntregaPage() {
         .en-btn{ font-family:inherit;font-size:12.5px;font-weight:750;border-radius:9px;border:none;padding:9px 15px;cursor:pointer; }
         .en-btn-gold{ background:var(--sign);color:var(--ink); }
         .en-btn-gold:disabled{ opacity:.5;cursor:not-allowed; }
+        .en-btn-outline{ background:#fff;color:#8A6410;border:1.5px solid #E6E0D2; }
         .en-unit-row{ display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px; }
         .en-unit-info{ display:flex;flex-direction:column; }
         .en-unit-price{ font-family:'Anton',sans-serif;font-size:20px;color:#8A6410; }
@@ -338,8 +341,10 @@ export default function EntregaPage() {
           <span className={`en-chip ${ativaHoje ? 'ok' : 'warn'}`}>🗓️ <b>{diasDisponiveis}</b> diária{diasDisponiveis !== 1 ? 's' : ''}</span>
           <span className="en-chip">🏍️ <b>{fmt(wallet.credits)}</b> de crédito</span>
         </div>
+        <button className="en-btn en-btn-outline" onClick={() => setShowBairrosModal(true)}>📍 Bairros e valores</button>
         <button className="en-btn en-btn-gold" onClick={() => { setNovaError(''); setNovaOpen(true) }}>+ Nova entrega</button>
       </div>
+      {showBairrosModal && <BairrosEntregaModal onClose={() => setShowBairrosModal(false)} />}
 
       {view === 'geral' && (
         <>

@@ -14,6 +14,7 @@ Ricardo dá o comando → Claude executa a mudança, commita, dá push **direto 
 - Mudanças ambíguas, destrutivas (delete em massa, mudança de schema, etc.) ou que fujam do que foi pedido: perguntar antes, não assumir.
 - Ricardo usa **voz transcrita** — interpretar: "feio"=feito, "puxo"=push, "Cláudia"=Claude
 - Respostas **curtas e diretas** — Ricardo não gosta de textos longos explicativos
+- **Consumo Vercel (set/2026):** agrupar mudanças pequenas/relacionadas num push só em vez de um push por ajuste (cada push = 1 build completo, é o maior item de custo — Build CPU Minutes). Pra medir performance/tempo de resposta do site ao vivo, não bater direto na URL de produção via `pg_net`/`curl` repetidas vezes (cada chamada gera tráfego real, soma em Fast Data Transfer) — preferir `EXPLAIN ANALYZE` no Supabase pra tempo de query, e limitar chamada direta ao site a no máximo 1-2 vezes por diagnóstico, só quando não der pra confirmar de outro jeito.
 
 ### Regras antigas (fluxo manual via GitHub Codespaces — Ricardo copia/cola arquivos)
 Só se aplicam quando Ricardo estiver trabalhando fora do Claude Code, colando arquivos manualmente:

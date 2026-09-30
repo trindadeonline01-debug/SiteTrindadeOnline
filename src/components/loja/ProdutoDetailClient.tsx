@@ -111,7 +111,12 @@ export default function ProdutoDetailClient({ slug, company, produto, related }:
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--concrete)', fontFamily: "'Archivo',sans-serif", paddingBottom: 90 }}>
+    // paddingBottom cobre menu preto (64px) + barra fixa "Adicionar" (~64px
+    // com o padding dela) + área segura do notch — antes eram só 90px fixos,
+    // menos que o real (~126px sem contar notch), deixando "Também tem" meio
+    // cortado embaixo mesmo sem nenhuma outra barra competindo pelo espaço
+    // (achado real do Ricardo, set/2026).
+    <div style={{ minHeight: '100vh', background: 'var(--concrete)', fontFamily: "'Archivo',sans-serif", paddingBottom: 'calc(64px + env(safe-area-inset-bottom) + 64px)' }}>
       <style>{`
         .id-crumb{max-width:760px;margin:0 auto;padding:14px 16px 0;font-size:12px;color:#888;}
         .id-crumb a{color:var(--sign-dark);font-weight:600;text-decoration:none;}

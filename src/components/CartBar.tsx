@@ -27,8 +27,14 @@ export default function CartBar() {
   if (!cart || cart.count <= 0) return null
   // Dentro do próprio cardápio dessa loja a página já tem a barra dela,
   // calculada ao vivo do carrinho em memória — mostrar essa aqui também
-  // duplicaria.
+  // duplicaria. Na página de produto (de qualquer loja) a barra fixa de
+  // "Adicionar" já ocupa o mesmo canto — as duas juntas sobrepunham o
+  // conteúdo da página (achado real do Ricardo, set/2026: card da loja
+  // ficava escondido atrás das duas barras empilhadas). Quem quiser ver o
+  // carrinho pendente de outra loja continua acessando pelo ícone 🛒 do
+  // header.
   if (pathname === `/cardapio/${cart.slug}`) return null
+  if (/^\/empresa\/[^/]+\/item\//.test(pathname)) return null
 
   return (
     <>

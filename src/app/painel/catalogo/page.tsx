@@ -197,7 +197,7 @@ export default function CatalogoPage() {
   const [importIASource, setImportIASource] = useState<'url' | 'pdf' | 'fotos'>('url')
   const [importIAUrl, setImportIAUrl] = useState('')
   const [importIAError, setImportIAError] = useState('')
-  const [importIAPreview, setImportIAPreview] = useState<{ categorias: number; produtos: number; imagens: number; grupos: number; csv: string } | null>(null)
+  const [importIAPreview, setImportIAPreview] = useState<{ categorias: number; produtos: number; imagens: number; grupos: number; classificados: number; csv: string } | null>(null)
   const catSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -504,7 +504,9 @@ export default function CatalogoPage() {
     const iPreco = header.indexOf('preco')
     const iGrupos = header.indexOf('grupos')
     const iFoto = header.indexOf('foto_url')
+    const iTipo = header.indexOf('tipo_vitrine')
     if (iNome === -1) { showToast('O CSV precisa ter uma coluna "nome"'); return }
+    const tiposValidos = new Set(tiposVitrine.map(t => t.value))
 
     const dataRows = rows.slice(1)
     const batchId = crypto.randomUUID()
@@ -576,12 +578,19 @@ export default function CatalogoPage() {
           // sincronizar preço/descrição/foto, sem virar catálogo duplicado.
           const existing = importUpdateMode ? localProdutos.find(p => p.name.trim().toLowerCase() === nome.toLowerCase()) : null
           const groups = iGrupos >= 0 ? parseGroupsField(r[iGrupos] || '') : []
+          // Só aceita valor que bata com um tipo cadastrado (vitrine_tipos) —
+          // uma coluna vazia ou um valor que a IA inventou não deve virar
+          // "classificação" nenhuma, fica null (mesmo que "— não classificar —"
+          // manual).
+          const tipoRaw = iTipo >= 0 ? (r[iTipo] || '').trim() : ''
+          const tipoVitrine = tipoRaw && tiposValidos.has(tipoRaw) ? tipoRaw : null
           let produtoId: string
 
           if (existing) {
             const updatePayload: Record<string, any> = { sale_price: iPreco >= 0 ? parsePt(r[iPreco]) : existing.sale_price }
             if (iDesc >= 0 && (r[iDesc] || '').trim()) updatePayload.description = (r[iDesc] || '').trim()
             if (catName) updatePayload.category_id = categoryId
+            if (tipoVitrine) updatePayload.tipo_vitrine = tipoVitrine
             if (photoUrl) updatePayload.photo_url = photoUrl // sem foto_url na linha, mantém a foto que já tinha
             const { error: updErr } = await supabase.from('loja_produtos').update(updatePayload).eq('id', existing.id)
             if (updErr) throw new Error(updErr.message)
@@ -592,7 +601,7 @@ export default function CatalogoPage() {
             const { data: prod, error: prodErr } = await supabase.from('loja_produtos').insert({
               company_id: companyId, category_id: categoryId, name: nome,
               description: iDesc >= 0 ? ((r[iDesc] || '').trim() || null) : null,
-              photo_url: photoUrl,
+              photo_url: photoUrl, tipo_vitrine: tipoVitrine,
               cost_price: 0, sale_price: iPreco >= 0 ? parsePt(r[iPreco]) : 0,
               track_stock: false, esgotado: false, active: true, display_order: produtos.length + i,
               import_batch_id: batchId,
@@ -1727,7 +1736,8 @@ export default function CatalogoPage() {
                     🏷️ {importIAPreview.categorias} categoria{importIAPreview.categorias !== 1 ? 's' : ''}<br />
                     🍽️ {importIAPreview.produtos} produto{importIAPreview.produtos !== 1 ? 's' : ''}<br />
                     🖼️ {importIAPreview.imagens} imagem{importIAPreview.imagens !== 1 ? 'ns' : ''}<br />
-                    🧩 {importIAPreview.grupos} grupo{importIAPreview.grupos !== 1 ? 's' : ''} de complemento
+                    🧩 {importIAPreview.grupos} grupo{importIAPreview.grupos !== 1 ? 's' : ''} de complemento<br />
+                    🛍️ {importIAPreview.classificados} produto{importIAPreview.classificados !== 1 ? 's' : ''} classificado{importIAPreview.classificados !== 1 ? 's' : ''} pra home
                   </div>
                   <div style={{ fontSize: 11, color: '#A79E8B', margin: '10px 0 14px' }}>Confere se bate com o que você esperava antes de importar — depois dá pra revisar/corrigir cada produto normalmente no catálogo.</div>
                   <button className="cg-btn cg-btn-gold" style={{ width: '100%', marginBottom: 8 }} onClick={confirmImportIA}>Importar {importIAPreview.produtos} produtos</button>

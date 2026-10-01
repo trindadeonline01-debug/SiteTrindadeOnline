@@ -44,17 +44,29 @@ const GrupoSchema = z.object({
   regra: z.enum(['soma', 'maior_valor']),
   opcoes: z.array(OpcaoSchema),
 })
-const ProdutoSchema = z.object({
-  nome: z.string(),
-  categoria: z.string().nullable(),
-  descricao: z.string().nullable(),
-  preco: z.number(),
-  foto_url: z.string().nullable(),
-  grupos: z.array(GrupoSchema),
-})
-const CardapioSchema = z.object({ produtos: z.array(ProdutoSchema) })
+type TipoVitrine = { value: string; label: string }
 
-const INSTRUCOES = `Você vai extrair o cardápio completo a partir do conteúdo fornecido (link de site, PDF ou fotos de um cardápio) e devolver os produtos encontrados no formato estruturado pedido.
+// Schema montado em runtime porque os valores válidos de "tipo_vitrine" vêm
+// de vitrine_tipos (banco, editável pelo admin) — travar um enum fixo no
+// código desalinharia assim que alguém adicionasse um tipo novo ali.
+function buildCardapioSchema(tipos: TipoVitrine[]) {
+  const valores = tipos.map(t => t.value)
+  const TipoVitrineSchema = valores.length > 0 ? z.enum(valores as [string, ...string[]]).nullable() : z.null()
+  const ProdutoSchema = z.object({
+    nome: z.string(),
+    categoria: z.string().nullable(),
+    tipo_vitrine: TipoVitrineSchema,
+    descricao: z.string().nullable(),
+    preco: z.number(),
+    foto_url: z.string().nullable(),
+    grupos: z.array(GrupoSchema),
+  })
+  return z.object({ produtos: z.array(ProdutoSchema) })
+}
+
+function buildInstrucoes(tipos: TipoVitrine[]): string {
+  const listaTipos = tipos.map(t => `"${t.value}"`).join(', ')
+  return `Você vai extrair o cardápio completo a partir do conteúdo fornecido (link de site, PDF ou fotos de um cardápio) e devolver os produtos encontrados no formato estruturado pedido.
 
 Regras importantes:
 1. Pule produtos claramente esgotados/indisponíveis.
@@ -64,9 +76,15 @@ Regras importantes:
    - Nunca invente ou arredonde um preço. Se não conseguir ler um preço com certeza razoável, não inclua esse produto em vez de adivinhar.
    - Releia os preços antes de responder: qualquer valor abaixo de R$3 pra um prato/combo normal provavelmente foi lido errado — confira de novo.
 3. "categoria" é a seção/aba do cardápio onde o produto está (ex: "Bebidas", "Lanches", "Sobremesas"). Sempre preencha quando der pra identificar.
-4. "grupos" é pra opcionais/adicionais reais (ex: escolha de sabor, tamanho, adicionais pagos) — nome do grupo, se é obrigatório escolher, mínimo e máximo de opções, a regra de preço ("soma" = soma cada opção escolhida ao preço do produto; "maior_valor" = cobra só a opção mais cara escolhida) e a lista de opções com preço (0 se a opção for grátis). Produto sem opcional: "grupos" é uma lista vazia, não invente grupo que não existe.
-5. "foto_url": só preencha com uma URL de imagem real e específica desse produto (nunca repita a mesma foto genérica em vários produtos, nunca invente uma URL). Se não tiver uma URL de foto de verdade pra esse produto, deixe null.
-6. Não invente produto, descrição ou preço que não esteja no material fornecido — melhor faltar um item do que inventar um errado.`
+4. "tipo_vitrine" classifica o produto numa vitrine fixa da home do site — é DIFERENTE de "categoria" (que é a seção do cardápio dessa loja). Escolha sempre o valor mais específico que descreve o PRODUTO EM SI (não o nome da seção): valores possíveis: ${listaTipos}. Use "Outro" só quando nenhum dos outros valores fizer sentido pra esse produto — tente classificar sempre que der, é essa informação que faz o produto aparecer certinho na home.
+5. "grupos" é pra opcionais/adicionais reais (ex: escolha de sabor, tamanho, adicionais pagos) — nome do grupo, se é obrigatório escolher, mínimo e máximo de opções, a regra de preço ("soma" = soma cada opção escolhida ao preço do produto; "maior_valor" = cobra só a opção mais cara escolhida) e a lista de opções com preço (0 se a opção for grátis). Produto sem opcional: "grupos" é uma lista vazia, não invente grupo que não existe.
+6. ADICIONAIS COMPARTILHADOS — muito comum em cardápio físico: uma lista de adicionais/opcionais aparece SEPARADA dos produtos (ex: uma tabela só de "Adicionais" no fim do cardápio, ou no topo de uma categoria), em vez de repetida dentro de cada item. Nesse caso, repita esse MESMO grupo (mesmo nome, mesmas opções e preços) dentro de "grupos" de CADA produto a que ele se aplica:
+   - Se a lista valer pro cardápio inteiro (não está presa a nenhuma seção específica), inclua em TODOS os produtos onde adicionar faz sentido (ex: não faz sentido em bebida fechada).
+   - Se a lista estiver dentro de uma categoria/seção específica (ex: só na seção de Lanches), inclua só nos produtos dessa mesma categoria.
+   - Nunca aplique o adicional de uma categoria a produtos de outra categoria onde ele não apareceu.
+7. "foto_url": só preencha com uma URL de imagem real e específica desse produto (nunca repita a mesma foto genérica em vários produtos, nunca invente uma URL). Se não tiver uma URL de foto de verdade pra esse produto, deixe null.
+8. Não invente produto, descrição ou preço que não esteja no material fornecido — melhor faltar um item do que inventar um errado.`
+}
 
 function csvField(v: string): string {
   if (v.includes(',') || v.includes('"') || v.includes('\n')) return '"' + v.replace(/"/g, '""') + '"'
@@ -118,6 +136,14 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'empresa não é sua' }, { status: 403 })
       }
     }
+
+    // Lista de tipos de vitrine busca sempre fresca do banco (editável pelo
+    // admin em vitrine_tipos) — nunca hardcoded, senão desalinha assim que
+    // alguém adicionar um tipo novo ali.
+    const { data: tiposVitrineData } = await supabase.from('vitrine_tipos').select('value, label').eq('active', true).order('display_order')
+    const tiposVitrine: TipoVitrine[] = tiposVitrineData || []
+    const CardapioSchema = buildCardapioSchema(tiposVitrine)
+    const INSTRUCOES = buildInstrucoes(tiposVitrine)
 
     const content: Anthropic.Messages.ContentBlockParam[] = []
 
@@ -211,10 +237,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'não encontrei produtos nesse cardápio — confere se o link/arquivo está certo, ou tenta outro formato' }, { status: 422 })
     }
 
-    const header = 'nome,categoria,descricao,preco,grupos,foto_url'
+    const header = 'nome,categoria,tipo_vitrine,descricao,preco,grupos,foto_url'
     const rows = parsed.produtos.map(p => [
       csvField(p.nome),
       csvField(p.categoria || ''),
+      csvField(p.tipo_vitrine || ''),
       csvField(p.descricao || ''),
       p.preco.toFixed(2),
       csvField(gruposToField(p.grupos)),
@@ -225,8 +252,9 @@ export async function POST(req: NextRequest) {
     const categoriasSet = new Set(parsed.produtos.map(p => (p.categoria || '').trim().toLowerCase()).filter(Boolean))
     const imagens = parsed.produtos.filter(p => p.foto_url).length
     const grupos = parsed.produtos.reduce((n, p) => n + p.grupos.filter(g => g.opcoes.length > 0).length, 0)
+    const classificados = parsed.produtos.filter(p => p.tipo_vitrine).length
 
-    return NextResponse.json({ categorias: categoriasSet.size, produtos: parsed.produtos.length, imagens, grupos, csv })
+    return NextResponse.json({ categorias: categoriasSet.size, produtos: parsed.produtos.length, imagens, grupos, classificados, csv })
   } catch (err: any) {
     return NextResponse.json({ error: err?.message || 'falha ao ler o cardápio com IA' }, { status: 500 })
   }

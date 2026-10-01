@@ -197,7 +197,11 @@ export default function CatalogoPage() {
   const [importIASource, setImportIASource] = useState<'url' | 'pdf' | 'fotos'>('url')
   const [importIAUrl, setImportIAUrl] = useState('')
   const [importIAError, setImportIAError] = useState('')
-  const [importIAPreview, setImportIAPreview] = useState<{ categorias: number; produtos: number; imagens: number; grupos: number; classificados: number; csv: string } | null>(null)
+  // Opt-in — desligado por padrão. Só quando marcado, a rota faz uma segunda
+  // chamada de IA (com busca na internet) pra achar uma foto ilustrativa pros
+  // produtos que ficaram sem foto na extração do cardápio.
+  const [buscarFotosWeb, setBuscarFotosWeb] = useState(false)
+  const [importIAPreview, setImportIAPreview] = useState<{ categorias: number; produtos: number; imagens: number; grupos: number; classificados: number; fotosWebEncontradas?: number; csv: string } | null>(null)
   const catSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -317,7 +321,7 @@ export default function CatalogoPage() {
     try {
       const res = await fetch('/api/painel/importar-ia', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ access_token: session?.access_token, company_id: companyId, source: 'url', url: importIAUrl.trim() }),
+        body: JSON.stringify({ access_token: session?.access_token, company_id: companyId, source: 'url', url: importIAUrl.trim(), buscarFotosWeb }),
       })
       const data = await readImportIAResponse(res)
       if (!res.ok) { setImportIAError(data.error || 'não deu pra ler esse cardápio'); setImportIAStep('error'); return }
@@ -344,7 +348,7 @@ export default function CatalogoPage() {
       const pdf_url = supabase.storage.from('loja-produtos').getPublicUrl(tmpPath).data.publicUrl
       const res = await fetch('/api/painel/importar-ia', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ access_token: session?.access_token, company_id: companyId, source: 'pdf', pdf_url }),
+        body: JSON.stringify({ access_token: session?.access_token, company_id: companyId, source: 'pdf', pdf_url, buscarFotosWeb }),
       })
       const data = await readImportIAResponse(res)
       if (!res.ok) { setImportIAError(data.error || 'não deu pra ler esse PDF'); setImportIAStep('error'); return }
@@ -384,7 +388,7 @@ export default function CatalogoPage() {
       }))
       const res = await fetch('/api/painel/importar-ia', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ access_token: session?.access_token, company_id: companyId, source: 'fotos', foto_urls }),
+        body: JSON.stringify({ access_token: session?.access_token, company_id: companyId, source: 'fotos', foto_urls, buscarFotosWeb }),
       })
       const data = await readImportIAResponse(res)
       if (!res.ok) { setImportIAError(data.error || 'não deu pra ler essas fotos'); setImportIAStep('error'); return }
@@ -1715,6 +1719,12 @@ export default function CatalogoPage() {
                       </label>
                     </>
                   )}
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 14, padding: 10, background: '#F7F5F0', borderRadius: 8, cursor: 'pointer' }}>
+                    <input type="checkbox" checked={buscarFotosWeb} onChange={e => setBuscarFotosWeb(e.target.checked)} style={{ marginTop: 2 }} />
+                    <span style={{ fontSize: 11, color: '#6E6656', lineHeight: 1.5 }}>
+                      🔍 Buscar foto na internet pra quem ficar sem foto (até 20 produtos por import) — não é a foto real do seu produto, serve de placeholder até você trocar pela foto de verdade.
+                    </span>
+                  </label>
                 </>
               )}
               {importIAStep === 'loading' && (
@@ -1738,6 +1748,7 @@ export default function CatalogoPage() {
                     🖼️ {importIAPreview.imagens} imagem{importIAPreview.imagens !== 1 ? 'ns' : ''}<br />
                     🧩 {importIAPreview.grupos} grupo{importIAPreview.grupos !== 1 ? 's' : ''} de complemento<br />
                     🛍️ {importIAPreview.classificados} produto{importIAPreview.classificados !== 1 ? 's' : ''} classificado{importIAPreview.classificados !== 1 ? 's' : ''} pra home
+                    {!!importIAPreview.fotosWebEncontradas && <><br />🔍 {importIAPreview.fotosWebEncontradas} foto{importIAPreview.fotosWebEncontradas !== 1 ? 's' : ''} achada{importIAPreview.fotosWebEncontradas !== 1 ? 's' : ''} na internet (não são as fotos reais — troque quando puder)</>}
                   </div>
                   <div style={{ fontSize: 11, color: '#A79E8B', margin: '10px 0 14px' }}>Confere se bate com o que você esperava antes de importar — depois dá pra revisar/corrigir cada produto normalmente no catálogo.</div>
                   <button className="cg-btn cg-btn-gold" style={{ width: '100%', marginBottom: 8 }} onClick={confirmImportIA}>Importar {importIAPreview.produtos} produtos</button>

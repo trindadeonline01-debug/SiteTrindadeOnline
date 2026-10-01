@@ -16,7 +16,7 @@ type OrderInfo = {
   items: OrderItem[]
   subtotal: number; deliveryFee: number; total: number
   paymentMethod: string | null; deliveryType: string | null; address: string | null; notes: string | null
-  orderNumber: number | string | null
+  orderNumber: number | string | null; pedidoId: string | null
 }
 
 function itemLines(items: OrderItem[]): string[] {
@@ -44,6 +44,13 @@ function buildCustomerMessage(opts: OrderInfo): string {
   parts.push(opts.deliveryType === 'entrega' && opts.address ? `🚚 Entrega: ${opts.address}` : '🏪 Retirada no local')
   if (opts.notes) parts.push(`📝 Obs: ${opts.notes}`)
   parts.push('', 'Assim que confirmarmos, te avisamos por aqui!')
+  // Link de acompanhamento — pedido do Ricardo, set/2026: cliente vê o
+  // status ao vivo e pode pedir cancelamento sem precisar falar com
+  // ninguém, sem precisar estar logado (o id na URL já é a credencial).
+  if (opts.pedidoId) {
+    const site = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trindadeonline.com.br'
+    parts.push('', `📲 Acompanhe aqui: ${site}/pedido/${opts.pedidoId}`)
+  }
   return parts.join('\n')
 }
 
@@ -167,7 +174,7 @@ export async function POST(req: NextRequest) {
           const orderInfo = {
             items, subtotal: Number(subtotal ?? total ?? 0), deliveryFee: Number(deliveryFee || 0), total: Number(total || 0),
             paymentMethod: paymentMethod || null, deliveryType: deliveryType || null, address: address || null, notes: notes || null,
-            orderNumber: pedidoRow?.order_number ?? null,
+            orderNumber: pedidoRow?.order_number ?? null, pedidoId: pedidoId || null,
           }
 
           // Pro cliente — vira mensagem na conversa do CRM também. Erro aqui

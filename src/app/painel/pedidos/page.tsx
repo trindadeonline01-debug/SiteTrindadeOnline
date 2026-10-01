@@ -18,6 +18,7 @@ type Pedido = {
   delivery_type: 'entrega' | 'retirada' | 'balcao'; scheduled_for: string | null
   notes: string | null; subtotal: number; total: number; delivery_fee: number; motoboy_id: string | null
   created_at: string; accepted_at: string | null
+  cancelamento_solicitado_em: string | null
   itens: Item[]
 }
 type LojaMotoboy = { id: string; nome: string; whatsapp: string; ativo: boolean }
@@ -438,6 +439,20 @@ export default function PedidosPage() {
     }
   }
 
+  // Cliente pediu cancelamento pela tela de acompanhamento (/pedido/[id]) —
+  // nunca cancela sozinho, só avisa a loja (cancelamento_solicitado_em) e
+  // espera a loja decidir, porque só ela sabe se já está em preparo ou já
+  // saiu com o motoboy (Ricardo, set/2026).
+  async function resolverCancelamento(id: string, acao: 'cancelar' | 'manter') {
+    if (acao === 'cancelar') {
+      await setStatus(id, 'cancelado')
+      await supabase.from('loja_pedidos').update({ cancelamento_solicitado_em: null }).eq('id', id)
+    } else {
+      setPedidos(prev => prev.map(p => p.id === id ? { ...p, cancelamento_solicitado_em: null } : p))
+      await supabase.from('loja_pedidos').update({ cancelamento_solicitado_em: null }).eq('id', id)
+    }
+  }
+
   // payment_status nunca tinha jeito de mudar depois que o pedido era criado —
   // ficava travado em "pendente" pra sempre, mesmo entregue e pago, porque não
   // existe gateway de pagamento automático pro pedido da loja (só a intenção
@@ -697,6 +712,15 @@ export default function PedidosPage() {
           </div>
         </div>
         {late && <div className="pd-late-flag">⚠ Parado há mais de {LATE_THRESHOLD_MIN}min sem avançar</div>}
+        {p.cancelamento_solicitado_em && (
+          <div className="pd-cancelreq" onClick={e => e.stopPropagation()}>
+            <div className="pd-cancelreq-txt">🙋 Cliente pediu cancelamento</div>
+            <div className="pd-cancelreq-btns">
+              <button className="pd-cancelreq-btn keep" onClick={() => resolverCancelamento(p.id, 'manter')}>Manter pedido</button>
+              <button className="pd-cancelreq-btn cancel" onClick={() => resolverCancelamento(p.id, 'cancelar')}>Cancelar pedido</button>
+            </div>
+          </div>
+        )}
         {/* Containerzinhos divididos ao meio, cada um com sua cor conforme o
             significado, em vez das pílulas soltas de tamanhos diferentes
             (e do texto pequeno "1 item · pix · Entrega") que existiam antes
@@ -1009,6 +1033,12 @@ export default function PedidosPage() {
         @media(min-width:768px){ .pd-motoalert{ padding:18px 32px; } .pd-motoalert-txt{ font-size:15px; } .pd-motoalert-btn{ padding:16px 28px;font-size:15.5px; } }
         .pd-card-late{ border:1.5px solid #C43D3D !important; }
         .pd-late-flag{ color:#C43D3D;font-weight:800;font-size:12px;margin-top:4px; }
+        .pd-cancelreq{ margin-top:8px;background:#FBEAEA;border:1.5px solid #F3C6C6;border-radius:10px;padding:9px 11px;cursor:default; }
+        .pd-cancelreq-txt{ font-size:12px;font-weight:800;color:#A83232;margin-bottom:7px; }
+        .pd-cancelreq-btns{ display:flex;gap:8px; }
+        .pd-cancelreq-btn{ flex:1;padding:7px 8px;border-radius:8px;border:none;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit; }
+        .pd-cancelreq-btn.keep{ background:#fff;color:#6E6656;border:1.5px solid #E6E0D2; }
+        .pd-cancelreq-btn.cancel{ background:#C43D3D;color:#fff; }
       `}</style>
       {pedidosNovos.length > 0 && (
         <div className="pd-newalert">

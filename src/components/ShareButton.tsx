@@ -67,8 +67,11 @@ export default function ShareButton({ title, text, url, label = 'Compartilhar', 
   return (
     <div ref={ref} style={{ position: 'relative', display: variant === 'circle' ? 'flex' : (fullWidth ? 'block' : 'inline-block'), flexDirection: variant === 'circle' ? 'column' : undefined, alignItems: variant === 'circle' ? 'center' : undefined, gap: variant === 'circle' ? 5 : undefined, width: variant === 'circle' ? 'auto' : (fullWidth ? '100%' : 'auto') }}>
       {variant === 'circle' ? (
+        // Azul — cor universal de compartilhar, igual favoritar (vermelho) e
+        // site (dourado) ao lado, em vez do cinza neutro de antes (mockup
+        // aprovado pelo Ricardo, out/2026).
         <button onClick={handleClick} style={{
-          width: 42, height: 42, borderRadius: '50%', background: '#FAFAF8', color: '#666', border: '1px solid #E0DDD8',
+          width: 42, height: 42, borderRadius: '50%', background: '#E8EFF7', color: 'var(--info)', border: '1px solid #C3D4E8',
           cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
         }}>
           {shareIcon}
@@ -84,7 +87,7 @@ export default function ShareButton({ title, text, url, label = 'Compartilhar', 
         </button>
       )}
       {variant === 'circle' && label && (
-        <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.03em', textTransform: 'uppercase', color: '#888' }}>{label}</span>
+        <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.03em', textTransform: 'uppercase', color: 'var(--info)' }}>{label}</span>
       )}
       {open && (
         <div style={{

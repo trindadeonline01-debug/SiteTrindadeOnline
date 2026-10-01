@@ -590,14 +590,24 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
         .coupon-chip-val{color:var(--sign);font-size:11px;font-weight:800;}
         .coupon-chip-rule{color:#B8B0A0;font-size:9.5px;}
 
-        /* Favoritar / Compartilhar / Site — círculos de apoio */
+        /* Favoritar / Compartilhar / Site — círculos de apoio. Cada ação com
+           sua cor universal (vermelho=favoritar, azul=compartilhar,
+           dourado=site) em vez do cinza único de antes — mockup aprovado
+           pelo Ricardo, out/2026. */
         .icon-row{display:flex;gap:28px;justify-content:center;}
         .icon-btn{display:flex;flex-direction:column;align-items:center;gap:5px;background:none;border:none;font-family:'Archivo',sans-serif;cursor:pointer;padding:2px 0;}
-        .icon-circle{width:42px;height:42px;border-radius:50%;background:#FAFAF8;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:16px;color:#666;transition:all .15s;}
-        .icon-btn.on .icon-circle{background:var(--concrete-2);border-color:var(--sign-dark);color:var(--sign-dark);}
-        .icon-btn.locked .icon-circle{background:var(--concrete-2);color:#999;}
+        .icon-circle{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .15s;}
         .icon-btn:disabled{cursor:not-allowed;opacity:.7;}
-        .icon-lbl{font-size:9px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:#888;}
+        .icon-lbl{font-size:9px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;}
+
+        .icon-fav .icon-circle{background:#FBEAEA;border:1px solid #F3C5C5;color:var(--alert);}
+        .icon-fav .icon-lbl{color:var(--alert);}
+        .icon-fav.on .icon-circle{background:var(--alert);border-color:var(--alert);color:#fff;}
+
+        .icon-site .icon-circle{background:var(--gold-50);border:1px solid var(--gold-border);color:var(--sign-dark);}
+        .icon-site .icon-lbl{color:var(--sign-dark);}
+        .icon-site.locked .icon-circle{background:var(--concrete-2);border:1px solid var(--line);color:#999;}
+        .icon-site.locked .icon-lbl{color:#888;}
 
         .addr-box{display:flex;align-items:flex-start;gap:9px;background:var(--paper);border:0.5px solid var(--line);border-radius:12px;padding:12px 14px;}
         .addr-txt{font-size:12px;color:#555;line-height:1.6;flex:1;}
@@ -898,13 +908,15 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
               )}
 
               <div className="icon-row">
-                <button className={`icon-btn ${isFav ? 'on' : ''}`} onClick={toggleFav}>
-                  <span className="icon-circle">{isFav ? '❤️' : '🤍'}</span>
+                <button className={`icon-btn icon-fav ${isFav ? 'on' : ''}`} onClick={toggleFav}>
+                  <span className="icon-circle">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill={isFav ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                  </span>
                   <span className="icon-lbl">{isFav ? 'Salvo' : 'Favoritar'}</span>
                 </button>
                 <ShareButton variant="circle" title={company.name} text={`Dá uma olhada em ${company.name} no Trindade Online!`} label="Compartilhar"/>
                 {isActive && company.external_link && (
-                  <button className="icon-btn" onClick={() => window.open(company.external_link!, '_blank')}>
+                  <button className="icon-btn icon-site" onClick={() => window.open(company.external_link!, '_blank')}>
                     <span className="icon-circle">
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
                     </span>
@@ -912,7 +924,7 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
                   </button>
                 )}
                 {company.external_link && !isActive && (
-                  <button className="icon-btn locked" onClick={solicitarContato} disabled={contatoSent || sendingContato}>
+                  <button className="icon-btn icon-site locked" onClick={solicitarContato} disabled={contatoSent || sendingContato}>
                     <span className="icon-circle">🔒</span>
                     <span className="icon-lbl">Site</span>
                   </button>

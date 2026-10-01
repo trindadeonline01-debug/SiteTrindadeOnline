@@ -128,6 +128,14 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
   const [userId, setUserId]         = useState<string | null>(null)
   const [isOwner, setIsOwner]       = useState(false)
   const [isFav, setIsFav]           = useState(false)
+  // O iframe do Google Maps (endpoint gratuito /maps?...&output=embed) carrega
+  // a UI inteira do Maps — bem mais pesado que o Maps Embed API oficial, que
+  // exige chave paga que ainda não temos. `loading="lazy"` sozinho não
+  // resolvia porque o mapa já fica perto do topo da página (achado real do
+  // Ricardo, out/2026: "abre a página da empresa, demora muito pra carregar
+  // o mapa"). Em vez de montar o iframe pesado direto, mostra um placeholder
+  // leve e só carrega o Maps de verdade quando o morador toca nele.
+  const [mapLoaded, setMapLoaded] = useState(false)
   const [showReview, setShowReview] = useState(false)
   const [showContato, setShowContato] = useState(false)
   const [contatoSent, setContatoSent]  = useState(false)
@@ -596,6 +604,8 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
 
         .map-card{background:var(--paper);border:0.5px solid var(--line);border-radius:14px;overflow:hidden;}
         .map-frame{width:100%;height:150px;border:none;display:block;}
+        .map-placeholder{background:var(--concrete-2, #F5F6F2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;}
+        .map-placeholder span{font-size:12px;font-weight:700;color:var(--sign-dark);}
         .map-open-btn{width:100%;padding:10px;background:var(--paper);border:none;border-top:0.5px solid var(--line);font-size:12px;font-weight:600;color:var(--info);cursor:pointer;font-family:'Archivo',sans-serif;display:flex;align-items:center;justify-content:center;gap:5px;}
 
         /* AVALIAÇÕES */
@@ -923,18 +933,28 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
               </div>
             )}
 
-            {/* Mapa Google Maps real */}
+            {/* Mapa Google Maps — só carrega o iframe (pesado) quando o
+                morador toca; até lá é só um placeholder leve. */}
             {company.address && mapsUrl && (
               <div className="map-card" style={{position:'relative'}}>
-                <iframe
-                  className="map-frame"
-                  src={mapsUrl}
-                  allowFullScreen
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                  title={`Mapa de ${company.name}`}
-                  style={!isActive ? {filter:'blur(4px)',pointerEvents:'none'} : {}}
-                />
+                {mapLoaded && isActive ? (
+                  <iframe
+                    className="map-frame"
+                    src={mapsUrl}
+                    allowFullScreen
+                    referrerPolicy="no-referrer-when-downgrade"
+                    title={`Mapa de ${company.name}`}
+                  />
+                ) : (
+                  <div
+                    className="map-frame map-placeholder"
+                    onClick={isActive ? () => setMapLoaded(true) : solicitarContato}
+                    style={!isActive ? {filter:'blur(4px)'} : undefined}
+                  >
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--sign-dark)" strokeWidth="2" strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    <span>Toque pra ver o mapa</span>
+                  </div>
+                )}
                 {!isActive ? (
                   <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}} onClick={solicitarContato}>
                     <span style={{fontSize:13,fontWeight:700,color:'var(--sign-dark)',background:'#fff',padding:'8px 16px',borderRadius:10,border:'1.5px solid var(--sign-dark)',boxShadow:'0 2px 8px rgba(0,0,0,.1)'}}>🔒 Solicitar contato para ver no mapa</span>

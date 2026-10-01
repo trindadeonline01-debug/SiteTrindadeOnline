@@ -36,7 +36,15 @@ export default function RedefinirSenhaPage() {
     const { error } = await supabase.auth.updateUser({ password: senha })
 
     if (error) {
-      setErro('Não foi possível redefinir a senha. Tente solicitar um novo link.')
+      // Supabase recusa (422 "same_password") quando a senha nova é igual à
+      // atual — a mensagem genérica de link vencido ("tenta de novo")
+      // mandava a pessoa pro caminho errado nesse caso, já que o link em si
+      // funcionou normal (achado real do Ricardo, out/2026: confundiu com
+      // bug no link, mas o log do Supabase mostrava same_password).
+      const mesmaSenha = (error as any).code === 'same_password' || /different from the old password/i.test(error.message || '')
+      setErro(mesmaSenha
+        ? 'Essa já é sua senha atual — escolhe uma diferente.'
+        : 'Não foi possível redefinir a senha. Tente solicitar um novo link.')
     } else {
       setOk(true)
       // Redireciona após 3 segundos

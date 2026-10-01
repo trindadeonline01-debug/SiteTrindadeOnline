@@ -15,8 +15,12 @@ export async function POST(req: NextRequest) {
     const { user_id, new_password, send_reset_link, email } = await req.json()
 
     if (send_reset_link && email) {
+      // www. — mesmo domínio usado em todo o resto do site (sem www aqui
+      // funcionava só porque a Vercel redireciona o domínio nu pro www,
+      // mas evita depender desse redirect extra no meio do link de senha).
+      const site = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trindadeonline.com.br'
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'https://trindadeonline.com.br/redefinir-senha'
+        redirectTo: `${site}/redefinir-senha`
       })
       if (error) return NextResponse.json({ error: error.message }, { status: 500 })
       return NextResponse.json({ ok: true, method: 'link' })

@@ -86,47 +86,6 @@ Regras importantes:
 8. Não invente produto, descrição ou preço que não esteja no material fornecido — melhor faltar um item do que inventar um errado.`
 }
 
-// Pass 2, opcional (checkbox "Buscar fotos na internet" no painel): produto
-// sem foto nenhuma no material original não precisa ficar sem imagem — a IA
-// busca na internet uma foto parecida (do tipo de produto, não da loja em
-// si) pra servir de placeholder até o lojista trocar pela foto real dele.
-// Teto de produtos por rodada: cada busca gasta uma chamada de web_search, e
-// a rota já tem maxDuration de 300s dividido com a extração do cardápio em
-// si — acima disso arrisca estourar o tempo da function.
-const MAX_WEB_PHOTO_SEARCH = 20
-const FotoWebSchema = z.object({
-  resultados: z.array(z.object({ nome: z.string(), foto_url: z.string().nullable() })),
-})
-async function buscarFotosNaInternet(anthropic: Anthropic, nomes: { nome: string; categoria: string | null }[]): Promise<Map<string, string>> {
-  const lista = nomes.map(n => `- ${n.nome}${n.categoria ? ` (${n.categoria})` : ''}`).join('\n')
-  const prompt = `Pra cada produto da lista abaixo, use a ferramenta de busca na internet e encontre UMA foto que representa bem esse tipo de produto — não precisa ser desse estabelecimento específico, pode ser uma foto ilustrativa/genérica do prato ou item (ex: foto de stock, site de receita, Wikipedia, cardápio de outro lugar), só precisa parecer de verdade com o que o nome descreve.
-
-Produtos:
-${lista}
-
-Regras:
-- "foto_url" só pode ser uma URL que você realmente encontrou nos resultados de busca — nunca invente ou monte uma URL.
-- Prefira link direto de imagem (termina em .jpg/.jpeg/.png/.webp) quando a busca trouxer um.
-- Se não achar nada que pareça razoável pra algum produto, devolva foto_url null pra ele — melhor sem foto do que uma foto errada.
-- Devolva um resultado pra CADA produto da lista, usando exatamente o mesmo "nome" que apareceu acima.`
-
-  const response = await anthropic.messages.parse({
-    model: 'claude-sonnet-5',
-    max_tokens: 4000,
-    tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: Math.min(nomes.length * 2, 40) }],
-    output_config: { format: zodOutputFormat(FotoWebSchema) },
-    messages: [{ role: 'user', content: prompt }],
-  })
-
-  const found = new Map<string, string>()
-  const parsed = response.parsed_output
-  if (!parsed) return found // pause_turn ou recusa — segue sem essas fotos, não quebra o import
-  for (const r of parsed.resultados) {
-    if (r.foto_url) found.set(r.nome, r.foto_url)
-  }
-  return found
-}
-
 function csvField(v: string): string {
   if (v.includes(',') || v.includes('"') || v.includes('\n')) return '"' + v.replace(/"/g, '""') + '"'
   return v
@@ -161,7 +120,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { access_token, company_id, source, buscarFotosWeb } = body
+    const { access_token, company_id, source } = body
     if (!access_token || !company_id || !source) {
       return NextResponse.json({ error: 'dados faltando' }, { status: 400 })
     }
@@ -278,26 +237,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'não encontrei produtos nesse cardápio — confere se o link/arquivo está certo, ou tenta outro formato' }, { status: 422 })
     }
 
-    // Pass 2 opcional — só roda se o lojista marcou o checkbox no painel.
-    // Preenche foto_url (igual a uma foto vinda do cardápio original) só pra
-    // quem ficou sem foto nenhuma na extração; quem já tem foto real não é
-    // tocado.
-    let fotosWebEncontradas = 0
-    if (buscarFotosWeb) {
-      const semFoto = parsed.produtos.filter(p => !p.foto_url).slice(0, MAX_WEB_PHOTO_SEARCH)
-      if (semFoto.length > 0) {
-        try {
-          const fotosWeb = await buscarFotosNaInternet(anthropic, semFoto.map(p => ({ nome: p.nome, categoria: p.categoria })))
-          for (const p of parsed.produtos) {
-            const achada = fotosWeb.get(p.nome)
-            if (!p.foto_url && achada) { p.foto_url = achada; fotosWebEncontradas++ }
-          }
-        } catch {
-          // falha na busca por foto não pode derrubar o import do cardápio em si
-        }
-      }
-    }
-
     const header = 'nome,categoria,tipo_vitrine,descricao,preco,grupos,foto_url'
     const rows = parsed.produtos.map(p => [
       csvField(p.nome),
@@ -315,7 +254,7 @@ export async function POST(req: NextRequest) {
     const grupos = parsed.produtos.reduce((n, p) => n + p.grupos.filter(g => g.opcoes.length > 0).length, 0)
     const classificados = parsed.produtos.filter(p => p.tipo_vitrine).length
 
-    return NextResponse.json({ categorias: categoriasSet.size, produtos: parsed.produtos.length, imagens, grupos, classificados, fotosWebEncontradas, csv })
+    return NextResponse.json({ categorias: categoriasSet.size, produtos: parsed.produtos.length, imagens, grupos, classificados, csv })
   } catch (err: any) {
     return NextResponse.json({ error: err?.message || 'falha ao ler o cardápio com IA' }, { status: 500 })
   }

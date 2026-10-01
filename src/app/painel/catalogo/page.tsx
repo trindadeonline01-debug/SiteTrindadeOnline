@@ -299,6 +299,50 @@ export default function CatalogoPage() {
     }
   }
 
+  function csvFieldClient(v: string): string {
+    if (v.includes(',') || v.includes('"') || v.includes('\n')) return '"' + v.replace(/"/g, '""') + '"'
+    return v
+  }
+
+  // Fase 2 da importação com IA (opt-in) — chamada SEPARADA da extração do
+  // cardápio, de propósito: as duas num request só (extração + busca web)
+  // estouravam o teto de tempo da function em cardápio grande + várias
+  // buscas (504 real, out/2026). Opera em cima do CSV que já voltou da
+  // extração, preenchendo só as linhas com foto_url vazia.
+  async function buscarFotosWebECompletar(csv: string, accessToken: string | undefined): Promise<{ csv: string; encontradas: number }> {
+    const rows = parseCsv(csv)
+    if (rows.length < 2) return { csv, encontradas: 0 }
+    const header = rows[0].map(h => h.trim().toLowerCase())
+    const iNome = header.indexOf('nome')
+    const iCat = header.indexOf('categoria')
+    const iFoto = header.indexOf('foto_url')
+    if (iNome === -1 || iFoto === -1) return { csv, encontradas: 0 }
+
+    const semFoto = rows.slice(1)
+      .map((r, idx) => ({ rowIdx: idx + 1, nome: (r[iNome] || '').trim(), categoria: iCat >= 0 ? ((r[iCat] || '').trim() || null) : null, foto: (r[iFoto] || '').trim() }))
+      .filter(r => r.nome && !r.foto)
+    if (semFoto.length === 0) return { csv, encontradas: 0 }
+
+    try {
+      const res = await fetch('/api/painel/importar-ia-fotos', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token: accessToken, company_id: companyId, produtos: semFoto.map(p => ({ nome: p.nome, categoria: p.categoria })) }),
+      })
+      const data = await readImportIAResponse(res)
+      if (!res.ok || !Array.isArray(data.fotos)) return { csv, encontradas: 0 }
+      const achadas = new Map<string, string>(data.fotos.map((f: { nome: string; foto_url: string }) => [f.nome, f.foto_url]))
+      let encontradas = 0
+      for (const r of semFoto) {
+        const foto = achadas.get(r.nome)
+        if (foto) { rows[r.rowIdx][iFoto] = foto; encontradas++ }
+      }
+      if (encontradas === 0) return { csv, encontradas: 0 }
+      return { csv: rows.map(r => r.map(csvFieldClient).join(',')).join('\n'), encontradas }
+    } catch {
+      return { csv, encontradas: 0 } // falha na busca de foto não pode travar o import do cardápio em si
+    }
+  }
+
   function openImportIA() {
     setShowImportIA(true)
     setImportIAStep('choose')
@@ -321,10 +365,14 @@ export default function CatalogoPage() {
     try {
       const res = await fetch('/api/painel/importar-ia', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ access_token: session?.access_token, company_id: companyId, source: 'url', url: importIAUrl.trim(), buscarFotosWeb }),
+        body: JSON.stringify({ access_token: session?.access_token, company_id: companyId, source: 'url', url: importIAUrl.trim() }),
       })
       const data = await readImportIAResponse(res)
       if (!res.ok) { setImportIAError(data.error || 'não deu pra ler esse cardápio'); setImportIAStep('error'); return }
+      if (buscarFotosWeb) {
+        const { csv, encontradas } = await buscarFotosWebECompletar(data.csv, session?.access_token)
+        data.csv = csv; data.fotosWebEncontradas = encontradas
+      }
       setImportIAPreview(data)
       setImportIAStep('preview')
     } catch (err: any) {
@@ -348,10 +396,14 @@ export default function CatalogoPage() {
       const pdf_url = supabase.storage.from('loja-produtos').getPublicUrl(tmpPath).data.publicUrl
       const res = await fetch('/api/painel/importar-ia', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ access_token: session?.access_token, company_id: companyId, source: 'pdf', pdf_url, buscarFotosWeb }),
+        body: JSON.stringify({ access_token: session?.access_token, company_id: companyId, source: 'pdf', pdf_url }),
       })
       const data = await readImportIAResponse(res)
       if (!res.ok) { setImportIAError(data.error || 'não deu pra ler esse PDF'); setImportIAStep('error'); return }
+      if (buscarFotosWeb) {
+        const { csv, encontradas } = await buscarFotosWebECompletar(data.csv, session?.access_token)
+        data.csv = csv; data.fotosWebEncontradas = encontradas
+      }
       setImportIAPreview(data)
       setImportIAStep('preview')
     } catch (err: any) {
@@ -388,10 +440,14 @@ export default function CatalogoPage() {
       }))
       const res = await fetch('/api/painel/importar-ia', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ access_token: session?.access_token, company_id: companyId, source: 'fotos', foto_urls, buscarFotosWeb }),
+        body: JSON.stringify({ access_token: session?.access_token, company_id: companyId, source: 'fotos', foto_urls }),
       })
       const data = await readImportIAResponse(res)
       if (!res.ok) { setImportIAError(data.error || 'não deu pra ler essas fotos'); setImportIAStep('error'); return }
+      if (buscarFotosWeb) {
+        const { csv, encontradas } = await buscarFotosWebECompletar(data.csv, session?.access_token)
+        data.csv = csv; data.fotosWebEncontradas = encontradas
+      }
       setImportIAPreview(data)
       setImportIAStep('preview')
     } catch (err: any) {

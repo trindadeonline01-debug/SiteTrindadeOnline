@@ -699,6 +699,15 @@ export default function PedidosPage() {
     // (COD entregue sem cobrar ainda é real), mas com destaque visual
     // separado — e mais forte quando já foi entregue e ainda não foi pago.
     const payUnpaidAfterDelivery = p.payment_status !== 'pago' && (p.status === 'entregue' || p.status === 'saiu_entrega')
+    // Pedido de outro dia (selectedDate != hoje) entra em modo "histórico, só
+    // consulta" — trava os botões de avançar status. Mas um pedido que ficou
+    // PARADO (ex: esqueceram de fechar ontem) continua precisando ser
+    // finalizado hoje — sem isso não tinha como encerrar um pedido esquecido
+    // depois que o dia virava (achado real, Satolos Burguers, out/2026: pedido
+    // de ontem travado em "em preparo", lojista voltou hoje pra marcar
+    // entregue e o botão simplesmente não aparecia). Só os já encerrados
+    // (entregue/cancelado) continuam travados em modo consulta.
+    const canAct = isToday || (p.status !== 'entregue' && p.status !== 'cancelado')
     return (
       <div className={`pd-card ${needsAccept ? 'pd-card-pending' : ''} ${late ? 'pd-card-late' : ''}`} key={p.id} style={{ '--accent': c.fg, borderLeft: `4px solid ${o.fg}` } as React.CSSProperties} onClick={() => setOpenId(open ? null : p.id)}>
         <div className="pd-row1">
@@ -763,8 +772,8 @@ export default function PedidosPage() {
           </div>
         )}
         <div className="pd-total">{fmt(p.total)}</div>
-        {isToday && needsAccept && <button className="pd-accept" onClick={e => { e.stopPropagation(); acceptPedido(p.id) }}>✓ Aceitar pedido</button>}
-        {isToday && !needsAccept && !open && getNextAction(p) && (() => {
+        {canAct && needsAccept && <button className="pd-accept" onClick={e => { e.stopPropagation(); acceptPedido(p.id) }}>✓ Aceitar pedido</button>}
+        {canAct && !needsAccept && !open && getNextAction(p) && (() => {
           const action = getNextAction(p)!
           const ativos = motoboys.filter(m => m.ativo)
           // Vira "saiu pra entrega" com motoboy PRÓPRIO cadastrado — com 2+
@@ -811,7 +820,7 @@ export default function PedidosPage() {
                 {p.notes && <div className="pd-meta-row pd-meta-notes">📝 {p.notes}</div>}
               </div>
             )}
-            {isToday && entregaEnabled && p.delivery_type === 'entrega' && p.status !== 'cancelado' && (
+            {canAct && entregaEnabled && p.delivery_type === 'entrega' && p.status !== 'cancelado' && (
               deliveryCalled.has(p.id) ? null : (
                 <>
                   <button className="pd-next" style={{ marginTop: 8 }} disabled={motoLoading === p.id} onClick={e => { e.stopPropagation(); chamarMotoboy(p) }}>
@@ -821,14 +830,14 @@ export default function PedidosPage() {
                 </>
               )
             )}
-            {isToday && (
+            {canAct && (
               <div className="pd-chips">
                 {flowFor(p).map(s => <button key={s} className={`pd-chip ${p.status === s ? 'current' : ''}`} onClick={() => setStatus(p.id, s)}>{STATUS_LABEL[s]}</button>)}
               </div>
             )}
             <button className="pd-print-btn" onClick={e => { e.stopPropagation(); printPedido(p) }}>🖨️ Imprimir pedido</button>
             {printError && <div style={{ color: '#C43D3D', fontSize: 11, marginTop: 4 }}>{printError}</div>}
-            {isToday && p.status !== 'cancelado' && p.status !== 'entregue' && <button className="pd-cancel" onClick={() => setStatus(p.id, 'cancelado')}>Cancelar pedido</button>}
+            {canAct && p.status !== 'cancelado' && p.status !== 'entregue' && <button className="pd-cancel" onClick={() => setStatus(p.id, 'cancelado')}>Cancelar pedido</button>}
           </div>
         )}
       </div>
@@ -852,6 +861,12 @@ export default function PedidosPage() {
   const pedidosSemMotoboy = isToday
     ? pedidos.filter(p => deliveryByPedido[p.id]?.status === 'sem_motoboy').sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
     : []
+  // Texto do aviso de histórico muda quando tem pedido parado (não
+  // entregue/cancelado) nesse dia — esse ainda dá pra mexer, não é só consulta.
+  const histTemPedidoAberto = !isToday && pedidos.some(p => p.status !== 'entregue' && p.status !== 'cancelado')
+  const histBannerTxt = histTemPedidoAberto
+    ? `📅 Vendo ${fmtDateLabel(selectedDate)} — histórico, mas pedido em aberto ainda pode ser avançado/finalizado`
+    : `📅 Vendo ${fmtDateLabel(selectedDate)} — histórico, só consulta`
 
   return (
     <>
@@ -1092,7 +1107,7 @@ export default function PedidosPage() {
           <button className="pd-date-arrow" onClick={() => shiftDate(1)} disabled={isToday} aria-label="Próximo dia">›</button>
           {!isToday && <button className="pd-today-btn" onClick={() => setSelectedDate(todayStr())}>Hoje</button>}
         </div>
-        {!isToday && <div className="pd-hist-banner">📅 Vendo {fmtDateLabel(selectedDate)} — histórico, só consulta</div>}
+        {!isToday && <div className="pd-hist-banner">{histBannerTxt}</div>}
         <div className="pd-searchbar">
           <input className="pd-search" placeholder="Buscar por cliente..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
@@ -1140,7 +1155,7 @@ export default function PedidosPage() {
         {isToday && <button className="pd-newbtn" onClick={openNovoPedido}>+ Novo pedido</button>}
       </div>
       {showBairrosModal && <BairrosEntregaModal onClose={() => setShowBairrosModal(false)} />}
-      {!isToday && <div className="pd-hist-banner">📅 Vendo {fmtDateLabel(selectedDate)} — histórico, só consulta</div>}
+      {!isToday && <div className="pd-hist-banner">{histBannerTxt}</div>}
 
       {(() => {
         const showCancelados = cancelados.length > 0

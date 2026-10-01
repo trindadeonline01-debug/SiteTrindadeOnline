@@ -53,6 +53,15 @@ function lineTotal(l: EditItem): number {
   return l.pesoModo ? l.unitPrice * pesoNum(l.pesoKg) : l.unitPrice * l.qty
 }
 
+// Assinatura comparável do carrinho (nome × qtd @ preço unitário), ordenada
+// pra não dar falso positivo só por causa da ordem dos itens — usada pra
+// decidir se o pedido mudou o suficiente pra avisar o cliente (comparação
+// por total sozinha deixaria passar o caso raro de trocar um item por outro
+// de preço idêntico).
+function itemsSignature(items: { name: string; qty: number; unitPrice: number }[]): string {
+  return items.map(it => `${it.name}×${it.qty}@${it.unitPrice.toFixed(2)}`).sort().join('|')
+}
+
 const PAY_BASE = [{ key: 'pix', label: 'Pix' }, { key: 'dinheiro', label: 'Dinheiro' }, { key: 'cartao', label: 'Cartão' }]
 const PAY_ALL: Record<string, string> = {
   pix: 'Pix', dinheiro: 'Dinheiro', cartao: 'Cartão', cartao_credito: 'Cartão de crédito', cartao_debito: 'Cartão de débito',
@@ -111,6 +120,14 @@ export default function EditarPedidoPanel({ pedido, companyId, onClose, onSaved 
 
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+
+  // Snapshot de como o pedido chegou nesta tela — compara contra o que vai
+  // ser salvo pra decidir se avisa o cliente por WhatsApp. Lazy init (função
+  // no useState) pra calcular só uma vez, a partir do pedido ORIGINAL — não
+  // pode reusar o estado `items` pra isso, porque esse já é o rascunho
+  // mutável que o lojista está editando.
+  const [initialTotal] = useState(() => pedido.itens.reduce((s, it) => s + it.unit_price * it.qty, 0) + (pedido.delivery_type === 'entrega' ? (pedido.delivery_fee || 0) : 0))
+  const [initialItemsKey] = useState(() => itemsSignature(pedido.itens.map(it => ({ name: it.product_name, qty: it.qty, unitPrice: it.unit_price }))))
 
   useEffect(() => {
     (async () => {
@@ -204,6 +221,22 @@ export default function EditarPedidoPanel({ pedido, companyId, onClose, onSaved 
       selected_options: l.modifiers,
     })))
     if (itErr) { setError('Pedido atualizado, mas falhou ao salvar os itens: ' + itErr.message); setSaving(false); return }
+
+    // Só avisa o cliente quando itens ou total de fato mudaram — edição que
+    // só ajustou dado interno (nome, telefone, endereço, agendamento,
+    // pagamento) não dispara mensagem nenhuma (pedido do Ricardo, out/2026).
+    const newItemsKey = itemsSignature(items.map(l => ({
+      name: l.name,
+      qty: l.pesoModo ? 1 : l.qty,
+      unitPrice: l.pesoModo ? Math.round(l.unitPrice * pesoNum(l.pesoKg) * 100) / 100 : l.unitPrice,
+    })))
+    if (newItemsKey !== initialItemsKey || total !== initialTotal) {
+      fetch('/api/loja/pedido-editado', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ companyId, pedidoId: pedido.id }),
+      }).catch(() => {})
+    }
+
     setSaving(false)
     onSaved()
     onClose()

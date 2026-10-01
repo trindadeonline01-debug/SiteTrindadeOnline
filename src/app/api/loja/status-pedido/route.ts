@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const { data: company } = await supabase.from('companies').select('crm_whatsapp_enabled, trial_modules_until').eq('id', companyId).maybeSingle()
+    const { data: company } = await supabase.from('companies').select('crm_whatsapp_enabled, trial_modules_until, slug').eq('id', companyId).maybeSingle()
     if (!company || !moduleActive(company.crm_whatsapp_enabled, company.trial_modules_until)) return NextResponse.json({ ok: true })
 
     const { data: instance } = await supabase
@@ -105,6 +105,14 @@ export async function POST(req: NextRequest) {
     // Mensagem do código sempre à parte, nunca grudada na de status —
     // pedido do Ricardo, set/2026.
     if (codeText) await sendAndLog(codeText)
+    // Pedido de avaliação, também à parte — só na entrega/retirada de
+    // verdade (nunca em cancelado), enquanto a experiência tá fresca.
+    // Precisa de login pra avaliar; quem não tem conta cai no "Entrar para
+    // avaliar" normal (Ricardo, set/2026).
+    if (status === 'entregue' && company.slug) {
+      const site = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trindadeonline.com.br'
+      await sendAndLog(`⭐ Como foi sua experiência? Avalia a gente: ${site}/empresa/${company.slug}?avaliar=1`)
+    }
 
     return NextResponse.json({ ok: true })
   } catch (err: any) {

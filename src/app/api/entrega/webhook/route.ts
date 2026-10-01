@@ -264,9 +264,17 @@ export async function POST(req: NextRequest) {
           const valorMotoboy = Math.max(0, fee - pricing.motoboy_corte_plataforma)
           const feeLabel = valorMotoboy.toFixed(2).replace('.', ',')
           await sendMotoboyWhatsApp(motoboy.phone, `✅ Código confere! R$ ${feeLabel} liberados. Entra no seu Pix no fechamento.`)
-          await sendCustomerWhatsApp(order.company_id, order.customer_phone, `🎉 Pedido entregue! Obrigado pela preferência.`)
 
-          const { data: company } = await supabase.from('companies').select('owner_id, name').eq('id', order.company_id).maybeSingle()
+          const { data: company } = await supabase.from('companies').select('owner_id, name, slug').eq('id', order.company_id).maybeSingle()
+          await sendCustomerWhatsApp(order.company_id, order.customer_phone, `🎉 Pedido entregue! Obrigado pela preferência.`)
+          // Pedido separado do de status — pedido do Ricardo, set/2026: pedir
+          // avaliação logo depois da entrega, enquanto a experiência tá
+          // fresca. Precisa de login (avaliação é por perfil, não anônima),
+          // mas quem não tiver conta cai no "Entrar para avaliar" normal.
+          if (company?.slug) {
+            const site = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trindadeonline.com.br'
+            await sendCustomerWhatsApp(order.company_id, order.customer_phone, `⭐ Como foi sua experiência? Avalia a gente: ${site}/empresa/${company.slug}?avaliar=1`)
+          }
           if (company?.owner_id) {
             fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trindadeonline.com.br'}/api/push/send`, {
               method: 'POST', headers: { 'Content-Type': 'application/json' },

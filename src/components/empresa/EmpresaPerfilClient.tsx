@@ -194,6 +194,11 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
       ])
       setIsFav(!!fav)
       setAlreadyReviewed(!!myReview)
+      // Link de "avalia a gente" mandado no WhatsApp depois da entrega
+      // (?avaliar=1) já abre o modal direto, sem precisar achar o botão —
+      // pedido do Ricardo, set/2026. Só com sessão resolvida (senão abriria
+      // o modal pra quem nem tá logado) e se ainda não avaliou essa semana.
+      if (new URLSearchParams(window.location.search).get('avaliar') === '1' && !myReview) setShowReview(true)
       const admin = prof?.user_type === 'admin'
       setIsAdmin(admin)
       setIsOwner(company.owner_id === session.user.id || admin)
@@ -780,7 +785,7 @@ export default function EmpresaPerfilClient({ slug, initialCompany, initialRevie
               {!reviewSent && !alreadyReviewed && (
                 <>
                   <span className="sep">·</span>
-                  <button className="btn-write-rv" onClick={() => userId ? setShowReview(true) : window.location.href='/login'}>
+                  <button className="btn-write-rv" onClick={() => userId ? setShowReview(true) : window.location.href='/login?redirect=' + encodeURIComponent(`/empresa/${slug}?avaliar=1`)}>
                     {userId ? 'Avaliar' : 'Entrar para avaliar'}
                   </button>
                 </>

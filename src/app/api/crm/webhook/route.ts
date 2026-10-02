@@ -388,17 +388,29 @@ export async function POST(req: NextRequest) {
         }
         if (!contactId) continue
 
-        await supabase.from('crm_messages').insert({
+        const { data: insertedMsg } = await supabase.from('crm_messages').insert({
           company_id: inst.company_id, contact_id: contactId, direction,
           body: text, media_type: mediaType, media_url: mediaPath, wa_message_id: waMessageId, sent_at: sentAt,
           reply_to_id: replyToId, status: direction === 'out' ? 'sent' : null,
-        })
+        }).select('id').single()
 
         if (direction === 'in' && text) await applyAutoTags(inst.company_id, contactId, text)
 
         if (direction === 'out') {
           // Mandado pelo celular direto (fora do CRM) — marca como lido, não precisa notificar o próprio lojista.
           await supabase.from('crm_contacts').update({ last_read_at: sentAt, unread_count: 0 }).eq('id', contactId)
+          // Chegou até aqui = mensagem nova de verdade, nunca vista antes (o
+          // dedup por wa_message_id lá em cima já filtrou eco de mensagem que
+          // o próprio sistema mandou — IA ou painel). Só sobra um jeito disso
+          // acontecer: alguém digitou e mandou direto do celular da loja.
+          // Desliga a IA pra essa conversa na hora, sem precisar do dono
+          // lembrar de clicar "Assumir a conversa" (achado real do Ricardo,
+          // out/2026: Ju respondendo pessoalmente a Tatiana enquanto a IA
+          // continuava mandando mensagem por cima, repetindo pergunta já
+          // respondida por ela).
+          if (company?.crm_ia_enabled && existing?.atendimento_modo !== 'humano') {
+            await supabase.from('crm_contacts').update({ atendimento_modo: 'humano', pediu_humano_em: null }).eq('id', contactId)
+          }
           continue
         }
 
@@ -466,14 +478,30 @@ export async function POST(req: NextRequest) {
                 await sendCustomerWhatsApp(inst.company_id, phone, 'Posso te ajudar por aqui mesmo! Só pra eu entender melhor: qual é a sua dúvida?')
               }
             } else {
-              const { data: historico } = await supabase
-                .from('crm_messages').select('direction, body')
-                .eq('contact_id', contactId).not('body', 'is', null)
-                .order('sent_at', { ascending: false }).limit(20)
-              const respostaIA = await gerarRespostaIA(inst.company_id, ((historico || []) as any[]).reverse())
-              if (respostaIA) {
-                await sendCustomerWhatsApp(inst.company_id, phone, respostaIA)
-                if (jaPediu) await supabase.from('crm_contacts').update({ pediu_humano_em: null }).eq('id', contactId)
+              // Espera um pouco e confere se não chegou mensagem mais nova do
+              // cliente nesse meio tempo — cliente que manda 2-3 balões
+              // seguidos (comum no WhatsApp) dispara um evento de webhook por
+              // balão, e sem essa espera a IA respondia separadamente pra
+              // cada um, atropelando a própria conversa (achado real do
+              // Ricardo, out/2026: atendimento da Tatiana/Ju Souza). Só quem
+              // estiver processando a mensagem MAIS RECENTE do cliente nesse
+              // momento segue — sai 1 resposta só, já lendo tudo que ele
+              // mandou (o histórico abaixo é buscado DEPOIS da espera).
+              await new Promise(resolve => setTimeout(resolve, 4000))
+              const { data: maisRecente } = await supabase
+                .from('crm_messages').select('id')
+                .eq('contact_id', contactId).eq('direction', 'in')
+                .order('sent_at', { ascending: false }).limit(1).maybeSingle()
+              if (insertedMsg && maisRecente?.id === insertedMsg.id) {
+                const { data: historico } = await supabase
+                  .from('crm_messages').select('direction, body')
+                  .eq('contact_id', contactId).not('body', 'is', null)
+                  .order('sent_at', { ascending: false }).limit(20)
+                const respostaIA = await gerarRespostaIA(inst.company_id, ((historico || []) as any[]).reverse())
+                if (respostaIA) {
+                  await sendCustomerWhatsApp(inst.company_id, phone, respostaIA)
+                  if (jaPediu) await supabase.from('crm_contacts').update({ pediu_humano_em: null }).eq('id', contactId)
+                }
               }
             }
           } else if (modoAtual === 'ia' && !text && mediaType === 'audio') {

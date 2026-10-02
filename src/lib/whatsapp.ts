@@ -97,9 +97,16 @@ export async function sendCustomerWhatsApp(companyId: string, phone: string | nu
       console.error(`[sendCustomerWhatsApp] Evolution respondeu ${res.status}: ${body.slice(0, 300)}`)
       return
     }
+    // Grava o wa_message_id real (igual /api/crm/enviar já faz) — se a
+    // Evolution algum dia ecoar essa mensagem de volta pelo webhook, o
+    // dedup por wa_message_id lá já filtra sozinho, sem deixar essa mensagem
+    // da própria IA ser confundida com "o dono digitou direto do celular"
+    // (ver a troca pra atendimento_modo='humano' em api/crm/webhook).
+    const resData = await res.json().catch(() => null)
+    const waMessageId: string | null = resData?.key?.id || null
     const { data: contact } = await supabase.from('crm_contacts').select('id').eq('company_id', companyId).eq('phone', normalized).maybeSingle()
     if (contact) {
-      await supabase.from('crm_messages').insert({ company_id: companyId, contact_id: contact.id, direction: 'out', body: text, status: 'sent', sent_at: new Date().toISOString() })
+      await supabase.from('crm_messages').insert({ company_id: companyId, contact_id: contact.id, direction: 'out', body: text, status: 'sent', sent_at: new Date().toISOString(), wa_message_id: waMessageId })
       await supabase.from('crm_contacts').update({ last_message_at: new Date().toISOString(), last_message_preview: text, last_message_direction: 'out' }).eq('id', contact.id)
     }
   } catch (err: any) {

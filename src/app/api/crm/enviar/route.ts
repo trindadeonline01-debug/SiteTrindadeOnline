@@ -157,9 +157,15 @@ export async function POST(req: NextRequest) {
     const preview = text?.trim() ? text.trim()
       : media_type === 'image' ? '📷 Foto' : media_type === 'video' ? '🎥 Vídeo' : media_type === 'audio' ? '🎤 Áudio'
       : media_type === 'document' ? '📄 Documento' : location ? '📍 Localização' : contact_share ? '👤 Contato' : ''
+    // Resposta manual pelo painel também conta como "humano assumiu" — mesmo
+    // princípio do fromMe direto do celular (ver api/crm/webhook): quem
+    // respondeu por aqui não precisa também lembrar de clicar em "Assumir a
+    // conversa" à parte, pedido do Ricardo, out/2026.
+    const { data: contactIa } = await supabase.from('crm_contacts').select('atendimento_modo').eq('id', contact_id).maybeSingle()
     await supabase.from('crm_contacts').update({
       last_message_at: now, last_read_at: now, unread_count: 0,
       last_message_preview: preview, last_message_direction: 'out',
+      ...(contactIa && contactIa.atendimento_modo !== 'humano' ? { atendimento_modo: 'humano', pediu_humano_em: null } : {}),
     }).eq('id', contact_id)
 
     return NextResponse.json({ ok: true })

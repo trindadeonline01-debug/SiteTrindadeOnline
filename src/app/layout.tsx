@@ -7,6 +7,9 @@ import MobileMenu from '@/components/MobileMenu'
 import BackButton from '@/components/BackButton'
 import CartBar from '@/components/CartBar'
 import SilentErrorBoundary from '@/components/SilentErrorBoundary'
+import CookieBanner from '@/components/CookieBanner'
+import NotificationPrompt from '@/components/NotificationPrompt'
+import OneSignalInit from '@/components/OneSignalInit'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://trindadeonline.com.br'),
@@ -68,6 +71,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <BackButton />
         <SilentErrorBoundary><CartBar /></SilentErrorBoundary>
         <BottomNav />
+        {/* Antes só existiam na home (page.tsx) — quem chegava direto num
+            link de cardápio/empresa (a maior parte do tráfego real, pedido
+            do Ricardo) nunca via o banner de cookies nem o convite de
+            notificação, e o OneSignal nem chegava a inicializar fora da
+            home. Movidos pra cá pra valer no site inteiro, out/2026. */}
+        <CookieBanner />
+        <NotificationPrompt />
+        <OneSignalInit />
         <Script src='https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js' strategy='afterInteractive'/>
       </body>
     </html>

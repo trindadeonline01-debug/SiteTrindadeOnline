@@ -13,6 +13,11 @@ export default function CookieBanner() {
   function accept(type: 'all' | 'essential') {
     localStorage.setItem('trindade_cookie_consent', type)
     setVisible(false)
+    // Avisa o NotificationPrompt (montado uma vez só no layout, sem recarregar
+    // a página entre navegações do site) que já pode tentar mostrar o convite
+    // de notificação — sem isso, quem acabava de aceitar cookies só veria o
+    // convite na PRÓXIMA visita, já que o efeito dele só roda 1x na montagem.
+    window.dispatchEvent(new Event('trindade:cookie-consent'))
   }
 
   if (!visible) return null

@@ -17,15 +17,30 @@ export default function NotificationPrompt() {
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof Notification === 'undefined') return
-    const consent = localStorage.getItem('trindade_cookie_consent')
-    if (!consent) return
-    // Já decidiu no navegador (permitiu ou bloqueou) — nada a perguntar,
-    // pedir de novo não muda esse estado e só incomoda à toa.
-    if (Notification.permission !== 'default') return
-    const dismissedAt = Number(localStorage.getItem(DISMISS_KEY) || 0)
-    if (dismissedAt && Date.now() - dismissedAt < COOLDOWN_DAYS * 86400000) return
-    const t = setTimeout(() => setVisible(true), 4000)
-    return () => clearTimeout(t)
+    let timer: ReturnType<typeof setTimeout> | null = null
+
+    function tryShow() {
+      const consent = localStorage.getItem('trindade_cookie_consent')
+      if (!consent) return
+      // Já decidiu no navegador (permitiu ou bloqueou) — nada a perguntar,
+      // pedir de novo não muda esse estado e só incomoda à toa.
+      if (Notification.permission !== 'default') return
+      const dismissedAt = Number(localStorage.getItem(DISMISS_KEY) || 0)
+      if (dismissedAt && Date.now() - dismissedAt < COOLDOWN_DAYS * 86400000) return
+      if (timer) return
+      timer = setTimeout(() => setVisible(true), 4000)
+    }
+
+    // Roda na montagem (consentimento de visita anterior) e de novo quando o
+    // CookieBanner aceita NESSA mesma visita — esse componente mora uma vez
+    // só no layout (não remonta ao navegar pro cardápio, por exemplo), então
+    // sem o evento o convite só apareceria na visita seguinte.
+    tryShow()
+    window.addEventListener('trindade:cookie-consent', tryShow)
+    return () => {
+      if (timer) clearTimeout(timer)
+      window.removeEventListener('trindade:cookie-consent', tryShow)
+    }
   }, [])
 
   async function ativar() {

@@ -45,6 +45,16 @@ export default function AnunciarPage() {
   // tentativa inteira e o erro genérico fazia o dono clicar "Enviar" de novo
   // achando que nada tinha sido salvo).
   const [fotosComFalha, setFotosComFalha] = useState<string[]>([])
+  // Trava contra empresa duplicada, além do caso da foto: se QUALQUER coisa
+  // depois da criação da empresa falhar (horários, subcategorias, update de
+  // profile) e o formulário reaparecer, o dono clicando "Enviar" de novo não
+  // pode criar uma SEGUNDA empresa do zero — já aconteceu de verdade (Point
+  // do Lanche, 9 empresas em 10min; RGG Cabral, 2 em 2min, pedido do
+  // Ricardo, out/2026: "tem que vetar isso aí, não pode criar duas de jeito
+  // nenhum"). Ref (não state) porque precisa ser lido de forma síncrona no
+  // próprio clique, antes de qualquer re-render.
+  const createdCompanyIdRef = useRef<string | null>(null)
+  const [empresaJaCriada, setEmpresaJaCriada] = useState(false)
 
   // ── Conta ──
   const [respNome, setRespNome] = useState('')
@@ -240,6 +250,11 @@ export default function AnunciarPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setErro('')
+    // Essa empresa já foi criada numa tentativa anterior deste mesmo
+    // carregamento de página (ex: falhou em algo DEPOIS da criação — horário,
+    // subcategoria, update de profile — e o formulário reapareceu). Nunca
+    // cria uma segunda: trava aqui e manda pro painel atualizar o que faltou.
+    if (createdCompanyIdRef.current) { setEmpresaJaCriada(true); return }
     if (photos.length === 0) { setErro('Adicione pelo menos 1 foto da empresa.'); return }
     if (!userId) return
 
@@ -284,6 +299,10 @@ export default function AnunciarPage() {
       }
 
       if (!company) throw new Error('Erro ao criar empresa.')
+      // Trava daqui pra frente — mesmo se algo abaixo falhar e o formulário
+      // reaparecer, um novo clique em "Enviar" não cria outra empresa (ver
+      // o check no topo da função).
+      createdCompanyIdRef.current = company.id
 
       fetch('/api/admin/notify-whatsapp', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -446,7 +465,17 @@ export default function AnunciarPage() {
         <div className="card">
           <div className="logo"><a href="/">TRINDADE <span>ONLINE</span></a></div>
 
-          {ok ? (
+          {empresaJaCriada ? (
+            <div style={{ textAlign: 'center', padding: '16px 0' }}>
+              <div style={{ fontSize: 56, marginBottom: 16 }}>✅</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#111', marginBottom: 8 }}>Essa empresa já foi criada</div>
+              <div style={{ fontSize: 13, color: '#555', lineHeight: 1.9, marginBottom: 24 }}>
+                <strong>{nome.toUpperCase()}</strong> já está cadastrada e em análise — enviar de novo criaria um cadastro duplicado.<br />
+                Pra atualizar a foto ou qualquer outro dado, acesse seu painel.
+              </div>
+              <button className="btn-primary" onClick={() => window.location.href = '/painel'}>Acessar meu painel →</button>
+            </div>
+          ) : ok ? (
             <div style={{ textAlign: 'center', padding: '16px 0' }}>
               <div style={{ fontSize: 56, marginBottom: 16 }}>🎉</div>
               <div style={{ fontSize: 22, fontWeight: 700, color: '#111', marginBottom: 8 }}>Cadastro recebido!</div>

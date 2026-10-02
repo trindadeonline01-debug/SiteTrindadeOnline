@@ -366,18 +366,21 @@ export async function retryMotoboyDispatch(deliveryOrderId: string): Promise<{ o
   return { ok: true }
 }
 
-// Botão "Cancelar" em /painel/pedidos, enquanto a entrega ainda está
-// "buscando_motoboy" (ninguém aceitou ainda) — pedido do Ricardo, out/2026:
-// hoje não tinha como desistir de uma chamada em andamento. Só cancela
-// nesse status; depois que algum motoboy já aceitou (a_caminho), cancelar
-// é outra conversa (teria corrida em andamento de verdade) e não está
-// coberto por esse botão. Avisa o motoboy com oferta pendente, se tiver
-// algum, que a chamada caiu — senão ele fica esperando resposta de uma
-// corrida que não existe mais.
+// Botão "Cancelar" em /painel/pedidos — cobre tanto "ainda chamando"
+// (buscando_motoboy, ninguém aceitou) quanto "já aceitou, motoboy a
+// caminho" (a_caminho). Antes só cobria a primeira fase e o botão
+// simplesmente desaparecia depois que alguém aceitava — achado real do
+// Ricardo, out/2026: tentou cancelar uma corrida já aceita na Peixaria
+// Trindade (motoboy a caminho) e não tinha como, "era pra cancelar tudo".
+// Avisa quem precisa saber que a corrida caiu: motoboy com oferta
+// pendente (fase 1) ou o motoboy já designado (fase 2) — senão ele fica
+// esperando resposta, ou saindo pra buscar, uma corrida que não existe mais.
 export async function cancelarChamadaMotoboy(deliveryOrderId: string): Promise<{ ok: boolean; error?: string }> {
-  const { data: order } = await supabase.from('delivery_orders').select('status').eq('id', deliveryOrderId).maybeSingle()
+  const { data: order } = await supabase.from('delivery_orders').select('status, motoboy_phone').eq('id', deliveryOrderId).maybeSingle()
   if (!order) return { ok: false, error: 'entrega não encontrada' }
-  if (order.status !== 'buscando_motoboy') return { ok: false, error: 'essa entrega não está mais buscando motoboy' }
+  if (order.status !== 'buscando_motoboy' && order.status !== 'a_caminho') {
+    return { ok: false, error: 'essa entrega não pode mais ser cancelada' }
+  }
 
   await supabase.from('delivery_orders').update({ status: 'cancelada' }).eq('id', deliveryOrderId)
 
@@ -389,6 +392,11 @@ export async function cancelarChamadaMotoboy(deliveryOrderId: string): Promise<{
     const { data: motoboy } = await supabase.from('motoboys').select('phone').eq('id', o.motoboy_id).maybeSingle()
     if (motoboy?.phone) await sendMotoboyWhatsApp(motoboy.phone, '❌ Essa chamada foi cancelada pela loja — não precisa buscar essa entrega.')
   }
+
+  if (order.status === 'a_caminho' && order.motoboy_phone) {
+    await sendMotoboyWhatsApp(order.motoboy_phone, '❌ Essa corrida foi cancelada pela loja — pode desconsiderar, não precisa buscar nem entregar.')
+  }
+
   return { ok: true }
 }
 

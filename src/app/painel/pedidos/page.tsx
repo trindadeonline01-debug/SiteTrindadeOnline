@@ -394,18 +394,27 @@ export default function PedidosPage() {
     loadAll(companyIdRef.current, selectedDate)
   }
 
-  // Botão "Cancelar" ao lado de "Chamando motoboy..." — só aparece enquanto
-  // ainda não tem ninguém aceito (Ricardo, out/2026: "não tem como desistir
-  // de uma chamada em andamento"). Avisa o motoboy com oferta pendente, se
-  // tiver, que a chamada caiu.
-  async function cancelarChamada(deliveryOrderId: string) {
+  // Botão "Cancelar" — cobre tanto "Chamando motoboy..." quanto "já aceitou,
+  // a caminho" (Ricardo, out/2026: "era pra cancelar tudo", tentou cancelar
+  // uma corrida já aceita na Peixaria Trindade e o botão nem aparecia).
+  // Antes não checava a resposta — se a API recusasse (ex: corrida já virou
+  // "entregue" entre o clique e a confirmação), falhava calado, sem avisar
+  // a loja de nada.
+  async function cancelarChamada(deliveryOrderId: string, pedidoId: string) {
     if (!confirm('Cancelar essa chamada de motoboy?')) return
     setCancelingMotoId(deliveryOrderId)
+    setMotoErrors(prev => { const n = { ...prev }; delete n[pedidoId]; return n })
     const { data: { session } } = await supabase.auth.getSession()
-    await fetch('/api/entrega/cancelar', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ access_token: session?.access_token, company_id: companyId, delivery_order_id: deliveryOrderId }),
-    }).catch(() => {})
+    try {
+      const res = await fetch('/api/entrega/cancelar', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token: session?.access_token, company_id: companyId, delivery_order_id: deliveryOrderId }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || data.error) setMotoErrors(prev => ({ ...prev, [pedidoId]: data.error || 'Não consegui cancelar essa corrida.' }))
+    } catch {
+      setMotoErrors(prev => ({ ...prev, [pedidoId]: 'Falha de conexão — tenta de novo.' }))
+    }
     setCancelingMotoId(null)
     loadAll(companyIdRef.current, selectedDate)
   }
@@ -782,18 +791,22 @@ export default function PedidosPage() {
               // (o cliente já recebeu o dele pelo WhatsApp) — pedido do
               // Ricardo, set/2026: nunca o mesmo código pros dois casos.
               const aindaNaoRetirou = !!d.motoboy_name && !d.picked_up_at && !!d.pickup_code
-              const chamando = !d.motoboy_name && d.status !== 'sem_motoboy'
+              // Cancelar cobre as duas fases em andamento — "chamando" e
+              // "já aceitou, a caminho" — só não aparece depois de
+              // entregue/cancelada/sem_motoboy (essa última já tem seu
+              // próprio "🔁 Solicitar de novo" em outro lugar da tela).
+              const podeCancelar = d.status === 'buscando_motoboy' || d.status === 'a_caminho'
               return (
                 <div className="pd-inforow" style={{ background: d.status === 'sem_motoboy' ? '#FBEAEA' : '#E8F0FE', color: d.status === 'sem_motoboy' ? '#C43D3D' : '#1A56B0' }}>
                   <span>
                     🏍️ {d.motoboy_name ? <b>{d.motoboy_name}</b> : d.status === 'sem_motoboy' ? <b>Nenhum motoboy aceitou</b> : 'Chamando motoboy...'}
                     {aindaNaoRetirou && <> — retirada</>}
                   </span>
-                  {chamando && (
+                  {podeCancelar && (
                     <button
                       className="pd-moto-cancel"
                       disabled={cancelingMotoId === d.id}
-                      onClick={e => { e.stopPropagation(); cancelarChamada(d.id) }}
+                      onClick={e => { e.stopPropagation(); cancelarChamada(d.id, p.id) }}
                     >
                       {cancelingMotoId === d.id ? 'Cancelando...' : 'Cancelar'}
                     </button>
@@ -804,6 +817,7 @@ export default function PedidosPage() {
             })()}
           </div>
         )}
+        {motoErrors[p.id] && <div style={{ color: '#C43D3D', fontSize: 11, marginTop: 4 }}>{motoErrors[p.id]}</div>}
         <div className="pd-total">{fmt(p.total)}</div>
         {canAct && needsAccept && <button className="pd-accept" onClick={e => { e.stopPropagation(); acceptPedido(p.id) }}>✓ Aceitar pedido</button>}
         {canAct && !needsAccept && !open && getNextAction(p) && (() => {

@@ -38,6 +38,13 @@ export default function AnunciarPage() {
   const [loading, setLoading] = useState(false)
   const [erro, setErro] = useState('')
   const [ok, setOk] = useState(false)
+  // Fotos que falharam na compressão (ex: HEIC que o Chrome Android não
+  // decodifica em nenhuma tentativa) — nome de cada uma, pra avisar na tela
+  // de sucesso em vez de abortar o cadastro inteiro (achado real, out/2026:
+  // RGG Cabral teve o cadastro criado 2x porque uma foto travava a 2ª/3ª
+  // tentativa inteira e o erro genérico fazia o dono clicar "Enviar" de novo
+  // achando que nada tinha sido salvo).
+  const [fotosComFalha, setFotosComFalha] = useState<string[]>([])
 
   // ── Conta ──
   const [respNome, setRespNome] = useState('')
@@ -321,19 +328,32 @@ export default function AnunciarPage() {
         }
       }
 
+      // Cada foto tem seu próprio try/catch — a empresa já foi criada acima
+      // (junto com horários/subcategorias), então uma foto que falha na
+      // compressão não pode derrubar o cadastro inteiro: isso fazia o erro
+      // genérico aparecer como se nada tivesse sido salvo, e o dono clicava
+      // "Enviar" de novo, criando uma SEGUNDA empresa do zero (achado real,
+      // out/2026, RGG Cabral — 2 empresas pending, minutos de diferença).
+      const falhas: string[] = []
       for (let i = 0; i < photos.length; i++) {
         const file = photos[i]
-        const ext = file.name.split('.').pop()
-        const path = `${company.id}/${i}-${Date.now()}.${ext}`
-        const compressed = await compressImage(file)
-        const { data: upload } = await supabase.storage.from('company-photos').upload(path, compressed, { upsert: true })
-        if (upload) {
-          const { data: urlData } = supabase.storage.from('company-photos').getPublicUrl(path)
-          await supabase.from('company_photos').insert({ company_id: company.id, url: urlData.publicUrl, order: i })
+        try {
+          const ext = file.name.split('.').pop()
+          const path = `${company.id}/${i}-${Date.now()}.${ext}`
+          const compressed = await compressImage(file)
+          const { data: upload } = await supabase.storage.from('company-photos').upload(path, compressed, { upsert: true })
+          if (upload) {
+            const { data: urlData } = supabase.storage.from('company-photos').getPublicUrl(path)
+            await supabase.from('company_photos').insert({ company_id: company.id, url: urlData.publicUrl, order: i })
+          }
+        } catch (photoErr) {
+          console.error(`[anunciar] falha ao processar foto ${i} (${file.name}):`, photoErr)
+          falhas.push(file.name)
         }
       }
 
       await supabase.from('profiles').update({ user_type: 'company' }).eq('id', userId)
+      setFotosComFalha(falhas)
       setOk(true)
     } catch (err: any) {
       setErro(err.message || 'Erro inesperado. Tente novamente.')
@@ -434,6 +454,14 @@ export default function AnunciarPage() {
                 <strong>{nome.toUpperCase()}</strong> foi cadastrada e está em análise.<br />
                 Em até 24h sua empresa estará no ar para todos os moradores da Trindade encontrarem.
               </div>
+              {fotosComFalha.length > 0 && (
+                <div style={{ background: '#fdeaea', border: '1.5px solid #e0a0a0', borderRadius: 12, padding: '14px 16px', marginBottom: 16, textAlign: 'left' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#a33', marginBottom: 4 }}>⚠️ {fotosComFalha.length === 1 ? '1 foto não foi aceita' : `${fotosComFalha.length} fotos não foram aceitas`}</div>
+                  <div style={{ fontSize: 12, color: '#a33', lineHeight: 1.6 }}>
+                    Não conseguimos processar: {fotosComFalha.join(', ')}. O resto do cadastro foi salvo normalmente — você pode adicionar essas fotos de novo depois, pelo painel (tente uma versão menor ou tirada direto da câmera).
+                  </div>
+                </div>
+              )}
               <div style={{ background: '#fff8e6', border: '1.5px solid #f0d080', borderRadius: 12, padding: '14px 16px', marginBottom: 24, textAlign: 'left' }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#92600a', marginBottom: 6 }}>💡 Enquanto isso, que tal já escolher seu plano?</div>
                 <div style={{ fontSize: 12, color: '#b89030', lineHeight: 1.7 }}>

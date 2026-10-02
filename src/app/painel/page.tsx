@@ -547,7 +547,13 @@ export default function PainelPage() {
         *{box-sizing:border-box;margin:0;padding:0;}
         body{font-family:'Archivo',sans-serif;background:var(--ink);color:#fff;}
       `}</style>
-      <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:'100vh',padding:24,textAlign:'center'}}>
+      {/* Fundo direto no inline style, não só no <style>{body{...}}} acima —
+          esse dependia da ordem de carregamento do CSS global pra vencer, e
+          na prática perdia (tela aparecia branca, "TRINDADE" em branco
+          sumindo no fundo branco — achado real do Ricardo, out/2026). Inline
+          style sempre ganha da cascata, não tem como reverter sozinho de
+          novo. */}
+      <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:'100vh',padding:24,textAlign:'center',background:'var(--ink)'}}>
         <div style={{fontFamily:"'Anton',sans-serif",fontSize:24,color:'#fff',letterSpacing:1,textTransform:'uppercase'}}>TRINDADE <span style={{color:'var(--sign)'}}>ONLINE</span></div>
         <div style={{fontSize:48,margin:'24px 0 12px'}}>⚠️</div>
         <div style={{fontFamily:"'Anton',sans-serif",fontSize:28,color:'#fff',letterSpacing:1,textTransform:'uppercase',marginBottom:8}}>EMPRESA SUSPENSA</div>
@@ -570,7 +576,7 @@ export default function PainelPage() {
         *{box-sizing:border-box;margin:0;padding:0;}
         body{font-family:'Archivo',sans-serif;background:var(--ink);color:#fff;}
       `}</style>
-      <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:'100vh',padding:24,textAlign:'center'}}>
+      <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:'100vh',padding:24,textAlign:'center',background:'var(--ink)'}}>
         <div style={{fontFamily:"'Anton',sans-serif",fontSize:24,color:'#fff',letterSpacing:1,textTransform:'uppercase'}}>TRINDADE <span style={{color:'var(--sign)'}}>ONLINE</span></div>
         <div style={{fontSize:48,margin:'24px 0 12px'}}>🏪</div>
         <div style={{fontFamily:"'Anton',sans-serif",fontSize:28,color:'#fff',letterSpacing:1,textTransform:'uppercase',marginBottom:8}}>BEM-VINDO!</div>

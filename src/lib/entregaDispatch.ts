@@ -55,21 +55,16 @@ async function pickNextMotoboy(deliveryOrderId: string, roundNo: number): Promis
 
 // Link de busca do Google Maps a partir do endereço em texto — não temos
 // lat/lng geocodado, então usa o formato de busca (funciona igual, abre com
-// o pino no endereço certo tanto no app quanto no navegador). Exportado pra
-// ser usado pelo redirect curto em /e/[id]/[tipo].
+// o pino no endereço certo tanto no app quanto no navegador). Mandado DIRETO
+// na mensagem (não mais atrás do redirect curto /e/[id]/[tipo]) — o redirect
+// passava pelo nosso domínio antes de chegar no Maps, e o WhatsApp abre link
+// de domínio desconhecido no navegador embutido dele em vez de repassar pro
+// app de mapas de verdade; o 302 lá dentro só carregava o SITE do Maps, não
+// abria o aplicativo. Link cru do Google direto resolve isso (reclamação
+// real do Ricardo, out/2026: "não dá pra abrir direto o Google Maps?") — o
+// preço é uma URL mais longa na mensagem, aceitável.
 export function mapsLink(address: string): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
-}
-
-// Link curto (nosso próprio domínio) que redireciona pro Maps de verdade —
-// o link cru do Maps com endereço codificado passa de 100 caracteres e
-// polui a mensagem/legenda; esse fica na casa de 60, mesmo com o UUID.
-// Exportado: usado só na confirmação pós-aceite (webhook.ts) — antes também
-// entrava na oferta inicial, mas o motoboy ainda nem decidiu se pega a
-// corrida, não faz sentido mandar link de navegação pra esse momento
-// (pedido do Ricardo, set/2026: "essa primeira mensagem tem que ser enxuta").
-export function shortMapsLink(deliveryOrderId: string, tipo: 'r' | 'd'): string {
-  return `${SITE_URL}/e/${deliveryOrderId}/${tipo}`
 }
 
 // Nome da loja em linha própria, caixa alta e negrito — o motoboy lê em 3

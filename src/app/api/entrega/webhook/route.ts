@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { sendMotoboyWhatsApp, sendCustomerWhatsApp, checkExpiredOffers, offerToNextMotoboy, shortMapsLink } from '@/lib/entregaDispatch'
+import { sendMotoboyWhatsApp, sendCustomerWhatsApp, checkExpiredOffers, offerToNextMotoboy, mapsLink } from '@/lib/entregaDispatch'
 import { todaySaoPaulo, getEntregaPricing } from '@/lib/entregaPricing'
 import { formatPhoneDisplay } from '@/lib/phone'
 
@@ -33,7 +33,7 @@ function normalize(s: string): string {
 async function buildAcceptedMessage(order: {
   pickup_address: string; dropoff_address: string; customer_name: string; customer_phone: string | null
   company_id: string; pedido_id: string | null; fee: number; payment_method: string | null; order_value: number | null
-}, deliveryOrderId: string): Promise<string> {
+}): Promise<string> {
   const [{ data: company }, pricing] = await Promise.all([
     supabase.from('companies').select('name').eq('id', order.company_id).maybeSingle(),
     getEntregaPricing(),
@@ -43,12 +43,12 @@ async function buildAcceptedMessage(order: {
   const lines = ['✅ *Corrida confirmada!*', '']
   lines.push('📍 *RETIRAR NA LOJA*')
   if (company?.name) lines.push(`• ${company.name.toUpperCase()}`)
-  lines.push(`• ${order.pickup_address}`, `• 🗺️ ${shortMapsLink(deliveryOrderId, 'r')}`, '')
+  lines.push(`• ${order.pickup_address}`, `• 🗺️ ${mapsLink(order.pickup_address)}`, '')
 
   lines.push('🏠 *ENTREGAR PARA*')
   lines.push(`• ${order.customer_name}`)
   if (order.customer_phone) lines.push(`• 📱 ${formatPhoneDisplay(order.customer_phone)}`)
-  lines.push(`• ${order.dropoff_address}`, `• 🗺️ ${shortMapsLink(deliveryOrderId, 'd')}`, '')
+  lines.push(`• ${order.dropoff_address}`, `• 🗺️ ${mapsLink(order.dropoff_address)}`, '')
 
   // Valor e forma de pagamento do PEDIDO (o que o cliente deve pra loja, não
   // a taxa da corrida) — vem direto de delivery_orders (preenchido na
@@ -143,7 +143,7 @@ export async function POST(req: NextRequest) {
             // buscar, o pedido pode nem estar pronto ainda (bug real, Ricardo
             // set/2026: cliente recebeu "saiu para entrega" com o pedido ainda
             // em preparo). Ver /api/loja/status-pedido, que já cobre isso.
-            await sendMotoboyWhatsApp(motoboy.phone, await buildAcceptedMessage(order, offer.delivery_order_id))
+            await sendMotoboyWhatsApp(motoboy.phone, await buildAcceptedMessage(order))
           }
         } else if (NO.test(norm)) {
           await supabase.from('delivery_offers').update({ status: 'recusada', responded_at: new Date().toISOString() }).eq('id', offer.id)

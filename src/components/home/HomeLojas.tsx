@@ -25,9 +25,14 @@ export default function HomeLojas({ items }: { items: LojaItem[] }) {
     }, {})
   )
 
+  // Aberta primeiro, fechada depois — loja aberta lá embaixo da lista e
+  // fechada no topo não fazia sentido pro morador (achado real do Ricardo,
+  // out/2026). Sort é estável (JS moderno), então dentro de cada grupo
+  // (aberta/fechada) a ordem original se mantém.
   const filtered = items
     .filter(i => !activeCat || i.categoryKey === activeCat)
     .filter(i => !onlyOpen || i.open)
+    .sort((a, b) => Number(b.open) - Number(a.open))
 
   return (
     <div className="recent-section">

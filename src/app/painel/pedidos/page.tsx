@@ -726,15 +726,21 @@ export default function PedidosPage() {
     // (entregue/cancelado) continuam travados em modo consulta.
     const canAct = isToday || (p.status !== 'entregue' && p.status !== 'cancelado')
     return (
-      <div className={`pd-card ${needsAccept ? 'pd-card-pending' : ''} ${late ? 'pd-card-late' : ''}`} key={p.id} style={{ '--accent': c.fg, borderLeft: `4px solid ${o.fg}` } as React.CSSProperties} onClick={() => setOpenId(open ? null : p.id)}>
+      <div className={`pd-card ${needsAccept ? 'pd-card-pending' : ''} ${late ? 'pd-card-late' : ''}`} key={p.id} style={{ '--accent': c.fg, borderLeft: `4px solid ${o.fg}` } as React.CSSProperties}>
         <div className="pd-row1">
           <div>
             <div className="pd-name">{p.order_number ? `#${p.order_number} · ` : ''}{p.customer_name}</div>
             <div className="pd-time">{timeAgo(p.created_at)} atrás <span className="pd-origin-tag" style={{ color: o.fg }}>· {o.label}</span></div>
           </div>
           <div className="pd-row1-right">
-            <button className="pd-edit-btn" title="Editar pedido" onClick={e => { e.stopPropagation(); setEditId(p.id) }}>✏️</button>
+            <button className="pd-edit-btn" title="Editar pedido" onClick={() => setEditId(p.id)}>✏️</button>
             <span className="pd-badge" style={{ background: c.bg, color: c.fg }}>{STATUS_LABEL[p.status]}</span>
+            {/* Botão dedicado de abrir/fechar — antes era o card inteiro
+                clicável, o que não ficava claro pro Ricardo ("não tá legal").
+                Mockup aprovado, out/2026. */}
+            <button className="pd-toggle-btn" aria-label={open ? 'Fechar detalhes do pedido' : 'Abrir detalhes do pedido'} onClick={() => setOpenId(open ? null : p.id)}>
+              {open ? '⌃' : '⌄'}
+            </button>
           </div>
         </div>
         {late && <div className="pd-late-flag">⚠ Parado há mais de {LATE_THRESHOLD_MIN}min sem avançar</div>}
@@ -929,10 +935,11 @@ export default function PedidosPage() {
         .pd-tab-count{ font-variant-numeric:tabular-nums;background:#EDE8E0;color:#6E6656;font-size:12px;font-weight:800;padding:1px 7px;border-radius:20px; }
         .pd-tab.active .pd-tab-count{ background:rgba(255,255,255,.3);color:#fff; }
         .pd-body{ padding:0 16px; }
-        .pd-card{ background:#fff;border:1px solid #EDE8E0;border-radius:12px;padding:14px;margin-bottom:10px;cursor:pointer; }
+        .pd-card{ background:#fff;border:1px solid #EDE8E0;border-radius:12px;padding:14px;margin-bottom:10px; }
         .pd-row1{ display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px; }
         .pd-row1-right{ display:flex;align-items:center;gap:6px;flex:none; }
         .pd-edit-btn{ width:24px;height:24px;border-radius:7px;border:1px solid #E6E0D2;background:#F7F5F0;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;flex:none;padding:0; }
+        .pd-toggle-btn{ width:26px;height:26px;border-radius:8px;border:1.5px solid #D8C98A;background:#FEF6DC;color:#8A6410;cursor:pointer;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none;padding:0; }
         .pd-name{ font-weight:800;font-size:16px; }
         .pd-time{ font-size:12.5px;color:#A79E8B; }
         .pd-origin-tag{ font-weight:700; }

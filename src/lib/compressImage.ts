@@ -12,6 +12,11 @@ const FALLBACKS = [
   { maxWidthOrHeight: 600, fileType: undefined as string | undefined, initialQuality: 0.6, useWebWorker: true },
   { maxWidthOrHeight: 500, fileType: undefined as string | undefined, initialQuality: 0.5, useWebWorker: false },
   { maxWidthOrHeight: 400, fileType: undefined as string | undefined, initialQuality: 0.4, useWebWorker: false },
+  // Último recurso — achado real do Ricardo, out/2026: aparelho fraco demais
+  // nem o passo de 400px aguentava ("memória insuficiente" no cadastro de
+  // motoboy). 300px/qualidade bem baixa ainda é suficiente pra documento
+  // legível, e é o mais barato que dá pra pedir pro navegador decodificar.
+  { maxWidthOrHeight: 300, fileType: undefined as string | undefined, initialQuality: 0.3, useWebWorker: false },
 ]
 
 export async function compressImage(file: File, maxSizeMB = 0.25, maxWidthOrHeight = 1000): Promise<File> {

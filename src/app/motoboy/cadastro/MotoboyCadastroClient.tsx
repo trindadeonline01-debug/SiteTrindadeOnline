@@ -3,16 +3,25 @@ import { useEffect, useRef, useState } from 'react'
 import { MOTOBOY_TERMS_SECTIONS } from '@/lib/motoboyTerms'
 import { compressImage } from '@/lib/compressImage'
 
-// Cadastro inteiro guardado no sessionStorage a cada mudança e restaurado
-// ao abrir a página — tirar foto pela câmera do celular manda o navegador
-// pro app nativo da câmera, e ao voltar o Safari/Chrome mobile às vezes
-// recarrega a aba do zero (pressão de memória), o que apagava tudo (nome,
-// CPF, fotos já tiradas) sem aviso nenhum e obrigava recomeçar do zero —
-// era exatamente o "volta pro cadastro" relatado depois de tirar 2-4 fotos.
+// Cadastro guardado no sessionStorage a cada mudança e restaurado ao abrir
+// a página — tirar foto pela câmera do celular manda o navegador pro app
+// nativo da câmera, e ao voltar o Safari/Chrome mobile às vezes recarrega a
+// aba do zero (pressão de memória), o que apagava tudo (nome, CPF, fotos já
+// tiradas) sem aviso nenhum e obrigava recomeçar do zero.
+//
+// NUNCA inclui as fotos em base64 aqui — elas sozinhas já passam de 2-3MB
+// juntas, e esse efeito reserializa o rascunho INTEIRO a cada troca de
+// campo (até digitar uma letra no nome). Era exatamente isso que causava
+// "memória insuficiente" bem na hora de tirar a foto (achado real do
+// Ricardo, out/2026): comprimir a foto já pesa sozinho, e logo em seguida
+// o app tentava escrever vários MB de base64 no sessionStorage de novo —
+// dobrando a pressão de memória no pior momento possível, no aparelho mais
+// fraco que já tem dificuldade de sobra pra isso. Só os campos de texto,
+// leves de verdade, valem a pena persistir.
 const DRAFT_KEY = 'motoboy_cadastro_draft_v1'
 type Draft = {
   step: number; nome: string; cpf: string; endereco: string; email: string; whatsapp: string
-  photos: Record<PhotoKey, string | null>; pixKey: string; pixType: string; nomeDigitado: string
+  pixKey: string; pixType: string; nomeDigitado: string
 }
 
 type PhotoKey = 'cnh' | 'moto_frente' | 'moto_tras' | 'documento_moto' | 'selfie'
@@ -57,14 +66,16 @@ export default function MotoboyCadastroClient() {
 
   // Restaura o rascunho (se tiver) assim que a página monta — cobre tanto
   // reload forçado pelo navegador (câmera) quanto o usuário só fechar a
-  // aba sem querer no meio do cadastro.
+  // aba sem querer no meio do cadastro. Fotos nunca são persistidas (ver
+  // comentário no tipo Draft) — se o rascunho parou depois do passo das
+  // fotos (3), volta pra ele em vez de seguir adiante com foto nenhuma.
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem(DRAFT_KEY)
       if (raw) {
         const d: Draft = JSON.parse(raw)
-        setStep(d.step); setNome(d.nome); setCpf(d.cpf); setEndereco(d.endereco); setEmail(d.email); setWhatsapp(d.whatsapp)
-        setPhotos(d.photos); setPixKey(d.pixKey); setPixType(d.pixType); setNomeDigitado(d.nomeDigitado)
+        setStep(Math.min(d.step, 3)); setNome(d.nome); setCpf(d.cpf); setEndereco(d.endereco); setEmail(d.email); setWhatsapp(d.whatsapp)
+        setPixKey(d.pixKey); setPixType(d.pixType); setNomeDigitado(d.nomeDigitado)
       }
     } catch {}
     hydrated.current = true
@@ -76,10 +87,10 @@ export default function MotoboyCadastroClient() {
   useEffect(() => {
     if (!hydrated.current) return
     try {
-      const draft: Draft = { step, nome, cpf, endereco, email, whatsapp, photos, pixKey, pixType, nomeDigitado }
+      const draft: Draft = { step, nome, cpf, endereco, email, whatsapp, pixKey, pixType, nomeDigitado }
       sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft))
     } catch {}
-  }, [step, nome, cpf, endereco, email, whatsapp, photos, pixKey, pixType, nomeDigitado])
+  }, [step, nome, cpf, endereco, email, whatsapp, pixKey, pixType, nomeDigitado])
 
   async function enviarCodigo() {
     // Sem essa trava, o link "Reenviar código" deixava disparar vários

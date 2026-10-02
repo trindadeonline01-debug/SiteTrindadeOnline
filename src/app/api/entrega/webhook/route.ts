@@ -121,21 +121,28 @@ export async function POST(req: NextRequest) {
 
       if (offer) {
         if (YES.test(norm)) {
-          await supabase.from('delivery_offers').update({ status: 'aceita', responded_at: new Date().toISOString() }).eq('id', offer.id)
           const { data: order } = await supabase
-            .from('delivery_orders').select('pickup_address, dropoff_address, customer_name, customer_phone, company_id, pedido_id, fee, payment_method, order_value')
+            .from('delivery_orders').select('status, pickup_address, dropoff_address, customer_name, customer_phone, company_id, pedido_id, fee, payment_method, order_value')
             .eq('id', offer.delivery_order_id).maybeSingle()
-          await supabase.from('delivery_orders').update({
-            status: 'a_caminho', motoboy_id: motoboy.id, motoboy_name: motoboy.name, motoboy_phone: motoboy.phone,
-            assigned_at: new Date().toISOString(),
-          }).eq('id', offer.delivery_order_id)
-          // O cliente só é avisado "saiu para entrega" (com o código) quando
-          // a LOJA de fato marca o pedido como saiu_entrega, não quando o
-          // motoboy aceita a corrida aqui — aceitar só significa que ele foi
-          // buscar, o pedido pode nem estar pronto ainda (bug real, Ricardo
-          // set/2026: cliente recebeu "saiu para entrega" com o pedido ainda
-          // em preparo). Ver /api/loja/status-pedido, que já cobre isso.
-          if (order) {
+          // A loja pode ter cancelado a chamada entre a oferta sair e o
+          // motoboy responder SIM — sem essa checagem, o aceite "ressuscita"
+          // uma entrega já cancelada (achado real, pedido do Ricardo,
+          // out/2026, ao pedir o botão de cancelar).
+          if (!order || order.status !== 'buscando_motoboy') {
+            await supabase.from('delivery_offers').update({ status: 'expirada', responded_at: new Date().toISOString() }).eq('id', offer.id)
+            await sendMotoboyWhatsApp(motoboy.phone, 'Essa corrida não está mais disponível — já foi cancelada ou pega por outro motoboy.')
+          } else {
+            await supabase.from('delivery_offers').update({ status: 'aceita', responded_at: new Date().toISOString() }).eq('id', offer.id)
+            await supabase.from('delivery_orders').update({
+              status: 'a_caminho', motoboy_id: motoboy.id, motoboy_name: motoboy.name, motoboy_phone: motoboy.phone,
+              assigned_at: new Date().toISOString(),
+            }).eq('id', offer.delivery_order_id)
+            // O cliente só é avisado "saiu para entrega" (com o código) quando
+            // a LOJA de fato marca o pedido como saiu_entrega, não quando o
+            // motoboy aceita a corrida aqui — aceitar só significa que ele foi
+            // buscar, o pedido pode nem estar pronto ainda (bug real, Ricardo
+            // set/2026: cliente recebeu "saiu para entrega" com o pedido ainda
+            // em preparo). Ver /api/loja/status-pedido, que já cobre isso.
             await sendMotoboyWhatsApp(motoboy.phone, await buildAcceptedMessage(order, offer.delivery_order_id))
           }
         } else if (NO.test(norm)) {

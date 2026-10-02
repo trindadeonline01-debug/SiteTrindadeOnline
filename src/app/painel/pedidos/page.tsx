@@ -222,6 +222,7 @@ export default function PedidosPage() {
   // (cliente, sempre visível como fallback caso o WhatsApp falhe).
   const [deliveryByPedido, setDeliveryByPedido] = useState<Record<string, { id: string; status: string; motoboy_name: string | null; pickup_code: string | null; picked_up_at: string | null; delivery_code: string | null }>>({})
   const [retryingMotoId, setRetryingMotoId] = useState<string | null>(null)
+  const [cancelingMotoId, setCancelingMotoId] = useState<string | null>(null)
   const [motoErrors, setMotoErrors] = useState<Record<string, string>>({})
   const [motoLoading, setMotoLoading] = useState<string | null>(null)
   // Ref (não state) pra travar na hora — o disparo automático e um clique
@@ -390,6 +391,22 @@ export default function PedidosPage() {
       body: JSON.stringify({ access_token: session?.access_token, company_id: companyId, delivery_order_id: deliveryOrderId }),
     }).catch(() => {})
     setRetryingMotoId(null)
+    loadAll(companyIdRef.current, selectedDate)
+  }
+
+  // Botão "Cancelar" ao lado de "Chamando motoboy..." — só aparece enquanto
+  // ainda não tem ninguém aceito (Ricardo, out/2026: "não tem como desistir
+  // de uma chamada em andamento"). Avisa o motoboy com oferta pendente, se
+  // tiver, que a chamada caiu.
+  async function cancelarChamada(deliveryOrderId: string) {
+    if (!confirm('Cancelar essa chamada de motoboy?')) return
+    setCancelingMotoId(deliveryOrderId)
+    const { data: { session } } = await supabase.auth.getSession()
+    await fetch('/api/entrega/cancelar', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ access_token: session?.access_token, company_id: companyId, delivery_order_id: deliveryOrderId }),
+    }).catch(() => {})
+    setCancelingMotoId(null)
     loadAll(companyIdRef.current, selectedDate)
   }
 
@@ -759,12 +776,22 @@ export default function PedidosPage() {
               // (o cliente já recebeu o dele pelo WhatsApp) — pedido do
               // Ricardo, set/2026: nunca o mesmo código pros dois casos.
               const aindaNaoRetirou = !!d.motoboy_name && !d.picked_up_at && !!d.pickup_code
+              const chamando = !d.motoboy_name && d.status !== 'sem_motoboy'
               return (
                 <div className="pd-inforow" style={{ background: d.status === 'sem_motoboy' ? '#FBEAEA' : '#E8F0FE', color: d.status === 'sem_motoboy' ? '#C43D3D' : '#1A56B0' }}>
                   <span>
                     🏍️ {d.motoboy_name ? <b>{d.motoboy_name}</b> : d.status === 'sem_motoboy' ? <b>Nenhum motoboy aceitou</b> : 'Chamando motoboy...'}
                     {aindaNaoRetirou && <> — retirada</>}
                   </span>
+                  {chamando && (
+                    <button
+                      className="pd-moto-cancel"
+                      disabled={cancelingMotoId === d.id}
+                      onClick={e => { e.stopPropagation(); cancelarChamada(d.id) }}
+                    >
+                      {cancelingMotoId === d.id ? 'Cancelando...' : 'Cancelar'}
+                    </button>
+                  )}
                   {aindaNaoRetirou ? (d.pickup_code && <span className="pd-code">{d.pickup_code}</span>) : (d.delivery_code && <span className="pd-code">{d.delivery_code}</span>)}
                 </div>
               )
@@ -920,6 +947,8 @@ export default function PedidosPage() {
         .pd-inforow{ display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 11px;font-size:13px;font-weight:700; }
         .pd-inforow + .pd-inforow{ border-top:1px solid rgba(0,0,0,.06); }
         .pd-code{ flex:none;font-family:'Courier New',monospace;font-weight:800;background:#1A1610;color:var(--sign,#FFC531);padding:2px 9px;border-radius:6px;font-size:13px;letter-spacing:2px; }
+        .pd-moto-cancel{ flex:none;border:1.5px solid #C43D3D;background:#fff;color:#C43D3D;font-weight:700;font-size:11.5px;padding:4px 10px;border-radius:7px;cursor:pointer;font-family:inherit; }
+        .pd-moto-cancel:disabled{ opacity:.6;cursor:not-allowed; }
         /* Containerzinho dividido ao meio (item|entrega, forma de
            pagamento|status) — mesmo padrão visual do pd-infobox, só que em 2
            colunas lado a lado em vez de empilhado. */

@@ -366,6 +366,32 @@ export async function retryMotoboyDispatch(deliveryOrderId: string): Promise<{ o
   return { ok: true }
 }
 
+// Botão "Cancelar" em /painel/pedidos, enquanto a entrega ainda está
+// "buscando_motoboy" (ninguém aceitou ainda) — pedido do Ricardo, out/2026:
+// hoje não tinha como desistir de uma chamada em andamento. Só cancela
+// nesse status; depois que algum motoboy já aceitou (a_caminho), cancelar
+// é outra conversa (teria corrida em andamento de verdade) e não está
+// coberto por esse botão. Avisa o motoboy com oferta pendente, se tiver
+// algum, que a chamada caiu — senão ele fica esperando resposta de uma
+// corrida que não existe mais.
+export async function cancelarChamadaMotoboy(deliveryOrderId: string): Promise<{ ok: boolean; error?: string }> {
+  const { data: order } = await supabase.from('delivery_orders').select('status').eq('id', deliveryOrderId).maybeSingle()
+  if (!order) return { ok: false, error: 'entrega não encontrada' }
+  if (order.status !== 'buscando_motoboy') return { ok: false, error: 'essa entrega não está mais buscando motoboy' }
+
+  await supabase.from('delivery_orders').update({ status: 'cancelada' }).eq('id', deliveryOrderId)
+
+  const { data: pending } = await supabase
+    .from('delivery_offers').select('id, motoboy_id')
+    .eq('delivery_order_id', deliveryOrderId).eq('status', 'pendente')
+  for (const o of pending || []) {
+    await supabase.from('delivery_offers').update({ status: 'expirada', responded_at: new Date().toISOString() }).eq('id', o.id)
+    const { data: motoboy } = await supabase.from('motoboys').select('phone').eq('id', o.motoboy_id).maybeSingle()
+    if (motoboy?.phone) await sendMotoboyWhatsApp(motoboy.phone, '❌ Essa chamada foi cancelada pela loja — não precisa buscar essa entrega.')
+  }
+  return { ok: true }
+}
+
 // Varre ofertas que estouraram o prazo sem resposta, marca como expiradas
 // e repassa pro próximo motoboy — chamado tanto pelo webhook (toda vez que
 // um motoboy manda mensagem) quanto pelo polling do painel da loja, já que

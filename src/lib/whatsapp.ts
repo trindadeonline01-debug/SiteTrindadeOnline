@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { moduleActive } from '@/lib/modules'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -111,6 +112,72 @@ export async function sendCustomerWhatsApp(companyId: string, phone: string | nu
     }
   } catch (err: any) {
     console.error('[sendCustomerWhatsApp] falha ao mandar WhatsApp pro cliente:', err?.message || err)
+  }
+}
+
+// Mensagem "novo pedido" pro DONO da loja — WhatsApp de verdade, pela
+// própria instância da loja (não a da plataforma). Achado real, out/2026
+// (Michelly Bem Doce, pedido #2): instância conectada, telefone certo no
+// perfil, tudo configurado certinho — mesmo assim a mensagem nunca saiu.
+// Testado na mão direto contra a Evolution API (mesma instância/telefone):
+// enviou normal, 201. A causa não era configuração nem a Evolution — era
+// essa notificação depender de registrar-pedido ser chamado via fetch de
+// servidor-pra-servidor de dentro de criar-pedido (outra function
+// serverless, sem log nenhum se esse fetch falhasse). Essa função agora é
+// chamada DIRETO, no mesmo processo, de quem cria o pedido — mesmo padrão
+// já usado (e que já funcionava) pro aviso de admin em criar-pedido.
+//
+// Telefone: primeiro tenta o cadastrado no perfil do dono; se não tiver,
+// cai pro número que está DE FATO escaneado na instância (ownerJid, via
+// fetchInstances da Evolution) — pedido do Ricardo, out/2026: "pelo menos
+// pro telefone que tá escaneado", pra não depender só do perfil estar
+// preenchido certo.
+export async function notifyOwnerNewOrder(companyId: string, text: string): Promise<{ ok: boolean; detail?: string }> {
+  try {
+    const { data: company } = await supabase.from('companies').select('owner_id, crm_whatsapp_enabled, trial_modules_until').eq('id', companyId).maybeSingle()
+    if (!company) return { ok: false, detail: 'empresa não encontrada' }
+    if (!moduleActive(company.crm_whatsapp_enabled, company.trial_modules_until)) return { ok: false, detail: 'módulo CRM WhatsApp não ativo' }
+    const { data: instance } = await supabase
+      .from('crm_whatsapp_instances').select('instance_name, api_key')
+      .eq('company_id', companyId).eq('status', 'connected').limit(1).maybeSingle()
+    if (!instance) return { ok: false, detail: 'sem instância conectada' }
+
+    const { data: owner } = company.owner_id
+      ? await supabase.from('profiles').select('phone').eq('id', company.owner_id).maybeSingle()
+      : { data: null }
+    let targetPhone = owner?.phone ? formatPhone(owner.phone) : null
+    if (!targetPhone) {
+      try {
+        const fiRes = await fetch(`${EVOLUTION_URL}/instance/fetchInstances?instanceName=${encodeURIComponent(instance.instance_name)}`, {
+          headers: { apikey: instance.api_key },
+        })
+        if (fiRes.ok) {
+          const fi = await fiRes.json()
+          const ownerJid: string | undefined = Array.isArray(fi) ? fi[0]?.ownerJid : fi?.ownerJid
+          if (ownerJid) targetPhone = ownerJid.split('@')[0]
+        }
+      } catch {
+        // segue sem o fallback — melhor tentar o telefone do perfil (se
+        // tiver, já tentou acima) do que travar o pedido por causa disso
+      }
+    }
+    if (!targetPhone) return { ok: false, detail: 'sem telefone do dono nem número escaneado pra mandar' }
+
+    const res = await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', apikey: instance.api_key },
+      body: JSON.stringify({ number: targetPhone, text }),
+    })
+    if (!res.ok) {
+      const body = await res.text().catch(() => '')
+      const detail = `Evolution respondeu ${res.status}: ${body.slice(0, 300)}`
+      console.error(`[notifyOwnerNewOrder] ${detail}`)
+      return { ok: false, detail }
+    }
+    return { ok: true }
+  } catch (err: any) {
+    const detail = `falha ao mandar WhatsApp pro dono: ${err?.message || err}`
+    console.error(`[notifyOwnerNewOrder] ${detail}`)
+    return { ok: false, detail }
   }
 }
 

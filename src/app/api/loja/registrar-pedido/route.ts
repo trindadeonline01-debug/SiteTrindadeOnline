@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { moduleActive } from '@/lib/modules'
 import { normalizePhone } from '@/lib/phone'
+import { notifyOwnerNewOrder } from '@/lib/whatsapp'
+import { buildOwnerMessage } from '@/lib/orderMessages'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -90,26 +92,6 @@ async function sendCustomerWhatsApp(companyId: string, phone: string, text: stri
   }
 }
 
-// Mensagem que a LOJA recebe (no WhatsApp de verdade, além da notificação
-// no app) — precisa dizer quem pediu, já que essa parte some na versão
-// que vai pro cliente.
-function buildOwnerMessage(opts: OrderInfo & { customerName: string; customerPhone: string | null }): string {
-  const fmt = (n: number) => 'R$ ' + Number(n || 0).toFixed(2).replace('.', ',')
-  const parts = [
-    '🔔 *Novo pedido!*',
-    ...(opts.orderNumber != null ? [`📦 Pedido nº ${opts.orderNumber}`] : []),
-    `👤 ${opts.customerName}${opts.customerPhone ? ` · ${opts.customerPhone}` : ''}`,
-    '',
-    ...itemLines(opts.items),
-    '',
-    `*Total: ${fmt(opts.total)}*`,
-  ]
-  if (opts.paymentMethod) parts.push(`💳 ${PAY_LABEL[opts.paymentMethod] || opts.paymentMethod}`)
-  parts.push(opts.deliveryType === 'entrega' && opts.address ? `🚚 Entrega: ${opts.address}` : '🏪 Retirada no local')
-  if (opts.notes) parts.push(`📝 Obs: ${opts.notes}`)
-  return parts.join('\n')
-}
-
 // Chamado (fire-and-forget) logo após um pedido ser criado no cardápio público
 // ou lançado avulso no painel. Roda com service role porque o cliente final não
 // tem permissão de escrita em crm_contacts/loja_produtos (RLS restringe ao dono).
@@ -118,6 +100,10 @@ export async function POST(req: NextRequest) {
     const {
       companyId, pedidoId, phone: rawPhone, name, address, total, items,
       subtotal, deliveryFee, paymentMethod, deliveryType, notes,
+      // true quando quem chamou (criar-pedido, cardápio público) JÁ mandou o
+      // aviso pro dono direto, no próprio processo — evita duplicar (ver
+      // comentário mais abaixo, e o comentário em criar-pedido/route.ts).
+      skipOwnerNotify,
     } = await req.json()
     if (!companyId) return NextResponse.json({ error: 'companyId obrigatório' }, { status: 400 })
     const phone = rawPhone ? normalizePhone(rawPhone) : null
@@ -187,27 +173,20 @@ export async function POST(req: NextRequest) {
             await sendCustomerWhatsApp(companyId, phone, buildCustomerMessage(orderInfo))
           }
 
-          // Pro WhatsApp da própria loja (número pessoal do dono cadastrado
-          // no perfil) — assim o pedido chega no WhatsApp de verdade, não só
-          // como notificação dentro do app.
-          try {
-            const { data: owner } = company.owner_id
-              ? await supabase.from('profiles').select('phone').eq('id', company.owner_id).maybeSingle()
-              : { data: null }
-            if (owner?.phone) {
-              const ownerText = buildOwnerMessage({ ...orderInfo, customerName: name || 'Cliente', customerPhone: phone || null })
-              const res = await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', apikey: instance.api_key },
-                body: JSON.stringify({ number: normalizePhone(owner.phone), text: ownerText }),
-              })
-              if (!res.ok) {
-                const body = await res.text().catch(() => '')
-                console.error(`[registrar-pedido] aviso pro dono falhou (${res.status}): ${body.slice(0, 300)}`)
-              }
-            }
-          } catch (err: any) {
-            console.error('[registrar-pedido] falha ao chamar Evolution API (dono):', err?.message || err)
+          // Pro WhatsApp da própria loja — assim o pedido chega no WhatsApp
+          // de verdade, não só como notificação dentro do app. Pulado
+          // quando criar-pedido (cardápio público) já mandou direto —
+          // achado real, out/2026 (Michelly Bem Doce): esse aviso dependia
+          // de criar-pedido chamar ESSA rota via fetch servidor-pra-servidor
+          // pra sair, e esse fetch podia falhar calado, sem log nenhum
+          // (ver notifyOwnerNewOrder em src/lib/whatsapp.ts pro raciocínio
+          // completo). Continua vivo aqui pro avulso/balcão (chamado direto
+          // de /painel/pedidos, sem esse salto), que não tem outro jeito de
+          // mandar esse aviso.
+          if (!skipOwnerNotify) {
+            const ownerText = buildOwnerMessage({ ...orderInfo, customerName: name || 'Cliente', customerPhone: phone || null })
+            const result = await notifyOwnerNewOrder(companyId, ownerText)
+            if (!result.ok) console.error('[registrar-pedido] aviso pro dono falhou:', result.detail)
           }
         }
       }

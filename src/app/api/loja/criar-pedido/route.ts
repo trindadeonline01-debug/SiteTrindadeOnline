@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { sendPlatformWhatsApp } from '@/lib/whatsapp'
+import { sendPlatformWhatsApp, notifyOwnerNewOrder } from '@/lib/whatsapp'
+import { buildOwnerMessage } from '@/lib/orderMessages'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -70,7 +71,7 @@ export async function POST(req: NextRequest) {
       origin: 'cardapio_publico', payment_method: paymentMethod || null,
       subtotal: Number(subtotal || 0), total: Number(total || 0), delivery_fee: Number(deliveryFee || 0),
       notes: notes || null,
-    }).select('id').single()
+    }).select('id, order_number').single()
     // Mesmo cuidado que já existia quando esse insert rodava no navegador:
     // se der erro aqui, não pode passar pro cliente como se tivesse dado certo.
     if (pedidoError || !pedido) {
@@ -119,8 +120,33 @@ export async function POST(req: NextRequest) {
           address: deliveryType === 'entrega' ? address : null, total: Number(total || 0), subtotal: Number(subtotal || 0), deliveryFee: Number(deliveryFee || 0),
           paymentMethod: paymentMethod || null, deliveryType, notes: notes || null,
           items: (items as ItemIn[]).map(l => ({ produtoId: l.produtoId, name: l.name, qty: l.qty, unitPrice: l.unitPrice, modifiers: l.modifiers || [] })),
+          // O aviso pro dono já sai direto, no próprio processo, logo
+          // abaixo — não deixa essa rota mandar de novo (ver o porquê em
+          // notifyOwnerNewOrder, src/lib/whatsapp.ts).
+          skipOwnerNotify: true,
         }),
       }).catch(err => console.error('[criar-pedido] falha registrar-pedido', err))
+    )
+
+    // Aviso pro WhatsApp da própria loja — chamado DIRETO aqui (mesmo
+    // processo, sem fetch servidor-pra-servidor pra outra function), igual
+    // ao aviso de admin logo abaixo, que já funciona assim. Achado real,
+    // out/2026 (Michelly Bem Doce, pedido #2): instância conectada, telefone
+    // certo no perfil, módulo ativo — mesmo assim o aviso nunca chegou.
+    // Testado na mão contra a Evolution API direto (mesma instância/número):
+    // enviou normal. A causa não era configuração — era esse aviso depender
+    // de registrar-pedido ser chamado via fetch (acima) rodando como OUTRA
+    // function serverless, sem log nenhum se esse fetch falhasse de verdade
+    // ou fosse descartado. Mandar direto daqui tira esse elo frágil do meio.
+    notifyJobs.push(
+      notifyOwnerNewOrder(companyId, buildOwnerMessage({
+        items: (items as ItemIn[]).map(l => ({ name: l.name, qty: l.qty, unitPrice: l.unitPrice, modifiers: l.modifiers || [] })),
+        total: Number(total || 0), paymentMethod: paymentMethod || null, deliveryType: deliveryType || null,
+        address: deliveryType === 'entrega' ? (address || null) : null, notes: notes || null,
+        orderNumber: pedido.order_number ?? null, customerName: finalName || 'Cliente', customerPhone: finalPhone || null,
+      })).then(result => {
+        if (!result.ok) console.error('[criar-pedido] aviso pro dono falhou:', result.detail)
+      })
     )
 
     if (company.owner_id) {

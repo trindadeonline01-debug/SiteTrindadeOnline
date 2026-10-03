@@ -828,11 +828,13 @@ export default function PedidosPage() {
               // (o cliente já recebeu o dele pelo WhatsApp) — pedido do
               // Ricardo, set/2026: nunca o mesmo código pros dois casos.
               const aindaNaoRetirou = !!d.motoboy_name && !d.picked_up_at && !!d.pickup_code
-              // Cancelar cobre as duas fases em andamento — "chamando" e
-              // "já aceitou, a caminho" — só não aparece depois de
-              // entregue/cancelada/sem_motoboy (essa última já tem seu
-              // próprio "🔁 Solicitar de novo" em outro lugar da tela).
-              const podeCancelar = d.status === 'buscando_motoboy' || d.status === 'a_caminho'
+              // Cancelar cobre as 3 fases em que ainda dá pra desistir —
+              // "chamando", "já aceitou, a caminho" e "esgotou todo mundo"
+              // (sem_motoboy, ao lado do "🔁 Solicitar de novo" — achado
+              // real do Ricardo, out/2026, Peixaria Trindade #19: não tinha
+              // como desistir depois que a fila esgotava). Só não aparece
+              // depois de entregue/cancelada de vez.
+              const podeCancelar = d.status === 'buscando_motoboy' || d.status === 'a_caminho' || d.status === 'sem_motoboy'
               return (
                 <div className="pd-inforow" style={{ background: d.status === 'sem_motoboy' ? '#FBEAEA' : '#E8F0FE', color: d.status === 'sem_motoboy' ? '#C43D3D' : '#1A56B0' }}>
                   <span>
@@ -1140,14 +1142,18 @@ export default function PedidosPage() {
         .pd-motoalert{ position:relative;z-index:6;display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between;background:#B5690C;color:#fff;padding:14px 16px;animation:pd-motoalert-pulse 1.2s ease-in-out infinite; }
         .pd-motoalert-txt{ font-size:14px;font-weight:800;flex:1;min-width:180px; }
         .pd-motoalert-more{ font-weight:700;opacity:.85; }
+        .pd-motoalert-btns{ display:flex;gap:8px;flex-wrap:wrap;flex:none; }
         .pd-motoalert-btn{ flex:none;padding:14px 22px;border-radius:11px;border:none;background:#fff;color:#B5690C;font-weight:900;font-size:14px;cursor:pointer;white-space:nowrap; }
         .pd-motoalert-btn:disabled{ opacity:.6;cursor:not-allowed; }
+        .pd-motoalert-cancel{ flex:none;padding:14px 18px;border-radius:11px;border:1.5px solid rgba(255,255,255,.75);background:transparent;color:#fff;font-weight:800;font-size:13px;cursor:pointer;white-space:nowrap; }
+        .pd-motoalert-cancel:disabled{ opacity:.6;cursor:not-allowed; }
+        .pd-motoalert-err{ flex-basis:100%;background:rgba(0,0,0,.18);color:#fff;font-size:12.5px;font-weight:700;padding:8px 12px;border-radius:8px; }
         @keyframes pd-motoalert-pulse{ 0%,100%{ background:#B5690C; } 50%{ background:#8F5209; } }
         /* Nunca sticky (mesmo no desktop) de propósito — se essa faixa e a
            de "pedido novo" aparecerem juntas, duas sticky top:0 brigam pelo
            mesmo espaço em vez de empilhar direito. Essa aqui só acompanha o
            scroll normal, sempre logo abaixo da outra quando as duas existem. */
-        @media(min-width:768px){ .pd-motoalert{ padding:18px 32px; } .pd-motoalert-txt{ font-size:15px; } .pd-motoalert-btn{ padding:16px 28px;font-size:15.5px; } }
+        @media(min-width:768px){ .pd-motoalert{ padding:18px 32px; } .pd-motoalert-txt{ font-size:15px; } .pd-motoalert-btn{ padding:16px 28px;font-size:15.5px; } .pd-motoalert-cancel{ padding:16px 22px;font-size:14px; } }
         .pd-card-late{ border:1.5px solid #C43D3D !important; }
         .pd-late-flag{ color:#C43D3D;font-weight:800;font-size:12px;margin-top:4px; }
         .pd-cancelreq{ margin-top:8px;background:#FBEAEA;border:1.5px solid #F3C6C6;border-radius:10px;padding:9px 11px;cursor:default; }
@@ -1167,18 +1173,34 @@ export default function PedidosPage() {
         </div>
       )}
       {pedidosNovos.length > 0 && printError && <div className="pd-newalert-err">{printError}</div>}
-      {pedidosSemMotoboy.length > 0 && (
-        <div className="pd-motoalert">
-          <div className="pd-motoalert-txt">
-            🏍️ NENHUM MOTOBOY ACEITOU A CORRIDA — Pedido {pedidosSemMotoboy[0].order_number ? `#${pedidosSemMotoboy[0].order_number}` : ''} — {pedidosSemMotoboy[0].customer_name}
-            {pedidosSemMotoboy.length > 1 && <span className="pd-motoalert-more"> · +{pedidosSemMotoboy.length - 1} outro(s)</span>}
+      {pedidosSemMotoboy.length > 0 && (() => {
+        const semMotoboyPedido = pedidosSemMotoboy[0]
+        const d = deliveryByPedido[semMotoboyPedido.id]
+        return (
+          <div className="pd-motoalert">
+            <div className="pd-motoalert-txt">
+              🏍️ NENHUM MOTOBOY ACEITOU A CORRIDA — Pedido {semMotoboyPedido.order_number ? `#${semMotoboyPedido.order_number}` : ''} — {semMotoboyPedido.customer_name}
+              {pedidosSemMotoboy.length > 1 && <span className="pd-motoalert-more"> · +{pedidosSemMotoboy.length - 1} outro(s)</span>}
+            </div>
+            <div className="pd-motoalert-btns">
+              <button className="pd-motoalert-btn" disabled={retryingMotoId === d?.id}
+                onClick={() => { if (d) retryMotoboy(d.id) }}>
+                {retryingMotoId === d?.id ? 'Chamando...' : '🔁 SOLICITAR DE NOVO'}
+              </button>
+              {/* Pedido do Ricardo, out/2026 (Peixaria Trindade #19): depois
+                  que a fila de motoboys esgota, só sobrava o "Solicitar de
+                  novo" — não tinha como desistir se o cliente não quisesse
+                  mais esperar. Mesma função que já existe pro Cancelar do
+                  card (cancelarChamada), só que acessível direto daqui. */}
+              <button className="pd-motoalert-cancel" disabled={cancelingMotoId === d?.id}
+                onClick={() => { if (d) cancelarChamada(d.id, semMotoboyPedido.id) }}>
+                {cancelingMotoId === d?.id ? 'Cancelando...' : 'Cancelar'}
+              </button>
+            </div>
+            {motoErrors[semMotoboyPedido.id] && <div className="pd-motoalert-err">{motoErrors[semMotoboyPedido.id]}</div>}
           </div>
-          <button className="pd-motoalert-btn" disabled={retryingMotoId === deliveryByPedido[pedidosSemMotoboy[0].id]?.id}
-            onClick={() => { const d = deliveryByPedido[pedidosSemMotoboy[0].id]; if (d) retryMotoboy(d.id) }}>
-            {retryingMotoId === deliveryByPedido[pedidosSemMotoboy[0].id]?.id ? 'Chamando...' : '🔁 SOLICITAR DE NOVO'}
-          </button>
-        </div>
-      )}
+        )
+      })()}
       <div className="pd-mobile-only">
         <div className="pd-head">
           <div className="pd-head-left">

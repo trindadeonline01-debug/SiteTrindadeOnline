@@ -11,8 +11,9 @@ const supabaseAuth = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-// Chamado pelo botão "Cancelar" em /painel/pedidos, enquanto a entrega
-// ainda está "Chamando motoboy..." (buscando_motoboy).
+// Chamado pelo botão "Cancelar" em /painel/pedidos — tanto no card do
+// pedido quanto no banner "Nenhum motoboy aceitou" (sem_motoboy), lá em
+// cima. Status permitido é checado dentro de cancelarChamadaMotoboy.
 export async function POST(req: NextRequest) {
   try {
     const { access_token, company_id, delivery_order_id } = await req.json()

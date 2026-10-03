@@ -417,19 +417,22 @@ export async function retryMotoboyDispatch(deliveryOrderId: string): Promise<{ o
   return { ok: true }
 }
 
-// Botão "Cancelar" em /painel/pedidos — cobre tanto "ainda chamando"
-// (buscando_motoboy, ninguém aceitou) quanto "já aceitou, motoboy a
-// caminho" (a_caminho). Antes só cobria a primeira fase e o botão
-// simplesmente desaparecia depois que alguém aceitava — achado real do
-// Ricardo, out/2026: tentou cancelar uma corrida já aceita na Peixaria
-// Trindade (motoboy a caminho) e não tinha como, "era pra cancelar tudo".
+// Botão "Cancelar" em /painel/pedidos — cobre as 3 fases em que uma
+// entrega ainda pode ser desistida: "ainda chamando" (buscando_motoboy),
+// "já aceitou, motoboy a caminho" (a_caminho) e "esgotou todo mundo, sem
+// ninguém aceitar" (sem_motoboy). Essa última faltava até agora — achado
+// real do Ricardo, out/2026 (Peixaria Trindade, pedido #19): depois que a
+// fila de motoboys esgota, só sobrava o botão "🔁 Solicitar de novo" lá em
+// cima, nenhum jeito de desistir se o cliente não quisesse mais esperar.
 // Avisa quem precisa saber que a corrida caiu: motoboy com oferta
-// pendente (fase 1) ou o motoboy já designado (fase 2) — senão ele fica
-// esperando resposta, ou saindo pra buscar, uma corrida que não existe mais.
+// pendente (fase 1) ou o motoboy já designado (fase 2) — em sem_motoboy
+// não tem nenhum dos dois (é exatamente por isso que chegou nesse estado),
+// então os dois avisos abaixo já caem fora sozinhos, sem precisar de
+// nenhuma ramificação extra pra esse caso.
 export async function cancelarChamadaMotoboy(deliveryOrderId: string): Promise<{ ok: boolean; error?: string }> {
   const { data: order } = await supabase.from('delivery_orders').select('status, motoboy_phone').eq('id', deliveryOrderId).maybeSingle()
   if (!order) return { ok: false, error: 'entrega não encontrada' }
-  if (order.status !== 'buscando_motoboy' && order.status !== 'a_caminho') {
+  if (order.status !== 'buscando_motoboy' && order.status !== 'a_caminho' && order.status !== 'sem_motoboy') {
     return { ok: false, error: 'essa entrega não pode mais ser cancelada' }
   }
 

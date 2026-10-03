@@ -76,7 +76,29 @@ export default function PecaAgoraPageClient({ groups }: { groups: PecaGroup[] })
         .pca-empty-title { font-family: 'Anton', sans-serif; font-size: 20px; color: var(--ink); text-transform: uppercase; margin-bottom: 6px; }
         .pca-empty-sub { font-size: 13px; line-height: 1.6; max-width: 380px; margin: 0 auto 18px; }
         .pca-empty-btn { display: inline-block; background: var(--sign); color: var(--ink); font-weight: 800; font-size: 13px; padding: 11px 20px; border-radius: 10px; text-decoration: none; }
+        /* Botãozinho redondo flutuante de compartilhar, só no mobile — pedido
+           do Ricardo, out/2026: a barra de breadcrumb + compartilhar lá em
+           cima tomava espaço de tela à toa no celular. Em vez disso, some
+           essa barra só no mobile (ver .pca-bc-row abaixo) e o compartilhar
+           migra pra esse botão flutuante, mesmo tamanho e logo acima do
+           botão preto de voltar (BackButton.tsx: 48px, right:16,
+           bottom:84 no mobile) — mesma pilha, cor amarela pra diferenciar. */
+        .pca-float-share { display: none; }
+        @media(max-width: 767.98px) {
+          .pca-bc-row { display: none; }
+          .pca-float-share {
+            display: flex; position: fixed; right: 16px; bottom: 140px;
+            width: 48px; height: 48px; border-radius: 50%;
+            background: var(--sign); border: none; box-shadow: 0 4px 14px rgba(0,0,0,.35);
+            align-items: center; justify-content: center; cursor: pointer;
+            font-size: 20px; z-index: 40;
+          }
+        }
       `}</style>
+
+      <button type="button" className="pca-float-share" onClick={handleShare} aria-label={linkCopied ? 'Link copiado' : 'Compartilhar'}>
+        {linkCopied ? '✅' : '🔗'}
+      </button>
 
       <div className="pca-top">
         <div className="pca-bc-row">

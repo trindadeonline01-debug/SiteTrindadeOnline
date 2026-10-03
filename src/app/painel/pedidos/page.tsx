@@ -208,6 +208,13 @@ export default function PedidosPage() {
   // 100% na tela (mockup aprovado). Grid com fração pra cada coluna
   // aberta + uma faixa estreita fixa pra cada recolhida, em vez de largura
   // fixa por coluna — assim elas encolhem sozinhas conforme a tela.
+  //
+  // Coluna vazia recolhe SOZINHA, sem precisar clicar — tela de notebook
+  // pequena ficava com 4-5 colunas vazias "Nenhum pedido" espremendo a
+  // única coluna com card de verdade (achado real do Ricardo, out/2026,
+  // print da tela). `collapsedCols` guarda só o DESVIO manual do estado
+  // automático (clique inverte o que seria o padrão pra aquela coluna) —
+  // o estado final de cada coluna é calculado via XOR mais abaixo.
   const [collapsedCols, setCollapsedCols] = useState<Set<string>>(new Set())
   function toggleColCollapse(key: string) {
     setCollapsedCols(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n })
@@ -705,11 +712,41 @@ export default function PedidosPage() {
     })
   }
 
-  if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Archivo,sans-serif', color: '#AAA' }}>Carregando...</div>
-
+  // Precisa vir antes do "if (loading) return" — hooks (o useEffect logo
+  // abaixo) têm que rodar sempre na mesma ordem em todo render.
   const searched = search.trim()
     ? pedidos.filter(p => p.customer_name.toLowerCase().includes(search.trim().toLowerCase()) || p.id.startsWith(search.trim()))
     : pedidos
+
+  // Desfaz o desvio manual de uma coluna assim que ela muda de vazia pra
+  // com pedido (ou vice-versa) — sem isso, uma coluna que o lojista tinha
+  // forçado aberta enquanto vazia ficaria "presa" aberta/fechada do jeito
+  // errado depois que um pedido novo chegasse ali, o que seria grave (pedido
+  // novo escondido numa coluna que deveria ter voltado a expandir sozinha).
+  const emptyColsNow = new Set(
+    [...BOARD_COLUMNS, 'cancelado'].filter(k => searched.filter(p => p.status === k).length === 0)
+  )
+  // Assinatura estável de quais colunas estão vazias agora — dispara o
+  // efeito abaixo só quando ISSO muda de verdade (não a cada render; total
+  // de pedidos pode ficar igual enquanto um pedido só muda de coluna).
+  const emptyColsSignature = [...emptyColsNow].sort().join(',')
+  const prevEmptyColsRef = useRef<Set<string>>(emptyColsNow)
+  useEffect(() => {
+    setCollapsedCols(prev => {
+      let changed = false
+      const n = new Set(prev)
+      for (const key of [...BOARD_COLUMNS, 'cancelado']) {
+        const wasEmpty = prevEmptyColsRef.current.has(key)
+        const isEmptyNow = emptyColsNow.has(key)
+        if (wasEmpty !== isEmptyNow && n.has(key)) { n.delete(key); changed = true }
+      }
+      prevEmptyColsRef.current = emptyColsNow
+      return changed ? n : prev
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [emptyColsSignature])
+
+  if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Archivo,sans-serif', color: '#AAA' }}>Carregando...</div>
   const currentStage = MOBILE_STAGES.find(t => t.key === mobileStage)!
   const mobileList = searched.filter(p => currentStage.match(p.status))
 
@@ -1210,15 +1247,19 @@ export default function PedidosPage() {
       {(() => {
         const showCancelados = cancelados.length > 0
         const colKeys: string[] = [...BOARD_COLUMNS, ...(showCancelados ? ['cancelado'] : [])]
-        // Uma fração igual pra cada coluna aberta, faixa fixa estreita pra
-        // cada recolhida — nunca soma mais que a largura disponível, então
-        // nunca precisa de scroll lateral (pedido do Ricardo, set/2026).
-        const gridTemplateColumns = colKeys.map(k => collapsedCols.has(k) ? '44px' : 'minmax(0,1fr)').join(' ')
+        // Estado final = automático (vazia recolhe, com pedido expande)
+        // invertido pelo desvio manual quando o lojista clica — ver
+        // comentário em collapsedCols. Uma fração igual pra cada coluna
+        // aberta, faixa fixa estreita pra cada recolhida — nunca soma mais
+        // que a largura disponível, nunca precisa de scroll lateral
+        // (pedido do Ricardo, set/2026).
+        const isColCollapsed = (k: string) => emptyColsNow.has(k) !== collapsedCols.has(k)
+        const gridTemplateColumns = colKeys.map(k => isColCollapsed(k) ? '44px' : 'minmax(0,1fr)').join(' ')
         return (
           <div className="pd-board" style={{ gridTemplateColumns }}>
             {BOARD_COLUMNS.map(status => {
               const items = searched.filter(p => p.status === status)
-              const isCollapsed = collapsedCols.has(status)
+              const isCollapsed = isColCollapsed(status)
               return (
                 <div className={`pd-board-col ${isCollapsed ? 'collapsed' : ''}`} key={status} style={{ '--accent': STATUS_COLOR[status].fg } as React.CSSProperties}>
                   <div className="pd-board-colhead">
@@ -1233,7 +1274,7 @@ export default function PedidosPage() {
               )
             })}
             {showCancelados && (() => {
-              const isCollapsed = collapsedCols.has('cancelado')
+              const isCollapsed = isColCollapsed('cancelado')
               return (
                 <div className={`pd-board-col ${isCollapsed ? 'collapsed' : ''}`} key="cancelado" style={{ '--accent': '#C43D3D' } as React.CSSProperties}>
                   <div className="pd-board-colhead">

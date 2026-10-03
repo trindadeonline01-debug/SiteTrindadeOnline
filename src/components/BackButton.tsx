@@ -22,6 +22,14 @@ export default function BackButton() {
   // que faça sentido) continua de fora.
   if (pathname === '/') return null
 
+  // Página do produto (/empresa/[slug]/item/[id]) tem a barra fixa
+  // "Adicionar ao carrinho" (.id-bar, z-index:10000) colada no mesmo
+  // canto inferior direito — sem esse ajuste ela cobre o botão por
+  // cima (some visualmente e também captura o toque), achado real do
+  // Ricardo, out/2026: "não tenho o botão de voltar nessa página do
+  // produto". Sobe o botão pra ficar acima da barra, não atrás dela.
+  const isProdutoPage = /^\/empresa\/[^/]+\/item\//.test(pathname)
+
   return (
     <button
       onClick={() => router.back()}
@@ -29,7 +37,7 @@ export default function BackButton() {
       style={{
         position: 'fixed',
         right: 16,
-        bottom: isMobile ? 84 : 24,
+        bottom: isProdutoPage ? (isMobile ? 148 : 84) : (isMobile ? 84 : 24),
         width: 48,
         height: 48,
         borderRadius: '50%',

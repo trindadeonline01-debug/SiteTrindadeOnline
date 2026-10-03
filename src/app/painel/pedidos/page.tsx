@@ -203,18 +203,16 @@ export default function PedidosPage() {
   const [mobileStage, setMobileStage] = useState<MobileStageKey>('recebido')
   const [openId, setOpenId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
-  // Coluna recolhida no board desktop — pedido do Ricardo, set/2026: nunca
-  // pode ter scroll lateral no board, as colunas têm que sempre caber
-  // 100% na tela (mockup aprovado). Grid com fração pra cada coluna
-  // aberta + uma faixa estreita fixa pra cada recolhida, em vez de largura
-  // fixa por coluna — assim elas encolhem sozinhas conforme a tela.
+  // Coluna recolhida no board desktop — nunca tem scroll lateral no board,
+  // as colunas sempre cabem 100% na tela (mockup aprovado, set/2026). Grid
+  // com fração pra cada coluna aberta + uma faixa estreita fixa pra cada
+  // recolhida, em vez de largura fixa por coluna.
   //
-  // Coluna vazia recolhe SOZINHA, sem precisar clicar — tela de notebook
-  // pequena ficava com 4-5 colunas vazias "Nenhum pedido" espremendo a
-  // única coluna com card de verdade (achado real do Ricardo, out/2026,
-  // print da tela). `collapsedCols` guarda só o DESVIO manual do estado
-  // automático (clique inverte o que seria o padrão pra aquela coluna) —
-  // o estado final de cada coluna é calculado via XOR mais abaixo.
+  // Recolher automático de coluna vazia foi REMOVIDO (Ricardo, out/2026:
+  // "ficou horrível", a coluna virava gigante/responsiva sozinha de um
+  // jeito que incomodava mais do que ajudava). Agora `collapsedCols` é só
+  // o que o lojista recolheu na mão, clicando — toda coluna abre por
+  // padrão, sempre, independente de estar vazia ou não.
   const [collapsedCols, setCollapsedCols] = useState<Set<string>>(new Set())
   function toggleColCollapse(key: string) {
     setCollapsedCols(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n })
@@ -717,34 +715,6 @@ export default function PedidosPage() {
   const searched = search.trim()
     ? pedidos.filter(p => p.customer_name.toLowerCase().includes(search.trim().toLowerCase()) || p.id.startsWith(search.trim()))
     : pedidos
-
-  // Desfaz o desvio manual de uma coluna assim que ela muda de vazia pra
-  // com pedido (ou vice-versa) — sem isso, uma coluna que o lojista tinha
-  // forçado aberta enquanto vazia ficaria "presa" aberta/fechada do jeito
-  // errado depois que um pedido novo chegasse ali, o que seria grave (pedido
-  // novo escondido numa coluna que deveria ter voltado a expandir sozinha).
-  const emptyColsNow = new Set(
-    [...BOARD_COLUMNS, 'cancelado'].filter(k => searched.filter(p => p.status === k).length === 0)
-  )
-  // Assinatura estável de quais colunas estão vazias agora — dispara o
-  // efeito abaixo só quando ISSO muda de verdade (não a cada render; total
-  // de pedidos pode ficar igual enquanto um pedido só muda de coluna).
-  const emptyColsSignature = [...emptyColsNow].sort().join(',')
-  const prevEmptyColsRef = useRef<Set<string>>(emptyColsNow)
-  useEffect(() => {
-    setCollapsedCols(prev => {
-      let changed = false
-      const n = new Set(prev)
-      for (const key of [...BOARD_COLUMNS, 'cancelado']) {
-        const wasEmpty = prevEmptyColsRef.current.has(key)
-        const isEmptyNow = emptyColsNow.has(key)
-        if (wasEmpty !== isEmptyNow && n.has(key)) { n.delete(key); changed = true }
-      }
-      prevEmptyColsRef.current = emptyColsNow
-      return changed ? n : prev
-    })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [emptyColsSignature])
 
   if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Archivo,sans-serif', color: '#AAA' }}>Carregando...</div>
   const currentStage = MOBILE_STAGES.find(t => t.key === mobileStage)!
@@ -1284,13 +1254,13 @@ export default function PedidosPage() {
       {(() => {
         const showCancelados = cancelados.length > 0
         const colKeys: string[] = [...BOARD_COLUMNS, ...(showCancelados ? ['cancelado'] : [])]
-        // Estado final = automático (vazia recolhe, com pedido expande)
-        // invertido pelo desvio manual quando o lojista clica — ver
-        // comentário em collapsedCols. Uma fração igual pra cada coluna
-        // aberta, faixa fixa estreita pra cada recolhida — nunca soma mais
-        // que a largura disponível, nunca precisa de scroll lateral
-        // (pedido do Ricardo, set/2026).
-        const isColCollapsed = (k: string) => emptyColsNow.has(k) !== collapsedCols.has(k)
+        // Toda coluna aberta por padrão, independente de ter pedido ou não
+        // — só recolhe quem o lojista recolher na mão (ver comentário em
+        // collapsedCols). Uma fração igual pra cada coluna aberta, faixa
+        // fixa estreita pra cada recolhida — nunca soma mais que a largura
+        // disponível, nunca precisa de scroll lateral (pedido do Ricardo,
+        // set/2026).
+        const isColCollapsed = (k: string) => collapsedCols.has(k)
         const colTemplate = (keys: string[]) => keys.map(k => isColCollapsed(k) ? '44px' : 'minmax(0,1fr)').join(' ')
         // Tela de notebook (768–1179px, ver CSS): divide em 2 fileiras de
         // até 3 colunas cada, em vez das 5-6 colunas espremidas numa fileira

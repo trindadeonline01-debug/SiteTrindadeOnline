@@ -505,6 +505,19 @@ DELETE FROM companies WHERE slug LIKE '%-teste';
       3. Identificador do pedido na mensagem curta: usa `order_number` (`loja_pedidos`) quando tem pedido do cardápio; usa nome do cliente quando é entrega avulsa (sem pedido_id).
       4. O conceito atual de "3 rodadas repetindo o pool inteiro" (`MAX_DISPATCH_ROUNDS` em `src/lib/entregaDispatch.ts`) é substituído por "3 tentativas por motoboy, passa pro próximo, até esgotar todo mundo uma vez" — não repete quem já esgotou as 3. Ricardo ainda vai confirmar se é isso mesmo, e se o timeout das tentativas 2ª/3ª mantém os 2 min ou encurta.
     - **Achado relacionado, já corrigido nesse mesmo caso** (não é pendência, já no ar): o botão "Cancelar" de chamada de motoboy só existia enquanto `status = buscando_motoboy` — depois que um motoboy aceitava (`a_caminho`), o botão desaparecia e não tinha como desistir da entrega (Ricardo tentou cancelar uma corrida já aceita na Peixaria Trindade e não conseguiu). `cancelarChamadaMotoboy()` agora cobre as duas fases, avisando o motoboy certo em cada caso — `src/lib/entregaDispatch.ts` e `src/app/painel/pedidos/page.tsx`.
+18. **Lista de melhorias pro cardápio público, ditada pelo Ricardo out/2026** ("anota tudo isso e a gente volta pra fazer" — só documentar, não implementar ainda). Ordenação/filtro na listagem de produtos do cardápio (`CardapioClient.tsx`/`HomePecaAgora.tsx`, a conferir onde faz mais sentido cada um):
+    - Ordenar por preço
+    - Ordenar por tempo de entrega
+    - Ordenar/filtrar por frete grátis
+    - Ordenar/filtrar por promoções
+    - Ordenar de A a Z (nome)
+    - Upsell — sugestão de bebida ou outros produtos dentro do carrinho (tipo "adicione também")
+    - Botão de limpar o carrinho, dentro da tela do carrinho
+    - Calcular o frete dentro da tela do carrinho (hoje o cálculo de frete mora em `/api/loja/calcular-frete`, usado no checkout — avaliar se dá pra reaproveitar ali ou se precisa expor antes, na etapa de carrinho)
+    - Mostrar o valor mínimo de pedido (`loja_pedido_minimo`) no topo do cardápio da loja, não só na hora de tentar finalizar
+    - Horário de funcionamento visível no cardápio da loja e também no card da empresa (perfil público / listagens) — hoje só existe internamente (`company_hours`), não aparece nesses dois lugares
+    - Último item ficou incompleto na fala ("no cardápio colocar o card...") — confirmar com o Ricardo o que falta antes de desenhar/implementar essa lista.
+    - **Voltar pro cardápio a partir da página do produto** (acrescentado na sequência, mesma conversa): abrir um produto (`/empresa/[slug]/item/[id]`, `ProdutoDetailClient.tsx`) e tentar voltar pro cardápio da loja "não tá legal" — conferido no código, essa página não tem NENHUM link/botão próprio de volta, só o `BackButton` genérico global (botão preto flutuante, `router.back()`) que é baseado em histórico do navegador, não um link contextual garantido pro cardápio daquela loja específica. Precisa de um "← Voltar ao cardápio" visível e contextual (com o `slug`/link certo pra `/cardapio/[slug]`), não só depender do botão genérico.
 
 ---
 

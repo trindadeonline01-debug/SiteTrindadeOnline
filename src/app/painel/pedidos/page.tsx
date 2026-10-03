@@ -1090,12 +1090,17 @@ export default function PedidosPage() {
           .pd-date-input{ flex:none;width:150px; }
           .pd-autotoggle{ margin-left:auto; }
           .pd-newbtn{ padding:10px 20px; }
-          /* display:grid em vez de flex+overflow-x:auto — sem scroll
-             lateral nunca, as colunas dividem a largura disponível (uma
-             fração cada, definida via JS em gridTemplateColumns) e
-             encolhem sozinhas conforme a tela fica menor. */
-          .pd-board{ display:grid;gap:10px;padding:20px 24px 28px;align-items:start; }
-          .pd-board-col{ min-width:0;background:#EFEBE1;border-radius:14px;padding:10px;max-height:calc(100vh - 190px);display:flex;flex-direction:column;border-top:4px solid var(--accent); }
+          /* Tela de notebook (768–1179px): 2 fileiras de até 3 colunas cada,
+             uma embaixo da outra, em vez de 5-6 colunas espremidas numa
+             fileira só (Ricardo, out/2026 — "ainda tem botão ficando
+             escondido", mockup "Opção C" aprovado). Cada fileira (.pd-board-row)
+             é seu próprio grid, com largura calculada só a partir das
+             colunas DAQUELA fileira (--row-cols) — uma coluna vazia recolhe
+             sem puxar a largura da fileira de baixo. Em tela grande
+             (≥1180px, media query abaixo) isso vira 1 fileira só de novo. */
+          .pd-board{ display:flex;flex-direction:column;gap:10px;padding:20px 24px 28px; }
+          .pd-board-row{ display:grid;grid-template-columns:var(--row-cols);gap:10px;align-items:start; }
+          .pd-board-col{ min-width:0;background:#EFEBE1;border-radius:14px;padding:10px;max-height:calc(50vh - 130px);display:flex;flex-direction:column;border-top:4px solid var(--accent); }
           .pd-board-colhead{ display:flex;align-items:center;gap:4px;padding:4px 4px 10px;font-weight:800;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--accent); }
           .pd-board-colhead-lbl{ flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
           .pd-board-count{ background:var(--accent);color:#fff;font-size:12.5px;font-weight:800;padding:1px 8px;border-radius:20px;flex:none; }
@@ -1110,6 +1115,16 @@ export default function PedidosPage() {
           .pd-board-col.collapsed .pd-board-colhead-lbl{ writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;font-size:10.5px;flex:none;overflow:visible; }
           .pd-board-col.collapsed .pd-board-count{ writing-mode:horizontal-tb; }
           .pd-board-col.collapsed .pd-board-scroll{ display:none; }
+        }
+        /* Tela grande (≥1180px): cabe tudo numa fileira só, sem espremer —
+           cada .pd-board-row vira display:contents e some, deixando as
+           colunas entrarem direto no grid único do .pd-board, com largura
+           calculada pra TODAS de uma vez (--board-cols) — mesmo
+           comportamento de 1 fileira só que já existia antes dessa mudança. */
+        @media(min-width:1180px){
+          .pd-board{ display:grid;grid-template-columns:var(--board-cols);gap:10px;padding:20px 24px 28px;align-items:start; }
+          .pd-board-row{ display:contents; }
+          .pd-board-col{ max-height:calc(100vh - 190px); }
         }
         /* Não fica sticky no mobile de propósito — a faixa do título
            (.pd-head) já é sticky lá, e duas coisas grudadas no topo ao
@@ -1254,38 +1269,40 @@ export default function PedidosPage() {
         // que a largura disponível, nunca precisa de scroll lateral
         // (pedido do Ricardo, set/2026).
         const isColCollapsed = (k: string) => emptyColsNow.has(k) !== collapsedCols.has(k)
-        const gridTemplateColumns = colKeys.map(k => isColCollapsed(k) ? '44px' : 'minmax(0,1fr)').join(' ')
+        const colTemplate = (keys: string[]) => keys.map(k => isColCollapsed(k) ? '44px' : 'minmax(0,1fr)').join(' ')
+        // Tela de notebook (768–1179px, ver CSS): divide em 2 fileiras de
+        // até 3 colunas cada, em vez das 5-6 colunas espremidas numa fileira
+        // só que cortavam o botão de ação (Ricardo, out/2026 — "ainda tem
+        // botão ficando escondido", mockup "Opção C" aprovado). Em tela
+        // grande (≥1180px) cada fileira vira `display:contents` via CSS e
+        // some, deixando as colunas direto no grid único de --board-cols —
+        // mesmo comportamento de 1 fileira só que já existia antes.
+        const rows: string[][] = [colKeys.slice(0, 3), colKeys.slice(3)]
+        function renderCol(status: string) {
+          const items = searched.filter(p => p.status === status)
+          const isCollapsed = isColCollapsed(status)
+          const label = status === 'cancelado' ? 'Cancelados' : STATUS_LABEL[status as Status]
+          const accent = status === 'cancelado' ? '#C43D3D' : STATUS_COLOR[status as Status].fg
+          return (
+            <div className={`pd-board-col ${isCollapsed ? 'collapsed' : ''}`} key={status} style={{ '--accent': accent } as React.CSSProperties}>
+              <div className="pd-board-colhead">
+                <button className="pd-board-collapse" onClick={() => toggleColCollapse(status)} title={isCollapsed ? 'Expandir coluna' : 'Recolher coluna'}>{isCollapsed ? '›' : '‹'}</button>
+                <span className="pd-board-colhead-lbl">{label}</span>
+                <span className="pd-board-count">{items.length}</span>
+              </div>
+              <div className="pd-board-scroll">
+                {items.length === 0 ? <div className="pd-board-empty-msg">Nenhum pedido</div> : items.map(renderCard)}
+              </div>
+            </div>
+          )
+        }
         return (
-          <div className="pd-board" style={{ gridTemplateColumns }}>
-            {BOARD_COLUMNS.map(status => {
-              const items = searched.filter(p => p.status === status)
-              const isCollapsed = isColCollapsed(status)
-              return (
-                <div className={`pd-board-col ${isCollapsed ? 'collapsed' : ''}`} key={status} style={{ '--accent': STATUS_COLOR[status].fg } as React.CSSProperties}>
-                  <div className="pd-board-colhead">
-                    <button className="pd-board-collapse" onClick={() => toggleColCollapse(status)} title={isCollapsed ? 'Expandir coluna' : 'Recolher coluna'}>{isCollapsed ? '›' : '‹'}</button>
-                    <span className="pd-board-colhead-lbl">{STATUS_LABEL[status]}</span>
-                    <span className="pd-board-count">{items.length}</span>
-                  </div>
-                  <div className="pd-board-scroll">
-                    {items.length === 0 ? <div className="pd-board-empty-msg">Nenhum pedido</div> : items.map(renderCard)}
-                  </div>
-                </div>
-              )
-            })}
-            {showCancelados && (() => {
-              const isCollapsed = isColCollapsed('cancelado')
-              return (
-                <div className={`pd-board-col ${isCollapsed ? 'collapsed' : ''}`} key="cancelado" style={{ '--accent': '#C43D3D' } as React.CSSProperties}>
-                  <div className="pd-board-colhead">
-                    <button className="pd-board-collapse" onClick={() => toggleColCollapse('cancelado')} title={isCollapsed ? 'Expandir coluna' : 'Recolher coluna'}>{isCollapsed ? '›' : '‹'}</button>
-                    <span className="pd-board-colhead-lbl">Cancelados</span>
-                    <span className="pd-board-count">{cancelados.length}</span>
-                  </div>
-                  <div className="pd-board-scroll">{cancelados.map(renderCard)}</div>
-                </div>
-              )
-            })()}
+          <div className="pd-board" style={{ '--board-cols': colTemplate(colKeys) } as React.CSSProperties}>
+            {rows.map((row, i) => row.length === 0 ? null : (
+              <div className="pd-board-row" key={i} style={{ '--row-cols': colTemplate(row) } as React.CSSProperties}>
+                {row.map(renderCol)}
+              </div>
+            ))}
           </div>
         )
       })()}

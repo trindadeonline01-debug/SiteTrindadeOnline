@@ -217,6 +217,12 @@ export default function PedidosPage() {
   function toggleColCollapse(key: string) {
     setCollapsedCols(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n })
   }
+  // Cancelados não têm coluna própria no board desktop (Ricardo, out/2026:
+  // "não precisa, pode ficar dentro do entregue" — tava ocupando espaço à
+  // toa). A coluna "entregue" vira "Histórico" e junta os dois status;
+  // esse filtro deixa ver só um lado quando precisar, sem precisar abrir
+  // cada card. Mesmo nome/ideia que o MOBILE_STAGES "historico" já usa.
+  const [histFiltro, setHistFiltro] = useState<'todos' | 'entregue' | 'cancelado'>('todos')
   const companyIdRef = useRef('')
   const [deliveryCalled, setDeliveryCalled] = useState<Set<string>>(new Set())
   // pedido_id -> dados do delivery_orders correspondente — usado pra mostrar
@@ -900,7 +906,6 @@ export default function PedidosPage() {
     )
   }
 
-  const cancelados = searched.filter(p => p.status === 'cancelado')
   // Faixa de "imprime agora" — pedido do Ricardo, set/2026, testando no
   // tablet: além do som alto que já toca, quer o botão de imprimir bem
   // grande aparecendo sozinho assim que o pedido chega, sem precisar abrir
@@ -1077,6 +1082,12 @@ export default function PedidosPage() {
           .pd-board-colhead-lbl{ flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
           .pd-board-count{ background:var(--accent);color:#fff;font-size:12.5px;font-weight:800;padding:1px 8px;border-radius:20px;flex:none; }
           .pd-board-collapse{ width:20px;height:20px;border-radius:6px;border:none;background:rgba(0,0,0,.06);color:var(--accent);cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;flex:none;padding:0; }
+          /* Filtro Tudo/✅/❌ da coluna "Histórico" (entregue + cancelado
+             juntos) — pedido do Ricardo, out/2026: cancelado não tem mais
+             coluna própria, mas às vezes precisa separar os dois. */
+          .pd-hist-filter{ display:flex;gap:4px;padding:0 4px 8px; }
+          .pd-hist-filter button{ flex:1;padding:4px 2px;border-radius:6px;border:1px solid #E6E0D2;background:#fff;font-size:11px;font-weight:700;cursor:pointer;color:#6E6656;font-family:inherit; }
+          .pd-hist-filter button.active{ background:var(--accent);color:#fff;border-color:var(--accent); }
           .pd-board-scroll{ overflow-y:auto;overflow-x:hidden;flex:1;min-height:0; }
           .pd-board .pd-card{ margin-bottom:8px; }
           .pd-board-empty-msg{ text-align:center;color:#A79E8B;font-size:13px;padding:20px 8px; }
@@ -1252,8 +1263,7 @@ export default function PedidosPage() {
       {!isToday && <div className="pd-hist-banner">{histBannerTxt}</div>}
 
       {(() => {
-        const showCancelados = cancelados.length > 0
-        const colKeys: string[] = [...BOARD_COLUMNS, ...(showCancelados ? ['cancelado'] : [])]
+        const colKeys: string[] = [...BOARD_COLUMNS]
         // Toda coluna aberta por padrão, independente de ter pedido ou não
         // — só recolhe quem o lojista recolher na mão (ver comentário em
         // collapsedCols). Uma fração igual pra cada coluna aberta, faixa
@@ -1271,10 +1281,15 @@ export default function PedidosPage() {
         // mesmo comportamento de 1 fileira só que já existia antes.
         const rows: string[][] = [colKeys.slice(0, 3), colKeys.slice(3)]
         function renderCol(status: string) {
-          const items = searched.filter(p => p.status === status)
+          // "entregue" vira "Histórico" e absorve os cancelados — não tem
+          // coluna própria pra cancelado no board desktop (Ricardo,
+          // out/2026: "não precisa, pode ficar dentro do entregue").
+          const isHist = status === 'entregue'
+          const baseItems = isHist ? searched.filter(p => p.status === 'entregue' || p.status === 'cancelado') : searched.filter(p => p.status === status)
+          const items = isHist && histFiltro !== 'todos' ? baseItems.filter(p => p.status === histFiltro) : baseItems
           const isCollapsed = isColCollapsed(status)
-          const label = status === 'cancelado' ? 'Cancelados' : STATUS_LABEL[status as Status]
-          const accent = status === 'cancelado' ? '#C43D3D' : STATUS_COLOR[status as Status].fg
+          const label = isHist ? 'Histórico' : STATUS_LABEL[status as Status]
+          const accent = STATUS_COLOR[status as Status].fg
           return (
             <div className={`pd-board-col ${isCollapsed ? 'collapsed' : ''}`} key={status} style={{ '--accent': accent } as React.CSSProperties}>
               <div className="pd-board-colhead">
@@ -1282,6 +1297,13 @@ export default function PedidosPage() {
                 <span className="pd-board-colhead-lbl">{label}</span>
                 <span className="pd-board-count">{items.length}</span>
               </div>
+              {isHist && !isCollapsed && (
+                <div className="pd-hist-filter">
+                  <button className={histFiltro === 'todos' ? 'active' : ''} onClick={() => setHistFiltro('todos')} title="Entregues e cancelados">Tudo</button>
+                  <button className={histFiltro === 'entregue' ? 'active' : ''} onClick={() => setHistFiltro('entregue')} title="Só entregues">✅</button>
+                  <button className={histFiltro === 'cancelado' ? 'active' : ''} onClick={() => setHistFiltro('cancelado')} title="Só cancelados">❌</button>
+                </div>
+              )}
               <div className="pd-board-scroll">
                 {items.length === 0 ? <div className="pd-board-empty-msg">Nenhum pedido</div> : items.map(renderCard)}
               </div>

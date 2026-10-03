@@ -81,6 +81,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ ok: true, sent: tasks.length })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('[cron/lembretes-producao]', err)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

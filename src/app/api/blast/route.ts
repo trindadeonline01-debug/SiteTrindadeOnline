@@ -359,8 +359,10 @@ export async function POST(req: NextRequest) {
         status: scheduled_at ? 'pending' : 'pending'
       }).select().single()
 
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
+      if (error) {
+        console.error('[blast]', error)
+        return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+      }
       // Cria logs pendentes
       const logs = contacts.map(c => ({
         campaign_id: campaign.id,
@@ -425,7 +427,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ error: 'Ação inválida' }, { status: 400 })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('[blast]', err)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
 
@@ -484,6 +487,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ campaigns })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('[blast]', err)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
     await supabase.from('motoboys').update({ password_hash: hashPassword(senha) }).eq('id', motoboy.id)
     return NextResponse.json({ ok: true })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'falha ao salvar senha' }, { status: 500 })
+    console.error('[motoboy/definir-senha]', err)
+    return NextResponse.json({ error: 'falha ao salvar senha' }, { status: 500 })
   }
 }

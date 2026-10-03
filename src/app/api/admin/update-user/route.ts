@@ -16,8 +16,10 @@ export async function POST(req: NextRequest) {
     if (!user_id) return NextResponse.json({ error: 'user_id obrigatório' }, { status: 400 })
 
     const { error } = await supabase.from('profiles').update(updates).eq('id', user_id)
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
+    if (error) {
+      console.error('[admin/update-user]', error)
+      return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+    }
     if (new_email) {
       const { error: emailErr } = await supabase.auth.admin.updateUserById(user_id, { email: new_email })
       if (emailErr) return NextResponse.json({ error: emailErr.message }, { status: 500 })
@@ -25,6 +27,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('[admin/update-user]', err)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

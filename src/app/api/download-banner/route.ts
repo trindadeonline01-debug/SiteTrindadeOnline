@@ -15,6 +15,7 @@ export async function GET(req: NextRequest) {
       },
     })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('[download-banner]', err)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

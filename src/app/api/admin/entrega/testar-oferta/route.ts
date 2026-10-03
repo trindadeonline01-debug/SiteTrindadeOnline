@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
     // resposta não-JSON e o botão "Testar oferta" ficava preso em
     // "Enviando..." pra sempre, sem nenhum erro visível (Ricardo, set/2026).
     console.error('[POST /api/admin/entrega/testar-oferta]', err)
-    return NextResponse.json({ error: err.message || 'falha ao testar oferta' }, { status: 500 })
+    console.error('[admin/entrega/testar-oferta]', err)
+    return NextResponse.json({ error: 'falha ao testar oferta' }, { status: 500 })
   }
 }

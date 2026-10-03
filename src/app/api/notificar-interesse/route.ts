@@ -101,8 +101,8 @@ export async function POST(req: NextRequest) {
     })
 
     if (!resendRes.ok) {
-      const err = await resendRes.json()
-      return NextResponse.json({ error: 'Erro Resend: ' + (err.message || 'desconhecido') }, { status: 500 })
+      console.error('[notificar-interesse] resend', await resendRes.json().catch(() => null))
+      return NextResponse.json({ error: 'Erro ao notificar' }, { status: 500 })
     }
 
     // Registrar no log
@@ -114,6 +114,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, sent: true })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('[notificar-interesse]', err)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

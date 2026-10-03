@@ -39,10 +39,14 @@ export async function POST(req: NextRequest) {
       .map((b: any) => ({ bairro: String(b.bairro), price: b.disabled ? 0 : Number(b.price) || 0, disabled: !!b.disabled }))
     if (rows.length) {
       const { error } = await supabase.from('entrega_bairros').insert(rows)
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      if (error) {
+        console.error('[admin/entrega-bairros]', error)
+        return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+      }
     }
     return NextResponse.json({ ok: true })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'falha ao salvar' }, { status: 500 })
+    console.error('[admin/entrega-bairros]', err)
+    return NextResponse.json({ error: 'falha ao salvar' }, { status: 500 })
   }
 }

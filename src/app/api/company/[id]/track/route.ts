@@ -27,6 +27,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
 
     return NextResponse.json({ ok: true })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('[company/[id]/track]', err)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

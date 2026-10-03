@@ -170,6 +170,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'falha ao enviar' }, { status: 500 })
+    console.error('[crm/enviar]', err)
+    return NextResponse.json({ error: 'falha ao enviar' }, { status: 500 })
   }
 }

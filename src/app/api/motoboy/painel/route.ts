@@ -108,6 +108,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ error: 'ação inválida' }, { status: 400 })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'falha' }, { status: 500 })
+    console.error('[motoboy/painel]', err)
+    return NextResponse.json({ error: 'falha' }, { status: 500 })
   }
 }

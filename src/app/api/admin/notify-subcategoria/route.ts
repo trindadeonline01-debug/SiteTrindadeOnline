@@ -66,6 +66,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, notified, removed: ids.length })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('[admin/notify-subcategoria]', err)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

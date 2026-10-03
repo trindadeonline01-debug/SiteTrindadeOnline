@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'falha ao verificar código' }, { status: 500 })
+    console.error('[motoboy/verificar-codigo]', err)
+    return NextResponse.json({ error: 'falha ao verificar código' }, { status: 500 })
   }
 }

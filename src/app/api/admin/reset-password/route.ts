@@ -22,18 +22,25 @@ export async function POST(req: NextRequest) {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${site}/redefinir-senha`
       })
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      if (error) {
+        console.error('[admin/reset-password]', error)
+        return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+      }
       return NextResponse.json({ ok: true, method: 'link' })
     }
 
     if (new_password && user_id) {
       const { error } = await supabase.auth.admin.updateUserById(user_id, { password: new_password })
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      if (error) {
+        console.error('[admin/reset-password]', error)
+        return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+      }
       return NextResponse.json({ ok: true, method: 'direct' })
     }
 
     return NextResponse.json({ error: 'Parâmetros inválidos' }, { status: 400 })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('[admin/reset-password]', err)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

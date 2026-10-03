@@ -34,7 +34,7 @@ async function uploadComprovante(base64: string, payoutId: string): Promise<{ pa
   const buf = Buffer.from(raw, 'base64')
   const path = `comprovante-${payoutId}-${Date.now()}.${ext}`
   const { error } = await supabase.storage.from('motoboy-docs').upload(path, buf, { contentType: mime })
-  if (error) return { path: null, error: error.message }
+  if (error) { console.error('[admin/motoboy-payouts] upload', error); return { path: null, error: 'falha ao salvar comprovante' } }
   return { path, error: null }
 }
 
@@ -128,8 +128,10 @@ export async function POST(req: NextRequest) {
         motoboy_id, period_start: periodStart, period_end: periodEnd, entregas_count: orders.length, valor,
         status: 'pago', paid_at: paidAt,
       }).select().single()
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
+      if (error) {
+        console.error('[admin/motoboy-payouts]', error)
+        return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+      }
       await supabase.from('delivery_orders').update({ payout_id: payout.id, payout_status: 'pago' }).in('id', orders.map(o => o.id))
 
       const { data: motoboy } = await supabase.from('motoboys').select('name, phone').eq('id', motoboy_id).maybeSingle()
@@ -147,12 +149,16 @@ export async function POST(req: NextRequest) {
       const { path, error: uploadError } = await uploadComprovante(comprovante_base64, id)
       if (uploadError) return NextResponse.json({ error: uploadError }, { status: 500 })
       const { error } = await supabase.from('motoboy_payouts').update({ comprovante_path: path }).eq('id', id)
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      if (error) {
+        console.error('[admin/motoboy-payouts]', error)
+        return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+      }
       return NextResponse.json({ ok: true })
     }
 
     return NextResponse.json({ error: 'ação inválida' }, { status: 400 })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'falha' }, { status: 500 })
+    console.error('[admin/motoboy-payouts]', err)
+    return NextResponse.json({ error: 'falha' }, { status: 500 })
   }
 }

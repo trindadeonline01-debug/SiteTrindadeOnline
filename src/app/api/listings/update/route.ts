@@ -17,10 +17,13 @@ export async function POST(req: NextRequest) {
     if (!listing || (listing.user_id !== user_id && !isAdmin)) return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
 
     const { error } = await supabaseAdmin.from('listings').update(updates).eq('id', listing_id)
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
+    if (error) {
+      console.error('[listings/update]', error)
+      return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+    }
     return NextResponse.json({ ok: true })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('[listings/update]', err)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

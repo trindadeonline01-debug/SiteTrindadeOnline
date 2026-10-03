@@ -110,7 +110,8 @@ export async function POST(req: NextRequest) {
     const fee = foraArea != null ? Number(foraArea) : flatFallback
     return NextResponse.json({ ok: true, method: 'bairro', blocked: false, bairro, fee, tempo })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'falha ao calcular frete' }, { status: 500 })
+    console.error('[loja/calcular-frete]', err)
+    return NextResponse.json({ error: 'falha ao calcular frete' }, { status: 500 })
   }
 }
 

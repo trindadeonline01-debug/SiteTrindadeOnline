@@ -58,6 +58,7 @@ export async function POST(req: NextRequest) {
     await supabase.from('companies').update({ loja_lat: lat, loja_lng: lng }).eq('id', company_id)
     return NextResponse.json({ ok: true, lat, lng, label: feature.properties?.label || query })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'falha ao geocodificar' }, { status: 500 })
+    console.error('[loja/geocodificar-loja]', err)
+    return NextResponse.json({ error: 'falha ao geocodificar' }, { status: 500 })
   }
 }

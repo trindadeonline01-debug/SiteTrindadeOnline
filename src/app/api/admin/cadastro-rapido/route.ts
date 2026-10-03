@@ -151,6 +151,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, company: { id: company.id, name: company.name, slug: company.slug }, email_sent: emailOk, action_link: actionLink })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('[admin/cadastro-rapido]', err)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

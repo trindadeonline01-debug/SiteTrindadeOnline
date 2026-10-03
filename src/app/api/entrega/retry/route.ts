@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'falha ao tentar de novo' }, { status: 500 })
+    console.error('[entrega/retry]', err)
+    return NextResponse.json({ error: 'falha ao tentar de novo' }, { status: 500 })
   }
 }

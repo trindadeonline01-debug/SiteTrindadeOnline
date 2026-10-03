@@ -29,7 +29,10 @@ export async function POST(req: NextRequest) {
     const { data: pending } = await supabase.from('production_team').select('*').ilike('email', email).is('user_id', null).maybeSingle()
     if (pending) {
       const { data: linked, error } = await supabase.from('production_team').update({ user_id: user.id }).eq('id', pending.id).select().single()
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      if (error) {
+        console.error('[producao/vincular]', error)
+        return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+      }
       return NextResponse.json({ ok: true, member: linked })
     }
 
@@ -39,6 +42,7 @@ export async function POST(req: NextRequest) {
     if (insertError) return NextResponse.json({ error: insertError.message }, { status: 500 })
     return NextResponse.json({ ok: true, member: created })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('[producao/vincular]', err)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

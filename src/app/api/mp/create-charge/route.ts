@@ -76,6 +76,7 @@ export async function POST(req: NextRequest) {
       pix_copy_paste: pixData?.qr_code || null,
     })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('[mp/create-charge]', err)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

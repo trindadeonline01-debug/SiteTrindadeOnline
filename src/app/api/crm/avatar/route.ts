@@ -63,6 +63,7 @@ export async function POST(req: NextRequest) {
     await supabase.from('crm_contacts').update({ avatar_url: url }).eq('id', contact_id)
     return NextResponse.json({ url })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'falha ao buscar foto de perfil' }, { status: 500 })
+    console.error('[crm/avatar]', err)
+    return NextResponse.json({ error: 'falha ao buscar foto de perfil' }, { status: 500 })
   }
 }

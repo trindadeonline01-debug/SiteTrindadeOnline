@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendMotoboyWhatsApp } from '@/lib/whatsapp'
 import { notifyAdmin } from '@/lib/notifyAdmin'
+import { decodeAndValidateImage } from '@/lib/validateImageUpload'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -17,14 +18,12 @@ const PHOTO_COLUMN: Record<string, string> = {
 }
 
 async function uploadPhoto(base64: string, prefix: string): Promise<{ path: string | null; error: string | null }> {
-  const match = base64.match(/^data:(image\/\w+);base64,(.+)$/)
-  if (!match) return { path: null, error: `foto inválida (${prefix})` }
-  const [, mime, raw] = match
-  const ext = mime.split('/')[1] || 'jpg'
-  const buf = Buffer.from(raw, 'base64')
+  const validated = await decodeAndValidateImage(base64)
+  if ('error' in validated) return { path: null, error: `${validated.error} (${prefix})` }
+  const { buf, ext, contentType } = validated
   const path = `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
-  const { error } = await supabase.storage.from('motoboy-docs').upload(path, buf, { contentType: mime })
-  if (error) return { path: null, error: error.message }
+  const { error } = await supabase.storage.from('motoboy-docs').upload(path, buf, { contentType })
+  if (error) { console.error(`[motoboy/reenviar] upload ${prefix}`, error); return { path: null, error: `falha ao salvar foto (${prefix})` } }
   return { path, error: null }
 }
 
@@ -86,6 +85,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, resolved: remainingFlags.length === 0 })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'falha ao reenviar' }, { status: 500 })
+    console.error('[motoboy/reenviar]', err)
+    return NextResponse.json({ error: 'falha ao reenviar' }, { status: 500 })
   }
 }

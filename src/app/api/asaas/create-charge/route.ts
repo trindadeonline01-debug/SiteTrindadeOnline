@@ -79,6 +79,7 @@ export async function POST(req: NextRequest) {
       pix_copy_paste: pixData.payload,
     })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('[asaas/create-charge]', err)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

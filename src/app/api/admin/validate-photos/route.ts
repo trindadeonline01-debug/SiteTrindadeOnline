@@ -130,8 +130,10 @@ export async function POST(req: NextRequest) {
         .order('id')
         .range(cursor, cursor + BATCH_SIZE - 1)
 
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
+      if (error) {
+        console.error('[admin/validate-photos]', error)
+        return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+      }
       if (!photos || photos.length === 0) {
         await setStatus('done')
         return NextResponse.json({ done: true, ok: totalOk, removed: totalRemoved, errors: totalErrors, nextOffset: cursor })
@@ -151,6 +153,7 @@ export async function POST(req: NextRequest) {
       }
     }
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('[admin/validate-photos]', err)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

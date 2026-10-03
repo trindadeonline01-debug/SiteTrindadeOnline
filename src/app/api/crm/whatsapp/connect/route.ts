@@ -96,6 +96,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, instance_id: inst.id, instance_name: instanceName, qrcode_base64: qrcodeBase64, raw: evoData })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'falha ao criar instância' }, { status: 500 })
+    console.error('[crm/whatsapp/connect]', err)
+    return NextResponse.json({ error: 'falha ao criar instância' }, { status: 500 })
   }
 }

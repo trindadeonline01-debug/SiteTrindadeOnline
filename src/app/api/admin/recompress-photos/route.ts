@@ -26,7 +26,10 @@ export async function POST(req: NextRequest) {
       .order('id')
       .range(offset, offset + BATCH_SIZE - 1)
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) {
+      console.error('[admin/recompress-photos]', error)
+      return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+    }
     if (!photos || photos.length === 0) return NextResponse.json({ done: true, processed: 0, skipped: 0, failed: 0, nextOffset: offset })
 
     let processed = 0, skipped = 0, failed = 0
@@ -70,6 +73,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ done: false, processed, skipped, failed, batchSize: photos.length, nextOffset: offset + photos.length })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('[admin/recompress-photos]', err)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

@@ -60,7 +60,8 @@ export async function POST(req: NextRequest) {
         if (error.code === '23505') {
           return NextResponse.json({ error: `Já existe uma rodada ativa com a palavra "${normalize(word)}" nesse escopo. Escolha uma palavra diferente.` }, { status: 400 })
         }
-        return NextResponse.json({ error: error.message }, { status: 500 })
+        console.error('[palavra-premiada]', error)
+        return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
       }
       return NextResponse.json({ ok: true, round: data })
     }
@@ -215,7 +216,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ error: 'Ação inválida' }, { status: 400 })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('[palavra-premiada]', err)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
 
@@ -273,6 +275,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ rounds: rounds || [], winners: winners || [], attempts: attempts || [] })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('[palavra-premiada]', err)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

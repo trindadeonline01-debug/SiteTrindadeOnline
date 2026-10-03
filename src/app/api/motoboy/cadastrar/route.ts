@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { generateTermsPdf } from '@/lib/motoboyTermsPdf'
 import { MOTOBOY_TERMS_VERSION } from '@/lib/motoboyTerms'
+import { decodeAndValidateImage } from '@/lib/validateImageUpload'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -15,14 +16,12 @@ function formatPhone(phone: string): string {
 function onlyDigits(v: string): string { return v.replace(/\D/g, '') }
 
 async function uploadPhoto(base64: string, prefix: string): Promise<{ path: string | null; error: string | null }> {
-  const match = base64.match(/^data:(image\/\w+);base64,(.+)$/)
-  if (!match) return { path: null, error: `foto inválida (${prefix})` }
-  const [, mime, raw] = match
-  const ext = mime.split('/')[1] || 'jpg'
-  const buf = Buffer.from(raw, 'base64')
+  const validated = await decodeAndValidateImage(base64)
+  if ('error' in validated) return { path: null, error: `${validated.error} (${prefix})` }
+  const { buf, ext, contentType } = validated
   const path = `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
-  const { error } = await supabase.storage.from('motoboy-docs').upload(path, buf, { contentType: mime })
-  if (error) return { path: null, error: error.message }
+  const { error } = await supabase.storage.from('motoboy-docs').upload(path, buf, { contentType })
+  if (error) { console.error(`[motoboy/cadastrar] upload ${prefix}`, error); return { path: null, error: `falha ao salvar foto (${prefix})` } }
   return { path, error: null }
 }
 
@@ -80,7 +79,10 @@ export async function POST(req: NextRequest) {
       pix_key: pix_key?.trim() || null, pix_key_type: pix_key_type || null,
       status: 'aguardando_aprovacao', active: true, available: true,
     }).select('id').single()
-    if (insertErr || !motoboy) return NextResponse.json({ error: insertErr?.message || 'falha ao cadastrar' }, { status: 500 })
+    if (insertErr || !motoboy) {
+      if (insertErr) console.error('[motoboy/cadastrar] insert', insertErr)
+      return NextResponse.json({ error: 'falha ao cadastrar' }, { status: 500 })
+    }
 
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || req.headers.get('x-real-ip') || 'desconhecido'
     const userAgent = req.headers.get('user-agent') || 'desconhecido'
@@ -97,6 +99,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'falha ao cadastrar' }, { status: 500 })
+    console.error('[motoboy/cadastrar]', err)
+    return NextResponse.json({ error: 'falha ao cadastrar' }, { status: 500 })
   }
 }

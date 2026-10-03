@@ -46,9 +46,13 @@ export async function POST(req: NextRequest) {
       .from('company-photos')
       .update(path, edited, { contentType: 'image/jpeg', upsert: true })
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) {
+      console.error('[admin/edit-photo]', error)
+      return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+    }
     return NextResponse.json({ ok: true })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('[admin/edit-photo]', err)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

@@ -99,6 +99,7 @@ export async function POST(req: NextRequest) {
       pix_copy_paste: pixData?.qr_code || null,
     })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'falha ao criar cobrança' }, { status: 500 })
+    console.error('[entrega/pagar]', err)
+    return NextResponse.json({ error: 'falha ao criar cobrança' }, { status: 500 })
   }
 }

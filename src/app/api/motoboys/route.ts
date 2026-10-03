@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import crypto from 'crypto'
 import { sendMotoboyWhatsApp } from '@/lib/whatsapp'
 import { getEntregaPricing } from '@/lib/entregaPricing'
+import { decodeAndValidateImage } from '@/lib/validateImageUpload'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -33,14 +34,12 @@ function onlyDigits(v: string): string { return v.replace(/\D/g, '') }
 // CNH (e os outros documentos do auto-cadastro) são sensíveis — ficam num
 // bucket privado, nunca com URL pública.
 async function uploadCnhPhoto(base64: string): Promise<{ path: string | null; error: string | null }> {
-  const match = base64.match(/^data:(image\/\w+);base64,(.+)$/)
-  if (!match) return { path: null, error: 'foto da CNH inválida' }
-  const [, mime, raw] = match
-  const ext = mime.split('/')[1] || 'jpg'
-  const buf = Buffer.from(raw, 'base64')
+  const validated = await decodeAndValidateImage(base64)
+  if ('error' in validated) return { path: null, error: validated.error }
+  const { buf, ext, contentType } = validated
   const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
-  const { error } = await supabase.storage.from('motoboy-docs').upload(path, buf, { contentType: mime })
-  if (error) return { path: null, error: error.message }
+  const { error } = await supabase.storage.from('motoboy-docs').upload(path, buf, { contentType })
+  if (error) { console.error('[motoboys] upload cnh', error); return { path: null, error: 'falha ao salvar foto' } }
   return { path, error: null }
 }
 
@@ -63,8 +62,10 @@ export async function GET(req: NextRequest) {
   if (!(await requireAdmin(accessToken))) return NextResponse.json({ error: 'acesso negado' }, { status: 403 })
 
   const { data, error } = await supabase.from('motoboys').select('*').order('created_at', { ascending: false })
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
+  if (error) {
+    console.error('[motoboys]', error)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+  }
   const ids = (data || []).map(m => m.id)
   const { data: terms } = ids.length
     ? await supabase.from('motoboy_terms_acceptance').select('*').in('motoboy_id', ids)
@@ -154,7 +155,8 @@ export async function GET(req: NextRequest) {
     // exceção no cliente (sem try/catch lá também) e a tela ficava presa em
     // "Carregando..." pra sempre, sem nenhum erro visível (Ricardo, set/2026).
     console.error('[GET /api/motoboys]', err)
-    return NextResponse.json({ error: err.message || 'falha ao carregar motoboys' }, { status: 500 })
+    console.error('[motoboys]', err)
+    return NextResponse.json({ error: 'falha ao carregar motoboys' }, { status: 500 })
   }
 }
 
@@ -181,7 +183,10 @@ export async function POST(req: NextRequest) {
         name: name.trim(), phone: formatPhone(phone), address: address.trim(), cpf: cpfDigits, cnh_photo_path: cnhPath,
         pix_key: pix_key?.trim() || null, pix_key_type: pix_key_type || null, status: 'aprovado',
       })
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      if (error) {
+        console.error('[motoboys]', error)
+        return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+      }
       return NextResponse.json({ ok: true })
     }
 
@@ -204,7 +209,10 @@ export async function POST(req: NextRequest) {
       }
 
       const { error } = await supabase.from('motoboys').update(update).eq('id', id)
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      if (error) {
+        console.error('[motoboys]', error)
+        return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+      }
       return NextResponse.json({ ok: true })
     }
 
@@ -213,7 +221,10 @@ export async function POST(req: NextRequest) {
       if (!(await requireAdmin(body.access_token))) return NextResponse.json({ error: 'acesso negado' }, { status: 403 })
       if (!id) return NextResponse.json({ error: 'id obrigatório' }, { status: 400 })
       const { error } = await supabase.from('motoboys').update({ active }).eq('id', id)
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      if (error) {
+        console.error('[motoboys]', error)
+        return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+      }
       return NextResponse.json({ ok: true })
     }
 
@@ -226,7 +237,10 @@ export async function POST(req: NextRequest) {
       if (!id) return NextResponse.json({ error: 'id obrigatório' }, { status: 400 })
       if (priority) await supabase.from('motoboys').update({ priority: false }).neq('id', id)
       const { error } = await supabase.from('motoboys').update({ priority: !!priority }).eq('id', id)
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      if (error) {
+        console.error('[motoboys]', error)
+        return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+      }
       return NextResponse.json({ ok: true })
     }
 
@@ -257,7 +271,10 @@ export async function POST(req: NextRequest) {
         : []
 
       const { error } = await supabase.from('motoboys').delete().eq('id', id)
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      if (error) {
+        console.error('[motoboys]', error)
+        return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+      }
       if (paths.length) await supabase.storage.from('motoboy-docs').remove(paths)
       return NextResponse.json({ ok: true })
     }
@@ -302,6 +319,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ error: 'ação inválida' }, { status: 400 })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'falha' }, { status: 500 })
+    console.error('[motoboys]', err)
+    return NextResponse.json({ error: 'falha' }, { status: 500 })
   }
 }

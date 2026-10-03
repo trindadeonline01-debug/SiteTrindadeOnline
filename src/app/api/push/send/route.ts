@@ -51,6 +51,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ sent: data.recipients || 0, total: data.recipients || 0, id: data.id })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('[push/send]', err)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

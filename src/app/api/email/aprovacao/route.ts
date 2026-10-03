@@ -147,6 +147,7 @@ export async function POST(req: NextRequest) {
     await supabase.from('email_logs').insert({ company_id, email_type: 'aprovacao' })
     return NextResponse.json({ ok: true })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('[email/aprovacao]', err)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

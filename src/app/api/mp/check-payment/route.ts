@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ paid: true, plan_ends_at: planEndsAt })
   } catch (err: any) {
-    return NextResponse.json({ paid: false, error: err.message })
+    console.error('[mp/check-payment]', err)
+    return NextResponse.json({ paid: false, error: 'Erro interno' })
   }
 }

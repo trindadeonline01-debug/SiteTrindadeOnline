@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('[auth/verify-code-whatsapp]', err)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

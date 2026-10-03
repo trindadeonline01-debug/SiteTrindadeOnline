@@ -55,6 +55,7 @@ export async function POST(req: NextRequest) {
     })
 
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('[mp/create-highlight]', err)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

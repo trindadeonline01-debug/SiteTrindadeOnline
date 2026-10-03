@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'falha ao cancelar' }, { status: 500 })
+    console.error('[entrega/cancelar]', err)
+    return NextResponse.json({ error: 'falha ao cancelar' }, { status: 500 })
   }
 }

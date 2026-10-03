@@ -40,7 +40,10 @@ export async function POST(req: NextRequest) {
       if (preco != null) update.preco = Number(preco)
       if (ativo != null) update.ativo = Boolean(ativo)
       const { error } = await supabase.from('entrega_pacotes').update(update).eq('id', id)
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      if (error) {
+        console.error('[admin/entrega-pacotes]', error)
+        return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+      }
       return NextResponse.json({ ok: true })
     }
 
@@ -50,10 +53,14 @@ export async function POST(req: NextRequest) {
     const { error } = await supabase.from('entrega_pacotes').insert({
       categoria, nome: nome.trim(), quantidade: Number(quantidade), preco: Number(preco), ativo: ativo !== false,
     })
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) {
+      console.error('[admin/entrega-pacotes]', error)
+      return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+    }
     return NextResponse.json({ ok: true })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'falha ao salvar' }, { status: 500 })
+    console.error('[admin/entrega-pacotes]', err)
+    return NextResponse.json({ error: 'falha ao salvar' }, { status: 500 })
   }
 }
 
@@ -65,6 +72,7 @@ export async function DELETE(req: NextRequest) {
     await supabase.from('entrega_pacotes').delete().eq('id', id)
     return NextResponse.json({ ok: true })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'falha ao excluir' }, { status: 500 })
+    console.error('[admin/entrega-pacotes]', err)
+    return NextResponse.json({ error: 'falha ao excluir' }, { status: 500 })
   }
 }

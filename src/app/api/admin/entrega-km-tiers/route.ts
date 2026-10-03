@@ -39,10 +39,14 @@ export async function POST(req: NextRequest) {
     }))
     if (rows.length) {
       const { error } = await supabase.from('entrega_km_tiers').insert(rows)
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      if (error) {
+        console.error('[admin/entrega-km-tiers]', error)
+        return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+      }
     }
     return NextResponse.json({ ok: true })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'falha ao salvar' }, { status: 500 })
+    console.error('[admin/entrega-km-tiers]', err)
+    return NextResponse.json({ error: 'falha ao salvar' }, { status: 500 })
   }
 }

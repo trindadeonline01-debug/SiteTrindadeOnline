@@ -50,12 +50,13 @@ export async function POST(req: NextRequest) {
     })
 
     if (!resendRes.ok) {
-      const err = await resendRes.json()
-      return NextResponse.json({ error: 'Erro ao enviar email: ' + err.message }, { status: 500 })
+      console.error('[auth/send-code] resend', await resendRes.json().catch(() => null))
+      return NextResponse.json({ error: 'Erro ao enviar email' }, { status: 500 })
     }
 
     return NextResponse.json({ ok: true })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('[auth/send-code]', err)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

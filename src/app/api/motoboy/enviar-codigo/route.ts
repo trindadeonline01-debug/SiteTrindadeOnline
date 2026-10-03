@@ -44,6 +44,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'falha ao enviar código' }, { status: 500 })
+    console.error('[motoboy/enviar-codigo]', err)
+    return NextResponse.json({ error: 'falha ao enviar código' }, { status: 500 })
   }
 }

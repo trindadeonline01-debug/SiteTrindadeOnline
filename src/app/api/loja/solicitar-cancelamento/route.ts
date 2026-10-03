@@ -65,6 +65,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'falha ao solicitar cancelamento' }, { status: 500 })
+    console.error('[loja/solicitar-cancelamento]', err)
+    return NextResponse.json({ error: 'falha ao solicitar cancelamento' }, { status: 500 })
   }
 }

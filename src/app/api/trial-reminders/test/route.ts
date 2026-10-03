@@ -58,6 +58,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, ...result })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('[trial-reminders/test]', err)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

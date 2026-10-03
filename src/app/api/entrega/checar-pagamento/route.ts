@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ paid: true })
   } catch (err: any) {
-    return NextResponse.json({ paid: false, error: err.message })
+    console.error('[entrega/checar-pagamento]', err)
+    return NextResponse.json({ paid: false, error: 'Erro interno' })
   }
 }

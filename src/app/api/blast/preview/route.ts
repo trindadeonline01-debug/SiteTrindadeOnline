@@ -80,6 +80,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ count: unique.length })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('[blast/preview]', err)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

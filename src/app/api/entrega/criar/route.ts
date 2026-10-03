@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, delivery_order_id: result.deliveryOrderId, delivery_code: result.deliveryCode })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'falha ao chamar motoboy' }, { status: 500 })
+    console.error('[entrega/criar]', err)
+    return NextResponse.json({ error: 'falha ao chamar motoboy' }, { status: 500 })
   }
 }

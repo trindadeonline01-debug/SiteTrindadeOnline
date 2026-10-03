@@ -11,9 +11,13 @@ export async function POST(req: NextRequest) {
     const { coupon_id, updates } = await req.json()
     if (!coupon_id) return NextResponse.json({ error: 'coupon_id obrigatório' }, { status: 400 })
     const { error } = await supabase.from('coupons').update(updates).eq('id', coupon_id)
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) {
+      console.error('[coupons/update]', error)
+      return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+    }
     return NextResponse.json({ ok: true })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('[coupons/update]', err)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

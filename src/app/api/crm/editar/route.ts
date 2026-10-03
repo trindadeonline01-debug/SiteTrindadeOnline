@@ -76,6 +76,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'falha ao editar' }, { status: 500 })
+    console.error('[crm/editar]', err)
+    return NextResponse.json({ error: 'falha ao editar' }, { status: 500 })
   }
 }

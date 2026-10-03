@@ -91,6 +91,7 @@ export async function POST(req: NextRequest) {
       nextOffset: result.done ? 0 : offset + result.batchSize,
     })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('[admin/recompress-loja-produtos]', err)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

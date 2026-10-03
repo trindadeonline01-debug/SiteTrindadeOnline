@@ -40,6 +40,25 @@ const nextConfig: NextConfig = {
       },
     ]
   },
+  // Headers de segurança básicos em toda página — achado em auditoria de
+  // segurança, out/2026 (o site não tinha nenhum). Sem CSP de propósito:
+  // apertar isso direito exigiria mapear e testar contra TODO script de
+  // terceiro já plugado (GTM, OneSignal, Mercado Pago, QZ Tray, fontes do
+  // Google), risco real de quebrar alguma coisa sem o teste completo — fica
+  // pra uma rodada própria, não misturado com o resto do checklist.
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(self)' },
+        ],
+      },
+    ]
+  },
 };
 
 export default nextConfig;

@@ -73,6 +73,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'falha ao marcar como lido' }, { status: 500 })
+    console.error('[crm/ler]', err)
+    return NextResponse.json({ error: 'falha ao marcar como lido' }, { status: 500 })
   }
 }

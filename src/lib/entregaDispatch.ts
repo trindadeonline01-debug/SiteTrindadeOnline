@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { moduleActive } from '@/lib/modules'
-import { getEntregaPricing, getEntregaFeeForDelivery, todaySaoPaulo } from '@/lib/entregaPricing'
+import { getEntregaPricing, getEntregaFeeForDelivery, todaySaoPaulo, matchBairroInAddress } from '@/lib/entregaPricing'
 import {
   sendPlatformWhatsApp, sendMotoboyWhatsApp, sendPlatformWhatsAppImage, sendCustomerWhatsApp, ensureEntregaWebhookRegistered,
 } from '@/lib/whatsapp'
@@ -21,12 +21,16 @@ const OFFER_TIMEOUT_MS = 120_000
 // pra quem já importava daqui não precisar trocar o caminho do import.
 export { sendPlatformWhatsApp, sendMotoboyWhatsApp, sendPlatformWhatsAppImage, sendCustomerWhatsApp, ensureEntregaWebhookRegistered }
 
-// Escolhe o próximo motoboy disponível pra uma entrega: ativo, sem oferta
-// pendente em outra corrida (ocupado) e que ainda não foi chamado NESSA
-// RODADA (round_no) — um motoboy que recusou na rodada 1 volta a ficar
-// elegível na rodada 2, é assim que as 3 rodadas conseguem repetir o
-// disparo pro pool inteiro (pedido do Ricardo, set/2026). Entre os
-// elegíveis, chama primeiro quem está há mais tempo sem corrida
+// Escolhe um motoboy NUNCA chamado nessa entrega dentro da rodada atual —
+// ativo, sem oferta pendente em outra corrida (ocupado) e sem nenhuma
+// oferta prévia (qualquer status) nessa RODADA (round_no). Cada motoboy
+// recebe até 3 tentativas seguidas (ver offerToNextMotoboy) antes da
+// próxima chamada a essa função — ela só entra em cena pra buscar alguém
+// NOVO, nunca pra repetir quem já foi tentado (pedido do Ricardo, out/2026:
+// "até 3 tentativas, passa pro próximo, não repete quem já esgotou").
+// Rodada nova (dispatch_round) só abre de novo via retry MANUAL do lojista
+// (🔁 Tentar de novo), que reabre o pool inteiro pra todo mundo de novo.
+// Entre os elegíveis, chama primeiro quem está há mais tempo sem corrida
 // (round-robin simples — sem geolocalização ainda).
 async function pickNextMotoboy(deliveryOrderId: string, roundNo: number): Promise<{ id: string; name: string; phone: string } | null> {
   const { data: active } = await supabase.from('motoboys').select('id, name, phone, priority').eq('active', true).eq('available', true).eq('status', 'aprovado')
@@ -94,6 +98,22 @@ function offerMessage(order: { pickup_address: string; dropoff_address: string; 
     'Responde *SIM* ou *NÃO* em até 2 minutos.',
   )
   return lines.join('\n')
+}
+
+// 2ª e 3ª tentativa pro MESMO motoboy que não respondeu a tempo — texto
+// curto, sem foto, só pra lembrar. Antes a 2ª/3ª chamada repetia a mensagem
+// completa de novo pro mesmo motoboy quando o pool esgotava e abria outra
+// rodada, o que parecia bug pra quem recebia ("a mesma mensagem de novo",
+// Ricardo, out/2026). `identificador` já vem pronto (nº do pedido quando
+// veio do cardápio, ou o nome do cliente numa entrega avulsa sem pedido) —
+// ver sendOfferMessage. Bairro fica de fora da frase quando o endereço não
+// bate com nenhum bairro conhecido (matchBairroInAddress devolve null), em
+// vez de inventar um nome.
+function offerMessageShort(companyName: string, bairro: string | null, valorMotoboy: number, attemptNo: 2 | 3, identificador: string): string {
+  const fee = valorMotoboy.toFixed(2).replace('.', ',')
+  const ordinal = attemptNo === 2 ? '2ª' : '3ª'
+  const bairroTxt = bairro ? ` pro bairro ${bairro}` : ''
+  return `🏍️ *${ordinal} tentativa* — ${identificador} da ${companyName}${bairroTxt}. Você recebe R$ ${fee}. Responde SIM ou NÃO em até 2 minutos.`
 }
 
 // Recorta a foto da loja (que geralmente vem quadrada/retrato) pra um
@@ -244,21 +264,41 @@ export async function criarEntregaEChamarMotoboy(opts: {
   return { ok: true, deliveryOrderId: order.id, deliveryCode: order.delivery_code }
 }
 
-// Monta a mensagem de oferta (texto + foto da loja quando tiver) e manda pro
-// telefone informado — usado tanto pelo disparo real (offerToNextMotoboy,
-// que antes registra a oferta em delivery_offers) quanto pelo botão de
-// teste do admin (que só quer ver como a mensagem chega, sem mexer no
-// estado de nenhuma entrega de verdade).
-async function sendOfferMessage(order: { company_id: string; pickup_address: string; dropoff_address: string; customer_name: string; fee: number }, deliveryOrderId: string, motoboyPhone: string): Promise<{ ok: boolean; detail?: string }> {
+// Monta a mensagem de oferta e manda pro telefone informado — usado tanto
+// pelo disparo real (offerToNextMotoboy, que antes registra a oferta em
+// delivery_offers) quanto pelo botão de teste do admin (que só quer ver
+// como a mensagem chega, sem mexer no estado de nenhuma entrega de
+// verdade; por isso sempre testa a 1ª tentativa, nunca passa attemptNo).
+// `attemptNo` 1 = mensagem completa de sempre (com foto da loja quando
+// tiver); 2 ou 3 = texto curto pro MESMO motoboy que não respondeu a
+// tempo (ver offerMessageShort).
+async function sendOfferMessage(order: { company_id: string; pickup_address: string; dropoff_address: string; customer_name: string; fee: number; pedido_id?: string | null }, deliveryOrderId: string, motoboyPhone: string, attemptNo: 1 | 2 | 3 = 1): Promise<{ ok: boolean; detail?: string }> {
   const [{ data: company }, { data: photo }, pricing] = await Promise.all([
     supabase.from('companies').select('name, loja_tempo_preparo_min').eq('id', order.company_id).maybeSingle(),
-    supabase.from('company_photos').select('url').eq('company_id', order.company_id).order('order').limit(1).maybeSingle(),
+    attemptNo === 1
+      ? supabase.from('company_photos').select('url').eq('company_id', order.company_id).order('order').limit(1).maybeSingle()
+      : Promise.resolve({ data: null }),
     getEntregaPricing(),
   ])
+  const valorMotoboy = Math.max(0, Number(order.fee) - pricing.motoboy_corte_plataforma)
+
+  if (attemptNo !== 1) {
+    // Identificador do pedido na mensagem curta: nº do pedido quando veio
+    // do cardápio, nome do cliente quando é entrega avulsa sem pedido_id
+    // (pedido do Ricardo, out/2026).
+    let identificador = `pedido do(a) ${order.customer_name}`
+    if (order.pedido_id) {
+      const { data: pedido } = await supabase.from('loja_pedidos').select('order_number').eq('id', order.pedido_id).maybeSingle()
+      if (pedido?.order_number) identificador = `pedido #${pedido.order_number}`
+    }
+    const bairro = matchBairroInAddress(order.dropoff_address)
+    const text = offerMessageShort(company?.name || '', bairro, valorMotoboy, attemptNo, identificador)
+    return sendMotoboyWhatsApp(motoboyPhone, text)
+  }
+
   // Mesmo fallback de 20min usado no cálculo de frete (/api/loja/calcular-frete)
   // quando a loja não configurou o próprio tempo de preparo.
   const prepMin = company?.loja_tempo_preparo_min || 20
-  const valorMotoboy = Math.max(0, Number(order.fee) - pricing.motoboy_corte_plataforma)
   const text = offerMessage(order, company?.name || '', prepMin, valorMotoboy)
 
   // Foto da loja (recortada em banner achatado) como preview visual — se
@@ -279,40 +319,54 @@ async function sendOfferMessage(order: { company_id: string; pickup_address: str
   return { ok: true }
 }
 
-// Quantas rodadas completas pelo pool inteiro de motoboys antes de
-// desistir e mostrar o botão manual "🔁 Tentar de novo" pro lojista.
-// Pedido do Ricardo, set/2026: antes desistia na primeira rodada.
-const MAX_DISPATCH_ROUNDS = 3
-
-// Chama o próximo motoboy disponível pra essa entrega — usado na criação e
-// depois de um NÃO/expiração. `roundNo` omitido = lê a rodada atual salva
-// em delivery_orders (chamada "de fora", sem contexto de rodada ainda —
-// criação da entrega e o retry manual). Quando a rodada esgota sem
-// ninguém aceitar, avança pra próxima rodada sozinho (até MAX_DISPATCH_ROUNDS);
-// só depois disso a entrega fica esperando de vez ("sem_motoboy") e a loja
-// vê o botão de tentar de novo.
-export async function offerToNextMotoboy(deliveryOrderId: string, sequenceNo: number, roundNo?: number) {
+// Chama um motoboy pra essa entrega — usado na criação, depois de um
+// NÃO/expiração, e no retry manual. `roundNo` omitido = lê a rodada atual
+// salva em delivery_orders (chamada "de fora", sem contexto de rodada
+// ainda — criação da entrega e o retry manual).
+//
+// `retryMotoboyId` é o pulo do gato do redesenho de out/2026 (Ricardo:
+// "a gente está enviando a mesma mensagem de novo"): quando vem preenchido
+// (motoboy não respondeu a tempo), tenta mandar a PRÓXIMA tentativa pro
+// MESMO motoboy (mensagem curta, 2ª ou 3ª) em vez de já pular pra outro —
+// só passa pra alguém novo quando esse motoboy já esgotou as 3 tentativas
+// dele nessa rodada. Recusa explícita (NÃO) nunca passa esse parâmetro —
+// quem disse não não é chamado de novo pra essa corrida (ver webhook).
+//
+// Quando ninguém mais está elegível nessa rodada (pickNextMotoboy devolve
+// null), a entrega vai pra "sem_motoboy" direto — sem reabrir o pool
+// sozinho de novo (isso só acontece via retry MANUAL do lojista,
+// retryMotoboyDispatch, que abre uma rodada nova). Antes disso tinha um
+// auto-avanço de até 3 rodadas aqui dentro; removido porque misturava os
+// dois conceitos (tentativa por motoboy vs. rodada pelo pool inteiro) e é
+// exatamente a causa do "mesma mensagem de novo" — a rodada 2 reenviava a
+// mensagem completa pro mesmo motoboy que já tinha recebido na rodada 1.
+export async function offerToNextMotoboy(deliveryOrderId: string, sequenceNo: number, roundNo?: number, retryMotoboyId?: string) {
   const { data: order } = await supabase
-    .from('delivery_orders').select('company_id, pickup_address, dropoff_address, customer_name, fee, status, dispatch_round')
+    .from('delivery_orders').select('company_id, pickup_address, dropoff_address, customer_name, fee, status, dispatch_round, pedido_id')
     .eq('id', deliveryOrderId).maybeSingle()
   if (!order || order.status !== 'buscando_motoboy') return
 
   const round = roundNo ?? order.dispatch_round
-  const motoboy = await pickNextMotoboy(deliveryOrderId, round)
-  if (!motoboy) {
-    // Ninguém elegível nessa rodada (todo motoboy ativo já foi chamado
-    // nela, sem aceitar, ou nenhum motoboy ativo existe). Ainda não é hora
-    // de desistir se sobrarem rodadas — repete o disparo pro pool inteiro.
-    if (round < MAX_DISPATCH_ROUNDS) {
-      const nextRound = round + 1
-      await supabase.from('delivery_orders').update({ dispatch_round: nextRound }).eq('id', deliveryOrderId)
-      await offerToNextMotoboy(deliveryOrderId, sequenceNo, nextRound)
-      return
+
+  let motoboy: { id: string; name: string; phone: string } | null = null
+  let attemptNo: 1 | 2 | 3 = 1
+  if (retryMotoboyId) {
+    const { count } = await supabase.from('delivery_offers').select('id', { count: 'exact', head: true })
+      .eq('delivery_order_id', deliveryOrderId).eq('motoboy_id', retryMotoboyId).eq('round_no', round)
+    if ((count || 0) < 3) {
+      const { data: m } = await supabase.from('motoboys').select('id, name, phone').eq('id', retryMotoboyId).eq('active', true).eq('available', true).eq('status', 'aprovado').maybeSingle()
+      if (m) { motoboy = m; attemptNo = ((count || 0) + 1) as 2 | 3 }
     }
-    // Esgotou as 3 rodadas — antes ficava silenciosamente parado em
-    // "buscando_motoboy" pra sempre, sem a loja nunca saber o motivo. Achado
-    // real: com só 2 motoboys ativos, basta os 2 não responderem pra
-    // esgotar a fila (Ricardo, set/2026).
+  }
+  if (!motoboy) {
+    motoboy = await pickNextMotoboy(deliveryOrderId, round)
+    attemptNo = 1
+  }
+  if (!motoboy) {
+    // Esgotou todo mundo elegível nessa rodada — antes ficava
+    // silenciosamente parado em "buscando_motoboy" pra sempre, sem a loja
+    // nunca saber o motivo. Achado real: com só 2 motoboys ativos, basta
+    // os 2 esgotarem as tentativas pra esgotar a fila (Ricardo, set/2026).
     await supabase.from('delivery_orders').update({ status: 'sem_motoboy' }).eq('id', deliveryOrderId)
     return
   }
@@ -322,7 +376,7 @@ export async function offerToNextMotoboy(deliveryOrderId: string, sequenceNo: nu
     delivery_order_id: deliveryOrderId, motoboy_id: motoboy.id, sequence_no: sequenceNo, round_no: round, status: 'pendente', expires_at: expiresAt,
   })
 
-  const sent = await sendOfferMessage(order, deliveryOrderId, motoboy.phone)
+  const sent = await sendOfferMessage(order, deliveryOrderId, motoboy.phone, attemptNo)
   // Se o envio falhar de verdade (Evolution fora do ar, etc), a oferta
   // continua pendente e só expira em 2min pro próximo motoboy — sem isso
   // registrado, essa falha nunca aparecia em lugar nenhum pra investigar.
@@ -344,11 +398,13 @@ export async function sendTestOfferMessage(deliveryOrderId: string, motoboyPhone
 }
 
 // Botão "🔁 Tentar de novo" em /painel/entrega, só aparece quando o status é
-// sem_motoboy (já esgotou as MAX_DISPATCH_ROUNDS automáticas). Cada clique
-// abre mais 1 rodada nova pro pool inteiro — se essa rodada também não
-// encontrar ninguém, volta direto pra sem_motoboy (o número da rodada já
-// passou de MAX_DISPATCH_ROUNDS, então offerToNextMotoboy não tenta mais
-// rodadas sozinho e devolve o controle pro lojista de novo).
+// sem_motoboy (esgotou todo mundo elegível na rodada atual). Cada clique
+// abre 1 rodada nova (dispatch_round++) — como pickNextMotoboy só exclui
+// quem já tem oferta NESSA rodada, todo mundo (inclusive quem já recusou
+// ou esgotou as 3 tentativas na rodada anterior) volta a ficar elegível.
+// Se essa rodada nova também não encontrar ninguém, volta direto pra
+// sem_motoboy de novo (offerToNextMotoboy não reabre rodada sozinho —
+// isso só acontece aqui, por ação manual do lojista).
 export async function retryMotoboyDispatch(deliveryOrderId: string): Promise<{ ok: boolean; error?: string }> {
   const { data: order } = await supabase.from('delivery_orders').select('status, dispatch_round').eq('id', deliveryOrderId).maybeSingle()
   if (!order) return { ok: false, error: 'entrega não encontrada' }
@@ -395,10 +451,17 @@ export async function cancelarChamadaMotoboy(deliveryOrderId: string): Promise<{
   return { ok: true }
 }
 
-// Varre ofertas que estouraram o prazo sem resposta, marca como expiradas
-// e repassa pro próximo motoboy — chamado tanto pelo webhook (toda vez que
-// um motoboy manda mensagem) quanto pelo polling do painel da loja, já que
-// não dá pra confiar só num cron de minuto em minuto pra um prazo de 2min.
+// Varre ofertas que estouraram o prazo sem resposta e marca como expiradas
+// — chamado tanto pelo webhook (toda vez que um motoboy manda mensagem)
+// quanto pelo polling do painel da loja e pelo pg_cron de minuto em minuto,
+// já que não dá pra confiar só num cron 1x/dia pra um prazo de 2min.
+//
+// Decide pra onde vai cada expiração: se o motoboy que não respondeu ainda
+// não esgotou as 3 tentativas dele nessa rodada, manda a próxima (2ª/3ª,
+// texto curto) pro MESMO motoboy — sem avisar "repassei pro próximo", já
+// que não repassou nada ainda. Só avisa isso e chama offerToNextMotoboy
+// sem retryMotoboyId (ou seja, busca alguém NOVO) quando esse motoboy já
+// esgotou as 3 (pedido do Ricardo, out/2026).
 export async function checkExpiredOffers() {
   const nowIso = new Date().toISOString()
   const { data: expired } = await supabase
@@ -406,8 +469,15 @@ export async function checkExpiredOffers() {
     .eq('status', 'pendente').lt('expires_at', nowIso)
   for (const o of expired || []) {
     await supabase.from('delivery_offers').update({ status: 'expirada', responded_at: new Date().toISOString() }).eq('id', o.id)
-    const { data: motoboy } = await supabase.from('motoboys').select('phone').eq('id', o.motoboy_id).maybeSingle()
-    if (motoboy?.phone) await sendMotoboyWhatsApp(motoboy.phone, 'Tempo esgotado — repassei essa corrida pro próximo motoboy. Fica de olho na próxima!')
-    await offerToNextMotoboy(o.delivery_order_id, o.sequence_no + 1, o.round_no)
+    const { count } = await supabase.from('delivery_offers').select('id', { count: 'exact', head: true })
+      .eq('delivery_order_id', o.delivery_order_id).eq('motoboy_id', o.motoboy_id).eq('round_no', o.round_no)
+    const esgotouEsseMotoboy = (count || 0) >= 3
+    if (esgotouEsseMotoboy) {
+      const { data: motoboy } = await supabase.from('motoboys').select('phone').eq('id', o.motoboy_id).maybeSingle()
+      if (motoboy?.phone) await sendMotoboyWhatsApp(motoboy.phone, 'Tempo esgotado — repassei essa corrida pro próximo motoboy. Fica de olho na próxima!')
+      await offerToNextMotoboy(o.delivery_order_id, o.sequence_no + 1, o.round_no)
+    } else {
+      await offerToNextMotoboy(o.delivery_order_id, o.sequence_no + 1, o.round_no, o.motoboy_id)
+    }
   }
 }

@@ -779,15 +779,21 @@ export default function PedidosPage() {
             juntos numa faixa só, em vez de espremidos do lado do nome
             (mockup aprovado, out/2026: "aquela setinha ficou lateral, não
             ficou boa não"). Imprimir sobe de dentro do detalhe aberto pra
-            cá — fica acessível com o card aberto ou fechado. */}
-        <div className="pd-toolbar">
-          <span className="pd-badge" style={{ background: c.bg, color: c.fg }}>{STATUS_LABEL[p.status]}</span>
-          <span className="pd-tb-spacer" />
-          <button className="pd-edit-btn" title="Editar pedido" onClick={() => setEditId(p.id)}>✏️</button>
-          <button className="pd-edit-btn" title="Imprimir pedido" onClick={e => { e.stopPropagation(); printPedido(p) }}>🖨️</button>
-          <button className="pd-toggle-btn" aria-label={open ? 'Fechar detalhes do pedido' : 'Abrir detalhes do pedido'} onClick={() => setOpenId(open ? null : p.id)}>
-            {open ? '⌃' : '⌄'}
-          </button>
+            cá — fica acessível com o card aberto ou fechado.
+            "pd-card-toolbar", não "pd-toolbar" — tinha colisão de nome com
+            a barra de busca/filtros lá em cima da página (achado real do
+            Ricardo, out/2026: com a sidebar do painel aberta espremendo as
+            colunas, o estilo errado "vazava" pra cá e empurrava o botão de
+            abrir/fechar pra fora do card). */}
+        <div className="pd-card-toolbar">
+          <span className="pd-ct-status" style={{ background: c.bg, color: c.fg }}>{STATUS_LABEL[p.status]}</span>
+          <div className="pd-ct-actions">
+            <button className="pd-edit-btn" title="Editar pedido" onClick={() => setEditId(p.id)}>✏️</button>
+            <button className="pd-edit-btn" title="Imprimir pedido" onClick={e => { e.stopPropagation(); printPedido(p) }}>🖨️</button>
+            <button className="pd-toggle-btn" aria-label={open ? 'Fechar detalhes do pedido' : 'Abrir detalhes do pedido'} onClick={() => setOpenId(open ? null : p.id)}>
+              {open ? '⌃' : '⌄'}
+            </button>
+          </div>
         </div>
         {printError && <div style={{ color: '#C43D3D', fontSize: 11, margin: '0 0 8px' }}>{printError}</div>}
         <div className="pd-row1">
@@ -998,16 +1004,27 @@ export default function PedidosPage() {
            lado do nome do cliente. Mockup aprovado, out/2026 (Ricardo:
            "aquela setinha ficou lateral, não ficou boa não"). Usa a mesma
            margem negativa do padding do card (14px) pra encostar nas bordas
-           com o raio do próprio card (12px 12px 0 0). */
-        .pd-toolbar{ display:flex;align-items:center;gap:6px;background:#F7F5F0;border-bottom:1px solid #EDE8E0;border-radius:12px 12px 0 0;padding:9px 14px;margin:-14px -14px 10px; }
-        .pd-tb-spacer{ flex:1; }
+           com o raio do próprio card (12px 12px 0 0).
+           Blindado pra nunca sumir em coluna estreita (sidebar do painel
+           aberta espremendo o board, achado real do Ricardo, out/2026,
+           "independente do que aconteça, você botou, não pode sumir"):
+           - pd-ct-status encolhe e trunca com reticências PRIMEIRO —
+             min-width:0 é o pulo do gato, sem isso um item flex nunca
+             encolhe abaixo do tamanho do próprio texto.
+           - pd-ct-actions (editar+imprimir+abrir/fechar) nunca encolhe
+             (flex:none) e fica sempre junto, grudado à direita.
+           - flex-wrap como rede de segurança última: se mesmo com o status
+             todo encolhido ainda não couber, o grupo de ações quebra pra
+             uma linha de baixo inteiro — nunca corta/empurra pra fora. */
+        .pd-card-toolbar{ display:flex;align-items:center;flex-wrap:wrap;gap:4px 6px;background:#F7F5F0;border-bottom:1px solid #EDE8E0;border-radius:12px 12px 0 0;padding:8px 14px;margin:-14px -14px 10px; }
+        .pd-ct-status{ min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:800;padding:3px 8px;border-radius:7px;flex:1 1 auto; }
+        .pd-ct-actions{ display:flex;align-items:center;gap:4px;flex:none;margin-left:auto; }
         .pd-row1{ margin-bottom:8px; }
         .pd-edit-btn{ width:26px;height:26px;border-radius:8px;border:1px solid #E6E0D2;background:#fff;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;flex:none;padding:0; }
         .pd-toggle-btn{ width:26px;height:26px;border-radius:8px;border:1.5px solid #D8C98A;background:#FEF6DC;color:#8A6410;cursor:pointer;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none;padding:0; }
         .pd-name{ font-weight:800;font-size:16px; }
         .pd-time{ font-size:12.5px;color:#A79E8B; }
         .pd-origin-tag{ font-weight:700; }
-        .pd-badge{ font-size:12px;font-weight:800;padding:3px 8px;border-radius:7px; }
         .pd-sum{ font-size:13.5px;color:#6E6656;margin-bottom:2px; }
         /* Painel único agrupando pagamento + motoboy — cada linha tinta
            conforme o estado (verde/âmbar/vermelho/azul), bordas arredondadas

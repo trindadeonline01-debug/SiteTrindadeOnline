@@ -775,20 +775,25 @@ export default function PedidosPage() {
     const canAct = isToday || (p.status !== 'entregue' && p.status !== 'cancelado')
     return (
       <div className={`pd-card ${needsAccept ? 'pd-card-pending' : ''} ${late ? 'pd-card-late' : ''}`} key={p.id} style={{ '--accent': c.fg, borderLeft: `4px solid ${o.fg}` } as React.CSSProperties}>
+        {/* Menu superior fixo — status, editar, imprimir e abrir/fechar
+            juntos numa faixa só, em vez de espremidos do lado do nome
+            (mockup aprovado, out/2026: "aquela setinha ficou lateral, não
+            ficou boa não"). Imprimir sobe de dentro do detalhe aberto pra
+            cá — fica acessível com o card aberto ou fechado. */}
+        <div className="pd-toolbar">
+          <span className="pd-badge" style={{ background: c.bg, color: c.fg }}>{STATUS_LABEL[p.status]}</span>
+          <span className="pd-tb-spacer" />
+          <button className="pd-edit-btn" title="Editar pedido" onClick={() => setEditId(p.id)}>✏️</button>
+          <button className="pd-edit-btn" title="Imprimir pedido" onClick={e => { e.stopPropagation(); printPedido(p) }}>🖨️</button>
+          <button className="pd-toggle-btn" aria-label={open ? 'Fechar detalhes do pedido' : 'Abrir detalhes do pedido'} onClick={() => setOpenId(open ? null : p.id)}>
+            {open ? '⌃' : '⌄'}
+          </button>
+        </div>
+        {printError && <div style={{ color: '#C43D3D', fontSize: 11, margin: '0 0 8px' }}>{printError}</div>}
         <div className="pd-row1">
           <div>
             <div className="pd-name">{p.order_number ? `#${p.order_number} · ` : ''}{p.customer_name}</div>
             <div className="pd-time">{timeAgo(p.created_at)} atrás <span className="pd-origin-tag" style={{ color: o.fg }}>· {o.label}</span></div>
-          </div>
-          <div className="pd-row1-right">
-            <button className="pd-edit-btn" title="Editar pedido" onClick={() => setEditId(p.id)}>✏️</button>
-            <span className="pd-badge" style={{ background: c.bg, color: c.fg }}>{STATUS_LABEL[p.status]}</span>
-            {/* Botão dedicado de abrir/fechar — antes era o card inteiro
-                clicável, o que não ficava claro pro Ricardo ("não tá legal").
-                Mockup aprovado, out/2026. */}
-            <button className="pd-toggle-btn" aria-label={open ? 'Fechar detalhes do pedido' : 'Abrir detalhes do pedido'} onClick={() => setOpenId(open ? null : p.id)}>
-              {open ? '⌃' : '⌄'}
-            </button>
           </div>
         </div>
         {late && <div className="pd-late-flag">⚠ Parado há mais de {LATE_THRESHOLD_MIN}min sem avançar</div>}
@@ -923,8 +928,6 @@ export default function PedidosPage() {
                 {flowFor(p).map(s => <button key={s} className={`pd-chip ${p.status === s ? 'current' : ''}`} onClick={() => setStatus(p.id, s)}>{STATUS_LABEL[s]}</button>)}
               </div>
             )}
-            <button className="pd-print-btn" onClick={e => { e.stopPropagation(); printPedido(p) }}>🖨️ Imprimir pedido</button>
-            {printError && <div style={{ color: '#C43D3D', fontSize: 11, marginTop: 4 }}>{printError}</div>}
             {canAct && p.status !== 'cancelado' && p.status !== 'entregue' && <button className="pd-cancel" onClick={() => setStatus(p.id, 'cancelado')}>Cancelar pedido</button>}
           </div>
         )}
@@ -990,9 +993,16 @@ export default function PedidosPage() {
         .pd-tab.active .pd-tab-count{ background:rgba(255,255,255,.3);color:#fff; }
         .pd-body{ padding:0 16px; }
         .pd-card{ background:#fff;border:1px solid #EDE8E0;border-radius:12px;padding:14px;margin-bottom:10px; }
-        .pd-row1{ display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px; }
-        .pd-row1-right{ display:flex;align-items:center;gap:6px;flex:none; }
-        .pd-edit-btn{ width:24px;height:24px;border-radius:7px;border:1px solid #E6E0D2;background:#F7F5F0;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;flex:none;padding:0; }
+        /* Menu superior fixo — status, editar, imprimir e abrir/fechar numa
+           faixa própria colada no topo do card, em vez de tudo espremido do
+           lado do nome do cliente. Mockup aprovado, out/2026 (Ricardo:
+           "aquela setinha ficou lateral, não ficou boa não"). Usa a mesma
+           margem negativa do padding do card (14px) pra encostar nas bordas
+           com o raio do próprio card (12px 12px 0 0). */
+        .pd-toolbar{ display:flex;align-items:center;gap:6px;background:#F7F5F0;border-bottom:1px solid #EDE8E0;border-radius:12px 12px 0 0;padding:9px 14px;margin:-14px -14px 10px; }
+        .pd-tb-spacer{ flex:1; }
+        .pd-row1{ margin-bottom:8px; }
+        .pd-edit-btn{ width:26px;height:26px;border-radius:8px;border:1px solid #E6E0D2;background:#fff;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;flex:none;padding:0; }
         .pd-toggle-btn{ width:26px;height:26px;border-radius:8px;border:1.5px solid #D8C98A;background:#FEF6DC;color:#8A6410;cursor:pointer;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none;padding:0; }
         .pd-name{ font-weight:800;font-size:16px; }
         .pd-time{ font-size:12.5px;color:#A79E8B; }
@@ -1028,7 +1038,6 @@ export default function PedidosPage() {
         .pd-chip{ font-size:12.5px;font-weight:700;padding:8px 10px;border-radius:8px;border:1px solid #E6E0D2;background:#fff;cursor:pointer;color:#6E6656;text-align:center; }
         .pd-chip.current{ background:var(--sign);color:var(--ink);border-color:var(--sign); }
         .pd-cancel{ font-size:12px;color:#C43D3D;font-weight:700;background:none;border:none;cursor:pointer;margin-top:8px; }
-        .pd-print-btn{ width:100%;margin-top:8px;padding:9px;border-radius:9px;border:1.5px solid #E6E0D2;background:#fff;color:#6E6656;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit; }
         .pd-printer-pill{ padding:9px 14px;border-radius:9px;border:1.5px solid #E6E0D2;background:#fff;color:#8A6410;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit;white-space:nowrap; }
         .pp-overlay{ position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:70;display:flex;align-items:center;justify-content:center;padding:16px; }
         .pp-modal{ background:#fff;border-radius:16px;max-width:400px;width:100%;padding:22px;max-height:88vh;overflow-y:auto; }

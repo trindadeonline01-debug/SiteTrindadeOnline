@@ -405,16 +405,11 @@ export default function PedidosPage() {
     loadAll(companyIdRef.current, selectedDate)
   }
 
-  // Botão "Cancelar" — cobre tanto "Chamando motoboy..." quanto "já aceitou,
-  // a caminho" (Ricardo, out/2026: "era pra cancelar tudo", tentou cancelar
-  // uma corrida já aceita na Peixaria Trindade e o botão nem aparecia).
-  // Antes não checava a resposta — se a API recusasse (ex: corrida já virou
-  // "entregue" entre o clique e a confirmação), falhava calado, sem avisar
-  // a loja de nada.
-  async function cancelarChamada(deliveryOrderId: string, pedidoId: string) {
-    if (!confirm('Cancelar essa chamada de motoboy?')) return
-    setCancelingMotoId(deliveryOrderId)
-    setMotoErrors(prev => { const n = { ...prev }; delete n[pedidoId]; return n })
+  // Chamada de verdade à API de cancelar — separada do botão (confirm() +
+  // estado de loading/erro da UI) porque também precisa rodar sozinha,
+  // sem pergunta nenhuma, quando o PEDIDO inteiro é cancelado (ver
+  // setStatus mais abaixo).
+  async function doCancelarChamadaMotoboy(deliveryOrderId: string): Promise<{ ok: boolean; error?: string }> {
     const { data: { session } } = await supabase.auth.getSession()
     try {
       const res = await fetch('/api/entrega/cancelar', {
@@ -422,10 +417,25 @@ export default function PedidosPage() {
         body: JSON.stringify({ access_token: session?.access_token, company_id: companyId, delivery_order_id: deliveryOrderId }),
       })
       const data = await res.json().catch(() => ({}))
-      if (!res.ok || data.error) setMotoErrors(prev => ({ ...prev, [pedidoId]: data.error || 'Não consegui cancelar essa corrida.' }))
+      if (!res.ok || data.error) return { ok: false, error: data.error || 'Não consegui cancelar essa corrida.' }
+      return { ok: true }
     } catch {
-      setMotoErrors(prev => ({ ...prev, [pedidoId]: 'Falha de conexão — tenta de novo.' }))
+      return { ok: false, error: 'Falha de conexão — tenta de novo.' }
     }
+  }
+
+  // Botão "Cancelar" — cobre "Chamando motoboy...", "já aceitou, a caminho"
+  // e "sem_motoboy" (Ricardo, out/2026: "era pra cancelar tudo", tentou
+  // cancelar uma corrida já aceita na Peixaria Trindade e o botão nem
+  // aparecia). Antes não checava a resposta — se a API recusasse (ex:
+  // corrida já virou "entregue" entre o clique e a confirmação), falhava
+  // calado, sem avisar a loja de nada.
+  async function cancelarChamada(deliveryOrderId: string, pedidoId: string) {
+    if (!confirm('Cancelar essa chamada de motoboy?')) return
+    setCancelingMotoId(deliveryOrderId)
+    setMotoErrors(prev => { const n = { ...prev }; delete n[pedidoId]; return n })
+    const result = await doCancelarChamadaMotoboy(deliveryOrderId)
+    if (!result.ok) setMotoErrors(prev => ({ ...prev, [pedidoId]: result.error || 'Não consegui cancelar essa corrida.' }))
     setCancelingMotoId(null)
     loadAll(companyIdRef.current, selectedDate)
   }
@@ -473,6 +483,22 @@ export default function PedidosPage() {
       notifyCustomerWhatsapp(companyId, pedidoRef.customer_phone, status, pedidoRef.delivery_type, id)
       if (status === 'em_preparo') maybeAutoChamarMotoboy(pedidoRef)
       if (motoboyId) notifyMotoboyWhatsapp(companyId, id, motoboyId)
+    }
+    // Pedido cancelado (pela loja ou a pedido do cliente, via
+    // resolverCancelamento) tinha que ser desconectado da chamada de
+    // motoboy em andamento, e não era — achado real do Ricardo, out/2026:
+    // pedido cancelado e o motoboy continuou sendo chamado/a caminho pra
+    // uma entrega que não existia mais. Cobre as 3 fases canceláveis
+    // (buscando_motoboy/a_caminho/sem_motoboy — mesmas que o botão manual
+    // "Cancelar" já cobre); o motoboy é avisado pela própria
+    // doCancelarChamadaMotoboy (❌ "chamada cancelada pela loja").
+    if (status === 'cancelado') {
+      const d = deliveryByPedido[id]
+      if (d && (d.status === 'buscando_motoboy' || d.status === 'a_caminho' || d.status === 'sem_motoboy')) {
+        doCancelarChamadaMotoboy(d.id).then(result => {
+          if (!result.ok) console.error('[setStatus] falha ao cancelar chamada de motoboy junto com o pedido', result.error)
+        })
+      }
     }
   }
 

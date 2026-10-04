@@ -223,12 +223,18 @@ export default function HomePecaAgora({ groups, search = '' }: { groups: PecaGro
            pediu o mínimo de altura possível, pra sobrar mais tela pro
            conteúdo, set/2026). */
         .pa-hdr { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 14px; }
+        /* "Delivery na Trindade" desce pra debaixo de "Peça agora",
+           alinhado à esquerda — sobra a largura toda do lado direito só
+           pro pill, que antes brigava espaço com esse texto e quebrava
+           linha no iPhone (Ricardo, out/2026). */
+        .pa-hdr-left { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; }
         .pa-eyebrow { color: rgba(21,18,16,.68); margin-bottom: 0; white-space: nowrap; }
-        .pa-hdr-right { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; justify-content: flex-end; }
         /* Pill único trocando de rótulo/ícone conforme a vista atual — nem
            linha nova, nem par de ícones; só mostra pra onde o toque leva
-           (mockup aprovado, out/2026, "algo que ocupe menos espaço"). */
-        .pa-view-toggle { flex: none; display: flex; align-items: center; gap: 4px; background: var(--paper); border: 1px solid var(--ink); border-radius: 20px; padding: 4px 10px 4px 8px; font-size: 10px; font-weight: 800; color: var(--ink); white-space: nowrap; cursor: pointer; font-family: 'Archivo', sans-serif; }
+           (mockup aprovado, out/2026, "algo que ocupe menos espaço"). Fonte
+           maior e o "Ver" de volta — pedido do Ricardo, out/2026, agora que
+           ganhou espaço de sobra com a "Delivery na Trindade" realocada. */
+        .pa-view-toggle { flex: none; display: flex; align-items: center; gap: 5px; background: var(--paper); border: 1px solid var(--ink); border-radius: 20px; padding: 6px 14px 6px 10px; font-size: 12.5px; font-weight: 800; color: var(--ink); white-space: nowrap; cursor: pointer; font-family: 'Archivo', sans-serif; }
         /* Vista "Lojas" — um cartão por empresa, prateleirinha horizontal
            com os produtos dela (mesmas fotos de produto já usadas na lista,
            sem precisar de logo). */
@@ -306,20 +312,20 @@ export default function HomePecaAgora({ groups, search = '' }: { groups: PecaGro
           <div className="pa-band">
             <div className="pa-band-inner">
               <div className="pa-hdr">
-                <h2 className="recent-section-title">🍔 Peça agora</h2>
-                <div className="pa-hdr-right">
+                <div className="pa-hdr-left">
+                  <h2 className="recent-section-title">🍔 Peça agora</h2>
                   <span className="sec-eyebrow pa-eyebrow">Delivery na Trindade</span>
-                  {/* Troca a vista sem gastar linha nova — mostra pra onde o
-                      toque leva, não os dois estados ao mesmo tempo (mockup
-                      aprovado, out/2026). Texto sem o "Ver" — achado real do
-                      Ricardo, out/2026: "Ver produtos" quebrava linha no
-                      pill no iPhone (mesmo cabendo liso no Android), ficando
-                      feio; "Lojas"/"Produtos" sozinho é curto o bastante pra
-                      nunca quebrar em nenhum dos dois. */}
-                  <button type="button" className="pa-view-toggle" onClick={toggleViewMode}>
-                    {viewMode === 'produtos' ? '🏪 Lojas' : '📦 Produtos'}
-                  </button>
                 </div>
+                {/* Troca a vista sem gastar linha nova — mostra pra onde o
+                    toque leva, não os dois estados ao mesmo tempo (mockup
+                    aprovado, out/2026). "Delivery na Trindade" desceu pra
+                    debaixo do título (bloco da esquerda), deixando o pill
+                    sozinho no lado direito, com largura de sobra — corrige
+                    o "Ver produtos" quebrando linha no iPhone sem precisar
+                    encurtar o texto (Ricardo, out/2026). */}
+                <button type="button" className="pa-view-toggle" onClick={toggleViewMode}>
+                  {viewMode === 'produtos' ? '🏪 Ver lojas' : '📦 Ver produtos'}
+                </button>
               </div>
 
               <div className="pa-scroll">

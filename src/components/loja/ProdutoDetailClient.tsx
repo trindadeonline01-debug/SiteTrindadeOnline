@@ -164,9 +164,11 @@ export default function ProdutoDetailClient({ slug, company, produto, related }:
         .id-pillrow{display:flex;align-items:center;gap:8px;margin:14px 0 6px;font-size:12px;color:#888;flex-wrap:wrap;}
         .id-open{background:#E6F4EA;color:#1B7A3E;font-weight:700;padding:3px 9px;border-radius:20px;font-size:11.5px;}
         .id-closed{background:#F0EDE8;color:#888;font-weight:700;padding:3px 9px;border-radius:20px;font-size:11.5px;}
-        .id-name{font-family:'Archivo',sans-serif;font-weight:700;font-size:22px;color:var(--ink);line-height:1.15;margin:2px 0 8px;}
-        .id-price{font-family:'Anton',sans-serif;font-size:32px;color:var(--ink);}
-        .id-price-old{font-size:15px;color:#AAA;text-decoration:line-through;margin-left:8px;}
+        .id-name-row{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin:2px 0 8px;}
+        .id-name{font-family:'Archivo',sans-serif;font-weight:700;font-size:22px;color:var(--ink);line-height:1.15;margin:0;flex:1;min-width:0;}
+        .id-price-block{flex:none;text-align:right;white-space:nowrap;}
+        .id-price{font-family:'Anton',sans-serif;font-size:32px;color:var(--ink);line-height:1;}
+        .id-price-old{display:block;font-size:13px;color:#AAA;text-decoration:line-through;margin-top:2px;}
         .id-desc{font-size:13.5px;color:#4A4741;line-height:1.6;margin:12px 0 18px;}
         .id-opts{border-top:7px solid #F0EDE8;margin:0 -16px 14px;}
         .id-opts-h{background:#FBF1DC;padding:11px 16px;display:flex;align-items:center;gap:8px;}
@@ -237,10 +239,18 @@ export default function ProdutoDetailClient({ slug, company, produto, related }:
           {company.avg_rating > 0 && <span>★ {company.avg_rating.toFixed(1)} ({company.total_reviews})</span>}
         </div>
 
-        <h1 className="id-name">{produto.name}</h1>
-        <div>
-          <span className="id-price">{fmt(basePrice)}</span>
-          {promo && <span className="id-price-old">{fmt(produto.sale_price)}</span>}
+        {/* Nome de um lado, preço do outro — pedido do Ricardo, out/2026
+            ("Turbinada M" de um lado, o valor do outro, alinhados na mesma
+            linha). align-items:flex-start em vez de center porque nome
+            comprido quebra em 2-3 linhas (lista de produtos tem bastante
+            nome longo) — assim o preço fica colado na PRIMEIRA linha do
+            nome, não flutuando no meio do bloco inteiro. */}
+        <div className="id-name-row">
+          <h1 className="id-name">{produto.name}</h1>
+          <div className="id-price-block">
+            <span className="id-price">{fmt(basePrice)}</span>
+            {promo && <span className="id-price-old">{fmt(produto.sale_price)}</span>}
+          </div>
         </div>
 
         {produto.description && <p className="id-desc">{produto.description}</p>}

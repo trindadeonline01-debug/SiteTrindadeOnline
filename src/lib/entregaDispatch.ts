@@ -258,6 +258,15 @@ export async function criarEntregaEChamarMotoboy(opts: {
   }).select('id, delivery_code').single()
   if (insertErr || !order) return { ok: false, error: insertErr?.message || 'falha ao criar entrega' }
 
+  // Entrega avulsa (sem pedido_id) não passa pelo /api/loja/registrar-pedido,
+  // que já manda esse aviso pro pedido do cardápio — sem isso aqui, o
+  // cliente nunca ficava sabendo do código (achado real, out/2026: Batataria
+  // Família B chamou motoboy avulso e o código só aparecia pro lojista
+  // dentro do painel, nunca chegava pro cliente de jeito nenhum).
+  if (!pedidoId && customerPhone) {
+    await sendCustomerWhatsApp(companyId, customerPhone, `🔑 Guarda esse código: *${order.delivery_code}*\nQuando o motoboy chegar, informe esse número pra ele.`)
+  }
+
   await ensureEntregaWebhookRegistered()
   await offerToNextMotoboy(order.id, 1)
 

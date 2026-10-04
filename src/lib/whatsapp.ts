@@ -88,7 +88,18 @@ export async function sendCustomerWhatsApp(companyId: string, phone: string | nu
     const { data: instance } = await supabase
       .from('crm_whatsapp_instances').select('instance_name, api_key')
       .eq('company_id', companyId).eq('status', 'connected').limit(1).maybeSingle()
-    if (!instance) return
+    // Loja sem WhatsApp escaneado (instância não conectada): antes a
+    // mensagem simplesmente não saía, calada — cliente nunca recebia nem o
+    // código de entrega nem "pedido entregue" (achado real, out/2026,
+    // Batataria Família B chamando motoboy avulso sem estar conectada).
+    // Cai pro número da PLATAFORMA como reserva — pedido do Ricardo:
+    // "pelo menos não deixa de funcionar". Não é a conversa do CRM da loja
+    // (nunca passou pelo WhatsApp dela de verdade), então não tenta gravar
+    // em crm_messages/crm_contacts — só garante que a mensagem chega.
+    if (!instance) {
+      await sendPlatformWhatsApp(normalized, text)
+      return
+    }
     const res = await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', apikey: instance.api_key },
       body: JSON.stringify({ number: normalized, text }),

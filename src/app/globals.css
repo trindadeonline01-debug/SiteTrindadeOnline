@@ -63,9 +63,13 @@ body {
 .font-anton { font-family: 'Anton', sans-serif; }
 .font-archivo { font-family: 'Archivo', sans-serif; }
 
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: #F0EDE8; }
-::-webkit-scrollbar-thumb { background: #C9951A; border-radius: 2px; }
+/* Sem barra de rolagem visível em lugar nenhum do site — "igual aplicativo,
+   só rola e acabou" (Ricardo, out/2026). Antes tinha um traço de 4px
+   estilizado (trilha + polegar dourado) que aparecia na borda da tela toda
+   vez que rolava, em qualquer scroll do site (não só os carrosséis
+   horizontais, que já escondiam a própria barra à parte). */
+* { scrollbar-width: none; }
+::-webkit-scrollbar { display: none; }
 
 /* iOS/Safari dá zoom automático ao focar campo com fonte < 16px — a maioria
    dos formulários do site usa 13-15px inline, então força 16px só no mobile

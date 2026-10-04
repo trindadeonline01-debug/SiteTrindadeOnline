@@ -32,6 +32,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [filterCat, setFilterCat] = useState('all')
   const [linkCopied, setLinkCopied] = useState(false)
+  const [detailLinkCopied, setDetailLinkCopied] = useState(false)
   useEffect(() => {
     // Link de categoria (ESPECIFICACAO.md §9.2 — "olha só os combos") já
     // abre o cardápio filtrado, sem precisar de rota própria por categoria.
@@ -276,7 +277,15 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
   const cartTotal = cart.reduce((s, l) => s + l.unitPrice * l.qty, 0)
   const cartCount = cart.reduce((s, l) => s + l.qty, 0)
 
-  function openDetail(p: Produto) { setDetail(p); setDetailSel(p.groups.map(() => [])); setDetailQty(1) }
+  // dscrollRef: zera o scroll ao trocar de produto — sem isso, clicar num
+  // "Também tem" vindo de baixo da tela (ver relatedProdutos) abria o
+  // produto novo já scrollado no meio, porque o modal é o MESMO elemento
+  // DOM (só troca o conteúdo via `detail`), então o scroll antigo ficava.
+  const dscrollRef = useRef<HTMLDivElement>(null)
+  function openDetail(p: Produto) {
+    setDetail(p); setDetailSel(p.groups.map(() => [])); setDetailQty(1)
+    if (dscrollRef.current) dscrollRef.current.scrollTop = 0
+  }
   // Grupo com máximo 1 (ex: tamanho) continua radio — escolher a mesma opção
   // duas vezes não faz sentido aí. Grupos com máximo maior (ex: "escolha até
   // 3 molhos") permitem repetir a MESMA opção várias vezes (pedir o mesmo
@@ -314,6 +323,19 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
   }
   const detailUnitPrice = detail ? (promoPrice(detail) ?? detail.sale_price) + detail.groups.reduce((s, g, gi) => s + groupContribution(g, detailSel[gi]), 0) : 0
   const detailReqMet = detail ? detail.groups.every((g, gi) => !g.required || detailSel[gi].length >= g.min_select) : true
+  // "Também tem" dentro do modal — mesma ideia da página /empresa/[slug]/
+  // item/[id] (Ricardo, out/2026), mas abrindo o relacionado NO PRÓPRIO
+  // modal (openDetail), sem navegar — reaproveita o catálogo que já está
+  // carregado em `produtos`, sem buscar nada novo. Prioriza mesma
+  // categoria; completa com o resto se a categoria tiver poucos itens.
+  const relatedProdutos = detail
+    ? (() => {
+        const outros = produtos.filter(p => p.id !== detail.id && availableToday(p) && !isSoldOut(p))
+        const mesmaCategoria = outros.filter(p => p.category_id === detail.category_id)
+        const resto = outros.filter(p => p.category_id !== detail.category_id)
+        return [...mesmaCategoria, ...resto].slice(0, 8)
+      })()
+    : []
 
   function confirmAddDetail() {
     if (!detail || !detailReqMet) return
@@ -461,6 +483,33 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
     }
     setLinkCopied(true)
     setTimeout(() => setLinkCopied(false), 2000)
+  }
+
+  // Compartilhar o PRODUTO aberto no modal — link próprio
+  // (/empresa/[slug]/item/[id], mesma rota usada pelo Peça Agora), não o
+  // link do cardápio inteiro. Mesmo padrão de handleShareCardapio, estado
+  // separado pra não confundir com o ícone de compartilhar do cardápio lá
+  // em cima. Achado do Ricardo, out/2026: quem abre produto por aqui tinha
+  // uma experiência pior que vindo do Peça Agora — essa é uma das peças.
+  async function handleShareDetail() {
+    if (!detail) return
+    const url = `${window.location.origin}/empresa/${slug}/item/${detail.id}`
+    const nav = navigator as Navigator & { share?: (data: ShareData) => Promise<void> }
+    if (nav.share) {
+      try {
+        await nav.share({ title: detail.name, text: `${detail.name} — ${fmt(promoPrice(detail) ?? detail.sale_price)} na ${company?.name}!\n${url}` })
+        return
+      } catch {
+        // usuário cancelou o compartilhamento nativo — cai pro copiar link
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url)
+    } catch {
+      // clipboard bloqueado (raro) — só ignora, o link já está na barra do navegador
+    }
+    setDetailLinkCopied(true)
+    setTimeout(() => setDetailLinkCopied(false), 2000)
   }
 
   if (!company) return (
@@ -653,7 +702,25 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
         .cd-hero img{ width:100%;height:100%;object-fit:cover; }
         .cd-hero-scrim{ position:absolute;top:0;left:0;right:0;height:70px;background:linear-gradient(180deg,rgba(0,0,0,.32),transparent);z-index:1; }
         .cd-herobtn{ position:absolute;top:14px;right:14px;width:38px;height:38px;border-radius:50%;background:rgba(20,15,8,.55);backdrop-filter:blur(3px);border:1px solid rgba(255,255,255,.3);font-size:19px;font-weight:800;color:#fff;cursor:pointer;z-index:2;box-shadow:0 3px 10px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center; }
+        .cd-herobtn-share{ right:auto;left:14px;font-size:16px; }
         .cd-dscroll{ flex:1;overflow-y:auto;padding:16px; }
+        /* Nome + preço lado a lado, igual a página /empresa/[slug]/item/[id]
+           (Ricardo, out/2026). */
+        .cd-dname-row{ display:flex;align-items:flex-start;justify-content:space-between;gap:12px; }
+        .cd-dname{ font-size:19px;font-weight:800;color:var(--ink);line-height:1.2;flex:1;min-width:0; }
+        .cd-dprice-block{ flex:none;text-align:right;white-space:nowrap; }
+        .cd-dprice{ font-family:'Anton',sans-serif;font-size:24px;color:var(--ink);line-height:1; }
+        .cd-dprice-old{ font-size:12px;color:#AAA;text-decoration:line-through;margin-top:2px; }
+        .cd-dstatus-open{ display:inline-block;margin-top:6px;font-size:11px;font-weight:700;color:var(--open);background:#E4F3EC;padding:3px 9px;border-radius:20px; }
+        .cd-dstatus-closed{ display:inline-block;margin-top:6px;font-size:11px;font-weight:700;color:#A83232;background:#FBEAEA;padding:3px 9px;border-radius:20px; }
+        /* "Também tem" — mesma ideia da página do produto (Peça Agora), só
+           que aqui o clique troca o modal pro relacionado em vez de navegar. */
+        .cd-related-h{ font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:#AAA;font-weight:800;margin:18px 0 10px; }
+        .cd-related{ display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;margin:0 -16px;padding-left:16px;padding-right:16px; }
+        .cd-related-item{ flex:none;width:104px;display:flex;flex-direction:column;gap:5px;text-align:left;background:none;border:none;padding:0;cursor:pointer;font-family:'Archivo',sans-serif; }
+        .cd-related-im{ width:104px;height:88px;border-radius:10px;background:var(--concrete-2);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:20px; }
+        .cd-related-nm{ font-size:11.5px;font-weight:700;color:var(--ink);line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden; }
+        .cd-related-pr{ font-size:11.5px;font-weight:800;color:var(--sign-dark); }
         .cd-optgroup{ border-top:7px solid #F0EDE8;margin:0 -16px; }
         .cd-og-head{ background:#FBF1DC;padding:11px 16px;display:flex;align-items:center;gap:8px; }
         .cd-og-mid{ flex:1;min-width:0; }
@@ -843,13 +910,28 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
             {detail.photo_url ? <Image src={detail.photo_url} alt="" fill sizes="100vw" style={{ objectFit: 'cover' }} /> : detail.name[0]}
             <div className="cd-hero-scrim" />
             <button className="cd-herobtn" onClick={() => setDetail(null)}>‹</button>
+            {/* Mesmo botão de compartilhar da página /empresa/[slug]/item/[id]
+                (Peça Agora) — do lado oposto ao de fechar, pra não colidir
+                (Ricardo, out/2026: "a visualização do Trindade Online está
+                muito melhor", essa é uma das peças que faltava aqui). */}
+            <button className="cd-herobtn cd-herobtn-share" onClick={handleShareDetail} aria-label={detailLinkCopied ? 'Link copiado' : 'Compartilhar produto'}>
+              {detailLinkCopied ? '✅' : '🔗'}
+            </button>
           </div>
-          <div className="cd-dscroll">
-            <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 4 }}>{detail.name}</div>
-            {(promoPrice(detail) ?? detail.sale_price) > 0 && (
-              <div style={{ fontSize: 15, fontWeight: 700, color: '#555', marginBottom: 9 }}>{fmt(promoPrice(detail) ?? detail.sale_price)}</div>
-            )}
-            {detail.description && <div style={{ fontSize: 12.5, color: '#555', lineHeight: 1.6, marginBottom: 14 }}>{detail.description}</div>}
+          <div className="cd-dscroll" ref={dscrollRef}>
+            {/* Nome de um lado, preço do outro, igual a página do produto —
+                antes vinha pequeno e empilhado aqui dentro do modal. */}
+            <div className="cd-dname-row">
+              <div className="cd-dname">{detail.name}</div>
+              {(promoPrice(detail) ?? detail.sale_price) > 0 && (
+                <div className="cd-dprice-block">
+                  <div className="cd-dprice">{fmt(promoPrice(detail) ?? detail.sale_price)}</div>
+                  {promoPrice(detail) != null && <div className="cd-dprice-old">{fmt(detail.sale_price)}</div>}
+                </div>
+              )}
+            </div>
+            <span className={open ? 'cd-dstatus-open' : 'cd-dstatus-closed'}>{open ? '● Aberto agora' : 'Fechado no momento'}</span>
+            {detail.description && <div style={{ fontSize: 12.5, color: '#555', lineHeight: 1.6, margin: '10px 0 14px' }}>{detail.description}</div>}
             {detail.groups.map((g, gi) => {
               const selCount = detailSel[gi]?.length || 0
               return (
@@ -894,6 +976,21 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
               </div>
               )
             })}
+
+            {relatedProdutos.length > 0 && (
+              <>
+                <div className="cd-related-h">Também tem</div>
+                <div className="cd-related">
+                  {relatedProdutos.map(r => (
+                    <button type="button" className="cd-related-item" key={r.id} onClick={() => openDetail(r)}>
+                      <div className="cd-related-im">{r.photo_url ? <Image src={r.photo_url} alt={r.name} fill sizes="120px" style={{ objectFit: 'cover' }} /> : r.name[0]}</div>
+                      <div className="cd-related-nm">{r.name}</div>
+                      <div className="cd-related-pr">{fmt(promoPrice(r) ?? r.sale_price)}</div>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
           <div className="cd-dfoot">
             <div style={{ display: 'flex', border: '1.5px solid var(--sign-dark)', borderRadius: 12, overflow: 'hidden' }}>

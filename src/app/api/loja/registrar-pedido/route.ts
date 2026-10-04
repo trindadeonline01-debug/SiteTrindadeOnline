@@ -152,63 +152,16 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Chama o motoboy da PLATAFORMA (Trindade Entrega), quando a loja usa
-    // esse módulo — roda por último e isolado (import dinâmico) de propósito.
-    // Achado nesta rodada: essa chamada estava importada no topo do arquivo
-    // (`import { criarEntregaEChamarMotoboy } from '@/lib/entregaDispatch'`),
-    // e entregaDispatch.ts importa `sharp` (binário nativo) pra recortar a
-    // foto da loja na oferta pro motoboy. Desde que esse import entrou aqui
-    // (04/09), a confirmação de pedido por WhatsApp parou de sair — pra
-    // NENHUMA loja, entrega ou não — indício forte de que o carregamento do
-    // módulo falhava e derrubava a function inteira antes de chegar no bloco
-    // acima (mesma família de crash já documentada no opengraph-image.tsx,
-    // KNOWLEDGE_BASE.md §10). Import dinâmico + try/catch aqui garante que,
-    // se esse módulo falhar de novo, só ele quebra — o resto da rota (que já
-    // rodou acima) não é afetado.
-    // Chavinha por empresa (Admin → Pedidos) — quem já tem motoboy próprio
-    // pode desligar a chamada automática da plataforma sem perder o botão
-    // manual "🏍️ Chamar motoboy" do card do pedido, que continua igual
-    // (chama criarEntregaEChamarMotoboy direto por /api/entrega/criar, sem
-    // passar por aqui). Pedido do Ricardo, set/2026.
-    const { data: autoConfig } = await supabase.from('companies').select('entrega_chamada_automatica, owner_id').eq('id', companyId).maybeSingle()
-    if (deliveryType === 'entrega' && address && pedidoId && autoConfig?.entrega_chamada_automatica !== false) {
-      try {
-        const { criarEntregaEChamarMotoboy } = await import('@/lib/entregaDispatch')
-        const dispatch = await criarEntregaEChamarMotoboy({
-          companyId, pedidoId, customerName: name || 'Cliente', customerPhone: phone, dropoffAddress: address,
-        })
-        // Código já sai numa mensagem separada aqui, logo após a
-        // confirmação — pedido do Ricardo, set/2026, pra grudar o código na
-        // cabeça do cliente cedo. Só dá pra mandar quando o motoboy da
-        // PLATAFORMA é chamado automaticamente (código nasce junto com a
-        // entrega, antes até do motoboy aceitar); motoboy próprio é
-        // atribuído manualmente depois em /painel/pedidos, então esse
-        // aviso não sai aqui — ele ainda chega de qualquer jeito no
-        // "saiu para entrega" (status-pedido/route.ts).
-        if (dispatch.ok && phone) {
-          await sendCustomerWhatsApp(companyId, phone, `🔑 Guarda esse código: *${dispatch.deliveryCode}*\nQuando o motoboy chegar, informe esse número pra ele.`)
-        }
-        // `dispatch.ok === false` (sem crédito, sem diária, área fora de
-        // alcance etc.) era engolido em silêncio — o pedido saía normal, mas
-        // nenhum motoboy era chamado e ninguém sabia (achado real, set/2026:
-        // pedido de entrega da Fabiana na EMPADAY sem diária disponível na
-        // carteira — sumiu sem aviso pra ninguém). Push pro dono avisa na
-        // hora que precisa chamar manualmente ou comprar diária/crédito.
-        if (!dispatch.ok && autoConfig?.owner_id) {
-          const site = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trindadeonline.com.br'
-          fetch(`${site}/api/push/send`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              title: '⚠️ Motoboy não chamado',
-              body: `Pedido de ${name || 'cliente'} com entrega: ${dispatch.error}`,
-              target: 'external_user_id', userId: autoConfig.owner_id, url: `${site}/painel/entrega`,
-            }),
-          }).catch(() => {})
-        }
-      } catch (err: any) {
-        console.error('[registrar-pedido] falha ao chamar motoboy da plataforma:', err?.message || err)
-      }
-    }
+    // O motoboy da PLATAFORMA (Trindade Entrega) NÃO é mais chamado aqui, na
+    // criação do pedido — pedido do Ricardo, out/2026: "vamos chamar o
+    // motoboy só quando o pedido for pra em preparo... aí a gente já sabe
+    // que a pessoa já viu, já solicitou". Antes esse disparo acontecia
+    // imediatamente ao cair o pedido, antes de a loja sequer aceitar. Quem
+    // chama agora é só o cliente (painel/pedidos e painel/cozinha), no
+    // exato momento em que o status vira "em_preparo" — maybeAutoChamarMotoboy
+    // nos dois, acionado tanto pelo aceite manual quanto pelo avanço de
+    // status. Continua respeitando a chavinha `entrega_chamada_automatica`
+    // (lida ali no cliente, não aqui).
 
     return NextResponse.json({ ok: true })
   } catch (err: any) {

@@ -138,22 +138,28 @@ export async function sendCustomerWhatsApp(companyId: string, phone: string | nu
 //
 // Agora sai pela instância da PLATAFORMA (mesma usada pro aviso que o
 // Ricardo já recebe como admin, que sempre funcionou) — duas contas
-// diferentes conversando de verdade, notifica normal. Telefone: o
-// cadastrado no perfil do dono; se não tiver, cai pro número que está DE
+// diferentes conversando de verdade, notifica normal. Telefone: o da
+// PRÓPRIA EMPRESA (companies.phone, cadastrado no perfil do negócio) —
+// achado real, out/2026: JBurger tinha o perfil do dono com um número e o
+// telefone da loja com outro completamente diferente, e o aviso ia pro
+// dono em vez da loja. Pedido do Ricardo: "tem que ser pro telefone da
+// loja, não pro telefone do dono". Se a empresa não tiver telefone
+// cadastrado, cai pro perfil do dono e, por último, pro número que está DE
 // FATO escaneado na instância da loja (ownerJid, via fetchInstances da
 // Evolution — usado só pra DESCOBRIR o número aqui, o envio em si nunca
-// passa pela instância da loja) — pedido do Ricardo, out/2026: "pelo
-// menos pro telefone que tá escaneado".
+// passa pela instância da loja).
 export async function notifyOwnerNewOrder(companyId: string, text: string): Promise<{ ok: boolean; detail?: string }> {
   try {
-    const { data: company } = await supabase.from('companies').select('owner_id, crm_whatsapp_enabled, trial_modules_until').eq('id', companyId).maybeSingle()
+    const { data: company } = await supabase.from('companies').select('owner_id, phone, crm_whatsapp_enabled, trial_modules_until').eq('id', companyId).maybeSingle()
     if (!company) return { ok: false, detail: 'empresa não encontrada' }
     if (!moduleActive(company.crm_whatsapp_enabled, company.trial_modules_until)) return { ok: false, detail: 'módulo CRM WhatsApp não ativo' }
 
-    const { data: owner } = company.owner_id
-      ? await supabase.from('profiles').select('phone').eq('id', company.owner_id).maybeSingle()
-      : { data: null }
-    let targetPhone = owner?.phone ? formatPhone(owner.phone) : null
+    let targetPhone = company.phone ? formatPhone(company.phone) : null
+
+    if (!targetPhone && company.owner_id) {
+      const { data: owner } = await supabase.from('profiles').select('phone').eq('id', company.owner_id).maybeSingle()
+      if (owner?.phone) targetPhone = formatPhone(owner.phone)
+    }
 
     if (!targetPhone) {
       const { data: instance } = await supabase

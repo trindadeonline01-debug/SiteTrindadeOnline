@@ -12,7 +12,7 @@ type Company = {
   loja_taxa_entrega: number; loja_pedido_minimo: number; loja_payment_methods: string[]
   loja_taxa_metodo: TaxaMetodo; loja_frete_gratis_acima: number | null; loja_taxa_fora_area: number | null
   loja_lat: number | null; loja_lng: number | null; loja_tempo_preparo_min: number
-  crm_whatsapp_enabled: boolean; entrega_enabled: boolean
+  crm_whatsapp_enabled: boolean; entrega_enabled: boolean; pix_key: string | null
 }
 type Categoria = { id: string; name: string }
 type ProdutoOpt = { id: string; name: string }
@@ -92,13 +92,14 @@ export default function CompartilharPage() {
   const [customInput, setCustomInput] = useState('')
   const [savingPayment, setSavingPayment] = useState(false)
   const [paymentSaved, setPaymentSaved] = useState(false)
+  const [pixKey, setPixKey] = useState('')
 
   useEffect(() => {
     if (shellLoading) return
     if (!shellCompany) { setCompany(null); setLoading(false); return }
     supabase
       .from('companies')
-      .select('id, name, slug, address, loja_digital_enabled, loja_taxa_entrega, loja_pedido_minimo, loja_payment_methods, loja_taxa_metodo, loja_frete_gratis_acima, loja_taxa_fora_area, loja_lat, loja_lng, loja_tempo_preparo_min, crm_whatsapp_enabled, entrega_enabled, trial_modules_until')
+      .select('id, name, slug, address, loja_digital_enabled, loja_taxa_entrega, loja_pedido_minimo, loja_payment_methods, loja_taxa_metodo, loja_frete_gratis_acima, loja_taxa_fora_area, loja_lat, loja_lng, loja_tempo_preparo_min, crm_whatsapp_enabled, entrega_enabled, trial_modules_until, pix_key')
       .eq('id', shellCompany.id)
       .maybeSingle()
       .then(async ({ data: comp }) => {
@@ -115,6 +116,7 @@ export default function CompartilharPage() {
         setFreteGratisInput(Number(comp.loja_frete_gratis_acima || 0).toFixed(2).replace('.', ','))
         setForaAreaInput(fmtPt(comp.loja_taxa_fora_area))
         setPaymentMethods(comp.loja_payment_methods?.length ? comp.loja_payment_methods : ['pix', 'dinheiro', 'cartao_credito'])
+        setPixKey(comp.pix_key || '')
         if (isAdminMode || moduleActive(comp.loja_digital_enabled, comp.trial_modules_until)) {
           const [{ data: cats }, { data: prods }, { data: bairroRows }, { data: tierRows }] = await Promise.all([
             supabase.from('loja_categorias').select('id,name').eq('company_id', comp.id).order('display_order'),
@@ -252,7 +254,10 @@ export default function CompartilharPage() {
   async function savePaymentMethods() {
     if (!company || paymentMethods.length === 0) return
     setSavingPayment(true)
-    await supabase.from('companies').update({ loja_payment_methods: paymentMethods }).eq('id', company.id)
+    // pix_key só importa de verdade quando Pix está marcado — mas salva o
+    // valor do campo do jeito que estiver (mesmo vazio), nunca pisa no que
+    // tinha se a loja só veio aqui mexer noutra forma de pagamento.
+    await supabase.from('companies').update({ loja_payment_methods: paymentMethods, pix_key: pixKey.trim() || null }).eq('id', company.id)
     setSavingPayment(false)
     setPaymentSaved(true)
     setTimeout(() => setPaymentSaved(false), 2000)
@@ -613,6 +618,14 @@ export default function CompartilharPage() {
                   </div>
                 ))}
               </div>
+
+              {paymentMethods.includes('pix') && (
+                <div style={{ marginTop: 14 }}>
+                  <div className="crm-config-title">🔑 Chave Pix</div>
+                  <div className="crm-config-sub">A IA do atendimento manda essa chave e o valor do pedido pro cliente quando ele escolher pagar no Pix — sem QR code, sem cobrança automática, só o texto da chave mesmo.</div>
+                  <div className="crm-config-field"><input placeholder="CPF, celular, e-mail ou chave aleatória" value={pixKey} onChange={e => setPixKey(e.target.value)} /></div>
+                </div>
+              )}
 
               <div className="crm-config-title" style={{ marginTop: 4 }}>✏️ Forma personalizada</div>
               <div className="crm-config-sub">Não achou a sua na lista? Escreve aqui do seu jeito.</div>

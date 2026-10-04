@@ -67,7 +67,7 @@ async function buildContext(companyId: string): Promise<string | null> {
     .from('companies')
     .select(`
       name, slug, phone, address, flexible_hours, store_paused, store_forced_open,
-      loja_taxa_metodo, loja_taxa_entrega, loja_taxa_fora_area, loja_payment_methods,
+      loja_taxa_metodo, loja_taxa_entrega, loja_taxa_fora_area, loja_payment_methods, pix_key,
       entrega_enabled, trial_modules_until,
       crm_ia_prompt_extra,
       hours:company_hours(day_of_week, open_time, close_time, closed)
@@ -98,6 +98,14 @@ async function buildContext(companyId: string): Promise<string | null> {
 
   const metodos = (company.loja_payment_methods?.length ? company.loja_payment_methods : ['pix', 'dinheiro', 'cartao_credito']) as string[]
   linhas.push(`Formas de pagamento aceitas: ${metodos.map(m => PAY_LABEL[m] || m).join(', ')}`)
+  // Chave Pix cadastrada pela loja (painel/compartilhar) — pedido do
+  // Ricardo, out/2026: a IA não gera QR code nem link de cobrança (não tem
+  // integração de pagamento pra isso), mas quando o cliente confirmar que
+  // vai pagar no Pix, pode informar a chave direto na conversa, de texto
+  // mesmo, junto do valor total do pedido.
+  if (metodos.includes('pix') && company.pix_key) {
+    linhas.push(`Chave Pix da loja: ${company.pix_key}`)
+  }
 
   // Entrega feita pelo motoboy da PLATAFORMA (Trindade Entrega) — quando esse
   // módulo está ativo ele SEMPRE manda na cobrança, a loja nem configura
@@ -220,6 +228,7 @@ REGRAS RÍGIDAS — nunca quebre nenhuma delas:
 - Pergunta GENÉRICA pedindo tudo ("o que vocês têm?", "o que tem hoje?", "me manda o cardápio", "quais produtos vocês vendem?"): liste SÓ os itens que estão de fato na seção "Catálogo ativo agora" abaixo, com os nomes e preços exatamente como estão escritos lá — nunca componha de memória uma lista "típica" do ramo da loja (ex: pra uma doceria, nunca cite brigadeiro/beijinho/pudim genéricos se eles não estiverem na lista real). Se a seção de catálogo não aparecer abaixo (loja sem produto cadastrado ainda), diga que o catálogo ainda está sendo montado e não liste nada — é um erro grave inventar produto que a loja não vende.
 - O link é o passo de FECHAR o pedido, não a resposta padrão (EXCEÇÃO: a saudação de boas-vindas da primeira mensagem, regra acima, sempre leva o link junto). Fora essa exceção, só mande link quando o cliente der sinal de que quer confirmar/fechar a compra (frases como "separa pra mim", "vou querer", "fecha o pedido", "quero comprar", "pode fechar", "manda o link" ou parecido) — nesse momento, diga algo como "Show! Pra fechar seu pedido é só acessar o link e finalizar por lá: [link]". Você nunca cria o pedido nem processa pagamento — o link é sempre quem fecha de verdade. QUAL link mandar: se o pedido for de UM produto só (ex: "quero 3kg de peixe espada em posta"), mande o link DIRETO desse produto (o que já vem junto dele no catálogo acima) — assim o cliente cai direto na tela certa, sem ter que procurar de novo. Se o cliente pedir mais de um produto diferente na mesma conversa, mande o link do cardápio completo (lá no topo) — um link só não abre vários produtos de uma vez.
 - Pergunta sobre valor de entrega: NUNCA informe um valor sem antes saber o bairro (ou endereço) do cliente. Se ele ainda não disse, pergunte primeiro qual é o bairro dele. Nunca escolha um valor "de exemplo" da lista de bairros nem invente um número — se os dados da loja abaixo disserem que a taxa é calculada por distância ou que não há taxa configurada, siga exatamente a instrução dada ali.
+- Pix: se o cliente disser que vai pagar (ou perguntar se dá pra pagar) no Pix, e a "Chave Pix da loja" estiver nos dados abaixo, informe o valor total do pedido junto com a chave Pix, em linhas separadas (ex: "Valor: R$ 45,00" numa linha, "Chave Pix: [chave]" na linha seguinte) — nunca gere QR code, link de pagamento ou comprovante, você não tem isso disponível. Se o cliente ainda não fechou os itens/valor do pedido, primeiro confirme o que ele quer antes de mandar a chave. Se a loja aceitar Pix mas não tiver chave cadastrada nos dados abaixo, não invente nenhuma chave — diga que vai confirmar a chave Pix com a loja e repasse pro cliente em seguida (humano resolve depois).
 - Você serve só para atendimento básico e direto: boas-vindas, horário de funcionamento, endereço, formas de pagamento, valor de entrega por bairro, produtos/preços do catálogo, link do cardápio pra fechar. Nada de bate-papo, opinião pessoal ou assunto fora disso.
 - Pergunta sem relação nenhuma com a loja: responda educadamente algo como "Minha função aqui é te ajudar com informações da loja 🙂 Posso ajudar com horário, endereço, entrega ou o link do cardápio?" — e pare por aí.
 - Seja breve e direto, português informal e cordial, no máximo 1 emoji por mensagem.

@@ -311,9 +311,13 @@ export default function HomePecaAgora({ groups, search = '' }: { groups: PecaGro
                   <span className="sec-eyebrow pa-eyebrow">Delivery na Trindade</span>
                   {/* Troca a vista sem gastar linha nova — mostra pra onde o
                       toque leva, não os dois estados ao mesmo tempo (mockup
-                      aprovado, out/2026). */}
+                      aprovado, out/2026). Texto sem o "Ver" — achado real do
+                      Ricardo, out/2026: "Ver produtos" quebrava linha no
+                      pill no iPhone (mesmo cabendo liso no Android), ficando
+                      feio; "Lojas"/"Produtos" sozinho é curto o bastante pra
+                      nunca quebrar em nenhum dos dois. */}
                   <button type="button" className="pa-view-toggle" onClick={toggleViewMode}>
-                    {viewMode === 'produtos' ? '🏪 Ver lojas' : '📦 Ver produtos'}
+                    {viewMode === 'produtos' ? '🏪 Lojas' : '📦 Produtos'}
                   </button>
                 </div>
               </div>

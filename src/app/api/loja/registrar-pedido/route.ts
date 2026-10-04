@@ -2,14 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { moduleActive } from '@/lib/modules'
 import { normalizePhone } from '@/lib/phone'
-import { notifyOwnerNewOrder } from '@/lib/whatsapp'
+import { notifyOwnerNewOrder, sendCustomerWhatsApp } from '@/lib/whatsapp'
 import { buildOwnerMessage } from '@/lib/orderMessages'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
-const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'https://evo.trindadeonline.com.br'
 
 const PAY_LABEL: Record<string, string> = { pix: 'Pix', dinheiro: 'Dinheiro', cartao: 'Cartão' }
 
@@ -54,42 +53,6 @@ function buildCustomerMessage(opts: OrderInfo): string {
     parts.push('', `📲 Acompanhe aqui: ${site}/pedido/${opts.pedidoId}`)
   }
   return parts.join('\n')
-}
-
-// Manda uma mensagem de WhatsApp pro CLIENTE e já registra na conversa do
-// CRM — usada tanto pra confirmação do pedido quanto pro aviso separado do
-// código do motoboy (pedido do Ricardo, set/2026: código sempre numa
-// mensagem à parte, nunca grudado no texto, senão o cliente não repara).
-async function sendCustomerWhatsApp(companyId: string, phone: string, text: string) {
-  try {
-    const { data: company } = await supabase.from('companies').select('crm_whatsapp_enabled, trial_modules_until').eq('id', companyId).maybeSingle()
-    if (!company || !moduleActive(company.crm_whatsapp_enabled, company.trial_modules_until)) return
-    const { data: instance } = await supabase
-      .from('crm_whatsapp_instances').select('instance_name, api_key')
-      .eq('company_id', companyId).eq('status', 'connected').limit(1).maybeSingle()
-    if (!instance) return
-    const res = await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', apikey: instance.api_key },
-      body: JSON.stringify({ number: phone, text }),
-    })
-    if (!res.ok) {
-      const body = await res.text().catch(() => '')
-      console.error(`[registrar-pedido] envio falhou (${res.status}): ${body.slice(0, 300)}`)
-      return
-    }
-    const { data: contact } = await supabase.from('crm_contacts').select('id').eq('company_id', companyId).eq('phone', phone).maybeSingle()
-    if (contact) {
-      await supabase.from('crm_messages').insert({
-        company_id: companyId, contact_id: contact.id, direction: 'out', body: text, status: 'sent', sent_at: new Date().toISOString(),
-      })
-      await supabase.from('crm_contacts').update({
-        last_message_at: new Date().toISOString(), last_message_preview: text, last_message_direction: 'out',
-      }).eq('id', contact.id)
-    }
-  } catch (err: any) {
-    console.error('[registrar-pedido] falha ao mandar WhatsApp pro cliente:', err?.message || err)
-  }
 }
 
 // Chamado (fire-and-forget) logo após um pedido ser criado no cardápio público
@@ -150,44 +113,41 @@ export async function POST(req: NextRequest) {
     if (Array.isArray(items) && items.length > 0 && items.every((it: any) => it.name && it.unitPrice != null)) {
       const { data: company } = await supabase.from('companies').select('owner_id, crm_whatsapp_enabled, trial_modules_until').eq('id', companyId).maybeSingle()
       if (company && moduleActive(company.crm_whatsapp_enabled, company.trial_modules_until)) {
-        const { data: instance } = await supabase
-          .from('crm_whatsapp_instances').select('instance_name, api_key')
-          .eq('company_id', companyId).eq('status', 'connected').limit(1).maybeSingle()
-        if (instance) {
-          const { data: pedidoRow } = pedidoId
-            ? await supabase.from('loja_pedidos').select('order_number').eq('id', pedidoId).maybeSingle()
-            : { data: null }
-          const orderInfo = {
-            items, subtotal: Number(subtotal ?? total ?? 0), deliveryFee: Number(deliveryFee || 0), total: Number(total || 0),
-            paymentMethod: paymentMethod || null, deliveryType: deliveryType || null, address: address || null, notes: notes || null,
-            orderNumber: pedidoRow?.order_number ?? null, pedidoId: pedidoId || null,
-          }
+        const { data: pedidoRow } = pedidoId
+          ? await supabase.from('loja_pedidos').select('order_number').eq('id', pedidoId).maybeSingle()
+          : { data: null }
+        const orderInfo = {
+          items, subtotal: Number(subtotal ?? total ?? 0), deliveryFee: Number(deliveryFee || 0), total: Number(total || 0),
+          paymentMethod: paymentMethod || null, deliveryType: deliveryType || null, address: address || null, notes: notes || null,
+          orderNumber: pedidoRow?.order_number ?? null, pedidoId: pedidoId || null,
+        }
 
-          // Pro cliente — vira mensagem na conversa do CRM também. Erro aqui
-          // era engolido em silêncio (`catch {}`) — sem log nenhum não dava
-          // pra saber se a confirmação não chegava porque falhou de verdade
-          // (Evolution fora do ar, número errado) ou porque nunca tentou
-          // (achado do Ricardo, set/2026 — Crepe Cone com CRM conectado e
-          // módulo ativo, mas confirmação nunca registrada em crm_messages).
-          if (phone) {
-            await sendCustomerWhatsApp(companyId, phone, buildCustomerMessage(orderInfo))
-          }
+        // Pro cliente — antes só mandava se a loja tivesse instância própria
+        // CONECTADA (checava isso antes de entrar aqui); loja sem WhatsApp
+        // escaneado não mandava "Pedido recebido!" pra ninguém, de jeito
+        // nenhum (achado real, out/2026: JBurger sem escanear, cliente não
+        // recebeu nada). sendCustomerWhatsApp (lib/whatsapp.ts) já resolve
+        // sozinha — usa a instância da loja se tiver, senão cai pro número
+        // da plataforma — não precisa mais checar "instance" aqui antes.
+        if (phone) {
+          await sendCustomerWhatsApp(companyId, phone, buildCustomerMessage(orderInfo))
+        }
 
-          // Pro WhatsApp da própria loja — assim o pedido chega no WhatsApp
-          // de verdade, não só como notificação dentro do app. Pulado
-          // quando criar-pedido (cardápio público) já mandou direto —
-          // achado real, out/2026 (Michelly Bem Doce): esse aviso dependia
-          // de criar-pedido chamar ESSA rota via fetch servidor-pra-servidor
-          // pra sair, e esse fetch podia falhar calado, sem log nenhum
-          // (ver notifyOwnerNewOrder em src/lib/whatsapp.ts pro raciocínio
-          // completo). Continua vivo aqui pro avulso/balcão (chamado direto
-          // de /painel/pedidos, sem esse salto), que não tem outro jeito de
-          // mandar esse aviso.
-          if (!skipOwnerNotify) {
-            const ownerText = buildOwnerMessage({ ...orderInfo, customerName: name || 'Cliente', customerPhone: phone || null })
-            const result = await notifyOwnerNewOrder(companyId, ownerText)
-            if (!result.ok) console.error('[registrar-pedido] aviso pro dono falhou:', result.detail)
-          }
+        // Pro dono — notifyOwnerNewOrder (lib/whatsapp.ts) também já resolve
+        // sozinha (perfil ou número escaneado, sempre via instância da
+        // plataforma) — mesmo motivo, não depende de "instance" aqui.
+        // Pulado quando criar-pedido (cardápio público) já mandou direto —
+        // achado real, out/2026 (Michelly Bem Doce): esse aviso dependia
+        // de criar-pedido chamar ESSA rota via fetch servidor-pra-servidor
+        // pra sair, e esse fetch podia falhar calado, sem log nenhum
+        // (ver notifyOwnerNewOrder em src/lib/whatsapp.ts pro raciocínio
+        // completo). Continua vivo aqui pro avulso/balcão (chamado direto
+        // de /painel/pedidos, sem esse salto), que não tem outro jeito de
+        // mandar esse aviso.
+        if (!skipOwnerNotify) {
+          const ownerText = buildOwnerMessage({ ...orderInfo, customerName: name || 'Cliente', customerPhone: phone || null })
+          const result = await notifyOwnerNewOrder(companyId, ownerText)
+          if (!result.ok) console.error('[registrar-pedido] aviso pro dono falhou:', result.detail)
         }
       }
     }

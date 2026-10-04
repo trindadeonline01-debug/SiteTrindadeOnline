@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { moduleActive } from '@/lib/modules'
 import { normalizePhone } from '@/lib/phone'
+import { sendCustomerWhatsApp } from '@/lib/whatsapp'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
-const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'https://evo.trindadeonline.com.br'
 
 type Status = 'recebido' | 'em_preparo' | 'pronto' | 'saiu_entrega' | 'entregue' | 'cancelado'
 
@@ -73,45 +73,23 @@ export async function POST(req: NextRequest) {
     const { data: company } = await supabase.from('companies').select('crm_whatsapp_enabled, trial_modules_until, slug').eq('id', companyId).maybeSingle()
     if (!company || !moduleActive(company.crm_whatsapp_enabled, company.trial_modules_until)) return NextResponse.json({ ok: true })
 
-    const { data: instance } = await supabase
-      .from('crm_whatsapp_instances').select('instance_name, api_key')
-      .eq('company_id', companyId).eq('status', 'connected').limit(1).maybeSingle()
-    if (!instance) return NextResponse.json({ ok: true })
-
-    async function sendAndLog(msg: string): Promise<boolean> {
-      const res = await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(instance!.instance_name)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', apikey: instance!.api_key },
-        body: JSON.stringify({ number: phone, text: msg }),
-      })
-      if (!res.ok) {
-        const body = await res.text().catch(() => '')
-        console.error(`[status-pedido] envio falhou (${res.status}): ${body.slice(0, 300)}`)
-        return false
-      }
-      const { data: contact } = await supabase.from('crm_contacts').select('id').eq('company_id', companyId).eq('phone', phone).maybeSingle()
-      if (contact) {
-        await supabase.from('crm_messages').insert({
-          company_id: companyId, contact_id: contact.id, direction: 'out', body: msg, status: 'sent', sent_at: new Date().toISOString(),
-        })
-        await supabase.from('crm_contacts').update({
-          last_message_at: new Date().toISOString(), last_message_preview: msg, last_message_direction: 'out',
-        }).eq('id', contact.id)
-      }
-      return true
-    }
-
-    await sendAndLog(text)
+    // sendCustomerWhatsApp (lib/whatsapp.ts) já resolve sozinha — usa a
+    // instância da loja se tiver conectada, senão cai pro número da
+    // plataforma. Antes essa rota tinha seu próprio envio local, preso a um
+    // `if (!instance) return` — loja sem WhatsApp escaneado não mandava
+    // NENHUMA atualização de status pro cliente (achado real, out/2026:
+    // JBurger sem escanear).
+    await sendCustomerWhatsApp(companyId, phone, text)
     // Mensagem do código sempre à parte, nunca grudada na de status —
     // pedido do Ricardo, set/2026.
-    if (codeText) await sendAndLog(codeText)
+    if (codeText) await sendCustomerWhatsApp(companyId, phone, codeText)
     // Pedido de avaliação, também à parte — só na entrega/retirada de
     // verdade (nunca em cancelado), enquanto a experiência tá fresca.
     // Precisa de login pra avaliar; quem não tem conta cai no "Entrar para
     // avaliar" normal (Ricardo, set/2026).
     if (status === 'entregue' && company.slug) {
       const site = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trindadeonline.com.br'
-      await sendAndLog(`⭐ Como foi sua experiência? Avalia a gente: ${site}/empresa/${company.slug}?avaliar=1`)
+      await sendCustomerWhatsApp(companyId, phone, `⭐ Como foi sua experiência? Avalia a gente: ${site}/empresa/${company.slug}?avaliar=1`)
     }
 
     return NextResponse.json({ ok: true })

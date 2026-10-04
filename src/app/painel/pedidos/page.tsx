@@ -243,6 +243,15 @@ export default function PedidosPage() {
 
   const [editId, setEditId] = useState<string | null>(null)
 
+  // Botão "Finalizar" do card (mockup aprovado, out/2026) — abre esse
+  // modalzinho pra escolher a forma de pagamento recebida e marcar pago
+  // numa ação só, sem precisar abrir o card inteiro. finalizarId guarda o
+  // pedido; finalizarMethod começa com o método já cadastrado no pedido
+  // (editável ali mesmo, caso o cliente tenha pago diferente do combinado).
+  const [finalizarId, setFinalizarId] = useState<string | null>(null)
+  const [finalizarMethod, setFinalizarMethod] = useState<string>('pix')
+  const [finalizarSaving, setFinalizarSaving] = useState(false)
+
   const [npOpen, setNpOpen] = useState(false)
   const [npProdutos, setNpProdutos] = useState<NpProduto[]>([])
   const [npLoadingProdutos, setNpLoadingProdutos] = useState(false)
@@ -533,6 +542,21 @@ export default function PedidosPage() {
     await supabase.from('loja_pedidos').update({ payment_status: next, updated_at: new Date().toISOString() }).eq('id', id)
   }
 
+  function abrirFinalizar(p: Pedido) {
+    setFinalizarId(p.id)
+    setFinalizarMethod(p.payment_method || 'pix')
+  }
+  async function confirmarFinalizar() {
+    if (!finalizarId) return
+    setFinalizarSaving(true)
+    const id = finalizarId
+    const method = finalizarMethod
+    setPedidos(prev => prev.map(p => p.id === id ? { ...p, payment_method: method, payment_status: 'pago' } : p))
+    await supabase.from('loja_pedidos').update({ payment_method: method, payment_status: 'pago', updated_at: new Date().toISOString() }).eq('id', id)
+    setFinalizarSaving(false)
+    setFinalizarId(null)
+  }
+
   async function acceptPedido(id: string) {
     const now = new Date().toISOString()
     let pedidoRef: Pedido | undefined
@@ -812,20 +836,20 @@ export default function PedidosPage() {
             </div>
           </div>
         )}
-        {/* Containerzinhos divididos ao meio, cada um com sua cor conforme o
-            significado, em vez das pílulas soltas de tamanhos diferentes
-            (e do texto pequeno "1 item · pix · Entrega") que existiam antes
-            — pedido do Ricardo, set/2026: "organiza melhor visualmente". */}
-        <div className="pd-pillrow" style={{ background: '#F7F5F0' }}>
-          <div className="pd-pillhalf" style={{ color: '#3A342A' }}>📦 {p.itens?.length || 0} {p.itens?.length === 1 ? 'item' : 'itens'}</div>
-          <div className="pd-pillhalf" style={{ color: '#3A342A' }}>{p.delivery_type === 'entrega' ? '🚴 Entrega' : p.delivery_type === 'balcao' ? '🧾 Balcão' : '🏪 Retirada'}</div>
+        {/* Uma informação por linha, altura mínima — em vez das pílulas lado
+            a lado de antes (itens|entrega, pagamento|status). Forma de
+            pagamento sai daqui de vez (só aparece com o card aberto, perto
+            do item); no lugar dela, o nome do motoboy. Mockup aprovado,
+            out/2026: "uma abaixo da outra, utilizando a menor altura
+            possível". */}
+        <div className="pd-summary">
+          <div className="pd-sumrow">📦 {p.itens?.length || 0} {p.itens?.length === 1 ? 'item' : 'itens'}</div>
+          <div className="pd-sumrow">
+            {p.delivery_type === 'entrega' ? '🚴 Entrega' : p.delivery_type === 'balcao' ? '🧾 Balcão' : '🏪 Retirada'}
+            {p.delivery_type === 'entrega' && p.delivery_fee > 0 && <span className="pd-sum-right">{fmt(p.delivery_fee)}</span>}
+          </div>
         </div>
         {p.scheduled_for && <div className="pd-sum" style={{ color: '#B5690C', fontWeight: 700, marginTop: 6 }}>📅 Agendado pra {fmtSchedule(p.scheduled_for)}</div>}
-        {/* Só aparece aqui em cima quando o card está FECHADO — quando abre,
-            essa mesma informação desce pra perto do item no detalhe, e
-            mostrar os dois ao mesmo tempo ficaria redundante (Ricardo,
-            set/2026). */}
-        {!open && <PaymentPill p={p} payUnpaidAfterDelivery={payUnpaidAfterDelivery} onToggle={e => { e.stopPropagation(); togglePaymentStatus(p.id) }} />}
         {(p.motoboy_id || deliveryByPedido[p.id]) && (
           <div className="pd-infobox">
             {p.motoboy_id && (
@@ -870,7 +894,19 @@ export default function PedidosPage() {
           </div>
         )}
         {motoErrors[p.id] && <div style={{ color: '#C43D3D', fontSize: 11, marginTop: 4 }}>{motoErrors[p.id]}</div>}
-        <div className="pd-total">{fmt(p.total)}</div>
+        {/* Preço + ação de pagamento lado a lado — onde antes só tinha o
+            preço sozinho. "Finalizar" abre o modal de escolher forma de
+            pagamento + confirmar recebimento numa ação só, sem precisar
+            abrir o card (mockup aprovado, out/2026). Já pago mostra só a
+            etiqueta — cancelado não oferece nenhum dos dois. */}
+        <div className="pd-pricerow">
+          <div className="pd-total">{fmt(p.total)}</div>
+          {p.status !== 'cancelado' && (
+            p.payment_status === 'pago'
+              ? <span className="pd-paid-tag">✓ Pago</span>
+              : <button className="pd-finalize-btn" onClick={e => { e.stopPropagation(); abrirFinalizar(p) }}>Finalizar ✓</button>
+          )}
+        </div>
         {canAct && needsAccept && <button className="pd-accept" onClick={e => { e.stopPropagation(); acceptPedido(p.id) }}>✓ Aceitar pedido</button>}
         {canAct && !needsAccept && !open && getNextAction(p) && (() => {
           const action = getNextAction(p)!
@@ -1044,7 +1080,16 @@ export default function PedidosPage() {
         .pd-pillhalf{ flex:1;padding:8px 11px;font-size:13.5px;font-weight:700;display:flex;align-items:center;gap:6px;min-width:0; }
         .pd-pillhalf + .pd-pillhalf{ border-left:1px solid rgba(0,0,0,.08); }
         .pd-pillrow-click{ cursor:pointer; }
-        .pd-total{ font-weight:800;font-size:17px;margin-top:10px; }
+        /* Resumo empilhado — uma linha por informação, sem pílula de fundo,
+           pra ficar com a menor altura possível (mockup aprovado,
+           out/2026). */
+        .pd-summary{ margin-top:6px;border-top:1px solid #F2EFE8; }
+        .pd-sumrow{ display:flex;align-items:center;gap:6px;padding:6px 2px;font-size:13px;font-weight:600;color:#3A342A;border-bottom:1px solid #F2EFE8; }
+        .pd-sum-right{ margin-left:auto;font-weight:700; }
+        .pd-total{ font-weight:800;font-size:17px; }
+        .pd-pricerow{ display:flex;align-items:center;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid #EDE8E0; }
+        .pd-finalize-btn{ margin-left:auto;padding:9px 16px;border-radius:9px;border:none;background:var(--sign);color:#1A1610;font-weight:800;font-size:13.5px;cursor:pointer; }
+        .pd-paid-tag{ margin-left:auto;font-size:12.5px;font-weight:800;color:#157A52;background:#E4F3EC;padding:5px 11px;border-radius:20px; }
         .pd-detail{ margin-top:12px;padding-top:12px;border-top:1px dashed #EDE8E0; }
         .pd-item{ display:flex;justify-content:space-between;font-size:14px;padding:3px 0; }
         .pd-mods{ font-size:13px;color:#A79E8B;padding-left:12px; }
@@ -1054,7 +1099,9 @@ export default function PedidosPage() {
         .pd-chips{ display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px; }
         .pd-chip{ font-size:12.5px;font-weight:700;padding:8px 10px;border-radius:8px;border:1px solid #E6E0D2;background:#fff;cursor:pointer;color:#6E6656;text-align:center; }
         .pd-chip.current{ background:var(--sign);color:var(--ink);border-color:var(--sign); }
-        .pd-cancel{ font-size:12px;color:#C43D3D;font-weight:700;background:none;border:none;cursor:pointer;margin-top:8px; }
+        /* Era só texto sublinhado antes — "pode fazer um botão vermelho pra
+           chamar bastante atenção" (Ricardo, out/2026, revisando o mockup). */
+        .pd-cancel{ width:100%;font-size:14px;color:#fff;font-weight:800;background:#C43D3D;border:none;border-radius:9px;padding:11px;cursor:pointer;margin-top:10px; }
         .pd-printer-pill{ padding:9px 14px;border-radius:9px;border:1.5px solid #E6E0D2;background:#fff;color:#8A6410;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit;white-space:nowrap; }
         .pp-overlay{ position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:70;display:flex;align-items:center;justify-content:center;padding:16px; }
         .pp-modal{ background:#fff;border-radius:16px;max-width:400px;width:100%;padding:22px;max-height:88vh;overflow-y:auto; }
@@ -1574,6 +1621,42 @@ export default function PedidosPage() {
             onClose={() => setEditId(null)}
             onSaved={() => loadAll(companyId, selectedDate)}
           />
+        )
+      })()}
+
+      {finalizarId && (() => {
+        const pedido = pedidos.find(p => p.id === finalizarId)
+        if (!pedido) return null
+        return (
+          <div className="pp-overlay" onClick={() => !finalizarSaving && setFinalizarId(null)}>
+            <div className="pp-modal" style={{ maxWidth: 340 }} onClick={e => e.stopPropagation()}>
+              <h2 style={{ marginBottom: 2 }}>Confirmar pagamento</h2>
+              <p style={{ marginTop: 0, color: '#8A8577', fontSize: 12.5 }}>
+                {pedido.order_number ? `Pedido #${pedido.order_number} · ` : ''}{pedido.customer_name} — {fmt(pedido.total)}
+              </p>
+              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.04em', textTransform: 'uppercase', color: '#8A8577', margin: '10px 0 6px' }}>Forma de pagamento recebida</div>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                {(['pix', 'dinheiro', 'cartao'] as const).map(m => (
+                  <button
+                    key={m}
+                    onClick={() => setFinalizarMethod(m)}
+                    style={{
+                      flex: 1, padding: '12px 6px', borderRadius: 9, cursor: 'pointer', textAlign: 'center', fontWeight: 700, fontSize: 13,
+                      border: finalizarMethod === m ? '1.5px solid #8A6410' : '1.5px solid #E6E0D2',
+                      background: finalizarMethod === m ? '#FEF6DC' : '#fff',
+                      color: finalizarMethod === m ? '#6B4A0A' : '#3A342A',
+                    }}
+                  >
+                    {payLabel(m)}
+                  </button>
+                ))}
+              </div>
+              <button className="pp-retry" style={{ background: '#0F8A57', border: 'none', color: '#fff', fontWeight: 800, fontSize: 14 }} disabled={finalizarSaving} onClick={confirmarFinalizar}>
+                {finalizarSaving ? 'Confirmando...' : '✓ Confirmar recebimento'}
+              </button>
+              <button style={{ width: '100%', marginTop: 8, padding: 9, borderRadius: 9, border: 'none', background: 'none', color: '#8A8577', fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }} disabled={finalizarSaving} onClick={() => setFinalizarId(null)}>Cancelar</button>
+            </div>
+          </div>
         )
       })()}
     </div>

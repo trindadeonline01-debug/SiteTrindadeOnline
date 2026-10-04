@@ -22,7 +22,35 @@ export default function ProdutoDetailClient({ slug, company, produto, related }:
   const [qty, setQty] = useState(1)
   const [obs, setObs] = useState('')
   const [adding, setAdding] = useState(false)
+  const [linkCopied, setLinkCopied] = useState(false)
   const groupRefs = useRef<(HTMLDivElement | null)[]>([])
+
+  // Mesmo padrão do compartilhar do Peça Agora (PecaAgoraPageClient.tsx):
+  // nativo do celular primeiro, com o link sempre dentro do `text` (nem
+  // todo app que recebe repassa os dois campos) — cai pra copiar link se
+  // não tiver nativo ou o usuário cancelar. A "imagem bonita" no preview
+  // (WhatsApp etc.) já vem sozinha, via og:image dessa página — aponta
+  // direto pra produto.photo_url (ver generateMetadata em page.tsx), não
+  // precisa anexar arquivo nenhum aqui (pedido do Ricardo, out/2026).
+  async function handleShare() {
+    const url = window.location.href
+    const nav = navigator as Navigator & { share?: (data: ShareData) => Promise<void> }
+    if (nav.share) {
+      try {
+        await nav.share({ title: produto.name, text: `${produto.name} — ${fmt(basePrice)} na ${company.name}!\n${url}` })
+        return
+      } catch {
+        // usuário cancelou o compartilhamento nativo — cai pro copiar link
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url)
+    } catch {
+      // clipboard bloqueado (raro) — só ignora, o link já está na barra do navegador
+    }
+    setLinkCopied(true)
+    setTimeout(() => setLinkCopied(false), 2000)
+  }
 
   // Visita à página do produto — base do "Produto mais visto" na Sala de
   // Vendas (pedido do Ricardo, set/2026), independente de virar pedido.
@@ -124,6 +152,14 @@ export default function ProdutoDetailClient({ slug, company, produto, related }:
         .id-photo{width:100%;height:280px;border-radius:14px;overflow:hidden;background:var(--ink);display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Archivo',sans-serif;font-weight:700;font-size:26px;position:relative;}
         .id-photo img{width:100%;height:100%;object-fit:cover;}
         .id-photo-closed img{filter:grayscale(1);}
+        /* Compartilhar, flutuando sobre a própria foto — pedido do Ricardo,
+           out/2026: "quando eu for compartilhar, carregar aquela imagem
+           bonita que tá ali". O botão em si não anexa a foto (a Web Share
+           API de arquivo é instável entre apps) — quem garante a foto no
+           preview é o og:image da página (generateMetadata em page.tsx, já
+           aponta pra essa mesma produto.photo_url), WhatsApp/Instagram etc.
+           buscam e mostram sozinhos a partir do link. */
+        .id-share-btn{position:absolute;top:12px;right:12px;width:38px;height:38px;border-radius:50%;border:none;background:rgba(21,18,16,.55);backdrop-filter:blur(2px);color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2;}
         .id-bar-closed{padding:12px 16px;background:#FBEAEA;color:#A83232;font-size:12.5px;font-weight:600;text-align:center;}
         .id-pillrow{display:flex;align-items:center;gap:8px;margin:14px 0 6px;font-size:12px;color:#888;flex-wrap:wrap;}
         .id-open{background:#E6F4EA;color:#1B7A3E;font-weight:700;padding:3px 9px;border-radius:20px;font-size:11.5px;}
@@ -191,6 +227,9 @@ export default function ProdutoDetailClient({ slug, company, produto, related }:
       <div className="id-wrap">
         <div className={`id-photo ${!open ? 'id-photo-closed' : ''}`}>
           {produto.photo_url ? <Image src={produto.photo_url} alt={produto.name} fill sizes="(min-width: 760px) 760px, 100vw" style={{ objectFit: 'cover' }} priority /> : initials}
+          <button type="button" className="id-share-btn" onClick={handleShare} aria-label={linkCopied ? 'Link copiado' : 'Compartilhar produto'}>
+            {linkCopied ? '✅' : '🔗'}
+          </button>
         </div>
 
         <div className="id-pillrow">

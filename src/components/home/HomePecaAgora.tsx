@@ -58,6 +58,10 @@ export default function HomePecaAgora({ groups, search = '' }: { groups: PecaGro
   const [maxPrice, setMaxPrice] = useState(0)
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const [qtyById, setQtyById] = useState<Record<string, number>>({})
+  // Mockup aprovado, out/2026: sem persistência nenhuma — "o cardápio abre
+  // sempre exibindo primeiro os produtos", nunca lembra a última escolha
+  // entre visitas (nada de localStorage aqui, só state em memória).
+  const [viewMode, setViewMode] = useState<'produtos' | 'lojas'>('produtos')
   const sentinelRef = useRef<HTMLDivElement>(null)
 
   // Se já tem item pendente daquela loja (adicionado antes, sem ter
@@ -84,27 +88,44 @@ export default function HomePecaAgora({ groups, search = '' }: { groups: PecaGro
     ? (todasGroup?.items || []).filter(i => i.name.toLowerCase().includes(query))
     : active ? (maxPrice > 0 ? active.items.filter(i => i.price <= maxPrice) : active.items) : []
 
+  // Vista "Lojas" (mockup aprovado, out/2026) — os MESMOS itens já
+  // filtrados por aba/preço, só reagrupados por empresa em vez de listados
+  // soltos. Durante busca por nome ignora o modo e segue sempre em lista
+  // plana (grupo "Todas", já é o que a busca precisa) — agrupar por loja
+  // num resultado de busca não ajuda em nada.
+  const groupingByStore = viewMode === 'lojas' && !searching
+  const storeGroups = groupingByStore
+    ? Object.values(items.reduce((acc, it) => {
+        if (!acc[it.companySlug]) acc[it.companySlug] = { companyName: it.companyName, companySlug: it.companySlug, open: it.open, items: [] as PecaVitrineItem[] }
+        acc[it.companySlug].items.push(it)
+        return acc
+      }, {} as Record<string, { companyName: string; companySlug: string; open: boolean; items: PecaVitrineItem[] }>))
+    : null
+
   useEffect(() => { setVisibleCount(PAGE_SIZE) }, [search])
 
   // Rolou até perto do fim da lista carregada → revela mais PAGE_SIZE, sem
   // precisar clicar em "Ver mais" (pedido do Ricardo, set/2026: com o teto
   // de 8 produtos por empresa removido — ver pecaAgora.server.ts — a lista
   // completa pode passar de 200 itens, então carregar aos poucos conforme
-  // o scroll evita jogar isso tudo na tela de uma vez).
+  // o scroll evita jogar isso tudo na tela de uma vez). Vista "Lojas" não
+  // pagina — bem menos linhas (uma por empresa) que a de produtos, não
+  // precisa.
   useEffect(() => {
     const el = sentinelRef.current
-    if (!el || visibleCount >= items.length) return
+    if (!el || groupingByStore || visibleCount >= items.length) return
     const observer = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting) setVisibleCount(v => Math.min(v + PAGE_SIZE, items.length))
     }, { rootMargin: '600px' })
     observer.observe(el)
     return () => observer.disconnect()
-  }, [visibleCount, items.length, activeKey, maxPrice, query])
+  }, [visibleCount, items.length, activeKey, maxPrice, query, groupingByStore])
 
   if (groups.length === 0) return null
 
   function changeTab(key: string) { setActiveKey(key); setVisibleCount(PAGE_SIZE) }
   function changePrice(max: number) { setMaxPrice(max); setVisibleCount(PAGE_SIZE) }
+  function toggleViewMode() { setViewMode(v => v === 'produtos' ? 'lojas' : 'produtos') }
 
   // Cliente só compra de uma loja por vez — se o carrinho ativo é de outra
   // empresa, confirma antes de esvaziar aquele carrinho e trocar. Sem essa
@@ -201,8 +222,28 @@ export default function HomePecaAgora({ groups, search = '' }: { groups: PecaGro
            logo abaixo, é o que deixa a faixa inteira mais baixa (Ricardo
            pediu o mínimo de altura possível, pra sobrar mais tela pro
            conteúdo, set/2026). */
-        .pa-hdr { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 0 0 14px; }
+        .pa-hdr { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 14px; }
         .pa-eyebrow { color: rgba(21,18,16,.68); margin-bottom: 0; white-space: nowrap; }
+        .pa-hdr-right { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; justify-content: flex-end; }
+        /* Pill único trocando de rótulo/ícone conforme a vista atual — nem
+           linha nova, nem par de ícones; só mostra pra onde o toque leva
+           (mockup aprovado, out/2026, "algo que ocupe menos espaço"). */
+        .pa-view-toggle { flex: none; display: flex; align-items: center; gap: 4px; background: var(--paper); border: 1px solid var(--ink); border-radius: 20px; padding: 4px 10px 4px 8px; font-size: 10px; font-weight: 800; color: var(--ink); white-space: nowrap; cursor: pointer; font-family: 'Archivo', sans-serif; }
+        /* Vista "Lojas" — um cartão por empresa, prateleirinha horizontal
+           com os produtos dela (mesmas fotos de produto já usadas na lista,
+           sem precisar de logo). */
+        .pa-store-card { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
+        .pa-store-hdr { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 9px; }
+        .pa-store-name { font-size: 14px; font-weight: 800; color: var(--ink); font-family: 'Archivo', sans-serif; }
+        .pa-store-meta { font-size: 9px; font-weight: 700; color: var(--muted); margin-top: 2px; }
+        .pa-store-meta.open { color: var(--open); }
+        .pa-store-link { font-size: 10.5px; font-weight: 800; color: var(--sign-dark); text-decoration: none; white-space: nowrap; flex: none; }
+        .pa-store-shelf { display: flex; gap: 9px; overflow-x: auto; scrollbar-width: none; }
+        .pa-store-shelf::-webkit-scrollbar { display: none; }
+        .pa-store-thumb { flex: none; width: 64px; display: flex; flex-direction: column; gap: 4px; text-decoration: none; }
+        .pa-store-thumb-img { width: 64px; height: 64px; border-radius: 11px; background: var(--concrete-2); position: relative; overflow: hidden; }
+        .pa-store-thumb-name { font-size: 10.5px; font-weight: 700; color: var(--ink); line-height: 1.2; font-family: 'Archivo', sans-serif; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .pa-store-thumb-price { font-size: 10px; font-weight: 800; color: var(--sign-dark); }
         /* O carrossel de subcategorias (dentro da faixa) tinha o mesmo
            problema que o de categorias tinha antes de ir de ponta a ponta —
            só que aqui quem segura ele "dentro de um container" é o padding
@@ -266,7 +307,15 @@ export default function HomePecaAgora({ groups, search = '' }: { groups: PecaGro
             <div className="pa-band-inner">
               <div className="pa-hdr">
                 <h2 className="recent-section-title">🍔 Peça agora</h2>
-                <span className="sec-eyebrow pa-eyebrow">Delivery na Trindade</span>
+                <div className="pa-hdr-right">
+                  <span className="sec-eyebrow pa-eyebrow">Delivery na Trindade</span>
+                  {/* Troca a vista sem gastar linha nova — mostra pra onde o
+                      toque leva, não os dois estados ao mesmo tempo (mockup
+                      aprovado, out/2026). */}
+                  <button type="button" className="pa-view-toggle" onClick={toggleViewMode}>
+                    {viewMode === 'produtos' ? '🏪 Ver lojas' : '📦 Ver produtos'}
+                  </button>
+                </div>
               </div>
 
               <div className="pa-scroll">
@@ -290,6 +339,31 @@ export default function HomePecaAgora({ groups, search = '' }: { groups: PecaGro
 
       {items.length === 0 ? (
         <div className="oa-empty">{searching ? `Nenhum produto encontrado para "${search.trim()}".` : 'Nenhum produto nessa faixa de preço ainda.'}</div>
+      ) : storeGroups ? (
+        <div className="pa-list">
+          {storeGroups.map(g => (
+            <div key={g.companySlug} className="pa-store-card">
+              <div className="pa-store-hdr">
+                <div>
+                  <div className="pa-store-name">{g.companyName}</div>
+                  <div className={`pa-store-meta ${g.open ? 'open' : ''}`}>{g.open ? '● Aberto' : 'Fechado'} · {g.items.length} {g.items.length === 1 ? 'produto' : 'produtos'}</div>
+                </div>
+                <a className="pa-store-link" href={`/cardapio/${g.companySlug}`}>Ver cardápio ›</a>
+              </div>
+              <div className="pa-store-shelf">
+                {g.items.map(p => (
+                  <a key={p.id} className="pa-store-thumb" href={`/empresa/${p.companySlug}/item/${p.id}`}>
+                    <div className="pa-store-thumb-img">
+                      <Image src={p.photo_url} alt={p.name} fill sizes="64px" unoptimized style={{objectFit:'cover'}} />
+                    </div>
+                    <div className="pa-store-thumb-name">{p.name}</div>
+                    <div className="pa-store-thumb-price">{fmt(p.price)}</div>
+                  </a>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       ) : (
         <>
           <div className="pa-list">

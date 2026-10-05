@@ -57,12 +57,6 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
   const groupRefs = useRef<(HTMLDivElement | null)[]>([])
   const catScrollRef = useRef<HTMLDivElement>(null)
   function scrollCats(dir: number) { catScrollRef.current?.scrollBy({ left: dir * 220, behavior: 'smooth' }) }
-  // Botão de lupa no caminho da página (topo) só leva até a barra de busca
-  // que já existe mais abaixo e foca nela — não duplica campo nenhum
-  // (pedido do Ricardo, out/2026: só mudar posição/tamanho dos botões,
-  // "nada mais mexe").
-  const searchInputRef = useRef<HTMLInputElement>(null)
-  function focusSearch() { searchInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); searchInputRef.current?.focus() }
   const [detailQty, setDetailQty] = useState(1)
   const [drawerOpen, setDrawerOpen] = useState(false)
   // Checkout em etapas (mockup aprovado pelo Ricardo, set/2026): revisão do
@@ -599,11 +593,12 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
            inspirado num cardápio concorrente que ele achou bem resolvido:
            "só a posição e o tamanho desses três botões, o resto fica
            exatamente como está". Saíram da faixa de baixo do hero (onde
-           ficavam com o status) e vieram pra cá; o ícone de perfil saiu
-           de vez porque o nome da empresa no próprio caminho (abaixo) já
-           é link pro perfil — não duplica. Texto do caminho trunca com
-           reticências quando o nome da empresa é grande, pra sempre sobrar
-           espaço pros botões. */
+           ficavam com o status) e vieram pra cá. O 1º botão virou ícone de
+           loja/prédio (não mais bonequinho) — já tinha campo de busca
+           embaixo, duplicar ele aqui em cima não fazia sentido (pedido do
+           Ricardo, out/2026). Texto do caminho trunca com reticências
+           quando o nome da empresa é grande, pra sempre sobrar espaço pros
+           botões. */
         .cd-top{ background:var(--ink);padding:16px 16px;width:100vw;margin-left:calc(50% - 50vw); }
         .cd-top-inner{ display:flex;align-items:center;gap:10px; }
         @media(min-width:900px){ .cd-top-inner{ max-width:1120px;margin:0 auto; } }
@@ -611,7 +606,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
         .cd-bc a{ color:var(--sign);text-decoration:none; }
         .cd-bc-actions{ display:flex;align-items:center;gap:6px;flex-shrink:0; }
         .cd-bc-icobtn{ width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:none;cursor:pointer;text-decoration:none; }
-        .cd-bc-icobtn.search{ background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.28); }
+        .cd-bc-icobtn.profile{ background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.28); }
         .cd-bc-icobtn.wa{ background:#25D366; }
         .cd-bc-icobtn.share{ background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.28);font-size:11px;color:#fff; }
         /* Card do topo remodelado (mockup aprovado por Ricardo, set/2026):
@@ -822,9 +817,9 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
       <div className="cd-top"><div className="cd-top-inner">
         <div className="cd-bc"><a href="/">Trindade Online</a> › <a href={`/empresa/${company.slug}`}>{company.name}</a> › Cardápio</div>
         <div className="cd-bc-actions">
-          <button className="cd-bc-icobtn search" onClick={focusSearch} aria-label="Buscar no cardápio">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          </button>
+          <a href={`/empresa/${company.slug}`} className="cd-bc-icobtn profile" aria-label="Ver perfil da empresa">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l1-5h16l1 5"/><path d="M3 9a2 2 0 004 0 2 2 0 004 0 2 2 0 004 0 2 2 0 004 0"/><path d="M4 9v10h16V9"/><path d="M9 21v-6h6v6"/></svg>
+          </a>
           {company.phone && (
             <button className="cd-bc-icobtn wa" onClick={handleWhatsAppCardapio} aria-label="Chamar no WhatsApp">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="#0B2E13"><path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.58 1.38 5.07L2 22l5.07-1.33A9.96 9.96 0 0012 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18c-1.6 0-3.1-.43-4.4-1.19l-.32-.19-3.13.82.84-3.05-.2-.33A7.95 7.95 0 014 12c0-4.41 3.59-8 8-8s8 3.59 8 8-3.59 8-8 8z"/></svg>
@@ -877,7 +872,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
 
       <div className="cd-search-wrap"><div className="cd-search-inner"><div className="cd-search-bar">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input ref={searchInputRef} placeholder="Buscar no cardápio..." value={search} onChange={e => setSearch(e.target.value)} />
+        <input placeholder="Buscar no cardápio..." value={search} onChange={e => setSearch(e.target.value)} />
       </div></div></div>
 
       <div className="cd-catbar-wrap">

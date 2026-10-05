@@ -274,6 +274,10 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
   function removeCartLine(key: string) {
     setCart(prev => prev.filter(l => l.key !== key))
   }
+  function clearCart() {
+    if (!confirm('Esvaziar o carrinho?')) return
+    setCart([])
+  }
   const cartTotal = cart.reduce((s, l) => s + l.unitPrice * l.qty, 0)
   const cartCount = cart.reduce((s, l) => s + l.qty, 0)
 
@@ -364,6 +368,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
     if (!company || cart.length === 0) return
     if (Number(company.loja_pedido_minimo || 0) > 0 && cartTotal < Number(company.loja_pedido_minimo)) return
     if (deliveryType === 'entrega' && !address.trim()) return
+    if (deliveryType === 'entrega' && !numero.trim()) return
     if (deliveryType === 'entrega' && freteBlocked) return
     if (trocoIncompleto) return
     if (!loggedIn && (!guestName.trim() || guestPhone.replace(/\D/g, '').length < 10)) { setStep('contato'); return }
@@ -561,7 +566,10 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
       if (!guestName.trim() || guestPhone.replace(/\D/g, '').length < 10) return
       setStep('entrega')
     } else if (step === 'entrega') {
-      if (deliveryType === 'entrega' && (!address.trim() || freteBlocked)) return
+      // Número da casa obrigatório em entrega — sem ele o motoboy chega no
+      // endereço e não sabe qual é a casa/apê (pedido do Ricardo, out/2026:
+      // "tem gente digitando o CEP e não botando o número da casa").
+      if (deliveryType === 'entrega' && (!address.trim() || !numero.trim() || freteBlocked)) return
       if (deliveryType === 'retirada' && agendarRetirada && (!scheduleDate || !scheduleTime)) return
       setStep('pagamento')
     }
@@ -619,6 +627,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
         .cd-pagehero-status.closed .dot{ background:#F87171; }
         .cd-pagehero-rating{ font-size:12px;color:#999;font-family:'Archivo',sans-serif; }
         .cd-pagehero-rating .st{ color:var(--sign); }
+        .cd-pagehero-minimo{ display:inline-flex;align-items:center;font-size:11.5px;font-weight:700;padding:6px 13px;border-radius:20px;background:rgba(255,197,49,.14);color:var(--sign);font-family:'Archivo',sans-serif; }
         .cd-heroactions{ display:flex;align-items:center;gap:12px;flex-shrink:0; }
         .cd-icobtn{ width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;border:none;cursor:pointer;text-decoration:none; }
         .cd-icobtn.profile{ background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.28); }
@@ -811,6 +820,9 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
               <span className={`cd-pagehero-status ${open ? '' : 'closed'}`}><span className="dot" />{open ? 'Aberto agora' : 'Fechado agora'}</span>
               {Number(company.avg_rating || 0) > 0 && (
                 <span className="cd-pagehero-rating"><span className="st">★</span> {Number(company.avg_rating).toFixed(1)} ({company.total_reviews || 0})</span>
+              )}
+              {Number(company.loja_pedido_minimo || 0) > 0 && (
+                <span className="cd-pagehero-minimo">Pedido mínimo {fmt(Number(company.loja_pedido_minimo))}</span>
               )}
             </div>
             <div className="cd-heroactions">
@@ -1045,7 +1057,10 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
               {step === 'cart' && (
                 <>
                   <div className="cd-dbody">
-                    <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', marginBottom: 8, fontWeight: 800 }}>Itens</div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', fontWeight: 800 }}>Itens</div>
+                      <button type="button" onClick={clearCart} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', color: '#C43D3D', fontSize: 11, fontWeight: 700, cursor: 'pointer', padding: 0 }}>🗑 Limpar carrinho</button>
+                    </div>
                     {cart.map(l => (
                       <div key={l.key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '0.5px solid #EDE8E0', fontSize: 12 }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
@@ -1064,9 +1079,45 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
                     <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1.5px dashed #E2DCCB', display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
                       <span style={{ color: '#888' }}>Subtotal</span><b>{fmt(cartTotal)}</b>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, color: '#AAA', marginTop: 4 }}>
-                      <span>Taxa de entrega</span><span>calculada no próximo passo</span>
-                    </div>
+                    {/* CEP já nesse 1º passo, pra saber o frete sem precisar
+                        avançar — reaproveita o MESMO estado/cálculo da etapa
+                        "Entrega" (cep/numero/cepData/taxaEntrega), então o
+                        que a pessoa digitar aqui já chega preenchido lá
+                        (mockup aprovado + pedido do Ricardo, out/2026:
+                        "guarda esse CEP pra ele já ir preenchido"). Some se
+                        ela já tiver escolhido retirar na loja. */}
+                    {deliveryType === 'entrega' ? (
+                      <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #F0EDE8' }}>
+                        <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', marginBottom: 8, fontWeight: 800 }}>Qual seu CEP? (calcula o frete na hora)</div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <input className="cd-diinput" style={{ flex: 1 }} value={cep} onChange={e => handleCepChange(e.target.value)} placeholder="CEP" inputMode="numeric" />
+                          <input className="cd-diinput" style={{ width: 90 }} value={numero} onChange={e => handleNumeroChange(e.target.value)} placeholder="Número *" />
+                        </div>
+                        {cepLoading && <div style={{ fontSize: 11, color: '#AAA', marginTop: 6 }}>Buscando endereço...</div>}
+                        {cepError && <div style={{ fontSize: 11, color: '#C43D3D', marginTop: 6 }}>CEP não encontrado — preenche certinho no próximo passo</div>}
+                        {!cepLoading && freteBlocked && (
+                          <div style={{ marginTop: 8, fontSize: 11.5, color: '#A83232', fontWeight: 600 }}>🚫 {freteInfo?.reason || 'Não entregamos nesse endereço no momento.'}</div>
+                        )}
+                        {!cepLoading && !freteBlocked && cepData?.bairro && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, fontSize: 12.5 }}>
+                            <span style={{ color: '#555' }}>🚴 Taxa de entrega · {cepData.bairro}</span>
+                            <b style={{ color: taxaEntrega === 0 ? 'var(--open)' : '#151210' }}>{taxaEntrega === 0 ? 'Grátis' : fmt(taxaEntrega)}</b>
+                          </div>
+                        )}
+                        {!cepLoading && !freteBlocked && !cepData?.bairro && (
+                          <div style={{ fontSize: 11, color: '#AAA', marginTop: 6 }}>Taxa de entrega calculada assim que o CEP for encontrado</div>
+                        )}
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, color: '#AAA', marginTop: 4 }}>
+                        <span>Taxa de entrega</span><span>retirando na loja</span>
+                      </div>
+                    )}
+                    {deliveryType === 'entrega' && !freteBlocked && cepData?.bairro && (
+                      <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #F0EDE8', display: 'flex', justifyContent: 'space-between', fontSize: 13.5, fontWeight: 800 }}>
+                        <span>Total estimado</span><span>{fmt(cartTotal + taxaEntrega)}</span>
+                      </div>
+                    )}
                     {abaixoMinimo && (
                       <div style={{ marginTop: 12, padding: '10px 12px', borderRadius: 10, background: '#FEF0E0', color: '#B5690C', fontSize: 11.5, fontWeight: 600 }}>
                         Pedido mínimo de {fmt(Number(company.loja_pedido_minimo))} — faltam {fmt(Number(company.loja_pedido_minimo) - cartTotal)}
@@ -1122,8 +1173,9 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
                         <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', margin: '14px 0 8px', fontWeight: 800 }}>Endereço</div>
                         <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
                           <input className="cd-diinput" style={{ flex: 1 }} value={cep} onChange={e => handleCepChange(e.target.value)} placeholder="CEP" inputMode="numeric" />
-                          <input className="cd-diinput" style={{ width: 90 }} value={numero} onChange={e => handleNumeroChange(e.target.value)} placeholder="Número" />
+                          <input className="cd-diinput" style={{ width: 90, borderColor: !numero.trim() ? '#E8B4B4' : undefined }} value={numero} onChange={e => handleNumeroChange(e.target.value)} placeholder="Número *" />
                         </div>
+                        {!numero.trim() && <div style={{ fontSize: 11, color: '#C43D3D', marginBottom: 6 }}>Número da casa é obrigatório — o motoboy precisa saber onde entregar</div>}
                         {cepLoading && <div style={{ fontSize: 11, color: '#AAA', marginBottom: 6 }}>Buscando endereço...</div>}
                         {cepError && <div style={{ fontSize: 11, color: '#C43D3D', marginBottom: 6 }}>CEP não encontrado — preenche o endereço direto embaixo</div>}
                         <input className="cd-diinput" value={address} onChange={e => setAddress(e.target.value)} placeholder="Rua, bairro, complemento" />
@@ -1164,7 +1216,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
                     <textarea className="cd-diinput" style={{ minHeight: 56, resize: 'vertical' }} value={obs} onChange={e => setObs(e.target.value)} placeholder="Ex: sem cebola, troco pra R$50..." />
                   </div>
                   <div className="cd-dfooter">
-                    <button className="cd-addcart" disabled={(deliveryType === 'entrega' && (!address.trim() || freteBlocked)) || (deliveryType === 'retirada' && agendarRetirada && (!scheduleDate || !scheduleTime))} onClick={goStep}>Avançar →</button>
+                    <button className="cd-addcart" disabled={(deliveryType === 'entrega' && (!address.trim() || !numero.trim() || freteBlocked)) || (deliveryType === 'retirada' && agendarRetirada && (!scheduleDate || !scheduleTime))} onClick={goStep}>Avançar →</button>
                   </div>
                 </>
               )}

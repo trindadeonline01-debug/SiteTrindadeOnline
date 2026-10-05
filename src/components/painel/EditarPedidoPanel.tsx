@@ -265,7 +265,13 @@ export default function EditarPedidoPanel({ pedido, companyId, onClose, onSaved 
         .ep-hd-num{ font-family:'Anton',sans-serif;font-size:15px;letter-spacing:.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
         .ep-timer{ display:flex;align-items:center;gap:5px;background:#F5F6F2;color:#6E6656;font-size:10.5px;font-weight:700;padding:5px 8px;border-radius:20px;flex:none;white-space:nowrap; }
         .ep-close{ margin-left:0;width:30px;height:30px;border-radius:9px;border:1.5px solid #E6E0D2;background:#fff;color:var(--ink);font-size:15px;cursor:pointer;flex:none; }
-        .ep-body{ flex:1;overflow-y:auto;overflow-x:hidden;padding:12px;display:grid;grid-template-columns:1fr;gap:10px;align-items:start; }
+        /* minmax(0,1fr), não 1fr puro — 1fr sozinho tem um mínimo implícito
+           igual ao conteúdo (min-width:auto da grid item), então qualquer
+           coisa que não quebra linha (nome de produto comprido, chips de
+           pagamento) empurrava a coluna inteira mais larga que a tela —
+           com overflow-x:hidden isso não vira scroll, vira corte mesmo
+           (achado real do Ricardo, out/2026, testando no celular). */
+        .ep-body{ flex:1;overflow-y:auto;overflow-x:hidden;padding:12px;display:grid;grid-template-columns:minmax(0,1fr);gap:10px;align-items:start; }
         .ep-footer{ flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px calc(12px + env(safe-area-inset-bottom));border-top:1px solid #EDE8E0; }
         @media(min-width:768px){
           .ep-overlay{ padding:16px; }
@@ -274,7 +280,7 @@ export default function EditarPedidoPanel({ pedido, companyId, onClose, onSaved 
           .ep-hd-num{ font-size:17px; }
           .ep-timer{ font-size:11.5px;padding:5px 10px; }
           .ep-close{ width:32px;height:32px;margin-left:auto; }
-          .ep-body{ padding:16px 20px;grid-template-columns:270px 1fr 290px;gap:12px; }
+          .ep-body{ padding:16px 20px;grid-template-columns:270px minmax(0,1fr) 290px;gap:12px; }
           .ep-footer{ padding:13px 20px; }
           .ep-sec-produtos{ grid-row:span 2; }
         }
@@ -284,7 +290,7 @@ export default function EditarPedidoPanel({ pedido, companyId, onClose, onSaved 
         .ep-btn-primary:disabled{ opacity:.6;cursor:default; }
         .ep-btn-ghost{ background:#F5F6F2;color:var(--ink); }
 
-        .ep-sec{ background:#F5F6F2;border-radius:12px;padding:13px 13px 14px;border-left:4px solid transparent; }
+        .ep-sec{ background:#F5F6F2;border-radius:12px;padding:13px 13px 14px;border-left:4px solid transparent;min-width:0; }
         .ep-sec h4{ margin:0 0 9px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em; }
         .ep-sec-cliente{ border-left-color:var(--alert); } .ep-sec-cliente h4{ color:var(--alert); }
         .ep-sec-produtos{ border-left-color:#7A3FB0; } .ep-sec-produtos h4{ color:#7A3FB0; }
@@ -307,7 +313,7 @@ export default function EditarPedidoPanel({ pedido, companyId, onClose, onSaved 
         .ep-chip.on{ background:var(--open);border-color:var(--open);color:#fff; }
 
         .ep-items{ display:flex;flex-direction:column;gap:7px;margin-bottom:9px;max-height:230px;overflow-y:auto; }
-        .ep-item{ display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #E6E0D2;border-radius:9px;padding:7px 9px; }
+        .ep-item{ display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #E6E0D2;border-radius:9px;padding:7px 9px;min-width:0; }
         .ep-item-name{ flex:1;min-width:0; }
         .ep-item-name b{ font-size:12px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
         .ep-item-mods{ font-size:10px;color:#A79E8B;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }

@@ -455,10 +455,15 @@ export async function retryMotoboyDispatch(deliveryOrderId: string): Promise<{ o
 // então os dois avisos abaixo já caem fora sozinhos, sem precisar de
 // nenhuma ramificação extra pra esse caso.
 export async function cancelarChamadaMotoboy(deliveryOrderId: string): Promise<{ ok: boolean; error?: string }> {
-  const { data: order } = await supabase.from('delivery_orders').select('status, motoboy_phone').eq('id', deliveryOrderId).maybeSingle()
+  const { data: order } = await supabase.from('delivery_orders').select('status, motoboy_phone, picked_up_at').eq('id', deliveryOrderId).maybeSingle()
   if (!order) return { ok: false, error: 'entrega não encontrada' }
   if (order.status !== 'buscando_motoboy' && order.status !== 'a_caminho' && order.status !== 'sem_motoboy') {
     return { ok: false, error: 'essa entrega não pode mais ser cancelada' }
+  }
+  // Depois que o motoboy digita o código de retirada, a mercadoria já saiu
+  // da loja — não tem mais o que cancelar (pedido do Ricardo, out/2026).
+  if (order.picked_up_at) {
+    return { ok: false, error: 'o motoboy já retirou a mercadoria, não dá mais pra cancelar' }
   }
 
   await supabase.from('delivery_orders').update({ status: 'cancelada' }).eq('id', deliveryOrderId)

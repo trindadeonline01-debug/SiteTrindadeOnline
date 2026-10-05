@@ -876,8 +876,11 @@ export default function PedidosPage() {
               // (sem_motoboy, ao lado do "🔁 Solicitar de novo" — achado
               // real do Ricardo, out/2026, Peixaria Trindade #19: não tinha
               // como desistir depois que a fila esgotava). Só não aparece
-              // depois de entregue/cancelada de vez.
-              const podeCancelar = d.status === 'buscando_motoboy' || d.status === 'a_caminho' || d.status === 'sem_motoboy'
+              // depois de entregue/cancelada de vez — e some também assim
+              // que o motoboy digita o código de retirada (picked_up_at),
+              // porque a mercadoria já saiu da loja e não tem mais volta
+              // (pedido do Ricardo, out/2026).
+              const podeCancelar = (d.status === 'buscando_motoboy' || d.status === 'a_caminho' || d.status === 'sem_motoboy') && !d.picked_up_at
               return (
                 <div className="pd-inforow" style={{ background: d.status === 'sem_motoboy' ? '#FBEAEA' : '#E8F0FE', color: d.status === 'sem_motoboy' ? '#C43D3D' : '#1A56B0' }}>
                   <span>

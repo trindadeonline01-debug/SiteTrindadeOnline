@@ -83,7 +83,16 @@ export async function POST(req: NextRequest) {
     // "urgente" — Roberta pediu entrega numa loja com Entrega ativo e saiu
     // cobrando R$0 porque a loja nunca configurou taxa própria, sem nem
     // olhar pra taxa do admin que já existe cadastrada.
-    if (moduleActive(company.entrega_enabled, company.trial_modules_until)) {
+    //
+    // MAS quem já tem motoboy PRÓPRIO cadastrado e ativo nunca cai nesse
+    // branch, mesmo com o módulo Entrega ligado (ex: período de teste) — ela
+    // vai entregar com o motoboy dela, não o da plataforma, então o preço
+    // tem que ser o que ELA cadastrou, não o do admin (achado real, out/2026
+    // — Crepe Cone: Itaúna saiu cobrando R$8, preço da plataforma, em vez
+    // dos R$7 que a própria loja cadastrou pra esse bairro).
+    const { count: motoboysProprios } = await supabase
+      .from('loja_motoboys').select('id', { count: 'exact', head: true }).eq('company_id', company_id).eq('ativo', true)
+    if (!motoboysProprios && moduleActive(company.entrega_enabled, company.trial_modules_until)) {
       const enderecoTexto = buildEnderecoTexto(endereco, enderecoLivre)
       const { fee, blocked, reason } = await getEntregaFeeForDelivery(enderecoTexto, { loja_lat: company.loja_lat, loja_lng: company.loja_lng })
       return NextResponse.json({ ok: true, method: 'admin', blocked, fee, reason, tempo })

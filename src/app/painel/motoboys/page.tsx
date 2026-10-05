@@ -71,13 +71,20 @@ export default function MotoboysPage() {
     if (!company) return
     setSalvando(true)
     const { error } = await supabase.from('loja_motoboys').insert({ company_id: company.id, nome: nome.trim(), whatsapp: whatsapp.trim() })
+    // Motoboy próprio cadastrado (e ativo por padrão) desativa a chamada
+    // automática do motoboy da PLATAFORMA — por obrigação, não é opcional:
+    // a entrega agora é dela, cobrada no preço dela, não no da plataforma
+    // (pedido do Ricardo, out/2026). Chamar manualmente continua possível.
+    if (!error) await supabase.from('companies').update({ entrega_chamada_automatica: false }).eq('id', company.id)
     setSalvando(false)
     if (error) { setErro('Não deu pra cadastrar — tenta de novo.'); return }
     setNome(''); setWhatsapp('')
     carregar(company.id)
   }
   async function toggleAtivo(m: LojaMotoboy) {
-    await supabase.from('loja_motoboys').update({ ativo: !m.ativo }).eq('id', m.id)
+    const ativando = !m.ativo
+    await supabase.from('loja_motoboys').update({ ativo: ativando }).eq('id', m.id)
+    if (ativando && company) await supabase.from('companies').update({ entrega_chamada_automatica: false }).eq('id', company.id)
     if (company) carregar(company.id)
   }
   async function removerMotoboy(m: LojaMotoboy) {

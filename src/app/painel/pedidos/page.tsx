@@ -458,7 +458,10 @@ export default function PedidosPage() {
   // Assim que o pedido entra em preparo, já chama o motoboy — ele viaja até
   // a loja enquanto o prato fica pronto, em vez de ficar esperando parado.
   function maybeAutoChamarMotoboy(pedido: Pedido) {
-    if (entregaEnabled && autoChamarMoto && pedido.delivery_type === 'entrega' && pedido.delivery_address && !deliveryCalled.has(pedido.id)) {
+    // Quem tem motoboy próprio ativo nunca dispara automático, mesmo que a
+    // chavinha no banco esteja desatualizada — a entrega é dela, não da
+    // plataforma (ver nota em toggleAutoChamarMoto).
+    if (entregaEnabled && autoChamarMoto && !motoboys.some(m => m.ativo) && pedido.delivery_type === 'entrega' && pedido.delivery_address && !deliveryCalled.has(pedido.id)) {
       chamarMotoboy(pedido)
     }
   }
@@ -584,7 +587,15 @@ export default function PedidosPage() {
   // Persiste na própria empresa (não é preferência de aparelho como
   // autoAceitar/impressora) — o disparo automático roda no servidor
   // (registrar-pedido), então precisa estar no banco pra ele conseguir ler.
+  // Quem tem motoboy PRÓPRIO cadastrado não pode ligar essa chavinha — a
+  // entrega é dela, não da plataforma, e a chamada automática usaria preço
+  // e motoboy errados (pedido do Ricardo, out/2026, achado real no Crepe
+  // Cone: taxa cobrada era a da plataforma, não a cadastrada pela loja).
+  // Continua dando pra chamar o motoboy da plataforma manualmente se quiser
+  // — só o disparo automático é que fica travado.
+  const temMotoboyProprio = motoboys.some(m => m.ativo)
   async function toggleAutoChamarMoto() {
+    if (temMotoboyProprio) { alert('Você tem motoboy próprio cadastrado e ativo — a chamada automática do motoboy da plataforma fica desativada. Pode chamar manualmente se precisar.'); return }
     const next = !autoChamarMoto
     setAutoChamarMoto(next)
     await supabase.from('companies').update({ entrega_chamada_automatica: next }).eq('id', companyId)
@@ -1299,9 +1310,9 @@ export default function PedidosPage() {
               <div className={`pd-switch ${autoAceitar ? 'on' : ''}`} onClick={toggleAutoAceitar}><div className="k" /></div>
             </label>
             {entregaEnabled && (
-              <label className="pd-auto-pill" title="Chamar motoboy da plataforma automaticamente">
-                <span>🏍️</span>
-                <div className={`pd-switch ${autoChamarMoto ? 'on' : ''}`} onClick={toggleAutoChamarMoto}><div className="k" /></div>
+              <label className="pd-auto-pill" title={temMotoboyProprio ? 'Desativado — você tem motoboy próprio cadastrado e ativo' : 'Chamar motoboy da plataforma automaticamente'} style={temMotoboyProprio ? { opacity: 0.5 } : undefined}>
+                <span>🏍️{temMotoboyProprio ? ' 🔒' : ''}</span>
+                <div className={`pd-switch ${autoChamarMoto && !temMotoboyProprio ? 'on' : ''}`} onClick={toggleAutoChamarMoto} style={temMotoboyProprio ? { cursor: 'not-allowed' } : undefined}><div className="k" /></div>
               </label>
             )}
           </div>
@@ -1353,9 +1364,9 @@ export default function PedidosPage() {
           Aceitar automaticamente
         </label>
         {entregaEnabled && (
-          <label className="pd-autotoggle" title="Chamar motoboy da plataforma automaticamente. Desliga se a loja já usa motoboy próprio — o botão 'Chamar motoboy' do card continua disponível de qualquer jeito">
-            <div className={`pd-switch ${autoChamarMoto ? 'on' : ''}`} onClick={toggleAutoChamarMoto}><div className="k" /></div>
-            🏍️ Motoboy automático
+          <label className="pd-autotoggle" title={temMotoboyProprio ? 'Desativado — você tem motoboy próprio cadastrado e ativo. O botão "Chamar motoboy" do card continua disponível pra chamar manualmente.' : "Chamar motoboy da plataforma automaticamente. Desliga se a loja já usa motoboy próprio — o botão 'Chamar motoboy' do card continua disponível de qualquer jeito"} style={temMotoboyProprio ? { opacity: 0.5 } : undefined}>
+            <div className={`pd-switch ${autoChamarMoto && !temMotoboyProprio ? 'on' : ''}`} onClick={toggleAutoChamarMoto} style={temMotoboyProprio ? { cursor: 'not-allowed' } : undefined}><div className="k" /></div>
+            🏍️ Motoboy automático{temMotoboyProprio ? ' 🔒' : ''}
           </label>
         )}
         <div style={{ flex: 1 }} />

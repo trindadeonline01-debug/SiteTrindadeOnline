@@ -327,13 +327,15 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
   // item/[id] (Ricardo, out/2026), mas abrindo o relacionado NO PRÓPRIO
   // modal (openDetail), sem navegar — reaproveita o catálogo que já está
   // carregado em `produtos`, sem buscar nada novo. Prioriza mesma
-  // categoria; completa com o resto se a categoria tiver poucos itens.
+  // categoria; completa com o resto do catálogo. Sem teto — mostra tudo
+  // (grid 2 colunas, rola a página) — achado real do Ricardo, out/2026:
+  // com só 8 itens "a página ficou muito vazia e ficou feia".
   const relatedProdutos = detail
     ? (() => {
         const outros = produtos.filter(p => p.id !== detail.id && availableToday(p) && !isSoldOut(p))
         const mesmaCategoria = outros.filter(p => p.category_id === detail.category_id)
         const resto = outros.filter(p => p.category_id !== detail.category_id)
-        return [...mesmaCategoria, ...resto].slice(0, 8)
+        return [...mesmaCategoria, ...resto]
       })()
     : []
 
@@ -702,7 +704,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
         .cd-hero img{ width:100%;height:100%;object-fit:cover; }
         .cd-hero-scrim{ position:absolute;top:0;left:0;right:0;height:70px;background:linear-gradient(180deg,rgba(0,0,0,.32),transparent);z-index:1; }
         .cd-herobtn{ position:absolute;top:14px;right:14px;width:38px;height:38px;border-radius:50%;background:rgba(20,15,8,.55);backdrop-filter:blur(3px);border:1px solid rgba(255,255,255,.3);font-size:19px;font-weight:800;color:#fff;cursor:pointer;z-index:2;box-shadow:0 3px 10px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center; }
-        .cd-herobtn-share{ right:auto;left:14px;font-size:16px; }
+        .cd-detail-back{ position:absolute;right:16px;bottom:88px;width:48px;height:48px;border-radius:50%;background:#111;border:none;box-shadow:0 4px 14px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:3; }
         .cd-dscroll{ flex:1;overflow-y:auto;padding:16px; }
         /* Nome + preço lado a lado, igual a página /empresa/[slug]/item/[id]
            (Ricardo, out/2026). */
@@ -715,12 +717,18 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
         .cd-dstatus-closed{ display:inline-block;margin-top:6px;font-size:11px;font-weight:700;color:#A83232;background:#FBEAEA;padding:3px 9px;border-radius:20px; }
         /* "Também tem" — mesma ideia da página do produto (Peça Agora), só
            que aqui o clique troca o modal pro relacionado em vez de navegar. */
+        /* Grid 2 colunas, igual a página /empresa/[slug]/item/[id]
+           (.id-related lá) — não rolagem horizontal feito o home/Peça
+           Agora. Pedido do Ricardo, out/2026: "igual na outra página de
+           produto... também tem dois, embaixo mais dois... a página ficou
+           muito vazia e ficou feia" — mais itens pra preencher, rolando a
+           PÁGINA pra baixo, não os cards pro lado. */
         .cd-related-h{ font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:#AAA;font-weight:800;margin:18px 0 10px; }
-        .cd-related{ display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;margin:0 -16px;padding-left:16px;padding-right:16px; }
-        .cd-related-item{ flex:none;width:104px;display:flex;flex-direction:column;gap:5px;text-align:left;background:none;border:none;padding:0;cursor:pointer;font-family:'Archivo',sans-serif; }
-        .cd-related-im{ width:104px;height:88px;border-radius:10px;background:var(--concrete-2);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:20px; }
-        .cd-related-nm{ font-size:11.5px;font-weight:700;color:var(--ink);line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden; }
-        .cd-related-pr{ font-size:11.5px;font-weight:800;color:var(--sign-dark); }
+        .cd-related{ display:grid;grid-template-columns:repeat(2,1fr);gap:10px; }
+        .cd-related-item{ display:flex;flex-direction:column;text-align:left;background:#fff;border:1px solid #E6E0D2;border-radius:10px;overflow:hidden;cursor:pointer;font-family:'Archivo',sans-serif;padding:0; }
+        .cd-related-im{ width:100%;height:88px;background:var(--ink);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:20px;flex:none; }
+        .cd-related-nm{ font-size:11.5px;font-weight:600;color:var(--ink);line-height:1.25;min-height:28px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;padding:8px 10px 0; }
+        .cd-related-pr{ font-family:'Anton',sans-serif;font-size:15px;color:var(--ink);padding:3px 10px 9px; }
         .cd-optgroup{ border-top:7px solid #F0EDE8;margin:0 -16px; }
         .cd-og-head{ background:#FBF1DC;padding:11px 16px;display:flex;align-items:center;gap:8px; }
         .cd-og-mid{ flex:1;min-width:0; }
@@ -909,15 +917,26 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
           <div className="cd-hero">
             {detail.photo_url ? <Image src={detail.photo_url} alt="" fill sizes="100vw" style={{ objectFit: 'cover' }} /> : detail.name[0]}
             <div className="cd-hero-scrim" />
-            <button className="cd-herobtn" onClick={() => setDetail(null)}>‹</button>
-            {/* Mesmo botão de compartilhar da página /empresa/[slug]/item/[id]
-                (Peça Agora) — do lado oposto ao de fechar, pra não colidir
-                (Ricardo, out/2026: "a visualização do Trindade Online está
-                muito melhor", essa é uma das peças que faltava aqui). */}
-            <button className="cd-herobtn cd-herobtn-share" onClick={handleShareDetail} aria-label={detailLinkCopied ? 'Link copiado' : 'Compartilhar produto'}>
+            {/* Compartilhar no canto direito (Ricardo, out/2026: "o botão
+                de compartilhar você botou na esquerda, bota na direita"). */}
+            <button className="cd-herobtn" onClick={handleShareDetail} aria-label={detailLinkCopied ? 'Link copiado' : 'Compartilhar produto'}>
               {detailLinkCopied ? '✅' : '🔗'}
             </button>
           </div>
+          {/* Botão de voltar/fechar desceu pro canto inferior direito,
+              flutuante — mesmo visual do botão preto global (BackButton.tsx)
+              usado no resto do site. Antes ficava em cima, no canto
+              superior direito, junto do compartilhar (Ricardo, out/2026:
+              "tem que botar embaixo aquele botãozinho preto flutuante").
+              position:absolute dentro de .cd-detail (que já é
+              position:fixed cobrindo a tela toda), acima do rodapé de
+              adicionar — não usa o BackButton global porque aqui "voltar"
+              fecha o modal (setDetail), não navega pra página anterior. */}
+          <button className="cd-detail-back" onClick={() => setDetail(null)} aria-label="Fechar">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
           <div className="cd-dscroll" ref={dscrollRef}>
             {/* Nome de um lado, preço do outro, igual a página do produto —
                 antes vinha pequeno e empilhado aqui dentro do modal. */}
@@ -983,7 +1002,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
                 <div className="cd-related">
                   {relatedProdutos.map(r => (
                     <button type="button" className="cd-related-item" key={r.id} onClick={() => openDetail(r)}>
-                      <div className="cd-related-im">{r.photo_url ? <Image src={r.photo_url} alt={r.name} fill sizes="120px" style={{ objectFit: 'cover' }} /> : r.name[0]}</div>
+                      <div className="cd-related-im">{r.photo_url ? <Image src={r.photo_url} alt={r.name} fill sizes="(min-width: 480px) 220px, 45vw" style={{ objectFit: 'cover' }} /> : r.name[0]}</div>
                       <div className="cd-related-nm">{r.name}</div>
                       <div className="cd-related-pr">{fmt(promoPrice(r) ?? r.sale_price)}</div>
                     </button>

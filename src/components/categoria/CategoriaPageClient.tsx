@@ -23,7 +23,12 @@ type Props = {
 
 export default function CategoriaPageClient({ slug, category, subcats, companies, highlights }: Props) {
   const [filtered, setFiltered]     = useState<Company[]>(companies)
-  const [sortOrder, setSortOrder]     = useState<'az'|'rating'|'recent'>('az')
+  // null = nenhum ordenar escolhido ainda, mantém a ordem embaralhada que
+  // já vem do servidor (page.tsx) — antes começava fixo em 'az', que
+  // sempre mostrava as mesmas empresas primeiro (ordem alfabética nunca
+  // muda). Só vira 'az'/'rating'/'recent' de verdade quando a pessoa
+  // clica num desses botões (Ricardo, out/2026).
+  const [sortOrder, setSortOrder]     = useState<'az'|'rating'|'recent'|null>(null)
   const [activeSub, setActiveSub]   = useState<string | null>(null)
   const [search, setSearch]         = useState('')
   const subcatScrollRef = useRef<HTMLDivElement>(null)
@@ -294,7 +299,9 @@ export default function CategoriaPageClient({ slug, category, subcats, companies
         </div>
 
         {filtered.length > 0 && (() => {
-          const sorted = [...filtered].sort((a,b)=>{
+          // sortOrder null (nada escolhido ainda) não reordena — mantém o
+          // embaralhado que já veio do servidor.
+          const sorted = !sortOrder ? filtered : [...filtered].sort((a,b)=>{
             if(sortOrder==='az') return a.name.localeCompare(b.name,'pt')
             if(sortOrder==='rating') return (b.avg_rating||0)-(a.avg_rating||0)
             return 0

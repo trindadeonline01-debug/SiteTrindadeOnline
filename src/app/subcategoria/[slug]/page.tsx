@@ -1,6 +1,7 @@
 import { cache } from 'react'
 import type { Metadata } from 'next'
 import { createServerSupabase } from '@/lib/supabase-server'
+import { shuffle } from '@/lib/shuffle'
 import SubcategoriaPageClient from '@/components/categoria/SubcategoriaPageClient'
 
 const getSubcat = cache(async (slug: string) => {
@@ -53,7 +54,9 @@ export default async function SubcategoriaPage({ params }: { params: Promise<{ s
     .select('id, name, slug, avg_rating, address, photos:company_photos(url,order)')
     .eq('status', 'active')
     .in('id', companyIds)
-    .order('avg_rating', { ascending: false })
 
-  return <SubcategoriaPageClient subcat={subcat as any} companies={comps || []} />
+  // Embaralhado a cada carregamento — mesmo ajuste da /categoria/[slug]
+  // (Ricardo, out/2026): antes vinha sempre em ordem de nota média,
+  // mesma empresa fixa no topo pra sempre.
+  return <SubcategoriaPageClient subcat={subcat as any} companies={shuffle(comps || [])} />
 }

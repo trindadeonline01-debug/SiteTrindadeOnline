@@ -1,6 +1,7 @@
 import { cache } from 'react'
 import type { Metadata } from 'next'
 import { createServerSupabase } from '@/lib/supabase-server'
+import { shuffle } from '@/lib/shuffle'
 import CategoriaPageClient from '@/components/categoria/CategoriaPageClient'
 
 const getCategory = cache(async (slug: string) => {
@@ -45,15 +46,22 @@ export default async function CategoriaPage({ params }: { params: Promise<{ slug
     supabaseServer.from('subcategories').select('id, name, emoji, slug').eq('category_id', category.id).order('name'),
     supabaseServer.from('companies')
       .select('id, name, slug, avg_rating, address, plan, description, tags, photos:company_photos(url,order), subcategories:company_subcategories(subcategory:subcategories(id,name,emoji))')
-      .eq('status', 'active').eq('category_id', category.id)
-      .order('avg_rating', { ascending: false }),
+      .eq('status', 'active').eq('category_id', category.id),
     supabaseServer.from('highlights')
       .select('id, company_id, company:companies(name,slug,avg_rating,category:categories(name,emoji))')
       .eq('active', true).eq('level', 'category').eq('category_id', category.id)
       .order('display_order'),
   ])
 
-  const companies = comps || []
+  // Embaralhado a cada carregamento — antes vinha sempre na mesma ordem
+  // (nota média, decrescente), então a mesma empresa ficava fixa no topo
+  // pra sempre. Pedido do Ricardo, out/2026: "quero dar a opção pra todas
+  // elas estarem sempre aparecendo no topo" — mesmo padrão já usado na
+  // home pros destaques/"aberto agora" (src/app/page.tsx). O split
+  // pago/gratuito que prioriza quem paga continua intacto — isso acontece
+  // DEPOIS, no client (CategoriaPageClient.tsx), que separa `pagas`/
+  // `outras` preservando a ordem que chegar aqui.
+  const companies = shuffle(comps || [])
 
   let highlights: any[] = []
   if (hlData && hlData.length > 0) {

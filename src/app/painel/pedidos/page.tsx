@@ -357,7 +357,13 @@ export default function PedidosPage() {
       .gte('created_at', from.toISOString()).lt('created_at', to.toISOString())
       .order('created_at', { ascending: false })
     setPedidos((data || []) as any)
-    const { data: entregas } = await supabase.from('delivery_orders').select('id, pedido_id, status, motoboy_name, pickup_code, picked_up_at, delivery_code').eq('company_id', cid).not('pedido_id', 'is', null)
+    // Exclui 'cancelada' — senão o pedido ficava travado pra sempre
+    // (deliveryCalled nunca esquecia que já teve uma chamada, mesmo depois
+    // de cancelada) e o card continuava mostrando a info da entrega morta
+    // em vez de deixar chamar motoboy de novo (achado real, out/2026 —
+    // Empadaí, pedido do Ricardo: "o botão tem que voltar pra chamar de
+    // novo, a hora que eu quiser").
+    const { data: entregas } = await supabase.from('delivery_orders').select('id, pedido_id, status, motoboy_name, pickup_code, picked_up_at, delivery_code').eq('company_id', cid).not('pedido_id', 'is', null).neq('status', 'cancelada')
     setDeliveryCalled(new Set((entregas || []).map(e => e.pedido_id as string)))
     const byPedido: Record<string, { id: string; status: string; motoboy_name: string | null; pickup_code: string | null; picked_up_at: string | null; delivery_code: string | null }> = {}
     for (const e of entregas || []) if (e.pedido_id) byPedido[e.pedido_id as string] = { id: e.id as string, status: e.status as string, motoboy_name: e.motoboy_name as string | null, pickup_code: e.pickup_code as string | null, picked_up_at: e.picked_up_at as string | null, delivery_code: e.delivery_code as string | null }

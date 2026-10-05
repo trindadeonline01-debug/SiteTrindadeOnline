@@ -246,7 +246,11 @@ export async function criarEntregaEChamarMotoboy(opts: {
   if (!wallet?.credits || wallet.credits < entregaFee) return { ok: false, error: 'Sem crédito de entrega suficiente — compra mais em Entrega no painel.' }
 
   if (pedidoId) {
-    const { data: existing } = await supabase.from('delivery_orders').select('id').eq('pedido_id', pedidoId).maybeSingle()
+    // Exclui 'cancelada' — sem isso, depois de cancelar uma chamada o botão
+    // "Chamar motoboy" ficava bloqueado pra sempre nesse pedido, achando que
+    // já tinha uma entrega em andamento (achado real, out/2026 — Empadaí).
+    // A loja pode chamar de novo quando quiser depois de cancelar.
+    const { data: existing } = await supabase.from('delivery_orders').select('id').eq('pedido_id', pedidoId).neq('status', 'cancelada').maybeSingle()
     if (existing) return { ok: false, error: 'Esse pedido já tem uma entrega chamada.' }
   }
 
@@ -376,9 +380,21 @@ export async function offerToNextMotoboy(deliveryOrderId: string, sequenceNo: nu
     // silenciosamente parado em "buscando_motoboy" pra sempre, sem a loja
     // nunca saber o motivo. Achado real: com só 2 motoboys ativos, basta
     // os 2 esgotarem as tentativas pra esgotar a fila (Ricardo, set/2026).
-    await supabase.from('delivery_orders').update({ status: 'sem_motoboy' }).eq('id', deliveryOrderId)
+    // `.eq('status','buscando_motoboy')` na cláusula pra não reabrir uma
+    // entrega que a loja cancelou enquanto pickNextMotoboy rodava (ver nota
+    // abaixo sobre a corrida com cancelarChamadaMotoboy).
+    await supabase.from('delivery_orders').update({ status: 'sem_motoboy' }).eq('id', deliveryOrderId).eq('status', 'buscando_motoboy')
     return
   }
+
+  // Revalida bem perto da escrita final — entre a checagem do topo e aqui,
+  // pickNextMotoboy/sendOfferMessage fazem várias idas ao banco, e nesse
+  // intervalo a loja pode cancelar a chamada. Sem isso, a oferta saía e o
+  // motoboy continuava sendo chamado mesmo depois do cancelamento (achado
+  // real, out/2026 — Empadaí: motoboy recebeu o cancelamento e o sistema
+  // continuou oferecendo a mesma corrida pra ele).
+  const { data: freshOrder } = await supabase.from('delivery_orders').select('status').eq('id', deliveryOrderId).maybeSingle()
+  if (freshOrder?.status !== 'buscando_motoboy') return
 
   const expiresAt = new Date(Date.now() + OFFER_TIMEOUT_MS).toISOString()
   await supabase.from('delivery_offers').insert({

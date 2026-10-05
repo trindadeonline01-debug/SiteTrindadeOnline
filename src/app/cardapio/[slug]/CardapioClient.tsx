@@ -57,6 +57,12 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
   const groupRefs = useRef<(HTMLDivElement | null)[]>([])
   const catScrollRef = useRef<HTMLDivElement>(null)
   function scrollCats(dir: number) { catScrollRef.current?.scrollBy({ left: dir * 220, behavior: 'smooth' }) }
+  // Botão de lupa no caminho da página (topo) só leva até a barra de busca
+  // que já existe mais abaixo e foca nela — não duplica campo nenhum
+  // (pedido do Ricardo, out/2026: só mudar posição/tamanho dos botões,
+  // "nada mais mexe").
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  function focusSearch() { searchInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); searchInputRef.current?.focus() }
   const [detailQty, setDetailQty] = useState(1)
   const [drawerOpen, setDrawerOpen] = useState(false)
   // Checkout em etapas (mockup aprovado pelo Ricardo, set/2026): revisão do
@@ -588,9 +594,26 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
         /* Topo e hero escapam do max-width do .cd-wrap pra ficar de ponta a
            ponta na tela, igual à página de categoria — só o conteúdo abaixo
            (busca, categorias, cardápio) fica limitado a 1120px. */
-        .cd-top{ background:var(--ink);padding:22px 16px 10px;text-align:center;width:100vw;margin-left:calc(50% - 50vw); }
-        .cd-bc{ font-size:11px;color:#fff;font-weight:700; }
+        /* Caminho da página ganha os 3 botões (busca/WhatsApp/compartilhar)
+           na extrema direita, menores — pedido do Ricardo, out/2026,
+           inspirado num cardápio concorrente que ele achou bem resolvido:
+           "só a posição e o tamanho desses três botões, o resto fica
+           exatamente como está". Saíram da faixa de baixo do hero (onde
+           ficavam com o status) e vieram pra cá; o ícone de perfil saiu
+           de vez porque o nome da empresa no próprio caminho (abaixo) já
+           é link pro perfil — não duplica. Texto do caminho trunca com
+           reticências quando o nome da empresa é grande, pra sempre sobrar
+           espaço pros botões. */
+        .cd-top{ background:var(--ink);padding:16px 16px;width:100vw;margin-left:calc(50% - 50vw); }
+        .cd-top-inner{ display:flex;align-items:center;gap:10px; }
+        @media(min-width:900px){ .cd-top-inner{ max-width:1120px;margin:0 auto; } }
+        .cd-bc{ flex:1 1 auto;min-width:0;font-size:11px;color:#fff;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
         .cd-bc a{ color:var(--sign);text-decoration:none; }
+        .cd-bc-actions{ display:flex;align-items:center;gap:6px;flex-shrink:0; }
+        .cd-bc-icobtn{ width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:none;cursor:pointer;text-decoration:none; }
+        .cd-bc-icobtn.search{ background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.28); }
+        .cd-bc-icobtn.wa{ background:#25D366; }
+        .cd-bc-icobtn.share{ background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.28);font-size:11px;color:#fff; }
         /* Card do topo remodelado (mockup aprovado por Ricardo, set/2026):
            nome da empresa vira o texto grande (Anton), "Cardápio" passa a
            ser só uma etiqueta pequena acima — antes era o oposto (CARDÁPIO
@@ -628,12 +651,6 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
         .cd-pagehero-rating{ font-size:12px;color:#999;font-family:'Archivo',sans-serif; }
         .cd-pagehero-rating .st{ color:var(--sign); }
         .cd-pagehero-minimo{ display:inline-flex;align-items:center;font-size:11.5px;font-weight:700;padding:6px 13px;border-radius:20px;background:rgba(255,197,49,.14);color:var(--sign);font-family:'Archivo',sans-serif; }
-        .cd-heroactions{ display:flex;align-items:center;gap:12px;flex-shrink:0; }
-        .cd-icobtn{ width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;border:none;cursor:pointer;text-decoration:none; }
-        .cd-icobtn.profile{ background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.28); }
-        .cd-icobtn.profile:hover{ border-color:var(--sign);color:var(--sign); }
-        .cd-icobtn.wa{ background:#25D366;color:#0B2E13; }
-        .cd-icobtn.share{ background:var(--sign);color:var(--ink); }
         .cd-coupon-strip-wrap{ background:#fff;padding:8px 0;border-bottom:1px solid var(--line); }
         .cd-coupon-strip{ display:flex;gap:6px;overflow-x:auto;padding:0 16px;scrollbar-width:none; }
         .cd-coupon-strip::-webkit-scrollbar{ display:none; }
@@ -802,7 +819,24 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
         .cd-coupon-card.locked .cd-coupon-card-radio{ display:flex;align-items:center;justify-content:center;font-size:9.5px;border:none; }
       `}</style>
 
-      <div className="cd-top"><div className="cd-bc"><a href="/">Trindade Online</a> › <a href={`/empresa/${company.slug}`}>{company.name}</a> › Cardápio</div></div>
+      <div className="cd-top"><div className="cd-top-inner">
+        <div className="cd-bc"><a href="/">Trindade Online</a> › <a href={`/empresa/${company.slug}`}>{company.name}</a> › Cardápio</div>
+        <div className="cd-bc-actions">
+          <button className="cd-bc-icobtn search" onClick={focusSearch} aria-label="Buscar no cardápio">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+          {company.phone && (
+            <button className="cd-bc-icobtn wa" onClick={handleWhatsAppCardapio} aria-label="Chamar no WhatsApp">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="#0B2E13"><path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.58 1.38 5.07L2 22l5.07-1.33A9.96 9.96 0 0012 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18c-1.6 0-3.1-.43-4.4-1.19l-.32-.19-3.13.82.84-3.05-.2-.33A7.95 7.95 0 014 12c0-4.41 3.59-8 8-8s8 3.59 8 8-3.59 8-8 8z"/></svg>
+            </button>
+          )}
+          <button className="cd-bc-icobtn share" onClick={handleShareCardapio} aria-label={linkCopied ? 'Link copiado' : 'Compartilhar'}>
+            {linkCopied ? '✓' : (
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><line x1="8.3" y1="10.7" x2="15.7" y2="6.3"/><line x1="8.3" y1="13.3" x2="15.7" y2="17.7"/></svg>
+            )}
+          </button>
+        </div>
+      </div></div>
 
       <div className="cd-pagehero">
         <div className="cd-pagehero-inner">
@@ -825,11 +859,6 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
                 <span className="cd-pagehero-minimo">Pedido mínimo {fmt(Number(company.loja_pedido_minimo))}</span>
               )}
             </div>
-            <div className="cd-heroactions">
-              <a href={`/empresa/${company.slug}`} className="cd-icobtn profile" aria-label="Ver perfil da empresa">👤</a>
-              {company.phone && <button className="cd-icobtn wa" onClick={handleWhatsAppCardapio} aria-label="Chamar no WhatsApp">💬</button>}
-              <button className="cd-icobtn share" onClick={handleShareCardapio} aria-label={linkCopied ? 'Link copiado' : 'Compartilhar'}>{linkCopied ? '✓' : '🔗'}</button>
-            </div>
           </div>
         </div>
       </div>
@@ -848,7 +877,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
 
       <div className="cd-search-wrap"><div className="cd-search-inner"><div className="cd-search-bar">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input placeholder="Buscar no cardápio..." value={search} onChange={e => setSearch(e.target.value)} />
+        <input ref={searchInputRef} placeholder="Buscar no cardápio..." value={search} onChange={e => setSearch(e.target.value)} />
       </div></div></div>
 
       <div className="cd-catbar-wrap">

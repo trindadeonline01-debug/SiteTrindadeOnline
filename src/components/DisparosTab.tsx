@@ -623,6 +623,7 @@ export default function DisparosTab() {
           <option value="no_group">📵 Empresas sem grupo WA</option>
           <option value="no_hours">🕐 Empresas sem horário cadastrado</option>
           <option value="owner_phone">👤 ADM Empresas (WhatsApp do lojista)</option>
+          <option value="gastronomia_both">🍽️ Gastronomia — empresa + dono</option>
           <option value="residents">🏘️ Só moradores</option>
           <option value="broadcast_list">📋 Lista de transmissão</option>
         </select>
@@ -634,6 +635,11 @@ export default function DisparosTab() {
         {filter === 'owner_phone' && (
           <div style={{ fontSize: 11, color: '#92600a', marginTop: 6 }}>
             📱 Manda pro WhatsApp do perfil pessoal do lojista (não pro WhatsApp cadastrado na empresa). Só entra quem tem telefone no perfil.
+          </div>
+        )}
+        {filter === 'gastronomia_both' && (
+          <div style={{ fontSize: 11, color: '#92600a', marginTop: 6 }}>
+            🍽️ Só empresas da categoria Gastronomia — manda pros DOIS números de cada uma (o WhatsApp cadastrado na empresa E o WhatsApp pessoal do dono), quando os dois existirem. Mesmo número repetido nos dois cadastros conta só 1 vez.
           </div>
         )}
         {filter === 'broadcast_list' && (

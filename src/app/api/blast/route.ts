@@ -297,6 +297,22 @@ export async function POST(req: NextRequest) {
         contacts = [...contacts, ...withOwnerPhone]
       }
 
+      if (filter === 'gastronomia_both') {
+        // Categoria Gastronomia (id fixo, igual usado em src/app/page.tsx) —
+        // manda pros DOIS contatos de cada empresa (WhatsApp da empresa E
+        // do dono), não só um dos dois (pedido do Ricardo, out/2026).
+        const GASTRONOMIA_CATEGORY_ID = '00000000-0000-0000-0000-000000000003'
+        const { data: companies } = await supabase
+          .from('companies')
+          .select('name, phone, owner:profiles(name, phone)')
+          .eq('category_id', GASTRONOMIA_CATEGORY_ID)
+        for (const c of (companies || []) as any[]) {
+          const owner = Array.isArray(c.owner) ? c.owner[0] : c.owner
+          if (c.phone) contacts.push({ phone: c.phone, name: c.name, company: c.name })
+          if (owner?.phone) contacts.push({ phone: owner.phone, name: owner.name || c.name, company: c.name })
+        }
+      }
+
       if (filter === 'no_group') {
         // Empresas cujo dono ainda não está marcado como "Grupo WA"
         const { data: companies } = await supabase

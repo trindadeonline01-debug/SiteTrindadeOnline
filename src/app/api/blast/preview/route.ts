@@ -42,6 +42,19 @@ export async function POST(req: NextRequest) {
       contacts = [...contacts, ...withOwnerPhone]
     }
 
+    if (filter === 'gastronomia_both') {
+      const GASTRONOMIA_CATEGORY_ID = '00000000-0000-0000-0000-000000000003'
+      const { data } = await supabase
+        .from('companies')
+        .select('phone, owner:profiles(phone)')
+        .eq('category_id', GASTRONOMIA_CATEGORY_ID)
+      for (const c of (data || []) as any[]) {
+        const owner = Array.isArray(c.owner) ? c.owner[0] : c.owner
+        if (c.phone) contacts.push(c.phone)
+        if (owner?.phone) contacts.push(owner.phone)
+      }
+    }
+
     if (filter === 'no_group') {
       const { data } = await supabase
         .from('companies')

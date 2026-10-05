@@ -76,6 +76,8 @@ Só se aplicam quando Ricardo estiver trabalhando fora do Claude Code, colando a
 
 **Infraestrutura adicional:**
 - **Hetzner VPS** (Ubuntu, Docker) — Evolution API v2.3.7 para WhatsApp em massa
+  - SSH: `ssh root@evo.trindadeonline.com.br` (domínio já aponta pra essa VPS, usuário `root` — senha nunca documentada aqui, digitada na hora)
+  - Reiniciar o container do Evolution API (seguro, não perde sessão — ver "Lições aprendidas" §10): `docker ps` pra achar o nome do container, depois `docker restart <nome>`
 - Blast worker Node.js gerenciado por PM2 em `/opt/blast/`
 - Nginx reverse proxy com SSL:
   - `evo.trindadeonline.com.br` (porta 8080)

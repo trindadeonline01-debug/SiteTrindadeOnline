@@ -17,8 +17,29 @@ const ALLOWED_FORMATS: Record<string, string> = {
 }
 const MAX_BYTES = 8 * 1024 * 1024 // 8MB — folga generosa acima do que compressImage.ts já entrega no cliente (~130KB-1MB)
 
-export async function decodeAndValidateImage(dataUri: unknown): Promise<{ buf: Buffer; ext: string; contentType: string } | { error: string }> {
+// CNH e documento do veículo às vezes só existem na versão digital oficial
+// (CNH Digital / CRLV-e do governo), que é sempre um PDF, nunca uma foto —
+// motoboy sem o documento impresso ficava impedido de se cadastrar (achado
+// real, out/2026: Thiago Antônio de Freitas, erro "arquivo não é uma imagem
+// válida" tentando subir a CNH digital). `allowPdf` libera isso SÓ pra quem
+// chama explicitamente (cnh/documento da moto) — selfie e fotos da moto
+// continuam exigindo foto de verdade. Mesma filosofia da validação de
+// imagem acima: confere pelo CONTEÚDO real (assinatura binária `%PDF-`),
+// nunca confia só no que o navegador declarou no prefixo `data:`.
+export async function decodeAndValidateImage(dataUri: unknown, opts?: { allowPdf?: boolean }): Promise<{ buf: Buffer; ext: string; contentType: string } | { error: string }> {
   if (typeof dataUri !== 'string') return { error: 'foto inválida' }
+
+  if (opts?.allowPdf) {
+    const pdfMatch = dataUri.match(/^data:application\/pdf;base64,(.+)$/)
+    if (pdfMatch) {
+      let pdfBuf: Buffer
+      try { pdfBuf = Buffer.from(pdfMatch[1], 'base64') } catch { return { error: 'arquivo inválido' } }
+      if (pdfBuf.length === 0 || pdfBuf.length > MAX_BYTES) return { error: 'arquivo inválido (tamanho)' }
+      if (pdfBuf.subarray(0, 5).toString('latin1') !== '%PDF-') return { error: 'arquivo não é um PDF válido' }
+      return { buf: pdfBuf, ext: 'pdf', contentType: 'application/pdf' }
+    }
+  }
+
   const match = dataUri.match(/^data:image\/[\w.+-]+;base64,(.+)$/)
   if (!match) return { error: 'foto inválida' }
 

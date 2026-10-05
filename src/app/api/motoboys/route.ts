@@ -34,7 +34,7 @@ function onlyDigits(v: string): string { return v.replace(/\D/g, '') }
 // CNH (e os outros documentos do auto-cadastro) são sensíveis — ficam num
 // bucket privado, nunca com URL pública.
 async function uploadCnhPhoto(base64: string): Promise<{ path: string | null; error: string | null }> {
-  const validated = await decodeAndValidateImage(base64)
+  const validated = await decodeAndValidateImage(base64, { allowPdf: true })
   if ('error' in validated) return { path: null, error: validated.error }
   const { buf, ext, contentType } = validated
   const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`

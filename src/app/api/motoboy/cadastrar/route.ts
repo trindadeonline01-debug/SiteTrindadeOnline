@@ -15,8 +15,8 @@ function formatPhone(phone: string): string {
 }
 function onlyDigits(v: string): string { return v.replace(/\D/g, '') }
 
-async function uploadPhoto(base64: string, prefix: string): Promise<{ path: string | null; error: string | null }> {
-  const validated = await decodeAndValidateImage(base64)
+async function uploadPhoto(base64: string, prefix: string, opts?: { allowPdf?: boolean }): Promise<{ path: string | null; error: string | null }> {
+  const validated = await decodeAndValidateImage(base64, opts)
   if ('error' in validated) return { path: null, error: `${validated.error} (${prefix})` }
   const { buf, ext, contentType } = validated
   const path = `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
@@ -62,10 +62,10 @@ export async function POST(req: NextRequest) {
     if (existing) return NextResponse.json({ error: 'Já existe um cadastro com esse WhatsApp.' }, { status: 400 })
 
     const uploads = await Promise.all([
-      uploadPhoto(cnh_base64, 'cnh'),
+      uploadPhoto(cnh_base64, 'cnh', { allowPdf: true }),
       uploadPhoto(moto_frente_base64, 'moto-frente'),
       uploadPhoto(moto_tras_base64, 'moto-tras'),
-      uploadPhoto(documento_moto_base64, 'documento-moto'),
+      uploadPhoto(documento_moto_base64, 'documento-moto', { allowPdf: true }),
       uploadPhoto(selfie_base64, 'selfie'),
     ])
     const failed = uploads.find(u => u.error)

@@ -276,12 +276,29 @@ export default function MotoboyCadastroClient() {
             <div className="mc-title">Documentos e fotos</div>
             <div className="mc-sub">Tira as fotos na hora ou manda da galeria — precisa estar legível.</div>
             <div className="mc-photo-grid">
-              {PHOTO_SLOTS.map(slot => (
-                <div key={slot.key} className={`mc-photo-slot ${photos[slot.key] ? 'filled' : 'empty'}`} onClick={() => fileInputs.current[slot.key]?.click()}>
-                  <input ref={el => { fileInputs.current[slot.key] = el }} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={e => onPickPhoto(slot.key, e)} />
-                  {photos[slot.key] ? <img src={photos[slot.key]!} alt={slot.label} /> : <><span style={{ fontSize: 18 }}>{slot.icon}</span>{slot.label}</>}
-                </div>
-              ))}
+              {PHOTO_SLOTS.map(slot => {
+                // CNH e documento da moto às vezes só existem em PDF (CNH
+                // Digital / CRLV-e oficiais do governo) — libera escolher PDF
+                // só nesses dois campos; moto/selfie continuam exigindo foto
+                // de verdade, com câmera priorizada (achado real, out/2026).
+                const acceptsPdf = slot.key === 'cnh' || slot.key === 'documento_moto'
+                const isPdf = photos[slot.key]?.startsWith('data:application/pdf')
+                return (
+                  <div key={slot.key} className={`mc-photo-slot ${photos[slot.key] ? 'filled' : 'empty'}`} onClick={() => fileInputs.current[slot.key]?.click()}>
+                    <input
+                      ref={el => { fileInputs.current[slot.key] = el }} type="file"
+                      accept={acceptsPdf ? 'image/*,application/pdf' : 'image/*'}
+                      capture={acceptsPdf ? undefined : 'environment'}
+                      style={{ display: 'none' }} onChange={e => onPickPhoto(slot.key, e)}
+                    />
+                    {photos[slot.key] ? (
+                      isPdf
+                        ? <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}><span style={{ fontSize: 22 }}>📄</span><span style={{ fontSize: 11 }}>PDF carregado</span></div>
+                        : <img src={photos[slot.key]!} alt={slot.label} />
+                    ) : <><span style={{ fontSize: 18 }}>{slot.icon}</span>{slot.label}</>}
+                  </div>
+                )
+              })}
             </div>
             <div className="mc-note">📌 Na foto de trás da moto, a <b>placa precisa aparecer legível</b> — é como a gente confirma que a moto é sua.</div>
             {erro && <div className="mc-error">{erro}</div>}

@@ -90,8 +90,13 @@ function AjustarContent() {
                 <div className="aj-item-hd"><span>{ICON[f.key] || '📷'}</span>{f.label}</div>
                 <div className="aj-item-reason">Motivo: {f.reason}</div>
                 <label className={`aj-photo-btn ${photos[f.key] ? 'filled' : 'empty'}`}>
-                  <input type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={e => onPick(f.key, e)} />
-                  {photos[f.key] ? '✓ Foto pronta — trocar' : '📷 Tirar ou escolher foto'}
+                  <input
+                    type="file"
+                    accept={f.key === 'cnh' || f.key === 'documento_moto' ? 'image/*,application/pdf' : 'image/*'}
+                    capture={f.key === 'cnh' || f.key === 'documento_moto' ? undefined : 'environment'}
+                    style={{ display: 'none' }} onChange={e => onPick(f.key, e)}
+                  />
+                  {photos[f.key] ? '✓ Pronto — trocar' : (f.key === 'cnh' || f.key === 'documento_moto' ? '📷 Tirar foto ou escolher (foto/PDF)' : '📷 Tirar ou escolher foto')}
                 </label>
               </div>
             ))}

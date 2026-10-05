@@ -351,7 +351,13 @@ export default function MotoboysTab() {
                 setLightbox({ url, label: pf.label })
                 if (editable) setFlagging({ motoboyId: m.id, key: pf.key, label: pf.label, reason: flags[pf.key]?.reason || '' })
               }}>
-              {url ? <img src={url} alt={pf.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : pf.icon}
+              {url ? (
+                // CNH/documento da moto às vezes é um PDF (documento digital
+                // oficial do governo) em vez de foto — não dá pra mostrar
+                // como thumbnail de imagem, então mostra um ícone clicável
+                // (o clique já abre no lightbox embaixo, que trata o PDF).
+                url.includes('.pdf') ? <span style={{ fontSize: 22 }}>📄</span> : <img src={url} alt={pf.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : pf.icon}
               {isFlagged && <span style={{ position: 'absolute', top: -4, right: -4, background: '#C43D3D', color: '#fff', width: 15, height: 15, borderRadius: '50%', fontSize: 9, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🚩</span>}
             </div>
           )
@@ -511,7 +517,7 @@ export default function MotoboysTab() {
           <div key={m.id}>
             <div style={s.row}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flex: '1 1 260px', minWidth: 0 }}>
-                {m.selfie_photo_url || m.cnh_photo_url ? (
+                {(m.selfie_photo_url || m.cnh_photo_url) && !(!m.selfie_photo_url && m.cnh_photo_url?.includes('.pdf')) ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={m.selfie_photo_url || m.cnh_photo_url!} alt={m.name} style={{ width: 42, height: 42, borderRadius: '50%', objectFit: 'cover', border: '1px solid #eee', flex: 'none' }} />
                 ) : (
@@ -566,10 +572,14 @@ export default function MotoboysTab() {
                 <button style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#999' }} onClick={() => { setLightbox(null); setFlagging(null) }}>✕</button>
               </div>
             </div>
-            <div style={{ aspectRatio: lightbox.url?.endsWith('.pdf') ? undefined : '4/3', background: '#FAFAF8', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 120 }}>
+            <div style={{ aspectRatio: lightbox.url?.includes('.pdf') ? undefined : '4/3', background: '#FAFAF8', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 120 }}>
               {lightbox.url ? (
-                lightbox.label.startsWith('Termo assinado')
-                  ? <a href={lightbox.url} target="_blank" rel="noreferrer" style={{ padding: 20, fontSize: 13, fontWeight: 700, color: 'var(--sign-dark)' }}>⬇️ Abrir PDF do termo assinado</a>
+                // CNH/documento da moto podem ser PDF (documento digital
+                // oficial), não só o termo assinado — checa pelo arquivo de
+                // verdade (path, antes dos parâmetros da URL assinada), não
+                // só pelo rótulo "Termo assinado".
+                lightbox.url.includes('.pdf')
+                  ? <a href={lightbox.url} target="_blank" rel="noreferrer" style={{ padding: 20, fontSize: 13, fontWeight: 700, color: 'var(--sign-dark)' }}>⬇️ Abrir PDF — {lightbox.label}</a>
                   // eslint-disable-next-line @next/next/no-img-element
                   : <img src={lightbox.url} alt={lightbox.label} style={{ width: '100%', maxHeight: 480, objectFit: 'contain' }} />
               ) : <span style={{ padding: 30, color: '#999', fontSize: 12.5 }}>Sem arquivo</span>}

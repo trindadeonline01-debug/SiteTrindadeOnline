@@ -23,24 +23,20 @@ const MAX_BYTES = 8 * 1024 * 1024 // 8MB — folga generosa acima do que compres
 // real, out/2026: Thiago Antônio de Freitas, erro "arquivo não é uma imagem
 // válida" tentando subir a CNH digital). `allowPdf` libera isso SÓ pra quem
 // chama explicitamente (cnh/documento da moto) — selfie e fotos da moto
-// continuam exigindo foto de verdade. Mesma filosofia da validação de
-// imagem acima: confere pelo CONTEÚDO real (assinatura binária `%PDF-`),
-// nunca confia só no que o navegador declarou no prefixo `data:`.
+// continuam exigindo foto de verdade.
+//
+// Primeira versão desse fix exigia o prefixo `data:application/pdf;base64,`
+// exato — e continuou falhando pro Thiago numa segunda tentativa, porque o
+// celular dele (Android) não declara esse mimetype certinho dependendo de
+// como o PDF foi selecionado/compartilhado (achado real, out/2026). Agora a
+// validação pega o base64 de QUALQUER prefixo `data:...;base64,`, sem
+// confiar no mimetype declarado pra nada — confere só pelo CONTEÚDO de
+// verdade (assinatura binária `%PDF-` pro PDF, decodificação real via sharp
+// pra imagem), igual já era a filosofia daqui.
 export async function decodeAndValidateImage(dataUri: unknown, opts?: { allowPdf?: boolean }): Promise<{ buf: Buffer; ext: string; contentType: string } | { error: string }> {
   if (typeof dataUri !== 'string') return { error: 'foto inválida' }
 
-  if (opts?.allowPdf) {
-    const pdfMatch = dataUri.match(/^data:application\/pdf;base64,(.+)$/)
-    if (pdfMatch) {
-      let pdfBuf: Buffer
-      try { pdfBuf = Buffer.from(pdfMatch[1], 'base64') } catch { return { error: 'arquivo inválido' } }
-      if (pdfBuf.length === 0 || pdfBuf.length > MAX_BYTES) return { error: 'arquivo inválido (tamanho)' }
-      if (pdfBuf.subarray(0, 5).toString('latin1') !== '%PDF-') return { error: 'arquivo não é um PDF válido' }
-      return { buf: pdfBuf, ext: 'pdf', contentType: 'application/pdf' }
-    }
-  }
-
-  const match = dataUri.match(/^data:image\/[\w.+-]+;base64,(.+)$/)
+  const match = dataUri.match(/^data:[^;]*;base64,(.+)$/)
   if (!match) return { error: 'foto inválida' }
 
   let buf: Buffer
@@ -50,6 +46,10 @@ export async function decodeAndValidateImage(dataUri: unknown, opts?: { allowPdf
     return { error: 'foto inválida' }
   }
   if (buf.length === 0 || buf.length > MAX_BYTES) return { error: 'foto inválida (tamanho)' }
+
+  if (opts?.allowPdf && buf.subarray(0, 5).toString('latin1') === '%PDF-') {
+    return { buf, ext: 'pdf', contentType: 'application/pdf' }
+  }
 
   try {
     // Import dinâmico, só aqui dentro do try — sharp usa binário nativo, e

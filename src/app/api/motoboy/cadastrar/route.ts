@@ -17,7 +17,13 @@ function onlyDigits(v: string): string { return v.replace(/\D/g, '') }
 
 async function uploadPhoto(base64: string, prefix: string, opts?: { allowPdf?: boolean }): Promise<{ path: string | null; error: string | null }> {
   const validated = await decodeAndValidateImage(base64, opts)
-  if ('error' in validated) return { path: null, error: `${validated.error} (${prefix})` }
+  if ('error' in validated) {
+    // Log de diagnóstico — se isso falhar nos logs da Vercel de novo, dá
+    // pra ver o prefixo real que o celular mandou (nunca o conteúdo),
+    // em vez de só adivinhar qual mimetype o Android está reportando.
+    console.error(`[motoboy/cadastrar] validação falhou (${prefix}): ${validated.error} — prefixo recebido: ${typeof base64 === 'string' ? base64.slice(0, 40) : typeof base64}`)
+    return { path: null, error: `${validated.error} (${prefix})` }
+  }
   const { buf, ext, contentType } = validated
   const path = `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
   const { error } = await supabase.storage.from('motoboy-docs').upload(path, buf, { contentType })

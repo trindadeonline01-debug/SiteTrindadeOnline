@@ -18,20 +18,44 @@ import { compressImage } from '@/lib/compressImage'
 // dobrando a pressão de memória no pior momento possível, no aparelho mais
 // fraco que já tem dificuldade de sobra pra isso. Só os campos de texto,
 // leves de verdade, valem a pena persistir.
-const DRAFT_KEY = 'motoboy_cadastro_draft_v1'
+const DRAFT_KEY = 'motoboy_cadastro_draft_v2'
 type Draft = {
-  step: number; nome: string; cpf: string; endereco: string; email: string; whatsapp: string
+  fieldStep: number; nome: string; cpf: string; endereco: string; email: string; whatsapp: string
   pixKey: string; pixType: string; nomeDigitado: string
 }
 
 type PhotoKey = 'cnh' | 'moto_frente' | 'moto_tras' | 'documento_moto' | 'selfie'
-const PHOTO_SLOTS: { key: PhotoKey; label: string; icon: string }[] = [
-  { key: 'cnh', label: 'CNH (frente)', icon: '🪪' },
-  { key: 'moto_frente', label: 'Moto — frente', icon: '🏍️' },
-  { key: 'moto_tras', label: 'Moto — trás (com placa)', icon: '🔢' },
-  { key: 'documento_moto', label: 'Documento da moto', icon: '📄' },
-  { key: 'selfie', label: 'Selfie sua', icon: '🤳' },
+const PHOTO_SLOTS: { key: PhotoKey; label: string; hint?: string; icon: string }[] = [
+  { key: 'cnh', label: 'Foto da sua CNH', hint: 'Foto ou PDF (CNH Digital)', icon: '🪪' },
+  { key: 'moto_frente', label: 'Foto da moto — frente', icon: '🏍️' },
+  { key: 'moto_tras', label: 'Foto da moto — trás', hint: 'Com a placa legível', icon: '🔢' },
+  { key: 'documento_moto', label: 'Documento da moto', hint: 'Foto ou PDF (CRLV-e)', icon: '📄' },
+  { key: 'selfie', label: 'Uma selfie sua', icon: '🤳' },
 ]
+const PIX_TYPE_OPTIONS: { label: string; value: string }[] = [
+  { label: 'Celular', value: 'celular' },
+  { label: 'CPF', value: 'cpf' },
+  { label: 'E-mail', value: 'email' },
+  { label: 'Aleatória', value: 'aleatoria' },
+]
+
+// Mapa fixo de cada uma das 14 telas pra sua etapa macro (1-5) e sua posição
+// dentro dela — alimenta a barra de etapas + os pontinhos do cabeçalho.
+// Sem herdar o `step` antigo (1-6): aqui cada CAMPO é a própria tela, não
+// cada grupo de campos — é a mudança pedida pelo Ricardo, out/2026: "um
+// campo por vez", não "aquela lista corrida".
+const STEP_META: { stage: number; pos: number; stageLen: number }[] = [
+  { stage: 1, pos: 1, stageLen: 5 }, { stage: 1, pos: 2, stageLen: 5 }, { stage: 1, pos: 3, stageLen: 5 },
+  { stage: 1, pos: 4, stageLen: 5 }, { stage: 1, pos: 5, stageLen: 5 },
+  { stage: 2, pos: 1, stageLen: 1 },
+  { stage: 3, pos: 1, stageLen: 5 }, { stage: 3, pos: 2, stageLen: 5 }, { stage: 3, pos: 3, stageLen: 5 },
+  { stage: 3, pos: 4, stageLen: 5 }, { stage: 3, pos: 5, stageLen: 5 },
+  { stage: 4, pos: 1, stageLen: 2 }, { stage: 4, pos: 2, stageLen: 2 },
+  { stage: 5, pos: 1, stageLen: 1 },
+]
+const STAGE_LABELS = ['Seus dados', 'Confirmação', 'Documentos', 'Pix', 'Termo']
+const TOTAL_STEPS = STEP_META.length
+const SUCCESS_STEP = TOTAL_STEPS + 1
 
 function readFileAsBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -44,7 +68,7 @@ function readFileAsBase64(file: File): Promise<string> {
 function normNome(s: string) { return (s || '').trim().toLowerCase().replace(/\s+/g, ' ') }
 
 export default function MotoboyCadastroClient() {
-  const [step, setStep] = useState(1)
+  const [fieldStep, setFieldStep] = useState(1)
   const [nome, setNome] = useState('')
   const [cpf, setCpf] = useState('')
   const [endereco, setEndereco] = useState('')
@@ -67,15 +91,19 @@ export default function MotoboyCadastroClient() {
   // Restaura o rascunho (se tiver) assim que a página monta — cobre tanto
   // reload forçado pelo navegador (câmera) quanto o usuário só fechar a
   // aba sem querer no meio do cadastro. Fotos nunca são persistidas (ver
-  // comentário no tipo Draft) — se o rascunho parou depois do passo das
-  // fotos (3), volta pra ele em vez de seguir adiante com foto nenhuma.
+  // comentário no tipo Draft) — se o rascunho tinha parado em qualquer tela
+  // de documentos, Pix ou termo (etapa 3+), volta pra primeira foto (etapa
+  // 3) em vez de seguir adiante sem foto nenhuma.
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem(DRAFT_KEY)
       if (raw) {
         const d: Draft = JSON.parse(raw)
-        setStep(Math.min(d.step, 3)); setNome(d.nome); setCpf(d.cpf); setEndereco(d.endereco); setEmail(d.email); setWhatsapp(d.whatsapp)
-        setPixKey(d.pixKey); setPixType(d.pixType); setNomeDigitado(d.nomeDigitado)
+        const meta = STEP_META[Math.min(d.fieldStep, TOTAL_STEPS) - 1]
+        const restored = meta && meta.stage >= 3 ? 7 : Math.min(d.fieldStep, TOTAL_STEPS)
+        setFieldStep(Math.max(1, restored))
+        setNome(d.nome); setCpf(d.cpf); setEndereco(d.endereco); setEmail(d.email); setWhatsapp(d.whatsapp)
+        setPixKey(d.pixKey); setPixType(d.pixType || 'celular'); setNomeDigitado(d.nomeDigitado)
       }
     } catch {}
     hydrated.current = true
@@ -87,10 +115,15 @@ export default function MotoboyCadastroClient() {
   useEffect(() => {
     if (!hydrated.current) return
     try {
-      const draft: Draft = { step, nome, cpf, endereco, email, whatsapp, pixKey, pixType, nomeDigitado }
+      const draft: Draft = { fieldStep, nome, cpf, endereco, email, whatsapp, pixKey, pixType, nomeDigitado }
       sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft))
     } catch {}
-  }, [step, nome, cpf, endereco, email, whatsapp, pixKey, pixType, nomeDigitado])
+  }, [fieldStep, nome, cpf, endereco, email, whatsapp, pixKey, pixType, nomeDigitado])
+
+  function goBack() {
+    setErro(''); setCodeError('')
+    setFieldStep(s => Math.max(1, s - 1))
+  }
 
   async function enviarCodigo() {
     // Sem essa trava, o link "Reenviar código" deixava disparar vários
@@ -109,13 +142,14 @@ export default function MotoboyCadastroClient() {
     })
     const data = await res.json()
     setSendingCode(false)
-    // Precisa marcar os dois — esse mesmo botão manda o código tanto na
-    // etapa 1 (que mostra "erro") quanto no "Reenviar código" da etapa 2
-    // (que só mostra "codeError"); sem isso, uma falha no reenvio ficava
-    // muda pro usuário, mesmo com o erro já sendo devolvido pela API.
+    // Precisa marcar os dois — esse mesmo botão manda o código tanto saindo
+    // da tela do WhatsApp (que mostra "erro") quanto no "Reenviar código" da
+    // etapa de confirmação (que só mostra "codeError"); sem isso, uma falha
+    // no reenvio ficava muda pro usuário, mesmo com o erro já sendo
+    // devolvido pela API.
     if (data.error) { setErro(data.error); setCodeError(data.error); return }
     setResendCooldown(30)
-    setStep(2)
+    setFieldStep(6)
   }
 
   useEffect(() => {
@@ -124,17 +158,17 @@ export default function MotoboyCadastroClient() {
     return () => clearTimeout(t)
   }, [resendCooldown])
 
-  async function confirmarCodigo() {
+  async function confirmarCodigo(codeVal: string) {
     setCodeError('')
     setVerifyingCode(true)
     const res = await fetch('/api/motoboy/verificar-codigo', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone: whatsapp, code, purpose: 'cadastro' }),
+      body: JSON.stringify({ phone: whatsapp, code: codeVal, purpose: 'cadastro' }),
     })
     const data = await res.json()
     setVerifyingCode(false)
     if (data.error) { setCodeError(data.error); return }
-    setStep(3)
+    setFieldStep(7)
   }
 
   async function onPickPhoto(key: PhotoKey, e: React.ChangeEvent<HTMLInputElement>) {
@@ -142,6 +176,7 @@ export default function MotoboyCadastroClient() {
     e.target.value = ''
     if (!file) return
     setPhotos(p => ({ ...p, [key]: null }))
+    setErro('')
     try {
       // Foto direto da câmera do celular pode vir com vários MB — as 5
       // juntas sem comprimir passavam fácil do limite de corpo de
@@ -151,12 +186,14 @@ export default function MotoboyCadastroClient() {
       const compressed = await compressImage(file, 0.4, 1280)
       const b64 = await readFileAsBase64(compressed)
       setPhotos(p => ({ ...p, [key]: b64 }))
+      // Avança sozinho — cada foto é a própria tela, então assim que ela
+      // é aceita não tem motivo pra esperar um toque extra em "Continuar".
+      setTimeout(() => setFieldStep(s => s + 1), 420)
     } catch (err: any) {
       setErro(err?.message || 'Não deu pra processar essa foto — tenta outra.')
     }
   }
 
-  const allPhotosOk = PHOTO_SLOTS.every(p => !!photos[p.key])
   const nomeConfere = normNome(nomeDigitado) === normNome(nome)
 
   async function enviarCadastro() {
@@ -178,7 +215,7 @@ export default function MotoboyCadastroClient() {
       const data = await res.json().catch(() => ({ error: `O servidor respondeu algo inesperado (status ${res.status}). Tenta de novo.` }))
       if (data.error) { setErro(data.error); return }
       try { sessionStorage.removeItem(DRAFT_KEY) } catch {}
-      setStep(6)
+      setFieldStep(SUCCESS_STEP)
     } catch (err: any) {
       setErro(err?.message || 'Não deu pra enviar o cadastro agora — confere sua internet e tenta de novo.')
     } finally {
@@ -186,181 +223,248 @@ export default function MotoboyCadastroClient() {
     }
   }
 
+  function restart() {
+    setFieldStep(1); setErro(''); setCodeError('')
+  }
+
+  const meta = fieldStep <= TOTAL_STEPS ? STEP_META[fieldStep - 1] : null
+  const done = fieldStep > TOTAL_STEPS
+
+  function requireThenAdvance(val: string, msg = 'Preenche esse campo pra continuar.') {
+    if (!val.trim()) { setErro(msg); return }
+    setErro('')
+    setFieldStep(s => s + 1)
+  }
+
+  function onCpfChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const digits = e.target.value.replace(/\D/g, '').slice(0, 11)
+    setCpf(digits)
+    setErro('')
+    if (digits.length === 11) setTimeout(() => setFieldStep(s => s + 1), 220)
+  }
+  function onCodeChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const digits = e.target.value.replace(/\D/g, '').slice(0, 6)
+    setCode(digits)
+    setCodeError('')
+    if (digits.length === 6) confirmarCodigo(digits)
+  }
+  function pickPixType(value: string) {
+    setPixType(value)
+    setTimeout(() => setFieldStep(s => s + 1), 260)
+  }
+
   return (
-    <div className="mc-wrap">
+    <div className="mw-stage">
       <style>{`
-        .mc-wrap{max-width:480px;margin:0 auto;padding:28px 20px 60px;font-family:'Archivo',sans-serif;font-size:14px;color:var(--ink);background:var(--concrete);min-height:100vh;}
-        .mc-logo{text-align:center;font-family:'Anton',sans-serif;font-size:20px;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;}
-        .mc-logo span{color:var(--sign-dark);}
-        .mc-logo-sub{text-align:center;font-size:11.5px;color:#8A8478;margin-bottom:22px;}
-        .mc-stage{display:block;width:fit-content;margin:0 auto 10px;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--sign-dark);background:#FEF3E2;border-radius:20px;padding:4px 11px;}
-        .mc-title{font-family:'Anton',sans-serif;font-size:24px;text-align:center;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px;}
-        .mc-sub{font-size:12.5px;color:#8A8478;text-align:center;line-height:1.6;margin-bottom:22px;}
-        .mc-card{background:#fff;border:1px solid #E0DDD8;border-radius:16px;padding:22px;}
-        .mc-field{margin-bottom:14px;}
-        .mc-field label{display:block;font-size:11.5px;font-weight:700;color:#8A8478;margin-bottom:6px;}
-        .mc-field .req{color:#D6392B;}
-        .mc-field input,.mc-field select{width:100%;padding:12px 13px;border:1.5px solid #E0DDD8;border-radius:11px;font-size:14px;font-family:inherit;color:var(--ink);background:#FAFAF8;outline:none;box-sizing:border-box;}
-        .mc-hint{font-size:10.5px;color:#8A8478;margin-top:5px;line-height:1.5;}
-        .mc-btn{width:100%;padding:14px;background:var(--sign);color:var(--ink);border:none;border-radius:12px;font-size:14.5px;font-weight:800;font-family:inherit;cursor:pointer;margin-top:6px;}
-        .mc-btn:disabled{background:#E0DDD8;color:#8A8478;cursor:not-allowed;}
-        .mc-btn-2{width:100%;padding:11px;background:transparent;color:#8A8478;border:1.5px solid #E0DDD8;border-radius:12px;font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:8px;}
-        .mc-code{width:100%;padding:15px;text-align:center;font-size:26px;font-weight:800;letter-spacing:10px;border:1.5px solid #E0DDD8;border-radius:12px;margin:16px 0 6px;outline:none;background:#FAFAF8;box-sizing:border-box;}
-        .mc-photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;}
-        .mc-photo-slot{aspect-ratio:1;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:9px;font-weight:700;text-align:center;cursor:pointer;padding:6px;line-height:1.25;overflow:hidden;position:relative;}
-        .mc-photo-slot.empty{border:2px dashed var(--sign-dark);background:#FEF3E2;color:var(--sign-dark);}
-        .mc-photo-slot.filled{border:2px solid #0F8A57;}
-        .mc-photo-slot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
-        .mc-note{background:#FAFAF8;border:1px dashed #E0DDD8;border-radius:10px;padding:11px 13px;font-size:10.5px;color:#8A8478;line-height:1.6;margin-bottom:14px;}
-        .mc-terms{max-height:200px;overflow-y:auto;background:#FAFAF8;border:1.5px solid #E0DDD8;border-radius:12px;padding:14px 15px;font-size:11.5px;line-height:1.7;margin-bottom:14px;}
-        .mc-terms h4{font-size:11.5px;margin:12px 0 4px;color:var(--sign-dark);}
-        .mc-terms h4:first-child{margin-top:0;}
-        .mc-terms p{margin:0 0 8px;}
-        .mc-sig{background:#FEF3E2;border:1.5px solid var(--sign-dark);border-radius:12px;padding:14px;margin-bottom:10px;}
-        .mc-sig label{display:block;font-size:12px;font-weight:700;margin-bottom:8px;line-height:1.5;}
-        .mc-sig input{width:100%;padding:12px 13px;border:1.5px solid var(--sign-dark);border-radius:10px;font-size:16px;font-family:'Anton',sans-serif;letter-spacing:.4px;background:#fff;outline:none;box-sizing:border-box;}
-        .mc-sig input.ok{border-color:#0F8A57;background:#E4F3EC;}
-        .mc-error{color:#D6392B;font-size:12px;margin-top:10px;}
-        .mc-success{text-align:center;padding:10px 0;}
-        .mc-success .ic{font-size:52px;margin-bottom:14px;}
+        .mw-stage{min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:28px 18px;box-sizing:border-box;background:linear-gradient(180deg,#F6F4EF 0%,#ECE8E0 100%);font-family:'Archivo',sans-serif;color:var(--ink);}
+        .mw-brand{font-family:'Anton',sans-serif;font-size:12px;letter-spacing:.6px;color:#B6AF9F;text-transform:uppercase;text-align:center;}
+        .mw-brand span{color:var(--sign-dark);}
+        .mw-card{width:100%;max-width:380px;background:#fff;border-radius:22px;box-shadow:0 28px 54px -16px rgba(21,18,16,.28), 0 0 0 1px rgba(21,18,16,.05);padding:26px 24px 22px;}
+        .mw-headrow{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+        .mw-back{width:28px;height:28px;border-radius:50%;border:1.5px solid #E0DDD8;background:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;flex:none;color:var(--ink);padding:0;}
+        .mw-back.hidden{visibility:hidden;}
+        .mw-eyebrow{font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--sign-dark);line-height:1.3;}
+        .mw-counter{margin-left:auto;font-size:10.5px;font-weight:700;color:#8A8478;flex:none;}
+        .mw-stagebar{display:flex;gap:4px;margin-bottom:9px;}
+        .mw-stageseg{height:4px;flex:1;border-radius:3px;background:#E0DDD8;}
+        .mw-stageseg.on{background:var(--sign);}
+        .mw-dots{display:flex;gap:5px;justify-content:flex-end;margin-bottom:18px;}
+        .mw-dot{width:6px;height:6px;border-radius:50%;background:#E0DDD8;}
+        .mw-dot.on{background:var(--sign-dark);}
+        .mw-q{font-family:'Anton',sans-serif;font-size:22px;line-height:1.25;letter-spacing:.2px;margin:0 0 7px;}
+        .mw-hint{font-size:12.5px;color:#8A8478;line-height:1.55;margin-bottom:18px;}
+        .mw-input{width:100%;padding:14px 15px;border:1.5px solid #E0DDD8;border-radius:12px;font-size:15px;font-family:inherit;color:var(--ink);background:#FAFAF8;outline:none;box-sizing:border-box;}
+        .mw-input:focus{border-color:var(--sign-dark);}
+        .mw-otp{width:100%;padding:17px;text-align:center;font-size:25px;font-weight:800;letter-spacing:9px;border:1.5px solid #E0DDD8;border-radius:12px;background:#FAFAF8;outline:none;font-family:inherit;color:var(--ink);box-sizing:border-box;}
+        .mw-choicewrap{display:flex;flex-direction:column;gap:9px;}
+        .mw-choice{padding:15px;border:1.5px solid #E0DDD8;border-radius:12px;background:#fff;font-size:14px;font-weight:700;text-align:left;cursor:pointer;font-family:inherit;color:var(--ink);}
+        .mw-choice.sel{border-color:var(--sign-dark);background:#FEF3E2;color:var(--sign-dark);}
+        .mw-phototile{width:100%;min-height:150px;border-radius:15px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer;border:2px dashed var(--sign-dark);background:#FEF3E2;font-family:inherit;padding:12px;}
+        .mw-phototile.filled{border:2px solid #0F8A57;background:#E4F3EC;}
+        .mw-phototile .ic{font-size:38px;}
+        .mw-phototile .lbl{font-size:12px;font-weight:800;color:var(--sign-dark);line-height:1.45;text-align:center;padding:0 16px;}
+        .mw-phototile.filled .lbl{color:#0F8A57;}
+        .mw-terms{max-height:150px;overflow-y:auto;background:#FAFAF8;border:1.5px solid #E0DDD8;border-radius:12px;padding:13px 14px;font-size:11.5px;line-height:1.7;margin-bottom:16px;color:#4A463F;}
+        .mw-terms h4{font-size:11.5px;margin:10px 0 4px;color:var(--sign-dark);}
+        .mw-terms h4:first-child{margin-top:0;}
+        .mw-terms p{margin:0 0 8px;}
+        .mw-sig{background:#FEF3E2;border:1.5px solid var(--sign-dark);border-radius:12px;padding:14px;}
+        .mw-sig label{display:block;font-size:11.5px;font-weight:700;margin-bottom:8px;line-height:1.5;color:var(--ink);}
+        .mw-sig input{width:100%;padding:12px 13px;border:1.5px solid var(--sign-dark);border-radius:10px;font-size:15px;font-family:'Anton',sans-serif;letter-spacing:.3px;background:#fff;outline:none;box-sizing:border-box;}
+        .mw-sig input.ok{border-color:#0F8A57;background:#E4F3EC;}
+        .mw-note{background:#FAFAF8;border:1px dashed #E0DDD8;border-radius:10px;padding:11px 13px;font-size:10.5px;color:#8A8478;line-height:1.6;margin-top:12px;}
+        .mw-err{color:#D6392B;font-size:12px;margin-top:10px;}
+        .mw-btn{width:100%;padding:15px;background:var(--sign);color:var(--ink);border:none;border-radius:12px;font-size:14.5px;font-weight:800;font-family:inherit;cursor:pointer;margin-top:18px;}
+        .mw-btn:disabled{background:#E0DDD8;color:#8A8478;cursor:not-allowed;}
+        .mw-resend{display:block;text-align:center;font-size:11.5px;color:var(--sign-dark);font-weight:700;margin-top:12px;cursor:pointer;}
+        .mw-resendwait{display:block;text-align:center;font-size:11.5px;color:#8A8478;font-weight:700;margin-top:12px;}
+        .mw-success{text-align:center;padding:6px 2px 2px;}
+        .mw-success .ic{font-size:50px;margin-bottom:14px;}
+        .mw-success h2{font-family:'Anton',sans-serif;font-size:21px;margin:0 0 10px;}
+        .mw-success p{font-size:13px;color:#8A8478;line-height:1.6;margin:0;}
       `}</style>
 
-      <div className="mc-logo">TRINDADE <span>ONLINE</span></div>
-      <div className="mc-logo-sub">Cadastro de motoboy parceiro 🏍️</div>
+      <div className="mw-brand">TRINDADE <span>ONLINE</span> · motoboy</div>
 
-      <div className="mc-card">
-        {step === 1 && (
-          <>
-            <div className="mc-stage">Etapa 1 de 5</div>
-            <div className="mc-title">Seus dados</div>
-            <div className="mc-sub">É rápido — leva uns 3 minutos. Precisamos disso pra você já poder receber corridas.</div>
-            <div className="mc-field"><label>Nome completo <span className="req">*</span></label><input value={nome} onChange={e => setNome(e.target.value)} /></div>
-            <div className="mc-field"><label>CPF <span className="req">*</span></label><input value={cpf} onChange={e => setCpf(e.target.value)} placeholder="Só números" inputMode="numeric" pattern="[0-9]*" /></div>
-            <div className="mc-field"><label>Endereço completo <span className="req">*</span></label><input value={endereco} onChange={e => setEndereco(e.target.value)} /></div>
-            <div className="mc-field">
-              <label>E-mail</label>
-              <input value={email} onChange={e => setEmail(e.target.value)} />
-              <div className="mc-hint">Só pra registro — a confirmação do cadastro é pelo WhatsApp, não precisa clicar em nada no e-mail.</div>
-            </div>
-            <div className="mc-field"><label>Seu WhatsApp <span className="req">*</span></label><input value={whatsapp} onChange={e => setWhatsapp(e.target.value)} placeholder="(21) 99999-9999" inputMode="tel" /></div>
-            {erro && <div className="mc-error">{erro}</div>}
-            <button className="mc-btn" disabled={sendingCode} onClick={enviarCodigo}>{sendingCode ? 'Enviando código...' : 'Continuar →'}</button>
-          </>
-        )}
-
-        {step === 2 && (
-          <>
-            <div className="mc-stage">Etapa 2 de 5</div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 44, marginBottom: 10 }}>📱</div>
-              <div className="mc-title" style={{ fontSize: 20 }}>Confirme seu WhatsApp</div>
-              <div className="mc-sub">Mandamos um código de 6 dígitos pro seu WhatsApp<br /><b>{whatsapp}</b></div>
-              <input className="mc-code" maxLength={6} inputMode="numeric" value={code} onChange={e => setCode(e.target.value.replace(/\D/g, ''))} placeholder="000000" />
-              {sendingCode || resendCooldown > 0 ? (
-                <span style={{ display: 'block', textAlign: 'center', fontSize: 11.5, color: '#8A8478', fontWeight: 700, marginTop: 12 }}>
-                  {sendingCode ? 'Enviando...' : `Reenviar em ${resendCooldown}s`}
-                </span>
-              ) : (
-                <a style={{ display: 'block', textAlign: 'center', fontSize: 11.5, color: 'var(--sign-dark)', fontWeight: 700, marginTop: 12, cursor: 'pointer' }} onClick={enviarCodigo}>Não chegou? Reenviar código</a>
-              )}
-            </div>
-            {codeError && <div className="mc-error">{codeError}</div>}
-            <button className="mc-btn" disabled={verifyingCode || code.length < 6} onClick={confirmarCodigo}>{verifyingCode ? 'Verificando...' : 'Confirmar código'}</button>
-            <button className="mc-btn-2" onClick={() => setStep(1)}>← Voltar</button>
-          </>
-        )}
-
-        {step === 3 && (
-          <>
-            <div className="mc-stage">Etapa 3 de 5</div>
-            <div className="mc-title">Documentos e fotos</div>
-            <div className="mc-sub">Tira as fotos na hora ou manda da galeria — precisa estar legível.</div>
-            <div className="mc-photo-grid">
-              {PHOTO_SLOTS.map(slot => {
-                // CNH e documento da moto às vezes só existem em PDF (CNH
-                // Digital / CRLV-e oficiais do governo) — libera escolher PDF
-                // só nesses dois campos; moto/selfie continuam exigindo foto
-                // de verdade, com câmera priorizada (achado real, out/2026).
-                const acceptsPdf = slot.key === 'cnh' || slot.key === 'documento_moto'
-                const isPdf = photos[slot.key]?.startsWith('data:application/pdf')
-                return (
-                  <div key={slot.key} className={`mc-photo-slot ${photos[slot.key] ? 'filled' : 'empty'}`} onClick={() => fileInputs.current[slot.key]?.click()}>
-                    <input
-                      ref={el => { fileInputs.current[slot.key] = el }} type="file"
-                      accept={acceptsPdf ? 'image/*,application/pdf' : 'image/*'}
-                      capture={acceptsPdf ? undefined : 'environment'}
-                      style={{ display: 'none' }} onChange={e => onPickPhoto(slot.key, e)}
-                    />
-                    {photos[slot.key] ? (
-                      isPdf
-                        ? <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}><span style={{ fontSize: 22 }}>📄</span><span style={{ fontSize: 11 }}>PDF carregado</span></div>
-                        : <img src={photos[slot.key]!} alt={slot.label} />
-                    ) : <><span style={{ fontSize: 18 }}>{slot.icon}</span>{slot.label}</>}
-                  </div>
-                )
-              })}
-            </div>
-            <div className="mc-note">📌 Na foto de trás da moto, a <b>placa precisa aparecer legível</b> — é como a gente confirma que a moto é sua.</div>
-            {erro && <div className="mc-error">{erro}</div>}
-            <button className="mc-btn" disabled={!allPhotosOk} onClick={() => setStep(4)}>Continuar →</button>
-            <button className="mc-btn-2" onClick={() => setStep(2)}>← Voltar</button>
-          </>
-        )}
-
-        {step === 4 && (
-          <>
-            <div className="mc-stage">Etapa 4 de 5</div>
-            <div className="mc-title">Chave Pix</div>
-            <div className="mc-sub">É onde você recebe o valor das entregas.</div>
-            <div className="mc-field">
-              <label>Tipo da chave</label>
-              <select value={pixType} onChange={e => setPixType(e.target.value)}>
-                <option value="celular">Celular</option><option value="cpf">CPF</option><option value="email">E-mail</option><option value="aleatoria">Aleatória</option>
-              </select>
-            </div>
-            <div className="mc-field"><label>Chave Pix <span className="req">*</span></label><input value={pixKey} onChange={e => setPixKey(e.target.value)} /></div>
-            <button className="mc-btn" disabled={!pixKey.trim()} onClick={() => setStep(5)}>Continuar →</button>
-            <button className="mc-btn-2" onClick={() => setStep(3)}>← Voltar</button>
-          </>
-        )}
-
-        {step === 5 && (
-          <>
-            <div className="mc-stage">Etapa 5 de 5</div>
-            <div className="mc-title">Termo de parceria</div>
-            <div className="mc-sub">Última etapa — lê com calma antes de aceitar.</div>
-            <div className="mc-terms">
-              {MOTOBOY_TERMS_SECTIONS.map(sec => (
-                <div key={sec.title}><h4>{sec.title}</h4><p>{sec.body}</p></div>
-              ))}
-            </div>
-            <div className="mc-sig">
-              <label>Digite seu nome completo pra confirmar que leu e concorda</label>
-              <input className={nomeConfere ? 'ok' : ''} value={nomeDigitado} onChange={e => setNomeDigitado(e.target.value)} placeholder="Seu nome completo" />
-              <div className="mc-hint" style={{ color: nomeConfere ? '#0F8A57' : 'var(--sign-dark)', fontWeight: nomeConfere ? 700 : 400 }}>
-                {nomeConfere ? '✓ Confere com o nome do cadastro — pode enviar.' : <>Precisa bater com o nome do cadastro: <b>{nome}</b></>}
-              </div>
-            </div>
-            <div className="mc-note" style={{ background: '#FAFAF8' }}>
-              📄 Isso vale como sua assinatura eletrônica no Termo de Parceria. Junto com o nome, a gente registra a data/hora, o texto exato que você leu e o dispositivo usado — e gera um documento (PDF) guardado no seu cadastro.
-            </div>
-            <div className="mc-note" style={{ background: '#FEF3E2', borderStyle: 'dashed', borderColor: 'var(--sign-dark)' }}>
-              <b>Seu cadastro passa por uma aprovação rápida da Trindade Online.</b> Assim que for aprovado, você recebe a confirmação no seu próprio WhatsApp e já pode começar a receber corridas.
-            </div>
-            {erro && <div className="mc-error">{erro}</div>}
-            <button className="mc-btn" disabled={!nomeConfere || enviando} onClick={enviarCadastro}>{enviando ? 'Enviando...' : '✅ Enviar cadastro'}</button>
-            <button className="mc-btn-2" onClick={() => setStep(4)}>← Voltar</button>
-          </>
-        )}
-
-        {step === 6 && (
-          <div className="mc-success">
-            <div className="ic">🎉</div>
-            <div className="mc-title" style={{ fontSize: 22 }}>Cadastro enviado!</div>
-            <div className="mc-sub">A Trindade Online vai conferir seus dados e documentos. Assim que aprovar, você recebe a confirmação no seu WhatsApp — pode fechar essa página.</div>
+      {!done && meta && (
+        <div className="mw-card">
+          <div className="mw-headrow">
+            <button className={`mw-back ${fieldStep === 1 ? 'hidden' : ''}`} onClick={goBack} aria-label="Voltar">←</button>
+            <div className="mw-eyebrow">Etapa {meta.stage}/5 · {STAGE_LABELS[meta.stage - 1]}</div>
+            <div className="mw-counter">{fieldStep}/{TOTAL_STEPS}</div>
           </div>
-        )}
-      </div>
+          <div className="mw-stagebar">
+            {[1, 2, 3, 4, 5].map(s => <div key={s} className={`mw-stageseg ${s <= meta.stage ? 'on' : ''}`} />)}
+          </div>
+          <div className="mw-dots">
+            {Array.from({ length: meta.stageLen }).map((_, idx) => <div key={idx} className={`mw-dot ${idx < meta.pos ? 'on' : ''}`} />)}
+          </div>
+
+          {fieldStep === 1 && (
+            <>
+              <div className="mw-q">Qual seu nome completo?</div>
+              <div className="mw-hint">É rápido — leva uns 3 minutos. Precisamos disso pra você já poder receber corridas.</div>
+              <input key={1} className="mw-input" autoFocus value={nome} onChange={e => setNome(e.target.value)} placeholder="Nome completo" onKeyDown={e => e.key === 'Enter' && requireThenAdvance(nome)} />
+              {erro && <div className="mw-err">{erro}</div>}
+              <button className="mw-btn" onClick={() => requireThenAdvance(nome)}>Continuar →</button>
+            </>
+          )}
+
+          {fieldStep === 2 && (
+            <>
+              <div className="mw-q">Qual seu CPF?</div>
+              <div className="mw-hint">Só números — avança sozinho quando completar.</div>
+              <input key={2} className="mw-input" autoFocus value={cpf} onChange={onCpfChange} placeholder="000.000.000-00" inputMode="numeric" onKeyDown={e => e.key === 'Enter' && cpf.length === 11 && setFieldStep(s => s + 1)} />
+              {erro && <div className="mw-err">{erro}</div>}
+              <button className="mw-btn" disabled={cpf.length !== 11} onClick={() => setFieldStep(s => s + 1)}>Continuar →</button>
+            </>
+          )}
+
+          {fieldStep === 3 && (
+            <>
+              <div className="mw-q">Qual seu endereço completo?</div>
+              <input key={3} className="mw-input" autoFocus value={endereco} onChange={e => setEndereco(e.target.value)} placeholder="Rua, número, bairro" onKeyDown={e => e.key === 'Enter' && requireThenAdvance(endereco)} />
+              {erro && <div className="mw-err">{erro}</div>}
+              <button className="mw-btn" onClick={() => requireThenAdvance(endereco)}>Continuar →</button>
+            </>
+          )}
+
+          {fieldStep === 4 && (
+            <>
+              <div className="mw-q">Qual seu e-mail?</div>
+              <div className="mw-hint">Opcional — a confirmação do cadastro é pelo WhatsApp, não precisa clicar em nada no e-mail.</div>
+              <input key={4} className="mw-input" autoFocus value={email} onChange={e => setEmail(e.target.value)} placeholder="seu@email.com" onKeyDown={e => e.key === 'Enter' && setFieldStep(s => s + 1)} />
+              <button className="mw-btn" onClick={() => setFieldStep(s => s + 1)}>Continuar →</button>
+            </>
+          )}
+
+          {fieldStep === 5 && (
+            <>
+              <div className="mw-q">Qual seu WhatsApp?</div>
+              <input key={5} className="mw-input" autoFocus value={whatsapp} onChange={e => setWhatsapp(e.target.value)} placeholder="(21) 99999-9999" inputMode="tel" onKeyDown={e => e.key === 'Enter' && enviarCodigo()} />
+              {erro && <div className="mw-err">{erro}</div>}
+              <button className="mw-btn" disabled={sendingCode} onClick={enviarCodigo}>{sendingCode ? 'Enviando código...' : 'Continuar →'}</button>
+            </>
+          )}
+
+          {fieldStep === 6 && (
+            <>
+              <div className="mw-q">Confirme seu WhatsApp</div>
+              <div className="mw-hint">Mandamos um código de 6 dígitos pro seu WhatsApp <b>{whatsapp}</b></div>
+              <input key={6} className="mw-otp" autoFocus maxLength={6} inputMode="numeric" value={code} onChange={onCodeChange} placeholder="000000" />
+              {sendingCode || resendCooldown > 0 ? (
+                <span className="mw-resendwait">{sendingCode ? 'Enviando...' : `Reenviar em ${resendCooldown}s`}</span>
+              ) : (
+                <a className="mw-resend" onClick={enviarCodigo}>Não chegou? Reenviar código</a>
+              )}
+              {codeError && <div className="mw-err">{codeError}</div>}
+              <button className="mw-btn" disabled={verifyingCode || code.length < 6} onClick={() => confirmarCodigo(code)}>{verifyingCode ? 'Verificando...' : 'Confirmar código'}</button>
+            </>
+          )}
+
+          {fieldStep >= 7 && fieldStep <= 11 && (() => {
+            const slot = PHOTO_SLOTS[fieldStep - 7]
+            const filled = !!photos[slot.key]
+            const acceptsPdf = slot.key === 'cnh' || slot.key === 'documento_moto'
+            const isPdf = photos[slot.key]?.startsWith('data:application/pdf')
+            return (
+              <>
+                <div className="mw-q">{slot.label}</div>
+                {slot.hint && <div className="mw-hint">{slot.hint}</div>}
+                <input
+                  ref={el => { fileInputs.current[slot.key] = el }} type="file"
+                  accept={acceptsPdf ? 'image/*,application/pdf' : 'image/*'}
+                  capture={acceptsPdf ? undefined : 'environment'}
+                  style={{ display: 'none' }} onChange={e => onPickPhoto(slot.key, e)}
+                />
+                <button className={`mw-phototile ${filled ? 'filled' : ''}`} onClick={() => fileInputs.current[slot.key]?.click()}>
+                  <div className="ic">{filled ? (isPdf ? '📄' : '✅') : slot.icon}</div>
+                  <div className="lbl">{filled ? 'Recebido — toque pra trocar' : 'Toque pra tirar foto ou escolher da galeria'}</div>
+                </button>
+                {erro && <div className="mw-err">{erro}</div>}
+                <button className="mw-btn" disabled={!filled} onClick={() => setFieldStep(s => s + 1)}>Continuar →</button>
+              </>
+            )
+          })()}
+
+          {fieldStep === 12 && (
+            <>
+              <div className="mw-q">Qual o tipo da sua chave Pix?</div>
+              <div className="mw-choicewrap">
+                {PIX_TYPE_OPTIONS.map(opt => (
+                  <button key={opt.value} className={`mw-choice ${pixType === opt.value ? 'sel' : ''}`} onClick={() => pickPixType(opt.value)}>{opt.label}</button>
+                ))}
+              </div>
+              <button className="mw-btn" onClick={() => setFieldStep(s => s + 1)}>Continuar →</button>
+            </>
+          )}
+
+          {fieldStep === 13 && (
+            <>
+              <div className="mw-q">Qual sua chave Pix?</div>
+              <div className="mw-hint">É onde você recebe o valor das entregas.</div>
+              <input key={13} className="mw-input" autoFocus value={pixKey} onChange={e => setPixKey(e.target.value)} placeholder="Digite a chave" onKeyDown={e => e.key === 'Enter' && requireThenAdvance(pixKey)} />
+              {erro && <div className="mw-err">{erro}</div>}
+              <button className="mw-btn" onClick={() => requireThenAdvance(pixKey)}>Continuar →</button>
+            </>
+          )}
+
+          {fieldStep === 14 && (
+            <>
+              <div className="mw-q">Termo de parceria</div>
+              <div className="mw-hint">Última etapa — lê com calma antes de aceitar.</div>
+              <div className="mw-terms">
+                {MOTOBOY_TERMS_SECTIONS.map(sec => (
+                  <div key={sec.title}><h4>{sec.title}</h4><p>{sec.body}</p></div>
+                ))}
+              </div>
+              <div className="mw-sig">
+                <label>Digite seu nome completo pra confirmar que leu e concorda</label>
+                <input className={nomeConfere ? 'ok' : ''} value={nomeDigitado} onChange={e => setNomeDigitado(e.target.value)} placeholder="Seu nome completo" />
+                <div className="mw-hint" style={{ margin: '8px 0 0', color: nomeConfere ? '#0F8A57' : 'var(--sign-dark)', fontWeight: nomeConfere ? 700 : 400 }}>
+                  {nomeConfere ? '✓ Confere com o nome do cadastro — pode enviar.' : <>Precisa bater com o nome do cadastro: <b>{nome}</b></>}
+                </div>
+              </div>
+              <div className="mw-note">📄 Isso vale como sua assinatura eletrônica no Termo de Parceria. Junto com o nome, a gente registra a data/hora, o texto exato que você leu e o dispositivo usado — e gera um documento (PDF) guardado no seu cadastro.</div>
+              <div className="mw-note" style={{ background: '#FEF3E2', borderStyle: 'dashed', borderColor: 'var(--sign-dark)' }}>
+                <b>Seu cadastro passa por uma aprovação rápida da Trindade Online.</b> Assim que for aprovado, você recebe a confirmação no seu próprio WhatsApp e já pode começar a receber corridas.
+              </div>
+              {erro && <div className="mw-err">{erro}</div>}
+              <button className="mw-btn" disabled={!nomeConfere || enviando} onClick={enviarCadastro}>{enviando ? 'Enviando...' : '✅ Enviar cadastro'}</button>
+            </>
+          )}
+        </div>
+      )}
+
+      {done && (
+        <div className="mw-card">
+          <div className="mw-success">
+            <div className="ic">🎉</div>
+            <h2>Cadastro enviado!</h2>
+            <p>A Trindade Online vai conferir seus dados e documentos. Assim que aprovar, você recebe a confirmação no seu WhatsApp — pode fechar essa página.</p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

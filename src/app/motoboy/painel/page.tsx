@@ -28,7 +28,7 @@ function orderSubtitle(o: { status: string; created_at: string; bairro: string |
 }
 
 interface PainelData {
-  motoboy: { name: string; phone: string; pix_key: string | null; pix_key_type: string | null; status: string; available: boolean; has_password: boolean }
+  motoboy: { id: string; name: string; phone: string; pix_key: string | null; pix_key_type: string | null; status: string; available: boolean; has_password: boolean }
   entregasSemana: number; aReceber: number; jaRecebido: number
   periodAReceber: number; periodRecebido: number
   recentOrders: { id: string; company_name: string; customer_name: string; status: string; fee: number; created_at: string; pago: boolean; bairro: string | null; picked_up_at: string | null; delivered_at: string | null }[]
@@ -57,10 +57,12 @@ export default function MotoboyPainelPage() {
   const [editSenha, setEditSenha] = useState(false)
   const [msg, setMsg] = useState('')
   const [period, setPeriod] = useState<PeriodSel>({ kind: 'week' })
+  const [notifPermission, setNotifPermission] = useState<string>('default')
 
   useEffect(() => {
     const saved = typeof window !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null
     if (saved) setToken(saved)
+    if (typeof Notification !== 'undefined') setNotifPermission(Notification.permission)
   }, [])
 
   // Busca de novo sempre que o token mudar (login) ou o filtro de período
@@ -84,6 +86,22 @@ export default function MotoboyPainelPage() {
     setPixKey(j.motoboy.pix_key || '')
     setPixType(j.motoboy.pix_key_type || 'celular')
     setLoadingData(false)
+    // Motoboy não passa pelo login do Supabase Auth (é OTP/senha próprio),
+    // então o OneSignalInit global nunca amarra o push a ele — tem que ser
+    // feito aqui, na própria página, assim que a gente sabe o id dele.
+    // `external_user_id` = motoboy.id é o que a rota de cron de repique
+    // (motoboy-repique) usa pra mandar a notificação certa pro motoboy certo.
+    if (j.motoboy?.id && typeof window !== 'undefined') {
+      const tryLogin = () => { if ((window as any).OneSignalReact) (window as any).OneSignalReact.login(j.motoboy.id) }
+      if ((window as any).OneSignalReact) tryLogin()
+      else { const check = setInterval(() => { if ((window as any).OneSignalReact) { clearInterval(check); tryLogin() } }, 300) }
+    }
+  }
+
+  async function ativarNotifCorrida() {
+    if (typeof window === 'undefined' || !(window as any).OneSignalReact?.Notifications) return
+    await (window as any).OneSignalReact.Notifications.requestPermission()
+    setNotifPermission(Notification.permission)
   }
 
   async function enviarCodigo() {
@@ -300,6 +318,24 @@ export default function MotoboyPainelPage() {
           </div>
           <button className={`p-avail-switch ${m.available ? 'on' : ''}`} onClick={toggleDisponivel}><span className="knob" /></button>
         </div>
+
+        {notifPermission === 'default' && (
+          <div className="p-avail-card" style={{ background: '#FEF3E2', borderColor: '#F0D9A8' }}>
+            <div style={{ flex: 1 }}>
+              <div className="p-avail-title">🔔 Ativar aviso de corrida</div>
+              <div className="p-avail-sub">Sem isso, nova corrida só avisa pelo WhatsApp — com o celular travado você pode nem perceber a tempo.</div>
+            </div>
+            <button className="p-btn" style={{ width: 'auto', padding: '10px 16px', marginTop: 0, flex: 'none' }} onClick={ativarNotifCorrida}>Ativar</button>
+          </div>
+        )}
+        {notifPermission === 'denied' && (
+          <div className="p-avail-card" style={{ background: '#FBEAEA', borderColor: '#F0C9C4' }}>
+            <div style={{ flex: 1 }}>
+              <div className="p-avail-title">🔕 Aviso de corrida bloqueado</div>
+              <div className="p-avail-sub">Você negou a notificação antes — pra ativar agora precisa ir nas configurações do navegador/celular e permitir manualmente.</div>
+            </div>
+          </div>
+        )}
 
         <div className="p-kpis">
           <div className="p-kpi"><div className="v">{data.entregasSemana}</div><div className="l">Essa semana</div></div>

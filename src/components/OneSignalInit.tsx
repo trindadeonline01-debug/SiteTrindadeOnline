@@ -12,9 +12,14 @@ export default function OneSignalInit() {
       })
       ;(window as any).OneSignalReact = OneSignal
 
+      // Motoboy não loga via Supabase Auth (é OTP/senha próprio, token em
+      // localStorage) — sem essa checagem, esse sync global rodava
+      // OneSignal.logout() em toda página do motoboy (sessão Supabase
+      // sempre vazia pra ele) e desfazia o OneSignal.login(motoboy.id) que
+      // o painel dele faz na própria página (ver motoboy/painel/page.tsx).
       const syncLogin = (userId: string | null) => {
         if (userId) OneSignal.login(userId)
-        else OneSignal.logout()
+        else if (!localStorage.getItem('motoboy_session_token')) OneSignal.logout()
       }
       const { data: { session } } = await supabase.auth.getSession()
       syncLogin(session?.user.id || null)

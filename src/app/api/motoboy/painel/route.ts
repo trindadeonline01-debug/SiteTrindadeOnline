@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
   const jaRecebido = (payouts || []).reduce((a, p) => a + Number(p.valor), 0)
 
   return NextResponse.json({
-    motoboy: { name: full?.name, phone: full?.phone, pix_key: full?.pix_key, pix_key_type: full?.pix_key_type, status: full?.status, available: full?.available, has_password: !!full?.password_hash },
+    motoboy: { id: full?.id, name: full?.name, phone: full?.phone, pix_key: full?.pix_key, pix_key_type: full?.pix_key_type, status: full?.status, available: full?.available, has_password: !!full?.password_hash },
     entregasSemana, aReceber, jaRecebido,
     periodAReceber, periodRecebido,
     recentOrders: (recentOrders || []).map(o => ({

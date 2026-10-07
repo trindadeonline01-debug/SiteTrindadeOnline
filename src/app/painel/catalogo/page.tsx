@@ -1013,6 +1013,18 @@ export default function CatalogoPage() {
     exitSelectMode()
   }
 
+  async function bulkSetTipoVitrine(tipoVitrine: string) {
+    const ids = Array.from(selectedIds)
+    if (ids.length === 0) return
+    setBulkActing(true)
+    await supabase.from('loja_produtos').update({ tipo_vitrine: tipoVitrine || null }).in('id', ids)
+    setProdutos(prev => prev.map(x => selectedIds.has(x.id) ? { ...x, tipo_vitrine: tipoVitrine || null } : x))
+    const tipo = tiposVitrine.find(t => t.value === tipoVitrine)
+    showToast(`${ids.length} produto${ids.length > 1 ? 's' : ''} classificado${ids.length > 1 ? 's' : ''} como ${tipo ? `${tipo.emoji} ${tipo.label}` : '— não classificar —'}`)
+    setBulkActing(false)
+    exitSelectMode()
+  }
+
   if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Archivo,sans-serif', color: '#AAA' }}>Carregando...</div>
 
   const searchTerm = search.trim().toLowerCase()
@@ -1176,6 +1188,9 @@ export default function CatalogoPage() {
         .cg-selbar-btn:disabled{ opacity:.4;cursor:default; }
         .cg-selbar-btn.danger{ background:#C43D3D;border-color:#C43D3D; }
         .cg-selbar-btn.cancel{ background:transparent;border-color:transparent;color:#C9BFA6; }
+        .cg-selbar-select{ padding:8px 10px;border-radius:9px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#fff;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap; }
+        .cg-selbar-select:disabled{ opacity:.4;cursor:default; }
+        .cg-selbar-select option{ color:#151210; }
         .cg-photo-input{ display:flex;align-items:center;gap:12px;margin-bottom:14px; }
         .cg-photo-big{ width:64px;height:64px;border-radius:12px;background:linear-gradient(135deg,#FBF1DC,#FCFAF5);display:flex;align-items:center;justify-content:center;font-size:26px;overflow:hidden;flex:none; }
         .cg-photo-big img{ width:100%;height:100%;object-fit:cover; }
@@ -1279,6 +1294,16 @@ export default function CatalogoPage() {
                 <button className="cg-selbar-btn" disabled={selectedIds.size === 0} onClick={() => setSelectedIds(new Set(filtered.map(p => p.id)))}>Selecionar tudo</button>
                 <button className="cg-selbar-btn" disabled={selectedIds.size === 0 || bulkActing} onClick={() => bulkSetActive(false)}>⏸ Pausar</button>
                 <button className="cg-selbar-btn" disabled={selectedIds.size === 0 || bulkActing} onClick={() => bulkSetEsgotado(true)}>✕ Esgotar</button>
+                <select
+                  className="cg-selbar-select"
+                  disabled={selectedIds.size === 0 || bulkActing}
+                  value="__placeholder__"
+                  onChange={e => bulkSetTipoVitrine(e.target.value === '__clear__' ? '' : e.target.value)}
+                >
+                  <option value="__placeholder__" disabled>🏷️ Tipo do produto...</option>
+                  <option value="__clear__">— não classificar —</option>
+                  {tiposVitrine.map(t => <option key={t.value} value={t.value}>{t.emoji} {t.label}</option>)}
+                </select>
                 <button className="cg-selbar-btn danger" disabled={selectedIds.size === 0 || bulkActing} onClick={bulkDelete}>🗑 Excluir</button>
                 <button className="cg-selbar-btn cancel" onClick={exitSelectMode}>Cancelar</button>
               </div>

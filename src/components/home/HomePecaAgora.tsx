@@ -63,6 +63,17 @@ export default function HomePecaAgora({ groups, search = '' }: { groups: PecaGro
   // entre visitas (nada de localStorage aqui, só state em memória).
   const [viewMode, setViewMode] = useState<'produtos' | 'lojas'>('produtos')
   const sentinelRef = useRef<HTMLDivElement>(null)
+  // Carrossel de tipos (Japonês, Hambúrguer, Doce...) rola na horizontal sem
+  // nenhuma indicação visual de que tem mais opção pra ver — achado real do
+  // Ricardo, out/2026: "só tem seis opções ali... tem que ter todas" — as
+  // outras já estavam todas ali (groups.map renderiza tudo), só escondidas
+  // fora da tela sem jeito óbvio de chegar nelas (sem barra de rolagem
+  // visível, sem seta, sem gesto natural no mouse do desktop). Setas
+  // aparecem só quando dá pra rolar pra aquele lado, nos dois tamanhos de
+  // tela — no mobile o toque/arraste continua funcionando igual antes.
+  const tabsScrollRef = useRef<HTMLDivElement>(null)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(false)
 
   // Se já tem item pendente daquela loja (adicionado antes, sem ter
   // visitado o cardápio pra "consumir" o handoff), reflete a quantidade
@@ -103,6 +114,23 @@ export default function HomePecaAgora({ groups, search = '' }: { groups: PecaGro
     : null
 
   useEffect(() => { setVisibleCount(PAGE_SIZE) }, [search])
+
+  useEffect(() => {
+    const el = tabsScrollRef.current
+    if (!el) return
+    const update = () => {
+      setCanScrollLeft(el.scrollLeft > 4)
+      setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4)
+    }
+    update()
+    el.addEventListener('scroll', update, { passive: true })
+    window.addEventListener('resize', update)
+    return () => { el.removeEventListener('scroll', update); window.removeEventListener('resize', update) }
+  }, [groups.length, searching])
+
+  function scrollTabs(dir: 1 | -1) {
+    tabsScrollRef.current?.scrollBy({ left: dir * 200, behavior: 'smooth' })
+  }
 
   // Rolou até perto do fim da lista carregada → revela mais PAGE_SIZE, sem
   // precisar clicar em "Ver mais" (pedido do Ricardo, set/2026: com o teto
@@ -259,6 +287,13 @@ export default function HomePecaAgora({ groups, search = '' }: { groups: PecaGro
            até a borda do container (a borda da tela em mobile, onde o
            container já ocupa 100% da largura) (Ricardo, set/2026). */
         .pa-band .pa-scroll { margin: 0 -20px; padding: 2px 20px 8px; gap: 8px; }
+        /* Wrapper só pra posicionar as setas nas bordas do carrossel — sem
+           indicação visual nenhuma antes, dava pra achar que só existiam os
+           tipos que cabiam na tela (achado do Ricardo, out/2026). */
+        .pa-scroll-wrap { position: relative; }
+        .pa-scroll-arrow { position: absolute; top: 44%; transform: translateY(-50%); z-index: 3; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--ink); background: var(--paper); color: var(--ink); font-size: 13px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,.22); padding: 0; }
+        .pa-scroll-arrow.left { left: -4px; }
+        .pa-scroll-arrow.right { right: -4px; }
         /* Quadrado (não mais círculo/retângulo alto) com fundo branco
            translúcido em vez de chapado, coladinhos entre si — 3 pedidos
            de ajuste do Ricardo depois do mockup (set/2026). */
@@ -328,13 +363,17 @@ export default function HomePecaAgora({ groups, search = '' }: { groups: PecaGro
                 </button>
               </div>
 
-              <div className="pa-scroll">
-                {groups.map(g => (
-                  <div key={g.key} className={`pa-item ${activeKey === g.key ? 'on' : ''}`} onClick={() => changeTab(g.key)}>
-                    <div className="pa-photo">{g.emoji}</div>
-                    <span className="pa-lbl">{g.label}</span>
-                  </div>
-                ))}
+              <div className="pa-scroll-wrap">
+                <div className="pa-scroll" ref={tabsScrollRef}>
+                  {groups.map(g => (
+                    <div key={g.key} className={`pa-item ${activeKey === g.key ? 'on' : ''}`} onClick={() => changeTab(g.key)}>
+                      <div className="pa-photo">{g.emoji}</div>
+                      <span className="pa-lbl">{g.label}</span>
+                    </div>
+                  ))}
+                </div>
+                {canScrollLeft && <button type="button" className="pa-scroll-arrow left" aria-label="Ver tipos anteriores" onClick={() => scrollTabs(-1)}>‹</button>}
+                {canScrollRight && <button type="button" className="pa-scroll-arrow right" aria-label="Ver mais tipos" onClick={() => scrollTabs(1)}>›</button>}
               </div>
             </div>
           </div>

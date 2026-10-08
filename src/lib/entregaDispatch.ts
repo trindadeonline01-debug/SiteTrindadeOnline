@@ -4,6 +4,7 @@ import { getEntregaPricing, getEntregaFeeForDelivery, todaySaoPaulo, matchBairro
 import {
   sendPlatformWhatsApp, sendMotoboyWhatsApp, sendPlatformWhatsAppImage, sendCustomerWhatsApp, ensureEntregaWebhookRegistered,
 } from '@/lib/whatsapp'
+import { formatPhoneDisplay } from '@/lib/phone'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -16,6 +17,12 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trindadeonline
 // 1 minuto (pedido do Ricardo, set/2026) e depois pra 2 minutos (pedido do
 // Ricardo, set/2026).
 const OFFER_TIMEOUT_MS = 120_000
+
+// loja_pedidos.payment_method vem como cartao_credito/cartao_debito (não
+// "cartao" genérico) — mapa usado na mensagem de corrida confirmada.
+const PAY_LABEL: Record<string, string> = {
+  pix: 'Pix', dinheiro: 'Dinheiro', cartao: 'Cartão', cartao_credito: 'Cartão de crédito', cartao_debito: 'Cartão de débito',
+}
 
 // Reexportadas de @/lib/whatsapp (módulo sem sharp — ver o porquê lá) só
 // pra quem já importava daqui não precisar trocar o caminho do import.
@@ -482,6 +489,221 @@ export async function cancelarChamadaMotoboy(deliveryOrderId: string): Promise<{
   }
 
   return { ok: true }
+}
+
+// Mensagem de confirmação, mandada só depois do motoboy aceitar — nesse
+// momento ele já pode ter tudo que precisa pra fazer a corrida de verdade,
+// diferente da oferta inicial (enxuta de propósito). Movida de
+// /api/entrega/webhook pra cá (out/2026) junto com acceptOfferForMotoboy,
+// pra ser a MESMA mensagem tanto no aceite por WhatsApp quanto no aceite
+// pelo painel do motoboy.
+async function buildAcceptedMessage(order: {
+  pickup_address: string; dropoff_address: string; customer_name: string; customer_phone: string | null
+  company_id: string; pedido_id: string | null; fee: number; payment_method: string | null; order_value: number | null
+}): Promise<string> {
+  const [{ data: company }, pricing] = await Promise.all([
+    supabase.from('companies').select('name').eq('id', order.company_id).maybeSingle(),
+    getEntregaPricing(),
+  ])
+  const valorMotoboy = Math.max(0, Number(order.fee) - pricing.motoboy_corte_plataforma)
+
+  const lines = ['✅ *Corrida confirmada!*', '']
+  lines.push('📍 *RETIRAR NA LOJA*')
+  if (company?.name) lines.push(`• ${company.name.toUpperCase()}`)
+  lines.push(`• ${order.pickup_address}`, `• 🗺️ ${mapsLink(order.pickup_address)}`, '')
+
+  lines.push('🏠 *ENTREGAR PARA*')
+  lines.push(`• ${order.customer_name}`)
+  if (order.customer_phone) lines.push(`• 📱 ${formatPhoneDisplay(order.customer_phone)}`)
+  lines.push(`• ${order.dropoff_address}`, `• 🗺️ ${mapsLink(order.dropoff_address)}`, '')
+
+  if (order.payment_method && order.order_value != null) {
+    const metodo = PAY_LABEL[order.payment_method] || order.payment_method
+    lines.push('💳 *PAGAMENTO*')
+    let jaPago = false
+    if (order.pedido_id) {
+      const { data: pedido } = await supabase.from('loja_pedidos').select('payment_status').eq('id', order.pedido_id).maybeSingle()
+      jaPago = pedido?.payment_status === 'pago'
+    }
+    if (jaPago) {
+      lines.push('• ✅ Já pago — não precisa cobrar nada', `• _(${metodo})_`)
+    } else {
+      lines.push(`• 💵 Cobrar *R$ ${Number(order.order_value).toFixed(2).replace('.', ',')}* na entrega`, `• _(${metodo})_`)
+    }
+    lines.push('')
+  }
+
+  lines.push(`💰 *SUA CORRIDA:* R$ ${valorMotoboy.toFixed(2).replace('.', ',')}`, '')
+  lines.push('🔑 *CÓDIGOS*')
+  lines.push('• Na loja: peça o código de retirada e digite aqui')
+  lines.push('• Na entrega: o cliente passa outro código — digite aqui pra liberar seu pagamento', '')
+  lines.push('Boa corrida! 🙌')
+  return lines.join('\n')
+}
+
+// Aceita a oferta pendente mais recente desse motoboy — usada tanto pelo
+// "SIM" do WhatsApp quanto pelo botão "✓ Aceitar" do painel (out/2026).
+// Único ponto que decide "aceitou de verdade": valida que a entrega ainda
+// está buscando motoboy (a loja pode ter cancelado entre a oferta sair e a
+// resposta chegar) antes de virar a_caminho.
+export async function acceptOfferForMotoboy(motoboyId: string): Promise<
+  | { ok: true; deliveryOrderId: string; message: string }
+  | { ok: false; error: string }
+> {
+  const { data: motoboy } = await supabase.from('motoboys').select('id, name, phone').eq('id', motoboyId).maybeSingle()
+  if (!motoboy) return { ok: false, error: 'motoboy não encontrado' }
+
+  const { data: offer } = await supabase
+    .from('delivery_offers').select('id, delivery_order_id')
+    .eq('motoboy_id', motoboyId).eq('status', 'pendente')
+    .order('offered_at', { ascending: false }).limit(1).maybeSingle()
+  if (!offer) return { ok: false, error: 'sem oferta pendente' }
+
+  const { data: order } = await supabase
+    .from('delivery_orders').select('status, pickup_address, dropoff_address, customer_name, customer_phone, company_id, pedido_id, fee, payment_method, order_value')
+    .eq('id', offer.delivery_order_id).maybeSingle()
+  if (!order || order.status !== 'buscando_motoboy') {
+    await supabase.from('delivery_offers').update({ status: 'expirada', responded_at: new Date().toISOString() }).eq('id', offer.id)
+    return { ok: false, error: 'essa corrida não está mais disponível — já foi cancelada ou pega por outro motoboy' }
+  }
+
+  await supabase.from('delivery_offers').update({ status: 'aceita', responded_at: new Date().toISOString() }).eq('id', offer.id)
+  await supabase.from('delivery_orders').update({
+    status: 'a_caminho', motoboy_id: motoboy.id, motoboy_name: motoboy.name, motoboy_phone: motoboy.phone,
+    assigned_at: new Date().toISOString(),
+  }).eq('id', offer.delivery_order_id)
+
+  // O cliente só é avisado "saiu para entrega" quando a LOJA marca o pedido
+  // como saiu_entrega, não quando o motoboy aceita aqui (ver
+  // /api/loja/status-pedido) — aceitar só significa que ele foi buscar.
+  const message = await buildAcceptedMessage(order)
+  await sendMotoboyWhatsApp(motoboy.phone, message)
+  return { ok: true, deliveryOrderId: offer.delivery_order_id, message }
+}
+
+// Recusa a oferta pendente mais recente desse motoboy e repassa pro
+// próximo da fila — usada tanto pelo "NÃO" do WhatsApp quanto pelo botão
+// "✕ Recusar" do painel (out/2026).
+export async function declineOfferForMotoboy(motoboyId: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { data: offer } = await supabase
+    .from('delivery_offers').select('id, delivery_order_id, sequence_no, round_no')
+    .eq('motoboy_id', motoboyId).eq('status', 'pendente')
+    .order('offered_at', { ascending: false }).limit(1).maybeSingle()
+  if (!offer) return { ok: false, error: 'sem oferta pendente' }
+  await supabase.from('delivery_offers').update({ status: 'recusada', responded_at: new Date().toISOString() }).eq('id', offer.id)
+  await offerToNextMotoboy(offer.delivery_order_id, offer.sequence_no + 1, offer.round_no)
+  return { ok: true }
+}
+
+// Fecha a entrega de verdade depois que o código do CLIENTE confere — todo
+// o lado financeiro (diária, escalonamento por volume, split motoboy/
+// plataforma, baixa na carteira, ledger, status do pedido, avisos). Movida
+// de /api/entrega/webhook pra cá (out/2026) pra ser a MESMA lógica tanto no
+// fechamento por WhatsApp quanto pelo painel do motoboy — esse bloco é
+// delicado (dinheiro de verdade), não pode haver duas cópias que possam
+// divergir uma da outra.
+async function finalizarEntregaConfirmada(
+  order: { id: string; company_id: string; fee: number; customer_phone: string | null; pedido_id: string | null },
+  motoboyPhone?: string | null,
+): Promise<number> {
+  const pricing = await getEntregaPricing()
+  const hoje = todaySaoPaulo()
+  const { data: confirmadasHoje } = await supabase
+    .from('delivery_orders').select('id, delivered_at').eq('company_id', order.company_id).eq('status', 'entregue')
+    .order('delivered_at', { ascending: false }).limit(200)
+  const countHoje = (confirmadasHoje || []).filter(o =>
+    o.delivered_at && new Date(o.delivered_at).toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }) === hoje
+  ).length
+  const diariaConsumidaAgora = countHoje === 0
+  const numeroDoDia = countHoje + 1
+  const extraVolume = numeroDoDia > pricing.diaria_inclui ? pricing.diaria_extra_valor : 0
+
+  await supabase.from('delivery_orders').update({
+    status: 'entregue', delivered_at: new Date().toISOString(), payout_status: 'liberado',
+  }).eq('id', order.id)
+
+  if (order.pedido_id) {
+    await supabase.from('loja_pedidos').update({
+      status: 'entregue', payment_status: 'pago', updated_at: new Date().toISOString(),
+    }).eq('id', order.pedido_id)
+  }
+
+  const { data: wallet } = await supabase.from('company_delivery_wallet').select('credits, dias_diaria_disponiveis').eq('company_id', order.company_id).maybeSingle()
+  const fee = Number(order.fee) || 0
+  const newCredits = Math.max(0, (wallet?.credits || 0) - fee - extraVolume)
+  const walletUpdate: Record<string, any> = { company_id: order.company_id, credits: newCredits, updated_at: new Date().toISOString() }
+  if (diariaConsumidaAgora) walletUpdate.dias_diaria_disponiveis = Math.max(0, (wallet?.dias_diaria_disponiveis || 0) - 1)
+  await supabase.from('company_delivery_wallet').upsert(walletUpdate, { onConflict: 'company_id' })
+  await supabase.from('delivery_credit_ledger').insert({
+    company_id: order.company_id, kind: 'consumo', amount: -fee, credits_delta: -fee, delivery_order_id: order.id,
+  })
+  if (diariaConsumidaAgora) {
+    await supabase.from('delivery_credit_ledger').insert({
+      company_id: order.company_id, kind: 'diaria_consumo', credits_delta: 0, delivery_order_id: order.id,
+    })
+  }
+  if (extraVolume > 0) {
+    await supabase.from('delivery_credit_ledger').insert({
+      company_id: order.company_id, kind: 'diaria_extra_volume', amount: -extraVolume, credits_delta: -extraVolume, delivery_order_id: order.id,
+    })
+  }
+
+  const valorMotoboy = Math.max(0, fee - pricing.motoboy_corte_plataforma)
+  if (motoboyPhone) {
+    const feeLabel = valorMotoboy.toFixed(2).replace('.', ',')
+    await sendMotoboyWhatsApp(motoboyPhone, `✅ Código confere! R$ ${feeLabel} liberados. Entra no seu Pix no fechamento.`)
+  }
+
+  const { data: company } = await supabase.from('companies').select('owner_id, name, slug').eq('id', order.company_id).maybeSingle()
+  await sendCustomerWhatsApp(order.company_id, order.customer_phone, `🎉 Pedido entregue! Obrigado pela preferência.`)
+  if (company?.slug) {
+    const site = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trindadeonline.com.br'
+    await sendCustomerWhatsApp(order.company_id, order.customer_phone, `⭐ Como foi sua experiência? Avalia a gente: ${site}/empresa/${company.slug}?avaliar=1`)
+  }
+  if (company?.owner_id) {
+    const site = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trindadeonline.com.br'
+    fetch(`${site}/api/push/send`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: '🏍️ Entrega concluída', body: 'O motoboy confirmou a entrega.', target: 'external_user_id', userId: company.owner_id, url: `${site}/painel/entrega` }),
+    }).catch(() => {})
+  }
+
+  return valorMotoboy
+}
+
+// Confirma o código de UMA corrida específica desse motoboy — decide sozinho
+// se é o código de RETIRADA (loja) ou de ENTREGA (cliente) pela fase em que
+// a corrida está (picked_up_at). Usada pelo painel do motoboy, que já sabe
+// exatamente qual corrida está confirmando (cada card tem seu próprio campo
+// de código) — diferente do webhook do WhatsApp, que recebe só 4 dígitos
+// soltos e precisa procurar entre as corridas do motoboy qual delas bate
+// (ver /api/entrega/webhook). `motoboyPhone` opcional: só manda a mensagem de
+// WhatsApp de confirmação quando informado (o webhook sempre passa; o painel
+// não passa, porque o próprio painel já mostra a confirmação na hora).
+export async function confirmCodeForMotoboy(
+  motoboyId: string, deliveryOrderId: string, code: string, motoboyPhone?: string | null,
+): Promise<
+  | { ok: true; phase: 'retirada' | 'entrega'; valorMotoboy?: number }
+  | { ok: false; error: string }
+> {
+  const norm = String(code).replace(/\D/g, '')
+  const { data: order } = await supabase
+    .from('delivery_orders')
+    .select('id, motoboy_id, status, pickup_code, delivery_code, picked_up_at, company_id, fee, customer_phone, pedido_id')
+    .eq('id', deliveryOrderId).maybeSingle()
+  if (!order || order.motoboy_id !== motoboyId || order.status !== 'a_caminho') return { ok: false, error: 'corrida não encontrada' }
+
+  const precisaConfirmarRetirada = !!order.pickup_code && !order.picked_up_at
+  if (precisaConfirmarRetirada) {
+    if (norm !== order.pickup_code) return { ok: false, error: 'não confere — confirma com o lojista' }
+    await supabase.from('delivery_orders').update({ picked_up_at: new Date().toISOString() }).eq('id', order.id)
+    if (motoboyPhone) await sendMotoboyWhatsApp(motoboyPhone, '✅ Retirada confirmada! Segue pro cliente — quando entregar, peça o código dele pra liberar seu pagamento.')
+    return { ok: true, phase: 'retirada' }
+  }
+
+  if (norm !== order.delivery_code) return { ok: false, error: 'não confere — confirma com o cliente' }
+  const valorMotoboy = await finalizarEntregaConfirmada(order, motoboyPhone)
+  return { ok: true, phase: 'entrega', valorMotoboy }
 }
 
 // Varre ofertas que estouraram o prazo sem resposta e marca como expiradas

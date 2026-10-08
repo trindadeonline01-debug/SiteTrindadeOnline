@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { PeriodSel, periodRange, periodLabel } from '@/lib/periodFilter'
 import PeriodFilterBar from '@/components/admin/PeriodFilterBar'
 
@@ -8,6 +8,10 @@ const TOKEN_KEY = 'motoboy_session_token'
 const STATUS_LABEL: Record<string, string> = {
   buscando_motoboy: 'Chamando motoboy', a_caminho: 'A caminho', entregue: 'Entregue', cancelada: 'Cancelada', sem_credito: 'Sem crédito',
 }
+
+interface Oferta { deliveryOrderId: string; company: string; bairro: string | null; valueLabel: string; expiresAt: string }
+interface Corrida { id: string; company: string; bairro: string | null; customerName: string; valueLabel: string; pickedUp: boolean }
+function fmtTempo(s: number) { const m = Math.floor(s / 60); const sec = s % 60; return m + ':' + (sec < 10 ? '0' : '') + sec }
 
 function fmt(n: number) { return 'R$ ' + Number(n || 0).toFixed(2).replace('.', ',') }
 function fmtDT(iso: string | null) {
@@ -59,11 +63,134 @@ export default function MotoboyPainelPage() {
   const [period, setPeriod] = useState<PeriodSel>({ kind: 'week' })
   const [notifPermission, setNotifPermission] = useState<string>('default')
 
+  // Corridas ativas (out/2026) — mesma engine de despacho que já existia só
+  // por WhatsApp (delivery_offers/delivery_orders), agora também na tela,
+  // via polling (sem Supabase Realtime: motoboy não é usuário Supabase Auth,
+  // então não dá pra assinar com RLS dele — ver KB).
+  const [corridas, setCorridas] = useState<{ offer: Oferta | null; rides: Corrida[] } | null>(null)
+  const [secondsLeft, setSecondsLeft] = useState(0)
+  const [corridasToast, setCorridasToast] = useState<string | null>(null)
+  const [soloCodes, setSoloCodes] = useState<Record<string, string>>({})
+  const [soloErrs, setSoloErrs] = useState<Record<string, string>>({})
+  const [groupCodes, setGroupCodes] = useState<Record<string, string>>({})
+  const [groupErrs, setGroupErrs] = useState<Record<string, string>>({})
+  const audioCtxRef = useRef<AudioContext | null>(null)
+
   useEffect(() => {
     const saved = typeof window !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null
     if (saved) setToken(saved)
     if (typeof Notification !== 'undefined') setNotifPermission(Notification.permission)
   }, [])
+
+  // AudioContext só pode nascer depois de um toque — guarda no primeiro
+  // clique da sessão pra já estar liberado quando a oferta chegar de verdade.
+  useEffect(() => {
+    function unlock() {
+      if (audioCtxRef.current) return
+      try { audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)() } catch {}
+    }
+    document.addEventListener('pointerdown', unlock)
+    return () => document.removeEventListener('pointerdown', unlock)
+  }, [])
+
+  async function loadCorridas(tok: string) {
+    const res = await fetch('/api/motoboy/corridas', { headers: { Authorization: `Bearer ${tok}` } })
+    if (res.status === 401) return
+    const j = await res.json()
+    setCorridas(j)
+  }
+
+  useEffect(() => {
+    if (!token) return
+    loadCorridas(token)
+    const iv = setInterval(() => loadCorridas(token), 4000)
+    return () => clearInterval(iv)
+  }, [token])
+
+  // Contagem regressiva visual dos 2 minutos pra responder — reinicia só
+  // quando a oferta muda de fato (não a cada poll).
+  useEffect(() => {
+    if (!corridas?.offer) { setSecondsLeft(0); return }
+    const expiresAt = corridas.offer.expiresAt
+    const tick = () => setSecondsLeft(Math.max(0, Math.round((new Date(expiresAt).getTime() - Date.now()) / 1000)))
+    tick()
+    const t = setInterval(tick, 1000)
+    return () => clearInterval(t)
+  }, [corridas?.offer?.deliveryOrderId, corridas?.offer?.expiresAt])
+
+  // Bipe repetido enquanto tiver oferta esperando resposta — só funciona com
+  // a aba aberta em primeiro plano (limite do navegador, não dá pra tocar
+  // som com a tela bloqueada); por isso o push do OneSignal continua sendo
+  // o aviso de backup pra quando o painel não está na tela.
+  useEffect(() => {
+    if (!corridas?.offer) return
+    const ctx = audioCtxRef.current
+    if (!ctx) return
+    let stopped = false
+    const beep = () => {
+      if (stopped) return
+      try {
+        const osc = ctx.createOscillator(); const gain = ctx.createGain()
+        osc.type = 'square'; osc.frequency.value = 880; gain.gain.value = 0.15
+        osc.connect(gain); gain.connect(ctx.destination)
+        osc.start(); osc.stop(ctx.currentTime + 0.18)
+      } catch {}
+    }
+    beep()
+    const iv = setInterval(beep, 900)
+    return () => { stopped = true; clearInterval(iv) }
+  }, [corridas?.offer?.deliveryOrderId])
+
+  function flashToast(msg: string, ms = 2800) {
+    setCorridasToast(msg)
+    setTimeout(() => setCorridasToast(null), ms)
+  }
+
+  async function aceitarCorrida() {
+    if (!token) return
+    const res = await fetch('/api/motoboy/corridas', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ action: 'accept' }) })
+    const j = await res.json()
+    flashToast(j.ok ? '✓ Corrida aceita — já apareceu na sua lista' : (j.error || 'não foi possível aceitar'))
+    loadCorridas(token)
+  }
+
+  async function recusarCorrida() {
+    if (!token) return
+    await fetch('/api/motoboy/corridas', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ action: 'decline' }) })
+    flashToast('✕ Recusada — repassamos pro próximo motoboy')
+    loadCorridas(token)
+  }
+
+  async function confirmarCodigoSolo(orderId: string) {
+    if (!token) return
+    const code = soloCodes[orderId] || ''
+    const res = await fetch('/api/motoboy/corridas', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ action: 'confirm_code', orderId, code }) })
+    const j = await res.json()
+    if (j.ok) {
+      setSoloErrs(s => ({ ...s, [orderId]: '' })); setSoloCodes(s => ({ ...s, [orderId]: '' }))
+      flashToast(j.phase === 'entrega' ? '✅ Entrega finalizada — repasse liberado!' : '✓ Retirada confirmada — segue pro cliente')
+      loadCorridas(token)
+    } else {
+      setSoloErrs(s => ({ ...s, [orderId]: j.error || 'não confere' }))
+    }
+  }
+
+  async function confirmarGrupo(orderIds: string[]) {
+    if (!token) return
+    const items = orderIds.map(id => ({ orderId: id, code: groupCodes[id] || '' }))
+    const res = await fetch('/api/motoboy/corridas', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ action: 'confirm_group', items }) })
+    const j = await res.json()
+    const results: { orderId: string; ok: boolean; error?: string }[] = j.results || []
+    const newErrs: Record<string, string> = {}
+    let confirmed = 0
+    for (const r of results) { if (r.ok) confirmed++; else newErrs[r.orderId] = r.error || 'falta digitar' }
+    setGroupErrs(e => ({ ...e, ...newErrs }))
+    setGroupCodes(c => { const copy = { ...c }; results.filter(r => r.ok).forEach(r => { delete copy[r.orderId] }); return copy })
+    const total = results.length
+    if (confirmed > 0 && confirmed === total) flashToast(confirmed === 1 ? '✓ Retirada confirmada — virou corrida própria na lista' : `✓ ${confirmed} retiradas confirmadas — viraram ${confirmed} corridas separadas`, 3400)
+    else if (confirmed > 0) flashToast(`✓ ${confirmed} de ${total} confirmadas — revê o(s) código(s) que ainda falta(m)`, 3400)
+    loadCorridas(token)
+  }
 
   // Busca de novo sempre que o token mudar (login) ou o filtro de período
   // mudar — pedido do Ricardo, set/2026: motoboy precisa ver o que tem a
@@ -231,6 +358,48 @@ export default function MotoboyPainelPage() {
     .p-field-row:last-child{border-bottom:none;}
     .p-field-edit{font-size:11px;color:var(--sign-dark);font-weight:800;cursor:pointer;flex:none;background:none;border:none;}
     .p-msg{text-align:center;font-size:12px;font-weight:700;color:#0F8A57;margin-bottom:10px;}
+
+    .cr-empty{text-align:center;color:#8A8478;font-size:12px;padding:16px;}
+    .cr-card{background:#fff;border:1px solid #E0DDD8;border-radius:14px;box-shadow:0 1px 4px rgba(0,0,0,.06);padding:14px;margin-bottom:12px;}
+    .cr-card.group{border:1.5px solid var(--sign-dark);background:#FFFBEF;}
+    .cr-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:10px;}
+    .cr-name{font-size:14px;font-weight:800;}
+    .cr-sub{font-size:11px;color:#8A8478;margin-top:2px;}
+    .cr-val{font-family:'Anton',sans-serif;font-size:16px;color:var(--sign-dark);flex:none;}
+    .cr-pill{display:inline-block;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:3px 9px;border-radius:20px;margin-top:4px;}
+    .cr-pill.wait{background:#FEF3E2;color:#92600A;}
+    .cr-pill.go{background:#E4F3EC;color:#0F7A4F;}
+    .cr-codebox{background:#FAFAF8;border:1px dashed #D8D2C4;border-radius:12px;padding:11px 12px;}
+    .cr-codebox .lbl{font-size:10.5px;font-weight:800;margin-bottom:3px;}
+    .cr-codebox .hint{font-size:10px;color:#8A8478;line-height:1.4;margin-bottom:8px;}
+    .cr-coderow{display:flex;gap:8px;}
+    .cr-codeinput{flex:1;min-width:0;padding:10px 11px;border:1.5px solid #E0DDD8;border-radius:10px;font-size:16px;font-weight:800;letter-spacing:3px;text-align:center;background:#fff;outline:none;box-sizing:border-box;}
+    .cr-codeinput:focus{border-color:var(--sign-dark);}
+    .cr-codeinput.sm{flex:none;width:72px;font-size:14px;letter-spacing:2px;padding:9px 6px;}
+    .cr-codebtn{flex:none;padding:0 14px;border-radius:10px;border:none;background:var(--ink);color:var(--sign);font-family:inherit;font-size:11.5px;font-weight:800;cursor:pointer;}
+    .cr-codebtn.wide{width:100%;padding:12px;margin-top:4px;}
+    .cr-codeerr{color:var(--alert);font-size:10.5px;font-weight:700;margin-top:7px;}
+    .cr-grow{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #EFE6CE;}
+    .cr-grow:last-of-type{border-bottom:none;}
+    .cr-gname{flex:1;min-width:0;}
+    .cr-gname b{font-size:12.5px;}
+    .cr-gname span{display:block;font-size:10px;color:#8A8478;}
+    .cr-overlay{position:fixed;inset:0;background:rgba(21,18,16,.55);display:flex;align-items:flex-end;justify-content:center;z-index:50;}
+    .cr-ovcard{width:100%;max-width:520px;background:#fff;border-radius:22px 22px 0 0;padding:22px 22px 28px;box-shadow:0 -10px 40px rgba(0,0,0,.3);border:2px solid var(--sign);border-bottom:none;box-sizing:border-box;}
+    .cr-ov-ring{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px;}
+    .cr-ov-ringtxt{font-family:'Anton',sans-serif;font-size:15px;letter-spacing:.3px;color:var(--sign-dark);text-transform:uppercase;}
+    .cr-ov-sound{text-align:center;font-size:10.5px;color:#8A8478;font-weight:700;margin-bottom:14px;}
+    .cr-ov-store{font-size:19px;font-weight:800;text-align:center;}
+    .cr-ov-bairro{font-size:12.5px;color:#8A8478;text-align:center;margin-top:3px;margin-bottom:12px;}
+    .cr-ov-val{font-family:'Anton',sans-serif;font-size:30px;text-align:center;color:#0F8A57;margin-bottom:14px;}
+    .cr-ov-timebar{height:7px;border-radius:5px;background:#F0EDE8;overflow:hidden;margin-bottom:6px;}
+    .cr-ov-timefill{height:100%;background:var(--alert);border-radius:5px;transition:width 1s linear;}
+    .cr-ov-timelbl{text-align:center;font-size:11px;font-weight:800;color:var(--alert);margin-bottom:16px;}
+    .cr-ov-btnrow{display:flex;gap:10px;}
+    .cr-ov-btn{flex:1;padding:16px;border-radius:14px;border:none;font-family:inherit;font-size:14.5px;font-weight:800;cursor:pointer;}
+    .cr-ov-btn.no{background:#FBEAEA;color:#C0392B;}
+    .cr-ov-btn.yes{background:#0F8A57;color:#fff;}
+    .cr-toast{position:fixed;left:14px;right:14px;bottom:18px;max-width:492px;margin:0 auto;background:var(--ink);color:#fff;padding:13px 16px;border-radius:12px;font-size:12.5px;font-weight:700;text-align:center;z-index:60;box-shadow:0 6px 20px rgba(0,0,0,.3);}
   `
 
   if (!token || !data) {
@@ -282,6 +451,20 @@ export default function MotoboyPainelPage() {
   }
 
   const m = data.motoboy
+
+  // Agrupa por loja as corridas que ainda esperam retirada (!pickedUp) —
+  // 2+ da mesma loja virou card de grupo (confirma todas de uma vez),
+  // 1 só continua como card solo normal.
+  const waitingRides = (corridas?.rides || []).filter(r => !r.pickedUp)
+  const movingRides = (corridas?.rides || []).filter(r => r.pickedUp)
+  const byCompany: Record<string, Corrida[]> = {}
+  waitingRides.forEach(r => { (byCompany[r.company] = byCompany[r.company] || []).push(r) })
+  const grupos = Object.entries(byCompany).filter(([, items]) => items.length >= 2)
+  const soloWaiting = Object.entries(byCompany).filter(([, items]) => items.length === 1).map(([, items]) => items[0])
+  const soloRides = [...soloWaiting, ...movingRides]
+  const totalCorridas = (corridas?.rides || []).length
+  const pctTempo = Math.max(0, Math.min(100, (secondsLeft / 120) * 100))
+
   return (
     <div className="p-wrap">
       <style>{style}</style>
@@ -336,6 +519,67 @@ export default function MotoboyPainelPage() {
             </div>
           </div>
         )}
+
+        <div className="p-card2">
+          <div className="p-card2-hd">🏍️ Corridas ativas — {totalCorridas === 1 ? '1 corrida rolando agora' : totalCorridas === 0 ? 'nenhuma agora' : `${totalCorridas} corridas rolando agora`}</div>
+          <div style={{ padding: 14 }}>
+            {grupos.length > 0 && (
+              <>
+                <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.05em', color: '#8A8478', margin: '0 2px 8px' }}>📦 Retirar junto</div>
+                {grupos.map(([company, items]) => (
+                  <div className="cr-card group" key={company}>
+                    <div className="cr-top">
+                      <div>
+                        <div className="cr-name">{company}</div>
+                        <div className="cr-sub">📍 {items[0].bairro || '—'}</div>
+                        <span className="cr-pill wait">{items.length} corridas pra retirar aqui</span>
+                      </div>
+                    </div>
+                    <div className="cr-codebox">
+                      <div className="lbl">🔑 Código de cada pedido</div>
+                      <div className="hint">Pede o código de retirada de cada corrida pro lojista e digita aqui — confirma todas de uma vez.</div>
+                      {items.map(it => (
+                        <div key={it.id}>
+                          <div className="cr-grow">
+                            <div className="cr-gname"><b>{it.customerName}</b><span>R$ {it.valueLabel}</span></div>
+                            <input className="cr-codeinput sm" value={groupCodes[it.id] || ''} maxLength={4} inputMode="numeric" placeholder="----"
+                              onChange={e => setGroupCodes(c => ({ ...c, [it.id]: e.target.value.replace(/\D/g, '').slice(0, 4) }))} />
+                          </div>
+                          {groupErrs[it.id] && <div className="cr-codeerr">{it.customerName}: {groupErrs[it.id]}</div>}
+                        </div>
+                      ))}
+                      <button className="cr-codebtn wide" onClick={() => confirmarGrupo(items.map(it => it.id))}>Confirmar retiradas</button>
+                    </div>
+                  </div>
+                ))}
+                <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.05em', color: '#8A8478', margin: '14px 2px 8px' }}>🏍️ Minhas corridas</div>
+              </>
+            )}
+            {soloRides.map(r => (
+              <div className="cr-card" key={r.id}>
+                <div className="cr-top">
+                  <div>
+                    <div className="cr-name">{r.company}</div>
+                    <div className="cr-sub">👤 {r.customerName} · 📍 {r.bairro || '—'}</div>
+                    <span className={`cr-pill ${r.pickedUp ? 'go' : 'wait'}`}>{r.pickedUp ? 'A caminho do cliente' : 'Aguardando retirada'}</span>
+                  </div>
+                  <div className="cr-val">R$ {r.valueLabel}</div>
+                </div>
+                <div className="cr-codebox">
+                  <div className="lbl">{r.pickedUp ? '🔑 Código do cliente' : '🔑 Código da loja'}</div>
+                  <div className="hint">{r.pickedUp ? 'Cliente informa na entrega — finaliza a corrida e libera seu repasse.' : 'Peça pro lojista na retirada.'}</div>
+                  <div className="cr-coderow">
+                    <input className="cr-codeinput" value={soloCodes[r.id] || ''} maxLength={4} inputMode="numeric" placeholder="----"
+                      onChange={e => setSoloCodes(c => ({ ...c, [r.id]: e.target.value.replace(/\D/g, '').slice(0, 4) }))} />
+                    <button className="cr-codebtn" onClick={() => confirmarCodigoSolo(r.id)}>{r.pickedUp ? 'Confirmar entrega' : 'Confirmar retirada'}</button>
+                  </div>
+                  {soloErrs[r.id] && <div className="cr-codeerr">{soloErrs[r.id]}</div>}
+                </div>
+              </div>
+            ))}
+            {totalCorridas === 0 && <div className="cr-empty">Nenhuma corrida em andamento agora.</div>}
+          </div>
+        </div>
 
         <div className="p-kpis">
           <div className="p-kpi"><div className="v">{data.entregasSemana}</div><div className="l">Essa semana</div></div>
@@ -416,6 +660,25 @@ export default function MotoboyPainelPage() {
           </div>
         </div>
       </div>
+
+      {corridas?.offer && (
+        <div className="cr-overlay">
+          <div className="cr-ovcard">
+            <div className="cr-ov-ring"><span style={{ fontSize: 26 }}>🏍️</span><span className="cr-ov-ringtxt">Tem entrega!</span></div>
+            <div className="cr-ov-sound">🔊 chegou pedido no trindade online...</div>
+            <div className="cr-ov-store">{corridas.offer.company}</div>
+            <div className="cr-ov-bairro">📍 {corridas.offer.bairro || '—'}</div>
+            <div className="cr-ov-val">R$ {corridas.offer.valueLabel}</div>
+            <div className="cr-ov-timebar"><div className="cr-ov-timefill" style={{ width: `${pctTempo}%` }} /></div>
+            <div className="cr-ov-timelbl">{fmtTempo(secondsLeft)} pra responder</div>
+            <div className="cr-ov-btnrow">
+              <button className="cr-ov-btn no" onClick={recusarCorrida}>✕ Recusar</button>
+              <button className="cr-ov-btn yes" onClick={aceitarCorrida}>✓ Aceitar</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {corridasToast && <div className="cr-toast">{corridasToast}</div>}
     </div>
   )
 }

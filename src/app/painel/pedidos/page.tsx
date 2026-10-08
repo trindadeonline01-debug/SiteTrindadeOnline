@@ -907,7 +907,19 @@ export default function PedidosPage() {
                       {cancelingMotoId === d.id ? 'Cancelando...' : 'Cancelar'}
                     </button>
                   )}
-                  {aindaNaoRetirou ? (d.pickup_code && <span className="pd-code">{d.pickup_code}</span>) : (d.delivery_code && <span className="pd-code">{d.delivery_code}</span>)}
+                  {/* Os dois códigos ficam sempre visíveis, nunca só um —
+                      antes, assim que o motoboy confirmava a retirada (ou se
+                      a loja avançava o pedido sem o motoboy ter confirmado
+                      nada), o código de retirada sumia da tela sem deixar
+                      rastro em lugar nenhum. Se o motoboy esquecer de pedir
+                      na hora, a loja não tinha mais como olhar de novo
+                      (achado real do Ricardo, out/2026). Agora os dois ficam
+                      como histórico fixo do pedido — só muda qual dos dois
+                      fica em destaque (o que ainda falta confirmar). */}
+                  <div className="pd-codes">
+                    {d.pickup_code && <span className={`pd-code${aindaNaoRetirou ? '' : ' pd-code-done'}`}>🏪 loja {d.pickup_code}</span>}
+                    {d.delivery_code && <span className={`pd-code${aindaNaoRetirou ? ' pd-code-done' : ''}`}>👤 cliente {d.delivery_code}</span>}
+                  </div>
                 </div>
               )
             })()}
@@ -1090,7 +1102,9 @@ export default function PedidosPage() {
         .pd-infobox{ margin-top:8px;border-radius:10px;overflow:hidden; }
         .pd-inforow{ display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 11px;font-size:13px;font-weight:700; }
         .pd-inforow + .pd-inforow{ border-top:1px solid rgba(0,0,0,.06); }
-        .pd-code{ flex:none;font-family:'Courier New',monospace;font-weight:800;background:#1A1610;color:var(--sign,#FFC531);padding:2px 9px;border-radius:6px;font-size:13px;letter-spacing:2px; }
+        .pd-codes{ display:flex;flex-wrap:wrap;gap:6px;margin-left:auto; }
+        .pd-code{ flex:none;font-family:'Courier New',monospace;font-weight:800;background:#1A1610;color:var(--sign,#FFC531);padding:2px 9px;border-radius:6px;font-size:13px;letter-spacing:2px;text-transform:lowercase; }
+        .pd-code-done{ background:transparent;border:1px solid currentColor;opacity:.55;font-weight:700; }
         .pd-moto-cancel{ flex:none;border:1.5px solid #C43D3D;background:#fff;color:#C43D3D;font-weight:700;font-size:11.5px;padding:4px 10px;border-radius:7px;cursor:pointer;font-family:inherit; }
         .pd-moto-cancel:disabled{ opacity:.6;cursor:not-allowed; }
         /* Containerzinho dividido ao meio (item|entrega, forma de

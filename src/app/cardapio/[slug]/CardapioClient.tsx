@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, use } from 'react'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import { isOpenNow } from '@/lib/businessHours'
-import { type Produto, fmt, promoPrice, availableToday, isSoldOut, groupContribution, cartStorageKey, criarInteresseEAbrirWhatsapp, setActiveCart } from '@/lib/lojaPricing'
+import { type Produto, fmt, promoPrice, availableToday, isSoldOut, groupContribution, cartStorageKey, setActiveCart } from '@/lib/lojaPricing'
 import { getVisitorId } from '@/components/PalavraPremiada'
 
 type Categoria = { id: string; name: string; display_order: number }
@@ -414,15 +414,31 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
     }, 2500)
   }
 
-  // Alternativa mais leve ao checkout completo — não pede login nem
-  // endereço, só registra o interesse e abre o WhatsApp com o carrinho já
-  // formatado. O lojista fecha a venda na própria conversa.
+  // Antes (até out/2026) essa era a alternativa "leve" ao checkout completo
+  // — registrava só um Interesse anônimo (itens+total+código) e abria o
+  // WhatsApp com o carrinho em texto, sem nome/telefone/endereço nenhum.
+  // Na prática esse botão só aparece no ÚLTIMO passo da revisão — depois
+  // que nome, telefone, endereço e forma de pagamento JÁ foram preenchidos
+  // (mesmos campos que "Confirmar pedido" exige) — então não tinha nenhuma
+  // fricção real sendo evitada, só um pedido capenga chegando pro lojista
+  // (achado real do Ricardo, out/2026: taxa de entrega calculada, endereço
+  // nenhum). Agora os dois botões criam o MESMO pedido de verdade
+  // (/api/loja/criar-pedido, já com código/pedido_número, já pronto pra
+  // chamar motoboy) — a única diferença é esse abrir também uma conversa de
+  // verdade no WhatsApp da loja, em vez de só mostrar a tela de sucesso.
   const [sendingWa, setSendingWa] = useState(false)
   const [waFallbackUrl, setWaFallbackUrl] = useState<string | null>(null)
   async function sendCartWhatsapp() {
     if (!company?.phone || cart.length === 0 || sendingWa) return
+    if (Number(company.loja_pedido_minimo || 0) > 0 && cartTotal < Number(company.loja_pedido_minimo)) return
+    if (deliveryType === 'entrega' && !address.trim()) return
+    if (deliveryType === 'entrega' && !numero.trim()) return
+    if (deliveryType === 'entrega' && freteBlocked) return
+    if (trocoIncompleto) return
+    if (!loggedIn && (!guestName.trim() || guestPhone.replace(/\D/g, '').length < 10)) { setStep('contato'); return }
     setSendingWa(true)
     setWaFallbackUrl(null)
+    setOrderError(null)
     // Abre a aba em branco JÁ, antes de qualquer await — depois de um
     // await o navegador não trata mais isso como resposta direta ao
     // clique e bloqueia como pop-up (Safari principalmente).
@@ -435,20 +451,45 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
           await supabase.from('coupon_redemptions').insert({ coupon_id: selectedCoupon.id, user_id: session.user.id, code, status: 'used', used_at: new Date().toISOString() })
         }
       }
-      const { url, blocked } = await criarInteresseEAbrirWhatsapp({
-        supabase, companyId: company.id, companyPhone: company.phone,
-        itens: cart.map(l => ({ produto_id: l.produtoId, nome: l.name + (l.modifiers.length ? ' (' + l.modifiers.map(m => m.name).join(', ') + ')' : ''), qtd: l.qty, preco_unitario: l.unitPrice })),
-        valorTotal: orderTotal, deliveryType,
-        cupomLabel: discount > 0 && selectedCoupon ? `${selectedCoupon.title} (− ${fmt(discount)})` : undefined,
-        notasLabel: finalNotes || undefined,
-        waWindow,
+      const taxa = taxaEntrega
+      const total = orderTotal
+      const scheduledFor = deliveryType === 'retirada' && agendarRetirada && scheduleDate && scheduleTime
+        ? new Date(`${scheduleDate}T${scheduleTime}`).toISOString() : null
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/loja/criar-pedido', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          access_token: session?.access_token || null,
+          companyId: company.id, customerName: guestName.trim(), customerPhone: guestPhone.trim(),
+          items: cart.map(l => ({ produtoId: l.produtoId, name: l.name, unitPrice: l.unitPrice, qty: l.qty, modifiers: l.modifiers })),
+          deliveryType, address: deliveryType === 'entrega' ? address : null, scheduledFor,
+          paymentMethod: payMethod, notes: finalNotes || null,
+          subtotal: cartTotal, deliveryFee: taxa, total,
+          couponId: selectedCoupon && couponEligible(selectedCoupon) ? selectedCoupon.id : null,
+          origin: 'conversa',
+        }),
       })
-      if (blocked) { setWaFallbackUrl(url); return }
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || data.error) {
+        waWindow?.close()
+        setOrderError(data.error || 'Não deu pra enviar seu pedido agora. Tenta de novo em alguns segundos.')
+        return
+      }
+      const pedidoLabel = data.orderNumber ? `nº ${data.orderNumber}` : ''
+      const texto = `Olá! Acabei de fazer o pedido ${pedidoLabel} pelo cardápio 🙂`.replace('  ', ' ')
+      const url = `https://wa.me/55${company.phone.replace(/\D/g, '')}?text=${encodeURIComponent(texto)}`
+      if (waWindow) {
+        waWindow.location.href = url
+      } else {
+        const w = window.open(url, '_blank')
+        if (!w) { setWaFallbackUrl(url); return }
+      }
       setDrawerOpen(false); setCart([]); setSelectedCouponId(null)
-      setPrecisaTroco(null); setTrocoPara('')
+      setPrecisaTroco(null); setTrocoPara(''); setObs('')
+      setAgendarRetirada(false); setScheduleDate(''); setScheduleTime('')
     } catch {
       waWindow?.close()
-      setOrderError('Não deu pra abrir o WhatsApp agora. Tenta de novo em alguns segundos.')
+      setOrderError('Não deu pra enviar seu pedido agora. Tenta de novo em alguns segundos.')
     } finally {
       setSendingWa(false)
     }

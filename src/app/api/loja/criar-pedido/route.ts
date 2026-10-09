@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     const {
       access_token, companyId, customerName, customerPhone,
       items, deliveryType, address, scheduledFor, paymentMethod, notes,
-      subtotal, deliveryFee, total, couponId,
+      subtotal, deliveryFee, total, couponId, origin: pedidoOrigin,
     } = await req.json()
 
     if (!companyId) return NextResponse.json({ error: 'empresa obrigatória' }, { status: 400 })
@@ -68,7 +68,13 @@ export async function POST(req: NextRequest) {
       delivery_address: deliveryType === 'entrega' ? (address || null) : null,
       delivery_type: deliveryType === 'retirada' ? 'retirada' : 'entrega',
       scheduled_for: scheduledFor || null,
-      origin: 'cardapio_publico', payment_method: paymentMethod || null,
+      // 'conversa' é o mesmo rótulo que o painel já usa pro pedido criado
+      // manualmente dentro de uma conversa do CRM (/painel/mensagens) — aqui
+      // é o botão "Prefiro pedir pelo WhatsApp" do cardápio público, mas pro
+      // lojista o que importa é a MESMA coisa: veio por fora do site, não
+      // pelo botão normal (pedido do Ricardo, out/2026 — unificar pedido de
+      // WhatsApp com pedido de verdade, com o mesmo badge "💬 WhatsApp").
+      origin: pedidoOrigin === 'conversa' ? 'conversa' : 'cardapio_publico', payment_method: paymentMethod || null,
       subtotal: Number(subtotal || 0), total: Number(total || 0), delivery_fee: Number(deliveryFee || 0),
       notes: notes || null,
     }).select('id, order_number').single()
@@ -193,7 +199,7 @@ export async function POST(req: NextRequest) {
 
     await Promise.allSettled(notifyJobs)
 
-    return NextResponse.json({ ok: true, pedidoId: pedido.id })
+    return NextResponse.json({ ok: true, pedidoId: pedido.id, orderNumber: pedido.order_number })
   } catch (err: any) {
     console.error('[criar-pedido] falha geral:', err?.message || err)
     return NextResponse.json({ error: 'Não deu pra enviar seu pedido agora. Tenta de novo em alguns segundos.' }, { status: 500 })

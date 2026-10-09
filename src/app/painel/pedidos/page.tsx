@@ -894,19 +894,26 @@ export default function PedidosPage() {
               const podeCancelar = (d.status === 'buscando_motoboy' || d.status === 'a_caminho' || d.status === 'sem_motoboy') && !d.picked_up_at
               return (
                 <div className="pd-inforow" style={{ background: d.status === 'sem_motoboy' ? '#FBEAEA' : '#E8F0FE', color: d.status === 'sem_motoboy' ? '#C43D3D' : '#1A56B0' }}>
-                  <span>
-                    🏍️ {d.motoboy_name ? <b>{d.motoboy_name}</b> : d.status === 'sem_motoboy' ? <b>Nenhum motoboy aceitou</b> : 'Chamando motoboy...'}
-                    {aindaNaoRetirou && <> — retirada</>}
-                  </span>
-                  {podeCancelar && (
-                    <button
-                      className="pd-moto-cancel"
-                      disabled={cancelingMotoId === d.id}
-                      onClick={e => { e.stopPropagation(); cancelarChamada(d.id, p.id) }}
-                    >
-                      {cancelingMotoId === d.id ? 'Cancelando...' : 'Cancelar'}
-                    </button>
-                  )}
+                  {/* Nome do motoboy + Cancelar na mesma linha, Cancelar
+                      sempre na extrema direita; códigos numa linha própria
+                      embaixo, loja à esquerda e cliente à direita — antes
+                      tudo vivia numa linha só e quebrava feio quando o nome
+                      do motoboy era grande (pedido do Ricardo, out/2026). */}
+                  <div className="pd-moto-top">
+                    <span>
+                      🏍️ {d.motoboy_name ? <b>{d.motoboy_name}</b> : d.status === 'sem_motoboy' ? <b>Nenhum motoboy aceitou</b> : 'Chamando motoboy...'}
+                      {aindaNaoRetirou && <> — retirada</>}
+                    </span>
+                    {podeCancelar && (
+                      <button
+                        className="pd-moto-cancel"
+                        disabled={cancelingMotoId === d.id}
+                        onClick={e => { e.stopPropagation(); cancelarChamada(d.id, p.id) }}
+                      >
+                        {cancelingMotoId === d.id ? 'Cancelando...' : 'Cancelar'}
+                      </button>
+                    )}
+                  </div>
                   {/* Os dois códigos ficam sempre visíveis, nunca só um —
                       antes, assim que o motoboy confirmava a retirada (ou se
                       a loja avançava o pedido sem o motoboy ter confirmado
@@ -916,10 +923,12 @@ export default function PedidosPage() {
                       (achado real do Ricardo, out/2026). Agora os dois ficam
                       como histórico fixo do pedido — só muda qual dos dois
                       fica em destaque (o que ainda falta confirmar). */}
-                  <div className="pd-codes">
-                    {d.pickup_code && <span className={`pd-code${aindaNaoRetirou ? '' : ' pd-code-done'}`}>🏪 loja {d.pickup_code}</span>}
-                    {d.delivery_code && <span className={`pd-code${aindaNaoRetirou ? ' pd-code-done' : ''}`}>👤 cliente {d.delivery_code}</span>}
-                  </div>
+                  {(d.pickup_code || d.delivery_code) && (
+                    <div className="pd-codes">
+                      {d.pickup_code && <span className={`pd-code${aindaNaoRetirou ? '' : ' pd-code-done'}`}>🏪 loja {d.pickup_code}</span>}
+                      {d.delivery_code && <span className={`pd-code${aindaNaoRetirou ? ' pd-code-done' : ''}`}>👤 cliente {d.delivery_code}</span>}
+                    </div>
+                  )}
                 </div>
               )
             })()}
@@ -1100,11 +1109,16 @@ export default function PedidosPage() {
            as pílulas soltas de tamanhos inconsistentes que existiam antes
            (Ricardo, set/2026: "tá bagunçado"). */
         .pd-infobox{ margin-top:8px;border-radius:10px;overflow:hidden; }
-        .pd-inforow{ display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 11px;font-size:13px;font-weight:700; }
+        .pd-inforow{ display:flex;flex-direction:column;gap:6px;padding:8px 11px;font-size:13px;font-weight:700; }
         .pd-inforow + .pd-inforow{ border-top:1px solid rgba(0,0,0,.06); }
-        .pd-codes{ display:flex;flex-wrap:wrap;gap:6px;margin-left:auto; }
+        .pd-moto-top{ display:flex;align-items:center;justify-content:space-between;gap:8px; }
+        .pd-codes{ display:flex;justify-content:space-between;gap:6px; }
         .pd-code{ flex:none;font-family:'Courier New',monospace;font-weight:800;background:#1A1610;color:var(--sign,#FFC531);padding:2px 9px;border-radius:6px;font-size:13px;letter-spacing:2px;text-transform:lowercase; }
-        .pd-code-done{ background:transparent;border:1px solid currentColor;opacity:.55;font-weight:700; }
+        /* Antes herdava a cor amarela do .pd-code normal, só com fundo
+           transparente — virava amarelo sobre o azul/vermelho clarinho do
+           .pd-inforow, ilegível (achado real do Ricardo, out/2026). Agora
+           contorno e letra pretos, sempre legível em qualquer fundo claro. */
+        .pd-code-done{ background:transparent;border:1px solid #1A1610;color:#1A1610;opacity:.65;font-weight:700; }
         .pd-moto-cancel{ flex:none;border:1.5px solid #C43D3D;background:#fff;color:#C43D3D;font-weight:700;font-size:11.5px;padding:4px 10px;border-radius:7px;cursor:pointer;font-family:inherit; }
         .pd-moto-cancel:disabled{ opacity:.6;cursor:not-allowed; }
         /* Containerzinho dividido ao meio (item|entrega, forma de

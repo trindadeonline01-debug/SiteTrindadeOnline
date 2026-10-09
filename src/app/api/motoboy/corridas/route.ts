@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
 
   const { data: orders } = await supabase
     .from('delivery_orders')
-    .select('id, company_id, customer_name, dropoff_address, fee, picked_up_at, assigned_at')
+    .select('id, company_id, customer_name, dropoff_address, fee, picked_up_at, assigned_at, created_at')
     .eq('motoboy_id', motoboy.id).eq('status', 'a_caminho')
     .order('assigned_at', { ascending: true })
 
@@ -61,6 +61,11 @@ export async function GET(req: NextRequest) {
     customerName: o.customer_name,
     valueLabel: Math.max(0, Number(o.fee) - pricing.motoboy_corte_plataforma).toFixed(2).replace('.', ','),
     pickedUp: !!o.picked_up_at,
+    // Data de quando a corrida foi aceita (ou criada, se por algum motivo
+    // assigned_at vier vazio) — sem isso o motoboy não tinha como saber se
+    // uma corrida "aguardando retirada" era de agora ou tinha ficado
+    // esquecida há dias (achado real do Ricardo, out/2026).
+    requestedAt: o.assigned_at || o.created_at,
   }))
 
   return NextResponse.json({ offer, rides })

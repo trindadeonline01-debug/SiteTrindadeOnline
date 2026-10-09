@@ -10,8 +10,13 @@ const STATUS_LABEL: Record<string, string> = {
 }
 
 interface Oferta { deliveryOrderId: string; company: string; bairro: string | null; valueLabel: string; expiresAt: string }
-interface Corrida { id: string; company: string; bairro: string | null; customerName: string; valueLabel: string; pickedUp: boolean }
+interface Corrida { id: string; company: string; bairro: string | null; customerName: string; valueLabel: string; pickedUp: boolean; requestedAt: string }
 function fmtTempo(s: number) { const m = Math.floor(s / 60); const sec = s % 60; return m + ':' + (sec < 10 ? '0' : '') + sec }
+// Corrida de verdade resolve em minutos — passado de 2h parada "aguardando
+// retirada"/"a caminho" é sinal de corrida esquecida, nunca finalizada de
+// verdade (achado real do Ricardo, out/2026: 5 corridas de teste antigas
+// apareceram juntas na lista, sem nenhuma pista de que eram velhas).
+function isStaleRide(iso: string) { return Date.now() - new Date(iso).getTime() > 2 * 60 * 60 * 1000 }
 
 function fmt(n: number) { return 'R$ ' + Number(n || 0).toFixed(2).replace('.', ',') }
 function fmtDT(iso: string | null) {
@@ -541,7 +546,7 @@ export default function MotoboyPainelPage() {
                       {items.map(it => (
                         <div key={it.id}>
                           <div className="cr-grow">
-                            <div className="cr-gname"><b>{it.customerName}</b><span>R$ {it.valueLabel}</span></div>
+                            <div className="cr-gname"><b>{it.customerName}</b><span style={isStaleRide(it.requestedAt) ? { color: 'var(--alert)', fontWeight: 800 } : undefined}>R$ {it.valueLabel} · pedida {fmtDT(it.requestedAt)}{isStaleRide(it.requestedAt) ? ' ⚠️' : ''}</span></div>
                             <input className="cr-codeinput sm" value={groupCodes[it.id] || ''} maxLength={4} inputMode="numeric" placeholder="----"
                               onChange={e => setGroupCodes(c => ({ ...c, [it.id]: e.target.value.replace(/\D/g, '').slice(0, 4) }))} />
                           </div>
@@ -561,6 +566,7 @@ export default function MotoboyPainelPage() {
                   <div>
                     <div className="cr-name">{r.company}</div>
                     <div className="cr-sub">👤 {r.customerName} · 📍 {r.bairro || '—'}</div>
+                    <div className="cr-sub" style={isStaleRide(r.requestedAt) ? { color: 'var(--alert)', fontWeight: 800 } : undefined}>🕒 Pedida em {fmtDT(r.requestedAt)}{isStaleRide(r.requestedAt) ? ' · ⚠️ parada há muito tempo' : ''}</div>
                     <span className={`cr-pill ${r.pickedUp ? 'go' : 'wait'}`}>{r.pickedUp ? 'A caminho do cliente' : 'Aguardando retirada'}</span>
                   </div>
                   <div className="cr-val">R$ {r.valueLabel}</div>

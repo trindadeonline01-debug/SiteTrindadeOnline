@@ -10,8 +10,30 @@ const STATUS_LABEL: Record<string, string> = {
 }
 
 interface Oferta { deliveryOrderId: string; company: string; bairro: string | null; valueLabel: string; expiresAt: string }
-interface Corrida { id: string; company: string; bairro: string | null; customerName: string; valueLabel: string; pickedUp: boolean; requestedAt: string }
+interface Corrida { id: string; company: string; bairro: string | null; customerName: string; valueLabel: string; pickedUp: boolean; requestedAt: string; destinationAddress: string }
 function fmtTempo(s: number) { const m = Math.floor(s / 60); const sec = s % 60; return m + ':' + (sec < 10 ? '0' : '') + sec }
+// Navegação embutida (out/2026) — mapa com rota + posição ao vivo direto no
+// painel, em vez de abrir o app do Maps por cima (o que tirava o site de
+// primeiro plano e parava o rastreio). Carrega o script do Google Maps só
+// quando o motoboy abre a navegação de verdade, não no carregamento da
+// página inteira — e só UMA vez por sessão (cache no módulo).
+let gmapsLoadPromise: Promise<void> | null = null
+function loadGoogleMaps(): Promise<void> {
+  if (typeof window === 'undefined') return Promise.reject(new Error('sem window'))
+  if ((window as any).google?.maps) return Promise.resolve()
+  if (gmapsLoadPromise) return gmapsLoadPromise
+  gmapsLoadPromise = new Promise((resolve, reject) => {
+    const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+    if (!key) { reject(new Error('sem chave')); return }
+    const script = document.createElement('script')
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${key}`
+    script.async = true
+    script.onload = () => resolve()
+    script.onerror = () => reject(new Error('falha ao carregar'))
+    document.head.appendChild(script)
+  })
+  return gmapsLoadPromise
+}
 // Corrida de verdade resolve em minutos — passado de 2h parada "aguardando
 // retirada"/"a caminho" é sinal de corrida esquecida, nunca finalizada de
 // verdade (achado real do Ricardo, out/2026: 5 corridas de teste antigas
@@ -81,6 +103,15 @@ export default function MotoboyPainelPage() {
   const [groupErrs, setGroupErrs] = useState<Record<string, string>>({})
   const audioCtxRef = useRef<AudioContext | null>(null)
 
+  // Navegação embutida (out/2026) — qual corrida está com o mapa aberto, e
+  // as referências do Maps (mapa, marcador de posição, watch do GPS) que
+  // precisam sobreviver entre renders sem recriar o mapa a cada poll de 4s.
+  const [navegandoId, setNavegandoId] = useState<string | null>(null)
+  const [navError, setNavError] = useState<string | null>(null)
+  const mapDivRef = useRef<HTMLDivElement | null>(null)
+  const markerRef = useRef<any>(null)
+  const watchIdRef = useRef<number | null>(null)
+
   useEffect(() => {
     const saved = typeof window !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null
     if (saved) setToken(saved)
@@ -111,6 +142,67 @@ export default function MotoboyPainelPage() {
     const iv = setInterval(() => loadCorridas(token), 4000)
     return () => clearInterval(iv)
   }, [token])
+
+  // Navegação embutida — mapa + rota + posição ao vivo, em vez de abrir o
+  // app do Maps por cima (o que tirava o site de primeiro plano e parava o
+  // rastreio, ver conversa out/2026). Calcula a rota UMA vez, no primeiro
+  // sinal de GPS — depois só move o marcador a cada atualização, sem
+  // recalcular rota a cada poucos metros (mantém o uso da API bem abaixo da
+  // cota grátis). Desliga o GPS (clearWatch) assim que fecha o mapa ou troca
+  // de corrida, pra não gastar bateria/dados à toa com o mapa fechado.
+  useEffect(() => {
+    if (!navegandoId) return
+    const ride = corridas?.rides.find(r => r.id === navegandoId)
+    if (!ride?.destinationAddress) { setNavError('Essa corrida não tem endereço de destino.'); return }
+    let cancelled = false
+    setNavError(null)
+    loadGoogleMaps().then(() => {
+      if (cancelled || !mapDivRef.current) return
+      const google = (window as any).google
+      const map = new google.maps.Map(mapDivRef.current, {
+        zoom: 15, center: { lat: -22.826, lng: -43.053 }, disableDefaultUI: true, zoomControl: true, clickableIcons: false,
+      })
+      const directionsService = new google.maps.DirectionsService()
+      const directionsRenderer = new google.maps.DirectionsRenderer({
+        map, suppressMarkers: true, polylineOptions: { strokeColor: '#1A56B0', strokeWeight: 5 },
+      })
+      let routed = false
+
+      if (!navigator.geolocation) { setNavError('Esse navegador não dá suporte a localização.'); return }
+      watchIdRef.current = navigator.geolocation.watchPosition(
+        pos => {
+          if (cancelled) return
+          const latLng = { lat: pos.coords.latitude, lng: pos.coords.longitude }
+          if (!markerRef.current) {
+            markerRef.current = new google.maps.Marker({
+              map, position: latLng, zIndex: 999,
+              icon: { path: google.maps.SymbolPath.CIRCLE, scale: 8, fillColor: '#0F8A57', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 2 },
+            })
+            map.setCenter(latLng)
+          } else {
+            markerRef.current.setPosition(latLng)
+          }
+          if (!routed) {
+            routed = true
+            directionsService.route(
+              { origin: latLng, destination: ride.destinationAddress, travelMode: google.maps.TravelMode.DRIVING },
+              (result: any, status: string) => { if (!cancelled && status === 'OK') directionsRenderer.setDirections(result) }
+            )
+          }
+        },
+        () => { if (!cancelled) setNavError('Não deu pra pegar sua localização — ativa o GPS e permite o acesso no navegador.') },
+        { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 },
+      )
+    }).catch(() => { if (!cancelled) setNavError('Não deu pra carregar o mapa agora.') })
+
+    return () => {
+      cancelled = true
+      if (watchIdRef.current != null) navigator.geolocation.clearWatch(watchIdRef.current)
+      watchIdRef.current = null
+      markerRef.current = null
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navegandoId])
 
   // Contagem regressiva visual dos 2 minutos pra responder — reinicia só
   // quando a oferta muda de fato (não a cada poll).
@@ -405,6 +497,14 @@ export default function MotoboyPainelPage() {
     .cr-ov-btn.no{background:#FBEAEA;color:#C0392B;}
     .cr-ov-btn.yes{background:#0F8A57;color:#fff;}
     .cr-toast{position:fixed;left:14px;right:14px;bottom:18px;max-width:492px;margin:0 auto;background:var(--ink);color:#fff;padding:13px 16px;border-radius:12px;font-size:12.5px;font-weight:700;text-align:center;z-index:60;box-shadow:0 6px 20px rgba(0,0,0,.3);}
+    .cr-navbtn{width:100%;padding:10px;margin-bottom:10px;border-radius:11px;border:1.5px solid var(--sign-dark);background:#FFFBEF;color:var(--sign-dark);font-family:inherit;font-size:12.5px;font-weight:800;cursor:pointer;}
+    .cr-nav-overlay{position:fixed;inset:0;background:#fff;z-index:70;display:flex;flex-direction:column;}
+    .cr-nav-hd{flex:none;background:var(--ink);color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+    .cr-nav-hd-txt{display:flex;flex-direction:column;gap:2px;font-size:13px;}
+    .cr-nav-hd-txt span{font-size:10.5px;color:#B9B4A8;font-weight:600;}
+    .cr-nav-close{flex:none;border:1.5px solid rgba(255,255,255,.4);background:transparent;color:#fff;font-family:inherit;font-size:11.5px;font-weight:800;padding:7px 12px;border-radius:9px;cursor:pointer;}
+    .cr-nav-map{flex:1;width:100%;background:#E9E7E1;}
+    .cr-nav-err{flex:none;background:#FBEAEA;color:#C0392B;font-size:12px;font-weight:700;text-align:center;padding:10px 16px;}
   `
 
   if (!token || !data) {
@@ -571,6 +671,11 @@ export default function MotoboyPainelPage() {
                   </div>
                   <div className="cr-val">R$ {r.valueLabel}</div>
                 </div>
+                {r.destinationAddress && (
+                  <button type="button" className="cr-navbtn" onClick={() => setNavegandoId(r.id)}>
+                    🗺️ Navegar até {r.pickedUp ? 'o cliente' : 'a loja'}
+                  </button>
+                )}
                 <div className="cr-codebox">
                   <div className="lbl">{r.pickedUp ? '🔑 Código do cliente' : '🔑 Código da loja'}</div>
                   <div className="hint">{r.pickedUp ? 'Cliente informa na entrega — finaliza a corrida e libera seu repasse.' : 'Peça pro lojista na retirada.'}</div>
@@ -685,6 +790,23 @@ export default function MotoboyPainelPage() {
         </div>
       )}
       {corridasToast && <div className="cr-toast">{corridasToast}</div>}
+
+      {navegandoId && (() => {
+        const ride = corridas?.rides.find(r => r.id === navegandoId)
+        return (
+          <div className="cr-nav-overlay">
+            <div className="cr-nav-hd">
+              <div className="cr-nav-hd-txt">
+                <b>🗺️ {ride?.pickedUp ? `Levando pra ${ride.customerName}` : `Indo retirar em ${ride?.company}`}</b>
+                <span>A bolinha verde é você — some sozinha se perder o GPS</span>
+              </div>
+              <button type="button" className="cr-nav-close" onClick={() => setNavegandoId(null)}>✕ Fechar</button>
+            </div>
+            <div className="cr-nav-map" ref={mapDivRef} />
+            {navError && <div className="cr-nav-err">⚠️ {navError}</div>}
+          </div>
+        )
+      })()}
     </div>
   )
 }

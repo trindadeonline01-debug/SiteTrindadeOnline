@@ -156,43 +156,61 @@ export default function MotoboyPainelPage() {
     if (!ride?.destinationAddress) { setNavError('Essa corrida não tem endereço de destino.'); return }
     let cancelled = false
     setNavError(null)
+    // O Google carrega o script normal mesmo com chave inválida/restrita
+    // errado/sem billing — só avisa depois, chamando esse callback global,
+    // em vez de dar erro no carregamento do script em si. Sem isso, a falha
+    // ficava muda: o mapa só mostrava a telinha cinza "Ops!" por dentro do
+    // próprio Google, sem nenhum aviso nosso (achado real do Ricardo,
+    // out/2026 — pareceu que a tela tinha travado).
+    ;(window as any).gm_authFailure = () => {
+      if (cancelled) return
+      setNavError('A chave do Google Maps não foi aceita (erro de autenticação). Confere se a chave já está publicada na Vercel (precisa de um novo deploy depois de salvar lá) e se o domínio certo está liberado no Google Cloud Console.')
+    }
     loadGoogleMaps().then(() => {
       if (cancelled || !mapDivRef.current) return
-      const google = (window as any).google
-      const map = new google.maps.Map(mapDivRef.current, {
-        zoom: 15, center: { lat: -22.826, lng: -43.053 }, disableDefaultUI: true, zoomControl: true, clickableIcons: false,
-      })
-      const directionsService = new google.maps.DirectionsService()
-      const directionsRenderer = new google.maps.DirectionsRenderer({
-        map, suppressMarkers: true, polylineOptions: { strokeColor: '#1A56B0', strokeWeight: 5 },
-      })
-      let routed = false
+      try {
+        const google = (window as any).google
+        const map = new google.maps.Map(mapDivRef.current, {
+          zoom: 15, center: { lat: -22.826, lng: -43.053 }, disableDefaultUI: true, zoomControl: true, clickableIcons: false,
+        })
+        const directionsService = new google.maps.DirectionsService()
+        const directionsRenderer = new google.maps.DirectionsRenderer({
+          map, suppressMarkers: true, polylineOptions: { strokeColor: '#1A56B0', strokeWeight: 5 },
+        })
+        let routed = false
 
-      if (!navigator.geolocation) { setNavError('Esse navegador não dá suporte a localização.'); return }
-      watchIdRef.current = navigator.geolocation.watchPosition(
-        pos => {
-          if (cancelled) return
-          const latLng = { lat: pos.coords.latitude, lng: pos.coords.longitude }
-          if (!markerRef.current) {
-            markerRef.current = new google.maps.Marker({
-              map, position: latLng, zIndex: 999,
-              icon: { path: google.maps.SymbolPath.CIRCLE, scale: 8, fillColor: '#0F8A57', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 2 },
-            })
-            map.setCenter(latLng)
-          } else {
-            markerRef.current.setPosition(latLng)
-          }
-          if (!routed) {
-            routed = true
-            directionsService.route(
-              { origin: latLng, destination: ride.destinationAddress, travelMode: google.maps.TravelMode.DRIVING },
-              (result: any, status: string) => { if (!cancelled && status === 'OK') directionsRenderer.setDirections(result) }
-            )
-          }
-        },
-        () => { if (!cancelled) setNavError('Não deu pra pegar sua localização — ativa o GPS e permite o acesso no navegador.') },
-        { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 },
-      )
+        if (!navigator.geolocation) { setNavError('Esse navegador não dá suporte a localização.'); return }
+        watchIdRef.current = navigator.geolocation.watchPosition(
+          pos => {
+            if (cancelled) return
+            const latLng = { lat: pos.coords.latitude, lng: pos.coords.longitude }
+            if (!markerRef.current) {
+              markerRef.current = new google.maps.Marker({
+                map, position: latLng, zIndex: 999,
+                icon: { path: google.maps.SymbolPath.CIRCLE, scale: 8, fillColor: '#0F8A57', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 2 },
+              })
+              map.setCenter(latLng)
+            } else {
+              markerRef.current.setPosition(latLng)
+            }
+            if (!routed) {
+              routed = true
+              directionsService.route(
+                { origin: latLng, destination: ride.destinationAddress, travelMode: google.maps.TravelMode.DRIVING },
+                (result: any, status: string) => {
+                  if (cancelled) return
+                  if (status === 'OK') directionsRenderer.setDirections(result)
+                  else setNavError(`Não consegui calcular a rota (${status}) — o mapa continua, só sem a linha azul.`)
+                }
+              )
+            }
+          },
+          () => { if (!cancelled) setNavError('Não deu pra pegar sua localização — ativa o GPS e permite o acesso no navegador.') },
+          { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 },
+        )
+      } catch {
+        if (!cancelled) setNavError('O mapa travou ao abrir — fecha e tenta de novo.')
+      }
     }).catch(() => { if (!cancelled) setNavError('Não deu pra carregar o mapa agora.') })
 
     return () => {

@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { refreshSessionOnce } from '@/lib/authRefresh'
-import { qzListPrinters, qzPrintRaw, buildReceipt, buildKitchenTicket, isRawBtMode, printViaRawBt, RAWBT_SENTINEL } from '@/lib/qzPrint'
+import { qzListPrinters, qzPrintRaw, buildReceipt, buildKitchenTicket, buildTestTicket, isRawBtMode, printViaRawBt, RAWBT_SENTINEL } from '@/lib/qzPrint'
 import { fetchPedidoComItensComRetry } from '@/lib/autoprint'
 import { useRealtimeResync } from '@/hooks/useRealtimeResync'
 import { usePainelShell } from '@/contexts/PainelShellContext'
@@ -639,6 +639,23 @@ export default function PedidosPage() {
       setPrintError(isRawBtMode(printerName)
         ? 'Não consegui imprimir — confere se o RawBT está instalado e a impressora pareada nele. ' + (err?.message || '')
         : 'Não consegui imprimir — confere se o QZ Tray está aberto no computador. ' + (err?.message || ''))
+    }
+  }
+
+  // Botão "🖨️ Imprimir teste" dentro do modal — manda um ticket curto pra
+  // conferir que a impressora está configurada certa, sem precisar esperar
+  // (ou forçar) um pedido de verdade chegar (pedido do Ricardo, out/2026).
+  async function testPrint() {
+    if (!printerName) return
+    setPrintError(null)
+    try {
+      const content = buildTestTicket(companyName)
+      if (isRawBtMode(printerName)) printViaRawBt(content)
+      else await qzPrintRaw(printerName, content)
+    } catch (err: any) {
+      setPrintError(isRawBtMode(printerName)
+        ? 'Não consegui imprimir o teste — confere se o RawBT está instalado e a impressora pareada nele. ' + (err?.message || '')
+        : 'Não consegui imprimir o teste — confere se o QZ Tray está aberto no computador. ' + (err?.message || ''))
     }
   }
 
@@ -1651,6 +1668,10 @@ export default function PedidosPage() {
               </>
             )}
 
+            {printerName && (
+              <button className="pp-retry" style={{ color: '#157A52', borderColor: '#B7DFC9', background: '#E4F3EC' }} onClick={testPrint}>🖨️ Imprimir teste</button>
+            )}
+            {printerName && printError && <div className="pp-err">{printError}</div>}
             {printerName && (
               <button className="pp-retry" style={{ color: '#C43D3D' }} onClick={removePrinter} disabled={printerSaving}>✕ Remover impressora configurada</button>
             )}

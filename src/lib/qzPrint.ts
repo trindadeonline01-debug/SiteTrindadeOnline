@@ -343,3 +343,22 @@ export function buildKitchenTicket(d: KitchenTicketData): string {
   lines.push(CMD.feed(6), CMD.cut)
   return stripAccents(lines.join(''))
 }
+
+// Ticket curto só pra confirmar que a impressora está configurada certa —
+// botão "🖨️ Imprimir teste" no modal de impressora (pedido do Ricardo,
+// out/2026). Mesmo CMD/WIDTH do recibo de verdade, pra testar exatamente o
+// que vai sair num pedido real (corte, acento, largura de 80mm).
+export function buildTestTicket(companyName: string): string {
+  const lines: string[] = []
+  lines.push(CMD.init, CMD.alignCenter, CMD.boldOn, CMD.doubleOn)
+  lines.push('IMPRESSAO DE TESTE', '\n')
+  lines.push(CMD.doubleOff, CMD.boldOff)
+  lines.push(companyName.toUpperCase(), '\n\n')
+  lines.push(new Date().toLocaleString('pt-BR'), '\n')
+  lines.push('-'.repeat(WIDTH), '\n')
+  lines.push(CMD.alignLeft)
+  wrap('Se voce esta lendo isso, a impressora esta configurada certinho. Pode fechar essa tela.').forEach(l => lines.push(l, '\n'))
+  lines.push(CMD.alignCenter, '-'.repeat(WIDTH), '\n')
+  lines.push(CMD.feed(4), CMD.cut)
+  return stripAccents(lines.join(''))
+}

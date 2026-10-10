@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
-import { isOpenNow, dayOfWeekLabel, type HourRow } from '@/lib/businessHours'
+import { isOpenNow, dayOfWeekLabel, nowInSaoPauloFull, type HourRow } from '@/lib/businessHours'
 import { moduleActive } from '@/lib/modules'
 import { getEntregaPricing } from '@/lib/entregaPricing'
 import { normalizePhone } from '@/lib/phone'
@@ -82,9 +82,15 @@ async function buildContext(companyId: string, phone?: string | null): Promise<s
 
   const linhas: string[] = []
   linhas.push(`Nome da loja: ${company.name}`)
+  // Dia/hora prontos, calculados aqui (fuso de Brasília) — achado real,
+  // out/2026 (Mineroca): a IA respondeu o horário de SEXTA num sábado,
+  // porque nunca recebia de forma explícita qual dia é "hoje" e tinha que
+  // calcular sozinha a partir da grade da semana, sem relógio confiável.
+  const agora = nowInSaoPauloFull()
+  linhas.push(`Hoje é ${agora.dayLabel}, ${agora.dateLabel}, agora são ${agora.timeLabel} (horário de Brasília). Use SEMPRE esse dia da semana e esse horário como "hoje"/"agora" ao responder sobre funcionamento — NUNCA calcule ou chute o dia da semana por conta própria.`)
   linhas.push(`Status agora: ${aberta ? 'ABERTA' : 'FECHADA'}`)
   if (company.address) linhas.push(`Endereço: ${company.address}`)
-  linhas.push(`Link do cardápio (só mande esse link quando o cliente sinalizar que quer FECHAR/CONFIRMAR o pedido — pergunta simples de produto/preço você já responde direto com o catálogo listado abaixo, sem precisar mandar o link): ${cardapioLink}`)
+  linhas.push(`Link do cardápio (mande esse link quando o cliente pedir pra VER o cardápio/os produtos de forma geral, OU quando sinalizar que quer FECHAR/CONFIRMAR o pedido — pergunta sobre UM produto/preço específico você continua respondendo direto com o catálogo listado abaixo, sem precisar do link): ${cardapioLink}`)
 
   if (company.flexible_hours) {
     linhas.push('Horário: funcionamento livre, sem grade fixa cadastrada (considere sempre aberta).')
@@ -155,10 +161,12 @@ async function buildContext(companyId: string, phone?: string | null): Promise<s
   // Catálogo ativo (nome + preço real) — pedido do Ricardo, set/2026: antes a
   // IA mandava todo mundo pro link pra qualquer pergunta de produto/preço, o
   // que ficava "grosseiro"; como ela já lê o catálogo ativo/pausado direto do
-  // banco, pode responder na hora. O link do cardápio vira só o passo de
-  // FECHAR o pedido (ver regra no prompt), não mais a resposta padrão pra
-  // toda pergunta de produto. Esgotado (manual ou por estoque zerado) fica de
-  // fora da lista — segue a mesma regra de disponibilidade do cardápio real.
+  // banco, pode responder na hora pergunta sobre UM produto específico. Pra
+  // pedido GENÉRICO de ver o cardápio inteiro, o link volta a ser a resposta
+  // (pedido do Ricardo, out/2026: Mineroca, cliente pediu "o cardápio" e a IA
+  // despejou a lista inteira em texto em vez de mandar o link — ver regra no
+  // prompt). Esgotado (manual ou por estoque zerado) fica de fora da lista —
+  // segue a mesma regra de disponibilidade do cardápio real.
   const { data: produtos } = await supabase
     .from('loja_produtos')
     .select(`
@@ -258,8 +266,8 @@ CONTEXTO DA CONVERSA — leia com atenção antes de responder:
 REGRAS RÍGIDAS — nunca quebre nenhuma delas:
 - Responda SOMENTE com base nos dados da loja fornecidos abaixo. Nunca invente horário, endereço, preço, produto ou qualquer informação que não esteja explícita aqui.
 - Você NUNCA cria pedidos, NUNCA gera link de pagamento/cobrança e NUNCA promete prazo exato de entrega.
-- Pergunta sobre produto, preço, opcional/variação ou "vocês têm tal coisa?": você TEM o catálogo ativo e atualizado logo abaixo — responda direto com nome, preço e opcionais reais, sem enrolar nem mandar pro link à toa. Só diga que não tem quando o produto de fato não estiver na lista (nesse caso não invente, apenas diga que não encontrou esse item disponível agora). Nunca informe preço ou produto que não esteja explícito na lista.
-- Pergunta GENÉRICA pedindo tudo ("o que vocês têm?", "o que tem hoje?", "me manda o cardápio", "quais produtos vocês vendem?"): liste SÓ os itens que estão de fato na seção "Catálogo ativo agora" abaixo, com os nomes e preços exatamente como estão escritos lá — nunca componha de memória uma lista "típica" do ramo da loja (ex: pra uma doceria, nunca cite brigadeiro/beijinho/pudim genéricos se eles não estiverem na lista real). Se a seção de catálogo não aparecer abaixo (loja sem produto cadastrado ainda), diga que o catálogo ainda está sendo montado e não liste nada — é um erro grave inventar produto que a loja não vende.
+- Pergunta sobre UM produto específico, preço, opcional/variação ou "vocês têm tal coisa?": você TEM o catálogo ativo e atualizado logo abaixo — responda direto com nome, preço e opcionais reais, sem enrolar nem mandar pro link à toa. Só diga que não tem quando o produto de fato não estiver na lista (nesse caso não invente, apenas diga que não encontrou esse item disponível agora). Nunca informe preço ou produto que não esteja explícito na lista.
+- Pergunta GENÉRICA pedindo pra VER o cardápio/catálogo inteiro ("o que vocês têm?", "o que tem hoje?", "me manda o cardápio", "quero ver os produtos", "quais produtos vocês vendem?", "tem cardápio?"): NUNCA liste os itens em texto aqui — mande o link do cardápio completo (o do topo dos DADOS DESTA LOJA) e convide o cliente a dar uma olhada por lá, ex: "Claro! Dá uma olhada em tudo que a gente tem aqui: [link]". Isso é diferente de perguntar sobre um produto específico (regra acima), que continua respondida direto com o dado real do catálogo, sem link nenhum. Se a loja ainda não tiver nenhum produto cadastrado (a seção "Catálogo ativo agora" não aparecer abaixo), diga que o cardápio ainda está sendo montado, sem mandar link nem inventar produto.
 - O link é o passo de FECHAR o pedido, não a resposta padrão (EXCEÇÃO: a saudação de boas-vindas da primeira mensagem, regra acima, sempre leva o link junto). Fora essa exceção, só mande link quando o cliente der sinal de que quer confirmar/fechar a compra (frases como "separa pra mim", "vou querer", "fecha o pedido", "quero comprar", "pode fechar", "manda o link" ou parecido) — nesse momento, diga algo como "Show! Pra fechar seu pedido é só acessar o link e finalizar por lá: [link]". Você nunca cria o pedido nem processa pagamento — o link é sempre quem fecha de verdade. QUAL link mandar: se o pedido for de UM produto só (ex: "quero 3kg de peixe espada em posta"), mande o link DIRETO desse produto (o que já vem junto dele no catálogo acima) — assim o cliente cai direto na tela certa, sem ter que procurar de novo. Se o cliente pedir mais de um produto diferente na mesma conversa, mande o link do cardápio completo (lá no topo) — um link só não abre vários produtos de uma vez.
 - Pergunta sobre valor de entrega: NUNCA informe um valor sem antes saber o bairro (ou endereço) do cliente. Se ele ainda não disse, pergunte primeiro qual é o bairro dele. Nunca escolha um valor "de exemplo" da lista de bairros nem invente um número — se os dados da loja abaixo disserem que a taxa é calculada por distância ou que não há taxa configurada, siga exatamente a instrução dada ali.
 - Pergunta sobre "qual é o código" (pra passar pro motoboy/entregador na entrega): NUNCA responda com o número do pedido — são duas coisas diferentes. O código de entrega real (se existir) vem explícito mais abaixo, junto do pedido mais recente desse cliente. Se essa informação não aparecer abaixo, diga que não tem esse código disponível agora e que vai confirmar com a loja — nunca invente nem use o número do pedido no lugar.

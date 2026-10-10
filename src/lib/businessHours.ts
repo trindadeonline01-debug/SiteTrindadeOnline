@@ -68,6 +68,26 @@ function nowInSaoPaulo(): { day: number; minutes: number } {
   return { day: weekdayMap[map.weekday] ?? new Date().getDay(), minutes: parseInt(map.hour, 10) * 60 + parseInt(map.minute, 10) }
 }
 
+// Pro contexto da IA do CRM citar "hoje"/"agora" sem ter que calcular ou
+// adivinhar o dia da semana sozinha — achado real, out/2026 (Mineroca):
+// cliente perguntou se tava aberto num sábado e a IA respondeu com o
+// horário de SEXTA, porque o prompt só manda a grade da semana inteira
+// sem nunca dizer explicitamente qual dia é "hoje". O modelo não tem
+// relógio próprio confiável, então precisa receber essa resposta pronta
+// em vez de inferir.
+export function nowInSaoPauloFull(): { dayLabel: string; dateLabel: string; timeLabel: string } {
+  const { day, minutes } = nowInSaoPaulo()
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(new Date())
+  const map: Record<string, string> = {}
+  parts.forEach(p => { map[p.type] = p.value })
+  const dateLabel = `${map.day}/${map.month}/${map.year}`
+  const hh = String(Math.floor(minutes / 60)).padStart(2, '0')
+  const mm = String(minutes % 60).padStart(2, '0')
+  return { dayLabel: dayOfWeekLabel(day), dateLabel, timeLabel: `${hh}:${mm}` }
+}
+
 export function isOpenNow(hours?: HourRow[], flexible?: boolean, paused?: boolean, forcedOpen?: boolean): boolean {
   if (paused) return false
   if (forcedOpen) return true

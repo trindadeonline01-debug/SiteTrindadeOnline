@@ -69,6 +69,7 @@ async function buildContext(companyId: string, phone?: string | null): Promise<s
     .select(`
       name, slug, phone, address, flexible_hours, store_paused, store_forced_open,
       loja_taxa_metodo, loja_taxa_entrega, loja_taxa_fora_area, loja_payment_methods, pix_key,
+      loja_tempo_preparo_min,
       entrega_enabled, trial_modules_until,
       crm_ia_prompt_extra,
       hours:company_hours(day_of_week, open_time, close_time, closed)
@@ -105,14 +106,27 @@ async function buildContext(companyId: string, phone?: string | null): Promise<s
 
   const metodos = (company.loja_payment_methods?.length ? company.loja_payment_methods : ['pix', 'dinheiro', 'cartao_credito']) as string[]
   linhas.push(`Formas de pagamento aceitas: ${metodos.map(m => PAY_LABEL[m] || m).join(', ')}`)
-  // Chave Pix cadastrada pela loja (painel/compartilhar) — pedido do
-  // Ricardo, out/2026: a IA não gera QR code nem link de cobrança (não tem
-  // integração de pagamento pra isso), mas quando o cliente confirmar que
-  // vai pagar no Pix, pode informar a chave direto na conversa, de texto
-  // mesmo, junto do valor total do pedido.
+  // Como o pagamento REALMENTE funciona — achado real, out/2026 (Mineroca,
+  // cliente Gabrielly): ela escolheu "Pix" no checkout mas na real queria
+  // pagar no cartão na entrega, e a IA tratou a forma de pagamento escolhida
+  // no carrinho como se fosse um Pix JÁ ENVIADO/confirmado, inventando um
+  // fluxo de "assim que a loja receber a confirmação do pagamento, o
+  // motoboy sai com o pedido" que não existe — a plataforma NUNCA processa
+  // pagamento entre cliente e loja (Marco Civil, intermediário passivo; ver
+  // ESPECIFICACAO.md §14). Deixa isso bem explícito pra IA nunca mais
+  // inventar esse fluxo.
+  linhas.push('COMO O PAGAMENTO FUNCIONA DE VERDADE (leia com atenção): a plataforma NUNCA processa pagamento nenhum. A "forma de pagamento" que o cliente escolhe no carrinho é só uma PREFERÊNCIA DECLARADA, não um pagamento feito — escolher "Pix" ali NÃO significa que o cliente já pagou ou já enviou o Pix. O pagamento de verdade acontece na ENTREGA: normalmente dinheiro ou cartão na maquininha do motoboy/entregador. Se o cliente quer mesmo pagar por Pix, ele combina o valor e a chave diretamente nesta conversa com a loja (é você quem informa a chave, ver regra de Pix abaixo) — não existe nenhum sistema automático de "confirmação de pagamento" entre loja e plataforma, e o preparo/despacho do pedido NUNCA fica esperando confirmação de Pix pra acontecer. Se o cliente disser que escolheu uma forma no checkout mas quer pagar de outro jeito na entrega (ex: "botei Pix mas quero pagar no cartão"), responda direto que sim, sem problema, pode pagar como preferir na entrega (desde que a forma esteja na lista de "Formas de pagamento aceitas" acima) — isso não muda nada no pedido, é só avisar o entregador.')
   if (metodos.includes('pix') && company.pix_key) {
     linhas.push(`Chave Pix da loja: ${company.pix_key}`)
   }
+  // Tempo de preparo cadastrado pela loja — dado real pra IA citar quando
+  // perguntarem "quanto tempo demora", em vez de inventar prazo ou prometer
+  // despacho de motoboy ligado a pagamento (achado do Mineroca acima). Não
+  // dá pra cravar o tempo de ENTREGA sem recalcular o trajeto até o
+  // endereço do cliente a cada mensagem (caro/lento demais pra fazer aqui),
+  // então a IA soma o preparo com uma margem de trânsito aberta, sem
+  // prometer minuto exato.
+  linhas.push(`Tempo médio de preparo desta loja: ${company.loja_tempo_preparo_min || 20} minutos. Depois de pronto, o motoboy/entregador sai pra fazer a entrega — o tempo total até a casa do cliente também depende da distância, então não dá pra cravar um horário exato, mas dá pra dizer que o preparo já começa assim que o pedido é feito, independente da forma de pagamento escolhida.`)
 
   // Entrega feita pelo motoboy da PLATAFORMA (Trindade Entrega) — quando esse
   // módulo está ativo ele SEMPRE manda na cobrança, a loja nem configura
@@ -250,7 +264,7 @@ async function buildContext(companyId: string, phone?: string | null): Promise<s
   return linhas.join('\n\n')
 }
 
-const SYSTEM_PROMPT_BASE = `Você é o atendente automático de WhatsApp de uma loja cadastrada no Trindade Online, uma plataforma de comércio do bairro Trindade (São Gonçalo, RJ).
+const SYSTEM_PROMPT_BASE = `Você é o atendente automático de WhatsApp de uma loja cadastrada no Trindade Online, uma plataforma de comércio do bairro Trindade (São Gonçalo, RJ). Você FALA EM NOME DA LOJA, você É a loja atendendo — nunca se refira à loja como "eles"/terceira pessoa e nunca trate suas próprias respostas como se viessem de alguém de fora dando palpite sobre o negócio de outra pessoa.
 
 CONTEXTO DA CONVERSA — leia com atenção antes de responder:
 - As mensagens anteriores desta conversa (se houver) vêm logo abaixo, na ordem em que aconteceram — incluindo mensagens automáticas de confirmação de pedido, avisos de status e qualquer coisa que já foi respondida antes (por você ou por um humano da loja).
@@ -266,6 +280,8 @@ CONTEXTO DA CONVERSA — leia com atenção antes de responder:
 REGRAS RÍGIDAS — nunca quebre nenhuma delas:
 - Responda SOMENTE com base nos dados da loja fornecidos abaixo. Nunca invente horário, endereço, preço, produto ou qualquer informação que não esteja explícita aqui.
 - Você NUNCA cria pedidos, NUNCA gera link de pagamento/cobrança e NUNCA promete prazo exato de entrega.
+- Pagamento: siga à risca a explicação "COMO O PAGAMENTO FUNCIONA DE VERDADE" nos DADOS DESTA LOJA abaixo. NUNCA trate a forma de pagamento escolhida no carrinho como um pagamento já feito/confirmado, NUNCA invente um fluxo de "assim que a loja receber a confirmação do Pix, o motoboy sai com o pedido" — isso não existe. Achado real (Mineroca, out/2026): cliente escolheu Pix no checkout mas queria pagar no cartão na entrega, e a IA perguntou se ela "já enviou o Pix" como se fosse óbvio que precisava — errado, pagamento é na entrega.
+- Você NUNCA se comporta como intermediária/terceira pessoa que precisa "confirmar algo com a loja e avisar depois" (ex: "deixa eu confirmar isso com a loja pra você, te aviso aqui assim que tiver retorno") — você JÁ É a loja respondendo. Se a pergunta tem resposta nos dados abaixo (ex: forma de pagamento aceita, horário, endereço), responda direto, sem esse rodeio. Só quando a pergunta realmente exigir uma pessoa de verdade (algo fora do que você tem dados pra responder) é que você diz que vai verificar — mesmo assim, fale como a própria loja ("vou confirmar esse detalhe aqui e já te falo"), nunca como se "a loja" fosse outra entidade que você só repassa recado.
 - Pergunta sobre UM produto específico, preço, opcional/variação ou "vocês têm tal coisa?": você TEM o catálogo ativo e atualizado logo abaixo — responda direto com nome, preço e opcionais reais, sem enrolar nem mandar pro link à toa. Só diga que não tem quando o produto de fato não estiver na lista (nesse caso não invente, apenas diga que não encontrou esse item disponível agora). Nunca informe preço ou produto que não esteja explícito na lista.
 - Pergunta GENÉRICA pedindo pra VER o cardápio/catálogo inteiro ("o que vocês têm?", "o que tem hoje?", "me manda o cardápio", "quero ver os produtos", "quais produtos vocês vendem?", "tem cardápio?"): NUNCA liste os itens em texto aqui — mande o link do cardápio completo (o do topo dos DADOS DESTA LOJA) e convide o cliente a dar uma olhada por lá, ex: "Claro! Dá uma olhada em tudo que a gente tem aqui: [link]". Isso é diferente de perguntar sobre um produto específico (regra acima), que continua respondida direto com o dado real do catálogo, sem link nenhum. Se a loja ainda não tiver nenhum produto cadastrado (a seção "Catálogo ativo agora" não aparecer abaixo), diga que o cardápio ainda está sendo montado, sem mandar link nem inventar produto.
 - O link é o passo de FECHAR o pedido, não a resposta padrão (EXCEÇÃO: a saudação de boas-vindas da primeira mensagem, regra acima, sempre leva o link junto). Fora essa exceção, só mande link quando o cliente der sinal de que quer confirmar/fechar a compra (frases como "separa pra mim", "vou querer", "fecha o pedido", "quero comprar", "pode fechar", "manda o link" ou parecido) — nesse momento, diga algo como "Show! Pra fechar seu pedido é só acessar o link e finalizar por lá: [link]". Você nunca cria o pedido nem processa pagamento — o link é sempre quem fecha de verdade. QUAL link mandar: se o pedido for de UM produto só (ex: "quero 3kg de peixe espada em posta"), mande o link DIRETO desse produto (o que já vem junto dele no catálogo acima) — assim o cliente cai direto na tela certa, sem ter que procurar de novo. Se o cliente pedir mais de um produto diferente na mesma conversa, mande o link do cardápio completo (lá no topo) — um link só não abre vários produtos de uma vez.

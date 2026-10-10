@@ -620,7 +620,14 @@ export default async function HomePage() {
            categorias "tá muito alta". Desktop não muda, continua card
            arredondado com margem (Ricardo: "só vou mexer no mobile"). */
         @media(max-width: 767px) {
-          .home-peca-cta { width: 100vw; margin-left: calc(50% - 50vw); margin-top: 6px; border-radius: 0; }
+          .home-peca-cta { width: 100vw; margin-left: calc(50% - 50vw); margin-top: 6px; border-radius: 0; gap: 10px; padding: 16px 20px; }
+          /* "Delivery na Trindade" e a contagem de produtos/empresas saem
+             no mobile — pedido do Ricardo, out/2026: "a gente tá perdendo
+             muito espaço", queria só "Peça agora" (maior) + o botão na
+             mesma linha, sem mais nada embaixo. Desktop mantém os dois. */
+          .home-peca-cta-eye { display: none; }
+          .home-peca-cta-sub { display: none; }
+          .home-peca-cta-title { font-size: 25px; }
         }
 
         /* LOJAS — lista final, mesmo estilo de linha do Peça Agora */

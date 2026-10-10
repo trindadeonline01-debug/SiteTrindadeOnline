@@ -334,7 +334,10 @@ export default async function HomePage() {
   // configurados pelo admin (vitrine_tipos), então reflete o catálogo de
   // verdade em vez de uma lista fixa no código (pedido do Ricardo, set/2026:
   // "peixaria, comércio, lanche, farmácia, papelaria" — o que tiver).
-  const pecaAgoraTipoChips = pecaAgoraGroups.filter(g => g.key !== 'todas').slice(0, 6)
+  // Antes cortava em 6 tipos — pedido do Ricardo, out/2026: "tudo que
+  // aparece no cardápio tem que aparecer na home também", mesma lista
+  // completa de /peca-agora, sem corte nenhum.
+  const pecaAgoraTipoChips = pecaAgoraGroups.filter(g => g.key !== 'todas')
 
   return (
     <>
@@ -479,6 +482,17 @@ export default async function HomePage() {
         .sec-link { font-size: 12px; color: var(--sign-dark); font-weight: 600; text-decoration: none; font-family: 'Archivo', sans-serif; white-space: nowrap; }
         .sec-link:hover { text-decoration: underline; }
         .divider { height: 1px; background: var(--line); margin: 20px 0 0; }
+        /* "Todo o bairro, num lugar só" (HomeLojas) logo depois da faixa
+           amarela do Peça Agora — pedido do Ricardo, out/2026: tinha uma
+           linha cinza e um espaço enorme (divider + margem de seção +
+           margem do cabeçalho, ~100px somados) até o texto começar.
+           Some com a linha e sobe a seção pra ocupar esse espaço, só no
+           mobile — as outras seções do site mantêm divisor/espaçamento de
+           sempre, é só essa transição específica. */
+        @media(max-width: 767px) {
+          .home-lojas-tight .recent-section { margin-top: 10px; }
+          .home-lojas-tight .sec-hdr { margin-top: 0; }
+        }
 
         /* OFERTAS DO BAIRRO — cupom/promoção reais, card flat no lugar do
            banner de imagem fixa */
@@ -595,7 +609,7 @@ export default async function HomePage() {
            rolagem visível (scrollbar-width/::-webkit-scrollbar escondidos,
            o gesto de arrastar continua funcionando normal — pedido do
            Ricardo, out/2026, mockup aprovado). */
-        .home-peca-cta-mtypes { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+        .home-peca-cta-mtypes { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
         .home-peca-cta-mtypes::-webkit-scrollbar { display: none; }
         .home-peca-cta-mcard { flex: 0 0 auto; width: 100px; height: 124px; border-radius: 14px; position: relative; overflow: hidden; background: rgba(255,255,255,.35); }
         .home-peca-cta-mcard-img { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 22px; }
@@ -919,10 +933,9 @@ export default async function HomePage() {
             ESPECIFICACAO.md — redesenho set/2026, mockup aprovado em
             conversa. */}
         {lojasItems.length > 0 && (
-          <>
-            <div className="divider" />
+          <div className="home-lojas-tight">
             <HomeLojas items={lojasItems} />
-          </>
+          </div>
         )}
 
         {/* NOVOS NA TRINDADE — ESPECIFICACAO.md §10.1 item 6, recompensa

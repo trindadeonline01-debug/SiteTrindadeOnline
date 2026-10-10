@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
 
   const { data: orders } = await supabase
     .from('delivery_orders')
-    .select('id, company_id, customer_name, pickup_address, dropoff_address, fee, picked_up_at, assigned_at, created_at')
+    .select('id, company_id, customer_name, customer_phone, pickup_address, dropoff_address, fee, picked_up_at, assigned_at, created_at')
     .eq('motoboy_id', motoboy.id).eq('status', 'a_caminho')
     .order('assigned_at', { ascending: true })
 
@@ -66,10 +66,18 @@ export async function GET(req: NextRequest) {
     // uma corrida "aguardando retirada" era de agora ou tinha ficado
     // esquecida há dias (achado real do Ricardo, out/2026).
     requestedAt: o.assigned_at || o.created_at,
-    // Endereço de destino pra navegação dentro do painel (out/2026) — antes
-    // de retirar, é a loja; depois, é o cliente. Mesma lógica que já decide
-    // qual dos dois códigos mostrar em destaque.
+    // Endereço de destino pra navegação dentro do painel web (out/2026) —
+    // antes de retirar, é a loja; depois, é o cliente. Mesma lógica que já
+    // decide qual dos dois códigos mostrar em destaque.
     destinationAddress: o.picked_up_at ? o.dropoff_address : o.pickup_address,
+    // Os dois endereços juntos + telefone do cliente (out/2026) — o app
+    // nativo mostra botão de endereço da loja E do cliente ao mesmo tempo
+    // (não só "o da vez" como destinationAddress acima) e um botão de
+    // WhatsApp direto pro cliente. Campos aditivos — não quebra o painel
+    // web, que continua só lendo destinationAddress.
+    pickupAddress: o.pickup_address,
+    dropoffAddress: o.dropoff_address,
+    customerPhone: o.customer_phone,
   }))
 
   return NextResponse.json({ offer, rides })

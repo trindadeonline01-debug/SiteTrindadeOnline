@@ -1,8 +1,7 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, RefreshControl, Linking } from 'react-native'
-import { useAudioPlayer } from 'expo-audio'
 import { colors, spacing, radius, errMsg } from '../theme'
-import { getCorridas, aceitarOferta, recusarOferta, confirmarCodigo, confirmarGrupo, Oferta, Corrida } from '../api'
+import { aceitarOferta, recusarOferta, confirmarCodigo, confirmarGrupo, Oferta, Corrida } from '../api'
 
 // "O entregador tá cego" (Ricardo, out/2026) — o card de "indo entregar" só
 // tinha nome e código, nada de endereço nem contato. Esses dois abrem o que
@@ -30,9 +29,16 @@ function fmtHora(iso: string) {
 // Supabase Auth (ver KB). Round 2 troca esse poll por push nativo quando
 // o Firebase estiver configurado; a lógica de aceitar/recusar/confirmar
 // continua a mesma de qualquer forma.
-export default function CorridasScreen() {
-  const [offer, setOffer] = useState<Oferta | null>(null)
-  const [rides, setRides] = useState<Corrida[]>([])
+//
+// offer/rides/reload/pauseAlert vêm de HomeScreen, não daqui — esse
+// componente só existe enquanto a aba Corridas está em foco (ver
+// HomeScreen.tsx), então o polling e o som de alerta precisam morar lá em
+// cima pra continuarem rodando mesmo com o motoboy em Ganhos/Perfil
+// (achado real do Ricardo, out/2026: "a música não tocou" — a causa era
+// essa, o componente simplesmente não existia quando a oferta chegou).
+type Props = { offer: Oferta | null; rides: Corrida[]; reload: () => Promise<void>; pauseAlert: () => void }
+
+export default function CorridasScreen({ offer, rides, reload, pauseAlert }: Props) {
   const [secondsLeft, setSecondsLeft] = useState(0)
   const [busy, setBusy] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
@@ -40,45 +46,6 @@ export default function CorridasScreen() {
   const [soloErrs, setSoloErrs] = useState<Record<string, string>>({})
   const [groupCodes, setGroupCodes] = useState<Record<string, string>>({})
   const [groupErrs, setGroupErrs] = useState<Record<string, string>>({})
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
-
-  // Som insistente enquanto tiver oferta esperando resposta (pedido do
-  // Ricardo, out/2026 — "não temos o barulho do Trindade Online tocando").
-  // O painel web já faz isso com um beep sintetizado via Web AudioContext
-  // (não existe no RN); aqui usa um arquivo de áudio de verdade com
-  // expo-audio em loop. Toca som placeholder por enquanto — quando o
-  // Ricardo mandar a musiquinha de marca de verdade, troca o arquivo em
-  // assets/sounds/alerta_corrida.wav, sem precisar mudar nada aqui.
-  const alertPlayer = useAudioPlayer(require('../../assets/sounds/alerta_corrida.wav'))
-  const hasOffer = !!offer
-
-  useEffect(() => {
-    alertPlayer.loop = true
-  }, [alertPlayer])
-
-  useEffect(() => {
-    if (hasOffer) {
-      alertPlayer.seekTo(0).catch(() => {})
-      alertPlayer.play()
-    } else {
-      alertPlayer.pause()
-      alertPlayer.seekTo(0).catch(() => {})
-    }
-  }, [hasOffer, alertPlayer])
-
-  const load = useCallback(async () => {
-    try {
-      const data = await getCorridas()
-      setOffer(data.offer)
-      setRides(data.rides)
-    } catch {}
-  }, [])
-
-  useEffect(() => {
-    load()
-    pollRef.current = setInterval(load, 4000)
-    return () => { if (pollRef.current) clearInterval(pollRef.current) }
-  }, [load])
 
   useEffect(() => {
     if (!offer) { setSecondsLeft(0); return }
@@ -90,19 +57,19 @@ export default function CorridasScreen() {
 
   async function onRefresh() {
     setRefreshing(true)
-    await load()
+    await reload()
     setRefreshing(false)
   }
 
   async function handleAceitar() {
     setBusy(true)
-    alertPlayer.pause() // não espera o próximo poll pra calar o som
-    try { await aceitarOferta() } catch {} finally { setBusy(false); load() }
+    pauseAlert() // não espera o próximo poll pra calar o som
+    try { await aceitarOferta() } catch {} finally { setBusy(false); reload() }
   }
   async function handleRecusar() {
     setBusy(true)
-    alertPlayer.pause()
-    try { await recusarOferta() } catch {} finally { setBusy(false); load() }
+    pauseAlert()
+    try { await recusarOferta() } catch {} finally { setBusy(false); reload() }
   }
 
   async function handleConfirmarSolo(id: string) {
@@ -112,7 +79,7 @@ export default function CorridasScreen() {
     try {
       const r = await confirmarCodigo(id, code)
       if (!r.ok) setSoloErrs(e => ({ ...e, [id]: r.error || 'não confere' }))
-      else { setSoloCodes(c => ({ ...c, [id]: '' })); load() }
+      else { setSoloCodes(c => ({ ...c, [id]: '' })); reload() }
     } catch (e) {
       setSoloErrs(er => ({ ...er, [id]: errMsg(e) }))
     }
@@ -124,7 +91,7 @@ export default function CorridasScreen() {
     const newErrs: Record<string, string> = {}
     r.results.forEach(res => { if (!res.ok) newErrs[res.orderId] = res.error || 'não confere' })
     setGroupErrs(newErrs)
-    if (Object.keys(newErrs).length === 0) { setGroupCodes({}); load() }
+    if (Object.keys(newErrs).length === 0) { setGroupCodes({}); reload() }
   }
 
   // Corridas aguardando retirada da MESMA loja viram um card de grupo —

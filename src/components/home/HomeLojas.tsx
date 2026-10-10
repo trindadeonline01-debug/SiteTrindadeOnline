@@ -45,9 +45,11 @@ export default function HomeLojas({ items }: { items: LojaItem[] }) {
 
       <div className="lj-chips">
         <button type="button" className={`lj-chip ${!activeCat ? 'on' : ''}`} onClick={() => setActiveCat(null)}>Todas</button>
-        {cats.map(([key, meta]) => (
-          <button type="button" key={key} className={`lj-chip ${activeCat === key ? 'on' : ''}`} onClick={() => setActiveCat(key)}>{meta.emoji} {meta.label}</button>
-        ))}
+        {cats.map(([key, meta]) => [
+          <span key={`sep-${key}`} className="lj-chip-sep" aria-hidden="true" />,
+          <button type="button" key={key} className={`lj-chip ${activeCat === key ? 'on' : ''}`} onClick={() => setActiveCat(key)}>{meta.emoji} {meta.label}</button>,
+        ])}
+        <span className="lj-chip-sep" aria-hidden="true" />
         <button type="button" className={`lj-chip ${onlyOpen ? 'on' : ''}`} onClick={() => setOnlyOpen(v => !v)}>📶 Aberto agora</button>
       </div>
 

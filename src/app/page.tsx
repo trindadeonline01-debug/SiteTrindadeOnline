@@ -645,10 +645,16 @@ export default async function HomePage() {
         }
 
         /* LOJAS — lista final, mesmo estilo de linha do Peça Agora */
-        .lj-chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; }
+        /* Virou menu de texto com barra divisória, igual o filtro de preço
+           do Peça Agora (.pa-filters/.pa-filter-item) — pedido do Ricardo,
+           out/2026: "da mesma forma que a gente fez no cardápio". Aqui o
+           selecionado ganha quadradinho AMARELO (não branco — essa lista
+           já está em fundo branco, não em cima de faixa amarela). */
+        .lj-chips { display: flex; align-items: center; flex-wrap: nowrap; overflow-x: auto; padding: 0 0 10px; scrollbar-width: none; }
         .lj-chips::-webkit-scrollbar { display: none; }
-        .lj-chip { flex: 0 0 auto; padding: 7px 15px; border-radius: 20px; border: 1px solid var(--line); background: var(--paper); font-size: 12px; font-weight: 700; color: var(--ink); cursor: pointer; font-family: 'Archivo', sans-serif; white-space: nowrap; }
-        .lj-chip.on { background: var(--sign); border-color: var(--sign-dark); }
+        .lj-chip-sep { flex: 0 0 auto; width: 1px; height: 13px; background: var(--line); margin: 0 10px; }
+        .lj-chip { flex: 0 0 auto; border: none; background: none; padding: 5px 7px; border-radius: 6px; font-size: 12.5px; font-weight: 700; color: var(--ink); cursor: pointer; font-family: 'Archivo', sans-serif; white-space: nowrap; }
+        .lj-chip.on { background: var(--sign); font-weight: 800; }
         .lj-list { display: flex; flex-direction: column; gap: 7px; }
         .lj-row { display: flex; align-items: center; gap: 10px; background: var(--paper); border: 1px solid var(--line); border-radius: 13px; padding: 8px; text-decoration: none; color: inherit; transition: border-color .15s; }
         .lj-row:hover { border-color: var(--ink); }

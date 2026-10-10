@@ -1,7 +1,19 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, RefreshControl } from 'react-native'
+import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, RefreshControl, Linking } from 'react-native'
 import { colors, spacing, radius, errMsg } from '../theme'
 import { getCorridas, aceitarOferta, recusarOferta, confirmarCodigo, confirmarGrupo, Oferta, Corrida } from '../api'
+
+// "O entregador tá cego" (Ricardo, out/2026) — o card de "indo entregar" só
+// tinha nome e código, nada de endereço nem contato. Esses dois abrem o que
+// já está instalado no celular (Maps/WhatsApp), sem precisar de API nova.
+function openMaps(address: string) {
+  Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`)
+}
+function openWhatsApp(phone: string) {
+  let digits = phone.replace(/\D/g, '')
+  if (!digits.startsWith('55')) digits = '55' + digits
+  Linking.openURL(`https://wa.me/${digits}`)
+}
 
 function fmtTempo(s: number) {
   const m = Math.floor(s / 60); const sec = s % 60
@@ -124,7 +136,7 @@ export default function CorridasScreen() {
             <View key={r.id} style={s.rideRow}>
               <View style={{ flex: 1 }}>
                 <Text style={s.rideCliente}>{r.customerName}</Text>
-                <Text style={s.muted}>{r.bairro || r.destinationAddress} · R$ {r.valueLabel}{isStaleRide(r.requestedAt) ? ' · ⚠️ há muito tempo' : ` · ${fmtHora(r.requestedAt)}`}</Text>
+                <Text style={s.muted}>{r.bairro || r.pickupAddress} · R$ {r.valueLabel}{isStaleRide(r.requestedAt) ? ' · ⚠️ há muito tempo' : ` · ${fmtHora(r.requestedAt)}`}</Text>
               </View>
               <TextInput
                 style={s.codeInput}
@@ -150,9 +162,30 @@ export default function CorridasScreen() {
 
       {aEntregar.map(r => (
         <View key={r.id} style={s.card}>
-          <Text style={s.pillWait}>🏍️ Indo entregar</Text>
-          <Text style={s.cardTitle}>{r.customerName}</Text>
-          <Text style={s.muted}>{r.bairro || r.destinationAddress} · R$ {r.valueLabel}</Text>
+          <View style={s.cardTop}>
+            <View style={{ flex: 1 }}>
+              <Text style={s.cardTitle}>{r.customerName}</Text>
+              <Text style={s.muted}>{r.bairro || r.dropoffAddress} · R$ {r.valueLabel}</Text>
+            </View>
+            <Text style={s.pillWait}>🏍️ Indo entregar</Text>
+          </View>
+          <View style={s.addrRow}>
+            {r.pickupAddress && (
+              <Pressable style={s.addrBtn} onPress={() => openMaps(r.pickupAddress!)}>
+                <Text style={s.addrBtnTxt}>📍 Loja</Text>
+              </Pressable>
+            )}
+            {r.dropoffAddress && (
+              <Pressable style={s.addrBtn} onPress={() => openMaps(r.dropoffAddress!)}>
+                <Text style={s.addrBtnTxt}>📍 Cliente</Text>
+              </Pressable>
+            )}
+          </View>
+          {r.customerPhone && (
+            <Pressable style={s.waBtn} onPress={() => openWhatsApp(r.customerPhone!)}>
+              <Text style={s.waBtnTxt}>💬 Chamar cliente no WhatsApp</Text>
+            </Pressable>
+          )}
           <View style={s.rideRow}>
             <TextInput
               style={[s.codeInput, { flex: 1 }]}
@@ -185,8 +218,14 @@ const s = StyleSheet.create({
   empty: { padding: spacing.xl, alignItems: 'center' },
   emptyTxt: { color: colors.muted, textAlign: 'center' },
   card: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, padding: spacing.md, gap: spacing.sm, marginBottom: spacing.md },
+  cardTop: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
   cardTitle: { fontWeight: '800', fontSize: 15, color: colors.ink },
   muted: { color: colors.muted, fontSize: 12 },
+  addrRow: { flexDirection: 'row', gap: spacing.sm },
+  addrBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.paper, borderWidth: 1, borderColor: colors.line, borderRadius: radius.sm, paddingVertical: spacing.sm },
+  addrBtnTxt: { fontWeight: '700', fontSize: 12, color: colors.ink },
+  waBtn: { backgroundColor: colors.goodBg, borderWidth: 1, borderColor: '#BEE3CC', borderRadius: radius.sm, paddingVertical: spacing.sm, alignItems: 'center' },
+  waBtnTxt: { fontWeight: '800', fontSize: 12.5, color: colors.good },
   rideRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   rideCliente: { fontWeight: '700', color: colors.ink },
   codeInput: { backgroundColor: colors.paper, borderWidth: 1, borderColor: colors.line, borderRadius: radius.sm, padding: spacing.sm, width: 80, textAlign: 'center', fontWeight: '700' },

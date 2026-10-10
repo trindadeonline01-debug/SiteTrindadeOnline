@@ -65,7 +65,11 @@ export function logout() {
 }
 
 export type Oferta = { deliveryOrderId: string; company: string; bairro: string | null; valueLabel: string; expiresAt: string }
-export type Corrida = { id: string; company: string; bairro: string | null; customerName: string; valueLabel: string; pickedUp: boolean; requestedAt: string; destinationAddress: string }
+export type Corrida = {
+  id: string; company: string; bairro: string | null; customerName: string; customerPhone: string | null
+  valueLabel: string; pickedUp: boolean; requestedAt: string
+  pickupAddress: string | null; dropoffAddress: string | null
+}
 
 export function getCorridas() {
   return request<{ offer: Oferta | null; rides: Corrida[] }>('/api/motoboy/corridas', { auth: true })

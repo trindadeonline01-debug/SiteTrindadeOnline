@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // app-motoboy é um projeto Expo/React Native separado (seu próprio
+    // package.json, tsconfig próprio já excluído na raiz) — as regras
+    // desse preset (core-web-vitals, compiler rules) são pensadas pra
+    // Next.js/DOM e não fazem sentido pra React Native.
+    "app-motoboy/**",
   ]),
 ]);
 

@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "name": "Trindade Motoboy",
+    "slug": "trindade-motoboy",
+    "scheme": "trindademotoboy",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#F0EDE8",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.trindadeonline.motoboy"
+    },
+    "android": {
+      "package": "com.trindadeonline.motoboy",
+      "adaptiveIcon": {
+        "backgroundColor": "#1A0F00",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "O app usa sua localização pra te mostrar no mapa durante a corrida e pro lojista acompanhar a entrega.",
+          "isAndroidBackgroundLocationEnabled": true
+        }
+      ],
+      "expo-notifications"
+    ]
+  }
+}

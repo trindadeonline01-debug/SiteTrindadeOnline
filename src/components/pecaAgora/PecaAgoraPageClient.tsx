@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from 'react'
 import HomePecaAgora, { PecaGroup } from '@/components/home/HomePecaAgora'
 import Footer from '@/components/Footer'
+import { supabase } from '@/lib/supabase'
 
 // Página própria da vitrine de delivery (ESPECIFICACAO.md §7) — antes
 // embutida inteira na home, agora com endereço fixo (mockup aprovado,
@@ -12,6 +13,16 @@ import Footer from '@/components/Footer'
 export default function PecaAgoraPageClient({ groups }: { groups: PecaGroup[] }) {
   const [query, setQuery] = useState('')
   const [linkCopied, setLinkCopied] = useState(false)
+  // O menu inferior (BottomNav) só aparece pro mobile logado (pedido do
+  // Ricardo, out/2026) — sem ele, o "+" flutuante (voltar/pesquisar/
+  // compartilhar) desce pra ficar mais perto da borda da tela em vez de
+  // deixar um vão vazio onde o menu estaria. Logado, mesma posição de
+  // sempre, empilhado acima do menu.
+  const [user, setUser] = useState<any>(null)
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user || null))
+  }, [])
+  const hasBottomNav = !!user
   // Campo de busca fixo no topo saiu (pedido do Ricardo, out/2026: "tá
   // muito amador" ter ele sempre visível) — agora só aparece sob demanda,
   // via o botão "Buscar" (desktop, na linha do breadcrumb) ou a opção
@@ -150,13 +161,13 @@ export default function PecaAgoraPageClient({ groups }: { groups: PecaGroup[] })
         }
       `}</style>
 
-      <button type="button" className={`pca-fab ${fabOpen ? 'on' : ''}`} onClick={() => setFabOpen(v => !v)} aria-label={fabOpen ? 'Fechar menu' : 'Mais opções'} aria-expanded={fabOpen}>
+      <button type="button" className={`pca-fab ${fabOpen ? 'on' : ''}`} style={{ bottom: hasBottomNav ? 140 : 80 }} onClick={() => setFabOpen(v => !v)} aria-label={fabOpen ? 'Fechar menu' : 'Mais opções'} aria-expanded={fabOpen}>
         +
       </button>
-      <button type="button" className={`pca-fab-opt pca-fab-opt--search ${fabOpen ? 'show' : ''}`} onClick={toggleSearch}>
+      <button type="button" className={`pca-fab-opt pca-fab-opt--search ${fabOpen ? 'show' : ''}`} style={{ bottom: hasBottomNav ? 196 : 136 }} onClick={toggleSearch}>
         <span>🔍</span> Pesquisar
       </button>
-      <button type="button" className={`pca-fab-opt pca-fab-opt--share ${fabOpen ? 'show' : ''}`} onClick={handleShare}>
+      <button type="button" className={`pca-fab-opt pca-fab-opt--share ${fabOpen ? 'show' : ''}`} style={{ bottom: hasBottomNav ? 252 : 192 }} onClick={handleShare}>
         <span>{linkCopied ? '✅' : '🔗'}</span> {linkCopied ? 'Copiado!' : 'Compartilhar'}
       </button>
 

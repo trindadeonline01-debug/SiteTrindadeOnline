@@ -1,11 +1,18 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
+
+// Mesma lista de rotas que o BottomNav usa pra se esconder (duplicada de
+// propósito, mesmo padrão do resto do header/navegação do site) — nelas
+// o menu inferior nunca aparece, logado ou não.
+const BOTTOM_NAV_HIDE_ON = ['/login', '/cadastro', '/empresa/cadastrar', '/anunciar', '/admin', '/producao', '/painel', '/atendimento']
 
 export default function BackButton() {
   const pathname = usePathname()
   const router = useRouter()
   const [isMobile, setIsMobile] = useState(false)
+  const [user, setUser] = useState<any>(null)
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768)
@@ -13,6 +20,17 @@ export default function BackButton() {
     window.addEventListener('resize', check)
     return () => window.removeEventListener('resize', check)
   }, [])
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user || null))
+  }, [])
+
+  // O menu inferior (BottomNav) só aparece pro mobile logado (pedido do
+  // Ricardo, out/2026) — sem ele, não sobra mais espaço reservado lá
+  // embaixo, então esse botão (e o "+" de /peca-agora) descem pra ficar
+  // mais perto da borda da tela, exatamente como no desktop (que nunca
+  // teve esse menu). Logado, continua na posição de sempre, acima do menu.
+  const hasBottomNav = isMobile && !!user && !BOTTOM_NAV_HIDE_ON.some(p => pathname.startsWith(p))
 
   // Essas páginas usam a navegação própria do EmpresaShell (sidebar
   // desktop/tabbar mobile), mas nenhuma delas tem um "voltar" de verdade —
@@ -37,7 +55,7 @@ export default function BackButton() {
       style={{
         position: 'fixed',
         right: 16,
-        bottom: isProdutoPage ? (isMobile ? 148 : 84) : (isMobile ? 84 : 24),
+        bottom: isProdutoPage ? (hasBottomNav ? 148 : 84) : (hasBottomNav ? 84 : 24),
         width: 48,
         height: 48,
         borderRadius: '50%',

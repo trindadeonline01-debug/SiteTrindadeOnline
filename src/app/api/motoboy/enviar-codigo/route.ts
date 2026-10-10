@@ -29,6 +29,27 @@ export async function POST(req: NextRequest) {
       if (!motoboy) return NextResponse.json({ error: 'Nenhum motoboy encontrado com esse WhatsApp.' }, { status: 404 })
     }
 
+    // Trava de envio — auditoria de segurança, out/2026: sem isso dava pra
+    // pedir código ilimitado pro mesmo número (gasto de WhatsApp à toa e
+    // abre espaço pra tentar adivinhar o código enviando vários). Cooldown
+    // de 1min entre pedidos + teto de 5 por hora, igual o espírito da trava
+    // de senha que já existe (login-senha/route.ts).
+    const now = Date.now()
+    const { data: recentes } = await supabase
+      .from('motoboy_otp_codes').select('created_at')
+      .eq('phone', phone).eq('purpose', purpose)
+      .gte('created_at', new Date(now - 60 * 60 * 1000).toISOString())
+      .order('created_at', { ascending: false })
+    if (recentes && recentes.length > 0) {
+      const ultimoEnvio = new Date(recentes[0].created_at).getTime()
+      if (now - ultimoEnvio < 60 * 1000) {
+        return NextResponse.json({ error: 'Aguarda 1 minuto antes de pedir outro código.' }, { status: 429 })
+      }
+      if (recentes.length >= 5) {
+        return NextResponse.json({ error: 'Muitos códigos pedidos — tenta de novo daqui a pouco.' }, { status: 429 })
+      }
+    }
+
     const code = genCode()
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString()
     await supabase.from('motoboy_otp_codes').insert({ phone, code, purpose, expires_at: expiresAt })

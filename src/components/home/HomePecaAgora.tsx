@@ -241,7 +241,7 @@ export default function HomePecaAgora({ groups, search = '' }: { groups: PecaGro
            .pca-main — pra não ficar colado na borda esquerda da tela em
            telas largas, desalinhado da lista de produtos logo abaixo
            (achado do Ricardo, set/2026). */
-        .pa-band { background: var(--sign); width: 100vw; margin-left: calc(50% - 50vw); padding: 10px 0; margin-bottom: 16px; }
+        .pa-band { background: var(--sign); width: 100vw; margin-left: calc(50% - 50vw); padding: 10px 0; margin-bottom: 8px; }
         .pa-band-inner { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
         /* Título e "Delivery na Trindade" na mesma linha (alinhados pela
            base), em vez de empilhados — junto com os quadrados mais baixos
@@ -310,10 +310,16 @@ export default function HomePecaAgora({ groups, search = '' }: { groups: PecaGro
         .pa-tcard-img { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 26px; }
         .pa-tcard-tag { position: absolute; left: 0; right: 0; bottom: 0; background: #FFFFFF; padding: 6px 6px 7px; text-align: center; }
         .pa-tcard-lbl { font-size: 11px; font-weight: 800; color: var(--sign-dark); line-height: 1.15; font-family: 'Archivo', sans-serif; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-        .pa-filters { display: flex; gap: 8px; flex-wrap: nowrap; overflow-x: auto; padding: 2px 4px 6px; margin: 2px 0 16px; scrollbar-width: none; }
+        /* Virou menu de texto com separador em barra, em vez de pílulas —
+           pedido do Ricardo, out/2026: "otimizar o espaço", ganhar área
+           visual pra lista de produtos. Selecionado ganha um retângulo
+           preenchido de amarelo (opção que o Ricardo preferiu à de só
+           colorir o texto). */
+        .pa-filters { display: flex; align-items: center; flex-wrap: nowrap; overflow-x: auto; padding: 0 4px; margin: 0 0 8px; scrollbar-width: none; }
         .pa-filters::-webkit-scrollbar { display: none; }
-        .pa-chip { flex: 0 0 auto; padding: 7px 15px; border-radius: 20px; border: 1px solid var(--line); background: var(--paper); font-size: 12px; font-weight: 700; color: var(--ink); cursor: pointer; font-family: 'Archivo', sans-serif; white-space: nowrap; }
-        .pa-chip.on { background: var(--sign); border-color: var(--sign-dark); color: var(--ink); }
+        .pa-filter-sep { flex: 0 0 auto; width: 1px; height: 13px; background: var(--line); margin: 0 10px; }
+        .pa-filter-item { flex: 0 0 auto; border: none; background: none; padding: 5px 7px; border-radius: 6px; font-size: 12.5px; font-weight: 700; color: var(--ink); cursor: pointer; font-family: 'Archivo', sans-serif; white-space: nowrap; }
+        .pa-filter-item.on { background: var(--sign); font-weight: 800; }
         .pa-list { display: flex; flex-direction: column; gap: 7px; }
         .pa-row { display: flex; align-items: center; gap: 10px; background: var(--paper); border: 1px solid var(--line); border-radius: 13px; padding: 8px; transition: border-color .15s; }
         .pa-row:hover { border-color: var(--ink); }
@@ -385,9 +391,10 @@ export default function HomePecaAgora({ groups, search = '' }: { groups: PecaGro
           </div>
 
           <div className="pa-filters">
-            {PRICE_FILTERS.map(f => (
-              <button type="button" key={f.max} className={`pa-chip ${maxPrice === f.max ? 'on' : ''}`} onClick={() => changePrice(f.max)}>{f.label}</button>
-            ))}
+            {PRICE_FILTERS.map((f, i) => [
+              i > 0 && <span key={`sep-${f.max}`} className="pa-filter-sep" aria-hidden="true" />,
+              <button type="button" key={f.max} className={`pa-filter-item ${maxPrice === f.max ? 'on' : ''}`} onClick={() => changePrice(f.max)}>{f.label}</button>,
+            ])}
           </div>
         </>
       )}

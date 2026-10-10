@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { isOpenNow, dayOfWeekLabel, type HourRow } from '@/lib/businessHours'
 import { moduleActive } from '@/lib/modules'
 import { getEntregaPricing } from '@/lib/entregaPricing'
+import { normalizePhone } from '@/lib/phone'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -62,7 +63,7 @@ function isSoldOut(p: any): boolean {
 // vivo do banco a cada resposta, nunca copiado/colado à mão (decisão com o
 // Ricardo, set/2026: relatório copiado ficaria desatualizado assim que o
 // lojista mudasse um preço; ler direto nunca fica velho).
-async function buildContext(companyId: string): Promise<string | null> {
+async function buildContext(companyId: string, phone?: string | null): Promise<string | null> {
   const { data: company } = await supabase
     .from('companies')
     .select(`
@@ -201,6 +202,39 @@ async function buildContext(companyId: string): Promise<string | null> {
     linhas.push('Opções/variações cadastradas por produto, com o valor de cada uma (ex: "o camarão vem limpo?", "cobra pra limpar? quanto?"). IMPORTANTE sobre esse valor: é sempre por UNIDADE do produto (ou por kg, quando o produto é vendido por peso) — se o cliente pedir mais de uma unidade ou mais peso, o valor da opção multiplica junto, mesma lógica do carrinho de verdade. Ex: "a limpeza do camarão é R$X por quilo — se pedir 2kg com limpeza, fica R$X×2". Deixe isso claro quando o cliente perguntar sobre quantidade maior que 1.\n\nATENÇÃO — produtos de nome parecido (ex: "Xerelete G Kg" e "Xerelete P kg", tamanhos diferentes do mesmo peixe) têm opções DIFERENTES entre si, cada produto é 100% independente — nunca herde ou misture a opção de um produto pro outro só porque o nome é quase igual. Leia o nome COMPLETO do produto (incluindo G/P/Grande/Pequeno/Médio no final) antes de listar as opções dele. Se o cliente disser só o nome base sem dizer o tamanho/variação (ex: "quero xerelete" sem dizer se é G ou P) e existir mais de um produto parecido na lista, PERGUNTE qual dos dois antes de listar opção nenhuma — nunca chute qual o cliente quis dizer.\n' + linhasProdutos.join('\n'))
   }
 
+  // Código de confirmação de entrega do pedido mais recente desse cliente —
+  // achado real, out/2026 (Confeitaria da Juju, cliente Ana Clara): ela
+  // perguntou "qual o código?" (o que o motoboy pede na entrega) e a IA
+  // respondeu com o NÚMERO DO PEDIDO (nº 29), porque esse código nunca
+  // esteve nos dados da loja — ela só tinha o histórico da conversa pra se
+  // basear e confundiu as duas coisas. O código de entrega de verdade
+  // (delivery_orders.delivery_code ou loja_pedidos.delivery_confirm_code,
+  // pro motoboy próprio) nunca pode sair da cabeça da IA — busca aqui e
+  // deixa explícito que número de pedido ≠ código de entrega.
+  if (phone) {
+    const phoneNorm = normalizePhone(phone)
+    const { data: pedidosRecentes } = await supabase
+      .from('loja_pedidos')
+      .select('id, order_number, customer_phone, status, delivery_type, motoboy_id, delivery_confirm_code')
+      .eq('company_id', companyId).order('created_at', { ascending: false }).limit(15)
+    const pedido = (pedidosRecentes || []).find(p => normalizePhone(p.customer_phone) === phoneNorm)
+    if (pedido && pedido.status !== 'cancelado') {
+      let codigoEntrega: string | null = pedido.motoboy_id && pedido.delivery_confirm_code ? pedido.delivery_confirm_code : null
+      if (!codigoEntrega) {
+        const { data: entrega } = await supabase
+          .from('delivery_orders').select('delivery_code')
+          .eq('pedido_id', pedido.id).neq('status', 'cancelada')
+          .order('created_at', { ascending: false }).limit(1).maybeSingle()
+        if (entrega?.delivery_code) codigoEntrega = entrega.delivery_code
+      }
+      if (codigoEntrega) {
+        linhas.push(`Pedido mais recente desse cliente: nº ${pedido.order_number}. ATENÇÃO — o número do pedido (${pedido.order_number}) NUNCA é o código que o motoboy pede na entrega, são coisas diferentes. Se o cliente perguntar "qual é o código" (pra passar pro motoboy/entregador na hora da entrega), o código certo é: *${codigoEntrega}*. Nunca responda essa pergunta específica com o número do pedido.`)
+      } else if (pedido.delivery_type === 'entrega') {
+        linhas.push(`Pedido mais recente desse cliente: nº ${pedido.order_number}. Esse pedido ainda não tem código de confirmação de entrega gerado (motoboy ainda não foi chamado). Se o cliente perguntar "qual é o código" pro motoboy, diga que ainda não foi gerado e que vai confirmar com a loja — NUNCA informe o número do pedido como se fosse esse código.`)
+      }
+    }
+  }
+
   if (company.crm_ia_prompt_extra?.trim()) {
     linhas.push('Instruções extras do dono da loja (siga à risca):\n' + company.crm_ia_prompt_extra.trim())
   }
@@ -228,6 +262,7 @@ REGRAS RÍGIDAS — nunca quebre nenhuma delas:
 - Pergunta GENÉRICA pedindo tudo ("o que vocês têm?", "o que tem hoje?", "me manda o cardápio", "quais produtos vocês vendem?"): liste SÓ os itens que estão de fato na seção "Catálogo ativo agora" abaixo, com os nomes e preços exatamente como estão escritos lá — nunca componha de memória uma lista "típica" do ramo da loja (ex: pra uma doceria, nunca cite brigadeiro/beijinho/pudim genéricos se eles não estiverem na lista real). Se a seção de catálogo não aparecer abaixo (loja sem produto cadastrado ainda), diga que o catálogo ainda está sendo montado e não liste nada — é um erro grave inventar produto que a loja não vende.
 - O link é o passo de FECHAR o pedido, não a resposta padrão (EXCEÇÃO: a saudação de boas-vindas da primeira mensagem, regra acima, sempre leva o link junto). Fora essa exceção, só mande link quando o cliente der sinal de que quer confirmar/fechar a compra (frases como "separa pra mim", "vou querer", "fecha o pedido", "quero comprar", "pode fechar", "manda o link" ou parecido) — nesse momento, diga algo como "Show! Pra fechar seu pedido é só acessar o link e finalizar por lá: [link]". Você nunca cria o pedido nem processa pagamento — o link é sempre quem fecha de verdade. QUAL link mandar: se o pedido for de UM produto só (ex: "quero 3kg de peixe espada em posta"), mande o link DIRETO desse produto (o que já vem junto dele no catálogo acima) — assim o cliente cai direto na tela certa, sem ter que procurar de novo. Se o cliente pedir mais de um produto diferente na mesma conversa, mande o link do cardápio completo (lá no topo) — um link só não abre vários produtos de uma vez.
 - Pergunta sobre valor de entrega: NUNCA informe um valor sem antes saber o bairro (ou endereço) do cliente. Se ele ainda não disse, pergunte primeiro qual é o bairro dele. Nunca escolha um valor "de exemplo" da lista de bairros nem invente um número — se os dados da loja abaixo disserem que a taxa é calculada por distância ou que não há taxa configurada, siga exatamente a instrução dada ali.
+- Pergunta sobre "qual é o código" (pra passar pro motoboy/entregador na entrega): NUNCA responda com o número do pedido — são duas coisas diferentes. O código de entrega real (se existir) vem explícito mais abaixo, junto do pedido mais recente desse cliente. Se essa informação não aparecer abaixo, diga que não tem esse código disponível agora e que vai confirmar com a loja — nunca invente nem use o número do pedido no lugar.
 - Pix: se o cliente disser que vai pagar (ou perguntar se dá pra pagar) no Pix, e a "Chave Pix da loja" estiver nos dados abaixo, informe o valor total do pedido junto com a chave Pix, em linhas separadas (ex: "Valor: R$ 45,00" numa linha, "Chave Pix: [chave]" na linha seguinte) — nunca gere QR code, link de pagamento ou comprovante, você não tem isso disponível. Se o cliente ainda não fechou os itens/valor do pedido, primeiro confirme o que ele quer antes de mandar a chave. Se a loja aceitar Pix mas não tiver chave cadastrada nos dados abaixo, não invente nenhuma chave — diga que vai confirmar a chave Pix com a loja e repasse pro cliente em seguida (humano resolve depois).
 - Você serve só para atendimento básico e direto: boas-vindas, horário de funcionamento, endereço, formas de pagamento, valor de entrega por bairro, produtos/preços do catálogo, link do cardápio pra fechar. Nada de bate-papo, opinião pessoal ou assunto fora disso.
 - Pergunta sem relação nenhuma com a loja: responda educadamente algo como "Minha função aqui é te ajudar com informações da loja 🙂 Posso ajudar com horário, endereço, entrega ou o link do cardápio?" — e pare por aí.
@@ -243,9 +278,9 @@ export type HistoricoMsg = { direction: 'in' | 'out'; body: string | null }
 // Gera a resposta da IA pra uma conversa — histórico já deve vir em ordem
 // cronológica (mais antiga primeiro), só com mensagens de texto (sem
 // legenda de mídia sem texto, que a IA não tem como responder direito).
-export async function gerarRespostaIA(companyId: string, historico: HistoricoMsg[]): Promise<string | null> {
+export async function gerarRespostaIA(companyId: string, historico: HistoricoMsg[], phone?: string | null): Promise<string | null> {
   try {
-    const context = await buildContext(companyId)
+    const context = await buildContext(companyId, phone)
     if (!context) return null
 
     const comTexto = historico.filter((m): m is { direction: 'in' | 'out'; body: string } => !!m.body?.trim())

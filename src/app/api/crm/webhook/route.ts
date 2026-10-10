@@ -497,7 +497,7 @@ export async function POST(req: NextRequest) {
                   .from('crm_messages').select('direction, body')
                   .eq('contact_id', contactId).not('body', 'is', null)
                   .order('sent_at', { ascending: false }).limit(20)
-                const respostaIA = await gerarRespostaIA(inst.company_id, ((historico || []) as any[]).reverse())
+                const respostaIA = await gerarRespostaIA(inst.company_id, ((historico || []) as any[]).reverse(), phone)
                 if (respostaIA) {
                   await sendCustomerWhatsApp(inst.company_id, phone, respostaIA)
                   if (jaPediu) await supabase.from('crm_contacts').update({ pediu_humano_em: null }).eq('id', contactId)

@@ -216,7 +216,6 @@ export default function HomePecaAgora({ groups, search = '' }: { groups: PecaGro
            <style> global de quem o usa. */
         .recent-section { margin-top: 48px; }
         .recent-section-title { font-family: 'Anton', sans-serif; font-size: 21px; color: var(--ink); letter-spacing: .5px; text-transform: uppercase; line-height: 1; }
-        .sec-eyebrow { font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--sign-dark); font-weight: 700; margin-bottom: 4px; display: block; font-family: 'Archivo', sans-serif; }
         .oa-empty { font-size: 13px; color: var(--muted); padding: 12px 0 4px; }
         /* Buscando produto (pedido do Ricardo, set/2026): troca a faixa
            amarela de categorias + filtro de preço por essa linha simples
@@ -249,21 +248,21 @@ export default function HomePecaAgora({ groups, search = '' }: { groups: PecaGro
            pediu o mínimo de altura possível, pra sobrar mais tela pro
            conteúdo, set/2026). */
         .pa-hdr { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 14px; }
-        /* "Delivery na Trindade" desce pra debaixo de "Peça agora",
-           alinhado à esquerda — sobra a largura toda do lado direito só
-           pro pill, que antes brigava espaço com esse texto e quebrava
-           linha no iPhone (Ricardo, out/2026). */
         .pa-hdr-left { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; }
-        .pa-eyebrow { color: rgba(21,18,16,.68); margin-bottom: 0; white-space: nowrap; }
-        /* Pill único trocando de rótulo/ícone conforme a vista atual — nem
-           linha nova, nem par de ícones; só mostra pra onde o toque leva
-           (mockup aprovado, out/2026, "algo que ocupe menos espaço"). Fonte
-           maior e o "Ver" de volta — pedido do Ricardo, out/2026, agora que
-           ganhou espaço de sobra com a "Delivery na Trindade" realocada. */
-        .pa-view-toggle { flex: none; display: flex; border: 1.5px solid var(--ink); border-radius: 10px; overflow: hidden; white-space: nowrap; }
-        .pa-view-seg { border: none; background: var(--paper); color: var(--ink); font-size: 12.5px; font-weight: 800; padding: 8px 14px; cursor: pointer; font-family: 'Archivo', sans-serif; }
-        .pa-view-seg + .pa-view-seg { border-left: 1.5px solid var(--ink); }
-        .pa-view-seg.on { background: var(--ink); color: var(--sign); }
+        /* "Delivery na Trindade" saiu e o título ganhou um pouco de altura
+           — pedido do Ricardo, out/2026, mesma leva de "otimizar espaço"
+           do filtro de preço abaixo. */
+        .pa-hdr .recent-section-title { font-size: 24px; }
+        /* Virou texto + barra divisória, igual o filtro de preço logo
+           abaixo (.pa-filters/.pa-filter-item) — pedido do Ricardo,
+           out/2026: tirar o visual de retângulo preto/branco, deixar só
+           texto preto com um quadradinho branco no que tá selecionado
+           (aqui branco, não amarelo, porque já está em cima do amarelo da
+           faixa). Ocupa menos espaço que o segmentado anterior. */
+        .pa-view-toggle { flex: none; display: flex; align-items: center; white-space: nowrap; }
+        .pa-view-sep { width: 1px; height: 13px; background: rgba(21,18,16,.35); margin: 0 10px; }
+        .pa-view-seg { border: none; background: none; color: var(--ink); font-size: 12.5px; font-weight: 700; padding: 5px 7px; border-radius: 6px; cursor: pointer; font-family: 'Archivo', sans-serif; }
+        .pa-view-seg.on { background: var(--paper); font-weight: 800; }
         /* Vista "Lojas" — um cartão por empresa, prateleirinha horizontal
            com os produtos dela (mesmas fotos de produto já usadas na lista,
            sem precisar de logo). */
@@ -357,16 +356,10 @@ export default function HomePecaAgora({ groups, search = '' }: { groups: PecaGro
               <div className="pa-hdr">
                 <div className="pa-hdr-left">
                   <h2 className="recent-section-title">🍔 Peça agora</h2>
-                  <span className="sec-eyebrow pa-eyebrow">Delivery na Trindade</span>
                 </div>
-                {/* Virou um segmentado de 2 (Produtos/Lojas) em vez do pill
-                    único que trocava de rótulo — pedido do Ricardo, out/2026:
-                    o pill "tava igual o botão de Entrar", confundia. Os dois
-                    estados ficam visíveis ao mesmo tempo, grudados um no
-                    outro (mesmo bloco, sem gap); o ativo fica preto com
-                    letra dourada, o inativo branco com letra preta. */}
                 <div className="pa-view-toggle" role="tablist" aria-label="Ver como">
                   <button type="button" role="tab" aria-selected={viewMode === 'produtos'} className={`pa-view-seg ${viewMode === 'produtos' ? 'on' : ''}`} onClick={() => setViewMode('produtos')}>Produtos</button>
+                  <span className="pa-view-sep" aria-hidden="true" />
                   <button type="button" role="tab" aria-selected={viewMode === 'lojas'} className={`pa-view-seg ${viewMode === 'lojas' ? 'on' : ''}`} onClick={() => setViewMode('lojas')}>Lojas</button>
                 </div>
               </div>

@@ -152,7 +152,6 @@ export default function HomePecaAgora({ groups, search = '' }: { groups: PecaGro
 
   function changeTab(key: string) { setActiveKey(key); setVisibleCount(PAGE_SIZE) }
   function changePrice(max: number) { setMaxPrice(max); setVisibleCount(PAGE_SIZE) }
-  function toggleViewMode() { setViewMode(v => v === 'produtos' ? 'lojas' : 'produtos') }
 
   // Cliente só compra de uma loja por vez — se o carrinho ativo é de outra
   // empresa, confirma antes de esvaziar aquele carrinho e trocar. Sem essa
@@ -261,7 +260,10 @@ export default function HomePecaAgora({ groups, search = '' }: { groups: PecaGro
            (mockup aprovado, out/2026, "algo que ocupe menos espaço"). Fonte
            maior e o "Ver" de volta — pedido do Ricardo, out/2026, agora que
            ganhou espaço de sobra com a "Delivery na Trindade" realocada. */
-        .pa-view-toggle { flex: none; display: flex; align-items: center; gap: 5px; background: var(--paper); border: 1px solid var(--ink); border-radius: 20px; padding: 6px 14px 6px 10px; font-size: 12.5px; font-weight: 800; color: var(--ink); white-space: nowrap; cursor: pointer; font-family: 'Archivo', sans-serif; }
+        .pa-view-toggle { flex: none; display: flex; border: 1.5px solid var(--ink); border-radius: 10px; overflow: hidden; white-space: nowrap; }
+        .pa-view-seg { border: none; background: var(--paper); color: var(--ink); font-size: 12.5px; font-weight: 800; padding: 8px 14px; cursor: pointer; font-family: 'Archivo', sans-serif; }
+        .pa-view-seg + .pa-view-seg { border-left: 1.5px solid var(--ink); }
+        .pa-view-seg.on { background: var(--ink); color: var(--sign); }
         /* Vista "Lojas" — um cartão por empresa, prateleirinha horizontal
            com os produtos dela (mesmas fotos de produto já usadas na lista,
            sem precisar de logo). */
@@ -351,16 +353,16 @@ export default function HomePecaAgora({ groups, search = '' }: { groups: PecaGro
                   <h2 className="recent-section-title">🍔 Peça agora</h2>
                   <span className="sec-eyebrow pa-eyebrow">Delivery na Trindade</span>
                 </div>
-                {/* Troca a vista sem gastar linha nova — mostra pra onde o
-                    toque leva, não os dois estados ao mesmo tempo (mockup
-                    aprovado, out/2026). "Delivery na Trindade" desceu pra
-                    debaixo do título (bloco da esquerda), deixando o pill
-                    sozinho no lado direito, com largura de sobra — corrige
-                    o "Ver produtos" quebrando linha no iPhone sem precisar
-                    encurtar o texto (Ricardo, out/2026). */}
-                <button type="button" className="pa-view-toggle" onClick={toggleViewMode}>
-                  {viewMode === 'produtos' ? '🏪 Ver lojas' : '📦 Ver produtos'}
-                </button>
+                {/* Virou um segmentado de 2 (Produtos/Lojas) em vez do pill
+                    único que trocava de rótulo — pedido do Ricardo, out/2026:
+                    o pill "tava igual o botão de Entrar", confundia. Os dois
+                    estados ficam visíveis ao mesmo tempo, grudados um no
+                    outro (mesmo bloco, sem gap); o ativo fica preto com
+                    letra dourada, o inativo branco com letra preta. */}
+                <div className="pa-view-toggle" role="tablist" aria-label="Ver como">
+                  <button type="button" role="tab" aria-selected={viewMode === 'produtos'} className={`pa-view-seg ${viewMode === 'produtos' ? 'on' : ''}`} onClick={() => setViewMode('produtos')}>Produtos</button>
+                  <button type="button" role="tab" aria-selected={viewMode === 'lojas'} className={`pa-view-seg ${viewMode === 'lojas' ? 'on' : ''}`} onClick={() => setViewMode('lojas')}>Lojas</button>
+                </div>
               </div>
 
               <div className="pa-scroll-wrap">

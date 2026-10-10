@@ -57,14 +57,17 @@ const PESSOAL_LINKS = [
   { href: '/perfil?tab=cupons',     icon: '🎟️', label: 'Meus cupons' },
 ]
 
-// Bottom tab bar do portal (ESPECIFICACAO.md §4.2) — 5 destinos fixos,
-// visível pra todo mundo: Buscar · Empresas · Cardápio · Comunidade ·
-// Perfil. Empresas/Comunidade abrem uma folha compacta com os links da
-// família, em vez de navegar — não existe hoje uma página "todas as
-// empresas" nem "toda a comunidade" pra linkar direto.
-// 3º item é Cardápio (→ /peca-agora, bolinha de destaque amarela) pra
-// todo mundo, logado ou não — antes era Ofertas; pedido do Ricardo,
-// set/2026, mockup aprovado.
+// Bottom tab bar do portal (ESPECIFICACAO.md §4.2) — 5 destinos fixos:
+// Início · Empresas · Cardápio · Comunidade · Mais. Empresas/Comunidade
+// abrem uma folha compacta com os links da família, em vez de navegar —
+// não existe hoje uma página "todas as empresas" nem "toda a comunidade"
+// pra linkar direto.
+// 3º item é Cardápio (→ /peca-agora, bolinha de destaque amarela) desde
+// set/2026 (antes era Ofertas), mockup aprovado.
+// Só aparece pra quem está LOGADO (pedido do Ricardo, out/2026: "tá
+// ocupando muito espaço", quem não logou não precisa dela) — código do
+// componente continua inteiro, só a renderização fica condicionada a
+// `user`, pra ser fácil voltar atrás se for o caso.
 export default function BottomNav() {
   const [user, setUser] = useState<any>(null)
   const [show, setShow] = useState(false)
@@ -87,7 +90,7 @@ export default function BottomNav() {
   }, [])
 
   const hideOn = ['/login', '/cadastro', '/empresa/cadastrar', '/anunciar', '/admin', '/producao', '/painel', '/atendimento']
-  if (!show || hideOn.some(p => pathname.startsWith(p))) return null
+  if (!show || !user || hideOn.some(p => pathname.startsWith(p))) return null
 
   const empresasActive = EMPRESAS_LINKS.some(l => pathname === l.href)
   const comunidadeActive = COMUNIDADE_LINKS.some(l => pathname === l.href)

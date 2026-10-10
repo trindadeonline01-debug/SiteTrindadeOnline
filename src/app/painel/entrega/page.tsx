@@ -348,7 +348,7 @@ export default function EntregaPage() {
 
       {view === 'geral' && (
         <>
-          <p className="en-head-sub">{precos ? `A diária de ${fmt(precos.diaria)} só é cobrada pra chamar motoboy avulso (pedido de fora) — pedido feito pela própria plataforma usa só o crédito. O crédito é um saldo em R$, descontado pelo valor real de cada entrega (calculado por bairro/distância).` : 'Carregando preços...'} O motoboy é da plataforma — só chamar. {ativaHoje ? 'Só é descontada 1 diária no dia em que a primeira entrega avulsa é confirmada — dia sem nenhuma entrega não gasta nada, fica pro próximo.' : 'Sem diária disponível só trava o botão "+ Nova entrega" (pedido avulso).'}</p>
+          <p className="en-head-sub">{precos ? `A diária de ${fmt(precos.diaria)} é cobrada em qualquer entrega confirmada no dia, avulsa ou vinda do próprio cardápio. O crédito é um saldo em R$, descontado pelo valor real de cada entrega (calculado por bairro/distância).` : 'Carregando preços...'} O motoboy é da plataforma — só chamar. {ativaHoje ? 'Só é descontada 1 diária no dia em que a primeira entrega é confirmada — dia sem nenhuma entrega não gasta nada, fica pro próximo.' : 'Sem diária disponível só trava o botão "+ Nova entrega" (pedido avulso).'}</p>
 
           <div className="en-summary">
             <div className="en-summary-item"><div className="n">{orders.length}</div><div className="l">entregas hoje</div></div>

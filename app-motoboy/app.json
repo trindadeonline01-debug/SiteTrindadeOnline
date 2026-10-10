@@ -25,7 +25,12 @@
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
         "ACCESS_BACKGROUND_LOCATION",
-        "FOREGROUND_SERVICE"
+        "FOREGROUND_SERVICE",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION"
       ]
     },
     "web": {
@@ -46,6 +51,11 @@
           "faceIDPermission": "Usa Face ID pra desbloquear o app sem precisar digitar código ou senha toda vez."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "135e0749-7869-4177-8d09-fc6fa1bdf3aa"
+      }
+    }
   }
 }

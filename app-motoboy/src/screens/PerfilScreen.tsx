@@ -1,8 +1,9 @@
-import { useState } from 'react'
-import { View, Text, TextInput, Pressable, StyleSheet, Alert } from 'react-native'
+import { useEffect, useState } from 'react'
+import { View, Text, TextInput, Pressable, StyleSheet, Alert, Switch } from 'react-native'
+import * as LocalAuthentication from 'expo-local-authentication'
 import { colors, spacing, radius, errMsg } from '../theme'
 import { atualizarPix, logout, Motoboy } from '../api'
-import { clearToken } from '../auth'
+import { clearToken, isBiometricEnabled, setBiometricEnabled } from '../auth'
 
 type Props = { motoboy: Motoboy; onLogout: () => void }
 
@@ -11,6 +12,33 @@ export default function PerfilScreen({ motoboy, onLogout }: Props) {
   const [pixKey, setPixKey] = useState('')
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState('')
+  // Login com digital (pedido do Ricardo, out/2026) — só mostra o toggle se
+  // o aparelho tiver sensor E já tiver digital/Face ID cadastrado nele.
+  const [bioSupported, setBioSupported] = useState(false)
+  const [bioEnabled, setBioEnabledState] = useState(false)
+
+  useEffect(() => {
+    (async () => {
+      const [hw, enrolled, pref] = await Promise.all([
+        LocalAuthentication.hasHardwareAsync(),
+        LocalAuthentication.isEnrolledAsync(),
+        isBiometricEnabled(),
+      ])
+      setBioSupported(hw && enrolled)
+      setBioEnabledState(pref)
+    })()
+  }, [])
+
+  async function handleToggleBio(next: boolean) {
+    if (next) {
+      // Confirma que a digital funciona ANTES de ativar — sem isso, dava
+      // pra ligar e ficar travado numa digital que não reconhece nada.
+      const r = await LocalAuthentication.authenticateAsync({ promptMessage: 'Confirma sua digital pra ativar' })
+      if (!r.success) return
+    }
+    await setBiometricEnabled(next)
+    setBioEnabledState(next)
+  }
 
   async function handleSalvarPix() {
     if (!pixKey.trim()) return
@@ -58,6 +86,18 @@ export default function PerfilScreen({ motoboy, onLogout }: Props) {
         <Text>📄 Documentos</Text>
         <Text style={s.pillOk}>✓ aprovados</Text>
       </View>
+
+      {bioSupported && (
+        <View style={s.docRow}>
+          <Text>🔒 Entrar com digital</Text>
+          <Switch
+            value={bioEnabled}
+            onValueChange={handleToggleBio}
+            trackColor={{ true: colors.gold, false: colors.line }}
+            thumbColor={colors.card}
+          />
+        </View>
+      )}
 
       <Pressable
         style={s.docRow}

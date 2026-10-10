@@ -39,7 +39,13 @@
           "isAndroidBackgroundLocationEnabled": true
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Usa Face ID pra desbloquear o app sem precisar digitar código ou senha toda vez."
+        }
+      ]
     ]
   }
 }

@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   if (auth instanceof NextResponse) return auth
 
   try {
-    const { data: profiles } = await supabase.from('profiles').select('*').order('created_at', {ascending: false}).limit(500)
+    const { data: profiles } = await supabase.from('profiles').select('*').order('created_at', {ascending: false}).limit(5000)
     const { data: authData } = await supabase.auth.admin.listUsers()
 
     const merged = (profiles || []).map((p: any) => {

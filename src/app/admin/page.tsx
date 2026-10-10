@@ -332,7 +332,7 @@ export default function AdminPage() {
       us.forEach((u:any) => { gs[u.id] = {checked:!!u.whatsapp_group, at:u.whatsapp_group_at||null} })
       setGroupStatus(gs)
     } catch {
-      const { data } = await supabase.from('profiles').select('*').order('created_at', { ascending: false }).limit(500)
+      const { data } = await supabase.from('profiles').select('*').order('created_at', { ascending: false }).limit(5000)
       setUsers(data || [])
     }
   }

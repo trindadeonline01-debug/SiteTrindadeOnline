@@ -301,7 +301,7 @@ export default function HomePecaAgora({ groups, search = '' }: { groups: PecaGro
            tipo — ver photoUrl em pecaAgora.server.ts. */
         .pa-scroll { display: flex; gap: 10px; overflow-x: auto; padding: 4px 4px 10px; scrollbar-width: none; }
         .pa-scroll::-webkit-scrollbar { display: none; }
-        .pa-tcard { flex: 0 0 auto; width: 109px; height: 135px; border-radius: 16px; position: relative; overflow: hidden; cursor: pointer; background: var(--concrete-2); box-shadow: 0 2px 8px rgba(0,0,0,.18); transition: box-shadow .15s, transform .15s; }
+        .pa-tcard { flex: 0 0 auto; width: 142px; height: 176px; border-radius: 16px; position: relative; overflow: hidden; cursor: pointer; background: var(--concrete-2); box-shadow: 0 2px 8px rgba(0,0,0,.18); transition: box-shadow .15s, transform .15s; }
         .pa-tcard:hover, .pa-tcard.on { box-shadow: 0 0 0 3px #FFFFFF, 0 4px 14px rgba(0,0,0,.28); transform: translateY(-2px); }
         .pa-tcard-img { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 26px; }
         .pa-tcard-tag { position: absolute; left: 0; right: 0; bottom: 0; background: #FFFFFF; padding: 6px 6px 7px; text-align: center; }
@@ -366,7 +366,7 @@ export default function HomePecaAgora({ groups, search = '' }: { groups: PecaGro
                   {groups.map(g => (
                     <div key={g.key} className={`pa-tcard ${activeKey === g.key ? 'on' : ''}`} onClick={() => changeTab(g.key)}>
                       {g.photoUrl ? (
-                        <div className="pa-tcard-img"><Image src={g.photoUrl} alt={g.label} fill sizes="109px" unoptimized style={{ objectFit: 'cover' }} /></div>
+                        <div className="pa-tcard-img"><Image src={g.photoUrl} alt={g.label} fill sizes="142px" unoptimized style={{ objectFit: 'cover' }} /></div>
                       ) : (
                         <div className="pa-tcard-img">{g.emoji}</div>
                       )}

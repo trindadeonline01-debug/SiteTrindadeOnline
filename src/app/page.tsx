@@ -582,12 +582,25 @@ export default async function HomePage() {
            vez do emoji decorativo solto de antes, mostra os tipos de
            verdade configurados pelo admin (vitrine_tipos), com carinha de
            "placa" (bolha translúcida sobre o amarelo, mesmo tratamento do
-           .pa-band). Pedido do Ricardo, set/2026. */
-        .home-peca-cta-types { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
-        .home-peca-cta-types::-webkit-scrollbar { display: none; }
+           .pa-band). Pedido do Ricardo, set/2026. Só aparece no DESKTOP —
+           no mobile virou os cards com foto real (.home-peca-cta-mcard
+           abaixo), pedido do Ricardo, out/2026, mockup aprovado. */
+        .home-peca-cta-types { display: none; }
         .home-peca-cta-type { flex: 0 0 auto; width: 58px; display: flex; flex-direction: column; align-items: center; gap: 5px; text-align: center; }
         .home-peca-cta-type-ico { width: 50px; height: 50px; border-radius: 50%; background: rgba(255,255,255,.55); display: flex; align-items: center; justify-content: center; font-size: 22px; }
         .home-peca-cta-type-lbl { font-size: 9.5px; font-weight: 800; color: var(--ink); line-height: 1.15; }
+        /* Cards com foto real do produto, mesmo tratamento visual do
+           carrossel de tipos de /peca-agora (.pa-tcard) — só que aqui é só
+           MOBILE, ponta a ponta dentro da faixa, deslizando sem barra de
+           rolagem visível (scrollbar-width/::-webkit-scrollbar escondidos,
+           o gesto de arrastar continua funcionando normal — pedido do
+           Ricardo, out/2026, mockup aprovado). */
+        .home-peca-cta-mtypes { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+        .home-peca-cta-mtypes::-webkit-scrollbar { display: none; }
+        .home-peca-cta-mcard { flex: 0 0 auto; width: 100px; height: 124px; border-radius: 14px; position: relative; overflow: hidden; background: rgba(255,255,255,.35); }
+        .home-peca-cta-mcard-img { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+        .home-peca-cta-mcard-tag { position: absolute; left: 0; right: 0; bottom: 0; background: var(--paper); padding: 5px 6px 6px; text-align: center; }
+        .home-peca-cta-mcard-lbl { font-size: 10px; font-weight: 800; color: var(--sign-dark); line-height: 1.15; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
         @media(min-width: 768px) {
           .home-peca-cta { flex-direction: row; align-items: center; justify-content: space-between; gap: 28px; padding: 26px 34px; }
           /* Desfaz o layout mobile (título+botão na mesma linha) — desktop
@@ -597,7 +610,17 @@ export default async function HomePage() {
           .home-peca-cta-title { order: 0; flex: initial; white-space: normal; font-size: clamp(24px,4vw,30px); margin: 3px 0 5px; }
           .home-peca-cta-sub { order: 0; flex-basis: auto; margin: 0 0 16px; }
           .home-peca-cta-btn { order: 0; margin-left: 0; font-size: 12px; padding: 11px 18px; }
-          .home-peca-cta-types { flex: 1; justify-content: flex-end; overflow-x: visible; flex-wrap: wrap; }
+          .home-peca-cta-types { display: flex; gap: 12px; flex: 1; justify-content: flex-end; overflow-x: visible; flex-wrap: wrap; }
+          .home-peca-cta-mtypes { display: none; }
+        }
+        /* Faixa de ponta a ponta no mobile (mesmo truque do .pa-band/
+           .cat-scroll-wrap) + gap menor até o trilho de categorias logo
+           acima — pedido do Ricardo, out/2026: "tá com margem, branco em
+           volta... tem que pegar de ponta a ponta", e a distância até as
+           categorias "tá muito alta". Desktop não muda, continua card
+           arredondado com margem (Ricardo: "só vou mexer no mobile"). */
+        @media(max-width: 767px) {
+          .home-peca-cta { width: 100vw; margin-left: calc(50% - 50vw); margin-top: 6px; border-radius: 0; }
         }
 
         /* LOJAS — lista final, mesmo estilo de linha do Peça Agora */
@@ -816,14 +839,31 @@ export default async function HomePage() {
               <span className="home-peca-cta-btn">Ver cardápios →</span>
             </div>
             {pecaAgoraTipoChips.length > 0 && (
-              <div className="home-peca-cta-types">
-                {pecaAgoraTipoChips.map(g => (
-                  <div key={g.key} className="home-peca-cta-type">
-                    <span className="home-peca-cta-type-ico">{g.emoji}</span>
-                    <span className="home-peca-cta-type-lbl">{g.label}</span>
-                  </div>
-                ))}
-              </div>
+              <>
+                {/* Mobile: cards com foto real do produto (mesmo visual do
+                    carrossel de /peca-agora) — ver .home-peca-cta-mtypes */}
+                <div className="home-peca-cta-mtypes">
+                  {pecaAgoraTipoChips.map(g => (
+                    <div key={g.key} className="home-peca-cta-mcard">
+                      {g.photoUrl ? (
+                        <div className="home-peca-cta-mcard-img"><Image src={g.photoUrl} alt={g.label} fill sizes="100px" unoptimized style={{objectFit:'cover'}} /></div>
+                      ) : (
+                        <div className="home-peca-cta-mcard-img">{g.emoji}</div>
+                      )}
+                      <div className="home-peca-cta-mcard-tag"><span className="home-peca-cta-mcard-lbl">{g.label}</span></div>
+                    </div>
+                  ))}
+                </div>
+                {/* Desktop: continua a bolha com emoji de sempre */}
+                <div className="home-peca-cta-types">
+                  {pecaAgoraTipoChips.map(g => (
+                    <div key={g.key} className="home-peca-cta-type">
+                      <span className="home-peca-cta-type-ico">{g.emoji}</span>
+                      <span className="home-peca-cta-type-lbl">{g.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
           </a>
         )}

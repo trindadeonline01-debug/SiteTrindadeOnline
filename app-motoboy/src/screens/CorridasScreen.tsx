@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, RefreshControl, Linking } from 'react-native'
+import { useAudioPlayer } from 'expo-audio'
 import { colors, spacing, radius, errMsg } from '../theme'
 import { getCorridas, aceitarOferta, recusarOferta, confirmarCodigo, confirmarGrupo, Oferta, Corrida } from '../api'
 
@@ -41,6 +42,30 @@ export default function CorridasScreen() {
   const [groupErrs, setGroupErrs] = useState<Record<string, string>>({})
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
+  // Som insistente enquanto tiver oferta esperando resposta (pedido do
+  // Ricardo, out/2026 — "não temos o barulho do Trindade Online tocando").
+  // O painel web já faz isso com um beep sintetizado via Web AudioContext
+  // (não existe no RN); aqui usa um arquivo de áudio de verdade com
+  // expo-audio em loop. Toca som placeholder por enquanto — quando o
+  // Ricardo mandar a musiquinha de marca de verdade, troca o arquivo em
+  // assets/sounds/alerta_corrida.wav, sem precisar mudar nada aqui.
+  const alertPlayer = useAudioPlayer(require('../../assets/sounds/alerta_corrida.wav'))
+  const hasOffer = !!offer
+
+  useEffect(() => {
+    alertPlayer.loop = true
+  }, [alertPlayer])
+
+  useEffect(() => {
+    if (hasOffer) {
+      alertPlayer.seekTo(0).catch(() => {})
+      alertPlayer.play()
+    } else {
+      alertPlayer.pause()
+      alertPlayer.seekTo(0).catch(() => {})
+    }
+  }, [hasOffer, alertPlayer])
+
   const load = useCallback(async () => {
     try {
       const data = await getCorridas()
@@ -71,10 +96,12 @@ export default function CorridasScreen() {
 
   async function handleAceitar() {
     setBusy(true)
+    alertPlayer.pause() // não espera o próximo poll pra calar o som
     try { await aceitarOferta() } catch {} finally { setBusy(false); load() }
   }
   async function handleRecusar() {
     setBusy(true)
+    alertPlayer.pause()
     try { await recusarOferta() } catch {} finally { setBusy(false); load() }
   }
 

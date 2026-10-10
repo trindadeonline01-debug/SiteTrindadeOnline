@@ -28,10 +28,12 @@ export default function HomeScreen({ motoboy, onLogout }: Props) {
   return (
     <SafeAreaView style={s.wrap}>
       <View style={s.header}>
+        {/* Nome à esquerda, botão de online/offline à direita — ordem
+            trocada a pedido do Ricardo, out/2026 (estava ao contrário). */}
+        <Text style={s.headerName}>{motoboy.name}</Text>
         <Pressable style={[s.onlinePill, online ? s.onlineOn : s.onlineOff]} onPress={toggleOnline}>
           <Text style={[s.onlineTxt, online && { color: colors.good }]}>{online ? '🟢 Online' : '⚫ Offline'}</Text>
         </Pressable>
-        <Text style={s.headerName}>{motoboy.name}</Text>
       </View>
 
       <View style={{ flex: 1 }}>
@@ -41,9 +43,9 @@ export default function HomeScreen({ motoboy, onLogout }: Props) {
       </View>
 
       <View style={s.bottomNav}>
-        <Pressable onPress={() => setTab('corridas')}><Text style={[s.navTxt, tab === 'corridas' && s.navOn]}>🏠 Corridas</Text></Pressable>
-        <Pressable onPress={() => setTab('ganhos')}><Text style={[s.navTxt, tab === 'ganhos' && s.navOn]}>💰 Ganhos</Text></Pressable>
-        <Pressable onPress={() => setTab('perfil')}><Text style={[s.navTxt, tab === 'perfil' && s.navOn]}>👤 Perfil</Text></Pressable>
+        <Pressable style={s.navItem} onPress={() => setTab('corridas')}><Text style={[s.navTxt, tab === 'corridas' && s.navOn]}>🏠 Corridas</Text></Pressable>
+        <Pressable style={s.navItem} onPress={() => setTab('ganhos')}><Text style={[s.navTxt, tab === 'ganhos' && s.navOn]}>💰 Ganhos</Text></Pressable>
+        <Pressable style={s.navItem} onPress={() => setTab('perfil')}><Text style={[s.navTxt, tab === 'perfil' && s.navOn]}>👤 Perfil</Text></Pressable>
       </View>
     </SafeAreaView>
   )
@@ -57,7 +59,12 @@ const s = StyleSheet.create({
   onlineOff: { backgroundColor: colors.paperDark, borderColor: colors.line },
   onlineTxt: { fontWeight: '700', fontSize: 12.5, color: colors.muted },
   headerName: { fontWeight: '700', color: colors.ink },
-  bottomNav: { flexDirection: 'row', justifyContent: 'space-around', padding: spacing.sm, borderTopWidth: 1, borderTopColor: colors.line, backgroundColor: colors.card },
+  // Área de toque ~35% mais alta que antes (era só o texto solto, sem
+  // padding — ficava estreito demais pra clicar, achado do Ricardo,
+  // out/2026). Padding mora no item, não no container, pra cada aba ter
+  // sua própria área de toque cheia em vez de dividir um espaço comum.
+  bottomNav: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: colors.line, backgroundColor: colors.card },
+  navItem: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 14 },
   navTxt: { fontSize: 12, color: colors.muted },
   navOn: { color: colors.goldDark, fontWeight: '800' },
 })

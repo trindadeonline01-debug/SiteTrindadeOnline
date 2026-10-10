@@ -318,7 +318,7 @@ export default function HomePecaAgora({ groups, search = '' }: { groups: PecaGro
         .pa-row { display: flex; align-items: center; gap: 10px; background: var(--paper); border: 1px solid var(--line); border-radius: 13px; padding: 8px; transition: border-color .15s; }
         .pa-row:hover { border-color: var(--ink); }
         .pa-row-link { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; text-decoration: none; color: inherit; }
-        .pa-row-img { width: 52px; height: 52px; border-radius: 10px; flex-shrink: 0; position: relative; overflow: hidden; background: var(--concrete-2); }
+        .pa-row-img { width: 78px; height: 78px; border-radius: 14px; flex-shrink: 0; position: relative; overflow: hidden; background: var(--concrete-2); }
         .pa-row-body { flex: 1; min-width: 0; }
         .pa-row-end { flex-shrink: 0; text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
         .pa-name { font-size: 13px; font-weight: 700; color: var(--ink); line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: 'Archivo', sans-serif; }
@@ -428,7 +428,7 @@ export default function HomePecaAgora({ groups, search = '' }: { groups: PecaGro
                 <div key={p.id} className="pa-row">
                   <a className="pa-row-link" href={`/empresa/${p.companySlug}/item/${p.id}`}>
                     <div className="pa-row-img">
-                      <Image src={p.photo_url} alt={p.name} fill sizes="56px" unoptimized style={{objectFit:'cover'}} />
+                      <Image src={p.photo_url} alt={p.name} fill sizes="78px" unoptimized style={{objectFit:'cover'}} />
                     </div>
                     <div className="pa-row-body">
                       <div className="pa-name">{p.name}</div>

@@ -89,17 +89,29 @@ export default function MobileMenu() {
       <style>{`
         .mm-bar{display:none;}
         @media(max-width:767px){
-          .mm-bar{display:flex;align-items:center;justify-content:space-between;background:var(--paper);border-bottom:1px solid var(--line);padding:0 14px;height:54px;box-sizing:border-box;position:sticky;top:0;z-index:9500;}
+          /* Fundo preto (pedido do Ricardo, out/2026: o branco "não combinou"
+             bem de cima da faixa amarela do Peça Agora) — mesma dupla de cor
+             da marca (ink/sign), em vez de vermelho (que no site inteiro já
+             significa atraso/erro/urgência, não é cor de identidade). Logo,
+             hamburger e ícone de perfil invertem pra branco/dourado aqui
+             dentro — em qualquer outro lugar (drawer, por ex.) continuam
+             preto/dourado-escuro de sempre, sobre fundo branco. */
+          .mm-bar{display:flex;align-items:center;justify-content:space-between;background:var(--ink);border-bottom:1px solid rgba(255,255,255,.1);padding:0 14px;height:54px;box-sizing:border-box;position:sticky;top:0;z-index:9500;}
         }
         .mm-brand{display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden;}
         .mm-bairro{display:flex;align-items:center;gap:3px;font-size:10.5px;font-weight:700;color:var(--muted);white-space:nowrap;flex-shrink:0;font-family:'Archivo',sans-serif;background:var(--concrete-2);border-radius:20px;padding:3px 8px;}
         .mm-bairro .pin{color:var(--sign-dark);font-size:9px;}
         .mm-hamburger{background:none;border:none;cursor:pointer;padding:6px;display:flex;flex-direction:column;gap:4px;width:34px;flex-shrink:0;}
         .mm-hamburger span{display:block;height:2px;background:var(--ink);border-radius:2px;}
+        .mm-bar .mm-hamburger span{background:var(--paper);}
         .mm-logo{font-family:'Anton', sans-serif;font-size:15px;letter-spacing:.2px;color:var(--ink);text-decoration:none;text-transform:uppercase;white-space:nowrap;flex-shrink:0;}
         .mm-logo span{color:var(--sign-dark);}
+        .mm-bar .mm-logo{color:var(--paper);}
+        .mm-bar .mm-logo span{color:var(--sign);}
         .mm-entrar{background:var(--paper);color:var(--sign-dark);border:1.5px solid var(--sign-dark);border-radius:20px;padding:7px 16px;font-size:12px;font-weight:700;text-decoration:none;font-family:'Archivo',sans-serif;flex-shrink:0;}
         .mm-profile-btn{background:none;border:none;color:var(--ink);cursor:pointer;text-decoration:none;display:flex;align-items:center;justify-content:center;flex-shrink:0;width:28px;height:28px;font-size:19px;line-height:1;}
+        .mm-bar .mm-profile-btn{color:var(--paper);}
+        .mm-bar .ci-mobile{color:var(--paper);}
         .mm-profile-backdrop{position:fixed;inset:0;z-index:9499;background:transparent;border:none;padding:0;}
         .mm-profpop{position:fixed;top:58px;right:12px;background:var(--paper);border:1px solid var(--line);border-radius:12px;box-shadow:0 14px 32px rgba(0,0,0,.18);z-index:9600;min-width:220px;padding:8px;}
         .mm-profpop-lbl{font-size:10px;font-weight:800;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;padding:4px 8px 6px;}

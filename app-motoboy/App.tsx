@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { View, ActivityIndicator } from 'react-native'
+import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { StatusBar } from 'expo-status-bar'
 import LoginScreen from './src/screens/LoginScreen'
 import HomeScreen from './src/screens/HomeScreen'
@@ -30,20 +31,22 @@ export default function App() {
 
   if (checking) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.paper }}>
-        <ActivityIndicator color={colors.gold} size="large" />
-      </View>
+      <SafeAreaProvider>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.paper }}>
+          <ActivityIndicator color={colors.gold} size="large" />
+        </View>
+      </SafeAreaProvider>
     )
   }
 
   return (
-    <>
+    <SafeAreaProvider>
       <StatusBar style="dark" />
       {motoboy ? (
         <HomeScreen motoboy={motoboy} onLogout={() => setMotoboy(null)} />
       ) : (
         <LoginScreen onLogin={setMotoboy} />
       )}
-    </>
+    </SafeAreaProvider>
   )
 }

@@ -1,5 +1,11 @@
 import { useState } from 'react'
-import { View, Text, Pressable, StyleSheet, SafeAreaView } from 'react-native'
+import { View, Text, Pressable, StyleSheet } from 'react-native'
+// SafeAreaView do pacote 'react-native' não respeita a barra de navegação
+// do Android (só funciona de verdade no iOS) — achado real do Ricardo,
+// out/2026: a barra de baixo do app (Corridas/Ganhos/Perfil) ficava embaixo
+// dos botões de navegação do sistema, sem dar pra clicar. Essa versão (do
+// pacote safe-area-context) calcula a área segura nos dois sistemas.
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors, spacing, radius } from '../theme'
 import { setDisponibilidade, Motoboy } from '../api'
 import CorridasScreen from './CorridasScreen'

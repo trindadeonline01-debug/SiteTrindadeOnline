@@ -5,6 +5,8 @@ import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import BusinessHoursEditor from '@/components/BusinessHoursEditor'
 import { IGREJAS_CATEGORY_ID, DIAS_SEMANA, HourRow } from '@/lib/businessHours'
+import CaptchaTurnstile from '@/components/CaptchaTurnstile'
+import type { TurnstileInstance } from '@marsidev/react-turnstile'
 
 type Category = { id: string; name: string; emoji: string }
 type Subcategory = { id: string; name: string; emoji: string; category_id: string }
@@ -65,6 +67,8 @@ export default function AnunciarPage() {
   const [whatsappPessoal, setWhatsappPessoal] = useState('')
   const [code, setCode] = useState('')
   const [pendingData, setPendingData] = useState<any>(null)
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const captchaRef = useRef<TurnstileInstance>(null)
 
   // ── Negócio ──
   const [bizStep, setBizStep] = useState(1)
@@ -222,8 +226,13 @@ export default function AnunciarPage() {
     const { data: signUpData, error } = await supabase.auth.signUp({
       email: pendingData.email,
       password: pendingData.senha,
-      options: { data: { name: pendingData.respNome, user_type: 'company', neighborhood: pendingData.bairroPessoal, phone: pendingData.whatsappPessoal } },
+      options: {
+        data: { name: pendingData.respNome, user_type: 'company', neighborhood: pendingData.bairroPessoal, phone: pendingData.whatsappPessoal },
+        captchaToken: captchaToken || undefined,
+      },
     })
+    captchaRef.current?.reset()
+    setCaptchaToken(null)
     if (error || !signUpData.user) {
       setErro(error?.message.includes('already registered') ? 'Este e-mail já está cadastrado.' : 'Erro ao criar conta.')
       setLoading(false); return
@@ -584,6 +593,7 @@ export default function AnunciarPage() {
                 <input type="text" inputMode="numeric" maxLength={6} value={code}
                   onChange={e => setCode(e.target.value.replace(/[^0-9]/g, ''))} placeholder="000000"
                   style={{ width: '100%', padding: '14px', textAlign: 'center', fontSize: 28, fontWeight: 700, letterSpacing: 12, border: '1.5px solid #E0DDD8', borderRadius: 12, fontFamily: 'Archivo,sans-serif', marginBottom: 12, outline: 'none' }} />
+                <CaptchaTurnstile ref={captchaRef} onToken={setCaptchaToken} />
                 {erro && <div className="erro-msg">⚠️ {erro}</div>}
                 <button type="submit" disabled={loading || code.length < 6} className="btn-primary"
                   style={{ background: code.length === 6 ? 'var(--sign)' : '#E0DDD8', color: code.length === 6 ? 'var(--ink)' : '#AAA', cursor: code.length === 6 ? 'pointer' : 'not-allowed' }}>

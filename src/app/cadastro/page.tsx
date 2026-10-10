@@ -1,8 +1,10 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import CaptchaTurnstile from '@/components/CaptchaTurnstile'
+import type { TurnstileInstance } from '@marsidev/react-turnstile'
 
 function CadastroForm() {
   const searchParams = useSearchParams()
@@ -29,6 +31,8 @@ function CadastroForm() {
   const [pendingData, setPendingData] = useState<any>(() => {
     try { const s = sessionStorage.getItem('cadastro_pending'); return s ? JSON.parse(s) : null } catch { return null }
   })
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const captchaRef = useRef<TurnstileInstance>(null)
 
   // Força visual da senha
   function senhaForca() {
@@ -78,8 +82,13 @@ function CadastroForm() {
     const { error } = await supabase.auth.signUp({
       email: pendingData.email,
       password: pendingData.senha,
-      options: { data: { name: pendingData.nome, user_type: 'user', neighborhood: pendingData.bairro, phone: pendingData.whatsapp } }
+      options: {
+        data: { name: pendingData.nome, user_type: 'user', neighborhood: pendingData.bairro, phone: pendingData.whatsapp },
+        captchaToken: captchaToken || undefined,
+      },
     })
+    captchaRef.current?.reset()
+    setCaptchaToken(null)
     if (error) {
       setErro(error.message.includes('already registered') ? 'Este e-mail já está cadastrado.' : 'Erro ao criar conta.')
       setLoading(false); return
@@ -118,6 +127,7 @@ function CadastroForm() {
             placeholder="000000"
             style={{width:'100%',padding:'14px',textAlign:'center',fontSize:28,fontWeight:700,letterSpacing:12,border:'1.5px solid #E0DDD8',borderRadius:12,fontFamily:'Archivo,sans-serif',marginBottom:12,outline:'none'}}
           />
+          <CaptchaTurnstile ref={captchaRef} onToken={setCaptchaToken} />
           {erro && <div style={{color:'#E24B4A',fontSize:13,marginBottom:12}}>{erro}</div>}
           <button type="submit" disabled={loading || code.length < 6}
             style={{width:'100%',padding:'13px',background:code.length===6?'var(--sign)':'#E0DDD8',color:code.length===6?'var(--ink)':'#AAA',border:'none',borderRadius:12,fontSize:14,fontWeight:700,cursor:code.length===6?'pointer':'not-allowed',fontFamily:'Archivo,sans-serif',marginBottom:12}}>

@@ -1,6 +1,8 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import CaptchaTurnstile from '@/components/CaptchaTurnstile'
+import type { TurnstileInstance } from '@marsidev/react-turnstile'
 
 type Screen = 'loading' | 'auth' | 'needs_register' | 'pending' | 'home' | 'team' | 'client'
 type TeamRow = {
@@ -59,6 +61,8 @@ export default function ProducaoPage() {
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login')
   const [authName, setAuthName] = useState(''); const [authEmail, setAuthEmail] = useState(''); const [authPass, setAuthPass] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const captchaRef = useRef<TurnstileInstance>(null)
   const [busy, setBusy] = useState(false)
 
   const [teamRow, setTeamRow] = useState<TeamRow | null>(null)
@@ -142,11 +146,19 @@ export default function ProducaoPage() {
     e.preventDefault()
     setErrorMsg(''); setBusy(true)
     if (authMode === 'signup') {
-      const { data, error } = await supabase.auth.signUp({ email: authEmail.trim(), password: authPass })
+      const { data, error } = await supabase.auth.signUp({
+        email: authEmail.trim(), password: authPass,
+        options: { captchaToken: captchaToken || undefined },
+      })
+      captchaRef.current?.reset(); setCaptchaToken(null)
       if (error) { setBusy(false); setErrorMsg(error.message); return }
       if (data.user) await linkTeamRow(authName.trim())
     } else {
-      const { error } = await supabase.auth.signInWithPassword({ email: authEmail.trim(), password: authPass })
+      const { error } = await supabase.auth.signInWithPassword({
+        email: authEmail.trim(), password: authPass,
+        options: captchaToken ? { captchaToken } : undefined,
+      })
+      captchaRef.current?.reset(); setCaptchaToken(null)
       if (error) { setBusy(false); setErrorMsg('Email ou senha incorretos.'); return }
     }
     setBusy(false)
@@ -518,6 +530,7 @@ export default function ProducaoPage() {
                 <input type="email" value={authEmail} onChange={e => setAuthEmail(e.target.value)} placeholder="voce@email.com" required />
                 <label>Senha</label>
                 <input type="password" value={authPass} onChange={e => setAuthPass(e.target.value)} placeholder="••••••••" required minLength={6} />
+                <CaptchaTurnstile ref={captchaRef} onToken={setCaptchaToken} />
                 <button type="submit" className="pr2-btn pr2-btn-primary" disabled={busy}>{busy ? '...' : authMode === 'login' ? 'Entrar' : 'Criar conta'}</button>
               </form>
               {errorMsg && <div className="pr2-error">{errorMsg}</div>}

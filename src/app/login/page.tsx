@@ -1,7 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import CaptchaTurnstile from '@/components/CaptchaTurnstile'
+import type { TurnstileInstance } from '@marsidev/react-turnstile'
 
 export default function LoginPage() {
   const [email, setEmail]         = useState('')
@@ -11,6 +13,8 @@ export default function LoginPage() {
   const [modo, setModo]           = useState<'login'|'reset'>('login')
   const [resetOk, setResetOk]     = useState(false)
   const [verSenha, setVerSenha]   = useState(false)
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const captchaRef = useRef<TurnstileInstance>(null)
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -21,7 +25,12 @@ export default function LoginPage() {
     // autofill de celular) faz o login falhar com "credenciais inválidas"
     // mesmo com e-mail e senha certos, sem nenhum jeito de o lojista notar
     // o espaço a olho nu (achado real: JBurguer, set/2026).
-    const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password: senha })
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim(), password: senha,
+      options: captchaToken ? { captchaToken } : undefined,
+    })
+    captchaRef.current?.reset()
+    setCaptchaToken(null)
 
     if (error) {
       setErro('E-mail ou senha incorretos.')
@@ -60,7 +69,10 @@ export default function LoginPage() {
 
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
       redirectTo: `${window.location.origin}/redefinir-senha`,
+      captchaToken: captchaToken || undefined,
     })
+    captchaRef.current?.reset()
+    setCaptchaToken(null)
 
     if (error) {
       setErro('Não foi possível enviar o e-mail. Verifique o endereço.')
@@ -153,6 +165,8 @@ export default function LoginPage() {
                   Esqueci minha senha
                 </button>
 
+                <CaptchaTurnstile ref={captchaRef} onToken={setCaptchaToken} />
+
                 {erro && <div className="erro-msg">⚠️ {erro}</div>}
 
                 <button className="btn-primary" type="submit" disabled={loading}>
@@ -179,6 +193,8 @@ export default function LoginPage() {
                   <label>E-mail cadastrado</label>
                   <input type="email" placeholder="seu@email.com" value={email} onChange={e => setEmail(e.target.value)} required />
                 </div>
+
+                <CaptchaTurnstile ref={captchaRef} onToken={setCaptchaToken} />
 
                 {erro && <div className="erro-msg">⚠️ {erro}</div>}
 

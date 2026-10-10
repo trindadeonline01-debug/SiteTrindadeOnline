@@ -136,12 +136,21 @@ export async function buildPecaAgoraGroups(supabaseServer: any): Promise<PecaGro
     return result
   }
 
+  // Foto de capa do carrossel de tipos — o primeiro item de cada grupo já
+  // embaralhado (shuffle lá em cima), então troca de produto/loja sozinho
+  // entre cargas da home em vez de ficar sempre preso ao mesmo (pedido do
+  // Ricardo, out/2026: card com foto real do produto em vez de emoji).
+  const todasInterleaved = interleaveByCompany(allItems)
+
   return [
-    { key: 'todas', label: 'Todas', emoji: '🍽️', items: interleaveByCompany(allItems) },
+    { key: 'todas', label: 'Todas', emoji: '🍽️', photoUrl: todasInterleaved[0]?.photo_url, items: todasInterleaved },
     // Ordem definida pelo admin (vitrine_tipos.display_order), não por
     // contagem — fica estável entre carregamentos, só pula tipo sem item.
     ...pecaTipos
       .filter((t) => bucketMap.has(t.value))
-      .map((t) => ({ key: t.value, label: t.label, emoji: t.emoji, items: interleaveByCompany(bucketMap.get(t.value)!) })),
+      .map((t) => {
+        const items = interleaveByCompany(bucketMap.get(t.value)!)
+        return { key: t.value, label: t.label, emoji: t.emoji, photoUrl: items[0]?.photo_url, items }
+      }),
   ]
 }

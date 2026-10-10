@@ -7,7 +7,7 @@ export type PecaVitrineItem = {
   id: string; name: string; photo_url: string; price: number
   companyName: string; companySlug: string; open: boolean; hasOptions: boolean
 }
-export type PecaGroup = { key: string; label: string; emoji: string; items: PecaVitrineItem[] }
+export type PecaGroup = { key: string; label: string; emoji: string; photoUrl?: string; items: PecaVitrineItem[] }
 
 const PRICE_FILTERS = [
   { label: 'Qualquer preço', max: 0 },
@@ -294,20 +294,18 @@ export default function HomePecaAgora({ groups, search = '' }: { groups: PecaGro
         .pa-scroll-arrow { position: absolute; top: 44%; transform: translateY(-50%); z-index: 3; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--ink); background: var(--paper); color: var(--ink); font-size: 13px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,.22); padding: 0; }
         .pa-scroll-arrow.left { left: -4px; }
         .pa-scroll-arrow.right { right: -4px; }
-        /* Quadrado (não mais círculo/retângulo alto) com fundo branco
-           translúcido em vez de chapado, coladinhos entre si — 3 pedidos
-           de ajuste do Ricardo depois do mockup (set/2026). */
-        .pa-band .pa-item { width: 66px; gap: 6px; }
-        .pa-band .pa-photo { width: 64px; height: 64px; border-radius: 14px; background: rgba(255,255,255,.8); border-color: transparent; font-size: 26px; }
-        .pa-band .pa-item:hover .pa-photo, .pa-band .pa-item.on .pa-photo { border-color: var(--ink); background: rgba(255,255,255,.95); }
-        .pa-band .pa-lbl, .pa-band .pa-item.on .pa-lbl { color: var(--ink); font-size: 10.5px; }
-        .pa-scroll { display: flex; gap: 16px; overflow-x: auto; padding: 4px 4px 10px; scrollbar-width: none; }
+        /* Card com foto real do produto (em vez de quadrado com emoji) —
+           tarja branca colada embaixo da foto com o nome do tipo em
+           dourado, mockup aprovado por Ricardo out/2026 ("branca com texto
+           amarelo"). Foto vem do primeiro produto (já embaralhado) daquele
+           tipo — ver photoUrl em pecaAgora.server.ts. */
+        .pa-scroll { display: flex; gap: 10px; overflow-x: auto; padding: 4px 4px 10px; scrollbar-width: none; }
         .pa-scroll::-webkit-scrollbar { display: none; }
-        .pa-item { flex: 0 0 auto; width: 84px; display: flex; flex-direction: column; align-items: center; gap: 7px; text-align: center; cursor: pointer; }
-        .pa-photo { width: 76px; height: 76px; border-radius: 50%; background: var(--concrete-2); border: 2.5px solid transparent; display: flex; align-items: center; justify-content: center; font-size: 32px; transition: border-color .15s, transform .15s; }
-        .pa-item:hover .pa-photo, .pa-item.on .pa-photo { border-color: var(--sign); transform: translateY(-2px); }
-        .pa-lbl { font-size: 12px; font-weight: 700; color: var(--ink); line-height: 1.2; font-family: 'Archivo', sans-serif; }
-        .pa-item.on .pa-lbl { color: var(--sign-dark); }
+        .pa-tcard { flex: 0 0 auto; width: 84px; height: 104px; border-radius: 16px; position: relative; overflow: hidden; cursor: pointer; background: var(--concrete-2); box-shadow: 0 2px 8px rgba(0,0,0,.18); transition: box-shadow .15s, transform .15s; }
+        .pa-tcard:hover, .pa-tcard.on { box-shadow: 0 0 0 3px var(--ink), 0 4px 14px rgba(0,0,0,.28); transform: translateY(-2px); }
+        .pa-tcard-img { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 26px; }
+        .pa-tcard-tag { position: absolute; left: 0; right: 0; bottom: 0; background: #FFFFFF; padding: 6px 6px 7px; text-align: center; }
+        .pa-tcard-lbl { font-size: 11px; font-weight: 800; color: var(--sign-dark); line-height: 1.15; font-family: 'Archivo', sans-serif; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
         .pa-filters { display: flex; gap: 8px; flex-wrap: nowrap; overflow-x: auto; padding: 2px 4px 6px; margin: 2px 0 16px; scrollbar-width: none; }
         .pa-filters::-webkit-scrollbar { display: none; }
         .pa-chip { flex: 0 0 auto; padding: 7px 15px; border-radius: 20px; border: 1px solid var(--line); background: var(--paper); font-size: 12px; font-weight: 700; color: var(--ink); cursor: pointer; font-family: 'Archivo', sans-serif; white-space: nowrap; }
@@ -366,9 +364,13 @@ export default function HomePecaAgora({ groups, search = '' }: { groups: PecaGro
               <div className="pa-scroll-wrap">
                 <div className="pa-scroll" ref={tabsScrollRef}>
                   {groups.map(g => (
-                    <div key={g.key} className={`pa-item ${activeKey === g.key ? 'on' : ''}`} onClick={() => changeTab(g.key)}>
-                      <div className="pa-photo">{g.emoji}</div>
-                      <span className="pa-lbl">{g.label}</span>
+                    <div key={g.key} className={`pa-tcard ${activeKey === g.key ? 'on' : ''}`} onClick={() => changeTab(g.key)}>
+                      {g.photoUrl ? (
+                        <div className="pa-tcard-img"><Image src={g.photoUrl} alt={g.label} fill sizes="84px" unoptimized style={{ objectFit: 'cover' }} /></div>
+                      ) : (
+                        <div className="pa-tcard-img">{g.emoji}</div>
+                      )}
+                      <div className="pa-tcard-tag"><span className="pa-tcard-lbl">{g.label}</span></div>
                     </div>
                   ))}
                 </div>

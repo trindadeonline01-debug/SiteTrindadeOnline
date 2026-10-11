@@ -499,7 +499,18 @@ export default function PedidosPage() {
     if (pedidoRef) {
       notifyCustomer(pedidoRef.customer_id, companyName, status)
       notifyCustomerWhatsapp(companyId, pedidoRef.customer_phone, status, pedidoRef.delivery_type, id)
-      if (status === 'em_preparo') maybeAutoChamarMotoboy(pedidoRef)
+      // Achado real, out/2026 (Empadaí): o auto-chamar só disparava na
+      // transição PRA "em_preparo" — mas os chips de status (linha ~1028)
+      // deixam pular direto pra qualquer status do fluxo, inclusive indo de
+      // "Recebido" direto pra "Pronto" sem passar por "Em preparo" de
+      // verdade (comida rápida tipo empada, pronta na hora). Nesses casos o
+      // auto-chamar nunca rodava, sem erro nenhum — a lojista achava que
+      // "não tava chamando automático" porque, pro fluxo dela, realmente
+      // não tava. Agora dispara em "em_preparo" OU "pronto" (o que vier
+      // primeiro) — ainda não dispara em "saiu_entrega"/"entregue", porque
+      // nesses dois já não faz sentido chamar motoboy pra uma entrega que a
+      // própria loja sinalizou que já saiu/chegou por outro meio.
+      if (status === 'em_preparo' || status === 'pronto') maybeAutoChamarMotoboy(pedidoRef)
       if (motoboyId) notifyMotoboyWhatsapp(companyId, id, motoboyId)
     }
     // Pedido cancelado (pela loja ou a pedido do cliente, via

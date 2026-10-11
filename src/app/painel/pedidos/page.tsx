@@ -966,7 +966,7 @@ export default function PedidosPage() {
           )}
         </div>
         {canAct && needsAccept && <button className="pd-accept" onClick={e => { e.stopPropagation(); acceptPedido(p.id) }}>✓ Aceitar pedido</button>}
-        {canAct && !needsAccept && !open && getNextAction(p) && (() => {
+        {canAct && !needsAccept && getNextAction(p) && (() => {
           const action = getNextAction(p)!
           const ativos = motoboys.filter(m => m.ativo)
           // Vira "saiu pra entrega" com motoboy PRÓPRIO cadastrado — com 2+
@@ -974,6 +974,17 @@ export default function PedidosPage() {
           // depois clica); com 1 só, atribui sozinho; sem nenhum, segue sem
           // atribuir nada (a função é opcional, não trava o fluxo de quem
           // não usa). Pedido do Ricardo, set/2026.
+          //
+          // Antes esse bloco inteiro só aparecia com o card FECHADO (!open)
+          // — quem abria o pedido pra conferir endereço/itens antes de
+          // despachar perdia esse botão e o dropdown de motoboy próprio,
+          // sobrando só os chips de status (sem motoboy nenhum) e o botão
+          // de chamar motoboy da PLATAFORMA lá dentro do detalhe. Achado
+          // real, out/2026 (Crepe Cone): pedido nº16 foi pra "saiu_entrega"
+          // sem motoboy nenhum atribuído porque a lojista abriu o pedido
+          // antes de avançar e só viu a opção de motoboy da plataforma —
+          // a de escolher o motoboy dela (Pedro) tinha sumido. Agora esse
+          // botão fica disponível com o card aberto ou fechado.
           const precisaEscolher = action.next === 'saiu_entrega' && ativos.length > 1
           return (
             <>

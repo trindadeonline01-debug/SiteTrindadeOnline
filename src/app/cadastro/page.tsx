@@ -94,6 +94,15 @@ function CadastroForm() {
       setLoading(false); return
     }
     sessionStorage.removeItem('cadastro_pending')
+    // Morador não recebia boas-vindas nenhuma por WhatsApp (só empresa
+    // tinha isso, e só depois da aprovação do admin) — achado do Ricardo,
+    // out/2026. Fire-and-forget: não bloqueia a tela de sucesso se o envio
+    // demorar ou falhar.
+    fetch('/api/auth/boas-vindas-morador', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: pendingData.whatsapp, name: pendingData.nome }),
+    }).catch(() => {})
     setOk(true)
     setLoading(false)
   }

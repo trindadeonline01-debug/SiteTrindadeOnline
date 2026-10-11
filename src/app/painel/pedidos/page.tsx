@@ -1135,11 +1135,16 @@ export default function PedidosPage() {
              todo encolhido ainda não couber, o grupo de ações quebra pra
              uma linha de baixo inteiro — nunca corta/empurra pra fora. */
         .pd-card-toolbar{ display:flex;align-items:center;flex-wrap:wrap;gap:4px 6px;background:#F7F5F0;border-bottom:1px solid #EDE8E0;border-radius:12px 12px 0 0;padding:8px 14px;margin:-14px -14px 10px; }
-        .pd-ct-status{ min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:800;padding:3px 8px;border-radius:7px;flex:1 1 auto; }
-        .pd-ct-actions{ display:flex;align-items:center;gap:4px;flex:none;margin-left:auto; }
+        /* Badge de status não estica mais pra ocupar a linha toda — só o
+           tamanho do próprio texto (mesma fonte/tamanho do nome do
+           cliente, .pd-name) — e os botões de editar/imprimir/abrir ganham
+           mais área de toque. Pedido do Ricardo, out/2026: "o badge tá
+           muito grande... os botõezinhos tão muito pequenos". */
+        .pd-ct-status{ min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:16px;font-weight:800;padding:3px 10px;border-radius:7px;flex:0 1 auto; }
+        .pd-ct-actions{ display:flex;align-items:center;gap:6px;flex:none;margin-left:auto; }
         .pd-row1{ margin-bottom:8px; }
-        .pd-edit-btn{ width:26px;height:26px;border-radius:8px;border:1px solid #E6E0D2;background:#fff;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;flex:none;padding:0; }
-        .pd-toggle-btn{ width:26px;height:26px;border-radius:8px;border:1.5px solid #D8C98A;background:#FEF6DC;color:#8A6410;cursor:pointer;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none;padding:0; }
+        .pd-edit-btn{ width:40px;height:36px;border-radius:9px;border:1px solid #E6E0D2;background:#fff;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex:none;padding:0; }
+        .pd-toggle-btn{ width:40px;height:36px;border-radius:9px;border:1.5px solid #D8C98A;background:#FEF6DC;color:#8A6410;cursor:pointer;font-size:17px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none;padding:0; }
         .pd-name{ font-weight:800;font-size:16px; }
         .pd-time{ font-size:12.5px;color:#A79E8B; }
         .pd-origin-tag{ font-weight:700; }

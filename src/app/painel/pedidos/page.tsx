@@ -1099,10 +1099,11 @@ export default function PedidosPage() {
         .pd-head-right{ display:flex;align-items:center;gap:10px;flex:none; }
         .pd-head h1{ font-size:19px;margin:0;font-weight:800;flex:none;white-space:nowrap; }
         .pd-back{ flex:none;width:30px;height:30px;border-radius:50%;border:1px solid #E6E0D2;background:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;text-decoration:none;color:#1A1610; }
-        /* O dobro da largura de antes — pedido do Ricardo, out/2026: "ainda
-           tá pequeno, tem muito espaço disponível... pode botar o dobro da
-           largura". */
-        .pd-auto-pill{ flex:none;width:116px;display:flex;align-items:center;justify-content:center;gap:8px;background:#fff;border:1px solid #E6E0D2;border-radius:14px;padding:9px 10px;cursor:pointer;font-size:17px; }
+        /* O dobro tinha ficado largo demais — retângulo branco enorme com o
+           switch verde pequenininho dentro, e estourava a lateral no
+           mobile. Reduzido 20% (116px → 93px), pedido do Ricardo,
+           out/2026. */
+        .pd-auto-pill{ flex:none;width:93px;display:flex;align-items:center;justify-content:center;gap:8px;background:#fff;border:1px solid #E6E0D2;border-radius:14px;padding:9px 10px;cursor:pointer;font-size:17px; }
         .pd-auto-pill .pd-switch{ width:34px;height:19px;border-radius:10px; }
         .pd-auto-pill .pd-switch .k{ width:15px;height:15px;top:2px;left:2px; }
         .pd-auto-pill .pd-switch.on .k{ left:15px; }

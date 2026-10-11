@@ -1097,10 +1097,14 @@ export default function PedidosPage() {
         .pd-head-right{ display:flex;align-items:center;gap:6px;flex:none; }
         .pd-head h1{ font-size:19px;margin:0;font-weight:800;flex:none;white-space:nowrap; }
         .pd-back{ flex:none;width:30px;height:30px;border-radius:50%;border:1px solid #E6E0D2;background:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;text-decoration:none;color:#1A1610; }
-        .pd-auto-pill{ flex:none;display:flex;align-items:center;gap:4px;background:#fff;border:1px solid #E6E0D2;border-radius:20px;padding:5px 8px;cursor:pointer; }
-        .pd-auto-pill .pd-switch{ width:24px;height:15px;border-radius:8px; }
-        .pd-auto-pill .pd-switch .k{ width:11px;height:11px;top:2px;left:2px; }
-        .pd-auto-pill .pd-switch.on .k{ left:11px; }
+        /* Largura igual pros dois pills (antes o de "aceitar" não tinha
+           ícone nenhum, só o switch, e ficava bem menor que o de motoboy)
+           — pedido do Ricardo, out/2026: "os dois podem aumentar... ser do
+           mesmo tamanho". */
+        .pd-auto-pill{ flex:none;width:58px;display:flex;align-items:center;justify-content:center;gap:5px;background:#fff;border:1px solid #E6E0D2;border-radius:14px;padding:7px 8px;cursor:pointer; }
+        .pd-auto-pill .pd-switch{ width:28px;height:16px;border-radius:9px; }
+        .pd-auto-pill .pd-switch .k{ width:12px;height:12px;top:2px;left:2px; }
+        .pd-auto-pill .pd-switch.on .k{ left:12px; }
         .pd-new-pill{ flex:none;width:26px;height:26px;border-radius:50%;background:var(--sign);color:var(--ink);border:none;font-size:16px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center; }
         .pd-icon-pill{ flex:none;width:26px;height:26px;border-radius:50%;border:none;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit; }
         .pd-datebar{ display:flex;align-items:center;gap:8px;padding:0 16px 12px; }
@@ -1225,7 +1229,13 @@ export default function PedidosPage() {
         .pd-mb-select{ width:100%;margin-top:8px;padding:9px 10px;border-radius:9px;border:1.5px solid #E0DDD8;background:#fff;color:#111;font-weight:700;font-size:14px;font-family:inherit; }
         .pd-toolbar{ display:none; }
         .pd-search{ width:100%;padding:9px 12px;border-radius:9px;border:1px solid #E6E0D2;background:#F7F5F0;font-size:14px;font-family:inherit; }
-        .pd-autotoggle{ display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;color:#6E6656;cursor:pointer; }
+        /* Virou cartão com fundo/borda próprios, largura fixa igual pros
+           dois (antes o texto de cada um tinha tamanho diferente —
+           "Aceitar automaticamente" vs "🏍️ Motoboy automático" — e cada
+           label só ocupava o próprio texto, ficando bem desproporcional).
+           Pedido do Ricardo, out/2026: "os dois podem aumentar em
+           largura... ser do mesmo tamanho". */
+        .pd-autotoggle{ display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;color:#3A342A;cursor:pointer;background:#fff;border:1px solid #E6E0D2;border-radius:10px;padding:10px 16px;width:220px;flex:none; }
         .pd-switch{ width:36px;height:20px;border-radius:11px;background:#E6E0D2;position:relative;cursor:pointer;flex:none; }
         .pd-switch.on{ background:#157A52; }
         .pd-switch .k{ position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .15s; }
@@ -1386,6 +1396,7 @@ export default function PedidosPage() {
             <a href="/painel/compartilhar" className="pd-back">‹</a>
             <h1>Pedidos</h1>
             <label className="pd-auto-pill" title="Aceitar pedidos automaticamente">
+              <span>📥</span>
               <div className={`pd-switch ${autoAceitar ? 'on' : ''}`} onClick={toggleAutoAceitar}><div className="k" /></div>
             </label>
             {entregaEnabled && (

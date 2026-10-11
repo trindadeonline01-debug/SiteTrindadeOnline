@@ -950,8 +950,8 @@ export default function PedidosPage() {
                       fica em destaque (o que ainda falta confirmar). */}
                   {(d.pickup_code || d.delivery_code) && (
                     <div className="pd-codes">
-                      {d.pickup_code && <span className={`pd-code${aindaNaoRetirou ? '' : ' pd-code-done'}`}>🏪 loja {d.pickup_code}</span>}
-                      {d.delivery_code && <span className={`pd-code${aindaNaoRetirou ? ' pd-code-done' : ''}`}>👤 cliente {d.delivery_code}</span>}
+                      {d.pickup_code && <span className={`pd-code${aindaNaoRetirou ? '' : ' pd-code-done'}`}>loja {d.pickup_code}</span>}
+                      {d.delivery_code && <span className={`pd-code${aindaNaoRetirou ? ' pd-code-done' : ''}`}>cliente {d.delivery_code}</span>}
                     </div>
                   )}
                 </div>
@@ -1144,7 +1144,11 @@ export default function PedidosPage() {
         .pd-inforow + .pd-inforow{ border-top:1px solid rgba(0,0,0,.06); }
         .pd-moto-top{ display:flex;align-items:center;justify-content:space-between;gap:8px; }
         .pd-codes{ display:flex;justify-content:space-between;gap:6px; }
-        .pd-code{ flex:none;font-family:'Courier New',monospace;font-weight:800;background:#1A1610;color:var(--sign,#FFC531);padding:2px 9px;border-radius:6px;font-size:13px;letter-spacing:2px;text-transform:lowercase; }
+        /* Sem o emoji (🏪/👤) e com letter-spacing/padding mais apertados —
+           pedido do Ricardo, out/2026: no Android as duas caixinhas
+           ("loja ####" + "cliente ####") estouravam a largura da tela,
+           cortando o código do cliente. */
+        .pd-code{ flex:none;font-family:'Courier New',monospace;font-weight:800;background:#1A1610;color:var(--sign,#FFC531);padding:2px 7px;border-radius:6px;font-size:12.5px;letter-spacing:.5px;text-transform:lowercase; }
         /* Antes herdava a cor amarela do .pd-code normal, só com fundo
            transparente — virava amarelo sobre o azul/vermelho clarinho do
            .pd-inforow, ilegível (achado real do Ricardo, out/2026). Agora

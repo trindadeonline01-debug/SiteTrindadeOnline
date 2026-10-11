@@ -88,7 +88,6 @@ const STATUS_COLOR: Record<Status, { bg: string; fg: string }> = {
   pronto: { bg: '#E4F3EC', fg: '#157A52' }, saiu_entrega: { bg: '#E8F0FE', fg: '#1A56B0' },
   entregue: { bg: '#F0EDE8', fg: '#6E6656' }, cancelado: { bg: '#FBEAEA', fg: '#C43D3D' },
 }
-const FLOW: Status[] = ['recebido', 'em_preparo', 'pronto', 'saiu_entrega', 'entregue']
 const BOARD_COLUMNS: Status[] = ['recebido', 'em_preparo', 'pronto', 'saiu_entrega', 'entregue']
 type MobileStageKey = 'recebido' | 'em_preparo' | 'pronto' | 'saiu_entrega' | 'historico'
 const MOBILE_STAGES: { key: MobileStageKey; label: string; accent: string; match: (s: Status) => boolean }[] = [
@@ -108,8 +107,6 @@ function getNextAction(p: Pedido): { next: Status; label: string } | null {
   if (p.status === 'saiu_entrega') return { next: 'entregue', label: 'Marcar entregue' }
   return null
 }
-function flowFor(p: Pedido): Status[] { return p.delivery_type !== 'entrega' ? FLOW.filter(s => s !== 'saiu_entrega') : FLOW }
-
 // Pedido "atrasado" — ainda não existe um tempo combinado configurável por
 // loja, então usa um teto razoável fixo: mais de 30min parado em
 // recebido/em_preparo sem avançar (ESPECIFICACAO.md §10.7 — "pedido parado
@@ -1045,11 +1042,6 @@ export default function PedidosPage() {
                 </>
               )
             )}
-            {canAct && (
-              <div className="pd-chips">
-                {flowFor(p).map(s => <button key={s} className={`pd-chip ${p.status === s ? 'current' : ''}`} onClick={() => setStatus(p.id, s)}>{STATUS_LABEL[s]}</button>)}
-              </div>
-            )}
             {canAct && p.status !== 'cancelado' && p.status !== 'entregue' && <button className="pd-cancel" onClick={() => setStatus(p.id, 'cancelado')}>Cancelar pedido</button>}
           </div>
         )}
@@ -1183,9 +1175,6 @@ export default function PedidosPage() {
         .pd-detail-meta{ margin-top:10px;display:flex;flex-direction:column;gap:4px;background:#F7F5F0;border-radius:9px;padding:9px 11px; }
         .pd-meta-row{ font-size:12.5px;color:#3A342A; }
         .pd-meta-notes{ color:#6E6656; }
-        .pd-chips{ display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px; }
-        .pd-chip{ font-size:12.5px;font-weight:700;padding:8px 10px;border-radius:8px;border:1px solid #E6E0D2;background:#fff;cursor:pointer;color:#6E6656;text-align:center; }
-        .pd-chip.current{ background:var(--sign);color:var(--ink);border-color:var(--sign); }
         /* Era só texto sublinhado antes — "pode fazer um botão vermelho pra
            chamar bastante atenção" (Ricardo, out/2026, revisando o mockup). */
         .pd-cancel{ width:100%;font-size:14px;color:#fff;font-weight:800;background:#C43D3D;border:none;border-radius:9px;padding:11px;cursor:pointer;margin-top:10px; }

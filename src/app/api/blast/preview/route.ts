@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { requireAdmin } from '@/lib/requireAdmin'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,6 +15,9 @@ function formatPhone(phone: string): string {
 
 export async function POST(req: NextRequest) {
   try {
+    const adminAuth = await requireAdmin(req)
+    if (adminAuth instanceof NextResponse) return adminAuth
+
     const { filter, list_id } = await req.json()
 
     let contacts: string[] = []

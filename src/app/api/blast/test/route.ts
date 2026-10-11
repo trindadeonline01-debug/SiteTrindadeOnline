@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAdmin } from '@/lib/requireAdmin'
 
 const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'https://evo.trindadeonline.com.br'
 
@@ -88,6 +89,12 @@ async function sendAudio(phone: string, mediaUrl: string, instance: EvoInstance)
 
 export async function POST(req: NextRequest) {
   try {
+    // Sem isso, qualquer POST direto conseguia mandar mensagem com mídia
+    // arbitrária pra qualquer número, pelo WhatsApp da plataforma, sem
+    // login nenhum (achado de auditoria, out/2026).
+    const adminAuth = await requireAdmin(req)
+    if (adminAuth instanceof NextResponse) return adminAuth
+
     const { phone, name, company, messages } = await req.json()
     if (!phone) return NextResponse.json({ error: 'phone obrigatorio' }, { status: 400 })
     const validMessages = ((messages || []) as MessageVariation[]).filter(m => m?.text?.trim() || m?.media_url)

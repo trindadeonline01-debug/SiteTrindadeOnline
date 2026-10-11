@@ -27,6 +27,17 @@ function emptyMedia(): Record<MediaKind, MediaSlot> {
   return { audio: { url: '' }, video: { url: '' }, image: { url: '' } }
 }
 
+// /api/blast (e preview/test) agora exigem sessão de admin de verdade
+// (achado de auditoria, out/2026 — antes qualquer POST direto, sem
+// passar pela UI, conseguia disparar campanha de WhatsApp em massa pelo
+// número da plataforma). Esse helper devolve o header pronto pra anexar
+// em cada fetch.
+async function authHeaders(): Promise<Record<string, string>> {
+  const { data } = await supabase.auth.getSession()
+  const token = data.session?.access_token
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
 interface Campaign {
   id: string
   name: string
@@ -160,13 +171,13 @@ export default function DisparosTab() {
   }
 
   async function loadCampaigns() {
-    const res = await fetch('/api/blast')
+    const res = await fetch('/api/blast', { headers: await authHeaders() })
     const data = await res.json()
     setCampaigns(data.campaigns || [])
   }
 
   async function loadLogs(campaignId: string) {
-    const res = await fetch(`/api/blast?campaign_id=${campaignId}`)
+    const res = await fetch(`/api/blast?campaign_id=${campaignId}`, { headers: await authHeaders() })
     const data = await res.json()
     setLogs(data.logs || [])
   }
@@ -426,7 +437,7 @@ export default function DisparosTab() {
   async function calcPreview() {
     const res = await fetch('/api/blast/preview', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
       body: JSON.stringify({ filter, list_id: filter === 'broadcast_list' ? selectedListId : undefined })
     })
     const data = await res.json()
@@ -459,9 +470,10 @@ export default function DisparosTab() {
     setLoading(true)
     try {
       const listName = filter === 'broadcast_list' ? (lists.find(l => l.id === selectedListId)?.name || null) : null
+      const hdrs = { 'Content-Type': 'application/json', ...(await authHeaders()) }
       const res = await fetch('/api/blast', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: hdrs,
         body: JSON.stringify({
           action: 'create',
           name,
@@ -479,7 +491,7 @@ export default function DisparosTab() {
       if (startNow) {
         await fetch('/api/blast', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: hdrs,
           body: JSON.stringify({ action: 'start', campaign_id: data.campaign_id })
         })
       }
@@ -492,18 +504,18 @@ export default function DisparosTab() {
   }
 
   async function pauseCampaign(id: string) {
-    await fetch('/api/blast', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'pause', campaign_id: id }) })
+    await fetch('/api/blast', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(await authHeaders()) }, body: JSON.stringify({ action: 'pause', campaign_id: id }) })
     await loadCampaigns()
   }
 
   async function resumeCampaign(id: string) {
-    await fetch('/api/blast', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'start', campaign_id: id }) })
+    await fetch('/api/blast', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(await authHeaders()) }, body: JSON.stringify({ action: 'start', campaign_id: id }) })
     await loadCampaigns()
   }
 
   async function cancelCampaign(id: string) {
     if (!confirm('Cancelar campanha?')) return
-    await fetch('/api/blast', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'cancel', campaign_id: id }) })
+    await fetch('/api/blast', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(await authHeaders()) }, body: JSON.stringify({ action: 'cancel', campaign_id: id }) })
     await loadCampaigns()
   }
 
@@ -531,7 +543,7 @@ export default function DisparosTab() {
     try {
       const res = await fetch("/api/blast/test", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(await authHeaders()) },
         body: JSON.stringify({
           phone: testSelected.phone, name: testSelected.name, company: testSelected.name, messages: validMessages,
         })

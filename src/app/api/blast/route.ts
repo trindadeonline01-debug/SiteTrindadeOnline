@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse, after } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { requireAdmin } from '@/lib/requireAdmin'
 
 // Permite a funcao serverless continuar rodando em segundo plano (via after())
 // pelo tempo necessario pra terminar o disparo de uma campanha
@@ -237,11 +238,13 @@ async function runCampaignBatch(campaign: any, logs: any[], origin: string) {
 
   if (ranOutOfTime) {
     // Encadeia a próxima leva antes de sair — a campanha continua
-    // "running", só quem processa o resto é a próxima invocação
+    // "running", só quem processa o resto é a próxima invocação. Chamada
+    // servidor-a-servidor (nunca tem sessão de usuário), autentica com o
+    // mesmo CRON_SECRET que os crons do projeto já usam.
     try {
       await fetch(`${origin}/api/blast`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.CRON_SECRET}` },
         body: JSON.stringify({ action: 'continue', campaign_id: campaign.id })
       })
     } catch {}
@@ -259,6 +262,20 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const { action, campaign_id, ...data } = body
+
+    // Essa rota nunca checou quem estava chamando — qualquer POST direto
+    // (sem passar pela UI) conseguia criar e disparar campanha de WhatsApp
+    // em massa pelo número da própria plataforma, pra qualquer lista de
+    // contatos (achado de auditoria, out/2026). Duas formas válidas de
+    // chamar: sessão de admin (UI) OU o mesmo CRON_SECRET que os outros
+    // crons do projeto já usam — cobre tanto a chamada interna de
+    // 'continue' (a própria função se rechamando em segundo plano, nunca
+    // tem sessão de usuário) quanto um disparo agendado sem UI aberta.
+    const isAutomated = !!process.env.CRON_SECRET && req.headers.get('authorization') === `Bearer ${process.env.CRON_SECRET}`
+    if (!isAutomated) {
+      const adminAuth = await requireAdmin(req)
+      if (adminAuth instanceof NextResponse) return adminAuth
+    }
 
     // CRIAR CAMPANHA
     if (action === 'create') {
@@ -484,6 +501,9 @@ export async function runBlastWatchdog(origin: string) {
 
 export async function GET(req: NextRequest) {
   try {
+    const adminAuth = await requireAdmin(req)
+    if (adminAuth instanceof NextResponse) return adminAuth
+
     const { searchParams } = new URL(req.url)
     const campaign_id = searchParams.get('campaign_id')
 

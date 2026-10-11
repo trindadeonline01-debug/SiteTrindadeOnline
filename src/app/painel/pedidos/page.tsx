@@ -950,8 +950,18 @@ export default function PedidosPage() {
                       fica em destaque (o que ainda falta confirmar). */}
                   {(d.pickup_code || d.delivery_code) && (
                     <div className="pd-codes">
-                      {d.pickup_code && <span className={`pd-code${aindaNaoRetirou ? '' : ' pd-code-done'}`}>loja {d.pickup_code}</span>}
-                      {d.delivery_code && <span className={`pd-code${aindaNaoRetirou ? ' pd-code-done' : ''}`}>cliente {d.delivery_code}</span>}
+                      {d.pickup_code && (
+                        <div className={`pd-code${aindaNaoRetirou ? '' : ' pd-code-done'}`}>
+                          <span className="pd-code-lbl">Loja</span>
+                          <span className="pd-code-num">{d.pickup_code}</span>
+                        </div>
+                      )}
+                      {d.delivery_code && (
+                        <div className={`pd-code${aindaNaoRetirou ? ' pd-code-done' : ''}`}>
+                          <span className="pd-code-lbl">Cliente</span>
+                          <span className="pd-code-num">{d.delivery_code}</span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1144,16 +1154,20 @@ export default function PedidosPage() {
         .pd-inforow + .pd-inforow{ border-top:1px solid rgba(0,0,0,.06); }
         .pd-moto-top{ display:flex;align-items:center;justify-content:space-between;gap:8px; }
         .pd-codes{ display:flex;justify-content:space-between;gap:6px; }
-        /* Sem o emoji (🏪/👤) e com letter-spacing/padding mais apertados —
-           pedido do Ricardo, out/2026: no Android as duas caixinhas
-           ("loja ####" + "cliente ####") estouravam a largura da tela,
-           cortando o código do cliente. */
-        .pd-code{ flex:none;font-family:'Courier New',monospace;font-weight:800;background:#1A1610;color:var(--sign,#FFC531);padding:2px 7px;border-radius:6px;font-size:12.5px;letter-spacing:.5px;text-transform:lowercase; }
+        /* Rótulo em cima, número grande embaixo — pedido do Ricardo,
+           out/2026: "o número tem que estar destacado, do tamanho do
+           preço". Fonte igual ao resto do painel (Archivo, não mais
+           Courier New monospace), caixa alta no rótulo, número no
+           tamanho do .pd-total (preço). flex:1 nos dois faz cada
+           caixinha ocupar metade da largura, sem estourar no Android. */
+        .pd-code{ flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:1px;font-family:inherit;background:#1A1610;color:var(--sign,#FFC531);padding:5px 6px;border-radius:8px;text-align:center; }
+        .pd-code-lbl{ font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase; }
+        .pd-code-num{ font-size:18px;font-weight:800;line-height:1.15; }
         /* Antes herdava a cor amarela do .pd-code normal, só com fundo
            transparente — virava amarelo sobre o azul/vermelho clarinho do
            .pd-inforow, ilegível (achado real do Ricardo, out/2026). Agora
            contorno e letra pretos, sempre legível em qualquer fundo claro. */
-        .pd-code-done{ background:transparent;border:1px solid #1A1610;color:#1A1610;opacity:.65;font-weight:700; }
+        .pd-code-done{ background:transparent;border:1px solid #1A1610;color:#1A1610;opacity:.65; }
         .pd-moto-cancel{ flex:none;border:1.5px solid #C43D3D;background:#fff;color:#C43D3D;font-weight:700;font-size:11.5px;padding:4px 10px;border-radius:7px;cursor:pointer;font-family:inherit; }
         .pd-moto-cancel:disabled{ opacity:.6;cursor:not-allowed; }
         /* Containerzinho dividido ao meio (item|entrega, forma de

@@ -59,10 +59,15 @@ interface MessageVariation {
   media_type?: string | null
 }
 
-// Sorteia uma variação (texto + midia propria) e substitui variáveis no texto
-function pickVariation(messages: MessageVariation[], nome: string, empresa: string): { text: string; media_url: string | null; media_type: string | null } {
+// Escolhe uma variação (texto + midia propria) e substitui variáveis no
+// texto. Se vier um índice fixo (gravado em blast_logs.variation_index na
+// criação da campanha, pedido do Ricardo out/2026), usa ele — garante que
+// cada contato recebe só 1 variação, alternando V1/V2/V3/V1... em vez de
+// sortear, pra não virar um monte de mensagem IGUAL em sequência (risco de
+// banimento no WhatsApp). Sem índice (campanha antiga), cai pro sorteio.
+function pickVariation(messages: MessageVariation[], nome: string, empresa: string, fixedIndex?: number | null): { text: string; media_url: string | null; media_type: string | null } {
   if (!messages || messages.length === 0) return { text: '', media_url: null, media_type: null }
-  const idx = Math.floor(Math.random() * messages.length)
+  const idx = (fixedIndex != null) ? (fixedIndex % messages.length) : Math.floor(Math.random() * messages.length)
   const v = messages[idx]
   return {
     text: (v.text || '').replace(/\{\{nome\}\}/g, nome).replace(/\{\{empresa\}\}/g, empresa),
@@ -189,7 +194,7 @@ async function runCampaignBatch(campaign: any, logs: any[], origin: string) {
     if (!claimed || claimed.length === 0) continue
     sentThisInvocation++
 
-    const picked = pickVariation(campaign.messages, log.contact_name || 'Cliente', log.company_name || '')
+    const picked = pickVariation(campaign.messages, log.contact_name || 'Cliente', log.company_name || '', log.variation_index)
     const message = picked.text
     let result: { ok: boolean; error?: string; instance: EvoInstance }
     if (picked.media_type === 'image' || picked.media_type === 'video') {
@@ -396,14 +401,18 @@ export async function POST(req: NextRequest) {
         console.error('[blast]', error)
         return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
       }
-      // Cria logs pendentes
-      const logs = contacts.map(c => ({
+      // Cria logs pendentes — variation_index fixa, na ordem da lista
+      // (contato 1 pega messages[0], contato 2 pega messages[1], contato 3
+      // messages[2], contato 4 volta pra messages[0]...), pra cada contato
+      // receber só 1 variação e as 3 ficarem bem distribuídas no disparo.
+      const logs = contacts.map((c, i) => ({
         campaign_id: campaign.id,
         phone: c.phone,
         contact_name: c.name,
         company_name: c.company,
         owner_id: c.owner_id || null,
-        status: 'pending'
+        status: 'pending',
+        variation_index: messages && messages.length > 0 ? i % messages.length : null
       }))
       await supabase.from('blast_logs').insert(logs)
 

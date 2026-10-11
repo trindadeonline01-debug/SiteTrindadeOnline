@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     if (!verified) return NextResponse.json({ ok: false })
 
     const primeiroNome = (name || '').trim().split(' ')[0] || 'por aqui'
-    const text = `🎉 Oi, *${primeiroNome}*! Seja bem-vindo ao *Trindade Online*.\n\nAqui você encontra empresas, serviços, cupons e promoções do bairro, tudo num lugar só:\n\n🔍 Busque qualquer negócio da Trindade\n❤️ Favorite os que você mais usa\n🎟️ Fique de olho nos cupons e promoções da semana\n\n👉 https://www.trindadeonline.com.br\n\nQualquer dúvida, pode chamar aqui mesmo! 😊`
+    const text = `🎉 Seja bem-vindo, *${primeiroNome}*!\n\nVocê acabou de entrar no *Trindade Online* — o maior delivery exclusivo da Trindade! 🛵\n\n🔍 Pra conhecer, acesse o link abaixo\n🛒 Sempre que quiser fazer um pedido, é só acessar o link abaixo também\n\n👉 https://www.trindadeonline.com.br\n\nQualquer dúvida, pode chamar aqui mesmo! 😊`
 
     const result = await sendPlatformWhatsApp(phone, text)
     return NextResponse.json({ ok: result.ok })

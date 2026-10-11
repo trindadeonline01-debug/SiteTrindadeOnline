@@ -1092,21 +1092,24 @@ export default function PedidosPage() {
            tablet do Crepe Cone). Fluido até o breakpoint de desktop (768px),
            que troca pra outro layout de qualquer forma. */
         .pd-wrap{ width:100%;max-width:100%;margin:0 auto;min-height:100vh;background:var(--concrete);font-family:'Archivo',sans-serif;font-size:15px;color:var(--ink);padding-bottom:30px;overflow-x:hidden;min-width:0; }
-        .pd-head{ padding:22px 12px 10px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 10px;position:sticky;top:0;background:#F7F5F0;z-index:5; }
-        .pd-head-left{ display:flex;align-items:center;gap:6px;min-width:0; }
-        .pd-head-right{ display:flex;align-items:center;gap:6px;flex:none; }
+        /* Mais espaço entre os blocos (cabeçalho inteiro, out/2026 — "tem
+           muito espaço disponível ali em cima"). */
+        .pd-head{ padding:22px 12px 12px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 14px;position:sticky;top:0;background:#F7F5F0;z-index:5; }
+        .pd-head-left{ display:flex;align-items:center;gap:10px;min-width:0; }
+        .pd-head-right{ display:flex;align-items:center;gap:10px;flex:none; }
         .pd-head h1{ font-size:19px;margin:0;font-weight:800;flex:none;white-space:nowrap; }
         .pd-back{ flex:none;width:30px;height:30px;border-radius:50%;border:1px solid #E6E0D2;background:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;text-decoration:none;color:#1A1610; }
-        /* Largura igual pros dois pills (antes o de "aceitar" não tinha
-           ícone nenhum, só o switch, e ficava bem menor que o de motoboy)
-           — pedido do Ricardo, out/2026: "os dois podem aumentar... ser do
-           mesmo tamanho". */
-        .pd-auto-pill{ flex:none;width:58px;display:flex;align-items:center;justify-content:center;gap:5px;background:#fff;border:1px solid #E6E0D2;border-radius:14px;padding:7px 8px;cursor:pointer; }
-        .pd-auto-pill .pd-switch{ width:28px;height:16px;border-radius:9px; }
-        .pd-auto-pill .pd-switch .k{ width:12px;height:12px;top:2px;left:2px; }
-        .pd-auto-pill .pd-switch.on .k{ left:12px; }
-        .pd-new-pill{ flex:none;width:26px;height:26px;border-radius:50%;background:var(--sign);color:var(--ink);border:none;font-size:16px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center; }
-        .pd-icon-pill{ flex:none;width:26px;height:26px;border-radius:50%;border:none;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit; }
+        /* O dobro da largura de antes — pedido do Ricardo, out/2026: "ainda
+           tá pequeno, tem muito espaço disponível... pode botar o dobro da
+           largura". */
+        .pd-auto-pill{ flex:none;width:116px;display:flex;align-items:center;justify-content:center;gap:8px;background:#fff;border:1px solid #E6E0D2;border-radius:14px;padding:9px 10px;cursor:pointer;font-size:17px; }
+        .pd-auto-pill .pd-switch{ width:34px;height:19px;border-radius:10px; }
+        .pd-auto-pill .pd-switch .k{ width:15px;height:15px;top:2px;left:2px; }
+        .pd-auto-pill .pd-switch.on .k{ left:15px; }
+        /* "+", impressora e bairros/valores — "muito pequenininho", mesma
+           leva de aumento (Ricardo, out/2026). */
+        .pd-new-pill{ flex:none;width:42px;height:42px;border-radius:50%;background:var(--sign);color:var(--ink);border:none;font-size:22px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center; }
+        .pd-icon-pill{ flex:none;width:42px;height:42px;border-radius:50%;border:none;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit; }
         .pd-datebar{ display:flex;align-items:center;gap:8px;padding:0 16px 12px; }
         .pd-date-arrow{ flex:none;width:30px;height:30px;border-radius:8px;border:1px solid #E6E0D2;background:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit; }
         .pd-date-arrow:disabled{ opacity:.35;cursor:default; }
@@ -1412,7 +1415,7 @@ export default function PedidosPage() {
             {entregaEnabled && (
               <button className="pd-icon-pill" onClick={() => setShowBairrosModal(true)} title="Bairros e valores de entrega" style={{ background: '#F5EAD0', color: '#8A6410' }}>📍</button>
             )}
-            <a href="/painel/cozinha" style={{ fontSize: 11, fontWeight: 700, color: '#8A6410', background: '#FBF1DC', padding: '7px 12px', borderRadius: 8, textDecoration: 'none' }}>🍳 Cozinha</a>
+            <a href="/painel/cozinha" style={{ fontSize: 13, fontWeight: 700, color: '#8A6410', background: '#FBF1DC', padding: '11px 16px', borderRadius: 10, textDecoration: 'none' }}>🍳 Cozinha</a>
           </div>
         </div>
         <div className="pd-datebar">

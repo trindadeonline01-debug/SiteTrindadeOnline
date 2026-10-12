@@ -581,13 +581,14 @@ export default async function HomePage() {
            /peca-agora, que agora carrega as próprias regras .pa-* junto
            com o componente (HomePecaAgora.tsx), pra funcionar sozinho em
            qualquer página. Ver .home-peca-cta abaixo. */
-        .home-peca-cta { display: flex; flex-direction: column; gap: 16px; margin: 20px 0 0; border-radius: 18px; background: var(--sign); padding: 20px 20px 22px; text-decoration: none; }
+        .home-peca-cta { display: flex; flex-direction: column; gap: 16px; margin: 20px 0 0; border-radius: 18px; background: var(--sign); padding: 20px 20px 22px; }
         /* Mobile: título e botão dividem a mesma linha (botão encostado na
            borda direita), subtítulo desce pra linha de baixo — pedido do
            Ricardo, set/2026, mockup aprovado. Desktop fica exatamente como
            estava — todo esse flex/order some no @media(min-width:768px)
-           abaixo. */
-        .home-peca-cta-body { flex: none; display: flex; flex-wrap: wrap; align-items: center; column-gap: 10px; }
+           abaixo. .home-peca-cta-body virou uma âncora (link pro /peca-agora
+           sem filtro) — reseta o estilo padrão de link do navegador. */
+        .home-peca-cta-body { flex: none; display: flex; flex-wrap: wrap; align-items: center; column-gap: 10px; text-decoration: none; color: inherit; }
         .home-peca-cta-eye { flex-basis: 100%; font-size: 10.5px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; color: var(--ink); opacity: .65; }
         .home-peca-cta-title { order: 1; flex: none; white-space: nowrap; font-family: 'Anton', sans-serif; font-size: 21px; color: var(--ink); letter-spacing: .2px; margin: 0; }
         .home-peca-cta-sub { order: 3; flex-basis: 100%; font-size: 11.5px; font-weight: 700; color: var(--ink); opacity: .75; margin: 6px 0 14px; }
@@ -600,7 +601,7 @@ export default async function HomePage() {
            no mobile virou os cards com foto real (.home-peca-cta-mcard
            abaixo), pedido do Ricardo, out/2026, mockup aprovado. */
         .home-peca-cta-types { display: none; }
-        .home-peca-cta-type { flex: 0 0 auto; width: 58px; display: flex; flex-direction: column; align-items: center; gap: 5px; text-align: center; }
+        .home-peca-cta-type { flex: 0 0 auto; width: 58px; display: flex; flex-direction: column; align-items: center; gap: 5px; text-align: center; text-decoration: none; }
         .home-peca-cta-type-ico { width: 50px; height: 50px; border-radius: 50%; background: rgba(255,255,255,.55); display: flex; align-items: center; justify-content: center; font-size: 22px; }
         .home-peca-cta-type-lbl { font-size: 9.5px; font-weight: 800; color: var(--ink); line-height: 1.15; }
         /* Cards com foto real do produto, mesmo tratamento visual do
@@ -611,7 +612,7 @@ export default async function HomePage() {
            Ricardo, out/2026, mockup aprovado). */
         .home-peca-cta-mtypes { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
         .home-peca-cta-mtypes::-webkit-scrollbar { display: none; }
-        .home-peca-cta-mcard { flex: 0 0 auto; width: 100px; height: 124px; border-radius: 14px; position: relative; overflow: hidden; background: rgba(255,255,255,.35); }
+        .home-peca-cta-mcard { flex: 0 0 auto; width: 100px; height: 124px; border-radius: 14px; position: relative; overflow: hidden; background: rgba(255,255,255,.35); display: block; text-decoration: none; }
         .home-peca-cta-mcard-img { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 22px; }
         .home-peca-cta-mcard-tag { position: absolute; left: 0; right: 0; bottom: 0; background: var(--paper); padding: 5px 6px 6px; text-align: center; }
         .home-peca-cta-mcard-lbl { font-size: 10px; font-weight: 800; color: var(--sign-dark); line-height: 1.15; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
@@ -856,43 +857,49 @@ export default async function HomePage() {
             set/2026 — a home tinha virado "cardápio primeiro" em vez de
             "bairro primeiro", ver ESPECIFICACAO.md §7). */}
         {pecaAgoraGroups.length > 0 && (
-          <a className="home-peca-cta" href="/peca-agora">
-            <div className="home-peca-cta-body">
+          <div className="home-peca-cta">
+            {/* Clicar num tipo (ex: "Mercado") tem que abrir /peca-agora já
+                filtrado nele, não sempre a vitrine inteira sem filtro —
+                achado do Ricardo, out/2026. Por isso cada card virou seu
+                próprio link (?tab=<chave do tipo>) em vez de todo o bloco
+                estar dentro de uma âncora só; o título/botão continuam indo
+                pro /peca-agora sem filtro (clique "genérico"). */}
+            <a className="home-peca-cta-body" href="/peca-agora">
               <span className="home-peca-cta-eye">Delivery na Trindade</span>
               <div className="home-peca-cta-title">PEÇA AGORA</div>
               <div className="home-peca-cta-sub">
                 {pecaAgoraProdutoCount} produto{pecaAgoraProdutoCount !== 1 ? 's' : ''} · {pecaAgoraEmpresaCount} empresa{pecaAgoraEmpresaCount !== 1 ? 's' : ''} com cardápio aberto agora
               </div>
               <span className="home-peca-cta-btn">Ver cardápios →</span>
-            </div>
+            </a>
             {pecaAgoraTipoChips.length > 0 && (
               <>
                 {/* Mobile: cards com foto real do produto (mesmo visual do
                     carrossel de /peca-agora) — ver .home-peca-cta-mtypes */}
                 <div className="home-peca-cta-mtypes">
                   {pecaAgoraTipoChips.map(g => (
-                    <div key={g.key} className="home-peca-cta-mcard">
+                    <a key={g.key} className="home-peca-cta-mcard" href={`/peca-agora?tab=${encodeURIComponent(g.key)}`}>
                       {g.photoUrl ? (
                         <div className="home-peca-cta-mcard-img"><Image src={g.photoUrl} alt={g.label} fill sizes="100px" unoptimized style={{objectFit:'cover'}} /></div>
                       ) : (
                         <div className="home-peca-cta-mcard-img">{g.emoji}</div>
                       )}
                       <div className="home-peca-cta-mcard-tag"><span className="home-peca-cta-mcard-lbl">{g.label}</span></div>
-                    </div>
+                    </a>
                   ))}
                 </div>
                 {/* Desktop: continua a bolha com emoji de sempre */}
                 <div className="home-peca-cta-types">
                   {pecaAgoraTipoChips.map(g => (
-                    <div key={g.key} className="home-peca-cta-type">
+                    <a key={g.key} className="home-peca-cta-type" href={`/peca-agora?tab=${encodeURIComponent(g.key)}`}>
                       <span className="home-peca-cta-type-ico">{g.emoji}</span>
                       <span className="home-peca-cta-type-lbl">{g.label}</span>
-                    </div>
+                    </a>
                   ))}
                 </div>
               </>
             )}
-          </a>
+          </div>
         )}
 
         {/* OFERTAS DO BAIRRO — ESPECIFICACAO.md §10.1 item 5, cupons e

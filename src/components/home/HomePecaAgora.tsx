@@ -53,8 +53,13 @@ function readCart(slug: string): CartPayload {
 // set/2026). Produto com opcional (combo, sabor, tamanho) continua indo
 // pra página do produto — lá já existe a escolha obrigatória, não vale a
 // pena duplicar essa lógica aqui.
-export default function HomePecaAgora({ groups, search = '' }: { groups: PecaGroup[]; search?: string }) {
-  const [activeKey, setActiveKey] = useState('todas')
+export default function HomePecaAgora({ groups, search = '', initialTab }: { groups: PecaGroup[]; search?: string; initialTab?: string }) {
+  // Vem do card de tipo clicado na home (ex: "Mercado") via ?tab= na URL —
+  // pedido do Ricardo, out/2026: clicar num card tinha que abrir a página
+  // já filtrada naquele tipo, não sempre em "Todas". Só usado na primeira
+  // renderização (initializer); se a chave não existir entre os grupos,
+  // o fallback de `active` logo abaixo (groups[0]) já cobre.
+  const [activeKey, setActiveKey] = useState(initialTab || 'todas')
   const [maxPrice, setMaxPrice] = useState(0)
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const [qtyById, setQtyById] = useState<Record<string, number>>({})

@@ -1,5 +1,6 @@
 'use client'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import HomePecaAgora, { PecaGroup } from '@/components/home/HomePecaAgora'
 import Footer from '@/components/Footer'
 import { supabase } from '@/lib/supabase'
@@ -11,6 +12,18 @@ import { supabase } from '@/lib/supabase'
 // título/abas/filtros (faixa amarela), então essa página não duplica
 // hero nenhum, só dá a moldura (breadcrumb + busca + rodapé).
 export default function PecaAgoraPageClient({ groups }: { groups: PecaGroup[] }) {
+  return (
+    <Suspense fallback={null}>
+      <PecaAgoraPageInner groups={groups} />
+    </Suspense>
+  )
+}
+
+// useSearchParams precisa de um Suspense boundary acima dele (exigência do
+// Next) — o wrapper acima cobre isso, mantendo o resto do componente igual.
+function PecaAgoraPageInner({ groups }: { groups: PecaGroup[] }) {
+  const searchParams = useSearchParams()
+  const initialTab = searchParams.get('tab') || undefined
   const [query, setQuery] = useState('')
   const [linkCopied, setLinkCopied] = useState(false)
   // O menu inferior (BottomNav) só aparece pro mobile logado (pedido do
@@ -207,7 +220,7 @@ export default function PecaAgoraPageClient({ groups }: { groups: PecaGroup[] })
 
       <div className="pca-main">
         {groups.length > 0 ? (
-          <HomePecaAgora groups={groups} search={query} />
+          <HomePecaAgora groups={groups} search={query} initialTab={initialTab} />
         ) : (
           <div className="pca-empty">
             <div className="pca-empty-ico">🍽️</div>

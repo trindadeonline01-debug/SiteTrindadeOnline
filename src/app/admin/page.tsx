@@ -62,7 +62,7 @@ const statusColor = (s: string) => s === 'active' ? '#0F8050' : s === 'pending' 
 const statusLabel = (s: string) => s === 'active' ? 'Ativa' : s === 'pending' ? 'Pendente' : 'Suspensa'
 
 export default function AdminPage() {
-  const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'denuncias'|'usuarios'|'buscas'|'atividade'|'banners'|'pedidos-banner'|'configuracoes'|'recursos'|'planos'|'aparencia'|'subcategorias'|'vendas'|'sala-de-vendas'|'notificacoes'|'disparos'|'palavra-premiada'|'entregas'|'peca-agora'>('dashboard')
+  const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'denuncias'|'usuarios'|'buscas'|'atividade'|'pedidos-banner'|'configuracoes'|'recursos'|'planos'|'aparencia'|'subcategorias'|'vendas'|'sala-de-vendas'|'notificacoes'|'disparos'|'palavra-premiada'|'entregas'|'peca-agora'>('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [stats, setStats]           = useState<Stats|null>(null)
   const [companies, setCompanies]   = useState<Company[]>([])
@@ -2132,7 +2132,6 @@ export default function AdminPage() {
             { id: 'dashboard', icon: '📊', label: 'Dashboard' },
             { id: 'empresas',  icon: '🏪', label: 'Empresas', badge: stats?.pending || 0 },
             { id: 'destaques', icon: '⭐', label: 'Destaques' },
-            { id: 'banners',   icon: '📢', label: 'Banners' },
             { id: 'denuncias', icon: '🚩', label: 'Denúncias', badge: repCount },
             { id: 'usuarios',  icon: '👥', label: 'Usuários' },
             { id: 'buscas',    icon: '🔍', label: 'Buscas' },
@@ -2188,7 +2187,6 @@ export default function AdminPage() {
               {tab === 'atividade' && 'Atividade Recente'}
               {tab === 'destaques' && 'Destaques'}
               {tab === 'denuncias' && 'Denúncias'}
-              {tab === 'banners'   && 'Banners da Home'}
               {tab === 'pedidos-banner' && 'Pedidos de Banner'}
               {tab === 'planos' && 'Gestão de Planos'}
               {tab === 'vendas' && 'Painel de Vendas'}
@@ -2653,243 +2651,6 @@ export default function AdminPage() {
             )}
 
             {/* ── BANNERS ── */}
-            {!loading && tab === 'banners' && (
-              <div>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageSelect}
-                  style={{ display: 'none' }}
-                />
-                <input
-                  ref={fileInputRefMobile}
-                  type="file"
-                  accept="image/*"
-                  onChange={e => {
-                    const file = e.target.files?.[0]
-                    if (!file) return
-                    if (file.size > 5 * 1024 * 1024) { showToast('Imagem muito grande. Máximo 5MB.'); return }
-                    setBannerImageFileMobile(file)
-                    const reader = new FileReader()
-                    reader.onload = ev => setBannerImagePreviewMobile(ev.target?.result as string)
-                    reader.readAsDataURL(file)
-                  }}
-                  style={{ display: 'none' }}
-                />
-
-                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
-                  <span className="section-title">BANNERS DA HOME ({banners.length})</span>
-                  <button className="filter-btn on" onClick={() => {
-                    if (bannerFormOpen) {
-                      setBannerFormOpen(false)
-                      setEditingBannerId(null)
-                      setBannerForm({ title:'', subtitle:'', description:'', link_url:'', display_order: banners.length })
-                      setBannerImageFile(null)
-                      setBannerImagePreview(null)
-                      setBannerCurrentImage(null)
-                      setBannerCompanySearch('')
-                      setBannerCompanyResults([])
-                    } else {
-                      openNewBanner()
-                    }
-                  }}>
-                    {bannerFormOpen ? 'Cancelar' : '+ Novo banner'}
-                  </button>
-                </div>
-
-                {bannerFormOpen && (
-                  <div style={{background:'#fff',border:'1px solid #e0e0e0',borderRadius:12,padding:20,marginBottom:20,boxShadow:'0 2px 8px rgba(0,0,0,0.06)'}}>
-                    <div style={{fontSize:14,fontWeight:600,color:'#111',marginBottom:16}}>
-                      {editingBannerId ? 'Editar Banner' : 'Novo Banner'}
-                    </div>
-
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:16}}>
-                      <div>
-                      <label className="banner-form-label">Imagem Desktop (1200 × 359px)</label>
-                      {(bannerImagePreview || bannerCurrentImage) ? (
-                        <div className="upload-area-filled" onClick={() => fileInputRef.current?.click()}>
-                          <img
-                            src={bannerImagePreview || bannerCurrentImage!}
-                            alt="Preview"
-                            style={{width:'100%',height:160,objectFit:'cover',display:'block'}}
-                          />
-                        </div>
-                      ) : (
-                        <div className="upload-area" onClick={() => fileInputRef.current?.click()}>
-                          <div style={{fontSize:32,marginBottom:8}}>🖼️</div>
-                          <div style={{fontSize:13,color:'#666',fontWeight:500}}>Clique para fazer upload da imagem</div>
-                          <div style={{fontSize:11,color:'#aaa',marginTop:4}}>JPG, PNG ou WebP · Máximo 5MB · 1200×359px</div>
-                        </div>
-                      )}
-                      {(bannerImagePreview || bannerCurrentImage) && (
-                        <div style={{display:'flex',gap:8,marginTop:8}}>
-                          <button onClick={() => fileInputRef.current?.click()}
-                            style={{fontSize:11,color:'#185FA5',background:'#f0f4ff',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Archivo,sans-serif',fontWeight:600}}>
-                            Trocar imagem
-                          </button>
-                          <button onClick={() => { setBannerImageFile(null); setBannerImagePreview(null); setBannerCurrentImage(null) }}
-                            style={{fontSize:11,color:'#dc2626',background:'#fef2f2',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>
-                            Remover imagem
-                          </button>
-                        </div>
-                      )}
-                      {uploadProgress > 0 && uploadProgress < 100 && (
-                        <div style={{marginTop:8,background:'#f0f0f0',borderRadius:4,overflow:'hidden',height:4}}>
-                          <div style={{height:'100%',background:'var(--sign-dark)',width:`${uploadProgress}%`,transition:'width 0.3s'}} />
-                        </div>
-                      )}
-                      </div>
-                      <div>
-                      <label className="banner-form-label">Imagem Mobile (opcional)</label>
-                      {(bannerImagePreviewMobile || bannerCurrentImageMobile) ? (
-                        <div className="upload-area-filled" onClick={() => fileInputRefMobile.current?.click()}>
-                          <img src={bannerImagePreviewMobile || bannerCurrentImageMobile!} alt="Preview mobile" style={{width:'100%',height:120,objectFit:'cover',display:'block'}} />
-                        </div>
-                      ) : (
-                        <div className="upload-area" onClick={() => fileInputRefMobile.current?.click()} style={{height:120,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
-                          <div style={{fontSize:24,marginBottom:6}}>📱</div>
-                          <div style={{fontSize:12,color:'#666',fontWeight:500}}>Upload imagem mobile</div>
-                          <div style={{fontSize:10,color:'#aaa',marginTop:3}}>Se vazio, usa a desktop</div>
-                        </div>
-                      )}
-                      {(bannerImagePreviewMobile || bannerCurrentImageMobile) && (
-                        <div style={{display:'flex',gap:8,marginTop:8}}>
-                          <button onClick={() => fileInputRefMobile.current?.click()}
-                            style={{fontSize:11,color:'#185FA5',background:'#f0f4ff',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Archivo,sans-serif',fontWeight:600}}>
-                            Trocar
-                          </button>
-                          <button onClick={() => { setBannerImageFileMobile(null); setBannerImagePreviewMobile(null); setBannerCurrentImageMobile(null) }}
-                            style={{fontSize:11,color:'#dc2626',background:'#fef2f2',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>
-                            Remover
-                          </button>
-                        </div>
-                      )}
-                      </div>
-                    </div>
-
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:14}}>
-                      <div>
-                        <label className="banner-form-label">Título *</label>
-                        <input className="banner-form-input" type="text" value={bannerForm.title}
-                          onChange={e => setBannerForm(p => ({...p, title: e.target.value}))}
-                          placeholder="Ex: Anderlu Material de Construção" />
-                      </div>
-                      <div>
-                        <label className="banner-form-label">Subtítulo</label>
-                        <input className="banner-form-input" type="text" value={bannerForm.subtitle}
-                          onChange={e => setBannerForm(p => ({...p, subtitle: e.target.value}))}
-                          placeholder="Ex: Material de Construção" />
-                      </div>
-                      <div>
-                        <label className="banner-form-label">Descrição curta</label>
-                        <input className="banner-form-input" type="text" value={bannerForm.description}
-                          onChange={e => setBannerForm(p => ({...p, description: e.target.value}))}
-                          placeholder="Ex: Tudo para sua obra na Trindade" />
-                      </div>
-                      <div>
-                        <label className="banner-form-label">Link (ao clicar no banner)</label>
-                        <div style={{position:'relative'}}>
-                          <input className="banner-form-input" type="text" value={bannerCompanySearch}
-                            onChange={e => setBannerCompanySearch(e.target.value)}
-                            placeholder="🔍 Buscar loja pelo nome pra preencher o link..." />
-                          {bannerCompanyResults.length > 0 && (
-                            <div style={{position:'absolute',top:'100%',left:0,right:0,zIndex:10,background:'#fff',border:'1px solid #eee',borderRadius:8,overflow:'hidden',boxShadow:'0 4px 12px rgba(0,0,0,.1)'}}>
-                              {bannerCompanyResults.map(c => (
-                                <div key={c.id} onClick={() => { setBannerForm(p => ({...p, link_url: `/empresa/${c.slug}`})); setBannerCompanySearch(c.name); setBannerCompanyResults([]) }}
-                                  style={{padding:'9px 12px',fontSize:13,cursor:'pointer',borderBottom:'1px solid #f5f5f5'}}>{c.name}</div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                        <input className="banner-form-input" type="text" value={bannerForm.link_url}
-                          onChange={e => setBannerForm(p => ({...p, link_url: e.target.value}))}
-                          placeholder="Ex: /empresa/anderlu ou https://..." style={{marginTop:6}} />
-                        <div style={{fontSize:10,color:'#aaa',marginTop:4}}>O banner inteiro será clicável e levará para este link. Busque a loja acima ou digite o link direto (também serve pra outras páginas, tipo /cupons).</div>
-                      </div>
-                      <div>
-                        <label className="banner-form-label">Ordem de exibição</label>
-                        <input className="banner-form-input" type="number" value={bannerForm.display_order}
-                          onChange={e => setBannerForm(p => ({...p, display_order: Number(e.target.value)}))}
-                          style={{width:100}} />
-                        <div style={{fontSize:10,color:'#aaa',marginTop:4}}>Número menor aparece primeiro</div>
-                      </div>
-                    </div>
-
-                    <div style={{display:'flex',gap:8}}>
-                      <button onClick={saveBanner} disabled={bannerLoading || (!bannerCurrentImage && !bannerImageFile)}
-                        style={{background:'var(--sign)',color:'var(--ink)',border:'none',padding:'9px 22px',borderRadius:7,fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'Archivo,sans-serif',opacity:(bannerLoading||(!bannerCurrentImage&&!bannerImageFile))?0.6:1}}>
-                        {bannerLoading ? 'Salvando...' : editingBannerId ? 'Salvar alterações' : 'Criar banner'}
-                      </button>
-                      <button onClick={() => { setBannerFormOpen(false); setEditingBannerId(null); setBannerForm({ title:'', subtitle:'', description:'', link_url:'', display_order:0 }); setBannerImageFile(null); setBannerImagePreview(null); setBannerCurrentImage(null); setBannerImageFileMobile(null); setBannerImagePreviewMobile(null); setBannerCurrentImageMobile(null); setBannerCompanySearch(''); setBannerCompanyResults([]) }}
-                        style={{background:'transparent',color:'#666',border:'1px solid #ddd',padding:'9px 16px',borderRadius:7,fontSize:13,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>
-                        Cancelar
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {banners.length === 0 ? (
-                  <div className="empty-state">
-                    <div>📢</div>
-                    <div>Nenhum banner cadastrado ainda</div>
-                    <div style={{fontSize:12,marginTop:4}}>Adicione o primeiro banner para aparecer na home</div>
-                  </div>
-                ) : (
-                  <div style={{display:'flex',flexDirection:'column',gap:10}}>
-                    {banners.map(b => (
-                      <div key={b.id} style={{background:'#fff',border:'1px solid #e8e8e8',borderRadius:10,overflow:'hidden',opacity: b.active ? 1 : 0.55}}>
-                        {b.image_url && (
-                          <div style={{height:80,overflow:'hidden',position:'relative'}}>
-                            <Image unoptimized src={b.image_url} alt={b.title} fill sizes="300px" style={{objectFit:'cover'}} />
-                            <div style={{position:'absolute',inset:0,background:'linear-gradient(90deg,rgba(0,0,0,0.55),transparent)'}} />
-                            <div style={{position:'absolute',left:14,top:'50%',transform:'translateY(-50%)',color:'#fff',fontFamily:'"Anton",sans-serif',fontSize:20,letterSpacing:1}}>
-                              {b.title}
-                            </div>
-                          </div>
-                        )}
-                        <div style={{padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                          <div style={{display:'flex',alignItems:'center',gap:12,flex:1,minWidth:0}}>
-                            {!b.image_url && (
-                              <div style={{width:36,height:36,borderRadius:8,background:'#f5e9c4',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0}}>📢</div>
-                            )}
-                            <div style={{minWidth:0}}>
-                              {!b.image_url && <div style={{fontSize:14,fontWeight:600,color:'#111',marginBottom:2}}>{b.title}</div>}
-                              {b.subtitle && <div style={{fontSize:12,color:'#888'}}>{b.subtitle}</div>}
-                              {b.link_url && (
-                                <div style={{fontSize:11,color:'var(--sign-dark)',marginTop:3,display:'flex',alignItems:'center',gap:4}}>
-                                  🔗 <span style={{wordBreak:'break-all'}}>{b.link_url}</span>
-                                </div>
-                              )}
-                              {!b.image_url && <div style={{fontSize:11,color:'#f59e0b',marginTop:4,fontWeight:500}}>⚠ Sem imagem — aparecerá com fundo escuro padrão</div>}
-                              {b.image_url_mobile && <div style={{fontSize:11,color:'#0F8050',marginTop:3,fontWeight:500}}>📱 Tem versão mobile</div>}
-                            </div>
-                          </div>
-                          <div style={{display:'flex',gap:8,alignItems:'center',flexShrink:0,marginLeft:12}}>
-                            <span style={{fontSize:10,fontWeight:600,padding:'2px 10px',borderRadius:10,background: b.active ? '#dcfce7' : '#fee2e2',color: b.active ? '#16a34a' : '#dc2626'}}>
-                              {b.active ? 'Ativo' : 'Inativo'}
-                            </span>
-                            <button onClick={() => { openEditBanner(b); setBannerFormOpen(true) }}
-                              style={{fontSize:11,color:'#185FA5',background:'#f0f4ff',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Archivo,sans-serif',fontWeight:600}}>
-                              Editar
-                            </button>
-                            <button onClick={() => toggleBanner(b.id, b.active)}
-                              style={{fontSize:11,color:'#555',background:'#f5f5f5',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>
-                              {b.active ? 'Desativar' : 'Ativar'}
-                            </button>
-                            <button onClick={() => deleteBanner(b.id)}
-                              style={{fontSize:11,color:'#dc2626',background:'#fef2f2',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Archivo,sans-serif',fontWeight:600}}>
-                              Excluir
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
             {/* ── PEDIDOS DE BANNER ── */}
             {!loading && tab === 'pedidos-banner' && (
               <div>
@@ -3298,6 +3059,246 @@ export default function AdminPage() {
                       </div>
                     </div>
                   </div>
+                </div>
+
+                {/* Banners cadastrados — morava numa aba própria do menu
+                    (Banners), juntado aqui dentro de Aparência, logo abaixo
+                    do toggle de ativar/desativar, pedido do Ricardo,
+                    out/2026: as duas coisas tratam do mesmo assunto, não
+                    precisavam de menu separado. */}
+                <div style={{background:'#fff',border:'0.5px solid #EDE8E0',borderRadius:14,padding:'20px 24px',marginBottom:20}}>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageSelect}
+                    style={{ display: 'none' }}
+                  />
+                  <input
+                    ref={fileInputRefMobile}
+                    type="file"
+                    accept="image/*"
+                    onChange={e => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+                      if (file.size > 5 * 1024 * 1024) { showToast('Imagem muito grande. Máximo 5MB.'); return }
+                      setBannerImageFileMobile(file)
+                      const reader = new FileReader()
+                      reader.onload = ev => setBannerImagePreviewMobile(ev.target?.result as string)
+                      reader.readAsDataURL(file)
+                    }}
+                    style={{ display: 'none' }}
+                  />
+
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
+                    <span className="section-title">BANNERS CADASTRADOS ({banners.length})</span>
+                    <button className="filter-btn on" onClick={() => {
+                      if (bannerFormOpen) {
+                        setBannerFormOpen(false)
+                        setEditingBannerId(null)
+                        setBannerForm({ title:'', subtitle:'', description:'', link_url:'', display_order: banners.length })
+                        setBannerImageFile(null)
+                        setBannerImagePreview(null)
+                        setBannerCurrentImage(null)
+                        setBannerCompanySearch('')
+                        setBannerCompanyResults([])
+                      } else {
+                        openNewBanner()
+                      }
+                    }}>
+                      {bannerFormOpen ? 'Cancelar' : '+ Novo banner'}
+                    </button>
+                  </div>
+
+                  {bannerFormOpen && (
+                    <div style={{background:'#fff',border:'1px solid #e0e0e0',borderRadius:12,padding:20,marginBottom:20,boxShadow:'0 2px 8px rgba(0,0,0,0.06)'}}>
+                      <div style={{fontSize:14,fontWeight:600,color:'#111',marginBottom:16}}>
+                        {editingBannerId ? 'Editar Banner' : 'Novo Banner'}
+                      </div>
+
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:16}}>
+                        <div>
+                        <label className="banner-form-label">Imagem Desktop (1200 × 359px)</label>
+                        {(bannerImagePreview || bannerCurrentImage) ? (
+                          <div className="upload-area-filled" onClick={() => fileInputRef.current?.click()}>
+                            <img
+                              src={bannerImagePreview || bannerCurrentImage!}
+                              alt="Preview"
+                              style={{width:'100%',height:160,objectFit:'cover',display:'block'}}
+                            />
+                          </div>
+                        ) : (
+                          <div className="upload-area" onClick={() => fileInputRef.current?.click()}>
+                            <div style={{fontSize:32,marginBottom:8}}>🖼️</div>
+                            <div style={{fontSize:13,color:'#666',fontWeight:500}}>Clique para fazer upload da imagem</div>
+                            <div style={{fontSize:11,color:'#aaa',marginTop:4}}>JPG, PNG ou WebP · Máximo 5MB · 1200×359px</div>
+                          </div>
+                        )}
+                        {(bannerImagePreview || bannerCurrentImage) && (
+                          <div style={{display:'flex',gap:8,marginTop:8}}>
+                            <button onClick={() => fileInputRef.current?.click()}
+                              style={{fontSize:11,color:'#185FA5',background:'#f0f4ff',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Archivo,sans-serif',fontWeight:600}}>
+                              Trocar imagem
+                            </button>
+                            <button onClick={() => { setBannerImageFile(null); setBannerImagePreview(null); setBannerCurrentImage(null) }}
+                              style={{fontSize:11,color:'#dc2626',background:'#fef2f2',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>
+                              Remover imagem
+                            </button>
+                          </div>
+                        )}
+                        {uploadProgress > 0 && uploadProgress < 100 && (
+                          <div style={{marginTop:8,background:'#f0f0f0',borderRadius:4,overflow:'hidden',height:4}}>
+                            <div style={{height:'100%',background:'var(--sign-dark)',width:`${uploadProgress}%`,transition:'width 0.3s'}} />
+                          </div>
+                        )}
+                        </div>
+                        <div>
+                        <label className="banner-form-label">Imagem Mobile (opcional)</label>
+                        {(bannerImagePreviewMobile || bannerCurrentImageMobile) ? (
+                          <div className="upload-area-filled" onClick={() => fileInputRefMobile.current?.click()}>
+                            <img src={bannerImagePreviewMobile || bannerCurrentImageMobile!} alt="Preview mobile" style={{width:'100%',height:120,objectFit:'cover',display:'block'}} />
+                          </div>
+                        ) : (
+                          <div className="upload-area" onClick={() => fileInputRefMobile.current?.click()} style={{height:120,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
+                            <div style={{fontSize:24,marginBottom:6}}>📱</div>
+                            <div style={{fontSize:12,color:'#666',fontWeight:500}}>Upload imagem mobile</div>
+                            <div style={{fontSize:10,color:'#aaa',marginTop:3}}>Se vazio, usa a desktop</div>
+                          </div>
+                        )}
+                        {(bannerImagePreviewMobile || bannerCurrentImageMobile) && (
+                          <div style={{display:'flex',gap:8,marginTop:8}}>
+                            <button onClick={() => fileInputRefMobile.current?.click()}
+                              style={{fontSize:11,color:'#185FA5',background:'#f0f4ff',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Archivo,sans-serif',fontWeight:600}}>
+                              Trocar
+                            </button>
+                            <button onClick={() => { setBannerImageFileMobile(null); setBannerImagePreviewMobile(null); setBannerCurrentImageMobile(null) }}
+                              style={{fontSize:11,color:'#dc2626',background:'#fef2f2',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>
+                              Remover
+                            </button>
+                          </div>
+                        )}
+                        </div>
+                      </div>
+
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:14}}>
+                        <div>
+                          <label className="banner-form-label">Título *</label>
+                          <input className="banner-form-input" type="text" value={bannerForm.title}
+                            onChange={e => setBannerForm(p => ({...p, title: e.target.value}))}
+                            placeholder="Ex: Anderlu Material de Construção" />
+                        </div>
+                        <div>
+                          <label className="banner-form-label">Subtítulo</label>
+                          <input className="banner-form-input" type="text" value={bannerForm.subtitle}
+                            onChange={e => setBannerForm(p => ({...p, subtitle: e.target.value}))}
+                            placeholder="Ex: Material de Construção" />
+                        </div>
+                        <div>
+                          <label className="banner-form-label">Descrição curta</label>
+                          <input className="banner-form-input" type="text" value={bannerForm.description}
+                            onChange={e => setBannerForm(p => ({...p, description: e.target.value}))}
+                            placeholder="Ex: Tudo para sua obra na Trindade" />
+                        </div>
+                        <div>
+                          <label className="banner-form-label">Link (ao clicar no banner)</label>
+                          <div style={{position:'relative'}}>
+                            <input className="banner-form-input" type="text" value={bannerCompanySearch}
+                              onChange={e => setBannerCompanySearch(e.target.value)}
+                              placeholder="🔍 Buscar loja pelo nome pra preencher o link..." />
+                            {bannerCompanyResults.length > 0 && (
+                              <div style={{position:'absolute',top:'100%',left:0,right:0,zIndex:10,background:'#fff',border:'1px solid #eee',borderRadius:8,overflow:'hidden',boxShadow:'0 4px 12px rgba(0,0,0,.1)'}}>
+                                {bannerCompanyResults.map(c => (
+                                  <div key={c.id} onClick={() => { setBannerForm(p => ({...p, link_url: `/empresa/${c.slug}`})); setBannerCompanySearch(c.name); setBannerCompanyResults([]) }}
+                                    style={{padding:'9px 12px',fontSize:13,cursor:'pointer',borderBottom:'1px solid #f5f5f5'}}>{c.name}</div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <input className="banner-form-input" type="text" value={bannerForm.link_url}
+                            onChange={e => setBannerForm(p => ({...p, link_url: e.target.value}))}
+                            placeholder="Ex: /empresa/anderlu ou https://..." style={{marginTop:6}} />
+                          <div style={{fontSize:10,color:'#aaa',marginTop:4}}>O banner inteiro será clicável e levará para este link. Busque a loja acima ou digite o link direto (também serve pra outras páginas, tipo /cupons).</div>
+                        </div>
+                        <div>
+                          <label className="banner-form-label">Ordem de exibição</label>
+                          <input className="banner-form-input" type="number" value={bannerForm.display_order}
+                            onChange={e => setBannerForm(p => ({...p, display_order: Number(e.target.value)}))}
+                            style={{width:100}} />
+                          <div style={{fontSize:10,color:'#aaa',marginTop:4}}>Número menor aparece primeiro</div>
+                        </div>
+                      </div>
+
+                      <div style={{display:'flex',gap:8}}>
+                        <button onClick={saveBanner} disabled={bannerLoading || (!bannerCurrentImage && !bannerImageFile)}
+                          style={{background:'var(--sign)',color:'var(--ink)',border:'none',padding:'9px 22px',borderRadius:7,fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'Archivo,sans-serif',opacity:(bannerLoading||(!bannerCurrentImage&&!bannerImageFile))?0.6:1}}>
+                          {bannerLoading ? 'Salvando...' : editingBannerId ? 'Salvar alterações' : 'Criar banner'}
+                        </button>
+                        <button onClick={() => { setBannerFormOpen(false); setEditingBannerId(null); setBannerForm({ title:'', subtitle:'', description:'', link_url:'', display_order:0 }); setBannerImageFile(null); setBannerImagePreview(null); setBannerCurrentImage(null); setBannerImageFileMobile(null); setBannerImagePreviewMobile(null); setBannerCurrentImageMobile(null); setBannerCompanySearch(''); setBannerCompanyResults([]) }}
+                          style={{background:'transparent',color:'#666',border:'1px solid #ddd',padding:'9px 16px',borderRadius:7,fontSize:13,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {banners.length === 0 ? (
+                    <div className="empty-state">
+                      <div>📢</div>
+                      <div>Nenhum banner cadastrado ainda</div>
+                      <div style={{fontSize:12,marginTop:4}}>Adicione o primeiro banner para aparecer na home</div>
+                    </div>
+                  ) : (
+                    <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                      {banners.map(b => (
+                        <div key={b.id} style={{background:'#fff',border:'1px solid #e8e8e8',borderRadius:10,overflow:'hidden',opacity: b.active ? 1 : 0.55}}>
+                          {b.image_url && (
+                            <div style={{height:80,overflow:'hidden',position:'relative'}}>
+                              <Image unoptimized src={b.image_url} alt={b.title} fill sizes="300px" style={{objectFit:'cover'}} />
+                              <div style={{position:'absolute',inset:0,background:'linear-gradient(90deg,rgba(0,0,0,0.55),transparent)'}} />
+                              <div style={{position:'absolute',left:14,top:'50%',transform:'translateY(-50%)',color:'#fff',fontFamily:'"Anton",sans-serif',fontSize:20,letterSpacing:1}}>
+                                {b.title}
+                              </div>
+                            </div>
+                          )}
+                          <div style={{padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                            <div style={{display:'flex',alignItems:'center',gap:12,flex:1,minWidth:0}}>
+                              {!b.image_url && (
+                                <div style={{width:36,height:36,borderRadius:8,background:'#f5e9c4',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0}}>📢</div>
+                              )}
+                              <div style={{minWidth:0}}>
+                                {!b.image_url && <div style={{fontSize:14,fontWeight:600,color:'#111',marginBottom:2}}>{b.title}</div>}
+                                {b.subtitle && <div style={{fontSize:12,color:'#888'}}>{b.subtitle}</div>}
+                                {b.link_url && (
+                                  <div style={{fontSize:11,color:'var(--sign-dark)',marginTop:3,display:'flex',alignItems:'center',gap:4}}>
+                                    🔗 <span style={{wordBreak:'break-all'}}>{b.link_url}</span>
+                                  </div>
+                                )}
+                                {!b.image_url && <div style={{fontSize:11,color:'#f59e0b',marginTop:4,fontWeight:500}}>⚠ Sem imagem — aparecerá com fundo escuro padrão</div>}
+                                {b.image_url_mobile && <div style={{fontSize:11,color:'#0F8050',marginTop:3,fontWeight:500}}>📱 Tem versão mobile</div>}
+                              </div>
+                            </div>
+                            <div style={{display:'flex',gap:8,alignItems:'center',flexShrink:0,marginLeft:12}}>
+                              <span style={{fontSize:10,fontWeight:600,padding:'2px 10px',borderRadius:10,background: b.active ? '#dcfce7' : '#fee2e2',color: b.active ? '#16a34a' : '#dc2626'}}>
+                                {b.active ? 'Ativo' : 'Inativo'}
+                              </span>
+                              <button onClick={() => { openEditBanner(b); setBannerFormOpen(true) }}
+                                style={{fontSize:11,color:'#185FA5',background:'#f0f4ff',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Archivo,sans-serif',fontWeight:600}}>
+                                Editar
+                              </button>
+                              <button onClick={() => toggleBanner(b.id, b.active)}
+                                style={{fontSize:11,color:'#555',background:'#f5f5f5',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>
+                                {b.active ? 'Desativar' : 'Ativar'}
+                              </button>
+                              <button onClick={() => deleteBanner(b.id)}
+                                style={{fontSize:11,color:'#dc2626',background:'#fef2f2',border:'none',padding:'5px 10px',borderRadius:5,cursor:'pointer',fontFamily:'Archivo,sans-serif',fontWeight:600}}>
+                                Excluir
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div style={{background:'#fff',border:'0.5px solid #EDE8E0',borderRadius:14,padding:'20px 24px',marginBottom:20}}>

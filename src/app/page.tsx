@@ -257,7 +257,10 @@ export default async function HomePage() {
   const pulseMessages = pulseRes.data || []
 
   let siteTheme = 'classico-preto'
-  let bannerEnabled = true
+  let bannerEnabledDesktop = true
+  // Chave nova (banner_enabled_mobile) — padrão ativo se nunca foi salva,
+  // pra não desligar o banner mobile de ninguém de uma hora pra outra.
+  let bannerEnabledMobile = true
   let pulseColorPreset = 'classico'
   let abertoAgoraEnabled = false
   let entregandoAgoraEnabled = false
@@ -266,12 +269,14 @@ export default async function HomePage() {
   if (siteSettings) {
     const theme = siteSettings.find((s: any) => s.key === 'active_theme')
     const bannerSetting = siteSettings.find((s: any) => s.key === 'banner_enabled')
+    const bannerSettingMobile = siteSettings.find((s: any) => s.key === 'banner_enabled_mobile')
     const pulseColor = siteSettings.find((s: any) => s.key === 'pulse_color_preset')
     const abertoAgora = siteSettings.find((s: any) => s.key === 'aberto_agora_enabled')
     const entregandoAgora = siteSettings.find((s: any) => s.key === 'entregando_agora_enabled')
     const pecaAgora = siteSettings.find((s: any) => s.key === 'peca_agora_enabled')
     if (theme) siteTheme = theme.value || 'classico-preto'
-    if (bannerSetting) bannerEnabled = bannerSetting.value === 'true'
+    if (bannerSetting) bannerEnabledDesktop = bannerSetting.value === 'true'
+    if (bannerSettingMobile) bannerEnabledMobile = bannerSettingMobile.value === 'true'
     if (pulseColor) pulseColorPreset = pulseColor.value || 'classico'
     abertoAgoraEnabled = abertoAgora?.value === 'true'
     entregandoAgoraEnabled = entregandoAgora?.value === 'true'
@@ -768,7 +773,9 @@ export default async function HomePage() {
         )
       })()}
 
-      {bannerEnabled && <HomeBannerCarousel banners={banners} />}
+      {(bannerEnabledDesktop || bannerEnabledMobile) && (
+        <HomeBannerCarousel banners={banners} enabledDesktop={bannerEnabledDesktop} enabledMobile={bannerEnabledMobile} />
+      )}
 
       {/* CONTEÚDO */}
       <div className="main-wrap">

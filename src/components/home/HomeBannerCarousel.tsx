@@ -8,7 +8,7 @@ interface Banner {
   link_url: string | null; image_url: string | null; image_url_mobile: string | null; display_order: number
 }
 
-export default function HomeBannerCarousel({ banners }: { banners: Banner[] }) {
+export default function HomeBannerCarousel({ banners, enabledDesktop = true, enabledMobile = true }: { banners: Banner[]; enabledDesktop?: boolean; enabledMobile?: boolean }) {
   const [activeBanner, setActiveBanner] = useState(0)
   const [isMobile, setIsMobile] = useState(false)
 
@@ -27,6 +27,14 @@ export default function HomeBannerCarousel({ banners }: { banners: Banner[] }) {
 
   function prevBanner() { setActiveBanner(p => (p - 1 + banners.length) % banners.length) }
   function nextBanner() { setActiveBanner(p => (p + 1) % banners.length) }
+
+  // Ativa/desativa independente por tela (pedido do Ricardo, out/2026) — o
+  // componente já sabia distinguir mobile/desktop (pra escolher a imagem
+  // certa), só reaproveita esse mesmo `isMobile` pra decidir se renderiza
+  // algo aqui ou não. Antes do primeiro resize (SSR/primeira pintura),
+  // `isMobile` começa como `false` — mesmo comportamento que a escolha de
+  // imagem já tinha, só corrige depois de montar.
+  if (isMobile ? !enabledMobile : !enabledDesktop) return null
 
   // Escolhe imagem certa: mobile ou desktop
   function getBannerImage(b: Banner): string | null {

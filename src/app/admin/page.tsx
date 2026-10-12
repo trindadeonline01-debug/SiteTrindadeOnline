@@ -204,7 +204,8 @@ export default function AdminPage() {
   const [savingSubcat, setSavingSubcat]     = useState(false)
   const [subcatEmojiOpen, setSubcatEmojiOpen] = useState(false)
   const [siteTheme, setSiteTheme]       = useState('classico-preto')
-  const [bannerEnabled, setBannerEnabled] = useState(true)
+  const [bannerEnabledDesktop, setBannerEnabledDesktop] = useState(true)
+  const [bannerEnabledMobile, setBannerEnabledMobile] = useState(true)
   const [savingAppearance, setSavingAppearance] = useState(false)
   const [abertoAgoraEnabled, setAbertoAgoraEnabled] = useState(false)
   const [entregandoAgoraEnabled, setEntregandoAgoraEnabled] = useState(false)
@@ -551,12 +552,16 @@ export default function AdminPage() {
     const { data } = await supabase.from('site_settings').select('key,value')
     if (data) {
       const theme = data.find((s: any) => s.key === 'active_theme')
-      const banner = data.find((s: any) => s.key === 'banner_enabled')
+      const bannerDesktop = data.find((s: any) => s.key === 'banner_enabled')
+      // Chave nova — se nunca foi salva (todo mundo antes dessa mudança),
+      // mantém ativo por padrão, igual o comportamento único de antes.
+      const bannerMobile = data.find((s: any) => s.key === 'banner_enabled_mobile')
       const pulseColor = data.find((s: any) => s.key === 'pulse_color_preset')
       const abertoAgora = data.find((s: any) => s.key === 'aberto_agora_enabled')
       const entregandoAgora = data.find((s: any) => s.key === 'entregando_agora_enabled')
       if (theme) setSiteTheme(theme.value || 'classico-preto')
-      if (banner) setBannerEnabled(banner.value === 'true')
+      if (bannerDesktop) setBannerEnabledDesktop(bannerDesktop.value === 'true')
+      setBannerEnabledMobile(bannerMobile ? bannerMobile.value === 'true' : true)
       if (pulseColor) setPulseColorPreset(pulseColor.value || 'classico')
       setAbertoAgoraEnabled(abertoAgora?.value === 'true')
       setEntregandoAgoraEnabled(entregandoAgora?.value === 'true')
@@ -574,11 +579,12 @@ export default function AdminPage() {
     showToast('Cor do Pulso atualizada!')
   }
 
-  async function saveAppearance(theme: string, banner: boolean) {
+  async function saveAppearance(theme: string, bannerDesktop: boolean, bannerMobile: boolean) {
     setSavingAppearance(true)
     await Promise.all([
       supabase.from('site_settings').upsert({ key: 'active_theme', value: theme, updated_at: new Date().toISOString() }, { onConflict: 'key' }),
-      supabase.from('site_settings').upsert({ key: 'banner_enabled', value: String(banner), updated_at: new Date().toISOString() }, { onConflict: 'key' }),
+      supabase.from('site_settings').upsert({ key: 'banner_enabled', value: String(bannerDesktop), updated_at: new Date().toISOString() }, { onConflict: 'key' }),
+      supabase.from('site_settings').upsert({ key: 'banner_enabled_mobile', value: String(bannerMobile), updated_at: new Date().toISOString() }, { onConflict: 'key' }),
     ])
     setSavingAppearance(false)
     showToast('Aparência salva!')
@@ -3046,16 +3052,30 @@ export default function AdminPage() {
 
                 <div style={{background:'#fff',border:'0.5px solid #EDE8E0',borderRadius:14,padding:'20px 24px',marginBottom:20}}>
                   <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:12,color:'#888',letterSpacing:.8,textTransform:'uppercase',marginBottom:16}}>BANNER DA HOME</div>
-                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                  <div style={{fontSize:12,color:'#AAA',marginBottom:16,lineHeight:1.6}}>Liga/desliga independente pra cada tela — dá pra deixar ativo só no desktop, só no mobile, nos dois ou em nenhum. Quando desativado, as categorias sobem direto abaixo da busca naquela tela.</div>
+
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 0',borderBottom:'0.5px solid #F0EDE8'}}>
                     <div>
-                      <div style={{fontWeight:600,fontSize:14,color:'#111',marginBottom:4}}>Exibir banner na home</div>
-                      <div style={{fontSize:12,color:'#AAA'}}>Quando desativado, as categorias sobem direto abaixo da busca</div>
+                      <div style={{fontWeight:600,fontSize:14,color:'#111',marginBottom:4}}>🖥️ Exibir no desktop</div>
                     </div>
-                    <div style={{display:'flex',alignItems:'center',gap:10}}>
-                      <span style={{fontSize:12,fontWeight:600,color:bannerEnabled?'#0F8050':'#E24B4A'}}>{bannerEnabled?'Ativo':'Inativo'}</span>
-                      <div onClick={()=>{ const nb=!bannerEnabled; setBannerEnabled(nb); saveAppearance(siteTheme,nb) }}
-                        style={{width:44,height:24,borderRadius:12,background:bannerEnabled?'#0F8050':'#E0DDD8',cursor:'pointer',position:'relative',transition:'background .2s'}}>
-                        <div style={{position:'absolute',top:2,left:bannerEnabled?22:2,width:20,height:20,borderRadius:'50%',background:'#fff',boxShadow:'0 1px 4px rgba(0,0,0,.2)',transition:'left .2s'}}/>
+                    <div style={{display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
+                      <span style={{fontSize:12,fontWeight:600,color:bannerEnabledDesktop?'#0F8050':'#E24B4A'}}>{bannerEnabledDesktop?'Ativo':'Inativo'}</span>
+                      <div onClick={()=>{ const nb=!bannerEnabledDesktop; setBannerEnabledDesktop(nb); saveAppearance(siteTheme,nb,bannerEnabledMobile) }}
+                        style={{width:44,height:24,borderRadius:12,background:bannerEnabledDesktop?'#0F8050':'#E0DDD8',cursor:'pointer',position:'relative',transition:'background .2s'}}>
+                        <div style={{position:'absolute',top:2,left:bannerEnabledDesktop?22:2,width:20,height:20,borderRadius:'50%',background:'#fff',boxShadow:'0 1px 4px rgba(0,0,0,.2)',transition:'left .2s'}}/>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 0 0'}}>
+                    <div>
+                      <div style={{fontWeight:600,fontSize:14,color:'#111',marginBottom:4}}>📱 Exibir no mobile</div>
+                    </div>
+                    <div style={{display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
+                      <span style={{fontSize:12,fontWeight:600,color:bannerEnabledMobile?'#0F8050':'#E24B4A'}}>{bannerEnabledMobile?'Ativo':'Inativo'}</span>
+                      <div onClick={()=>{ const nb=!bannerEnabledMobile; setBannerEnabledMobile(nb); saveAppearance(siteTheme,bannerEnabledDesktop,nb) }}
+                        style={{width:44,height:24,borderRadius:12,background:bannerEnabledMobile?'#0F8050':'#E0DDD8',cursor:'pointer',position:'relative',transition:'background .2s'}}>
+                        <div style={{position:'absolute',top:2,left:bannerEnabledMobile?22:2,width:20,height:20,borderRadius:'50%',background:'#fff',boxShadow:'0 1px 4px rgba(0,0,0,.2)',transition:'left .2s'}}/>
                       </div>
                     </div>
                   </div>
@@ -3345,7 +3365,7 @@ export default function AdminPage() {
                       {id:'terra-morna',nome:'Terra Morna',hero:'#3D2B1A',dest:'#D4845A'},
                       {id:'branco-limpo',nome:'Branco Limpo',hero:'#F5F5F5',dest:'#C9951A'},
                     ].map(t=>(
-                      <div key={t.id} onClick={()=>{ setSiteTheme(t.id); saveAppearance(t.id,bannerEnabled) }}
+                      <div key={t.id} onClick={()=>{ setSiteTheme(t.id); saveAppearance(t.id,bannerEnabledDesktop,bannerEnabledMobile) }}
                         style={{border:siteTheme===t.id?'2px solid var(--sign-dark)':'1.5px solid #EDE8E0',borderRadius:12,padding:12,cursor:'pointer',background:siteTheme===t.id?'#FEF3E2':'#FAFAF8',transition:'all .15s'}}>
                         <div style={{display:'flex',gap:6,marginBottom:8}}>
                           <div style={{flex:1,height:28,borderRadius:6,background:t.hero}}/>

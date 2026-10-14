@@ -232,8 +232,18 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
   useEffect(() => {
     if (!company || deliveryType !== 'entrega' || cepData?.bairro || !address.trim()) return
     let cancelled = false
+    // freteLoading precisa ficar true JÁ (não só depois do debounce) —
+    // achado real, out/2026 (Expresso Delícia): entre a última tecla digitada
+    // e os 600ms do debounce, freteLoading ainda estava false e freteInfo
+    // podia estar null/desatualizado; cliente que clicasse "Confirmar" bem
+    // nessa janela saía com taxaEntrega caindo no fallback de
+    // company.loja_taxa_entrega (R$0 pra quem usa o módulo Entrega da
+    // plataforma e nunca configura taxa própria) — pedido de entrega real
+    // saindo sem cobrança nenhuma. Zerar freteInfo aqui também evita usar
+    // valor de um endereço anterior enquanto o novo ainda não respondeu.
+    setFreteLoading(true)
+    setFreteInfo(null)
     const t = setTimeout(() => {
-      setFreteLoading(true)
       fetch('/api/loja/calcular-frete', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ company_id: company.id, enderecoLivre: address }),
@@ -369,7 +379,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
     if (Number(company.loja_pedido_minimo || 0) > 0 && cartTotal < Number(company.loja_pedido_minimo)) return
     if (deliveryType === 'entrega' && !address.trim()) return
     if (deliveryType === 'entrega' && !numero.trim()) return
-    if (deliveryType === 'entrega' && freteBlocked) return
+    if (deliveryType === 'entrega' && (freteBlocked || freteLoading || freteIndisponivel)) return
     if (trocoIncompleto) return
     if (!loggedIn && (!guestName.trim() || guestPhone.replace(/\D/g, '').length < 10)) { setStep('contato'); return }
     setConfirming(true)
@@ -433,7 +443,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
     if (Number(company.loja_pedido_minimo || 0) > 0 && cartTotal < Number(company.loja_pedido_minimo)) return
     if (deliveryType === 'entrega' && !address.trim()) return
     if (deliveryType === 'entrega' && !numero.trim()) return
-    if (deliveryType === 'entrega' && freteBlocked) return
+    if (deliveryType === 'entrega' && (freteBlocked || freteLoading || freteIndisponivel)) return
     if (trocoIncompleto) return
     if (!loggedIn && (!guestName.trim() || guestPhone.replace(/\D/g, '').length < 10)) { setStep('contato'); return }
     setSendingWa(true)
@@ -570,6 +580,13 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
   const open = isOpenNow(company.hours as any, company.flexible_hours, company.store_paused, company.store_forced_open)
   const freteBaseFee = freteInfo ? freteInfo.fee : Number(company.loja_taxa_entrega || 0)
   const freteBlocked = deliveryType === 'entrega' && !!freteInfo?.blocked
+  // Endereço digitado (sem CEP resolvido), já terminou de tentar calcular, e
+  // mesmo assim não veio taxa nenhuma (falha de rede, API fora do ar etc.) —
+  // trava o pedido em vez de deixar cair silenciosamente no fallback de
+  // company.loja_taxa_entrega, que é R$0 pra quem usa o módulo Entrega da
+  // plataforma (não configura taxa própria). Mesmo achado do freteLoading
+  // acima, cobrindo o caso de falha de verdade, não só a janela do debounce.
+  const freteIndisponivel = deliveryType === 'entrega' && !cepData?.bairro && !!address.trim() && !freteLoading && !freteInfo
   const freteGratisAcima = Number(company.loja_frete_gratis_acima || 0)
   const taxaEntrega = deliveryType === 'entrega' ? (freteGratisAcima > 0 && cartTotal >= freteGratisAcima ? 0 : freteBaseFee) : 0
   const couponEligible = (c: Coupon) => cartTotal >= Number(c.min_purchase || 0)
@@ -1250,6 +1267,11 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
                             🚫 {freteInfo?.reason || 'Não entregamos nesse endereço no momento.'}
                           </div>
                         )}
+                        {freteIndisponivel && (
+                          <div style={{ marginTop: 8, padding: '10px 12px', borderRadius: 10, background: '#FBEAEA', color: '#A83232', fontSize: 11.5, fontWeight: 600 }}>
+                            ⚠️ Não consegui calcular a taxa de entrega pra esse endereço. Confere o endereço ou tenta de novo em instantes.
+                          </div>
+                        )}
                         {!freteLoading && !freteBlocked && freteInfo?.tempo && (
                           <div style={{ marginTop: 8, fontSize: 11.5, fontWeight: 700, color: '#157A52' }}>
                             🕒 Chega em {freteInfo.tempo.min}–{freteInfo.tempo.max} min
@@ -1281,7 +1303,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
                     <textarea className="cd-diinput" style={{ minHeight: 56, resize: 'vertical' }} value={obs} onChange={e => setObs(e.target.value)} placeholder="Ex: sem cebola, troco pra R$50..." />
                   </div>
                   <div className="cd-dfooter">
-                    <button className="cd-addcart" disabled={(deliveryType === 'entrega' && (!address.trim() || !numero.trim() || freteBlocked)) || (deliveryType === 'retirada' && agendarRetirada && (!scheduleDate || !scheduleTime))} onClick={goStep}>Avançar →</button>
+                    <button className="cd-addcart" disabled={(deliveryType === 'entrega' && (!address.trim() || !numero.trim() || freteBlocked || freteLoading || freteIndisponivel)) || (deliveryType === 'retirada' && agendarRetirada && (!scheduleDate || !scheduleTime))} onClick={goStep}>Avançar →</button>
                   </div>
                 </>
               )}
@@ -1363,9 +1385,9 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
                         ⚠️ {orderError}
                       </div>
                     )}
-                    <button className="cd-addcart" style={{ width: '100%' }} disabled={confirming || trocoIncompleto} onClick={confirmOrder}>{confirming ? 'Enviando...' : `Confirmar pedido — ${fmt(orderTotal)}`}</button>
+                    <button className="cd-addcart" style={{ width: '100%' }} disabled={confirming || trocoIncompleto || (deliveryType === 'entrega' && (freteBlocked || freteLoading || freteIndisponivel))} onClick={confirmOrder}>{confirming ? 'Enviando...' : freteLoading && deliveryType === 'entrega' ? 'Calculando taxa de entrega...' : `Confirmar pedido — ${fmt(orderTotal)}`}</button>
                     {company.phone && (
-                      <button type="button" className="cd-wa-link" disabled={sendingWa || trocoIncompleto} onClick={sendCartWhatsapp}>
+                      <button type="button" className="cd-wa-link" disabled={sendingWa || trocoIncompleto || (deliveryType === 'entrega' && (freteBlocked || freteLoading || freteIndisponivel))} onClick={sendCartWhatsapp}>
                         {sendingWa ? 'Abrindo…' : '📱 Prefiro pedir pelo WhatsApp'}
                       </button>
                     )}

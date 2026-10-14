@@ -52,7 +52,7 @@ ${linhasMsg}
 Devolva o estado ATUALIZADO. Mantenha um campo do jeito que já estava se as mensagens novas não trouxerem nada que o mude — só altere com evidência nova:
 - tipo_evento: infantil, casamento, debutante, corporativo ou outro — null se ainda não ficou claro
 - interesse: "so_espaco" (só quer alugar o espaço) ou "espaco_buffet" (espaço + buffet/comida completa) — null se não ficou claro
-- fechou: true SÓ se o cliente confirmou que vai fechar/alugar de verdade (pagou ou prometeu sinal, combinou data de forma definitiva) — nunca marque true só por interesse ou pergunta de preço
+- fechou: true SÓ se o cliente confirmou que vai fechar/alugar o espaço de verdade pra FESTA DELE (pagou ou prometeu sinal, ou combinou a DATA DO EVENTO de forma definitiva). IMPORTANTE — agendar uma VISITA ou DEGUSTAÇÃO pra conhecer o espaço NÃO é fechar, mesmo que o salão "confirme o agendamento" — isso é só uma etapa anterior à decisão. Também não conta: só pedir orçamento, só demonstrar interesse, só perguntar preço. Na dúvida entre "visita agendada" e "festa fechada", marque false.
 - fechou_em: data no formato AAAA-MM-DD em que ficou claro que fechou, baseada nas datas das mensagens acima — null se fechou for false
 - recompra: true SÓ se o próprio cliente deixar claro que JÁ alugou o espaço antes pra uma festa dele — "já fui numa festa lá" como convidado NÃO conta como recompra
 - reclamou_demora: true se o cliente reclamar explicitamente de demora ou falta de resposta do salão

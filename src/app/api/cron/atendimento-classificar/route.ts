@@ -9,13 +9,15 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-// Painel de Atendimento — piloto (companies.crm_atendimento_pilot). Roda
-// 1x/dia por enquanto (teto do cron nativo da Vercel no plano Hobby); pra
-// chegar nas 5x/dia combinadas com o Ricardo precisa de pg_cron no Supabase
-// chamando essa mesma rota, como já é o caso pendente de /api/cron/entrega-expirar.
+// Painel de Atendimento — piloto (companies.crm_atendimento_pilot). O cron
+// nativo da Vercel (vercel.json) chama isso 1x/dia com CRON_SECRET (teto do
+// plano Hobby); as 5x/dia de verdade (2 manhã + 3 tarde) vêm de um pg_cron no
+// Supabase chamando essa mesma rota com um segredo próprio
+// (ATENDIMENTO_CRON_SECRET) — aceita os dois pra não duplicar lógica.
 export async function GET(req: NextRequest) {
   const auth = req.headers.get('authorization')
-  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  const validos = [process.env.CRON_SECRET, process.env.ATENDIMENTO_CRON_SECRET].filter(Boolean)
+  if (!validos.some(s => auth === `Bearer ${s}`)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 

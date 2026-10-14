@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { compressImage } from '@/lib/compressImage'
 import { moduleActive } from '@/lib/modules'
 import { usePainelShell } from '@/contexts/PainelShellContext'
+import { PeriodSel, periodRange, periodLabel, MESES } from '@/lib/periodFilter'
 
 // Modo Atendimento (ESPECIFICACAO.md §4.4) — mesmo inbox de sempre, mas em
 // tela cheia, sem sidebar/topbar/tabbar do painel: "modo não é página de
@@ -31,7 +32,7 @@ type Contact = {
   presence_state?: string | null; presence_until?: string | null; pinned?: boolean; archived?: boolean
   avatar_url?: string | null; muted?: boolean; notes?: string | null
   last_message_preview?: string | null; last_message_direction?: string | null; unread_count?: number
-  atendimento_modo?: 'ia' | 'humano'
+  atendimento_modo?: 'ia' | 'humano'; created_at?: string | null
 }
 type Message = {
   id: string; direction: 'in' | 'out'; body: string | null; media_type: string | null; media_url: string | null
@@ -170,6 +171,13 @@ export default function MensagensPage() {
   const [replyTo, setReplyTo] = useState<Message | null>(null)
   const [editingMessage, setEditingMessage] = useState<Message | null>(null)
   const [contactFilter, setContactFilter] = useState<'todas' | 'nao_lidas' | 'arquivadas'>('todas')
+  // Filtro por data de PRIMEIRO contato (crm_contacts.created_at) — pedido
+  // do Ricardo, out/2026. Reaproveita o mesmo tipo/cálculo de período do
+  // resto do site (src/lib/periodFilter.ts), só com visual próprio (pills
+  // escuras) pra combinar com o tema escuro desta tela — PeriodFilterBar
+  // é clara, destoaria aqui.
+  const [dateFilter, setDateFilter] = useState<PeriodSel>({ kind: 'all' })
+  const [dateFilterOpen, setDateFilterOpen] = useState(false)
   const [contactSearch, setContactSearch] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const [notesOpen, setNotesOpen] = useState(false)
@@ -302,7 +310,7 @@ export default function MensagensPage() {
 
   async function loadContacts(companyId: string) {
     const { data } = await supabase
-      .from('crm_contacts').select('id, phone, name, last_message_at, last_read_at, presence_state, presence_until, pinned, archived, avatar_url, muted, notes, last_message_preview, last_message_direction, unread_count, atendimento_modo')
+      .from('crm_contacts').select('id, phone, name, last_message_at, last_read_at, presence_state, presence_until, pinned, archived, avatar_url, muted, notes, last_message_preview, last_message_direction, unread_count, atendimento_modo, created_at')
       .eq('company_id', companyId).not('last_message_at', 'is', null)
       .order('last_message_at', { ascending: false })
     setContacts((data || []) as Contact[])
@@ -1248,6 +1256,16 @@ export default function MensagensPage() {
           .msg-tf-btn.new{background:#2a3942;color:#e9edef;}
           .msg-tf-btn.manage{background:transparent;color:#00a884;}
 
+          .msg-datefilter-pop{padding:10px;}
+          .msg-datefilter-pills{display:flex;flex-wrap:wrap;gap:6px;padding:0 0 10px;}
+          .msg-datefilter-pill{padding:6px 12px;border-radius:14px;border:1px solid #2f3b43;background:#2a3942;color:#cfd6da;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;}
+          .msg-datefilter-pill.on{background:#00a884;border-color:#00a884;color:#fff;}
+          .msg-datefilter-select{width:100%;padding:8px 10px;border-radius:8px;border:1px solid #2f3b43;background:#2a3942;color:#cfd6da;font-size:12.5px;font-family:inherit;margin-bottom:10px;}
+          .msg-datefilter-range{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;border:1px solid #2f3b43;background:#2a3942;}
+          .msg-datefilter-range span{font-size:10.5px;font-weight:800;text-transform:uppercase;color:#8696a0;flex:none;}
+          .msg-datefilter-range input{flex:1;min-width:0;background:transparent;border:none;color:#e9edef;font-size:12.5px;font-family:inherit;}
+          .msg-datefilter-range input::-webkit-calendar-picker-indicator{filter:invert(.7);}
+
           .msg-tagsrow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:10px 16px;background:#182229;border-bottom:1px solid #2f3b43;position:relative;flex:none;}
           .msg-addtag-btn{width:24px;height:24px;border-radius:50%;border:1.5px dashed #2f3b43;background:transparent;color:#8696a0;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none;}
           .msg-addtag-btn:hover{border-color:#00a884;color:#00a884;}
@@ -1502,9 +1520,45 @@ export default function MensagensPage() {
                     <button className={`msg-list-chip ${contactFilter === 'arquivadas' ? 'on' : ''}`} onClick={() => setContactFilter('arquivadas')}>Arquivadas</button>
                     <button className="msg-list-chip" onClick={() => setStarredOpen(true)}>⭐ Marcadas</button>
                     <button className={`msg-list-chip ${tagFilterIds.length ? 'on' : ''}`} onClick={() => setTagFilterOpen(v => !v)}>🏷️ Etiquetas{tagFilterIds.length > 0 ? ` (${tagFilterIds.length})` : ''} ▾</button>
+                    <button className={`msg-list-chip ${dateFilter.kind !== 'all' ? 'on' : ''}`} onClick={() => setDateFilterOpen(v => !v)}>📅 {dateFilter.kind === 'all' ? '1º contato' : periodLabel(dateFilter)} ▾</button>
                   </div>
                   <button className="msg-chip-arrow" title="Rolar pra frente" onClick={() => scrollChips(1)}>›</button>
                 </div>
+                {dateFilterOpen && (
+                  <div className="msg-tagfilter-pop msg-datefilter-pop">
+                    <div className="msg-tagfilter-hd">Data do 1º contato</div>
+                    <div className="msg-datefilter-pills">
+                      {([['today', 'Hoje'], ['yesterday', 'Ontem'], ['week', 'Esta semana'], ['month', 'Este mês'], ['year', 'Este ano'], ['all', 'Tudo']] as [PeriodSel['kind'], string][]).map(([kind, label]) => (
+                        <button key={kind} className={`msg-datefilter-pill ${dateFilter.kind === kind ? 'on' : ''}`} onClick={() => setDateFilter({ kind })}>{label}</button>
+                      ))}
+                    </div>
+                    <select
+                      className="msg-datefilter-select"
+                      value={dateFilter.kind === 'other_month' && dateFilter.monthIndex != null ? String(dateFilter.monthIndex) : ''}
+                      onChange={e => setDateFilter({ kind: 'other_month', monthIndex: Number(e.target.value) })}
+                    >
+                      <option value="" disabled>Outro mês</option>
+                      {MESES.map((m, i) => <option key={m} value={i}>{m}</option>)}
+                    </select>
+                    <div className="msg-datefilter-range">
+                      <span>De</span>
+                      <input
+                        type="date"
+                        value={dateFilter.kind === 'custom' ? dateFilter.customFrom || '' : ''}
+                        onChange={e => setDateFilter({ kind: 'custom', customFrom: e.target.value, customTo: dateFilter.kind === 'custom' ? dateFilter.customTo : undefined })}
+                      />
+                      <span>até</span>
+                      <input
+                        type="date"
+                        value={dateFilter.kind === 'custom' ? dateFilter.customTo || '' : ''}
+                        onChange={e => setDateFilter({ kind: 'custom', customFrom: dateFilter.kind === 'custom' ? dateFilter.customFrom : undefined, customTo: e.target.value })}
+                      />
+                    </div>
+                    <div className="msg-tagfilter-foot">
+                      <button className="msg-tf-btn manage" onClick={() => setDateFilterOpen(false)}>Fechar</button>
+                    </div>
+                  </div>
+                )}
                 {tagFilterOpen && (
                   <div className="msg-tagfilter-pop">
                     <div className="msg-tagfilter-hd">Filtrar por etiqueta</div>
@@ -1540,17 +1594,27 @@ export default function MensagensPage() {
               </div>
               {(() => {
                 const term = contactSearch.trim().toLowerCase()
+                const { from: dateFrom, to: dateTo } = periodRange(dateFilter)
                 const base = contacts
                   .filter(c => contactFilter === 'arquivadas' ? c.archived : !c.archived)
                   .filter(c => contactFilter !== 'nao_lidas' || (!!c.last_message_at && (!c.last_read_at || c.last_read_at < c.last_message_at)))
                   .filter(c => !term || (c.name || '').toLowerCase().includes(term) || c.phone.includes(term))
                   .filter(c => tagFilterIds.length === 0 || (contactTagsMap[c.id] || []).some(ct => tagFilterIds.includes(ct.tag_id)))
+                  .filter(c => {
+                    if (!dateFrom && !dateTo) return true
+                    if (!c.created_at) return false
+                    const ts = new Date(c.created_at).getTime()
+                    if (dateFrom && ts < new Date(dateFrom).getTime()) return false
+                    if (dateTo && ts >= new Date(dateTo).getTime()) return false
+                    return true
+                  })
                 const pinned = base.filter(c => c.pinned)
                 const rest = base.filter(c => !c.pinned)
                 const rows = [...pinned, ...rest]
                 const emptyMsg = term ? 'Nenhuma conversa encontrada.'
                   : contactFilter === 'arquivadas' ? 'Nenhuma conversa arquivada.'
                   : contactFilter === 'nao_lidas' ? 'Nenhuma conversa não lida.'
+                  : dateFilter.kind !== 'all' ? 'Nenhuma conversa com 1º contato nesse período.'
                   : 'Nenhuma conversa ainda.'
                 return (
                   <>

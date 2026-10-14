@@ -1515,12 +1515,12 @@ export default function MensagensPage() {
                 <div className="msg-list-chiprow">
                   <button className="msg-chip-arrow" title="Rolar pra trás" onClick={() => scrollChips(-1)}>‹</button>
                   <div className="msg-list-chips" ref={chipsScrollRef}>
+                    <button className={`msg-list-chip ${dateFilter.kind !== 'all' ? 'on' : ''}`} onClick={() => setDateFilterOpen(v => !v)}>📅 {dateFilter.kind === 'all' ? '1º contato' : periodLabel(dateFilter)} ▾</button>
                     <button className={`msg-list-chip ${contactFilter === 'todas' ? 'on' : ''}`} onClick={() => setContactFilter('todas')}>Todas</button>
                     <button className={`msg-list-chip ${contactFilter === 'nao_lidas' ? 'on' : ''}`} onClick={() => setContactFilter('nao_lidas')}>Não lidas</button>
                     <button className={`msg-list-chip ${contactFilter === 'arquivadas' ? 'on' : ''}`} onClick={() => setContactFilter('arquivadas')}>Arquivadas</button>
                     <button className="msg-list-chip" onClick={() => setStarredOpen(true)}>⭐ Marcadas</button>
                     <button className={`msg-list-chip ${tagFilterIds.length ? 'on' : ''}`} onClick={() => setTagFilterOpen(v => !v)}>🏷️ Etiquetas{tagFilterIds.length > 0 ? ` (${tagFilterIds.length})` : ''} ▾</button>
-                    <button className={`msg-list-chip ${dateFilter.kind !== 'all' ? 'on' : ''}`} onClick={() => setDateFilterOpen(v => !v)}>📅 {dateFilter.kind === 'all' ? '1º contato' : periodLabel(dateFilter)} ▾</button>
                   </div>
                   <button className="msg-chip-arrow" title="Rolar pra frente" onClick={() => scrollChips(1)}>›</button>
                 </div>

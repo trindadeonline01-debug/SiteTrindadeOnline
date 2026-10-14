@@ -24,12 +24,32 @@ type Resumo = {
   tipo_evento: 'infantil' | 'casamento' | 'debutante' | 'corporativo' | 'outro' | null
   interesse: 'so_espaco' | 'espaco_buffet' | null
   fechou: boolean
+  fechou_em: string | null
   recompra: boolean
+  reclamou_demora: boolean
+  reclamou_em: string | null
   perdeu_por_demora: boolean
   perdeu_em: string | null
   nota: string
 }
 type ContatoEstado = { contact_id: string; resumo: Resumo; contact: { name: string | null; phone: string } | null }
+
+// Linhas das funções de drill-down (crm_atendimento_agora_detalhe /
+// crm_atendimento_periodo_detalhe) — pedido do Ricardo, out/2026: clicar
+// num card/calendário e ver os contatos de verdade por trás do número, com
+// link direto pra conversa em Mensagens.
+type AgoraRow = { contact_id: string; name: string | null; phone: string; last_in: string; last_out: string | null; sem_primeiro: boolean; aguardando_1h: boolean }
+type PeriodoRow = { contact_id: string; name: string | null; phone: string; primeiro_contato: string; first_out: string | null; last_in: string; respondeu: boolean; evadiu: boolean; tempo_resposta_min: number | null }
+type DrawerRow = { id: string; title: string; sub: string }
+type Drawer = { title: string; note?: string; loading: boolean; rows: DrawerRow[] }
+
+function displayName(name: string | null | undefined, phone: string | undefined | null): string {
+  return name && name !== '.' ? name : (phone || '—')
+}
+function fmtDataHora(iso: string | null): string {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+}
 
 const TIPO_EVENTO_LABEL: Record<string, string> = { infantil: 'Festa infantil', casamento: 'Casamento', debutante: 'Debutante / 15 anos', corporativo: 'Corporativo', outro: 'Outro' }
 const INTERESSE_LABEL: Record<string, string> = { so_espaco: 'Só o espaço', espaco_buffet: 'Espaço + buffet completo' }
@@ -47,6 +67,14 @@ export default function PainelAtendimentoPage() {
   const [todasLinhas, setTodasLinhas] = useState<DiarioRow[]>([])
   const [estados, setEstados] = useState<ContatoEstado[]>([])
   const [calMes, setCalMes] = useState<{ y: number; m: number } | null>(null)
+  const [drawer, setDrawer] = useState<Drawer | null>(null)
+
+  // Link pra conversa real em Mensagens — preserva ?empresa= quando quem
+  // clica é o admin em modo impersonação (mesmo padrão do resto do painel).
+  function linkMensagens(contactId: string): string {
+    const empresa = new URLSearchParams(window.location.search).get('empresa')
+    return `/painel/mensagens?contato=${contactId}` + (empresa ? `&empresa=${empresa}` : '')
+  }
 
   useEffect(() => {
     if (shellLoading) return
@@ -122,6 +150,69 @@ export default function PainelAtendimentoPage() {
     [estados]
   )
 
+  // "Vendas fechadas" e "Reclamações por demora" já vêm de dado carregado
+  // (estados), filtrado pelo mesmo período escolhido nos filtros — sem
+  // precisar de outra consulta, igual o resto do rollup.
+  const vendasFechadasLista = useMemo(
+    () => estados.filter(e => e.resumo?.fechou && e.resumo.fechou_em && e.resumo.fechou_em >= (fromDate || '0000-01-01') && e.resumo.fechou_em <= toDate)
+      .sort((a, b) => (b.resumo.fechou_em || '').localeCompare(a.resumo.fechou_em || '')),
+    [estados, fromDate, toDate]
+  )
+  const reclamacoesLista = useMemo(
+    () => estados.filter(e => e.resumo?.reclamou_demora && e.resumo.reclamou_em && e.resumo.reclamou_em >= (fromDate || '0000-01-01') && e.resumo.reclamou_em <= toDate)
+      .sort((a, b) => (b.resumo.reclamou_em || '').localeCompare(a.resumo.reclamou_em || '')),
+    [estados, fromDate, toDate]
+  )
+
+  function abrirDeEstados(title: string, lista: ContatoEstado[], subFn: (e: ContatoEstado) => string) {
+    setDrawer({
+      title, loading: false,
+      rows: lista.map(e => ({ id: e.contact_id, title: displayName(e.contact?.name, e.contact?.phone), sub: subFn(e) })),
+    })
+  }
+
+  async function abrirAgora(tipo: 'sem_primeiro' | 'aguardando_1h' | 'todos', title: string) {
+    if (!company?.id) return
+    setDrawer({ title, loading: true, rows: [] })
+    const { data, error } = await supabase.rpc('crm_atendimento_agora_detalhe', { p_company_id: company.id })
+    const rows = ((data || []) as AgoraRow[]).filter(r => tipo === 'todos' || (tipo === 'sem_primeiro' ? r.sem_primeiro : r.aguardando_1h))
+    setDrawer({
+      title, loading: false,
+      note: error ? 'Não consegui carregar a lista agora — tenta de novo.' : undefined,
+      rows: rows.map(r => ({ id: r.contact_id, title: displayName(r.name, r.phone), sub: r.sem_primeiro ? `Esperando desde ${fmtDataHora(r.last_in)} · nunca respondido` : `Cliente escreveu de novo às ${fmtDataHora(r.last_in)}` })),
+    })
+  }
+
+  async function abrirPeriodo(tipo: 'todos' | 'evadiram' | 'respondidos', title: string) {
+    if (!company?.id) return
+    setDrawer({ title, loading: true, rows: [] })
+    const { data, error } = await supabase.rpc('crm_atendimento_periodo_detalhe', { p_company_id: company.id, p_from: fromDate || '2000-01-01', p_to: toDate })
+    const rows = ((data || []) as PeriodoRow[]).filter(r => tipo === 'todos' ? true : tipo === 'evadiram' ? r.evadiu : r.respondeu)
+    setDrawer({
+      title, loading: false,
+      note: error ? 'Não consegui carregar a lista agora — tenta de novo.' : undefined,
+      rows: rows.map(r => ({
+        id: r.contact_id, title: displayName(r.name, r.phone),
+        sub: `1º contato ${fmtDataHora(r.primeiro_contato + 'T00:00:00')}` + (r.respondeu ? ` · respondido em ${r.tempo_resposta_min != null ? fmtMin(r.tempo_resposta_min) : '—'}` : r.evadiu ? ' · evadiu sem resposta' : ' · ainda sem resposta'),
+      })),
+    })
+  }
+
+  async function abrirDia(dateStr: string) {
+    if (!company?.id) return
+    const d = new Date(dateStr + 'T00:00:00').toLocaleDateString('pt-BR')
+    setDrawer({ title: `Novos clientes em ${d}`, loading: true, rows: [] })
+    const { data, error } = await supabase.rpc('crm_atendimento_periodo_detalhe', { p_company_id: company.id, p_from: dateStr, p_to: dateStr })
+    setDrawer({
+      title: `Novos clientes em ${d}`, loading: false,
+      note: error ? 'Não consegui carregar a lista agora — tenta de novo.' : undefined,
+      rows: ((data || []) as PeriodoRow[]).map(r => ({
+        id: r.contact_id, title: displayName(r.name, r.phone),
+        sub: r.respondeu ? `Respondido em ${r.tempo_resposta_min != null ? fmtMin(r.tempo_resposta_min) : '—'}` : r.evadiu ? 'Evadiu sem resposta' : 'Ainda sem resposta',
+      })),
+    })
+  }
+
   const maxNovosDia = useMemo(() => Math.max(1, ...todasLinhas.map(r => r.novos_clientes)), [todasLinhas])
   const linhasPorData = useMemo(() => new Map(todasLinhas.map(r => [r.date, r])), [todasLinhas])
 
@@ -192,6 +283,25 @@ export default function PainelAtendimentoPage() {
         .pa-table td{ padding:9px 8px;border-bottom:1px solid #F5F2EC;vertical-align:top; }
         .pa-table tr:last-child td{ border-bottom:none; }
         .pa-tag{ display:inline-block;font-size:10px;font-weight:700;color:#C43D3D;background:#FBE8E6;padding:1px 7px;border-radius:999px;margin-left:6px;white-space:nowrap; }
+
+        .pa-clickable{ cursor:pointer;transition:box-shadow .12s ease,transform .12s ease; }
+        .pa-clickable:hover{ box-shadow:0 2px 10px rgba(0,0,0,.08);transform:translateY(-1px); }
+        .pa-cal-cell.pa-clickable:hover{ outline:1.5px solid #A87200; }
+        .pa-row-clickable{ cursor:pointer; }
+        .pa-row-clickable:hover{ background:#FBF8F2; }
+
+        .pa-drawer-backdrop{ position:fixed;inset:0;background:rgba(20,15,5,.35);z-index:60; }
+        .pa-drawer{ position:fixed;right:0;top:0;bottom:0;width:100%;max-width:420px;background:#fff;z-index:61;display:flex;flex-direction:column;box-shadow:-8px 0 30px rgba(0,0,0,.2); }
+        .pa-drawer-hd{ display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:16px;border-bottom:1px solid var(--line); }
+        .pa-drawer-title{ font-family:'Anton',sans-serif;font-size:16px;color:var(--ink); }
+        .pa-drawer-count{ font-size:11.5px;color:var(--muted);margin-top:3px; }
+        .pa-drawer-close{ border:none;background:var(--concrete-2);width:28px;height:28px;border-radius:50%;font-size:14px;cursor:pointer;flex:none; }
+        .pa-drawer-body{ flex:1;overflow-y:auto; }
+        .pa-drawer-row{ display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 16px;border-bottom:1px solid #F5F2EC;text-decoration:none;color:inherit; }
+        .pa-drawer-row:hover{ background:#FBF8F2; }
+        .pa-drawer-row-name{ font-size:13px;font-weight:700;color:var(--ink); }
+        .pa-drawer-row-sub{ font-size:11.5px;color:var(--muted);margin-top:2px; }
+        .pa-drawer-row-arrow{ color:#C9C4B5;font-size:15px;flex:none; }
       `}</style>
 
       <div className="pa-banner">
@@ -204,15 +314,15 @@ export default function PainelAtendimentoPage() {
 
       <p className="pa-section-title">Agora</p>
       <div className="pa-kpis">
-        <div className="pa-kpi warn">
+        <div className="pa-kpi warn pa-clickable" onClick={() => abrirAgora('sem_primeiro', 'Sem primeiro atendimento')}>
           <div className="pa-kpi-lbl">Sem primeiro atendimento</div>
           <div className="pa-kpi-val">{hojeRow?.sem_primeiro_atendimento ?? 0}</div>
         </div>
-        <div className="pa-kpi alert">
+        <div className="pa-kpi alert pa-clickable" onClick={() => abrirAgora('aguardando_1h', 'Aguardando +1h')}>
           <div className="pa-kpi-lbl">Aguardando +1h</div>
           <div className="pa-kpi-val">{hojeRow?.aguardando_mais_1h ?? 0}</div>
         </div>
-        <div className="pa-kpi alert">
+        <div className="pa-kpi alert pa-clickable" onClick={() => abrirAgora('todos', 'Sem resposta agora')}>
           <div className="pa-kpi-lbl">Sem resposta agora</div>
           <div className="pa-kpi-val">{hojeRow?.sem_resposta_agora ?? 0}</div>
         </div>
@@ -220,30 +330,30 @@ export default function PainelAtendimentoPage() {
 
       <p className="pa-section-title">No período · {periodLabel(period)}</p>
       <div className="pa-kpis">
-        <div className="pa-kpi">
+        <div className="pa-kpi pa-clickable" onClick={() => abrirPeriodo('todos', 'Novos clientes')}>
           <div className="pa-kpi-lbl">Novos clientes</div>
           <div className="pa-kpi-val">{kpis.novos}</div>
         </div>
-        <div className="pa-kpi">
+        <div className="pa-kpi pa-clickable" onClick={() => abrirPeriodo('respondidos', 'Taxa de resposta')}>
           <div className="pa-kpi-lbl">Taxa de resposta</div>
           <div className="pa-kpi-val">{kpis.novos ? fmtPct(kpis.respondidos / kpis.novos) : '—'}</div>
           <div className="pa-kpi-sub">{kpis.respondidos} de {kpis.novos}</div>
         </div>
-        <div className="pa-kpi">
+        <div className="pa-kpi pa-clickable" onClick={() => abrirPeriodo('respondidos', 'Tempo de resposta')}>
           <div className="pa-kpi-lbl">Tempo médio de resposta</div>
           <div className="pa-kpi-val">{kpis.tempoMedio != null ? fmtMin(kpis.tempoMedio) : '—'}</div>
         </div>
-        <div className="pa-kpi">
+        <div className="pa-kpi pa-clickable" onClick={() => abrirDeEstados('Vendas fechadas', vendasFechadasLista, e => `Fechou em ${e.resumo.fechou_em ? new Date(e.resumo.fechou_em + 'T00:00:00').toLocaleDateString('pt-BR') : '—'}${e.resumo.recompra ? ' · recompra' : ' · primeira vez'}`)}>
           <div className="pa-kpi-lbl">Vendas fechadas</div>
           <div className="pa-kpi-val">{kpis.fechadas}</div>
           <div className="pa-kpi-sub">{kpis.primeiraVez} primeira vez · {kpis.recompra} recompra</div>
         </div>
-        <div className="pa-kpi alert">
+        <div className="pa-kpi alert pa-clickable" onClick={() => abrirPeriodo('evadiram', 'Evadiram sem resposta')}>
           <div className="pa-kpi-lbl">Evadiram sem resposta</div>
           <div className="pa-kpi-val">{kpis.evadiram}</div>
           <div className="pa-kpi-sub">{kpis.novos ? fmtPct(kpis.evadiram / kpis.novos) + ' dos novos' : '—'}</div>
         </div>
-        <div className="pa-kpi warn">
+        <div className="pa-kpi warn pa-clickable" onClick={() => abrirDeEstados('Reclamações por demora', reclamacoesLista, e => `Reclamou em ${e.resumo.reclamou_em ? new Date(e.resumo.reclamou_em + 'T00:00:00').toLocaleDateString('pt-BR') : '—'}`)}>
           <div className="pa-kpi-lbl">Reclamações por demora</div>
           <div className="pa-kpi-val">{kpis.reclamacoes}</div>
         </div>
@@ -261,7 +371,7 @@ export default function PainelAtendimentoPage() {
               <button className="pa-cal-nav" disabled={calIdx >= diasDisponiveis.maxIdx} onClick={() => shiftMes(1)}>›</button>
             </div>
             <div className="pa-cal-weekdays">{WEEKDAY.map((w, i) => <span key={i}>{w}</span>)}</div>
-            <CalendarioGrid mes={calMes} linhasPorData={linhasPorData} maxNovos={maxNovosDia} fromDate={fromDate} toDate={toDate} hoje={todayISO()} />
+            <CalendarioGrid mes={calMes} linhasPorData={linhasPorData} maxNovos={maxNovosDia} fromDate={fromDate} toDate={toDate} hoje={todayISO()} onDayClick={abrirDia} />
             <div className="pa-cal-legend">
               <span>menos</span>
               {[8, 30, 55, 80, 100].map(p => <span key={p} className="pa-cal-swatch" style={{ background: `color-mix(in srgb, #A87200 ${p}%, #fff)` }} />)}
@@ -278,7 +388,7 @@ export default function PainelAtendimentoPage() {
         <div className="pa-card">
           <div className="pa-card-title">Tipo de evento</div>
           {perfilEvento.length === 0 ? <div className="pa-empty">Ainda sem dado suficiente.</div> : perfilEvento.map(b => (
-            <div className="pa-bar-row" key={b.label}>
+            <div className="pa-bar-row pa-clickable" key={b.label} onClick={() => abrirDeEstados(b.label, estados.filter(e => TIPO_EVENTO_LABEL[e.resumo?.tipo_evento || ''] === b.label), e => e.resumo.nota)}>
               <div className="pa-bar-top"><span>{b.label}</span><span>{b.qtd} · {fmtPct(b.pct)}</span></div>
               <div className="pa-bar-track"><div className="pa-bar-fill" style={{ width: fmtPct(b.pct) }} /></div>
             </div>
@@ -287,7 +397,7 @@ export default function PainelAtendimentoPage() {
         <div className="pa-card">
           <div className="pa-card-title">Interesse</div>
           {perfilInteresse.length === 0 ? <div className="pa-empty">Ainda sem dado suficiente.</div> : perfilInteresse.map(b => (
-            <div className="pa-bar-row" key={b.label}>
+            <div className="pa-bar-row pa-clickable" key={b.label} onClick={() => abrirDeEstados(b.label, estados.filter(e => INTERESSE_LABEL[e.resumo?.interesse || ''] === b.label), e => e.resumo.nota)}>
               <div className="pa-bar-top"><span>{b.label}</span><span>{b.qtd} · {fmtPct(b.pct)}</span></div>
               <div className="pa-bar-track"><div className="pa-bar-fill" style={{ width: fmtPct(b.pct), background: '#157A52' }} /></div>
             </div>
@@ -304,9 +414,9 @@ export default function PainelAtendimentoPage() {
             <thead><tr><th>Data</th><th>Cliente</th><th>Anotação da IA</th></tr></thead>
             <tbody>
               {perdidasLista.map(e => (
-                <tr key={e.contact_id}>
+                <tr key={e.contact_id} className="pa-row-clickable" onClick={() => window.location.href = linkMensagens(e.contact_id)}>
                   <td style={{ whiteSpace: 'nowrap' }}>{e.resumo.perdeu_em ? new Date(e.resumo.perdeu_em + 'T00:00:00').toLocaleDateString('pt-BR') : '—'}</td>
-                  <td style={{ whiteSpace: 'nowrap' }}>{e.contact?.name && e.contact.name !== '.' ? e.contact.name : e.contact?.phone}<span className="pa-tag">perdida</span></td>
+                  <td style={{ whiteSpace: 'nowrap' }}>{displayName(e.contact?.name, e.contact?.phone)}<span className="pa-tag">perdida</span></td>
                   <td>{e.resumo.nota}</td>
                 </tr>
               ))}
@@ -314,17 +424,46 @@ export default function PainelAtendimentoPage() {
           </table>
         )}
       </div>
+
+      {drawer && (
+        <>
+          <div className="pa-drawer-backdrop" onClick={() => setDrawer(null)} />
+          <div className="pa-drawer">
+            <div className="pa-drawer-hd">
+              <div>
+                <div className="pa-drawer-title">{drawer.title}</div>
+                <div className="pa-drawer-count">{drawer.loading ? 'Carregando...' : `${drawer.rows.length} contato(s)`}</div>
+              </div>
+              <button className="pa-drawer-close" onClick={() => setDrawer(null)}>✕</button>
+            </div>
+            <div className="pa-drawer-body">
+              {drawer.note && <div className="pa-empty" style={{ padding: 16 }}>{drawer.note}</div>}
+              {!drawer.loading && drawer.rows.length === 0 && !drawer.note && <div className="pa-empty" style={{ padding: 24 }}>Nenhum contato aqui.</div>}
+              {drawer.rows.map(r => (
+                <a key={r.id} className="pa-drawer-row" href={linkMensagens(r.id)}>
+                  <div>
+                    <div className="pa-drawer-row-name">{r.title}</div>
+                    <div className="pa-drawer-row-sub">{r.sub}</div>
+                  </div>
+                  <span className="pa-drawer-row-arrow">›</span>
+                </a>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }
 
-function CalendarioGrid({ mes, linhasPorData, maxNovos, fromDate, toDate, hoje }: {
+function CalendarioGrid({ mes, linhasPorData, maxNovos, fromDate, toDate, hoje, onDayClick }: {
   mes: { y: number; m: number }
   linhasPorData: Map<string, DiarioRow>
   maxNovos: number
   fromDate: string | null
   toDate: string
   hoje: string
+  onDayClick: (dateStr: string) => void
 }) {
   const firstWeekday = new Date(mes.y, mes.m, 1).getDay()
   const daysInMonth = new Date(mes.y, mes.m + 1, 0).getDate()
@@ -342,7 +481,8 @@ function CalendarioGrid({ mes, linhasPorData, maxNovos, fromDate, toDate, hoje }
     cells.push(
       <div
         key={i}
-        className="pa-cal-cell"
+        className="pa-cal-cell pa-clickable"
+        onClick={() => onDayClick(dateStr)}
         style={{
           background: `color-mix(in srgb, #A87200 ${pct}%, #fff)`,
           opacity: inRange ? 1 : .3,

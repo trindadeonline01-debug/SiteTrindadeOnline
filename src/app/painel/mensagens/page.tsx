@@ -239,6 +239,7 @@ export default function MensagensPage() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
   const discardRecordingRef = useRef(false)
+  const deepLinkOpenedRef = useRef(false)
   const mediaUrlCacheRef = useRef<Map<string, string>>(new Map())
   const msgBodyRef = useRef<HTMLDivElement | null>(null)
   const chipsScrollRef = useRef<HTMLDivElement | null>(null)
@@ -808,6 +809,22 @@ export default function MensagensPage() {
     const iv = setInterval(() => loadContacts(company.id), 15000)
     return () => clearInterval(iv)
   }, [instance?.status, company?.id])
+
+  // Abre direto uma conversa específica via ?contato=<id> na URL — usado
+  // pelo Painel de Atendimento (/painel/atendimento) pra linkar do card/lista
+  // de contatos direto pra conversa real. Lido do window.location em vez de
+  // useSearchParams (evitaria ter que embrulhar a página inteira em
+  // Suspense) — só precisa rodar 1x, quando a lista de contatos carregar.
+  useEffect(() => {
+    if (deepLinkOpenedRef.current || contacts.length === 0) return
+    const contatoId = new URLSearchParams(window.location.search).get('contato')
+    if (!contatoId) return
+    const alvo = contacts.find(c => c.id === contatoId)
+    if (!alvo) return
+    deepLinkOpenedRef.current = true
+    openContact(alvo)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contacts])
 
   useEffect(() => {
     if (!selected) return

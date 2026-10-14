@@ -24,6 +24,8 @@ const ResumoSchema = z.object({
   recompra: z.boolean(),
   reclamou_demora: z.boolean(),
   reclamou_em: z.string().nullable(),
+  perdeu_por_demora: z.boolean(),
+  perdeu_em: z.string().nullable(),
   nota: z.string(),
 })
 export type ResumoAtendimento = z.infer<typeof ResumoSchema>
@@ -55,8 +57,10 @@ Devolva o estado ATUALIZADO. Mantenha um campo do jeito que já estava se as men
 - fechou: true SÓ se o cliente confirmou que vai fechar/alugar o espaço de verdade pra FESTA DELE (pagou ou prometeu sinal, ou combinou a DATA DO EVENTO de forma definitiva). IMPORTANTE — agendar uma VISITA ou DEGUSTAÇÃO pra conhecer o espaço NÃO é fechar, mesmo que o salão "confirme o agendamento" — isso é só uma etapa anterior à decisão. Também não conta: só pedir orçamento, só demonstrar interesse, só perguntar preço. Na dúvida entre "visita agendada" e "festa fechada", marque false.
 - fechou_em: data no formato AAAA-MM-DD em que ficou claro que fechou, baseada nas datas das mensagens acima — null se fechou for false
 - recompra: true SÓ se o próprio cliente deixar claro que JÁ alugou o espaço antes pra uma festa dele — "já fui numa festa lá" como convidado NÃO conta como recompra
-- reclamou_demora: true se o cliente reclamar explicitamente de demora ou falta de resposta do salão
+- reclamou_demora: true se o cliente reclamar explicitamente de demora ou falta de resposta do salão, mesmo que continue negociando depois
 - reclamou_em: data AAAA-MM-DD da reclamação — null se reclamou_demora for false
+- perdeu_por_demora: true SÓ se o cliente disser explicitamente que fechou/vai fechar em OUTRO salão/espaço por causa da demora ou falta de resposta daqui — é mais forte que uma reclamação comum, é a venda se confirmando perdida por esse motivo específico
+- perdeu_em: data AAAA-MM-DD em que isso ficou claro — null se perdeu_por_demora for false
 - nota: uma frase curta resumindo o estado atual dessa conversa, pra um humano auditar depois`
 
   const response = await anthropic.messages.parse({

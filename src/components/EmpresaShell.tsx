@@ -8,7 +8,7 @@ import Link from 'next/link'
 // sidebar interna de /painel, que eram dois sistemas de menu separados.
 export type EmpresaNavKey =
   | 'dashboard' | 'perfil' | 'avaliacoes' | 'destaques' | 'banners'
-  | 'compartilhar' | 'catalogo' | 'pedidos' | 'cozinha' | 'entrega' | 'motoboys' | 'mensagens' | 'clientes'
+  | 'compartilhar' | 'catalogo' | 'pedidos' | 'cozinha' | 'entrega' | 'motoboys' | 'mensagens' | 'clientes' | 'atendimento'
   | 'interesses' | 'cupons' | 'promocoes' | 'plano' | 'relatorios'
   | 'pessoal-perfil' | 'pessoal-favoritos' | 'pessoal-avaliacoes' | 'pessoal-pedidos' | 'pessoal-anuncios' | 'pessoal-cupons'
 
@@ -17,7 +17,7 @@ type Company = { id: string; name: string; slug?: string }
 const TITLES: Record<EmpresaNavKey, string> = {
   dashboard: 'Visão geral', perfil: 'Perfil e fotos', avaliacoes: 'Avaliações', destaques: 'Destaques',
   banners: 'Banners', compartilhar: 'Configurar cardápio', catalogo: 'Cardápio', pedidos: 'Pedidos',
-  cozinha: 'Cozinha', entrega: 'Entrega', motoboys: 'Meus motoboys', mensagens: 'Mensagens', clientes: 'Clientes', interesses: 'Interesses', cupons: 'Cupons', promocoes: 'Promoções', plano: 'Plano', relatorios: 'Relatórios',
+  cozinha: 'Cozinha', entrega: 'Entrega', motoboys: 'Meus motoboys', mensagens: 'Mensagens', clientes: 'Clientes', atendimento: 'Painel de Atendimento', interesses: 'Interesses', cupons: 'Cupons', promocoes: 'Promoções', plano: 'Plano', relatorios: 'Relatórios',
   'pessoal-perfil': 'Meu perfil', 'pessoal-favoritos': 'Favoritos', 'pessoal-avaliacoes': 'Minhas avaliações',
   'pessoal-pedidos': 'Meus pedidos', 'pessoal-anuncios': 'Meus anúncios', 'pessoal-cupons': 'Meus cupons',
 }
@@ -51,7 +51,7 @@ function NavItem({ href, active, locked, badge, adminEmpresaId, children }: { hr
 }
 
 export default function EmpresaShell({
-  active, companyName, companySlug, lojaDigitalEnabled, crmEnabled, entregaEnabled,
+  active, companyName, companySlug, lojaDigitalEnabled, crmEnabled, crmAtendimentoPilot, entregaEnabled,
   avaliacoesBadge, mensagensBadge, pedidosBadge, companies, onSwitchCompany, adminEmpresaId, children,
 }: {
   active: EmpresaNavKey
@@ -59,6 +59,7 @@ export default function EmpresaShell({
   companySlug?: string
   lojaDigitalEnabled?: boolean
   crmEnabled?: boolean
+  crmAtendimentoPilot?: boolean
   entregaEnabled?: boolean
   avaliacoesBadge?: number
   mensagensBadge?: number
@@ -268,6 +269,14 @@ export default function EmpresaShell({
 
               <div className="es-group-lbl">Clientes</div>
               <NavItem href="/painel/clientes" active={active === 'clientes'} locked={!crmEnabled} adminEmpresaId={adminEmpresaId}>👥 CRM</NavItem>
+              {/* Piloto (companies.crm_atendimento_pilot) — não é cadeado de
+                  plano, por isso some de vez em quem não tem a flag, em vez
+                  de aparecer travado pra todo mundo (ESPECIFICACAO.md fala de
+                  cadeado pra função paga existente, não se aplica a feature
+                  ainda em teste com 1 cliente). */}
+              {crmAtendimentoPilot && (
+                <NavItem href="/painel/atendimento" active={active === 'atendimento'} adminEmpresaId={adminEmpresaId}>📊 Atendimento</NavItem>
+              )}
               <NavItem href="/painel?tab=avaliacoes" active={active === 'avaliacoes'} badge={avaliacoesBadge} adminEmpresaId={adminEmpresaId}>⭐ Avaliações</NavItem>
 
               <div className="es-group-lbl">Crescer</div>

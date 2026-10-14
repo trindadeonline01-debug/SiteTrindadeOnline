@@ -11,7 +11,7 @@ import { useRealtimeResync } from '@/hooks/useRealtimeResync'
 import EmpresaShell, { type EmpresaNavKey } from '@/components/EmpresaShell'
 import { PainelShellContext } from '@/contexts/PainelShellContext'
 
-type ShellCompany = { id: string; name: string; slug: string; loja_digital_enabled: boolean; crm_whatsapp_enabled: boolean; entrega_enabled: boolean; entrega_chamada_automatica: boolean }
+type ShellCompany = { id: string; name: string; slug: string; loja_digital_enabled: boolean; crm_whatsapp_enabled: boolean; crm_atendimento_pilot: boolean; entrega_enabled: boolean; entrega_chamada_automatica: boolean }
 type SwitcherCompany = { id: string; name: string; slug?: string }
 
 // Rotas que são "modos" de tela cheia (ESPECIFICACAO.md §4.4 — "modo não é
@@ -43,6 +43,7 @@ function deriveActiveKey(pathname: string, tab: string | null): EmpresaNavKey {
   if (pathname.startsWith('/painel/entrega')) return 'entrega'
   if (pathname.startsWith('/painel/motoboys')) return 'motoboys'
   if (pathname.startsWith('/painel/clientes')) return 'clientes'
+  if (pathname.startsWith('/painel/atendimento')) return 'atendimento'
   if (pathname.startsWith('/painel/relatorios')) return 'relatorios'
   return 'dashboard'
 }
@@ -110,6 +111,7 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
       id: comp.id, name: comp.name, slug: comp.slug,
       loja_digital_enabled: forceUnlocked || moduleActive(comp.loja_digital_enabled, comp.trial_modules_until),
       crm_whatsapp_enabled: forceUnlocked || moduleActive(comp.crm_whatsapp_enabled, comp.trial_modules_until),
+      crm_atendimento_pilot: !!comp.crm_atendimento_pilot,
       entrega_enabled: forceUnlocked || moduleActive(comp.entrega_enabled, comp.trial_modules_until),
       entrega_chamada_automatica: comp.entrega_chamada_automatica !== false,
     })
@@ -160,7 +162,7 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
       const { data: profile } = await supabase.from('profiles').select('user_type').eq('id', session.user.id).single()
       const empresaParam = new URLSearchParams(window.location.search).get('empresa')
 
-      const COMPANY_SELECT = 'id,name,slug,loja_digital_enabled,crm_whatsapp_enabled,entrega_enabled,entrega_chamada_automatica,trial_modules_until,loja_auto_aceitar_pedidos,loja_impressora_nome'
+      const COMPANY_SELECT = 'id,name,slug,loja_digital_enabled,crm_whatsapp_enabled,crm_atendimento_pilot,entrega_enabled,entrega_chamada_automatica,trial_modules_until,loja_auto_aceitar_pedidos,loja_impressora_nome'
       let comp: any = null
       const adminOverride = profile?.user_type === 'admin' && !!empresaParam
       if (adminOverride) {
@@ -252,6 +254,7 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
         companySlug={company?.slug}
         lojaDigitalEnabled={company?.loja_digital_enabled}
         crmEnabled={company?.crm_whatsapp_enabled}
+        crmAtendimentoPilot={company?.crm_atendimento_pilot}
         entregaEnabled={company?.entrega_enabled}
         avaliacoesBadge={avaliacoesBadge}
         pedidosBadge={pedidosBadge}

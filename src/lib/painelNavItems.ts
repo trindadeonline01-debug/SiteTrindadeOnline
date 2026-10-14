@@ -6,7 +6,14 @@
 // (achado real do Ricardo, set/2026: "Meus motoboys" só tinha ido pra
 // sidebar desktop). Uma lista só, usada nos dois lugares.
 export type PainelNavLockKey = 'loja' | 'crm' | 'entrega'
-export type PainelNavItem = { href: string; icon: string; label: string; lockKey?: PainelNavLockKey }
+export type PainelNavItem = {
+  href: string; icon: string; label: string; lockKey?: PainelNavLockKey
+  // Diferente de lockKey (item aparece travado/cadeado pra todo mundo e
+  // vende o plano): isso é pra feature em piloto com 1 cliente só — some de
+  // vez de quem não tem a flag, em vez de aparecer cadeado à toa (não é
+  // função paga ainda, não faz sentido "vender" ela).
+  requiresFlag?: 'atendimentoPilot'
+}
 export type PainelNavGroup = { label: string; items: PainelNavItem[] }
 
 export const PAINEL_NAV_GROUPS: PainelNavGroup[] = [
@@ -42,6 +49,7 @@ export const PAINEL_NAV_GROUPS: PainelNavGroup[] = [
     items: [
       { href: '/painel/mensagens', icon: '💬', label: 'Mensagens', lockKey: 'crm' },
       { href: '/painel/clientes', icon: '👥', label: 'Clientes', lockKey: 'crm' },
+      { href: '/painel/atendimento', icon: '📊', label: 'Atendimento', requiresFlag: 'atendimentoPilot' },
     ],
   },
   {
@@ -58,6 +66,7 @@ export type PainelNavCompanyFlags = {
   loja_digital_enabled: boolean
   crm_whatsapp_enabled: boolean
   entrega_enabled: boolean
+  crm_atendimento_pilot?: boolean
 }
 
 export function isPainelNavItemLocked(item: PainelNavItem, flags: PainelNavCompanyFlags): boolean {
@@ -65,4 +74,12 @@ export function isPainelNavItemLocked(item: PainelNavItem, flags: PainelNavCompa
   if (item.lockKey === 'loja') return !flags.loja_digital_enabled
   if (item.lockKey === 'crm') return !flags.crm_whatsapp_enabled
   return !flags.entrega_enabled
+}
+
+// Pra uso com .filter() antes de mapear os itens de um grupo — item com
+// requiresFlag não satisfeito nem aparece (diferente de "locked", que
+// aparece apagado com cadeado).
+export function isPainelNavItemVisible(item: PainelNavItem, flags: PainelNavCompanyFlags): boolean {
+  if (item.requiresFlag === 'atendimentoPilot') return !!flags.crm_atendimento_pilot
+  return true
 }

@@ -2,9 +2,9 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { moduleActive } from '@/lib/modules'
-import { PAINEL_NAV_GROUPS, isPainelNavItemLocked } from '@/lib/painelNavItems'
+import { PAINEL_NAV_GROUPS, isPainelNavItemLocked, isPainelNavItemVisible } from '@/lib/painelNavItems'
 
-type Company = { id: string; name: string; slug: string; loja_digital_enabled: boolean; crm_whatsapp_enabled: boolean; entrega_enabled: boolean; trial_modules_until: string | null; plan: string }
+type Company = { id: string; name: string; slug: string; loja_digital_enabled: boolean; crm_whatsapp_enabled: boolean; crm_atendimento_pilot: boolean; entrega_enabled: boolean; trial_modules_until: string | null; plan: string }
 
 // Admin navegando por uma empresa (?empresa=) precisa que todo link daqui
 // carregue esse parâmetro junto — senão o primeiro clique devolve pro
@@ -48,7 +48,7 @@ export default function MaisPage() {
       const admin = profile?.user_type === 'admin' && !!empresaParam
       setIsAdmin(admin)
       if (admin) setAdminEmpresaId(empresaParam!)
-      const MAIS_SELECT = 'id, name, slug, loja_digital_enabled, crm_whatsapp_enabled, entrega_enabled, trial_modules_until, plan'
+      const MAIS_SELECT = 'id, name, slug, loja_digital_enabled, crm_whatsapp_enabled, crm_atendimento_pilot, entrega_enabled, trial_modules_until, plan'
       const { data: comp } = admin
         ? await supabase.from('companies').select(MAIS_SELECT).eq('id', empresaParam).maybeSingle()
         : await supabase.from('companies').select(MAIS_SELECT).eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
@@ -77,6 +77,7 @@ export default function MaisPage() {
     loja_digital_enabled: isAdmin || moduleActive(company.loja_digital_enabled, company.trial_modules_until),
     crm_whatsapp_enabled: isAdmin || moduleActive(company.crm_whatsapp_enabled, company.trial_modules_until),
     entrega_enabled: isAdmin || moduleActive(company.entrega_enabled, company.trial_modules_until),
+    crm_atendimento_pilot: isAdmin || !!company.crm_atendimento_pilot,
   }
   // Badge é dado dinâmico (contagem), não faz parte da lista estática
   // compartilhada com a gaveta do menu hambúrguer — mapeado à parte aqui.
@@ -122,7 +123,7 @@ export default function MaisPage() {
           <div key={group.label}>
             <div className="sectlbl">{group.label}</div>
             <div className="list">
-              {group.items.map(item => (
+              {group.items.filter(item => isPainelNavItemVisible(item, flags)).map(item => (
                 <Item key={item.href} href={item.href} icon={item.icon} label={item.label} badge={badgeByHref[item.href]} locked={isPainelNavItemLocked(item, flags)} adminEmpresaId={adminEmpresaId} />
               ))}
             </div>

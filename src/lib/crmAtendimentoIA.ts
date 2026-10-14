@@ -93,57 +93,57 @@ Devolva o estado ATUALIZADO. Mantenha um campo do jeito que já estava se as men
 // rodadas, sem risco de 504. Mesma lição do /api/painel/importar-ia-fotos.
 const ORCAMENTO_MS = 90_000
 
+type ContatoPendente = { contact_id: string; resumo: ResumoAtendimento | null; last_message_at: string | null; ultima_msg_real: string }
+
 // Processa uma empresa inteira: só gasta chamada de IA em contato que teve
 // mensagem nova desde o último "last_message_at" — contato parado não custa
 // nada numa rodada do cron.
+//
+// A lista de pendentes vem de uma função SQL (crm_atendimento_contatos_pendentes),
+// não de puxar a tabela crm_messages inteira pro JS e filtrar aqui — achado
+// real, out/2026 (Júlia Eventos): com companyId fixo e milhares de
+// mensagens, o .select() batia no teto padrão de linhas do Supabase (bem
+// menor que o .limit() pedido no código) e SEMPRE truncava nas mensagens
+// mais ANTIGAS — contato com conversa mais recente nunca entrava na lista,
+// mesmo sem nunca ter sido classificado. Resolvido pro cálculo de "quem
+// precisa" morar no banco (sem teto de linha nenhum), e as mensagens de
+// cada contato pendente serem buscadas uma de cada vez, com teto por
+// contato (bem abaixo de qualquer limite de linhas real).
 export async function classificarEmpresa(companyId: string): Promise<{ processados: number; semMudanca: number; restantes: number; erros: number }> {
   const inicio = Date.now()
-  const { data: contatos } = await supabase.from('crm_contacts').select('id').eq('company_id', companyId)
-  if (!contatos || contatos.length === 0) return { processados: 0, semMudanca: 0, restantes: 0, erros: 0 }
-
-  const { data: estados } = await supabase
-    .from('crm_atendimento_contato_estado')
-    .select('contact_id, last_message_at, resumo')
-    .eq('company_id', companyId)
-  const estadoPorContato = new Map((estados || []).map(e => [e.contact_id as string, e]))
-
-  // Volume por empresa é modesto (milhares de mensagens, não centenas de
-  // milhares) — ler tudo de novo a cada rodada e filtrar aqui em cima é mais
-  // simples e mais robusto do que um checkpoint único por query, que erraria
-  // assim que um contato novo (sem linha de estado ainda) aparecesse no meio
-  // de contatos antigos já classificados.
-  const { data: mensagens } = await supabase
-    .from('crm_messages')
-    .select('contact_id, direction, body, media_type, sent_at')
-    .eq('company_id', companyId)
-    .order('sent_at', { ascending: true })
-    .limit(20000)
-
-  const porContato = new Map<string, MensagemClassificar[]>()
-  for (const m of mensagens || []) {
-    if (!m.body?.trim() && !m.media_type) continue
-    const checkpoint = estadoPorContato.get(m.contact_id)?.last_message_at
-    if (checkpoint && m.sent_at <= checkpoint) continue
-    if (!porContato.has(m.contact_id)) porContato.set(m.contact_id, [])
-    porContato.get(m.contact_id)!.push(m)
+  const { data: pendentes } = await supabase.rpc('crm_atendimento_contatos_pendentes', { p_company_id: companyId })
+  const lista = (pendentes || []) as ContatoPendente[]
+  if (lista.length === 0) {
+    const { count } = await supabase.from('crm_contacts').select('id', { count: 'exact', head: true }).eq('company_id', companyId)
+    return { processados: 0, semMudanca: count || 0, restantes: 0, erros: 0 }
   }
 
   let processados = 0, erros = 0
-  const pendentes = Array.from(porContato.entries())
   let i = 0
-  for (; i < pendentes.length; i++) {
+  for (; i < lista.length; i++) {
     if (Date.now() - inicio > ORCAMENTO_MS) break
-    const [contactId, novas] = pendentes[i]
+    const pendente = lista[i]
     try {
-      await classificarContato(companyId, contactId, (estadoPorContato.get(contactId)?.resumo as ResumoAtendimento) ?? null, novas)
+      let query = supabase
+        .from('crm_messages')
+        .select('contact_id, direction, body, media_type, sent_at')
+        .eq('contact_id', pendente.contact_id)
+        .order('sent_at', { ascending: true })
+        .limit(300)
+      if (pendente.last_message_at) query = query.gt('sent_at', pendente.last_message_at)
+      const { data: novas } = await query
+      const comConteudo = (novas || []).filter(m => m.body?.trim() || m.media_type) as MensagemClassificar[]
+      if (comConteudo.length === 0) continue
+      await classificarContato(companyId, pendente.contact_id, pendente.resumo, comConteudo)
       processados++
     } catch (err) {
-      console.error('[crmAtendimentoIA] falhou classificando contato', contactId, err)
+      console.error('[crmAtendimentoIA] falhou classificando contato', pendente.contact_id, err)
       erros++
     }
   }
-  const restantes = pendentes.length - i
+  const restantes = lista.length - i
 
-  const semMudanca = contatos.length - porContato.size
+  const { count } = await supabase.from('crm_contacts').select('id', { count: 'exact', head: true }).eq('company_id', companyId)
+  const semMudanca = (count || 0) - lista.length
   return { processados, semMudanca, restantes, erros }
 }

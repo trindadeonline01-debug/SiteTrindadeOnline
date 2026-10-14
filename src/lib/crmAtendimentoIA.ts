@@ -79,12 +79,23 @@ Devolva o estado ATUALIZADO. Mantenha um campo do jeito que já estava se as men
   }, { onConflict: 'contact_id' })
 }
 
+// Teto de tempo por rodada, bem abaixo do maxDuration da rota (120s) — na
+// primeira rodada de uma empresa nova, TODO contato com mensagem ainda
+// precisa de 1ª classificação (nenhum tem "last_message_at" ainda), o que
+// pode passar de uma centena de chamadas de IA em sequência. Em vez de
+// estourar o timeout da Vercel (e perder o que não deu tempo de salvar),
+// processa o quanto couber no orçamento de tempo e deixa o resto pra
+// próxima rodada do cron (a cada ~3h) — o backlog inicial some em algumas
+// rodadas, sem risco de 504. Mesma lição do /api/painel/importar-ia-fotos.
+const ORCAMENTO_MS = 90_000
+
 // Processa uma empresa inteira: só gasta chamada de IA em contato que teve
 // mensagem nova desde o último "last_message_at" — contato parado não custa
 // nada numa rodada do cron.
-export async function classificarEmpresa(companyId: string): Promise<{ processados: number; semMudanca: number; erros: number }> {
+export async function classificarEmpresa(companyId: string): Promise<{ processados: number; semMudanca: number; restantes: number; erros: number }> {
+  const inicio = Date.now()
   const { data: contatos } = await supabase.from('crm_contacts').select('id').eq('company_id', companyId)
-  if (!contatos || contatos.length === 0) return { processados: 0, semMudanca: 0, erros: 0 }
+  if (!contatos || contatos.length === 0) return { processados: 0, semMudanca: 0, restantes: 0, erros: 0 }
 
   const { data: estados } = await supabase
     .from('crm_atendimento_contato_estado')
@@ -114,7 +125,11 @@ export async function classificarEmpresa(companyId: string): Promise<{ processad
   }
 
   let processados = 0, erros = 0
-  for (const [contactId, novas] of porContato) {
+  const pendentes = Array.from(porContato.entries())
+  let i = 0
+  for (; i < pendentes.length; i++) {
+    if (Date.now() - inicio > ORCAMENTO_MS) break
+    const [contactId, novas] = pendentes[i]
     try {
       await classificarContato(companyId, contactId, (estadoPorContato.get(contactId)?.resumo as ResumoAtendimento) ?? null, novas)
       processados++
@@ -123,7 +138,8 @@ export async function classificarEmpresa(companyId: string): Promise<{ processad
       erros++
     }
   }
+  const restantes = pendentes.length - i
 
   const semMudanca = contatos.length - porContato.size
-  return { processados, semMudanca, erros }
+  return { processados, semMudanca, restantes, erros }
 }

@@ -297,14 +297,142 @@ REGRAS RÍGIDAS — nunca quebre nenhuma delas:
 DADOS DESTA LOJA:
 `
 
+// ─── Perfil "salão de eventos" (piloto Júlia Eventos, out/2026) ───
+// A Julia Eventos aluga espaço pra festa (infantil/debutante/casamento), não
+// vende produto num carrinho — o prompt genérico acima (cardápio, motoboy,
+// Pix de pedido) não se aplica nem um pouco, então esse perfil é 100%
+// separado, não um "extra" em cima do genérico. Conteúdo minerado das
+// conversas reais da Kelli + contrato oficial + flyers de preço que o
+// Ricardo mandou (out/2026) — ver KNOWLEDGE_BASE.md pro histórico completo
+// da extração. Hardcoded por enquanto (só esse 1 cliente no piloto) — se
+// entrar mais salão no modelo, aí sim vira um campo de verdade em
+// companies, igual crm_atendimento_pilot.
+const JULIA_EVENTOS_COMPANY_ID = '32ddce3a-ff9b-475b-9a3d-d829efcf8f24'
+
+const SYSTEM_PROMPT_SALAO = `Você é a Julia, atendente virtual do Julia Eventos — um salão de festas na Trindade, São Gonçalo (RJ), que atende aniversário infantil, debutante, casamento e outros eventos. Você FALA EM NOME DO SALÃO, você É quem atende — nunca trate o salão como "eles"/terceira pessoa.
+
+QUEM É A JULIA — seu jeito de ser:
+- Uma menina carinhosa, atenciosa, genuinamente interessada na festa da pessoa — não é uma vendedora empurrando pacote, é alguém que quer entender o sonho da cliente pra ajudar a realizar.
+- Frases CURTAS, sempre. Nunca textão — no máximo 2-3 frases por mensagem. Quebra em balões/linhas curtas.
+- Uma pergunta por vez — nunca uma lista de perguntas de uma vez, isso parece interrogatório.
+- Comemora com a cliente: elogia o tema, a idade, o nome escolhido — tudo que ela contar.
+- Pode usar até 2 emojis quando fizer sentido (mais calorosa que o padrão de atendimento de loja).
+
+PRINCÍPIO MAIS IMPORTANTE — NÃO É VENDER, É ESCUTAR:
+Sua função não é empurrar informação sobre o espaço nem convencer a cliente com argumento de venda. É o CONTRÁRIO: extrair o máximo de informação da cliente, fazer ela se sentir ouvida, e só então, quando fizer sentido, mostrar o que o salão oferece. Nunca despeje uma lista de diferenciais sem a cliente já ter passado pela etapa de "já conhece o espaço" (regra abaixo).
+
+VALOR (R$) É SEMPRE A ÚLTIMA COISA A INFORMAR. Nunca informe preço antes de:
+1) Saber tipo de evento, data e nº de convidados
+2) Saber o nome de quem está falando e, se fizer sentido pro tipo de evento (aniversário/debutante/infantil), o nome e a idade que o(a) aniversariante vai fazer, e o grau de parentesco de quem fala com ele(a) — ajuda a saber se está falando com quem decide
+3) Perguntar sobre tema/decoração (regra própria abaixo)
+4) Perguntar se a cliente já conhece o espaço / já veio a alguma festa aqui / já teve alguma experiência com o salão (regra própria abaixo)
+5) Passar os diferenciais do salão (lista própria abaixo)
+Só DEPOIS disso, quando a cliente perguntar valor ou sinalizar que está comparando orçamentos, você informa — e só o valor que bate com a data que ELA informou. NUNCA mostre as duas faixas (segunda-quinta E fim de semana) ao mesmo tempo — calcule o dia da semana da data informada a partir de "hoje" (nos DADOS DO SALÃO abaixo) e passe só o valor que se aplica.
+
+SOBRE TEMA/DECORAÇÃO:
+- Pergunte se já tem tema ou cor pensado.
+- Se ela já tiver, ELOGIE de verdade a escolha.
+- Se ela ainda NÃO tiver decidido, diga sempre que isso não é problema nenhum e que o salão se coloca à disposição pra ajudar na escolha.
+
+SOBRE "JÁ CONHECE O ESPAÇO":
+- Pergunte se ela já conhece o salão, já veio a alguma festa aqui ou já teve alguma experiência com vocês.
+- Se SIM: pergunte como foi a experiência e o que mais chamou atenção dela no salão. Depois que ela responder, elogie a resposta e siga o atendimento normalmente.
+- Se NÃO: só siga adiante, sem forçar uma apresentação do espaço ainda — isso vem na etapa de diferenciais, mais à frente.
+
+DIFERENCIAIS DO SALÃO (só mencione antes do valor, nunca antes disso):
+- Espaço climatizado (ar condicionado)
+- O salão NÃO faz duas festas no mesmo dia — é exclusividade total pra quem fecha
+- A cliente pode vir com antecedência pra organizar o que for necessário com calma
+Sempre em formato de lista (regra de FORMATAÇÃO abaixo), nunca corrido num parágrafo só.
+
+SOBRE O RETORNO/FOLLOW-UP (cliente que não vai decidir agora):
+- Se a cliente disser que não vai fechar agora, que ainda está pensando ou orçando: acolha sem pressionar, e OFEREÇA educadamente retomar contato em alguns dias (padrão 7, ajuste se ela mencionar outro prazo). Pergunte se pode ("posso te retornar em 7 dias?") e PARE — não agende ainda nessa mensagem.
+- SÓ quando ela confirmar (mensagem seguinte, tipo "pode", "sim", "ok", "tudo bem") é que você agenda de verdade. Nesse caso, e SÓ nesse caso, adicione ao FINAL da sua resposta, numa linha própria e sozinha, o marcador: [AGENDAR_RETORNO:N] — troque N pelo número de dias combinado. Esse marcador é removido automaticamente antes da cliente ver a mensagem, então nunca explique ele, nunca escreva diferente, e nunca inclua se ela não confirmou.
+- Se a cliente voltar a falar antes da data combinada, o retorno já foi cancelado sozinho — não precisa comentar nada sobre isso, só siga o atendimento normal.
+
+QUANDO CHAMAR UM HUMANO DE VERDADE (diga que vai chamar alguém da equipe, não tente resolver sozinha):
+- Pedido de cancelamento ou reembolso de um evento JÁ FECHADO — pode explicar a política com empatia (DADOS DO SALÃO abaixo), mas sempre chame um humano pra essa conversa.
+- Agendar uma visita de verdade (data/horário específico).
+- Pedido de indicação de fornecedor parceiro (decoração mais elaborada, DJ, cerimonialista etc.) — ainda não existe lista oficial pra você indicar.
+- Negociação de desconto no valor.
+- Qualquer coisa sobre um evento JÁ FECHADO (logística do dia, retirada de material de fornecedor etc.).
+
+REGRAS RÍGIDAS:
+- Responda SOMENTE com base nos DADOS DO SALÃO abaixo. Nunca invente preço, política ou informação que não esteja explícita ali.
+- Nunca promete reserva de data nem confirma pagamento — isso sempre passa por um humano da equipe.
+- Só diga que é uma inteligência artificial se perguntarem diretamente — nesse caso seja honesta.
+- FORMATAÇÃO: quando listar 2+ itens (diferenciais, o que inclui o buffet, formas de pagamento), cada item numa linha própria começando com "- " (hífen e espaço), com uma linha em branco entre cada item e entre o texto de abertura e a lista. Nunca use "*" como marcador de lista — quebra o negrito de verdade do WhatsApp. Pra destacar algo, use um asterisco só de cada lado (*assim*), nunca dois.
+
+DADOS DO SALÃO:
+`
+
+async function buildContextSalaoEventos(companyId: string): Promise<string | null> {
+  const { data: company } = await supabase.from('companies').select('name, phone').eq('id', companyId).maybeSingle()
+  if (!company) return null
+
+  const agora = nowInSaoPauloFull()
+  const linhas: string[] = []
+  linhas.push(`Hoje é ${agora.dayLabel}, ${agora.dateLabel} (horário de Brasília). Use SEMPRE essa data como referência pra calcular se a data do evento que a cliente informar cai de segunda a quinta ou de sexta a domingo/feriado — NUNCA chute o dia da semana, calcule a partir de hoje.`)
+  linhas.push(`Nome do salão: ${company.name || 'Julia Eventos'}`)
+
+  linhas.push(`ESTRUTURA DO ESPAÇO:
+- Salão climatizado (ar condicionado)
+- 120 cadeiras de luxo, 20 mesas redondas (em média 6 cadeiras por mesa)
+- Área kids com brinquedoteca e 1 monitor dedicado só pra essa área
+- Responsável pela limpeza incluso
+- Duração padrão do evento: 4 horas`)
+
+  linhas.push(`PACOTES E PREÇOS:
+- Só espaço (sem buffet), até 4h: R$1.570,00 — inclui monitor da área baby e limpeza. Se a cliente for usar a cozinha (ex: buffet próprio), tem taxa de gás à parte (ver POLÍTICAS abaixo).
+- Buffet completo (o que inclui está logo abaixo) — vai até 120 convidados, mas ACIMA de 100 convidados cobra adicional por pessoa (valor exato: confirmar com a equipe).
+- Tabela CONFIRMADA pra 100 convidados: segunda a quinta R$5.990,00 · sexta a domingo e feriados R$6.490,00.
+- Pra 50/60/80 convidados você só tem uma referência (50: R$4.990 · 60: R$5.490 · 80: R$5.990), SEM confirmação se é o valor de dia de semana ou fim de semana — se a cliente pedir uma dessas quantidades, informe como referência e diga que vai confirmar o valor certinho pro dia da semana dela com a equipe, nunca afirme com certeza total.
+- Decoração: o pacote buffet já inclui uma decoração definida. Se a cliente quiser algo mais elaborado, é orçado à parte.`)
+
+  linhas.push(`O QUE ENTRA NO BUFFET COMPLETO (cardápio oficial — responda com essa lista formatada se perguntarem o que inclui, nunca invente item que não esteja aqui):
+- Salgados fritos: coxinha, delícia de calabresa, bolinha de queijo, risole de camarão, risole de queijo com presunto, quibe, croquete e risole de carne
+- Ovos de codorna com molho rosé
+- Caldo de ervilha
+- Mini jantar: penne à carbonara, bolonhesa ou calabresa (1 opção)
+- Lanchinhos: batata frita, hot dog, mini pizza, mini hambúrguer e mini italiano
+- Torta salgada
+- Bebidas: refrigerante de 1ª linha, suco e água mineral
+- Bolo de corte, com 2 recheios à escolha
+- 300 docinhos tradicionais
+- Toalhas de mesa pros convidados
+- Material completo em louça (pratos, copos, talheres)
+- Equipe de trabalho: 3 garçons, 1 copeiro, 1 fritador, 1 recepcionista e 1 monitor`)
+
+  linhas.push(`PAGAMENTO:
+- Entrada (sinal) de R$500,00 pra reservar a data
+- O restante parcela mensalmente, até quitar 15 dias antes da festa
+- Cartão é aceito — a taxa exata é confirmada na maquininha no momento de fechar, não informe um número de taxa fixo.`)
+
+  linhas.push(`POLÍTICAS IMPORTANTES (explique com empatia se perguntarem, mas pedido de cancelamento de verdade sempre chama um humano):
+- Em caso de desistência/cancelamento por parte da cliente, o sinal e as parcelas já pagas NÃO são devolvidos.
+- Ficar 60 dias seguidos sem pagar cancela o contrato automaticamente, contado como desistência da cliente.
+- Excesso de convidados além do contratado: cobra adicional por pessoa.
+- Taxa de R$50,00 por tomada elétrica usada por estação/fornecedor terceiro (ex: máquina de algodão doce, chocolateira).
+- Proibido uso de fritadeira elétrica por fornecedores externos.
+- O salão NÃO possui gerador — falta de energia por força maior não é responsabilidade do salão.
+- O buffet não falta durante o evento, mas não há devolução do que sobrar.
+- Material de fornecedor da cliente precisa ser retirado em até 2 horas após o fim do evento.`)
+
+  linhas.push(`CONTATO OFICIAL: Julia Eventos, Rua Vicente de Lima Cleto s/n, Nova Cidade, São Gonçalo-RJ. Telefones: (21) 2603-3404 ou ${company.phone || '(21) 98816-3537'}.`)
+
+  return linhas.join('\n\n')
+}
+
 export type HistoricoMsg = { direction: 'in' | 'out'; body: string | null }
+export type RespostaIA = { texto: string; followUpDias?: number }
 
 // Gera a resposta da IA pra uma conversa — histórico já deve vir em ordem
 // cronológica (mais antiga primeiro), só com mensagens de texto (sem
 // legenda de mídia sem texto, que a IA não tem como responder direito).
-export async function gerarRespostaIA(companyId: string, historico: HistoricoMsg[], phone?: string | null): Promise<string | null> {
+export async function gerarRespostaIA(companyId: string, historico: HistoricoMsg[], phone?: string | null): Promise<RespostaIA | null> {
   try {
-    const context = await buildContext(companyId, phone)
+    const isSalaoEventos = companyId === JULIA_EVENTOS_COMPANY_ID
+    const context = isSalaoEventos ? await buildContextSalaoEventos(companyId) : await buildContext(companyId, phone)
     if (!context) return null
 
     const comTexto = historico.filter((m): m is { direction: 'in' | 'out'; body: string } => !!m.body?.trim())
@@ -327,14 +455,59 @@ export async function gerarRespostaIA(companyId: string, historico: HistoricoMsg
     const response = await anthropic.messages.create({
       model: 'claude-haiku-4-5',
       max_tokens: 300,
-      system: SYSTEM_PROMPT_BASE + context,
+      system: (isSalaoEventos ? SYSTEM_PROMPT_SALAO : SYSTEM_PROMPT_BASE) + context,
       messages,
+    })
+
+    const block = response.content.find(b => b.type === 'text')
+    const raw = block && block.type === 'text' ? block.text.trim() : null
+    if (!raw) return null
+
+    // [AGENDAR_RETORNO:N] é instrução interna da Julia (follow-up), nunca
+    // deve chegar pro WhatsApp da cliente — extrai e tira da mensagem final.
+    const match = raw.match(/\[AGENDAR_RETORNO:(\d+)\]/)
+    const texto = raw.replace(/\s*\[AGENDAR_RETORNO:\d+\]\s*$/, '').trim()
+    return { texto, followUpDias: match ? Number(match[1]) : undefined }
+  } catch (err) {
+    console.error('[gerarRespostaIA] falhou:', err)
+    return null
+  }
+}
+
+// Mensagem PROATIVA de retomada de contato (Julia Eventos, out/2026) — a
+// cliente não mandou nada agora, é a IA que está puxando o assunto de novo
+// depois do prazo combinado (ver [AGENDAR_RETORNO:N] acima). Diferente de
+// gerarRespostaIA: aqui não tem uma mensagem nova do cliente pra responder
+// em troca user/assistant, então o histórico inteiro vira CONTEXTO dentro de
+// um único turno, não uma sequência de mensagens.
+export async function gerarFollowUp(companyId: string, historico: HistoricoMsg[], phone?: string | null): Promise<string | null> {
+  try {
+    const isSalaoEventos = companyId === JULIA_EVENTOS_COMPANY_ID
+    const context = isSalaoEventos ? await buildContextSalaoEventos(companyId) : await buildContext(companyId, phone)
+    if (!context) return null
+
+    const comTexto = historico.filter((m): m is { direction: 'in' | 'out'; body: string } => !!m.body?.trim())
+    if (comTexto.length === 0) return null
+    const transcript = comTexto.map(m => `${m.direction === 'in' ? 'Cliente' : 'Você'}: ${m.body}`).join('\n')
+
+    const prompt = `Você combinou de retomar esse contato depois de alguns dias — a cliente não mandou nada agora, é você quem está puxando o assunto de novo. Gere uma mensagem curta e natural, lembrando do que for relevante (nome, evento, data) sem repetir tudo que já foi dito nem parecer um script automático.
+
+HISTÓRICO DA CONVERSA (mais antiga primeiro):
+${transcript}
+
+Gere agora a mensagem de retomada de contato.`
+
+    const response = await anthropic.messages.create({
+      model: 'claude-haiku-4-5',
+      max_tokens: 300,
+      system: (isSalaoEventos ? SYSTEM_PROMPT_SALAO : SYSTEM_PROMPT_BASE) + context,
+      messages: [{ role: 'user', content: prompt }],
     })
 
     const block = response.content.find(b => b.type === 'text')
     return block && block.type === 'text' ? block.text.trim() : null
   } catch (err) {
-    console.error('[gerarRespostaIA] falhou:', err)
+    console.error('[gerarFollowUp] falhou:', err)
     return null
   }
 }

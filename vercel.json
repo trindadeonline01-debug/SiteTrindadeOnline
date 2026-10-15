@@ -21,6 +21,10 @@
       "schedule": "40 13 * * *"
     },
     {
+      "path": "/api/cron/atendimento-followup",
+      "schedule": "50 13 * * *"
+    },
+    {
       "path": "/api/cron/blast-watchdog",
       "schedule": "*/5 * * * *"
     }

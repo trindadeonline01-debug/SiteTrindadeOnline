@@ -360,7 +360,7 @@ export async function POST(req: NextRequest) {
         }
 
         const { data: existing } = await supabase
-          .from('crm_contacts').select('id, name, muted, last_auto_reply_at, unread_count, atendimento_modo, pediu_humano_em')
+          .from('crm_contacts').select('id, name, muted, last_auto_reply_at, unread_count, atendimento_modo, pediu_humano_em, follow_up_at')
           .eq('company_id', inst.company_id).eq('phone', phone).maybeSingle()
 
         // Prévia mostrada na lista de conversas (estilo WhatsApp) — mesmo
@@ -413,6 +413,14 @@ export async function POST(req: NextRequest) {
             await supabase.from('crm_contacts').update({ atendimento_modo: 'humano', pediu_humano_em: null }).eq('id', contactId)
           }
           continue
+        }
+
+        // Cliente voltou a falar — cancela qualquer retorno proativo que a IA
+        // tivesse agendado (Julia Eventos, out/2026). Sem isso, a cliente que
+        // já respondeu por conta própria ainda levaria uma mensagem de "oi,
+        // tudo bem?" alguns dias depois, do nada.
+        if (existing?.follow_up_at) {
+          await supabase.from('crm_contacts').update({ follow_up_at: null }).eq('id', contactId)
         }
 
         if (company?.owner_id && !existing?.muted) {
@@ -506,8 +514,16 @@ export async function POST(req: NextRequest) {
                   .order('sent_at', { ascending: false }).limit(20)
                 const respostaIA = await gerarRespostaIA(inst.company_id, ((historico || []) as any[]).reverse(), phone)
                 if (respostaIA) {
-                  await sendCustomerWhatsApp(inst.company_id, phone, respostaIA)
+                  await sendCustomerWhatsApp(inst.company_id, phone, respostaIA.texto)
                   if (jaPediu) await supabase.from('crm_contacts').update({ pediu_humano_em: null }).eq('id', contactId)
+                  // Julia Eventos (piloto) pode pedir pra retomar contato em N
+                  // dias quando a cliente ainda não vai decidir — ver marcador
+                  // [AGENDAR_RETORNO:N] em gerarRespostaIA. Vira a data que o
+                  // cron de follow-up confere depois.
+                  if (respostaIA.followUpDias) {
+                    const followUpAt = new Date(Date.now() + respostaIA.followUpDias * 24 * 60 * 60 * 1000).toISOString()
+                    await supabase.from('crm_contacts').update({ follow_up_at: followUpAt }).eq('id', contactId)
+                  }
                 }
               }
             }

@@ -148,44 +148,73 @@ export async function sendCustomerWhatsApp(companyId: string, phone: string | nu
 // FATO escaneado na instância da loja (ownerJid, via fetchInstances da
 // Evolution — usado só pra DESCOBRIR o número aqui, o envio em si nunca
 // passa pela instância da loja).
-export async function notifyOwnerNewOrder(companyId: string, text: string): Promise<{ ok: boolean; detail?: string }> {
-  try {
-    const { data: company } = await supabase.from('companies').select('owner_id, phone, crm_whatsapp_enabled, trial_modules_until').eq('id', companyId).maybeSingle()
-    if (!company) return { ok: false, detail: 'empresa não encontrada' }
-    if (!moduleActive(company.crm_whatsapp_enabled, company.trial_modules_until)) return { ok: false, detail: 'módulo CRM WhatsApp não ativo' }
+async function resolveOwnerNotifyPhone(companyId: string): Promise<{ phone: string | null; company: { owner_id: string | null; crm_whatsapp_enabled: boolean; trial_modules_until: string | null } | null }> {
+  const { data: company } = await supabase.from('companies').select('owner_id, phone, crm_whatsapp_enabled, trial_modules_until').eq('id', companyId).maybeSingle()
+  if (!company) return { phone: null, company: null }
 
-    let targetPhone = company.phone ? formatPhone(company.phone) : null
+  let targetPhone = company.phone ? formatPhone(company.phone) : null
 
-    if (!targetPhone && company.owner_id) {
-      const { data: owner } = await supabase.from('profiles').select('phone').eq('id', company.owner_id).maybeSingle()
-      if (owner?.phone) targetPhone = formatPhone(owner.phone)
-    }
+  if (!targetPhone && company.owner_id) {
+    const { data: owner } = await supabase.from('profiles').select('phone').eq('id', company.owner_id).maybeSingle()
+    if (owner?.phone) targetPhone = formatPhone(owner.phone)
+  }
 
-    if (!targetPhone) {
-      const { data: instance } = await supabase
-        .from('crm_whatsapp_instances').select('instance_name, api_key')
-        .eq('company_id', companyId).eq('status', 'connected').limit(1).maybeSingle()
-      if (instance) {
-        try {
-          const fiRes = await fetch(`${EVOLUTION_URL}/instance/fetchInstances?instanceName=${encodeURIComponent(instance.instance_name)}`, {
-            headers: { apikey: instance.api_key },
-          })
-          if (fiRes.ok) {
-            const fi = await fiRes.json()
-            const ownerJid: string | undefined = Array.isArray(fi) ? fi[0]?.ownerJid : fi?.ownerJid
-            if (ownerJid) targetPhone = ownerJid.split('@')[0]
-          }
-        } catch {
-          // segue sem o fallback — nada mais a tentar
+  if (!targetPhone) {
+    const { data: instance } = await supabase
+      .from('crm_whatsapp_instances').select('instance_name, api_key')
+      .eq('company_id', companyId).eq('status', 'connected').limit(1).maybeSingle()
+    if (instance) {
+      try {
+        const fiRes = await fetch(`${EVOLUTION_URL}/instance/fetchInstances?instanceName=${encodeURIComponent(instance.instance_name)}`, {
+          headers: { apikey: instance.api_key },
+        })
+        if (fiRes.ok) {
+          const fi = await fiRes.json()
+          const ownerJid: string | undefined = Array.isArray(fi) ? fi[0]?.ownerJid : fi?.ownerJid
+          if (ownerJid) targetPhone = ownerJid.split('@')[0]
         }
+      } catch {
+        // segue sem o fallback — nada mais a tentar
       }
     }
+  }
+  return { phone: targetPhone, company }
+}
+
+export async function notifyOwnerNewOrder(companyId: string, text: string): Promise<{ ok: boolean; detail?: string }> {
+  try {
+    const { phone: targetPhone, company } = await resolveOwnerNotifyPhone(companyId)
+    if (!company) return { ok: false, detail: 'empresa não encontrada' }
+    if (!moduleActive(company.crm_whatsapp_enabled, company.trial_modules_until)) return { ok: false, detail: 'módulo CRM WhatsApp não ativo' }
     if (!targetPhone) return { ok: false, detail: 'sem telefone do dono nem número escaneado pra mandar' }
 
     return await sendPlatformWhatsApp(targetPhone, text)
   } catch (err: any) {
     const detail = `falha ao mandar WhatsApp pro dono: ${err?.message || err}`
     console.error(`[notifyOwnerNewOrder] ${detail}`)
+    return { ok: false, detail }
+  }
+}
+
+// Avisa o dono da loja que um cliente pediu pra falar com um atendente de
+// verdade (a IA transferiu a conversa pra modo humano) — mesmo canal/
+// resolução de telefone do aviso de novo pedido acima, só muda a mensagem.
+// Pedido do Ricardo, out/2026 (piloto Júlia Eventos): sem isso o dono só
+// descobre que alguém está esperando atendimento se abrir o painel por
+// conta própria.
+export async function notifyOwnerHumanRequested(companyId: string, contactName: string | null, contactPhone: string, lastMessage: string): Promise<{ ok: boolean; detail?: string }> {
+  try {
+    const { phone: targetPhone, company } = await resolveOwnerNotifyPhone(companyId)
+    if (!company) return { ok: false, detail: 'empresa não encontrada' }
+    if (!moduleActive(company.crm_whatsapp_enabled, company.trial_modules_until)) return { ok: false, detail: 'módulo CRM WhatsApp não ativo' }
+    if (!targetPhone) return { ok: false, detail: 'sem telefone do dono nem número escaneado pra mandar' }
+
+    const quem = contactName?.trim() ? `${contactName.trim()} (${contactPhone})` : contactPhone
+    const texto = `🙋 ${quem} pediu pra falar com um atendente de verdade.\n\nÚltima mensagem: "${lastMessage}"\n\nResponde direto na conversa pelo WhatsApp ou pelo Painel → Mensagens.`
+    return await sendPlatformWhatsApp(targetPhone, texto)
+  } catch (err: any) {
+    const detail = `falha ao avisar o dono que o cliente pediu atendente: ${err?.message || err}`
+    console.error(`[notifyOwnerHumanRequested] ${detail}`)
     return { ok: false, detail }
   }
 }

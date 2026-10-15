@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { isOpenNow } from '@/lib/businessHours'
 import { normalizePhone } from '@/lib/phone'
-import { sendCustomerWhatsApp } from '@/lib/whatsapp'
+import { sendCustomerWhatsApp, notifyOwnerHumanRequested } from '@/lib/whatsapp'
+import { notifyAdmin } from '@/lib/notifyAdmin'
 import { pedeHumano, gerarRespostaIA } from '@/lib/crmIA'
 import { transcreverAudioWhatsApp } from '@/lib/transcreverAudio'
 
@@ -473,6 +474,12 @@ export async function POST(req: NextRequest) {
               if (jaPediu) {
                 await supabase.from('crm_contacts').update({ atendimento_modo: 'humano', pediu_humano_em: null }).eq('id', contactId)
                 await sendCustomerWhatsApp(inst.company_id, phone, 'Beleza! Já vou chamar alguém daqui pra te atender, só um instante 🙏')
+                // Avisa o dono (Kelly, no piloto) e o Ricardo — sem isso, o
+                // único jeito de saber que alguém tá esperando atendimento é
+                // abrir o painel por conta própria. Best-effort, nunca trava
+                // a resposta pro cliente (já saiu acima).
+                await notifyOwnerHumanRequested(inst.company_id, existing?.name || null, phone, text)
+                await notifyAdmin({ type: 'humano_solicitado', empresa: company?.name || 'empresa', contato: existing?.name?.trim() ? `${existing.name.trim()} (${phone})` : phone, mensagem: text })
               } else {
                 await supabase.from('crm_contacts').update({ pediu_humano_em: new Date().toISOString() }).eq('id', contactId)
                 await sendCustomerWhatsApp(inst.company_id, phone, 'Posso te ajudar por aqui mesmo! Só pra eu entender melhor: qual é a sua dúvida?')

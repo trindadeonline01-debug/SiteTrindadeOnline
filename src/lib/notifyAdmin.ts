@@ -15,6 +15,7 @@ export type AdminEvent =
   | { type: 'nova_sugestao'; empresa: string; sugestoes: string[] }
   | { type: 'nova_assinatura'; empresa: string; plano: string; valor: number }
   | { type: 'motoboy_reenviou'; nome: string }
+  | { type: 'humano_solicitado'; empresa: string; contato: string; mensagem: string }
 
 function buildMessage(event: AdminEvent): string {
   if (event.type === 'nova_empresa') {
@@ -25,6 +26,9 @@ function buildMessage(event: AdminEvent): string {
   }
   if (event.type === 'motoboy_reenviou') {
     return `🏍️ ${event.nome} reenviou os ajustes do cadastro de motoboy — confere em Admin → Entregas → Motoboys.`
+  }
+  if (event.type === 'humano_solicitado') {
+    return `🙋 ${event.empresa}: ${event.contato} pediu pra falar com um atendente de verdade.\n\nÚltima mensagem: "${event.mensagem}"`
   }
   return `💰 Nova assinatura!\n\n${event.empresa} assinou o ${event.plano} · R$ ${event.valor.toFixed(2).replace('.', ',')}`
 }

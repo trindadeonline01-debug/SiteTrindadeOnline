@@ -29,7 +29,7 @@ const emptyForm = () => ({
   category_id: '', tipo_vitrine: '' as string, cost_price: '0', sale_price: '0',
   track_stock: false, stock_qty: '', stock_alert_qty: '',
   restrictDays: false, days: [] as number[],
-  hasPromo: false, promo_type: 'percent' as 'percent' | 'fixed', promo_value: '15',
+  hasPromo: false, promo_value: '',
   promo_starts_at: '', promo_ends_at: '',
   active: true,
   groups: [] as Grupo[],
@@ -38,6 +38,26 @@ const emptyForm = () => ({
 function fmt(n: number) { return 'R$ ' + n.toFixed(2).replace('.', ',') }
 function margin(cost: number, price: number) { return price > 0 ? Math.round(((price - cost) / price) * 100) : 0 }
 function parsePt(v: string) { return parseFloat((v || '0').replace(',', '.')) || 0 }
+
+// Converte o promo_value guardado (sempre como desconto, igual já era pro
+// tipo 'fixed') pro preço final que o lojista digita na tela — campo direto
+// "Preço de promoção" em vez de escolher tipo/valor de desconto. Produto
+// antigo com promo_type='percent' continua sendo lido certinho aqui, só
+// passa a ser salvo como 'fixed' da próxima vez que for editado.
+function promoDisplayPrice(p: Pick<Produto, 'promo_type' | 'promo_value' | 'sale_price'>): string {
+  if (!p.promo_type || p.promo_value == null) return ''
+  const sale = Number(p.sale_price)
+  const preco = p.promo_type === 'percent' ? sale * (1 - Number(p.promo_value) / 100) : sale - Number(p.promo_value)
+  return preco.toFixed(2).replace('.', ',')
+}
+
+function promoPriceOf(p: Pick<Produto, 'promo_type' | 'promo_value' | 'sale_price' | 'promo_starts_at' | 'promo_ends_at'>): number | null {
+  if (!p.promo_type || !p.promo_value) return null
+  const now = Date.now()
+  if (p.promo_starts_at && now < new Date(p.promo_starts_at).getTime()) return null
+  if (p.promo_ends_at && now > new Date(p.promo_ends_at).getTime()) return null
+  return p.promo_type === 'percent' ? Number(p.sale_price) * (1 - Number(p.promo_value) / 100) : Number(p.sale_price) - Number(p.promo_value)
+}
 
 // Parser de CSV simples que respeita campos entre aspas (com vírgula/quebra
 // de linha dentro) — não dependemos de biblioteca externa só pra isso.
@@ -750,7 +770,7 @@ export default function CatalogoPage() {
       sale_price: Number(data.sale_price).toFixed(2).replace('.', ','),
       track_stock: data.track_stock, stock_qty: data.stock_qty ?? '', stock_alert_qty: data.stock_alert_qty ?? '',
       restrictDays: !!(data.available_days && data.available_days.length), days: data.available_days || [],
-      hasPromo: !!data.promo_type, promo_type: data.promo_type || 'percent', promo_value: data.promo_value ?? '15',
+      hasPromo: !!data.promo_type, promo_value: promoDisplayPrice(data),
       promo_starts_at: data.promo_starts_at ? data.promo_starts_at.slice(0, 10) : '',
       promo_ends_at: data.promo_ends_at ? data.promo_ends_at.slice(0, 10) : '',
       active: data.active,
@@ -781,7 +801,7 @@ export default function CatalogoPage() {
       sale_price: Number(data.sale_price).toFixed(2).replace('.', ','),
       track_stock: data.track_stock, stock_qty: data.stock_qty ?? '', stock_alert_qty: data.stock_alert_qty ?? '',
       restrictDays: !!(data.available_days && data.available_days.length), days: data.available_days || [],
-      hasPromo: !!data.promo_type, promo_type: data.promo_type || 'percent', promo_value: data.promo_value ?? '15',
+      hasPromo: !!data.promo_type, promo_value: promoDisplayPrice(data),
       promo_starts_at: data.promo_starts_at ? data.promo_starts_at.slice(0, 10) : '',
       promo_ends_at: data.promo_ends_at ? data.promo_ends_at.slice(0, 10) : '',
       active: data.active,
@@ -841,6 +861,11 @@ export default function CatalogoPage() {
 
   async function saveProduto() {
     if (!form.name.trim()) { showToast('Dá um nome pro produto'); return }
+    if (form.hasPromo) {
+      const promoNum = parsePt(form.promo_value)
+      if (promoNum <= 0) { showToast('Preenche o preço de promoção ou desativa a promoção'); return }
+      if (promoNum >= parsePt(form.sale_price)) { showToast('O preço de promoção precisa ser menor que o preço de venda'); return }
+    }
     setSavingProd(true)
     try {
       await saveProdutoInner()
@@ -876,8 +901,12 @@ export default function CatalogoPage() {
       stock_qty: form.track_stock ? (parseInt(String(form.stock_qty)) || 0) : null,
       stock_alert_qty: form.track_stock ? (parseInt(String(form.stock_alert_qty)) || null) : null,
       available_days: form.restrictDays && form.days.length ? form.days : null,
-      promo_type: form.hasPromo ? form.promo_type : null,
-      promo_value: form.hasPromo ? parsePt(String(form.promo_value)) : null,
+      // Lojista digita o preço final de promoção; guarda como desconto fixo
+      // (sale_price - preço digitado) pra reaproveitar o mesmo promo_type
+      // 'fixed' que promoPrice() já sabe calcular em todo lugar (cardápio,
+      // vitrine, IA de atendimento) — sem precisar de coluna nova.
+      promo_type: form.hasPromo ? 'fixed' : null,
+      promo_value: form.hasPromo ? Number((parsePt(form.sale_price) - parsePt(String(form.promo_value))).toFixed(2)) : null,
       promo_starts_at: form.hasPromo && form.promo_starts_at ? form.promo_starts_at : null,
       promo_ends_at: form.hasPromo && form.promo_ends_at ? form.promo_ends_at : null,
       active: form.active,
@@ -1146,6 +1175,10 @@ export default function CatalogoPage() {
         .cg-field label{ display:block;font-size:10.5px;font-weight:700;color:#6E6656;margin-bottom:5px; }
         .cg-field input, .cg-field select, .cg-field textarea{ width:100%;padding:9px 11px;border-radius:9px;border:1px solid #E6E0D2;background:#fff;font-size:12.5px;font-family:inherit;color:#1A1610; }
         .cg-row2{ display:grid;grid-template-columns:1fr 1fr;gap:10px; }
+        .cg-row3{ display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px; }
+        .cg-field.promo input{ border-color:#D6392B;background:#FDF5F4; }
+        .cg-field.promo label{ display:flex;align-items:center;gap:6px; }
+        .cg-field.promo .tag{ font-size:8.5px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:#fff;background:#D6392B;padding:1px 6px;border-radius:99px; }
         .cg-margin{ font-size:11px;font-weight:700;color:#157A52;margin:-6px 0 12px; }
         .cg-swrow{ display:flex;align-items:center;gap:10px;padding:8px 0; }
         .cg-switch{ width:36px;height:20px;border-radius:11px;background:#E6E0D2;position:relative;cursor:pointer;flex:none; }
@@ -1325,9 +1358,18 @@ export default function CatalogoPage() {
                 <div className="cg-photo">{p.photo_url ? <img src={p.photo_url} alt="" /> : '🍽️'}</div>
                 <div className="cg-mid">
                   <div className="cg-name">{p.name}</div>
-                  <div className="cg-cat">{p.category?.name || 'Sem categoria'}{p.promo_type ? ' · promoção' : ''}{p.available_days ? ' · dias limitados' : ''}</div>
+                  <div className="cg-cat">{p.category?.name || 'Sem categoria'}{p.available_days ? ' · dias limitados' : ''}</div>
                   <div className="cg-price">
-                    {fmt(Number(p.sale_price))}
+                    {(() => {
+                      const promo = promoPriceOf(p)
+                      return promo != null ? (
+                        <>
+                          <span style={{ textDecoration: 'line-through', color: '#A79E8B', fontWeight: 600, marginRight: 6 }}>{fmt(Number(p.sale_price))}</span>
+                          <span style={{ color: '#D6392B' }}>{fmt(promo)}</span>
+                          <span className="cg-badge" style={{ background: '#D6392B', color: '#fff' }}>promoção</span>
+                        </>
+                      ) : fmt(Number(p.sale_price))
+                    })()}
                     {p.active ? (
                       // Sem custo cadastrado não dá pra saber a margem de verdade — mostrar
                       // "100% margem" nesse caso seria um dado falso, não um dado ausente.
@@ -1413,13 +1455,26 @@ export default function CatalogoPage() {
 
             <div className="cg-field"><label>Descrição</label><textarea style={{ minHeight: 56 }} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
 
-            <div className="cg-row2">
+            <div className="cg-row3">
               <div className="cg-field"><label>Preço de custo</label><input value={form.cost_price} onChange={e => setForm(f => ({ ...f, cost_price: e.target.value }))} /></div>
               <div className="cg-field"><label>Preço de venda</label><input value={form.sale_price} onChange={e => setForm(f => ({ ...f, sale_price: e.target.value }))} /></div>
+              <div className="cg-field promo">
+                <label>Preço de promoção {form.hasPromo && <span className="tag">ativa</span>}</label>
+                <input
+                  value={form.promo_value}
+                  placeholder="0,00"
+                  disabled={!form.hasPromo}
+                  onChange={e => setForm(f => ({ ...f, promo_value: e.target.value }))}
+                  style={!form.hasPromo ? { borderColor: '#E6E0D2', background: '#FCFAF5', color: '#A79E8B' } : undefined}
+                />
+              </div>
             </div>
             {parsePt(form.cost_price) > 0
               ? <div className="cg-margin">{margin(parsePt(form.cost_price), parsePt(form.sale_price))}% de margem</div>
               : <div className="cg-margin" style={{ color: '#AAA' }}>Preencha o custo pra ver a margem</div>}
+            {form.hasPromo && parsePt(form.promo_value) > 0 && parsePt(form.promo_value) >= parsePt(form.sale_price) && (
+              <div className="cg-margin" style={{ color: '#D6392B', marginTop: -4 }}>O preço de promoção precisa ser menor que o de venda</div>
+            )}
 
             <div className="cg-swrow"><div className={`cg-switch ${form.restrictDays ? 'on' : ''}`} onClick={() => setForm(f => ({ ...f, restrictDays: !f.restrictDays }))}><div className="k" /></div><span>Disponibilidade limitada por dia</span></div>
             {form.restrictDays && <div style={{ marginBottom: 12 }}>{DAY_LABELS.map((d, i) => <button key={i} type="button" className={`cg-daychip ${form.days.includes(i) ? 'active' : ''}`} onClick={() => toggleDay(i)}>{d}</button>)}</div>}
@@ -1427,10 +1482,8 @@ export default function CatalogoPage() {
             <div className="cg-swrow"><div className={`cg-switch ${form.hasPromo ? 'on' : ''}`} onClick={() => setForm(f => ({ ...f, hasPromo: !f.hasPromo }))}><div className="k" /></div><span>Ativar promoção</span></div>
             {form.hasPromo && (
               <div className="cg-subbox">
-                <div className="cg-field"><label>Tipo</label><select value={form.promo_type} onChange={e => setForm(f => ({ ...f, promo_type: e.target.value as any }))}><option value="percent">Percentual</option><option value="fixed">Valor fixo</option></select></div>
-                <div className="cg-field"><label>Valor</label><input value={String(form.promo_value)} onChange={e => setForm(f => ({ ...f, promo_value: e.target.value as any }))} /></div>
-                <div className="cg-field"><label>Início</label><input type="date" value={form.promo_starts_at} onChange={e => setForm(f => ({ ...f, promo_starts_at: e.target.value }))} /></div>
-                <div className="cg-field"><label>Fim</label><input type="date" value={form.promo_ends_at} onChange={e => setForm(f => ({ ...f, promo_ends_at: e.target.value }))} /></div>
+                <div className="cg-field"><label>Início (opcional)</label><input type="date" value={form.promo_starts_at} onChange={e => setForm(f => ({ ...f, promo_starts_at: e.target.value }))} /></div>
+                <div className="cg-field"><label>Fim (opcional)</label><input type="date" value={form.promo_ends_at} onChange={e => setForm(f => ({ ...f, promo_ends_at: e.target.value }))} /></div>
               </div>
             )}
 

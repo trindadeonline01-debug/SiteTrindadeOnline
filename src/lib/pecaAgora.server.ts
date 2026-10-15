@@ -76,8 +76,10 @@ export async function buildPecaAgoraGroups(supabaseServer: any): Promise<PecaGro
     })
     const toItem = (p: PecaProdutoRow): PecaVitrineItem => {
       const produto = { ...p, description: null, category_id: null, total_pedidos: 0, groups: [] } as unknown as Produto
+      const promo = promoPrice(produto)
       return {
-        id: p.id, name: p.name, photo_url: p.photo_url!, price: promoPrice(produto) ?? p.sale_price,
+        id: p.id, name: p.name, photo_url: p.photo_url!, price: promo ?? p.sale_price,
+        originalPrice: promo != null ? p.sale_price : null,
         companyName: company.name, companySlug: company.slug, open,
         hasOptions: (p.groups?.length || 0) > 0,
       }

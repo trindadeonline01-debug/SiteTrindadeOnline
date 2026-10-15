@@ -5,6 +5,10 @@ import { fmt, cartStorageKey, checkCartConflict, setActiveCart } from '@/lib/loj
 
 export type PecaVitrineItem = {
   id: string; name: string; photo_url: string; price: number
+  // Preço de venda original — só preenchido quando o produto tem uma
+  // promoção ativa agora (promoPrice() já resolveu `price` pro valor
+  // promocional lá no servidor); usado pra desenhar o preço riscado + tarja.
+  originalPrice: number | null
   companyName: string; companySlug: string; open: boolean; hasOptions: boolean
 }
 export type PecaGroup = { key: string; label: string; emoji: string; photoUrl?: string; items: PecaVitrineItem[] }
@@ -329,11 +333,15 @@ export default function HomePecaAgora({ groups, search = '', initialTab }: { gro
         .pa-row:hover { border-color: var(--ink); }
         .pa-row-link { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; text-decoration: none; color: inherit; }
         .pa-row-img { width: 78px; height: 78px; border-radius: 14px; flex-shrink: 0; position: relative; overflow: hidden; background: var(--concrete-2); }
+        .pa-row.promo { border-color: var(--alert, #D6392B); background: #FDF5F4; }
+        .pa-promo-tag { position: absolute; top: 4px; left: 4px; z-index: 2; background: var(--alert, #D6392B); color: #fff; font-size: 8.5px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; padding: 2px 6px; border-radius: 5px; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
         .pa-row-body { flex: 1; min-width: 0; }
         .pa-row-end { flex-shrink: 0; text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
         .pa-name { font-size: 13px; font-weight: 700; color: var(--ink); line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: 'Archivo', sans-serif; }
         .pa-biz { font-size: 11px; color: var(--muted); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .pa-price { font-size: 13px; font-weight: 800; color: var(--sign-dark); font-variant-numeric: tabular-nums; }
+        .pa-price.promo { color: var(--alert, #D6392B); }
+        .pa-price-old { font-size: 10.5px; color: var(--muted); text-decoration: line-through; font-variant-numeric: tabular-nums; }
         .pa-open { display: flex; align-items: center; gap: 4px; justify-content: flex-end; font-size: 9.5px; font-weight: 700; color: var(--open); text-transform: uppercase; letter-spacing: .2px; }
         .pa-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--open); display: inline-block; flex-shrink: 0; }
         /* Sentinela que dispara o carregamento automático ao entrar na
@@ -414,10 +422,11 @@ export default function HomePecaAgora({ groups, search = '', initialTab }: { gro
                 {g.items.map(p => (
                   <a key={p.id} className="pa-store-thumb" href={`/empresa/${p.companySlug}/item/${p.id}`}>
                     <div className="pa-store-thumb-img">
+                      {p.originalPrice != null && <span className="pa-promo-tag">Promo</span>}
                       <Image src={p.photo_url} alt={p.name} fill sizes="64px" unoptimized style={{objectFit:'cover'}} />
                     </div>
                     <div className="pa-store-thumb-name">{p.name}</div>
-                    <div className="pa-store-thumb-price">{fmt(p.price)}</div>
+                    <div className="pa-store-thumb-price" style={p.originalPrice != null ? { color: 'var(--alert, #D6392B)' } : undefined}>{fmt(p.price)}</div>
                   </a>
                 ))}
               </div>
@@ -429,10 +438,12 @@ export default function HomePecaAgora({ groups, search = '', initialTab }: { gro
           <div className="pa-list">
             {visibleItems.map(p => {
               const qty = qtyById[p.id] || 0
+              const hasPromo = p.originalPrice != null
               return (
-                <div key={p.id} className="pa-row">
+                <div key={p.id} className={`pa-row ${hasPromo ? 'promo' : ''}`}>
                   <a className="pa-row-link" href={`/empresa/${p.companySlug}/item/${p.id}`}>
                     <div className="pa-row-img">
+                      {hasPromo && <span className="pa-promo-tag">Promoção</span>}
                       <Image src={p.photo_url} alt={p.name} fill sizes="78px" unoptimized style={{objectFit:'cover'}} />
                     </div>
                     <div className="pa-row-body">
@@ -441,7 +452,8 @@ export default function HomePecaAgora({ groups, search = '', initialTab }: { gro
                     </div>
                   </a>
                   <div className="pa-row-end">
-                    <div className="pa-price">{fmt(p.price)}</div>
+                    {hasPromo && <div className="pa-price-old">{fmt(p.originalPrice!)}</div>}
+                    <div className={`pa-price ${hasPromo ? 'promo' : ''}`}>{fmt(p.price)}</div>
                     {p.open && <div className="pa-open"><span className="pa-dot" />Aberto</div>}
                     {p.hasOptions ? (
                       <a className="pa-pick" href={`/empresa/${p.companySlug}/item/${p.id}`}>Escolher ›</a>

@@ -43,6 +43,10 @@ const s: Record<string, any> = {
   statTiles: { display: 'flex', gap: 18, marginTop: 12 },
   statNum: { fontSize: 15, fontWeight: 800, color: '#111' },
   statLabel: { fontSize: 9.5, fontWeight: 700, color: '#999', textTransform: 'uppercase' as const, letterSpacing: 0.4, marginTop: 2 },
+  iconBtn: { width: 40, height: 40, borderRadius: 8, border: '1.5px solid #E0DDD8', background: '#fff', fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 },
+  kebabMenu: { position: 'absolute' as const, top: 'calc(100% + 6px)', right: 0, background: '#fff', border: '1px solid #E0DDD8', borderRadius: 10, boxShadow: '0 8px 24px rgba(21,18,16,.12)', minWidth: 196, overflow: 'hidden', zIndex: 10 },
+  menuItem: { display: 'flex', alignItems: 'center', gap: 9, width: '100%', boxSizing: 'border-box' as const, textAlign: 'left' as const, padding: '10px 14px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', background: 'none', border: 'none', cursor: 'pointer', color: '#333' },
+  menuDivider: { height: 1, background: '#F0EDE8', margin: '4px 0' },
 }
 
 const EMPTY_FORM = { name: '', phone: '', address: '', cpf: '', pix_key: '', pix_key_type: 'celular', active: true }
@@ -83,6 +87,7 @@ export default function MotoboysTab() {
   const [flagging, setFlagging] = useState<{ motoboyId: string; key: string; label: string; reason: string } | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [testingId, setTestingId] = useState<string | null>(null)
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null)
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState(EMPTY_FORM)
@@ -110,6 +115,14 @@ export default function MotoboysTab() {
     // sozinha (achado real do Ricardo, set/2026).
     const interval = setInterval(() => load(true), 20000)
     return () => clearInterval(interval)
+  }, [])
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (!(e.target as HTMLElement).closest('.mb-kebab-wrap')) setMenuOpenId(null)
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
   async function authHeader() {
@@ -419,6 +432,13 @@ export default function MotoboysTab() {
           .mb-actions { flex-direction: row; flex-wrap: wrap; justify-content: flex-start; align-items: stretch; width: 100%; gap: 8px; }
           .mb-actions button { flex: 1 1 auto; }
         }
+        /* Ações do motoboy aprovado (out/2026) — ícone + menu "⋯" em vez de
+           6 botões empilhados (achado do Ricardo: coluna de ação ficava bem
+           mais alta que o próprio card). Cabe numa linha só mesmo no
+           celular, sem precisar de media query própria. */
+        .mb-icon-actions { display: flex; gap: 6px; flex: none; }
+        .mb-icon-btn:hover { border-color: var(--sign-dark); }
+        .mb-menu-item:hover { background: #FEF3E2; }
       `}</style>
       <div style={s.card}>
         <div style={s.cardTitle}>🔗 Cadastro de motoboy</div>
@@ -539,13 +559,21 @@ export default function MotoboysTab() {
                   </div>
                 </div>
               </div>
-              <div className="mb-actions">
-                <button style={s.btnGhostSm} onClick={() => editingId === m.id ? setEditingId(null) : startEdit(m)}>{editingId === m.id ? '✕ Fechar' : '✎ Editar'}</button>
-                <button style={s.btnGhostSm} disabled={testingId === m.id} onClick={() => testarOferta(m)}>{testingId === m.id ? 'Enviando...' : '📨 Testar oferta'}</button>
-                <button style={s.btnGhostSm} disabled={busyId === m.id} onClick={() => toggleActive(m)}>{m.active ? '⏸ Pausar' : '▶ Ativar'}</button>
-                <button style={m.priority ? { ...s.btnGhostSm, borderColor: '#FFC531', background: '#FFF3D6' } : s.btnGhostSm} disabled={busyId === m.id} onClick={() => togglePriority(m)}>{m.priority ? '⭐ Preferencial' : '☆ Tornar preferencial'}</button>
-                <button style={{ ...s.btnGhostSm, borderColor: '#FBEAEA', color: '#C43D3D' }} disabled={busyId === m.id} onClick={() => deleteMotoboy(m)}>🗑 Excluir</button>
-                {m.terms && <button style={s.btnGhostSm} onClick={() => setLightbox({ url: m.terms!.pdf_url, label: `Termo assinado — ${m.terms!.nome_digitado}` })}>📄 Termo assinado</button>}
+              <div className="mb-icon-actions">
+                <button className="mb-icon-btn" style={s.iconBtn} title={editingId === m.id ? 'Fechar' : 'Editar'} aria-label={editingId === m.id ? 'Fechar edição' : 'Editar cadastro'} onClick={() => editingId === m.id ? setEditingId(null) : startEdit(m)}>{editingId === m.id ? '✕' : '✎'}</button>
+                <button className="mb-icon-btn" style={s.iconBtn} title="Testar oferta" aria-label="Testar oferta" disabled={testingId === m.id} onClick={() => testarOferta(m)}>{testingId === m.id ? '…' : '📨'}</button>
+                <button className="mb-icon-btn" style={s.iconBtn} title={m.active ? 'Pausar' : 'Ativar'} aria-label={m.active ? 'Pausar' : 'Ativar'} disabled={busyId === m.id} onClick={() => toggleActive(m)}>{m.active ? '⏸' : '▶'}</button>
+                <div className="mb-kebab-wrap" style={{ position: 'relative' }}>
+                  <button className="mb-icon-btn" style={m.priority ? { ...s.iconBtn, borderColor: '#FFC531', background: '#FFF3D6' } : s.iconBtn} title="Mais ações" aria-label="Mais ações" onClick={() => setMenuOpenId(menuOpenId === m.id ? null : m.id)}>⋯</button>
+                  {menuOpenId === m.id && (
+                    <div style={s.kebabMenu}>
+                      <button className="mb-menu-item" style={s.menuItem} disabled={busyId === m.id} onClick={() => { togglePriority(m); setMenuOpenId(null) }}>{m.priority ? '⭐ Preferencial' : '☆ Tornar preferencial'}</button>
+                      {m.terms && <button className="mb-menu-item" style={s.menuItem} onClick={() => { setLightbox({ url: m.terms!.pdf_url, label: `Termo assinado — ${m.terms!.nome_digitado}` }); setMenuOpenId(null) }}>📄 Termo assinado</button>}
+                      <div style={s.menuDivider} />
+                      <button className="mb-menu-item" style={{ ...s.menuItem, color: '#C43D3D' }} disabled={busyId === m.id} onClick={() => { deleteMotoboy(m); setMenuOpenId(null) }}>🗑 Excluir</button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
             {editingId === m.id && (

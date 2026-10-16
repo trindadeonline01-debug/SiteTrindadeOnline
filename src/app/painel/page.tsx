@@ -95,7 +95,7 @@ export default function PainelPage() {
   // também mora lá agora, funciona em qualquer tela do painel, não só
   // aqui — essa página só reage quando shellCompany.id muda (ver useEffect
   // de loadData abaixo).
-  const { company: shellCompany, loading: shellLoading, isAdminMode, setActiveOverride } = usePainelShell()
+  const { company: shellCompany, loading: shellLoading, isAdminMode, setActiveOverride, setStorePaused: setShellStorePaused } = usePainelShell()
   useEffect(() => {
     setActiveOverride((tab === 'painel' ? 'dashboard' : tab) as EmpresaNavKey)
     return () => setActiveOverride(null)
@@ -533,6 +533,11 @@ export default function PainelPage() {
     if (!company) return
     const patch = { store_paused: mode === 'closed' }
     setCompany(prev => prev ? { ...prev, ...patch } : prev)
+    // O layout (src/app/painel/layout.tsx) guarda sua própria cópia leve da
+    // empresa pro banner de modo admin, com o mesmo campo — sem isso, pausar
+    // por aqui e depois ir pro Catálogo mostrava o toggle de lá desatualizado
+    // (só pegava o valor novo num refresh de página).
+    setShellStorePaused(patch.store_paused)
     await supabase.from('companies').update(patch).eq('id', company.id)
     showToast(mode === 'closed' ? 'Loja pausada — não recebe pedido novo' : 'Loja voltou a seguir o horário cadastrado')
   }

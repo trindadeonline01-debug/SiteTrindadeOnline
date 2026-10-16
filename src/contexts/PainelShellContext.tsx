@@ -5,6 +5,7 @@ import type { EmpresaNavKey } from '@/components/EmpresaShell'
 export type ShellCompany = {
   id: string; name: string; slug: string
   loja_digital_enabled: boolean; crm_whatsapp_enabled: boolean; crm_atendimento_pilot: boolean; entrega_enabled: boolean; entrega_chamada_automatica: boolean
+  store_paused: boolean
 }
 
 type PainelShellValue = {
@@ -35,6 +36,12 @@ type PainelShellValue = {
   autoAceitar: boolean
   setPrinterName: (name: string) => void
   setAutoAceitar: (v: boolean) => void
+  // Pausar/voltar ao automático a partir de QUALQUER página do painel, não
+  // só do Dashboard — pedido do Ricardo, out/2026: entrando numa loja pelo
+  // admin (?empresa=) direto no Catálogo, não tinha como pausar sem navegar
+  // até a Visão geral primeiro. Mesma coluna (companies.store_paused) que
+  // o Dashboard já usa, single source of truth.
+  setStorePaused: (paused: boolean) => void
 }
 
 export const PainelShellContext = createContext<PainelShellValue>({
@@ -46,6 +53,7 @@ export const PainelShellContext = createContext<PainelShellValue>({
   autoAceitar: true,
   setPrinterName: () => {},
   setAutoAceitar: () => {},
+  setStorePaused: () => {},
 })
 
 export function usePainelShell() {

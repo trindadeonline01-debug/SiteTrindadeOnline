@@ -11,7 +11,7 @@ import { useRealtimeResync } from '@/hooks/useRealtimeResync'
 import EmpresaShell, { type EmpresaNavKey } from '@/components/EmpresaShell'
 import { PainelShellContext } from '@/contexts/PainelShellContext'
 
-type ShellCompany = { id: string; name: string; slug: string; loja_digital_enabled: boolean; crm_whatsapp_enabled: boolean; crm_atendimento_pilot: boolean; entrega_enabled: boolean; entrega_chamada_automatica: boolean }
+type ShellCompany = { id: string; name: string; slug: string; loja_digital_enabled: boolean; crm_whatsapp_enabled: boolean; crm_atendimento_pilot: boolean; entrega_enabled: boolean; entrega_chamada_automatica: boolean; store_paused: boolean }
 type SwitcherCompany = { id: string; name: string; slug?: string }
 
 // Rotas que são "modos" de tela cheia (ESPECIFICACAO.md §4.4 — "modo não é
@@ -93,6 +93,10 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
     setAutoAceitarState(v)
     if (company) supabase.from('companies').update({ loja_auto_aceitar_pedidos: v }).eq('id', company.id).then(() => {})
   }
+  function setStorePaused(paused: boolean) {
+    setCompany(prev => prev ? { ...prev, store_paused: paused } : prev)
+    if (company) supabase.from('companies').update({ store_paused: paused }).eq('id', company.id).then(() => {})
+  }
 
   async function refreshPedidosBadge(companyId: string) {
     const { count } = await supabase.from('loja_pedidos').select('id', { count: 'exact', head: true }).eq('company_id', companyId).eq('status', 'recebido')
@@ -114,6 +118,7 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
       crm_atendimento_pilot: !!comp.crm_atendimento_pilot,
       entrega_enabled: forceUnlocked || moduleActive(comp.entrega_enabled, comp.trial_modules_until),
       entrega_chamada_automatica: comp.entrega_chamada_automatica !== false,
+      store_paused: !!comp.store_paused,
     })
     setAutoAceitarState(comp.loja_auto_aceitar_pedidos !== false)
     setPrinterNameState(comp.loja_impressora_nome || '')
@@ -162,7 +167,7 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
       const { data: profile } = await supabase.from('profiles').select('user_type').eq('id', session.user.id).single()
       const empresaParam = new URLSearchParams(window.location.search).get('empresa')
 
-      const COMPANY_SELECT = 'id,name,slug,loja_digital_enabled,crm_whatsapp_enabled,crm_atendimento_pilot,entrega_enabled,entrega_chamada_automatica,trial_modules_until,loja_auto_aceitar_pedidos,loja_impressora_nome'
+      const COMPANY_SELECT = 'id,name,slug,loja_digital_enabled,crm_whatsapp_enabled,crm_atendimento_pilot,entrega_enabled,entrega_chamada_automatica,trial_modules_until,loja_auto_aceitar_pedidos,loja_impressora_nome,store_paused'
       let comp: any = null
       const adminOverride = profile?.user_type === 'admin' && !!empresaParam
       if (adminOverride) {
@@ -247,7 +252,7 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
   const switcherList: SwitcherCompany[] = ownerCompanies.map((c: any) => ({ id: c.id, name: c.name, slug: c.slug }))
 
   return (
-    <PainelShellContext.Provider value={{ company, loading, isAdminMode, setActiveOverride, printerName, autoAceitar, setPrinterName, setAutoAceitar }}>
+    <PainelShellContext.Provider value={{ company, loading, isAdminMode, setActiveOverride, printerName, autoAceitar, setPrinterName, setAutoAceitar, setStorePaused }}>
       <EmpresaShell
         active={active}
         companyName={company?.name}
@@ -274,7 +279,34 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
           // empresa for longo em tela estreita.
           <div style={{ position: 'relative', zIndex: 30, background: '#1A0F00', color: '#F0EDE8', padding: '9px 16px', fontSize: 12, fontWeight: 600, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
             <span>🛠️ Modo admin — vendo como <strong>{company?.name || 'carregando...'}</strong></span>
-            <a href="/admin?tab=empresas" style={{ color: 'var(--sign)', fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}>← Voltar ao admin</a>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              {/* Pausar/retomar sem precisar sair da tela atual (ex: Catálogo)
+                  pra ir até a Visão geral — pedido do Ricardo, out/2026. Fora
+                  de /painel só (lá a Visão geral já tem o próprio toggle
+                  grande; duplicar aqui criaria duas fontes da mesma coisa na
+                  mesma tela, podendo ficar dessincronizadas entre si). */}
+              {company && pathname !== '/painel' && (
+                <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(240,237,232,0.3)' }}>
+                  <button
+                    onClick={() => setStorePaused(false)}
+                    disabled={!company.store_paused}
+                    style={{
+                      padding: '5px 10px', fontSize: 11, fontWeight: 700, fontFamily: 'Archivo,sans-serif', border: 'none', cursor: company.store_paused ? 'pointer' : 'default',
+                      background: company.store_paused ? 'transparent' : 'var(--sign)', color: company.store_paused ? '#F0EDE8' : 'var(--ink)',
+                    }}
+                  >🟢 Automático</button>
+                  <button
+                    onClick={() => setStorePaused(true)}
+                    disabled={company.store_paused}
+                    style={{
+                      padding: '5px 10px', fontSize: 11, fontWeight: 700, fontFamily: 'Archivo,sans-serif', border: 'none', cursor: !company.store_paused ? 'pointer' : 'default',
+                      background: company.store_paused ? '#C43D3D' : 'transparent', color: company.store_paused ? '#fff' : '#F0EDE8',
+                    }}
+                  >🔴 Pausar loja</button>
+                </div>
+              )}
+              <a href="/admin?tab=empresas" style={{ color: 'var(--sign)', fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}>← Voltar ao admin</a>
+            </div>
           </div>
         )}
         {loading ? <div style={{ padding: 40, textAlign: 'center', color: '#AAA', fontFamily: 'Archivo,sans-serif', fontSize: 13 }}>Carregando...</div> : children}

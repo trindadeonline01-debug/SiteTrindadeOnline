@@ -432,11 +432,16 @@ export default function MotoboysTab() {
           .mb-actions { flex-direction: row; flex-wrap: wrap; justify-content: flex-start; align-items: stretch; width: 100%; gap: 8px; }
           .mb-actions button { flex: 1 1 auto; }
         }
-        /* Ações do motoboy aprovado (out/2026) — ícone + menu "⋯" em vez de
-           6 botões empilhados (achado do Ricardo: coluna de ação ficava bem
-           mais alta que o próprio card). Cabe numa linha só mesmo no
-           celular, sem precisar de media query própria. */
-        .mb-icon-actions { display: flex; gap: 6px; flex: none; }
+        /* Ações do motoboy aprovado (out/2026): no desktop sobra espaço
+           horizontal, todos os botões ficam lado a lado com o texto (pedido
+           do Ricardo) — só no celular, onde não cabe texto nenhum, vira
+           ícone + menu "⋯". */
+        .mb-actions-full { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; flex: none; }
+        .mb-icon-actions { display: none; }
+        @media (max-width: 640px) {
+          .mb-actions-full { display: none; }
+          .mb-icon-actions { display: flex; gap: 6px; flex: none; }
+        }
         .mb-icon-btn:hover { border-color: var(--sign-dark); }
         .mb-menu-item:hover { background: #FEF3E2; }
       `}</style>
@@ -559,6 +564,19 @@ export default function MotoboysTab() {
                   </div>
                 </div>
               </div>
+              {/* Desktop: espaço sobra — todos os botões lado a lado, com
+                  texto. Pedido do Ricardo (out/2026): "pode deixar todos os
+                  botões visíveis, um ao lado do outro com o nome escrito".
+                  Some em telas estreitas (ver .mb-actions-full abaixo). */}
+              <div className="mb-actions-full">
+                <button style={s.btnGhostSm} onClick={() => editingId === m.id ? setEditingId(null) : startEdit(m)}>{editingId === m.id ? '✕ Fechar' : '✎ Editar'}</button>
+                <button style={s.btnGhostSm} disabled={testingId === m.id} onClick={() => testarOferta(m)}>{testingId === m.id ? 'Enviando...' : '📨 Testar oferta'}</button>
+                <button style={s.btnGhostSm} disabled={busyId === m.id} onClick={() => toggleActive(m)}>{m.active ? '⏸ Pausar' : '▶ Ativar'}</button>
+                <button style={m.priority ? { ...s.btnGhostSm, borderColor: '#FFC531', background: '#FFF3D6' } : s.btnGhostSm} disabled={busyId === m.id} onClick={() => togglePriority(m)}>{m.priority ? '⭐ Preferencial' : '☆ Tornar preferencial'}</button>
+                <button style={{ ...s.btnGhostSm, borderColor: '#FBEAEA', color: '#C43D3D' }} disabled={busyId === m.id} onClick={() => deleteMotoboy(m)}>🗑 Excluir</button>
+                {m.terms && <button style={s.btnGhostSm} onClick={() => setLightbox({ url: m.terms!.pdf_url, label: `Termo assinado — ${m.terms!.nome_digitado}` })}>📄 Termo assinado</button>}
+              </div>
+              {/* Celular: linha de texto não cabe — vira ícone + menu "⋯". */}
               <div className="mb-icon-actions">
                 <button className="mb-icon-btn" style={s.iconBtn} title={editingId === m.id ? 'Fechar' : 'Editar'} aria-label={editingId === m.id ? 'Fechar edição' : 'Editar cadastro'} onClick={() => editingId === m.id ? setEditingId(null) : startEdit(m)}>{editingId === m.id ? '✕' : '✎'}</button>
                 <button className="mb-icon-btn" style={s.iconBtn} title="Testar oferta" aria-label="Testar oferta" disabled={testingId === m.id} onClick={() => testarOferta(m)}>{testingId === m.id ? '…' : '📨'}</button>

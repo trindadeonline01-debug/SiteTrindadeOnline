@@ -145,7 +145,13 @@ export default function AnunciarPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  useEffect(() => {
+    if (!subcatOpen) setSubcatSearch('')
+  }, [subcatOpen])
+
   const filteredSubs = subcategories.filter(s => s.category_id === categoryId)
+  const normalizeName = (s: string) => (s || '').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+  const subcatSearchResults = filteredSubs.filter(s => normalizeName(s.name).includes(normalizeName(subcatSearch)))
   const catSel = categories.find(c => c.id === categoryId)
 
   function formatCep(v: string) { return v.replace(/\D/g, '').slice(0, 8).replace(/^(\d{5})(\d)/, '$1-$2') }
@@ -433,6 +439,8 @@ export default function AnunciarPage() {
     .subcat-dropdown-btn:hover { border-color: var(--sign-dark); }
     .subcat-dropdown-arrow { font-size: 10px; color: #888; margin-left: 8px; }
     .subcat-dropdown-panel { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid #E0DDD8; border-radius: 10px; margin-top: 4px; max-height: 260px; overflow-y: auto; z-index: 20; box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+    .subcat-search-input { position: sticky; top: 0; width: 100%; box-sizing: border-box; padding: 10px 14px; border: none; border-bottom: 1px solid #E0DDD8; background: #fff; font-size: 13px; font-family: Archivo, sans-serif; outline: none; z-index: 1; }
+    .subcat-search-input:focus { background: #FEFAF3; }
     .subcat-option { display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer; font-size: 13px; color: #333; transition: background .15s; }
     .subcat-option:hover { background: #FEF3E2; }
     .subcat-option input[type=checkbox] { accent-color: var(--sign-dark); width: 16px; height: 16px; cursor: pointer; }
@@ -638,7 +646,7 @@ export default function AnunciarPage() {
                   </div>
                   <div className="field">
                     <label>Categoria *</label>
-                    <select value={categoryId} onChange={e => { setCategoryId(e.target.value); setSelectedSubs([]) }}>
+                    <select value={categoryId} onChange={e => { setCategoryId(e.target.value); setSelectedSubs([]); setSubcatSearch('') }}>
                       <option value="">Selecione a categoria...</option>
                       {categories.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
                     </select>
@@ -658,7 +666,19 @@ export default function AnunciarPage() {
                         </div>
                         {subcatOpen && (
                           <div className="subcat-dropdown-panel">
-                            {[...filteredSubs].sort((a, b) => {
+                            <input
+                              type="text"
+                              className="subcat-search-input"
+                              placeholder="Pesquisar subcategoria..."
+                              value={subcatSearch}
+                              onChange={e => setSubcatSearch(e.target.value)}
+                              onClick={e => e.stopPropagation()}
+                              autoFocus
+                            />
+                            {subcatSearchResults.length === 0 && (
+                              <div className="subcat-option" style={{ color: '#999', cursor: 'default' }}>Nenhuma subcategoria encontrada</div>
+                            )}
+                            {[...subcatSearchResults].sort((a, b) => {
                               const aSel = selectedSubs.includes(a.id), bSel = selectedSubs.includes(b.id)
                               if (aSel && !bSel) return -1
                               if (!aSel && bSel) return 1

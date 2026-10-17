@@ -28,6 +28,12 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
   const { slug } = use(params)
   const [loading, setLoading] = useState(true)
   const [company, setCompany] = useState<Company | null>(null)
+  // Chave-geral do admin (aba "Peça Agora") — quando desligada, ninguém
+  // compra em NENHUMA loja, nem direto pelo link do cardápio. Começa `true`
+  // (otimista) só pra não piscar um banner de "pausado" antes da consulta
+  // responder; quem trava de verdade é a checagem no servidor
+  // (/api/loja/criar-pedido), não esse estado — pedido do Ricardo, out/2026.
+  const [pecaAgoraEnabled, setPecaAgoraEnabled] = useState(true)
   const [categorias, setCategorias] = useState<Categoria[]>([])
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [filterCat, setFilterCat] = useState('all')
@@ -142,6 +148,8 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
   }
 
   useEffect(() => {
+    supabase.from('site_settings').select('value').eq('key', 'peca_agora_enabled').maybeSingle()
+      .then(({ data }) => setPecaAgoraEnabled(data?.value === 'true'))
     supabase.from('companies')
       .select('id,name,slug,phone,address,avg_rating,total_reviews,status,loja_digital_enabled,flexible_hours,store_paused,store_forced_open,owner_id,loja_taxa_entrega,loja_pedido_minimo,loja_payment_methods,loja_taxa_metodo,loja_frete_gratis_acima,hours:company_hours(label,hours,order,day_of_week,open_time,close_time,closed),photos:company_photos(url,order)')
       .eq('slug', slug).maybeSingle()
@@ -376,6 +384,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
   // Ricardo, set/2026: pelo menos nome+WhatsApp do convidado no fechamento).
   async function confirmOrder() {
     if (!company || cart.length === 0) return
+    if (!pecaAgoraEnabled) { setOrderError('Pedidos pausados no momento em toda a plataforma — tenta de novo daqui a pouco.'); return }
     if (Number(company.loja_pedido_minimo || 0) > 0 && cartTotal < Number(company.loja_pedido_minimo)) return
     if (deliveryType === 'entrega' && !address.trim()) return
     if (deliveryType === 'entrega' && !numero.trim()) return
@@ -440,6 +449,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
   const [waFallbackUrl, setWaFallbackUrl] = useState<string | null>(null)
   async function sendCartWhatsapp() {
     if (!company?.phone || cart.length === 0 || sendingWa) return
+    if (!pecaAgoraEnabled) { setOrderError('Pedidos pausados no momento em toda a plataforma — tenta de novo daqui a pouco.'); return }
     if (Number(company.loja_pedido_minimo || 0) > 0 && cartTotal < Number(company.loja_pedido_minimo)) return
     if (deliveryType === 'entrega' && !address.trim()) return
     if (deliveryType === 'entrega' && !numero.trim()) return
@@ -915,6 +925,13 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
           </div>
         </div>
       </div>
+
+      {!pecaAgoraEnabled && (
+        <div style={{ background: '#FBEAEA', borderBottom: '1px solid #F3C9C9', padding: '12px 16px', textAlign: 'center' as const }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: '#C43D3D', fontFamily: 'Archivo,sans-serif' }}>⏸️ Pedidos pausados no momento em toda a plataforma</div>
+          <div style={{ fontSize: 12, color: '#A83232', fontFamily: 'Archivo,sans-serif', marginTop: 2 }}>Dá pra ver o cardápio, mas o envio de pedido volta em instantes.</div>
+        </div>
+      )}
 
       {coupons.length > 0 && (
         <div className="cd-coupon-strip-wrap"><div className="cd-coupon-strip">

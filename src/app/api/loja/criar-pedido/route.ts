@@ -31,6 +31,18 @@ export async function POST(req: NextRequest) {
     if (!companyId) return NextResponse.json({ error: 'empresa obrigatória' }, { status: 400 })
     if (!Array.isArray(items) || items.length === 0) return NextResponse.json({ error: 'carrinho vazio' }, { status: 400 })
 
+    // Chave-geral do admin (aba "Peça Agora", site_settings.peca_agora_enabled)
+    // — desligada, NENHUMA loja aceita pedido, nem pelo link direto do
+    // cardápio. Checagem aqui, não só na tela: essa é a ÚNICA rota que cria
+    // pedido (tanto "Confirmar pedido" quanto "Pedir pelo WhatsApp" caem
+    // aqui), então é o único lugar que precisa travar pra valer o site
+    // inteiro. Pedido do Ricardo, out/2026 — "não é só pra tirar lá da
+    // frente, é pra desativar qualquer possibilidade de compra".
+    const { data: pecaAgoraSetting } = await supabase.from('site_settings').select('value').eq('key', 'peca_agora_enabled').maybeSingle()
+    if (pecaAgoraSetting?.value !== 'true') {
+      return NextResponse.json({ error: 'Pedidos pausados no momento em toda a plataforma — tenta de novo daqui a pouco.' }, { status: 503 })
+    }
+
     let customerId: string | null = null
     let finalName = (customerName || '').trim()
     let finalPhone = (customerPhone || '').trim()

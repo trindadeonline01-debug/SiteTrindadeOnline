@@ -12,19 +12,21 @@ const getData = cache(async (slug: string, id: string) => {
   const { data: company } = await supabaseServer.from('companies')
     .select('id,name,slug,phone,address,avg_rating,total_reviews,status,loja_digital_enabled,flexible_hours,store_paused,store_forced_open,loja_taxa_entrega,loja_pedido_minimo,category:categories(name,slug),hours:company_hours(label,hours,order,day_of_week,open_time,close_time,closed)')
     .eq('slug', slug).maybeSingle()
-  if (!company || company.status !== 'active' || !company.loja_digital_enabled) return { company: null, produto: null, related: [] }
+  if (!company || company.status !== 'active' || !company.loja_digital_enabled) return { company: null, produto: null, related: [], pecaAgoraEnabled: false }
 
   const { data: produto } = await supabaseServer.from('loja_produtos')
     .select('*, groups:loja_opcoes_grupo(*, options:loja_opcoes(*))')
     .eq('id', id).eq('company_id', company.id).eq('active', true).maybeSingle()
-  if (!produto) return { company, produto: null, related: [] }
+  if (!produto) return { company, produto: null, related: [], pecaAgoraEnabled: false }
 
   const { data: related } = await supabaseServer.from('loja_produtos')
     .select('id,name,photo_url,sale_price,promo_type,promo_value,promo_starts_at,promo_ends_at')
     .eq('company_id', company.id).eq('active', true).neq('id', id)
     .order('display_order').limit(10)
 
-  return { company, produto, related: related || [] }
+  const { data: pecaAgoraSetting } = await supabaseServer.from('site_settings').select('value').eq('key', 'peca_agora_enabled').maybeSingle()
+
+  return { company, produto, related: related || [], pecaAgoraEnabled: pecaAgoraSetting?.value === 'true' }
 })
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string; id: string }> }): Promise<Metadata> {
@@ -59,7 +61,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function ItemPage({ params }: { params: Promise<{ slug: string; id: string }> }) {
   const { slug, id } = await params
-  const { company, produto, related } = await getData(slug, id)
+  const { company, produto, related, pecaAgoraEnabled } = await getData(slug, id)
 
   if (!company || !produto) {
     return (
@@ -71,5 +73,5 @@ export default async function ItemPage({ params }: { params: Promise<{ slug: str
     )
   }
 
-  return <ProdutoDetailClient slug={slug} company={company as any} produto={produto as any} related={related as any} />
+  return <ProdutoDetailClient slug={slug} company={company as any} produto={produto as any} related={related as any} pecaAgoraEnabled={pecaAgoraEnabled} />
 }

@@ -17,7 +17,7 @@ type Company = {
 }
 type Related = { id: string; name: string; photo_url: string | null; sale_price: number; promo_type: 'percent' | 'fixed' | null; promo_value: number | null; promo_starts_at: string | null; promo_ends_at: string | null }
 
-export default function ProdutoDetailClient({ slug, company, produto, related }: { slug: string; company: Company; produto: Produto; related: Related[] }) {
+export default function ProdutoDetailClient({ slug, company, produto, related, pecaAgoraEnabled }: { slug: string; company: Company; produto: Produto; related: Related[]; pecaAgoraEnabled: boolean }) {
   const [sel, setSel] = useState<number[][]>(produto.groups.map(() => []))
   const [qty, setQty] = useState(1)
   const [obs, setObs] = useState('')
@@ -60,6 +60,10 @@ export default function ProdutoDetailClient({ slug, company, produto, related }:
   }, [produto.id])
 
   const open = isOpenNow(company.hours, company.flexible_hours, company.store_paused, company.store_forced_open)
+  // Separado de `open` pelo mesmo motivo do CardapioClient: Peça Agora
+  // desligado é pausa da PLATAFORMA inteira, não da loja — "Aberto agora"
+  // continua valendo, só a ação de comprar é que some.
+  const canOrder = open && pecaAgoraEnabled
   const promo = promoPrice(produto)
   const basePrice = promo ?? produto.sale_price
   const unitPrice = basePrice + produto.groups.reduce((s, g, gi) => s + groupContribution(g, sel[gi]), 0)
@@ -97,7 +101,7 @@ export default function ProdutoDetailClient({ slug, company, produto, related }:
   }
 
   function addToCartAndGo() {
-    if (!reqMet || adding || !open) return
+    if (!reqMet || adding || !canOrder) return
     // Cliente só compra de uma loja por vez — se o carrinho ativo é de
     // outra empresa, confirma antes de esvaziar e trocar.
     const conflict = checkCartConflict(slug)
@@ -332,7 +336,7 @@ export default function ProdutoDetailClient({ slug, company, produto, related }:
         )}
       </div>
 
-      {open ? (
+      {canOrder ? (
         <div className="id-bar">
           <div className="id-qty">
             <button onClick={() => setQty(q => Math.max(1, q - 1))}>−</button>
@@ -344,7 +348,7 @@ export default function ProdutoDetailClient({ slug, company, produto, related }:
           </button>
         </div>
       ) : (
-        <div className="id-bar id-bar-closed">🔒 {company.store_paused ? 'A loja pausou o recebimento de pedidos no momento.' : 'A loja está fechada no momento.'}</div>
+        <div className="id-bar id-bar-closed">🔒 {!pecaAgoraEnabled ? 'Pedidos pausados no momento em toda a plataforma.' : company.store_paused ? 'A loja pausou o recebimento de pedidos no momento.' : 'A loja está fechada no momento.'}</div>
       )}
     </div>
   )

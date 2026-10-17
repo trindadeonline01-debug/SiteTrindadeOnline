@@ -267,7 +267,9 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
   function addToCart(produtoId: string, name: string, price: number, qty: number, modifiers: { name: string; price: number }[] = []) {
     // Segunda trava, além dos cliques já bloqueados na lista — protege
     // contra qualquer chamada que escape do fluxo normal (ex: modal já
-    // aberto no momento em que a loja é pausada).
+    // aberto no momento em que a loja é pausada, ou o Peça Agora sendo
+    // desativado globalmente com o modal já aberto).
+    if (!pecaAgoraEnabled) return
     if (company && !isOpenNow(company.hours as any, company.flexible_hours, company.store_paused, company.store_forced_open)) return
     const key = produtoId + '|' + modifiers.map(m => m.name).sort().join('+')
     setCart(prev => {
@@ -588,6 +590,12 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
   )
 
   const open = isOpenNow(company.hours as any, company.flexible_hours, company.store_paused, company.store_forced_open)
+  // Separado de `open` (que é só status de horário/pausa da própria loja —
+  // continua mostrando "Aberto agora" certinho) porque o Peça Agora desligado
+  // é uma pausa da PLATAFORMA inteira, já com seu próprio banner vermelho
+  // explicando isso — reaproveitar "Fechado agora" aqui mentiria sobre o
+  // motivo real pro cliente.
+  const canOrder = open && pecaAgoraEnabled
   const freteBaseFee = freteInfo ? freteInfo.fee : Number(company.loja_taxa_entrega || 0)
   const freteBlocked = deliveryType === 'entrega' && !!freteInfo?.blocked
   // Endereço digitado (sem CEP resolvido), já terminou de tentar calcular, e
@@ -628,7 +636,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
   const STEP_TITLE: Record<typeof step, string> = { cart: 'Seu pedido', contato: 'Seus dados', entrega: 'Entrega', pagamento: 'Pagamento' }
   function goStep() {
     if (step === 'cart') {
-      if (!open || abaixoMinimo) return
+      if (!canOrder || abaixoMinimo) return
       setStep(loggedIn ? 'entrega' : 'contato')
     } else if (step === 'contato') {
       if (!guestName.trim() || guestPhone.replace(/\D/g, '').length < 10) return
@@ -966,7 +974,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
             {maisPedidos.map(p => {
               const promo = promoPrice(p)
               return (
-                <div className={`cd-hot-card ${!open ? 'cd-hot-card-closed' : ''} ${flashId === p.id ? 'cd-flash' : ''}`} key={p.id} onClick={() => { if (!open) return; openDetail(p) }}>
+                <div className={`cd-hot-card ${!canOrder ? 'cd-hot-card-closed' : ''} ${flashId === p.id ? 'cd-flash' : ''}`} key={p.id} onClick={() => { if (!canOrder) return; openDetail(p) }}>
                   <div className="cd-hot-photo">{p.photo_url ? <Image src={p.photo_url} alt="" fill sizes="140px" style={{ objectFit: 'cover' }} /> : '🍽️'}</div>
                   <div className="cd-hot-name">{p.name}</div>
                   {(promo ?? p.sale_price) > 0 && <div className="cd-hot-price">{fmt(promo ?? p.sale_price)}</div>}
@@ -993,7 +1001,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
                 const hasOpts = p.groups && p.groups.length > 0
                 const soldOut = isSoldOut(p)
                 return (
-                  <div className={`cd-prow ${soldOut ? 'cd-prow-soldout' : !open ? 'cd-prow-closed' : ''} ${flashId === p.id ? 'cd-flash' : ''}`} key={p.id} onClick={() => { if (soldOut || !open) return; openDetail(p) }}>
+                  <div className={`cd-prow ${soldOut ? 'cd-prow-soldout' : !canOrder ? 'cd-prow-closed' : ''} ${flashId === p.id ? 'cd-flash' : ''}`} key={p.id} onClick={() => { if (soldOut || !canOrder) return; openDetail(p) }}>
                     <div className="cd-pphoto">
                       {p.photo_url ? <Image src={p.photo_url} alt="" fill sizes="(min-width: 900px) 20vw, 92px" style={{ objectFit: 'cover' }} /> : '🍽️'}
                       {!soldOut && promo != null && <span className="cd-badge">{p.promo_type === 'percent' ? `-${p.promo_value}%` : `-${fmt(p.promo_value!)}`}</span>}
@@ -1005,7 +1013,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
                         ? <div className="cd-pprice" style={{ color: '#C43D3D' }}>Esgotado</div>
                         : (promo ?? p.sale_price) > 0 && <div className="cd-pprice">{fmt(promo ?? p.sale_price)}{promo != null && <span className="was">{fmt(p.sale_price)}</span>}</div>}
                     </div>
-                    {!soldOut && open && (hasOpts ? <button className="cd-chev" aria-label="Ver opções">›</button> : <button className={`cd-addbtn ${flashId === p.id ? 'added' : ''}`} aria-label={flashId === p.id ? 'Adicionado ao carrinho' : 'Adicionar ao carrinho'} onClick={e => { e.stopPropagation(); quickAdd(p, promo ?? p.sale_price) }}>{flashId === p.id ? '✓' : '+'}</button>)}
+                    {!soldOut && canOrder && (hasOpts ? <button className="cd-chev" aria-label="Ver opções">›</button> : <button className={`cd-addbtn ${flashId === p.id ? 'added' : ''}`} aria-label={flashId === p.id ? 'Adicionado ao carrinho' : 'Adicionar ao carrinho'} onClick={e => { e.stopPropagation(); quickAdd(p, promo ?? p.sale_price) }}>{flashId === p.id ? '✓' : '+'}</button>)}
                   </div>
                 )
               })}
@@ -1128,7 +1136,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
               <span style={{ width: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>{detailQty}</span>
               <button onClick={() => setDetailQty(q => q + 1)} style={{ width: 34, border: 'none', background: '#FEF3E2', color: 'var(--sign-dark)', fontWeight: 800 }}>+</button>
             </div>
-            <button className="cd-addcart" disabled={!detailReqMet} onClick={confirmAddDetail}>Adicionar — {fmt(detailUnitPrice * detailQty)}</button>
+            <button className="cd-addcart" disabled={!detailReqMet || !canOrder} onClick={confirmAddDetail}>Adicionar — {fmt(detailUnitPrice * detailQty)}</button>
           </div>
         </div>
       )}
@@ -1224,9 +1232,9 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
                     )}
                   </div>
                   <div className="cd-dfooter">
-                    {!open ? (
+                    {!canOrder ? (
                       <div style={{ padding: '12px 14px', borderRadius: 10, background: '#FBEAEA', color: '#A83232', fontSize: 12.5, fontWeight: 600, textAlign: 'center' }}>
-                        🔒 {company.store_paused ? 'A loja pausou o recebimento de pedidos no momento.' : 'A loja está fechada no momento.'} Tenta de novo mais tarde.
+                        🔒 {!pecaAgoraEnabled ? 'Pedidos pausados no momento em toda a plataforma.' : company.store_paused ? 'A loja pausou o recebimento de pedidos no momento.' : 'A loja está fechada no momento.'} Tenta de novo mais tarde.
                       </div>
                     ) : (
                       <div className="cd-checkout-row">

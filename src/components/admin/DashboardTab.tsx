@@ -46,6 +46,29 @@ interface TopCompany {
   views: number
 }
 
+interface PageBreakdownRow {
+  page: string
+  views: number
+  unique_visitors: number
+}
+
+// Rótulo amigável por bucket — mesma lista (com "/" na frente, igual os 3
+// tipos que já existiam antes) de src/components/SiteViewTracker.tsx.
+// Bucket sem rótulo aqui (página nova, ainda não mapeada) mostra o código cru
+// em vez de sumir, pra nunca esconder tráfego real sem querer.
+const PAGE_LABELS: Record<string, string> = {
+  '/home': 'Home', '/busca': 'Busca', '/categoria': 'Categoria', '/subcategoria': 'Subcategoria',
+  '/empresa': 'Perfil da empresa', '/cardapio': 'Cardápio digital', '/produto': 'Produto',
+  '/peca-agora': 'Peça Agora', '/desapega': 'Desapega', '/empregos': 'Empregos', '/imoveis': 'Imóveis',
+  '/achados-perdidos': 'Achados & Perdidos', '/anuncio': 'Anúncio (Comunidade)',
+  '/cupons': 'Cupons', '/promocoes': 'Promoções', '/ofertas': 'Ofertas',
+  '/favoritos': 'Favoritos', '/perfil': 'Perfil do usuário', '/termos': 'Termos',
+  '/anunciar': 'Cadastro de empresa', '/planos': 'Planos', '/bem-vindo': 'Boas-vindas empresa',
+  '/login': 'Login', '/cadastro': 'Cadastro de morador', '/redefinir-senha': 'Redefinir senha',
+  '/pedido': 'Acompanhar pedido',
+  '/outro': 'Outras páginas',
+}
+
 interface DayData {
   day: string
   views: number
@@ -57,6 +80,7 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
   const [searchTerms, setSearchTerms] = useState<SearchTerm[]>([])
   const [topCompanies, setTopCompanies] = useState<TopCompany[]>([])
   const [weeklyViews, setWeeklyViews] = useState<DayData[]>([])
+  const [pageBreakdown, setPageBreakdown] = useState<PageBreakdownRow[]>([])
   const [loading, setLoading] = useState(true)
   const [detailTerm, setDetailTerm] = useState<SearchTerm | null>(null)
   const [userNames, setUserNames] = useState<Record<string, string>>({})
@@ -89,6 +113,7 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
       { count: wppClicksCount },
       { data: topCompanyViews },
       { data: uniqueVisitorsCount },
+      { data: pageBreakdownData },
     ] = await Promise.all([
       supabase.from('companies').select('link_clicks, address_clicks').eq('status', 'active'),
       supabase.from('companies').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
@@ -99,13 +124,16 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
       supabase.from('reviews').select('*', { count: 'exact', head: true }).gte('created_at', effectiveFrom).lt('created_at', effectiveTo),
       supabase.from('coupons').select('*', { count: 'exact', head: true }).gte('created_at', effectiveFrom).lt('created_at', effectiveTo),
       supabase.from('promotions').select('*', { count: 'exact', head: true }).gte('created_at', effectiveFrom).lt('created_at', effectiveTo),
-      supabase.from('page_views').select('*', { count: 'exact', head: true }).eq('page', '/empresa').gte('created_at', effectiveFrom).lt('created_at', effectiveTo),
+      // Site inteiro agora (SiteViewTracker.tsx cobre toda página pública,
+      // não só /empresa) — pedido do Ricardo, out/2026: "quadro completo".
+      supabase.from('page_views').select('*', { count: 'exact', head: true }).gte('created_at', effectiveFrom).lt('created_at', effectiveTo),
       supabase.from('whatsapp_clicks').select('*', { count: 'exact', head: true }).gte('created_at', effectiveFrom).lt('created_at', effectiveTo),
       // Agregado no banco (RPC), não trazendo linha por linha pro navegador —
       // o SELECT do Supabase corta em 1000 linhas, então em períodos longos
       // (ano todo) a contagem por empresa saía cortada e errada
       supabase.rpc('dashboard_top_companies', { p_from: effectiveFrom, p_to: effectiveTo, p_limit: 5 }),
       supabase.rpc('dashboard_unique_visitors', { p_from: effectiveFrom, p_to: effectiveTo }),
+      supabase.rpc('dashboard_views_by_page', { p_from: effectiveFrom, p_to: effectiveTo }),
     ])
 
     // Cliques em link externo e endereço não têm log por data — soma acumulada (total geral)
@@ -146,6 +174,10 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
     setSearchTerms(terms)
 
     const noResultCount = (searches || []).filter((s: any) => !s.results_count || s.results_count === 0).length
+
+    setPageBreakdown(((pageBreakdownData || []) as any[]).map(r => ({
+      page: r.page, views: Number(r.views) || 0, unique_visitors: Number(r.unique_visitors) || 0,
+    })))
 
     setStats({
       views: viewsCount || 0,
@@ -287,6 +319,31 @@ export default function DashboardTab({ onGoToTab }: { onGoToTab?: (tab: string) 
           </div>
         ))}
       </div>
+
+      {/* VISITAS POR PÁGINA — quadro completo, pedido do Ricardo out/2026:
+          "quero saber tudo o que está acontecendo em todas as páginas do
+          site". Antes só existia dado de /empresa, /cardapio e /produto —
+          SiteViewTracker.tsx agora cobre o resto (home, busca, categoria,
+          comunidade etc.), essa lista mostra cada um separado. */}
+      {pageBreakdown.length > 0 && (
+        <>
+          <div style={s.sectionTitle}>📄 Visitas por página</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+            {pageBreakdown.map((r, i) => (
+              <div key={r.page} style={{ background: '#fff', border: '1.5px solid #f0f0f0', borderRadius: 12, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 14, boxShadow: '0 1px 4px rgba(0,0,0,0.04)', flexWrap: 'wrap' as const }}>
+                <div style={{ fontSize: 13, fontWeight: 700, flex: '1 1 180px' }}>{PAGE_LABELS[r.page] || r.page}</div>
+                <div style={{ width: 140 }}>
+                  <div style={{ background: '#f0f0f0', borderRadius: 99, height: 5, overflow: 'hidden', marginBottom: 3 }}>
+                    <div style={{ background: i === 0 ? 'var(--sign-dark)' : '#aaa', height: '100%', borderRadius: 99, width: `${Math.round((r.views / (pageBreakdown[0]?.views || 1)) * 100)}%` }}></div>
+                  </div>
+                  <div style={{ fontSize: 11, color: '#aaa', fontWeight: 600, textAlign: 'right' as const }}>{r.views.toLocaleString('pt-BR')} views</div>
+                </div>
+                <div style={{ fontSize: 12, color: '#16a34a', fontWeight: 700, width: 90, textAlign: 'right' as const }}>{r.unique_visitors.toLocaleString('pt-BR')} únicos</div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
       {/* GRÁFICO LINHA */}
       <div style={s.chartCard}>

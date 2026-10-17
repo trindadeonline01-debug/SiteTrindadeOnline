@@ -10,6 +10,7 @@ import SilentErrorBoundary from '@/components/SilentErrorBoundary'
 import CookieBanner from '@/components/CookieBanner'
 import NotificationPrompt from '@/components/NotificationPrompt'
 import OneSignalInit from '@/components/OneSignalInit'
+import SiteViewTracker from '@/components/SiteViewTracker'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://trindadeonline.com.br'),
@@ -79,6 +80,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <CookieBanner />
         <NotificationPrompt />
         <OneSignalInit />
+        <SiteViewTracker />
         <Script src='https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js' strategy='afterInteractive'/>
       </body>
     </html>

@@ -12,7 +12,7 @@ export type PainelNavItem = {
   // vende o plano): isso é pra feature em piloto com 1 cliente só — some de
   // vez de quem não tem a flag, em vez de aparecer cadeado à toa (não é
   // função paga ainda, não faz sentido "vender" ela).
-  requiresFlag?: 'atendimentoPilot'
+  requiresFlag?: 'atendimentoPilot' | 'vendasPilot'
 }
 export type PainelNavGroup = { label: string; items: PainelNavItem[] }
 
@@ -50,6 +50,7 @@ export const PAINEL_NAV_GROUPS: PainelNavGroup[] = [
       { href: '/painel/mensagens', icon: '💬', label: 'Mensagens', lockKey: 'crm' },
       { href: '/painel/clientes', icon: '👥', label: 'Clientes', lockKey: 'crm' },
       { href: '/painel/atendimento', icon: '📊', label: 'Atendimento', requiresFlag: 'atendimentoPilot' },
+      { href: '/painel/radar', icon: '📡', label: 'Radar de clientes', requiresFlag: 'vendasPilot' },
     ],
   },
   {
@@ -67,6 +68,7 @@ export type PainelNavCompanyFlags = {
   crm_whatsapp_enabled: boolean
   entrega_enabled: boolean
   crm_atendimento_pilot?: boolean
+  crm_vendas_pilot?: boolean
 }
 
 export function isPainelNavItemLocked(item: PainelNavItem, flags: PainelNavCompanyFlags): boolean {
@@ -81,5 +83,6 @@ export function isPainelNavItemLocked(item: PainelNavItem, flags: PainelNavCompa
 // aparece apagado com cadeado).
 export function isPainelNavItemVisible(item: PainelNavItem, flags: PainelNavCompanyFlags): boolean {
   if (item.requiresFlag === 'atendimentoPilot') return !!flags.crm_atendimento_pilot
+  if (item.requiresFlag === 'vendasPilot') return !!flags.crm_vendas_pilot
   return true
 }

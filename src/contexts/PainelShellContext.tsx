@@ -4,7 +4,7 @@ import type { EmpresaNavKey } from '@/components/EmpresaShell'
 
 export type ShellCompany = {
   id: string; name: string; slug: string
-  loja_digital_enabled: boolean; crm_whatsapp_enabled: boolean; crm_atendimento_pilot: boolean; entrega_enabled: boolean; entrega_chamada_automatica: boolean
+  loja_digital_enabled: boolean; crm_whatsapp_enabled: boolean; crm_atendimento_pilot: boolean; crm_vendas_pilot: boolean; entrega_enabled: boolean; entrega_chamada_automatica: boolean
   store_paused: boolean
 }
 

@@ -25,6 +25,10 @@
       "schedule": "50 13 * * *"
     },
     {
+      "path": "/api/cron/vendas-classificar",
+      "schedule": "0 14 * * *"
+    },
+    {
       "path": "/api/cron/blast-watchdog",
       "schedule": "*/5 * * * *"
     }

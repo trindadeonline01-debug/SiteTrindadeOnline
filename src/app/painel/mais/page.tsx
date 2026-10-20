@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { moduleActive } from '@/lib/modules'
 import { PAINEL_NAV_GROUPS, isPainelNavItemLocked, isPainelNavItemVisible } from '@/lib/painelNavItems'
 
-type Company = { id: string; name: string; slug: string; loja_digital_enabled: boolean; crm_whatsapp_enabled: boolean; crm_atendimento_pilot: boolean; entrega_enabled: boolean; trial_modules_until: string | null; plan: string }
+type Company = { id: string; name: string; slug: string; loja_digital_enabled: boolean; crm_whatsapp_enabled: boolean; crm_atendimento_pilot: boolean; crm_vendas_pilot: boolean; entrega_enabled: boolean; trial_modules_until: string | null; plan: string }
 
 // Admin navegando por uma empresa (?empresa=) precisa que todo link daqui
 // carregue esse parâmetro junto — senão o primeiro clique devolve pro
@@ -48,7 +48,7 @@ export default function MaisPage() {
       const admin = profile?.user_type === 'admin' && !!empresaParam
       setIsAdmin(admin)
       if (admin) setAdminEmpresaId(empresaParam!)
-      const MAIS_SELECT = 'id, name, slug, loja_digital_enabled, crm_whatsapp_enabled, crm_atendimento_pilot, entrega_enabled, trial_modules_until, plan'
+      const MAIS_SELECT = 'id, name, slug, loja_digital_enabled, crm_whatsapp_enabled, crm_atendimento_pilot, crm_vendas_pilot, entrega_enabled, trial_modules_until, plan'
       const { data: comp } = admin
         ? await supabase.from('companies').select(MAIS_SELECT).eq('id', empresaParam).maybeSingle()
         : await supabase.from('companies').select(MAIS_SELECT).eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
@@ -78,6 +78,7 @@ export default function MaisPage() {
     crm_whatsapp_enabled: isAdmin || moduleActive(company.crm_whatsapp_enabled, company.trial_modules_until),
     entrega_enabled: isAdmin || moduleActive(company.entrega_enabled, company.trial_modules_until),
     crm_atendimento_pilot: isAdmin || !!company.crm_atendimento_pilot,
+    crm_vendas_pilot: isAdmin || !!company.crm_vendas_pilot,
   }
   // Badge é dado dinâmico (contagem), não faz parte da lista estática
   // compartilhada com a gaveta do menu hambúrguer — mapeado à parte aqui.

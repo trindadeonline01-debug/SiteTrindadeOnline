@@ -23,7 +23,7 @@ const COMUNIDADE_LINKS = [
   { href: '/achados-perdidos', icon: '🔍', label: 'Achados & Perdidos' },
 ]
 
-type Business = { id: string; name: string; slug: string; loja_digital_enabled: boolean; crm_whatsapp_enabled: boolean; crm_atendimento_pilot: boolean; entrega_enabled: boolean; trial_modules_until: string | null }
+type Business = { id: string; name: string; slug: string; loja_digital_enabled: boolean; crm_whatsapp_enabled: boolean; crm_atendimento_pilot: boolean; crm_vendas_pilot: boolean; entrega_enabled: boolean; trial_modules_until: string | null }
 
 export default function MobileMenu() {
   const [open, setOpen] = useState(false)
@@ -43,7 +43,7 @@ export default function MobileMenu() {
       setUserType(data?.user_type || null)
       const { data: team } = await supabase.from('production_team').select('id').eq('user_id', session.user.id).eq('status', 'ativo').maybeSingle()
       setIsProdTeam(!!team)
-      const { data: mem } = await supabase.from('membership').select('business:companies(id,name,slug,loja_digital_enabled,crm_whatsapp_enabled,crm_atendimento_pilot,entrega_enabled,trial_modules_until)').eq('person_id', session.user.id)
+      const { data: mem } = await supabase.from('membership').select('business:companies(id,name,slug,loja_digital_enabled,crm_whatsapp_enabled,crm_atendimento_pilot,crm_vendas_pilot,entrega_enabled,trial_modules_until)').eq('person_id', session.user.id)
       setBusinesses(((mem || []) as any[]).map(m => m.business).filter(Boolean))
       const { count } = await supabase.from('listings').select('id', { count: 'exact', head: true }).eq('user_id', session.user.id)
       setHasListings(!!count)
@@ -232,7 +232,7 @@ export default function MobileMenu() {
               // que não fazem sentido gerenciando a própria empresa.
               (() => {
                 const biz = businesses[0]
-                const flags = { loja_digital_enabled: moduleActive(biz.loja_digital_enabled, biz.trial_modules_until), crm_whatsapp_enabled: moduleActive(biz.crm_whatsapp_enabled, biz.trial_modules_until), entrega_enabled: moduleActive(biz.entrega_enabled, biz.trial_modules_until), crm_atendimento_pilot: !!biz.crm_atendimento_pilot }
+                const flags = { loja_digital_enabled: moduleActive(biz.loja_digital_enabled, biz.trial_modules_until), crm_whatsapp_enabled: moduleActive(biz.crm_whatsapp_enabled, biz.trial_modules_until), entrega_enabled: moduleActive(biz.entrega_enabled, biz.trial_modules_until), crm_atendimento_pilot: !!biz.crm_atendimento_pilot, crm_vendas_pilot: !!biz.crm_vendas_pilot }
                 return PAINEL_NAV_GROUPS.map(group => (
                   <div key={group.label}>
                     <div className="mm-divider" />

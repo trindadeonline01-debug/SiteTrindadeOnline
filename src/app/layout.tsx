@@ -60,12 +60,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Microsoft Clarity — heatmap + gravação de sessão (out/2026,
             KNOWLEDGE_BASE.md item 22: recomendação de usar a ferramenta real
             em vez de reconstruir heatmap/replay na mão). Snippet padrão da
-            Microsoft, só o ID do projeto muda. */}
+            Microsoft, só o ID do projeto muda.
+            Travado pro domínio de produção — achado real do Ricardo, out/2026:
+            a Vercel gera uma URL própria (tipo
+            site-trindade-online-<hash>.vercel.app) pra CADA deploy, separada
+            de trindadeonline.com.br, e scanner/bot bate nesses links de
+            bastidor sozinho. Sem essa trava, isso aparecia como "visitante
+            ao vivo" no Clarity, sujando os dados de comportamento real. */}
         <Script
           id="clarity-head"
           strategy="afterInteractive"
           dangerouslySetInnerHTML={{
-            __html: `(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","${CLARITY_ID}");`
+            __html: `if (/(^|\\.)trindadeonline\\.com\\.br$/.test(location.hostname)) { (function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","${CLARITY_ID}"); }`
           }}
         />
       </head>

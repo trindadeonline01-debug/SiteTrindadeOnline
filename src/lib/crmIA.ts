@@ -4,6 +4,7 @@ import { isOpenNow, dayOfWeekLabel, nowInSaoPauloFull, type HourRow } from '@/li
 import { moduleActive } from '@/lib/modules'
 import { getEntregaPricing } from '@/lib/entregaPricing'
 import { normalizePhone } from '@/lib/phone'
+import { normalizeBairro } from '@/lib/bairrosSaoGoncalo'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -63,7 +64,7 @@ function isSoldOut(p: any): boolean {
 // vivo do banco a cada resposta, nunca copiado/colado à mão (decisão com o
 // Ricardo, set/2026: relatório copiado ficaria desatualizado assim que o
 // lojista mudasse um preço; ler direto nunca fica velho).
-async function buildContext(companyId: string, phone?: string | null): Promise<string | null> {
+async function buildContext(companyId: string, phone?: string | null, ultimaMsgCliente?: string | null): Promise<string | null> {
   const { data: company } = await supabase
     .from('companies')
     .select(`
@@ -169,6 +170,51 @@ async function buildContext(companyId: string, phone?: string | null): Promise<s
       linhas.push(`Taxa de entrega padrão: ${fmtMoney(Number(company.loja_taxa_entrega))}`)
     } else {
       linhas.push('Não há taxa de entrega configurada pra essa loja ainda. Não informe R$0 nem invente um valor — diga que vai confirmar o valor da entrega e, se o cliente insistir, sugira perguntar direto pela loja.')
+    }
+  }
+
+  // CEP mencionado pelo próprio cliente na conversa — descobre o bairro
+  // sozinha (mesma API ViaCEP que o checkout do cardápio já usa, ver
+  // CardapioClient.tsx) e já cruza com a tabela de entrega, sem esperar o
+  // cliente escrever o nome do bairro nem alguém da loja checar na mão.
+  // Achado real do Ricardo, out/2026 (Calçada do Peixe): cliente mandou
+  // "24732-000" perguntando se entregava, e como a IA não sabia fazer essa
+  // conta sozinha, a dona teve que checar manualmente e levou 8 minutos pra
+  // responder. Nunca trava a resposta por causa disso — ViaCEP fora do ar ou
+  // CEP inválido só faz a IA seguir sem essa informação extra.
+  if (ultimaMsgCliente) {
+    const cepMatch = ultimaMsgCliente.match(/\d{5}-?\d{3}/)
+    const digits = cepMatch?.[0].replace(/\D/g, '')
+    if (digits?.length === 8) {
+      try {
+        const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`, { signal: AbortSignal.timeout(5000) })
+        const data = await res.json()
+        if (!data?.erro && data?.bairro) {
+          const cepFmt = `${digits.slice(0, 5)}-${digits.slice(5)}`
+          const bairroResolvido = data.bairro as string
+          const localCidadeUf = `${data.localidade}-${data.uf}`
+          const usaMotoboyPlataforma = moduleActive(company.entrega_enabled, company.trial_modules_until)
+          const metodoBairro = usaMotoboyPlataforma
+            ? (await getEntregaPricing()).entrega_taxa_metodo !== 'distancia'
+            : company.loja_taxa_metodo !== 'distancia'
+          if (metodoBairro) {
+            const { data: tabela } = usaMotoboyPlataforma
+              ? await supabase.from('entrega_bairros').select('bairro, price, disabled')
+              : await supabase.from('company_delivery_bairros').select('bairro, price, disabled').eq('company_id', companyId)
+            const alvo = normalizeBairro(bairroResolvido)
+            const match = (tabela || []).find((b: any) => normalizeBairro(b.bairro) === alvo)
+            if (match?.disabled) {
+              linhas.push(`O cliente mencionou o CEP ${cepFmt} nesta conversa — o sistema identificou automaticamente que fica no bairro "${bairroResolvido}" (${localCidadeUf}). Esse bairro está SEM entrega no momento. Responda isso direto, sem precisar perguntar o bairro dele de novo (já foi resolvido pelo CEP).`)
+            } else if (match?.price != null) {
+              linhas.push(`O cliente mencionou o CEP ${cepFmt} nesta conversa — o sistema identificou automaticamente que fica no bairro "${bairroResolvido}" (${localCidadeUf}), com entrega disponível, taxa de ${fmtMoney(Number(match.price))}. Responda direto com isso, sem precisar perguntar o bairro dele de novo.`)
+            } else {
+              linhas.push(`O cliente mencionou o CEP ${cepFmt} nesta conversa — o sistema identificou automaticamente que fica no bairro "${bairroResolvido}" (${localCidadeUf}), sem preço específico cadastrado pra esse bairro — vale a taxa padrão/fora de área já informada acima. Responda direto com isso, sem precisar perguntar o bairro dele de novo.`)
+            }
+          } else {
+            linhas.push(`O cliente mencionou o CEP ${cepFmt} nesta conversa — fica no bairro "${bairroResolvido}" (${localCidadeUf}), mas a taxa de entrega aqui é calculada por distância exata, não dá pra confirmar só com o bairro. Diga que esse endereço geralmente é atendido (ou, se "${localCidadeUf}" claramente não for São Gonçalo/região, diga que pode estar fora da área) e oriente a colocar o endereço completo no carrinho do link do cardápio pra confirmar o valor exato — nunca invente um valor aqui.`)
+          }
+        }
+      } catch {}
     }
   }
 
@@ -286,6 +332,7 @@ REGRAS RÍGIDAS — nunca quebre nenhuma delas:
 - Pergunta sobre UM produto específico, preço, opcional/variação ou "vocês têm tal coisa?": você TEM o catálogo ativo e atualizado logo abaixo — responda direto com nome, preço e opcionais reais, sem enrolar nem mandar pro link à toa. Só diga que não tem quando o produto de fato não estiver na lista (nesse caso não invente, apenas diga que não encontrou esse item disponível agora). Nunca informe preço ou produto que não esteja explícito na lista.
 - Pergunta GENÉRICA pedindo pra VER o cardápio/catálogo inteiro ("o que vocês têm?", "o que tem hoje?", "me manda o cardápio", "quero ver os produtos", "quais produtos vocês vendem?", "tem cardápio?"): NUNCA liste os itens em texto aqui — mande o link do cardápio completo (o do topo dos DADOS DESTA LOJA) e convide o cliente a dar uma olhada por lá, ex: "Claro! Dá uma olhada em tudo que a gente tem aqui: [link]". Isso é diferente de perguntar sobre um produto específico (regra acima), que continua respondida direto com o dado real do catálogo, sem link nenhum. Se a loja ainda não tiver nenhum produto cadastrado (a seção "Catálogo ativo agora" não aparecer abaixo), diga que o cardápio ainda está sendo montado, sem mandar link nem inventar produto.
 - O link é o passo de FECHAR o pedido, não a resposta padrão (EXCEÇÃO: a saudação de boas-vindas da primeira mensagem, regra acima, sempre leva o link junto). Fora essa exceção, só mande link quando o cliente der sinal de que quer confirmar/fechar a compra (frases como "separa pra mim", "vou querer", "fecha o pedido", "quero comprar", "pode fechar", "manda o link" ou parecido) — nesse momento, diga algo como "Show! Pra fechar seu pedido é só acessar o link e finalizar por lá: [link]". Você nunca cria o pedido nem processa pagamento — o link é sempre quem fecha de verdade. QUAL link mandar: se o pedido for de UM produto só (ex: "quero 3kg de peixe espada em posta"), mande o link DIRETO desse produto (o que já vem junto dele no catálogo acima) — assim o cliente cai direto na tela certa, sem ter que procurar de novo. Se o cliente pedir mais de um produto diferente na mesma conversa, mande o link do cardápio completo (lá no topo) — um link só não abre vários produtos de uma vez.
+- Cliente comentar que vai comparar, ver ou pedir em outro app/concorrente (iFood, Rappi, Anota Aí, "vou ver lá", "vou comparar", "vou olhar no iFood" ou parecido): não compita nem fale mal do concorrente — reforce a vantagem de pedir direto por aqui (sem taxa de aplicativo embutida no preço, geralmente sai mais em conta) e já manda o link do cardápio na sequência, puxando o cliente de volta pra fechar por aqui. Ex: "Pedindo direto por aqui no Trindade Online costuma sair mais em conta, sem taxa de app 😊 Segue o link: [link]".
 - Pergunta sobre valor de entrega: NUNCA informe um valor sem antes saber o bairro (ou endereço) do cliente. Se ele ainda não disse, pergunte primeiro qual é o bairro dele. Nunca escolha um valor "de exemplo" da lista de bairros nem invente um número — se os dados da loja abaixo disserem que a taxa é calculada por distância ou que não há taxa configurada, siga exatamente a instrução dada ali.
 - Pergunta sobre "qual é o código" (pra passar pro motoboy/entregador na entrega): NUNCA responda com o número do pedido — são duas coisas diferentes. O código de entrega real (se existir) vem explícito mais abaixo, junto do pedido mais recente desse cliente. Se essa informação não aparecer abaixo, diga que não tem esse código disponível agora e que vai confirmar com a loja — nunca invente nem use o número do pedido no lugar.
 - Pix: se o cliente disser que vai pagar (ou perguntar se dá pra pagar) no Pix, e a "Chave Pix da loja" estiver nos dados abaixo, informe o valor total do pedido junto com a chave Pix, em linhas separadas (ex: "Valor: R$ 45,00" numa linha, "Chave Pix: [chave]" na linha seguinte) — nunca gere QR code, link de pagamento ou comprovante, você não tem isso disponível. Se o cliente ainda não fechou os itens/valor do pedido, primeiro confirme o que ele quer antes de mandar a chave. Se a loja aceitar Pix mas não tiver chave cadastrada nos dados abaixo, não invente nenhuma chave — diga que vai confirmar a chave Pix com a loja e repasse pro cliente em seguida (humano resolve depois).
@@ -449,7 +496,8 @@ export type RespostaIA = { texto: string; followUpDias?: number }
 export async function gerarRespostaIA(companyId: string, historico: HistoricoMsg[], phone?: string | null): Promise<RespostaIA | null> {
   try {
     const isSalaoEventos = companyId === JULIA_EVENTOS_COMPANY_ID
-    const context = isSalaoEventos ? await buildContextSalaoEventos(companyId) : await buildContext(companyId, phone)
+    const ultimaMsgCliente = [...historico].reverse().find(m => m.direction === 'in')?.body || null
+    const context = isSalaoEventos ? await buildContextSalaoEventos(companyId) : await buildContext(companyId, phone, ultimaMsgCliente)
     if (!context) return null
 
     const comTexto = historico.filter((m): m is { direction: 'in' | 'out'; body: string } => !!m.body?.trim())

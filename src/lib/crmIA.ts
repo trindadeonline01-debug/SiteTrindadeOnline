@@ -576,3 +576,50 @@ Gere agora a mensagem de retomada de contato.`
     return null
   }
 }
+
+// Segunda forma de follow-up, diferente da acima — essa é GENÉRICA pra
+// qualquer loja com IA ativa (gerarFollowUp é só pro piloto Julia Eventos,
+// disparado pelo marcador [AGENDAR_RETORNO:N] combinado em dias). Aqui o
+// cliente fez uma pergunta, a IA respondeu, e ele simplesmente sumiu sem
+// responder nada — puxa ele de volta sozinha em vez de deixar a conversa
+// morrer ali (pedido do Ricardo, out/2026, caso real Mineroca: Ana Lúcia
+// perguntou sobre a promoção Tropeiro, a IA respondeu com as opções e
+// nunca mais teve resposta). `tentativa` 1 = primeiro toque (~5min de
+// silêncio depois da resposta da IA); 2 = segundo e ÚLTIMO toque (~15min
+// depois do primeiro, ainda sem resposta) — nunca manda um terceiro, quem
+// decide isso é o cron que chama essa função (ver atendimento-silencio).
+export async function gerarFollowUpSilencio(companyId: string, historico: HistoricoMsg[], phone: string | null | undefined, tentativa: 1 | 2): Promise<string | null> {
+  try {
+    const isSalaoEventos = companyId === JULIA_EVENTOS_COMPANY_ID
+    const context = isSalaoEventos ? await buildContextSalaoEventos(companyId) : await buildContext(companyId, phone)
+    if (!context) return null
+
+    const comTexto = historico.filter((m): m is { direction: 'in' | 'out'; body: string } => !!m.body?.trim())
+    if (comTexto.length === 0) return null
+    const transcript = comTexto.map(m => `${m.direction === 'in' ? 'Cliente' : 'Você'}: ${m.body}`).join('\n')
+
+    const instrucao = tentativa === 1
+      ? 'O cliente não respondeu nos últimos minutos, depois da sua última mensagem. Gere um lembrete curto, cordial e natural retomando exatamente o assunto de que ele falou por último — NUNCA repita a mesma lista/pergunta de novo igualzinha, só puxe a conversa de volta de um jeito humano (ex: pergunte se ele conseguiu ver/decidir sobre o que perguntou, ou ofereça ajudar com o próximo passo óbvio, como mandar o link do cardápio se ainda não mandou nesta conversa). No máximo 1-2 frases curtas, no máximo 1 emoji.'
+      : 'Esse já é o SEGUNDO lembrete — o cliente também não respondeu ao primeiro. Gere uma última mensagem curta, oferecendo ajuda de forma direta e sem insistir mais do que isso (ex: perguntar se ainda tem interesse, ou já adiantar o link do cardápio pra facilitar a vida dele). Deixe claro, pelo tom, que essa é a última vez que você toca nesse assunto sozinha — depois dessa, só responde se ele voltar a falar. No máximo 1-2 frases curtas, no máximo 1 emoji.'
+
+    const prompt = `${instrucao}
+
+HISTÓRICO DA CONVERSA (mais antiga primeiro):
+${transcript}
+
+Gere agora a mensagem do lembrete.`
+
+    const response = await anthropic.messages.create({
+      model: 'claude-haiku-4-5',
+      max_tokens: 300,
+      system: (isSalaoEventos ? SYSTEM_PROMPT_SALAO : SYSTEM_PROMPT_BASE) + context,
+      messages: [{ role: 'user', content: prompt }],
+    })
+
+    const block = response.content.find(b => b.type === 'text')
+    return block && block.type === 'text' ? block.text.trim() : null
+  } catch (err) {
+    console.error('[gerarFollowUpSilencio] falhou:', err)
+    return null
+  }
+}

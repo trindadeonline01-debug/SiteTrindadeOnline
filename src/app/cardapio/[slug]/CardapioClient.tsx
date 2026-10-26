@@ -974,7 +974,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
             {maisPedidos.map(p => {
               const promo = promoPrice(p)
               return (
-                <div className={`cd-hot-card ${!canOrder ? 'cd-hot-card-closed' : ''} ${flashId === p.id ? 'cd-flash' : ''}`} key={p.id} onClick={() => { if (!canOrder) return; openDetail(p) }}>
+                <div className={`cd-hot-card ${!canOrder ? 'cd-hot-card-closed' : ''} ${flashId === p.id ? 'cd-flash' : ''}`} key={p.id} onClick={() => openDetail(p)}>
                   <div className="cd-hot-photo">{p.photo_url ? <Image src={p.photo_url} alt="" fill sizes="140px" style={{ objectFit: 'cover' }} /> : '🍽️'}</div>
                   <div className="cd-hot-name">{p.name}</div>
                   {(promo ?? p.sale_price) > 0 && <div className="cd-hot-price">{fmt(promo ?? p.sale_price)}</div>}
@@ -1000,8 +1000,14 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
                 const promo = promoPrice(p)
                 const hasOpts = p.groups && p.groups.length > 0
                 const soldOut = isSoldOut(p)
+                // Linha acinzentada (loja fechada/produto esgotado) sempre abre o
+                // detalhe — achado real via Clarity, out/2026: clique nessas linhas
+                // não fazia nada (`return` antes de abrir), e o usuário não tinha
+                // como saber POR QUE o produto parecia desabilitado. O modal já
+                // mostra "Fechado no momento"/"Esgotado no momento" e desabilita o
+                // botão de adicionar sozinho — só faltava deixar abrir.
                 return (
-                  <div className={`cd-prow ${soldOut ? 'cd-prow-soldout' : !canOrder ? 'cd-prow-closed' : ''} ${flashId === p.id ? 'cd-flash' : ''}`} key={p.id} onClick={() => { if (soldOut || !canOrder) return; openDetail(p) }}>
+                  <div className={`cd-prow ${soldOut ? 'cd-prow-soldout' : !canOrder ? 'cd-prow-closed' : ''} ${flashId === p.id ? 'cd-flash' : ''}`} key={p.id} onClick={() => openDetail(p)}>
                     <div className="cd-pphoto">
                       {p.photo_url ? <Image src={p.photo_url} alt="" fill sizes="(min-width: 900px) 20vw, 92px" style={{ objectFit: 'cover' }} /> : '🍽️'}
                       {!soldOut && promo != null && <span className="cd-badge">{p.promo_type === 'percent' ? `-${p.promo_value}%` : `-${fmt(p.promo_value!)}`}</span>}
@@ -1068,7 +1074,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
                 </div>
               )}
             </div>
-            <span className={open ? 'cd-dstatus-open' : 'cd-dstatus-closed'}>{open ? '● Aberto agora' : 'Fechado no momento'}</span>
+            <span className={open && !isSoldOut(detail) ? 'cd-dstatus-open' : 'cd-dstatus-closed'}>{isSoldOut(detail) ? 'Esgotado no momento' : open ? '● Aberto agora' : 'Fechado no momento'}</span>
             {detail.description && <div style={{ fontSize: 12.5, color: '#555', lineHeight: 1.6, margin: '10px 0 14px' }}>{detail.description}</div>}
             {detail.groups.map((g, gi) => {
               const selCount = detailSel[gi]?.length || 0
@@ -1136,7 +1142,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
               <span style={{ width: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>{detailQty}</span>
               <button onClick={() => setDetailQty(q => q + 1)} style={{ width: 34, border: 'none', background: '#FEF3E2', color: 'var(--sign-dark)', fontWeight: 800 }}>+</button>
             </div>
-            <button className="cd-addcart" disabled={!detailReqMet || !canOrder} onClick={confirmAddDetail}>Adicionar — {fmt(detailUnitPrice * detailQty)}</button>
+            <button className="cd-addcart" disabled={!detailReqMet || !canOrder || isSoldOut(detail)} onClick={confirmAddDetail}>Adicionar — {fmt(detailUnitPrice * detailQty)}</button>
           </div>
         </div>
       )}

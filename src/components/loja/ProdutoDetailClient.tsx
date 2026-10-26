@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import { getVisitorId } from '@/components/PalavraPremiada'
 import { isOpenNow } from '@/lib/businessHours'
-import { type Produto, fmt, promoPrice, groupContribution, cartStorageKey, checkCartConflict, setActiveCart } from '@/lib/lojaPricing'
+import { type Produto, fmt, promoPrice, groupContribution, cartStorageKey, checkCartConflict, setActiveCart, isSoldOut } from '@/lib/lojaPricing'
 
 type Company = {
   id: string; name: string; slug: string; phone: string | null; address: string | null
@@ -336,7 +336,7 @@ export default function ProdutoDetailClient({ slug, company, produto, related, p
         )}
       </div>
 
-      {canOrder ? (
+      {canOrder && !isSoldOut(produto) ? (
         <div className="id-bar">
           <div className="id-qty">
             <button onClick={() => setQty(q => Math.max(1, q - 1))}>−</button>
@@ -348,7 +348,12 @@ export default function ProdutoDetailClient({ slug, company, produto, related, p
           </button>
         </div>
       ) : (
-        <div className="id-bar id-bar-closed">🔒 {!pecaAgoraEnabled ? 'Pedidos pausados no momento em toda a plataforma.' : company.store_paused ? 'A loja pausou o recebimento de pedidos no momento.' : 'A loja está fechada no momento.'}</div>
+        // Esgotado checado antes de aberto/pausado — essa página não tinha
+        // nenhuma checagem de estoque (gap achado junto da correção dos
+        // cliques mortos no cardápio, out/2026): dava pra abrir o produto
+        // direto por aqui (link/QR) e adicionar ao carrinho mesmo marcado
+        // como esgotado no painel.
+        <div className="id-bar id-bar-closed">🔒 {isSoldOut(produto) ? 'Produto esgotado no momento.' : !pecaAgoraEnabled ? 'Pedidos pausados no momento em toda a plataforma.' : company.store_paused ? 'A loja pausou o recebimento de pedidos no momento.' : 'A loja está fechada no momento.'}</div>
       )}
     </div>
   )

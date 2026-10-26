@@ -80,6 +80,7 @@ export default function HomePecaAgora({ groups, search = '', initialTab }: { gro
   // arrastar natural, então as setas continuam (Ricardo, out/2026: "só no
   // mobile" a remoção valia).
   const tabsScrollRef = useRef<HTMLDivElement>(null)
+  const listTopRef = useRef<HTMLDivElement>(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
 
@@ -159,7 +160,15 @@ export default function HomePecaAgora({ groups, search = '', initialTab }: { gro
 
   if (groups.length === 0) return null
 
-  function changeTab(key: string) { setActiveKey(key); setVisibleCount(PAGE_SIZE) }
+  // Tocar num card de tipo já trocava a lista por baixo, mas sem nenhum
+  // retorno visível na área em que o dedo estava — em telas menores a lista
+  // nova fica fora da dobra, e o Clarity registrou isso como "clique morto"
+  // nos próprios cards (out/2026). Rolar até o início da lista dá o feedback
+  // que faltava, sem mudar o visual do carrossel.
+  function changeTab(key: string) {
+    setActiveKey(key); setVisibleCount(PAGE_SIZE)
+    listTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
   function changePrice(max: number) { setMaxPrice(max); setVisibleCount(PAGE_SIZE) }
 
   // Cliente só compra de uma loja por vez — se o carrinho ativo é de outra
@@ -405,6 +414,7 @@ export default function HomePecaAgora({ groups, search = '', initialTab }: { gro
         </>
       )}
 
+      <div ref={listTopRef} />
       {items.length === 0 ? (
         <div className="oa-empty">{searching ? `Nenhum produto encontrado para "${search.trim()}".` : 'Nenhum produto nessa faixa de preço ainda.'}</div>
       ) : storeGroups ? (

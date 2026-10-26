@@ -66,12 +66,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             site-trindade-online-<hash>.vercel.app) pra CADA deploy, separada
             de trindadeonline.com.br, e scanner/bot bate nesses links de
             bastidor sozinho. Sem essa trava, isso aparecia como "visitante
-            ao vivo" no Clarity, sujando os dados de comportamento real. */}
+            ao vivo" no Clarity, sujando os dados de comportamento real.
+            Travado também fora de /painel, /admin e /login (out/2026,
+            análise Clarity real do Ricardo: ~257 entradas nessas rotas nos
+            últimos 5 dias, só uso interno nosso/dos lojistas — distorcia a
+            leitura do comportamento de morador de verdade). */}
         <Script
           id="clarity-head"
           strategy="afterInteractive"
           dangerouslySetInnerHTML={{
-            __html: `if (/(^|\\.)trindadeonline\\.com\\.br$/.test(location.hostname)) { (function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","${CLARITY_ID}"); }`
+            __html: `if (/(^|\\.)trindadeonline\\.com\\.br$/.test(location.hostname) && !/^\\/(painel|admin|login)(\\/|$)/.test(location.pathname)) { (function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","${CLARITY_ID}"); }`
           }}
         />
       </head>

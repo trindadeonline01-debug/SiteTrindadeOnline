@@ -93,6 +93,11 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
   const [success, setSuccess] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const [orderError, setOrderError] = useState<string | null>(null)
+  // Pix de verdade (Mercado Pago Connect) — só aparece quando a loja tem
+  // conta conectada; sem isso o checkout segue exatamente como sempre foi.
+  const [pixModal, setPixModal] = useState<{ pedidoId: string; qr: string | null; copy: string | null; value: number } | null>(null)
+  const [pixCopied, setPixCopied] = useState(false)
+  const pixPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const [coupons, setCoupons] = useState<Coupon[]>([])
   const [selectedCouponId, setSelectedCouponId] = useState<string | null>(null)
   const [freteInfo, setFreteInfo] = useState<FreteInfo | null>(null)
@@ -427,12 +432,46 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
       return
     }
     setConfirming(false)
+    if (data.pix) {
+      // Pedido já existe, só esperando o Pix cair — mesmo padrão de
+      // /painel/entrega: QR + copia-e-cola, fecha sozinho quando confirma.
+      setPixModal({ pedidoId: data.pedidoId, qr: data.pix.qrCodeBase64, copy: data.pix.qrCode, value: total })
+      if (pixPollRef.current) clearInterval(pixPollRef.current)
+      pixPollRef.current = setInterval(async () => {
+        const r = await fetch('/api/loja/checar-pix', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pedidoId: data.pedidoId }),
+        })
+        const j = await r.json().catch(() => ({}))
+        if (j.pago) {
+          if (pixPollRef.current) clearInterval(pixPollRef.current)
+          setPixModal(null)
+          finalizarSucesso()
+        }
+      }, 3000)
+      return
+    }
+    finalizarSucesso()
+  }
+
+  function finalizarSucesso() {
     setSuccess(true)
     setTimeout(() => {
       closeDrawer(); setSuccess(false); setCart([]); setObs('')
       setAgendarRetirada(false); setScheduleDate(''); setScheduleTime(''); setSelectedCouponId(null)
       setPrecisaTroco(null); setTrocoPara('')
     }, 2500)
+  }
+
+  useEffect(() => () => { if (pixPollRef.current) clearInterval(pixPollRef.current) }, [])
+
+  async function copiarPix() {
+    if (!pixModal?.copy) return
+    try {
+      await navigator.clipboard.writeText(pixModal.copy)
+      setPixCopied(true)
+      setTimeout(() => setPixCopied(false), 2000)
+    } catch {}
   }
 
   // Antes (até out/2026) essa era a alternativa "leve" ao checkout completo
@@ -1440,6 +1479,26 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
               <p style={{ fontSize: 12.5, color: '#555', maxWidth: 260 }}>A {company.name} recebeu seu pedido.</p>
             </div>
           )}
+        </div>
+      )}
+
+      {pixModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 10001, background: 'rgba(21,18,16,.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: '#fff', borderRadius: 18, padding: 24, maxWidth: 340, width: '100%', textAlign: 'center', boxShadow: '0 24px 60px rgba(0,0,0,.4)' }}>
+            <div style={{ fontSize: 14.5, fontWeight: 800, color: '#151210', marginBottom: 4 }}>Pague com Pix pra confirmar</div>
+            <div style={{ fontFamily: 'Anton,sans-serif', fontSize: 22, color: '#151210', marginBottom: 16 }}>{fmt(pixModal.value)}</div>
+            {pixModal.qr && (
+              <img src={`data:image/png;base64,${pixModal.qr}`} alt="QR Code Pix" style={{ width: 180, height: 180, margin: '0 auto 16px', display: 'block', borderRadius: 12, border: '1px solid #DCDDD6' }} />
+            )}
+            {pixModal.copy && (
+              <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+                <input type="text" readOnly value={pixModal.copy} style={{ flex: 1, minWidth: 0, padding: '10px 12px', border: '1px solid #DCDDD6', borderRadius: 9, fontSize: 11, color: '#6F6C67', fontFamily: 'monospace' }} />
+                <button type="button" onClick={copiarPix} style={{ flex: 'none', padding: '10px 14px', background: '#151210', color: '#fff', border: 'none', borderRadius: 9, fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>{pixCopied ? '✓' : 'Copiar'}</button>
+              </div>
+            )}
+            <div style={{ fontSize: 12, color: '#A87200', fontWeight: 700, marginBottom: 4 }}>Aguardando pagamento...</div>
+            <div style={{ fontSize: 11, color: '#A79E8B' }}>Assim que o Pix cair, seu pedido é confirmado sozinho.</div>
+          </div>
         </div>
       )}
     </div>

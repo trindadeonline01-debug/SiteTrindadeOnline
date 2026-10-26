@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { syncPixMpEnabled } from '@/lib/mpSync'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -30,6 +31,7 @@ export async function POST(req: NextRequest) {
       .eq('company_id', company_id)
     if (error) return NextResponse.json({ error: 'Falhou ao salvar' }, { status: 500 })
 
+    await syncPixMpEnabled(company_id)
     return NextResponse.json({ ok: true })
   } catch (err: any) {
     console.error('[painel/mp/toggle-pix]', err)

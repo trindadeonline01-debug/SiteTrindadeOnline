@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { syncPixMpEnabled } from '@/lib/mpSync'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -27,6 +28,7 @@ export async function POST(req: NextRequest) {
     // já pagos continuam registrados normalmente em loja_pedidos (não
     // depende dessa tabela pra existir).
     await supabase.from('company_mp_accounts').delete().eq('company_id', company_id)
+    await syncPixMpEnabled(company_id)
 
     return NextResponse.json({ ok: true })
   } catch (err: any) {

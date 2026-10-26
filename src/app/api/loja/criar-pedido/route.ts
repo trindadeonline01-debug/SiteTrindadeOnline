@@ -65,13 +65,63 @@ export async function POST(req: NextRequest) {
     }
 
     const { data: company } = await supabase.from('companies')
-      .select('id, name, owner_id, status, loja_digital_enabled, store_paused')
+      .select('id, name, owner_id, status, loja_digital_enabled, store_paused, pix_mp_enabled')
       .eq('id', companyId).maybeSingle()
     if (!company || company.status !== 'active' || !company.loja_digital_enabled) {
       return NextResponse.json({ error: 'Essa loja não está disponível pra pedidos agora.' }, { status: 400 })
     }
     if (company.store_paused) {
       return NextResponse.json({ error: 'A loja pausou o recebimento de pedidos no momento.' }, { status: 400 })
+    }
+
+    // Pix de verdade (Mercado Pago Connect) — só no fluxo normal de
+    // "Confirmar pedido" (nunca em origin 'conversa', que é o botão "Pedir
+    // pelo WhatsApp": esse continua exatamente como sempre foi, combinando
+    // por fora). Gera a cobrança ANTES de criar o pedido — se o Mercado
+    // Pago recusar, não sobra pedido órfão sem jeito nenhum de pagar.
+    let mpPaymentId: string | null = null
+    let mpQrBase64: string | null = null
+    let mpQrCopiaCola: string | null = null
+    if (paymentMethod === 'pix' && company.pix_mp_enabled && pedidoOrigin !== 'conversa') {
+      const { data: contaMp } = await supabase.from('company_mp_accounts')
+        .select('mp_access_token, application_fee_pct').eq('company_id', companyId).eq('status', 'connected').maybeSingle()
+      if (contaMp) {
+        try {
+          const feeValue = Number((Number(total || 0) * (Number(contaMp.application_fee_pct) / 100)).toFixed(2))
+          const origemReq = new URL(req.url).origin
+          const mpRes = await fetch('https://api.mercadopago.com/v1/payments', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${contaMp.mp_access_token}`,
+              'Content-Type': 'application/json',
+              'X-Idempotency-Key': `pedido-${companyId}-${Date.now()}`,
+            },
+            body: JSON.stringify({
+              transaction_amount: Number(total || 0),
+              description: `Pedido — ${company.name}`,
+              payment_method_id: 'pix',
+              payer: { email: 'cliente@trindadeonline.com.br' },
+              application_fee: feeValue,
+              notification_url: `${origemReq}/api/mp/webhook-loja`,
+            }),
+          })
+          const mpData = await mpRes.json()
+          if (mpRes.ok && mpData.id) {
+            mpPaymentId = String(mpData.id)
+            mpQrBase64 = mpData.point_of_interaction?.transaction_data?.qr_code_base64 || null
+            mpQrCopiaCola = mpData.point_of_interaction?.transaction_data?.qr_code || null
+          } else {
+            console.error('[criar-pedido] mp recusou pagamento', mpData)
+            return NextResponse.json({ error: 'Não deu pra gerar o Pix agora — tenta de novo ou escolhe outra forma de pagamento.' }, { status: 502 })
+          }
+        } catch (err) {
+          console.error('[criar-pedido] falha ao criar pagamento mp', err)
+          return NextResponse.json({ error: 'Não deu pra gerar o Pix agora — tenta de novo ou escolhe outra forma de pagamento.' }, { status: 502 })
+        }
+      }
+      // Sem conta conectada apesar do flag (desconectou entre o carregamento
+      // da página e o clique) — segue sem Pix real, vira o rótulo de sempre,
+      // nunca trava o cliente no meio do checkout por isso.
     }
 
     const { data: pedido, error: pedidoError } = await supabase.from('loja_pedidos').insert({
@@ -88,7 +138,7 @@ export async function POST(req: NextRequest) {
       // WhatsApp com pedido de verdade, com o mesmo badge "💬 WhatsApp").
       origin: pedidoOrigin === 'conversa' ? 'conversa' : 'cardapio_publico', payment_method: paymentMethod || null,
       subtotal: Number(subtotal || 0), total: Number(total || 0), delivery_fee: Number(deliveryFee || 0),
-      notes: notes || null,
+      notes: notes || null, mp_payment_id: mpPaymentId,
     }).select('id, order_number').single()
     // Mesmo cuidado que já existia quando esse insert rodava no navegador:
     // se der erro aqui, não pode passar pro cliente como se tivesse dado certo.
@@ -211,7 +261,10 @@ export async function POST(req: NextRequest) {
 
     await Promise.allSettled(notifyJobs)
 
-    return NextResponse.json({ ok: true, pedidoId: pedido.id, orderNumber: pedido.order_number })
+    return NextResponse.json({
+      ok: true, pedidoId: pedido.id, orderNumber: pedido.order_number,
+      pix: mpPaymentId ? { paymentId: mpPaymentId, qrCodeBase64: mpQrBase64, qrCode: mpQrCopiaCola } : null,
+    })
   } catch (err: any) {
     console.error('[criar-pedido] falha geral:', err?.message || err)
     return NextResponse.json({ error: 'Não deu pra enviar seu pedido agora. Tenta de novo em alguns segundos.' }, { status: 500 })

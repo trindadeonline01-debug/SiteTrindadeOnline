@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { verifyMpState } from '@/lib/mpOauthState'
+import { syncPixMpEnabled } from '@/lib/mpSync'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -86,6 +87,7 @@ export async function GET(req: NextRequest) {
       return voltar('erro', 'Conectou no Mercado Pago mas falhou ao salvar — tenta de novo')
     }
 
+    await syncPixMpEnabled(verified.companyId)
     return voltar('ok')
   } catch (err: any) {
     console.error('[painel/mp/callback]', err)

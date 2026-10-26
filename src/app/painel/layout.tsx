@@ -219,24 +219,54 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
   // WebSocket "vivo" mas surdo, sem erro nenhum, e foi exatamente o que
   // aconteceu na loja da Vivi (set/2026): pedido chegou sem som e sem
   // atualizar a tela, só voltou ao normal com F5. Ver useRealtimeResync.
+  //
+  // Catch-up (out/2026): recriar o canal sozinho não resolve o pedido que
+  // chegou DURANTE o intervalo surdo — esse INSERT nunca foi entregue a
+  // canal nenhum, então nunca tocava nem imprimia, e só aparecia na lista
+  // quando alguém abria a tela de Pedidos. Causa real da "impressão
+  // intermitente" relatada pelo Ricardo (Peixaria Trindade, Calçada do
+  // Peixe, Mineroca — as 3 com mais volume). `printedIdsRef` deduplica por
+  // pedido (evita imprimir 2x o mesmo se ele chegar tanto pelo catch-up
+  // quanto pelo realtime); `lastCheckRef` marca até onde já foi coberto,
+  // resetado pra null ao trocar de empresa (nunca busca histórico de outra
+  // loja) e no primeiro mount (nunca busca o backlog inteiro ao abrir o
+  // painel, só o que ficou pra trás a partir daqui).
   const resyncTick = useRealtimeResync()
+  const printedIdsRef = useRef<Set<string>>(new Set())
+  const lastCheckRef = useRef<string | null>(null)
+  const prevCompanyIdRef = useRef<string | null>(null)
+  function tryPrintPedido(id: string): boolean {
+    if (printedIdsRef.current.has(id)) return false
+    printedIdsRef.current.add(id)
+    // RawBT (tablet) fica de fora da impressão automática de propósito —
+    // o Android só deixa abrir outro app (RawBT) a partir de um toque de
+    // verdade na tela; chamado sozinho aqui (sem gesto nenhum, veio do
+    // realtime/catch-up) o navegador bloqueia silenciosamente. Só o QZ Tray
+    // (computador) consegue imprimir sem alguém tocar em nada.
+    if (autoAceitarRef.current && printerNameRef.current && company && !isRawBtMode(printerNameRef.current)) {
+      autoImprimirPedido(company.name, id, printerNameRef.current)
+    }
+    return true
+  }
   useEffect(() => {
     if (!company?.id) return
     refreshSessionOnce().catch(() => {})
     unlockAudio()
     refreshPedidosBadge(company.id)
+
+    const isNewCompany = prevCompanyIdRef.current !== company.id
+    prevCompanyIdRef.current = company.id
+    const since = isNewCompany ? null : lastCheckRef.current
+    lastCheckRef.current = new Date().toISOString()
+    if (since) {
+      supabase.from('loja_pedidos').select('id').eq('company_id', company.id).eq('status', 'recebido').gt('created_at', since)
+        .then(({ data }) => { (data || []).forEach(p => { if (tryPrintPedido(p.id)) beep() }) })
+    }
+
     const channel = supabase.channel(`pedidos-print-${company.id}-${resyncTick}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'loja_pedidos', filter: `company_id=eq.${company.id}` }, payload => {
-        beep()
         refreshPedidosBadge(company.id)
-        // RawBT (tablet) fica de fora da impressão automática de propósito —
-        // o Android só deixa abrir outro app (RawBT) a partir de um toque de
-        // verdade na tela; chamado sozinho aqui (sem gesto nenhum, veio do
-        // realtime) o navegador bloqueia silenciosamente. Só o QZ Tray
-        // (computador) consegue imprimir sem alguém tocar em nada.
-        if (autoAceitarRef.current && printerNameRef.current && !isRawBtMode(printerNameRef.current)) {
-          autoImprimirPedido(company.name, payload.new.id as string, printerNameRef.current)
-        }
+        if (tryPrintPedido(payload.new.id as string)) beep()
       })
       // Recontagem do badge "N pedidos pendentes" da tabbar do mobile — some
       // sozinha quando o pedido sai de "recebido" (lojista aceita/avança) ou

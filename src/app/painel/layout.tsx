@@ -46,6 +46,7 @@ function deriveActiveKey(pathname: string, tab: string | null): EmpresaNavKey {
   if (pathname.startsWith('/painel/atendimento')) return 'atendimento'
   if (pathname.startsWith('/painel/radar')) return 'radar'
   if (pathname.startsWith('/painel/relatorios')) return 'relatorios'
+  if (pathname.startsWith('/painel/pagamentos')) return 'pagamentos'
   return 'dashboard'
 }
 

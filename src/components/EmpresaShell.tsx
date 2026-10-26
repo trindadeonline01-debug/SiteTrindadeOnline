@@ -9,7 +9,7 @@ import Link from 'next/link'
 export type EmpresaNavKey =
   | 'dashboard' | 'perfil' | 'avaliacoes' | 'destaques' | 'banners'
   | 'compartilhar' | 'catalogo' | 'pedidos' | 'cozinha' | 'entrega' | 'motoboys' | 'mensagens' | 'clientes' | 'atendimento' | 'radar'
-  | 'interesses' | 'cupons' | 'promocoes' | 'plano' | 'relatorios'
+  | 'interesses' | 'cupons' | 'promocoes' | 'plano' | 'pagamentos' | 'relatorios'
   | 'pessoal-perfil' | 'pessoal-favoritos' | 'pessoal-avaliacoes' | 'pessoal-pedidos' | 'pessoal-anuncios' | 'pessoal-cupons'
 
 type Company = { id: string; name: string; slug?: string }
@@ -17,7 +17,7 @@ type Company = { id: string; name: string; slug?: string }
 const TITLES: Record<EmpresaNavKey, string> = {
   dashboard: 'Visão geral', perfil: 'Perfil e fotos', avaliacoes: 'Avaliações', destaques: 'Destaques',
   banners: 'Banners', compartilhar: 'Configurar cardápio', catalogo: 'Cardápio', pedidos: 'Pedidos',
-  cozinha: 'Cozinha', entrega: 'Entrega', motoboys: 'Meus motoboys', mensagens: 'Mensagens', clientes: 'Clientes', atendimento: 'Painel de Atendimento', radar: 'Radar de clientes', interesses: 'Interesses', cupons: 'Cupons', promocoes: 'Promoções', plano: 'Plano', relatorios: 'Relatórios',
+  cozinha: 'Cozinha', entrega: 'Entrega', motoboys: 'Meus motoboys', mensagens: 'Mensagens', clientes: 'Clientes', atendimento: 'Painel de Atendimento', radar: 'Radar de clientes', interesses: 'Interesses', cupons: 'Cupons', promocoes: 'Promoções', plano: 'Plano', pagamentos: 'Pagamentos', relatorios: 'Relatórios',
   'pessoal-perfil': 'Meu perfil', 'pessoal-favoritos': 'Favoritos', 'pessoal-avaliacoes': 'Minhas avaliações',
   'pessoal-pedidos': 'Meus pedidos', 'pessoal-anuncios': 'Meus anúncios', 'pessoal-cupons': 'Meus cupons',
 }
@@ -293,6 +293,7 @@ export default function EmpresaShell({
 
               <div className="es-group-lbl">Conta</div>
               <NavItem href="/painel?tab=plano" active={active === 'plano'} adminEmpresaId={adminEmpresaId}>💳 Plano e pagamento</NavItem>
+              <NavItem href="/painel/pagamentos" active={active === 'pagamentos'} locked={!lojaDigitalEnabled} adminEmpresaId={adminEmpresaId}>🏦 Pagamentos</NavItem>
             </>
           )}
         </nav>

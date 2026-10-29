@@ -1239,11 +1239,11 @@ export default function PedidosPage() {
            label só ocupava o próprio texto, ficando bem desproporcional).
            Pedido do Ricardo, out/2026: "os dois podem aumentar em
            largura... ser do mesmo tamanho". */
-        .pd-autotoggle{ display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;color:#3A342A;cursor:pointer;background:#fff;border:1px solid #B9AE97;border-radius:10px;padding:10px 16px;width:220px;flex:none; }
-        .pd-switch{ width:36px;height:20px;border-radius:11px;background:#B9AE97;position:relative;cursor:pointer;flex:none; }
+        .pd-autotoggle{ display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#3A342A;cursor:pointer;background:#fff;border:1px solid #B9AE97;border-radius:10px;padding:8px 12px;width:176px;flex:none;line-height:1.2; }
+        .pd-switch{ width:32px;height:18px;border-radius:10px;background:#B9AE97;position:relative;cursor:pointer;flex:none; }
         .pd-switch.on{ background:#157A52; }
-        .pd-switch .k{ position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .15s; }
-        .pd-switch.on .k{ left:18px; }
+        .pd-switch .k{ position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left .15s; }
+        .pd-switch.on .k{ left:16px; }
         .pd-newbtn{ padding:10px;border-radius:9px;border:none;background:var(--sign);color:var(--ink);font-weight:800;font-size:14px;cursor:pointer; }
         .np-overlay{ position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:60;display:flex;align-items:flex-end;justify-content:center; }
         .np-drawer{ background:#F7F5F0;width:100%;max-width:480px;max-height:92vh;border-radius:18px 18px 0 0;display:flex;flex-direction:column;overflow:hidden; }
@@ -1273,12 +1273,25 @@ export default function PedidosPage() {
         @media(min-width:768px){
           .pd-wrap{ max-width:none;margin:0;padding-bottom:40px; }
           .pd-mobile-only{ display:none; }
-          .pd-toolbar{ display:flex;flex-direction:row;align-items:center;padding:16px 32px;gap:10px;background:#fff;border-bottom:1px solid #DDD5C4; }
+          /* Sem wrap, a soma de todos os controles (data + busca + 2
+             interruptores + bairros + impressora + novo pedido) passa de
+             1400px — não cabe nem perto numa tela de tablet (~800-1024px),
+             e sem quebra de linha o que sobra fica cortado fora da área
+             visível (achado real do Ricardo, out/2026: "o botãozinho de
+             impressora e o de novo pedido sumiram"). flex-wrap garante que
+             nada fica inacessível em NENHUMA largura; o "break" força a
+             quebra exatamente entre os controles de filtro e os botões de
+             ação só na faixa de tablet (768-1179px) — a partir de 1180px
+             cabe tudo numa linha só, como já era. */
+          .pd-toolbar{ display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;padding:16px 32px;gap:10px;row-gap:10px;background:#fff;border-bottom:1px solid #DDD5C4; }
           .pd-search{ max-width:280px; }
           .pd-datebar{ padding:0;flex:none; }
           .pd-date-input{ flex:none;width:150px; }
-          .pd-autotoggle{ margin-left:auto; }
+          .pd-toolbar-break{ flex-basis:0; }
           .pd-newbtn{ padding:10px 20px; }
+        }
+        @media(min-width:768px) and (max-width:1179px){
+          .pd-toolbar-break{ flex-basis:100%;height:0; }
           /* Tela de notebook (768–1179px): 2 fileiras de até 3 colunas cada,
              uma embaixo da outra, em vez de 5-6 colunas espremidas numa
              fileira só (Ricardo, out/2026 — "ainda tem botão ficando
@@ -1463,6 +1476,7 @@ export default function PedidosPage() {
             🏍️ Motoboy automático{temMotoboyProprio ? ' 🔒' : ''}
           </label>
         )}
+        <div className="pd-toolbar-break" />
         <div style={{ flex: 1 }} />
         {entregaEnabled && (
           <button className="pd-printer-pill" onClick={() => setShowBairrosModal(true)}>📍 Bairros e valores</button>

@@ -71,6 +71,13 @@ export default function PdvPage() {
   const searchRef = useRef<HTMLInputElement>(null)
 
   const [cart, setCart] = useState<Item[]>([])
+  // Venda rápida: pula a telinha de opcionais (ex: "limpo"/"em posta" numa
+  // peixaria) e adiciona o produto direto pelo preço base — pedido do
+  // Ricardo, out/2026: grupo de opcional pensado pro cardápio digital
+  // (delivery) não faz sentido no balcão, onde o produto já sai preparado
+  // na mão e o caixa só quer bater o preço, sem telinha extra por produto.
+  // Fica salvo por empresa no localStorage, não reseta a cada venda.
+  const [skipOpcionais, setSkipOpcionais] = useState(false)
   const [detail, setDetail] = useState<NpProduto | null>(null)
   const [detailSel, setDetailSel] = useState<number[][]>([])
   const [pesoPrompt, setPesoPrompt] = useState<{ produto: NpProduto; modifiers: { name: string; price: number }[]; basePrice: number } | null>(null)
@@ -103,6 +110,7 @@ export default function PdvPage() {
       setCompanyId(comp.id)
       setCompanyName(comp.name)
       setPrinterName(comp.loja_impressora_nome || '')
+      try { setSkipOpcionais(localStorage.getItem(`pdv-venda-rapida-${comp.id}`) === '1') } catch {}
       const configured: string[] = comp.loja_payment_methods || []
       const opts = configured.length > 0 ? configured : ['dinheiro', 'pix', 'cartao']
       setPayOptions(opts)
@@ -196,8 +204,15 @@ export default function PdvPage() {
     })
   }
   function handleProductClick(p: NpProduto) {
-    if (p.groups?.length) { setDetail(p); setDetailSel(p.groups.map(() => [])) }
+    if (p.groups?.length && !skipOpcionais) { setDetail(p); setDetailSel(p.groups.map(() => [])) }
     else addToCart(p, [], p.sale_price)
+  }
+  function toggleSkipOpcionais() {
+    setSkipOpcionais(prev => {
+      const next = !prev
+      try { localStorage.setItem(`pdv-venda-rapida-${companyId}`, next ? '1' : '0') } catch {}
+      return next
+    })
   }
   function toggleOpt(gi: number, oi: number) {
     if (!detail) return
@@ -337,6 +352,9 @@ export default function PdvPage() {
         .pdv-printer.off{ color:#F87171;background:rgba(248,113,113,.16); }
         .pdv-vendas-btn{ display:flex;align-items:center;gap:8px;background:#232019;border:1px solid #3A352A;color:#fff;font-size:12.5px;font-weight:700;padding:9px 14px;border-radius:10px;cursor:pointer;font-family:inherit;white-space:nowrap; }
         .pdv-vendas-btn:hover{ background:#2C271E; }
+        .pdv-rapida-btn{ display:flex;align-items:center;gap:6px;background:#232019;border:1px solid #3A352A;color:#A79E8B;font-size:12px;font-weight:700;padding:9px 13px;border-radius:10px;cursor:pointer;font-family:inherit;white-space:nowrap; }
+        .pdv-rapida-btn:hover{ background:#2C271E; }
+        .pdv-rapida-btn.on{ background:rgba(255,197,49,.14);border-color:#FFC531;color:#FFC531; }
 
         .pdv-kbd{ font-size:9.5px;font-weight:800;background:rgba(255,197,49,.15);color:#FFC531;padding:2px 6px;border-radius:5px;letter-spacing:.02em;flex-shrink:0; }
         .pdv-vendas-btn .pdv-kbd{ background:rgba(255,255,255,.12);color:#C9BFA8; }
@@ -469,6 +487,14 @@ export default function PdvPage() {
           <div className="pdv-title-name">{companyName}</div>
         </div>
         <div className="pdv-top-right">
+          <button
+            className={`pdv-rapida-btn ${skipOpcionais ? 'on' : ''}`}
+            onClick={toggleSkipOpcionais}
+            title="Quando ligado, adiciona o produto direto no preço base, sem perguntar limpo/em posta/outros opcionais — pra quem é só do cardápio digital, não faz sentido no balcão."
+          >
+            ⚡ Venda rápida {skipOpcionais ? '· ligada' : ''}
+          </button>
+          <div className="pdv-top-divider" />
           <div className={`pdv-printer ${printerName ? 'ok' : 'off'}`}>{printerName ? '● Impressora conectada' : '○ Sem impressora'}</div>
           <div className="pdv-top-divider" />
           <button className="pdv-vendas-btn" onClick={abrirVendas}>🧾 Vendas de hoje <span className="pdv-kbd">F7</span></button>

@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { moduleActive } from '@/lib/modules'
 import { normalizePhone } from '@/lib/phone'
 import { sendCustomerWhatsApp } from '@/lib/whatsapp'
+import { creditarCashback } from '@/lib/cashback'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -70,8 +71,23 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const { data: company } = await supabase.from('companies').select('crm_whatsapp_enabled, trial_modules_until, slug').eq('id', companyId).maybeSingle()
-    if (!company || !moduleActive(company.crm_whatsapp_enabled, company.trial_modules_until)) return NextResponse.json({ ok: true })
+    const { data: company } = await supabase.from('companies')
+      .select('crm_whatsapp_enabled, trial_modules_until, slug, cashback_enabled, cashback_percent')
+      .eq('id', companyId).maybeSingle()
+    if (!company) return NextResponse.json({ ok: true })
+
+    // Cashback credita aqui — regra de negócio da própria loja, não do
+    // módulo de CRM/WhatsApp (gate abaixo), então não pode depender dele.
+    // Só quando a loja de fato marca "entregue" (nunca em pedido cancelado).
+    if (status === 'entregue' && pedidoId && company.cashback_enabled && Number(company.cashback_percent) > 0) {
+      const { data: pedidoCashback } = await supabase.from('loja_pedidos').select('total').eq('id', pedidoId).eq('company_id', companyId).maybeSingle()
+      if (pedidoCashback) {
+        const valorCredito = Number((Number(pedidoCashback.total) * (Number(company.cashback_percent) / 100)).toFixed(2))
+        if (valorCredito > 0) await creditarCashback(supabase, { companyId, phoneRaw: phone, pedidoId, valor: valorCredito })
+      }
+    }
+
+    if (!moduleActive(company.crm_whatsapp_enabled, company.trial_modules_until)) return NextResponse.json({ ok: true })
 
     // sendCustomerWhatsApp (lib/whatsapp.ts) já resolve sozinha — usa a
     // instância da loja se tiver conectada, senão cai pro número da

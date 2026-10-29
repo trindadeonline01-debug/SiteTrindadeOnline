@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendPlatformWhatsApp, notifyOwnerNewOrder } from '@/lib/whatsapp'
 import { buildOwnerMessage } from '@/lib/orderMessages'
+import { debitarCashback, registrarDebitoCashback, reembolsarCashback } from '@/lib/cashback'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -25,7 +26,7 @@ export async function POST(req: NextRequest) {
     const {
       access_token, companyId, customerName, customerPhone,
       items, deliveryType, address, scheduledFor, paymentMethod, notes,
-      subtotal, deliveryFee, total, couponId, origin: pedidoOrigin,
+      subtotal, deliveryFee, total, couponId, origin: pedidoOrigin, useCashback,
     } = await req.json()
 
     if (!companyId) return NextResponse.json({ error: 'empresa obrigatória' }, { status: 400 })
@@ -65,7 +66,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { data: company } = await supabase.from('companies')
-      .select('id, name, owner_id, status, loja_digital_enabled, store_paused, pix_mp_enabled')
+      .select('id, name, owner_id, status, loja_digital_enabled, store_paused, pix_mp_enabled, cashback_enabled')
       .eq('id', companyId).maybeSingle()
     if (!company || company.status !== 'active' || !company.loja_digital_enabled) {
       return NextResponse.json({ error: 'Essa loja não está disponível pra pedidos agora.' }, { status: 400 })
@@ -73,6 +74,18 @@ export async function POST(req: NextRequest) {
     if (company.store_paused) {
       return NextResponse.json({ error: 'A loja pausou o recebimento de pedidos no momento.' }, { status: 400 })
     }
+
+    // Cashback — debita da carteira (desse telefone, nessa loja) ANTES de
+    // calcular Pix/total, pra tudo rio abaixo (cobrança real, valor salvo no
+    // pedido, mensagem pro dono) já refletir o desconto. Nunca confia no
+    // valor que o cliente mandou — relê o saldo real aqui e usa o menor
+    // entre saldo e total, então um saldo "inventado" no front não desconta
+    // nada além do que existe de verdade.
+    let cashbackUsado = 0
+    if (useCashback && company.cashback_enabled && finalPhone) {
+      cashbackUsado = await debitarCashback(supabase, { companyId, phoneRaw: finalPhone, valorDesejado: Number(total || 0) })
+    }
+    const totalComCashback = Math.max(0, Number(total || 0) - cashbackUsado)
 
     // Pix de verdade (Mercado Pago Connect) — só no fluxo normal de
     // "Confirmar pedido" (nunca em origin 'conversa', que é o botão "Pedir
@@ -87,7 +100,7 @@ export async function POST(req: NextRequest) {
         .select('mp_access_token, application_fee_pct').eq('company_id', companyId).eq('status', 'connected').maybeSingle()
       if (contaMp) {
         try {
-          const feeValue = Number((Number(total || 0) * (Number(contaMp.application_fee_pct) / 100)).toFixed(2))
+          const feeValue = Number((totalComCashback * (Number(contaMp.application_fee_pct) / 100)).toFixed(2))
           const origemReq = new URL(req.url).origin
           const mpRes = await fetch('https://api.mercadopago.com/v1/payments', {
             method: 'POST',
@@ -97,7 +110,7 @@ export async function POST(req: NextRequest) {
               'X-Idempotency-Key': `pedido-${companyId}-${Date.now()}`,
             },
             body: JSON.stringify({
-              transaction_amount: Number(total || 0),
+              transaction_amount: totalComCashback,
               description: `Pedido — ${company.name}`,
               payment_method_id: 'pix',
               payer: { email: 'cliente@trindadeonline.com.br' },
@@ -112,10 +125,12 @@ export async function POST(req: NextRequest) {
             mpQrCopiaCola = mpData.point_of_interaction?.transaction_data?.qr_code || null
           } else {
             console.error('[criar-pedido] mp recusou pagamento', mpData)
+            if (cashbackUsado > 0) await reembolsarCashback(supabase, { companyId, phoneRaw: finalPhone, valor: cashbackUsado })
             return NextResponse.json({ error: 'Não deu pra gerar o Pix agora — tenta de novo ou escolhe outra forma de pagamento.' }, { status: 502 })
           }
         } catch (err) {
           console.error('[criar-pedido] falha ao criar pagamento mp', err)
+          if (cashbackUsado > 0) await reembolsarCashback(supabase, { companyId, phoneRaw: finalPhone, valor: cashbackUsado })
           return NextResponse.json({ error: 'Não deu pra gerar o Pix agora — tenta de novo ou escolhe outra forma de pagamento.' }, { status: 502 })
         }
       }
@@ -137,13 +152,14 @@ export async function POST(req: NextRequest) {
       // pelo botão normal (pedido do Ricardo, out/2026 — unificar pedido de
       // WhatsApp com pedido de verdade, com o mesmo badge "💬 WhatsApp").
       origin: pedidoOrigin === 'conversa' ? 'conversa' : 'cardapio_publico', payment_method: paymentMethod || null,
-      subtotal: Number(subtotal || 0), total: Number(total || 0), delivery_fee: Number(deliveryFee || 0),
+      subtotal: Number(subtotal || 0), total: totalComCashback, delivery_fee: Number(deliveryFee || 0),
       notes: notes || null, mp_payment_id: mpPaymentId,
     }).select('id, order_number').single()
     // Mesmo cuidado que já existia quando esse insert rodava no navegador:
     // se der erro aqui, não pode passar pro cliente como se tivesse dado certo.
     if (pedidoError || !pedido) {
       console.error('[criar-pedido] falha ao criar pedido:', pedidoError)
+      if (cashbackUsado > 0) await reembolsarCashback(supabase, { companyId, phoneRaw: finalPhone, valor: cashbackUsado })
       return NextResponse.json({ error: 'Não deu pra enviar seu pedido agora. Tenta de novo em alguns segundos.' }, { status: 500 })
     }
 
@@ -156,8 +172,13 @@ export async function POST(req: NextRequest) {
     if (itensError) {
       console.error('[criar-pedido] falha ao salvar itens:', itensError)
       await supabase.from('loja_pedidos').delete().eq('id', pedido.id)
+      if (cashbackUsado > 0) await reembolsarCashback(supabase, { companyId, phoneRaw: finalPhone, valor: cashbackUsado })
       return NextResponse.json({ error: 'Não deu pra enviar seu pedido agora. Tenta de novo em alguns segundos.' }, { status: 500 })
     }
+    // Ledger do débito só grava aqui, com o pedido já garantido de verdade
+    // (itens inclusos) — evita registrar "usou cashback" pra um pedido que
+    // acabou sendo apagado um instante depois por falha nos itens.
+    if (cashbackUsado > 0) await registrarDebitoCashback(supabase, { companyId, phoneRaw: finalPhone, pedidoId: pedido.id, valor: cashbackUsado })
 
     // Resgate de cupom só fica registrado (e conta pra limite de uso) pra
     // quem tem conta — convidado ainda recebe o desconto no `total` que já
@@ -177,7 +198,7 @@ export async function POST(req: NextRequest) {
     // bug real, Ricardo set/2026: pedido chegou na Calçada do Peixe e nem
     // o dono nem o admin foram avisados, tudo silencioso, sem erro).
     const origin = new URL(req.url).origin
-    const valorFmt = `R$ ${Number(total || 0).toFixed(2).replace('.', ',')}`
+    const valorFmt = `R$ ${totalComCashback.toFixed(2).replace('.', ',')}`
     const notifyJobs: Promise<any>[] = []
 
     notifyJobs.push(
@@ -185,7 +206,7 @@ export async function POST(req: NextRequest) {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           companyId, pedidoId: pedido.id, phone: finalPhone || null, name: finalName || 'Cliente',
-          address: deliveryType === 'entrega' ? address : null, total: Number(total || 0), subtotal: Number(subtotal || 0), deliveryFee: Number(deliveryFee || 0),
+          address: deliveryType === 'entrega' ? address : null, total: totalComCashback, subtotal: Number(subtotal || 0), deliveryFee: Number(deliveryFee || 0),
           paymentMethod: paymentMethod || null, deliveryType, notes: notes || null,
           items: (items as ItemIn[]).map(l => ({ produtoId: l.produtoId, name: l.name, qty: l.qty, unitPrice: l.unitPrice, modifiers: l.modifiers || [] })),
           // O aviso pro dono já sai direto, no próprio processo, logo
@@ -209,7 +230,7 @@ export async function POST(req: NextRequest) {
     notifyJobs.push(
       notifyOwnerNewOrder(companyId, buildOwnerMessage({
         items: (items as ItemIn[]).map(l => ({ name: l.name, qty: l.qty, unitPrice: l.unitPrice, modifiers: l.modifiers || [] })),
-        total: Number(total || 0), paymentMethod: paymentMethod || null, deliveryType: deliveryType || null,
+        total: totalComCashback, paymentMethod: paymentMethod || null, deliveryType: deliveryType || null,
         address: deliveryType === 'entrega' ? (address || null) : null, notes: notes || null,
         orderNumber: pedido.order_number ?? null, customerName: finalName || 'Cliente', customerPhone: finalPhone || null,
       })).then(result => {
@@ -262,7 +283,7 @@ export async function POST(req: NextRequest) {
     await Promise.allSettled(notifyJobs)
 
     return NextResponse.json({
-      ok: true, pedidoId: pedido.id, orderNumber: pedido.order_number,
+      ok: true, pedidoId: pedido.id, orderNumber: pedido.order_number, total: totalComCashback, cashbackUsado,
       pix: mpPaymentId ? { paymentId: mpPaymentId, qrCodeBase64: mpQrBase64, qrCode: mpQrCopiaCola } : null,
     })
   } catch (err: any) {

@@ -5,6 +5,7 @@ import { moduleActive } from '@/lib/modules'
 import QRCode from 'qrcode'
 import { BAIRROS_SAO_GONCALO, normalizeBairro } from '@/lib/bairrosSaoGoncalo'
 import { usePainelShell } from '@/contexts/PainelShellContext'
+import { CASHBACK_PERCENT_MAX, CASHBACK_EXPIRA_DIAS } from '@/lib/cashback'
 
 type TaxaMetodo = 'bairro' | 'distancia'
 type Company = {
@@ -13,6 +14,7 @@ type Company = {
   loja_taxa_metodo: TaxaMetodo; loja_frete_gratis_acima: number | null; loja_taxa_fora_area: number | null
   loja_lat: number | null; loja_lng: number | null; loja_tempo_preparo_min: number
   crm_whatsapp_enabled: boolean; entrega_enabled: boolean; pix_key: string | null
+  cashback_enabled: boolean; cashback_percent: number
 }
 type Categoria = { id: string; name: string }
 type ProdutoOpt = { id: string; name: string }
@@ -63,7 +65,7 @@ export default function CompartilharPage() {
   const { company: shellCompany, loading: shellLoading, isAdminMode } = usePainelShell()
   const [loading, setLoading] = useState(true)
   const [company, setCompany] = useState<Company | null>(null)
-  const [view, setView] = useState<'hub' | 'share' | 'entrega' | 'pagamento'>('hub')
+  const [view, setView] = useState<'hub' | 'share' | 'entrega' | 'pagamento' | 'cashback'>('hub')
   const [viewingMethod, setViewingMethod] = useState<TaxaMetodo>('bairro')
   const [activating, setActivating] = useState<TaxaMetodo | null>(null)
   const [activateError, setActivateError] = useState('')
@@ -94,12 +96,18 @@ export default function CompartilharPage() {
   const [paymentSaved, setPaymentSaved] = useState(false)
   const [pixKey, setPixKey] = useState('')
 
+  const [cashbackEnabledInput, setCashbackEnabledInput] = useState(false)
+  const [cashbackPercentInput, setCashbackPercentInput] = useState('3')
+  const [savingCashback, setSavingCashback] = useState(false)
+  const [cashbackSaved, setCashbackSaved] = useState(false)
+  const [cashbackError, setCashbackError] = useState('')
+
   useEffect(() => {
     if (shellLoading) return
     if (!shellCompany) { setCompany(null); setLoading(false); return }
     supabase
       .from('companies')
-      .select('id, name, slug, address, loja_digital_enabled, loja_taxa_entrega, loja_pedido_minimo, loja_payment_methods, loja_taxa_metodo, loja_frete_gratis_acima, loja_taxa_fora_area, loja_lat, loja_lng, loja_tempo_preparo_min, crm_whatsapp_enabled, entrega_enabled, trial_modules_until, pix_key')
+      .select('id, name, slug, address, loja_digital_enabled, loja_taxa_entrega, loja_pedido_minimo, loja_payment_methods, loja_taxa_metodo, loja_frete_gratis_acima, loja_taxa_fora_area, loja_lat, loja_lng, loja_tempo_preparo_min, crm_whatsapp_enabled, entrega_enabled, trial_modules_until, pix_key, cashback_enabled, cashback_percent')
       .eq('id', shellCompany.id)
       .maybeSingle()
       .then(async ({ data: comp }) => {
@@ -117,6 +125,8 @@ export default function CompartilharPage() {
         setForaAreaInput(fmtPt(comp.loja_taxa_fora_area))
         setPaymentMethods(comp.loja_payment_methods?.length ? comp.loja_payment_methods : ['pix', 'dinheiro', 'cartao_credito'])
         setPixKey(comp.pix_key || '')
+        setCashbackEnabledInput(!!comp.cashback_enabled)
+        setCashbackPercentInput(comp.cashback_percent != null && Number(comp.cashback_percent) > 0 ? fmtPt(Number(comp.cashback_percent)) : '3')
         if (isAdminMode || moduleActive(comp.loja_digital_enabled, comp.trial_modules_until)) {
           const [{ data: cats }, { data: prods }, { data: bairroRows }, { data: tierRows }] = await Promise.all([
             supabase.from('loja_categorias').select('id,name').eq('company_id', comp.id).order('display_order'),
@@ -261,6 +271,22 @@ export default function CompartilharPage() {
     setSavingPayment(false)
     setPaymentSaved(true)
     setTimeout(() => setPaymentSaved(false), 2000)
+  }
+
+  async function saveCashback() {
+    if (!company) return
+    const pct = parsePt(cashbackPercentInput)
+    if (cashbackEnabledInput && (pct <= 0 || pct > CASHBACK_PERCENT_MAX)) {
+      setCashbackError(`O % precisa ser maior que 0 e até ${CASHBACK_PERCENT_MAX}%.`)
+      return
+    }
+    setCashbackError('')
+    setSavingCashback(true)
+    await supabase.from('companies').update({ cashback_enabled: cashbackEnabledInput, cashback_percent: pct }).eq('id', company.id)
+    setCompany(prev => prev ? { ...prev, cashback_enabled: cashbackEnabledInput, cashback_percent: pct } : prev)
+    setSavingCashback(false)
+    setCashbackSaved(true)
+    setTimeout(() => setCashbackSaved(false), 2000)
   }
 
   if (loading) {
@@ -430,10 +456,11 @@ export default function CompartilharPage() {
                 <div className="hub-card-desc">Pix, cartão, dinheiro — e o que mais você aceitar.</div>
                 <span className="hub-card-status">{paymentMethods.length} ativas</span>
               </div>
-              <div className="hub-card ghost">
-                <div className="hub-card-ico">✨</div>
-                <div className="hub-card-title" style={{ color: 'var(--muted)' }}>Em breve</div>
-                <div className="hub-card-desc">Novas formas de divulgar sua loja vão aparecer aqui.</div>
+              <div className="hub-card" onClick={() => setView('cashback')}>
+                <div className="hub-card-top"><div className="hub-card-ico">🎁</div><div className="hub-card-chev">›</div></div>
+                <div className="hub-card-title">Cashback</div>
+                <div className="hub-card-desc">Devolva um % em crédito pro cliente usar na próxima compra, só na sua loja.</div>
+                <span className="hub-card-status">{company.cashback_enabled ? `Ativo · ${fmtPt(company.cashback_percent)}%` : 'Desativado'}</span>
               </div>
             </div>
           </div>
@@ -642,6 +669,34 @@ export default function CompartilharPage() {
               )}
               {paymentMethods.length === 0 && <div style={{ fontSize: 11, color: '#C43D3D', margin: '10px 0 0' }}>Marque pelo menos uma forma de pagamento.</div>}
               <button className="crm-config-btn" disabled={savingPayment || paymentMethods.length === 0} onClick={savePaymentMethods}>{paymentSaved ? 'Salvo!' : savingPayment ? 'Salvando...' : 'Salvar formas de pagamento'}</button>
+            </div>
+          </div>
+        )}
+
+        {view === 'cashback' && (
+          <div>
+            <div className="crm-panel-back-row"><button className="crm-back" onClick={() => setView('hub')}>‹</button><span className="crm-panel-title">Cashback</span></div>
+
+            <div className="crm-config-card" style={{ maxWidth: 420 }}>
+              <div className="crm-config-title">🎁 Devolva parte do pedido em crédito</div>
+              <div className="crm-config-sub">
+                Quando um pedido é marcado "entregue", o cliente ganha de volta esse % em crédito — só pra usar de novo na SUA loja, nunca em outra da plataforma. Ele decide se usa ou não na próxima compra. Esse crédito é custeado por você, não pela Trindade Online. Saldo sem uso expira em {CASHBACK_EXPIRA_DIAS} dias.
+              </div>
+
+              <div className="crm-payment-row" onClick={() => setCashbackEnabledInput(v => !v)} style={{ marginTop: 6 }}>
+                <input type="checkbox" checked={cashbackEnabledInput} readOnly />
+                Ativar cashback pra {company.name}
+              </div>
+
+              {cashbackEnabledInput && (
+                <div className="crm-config-field" style={{ marginTop: 10 }}>
+                  <label>% do pedido devolvido em crédito (até {CASHBACK_PERCENT_MAX}%)</label>
+                  <input inputMode="decimal" value={cashbackPercentInput} onChange={e => setCashbackPercentInput(e.target.value.replace(/[^0-9,]/g, ''))} placeholder="Ex: 3" />
+                </div>
+              )}
+
+              {cashbackError && <div style={{ fontSize: 11, color: '#C43D3D', margin: '6px 0 0' }}>{cashbackError}</div>}
+              <button className="crm-config-btn" disabled={savingCashback} onClick={saveCashback}>{cashbackSaved ? 'Salvo!' : savingCashback ? 'Salvando...' : 'Salvar cashback'}</button>
             </div>
           </div>
         )}

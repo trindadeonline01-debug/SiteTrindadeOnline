@@ -14,6 +14,7 @@ type Company = {
   loja_digital_enabled: boolean; flexible_hours?: boolean; store_paused?: boolean; store_forced_open?: boolean; owner_id?: string
   loja_taxa_entrega: number; loja_pedido_minimo: number; loja_payment_methods?: string[]
   loja_taxa_metodo?: 'bairro' | 'distancia'; loja_frete_gratis_acima?: number | null
+  cashback_enabled?: boolean
   hours?: any[]; photos?: { url: string; order: number }[]
 }
 const PAYMENT_LABELS: Record<string, string> = {
@@ -100,6 +101,21 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
   const pixPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const [coupons, setCoupons] = useState<Coupon[]>([])
   const [selectedCouponId, setSelectedCouponId] = useState<string | null>(null)
+  const [cashbackSaldo, setCashbackSaldo] = useState(0)
+  const [useCashbackToggle, setUseCashbackToggle] = useState(false)
+
+  // Consulta o saldo assim que tiver loja + telefone (guestPhone já vem
+  // preenchido de sessão logada ou do carrinho salvo) — pública, não precisa
+  // de login. Reseta o "usar cashback" se o telefone mudar no meio do
+  // caminho, pra nunca aplicar um desconto que não é mais daquele telefone.
+  useEffect(() => {
+    setUseCashbackToggle(false)
+    if (!company?.id || !company.cashback_enabled || guestPhone.replace(/\D/g, '').length < 10) { setCashbackSaldo(0); return }
+    fetch('/api/loja/cashback-saldo', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ companyId: company.id, phone: guestPhone }),
+    }).then(r => r.json()).then(d => setCashbackSaldo(Number(d?.saldo || 0))).catch(() => setCashbackSaldo(0))
+  }, [company?.id, company?.cashback_enabled, guestPhone])
   const [freteInfo, setFreteInfo] = useState<FreteInfo | null>(null)
   const [freteLoading, setFreteLoading] = useState(false)
 
@@ -156,7 +172,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
     supabase.from('site_settings').select('value').eq('key', 'peca_agora_enabled').maybeSingle()
       .then(({ data }) => setPecaAgoraEnabled(data?.value === 'true'))
     supabase.from('companies')
-      .select('id,name,slug,phone,address,avg_rating,total_reviews,status,loja_digital_enabled,flexible_hours,store_paused,store_forced_open,owner_id,loja_taxa_entrega,loja_pedido_minimo,loja_payment_methods,loja_taxa_metodo,loja_frete_gratis_acima,hours:company_hours(label,hours,order,day_of_week,open_time,close_time,closed),photos:company_photos(url,order)')
+      .select('id,name,slug,phone,address,avg_rating,total_reviews,status,loja_digital_enabled,flexible_hours,store_paused,store_forced_open,owner_id,loja_taxa_entrega,loja_pedido_minimo,loja_payment_methods,loja_taxa_metodo,loja_frete_gratis_acima,cashback_enabled,hours:company_hours(label,hours,order,day_of_week,open_time,close_time,closed),photos:company_photos(url,order)')
       .eq('slug', slug).maybeSingle()
       .then(async ({ data: comp }) => {
         if (!comp || comp.status !== 'active' || !comp.loja_digital_enabled) { setCompany(null); setLoading(false); return }
@@ -418,6 +434,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
         paymentMethod: payMethod, notes: finalNotes || null,
         subtotal: cartTotal, deliveryFee: taxa, total,
         couponId: selectedCoupon && couponEligible(selectedCoupon) ? selectedCoupon.id : null,
+        useCashback: useCashbackToggle,
       }),
     })
     const data = await res.json().catch(() => ({}))
@@ -435,7 +452,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
     if (data.pix) {
       // Pedido já existe, só esperando o Pix cair — mesmo padrão de
       // /painel/entrega: QR + copia-e-cola, fecha sozinho quando confirma.
-      setPixModal({ pedidoId: data.pedidoId, qr: data.pix.qrCodeBase64, copy: data.pix.qrCode, value: total })
+      setPixModal({ pedidoId: data.pedidoId, qr: data.pix.qrCodeBase64, copy: data.pix.qrCode, value: Number(data.total ?? total) })
       if (pixPollRef.current) clearInterval(pixPollRef.current)
       pixPollRef.current = setInterval(async () => {
         const r = await fetch('/api/loja/checar-pix', {
@@ -527,6 +544,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
           paymentMethod: payMethod, notes: finalNotes || null,
           subtotal: cartTotal, deliveryFee: taxa, total,
           couponId: selectedCoupon && couponEligible(selectedCoupon) ? selectedCoupon.id : null,
+          useCashback: useCashbackToggle,
           origin: 'conversa',
         }),
       })
@@ -650,7 +668,13 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
   const couponDiscount = (c: Coupon) => c.discount_type === 'fixed' ? Math.min(Number(c.discount_value), cartTotal) : Math.round(cartTotal * (Number(c.discount_value) / 100) * 100) / 100
   const selectedCoupon = coupons.find(c => c.id === selectedCouponId) || null
   const discount = selectedCoupon && couponEligible(selectedCoupon) ? couponDiscount(selectedCoupon) : 0
-  const orderTotal = Math.max(0, cartTotal - discount) + taxaEntrega
+  const totalAntesCashback = Math.max(0, cartTotal - discount) + taxaEntrega
+  // Só uma estimativa pro cliente ver antes de confirmar — quem decide de
+  // verdade quanto desconta é o servidor (relê o saldo real na hora de criar
+  // o pedido), então uma corrida rara (duas abas gastando o mesmo saldo) não
+  // vira desconto inválido, só um valor levemente diferente no pior caso.
+  const cashbackAplicado = useCashbackToggle ? Math.min(cashbackSaldo, totalAntesCashback) : 0
+  const orderTotal = Math.max(0, totalAntesCashback - cashbackAplicado)
   const abaixoMinimo = Number(company.loja_pedido_minimo || 0) > 0 && cartTotal < Number(company.loja_pedido_minimo)
   const trocoParaNum = Number(trocoPara.replace(',', '.')) || 0
   // Troco só é obrigatório escolher (sim/não) quando o pagamento é dinheiro;
@@ -1429,6 +1453,20 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
                       </>
                     )}
 
+                    {cashbackSaldo > 0 && (
+                      <div className={`cd-coupon-card ${useCashbackToggle ? 'selected' : ''}`} style={{ marginTop: 14 }}
+                        onClick={() => setUseCashbackToggle(v => !v)}>
+                        <div className="cd-coupon-card-icon">🎁</div>
+                        <div className="cd-coupon-card-mid">
+                          <div className="cd-coupon-card-title">Usar meu cashback</div>
+                          <div className="cd-coupon-card-sub">
+                            {useCashbackToggle ? `✓ Aplicando ${fmt(cashbackAplicado)} de desconto` : `Você tem ${fmt(cashbackSaldo)} de crédito nessa loja`}
+                          </div>
+                        </div>
+                        <div className="cd-coupon-card-radio" />
+                      </div>
+                    )}
+
                     <div style={{ marginTop: 14, padding: 12, background: '#F7F5F0', borderRadius: 10 }}>
                       <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', marginBottom: 8, fontWeight: 800 }}>Resumo do pedido</div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}><span>Subtotal</span><span>{fmt(cartTotal)}</span></div>
@@ -1440,6 +1478,9 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
                       )}
                       {discount > 0 && selectedCoupon && (
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4, color: 'var(--open)', fontWeight: 700 }}><span>Cupom {selectedCoupon.title}</span><span>− {fmt(discount)}</span></div>
+                      )}
+                      {cashbackAplicado > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4, color: 'var(--open)', fontWeight: 700 }}><span>🎁 Cashback</span><span>− {fmt(cashbackAplicado)}</span></div>
                       )}
                       <div className="cd-totalrow" style={{ marginTop: 6, paddingTop: 8 }}><span>Total</span><span>{fmt(orderTotal)}</span></div>
                     </div>

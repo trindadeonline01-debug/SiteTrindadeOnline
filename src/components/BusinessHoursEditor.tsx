@@ -23,7 +23,16 @@ type Range = { open_time: string | null; close_time: string | null }
 // Não existe conceito de "grupo" guardado no banco — é só como o editor
 // AGRUPA visualmente dias com open_time/close_time idênticos a cada render;
 // salvar continua gravando uma linha por dia em company_hours, like sempre.
-export default function BusinessHoursEditor({ hours, setHours, flexible, setFlexible }: { hours: HourRow[]; setHours: (h: HourRow[]) => void; flexible: boolean; setFlexible: (v: boolean) => void }) {
+//
+// out/2026 (2) — ganhou dois pontos de extensão pro Perfil do painel, que
+// reorganizou a tela em grade: "showFlexToggle=false" deixa o toggle "Não
+// tenho horário fixo" por conta do componente PAI (que o posiciona ao lado
+// do título do card, em vez de dentro do editor) — Admin/Anunciar não
+// passam essa prop e continuam vendo o toggle interno de sempre, sem
+// mudança nenhuma de comportamento. "extraTile" é um card extra (ex: o
+// toggle de "Entrega própria") que entra na MESMA grade compacta de
+// Domingo/Feriados — o componente não sabe o que é, só reserva o espaço.
+export default function BusinessHoursEditor({ hours, setHours, flexible, setFlexible, showFlexToggle = true, extraTile }: { hours: HourRow[]; setHours: (h: HourRow[]) => void; flexible: boolean; setFlexible: (v: boolean) => void; showFlexToggle?: boolean; extraTile?: React.ReactNode }) {
   function rowsFor(day: number) {
     return hours.map((h, i) => ({ ...h, _idx: i })).filter(h => h.day_of_week === day)
   }
@@ -130,15 +139,15 @@ export default function BusinessHoursEditor({ hours, setHours, flexible, setFlex
         {!closed && (
           <div className="bh-ranges">
             {rows.length === 0 && <div className="bh-empty">Sem horário definido</div>}
-            {rows.map(r => (
+            {rows.map((r, i) => (
               <div key={r._idx} className="bh-range">
                 <input type="time" value={r.open_time || ''} onChange={e => updateRange(r._idx, 'open_time', e.target.value)} />
-                <span>até</span>
+                <span className="bh-sep">até</span>
                 <input type="time" value={r.close_time || ''} onChange={e => updateRange(r._idx, 'close_time', e.target.value)} />
                 {rows.length > 1 && <button type="button" className="bh-range-rm" onClick={() => removeRange(r._idx)}>×</button>}
+                {i === rows.length - 1 && <button type="button" className="bh-add bh-add-inline" onClick={() => addRange(day)}>+ outro horário</button>}
               </div>
             ))}
-            <button type="button" className="bh-add" onClick={() => addRange(day)}>+ outro horário nesse dia</button>
           </div>
         )}
       </div>
@@ -156,21 +165,23 @@ export default function BusinessHoursEditor({ hours, setHours, flexible, setFlex
         .bh-flex-switch-knob { position: absolute; top: 2px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.2); transition: left .2s; }
         .bh-flex-note { font-size: 11px; color: #888; padding: 6px 10px; background: rgba(201,149,26,.1); border-radius: 8px; border-left: 3px solid var(--sign-dark); }
 
-        .bh-common { background: #fff; border: 1px solid #DDD5C4; border-radius: 12px; padding: 14px; }
+        .bh-common { background: #F7F5EF; border: 1px solid #DDD5C4; border-radius: 12px; padding: 14px; }
         .bh-common-title { font-size: 11px; font-weight: 700; color: #2A261F; margin-bottom: 10px; font-family: 'Archivo', sans-serif; }
         .bh-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
-        .bh-pill { min-width: 54px; height: 34px; padding: 0 8px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; font-family: 'Archivo', sans-serif; cursor: pointer; border: none; }
+        .bh-pill { min-width: 54px; height: 34px; padding: 0 8px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; font-family: 'Archivo', sans-serif; cursor: pointer; border: none; line-height: 1; }
         .bh-pill-on { background: #151210; color: #FFC531; }
-        .bh-pill-off { background: #fff; border: 1.5px solid #D7CFBE; color: #AEA68F; }
+        .bh-pill-off { background: #fff; border: 1.5px solid #C7BCA3; color: #6F6C67; }
         .bh-range { display: flex; align-items: center; gap: 6px; }
-        .bh-range input[type="time"] { border: 1.5px solid #B9AE97; border-radius: 8px; padding: 7px 9px; font-size: 12px; font-family: 'Archivo', sans-serif; outline: none; background: #F4F1E9; color: #222; }
+        .bh-range input[type="time"] { border: 1.5px solid #B9AE97; border-radius: 8px; padding: 7px 9px; font-size: 12px; font-family: 'Archivo', sans-serif; outline: none; background: #fff; color: #222; line-height: 1; }
         .bh-range input[type="time"]:focus { border-color: var(--sign-dark); }
-        .bh-range span { color: #8A8477; font-size: 12px; }
-        .bh-range-rm { background: #FEF0F0; color: #E24B4A; border: none; border-radius: 6px; width: 24px; height: 24px; cursor: pointer; font-size: 13px; flex-shrink: 0; }
+        .bh-sep { color: #8A8477; font-size: 12px; line-height: 1; }
+        .bh-range-rm { background: #FEF0F0; color: #E24B4A; border: none; border-radius: 6px; width: 24px; height: 24px; cursor: pointer; font-size: 13px; flex-shrink: 0; line-height: 1; }
         .bh-ranges { display: flex; flex-direction: column; gap: 6px; }
-        .bh-add { align-self: flex-start; background: none; border: none; color: var(--sign-dark); font-size: 11px; font-weight: 700; cursor: pointer; padding: 2px 0; font-family: 'Archivo', sans-serif; }
+        .bh-add { align-self: flex-start; background: none; border: none; color: var(--sign-dark); font-size: 11px; font-weight: 700; cursor: pointer; padding: 2px 0; font-family: 'Archivo', sans-serif; line-height: 1; }
+        .bh-add-inline { margin-left: 2px; align-self: center; }
         .bh-common-hint { font-size: 11.5px; color: #8A8477; font-style: italic; }
 
+        .bh-exceptions-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
         .bh-exc { background: #fff; border: 1px solid #DDD5C4; border-radius: 10px; padding: 10px 12px; }
         .bh-exc-hdr { display: flex; align-items: center; justify-content: space-between; }
         .bh-exc-label { font-size: 13px; font-weight: 700; color: #111; font-family: 'Archivo', sans-serif; }
@@ -179,15 +190,17 @@ export default function BusinessHoursEditor({ hours, setHours, flexible, setFlex
         .bh-empty { font-size: 11px; color: #AEA68F; font-style: italic; }
       `}</style>
 
-      <div className="bh-flex-toggle">
-        <div>
-          <div className="bh-flex-toggle-txt">Não tenho horário fixo</div>
-          <div className="bh-flex-toggle-sub">Ambulante, sob consulta, etc — dispensa a grade abaixo</div>
+      {showFlexToggle && (
+        <div className="bh-flex-toggle">
+          <div>
+            <div className="bh-flex-toggle-txt">Não tenho horário fixo</div>
+            <div className="bh-flex-toggle-sub">Ambulante, sob consulta, etc — dispensa a grade abaixo</div>
+          </div>
+          <div className="bh-flex-switch" style={{background: flexible ? '#0F8050' : '#D7CFBE'}} onClick={() => setFlexible(!flexible)}>
+            <div className="bh-flex-switch-knob" style={{left: flexible ? 22 : 2}} />
+          </div>
         </div>
-        <div className="bh-flex-switch" style={{background: flexible ? '#0F8050' : '#D7CFBE'}} onClick={() => setFlexible(!flexible)}>
-          <div className="bh-flex-switch-knob" style={{left: flexible ? 22 : 2}} />
-        </div>
-      </div>
+      )}
 
       {flexible ? (
         <div className="bh-flex-note">Sua empresa vai aparecer como "Horário flexível" e sempre conta como aberta em "Aberto Agora".</div>
@@ -207,23 +220,25 @@ export default function BusinessHoursEditor({ hours, setHours, flexible, setFlex
                 {commonRanges.map((r, i) => (
                   <div key={i} className="bh-range">
                     <input type="time" value={r.open_time || ''} onChange={e => updateCommonRange(i, 'open_time', e.target.value)} />
-                    <span>até</span>
+                    <span className="bh-sep">até</span>
                     <input type="time" value={r.close_time || ''} onChange={e => updateCommonRange(i, 'close_time', e.target.value)} />
                     {commonRanges.length > 1 && <button type="button" className="bh-range-rm" onClick={() => removeCommonRange(i)}>×</button>}
+                    {i === commonRanges.length - 1 && <button type="button" className="bh-add bh-add-inline" onClick={addCommonRange}>+ outro intervalo</button>}
                   </div>
                 ))}
-                <button type="button" className="bh-add" onClick={addCommonRange}>+ outro intervalo (ex: almoço e janta)</button>
               </div>
             ) : (
               <div className="bh-common-hint">Nenhum dia selecionado ainda — toque em um dia acima pra começar.</div>
             )}
           </div>
 
-          {exceptionDays.map(day => (
-            <DayRow key={day} day={day} label={DAYS_OF_WEEK.find(d => d.value === day)?.label || ''} />
-          ))}
-
-          <DayRow day={FERIADOS_DAY} label="Feriados" />
+          <div className="bh-exceptions-grid">
+            {exceptionDays.map(day => (
+              <DayRow key={day} day={day} label={DAYS_OF_WEEK.find(d => d.value === day)?.label || ''} />
+            ))}
+            <DayRow day={FERIADOS_DAY} label="Feriados" />
+            {extraTile}
+          </div>
         </>
       )}
     </div>

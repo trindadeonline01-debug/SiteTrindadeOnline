@@ -641,7 +641,16 @@ export default function PainelPage() {
         .field input:focus,.field textarea:focus,.field select:focus{border-color:var(--sign-dark);background:#fff;}
         .field textarea{resize:none;}
         .form-grid{display:grid;grid-template-columns:1fr;gap:14px;}
-        @media(min-width:768px){.form-grid{grid-template-columns:1fr 1fr;}}
+        @media(min-width:640px){.form-grid{grid-template-columns:1fr 1fr;}}
+        @media(min-width:980px){.form-grid{grid-template-columns:1fr 1fr 1fr;}}
+        .sec-hdr-flex{display:flex;align-items:center;gap:6px;}
+        .sec-flex-switch{width:38px;height:21px;border-radius:11px;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;}
+        .sec-flex-switch-knob{position:absolute;top:2px;width:17px;height:17px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:left .2s;}
+        .sec-flex-lbl{font-size:11px;font-weight:600;color:#6F6C67;font-family:'Archivo',sans-serif;}
+        .entrega-tile{background:#fff;border:1px solid #DDD5C4;border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;}
+        .entrega-tile-hdr{font-size:13px;font-weight:700;color:#111;font-family:'Archivo',sans-serif;}
+        .entrega-tile-row{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+        .entrega-tile-txt{font-size:12px;color:#6F6C67;font-family:'Archivo',sans-serif;}
         .church-row{display:grid;grid-template-columns:72px 1fr 1fr;gap:8px;align-items:center;padding:8px 10px;background:#1A1A1A;border:0.5px solid #222;border-radius:10px;margin-bottom:6px;}
         .church-day{font-size:12px;font-weight:600;color:#fff;}
         .church-period{display:flex;flex-direction:column;gap:3px;}
@@ -1392,6 +1401,13 @@ export default function PainelPage() {
           {tab === 'perfil' && (
             <div className="content">
               <div className="sec-card">
+                <div className="sec-hdr"><span className="sec-title">📸 FOTOS DA EMPRESA</span></div>
+                <div className="sec-body">
+                  {company?.id && <PhotoManager companyId={company.id} />}
+                </div>
+              </div>
+
+              <div className="sec-card">
                 <div className="sec-hdr"><span className="sec-title">DADOS DA EMPRESA</span></div>
                 <div className="sec-body">
                   <div className="form-grid">
@@ -1484,7 +1500,7 @@ export default function PainelPage() {
                       <label>CPF / CNPJ <span style={{fontSize:11,color:'var(--sign-dark)',fontWeight:400}}>* necessário para pagamento via Pix</span></label>
                       <input type="text" value={editCpfCnpj} onChange={e=>setEditCpfCnpj(e.target.value)} placeholder="000.000.000-00 ou 00.000.000/0001-00"/>
                     </div>
-                    <div className="field" style={{gridColumn:'1/-1'}}>
+                    <div className="field">
                       <label>Endereço</label>
                       <input type="text" value={editAddress} onChange={e=>setEditAddress(e.target.value)} placeholder="Rua, número, bairro"/>
                     </div>
@@ -1502,11 +1518,14 @@ export default function PainelPage() {
                       <label>Descrição</label>
                       <textarea rows={4} value={editDesc} onChange={e=>setEditDesc(e.target.value)} placeholder="Sobre sua empresa..."/>
                     </div>
-                    <div className="field" style={{gridColumn:'1/-1'}}>
-                      <label>📸 Fotos da empresa</label>
-                      {company?.id && <PhotoManager companyId={company.id} />}
-                    </div>
-                    <div className="field">
+                  </div>
+                </div>
+              </div>
+
+              <div className="sec-card">
+                <div className="sec-hdr"><span className="sec-title">TAGS</span></div>
+                <div className="sec-body">
+                    <div className="field" style={{marginBottom:0}}>
                       <label>Tags <span style={{fontSize:11,color:'#AAA',fontWeight:400}}>Adicione palavras-chave do seu negócio</span></label>
                       {editTags.length > 0 && (
                         <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:8}}>
@@ -1535,11 +1554,24 @@ export default function PainelPage() {
                       </div>
                       <div style={{fontSize:11,color:'#AAA',marginTop:4}}>{editTags.length} tags · {company?.plan === 'paid' ? '✓ Aparece nas buscas' : '⚠ Ative o plano pago para aparecer nas buscas'}</div>
                     </div>
-                  </div>
-                  <div className="field">
-                    <label>{company.category_id === IGREJAS_CATEGORY_ID ? '⛪ Horários de culto' : 'Horários de funcionamento'}</label>
+                </div>
+              </div>
+
+              <div className="sec-card">
+                <div className="sec-hdr">
+                  <span className="sec-title">{company.category_id === IGREJAS_CATEGORY_ID ? '⛪ HORÁRIOS DE CULTO' : 'HORÁRIOS DE FUNCIONAMENTO'}</span>
+                  {company.category_id !== IGREJAS_CATEGORY_ID && (
+                    <div className="sec-hdr-flex">
+                      <span className="sec-flex-lbl">Sem horário fixo</span>
+                      <div className="sec-flex-switch" style={{background: editFlexible ? '#0F8050' : '#D7CFBE'}} onClick={()=>setEditFlexible(f=>!f)}>
+                        <div className="sec-flex-switch-knob" style={{left: editFlexible ? 19 : 2}} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="sec-body">
                     {company.category_id === IGREJAS_CATEGORY_ID ? (
-                      <div style={{marginTop:8}}>
+                      <div>
                         <div style={{fontSize:11,color:'#888',marginBottom:10,padding:'6px 10px',background:'rgba(201,149,26,.1)',borderRadius:8,borderLeft:'3px solid var(--sign-dark)'}}>
                           Preencha os horários dos cultos. Deixe em branco os dias sem culto.
                         </div>
@@ -1558,27 +1590,25 @@ export default function PainelPage() {
                         ))}
                       </div>
                     ) : (
-                      <div style={{marginTop:8}}>
-                        <BusinessHoursEditor hours={editHours} setHours={setEditHours} flexible={editFlexible} setFlexible={setEditFlexible} />
-                      </div>
+                      <BusinessHoursEditor hours={editHours} setHours={setEditHours} flexible={editFlexible} setFlexible={setEditFlexible} showFlexToggle={false}
+                        extraTile={
+                          <div className="entrega-tile">
+                            <div className="entrega-tile-hdr">🛵 Entrega</div>
+                            <div className="entrega-tile-row">
+                              <div className="entrega-tile-txt">Entrega própria</div>
+                              <div onClick={()=>setEditDelivery(d=>!d)}
+                                style={{width:40,height:22,borderRadius:11,background:editDelivery?'#0F8050':'#D7CFBE',cursor:'pointer',position:'relative',transition:'background .2s',flexShrink:0}}>
+                                <div style={{position:'absolute',top:2,left:editDelivery?18:2,width:18,height:18,borderRadius:'50%',background:'#fff',boxShadow:'0 1px 4px rgba(0,0,0,.2)',transition:'left .2s'}}/>
+                              </div>
+                            </div>
+                          </div>
+                        }
+                      />
                     )}
-                  </div>
-                  <div className="field">
-                    <label>🛵 Entrega</label>
-                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',background:'#fff',border:'0.5px solid #E0DDD8',borderRadius:10,padding:'10px 14px',marginTop:8}}>
-                      <div>
-                        <div style={{fontSize:13,fontWeight:600,color:'#111',marginBottom:2}}>Fazemos entrega própria</div>
-                        <div style={{fontSize:11,color:'#AAA'}}>Aparece pros clientes quando ativado</div>
-                      </div>
-                      <div onClick={()=>setEditDelivery(d=>!d)}
-                        style={{width:44,height:24,borderRadius:12,background:editDelivery?'#0F8050':'#E0DDD8',cursor:'pointer',position:'relative',transition:'background .2s',flexShrink:0}}>
-                        <div style={{position:'absolute',top:2,left:editDelivery?22:2,width:20,height:20,borderRadius:'50%',background:'#fff',boxShadow:'0 1px 4px rgba(0,0,0,.2)',transition:'left .2s'}}/>
-                      </div>
-                    </div>
-                  </div>
-                  <button className="btn-primary" onClick={saveProfile} disabled={saving}>{saving?'Salvando...':'Salvar alterações'}</button>
                 </div>
               </div>
+
+              <button className="btn-primary" onClick={saveProfile} disabled={saving}>{saving?'Salvando...':'Salvar alterações'}</button>
             </div>
           )}
 

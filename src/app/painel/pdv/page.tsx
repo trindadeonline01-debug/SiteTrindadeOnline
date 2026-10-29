@@ -324,17 +324,33 @@ export default function PdvPage() {
     <div className="pdv-wrap">
       <style>{`
         .pdv-wrap{ min-height:100vh;background:#E9EAE5;font-family:'Archivo',sans-serif;display:flex;flex-direction:column; }
-        .pdv-top{ background:#151210;color:#fff;padding:12px 16px;display:flex;align-items:center;gap:12px;flex:none; }
-        .pdv-back{ width:34px;height:34px;border-radius:9px;background:#232019;border:1px solid #3A352A;color:#fff;font-size:16px;cursor:pointer; }
-        .pdv-title{ font-family:'Anton',sans-serif;font-size:16px;letter-spacing:.3px;flex:1; }
-        .pdv-title small{ display:block;font-family:'Archivo',sans-serif;font-size:9.5px;color:#FFC531;font-weight:700;letter-spacing:.07em;text-transform:uppercase; }
-        .pdv-printer{ display:flex;align-items:center;gap:6px;font-size:10.5px;font-weight:700;padding:5px 11px;border-radius:20px; }
-        .pdv-printer.ok{ color:#4ADE80;background:rgba(15,138,87,.18); }
-        .pdv-printer.off{ color:#F87171;background:rgba(248,113,113,.18); }
-        .pdv-vendas-btn{ display:flex;align-items:center;gap:7px;background:#232019;border:1px solid #3A352A;color:#fff;font-size:12px;font-weight:700;padding:8px 13px;border-radius:9px;cursor:pointer;font-family:inherit; }
+        .pdv-top{ background:#151210;color:#fff;padding:13px 20px;display:flex;align-items:center;gap:16px;flex:none;border-bottom:1px solid #2A2319; }
+        .pdv-back{ width:36px;height:36px;border-radius:10px;background:#232019;border:1px solid #3A352A;color:#fff;font-size:17px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center; }
+        .pdv-back:hover{ background:#2C271E; }
+        .pdv-title-block{ flex:1;min-width:0; }
+        .pdv-title-eyebrow{ font-size:10px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#FFC531;margin-bottom:2px; }
+        .pdv-title-name{ font-family:'Anton',sans-serif;font-size:18px;letter-spacing:.3px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+        .pdv-top-right{ display:flex;align-items:center;gap:14px;flex-shrink:0; }
+        .pdv-top-divider{ width:1px;height:22px;background:#2F2920; }
+        .pdv-printer{ display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;padding:7px 13px;border-radius:20px;white-space:nowrap; }
+        .pdv-printer.ok{ color:#4ADE80;background:rgba(15,138,87,.16); }
+        .pdv-printer.off{ color:#F87171;background:rgba(248,113,113,.16); }
+        .pdv-vendas-btn{ display:flex;align-items:center;gap:8px;background:#232019;border:1px solid #3A352A;color:#fff;font-size:12.5px;font-weight:700;padding:9px 14px;border-radius:10px;cursor:pointer;font-family:inherit;white-space:nowrap; }
+        .pdv-vendas-btn:hover{ background:#2C271E; }
 
-        .pdv-shortbar{ background:#1C1812;color:#C9BFA8;display:flex;gap:16px;flex-wrap:wrap;padding:6px 16px;font-size:10.5px;font-weight:600;flex:none; }
-        .pdv-shortbar b{ color:#FFC531;font-weight:800;margin-right:4px; }
+        .pdv-kbd{ font-size:9.5px;font-weight:800;background:rgba(255,197,49,.15);color:#FFC531;padding:2px 6px;border-radius:5px;letter-spacing:.02em;flex-shrink:0; }
+        .pdv-vendas-btn .pdv-kbd{ background:rgba(255,255,255,.12);color:#C9BFA8; }
+
+        .pdv-shortbar{ background:#1C1812;display:flex;align-items:center;gap:7px;padding:9px 20px;flex:none;flex-wrap:wrap;border-bottom:1px solid #2A2319; }
+        .pdv-short-chip{ display:flex;align-items:center;gap:7px;background:#272118;border:1px solid #352F23;color:#D8D0BE;font-size:11.5px;font-weight:700;padding:6px 11px;border-radius:9px;cursor:pointer;font-family:inherit; }
+        .pdv-short-chip:hover{ border-color:#5A5036; }
+        .pdv-short-chip:disabled{ opacity:.4;cursor:default; }
+        .pdv-short-chip:disabled:hover{ border-color:#352F23; }
+        .pdv-short-chip.on{ background:#0F8A57;border-color:#0F8A57;color:#fff; }
+        .pdv-short-chip.on .pdv-kbd{ background:rgba(255,255,255,.22);color:#fff; }
+        .pdv-short-chip.primary{ background:#A87200;border-color:#A87200;color:#fff; }
+        .pdv-short-chip.primary .pdv-kbd{ background:rgba(255,255,255,.22);color:#fff; }
+        .pdv-short-sep{ width:1px;height:18px;background:#352F23;margin:0 4px;flex-shrink:0; }
 
         .pdv-main{ flex:1;display:grid;grid-template-columns:1fr 340px;min-height:0; }
         .pdv-left{ padding:12px;overflow-y:auto; }
@@ -448,17 +464,25 @@ export default function PdvPage() {
 
       <div className="pdv-top">
         <button className="pdv-back" onClick={() => window.location.href = '/painel/pedidos'}>‹</button>
-        <div className="pdv-title"><small>PDV · Balcão</small>{companyName}</div>
-        <button className="pdv-vendas-btn" onClick={abrirVendas}>🧾 Vendas de hoje <span className="pdv-finish-key">F7</span></button>
-        <div className={`pdv-printer ${printerName ? 'ok' : 'off'}`}>{printerName ? '● Impressora conectada' : '○ Sem impressora configurada'}</div>
+        <div className="pdv-title-block">
+          <div className="pdv-title-eyebrow">PDV · Balcão</div>
+          <div className="pdv-title-name">{companyName}</div>
+        </div>
+        <div className="pdv-top-right">
+          <div className={`pdv-printer ${printerName ? 'ok' : 'off'}`}>{printerName ? '● Impressora conectada' : '○ Sem impressora'}</div>
+          <div className="pdv-top-divider" />
+          <button className="pdv-vendas-btn" onClick={abrirVendas}>🧾 Vendas de hoje <span className="pdv-kbd">F7</span></button>
+        </div>
       </div>
       <div className="pdv-shortbar">
         {payOptions.slice(0, PAY_SHORTCUT_KEYS.length).map((k, i) => (
-          <span key={k}><b>{PAY_SHORTCUT_KEYS[i]}</b> {payLabel(k)}</span>
+          <button key={k} className={`pdv-short-chip ${payMethod === k ? 'on' : ''}`} onClick={() => selectPayMethod(k)}>
+            <span className="pdv-kbd">{PAY_SHORTCUT_KEYS[i]}</span>{payLabel(k)}
+          </button>
         ))}
-        <span><b>F8</b> Limpar</span>
-        <span><b>F9</b> Finalizar</span>
-        <span><b>F7</b> Vendas de hoje</span>
+        <div className="pdv-short-sep" />
+        <button className="pdv-short-chip" onClick={clearCart} disabled={cart.length === 0}><span className="pdv-kbd">F8</span>Limpar</button>
+        <button className="pdv-short-chip primary" onClick={onFinishClick} disabled={cart.length === 0 || finalizando}><span className="pdv-kbd">F9</span>Finalizar</button>
       </div>
 
       <div className="pdv-main">

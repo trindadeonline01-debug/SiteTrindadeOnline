@@ -28,3 +28,21 @@ export function normalizeBairro(nome: string): string {
     .trim()
     .toLowerCase()
 }
+
+// Acha o bairro mais espec\u00edfico (nome mais longo primeiro, pra "Boa Vista"
+// n\u00e3o perder pra um bairro cujo nome seja substring de outro) dentro de um
+// endere\u00e7o em texto livre \u2014 vive aqui (n\u00e3o em entregaPricing.ts) de
+// prop\u00f3sito: este arquivo \u00e9 s\u00f3 dado + fun\u00e7\u00e3o pura, seguro de importar em
+// componente de cliente. entregaPricing.ts cria um client Supabase com a
+// service role key no topo do m\u00f3dulo \u2014 importar algo de l\u00e1 num componente
+// 'use client' carrega esse client no navegador e quebra a p\u00e1gina inteira
+// (achado real, out/2026: Vis\u00e3o Geral trava com "Aw, Snap" assim que
+// VendasDashboard importava matchBairroInAddress de entregaPricing.ts).
+export function matchBairroInAddress(address: string): string | null {
+  const norm = normalizeBairro(address)
+  const ordenados = [...BAIRROS_SAO_GONCALO].sort((a, b) => b.length - a.length)
+  for (const bairro of ordenados) {
+    if (norm.includes(normalizeBairro(bairro))) return bairro
+  }
+  return null
+}

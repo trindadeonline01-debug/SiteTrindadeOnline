@@ -1,5 +1,11 @@
 import { createClient } from '@supabase/supabase-js'
-import { BAIRROS_SAO_GONCALO, normalizeBairro } from '@/lib/bairrosSaoGoncalo'
+import { matchBairroInAddress } from '@/lib/bairrosSaoGoncalo'
+
+// Reexportado daqui pra não quebrar quem já importava matchBairroInAddress
+// de entregaPricing.ts (vários pontos de código server-side) — a função em
+// si mora em bairrosSaoGoncalo.ts agora, que é seguro de importar também em
+// componente de cliente (este arquivo não é, por causa do client abaixo).
+export { matchBairroInAddress }
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -37,20 +43,6 @@ export async function getEntregaPricing(): Promise<EntregaPricing> {
     // pro motoboy (Ricardo, set/2026 — motoboy recebia 100% do fee antes).
     motoboy_corte_plataforma: Number(data?.motoboy_corte_plataforma ?? 1),
   }
-}
-
-// Acha o bairro mais específico (nome mais longo primeiro, pra "Boa Vista"
-// não perder pra um bairro cujo nome seja substring de outro) dentro de um
-// endereço em texto livre — o dropoff da entrega da plataforma não vem
-// estruturado em campos, é só uma string digitada pelo lojista ou montada
-// no checkout do cliente.
-export function matchBairroInAddress(address: string): string | null {
-  const norm = normalizeBairro(address)
-  const ordenados = [...BAIRROS_SAO_GONCALO].sort((a, b) => b.length - a.length)
-  for (const bairro of ordenados) {
-    if (norm.includes(normalizeBairro(bairro))) return bairro
-  }
-  return null
 }
 
 async function geocodeAndMatrixPlataforma(

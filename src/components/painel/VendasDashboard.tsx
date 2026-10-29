@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import PeriodFilterBar from '@/components/admin/PeriodFilterBar'
 import { PeriodSel, periodRange, periodLabel, previousPeriodRange } from '@/lib/periodFilter'
-import { matchBairroInAddress } from '@/lib/entregaPricing'
+import { matchBairroInAddress } from '@/lib/bairrosSaoGoncalo'
 
 type Status = 'recebido' | 'em_preparo' | 'pronto' | 'saiu_entrega' | 'entregue' | 'cancelado'
 type Pedido = {

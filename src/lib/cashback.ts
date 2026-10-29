@@ -1,12 +1,10 @@
 import { SupabaseClient } from '@supabase/supabase-js'
 import { normalizePhone } from '@/lib/phone'
 
-// Saldo sem uso (sem crédito novo) por esse tanto de dias zera sozinho via
-// cron (/api/cron/cashback-expirar) — evita passivo contábil crescendo pra
-// sempre. Não é configurável por loja de propósito (Ricardo só confirmou
-// "expira", não pediu controle fino por loja) — fácil de promover a coluna
-// de companies depois, se algum dia precisar.
-export const CASHBACK_EXPIRA_DIAS = 90
+// Valor padrão só pro campo do painel quando a loja ainda não configurou
+// nada — o prazo real mora em `companies.cashback_expira_dias`, por loja,
+// lido direto pela função expirar_cashback() no Postgres (não aqui).
+export const CASHBACK_EXPIRA_DIAS_DEFAULT = 90
 
 // Teto no % que a loja pode configurar sozinha no painel — evita erro de
 // digitação (ex: "30" em vez de "3") virando prejuízo real sem ninguém notar.

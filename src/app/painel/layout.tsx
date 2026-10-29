@@ -17,7 +17,7 @@ type SwitcherCompany = { id: string; name: string; slug?: string }
 // Rotas que são "modos" de tela cheia (ESPECIFICACAO.md §4.4 — "modo não é
 // página de menu") ou a tela "Mais" do mobile: não levam a sidebar/topbar
 // do painel, cada uma cuida do próprio layout.
-const BARE_ROUTES = ['/painel/mais', '/painel/cozinha']
+const BARE_ROUTES = ['/painel/mais', '/painel/cozinha', '/painel/pdv']
 
 const TAB_TO_KEY_PAINEL: Record<string, EmpresaNavKey> = {
   destaques: 'destaques', banners: 'banners', avaliacoes: 'avaliacoes', perfil: 'perfil',
@@ -36,6 +36,7 @@ function deriveActiveKey(pathname: string, tab: string | null): EmpresaNavKey {
   if (pathname === '/painel') return (tab && TAB_TO_KEY_PAINEL[tab]) || 'dashboard'
   if (pathname === '/painel/pessoal') return (tab && TAB_TO_KEY_PESSOAL[tab]) || 'pessoal-perfil'
   if (pathname.startsWith('/painel/pedidos')) return 'pedidos'
+  if (pathname.startsWith('/painel/pdv')) return 'pdv'
   if (pathname.startsWith('/painel/interesses')) return 'interesses'
   if (pathname.startsWith('/painel/mensagens')) return 'mensagens'
   if (pathname.startsWith('/painel/catalogo')) return 'catalogo'

@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { npGroupContribution, type NpProduto, type NpCartLine } from '@/lib/produtoCart'
+import { npGroupContribution, type NpProduto, type NpCartLine, PESO_REGEX, pesoDigitsFromKg, pesoNum, pesoDisplay } from '@/lib/produtoCart'
 
 type DeliveryType = 'entrega' | 'retirada' | 'balcao'
 type PedidoParaEditar = {
@@ -33,22 +33,7 @@ type PedidoParaEditar = {
 // (achado real: cada tecla resetava o campo no meio da digitação e o zero
 // da frente empacava, ex: "01,2") — guardar só dígitos crus evita isso.
 type EditItem = NpCartLine & { pesoModo: boolean; pesoKg: string }
-const PESO_REGEX = /\bkg\b/i
 
-function pesoDigitsFromKg(n: number): string {
-  return String(Math.max(0, Math.round(n * 1000)))
-}
-function pesoNum(digits: string): number {
-  const clean = digits.replace(/\D/g, '')
-  return clean ? parseInt(clean, 10) / 1000 : 0
-}
-function pesoDisplay(digits: string): string {
-  const clean = digits.replace(/\D/g, '')
-  if (!clean) return ''
-  const padded = clean.padStart(4, '0')
-  const whole = padded.slice(0, -3).replace(/^0+(?=\d)/, '')
-  return `${whole},${padded.slice(-3)}`
-}
 function lineTotal(l: EditItem): number {
   return l.pesoModo ? l.unitPrice * pesoNum(l.pesoKg) : l.unitPrice * l.qty
 }

@@ -8,7 +8,7 @@ import Link from 'next/link'
 // sidebar interna de /painel, que eram dois sistemas de menu separados.
 export type EmpresaNavKey =
   | 'dashboard' | 'perfil' | 'avaliacoes' | 'destaques' | 'banners'
-  | 'compartilhar' | 'catalogo' | 'pedidos' | 'cozinha' | 'entrega' | 'motoboys' | 'mensagens' | 'clientes' | 'atendimento' | 'radar'
+  | 'compartilhar' | 'catalogo' | 'pedidos' | 'pdv' | 'cozinha' | 'entrega' | 'motoboys' | 'mensagens' | 'clientes' | 'atendimento' | 'radar'
   | 'interesses' | 'cupons' | 'promocoes' | 'plano' | 'pagamentos' | 'relatorios'
   | 'pessoal-perfil' | 'pessoal-favoritos' | 'pessoal-avaliacoes' | 'pessoal-pedidos' | 'pessoal-anuncios' | 'pessoal-cupons'
 
@@ -16,7 +16,7 @@ type Company = { id: string; name: string; slug?: string }
 
 const TITLES: Record<EmpresaNavKey, string> = {
   dashboard: 'Visão geral', perfil: 'Perfil e fotos', avaliacoes: 'Avaliações', destaques: 'Destaques',
-  banners: 'Banners', compartilhar: 'Configurar cardápio', catalogo: 'Cardápio', pedidos: 'Pedidos',
+  banners: 'Banners', compartilhar: 'Configurar cardápio', catalogo: 'Cardápio', pedidos: 'Pedidos', pdv: 'PDV',
   cozinha: 'Cozinha', entrega: 'Entrega', motoboys: 'Meus motoboys', mensagens: 'Mensagens', clientes: 'Clientes', atendimento: 'Painel de Atendimento', radar: 'Radar de clientes', interesses: 'Interesses', cupons: 'Cupons', promocoes: 'Promoções', plano: 'Plano', pagamentos: 'Pagamentos', relatorios: 'Relatórios',
   'pessoal-perfil': 'Meu perfil', 'pessoal-favoritos': 'Favoritos', 'pessoal-avaliacoes': 'Minhas avaliações',
   'pessoal-pedidos': 'Meus pedidos', 'pessoal-anuncios': 'Meus anúncios', 'pessoal-cupons': 'Meus cupons',
@@ -255,6 +255,7 @@ export default function EmpresaShell({
                   economiza pixel e perde venda. */}
               <div className="es-group-lbl">Todo dia</div>
               <NavItem href="/painel/pedidos" active={active === 'pedidos'} locked={!lojaDigitalEnabled} badge={pedidosBadge} adminEmpresaId={adminEmpresaId}>🧾 Pedidos</NavItem>
+              <NavItem href="/painel/pdv" active={active === 'pdv'} locked={!lojaDigitalEnabled} adminEmpresaId={adminEmpresaId}>🖥️ PDV</NavItem>
               <NavItem href="/painel/interesses" active={active === 'interesses'} locked={!lojaDigitalEnabled} adminEmpresaId={adminEmpresaId}>🔔 Interesses</NavItem>
               <NavItem href="/painel/mensagens" active={active === 'mensagens'} locked={!crmEnabled} badge={mensagensBadge} adminEmpresaId={adminEmpresaId}>💬 Mensagens</NavItem>
               <NavItem href="/atendimento" active={false} locked={!crmEnabled} adminEmpresaId={adminEmpresaId}>🎧 Modo Atendimento</NavItem>

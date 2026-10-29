@@ -32,6 +32,7 @@ export const PAINEL_NAV_GROUPS: PainelNavGroup[] = [
       { href: '/painel/catalogo', icon: '📋', label: 'Cardápio', lockKey: 'loja' },
       { href: '/painel/compartilhar', icon: '⚙️', label: 'Configurar cardápio', lockKey: 'loja' },
       { href: '/painel/pedidos', icon: '🧾', label: 'Pedidos', lockKey: 'loja' },
+      { href: '/painel/pdv', icon: '🖥️', label: 'PDV', lockKey: 'loja' },
       { href: '/painel/interesses', icon: '🔔', label: 'Interesses', lockKey: 'loja' },
       { href: '/painel/cozinha', icon: '🍳', label: 'Cozinha', lockKey: 'loja' },
       { href: '/painel/relatorios', icon: '📈', label: 'Relatórios', lockKey: 'loja' },

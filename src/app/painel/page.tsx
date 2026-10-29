@@ -9,6 +9,7 @@ import { IGREJAS_CATEGORY_ID, DIAS_SEMANA, HourRow, isOpenNow } from '@/lib/busi
 import { moduleActive } from '@/lib/modules'
 import type { EmpresaNavKey } from '@/components/EmpresaShell'
 import { usePainelShell } from '@/contexts/PainelShellContext'
+import VendasDashboard from '@/components/painel/VendasDashboard'
 
 type Company = {
   id: string; name: string; slug?: string; status: string; plan: string
@@ -1177,12 +1178,21 @@ export default function PainelPage() {
                   </div>
                 )
               })()}
-              <div className="stat-grid">
-                <div className="stat-card"><div className="stat-num" style={{color:'#185FA5'}}>{company.views_count||0}</div><div className="stat-lbl">Visualizações</div></div>
-                <div className="stat-card"><div className="stat-num" style={{color:'#25D366'}}>{company.whatsapp_clicks||0}</div><div className="stat-lbl">Cliques WhatsApp</div></div>
-                <div className="stat-card"><div className="stat-num" style={{color:'var(--sign-dark)'}}>{company.link_clicks||0}</div><div className="stat-lbl">Cliques no link</div></div>
-                <div className="stat-card"><div className="stat-num" style={{color:'var(--sign-dark)'}}>{company.avg_rating>0?`${company.avg_rating}★`:'—'}</div><div className="stat-lbl">Nota média</div><div className="stat-sub">{company.total_reviews} avaliações</div></div>
-              </div>
+              {moduleActive(company.loja_digital_enabled, company.trial_modules_until) ? (
+                // Dashboard de vendas de verdade (pedidos, faturamento, canal, bairro)
+                // — só existe pra quem tem cardápio digital ligado (ou em teste, ver
+                // moduleActive), porque é dali que vem todo o dado (loja_pedidos).
+                // Quem não tem o módulo continua vendo só os números de engajamento
+                // do perfil, abaixo.
+                <VendasDashboard company={company} />
+              ) : (
+                <div className="stat-grid">
+                  <div className="stat-card"><div className="stat-num" style={{color:'#185FA5'}}>{company.views_count||0}</div><div className="stat-lbl">Visualizações</div></div>
+                  <div className="stat-card"><div className="stat-num" style={{color:'#25D366'}}>{company.whatsapp_clicks||0}</div><div className="stat-lbl">Cliques WhatsApp</div></div>
+                  <div className="stat-card"><div className="stat-num" style={{color:'var(--sign-dark)'}}>{company.link_clicks||0}</div><div className="stat-lbl">Cliques no link</div></div>
+                  <div className="stat-card"><div className="stat-num" style={{color:'var(--sign-dark)'}}>{company.avg_rating>0?`${company.avg_rating}★`:'—'}</div><div className="stat-lbl">Nota média</div><div className="stat-sub">{company.total_reviews} avaliações</div></div>
+                </div>
+              )}
               {(() => {
                 const now = new Date()
                 const cuponsAtivos = myCoupons.filter((c:any) => c.active && new Date(c.expires_at) > now).length

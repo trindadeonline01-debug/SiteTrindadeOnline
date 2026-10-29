@@ -181,7 +181,7 @@ export default function WhatsappFunilPage() {
         .wf-empty{ text-align:center;color:var(--muted);font-size:12.5px;padding:40px 0; }
       `}</style>
 
-      <a href="/painel/relatorios" className="wf-back">← Voltar pra Visão Geral</a>
+      <a href="/painel" className="wf-back">← Voltar pra Visão Geral</a>
       <div className="wf-title">💬 Conversão de WhatsApp</div>
 
       <div style={{ marginBottom: 16 }}>

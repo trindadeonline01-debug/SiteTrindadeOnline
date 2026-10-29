@@ -46,7 +46,11 @@ function deriveActiveKey(pathname: string, tab: string | null): EmpresaNavKey {
   if (pathname.startsWith('/painel/clientes')) return 'clientes'
   if (pathname.startsWith('/painel/atendimento')) return 'atendimento'
   if (pathname.startsWith('/painel/radar')) return 'radar'
-  if (pathname.startsWith('/painel/relatorios')) return 'relatorios'
+  // Relatórios virou parte da Visão Geral (dashboard de vendas) — a rota
+  // antiga (/painel/relatorios) e a sub-página de WhatsApp continuam
+  // existindo (ver /painel/relatorios/page.tsx e .../whatsapp), mas a
+  // sidebar destaca "Visão geral", não um item próprio.
+  if (pathname.startsWith('/painel/relatorios')) return 'dashboard'
   if (pathname.startsWith('/painel/pagamentos')) return 'pagamentos'
   return 'dashboard'
 }

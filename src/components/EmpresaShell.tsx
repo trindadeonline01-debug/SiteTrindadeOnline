@@ -290,7 +290,6 @@ export default function EmpresaShell({
               <NavItem href="/painel?tab=cupons" active={active === 'cupons'} adminEmpresaId={adminEmpresaId}>🎟️ Cupons</NavItem>
               <NavItem href="/painel?tab=destaques" active={active === 'destaques'} adminEmpresaId={adminEmpresaId}>🌟 Destaques</NavItem>
               <NavItem href="/painel?tab=banners" active={active === 'banners'} adminEmpresaId={adminEmpresaId}>🖼️ Banners</NavItem>
-              <NavItem href="/painel/relatorios" active={active === 'relatorios'} locked={!lojaDigitalEnabled} adminEmpresaId={adminEmpresaId}>📈 Relatórios</NavItem>
 
               <div className="es-group-lbl">Conta</div>
               <NavItem href="/painel?tab=plano" active={active === 'plano'} adminEmpresaId={adminEmpresaId}>💳 Plano e pagamento</NavItem>

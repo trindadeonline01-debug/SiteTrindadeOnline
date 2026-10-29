@@ -144,7 +144,6 @@ export default function PainelPage() {
   const [editDelivery, setEditDelivery]       = useState(false)
   const [editFlexible, setEditFlexible]       = useState(false)
   const [churchHours, setChurchHours]         = useState<{day:string;manha:string;noite:string}[]>(DIAS_SEMANA.map(day=>({day,manha:'',noite:''})))
-  const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (!company?.id) return
@@ -482,29 +481,6 @@ export default function PainelPage() {
     setSaving(false)
   }
 
-  async function addPhoto(e: React.ChangeEvent<HTMLInputElement>) {
-    if (!company || !e.target.files?.[0]) return
-    const file = e.target.files[0]
-    const ext = file.name.split('.').pop()
-    const order = (company.photos?.length || 0)
-    const path = `${company.id}/${order}-${Date.now()}.${ext}`
-    const compressed = await compressImage(file)
-    const { data: upload } = await supabase.storage.from('company-photos').upload(path, compressed, {upsert:true})
-    if (upload) {
-      const { data: url } = supabase.storage.from('company-photos').getPublicUrl(path)
-      await supabase.from('company_photos').insert({company_id:company.id, url:url.publicUrl, order})
-      showToast('Foto adicionada!')
-      loadData(company.id)
-    }
-  }
-
-  async function removePhoto(photoId: string) {
-    if (!confirm('Remover essa foto?') || !company) return
-    await supabase.from('company_photos').delete().eq('id', photoId)
-    showToast('Foto removida.')
-    loadData(company.id)
-  }
-
   async function sendReply(reviewId: string) {
     if (!replyText.trim() || !company) return
     await supabase.from('review_responses').insert({review_id:reviewId, company_id:company.id, text:replyText})
@@ -599,7 +575,6 @@ export default function PainelPage() {
   if (!company) return null
 
   const activeHighlights = highlights.filter(h=>h.status==='active')
-  const photos = company.photos?.sort((a,b)=>a.order-b.order) || []
   const pendingReplies = reviews.filter(r=>!r.response).length
 
 
@@ -626,8 +601,8 @@ export default function PainelPage() {
         .stat-lbl{font-size:11px;color:#AAA;}
         .stat-sub{font-size:10px;color:#AAA;margin-top:4px;}
 
-        .sec-card{background:#fff;border:0.5px solid #EDE8E0;border-radius:14px;margin-bottom:16px;overflow:hidden;}
-        .sec-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:0.5px solid #F0EDE8;}
+        .sec-card{background:#fff;border:1px solid #DDD5C4;border-radius:14px;margin-bottom:16px;overflow:hidden;}
+        .sec-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #EFEAE0;}
         .sec-title{font-family:'Archivo',sans-serif;font-weight:700;font-size:11px;color:#888;letter-spacing:.8px;text-transform:uppercase;}
         .sec-body{padding:16px 18px;}
         .section-label{font-family:'Archivo',sans-serif;font-weight:700;font-size:11px;color:#888;letter-spacing:.8px;text-transform:uppercase;margin:20px 0 12px;}
@@ -660,17 +635,9 @@ export default function PainelPage() {
         .reply-input{width:100%;border:none;padding:10px 12px;font-size:12px;font-family:'Archivo',sans-serif;outline:none;resize:none;color:#333;}
         .reply-send{width:100%;padding:9px;background:var(--sign);color:var(--ink);border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:'Archivo',sans-serif;}
 
-        .photos-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:12px;}
-        @media(max-width:600px){.photos-grid{grid-template-columns:repeat(3,1fr);}}
-        .photo-item{height:100px;border-radius:10px;overflow:hidden;position:relative;border:0.5px solid #E0DDD8;}
-        .photo-item img{width:100%;height:100%;object-fit:cover;}
-        .photo-rm{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;border:none;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
-        .photo-capa{position:absolute;bottom:4px;left:4px;background:var(--sign-dark);color:#fff;font-size:8px;font-weight:700;padding:1px 6px;border-radius:5px;}
-        .photo-add{height:100px;border:2px dashed var(--sign-dark);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;background:#FEF3E2;color:var(--sign-dark);font-size:12px;font-weight:600;}
-
         .field{margin-bottom:14px;}
-        .field label{display:block;font-size:12px;font-weight:600;color:#444;margin-bottom:6px;}
-        .field input,.field textarea,.field select{width:100%;padding:11px 13px;border:1.5px solid #E0DDD8;border-radius:11px;font-size:13px;font-family:'Archivo',sans-serif;color:#222;background:#FAFAF8;outline:none;transition:border-color .15s;}
+        .field label{display:block;font-size:12px;font-weight:700;color:#2A261F;margin-bottom:6px;}
+        .field input,.field textarea,.field select{width:100%;padding:11px 13px;border:1.5px solid #B9AE97;border-radius:11px;font-size:13px;font-family:'Archivo',sans-serif;color:#222;background:#F4F1E9;outline:none;transition:border-color .15s;}
         .field input:focus,.field textarea:focus,.field select:focus{border-color:var(--sign-dark);background:#fff;}
         .field textarea{resize:none;}
         .form-grid{display:grid;grid-template-columns:1fr;gap:14px;}
@@ -1424,22 +1391,6 @@ export default function PainelPage() {
           {/* PERFIL */}
           {tab === 'perfil' && (
             <div className="content">
-              <div className="sec-card">
-                <div className="sec-hdr"><span className="sec-title">FOTOS ({photos.length}/5)</span></div>
-                <div className="sec-body">
-                  <div className="photos-grid">
-                    {photos.map((p,i) => (
-                      <div key={p.id} className="photo-item">
-                        <Image unoptimized src={p.url} alt={`foto ${i+1}`} fill sizes="150px" style={{objectFit:'cover'}}/>
-                        <button className="photo-rm" onClick={()=>removePhoto(p.id)}>✕</button>
-                        {i===0 && <div className="photo-capa">CAPA</div>}
-                      </div>
-                    ))}
-                    {photos.length < 5 && <div className="photo-add" onClick={()=>fileRef.current?.click()}><span style={{fontSize:28}}>📷</span><span>Adicionar</span></div>}
-                  </div>
-                  <input ref={fileRef} type="file" accept="image/*" style={{display:'none'}} onChange={addPhoto}/>
-                </div>
-              </div>
               <div className="sec-card">
                 <div className="sec-hdr"><span className="sec-title">DADOS DA EMPRESA</span></div>
                 <div className="sec-body">

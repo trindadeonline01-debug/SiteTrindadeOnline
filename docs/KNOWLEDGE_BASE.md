@@ -739,6 +739,18 @@ Ricardo relatou (áudio pra um possível sócio) que a impressão automática do
 - **Volume real conferido (30 dias)**: Peixaria Trindade 32 pedidos, Mineroca 15, Calçada do Peixe 8, JBurguer 3 — confirma serem mesmo as 4 de maior uso, como o Ricardo descreveu.
 - **Ainda sem telemetria de verdade**: continua não existindo nenhum log de sucesso/falha de impressão (QZ Tray fechado, impressora sem papel, etc.) — essa correção fecha a causa mais provável encontrada por leitura de código, mas se a intermitência persistir depois dela, o próximo passo é instrumentar um log mínimo (sucesso/falha por tentativa) pra parar de diagnosticar às cegas.
 
+### Painel — Perfil e Fotos: contraste, foto duplicada e horário em grupo (out/2026)
+Ricardo mandou prints do admin em "Modo admin — vendo como [empresa]" apontando contraste baixo e desperdício de espaço. Mockup (Antes/Depois no Artifact) aprovado antes de codar — pedido explícito dele dessa vez, não é o fluxo padrão.
+- **Contraste**: `.field input/textarea/select` e `.sec-card` (CSS compartilhado de `/painel/page.tsx`) tinham borda/fundo quase brancos empilhados (card `#fff` com borda `#EDE8E0`, campo `#FAFAF8` com borda `#E0DDD8`, tudo em cima do fundo `--concrete`). Escurecido pra borda `#B9AE97`/`#DDD5C4` e fundo do campo `#F4F1E9` — só na tela de Perfil (`.field`/`.sec-card` do painel lojista), não mexido nas outras abas (Planos/Cupons/Banners usam os mesmos tons low-contrast em `style={{}}` inline, espalhados — fora do escopo pedido, mas é o mesmo padrão se um dia quiser estender).
+- **Foto duplicada — achado real, não só estética**: a tela tinha DOIS uploads de foto ("FOTOS (1/5)", grid próprio) e "📸 Fotos da empresa" (`<PhotoManager/>`, limite 10) editando a MESMA tabela `company_photos` por dois caminhos de código diferentes. Removida a seção "FOTOS (1/5)" inteira (`addPhoto`/`removePhoto`/`fileRef`/`photos` derivado, tudo órfão) — só `PhotoManager` ficou, é o mais completo (arrastar pra reordenar, indicador de capa).
+- **Horários — reescrito `src/components/BusinessHoursEditor.tsx`**: antes, 7-8 cards cheios empilhados (um por dia, repetindo "+ Aplicar esse horário a todos os dias" em cada um). Agora os dias da semana (exceto Feriados) viram "pills" horizontais — um **grupo comum**: os dias com o MESMO horário entram juntos num campo de horário só, editado uma vez só pra todos. Clicar numa pill tira/põe aquele dia do grupo comum. Não existe "grupo" guardado no banco — é puramente visual: a cada render, o editor agrupa os dias por assinatura (open_time/close_time idênticos) em `company_hours`; salvar continua gravando uma linha por dia, exatamente como sempre foi, zero migração.
+  - Dia que sai do grupo comum vira **fechado por padrão** (não "em branco") — é o caso real mais comum (ex: Domingo) — com o checkbox "Fechado" ali do lado pra desmarcar e dar horário próprio, se não for esse o caso.
+  - Dia nunca tocado (empresa nova, cadastro do zero, `/anunciar`) fica só com a pill apagada, sem card nenhum — sem isso o problema original (7 cards vazios) reapareceria bem no primeiro uso do fluxo de cadastro, que reaproveita o mesmo componente.
+  - Feriados continua fora do agrupamento (igual já era antes — não é dia da semana de verdade), sempre com seu próprio card fechado/aberto.
+  - `applyToAllDays`/`canApplyToAll` removidos (função que o novo modelo de grupo substitui).
+  - Componente é compartilhado por `/painel` (lojista), `/admin` (edição rápida do admin) e `/anunciar` (cadastro novo) — mexer uma vez melhorou os três.
+- Resultado: a seção de horários caiu de ~1200px (8 cards) pra ~150-250px no caso comum (1 card de grupo + Domingo fechado + Feriados fechado).
+
 ---
 
 ## 11. FLUXO DE DEPLOY

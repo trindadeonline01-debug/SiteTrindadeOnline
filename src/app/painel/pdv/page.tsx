@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { moduleActive } from '@/lib/modules'
 import { qzPrintRaw, buildReceipt, buildKitchenTicket, isRawBtMode, printViaRawBt } from '@/lib/qzPrint'
@@ -27,6 +27,16 @@ const PAY_ALL: Record<string, string> = {
 const PAY_ICON: Record<string, string> = { pix: '📱', dinheiro: '💵', cartao: '💳', cartao_credito: '💳', cartao_debito: '💳', vale_refeicao: '🍽️', vale_alimentacao: '🛒', picpay: '📲' }
 function payLabel(key: string) { return PAY_ALL[key] || key }
 function fmt(n: number) { return 'R$ ' + (Number.isFinite(n) ? n : 0).toFixed(2).replace('.', ',') }
+function fmtHora(iso: string) { return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) }
+
+// F2 em diante pra forma de pagamento — uma pra cada forma configurada de
+// verdade (loja_payment_methods), na ordem que o lojista cadastrou, nunca
+// hardcoded por nome. Antes só "dinheiro"/"pix"/"cartao" ganhavam tecla —
+// "cartao_credito"/"cartao_debito"/outras formas reais ficavam sem atalho
+// nenhum (achado do Ricardo, out/2026). F1 fica de fora (atalho de Ajuda
+// do navegador); F8/F9 reservados pra Limpar/Finalizar, F7 pra Vendas de hoje.
+const PAY_SHORTCUT_KEYS = ['F2', 'F3', 'F4', 'F5', 'F6']
+type VendaRow = { id: string; order_number: number | null; total: number; payment_method: string | null; status: string; created_at: string }
 
 function lineTotal(l: Item): number {
   return l.pesoModo ? l.unitPrice * pesoNum(l.pesoKg) : l.unitPrice * l.qty
@@ -73,6 +83,12 @@ export default function PdvPage() {
   const [erro, setErro] = useState('')
   const [successFlash, setSuccessFlash] = useState('')
 
+  const [showVendas, setShowVendas] = useState(false)
+  const [loadingVendas, setLoadingVendas] = useState(false)
+  const [vendasHoje, setVendasHoje] = useState<VendaRow[]>([])
+  const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null)
+  const [cancelandoId, setCancelandoId] = useState<string | null>(null)
+
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { window.location.href = '/login?redirect=/painel/pdv'; return }
@@ -114,22 +130,56 @@ export default function PdvPage() {
     }
   }
 
-  // Atalhos de teclado pra forma de pagamento — F2 Dinheiro, F3 Pix, F4
-  // Cartão (pedido do Ricardo, out/2026), só quando a loja de fato aceita
-  // aquela forma. Escolher Dinheiro (clique ou F2) já abre a tela de troco
-  // na hora — é assim que caixa de verdade funciona, não espera "Finalizar".
+  // Uma tecla de função por forma de pagamento REALMENTE configurada, na
+  // ordem cadastrada — F2 pra primeira, F3 pra segunda, etc (até F6; depois
+  // disso só clicando mesmo, uma loja com 6+ formas é caso raríssimo).
+  const payShortcuts = useMemo(() => {
+    const map: Record<string, string> = {}
+    payOptions.slice(0, PAY_SHORTCUT_KEYS.length).forEach((k, i) => { map[k] = PAY_SHORTCUT_KEYS[i] })
+    return map
+  }, [payOptions])
+
+  // Escolher Dinheiro (clique ou tecla) já abre a tela de troco na hora — é
+  // assim que caixa de verdade funciona, não espera "Finalizar". F9 finaliza
+  // direto, F8 limpa o carrinho, F7 abre Vendas de hoje — todos desligados
+  // enquanto algum modal já está aberto, pra não disparar em cima de outra ação.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      const map: Record<string, string> = { F2: 'dinheiro', F3: 'pix', F4: 'cartao' }
-      const key = map[e.key]
-      if (!key || !payOptions.includes(key)) return
+      if (detail || pesoPrompt || trocoOpen || showVendas) return
+      if (e.key === 'F9') { e.preventDefault(); onFinishClick(); return }
+      if (e.key === 'F8') { e.preventDefault(); clearCart(); return }
+      if (e.key === 'F7') { e.preventDefault(); abrirVendas(); return }
+      const found = Object.entries(payShortcuts).find(([, fkey]) => fkey === e.key)
+      if (!found) return
       e.preventDefault()
-      selectPayMethod(key)
+      selectPayMethod(found[0])
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [payOptions, cart])
+  }, [payShortcuts, cart, subtotal, payMethod, finalizando, detail, pesoPrompt, trocoOpen, showVendas])
+
+  async function abrirVendas() {
+    setShowVendas(true)
+    setConfirmCancelId(null)
+    setLoadingVendas(true)
+    const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0)
+    const { data } = await supabase.from('loja_pedidos')
+      .select('id, order_number, total, payment_method, status, created_at')
+      .eq('company_id', companyId).eq('origin', 'balcao')
+      .gte('created_at', startOfDay.toISOString())
+      .order('created_at', { ascending: false })
+    setVendasHoje((data || []) as VendaRow[])
+    setLoadingVendas(false)
+  }
+
+  async function cancelarVenda(id: string) {
+    setCancelandoId(id)
+    await supabase.from('loja_pedidos').update({ status: 'cancelado', updated_at: new Date().toISOString() }).eq('id', id)
+    setVendasHoje(prev => prev.map(v => v.id === id ? { ...v, status: 'cancelado' } : v))
+    setConfirmCancelId(null)
+    setCancelandoId(null)
+  }
 
   function addToCart(p: NpProduto, modifiers: { name: string; price: number }[], unitPrice: number) {
     const isPeso = PESO_REGEX.test(p.name)
@@ -281,6 +331,10 @@ export default function PdvPage() {
         .pdv-printer{ display:flex;align-items:center;gap:6px;font-size:10.5px;font-weight:700;padding:5px 11px;border-radius:20px; }
         .pdv-printer.ok{ color:#4ADE80;background:rgba(15,138,87,.18); }
         .pdv-printer.off{ color:#F87171;background:rgba(248,113,113,.18); }
+        .pdv-vendas-btn{ display:flex;align-items:center;gap:7px;background:#232019;border:1px solid #3A352A;color:#fff;font-size:12px;font-weight:700;padding:8px 13px;border-radius:9px;cursor:pointer;font-family:inherit; }
+
+        .pdv-shortbar{ background:#1C1812;color:#C9BFA8;display:flex;gap:16px;flex-wrap:wrap;padding:6px 16px;font-size:10.5px;font-weight:600;flex:none; }
+        .pdv-shortbar b{ color:#FFC531;font-weight:800;margin-right:4px; }
 
         .pdv-main{ flex:1;display:grid;grid-template-columns:1fr 340px;min-height:0; }
         .pdv-left{ padding:12px;overflow-y:auto; }
@@ -292,14 +346,19 @@ export default function PdvPage() {
         .pdv-cat.on{ background:#151210;color:#FFC531; }
         .pdv-cat.off{ background:#fff;border:1.5px solid #B9AE97;color:#6E6656; }
 
-        .pdv-grid{ display:grid;grid-template-columns:repeat(auto-fill,minmax(60px,1fr));gap:6px; }
-        .pdv-prod{ position:relative;background:#fff;border:1.5px solid #DDD5C4;border-radius:10px;padding:5px;cursor:pointer;display:flex;flex-direction:column;text-align:left;font-family:inherit; }
-        .pdv-prod-photo{ width:100%;aspect-ratio:1;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:4px;overflow:hidden;background:#F0EDE8; }
+        /* Teto de 10 por linha (pedido do Ricardo, out/2026 — "muitos
+           quadros", o auto-fill antigo com minmax(60px) espremia 15+ numa
+           tela larga). Degrada em telas menores pra não espremer de novo. */
+        .pdv-grid{ display:grid;grid-template-columns:repeat(10,1fr);gap:8px; }
+        @media(max-width:1400px){ .pdv-grid{ grid-template-columns:repeat(7,1fr); } }
+        @media(max-width:1000px){ .pdv-grid{ grid-template-columns:repeat(5,1fr); } }
+        .pdv-prod{ position:relative;background:#fff;border:1.5px solid #DDD5C4;border-radius:10px;padding:8px;cursor:pointer;display:flex;flex-direction:column;text-align:left;font-family:inherit; }
+        .pdv-prod-photo{ width:100%;aspect-ratio:1;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:6px;overflow:hidden;background:#F0EDE8; }
         .pdv-prod-photo img{ width:100%;height:100%;object-fit:cover; }
-        .pdv-kg-badge{ position:absolute;top:7px;right:7px;background:#fff;color:#A87200;font-size:8px;font-weight:800;padding:1px 5px;border-radius:7px;box-shadow:0 1px 4px rgba(0,0,0,.18); }
-        .pdv-prod-name{ font-size:9.5px;font-weight:700;color:#151210;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:3px;min-height:23px; }
-        .pdv-prod-price{ font-size:10.5px;font-weight:800;color:#0F6B46; }
-        .pdv-prod-price small{ font-weight:600;color:#8A8477;font-size:8.5px; }
+        .pdv-kg-badge{ position:absolute;top:10px;right:10px;background:#fff;color:#A87200;font-size:9px;font-weight:800;padding:2px 6px;border-radius:7px;box-shadow:0 1px 4px rgba(0,0,0,.18); }
+        .pdv-prod-name{ font-size:11.5px;font-weight:700;color:#151210;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:4px;min-height:28px; }
+        .pdv-prod-price{ font-size:12.5px;font-weight:800;color:#0F6B46; }
+        .pdv-prod-price small{ font-weight:600;color:#8A8477;font-size:10px; }
         .pdv-empty{ padding:40px;text-align:center;color:#A79E8B;font-size:13px; }
 
         .pdv-right{ background:#fff;border-left:1.5px solid #DDD5C4;display:flex;flex-direction:column;min-height:0; }
@@ -324,16 +383,35 @@ export default function PdvPage() {
         .pdv-paychip{ position:relative;flex:1;min-width:72px;padding:9px 4px 7px;text-align:center;border-radius:10px;border:1.5px solid #B9AE97;background:#fff;font-size:11.5px;font-weight:700;color:#6E6656;cursor:pointer; }
         .pdv-paychip.on{ background:#0F8A57;border-color:#0F8A57;color:#fff; }
         .pdv-paychip-key{ display:block;font-size:8px;font-weight:800;margin-top:2px;opacity:.75; }
-        .pdv-finish{ width:100%;padding:14px;border-radius:12px;background:#0F8A57;color:#fff;font-size:14px;font-weight:800;text-align:center;border:none;cursor:pointer; }
+        .pdv-finish{ width:100%;padding:14px;border-radius:12px;background:#0F8A57;color:#fff;font-size:14px;font-weight:800;text-align:center;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px; }
         .pdv-finish:disabled{ opacity:.5;cursor:default; }
-        .pdv-clear{ width:100%;padding:6px;text-align:center;font-size:11px;color:#A79E8B;font-weight:700;background:none;border:none;cursor:pointer; }
+        .pdv-finish-key{ font-size:10px;font-weight:800;background:rgba(255,255,255,.22);padding:2px 7px;border-radius:6px; }
+        .pdv-clear{ width:100%;padding:6px;text-align:center;font-size:11px;color:#A79E8B;font-weight:700;background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px; }
+        .pdv-clear-key{ font-size:9px;font-weight:800;background:#F0EDE8;color:#8A8477;padding:1px 6px;border-radius:5px; }
         .pdv-err{ color:#C43D3D;font-size:11.5px;font-weight:600;text-align:center;margin-bottom:8px; }
         .pdv-flash{ position:fixed;top:18px;left:50%;transform:translateX(-50%);background:#0F8A57;color:#fff;padding:12px 22px;border-radius:30px;font-weight:800;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:200; }
 
         .pdv-overlay{ position:fixed;inset:0;background:rgba(10,8,6,.6);z-index:150;display:flex;align-items:center;justify-content:center;padding:16px; }
         .pdv-modal{ background:#fff;border-radius:18px;padding:20px;width:100%;max-width:400px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 60px rgba(0,0,0,.3); }
+        .pdv-modal.pdv-modal-wide{ max-width:480px; }
         .pdv-modal h3{ margin:0 0 4px;font-size:15px; }
         .pdv-modal-sub{ font-size:11.5px;color:#8A8477;margin-bottom:14px; }
+
+        .pdv-vendas-empty{ text-align:center;color:#A79E8B;font-size:12.5px;padding:30px 0; }
+        .pdv-vendas-list{ display:flex;flex-direction:column;gap:6px;margin-bottom:12px; }
+        .pdv-venda-row{ display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:#F8F6F0;border:1px solid #F0EDE8; }
+        .pdv-venda-row.off{ opacity:.55; }
+        .pdv-venda-main{ flex:1;min-width:0; }
+        .pdv-venda-num{ font-size:12.5px;font-weight:800;color:#151210; }
+        .pdv-venda-num span{ font-weight:600;color:#A79E8B;font-size:11px;margin-left:6px; }
+        .pdv-venda-pay{ font-size:11px;color:#6E6656;margin-top:1px; }
+        .pdv-venda-val{ font-size:13px;font-weight:800;color:#151210;flex:none; }
+        .pdv-venda-tag{ font-size:10.5px;font-weight:800;color:#C43D3D;background:#FBEAEA;padding:4px 9px;border-radius:8px;flex:none; }
+        .pdv-venda-cancel{ font-size:11px;font-weight:700;color:#C43D3D;background:#fff;border:1.5px solid #F0B8B8;padding:6px 11px;border-radius:8px;cursor:pointer;flex:none; }
+        .pdv-venda-confirm{ display:flex;gap:6px;flex:none; }
+        .pdv-venda-confirm button{ font-size:11px;font-weight:700;padding:6px 10px;border-radius:8px;cursor:pointer;border:none; }
+        .pdv-venda-confirm button:first-child{ background:#C43D3D;color:#fff; }
+        .pdv-venda-confirm button:last-child{ background:#F0EDE8;color:#6E6656; }
         .pdv-grp{ margin:12px 0 6px;font-weight:800;font-size:12.5px; }
         .pdv-opt{ display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #F0EDE8;cursor:pointer;font-size:12.5px; }
         .pdv-opt.sel{ color:#0F8050;font-weight:700; }
@@ -371,7 +449,16 @@ export default function PdvPage() {
       <div className="pdv-top">
         <button className="pdv-back" onClick={() => window.location.href = '/painel/pedidos'}>‹</button>
         <div className="pdv-title"><small>PDV · Balcão</small>{companyName}</div>
+        <button className="pdv-vendas-btn" onClick={abrirVendas}>🧾 Vendas de hoje <span className="pdv-finish-key">F7</span></button>
         <div className={`pdv-printer ${printerName ? 'ok' : 'off'}`}>{printerName ? '● Impressora conectada' : '○ Sem impressora configurada'}</div>
+      </div>
+      <div className="pdv-shortbar">
+        {payOptions.slice(0, PAY_SHORTCUT_KEYS.length).map((k, i) => (
+          <span key={k}><b>{PAY_SHORTCUT_KEYS[i]}</b> {payLabel(k)}</span>
+        ))}
+        <span><b>F8</b> Limpar</span>
+        <span><b>F9</b> Finalizar</span>
+        <span><b>F7</b> Vendas de hoje</span>
       </div>
 
       <div className="pdv-main">
@@ -435,12 +522,12 @@ export default function PdvPage() {
               {payOptions.map(k => (
                 <button key={k} className={`pdv-paychip ${payMethod === k ? 'on' : ''}`} onClick={() => selectPayMethod(k)}>
                   {PAY_ICON[k] || '💰'} {payLabel(k)}
-                  {(k === 'dinheiro' || k === 'pix' || k === 'cartao') && <span className="pdv-paychip-key">{k === 'dinheiro' ? 'F2' : k === 'pix' ? 'F3' : 'F4'}</span>}
+                  {payShortcuts[k] && <span className="pdv-paychip-key">{payShortcuts[k]}</span>}
                 </button>
               ))}
             </div>
-            <button className="pdv-finish" disabled={cart.length === 0 || finalizando} onClick={onFinishClick}>{finalizando ? 'Registrando...' : `Finalizar venda — ${fmt(subtotal)}`}</button>
-            <button className="pdv-clear" onClick={clearCart} disabled={cart.length === 0}>Limpar carrinho</button>
+            <button className="pdv-finish" disabled={cart.length === 0 || finalizando} onClick={onFinishClick}>{finalizando ? 'Registrando...' : `Finalizar venda — ${fmt(subtotal)}`}<span className="pdv-finish-key">F9</span></button>
+            <button className="pdv-clear" onClick={clearCart} disabled={cart.length === 0}>Limpar carrinho <span className="pdv-clear-key">F8</span></button>
           </div>
         </div>
       </div>
@@ -518,6 +605,44 @@ export default function PdvPage() {
             </div>
             <button className="pdv-modal-confirm" disabled={troco < 0 || finalizando} onClick={() => finalizarVenda('dinheiro')}>{finalizando ? 'Registrando...' : 'Confirmar pagamento'}</button>
             <button className="pdv-modal-cancel" onClick={() => setTrocoOpen(false)}>Cancelar</button>
+          </div>
+        </div>
+      )}
+
+      {/* vendas de hoje + cancelamento */}
+      {showVendas && (
+        <div className="pdv-overlay" onClick={() => setShowVendas(false)}>
+          <div className="pdv-modal pdv-modal-wide" onClick={e => e.stopPropagation()}>
+            <h3>🧾 Vendas de hoje</h3>
+            <div className="pdv-modal-sub">{vendasHoje.filter(v => v.status !== 'cancelado').length} venda(s) · {fmt(vendasHoje.filter(v => v.status !== 'cancelado').reduce((s, v) => s + Number(v.total), 0))}</div>
+            {loadingVendas ? (
+              <div className="pdv-vendas-empty">Carregando...</div>
+            ) : vendasHoje.length === 0 ? (
+              <div className="pdv-vendas-empty">Nenhuma venda registrada hoje ainda.</div>
+            ) : (
+              <div className="pdv-vendas-list">
+                {vendasHoje.map(v => (
+                  <div key={v.id} className={`pdv-venda-row ${v.status === 'cancelado' ? 'off' : ''}`}>
+                    <div className="pdv-venda-main">
+                      <div className="pdv-venda-num">#{v.order_number ?? v.id.slice(0, 6)} <span>{fmtHora(v.created_at)}</span></div>
+                      <div className="pdv-venda-pay">{PAY_ICON[v.payment_method || ''] || '💰'} {payLabel(v.payment_method || '—')}</div>
+                    </div>
+                    <div className="pdv-venda-val">{fmt(Number(v.total))}</div>
+                    {v.status === 'cancelado' ? (
+                      <span className="pdv-venda-tag">Cancelada</span>
+                    ) : confirmCancelId === v.id ? (
+                      <div className="pdv-venda-confirm">
+                        <button disabled={cancelandoId === v.id} onClick={() => cancelarVenda(v.id)}>{cancelandoId === v.id ? '...' : 'Confirmar'}</button>
+                        <button onClick={() => setConfirmCancelId(null)}>Voltar</button>
+                      </div>
+                    ) : (
+                      <button className="pdv-venda-cancel" onClick={() => setConfirmCancelId(v.id)}>Cancelar</button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+            <button className="pdv-modal-cancel" onClick={() => setShowVendas(false)}>Fechar</button>
           </div>
         </div>
       )}

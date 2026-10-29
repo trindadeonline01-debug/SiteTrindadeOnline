@@ -74,6 +74,59 @@ export function periodRange(p: PeriodSel): { from: string | null; to: string | n
   }
 }
 
+// Período de comparação pra KPI com variação (▲/▼) — convenção padrão de
+// dashboard (hoje vs. ontem inteiro, este mês vs. mês passado inteiro etc.),
+// mesmo quando o período atual ainda está "em andamento" (parcial). 'all' e
+// 'custom' com só uma ponta preenchida não têm período anterior óbvio de
+// tamanho igual — devolve null, e quem usa deve simplesmente não mostrar
+// variação nesses casos (não inventar um número).
+export function previousPeriodRange(p: PeriodSel): { from: string; to: string } | null {
+  const now = new Date()
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate())
+  switch (p.kind) {
+    case 'today': {
+      const y = new Date(now); y.setDate(now.getDate() - 1)
+      return { from: startOfDay(y).toISOString(), to: startOfDay(now).toISOString() }
+    }
+    case 'yesterday': {
+      const d2 = new Date(now); d2.setDate(now.getDate() - 2)
+      const d1 = new Date(now); d1.setDate(now.getDate() - 1)
+      return { from: startOfDay(d2).toISOString(), to: startOfDay(d1).toISOString() }
+    }
+    case 'week': {
+      const day = now.getDay()
+      const diffToMonday = day === 0 ? 6 : day - 1
+      const thisMonday = new Date(now); thisMonday.setDate(now.getDate() - diffToMonday)
+      const lastMonday = new Date(thisMonday); lastMonday.setDate(thisMonday.getDate() - 7)
+      return { from: startOfDay(lastMonday).toISOString(), to: startOfDay(thisMonday).toISOString() }
+    }
+    case 'month': {
+      const firstThis = new Date(now.getFullYear(), now.getMonth(), 1)
+      const firstPrev = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+      return { from: firstPrev.toISOString(), to: firstThis.toISOString() }
+    }
+    case 'year':
+      return { from: new Date(now.getFullYear() - 1, 0, 1).toISOString(), to: new Date(now.getFullYear(), 0, 1).toISOString() }
+    case 'other_month': {
+      if (p.monthIndex == null) return null
+      const year = p.monthIndex > now.getMonth() ? now.getFullYear() - 1 : now.getFullYear()
+      return {
+        from: new Date(year - 1, p.monthIndex, 1).toISOString(),
+        to: new Date(year - 1, p.monthIndex + 1, 1).toISOString(),
+      }
+    }
+    case 'custom': {
+      if (!p.customFrom || !p.customTo) return null
+      const from = new Date(p.customFrom + 'T00:00:00')
+      const to = new Date(p.customTo + 'T00:00:00'); to.setDate(to.getDate() + 1)
+      const durationMs = to.getTime() - from.getTime()
+      return { from: new Date(from.getTime() - durationMs).toISOString(), to: from.toISOString() }
+    }
+    default:
+      return null
+  }
+}
+
 export function periodLabel(p: PeriodSel): string {
   switch (p.kind) {
     case 'today': return 'hoje'

@@ -596,7 +596,7 @@ export default function PainelPage() {
 
         .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;}
         @media(min-width:1024px){.stat-grid{grid-template-columns:repeat(4,1fr);}}
-        .stat-card{background:#fff;border:0.5px solid #EDE8E0;border-radius:14px;padding:16px 18px;}
+        .stat-card{background:#fff;border:0.5px solid #DDD5C4;border-radius:14px;padding:16px 18px;}
         .stat-num{font-family:'Anton',sans-serif;font-size:32px;letter-spacing:1px;line-height:1;margin-bottom:4px;}
         .stat-lbl{font-size:11px;color:#AAA;}
         .stat-sub{font-size:10px;color:#AAA;margin-top:4px;}
@@ -607,7 +607,7 @@ export default function PainelPage() {
         .sec-body{padding:16px 18px;}
         .section-label{font-family:'Archivo',sans-serif;font-weight:700;font-size:11px;color:#888;letter-spacing:.8px;text-transform:uppercase;margin:20px 0 12px;}
 
-        .rating-summary{display:flex;align-items:center;gap:16px;background:#FAFAF8;border:0.5px solid #E0DDD8;border-radius:13px;padding:16px;margin-bottom:16px;}
+        .rating-summary{display:flex;align-items:center;gap:16px;background:#F4F1E9;border:0.5px solid #B9AE97;border-radius:13px;padding:16px;margin-bottom:16px;}
         .rating-big{font-family:'Anton',sans-serif;font-size:52px;color:var(--sign-dark);letter-spacing:1px;line-height:1;}
         .rating-bars{flex:1;}
         .bar-row{display:flex;align-items:center;gap:6px;margin-bottom:4px;}
@@ -618,7 +618,7 @@ export default function PainelPage() {
 
         .review-grid{display:grid;grid-template-columns:1fr;gap:12px;}
         @media(min-width:1024px){.review-grid{grid-template-columns:1fr 1fr;}}
-        .review-card{background:#FAFAF8;border:0.5px solid #EDE8E0;border-radius:12px;padding:14px;}
+        .review-card{background:#F4F1E9;border:0.5px solid #DDD5C4;border-radius:12px;padding:14px;}
         .review-top{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
         .review-av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--sign-dark),#E8B84B);display:flex;align-items:center;justify-content:center;font-family:'Archivo',sans-serif;font-weight:700;font-size:14px;color:#fff;flex-shrink:0;}
         .review-name{font-size:13px;font-weight:600;color:#333;}
@@ -627,7 +627,7 @@ export default function PainelPage() {
         .review-text{font-size:13px;color:#555;line-height:1.6;margin-bottom:10px;}
         .review-actions{display:flex;gap:8px;}
         .btn-reply{flex:1;padding:8px;border:1px solid var(--sign-dark);border-radius:9px;font-size:12px;font-weight:600;color:var(--sign-dark);cursor:pointer;background:#fff;font-family:'Archivo',sans-serif;}
-        .btn-flag{padding:8px 14px;border:1px solid #E0DDD8;border-radius:9px;font-size:12px;color:#AAA;cursor:pointer;background:#fff;font-family:'Archivo',sans-serif;}
+        .btn-flag{padding:8px 14px;border:1px solid #B9AE97;border-radius:9px;font-size:12px;color:#AAA;cursor:pointer;background:#fff;font-family:'Archivo',sans-serif;}
         .reply-existing{background:#FEF3E2;border:0.5px solid #F5C77A;border-radius:9px;padding:10px 12px;margin-top:8px;}
         .reply-lbl{font-size:10px;font-weight:600;color:#854F0B;margin-bottom:3px;}
         .reply-txt{font-size:12px;color:#854F0B;line-height:1.5;}
@@ -662,11 +662,11 @@ export default function PainelPage() {
         .btn-primary:disabled{opacity:.6;cursor:not-allowed;}
 
         .hl-card{background:#fff;border:1.5px solid var(--sign-dark);border-radius:14px;padding:16px;margin-bottom:10px;}
-        .hl-card.exp{border-color:#E0DDD8;opacity:.7;}
+        .hl-card.exp{border-color:#B9AE97;opacity:.7;}
         .hl-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
         .hl-badge{font-size:10px;font-weight:700;padding:3px 10px;border-radius:10px;}
         .b-active{background:#EDFAF3;color:#0F8050;border:0.5px solid #A8E6C4;}
-        .b-exp{background:#F7F4EF;color:#AAA;border:0.5px solid #E0DDD8;}
+        .b-exp{background:#F7F4EF;color:#AAA;border:0.5px solid #B9AE97;}
         .hl-stats{display:flex;gap:20px;}
         .hs-num{font-family:'Anton',sans-serif;font-size:24px;color:var(--sign-dark);letter-spacing:1px;}
         .hs-lbl{font-size:9px;color:#AAA;}
@@ -697,7 +697,7 @@ export default function PainelPage() {
         /* ── ABA PLANO ── */
         .pt-sec-lbl{font-family:'Archivo',sans-serif;font-weight:700;font-size:12px;color:#888;letter-spacing:.8px;text-transform:uppercase;display:flex;align-items:center;gap:10px;margin:28px 0 6px;}
         .pt-sec-lbl:first-child{margin-top:0;}
-        .pt-sec-lbl::after{content:'';flex:1;height:0.5px;background:#E0DDD8;}
+        .pt-sec-lbl::after{content:'';flex:1;height:0.5px;background:#B9AE97;}
         .pt-sec-sub{font-size:13px;color:#999;margin-bottom:16px;}
 
         .pt-status{background:linear-gradient(135deg,#1a1a1a,#2e2e2e);border-radius:14px;padding:22px 24px;}
@@ -711,7 +711,7 @@ export default function PainelPage() {
 
         .pt-plan-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
         @media(max-width:500px){.pt-plan-grid{grid-template-columns:1fr;}}
-        .pt-plan-opt{background:#fff;border:1.5px solid #E0DDD8;border-radius:14px;padding:22px 16px;text-align:center;position:relative;}
+        .pt-plan-opt{background:#fff;border:1.5px solid #B9AE97;border-radius:14px;padding:22px 16px;text-align:center;position:relative;}
         .pt-plan-opt.popular{border-color:var(--sign-dark);}
         .pt-popular-badge{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--sign);color:var(--ink);font-size:9px;font-weight:700;padding:3px 12px;border-radius:20px;white-space:nowrap;}
         .pt-plan-period{font-size:13px;font-weight:700;color:#111;margin-bottom:10px;letter-spacing:0.5px;}
@@ -781,14 +781,14 @@ export default function PainelPage() {
         .pt-ben-label{font-size:12px;color:#AAA;font-weight:600;margin-bottom:10px;}
         .pt-beneficios{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;}
         @media(max-width:600px){.pt-beneficios{grid-template-columns:repeat(3,1fr);}}
-        .pt-ben-card{background:#fff;border:0.5px solid #E0DDD8;border-radius:12px;padding:16px 8px;text-align:center;}
+        .pt-ben-card{background:#fff;border:0.5px solid #B9AE97;border-radius:12px;padding:16px 8px;text-align:center;}
         .pt-ben-ico{font-size:26px;margin-bottom:8px;}
         .pt-ben-title{font-size:11px;font-weight:700;color:#111;margin-bottom:4px;line-height:1.3;}
         .pt-ben-desc{font-size:10px;color:#999;line-height:1.4;}
 
-        .pt-banner-card{background:#fff;border:0.5px solid #E0DDD8;border-radius:14px;overflow:hidden;}
+        .pt-banner-card{background:#fff;border:0.5px solid #B9AE97;border-radius:14px;overflow:hidden;}
         .banner-hist-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-bottom:16px;}
-        .banner-hist-card{background:#fff;border:0.5px solid #EDE8E0;border-radius:12px;padding:16px;}
+        .banner-hist-card{background:#fff;border:0.5px solid #DDD5C4;border-radius:12px;padding:16px;}
         .banner-hist-hdr{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px;}
         .banner-hist-title{font-size:14px;font-weight:700;color:#111;margin-bottom:3px;}
         .banner-hist-meta{font-size:11px;color:#888;}
@@ -796,7 +796,7 @@ export default function PainelPage() {
         .banner-hist-prazo{font-size:11px;font-weight:600;margin-top:6px;}
         .banner-hist-ia{background:#FEF3E2;border:1px solid #F5C77A;border-radius:8px;padding:8px 12px;margin-top:10px;font-size:12px;color:#854F0B;}
         .banner-hist-imgs{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
-        .banner-hist-imgs img{width:120px;height:36px;object-fit:cover;border-radius:6px;border:1px solid #EDE8E0;cursor:pointer;}
+        .banner-hist-imgs img{width:120px;height:36px;object-fit:cover;border-radius:6px;border:1px solid #DDD5C4;cursor:pointer;}
         .pt-banner-visual{background:linear-gradient(160deg,#0f0f0f,#2a1800);padding:32px 28px;display:flex;align-items:center;gap:28px;}
         @media(max-width:500px){.pt-banner-visual{flex-direction:column;}}
         .pt-banner-visual-left{flex:1;}
@@ -817,14 +817,14 @@ export default function PainelPage() {
         .pt-bv-row{height:6px;background:#ddd;border-radius:2px;}
         .pt-banner-info{padding:20px 24px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;border-top:0.5px solid #eee;}
         @media(max-width:500px){.pt-banner-info{grid-template-columns:1fr;}}
-        .pt-b-opt{border:1.5px solid #E0DDD8;border-radius:10px;padding:14px 12px;cursor:pointer;transition:border-color .15s;background:#fff;font-family:'Archivo',sans-serif;text-align:center;width:100%;}
+        .pt-b-opt{border:1.5px solid #B9AE97;border-radius:10px;padding:14px 12px;cursor:pointer;transition:border-color .15s;background:#fff;font-family:'Archivo',sans-serif;text-align:center;width:100%;}
         .pt-b-opt:hover{border-color:var(--sign-dark);}
         .pt-b-days{font-size:13px;font-weight:600;color:#333;margin-bottom:6px;}
         .pt-b-price{font-size:18px;font-weight:700;color:var(--sign-dark);}
 
         .pt-dest-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
         @media(max-width:600px){.pt-dest-grid{grid-template-columns:1fr;}}
-        .pt-dest-card{background:#fff;border:0.5px solid #E0DDD8;border-radius:14px;overflow:hidden;}
+        .pt-dest-card{background:#fff;border:0.5px solid #B9AE97;border-radius:14px;overflow:hidden;}
         .pt-dest-visual{padding:24px 16px 20px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;border-bottom:0.5px solid #eee;}
         .pt-dest-visual.home{background:linear-gradient(160deg,#1a1a1a,#2e2e2e);}
         .pt-dest-visual.cat{background:linear-gradient(160deg,#0c3260,#185FA5);}
@@ -841,7 +841,7 @@ export default function PainelPage() {
         .pt-dest-info-title{font-size:15px;font-weight:700;color:#111;margin-bottom:4px;}
         .pt-dest-info-desc{font-size:12px;color:#777;line-height:1.6;margin-bottom:14px;}
         .pt-dest-opts{display:flex;flex-direction:column;gap:7px;}
-        .pt-d-opt{display:flex;justify-content:space-between;align-items:center;border:1.5px solid #E0DDD8;border-radius:9px;padding:10px 14px;cursor:pointer;transition:border-color .15s;background:#fff;font-family:'Archivo',sans-serif;width:100%;}
+        .pt-d-opt{display:flex;justify-content:space-between;align-items:center;border:1.5px solid #B9AE97;border-radius:9px;padding:10px 14px;cursor:pointer;transition:border-color .15s;background:#fff;font-family:'Archivo',sans-serif;width:100%;}
         .pt-d-opt.popular{border-color:var(--sign-dark);background:#FEF9F0;}
         .pt-d-opt:hover{border-color:var(--sign-dark);}
         .pt-d-day{font-size:13px;font-weight:500;color:#333;}
@@ -867,7 +867,7 @@ export default function PainelPage() {
                     <div style={{fontSize:11,color:'#AAA'}}>Faço upload e pago</div>
                   </button>
                   <button onClick={()=>setBannerModal(p=>({...p,step:'ia'}))}
-                    style={{border:'1px solid #E0DDD8',borderRadius:12,padding:16,cursor:'pointer',background:'#fff',textAlign:'left'}}>
+                    style={{border:'1px solid #B9AE97',borderRadius:12,padding:16,cursor:'pointer',background:'#fff',textAlign:'left'}}>
                     <div style={{fontSize:22,marginBottom:8}}>✨</div>
                     <div style={{fontSize:13,fontWeight:600,color:'#111',marginBottom:4}}>Criar com IA</div>
                     <div style={{fontSize:11,color:'#AAA'}}>+R$ 40 (desktop+mobile)</div>
@@ -881,23 +881,23 @@ export default function PainelPage() {
               <>
                 <div style={{fontFamily:"'Anton',sans-serif",fontSize:20,color:'var(--ink)',letterSpacing:1,textTransform:'uppercase',marginBottom:4}}>FAZER UPLOAD DO BANNER</div>
                 <div style={{fontSize:13,color:'#888',marginBottom:20}}>{bannerModal.dias} dias · R$ {bannerModal.valor.toFixed(2)}</div>
-                <div style={{background:'#FAFAF8',border:'0.5px solid #E0DDD8',borderRadius:10,padding:14,marginBottom:12}}>
+                <div style={{background:'#F4F1E9',border:'0.5px solid #B9AE97',borderRadius:10,padding:14,marginBottom:12}}>
                   <div style={{fontSize:12,fontWeight:600,color:'#111',marginBottom:6}}>Desktop <span style={{fontWeight:400,color:'#AAA'}}>· 1200×255px · JPG ou PNG</span></div>
                   <div onClick={()=>bannerDesktopRef.current?.click()} style={{border:'1.5px dashed var(--sign-dark)',borderRadius:8,padding:14,textAlign:'center',cursor:'pointer',color:'#AAA',fontSize:12}}>
                     {bannerModal.fileDesktop ? <span style={{color:'#0F8050',fontWeight:600}}>✓ {bannerModal.fileDesktop.name}</span> : '📷 Clique para enviar'}
                   </div>
                   <input ref={bannerDesktopRef} type="file" accept="image/*" style={{display:'none'}} onChange={e=>setBannerModal(p=>({...p,fileDesktop:e.target.files?.[0]||null}))}/>
                 </div>
-                <div style={{background:'#FAFAF8',border:'0.5px solid #E0DDD8',borderRadius:10,padding:14,marginBottom:12}}>
+                <div style={{background:'#F4F1E9',border:'0.5px solid #B9AE97',borderRadius:10,padding:14,marginBottom:12}}>
                   <div style={{fontSize:12,fontWeight:600,color:'#111',marginBottom:6}}>Mobile <span style={{fontWeight:400,color:'#AAA'}}>· 750×500px · JPG ou PNG · opcional</span></div>
-                  <div onClick={()=>bannerMobileRef.current?.click()} style={{border:'1.5px dashed #E0DDD8',borderRadius:8,padding:14,textAlign:'center',cursor:'pointer',color:'#AAA',fontSize:12}}>
+                  <div onClick={()=>bannerMobileRef.current?.click()} style={{border:'1.5px dashed #B9AE97',borderRadius:8,padding:14,textAlign:'center',cursor:'pointer',color:'#AAA',fontSize:12}}>
                     {bannerModal.fileMobile ? <span style={{color:'#0F8050',fontWeight:600}}>✓ {bannerModal.fileMobile.name}</span> : '📷 Clique para enviar (opcional)'}
                   </div>
                   <input ref={bannerMobileRef} type="file" accept="image/*" style={{display:'none'}} onChange={e=>setBannerModal(p=>({...p,fileMobile:e.target.files?.[0]||null}))}/>
                 </div>
                 <div style={{fontSize:11,color:'#AAA',marginBottom:14}}>O mobile é opcional — se não enviado, usamos o desktop.</div>
                 <button onClick={()=>pagarBanner('upload')} disabled={!bannerModal.fileDesktop}
-                  style={{width:'100%',padding:12,background:bannerModal.fileDesktop?'var(--sign)':'#E0DDD8',color:bannerModal.fileDesktop?'var(--ink)':'#AAA',border:'none',borderRadius:12,fontSize:13,fontWeight:600,cursor:bannerModal.fileDesktop?'pointer':'not-allowed',fontFamily:'Archivo,sans-serif',marginBottom:8}}>
+                  style={{width:'100%',padding:12,background:bannerModal.fileDesktop?'var(--sign)':'#B9AE97',color:bannerModal.fileDesktop?'var(--ink)':'#AAA',border:'none',borderRadius:12,fontSize:13,fontWeight:600,cursor:bannerModal.fileDesktop?'pointer':'not-allowed',fontFamily:'Archivo,sans-serif',marginBottom:8}}>
                   Pagar R$ {bannerModal.valor.toFixed(2)} via Pix
                 </button>
                 <button onClick={()=>setBannerModal(p=>({...p,step:'escolha'}))} style={{width:'100%',padding:10,background:'transparent',color:'#AAA',border:'1px solid #ddd',borderRadius:12,fontSize:13,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>← Voltar</button>
@@ -916,11 +916,11 @@ export default function PainelPage() {
                   <div style={{fontSize:12,fontWeight:600,color:'#111',marginBottom:6}}>Descreva seu negócio para a IA</div>
                   <textarea rows={3} value={bannerModal.descricaoIA} onChange={e=>setBannerModal(p=>({...p,descricaoIA:e.target.value}))}
                     placeholder="Ex: Burger artesanal, ingredientes frescos, entrega em Trindade..."
-                    style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:12,fontFamily:'Archivo,sans-serif',resize:'none',outline:'none'}}/>
+                    style={{width:'100%',padding:'10px 12px',border:'1.5px solid #B9AE97',borderRadius:10,fontSize:12,fontFamily:'Archivo,sans-serif',resize:'none',outline:'none'}}/>
                 </div>
                 <div style={{fontSize:11,color:'#AAA',marginBottom:14}}>Entregamos os banners em até 24h. Após o pagamento você receberá por email.</div>
                 <button onClick={()=>pagarBanner('ia')} disabled={!bannerModal.descricaoIA.trim()}
-                  style={{width:'100%',padding:12,background:bannerModal.descricaoIA.trim()?'var(--sign)':'#E0DDD8',color:bannerModal.descricaoIA.trim()?'var(--ink)':'#AAA',border:'none',borderRadius:12,fontSize:13,fontWeight:600,cursor:bannerModal.descricaoIA.trim()?'pointer':'not-allowed',fontFamily:'Archivo,sans-serif',marginBottom:8}}>
+                  style={{width:'100%',padding:12,background:bannerModal.descricaoIA.trim()?'var(--sign)':'#B9AE97',color:bannerModal.descricaoIA.trim()?'var(--ink)':'#AAA',border:'none',borderRadius:12,fontSize:13,fontWeight:600,cursor:bannerModal.descricaoIA.trim()?'pointer':'not-allowed',fontFamily:'Archivo,sans-serif',marginBottom:8}}>
                   Pagar R$ {(bannerModal.valor+40).toFixed(2)} via Pix
                 </button>
                 <button onClick={()=>setBannerModal(p=>({...p,step:'escolha'}))} style={{width:'100%',padding:10,background:'transparent',color:'#AAA',border:'1px solid #ddd',borderRadius:12,fontSize:13,cursor:'pointer',fontFamily:'Archivo,sans-serif'}}>← Voltar</button>
@@ -1152,7 +1152,7 @@ export default function PainelPage() {
                 const mode: 'auto' | 'closed' = company.store_paused ? 'closed' : 'auto'
                 const scheduleOpenNow = isOpenNow(company.hours as any, company.flexible_hours, false, false)
                 const cfg = {
-                  auto:   { bg: '#F5F2EC', border: '#E6E0D2', dot: scheduleOpenNow ? '🟢' : '⚪', color: '#555',    label: 'Automático (segue o horário)', sub: scheduleOpenNow ? 'Dentro do horário cadastrado — aberta agora' : 'Fora do horário cadastrado — fechada agora' },
+                  auto:   { bg: '#F5F2EC', border: '#B9AE97', dot: scheduleOpenNow ? '🟢' : '⚪', color: '#555',    label: 'Automático (segue o horário)', sub: scheduleOpenNow ? 'Dentro do horário cadastrado — aberta agora' : 'Fora do horário cadastrado — fechada agora' },
                   closed: { bg: '#FBEAEA', border: '#F0B8B8', dot: '🔴',                          color: '#A83232', label: 'Pausada',                       sub: 'Não recebe pedido novo, mesmo dentro do horário' },
                 }[mode]
                 return (
@@ -1201,7 +1201,7 @@ export default function PainelPage() {
                     <div className="section-label">PARA FAZER AGORA</div>
                     <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:20}}>
                       {pendencias.map((p, i) => (
-                        <div key={i} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 14px',background:'#fff',border:'1px solid #EDE8E0',borderRadius:10}}>
+                        <div key={i} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 14px',background:'#fff',border:'1px solid #DDD5C4',borderRadius:10}}>
                           <span style={{fontSize:18,flexShrink:0}}>{p.icon}</span>
                           <span style={{flex:1,fontSize:13,color:'#333',fontWeight:500}}>{p.text}</span>
                           <button onClick={p.onClick} style={{background:'var(--sign)',color:'var(--ink)',border:'none',padding:'7px 14px',borderRadius:8,fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'Archivo,sans-serif',flexShrink:0,whiteSpace:'nowrap'}}>{p.btnLabel} →</button>
@@ -1227,7 +1227,7 @@ export default function PainelPage() {
                     )}
                     <div style={{display:'flex',flexDirection:'column',gap:8}}>
                       {interesses.slice(0,10).map(i => (
-                        <div key={i.id} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 14px',background:'#FAFAF8',borderRadius:8,border:'1px solid #EDE8E0'}}>
+                        <div key={i.id} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 14px',background:'#F4F1E9',borderRadius:8,border:'1px solid #DDD5C4'}}>
                           <div style={{width:32,height:32,borderRadius:16,background:'var(--sign-dark)',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,flexShrink:0}}>🔔</div>
                           <div style={{flex:1,fontSize:13,color:'#333',fontWeight:500}}>Cliente demonstrou interesse</div>
                           <div style={{fontSize:11,color:'#888'}}>{fmtDate(i.created_at)}</div>
@@ -1299,13 +1299,13 @@ export default function PainelPage() {
                       const gPlans = hlPlans.filter(p => p.name.toLowerCase().includes(g.level === 'home' ? 'home' : g.level === 'category' ? 'categoria' : 'subcat'))
                       const disabled = !featureFlags['destaques'] || gPlans.length === 0
                       return (
-                        <div key={g.level} style={{background:disabled?'#F5F5F5':'#FAFAF8',border:'0.5px solid #E0DDD8',borderRadius:14,padding:16,opacity:disabled?0.6:1}}>
+                        <div key={g.level} style={{background:disabled?'#F5F5F5':'#F4F1E9',border:'0.5px solid #B9AE97',borderRadius:14,padding:16,opacity:disabled?0.6:1}}>
                           <div style={{fontWeight:600,fontSize:14,marginBottom:3,color:disabled?'#AAA':'#111'}}>{g.label}</div>
                           <div style={{fontSize:12,color:'#AAA',marginBottom:12}}>{disabled && gPlans.length === 0 ? 'Em breve' : g.desc}</div>
                           {gPlans.map((plan: any) => (
                             <button key={plan.id} onClick={()=>!disabled && assinarDestaque(g.level, plan.days, Number(plan.value), plan.name)}
                               disabled={disabled}
-                              style={{width:'100%',padding:'9px',marginBottom:7,borderRadius:9,border:'1px solid #E0DDD8',background:'#fff',fontSize:12,cursor:disabled?'not-allowed':'pointer',fontFamily:'Archivo,sans-serif',display:'flex',justifyContent:'space-between',alignItems:'center',opacity:disabled?0.5:1}}>
+                              style={{width:'100%',padding:'9px',marginBottom:7,borderRadius:9,border:'1px solid #B9AE97',background:'#fff',fontSize:12,cursor:disabled?'not-allowed':'pointer',fontFamily:'Archivo,sans-serif',display:'flex',justifyContent:'space-between',alignItems:'center',opacity:disabled?0.5:1}}>
                               <span style={{fontWeight:500}}>{plan.days} dias</span>
                               <span style={{color:'var(--sign-dark)',fontWeight:600}}>R$ {Number(plan.value).toFixed(2)}</span>
                             </button>
@@ -1433,7 +1433,7 @@ export default function PainelPage() {
                             onChange={e => setSubcatSearch(e.target.value)}
                             onFocus={() => setSubcatSearch(subcatSearch || ' ')}
                             onBlur={() => setTimeout(() => setSubcatSearch(''), 200)}
-                            style={{width:'100%',padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:11,fontSize:13,fontFamily:"'Archivo',sans-serif",outline:'none'}}
+                            style={{width:'100%',padding:'10px 12px',border:'1.5px solid #B9AE97',borderRadius:11,fontSize:13,fontFamily:"'Archivo',sans-serif",outline:'none'}}
                           />
                           {subcatSearch && (
                             <div className="subcat-dropdown">
@@ -1476,9 +1476,9 @@ export default function PainelPage() {
                             <input type="text" placeholder="Ex: Barbearia infantil" value={painelSubcatSugestao}
                               onChange={e=>setPainelSubcatSugestao(e.target.value)}
                               onKeyDown={e=>{if(e.key==='Enter'&&painelSubcatSugestao.trim()){e.preventDefault();setPainelSubcatSugestoes(s=>[...s,painelSubcatSugestao.trim()]);setPainelSubcatSugestao('')}}}
-                              style={{flex:1,padding:'8px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Archivo,sans-serif',outline:'none'}}/>
+                              style={{flex:1,padding:'8px 12px',border:'1.5px solid #B9AE97',borderRadius:8,fontSize:13,fontFamily:'Archivo,sans-serif',outline:'none'}}/>
                             <button type="button" onClick={()=>{if(painelSubcatSugestao.trim()){setPainelSubcatSugestoes(s=>[...s,painelSubcatSugestao.trim()]);setPainelSubcatSugestao('')}}}
-                              style={{padding:'8px 14px',background:'#F5F2EC',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:12,cursor:'pointer',fontWeight:600,color:'#555'}}>+ Add</button>
+                              style={{padding:'8px 14px',background:'#F5F2EC',border:'1.5px solid #B9AE97',borderRadius:8,fontSize:12,cursor:'pointer',fontWeight:600,color:'#555'}}>+ Add</button>
                           </div>
                           {painelSubcatSugestoes.length > 0 && (
                             <div style={{display:'flex',gap:5,flexWrap:'wrap',marginTop:6}}>
@@ -1544,11 +1544,11 @@ export default function PainelPage() {
                           onChange={e => setTagInput(e.target.value)}
                           onKeyDown={e => { if (e.key === 'Enter' && tagInput.trim()) { e.preventDefault(); const tag = tagInput.trim().toLowerCase().replace(/[^a-z0-9àáâãéêíóôõúç ]/g, ''); if (tag && !editTags.includes(tag)) setEditTags(prev => [...prev, tag]); setTagInput('') } }}
                           placeholder="ex: pizza, delivery, hambúrguer..."
-                          style={{flex:1,padding:'10px 12px',border:'1.5px solid #E0DDD8',borderRadius:10,fontSize:13,fontFamily:"'Archivo',sans-serif",outline:'none',background:'#FAFAF8'}}
+                          style={{flex:1,padding:'10px 12px',border:'1.5px solid #B9AE97',borderRadius:10,fontSize:13,fontFamily:"'Archivo',sans-serif",outline:'none',background:'#F4F1E9'}}
                         />
                         <button onClick={()=>{ const tag = tagInput.trim().toLowerCase().replace(/[^a-z0-9àáâãéêíóôõúç ]/g, ''); if (tag && !editTags.includes(tag)) setEditTags(prev => [...prev, tag]); setTagInput('') }}
                           disabled={!tagInput.trim()}
-                          style={{padding:'10px 18px',background:tagInput.trim()?'var(--sign)':'#E0DDD8',color:tagInput.trim()?'var(--ink)':'#AAA',border:'none',borderRadius:10,fontSize:13,fontWeight:700,cursor:tagInput.trim()?'pointer':'not-allowed',fontFamily:'Archivo,sans-serif',whiteSpace:'nowrap',flexShrink:0}}>
+                          style={{padding:'10px 18px',background:tagInput.trim()?'var(--sign)':'#B9AE97',color:tagInput.trim()?'var(--ink)':'#AAA',border:'none',borderRadius:10,fontSize:13,fontWeight:700,cursor:tagInput.trim()?'pointer':'not-allowed',fontFamily:'Archivo,sans-serif',whiteSpace:'nowrap',flexShrink:0}}>
                           + Adicionar
                         </button>
                       </div>
@@ -1619,7 +1619,7 @@ export default function PainelPage() {
                 <div className="pt-sec-lbl">MEUS BANNERS</div>
                 <p className="pt-sec-sub">Histórico de banners contratados pela sua empresa</p>
                 {bannerRequests.length === 0 ? (
-                  <div style={{background:'#fff',border:'0.5px solid #EDE8E0',borderRadius:14,padding:'32px 20px',textAlign:'center',color:'#AAA',fontSize:13,marginBottom:32}}>
+                  <div style={{background:'#fff',border:'0.5px solid #DDD5C4',borderRadius:14,padding:'32px 20px',textAlign:'center',color:'#AAA',fontSize:13,marginBottom:32}}>
                     Você ainda não contratou nenhum banner. Contrate abaixo.
                   </div>
                 ) : (
@@ -1910,37 +1910,37 @@ export default function PainelPage() {
                 <div style={{display:'flex',flexDirection:'column',gap:10}}>
                   <div>
                     <label style={{fontSize:11,fontWeight:600,color:'#666',display:'block',marginBottom:4}}>DESCRIÇÃO</label>
-                    <input value={couponForm.title} onChange={e=>setCouponForm(f=>({...f,title:e.target.value}))} placeholder="Ex: R$ 10 off acima de R$ 40" style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Archivo,sans-serif',outline:'none'}}/>
+                    <input value={couponForm.title} onChange={e=>setCouponForm(f=>({...f,title:e.target.value}))} placeholder="Ex: R$ 10 off acima de R$ 40" style={{width:'100%',padding:'9px 12px',border:'1.5px solid #B9AE97',borderRadius:8,fontSize:13,fontFamily:'Archivo,sans-serif',outline:'none'}}/>
                   </div>
                   <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
                     <div>
                       <label style={{fontSize:11,fontWeight:600,color:'#666',display:'block',marginBottom:4}}>TIPO</label>
-                      <select value={couponForm.discount_type} onChange={e=>setCouponForm(f=>({...f,discount_type:e.target.value}))} style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Archivo,sans-serif',background:'#fff',outline:'none'}}>
+                      <select value={couponForm.discount_type} onChange={e=>setCouponForm(f=>({...f,discount_type:e.target.value}))} style={{width:'100%',padding:'9px 12px',border:'1.5px solid #B9AE97',borderRadius:8,fontSize:13,fontFamily:'Archivo,sans-serif',background:'#fff',outline:'none'}}>
                         <option value="fixed">R$ Valor fixo</option>
                         <option value="percent">% Percentual</option>
                       </select>
                     </div>
                     <div>
                       <label style={{fontSize:11,fontWeight:600,color:'#666',display:'block',marginBottom:4}}>VALOR</label>
-                      <input type="number" value={couponForm.discount_value} onChange={e=>setCouponForm(f=>({...f,discount_value:e.target.value}))} placeholder="10" style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Archivo,sans-serif',outline:'none'}}/>
+                      <input type="number" value={couponForm.discount_value} onChange={e=>setCouponForm(f=>({...f,discount_value:e.target.value}))} placeholder="10" style={{width:'100%',padding:'9px 12px',border:'1.5px solid #B9AE97',borderRadius:8,fontSize:13,fontFamily:'Archivo,sans-serif',outline:'none'}}/>
                     </div>
                   </div>
                   <div style={{marginBottom:0}}>
                     <label style={{fontSize:11,fontWeight:600,color:'#666',display:'block',marginBottom:4}}>COMPRA MÍNIMA (opcional)</label>
-                    <input type="number" value={couponForm.min_purchase} onChange={e=>setCouponForm(f=>({...f,min_purchase:e.target.value}))} placeholder="Ex: 50 (deixe vazio para sem mínimo)" style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Archivo,sans-serif',outline:'none'}}/>
+                    <input type="number" value={couponForm.min_purchase} onChange={e=>setCouponForm(f=>({...f,min_purchase:e.target.value}))} placeholder="Ex: 50 (deixe vazio para sem mínimo)" style={{width:'100%',padding:'9px 12px',border:'1.5px solid #B9AE97',borderRadius:8,fontSize:13,fontFamily:'Archivo,sans-serif',outline:'none'}}/>
                   </div>
                   <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
                     <div>
                       <label style={{fontSize:11,fontWeight:600,color:'#666',display:'block',marginBottom:4}}>TOTAL CUPONS</label>
-                      <input type="number" value={couponForm.total_qty} onChange={e=>setCouponForm(f=>({...f,total_qty:e.target.value}))} placeholder="10" style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Archivo,sans-serif',outline:'none'}}/>
+                      <input type="number" value={couponForm.total_qty} onChange={e=>setCouponForm(f=>({...f,total_qty:e.target.value}))} placeholder="10" style={{width:'100%',padding:'9px 12px',border:'1.5px solid #B9AE97',borderRadius:8,fontSize:13,fontFamily:'Archivo,sans-serif',outline:'none'}}/>
                     </div>
                     <div>
                       <label style={{fontSize:11,fontWeight:600,color:'#666',display:'block',marginBottom:4}}>LIMITE/PESSOA</label>
-                      <input type="number" value={couponForm.qty_per_person} onChange={e=>setCouponForm(f=>({...f,qty_per_person:e.target.value}))} placeholder="1" style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Archivo,sans-serif',outline:'none'}}/>
+                      <input type="number" value={couponForm.qty_per_person} onChange={e=>setCouponForm(f=>({...f,qty_per_person:e.target.value}))} placeholder="1" style={{width:'100%',padding:'9px 12px',border:'1.5px solid #B9AE97',borderRadius:8,fontSize:13,fontFamily:'Archivo,sans-serif',outline:'none'}}/>
                     </div>
                     <div>
                       <label style={{fontSize:11,fontWeight:600,color:'#666',display:'block',marginBottom:4}}>DURAÇÃO</label>
-                      <select value={couponForm.duration_days} onChange={e=>setCouponForm(f=>({...f,duration_days:e.target.value}))} style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Archivo,sans-serif',background:'#fff',outline:'none'}}>
+                      <select value={couponForm.duration_days} onChange={e=>setCouponForm(f=>({...f,duration_days:e.target.value}))} style={{width:'100%',padding:'9px 12px',border:'1.5px solid #B9AE97',borderRadius:8,fontSize:13,fontFamily:'Archivo,sans-serif',background:'#fff',outline:'none'}}>
                         <option value="">Selecione...</option>
                         {[1,2,3,4,5,6,7].map(d => <option key={d} value={d}>{d} dia{d>1?'s':''}</option>)}
                       </select>
@@ -2029,7 +2029,7 @@ export default function PainelPage() {
                     ) : (
                       <div style={{display:'flex',flexDirection:'column',gap:8}}>
                         {lista.map((c:any)=>(
-                          <div key={c.id} style={{background:'#fff',border:'0.5px solid #E0DDD8',borderRadius:10,padding:'12px 14px',display:'flex',alignItems:'center',gap:12,opacity:couponTab!=='ativos'?.7:1}}>
+                          <div key={c.id} style={{background:'#fff',border:'0.5px solid #B9AE97',borderRadius:10,padding:'12px 14px',display:'flex',alignItems:'center',gap:12,opacity:couponTab!=='ativos'?.7:1}}>
                             <div style={{flex:1}}>
                               <div style={{fontSize:13,fontWeight:500,color:'#111',marginBottom:2}}>{c.title}</div>
                               <div style={{fontSize:11,color:'#888'}}>{c.discount_type==='fixed'?`R$ ${c.discount_value} off`:`${c.discount_value}% off`}{c.min_purchase>0?` · Mín. R$ ${c.min_purchase}`:''} · {couponTab==='expirados'?'Expirou':'Vence'}: {new Date(c.expires_at).toLocaleDateString('pt-BR')}</div>
@@ -2075,16 +2075,16 @@ export default function PainelPage() {
                   <div style={{display:'flex',flexDirection:'column',gap:10}}>
                     <div>
                       <label style={{fontSize:11,fontWeight:600,color:'#666',display:'block',marginBottom:4}}>TÍTULO DA PROMOÇÃO</label>
-                      <input value={promoForm.title} onChange={e=>setPromoForm(f=>({...f,title:e.target.value}))} placeholder="Ex: 20% off em todo cardápio" style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Archivo,sans-serif',outline:'none'}}/>
+                      <input value={promoForm.title} onChange={e=>setPromoForm(f=>({...f,title:e.target.value}))} placeholder="Ex: 20% off em todo cardápio" style={{width:'100%',padding:'9px 12px',border:'1.5px solid #B9AE97',borderRadius:8,fontSize:13,fontFamily:'Archivo,sans-serif',outline:'none'}}/>
                     </div>
                     <div>
                       <label style={{fontSize:11,fontWeight:600,color:'#666',display:'block',marginBottom:4}}>IMAGEM DA PROMOÇÃO</label>
-                      <input type="file" accept="image/*" onChange={e=>setPromoFile(e.target.files?.[0]||null)} style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Archivo,sans-serif',background:'#fff'}}/>
+                      <input type="file" accept="image/*" onChange={e=>setPromoFile(e.target.files?.[0]||null)} style={{width:'100%',padding:'9px 12px',border:'1.5px solid #B9AE97',borderRadius:8,fontSize:13,fontFamily:'Archivo,sans-serif',background:'#fff'}}/>
                       <div style={{fontSize:10,color:'#AAA',marginTop:3}}>JPG, PNG ou WEBP · formato vertical (stories)</div>
                     </div>
                     <div>
                       <label style={{fontSize:11,fontWeight:600,color:'#666',display:'block',marginBottom:4}}>DURAÇÃO</label>
-                      <select value={promoForm.duration_days} onChange={e=>setPromoForm(f=>({...f,duration_days:e.target.value}))} style={{width:'100%',padding:'9px 12px',border:'1.5px solid #E0DDD8',borderRadius:8,fontSize:13,fontFamily:'Archivo,sans-serif',background:'#fff',outline:'none'}}>
+                      <select value={promoForm.duration_days} onChange={e=>setPromoForm(f=>({...f,duration_days:e.target.value}))} style={{width:'100%',padding:'9px 12px',border:'1.5px solid #B9AE97',borderRadius:8,fontSize:13,fontFamily:'Archivo,sans-serif',background:'#fff',outline:'none'}}>
                         <option value="">Selecione...</option>
                         {[1,2,3,4,5,6,7].map(d => <option key={d} value={d}>{d} dia{d>1?'s':''}</option>)}
                       </select>
@@ -2128,7 +2128,7 @@ export default function PainelPage() {
                 ) : (
                   <div style={{display:'flex',flexDirection:'column',gap:8}}>
                     {myPromos.map((p:any)=>(
-                      <div key={p.id} style={{background:'#fff',border:'0.5px solid #E0DDD8',borderRadius:10,padding:'12px 14px',display:'flex',alignItems:'center',gap:12}}>
+                      <div key={p.id} style={{background:'#fff',border:'0.5px solid #B9AE97',borderRadius:10,padding:'12px 14px',display:'flex',alignItems:'center',gap:12}}>
                         {p.image_url && <Image unoptimized src={p.image_url} alt="" width={48} height={64} style={{objectFit:'cover',borderRadius:8,flexShrink:0}}/>}
                         <div style={{flex:1,minWidth:0}}>
                           <div style={{fontSize:13,fontWeight:500,color:'#111',marginBottom:2}}>{p.title}</div>

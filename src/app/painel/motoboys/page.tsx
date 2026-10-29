@@ -136,12 +136,12 @@ export default function MotoboysPage() {
         .mb-tab{ border:none;background:none;padding:7px 13px;border-radius:8px;font-size:12px;font-weight:700;color:#6E6656;cursor:pointer;font-family:inherit; }
         .mb-tab.on{ background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12); }
         .mb-head-sub{ font-size:12px;color:#6E6656;margin:0 0 16px;line-height:1.5; }
-        .mb-card{ background:#fff;border:1px solid #EDE8E0;border-radius:14px;padding:16px 18px;margin-bottom:14px; }
+        .mb-card{ background:#fff;border:1px solid #DDD5C4;border-radius:14px;padding:16px 18px;margin-bottom:14px; }
         .mb-kicker{ font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#A79E8B;margin-bottom:12px; }
         .mb-filters{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; align-items:center; position:relative; }
-        .mb-chip{ padding:7px 13px; border-radius:20px; border:1.5px solid #EDE8E0; background:#fff; font-size:12px; font-weight:700; cursor:pointer; color:#111; font-family:inherit; }
+        .mb-chip{ padding:7px 13px; border-radius:20px; border:1.5px solid #DDD5C4; background:#fff; font-size:12px; font-weight:700; cursor:pointer; color:#111; font-family:inherit; }
         .mb-chip.on{ background:#111; color:var(--sign, #FFC531); border-color:#111; }
-        .mb-cal{ position:absolute; top:calc(100% + 8px); left:0; background:#fff; border:1px solid #EDE8E0; border-radius:12px; padding:14px; box-shadow:0 12px 30px rgba(0,0,0,.18); z-index:20; width:260px; }
+        .mb-cal{ position:absolute; top:calc(100% + 8px); left:0; background:#fff; border:1px solid #DDD5C4; border-radius:12px; padding:14px; box-shadow:0 12px 30px rgba(0,0,0,.18); z-index:20; width:260px; }
         .mb-cal-hdr{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; font-size:13px; font-weight:800; text-transform:uppercase; }
         .mb-cal-hdr button{ background:none; border:none; font-size:15px; cursor:pointer; }
         .mb-cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:3px; }
@@ -152,20 +152,20 @@ export default function MotoboysPage() {
         .mb-cal-day.mut{ color:#A79E8B; opacity:.4; }
         .mb-rep-period{ font-size:12px; color:#6E6656; margin-bottom:10px; }
         table.mb-rep{ width:100%; border-collapse:collapse; font-size:13px; }
-        table.mb-rep th{ text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:#A79E8B; padding:8px 10px; border-bottom:2px solid #EDE8E0; }
-        table.mb-rep td{ padding:11px 10px; border-bottom:1px solid #EDE8E0; }
+        table.mb-rep th{ text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:#A79E8B; padding:8px 10px; border-bottom:2px solid #DDD5C4; }
+        table.mb-rep td{ padding:11px 10px; border-bottom:1px solid #DDD5C4; }
         table.mb-rep tr:last-child td{ border-bottom:none; }
         .mb-num{ font-variant-numeric:tabular-nums; }
         .mb-total-row td{ font-weight:800; background:#F5F6F2; }
         .mb-empty{ padding:26px; text-align:center; color:#A79E8B; font-size:12.5px; }
-        .mb-row{ display:flex; align-items:center; gap:12px; padding:11px 0; border-bottom:1px solid #EDE8E0; }
+        .mb-row{ display:flex; align-items:center; gap:12px; padding:11px 0; border-bottom:1px solid #DDD5C4; }
         .mb-row:last-child{ border-bottom:none; }
         .mb-avatar{ width:38px; height:38px; border-radius:50%; background:#F5F6F2; display:flex; align-items:center; justify-content:center; font-size:17px; flex:0 0 auto; }
         .mb-body{ flex:1; min-width:0; }
         .mb-name{ font-size:13.5px; font-weight:700; color:#111; }
         .mb-sub{ font-size:11.5px; color:#A79E8B; margin-top:1px; }
         .mb-actions{ display:flex; gap:6px; flex:0 0 auto; }
-        .mb-btn{ font-family:inherit;font-size:12.5px;font-weight:750;border-radius:9px;border:1.5px solid #EDE8E0;background:#fff;color:#111;cursor:pointer;padding:9px 15px; }
+        .mb-btn{ font-family:inherit;font-size:12.5px;font-weight:750;border-radius:9px;border:1.5px solid #DDD5C4;background:#fff;color:#111;cursor:pointer;padding:9px 15px; }
         .mb-btn-gold{ background:var(--sign);color:var(--ink);border:none; }
         .mb-btn-gold:disabled{ opacity:.5;cursor:not-allowed; }
         .mb-btn.ghost-red{ border-color:#F3D9D6; color:#D6392B; }
@@ -173,7 +173,7 @@ export default function MotoboysPage() {
         .mb-btn.full{ width:100%; }
         .mb-form-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:4px; }
         .mb-form-grid label{ font-size:11px; font-weight:700; color:#A79E8B; display:block; margin-bottom:4px; text-transform:uppercase; letter-spacing:.03em; }
-        .mb-form-grid input{ width:100%; border:1.5px solid #EDE8E0; border-radius:8px; padding:9px 11px; font-size:13px; font-family:inherit; box-sizing:border-box; }
+        .mb-form-grid input{ width:100%; border:1.5px solid #DDD5C4; border-radius:8px; padding:9px 11px; font-size:13px; font-family:inherit; box-sizing:border-box; }
         .mb-erro{ color:#C43D3D; font-size:11.5px; margin-top:10px; }
         @media(max-width:480px){ .mb-form-grid{ grid-template-columns:1fr; } }
       `}</style>

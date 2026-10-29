@@ -252,7 +252,7 @@ export default function EntregaPage() {
         .en-tab{ border:none;background:none;padding:7px 13px;border-radius:8px;font-size:12px;font-weight:700;color:#6E6656;cursor:pointer;font-family:inherit; }
         .en-tab.on{ background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12); }
         .en-chips{ display:flex;gap:8px;flex-wrap:wrap; }
-        .en-chip{ display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #EDE8E0;border-radius:20px;padding:6px 12px;font-size:12px;font-weight:800; }
+        .en-chip{ display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #DDD5C4;border-radius:20px;padding:6px 12px;font-size:12px;font-weight:800; }
         .en-chip b{ font-family:'Anton',sans-serif;font-size:14px; }
         .en-chip.warn{ background:#FBEAEA;border-color:#F3C6C6;color:#A83232; }
         .en-chip.ok{ background:#E4F3EC;border-color:#BFE4D2;color:#157A52; }
@@ -261,12 +261,12 @@ export default function EntregaPage() {
         .en-summary{ display:flex;gap:20px;flex-wrap:wrap;margin-bottom:16px; }
         .en-summary-item .n{ font-family:'Anton',sans-serif;font-size:24px;color:var(--ink);line-height:1; }
         .en-summary-item .l{ font-size:10.5px;color:#A79E8B;margin-top:2px; }
-        .en-card{ background:#fff;border:1px solid #EDE8E0;border-radius:14px;padding:16px;margin-bottom:14px; }
+        .en-card{ background:#fff;border:1px solid #DDD5C4;border-radius:14px;padding:16px;margin-bottom:14px; }
         .en-kicker{ font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#A79E8B;margin-bottom:10px; }
         .en-btn{ font-family:inherit;font-size:12.5px;font-weight:750;border-radius:9px;border:none;padding:9px 15px;cursor:pointer; }
         .en-btn-gold{ background:var(--sign);color:var(--ink); }
         .en-btn-gold:disabled{ opacity:.5;cursor:not-allowed; }
-        .en-btn-outline{ background:#fff;color:#8A6410;border:1.5px solid #E6E0D2; }
+        .en-btn-outline{ background:#fff;color:#8A6410;border:1.5px solid #B9AE97; }
         .en-unit-row{ display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px; }
         .en-unit-info{ display:flex;flex-direction:column; }
         .en-unit-price{ font-family:'Anton',sans-serif;font-size:20px;color:#8A6410; }
@@ -276,19 +276,19 @@ export default function EntregaPage() {
         .en-stepper button:disabled{ opacity:.35;cursor:not-allowed; }
         .en-qty{ font-family:'Anton',sans-serif;font-size:16px;min-width:28px;text-align:center; }
         .en-quick-row{ display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px; }
-        .en-quick-chip{ border:1.5px solid #E6E0D2;background:#fff;border-radius:18px;padding:6px 11px;font-size:11.5px;font-weight:700;cursor:pointer;color:var(--ink);font-family:inherit; }
+        .en-quick-chip{ border:1.5px solid #B9AE97;background:#fff;border-radius:18px;padding:6px 11px;font-size:11.5px;font-weight:700;cursor:pointer;color:var(--ink);font-family:inherit; }
         .en-quick-chip.on{ background:var(--sign);border-color:var(--sign); }
         .en-offers-label{ font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#A79E8B;margin:10px 0 7px; }
         .en-offers-list{ display:flex;flex-direction:column;gap:6px; }
-        .en-offer-card{ display:flex;align-items:center;gap:9px;border:1.5px solid #E6E0D2;background:#fff;border-radius:9px;padding:8px 11px;cursor:pointer;font-family:inherit;text-align:left;width:100%; }
+        .en-offer-card{ display:flex;align-items:center;gap:9px;border:1.5px solid #B9AE97;background:#fff;border-radius:9px;padding:8px 11px;cursor:pointer;font-family:inherit;text-align:left;width:100%; }
         .en-offer-card.on{ border-color:var(--open,#0F8A57);background:#EEF8F3; }
-        .en-offer-check{ width:16px;height:16px;border-radius:50%;border:1.5px solid #E6E0D2;flex:none; }
+        .en-offer-check{ width:16px;height:16px;border-radius:50%;border:1.5px solid #B9AE97;flex:none; }
         .en-offer-card.on .en-offer-check{ background:#0F8A57;border-color:#0F8A57; }
         .en-offer-title{ font-size:12px;font-weight:800; }
         .en-offer-sub{ font-size:10.5px;color:#6E6656; }
         .en-total-row{ display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700;color:#6E6656; }
         .en-error{ color:#C43D3D;font-size:11.5px;margin-top:10px; }
-        .en-order{ border-bottom:1px solid #EDE8E0;padding:11px 0; }
+        .en-order{ border-bottom:1px solid #DDD5C4;padding:11px 0; }
         .en-order:last-child{ border-bottom:none; }
         .en-order-row1{ display:flex;justify-content:space-between;gap:8px;align-items:baseline; }
         .en-order-name{ font-weight:700;font-size:13px; }
@@ -303,10 +303,10 @@ export default function EntregaPage() {
         .en-modal{ background:#fff;border-radius:16px;padding:24px;max-width:340px;width:100%;text-align:center; }
         .en-modal h3{ font-family:'Anton',sans-serif;font-size:19px;margin:0 0 4px; }
         .en-modal-val{ font-size:13px;color:#6E6656;margin-bottom:14px; }
-        .en-qr-wrap{ background:#fff;padding:8px;border:2px solid #EDE8E0;border-radius:12px;display:inline-block;margin-bottom:14px; }
+        .en-qr-wrap{ background:#fff;padding:8px;border:2px solid #DDD5C4;border-radius:12px;display:inline-block;margin-bottom:14px; }
         .en-qr{ width:190px;height:190px;display:block; }
         .en-copy-wrap{ display:flex;gap:6px;margin-bottom:14px; }
-        .en-copy-input{ flex:1;min-width:0;padding:9px 10px;border:1.5px solid #E0DDD8;border-radius:8px;font-size:10.5px;font-family:monospace;color:#333;background:#FAFAF8; }
+        .en-copy-input{ flex:1;min-width:0;padding:9px 10px;border:1.5px solid #B9AE97;border-radius:8px;font-size:10.5px;font-family:monospace;color:#333;background:#F4F1E9; }
         .en-copy-btn{ background:var(--sign);color:var(--ink);border:none;padding:9px 14px;border-radius:8px;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap; }
         .en-modal-wait{ font-size:11.5px;color:#A79E8B;margin-bottom:12px; }
         .en-modal-close{ background:none;border:none;color:#8A6410;font-weight:700;font-size:12px;cursor:pointer; }
@@ -314,10 +314,10 @@ export default function EntregaPage() {
         .en-order-code b{ font-family:'Anton',sans-serif;font-size:15px;letter-spacing:2px;color:#8A6410; }
         .en-order-code span{ color:#A79E8B; }
         .en-flabel{ display:block;font-size:11px;font-weight:700;color:#6E6656;margin:10px 0 5px; }
-        .en-finput{ width:100%;padding:9px 12px;border-radius:9px;border:1px solid #E6E0D2;font-size:13px;font-family:inherit;box-sizing:border-box; }
+        .en-finput{ width:100%;padding:9px 12px;border-radius:9px;border:1px solid #B9AE97;font-size:13px;font-family:inherit;box-sizing:border-box; }
         .en-grid{ display:block; }
         .en-ledger{ width:100%;border-collapse:collapse;font-size:12px; }
-        .en-ledger th{ text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#A79E8B;padding:6px 8px;border-bottom:1px solid #EDE8E0; }
+        .en-ledger th{ text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#A79E8B;padding:6px 8px;border-bottom:1px solid #DDD5C4; }
         .en-ledger td{ padding:9px 8px;border-bottom:1px solid #F5F3EE;color:#3A342A; }
         .en-ledger tr:last-child td{ border-bottom:none; }
         .en-ledger-pos{ color:#157A52;font-weight:700; }

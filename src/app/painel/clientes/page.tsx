@@ -134,14 +134,14 @@ export default function ClientesPage() {
           .cl-wrap{ width:100%;max-width:100%;margin:0 auto;min-height:100vh;background:var(--concrete);font-family:'Archivo',sans-serif;font-size:13px;color:var(--ink);padding-bottom:30px;min-width:0;overflow-x:hidden; }
           .cl-head{ padding:22px 16px 14px;display:flex;align-items:center;gap:10px;position:sticky;top:0;background:#F7F5F0;z-index:5; }
           .cl-head h1{ font-size:18px;margin:0;flex:1;font-weight:800; }
-          .cl-back{ width:32px;height:32px;border-radius:50%;border:1px solid #E6E0D2;background:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;text-decoration:none;color:#1A1610; }
+          .cl-back{ width:32px;height:32px;border-radius:50%;border:1px solid #B9AE97;background:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;text-decoration:none;color:#1A1610; }
           .cl-body{ padding:0 16px; }
-          .cl-search{ width:100%;padding:9px 12px;border-radius:9px;border:1px solid #E6E0D2;background:#fff;font-size:12.5px;font-family:inherit;margin-bottom:12px; }
+          .cl-search{ width:100%;padding:9px 12px;border-radius:9px;border:1px solid #B9AE97;background:#fff;font-size:12.5px;font-family:inherit;margin-bottom:12px; }
           .cl-tabs{ display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap; }
-          .cl-tab{ flex:1;min-width:120px;padding:8px 6px;border-radius:9px;border:1px solid #E6E0D2;background:#fff;font-weight:700;font-size:11px;color:#6E6656;cursor:pointer;white-space:nowrap; }
+          .cl-tab{ flex:1;min-width:120px;padding:8px 6px;border-radius:9px;border:1px solid #B9AE97;background:#fff;font-weight:700;font-size:11px;color:#6E6656;cursor:pointer;white-space:nowrap; }
           .cl-tab.active{ background:var(--ink);color:var(--sign);border-color:var(--ink); }
           .cl-empty{ text-align:center;color:#A79E8B;padding:40px 0;font-size:12.5px; }
-          .cl-card{ background:#fff;border:1px solid #EDE8E0;border-radius:12px;padding:12px;margin-bottom:10px; }
+          .cl-card{ background:#fff;border:1px solid #DDD5C4;border-radius:12px;padding:12px;margin-bottom:10px; }
           .cl-row1{ display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px; }
           .cl-name{ font-weight:800;font-size:13.5px; }
           .cl-phone{ font-size:11px;color:#A79E8B; }
@@ -155,13 +155,13 @@ export default function ClientesPage() {
           .cl-select-row{ display:flex;align-items:flex-start;gap:8px; }
           .cl-select-row input{ margin-top:3px;accent-color:var(--ink);width:15px;height:15px;flex:none; }
           .cl-tagfilter-wrap{ position:relative; }
-          .cl-tagfilter-pop{ position:absolute;top:34px;left:0;min-width:220px;background:#fff;border:1px solid #E6E0D2;border-radius:12px;box-shadow:0 10px 26px rgba(0,0,0,.15);z-index:30;padding:6px; }
+          .cl-tagfilter-pop{ position:absolute;top:34px;left:0;min-width:220px;background:#fff;border:1px solid #B9AE97;border-radius:12px;box-shadow:0 10px 26px rgba(0,0,0,.15);z-index:30;padding:6px; }
           .cl-tagfilter-row{ display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:8px;cursor:pointer;font-size:12px;color:#1A1610; }
           .cl-tagfilter-row:hover{ background:#F7F5F0; }
           .cl-tagfilter-row input{ accent-color:var(--ink);width:14px;height:14px; }
           .cl-tagdot{ width:9px;height:9px;border-radius:50%;flex:none;display:inline-block; }
           .cl-bulkbar{ display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#FEF3E2;border:1px solid #F0DDAE;border-radius:10px;padding:9px 12px;margin-bottom:12px;font-size:12px;color:#6E6656; }
-          .cl-bulkbar select{ border:1px solid #E6E0D2;border-radius:8px;padding:6px 8px;font-size:11.5px;font-family:inherit;background:#fff;color:#1A1610; }
+          .cl-bulkbar select{ border:1px solid #B9AE97;border-radius:8px;padding:6px 8px;font-size:11.5px;font-family:inherit;background:#fff;color:#1A1610; }
           @media(min-width:768px){
             .cl-wrap{ max-width:none;margin:0;padding-bottom:40px; }
             .cl-head{ padding:28px 32px 16px; }

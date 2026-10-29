@@ -1098,12 +1098,12 @@ export default function PedidosPage() {
         .pd-head-left{ display:flex;align-items:center;gap:10px;min-width:0; }
         .pd-head-right{ display:flex;align-items:center;gap:10px;flex:none; }
         .pd-head h1{ font-size:19px;margin:0;font-weight:800;flex:none;white-space:nowrap; }
-        .pd-back{ flex:none;width:30px;height:30px;border-radius:50%;border:1px solid #E6E0D2;background:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;text-decoration:none;color:#1A1610; }
+        .pd-back{ flex:none;width:30px;height:30px;border-radius:50%;border:1px solid #B9AE97;background:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;text-decoration:none;color:#1A1610; }
         /* O dobro tinha ficado largo demais — retângulo branco enorme com o
            switch verde pequenininho dentro, e estourava a lateral no
            mobile. Reduzido 20% (116px → 93px), pedido do Ricardo,
            out/2026. */
-        .pd-auto-pill{ flex:none;width:93px;display:flex;align-items:center;justify-content:center;gap:8px;background:#fff;border:1px solid #E6E0D2;border-radius:14px;padding:9px 10px;cursor:pointer;font-size:17px; }
+        .pd-auto-pill{ flex:none;width:93px;display:flex;align-items:center;justify-content:center;gap:8px;background:#fff;border:1px solid #B9AE97;border-radius:14px;padding:9px 10px;cursor:pointer;font-size:17px; }
         .pd-auto-pill .pd-switch{ width:34px;height:19px;border-radius:10px; }
         .pd-auto-pill .pd-switch .k{ width:15px;height:15px;top:2px;left:2px; }
         .pd-auto-pill .pd-switch.on .k{ left:15px; }
@@ -1112,19 +1112,19 @@ export default function PedidosPage() {
         .pd-new-pill{ flex:none;width:42px;height:42px;border-radius:50%;background:var(--sign);color:var(--ink);border:none;font-size:22px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center; }
         .pd-icon-pill{ flex:none;width:42px;height:42px;border-radius:50%;border:none;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit; }
         .pd-datebar{ display:flex;align-items:center;gap:8px;padding:0 16px 12px; }
-        .pd-date-arrow{ flex:none;width:30px;height:30px;border-radius:8px;border:1px solid #E6E0D2;background:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit; }
+        .pd-date-arrow{ flex:none;width:30px;height:30px;border-radius:8px;border:1px solid #B9AE97;background:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit; }
         .pd-date-arrow:disabled{ opacity:.35;cursor:default; }
-        .pd-date-input{ flex:1;min-width:0;padding:8px 10px;border-radius:9px;border:1px solid #E6E0D2;background:#fff;font-size:13.5px;font-family:inherit;color:var(--ink); }
+        .pd-date-input{ flex:1;min-width:0;padding:8px 10px;border-radius:9px;border:1px solid #B9AE97;background:#fff;font-size:13.5px;font-family:inherit;color:var(--ink); }
         .pd-today-btn{ flex:none;padding:8px 12px;border-radius:9px;border:none;background:var(--sign);color:var(--ink);font-weight:800;font-size:12.5px;cursor:pointer;white-space:nowrap;font-family:inherit; }
         .pd-hist-banner{ background:#FEF6DC;color:#8A6410;font-size:12.5px;font-weight:700;padding:9px 16px;text-align:center; }
         .pd-searchbar{ padding:0 16px 12px; }
         .pd-tabs{ display:flex;gap:8px;padding:0 16px 12px;overflow-x:auto; }
-        .pd-tab{ flex:none;display:flex;align-items:center;gap:6px;padding:8px 13px;border-radius:20px;border:1.5px solid #E6E0D2;background:#fff;font-weight:700;font-size:14.5px;color:#6E6656;cursor:pointer;white-space:nowrap; }
+        .pd-tab{ flex:none;display:flex;align-items:center;gap:6px;padding:8px 13px;border-radius:20px;border:1.5px solid #B9AE97;background:#fff;font-weight:700;font-size:14.5px;color:#6E6656;cursor:pointer;white-space:nowrap; }
         .pd-tab.active{ background:var(--accent);color:#fff;border-color:var(--accent); }
-        .pd-tab-count{ font-variant-numeric:tabular-nums;background:#EDE8E0;color:#6E6656;font-size:12px;font-weight:800;padding:1px 7px;border-radius:20px; }
+        .pd-tab-count{ font-variant-numeric:tabular-nums;background:#DDD5C4;color:#6E6656;font-size:12px;font-weight:800;padding:1px 7px;border-radius:20px; }
         .pd-tab.active .pd-tab-count{ background:rgba(255,255,255,.3);color:#fff; }
         .pd-body{ padding:0 16px; }
-        .pd-card{ background:#fff;border:1px solid #EDE8E0;border-radius:12px;padding:14px;margin-bottom:10px; }
+        .pd-card{ background:#fff;border:1px solid #DDD5C4;border-radius:12px;padding:14px;margin-bottom:10px; }
         /* Menu superior fixo — status, editar, imprimir e abrir/fechar numa
            faixa própria colada no topo do card, em vez de tudo espremido do
            lado do nome do cliente. Mockup aprovado, out/2026 (Ricardo:
@@ -1142,7 +1142,7 @@ export default function PedidosPage() {
            - flex-wrap como rede de segurança última: se mesmo com o status
              todo encolhido ainda não couber, o grupo de ações quebra pra
              uma linha de baixo inteiro — nunca corta/empurra pra fora. */
-        .pd-card-toolbar{ display:flex;align-items:center;flex-wrap:wrap;gap:4px 6px;background:#F7F5F0;border-bottom:1px solid #EDE8E0;border-radius:12px 12px 0 0;padding:8px 14px;margin:-14px -14px 10px; }
+        .pd-card-toolbar{ display:flex;align-items:center;flex-wrap:wrap;gap:4px 6px;background:#F7F5F0;border-bottom:1px solid #DDD5C4;border-radius:12px 12px 0 0;padding:8px 14px;margin:-14px -14px 10px; }
         /* Badge de status não estica mais pra ocupar a linha toda — só o
            tamanho do próprio texto (mesma fonte/tamanho do nome do
            cliente, .pd-name) — e os botões de editar/imprimir/abrir ganham
@@ -1151,7 +1151,7 @@ export default function PedidosPage() {
         .pd-ct-status{ min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:16px;font-weight:800;padding:3px 10px;border-radius:7px;flex:0 1 auto; }
         .pd-ct-actions{ display:flex;align-items:center;gap:6px;flex:none;margin-left:auto; }
         .pd-row1{ margin-bottom:8px; }
-        .pd-edit-btn{ width:40px;height:36px;border-radius:9px;border:1px solid #E6E0D2;background:#fff;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex:none;padding:0; }
+        .pd-edit-btn{ width:40px;height:36px;border-radius:9px;border:1px solid #B9AE97;background:#fff;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex:none;padding:0; }
         .pd-toggle-btn{ width:40px;height:36px;border-radius:9px;border:1.5px solid #D8C98A;background:#FEF6DC;color:#8A6410;cursor:pointer;font-size:17px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none;padding:0; }
         .pd-name{ font-weight:800;font-size:16px; }
         .pd-time{ font-size:12.5px;color:#A79E8B; }
@@ -1197,10 +1197,10 @@ export default function PedidosPage() {
         .pd-sumrow{ display:flex;align-items:center;gap:6px;padding:6px 2px;font-size:13px;font-weight:600;color:#3A342A;border-bottom:1px solid #F2EFE8; }
         .pd-sum-right{ margin-left:auto;font-weight:700; }
         .pd-total{ font-weight:800;font-size:17px; }
-        .pd-pricerow{ display:flex;align-items:center;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid #EDE8E0; }
+        .pd-pricerow{ display:flex;align-items:center;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid #DDD5C4; }
         .pd-finalize-btn{ margin-left:auto;padding:9px 16px;border-radius:9px;border:none;background:var(--sign);color:#1A1610;font-weight:800;font-size:13.5px;cursor:pointer; }
         .pd-paid-tag{ margin-left:auto;font-size:12.5px;font-weight:800;color:#157A52;background:#E4F3EC;padding:5px 11px;border-radius:20px; }
-        .pd-detail{ margin-top:12px;padding-top:12px;border-top:1px dashed #EDE8E0; }
+        .pd-detail{ margin-top:12px;padding-top:12px;border-top:1px dashed #DDD5C4; }
         .pd-item{ display:flex;justify-content:space-between;font-size:14px;padding:3px 0; }
         .pd-mods{ font-size:13px;color:#A79E8B;padding-left:12px; }
         .pd-detail-meta{ margin-top:10px;display:flex;flex-direction:column;gap:4px;background:#F7F5F0;border-radius:9px;padding:9px 11px; }
@@ -1209,7 +1209,7 @@ export default function PedidosPage() {
         /* Era só texto sublinhado antes — "pode fazer um botão vermelho pra
            chamar bastante atenção" (Ricardo, out/2026, revisando o mockup). */
         .pd-cancel{ width:100%;font-size:14px;color:#fff;font-weight:800;background:#C43D3D;border:none;border-radius:9px;padding:11px;cursor:pointer;margin-top:10px; }
-        .pd-printer-pill{ padding:9px 14px;border-radius:9px;border:1.5px solid #E6E0D2;background:#fff;color:#8A6410;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit;white-space:nowrap; }
+        .pd-printer-pill{ padding:9px 14px;border-radius:9px;border:1.5px solid #B9AE97;background:#fff;color:#8A6410;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit;white-space:nowrap; }
         .pp-overlay{ position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:70;display:flex;align-items:center;justify-content:center;padding:16px; }
         .pp-modal{ background:#fff;border-radius:16px;max-width:400px;width:100%;padding:22px;max-height:88vh;overflow-y:auto; }
         .pp-modal h2{ font-size:15px;margin:0 0 4px;font-weight:800; }
@@ -1221,8 +1221,8 @@ export default function PedidosPage() {
         .pp-step-n{ flex:none;width:22px;height:22px;border-radius:50%;background:#F0EDE8;color:#6E6656;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center; }
         .pp-step-txt{ font-size:12.5px;color:#3A342A;line-height:1.5;padding-top:2px; }
         .pp-dl-btn{ display:inline-block;margin-top:6px;padding:8px 14px;border-radius:8px;background:var(--ink);color:var(--sign);font-weight:700;font-size:12px;text-decoration:none; }
-        .pp-retry{ width:100%;padding:10px;border-radius:9px;border:1.5px solid #E6E0D2;background:#fff;color:#3A342A;font-weight:700;font-size:12.5px;cursor:pointer;margin-top:6px;font-family:inherit; }
-        .pp-printer-item{ display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border:1.5px solid #E6E0D2;border-radius:9px;margin-bottom:8px;cursor:pointer; }
+        .pp-retry{ width:100%;padding:10px;border-radius:9px;border:1.5px solid #B9AE97;background:#fff;color:#3A342A;font-weight:700;font-size:12.5px;cursor:pointer;margin-top:6px;font-family:inherit; }
+        .pp-printer-item{ display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border:1.5px solid #B9AE97;border-radius:9px;margin-bottom:8px;cursor:pointer; }
         .pp-printer-item.sel{ border-color:#157A52;background:#E4F3EC; }
         .pp-close{ width:100%;padding:10px;border-radius:9px;border:none;background:#F0EDE8;color:#6E6656;font-weight:700;font-size:12.5px;cursor:pointer;margin-top:10px;font-family:inherit; }
         .pp-err{ background:#FBEAEA;color:#C43D3D;font-size:11.5px;padding:9px 11px;border-radius:8px;margin-bottom:12px;line-height:1.5; }
@@ -1230,50 +1230,50 @@ export default function PedidosPage() {
         .pd-card-pending{ border:1.5px solid var(--accent); }
         .pd-accept{ width:100%;margin-top:8px;padding:9px;border-radius:9px;border:none;background:var(--accent);color:#fff;font-weight:800;font-size:14.5px;cursor:pointer; }
         .pd-next{ width:100%;margin-top:8px;padding:10px;border-radius:9px;border:none;background:var(--accent);color:#fff;font-weight:800;font-size:14.5px;cursor:pointer; }
-        .pd-mb-select{ width:100%;margin-top:8px;padding:9px 10px;border-radius:9px;border:1.5px solid #E0DDD8;background:#fff;color:#111;font-weight:700;font-size:14px;font-family:inherit; }
+        .pd-mb-select{ width:100%;margin-top:8px;padding:9px 10px;border-radius:9px;border:1.5px solid #B9AE97;background:#fff;color:#111;font-weight:700;font-size:14px;font-family:inherit; }
         .pd-toolbar{ display:none; }
-        .pd-search{ width:100%;padding:9px 12px;border-radius:9px;border:1px solid #E6E0D2;background:#F7F5F0;font-size:14px;font-family:inherit; }
+        .pd-search{ width:100%;padding:9px 12px;border-radius:9px;border:1px solid #B9AE97;background:#F7F5F0;font-size:14px;font-family:inherit; }
         /* Virou cartão com fundo/borda próprios, largura fixa igual pros
            dois (antes o texto de cada um tinha tamanho diferente —
            "Aceitar automaticamente" vs "🏍️ Motoboy automático" — e cada
            label só ocupava o próprio texto, ficando bem desproporcional).
            Pedido do Ricardo, out/2026: "os dois podem aumentar em
            largura... ser do mesmo tamanho". */
-        .pd-autotoggle{ display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;color:#3A342A;cursor:pointer;background:#fff;border:1px solid #E6E0D2;border-radius:10px;padding:10px 16px;width:220px;flex:none; }
-        .pd-switch{ width:36px;height:20px;border-radius:11px;background:#E6E0D2;position:relative;cursor:pointer;flex:none; }
+        .pd-autotoggle{ display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;color:#3A342A;cursor:pointer;background:#fff;border:1px solid #B9AE97;border-radius:10px;padding:10px 16px;width:220px;flex:none; }
+        .pd-switch{ width:36px;height:20px;border-radius:11px;background:#B9AE97;position:relative;cursor:pointer;flex:none; }
         .pd-switch.on{ background:#157A52; }
         .pd-switch .k{ position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .15s; }
         .pd-switch.on .k{ left:18px; }
         .pd-newbtn{ padding:10px;border-radius:9px;border:none;background:var(--sign);color:var(--ink);font-weight:800;font-size:14px;cursor:pointer; }
         .np-overlay{ position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:60;display:flex;align-items:flex-end;justify-content:center; }
         .np-drawer{ background:#F7F5F0;width:100%;max-width:480px;max-height:92vh;border-radius:18px 18px 0 0;display:flex;flex-direction:column;overflow:hidden; }
-        .np-head{ padding:16px;border-bottom:1px solid #EDE8E0;display:flex;justify-content:space-between;align-items:center;background:#fff; }
-        .np-close{ width:28px;height:28px;border-radius:50%;border:1px solid #E6E0D2;background:#fff;cursor:pointer; }
+        .np-head{ padding:16px;border-bottom:1px solid #DDD5C4;display:flex;justify-content:space-between;align-items:center;background:#fff; }
+        .np-close{ width:28px;height:28px;border-radius:50%;border:1px solid #B9AE97;background:#fff;cursor:pointer; }
         .np-body{ flex:1;overflow-y:auto;padding:14px 16px; }
         .np-section-label{ font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#A79E8B;margin:12px 0 6px; }
-        .np-input{ width:100%;padding:9px 12px;border-radius:9px;border:1px solid #E6E0D2;background:#fff;font-size:12.5px;font-family:inherit;margin-bottom:8px; }
-        .np-paychip{ flex:1;padding:9px;border-radius:9px;border:1.5px solid #E6E0D2;background:#fff;font-size:12px;font-weight:700;cursor:pointer; }
+        .np-input{ width:100%;padding:9px 12px;border-radius:9px;border:1px solid #B9AE97;background:#fff;font-size:12.5px;font-family:inherit;margin-bottom:8px; }
+        .np-paychip{ flex:1;padding:9px;border-radius:9px;border:1.5px solid #B9AE97;background:#fff;font-size:12px;font-weight:700;cursor:pointer; }
         .np-paychip.active{ background:var(--ink);color:var(--sign);border-color:var(--ink); }
         .np-prodgrid{ display:grid;grid-template-columns:1fr 1fr;gap:8px; }
-        .np-prod{ background:#fff;border:1px solid #E6E0D2;border-radius:10px;padding:10px;cursor:pointer; }
+        .np-prod{ background:#fff;border:1px solid #B9AE97;border-radius:10px;padding:10px;cursor:pointer; }
         .np-prod-name{ font-size:12px;font-weight:700; }
         .np-prod-price{ font-size:11.5px;color:#6E6656;margin-top:3px; }
-        .np-cartline{ display:flex;align-items:center;gap:6px;font-size:12px;padding:6px 0;border-bottom:1px solid #EDE8E0; }
-        .np-qtybtn{ width:22px;height:22px;border-radius:6px;border:1px solid #E6E0D2;background:#fff;cursor:pointer;font-weight:800; }
-        .np-totalrow{ display:flex;justify-content:space-between;font-weight:800;font-size:14px;padding-top:10px;margin-top:6px;border-top:1px dashed #E6E0D2; }
+        .np-cartline{ display:flex;align-items:center;gap:6px;font-size:12px;padding:6px 0;border-bottom:1px solid #DDD5C4; }
+        .np-qtybtn{ width:22px;height:22px;border-radius:6px;border:1px solid #B9AE97;background:#fff;cursor:pointer;font-weight:800; }
+        .np-totalrow{ display:flex;justify-content:space-between;font-weight:800;font-size:14px;padding-top:10px;margin-top:6px;border-top:1px dashed #B9AE97; }
         .np-back{ background:none;border:none;color:#8A6410;font-weight:700;font-size:12px;cursor:pointer;padding:0; }
-        .np-opt{ display:flex;justify-content:space-between;padding:9px 10px;border:1px solid #E6E0D2;border-radius:9px;margin-bottom:6px;font-size:12px;cursor:pointer;background:#fff; }
+        .np-opt{ display:flex;justify-content:space-between;padding:9px 10px;border:1px solid #B9AE97;border-radius:9px;margin-bottom:6px;font-size:12px;cursor:pointer;background:#fff; }
         .np-opt.active{ border-color:var(--sign-dark);background:#FEF3E2; }
         .np-addcart{ width:100%;padding:12px;border-radius:10px;border:none;background:var(--sign);color:var(--ink);font-weight:800;cursor:pointer; }
         .np-addcart:disabled{ background:#E2DCCB;color:#A79E8B; }
-        .np-foot{ padding:12px 16px 16px;border-top:1px solid #EDE8E0;background:#fff; }
+        .np-foot{ padding:12px 16px 16px;border-top:1px solid #DDD5C4;background:#fff; }
         .np-createbtn{ width:100%;padding:13px;border-radius:10px;border:none;background:#157A52;color:#fff;font-weight:800;cursor:pointer; }
         .np-createbtn:disabled{ background:#D8D2C4;color:#8A8577; }
         .pd-board{ display:none; }
         @media(min-width:768px){
           .pd-wrap{ max-width:none;margin:0;padding-bottom:40px; }
           .pd-mobile-only{ display:none; }
-          .pd-toolbar{ display:flex;flex-direction:row;align-items:center;padding:16px 32px;gap:10px;background:#fff;border-bottom:1px solid #EDE8E0; }
+          .pd-toolbar{ display:flex;flex-direction:row;align-items:center;padding:16px 32px;gap:10px;background:#fff;border-bottom:1px solid #DDD5C4; }
           .pd-search{ max-width:280px; }
           .pd-datebar{ padding:0;flex:none; }
           .pd-date-input{ flex:none;width:150px; }
@@ -1298,7 +1298,7 @@ export default function PedidosPage() {
              juntos) — pedido do Ricardo, out/2026: cancelado não tem mais
              coluna própria, mas às vezes precisa separar os dois. */
           .pd-hist-filter{ display:flex;gap:4px;padding:0 4px 8px; }
-          .pd-hist-filter button{ flex:1;padding:4px 2px;border-radius:6px;border:1px solid #E6E0D2;background:#fff;font-size:11px;font-weight:700;cursor:pointer;color:#6E6656;font-family:inherit; }
+          .pd-hist-filter button{ flex:1;padding:4px 2px;border-radius:6px;border:1px solid #B9AE97;background:#fff;font-size:11px;font-weight:700;cursor:pointer;color:#6E6656;font-family:inherit; }
           .pd-hist-filter button.active{ background:var(--accent);color:#fff;border-color:var(--accent); }
           .pd-board-scroll{ overflow-y:auto;overflow-x:hidden;flex:1;min-height:0; }
           .pd-board .pd-card{ margin-bottom:8px; }
@@ -1353,7 +1353,7 @@ export default function PedidosPage() {
         .pd-cancelreq-txt{ font-size:12px;font-weight:800;color:#A83232;margin-bottom:7px; }
         .pd-cancelreq-btns{ display:flex;gap:8px; }
         .pd-cancelreq-btn{ flex:1;padding:7px 8px;border-radius:8px;border:none;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit; }
-        .pd-cancelreq-btn.keep{ background:#fff;color:#6E6656;border:1.5px solid #E6E0D2; }
+        .pd-cancelreq-btn.keep{ background:#fff;color:#6E6656;border:1.5px solid #B9AE97; }
         .pd-cancelreq-btn.cancel{ background:#C43D3D;color:#fff; }
       `}</style>
       {pedidosNovos.length > 0 && (
@@ -1760,7 +1760,7 @@ export default function PedidosPage() {
                     onClick={() => setFinalizarMethod(m)}
                     style={{
                       flex: 1, padding: '12px 6px', borderRadius: 9, cursor: 'pointer', textAlign: 'center', fontWeight: 700, fontSize: 13,
-                      border: finalizarMethod === m ? '1.5px solid #8A6410' : '1.5px solid #E6E0D2',
+                      border: finalizarMethod === m ? '1.5px solid #8A6410' : '1.5px solid #B9AE97',
                       background: finalizarMethod === m ? '#FEF6DC' : '#fff',
                       color: finalizarMethod === m ? '#6B4A0A' : '#3A342A',
                     }}

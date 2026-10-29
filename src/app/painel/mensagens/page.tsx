@@ -1180,8 +1180,8 @@ export default function MensagensPage() {
         )}
         <style>{`
           .msg-page{padding:0;min-width:0;}
-          .msg-connect{max-width:360px;margin:40px auto;text-align:center;background:#fff;border:1px solid #EDE8E0;border-radius:16px;padding:28px 22px;}
-          .msg-qr{width:200px;height:200px;margin:16px auto;border-radius:12px;border:1px solid #EDE8E0;overflow:hidden;background:#F7F5F0;display:flex;align-items:center;justify-content:center;}
+          .msg-connect{max-width:360px;margin:40px auto;text-align:center;background:#fff;border:1px solid #DDD5C4;border-radius:16px;padding:28px 22px;}
+          .msg-qr{width:200px;height:200px;margin:16px auto;border-radius:12px;border:1px solid #DDD5C4;overflow:hidden;background:#F7F5F0;display:flex;align-items:center;justify-content:center;}
           .msg-qr img{width:100%;height:100%;object-fit:contain;}
           .msg-btn{padding:11px 22px;border-radius:10px;border:none;background:var(--sign);color:var(--ink);font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;}
           .msg-btn:disabled{opacity:.5;cursor:not-allowed;}
@@ -1452,11 +1452,11 @@ export default function MensagensPage() {
           .msg-emoji-picker button{background:none;border:none;font-size:18px;cursor:pointer;padding:4px;border-radius:6px;}
           .msg-emoji-picker button:hover{background:#182229;}
           .msg-picker{background:#fff;border-radius:14px;width:320px;max-width:92vw;max-height:70vh;display:flex;flex-direction:column;overflow:hidden;}
-          .msg-picker-title{padding:16px;font-weight:800;font-size:14px;border-bottom:1px solid #EDE8E0;}
+          .msg-picker-title{padding:16px;font-weight:800;font-size:14px;border-bottom:1px solid #DDD5C4;}
           .msg-picker-list{overflow-y:auto;flex:1;}
           .msg-picker-item{display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;font-size:13px;}
           .msg-picker-item:hover{background:#F7F5F0;}
-          .msg-picker-cancel{padding:14px;border:none;border-top:1px solid #EDE8E0;background:none;font-weight:700;font-size:13px;color:#C43D3D;cursor:pointer;font-family:inherit;}
+          .msg-picker-cancel{padding:14px;border:none;border-top:1px solid #DDD5C4;background:none;font-weight:700;font-size:13px;color:#C43D3D;cursor:pointer;font-family:inherit;}
           .msg-reply-bar{display:flex;align-items:center;gap:10px;padding:8px 14px;background:#202c33;border-top:1px solid #2f3b43;font-size:12px;}
           .msg-reply-bar-txt{flex:1;min-width:0;color:#c8ccce;border-left:3px solid var(--sign);padding-left:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
           .msg-reply-bar button{background:none;border:none;font-size:15px;cursor:pointer;color:#8696a0;flex:none;}

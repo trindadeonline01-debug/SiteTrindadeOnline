@@ -98,7 +98,7 @@ export default function MaisPage() {
         .company-arrow{color:rgba(255,255,255,.4);font-size:18px;margin-left:auto;}
         .sectlbl{font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#A79E8B;margin:20px 2px 8px;}
         .sectlbl:first-of-type{margin-top:0;}
-        .list{background:#fff;border:1px solid #EDE8E0;border-radius:14px;overflow:hidden;}
+        .list{background:#fff;border:1px solid #DDD5C4;border-radius:14px;overflow:hidden;}
         .item{display:flex;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid #F0EDE8;text-decoration:none;color:inherit;}
         .item:last-child{border-bottom:none;}
         .item-ico{font-size:17px;width:22px;text-align:center;flex:none;}

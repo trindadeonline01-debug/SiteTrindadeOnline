@@ -4,7 +4,8 @@ import { supabase } from '@/lib/supabase'
 import { moduleActive } from '@/lib/modules'
 import { qzPrintRaw, buildReceipt, buildKitchenTicket, isRawBtMode, printViaRawBt } from '@/lib/qzPrint'
 import { fetchPedidoComItensComRetry } from '@/lib/autoprint'
-import { npGroupContribution, type NpGrupo, type NpProduto, type NpCartLine, PESO_REGEX, pesoNum, pesoDisplay } from '@/lib/produtoCart'
+import { npGroupContribution, type NpGrupo, type NpProduto, type NpCartLine, PESO_REGEX, pesoNum, pesoDisplay, pesoDigitsFromKg } from '@/lib/produtoCart'
+import { parseBalancaCode, BALANCA_DEFAULT_CONFIG, type BalancaConfig, type BalancaParsed } from '@/lib/balancaBarcode'
 
 // PDV — tela cheia (bare route, igual Cozinha), pra venda de balcão rápida.
 // Mesmo catálogo/preço/formas de pagamento da loja, só muda a visualização:
@@ -19,6 +20,7 @@ import { npGroupContribution, type NpGrupo, type NpProduto, type NpCartLine, PES
 // inline — pedido explícito do Ricardo no mockup aprovado.
 type Item = NpCartLine & { pesoModo: boolean; pesoKg: string }
 type Categoria = { id: string; name: string }
+type Produto = NpProduto & { codigo_balanca: string | null }
 
 const PAY_ALL: Record<string, string> = {
   pix: 'Pix', dinheiro: 'Dinheiro', cartao: 'Cartão', cartao_credito: 'Cartão de crédito', cartao_debito: 'Cartão de débito',
@@ -64,7 +66,7 @@ export default function PdvPage() {
   const [printerName, setPrinterName] = useState('')
   const [payOptions, setPayOptions] = useState<string[]>(['dinheiro', 'pix', 'cartao'])
 
-  const [produtos, setProdutos] = useState<NpProduto[]>([])
+  const [produtos, setProdutos] = useState<Produto[]>([])
   const [categorias, setCategorias] = useState<Categoria[]>([])
   const [activeCat, setActiveCat] = useState<string>('all')
   const [search, setSearch] = useState('')
@@ -96,13 +98,29 @@ export default function PdvPage() {
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null)
   const [cancelandoId, setCancelandoId] = useState<string | null>(null)
 
+  // Leitor de balança — pedido do Ricardo, out/2026: "a opção de peso só
+  // funciona quando é venda manual, quando lê o código de barras já vem com
+  // essas informações". Formato do código varia por loja (sem padrão fixo
+  // entre marcas), por isso precisa de calibração antes de funcionar —
+  // balancaConfigurada=false até o lojista confirmar o formato 1 vez.
+  const [balancaConfig, setBalancaConfig] = useState<BalancaConfig>(BALANCA_DEFAULT_CONFIG)
+  const [balancaConfigurada, setBalancaConfigurada] = useState(false)
+  const [showBalanca, setShowBalanca] = useState(false)
+  const [calMode, setCalMode] = useState<'formato' | 'vincular'>('formato')
+  const [calRaw, setCalRaw] = useState('')
+  const [calDraft, setCalDraft] = useState<BalancaConfig>(BALANCA_DEFAULT_CONFIG)
+  const [calConfReal, setCalConfReal] = useState('')
+  const [calProdutoId, setCalProdutoId] = useState('')
+  const [calSaving, setCalSaving] = useState(false)
+  const calScanRef = useRef<HTMLInputElement>(null)
+
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { window.location.href = '/login?redirect=/painel/pdv'; return }
       const { data: profile } = await supabase.from('profiles').select('user_type').eq('id', session.user.id).maybeSingle()
       const empresaParam = new URLSearchParams(window.location.search).get('empresa')
       const isAdmin = profile?.user_type === 'admin' && !!empresaParam
-      const SEL = 'id, name, loja_digital_enabled, loja_impressora_nome, loja_payment_methods, trial_modules_until'
+      const SEL = 'id, name, loja_digital_enabled, loja_impressora_nome, loja_payment_methods, trial_modules_until, balanca_prefixo, balanca_plu_digits, balanca_valor_digits, balanca_valor_tipo, balanca_configurada'
       const { data: comp } = isAdmin
         ? await supabase.from('companies').select(SEL).eq('id', empresaParam).maybeSingle()
         : await supabase.from('companies').select(SEL).eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
@@ -111,13 +129,22 @@ export default function PdvPage() {
       setCompanyName(comp.name)
       setPrinterName(comp.loja_impressora_nome || '')
       try { setSkipOpcionais(localStorage.getItem(`pdv-venda-rapida-${comp.id}`) === '1') } catch {}
+      const cfg: BalancaConfig = {
+        prefixo: comp.balanca_prefixo || BALANCA_DEFAULT_CONFIG.prefixo,
+        pluDigits: comp.balanca_plu_digits ?? BALANCA_DEFAULT_CONFIG.pluDigits,
+        valorDigits: comp.balanca_valor_digits ?? BALANCA_DEFAULT_CONFIG.valorDigits,
+        valorTipo: comp.balanca_valor_tipo === 'preco' ? 'preco' : 'peso',
+      }
+      setBalancaConfig(cfg)
+      setCalDraft(cfg)
+      setBalancaConfigurada(!!comp.balanca_configurada)
       const configured: string[] = comp.loja_payment_methods || []
       const opts = configured.length > 0 ? configured : ['dinheiro', 'pix', 'cartao']
       setPayOptions(opts)
       setPayMethod(opts.includes('dinheiro') ? 'dinheiro' : opts[0])
 
       const [{ data: prods }, { data: cats }] = await Promise.all([
-        supabase.from('loja_produtos').select('id, name, sale_price, category_id, photo_url, groups:loja_opcoes_grupo(*, options:loja_opcoes(*))').eq('company_id', comp.id).eq('active', true).order('display_order'),
+        supabase.from('loja_produtos').select('id, name, sale_price, category_id, photo_url, codigo_balanca, groups:loja_opcoes_grupo(*, options:loja_opcoes(*))').eq('company_id', comp.id).eq('active', true).order('display_order'),
         supabase.from('loja_categorias').select('id, name').eq('company_id', comp.id).order('display_order'),
       ])
       setProdutos((prods || []) as any)
@@ -187,6 +214,65 @@ export default function PdvPage() {
     setVendasHoje(prev => prev.map(v => v.id === id ? { ...v, status: 'cancelado' } : v))
     setConfirmCancelId(null)
     setCancelandoId(null)
+  }
+
+  // Produto lido pela balança já vem com o peso decidido (ou, se o formato
+  // da loja embute preço em vez de peso, dá pra chegar no peso dividindo
+  // pelo preço/kg) — entra direto no carrinho, sem telinha de pesagem nem
+  // de opcionais (o corte já foi decidido na balança, não tem o que
+  // perguntar de novo).
+  function addPesadoPorLeitor(p: Produto, parsed: BalancaParsed) {
+    const pesoKg = parsed.pesoKg != null ? parsed.pesoKg : (p.sale_price > 0 ? (parsed.precoReais || 0) / p.sale_price : 0)
+    const key = `${p.id}-${Date.now()}`
+    setCart(prev => [...prev, { key, produtoId: p.id, name: p.name, modifiers: [], unitPrice: p.sale_price, qty: 1, pesoModo: true, pesoKg: pesoDigitsFromKg(pesoKg) }])
+  }
+
+  function abrirBalanca() {
+    setShowBalanca(true)
+    setCalMode(balancaConfigurada ? 'vincular' : 'formato')
+    setCalRaw(''); setCalConfReal(''); setCalProdutoId('')
+    setCalDraft(balancaConfig)
+    setTimeout(() => calScanRef.current?.focus(), 60)
+  }
+
+  const calParsed = useMemo(() => {
+    const digits = calRaw.replace(/\D/g, '')
+    return digits.length >= 8 ? parseBalancaCode(calRaw, calDraft) : null
+  }, [calRaw, calDraft])
+  const calDecodedNum = calParsed ? (calDraft.valorTipo === 'peso' ? calParsed.pesoKg : calParsed.precoReais) : undefined
+  const calConfRealNum = parseFloat(calConfReal.replace(',', '.'))
+  const calBate = calMode === 'formato' && calDecodedNum != null && Number.isFinite(calConfRealNum) && Math.abs(calDecodedNum - calConfRealNum) < 0.01
+
+  async function salvarFormatoBalanca() {
+    if (!calBate || !calParsed || !calProdutoId || calSaving) return
+    setCalSaving(true)
+    await supabase.from('companies').update({
+      balanca_prefixo: calDraft.prefixo, balanca_plu_digits: calDraft.pluDigits,
+      balanca_valor_digits: calDraft.valorDigits, balanca_valor_tipo: calDraft.valorTipo,
+      balanca_configurada: true,
+    }).eq('id', companyId)
+    await supabase.from('loja_produtos').update({ codigo_balanca: calParsed.plu }).eq('id', calProdutoId)
+    setBalancaConfig(calDraft)
+    setBalancaConfigurada(true)
+    setProdutos(prev => prev.map(p => p.id === calProdutoId ? { ...p, codigo_balanca: calParsed.plu } : p))
+    setCalSaving(false)
+    setCalRaw(''); setCalConfReal(''); setCalProdutoId('')
+    setCalMode('vincular')
+  }
+
+  async function vincularProdutoBalanca() {
+    if (!calParsed || !calProdutoId || calSaving) return
+    setCalSaving(true)
+    await supabase.from('loja_produtos').update({ codigo_balanca: calParsed.plu }).eq('id', calProdutoId)
+    setProdutos(prev => prev.map(p => p.id === calProdutoId ? { ...p, codigo_balanca: calParsed.plu } : p))
+    setCalSaving(false)
+    setCalRaw(''); setCalProdutoId('')
+    calScanRef.current?.focus()
+  }
+
+  async function desvincularProduto(produtoId: string) {
+    await supabase.from('loja_produtos').update({ codigo_balanca: null }).eq('id', produtoId)
+    setProdutos(prev => prev.map(p => p.id === produtoId ? { ...p, codigo_balanca: null } : p))
   }
 
   function addToCart(p: NpProduto, modifiers: { name: string; price: number }[], unitPrice: number) {
@@ -329,8 +415,20 @@ export default function PdvPage() {
     (activeCat === 'all' || p.category_id === activeCat) &&
     (!search.trim() || p.name.toLowerCase().includes(search.trim().toLowerCase()))
   )
+  // Leitor bipando aqui dentro: se a loja já calibrou o formato e o código
+  // bate com um produto vinculado, pula a busca por nome inteira — vai
+  // direto pro carrinho com o peso que a balança já decidiu. Só cai na
+  // busca por nome normal se não for um código reconhecido.
   function onSearchKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter' && filtered.length === 1) { handleProductClick(filtered[0]); setSearch('') }
+    if (e.key !== 'Enter') return
+    if (balancaConfigurada) {
+      const parsed = parseBalancaCode(search, balancaConfig)
+      if (parsed) {
+        const prod = produtos.find(p => p.codigo_balanca === parsed.plu)
+        if (prod) { addPesadoPorLeitor(prod, parsed); setSearch(''); return }
+      }
+    }
+    if (filtered.length === 1) { handleProductClick(filtered[0]); setSearch('') }
   }
 
   if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Archivo,sans-serif', color: '#AAA', background: 'var(--ink)' }}>Carregando...</div>
@@ -446,6 +544,23 @@ export default function PdvPage() {
         .pdv-venda-confirm button{ font-size:11px;font-weight:700;padding:6px 10px;border-radius:8px;cursor:pointer;border:none; }
         .pdv-venda-confirm button:first-child{ background:#C43D3D;color:#fff; }
         .pdv-venda-confirm button:last-child{ background:#F0EDE8;color:#6E6656; }
+
+        .pdv-cal-field{ margin-bottom:12px; }
+        .pdv-cal-field label{ display:block;font-size:11px;font-weight:800;color:#6E6656;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px; }
+        .pdv-cal-input{ width:100%;padding:10px 12px;border-radius:9px;border:1.5px solid #DDD5C4;background:#FAF8F4;font-size:13px;font-weight:600;font-family:inherit;box-sizing:border-box; }
+        .pdv-cal-input:focus{ outline:none;border-color:#FFC531; }
+        .pdv-cal-grid{ display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;margin-bottom:4px; }
+        .pdv-cal-input.small{ padding:8px 10px;font-size:12.5px; }
+        .pdv-cal-preview{ display:flex;flex-direction:column;gap:3px;background:#F4F1E9;border-radius:9px;padding:10px 12px;font-size:12px;color:#6E6656;margin-bottom:12px; }
+        .pdv-cal-preview b{ color:#151210; }
+        .pdv-cal-preview.bad{ background:#FBEAEA;color:#C43D3D; }
+        .pdv-cal-check{ font-size:11.5px;font-weight:700;margin-top:6px; }
+        .pdv-cal-check.ok{ color:#0F6B46; }
+        .pdv-cal-check.bad{ color:#C43D3D; }
+        .pdv-cal-linked{ border-top:1px dashed #DDD5C4;margin-top:4px;padding-top:10px;margin-bottom:10px; }
+        .pdv-cal-linked-hd{ font-size:10.5px;font-weight:800;color:#A79E8B;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px; }
+        .pdv-cal-linked-row{ display:flex;align-items:center;justify-content:space-between;padding:5px 0;font-size:12px;color:#151210; }
+        .pdv-cal-linked-row button{ font-size:10.5px;font-weight:700;color:#C43D3D;background:none;border:none;cursor:pointer; }
         .pdv-grp{ margin:12px 0 6px;font-weight:800;font-size:12.5px; }
         .pdv-opt{ display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #F0EDE8;cursor:pointer;font-size:12.5px; }
         .pdv-opt.sel{ color:#0F8050;font-weight:700; }
@@ -493,6 +608,9 @@ export default function PdvPage() {
             title="Quando ligado, adiciona o produto direto no preço base, sem perguntar limpo/em posta/outros opcionais — pra quem é só do cardápio digital, não faz sentido no balcão."
           >
             ⚡ Venda rápida {skipOpcionais ? '· ligada' : ''}
+          </button>
+          <button className={`pdv-rapida-btn ${balancaConfigurada ? 'on' : ''}`} onClick={abrirBalanca} title={balancaConfigurada ? 'Balança calibrada — bipar um produto vinculado pula a telinha de peso' : 'Calibrar leitura da balança'}>
+            ⚖️ Balança {balancaConfigurada ? '· calibrada' : '· configurar'}
           </button>
           <div className="pdv-top-divider" />
           <div className={`pdv-printer ${printerName ? 'ok' : 'off'}`}>{printerName ? '● Impressora conectada' : '○ Sem impressora'}</div>
@@ -693,6 +811,104 @@ export default function PdvPage() {
               </div>
             )}
             <button className="pdv-modal-cancel" onClick={() => setShowVendas(false)}>Fechar</button>
+          </div>
+        </div>
+      )}
+
+      {/* calibração/vínculo da balança */}
+      {showBalanca && (
+        <div className="pdv-overlay" onClick={() => setShowBalanca(false)}>
+          <div className="pdv-modal pdv-modal-wide" onClick={e => e.stopPropagation()}>
+            <h3>⚖️ {calMode === 'formato' ? 'Calibrar balança' : 'Vincular produto'}</h3>
+            <div className="pdv-modal-sub">
+              {calMode === 'formato'
+                ? 'Bipe uma etiqueta REAL da balança e confirme o valor impresso nela — assim o sistema aprende o formato do seu equipamento.'
+                : 'Bipe a etiqueta de um produto e escolha a quem ela pertence.'}
+            </div>
+
+            <div className="pdv-cal-field">
+              <label>Bipe a etiqueta aqui</label>
+              <input ref={calScanRef} className="pdv-cal-input" value={calRaw} onChange={e => setCalRaw(e.target.value)} placeholder="Aponte o leitor..." />
+            </div>
+
+            {calMode === 'formato' && (
+              <div className="pdv-cal-grid">
+                <div className="pdv-cal-field">
+                  <label>Prefixo</label>
+                  <input className="pdv-cal-input small" value={calDraft.prefixo} onChange={e => setCalDraft(d => ({ ...d, prefixo: e.target.value.replace(/\D/g, '') }))} maxLength={2} />
+                </div>
+                <div className="pdv-cal-field">
+                  <label>Dígitos do código</label>
+                  <input className="pdv-cal-input small" type="number" value={calDraft.pluDigits} onChange={e => setCalDraft(d => ({ ...d, pluDigits: Math.max(1, Number(e.target.value) || 0) }))} />
+                </div>
+                <div className="pdv-cal-field">
+                  <label>Dígitos do valor</label>
+                  <input className="pdv-cal-input small" type="number" value={calDraft.valorDigits} onChange={e => setCalDraft(d => ({ ...d, valorDigits: Math.max(1, Number(e.target.value) || 0) }))} />
+                </div>
+                <div className="pdv-cal-field">
+                  <label>O valor é</label>
+                  <select className="pdv-cal-input small" value={calDraft.valorTipo} onChange={e => setCalDraft(d => ({ ...d, valorTipo: e.target.value === 'preco' ? 'preco' : 'peso' }))}>
+                    <option value="peso">Peso</option>
+                    <option value="preco">Preço</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {calParsed ? (
+              <div className="pdv-cal-preview">
+                <span>Código do produto: <b>{calParsed.plu}</b></span>
+                <span>{calDraft.valorTipo === 'peso' ? `Peso decodificado: ${(calParsed.pesoKg ?? 0).toFixed(3)} kg` : `Preço decodificado: ${fmt(calParsed.precoReais || 0)}`}</span>
+              </div>
+            ) : calRaw.replace(/\D/g, '').length > 0 ? (
+              <div className="pdv-cal-preview bad">Código não bate com esse formato ainda — ajuste os campos acima.</div>
+            ) : null}
+
+            {calMode === 'formato' && calParsed && (
+              <div className="pdv-cal-field">
+                <label>{calDraft.valorTipo === 'peso' ? 'Peso real impresso na etiqueta (kg)' : 'Preço real impresso na etiqueta (R$)'}</label>
+                <input className="pdv-cal-input" value={calConfReal} onChange={e => setCalConfReal(e.target.value)} placeholder={calDraft.valorTipo === 'peso' ? 'ex: 1,250' : 'ex: 24,90'} />
+                {calConfReal && (
+                  <div className={`pdv-cal-check ${calBate ? 'ok' : 'bad'}`}>{calBate ? '✓ Bate com o decodificado' : '✗ Não bate — ajuste os campos de formato acima'}</div>
+                )}
+              </div>
+            )}
+
+            {calParsed && (calMode === 'vincular' || calBate) && (
+              <div className="pdv-cal-field">
+                <label>Esse código é de qual produto?</label>
+                <select className="pdv-cal-input" value={calProdutoId} onChange={e => setCalProdutoId(e.target.value)}>
+                  <option value="">Selecione...</option>
+                  {produtos.filter(p => PESO_REGEX.test(p.name)).map(p => (
+                    <option key={p.id} value={p.id}>{p.name}{p.codigo_balanca ? ' · já vinculado' : ''}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {calMode === 'formato' ? (
+              <button className="pdv-modal-confirm" disabled={!calBate || !calProdutoId || calSaving} onClick={salvarFormatoBalanca}>{calSaving ? 'Salvando...' : 'Salvar formato e vincular'}</button>
+            ) : (
+              <button className="pdv-modal-confirm" disabled={!calParsed || !calProdutoId || calSaving} onClick={vincularProdutoBalanca}>{calSaving ? 'Salvando...' : 'Vincular produto'}</button>
+            )}
+
+            {balancaConfigurada && calMode === 'vincular' && (
+              <button className="pdv-modal-cancel" style={{ marginTop: 6 }} onClick={() => { setCalMode('formato'); setCalDraft(balancaConfig); setCalRaw(''); setCalConfReal(''); setCalProdutoId('') }}>🔧 Reconfigurar formato (trocou de balança)</button>
+            )}
+
+            {produtos.some(p => p.codigo_balanca) && (
+              <div className="pdv-cal-linked">
+                <div className="pdv-cal-linked-hd">Produtos já vinculados</div>
+                {produtos.filter(p => p.codigo_balanca).map(p => (
+                  <div key={p.id} className="pdv-cal-linked-row">
+                    <span>{p.name}</span>
+                    <button onClick={() => desvincularProduto(p.id)}>Desvincular</button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <button className="pdv-modal-cancel" onClick={() => setShowBalanca(false)}>Fechar</button>
           </div>
         </div>
       )}

@@ -358,14 +358,20 @@ export default function VendasDashboard({ company }: { company: { id: string } }
         .rp-kpi-lbl{ font-size:10.5px;font-weight:700;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px; }
         .rp-kpi-val{ font-family:'Anton',sans-serif;font-size:24px;color:var(--ink); }
         .rp-kpi-val.alert{ color:var(--alert); }
-        .rp-grid2{ display:grid;grid-template-columns:1fr;gap:14px;margin-bottom:14px; }
+        /* min-width:0 nas colunas do grid é essencial — por padrão um item de
+           grid não encolhe abaixo do min-content do que tem dentro (o canvas
+           do Chart.js, a legenda da pizza), então a coluna da direita empurra
+           a página inteira pra fora da tela em vez de encolher (achado real
+           do Ricardo, out/2026: gráficos "vazando" pra direita). */
+        .rp-grid2{ display:grid;grid-template-columns:1fr;gap:14px;margin-bottom:14px;min-width:0; }
         @media(min-width:900px){ .rp-grid2{ grid-template-columns:2fr 1fr; } }
-        .rp-grid3{ display:grid;grid-template-columns:1fr;gap:14px;margin-bottom:14px; }
+        .rp-grid3{ display:grid;grid-template-columns:1fr;gap:14px;margin-bottom:14px;min-width:0; }
         @media(min-width:900px){ .rp-grid3{ grid-template-columns:1fr 1fr 1fr; } }
-        .rp-card{ background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px; }
+        .rp-card{ background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0;box-sizing:border-box; }
         .rp-card-title{ font-size:11.5px;font-weight:800;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;margin-bottom:14px; }
         .rp-card-title-sub{ text-transform:none;font-weight:600;letter-spacing:0;color:#A79E8B; }
-        .rp-chart-box{ height:220px;position:relative; }
+        .rp-chart-box{ height:220px;position:relative;width:100%;min-width:0; }
+        .rp-chart-box canvas{ max-width:100%; }
         .rp-chart-box.small{ height:160px; }
         .rp-empty{ text-align:center;color:var(--muted);font-size:12.5px;padding:40px 0; }
         .rp-table{ width:100%;border-collapse:collapse;font-size:12.5px; }
@@ -374,8 +380,8 @@ export default function VendasDashboard({ company }: { company: { id: string } }
         .rp-table tr:last-child td{ border-bottom:none; }
         .rp-rank{ display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:var(--concrete-2);font-size:10.5px;font-weight:800;color:var(--muted);margin-right:6px; }
 
-        .rp-donut-row{ display:flex;align-items:center;gap:14px;flex-wrap:wrap; }
-        .rp-legend{ flex:1;min-width:150px;display:flex;flex-direction:column;gap:4px; }
+        .rp-donut-row{ display:flex;align-items:center;gap:14px;flex-wrap:wrap;min-width:0; }
+        .rp-legend{ flex:1 1 150px;min-width:0;display:flex;flex-direction:column;gap:4px; }
         .rp-legend-hd{ display:flex;font-size:9px;font-weight:800;color:#A79E8B;text-transform:uppercase;margin-bottom:2px; }
         .rp-legend-hd .lp, .rp-legend-row .lp{ width:36px;text-align:right; }
         .rp-legend-hd .lv, .rp-legend-row .lv{ width:70px;text-align:right; }

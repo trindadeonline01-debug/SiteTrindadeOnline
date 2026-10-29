@@ -373,6 +373,7 @@ export default function CompartilharPage() {
           .entrega-card{background:#fff;border:1px solid #B9AE97;border-radius:16px;padding:20px;margin-bottom:16px;}
           .entrega-card.fallback{background:var(--concrete-2,#F5F6F2);}
           .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+          .field-row-3{grid-template-columns:1fr 1fr 1fr;}
           @media(max-width:640px){.field-row{grid-template-columns:1fr;}}
 
           .method-tabs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
@@ -512,20 +513,13 @@ export default function CompartilharPage() {
             <div className="crm-panel-back-row"><button className="crm-back" onClick={() => setView('hub')}>‹</button><span className="crm-panel-title">Taxa de entrega</span></div>
 
             <div className="entrega-card">
-              <div className="crm-config-title">🧾 Pedido mínimo e frete grátis</div>
-              <div className="field-row">
+              <div className="crm-config-title">🧾 Pedido mínimo, frete grátis e tempo de preparo</div>
+              <div className="field-row field-row-3">
                 <div className="crm-config-field"><label>Pedido mínimo (R$)</label><input value={minimoInput} onChange={e => setMinimoInput(e.target.value)} /></div>
                 <div className="crm-config-field"><label>Frete grátis a partir de (R$)</label><input value={freteGratisInput} onChange={e => setFreteGratisInput(e.target.value)} /></div>
+                <div className="crm-config-field"><label>Tempo médio de preparo (min)</label><input value={tempoPreparoInput} onChange={e => setTempoPreparoInput(e.target.value.replace(/\D/g, ''))} /></div>
               </div>
-              <div className="crm-config-sub" style={{ margin: 0 }}>Pedido igual ou acima do valor de frete grátis não paga taxa — não importa o método escolhido abaixo. Deixe 0 se você não quiser oferecer frete grátis.</div>
-            </div>
-
-            <div className="entrega-card">
-              <div className="crm-config-title">⏱️ Tempo médio de preparo</div>
-              <div className="field-row">
-                <div className="crm-config-field" style={{ maxWidth: 140 }}><label>Minutos</label><input value={tempoPreparoInput} onChange={e => setTempoPreparoInput(e.target.value.replace(/\D/g, ''))} /></div>
-              </div>
-              <div className="crm-config-sub" style={{ margin: 0 }}>Some com o tempo de trajeto até o cliente pra mostrar uma estimativa de entrega no cardápio (ex: "35–50 min").</div>
+              <div className="crm-config-sub" style={{ margin: 0 }}>Pedido igual ou acima do valor de frete grátis não paga taxa — não importa o método escolhido abaixo. Deixe 0 se você não quiser oferecer frete grátis. O tempo de preparo soma com o trajeto até o cliente pra mostrar uma estimativa no cardápio (ex: "35–50 min").</div>
             </div>
 
             <div className="crm-config-title" style={{ marginBottom: 10 }}>Como calcular a taxa de entrega?</div>

@@ -1,0 +1,8 @@
+{
+  "name": "thermal-printer-loja",
+  "version": "1.0.0",
+  "description": "Impressão térmica Bluetooth (ESC/POS) pro app da loja — módulo local, em cima da lib Android DantSu/ESCPOS-ThermalPrinter-Android, com lista real de impressoras pareadas e largura configurável (não só 'primeira pareada' fixa em 48mm, como o pacote expo-thermal-printer 0.1.1 faz).",
+  "main": "index.ts",
+  "license": "UNLICENSED",
+  "private": true
+}

@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "Trindade Online Loja",
+    "slug": "trindade-loja",
+    "scheme": "trindadeloja",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#F0EDE8",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.trindadeonline.loja"
+    },
+    "android": {
+      "package": "com.trindadeonline.loja",
+      "adaptiveIcon": {
+        "backgroundColor": "#151210",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "BLUETOOTH",
+        "BLUETOOTH_ADMIN",
+        "BLUETOOTH_CONNECT",
+        "BLUETOOTH_SCAN",
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.BLUETOOTH_SCAN"
+      ]
+    },
+    "web": { "favicon": "./assets/favicon.png" },
+    "extra": { "eas": { "projectId": "" } }
+  }
+}

@@ -17,6 +17,7 @@ const eslintConfig = defineConfig([
     // desse preset (core-web-vitals, compiler rules) são pensadas pra
     // Next.js/DOM e não fazem sentido pra React Native.
     "app-motoboy/**",
+    "app-loja/**",
   ]),
 ]);
 

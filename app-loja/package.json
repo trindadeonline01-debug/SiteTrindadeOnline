@@ -1,0 +1,33 @@
+{
+  "name": "app-loja",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "dependencies": {
+    "@react-native-async-storage/async-storage": "^3.1.1",
+    "@supabase/supabase-js": "^2.76.0",
+    "expo": "~57.0.27",
+    "expo-asset": "~57.0.19",
+    "expo-audio": "^57.0.5",
+    "expo-constants": "^57.0.21",
+    "expo-keep-awake": "^57.0.2",
+    "expo-status-bar": "~57.0.1",
+    "react": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-get-random-values": "^1.11.0",
+    "react-native-safe-area-context": "^5.10.1",
+    "react-native-url-polyfill": "^2.0.0",
+    "react-native-webview": "^13.16.0",
+    "thermal-printer-loja": "file:./modules/thermal-printer-loja"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.2",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web"
+  },
+  "private": true
+}

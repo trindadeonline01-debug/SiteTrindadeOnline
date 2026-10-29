@@ -1,0 +1,47 @@
+apply plugin: 'com.android.library'
+
+group = 'expo.modules.thermalprinterloja'
+version = '1.0.0'
+
+def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
+apply from: expoModulesCorePlugin
+applyKotlinExpoModulesCorePlugin()
+useCoreDependencies()
+useExpoPublishing()
+
+buildscript {
+  ext.safeExtGet = { prop, fallback ->
+    rootProject.ext.has(prop) ? rootProject.ext.get(prop) : fallback
+  }
+}
+project.android {
+  compileSdkVersion safeExtGet("compileSdkVersion", 34)
+  defaultConfig {
+    minSdkVersion safeExtGet("minSdkVersion", 21)
+    targetSdkVersion safeExtGet("targetSdkVersion", 34)
+  }
+}
+
+android {
+  namespace "expo.modules.thermalprinterloja"
+  defaultConfig {
+    versionCode 1
+    versionName "1.0.0"
+  }
+  lintOptions {
+    abortOnError false
+  }
+}
+
+repositories {
+  maven { url 'https://jitpack.io' }
+}
+
+dependencies {
+  // Mesma lib Android que o pacote expo-thermal-printer 0.1.1 usa por baixo
+  // (com.dantsu.escposprinter) — madura, mantida, usada em produção por
+  // vários apps de PDV. O que a gente escreve aqui em cima é só a parte que
+  // faltava nesse pacote: listar impressoras pareadas de verdade (não só
+  // "a primeira") e largura/dpi configurável (não fixo em 48mm/203dpi).
+  implementation 'com.github.DantSu:ESCPOS-ThermalPrinter-Android:3.4.0'
+}

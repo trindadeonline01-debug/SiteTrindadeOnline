@@ -1,0 +1,42 @@
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native (gerado por prebuild na raiz do app — módulo local em modules/
+# tem o PRÓPRIO android/ versionado, de propósito, não é isso aqui)
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+/ios
+/android
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files
+.env*.local
+
+# credenciais — nunca versionar
+google-services.json
+GoogleService-Info.plist
+
+# typescript
+*.tsbuildinfo

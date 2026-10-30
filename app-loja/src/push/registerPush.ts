@@ -6,7 +6,7 @@ import { supabase } from '../supabase';
 // com a tela apagada/bloqueada (diferente de notificação "silenciosa"
 // padrão, que só aparece na barra sem acordar o aparelho). O nome do som
 // tem que bater com o arquivo bundlado pelo plugin expo-notifications no
-// app.json (assets/sounds/novo_pedido.wav → referenciado sem extensão).
+// app.json (assets/sounds/pedido_novo_telefone.mp3 → referenciado sem extensão).
 const CANAL_PEDIDOS = 'pedidos-loja';
 
 export async function configurarCanalNotificacoes() {
@@ -14,7 +14,7 @@ export async function configurarCanalNotificacoes() {
   await Notifications.setNotificationChannelAsync(CANAL_PEDIDOS, {
     name: 'Pedido novo',
     importance: Notifications.AndroidImportance.MAX,
-    sound: 'novo_pedido',
+    sound: 'pedido_novo_telefone',
     vibrationPattern: [0, 500, 250, 500],
     lightColor: '#C9951A',
     enableVibrate: true,

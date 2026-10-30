@@ -5,8 +5,9 @@ import { supabase } from '../supabase';
 import { listPairedPrinters, requestBluetoothPermissions, printFormatted, type PairedPrinter, type PrintConfig } from '../../modules/thermal-printer-loja';
 import { getSavedPrinterAddress, savePrinterAddress, getSavedPrintConfig, savePrintConfig } from '../printerConfig';
 import { buildTestTicket } from '../print/receipt';
+import Toggle from '../components/Toggle';
 
-export default function ConfigScreen({ companyName }: { companyName: string }) {
+export default function ConfigScreen({ companyName, lojaAberta, onToggleLoja }: { companyName: string; lojaAberta: boolean; onToggleLoja: () => void }) {
   const [impressoras, setImpressoras] = useState<PairedPrinter[]>([]);
   const [selecionada, setSelecionada] = useState<string | null>(null);
   const [config, setConfig] = useState<PrintConfig>({ dpi: 203, widthMm: 58, charsPerLine: 32 });
@@ -59,6 +60,13 @@ export default function ConfigScreen({ companyName }: { companyName: string }) {
 
   return (
     <ScrollView contentContainerStyle={styles.wrap}>
+      <View style={styles.lojaRow}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.lojaTit}>Loja {lojaAberta ? 'aberta' : 'pausada'}</Text>
+          <Text style={styles.hint}>{lojaAberta ? 'Recebendo pedidos pelo site' : 'O site mostra "Loja fechada" e não aceita pedido'}</Text>
+        </View>
+        <Toggle on={lojaAberta} onPress={onToggleLoja} />
+      </View>
       <Text style={styles.secTitle}>🖨️ Impressora Bluetooth</Text>
       <Text style={styles.hint}>Pareie a impressora pelo Bluetooth do Android primeiro, depois escolha ela aqui.</Text>
       <Pressable style={styles.btnOutline} onPress={carregarImpressoras}>
@@ -99,6 +107,8 @@ export default function ConfigScreen({ companyName }: { companyName: string }) {
 
 const styles = StyleSheet.create({
   wrap: { padding: spacing.lg, paddingBottom: spacing.xl * 2 },
+  lojaRow: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#fff', borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, padding: 12, marginBottom: spacing.xl },
+  lojaTit: { fontSize: 14, fontWeight: '800', color: colors.ink },
   secTitle: { fontSize: 13, fontWeight: '800', color: colors.ink, marginBottom: 4 },
   hint: { fontSize: 11.5, color: colors.muted, marginBottom: spacing.md },
   empty: { fontSize: 12.5, color: colors.mutedLight, marginBottom: spacing.md },

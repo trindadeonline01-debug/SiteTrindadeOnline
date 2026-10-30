@@ -1,91 +1,102 @@
-import { View, Text, StyleSheet, Pressable, ScrollView, RefreshControl } from 'react-native';
-import { colors, radius, spacing } from '../theme';
-import type { Pedido, Status } from '../types';
-import { STATUS_LABEL, STATUS_NEXT } from '../types';
+import { useState } from 'react';
+import { View, Text, ScrollView, Pressable, StyleSheet, RefreshControl } from 'react-native';
+import { colors, radius, statusColor } from '../theme';
+import type { Entrega, Pedido, Status } from '../types';
+import { STATUS_LABEL } from '../types';
+import type { Layout } from '../layout';
+import PedidoCard from '../components/PedidoCard';
+import Toggle from '../components/Toggle';
 
-const STATUS_COLOR: Record<Status, { fg: string; bg: string }> = {
-  recebido: { fg: colors.bad, bg: colors.badBg },
-  em_preparo: { fg: colors.signDark, bg: '#FCEFCB' },
-  pronto: { fg: colors.good, bg: colors.goodBg },
-  saiu_entrega: { fg: colors.info, bg: '#E3EAF2' },
-  entregue: { fg: colors.muted, bg: colors.paper },
-  cancelado: { fg: colors.muted, bg: colors.paper },
+const COLS: Status[] = ['recebido', 'em_preparo', 'pronto', 'saiu_entrega'];
+
+type Props = {
+  pedidos: Pedido[]; entregas: Record<string, Entrega>; layout: Layout; loading: boolean; onRefresh: () => void;
+  autoAceitar: boolean; autoMoto: boolean; onToggleAceitar: () => void; onToggleMoto: () => void;
+  onOpen: (p: Pedido) => void; onAvancar: (p: Pedido) => void;
 };
 
-const ORIGIN_LABEL: Record<string, string> = { cardapio_publico: '🌐 Site', conversa: '💬 WhatsApp', balcao: '🏪 Balcão' };
-function money(n: number) { return 'R$ ' + Number(n || 0).toFixed(2).replace('.', ','); }
+export default function PedidosScreen(props: Props) {
+  const { pedidos, entregas, layout, loading, onRefresh } = props;
+  const [filtro, setFiltro] = useState<Status>('recebido');
+  const phone = layout === 'phone';
 
-function PedidoCard({ p, onAvancar, onReimprimir }: { p: Pedido; onAvancar: (id: string, status: Status) => void; onReimprimir: (id: string) => void }) {
-  const next = STATUS_NEXT[p.status];
-  const c = STATUS_COLOR[p.status];
-  return (
-    <View style={styles.card}>
-      <View style={styles.cardTop}>
-        <Text style={styles.num}>#{p.order_number ?? p.id.slice(0, 6)}</Text>
-        <View style={[styles.badge, { backgroundColor: c.bg }]}><Text style={[styles.badgeTxt, { color: c.fg }]}>{STATUS_LABEL[p.status]}</Text></View>
+  const toolbar = (
+    <View style={[styles.toolbar, phone && { flexWrap: 'nowrap' }]}>
+      <View style={[styles.pill, phone && styles.pillPhone]}>
+        <Text style={[styles.pillTxt, phone && { fontSize: 10.5 }]} numberOfLines={1}>{phone ? '⚡ Aceite automático' : '⚡ Aceitar pedidos automaticamente'}</Text>
+        <Toggle small on={props.autoAceitar} onPress={props.onToggleAceitar} />
       </View>
-      <Text style={styles.sub}>{ORIGIN_LABEL[p.origin] || p.origin} · {p.customer_name} · {money(p.total)}</Text>
+      <View style={[styles.pill, phone && styles.pillPhone]}>
+        <Text style={[styles.pillTxt, phone && { fontSize: 10.5 }]} numberOfLines={1}>{phone ? '🏍️ Motoboy automático' : '🏍️ Chamar motoboy ao iniciar o preparo'}</Text>
+        <Toggle small on={props.autoMoto} onPress={props.onToggleMoto} />
+      </View>
+    </View>
+  );
 
-      {p.itens?.length > 0 && (
-        <View style={styles.itens}>
-          {p.itens.map(it => (
-            <Text key={it.id} style={styles.item}>
-              {it.peso_kg != null ? `${it.peso_kg}kg` : `${it.qty}x`} {it.product_name}
-              {it.selected_options?.length ? ' · ' + it.selected_options.map(o => o.name).join(', ') : ''}
-            </Text>
-          ))}
+  const card = (p: Pedido, largura?: number | string) => (
+    <PedidoCard key={p.id} pedido={p} entrega={entregas[p.id]} onOpen={() => props.onOpen(p)} onAvancar={() => props.onAvancar(p)} largura={largura} />
+  );
+
+  if (layout === 'tabletLandscape') {
+    return (
+      <View style={{ flex: 1 }}>
+        {toolbar}
+        <View style={styles.board}>
+          {COLS.map(s => {
+            const os = pedidos.filter(p => p.status === s);
+            const c = statusColor[s].fg;
+            return (
+              <View key={s} style={[styles.col, { borderTopColor: c }]}>
+                <View style={styles.colHead}>
+                  <Text style={[styles.colTitle, { color: c }]}>{STATUS_LABEL[s].toUpperCase()}</Text>
+                  <Text style={[styles.cnt, { backgroundColor: c }]}>{os.length}</Text>
+                </View>
+                <ScrollView refreshControl={<RefreshControl refreshing={loading} onRefresh={onRefresh} />}>
+                  {os.length ? os.map(p => card(p)) : <Text style={styles.none}>Nenhum</Text>}
+                </ScrollView>
+              </View>
+            );
+          })}
         </View>
-      )}
-      {p.notes ? <Text style={styles.notes}>📝 {p.notes}</Text> : null}
-
-      <View style={styles.actions}>
-        {next && (
-          <Pressable style={styles.btnNext} onPress={() => onAvancar(p.id, next)}>
-            <Text style={styles.btnNextTxt}>{p.status === 'recebido' ? 'Aceitar e avançar' : `Avançar · ${STATUS_LABEL[next]}`}</Text>
-          </Pressable>
-        )}
-        <Pressable style={styles.btnPrint} onPress={() => onReimprimir(p.id)}>
-          <Text style={styles.btnPrintTxt}>🖨️</Text>
-        </Pressable>
       </View>
+    );
+  }
+
+  const lista = pedidos.filter(p => p.status === filtro);
+  return (
+    <View style={{ flex: 1 }}>
+      {toolbar}
+      <View style={styles.chips}>
+        {COLS.map(s => {
+          const c = statusColor[s].fg; const on = filtro === s;
+          return (
+            <Pressable key={s} onPress={() => setFiltro(s)} style={[styles.chip, { borderColor: on ? c : c + '66', backgroundColor: on ? c : '#fff' }]}>
+              <Text style={[styles.chipTxt, { color: on ? '#fff' : c }]} numberOfLines={1}>{STATUS_LABEL[s]} {pedidos.filter(p => p.status === s).length}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+      <ScrollView contentContainerStyle={[styles.list, layout === 'tabletPortrait' && styles.listTwo]} refreshControl={<RefreshControl refreshing={loading} onRefresh={onRefresh} />}>
+        {lista.length ? lista.map(p => card(p, layout === 'tabletPortrait' ? '48.8%' : undefined)) : <Text style={styles.none}>Nenhum pedido aqui</Text>}
+      </ScrollView>
     </View>
   );
 }
 
-export default function PedidosScreen({ pedidos, loading, onRefresh, onAvancar, onReimprimir }: {
-  pedidos: Pedido[]; loading: boolean; onRefresh: () => void;
-  onAvancar: (id: string, status: Status) => void; onReimprimir: (id: string) => void;
-}) {
-  if (pedidos.length === 0 && !loading) {
-    return (
-      <ScrollView contentContainerStyle={styles.emptyWrap} refreshControl={<RefreshControl refreshing={loading} onRefresh={onRefresh} />}>
-        <Text style={styles.emptyTxt}>Nenhum pedido em aberto agora.</Text>
-      </ScrollView>
-    );
-  }
-  return (
-    <ScrollView contentContainerStyle={styles.list} refreshControl={<RefreshControl refreshing={loading} onRefresh={onRefresh} />}>
-      {pedidos.map(p => <PedidoCard key={p.id} p={p} onAvancar={onAvancar} onReimprimir={onReimprimir} />)}
-    </ScrollView>
-  );
-}
-
 const styles = StyleSheet.create({
-  list: { padding: spacing.md, gap: spacing.sm },
-  emptyWrap: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
-  emptyTxt: { color: colors.mutedLight, fontSize: 14 },
-  card: { backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.line, padding: spacing.md, marginBottom: spacing.sm },
-  cardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
-  num: { fontSize: 18, fontWeight: '800', color: colors.ink },
-  badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.pill },
-  badgeTxt: { fontSize: 11, fontWeight: '800' },
-  sub: { fontSize: 12.5, color: colors.muted, marginBottom: 8 },
-  itens: { gap: 2, marginBottom: 6 },
-  item: { fontSize: 13, color: colors.ink },
-  notes: { fontSize: 12.5, color: colors.signDark, fontWeight: '700', marginBottom: 6 },
-  actions: { flexDirection: 'row', gap: spacing.sm, marginTop: 4 },
-  btnNext: { flex: 1, backgroundColor: colors.good, borderRadius: radius.md, paddingVertical: 12, alignItems: 'center' },
-  btnNextTxt: { color: '#fff', fontWeight: '800', fontSize: 13 },
-  btnPrint: { width: 46, backgroundColor: colors.paper, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
-  btnPrintTxt: { fontSize: 18 },
+  toolbar: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 12, paddingBottom: 6 },
+  pill: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: colors.line, borderRadius: 20, paddingLeft: 12, paddingRight: 6, paddingVertical: 4 },
+  pillPhone: { flex: 1, minWidth: 0, justifyContent: 'space-between', paddingLeft: 8, gap: 4 },
+  pillTxt: { fontSize: 11.5, fontWeight: '700', color: colors.ink, flexShrink: 1 },
+  board: { flex: 1, flexDirection: 'row', gap: 10, padding: 12, paddingTop: 6 },
+  col: { flex: 1, backgroundColor: '#E9E3D6', borderRadius: 14, padding: 10, borderTopWidth: 4 },
+  colHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  colTitle: { fontSize: 12, fontWeight: '800' },
+  cnt: { color: '#fff', fontSize: 11, fontWeight: '800', borderRadius: 10, paddingHorizontal: 9, paddingVertical: 1, overflow: 'hidden' },
+  none: { textAlign: 'center', color: colors.mutedLight, fontSize: 12, borderWidth: 1, borderStyle: 'dashed', borderColor: '#CFCAC0', borderRadius: 10, padding: 14 },
+  chips: { flexDirection: 'row', gap: 4, paddingHorizontal: 10, paddingBottom: 4 },
+  chip: { flexShrink: 1, borderWidth: 1, borderRadius: 18, paddingVertical: 6, paddingHorizontal: 8 },
+  chipTxt: { fontSize: 10.5, fontWeight: '800' },
+  list: { padding: 12 },
+  listTwo: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, alignItems: 'flex-start' },
 });

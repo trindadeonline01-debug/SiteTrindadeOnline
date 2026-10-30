@@ -4,7 +4,7 @@
     "slug": "trindade-loja",
     "scheme": "trindadeloja",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "backgroundColor": "#F0EDE8",
@@ -32,17 +32,32 @@
         "android.permission.BLUETOOTH_SCAN"
       ]
     },
-    "web": { "favicon": "./assets/favicon.png" },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
     "plugins": [
       [
         "expo-notifications",
         {
           "icon": "./assets/icon.png",
           "color": "#C9951A",
-          "sounds": ["./assets/sounds/novo_pedido.wav"]
+          "sounds": [
+            "./assets/sounds/pedido_novo_telefone.mp3"
+          ]
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "O Trindade Loja precisa da galeria para trocar a foto dos produtos.",
+          "cameraPermission": "O Trindade Loja precisa da câmera para tirar a foto dos produtos."
         }
       ]
     ],
-    "extra": { "eas": { "projectId": "" } }
+    "extra": {
+      "eas": {
+        "projectId": ""
+      }
+    }
   }
 }

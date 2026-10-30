@@ -26,3 +26,20 @@ export const radius = { sm: 8, md: 12, lg: 18, pill: 999 }
 export function errMsg(e: unknown): string {
   return e instanceof Error ? e.message : 'Algo deu errado.'
 }
+
+// Cores por status — as mesmas do quadro de /painel/pedidos no site.
+export const statusColor: Record<string, { fg: string; bg: string }> = {
+  recebido: { fg: '#B5690C', bg: '#FEF0E0' },
+  em_preparo: { fg: '#8A6410', bg: '#FEF6DC' },
+  pronto: { fg: '#157A52', bg: '#E4F3EC' },
+  saiu_entrega: { fg: '#1A56B0', bg: '#E8F0FE' },
+  entregue: { fg: '#6E6656', bg: '#F0EDE8' },
+  cancelado: { fg: '#C43D3D', bg: '#FBEAEA' },
+}
+
+// Entrega: faixa e etiqueta pretas. Retirada: lilás. Nenhuma das duas
+// confunde com as cores de status.
+export const tipoColor = {
+  entrega: { fg: '#FFFFFF', bg: '#151210', card: '#FFFFFF', stripe: '#151210' },
+  retirada: { fg: '#FFFFFF', bg: '#7A3FB5', card: '#F5EEFB', stripe: '#7A3FB5' },
+}

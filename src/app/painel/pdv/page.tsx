@@ -141,7 +141,6 @@ export default function PdvPage() {
       const configured: string[] = comp.loja_payment_methods || []
       const opts = configured.length > 0 ? configured : ['dinheiro', 'pix', 'cartao']
       setPayOptions(opts)
-      setPayMethod(opts.includes('dinheiro') ? 'dinheiro' : opts[0])
 
       const [{ data: prods }, { data: cats }] = await Promise.all([
         supabase.from('loja_produtos').select('id, name, sale_price, category_id, photo_url, codigo_balanca, groups:loja_opcoes_grupo(*, options:loja_opcoes(*))').eq('company_id', comp.id).eq('active', true).order('display_order'),
@@ -335,7 +334,7 @@ export default function PdvPage() {
     setCart(prev => prev.map(l => l.key === key ? { ...l, qty: l.qty + delta } : l).filter(l => l.qty > 0))
   }
   function removeItem(key: string) { setCart(prev => prev.filter(l => l.key !== key)) }
-  function clearCart() { setCart([]) }
+  function clearCart() { setCart([]); setPayMethod('') }
 
   function moneyKey(d: string) { setTrocoDigits(prev => (prev === '0' ? d : prev + d).replace(/^0+(?=\d)/, '')) }
   function moneyBackspace() { setTrocoDigits(prev => prev.slice(0, -1) || '0') }
@@ -399,6 +398,7 @@ export default function PdvPage() {
     }).catch(() => {})
     await imprimirRecibo(pedido.id, pedido.order_number)
     setCart([])
+    setPayMethod('')
     setTrocoOpen(false)
     setFinalizando(false)
     setSuccessFlash(`✓ Venda #${pedido.order_number ?? ''} registrada — ${fmt(total)}`)
@@ -407,6 +407,9 @@ export default function PdvPage() {
   }
 
   function onFinishClick() {
+    // Nenhuma forma vem marcada de fábrica (pedido do Ricardo, out/2026) —
+    // sem escolher, não finaliza.
+    if (!payMethod || cart.length === 0 || finalizando) return
     if (payMethod === 'dinheiro') { setTrocoDigits(moneyDigitsFromReais(subtotal)); setTrocoOpen(true); return }
     finalizarVenda(payMethod)
   }
@@ -694,7 +697,7 @@ export default function PdvPage() {
                 </button>
               ))}
             </div>
-            <button className="pdv-finish" disabled={cart.length === 0 || finalizando} onClick={onFinishClick}>{finalizando ? 'Registrando...' : `Finalizar venda — ${fmt(subtotal)}`}<span className="pdv-finish-key">F9</span></button>
+            <button className="pdv-finish" disabled={cart.length === 0 || finalizando || !payMethod} onClick={onFinishClick}>{finalizando ? 'Registrando...' : !payMethod && cart.length > 0 ? 'Escolha a forma de pagamento' : `Finalizar venda — ${fmt(subtotal)}`}<span className="pdv-finish-key">F9</span></button>
             <button className="pdv-clear" onClick={clearCart} disabled={cart.length === 0}>Limpar carrinho <span className="pdv-clear-key">F8</span></button>
           </div>
         </div>

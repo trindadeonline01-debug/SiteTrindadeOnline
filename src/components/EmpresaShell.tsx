@@ -288,6 +288,7 @@ export default function EmpresaShell({
 
               <div className="es-group-lbl">Crescer</div>
               <NavItem href="/painel?tab=cupons" active={active === 'cupons'} adminEmpresaId={adminEmpresaId}>🎟️ Cupons</NavItem>
+              <NavItem href="/painel?tab=promocoes" active={active === 'promocoes'} adminEmpresaId={adminEmpresaId}>🏷️ Promoções</NavItem>
               <NavItem href="/painel?tab=destaques" active={active === 'destaques'} adminEmpresaId={adminEmpresaId}>🌟 Destaques</NavItem>
               <NavItem href="/painel?tab=banners" active={active === 'banners'} adminEmpresaId={adminEmpresaId}>🖼️ Banners</NavItem>
 

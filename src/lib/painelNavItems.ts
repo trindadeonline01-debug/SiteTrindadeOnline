@@ -16,50 +16,53 @@ export type PainelNavItem = {
 }
 export type PainelNavGroup = { label: string; items: PainelNavItem[] }
 
+// Mesma ordem e mesmos grupos da sidebar preta do desktop (EmpresaShell) —
+// agrupado por frequência de uso (ESPECIFICACAO.md §4.3). Mexeu lá, mexe aqui.
 export const PAINEL_NAV_GROUPS: PainelNavGroup[] = [
+  {
+    label: 'Todo dia',
+    items: [
+      { href: '/painel/pedidos', icon: '🧾', label: 'Pedidos', lockKey: 'loja' },
+      { href: '/painel/pdv', icon: '🖥️', label: 'PDV', lockKey: 'loja' },
+      { href: '/painel/interesses', icon: '🔔', label: 'Interesses', lockKey: 'loja' },
+      { href: '/painel/mensagens', icon: '💬', label: 'Mensagens', lockKey: 'crm' },
+      { href: '/atendimento', icon: '🎧', label: 'Modo Atendimento', lockKey: 'crm' },
+      { href: '/painel/cozinha', icon: '🍳', label: 'Cozinha', lockKey: 'loja' },
+    ],
+  },
   {
     label: 'Minha loja',
     items: [
+      { href: '/painel/catalogo', icon: '📋', label: 'Cardápio', lockKey: 'loja' },
+      { href: '/painel/compartilhar', icon: '⚙️', label: 'Configurar cardápio', lockKey: 'loja' },
       { href: '/painel?tab=perfil', icon: '✏️', label: 'Perfil e fotos' },
+      { href: '/painel/entrega', icon: '🏍️', label: 'Entrega e retirada', lockKey: 'entrega' },
+      { href: '/painel/motoboys', icon: '🏍️', label: 'Meus motoboys', lockKey: 'loja' },
+    ],
+  },
+  {
+    label: 'Clientes',
+    items: [
+      { href: '/painel/clientes', icon: '👥', label: 'CRM', lockKey: 'crm' },
+      { href: '/painel/atendimento', icon: '📊', label: 'Atendimento', requiresFlag: 'atendimentoPilot' },
+      { href: '/painel/radar', icon: '📡', label: 'Radar de clientes', requiresFlag: 'vendasPilot' },
       { href: '/painel?tab=avaliacoes', icon: '⭐', label: 'Avaliações' },
+    ],
+  },
+  {
+    label: 'Crescer',
+    items: [
+      { href: '/painel?tab=cupons', icon: '🎟️', label: 'Cupons' },
+      { href: '/painel?tab=promocoes', icon: '🏷️', label: 'Promoções' },
       { href: '/painel?tab=destaques', icon: '🌟', label: 'Destaques' },
       { href: '/painel?tab=banners', icon: '🖼️', label: 'Banners' },
     ],
   },
   {
-    label: 'Cardápio & vendas',
+    label: 'Conta',
     items: [
-      { href: '/painel/catalogo', icon: '📋', label: 'Cardápio', lockKey: 'loja' },
-      { href: '/painel/compartilhar', icon: '⚙️', label: 'Configurar cardápio', lockKey: 'loja' },
-      { href: '/painel/pedidos', icon: '🧾', label: 'Pedidos', lockKey: 'loja' },
-      { href: '/painel/pdv', icon: '🖥️', label: 'PDV', lockKey: 'loja' },
-      { href: '/painel/interesses', icon: '🔔', label: 'Interesses', lockKey: 'loja' },
-      { href: '/painel/cozinha', icon: '🍳', label: 'Cozinha', lockKey: 'loja' },
-    ],
-  },
-  {
-    label: 'Entrega',
-    items: [
-      { href: '/painel/entrega', icon: '🏍️', label: 'Entrega', lockKey: 'entrega' },
-      { href: '/painel/motoboys', icon: '🏍️', label: 'Meus motoboys', lockKey: 'loja' },
-    ],
-  },
-  {
-    label: 'Relacionamento',
-    items: [
-      { href: '/painel/mensagens', icon: '💬', label: 'Mensagens', lockKey: 'crm' },
-      { href: '/painel/clientes', icon: '👥', label: 'Clientes', lockKey: 'crm' },
-      { href: '/painel/atendimento', icon: '📊', label: 'Atendimento', requiresFlag: 'atendimentoPilot' },
-      { href: '/painel/radar', icon: '📡', label: 'Radar de clientes', requiresFlag: 'vendasPilot' },
-    ],
-  },
-  {
-    label: 'Marketing',
-    items: [
-      { href: '/painel?tab=cupons', icon: '🎟️', label: 'Cupons' },
-      { href: '/painel?tab=promocoes', icon: '🏷️', label: 'Promoções' },
-      { href: '/painel?tab=plano', icon: '💳', label: 'Plano' },
-      { href: '/painel/pagamentos', icon: '🏦', label: 'Pagamentos (Mercado Pago)', lockKey: 'loja' },
+      { href: '/painel?tab=plano', icon: '💳', label: 'Plano e pagamento' },
+      { href: '/painel/pagamentos', icon: '🏦', label: 'Pagamentos', lockKey: 'loja' },
     ],
   },
 ]

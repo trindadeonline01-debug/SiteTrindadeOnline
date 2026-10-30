@@ -33,6 +33,16 @@
       ]
     },
     "web": { "favicon": "./assets/favicon.png" },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#C9951A",
+          "sounds": ["./assets/sounds/novo_pedido.wav"]
+        }
+      ]
+    ],
     "extra": { "eas": { "projectId": "" } }
   }
 }

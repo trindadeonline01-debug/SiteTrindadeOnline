@@ -7,6 +7,7 @@ import type { Company, Pedido, Produto, Categoria, Status } from '../types';
 import { fetchPedidosAbertos, setPedidoStatus, subscribePedidos } from '../api/pedidos';
 import { fetchProdutos, toggleEsgotado } from '../api/produtos';
 import { autoImprimirPedido } from '../print/autoPrint';
+import { registrarPushLoja } from '../push/registerPush';
 import PedidosScreen from './PedidosScreen';
 import CardapioScreen from './CardapioScreen';
 import ConfigScreen from './ConfigScreen';
@@ -57,6 +58,11 @@ export default function HomeScreen({ company }: { company: Company }) {
   }, [company.id]);
 
   useEffect(() => { recarregarPedidos(); recarregarProdutos(); }, [recarregarPedidos, recarregarProdutos]);
+
+  // Registra o token de push assim que a empresa carrega — é isso que vai
+  // permitir acordar o app (som + impressão) com a tela apagada/bloqueada,
+  // complementando o `useKeepAwake` acima (que só cobre primeiro plano).
+  useEffect(() => { registrarPushLoja(company.id); }, [company.id]);
 
   useEffect(() => {
     const unsubscribe = subscribePedidos(

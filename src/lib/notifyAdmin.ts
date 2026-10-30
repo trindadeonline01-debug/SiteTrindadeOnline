@@ -16,6 +16,7 @@ export type AdminEvent =
   | { type: 'nova_assinatura'; empresa: string; plano: string; valor: number }
   | { type: 'motoboy_reenviou'; nome: string }
   | { type: 'humano_solicitado'; empresa: string; contato: string; mensagem: string }
+  | { type: 'mp_renovacao_falhou'; empresa: string; venceEm: string | null; motivo: string }
 
 function buildMessage(event: AdminEvent): string {
   if (event.type === 'nova_empresa') {
@@ -26,6 +27,9 @@ function buildMessage(event: AdminEvent): string {
   }
   if (event.type === 'motoboy_reenviou') {
     return `🏍️ ${event.nome} reenviou os ajustes do cadastro de motoboy — confere em Admin → Entregas → Motoboys.`
+  }
+  if (event.type === 'mp_renovacao_falhou') {
+    return `⚠️ Mercado Pago: não consegui renovar o acesso da ${event.empresa}.${event.venceEm ? `\nVence em: ${event.venceEm}` : ''}\nMotivo: ${event.motivo}\n\nVou tentar de novo amanhã. Se continuar falhando, a loja precisa reconectar em Painel → Pagamentos antes de vencer.`
   }
   if (event.type === 'humano_solicitado') {
     return `🙋 ${event.empresa}: ${event.contato} pediu pra falar com um atendente de verdade.\n\nÚltima mensagem: "${event.mensagem}"`

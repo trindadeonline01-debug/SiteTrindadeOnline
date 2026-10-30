@@ -87,8 +87,36 @@ function playFallback(c: AudioContext) {
   ;[[NOTE_A, 0], [NOTE_B, 0.15], [NOTE_A, 0.5], [NOTE_B, 0.65]].forEach(([freq, t]) => note(freq, t, 0.14))
 }
 
+// Campainha elétrica curta e estridente (Ricardo, out/2026: "campainha +
+// áudio"): dois tons agudos batendo ~24x por segundo, como o martelinho de
+// uma campainha de verdade. Gerada por código, sem arquivo.
+const CAMPAINHA_SEG = 0.8
+function tocarCampainha(c: AudioContext, t0: number) {
+  const master = c.createGain()
+  master.gain.value = 0.32
+  master.connect(c.destination)
+  const bate = c.createGain()
+  bate.connect(master)
+  ;([['square', 1568], ['triangle', 2637]] as const).forEach(([type, freq]) => {
+    const osc = c.createOscillator()
+    osc.type = type
+    osc.frequency.value = freq
+    osc.connect(bate)
+    osc.start(t0)
+    osc.stop(t0 + CAMPAINHA_SEG + 0.02)
+  })
+  const passos = Math.round(CAMPAINHA_SEG * 48)
+  for (let k = 0; k < passos; k++) {
+    const t = t0 + k / 48
+    const fim = Math.max(0, 1 - Math.max(0, t - t0 - (CAMPAINHA_SEG - 0.15)) / 0.15)
+    bate.gain.setValueAtTime(k % 2 === 0 ? fim : 0.15 * fim, t)
+  }
+  bate.gain.setValueAtTime(0, t0 + CAMPAINHA_SEG)
+}
+
 // `vezes`: quantas vezes toca seguido — pedido novo toca 3x (Ricardo,
-// out/2026: "toca uma vez só", passava despercebido no balcão).
+// out/2026: "toca uma vez só", passava despercebido no balcão). Cada vez é
+// campainha + o áudio de pedido novo.
 export function beep(vezes = 1) {
   try {
     setPlaybackAudioSession()
@@ -96,14 +124,19 @@ export function beep(vezes = 1) {
     if (!c) return
     if (c.state === 'suspended') c.resume().catch(() => {})
     loadBuffer(c).then(buffer => {
+      const audioSeg = buffer ? buffer.duration : 0.8
+      const ciclo = CAMPAINHA_SEG + 0.15 + audioSeg + 0.5
       for (let i = 0; i < vezes; i++) {
-        if (!buffer) { setTimeout(() => playFallback(c), i * 1300); continue }
+        const t0 = c.currentTime + 0.05 + i * ciclo
+        tocarCampainha(c, t0)
+        const tAudio = t0 + CAMPAINHA_SEG + 0.15
+        if (!buffer) { setTimeout(() => playFallback(c), (tAudio - c.currentTime) * 1000); continue }
         const src = c.createBufferSource()
         src.buffer = buffer
         const gain = c.createGain()
         gain.gain.value = 0.9
         src.connect(gain); gain.connect(c.destination)
-        src.start(c.currentTime + i * (buffer.duration + 0.4))
+        src.start(tAudio)
       }
     })
   } catch {}

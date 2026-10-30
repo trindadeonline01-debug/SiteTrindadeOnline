@@ -1290,9 +1290,6 @@ export default function PedidosPage() {
           .pd-date-input{ flex:none;width:150px; }
           .pd-toolbar-break{ flex-basis:0; }
           .pd-newbtn{ padding:10px 20px; }
-        }
-        @media(min-width:768px) and (max-width:1179px){
-          .pd-toolbar-break{ flex-basis:100%;height:0; }
           /* Tela de notebook (768–1179px): 2 fileiras de até 3 colunas cada,
              uma embaixo da outra, em vez de 5-6 colunas espremidas numa
              fileira só (Ricardo, out/2026 — "ainda tem botão ficando
@@ -1324,6 +1321,13 @@ export default function PedidosPage() {
           .pd-board-col.collapsed .pd-board-colhead-lbl{ writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;font-size:10.5px;flex:none;overflow:visible; }
           .pd-board-col.collapsed .pd-board-count{ writing-mode:horizontal-tb; }
           .pd-board-col.collapsed .pd-board-scroll{ display:none; }
+        }
+        /* Só a quebra de linha do toolbar é exclusiva da faixa de tablet —
+           o estilo das colunas do board vale pra qualquer largura ≥768px
+           (ficou preso só nessa faixa por engano e o board perdeu todo o
+           visual em tela grande). */
+        @media(min-width:768px) and (max-width:1179px){
+          .pd-toolbar-break{ flex-basis:100%;height:0; }
         }
         /* Tela grande (≥1180px): cabe tudo numa fileira só, sem espremer —
            cada .pd-board-row vira display:contents e some, deixando as

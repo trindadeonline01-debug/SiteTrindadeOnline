@@ -134,9 +134,6 @@ export default function PagamentosPage() {
   // pagamento real (mesmo princípio de "Interesse não é venda").
   const pixConfirmados = pedidos.filter(p => p.mp_payment_id && p.payment_status === 'pago')
   const recebidoPix = pixConfirmados.reduce((s, p) => s + Number(p.total), 0)
-  const feePct = mpStatus?.conta?.application_fee_pct ?? 2
-  const taxaPlataforma = recebidoPix * (feePct / 100)
-  const liquido = recebidoPix - taxaPlataforma
   const foraDoMp = pedidos.filter(p => p.payment_status === 'pago' && !p.mp_payment_id)
   const recebidoForaDoMp = foraDoMp.reduce((s, p) => s + Number(p.total), 0)
 
@@ -285,8 +282,8 @@ export default function PagamentosPage() {
             <>
               <div className="mp-kpis">
                 <div className="mp-kpi"><div className="mp-kpi-lbl">Recebido via Pix</div><div className="mp-kpi-val">{fmt(recebidoPix)}</div><div style={{ fontSize: 11, fontWeight: 700, color: '#0F8A57', marginTop: 4 }}>{pixConfirmados.length} pedidos · confirmado</div></div>
-                <div className="mp-kpi"><div className="mp-kpi-lbl">Taxa da plataforma ({feePct}%)</div><div className="mp-kpi-val">{fmt(taxaPlataforma)}</div><div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', marginTop: 4 }}>já descontada automaticamente</div></div>
-                <div className="mp-kpi"><div className="mp-kpi-lbl">Caiu líquido na sua conta</div><div className="mp-kpi-val">{fmt(liquido)}</div><div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', marginTop: 4 }}>direto, sem passar por nós</div></div>
+                <div className="mp-kpi"><div className="mp-kpi-lbl">Taxa da plataforma</div><div className="mp-kpi-val">{fmt(0)}</div><div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', marginTop: 4 }}>sem taxa — o Trindade Online não desconta nada</div></div>
+                <div className="mp-kpi"><div className="mp-kpi-lbl">Caiu integral na sua conta</div><div className="mp-kpi-val">{fmt(recebidoPix)}</div><div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', marginTop: 4 }}>direto, sem passar por nós</div></div>
               </div>
 
               <div style={{ background: 'var(--concrete-2)', border: '1px dashed #C9C4B8', borderRadius: 14, padding: '16px 18px', marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>

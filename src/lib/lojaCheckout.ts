@@ -323,10 +323,6 @@ export function pixExpiracao(): { mp: string; db: string } {
   return { mp: isoComFusoBrasil(d), db: d.toISOString() }
 }
 
-export function taxaPlataforma(contaMp: ContaMp, total: number) {
-  return Number((total * (contaMp.application_fee_pct / 100)).toFixed(2))
-}
-
 export async function salvarPendente(args: {
   company: CheckoutCompany; payload: PedidoPayload; mpPaymentId: string; metodo: 'pix' | 'cartao'; cashbackUsado: number; expiresAt: string
 }): Promise<string | null> {

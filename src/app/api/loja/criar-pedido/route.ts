@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import {
   prepararCheckout, reservarCashback, devolverCashback, finalizarPedidoLoja,
-  criarPagamentoMp, pixExpiracao, taxaPlataforma, salvarPendente, PIX_VALIDADE_MIN,
+  criarPagamentoMp, pixExpiracao, salvarPendente, PIX_VALIDADE_MIN,
 } from '@/lib/lojaCheckout'
 
 // Cria o pedido do cardápio público — roda com service role de propósito:
@@ -38,7 +38,6 @@ export async function POST(req: NextRequest) {
         description: `Pedido — ${company.name}`,
         payment_method_id: 'pix',
         payer: { email: 'cliente@trindadeonline.com.br' },
-        application_fee: taxaPlataforma(contaMp, payload.total),
         date_of_expiration: exp.mp,
         notification_url: `${new URL(req.url).origin}/api/mp/webhook-loja`,
       }, `pix-${company.id}-${crypto.randomUUID()}`)

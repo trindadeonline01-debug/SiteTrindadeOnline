@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import {
   prepararCheckout, reservarCashback, devolverCashback, finalizarPedidoLoja,
-  criarPagamentoMp, taxaPlataforma, salvarPendente, confirmarPendente, CARTAO_ANALISE_DIAS,
+  criarPagamentoMp, salvarPendente, confirmarPendente, CARTAO_ANALISE_DIAS,
 } from '@/lib/lojaCheckout'
 
 // Cartão (crédito ou débito) pelo Mercado Pago, só pra loja com conta
@@ -49,7 +49,6 @@ export async function POST(req: NextRequest) {
       payment_method_id: card.payment_method_id,
       issuer_id: card.issuer_id || undefined,
       payer: { email: card.payer.email, identification: card.payer.identification || undefined },
-      application_fee: taxaPlataforma(contaMp, payload.total),
       notification_url: `${new URL(req.url).origin}/api/mp/webhook-loja`,
     }, `cartao-${company.id}-${crypto.randomUUID()}`)
 

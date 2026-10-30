@@ -1047,10 +1047,11 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
         .cd-paychip{ padding:8px 13px;border-radius:20px;border:1.5px solid #EDE8E0;background:#fff;font-size:12px;font-weight:700;cursor:pointer;margin-right:8px; }
         .cd-paychip.active{ background:var(--ink);color:var(--sign);border-color:var(--ink); }
         .cd-recv-row{ display:grid;grid-template-columns:1fr 1fr;gap:8px; }
-        .cd-recv{ display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:11px 12px;border-radius:12px;border:1.5px solid #EDE8E0;background:#fff;cursor:pointer;font-family:inherit;text-align:left; }
+        .cd-recv{ display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding:9px 12px;border-radius:12px;border:1.5px solid #EDE8E0;background:#fff;cursor:pointer;font-family:inherit;text-align:left; }
         .cd-recv.active{ border-color:var(--ink);background:#FFF8E6;box-shadow:0 0 0 1px var(--ink) inset; }
-        .cd-recv-ico{ font-size:20px;line-height:1; }
-        .cd-recv-t{ font-size:13px;font-weight:800;color:#151210;margin-top:4px; }
+        .cd-recv-txt{ display:flex;flex-direction:column;gap:1px;min-width:0; }
+        .cd-recv-ico{ font-size:18px;line-height:1;flex:none; }
+        .cd-recv-t{ font-size:13px;font-weight:800;color:#151210; }
         .cd-recv-s{ font-size:11px;color:#8A8478; }
         .cd-payopts{ display:flex;flex-direction:column;gap:8px; }
         .cd-payopt{ display:flex;align-items:center;gap:12px;width:100%;padding:11px 12px;border-radius:12px;border:1.5px solid #EDE8E0;background:#fff;cursor:pointer;font-family:inherit;text-align:left; }
@@ -1364,7 +1365,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
                     {cart.map(l => (
                       <div key={l.key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '0.5px solid #EDE8E0', fontSize: 12 }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <span>{l.name}</span>
+                          <span style={{ fontWeight: 700 }}>{l.name}</span>
                           {l.modifiers.length > 0 && <span style={{ display: 'block', fontSize: 10.5, color: '#AAA' }}>{l.modifiers.map(m => m.name).join(', ')}</span>}
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 'none' }}>
@@ -1387,10 +1388,10 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
                       <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', marginBottom: 8, fontWeight: 800 }}>Como você quer receber?</div>
                       <div className="cd-recv-row">
                         <button type="button" className={`cd-recv ${deliveryType === 'entrega' ? 'active' : ''}`} onClick={() => setDeliveryType('entrega')}>
-                          <span className="cd-recv-ico">🚴</span><span className="cd-recv-t">Entrega</span><span className="cd-recv-s">no seu endereço</span>
+                          <span className="cd-recv-txt"><span className="cd-recv-t">Entrega</span><span className="cd-recv-s">no seu endereço</span></span><span className="cd-recv-ico">🚴</span>
                         </button>
                         <button type="button" className={`cd-recv ${deliveryType === 'retirada' ? 'active' : ''}`} onClick={() => setDeliveryType('retirada')}>
-                          <span className="cd-recv-ico">🏪</span><span className="cd-recv-t">Retirar na loja</span><span className="cd-recv-s">sem taxa de entrega</span>
+                          <span className="cd-recv-txt"><span className="cd-recv-t">Retirar na loja</span><span className="cd-recv-s">sem taxa de entrega</span></span><span className="cd-recv-ico">🏪</span>
                         </button>
                       </div>
                       <div style={{ fontSize: 11, color: '#AAA', marginTop: 8 }}>

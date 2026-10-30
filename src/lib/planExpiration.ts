@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { enfileirarWhatsApp, type ItemFila } from '@/lib/whatsappFila'
 import { buildEmailHtml } from '@/lib/trialReminders'
 
 const supabase = createClient(
@@ -6,31 +7,8 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'https://evo.trindadeonline.com.br'
-const EVOLUTION_KEY = process.env.EVOLUTION_API_KEY || ''
-const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE || 'Trindade Online'
-
-function formatPhone(phone: string): string {
-  const digits = phone.replace(/\D/g, '')
-  if (digits.startsWith('55')) return digits
-  return '55' + digits
-}
-
 function fillTemplate(template: string, nome: string): string {
   return (template || '').replace(/\{\{nome\}\}/g, nome)
-}
-
-async function sendWhatsApp(phone: string, message: string): Promise<boolean> {
-  try {
-    const res = await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(EVOLUTION_INSTANCE)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'apikey': EVOLUTION_KEY },
-      body: JSON.stringify({ number: formatPhone(phone), text: message })
-    })
-    return res.ok
-  } catch {
-    return false
-  }
 }
 
 async function sendEmail(to: string, subject: string, body: string): Promise<boolean> {
@@ -63,6 +41,7 @@ async function sendPlanReminders() {
   let sentCount = 0
   const now = Date.now()
   const details: string[] = []
+  const fila: ItemFila[] = []
 
   for (const company of companies || []) {
     const daysLeft = Math.ceil((new Date(company.plan_ends_at).getTime() - now) / 86400000)
@@ -74,17 +53,21 @@ async function sendPlanReminders() {
 
     let waOk: boolean | null = null
     let emailOk: boolean | null = null
+    // WhatsApp nunca sai na hora: entra na fila (1 mensagem a cada 5 min).
     if (company.phone && reminder.whatsapp_message) {
-      waOk = await sendWhatsApp(company.phone, fillTemplate(reminder.whatsapp_message, company.name))
+      fila.push({ phone: company.phone, nome: company.name, texto: fillTemplate(reminder.whatsapp_message, company.name) })
+      waOk = true
     }
     if (reminder.email_subject && reminder.email_body) {
       const { data: authUser } = await supabase.auth.admin.getUserById(company.owner_id)
       const email = authUser?.user?.email
       if (email) emailOk = await sendEmail(email, reminder.email_subject, fillTemplate(reminder.email_body, company.name))
     }
-    details.push(`${company.name}: gatilho de ${reminder.days_before}d — whatsapp ${waOk === null ? 'n/a' : waOk ? 'ok' : 'falhou'}, email ${emailOk === null ? 'n/a' : emailOk ? 'ok' : 'falhou'}`)
+    details.push(`${company.name}: gatilho de ${reminder.days_before}d — whatsapp ${waOk === null ? 'n/a' : 'na fila'}, email ${emailOk === null ? 'n/a' : emailOk ? 'ok' : 'falhou'}`)
     sentCount++
   }
+
+  if (fila.length) await enfileirarWhatsApp(`Lembrete de plano — ${new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`, fila)
 
   return { sent: sentCount, checked: (companies || []).length, details }
 }

@@ -426,6 +426,8 @@ export async function POST(req: NextRequest) {
     if (action === 'start' || action === 'continue') {
       const { data: campaign } = await supabase.from('blast_campaigns').select('*').eq('id', campaign_id).single()
       if (!campaign) return NextResponse.json({ error: 'Campanha não encontrada' }, { status: 404 })
+      // Fila automática (lembretes) só sai pelo cron whatsapp-fila, 1 a cada 5 min.
+      if (campaign.status === 'fila') return NextResponse.json({ error: 'Essa campanha é da fila automática' }, { status: 400 })
 
       if (action === 'start') {
         // Evita loops duplicados: só inicia um novo loop se a campanha não estiver rodando

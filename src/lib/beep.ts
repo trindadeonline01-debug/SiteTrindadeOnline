@@ -87,20 +87,24 @@ function playFallback(c: AudioContext) {
   ;[[NOTE_A, 0], [NOTE_B, 0.15], [NOTE_A, 0.5], [NOTE_B, 0.65]].forEach(([freq, t]) => note(freq, t, 0.14))
 }
 
-export function beep() {
+// `vezes`: quantas vezes toca seguido — pedido novo toca 3x (Ricardo,
+// out/2026: "toca uma vez só", passava despercebido no balcão).
+export function beep(vezes = 1) {
   try {
     setPlaybackAudioSession()
     const c = getCtx()
     if (!c) return
     if (c.state === 'suspended') c.resume().catch(() => {})
     loadBuffer(c).then(buffer => {
-      if (!buffer) { playFallback(c); return }
-      const src = c.createBufferSource()
-      src.buffer = buffer
-      const gain = c.createGain()
-      gain.gain.value = 0.9
-      src.connect(gain); gain.connect(c.destination)
-      src.start()
+      for (let i = 0; i < vezes; i++) {
+        if (!buffer) { setTimeout(() => playFallback(c), i * 1300); continue }
+        const src = c.createBufferSource()
+        src.buffer = buffer
+        const gain = c.createGain()
+        gain.gain.value = 0.9
+        src.connect(gain); gain.connect(c.destination)
+        src.start(c.currentTime + i * (buffer.duration + 0.4))
+      }
     })
   } catch {}
 }

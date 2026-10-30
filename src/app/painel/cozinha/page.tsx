@@ -102,7 +102,7 @@ export default function CozinhaPage() {
 
       const channel = supabase.channel(`cozinha-${comp.id}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'loja_pedidos', filter: `company_id=eq.${comp.id}` }, payload => {
-          if (payload.eventType === 'INSERT') beep()
+          if (payload.eventType === 'INSERT') beep(3)
           loadAll(companyIdRef.current)
         })
         .subscribe()

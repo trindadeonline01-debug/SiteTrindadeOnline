@@ -266,13 +266,13 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
     lastCheckRef.current = new Date().toISOString()
     if (since) {
       supabase.from('loja_pedidos').select('id').eq('company_id', company.id).eq('status', 'recebido').gt('created_at', since)
-        .then(({ data }) => { (data || []).forEach(p => { if (tryPrintPedido(p.id)) beep() }) })
+        .then(({ data }) => { (data || []).forEach(p => { if (tryPrintPedido(p.id)) beep(3) }) })
     }
 
     const channel = supabase.channel(`pedidos-print-${company.id}-${resyncTick}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'loja_pedidos', filter: `company_id=eq.${company.id}` }, payload => {
         refreshPedidosBadge(company.id)
-        if (tryPrintPedido(payload.new.id as string)) beep()
+        if (tryPrintPedido(payload.new.id as string)) beep(3)
       })
       // Recontagem do badge "N pedidos pendentes" da tabbar do mobile — some
       // sozinha quando o pedido sai de "recebido" (lojista aceita/avança) ou

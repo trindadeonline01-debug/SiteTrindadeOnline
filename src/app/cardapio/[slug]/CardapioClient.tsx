@@ -23,6 +23,50 @@ const PAYMENT_LABELS: Record<string, string> = {
   cartao_online: 'Cartão de crédito ou débito',
   vale_refeicao: 'Vale-refeição', vale_alimentacao: 'Vale-alimentação', picpay: 'PicPay',
 }
+// Ícone por forma de pagamento (pedido do Ricardo, out/2026 — reconhecer o
+// Pix e o cartão de bate-olho). Desenhados aqui, sem imagem externa.
+function PayIcon({ m }: { m: string }) {
+  if (m === 'pix') return (
+    <span className="cd-payopt-ico" style={{ background: '#E6F6F3' }}>
+      <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+        <g fill="#32BCAD">
+          <path d="M12 2.4c.6 0 1.2.24 1.65.69l3.03 3.03h-.62c-.87 0-1.69.34-2.3.95L12 8.83l-1.76-1.76a3.24 3.24 0 0 0-2.3-.95h-.62l3.03-3.03c.45-.45 1.05-.69 1.65-.69Z" />
+          <path d="M12 21.6c-.6 0-1.2-.24-1.65-.69l-3.03-3.03h.62c.87 0 1.69-.34 2.3-.95L12 15.17l1.76 1.76c.61.61 1.43.95 2.3.95h.62l-3.03 3.03c-.45.45-1.05.69-1.65.69Z" />
+          <path d="M5.92 7.32h2.02c.55 0 1.07.22 1.46.6L11.3 9.82a1 1 0 0 0 1.4 0l1.9-1.9c.39-.38.91-.6 1.46-.6h2.02l2.83 2.83a2.33 2.33 0 0 1 0 3.3l-2.83 2.83h-2.02c-.55 0-1.07-.22-1.46-.6l-1.9-1.9a1 1 0 0 0-1.4 0l-1.9 1.9c-.39.38-.91.6-1.46.6H5.92L3.1 13.45a2.33 2.33 0 0 1 0-3.3l2.83-2.83Z" />
+        </g>
+      </svg>
+    </span>
+  )
+  if (m.startsWith('cartao')) return (
+    <span className="cd-payopt-ico" style={{ background: '#E9EEF6' }}>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2A4E7A" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+        <rect x="2.5" y="5" width="19" height="14" rx="2.5" /><path d="M2.5 9.5h19" /><path d="M6 15h4" />
+      </svg>
+    </span>
+  )
+  if (m === 'dinheiro') return (
+    <span className="cd-payopt-ico" style={{ background: '#E8F5EC' }}>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0F8A57" strokeWidth="1.8" aria-hidden="true">
+        <rect x="2.5" y="6" width="19" height="12" rx="2" /><circle cx="12" cy="12" r="2.6" /><path d="M6 9.5v5M18 9.5v5" strokeLinecap="round" />
+      </svg>
+    </span>
+  )
+  return (
+    <span className="cd-payopt-ico" style={{ background: '#F3EFE6' }}>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6E6656" strokeWidth="1.8" strokeLinejoin="round" aria-hidden="true">
+        <path d="M4 7h16v4a2 2 0 0 0 0 4v4H4v-4a2 2 0 0 0 0-4V7Z" /><path d="M10 7v12" strokeDasharray="2 2" />
+      </svg>
+    </span>
+  )
+}
+function payHint(m: string, online: boolean): string {
+  if (m === 'pix') return online ? 'Paga agora pelo QR code · aprovação na hora' : 'Combinado com a loja'
+  if (m === 'cartao_online') return 'Paga agora pelo site · à vista'
+  if (m.startsWith('cartao')) return 'Na maquininha, na entrega ou retirada'
+  if (m === 'dinheiro') return 'Na entrega ou retirada'
+  return ''
+}
+
 type TempoInfo = { prepMin: number; travelMin: number | null; min: number; max: number }
 type FreteInfo = { fee: number; blocked: boolean; reason?: string; tempo?: TempoInfo | null }
 type CartLine = { key: string; produtoId: string; name: string; modifiers: { name: string; price: number }[]; unitPrice: number; qty: number }
@@ -1002,6 +1046,21 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
         .cd-diinput{ width:100%;padding:10px 12px;border-radius:10px;border:1px solid #EDE8E0;background:#F0EDE8;font-size:13px;font-family:inherit; }
         .cd-paychip{ padding:8px 13px;border-radius:20px;border:1.5px solid #EDE8E0;background:#fff;font-size:12px;font-weight:700;cursor:pointer;margin-right:8px; }
         .cd-paychip.active{ background:var(--ink);color:var(--sign);border-color:var(--ink); }
+        .cd-recv-row{ display:grid;grid-template-columns:1fr 1fr;gap:8px; }
+        .cd-recv{ display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:11px 12px;border-radius:12px;border:1.5px solid #EDE8E0;background:#fff;cursor:pointer;font-family:inherit;text-align:left; }
+        .cd-recv.active{ border-color:var(--ink);background:#FFF8E6;box-shadow:0 0 0 1px var(--ink) inset; }
+        .cd-recv-ico{ font-size:20px;line-height:1; }
+        .cd-recv-t{ font-size:13px;font-weight:800;color:#151210;margin-top:4px; }
+        .cd-recv-s{ font-size:11px;color:#8A8478; }
+        .cd-payopts{ display:flex;flex-direction:column;gap:8px; }
+        .cd-payopt{ display:flex;align-items:center;gap:12px;width:100%;padding:11px 12px;border-radius:12px;border:1.5px solid #EDE8E0;background:#fff;cursor:pointer;font-family:inherit;text-align:left; }
+        .cd-payopt.active{ border-color:var(--ink);background:#FFF8E6;box-shadow:0 0 0 1px var(--ink) inset; }
+        .cd-payopt-ico{ width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex:none; }
+        .cd-payopt-txt{ flex:1;min-width:0;display:flex;flex-direction:column;gap:1px; }
+        .cd-payopt-t{ font-size:13.5px;font-weight:800;color:#151210; }
+        .cd-payopt-s{ font-size:11px;color:#8A8478; }
+        .cd-payopt-radio{ width:18px;height:18px;border-radius:50%;border:2px solid #CFC8B8;flex:none; }
+        .cd-payopt.active .cd-payopt-radio{ border:5px solid var(--ink); }
         .cd-totalrow{ display:flex;justify-content:space-between;padding-top:12px;margin-top:8px;border-top:1px dashed #EDE8E0;font-weight:800;font-size:16px; }
         .cd-coupon-card{ display:flex;align-items:center;gap:8px;border-radius:10px;padding:8px 10px;margin-bottom:6px;cursor:pointer;border:1.5px solid #EDE8E0;background:#fff; }
         .cd-coupon-card-icon{ flex:none;width:34px;height:34px;border-radius:8px;background:#F0EDE8;color:var(--sign-dark);font-family:'Anton',sans-serif;font-size:9.5px;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.05; }
@@ -1320,45 +1379,24 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
                     <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1.5px dashed #E2DCCB', display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
                       <span style={{ color: '#888' }}>Subtotal</span><b>{fmt(cartTotal)}</b>
                     </div>
-                    {/* CEP já nesse 1º passo, pra saber o frete sem precisar
-                        avançar — reaproveita o MESMO estado/cálculo da etapa
-                        "Entrega" (cep/numero/cepData/taxaEntrega), então o
-                        que a pessoa digitar aqui já chega preenchido lá
-                        (mockup aprovado + pedido do Ricardo, out/2026:
-                        "guarda esse CEP pra ele já ir preenchido"). Some se
-                        ela já tiver escolhido retirar na loja. */}
-                    {deliveryType === 'entrega' ? (
-                      <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #F0EDE8' }}>
-                        <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', marginBottom: 8, fontWeight: 800 }}>Qual seu CEP? (calcula o frete na hora)</div>
-                        <div style={{ display: 'flex', gap: 8 }}>
-                          <input className="cd-diinput" style={{ flex: 1 }} value={cep} onChange={e => handleCepChange(e.target.value)} placeholder="CEP" inputMode="numeric" />
-                          <input className="cd-diinput" style={{ width: 90 }} value={numero} onChange={e => handleNumeroChange(e.target.value)} placeholder="Número *" />
-                        </div>
-                        {cepLoading && <div style={{ fontSize: 11, color: '#AAA', marginTop: 6 }}>Buscando endereço...</div>}
-                        {cepError && <div style={{ fontSize: 11, color: '#C43D3D', marginTop: 6 }}>CEP não encontrado — preenche certinho no próximo passo</div>}
-                        {!cepLoading && freteBlocked && (
-                          <div style={{ marginTop: 8, fontSize: 11.5, color: '#A83232', fontWeight: 600 }}>🚫 {freteInfo?.reason || 'Não entregamos nesse endereço no momento.'}</div>
-                        )}
-                        {!cepLoading && !freteBlocked && cepData?.bairro && (
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, fontSize: 12.5 }}>
-                            <span style={{ color: '#555' }}>🚴 Taxa de entrega · {cepData.bairro}</span>
-                            <b style={{ color: taxaEntrega === 0 ? 'var(--open)' : '#151210' }}>{taxaEntrega === 0 ? 'Grátis' : fmt(taxaEntrega)}</b>
-                          </div>
-                        )}
-                        {!cepLoading && !freteBlocked && !cepData?.bairro && (
-                          <div style={{ fontSize: 11, color: '#AAA', marginTop: 6 }}>Taxa de entrega calculada assim que o CEP for encontrado</div>
-                        )}
+                    {/* Ricardo, 30/out/2026: o 1º passo só pergunta COMO a pessoa
+                        quer receber — o CEP saiu daqui e só aparece no passo
+                        de entrega, e só se ela escolher entrega (retirada nem
+                        pede endereço). */}
+                    <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #F0EDE8' }}>
+                      <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', marginBottom: 8, fontWeight: 800 }}>Como você quer receber?</div>
+                      <div className="cd-recv-row">
+                        <button type="button" className={`cd-recv ${deliveryType === 'entrega' ? 'active' : ''}`} onClick={() => setDeliveryType('entrega')}>
+                          <span className="cd-recv-ico">🚴</span><span className="cd-recv-t">Entrega</span><span className="cd-recv-s">no seu endereço</span>
+                        </button>
+                        <button type="button" className={`cd-recv ${deliveryType === 'retirada' ? 'active' : ''}`} onClick={() => setDeliveryType('retirada')}>
+                          <span className="cd-recv-ico">🏪</span><span className="cd-recv-t">Retirar na loja</span><span className="cd-recv-s">sem taxa de entrega</span>
+                        </button>
                       </div>
-                    ) : (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, color: '#AAA', marginTop: 4 }}>
-                        <span>Taxa de entrega</span><span>retirando na loja</span>
+                      <div style={{ fontSize: 11, color: '#AAA', marginTop: 8 }}>
+                        {deliveryType === 'entrega' ? 'A taxa de entrega é calculada no próximo passo, com o seu endereço.' : 'Você retira o pedido direto na loja.'}
                       </div>
-                    )}
-                    {deliveryType === 'entrega' && !freteBlocked && cepData?.bairro && (
-                      <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #F0EDE8', display: 'flex', justifyContent: 'space-between', fontSize: 13.5, fontWeight: 800 }}>
-                        <span>Total estimado</span><span>{fmt(cartTotal + taxaEntrega)}</span>
-                      </div>
-                    )}
+                    </div>
                     {abaixoMinimo && (
                       <div style={{ marginTop: 12, padding: '10px 12px', borderRadius: 10, background: '#FEF0E0', color: '#B5690C', fontSize: 11.5, fontWeight: 600 }}>
                         Pedido mínimo de {fmt(Number(company.loja_pedido_minimo))} — faltam {fmt(Number(company.loja_pedido_minimo) - cartTotal)}
@@ -1403,10 +1441,11 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
               {step === 'entrega' && (
                 <>
                   <div className="cd-dbody">
-                    <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', marginBottom: 8, fontWeight: 800 }}>Como você quer receber?</div>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <button className={`cd-paychip ${deliveryType === 'entrega' ? 'active' : ''}`} style={{ flex: 1, marginRight: 0, textAlign: 'center' }} onClick={() => setDeliveryType('entrega')}>🚴 Entrega</button>
-                      <button className={`cd-paychip ${deliveryType === 'retirada' ? 'active' : ''}`} style={{ flex: 1, marginRight: 0, textAlign: 'center' }} onClick={() => setDeliveryType('retirada')}>🏪 Retirar na loja</button>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '10px 12px', borderRadius: 10, background: '#F7F5F0' }}>
+                      <span style={{ fontSize: 13, fontWeight: 800 }}>{deliveryType === 'entrega' ? '🚴 Entrega no seu endereço' : '🏪 Retirar na loja'}</span>
+                      <button type="button" onClick={() => setDeliveryType(deliveryType === 'entrega' ? 'retirada' : 'entrega')} style={{ background: 'none', border: 'none', color: 'var(--sign-dark)', fontSize: 12, fontWeight: 800, cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}>
+                        {deliveryType === 'entrega' ? 'Prefiro retirar' : 'Prefiro entrega'}
+                      </button>
                     </div>
 
                     {deliveryType === 'entrega' ? (
@@ -1471,9 +1510,18 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
                 <>
                   <div className="cd-dbody">
                     <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', marginBottom: 8, fontWeight: 800 }}>Pagamento</div>
-                    {paymentOptionsFor(company).map(m => (
-                      <button key={m} className={`cd-paychip ${payMethod === m ? 'active' : ''}`} onClick={() => setPayMethod(m)}>{PAYMENT_LABELS[m] || m}</button>
-                    ))}
+                    <div className="cd-payopts">
+                      {paymentOptionsFor(company).map(m => (
+                        <button key={m} type="button" className={`cd-payopt ${payMethod === m ? 'active' : ''}`} onClick={() => setPayMethod(m)}>
+                          <PayIcon m={m} />
+                          <span className="cd-payopt-txt">
+                            <span className="cd-payopt-t">{PAYMENT_LABELS[m] || m}</span>
+                            {payHint(m, pagamentoOnline) && <span className="cd-payopt-s">{payHint(m, pagamentoOnline)}</span>}
+                          </span>
+                          <span className="cd-payopt-radio" aria-hidden="true" />
+                        </button>
+                      ))}
+                    </div>
                     {/* Sem gateway automático aqui — o pedido nunca é pago
                         pelo site, só combina a forma. Sem esse aviso o
                         cliente não tem como saber disso (Ricardo, set/2026). */}

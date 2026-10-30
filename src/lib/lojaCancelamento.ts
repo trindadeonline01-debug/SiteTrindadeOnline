@@ -23,6 +23,14 @@ type PedidoCancelavel = {
   delivery_type: string; cancelado_por: string | null; refund_status: string | null
 }
 
+// Mensagens do Mercado Pago chegam em inglês — traduz as que a loja vai ver.
+function traduzirErroMp(msg: string): string {
+  if (/enough available money|insufficient/i.test(msg)) return 'a conta Mercado Pago da loja não tem saldo disponível pra devolver agora (dinheiro de cartão costuma ficar "a liberar" alguns dias)'
+  if (/already refunded/i.test(msg)) return 'esse pagamento já foi devolvido'
+  if (/not found/i.test(msg)) return 'pagamento não encontrado no Mercado Pago'
+  return msg
+}
+
 function fmt(n: number) { return 'R$ ' + Number(n || 0).toFixed(2).replace('.', ',') }
 
 function pagoPeloSite(p: Pick<PedidoCancelavel, 'mp_payment_id' | 'payment_status'>) {
@@ -62,7 +70,7 @@ async function estornarNoMercadoPago(pedido: PedidoCancelavel): Promise<Resultad
     })
     const data = await res.json().catch(() => ({}))
     if (!res.ok || !data?.id) {
-      const erro = String(data?.message || data?.error || `Mercado Pago respondeu ${res.status}`).slice(0, 300)
+      const erro = traduzirErroMp(String(data?.message || data?.error || `Mercado Pago respondeu ${res.status}`)).slice(0, 300)
       await salvar({ refund_status: 'falhou', refund_error: erro })
       return { status: 'falhou', valor, erro }
     }

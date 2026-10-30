@@ -31,6 +31,7 @@ export default function PagamentosPage() {
   const [pedidos, setPedidos] = useState<Pedido[]>([])
   const [loadingData, setLoadingData] = useState(true)
   const [connecting, setConnecting] = useState(false)
+  const [avisoConectar, setAvisoConectar] = useState(false)
   const [disconnecting, setDisconnecting] = useState(false)
   const [toggling, setToggling] = useState(false)
   const [error, setError] = useState('')
@@ -203,10 +204,50 @@ export default function PagamentosPage() {
         .mp-kpi-lbl{ font-size:10.5px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); margin-bottom:8px; }
         .mp-kpi-val{ font-family:'Anton',sans-serif; font-size:22px; color:var(--ink); }
         .mp-chart-box{ height:200px; position:relative; }
+        .mp-ov{ position:fixed; inset:0; background:rgba(21,18,16,.55); display:flex; align-items:center; justify-content:center; padding:16px; z-index:1000; }
+        .mp-modal{ background:#fff; border-radius:16px; padding:22px 20px 18px; width:100%; max-width:420px; max-height:90vh; overflow-y:auto; font-family:'Archivo',sans-serif; }
+        .mp-modal h3{ margin:0 0 6px; font-size:17px; font-weight:800; color:var(--ink); }
+        .mp-modal p{ margin:0 0 14px; font-size:13px; color:var(--ink-2); line-height:1.55; }
+        .mp-modal-lbl{ font-size:10.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin:0 0 6px; }
+        .mp-modal ul{ list-style:none; margin:0 0 14px; padding:0; display:flex; flex-direction:column; gap:6px; }
+        .mp-modal li{ display:flex; gap:8px; font-size:13px; color:var(--ink-2); line-height:1.45; }
+        .mp-modal-acts{ display:flex; gap:10px; margin-top:4px; }
+        .mp-modal-acts button{ flex:1; }
+        .mp-btn-ghost{ padding:15px; background:#fff; color:var(--ink); border:1.5px solid var(--line); border-radius:12px; font-size:14px; font-weight:700; cursor:pointer; font-family:'Archivo',sans-serif; }
         .mp-banner{ border-radius:12px; padding:12px 16px; font-size:13px; font-weight:700; margin-bottom:18px; }
       `}</style>
 
       <div className="mp-title">PAGAMENTOS</div>
+
+      {/* A tela de autorização do Mercado Pago (texto deles, não dá pra mudar)
+          diz que o app terá acesso amplo à conta — assusta o lojista (Crepe
+          Cone, out/2026). Explica antes o que a gente realmente usa. */}
+      {avisoConectar && (
+        <div className="mp-ov" role="dialog" aria-modal="true" aria-labelledby="mp-aviso-tit">
+          <div className="mp-modal">
+            <h3 id="mp-aviso-tit">Antes de conectar</h3>
+            <p>No final, o Mercado Pago vai mostrar uma mensagem padrão dizendo que o Trindade Online terá acesso à sua conta. Esse texto é do Mercado Pago e aparece pra qualquer sistema que se conecta. Na prática:</p>
+            <div className="mp-modal-lbl">O que a gente usa</div>
+            <ul>
+              <li><span style={{ color: '#0F8A57', fontWeight: 800 }}>✓</span><span>Gerar o Pix e a cobrança no cartão dos pedidos do seu cardápio</span></li>
+              <li><span style={{ color: '#0F8A57', fontWeight: 800 }}>✓</span><span>Confirmar que o pagamento caiu, pra liberar o pedido</span></li>
+              <li><span style={{ color: '#0F8A57', fontWeight: 800 }}>✓</span><span>Devolver o valor ao cliente quando um pedido pago é cancelado</span></li>
+            </ul>
+            <div className="mp-modal-lbl">O que a gente não vê nem mexe</div>
+            <ul>
+              <li><span style={{ color: '#A83232', fontWeight: 800 }}>✕</span><span>Seu login e sua senha</span></li>
+              <li><span style={{ color: '#A83232', fontWeight: 800 }}>✕</span><span>Seu saldo e seu extrato</span></li>
+              <li><span style={{ color: '#A83232', fontWeight: 800 }}>✕</span><span>Suas outras vendas e transações</span></li>
+              <li><span style={{ color: '#A83232', fontWeight: 800 }}>✕</span><span>Saques e transferências</span></li>
+            </ul>
+            <p>O dinheiro cai inteiro na sua conta, sem taxa nossa. Pode desconectar quando quiser, aqui mesmo.</p>
+            <div className="mp-modal-acts">
+              <button className="mp-btn-ghost" onClick={() => setAvisoConectar(false)}>Agora não</button>
+              <button className="mp-btn-primary" disabled={connecting} onClick={() => { setAvisoConectar(false); conectar() }}>Entendi, conectar</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {banner && (
         <div className="mp-banner" style={banner.kind === 'ok' ? { background: '#E4F3EC', color: '#157A52' } : { background: '#FBEAEA', color: '#A83232' }}>
@@ -236,7 +277,7 @@ export default function PagamentosPage() {
               <div style={{ display: 'flex', gap: 10 }}><span style={{ color: '#0F8A57', fontWeight: 800 }}>✓</span><span style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.5 }}>O dinheiro cai direto na SUA conta do Mercado Pago — a Trindade Online nunca fica com o valor</span></div>
               <div style={{ display: 'flex', gap: 10 }}><span style={{ color: '#0F8A57', fontWeight: 800 }}>✓</span><span style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.5 }}>Pedido só é confirmado depois que o pagamento cai — acaba o calote de quem some depois de pedir</span></div>
             </div>
-            <button className="mp-btn-primary" style={{ width: '100%' }} disabled={connecting} onClick={conectar}>
+            <button className="mp-btn-primary" style={{ width: '100%' }} disabled={connecting} onClick={() => setAvisoConectar(true)}>
               {connecting ? 'Abrindo o Mercado Pago...' : 'Conectar Mercado Pago →'}
             </button>
             <div style={{ textAlign: 'center', fontSize: 11, color: '#A79E8B', marginTop: 10 }}>

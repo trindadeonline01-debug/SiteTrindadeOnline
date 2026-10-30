@@ -44,11 +44,11 @@ class ThermalPrinterLojaModule : Module() {
       }, *bluetoothPermissions)
     }
 
-    // Lista de verdade (BluetoothPrintersConnections.getList()), não só a
+    // Lista de verdade (BluetoothPrintersConnections().list), não só a
     // primeira pareada — cada item traz nome+endereço pro lojista escolher
     // qual é a impressora na tela de configuração do app.
     Function("listPairedPrinters") {
-      val connections = BluetoothPrintersConnections.getList()
+      val connections = BluetoothPrintersConnections().list
       if (connections == null) {
         emptyList<Map<String, String>>()
       } else {
@@ -69,7 +69,7 @@ class ThermalPrinterLojaModule : Module() {
     AsyncFunction("printFormatted") { text: String, address: String?, dpi: Int, widthMm: Double, charsPerLine: Int, promise: Promise ->
       Thread {
         try {
-          val connections = BluetoothPrintersConnections.getList()
+          val connections = BluetoothPrintersConnections().list
           val connection = if (address != null) {
             connections?.firstOrNull { it.device?.address == address }
               ?: throw CodedException("PRINTER_NOT_FOUND", "Impressora com esse endereço não está pareada/visível agora.", null)

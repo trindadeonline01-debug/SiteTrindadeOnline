@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, SafeAreaView, Alert } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import { useKeepAwake } from 'expo-keep-awake';
 import * as Notifications from 'expo-notifications';
@@ -30,6 +31,7 @@ const ATIVAS = ['buscando', 'sem', 'caminho', 'retirado'];
 export default function HomeScreen({ company: inicial }: { company: Company }) {
   useKeepAwake();
   const { layout, isTablet, width } = useLayout();
+  const insets = useSafeAreaInsets();
   const [company, setCompany] = useState(inicial);
   const [tab, setTab] = useState<Tab>('pedidos');
   const [abertos, setAbertos] = useState<Pedido[]>([]);
@@ -236,14 +238,17 @@ export default function HomeScreen({ company: inicial }: { company: Company }) {
   );
 
   return (
-    <SafeAreaView style={styles.wrap}>
+    // Android 15+ desenha o app por baixo da barra de status e dos botões de
+    // navegação (edge-to-edge); os insets empurram o conteúdo pra fora delas.
+    <View style={[styles.wrap, { backgroundColor: colors.ink, paddingTop: insets.top, paddingLeft: insets.left, paddingRight: insets.right }]}>
+      <View style={{ flex: 1, backgroundColor: colors.paper, paddingBottom: rail ? insets.bottom : 0 }}>
       {rail ? (
         <View style={{ flex: 1, flexDirection: 'row' }}>
           <View style={styles.rail}><Text style={styles.logo}>TRINDADE{'\n'}LOJA</Text>{tabs}</View>
           {conteudo}
         </View>
       ) : (
-        <View style={{ flex: 1 }}>{conteudo}<View style={styles.bar}>{tabs}</View></View>
+        <View style={{ flex: 1 }}>{conteudo}<View style={[styles.bar, { paddingBottom: 7 + insets.bottom }]}>{tabs}</View></View>
       )}
 
       {detalhe && (
@@ -262,7 +267,8 @@ export default function HomeScreen({ company: inicial }: { company: Company }) {
       {assistente && <AssistenteScreen companyId={company.id} testeRecebido={testeRecebido} onClose={() => setAssistente(false)} />}
       {editando && <ProdutoEdit produto={editando} companyId={company.id} isTablet={isTablet} onClose={() => setEditando(null)} onSaved={recarregarProdutos} />}
       {alarmePedido && <AlarmeOverlay pedido={alarmePedido} mais={Math.max(0, alarme.length - 1)} impresso={impresso[alarmePedido.id] || null} onVer={verPedidos} />}
-    </SafeAreaView>
+      </View>
+    </View>
   );
 }
 

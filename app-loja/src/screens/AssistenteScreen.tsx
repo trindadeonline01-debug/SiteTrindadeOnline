@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Notifications from 'expo-notifications';
 import { colors, radius } from '../theme';
 import { apiPost } from '../api/http';
@@ -16,6 +17,7 @@ async function abrirAndroid(action: string) {
 }
 
 export default function AssistenteScreen({ companyId, onClose, testeRecebido }: { companyId: string; onClose: () => void; testeRecebido: number }) {
+  const insets = useSafeAreaInsets();
   const [w, setW] = useState<WizardState | null>(null);
   const [notif, setNotif] = useState(false);
   const [bt, setBt] = useState(false);
@@ -67,8 +69,8 @@ export default function AssistenteScreen({ companyId, onClose, testeRecebido }: 
 
   return (
     <Modal visible animationType="slide" onRequestClose={onClose}>
-      <View style={styles.wrap}>
-        <View style={styles.head}>
+      <View style={[styles.wrap, { paddingBottom: insets.bottom }]}>
+        <View style={[styles.head, { paddingTop: 18 + insets.top }]}>
           <View style={{ flex: 1 }}><Text style={styles.titulo}>Vamos garantir que o tablet toca</Text><Text style={styles.sub}>Cada fabricante esconde essas opções num lugar. Siga os itens abaixo.</Text></View>
           <Pressable onPress={onClose} hitSlop={12}><Text style={styles.x}>×</Text></Pressable>
         </View>

@@ -12,9 +12,16 @@ import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile'
 // alguém chamando a API da Supabase direto — só o CAPTCHA validado pelo
 // próprio backend deles fecha esse buraco de verdade. Habilitado em
 // Supabase → Authentication → Settings → Bot and Abuse Protection.
-type Props = { onToken: (token: string | null) => void }
+type Props = {
+  onToken: (token: string | null) => void
+  // Só o app nativo da loja usa estas três (ver /mobile-captcha): resolve o
+  // desafio sem mostrar o widget, e avisa quando precisar de um toque.
+  appearance?: 'always' | 'execute' | 'interaction-only'
+  onBeforeInteractive?: () => void
+  onAfterInteractive?: () => void
+}
 
-const CaptchaTurnstile = forwardRef<TurnstileInstance, Props>(function CaptchaTurnstile({ onToken }, ref) {
+const CaptchaTurnstile = forwardRef<TurnstileInstance, Props>(function CaptchaTurnstile({ onToken, appearance, onBeforeInteractive, onAfterInteractive }, ref) {
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
   if (!siteKey) return null
   return (
@@ -25,6 +32,9 @@ const CaptchaTurnstile = forwardRef<TurnstileInstance, Props>(function CaptchaTu
         onSuccess={token => onToken(token)}
         onExpire={() => onToken(null)}
         onError={() => onToken(null)}
+        options={appearance ? { appearance } : undefined}
+        onBeforeInteractive={onBeforeInteractive}
+        onAfterInteractive={onAfterInteractive}
       />
     </div>
   )

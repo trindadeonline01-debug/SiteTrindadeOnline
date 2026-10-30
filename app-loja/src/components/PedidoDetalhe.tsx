@@ -1,3 +1,4 @@
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { colors, radius, statusColor } from '../theme';
 import { STATUS_LABEL, proximoStatus, type Entrega, type Pedido } from '../types';
@@ -22,6 +23,7 @@ type Props = {
 };
 
 export default function PedidoDetalhe(props: Props) {
+  const insets = useSafeAreaInsets();
   const { pedido: p, entrega: e, isTablet } = props;
   const moto = motoEstado(e);
   const aberto = ['recebido', 'em_preparo', 'pronto', 'saiu_entrega'].includes(p.status);
@@ -50,7 +52,7 @@ export default function PedidoDetalhe(props: Props) {
   return (
     <Modal visible transparent animationType="slide" onRequestClose={props.onClose}>
       <Pressable style={styles.backdrop} onPress={props.onClose} />
-      <View style={[styles.panel, panel]}>
+      <View style={[styles.panel, panel, { paddingBottom: insets.bottom, top: insets.top + (isTablet ? 0 : 24) }]}>
         {codigosVisiveis(p, e) && e && (
           <View style={styles.codes}>
             <View style={styles.cd}><Text style={styles.cdLbl}>CÓDIGO DA LOJA</Text><Text style={styles.cdNum}>{e.pickup_code}</Text><Text style={styles.cdSub}>Diga ao motoboy quando ele pegar o pedido</Text></View>

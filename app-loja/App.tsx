@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from './src/supabase';
 import { fetchMyCompany } from './src/api/company';
 import { colors, spacing } from './src/theme';
@@ -40,20 +40,21 @@ export default function App() {
   if (checking) {
     return (
       <SafeAreaProvider>
-        <View style={styles.center}><ActivityIndicator color={colors.signDark} size="large" /></View>
+        <StatusBar style="dark" />
+        <SafeAreaView style={styles.center}><ActivityIndicator color={colors.signDark} size="large" /></SafeAreaView>
       </SafeAreaProvider>
     );
   }
 
   return (
     <SafeAreaProvider>
-      <StatusBar style="light" />
+      <StatusBar style={signedIn && company ? 'light' : 'dark'} />
       {!signedIn ? (
         <LoginScreen />
       ) : company ? (
         <HomeScreen company={company} />
       ) : (
-        <View style={styles.center}>
+        <SafeAreaView style={styles.center}>
           {companyErro ? (
             <>
               <Text style={styles.erroTitle}>⚠️</Text>
@@ -62,7 +63,7 @@ export default function App() {
           ) : (
             <ActivityIndicator color={colors.signDark} size="large" />
           )}
-        </View>
+        </SafeAreaView>
       )}
     </SafeAreaProvider>
   );

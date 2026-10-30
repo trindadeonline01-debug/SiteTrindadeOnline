@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, KeyboardAvoidingView, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { colors, radius } from '../theme';
 import type { Produto } from '../types';
@@ -12,6 +13,7 @@ const num = (v: string) => { const x = parseFloat(String(v).replace(',', '.')); 
 const txt = (n: number) => String(n).replace('.', ',');
 
 export default function ProdutoEdit({ produto, companyId, isTablet, onClose, onSaved }: { produto: Produto; companyId: string; isTablet: boolean; onClose: () => void; onSaved: () => void }) {
+  const insets = useSafeAreaInsets();
   const promoAtual = precoPromocional(produto);
   const [nome, setNome] = useState(produto.name);
   const [preco, setPreco] = useState(txt(produto.sale_price));
@@ -66,7 +68,7 @@ export default function ProdutoEdit({ produto, companyId, isTablet, onClose, onS
   return (
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose} />
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[styles.panel, isTablet ? styles.panelTablet : styles.panelPhone]}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[styles.panel, isTablet ? styles.panelTablet : styles.panelPhone, { paddingBottom: insets.bottom, top: insets.top + (isTablet ? 0 : 24) }]}>
         <View style={styles.head}>
           <View style={{ flex: 1 }}><Text style={styles.titulo}>Editar produto</Text><Text style={styles.sub}>Alterações valem no site na hora</Text></View>
           <Pressable onPress={onClose} hitSlop={12}><Text style={styles.x}>×</Text></Pressable>

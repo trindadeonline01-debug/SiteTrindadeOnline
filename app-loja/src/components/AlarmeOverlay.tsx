@@ -1,3 +1,4 @@
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../theme';
 import type { Pedido } from '../types';
@@ -7,9 +8,10 @@ import { fmt, pagoNoSite, payLabel } from '../pedidoUtils';
 // enquanto o alarme toca; o botão leva ao quadro, onde o pedido espera em
 // "Recebido" para você aceitar.
 export default function AlarmeOverlay({ pedido: p, mais, impresso, onVer }: { pedido: Pedido; mais: number; impresso: 'imprimindo' | 'ok' | 'erro' | null; onVer: () => void }) {
+  const insets = useSafeAreaInsets();
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onVer}>
-      <View style={styles.wrap}>
+      <View style={[styles.wrap, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <ScrollView contentContainerStyle={styles.in}>
           <Text style={styles.bell}>🔔</Text>
           <Text style={styles.big}>PEDIDO NOVO #{p.order_number ?? '—'}</Text>

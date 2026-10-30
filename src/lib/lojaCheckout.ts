@@ -4,6 +4,7 @@ import { buildOwnerMessage } from '@/lib/orderMessages'
 import { debitarCashback, registrarDebitoCashback, reembolsarCashback } from '@/lib/cashback'
 import { notifyAdmin } from '@/lib/notifyAdmin'
 import { promoPrice } from '@/lib/lojaPricing'
+import { enviarPushLoja } from '@/lib/pushLoja'
 
 // Checkout do cardápio público, compartilhado por /api/loja/criar-pedido,
 // /api/loja/pagar-cartao, o webhook do Mercado Pago e a consulta do cliente.
@@ -255,6 +256,13 @@ export async function finalizarPedidoLoja(
       pagoOnline,
     })).then(result => { if (!result.ok) console.error('[lojaCheckout] aviso pro dono falhou:', result.detail) })
   )
+
+  // Push nativo pro app do lojista (acorda o tablet com a tela apagada).
+  jobs.push(enviarPushLoja(company.id, {
+    title: `Pedido novo${pedido.order_number ? ` #${pedido.order_number}` : ''} — ${valorFmt}`,
+    body: `${payload.customerName || 'Cliente'}${pagoOnline ? ' · já pago pelo site' : ''}`,
+    data: { tipo: 'pedido_novo', pedidoId: String(pedido.id) },
+  }))
 
   if (company.owner_id) {
     jobs.push(

@@ -4,7 +4,11 @@ App nativo (Expo/React Native) pro lojista — resolve o problema real que motiv
 
 Contexto completo da decisão: `docs/KNOWLEDGE_BASE.md` (raiz do repo).
 
-## Estado atual (Rodada 1 — escrito e com typecheck limpo, **nunca rodou num device real**)
+## Rodada 3 (out/2026) — telas do simulador aprovado
+
+Layout único que se ajusta ao celular, tablet em pé e tablet deitado; Pedidos com cores de status, entrega/retirada, motoboy e códigos (lidos de `delivery_orders`), detalhe do pedido, Cardápio com foto e edição, Hoje e Ajustes. Detalhes e decisões em `docs/KNOWLEDGE_BASE.md` ("App nativo do lojista"). Typecheck limpo e bundle Android compila (`npx expo export --platform android`); **nada disso rodou em aparelho real**. O que falta (push com tela apagada, impressão em segundo plano, assistente de configuração) está na seção "Push nativo" abaixo e no KB.
+
+## Estado da Rodada 1 (escrito e com typecheck limpo, **nunca rodou num device real**)
 
 Escopo enxuto, decidido com o Ricardo: só Pedidos + Cardápio + Configuração.
 

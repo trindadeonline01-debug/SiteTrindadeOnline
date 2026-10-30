@@ -40,6 +40,23 @@ Solução: `src/components/CaptchaWebView.tsx` abre uma WebView carregando `http
 
 **Também sem teste real ainda** — o fluxo foi escrito seguindo a documentação do `react-native-webview`, mas nunca confirmei numa WebView de verdade se o `postMessage` chega, nem se o domínio `trindadeonline.com.br` (allowlisted no Turnstile pro site) aceita a origem de uma WebView do app sem ajuste nenhum na configuração do Cloudflare.
 
+## Push nativo (FCM) — tocar com a tela apagada (Rodada 2, out/2026)
+
+A Rodada 1 só resolve o problema em primeiro plano (`expo-keep-awake` mantém a tela acesa). Pra tocar/imprimir com a tela apagada/bloqueada de verdade, o app precisa ser acordado por uma notificação push nativa — Realtime do Supabase sozinho não acorda app em 2º plano/fechado no Android.
+
+**Decisão explícita: infraestrutura 100% própria, sem misturar com o app-motoboy.** O motoboy usa OneSignal (projeto, app ID e tabelas dele); o app-loja usa **Firebase Cloud Messaging direto** (`google-services.json` próprio, pacote `com.trindadeonline.loja`, tabela `loja_push_tokens` própria) — projeto, credenciais e código completamente separados.
+
+Implementado nesta rodada (`src/push/registerPush.ts`):
+- Canal de notificação Android (`pedidos-loja`) em importância MÁXIMA, com o mesmo som de pedido novo (`assets/sounds/novo_pedido.wav`, bundlado via plugin `expo-notifications` no `app.json`) — é essa combinação (canal de alta prioridade + som customizado) que faz o Android tocar mesmo com a tela apagada, diferente de uma notificação silenciosa comum.
+- Pedido de permissão (obrigatório a partir do Android 13) e captura do **token FCM nativo** (`Notifications.getDevicePushTokenAsync()` — não é o Expo Push Token, o envio do lado do servidor vai usar o Firebase Admin SDK direto, sem depender do serviço de push da Expo).
+- Registro desse token em `HomeScreen.tsx` assim que a empresa carrega.
+
+**Ainda falta, nessa ordem:**
+1. Firebase project + `google-services.json` (ver "Pendente" abaixo) — sem isso o build nem compila com o plugin de notificações configurado de verdade.
+2. Migração no Supabase criando a tabela `loja_push_tokens` (RLS por dono da empresa, mesmo padrão de `company_id` do resto do app) — rascunho pronto, só falta confirmação pra aplicar.
+3. Lado servidor (site Next.js): rota que, quando um `loja_pedidos` novo chega com `status='recebido'`, manda a notificação via Firebase Admin SDK pros tokens daquela empresa — ainda não escrita, só o cliente está pronto.
+4. Teste real num device — canal/som com tela apagada é exatamente o tipo de coisa que só se prova num aparelho físico, nunca no sandbox.
+
 ## Placeholders que precisam ser trocados
 
 - **Ícone do app** (`assets/icon.png`, `assets/android-icon-*.png`, `assets/favicon.png`) — gerado por código (fundo escuro + "TL"), não é a marca de verdade. Trocar quando tiver a arte real.
@@ -47,10 +64,11 @@ Solução: `src/components/CaptchaWebView.tsx` abre uma WebView carregando `http
 
 ## Pendente — precisa de ação do Ricardo antes de buildar
 
-1. **Conta/token de acesso Expo** — se já existe uma do `app-motoboy`, a MESMA conta serve (mesma organização Expo); só precisa rodar `eas build:configure` dentro desta pasta pra gerar um `projectId` novo (não dá pra copiar o do motoboy — é 1:1 por app). `app.json` já está com `extra.eas.projectId` vazio, esperando isso.
-2. **Build de teste** (`eas build --profile preview --platform android`) gera um APK instalável direto (sem Play Store) — mesmo profile que o app-motoboy já usa.
-3. **No tablet do Durval**: parear a impressora Bluetooth pelas configurações do Android ANTES de abrir o app (o app só lista impressoras já pareadas, não pareia sozinho ainda — isso também pode ser um follow-up se o fluxo manual for ruim na prática).
-4. Depois de instalado: testar login (confirma o CAPTCHA), testar pedido novo chegando com o app aberto em Pedidos E em Cardápio (confirma que o som/impressão disparam dos dois jeitos), testar impressão de teste na tela de Configuração, ajustar a largura (58mm/80mm) se o recibo sair cortado ou com espaço sobrando.
+1. **Projeto Firebase próprio pro app-loja** (`com.trindadeonline.loja`) — criar em console.firebase.google.com (pode ser um projeto Firebase novo, OU reaproveitar o MESMO projeto Firebase já criado pro app-motoboy se ele existir, desde que seja um "app Android" NOVO e separado dentro desse projeto — projeto Firebase pode ter vários apps, o que importa é não misturar o pacote/`google-services.json`). Adicionar app Android → pacote `com.trindadeonline.loja` → baixar `google-services.json` → mandar esse arquivo pra entrar em `app-loja/google-services.json` (gitignored, nunca commitado) e em `android.googleServicesFile` do `app.json`.
+2. **Conta/token de acesso Expo** — se já existe uma do `app-motoboy`, a MESMA conta serve (mesma organização Expo); só precisa rodar `eas build:configure` dentro desta pasta pra gerar um `projectId` novo (não dá pra copiar o do motoboy — é 1:1 por app). `app.json` já está com `extra.eas.projectId` vazio, esperando isso.
+3. **Build de teste** (`eas build --profile preview --platform android`) gera um APK instalável direto (sem Play Store) — mesmo profile que o app-motoboy já usa.
+4. **No tablet do Durval**: parear a impressora Bluetooth pelas configurações do Android ANTES de abrir o app (o app só lista impressoras já pareadas, não pareia sozinho ainda — isso também pode ser um follow-up se o fluxo manual for ruim na prática).
+5. Depois de instalado: testar login (confirma o CAPTCHA), testar pedido novo chegando com o app aberto em Pedidos E em Cardápio (confirma que o som/impressão disparam dos dois jeitos), testar impressão de teste na tela de Configuração, ajustar a largura (58mm/80mm) se o recibo sair cortado ou com espaço sobrando, e — já na Rodada 2 — testar notificação chegando com a tela apagada/app fechado de verdade.
 
 ## Comandos
 

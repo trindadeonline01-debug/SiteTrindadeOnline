@@ -7,7 +7,7 @@ import { getSavedPrinterAddress, savePrinterAddress, getSavedPrintConfig, savePr
 import { buildTestTicket } from '../print/receipt';
 import Toggle from '../components/Toggle';
 
-export default function ConfigScreen({ companyName, lojaAberta, onToggleLoja }: { companyName: string; lojaAberta: boolean; onToggleLoja: () => void }) {
+export default function ConfigScreen({ companyName, lojaAberta, onToggleLoja, onAbrirAssistente }: { companyName: string; lojaAberta: boolean; onToggleLoja: () => void; onAbrirAssistente: () => void }) {
   const [impressoras, setImpressoras] = useState<PairedPrinter[]>([]);
   const [selecionada, setSelecionada] = useState<string | null>(null);
   const [config, setConfig] = useState<PrintConfig>({ dpi: 203, widthMm: 58, charsPerLine: 32 });
@@ -67,6 +67,13 @@ export default function ConfigScreen({ companyName, lojaAberta, onToggleLoja }: 
         </View>
         <Toggle on={lojaAberta} onPress={onToggleLoja} />
       </View>
+      <Pressable style={styles.lojaRow} onPress={onAbrirAssistente}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.lojaTit}>Assistente de configuração</Text>
+          <Text style={styles.hint}>Confere se o tablet toca e imprime com a tela apagada</Text>
+        </View>
+        <Text style={{ fontSize: 18, color: colors.muted }}>›</Text>
+      </Pressable>
       <Text style={styles.secTitle}>🖨️ Impressora Bluetooth</Text>
       <Text style={styles.hint}>Pareie a impressora pelo Bluetooth do Android primeiro, depois escolha ela aqui.</Text>
       <Pressable style={styles.btnOutline} onPress={carregarImpressoras}>

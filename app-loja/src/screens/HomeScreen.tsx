@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, SafeAreaView, Alert } from 'react-native';
 import { useAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import { useKeepAwake } from 'expo-keep-awake';
+import * as Notifications from 'expo-notifications';
 import { colors } from '../theme';
 import { useLayout } from '../layout';
 import { proximoStatus, type Company, type Entrega, type Pedido, type Produto } from '../types';
@@ -19,6 +20,8 @@ import ConfigScreen from './ConfigScreen';
 import PedidoDetalhe, { confirmarCancelamento } from '../components/PedidoDetalhe';
 import ProdutoEdit from '../components/ProdutoEdit';
 import AlarmeOverlay from '../components/AlarmeOverlay';
+import AssistenteScreen from './AssistenteScreen';
+import { getWizardState } from '../wizardState';
 
 type Tab = 'pedidos' | 'cardapio' | 'hoje' | 'config';
 const TABS: [Tab, string, string][] = [['pedidos', '🧾', 'Pedidos'], ['cardapio', '📋', 'Cardápio'], ['hoje', '📊', 'Hoje'], ['config', '⚙️', 'Ajustes']];
@@ -41,11 +44,16 @@ export default function HomeScreen({ company: inicial }: { company: Company }) {
   const [impresso, setImpresso] = useState<Record<string, 'imprimindo' | 'ok' | 'erro'>>({});
   const [ownMoto, setOwnMoto] = useState(false);
   const [novoAviso, setNovoAviso] = useState(false);
+  const [assistente, setAssistente] = useState(false);
+  const [testeRecebido, setTesteRecebido] = useState(0);
 
   // O que o Realtime (criado uma vez) precisa ler sempre atualizado.
   const ref = useRef({ company, ownMoto, entregas });
   ref.current = { company, ownMoto, entregas };
   const ultimoToque = useRef<Record<string, number>>({});
+
+  // Primeira vez no aparelho: abre o assistente de configuração.
+  useEffect(() => { getWizardState().then(w => { if (!w.visto) setAssistente(true); }); }, []);
 
   const player = useAudioPlayer(require('../../assets/sounds/pedido_novo_telefone.mp3'));
   useEffect(() => { setAudioModeAsync({ playsInSilentMode: true, interruptionMode: 'duckOthers' }).catch(() => {}); }, []);
@@ -68,6 +76,25 @@ export default function HomeScreen({ company: inicial }: { company: Company }) {
   }, [company.id]);
 
   useEffect(() => { recarregar(); recarregarProdutos(); temMotoboyProprioAtivo(company.id).then(setOwnMoto); }, [company.id, recarregar, recarregarProdutos]);
+
+  // Push: o de teste mostra e toca mesmo com o app aberto; o de pedido novo
+  // só leva ao quadro (o som e o alarme já vêm do Realtime em primeiro plano).
+  useEffect(() => {
+    Notifications.setNotificationHandler({
+      handleNotification: async (n) => {
+        const teste = n.request.content.data?.tipo === 'teste';
+        return { shouldShowBanner: teste, shouldShowList: teste, shouldPlaySound: teste, shouldSetBadge: false };
+      },
+    });
+    const a = Notifications.addNotificationReceivedListener(n => { if (n.request.content.data?.tipo === 'teste') setTesteRecebido(t => t + 1); });
+    const b = Notifications.addNotificationResponseReceivedListener(r => {
+      const tipo = r.notification.request.content.data?.tipo;
+      if (tipo === 'teste') setTesteRecebido(t => t + 1);
+      if (tipo === 'pedido_novo') { setTab('pedidos'); recarregar(); }
+    });
+    return () => { a.remove(); b.remove(); };
+  }, [recarregar]);
+
 
   // Registra o token de push assim que a empresa carrega — é isso que vai
   // permitir acordar o app (som + impressão) com a tela apagada/bloqueada.
@@ -203,7 +230,7 @@ export default function HomeScreen({ company: inicial }: { company: Company }) {
         {tab === 'pedidos' && <PedidosScreen pedidos={abertos} entregas={entregas} layout={layout} loading={loadingPed} onRefresh={recarregar} autoAceitar={company.loja_auto_aceitar_pedidos} autoMoto={company.entrega_chamada_automatica && !ownMoto} onToggleAceitar={() => toggleFlag('loja_auto_aceitar_pedidos')} onToggleMoto={toggleMoto} onOpen={p => setDetalheId(p.id)} onAvancar={avancar} />}
         {tab === 'cardapio' && <CardapioScreen produtos={produtos} loading={loadingProd} onRefresh={recarregarProdutos} onToggle={onToggleProduto} onEdit={setEditando} layout={layout} width={width} />}
         {tab === 'hoje' && <HojeScreen pedidos={hoje} loading={loadingPed} onRefresh={recarregar} onOpen={p => setDetalheId(p.id)} />}
-        {tab === 'config' && <ConfigScreen companyName={company.name} lojaAberta={!company.store_paused} onToggleLoja={() => toggleFlag('store_paused')} />}
+        {tab === 'config' && <ConfigScreen companyName={company.name} lojaAberta={!company.store_paused} onToggleLoja={() => toggleFlag('store_paused')} onAbrirAssistente={() => setAssistente(true)} />}
       </View>
     </View>
   );
@@ -232,6 +259,7 @@ export default function HomeScreen({ company: inicial }: { company: Company }) {
           onManter={async () => { await manterPedido(detalhe.id); recarregar(); setDetalheId(null); }}
         />
       )}
+      {assistente && <AssistenteScreen companyId={company.id} testeRecebido={testeRecebido} onClose={() => setAssistente(false)} />}
       {editando && <ProdutoEdit produto={editando} companyId={company.id} isTablet={isTablet} onClose={() => setEditando(null)} onSaved={recarregarProdutos} />}
       {alarmePedido && <AlarmeOverlay pedido={alarmePedido} mais={Math.max(0, alarme.length - 1)} impresso={impresso[alarmePedido.id] || null} onVer={verPedidos} />}
     </SafeAreaView>

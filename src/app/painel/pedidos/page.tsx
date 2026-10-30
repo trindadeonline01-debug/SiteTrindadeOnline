@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { refreshSessionOnce } from '@/lib/authRefresh'
+import { adminFetch } from '@/lib/adminFetch'
 import { qzListPrinters, qzPrintRaw, buildReceipt, buildKitchenTicket, buildTestTicket, isRawBtMode, printViaRawBt, RAWBT_SENTINEL } from '@/lib/qzPrint'
 import { fetchPedidoComItensComRetry } from '@/lib/autoprint'
 import { useRealtimeResync } from '@/hooks/useRealtimeResync'
@@ -41,10 +42,10 @@ function notifyCustomer(customerId: string | null, companyName: string, status: 
 // Além do push no app, manda a atualização como mensagem de WhatsApp de
 // verdade pro cliente (mesmo canal usado pra confirmar o pedido).
 function notifyCustomerWhatsapp(companyId: string, phone: string | null, status: Status, deliveryType: string, pedidoId?: string) {
-  if (!phone) return
-  fetch('/api/loja/status-pedido', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ companyId, phone, status, deliveryType, pedidoId }),
+  if (!phone || !pedidoId) return
+  adminFetch('/api/loja/status-pedido', {
+    method: 'POST',
+    body: JSON.stringify({ companyId, status, deliveryType, pedidoId }),
   }).then(r => { if (!r.ok) console.error('[notifyCustomerWhatsapp] falhou', r.status) }).catch(err => console.error('[notifyCustomerWhatsapp] falhou', err))
 }
 // Ao escolher um motoboy PRÓPRIO (loja_motoboys) pra sair com o pedido,

@@ -4,6 +4,7 @@ import { moduleActive } from '@/lib/modules'
 import { normalizePhone } from '@/lib/phone'
 import { sendCustomerWhatsApp } from '@/lib/whatsapp'
 import { creditarCashback } from '@/lib/cashback'
+import { requireCompanyAccess } from '@/lib/requireUser'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -38,11 +39,23 @@ function buildStatusMessage(status: Status, deliveryType: string | null): string
 // o Ricardo pediu pra tirar (set/2026): a partir daqui é só status curto.
 export async function POST(req: NextRequest) {
   try {
-    const { companyId, pedidoId, phone: rawPhone, status, deliveryType } = await req.json()
-    if (!companyId || !rawPhone || !status) return NextResponse.json({ error: 'dados obrigatórios' }, { status: 400 })
-    const phone = normalizePhone(rawPhone)
+    const { companyId, pedidoId, status } = await req.json()
+    if (!companyId || !pedidoId || !status) return NextResponse.json({ error: 'dados obrigatórios' }, { status: 400 })
 
-    const text = buildStatusMessage(status, deliveryType || null)
+    const access = await requireCompanyAccess(req, companyId)
+    if (access instanceof NextResponse) return access
+
+    // Telefone e tipo de entrega vêm do próprio pedido, nunca do corpo da
+    // requisição — senão dava pra mandar WhatsApp da loja pra qualquer número
+    // e creditar o cashback do pedido num telefone que não é o do cliente.
+    const { data: pedidoBase } = await supabase
+      .from('loja_pedidos').select('customer_phone, delivery_type').eq('id', pedidoId).eq('company_id', companyId).maybeSingle()
+    if (!pedidoBase) return NextResponse.json({ error: 'pedido não encontrado' }, { status: 404 })
+    if (!pedidoBase.customer_phone) return NextResponse.json({ ok: true })
+    const phone = normalizePhone(pedidoBase.customer_phone)
+    const deliveryType: string | null = pedidoBase.delivery_type || null
+
+    const text = buildStatusMessage(status, deliveryType)
     if (!text) return NextResponse.json({ ok: true })
 
     // Código de confirmação sai numa mensagem SEPARADA, logo depois da de

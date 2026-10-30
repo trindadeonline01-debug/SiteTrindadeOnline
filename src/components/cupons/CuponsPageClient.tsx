@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Footer from '@/components/Footer'
 import { supabase } from '@/lib/supabase'
+import { adminFetch } from '@/lib/adminFetch'
 import ShareButton from '@/components/ShareButton'
 
 type Coupon = {
@@ -419,7 +420,7 @@ export default function CuponsPageClient({ embedded, search }: { embedded?: bool
             <div style={{marginBottom:10}}><label style={{fontSize:12,fontWeight:600,color:"#444",display:"block",marginBottom:4}}>VALOR DO DESCONTO</label><input type="number" value={editForm.discount_value} onChange={e=>setEditForm(f=>({...f,discount_value:e.target.value}))} style={{width:"100%",padding:"9px 12px",border:"1.5px solid #E0DDD8",borderRadius:8,fontSize:13,fontFamily:"Archivo,sans-serif",outline:"none"}}/></div>
             <div style={{marginBottom:10}}><label style={{fontSize:12,fontWeight:600,color:"#444",display:"block",marginBottom:4}}>COMPRA MÍNIMA (R$)</label><input type="number" value={editForm.min_purchase} onChange={e=>setEditForm(f=>({...f,min_purchase:e.target.value}))} placeholder="0 = sem mínimo" style={{width:"100%",padding:"9px 12px",border:"1.5px solid #E0DDD8",borderRadius:8,fontSize:13,fontFamily:"Archivo,sans-serif",outline:"none"}}/></div>
             <div style={{marginBottom:16}}><label style={{fontSize:12,fontWeight:600,color:"#444",display:"block",marginBottom:4}}>VALIDADE</label><input type="datetime-local" value={editForm.expires_at} onChange={e=>setEditForm(f=>({...f,expires_at:e.target.value}))} style={{width:"100%",padding:"9px 12px",border:"1.5px solid #E0DDD8",borderRadius:8,fontSize:13,fontFamily:"Archivo,sans-serif",outline:"none"}}/></div>
-            <button onClick={async()=>{if(!editModal)return;setSaving(true);await fetch("/api/coupons/update",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({coupon_id:editModal.id,updates:{title:editForm.title,discount_value:Number(editForm.discount_value),expires_at:new Date(editForm.expires_at).toISOString(),min_purchase:editForm.min_purchase?Number(editForm.min_purchase):0}})});setSaving(false);setEditModal(null);loadCoupons()}} style={{width:"100%",padding:12,background:"var(--sign)",color:"var(--ink)",border:"none",borderRadius:10,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"Archivo,sans-serif",marginBottom:8}}>{saving?"Salvando...":"Salvar alterações"}</button>
+            <button onClick={async()=>{if(!editModal)return;setSaving(true);await adminFetch("/api/coupons/update",{method:"POST",body:JSON.stringify({coupon_id:editModal.id,updates:{title:editForm.title,discount_value:Number(editForm.discount_value),expires_at:new Date(editForm.expires_at).toISOString(),min_purchase:editForm.min_purchase?Number(editForm.min_purchase):0}})});setSaving(false);setEditModal(null);loadCoupons()}} style={{width:"100%",padding:12,background:"var(--sign)",color:"var(--ink)",border:"none",borderRadius:10,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"Archivo,sans-serif",marginBottom:8}}>{saving?"Salvando...":"Salvar alterações"}</button>
             <button onClick={()=>setEditModal(null)} style={{width:"100%",padding:10,background:"#F5F2EC",color:"#888",border:"none",borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:"Archivo,sans-serif"}}>Cancelar</button>
           </div>
         </div>

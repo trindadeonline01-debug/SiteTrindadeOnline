@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
+import { adminFetch } from '@/lib/adminFetch'
 import { compressImage } from '@/lib/compressImage'
 import ShareButton from '@/components/ShareButton'
 
@@ -128,7 +129,7 @@ export default function AnuncioPageClient({ id, initialListing }: Props) {
   }
   async function saveEdit(){
     if(!editForm.title.trim())return; setActionLoading(true)
-    await fetch('/api/listings/update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({listing_id:listing.id,user_id:userId,updates:{title:editForm.title.trim(),description:editForm.description||null,price:editForm.price?parseFloat(editForm.price):null,address:editForm.address||null,contact_phone:editForm.phone||null}})})
+    await adminFetch('/api/listings/update',{method:'POST',body:JSON.stringify({listing_id:listing.id,updates:{title:editForm.title.trim(),description:editForm.description||null,price:editForm.price?parseFloat(editForm.price):null,address:editForm.address||null,contact_phone:editForm.phone||null}})})
     for(let i=0;i<newFiles.length;i++){
       const file=newFiles[i];const ext=file.name.split('.').pop();const path=`listings/${listing.id}/${Date.now()}_${i}.${ext}`
       const compressed=await compressImage(file);const{data:up}=await supabase.storage.from('company-photos').upload(path,compressed,{upsert:true})
@@ -139,13 +140,13 @@ export default function AnuncioPageClient({ id, initialListing }: Props) {
   async function pauseListing(){
     if(!userId)return; setActionLoading(true)
     const newStatus = listing.status === 'active' ? 'paused' : 'active'
-    await fetch('/api/listings/update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({listing_id:listing.id,user_id:userId,updates:{status:newStatus}})})
+    await adminFetch('/api/listings/update',{method:'POST',body:JSON.stringify({listing_id:listing.id,updates:{status:newStatus}})})
     setListing({...listing, status:newStatus}); setActionLoading(false)
   }
   async function deleteListing(){
     if(!userId||!confirm('Excluir este anúncio? Esta ação é irreversível.'))return
     setActionLoading(true)
-    await fetch('/api/listings/update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({listing_id:listing.id,user_id:userId,updates:{status:'deleted'}})})
+    await adminFetch('/api/listings/update',{method:'POST',body:JSON.stringify({listing_id:listing.id,updates:{status:'deleted'}})})
     window.location.href = '/' + (TYPE_INFO[listing.type]?.slug || '')
   }
   function fmtPrice(l:Listing){if(!l.price)return(l.type==='emprego'||l.type==='imovel')?'A combinar':'Grátis';return`R$ ${l.price.toLocaleString('pt-BR')}${l.type==='imovel'&&l.subtype==='aluguel'?'/mês':''}`}

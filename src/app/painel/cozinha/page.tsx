@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { refreshSessionOnce } from '@/lib/authRefresh'
+import { adminFetch } from '@/lib/adminFetch'
 import { moduleActive } from '@/lib/modules'
 import { beep, unlockAudio } from '@/lib/beep'
 
@@ -31,10 +32,10 @@ function notifyCustomer(customerId: string | null, companyName: string, status: 
   }).catch(() => {})
 }
 function notifyCustomerWhatsapp(companyId: string, phone: string | null, status: Status, deliveryType: string, pedidoId?: string) {
-  if (!phone) return
-  fetch('/api/loja/status-pedido', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ companyId, phone, status, deliveryType, pedidoId }),
+  if (!phone || !pedidoId) return
+  adminFetch('/api/loja/status-pedido', {
+    method: 'POST',
+    body: JSON.stringify({ companyId, status, deliveryType, pedidoId }),
   }).catch(() => {})
 }
 

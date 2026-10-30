@@ -170,12 +170,22 @@ export function printViaRawBt(content: string): void {
   window.location.href = toRawBtIntentUrl(content)
 }
 
-// ── Recibo ESC/POS pra impressora térmica de 80mm (largura padrão de
-// 42 colunas na fonte A, que é o tamanho mais comum de impressora de
-// cupom — Epson, Elgin, Bematech e afins entendem esses comandos) ──
+// ── Recibo ESC/POS pra impressora térmica (Epson, Elgin, Bematech e afins
+// entendem esses comandos). Papel de 80mm = 42 colunas na fonte A; papel de
+// 58mm (as pequenas de Bluetooth, tipo a do Durval) = 32 colunas. Cada loja
+// escolhe o papel nas configurações da impressora (companies.
+// loja_impressora_papel) — quem carrega a empresa chama setPapelImpressora.
 const ESC = '\x1B'
 const GS = '\x1D'
-const WIDTH = 42
+let PAPEL_MM: 58 | 80 = 80
+export function setPapelImpressora(mm: number | null | undefined) { PAPEL_MM = mm === 58 ? 58 : 80 }
+export function getPapelImpressora(): 58 | 80 { return PAPEL_MM }
+function cols() { return PAPEL_MM === 58 ? 32 : 42 }
+// Avanço antes do corte: a de 80mm tem faca alguns milímetros abaixo da
+// cabeça (3 linhas cortava em cima do texto, 6 dá folga). A de 58mm não tem
+// faca — o papel é rasgado na mão, então avança só o suficiente pra rasgar
+// sem perder o rodapé (antes sobravam ~5cm de papel em branco, Ricardo out/2026).
+function avancoFinal() { return PAPEL_MM === 58 ? 2 : 6 }
 
 const CMD = {
   init: ESC + '@',
@@ -189,12 +199,12 @@ const CMD = {
   feed: (n: number) => '\n'.repeat(n),
 }
 
-function padRow(left: string, right: string, width = WIDTH): string {
+function padRow(left: string, right: string, width = cols()): string {
   const space = width - left.length - right.length
   if (space <= 0) return (left + ' ' + right).slice(0, width)
   return left + ' '.repeat(space) + right
 }
-function wrap(text: string, width = WIDTH): string[] {
+function wrap(text: string, width = cols()): string[] {
   const words = text.split(' ')
   const lines: string[] = []
   let cur = ''
@@ -264,7 +274,7 @@ export function buildReceipt(d: ReceiptData): string {
   lines.push(CMD.boldOff)
   lines.push(`Pedido ${d.pedidoShortId}`, '\n')
   lines.push(new Date(d.createdAt).toLocaleString('pt-BR'), '\n')
-  lines.push('-'.repeat(WIDTH), '\n')
+  lines.push('-'.repeat(cols()), '\n')
   lines.push(CMD.alignLeft)
 
   lines.push('Cliente: ' + d.customerName, '\n')
@@ -278,43 +288,44 @@ export function buildReceipt(d: ReceiptData): string {
   } else {
     lines.push('\n', CMD.boldOn, 'RETIRADA NO LOCAL', CMD.boldOff, '\n')
   }
-  lines.push('-'.repeat(WIDTH), '\n')
+  lines.push('-'.repeat(cols()), '\n')
 
   lines.push(CMD.boldOn, 'ITENS DO PEDIDO', CMD.boldOff, '\n')
-  lines.push('-'.repeat(WIDTH), '\n')
+  lines.push('-'.repeat(cols()), '\n')
   for (const it of d.items) {
+    // Nome e valor do item em negrito (Ricardo, out/2026); adicionais embaixo
+    // em letra normal.
+    lines.push(CMD.boldOn)
     wrap(itemLabel(it)).forEach((l, i) => {
       if (i === 0) lines.push(padRow(l, money(it.unitPrice * it.qty)), '\n')
       else lines.push(l, '\n')
     })
+    lines.push(CMD.boldOff)
     // Um adicional por linha (igual ao recibo do Anota Aí, referência que o
     // Ricardo trouxe, set/2026) — numa linha só ficava difícil de ler
     // pedido com muito complemento.
-    it.options?.forEach(o => wrap('- ' + o.name, WIDTH - 2).forEach(l => lines.push('  ' + l, '\n')))
+    it.options?.forEach(o => wrap('- ' + o.name, cols() - 2).forEach(l => lines.push('  ' + l, '\n')))
   }
-  lines.push('-'.repeat(WIDTH), '\n')
+  lines.push('-'.repeat(cols()), '\n')
 
   lines.push(padRow('Subtotal', money(d.subtotal)), '\n')
   if (d.deliveryType === 'entrega') lines.push(padRow('Taxa de entrega', money(d.deliveryFee || 0)), '\n')
-  lines.push('='.repeat(WIDTH), '\n')
-  lines.push(CMD.boldOn, CMD.doubleOn, padRow('Total', money(d.total)), CMD.doubleOff, CMD.boldOff, '\n')
-  lines.push('='.repeat(WIDTH), '\n')
+  lines.push('='.repeat(cols()), '\n')
+  lines.push(CMD.boldOn, CMD.doubleOn, padRow('Total', money(d.total), Math.floor(cols() / 2)), CMD.doubleOff, CMD.boldOff, '\n')
+  lines.push('='.repeat(cols()), '\n')
 
   if (d.paymentMethod) {
     lines.push('\n', CMD.boldOn, 'FORMAS DE PAGAMENTO', CMD.boldOff, '\n')
     lines.push(PAY_LABEL[d.paymentMethod] || d.paymentMethod, '\n')
   }
-  if (d.notes) { lines.push('-'.repeat(WIDTH), '\n', CMD.boldOn, 'Obs: ', CMD.boldOff, '\n'); wrap(d.notes).forEach(l => lines.push(l, '\n')) }
+  if (d.notes) { lines.push('-'.repeat(cols()), '\n', CMD.boldOn, 'Obs: ', CMD.boldOff, '\n'); wrap(d.notes).forEach(l => lines.push(l, '\n')) }
 
   lines.push('\n', CMD.alignCenter)
   lines.push('Fornecido por Trindade Online', '\n')
   lines.push('Impresso em ' + new Date().toLocaleString('pt-BR'), '\n')
   lines.push('NÃO É DOCUMENTO FISCAL', '\n')
 
-  // A faca de corte da impressora fica alguns milímetros abaixo da cabeça
-  // de impressão — 3 linhas de avanço não era o bastante e cortava em cima
-  // da última linha. 6 dá folga de sobra.
-  lines.push(CMD.feed(6), CMD.cut)
+  lines.push(CMD.feed(avancoFinal()), CMD.cut)
   return stripAccents(lines.join(''))
 }
 
@@ -340,24 +351,24 @@ export function buildKitchenTicket(d: KitchenTicketData): string {
   lines.push(CMD.boldOn, CMD.doubleOn, `PEDIDO #${d.pedidoShortId}`, CMD.doubleOff, CMD.boldOff, '\n')
   lines.push(new Date(d.createdAt).toLocaleString('pt-BR'), '\n')
   lines.push(CMD.boldOn + KITCHEN_DELIVERY_LABEL[d.deliveryType] + CMD.boldOff, '\n')
-  lines.push('-'.repeat(WIDTH), '\n')
+  lines.push('-'.repeat(cols()), '\n')
   lines.push(CMD.alignLeft)
 
   for (const it of d.items) {
     lines.push(CMD.boldOn)
     wrap(itemLabel(it)).forEach(l => lines.push(l, '\n'))
     lines.push(CMD.boldOff)
-    it.options?.forEach(o => wrap('- ' + o.name, WIDTH - 2).forEach(l => lines.push('  ' + l, '\n')))
+    it.options?.forEach(o => wrap('- ' + o.name, cols() - 2).forEach(l => lines.push('  ' + l, '\n')))
   }
-  if (d.notes) { lines.push('-'.repeat(WIDTH), '\n', CMD.boldOn, 'Obs: ', CMD.boldOff, '\n'); wrap(d.notes).forEach(l => lines.push(l, '\n')) }
+  if (d.notes) { lines.push('-'.repeat(cols()), '\n', CMD.boldOn, 'Obs: ', CMD.boldOff, '\n'); wrap(d.notes).forEach(l => lines.push(l, '\n')) }
   lines.push('\n', CMD.alignCenter, 'Impresso em ' + new Date().toLocaleString('pt-BR'), '\n')
-  lines.push(CMD.feed(6), CMD.cut)
+  lines.push(CMD.feed(avancoFinal()), CMD.cut)
   return stripAccents(lines.join(''))
 }
 
 // Ticket curto só pra confirmar que a impressora está configurada certa —
 // botão "🖨️ Imprimir teste" no modal de impressora (pedido do Ricardo,
-// out/2026). Mesmo CMD/WIDTH do recibo de verdade, pra testar exatamente o
+// out/2026). Mesmo CMD/largura do recibo de verdade, pra testar exatamente o
 // que vai sair num pedido real (corte, acento, largura de 80mm).
 export function buildTestTicket(companyName: string): string {
   const lines: string[] = []
@@ -366,10 +377,10 @@ export function buildTestTicket(companyName: string): string {
   lines.push(CMD.doubleOff, CMD.boldOff)
   lines.push(companyName.toUpperCase(), '\n\n')
   lines.push(new Date().toLocaleString('pt-BR'), '\n')
-  lines.push('-'.repeat(WIDTH), '\n')
+  lines.push('-'.repeat(cols()), '\n')
   lines.push(CMD.alignLeft)
   wrap('Se voce esta lendo isso, a impressora esta configurada certinho. Pode fechar essa tela.').forEach(l => lines.push(l, '\n'))
-  lines.push(CMD.alignCenter, '-'.repeat(WIDTH), '\n')
-  lines.push(CMD.feed(4), CMD.cut)
+  lines.push(CMD.alignCenter, '-'.repeat(cols()), '\n')
+  lines.push(CMD.feed(avancoFinal()), CMD.cut)
   return stripAccents(lines.join(''))
 }

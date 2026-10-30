@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { refreshSessionOnce } from '@/lib/authRefresh'
 import { adminFetch } from '@/lib/adminFetch'
-import { qzListPrinters, qzPrintRaw, buildReceipt, buildKitchenTicket, buildTestTicket, isRawBtMode, printViaRawBt, RAWBT_SENTINEL } from '@/lib/qzPrint'
+import { qzListPrinters, qzPrintRaw, buildReceipt, buildKitchenTicket, buildTestTicket, isRawBtMode, printViaRawBt, RAWBT_SENTINEL, getPapelImpressora, setPapelImpressora } from '@/lib/qzPrint'
 import { fetchPedidoComItensComRetry } from '@/lib/autoprint'
 import { useRealtimeResync } from '@/hooks/useRealtimeResync'
 import { usePainelShell } from '@/contexts/PainelShellContext'
@@ -182,6 +182,7 @@ export default function PedidosPage() {
   const [autoChamarMoto, setAutoChamarMoto] = useState(true)
   const [showPrinterModal, setShowPrinterModal] = useState(false)
   const [printerModalMode, setPrinterModalMode] = useState<'qz' | 'rawbt'>('qz')
+  const [papelMm, setPapelMm] = useState<58 | 80>(80)
   const [qzStatus, setQzStatus] = useState<'idle' | 'connecting' | 'connected' | 'error'>('idle')
   const [qzError, setQzError] = useState('')
   const [foundPrinters, setFoundPrinters] = useState<string[]>([])
@@ -619,7 +620,7 @@ export default function PedidosPage() {
   }
 
   async function printPedido(p: Pedido) {
-    if (!printerName) { setShowPrinterModal(true); return }
+    if (!printerName) { setPapelMm(getPapelImpressora()); setShowPrinterModal(true); return }
     setPrintError(null)
     try {
       // Se o pedido foi carregado na tela antes dos itens terminarem de
@@ -680,6 +681,7 @@ export default function PedidosPage() {
   // Tray de cara, porque quem usa RawBT (tablet) não tem QZ Tray nenhum
   // rodando, e a tentativa de conexão só ia mostrar erro à toa.
   function openPrinterModal() {
+    setPapelMm(getPapelImpressora())
     setShowPrinterModal(true)
     setPrinterModalMode(isRawBtMode(printerName) ? 'rawbt' : 'qz')
   }
@@ -717,6 +719,14 @@ export default function PedidosPage() {
     setPrinterSaving(true)
     setPrinterName(name)
     setPrinterSaving(false)
+  }
+
+  // Tamanho do papel da impressora (58mm pequena / 80mm grande) — o cupom é
+  // montado pra caber exatamente nessa largura (Ricardo, out/2026).
+  function escolherPapel(mm: 58 | 80) {
+    setPapelMm(mm)
+    setPapelImpressora(mm)
+    if (companyId) supabase.from('companies').update({ loja_impressora_papel: mm }).eq('id', companyId).then(() => {})
   }
 
   async function removePrinter() {
@@ -1673,7 +1683,13 @@ export default function PedidosPage() {
         <div className="pp-overlay" onClick={() => setShowPrinterModal(false)}>
           <div className="pp-modal" onClick={e => e.stopPropagation()}>
             <h2>🖨️ Impressora de pedidos</h2>
-            <p>Imprime o pedido automaticamente numa impressora térmica de 80mm, quando "Aceitar pedidos automaticamente" estiver ligado.</p>
+            <p>Imprime o pedido automaticamente numa impressora térmica, quando "Aceitar pedidos automaticamente" estiver ligado.</p>
+
+            <div style={{ fontSize: 11, fontWeight: 800, color: '#6E6656', textTransform: 'uppercase', letterSpacing: '.04em', margin: '4px 0 6px' }}>Tamanho do papel</div>
+            <div className="pp-mode-tabs">
+              <button className={`pp-mode-tab ${papelMm === 58 ? 'sel' : ''}`} onClick={() => escolherPapel(58)}>🧾 58mm (pequena)</button>
+              <button className={`pp-mode-tab ${papelMm === 80 ? 'sel' : ''}`} onClick={() => escolherPapel(80)}>🧾 80mm (grande)</button>
+            </div>
 
             <div className="pp-mode-tabs">
               <button className={`pp-mode-tab ${printerModalMode === 'qz' ? 'sel' : ''}`} onClick={() => setPrinterModalMode('qz')}>💻 Computador</button>

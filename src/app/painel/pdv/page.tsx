@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { moduleActive } from '@/lib/modules'
-import { qzPrintRaw, buildReceipt, buildKitchenTicket, isRawBtMode, printViaRawBt } from '@/lib/qzPrint'
+import { qzPrintRaw, buildReceipt, buildKitchenTicket, isRawBtMode, printViaRawBt, setPapelImpressora } from '@/lib/qzPrint'
 import { fetchPedidoComItensComRetry } from '@/lib/autoprint'
 import { npGroupContribution, type NpGrupo, type NpProduto, type NpCartLine, PESO_REGEX, pesoNum, pesoDisplay, pesoDigitsFromKg } from '@/lib/produtoCart'
 import { parseBalancaCode, BALANCA_DEFAULT_CONFIG, type BalancaConfig, type BalancaParsed } from '@/lib/balancaBarcode'
@@ -120,7 +120,7 @@ export default function PdvPage() {
       const { data: profile } = await supabase.from('profiles').select('user_type').eq('id', session.user.id).maybeSingle()
       const empresaParam = new URLSearchParams(window.location.search).get('empresa')
       const isAdmin = profile?.user_type === 'admin' && !!empresaParam
-      const SEL = 'id, name, loja_digital_enabled, loja_impressora_nome, loja_payment_methods, trial_modules_until, balanca_prefixo, balanca_plu_digits, balanca_valor_digits, balanca_valor_tipo, balanca_configurada'
+      const SEL = 'id, name, loja_digital_enabled, loja_impressora_nome, loja_impressora_papel, loja_payment_methods, trial_modules_until, balanca_prefixo, balanca_plu_digits, balanca_valor_digits, balanca_valor_tipo, balanca_configurada'
       const { data: comp } = isAdmin
         ? await supabase.from('companies').select(SEL).eq('id', empresaParam).maybeSingle()
         : await supabase.from('companies').select(SEL).eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
@@ -128,6 +128,7 @@ export default function PdvPage() {
       setCompanyId(comp.id)
       setCompanyName(comp.name)
       setPrinterName(comp.loja_impressora_nome || '')
+      setPapelImpressora(comp.loja_impressora_papel)
       try { setSkipOpcionais(localStorage.getItem(`pdv-venda-rapida-${comp.id}`) === '1') } catch {}
       const cfg: BalancaConfig = {
         prefixo: comp.balanca_prefixo || BALANCA_DEFAULT_CONFIG.prefixo,

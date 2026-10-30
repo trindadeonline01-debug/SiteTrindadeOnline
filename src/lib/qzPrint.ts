@@ -240,7 +240,11 @@ export type ReceiptData = {
   total: number
 }
 
-const PAY_LABEL: Record<string, string> = { pix: 'Pix', dinheiro: 'Dinheiro', cartao: 'Cartão' }
+const PAY_LABEL: Record<string, string> = {
+  pix: 'Pix', dinheiro: 'Dinheiro', cartao: 'Cartão',
+  cartao_credito: 'Cartão de crédito', cartao_debito: 'Cartão de débito', cartao_online: 'Cartão (pago pelo site)',
+  vale_refeicao: 'Vale-refeição', vale_alimentacao: 'Vale-alimentação', picpay: 'PicPay',
+}
 
 // Formato espelhado no recibo do Cardápio Web (referência trazida pelo
 // Ricardo do teste real na Satolo's) — seções tituladas em vez de texto
@@ -248,9 +252,16 @@ const PAY_LABEL: Record<string, string> = { pix: 'Pix', dinheiro: 'Dinheiro', ca
 // que não é nota fiscal (mesmo aviso que sistemas do tipo já usam).
 export function buildReceipt(d: ReceiptData): string {
   const lines: string[] = []
+  // Cabeçalho: marca da plataforma em letra dupla (15 caracteres = 30
+  // colunas, cabe na térmica pequena de 58mm e na de 80mm) e o nome da loja
+  // embaixo, tamanho normal. Antes o nome da loja ia em letra dupla e
+  // quebrava em duas linhas na de 58mm ("PADARIA DO DURVA / L") — pedido
+  // do Ricardo, out/2026.
   lines.push(CMD.init, CMD.alignCenter, CMD.boldOn, CMD.doubleOn)
-  lines.push(d.companyName.toUpperCase(), '\n')
-  lines.push(CMD.doubleOff, CMD.boldOff)
+  lines.push('TRINDADE ONLINE', '\n')
+  lines.push(CMD.doubleOff)
+  lines.push(d.companyName, '\n')
+  lines.push(CMD.boldOff)
   lines.push(`Pedido ${d.pedidoShortId}`, '\n')
   lines.push(new Date(d.createdAt).toLocaleString('pt-BR'), '\n')
   lines.push('-'.repeat(WIDTH), '\n')

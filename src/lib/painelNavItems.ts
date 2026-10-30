@@ -59,6 +59,7 @@ export const PAINEL_NAV_GROUPS: PainelNavGroup[] = [
       { href: '/painel?tab=cupons', icon: '🎟️', label: 'Cupons' },
       { href: '/painel?tab=promocoes', icon: '🏷️', label: 'Promoções' },
       { href: '/painel?tab=plano', icon: '💳', label: 'Plano' },
+      { href: '/painel/pagamentos', icon: '🏦', label: 'Pagamentos (Mercado Pago)', lockKey: 'loja' },
     ],
   },
 ]

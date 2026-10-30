@@ -20,6 +20,8 @@ type Pedido = {
   notes: string | null; subtotal: number; total: number; delivery_fee: number; motoboy_id: string | null
   created_at: string; accepted_at: string | null
   cancelamento_solicitado_em: string | null
+  mp_payment_id?: string | null; cancelado_por?: 'cliente' | 'loja' | null
+  refund_status?: 'processando' | 'estornado' | 'falhou' | null; refund_amount?: number | null; refund_error?: string | null
   itens: Item[]
 }
 type LojaMotoboy = { id: string; nome: string; whatsapp: string; ativo: boolean }
@@ -469,6 +471,7 @@ export default function PedidosPage() {
   // plataforma (chamarMotoboy/Trindade Entrega, fluxo à parte). É só um
   // registro de quem entregou, pra alimentar o relatório.
   async function setStatus(id: string, status: Status, motoboyId?: string) {
+    if (status === 'cancelado') { await cancelarPedido(id); return }
     // Pedido do Ricardo, set/2026: não existe gateway automático aqui — todo
     // pagamento (Pix, dinheiro ou cartão) é cobrado na hora, pelo motoboy ou
     // no balcão. "Entregue" com pagamento "pendente" era um estado que nem
@@ -511,22 +514,28 @@ export default function PedidosPage() {
       if (status === 'em_preparo' || status === 'pronto') maybeAutoChamarMotoboy(pedidoRef)
       if (motoboyId) notifyMotoboyWhatsapp(companyId, id, motoboyId)
     }
-    // Pedido cancelado (pela loja ou a pedido do cliente, via
-    // resolverCancelamento) tinha que ser desconectado da chamada de
-    // motoboy em andamento, e não era — achado real do Ricardo, out/2026:
-    // pedido cancelado e o motoboy continuou sendo chamado/a caminho pra
-    // uma entrega que não existia mais. Cobre as 3 fases canceláveis
-    // (buscando_motoboy/a_caminho/sem_motoboy — mesmas que o botão manual
-    // "Cancelar" já cobre); o motoboy é avisado pela própria
-    // doCancelarChamadaMotoboy (❌ "chamada cancelada pela loja").
-    if (status === 'cancelado') {
-      const d = deliveryByPedido[id]
-      if (d && (d.status === 'buscando_motoboy' || d.status === 'a_caminho' || d.status === 'sem_motoboy')) {
-        doCancelarChamadaMotoboy(d.id).then(result => {
-          if (!result.ok) console.error('[setStatus] falha ao cancelar chamada de motoboy junto com o pedido', result.error)
-        })
-      }
-    }
+  }
+
+  // Cancelar passa pelo servidor (/api/loja/cancelar-pedido): marca quem
+  // cancelou, devolve o cashback usado, solta a chamada de motoboy, estorna
+  // no Mercado Pago o pedido pago pelo site e avisa o cliente — tudo num
+  // lugar só (item 25 da base, out/2026). Também serve pra tentar o estorno
+  // de novo num pedido já cancelado cujo estorno falhou.
+  async function cancelarPedido(id: string) {
+    const alvo = pedidos.find(p => p.id === id)
+    const pagoSite = !!alvo?.mp_payment_id && alvo.payment_status === 'pago'
+    if (alvo && alvo.status !== 'cancelado' && pagoSite &&
+      !confirm(`Cancelar o pedido${alvo.order_number ? ` nº ${alvo.order_number}` : ''}? Ele foi pago pelo site — ${fmt(alvo.total)} vão ser devolvidos ao cliente pelo Mercado Pago.`)) return
+    const res = await adminFetch('/api/loja/cancelar-pedido', { method: 'POST', body: JSON.stringify({ pedidoId: id, por: 'loja' }) })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) { alert(data.error || 'Não deu pra cancelar o pedido agora.'); return }
+    const e = data.estorno as { status: 'processando' | 'estornado' | 'falhou'; valor: number; erro?: string } | null
+    setPedidos(prev => prev.map(p => p.id !== id ? p : {
+      ...p, status: 'cancelado', cancelado_por: p.cancelado_por || 'loja', cancelamento_solicitado_em: null,
+      ...(e ? { refund_status: e.status, refund_amount: e.valor, refund_error: e.erro || null } : {}),
+    }))
+    if (alvo && !data.jaCancelado) notifyCustomer(alvo.customer_id, companyName, 'cancelado')
+    if (e?.status === 'falhou') alert(`Pedido cancelado, mas o estorno de ${fmt(e.valor)} não saiu: ${e.erro || 'erro no Mercado Pago'}.\nDá pra tentar de novo no card do pedido ou devolver pelo app do Mercado Pago.`)
   }
 
   // Cliente pediu cancelamento pela tela de acompanhamento (/pedido/[id]) —
@@ -535,8 +544,7 @@ export default function PedidosPage() {
   // saiu com o motoboy (Ricardo, set/2026).
   async function resolverCancelamento(id: string, acao: 'cancelar' | 'manter') {
     if (acao === 'cancelar') {
-      await setStatus(id, 'cancelado')
-      await supabase.from('loja_pedidos').update({ cancelamento_solicitado_em: null }).eq('id', id)
+      await cancelarPedido(id)
     } else {
       setPedidos(prev => prev.map(p => p.id === id ? { ...p, cancelamento_solicitado_em: null } : p))
       await supabase.from('loja_pedidos').update({ cancelamento_solicitado_em: null }).eq('id', id)
@@ -984,6 +992,19 @@ export default function PedidosPage() {
               : <button className="pd-finalize-btn" onClick={e => { e.stopPropagation(); abrirFinalizar(p) }}>Finalizar ✓</button>
           )}
         </div>
+        {p.status === 'cancelado' && (p.cancelado_por || p.refund_status) && (
+          <div className="pd-cancelinfo" onClick={e => e.stopPropagation()}>
+            {p.cancelado_por && <div>❌ Cancelado {p.cancelado_por === 'cliente' ? 'pelo cliente' : 'pela loja'}</div>}
+            {p.refund_status === 'estornado' && <div className="ok">💸 {fmt(Number(p.refund_amount ?? p.total))} devolvidos pelo Mercado Pago</div>}
+            {p.refund_status === 'processando' && <div>💸 Devolução de {fmt(Number(p.refund_amount ?? p.total))} em processamento no Mercado Pago</div>}
+            {p.refund_status === 'falhou' && (
+              <>
+                <div className="err">⚠️ Estorno não saiu{p.refund_error ? `: ${p.refund_error}` : ''}</div>
+                <button className="pd-cancelinfo-retry" onClick={() => cancelarPedido(p.id)}>Tentar estorno de novo</button>
+              </>
+            )}
+          </div>
+        )}
         {canAct && needsAccept && <button className="pd-accept" onClick={e => { e.stopPropagation(); acceptPedido(p.id) }}>✓ Aceitar pedido</button>}
         {canAct && !needsAccept && getNextAction(p) && (() => {
           const action = getNextAction(p)!
@@ -1209,6 +1230,10 @@ export default function PedidosPage() {
         .pd-meta-notes{ color:#6E6656; }
         /* Era só texto sublinhado antes — "pode fazer um botão vermelho pra
            chamar bastante atenção" (Ricardo, out/2026, revisando o mockup). */
+        .pd-cancelinfo{ margin-top:8px;padding:8px 10px;border-radius:9px;background:#FBEAEA;color:#8A2A2A;font-size:12px;font-weight:700;display:flex;flex-direction:column;gap:4px; }
+        .pd-cancelinfo .ok{ color:#0F6B45; }
+        .pd-cancelinfo .err{ color:#A11F1F; }
+        .pd-cancelinfo-retry{ align-self:flex-start;margin-top:2px;padding:6px 10px;border-radius:7px;border:1px solid #C43D3D;background:#fff;color:#C43D3D;font-weight:800;font-size:12px;cursor:pointer;font-family:inherit; }
         .pd-cancel{ width:100%;font-size:14px;color:#fff;font-weight:800;background:#C43D3D;border:none;border-radius:9px;padding:11px;cursor:pointer;margin-top:10px; }
         .pd-printer-pill{ padding:9px 14px;border-radius:9px;border:1.5px solid #B9AE97;background:#fff;color:#8A6410;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit;white-space:nowrap; }
         .pp-overlay{ position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:70;display:flex;align-items:center;justify-content:center;padding:16px; }

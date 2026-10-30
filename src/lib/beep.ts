@@ -104,3 +104,32 @@ export function beep() {
     })
   } catch {}
 }
+
+// Som PRÓPRIO de "cliente pediu cancelamento" (item 25, out/2026) — bem
+// diferente do de pedido novo, pra loja saber pelo ouvido que não é venda:
+// três notas descendo, graves, repetidas 2x. Gerado por código, sem arquivo.
+export function beepCancelamento() {
+  try {
+    setPlaybackAudioSession()
+    const c = getCtx()
+    if (!c) return
+    if (c.state === 'suspended') c.resume().catch(() => {})
+    const master = c.createGain()
+    master.gain.value = 0.6
+    master.connect(c.destination)
+    const notas = [659.25, 523.25, 392.0]
+    ;[0, 0.9].forEach(base => notas.forEach((freq, i) => {
+      const osc = c.createOscillator()
+      const g = c.createGain()
+      osc.type = 'triangle'
+      osc.frequency.value = freq
+      osc.connect(g); g.connect(master)
+      const t0 = c.currentTime + base + i * 0.22
+      g.gain.setValueAtTime(0, t0)
+      g.gain.linearRampToValueAtTime(1, t0 + 0.02)
+      g.gain.linearRampToValueAtTime(0, t0 + 0.2)
+      osc.start(t0)
+      osc.stop(t0 + 0.22)
+    }))
+  } catch {}
+}

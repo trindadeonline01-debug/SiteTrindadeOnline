@@ -18,6 +18,7 @@ export type AdminEvent =
   | { type: 'humano_solicitado'; empresa: string; contato: string; mensagem: string }
   | { type: 'mp_renovacao_falhou'; empresa: string; venceEm: string | null; motivo: string }
   | { type: 'pagamento_sem_pedido'; empresa: string; mpPaymentId: string }
+  | { type: 'estorno_falhou'; empresa: string; pedido: string; valor: number; motivo: string }
 
 function buildMessage(event: AdminEvent): string {
   if (event.type === 'nova_empresa') {
@@ -31,6 +32,9 @@ function buildMessage(event: AdminEvent): string {
   }
   if (event.type === 'pagamento_sem_pedido') {
     return `🚨 Pagamento aprovado SEM pedido criado — ${event.empresa}\nPagamento Mercado Pago: ${event.mpPaymentId}\n\nO cliente pagou mas o pedido não conseguiu ser salvo. O sistema segue tentando sozinho; se não aparecer em Pedidos, confira com a loja e o cliente.`
+  }
+  if (event.type === 'estorno_falhou') {
+    return `⚠️ Estorno automático falhou — ${event.empresa}\nPedido: ${event.pedido}\nValor: R$ ${event.valor.toFixed(2).replace('.', ',')}\nMotivo: ${event.motivo}\n\nO pedido já está cancelado. A loja pode tentar de novo em Pedidos ou devolver pelo app do Mercado Pago.`
   }
   if (event.type === 'mp_renovacao_falhou') {
     return `⚠️ Mercado Pago: não consegui renovar o acesso da ${event.empresa}.${event.venceEm ? `\nVence em: ${event.venceEm}` : ''}\nMotivo: ${event.motivo}\n\nVou tentar de novo amanhã. Se continuar falhando, a loja precisa reconectar em Painel → Pagamentos antes de vencer.`

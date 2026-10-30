@@ -25,7 +25,13 @@ export async function POST(req: NextRequest) {
       .eq('id', pedidoId).maybeSingle()
     if (!pedido) return NextResponse.json({ error: 'pedido não encontrado' }, { status: 404 })
 
-    if (!['recebido', 'em_preparo'].includes(pedido.status)) {
+    // Loja com Mercado Pago conectado (pagamento pelo site, estorno
+    // automático): dá pra solicitar até "saiu pra entrega" — em "Recebido" o
+    // cliente cancela direto por /api/loja/cancelar-pedido. Loja sem conta
+    // conectada: regra de sempre, até "em preparo".
+    const { data: lojaPag } = await supabase.from('companies').select('pix_mp_enabled').eq('id', pedido.company_id).maybeSingle()
+    const permitidos = lojaPag?.pix_mp_enabled ? ['recebido', 'em_preparo', 'pronto', 'saiu_entrega'] : ['recebido', 'em_preparo']
+    if (!permitidos.includes(pedido.status)) {
       return NextResponse.json({ error: 'Esse pedido já passou da etapa em que dá pra pedir cancelamento — fala direto com a loja.' }, { status: 400 })
     }
     if (pedido.cancelamento_solicitado_em) return NextResponse.json({ ok: true })

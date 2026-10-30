@@ -20,11 +20,11 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const { id } = await params
   const { data: pedido } = await supabase
     .from('loja_pedidos')
-    .select('id, order_number, customer_name, status, payment_method, payment_status, delivery_type, delivery_address, subtotal, delivery_fee, total, notes, created_at, cancelamento_solicitado_em, company_id, itens:loja_pedido_itens(id, product_name, unit_price, qty, selected_options)')
+    .select('id, order_number, customer_name, status, payment_method, payment_status, mp_payment_id, delivery_type, delivery_address, subtotal, delivery_fee, total, notes, created_at, cancelamento_solicitado_em, cancelado_por, refund_status, refund_amount, company_id, itens:loja_pedido_itens(id, product_name, unit_price, qty, selected_options)')
     .eq('id', id).maybeSingle()
   if (!pedido) return NextResponse.json({ error: 'pedido não encontrado' }, { status: 404 })
 
-  const { data: company } = await supabase.from('companies').select('name, slug, phone').eq('id', pedido.company_id).maybeSingle()
+  const { data: company } = await supabase.from('companies').select('name, slug, phone, pix_mp_enabled').eq('id', pedido.company_id).maybeSingle()
 
   let entrega: { status: string; motoboy_name: string | null; delivery_code: string | null; picked_up_at: string | null; delivered_at: string | null } | null = null
   if (pedido.delivery_type === 'entrega') {

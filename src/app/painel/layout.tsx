@@ -3,7 +3,7 @@ import { Suspense, useEffect, useRef, useState } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { moduleActive } from '@/lib/modules'
-import { beep, unlockAudio } from '@/lib/beep'
+import { beep, beepCancelamento, unlockAudio } from '@/lib/beep'
 import { autoImprimirPedido } from '@/lib/autoprint'
 import { isRawBtMode } from '@/lib/qzPrint'
 import { refreshSessionOnce } from '@/lib/authRefresh'
@@ -238,6 +238,7 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
   // painel, só o que ficou pra trás a partir daqui).
   const resyncTick = useRealtimeResync()
   const printedIdsRef = useRef<Set<string>>(new Set())
+  const cancelReqAvisadoRef = useRef<Set<string>>(new Set())
   const lastCheckRef = useRef<string | null>(null)
   const prevCompanyIdRef = useRef<string | null>(null)
   function tryPrintPedido(id: string): boolean {
@@ -276,7 +277,16 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
       // Recontagem do badge "N pedidos pendentes" da tabbar do mobile — some
       // sozinha quando o pedido sai de "recebido" (lojista aceita/avança) ou
       // é cancelado/excluído.
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'loja_pedidos', filter: `company_id=eq.${company.id}` }, () => refreshPedidosBadge(company.id))
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'loja_pedidos', filter: `company_id=eq.${company.id}` }, payload => {
+        refreshPedidosBadge(company.id)
+        // Cliente pediu cancelamento (pedido já em preparo/pronto/saiu):
+        // som diferente do de pedido novo, uma vez por pedido.
+        const n = payload.new as { id?: string; cancelamento_solicitado_em?: string | null; status?: string }
+        if (n?.id && n.cancelamento_solicitado_em && n.status !== 'cancelado' && !cancelReqAvisadoRef.current.has(n.id)) {
+          cancelReqAvisadoRef.current.add(n.id)
+          beepCancelamento()
+        }
+      })
       .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'loja_pedidos', filter: `company_id=eq.${company.id}` }, () => refreshPedidosBadge(company.id))
       .subscribe()
     return () => { supabase.removeChannel(channel) }

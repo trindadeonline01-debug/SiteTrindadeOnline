@@ -9,9 +9,10 @@ type Pedido = {
   delivery_type: 'entrega' | 'retirada' | 'balcao'; delivery_address: string | null
   subtotal: number; delivery_fee: number; total: number; notes: string | null
   created_at: string; cancelamento_solicitado_em: string | null
+  cancelado_por?: 'cliente' | 'loja' | null; refund_status?: 'processando' | 'estornado' | 'falhou' | null; refund_amount?: number | null
   itens: Item[]
 }
-type Company = { name: string; slug: string; phone: string | null } | null
+type Company = { name: string; slug: string; phone: string | null; pix_mp_enabled?: boolean | null } | null
 type Entrega = { status: string; motoboy_name: string | null; delivery_code: string | null; picked_up_at: string | null; delivered_at: string | null } | null
 
 const PAY_LABEL: Record<string, string> = { pix: 'Pix', dinheiro: 'Dinheiro', cartao: 'Cartão', cartao_credito: 'Cartão de crédito', cartao_debito: 'Cartão de débito' }
@@ -44,7 +45,7 @@ export default function PedidoClient({ id, initialPedido, initialCompany, initia
   id: string; initialPedido: Pedido | null; initialCompany: Company; initialEntrega: Entrega
 }) {
   const [pedido, setPedido] = useState(initialPedido)
-  const [company] = useState(initialCompany)
+  const [company, setCompany] = useState(initialCompany)
   const [entrega, setEntrega] = useState(initialEntrega)
   const [cancelando, setCancelando] = useState(false)
   const [cancelError, setCancelError] = useState('')
@@ -58,6 +59,7 @@ export default function PedidoClient({ id, initialPedido, initialCompany, initia
         if (!res.ok) return
         const j = await res.json()
         if (j.pedido) setPedido(j.pedido)
+        if (j.company) setCompany(j.company)
         setEntrega(j.entrega || null)
       } catch {}
     }, 15000)
@@ -76,6 +78,24 @@ export default function PedidoClient({ id, initialPedido, initialCompany, initia
     setCancelando(false)
     if (data.error) { setCancelError(data.error); return }
     setPedido(p => p ? { ...p, cancelamento_solicitado_em: new Date().toISOString() } : p)
+  }
+
+  // Loja com Mercado Pago conectado + pedido ainda em "Recebido": o cliente
+  // cancela direto, sem esperar a loja, e o pagamento volta sozinho (item 25).
+  async function cancelarDireto() {
+    if (!pedido) return
+    const pagoSite = !!pedido.mp_payment_id && pedido.payment_status === 'pago'
+    if (!confirm(pagoSite ? `Cancelar o pedido? O valor de ${fmt(pedido.total)} volta pra você pelo Mercado Pago.` : 'Cancelar o pedido?')) return
+    setCancelando(true)
+    setCancelError('')
+    const res = await fetch('/api/loja/cancelar-pedido', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pedidoId: pedido.id, por: 'cliente' }),
+    })
+    const data = await res.json().catch(() => ({}))
+    setCancelando(false)
+    if (!res.ok || data.error) { setCancelError(data.error || 'Não deu pra cancelar agora. Tenta de novo.'); return }
+    const e = data.estorno as { status: 'processando' | 'estornado' | 'falhou'; valor: number } | null
+    setPedido(p => p ? { ...p, status: 'cancelado', cancelado_por: 'cliente', cancelamento_solicitado_em: null, ...(e ? { refund_status: e.status, refund_amount: e.valor } : {}) } : p)
   }
 
   const style = `
@@ -136,7 +156,10 @@ export default function PedidoClient({ id, initialPedido, initialCompany, initia
   const isEntrega = pedido.delivery_type === 'entrega'
   const steps = isEntrega ? STEPS_ENTREGA : STEPS_RETIRADA
   const stepIdx = steps.findIndex(s => s.key === pedido.status)
-  const podeCancelar = ['recebido', 'em_preparo'].includes(pedido.status) && !pedido.cancelamento_solicitado_em
+  const lojaConectada = !!company.pix_mp_enabled
+  const podeCancelarDireto = lojaConectada && pedido.status === 'recebido'
+  const podeCancelar = (lojaConectada ? ['em_preparo', 'pronto', 'saiu_entrega'] : ['recebido', 'em_preparo']).includes(pedido.status) && !pedido.cancelamento_solicitado_em
+  const valorEstorno = fmt(Number(pedido.refund_amount ?? pedido.total))
   const waTexto = `Oi! Sobre o meu pedido${pedido.order_number ? ` nº ${pedido.order_number}` : ''}...`
   const waHref = waLink(company.phone, waTexto)
 
@@ -156,7 +179,13 @@ export default function PedidoClient({ id, initialPedido, initialCompany, initia
       {pedido.status === 'cancelado' ? (
         <div className="pd-callout cancel">
           <div className="pd-callout-title">✕ Pedido cancelado</div>
-          <div className="pd-callout-sub">Esse pedido foi cancelado. Qualquer dúvida, fala com a loja.</div>
+          <div className="pd-callout-sub">
+            {pedido.cancelado_por === 'cliente' ? 'Você cancelou esse pedido.' : pedido.cancelado_por === 'loja' ? 'A loja cancelou esse pedido.' : 'Esse pedido foi cancelado.'}
+            {pedido.refund_status === 'estornado' && <> 💸 {valorEstorno} devolvidos pelo Mercado Pago — no Pix volta na hora; no cartão pode levar alguns dias pra aparecer na fatura.</>}
+            {pedido.refund_status === 'processando' && <> 💸 A devolução de {valorEstorno} está sendo processada pelo Mercado Pago.</>}
+            {pedido.refund_status === 'falhou' && <> A devolução de {valorEstorno} não saiu automática — a loja vai resolver com você.</>}
+            {' '}Qualquer dúvida, fala com a loja.
+          </div>
         </div>
       ) : pedido.status === 'entregue' ? (
         <div style={{ margin: '4px 18px 18px', textAlign: 'center', padding: '28px 16px' }}>
@@ -240,7 +269,11 @@ export default function PedidoClient({ id, initialPedido, initialCompany, initia
         {waHref && <a className="pd-btn pd-btn-wa" href={waHref} target="_blank" rel="noopener noreferrer">💬 Falar com a loja</a>}
 
         {pedido.status !== 'cancelado' && pedido.status !== 'entregue' && (
-          podeCancelar ? (
+          podeCancelarDireto ? (
+            <button className="pd-btn pd-btn-ghost" disabled={cancelando} onClick={cancelarDireto}>
+              {cancelando ? 'Cancelando...' : '✕ Cancelar pedido'}
+            </button>
+          ) : podeCancelar ? (
             <button className="pd-btn pd-btn-ghost" disabled={cancelando} onClick={solicitarCancelamento}>
               {cancelando ? 'Enviando...' : '✕ Solicitar cancelamento'}
             </button>

@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { isOpenNow } from '@/lib/businessHours'
 import { type Produto, fmt, promoPrice, availableToday, isSoldOut, groupContribution, cartStorageKey, setActiveCart } from '@/lib/lojaPricing'
 import { getVisitorId } from '@/components/PalavraPremiada'
+import CartaoMercadoPago, { type CartaoFormData } from '@/components/loja/CartaoMercadoPago'
 
 type Categoria = { id: string; name: string; display_order: number }
 type Coupon = { id: string; title: string; discount_type: 'fixed' | 'percent'; discount_value: number; min_purchase: number }
@@ -14,16 +15,23 @@ type Company = {
   loja_digital_enabled: boolean; flexible_hours?: boolean; store_paused?: boolean; store_forced_open?: boolean; owner_id?: string
   loja_taxa_entrega: number; loja_pedido_minimo: number; loja_payment_methods?: string[]
   loja_taxa_metodo?: 'bairro' | 'distancia'; loja_frete_gratis_acima?: number | null
-  cashback_enabled?: boolean
+  cashback_enabled?: boolean; pix_mp_enabled?: boolean
   hours?: any[]; photos?: { url: string; order: number }[]
 }
 const PAYMENT_LABELS: Record<string, string> = {
   pix: 'Pix', dinheiro: 'Dinheiro', cartao: 'Cartão', cartao_credito: 'Cartão de crédito', cartao_debito: 'Cartão de débito',
+  cartao_online: 'Cartão de crédito ou débito',
   vale_refeicao: 'Vale-refeição', vale_alimentacao: 'Vale-alimentação', picpay: 'PicPay',
 }
 type TempoInfo = { prepMin: number; travelMin: number | null; min: number; max: number }
 type FreteInfo = { fee: number; blocked: boolean; reason?: string; tempo?: TempoInfo | null }
 type CartLine = { key: string; produtoId: string; name: string; modifiers: { name: string; price: number }[]; unitPrice: number; qty: number }
+
+// Loja com Mercado Pago conectado só aceita pagamento pelo site: Pix ou cartão.
+function paymentOptionsFor(comp: Company | null): string[] {
+  if (comp?.pix_mp_enabled) return ['pix', 'cartao_online']
+  return comp?.loja_payment_methods?.length ? comp.loja_payment_methods : ['pix', 'dinheiro', 'cartao_credito']
+}
 
 export default function CardapioClient({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params)
@@ -96,7 +104,9 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
   const [orderError, setOrderError] = useState<string | null>(null)
   // Pix de verdade (Mercado Pago Connect) — só aparece quando a loja tem
   // conta conectada; sem isso o checkout segue exatamente como sempre foi.
-  const [pixModal, setPixModal] = useState<{ pedidoId: string; qr: string | null; copy: string | null; value: number } | null>(null)
+  const [pixModal, setPixModal] = useState<{ pendenteId: string; qr: string | null; copy: string | null; value: number } | null>(null)
+  // Cartão pelo Mercado Pago — o pedido só é criado se o pagamento aprovar.
+  const [cardModal, setCardModal] = useState<{ publicKey: string; value: number; erro: string | null; emAnalise: boolean; tentativa: number } | null>(null)
   const [pixCopied, setPixCopied] = useState(false)
   const pixPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const [coupons, setCoupons] = useState<Coupon[]>([])
@@ -172,7 +182,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
     supabase.from('site_settings').select('value').eq('key', 'peca_agora_enabled').maybeSingle()
       .then(({ data }) => setPecaAgoraEnabled(data?.value === 'true'))
     supabase.from('companies')
-      .select('id,name,slug,phone,address,avg_rating,total_reviews,status,loja_digital_enabled,flexible_hours,store_paused,store_forced_open,owner_id,loja_taxa_entrega,loja_pedido_minimo,loja_payment_methods,loja_taxa_metodo,loja_frete_gratis_acima,cashback_enabled,hours:company_hours(label,hours,order,day_of_week,open_time,close_time,closed),photos:company_photos(url,order)')
+      .select('id,name,slug,phone,address,avg_rating,total_reviews,status,loja_digital_enabled,flexible_hours,store_paused,store_forced_open,owner_id,loja_taxa_entrega,loja_pedido_minimo,loja_payment_methods,loja_taxa_metodo,loja_frete_gratis_acima,cashback_enabled,pix_mp_enabled,hours:company_hours(label,hours,order,day_of_week,open_time,close_time,closed),photos:company_photos(url,order)')
       .eq('slug', slug).maybeSingle()
       .then(async ({ data: comp }) => {
         if (!comp || comp.status !== 'active' || !comp.loja_digital_enabled) { setCompany(null); setLoading(false); return }
@@ -181,7 +191,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
         // de Vendas (pedido do Ricardo, set/2026). Mesma tabela/padrão que
         // /empresa já usa (EmpresaPerfilClient.tsx), só troca o `page`.
         supabase.from('page_views').insert({ page: '/cardapio', entity_id: comp.id, session_id: getVisitorId() }).then(() => {})
-        const accepted = comp.loja_payment_methods?.length ? comp.loja_payment_methods : ['pix', 'dinheiro', 'cartao_credito']
+        const accepted = paymentOptionsFor(comp as Company)
         setPayMethod(prev => (accepted.includes(prev) ? prev : accepted[0]) as any)
         const [{ data: cats }, { data: prods }, { data: cps }] = await Promise.all([
           supabase.from('loja_categorias').select('*').eq('company_id', comp.id).order('display_order'),
@@ -416,26 +426,25 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
     if (!loggedIn && (!guestName.trim() || guestPhone.replace(/\D/g, '').length < 10)) { setStep('contato'); return }
     setConfirming(true)
     setOrderError(null)
-    const taxa = taxaEntrega
-    // orderTotal já desconta o cupom aplicado (var. calculada no corpo do
-    // componente) — usar cartTotal+taxa aqui de novo ignorava o desconto no
-    // pedido salvo de verdade, mesmo a tela mostrando o valor certo.
+    // orderTotal já desconta o cupom aplicado — usar cartTotal+taxa aqui de
+    // novo ignorava o desconto no pedido salvo de verdade.
     const total = orderTotal
-    const scheduledFor = deliveryType === 'retirada' && agendarRetirada && scheduleDate && scheduleTime
-      ? new Date(`${scheduleDate}T${scheduleTime}`).toISOString() : null
-    const { data: { session } } = await supabase.auth.getSession()
+
+    if (pagamentoOnline && payMethod === 'cartao_online') {
+      const r = await fetch('/api/loja/mp-public-key', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ companyId: company.id }),
+      })
+      const j = await r.json().catch(() => ({}))
+      setConfirming(false)
+      if (!r.ok || !j.publicKey) { setOrderError(j.error || 'Cartão indisponível agora — paga com Pix.'); return }
+      setCardModal({ publicKey: j.publicKey, value: total, erro: null, emAnalise: false, tentativa: 0 })
+      return
+    }
+
     const res = await fetch('/api/loja/criar-pedido', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        access_token: session?.access_token || null,
-        companyId: company.id, customerName: guestName.trim(), customerPhone: guestPhone.trim(),
-        items: cart.map(l => ({ produtoId: l.produtoId, name: l.name, unitPrice: l.unitPrice, qty: l.qty, modifiers: l.modifiers })),
-        deliveryType, address: deliveryType === 'entrega' ? address : null, scheduledFor,
-        paymentMethod: payMethod, notes: finalNotes || null,
-        subtotal: cartTotal, deliveryFee: taxa, total,
-        couponId: selectedCoupon && couponEligible(selectedCoupon) ? selectedCoupon.id : null,
-        useCashback: useCashbackToggle,
-      }),
+      body: JSON.stringify(await checkoutBody()),
     })
     const data = await res.json().catch(() => ({}))
     // Antes, um erro aqui (RLS, rede, etc.) passava batido — o cliente via
@@ -449,26 +458,81 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
       return
     }
     setConfirming(false)
-    if (data.pix) {
-      // Pedido já existe, só esperando o Pix cair — mesmo padrão de
-      // /painel/entrega: QR + copia-e-cola, fecha sozinho quando confirma.
-      setPixModal({ pedidoId: data.pedidoId, qr: data.pix.qrCodeBase64, copy: data.pix.qrCode, value: Number(data.total ?? total) })
-      if (pixPollRef.current) clearInterval(pixPollRef.current)
-      pixPollRef.current = setInterval(async () => {
-        const r = await fetch('/api/loja/checar-pix', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ pedidoId: data.pedidoId }),
-        })
-        const j = await r.json().catch(() => ({}))
-        if (j.pago) {
-          if (pixPollRef.current) clearInterval(pixPollRef.current)
-          setPixModal(null)
-          finalizarSucesso()
-        }
-      }, 3000)
+    if (data.pix && data.pendenteId) {
+      // O pedido AINDA não existe — só nasce quando o Pix cair.
+      setPixModal({ pendenteId: data.pendenteId, qr: data.pix.qrCodeBase64, copy: data.pix.qrCode, value: Number(data.total ?? total) })
+      acompanharPagamento(data.pendenteId, () => setPixModal(null))
       return
     }
     finalizarSucesso()
+  }
+
+  async function checkoutBody() {
+    const scheduledFor = deliveryType === 'retirada' && agendarRetirada && scheduleDate && scheduleTime
+      ? new Date(`${scheduleDate}T${scheduleTime}`).toISOString() : null
+    const { data: { session } } = await supabase.auth.getSession()
+    return {
+      access_token: session?.access_token || null,
+      companyId: company!.id, customerName: guestName.trim(), customerPhone: guestPhone.trim(),
+      items: cart.map(l => ({ produtoId: l.produtoId, name: l.name, unitPrice: l.unitPrice, qty: l.qty, modifiers: l.modifiers })),
+      deliveryType, address: deliveryType === 'entrega' ? address : null, scheduledFor,
+      paymentMethod: payMethod, notes: finalNotes || null,
+      subtotal: cartTotal, deliveryFee: taxaEntrega, total: orderTotal,
+      couponId: selectedCoupon && couponEligible(selectedCoupon) ? selectedCoupon.id : null,
+      useCashback: useCashbackToggle,
+    }
+  }
+
+  // Consulta até o pagamento virar pedido (ou expirar/ser recusado).
+  function acompanharPagamento(pendenteId: string, fechar: () => void) {
+    if (pixPollRef.current) clearInterval(pixPollRef.current)
+    pixPollRef.current = setInterval(async () => {
+      const r = await fetch('/api/loja/checar-pix', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pendenteId }),
+      })
+      const j = await r.json().catch(() => ({}))
+      if (j.pago) {
+        if (pixPollRef.current) clearInterval(pixPollRef.current)
+        fechar()
+        finalizarSucesso()
+      } else if (j.estado === 'expirado' || j.estado === 'recusado') {
+        if (pixPollRef.current) clearInterval(pixPollRef.current)
+        fechar()
+        setOrderError(j.estado === 'expirado' ? 'O prazo do pagamento acabou e o pedido não foi enviado. Pode tentar de novo.' : 'O pagamento foi recusado e o pedido não foi enviado. Tenta de novo ou escolhe outra forma.')
+      }
+    }, 4000)
+  }
+
+  function cancelarPagamento() {
+    if (pixPollRef.current) clearInterval(pixPollRef.current)
+    setPixModal(null)
+    setCardModal(null)
+  }
+
+  async function pagarComCartao(dados: CartaoFormData) {
+    setCardModal(m => m && { ...m, erro: null })
+    try {
+      const res = await fetch('/api/loja/pagar-cartao', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...(await checkoutBody()), card: dados }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || data.error) {
+        // Remonta o formulário pra deixar tentar de novo.
+        setCardModal(m => m && { ...m, erro: data.error || 'Não deu pra processar o cartão agora.', tentativa: m.tentativa + 1 })
+        return
+      }
+      if (data.estado === 'aprovado') {
+        setCardModal(null)
+        finalizarSucesso()
+        return
+      }
+      setCardModal(m => m && { ...m, emAnalise: true })
+      acompanharPagamento(data.pendenteId, () => setCardModal(null))
+    } catch {
+      setCardModal(m => m && { ...m, erro: 'Falha de conexão — tenta de novo.', tentativa: m.tentativa + 1 })
+    }
   }
 
   function finalizarSucesso() {
@@ -679,6 +743,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
   const trocoParaNum = Number(trocoPara.replace(',', '.')) || 0
   // Troco só é obrigatório escolher (sim/não) quando o pagamento é dinheiro;
   // se escolheu "sim", o valor tem que pelo menos cobrir o total do pedido.
+  const pagamentoOnline = !!company?.pix_mp_enabled
   const trocoIncompleto = payMethod === 'dinheiro' && (precisaTroco === null || (precisaTroco === true && (!trocoPara || trocoParaNum < orderTotal)))
   const finalNotes = [
     payMethod === 'dinheiro' && precisaTroco === true && trocoParaNum > 0 ? `Troco para ${fmt(trocoParaNum)}` : null,
@@ -1406,14 +1471,16 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
                 <>
                   <div className="cd-dbody">
                     <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', marginBottom: 8, fontWeight: 800 }}>Pagamento</div>
-                    {(company?.loja_payment_methods?.length ? company.loja_payment_methods : ['pix', 'dinheiro', 'cartao_credito']).map(m => (
+                    {paymentOptionsFor(company).map(m => (
                       <button key={m} className={`cd-paychip ${payMethod === m ? 'active' : ''}`} onClick={() => setPayMethod(m)}>{PAYMENT_LABELS[m] || m}</button>
                     ))}
                     {/* Sem gateway automático aqui — o pedido nunca é pago
                         pelo site, só combina a forma. Sem esse aviso o
                         cliente não tem como saber disso (Ricardo, set/2026). */}
-                    <div style={{ marginTop: 10, padding: '9px 12px', background: '#F7F5F0', borderRadius: 10, fontSize: 11.5, color: '#6E6656', lineHeight: 1.5 }}>
-                      💵 Isso é só a forma escolhida — o pagamento é cobrado {deliveryType === 'entrega' ? 'na entrega, pelo motoboy' : 'na retirada, na loja'}, não agora pelo site.
+                    <div style={{ marginTop: 10, padding: '9px 12px', background: pagamentoOnline ? '#EDFAF3' : '#F7F5F0', borderRadius: 10, fontSize: 11.5, color: pagamentoOnline ? '#0F6E56' : '#6E6656', lineHeight: 1.5 }}>
+                      {pagamentoOnline
+                        ? '🔒 Pagamento feito agora, pelo site, com segurança pelo Mercado Pago. Seu pedido só vai pra loja depois que o pagamento for aprovado.'
+                        : `💵 Isso é só a forma escolhida — o pagamento é cobrado ${deliveryType === 'entrega' ? 'na entrega, pelo motoboy' : 'na retirada, na loja'}, não agora pelo site.`}
                     </div>
 
                     {payMethod === 'dinheiro' && (
@@ -1496,8 +1563,8 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
                         ⚠️ {orderError}
                       </div>
                     )}
-                    <button className="cd-addcart" style={{ width: '100%' }} disabled={confirming || trocoIncompleto || (deliveryType === 'entrega' && (freteBlocked || freteLoading || freteIndisponivel))} onClick={confirmOrder}>{confirming ? 'Enviando...' : freteLoading && deliveryType === 'entrega' ? 'Calculando taxa de entrega...' : `Confirmar pedido — ${fmt(orderTotal)}`}</button>
-                    {company.phone && (
+                    <button className="cd-addcart" style={{ width: '100%' }} disabled={confirming || trocoIncompleto || (deliveryType === 'entrega' && (freteBlocked || freteLoading || freteIndisponivel))} onClick={confirmOrder}>{confirming ? 'Enviando...' : freteLoading && deliveryType === 'entrega' ? 'Calculando taxa de entrega...' : pagamentoOnline ? `Ir para o pagamento — ${fmt(orderTotal)}` : `Confirmar pedido — ${fmt(orderTotal)}`}</button>
+                    {company.phone && !pagamentoOnline && (
                       <button type="button" className="cd-wa-link" disabled={sendingWa || trocoIncompleto || (deliveryType === 'entrega' && (freteBlocked || freteLoading || freteIndisponivel))} onClick={sendCartWhatsapp}>
                         {sendingWa ? 'Abrindo…' : '📱 Prefiro pedir pelo WhatsApp'}
                       </button>
@@ -1517,7 +1584,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 30, gap: 10 }}>
               <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#EDFAF3', color: '#0F6E56', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26 }}>✓</div>
               <b style={{ fontSize: 15 }}>Pedido enviado!</b>
-              <p style={{ fontSize: 12.5, color: '#555', maxWidth: 260 }}>A {company.name} recebeu seu pedido.</p>
+              <p style={{ fontSize: 12.5, color: '#555', maxWidth: 260 }}>{pagamentoOnline ? `Pagamento aprovado! A ${company.name} recebeu seu pedido.` : `A ${company.name} recebeu seu pedido.`}</p>
             </div>
           )}
         </div>
@@ -1538,7 +1605,36 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
               </div>
             )}
             <div style={{ fontSize: 12, color: '#A87200', fontWeight: 700, marginBottom: 4 }}>Aguardando pagamento...</div>
-            <div style={{ fontSize: 11, color: '#A79E8B' }}>Assim que o Pix cair, seu pedido é confirmado sozinho.</div>
+            <div style={{ fontSize: 11, color: '#A79E8B', lineHeight: 1.5 }}>Seu pedido só é enviado pra loja quando o Pix cair — confirma sozinho, não precisa fazer nada. O Pix vale 30 minutos.</div>
+            <button type="button" onClick={cancelarPagamento} style={{ marginTop: 14, background: 'none', border: 'none', color: '#6F6C67', fontSize: 12, fontWeight: 700, textDecoration: 'underline', cursor: 'pointer' }}>Cancelar e voltar</button>
+          </div>
+        </div>
+      )}
+
+      {cardModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 10001, background: 'rgba(21,18,16,.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ background: '#fff', borderRadius: 18, padding: 20, maxWidth: 440, width: '100%', maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 24px 60px rgba(0,0,0,.4)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
+              <div style={{ fontSize: 14.5, fontWeight: 800, color: '#151210' }}>Pagar com cartão</div>
+              <div style={{ fontFamily: 'Anton,sans-serif', fontSize: 20, color: '#151210' }}>{fmt(cardModal.value)}</div>
+            </div>
+            {cardModal.emAnalise ? (
+              <div style={{ padding: '24px 4px', textAlign: 'center' }}>
+                <div style={{ fontSize: 13, color: '#A87200', fontWeight: 700, marginBottom: 6 }}>Pagamento em análise pelo Mercado Pago...</div>
+                <div style={{ fontSize: 11.5, color: '#6F6C67', lineHeight: 1.5 }}>Assim que for aprovado, seu pedido é enviado pra loja sozinho. Pode deixar essa tela aberta.</div>
+              </div>
+            ) : (
+              <>
+                {cardModal.erro && (
+                  <div style={{ marginBottom: 10, padding: '10px 12px', borderRadius: 10, background: '#FBEAEA', color: '#A83232', fontSize: 12, fontWeight: 600 }}>⚠️ {cardModal.erro}</div>
+                )}
+                <CartaoMercadoPago key={cardModal.tentativa} publicKey={cardModal.publicKey} amount={cardModal.value} onPagar={pagarComCartao} />
+                <div style={{ fontSize: 10.5, color: '#A79E8B', textAlign: 'center', marginTop: 6 }}>Pagamento à vista. Seu pedido só vai pra loja depois da aprovação.</div>
+              </>
+            )}
+            <div style={{ textAlign: 'center' }}>
+              <button type="button" onClick={cancelarPagamento} style={{ marginTop: 10, background: 'none', border: 'none', color: '#6F6C67', fontSize: 12, fontWeight: 700, textDecoration: 'underline', cursor: 'pointer' }}>{cardModal.emAnalise ? 'Fechar (o pedido sai sozinho quando aprovar)' : 'Cancelar e voltar'}</button>
+            </div>
           </div>
         </div>
       )}

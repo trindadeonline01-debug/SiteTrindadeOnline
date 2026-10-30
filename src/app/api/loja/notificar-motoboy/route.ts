@@ -8,7 +8,7 @@ const supabase = createClient(
 )
 const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'https://evo.trindadeonline.com.br'
 
-const PAY_LABEL: Record<string, string> = { pix: 'Pix', dinheiro: 'Dinheiro', cartao: 'Cartão' }
+const PAY_LABEL: Record<string, string> = { pix: 'Pix', dinheiro: 'Dinheiro', cartao: 'Cartão', cartao_credito: 'Cartão de crédito', cartao_debito: 'Cartão de débito' }
 function money(n: number) { return 'R$ ' + Number(n || 0).toFixed(2).replace('.', ',') }
 function mapsLink(address: string): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
 
     const [{ data: pedido }, { data: motoboy }, { data: instance }] = await Promise.all([
       supabase.from('loja_pedidos')
-        .select('order_number, customer_name, customer_phone, delivery_address, payment_method, total, delivery_fee, notes, itens:loja_pedido_itens(product_name, unit_price, qty, selected_options)')
+        .select('order_number, customer_name, customer_phone, delivery_address, payment_method, payment_status, mp_payment_id, total, delivery_fee, notes, itens:loja_pedido_itens(product_name, unit_price, qty, selected_options)')
         .eq('id', pedidoId).eq('company_id', companyId).maybeSingle(),
       supabase.from('loja_motoboys').select('whatsapp').eq('id', motoboyId).eq('company_id', companyId).maybeSingle(),
       supabase.from('crm_whatsapp_instances').select('instance_name, api_key').eq('company_id', companyId).eq('status', 'connected').limit(1).maybeSingle(),
@@ -65,6 +65,7 @@ export async function POST(req: NextRequest) {
     }
     lines.push('')
     lines.push(`💳 Pagamento: ${PAY_LABEL[pedido.payment_method || ''] || pedido.payment_method || '—'}`)
+    if (pedido.payment_status === 'pago' && pedido.mp_payment_id) lines.push('✅ *JÁ PAGO pelo site* — não cobrar nada do cliente')
     lines.push(`💰 Valor do pedido: ${money(pedido.total)}`)
     if (Number(pedido.delivery_fee) > 0) lines.push(`🏍️ Valor da entrega: ${money(pedido.delivery_fee)}`)
     if (pedido.notes) lines.push('', '📝 Obs: ' + pedido.notes)

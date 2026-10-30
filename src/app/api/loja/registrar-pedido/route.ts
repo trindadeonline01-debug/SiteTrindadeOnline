@@ -10,7 +10,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const PAY_LABEL: Record<string, string> = { pix: 'Pix', dinheiro: 'Dinheiro', cartao: 'Cartão' }
+const PAY_LABEL: Record<string, string> = { pix: 'Pix', dinheiro: 'Dinheiro', cartao: 'Cartão', cartao_credito: 'Cartão de crédito', cartao_debito: 'Cartão de débito' }
 
 type OrderItem = { name: string; qty: number; unitPrice: number; modifiers?: { name: string; price: number }[] }
 type OrderInfo = {
@@ -18,6 +18,7 @@ type OrderInfo = {
   subtotal: number; deliveryFee: number; total: number
   paymentMethod: string | null; deliveryType: string | null; address: string | null; notes: string | null
   orderNumber: number | string | null; pedidoId: string | null
+  pagoOnline?: boolean
 }
 
 function itemLines(items: OrderItem[]): string[] {
@@ -40,7 +41,9 @@ function buildCustomerMessage(opts: OrderInfo): string {
     parts.push(`💳 Pagamento: ${PAY_LABEL[opts.paymentMethod] || opts.paymentMethod}`)
     // Sem isso o cliente não tem como saber que o site não cobra nada agora
     // — reforça o mesmo aviso já mostrado na tela de checkout (Ricardo, set/2026).
-    parts.push(opts.deliveryType === 'entrega' ? '_(cobrado na entrega, não é pago agora)_' : '_(cobrado na retirada, não é pago agora)_')
+    parts.push(opts.pagoOnline
+      ? '✅ _Pago pelo site — não precisa pagar nada na entrega/retirada_'
+      : opts.deliveryType === 'entrega' ? '_(cobrado na entrega, não é pago agora)_' : '_(cobrado na retirada, não é pago agora)_')
   }
   parts.push(opts.deliveryType === 'entrega' && opts.address ? `🚚 Entrega: ${opts.address}` : '🏪 Retirada no local')
   if (opts.notes) parts.push(`📝 Obs: ${opts.notes}`)
@@ -114,12 +117,13 @@ export async function POST(req: NextRequest) {
       const { data: company } = await supabase.from('companies').select('owner_id, crm_whatsapp_enabled, trial_modules_until').eq('id', companyId).maybeSingle()
       if (company && moduleActive(company.crm_whatsapp_enabled, company.trial_modules_until)) {
         const { data: pedidoRow } = pedidoId
-          ? await supabase.from('loja_pedidos').select('order_number').eq('id', pedidoId).maybeSingle()
+          ? await supabase.from('loja_pedidos').select('order_number, payment_status, mp_payment_id').eq('id', pedidoId).maybeSingle()
           : { data: null }
         const orderInfo = {
           items, subtotal: Number(subtotal ?? total ?? 0), deliveryFee: Number(deliveryFee || 0), total: Number(total || 0),
           paymentMethod: paymentMethod || null, deliveryType: deliveryType || null, address: address || null, notes: notes || null,
           orderNumber: pedidoRow?.order_number ?? null, pedidoId: pedidoId || null,
+          pagoOnline: pedidoRow?.payment_status === 'pago' && !!pedidoRow?.mp_payment_id,
         }
 
         // Pro cliente — antes só mandava se a loja tivesse instância própria

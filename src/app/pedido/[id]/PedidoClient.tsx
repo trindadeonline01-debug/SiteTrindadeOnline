@@ -5,7 +5,7 @@ type Item = { id: string; product_name: string; unit_price: number; qty: number;
 type Status = 'recebido' | 'em_preparo' | 'pronto' | 'saiu_entrega' | 'entregue' | 'cancelado'
 type Pedido = {
   id: string; order_number: number | null; customer_name: string; status: Status
-  payment_method: string | null; payment_status: string
+  payment_method: string | null; payment_status: string; mp_payment_id?: string | null
   delivery_type: 'entrega' | 'retirada' | 'balcao'; delivery_address: string | null
   subtotal: number; delivery_fee: number; total: number; notes: string | null
   created_at: string; cancelamento_solicitado_em: string | null
@@ -208,7 +208,9 @@ export default function PedidoClient({ id, initialPedido, initialCompany, initia
       {pedido.payment_method && (
         <div className="pd-note">
           <span style={{ fontSize: 16 }}>💵</span>
-          <div>{PAY_LABEL[pedido.payment_method] || pedido.payment_method} · cobrado <b style={{ color: 'var(--ink)' }}>{isEntrega ? 'na entrega' : 'na retirada'}</b>, não foi pago agora pelo site.</div>
+          {pedido.payment_status === 'pago' && pedido.mp_payment_id
+            ? <div>{PAY_LABEL[pedido.payment_method] || pedido.payment_method} · <b style={{ color: 'var(--open)' }}>✅ pago pelo site</b> — não precisa pagar nada {isEntrega ? 'na entrega' : 'na retirada'}.</div>
+            : <div>{PAY_LABEL[pedido.payment_method] || pedido.payment_method} · cobrado <b style={{ color: 'var(--ink)' }}>{isEntrega ? 'na entrega' : 'na retirada'}</b>, não foi pago agora pelo site.</div>}
         </div>
       )}
 

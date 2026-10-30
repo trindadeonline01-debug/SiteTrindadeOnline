@@ -69,7 +69,7 @@ async function buildContext(companyId: string, phone?: string | null, ultimaMsgC
     .from('companies')
     .select(`
       name, slug, phone, address, flexible_hours, store_paused, store_forced_open,
-      loja_taxa_metodo, loja_taxa_entrega, loja_taxa_fora_area, loja_payment_methods, pix_key,
+      loja_taxa_metodo, loja_taxa_entrega, loja_taxa_fora_area, loja_payment_methods, pix_key, pix_mp_enabled,
       loja_tempo_preparo_min,
       entrega_enabled, trial_modules_until,
       crm_ia_prompt_extra,
@@ -105,6 +105,11 @@ async function buildContext(companyId: string, phone?: string | null, ultimaMsgC
     linhas.push('Horário de funcionamento:\n' + porDia.join('\n'))
   }
 
+  if (company.pix_mp_enabled) {
+    // Loja com Mercado Pago conectado: o pagamento é feito no site, antes do pedido existir.
+    linhas.push('Formas de pagamento aceitas: Pix ou cartão de crédito/débito, PAGOS NO PRÓPRIO SITE no momento do pedido (pelo Mercado Pago). Essa loja NÃO aceita dinheiro e NÃO cobra na entrega.')
+    linhas.push('COMO O PAGAMENTO FUNCIONA NESSA LOJA (leia com atenção): o cliente monta o carrinho pelo link do cardápio e paga ali mesmo, com Pix ou cartão. O pedido só chega pra loja DEPOIS que o pagamento é aprovado — se o cliente disser que fez o pedido mas não pagou, explique que o pedido só é enviado quando o pagamento cai, e mande o link do cardápio pra ele tentar de novo. Nunca combine pagamento por fora, nunca informe chave Pix pra transferência manual e nunca diga que dá pra pagar na entrega.')
+  } else {
   const metodos = (company.loja_payment_methods?.length ? company.loja_payment_methods : ['pix', 'dinheiro', 'cartao_credito']) as string[]
   linhas.push(`Formas de pagamento aceitas: ${metodos.map(m => PAY_LABEL[m] || m).join(', ')}`)
   // Como o pagamento REALMENTE funciona — achado real, out/2026 (Mineroca,
@@ -119,6 +124,7 @@ async function buildContext(companyId: string, phone?: string | null, ultimaMsgC
   linhas.push('COMO O PAGAMENTO FUNCIONA DE VERDADE (leia com atenção): a plataforma NUNCA processa pagamento nenhum. A "forma de pagamento" que o cliente escolhe no carrinho é só uma PREFERÊNCIA DECLARADA, não um pagamento feito — escolher "Pix" ali NÃO significa que o cliente já pagou ou já enviou o Pix. O pagamento de verdade acontece na ENTREGA: normalmente dinheiro ou cartão na maquininha do motoboy/entregador. Se o cliente quer mesmo pagar por Pix, ele combina o valor e a chave diretamente nesta conversa com a loja (é você quem informa a chave, ver regra de Pix abaixo) — não existe nenhum sistema automático de "confirmação de pagamento" entre loja e plataforma, e o preparo/despacho do pedido NUNCA fica esperando confirmação de Pix pra acontecer. Se o cliente disser que escolheu uma forma no checkout mas quer pagar de outro jeito na entrega (ex: "botei Pix mas quero pagar no cartão"), responda direto que sim, sem problema, pode pagar como preferir na entrega (desde que a forma esteja na lista de "Formas de pagamento aceitas" acima) — isso não muda nada no pedido, é só avisar o entregador.')
   if (metodos.includes('pix') && company.pix_key) {
     linhas.push(`Chave Pix da loja: ${company.pix_key}`)
+  }
   }
   // Tempo de preparo cadastrado pela loja — dado real pra IA citar quando
   // perguntarem "quanto tempo demora", em vez de inventar prazo ou prometer

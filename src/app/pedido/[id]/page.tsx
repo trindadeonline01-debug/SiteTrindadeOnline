@@ -14,7 +14,7 @@ const supabase = createClient(
 const getData = cache(async (id: string) => {
   const { data: pedido } = await supabase
     .from('loja_pedidos')
-    .select('id, order_number, customer_name, status, payment_method, payment_status, delivery_type, delivery_address, subtotal, delivery_fee, total, notes, created_at, cancelamento_solicitado_em, company_id, itens:loja_pedido_itens(id, product_name, unit_price, qty, selected_options)')
+    .select('id, order_number, customer_name, status, payment_method, payment_status, mp_payment_id, delivery_type, delivery_address, subtotal, delivery_fee, total, notes, created_at, cancelamento_solicitado_em, company_id, itens:loja_pedido_itens(id, product_name, unit_price, qty, selected_options)')
     .eq('id', id).maybeSingle()
   if (!pedido) return { pedido: null, company: null, entrega: null }
 

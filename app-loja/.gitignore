@@ -35,7 +35,6 @@ yarn-error.*
 .env*.local
 
 # credenciais — nunca versionar
-google-services.json
 GoogleService-Info.plist
 
 # typescript

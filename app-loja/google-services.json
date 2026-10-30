@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "763558716405",
+    "project_id": "trindade-online-web",
+    "storage_bucket": "trindade-online-web.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:763558716405:android:12d19109c6d49975d5b6bc",
+        "android_client_info": {
+          "package_name": "com.trindadeonline.loja"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBeKYTJnKXHWpyvtufc0EctM9_4Z_LZy5Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

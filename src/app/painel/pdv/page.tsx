@@ -436,7 +436,7 @@ export default function PdvPage() {
   return (
     <div className="pdv-wrap">
       <style>{`
-        .pdv-wrap{ min-height:100vh;background:#E9EAE5;font-family:'Archivo',sans-serif;display:flex;flex-direction:column; }
+        .pdv-wrap{ height:100vh;height:100dvh;overflow:hidden;background:#E9EAE5;font-family:'Archivo',sans-serif;display:flex;flex-direction:column; }
         .pdv-top{ background:#151210;color:#fff;padding:13px 20px;display:flex;align-items:center;gap:16px;flex:none;border-bottom:1px solid #2A2319; }
         .pdv-back{ width:36px;height:36px;border-radius:10px;background:#232019;border:1px solid #3A352A;color:#fff;font-size:17px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center; }
         .pdv-back:hover{ background:#2C271E; }
@@ -468,8 +468,8 @@ export default function PdvPage() {
         .pdv-short-chip.primary .pdv-kbd{ background:rgba(255,255,255,.22);color:#fff; }
         .pdv-short-sep{ width:1px;height:18px;background:#352F23;margin:0 4px;flex-shrink:0; }
 
-        .pdv-main{ flex:1;display:grid;grid-template-columns:1fr 340px;min-height:0; }
-        .pdv-left{ padding:12px;overflow-y:auto; }
+        .pdv-main{ flex:1;display:grid;grid-template-columns:1fr 340px;grid-template-rows:minmax(0,1fr);min-height:0;overflow:hidden; }
+        .pdv-left{ padding:12px;overflow-y:auto;min-height:0; }
         .pdv-search-wrap{ position:relative;margin-bottom:10px; }
         .pdv-search{ width:100%;padding:14px 46px;border-radius:12px;border:2px solid #FFC531;background:#fff;font-size:14.5px;font-weight:600;font-family:inherit;outline:none;box-sizing:border-box; }
         .pdv-search-ico{ position:absolute;left:15px;top:50%;transform:translateY(-50%);font-size:16px; }
@@ -493,7 +493,7 @@ export default function PdvPage() {
         .pdv-prod-price small{ font-weight:600;color:#8A8477;font-size:10px; }
         .pdv-empty{ padding:40px;text-align:center;color:#A79E8B;font-size:13px; }
 
-        .pdv-right{ background:#fff;border-left:1.5px solid #DDD5C4;display:flex;flex-direction:column;min-height:0; }
+        .pdv-right{ background:#fff;border-left:1.5px solid #DDD5C4;display:flex;flex-direction:column;min-height:0;overflow:hidden; }
         .pdv-rec-hd{ padding:14px 16px 10px;border-bottom:1px dashed #DDD5C4;flex:none; }
         .pdv-rec-hd b{ font-size:13px; }
         .pdv-rec-items{ flex:1;overflow-y:auto;padding:8px 16px;min-height:0; }

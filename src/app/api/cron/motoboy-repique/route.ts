@@ -6,6 +6,13 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
+// PAUSADA a pedido do Ricardo (31/out/2026) pra repensar: rodava a cada 10s
+// (8.400+ execuções por dia, cada uma acordando uma função e consultando o
+// banco) numa semana em que o banco chegou a travar. Enquanto estiver
+// pausada o motoboy segue sendo avisado normalmente pelo WhatsApp e pelo
+// app/painel — só o "insistir com push a cada 10s" fica desligado.
+const PAUSADO = true
+
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trindadeonline.com.br'
 
 // Toca de novo, a cada 10s, pra toda oferta de corrida ainda pendente — o
@@ -25,6 +32,8 @@ export async function GET(req: NextRequest) {
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
+
+  if (PAUSADO) return NextResponse.json({ ok: true, pausado: true, sent: 0 })
 
   const { data: offers } = await supabase
     .from('delivery_offers').select('id, motoboy_id, delivery_order_id')

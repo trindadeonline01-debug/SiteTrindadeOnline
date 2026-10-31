@@ -28,3 +28,9 @@ export const DEFAULT_PRINT_CONFIG: PrintConfig = { dpi: 203, widthMm: 58, charsP
 export async function printFormatted(text: string, address: string | null, config: PrintConfig): Promise<void> {
   await Native.printFormatted(text, address, config.dpi, config.widthMm, config.charsPerLine);
 }
+
+// Para o alarme nativo de pedido novo (notificação de tela cheia que toca em
+// repetição com o app fechado). Chamado sempre que o app volta pra frente.
+export function stopAlarm(): void {
+  try { Native.stopAlarm(); } catch {}
+}

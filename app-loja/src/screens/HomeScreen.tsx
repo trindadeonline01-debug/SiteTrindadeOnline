@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Alert, AppState } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import { useKeepAwake } from 'expo-keep-awake';
@@ -22,7 +22,9 @@ import PedidoDetalhe, { confirmarCancelamento } from '../components/PedidoDetalh
 import ProdutoEdit from '../components/ProdutoEdit';
 import AlarmeOverlay from '../components/AlarmeOverlay';
 import AssistenteScreen from './AssistenteScreen';
-import { getWizardState } from '../wizardState';
+import { getWizardState, saveWizardState } from '../wizardState';
+import { carregarFeitos, jaFeito, marcarFeito } from '../alarmeAck';
+import { stopAlarm } from '../../modules/thermal-printer-loja';
 
 type Tab = 'pedidos' | 'cardapio' | 'hoje' | 'config';
 const TABS: [Tab, string, string][] = [['pedidos', '🧾', 'Pedidos'], ['cardapio', '📋', 'Cardápio'], ['hoje', '📊', 'Hoje'], ['config', '⚙️', 'Ajustes']];
@@ -53,9 +55,14 @@ export default function HomeScreen({ company: inicial }: { company: Company }) {
   const ref = useRef({ company, ownMoto, entregas });
   ref.current = { company, ownMoto, entregas };
   const ultimoToque = useRef<Record<string, number>>({});
+  // pedidos que o app já tratou nesta abertura (recibo/aceite automático) e os
+  // que você mandou "ver no quadro" (não voltam a abrir o alarme sozinhos)
+  const tratados = useRef(new Set<string>());
+  const dispensados = useRef(new Set<string>());
 
-  // Primeira vez no aparelho: abre o assistente de configuração.
-  useEffect(() => { getWizardState().then(w => { if (!w.visto) setAssistente(true); }); }, []);
+  // Só na primeira vez no aparelho: abre o assistente de configuração e já
+  // marca como visto — fechar por qualquer caminho não faz ele voltar.
+  useEffect(() => { getWizardState().then(w => { if (!w.visto) { setAssistente(true); saveWizardState({ visto: true }); } }); }, []);
 
   const player = useAudioPlayer(require('../../assets/sounds/pedido_novo_telefone.mp3'));
   useEffect(() => { setAudioModeAsync({ playsInSilentMode: true, interruptionMode: 'duckOthers' }).catch(() => {}); }, []);
@@ -63,8 +70,13 @@ export default function HomeScreen({ company: inicial }: { company: Company }) {
   const parar = useCallback(() => { try { player.loop = false; player.pause(); } catch {} }, [player]);
 
   const recarregar = useCallback(async () => {
-    const [a, h] = await Promise.all([fetchPedidosAbertos(company.id), fetchPedidosHoje(company.id)]);
+    const [a, h] = await Promise.all([fetchPedidosAbertos(company.id), fetchPedidosHoje(company.id), carregarFeitos()]).then(([x, y]) => [x, y] as const);
     setAbertos(a); setHoje(h);
+    // Pedido recente que você ainda não confirmou no alarme (ex.: chegou com o
+    // app fechado e o push abriu o app agora) volta a abrir a tela de alarme.
+    const agora = Date.now();
+    const novos = a.filter(p => p.origin !== 'balcao' && agora - new Date(p.created_at).getTime() < 30 * 60000 && !jaFeito('ack:' + p.id) && !dispensados.current.has(p.id)).map(p => p.id);
+    if (novos.length) setAlarme(cur => { const add = novos.filter(id => !cur.includes(id)); return add.length ? [...cur, ...add] : cur; });
     const ids = Array.from(new Set([...a, ...h].map(p => p.id)));
     setEntregas(await fetchEntregas(company.id, ids));
     setLoadingPed(false);
@@ -88,7 +100,11 @@ export default function HomeScreen({ company: inicial }: { company: Company }) {
         return { shouldShowBanner: teste, shouldShowList: teste, shouldPlaySound: teste, shouldSetBadge: false };
       },
     });
-    const a = Notifications.addNotificationReceivedListener(n => { if (n.request.content.data?.tipo === 'teste') setTesteRecebido(t => t + 1); });
+    const a = Notifications.addNotificationReceivedListener(n => {
+      const tipo = n.request.content.data?.tipo;
+      if (tipo === 'teste') setTesteRecebido(t => t + 1);
+      if (tipo === 'pedido_novo') recarregar(); // reforço caso o Realtime esteja surdo
+    });
     const b = Notifications.addNotificationResponseReceivedListener(r => {
       const tipo = r.notification.request.content.data?.tipo;
       if (tipo === 'teste') setTesteRecebido(t => t + 1);
@@ -126,19 +142,19 @@ export default function HomeScreen({ company: inicial }: { company: Company }) {
     return subscribePedidos(company.id, async (pedidoId) => {
       const p = await fetchPedido(pedidoId);
       if (!p) return;
+      tratados.current.add(p.id);
+      marcarFeito(['print:' + p.id]);
       setImpresso(m => ({ ...m, [p.id]: 'imprimindo' }));
       autoImprimirPedido(ref.current.company.name, p.id).then(r => setImpresso(m => ({ ...m, [p.id]: r.ok ? 'ok' : 'erro' })));
-      if (ref.current.company.loja_auto_aceitar_pedidos) {
-        tocar(false);
-        await avancar(p);
-      } else {
+      if (p.origin !== 'balcao') {
         ultimoToque.current[p.id] = Date.now();
         setAlarme(a => (a.includes(p.id) ? a : [...a, p.id]));
         setNovoAviso(true);
-        tocar(true);
       }
+      if (ref.current.company.loja_auto_aceitar_pedidos) await avancar(p);
+      recarregar();
     }, () => { recarregar(); });
-  }, [company.id, recarregar, avancar, tocar]);
+  }, [company.id, recarregar, avancar]);
 
   // Se o pedido continua em "Recebido" depois de 60 s, o alarme volta a tocar.
   useEffect(() => {
@@ -151,12 +167,37 @@ export default function HomeScreen({ company: inicial }: { company: Company }) {
         if (agora - ult >= 60000) {
           ultimoToque.current[p.id] = agora;
           setAlarme(a => (a.includes(p.id) ? a : [...a, p.id]));
-          tocar(true);
         }
       }
     }, 5000);
     return () => clearInterval(t);
-  }, [abertos, tocar]);
+  }, [abertos]);
+
+  // Pedido que entrou com o app fechado (o Realtime não viu): imprime o recibo
+  // e, com aceite automático ligado, aceita — uma vez só por pedido.
+  useEffect(() => {
+    const agora = Date.now();
+    for (const p of abertos) {
+      if (p.status !== 'recebido' || p.origin === 'balcao') continue;
+      if (agora - new Date(p.created_at).getTime() > 30 * 60000) continue;
+      if (tratados.current.has(p.id)) continue;
+      tratados.current.add(p.id);
+      if (!jaFeito('print:' + p.id)) {
+        marcarFeito(['print:' + p.id]);
+        setImpresso(m => ({ ...m, [p.id]: 'imprimindo' }));
+        autoImprimirPedido(ref.current.company.name, p.id).then(r => setImpresso(m => ({ ...m, [p.id]: r.ok ? 'ok' : 'erro' })));
+      }
+      if (ref.current.company.loja_auto_aceitar_pedidos) avancar(p);
+    }
+  }, [abertos, avancar]);
+
+  // O alarme nativo (tela cheia com o app fechado) para assim que o app abre;
+  // daqui pra frente quem toca é a tela de alarme do próprio app.
+  useEffect(() => {
+    stopAlarm();
+    const sub = AppState.addEventListener('change', st => { if (st === 'active') { stopAlarm(); recarregar(); } });
+    return () => sub.remove();
+  }, [recarregar]);
 
   // Corrida em andamento: confere o motoboy a cada 10 s (o Realtime de
   // entregas pode não estar ligado no banco).
@@ -174,9 +215,25 @@ export default function HomeScreen({ company: inicial }: { company: Company }) {
     return m;
   }, [abertos, hoje]);
   const detalhe = detalheId ? todos.get(detalheId) : undefined;
-  const alarmePedido = alarme.map(id => todos.get(id)).find(p => p && p.status === 'recebido');
+  // Fica na tela até alguém confirmar: aceite manual → pedido ainda em "recebido";
+  // aceite automático → o pedido já avançou sozinho, falta só o OK.
+  const alarmePedido = alarme.map(id => todos.get(id)).find(p => p && p.status !== 'cancelado' && p.status !== 'entregue' && (p.status === 'recebido' || company.loja_auto_aceitar_pedidos));
 
-  function verPedidos() { setAlarme([]); parar(); setNovoAviso(false); setTab('pedidos'); }
+  // O som repete enquanto a tela de alarme estiver aberta.
+  const tocando = !!alarmePedido;
+  useEffect(() => { if (tocando) tocar(true); else parar(); }, [tocando, tocar, parar]);
+
+  function fecharAlarme(dispensar: boolean) {
+    if (dispensar) alarme.forEach(id => dispensados.current.add(id));
+    else marcarFeito(alarme.map(id => 'ack:' + id));
+    setAlarme([]); parar(); setNovoAviso(false);
+  }
+  async function aceitarAlarme() {
+    const pedidos = alarme.map(id => todos.get(id)).filter((p): p is Pedido => !!p);
+    fecharAlarme(false);
+    if (!company.loja_auto_aceitar_pedidos) for (const p of pedidos) if (p.status === 'recebido') await avancar(p);
+  }
+  function verPedidos() { fecharAlarme(true); setTab('pedidos'); }
 
   async function toggleFlag(campo: 'loja_auto_aceitar_pedidos' | 'entrega_chamada_automatica' | 'store_paused') {
     const novo = !company[campo];
@@ -266,7 +323,7 @@ export default function HomeScreen({ company: inicial }: { company: Company }) {
       )}
       {assistente && <AssistenteScreen companyId={company.id} testeRecebido={testeRecebido} onClose={() => setAssistente(false)} />}
       {editando && <ProdutoEdit produto={editando} companyId={company.id} isTablet={isTablet} onClose={() => setEditando(null)} onSaved={recarregarProdutos} />}
-      {alarmePedido && <AlarmeOverlay pedido={alarmePedido} mais={Math.max(0, alarme.length - 1)} impresso={impresso[alarmePedido.id] || null} onVer={verPedidos} />}
+      {alarmePedido && <AlarmeOverlay pedido={alarmePedido} mais={Math.max(0, alarme.length - 1)} impresso={impresso[alarmePedido.id] || null} autoAceitar={company.loja_auto_aceitar_pedidos} onAceitar={aceitarAlarme} onVer={verPedidos} />}
       </View>
     </View>
   );

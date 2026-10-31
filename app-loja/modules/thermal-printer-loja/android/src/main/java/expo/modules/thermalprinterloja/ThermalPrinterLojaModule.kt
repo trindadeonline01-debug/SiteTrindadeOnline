@@ -35,6 +35,12 @@ class ThermalPrinterLojaModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("ThermalPrinterLoja")
 
+    // Cancela o alarme de tela cheia (e o som em repetição) quando o app abre.
+    Function("stopAlarm") {
+      appContext.reactContext?.let { AlarmeLoja.parar(it) }
+      Unit
+    }
+
     AsyncFunction("requestBluetoothPermissions") { promise: Promise ->
       appContext.permissions?.askForPermissions(PermissionsResponseListener { result ->
         promise.resolve(result.map { mapOf(it.key to mapOf(

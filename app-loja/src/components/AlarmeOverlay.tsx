@@ -7,10 +7,10 @@ import { fmt, pagoNoSite, payLabel } from '../pedidoUtils';
 // Tela de pedido novo (aceite automático desligado). Fica por cima de tudo
 // enquanto o alarme toca; o botão leva ao quadro, onde o pedido espera em
 // "Recebido" para você aceitar.
-export default function AlarmeOverlay({ pedido: p, mais, impresso, onVer }: { pedido: Pedido; mais: number; impresso: 'imprimindo' | 'ok' | 'erro' | null; onVer: () => void }) {
+export default function AlarmeOverlay({ pedido: p, mais, impresso, autoAceitar, onAceitar, onVer }: { pedido: Pedido; mais: number; impresso: 'imprimindo' | 'ok' | 'erro' | null; autoAceitar: boolean; onAceitar: () => void; onVer: () => void }) {
   const insets = useSafeAreaInsets();
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={onVer}>
+    <Modal visible transparent animationType="fade" onRequestClose={() => {}}>
       <View style={[styles.wrap, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <ScrollView contentContainerStyle={styles.in}>
           <Text style={styles.bell}>🔔</Text>
@@ -23,8 +23,9 @@ export default function AlarmeOverlay({ pedido: p, mais, impresso, onVer }: { pe
             ))}
           </View>
           {impresso && <Text style={[styles.st, impresso === 'ok' ? { color: '#7FE0B2' } : impresso === 'erro' ? { color: '#FF9F93' } : { color: colors.sign }]}>{impresso === 'ok' ? 'Recibo impresso ✓' : impresso === 'erro' ? 'Não foi possível imprimir' : 'Imprimindo o recibo...'}</Text>}
-          <Pressable style={styles.btn} onPress={onVer}><Text style={styles.btnTxt}>VER PEDIDO NO QUADRO</Text></Pressable>
-          <Text style={styles.nota}>O pedido está em RECEBIDO. Você decide aceitar por lá.</Text>
+          <Pressable style={styles.btn} onPress={onAceitar}><Text style={styles.btnTxt}>{autoAceitar ? 'OK, RECEBI' : 'ACEITAR PEDIDO'}</Text></Pressable>
+          {!autoAceitar && <Pressable style={styles.btn2} onPress={onVer}><Text style={styles.btn2Txt}>Ver no quadro</Text></Pressable>}
+          <Text style={styles.nota}>{autoAceitar ? 'O pedido já foi aceito sozinho. Toque em OK para parar o alarme.' : 'O alarme toca até você aceitar. Se escolher ver no quadro, ele volta a tocar em 1 minuto.'}</Text>
           {mais > 0 && <Text style={styles.nota}>+ {mais} pedido(s) esperando</Text>}
         </ScrollView>
       </View>
@@ -46,5 +47,7 @@ const styles = StyleSheet.create({
   st: { fontSize: 12.5, fontWeight: '700', marginBottom: 6 },
   btn: { alignSelf: 'stretch', maxWidth: 430, backgroundColor: colors.sign, borderRadius: 12, padding: 16, alignItems: 'center', marginTop: 8 },
   btnTxt: { color: colors.ink, fontWeight: '800', fontSize: 15 },
+  btn2: { alignSelf: 'stretch', maxWidth: 430, borderRadius: 12, padding: 13, alignItems: 'center', marginTop: 8, borderWidth: 1.5, borderColor: '#4A443C' },
+  btn2Txt: { color: '#fff', fontWeight: '700', fontSize: 13.5 },
   nota: { color: '#A39E96', fontSize: 11.5, marginTop: 8, textAlign: 'center' },
 });

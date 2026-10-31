@@ -22,6 +22,11 @@ repositories {
 }
 
 dependencies {
+  // Serviço de push que herda do expo-notifications (alarme de pedido novo)
+  implementation project(':expo-notifications')
+  implementation 'com.google.firebase:firebase-messaging:25.0.1'
+  implementation 'androidx.core:core:1.17.0'
+
   // Mesma lib Android que o pacote expo-thermal-printer 0.1.1 usa por baixo
   // (com.dantsu.escposprinter) — madura, mantida, usada em produção por
   // vários apps de PDV. O que a gente escreve aqui em cima é só a parte que

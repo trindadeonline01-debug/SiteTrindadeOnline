@@ -33,7 +33,11 @@ function getAuth(): GoogleAuth | null {
   return auth
 }
 
-export type PushLoja = { title: string; body: string; data?: Record<string, string> }
+// somenteDados: manda sem o bloco "notification" — assim o app (mesmo fechado)
+// recebe a mensagem no próprio serviço de push e abre o alarme de tela cheia
+// em repetição (app-loja/.../LojaMessagingService.kt). Com o bloco normal o
+// Android só mostraria uma notificação comum que toca uma vez.
+export type PushLoja = { title: string; body: string; data?: Record<string, string>; somenteDados?: boolean }
 
 // Manda pra todos os aparelhos cadastrados da empresa. Prioridade máxima +
 // canal com som: é isso que acorda o tablet em descanso. Token que o
@@ -56,13 +60,15 @@ export async function enviarPushLoja(companyId: string, msg: PushLoja): Promise<
           body: JSON.stringify({
             message: {
               token: t.token,
-              notification: { title: msg.title, body: msg.body },
-              data: msg.data || {},
-              android: {
-                priority: 'HIGH',
-                ttl: '120s',
-                notification: { channel_id: CANAL_PEDIDOS, sound: SOM_PEDIDO, notification_priority: 'PRIORITY_MAX', visibility: 'PUBLIC' },
-              },
+              ...(msg.somenteDados ? {} : { notification: { title: msg.title, body: msg.body } }),
+              data: msg.somenteDados ? { ...(msg.data || {}), title: msg.title, body: msg.body } : (msg.data || {}),
+              android: msg.somenteDados
+                ? { priority: 'HIGH', ttl: '120s' }
+                : {
+                    priority: 'HIGH',
+                    ttl: '120s',
+                    notification: { channel_id: CANAL_PEDIDOS, sound: SOM_PEDIDO, notification_priority: 'PRIORITY_MAX', visibility: 'PUBLIC' },
+                  },
             },
           }),
         })

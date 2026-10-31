@@ -32,7 +32,8 @@
         "android.permission.BLUETOOTH_SCAN",
         "android.permission.POST_NOTIFICATIONS",
         "android.permission.USE_FULL_SCREEN_INTENT",
-        "android.permission.WAKE_LOCK"
+        "android.permission.WAKE_LOCK",
+        "android.permission.VIBRATE"
       ],
       "googleServicesFile": "./google-services.json"
     },
@@ -56,7 +57,8 @@
           "photosPermission": "O Trindade Loja precisa da galeria para trocar a foto dos produtos.",
           "cameraPermission": "O Trindade Loja precisa da câmera para tirar a foto dos produtos."
         }
-      ]
+      ],
+      "./plugins/withAlarmeLoja"
     ],
     "extra": {
       "eas": {

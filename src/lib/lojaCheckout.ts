@@ -262,6 +262,7 @@ export async function finalizarPedidoLoja(
     title: `Pedido novo${pedido.order_number ? ` #${pedido.order_number}` : ''} — ${valorFmt}`,
     body: `${payload.customerName || 'Cliente'}${pagoOnline ? ' · já pago pelo site' : ''}`,
     data: { tipo: 'pedido_novo', pedidoId: String(pedido.id) },
+    somenteDados: true,
   }))
 
   if (company.owner_id) {

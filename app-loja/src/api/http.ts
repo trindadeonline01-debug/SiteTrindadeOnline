@@ -13,6 +13,12 @@ async function token(): Promise<string> {
 async function send(path: string, body: Record<string, unknown>, headers: Record<string, string>) {
   const res = await fetch(BASE + path, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) });
   const json = await res.json().catch(() => ({}));
+  if (res.status === 401) {
+    // Sessão não existe mais no servidor (ex.: alguém saiu em outro aparelho).
+    // Sai só deste aparelho: o App volta pra tela de login sozinho.
+    supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+    throw new Error('Sua sessão expirou. Entre de novo.');
+  }
   if (!res.ok) throw new Error(json?.error || `Erro ${res.status}`);
   return json;
 }

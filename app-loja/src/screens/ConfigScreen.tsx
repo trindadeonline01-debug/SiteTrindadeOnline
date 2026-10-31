@@ -54,7 +54,7 @@ export default function ConfigScreen({ companyName, lojaAberta, onToggleLoja, on
   async function sair() {
     Alert.alert('Sair', 'Deseja sair da sua conta?', [
       { text: 'Cancelar', style: 'cancel' },
-      { text: 'Sair', style: 'destructive', onPress: () => supabase.auth.signOut() },
+      { text: 'Sair', style: 'destructive', onPress: () => supabase.auth.signOut({ scope: 'local' }) },
     ]);
   }
 

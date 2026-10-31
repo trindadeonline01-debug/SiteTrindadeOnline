@@ -65,7 +65,7 @@ export default function MaisPage() {
   }, [])
 
   async function signOut() {
-    await supabase.auth.signOut()
+    await supabase.auth.signOut({ scope: 'local' })
     window.location.href = '/'
   }
 

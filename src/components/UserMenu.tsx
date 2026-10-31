@@ -30,7 +30,7 @@ export default function UserMenu({ user, userType, isProdTeam }: { user: any; us
   }, [])
 
   async function handleSair() {
-    await supabase.auth.signOut()
+    await supabase.auth.signOut({ scope: 'local' })
     window.location.href = '/'
   }
 

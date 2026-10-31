@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase'
 
 export default function SairPage() {
   useEffect(() => {
-    supabase.auth.signOut().then(() => {
+    supabase.auth.signOut({ scope: 'local' }).then(() => {
       window.location.href = '/'
     })
   }, [])

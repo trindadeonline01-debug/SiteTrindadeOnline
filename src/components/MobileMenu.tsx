@@ -72,7 +72,7 @@ export default function MobileMenu() {
   const inPainel = pathname.startsWith('/painel') && !pathname.startsWith('/painel/pessoal')
 
   async function handleSair() {
-    await supabase.auth.signOut()
+    await supabase.auth.signOut({ scope: 'local' })
     window.location.href = '/'
   }
 

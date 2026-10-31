@@ -174,7 +174,7 @@ export default function ProducaoPage() {
   }
 
   async function handleLogout() {
-    await supabase.auth.signOut()
+    await supabase.auth.signOut({ scope: 'local' })
     setTeamRow(null); setScreen('auth'); setAuthEmail(''); setAuthPass(''); setAuthName('')
   }
 

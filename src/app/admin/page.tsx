@@ -1483,7 +1483,7 @@ export default function AdminPage() {
   }
 
   async function handleSair() {
-    await supabase.auth.signOut()
+    await supabase.auth.signOut({ scope: 'local' })
     window.location.href = '/login'
   }
 

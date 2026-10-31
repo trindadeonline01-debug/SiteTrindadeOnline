@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AppState } from 'react-native';
 import { createClient } from '@supabase/supabase-js';
 
 // Diferente do app-motoboy (token opaco próprio, motoboy não é usuário
@@ -16,4 +17,11 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     persistSession: true,
     detectSessionInUrl: false,
   },
+});
+
+// React Native não tem aba/foco como o navegador: sem isso o renovador de
+// token roda (ou deixa de rodar) fora de hora. Só renova com o app aberto.
+AppState.addEventListener('change', (state) => {
+  if (state === 'active') supabase.auth.startAutoRefresh();
+  else supabase.auth.stopAutoRefresh();
 });

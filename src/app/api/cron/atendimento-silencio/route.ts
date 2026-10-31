@@ -15,6 +15,13 @@ const supabase = createClient(
 // genérica — e fica de fora da conta dela pra não conflitar com esse tom.
 const JULIA_EVENTOS_COMPANY_ID = '32ddce3a-ff9b-475b-9a3d-d829efcf8f24'
 
+// PAUSADA a pedido do Ricardo (31/out/2026): sem limite de idade, essa rotina
+// reprocessava os mesmos ~150 contatos antigos a cada minuto (centenas de
+// consultas por rodada) e contribuiu pra sobrecarregar o banco. Pra religar,
+// troque pra false — mas ANTES limite a busca a conversas recentes
+// (last_message_at nas últimas horas), senão o problema volta.
+const PAUSADA = true
+
 const PRIMEIRO_TOQUE_MIN = 5
 const SEGUNDO_TOQUE_MIN = 15 // depois do primeiro toque, não depois da pergunta original
 
@@ -36,6 +43,8 @@ export async function GET(req: NextRequest) {
   if (!validos.some(s => auth === `Bearer ${s}`)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
+
+  if (PAUSADA) return NextResponse.json({ ok: true, pausada: true, enviados: 0, erros: 0, total: 0 })
 
   const cutoffPrimeiro = new Date(Date.now() - PRIMEIRO_TOQUE_MIN * 60 * 1000).toISOString()
 

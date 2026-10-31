@@ -15,7 +15,7 @@ class LojaMessagingService : ExpoFirebaseMessagingService() {
     val dados = remoteMessage.data
     if (dados["tipo"] == "pedido_novo" && !appEmPrimeiroPlano()) {
       try {
-        AlarmeLoja.mostrar(applicationContext, dados["title"] ?: "Pedido novo", dados["body"] ?: "")
+        AlarmeLoja.iniciar(applicationContext, dados["title"] ?: "Pedido novo", dados["body"] ?: "")
         return
       } catch (e: Exception) {
         // se o alarme falhar por qualquer motivo, cai no caminho normal

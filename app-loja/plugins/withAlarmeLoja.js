@@ -5,6 +5,8 @@ const { withAndroidManifest, withAppBuildGradle } = require('expo/config-plugins
 // 2) o nosso serviço de push entra no lugar do padrão do expo-notifications
 //    (que tem prioridade -1; o nosso fica na padrão, 0).
 const SERVICO = 'expo.modules.thermalprinterloja.LojaMessagingService';
+// Toca o alarme em repetição (ver AlarmeService.kt)
+const SERVICO_ALARME = 'expo.modules.thermalprinterloja.AlarmeService';
 
 // O lint do app não enxerga a classe-mãe do serviço (vem de um artefato
 // pré-compilado do expo-notifications) e acusa "must extend android.app.Service"
@@ -35,6 +37,11 @@ module.exports = function withAlarmeLoja(config) {
       app.service.push({
         $: { 'android:name': SERVICO, 'android:exported': 'false' },
         'intent-filter': [{ action: [{ $: { 'android:name': 'com.google.firebase.MESSAGING_EVENT' } }] }],
+      });
+    }
+    if (!app.service.find((s) => s.$['android:name'] === SERVICO_ALARME)) {
+      app.service.push({
+        $: { 'android:name': SERVICO_ALARME, 'android:exported': 'false', 'android:foregroundServiceType': 'mediaPlayback' },
       });
     }
     return c;

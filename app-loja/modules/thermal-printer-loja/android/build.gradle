@@ -22,8 +22,10 @@ repositories {
 }
 
 dependencies {
-  // Serviço de push que herda do expo-notifications (alarme de pedido novo)
-  implementation project(':expo-notifications')
+  // Serviço de push que herda do expo-notifications (alarme de pedido novo).
+  // No SDK 57 o expo-notifications vem pré-compilado (artefato Maven, não
+  // projeto Gradle) — o repositório local dele já é ligado a todos os projetos.
+  implementation 'host.exp.exponent:expo.modules.notifications:57.0.24'
   implementation 'com.google.firebase:firebase-messaging:25.0.1'
   implementation 'androidx.core:core:1.17.0'
 

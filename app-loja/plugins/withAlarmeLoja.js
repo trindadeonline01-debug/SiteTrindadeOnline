@@ -1,4 +1,4 @@
-const { withAndroidManifest } = require('expo/config-plugins');
+const { withAndroidManifest, withAppBuildGradle } = require('expo/config-plugins');
 
 // Alarme de pedido novo com o app fechado (ver LojaMessagingService.kt):
 // 1) a tela principal pode abrir por cima do bloqueio e acender a tela;
@@ -6,7 +6,23 @@ const { withAndroidManifest } = require('expo/config-plugins');
 //    (que tem prioridade -1; o nosso fica na padrão, 0).
 const SERVICO = 'expo.modules.thermalprinterloja.LojaMessagingService';
 
+// O lint do app não enxerga a classe-mãe do serviço (vem de um artefato
+// pré-compilado do expo-notifications) e acusa "must extend android.app.Service"
+// — falso alarme que derruba o build de release. Desliga só essa checagem.
+const LINT_FIX = `
+// withAlarmeLoja: falso alarme do lint sobre o serviço de push
+android {
+    lint {
+        disable.add('Instantiatable')
+    }
+}
+`;
+
 module.exports = function withAlarmeLoja(config) {
+  config = withAppBuildGradle(config, (c) => {
+    if (!c.modResults.contents.includes('withAlarmeLoja')) c.modResults.contents += LINT_FIX;
+    return c;
+  });
   return withAndroidManifest(config, (c) => {
     const app = c.modResults.manifest.application[0];
     const main = (app.activity || []).find((a) => a.$['android:name'] === '.MainActivity');

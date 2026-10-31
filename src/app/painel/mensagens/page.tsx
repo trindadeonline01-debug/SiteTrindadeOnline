@@ -1,4 +1,5 @@
 'use client'
+import { ATENDIMENTO_IA_DESLIGADO, iaAtiva } from '@/lib/atendimentoIA'
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -1653,7 +1654,7 @@ export default function MensagensPage() {
                             <div className="msg-item-row1">
                               <div className="msg-item-name">
                                 {c.muted && '🔕 '}{c.name || c.phone}
-                                {company?.crm_ia_enabled && (
+                                {iaAtiva(company) && (
                                   <span className={`msg-modo-badge ${c.atendimento_modo === 'humano' ? 'humano' : 'ia'}`}>
                                     {c.atendimento_modo === 'humano' ? '🧑 Você' : '🤖 IA'}
                                   </span>
@@ -1722,7 +1723,7 @@ export default function MensagensPage() {
                             {isTyping ? <span className="msg-presence">digitando...</span> : isOnline ? <span className="msg-presence">online</span> : selectedLive?.notes ? <span style={{ color: 'var(--sign)' }}>📝 {selectedLive.notes}</span> : selectedLive?.phone}
                           </div>
                         </div>
-                        {company?.crm_ia_enabled && selectedLive && (
+                        {iaAtiva(company) && selectedLive && (
                           <button
                             className={`msg-modo-toggle ${selectedLive.atendimento_modo === 'humano' ? 'humano' : ''}`}
                             title={selectedLive.atendimento_modo === 'humano' ? 'Devolver a conversa pra IA' : 'Assumir a conversa'}
@@ -2149,6 +2150,9 @@ export default function MensagensPage() {
         {autoReplyOpen && (
           <div className="msg-lightbox" onClick={() => setAutoReplyOpen(false)}>
             <div className="msg-notes-box" onClick={e => e.stopPropagation()}>
+              {/* Atendente IA escondido enquanto ATENDIMENTO_IA_DESLIGADO (ver src/lib/atendimentoIA.ts) */}
+              {!ATENDIMENTO_IA_DESLIGADO && (
+                <>
               <h4>🤖 Atendente IA</h4>
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: '#cfd6da', marginBottom: 10, cursor: 'pointer' }}>
                 <input type="checkbox" checked={iaDraft.enabled} onChange={e => setIaDraft(d => ({ ...d, enabled: e.target.checked }))} />
@@ -2161,6 +2165,8 @@ export default function MensagensPage() {
                 placeholder='Instruções extras pra IA (opcional). Ex: "Não entregamos no Colubandê."'
                 value={iaDraft.extra} onChange={e => setIaDraft(d => ({ ...d, extra: e.target.value }))}
               />
+                </>
+              )}
 
               <h4 style={{ marginTop: 18 }}>⏰ Resposta automática fora do horário</h4>
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: '#cfd6da', marginBottom: 10, cursor: 'pointer' }}>

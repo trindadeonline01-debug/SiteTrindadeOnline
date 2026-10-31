@@ -18,6 +18,7 @@ export const ATENDIMENTO_IA_DESLIGADO = true
 // nela). Pra desligar o piloto: esvaziar a lista.
 export const ATENDIMENTO_IA_EMPRESAS_LIBERADAS: string[] = [
   'd3373bd7-fa9b-490f-a077-c8f2980028c1', // Calçada do Peixe
+  '89a82ce2-59ff-4caf-9e57-3062e9a9cbde', // Restaurante Mineroca
 ]
 
 export function iaLiberadaParaEmpresa(companyId: string | null | undefined): boolean {

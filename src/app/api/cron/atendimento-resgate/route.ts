@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { gerarRespostaIA } from '@/lib/crmIA'
+import { ATENDIMENTO_IA_DESLIGADO } from '@/lib/atendimentoIA'
 import { sendCustomerWhatsApp } from '@/lib/whatsapp'
 
 const supabase = createClient(
@@ -37,6 +38,8 @@ export async function GET(req: NextRequest) {
   if (!validos.some(s => auth === `Bearer ${s}`)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
+
+  if (ATENDIMENTO_IA_DESLIGADO) return NextResponse.json({ ok: true, desligado: true, resgatados: 0, erros: 0, total: 0 })
 
   const cutoff = new Date(Date.now() - 5 * 60 * 1000).toISOString()
 

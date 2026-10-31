@@ -5,6 +5,7 @@ import { normalizePhone } from '@/lib/phone'
 import { sendCustomerWhatsApp, notifyOwnerHumanRequested } from '@/lib/whatsapp'
 import { notifyAdmin } from '@/lib/notifyAdmin'
 import { pedeHumano, gerarRespostaIA } from '@/lib/crmIA'
+import { iaAtiva } from '@/lib/atendimentoIA'
 import { transcreverAudioWhatsApp } from '@/lib/transcreverAudio'
 
 const supabase = createClient(
@@ -341,7 +342,7 @@ export async function POST(req: NextRequest) {
             // src/lib/transcreverAudio.ts). Falha ou sem chave configurada
             // deixa `text` como estava (null), e o fluxo mais abaixo já cai
             // sozinho no aviso de "ainda não consigo ouvir áudio".
-            if (mediaType === 'audio' && direction === 'in' && company?.crm_ia_enabled) {
+            if (mediaType === 'audio' && direction === 'in' && iaAtiva(company)) {
               text = await transcreverAudioWhatsApp(buf, mimetype || 'audio/ogg')
             }
           } catch {}
@@ -409,7 +410,7 @@ export async function POST(req: NextRequest) {
           // out/2026: Ju respondendo pessoalmente a Tatiana enquanto a IA
           // continuava mandando mensagem por cima, repetindo pergunta já
           // respondida por ela).
-          if (company?.crm_ia_enabled && existing?.atendimento_modo !== 'humano') {
+          if (iaAtiva(company) && existing?.atendimento_modo !== 'humano') {
             await supabase.from('crm_contacts').update({ atendimento_modo: 'humano', pediu_humano_em: null }).eq('id', contactId)
           }
           continue
@@ -474,7 +475,7 @@ export async function POST(req: NextRequest) {
         // na segunda insistência — a primeira vez só pergunta qual é a
         // dúvida, pra dar chance da IA responder (Ricardo, set/2026: "se o
         // humano insistir, aí só depois da insistência a gente transfere").
-        if (company?.crm_ia_enabled) {
+        if (iaAtiva(company)) {
           const modoAtual = existing?.atendimento_modo || 'ia'
           if (modoAtual === 'ia' && text) {
             const jaPediu = !!existing?.pediu_humano_em

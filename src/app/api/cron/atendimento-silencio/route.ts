@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { gerarFollowUpSilencio } from '@/lib/crmIA'
 import { sendCustomerWhatsApp } from '@/lib/whatsapp'
+import { ATENDIMENTO_IA_DESLIGADO } from '@/lib/atendimentoIA'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -44,7 +45,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
-  if (PAUSADA) return NextResponse.json({ ok: true, pausada: true, enviados: 0, erros: 0, total: 0 })
+  if (PAUSADA || ATENDIMENTO_IA_DESLIGADO) return NextResponse.json({ ok: true, pausada: true, enviados: 0, erros: 0, total: 0 })
 
   const cutoffPrimeiro = new Date(Date.now() - PRIMEIRO_TOQUE_MIN * 60 * 1000).toISOString()
 

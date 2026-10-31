@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { classificarEmpresa } from '@/lib/crmAtendimentoIA'
+import { ATENDIMENTO_IA_DESLIGADO } from '@/lib/atendimentoIA'
 
 export const maxDuration = 120
 
@@ -20,6 +21,8 @@ export async function GET(req: NextRequest) {
   if (!validos.some(s => auth === `Bearer ${s}`)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
+
+  if (ATENDIMENTO_IA_DESLIGADO) return NextResponse.json({ ok: true, desligado: true })
 
   const { data: empresas } = await supabase
     .from('companies')

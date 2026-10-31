@@ -204,8 +204,10 @@ export default function CatalogoPage() {
   const importPausedRef = useRef(false)
   const importCancelledRef = useRef(false)
   const [importProgress, setImportProgress] = useState({ done: 0, total: 0 })
-  const [importResults, setImportResults] = useState<{ ok: number; updated: number; errors: string[]; photoWarnings: string[]; cancelled: boolean } | null>(null)
+  const [importResults, setImportResults] = useState<{ ok: number; updated: number; skipped: number; errors: string[]; photoWarnings: string[]; cancelled: boolean } | null>(null)
   const [importUpdateMode, setImportUpdateMode] = useState(false)
+  // Só traz produto cujo nome ainda não existe no catálogo; quem já existe é ignorado (nada é alterado).
+  const [importOnlyNew, setImportOnlyNew] = useState(false)
   const [lastImportBatch, setLastImportBatch] = useState<{ id: string; count: number } | null>(null)
   const [deletingLastImport, setDeletingLastImport] = useState(false)
   const [showImportPhotos, setShowImportPhotos] = useState(false)
@@ -600,6 +602,7 @@ export default function CatalogoPage() {
     const photoWarnings: string[] = []
     let createdCount = 0
     let updatedCount = 0
+    let skippedCount = 0
     let ok = 0
     let cancelled = false
     let localCats = [...categorias]
@@ -617,6 +620,13 @@ export default function CatalogoPage() {
       const nome = (r[iNome] || '').trim()
       if (nome) {
         try {
+          // Modo "só produtos novos": pula quem já tem o mesmo nome no catálogo
+          // ANTES de criar categoria ou baixar foto — não mexe em nada do que existe.
+          if (importOnlyNew && localProdutos.some(p => p.name.trim().toLowerCase() === nome.toLowerCase())) {
+            skippedCount++
+            setImportProgress(p => ({ ...p, done: p.done + 1 }))
+            continue
+          }
           let categoryId: string | null = null
           const catName = iCat >= 0 ? (r[iCat] || '').trim() : ''
           if (catName) {
@@ -722,7 +732,7 @@ export default function CatalogoPage() {
     setImporting(false)
     setImportPaused(false)
     if (createdCount > 0) setLastImportBatch({ id: batchId, count: createdCount })
-    setImportResults({ ok, updated: updatedCount, errors, photoWarnings, cancelled })
+    setImportResults({ ok, updated: updatedCount, skipped: skippedCount, errors, photoWarnings, cancelled })
   }
 
   function togglePauseImport() {
@@ -1714,8 +1724,12 @@ export default function CatalogoPage() {
                     </span>
                   </div>
                   <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 11.5, color: '#444', marginBottom: 14, cursor: 'pointer', lineHeight: 1.5 }}>
-                    <input type="checkbox" checked={importUpdateMode} onChange={e => setImportUpdateMode(e.target.checked)} style={{ marginTop: 2 }} />
+                    <input type="checkbox" checked={importUpdateMode} onChange={e => { setImportUpdateMode(e.target.checked); if (e.target.checked) setImportOnlyNew(false) }} style={{ marginTop: 2 }} />
                     <span>🔄 Atualizar quem já existe (por nome) em vez de duplicar — bom pra reimportar o mesmo cardápio depois de um tempo só pra atualizar preço/descrição/foto. Produto novo continua sendo criado normal.</span>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 11.5, color: '#444', marginBottom: 14, cursor: 'pointer', lineHeight: 1.5 }}>
+                    <input type="checkbox" checked={importOnlyNew} onChange={e => { setImportOnlyNew(e.target.checked); if (e.target.checked) setImportUpdateMode(false) }} style={{ marginTop: 2 }} />
+                    <span>➕ Importar só os produtos que ainda não estão no cardápio (por nome) — quem já existe é ignorado e não é alterado em nada.</span>
                   </label>
                   <label className="cg-btn cg-btn-gold" style={{ display: 'block', textAlign: 'center', cursor: 'pointer', marginBottom: lastImportBatch ? 10 : 16 }}>
                     Escolher arquivo CSV
@@ -1746,6 +1760,7 @@ export default function CatalogoPage() {
                     {importResults.updated > 0
                       ? <>{importResults.ok - importResults.updated} novo{(importResults.ok - importResults.updated) !== 1 ? 's' : ''} · {importResults.updated} atualizado{importResults.updated !== 1 ? 's' : ''}!</>
                       : <>{importResults.ok} produto{importResults.ok !== 1 ? 's' : ''} importado{importResults.ok !== 1 ? 's' : ''}!</>}
+                    {importResults.skipped > 0 && <span style={{ color: '#6E6656', fontWeight: 600 }}> · {importResults.skipped} já existia{importResults.skipped !== 1 ? 'm' : ''} no cardápio e {importResults.skipped !== 1 ? 'foram ignorados' : 'foi ignorado'}.</span>}
                   </div>
                   {importResults.errors.length > 0 && (
                     <>

@@ -12,6 +12,18 @@
 // de limite de idade antes, ver KNOWLEDGE_BASE item 26).
 export const ATENDIMENTO_IA_DESLIGADO = true
 
-export function iaAtiva(company: { crm_ia_enabled?: boolean | null } | null | undefined): boolean {
-  return !ATENDIMENTO_IA_DESLIGADO && !!company?.crm_ia_enabled
+// Empresas LIBERADAS mesmo com a chave geral desligada (piloto, 31/out/2026,
+// pedido do Ricardo: "ativa o atendimento da IA só para a Calçada do Peixe").
+// Pra liberar outra loja: acrescentar o id aqui (e deixar crm_ia_enabled ligado
+// nela). Pra desligar o piloto: esvaziar a lista.
+export const ATENDIMENTO_IA_EMPRESAS_LIBERADAS: string[] = [
+  'd3373bd7-fa9b-490f-a077-c8f2980028c1', // Calçada do Peixe
+]
+
+export function iaLiberadaParaEmpresa(companyId: string | null | undefined): boolean {
+  return !ATENDIMENTO_IA_DESLIGADO || (!!companyId && ATENDIMENTO_IA_EMPRESAS_LIBERADAS.includes(companyId))
+}
+
+export function iaAtiva(company: { id?: string | null; crm_ia_enabled?: boolean | null } | null | undefined): boolean {
+  return iaLiberadaParaEmpresa(company?.id) && !!company?.crm_ia_enabled
 }

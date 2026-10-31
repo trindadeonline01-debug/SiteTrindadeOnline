@@ -221,7 +221,7 @@ export async function POST(req: NextRequest) {
       // vinha depois, refeita a cada mensagem individual à toa).
       const { data: company } = await supabase
         .from('companies')
-        .select('owner_id, name, crm_auto_reply_enabled, crm_auto_reply_text, flexible_hours, store_paused, store_forced_open, crm_ia_enabled')
+        .select('id, owner_id, name, crm_auto_reply_enabled, crm_auto_reply_text, flexible_hours, store_paused, store_forced_open, crm_ia_enabled')
         .eq('id', inst.company_id).maybeSingle()
       for (const msg of msgs) {
         const remoteJid: string = msg?.key?.remoteJid || ''

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { gerarRespostaIA } from '@/lib/crmIA'
-import { ATENDIMENTO_IA_DESLIGADO } from '@/lib/atendimentoIA'
+import { ATENDIMENTO_IA_DESLIGADO, ATENDIMENTO_IA_EMPRESAS_LIBERADAS } from '@/lib/atendimentoIA'
 import { sendCustomerWhatsApp } from '@/lib/whatsapp'
 
 const supabase = createClient(
@@ -39,18 +39,28 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
-  if (ATENDIMENTO_IA_DESLIGADO) return NextResponse.json({ ok: true, desligado: true, resgatados: 0, erros: 0, total: 0 })
+  // Chave geral desligada: só roda pras empresas liberadas (piloto). Sem
+  // nenhuma liberada, responde na hora sem consultar nada.
+  if (ATENDIMENTO_IA_DESLIGADO && ATENDIMENTO_IA_EMPRESAS_LIBERADAS.length === 0) {
+    return NextResponse.json({ ok: true, desligado: true, resgatados: 0, erros: 0, total: 0 })
+  }
 
   const cutoff = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+  // Só conversa recente (últimas 3h): nunca responder mensagem velha de dias
+  // atrás, nem reprocessar backlog (ver KNOWLEDGE_BASE itens 26/27).
+  const maisAntigo = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString()
 
-  const { data: pendentes } = await supabase
+  let query = supabase
     .from('crm_contacts')
     .select('id, phone, company_id, companies!inner(crm_ia_enabled)')
     .eq('atendimento_modo', 'humano')
     .eq('last_message_direction', 'in')
     .eq('companies.crm_ia_enabled', true)
     .lte('last_message_at', cutoff)
+    .gte('last_message_at', maisAntigo)
     .limit(100)
+  if (ATENDIMENTO_IA_DESLIGADO) query = query.in('company_id', ATENDIMENTO_IA_EMPRESAS_LIBERADAS)
+  const { data: pendentes } = await query
 
   let resgatados = 0, erros = 0
   for (const contato of pendentes || []) {

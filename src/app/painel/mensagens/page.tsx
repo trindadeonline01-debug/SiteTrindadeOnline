@@ -1,5 +1,5 @@
 'use client'
-import { ATENDIMENTO_IA_DESLIGADO, iaAtiva } from '@/lib/atendimentoIA'
+import { iaLiberadaParaEmpresa, iaAtiva } from '@/lib/atendimentoIA'
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -2151,7 +2151,7 @@ export default function MensagensPage() {
           <div className="msg-lightbox" onClick={() => setAutoReplyOpen(false)}>
             <div className="msg-notes-box" onClick={e => e.stopPropagation()}>
               {/* Atendente IA escondido enquanto ATENDIMENTO_IA_DESLIGADO (ver src/lib/atendimentoIA.ts) */}
-              {!ATENDIMENTO_IA_DESLIGADO && (
+              {iaLiberadaParaEmpresa(company?.id) && (
                 <>
               <h4>🤖 Atendente IA</h4>
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: '#cfd6da', marginBottom: 10, cursor: 'pointer' }}>

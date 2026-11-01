@@ -454,7 +454,7 @@ export default function CatalogoPage() {
         const aplicadasNoLote: { id: string; url: string }[] = []
         for (const p of lote) {
           const fotoWeb = porRef.get(p.id) || porNome.get(p.name)
-          if (!fotoWeb) { semFoto.push(p.name); continue }
+          if (!fotoWeb) { semFoto.push(`${p.name} — a IA não achou uma foto boa`); continue }
           try {
             // Baixa e guarda no NOSSO armazenamento (link externo some/quebra).
             const r2 = await fetch('/api/loja/importar-foto', {
@@ -462,13 +462,13 @@ export default function CatalogoPage() {
               body: JSON.stringify({ access_token: token, company_id: companyId, image_url: fotoWeb }),
             })
             const d2 = await r2.json().catch(() => ({}))
-            if (!r2.ok || !d2.photo_url) { semFoto.push(p.name); continue }
+            if (!r2.ok || !d2.photo_url) { semFoto.push(`${p.name} — achou foto, mas não conseguiu baixar (${d2.error || `erro ${r2.status}`})`); continue }
             // .is('photo_url', null): nunca sobrescreve foto que alguém subiu enquanto isso rodava.
             const { error: updErr } = await supabase.from('loja_produtos').update({ photo_url: d2.photo_url }).eq('id', p.id).is('photo_url', null)
-            if (updErr) { semFoto.push(p.name); continue }
+            if (updErr) { semFoto.push(`${p.name} — não conseguiu salvar (${updErr.message})`); continue }
             aplicadasNoLote.push({ id: p.id, url: d2.photo_url })
             aplicadas++
-          } catch { semFoto.push(p.name) }
+          } catch (e: any) { semFoto.push(`${p.name} — falhou ao baixar a foto (${e?.message || 'erro'})`) }
         }
         if (aplicadasNoLote.length) {
           const porId = new Map(aplicadasNoLote.map(a => [a.id, a.url]))
@@ -477,7 +477,7 @@ export default function CatalogoPage() {
       } catch (err: any) {
         erro = err?.message || 'a busca de fotos falhou'
         falhasSeguidas++
-        lote.forEach(p => semFoto.push(p.name))
+        lote.forEach(p => semFoto.push(`${p.name} — busca com erro`))
         // Erro que se repete (ex.: sem saldo na Anthropic) não adianta insistir.
         if (falhasSeguidas >= 2) break
       }

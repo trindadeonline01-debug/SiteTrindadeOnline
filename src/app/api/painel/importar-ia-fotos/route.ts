@@ -70,6 +70,7 @@ ${listaTxt}
 Regras:
 - "foto_url" só pode ser uma URL que você realmente encontrou nos resultados de busca — nunca invente ou monte uma URL.
 - Prefira link direto de imagem (termina em .jpg/.jpeg/.png/.webp) quando a busca trouxer um.
+- Prefira fontes que PERMITEM baixar a imagem: Wikimedia Commons (upload.wikimedia.org), Pexels (images.pexels.com), Unsplash (images.unsplash.com), Pixabay (cdn.pixabay.com), sites de receitas e blogs de culinária. Evite Pinterest, Instagram, Facebook, Google Imagens e apps de delivery (iFood etc.), que bloqueiam o download.
 - Se não achar nada que pareça razoável pra algum produto, devolva foto_url null pra ele — melhor sem foto do que uma foto errada.
 - Devolva um resultado pra CADA produto da lista, usando exatamente o mesmo "nome" que apareceu acima e repetindo em "ref" exatamente o valor que aparece dentro de [ref ...] (copie sem alterar nada).`
 

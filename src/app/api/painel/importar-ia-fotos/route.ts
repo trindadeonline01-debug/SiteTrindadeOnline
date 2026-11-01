@@ -20,13 +20,51 @@ const supabaseAuth = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-// Teto de produtos por chamada — cada um gasta pelo menos uma rodada de
-// web_search, e isso precisa caber dentro do maxDuration acima.
-const MAX_WEB_PHOTO_SEARCH = 3
+// Teto de produtos por chamada.
+const MAX_WEB_PHOTO_SEARCH = 6
 
-const FotoWebSchema = z.object({
-  resultados: z.array(z.object({ ref: z.string().nullable(), nome: z.string(), foto_url: z.string().nullable() })),
+// A IA (Haiku, sem ferramenta de busca) só escreve a consulta em inglês; quem
+// acha a imagem é o servidor, direto em bancos de imagem gratuitos. A busca web
+// do Claude devolve texto de página, quase nunca a URL de uma imagem — por isso
+// voltava "não achou foto" em tudo (e a versão avançada dava 504, 1/nov/2026).
+const QuerySchema = z.object({
+  consultas: z.array(z.object({
+    ref: z.string(),
+    consulta: z.string(),
+    consulta_ampla: z.string(),
+  })),
 })
+
+const UA = 'TrindadeOnline/1.0 (https://trindadeonline.com.br; trindadeonline01@gmail.com)'
+
+async function getJson(url: string, ms = 9000): Promise<any | null> {
+  try {
+    const r = await fetch(url, { headers: { 'User-Agent': UA, Accept: 'application/json' }, signal: AbortSignal.timeout(ms) })
+    if (!r.ok) return null
+    return await r.json()
+  } catch { return null }
+}
+
+async function openverse(q: string): Promise<string | null> {
+  const j = await getJson(`https://api.openverse.org/v1/images/?q=${encodeURIComponent(q)}&page_size=10&category=photograph&license_type=commercial&mature=false`)
+  const r = (j?.results || []).find((x: any) => x?.thumbnail || x?.url)
+  return r ? (r.thumbnail || r.url) : null
+}
+
+async function wikimedia(q: string): Promise<string | null> {
+  const j = await getJson(`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${encodeURIComponent(q + ' filetype:bitmap')}&gsrlimit=10&prop=imageinfo&iiprop=url|mime&iiurlwidth=800&format=json&origin=*`)
+  const pages = Object.values(j?.query?.pages || {}) as any[]
+  for (const pg of pages) {
+    const ii = pg?.imageinfo?.[0]
+    if (ii && /^image\/(jpeg|png|webp)$/.test(ii.mime) && (ii.thumburl || ii.url)) return ii.thumburl || ii.url
+  }
+  return null
+}
+
+async function acharImagem(q: string): Promise<string | null> {
+  if (!q.trim()) return null
+  return (await openverse(q)) || (await wikimedia(q))
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -54,43 +92,46 @@ export async function POST(req: NextRequest) {
 
     const lista = produtos.slice(0, MAX_WEB_PHOTO_SEARCH)
     // "ref" identifica cada produto sem depender do nome (nomes repetem no
-    // mesmo catálogo). Quem não manda ref (importação de cardápio) continua
-    // casando por nome, como antes.
+    // mesmo catálogo). Quem não manda ref (importação de cardápio) casa por nome.
+    const refDe = (n: { ref?: string | null }, i: number) => String(n.ref ?? i)
     const listaTxt = lista.map((n, i) => {
       const desc = (n.descricao || '').replace(/\s+/g, ' ').trim().slice(0, 240)
-      return `- [ref ${n.ref ?? i}] ${n.nome}${n.categoria ? ` (categoria: ${n.categoria})` : ''}${desc ? ` — composição/descrição: ${desc}` : ''}`
+      return `- [ref ${refDe(n, i)}] ${n.nome}${n.categoria ? ` (categoria: ${n.categoria})` : ''}${desc ? ` — composição/descrição: ${desc}` : ''}`
     }).join('\n')
-    const prompt = `Pra cada produto da lista abaixo, use a ferramenta de busca na internet e encontre UMA foto que representa bem esse produto — não precisa ser desse estabelecimento específico, pode ser uma foto ilustrativa/genérica do prato ou item (ex: foto de stock, site de receita, Wikipedia, cardápio de outro lugar), mas precisa parecer de verdade com o que o produto é.
-
-Use o NOME, a CATEGORIA e a DESCRIÇÃO juntos: a descrição diz do que o produto é feito e como é composto (ingredientes, sabor, tamanho, acompanhamentos). Busque a foto de um item com essa composição, não de um prato parecido só pelo nome. Se a descrição e o nome apontarem coisas diferentes, vale a composição descrita.
+    const prompt = `Vou procurar uma foto ilustrativa de cada produto abaixo num banco de imagens (Openverse/Wikimedia Commons), cujo índice é em inglês. Pra cada produto escreva:
+- "consulta": 2 a 5 palavras em inglês descrevendo o item com a composição real (ex: "cheeseburger with fried egg", "grilled picanha steak sandwich"). Use NOME, CATEGORIA e DESCRIÇÃO juntos; a descrição diz do que o item é feito.
+- "consulta_ampla": 1 a 2 palavras em inglês, genérica, pra usar se a consulta específica não achar nada (ex: "hamburger", "pizza", "grilled fish").
+Nome de combo/kit/marca: foque na comida principal. Não coloque nomes de lojas nem "combo".
 
 Produtos:
 ${listaTxt}
 
-Regras:
-- "foto_url" só pode ser uma URL que você realmente encontrou nos resultados de busca — nunca invente ou monte uma URL.
-- Prefira link direto de imagem (termina em .jpg/.jpeg/.png/.webp) quando a busca trouxer um.
-- Prefira fontes que PERMITEM baixar a imagem: Wikimedia Commons (upload.wikimedia.org), Pexels (images.pexels.com), Unsplash (images.unsplash.com), Pixabay (cdn.pixabay.com), sites de receitas e blogs de culinária. Evite Pinterest, Instagram, Facebook, Google Imagens e apps de delivery (iFood etc.), que bloqueiam o download.
-- Faça no máximo UMA busca por produto (e só uma segunda se a primeira não trouxer nenhuma imagem utilizável). Seja rápido.
-- Se não achar nada que pareça razoável pra algum produto, devolva foto_url null pra ele — melhor sem foto do que uma foto errada.
-- Devolva um resultado pra CADA produto da lista, usando exatamente o mesmo "nome" que apareceu acima e repetindo em "ref" exatamente o valor que aparece dentro de [ref ...] (copie sem alterar nada).`
+Devolva uma entrada pra CADA produto, repetindo em "ref" exatamente o valor de [ref ...].`
 
     const anthropic = new Anthropic()
     const response = await anthropic.messages.parse({
-      model: 'claude-sonnet-5',
-      max_tokens: 2000,
-      tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: lista.length }],
-      output_config: { format: zodOutputFormat(FotoWebSchema) },
+      model: 'claude-haiku-4-5',
+      max_tokens: 1500,
+      output_config: { format: zodOutputFormat(QuerySchema) },
       messages: [{ role: 'user', content: prompt }],
-    }, { timeout: 50_000, maxRetries: 0 })
+    }, { timeout: 30_000, maxRetries: 0 })
 
-    const parsed = response.parsed_output
-    const fotos = (parsed?.resultados || []).filter(r => !!r.foto_url) as { nome: string; foto_url: string }[]
-    return NextResponse.json({ fotos })
+    const consultas = response.parsed_output?.consultas || []
+    const motivos: Record<string, string> = {}
+    const fotos: { ref: string; nome: string; foto_url: string }[] = []
+
+    await Promise.all(lista.map(async (n, i) => {
+      const ref = refDe(n, i)
+      const c = consultas.find(x => String(x.ref) === ref)
+      if (!c) { motivos[ref] = 'a IA não devolveu consulta de busca'; return }
+      const url = (await acharImagem(c.consulta)) || (await acharImagem(c.consulta_ampla))
+      if (url) fotos.push({ ref, nome: n.nome, foto_url: url })
+      else motivos[ref] = `nenhuma imagem nos bancos gratuitos pra "${c.consulta}" / "${c.consulta_ampla}"`
+    }))
+
+    return NextResponse.json({ fotos, motivos })
   } catch (err: any) {
-    // Busca de foto nunca pode travar o import do cardápio em si — quem
-    // chama essa rota já trata falha aqui como "segue sem essas fotos".
-    const msg = /timed? ?out|timeout/i.test(String(err?.message)) ? 'a busca demorou demais (mais de 50s)' : (err?.message || 'falha ao buscar fotos')
+    const msg = /timed? ?out|timeout|abort/i.test(String(err?.message)) ? 'a busca demorou demais' : (err?.message || 'falha ao buscar fotos')
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }

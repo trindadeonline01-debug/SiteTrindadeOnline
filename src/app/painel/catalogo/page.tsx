@@ -410,7 +410,7 @@ export default function CatalogoPage() {
     setFillPhase('running')
     setFillProgress({ done: 0, total: alvo.length, aplicadas: 0 })
 
-    const LOTE = 3 // mesmo teto da rota /api/painel/importar-ia-fotos (lote maior estourava o tempo: 504)
+    const LOTE = 6 // mesmo teto da rota /api/painel/importar-ia-fotos
     const semFoto: string[] = []
     let aplicadas = 0
     let erro = ''
@@ -446,6 +446,7 @@ export default function CatalogoPage() {
         // só se o modelo não devolver o ref.
         const porRef = new Map<string, string>()
         const porNome = new Map<string, string>()
+        const motivos = (data.motivos || {}) as Record<string, string>
         for (const f of data.fotos as { ref?: string | null; nome: string; foto_url: string }[]) {
           if (f.ref) porRef.set(String(f.ref), f.foto_url)
           porNome.set(f.nome, f.foto_url)
@@ -454,7 +455,7 @@ export default function CatalogoPage() {
         const aplicadasNoLote: { id: string; url: string }[] = []
         for (const p of lote) {
           const fotoWeb = porRef.get(p.id) || porNome.get(p.name)
-          if (!fotoWeb) { semFoto.push(`${p.name} — a IA não achou uma foto boa`); continue }
+          if (!fotoWeb) { semFoto.push(`${p.name} — ${motivos[p.id] || 'não achou uma foto boa'}`); continue }
           try {
             // Baixa e guarda no NOSSO armazenamento (link externo some/quebra).
             const r2 = await fetch('/api/loja/importar-foto', {
@@ -1945,7 +1946,7 @@ export default function CatalogoPage() {
                     <option value={120}>120</option>
                   </select>
                   <div style={{ fontSize: 10.5, color: '#A79E8B', marginBottom: 14 }}>
-                    Cada lote de 3 usa IA com busca na internet (gasta saldo da conta Anthropic). Comece pequeno e confira o resultado antes de rodar mais.
+                    Cada lote de 6 usa IA só pra montar a busca (gasto mínimo) e procura em bancos de imagens gratuitos. Comece pequeno e confira o resultado antes de rodar mais.
                   </div>
                   <button className="cg-btn cg-btn-gold" style={{ width: '100%' }} disabled={fillTargets().length === 0} onClick={completarFotosFaltando}>
                     Buscar fotos de {Math.min(fillTargets().length, fillLimit)} produto{Math.min(fillTargets().length, fillLimit) !== 1 ? 's' : ''}

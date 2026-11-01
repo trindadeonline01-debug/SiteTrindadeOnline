@@ -410,7 +410,7 @@ export default function CatalogoPage() {
     setFillPhase('running')
     setFillProgress({ done: 0, total: alvo.length, aplicadas: 0 })
 
-    const LOTE = 6 // mesmo teto da rota /api/painel/importar-ia-fotos (lote maior estourava o tempo: 504)
+    const LOTE = 3 // mesmo teto da rota /api/painel/importar-ia-fotos (lote maior estourava o tempo: 504)
     const semFoto: string[] = []
     let aplicadas = 0
     let erro = ''
@@ -1945,7 +1945,7 @@ export default function CatalogoPage() {
                     <option value={120}>120</option>
                   </select>
                   <div style={{ fontSize: 10.5, color: '#A79E8B', marginBottom: 14 }}>
-                    Cada lote de 6 usa IA com busca na internet (gasta saldo da conta Anthropic). Comece pequeno e confira o resultado antes de rodar mais.
+                    Cada lote de 3 usa IA com busca na internet (gasta saldo da conta Anthropic). Comece pequeno e confira o resultado antes de rodar mais.
                   </div>
                   <button className="cg-btn cg-btn-gold" style={{ width: '100%' }} disabled={fillTargets().length === 0} onClick={completarFotosFaltando}>
                     Buscar fotos de {Math.min(fillTargets().length, fillLimit)} produto{Math.min(fillTargets().length, fillLimit) !== 1 ? 's' : ''}

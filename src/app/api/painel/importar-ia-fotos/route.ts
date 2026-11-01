@@ -9,7 +9,7 @@ import { z } from 'zod'
 // estourava o teto de 300s da function em cardápio grande + várias buscas
 // (504 real, Satolo's/outras lojas, out/2026). Cada chamada agora tem seu
 // próprio orçamento de tempo.
-export const maxDuration = 300
+export const maxDuration = 60
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -22,7 +22,7 @@ const supabaseAuth = createClient(
 
 // Teto de produtos por chamada — cada um gasta pelo menos uma rodada de
 // web_search, e isso precisa caber dentro do maxDuration acima.
-const MAX_WEB_PHOTO_SEARCH = 6
+const MAX_WEB_PHOTO_SEARCH = 3
 
 const FotoWebSchema = z.object({
   resultados: z.array(z.object({ ref: z.string().nullable(), nome: z.string(), foto_url: z.string().nullable() })),
@@ -78,11 +78,11 @@ Regras:
     const anthropic = new Anthropic()
     const response = await anthropic.messages.parse({
       model: 'claude-sonnet-5',
-      max_tokens: 4000,
-      tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: lista.length }],
+      max_tokens: 2000,
+      tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: lista.length }],
       output_config: { format: zodOutputFormat(FotoWebSchema) },
       messages: [{ role: 'user', content: prompt }],
-    })
+    }, { timeout: 50_000, maxRetries: 0 })
 
     const parsed = response.parsed_output
     const fotos = (parsed?.resultados || []).filter(r => !!r.foto_url) as { nome: string; foto_url: string }[]
@@ -90,6 +90,7 @@ Regras:
   } catch (err: any) {
     // Busca de foto nunca pode travar o import do cardápio em si — quem
     // chama essa rota já trata falha aqui como "segue sem essas fotos".
-    return NextResponse.json({ error: err?.message || 'falha ao buscar fotos' }, { status: 500 })
+    const msg = /timed? ?out|timeout/i.test(String(err?.message)) ? 'a busca demorou demais (mais de 50s)' : (err?.message || 'falha ao buscar fotos')
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }

@@ -223,6 +223,18 @@ export default function CatalogoPage() {
   // chamada de IA (com busca na internet) pra achar uma foto ilustrativa pros
   // produtos que ficaram sem foto na extração do cardápio.
   const [buscarFotosWeb, setBuscarFotosWeb] = useState(false)
+  // "Completar fotos que faltam" — busca foto ilustrativa na internet pros
+  // produtos que JÁ estão no catálogo sem foto (Chupeta Gourmet, Alecrim
+  // Dourado etc.), em lotes, com limite por rodada pra controlar o custo.
+  const [showFillPhotos, setShowFillPhotos] = useState(false)
+  const [fillPhase, setFillPhase] = useState<'choose' | 'running' | 'done'>('choose')
+  const [fillCat, setFillCat] = useState('all')
+  const [fillLimit, setFillLimit] = useState(24)
+  const [fillProgress, setFillProgress] = useState({ done: 0, total: 0, aplicadas: 0 })
+  const [fillPaused, setFillPaused] = useState(false)
+  const fillPausedRef = useRef(false)
+  const fillCancelledRef = useRef(false)
+  const [fillResults, setFillResults] = useState<{ aplicadas: number; semFoto: string[]; erro: string; cancelado: boolean } | null>(null)
   const [importIAPreview, setImportIAPreview] = useState<{ categorias: number; produtos: number; imagens: number; grupos: number; classificados: number; fotosWebEncontradas?: number; csv: string } | null>(null)
   const catSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -363,6 +375,96 @@ export default function CatalogoPage() {
     } catch {
       return { csv, encontradas: 0 } // falha na busca de foto não pode travar o import do cardápio em si
     }
+  }
+
+  function openFillPhotos() {
+    setShowFillPhotos(true)
+    setFillPhase('choose')
+    setFillResults(null)
+    setFillCat('all')
+  }
+
+  function fillTargets() {
+    return produtos.filter(p => !p.photo_url && p.active !== false && (fillCat === 'all' || p.category_id === fillCat))
+  }
+
+  async function completarFotosFaltando() {
+    const alvo = fillTargets().slice(0, fillLimit)
+    if (alvo.length === 0) return
+    fillCancelledRef.current = false
+    fillPausedRef.current = false
+    setFillPaused(false)
+    setFillResults(null)
+    setFillPhase('running')
+    setFillProgress({ done: 0, total: alvo.length, aplicadas: 0 })
+
+    const LOTE = 12 // mesmo teto da rota /api/painel/importar-ia-fotos
+    const semFoto: string[] = []
+    let aplicadas = 0
+    let erro = ''
+    let falhasSeguidas = 0
+    let cancelado = false
+
+    for (let i = 0; i < alvo.length; i += LOTE) {
+      if (fillCancelledRef.current) { cancelado = true; break }
+      while (fillPausedRef.current) {
+        await new Promise(r => setTimeout(r, 250))
+        if (fillCancelledRef.current) break
+      }
+      if (fillCancelledRef.current) { cancelado = true; break }
+
+      const lote = alvo.slice(i, i + LOTE)
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const token = session?.access_token
+        if (!token) throw new Error('Sessão expirada. Entra de novo.')
+        const res = await fetch('/api/painel/importar-ia-fotos', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            access_token: token, company_id: companyId,
+            produtos: lote.map(p => ({ nome: p.name, categoria: categorias.find(c => c.id === p.category_id)?.name || null })),
+          }),
+        })
+        const data = await readImportIAResponse(res)
+        if (!res.ok || !Array.isArray(data.fotos)) throw new Error(data.error || 'a busca de fotos falhou')
+        falhasSeguidas = 0
+        const achadas = new Map<string, string>(data.fotos.map((f: { nome: string; foto_url: string }) => [f.nome, f.foto_url]))
+
+        const aplicadasNoLote: { id: string; url: string }[] = []
+        for (const p of lote) {
+          const fotoWeb = achadas.get(p.name)
+          if (!fotoWeb) { semFoto.push(p.name); continue }
+          try {
+            // Baixa e guarda no NOSSO armazenamento (link externo some/quebra).
+            const r2 = await fetch('/api/loja/importar-foto', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ access_token: token, company_id: companyId, image_url: fotoWeb }),
+            })
+            const d2 = await r2.json().catch(() => ({}))
+            if (!r2.ok || !d2.photo_url) { semFoto.push(p.name); continue }
+            // .is('photo_url', null): nunca sobrescreve foto que alguém subiu enquanto isso rodava.
+            const { error: updErr } = await supabase.from('loja_produtos').update({ photo_url: d2.photo_url }).eq('id', p.id).is('photo_url', null)
+            if (updErr) { semFoto.push(p.name); continue }
+            aplicadasNoLote.push({ id: p.id, url: d2.photo_url })
+            aplicadas++
+          } catch { semFoto.push(p.name) }
+        }
+        if (aplicadasNoLote.length) {
+          const porId = new Map(aplicadasNoLote.map(a => [a.id, a.url]))
+          setProdutos(prev => prev.map(pr => (porId.has(pr.id) && !pr.photo_url ? { ...pr, photo_url: porId.get(pr.id)! } : pr)))
+        }
+      } catch (err: any) {
+        erro = err?.message || 'a busca de fotos falhou'
+        falhasSeguidas++
+        lote.forEach(p => semFoto.push(p.name))
+        // Erro que se repete (ex.: sem saldo na Anthropic) não adianta insistir.
+        if (falhasSeguidas >= 2) break
+      }
+      setFillProgress({ done: Math.min(i + LOTE, alvo.length), total: alvo.length, aplicadas })
+    }
+
+    setFillResults({ aplicadas, semFoto, erro, cancelado })
+    setFillPhase('done')
   }
 
   function openImportIA() {
@@ -1288,6 +1390,7 @@ export default function CatalogoPage() {
                     <button onClick={() => { setShowImportMenu(false); openBulk() }}>⚡ Cadastro rápido — vários produtos de uma vez</button>
                     <button onClick={() => { setShowImportMenu(false); setShowImportCsv(true); setImportResults(null); setImportUpdateMode(false) }}>📥 Importar de um CSV</button>
                     <button onClick={() => { setShowImportMenu(false); setShowImportPhotos(true); setPhotoImportResults(null) }}>🖼️ Importar fotos pelo nome do produto</button>
+                    <button onClick={() => { setShowImportMenu(false); openFillPhotos() }}>📸 Completar fotos que faltam (busca na internet)</button>
                   </div>
                 )}
               </div>
@@ -1312,6 +1415,9 @@ export default function CatalogoPage() {
               {semFotoCount > 0 && (
                 <button className={`cg-chip ${filterCat === 'sem-foto' ? 'active' : ''}`} onClick={() => setFilterCat('sem-foto')}>📷 Sem foto ({semFotoCount})</button>
               )}
+              {semFotoCount > 0 && (
+                <button className="cg-chip" onClick={openFillPhotos}>📸 Completar fotos</button>
+              )}
               {categorias.map(c => (
                 <button key={c.id} className={`cg-chip ${filterCat === c.id ? 'active' : ''}`} onClick={() => setFilterCat(c.id)}>{c.name}</button>
               ))}
@@ -1328,6 +1434,7 @@ export default function CatalogoPage() {
                   <button onClick={() => { setShowImportMenu(false); openBulk() }}>⚡ Cadastro rápido — vários produtos de uma vez</button>
                   <button onClick={() => { setShowImportMenu(false); setShowImportCsv(true); setImportResults(null); setImportUpdateMode(false) }}>📥 Importar de um CSV</button>
                   <button onClick={() => { setShowImportMenu(false); setShowImportPhotos(true); setPhotoImportResults(null) }}>🖼️ Importar fotos pelo nome do produto</button>
+                    <button onClick={() => { setShowImportMenu(false); openFillPhotos() }}>📸 Completar fotos que faltam (busca na internet)</button>
                 </div>
               )}
             </div>
@@ -1780,6 +1887,82 @@ export default function CatalogoPage() {
                     </button>
                   )}
                   <button className="cg-btn cg-btn-gold" style={{ width: '100%', marginTop: 8 }} onClick={() => { setShowImportCsv(false); setImportResults(null) }}>Fechar</button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showFillPhotos && (
+        <div className="cg-cat-overlay" onClick={() => fillPhase !== 'running' && setShowFillPhotos(false)}>
+          <div className="cg-cat-modal" onClick={e => e.stopPropagation()}>
+            <div className="cg-cat-modal-head">
+              <b>📸 Completar fotos que faltam</b>
+              {fillPhase !== 'running' && <button className="cg-close" onClick={() => setShowFillPhotos(false)}>✕</button>}
+            </div>
+            <div className="cg-cat-modal-body">
+              {fillPhase === 'choose' && (
+                <>
+                  <div style={{ fontSize: 11.5, color: '#6E6656', lineHeight: 1.6, padding: '10px 0' }}>
+                    A IA procura na internet uma foto <b>ilustrativa</b> pra cada produto sem foto (não é a foto real do seu prato) e guarda no seu catálogo. Se não achar nada razoável, deixa o produto sem foto. Você pode trocar qualquer uma depois, produto por produto.
+                  </div>
+                  <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, marginBottom: 4 }}>Categoria</label>
+                  <select value={fillCat} onChange={e => setFillCat(e.target.value)} style={{ width: '100%', padding: '9px 10px', borderRadius: 8, border: '1.5px solid #B9AE97', fontSize: 13, marginBottom: 12 }}>
+                    <option value="all">Todas ({produtos.filter(p => !p.photo_url && p.active !== false).length} sem foto)</option>
+                    {categorias.map(c => {
+                      const n = produtos.filter(p => !p.photo_url && p.active !== false && p.category_id === c.id).length
+                      return n > 0 ? <option key={c.id} value={c.id}>{c.name} ({n})</option> : null
+                    })}
+                  </select>
+                  <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, marginBottom: 4 }}>Quantos produtos nesta rodada</label>
+                  <select value={fillLimit} onChange={e => setFillLimit(Number(e.target.value))} style={{ width: '100%', padding: '9px 10px', borderRadius: 8, border: '1.5px solid #B9AE97', fontSize: 13, marginBottom: 6 }}>
+                    <option value={12}>12 (teste rápido)</option>
+                    <option value={24}>24</option>
+                    <option value={60}>60</option>
+                    <option value={120}>120</option>
+                  </select>
+                  <div style={{ fontSize: 10.5, color: '#A79E8B', marginBottom: 14 }}>
+                    Cada lote de 12 usa IA com busca na internet (gasta saldo da conta Anthropic). Comece pequeno e confira o resultado antes de rodar mais.
+                  </div>
+                  <button className="cg-btn cg-btn-gold" style={{ width: '100%' }} disabled={fillTargets().length === 0} onClick={completarFotosFaltando}>
+                    Buscar fotos de {Math.min(fillTargets().length, fillLimit)} produto{Math.min(fillTargets().length, fillLimit) !== 1 ? 's' : ''}
+                  </button>
+                </>
+              )}
+              {fillPhase === 'running' && (
+                <div style={{ padding: '14px 0' }}>
+                  <div style={{ textAlign: 'center', fontSize: 13, fontWeight: 700, marginBottom: 10 }}>
+                    Buscando… {fillProgress.done}/{fillProgress.total} · {fillProgress.aplicadas} foto{fillProgress.aplicadas !== 1 ? 's' : ''} aplicada{fillProgress.aplicadas !== 1 ? 's' : ''}
+                  </div>
+                  <div style={{ height: 8, background: '#E9E3D6', borderRadius: 4, overflow: 'hidden', marginBottom: 14 }}>
+                    <div style={{ height: '100%', width: `${fillProgress.total ? Math.round(fillProgress.done / fillProgress.total * 100) : 0}%`, background: '#C9951A', transition: 'width .3s' }} />
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button className="cg-btn cg-btn-gold" style={{ flex: 1 }} onClick={() => { fillPausedRef.current = !fillPausedRef.current; setFillPaused(fillPausedRef.current) }}>{fillPaused ? '▶ Continuar' : '⏸ Pausar'}</button>
+                    <button className="cg-btn-ghost cg-btn-danger" style={{ flex: 1, borderRadius: 10 }} onClick={() => { fillCancelledRef.current = true; fillPausedRef.current = false; setFillPaused(false) }}>✕ Parar</button>
+                  </div>
+                </div>
+              )}
+              {fillPhase === 'done' && fillResults && (
+                <div style={{ padding: '10px 0' }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8 }}>
+                    {fillResults.cancelado && <span style={{ color: '#C43D3D' }}>Parado. </span>}
+                    {fillResults.aplicadas} foto{fillResults.aplicadas !== 1 ? 's' : ''} aplicada{fillResults.aplicadas !== 1 ? 's' : ''}!
+                  </div>
+                  {fillResults.erro && (
+                    <div style={{ fontSize: 11.5, color: '#C43D3D', marginBottom: 8 }}>
+                      Deu erro na busca: {/credit balance|saldo/i.test(fillResults.erro) ? 'o saldo da conta Anthropic acabou — recarrega em console.anthropic.com.' : fillResults.erro}
+                    </div>
+                  )}
+                  {fillResults.semFoto.length > 0 && (
+                    <>
+                      <div style={{ fontSize: 11.5, fontWeight: 700, color: '#8A6410', marginBottom: 4 }}>{fillResults.semFoto.length} ficaram sem foto:</div>
+                      {fillResults.semFoto.slice(0, 30).map((n, i) => <div key={i} style={{ fontSize: 11, color: '#8A6410', marginBottom: 2 }}>{n}</div>)}
+                      {fillResults.semFoto.length > 30 && <div style={{ fontSize: 11, color: '#8A6410' }}>…e mais {fillResults.semFoto.length - 30}.</div>}
+                    </>
+                  )}
+                  <button className="cg-btn cg-btn-gold" style={{ width: '100%', marginTop: 14 }} onClick={() => setShowFillPhotos(false)}>Fechar</button>
                 </div>
               )}
             </div>

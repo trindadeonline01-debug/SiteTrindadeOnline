@@ -90,7 +90,7 @@ Devolva o estado ATUALIZADO. Mantenha um campo do jeito que já estava se as men
 // estourar o timeout da Vercel (e perder o que não deu tempo de salvar),
 // processa o quanto couber no orçamento de tempo e deixa o resto pra
 // próxima rodada do cron (a cada ~3h) — o backlog inicial some em algumas
-// rodadas, sem risco de 504. Mesma lição do /api/painel/importar-ia-fotos.
+// rodadas, sem risco de 504.
 const ORCAMENTO_MS = 90_000
 
 type ContatoPendente = { contact_id: string; resumo: ResumoAtendimento | null; last_message_at: string | null; ultima_msg_real: string }

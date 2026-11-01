@@ -219,23 +219,7 @@ export default function CatalogoPage() {
   const [importIASource, setImportIASource] = useState<'url' | 'pdf' | 'fotos'>('url')
   const [importIAUrl, setImportIAUrl] = useState('')
   const [importIAError, setImportIAError] = useState('')
-  // Opt-in — desligado por padrão. Só quando marcado, a rota faz uma segunda
-  // chamada de IA (com busca na internet) pra achar uma foto ilustrativa pros
-  // produtos que ficaram sem foto na extração do cardápio.
-  const [buscarFotosWeb, setBuscarFotosWeb] = useState(false)
-  // "Completar fotos que faltam" — busca foto ilustrativa na internet pros
-  // produtos que JÁ estão no catálogo sem foto (Chupeta Gourmet, Alecrim
-  // Dourado etc.), em lotes, com limite por rodada pra controlar o custo.
-  const [showFillPhotos, setShowFillPhotos] = useState(false)
-  const [fillPhase, setFillPhase] = useState<'choose' | 'running' | 'done'>('choose')
-  const [fillCat, setFillCat] = useState('all')
-  const [fillLimit, setFillLimit] = useState(12)
-  const [fillProgress, setFillProgress] = useState({ done: 0, total: 0, aplicadas: 0 })
-  const [fillPaused, setFillPaused] = useState(false)
-  const fillPausedRef = useRef(false)
-  const fillCancelledRef = useRef(false)
-  const [fillResults, setFillResults] = useState<{ aplicadas: number; semFoto: string[]; erro: string; cancelado: boolean } | null>(null)
-  const [importIAPreview, setImportIAPreview] = useState<{ categorias: number; produtos: number; imagens: number; grupos: number; classificados: number; fotosWebEncontradas?: number; csv: string } | null>(null)
+  const [importIAPreview, setImportIAPreview] = useState<{ categorias: number; produtos: number; imagens: number; grupos: number; classificados: number; csv: string } | null>(null)
   const catSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -338,157 +322,6 @@ export default function CatalogoPage() {
     return v
   }
 
-  // Fase 2 da importação com IA (opt-in) — chamada SEPARADA da extração do
-  // cardápio, de propósito: as duas num request só (extração + busca web)
-  // estouravam o teto de tempo da function em cardápio grande + várias
-  // buscas (504 real, out/2026). Opera em cima do CSV que já voltou da
-  // extração, preenchendo só as linhas com foto_url vazia.
-  async function buscarFotosWebECompletar(csv: string, accessToken: string | undefined): Promise<{ csv: string; encontradas: number }> {
-    const rows = parseCsv(csv)
-    if (rows.length < 2) return { csv, encontradas: 0 }
-    const header = rows[0].map(h => h.trim().toLowerCase())
-    const iNome = header.indexOf('nome')
-    const iCat = header.indexOf('categoria')
-    const iFoto = header.indexOf('foto_url')
-    if (iNome === -1 || iFoto === -1) return { csv, encontradas: 0 }
-
-    const semFoto = rows.slice(1)
-      .map((r, idx) => ({ rowIdx: idx + 1, nome: (r[iNome] || '').trim(), categoria: iCat >= 0 ? ((r[iCat] || '').trim() || null) : null, foto: (r[iFoto] || '').trim() }))
-      .filter(r => r.nome && !r.foto)
-    if (semFoto.length === 0) return { csv, encontradas: 0 }
-
-    try {
-      const res = await fetch('/api/painel/importar-ia-fotos', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ access_token: accessToken, company_id: companyId, produtos: semFoto.map(p => ({ nome: p.nome, categoria: p.categoria })) }),
-      })
-      const data = await readImportIAResponse(res)
-      if (!res.ok || !Array.isArray(data.fotos)) return { csv, encontradas: 0 }
-      const achadas = new Map<string, string>(data.fotos.map((f: { nome: string; foto_url: string }) => [f.nome, f.foto_url]))
-      let encontradas = 0
-      for (const r of semFoto) {
-        const foto = achadas.get(r.nome)
-        if (foto) { rows[r.rowIdx][iFoto] = foto; encontradas++ }
-      }
-      if (encontradas === 0) return { csv, encontradas: 0 }
-      return { csv: rows.map(r => r.map(csvFieldClient).join(',')).join('\n'), encontradas }
-    } catch {
-      return { csv, encontradas: 0 } // falha na busca de foto não pode travar o import do cardápio em si
-    }
-  }
-
-  function openFillPhotos() {
-    setShowFillPhotos(true)
-    setFillPhase('choose')
-    setFillResults(null)
-    setFillCat('all')
-  }
-
-  // Token sempre válido: se o da aba está vencido ou perto de vencer (aba
-  // aberta há horas), renova antes de chamar a API — em vez de falhar com
-  // "sessão expirada" numa conta que está logada de verdade no servidor.
-  async function tokenFresco(): Promise<string | null> {
-    const { data: { session } } = await supabase.auth.getSession()
-    const venceEm = session?.expires_at ? session.expires_at * 1000 - Date.now() : 0
-    if (session?.access_token && venceEm > 60_000) return session.access_token
-    const { data, error } = await supabase.auth.refreshSession()
-    if (!error && data.session?.access_token) return data.session.access_token
-    return session?.access_token ?? null
-  }
-
-  function fillTargets() {
-    return produtos.filter(p => !p.photo_url && p.active !== false && (fillCat === 'all' || p.category_id === fillCat))
-  }
-
-  async function completarFotosFaltando() {
-    const alvo = fillTargets().slice(0, fillLimit)
-    if (alvo.length === 0) return
-    fillCancelledRef.current = false
-    fillPausedRef.current = false
-    setFillPaused(false)
-    setFillResults(null)
-    setFillPhase('running')
-    setFillProgress({ done: 0, total: alvo.length, aplicadas: 0 })
-
-    const LOTE = 6 // mesmo teto da rota /api/painel/importar-ia-fotos
-    const semFoto: string[] = []
-    let aplicadas = 0
-    let erro = ''
-    let falhasSeguidas = 0
-    let cancelado = false
-
-    for (let i = 0; i < alvo.length; i += LOTE) {
-      if (fillCancelledRef.current) { cancelado = true; break }
-      while (fillPausedRef.current) {
-        await new Promise(r => setTimeout(r, 250))
-        if (fillCancelledRef.current) break
-      }
-      if (fillCancelledRef.current) { cancelado = true; break }
-
-      const lote = alvo.slice(i, i + LOTE)
-      try {
-        const token = await tokenFresco()
-        if (!token) throw new Error('A sessão desta aba expirou. Atualiza a página (F5) e tenta de novo.')
-        const res = await fetch('/api/painel/importar-ia-fotos', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            access_token: token, company_id: companyId,
-            produtos: lote.map(p => ({
-              ref: p.id, nome: p.name, descricao: p.description || null,
-              categoria: categorias.find(c => c.id === p.category_id)?.name || null,
-            })),
-          }),
-        })
-        const data = await readImportIAResponse(res)
-        if (!res.ok || !Array.isArray(data.fotos)) throw new Error(data.error || 'a busca de fotos falhou')
-        falhasSeguidas = 0
-        // Casa pelo ref (id do produto) — nome repete no catálogo; cai pro nome
-        // só se o modelo não devolver o ref.
-        const porRef = new Map<string, string>()
-        const porNome = new Map<string, string>()
-        const motivos = (data.motivos || {}) as Record<string, string>
-        for (const f of data.fotos as { ref?: string | null; nome: string; foto_url: string }[]) {
-          if (f.ref) porRef.set(String(f.ref), f.foto_url)
-          porNome.set(f.nome, f.foto_url)
-        }
-
-        const aplicadasNoLote: { id: string; url: string }[] = []
-        for (const p of lote) {
-          const fotoWeb = porRef.get(p.id) || porNome.get(p.name)
-          if (!fotoWeb) { semFoto.push(`${p.name} — ${motivos[p.id] || 'não achou uma foto boa'}`); continue }
-          try {
-            // Baixa e guarda no NOSSO armazenamento (link externo some/quebra).
-            const r2 = await fetch('/api/loja/importar-foto', {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ access_token: token, company_id: companyId, image_url: fotoWeb }),
-            })
-            const d2 = await r2.json().catch(() => ({}))
-            if (!r2.ok || !d2.photo_url) { semFoto.push(`${p.name} — achou foto, mas não conseguiu baixar (${d2.error || `erro ${r2.status}`})`); continue }
-            // .is('photo_url', null): nunca sobrescreve foto que alguém subiu enquanto isso rodava.
-            const { error: updErr } = await supabase.from('loja_produtos').update({ photo_url: d2.photo_url }).eq('id', p.id).is('photo_url', null)
-            if (updErr) { semFoto.push(`${p.name} — não conseguiu salvar (${updErr.message})`); continue }
-            aplicadasNoLote.push({ id: p.id, url: d2.photo_url })
-            aplicadas++
-          } catch (e: any) { semFoto.push(`${p.name} — falhou ao baixar a foto (${e?.message || 'erro'})`) }
-        }
-        if (aplicadasNoLote.length) {
-          const porId = new Map(aplicadasNoLote.map(a => [a.id, a.url]))
-          setProdutos(prev => prev.map(pr => (porId.has(pr.id) && !pr.photo_url ? { ...pr, photo_url: porId.get(pr.id)! } : pr)))
-        }
-      } catch (err: any) {
-        erro = err?.message || 'a busca de fotos falhou'
-        falhasSeguidas++
-        lote.forEach(p => semFoto.push(`${p.name} — busca com erro`))
-        // Erro que se repete (ex.: sem saldo na Anthropic) não adianta insistir.
-        if (falhasSeguidas >= 2) break
-      }
-      setFillProgress({ done: Math.min(i + LOTE, alvo.length), total: alvo.length, aplicadas })
-    }
-
-    setFillResults({ aplicadas, semFoto, erro, cancelado })
-    setFillPhase('done')
-  }
-
   function openImportIA() {
     setShowImportIA(true)
     setImportIAStep('choose')
@@ -515,10 +348,6 @@ export default function CatalogoPage() {
       })
       const data = await readImportIAResponse(res)
       if (!res.ok) { setImportIAError(data.error || 'não deu pra ler esse cardápio'); setImportIAStep('error'); return }
-      if (buscarFotosWeb) {
-        const { csv, encontradas } = await buscarFotosWebECompletar(data.csv, session?.access_token)
-        data.csv = csv; data.fotosWebEncontradas = encontradas
-      }
       setImportIAPreview(data)
       setImportIAStep('preview')
     } catch (err: any) {
@@ -546,10 +375,6 @@ export default function CatalogoPage() {
       })
       const data = await readImportIAResponse(res)
       if (!res.ok) { setImportIAError(data.error || 'não deu pra ler esse PDF'); setImportIAStep('error'); return }
-      if (buscarFotosWeb) {
-        const { csv, encontradas } = await buscarFotosWebECompletar(data.csv, session?.access_token)
-        data.csv = csv; data.fotosWebEncontradas = encontradas
-      }
       setImportIAPreview(data)
       setImportIAStep('preview')
     } catch (err: any) {
@@ -590,10 +415,6 @@ export default function CatalogoPage() {
       })
       const data = await readImportIAResponse(res)
       if (!res.ok) { setImportIAError(data.error || 'não deu pra ler essas fotos'); setImportIAStep('error'); return }
-      if (buscarFotosWeb) {
-        const { csv, encontradas } = await buscarFotosWebECompletar(data.csv, session?.access_token)
-        data.csv = csv; data.fotosWebEncontradas = encontradas
-      }
       setImportIAPreview(data)
       setImportIAStep('preview')
     } catch (err: any) {
@@ -1412,7 +1233,6 @@ export default function CatalogoPage() {
                     <button onClick={() => { setShowImportMenu(false); openBulk() }}>⚡ Cadastro rápido — vários produtos de uma vez</button>
                     <button onClick={() => { setShowImportMenu(false); setShowImportCsv(true); setImportResults(null); setImportUpdateMode(false) }}>📥 Importar de um CSV</button>
                     <button onClick={() => { setShowImportMenu(false); setShowImportPhotos(true); setPhotoImportResults(null) }}>🖼️ Importar fotos pelo nome do produto</button>
-                    <button onClick={() => { setShowImportMenu(false); openFillPhotos() }}>📸 Completar fotos que faltam (busca na internet)</button>
                   </div>
                 )}
               </div>
@@ -1437,9 +1257,6 @@ export default function CatalogoPage() {
               {semFotoCount > 0 && (
                 <button className={`cg-chip ${filterCat === 'sem-foto' ? 'active' : ''}`} onClick={() => setFilterCat('sem-foto')}>📷 Sem foto ({semFotoCount})</button>
               )}
-              {semFotoCount > 0 && (
-                <button className="cg-chip" onClick={openFillPhotos}>📸 Completar fotos</button>
-              )}
               {categorias.map(c => (
                 <button key={c.id} className={`cg-chip ${filterCat === c.id ? 'active' : ''}`} onClick={() => setFilterCat(c.id)}>{c.name}</button>
               ))}
@@ -1456,7 +1273,6 @@ export default function CatalogoPage() {
                   <button onClick={() => { setShowImportMenu(false); openBulk() }}>⚡ Cadastro rápido — vários produtos de uma vez</button>
                   <button onClick={() => { setShowImportMenu(false); setShowImportCsv(true); setImportResults(null); setImportUpdateMode(false) }}>📥 Importar de um CSV</button>
                   <button onClick={() => { setShowImportMenu(false); setShowImportPhotos(true); setPhotoImportResults(null) }}>🖼️ Importar fotos pelo nome do produto</button>
-                    <button onClick={() => { setShowImportMenu(false); openFillPhotos() }}>📸 Completar fotos que faltam (busca na internet)</button>
                 </div>
               )}
             </div>
@@ -1916,83 +1732,6 @@ export default function CatalogoPage() {
         </div>
       )}
 
-      {showFillPhotos && (
-        <div className="cg-cat-overlay" onClick={() => fillPhase !== 'running' && setShowFillPhotos(false)}>
-          <div className="cg-cat-modal" onClick={e => e.stopPropagation()}>
-            <div className="cg-cat-modal-head">
-              <b>📸 Completar fotos que faltam</b>
-              {fillPhase !== 'running' && <button className="cg-close" onClick={() => setShowFillPhotos(false)}>✕</button>}
-            </div>
-            <div className="cg-cat-modal-body">
-              {fillPhase === 'choose' && (
-                <>
-                  <div style={{ fontSize: 11.5, color: '#6E6656', lineHeight: 1.6, padding: '10px 0' }}>
-                    A IA procura na internet uma foto <b>ilustrativa</b> pra cada produto sem foto (não é a foto real do seu prato) e guarda no seu catálogo. Se não achar nada razoável, deixa o produto sem foto. Você pode trocar qualquer uma depois, produto por produto.
-                  </div>
-                  <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, marginBottom: 4 }}>Categoria</label>
-                  <select value={fillCat} onChange={e => setFillCat(e.target.value)} style={{ width: '100%', padding: '9px 10px', borderRadius: 8, border: '1.5px solid #B9AE97', fontSize: 13, marginBottom: 12 }}>
-                    <option value="all">Todas ({produtos.filter(p => !p.photo_url && p.active !== false).length} sem foto)</option>
-                    {categorias.map(c => {
-                      const n = produtos.filter(p => !p.photo_url && p.active !== false && p.category_id === c.id).length
-                      return n > 0 ? <option key={c.id} value={c.id}>{c.name} ({n})</option> : null
-                    })}
-                  </select>
-                  <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, marginBottom: 4 }}>Quantos produtos nesta rodada</label>
-                  <select value={fillLimit} onChange={e => setFillLimit(Number(e.target.value))} style={{ width: '100%', padding: '9px 10px', borderRadius: 8, border: '1.5px solid #B9AE97', fontSize: 13, marginBottom: 6 }}>
-                    <option value={6}>6 (teste rápido)</option>
-                    <option value={12}>12</option>
-                    <option value={24}>24</option>
-                    <option value={60}>60</option>
-                    <option value={120}>120</option>
-                  </select>
-                  <div style={{ fontSize: 10.5, color: '#A79E8B', marginBottom: 14 }}>
-                    Cada lote de 6 usa IA só pra montar a busca (gasto mínimo) e procura em bancos de imagens gratuitos. Comece pequeno e confira o resultado antes de rodar mais.
-                  </div>
-                  <button className="cg-btn cg-btn-gold" style={{ width: '100%' }} disabled={fillTargets().length === 0} onClick={completarFotosFaltando}>
-                    Buscar fotos de {Math.min(fillTargets().length, fillLimit)} produto{Math.min(fillTargets().length, fillLimit) !== 1 ? 's' : ''}
-                  </button>
-                </>
-              )}
-              {fillPhase === 'running' && (
-                <div style={{ padding: '14px 0' }}>
-                  <div style={{ textAlign: 'center', fontSize: 13, fontWeight: 700, marginBottom: 10 }}>
-                    Buscando… {fillProgress.done}/{fillProgress.total} · {fillProgress.aplicadas} foto{fillProgress.aplicadas !== 1 ? 's' : ''} aplicada{fillProgress.aplicadas !== 1 ? 's' : ''}
-                  </div>
-                  <div style={{ height: 8, background: '#E9E3D6', borderRadius: 4, overflow: 'hidden', marginBottom: 14 }}>
-                    <div style={{ height: '100%', width: `${fillProgress.total ? Math.round(fillProgress.done / fillProgress.total * 100) : 0}%`, background: '#C9951A', transition: 'width .3s' }} />
-                  </div>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button className="cg-btn cg-btn-gold" style={{ flex: 1 }} onClick={() => { fillPausedRef.current = !fillPausedRef.current; setFillPaused(fillPausedRef.current) }}>{fillPaused ? '▶ Continuar' : '⏸ Pausar'}</button>
-                    <button className="cg-btn-ghost cg-btn-danger" style={{ flex: 1, borderRadius: 10 }} onClick={() => { fillCancelledRef.current = true; fillPausedRef.current = false; setFillPaused(false) }}>✕ Parar</button>
-                  </div>
-                </div>
-              )}
-              {fillPhase === 'done' && fillResults && (
-                <div style={{ padding: '10px 0' }}>
-                  <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8 }}>
-                    {fillResults.cancelado && <span style={{ color: '#C43D3D' }}>Parado. </span>}
-                    {fillResults.aplicadas} foto{fillResults.aplicadas !== 1 ? 's' : ''} aplicada{fillResults.aplicadas !== 1 ? 's' : ''}!
-                  </div>
-                  {fillResults.erro && (
-                    <div style={{ fontSize: 11.5, color: '#C43D3D', marginBottom: 8 }}>
-                      Deu erro na busca: {/credit balance|saldo/i.test(fillResults.erro) ? 'o saldo da conta Anthropic acabou — recarrega em console.anthropic.com.' : fillResults.erro}
-                    </div>
-                  )}
-                  {fillResults.semFoto.length > 0 && (
-                    <>
-                      <div style={{ fontSize: 11.5, fontWeight: 700, color: '#8A6410', marginBottom: 4 }}>{fillResults.semFoto.length} ficaram sem foto:</div>
-                      {fillResults.semFoto.slice(0, 30).map((n, i) => <div key={i} style={{ fontSize: 11, color: '#8A6410', marginBottom: 2 }}>{n}</div>)}
-                      {fillResults.semFoto.length > 30 && <div style={{ fontSize: 11, color: '#8A6410' }}>…e mais {fillResults.semFoto.length - 30}.</div>}
-                    </>
-                  )}
-                  <button className="cg-btn cg-btn-gold" style={{ width: '100%', marginTop: 14 }} onClick={() => setShowFillPhotos(false)}>Fechar</button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       {showImportPhotos && (
         <div className="cg-cat-overlay" onClick={() => !importingPhotos && setShowImportPhotos(false)}>
           <div className="cg-cat-modal" onClick={e => e.stopPropagation()}>
@@ -2074,12 +1813,6 @@ export default function CatalogoPage() {
                       </label>
                     </>
                   )}
-                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 14, padding: 10, background: '#F7F5F0', borderRadius: 8, cursor: 'pointer' }}>
-                    <input type="checkbox" checked={buscarFotosWeb} onChange={e => setBuscarFotosWeb(e.target.checked)} style={{ marginTop: 2 }} />
-                    <span style={{ fontSize: 11, color: '#6E6656', lineHeight: 1.5 }}>
-                      🔍 Buscar foto na internet pra quem ficar sem foto (até 20 produtos por import) — não é a foto real do seu produto, serve de placeholder até você trocar pela foto de verdade.
-                    </span>
-                  </label>
                 </>
               )}
               {importIAStep === 'loading' && (
@@ -2103,7 +1836,6 @@ export default function CatalogoPage() {
                     🖼️ {importIAPreview.imagens} imagem{importIAPreview.imagens !== 1 ? 'ns' : ''}<br />
                     🧩 {importIAPreview.grupos} grupo{importIAPreview.grupos !== 1 ? 's' : ''} de complemento<br />
                     🛍️ {importIAPreview.classificados} produto{importIAPreview.classificados !== 1 ? 's' : ''} classificado{importIAPreview.classificados !== 1 ? 's' : ''} pra home
-                    {!!importIAPreview.fotosWebEncontradas && <><br />🔍 {importIAPreview.fotosWebEncontradas} foto{importIAPreview.fotosWebEncontradas !== 1 ? 's' : ''} achada{importIAPreview.fotosWebEncontradas !== 1 ? 's' : ''} na internet (não são as fotos reais — troque quando puder)</>}
                   </div>
                   <div style={{ fontSize: 11, color: '#A79E8B', margin: '10px 0 14px' }}>Confere se bate com o que você esperava antes de importar — depois dá pra revisar/corrigir cada produto normalmente no catálogo.</div>
                   <button className="cg-btn cg-btn-gold" style={{ width: '100%', marginBottom: 8 }} onClick={confirmImportIA}>Importar {importIAPreview.produtos} produtos</button>

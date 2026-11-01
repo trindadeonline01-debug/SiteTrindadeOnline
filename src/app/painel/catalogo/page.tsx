@@ -384,6 +384,18 @@ export default function CatalogoPage() {
     setFillCat('all')
   }
 
+  // Token sempre válido: se o da aba está vencido ou perto de vencer (aba
+  // aberta há horas), renova antes de chamar a API — em vez de falhar com
+  // "sessão expirada" numa conta que está logada de verdade no servidor.
+  async function tokenFresco(): Promise<string | null> {
+    const { data: { session } } = await supabase.auth.getSession()
+    const venceEm = session?.expires_at ? session.expires_at * 1000 - Date.now() : 0
+    if (session?.access_token && venceEm > 60_000) return session.access_token
+    const { data, error } = await supabase.auth.refreshSession()
+    if (!error && data.session?.access_token) return data.session.access_token
+    return session?.access_token ?? null
+  }
+
   function fillTargets() {
     return produtos.filter(p => !p.photo_url && p.active !== false && (fillCat === 'all' || p.category_id === fillCat))
   }
@@ -415,9 +427,8 @@ export default function CatalogoPage() {
 
       const lote = alvo.slice(i, i + LOTE)
       try {
-        const { data: { session } } = await supabase.auth.getSession()
-        const token = session?.access_token
-        if (!token) throw new Error('Sessão expirada. Entra de novo.')
+        const token = await tokenFresco()
+        if (!token) throw new Error('A sessão desta aba expirou. Atualiza a página (F5) e tenta de novo.')
         const res = await fetch('/api/painel/importar-ia-fotos', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

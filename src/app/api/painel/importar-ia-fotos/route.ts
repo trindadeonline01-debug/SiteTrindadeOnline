@@ -9,7 +9,7 @@ import { z } from 'zod'
 // estourava o teto de 300s da function em cardápio grande + várias buscas
 // (504 real, Satolo's/outras lojas, out/2026). Cada chamada agora tem seu
 // próprio orçamento de tempo.
-export const maxDuration = 120
+export const maxDuration = 300
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -22,7 +22,7 @@ const supabaseAuth = createClient(
 
 // Teto de produtos por chamada — cada um gasta pelo menos uma rodada de
 // web_search, e isso precisa caber dentro do maxDuration acima.
-const MAX_WEB_PHOTO_SEARCH = 12
+const MAX_WEB_PHOTO_SEARCH = 6
 
 const FotoWebSchema = z.object({
   resultados: z.array(z.object({ ref: z.string().nullable(), nome: z.string(), foto_url: z.string().nullable() })),
@@ -71,6 +71,7 @@ Regras:
 - "foto_url" só pode ser uma URL que você realmente encontrou nos resultados de busca — nunca invente ou monte uma URL.
 - Prefira link direto de imagem (termina em .jpg/.jpeg/.png/.webp) quando a busca trouxer um.
 - Prefira fontes que PERMITEM baixar a imagem: Wikimedia Commons (upload.wikimedia.org), Pexels (images.pexels.com), Unsplash (images.unsplash.com), Pixabay (cdn.pixabay.com), sites de receitas e blogs de culinária. Evite Pinterest, Instagram, Facebook, Google Imagens e apps de delivery (iFood etc.), que bloqueiam o download.
+- Faça no máximo UMA busca por produto (e só uma segunda se a primeira não trouxer nenhuma imagem utilizável). Seja rápido.
 - Se não achar nada que pareça razoável pra algum produto, devolva foto_url null pra ele — melhor sem foto do que uma foto errada.
 - Devolva um resultado pra CADA produto da lista, usando exatamente o mesmo "nome" que apareceu acima e repetindo em "ref" exatamente o valor que aparece dentro de [ref ...] (copie sem alterar nada).`
 
@@ -78,7 +79,7 @@ Regras:
     const response = await anthropic.messages.parse({
       model: 'claude-sonnet-5',
       max_tokens: 4000,
-      tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: Math.min(lista.length * 2, 24) }],
+      tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: lista.length }],
       output_config: { format: zodOutputFormat(FotoWebSchema) },
       messages: [{ role: 'user', content: prompt }],
     })

@@ -229,7 +229,7 @@ export default function CatalogoPage() {
   const [showFillPhotos, setShowFillPhotos] = useState(false)
   const [fillPhase, setFillPhase] = useState<'choose' | 'running' | 'done'>('choose')
   const [fillCat, setFillCat] = useState('all')
-  const [fillLimit, setFillLimit] = useState(24)
+  const [fillLimit, setFillLimit] = useState(12)
   const [fillProgress, setFillProgress] = useState({ done: 0, total: 0, aplicadas: 0 })
   const [fillPaused, setFillPaused] = useState(false)
   const fillPausedRef = useRef(false)
@@ -410,7 +410,7 @@ export default function CatalogoPage() {
     setFillPhase('running')
     setFillProgress({ done: 0, total: alvo.length, aplicadas: 0 })
 
-    const LOTE = 12 // mesmo teto da rota /api/painel/importar-ia-fotos
+    const LOTE = 6 // mesmo teto da rota /api/painel/importar-ia-fotos (lote maior estourava o tempo: 504)
     const semFoto: string[] = []
     let aplicadas = 0
     let erro = ''
@@ -1938,13 +1938,14 @@ export default function CatalogoPage() {
                   </select>
                   <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, marginBottom: 4 }}>Quantos produtos nesta rodada</label>
                   <select value={fillLimit} onChange={e => setFillLimit(Number(e.target.value))} style={{ width: '100%', padding: '9px 10px', borderRadius: 8, border: '1.5px solid #B9AE97', fontSize: 13, marginBottom: 6 }}>
-                    <option value={12}>12 (teste rápido)</option>
+                    <option value={6}>6 (teste rápido)</option>
+                    <option value={12}>12</option>
                     <option value={24}>24</option>
                     <option value={60}>60</option>
                     <option value={120}>120</option>
                   </select>
                   <div style={{ fontSize: 10.5, color: '#A79E8B', marginBottom: 14 }}>
-                    Cada lote de 12 usa IA com busca na internet (gasta saldo da conta Anthropic). Comece pequeno e confira o resultado antes de rodar mais.
+                    Cada lote de 6 usa IA com busca na internet (gasta saldo da conta Anthropic). Comece pequeno e confira o resultado antes de rodar mais.
                   </div>
                   <button className="cg-btn cg-btn-gold" style={{ width: '100%' }} disabled={fillTargets().length === 0} onClick={completarFotosFaltando}>
                     Buscar fotos de {Math.min(fillTargets().length, fillLimit)} produto{Math.min(fillTargets().length, fillLimit) !== 1 ? 's' : ''}

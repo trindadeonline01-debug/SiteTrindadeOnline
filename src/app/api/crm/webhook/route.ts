@@ -116,6 +116,9 @@ async function tryHandleMotoboyCode(companyId: string, motoboyPhone: string, tex
 // — a única validação é o nome da instância bater com uma linha nossa; evento
 // de instância desconhecida é ignorado silenciosamente (200, pra Evolution não
 // ficar retentando).
+// Grava o payload cru de eventos de status/presença/chat em crm_webhook_debug (debug). Ver comentário abaixo.
+const LOGAR_EVENTOS_BRUTOS = false
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
@@ -135,7 +138,13 @@ export async function POST(req: NextRequest) {
     // remover essa tabela depois de confirmar o parsing). chats.update é o
     // evento que deve carregar o "li no celular" sincronizado de volta —
     // ainda não sabemos o formato real até ver um payload de verdade.
-    if (event.includes('messages.update') || event.includes('messages_update') || event.includes('presence') || event.includes('chats')) {
+    // DESLIGADO em 1/nov/2026 (ponto 5 do incidente do banco): eram ~12 mil
+    // linhas/dia (279 MB, 60% do banco) de cópia crua que nenhuma tela lê, e
+    // cada uma esperava a gravação antes de o webhook seguir. Os logs de ERRO
+    // (webhook_erro, ia_erro, ia_sem_resposta) continuam sendo gravados em
+    // outros pontos. Pra voltar a investigar o formato de um evento, troque
+    // a constante pra true — e desligue de novo depois.
+    if (LOGAR_EVENTOS_BRUTOS && (event.includes('messages.update') || event.includes('messages_update') || event.includes('presence') || event.includes('chats'))) {
       await supabase.from('crm_webhook_debug').insert({ event, payload: body })
     }
 

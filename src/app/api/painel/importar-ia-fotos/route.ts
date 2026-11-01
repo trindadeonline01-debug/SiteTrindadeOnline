@@ -25,7 +25,7 @@ const supabaseAuth = createClient(
 const MAX_WEB_PHOTO_SEARCH = 12
 
 const FotoWebSchema = z.object({
-  resultados: z.array(z.object({ nome: z.string(), foto_url: z.string().nullable() })),
+  resultados: z.array(z.object({ ref: z.string().nullable(), nome: z.string(), foto_url: z.string().nullable() })),
 })
 
 export async function POST(req: NextRequest) {
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { access_token, company_id, produtos } = body as { access_token: string; company_id: string; produtos: { nome: string; categoria: string | null }[] }
+    const { access_token, company_id, produtos } = body as { access_token: string; company_id: string; produtos: { nome: string; categoria: string | null; descricao?: string | null; ref?: string | null }[] }
     if (!access_token || !company_id || !Array.isArray(produtos) || produtos.length === 0) {
       return NextResponse.json({ error: 'dados faltando' }, { status: 400 })
     }
@@ -53,8 +53,16 @@ export async function POST(req: NextRequest) {
     }
 
     const lista = produtos.slice(0, MAX_WEB_PHOTO_SEARCH)
-    const listaTxt = lista.map(n => `- ${n.nome}${n.categoria ? ` (${n.categoria})` : ''}`).join('\n')
-    const prompt = `Pra cada produto da lista abaixo, use a ferramenta de busca na internet e encontre UMA foto que representa bem esse tipo de produto — não precisa ser desse estabelecimento específico, pode ser uma foto ilustrativa/genérica do prato ou item (ex: foto de stock, site de receita, Wikipedia, cardápio de outro lugar), só precisa parecer de verdade com o que o nome descreve.
+    // "ref" identifica cada produto sem depender do nome (nomes repetem no
+    // mesmo catálogo). Quem não manda ref (importação de cardápio) continua
+    // casando por nome, como antes.
+    const listaTxt = lista.map((n, i) => {
+      const desc = (n.descricao || '').replace(/\s+/g, ' ').trim().slice(0, 240)
+      return `- [ref ${n.ref ?? i}] ${n.nome}${n.categoria ? ` (categoria: ${n.categoria})` : ''}${desc ? ` — composição/descrição: ${desc}` : ''}`
+    }).join('\n')
+    const prompt = `Pra cada produto da lista abaixo, use a ferramenta de busca na internet e encontre UMA foto que representa bem esse produto — não precisa ser desse estabelecimento específico, pode ser uma foto ilustrativa/genérica do prato ou item (ex: foto de stock, site de receita, Wikipedia, cardápio de outro lugar), mas precisa parecer de verdade com o que o produto é.
+
+Use o NOME, a CATEGORIA e a DESCRIÇÃO juntos: a descrição diz do que o produto é feito e como é composto (ingredientes, sabor, tamanho, acompanhamentos). Busque a foto de um item com essa composição, não de um prato parecido só pelo nome. Se a descrição e o nome apontarem coisas diferentes, vale a composição descrita.
 
 Produtos:
 ${listaTxt}
@@ -63,7 +71,7 @@ Regras:
 - "foto_url" só pode ser uma URL que você realmente encontrou nos resultados de busca — nunca invente ou monte uma URL.
 - Prefira link direto de imagem (termina em .jpg/.jpeg/.png/.webp) quando a busca trouxer um.
 - Se não achar nada que pareça razoável pra algum produto, devolva foto_url null pra ele — melhor sem foto do que uma foto errada.
-- Devolva um resultado pra CADA produto da lista, usando exatamente o mesmo "nome" que apareceu acima.`
+- Devolva um resultado pra CADA produto da lista, usando exatamente o mesmo "nome" que apareceu acima e repetindo em "ref" exatamente o valor que aparece dentro de [ref ...] (copie sem alterar nada).`
 
     const anthropic = new Anthropic()
     const response = await anthropic.messages.parse({

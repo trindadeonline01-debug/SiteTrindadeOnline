@@ -422,17 +422,27 @@ export default function CatalogoPage() {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             access_token: token, company_id: companyId,
-            produtos: lote.map(p => ({ nome: p.name, categoria: categorias.find(c => c.id === p.category_id)?.name || null })),
+            produtos: lote.map(p => ({
+              ref: p.id, nome: p.name, descricao: p.description || null,
+              categoria: categorias.find(c => c.id === p.category_id)?.name || null,
+            })),
           }),
         })
         const data = await readImportIAResponse(res)
         if (!res.ok || !Array.isArray(data.fotos)) throw new Error(data.error || 'a busca de fotos falhou')
         falhasSeguidas = 0
-        const achadas = new Map<string, string>(data.fotos.map((f: { nome: string; foto_url: string }) => [f.nome, f.foto_url]))
+        // Casa pelo ref (id do produto) — nome repete no catálogo; cai pro nome
+        // só se o modelo não devolver o ref.
+        const porRef = new Map<string, string>()
+        const porNome = new Map<string, string>()
+        for (const f of data.fotos as { ref?: string | null; nome: string; foto_url: string }[]) {
+          if (f.ref) porRef.set(String(f.ref), f.foto_url)
+          porNome.set(f.nome, f.foto_url)
+        }
 
         const aplicadasNoLote: { id: string; url: string }[] = []
         for (const p of lote) {
-          const fotoWeb = achadas.get(p.name)
+          const fotoWeb = porRef.get(p.id) || porNome.get(p.name)
           if (!fotoWeb) { semFoto.push(p.name); continue }
           try {
             // Baixa e guarda no NOSSO armazenamento (link externo some/quebra).

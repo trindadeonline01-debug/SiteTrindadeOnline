@@ -1,5 +1,5 @@
 # Desenho do Follow-up de Atendimento — Trindade Online
-> Documento de desenho (1/nov/2026). **Nada foi codado.** Serve pra decidir ponto a ponto com o Ricardo antes de implementar.
+> Documento de desenho (1/nov/2026). **Nada foi codado.** As 10 decisões estão fechadas (seção 10); falta a aprovação final do resumo antes da fase 1.
 
 ---
 
@@ -130,15 +130,30 @@ Por loja e por passo: enviados, ignorados (e por quê), taxa de resposta em 24 h
 
 ---
 
-## 10. Decisões que preciso do Ricardo
+## 10. Decisões fechadas com o Ricardo (1/nov/2026)
 
-1. **Escopo inicial:** só conversa que o cliente iniciou nas últimas 24 h (continuidade)? E reativação de dormentes fica pra depois?
-2. **Conversa em atendimento humano:** a IA nunca entra e, no lugar, **avisa o dono**? Ou o motor também fala com o cliente?
-3. **Quantos toques e quando:** 5 min e mais um depois de ~20 min? Ou um só? Máximo por cliente por semana?
-4. **Horário permitido** e se respeita **loja fechada** (sugestão: 8h–21h e só com loja aberta).
-5. **Texto:** IA gerando (mais natural, custa centavos) ou textos prontos com variações (mais previsível)? Sugestão: IA com texto pronto de reserva.
-6. **Opt-out:** palavra "PARAR" e detecção de recusa? (sugestão: sim, desde o início)
-7. **Grupo de controle de 10–20%** pra medir de verdade? (sugestão: sim)
-8. **Modo sombra** de 1 semana antes de enviar? (sugestão: sim)
-9. **Controle do lojista:** só liga/desliga por loja no painel ou também ajustes (horário, nº de toques)?
-10. **Julia Eventos** migra pro motor novo na fase 5?
+Todas as 10 decisões foram fechadas uma a uma. **Nada foi codado ainda.**
+
+| # | Tema | Decisão |
+|---|---|---|
+| 1 | Escopo | **Só conversas ativas:** o cliente escreveu nas últimas 24 h, a loja respondeu e ele sumiu (inclui sumir no meio da conversa, não só no 1º atendimento). Reativação de clientes dormentes / recompra inteligente (produto certo, dia certo) é **outro produto**, do pilar Retenção, com desenho próprio depois. |
+| 2 | Conversa em atendimento humano | O motor **nunca fala com o cliente**. O painel só mostra "aguardando cliente há X min". |
+| 3 | Lembretes | **2 lembretes: aos 6 e aos 20 minutos** (contados da última mensagem da loja). Máx. 2 por conversa; sem resposta a nenhum, novo ciclo só após **7 dias**. |
+| 4 | Horário | Loja com horário definido: **só com a loja aberta** (loja pausada não). Loja sem horário fixo: **das 9h às 18h**. **Não manda nos 10 min antes de a loja fechar.** Fora disso, **cancela** (nunca adia). |
+| 5 | Texto | **IA escreve** (máx. 2 frases, máx. 1 emoji, sem preço/promessa, sem repetir a pergunta anterior), com **texto pronto de reserva** se a IA falhar. O 2º lembrete é o último, sem insistir. |
+| 6 | Opt-out | **Completo:** detecta "parar/chega/não quero mais" e irritação (palavra + IA); marca o contato, cancela os pendentes, selo no painel; frase discreta só no 2º lembrete ("Se não quiser mais mensagens, é só me avisar"); vale pra **todo envio automático** daquele contato (exceto avisos de pedido); o sistema **não responde** ao pedido; o dono pode reativar. |
+| 7 | Grupo de controle | **50% no 1º mês de envio real, depois 10%.** Resumo semanal no WhatsApp do Ricardo (segunda-feira); lembrete agendado de 30 dias (criado no dia em que o envio real começar) e o resumo semanal também avisa o marco. |
+| 8 | Modo sombra | **1 semana** nas 2 lojas piloto: o motor decide e escreve, mas não envia. Tela de admin "O que eu teria mandado" com 👍/👎 + motivo. **Critério pra liberar o envio real:** ≥ 30 casos revisados, ≥ 90% 👍 e **nenhum erro grave** (lembrete pra quem já pediu, pediu pra parar ou estava reclamando). |
+| 9 | Controle do lojista | **Liga/desliga da loja + pausar por contato.** Cada lembrete aparece na conversa com o selo "🤖 lembrete automático". No piloto, quem liga a loja é o Ricardo. |
+| 10 | Julia Eventos | **Sem follow-up por enquanto** (o atendimento é humano). Sem migração pro motor novo. Ver o projeto novo "IA aprende com o histórico da Julia" (KB item 30). |
+
+### Como saber se deu certo (acertos e erros)
+- **Sombra:** revisão caso a caso (👍/👎 + motivo) e porcentagem calculada sozinha.
+- **Envio real — acertos:** clientes que responderam/pediram depois do lembrete **comparados com o grupo de controle**.
+- **Envio real — erros técnicos:** WhatsApp da loja desconectado, falha da IA, mensagem não entregue.
+- **Envio real — sinais de dano:** pedidos pra parar, respostas irritadas, queda de resposta.
+- **Alertas automáticos no WhatsApp do admin:** IA falhando várias vezes seguidas; WhatsApp de loja caído; pedidos pra parar acima do normal.
+- **Botão de emergência** na mesma tela: desliga o follow-up de uma loja ou de todas.
+
+### Próximo passo
+Mostrar o resumo final pro Ricardo aprovar. **Só depois** começa a fase 1 (encanamento sem enviar nada): coluna de tipo de mensagem, tabela `crm_followups`, gatilho de cancelamento, flag de opt-out, rotina de limpeza e job condicional (desligado). Mudanças de schema pedem confirmação antes de aplicar.

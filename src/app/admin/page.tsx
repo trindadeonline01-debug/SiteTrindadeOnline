@@ -383,10 +383,12 @@ export default function AdminPage() {
   async function loadCompanies() {
     const { data } = await supabase
       .from('companies')
-      .select('*, category:categories(name,emoji), owner:profiles(name)')
+      // Só as colunas que a tela de Empresas realmente lê (ponto 4, etapa 3) — antes era `*`, 65 colunas
+      // por empresa (textos longos de IA/CRM, impressora, balança...) que nenhuma tela do admin usa.
+      .select('id,owner_id,name,slug,category_id,description,address,phone,external_link,plan,approved_at,whatsapp_clicks,created_at,updated_at,trial_ends_at,plan_ends_at,cpf_cnpj,tags,flexible_hours,loja_digital_enabled,crm_whatsapp_enabled,entrega_enabled,trial_modules_until,status,loja_pedido_minimo,loja_taxa_metodo,loja_frete_gratis_acima,loja_taxa_fora_area,loja_tempo_preparo_min, category:categories(name,emoji), owner:profiles(name)')
       .order('created_at', { ascending: false })
       .limit(500)
-    setCompanies(data || [])
+    setCompanies((data || []) as any)
     const { data: logs } = await supabase.from('email_logs').select('company_id').eq('email_type','aprovacao')
     if (logs) {
       const counts: Record<string,number> = {}

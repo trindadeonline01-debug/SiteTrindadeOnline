@@ -113,7 +113,7 @@ export default function MotoboysTab() {
     // tinha quando a aba abriu, e o admin achava que o toggle do motoboy
     // não funcionava, quando na verdade só a tela não tinha atualizado
     // sozinha (achado real do Ricardo, set/2026).
-    const interval = setInterval(() => load(true), 20000)
+    const interval = setInterval(() => { if (!document.hidden) load(true) }, 20000) // aba do navegador escondida não consulta o banco
     return () => clearInterval(interval)
   }, [])
 

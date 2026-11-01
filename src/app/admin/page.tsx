@@ -79,6 +79,10 @@ export default function AdminPage() {
   const [filterNoCompany, setFilterNoCompany] = useState(false)
   const [groupStatus, setGroupStatus] = useState<Record<string,{checked:boolean,at:string|null}>>({})  
   const [loading, setLoading]       = useState(true)
+  // Carga preguiçosa por aba (ver useEffect de `tab`): true enquanto a aba aberta busca os dados dela.
+  const [tabLoading, setTabLoading]   = useState(false)
+  const loadedRef = useRef<Set<string>>(new Set())
+  const rtCleanupRef = useRef<(() => void) | null>(null)
   const [toast, setToast]           = useState('')
   const [authorized, setAuthorized] = useState<boolean|null>(null)
   const [highlights, setHighlights] = useState<Highlight[]>([])
@@ -222,6 +226,42 @@ export default function AdminPage() {
     if (tab === 'subcategorias') loadSugestoes()
   }, [tab])
 
+  // Carga por aba (ponto 4 do incidente do banco, 1/nov/2026): antes o admin
+  // disparava 18 carregamentos ao abrir, mesmo que só se quisesse ver uma
+  // aba (a lista de usuários, por exemplo, são até 5.000 linhas). Agora só
+  // stats/empresas/contagem de denúncias carregam na abertura (sidebar e
+  // empresas dependem deles); o resto carrega na primeira vez que a aba é
+  // aberta e fica em memória. Se um carregamento falhar, volta a tentar na
+  // próxima visita à aba.
+  useEffect(() => {
+    if (authorized !== true) return
+    const loaders: Record<string, () => Promise<any>> = {
+      users: loadUsers, searches: loadSearches, highlights: loadHighlights, reports: loadReports,
+      banners: loadBanners, bannerRequests: loadBannerRequests, plans: loadPlans, flags: loadFeatureFlags,
+      subcats: loadSubcats, appearance: loadAppearance, pulse: loadPulseMessages, settings: loadSettings,
+      qz: loadQzInstallers,
+      trial: () => Promise.all([loadTrialSettings(), loadTrialReminders(), loadPlanReminders()]),
+    }
+    const porAba: Record<string, string[]> = {
+      empresas: ['users'], usuarios: ['users'], atividade: ['users'],
+      buscas: ['searches'], denuncias: ['reports'], destaques: ['highlights'],
+      'pedidos-banner': ['bannerRequests'], planos: ['plans'], recursos: ['flags'],
+      subcategorias: ['subcats', 'highlights'], aparencia: ['banners', 'appearance', 'pulse'],
+      configuracoes: ['settings', 'trial', 'qz'],
+    }
+    const pendentes = (porAba[tab] || []).filter(k => !loadedRef.current.has(k))
+    if (pendentes.length === 0) return
+    pendentes.forEach(k => loadedRef.current.add(k))
+    setTabLoading(true)
+    Promise.allSettled(pendentes.map(k => loaders[k]())).then(res => {
+      res.forEach((r, i) => { if (r.status === 'rejected') loadedRef.current.delete(pendentes[i]) })
+      setTabLoading(false)
+    })
+  }, [tab, authorized])
+
+  // Fecha o canal de tempo real e os timers ao sair da página.
+  useEffect(() => () => { rtCleanupRef.current?.() }, [])
+
   // Menu ⋯ de empresa é position:fixed calculado na hora do clique (ver
   // empresaMenuPos) — se a página ou a tabela rolar com o menu aberto, ele
   // fica preso no lugar velho, descolado do botão. Fecha sozinho em vez de
@@ -245,26 +285,58 @@ export default function AdminPage() {
 
   async function loadAll() {
     setLoading(true)
-    await Promise.all([loadStats(), loadCompanies(), loadUsers(), loadSearches(), loadHighlights(), loadReports(), loadBanners(), loadSettings(), loadAppearance(), loadPulseMessages(), loadTrialSettings(), loadTrialReminders(), loadPlanReminders(), loadBannerRequests(), loadFeatureFlags(), loadPlans(), loadSubcats(), loadQzInstallers()])
+    // Só o que a abertura precisa (badges da sidebar e aba Empresas). O resto
+    // carrega por aba — ver o useEffect de `tab`.
+    await Promise.all([loadStats(), loadCompanies(), loadReportsCount()])
 
-    // Realtime — atualiza automaticamente
+    // Realtime — atualiza sozinho, mas sem martelar o banco: cada tipo de
+    // mudança espera 5s (juntando rajadas numa atualização só) e, com a aba do
+    // navegador escondida, só atualiza quando ela volta a ficar visível. Antes
+    // cada mudança em `companies` recarregava stats + 500 empresas na hora.
+    rtCleanupRef.current?.()
+    const jobs: Record<string, () => void> = {
+      companies: () => { loadStats(); loadCompanies() },
+      payments: () => { loadStats() },
+      reports: () => { loadReportsCount(); if (loadedRef.current.has('reports')) loadReports() },
+      highlights: () => { if (loadedRef.current.has('highlights')) loadHighlights() },
+    }
+    const timers: Record<string, ReturnType<typeof setTimeout>> = {}
+    const dirty = new Set<string>()
+    const schedule = (key: string) => {
+      if (timers[key]) return // já tem uma atualização agendada; junta com ela
+      timers[key] = setTimeout(() => {
+        delete timers[key]
+        if (document.hidden) { dirty.add(key); return }
+        jobs[key]()
+      }, 5000)
+    }
+    const onVisible = () => {
+      if (document.hidden) return
+      dirty.forEach(k => jobs[k]())
+      dirty.clear()
+    }
+    document.addEventListener('visibilitychange', onVisible)
     const channel = supabase
       .channel('admin-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'companies' }, () => {
-        loadStats(); loadCompanies()
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => {
-        loadStats()
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'listing_reports' }, () => {
-        loadReports()
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'highlights' }, () => {
-        loadHighlights()
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'companies' }, () => schedule('companies'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => schedule('payments'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'listing_reports' }, () => schedule('reports'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'highlights' }, () => schedule('highlights'))
       .subscribe()
+    rtCleanupRef.current = () => {
+      supabase.removeChannel(channel)
+      Object.values(timers).forEach(clearTimeout)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
 
     setLoading(false)
+  }
+
+  // Só a contagem de denúncias abertas (badge da sidebar) — a lista completa
+  // com joins só carrega quando a aba Denúncias é aberta.
+  async function loadReportsCount() {
+    const { count } = await supabase.from('listing_reports').select('*', { count: 'exact', head: true }).eq('resolved', false)
+    setRepCount(count || 0)
   }
 
   async function loadStats() {
@@ -2212,12 +2284,12 @@ export default function AdminPage() {
           </div>
 
           <div className="admin-body">
-            {loading && <div style={{ textAlign:'center', padding:'60px', color:'#AAA' }}>Carregando dados...</div>}
+            {(loading || tabLoading) && <div style={{ textAlign:'center', padding:'60px', color:'#AAA' }}>Carregando dados...</div>}
 
             {/* ── DASHBOARD ── */}
             {tab === 'dashboard' && <DashboardTab onGoToTab={(t) => setTab(t as any)} />}
             {/* ── EMPRESAS ── */}
-            {!loading && tab === 'empresas' && (
+            {!loading && !tabLoading && tab === 'empresas' && (
               <div className="section-card">
                 <div className="section-hdr">
                   <span className="section-title">EMPRESAS ({filteredCompanies.length})</span>
@@ -2363,7 +2435,7 @@ export default function AdminPage() {
             )}
 
             {/* ── USUÁRIOS ── */}
-            {!loading && tab === 'usuarios' && (
+            {!loading && !tabLoading && tab === 'usuarios' && (
               <div className="section-card">
                 <div className="section-hdr" style={{flexWrap:'wrap',gap:8,alignItems:'center'}}>
                   <span className="section-title">USUÁRIOS ({users.filter(u=>(searchUser===''||u.name.toLowerCase().includes(searchUser.toLowerCase())||(u.email||'').toLowerCase().includes(searchUser.toLowerCase()))&&(filterUserType==='all'||u.user_type===filterUserType)&&(filterUserBairro==='all'||(u.neighborhood||'')===filterUserBairro)&&(!filterNoCompany||(u.user_type==='company'&&!companies.find(c=>c.owner_id===u.id)))).length})</span>
@@ -2440,7 +2512,7 @@ export default function AdminPage() {
             )}
 
             {/* ── BUSCAS ── */}
-            {!loading && tab === 'buscas' && (
+            {!loading && !tabLoading && tab === 'buscas' && (
               <>
                 <div className="stats-grid" style={{ gridTemplateColumns:'repeat(3,1fr)' }}>
                   <div className="stat-card">
@@ -2490,7 +2562,7 @@ export default function AdminPage() {
             )}
 
             {/* ── DENÚNCIAS ── */}
-            {!loading && tab === 'denuncias' && (
+            {!loading && !tabLoading && tab === 'denuncias' && (
               <div>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
                   <span className="section-title">DENÚNCIAS ({reports.filter(r=>!r.resolved).length} pendentes)</span>
@@ -2533,7 +2605,7 @@ export default function AdminPage() {
             )}
 
             {/* ── DESTAQUES ── */}
-            {!loading && tab === 'destaques' && (
+            {!loading && !tabLoading && tab === 'destaques' && (
               <div>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
                   <span className="section-title">DESTAQUES ATIVOS ({highlights.length})</span>
@@ -2658,7 +2730,7 @@ export default function AdminPage() {
 
             {/* ── BANNERS ── */}
             {/* ── PEDIDOS DE BANNER ── */}
-            {!loading && tab === 'pedidos-banner' && (
+            {!loading && !tabLoading && tab === 'pedidos-banner' && (
               <div>
                 <div style={{display:'flex',gap:10,marginBottom:16,flexWrap:'wrap',alignItems:'center'}}>
                   <select value={bannerFilter} onChange={e=>setBannerFilter(e.target.value as any)} style={{padding:'8px 12px',borderRadius:8,border:'1px solid #E0DDD8',fontSize:12,fontFamily:'Archivo,sans-serif',background:'#fff'}}>
@@ -2760,7 +2832,7 @@ export default function AdminPage() {
             )}
 
             {/* ── PLANOS ── */}
-            {!loading && tab === 'planos' && (
+            {!loading && !tabLoading && tab === 'planos' && (
               <div>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
                   <div style={{fontSize:13,color:'#888'}}>Gerencie os planos disponíveis para os lojistas.</div>
@@ -2870,7 +2942,7 @@ export default function AdminPage() {
             )}
 
             {/* ── RECURSOS ── */}
-            {!loading && tab === 'recursos' && (
+            {!loading && !tabLoading && tab === 'recursos' && (
               <div style={{maxWidth:600}}>
                 <div style={{fontSize:13,color:'#888',marginBottom:20,lineHeight:1.6}}>
                   Ative ou desative recursos do site sem precisar alterar o código. As mudanças têm efeito imediato.
@@ -2896,7 +2968,7 @@ export default function AdminPage() {
             )}
 
             {/* ── SUBCATEGORIAS ── */}
-            {!loading && tab === 'subcategorias' && (
+            {!loading && !tabLoading && tab === 'subcategorias' && (
               <div style={{maxWidth:900}}>
                 <div style={{fontSize:13,color:'#888',marginBottom:16,lineHeight:1.6}}>
                   Cadastre, edite ou exclua subcategorias. Empresas usando uma subcategoria excluída perdem esse vínculo automaticamente.
@@ -3046,7 +3118,7 @@ export default function AdminPage() {
             )}
 
             {/* ── APARÊNCIA ── */}
-            {!loading && tab === 'aparencia' && (
+            {!loading && !tabLoading && tab === 'aparencia' && (
               <div style={{maxWidth:700}}>
                 <div style={{fontSize:13,color:'#888',marginBottom:24,lineHeight:1.6}}>Personalize a aparência do site. As mudanças têm efeito imediato para todos os visitantes.</div>
 
@@ -3423,7 +3495,7 @@ export default function AdminPage() {
             )}
 
             {/* ── CONFIGURAÇÕES ── */}
-            {!loading && tab === 'configuracoes' && (
+            {!loading && !tabLoading && tab === 'configuracoes' && (
               <div style={{maxWidth:600}}>
                 <div className="section-card">
                   <div className="section-hdr">
@@ -3792,7 +3864,7 @@ export default function AdminPage() {
             )}
 
             {/* ── ATIVIDADE ── */}
-            {!loading && tab === 'atividade' && (
+            {!loading && !tabLoading && tab === 'atividade' && (
               <div className="section-card">
                 <div className="section-hdr"><span className="section-title">CADASTROS RECENTES</span></div>
                 <table className="data-table">

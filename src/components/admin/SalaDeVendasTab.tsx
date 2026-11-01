@@ -316,7 +316,7 @@ export default function SalaDeVendasTab() {
   // ficar com uma loja fechada ainda marcada como aberta até algo mais
   // disparar um reload.
   useEffect(() => {
-    const id = setInterval(() => { loadCompanies() }, 60_000)
+    const id = setInterval(() => { if (!document.hidden) loadCompanies() }, 60_000) // aba do navegador escondida não consulta o banco
     return () => clearInterval(id)
   }, [])
 

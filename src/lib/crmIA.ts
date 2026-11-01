@@ -504,7 +504,10 @@ export async function gerarRespostaIA(companyId: string, historico: HistoricoMsg
     const isSalaoEventos = companyId === JULIA_EVENTOS_COMPANY_ID
     const ultimaMsgCliente = [...historico].reverse().find(m => m.direction === 'in')?.body || null
     const context = isSalaoEventos ? await buildContextSalaoEventos(companyId) : await buildContext(companyId, phone, ultimaMsgCliente)
-    if (!context) return null
+    if (!context) {
+      try { await supabase.from('crm_webhook_debug').insert({ event: 'ia_sem_resposta', payload: { company_id: companyId, motivo: 'contexto vazio' } }) } catch {}
+      return null
+    }
 
     const comTexto = historico.filter((m): m is { direction: 'in' | 'out'; body: string } => !!m.body?.trim())
     const firstInIdx = comTexto.findIndex(m => m.direction === 'in')
@@ -532,7 +535,10 @@ export async function gerarRespostaIA(companyId: string, historico: HistoricoMsg
 
     const block = response.content.find(b => b.type === 'text')
     const raw = block && block.type === 'text' ? block.text.trim() : null
-    if (!raw) return null
+    if (!raw) {
+      try { await supabase.from('crm_webhook_debug').insert({ event: 'ia_sem_resposta', payload: { company_id: companyId, motivo: 'modelo devolveu texto vazio', stop_reason: response.stop_reason } }) } catch {}
+      return null
+    }
 
     // [AGENDAR_RETORNO:N] é instrução interna da Julia (follow-up), nunca
     // deve chegar pro WhatsApp da cliente — extrai e tira da mensagem final.
@@ -541,6 +547,15 @@ export async function gerarRespostaIA(companyId: string, historico: HistoricoMsg
     return { texto, followUpDias: match ? Number(match[1]) : undefined }
   } catch (err) {
     console.error('[gerarRespostaIA] falhou:', err)
+    // Grava o motivo no banco (crm_webhook_debug, event 'ia_erro') — o log da
+    // Vercel não é visível pra quem investiga por fora, e "IA ativa mas não
+    // responde" (Calçada do Peixe, 31/out/2026) ficou sem causa conhecida.
+    try {
+      await supabase.from('crm_webhook_debug').insert({
+        event: 'ia_erro',
+        payload: { company_id: companyId, erro: String((err as any)?.message || err).slice(0, 500), status: (err as any)?.status ?? null },
+      })
+    } catch {}
     return null
   }
 }

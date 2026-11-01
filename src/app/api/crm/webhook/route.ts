@@ -540,7 +540,12 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ ok: true })
-  } catch {
+  } catch (err) {
+    // Antes engolia tudo calado. Grava o motivo (event 'webhook_erro') pra dar
+    // pra investigar "IA não respondeu" sem depender do log da Vercel.
+    try {
+      await supabase.from('crm_webhook_debug').insert({ event: 'webhook_erro', payload: { erro: String((err as any)?.message || err).slice(0, 500) } })
+    } catch {}
     return NextResponse.json({ ok: true })
   }
 }

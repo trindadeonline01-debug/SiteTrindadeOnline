@@ -339,44 +339,22 @@ export default function AdminPage() {
     setRepCount(count || 0)
   }
 
+  // Todas as contagens do topo numa chamada só (função `admin_stats` no banco,
+  // só responde pra admin). Antes eram 12 consultas de contagem em sequência.
+  // Se a função falhar por qualquer motivo, mantém os números que já estavam.
   async function loadStats() {
-    const [
-      { count: total_users },
-      { count: users_today },
-      { count: users_week },
-      { count: total_companies },
-      { count: pending },
-      { count: active },
-      { count: total_searches },
-      { count: searches_today },
-    ] = await Promise.all([
-      supabase.from('profiles').select('*', { count: 'exact', head: true }),
-      supabase.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', today()),
-      supabase.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', weekAgo()),
-      supabase.from('companies').select('*', { count: 'exact', head: true }),
-      supabase.from('companies').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-      supabase.from('companies').select('*', { count: 'exact', head: true }).eq('status', 'active'),
-      supabase.from('search_logs').select('*', { count: 'exact', head: true }),
-      supabase.from('search_logs').select('*', { count: 'exact', head: true }).gte('created_at', today()),
-    ])
     const now = new Date().toISOString()
     const in3days = new Date(Date.now() + 3*86400000).toISOString()
-    const [
-      {count: paidCount},
-      {count: trialCount},
-      {count: expiredCount},
-      {count: expiringCount}
-    ] = await Promise.all([
-      supabase.from('companies').select('*',{count:'exact',head:true}).eq('status','active').eq('plan','paid'),
-      supabase.from('companies').select('*',{count:'exact',head:true}).eq('status','active').neq('plan','paid').gt('trial_ends_at',now),
-      supabase.from('companies').select('*',{count:'exact',head:true}).eq('status','active').neq('plan','paid').lt('trial_ends_at',now),
-      supabase.from('companies').select('*',{count:'exact',head:true}).eq('status','active').neq('plan','paid').gt('trial_ends_at',now).lt('trial_ends_at',in3days),
-    ])
-    setPlanStats({paid:paidCount||0,trial:trialCount||0,expired:expiredCount||0,expiring:expiringCount||0})
+    const { data, error } = await supabase.rpc('admin_stats', {
+      p_today: today(), p_week_ago: weekAgo(), p_now: now, p_in3days: in3days,
+    })
+    if (error || !data) { console.error('[admin] admin_stats falhou', error?.message); return }
+    const d = data as Record<string, number>
+    setPlanStats({ paid: d.paid || 0, trial: d.trial || 0, expired: d.expired || 0, expiring: d.expiring || 0 })
     setStats({
-      total_users: total_users||0, users_today: users_today||0, users_week: users_week||0,
-      total_companies: total_companies||0, pending: pending||0, active: active||0,
-      total_searches: total_searches||0, searches_today: searches_today||0
+      total_users: d.total_users || 0, users_today: d.users_today || 0, users_week: d.users_week || 0,
+      total_companies: d.total_companies || 0, pending: d.pending || 0, active: d.active || 0,
+      total_searches: d.total_searches || 0, searches_today: d.searches_today || 0,
     })
   }
 

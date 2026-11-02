@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
     const { data: contact } = await supabase.from('crm_contacts').select('id').eq('company_id', companyId).eq('phone', phone).maybeSingle()
     if (contact) {
       await supabase.from('crm_messages').insert({
-        company_id: companyId, contact_id: contact.id, direction: 'out', body: text, status: 'sent', sent_at: new Date().toISOString(),
+        company_id: companyId, contact_id: contact.id, direction: 'out', body: text, status: 'sent', sent_at: new Date().toISOString(), origem: 'aviso_pedido',
       })
       await supabase.from('crm_contacts').update({
         last_message_at: new Date().toISOString(), last_message_preview: text, last_message_direction: 'out',

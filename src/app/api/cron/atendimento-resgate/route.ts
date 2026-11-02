@@ -80,7 +80,7 @@ export async function GET(req: NextRequest) {
         .order('sent_at', { ascending: false }).limit(20)
       const respostaIA = await gerarRespostaIA(contato.company_id, ((historico || []) as any[]).reverse(), contato.phone)
       if (respostaIA) {
-        await sendCustomerWhatsApp(contato.company_id, contato.phone, respostaIA.texto)
+        await sendCustomerWhatsApp(contato.company_id, contato.phone, respostaIA.texto, 'ia')
         await supabase.from('crm_contacts').update({ pediu_humano_em: null }).eq('id', contato.id)
         if (respostaIA.followUpDias) {
           const followUpAt = new Date(Date.now() + respostaIA.followUpDias * 24 * 60 * 60 * 1000).toISOString()

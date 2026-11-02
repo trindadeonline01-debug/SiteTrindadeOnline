@@ -403,6 +403,7 @@ export async function POST(req: NextRequest) {
           company_id: inst.company_id, contact_id: contactId, direction,
           body: text, media_type: mediaType, media_url: mediaPath, wa_message_id: waMessageId, sent_at: sentAt,
           reply_to_id: replyToId, status: direction === 'out' ? 'sent' : null,
+          origem: direction === 'out' ? 'humano_celular' : null,
         }).select('id').single()
 
         if (direction === 'in' && text) await applyAutoTags(inst.company_id, contactId, text)
@@ -466,7 +467,7 @@ export async function POST(req: NextRequest) {
                 const autoReplyAt = new Date().toISOString()
                 await supabase.from('crm_messages').insert({
                   company_id: inst.company_id, contact_id: contactId, direction: 'out',
-                  body: company.crm_auto_reply_text.trim(), status: 'sent', sent_at: autoReplyAt,
+                  body: company.crm_auto_reply_text.trim(), status: 'sent', sent_at: autoReplyAt, origem: 'auto_resposta',
                 })
                 await supabase.from('crm_contacts').update({
                   last_auto_reply_at: autoReplyAt, last_message_at: autoReplyAt,
@@ -491,7 +492,7 @@ export async function POST(req: NextRequest) {
             if (pedeHumano(text)) {
               if (jaPediu) {
                 await supabase.from('crm_contacts').update({ atendimento_modo: 'humano', pediu_humano_em: null }).eq('id', contactId)
-                await sendCustomerWhatsApp(inst.company_id, phone, 'Beleza! Já vou chamar alguém daqui pra te atender, só um instante 🙏')
+                await sendCustomerWhatsApp(inst.company_id, phone, 'Beleza! Já vou chamar alguém daqui pra te atender, só um instante 🙏', 'ia')
                 // Avisa o dono (Kelly, no piloto) e o Ricardo — sem isso, o
                 // único jeito de saber que alguém tá esperando atendimento é
                 // abrir o painel por conta própria. Best-effort, nunca trava
@@ -500,7 +501,7 @@ export async function POST(req: NextRequest) {
                 await notifyAdmin({ type: 'humano_solicitado', empresa: company?.name || 'empresa', contato: existing?.name?.trim() ? `${existing.name.trim()} (${phone})` : phone, mensagem: text })
               } else {
                 await supabase.from('crm_contacts').update({ pediu_humano_em: new Date().toISOString() }).eq('id', contactId)
-                await sendCustomerWhatsApp(inst.company_id, phone, 'Posso te ajudar por aqui mesmo! Só pra eu entender melhor: qual é a sua dúvida?')
+                await sendCustomerWhatsApp(inst.company_id, phone, 'Posso te ajudar por aqui mesmo! Só pra eu entender melhor: qual é a sua dúvida?', 'ia')
               }
             } else {
               // Espera um pouco e confere se não chegou mensagem mais nova do
@@ -524,7 +525,7 @@ export async function POST(req: NextRequest) {
                   .order('sent_at', { ascending: false }).limit(20)
                 const respostaIA = await gerarRespostaIA(inst.company_id, ((historico || []) as any[]).reverse(), phone)
                 if (respostaIA) {
-                  await sendCustomerWhatsApp(inst.company_id, phone, respostaIA.texto)
+                  await sendCustomerWhatsApp(inst.company_id, phone, respostaIA.texto, 'ia')
                   if (jaPediu) await supabase.from('crm_contacts').update({ pediu_humano_em: null }).eq('id', contactId)
                   // Julia Eventos (piloto) pode pedir pra retomar contato em N
                   // dias quando a cliente ainda não vai decidir — ver marcador
@@ -541,7 +542,7 @@ export async function POST(req: NextRequest) {
             // A IA ainda não ouve áudio (a API do Claude não recebe áudio
             // como entrada, só texto/imagem) — em vez de ficar muda, pede
             // pra escrever, em vez de deixar o cliente sem resposta nenhuma.
-            await sendCustomerWhatsApp(inst.company_id, phone, 'Recebi seu áudio, mas por aqui eu só consigo ouvir mensagem escrita ainda 🙂 Pode escrever o que você precisa?')
+            await sendCustomerWhatsApp(inst.company_id, phone, 'Recebi seu áudio, mas por aqui eu só consigo ouvir mensagem escrita ainda 🙂 Pode escrever o que você precisa?', 'ia')
           }
         }
       }

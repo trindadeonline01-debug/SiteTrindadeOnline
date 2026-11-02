@@ -152,7 +152,7 @@ export async function POST(req: NextRequest) {
       body: bodyForDb,
       media_type: media_path ? media_type : location ? 'location' : contact_share ? 'contact' : null,
       media_url: media_path || null,
-      wa_message_id: waMessageId, sent_at: now, reply_to_id: reply_to_id || null, status: 'sent',
+      wa_message_id: waMessageId, sent_at: now, reply_to_id: reply_to_id || null, status: 'sent', origem: 'humano_painel',
     })
     const preview = text?.trim() ? text.trim()
       : media_type === 'image' ? '📷 Foto' : media_type === 'video' ? '🎥 Vídeo' : media_type === 'audio' ? '🎤 Áudio'

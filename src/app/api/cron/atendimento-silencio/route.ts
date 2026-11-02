@@ -87,7 +87,7 @@ export async function GET(req: NextRequest) {
         .order('sent_at', { ascending: false }).limit(20)
       const mensagem = await gerarFollowUpSilencio(contato.company_id, ((historico || []) as any[]).reverse(), contato.phone, tentativa)
       if (mensagem) {
-        await sendCustomerWhatsApp(contato.company_id, contato.phone, mensagem)
+        await sendCustomerWhatsApp(contato.company_id, contato.phone, mensagem, 'followup')
         enviados++
       }
     } catch (err) {

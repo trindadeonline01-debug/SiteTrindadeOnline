@@ -73,7 +73,11 @@ export async function sendPlatformWhatsAppImage(phone: string, imageUrl: string,
 
 // Manda mensagem pro CLIENTE pela instância WhatsApp da PRÓPRIA loja (não a
 // da plataforma) — mesma conversa do CRM dela, se estiver conectado.
-export async function sendCustomerWhatsApp(companyId: string, phone: string | null | undefined, text: string) {
+export type OrigemMensagem = 'ia' | 'humano_painel' | 'humano_celular' | 'aviso_pedido' | 'auto_resposta' | 'followup' | 'campanha'
+
+// `origem` grava quem gerou a mensagem em crm_messages (o motor de follow-up usa isso).
+// Padrão 'aviso_pedido': quase todo chamador é aviso transacional de pedido/entrega.
+export async function sendCustomerWhatsApp(companyId: string, phone: string | null | undefined, text: string, origem: OrigemMensagem = 'aviso_pedido') {
   if (!phone) return
   try {
     // Normaliza UMA vez e reusa pro envio E pra busca do contato — quem
@@ -118,7 +122,7 @@ export async function sendCustomerWhatsApp(companyId: string, phone: string | nu
     const waMessageId: string | null = resData?.key?.id || null
     const { data: contact } = await supabase.from('crm_contacts').select('id').eq('company_id', companyId).eq('phone', normalized).maybeSingle()
     if (contact) {
-      await supabase.from('crm_messages').insert({ company_id: companyId, contact_id: contact.id, direction: 'out', body: text, status: 'sent', sent_at: new Date().toISOString(), wa_message_id: waMessageId })
+      await supabase.from('crm_messages').insert({ company_id: companyId, contact_id: contact.id, direction: 'out', body: text, status: 'sent', sent_at: new Date().toISOString(), wa_message_id: waMessageId, origem })
       await supabase.from('crm_contacts').update({ last_message_at: new Date().toISOString(), last_message_preview: text, last_message_direction: 'out' }).eq('id', contact.id)
     }
   } catch (err: any) {

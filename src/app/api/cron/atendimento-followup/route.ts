@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
         .order('sent_at', { ascending: false }).limit(20)
       const mensagem = await gerarFollowUp(JULIA_EVENTOS_COMPANY_ID, ((historico || []) as any[]).reverse(), contato.phone)
       if (mensagem) {
-        await sendCustomerWhatsApp(JULIA_EVENTOS_COMPANY_ID, contato.phone, mensagem)
+        await sendCustomerWhatsApp(JULIA_EVENTOS_COMPANY_ID, contato.phone, mensagem, 'followup')
         enviados++
       }
     } catch (err) {

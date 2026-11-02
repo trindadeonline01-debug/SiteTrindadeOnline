@@ -1,5 +1,5 @@
 # Desenho do Follow-up de Atendimento — Trindade Online
-> Documento de desenho (1/nov/2026). **Nada foi codado.** As 10 decisões estão fechadas (seção 10); falta a aprovação final do resumo antes da fase 1.
+> Documento de desenho (1/nov/2026). **Status em 2/nov/2026:** fases 1 e 2 construídas e rodando em **modo sombra** (Calçada do Peixe e Mineroca) — nada é enviado ao cliente. Também prontos: detector de opt-out, limpeza diária da fila (job `followup-limpeza`), vigia diário + resumo semanal ao admin (job `followup-resumo`, 08h Brasília; resumo às segundas). Falta a fase 3 (envio real, grupo de controle, detecção de irritação por IA, lembrete de 30 dias). Detalhes de implementação no KB, item 29.
 
 ---
 

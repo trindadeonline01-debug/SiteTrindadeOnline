@@ -111,10 +111,10 @@ A) Krill | B) Algas gigantes | C) Corais | D) Caranguejos
 **Curiosidade:** A baleia-azul filtra enormes quantidades de pequenos crustáceos.  
 **Fonte:** https://www.fisheries.noaa.gov/species/blue-whale
 
-**MAR-015 · Pinguins — Pinguins vivem naturalmente em qual hemisfério?**
+**MAR-015 · Pinguins — A maioria dos pinguins vive em qual hemisfério?**
 A) Norte | B) Ambos igualmente | C) Sul | D) Nenhum
 **Resposta:** C) Sul  
-**Curiosidade:** Algumas espécies habitam regiões relativamente quentes do Hemisfério Sul.  
+**Curiosidade:** Quase todos vivem no Hemisfério Sul; só o pinguim-de-galápagos chega a cruzar a linha do Equador.  
 **Fonte:** https://ocean.si.edu/ocean-life/seabirds/penguins
 
 **MAR-016 · Mares — Qual mar não tem costa terrestre?**

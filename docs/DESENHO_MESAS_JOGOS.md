@@ -104,6 +104,8 @@ Ninguém é obrigado a se cadastrar para jogar ou pedir. O telefone liga **coman
 - **Regra comercial do prêmio** na Calçada do Peixe: valores das faixas (modo fixo) ou % e teto (modo percentual); limite de jogadas por pessoa/visita; validade; uso em outros parceiros.
 - **Consulta jurídica** (Lei 5.768/71): desconto/cashback liberado por desempenho em quiz pode ser tratado como promoção comercial — checar com advogado antes de lançar prêmio.
 - **Aviso de pergunta MAR-015** (hemisfério dos pinguins): o pinguim-de-galápagos cruza o Equador — ajustar a redação antes de publicar.
-- Limite de pedidos/minuto, PIN (quem define), lista de garçons (quem cadastra), valor da taxa de serviço por loja.
+- **Decidido (2/nov/2026):** o **PIN da supervisão** é definido pela **dona da loja**, e a **lista de garçons** também é cadastrada por ela (no painel, por loja). Ainda em aberto: limite de pedidos por minuto na mesa (sugestão: 3) e valor da taxa de serviço por loja (padrão 10%).
+- **Pergunta MAR-015 ajustada** nos arquivos de `docs/pesca-premiada/`: virou "A maioria dos pinguins vive em qual hemisfério?" (o pinguim-de-galápagos cruza o Equador).
+- **Mockup** das telas publicado como canvas no Artifact "Mesas e Comandas — Calçada do Peixe" (5 telas: mapa de mesas, comanda e fechamento, página da mesa, cardápio da mesa e envio de pedido).
 - Mockup das telas (mapa de mesas do garçom, comanda + fechamento/divisão, tela do cliente no QR) — aprovar antes de codar.
 - LGPD: menores jogam sem cadastro e sem marketing; ranking só com apelido e consentimento.

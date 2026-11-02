@@ -232,7 +232,7 @@
       "id": "MAR-015",
       "nivel": "Médio",
       "categoria": "Pinguins",
-      "pergunta": "Pinguins vivem naturalmente em qual hemisfério?",
+      "pergunta": "A maioria dos pinguins vive em qual hemisfério?",
       "alternativas": {
         "A": "Norte",
         "B": "Ambos igualmente",
@@ -240,7 +240,7 @@
         "D": "Nenhum"
       },
       "correta": "C",
-      "curiosidade": "Algumas espécies habitam regiões relativamente quentes do Hemisfério Sul.",
+      "curiosidade": "Quase todos vivem no Hemisfério Sul; só o pinguim-de-galápagos chega a cruzar a linha do Equador.",
       "fonte": "https://ocean.si.edu/ocean-life/seabirds/penguins",
       "status": "revisado_para_piloto"
     },

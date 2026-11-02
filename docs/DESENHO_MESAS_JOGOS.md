@@ -36,7 +36,7 @@ Hoje **não existe** nada de mesa/comanda no código ou no banco (conferido em 2
 - **Um QR só por mesa** → "página da mesa" com portas: **Pedir · Jogar · Minha carteira**. Material de divulgação (flyer, porta) usa o mesmo endereço com marca de origem (QR por origem — pilar Atração).
 - **Só o Quiz (adulto) gera cashback.** **Aventura do Peixinho: sem cashback** — diversão, medalha, recorde; os rankings dela ficam desligados no MVP (pontuação feita no celular é mais fácil de falsificar).
 - **Valor do prêmio configurável nos dois jeitos** (decide-se no dia da campanha): **(A) valor fixo por faixa** (ex.: R$ 5 / 10 / 20) ou **(B) percentual da conta com teto em R$**.
-- **Prêmio do jogo só é liberado depois da conta paga** (premissa adotada; Ricardo não objetou) — sem compra, sem prêmio.
+- **Prêmio do jogo só é liberado depois da conta paga** — **confirmado pelo Ricardo em 2/nov/2026**. Sem compra, sem prêmio.
 - Rankings: **ao vivo entre mesas**, **quem está online agora** (apelidos, só quem aceitou), **semanal** e **geral/histórico** (precisa de perfil + apelido consentido). Quiz e Peixinho **separados**; modos Passeio/Aventura **separados**.
 
 ## 3. Modelo de dados (conceitual — sem SQL ainda)

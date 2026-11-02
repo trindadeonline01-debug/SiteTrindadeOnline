@@ -1,0 +1,488 @@
+{
+  "projeto": "Trindade Online / Calçada do Peixe",
+  "tipo": "Quiz de sobrevivência",
+  "versao": "rascunho de produto 1.0",
+  "tempo_por_pergunta_segundos": 5,
+  "perguntas": [
+    {
+      "id": "MAR-001",
+      "nivel": "Fácil",
+      "categoria": "Oceanos",
+      "pergunta": "Qual é o maior oceano?",
+      "alternativas": {
+        "A": "Atlântico",
+        "B": "Pacífico",
+        "C": "Índico",
+        "D": "Ártico"
+      },
+      "correta": "B",
+      "curiosidade": "O Pacífico ocupa mais de 155 milhões de km².",
+      "fonte": "https://oceanexplorer.noaa.gov/ocean-fact/pacific-size/",
+      "status": "revisado_para_piloto"
+    },
+    {
+      "id": "MAR-002",
+      "nivel": "Fácil",
+      "categoria": "Mamíferos",
+      "pergunta": "Qual destes é mamífero?",
+      "alternativas": {
+        "A": "Sardinha",
+        "B": "Atum",
+        "C": "Golfinho",
+        "D": "Salmão"
+      },
+      "correta": "C",
+      "curiosidade": "Golfinhos respiram ar pelos pulmões e amamentam seus filhotes.",
+      "fonte": "https://oceanservice.noaa.gov/facts/dolphin.html",
+      "status": "revisado_para_piloto"
+    },
+    {
+      "id": "MAR-003",
+      "nivel": "Fácil",
+      "categoria": "Aves marinhas",
+      "pergunta": "Qual destes é uma ave?",
+      "alternativas": {
+        "A": "Pinguim",
+        "B": "Polvo",
+        "C": "Raia",
+        "D": "Foca"
+      },
+      "correta": "A",
+      "curiosidade": "Pinguins são aves adaptadas para nadar, mas não voam.",
+      "fonte": "https://oceanservice.noaa.gov/facts/penguinsfly.html",
+      "status": "revisado_para_piloto"
+    },
+    {
+      "id": "MAR-004",
+      "nivel": "Fácil",
+      "categoria": "Invertebrados",
+      "pergunta": "Quantos braços tem um polvo?",
+      "alternativas": {
+        "A": "Seis",
+        "B": "Dez",
+        "C": "Doze",
+        "D": "Oito"
+      },
+      "correta": "D",
+      "curiosidade": "O polvo tem oito braços e três corações.",
+      "fonte": "https://ocean.si.edu/ocean-life/invertebrates/octopuses-squids-and-relatives",
+      "status": "revisado_para_piloto"
+    },
+    {
+      "id": "MAR-005",
+      "nivel": "Fácil",
+      "categoria": "Baleias",
+      "pergunta": "Qual é o maior animal vivo?",
+      "alternativas": {
+        "A": "Elefante-africano",
+        "B": "Baleia-azul",
+        "C": "Orca",
+        "D": "Tubarão-branco"
+      },
+      "correta": "B",
+      "curiosidade": "A baleia-azul é o maior animal conhecido que já viveu na Terra.",
+      "fonte": "https://www.fisheries.noaa.gov/species/blue-whale",
+      "status": "revisado_para_piloto"
+    },
+    {
+      "id": "MAR-006",
+      "nivel": "Fácil",
+      "categoria": "Cavalos-marinhos",
+      "pergunta": "Qual animal tem macho que gesta?",
+      "alternativas": {
+        "A": "Cavalo-marinho",
+        "B": "Tubarão-branco",
+        "C": "Sardinha",
+        "D": "Pinguim"
+      },
+      "correta": "A",
+      "curiosidade": "Nos cavalos-marinhos, o macho carrega os embriões e dá à luz.",
+      "fonte": "https://oceanservice.noaa.gov/facts/seahorse.html",
+      "status": "revisado_para_piloto"
+    },
+    {
+      "id": "MAR-007",
+      "nivel": "Fácil",
+      "categoria": "Tubarões",
+      "pergunta": "O esqueleto do tubarão é de...",
+      "alternativas": {
+        "A": "Madeira",
+        "B": "Concha",
+        "C": "Cartilagem",
+        "D": "Marfim"
+      },
+      "correta": "C",
+      "curiosidade": "Tubarões têm esqueleto cartilaginoso, não de osso.",
+      "fonte": "https://ocean.si.edu/ocean-life/sharks-rays/sharks",
+      "status": "revisado_para_piloto"
+    },
+    {
+      "id": "MAR-008",
+      "nivel": "Fácil",
+      "categoria": "Recifes",
+      "pergunta": "Corais são classificados como...",
+      "alternativas": {
+        "A": "Algas",
+        "B": "Pedras",
+        "C": "Fungos",
+        "D": "Animais"
+      },
+      "correta": "D",
+      "curiosidade": "Corais são animais formados por pólipos, muitas vezes em colônias.",
+      "fonte": "https://oceanservice.noaa.gov/facts/coral.html",
+      "status": "revisado_para_piloto"
+    },
+    {
+      "id": "MAR-009",
+      "nivel": "Fácil",
+      "categoria": "Marés",
+      "pergunta": "Quem influencia as marés?",
+      "alternativas": {
+        "A": "Lua e Sol",
+        "B": "Só o vento",
+        "C": "Só as ondas",
+        "D": "Só a chuva"
+      },
+      "correta": "A",
+      "curiosidade": "A gravidade da Lua e do Sol participa da formação das marés.",
+      "fonte": "https://oceanservice.noaa.gov/facts/tides.html",
+      "status": "revisado_para_piloto"
+    },
+    {
+      "id": "MAR-010",
+      "nivel": "Fácil",
+      "categoria": "Peixes",
+      "pergunta": "Qual é o maior peixe vivo?",
+      "alternativas": {
+        "A": "Peixe-espada",
+        "B": "Tubarão-baleia",
+        "C": "Atum",
+        "D": "Mero"
+      },
+      "correta": "B",
+      "curiosidade": "Apesar do nome, o tubarão-baleia é peixe, não baleia.",
+      "fonte": "https://oceanservice.noaa.gov/facts/bigfish.html",
+      "status": "revisado_para_piloto"
+    },
+    {
+      "id": "MAR-011",
+      "nivel": "Médio",
+      "categoria": "Geografia marinha",
+      "pergunta": "Em qual oceano está a Fossa das Marianas?",
+      "alternativas": {
+        "A": "Índico",
+        "B": "Atlântico",
+        "C": "Pacífico",
+        "D": "Ártico"
+      },
+      "correta": "C",
+      "curiosidade": "O ponto mais profundo conhecido fica no Pacífico ocidental.",
+      "fonte": "https://oceanservice.noaa.gov/facts/oceandepth.html",
+      "status": "revisado_para_piloto"
+    },
+    {
+      "id": "MAR-012",
+      "nivel": "Médio",
+      "categoria": "Águas-vivas",
+      "pergunta": "Águas-vivas são cerca de quantos % água?",
+      "alternativas": {
+        "A": "25%",
+        "B": "50%",
+        "C": "75%",
+        "D": "95%"
+      },
+      "correta": "D",
+      "curiosidade": "A maior parte do corpo de uma água-viva é água.",
+      "fonte": "https://oceanservice.noaa.gov/facts/jellyfish.html",
+      "status": "revisado_para_piloto"
+    },
+    {
+      "id": "MAR-013",
+      "nivel": "Médio",
+      "categoria": "Polvos",
+      "pergunta": "Quantos corações tem um polvo?",
+      "alternativas": {
+        "A": "Um",
+        "B": "Três",
+        "C": "Dois",
+        "D": "Quatro"
+      },
+      "correta": "B",
+      "curiosidade": "Dois corações bombeiam sangue às brânquias e um ao corpo.",
+      "fonte": "https://ocean.si.edu/ocean-life/invertebrates/octopuses-squids-and-relatives",
+      "status": "revisado_para_piloto"
+    },
+    {
+      "id": "MAR-014",
+      "nivel": "Médio",
+      "categoria": "Baleias",
+      "pergunta": "O que a baleia-azul mais come?",
+      "alternativas": {
+        "A": "Krill",
+        "B": "Algas gigantes",
+        "C": "Corais",
+        "D": "Caranguejos"
+      },
+      "correta": "A",
+      "curiosidade": "A baleia-azul filtra enormes quantidades de pequenos crustáceos.",
+      "fonte": "https://www.fisheries.noaa.gov/species/blue-whale",
+      "status": "revisado_para_piloto"
+    },
+    {
+      "id": "MAR-015",
+      "nivel": "Médio",
+      "categoria": "Pinguins",
+      "pergunta": "Pinguins vivem naturalmente em qual hemisfério?",
+      "alternativas": {
+        "A": "Norte",
+        "B": "Ambos igualmente",
+        "C": "Sul",
+        "D": "Nenhum"
+      },
+      "correta": "C",
+      "curiosidade": "Algumas espécies habitam regiões relativamente quentes do Hemisfério Sul.",
+      "fonte": "https://ocean.si.edu/ocean-life/seabirds/penguins",
+      "status": "revisado_para_piloto"
+    },
+    {
+      "id": "MAR-016",
+      "nivel": "Médio",
+      "categoria": "Mares",
+      "pergunta": "Qual mar não tem costa terrestre?",
+      "alternativas": {
+        "A": "Mar Vermelho",
+        "B": "Mar de Sargaços",
+        "C": "Mar Negro",
+        "D": "Mar Báltico"
+      },
+      "correta": "B",
+      "curiosidade": "O Mar de Sargaços é delimitado por correntes oceânicas.",
+      "fonte": "https://oceanservice.noaa.gov/facts/sargassosea.html",
+      "status": "revisado_para_piloto"
+    },
+    {
+      "id": "MAR-017",
+      "nivel": "Médio",
+      "categoria": "Orcas",
+      "pergunta": "A orca pertence à família dos...",
+      "alternativas": {
+        "A": "Tubarões",
+        "B": "Focas",
+        "C": "Baleias-francas",
+        "D": "Golfinhos"
+      },
+      "correta": "D",
+      "curiosidade": "A orca é o maior integrante da família dos golfinhos.",
+      "fonte": "https://www.fisheries.noaa.gov/species/killer-whale",
+      "status": "revisado_para_piloto"
+    },
+    {
+      "id": "MAR-018",
+      "nivel": "Médio",
+      "categoria": "Oceanografia",
+      "pergunta": "Qual a profundidade média do oceano?",
+      "alternativas": {
+        "A": "Cerca de 3,7 km",
+        "B": "Cerca de 700 m",
+        "C": "Cerca de 8 km",
+        "D": "Cerca de 15 km"
+      },
+      "correta": "A",
+      "curiosidade": "A estimativa da NOAA é de aproximadamente 3.682 metros.",
+      "fonte": "https://oceanservice.noaa.gov/facts/oceandepth.html",
+      "status": "revisado_para_piloto"
+    },
+    {
+      "id": "MAR-019",
+      "nivel": "Médio",
+      "categoria": "Águas-vivas",
+      "pergunta": "Qual estrutura falta às águas-vivas típicas?",
+      "alternativas": {
+        "A": "Tentáculos",
+        "B": "Cérebro centralizado",
+        "C": "Células urticantes",
+        "D": "Rede nervosa"
+      },
+      "correta": "B",
+      "curiosidade": "Elas percebem estímulos usando uma rede nervosa, sem cérebro centralizado.",
+      "fonte": "https://oceanservice.noaa.gov/facts/jellyfish.html",
+      "status": "revisado_para_piloto"
+    },
+    {
+      "id": "MAR-020",
+      "nivel": "Médio",
+      "categoria": "Baleias",
+      "pergunta": "Como a baleia-azul obtém krill?",
+      "alternativas": {
+        "A": "Persegue com dentes",
+        "B": "Usa garras",
+        "C": "Filtra com barbas",
+        "D": "Usa veneno"
+      },
+      "correta": "C",
+      "curiosidade": "Suas barbas funcionam como uma peneira para reter alimento.",
+      "fonte": "https://www.fisheries.noaa.gov/species/blue-whale",
+      "status": "revisado_para_piloto"
+    },
+    {
+      "id": "MAR-021",
+      "nivel": "Difícil",
+      "categoria": "Geografia marinha",
+      "pergunta": "Nome do ponto mais fundo conhecido?",
+      "alternativas": {
+        "A": "Challenger Deep",
+        "B": "Fossa de Tonga",
+        "C": "Abismo de Puerto Rico",
+        "D": "Cânion do Congo"
+      },
+      "correta": "A",
+      "curiosidade": "Challenger Deep fica na Fossa das Marianas, a cerca de 10.935 m.",
+      "fonte": "https://oceanservice.noaa.gov/facts/oceandepth.html",
+      "status": "revisado_para_piloto"
+    },
+    {
+      "id": "MAR-022",
+      "nivel": "Difícil",
+      "categoria": "Física do mar",
+      "pergunta": "A cada 10 m de água, a pressão sobe cerca de...",
+      "alternativas": {
+        "A": "0,1 atmosfera",
+        "B": "5 atmosferas",
+        "C": "10 atmosferas",
+        "D": "1 atmosfera"
+      },
+      "correta": "D",
+      "curiosidade": "A pressão hidrostática sobe aproximadamente 1 atmosfera a cada 10 m.",
+      "fonte": "https://oceanservice.noaa.gov/facts/pressure.html",
+      "status": "revisado_para_piloto"
+    },
+    {
+      "id": "MAR-023",
+      "nivel": "Difícil",
+      "categoria": "Vida profunda",
+      "pergunta": "Sem luz, certas fontes termais sustentam vida por...",
+      "alternativas": {
+        "A": "Fotossíntese",
+        "B": "Quimiossíntese",
+        "C": "Polinização",
+        "D": "Evaporação"
+      },
+      "correta": "B",
+      "curiosidade": "Microrganismos obtêm energia de reações químicas nessas regiões.",
+      "fonte": "https://prod-01-alb-www-oe.woc.noaa.gov/ocean-fact/deep-habitat/",
+      "status": "revisado_para_piloto"
+    },
+    {
+      "id": "MAR-024",
+      "nivel": "Difícil",
+      "categoria": "Crustáceos",
+      "pergunta": "O estalo do camarão-pistola vem de...",
+      "alternativas": {
+        "A": "Dentes batendo",
+        "B": "Choque elétrico",
+        "C": "Bolha de cavitação",
+        "D": "Batida da cauda"
+      },
+      "correta": "C",
+      "curiosidade": "O fechamento rápido da garra cria uma bolha que colapsa.",
+      "fonte": "https://www.fisheries.noaa.gov/new-england-mid-atlantic/science-data/fish-and-invertebrate-acoustics",
+      "status": "revisado_para_piloto"
+    },
+    {
+      "id": "MAR-025",
+      "nivel": "Difícil",
+      "categoria": "Pinguins",
+      "pergunta": "Qual é a maior espécie de pinguim?",
+      "alternativas": {
+        "A": "Pinguim-imperador",
+        "B": "Pinguim-de-magalhães",
+        "C": "Pinguim-azul",
+        "D": "Pinguim-de-adélia"
+      },
+      "correta": "A",
+      "curiosidade": "O pinguim-imperador chega a cerca de 1,35 m de altura.",
+      "fonte": "https://ocean.si.edu/ocean-life/seabirds/penguins",
+      "status": "revisado_para_piloto"
+    },
+    {
+      "id": "MAR-026",
+      "nivel": "Difícil",
+      "categoria": "Tartarugas",
+      "pergunta": "Qual tartaruga-marinha faz migrações enormes?",
+      "alternativas": {
+        "A": "Tartaruga-oliva",
+        "B": "Tartaruga-de-couro",
+        "C": "Tartaruga-de-pente",
+        "D": "Tartaruga-verde"
+      },
+      "correta": "B",
+      "curiosidade": "Algumas tartarugas-de-couro percorrem milhares de quilômetros por viagem.",
+      "fonte": "https://www.noaa.gov/stories/love-is-in-air-and-sea-5-facts-about-affections-of-marine-creatures",
+      "status": "revisado_para_piloto"
+    },
+    {
+      "id": "MAR-027",
+      "nivel": "Difícil",
+      "categoria": "Baleias",
+      "pergunta": "A jubarte usa bolhas para...",
+      "alternativas": {
+        "A": "Construir ninhos",
+        "B": "Aumentar salinidade",
+        "C": "Dormir mais fundo",
+        "D": "Concentrar presas"
+      },
+      "correta": "D",
+      "curiosidade": "Algumas jubartes formam redes de bolhas para agrupar pequenos peixes.",
+      "fonte": "https://www.fisheries.noaa.gov/species/humpback-whale",
+      "status": "revisado_para_piloto"
+    },
+    {
+      "id": "MAR-028",
+      "nivel": "Difícil",
+      "categoria": "Fisiologia",
+      "pergunta": "Que substância dá tom azul ao sangue do polvo?",
+      "alternativas": {
+        "A": "Hemoglobina",
+        "B": "Clorofila",
+        "C": "Hemocianina",
+        "D": "Melanina"
+      },
+      "correta": "C",
+      "curiosidade": "A hemocianina, rica em cobre, transporta oxigênio no sangue do polvo.",
+      "fonte": "https://ocean.si.edu/ocean-life/invertebrates/octopuses-squids-and-relatives",
+      "status": "revisado_para_piloto"
+    },
+    {
+      "id": "MAR-029",
+      "nivel": "Difícil",
+      "categoria": "Plancton",
+      "pergunta": "Qual grupo produz alimento com luz?",
+      "alternativas": {
+        "A": "Fitoplâncton",
+        "B": "Zooplâncton",
+        "C": "Krill",
+        "D": "Copépodes"
+      },
+      "correta": "A",
+      "curiosidade": "O fitoplâncton realiza fotossíntese e sustenta redes alimentares marinhas.",
+      "fonte": "https://oceanservice.noaa.gov/facts/plankton.html",
+      "status": "revisado_para_piloto"
+    },
+    {
+      "id": "MAR-030",
+      "nivel": "Difícil",
+      "categoria": "Luz no mar",
+      "pergunta": "Luz produzida por um ser vivo chama-se...",
+      "alternativas": {
+        "A": "Refração",
+        "B": "Bioluminescência",
+        "C": "Fluorescência mineral",
+        "D": "Fosforescência lunar"
+      },
+      "correta": "B",
+      "curiosidade": "A bioluminescência é luz gerada por reações químicas em organismos.",
+      "fonte": "https://oceanservice.noaa.gov/facts/biolum.html",
+      "status": "revisado_para_piloto"
+    }
+  ]
+}

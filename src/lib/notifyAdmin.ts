@@ -19,6 +19,8 @@ export type AdminEvent =
   | { type: 'mp_renovacao_falhou'; empresa: string; venceEm: string | null; motivo: string }
   | { type: 'pagamento_sem_pedido'; empresa: string; mpPaymentId: string }
   | { type: 'estorno_falhou'; empresa: string; pedido: string; valor: number; motivo: string }
+  | { type: 'followup_alerta'; linhas: string[] }
+  | { type: 'followup_resumo'; texto: string }
 
 function buildMessage(event: AdminEvent): string {
   if (event.type === 'nova_empresa') {
@@ -38,6 +40,12 @@ function buildMessage(event: AdminEvent): string {
   }
   if (event.type === 'mp_renovacao_falhou') {
     return `⚠️ Mercado Pago: não consegui renovar o acesso da ${event.empresa}.${event.venceEm ? `\nVence em: ${event.venceEm}` : ''}\nMotivo: ${event.motivo}\n\nVou tentar de novo amanhã. Se continuar falhando, a loja precisa reconectar em Painel → Pagamentos antes de vencer.`
+  }
+  if (event.type === 'followup_alerta') {
+    return `⚠️ Follow-up automático — atenção\n\n${event.linhas.map(l => `• ${l}`).join('\n')}\n\nConfira em Admin → Follow-up. O botão "Desligar tudo" está lá se precisar.`
+  }
+  if (event.type === 'followup_resumo') {
+    return event.texto
   }
   if (event.type === 'humano_solicitado') {
     return `🙋 ${event.empresa}: ${event.contato} pediu pra falar com um atendente de verdade.\n\nÚltima mensagem: "${event.mensagem}"`

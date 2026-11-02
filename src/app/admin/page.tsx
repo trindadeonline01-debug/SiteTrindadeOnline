@@ -8,6 +8,7 @@ import { adminFetch } from '@/lib/adminFetch'
 import NotificacoesTab from '@/components/admin/NotificacoesTab'
 import DashboardTab from '@/components/admin/DashboardTab'
 import SalaDeVendasTab from '@/components/admin/SalaDeVendasTab'
+import FollowupSombraTab from '@/components/admin/FollowupSombraTab'
 import PeriodFilterBar from '@/components/admin/PeriodFilterBar'
 import { PeriodSel } from '@/lib/periodFilter'
 import DisparosTab from '@/components/DisparosTab'
@@ -62,7 +63,7 @@ const statusColor = (s: string) => s === 'active' ? '#0F8050' : s === 'pending' 
 const statusLabel = (s: string) => s === 'active' ? 'Ativa' : s === 'pending' ? 'Pendente' : 'Suspensa'
 
 export default function AdminPage() {
-  const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'denuncias'|'usuarios'|'buscas'|'atividade'|'pedidos-banner'|'configuracoes'|'recursos'|'planos'|'aparencia'|'subcategorias'|'vendas'|'sala-de-vendas'|'notificacoes'|'disparos'|'palavra-premiada'|'entregas'|'peca-agora'>('dashboard')
+  const [tab, setTab]               = useState<'dashboard'|'empresas'|'destaques'|'denuncias'|'usuarios'|'buscas'|'atividade'|'pedidos-banner'|'configuracoes'|'recursos'|'planos'|'aparencia'|'subcategorias'|'vendas'|'sala-de-vendas'|'notificacoes'|'disparos'|'palavra-premiada'|'entregas'|'peca-agora'|'followup-sombra'>('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [stats, setStats]           = useState<Stats|null>(null)
   const [companies, setCompanies]   = useState<Company[]>([])
@@ -2207,6 +2208,7 @@ export default function AdminPage() {
             { id: 'palavra-premiada', icon: '🎁', label: 'Palavra Premiada' },
             { id: 'entregas', icon: '🏍️', label: 'Entregas' },
             { id: 'peca-agora', icon: '🍔', label: 'Peça Agora' },
+            { id: 'followup-sombra', icon: '🧪', label: 'Follow-up (sombra)' },
           ].sort((a, b) => {
             const PINNED = ['dashboard', 'sala-de-vendas', 'empresas', 'usuarios', 'entregas']
             const ia = PINNED.indexOf(a.id), ib = PINNED.indexOf(b.id)
@@ -2249,6 +2251,7 @@ export default function AdminPage() {
               {tab === 'planos' && 'Gestão de Planos'}
               {tab === 'vendas' && 'Painel de Vendas'}
               {tab === 'sala-de-vendas' && 'Sala de Vendas'}
+              {tab === 'followup-sombra' && 'Follow-up em modo sombra'}
               {tab === 'recursos' && 'Recursos do Site'}
               {tab === 'configuracoes' && 'Configurações'}
               {tab === 'aparencia' && 'Aparência do Site'}
@@ -3974,6 +3977,10 @@ export default function AdminPage() {
 
           {tab === 'sala-de-vendas' && (
             <SalaDeVendasTab />
+          )}
+
+          {tab === 'followup-sombra' && (
+            <FollowupSombraTab />
           )}
 
           {tab === 'disparos' && (

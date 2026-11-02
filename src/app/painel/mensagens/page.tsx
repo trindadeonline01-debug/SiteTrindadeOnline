@@ -33,7 +33,7 @@ type Contact = {
   presence_state?: string | null; presence_until?: string | null; pinned?: boolean; archived?: boolean
   avatar_url?: string | null; muted?: boolean; notes?: string | null
   last_message_preview?: string | null; last_message_direction?: string | null; unread_count?: number
-  atendimento_modo?: 'ia' | 'humano'; created_at?: string | null
+  atendimento_modo?: 'ia' | 'humano'; created_at?: string | null; followup_optout?: boolean
 }
 type Message = {
   id: string; direction: 'in' | 'out'; body: string | null; media_type: string | null; media_url: string | null
@@ -312,7 +312,7 @@ export default function MensagensPage() {
 
   async function loadContacts(companyId: string) {
     const { data } = await supabase
-      .from('crm_contacts').select('id, phone, name, last_message_at, last_read_at, presence_state, presence_until, pinned, archived, avatar_url, muted, notes, last_message_preview, last_message_direction, unread_count, atendimento_modo, created_at')
+      .from('crm_contacts').select('id, phone, name, last_message_at, last_read_at, presence_state, presence_until, pinned, archived, avatar_url, muted, notes, last_message_preview, last_message_direction, unread_count, atendimento_modo, created_at, followup_optout')
       .eq('company_id', companyId).not('last_message_at', 'is', null)
       .order('last_message_at', { ascending: false })
     setContacts((data || []) as Contact[])
@@ -797,7 +797,7 @@ export default function MensagensPage() {
           ...c, presence_state: row.presence_state, presence_until: row.presence_until, name: row.name,
           last_message_at: row.last_message_at, last_read_at: row.last_read_at, pinned: row.pinned, archived: row.archived,
           last_message_preview: row.last_message_preview, last_message_direction: row.last_message_direction,
-          unread_count: row.unread_count, atendimento_modo: row.atendimento_modo,
+          unread_count: row.unread_count, atendimento_modo: row.atendimento_modo, followup_optout: row.followup_optout,
         } : c))
       })
       .subscribe()
@@ -1723,6 +1723,19 @@ export default function MensagensPage() {
                             {isTyping ? <span className="msg-presence">digitando...</span> : isOnline ? <span className="msg-presence">online</span> : selectedLive?.notes ? <span style={{ color: 'var(--sign)' }}>📝 {selectedLive.notes}</span> : selectedLive?.phone}
                           </div>
                         </div>
+                        {selectedLive?.followup_optout && (
+                          <button
+                            className="msg-modo-toggle humano"
+                            title="Este cliente pediu pra não receber mensagens automáticas. Clique para voltar a permitir."
+                            onClick={async () => {
+                              if (!confirm('Voltar a permitir lembretes automáticos para este cliente?')) return
+                              setContacts(prev => prev.map(x => x.id === selectedLive.id ? { ...x, followup_optout: false } : x))
+                              await supabase.from('crm_contacts').update({ followup_optout: false }).eq('id', selectedLive.id)
+                            }}
+                          >
+                            🚫 Sem lembretes
+                          </button>
+                        )}
                         {iaAtiva(company) && selectedLive && (
                           <button
                             className={`msg-modo-toggle ${selectedLive.atendimento_modo === 'humano' ? 'humano' : ''}`}

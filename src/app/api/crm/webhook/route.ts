@@ -1,3 +1,4 @@
+import { detectaPedidoParaParar } from '@/lib/followupOptout'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { isOpenNow } from '@/lib/businessHours'
@@ -408,6 +409,17 @@ export async function POST(req: NextRequest) {
 
         if (direction === 'in' && text) await applyAutoTags(inst.company_id, contactId, text)
 
+        // Pedido explícito pra parar de receber mensagem automática: marca o
+        // contato, cancela os lembretes pendentes e NÃO responde (decisão 6 do
+        // motor de follow-up). O dono vê o selo na conversa e pode reativar.
+        const pediuParar = direction === 'in' && !!text && detectaPedidoParaParar(text)
+        if (pediuParar) {
+          await supabase.from('crm_contacts').update({ followup_optout: true }).eq('id', contactId)
+          await supabase.from('crm_followups')
+            .update({ status: 'cancelado', motivo: 'optout', processado_em: new Date().toISOString() })
+            .eq('contact_id', contactId).eq('status', 'pendente')
+        }
+
         if (direction === 'out') {
           // Mandado pelo celular direto (fora do CRM) — marca como lido, não precisa notificar o próprio lojista.
           await supabase.from('crm_contacts').update({ last_read_at: sentAt, unread_count: 0 }).eq('id', contactId)
@@ -485,7 +497,7 @@ export async function POST(req: NextRequest) {
         // na segunda insistência — a primeira vez só pergunta qual é a
         // dúvida, pra dar chance da IA responder (Ricardo, set/2026: "se o
         // humano insistir, aí só depois da insistência a gente transfere").
-        if (iaAtiva(company)) {
+        if (iaAtiva(company) && !pediuParar) {
           const modoAtual = existing?.atendimento_modo || 'ia'
           if (modoAtual === 'ia' && text) {
             const jaPediu = !!existing?.pediu_humano_em

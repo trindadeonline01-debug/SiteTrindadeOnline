@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import PeriodFilterBar from '@/components/admin/PeriodFilterBar'
 import { PeriodSel, periodRange, periodLabel, previousPeriodRange } from '@/lib/periodFilter'
 import { matchBairroInAddress } from '@/lib/bairrosSaoGoncalo'
+import { ORIGENS_DELIVERY } from '@/lib/canais'
 
 type Status = 'recebido' | 'em_preparo' | 'pronto' | 'saiu_entrega' | 'entregue' | 'cancelado'
 type Pedido = {
@@ -175,13 +176,13 @@ export default function VendasDashboard({ company }: { company: { id: string } }
     const { from, to } = periodRange(period)
     let q = supabase.from('loja_pedidos')
       .select('id,status,origin,payment_method,payment_status,delivery_type,total,created_at,delivery_address')
-      .eq('company_id', company.id)
+      .eq('company_id', company.id).in('origin', [...ORIGENS_DELIVERY])
     if (from) q = q.gte('created_at', from)
     if (to) q = q.lt('created_at', to)
 
     const prevRange = previousPeriodRange(period)
     const prevQuery = prevRange
-      ? supabase.from('loja_pedidos').select('id,status,total,created_at').eq('company_id', company.id).gte('created_at', prevRange.from).lt('created_at', prevRange.to)
+      ? supabase.from('loja_pedidos').select('id,status,total,created_at').eq('company_id', company.id).in('origin', [...ORIGENS_DELIVERY]).gte('created_at', prevRange.from).lt('created_at', prevRange.to)
       : Promise.resolve({ data: [] as any[] })
 
     Promise.all([q.order('created_at', { ascending: true }), prevQuery]).then(async ([{ data }, prevRes]) => {

@@ -7,6 +7,7 @@ import { beep, unlockAudio } from '@/lib/beep'
 import { qzPrintRaw, buildReceipt, buildKitchenTicket, isRawBtMode, printViaRawBt, setPapelImpressora } from '@/lib/qzPrint'
 import ConfirmModal from '@/components/painel/ConfirmModal'
 import MesaCalculadora, { type CalcComanda, type Divisao, DIVISAO0 } from '@/components/painel/MesaCalculadora'
+import QRCode from 'qrcode'
 import { npGroupContribution, type NpGrupo, type NpProduto, PESO_REGEX, pesoNum, pesoDisplay } from '@/lib/produtoCart'
 
 // Mesas e comandas (nov/2026) — mapa de mesas em tela cheia pro tablet do
@@ -23,7 +24,8 @@ type Comanda = {
 type ItemPed = { id: string; produto_id: string | null; product_name: string; unit_price: number; qty: number; peso_kg: number | null; selected_options: { name: string; price: number }[] }
 type PedidoMesa = { id: string; order_number: number | null; comanda_id: string; status: string; created_at: string; notes: string | null; itens: ItemPed[] }
 type Pagto = { id: string; comanda_id: string; forma: string; valor: number; pessoa: string | null }
-type Chamado = { id: string; mesa_id: string; comanda_id: string | null; tipo: 'garcom' | 'conta' | 'pedido'; mensagem: string | null; criado_em: string }
+type PedidoQr = { itens: { produtoId: string; nome: string; qty: number; modifiers: { name: string; price: number }[]; notes: string | null; unit: number }[]; obs: string | null; telefone: string | null; total: number }
+type Chamado = { id: string; mesa_id: string; comanda_id: string | null; tipo: 'garcom' | 'conta' | 'pedido'; mensagem: string | null; criado_em: string; payload: PedidoQr | null }
 type Garcom = { id: string; nome: string; ativo: boolean }
 type Produto = NpProduto
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -88,6 +90,7 @@ export default function MesasPage() {
   const [, setTick] = useState(0)
   const companyRef = useRef('')
   const chamadosVistos = useRef<Set<string> | null>(null)
+  const [pedidoQr, setPedidoQr] = useState<Chamado | null>(null)
 
   const call = useCallback(async (acao: string, extra: Record<string, unknown> = {}): Promise<Resp> => {
     setBusy(true)
@@ -107,7 +110,7 @@ export default function MesasPage() {
       supabase.from('loja_mesas').select('id, numero, nome, ativa').eq('company_id', cid).eq('ativa', true).order('numero'),
       supabase.from('loja_comandas').select('*').eq('company_id', cid).eq('status', 'aberta'),
       supabase.from('loja_garcons').select('id, nome, ativo').eq('company_id', cid).order('nome'),
-      supabase.from('loja_mesa_chamados').select('id, mesa_id, comanda_id, tipo, mensagem, criado_em').eq('company_id', cid).eq('status', 'aberto').order('criado_em'),
+      supabase.from('loja_mesa_chamados').select('id, mesa_id, comanda_id, tipo, mensagem, criado_em, payload').eq('company_id', cid).eq('status', 'aberto').order('criado_em'),
     ])
     const cs = (c.data || []) as Comanda[]
     setMesas((m.data || []) as Mesa[]); setComandas(cs); setGarcons((g.data || []) as Garcom[])
@@ -277,11 +280,18 @@ export default function MesasPage() {
                 <div key={ch.id} className={`ms-chamado ${ch.tipo}`}>
                   <div><b>{titulo}</b><small>há {tempo(ch.criado_em)}</small></div>
                   {ch.mensagem && <p>{ch.mensagem}</p>}
+                  {ch.tipo === 'pedido' && ch.payload && (
+                    <ul className="ms-qrl">
+                      {ch.payload.itens.slice(0, 4).map((i, k) => <li key={k}>{i.qty}× {i.nome}</li>)}
+                      {ch.payload.itens.length > 4 && <li>+ {ch.payload.itens.length - 4} item(ns)</li>}
+                    </ul>
+                  )}
                   <button className="ms-btn dark" disabled={busy} onClick={async () => {
                     if (ch.tipo === 'garcom') { await call('atender_chamado', { chamadoId: ch.id }); await load() }
+                    else if (ch.tipo === 'pedido' && ch.payload) setPedidoQr(ch)
                     else if (c) setAbertaId(c.id)
                     else if (m) setAbrirMesa(m)
-                  }}>{ch.tipo === 'garcom' ? `Atender mesa ${m?.numero}` : ch.tipo === 'conta' ? 'Abrir comanda' : `Confirmar mesa ${m?.numero}`}</button>
+                  }}>{ch.tipo === 'garcom' ? `Atender mesa ${m?.numero}` : ch.tipo === 'conta' ? 'Abrir comanda' : `Ver pedido da mesa ${m?.numero}`}</button>
                 </div>
               )
             })}
@@ -322,6 +332,24 @@ export default function MesasPage() {
 
       {calcLivre && <MesaCalculadora onClose={() => setCalcLivre(false)} />}
 
+      {pedidoQr && pedidoQr.payload && (
+        <PedidoQrModal
+          chamado={pedidoQr} payload={pedidoQr.payload} mesa={mesaDe(pedidoQr.mesa_id)} comanda={comandaDaMesa.get(pedidoQr.mesa_id) || null}
+          garcons={garcons.filter(g => g.ativo)} busy={busy} msg={msg}
+          onClose={() => { setPedidoQr(null); setMsg('') }}
+          onAceitar={async (garcomId) => {
+            const r = await call('pedido_aceitar', { chamadoId: pedidoQr.id, garcomId })
+            if (!r) return
+            await imprimir([buildKitchenTicket({
+              pedidoShortId: `${r.mesaNumero ?? ''}-${r.orderNumber ?? ''}`, createdAt: new Date().toISOString(), deliveryType: 'balcao', rotulo: `MESA ${r.mesaNumero ?? ''} · ${r.garcomNome || ''} · PEDIDO DO CLIENTE`,
+              items: (r.linhas || []).map((l: { qty: number; peso_kg: number | null; product_name: string; unit_price: number; selected_options: { name: string; price: number }[] }) => ({ qty: l.qty, pesoKg: l.peso_kg, name: l.product_name, unitPrice: l.unit_price, options: l.selected_options })), notes: r.obs || null,
+            })])
+            setPedidoQr(null); setMsg(''); await load(); if (r.comandaId) setAbertaId(r.comandaId)
+          }}
+          onRecusar={async (motivo) => { const r = await call('pedido_recusar', { chamadoId: pedidoQr.id, motivo }); if (r) { setPedidoQr(null); setMsg(''); await load() } }}
+        />
+      )}
+
       {showConfig && (
         <Config
           companyId={companyId} adminMode={adminMode} mesasEnabled={mesasEnabled} taxaPct={taxaPct} hasPin={hasPin} garcons={garcons} totalMesas={mesas.length}
@@ -347,6 +375,55 @@ function Modal({ titulo, onClose, children, wide }: { titulo: string; onClose: (
         {children}
       </div>
     </div>
+  )
+}
+
+// ================= Pedido do cliente (QR) =================
+function PedidoQrModal({ chamado, payload, mesa, comanda, garcons, busy, msg, onClose, onAceitar, onRecusar }: {
+  chamado: Chamado; payload: PedidoQr; mesa?: Mesa; comanda: Comanda | null; garcons: Garcom[]; busy: boolean; msg: string
+  onClose: () => void; onAceitar: (garcomId?: string) => Promise<void>; onRecusar: (motivo: string) => Promise<void>
+}) {
+  const [recusando, setRecusando] = useState(false)
+  const [motivo, setMotivo] = useState('')
+  const fora = !!comanda && !!chamado.comanda_id && chamado.comanda_id !== comanda.id
+  return (
+    <Modal titulo={`Pedido da mesa ${mesa?.numero ?? ''}`} onClose={onClose}>
+      <p className="ms-p">{comanda ? `Conta aberta com ${comanda.garcom_nome || 'garçom'}. Ao aceitar, o pedido entra na comanda e vai para a cozinha.` : 'Mesa livre. Escolha quem atende: a conta é aberta e o pedido vai para a cozinha.'}</p>
+      <ul className="ms-qrbox">
+        {payload.itens.map((i, k) => (
+          <li key={k}>
+            <b>{i.qty}× {i.nome}</b>
+            {i.modifiers.length > 0 && <small>{i.modifiers.map(m => m.name).join(', ')}</small>}
+            {i.notes && <small>Obs.: {i.notes}</small>}
+            <span>{fmt(i.unit * i.qty)}</span>
+          </li>
+        ))}
+      </ul>
+      {payload.obs && <div className="ms-note">Observação do cliente: {payload.obs}</div>}
+      {payload.telefone && <div className="ms-note">WhatsApp informado: {payload.telefone.replace(/^55/, '')}</div>}
+      <div className="ms-qrtot"><span>Total deste pedido</span><b>{fmt(payload.total)}</b></div>
+      {fora && <div className="ms-err">Esse pedido era de uma conta que já fechou. Recuse e peça para o cliente ler o QR de novo.</div>}
+      {!recusando && !fora && (comanda ? (
+        <button className="ms-btn ok big" disabled={busy} onClick={() => onAceitar()}>Aceitar e enviar à cozinha</button>
+      ) : (
+        <>
+          {garcons.length === 0 && <div className="ms-note">Nenhum garçom cadastrado. Vá em “⚙️ Configurar”.</div>}
+          <div className="ms-garcons">
+            {garcons.map(g => <button key={g.id} className="ms-btn big" disabled={busy} onClick={() => onAceitar(g.id)}>Aceitar · {g.nome}</button>)}
+          </div>
+        </>
+      ))}
+      {recusando ? (
+        <div className="ms-row" style={{ marginTop: 10 }}>
+          <input className="ms-in" autoFocus placeholder="Motivo (o cliente vê). Ex.: acabou o item" value={motivo} onChange={e => setMotivo(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !busy) onRecusar(motivo.trim()) }} />
+          <button className="ms-btn dark" disabled={busy} onClick={() => onRecusar(motivo.trim())}>Recusar pedido</button>
+          <button className="ms-btn ghost" onClick={() => setRecusando(false)}>Voltar</button>
+        </div>
+      ) : (
+        <button className="ms-btn ghost" style={{ marginTop: 10 }} disabled={busy} onClick={() => setRecusando(true)}>Recusar pedido</button>
+      )}
+      {msg && <div className="ms-err">{msg}</div>}
+    </Modal>
   )
 }
 
@@ -887,8 +964,43 @@ function Config({ companyId, adminMode, recarregar, mesasEnabled, taxaPct, hasPi
   const [nome, setNome] = useState('')
   const [qtd, setQtd] = useState('5')
   const [ok, setOk] = useState('')
+  const [qrPedir, setQrPedir] = useState(true)
+  const [porMin, setPorMin] = useState('3')
   const lista = garcons
-  void companyId
+
+  // Colunas da Fase 2 lidas à parte: se o banco ainda não as tem, segue com o padrão.
+  useEffect(() => {
+    supabase.from('companies').select('mesas_qr_pedir, mesas_pedidos_por_minuto').eq('id', companyId).maybeSingle().then(({ data }) => {
+      if (!data) return
+      setQrPedir(data.mesas_qr_pedir !== false); setPorMin(String(data.mesas_pedidos_por_minuto || 3))
+    })
+  }, [companyId])
+
+  async function salvarQr() {
+    const r = await call('config_salvar', { qrPedir, pedidosPorMinuto: Number(porMin) })
+    if (r) setOk('Salvo.')
+  }
+
+  // Folha de QR codes pra imprimir e plastificar: um cartão por mesa, o link leva
+  // só à página daquela mesa (código aleatório, não dá acesso a conta nenhuma).
+  async function imprimirQrs() {
+    const { data } = await supabase.from('loja_mesas').select('numero, qr_token').eq('company_id', companyId).eq('ativa', true).order('numero')
+    if (!data || data.length === 0) { setOk('Crie as mesas primeiro.'); return }
+    const cards = await Promise.all(data.map(async m => {
+      const url = await QRCode.toDataURL(`${window.location.origin}/mesa/${m.qr_token}`, { width: 600, margin: 1, errorCorrectionLevel: 'M', color: { dark: '#151210', light: '#FFFFFF' } })
+      return `<section><h2>Mesa ${m.numero}</h2><img src="${url}" alt="QR da mesa ${m.numero}"/><p>Aponte a câmera do celular<br/>para ver o cardápio e pedir</p></section>`
+    }))
+    const w = window.open('', '_blank')
+    if (!w) { setOk('O navegador bloqueou a janela. Permita pop-ups e tente de novo.'); return }
+    w.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>QR das mesas</title><style>
+      @page{size:A4;margin:12mm}*{box-sizing:border-box}body{margin:0;font-family:Archivo,Arial,sans-serif;color:#151210}
+      main{display:grid;grid-template-columns:1fr 1fr;gap:8mm}
+      section{border:2px solid #151210;border-radius:6mm;padding:7mm 5mm;text-align:center;break-inside:avoid;page-break-inside:avoid}
+      h2{margin:0 0 3mm;font-family:Anton,Impact,sans-serif;font-weight:400;font-size:34pt;text-transform:uppercase;line-height:1}
+      img{width:62mm;height:62mm}p{margin:3mm 0 0;font-size:11pt;font-weight:600;line-height:1.35}
+    </style></head><body><main>${cards.join('')}</main><script>window.onload=function(){setTimeout(function(){window.print()},400)}<\/script></body></html>`)
+    w.document.close()
+  }
 
   async function salvarGeral() {
     const r = await call('config_salvar', { taxaPct: Number(taxa.replace(',', '.')), ...(pin ? { pin, pinAtual } : {}) })
@@ -928,6 +1040,16 @@ function Config({ companyId, adminMode, recarregar, mesasEnabled, taxaPct, hasPi
           </div>
         )}
         {pinGerado && <div className="ms-okmsg">Novo PIN da loja: <b style={{ fontSize: 22, letterSpacing: '.15em' }}>{pinGerado}</b><br />Passe para a loja agora. Ele não aparece de novo (depois a loja pode trocar por um PIN dela).</div>}
+      </div>
+      <div className="ms-cfg">
+        <h4>Pedido pelo QR da mesa</h4>
+        <label className="ms-sw"><input type="checkbox" checked={qrPedir} onChange={e => setQrPedir(e.target.checked)} /> O cliente pode montar o pedido pelo celular (o garçom sempre confirma antes de ir para a cozinha)</label>
+        <div className="ms-row" style={{ marginTop: 8 }}>
+          <label className="ms-lbl">Envios por minuto, por mesa<input className="ms-in sm" inputMode="numeric" value={porMin} onChange={e => setPorMin(e.target.value.replace(/\D/g, '').slice(0, 2))} /></label>
+          <button className="ms-btn" disabled={busy || !porMin} onClick={salvarQr}>Salvar</button>
+          <button className="ms-btn ghost" disabled={busy} onClick={imprimirQrs}>🖨️ Imprimir QR das mesas</button>
+        </div>
+        <small>O limite conta cada clique em “Enviar para o garçom” dentro de 1 minuto, não importa quantos itens tenha o pedido; fechar e abrir a página não zera. Padrão: 3. Peixe por peso nunca sai pelo QR: o cliente só chama o garçom.</small>
       </div>
       <div className="ms-cfg">
         <h4>Garçons</h4>
@@ -1127,6 +1249,11 @@ const CSS = `
 .ms-chamado{background:#fff;border:1px solid #DCDDD6;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px}
 .ms-chamado.garcom{border:2px solid #D6392B}.ms-chamado.pedido{border:2px solid #FFC531}
 .ms-chamado div{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.ms-qrl{list-style:none;margin:0;padding:0;font-size:13px;color:#3d3a36;display:flex;flex-direction:column;gap:2px}
+.ms-qrbox{list-style:none;margin:10px 0;padding:0;border:1px solid #DCDDD6;border-radius:10px;background:#fff}
+.ms-qrbox li{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:10px 12px;border-bottom:1px solid #ECEDE8}.ms-qrbox li:last-child{border-bottom:0}
+.ms-qrbox li b{font-size:15px}.ms-qrbox li small{grid-column:1;color:#6F6C67;font-size:12.5px}.ms-qrbox li span{grid-row:1;grid-column:2;font-variant-numeric:tabular-nums;font-weight:600}
+.ms-qrtot{display:flex;justify-content:space-between;align-items:baseline;margin:10px 0 12px}.ms-qrtot b{font-family:'Anton',sans-serif;font-weight:400;font-size:30px}
 .ms-chamado small{color:#6F6C67;font-size:12px}.ms-chamado p{margin:0;font-size:13px;color:#3d3a36}
 .ms-foot{margin-top:auto;font-size:12px;color:#4f4c47;border-top:1px solid #DCDDD6;padding-top:10px}
 .ms-note{font-size:13px;color:#4f4c47;background:#fff;border:1px dashed #b9bab2;border-radius:10px;padding:12px}

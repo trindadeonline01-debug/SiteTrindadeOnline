@@ -21,6 +21,59 @@ async function comandaAberta(companyId: string, comandaId: unknown) {
   return data && data.status === 'aberta' ? data : null
 }
 
+type RodadaOk = { ped: { id: string; order_number: number | null }; linhas: { produto_id: string; product_name: string; unit_price: number; qty: number; peso_kg: number | null; selected_options: unknown[]; notes: string | null }[]; calc: Awaited<ReturnType<typeof recalcComanda>> }
+
+// Uma rodada = pedido da cozinha ligado à comanda. Usada pelo garçom (tablet) e
+// pela confirmação de pedido vindo do QR do cliente: o preço é sempre o do banco.
+async function criarRodada(companyId: string, c: any, entrada: any[], obs: unknown): Promise<{ erro: NextResponse } | RodadaOk> {
+  if (entrada.length === 0 || entrada.length > 60) return { erro: erro('Adicione pelo menos um item.') }
+  const ids = [...new Set(entrada.map(i => String(i.produtoId || '')))]
+  const { data: prods } = await sb.from('loja_produtos')
+    .select('id, name, sale_price, promo_type, promo_value, promo_starts_at, promo_ends_at, active, esgotado, track_stock, stock_qty')
+    .eq('company_id', companyId).in('id', ids)
+  const porId = new Map((prods || []).map(p => [p.id, p]))
+  const linhas: { produto_id: string; product_name: string; unit_price: number; qty: number; peso_kg: number | null; selected_options: unknown[]; notes: string | null }[] = []
+  for (const i of entrada) {
+    const p = porId.get(String(i.produtoId))
+    if (!p || !p.active) return { erro: erro('Um dos itens não está mais disponível.', 409) }
+    if (p.esgotado || (p.track_stock && (p.stock_qty ?? 0) <= 0)) return { erro: erro(`"${p.name}" esgotou.`, 409) }
+    const base = promoPrice({ ...p, sale_price: Number(p.sale_price), promo_value: p.promo_value != null ? Number(p.promo_value) : null } as never) ?? Number(p.sale_price)
+    const mods = (Array.isArray(i.modifiers) ? i.modifiers : []).slice(0, 30)
+      .map((m: any) => ({ name: String(m?.name || '').slice(0, 80), price: Math.max(0, Number(m?.price) || 0) }))
+    const extra = mods.reduce((s: number, m: { price: number }) => s + m.price, 0)
+    const unit = r2(base + extra)
+    const peso = i.pesoKg != null ? Number(i.pesoKg) : null
+    if (peso != null) {
+      if (!(peso > 0 && peso < 100)) return { erro: erro('Peso inválido.') }
+      linhas.push({ produto_id: p.id, product_name: p.name, unit_price: r2(unit * peso), qty: 1, peso_kg: peso, selected_options: mods, notes: i.notes ? String(i.notes).slice(0, 200) : null })
+    } else {
+      const qty = Math.floor(Number(i.qty))
+      if (!(qty >= 1 && qty <= 99)) return { erro: erro('Quantidade inválida.') }
+      linhas.push({ produto_id: p.id, product_name: p.name, unit_price: unit, qty, peso_kg: null, selected_options: mods, notes: i.notes ? String(i.notes).slice(0, 200) : null })
+    }
+  }
+  const subtotal = r2(linhas.reduce((s, l) => s + l.unit_price * l.qty, 0))
+  const { data: mesa } = await sb.from('loja_mesas').select('numero').eq('id', c.mesa_id).maybeSingle()
+  // Rodada = pedido comum da loja ligado à comanda. Sem telefone no
+  // pedido (fica na comanda) pra não disparar WhatsApp de status nem
+  // cashback; origin 'mesa' + comanda_id identificam a rodada.
+  const { data: ped, error: pe } = await sb.from('loja_pedidos').insert({
+    company_id: companyId, customer_id: null, customer_name: `Mesa ${mesa?.numero ?? ''}`.trim(), customer_phone: null,
+    delivery_type: 'balcao', origin: 'mesa', comanda_id: c.id,
+    subtotal, total: subtotal, accepted_at: new Date().toISOString(),
+    notes: obs ? String(obs).slice(0, 300) : null,
+  }).select('id, order_number').single()
+  if (pe || !ped) return { erro: erro('Não consegui lançar o pedido: ' + (pe?.message || ''), 500) }
+  const { error: ie } = await sb.from('loja_pedido_itens').insert(linhas.map(l => ({ pedido_id: ped.id, ...l })))
+  if (ie) {
+    await sb.from('loja_pedidos').delete().eq('id', ped.id)
+    return { erro: erro('Não consegui salvar os itens: ' + ie.message, 500) }
+  }
+  const calc = await recalcComanda(c.id)
+  await evento(companyId, c.id, 'rodada', { pedido: ped.order_number, itens: linhas.length, valor: subtotal }, c.garcom_nome)
+  return { ped, linhas, calc }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const b: Body = await req.json()
@@ -64,6 +117,12 @@ export async function POST(req: NextRequest) {
         const negado = await exigePinAtual(b.pinAtual)
         if (negado) return negado
         upd.loja_supervisor_pin_hash = hashPin(String(b.pin))
+      }
+      if (typeof b.qrPedir === 'boolean') upd.mesas_qr_pedir = b.qrPedir
+      if (b.pedidosPorMinuto != null) {
+        const n = Math.floor(Number(b.pedidosPorMinuto))
+        if (!(n >= 1 && n <= 10)) return erro('O limite de envios por minuto vai de 1 a 10.')
+        upd.mesas_pedidos_por_minuto = n
       }
       if (typeof b.mesasEnabled === 'boolean') {
         // Ligar/desligar o módulo é decisão da plataforma (admin), não da loja.
@@ -130,53 +189,9 @@ export async function POST(req: NextRequest) {
     if (acao === 'rodada') {
       const c = await comandaAberta(companyId, b.comandaId)
       if (!c) return erro('Essa comanda não está aberta.', 409)
-      const entrada: any[] = Array.isArray(b.itens) ? b.itens : []
-      if (entrada.length === 0 || entrada.length > 60) return erro('Adicione pelo menos um item.')
-      const ids = [...new Set(entrada.map(i => String(i.produtoId || '')))]
-      const { data: prods } = await sb.from('loja_produtos')
-        .select('id, name, sale_price, promo_type, promo_value, promo_starts_at, promo_ends_at, active, esgotado, track_stock, stock_qty')
-        .eq('company_id', companyId).in('id', ids)
-      const porId = new Map((prods || []).map(p => [p.id, p]))
-      const linhas: { produto_id: string; product_name: string; unit_price: number; qty: number; peso_kg: number | null; selected_options: unknown[]; notes: string | null }[] = []
-      for (const i of entrada) {
-        const p = porId.get(String(i.produtoId))
-        if (!p || !p.active) return erro('Um dos itens não está mais disponível.', 409)
-        if (p.esgotado || (p.track_stock && (p.stock_qty ?? 0) <= 0)) return erro(`"${p.name}" esgotou.`, 409)
-        const base = promoPrice({ ...p, sale_price: Number(p.sale_price), promo_value: p.promo_value != null ? Number(p.promo_value) : null } as never) ?? Number(p.sale_price)
-        const mods = (Array.isArray(i.modifiers) ? i.modifiers : []).slice(0, 30)
-          .map((m: any) => ({ name: String(m?.name || '').slice(0, 80), price: Math.max(0, Number(m?.price) || 0) }))
-        const extra = mods.reduce((s: number, m: { price: number }) => s + m.price, 0)
-        const unit = r2(base + extra)
-        const peso = i.pesoKg != null ? Number(i.pesoKg) : null
-        if (peso != null) {
-          if (!(peso > 0 && peso < 100)) return erro('Peso inválido.')
-          linhas.push({ produto_id: p.id, product_name: p.name, unit_price: r2(unit * peso), qty: 1, peso_kg: peso, selected_options: mods, notes: i.notes ? String(i.notes).slice(0, 200) : null })
-        } else {
-          const qty = Math.floor(Number(i.qty))
-          if (!(qty >= 1 && qty <= 99)) return erro('Quantidade inválida.')
-          linhas.push({ produto_id: p.id, product_name: p.name, unit_price: unit, qty, peso_kg: null, selected_options: mods, notes: i.notes ? String(i.notes).slice(0, 200) : null })
-        }
-      }
-      const subtotal = r2(linhas.reduce((s, l) => s + l.unit_price * l.qty, 0))
-      const { data: mesa } = await sb.from('loja_mesas').select('numero').eq('id', c.mesa_id).maybeSingle()
-      // Rodada = pedido comum da loja ligado à comanda. Sem telefone no
-      // pedido (fica na comanda) pra não disparar WhatsApp de status nem
-      // cashback; origin 'mesa' + comanda_id identificam a rodada.
-      const { data: ped, error: pe } = await sb.from('loja_pedidos').insert({
-        company_id: companyId, customer_id: null, customer_name: `Mesa ${mesa?.numero ?? ''}`.trim(), customer_phone: null,
-        delivery_type: 'balcao', origin: 'mesa', comanda_id: c.id,
-        subtotal, total: subtotal, accepted_at: new Date().toISOString(),
-        notes: b.obs ? String(b.obs).slice(0, 300) : null,
-      }).select('id, order_number').single()
-      if (pe || !ped) return erro('Não consegui lançar o pedido: ' + (pe?.message || ''), 500)
-      const { error: ie } = await sb.from('loja_pedido_itens').insert(linhas.map(l => ({ pedido_id: ped.id, ...l })))
-      if (ie) {
-        await sb.from('loja_pedidos').delete().eq('id', ped.id)
-        return erro('Não consegui salvar os itens: ' + ie.message, 500)
-      }
-      const calc = await recalcComanda(c.id)
-      await evento(companyId, c.id, 'rodada', { pedido: ped.order_number, itens: linhas.length, valor: subtotal }, c.garcom_nome)
-      return NextResponse.json({ ok: true, pedidoId: ped.id, orderNumber: ped.order_number, ...calc })
+      const r = await criarRodada(companyId, c, Array.isArray(b.itens) ? b.itens : [], b.obs)
+      if ('erro' in r) return r.erro
+      return NextResponse.json({ ok: true, pedidoId: r.ped.id, orderNumber: r.ped.order_number, ...r.calc })
     }
 
     // ---------- cancelar item (PIN) ----------
@@ -336,6 +351,64 @@ export async function POST(req: NextRequest) {
       await evento(companyId, dest.id, 'juntou', { de: orig.id }, dest.garcom_nome)
       await evento(companyId, orig.id, 'unida', { em: dest.id }, orig.garcom_nome)
       return NextResponse.json({ ok: true, ...calc })
+    }
+
+    // ---------- pedido do cliente (QR) ----------
+    // O cliente só manda o pedido; nada vai pra cozinha até o garçom confirmar aqui.
+    if (acao === 'pedido_aceitar') {
+      const { data: ch } = await sb.from('loja_mesa_chamados').select('*').eq('id', String(b.chamadoId || '')).eq('company_id', companyId).eq('tipo', 'pedido').maybeSingle()
+      if (!ch) return erro('Pedido não encontrado.', 404)
+      if (ch.status !== 'aberto') return erro('Esse pedido já foi tratado por outro aparelho.', 409)
+      const itens: any[] = Array.isArray(ch.payload?.itens) ? ch.payload.itens : []
+      if (itens.length === 0) return erro('Esse pedido está vazio.', 409)
+      const { data: mesa } = await sb.from('loja_mesas').select('id, numero, ativa').eq('id', ch.mesa_id).maybeSingle()
+      if (!mesa || !mesa.ativa) return erro('Mesa não encontrada.', 404)
+      let { data: c } = await sb.from('loja_comandas').select('*').eq('mesa_id', mesa.id).eq('status', 'aberta').maybeSingle()
+      if (c && ch.comanda_id && ch.comanda_id !== c.id) return erro('Esse pedido era de uma conta que já fechou. Recuse e peça para o cliente ler o QR de novo.', 409)
+      // Reivindica o pedido antes de criar qualquer coisa (dois tablets não confirmam o mesmo).
+      const { data: reiv } = await sb.from('loja_mesa_chamados').update({ status: 'atendido', atendido_em: new Date().toISOString(), atendido_por: b.por ? String(b.por).slice(0, 40) : null })
+        .eq('id', ch.id).eq('status', 'aberto').select('id')
+      if (!reiv || reiv.length === 0) return erro('Esse pedido já foi tratado por outro aparelho.', 409)
+      const desfazer = async () => { await sb.from('loja_mesa_chamados').update({ status: 'aberto', atendido_em: null, atendido_por: null }).eq('id', ch.id) }
+      let aberta = false
+      if (!c) {
+        const { data: garcom } = await sb.from('loja_garcons').select('id, nome, ativo').eq('id', String(b.garcomId || '')).eq('company_id', companyId).maybeSingle()
+        if (!garcom || !garcom.ativo) { await desfazer(); return erro('Escolha o garçom da mesa.') }
+        const { data: nova, error } = await sb.from('loja_comandas').insert({
+          company_id: companyId, mesa_id: mesa.id, garcom_id: garcom.id, garcom_nome: garcom.nome,
+          taxa_servico_ativa: Number(company.loja_taxa_servico_pct) > 0, taxa_servico_pct: Number(company.loja_taxa_servico_pct) || 0,
+          sessao_secret: randomBytes(24).toString('base64url'),
+          customer_phone: ch.payload?.telefone || null, customer_name: ch.payload?.nome || null,
+        }).select('*').single()
+        if (error || !nova) { await desfazer(); return erro('Não consegui abrir a mesa: ' + (error?.message || ''), 500) }
+        c = nova; aberta = true
+        await evento(companyId, nova.id, 'abriu', { mesa: mesa.numero, garcom: garcom.nome, origem: 'qr_cliente' }, garcom.nome)
+      } else if (!c.customer_phone && ch.payload?.telefone) {
+        await sb.from('loja_comandas').update({ customer_phone: ch.payload.telefone }).eq('id', c.id)
+      }
+      const entrada = itens.map(i => ({ produtoId: i.produtoId, qty: i.qty, modifiers: i.modifiers, notes: i.notes }))
+      const r = await criarRodada(companyId, c, entrada, ch.payload?.obs)
+      if ('erro' in r) {
+        await desfazer()
+        if (aberta) await sb.from('loja_comandas').update({ status: 'cancelada', fechada_em: new Date().toISOString(), fechada_por: 'sistema' }).eq('id', c.id)
+        return r.erro
+      }
+      await sb.from('loja_mesa_chamados').update({ comanda_id: c.id }).eq('id', ch.id)
+      await evento(companyId, c.id, 'pedido_qr_confirmado', { pedido: r.ped.order_number, itens: r.linhas.length }, c.garcom_nome)
+      return NextResponse.json({ ok: true, comandaId: c.id, pedidoId: r.ped.id, orderNumber: r.ped.order_number, mesaNumero: mesa.numero, garcomNome: c.garcom_nome, linhas: r.linhas, obs: ch.payload?.obs || null, ...r.calc })
+    }
+
+    if (acao === 'pedido_recusar') {
+      const { data: ch } = await sb.from('loja_mesa_chamados').select('id, status, payload').eq('id', String(b.chamadoId || '')).eq('company_id', companyId).eq('tipo', 'pedido').maybeSingle()
+      if (!ch) return erro('Pedido não encontrado.', 404)
+      if (ch.status !== 'aberto') return erro('Esse pedido já foi tratado.', 409)
+      const motivo = b.motivo ? String(b.motivo).slice(0, 120) : null
+      const { error } = await sb.from('loja_mesa_chamados').update({
+        status: 'cancelado', atendido_em: new Date().toISOString(), atendido_por: b.por ? String(b.por).slice(0, 40) : null,
+        payload: { ...(ch.payload || {}), recusa: motivo || 'O garçom não pôde aceitar esse pedido.' },
+      }).eq('id', ch.id).eq('status', 'aberto')
+      if (error) return erro(error.message, 500)
+      return NextResponse.json({ ok: true })
     }
 
     // ---------- chamados ----------

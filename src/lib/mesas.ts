@@ -108,3 +108,41 @@ export async function exigePinSupervisor(req: NextRequest, company: CompanyMesas
   const bad = await pinOk(company, pin, ult?.[0]?.id ?? null)
   return bad ? erro(bad, 403) : null
 }
+
+// Config do pedido pelo QR (Fase 2). Lida à parte de acessoMesas de propósito:
+// se as colunas ainda não existirem no banco, a loja segue com o padrão em vez
+// de derrubar o módulo inteiro.
+export async function configQr(companyId: string): Promise<{ qrPedir: boolean; porMinuto: number }> {
+  const { data } = await sb.from('companies').select('mesas_qr_pedir, mesas_pedidos_por_minuto').eq('id', companyId).maybeSingle()
+  const pm = Number(data?.mesas_pedidos_por_minuto)
+  return { qrPedir: data?.mesas_qr_pedir !== false, porMinuto: pm >= 1 && pm <= 10 ? pm : 3 }
+}
+
+// Preço de verdade de um produto + escolhas do cliente: tudo vem do banco, o
+// celular só manda ids. Mesma regra do Picker do garçom (grupo obrigatório,
+// máximo de escolhas, "maior valor" cobra só a opção mais cara).
+export type ProdutoMesaDb = {
+  id: string; name: string; sale_price: number; promo_type: string | null; promo_value: number | null
+  promo_starts_at: string | null; promo_ends_at: string | null; active: boolean; esgotado: boolean | null
+  track_stock: boolean | null; stock_qty: number | null
+  groups: { id: string; name: string; required: boolean; min_select: number; max_select: number; pricing_rule: string; options: { id: string; name: string; price: number }[] }[]
+}
+export function resolveOpcoes(p: ProdutoMesaDb, opcaoIds: unknown): { mods: { name: string; price: number }[] } | { erro: string } {
+  const ids = new Set((Array.isArray(opcaoIds) ? opcaoIds : []).map(String))
+  const mods: { name: string; price: number }[] = []
+  const validas = new Set<string>()
+  for (const g of p.groups || []) {
+    const sel = (g.options || []).filter(o => ids.has(o.id))
+    sel.forEach(o => validas.add(o.id))
+    const min = g.required ? Math.max(1, g.min_select || 0) : (g.min_select || 0)
+    if (sel.length < min) return { erro: `Escolha ${g.name.toLowerCase()} em "${p.name}".` }
+    if (sel.length > Math.max(1, g.max_select || 1)) return { erro: `Muitas opções em ${g.name.toLowerCase()} ("${p.name}").` }
+    if (g.pricing_rule === 'maior_valor') {
+      const maior = sel.length ? Math.max(...sel.map(o => Number(o.price))) : 0
+      let usado = false
+      for (const o of sel) { const pr = !usado && Number(o.price) >= maior ? maior : 0; if (pr === maior && maior > 0) usado = true; mods.push({ name: o.name, price: pr }) }
+    } else for (const o of sel) mods.push({ name: o.name, price: Number(o.price) })
+  }
+  if ([...ids].some(i => !validas.has(i))) return { erro: 'Uma das opções escolhidas não existe mais. Atualize a página.' }
+  return { mods }
+}

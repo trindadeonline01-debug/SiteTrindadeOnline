@@ -22,7 +22,7 @@ function bucketFor(pathname: string): string | null {
   // entra no bucket próprio lá embaixo.
   if (
     pathname.startsWith('/painel') || pathname.startsWith('/admin') ||
-    pathname.startsWith('/motoboy') || pathname.startsWith('/producao') ||
+    pathname.startsWith('/motoboy') || pathname.startsWith('/producao') || pathname.startsWith('/mesa/') ||
     pathname.startsWith('/api')
   ) return null
 

@@ -6,6 +6,7 @@ import { moduleActive } from '@/lib/modules'
 import { beep, unlockAudio } from '@/lib/beep'
 import { qzPrintRaw, buildReceipt, buildKitchenTicket, isRawBtMode, printViaRawBt, setPapelImpressora } from '@/lib/qzPrint'
 import ConfirmModal from '@/components/painel/ConfirmModal'
+import CaixaPanel from '@/components/painel/CaixaPanel'
 import MesaCalculadora, { type CalcComanda, type Divisao, DIVISAO0 } from '@/components/painel/MesaCalculadora'
 import { npGroupContribution, type NpGrupo, type NpProduto, PESO_REGEX, pesoNum, pesoDisplay } from '@/lib/produtoCart'
 
@@ -82,6 +83,18 @@ export default function MesasPage() {
   const [abrirMesa, setAbrirMesa] = useState<Mesa | null>(null)       // escolher garçom
   const [showConfig, setShowConfig] = useState(false)
   const [calcLivre, setCalcLivre] = useState(false)
+  // Caixa das mesas: gaveta própria, abre aqui mesmo (o PDV tem o dele).
+  const [caixaPainel, setCaixaPainel] = useState(false)
+  const [caixaTick, setCaixaTick] = useState(0)
+  const [caixaMesa, setCaixaMesa] = useState<null | { aberto: boolean; adotado: boolean }>(null)
+  useEffect(() => {
+    if (!companyId) return
+    let vivo = true
+    adminFetch('/api/caixa', { method: 'POST', body: JSON.stringify({ companyId, canal: 'mesa', acao: 'status' }) })
+      .then(async res => { const d = await res.json().catch(() => ({})); if (vivo && res.ok) setCaixaMesa({ aberto: !!d.caixa, adotado: !!d.adotado }) })
+      .catch(() => {})
+    return () => { vivo = false }
+  }, [companyId, caixaTick])
   const [picker, setPicker] = useState(false)
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
@@ -226,6 +239,7 @@ export default function MesasPage() {
           <a className="ms-tab" href={'/painel/pdv' + (adminMode ? `?empresa=${companyId}` : '')}>Balcão</a>
         </div>
         <button className="ms-btn calc" onClick={() => setCalcLivre(true)}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#151210" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2" /><rect x="8" y="6" width="8" height="3" /><path d="M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01M16 17h.01" /></svg>Calculadora</button>
+        {caixaMesa && <button className={`ms-btn ghost ms-cx ${caixaMesa.aberto ? 'on' : caixaMesa.adotado ? 'off' : ''}`} onClick={() => setCaixaPainel(true)}>{caixaMesa.aberto ? '● Caixa aberto' : caixaMesa.adotado ? '○ Caixa fechado' : '💵 Caixa'}</button>}
         <button className="ms-btn ghost" onClick={() => setShowConfig(true)}>⚙️ Configurar</button>
         <a className="ms-back" href={'/painel' + (adminMode ? `?empresa=${companyId}` : '')}>Sair ›</a>
       </div>
@@ -321,6 +335,7 @@ export default function MesasPage() {
       )}
 
       {calcLivre && <MesaCalculadora onClose={() => setCalcLivre(false)} />}
+      {caixaPainel && companyId && <CaixaPanel companyId={companyId} companyName={companyName} canal="mesa" printerName={printerName} onClose={() => setCaixaPainel(false)} onMudou={() => setCaixaTick(t => t + 1)} />}
 
       {showConfig && (
         <Config
@@ -1094,6 +1109,7 @@ const CSS = `
 .ms-btn{background:#151210;color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:700;min-height:44px;font-size:14px}
 .ms-btn.ghost{background:#fff;color:#151210;border:2px solid #151210}
 .ms-top .ms-btn.ghost{background:transparent;color:#fff;border-color:#4a423a}
+.ms-top .ms-btn.ms-cx.on{color:#7CE0A9;border-color:#2E7D55}.ms-top .ms-btn.ms-cx.off{color:#FF9C92;border-color:#B3261A}
 .ms-btn.dark{background:#151210;color:#fff;width:100%}
 .ms-btn.ok{background:#0B7347;color:#fff}
 .ms-btn.danger{background:#fff;color:#D6392B;border:2px solid #D6392B}

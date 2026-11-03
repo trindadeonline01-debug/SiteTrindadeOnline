@@ -5,8 +5,10 @@ import { sb, r2 } from '@/lib/mesas'
 // pela gaveta do balcão). Tudo calculado aqui no servidor a partir das vendas
 // da janela aberto_em → agora/fechado_em; o tablet nunca manda total.
 
+export type CanalCaixa = 'pdv' | 'mesa'
+export const CANAIS_CAIXA: CanalCaixa[] = ['pdv', 'mesa']
 export type CaixaRow = {
-  id: string; company_id: string; status: 'aberto' | 'fechado'; troco_inicial: number
+  id: string; company_id: string; canal: CanalCaixa; status: 'aberto' | 'fechado'; troco_inicial: number
   aberto_em: string; aberto_por: string | null; fechado_em: string | null; fechado_por: string | null
   dinheiro_esperado: number | null; dinheiro_contado: number | null; diferenca: number | null
   observacao: string | null; resumo: unknown
@@ -23,16 +25,17 @@ export type ResumoCaixa = {
 }
 export type Movimento = { id: string; tipo: 'sangria' | 'suprimento'; valor: number; motivo: string | null; por: string | null; criado_em: string }
 
-export async function caixaAberto(companyId: string): Promise<CaixaRow | null> {
-  const { data } = await sb.from('loja_caixas').select('*').eq('company_id', companyId).eq('status', 'aberto').maybeSingle()
+export async function caixaAberto(companyId: string, canal: CanalCaixa): Promise<CaixaRow | null> {
+  const { data } = await sb.from('loja_caixas').select('*').eq('company_id', companyId).eq('canal', canal).eq('status', 'aberto').maybeSingle()
   return (data as CaixaRow | null) ?? null
 }
 
-// A loja "adota" o caixa ao abrir o primeiro. Daí em diante, sem caixa aberto,
-// não vende no PDV nem recebe na mesa. Quem nunca abriu um segue como sempre foi.
-export async function caixaObrigatorioFechado(companyId: string): Promise<boolean> {
-  if (await caixaAberto(companyId)) return false
-  const { count } = await sb.from('loja_caixas').select('id', { count: 'exact', head: true }).eq('company_id', companyId)
+// A loja "adota" o caixa de um canal ao abrir o primeiro dele. Daí em diante, sem caixa
+// aberto naquele canal, ele não vende (PDV) nem recebe (mesas). Quem nunca abriu segue
+// como sempre foi.
+export async function caixaObrigatorioFechado(companyId: string, canal: CanalCaixa): Promise<boolean> {
+  if (await caixaAberto(companyId, canal)) return false
+  const { count } = await sb.from('loja_caixas').select('id', { count: 'exact', head: true }).eq('company_id', companyId).eq('canal', canal)
   return (count || 0) > 0
 }
 
@@ -52,7 +55,7 @@ export async function resumoCaixa(caixa: CaixaRow, movs?: Movimento[]): Promise<
   const canais = { pdv: { valor: 0, qtd: 0 } as Linha, mesa: { valor: 0, qtd: 0 } as Linha }
 
   // PDV: uma venda = uma forma de pagamento (payment_method), total da venda.
-  const { data: vendas } = await sb.from('loja_pedidos').select('total, payment_method')
+  const { data: vendas } = caixa.canal !== 'pdv' ? { data: [] as { total: number; payment_method: string | null }[] } : await sb.from('loja_pedidos').select('total, payment_method')
     .eq('company_id', caixa.company_id).eq('origin', 'pdv').neq('status', 'cancelado').gte('created_at', de).lte('created_at', ate)
   for (const v of vendas || []) {
     const f = String(v.payment_method || 'outro')
@@ -61,7 +64,7 @@ export async function resumoCaixa(caixa: CaixaRow, movs?: Movimento[]): Promise<
   }
 
   // Mesas: cada pagamento registrado na comanda dentro da janela (comanda cancelada não conta).
-  const { data: pgs } = await sb.from('loja_comanda_pagamentos').select('comanda_id, forma, valor')
+  const { data: pgs } = caixa.canal !== 'mesa' ? { data: [] as { comanda_id: string; forma: string; valor: number }[] } : await sb.from('loja_comanda_pagamentos').select('comanda_id, forma, valor')
     .eq('company_id', caixa.company_id).gte('criado_em', de).lte('criado_em', ate)
   const ids = [...new Set((pgs || []).map(p => p.comanda_id))]
   const canceladas = new Set<string>()

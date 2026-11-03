@@ -396,10 +396,9 @@ export function buildTestTicket(companyName: string): string {
 }
 
 export type CaixaReportData = {
-  companyName: string; abertoEm: string; fechadoEm?: string | null; abertoPor?: string | null; fechadoPor?: string | null
+  canalLabel: string; companyName: string; abertoEm: string; fechadoEm?: string | null; abertoPor?: string | null; fechadoPor?: string | null
   trocoInicial: number
   porForma: { label: string; valor: number; qtd: number }[]
-  canais: { pdv: { valor: number; qtd: number }; mesa: { valor: number; qtd: number } }
   totalVendas: number
   movimentos: { tipo: 'sangria' | 'suprimento'; valor: number; motivo?: string | null; criadoEm: string }[]
   dinheiroEsperado: number
@@ -418,7 +417,7 @@ export function buildCaixaReport(d: CaixaReportData): string {
   L.push(CMD.doubleOff)
   wrap(d.companyName.toUpperCase()).forEach(l => linha(l))
   L.push(CMD.boldOff)
-  linha(d.fechadoEm ? 'FECHAMENTO DE CAIXA' : 'CAIXA - PARCIAL (ainda aberto)')
+  linha(d.fechadoEm ? `FECHAMENTO - CAIXA ${d.canalLabel}` : `CAIXA ${d.canalLabel} - PARCIAL (aberto)`)
   L.push(CMD.alignLeft)
   linha(hr)
   linha(padRow('Abertura', hora(d.abertoEm)))
@@ -430,10 +429,6 @@ export function buildCaixaReport(d: CaixaReportData): string {
   d.porForma.forEach(f => linha(padRow(`${f.label} (${f.qtd})`, money(f.valor))))
   if (d.porForma.length === 0) linha('Nenhuma venda')
   L.push(CMD.boldOn); linha(padRow('TOTAL VENDAS', money(d.totalVendas))); L.push(CMD.boldOff)
-  linha(hr)
-  L.push(CMD.boldOn); linha('POR CANAL'); L.push(CMD.boldOff)
-  linha(padRow(`PDV (${d.canais.pdv.qtd})`, money(d.canais.pdv.valor)))
-  linha(padRow(`Mesas (${d.canais.mesa.qtd})`, money(d.canais.mesa.valor)))
   linha(hr)
   L.push(CMD.boldOn); linha('DINHEIRO NA GAVETA'); L.push(CMD.boldOff)
   const din = d.porForma.find(f => f.label === 'Dinheiro')?.valor || 0

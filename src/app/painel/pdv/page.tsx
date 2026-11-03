@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { adminFetch } from '@/lib/adminFetch'
+import CaixaPanel from '@/components/painel/CaixaPanel'
 import { moduleActive } from '@/lib/modules'
 import { qzPrintRaw, buildReceipt, buildKitchenTicket, isRawBtMode, printViaRawBt, setPapelImpressora } from '@/lib/qzPrint'
 import { fetchPedidoComItensComRetry } from '@/lib/autoprint'
@@ -67,6 +68,8 @@ export default function PdvPage() {
   const [printerName, setPrinterName] = useState('')
   // Caixa: a loja que já abriu algum caixa só vende no PDV com caixa aberto.
   const [caixa, setCaixa] = useState<null | { aberto: boolean; adotado: boolean }>(null)
+  const [caixaPainel, setCaixaPainel] = useState(false)
+  const [caixaTick, setCaixaTick] = useState(0)
   const [payOptions, setPayOptions] = useState<string[]>(['dinheiro', 'pix', 'cartao'])
 
   const [produtos, setProdutos] = useState<Produto[]>([])
@@ -160,11 +163,11 @@ export default function PdvPage() {
   useEffect(() => {
     if (!companyId) return
     let vivo = true
-    adminFetch('/api/caixa', { method: 'POST', body: JSON.stringify({ companyId, acao: 'status' }) })
+    adminFetch('/api/caixa', { method: 'POST', body: JSON.stringify({ companyId, canal: 'pdv', acao: 'status' }) })
       .then(async res => { const d = await res.json().catch(() => ({})); if (vivo && res.ok) setCaixa({ aberto: !!d.caixa, adotado: !!d.adotado }) })
       .catch(() => {})
     return () => { vivo = false }
-  }, [companyId])
+  }, [companyId, caixaTick])
   const caixaHref = '/painel/caixa' + (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('empresa') ? `?empresa=${new URLSearchParams(window.location.search).get('empresa')}` : '')
 
   const subtotal = cart.reduce((s, l) => s + lineTotal(l), 0)
@@ -633,8 +636,8 @@ export default function PdvPage() {
           </button>
           <div className="pdv-top-divider" />
           <div className={`pdv-printer ${printerName ? 'ok' : 'off'}`}>{printerName ? '● Impressora conectada' : '○ Sem impressora'}</div>
-          {caixa?.adotado && (
-            <a href={caixaHref} className={`pdv-printer ${caixa.aberto ? 'ok' : 'off'}`} style={{ textDecoration: 'none' }}>{caixa.aberto ? '● Caixa aberto' : '○ Caixa fechado'}</a>
+          {caixa && (
+            <button onClick={() => setCaixaPainel(true)} className={`pdv-printer ${caixa.aberto ? 'ok' : caixa.adotado ? 'off' : ''}`} style={{ border: 0, cursor: 'pointer', background: caixa.aberto || caixa.adotado ? undefined : '#2C271E', color: caixa.aberto || caixa.adotado ? undefined : '#D6D0C6' }}>{caixa.aberto ? '● Caixa aberto' : caixa.adotado ? '○ Caixa fechado' : '💵 Caixa'}</button>
           )}
           <div className="pdv-top-divider" />
           <button className="pdv-vendas-btn" onClick={abrirVendas}>🧾 Vendas de hoje <span className="pdv-kbd">F7</span></button>
@@ -646,11 +649,12 @@ export default function PdvPage() {
           <div role="alertdialog" aria-label="Caixa fechado" style={{ width: 'min(440px,100%)', background: '#fff', borderRadius: 14, padding: 24, display: 'flex', flexDirection: 'column', gap: 12, boxShadow: '0 20px 60px rgba(0,0,0,.4)', fontFamily: 'Archivo,sans-serif', color: '#151210' }}>
             <h2 style={{ margin: 0, fontFamily: 'Anton,sans-serif', fontWeight: 400, fontSize: 28, textTransform: 'uppercase' }}>Caixa fechado</h2>
             <p style={{ margin: 0, fontSize: 15, lineHeight: 1.45, color: '#4f4c47' }}>Para vender no PDV é preciso abrir o caixa, com o troco inicial da gaveta.</p>
-            <a href={caixaHref} style={{ marginTop: 6, height: 54, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 10, background: '#0B7347', color: '#fff', fontWeight: 700, fontSize: 16, textDecoration: 'none' }}>Abrir o caixa</a>
+            <button onClick={() => setCaixaPainel(true)} style={{ border: 0, cursor: 'pointer', fontFamily: 'inherit', marginTop: 6, height: 54, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 10, background: '#0B7347', color: '#fff', fontWeight: 700, fontSize: 16, }}>Abrir o caixa</button>
             <a href={'/painel/pedidos' + (caixaHref.includes('?') ? caixaHref.slice(caixaHref.indexOf('?')) : '')} style={{ textAlign: 'center', fontSize: 14, color: '#4f4c47' }}>Sair do PDV</a>
           </div>
         </div>
       )}
+      {caixaPainel && companyId && <CaixaPanel companyId={companyId} companyName={companyName} canal="pdv" printerName={printerName} onClose={() => setCaixaPainel(false)} onMudou={() => setCaixaTick(t => t + 1)} />}
       <div className="pdv-shortbar">
         {payOptions.slice(0, PAY_SHORTCUT_KEYS.length).map((k, i) => (
           <button key={k} className={`pdv-short-chip ${payMethod === k ? 'on' : ''}`} onClick={() => selectPayMethod(k)}>

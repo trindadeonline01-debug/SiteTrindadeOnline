@@ -258,7 +258,6 @@ export default function EmpresaShell({
               <NavItem href="/painel/pedidos" active={active === 'pedidos'} locked={!lojaDigitalEnabled} badge={pedidosBadge} adminEmpresaId={adminEmpresaId}>🧾 Pedidos</NavItem>
               <NavItem href="/painel/pdv" active={active === 'pdv'} locked={!lojaDigitalEnabled} adminEmpresaId={adminEmpresaId}>🖥️ PDV</NavItem>
               {mesasEnabled && <NavItem href="/painel/mesas" active={active === 'mesas'} adminEmpresaId={adminEmpresaId}>🍽️ Mesas</NavItem>}
-              <NavItem href="/painel/caixa" active={active === 'caixa'} locked={!lojaDigitalEnabled} adminEmpresaId={adminEmpresaId}>💵 Caixa</NavItem>
               <NavItem href="/painel/vendas" active={active === 'vendas'} locked={!lojaDigitalEnabled} adminEmpresaId={adminEmpresaId}>📈 Vendas por canal</NavItem>
               <NavItem href="/painel/interesses" active={active === 'interesses'} locked={!lojaDigitalEnabled} adminEmpresaId={adminEmpresaId}>🔔 Interesses</NavItem>
               <NavItem href="/painel/mensagens" active={active === 'mensagens'} locked={!crmEnabled} badge={mensagensBadge} adminEmpresaId={adminEmpresaId}>💬 Mensagens</NavItem>

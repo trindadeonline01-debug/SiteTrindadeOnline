@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { sb, acessoMesas, erro, r2, exigePinSupervisor } from '@/lib/mesas'
-import { caixaAberto, resumoCaixa, movimentosDoCaixa, type CaixaRow } from '@/lib/caixa'
+import { caixaAberto, resumoCaixa, movimentosDoCaixa, CANAIS_CAIXA, type CaixaRow, type CanalCaixa } from '@/lib/caixa'
 
 // Caixa da loja: abrir com troco, sangria/suprimento, fechar com conferência.
 // Valores esperados são sempre calculados aqui (lib/caixa.ts) a partir das vendas
@@ -15,13 +15,16 @@ export async function POST(req: NextRequest) {
     const acc = await acessoMesas(req, companyId, { exigirLigado: false })
     if (acc instanceof NextResponse) return acc
     const { company } = acc
+    // Cada canal (PDV, Mesas) tem o próprio caixa.
+    const canal = String(b.canal || '') as CanalCaixa
+    if (!CANAIS_CAIXA.includes(canal)) return erro('Informe o caixa (PDV ou Mesas).')
     const nomeOperador = String(b.operador || '').trim().slice(0, 40) || 'Caixa'
     const dinheiro = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? r2(n) : NaN }
 
     if (acao === 'status') {
-      const aberto = await caixaAberto(companyId)
-      const { data: hist } = await sb.from('loja_caixas').select('*').eq('company_id', companyId).eq('status', 'fechado').order('fechado_em', { ascending: false }).limit(20)
-      const { count } = await sb.from('loja_caixas').select('id', { count: 'exact', head: true }).eq('company_id', companyId)
+      const aberto = await caixaAberto(companyId, canal)
+      const { data: hist } = await sb.from('loja_caixas').select('*').eq('company_id', companyId).eq('canal', canal).eq('status', 'fechado').order('fechado_em', { ascending: false }).limit(20)
+      const { count } = await sb.from('loja_caixas').select('id', { count: 'exact', head: true }).eq('company_id', companyId).eq('canal', canal)
       if (!aberto) return NextResponse.json({ ok: true, caixa: null, adotado: (count || 0) > 0, historico: hist || [] })
       const movimentos = await movimentosDoCaixa(aberto.id)
       const resumo = await resumoCaixa(aberto, movimentos)
@@ -31,15 +34,15 @@ export async function POST(req: NextRequest) {
     if (acao === 'abrir') {
       const troco = dinheiro(b.troco)
       if (!(troco >= 0 && troco <= 10000)) return erro('Informe o troco inicial (pode ser zero).')
-      const { data, error } = await sb.from('loja_caixas').insert({ company_id: companyId, troco_inicial: troco, aberto_por: nomeOperador }).select('id').single()
+      const { data, error } = await sb.from('loja_caixas').insert({ company_id: companyId, canal, troco_inicial: troco, aberto_por: nomeOperador }).select('id').single()
       if (error) {
-        if (error.code === '23505') return erro('Já existe um caixa aberto nesta loja.', 409)
+        if (error.code === '23505') return erro('Já existe um caixa aberto aqui.', 409)
         return erro('Não consegui abrir o caixa: ' + error.message, 500)
       }
       return NextResponse.json({ ok: true, id: data.id })
     }
 
-    const aberto = await caixaAberto(companyId)
+    const aberto = await caixaAberto(companyId, canal)
     if (!aberto) return erro('Não há caixa aberto. Abra o caixa primeiro.', 409)
 
     if (acao === 'movimento') {

@@ -5,6 +5,7 @@ import { refreshSessionOnce } from '@/lib/authRefresh'
 import { adminFetch } from '@/lib/adminFetch'
 import { qzListPrinters, qzPrintRaw, buildReceipt, buildKitchenTicket, buildTestTicket, isRawBtMode, printViaRawBt, RAWBT_SENTINEL, getPapelImpressora, setPapelImpressora } from '@/lib/qzPrint'
 import { fetchPedidoComItensComRetry } from '@/lib/autoprint'
+import { ORIGENS_DELIVERY } from '@/lib/canais'
 import { useRealtimeResync } from '@/hooks/useRealtimeResync'
 import { usePainelShell } from '@/contexts/PainelShellContext'
 import { npGroupContribution, type NpOpcao, type NpGrupo, type NpProduto, type NpCartLine } from '@/lib/produtoCart'
@@ -67,6 +68,8 @@ const ORIGIN_INFO: Record<string, { label: string; bg: string; fg: string }> = {
   cardapio_publico: { label: '🌐 Site', bg: '#E8F0FE', fg: '#1A56B0' },
   conversa: { label: '💬 WhatsApp', bg: '#E4F3EC', fg: '#157A52' },
   balcao: { label: '🏪 Balcão', bg: '#F0EDE8', fg: '#6E6656' },
+  pdv: { label: '🖥️ PDV', bg: '#F0EDE8', fg: '#6E6656' },
+  mesa: { label: '🍽️ Mesa', bg: '#FFF3C9', fg: '#7A5200' },
 }
 function originInfo(origin: string) { return ORIGIN_INFO[origin] || { label: origin, bg: '#F0EDE8', fg: '#6E6656' } }
 const PAY_LABEL: Record<string, string> = { pix: '💳 Pix', dinheiro: '💵 Dinheiro', cartao: '💳 Cartão' }
@@ -354,7 +357,7 @@ export default function PedidosPage() {
   async function loadAll(cid: string, dateStr: string) {
     const from = new Date(dateStr + 'T00:00:00')
     const to = new Date(from.getTime() + 24 * 60 * 60 * 1000)
-    const { data } = await supabase.from('loja_pedidos').select('*, itens:loja_pedido_itens(*)').eq('company_id', cid)
+    const { data } = await supabase.from('loja_pedidos').select('*, itens:loja_pedido_itens(*)').eq('company_id', cid).in('origin', [...ORIGENS_DELIVERY])
       .gte('created_at', from.toISOString()).lt('created_at', to.toISOString())
       .order('created_at', { ascending: false })
     setPedidos((data || []) as any)

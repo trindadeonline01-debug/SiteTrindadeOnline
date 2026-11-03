@@ -137,10 +137,10 @@ export async function POST(req: NextRequest) {
       const { data: mesa } = await sb.from('loja_mesas').select('numero').eq('id', c.mesa_id).maybeSingle()
       // Rodada = pedido comum da loja ligado à comanda. Sem telefone no
       // pedido (fica na comanda) pra não disparar WhatsApp de status nem
-      // cashback; origem 'balcao' + comanda_id é o que identifica mesa.
+      // cashback; origin 'mesa' + comanda_id identificam a rodada.
       const { data: ped, error: pe } = await sb.from('loja_pedidos').insert({
         company_id: companyId, customer_id: null, customer_name: `Mesa ${mesa?.numero ?? ''}`.trim(), customer_phone: null,
-        delivery_type: 'balcao', origin: 'balcao', comanda_id: c.id,
+        delivery_type: 'balcao', origin: 'mesa', comanda_id: c.id,
         subtotal, total: subtotal, accepted_at: new Date().toISOString(),
         notes: b.obs ? String(b.obs).slice(0, 300) : null,
       }).select('id, order_number').single()

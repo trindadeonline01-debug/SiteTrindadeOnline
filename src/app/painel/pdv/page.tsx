@@ -201,7 +201,7 @@ export default function PdvPage() {
     const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0)
     const { data } = await supabase.from('loja_pedidos')
       .select('id, order_number, total, payment_method, status, created_at')
-      .eq('company_id', companyId).eq('origin', 'balcao')
+      .eq('company_id', companyId).eq('origin', 'pdv')
       .gte('created_at', startOfDay.toISOString())
       .order('created_at', { ascending: false })
     setVendasHoje((data || []) as VendaRow[])
@@ -370,7 +370,7 @@ export default function PdvPage() {
     const { data: pedido, error: pedidoErr } = await supabase.from('loja_pedidos').insert({
       company_id: companyId, customer_id: null,
       customer_name: 'Cliente balcão', customer_phone: null,
-      delivery_type: 'balcao', origin: 'balcao', payment_method: method,
+      delivery_type: 'balcao', origin: 'pdv', payment_method: method,
       subtotal: total, total, accepted_at: new Date().toISOString(),
     }).select('id, order_number').single()
     if (pedidoErr || !pedido) {
@@ -393,7 +393,7 @@ export default function PdvPage() {
     fetch('/api/loja/registrar-pedido', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        companyId, total, subtotal: total, deliveryFee: 0, paymentMethod: method, deliveryType: 'balcao',
+        companyId, canal: 'pdv', total, subtotal: total, deliveryFee: 0, paymentMethod: method, deliveryType: 'balcao',
         items: cart.map(l => ({ produtoId: l.produtoId, name: l.name, qty: l.pesoModo ? 1 : l.qty, unitPrice: l.pesoModo ? Math.round(l.unitPrice * pesoNum(l.pesoKg) * 100) / 100 : l.unitPrice, modifiers: l.modifiers })),
       }),
     }).catch(() => {})

@@ -70,6 +70,9 @@ export async function POST(req: NextRequest) {
       // aviso pro dono direto, no próprio processo — evita duplicar (ver
       // comentário mais abaixo, e o comentário em criar-pedido/route.ts).
       skipOwnerNotify,
+      // 'pdv': venda de balcão — só alimenta o contador de produtos, sem
+      // WhatsApp de "novo pedido" (isso é do delivery).
+      canal,
     } = await req.json()
     if (!companyId) return NextResponse.json({ error: 'companyId obrigatório' }, { status: 400 })
     const phone = rawPhone ? normalizePhone(rawPhone) : null
@@ -113,7 +116,7 @@ export async function POST(req: NextRequest) {
     // avulso, o pedido pela conversa e o checkout público mandam isso;
     // chamadas antigas sem esses campos simplesmente pulam essa parte, sem
     // quebrar o resto da rota).
-    if (Array.isArray(items) && items.length > 0 && items.every((it: any) => it.name && it.unitPrice != null)) {
+    if (canal !== 'pdv' && Array.isArray(items) && items.length > 0 && items.every((it: any) => it.name && it.unitPrice != null)) {
       const { data: company } = await supabase.from('companies').select('owner_id, crm_whatsapp_enabled, trial_modules_until').eq('id', companyId).maybeSingle()
       if (company && moduleActive(company.crm_whatsapp_enabled, company.trial_modules_until)) {
         const { data: pedidoRow } = pedidoId

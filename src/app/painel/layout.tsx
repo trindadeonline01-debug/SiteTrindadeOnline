@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { moduleActive } from '@/lib/modules'
 import { beep, beepCancelamento, unlockAudio } from '@/lib/beep'
 import { autoImprimirPedido } from '@/lib/autoprint'
+import { ORIGENS_DELIVERY, isPdvOuMesa } from '@/lib/canais'
 import { isRawBtMode, setPapelImpressora } from '@/lib/qzPrint'
 import { refreshSessionOnce } from '@/lib/authRefresh'
 import { useRealtimeResync } from '@/hooks/useRealtimeResync'
@@ -107,7 +108,7 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
   }
 
   async function refreshPedidosBadge(companyId: string) {
-    const { count } = await supabase.from('loja_pedidos').select('id', { count: 'exact', head: true }).eq('company_id', companyId).eq('status', 'recebido')
+    const { count } = await supabase.from('loja_pedidos').select('id', { count: 'exact', head: true }).eq('company_id', companyId).eq('status', 'recebido').in('origin', [...ORIGENS_DELIVERY])
     setPedidosBadge(count || 0)
   }
   async function refreshAvaliacoesBadge(companyId: string) {
@@ -268,12 +269,15 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
     const since = isNewCompany ? null : lastCheckRef.current
     lastCheckRef.current = new Date().toISOString()
     if (since) {
-      supabase.from('loja_pedidos').select('id').eq('company_id', company.id).eq('status', 'recebido').gt('created_at', since)
+      supabase.from('loja_pedidos').select('id').eq('company_id', company.id).eq('status', 'recebido').in('origin', [...ORIGENS_DELIVERY]).gt('created_at', since)
         .then(({ data }) => { (data || []).forEach(p => { if (tryPrintPedido(p.id)) beep(2) }) })
     }
 
     const channel = supabase.channel(`pedidos-print-${company.id}-${resyncTick}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'loja_pedidos', filter: `company_id=eq.${company.id}` }, payload => {
+        // PDV e mesa não são delivery: sem toque, sem impressão automática
+        // (cada um imprime o próprio ticket) e fora do contador de pendentes.
+        if (isPdvOuMesa(payload.new.origin as string)) return
         refreshPedidosBadge(company.id)
         if (tryPrintPedido(payload.new.id as string)) beep(2)
       })

@@ -5,6 +5,7 @@ import { refreshSessionOnce } from '@/lib/authRefresh'
 import { adminFetch } from '@/lib/adminFetch'
 import { moduleActive } from '@/lib/modules'
 import { beep, unlockAudio } from '@/lib/beep'
+import { ORIGENS_COZINHA } from '@/lib/canais'
 
 type Item = { id: string; product_name: string; qty: number; selected_options: { name: string; price: number }[] }
 type Status = 'recebido' | 'em_preparo' | 'pronto' | 'saiu_entrega' | 'entregue' | 'cancelado'
@@ -102,6 +103,8 @@ export default function CozinhaPage() {
 
       const channel = supabase.channel(`cozinha-${comp.id}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'loja_pedidos', filter: `company_id=eq.${comp.id}` }, payload => {
+          // PDV nunca vai pra cozinha: sem toque e sem recarregar à toa
+          if ((payload.new as { origin?: string } | null)?.origin === 'pdv') return
           if (payload.eventType === 'INSERT') beep(2)
           loadAll(companyIdRef.current)
         })
@@ -111,7 +114,7 @@ export default function CozinhaPage() {
   }, [])
 
   async function loadAll(cid: string) {
-    const { data } = await supabase.from('loja_pedidos').select('*, itens:loja_pedido_itens(*)').eq('company_id', cid).in('status', ['recebido', 'em_preparo', 'pronto']).order('created_at', { ascending: true })
+    const { data } = await supabase.from('loja_pedidos').select('*, itens:loja_pedido_itens(*)').eq('company_id', cid).in('origin', [...ORIGENS_COZINHA]).in('status', ['recebido', 'em_preparo', 'pronto']).order('created_at', { ascending: true })
     const rows = (data || []) as Pedido[]
     setPedidos(autoAceitarRef.current ? rows : rows.filter(p => p.status !== 'recebido' || p.accepted_at))
     const { data: entregas } = await supabase.from('delivery_orders').select('pedido_id').eq('company_id', cid).not('pedido_id', 'is', null)

@@ -457,6 +457,8 @@ export default function PdvPage() {
         .pdv-top{ background:#151210;color:#fff;padding:13px 20px;display:flex;align-items:center;gap:16px;flex:none;border-bottom:1px solid #2A2319; }
         .pdv-back{ width:36px;height:36px;border-radius:10px;background:#232019;border:1px solid #3A352A;color:#fff;font-size:17px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center; }
         .pdv-back:hover{ background:#2C271E; }
+        .pdv-sair{ color:#FFC531;text-decoration:none;font-weight:700;font-size:14px;padding:10px 6px;white-space:nowrap; }
+        .pdv-sair:hover{ text-decoration:underline; }
         .pdv-title-block{ flex:1;min-width:0; }
         .pdv-title-eyebrow{ font-size:10px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#FFC531;margin-bottom:2px; }
         .pdv-title-name{ font-family:'Anton',sans-serif;font-size:18px;letter-spacing:.3px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
@@ -636,6 +638,7 @@ export default function PdvPage() {
           )}
           <div className="pdv-top-divider" />
           <button className="pdv-vendas-btn" onClick={abrirVendas}>🧾 Vendas de hoje <span className="pdv-kbd">F7</span></button>
+          <a className="pdv-sair" href={'/painel' + (caixaHref.includes('?') ? caixaHref.slice(caixaHref.indexOf('?')) : '')}>Sair ›</a>
         </div>
       </div>
       {caixa?.adotado && !caixa.aberto && (

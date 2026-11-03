@@ -15,7 +15,6 @@ type Formas = Record<string, number>
 type Canal = { qtd: number; bruto: number; canc: number; formas: Formas }
 type Mesa = Canal & { consumo: number; desconto: number; taxa: number; recebido: number }
 type Dados = { delivery: Canal; pdv: Canal; mesa: Mesa }
-type CaixaFech = { id: string; canal: 'pdv' | 'mesa'; aberto_por: string | null; aberto_em: string; fechado_em: string | null; dinheiro_esperado: number | null; dinheiro_contado: number | null; diferenca: number | null; resumo: { totalVendas?: number } | null }
 
 const r2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100
 const brl = (n: number) => 'R$ ' + (Number.isFinite(n) ? n : 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -37,7 +36,6 @@ export default function VendasPage() {
   const { company, loading: shellLoading } = usePainelShell()
   const [period, setPeriod] = useState<PeriodSel>({ kind: 'today' })
   const [dados, setDados] = useState<Dados | null>(null)
-  const [caixas, setCaixas] = useState<CaixaFech[]>([])
   const [erro, setErro] = useState('')
   const companyId = company?.id
 
@@ -51,10 +49,6 @@ export default function VendasPage() {
     let qc = supabase.from('loja_comandas').select('status, subtotal, desconto, taxa_valor, total, pagamentos:loja_comanda_pagamentos(forma, valor)').eq('company_id', companyId).in('status', ['fechada', 'cancelada'])
     if (from) qc = qc.gte('fechada_em', from)
     if (to) qc = qc.lt('fechada_em', to)
-    let qx = supabase.from('loja_caixas').select('id, canal, aberto_por, aberto_em, fechado_em, dinheiro_esperado, dinheiro_contado, diferenca, resumo').eq('company_id', companyId).eq('status', 'fechado').order('fechado_em', { ascending: false })
-    if (from) qx = qx.gte('fechado_em', from)
-    if (to) qx = qx.lt('fechado_em', to)
-    qx.limit(200).then(r => { if (vivo) setCaixas((r.data || []) as CaixaFech[]) })
     Promise.all([qp.limit(20000), qc.limit(20000)]).then(([pr, cr]) => {
       if (!vivo) return
       if (pr.error || cr.error) { setErro('Não consegui carregar as vendas. Tente de novo.'); return }
@@ -142,24 +136,6 @@ export default function VendasPage() {
           </div>
 
           <section className="vc-card">
-            <h2>Fechamentos de caixa</h2>
-            <p className="vc-hint">Cada canal tem o seu caixa: o do PDV abre na tela do PDV e o das mesas, na tela das Mesas.</p>
-            {caixas.length === 0 ? <p className="vc-hint">Nenhum caixa fechado no período.</p> : (
-              <div className="vc-lines">
-                {caixas.map(c => {
-                  const dif = Number(c.diferenca || 0)
-                  return (
-                    <div key={c.id}>
-                      <span>{c.canal === 'pdv' ? '🖥️ PDV' : '🍽️ Mesas'} · {c.aberto_por || '—'} · {new Date(c.aberto_em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} → {c.fechado_em ? new Date(c.fechado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : ''}</span>
-                      <b>{brl(Number(c.resumo?.totalVendas || 0))} <i className={`vc-dif ${Math.abs(dif) < 0.005 ? 'ok' : dif > 0 ? 'sob' : 'fal'}`}>{Math.abs(dif) < 0.005 ? 'sem diferença' : `${dif > 0 ? 'sobra' : 'falta'} ${brl(Math.abs(dif))}`}</i></b>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </section>
-
-          <section className="vc-card">
             <h2>Forma de pagamento</h2>
             {formasUsadas.length === 0 ? <p className="vc-hint">Nenhuma venda no período.</p> : (
               <div className="vc-table" role="table">
@@ -201,6 +177,5 @@ const CSS = `
 .vc-table{display:flex;flex-direction:column;overflow-x:auto}
 .vc-table .r{display:grid;grid-template-columns:minmax(110px,1.2fr) repeat(4,minmax(96px,1fr));gap:10px;padding:10px 0;border-top:1px solid #ECEDE8;font-size:14.5px;font-variant-numeric:tabular-nums;min-width:520px}
 .vc-table .r.h{border-top:0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#4f4c47;font-weight:700}
-.vc-dif{font-style:normal;font-size:11px;font-weight:700;border-radius:4px;padding:2px 6px;margin-left:6px;text-transform:uppercase;letter-spacing:.04em}.vc-dif.ok{background:#DDF1E7;color:#0B5B38}.vc-dif.sob{background:#FFF3C9;color:#5C3F00}.vc-dif.fal{background:#FBE6E3;color:#B3261A}
 @media(max-width:900px){.vc-grid{grid-template-columns:minmax(0,1fr)}.vc-total{grid-template-columns:minmax(0,1fr)}}
 `

@@ -7,7 +7,6 @@ import { promoPrice } from '@/lib/lojaPricing'
 import {
   sb, acessoMesas, erro, r2, hashPin, pinOk, exigePinSupervisor, evento, recalcComanda, totalPago, novoQrToken,
 } from '@/lib/mesas'
-import { caixaObrigatorioFechado } from '@/lib/caixa'
 
 // Todas as ações do garçom/dono sobre mesas e comandas num lugar só. A tela
 // manda a ação; aqui o servidor confere dono, módulo ligado, PIN da
@@ -242,7 +241,6 @@ export async function POST(req: NextRequest) {
       const c = await comandaAberta(companyId, b.comandaId)
       if (!c) return erro('Essa comanda não está aberta.', 409)
       if (!['dinheiro', 'cartao', 'pix'].includes(String(b.forma))) return erro('Forma de pagamento inválida.')
-      if (await caixaObrigatorioFechado(companyId, 'mesa')) return erro('O caixa das mesas está fechado. Abra o caixa (botão Caixa no topo) para receber pagamentos.', 409)
       const valor = r2(Number(b.valor) || 0)
       if (!(valor > 0)) return erro('Informe o valor.')
       const calc = await recalcComanda(c.id)

@@ -1,3 +1,5 @@
+-- ATENÇÃO (3/nov/2026): as tabelas de CAIXA (seção 3 abaixo: loja_caixas / loja_caixa_movimentos) foram APAGADAS do banco
+-- por decisão do Ricardo (funcionalidade removida). Este arquivo fica como referência pra recriar quando o caixa voltar.
 -- Canais separados (delivery / PDV / mesa) + Caixa — Etapa 1 e 2 (3/nov/2026)
 
 -- 1) Novos canais no pedido: 'pdv' (venda de balcão no PDV) e 'mesa' (rodada de comanda).

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- corpo JSON validado campo a campo abaixo */
 import { NextRequest, NextResponse } from 'next/server'
-import { randomBytes } from 'crypto'
+import { randomBytes, randomInt } from 'crypto'
 import { normalizePhone } from '@/lib/phone'
 import { requireUser } from '@/lib/requireUser'
 import { promoPrice } from '@/lib/lojaPricing'
@@ -30,12 +30,35 @@ export async function POST(req: NextRequest) {
 
     // Configurar (PIN, taxa, mesas, garçons) funciona mesmo com o módulo
     // desligado — o dono prepara tudo antes de ligar.
-    const livre = ['config_salvar', 'mesas_acrescentar', 'garcom_salvar'].includes(acao)
+    const livre = ['config_salvar', 'mesas_acrescentar', 'garcom_salvar', 'pin_zerar'].includes(acao)
     const acc = await acessoMesas(req, companyId, { exigirLigado: !livre })
     if (acc instanceof NextResponse) return acc
     const { company } = acc
 
+    // Trocar PIN e renomear garçom pedem o PIN atual da supervisão — a não ser que
+    // quem esteja pedindo seja a Trindade Online (admin geral), que pode redefinir.
+    // Erro de PIN conta na mesma trava das outras ações (5 erros = 10 min bloqueado);
+    // o registro do erro vai na comanda mais recente da loja (a tabela exige uma comanda).
+    async function exigePinAtual(pin: unknown): Promise<NextResponse | null> {
+      const u = await requireUser(req)
+      if (!(u instanceof NextResponse) && u.isAdmin) return null
+      if (!company.loja_supervisor_pin_hash) return null   // ainda não tem PIN: primeiro cadastro
+      const { data: ult } = await sb.from('loja_comandas').select('id').eq('company_id', companyId).order('aberta_em', { ascending: false }).limit(1)
+      const bad = await pinOk(company, pin, ult?.[0]?.id ?? null)
+      return bad ? erro(bad, 403) : null
+    }
+
     // ---------- configuração ----------
+    if (acao === 'pin_zerar') {
+      // Só a Trindade Online: zera o PIN da loja e gera um novo, mostrado uma única vez.
+      const u = await requireUser(req)
+      if (u instanceof NextResponse || !u.isAdmin) return erro('Só a Trindade Online pode zerar o PIN.', 403)
+      const novo = String(randomInt(0, 10000)).padStart(4, '0')
+      const { error } = await sb.from('companies').update({ loja_supervisor_pin_hash: hashPin(novo) }).eq('id', companyId)
+      if (error) return erro('Não consegui zerar o PIN: ' + error.message, 500)
+      return NextResponse.json({ ok: true, pin: novo })
+    }
+
     if (acao === 'config_salvar') {
       const upd: Record<string, unknown> = {}
       if (b.taxaPct != null) {
@@ -45,6 +68,8 @@ export async function POST(req: NextRequest) {
       }
       if (b.pin) {
         if (!/^\d{4,6}$/.test(String(b.pin))) return erro('O PIN precisa ter de 4 a 6 números.')
+        const negado = await exigePinAtual(b.pinAtual)
+        if (negado) return negado
         upd.loja_supervisor_pin_hash = hashPin(String(b.pin))
       }
       if (typeof b.mesasEnabled === 'boolean') {
@@ -75,6 +100,12 @@ export async function POST(req: NextRequest) {
       const nome = String(b.nome || '').trim().slice(0, 40)
       if (!nome) return erro('Informe o nome do garçom.')
       if (b.id) {
+        const { data: atual } = await sb.from('loja_garcons').select('nome').eq('id', String(b.id)).eq('company_id', companyId).maybeSingle()
+        if (!atual) return erro('Garçom não encontrado.', 404)
+        if (atual.nome !== nome) {
+          const negado = await exigePinAtual(b.pin)
+          if (negado) return negado
+        }
         const { error } = await sb.from('loja_garcons').update({ nome, ativo: b.ativo !== false }).eq('id', String(b.id)).eq('company_id', companyId)
         if (error) return erro(error.message, 500)
       } else {

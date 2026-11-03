@@ -858,6 +858,9 @@ function Config({ companyId, adminMode, recarregar, mesasEnabled, taxaPct, hasPi
 }) {
   const [taxa, setTaxa] = useState(String(taxaPct))
   const [pin, setPin] = useState('')
+  const [pinAtual, setPinAtual] = useState('')
+  const [pinGerado, setPinGerado] = useState('')
+  const [editando, setEditando] = useState<null | { id: string; nome: string; pin: string }>(null)
   const [nome, setNome] = useState('')
   const [qtd, setQtd] = useState('5')
   const [ok, setOk] = useState('')
@@ -865,8 +868,19 @@ function Config({ companyId, adminMode, recarregar, mesasEnabled, taxaPct, hasPi
   void companyId
 
   async function salvarGeral() {
-    const r = await call('config_salvar', { taxaPct: Number(taxa.replace(',', '.')), ...(pin ? { pin } : {}) })
-    if (r) { setOk('Salvo.'); setPin('') }
+    const r = await call('config_salvar', { taxaPct: Number(taxa.replace(',', '.')), ...(pin ? { pin, pinAtual } : {}) })
+    if (r) { setOk(pin ? 'Salvo. PIN novo definido.' : 'Salvo.'); setPin(''); setPinAtual(''); setPinGerado('') }
+  }
+  async function zerarPin() {
+    if (!window.confirm('Zerar o PIN desta loja e gerar um novo? O PIN antigo deixa de funcionar na hora.')) return
+    const r = await call('pin_zerar', {})
+    if (r) { setPinGerado(String(r.pin)); setOk('') }
+  }
+  async function salvarNomeGarcom() {
+    if (!editando) return
+    const g = lista.find(x => x.id === editando.id)
+    const r = await call('garcom_salvar', { id: editando.id, nome: editando.nome, ativo: g?.ativo !== false, pin: editando.pin })
+    if (r) { await recarregar(); setEditando(null); setOk('Nome do garçom alterado.') }
   }
   return (
     <Modal titulo="Configurar mesas" onClose={onClose} wide>
@@ -879,18 +893,35 @@ function Config({ companyId, adminMode, recarregar, mesasEnabled, taxaPct, hasPi
         <h4>Taxa de serviço e PIN da supervisão</h4>
         <div className="ms-row">
           <label className="ms-lbl">Taxa de serviço (%)<input className="ms-in" inputMode="decimal" value={taxa} onChange={e => setTaxa(e.target.value)} /></label>
+          {hasPin && !adminMode && <label className="ms-lbl">PIN atual<PinInput value={pinAtual} onChange={setPinAtual} /></label>}
           <label className="ms-lbl">{hasPin ? 'Novo PIN (4 a 6 números)' : 'Definir PIN (4 a 6 números)'}<PinInput value={pin} onChange={setPin} /></label>
-          <button className="ms-btn" disabled={busy} onClick={salvarGeral}>Salvar</button>
+          <button className="ms-btn" disabled={busy || (!!pin && hasPin && !adminMode && pinAtual.length < 4)} onClick={salvarGeral}>Salvar</button>
         </div>
-        <small>{hasPin ? 'PIN definido.' : 'Sem PIN, ninguém consegue cancelar item, dar desconto ou cancelar comanda.'}</small>
+        <small>{hasPin ? (adminMode ? 'PIN definido. Como Trindade Online você pode trocar sem o PIN atual.' : 'PIN definido. Para trocar, digite o PIN atual e o novo. Esqueceu o PIN? Peça à Trindade Online para zerar.') : 'Sem PIN, ninguém consegue cancelar item, dar desconto ou cancelar comanda.'}</small>
+        {adminMode && (
+          <div className="ms-row" style={{ marginTop: 8 }}>
+            <button className="ms-btn ghost" disabled={busy} onClick={zerarPin}>Zerar PIN e gerar novo</button>
+          </div>
+        )}
+        {pinGerado && <div className="ms-okmsg">Novo PIN da loja: <b style={{ fontSize: 22, letterSpacing: '.15em' }}>{pinGerado}</b><br />Passe para a loja agora. Ele não aparece de novo (depois a loja pode trocar por um PIN dela).</div>}
       </div>
       <div className="ms-cfg">
         <h4>Garçons</h4>
         {lista.map(g => (
-          <div key={g.id} className="ms-gl">
-            <span style={{ opacity: g.ativo ? 1 : .5 }}>{g.nome}</span>
-            <button className="ms-btn ghost" disabled={busy} onClick={async () => { await call('garcom_salvar', { id: g.id, nome: g.nome, ativo: !g.ativo }); await recarregar() }}>{g.ativo ? 'Desativar' : 'Reativar'}</button>
-          </div>
+          editando?.id === g.id ? (
+            <div key={g.id} className="ms-row">
+              <input className="ms-in" aria-label="Novo nome do garçom" value={editando.nome} onChange={e => setEditando({ ...editando, nome: e.target.value })} />
+              {!adminMode && <label className="ms-lbl">PIN da supervisão<PinInput value={editando.pin} onChange={v => setEditando({ ...editando, pin: v })} /></label>}
+              <button className="ms-btn" disabled={busy || !editando.nome.trim() || (!adminMode && editando.pin.length < 4)} onClick={salvarNomeGarcom}>Salvar</button>
+              <button className="ms-btn ghost" onClick={() => setEditando(null)}>Cancelar</button>
+            </div>
+          ) : (
+            <div key={g.id} className="ms-gl">
+              <span style={{ opacity: g.ativo ? 1 : .5 }}>{g.nome}</span>
+              <button className="ms-btn ghost" disabled={busy} onClick={() => { setOk(''); setEditando({ id: g.id, nome: g.nome, pin: '' }) }}>Editar nome</button>
+              <button className="ms-btn ghost" disabled={busy} onClick={async () => { await call('garcom_salvar', { id: g.id, nome: g.nome, ativo: !g.ativo }); await recarregar() }}>{g.ativo ? 'Desativar' : 'Reativar'}</button>
+            </div>
+          )
         ))}
         <div className="ms-row">
           <input className="ms-in" placeholder="Nome do garçom" value={nome} onChange={e => setNome(e.target.value)} />
@@ -1118,7 +1149,7 @@ const CSS = `
 .ms-grp{display:flex;flex-direction:column}.ms-grp small{font-weight:400;color:#6F6C67}
 .ms-cfg{display:flex;flex-direction:column;gap:8px;border-top:1px solid #ECEDE8;padding-top:12px}.ms-cfg:first-of-type{border-top:0;padding-top:0}
 .ms-lbl{display:flex;flex-direction:column;gap:4px;font-size:12.5px;font-weight:600;flex:1;min-width:140px}
-.ms-gl{display:flex;justify-content:space-between;align-items:center}
+.ms-gl{display:flex;align-items:center;gap:8px}.ms-gl>span{flex:1;min-width:0}
 .ms-sw{display:flex;gap:8px;align-items:center;font-weight:600}
 @media(max-width:900px){.ms-body{flex-direction:column}.ms-side{width:auto;border-left:0;border-top:1px solid #DCDDD6}}
 `

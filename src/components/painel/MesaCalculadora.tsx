@@ -1,4 +1,5 @@
 'use client'
+import ConfirmModal from './ConfirmModal'
 import { useMemo, useState, type Dispatch, type SetStateAction } from 'react'
 
 // Calculadora inteligente das mesas (nov/2026). Duas formas de abrir:
@@ -129,9 +130,14 @@ export default function MesaCalculadora({ comanda, onClose, pagtos = SEM_PAGTOS,
   function carregar(v: number) {
     setCalc(s => ({ ...s, cur: toStr(r2(v)), fresh: true, afterOp: false, expr: s.acc === null ? '' : s.expr }))
   }
-  function zerarTudo() {
-    if ((igualTrava || consumoTrava) && !window.confirm('Isso apaga a divisão e as marcas de quem já pagou aqui. Os pagamentos continuam registrados na comanda. Zerar mesmo?')) return
+  const [confZerar, setConfZerar] = useState(false)
+  function zerarAgora() {
+    setConfZerar(false)
     setCalc(CALC0); setDiv({ ...DIVISAO0, base: comanda ? 'total' : 'visor' })
+  }
+  function zerarTudo() {
+    if (igualTrava || consumoTrava) { setConfZerar(true); return }
+    zerarAgora()
   }
 
   const visor = r2(parse(calc.cur))
@@ -365,6 +371,10 @@ export default function MesaCalculadora({ comanda, onClose, pagtos = SEM_PAGTOS,
           {podeCobrar && <button className="us" disabled={!(visor > 0)} onClick={() => abrirCobranca('livre', -1, visor, '')}>Cobrar {brl(visor)}</button>}
         </div>
 
+        {confZerar && (
+          <ConfirmModal perigo titulo="Zerar tudo?" mensagem="Isso apaga a divisão e as marcas de quem já pagou aqui. Os pagamentos continuam registrados na comanda."
+            confirmar="Zerar tudo" onConfirm={zerarAgora} onCancel={() => setConfZerar(false)} />
+        )}
         {cob && (
           <div className="cc-pop-ov" onClick={() => { if (!enviando) setCob(null) }}>
             <div className="cc-pop" role="dialog" aria-label="Registrar pagamento" onClick={e => e.stopPropagation()}>

@@ -5,6 +5,7 @@ import { adminFetch } from '@/lib/adminFetch'
 import { moduleActive } from '@/lib/modules'
 import { beep, unlockAudio } from '@/lib/beep'
 import { qzPrintRaw, buildReceipt, buildKitchenTicket, isRawBtMode, printViaRawBt, setPapelImpressora } from '@/lib/qzPrint'
+import ConfirmModal from '@/components/painel/ConfirmModal'
 import MesaCalculadora, { type CalcComanda, type Divisao, DIVISAO0 } from '@/components/painel/MesaCalculadora'
 import { npGroupContribution, type NpGrupo, type NpProduto, PESO_REGEX, pesoNum, pesoDisplay } from '@/lib/produtoCart'
 
@@ -451,9 +452,10 @@ function ComandaView(props: {
 
   function pedirPin(titulo: string, run: (pin: string) => Promise<Resp>) { setPinVal(''); setMsg(''); setPin({ titulo, run }) }
   // Mesa zerada (sem pedido ativo): libera sem PIN.
+  const [confLiberar, setConfLiberar] = useState(false)
   async function liberarMesa() {
-    if (!window.confirm(`Liberar a Mesa ${mesa?.numero}? Ela volta a ficar livre.`)) return
     const r = await call('cancelar_comanda', { comandaId: c.id })
+    setConfLiberar(false)
     if (r) { limparDivisao(); await load(); props.onClose() }
   }
   async function confirmarPin() {
@@ -509,7 +511,7 @@ function ComandaView(props: {
                   <button className="show-s" onClick={() => { setMenu(false); props.imprimirConta() }}>Imprimir conta</button>
                   <button onClick={() => { setMenu(false); setSub('transferir') }}>Trocar de mesa</button>
                   <button onClick={() => { setMenu(false); setSub('juntar') }}>Juntar mesas</button>
-                  <button className="danger" onClick={() => { setMenu(false); if (ativos.length === 0) { void liberarMesa(); return } pedirPin('Cancelar comanda', pin => call('cancelar_comanda', { comandaId: c.id, pin }).then(async r => { if (r) { limparDivisao(); await load(); props.onClose() } return r })) }}>{ativos.length === 0 ? 'Liberar mesa' : 'Cancelar comanda'}</button>
+                  <button className="danger" onClick={() => { setMenu(false); if (ativos.length === 0) { setConfLiberar(true); return } pedirPin('Cancelar comanda', pin => call('cancelar_comanda', { comandaId: c.id, pin }).then(async r => { if (r) { limparDivisao(); await load(); props.onClose() } return r })) }}>{ativos.length === 0 ? 'Liberar mesa' : 'Cancelar comanda'}</button>
                 </div>
               </>
             )}
@@ -536,7 +538,7 @@ function ComandaView(props: {
                 <p>Lance o primeiro pedido para a cozinha começar. Cada novo pedido vira uma rodada nesta mesma comanda.</p>
                 <button className="cm-add big" onClick={props.onAdd}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#151210" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>Adicionar itens</button>
                 <small>O cliente também pode pedir pelo QR da mesa. O pedido dele aparece aqui para você confirmar.</small>
-                <button className="cm-liberar" disabled={busy} onClick={liberarMesa}>Liberar mesa (cliente desistiu)</button>
+                <button className="cm-liberar" disabled={busy} onClick={() => setConfLiberar(true)}>Liberar mesa (cliente desistiu)</button>
               </div>
             )}
 
@@ -658,6 +660,10 @@ function ComandaView(props: {
           pagtos={pagtos.map(p => ({ id: p.id, valor: Number(p.valor), forma: p.forma, pessoa: p.pessoa }))}
           divisao={divisao} setDivisao={setDivisao} erro={msg}
           onPagar={falta > 0.005 ? pagarDaCalculadora : undefined} />
+      )}
+      {confLiberar && (
+        <ConfirmModal perigo titulo={`Liberar a Mesa ${mesa?.numero}?`} mensagem="A mesa volta a ficar livre para o próximo cliente. Nenhum pedido ou pagamento será perdido, pois não há nenhum."
+          confirmar="Liberar mesa" ocupado={busy} onConfirm={liberarMesa} onCancel={() => setConfLiberar(false)} />
       )}
       {pin && (
         <Modal titulo={pin.titulo} onClose={() => setPin(null)}>
@@ -884,9 +890,10 @@ function Config({ companyId, adminMode, recarregar, mesasEnabled, taxaPct, hasPi
     const r = await call('config_salvar', { taxaPct: Number(taxa.replace(',', '.')), ...(pin ? { pin, pinAtual } : {}) })
     if (r) { setOk(pin ? 'Salvo. PIN novo definido.' : 'Salvo.'); setPin(''); setPinAtual(''); setPinGerado('') }
   }
+  const [confZerar, setConfZerar] = useState(false)
   async function zerarPin() {
-    if (!window.confirm('Zerar o PIN desta loja e gerar um novo? O PIN antigo deixa de funcionar na hora.')) return
     const r = await call('pin_zerar', {})
+    setConfZerar(false)
     if (r) { setPinGerado(String(r.pin)); setOk('') }
   }
   async function salvarNomeGarcom() {
@@ -913,7 +920,7 @@ function Config({ companyId, adminMode, recarregar, mesasEnabled, taxaPct, hasPi
         <small>{hasPin ? (adminMode ? 'PIN definido. Como Trindade Online você pode trocar sem o PIN atual.' : 'PIN definido. Para trocar, digite o PIN atual e o novo. Esqueceu o PIN? Peça à Trindade Online para zerar.') : 'Sem PIN, ninguém consegue cancelar item, dar desconto ou cancelar comanda.'}</small>
         {adminMode && (
           <div className="ms-row" style={{ marginTop: 8 }}>
-            <button className="ms-btn ghost" disabled={busy} onClick={zerarPin}>Zerar PIN e gerar novo</button>
+            <button className="ms-btn ghost" disabled={busy} onClick={() => setConfZerar(true)}>Zerar PIN e gerar novo</button>
           </div>
         )}
         {pinGerado && <div className="ms-okmsg">Novo PIN da loja: <b style={{ fontSize: 22, letterSpacing: '.15em' }}>{pinGerado}</b><br />Passe para a loja agora. Ele não aparece de novo (depois a loja pode trocar por um PIN dela).</div>}
@@ -950,6 +957,10 @@ function Config({ companyId, adminMode, recarregar, mesasEnabled, taxaPct, hasPi
         <small>Ex.: acrescentar 5 depois da mesa 20 cria de 21 a 25 sozinho.</small>
       </div>
       {(msg || ok) && <div className={msg ? 'ms-err' : 'ms-okmsg'}>{msg || ok}</div>}
+      {confZerar && (
+        <ConfirmModal perigo titulo="Zerar o PIN desta loja?" mensagem="Vamos gerar um PIN novo. O PIN antigo deixa de funcionar na hora, e o novo aparece uma única vez para você passar à loja."
+          confirmar="Zerar e gerar novo" ocupado={busy} onConfirm={zerarPin} onCancel={() => setConfZerar(false)} />
+      )}
     </Modal>
   )
 }

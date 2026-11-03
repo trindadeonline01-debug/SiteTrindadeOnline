@@ -357,6 +357,13 @@ function ComandaView(props: {
   const [forma, setForma] = useState<'dinheiro' | 'cartao' | 'pix'>('dinheiro')
   const [valorDig, setValorDig] = useState('')
   const [pessoa, setPessoa] = useState('')
+  // Divisão da conta em partes: ao tocar em ÷2/÷3/÷4 aparecem N botões com o
+  // valor certo de cada parte (a última absorve os centavos). O garçom toca na
+  // parte, escolhe a forma, põe o nome e registra; a próxima parte livre é
+  // selecionada sozinha. Fica só na tela: os pagamentos já estão no servidor.
+  const [partes, setPartes] = useState<null | { n: number; valores: number[]; pagos: (string | null)[] }>(null)
+  const [parteSel, setParteSel] = useState<number | null>(null)
+  const pessoaRef = useRef<HTMLInputElement>(null)
   const [menu, setMenu] = useState(false)
   const [sub, setSub] = useState<null | 'transferir' | 'juntar' | 'desconto' | 'cliente'>(null)
   const [descVal, setDescVal] = useState('')
@@ -370,13 +377,38 @@ function ComandaView(props: {
   const nItens = ativos.reduce((n, p) => n + p.itens.length, 0)
   const valorEf = valorDig ? moneyDigits(valorDig) : falta
   const pct = c.total > 0 ? Math.min(100, Math.round(pago / c.total * 100)) : 0
-  const atalhos: [string, number][] = [['Tudo', falta], ['÷ 2', r2(falta / 2)], ['÷ 3', r2(falta / 3)], ['÷ 4', r2(falta / 4)]]
+  const centavos = (v: number) => String(Math.round(v * 100))
+  const parteDe = (i: number) => {
+    const id = partes?.pagos[i]
+    return id ? pagtos.find(x => x.id === id) || null : null   // some se o pagamento for removido
+  }
+  function dividir(n: number) {
+    if (partes?.n === n) { setPartes(null); setParteSel(null); setValorDig(''); return }
+    const base = Math.floor(falta * 100 / n) / 100
+    const valores = Array.from({ length: n }, (_, i) => i < n - 1 ? base : r2(falta - base * (n - 1)))
+    setPartes({ n, valores, pagos: Array(n).fill(null) })
+    setParteSel(0); setValorDig(centavos(valores[0])); setPessoa('')
+  }
+  function escolherParte(i: number) {
+    if (!partes) return
+    setParteSel(i); setValorDig(centavos(partes.valores[i])); setPessoa('')
+    pessoaRef.current?.focus()
+  }
 
   function pedirPin(titulo: string, run: (pin: string) => Promise<Resp>) { setPinVal(''); setMsg(''); setPin({ titulo, run }) }
   async function pagar() {
     const valor = valorEf
     const r = await call('pagar', { comandaId: c.id, forma, valor, pessoa: pessoa.trim() || null })
-    if (r) { setValorDig(''); setPessoa(''); await load() }
+    if (r) {
+      setPessoa('')
+      if (partes && parteSel !== null) {
+        const pagos = partes.pagos.map((x, i) => i === parteSel ? (r.pagamentoId as string | null) || 'ok' : x)
+        setPartes({ ...partes, pagos })
+        const prox = pagos.findIndex(x => !x)
+        if (prox >= 0) { setParteSel(prox); setValorDig(centavos(partes.valores[prox])) } else { setParteSel(null); setValorDig('') }
+      } else setValorDig('')
+      await load()
+    }
   }
 
   const ST: Record<string, [string, string]> = { recebido: ['Na cozinha', 'wait'], em_preparo: ['Na cozinha', 'wait'], pronto: ['Pronto', 'ok'], saiu_entrega: ['Entregue', 'done'], entregue: ['Entregue', 'done'] }
@@ -497,12 +529,29 @@ function ComandaView(props: {
                       onFocus={e => e.target.select()} onChange={e => setValorDig(e.target.value.replace(/\D/g, ''))} />
                   </div>
                   <div className="cm-quick">
-                    {atalhos.map(([rot, v]) => (
-                      <button key={rot} className={Math.abs(valorEf - v) < 0.005 ? 'on' : ''} onClick={() => setValorDig(String(Math.round(v * 100)))}><em>{rot}</em><b>{moneyShow(String(Math.round(v * 100)))}</b></button>
+                    <button className={!partes && Math.abs(valorEf - falta) < 0.005 ? 'on' : ''} onClick={() => { setPartes(null); setParteSel(null); setValorDig(centavos(falta)) }}><em>Tudo</em><b>{moneyShow(centavos(falta))}</b></button>
+                    {[2, 3, 4].map(n => (
+                      <button key={n} className={partes?.n === n ? 'on' : ''} onClick={() => dividir(n)}><em>÷ {n}</em><b>{moneyShow(centavos(r2(falta / n)))}</b></button>
                     ))}
                   </div>
-                  <input className="cm-who" aria-label="Quem pagou (opcional)" placeholder="Quem pagou? (opcional)" value={pessoa} onChange={e => setPessoa(e.target.value)} />
-                  <button className="cm-reg" disabled={busy || !(valorEf > 0)} onClick={pagar}>Registrar pagamento · {fmt(valorEf)}</button>
+                  {partes && (
+                    <div className="cm-parts">
+                      <div className="ph"><span>Dividido em {partes.n} · toque em uma parte</span><button onClick={() => { setPartes(null); setParteSel(null); setValorDig('') }}>Cancelar divisão</button></div>
+                      <div className="pg" style={{ gridTemplateColumns: `repeat(${partes.n},minmax(0,1fr))` }}>
+                        {partes.valores.map((v, i) => {
+                          const pg = parteDe(i)
+                          const paga = !!partes.pagos[i] && (pg !== null || partes.pagos[i] === 'ok')
+                          return (
+                            <button key={i} className={`${paga ? 'paid' : ''} ${parteSel === i && !paga ? 'on' : ''}`} disabled={paga} onClick={() => escolherParte(i)}>
+                              <em>{paga ? `✓ ${pg?.pessoa || 'Pago'}` : `Parte ${i + 1}`}</em><b>{moneyShow(centavos(v))}</b>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  <input ref={pessoaRef} className="cm-who" aria-label="Quem pagou (opcional)" placeholder="Quem pagou? (opcional)" value={pessoa} onChange={e => setPessoa(e.target.value)} />
+                  <button className="cm-reg" disabled={busy || !(valorEf > 0)} onClick={pagar}>Registrar {partes && parteSel !== null ? `parte ${parteSel + 1}` : 'pagamento'} · {fmt(valorEf)}</button>
                 </div>
               ) : ativos.length === 0 ? (
                 <div className="cm-hint">Os pagamentos aparecem aqui assim que houver consumo na mesa.</div>
@@ -858,6 +907,15 @@ const CSS = `
 .cm-quick button{height:46px;border:1px solid #b9bab2;border-radius:6px;background:#fff;color:#151210;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-width:0}
 .cm-quick button em{font-style:normal;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:#4f4c47}.cm-quick button b{font-size:13px;font-variant-numeric:tabular-nums}
 .cm-quick button.on{background:#FFF6D6;border:2px solid #151210}
+.cm-parts{background:#F5F6F2;border:1px solid #DCDDD6;border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:8px}
+.cm-parts .ph{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:#4f4c47;font-weight:700}
+.cm-parts .ph button{background:transparent;border:0;text-decoration:underline;font-size:12px;font-weight:600;color:#4f4c47;text-transform:none;letter-spacing:0;padding:4px}
+.cm-parts .pg{display:grid;gap:6px}
+.cm-parts .pg button{height:46px;border:1px solid #b9bab2;border-radius:6px;background:#fff;color:#151210;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-width:0;padding:0 4px}
+.cm-parts .pg button em{font-style:normal;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:#4f4c47;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cm-parts .pg button b{font-size:13px;font-variant-numeric:tabular-nums}
+.cm-parts .pg button.on{background:#FFF6D6;border:2px solid #151210}
+.cm-parts .pg button.paid{background:#DDF1E7;border-color:#8FCFB0;color:#0B5B38;cursor:default}.cm-parts .pg button.paid em{color:#0B5B38}
 .cm-who{border:1px solid #b9bab2;border-radius:8px;height:42px;padding:0 14px;font-size:14px;background:#fff;color:#151210;min-width:0;width:100%}
 .cm-reg{height:50px;border:0;border-radius:10px;background:#2A4E7A;color:#fff;font-weight:700;font-size:16px}.cm-reg:disabled{opacity:.45}
 .cm-hint{background:#F5F6F2;border-radius:8px;padding:14px 16px;font-size:13.5px;line-height:1.45;color:#3d3a36}

@@ -223,13 +223,13 @@ export async function POST(req: NextRequest) {
       const pago = await totalPago(c.id)
       const falta = r2((calc?.total ?? 0) - pago)
       if (valor > falta + 0.005) return erro(`O valor passa do que falta pagar (R$ ${falta.toFixed(2).replace('.', ',')}).`)
-      const { error } = await sb.from('loja_comanda_pagamentos').insert({
+      const { data: novo, error } = await sb.from('loja_comanda_pagamentos').insert({
         comanda_id: c.id, company_id: companyId, forma: b.forma, valor,
         pessoa: b.pessoa ? String(b.pessoa).slice(0, 40) : null, customer_phone: c.customer_phone, registrado_por: c.garcom_nome,
-      })
+      }).select('id').single()
       if (error) return erro('Não consegui registrar o pagamento: ' + error.message, 500)
       await evento(companyId, c.id, 'pagamento', { forma: b.forma, valor, pessoa: b.pessoa || null }, c.garcom_nome)
-      return NextResponse.json({ ok: true, falta: r2(falta - valor) })
+      return NextResponse.json({ ok: true, falta: r2(falta - valor), pagamentoId: novo?.id ?? null })
     }
 
     if (acao === 'remover_pagamento') {

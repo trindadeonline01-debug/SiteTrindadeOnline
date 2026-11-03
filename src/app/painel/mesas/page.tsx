@@ -260,7 +260,7 @@ export default function MesasPage() {
                 return (
                   <button key={m.id} className={`ms-mesa ${k}`} onClick={() => c ? setAbertaId(c.id) : setAbrirMesa(m)}>
                     <span className="top"><b>{m.numero}</b><em>{c ? tempo(c.aberta_em) : ''}</em></span>
-                    <span className="bot"><strong>{rotulo}</strong><small>{c ? fmt(c.total) : ''}</small></span>
+                    <span className="bot"><strong>{rotulo}</strong><span className="row"><span className="who">{c?.garcom_nome || ''}</span><small>{c ? fmt(c.total) : ''}</small></span></span>
                   </button>
                 )
               })}
@@ -1108,13 +1108,14 @@ const CSS = `
 .ms-legend span{display:flex;align-items:center;gap:6px}
 .ms-legend i{width:14px;height:14px;border-radius:4px;display:inline-block}
 .ms-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
-.ms-mesa{border:2px solid #b9bab2;background:#fff;color:#151210;border-radius:12px;padding:10px 14px;min-height:100px;text-align:left;display:flex;flex-direction:column;justify-content:space-between;gap:6px}
+.ms-mesa{border:2px solid #b9bab2;background:#fff;color:#151210;border-radius:10px;padding:10px 14px;min-height:112px;cursor:pointer;text-align:left;display:flex;flex-direction:column;justify-content:space-between;gap:6px}
 .ms-mesa .top{display:flex;justify-content:space-between;align-items:baseline}
 .ms-mesa .top b{font-family:'Anton',sans-serif;font-size:34px;line-height:1;font-weight:400}
 .ms-mesa .top em{font-style:normal;font-size:12px;font-weight:600;opacity:.85}
 .ms-mesa .bot{display:flex;flex-direction:column;gap:2px}
 .ms-mesa .bot strong{font-size:12.5px}
-.ms-mesa .bot small{font-size:13px;font-weight:600;opacity:.9}
+.ms-mesa .bot small{font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ms-mesa .bot .row{display:flex;justify-content:space-between;align-items:baseline;gap:8px;min-height:18px}.ms-mesa .bot .who{font-size:12px;opacity:.8;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ms-mesa.ocupada{background:#231F1B;border-color:#231F1B;color:#fff}
 .ms-mesa.aguard{background:#FFC531;border-color:#FFC531}
 .ms-mesa.chama{background:#D6392B;border-color:#D6392B;color:#fff}
@@ -1145,8 +1146,8 @@ const CSS = `
 .ms-err{background:#FDECEA;color:#9B2318;border-radius:8px;padding:10px 12px;font-weight:600}
 .ms-okmsg{background:#E3F4EB;color:#0B5B38;border-radius:8px;padding:10px 12px;font-weight:600}
 .ms-row{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}.ms-row.end{justify-content:flex-end;margin-top:6px}
-.ms-chip{background:#fff;border:1px solid #DCDDD6;border-radius:999px;padding:10px 16px;font-weight:600;min-height:44px;white-space:nowrap}
-.ms-chip.on{background:#151210;color:#fff;border-color:#151210}.ms-chip.block{border-radius:10px;width:100%;text-align:left;margin-top:6px}
+.ms-chip{background:#fff;border:1px solid #b9bab2;border-radius:8px;padding:10px 16px;cursor:pointer;font-weight:600;min-height:44px;white-space:nowrap}
+.ms-chip.on{background:#FFC531;color:#151210;border:2px solid #151210;font-weight:700}.ms-chip.block{border-radius:10px;width:100%;text-align:left;margin-top:6px}
 .ms-cmd{width:100%;display:flex;flex-direction:column;min-height:100vh}
 .ms-cmdhead{display:flex;align-items:center;gap:12px;padding:12px 18px;background:#151210;color:#fff;flex-wrap:wrap}
 .ms-cmdhead .ms-btn.ghost{background:transparent;color:#fff;border-color:#4a423a}
@@ -1166,12 +1167,13 @@ const CSS = `
 .ms-picker{display:flex;gap:16px;padding:16px;flex-wrap:wrap;align-items:flex-start}
 .ms-pl{flex:2;min-width:320px;display:flex;flex-direction:column;gap:10px}.ms-cats{display:flex;gap:6px;overflow:auto;padding-bottom:4px}
 .ms-prods{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
-.ms-prod{background:#fff;border:1px solid #DCDDD6;border-radius:12px;padding:12px;text-align:left;min-height:74px;display:flex;flex-direction:column;justify-content:space-between;gap:6px}
-.ms-prod .n{font-weight:700;line-height:1.2}
+.ms-prod{background:#fff;border:1px solid #b9bab2;border-radius:10px;padding:10px;text-align:left;min-height:74px;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;gap:6px}
+.ms-prod .n{font-weight:700;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.5em}
+.ms-prod:active{background:#FFF6D6;border-color:#151210}
 .ms-mask{-webkit-text-security:disc;text-security:disc}
 .ms-img{object-fit:cover;border-radius:8px;flex:none;background:#E9EAE5}
 .ms-ph{display:inline-flex;align-items:center;justify-content:center;border-radius:8px;background:#E9EAE5;font-size:20px;flex:none}
-.ms-prod .ms-img,.ms-prod .ms-ph{width:100%!important;height:96px!important;border-radius:8px}.ms-prod .p{color:#4f4c47;font-weight:600}
+.ms-prod .ms-img,.ms-prod .ms-ph{width:100%!important;height:96px!important;border-radius:8px}.ms-prod .p{color:#151210;font-weight:700;font-variant-numeric:tabular-nums}
 .ms-cart{flex:1;min-width:300px;background:#fff;border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px;position:sticky;top:12px}
 .ms-cl{display:flex;align-items:center;gap:8px;border-top:1px solid #ECEDE8;padding-top:8px}.ms-cl .n{flex:1;display:flex;flex-direction:column;font-weight:600}.ms-cl .n small{color:#6F6C67;font-weight:400}
 .ms-cl .qty{display:flex;align-items:center;gap:8px}.ms-cl .qty button{width:40px;height:40px;border-radius:10px;border:2px solid #151210;background:#fff;font-size:20px;font-weight:700}

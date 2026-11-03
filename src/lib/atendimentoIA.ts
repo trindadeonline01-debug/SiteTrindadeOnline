@@ -19,6 +19,7 @@ export const ATENDIMENTO_IA_DESLIGADO = true
 export const ATENDIMENTO_IA_EMPRESAS_LIBERADAS: string[] = [
   'd3373bd7-fa9b-490f-a077-c8f2980028c1', // Calçada do Peixe
   '89a82ce2-59ff-4caf-9e57-3062e9a9cbde', // Restaurante Mineroca
+  'e49e9cde-ae0f-45d1-bab7-c2cc2b08c8c3', // Mistura Fina Açaí (liberada em 3/nov/2026)
 ]
 
 export function iaLiberadaParaEmpresa(companyId: string | null | undefined): boolean {

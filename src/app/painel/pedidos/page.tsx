@@ -16,7 +16,7 @@ type Status = 'recebido' | 'em_preparo' | 'pronto' | 'saiu_entrega' | 'entregue'
 type Pedido = {
   id: string; order_number: number | null; customer_id: string | null; customer_name: string; customer_phone: string | null; delivery_address: string | null
   origin: string; status: Status; payment_method: string | null; payment_status: string
-  delivery_type: 'entrega' | 'retirada' | 'balcao'; scheduled_for: string | null
+  delivery_type: 'entrega' | 'retirada' | 'balcao'; scheduled_for: string | null; comanda_id?: string | null
   notes: string | null; subtotal: number; total: number; delivery_fee: number; motoboy_id: string | null
   created_at: string; accepted_at: string | null
   cancelamento_solicitado_em: string | null
@@ -478,7 +478,9 @@ export default function PedidosPage() {
     // no balcão. "Entregue" com pagamento "pendente" era um estado que nem
     // deveria existir (ESPECIFICACAO.md §12 #5) — em vez de só sinalizar o
     // problema, marca pago sozinho nessa transição.
-    const autoPago = status === 'entregue' ? { payment_status: 'pago' as const } : {}
+    // Rodada de mesa (comanda_id) só fica paga quando a comanda fecha em /painel/mesas.
+    const ehMesa = !!pedidos.find(p => p.id === id)?.comanda_id
+    const autoPago = status === 'entregue' && !ehMesa ? { payment_status: 'pago' as const } : {}
     // Motoboy próprio recebendo a corrida ganha um código novo — o cliente
     // informa esse número na entrega, o motoboy confirma respondendo no
     // WhatsApp da loja (webhook em /api/crm/webhook fecha o pedido sozinho

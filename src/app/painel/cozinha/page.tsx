@@ -8,7 +8,7 @@ import { beep, unlockAudio } from '@/lib/beep'
 
 type Item = { id: string; product_name: string; qty: number; selected_options: { name: string; price: number }[] }
 type Status = 'recebido' | 'em_preparo' | 'pronto' | 'saiu_entrega' | 'entregue' | 'cancelado'
-type Pedido = { id: string; customer_id: string | null; customer_name: string; customer_phone: string | null; delivery_address: string | null; status: Status; created_at: string; accepted_at: string | null; delivery_type: 'entrega' | 'retirada' | 'balcao'; scheduled_for: string | null; itens: Item[] }
+type Pedido = { id: string; customer_id: string | null; customer_name: string; customer_phone: string | null; delivery_address: string | null; status: Status; created_at: string; accepted_at: string | null; delivery_type: 'entrega' | 'retirada' | 'balcao'; scheduled_for: string | null; comanda_id?: string | null; itens: Item[] }
 
 const COLUMNS: { status: Status; label: string; next: Status; action: string; color: string }[] = [
   { status: 'recebido', label: 'Recebido', next: 'em_preparo', action: 'Iniciar preparo', color: '#E24B4A' },
@@ -17,7 +17,7 @@ const COLUMNS: { status: Status; label: string; next: Status; action: string; co
 ]
 function nextForCard(p: Pedido, col: typeof COLUMNS[number]) {
   if (col.status === 'pronto' && p.delivery_type !== 'entrega') {
-    return { next: 'entregue' as Status, action: p.delivery_type === 'balcao' ? 'Finalizar pedido' : 'Cliente retirou' }
+    return { next: 'entregue' as Status, action: p.comanda_id ? 'Entregue na mesa' : p.delivery_type === 'balcao' ? 'Finalizar pedido' : 'Cliente retirou' }
   }
   return { next: col.next, action: col.action }
 }
@@ -151,7 +151,9 @@ export default function CozinhaPage() {
     // balcão), então "entregue" confirma o pagamento sozinho (pedido do
     // Ricardo, set/2026 — mesma regra aplicada em /painel/pedidos).
     await supabase.from('loja_pedidos').update({
-      status: next, updated_at: new Date().toISOString(), ...(next === 'entregue' ? { payment_status: 'pago' } : {}),
+      status: next, updated_at: new Date().toISOString(),
+      // Rodada de mesa só vira "paga" quando a comanda fecha (dinheiro entra na conta da mesa, não aqui).
+      ...(next === 'entregue' && !pedido?.comanda_id ? { payment_status: 'pago' } : {}),
     }).eq('id', id)
     if (pedido) {
       notifyCustomer(pedido.customer_id, companyName, next)

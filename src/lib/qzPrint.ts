@@ -248,6 +248,11 @@ export type ReceiptData = {
   subtotal: number
   deliveryFee?: number
   total: number
+  // Conta de mesa (nov/2026): troca o rótulo do tipo, soma linhas extras
+  // (taxa de serviço, desconto) antes do total e lista os pagamentos.
+  rotuloTipo?: string
+  extras?: { label: string; valor: number }[]
+  pagamentos?: { label: string; valor: number }[]
 }
 
 const PAY_LABEL: Record<string, string> = {
@@ -284,7 +289,7 @@ export function buildReceipt(d: ReceiptData): string {
     lines.push('\n', CMD.boldOn, 'ENDEREÇO PARA ENTREGA:', CMD.boldOff, '\n')
     if (d.address) wrap(d.address).forEach(l => lines.push(l, '\n'))
   } else if (d.deliveryType === 'balcao') {
-    lines.push('\n', CMD.boldOn, 'PEDIDO DE BALCÃO', CMD.boldOff, '\n')
+    lines.push('\n', CMD.boldOn, d.rotuloTipo || 'PEDIDO DE BALCÃO', CMD.boldOff, '\n')
   } else {
     lines.push('\n', CMD.boldOn, 'RETIRADA NO LOCAL', CMD.boldOff, '\n')
   }
@@ -310,11 +315,15 @@ export function buildReceipt(d: ReceiptData): string {
 
   lines.push(padRow('Subtotal', money(d.subtotal)), '\n')
   if (d.deliveryType === 'entrega') lines.push(padRow('Taxa de entrega', money(d.deliveryFee || 0)), '\n')
+  d.extras?.forEach(x => lines.push(padRow(x.label, (x.valor < 0 ? '-' : '') + money(Math.abs(x.valor))), '\n'))
   lines.push('='.repeat(cols()), '\n')
   lines.push(CMD.boldOn, CMD.doubleOn, padRow('Total', money(d.total), Math.floor(cols() / 2)), CMD.doubleOff, CMD.boldOff, '\n')
   lines.push('='.repeat(cols()), '\n')
 
-  if (d.paymentMethod) {
+  if (d.pagamentos && d.pagamentos.length > 0) {
+    lines.push('\n', CMD.boldOn, 'FORMAS DE PAGAMENTO', CMD.boldOff, '\n')
+    d.pagamentos.forEach(x => lines.push(padRow(x.label, money(x.valor)), '\n'))
+  } else if (d.paymentMethod) {
     lines.push('\n', CMD.boldOn, 'FORMAS DE PAGAMENTO', CMD.boldOff, '\n')
     lines.push(PAY_LABEL[d.paymentMethod] || d.paymentMethod, '\n')
   }
@@ -339,6 +348,7 @@ export type KitchenTicketData = {
   deliveryType: 'entrega' | 'retirada' | 'balcao'
   items: ReceiptItem[]
   notes?: string | null
+  rotulo?: string   // ex.: 'MESA 12' no lugar de ENTREGA/RETIRADA/BALCÃO
 }
 
 const KITCHEN_DELIVERY_LABEL: Record<KitchenTicketData['deliveryType'], string> = {
@@ -350,7 +360,7 @@ export function buildKitchenTicket(d: KitchenTicketData): string {
   lines.push(CMD.init, CMD.alignCenter)
   lines.push(CMD.boldOn, CMD.doubleOn, `PEDIDO #${d.pedidoShortId}`, CMD.doubleOff, CMD.boldOff, '\n')
   lines.push(new Date(d.createdAt).toLocaleString('pt-BR'), '\n')
-  lines.push(CMD.boldOn + KITCHEN_DELIVERY_LABEL[d.deliveryType] + CMD.boldOff, '\n')
+  lines.push(CMD.boldOn + (d.rotulo || KITCHEN_DELIVERY_LABEL[d.deliveryType]) + CMD.boldOff, '\n')
   lines.push('-'.repeat(cols()), '\n')
   lines.push(CMD.alignLeft)
 

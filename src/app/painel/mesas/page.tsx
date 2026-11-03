@@ -445,7 +445,7 @@ function ComandaView(props: {
       {pin && (
         <Modal titulo={pin.titulo} onClose={() => setPin(null)}>
           <p className="ms-p">Digite o PIN da supervisão.</p>
-          <input className="ms-in pin" type="password" inputMode="numeric" autoFocus maxLength={6} value={pinVal} onChange={e => setPinVal(e.target.value.replace(/\D/g, ''))} />
+          <PinInput className="pin" autoFocus value={pinVal} onChange={setPinVal} />
           {msg && <div className="ms-err">{msg}</div>}
           <button className="ms-btn big" disabled={busy || pinVal.length < 4} onClick={async () => { const r = await pin.run(pinVal); if (r) { setPin(null); setPinVal(''); await load() } }}>Confirmar</button>
         </Modal>
@@ -623,6 +623,21 @@ function Picker({ produtos, categorias, mesaNumero, onClose, onLancar, busy, msg
     </div>
   )
 }
+// PIN da supervisão NUNCA pode ir pro gerenciador de senhas do navegador:
+// por isso não é type="password" (é isso que faz Chrome/Google oferecer
+// "salvar senha"). Campo de texto comum, números mascarados por CSS, com
+// autocomplete desligado e nome aleatório pra o navegador não reconhecer.
+function PinInput({ value, onChange, className = '', autoFocus }: { value: string; onChange: (v: string) => void; className?: string; autoFocus?: boolean }) {
+  const [nome] = useState(() => 'sup' + Math.random().toString(36).slice(2, 10))
+  return (
+    <input
+      className={`ms-in ms-mask ${className}`} type="text" inputMode="numeric" pattern="[0-9]*" maxLength={6} autoFocus={autoFocus}
+      name={nome} id={nome} autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false}
+      data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other"
+      value={value} onChange={e => onChange(e.target.value.replace(/\D/g, ''))}
+    />
+  )
+}
 function Foto({ url, size = 52 }: { url?: string | null; size?: number }) {
   const [erro, setErro] = useState(false)
   if (!url || erro) return <span className="ms-ph" style={{ width: size, height: size }}>🍽️</span>
@@ -659,7 +674,7 @@ function Config({ companyId, adminMode, recarregar, mesasEnabled, taxaPct, hasPi
         <h4>Taxa de serviço e PIN da supervisão</h4>
         <div className="ms-row">
           <label className="ms-lbl">Taxa de serviço (%)<input className="ms-in" inputMode="decimal" value={taxa} onChange={e => setTaxa(e.target.value)} /></label>
-          <label className="ms-lbl">{hasPin ? 'Novo PIN (4 a 6 números)' : 'Definir PIN (4 a 6 números)'}<input className="ms-in" type="password" inputMode="numeric" maxLength={6} value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, ''))} /></label>
+          <label className="ms-lbl">{hasPin ? 'Novo PIN (4 a 6 números)' : 'Definir PIN (4 a 6 números)'}<PinInput value={pin} onChange={setPin} /></label>
           <button className="ms-btn" disabled={busy} onClick={salvarGeral}>Salvar</button>
         </div>
         <small>{hasPin ? 'PIN definido.' : 'Sem PIN, ninguém consegue cancelar item, dar desconto ou cancelar comanda.'}</small>
@@ -777,6 +792,7 @@ const CSS = `
 .ms-prods{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
 .ms-prod{background:#fff;border:1px solid #DCDDD6;border-radius:12px;padding:12px;text-align:left;min-height:74px;display:flex;flex-direction:column;justify-content:space-between;gap:6px}
 .ms-prod .n{font-weight:700;line-height:1.2}
+.ms-mask{-webkit-text-security:disc;text-security:disc}
 .ms-img{object-fit:cover;border-radius:8px;flex:none;background:#E9EAE5}
 .ms-ph{display:inline-flex;align-items:center;justify-content:center;border-radius:8px;background:#E9EAE5;font-size:20px;flex:none}
 .ms-prod .ms-img,.ms-prod .ms-ph{width:100%!important;height:96px!important;border-radius:8px}.ms-prod .p{color:#4f4c47;font-weight:600}

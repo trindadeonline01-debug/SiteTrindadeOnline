@@ -300,13 +300,19 @@ export async function POST(req: NextRequest) {
       const c = await comandaAberta(companyId, b.comandaId)
       if (!c) return erro('Essa comanda não está aberta.', 409)
       if ((await totalPago(c.id)) > 0) return erro('Já existe pagamento nessa comanda. Remova os pagamentos antes de cancelar.', 409)
-      const bad = await pinOk(company, b.pin, c.id)
-      if (bad) return erro(bad, 403)
+      // Mesa zerada (nenhum pedido ativo, nenhum pagamento): o garçom libera sem PIN —
+      // cliente que sentou e desistiu. Com pedido ativo, só com o PIN da supervisão.
+      const { count: ativos } = await sb.from('loja_pedidos').select('id', { count: 'exact', head: true }).eq('comanda_id', c.id).neq('status', 'cancelado')
+      const zerada = (ativos || 0) === 0
+      if (!zerada) {
+        const bad = await pinOk(company, b.pin, c.id)
+        if (bad) return erro(bad, 403)
+      }
       const agora = new Date().toISOString()
       await sb.from('loja_pedidos').update({ status: 'cancelado', cancelado_por: 'loja', cancelado_em: agora, updated_at: agora }).eq('comanda_id', c.id).neq('status', 'cancelado')
       await sb.from('loja_comandas').update({ status: 'cancelada', fechada_em: agora, fechada_por: c.garcom_nome, updated_at: agora }).eq('id', c.id)
       await recalcComanda(c.id)
-      await evento(companyId, c.id, 'cancelou', {}, c.garcom_nome)
+      await evento(companyId, c.id, zerada ? 'liberada' : 'cancelou', {}, c.garcom_nome)
       return NextResponse.json({ ok: true })
     }
 

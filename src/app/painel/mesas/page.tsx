@@ -450,6 +450,12 @@ function ComandaView(props: {
   }
 
   function pedirPin(titulo: string, run: (pin: string) => Promise<Resp>) { setPinVal(''); setMsg(''); setPin({ titulo, run }) }
+  // Mesa zerada (sem pedido ativo): libera sem PIN.
+  async function liberarMesa() {
+    if (!window.confirm(`Liberar a Mesa ${mesa?.numero}? Ela volta a ficar livre.`)) return
+    const r = await call('cancelar_comanda', { comandaId: c.id })
+    if (r) { limparDivisao(); await load(); props.onClose() }
+  }
   async function confirmarPin() {
     if (!pin || busy || pinVal.length < 4) return
     const r = await pin.run(pinVal)
@@ -503,7 +509,7 @@ function ComandaView(props: {
                   <button className="show-s" onClick={() => { setMenu(false); props.imprimirConta() }}>Imprimir conta</button>
                   <button onClick={() => { setMenu(false); setSub('transferir') }}>Trocar de mesa</button>
                   <button onClick={() => { setMenu(false); setSub('juntar') }}>Juntar mesas</button>
-                  <button className="danger" onClick={() => { setMenu(false); pedirPin('Cancelar comanda', pin => call('cancelar_comanda', { comandaId: c.id, pin }).then(async r => { if (r) { limparDivisao(); await load(); props.onClose() } return r })) }}>Cancelar comanda</button>
+                  <button className="danger" onClick={() => { setMenu(false); if (ativos.length === 0) { void liberarMesa(); return } pedirPin('Cancelar comanda', pin => call('cancelar_comanda', { comandaId: c.id, pin }).then(async r => { if (r) { limparDivisao(); await load(); props.onClose() } return r })) }}>{ativos.length === 0 ? 'Liberar mesa' : 'Cancelar comanda'}</button>
                 </div>
               </>
             )}
@@ -530,6 +536,7 @@ function ComandaView(props: {
                 <p>Lance o primeiro pedido para a cozinha começar. Cada novo pedido vira uma rodada nesta mesma comanda.</p>
                 <button className="cm-add big" onClick={props.onAdd}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#151210" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>Adicionar itens</button>
                 <small>O cliente também pode pedir pelo QR da mesa. O pedido dele aparece aqui para você confirmar.</small>
+                <button className="cm-liberar" disabled={busy} onClick={liberarMesa}>Liberar mesa (cliente desistiu)</button>
               </div>
             )}
 
@@ -954,6 +961,7 @@ const CSS = `
 .cm-hb.calc{background:#FFC531;color:#151210;border:2px solid #151210;font-weight:700}
 .ms-top .ms-btn.calc{background:#FFC531;color:#151210;border:2px solid #151210;display:flex;align-items:center;gap:8px}
 .cm-hb.sq{width:44px;padding:0;justify-content:center}
+.cm-liberar{margin-top:6px;height:48px;padding:0 18px;border:1px solid #b9bab2;border-radius:10px;background:#fff;color:#B3261A;font-weight:700;font-size:14.5px;font-family:inherit;cursor:pointer}.cm-liberar:disabled{opacity:.5}
 .cm-title{font-family:'Anton',sans-serif;font-size:34px;line-height:1;text-transform:uppercase;letter-spacing:.02em;padding-right:6px;flex:none}
 .cm-meta{display:flex;flex:1;min-width:0;overflow:hidden}
 .cm-meta>div{display:flex;flex-direction:column;gap:2px;padding:0 16px;border-left:1px solid #3a342d;justify-content:center;flex:none}

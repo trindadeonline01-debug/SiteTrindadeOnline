@@ -64,6 +64,8 @@ export default function SalaDeVendasTab() {
   const [pedidosPrev, setPedidosPrev] = useState<Pedido[]>([]) // período anterior equivalente, pra delta
   const [feed, setFeed] = useState<Pedido[]>([])             // recentes, sem filtro de período
   const [openOrders, setOpenOrders] = useState<Pedido[]>([]) // em aberto agora, sem filtro de período
+  // PDV e Mesas por canal (Delivery fica nos KPIs de cima)
+  const [canais, setCanais] = useState<{ pdv: { qtd: number; valor: number }; mesa: { qtd: number; valor: number; taxa: number } } | null>(null)
   const [weekly, setWeekly] = useState<{ day: string; label: string; total: number; isToday: boolean }[]>([])
   const [topProducts, setTopProducts] = useState<{ name: string; store: string; qty: number; orders: number }[]>([])
   const [cardapioViews, setCardapioViews] = useState<{ total: number; lojasVisitadas: number; ranking: { id: string; name: string; count: number }[] }>({ total: 0, lojasVisitadas: 0, ranking: [] })
@@ -134,6 +136,22 @@ export default function SalaDeVendasTab() {
     if (storeFilter !== 'all') q = q.eq('company_id', storeFilter)
     const { data: curr } = await q.order('created_at', { ascending: false })
     setPedidos((curr || []) as Pedido[])
+
+    // PDV (vendas) e Mesas (contas fechadas) no mesmo período/loja — a taxa de serviço fica à parte.
+    let qpdv = supabase.from('loja_pedidos').select('total').eq('origin', 'pdv').neq('status', 'cancelado')
+    let qmesa = supabase.from('loja_comandas').select('subtotal, desconto, taxa_valor').eq('status', 'fechada')
+    if (from) { qpdv = qpdv.gte('created_at', from); qmesa = qmesa.gte('fechada_em', from) }
+    if (to) { qpdv = qpdv.lt('created_at', to); qmesa = qmesa.lt('fechada_em', to) }
+    if (storeFilter !== 'all') { qpdv = qpdv.eq('company_id', storeFilter); qmesa = qmesa.eq('company_id', storeFilter) }
+    const [{ data: pdvRows }, { data: mesaRows }] = await Promise.all([qpdv.limit(20000), qmesa.limit(20000)])
+    setCanais({
+      pdv: { qtd: (pdvRows || []).length, valor: ((pdvRows || []) as { total: number }[]).reduce((t, r) => t + Number(r.total || 0), 0) },
+      mesa: {
+        qtd: (mesaRows || []).length,
+        valor: ((mesaRows || []) as { subtotal: number; desconto: number }[]).reduce((t, r) => t + Number(r.subtotal || 0) - Number(r.desconto || 0), 0),
+        taxa: ((mesaRows || []) as { taxa_valor: number }[]).reduce((t, r) => t + Number(r.taxa_valor || 0), 0),
+      },
+    })
 
     // período anterior equivalente (mesma duração, imediatamente antes) —
     // pra "tudo" não existe anterior.
@@ -562,6 +580,17 @@ export default function SalaDeVendasTab() {
           </div>
         </div>
       </div>
+
+      {/* POR CANAL — Delivery (KPIs acima) + PDV + Mesas */}
+      {canais && (
+        <div style={{ ...s.card, display: 'flex', flexWrap: 'wrap', gap: '10px 28px', alignItems: 'center', padding: '12px 16px', marginBottom: 14, fontSize: 13 }}>
+          <span style={{ fontSize: 10.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5, color: '#aaa' }}>Por canal</span>
+          <span>🛵 Delivery <b>{fmtMoney(faturado)}</b> <span style={{ color: '#999' }}>· {numPedidos} {numPedidos === 1 ? 'pedido' : 'pedidos'}</span></span>
+          <span>🖥️ PDV <b>{fmtMoney(canais.pdv.valor)}</b> <span style={{ color: '#999' }}>· {canais.pdv.qtd} {canais.pdv.qtd === 1 ? 'venda' : 'vendas'}</span></span>
+          <span>🍽️ Mesas <b>{fmtMoney(canais.mesa.valor)}</b> <span style={{ color: '#999' }}>· {canais.mesa.qtd} {canais.mesa.qtd === 1 ? 'conta' : 'contas'}{canais.mesa.taxa > 0 ? ` · serviço ${fmtMoney(canais.mesa.taxa)} à parte` : ''}</span></span>
+          <span style={{ marginLeft: 'auto' }}>Total <b>{fmtMoney(faturado + canais.pdv.valor + canais.mesa.valor)}</b></span>
+        </div>
+      )}
 
       {/* ALERTAS */}
       {(pedidosParados.length > 0 || lojaInativa || (cancelados.length > 0 && taxaCancelamento >= 5)) && (

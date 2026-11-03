@@ -18,7 +18,7 @@ type Comanda = {
   taxa_servico_ativa: boolean; taxa_servico_pct: number; desconto: number; desconto_motivo: string | null
   subtotal: number; taxa_valor: number; total: number; aberta_em: string
 }
-type ItemPed = { id: string; product_name: string; unit_price: number; qty: number; peso_kg: number | null; selected_options: { name: string; price: number }[] }
+type ItemPed = { id: string; produto_id: string | null; product_name: string; unit_price: number; qty: number; peso_kg: number | null; selected_options: { name: string; price: number }[] }
 type PedidoMesa = { id: string; order_number: number | null; comanda_id: string; status: string; created_at: string; notes: string | null; itens: ItemPed[] }
 type Pagto = { id: string; comanda_id: string; forma: string; valor: number; pessoa: string | null }
 type Chamado = { id: string; mesa_id: string; comanda_id: string | null; tipo: 'garcom' | 'conta' | 'pedido'; mensagem: string | null; criado_em: string }
@@ -146,6 +146,7 @@ export default function MesasPage() {
 
   const comandaDaMesa = useMemo(() => new Map(comandas.map(c => [c.mesa_id, c])), [comandas])
   const comanda = comandas.find(c => c.id === abertaId) || null
+  const fotos = useMemo(() => Object.fromEntries(produtos.map(p => [p.id, p.photo_url ?? null])) as Record<string, string | null>, [produtos])
   const mesaDe = (id: string) => mesas.find(m => m.id === id)
 
   async function imprimir(conteudos: string[]) {
@@ -289,7 +290,7 @@ export default function MesasPage() {
         <ComandaView
           c={comanda} mesa={mesaDe(comanda.mesa_id)} mesas={mesas} comandas={comandas} comandaDaMesa={comandaDaMesa}
           pedidos={pedidos.filter(p => p.comanda_id === comanda.id)} pagtos={pagtos.filter(p => p.comanda_id === comanda.id)}
-          busy={busy} msg={msg} setMsg={setMsg} call={call} load={load}
+          busy={busy} msg={msg} setMsg={setMsg} call={call} load={load} fotos={fotos}
           onClose={() => { setAbertaId(null); setMsg('') }} onAdd={() => setPicker(true)}
           imprimirConta={() => imprimir([dadosConta(comanda)])}
           fechado={async () => { const conta = dadosConta(comanda); await imprimir([conta]); setAbertaId(null); await load() }}
@@ -334,7 +335,7 @@ function Modal({ titulo, onClose, children, wide }: { titulo: string; onClose: (
 function ComandaView(props: {
   c: Comanda; mesa?: Mesa; mesas: Mesa[]; comandas: Comanda[]; comandaDaMesa: Map<string, Comanda>
   pedidos: PedidoMesa[]; pagtos: Pagto[]; busy: boolean; msg: string; setMsg: (s: string) => void
-  call: CallFn; load: () => Promise<void>
+  call: CallFn; load: () => Promise<void>; fotos: Record<string, string | null>
   onClose: () => void; onAdd: () => void; imprimirConta: () => void; fechado: () => Promise<void>
 }) {
   const { c, mesa, pedidos, pagtos, busy, msg, setMsg, call, load } = props
@@ -378,6 +379,7 @@ function ComandaView(props: {
                 <div className="rh"><b>Rodada {i + 1}</b><small>{new Date(p.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} · {p.status.replace('_', ' ')}</small></div>
                 {p.itens.map(it => (
                   <div key={it.id} className="it">
+                    <Foto url={it.produto_id ? props.fotos[it.produto_id] : null} size={52} />
                     <span className="q">{it.peso_kg != null ? `${it.peso_kg}kg` : `${it.qty}×`}</span>
                     <span className="n">{it.product_name}{it.selected_options?.length > 0 && <small>{it.selected_options.map(o => o.name).join(', ')}</small>}</span>
                     <span className="v">{fmt(it.unit_price * it.qty)}</span>
@@ -548,6 +550,7 @@ function Picker({ produtos, categorias, mesaNumero, onClose, onLancar, busy, msg
             <div className="ms-prods">
               {lista.map(p => (
                 <button key={p.id} className="ms-prod" onClick={() => tocar(p)}>
+                  <Foto url={p.photo_url} size={0} />
                   <span className="n">{p.name}</span>
                   <span className="p">{PESO_REGEX.test(p.name) ? `${fmt(Number(p.sale_price))}/kg` : fmt(Number(p.sale_price))}</span>
                 </button>
@@ -560,6 +563,7 @@ function Picker({ produtos, categorias, mesaNumero, onClose, onLancar, busy, msg
             {linhas.length === 0 && <div className="ms-note">Nenhum item ainda.</div>}
             {linhas.map(l => (
               <div key={l.key} className="ms-cl">
+                <Foto url={l.produto.photo_url} size={44} />
                 <div className="n">{l.pesoKg != null ? `${pesoDisplayKg(l.pesoKg)}kg ` : ''}{l.produto.name}{l.modifiers.length > 0 && <small>{l.modifiers.map(m => m.name).join(', ')}</small>}</div>
                 {l.pesoKg == null ? (
                   <div className="qty">
@@ -618,6 +622,12 @@ function Picker({ produtos, categorias, mesaNumero, onClose, onLancar, busy, msg
       )}
     </div>
   )
+}
+function Foto({ url, size = 52 }: { url?: string | null; size?: number }) {
+  const [erro, setErro] = useState(false)
+  if (!url || erro) return <span className="ms-ph" style={{ width: size, height: size }}>🍽️</span>
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={url} alt="" loading="lazy" className="ms-img" style={{ width: size, height: size }} onError={() => setErro(true)} />
 }
 function pesoDisplayKg(n: number) { return n.toFixed(3).replace('.', ',') }
 
@@ -766,7 +776,10 @@ const CSS = `
 .ms-pl{flex:2;min-width:320px;display:flex;flex-direction:column;gap:10px}.ms-cats{display:flex;gap:6px;overflow:auto;padding-bottom:4px}
 .ms-prods{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
 .ms-prod{background:#fff;border:1px solid #DCDDD6;border-radius:12px;padding:12px;text-align:left;min-height:74px;display:flex;flex-direction:column;justify-content:space-between;gap:6px}
-.ms-prod .n{font-weight:700;line-height:1.2}.ms-prod .p{color:#4f4c47;font-weight:600}
+.ms-prod .n{font-weight:700;line-height:1.2}
+.ms-img{object-fit:cover;border-radius:8px;flex:none;background:#E9EAE5}
+.ms-ph{display:inline-flex;align-items:center;justify-content:center;border-radius:8px;background:#E9EAE5;font-size:20px;flex:none}
+.ms-prod .ms-img,.ms-prod .ms-ph{width:100%!important;height:96px!important;border-radius:8px}.ms-prod .p{color:#4f4c47;font-weight:600}
 .ms-cart{flex:1;min-width:300px;background:#fff;border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px;position:sticky;top:12px}
 .ms-cl{display:flex;align-items:center;gap:8px;border-top:1px solid #ECEDE8;padding-top:8px}.ms-cl .n{flex:1;display:flex;flex-direction:column;font-weight:600}.ms-cl .n small{color:#6F6C67;font-weight:400}
 .ms-cl .qty{display:flex;align-items:center;gap:8px}.ms-cl .qty button{width:40px;height:40px;border-radius:10px;border:2px solid #151210;background:#fff;font-size:20px;font-weight:700}

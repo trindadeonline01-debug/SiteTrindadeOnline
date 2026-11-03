@@ -5,7 +5,7 @@ import { adminFetch } from '@/lib/adminFetch'
 import { moduleActive } from '@/lib/modules'
 import { beep, unlockAudio } from '@/lib/beep'
 import { qzPrintRaw, buildReceipt, buildKitchenTicket, isRawBtMode, printViaRawBt, setPapelImpressora } from '@/lib/qzPrint'
-import MesaCalculadora, { type CalcComanda } from '@/components/painel/MesaCalculadora'
+import MesaCalculadora, { type CalcComanda, type Divisao, DIVISAO0 } from '@/components/painel/MesaCalculadora'
 import { npGroupContribution, type NpGrupo, type NpProduto, PESO_REGEX, pesoNum, pesoDisplay } from '@/lib/produtoCart'
 
 // Mesas e comandas (nov/2026) — mapa de mesas em tela cheia pro tablet do
@@ -304,7 +304,7 @@ export default function MesasPage() {
 
       {comanda && !picker && (
         <ComandaView
-          c={comanda} mesa={mesaDe(comanda.mesa_id)} mesas={mesas} comandas={comandas} comandaDaMesa={comandaDaMesa}
+          key={comanda.id} c={comanda} mesa={mesaDe(comanda.mesa_id)} mesas={mesas} comandas={comandas} comandaDaMesa={comandaDaMesa}
           pedidos={pedidos.filter(p => p.comanda_id === comanda.id)} pagtos={pagtos.filter(p => p.comanda_id === comanda.id)}
           busy={busy} msg={msg} setMsg={setMsg} call={call} load={load} fotos={fotos}
           onClose={() => { setAbertaId(null); setMsg('') }} onAdd={() => setPicker(true)}
@@ -376,6 +376,19 @@ function ComandaView(props: {
   const pessoaRef = useRef<HTMLInputElement>(null)
   const [menu, setMenu] = useState(false)
   const [calcAberta, setCalcAberta] = useState(false)
+  // Divisão da calculadora (quem já pagou, nomes, itens por pessoa): guardada neste aparelho
+  // por comanda, pra não se perder ao fechar a calculadora ou sair da comanda. Some ao fechar a conta.
+  const chaveDiv = `mesas_divisao_${c.id}`
+  const [divisao, setDivisao] = useState<Divisao>(() => {
+    try { const s = localStorage.getItem(chaveDiv); return s ? { ...DIVISAO0, ...JSON.parse(s) } : DIVISAO0 } catch { return DIVISAO0 }
+  })
+  useEffect(() => {
+    try {
+      if (divisao === DIVISAO0 || JSON.stringify(divisao) === JSON.stringify(DIVISAO0)) localStorage.removeItem(chaveDiv)
+      else localStorage.setItem(chaveDiv, JSON.stringify(divisao))
+    } catch { /* sem armazenamento: segue só na tela */ }
+  }, [chaveDiv, divisao])
+  const limparDivisao = () => { try { localStorage.removeItem(chaveDiv) } catch { /* ok */ } }
   const [sub, setSub] = useState<null | 'transferir' | 'juntar' | 'desconto' | 'cliente'>(null)
   const [descVal, setDescVal] = useState('')
   const [descMotivo, setDescMotivo] = useState('')
@@ -396,13 +409,14 @@ function ComandaView(props: {
       id: it.id, nome: it.product_name, qtd: it.peso_kg != null ? `${String(it.peso_kg).replace('.', ',')} kg` : `${it.qty}×`, total: r2(it.unit_price * it.qty),
     })),
   }
-  // Valor vindo da calculadora: já cai no campo de pagamento, com o nome de quem vai pagar.
-  function usarDaCalculadora(valor: number, quem?: string) {
-    setPartes(null); setParteSel(null)
-    setValorDig(centavos(Math.min(valor, falta > 0 ? falta : valor)))
-    if (quem) setPessoa(quem)
-    setCalcAberta(false)
-    setTimeout(() => document.getElementById('ms-pagamento')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50)
+  // Pagamento feito de dentro da calculadora: registra na comanda e devolve o id
+  // (a calculadora usa o id pra marcar a pessoa como paga). Null = deu erro.
+  async function pagarDaCalculadora(valor: number, quem: string, formaPg: 'dinheiro' | 'cartao' | 'pix'): Promise<string | null> {
+    setMsg('')
+    const r = await call('pagar', { comandaId: c.id, forma: formaPg, valor, pessoa: quem || null })
+    if (!r) return null
+    await load()
+    return (r.pagamentoId as string) || null
   }
   const splitEq = (T: number, n: number) => {
     const base = Math.floor(T * 100 / n) / 100
@@ -484,7 +498,7 @@ function ComandaView(props: {
                   <button className="show-s" onClick={() => { setMenu(false); props.imprimirConta() }}>Imprimir conta</button>
                   <button onClick={() => { setMenu(false); setSub('transferir') }}>Trocar de mesa</button>
                   <button onClick={() => { setMenu(false); setSub('juntar') }}>Juntar mesas</button>
-                  <button className="danger" onClick={() => { setMenu(false); pedirPin('Cancelar comanda', pin => call('cancelar_comanda', { comandaId: c.id, pin }).then(async r => { if (r) { await load(); props.onClose() } return r })) }}>Cancelar comanda</button>
+                  <button className="danger" onClick={() => { setMenu(false); pedirPin('Cancelar comanda', pin => call('cancelar_comanda', { comandaId: c.id, pin }).then(async r => { if (r) { limparDivisao(); await load(); props.onClose() } return r })) }}>Cancelar comanda</button>
                 </div>
               </>
             )}
@@ -615,7 +629,7 @@ function ComandaView(props: {
             </div>
 
             <div className="cm-foot" id="ms-fechar">
-              <button className="cm-close" disabled={busy || falta > 0.005 || ativos.length === 0} onClick={async () => { const r = await call('fechar', { comandaId: c.id }); if (r) await props.fechado() }}>Fechar conta</button>
+              <button className="cm-close" disabled={busy || falta > 0.005 || ativos.length === 0} onClick={async () => { const r = await call('fechar', { comandaId: c.id }); if (r) { limparDivisao(); await props.fechado() } }}>Fechar conta</button>
               <small>{ativos.length === 0 ? 'Adicione itens para poder fechar a conta.' : falta > 0.005 ? <>Falta <b>{fmt(falta)}</b> para poder fechar.</> : 'Ao fechar, a mesa fica livre para o próximo cliente.'}</small>
             </div>
           </aside>
@@ -627,7 +641,12 @@ function ComandaView(props: {
         </div>
       </div>
 
-      {calcAberta && <MesaCalculadora comanda={calcComanda} onClose={() => setCalcAberta(false)} onUsar={falta > 0.005 ? usarDaCalculadora : undefined} />}
+      {calcAberta && (
+        <MesaCalculadora comanda={calcComanda} onClose={() => setCalcAberta(false)}
+          pagtos={pagtos.map(p => ({ id: p.id, valor: Number(p.valor), forma: p.forma, pessoa: p.pessoa }))}
+          divisao={divisao} setDivisao={setDivisao} erro={msg}
+          onPagar={falta > 0.005 ? pagarDaCalculadora : undefined} />
+      )}
       {pin && (
         <Modal titulo={pin.titulo} onClose={() => setPin(null)}>
           <p className="ms-p">Digite o PIN da supervisão.</p>

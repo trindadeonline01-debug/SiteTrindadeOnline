@@ -1,11 +1,14 @@
 'use client'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type Dispatch, type SetStateAction } from 'react'
 
 // Calculadora inteligente das mesas (nov/2026). Duas formas de abrir:
 //  - na tela de mesas: sem comanda, calculadora comum (o visor alimenta "dividir igual");
 //  - dentro da comanda: já vem com consumo, serviço, total, falta e pago, divide
-//    a conta igual ou por consumo de cada pessoa, e leva o valor pro pagamento.
-// Nada aqui grava no banco: só calcula e devolve o valor (onUsar).
+//    a conta igual ou por consumo de cada pessoa e cobra cada uma ali mesmo
+//    (popup com nome + forma de pagamento → onPagar registra na comanda).
+// A divisão fica guardada fora daqui (Divisao, no ComandaView) até a mesa fechar:
+// fechar e abrir a calculadora não perde quem já pagou. Depois do 1º pagamento
+// os valores ficam congelados, pra conta não mudar debaixo de quem já pagou.
 export type CalcItem = { id: string; nome: string; qtd: string; total: number }
 export type CalcComanda = {
   titulo: string
@@ -13,7 +16,26 @@ export type CalcComanda = {
   taxaPct: number; taxaAtiva: boolean
   itens: CalcItem[]
 }
-type Props = { comanda?: CalcComanda | null; onClose: () => void; onUsar?: (valor: number, pessoa?: string) => void }
+export type CalcPagto = { id: string; valor: number; forma: string; pessoa: string | null }
+export type FormaPg = 'dinheiro' | 'cartao' | 'pix'
+type Base = 'total' | 'falta' | 'consumo' | 'visor'
+// Divisão congelada: quanto cada pessoa deve (alvo) e os ids dos pagamentos dela.
+export type Congelada = { alvo: number[]; ids: string[][] }
+export type Divisao = {
+  base: Base; n: number; nomes: string[]; pc: number; atrib: Record<string, number[]>
+  igual: Congelada | null; consumo: Congelada | null
+}
+export const DIVISAO0: Divisao = { base: 'total', n: 2, nomes: [], pc: 2, atrib: {}, igual: null, consumo: null }
+type Props = {
+  comanda?: CalcComanda | null; onClose: () => void
+  pagtos?: CalcPagto[]
+  divisao?: Divisao; setDivisao?: Dispatch<SetStateAction<Divisao>>
+  // Registra o pagamento na comanda; devolve o id do pagamento ou null se deu erro.
+  onPagar?: (valor: number, pessoa: string, forma: FormaPg) => Promise<string | null>
+  erro?: string
+}
+const FORMAS_CALC: { key: FormaPg; label: string }[] = [{ key: 'dinheiro', label: 'Dinheiro' }, { key: 'cartao', label: 'Cartão' }, { key: 'pix', label: 'Pix' }]
+const NOME_FORMA: Record<string, string> = { dinheiro: 'Dinheiro', cartao: 'Cartão', pix: 'Pix' }
 
 const r2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100
 const brl = (n: number) => 'R$ ' + (Number.isFinite(n) ? n : 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -38,16 +60,32 @@ function aplicar(a: number, op: Op, b: number): number {
 }
 
 type Tab = 'calc' | 'igual' | 'consumo'
-type Base = 'total' | 'falta' | 'consumo' | 'visor'
 
-export default function MesaCalculadora({ comanda, onClose, onUsar }: Props) {
+const SEM_PAGTOS: CalcPagto[] = []
+
+export default function MesaCalculadora({ comanda, onClose, pagtos = SEM_PAGTOS, divisao, setDivisao, onPagar, erro }: Props) {
   const [calc, setCalc] = useState<Calc>(CALC0)
   const [tab, setTab] = useState<Tab>('calc')
-  const [base, setBase] = useState<Base>(comanda ? 'total' : 'visor')
-  const [n, setN] = useState(2)
-  const [nomes, setNomes] = useState<string[]>([])
-  const [pc, setPc] = useState(2)
-  const [atrib, setAtrib] = useState<Record<string, number[]>>({})
+  // Dentro da comanda a divisão mora no ComandaView (sobrevive a fechar a calculadora);
+  // na calculadora livre fica aqui mesmo.
+  const [divLocal, setDivLocal] = useState<Divisao>({ ...DIVISAO0, base: comanda ? 'total' : 'visor' })
+  const div = comanda && divisao ? divisao : divLocal
+  const setDiv = comanda && setDivisao ? setDivisao : setDivLocal
+  const upd = (p: Partial<Divisao>) => setDiv(d => ({ ...d, ...p }))
+  const { base, nomes, atrib } = div
+  const [cob, setCob] = useState<null | { modo: 'igual' | 'consumo' | 'livre'; i: number; valor: number; nome: string; forma: FormaPg }>(null)
+  const [enviando, setEnviando] = useState(false)
+  const [falhou, setFalhou] = useState(false)
+  const [ultimaForma, setUltimaForma] = useState<FormaPg>('dinheiro')
+
+  const pagoDeIds = (ids: string[] = []) => r2(ids.reduce((t, id) => t + Number(pagtos.find(x => x.id === id)?.valor || 0), 0))
+  // A divisão só vale congelada enquanto algum pagamento dela ainda existe na comanda
+  // (se o garçom remover todos, volta a ser calculada ao vivo).
+  const ativa = (c: Congelada | null) => (c && c.ids.some(a => a.some(id => pagtos.some(x => x.id === id)))) ? c : null
+  const igualTrava = ativa(div.igual)
+  const consumoTrava = ativa(div.consumo)
+  const n = igualTrava ? igualTrava.alvo.length : div.n
+  const pc = consumoTrava ? consumoTrava.alvo.length : div.pc
 
   // ---------- teclado ----------
   function digit(d: string) {
@@ -92,7 +130,8 @@ export default function MesaCalculadora({ comanda, onClose, onUsar }: Props) {
     setCalc(s => ({ ...s, cur: toStr(r2(v)), fresh: true, afterOp: false, expr: s.acc === null ? '' : s.expr }))
   }
   function zerarTudo() {
-    setCalc(CALC0); setN(2); setNomes([]); setPc(2); setAtrib({}); setBase(comanda ? 'total' : 'visor')
+    if ((igualTrava || consumoTrava) && !window.confirm('Isso apaga a divisão e as marcas de quem já pagou aqui. Os pagamentos continuam registrados na comanda. Zerar mesmo?')) return
+    setCalc(CALC0); setDiv({ ...DIVISAO0, base: comanda ? 'total' : 'visor' })
   }
 
   const visor = r2(parse(calc.cur))
@@ -100,15 +139,17 @@ export default function MesaCalculadora({ comanda, onClose, onUsar }: Props) {
 
   // ---------- dividir igual ----------
   const baseVal = base === 'total' ? comanda?.total ?? 0 : base === 'falta' ? comanda?.falta ?? 0 : base === 'consumo' ? comanda?.consumo ?? 0 : visor
-  const partes = useMemo(() => splitEq(r2(baseVal), n), [baseVal, n])
+  const partesLive = useMemo(() => splitEq(r2(baseVal), div.n), [baseVal, div.n])
+  const partes = igualTrava ? igualTrava.alvo : partesLive
 
   // ---------- por consumo ----------
   const itens = comanda?.itens ?? SEM_ITENS
+  const livePc = div.pc
   const consumo = useMemo(() => {
-    const sub = Array.from({ length: pc }, () => 0)
+    const sub = Array.from({ length: livePc }, () => 0)
     let semPessoa = 0
     for (const it of itens) {
-      const sel = (atrib[it.id] || []).filter(p => p < pc)
+      const sel = (atrib[it.id] || []).filter(p => p < livePc)
       if (sel.length === 0) { semPessoa = r2(semPessoa + it.total); continue }
       splitEq(it.total, sel.length).forEach((v, k) => { sub[sel[k]] = r2(sub[sel[k]] + v) })
     }
@@ -122,19 +163,62 @@ export default function MesaCalculadora({ comanda, onClose, onUsar }: Props) {
     }
     const soma = r2(tot.reduce((t, v) => t + v, 0))
     return { sub, tot, semPessoa, confere: !!comanda && semPessoa === 0 && itens.length > 0 && Math.abs(soma - comanda.total) < 0.005, soma }
-  }, [itens, atrib, pc, comanda])
+  }, [itens, atrib, livePc, comanda])
+  const totConsumo = consumoTrava ? consumoTrava.alvo : consumo.tot
 
   function alternar(itemId: string, p: number) {
-    setAtrib(a => {
-      const cur = a[itemId] || []
-      return { ...a, [itemId]: cur.includes(p) ? cur.filter(x => x !== p) : [...cur, p].sort((x, y) => x - y) }
+    if (consumoTrava) return
+    setDiv(d => {
+      const cur = d.atrib[itemId] || []
+      return { ...d, atrib: { ...d.atrib, [itemId]: cur.includes(p) ? cur.filter(x => x !== p) : [...cur, p].sort((x, y) => x - y) } }
     })
   }
-  function cobrar(valor: number, pessoa?: string) { if (onUsar && valor > 0) onUsar(r2(valor), pessoa) }
+
+  // ---------- cobrança (popup nome + forma → registra na comanda) ----------
+  const faltaCom = comanda ? comanda.falta : Infinity
+  const podeCobrar = !!onPagar && faltaCom > 0.005
+  function slot(modo: 'igual' | 'consumo', i: number) {
+    const t = modo === 'igual' ? igualTrava : consumoTrava
+    const alvo = modo === 'igual' ? (partes[i] ?? 0) : (totConsumo[i] ?? 0)
+    const ids = t?.ids[i] || []
+    const pago = pagoDeIds(ids)
+    const resta = Math.max(0, r2(alvo - pago))
+    const primeiro = ids.map(id => pagtos.find(x => x.id === id)).find(Boolean)
+    return { alvo, pago, resta, paga: pago > 0 && resta <= 0.005, forma: primeiro?.forma, quem: nomes[i]?.trim() || primeiro?.pessoa || '' }
+  }
+  function abrirCobranca(modo: 'igual' | 'consumo' | 'livre', i: number, valor: number, nome: string) {
+    if (!podeCobrar || !(valor > 0)) return
+    setFalhou(false)
+    setCob({ modo, i, valor: r2(Math.min(valor, faltaCom)), nome, forma: ultimaForma })
+  }
+  async function confirmarCobranca() {
+    if (!cob || !onPagar || enviando) return
+    setEnviando(true); setFalhou(false)
+    const nome = cob.nome.trim()
+    const id = await onPagar(cob.valor, nome, cob.forma)
+    setEnviando(false)
+    if (!id) { setFalhou(true); return }
+    setUltimaForma(cob.forma)
+    const { modo, i } = cob
+    if (modo !== 'livre') {
+      setDiv(d => {
+        const atual = modo === 'igual' ? d.igual : d.consumo
+        const viva = ativa(atual)
+        const alvo = viva ? viva.alvo : (modo === 'igual' ? partesLive : consumo.tot)
+        const ids = viva ? viva.ids.map(a => [...a]) : alvo.map(() => [] as string[])
+        ids[i] = [...(ids[i] || []), id]
+        const nomes2 = [...d.nomes]
+        if (nome) nomes2[i] = nome
+        const novo: Congelada = { alvo, ids }
+        return modo === 'igual' ? { ...d, nomes: nomes2, igual: novo } : { ...d, nomes: nomes2, consumo: novo }
+      })
+    }
+    setCob(null)
+  }
 
   const rightTab: 'igual' | 'consumo' = tab === 'consumo' ? 'consumo' : 'igual'
   const basesOpt: [Base, string, number][] = comanda
-    ? [['total', 'Total com serviço', comanda.total], ['falta', 'Falta pagar', comanda.falta], ['consumo', 'Só o consumo', comanda.consumo], ['visor', 'Valor do visor', visor]]
+    ? [['total', 'Total com serviço', comanda.total], ['falta', 'Falta pagar', comanda.falta], ['consumo', 'Só o consumo', comanda.consumo], ['visor', 'Valor do visor', visor]] 
     : [['visor', 'Valor do visor', visor]]
 
   const K = (label: string, onClick: () => void, cls = '', aria?: string, span = 1) => (
@@ -192,26 +276,35 @@ export default function MesaCalculadora({ comanda, onClose, onUsar }: Props) {
                 <span className="lbl">Dividir qual valor</span>
                 <div className="cc-bases">
                   {basesOpt.map(([k, l, v]) => (
-                    <button key={k} className={base === k ? 'on' : ''} onClick={() => setBase(k)}><em>{l}</em><b>{nbr(v)}</b></button>
+                    <button key={k} className={base === k ? 'on' : ''} disabled={!!igualTrava} onClick={() => upd({ base: k })}><em>{l}</em><b>{nbr(igualTrava ? igualTrava.alvo.reduce((t, x) => t + x, 0) : v)}</b></button>
                   ))}
                 </div>
+                {igualTrava && (
+                  <div className="cc-lock"><span>Divisão em andamento. Quem já pagou fica em verde e os valores não mudam.</span><button onClick={() => upd({ igual: null })}>Refazer divisão</button></div>
+                )}
                 <div className="cc-row">
                   <span className="lbl" style={{ flex: 1 }}>Pessoas</span>
                   <div className="cc-step">
-                    <button aria-label="Menos uma pessoa" onClick={() => setN(v => Math.max(1, v - 1))}>−</button>
+                    <button aria-label="Menos uma pessoa" disabled={!!igualTrava} onClick={() => upd({ n: Math.max(1, div.n - 1) })}>−</button>
                     <b>{n}</b>
-                    <button aria-label="Mais uma pessoa" onClick={() => setN(v => Math.min(30, v + 1))}>+</button>
+                    <button aria-label="Mais uma pessoa" disabled={!!igualTrava} onClick={() => upd({ n: Math.min(30, div.n + 1) })}>+</button>
                   </div>
                 </div>
                 <div className="cc-each"><span>Cada pessoa</span><b>{brl(partes[0] ?? 0)}</b></div>
                 <div className="cc-people">
-                  {partes.map((v, i) => (
-                    <div key={i} className="cc-p">
-                      <input aria-label={`Nome da pessoa ${i + 1}`} placeholder={`Pessoa ${i + 1}`} value={nomes[i] || ''} onChange={e => setNomes(a => { const c = [...a]; c[i] = e.target.value; return c })} />
-                      <b>{brl(v)}</b>
-                      {onUsar && <button className="cb" disabled={!(v > 0)} onClick={() => cobrar(v, (nomes[i] || '').trim() || `Pessoa ${i + 1}`)}>Cobrar</button>}
-                    </div>
-                  ))}
+                  {partes.map((v, i) => {
+                    const sl = slot('igual', i)
+                    return (
+                      <div key={i} className={`cc-p ${sl.paga ? 'paga' : ''}`}>
+                        <input aria-label={`Nome da pessoa ${i + 1}`} placeholder={`Pessoa ${i + 1}`} value={nomes[i] || ''} readOnly={sl.paga}
+                          onChange={e => setDiv(d => { const c = [...d.nomes]; c[i] = e.target.value; return { ...d, nomes: c } })} />
+                        <b>{brl(sl.paga ? sl.pago : sl.pago > 0 ? sl.resta : v)}</b>
+                        {sl.paga
+                          ? <span className="ok">✓ Pago{sl.forma ? ` · ${NOME_FORMA[sl.forma] || sl.forma}` : ''}</span>
+                          : podeCobrar && <button className="cb" disabled={!(sl.resta > 0)} onClick={() => abrirCobranca('igual', i, sl.resta, (nomes[i] || '').trim() || sl.quem)}>{sl.pago > 0 ? 'Cobrar o resto' : 'Cobrar'}</button>}
+                      </div>
+                    )
+                  })}
                 </div>
                 <small className="hint">Os centavos que sobram vão para a última pessoa. A soma sempre fecha com o valor escolhido.</small>
               </div>
@@ -221,9 +314,12 @@ export default function MesaCalculadora({ comanda, onClose, onUsar }: Props) {
               <div className="cc-pane">
                 <div className="cc-row">
                   <span className="lbl" style={{ flex: 1 }}>Toque na pessoa que consumiu</span>
-                  <button className="cc-mini" onClick={() => setPc(v => Math.min(12, v + 1))}>+ pessoa</button>
-                  {pc > 2 && <button className="cc-mini" onClick={() => setPc(v => Math.max(2, v - 1))}>− pessoa</button>}
+                  <button className="cc-mini" disabled={!!consumoTrava} onClick={() => upd({ pc: Math.min(12, div.pc + 1) })}>+ pessoa</button>
+                  {pc > 2 && <button className="cc-mini" disabled={!!consumoTrava} onClick={() => upd({ pc: Math.max(2, div.pc - 1) })}>− pessoa</button>}
                 </div>
+                {consumoTrava && (
+                  <div className="cc-lock"><span>Divisão em andamento. Quem já pagou fica em verde e os itens ficam travados.</span><button onClick={() => upd({ consumo: null })}>Refazer divisão</button></div>
+                )}
                 {itens.length === 0 && <div className="hint">A comanda ainda não tem itens.</div>}
                 <div className="cc-itens">
                   {itens.map(it => {
@@ -233,7 +329,7 @@ export default function MesaCalculadora({ comanda, onClose, onUsar }: Props) {
                         <div className="nm"><span>{it.qtd ? `${it.qtd} ` : ''}{it.nome}</span><small>{brl(it.total)}{sel.length > 1 ? ' · dividido' : ''}</small></div>
                         <div className="ps">
                           {Array.from({ length: pc }, (_, p) => (
-                            <button key={p} aria-label={`Pessoa ${p + 1}`} aria-pressed={sel.includes(p)} className={sel.includes(p) ? 'on' : ''} onClick={() => alternar(it.id, p)}>P{p + 1}</button>
+                            <button key={p} aria-label={`Pessoa ${p + 1}`} aria-pressed={sel.includes(p)} disabled={!!consumoTrava} className={sel.includes(p) ? 'on' : ''} onClick={() => alternar(it.id, p)}>P{p + 1}</button>
                           ))}
                         </div>
                       </div>
@@ -241,12 +337,17 @@ export default function MesaCalculadora({ comanda, onClose, onUsar }: Props) {
                   })}
                 </div>
                 <div className="cc-tiles" style={{ gridTemplateColumns: `repeat(${Math.min(pc, 4)},minmax(0,1fr))` }}>
-                  {consumo.tot.map((v, i) => (
-                    <div key={i} className="t">
-                      <em>PESSOA {i + 1}</em><b>{nbr(v)}</b><small>consumo {nbr(consumo.sub[i])}</small>
-                      {onUsar && <button disabled={!(v > 0)} onClick={() => cobrar(v, `Pessoa ${i + 1}`)}>Cobrar</button>}
-                    </div>
-                  ))}
+                  {totConsumo.map((v, i) => {
+                    const sl = slot('consumo', i)
+                    return (
+                      <div key={i} className={`t ${sl.paga ? 'paga' : ''}`}>
+                        <em>{(nomes[i]?.trim() || `PESSOA ${i + 1}`).toUpperCase()}</em>
+                        <b>{nbr(sl.paga ? sl.pago : sl.pago > 0 ? sl.resta : v)}</b>
+                        <small>{consumoTrava ? (sl.paga ? `✓ Pago${sl.forma ? ` · ${NOME_FORMA[sl.forma] || sl.forma}` : ''}` : sl.pago > 0 ? 'falta pagar' : 'a pagar') : `consumo ${nbr(consumo.sub[i])}`}</small>
+                        {!sl.paga && podeCobrar && <button disabled={!(sl.resta > 0)} onClick={() => abrirCobranca('consumo', i, sl.resta, nomes[i]?.trim() || sl.quem)}>{sl.pago > 0 ? 'Cobrar o resto' : 'Cobrar'}</button>}
+                      </div>
+                    )
+                  })}
                 </div>
                 {consumo.semPessoa > 0
                   ? <div className="cc-chk warn"><span>Faltam atribuir itens</span><b>{brl(consumo.semPessoa)}</b></div>
@@ -261,8 +362,29 @@ export default function MesaCalculadora({ comanda, onClose, onUsar }: Props) {
         <div className="cc-foot">
           <button className="zr" onClick={zerarTudo}>Zerar tudo</button>
           <span className="tx">Zerar limpa o visor, a divisão e as pessoas, e a calculadora fica livre, como uma comum.</span>
-          {onUsar && <button className="us" disabled={!(visor > 0)} onClick={() => cobrar(visor)}>Usar {brl(visor)} no pagamento</button>}
+          {podeCobrar && <button className="us" disabled={!(visor > 0)} onClick={() => abrirCobranca('livre', -1, visor, '')}>Cobrar {brl(visor)}</button>}
         </div>
+
+        {cob && (
+          <div className="cc-pop-ov" onClick={() => { if (!enviando) setCob(null) }}>
+            <div className="cc-pop" role="dialog" aria-label="Registrar pagamento" onClick={e => e.stopPropagation()}>
+              <span className="lbl">Registrar pagamento</span>
+              <div className="v">{brl(cob.valor)}</div>
+              <label className="nm"><span>Quem está pagando</span>
+                <input autoFocus placeholder="Nome (opcional)" value={cob.nome} onChange={e => setCob(c => c && { ...c, nome: e.target.value })} />
+              </label>
+              <span className="lbl">Forma de pagamento</span>
+              <div className="fm">
+                {FORMAS_CALC.map(f => <button key={f.key} className={cob.forma === f.key ? 'on' : ''} onClick={() => setCob(c => c && { ...c, forma: f.key })}>{f.label}</button>)}
+              </div>
+              {falhou && erro && <div className="er">{erro}</div>}
+              <div className="ac">
+                <button className="cn" disabled={enviando} onClick={() => setCob(null)}>Cancelar</button>
+                <button className="ok" disabled={enviando} onClick={confirmarCobranca}>{enviando ? 'Registrando…' : 'Confirmar pagamento'}</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -272,7 +394,7 @@ const CSS = `
 .cc-ov{position:fixed;inset:0;z-index:95;background:rgba(21,18,16,.6);display:flex;align-items:center;justify-content:center;padding:16px;font-family:'Archivo',system-ui,sans-serif;color:#151210}
 .cc,.cc *{box-sizing:border-box}
 .cc button{font-family:inherit;cursor:pointer}
-.cc{width:min(1100px,100%);height:min(740px,100%);background:#fff;border-radius:14px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.cc{position:relative;width:min(1100px,100%);height:min(740px,100%);background:#fff;border-radius:14px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.35)}
 .cc-head{flex:none;display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid #DCDDD6}
 .cc-head .ic{width:38px;height:38px;border-radius:8px;background:#FFC531;display:flex;align-items:center;justify-content:center;flex:none}
 .cc-head .t{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}.cc-head .t b{font-family:'Anton',sans-serif;font-weight:400;font-size:24px;text-transform:uppercase;line-height:1}.cc-head .t small{font-size:12.5px;color:#4f4c47}
@@ -305,6 +427,21 @@ const CSS = `
 .cc-people{display:flex;flex-direction:column;gap:6px}
 .cc-p{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:10px;background:#F5F6F2;border-radius:8px;padding:6px 6px 6px 12px;min-height:50px}
 .cc-p input{border:0;background:transparent;font-size:14px;font-weight:600;min-width:0;width:100%;outline:0;color:#151210}.cc-p b{font-size:16px;font-variant-numeric:tabular-nums}
+.cc-p.paga{background:#DDF1E7}.cc-p.paga input{color:#0B5B38}.cc-p .ok{height:36px;display:flex;align-items:center;padding:0 12px;border-radius:6px;background:#0B7347;color:#fff;font-weight:700;font-size:12.5px;white-space:nowrap}
+.cc-tiles .t.paga{background:#DDF1E7}.cc-tiles .t.paga small{color:#0B5B38;font-weight:700}
+.cc-lock{display:flex;align-items:center;gap:10px;background:#FFF3C9;border-radius:8px;padding:8px 12px;font-size:12.5px;color:#5C3F00;line-height:1.35}.cc-lock span{flex:1}
+.cc-lock button{height:34px;padding:0 12px;border:1px solid #5C3F00;border-radius:6px;background:#fff;color:#5C3F00;font-weight:700;font-size:12.5px;white-space:nowrap}
+.cc-bases button:disabled,.cc-step button:disabled,.cc-mini:disabled,.cc-it .ps button:disabled{opacity:.55;cursor:not-allowed}
+.cc-pop-ov{position:absolute;inset:0;z-index:5;background:rgba(21,18,16,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+.cc-pop{width:min(420px,100%);background:#fff;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:12px;box-shadow:0 12px 40px rgba(0,0,0,.35)}
+.cc-pop .v{font-family:'Anton',sans-serif;font-size:42px;line-height:1;font-variant-numeric:tabular-nums}
+.cc-pop .nm{display:flex;flex-direction:column;gap:5px}.cc-pop .nm span{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#4f4c47;font-weight:700}
+.cc-pop .nm input{height:48px;border:1px solid #b9bab2;border-radius:8px;padding:0 12px;font-size:16px;font-family:inherit;color:#151210;min-width:0}
+.cc-pop .fm{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.cc-pop .fm button{height:48px;border:1px solid #b9bab2;border-radius:6px;background:#fff;font-weight:600;font-size:14.5px;color:#151210}.cc-pop .fm button.on{background:#FFC531;border:2px solid #151210;font-weight:700}
+.cc-pop .er{background:#FBE6E3;color:#B3261A;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600}
+.cc-pop .ac{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);gap:8px;margin-top:4px}
+.cc-pop .ac button{height:52px;border-radius:10px;font-weight:700;font-size:15px}.cc-pop .ac .cn{border:1px solid #b9bab2;background:#fff;color:#151210}.cc-pop .ac .ok{border:0;background:#0B7347;color:#fff}.cc-pop .ac button:disabled{opacity:.55;cursor:not-allowed}
 .cc-p .cb,.cc-tiles .t button{height:36px;padding:0 12px;border:1px solid #2A4E7A;border-radius:6px;background:#fff;color:#2A4E7A;font-weight:700;font-size:12.5px}
 .cc .hint{font-size:12.5px;color:#4f4c47;line-height:1.4}
 .cc-mini{height:34px;padding:0 10px;border:1px solid #b9bab2;border-radius:6px;background:#fff;font-weight:600;font-size:12.5px;color:#151210}

@@ -38,6 +38,10 @@ function tempo(iso: string) {
   const m = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000))
   return m < 60 ? `${m}min` : `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}`
 }
+function formatFone(raw: string) {
+  const d = raw.replace(/\D/g, '').replace(/^55/, '')
+  return d.length === 11 ? `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}` : d.length === 10 ? `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}` : raw
+}
 function moneyDigits(d: string) { const c = d.replace(/\D/g, ''); return c ? parseInt(c, 10) / 100 : 0 }
 function moneyShow(d: string) {
   const c = d.replace(/\D/g, ''); if (!c) return '0,00'
@@ -344,7 +348,7 @@ function ComandaView(props: {
   const [forma, setForma] = useState<'dinheiro' | 'cartao' | 'pix'>('dinheiro')
   const [valorDig, setValorDig] = useState('')
   const [pessoa, setPessoa] = useState('')
-  const [dividir, setDividir] = useState(2)
+  const [menu, setMenu] = useState(false)
   const [sub, setSub] = useState<null | 'transferir' | 'juntar' | 'desconto' | 'cliente'>(null)
   const [descVal, setDescVal] = useState('')
   const [descMotivo, setDescMotivo] = useState('')
@@ -353,92 +357,159 @@ function ComandaView(props: {
   const pago = r2(pagtos.reduce((s, p) => s + Number(p.valor), 0))
   const falta = Math.max(0, r2(c.total - pago))
   const ativos = pedidos.filter(p => p.status !== 'cancelado')
+  const rodadas = ativos.map((p, i) => ({ p, n: i + 1 })).reverse()   // mais recente primeiro
+  const nItens = ativos.reduce((n, p) => n + p.itens.length, 0)
+  const valorEf = valorDig ? moneyDigits(valorDig) : falta
+  const pct = c.total > 0 ? Math.min(100, Math.round(pago / c.total * 100)) : 0
+  const atalhos: [string, number][] = [['Tudo', falta], ['÷ 2', r2(falta / 2)], ['÷ 3', r2(falta / 3)], ['÷ 4', r2(falta / 4)]]
 
   function pedirPin(titulo: string, run: (pin: string) => Promise<Resp>) { setPinVal(''); setMsg(''); setPin({ titulo, run }) }
   async function pagar() {
-    const valor = moneyDigits(valorDig) || falta
+    const valor = valorEf
     const r = await call('pagar', { comandaId: c.id, forma, valor, pessoa: pessoa.trim() || null })
     if (r) { setValorDig(''); setPessoa(''); await load() }
   }
 
+  const ST: Record<string, [string, string]> = { recebido: ['Na cozinha', 'wait'], em_preparo: ['Na cozinha', 'wait'], pronto: ['Pronto', 'ok'], saiu_entrega: ['Entregue', 'done'], entregue: ['Entregue', 'done'] }
+  const X = <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4f4c47" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+
   return (
     <div className="ms-ov full">
-      <div className="ms-cmd">
-        <div className="ms-cmdhead">
-          <button className="ms-btn ghost" onClick={props.onClose}>← Mesas</button>
-          <div className="t"><b>Mesa {mesa?.numero}</b><small>Comanda {c.numero} · Garçom {c.garcom_nome} · aberta há {tempo(c.aberta_em)}</small></div>
-          <button className="ms-btn" onClick={props.onAdd}>+ Adicionar itens</button>
-        </div>
-
-        <div className="ms-cmdbody">
-          <section className="ms-col">
-            <h4>Consumo</h4>
-            {ativos.length === 0 && <div className="ms-note">Nenhum pedido lançado ainda.</div>}
-            {ativos.map((p, i) => (
-              <div key={p.id} className="ms-rodada">
-                <div className="rh"><b>Rodada {i + 1}</b><small>{new Date(p.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} · {p.status.replace('_', ' ')}</small></div>
-                {p.itens.map(it => (
-                  <div key={it.id} className="it">
-                    <Foto url={it.produto_id ? props.fotos[it.produto_id] : null} size={52} />
-                    <span className="q">{it.peso_kg != null ? `${it.peso_kg}kg` : `${it.qty}×`}</span>
-                    <span className="n">{it.product_name}{it.selected_options?.length > 0 && <small>{it.selected_options.map(o => o.name).join(', ')}</small>}</span>
-                    <span className="v">{fmt(it.unit_price * it.qty)}</span>
-                    <button className="ms-x sm" title="Cancelar item" onClick={() => pedirPin(`Cancelar “${it.product_name}”`, pin => call('cancelar_item', { itemId: it.id, pin }))}>✕</button>
-                  </div>
-                ))}
-                {p.notes && <div className="obs">Obs: {p.notes}</div>}
-              </div>
-            ))}
-          </section>
-
-          <section className="ms-col narrow">
-            <h4>Conta</h4>
-            <div className="ms-tot">
-              <div><span>Consumo</span><b>{fmt(c.subtotal)}</b></div>
-              {c.desconto > 0 && <div><span>Desconto{c.desconto_motivo ? ` (${c.desconto_motivo})` : ''}</span><b>- {fmt(c.desconto)}</b></div>}
-              <div><span>Taxa de serviço {c.taxa_servico_ativa ? `${c.taxa_servico_pct}%` : '(retirada)'}</span><b>{fmt(c.taxa_valor)}</b></div>
-              <div className="big"><span>Total</span><b>{fmt(c.total)}</b></div>
-              {pago > 0 && <div><span>Já pago</span><b>{fmt(pago)}</b></div>}
-              <div className={`big ${falta > 0 ? 'warn' : 'ok'}`}><span>{falta > 0 ? 'Falta pagar' : 'Pago'}</span><b>{fmt(falta)}</b></div>
+      <div className="cm">
+        <header className="cm-top">
+          <button className="cm-hb" onClick={props.onClose}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6" /></svg><span className="hide-s">Mesas</span></button>
+          <div className="cm-title">Mesa {mesa?.numero}</div>
+          <div className="cm-meta">
+            <div><span>Comanda</span><b>{c.numero}</b></div>
+            <div><span>Garçom</span><b>{c.garcom_nome}</b></div>
+            <div><span>Aberta há</span><b>{tempo(c.aberta_em)}</b></div>
+            <div className="wa">
+              {c.customer_phone
+                ? <button onClick={() => setSub('cliente')}><span>WhatsApp</span><b>{formatFone(c.customer_phone)} ✓</b></button>
+                : <button className="add" onClick={() => setSub('cliente')}>+ WhatsApp do cliente</button>}
             </div>
-            <div className="ms-row">
-              <button className="ms-btn ghost" disabled={busy} onClick={async () => { await call('taxa_toggle', { comandaId: c.id, ativa: !c.taxa_servico_ativa }); await load() }}>{c.taxa_servico_ativa ? 'Tirar taxa' : 'Colocar taxa'}</button>
-              <button className="ms-btn ghost" onClick={() => setSub('desconto')}>Desconto</button>
-              <button className="ms-btn ghost" onClick={() => setSub('cliente')}>{c.customer_phone ? 'WhatsApp ✓' : 'WhatsApp'}</button>
-              <button className="ms-btn ghost" onClick={props.imprimirConta}>🖨️ Conta</button>
+          </div>
+          <button className="cm-hb hide-s" onClick={props.imprimirConta}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M7 9V4h10v5M7 17H5a1 1 0 0 1-1-1v-5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v5a1 1 0 0 1-1 1h-2" /><rect x="7" y="14" width="10" height="6" /></svg>Imprimir conta</button>
+          <div className="cm-menuwrap">
+            <button className="cm-hb sq" aria-label="Mais ações" aria-expanded={menu} onClick={() => setMenu(m => !m)}><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="19" cy="12" r="1.8" /></svg></button>
+            {menu && (
+              <>
+                <div className="cm-scrim" onClick={() => setMenu(false)} />
+                <div className="cm-menu">
+                  <button className="show-s" onClick={() => { setMenu(false); props.imprimirConta() }}>Imprimir conta</button>
+                  <button onClick={() => { setMenu(false); setSub('transferir') }}>Trocar de mesa</button>
+                  <button onClick={() => { setMenu(false); setSub('juntar') }}>Juntar mesas</button>
+                  <button className="danger" onClick={() => { setMenu(false); pedirPin('Cancelar comanda', pin => call('cancelar_comanda', { comandaId: c.id, pin }).then(async r => { if (r) { await load(); props.onClose() } return r })) }}>Cancelar comanda</button>
+                </div>
+              </>
+            )}
+          </div>
+        </header>
+
+        <div className="cm-body">
+          <main className="cm-main">
+            <div className="cm-mini">
+              <div className="r"><span>Total com serviço</span><b>{fmt(c.total)}</b></div>
+              <div className="bar"><i style={{ width: pct + '%' }} /></div>
+              <div className="r2"><span>Pago <b>{fmt(pago)}</b></span><span className={falta > 0 ? 'falta' : 'okk'}>{falta > 0 ? `Falta ${fmt(falta)}` : 'Pago'}</span></div>
             </div>
 
-            <h4>Pagamento</h4>
-            {pagtos.map(p => (
-              <div key={p.id} className="ms-pg">
-                <span>{FORMAS.find(f => f.key === p.forma)?.label}{p.pessoa ? ` · ${p.pessoa}` : ''}</span><b>{fmt(p.valor)}</b>
-                <button className="ms-x sm" title="Remover pagamento" onClick={() => pedirPin('Remover pagamento', pin => call('remover_pagamento', { pagamentoId: p.id, pin }).then(async r => { await load(); return r }))}>✕</button>
-              </div>
-            ))}
-            {falta > 0 && (
-              <div className="ms-pay">
-                <div className="ms-row">{FORMAS.map(f => <button key={f.key} className={`ms-chip ${forma === f.key ? 'on' : ''}`} onClick={() => setForma(f.key)}>{f.label}</button>)}</div>
-                <div className="ms-row">
-                  <input className="ms-in" inputMode="numeric" placeholder={`Valor (${moneyShow(String(Math.round(falta * 100)))})`} value={valorDig ? moneyShow(valorDig) : ''}
-                    onChange={e => setValorDig(e.target.value.replace(/\D/g, ''))} />
-                  <input className="ms-in" placeholder="Quem pagou (opcional)" value={pessoa} onChange={e => setPessoa(e.target.value)} />
-                </div>
-                <div className="ms-row">
-                  <button className="ms-btn ghost" onClick={() => setValorDig(String(Math.round(falta * 100)))}>Tudo ({fmt(falta)})</button>
-                  <select className="ms-in sm" value={dividir} onChange={e => setDividir(Number(e.target.value))}>{[2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => <option key={n} value={n}>÷ {n}</option>)}</select>
-                  <button className="ms-btn ghost" onClick={() => setValorDig(String(Math.round(falta / dividir * 100)))}>= {fmt(r2(falta / dividir))}</button>
-                  <button className="ms-btn" disabled={busy} onClick={pagar}>Registrar</button>
-                </div>
+            <div className="cm-mhead">
+              <div><h1>Consumo da mesa</h1><span>{ativos.length === 0 ? 'Nenhum pedido lançado ainda' : `${ativos.length} ${ativos.length === 1 ? 'rodada' : 'rodadas'} · ${nItens} ${nItens === 1 ? 'item' : 'itens'} · mais recente primeiro`}</span></div>
+              {ativos.length > 0 && <button className="cm-add hide-s" onClick={props.onAdd}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#151210" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>Adicionar itens</button>}
+            </div>
+
+            {ativos.length === 0 && (
+              <div className="cm-empty">
+                <div className="ic"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#151210" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M7 3v8a2 2 0 0 0 2 2v8" /><path d="M11 3v8" /><path d="M5 3v6" /><path d="M17 3c-2 2-3 5-3 8h3v10" /></svg></div>
+                <h2>Mesa aberta</h2>
+                <p>Lance o primeiro pedido para a cozinha começar. Cada novo pedido vira uma rodada nesta mesma comanda.</p>
+                <button className="cm-add big" onClick={props.onAdd}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#151210" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>Adicionar itens</button>
+                <small>O cliente também pode pedir pelo QR da mesa. O pedido dele aparece aqui para você confirmar.</small>
               </div>
             )}
-            {msg && <div className="ms-err">{msg}</div>}
-            <div className="ms-row end">
-              <button className="ms-btn danger" onClick={() => pedirPin('Cancelar comanda', pin => call('cancelar_comanda', { comandaId: c.id, pin }).then(async r => { if (r) { await load(); props.onClose() } return r }))}>Cancelar comanda</button>
-              <button className="ms-btn ghost" onClick={() => setSub('transferir')}>Trocar de mesa</button>
-              <button className="ms-btn ghost" onClick={() => setSub('juntar')}>Juntar mesas</button>
-              <button className="ms-btn ok" disabled={busy || falta > 0.005} onClick={async () => { const r = await call('fechar', { comandaId: c.id }); if (r) await props.fechado() }}>Fechar conta</button>
+
+            {rodadas.map(({ p, n }) => {
+              const [rot, cls] = ST[p.status] || ['—', 'done']
+              return (
+                <section key={p.id} className="cm-rod">
+                  <header><b>Rodada {n}</b><span>{new Date(p.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span><i /><em className={cls}>{rot}</em></header>
+                  {p.itens.map(it => (
+                    <div key={it.id} className="cm-it">
+                      <Foto url={it.produto_id ? props.fotos[it.produto_id] : null} size={48} />
+                      <div className="nm"><span>{it.product_name}</span>{it.selected_options?.length > 0 && <small>{it.selected_options.map(o => o.name).join(' · ')}</small>}</div>
+                      <b className="qt">{it.peso_kg != null ? `${String(it.peso_kg).replace('.', ',')} kg` : `${it.qty}×`}</b>
+                      <b className="vl">{fmt(it.unit_price * it.qty)}</b>
+                      <button className="cm-sq" aria-label={`Cancelar ${it.product_name} (pede o PIN)`} onClick={() => pedirPin(`Cancelar “${it.product_name}”`, pin => call('cancelar_item', { itemId: it.id, pin }))}>{X}</button>
+                    </div>
+                  ))}
+                  {p.notes && <div className="cm-obs">Obs: {p.notes}</div>}
+                </section>
+              )
+            })}
+          </main>
+
+          <aside className="cm-aside">
+            <div className="cm-scroll">
+              <h2>Conta</h2>
+              <div className="cm-sum">
+                <div><span>Consumo</span><b>{fmt(c.subtotal)}</b><i /></div>
+                <div><span>Taxa de serviço {c.taxa_servico_pct}%</span><b>{c.taxa_servico_ativa ? fmt(c.taxa_valor) : 'retirada'}</b>
+                  <button className="cm-mini-btn" disabled={busy} onClick={async () => { await call('taxa_toggle', { comandaId: c.id, ativa: !c.taxa_servico_ativa }); await load() }}>{c.taxa_servico_ativa ? 'Tirar' : 'Colocar'}</button></div>
+                <div><span>Desconto{c.desconto_motivo ? ` (${c.desconto_motivo})` : ''}</span><b>{c.desconto > 0 ? `- ${fmt(c.desconto)}` : '—'}</b>
+                  <button className="cm-mini-btn" onClick={() => setSub('desconto')}>{c.desconto > 0 ? 'Alterar' : 'Aplicar'}</button></div>
+              </div>
+              <div className="cm-total"><span>Total</span><b>{fmt(c.total)}</b></div>
+              <div className="cm-prog">
+                <div className="r"><span>Pago <b>{fmt(pago)}</b></span><span className={falta > 0 ? 'falta' : 'okk'}>{falta > 0 ? `Falta ${fmt(falta)}` : 'Conta paga'}</span></div>
+                <div className="bar"><i style={{ width: pct + '%' }} /></div>
+              </div>
+
+              {pagtos.length > 0 && (
+                <div className="cm-pgs">
+                  {pagtos.map(pg => (
+                    <div key={pg.id} className="cm-pg">
+                      <span><b>{FORMAS.find(f => f.key === pg.forma)?.label.replace(/^\S+\s/, '')}</b>{pg.pessoa ? ` · ${pg.pessoa}` : ''}</span><b>{fmt(pg.valor)}</b>
+                      <button className="cm-sq sm" aria-label="Remover pagamento (pede o PIN)" onClick={() => pedirPin('Remover pagamento', pin => call('remover_pagamento', { pagamentoId: pg.id, pin }).then(async r => { await load(); return r }))}>{X}</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {falta > 0.005 ? (
+                <div className="cm-pay" id="ms-pagamento">
+                  <h3>Registrar pagamento</h3>
+                  <div className="cm-seg">
+                    {FORMAS.map(f => <button key={f.key} className={forma === f.key ? 'on' : ''} onClick={() => setForma(f.key)}>{f.label.replace(/^\S+\s/, '')}</button>)}
+                  </div>
+                  <div className="cm-val"><span>R$</span>
+                    <input aria-label="Valor a registrar" inputMode="numeric" value={valorDig ? moneyShow(valorDig) : moneyShow(String(Math.round(falta * 100)))}
+                      onFocus={e => e.target.select()} onChange={e => setValorDig(e.target.value.replace(/\D/g, ''))} />
+                  </div>
+                  <div className="cm-quick">
+                    {atalhos.map(([rot, v]) => (
+                      <button key={rot} className={Math.abs(valorEf - v) < 0.005 ? 'on' : ''} onClick={() => setValorDig(String(Math.round(v * 100)))}><em>{rot}</em><b>{moneyShow(String(Math.round(v * 100)))}</b></button>
+                    ))}
+                  </div>
+                  <input className="cm-who" aria-label="Quem pagou (opcional)" placeholder="Quem pagou? (opcional)" value={pessoa} onChange={e => setPessoa(e.target.value)} />
+                  <button className="cm-reg" disabled={busy || !(valorEf > 0)} onClick={pagar}>Registrar pagamento</button>
+                </div>
+              ) : ativos.length === 0 ? (
+                <div className="cm-hint">Os pagamentos aparecem aqui assim que houver consumo na mesa.</div>
+              ) : null}
+              {msg && <div className="ms-err">{msg}</div>}
             </div>
-          </section>
+
+            <div className="cm-foot" id="ms-fechar">
+              <button className="cm-close" disabled={busy || falta > 0.005 || ativos.length === 0} onClick={async () => { const r = await call('fechar', { comandaId: c.id }); if (r) await props.fechado() }}>Fechar conta</button>
+              <small>{ativos.length === 0 ? 'Adicione itens para poder fechar a conta.' : falta > 0.005 ? <>Falta <b>{fmt(falta)}</b> para poder fechar.</> : 'Tudo pago. Pode fechar a conta.'}</small>
+            </div>
+          </aside>
+        </div>
+
+        <div className="cm-bar">
+          <button className="cm-add" onClick={props.onAdd}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#151210" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>Itens</button>
+          <button className="cm-pagar" onClick={() => document.getElementById(falta > 0.005 ? 'ms-pagamento' : 'ms-fechar')?.scrollIntoView({ behavior: 'smooth' })}>{falta > 0.005 ? `Pagar · ${fmt(falta)}` : 'Fechar conta'}</button>
         </div>
       </div>
 
@@ -706,6 +777,99 @@ function Config({ companyId, adminMode, recarregar, mesasEnabled, taxaPct, hasPi
 }
 
 const CSS = `
+.cm{width:100%;height:100vh;height:100dvh;display:flex;flex-direction:column;background:#E9EAE5}
+.cm-top{flex:none;min-height:72px;background:#151210;color:#fff;display:flex;align-items:center;gap:14px;padding:8px 20px;position:relative}
+.cm-hb{display:flex;align-items:center;gap:8px;background:transparent;color:#fff;border:1px solid #4a423a;border-radius:8px;padding:0 14px;height:44px;font-weight:600;font-size:14px;flex:none}
+.cm-hb.sq{width:44px;padding:0;justify-content:center}
+.cm-title{font-family:'Anton',sans-serif;font-size:34px;line-height:1;text-transform:uppercase;letter-spacing:.02em;padding-right:6px;flex:none}
+.cm-meta{display:flex;flex:1;min-width:0;overflow:hidden}
+.cm-meta>div{display:flex;flex-direction:column;gap:2px;padding:0 16px;border-left:1px solid #3a342d;justify-content:center;flex:none}
+.cm-meta span{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#B9B3A8}
+.cm-meta b{font-size:14px;font-weight:600;color:#fff;white-space:nowrap}
+.cm-meta .wa button{background:transparent;border:0;color:#fff;text-align:left;padding:0;display:flex;flex-direction:column;gap:2px}
+.cm-meta .wa button.add{height:34px;padding:0 12px;border:1px dashed #8a7f72;border-radius:6px;color:#E9EAE5;font-weight:600;font-size:12.5px;display:block}
+.cm-menuwrap{position:relative;flex:none}
+.cm-scrim{position:fixed;inset:0;z-index:80}
+.cm-menu{position:absolute;right:0;top:52px;z-index:81;background:#fff;color:#151210;border:1px solid #DCDDD6;border-radius:10px;box-shadow:0 10px 30px rgba(21,18,16,.25);min-width:220px;padding:6px;display:flex;flex-direction:column}
+.cm-menu button{background:transparent;border:0;text-align:left;padding:0 14px;height:46px;border-radius:6px;font-weight:600;font-size:14.5px;color:#151210}
+.cm-menu button:hover{background:#F5F6F2}.cm-menu .danger{color:#B3261A;border-top:1px solid #ECEDE8;border-radius:0 0 6px 6px;margin-top:4px}
+.cm-body{flex:1;min-height:0;width:100%;max-width:1560px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) 420px}
+.cm-main{min-width:0;overflow-y:auto;padding:24px 28px;display:flex;flex-direction:column;gap:14px}
+.cm-mini{display:none}
+.cm-mhead{display:flex;align-items:center;gap:16px}
+.cm-mhead>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.cm-mhead h1{margin:0;font-family:'Anton',sans-serif;font-weight:400;font-size:30px;text-transform:uppercase;line-height:1.05}
+.cm-mhead span{font-size:13px;color:#4f4c47}
+.cm-add{display:flex;align-items:center;justify-content:center;gap:10px;background:#FFC531;color:#151210;border:0;border-radius:10px;padding:0 22px;height:52px;font-weight:700;font-size:16px;flex:none}
+.cm-add.big{height:60px;padding:0 32px;font-size:18px}
+.cm-empty{background:#fff;border:2px dashed #b9bab2;border-radius:12px;display:flex;flex-direction:column;align-items:center;gap:16px;padding:44px 28px;text-align:center}
+.cm-empty .ic{width:80px;height:80px;border-radius:12px;background:#FFF3C9;display:flex;align-items:center;justify-content:center}
+.cm-empty h2{margin:0;font-family:'Anton',sans-serif;font-weight:400;font-size:30px;text-transform:uppercase;line-height:1.05}
+.cm-empty p{margin:0;font-size:15px;line-height:1.5;color:#3d3a36;max-width:440px}.cm-empty small{font-size:13px;color:#4f4c47;max-width:420px;line-height:1.45}
+.cm-rod{background:#fff;border:1px solid #DCDDD6;border-radius:10px;overflow:hidden;flex:none}
+.cm-rod>header{display:flex;align-items:center;gap:10px;padding:8px 16px;background:#F5F6F2}
+.cm-rod>header b{font-size:13px;letter-spacing:.04em;text-transform:uppercase}.cm-rod>header span{font-size:13px;color:#4f4c47}.cm-rod>header i{flex:1}
+.cm-rod>header em{font-style:normal;border-radius:4px;padding:4px 8px;font-weight:700;font-size:11px;letter-spacing:.05em;text-transform:uppercase}
+.cm-rod em.wait{background:#FFF3C9;color:#5C3F00}.cm-rod em.ok{background:#DDF1E7;color:#0B5B38}.cm-rod em.done{background:#ECEDE8;color:#3d3a36}
+.cm-it{display:grid;grid-template-columns:48px minmax(0,1fr) 78px 100px 40px;align-items:center;gap:14px;padding:10px 16px;border-top:1px solid #ECEDE8}
+.cm-it .nm{min-width:0;display:flex;flex-direction:column;gap:2px}.cm-it .nm span{font-weight:600;font-size:15px}.cm-it .nm small{font-size:12.5px;color:#4f4c47}
+.cm-it .qt{text-align:right;font-size:14px;font-variant-numeric:tabular-nums}.cm-it .vl{text-align:right;font-size:15px;font-variant-numeric:tabular-nums}
+.cm-obs{padding:8px 16px;border-top:1px solid #ECEDE8;font-size:12.5px;color:#4f4c47}
+.cm-sq{width:40px;height:40px;border:1px solid #DCDDD6;background:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0}
+.cm-sq.sm{width:36px;height:36px;border:0;background:transparent}
+.cm-aside{min-height:0;display:flex;flex-direction:column;background:#fff;border-left:1px solid #DCDDD6}
+.cm-scroll{flex:1;min-height:0;overflow-y:auto;padding:22px 24px;display:flex;flex-direction:column;gap:14px}
+.cm-scroll h2{margin:0;font-family:'Anton',sans-serif;font-weight:400;font-size:24px;text-transform:uppercase;line-height:1}
+.cm-sum>div{display:grid;grid-template-columns:minmax(0,1fr) auto 84px;align-items:center;gap:10px;min-height:38px;font-size:14px}
+.cm-sum b{font-variant-numeric:tabular-nums;text-align:right}.cm-sum .cm-mini-btn{justify-self:end}
+.cm-mini-btn{height:30px;padding:0 10px;border:1px solid #b9bab2;background:#fff;border-radius:6px;font-weight:600;font-size:12.5px;color:#151210}
+.cm-total{display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid #DCDDD6;padding-top:10px}
+.cm-total span{font-weight:700;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#4f4c47}
+.cm-total b{font-family:'Anton',sans-serif;font-weight:400;font-size:42px;line-height:1;font-variant-numeric:tabular-nums}
+.cm-prog .r,.cm-mini .r2{display:flex;justify-content:space-between;align-items:baseline;font-size:13.5px;margin-bottom:8px}
+.cm-prog .r b,.cm-mini .r2 b{font-variant-numeric:tabular-nums}
+.falta{color:#B3261A;font-weight:700;font-size:15px;font-variant-numeric:tabular-nums}.okk{color:#0B7347;font-weight:700;font-size:15px}
+.cm-prog .bar,.cm-mini .bar{height:8px;background:#E9EAE5;border-radius:4px;overflow:hidden}.cm-prog .bar i,.cm-mini .bar i{display:block;height:100%;background:#0B7347}
+.cm-pgs{display:flex;flex-direction:column;gap:6px}
+.cm-pg{display:grid;grid-template-columns:minmax(0,1fr) auto 36px;align-items:center;gap:10px;background:#F5F6F2;border-radius:8px;padding:4px 4px 4px 12px;min-height:44px;font-size:14px}
+.cm-pay{display:flex;flex-direction:column;gap:10px;border-top:1px solid #DCDDD6;padding-top:14px}
+.cm-pay h3{margin:0;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#4f4c47}
+.cm-seg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.cm-seg button{height:42px;border:1px solid #b9bab2;border-radius:6px;background:#fff;color:#151210;font-weight:600;font-size:14px}
+.cm-seg button.on{background:#151210;border-color:#151210;color:#fff;font-weight:700}
+.cm-val{display:flex;align-items:center;gap:8px;border:2px solid #151210;border-radius:8px;height:54px;padding:0 14px;background:#fff;min-width:0}
+.cm-val span{color:#4f4c47;font-size:16px;font-weight:600;flex:none}
+.cm-val input{flex:1;min-width:0;width:100%;border:0;outline:0;font-family:'Anton',sans-serif;font-size:28px;background:transparent;color:#151210;font-variant-numeric:tabular-nums}
+.cm-quick{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.cm-quick button{height:46px;border:1px solid #b9bab2;border-radius:6px;background:#fff;color:#151210;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-width:0}
+.cm-quick button em{font-style:normal;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:#4f4c47}.cm-quick button b{font-size:13px;font-variant-numeric:tabular-nums}
+.cm-quick button.on{background:#151210;border-color:#151210;color:#fff}.cm-quick button.on em{color:#E9EAE5}
+.cm-who{border:1px solid #b9bab2;border-radius:8px;height:42px;padding:0 14px;font-size:14px;background:#fff;color:#151210;min-width:0;width:100%}
+.cm-reg{height:50px;border:0;border-radius:10px;background:#151210;color:#fff;font-weight:700;font-size:16px}.cm-reg:disabled{opacity:.45}
+.cm-hint{background:#F5F6F2;border-radius:8px;padding:14px 16px;font-size:13.5px;line-height:1.45;color:#3d3a36}
+.cm-foot{flex:none;padding:14px 24px 20px;border-top:1px solid #DCDDD6;background:#F5F6F2;display:flex;flex-direction:column;gap:8px}
+.cm-close{height:56px;border:0;border-radius:10px;background:#0B7347;color:#fff;font-weight:700;font-size:17px}
+.cm-close:disabled{background:#DCDDD6;color:#4f4c47;cursor:not-allowed}
+.cm-foot small{text-align:center;font-size:13px;color:#4f4c47}
+.cm-bar{display:none}
+.show-s{display:none}
+@media(max-width:1000px){
+  .cm-top{padding:10px 14px;gap:10px;min-height:64px}.cm-title{font-size:26px}
+  .cm-meta>div:not(.wa):nth-child(n+3){display:none}.cm-meta>div{padding:0 10px}
+  .hide-s{display:none!important}.show-s{display:block!important}
+  .cm-body{display:flex;flex-direction:column;overflow-y:auto;max-width:none}
+  .cm-main{overflow:visible;padding:14px}.cm-aside{overflow:visible;border-left:0;border-top:1px solid #DCDDD6}
+  .cm-scroll{overflow:visible;padding:18px 14px}.cm-foot{padding:14px 14px 96px}
+  .cm-mini{display:block;background:#fff;border:1px solid #DCDDD6;border-radius:10px;padding:14px 16px}
+  .cm-mini .r{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+  .cm-mini .r span{font-weight:700;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#4f4c47}
+  .cm-mini .r b{font-family:'Anton',sans-serif;font-weight:400;font-size:32px;line-height:1;font-variant-numeric:tabular-nums}
+  .cm-mini .r2{margin:8px 0 0}
+  .cm-mhead h1{font-size:22px}.cm-it{grid-template-columns:44px minmax(0,1fr) auto 36px;gap:10px;padding:8px 12px}.cm-it .qt{display:none}.cm-it .nm span{font-size:14px}.cm-it .vl{font-size:14px}
+  .cm-sq{width:36px;height:36px}
+  .cm-bar{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:10px;position:fixed;left:0;right:0;bottom:0;z-index:55;background:#fff;border-top:1px solid #DCDDD6;padding:12px 14px calc(14px + env(safe-area-inset-bottom))}
+  .cm-bar .cm-add{height:54px;padding:0}.cm-pagar{background:#151210;color:#fff;border:0;border-radius:10px;height:54px;font-weight:700;font-size:16px}
+}
 .ms-wrap{min-height:100vh;background:#E9EAE5;color:#151210;font-family:'Archivo',system-ui,sans-serif;font-size:14px}
 .ms-wrap *{box-sizing:border-box}
 .ms-wrap button{font-family:inherit;cursor:pointer}

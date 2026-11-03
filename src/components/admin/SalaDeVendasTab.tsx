@@ -1,4 +1,5 @@
 'use client'
+import { ORIGENS_DELIVERY } from '@/lib/canais'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import ScrollRow from '@/components/home/ScrollRow'
@@ -127,7 +128,7 @@ export default function SalaDeVendasTab() {
     const { from, to } = periodRange(period)
     const now = new Date()
 
-    let q = supabase.from('loja_pedidos').select('id, company_id, customer_name, status, payment_method, delivery_type, total, created_at, order_number')
+    let q = supabase.from('loja_pedidos').select('id, company_id, customer_name, status, payment_method, delivery_type, total, created_at, order_number').in('origin', [...ORIGENS_DELIVERY])
     if (from) q = q.gte('created_at', from)
     if (to) q = q.lt('created_at', to)
     if (storeFilter !== 'all') q = q.eq('company_id', storeFilter)
@@ -140,7 +141,7 @@ export default function SalaDeVendasTab() {
       const effectiveTo = to ? new Date(to).getTime() : now.getTime()
       const ms = effectiveTo - new Date(from).getTime()
       const prevFrom = new Date(new Date(from).getTime() - ms).toISOString()
-      let qp = supabase.from('loja_pedidos').select('id, company_id, customer_name, status, payment_method, delivery_type, total, created_at, order_number').gte('created_at', prevFrom).lt('created_at', from)
+      let qp = supabase.from('loja_pedidos').select('id, company_id, customer_name, status, payment_method, delivery_type, total, created_at, order_number').in('origin', [...ORIGENS_DELIVERY]).gte('created_at', prevFrom).lt('created_at', from)
       if (storeFilter !== 'all') qp = qp.eq('company_id', storeFilter)
       const { data: prev } = await qp
       setPedidosPrev((prev || []) as Pedido[])
@@ -152,7 +153,7 @@ export default function SalaDeVendasTab() {
     // mesmo período escolhido no topo (igual ao que a gente fez em
     // /painel/pedidos), senão o feed "ao vivo" mostrava pedido de qualquer
     // dia mesmo com "Hoje" selecionado, contradizendo os KPIs ao lado.
-    let qf = supabase.from('loja_pedidos').select('id, company_id, customer_name, status, payment_method, delivery_type, total, created_at, order_number').order('created_at', { ascending: false }).limit(50)
+    let qf = supabase.from('loja_pedidos').select('id, company_id, customer_name, status, payment_method, delivery_type, total, created_at, order_number').in('origin', [...ORIGENS_DELIVERY]).order('created_at', { ascending: false }).limit(50)
     if (from) qf = qf.gte('created_at', from)
     if (to) qf = qf.lt('created_at', to)
     if (storeFilter !== 'all') qf = qf.eq('company_id', storeFilter)
@@ -160,7 +161,7 @@ export default function SalaDeVendasTab() {
     setFeed((feedData || []) as Pedido[])
 
     // pedidos em aberto agora — instantâneo, sem filtro de período
-    let qo = supabase.from('loja_pedidos').select('id, company_id, customer_name, status, payment_method, delivery_type, total, created_at, order_number').in('status', OPEN_STATUSES)
+    let qo = supabase.from('loja_pedidos').select('id, company_id, customer_name, status, payment_method, delivery_type, total, created_at, order_number').in('origin', [...ORIGENS_DELIVERY]).in('status', OPEN_STATUSES)
     if (storeFilter !== 'all') qo = qo.eq('company_id', storeFilter)
     const { data: openData } = await qo
     setOpenOrders((openData || []) as Pedido[])
@@ -168,7 +169,7 @@ export default function SalaDeVendasTab() {
     // faturamento por dia — últimos 7 dias, sempre (independente do período escolhido)
     const days: { day: string; label: string; total: number; isToday: boolean }[] = []
     const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6).toISOString()
-    let qw = supabase.from('loja_pedidos').select('created_at, total, status').gte('created_at', weekStart).neq('status', 'cancelado')
+    let qw = supabase.from('loja_pedidos').select('created_at, total, status').in('origin', [...ORIGENS_DELIVERY]).gte('created_at', weekStart).neq('status', 'cancelado')
     if (storeFilter !== 'all') qw = qw.eq('company_id', storeFilter)
     const { data: weekData } = await qw
     for (let i = 6; i >= 0; i--) {
@@ -185,7 +186,7 @@ export default function SalaDeVendasTab() {
 
     // produtos mais vendidos — últimos 30 dias, todas as lojas (ou a filtrada), excluindo cancelados
     const prodFrom = new Date(Date.now() - 30 * 86400000).toISOString()
-    let qi = supabase.from('loja_pedidos').select('id, company_id, status').gte('created_at', prodFrom).neq('status', 'cancelado')
+    let qi = supabase.from('loja_pedidos').select('id, company_id, status').in('origin', [...ORIGENS_DELIVERY]).gte('created_at', prodFrom).neq('status', 'cancelado')
     if (storeFilter !== 'all') qi = qi.eq('company_id', storeFilter)
     const { data: recentPedidos } = await qi
     const pedidoIds = (recentPedidos || []).map((p: any) => p.id)
@@ -264,7 +265,7 @@ export default function SalaDeVendasTab() {
     setProdutoViews({ totalVistos, totalAtivos: totalAtivos || 0, ranking: produtoRanking })
 
     // Quem mais compra — cruza por telefone, todas as lojas (ou a filtrada)
-    let qc = supabase.from('loja_pedidos').select('customer_name, customer_phone, total, status').neq('status', 'cancelado').limit(10000)
+    let qc = supabase.from('loja_pedidos').select('customer_name, customer_phone, total, status').in('origin', [...ORIGENS_DELIVERY]).neq('status', 'cancelado').limit(10000)
     if (from) qc = qc.gte('created_at', from)
     if (to) qc = qc.lt('created_at', to)
     if (storeFilter !== 'all') qc = qc.eq('company_id', storeFilter)

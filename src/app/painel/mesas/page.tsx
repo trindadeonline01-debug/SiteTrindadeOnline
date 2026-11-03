@@ -32,6 +32,15 @@ type Linha = { key: string; produto: Produto; qty: number; pesoKg: number | null
 const FORMAS: { key: 'dinheiro' | 'cartao' | 'pix'; label: string }[] = [
   { key: 'dinheiro', label: '💵 Dinheiro' }, { key: 'cartao', label: '💳 Cartão' }, { key: 'pix', label: '📱 Pix' },
 ]
+const PAY_ICON: Record<string, { cor: string; tint: string; nome: string; d: React.ReactNode }> = {
+  dinheiro: { cor: '#0B7347', tint: '#DDF1E7', nome: 'Dinheiro', d: <><rect x="3" y="6" width="18" height="12" rx="2" /><circle cx="12" cy="12" r="2.5" /></> },
+  cartao: { cor: '#2A4E7A', tint: '#E1EAF5', nome: 'Cartão', d: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 10h18" /></> },
+  pix: { cor: '#0E7C86', tint: '#DCF1F2', nome: 'Pix', d: <><path d="M12 3l9 9-9 9-9-9z" /><path d="M9 12l3-3 3 3-3 3z" /></> },
+}
+function PayIcon({ forma, cor, size = 18 }: { forma: string; cor?: string; size?: number }) {
+  const m = PAY_ICON[forma]
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={cor || m?.cor} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{m?.d}</svg>
+}
 const fmt = (n: number) => 'R$ ' + (Number.isFinite(n) ? n : 0).toFixed(2).replace('.', ',')
 const r2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100
 function tempo(iso: string) {
@@ -461,7 +470,7 @@ function ComandaView(props: {
               </div>
               <div className="cm-total"><span>Total</span><b>{fmt(c.total)}</b></div>
               <div className="cm-prog">
-                <div className="r"><span>Pago <b>{fmt(pago)}</b></span><span className={falta > 0 ? 'falta' : 'okk'}>{falta > 0 ? `Falta ${fmt(falta)}` : 'Conta paga'}</span></div>
+                <div className="r"><span>Pago <b className="pg">{fmt(pago)}</b></span><span className={falta > 0 ? 'falta' : 'okk'}>{falta > 0 ? `Falta ${fmt(falta)}` : 'Conta paga ✓'}</span></div>
                 <div className="bar"><i style={{ width: pct + '%' }} /></div>
               </div>
 
@@ -469,7 +478,8 @@ function ComandaView(props: {
                 <div className="cm-pgs">
                   {pagtos.map(pg => (
                     <div key={pg.id} className="cm-pg">
-                      <span><b>{FORMAS.find(f => f.key === pg.forma)?.label.replace(/^\S+\s/, '')}</b>{pg.pessoa ? ` · ${pg.pessoa}` : ''}</span><b>{fmt(pg.valor)}</b>
+                      <span className="ico" style={{ background: PAY_ICON[pg.forma]?.tint }}><PayIcon forma={pg.forma} size={17} /></span>
+                      <span><b>{PAY_ICON[pg.forma]?.nome || pg.forma}</b>{pg.pessoa ? ` · ${pg.pessoa}` : ''}</span><b>{fmt(pg.valor)}</b>
                       <button className="cm-sq sm" aria-label="Remover pagamento (pede o PIN)" onClick={() => pedirPin('Remover pagamento', pin => call('remover_pagamento', { pagamentoId: pg.id, pin }).then(async r => { await load(); return r }))}>{X}</button>
                     </div>
                   ))}
@@ -480,7 +490,7 @@ function ComandaView(props: {
                 <div className="cm-pay" id="ms-pagamento">
                   <h3>Registrar pagamento</h3>
                   <div className="cm-seg">
-                    {FORMAS.map(f => <button key={f.key} className={forma === f.key ? 'on' : ''} onClick={() => setForma(f.key)}>{f.label.replace(/^\S+\s/, '')}</button>)}
+                    {FORMAS.map(f => <button key={f.key} className={forma === f.key ? 'on' : ''} onClick={() => setForma(f.key)}><PayIcon forma={f.key} cor={forma === f.key ? '#151210' : undefined} />{PAY_ICON[f.key].nome}</button>)}
                   </div>
                   <div className="cm-val"><span>R$</span>
                     <input aria-label="Valor a registrar" inputMode="numeric" value={valorDig ? moneyShow(valorDig) : moneyShow(String(Math.round(falta * 100)))}
@@ -492,17 +502,19 @@ function ComandaView(props: {
                     ))}
                   </div>
                   <input className="cm-who" aria-label="Quem pagou (opcional)" placeholder="Quem pagou? (opcional)" value={pessoa} onChange={e => setPessoa(e.target.value)} />
-                  <button className="cm-reg" disabled={busy || !(valorEf > 0)} onClick={pagar}>Registrar pagamento</button>
+                  <button className="cm-reg" disabled={busy || !(valorEf > 0)} onClick={pagar}>Registrar pagamento · {fmt(valorEf)}</button>
                 </div>
               ) : ativos.length === 0 ? (
                 <div className="cm-hint">Os pagamentos aparecem aqui assim que houver consumo na mesa.</div>
-              ) : null}
+              ) : (
+                <div className="cm-hint ok">Tudo pago. Confira e feche a conta.</div>
+              )}
               {msg && <div className="ms-err">{msg}</div>}
             </div>
 
             <div className="cm-foot" id="ms-fechar">
               <button className="cm-close" disabled={busy || falta > 0.005 || ativos.length === 0} onClick={async () => { const r = await call('fechar', { comandaId: c.id }); if (r) await props.fechado() }}>Fechar conta</button>
-              <small>{ativos.length === 0 ? 'Adicione itens para poder fechar a conta.' : falta > 0.005 ? <>Falta <b>{fmt(falta)}</b> para poder fechar.</> : 'Tudo pago. Pode fechar a conta.'}</small>
+              <small>{ativos.length === 0 ? 'Adicione itens para poder fechar a conta.' : falta > 0.005 ? <>Falta <b>{fmt(falta)}</b> para poder fechar.</> : 'Ao fechar, a mesa fica livre para o próximo cliente.'}</small>
             </div>
           </aside>
         </div>
@@ -823,30 +835,33 @@ const CSS = `
 .cm-sum>div{display:grid;grid-template-columns:minmax(0,1fr) auto 84px;align-items:center;gap:10px;min-height:38px;font-size:14px}
 .cm-sum b{font-variant-numeric:tabular-nums;text-align:right}.cm-sum .cm-mini-btn{justify-self:end}
 .cm-mini-btn{height:30px;padding:0 10px;border:1px solid #b9bab2;background:#fff;border-radius:6px;font-weight:600;font-size:12.5px;color:#151210}
-.cm-total{display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid #DCDDD6;padding-top:10px}
-.cm-total span{font-weight:700;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#4f4c47}
+.cm-total{display:flex;justify-content:space-between;align-items:center;background:#FFF6D6;border:1px solid #EBD27C;border-radius:10px;padding:12px 16px}
+.cm-total span{font-weight:700;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#5C3F00}
 .cm-total b{font-family:'Anton',sans-serif;font-weight:400;font-size:42px;line-height:1;font-variant-numeric:tabular-nums}
 .cm-prog .r,.cm-mini .r2{display:flex;justify-content:space-between;align-items:baseline;font-size:13.5px;margin-bottom:8px}
 .cm-prog .r b,.cm-mini .r2 b{font-variant-numeric:tabular-nums}
 .falta{color:#B3261A;font-weight:700;font-size:15px;font-variant-numeric:tabular-nums}.okk{color:#0B7347;font-weight:700;font-size:15px}
 .cm-prog .bar,.cm-mini .bar{height:8px;background:#E9EAE5;border-radius:4px;overflow:hidden}.cm-prog .bar i,.cm-mini .bar i{display:block;height:100%;background:#0B7347}
 .cm-pgs{display:flex;flex-direction:column;gap:6px}
-.cm-pg{display:grid;grid-template-columns:minmax(0,1fr) auto 36px;align-items:center;gap:10px;background:#F5F6F2;border-radius:8px;padding:4px 4px 4px 12px;min-height:44px;font-size:14px}
+.cm-pg{display:grid;grid-template-columns:30px minmax(0,1fr) auto 36px;align-items:center;gap:10px;background:#F5F6F2;border-radius:8px;padding:4px 4px 4px 8px;min-height:44px;font-size:14px}
+.cm-pg .ico{width:30px;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center}
+.cm-prog .r b.pg,.cm-mini .r2 b.pg{color:#0B5B38}
 .cm-pay{display:flex;flex-direction:column;gap:10px;border-top:1px solid #DCDDD6;padding-top:14px}
 .cm-pay h3{margin:0;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#4f4c47}
 .cm-seg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
-.cm-seg button{height:42px;border:1px solid #b9bab2;border-radius:6px;background:#fff;color:#151210;font-weight:600;font-size:14px}
-.cm-seg button.on{background:#151210;border-color:#151210;color:#fff;font-weight:700}
+.cm-seg button{height:46px;border:1px solid #b9bab2;border-radius:6px;background:#fff;color:#151210;font-weight:600;font-size:14px;display:flex;align-items:center;justify-content:center;gap:8px;min-width:0}
+.cm-seg button.on{background:#FFC531;border:2px solid #151210;font-weight:700}
 .cm-val{display:flex;align-items:center;gap:8px;border:2px solid #151210;border-radius:8px;height:54px;padding:0 14px;background:#fff;min-width:0}
 .cm-val span{color:#4f4c47;font-size:16px;font-weight:600;flex:none}
 .cm-val input{flex:1;min-width:0;width:100%;border:0;outline:0;font-family:'Anton',sans-serif;font-size:28px;background:transparent;color:#151210;font-variant-numeric:tabular-nums}
 .cm-quick{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
 .cm-quick button{height:46px;border:1px solid #b9bab2;border-radius:6px;background:#fff;color:#151210;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-width:0}
 .cm-quick button em{font-style:normal;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:#4f4c47}.cm-quick button b{font-size:13px;font-variant-numeric:tabular-nums}
-.cm-quick button.on{background:#151210;border-color:#151210;color:#fff}.cm-quick button.on em{color:#E9EAE5}
+.cm-quick button.on{background:#FFF6D6;border:2px solid #151210}
 .cm-who{border:1px solid #b9bab2;border-radius:8px;height:42px;padding:0 14px;font-size:14px;background:#fff;color:#151210;min-width:0;width:100%}
-.cm-reg{height:50px;border:0;border-radius:10px;background:#151210;color:#fff;font-weight:700;font-size:16px}.cm-reg:disabled{opacity:.45}
+.cm-reg{height:50px;border:0;border-radius:10px;background:#2A4E7A;color:#fff;font-weight:700;font-size:16px}.cm-reg:disabled{opacity:.45}
 .cm-hint{background:#F5F6F2;border-radius:8px;padding:14px 16px;font-size:13.5px;line-height:1.45;color:#3d3a36}
+.cm-hint.ok{background:#DDF1E7;color:#0B5B38;font-weight:600}
 .cm-foot{flex:none;padding:14px 24px 20px;border-top:1px solid #DCDDD6;background:#F5F6F2;display:flex;flex-direction:column;gap:8px}
 .cm-close{height:56px;border:0;border-radius:10px;background:#0B7347;color:#fff;font-weight:700;font-size:17px}
 .cm-close:disabled{background:#DCDDD6;color:#4f4c47;cursor:not-allowed}
@@ -868,7 +883,7 @@ const CSS = `
   .cm-mhead h1{font-size:22px}.cm-it{grid-template-columns:44px minmax(0,1fr) auto 36px;gap:10px;padding:8px 12px}.cm-it .qt{display:none}.cm-it .nm span{font-size:14px}.cm-it .vl{font-size:14px}
   .cm-sq{width:36px;height:36px}
   .cm-bar{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:10px;position:fixed;left:0;right:0;bottom:0;z-index:55;background:#fff;border-top:1px solid #DCDDD6;padding:12px 14px calc(14px + env(safe-area-inset-bottom))}
-  .cm-bar .cm-add{height:54px;padding:0}.cm-pagar{background:#151210;color:#fff;border:0;border-radius:10px;height:54px;font-weight:700;font-size:16px}
+  .cm-bar .cm-add{height:54px;padding:0}.cm-pagar{background:#2A4E7A;color:#fff;border:0;border-radius:10px;height:54px;font-weight:700;font-size:16px}
 }
 .ms-wrap{min-height:100vh;background:#E9EAE5;color:#151210;font-family:'Archivo',system-ui,sans-serif;font-size:14px}
 .ms-wrap *{box-sizing:border-box}

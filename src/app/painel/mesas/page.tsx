@@ -17,7 +17,7 @@ import { npGroupContribution, type NpGrupo, type NpProduto, PESO_REGEX, pesoNum,
 
 type Mesa = { id: string; numero: number; nome: string | null; ativa: boolean }
 type Comanda = {
-  id: string; mesa_id: string; numero: number; garcom_nome: string | null; customer_phone: string | null; customer_name: string | null
+  id: string; company_id: string; mesa_id: string; numero: number; garcom_nome: string | null; customer_phone: string | null; customer_name: string | null
   taxa_servico_ativa: boolean; taxa_servico_pct: number; desconto: number; desconto_motivo: string | null
   subtotal: number; taxa_valor: number; total: number; aberta_em: string
 }
@@ -33,13 +33,14 @@ type Resp = any
 type CallFn = (a: string, e?: Record<string, unknown>) => Promise<Resp>
 type Linha = { key: string; produto: Produto; qty: number; pesoKg: number | null; modifiers: { name: string; price: number }[]; unit: number }
 
-const FORMAS: { key: 'dinheiro' | 'cartao' | 'pix'; label: string }[] = [
-  { key: 'dinheiro', label: '💵 Dinheiro' }, { key: 'cartao', label: '💳 Cartão' }, { key: 'pix', label: '📱 Pix' },
+const FORMAS: { key: 'dinheiro' | 'cartao' | 'pix' | 'cashback'; label: string }[] = [
+  { key: 'dinheiro', label: '💵 Dinheiro' }, { key: 'cartao', label: '💳 Cartão' }, { key: 'pix', label: '📱 Pix' }, { key: 'cashback', label: '🎁 Cashback' },
 ]
 const PAY_ICON: Record<string, { cor: string; tint: string; nome: string; d: React.ReactNode }> = {
   dinheiro: { cor: '#0B7347', tint: '#DDF1E7', nome: 'Dinheiro', d: <><rect x="3" y="6" width="18" height="12" rx="2" /><circle cx="12" cy="12" r="2.5" /></> },
   cartao: { cor: '#2A4E7A', tint: '#E1EAF5', nome: 'Cartão', d: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 10h18" /></> },
   pix: { cor: '#0E7C86', tint: '#DCF1F2', nome: 'Pix', d: <><path d="M12 3l9 9-9 9-9-9z" /><path d="M9 12l3-3 3 3-3 3z" /></> },
+  cashback: { cor: '#9A6A00', tint: '#FFF1CC', nome: 'Cashback', d: <><rect x="3" y="8" width="18" height="4" rx="1" /><path d="M12 8v13M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7" /><path d="M7.5 8a2.5 2.5 0 0 1 0-5C10 3 12 8 12 8s2-5 4.5-5a2.5 2.5 0 0 1 0 5" /></> },
 }
 function PayIcon({ forma, cor, size = 18 }: { forma: string; cor?: string; size?: number }) {
   const m = PAY_ICON[forma]
@@ -91,6 +92,8 @@ export default function MesasPage() {
   const companyRef = useRef('')
   const chamadosVistos = useRef<Set<string> | null>(null)
   const [pedidoQr, setPedidoQr] = useState<Chamado | null>(null)
+  const [pedirCfgPin, setPedirCfgPin] = useState(false)
+  const [cfgPin, setCfgPin] = useState('')
 
   const call = useCallback(async (acao: string, extra: Record<string, unknown> = {}): Promise<Resp> => {
     setBusy(true)
@@ -234,7 +237,7 @@ export default function MesasPage() {
           <a className="ms-tab" href={'/painel/pdv' + (adminMode ? `?empresa=${companyId}` : '')}>Balcão</a>
         </div>
         <button className="ms-btn calc" onClick={() => setCalcLivre(true)}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#151210" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2" /><rect x="8" y="6" width="8" height="3" /><path d="M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01M16 17h.01" /></svg>Calculadora</button>
-        <button className="ms-btn ghost" onClick={() => setShowConfig(true)}>⚙️ Configurar</button>
+        <button className="ms-btn ghost" onClick={() => { if (adminMode || !hasPin) setShowConfig(true); else { setMsg(''); setCfgPin('') ; setPedirCfgPin(true) } }}>⚙️ Configurar</button>
         <a className="ms-back" href={'/painel' + (adminMode ? `?empresa=${companyId}` : '')}>Sair ›</a>
       </div>
 
@@ -305,7 +308,7 @@ export default function MesasPage() {
         </div>
       )}
 
-      {msg && !comanda && !picker && !showConfig && <div className="ms-toast" onClick={() => setMsg('')}>{msg}</div>}
+      {msg && !comanda && !picker && !showConfig && <div className={`ms-toast ${msg.startsWith('🎁') ? 'ok' : ''}`} onClick={() => setMsg('')}>{msg}</div>}
 
       {abrirMesa && (
         <Modal onClose={() => setAbrirMesa(null)} titulo={`Abrir mesa ${abrirMesa.numero}`}>
@@ -336,6 +339,21 @@ export default function MesasPage() {
       )}
 
       {calcLivre && <MesaCalculadora onClose={() => setCalcLivre(false)} />}
+
+      {pedirCfgPin && (() => {
+        const entrar = async () => {
+          const r = await call('config_abrir', { pin: cfgPin })
+          if (r) { setPedirCfgPin(false); setCfgPin(''); setMsg(''); setShowConfig(true) }
+        }
+        return (
+          <Modal titulo="Configurações da mesa" onClose={() => { setPedirCfgPin(false); setMsg('') }}>
+            <p className="ms-p">Digite a senha de administrador (PIN da supervisão) para abrir as configurações.</p>
+            <PinInput className="pin" autoFocus value={cfgPin} onChange={setCfgPin} onEnter={() => { if (!busy && cfgPin.length >= 4) entrar() }} />
+            {msg && <div className="ms-err">{msg}</div>}
+            <button className="ms-btn big" disabled={busy || cfgPin.length < 4} onClick={entrar}>Abrir configurações</button>
+          </Modal>
+        )
+      })()}
 
       {pedidoQr && pedidoQr.payload && (
         <PedidoQrModal
@@ -442,7 +460,8 @@ function ComandaView(props: {
   const { c, mesa, pedidos, pagtos, busy, msg, setMsg, call, load } = props
   const [pin, setPin] = useState<{ titulo: string; run: (pin: string) => Promise<Resp> } | null>(null)
   const [pinVal, setPinVal] = useState('')
-  const [forma, setForma] = useState<'dinheiro' | 'cartao' | 'pix'>('dinheiro')
+  const [forma, setForma] = useState<'dinheiro' | 'cartao' | 'pix' | 'cashback'>('dinheiro')
+  const [saldoCash, setSaldoCash] = useState(0)
   const [valorDig, setValorDig] = useState('')
   const [pessoa, setPessoa] = useState('')
   // Divisão da conta em partes (pessoas): ao tocar em ÷2/÷3/÷4 aparecem N
@@ -476,6 +495,17 @@ function ComandaView(props: {
   const [descVal, setDescVal] = useState('')
   const [descMotivo, setDescMotivo] = useState('')
   const [fone, setFone] = useState(c.customer_phone ? c.customer_phone.replace(/^55/, '') : '')
+
+  // Saldo de cashback do cliente desta conta (só se a comanda tem WhatsApp e a loja usa cashback).
+  const nPagtos = pagtos.length
+  useEffect(() => {
+    if (!c.customer_phone) return
+    let vivo = true
+    adminFetch('/api/mesas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ companyId: c.company_id, acao: 'cashback_saldo', comandaId: c.id }) })
+      .then(r => r.json()).then(d => { if (vivo) setSaldoCash(Number(d?.saldo) || 0) }).catch(() => {})
+    return () => { vivo = false }
+  }, [c.id, c.company_id, c.customer_phone, nPagtos])
+  const formasVisiveis = FORMAS.filter(f => f.key !== 'cashback' || (c.customer_phone && saldoCash > 0.004))
 
   const pago = r2(pagtos.reduce((s, p) => s + Number(p.valor), 0))
   const falta = Math.max(0, r2(c.total - pago))
@@ -679,8 +709,8 @@ function ComandaView(props: {
               {falta > 0.005 ? (
                 <div className="cm-pay" id="ms-pagamento">
                   <h3>Registrar pagamento</h3>
-                  <div className="cm-seg">
-                    {FORMAS.map(f => <button key={f.key} className={forma === f.key ? 'on' : ''} onClick={() => setForma(f.key)}><PayIcon forma={f.key} cor={forma === f.key ? '#151210' : undefined} />{PAY_ICON[f.key].nome}</button>)}
+                  <div className="cm-seg" style={{ gridTemplateColumns: `repeat(${formasVisiveis.length}, minmax(0, 1fr))` }}>
+                    {formasVisiveis.map(f => <button key={f.key} className={forma === f.key ? 'on' : ''} onClick={() => { setForma(f.key); if (f.key === 'cashback') { setPartes(null); setParteSel(null); setValorDig(centavos(Math.min(falta, saldoCash))) } }}><PayIcon forma={f.key} cor={forma === f.key ? '#151210' : undefined} />{PAY_ICON[f.key].nome}{f.key === 'cashback' ? ` ${fmt(saldoCash)}` : ''}</button>)}
                   </div>
                   <div className="cm-val"><span>R$</span>
                     <input aria-label="Valor a registrar" inputMode="numeric" value={valorDig ? moneyShow(valorDig) : moneyShow(String(Math.round(falta * 100)))}
@@ -729,7 +759,7 @@ function ComandaView(props: {
             </div>
 
             <div className="cm-foot" id="ms-fechar">
-              <button className="cm-close" disabled={busy || falta > 0.005 || ativos.length === 0} onClick={async () => { const r = await call('fechar', { comandaId: c.id }); if (r) { limparDivisao(); await props.fechado() } }}>Fechar conta</button>
+              <button className="cm-close" disabled={busy || falta > 0.005 || ativos.length === 0} onClick={async () => { const r = await call('fechar', { comandaId: c.id }); if (r) { limparDivisao(); await props.fechado(); if (Number(r.cashbackGanho) > 0) props.setMsg(`🎁 Cliente ganhou ${fmt(Number(r.cashbackGanho))} de cashback para o próximo pedido`) } }}>Fechar conta</button>
               <small>{ativos.length === 0 ? 'Adicione itens para poder fechar a conta.' : falta > 0.005 ? <>Falta <b>{fmt(falta)}</b> para poder fechar.</> : 'Ao fechar, a mesa fica livre para o próximo cliente.'}</small>
             </div>
           </aside>
@@ -1264,6 +1294,7 @@ const CSS = `
 .ms-note{font-size:13px;color:#4f4c47;background:#fff;border:1px dashed #b9bab2;border-radius:10px;padding:12px}
 .ms-empty{max-width:520px;margin:60px auto;padding:0 20px;text-align:center}
 .ms-empty h2{font-family:'Anton',sans-serif;text-transform:uppercase;font-weight:400;font-size:28px}
+.ms-toast.ok{background:#0B7347}
 .ms-toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#D6392B;color:#fff;padding:12px 18px;border-radius:10px;font-weight:600;z-index:90}
 .ms-ov{position:fixed;inset:0;background:rgba(21,18,16,.55);display:flex;align-items:center;justify-content:center;padding:16px;z-index:60;overflow:auto}
 .ms-ov.full{background:#E9EAE5;padding:0;align-items:stretch;justify-content:stretch;z-index:50}

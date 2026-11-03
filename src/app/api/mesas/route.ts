@@ -4,6 +4,7 @@ import { randomBytes, randomInt } from 'crypto'
 import { normalizePhone } from '@/lib/phone'
 import { requireUser } from '@/lib/requireUser'
 import { promoPrice } from '@/lib/lojaPricing'
+import { creditarCashback, debitarCashback, getSaldoCashback, reembolsarCashback } from '@/lib/cashback'
 import {
   sb, acessoMesas, erro, r2, hashPin, pinOk, exigePinSupervisor, evento, recalcComanda, totalPago, novoQrToken,
 } from '@/lib/mesas'
@@ -74,6 +75,13 @@ async function criarRodada(companyId: string, c: any, entrada: any[], obs: unkno
   return { ped, linhas, calc }
 }
 
+// Primeira rodada (pedido) ativa da conta: serve de "chave" do cashback no extrato —
+// o índice único do crédito é por pedido, então a conta só credita uma vez.
+async function primeiraRodada(comandaId: string): Promise<string | null> {
+  const { data } = await sb.from('loja_pedidos').select('id').eq('comanda_id', comandaId).neq('status', 'cancelado').order('created_at', { ascending: true }).limit(1)
+  return data?.[0]?.id ?? null
+}
+
 export async function POST(req: NextRequest) {
   try {
     const b: Body = await req.json()
@@ -93,6 +101,23 @@ export async function POST(req: NextRequest) {
     // Erro de PIN conta na mesma trava das outras ações (5 erros = 10 min bloqueado);
     // o registro do erro vai na comanda mais recente da loja (a tabela exige uma comanda).
     const exigePinAtual = (pin: unknown) => exigePinSupervisor(req, company, pin)
+
+    // Abrir "Configurar" pede o PIN da supervisão (a Trindade Online passa direto;
+    // loja que ainda não definiu PIN entra pra cadastrar o primeiro).
+    if (acao === 'config_abrir') {
+      const negado = await exigePinSupervisor(req, company, b.pin)
+      if (negado) return negado
+      return NextResponse.json({ ok: true })
+    }
+
+    // Saldo de cashback do cliente da comanda (telefone cadastrado nela).
+    if (acao === 'cashback_saldo') {
+      const c = await comandaAberta(companyId, b.comandaId)
+      if (!c) return erro('Essa comanda não está aberta.', 409)
+      const { data: cfg } = await sb.from('companies').select('cashback_enabled').eq('id', companyId).maybeSingle()
+      if (!cfg?.cashback_enabled || !c.customer_phone) return NextResponse.json({ ok: true, ativo: !!cfg?.cashback_enabled, saldo: 0 })
+      return NextResponse.json({ ok: true, ativo: true, saldo: r2(await getSaldoCashback(sb, companyId, c.customer_phone)) })
+    }
 
     // ---------- configuração ----------
     if (acao === 'pin_zerar') {
@@ -255,18 +280,33 @@ export async function POST(req: NextRequest) {
     if (acao === 'pagar') {
       const c = await comandaAberta(companyId, b.comandaId)
       if (!c) return erro('Essa comanda não está aberta.', 409)
-      if (!['dinheiro', 'cartao', 'pix'].includes(String(b.forma))) return erro('Forma de pagamento inválida.')
+      if (!['dinheiro', 'cartao', 'pix', 'cashback'].includes(String(b.forma))) return erro('Forma de pagamento inválida.')
       const valor = r2(Number(b.valor) || 0)
       if (!(valor > 0)) return erro('Informe o valor.')
       const calc = await recalcComanda(c.id)
       const pago = await totalPago(c.id)
       const falta = r2((calc?.total ?? 0) - pago)
       if (valor > falta + 0.005) return erro(`O valor passa do que falta pagar (R$ ${falta.toFixed(2).replace('.', ',')}).`)
+      // Cashback: o saldo vem da carteira do telefone da comanda, nunca do que a tela mandar.
+      if (b.forma === 'cashback') {
+        if (!c.customer_phone) return erro('Informe o WhatsApp do cliente na comanda para usar o cashback.')
+        const { data: cfg } = await sb.from('companies').select('cashback_enabled').eq('id', companyId).maybeSingle()
+        if (!cfg?.cashback_enabled) return erro('O cashback não está ativo nesta loja.')
+        const usado = await debitarCashback(sb, { companyId, phoneRaw: c.customer_phone, valorDesejado: valor })
+        if (usado + 0.005 < valor) {
+          if (usado > 0) await reembolsarCashback(sb, { companyId, phoneRaw: c.customer_phone, valor: usado })
+          return erro('Saldo de cashback insuficiente para esse valor.', 409)
+        }
+        await sb.from('cashback_ledger').insert({ company_id: companyId, customer_phone: c.customer_phone, pedido_id: await primeiraRodada(c.id), tipo: 'debito', valor })
+      }
       const { data: novo, error } = await sb.from('loja_comanda_pagamentos').insert({
         comanda_id: c.id, company_id: companyId, forma: b.forma, valor,
         pessoa: b.pessoa ? String(b.pessoa).slice(0, 40) : null, customer_phone: c.customer_phone, registrado_por: c.garcom_nome,
       }).select('id').single()
-      if (error) return erro('Não consegui registrar o pagamento: ' + error.message, 500)
+      if (error) {
+        if (b.forma === 'cashback') await reembolsarCashback(sb, { companyId, phoneRaw: c.customer_phone, valor })
+        return erro('Não consegui registrar o pagamento: ' + error.message, 500)
+      }
       await evento(companyId, c.id, 'pagamento', { forma: b.forma, valor, pessoa: b.pessoa || null }, c.garcom_nome)
       return NextResponse.json({ ok: true, falta: r2(falta - valor), pagamentoId: novo?.id ?? null })
     }
@@ -279,6 +319,11 @@ export async function POST(req: NextRequest) {
       const bad = await pinOk(company, b.pin, c.id)
       if (bad) return erro(bad, 403)
       await sb.from('loja_comanda_pagamentos').delete().eq('id', pg.id)
+      // Pagamento em cashback removido: o saldo volta pra carteira do cliente.
+      if (pg.forma === 'cashback' && c.customer_phone) {
+        await reembolsarCashback(sb, { companyId, phoneRaw: c.customer_phone, valor: Number(pg.valor) })
+        await sb.from('cashback_ledger').insert({ company_id: companyId, customer_phone: c.customer_phone, pedido_id: null, tipo: 'estorno', valor: Number(pg.valor) })
+      }
       await evento(companyId, c.id, 'pagamento_removido', { forma: pg.forma, valor: pg.valor }, c.garcom_nome)
       return NextResponse.json({ ok: true })
     }
@@ -291,7 +336,7 @@ export async function POST(req: NextRequest) {
       const pago = await totalPago(c.id)
       const total = calc?.total ?? 0
       if (pago + 0.005 < total) return erro(`Ainda falta pagar R$ ${r2(total - pago).toFixed(2).replace('.', ',')}.`, 409)
-      const { data: pgs } = await sb.from('loja_comanda_pagamentos').select('forma').eq('comanda_id', c.id)
+      const { data: pgs } = await sb.from('loja_comanda_pagamentos').select('forma, valor').eq('comanda_id', c.id)
       const formas = [...new Set((pgs || []).map(p => p.forma))]
       const agora = new Date().toISOString()
       const { error } = await sb.from('loja_comandas').update({ status: 'fechada', fechada_em: agora, fechada_por: c.garcom_nome, updated_at: agora }).eq('id', c.id).eq('status', 'aberta')
@@ -300,8 +345,28 @@ export async function POST(req: NextRequest) {
       await sb.from('loja_pedidos').update({ payment_status: 'pago', payment_method: formas.length === 1 ? formas[0] : (formas.length > 1 ? 'misto' : null), updated_at: agora })
         .eq('comanda_id', c.id).neq('status', 'cancelado')
       await sb.from('loja_mesa_chamados').update({ status: 'atendido', atendido_em: agora, atendido_por: c.garcom_nome }).eq('mesa_id', c.mesa_id).eq('status', 'aberto')
-      await evento(companyId, c.id, 'fechou', { total, formas }, c.garcom_nome)
-      return NextResponse.json({ ok: true, total })
+      // Cashback da mesa: % próprio da mesa sobre o consumo (já sem desconto, sem a taxa
+      // de serviço e sem a parte paga com cashback). Só vale pro próximo pedido do
+      // cliente — o crédito entra agora, depois que a conta já foi paga.
+      let cashbackGanho = 0
+      try {
+        const { data: cfg } = await sb.from('companies').select('cashback_enabled, cashback_percent_mesa').eq('id', companyId).maybeSingle()
+        const pct = Number(cfg?.cashback_percent_mesa) || 0
+        if (cfg?.cashback_enabled && pct > 0 && c.customer_phone) {
+          const pagoCash = r2((pgs || []).filter(p => p.forma === 'cashback').reduce((s, p) => s + Number(p.valor), 0))
+          const base = Math.max(0, r2((calc?.subtotal ?? 0) - (calc?.desconto ?? 0) - pagoCash))
+          const valorCash = r2(base * pct / 100)
+          const rodada = await primeiraRodada(c.id)
+          if (valorCash > 0 && rodada) {
+            const antes = await getSaldoCashback(sb, companyId, c.customer_phone)
+            await creditarCashback(sb, { companyId, phoneRaw: c.customer_phone, pedidoId: rodada, valor: valorCash })
+            const depois = await getSaldoCashback(sb, companyId, c.customer_phone)
+            if (depois > antes) cashbackGanho = valorCash
+          }
+        }
+      } catch (e) { console.error('[mesas] cashback no fechamento:', e) }
+      await evento(companyId, c.id, 'fechou', { total, formas, cashback: cashbackGanho || undefined }, c.garcom_nome)
+      return NextResponse.json({ ok: true, total, cashbackGanho })
     }
 
     if (acao === 'cancelar_comanda') {

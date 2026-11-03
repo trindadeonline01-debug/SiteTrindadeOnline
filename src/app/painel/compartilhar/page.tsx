@@ -14,7 +14,7 @@ type Company = {
   loja_taxa_metodo: TaxaMetodo; loja_frete_gratis_acima: number | null; loja_taxa_fora_area: number | null
   loja_lat: number | null; loja_lng: number | null; loja_tempo_preparo_min: number
   crm_whatsapp_enabled: boolean; entrega_enabled: boolean; pix_key: string | null
-  cashback_enabled: boolean; cashback_percent: number; cashback_expira_dias: number
+  cashback_enabled: boolean; cashback_percent: number; cashback_percent_mesa: number; cashback_expira_dias: number
 }
 type Categoria = { id: string; name: string }
 type ProdutoOpt = { id: string; name: string }
@@ -98,6 +98,7 @@ export default function CompartilharPage() {
 
   const [cashbackEnabledInput, setCashbackEnabledInput] = useState(false)
   const [cashbackPercentInput, setCashbackPercentInput] = useState('3')
+  const [cashbackMesaInput, setCashbackMesaInput] = useState('0')
   const [cashbackDiasInput, setCashbackDiasInput] = useState(String(CASHBACK_EXPIRA_DIAS_DEFAULT))
   const [savingCashback, setSavingCashback] = useState(false)
   const [cashbackSaved, setCashbackSaved] = useState(false)
@@ -108,7 +109,7 @@ export default function CompartilharPage() {
     if (!shellCompany) { setCompany(null); setLoading(false); return }
     supabase
       .from('companies')
-      .select('id, name, slug, address, loja_digital_enabled, loja_taxa_entrega, loja_pedido_minimo, loja_payment_methods, loja_taxa_metodo, loja_frete_gratis_acima, loja_taxa_fora_area, loja_lat, loja_lng, loja_tempo_preparo_min, crm_whatsapp_enabled, entrega_enabled, trial_modules_until, pix_key, cashback_enabled, cashback_percent, cashback_expira_dias')
+      .select('id, name, slug, address, loja_digital_enabled, loja_taxa_entrega, loja_pedido_minimo, loja_payment_methods, loja_taxa_metodo, loja_frete_gratis_acima, loja_taxa_fora_area, loja_lat, loja_lng, loja_tempo_preparo_min, crm_whatsapp_enabled, entrega_enabled, trial_modules_until, pix_key, cashback_enabled, cashback_percent, cashback_percent_mesa, cashback_expira_dias')
       .eq('id', shellCompany.id)
       .maybeSingle()
       .then(async ({ data: comp }) => {
@@ -128,6 +129,7 @@ export default function CompartilharPage() {
         setPixKey(comp.pix_key || '')
         setCashbackEnabledInput(!!comp.cashback_enabled)
         setCashbackPercentInput(comp.cashback_percent != null && Number(comp.cashback_percent) > 0 ? fmtPt(Number(comp.cashback_percent)) : '3')
+        setCashbackMesaInput(Number(comp.cashback_percent_mesa) > 0 ? fmtPt(Number(comp.cashback_percent_mesa)) : '0')
         setCashbackDiasInput(String(comp.cashback_expira_dias || CASHBACK_EXPIRA_DIAS_DEFAULT))
         if (isAdminMode || moduleActive(comp.loja_digital_enabled, comp.trial_modules_until)) {
           const [{ data: cats }, { data: prods }, { data: bairroRows }, { data: tierRows }] = await Promise.all([
@@ -279,14 +281,19 @@ export default function CompartilharPage() {
     if (!company) return
     const pct = parsePt(cashbackPercentInput)
     const dias = Math.max(1, parseInt(cashbackDiasInput) || CASHBACK_EXPIRA_DIAS_DEFAULT)
-    if (cashbackEnabledInput && (pct <= 0 || pct > CASHBACK_PERCENT_MAX)) {
-      setCashbackError(`O % precisa ser maior que 0 e até ${CASHBACK_PERCENT_MAX}%.`)
+    const pctMesa = parsePt(cashbackMesaInput)
+    if (cashbackEnabledInput && (pct < 0 || pct > CASHBACK_PERCENT_MAX || pctMesa < 0 || pctMesa > CASHBACK_PERCENT_MAX)) {
+      setCashbackError(`Os percentuais precisam ficar entre 0 e ${CASHBACK_PERCENT_MAX}%.`)
+      return
+    }
+    if (cashbackEnabledInput && pct <= 0 && pctMesa <= 0) {
+      setCashbackError('Informe o % do delivery, o da mesa, ou os dois.')
       return
     }
     setCashbackError('')
     setSavingCashback(true)
-    await supabase.from('companies').update({ cashback_enabled: cashbackEnabledInput, cashback_percent: pct, cashback_expira_dias: dias }).eq('id', company.id)
-    setCompany(prev => prev ? { ...prev, cashback_enabled: cashbackEnabledInput, cashback_percent: pct, cashback_expira_dias: dias } : prev)
+    await supabase.from('companies').update({ cashback_enabled: cashbackEnabledInput, cashback_percent: pct, cashback_percent_mesa: pctMesa, cashback_expira_dias: dias }).eq('id', company.id)
+    setCompany(prev => prev ? { ...prev, cashback_enabled: cashbackEnabledInput, cashback_percent: pct, cashback_percent_mesa: pctMesa, cashback_expira_dias: dias } : prev)
     setCashbackDiasInput(String(dias))
     setSavingCashback(false)
     setCashbackSaved(true)
@@ -465,7 +472,7 @@ export default function CompartilharPage() {
                 <div className="hub-card-top"><div className="hub-card-ico">🎁</div><div className="hub-card-chev">›</div></div>
                 <div className="hub-card-title">Cashback</div>
                 <div className="hub-card-desc">Devolva um % em crédito pro cliente usar na próxima compra, só na sua loja.</div>
-                <span className="hub-card-status">{company.cashback_enabled ? `Ativo · ${fmtPt(company.cashback_percent)}% · vale ${company.cashback_expira_dias || CASHBACK_EXPIRA_DIAS_DEFAULT}d` : 'Desativado'}</span>
+                <span className="hub-card-status">{company.cashback_enabled ? `Ativo · delivery ${fmtPt(company.cashback_percent)}% · mesa ${fmtPt(Number(company.cashback_percent_mesa) || 0)}% · vale ${company.cashback_expira_dias || CASHBACK_EXPIRA_DIAS_DEFAULT}d` : 'Desativado'}</span>
               </div>
             </div>
           </div>
@@ -678,7 +685,7 @@ export default function CompartilharPage() {
             <div className="crm-config-card" style={{ maxWidth: 420 }}>
               <div className="crm-config-title">🎁 Devolva parte do pedido em crédito</div>
               <div className="crm-config-sub">
-                Quando um pedido é marcado "entregue", o cliente ganha de volta esse % em crédito — só pra usar de novo na SUA loja, nunca em outra da plataforma. Ele decide se usa ou não na próxima compra. Esse crédito é custeado por você, não pela Trindade Online.
+                Quando um pedido de delivery é entregue, ou uma conta de mesa é paga e fechada (com o WhatsApp do cliente na comanda), ele ganha de volta o % de cada canal em crédito — só pra usar de novo na SUA loja, nunca em outra da plataforma. Ele decide se usa ou não na próxima compra. Esse crédito é custeado por você, não pela Trindade Online.
               </div>
 
               <div className="crm-payment-row" onClick={() => setCashbackEnabledInput(v => !v)} style={{ marginTop: 6 }}>
@@ -689,8 +696,12 @@ export default function CompartilharPage() {
               {cashbackEnabledInput && (
                 <>
                   <div className="crm-config-field" style={{ marginTop: 10 }}>
-                    <label>% do pedido devolvido em crédito (até {CASHBACK_PERCENT_MAX}%)</label>
+                    <label>🛵 Delivery — % devolvido em crédito (até {CASHBACK_PERCENT_MAX}%)</label>
                     <input inputMode="decimal" value={cashbackPercentInput} onChange={e => setCashbackPercentInput(e.target.value.replace(/[^0-9,]/g, ''))} placeholder="Ex: 3" />
+                  </div>
+                  <div className="crm-config-field">
+                    <label>🍽️ Mesa — % devolvido em crédito (0 = a mesa não dá cashback)</label>
+                    <input inputMode="decimal" value={cashbackMesaInput} onChange={e => setCashbackMesaInput(e.target.value.replace(/[^0-9,]/g, ''))} placeholder="Ex: 5" />
                   </div>
                   <div className="crm-config-field">
                     <label>Saldo some depois de quantos dias sem uso?</label>

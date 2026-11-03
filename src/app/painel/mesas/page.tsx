@@ -357,11 +357,16 @@ function ComandaView(props: {
   const [forma, setForma] = useState<'dinheiro' | 'cartao' | 'pix'>('dinheiro')
   const [valorDig, setValorDig] = useState('')
   const [pessoa, setPessoa] = useState('')
-  // Divisão da conta em partes: ao tocar em ÷2/÷3/÷4 aparecem N botões com o
-  // valor certo de cada parte (a última absorve os centavos). O garçom toca na
-  // parte, escolhe a forma, põe o nome e registra; a próxima parte livre é
-  // selecionada sozinha. Fica só na tela: os pagamentos já estão no servidor.
-  const [partes, setPartes] = useState<null | { n: number; valores: number[]; pagos: (string | null)[] }>(null)
+  // Divisão da conta em partes (pessoas): ao tocar em ÷2/÷3/÷4 aparecem N
+  // botões com o valor certo de cada parte (a última absorve os centavos).
+  // O garçom toca na parte, escolhe a forma, põe o nome e registra; a próxima
+  // parte com saldo é selecionada sozinha. Se alguém sai ("Tirar parte"), a
+  // conta do grupo é dividida de novo pelo novo número de pessoas e quem já
+  // pagou só completa a diferença (ex.: R$ 100 em 4 de 25, uma já pagou 25 e
+  // uma sai → 100 ÷ 3 = 33,33: quem pagou deve 8,33 e as outras 33,33).
+  // Fica só na tela: os pagamentos já estão no servidor.
+  // alvo[i] = quanto a pessoa i deve no total; pagos[i] = ids dos pagamentos dela.
+  const [partes, setPartes] = useState<null | { alvo: number[]; pagos: string[][] }>(null)
   const [parteSel, setParteSel] = useState<number | null>(null)
   const pessoaRef = useRef<HTMLInputElement>(null)
   const [menu, setMenu] = useState(false)
@@ -378,21 +383,35 @@ function ComandaView(props: {
   const valorEf = valorDig ? moneyDigits(valorDig) : falta
   const pct = c.total > 0 ? Math.min(100, Math.round(pago / c.total * 100)) : 0
   const centavos = (v: number) => String(Math.round(v * 100))
-  const parteDe = (i: number) => {
-    const id = partes?.pagos[i]
-    return id ? pagtos.find(x => x.id === id) || null : null   // some se o pagamento for removido
+  const splitEq = (T: number, n: number) => {
+    const base = Math.floor(T * 100 / n) / 100
+    return Array.from({ length: n }, (_, i) => i < n - 1 ? base : r2(T - base * (n - 1)))
   }
+  const pagoDe = (i: number) => r2((partes?.pagos[i] || []).reduce((t, id) => t + Number(pagtos.find(x => x.id === id)?.valor || 0), 0))
+  const restaDe = (i: number) => partes ? Math.max(0, r2(partes.alvo[i] - pagoDe(i))) : 0
+  const nomeDe = (i: number) => (partes?.pagos[i] || []).map(id => pagtos.find(x => x.id === id)?.pessoa).find(Boolean) || null
   function dividir(n: number) {
-    if (partes?.n === n) { setPartes(null); setParteSel(null); setValorDig(''); return }
-    const base = Math.floor(falta * 100 / n) / 100
-    const valores = Array.from({ length: n }, (_, i) => i < n - 1 ? base : r2(falta - base * (n - 1)))
-    setPartes({ n, valores, pagos: Array(n).fill(null) })
-    setParteSel(0); setValorDig(centavos(valores[0])); setPessoa('')
+    if (partes?.alvo.length === n) { setPartes(null); setParteSel(null); setValorDig(''); return }
+    const alvo = splitEq(falta, n)
+    setPartes({ alvo, pagos: alvo.map(() => []) })
+    setParteSel(0); setValorDig(centavos(alvo[0])); setPessoa('')
   }
   function escolherParte(i: number) {
     if (!partes) return
-    setParteSel(i); setValorDig(centavos(partes.valores[i])); setPessoa('')
+    setParteSel(i); setValorDig(centavos(restaDe(i))); setPessoa('')
     pessoaRef.current?.focus()
+  }
+  // Alguém não vai pagar: refaz a divisão do total do grupo por (N-1).
+  function tirarParte(k: number) {
+    if (!partes || partes.alvo.length <= 1 || (partes.pagos[k] || []).length > 0) return
+    const T = r2(partes.alvo.reduce((t, v) => t + v, 0))
+    const alvo = splitEq(T, partes.alvo.length - 1)
+    const pagos = partes.pagos.filter((_, i) => i !== k)
+    const novo = { alvo, pagos }
+    setPartes(novo)
+    const rest = (i: number) => Math.max(0, r2(alvo[i] - pagos[i].reduce((t, id) => t + Number(pagtos.find(x => x.id === id)?.valor || 0), 0)))
+    const prox = alvo.findIndex((_, i) => rest(i) > 0.005)
+    if (prox >= 0) { setParteSel(prox); setValorDig(centavos(rest(prox))) } else { setParteSel(null); setValorDig('') }
   }
 
   function pedirPin(titulo: string, run: (pin: string) => Promise<Resp>) { setPinVal(''); setMsg(''); setPin({ titulo, run }) }
@@ -402,10 +421,13 @@ function ComandaView(props: {
     if (r) {
       setPessoa('')
       if (partes && parteSel !== null) {
-        const pagos = partes.pagos.map((x, i) => i === parteSel ? (r.pagamentoId as string | null) || 'ok' : x)
+        const pagos = partes.pagos.map((ids, i) => i === parteSel && r.pagamentoId ? [...ids, r.pagamentoId as string] : ids)
         setPartes({ ...partes, pagos })
-        const prox = pagos.findIndex(x => !x)
-        if (prox >= 0) { setParteSel(prox); setValorDig(centavos(partes.valores[prox])) } else { setParteSel(null); setValorDig('') }
+        // saldo de cada pessoa já contando este pagamento (a lista do servidor ainda não recarregou)
+        const resta = (i: number) => Math.max(0, r2(partes.alvo[i] - (pagoDe(i) + (i === parteSel ? valor : 0))))
+        const ordem = partes.alvo.map((_, i) => (i + parteSel + 1) % partes.alvo.length)
+        const prox = ordem.find(i => resta(i) > 0.005)
+        if (prox !== undefined) { setParteSel(prox); setValorDig(centavos(resta(prox))) } else { setParteSel(null); setValorDig('') }
       } else setValorDig('')
       await load()
     }
@@ -531,19 +553,28 @@ function ComandaView(props: {
                   <div className="cm-quick">
                     <button className={!partes && Math.abs(valorEf - falta) < 0.005 ? 'on' : ''} onClick={() => { setPartes(null); setParteSel(null); setValorDig(centavos(falta)) }}><em>Tudo</em><b>{moneyShow(centavos(falta))}</b></button>
                     {[2, 3, 4].map(n => (
-                      <button key={n} className={partes?.n === n ? 'on' : ''} onClick={() => dividir(n)}><em>÷ {n}</em><b>{moneyShow(centavos(r2(falta / n)))}</b></button>
+                      <button key={n} className={partes?.alvo.length === n ? 'on' : ''} onClick={() => dividir(n)}><em>÷ {n}</em><b>{moneyShow(centavos(r2(falta / n)))}</b></button>
                     ))}
                   </div>
                   {partes && (
                     <div className="cm-parts">
-                      <div className="ph"><span>Dividido em {partes.n} · toque em uma parte</span><button onClick={() => { setPartes(null); setParteSel(null); setValorDig('') }}>Cancelar divisão</button></div>
-                      <div className="pg" style={{ gridTemplateColumns: `repeat(${partes.n},minmax(0,1fr))` }}>
-                        {partes.valores.map((v, i) => {
-                          const pg = parteDe(i)
-                          const paga = !!partes.pagos[i] && (pg !== null || partes.pagos[i] === 'ok')
+                      <div className="ph">
+                        <span>Dividido em {partes.alvo.length} · toque em uma parte</span>
+                        <div>
+                          {parteSel !== null && partes.alvo.length > 1 && (partes.pagos[parteSel] || []).length === 0 && (
+                            <button onClick={() => tirarParte(parteSel)}>Tirar parte {parteSel + 1}</button>
+                          )}
+                          <button onClick={() => { setPartes(null); setParteSel(null); setValorDig('') }}>Cancelar divisão</button>
+                        </div>
+                      </div>
+                      <div className="pg" style={{ gridTemplateColumns: `repeat(${Math.min(partes.alvo.length, 4)},minmax(0,1fr))` }}>
+                        {partes.alvo.map((_, i) => {
+                          const resta = restaDe(i)
+                          const jaPagou = pagoDe(i) > 0
+                          const paga = jaPagou && resta <= 0.005
                           return (
                             <button key={i} className={`${paga ? 'paid' : ''} ${parteSel === i && !paga ? 'on' : ''}`} disabled={paga} onClick={() => escolherParte(i)}>
-                              <em>{paga ? `✓ ${pg?.pessoa || 'Pago'}` : `Parte ${i + 1}`}</em><b>{moneyShow(centavos(v))}</b>
+                              <em>{paga ? `✓ ${nomeDe(i) || 'Pago'}` : jaPagou ? `${nomeDe(i) || `Parte ${i + 1}`} · resta` : `Parte ${i + 1}`}</em><b>{moneyShow(centavos(paga ? pagoDe(i) : resta))}</b>
                             </button>
                           )
                         })}
@@ -909,6 +940,7 @@ const CSS = `
 .cm-quick button.on{background:#FFF6D6;border:2px solid #151210}
 .cm-parts{background:#F5F6F2;border:1px solid #DCDDD6;border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:8px}
 .cm-parts .ph{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:#4f4c47;font-weight:700}
+.cm-parts .ph>div{display:flex;gap:4px;flex:none}
 .cm-parts .ph button{background:transparent;border:0;text-decoration:underline;font-size:12px;font-weight:600;color:#4f4c47;text-transform:none;letter-spacing:0;padding:4px}
 .cm-parts .pg{display:grid;gap:6px}
 .cm-parts .pg button{height:46px;border:1px solid #b9bab2;border-radius:6px;background:#fff;color:#151210;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-width:0;padding:0 4px}

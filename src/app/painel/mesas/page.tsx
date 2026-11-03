@@ -450,6 +450,11 @@ function ComandaView(props: {
   }
 
   function pedirPin(titulo: string, run: (pin: string) => Promise<Resp>) { setPinVal(''); setMsg(''); setPin({ titulo, run }) }
+  async function confirmarPin() {
+    if (!pin || busy || pinVal.length < 4) return
+    const r = await pin.run(pinVal)
+    if (r) { setPin(null); setPinVal(''); await load() }
+  }
   async function pagar() {
     const valor = valorEf
     const r = await call('pagar', { comandaId: c.id, forma, valor, pessoa: pessoa.trim() || null })
@@ -650,9 +655,9 @@ function ComandaView(props: {
       {pin && (
         <Modal titulo={pin.titulo} onClose={() => setPin(null)}>
           <p className="ms-p">Digite o PIN da supervisão.</p>
-          <PinInput className="pin" autoFocus value={pinVal} onChange={setPinVal} />
+          <PinInput className="pin" autoFocus value={pinVal} onChange={setPinVal} onEnter={confirmarPin} />
           {msg && <div className="ms-err">{msg}</div>}
-          <button className="ms-btn big" disabled={busy || pinVal.length < 4} onClick={async () => { const r = await pin.run(pinVal); if (r) { setPin(null); setPinVal(''); await load() } }}>Confirmar</button>
+          <button className="ms-btn big" disabled={busy || pinVal.length < 4} onClick={confirmarPin}>Confirmar</button>
         </Modal>
       )}
       {sub === 'desconto' && (
@@ -832,7 +837,7 @@ function Picker({ produtos, categorias, mesaNumero, onClose, onLancar, busy, msg
 // por isso não é type="password" (é isso que faz Chrome/Google oferecer
 // "salvar senha"). Campo de texto comum, números mascarados por CSS, com
 // autocomplete desligado e nome aleatório pra o navegador não reconhecer.
-function PinInput({ value, onChange, className = '', autoFocus }: { value: string; onChange: (v: string) => void; className?: string; autoFocus?: boolean }) {
+function PinInput({ value, onChange, className = '', autoFocus, onEnter }: { value: string; onChange: (v: string) => void; className?: string; autoFocus?: boolean; onEnter?: () => void }) {
   const [nome] = useState(() => 'sup' + Math.random().toString(36).slice(2, 10))
   return (
     <input
@@ -840,6 +845,7 @@ function PinInput({ value, onChange, className = '', autoFocus }: { value: strin
       name={nome} id={nome} autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false}
       data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other"
       value={value} onChange={e => onChange(e.target.value.replace(/\D/g, ''))}
+      onKeyDown={e => { if (e.key === 'Enter' && onEnter) { e.preventDefault(); onEnter() } }}
     />
   )
 }
@@ -893,8 +899,8 @@ function Config({ companyId, adminMode, recarregar, mesasEnabled, taxaPct, hasPi
         <h4>Taxa de serviço e PIN da supervisão</h4>
         <div className="ms-row">
           <label className="ms-lbl">Taxa de serviço (%)<input className="ms-in" inputMode="decimal" value={taxa} onChange={e => setTaxa(e.target.value)} /></label>
-          {hasPin && !adminMode && <label className="ms-lbl">PIN atual<PinInput value={pinAtual} onChange={setPinAtual} /></label>}
-          <label className="ms-lbl">{hasPin ? 'Novo PIN (4 a 6 números)' : 'Definir PIN (4 a 6 números)'}<PinInput value={pin} onChange={setPin} /></label>
+          {hasPin && !adminMode && <label className="ms-lbl">PIN atual<PinInput value={pinAtual} onChange={setPinAtual} onEnter={() => { if (!busy && !(pin && pinAtual.length < 4)) salvarGeral() }} /></label>}
+          <label className="ms-lbl">{hasPin ? 'Novo PIN (4 a 6 números)' : 'Definir PIN (4 a 6 números)'}<PinInput value={pin} onChange={setPin} onEnter={() => { if (!busy && !(pin && hasPin && !adminMode && pinAtual.length < 4)) salvarGeral() }} /></label>
           <button className="ms-btn" disabled={busy || (!!pin && hasPin && !adminMode && pinAtual.length < 4)} onClick={salvarGeral}>Salvar</button>
         </div>
         <small>{hasPin ? (adminMode ? 'PIN definido. Como Trindade Online você pode trocar sem o PIN atual.' : 'PIN definido. Para trocar, digite o PIN atual e o novo. Esqueceu o PIN? Peça à Trindade Online para zerar.') : 'Sem PIN, ninguém consegue cancelar item, dar desconto ou cancelar comanda.'}</small>
@@ -910,8 +916,8 @@ function Config({ companyId, adminMode, recarregar, mesasEnabled, taxaPct, hasPi
         {lista.map(g => (
           editando?.id === g.id ? (
             <div key={g.id} className="ms-row">
-              <input className="ms-in" aria-label="Novo nome do garçom" value={editando.nome} onChange={e => setEditando({ ...editando, nome: e.target.value })} />
-              {!adminMode && <label className="ms-lbl">PIN da supervisão<PinInput value={editando.pin} onChange={v => setEditando({ ...editando, pin: v })} /></label>}
+              <input className="ms-in" aria-label="Novo nome do garçom" value={editando.nome} onChange={e => setEditando({ ...editando, nome: e.target.value })} onKeyDown={e => { if (e.key === 'Enter' && !busy && editando.nome.trim() && (adminMode || editando.pin.length >= 4)) salvarNomeGarcom() }} />
+              {!adminMode && <label className="ms-lbl">PIN da supervisão<PinInput value={editando.pin} onChange={v => setEditando({ ...editando, pin: v })} onEnter={() => { if (!busy && editando.nome.trim() && editando.pin.length >= 4) salvarNomeGarcom() }} /></label>}
               <button className="ms-btn" disabled={busy || !editando.nome.trim() || (!adminMode && editando.pin.length < 4)} onClick={salvarNomeGarcom}>Salvar</button>
               <button className="ms-btn ghost" onClick={() => setEditando(null)}>Cancelar</button>
             </div>

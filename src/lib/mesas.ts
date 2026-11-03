@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { randomBytes, scryptSync, timingSafeEqual } from 'crypto'
-import { requireCompanyAccess } from '@/lib/requireUser'
+import { requireCompanyAccess, requireUser } from '@/lib/requireUser'
 import { moduleActive } from '@/lib/modules'
 
 // Mesas e comandas (nov/2026) — regras de verdade ficam TODAS aqui no
@@ -92,3 +92,19 @@ export async function totalPago(comandaId: string): Promise<number> {
 }
 
 export function novoQrToken(): string { return randomBytes(18).toString('base64url') }
+
+// PIN da supervisão pra ações fora de uma comanda (trocar PIN, renomear garçom,
+// sangria do caixa). Admin da Trindade passa direto; loja sem PIN ainda também
+// (primeiro cadastro) — quem exige PIN existente trata isso por fora. Erro conta
+// na trava de 5 tentativas/10 min, registrado na comanda mais recente da loja
+// (a tabela de eventos exige uma comanda).
+export async function exigePinSupervisor(req: NextRequest, company: CompanyMesas, pin: unknown, opts: { semPinCadastrado?: 'liberar' | 'negar' } = {}): Promise<NextResponse | null> {
+  const u = await requireUser(req)
+  if (!(u instanceof NextResponse) && u.isAdmin) return null
+  if (!company.loja_supervisor_pin_hash) {
+    return opts.semPinCadastrado === 'negar' ? erro('A loja ainda não definiu o PIN da supervisão (Mesas → Configurar).', 403) : null
+  }
+  const { data: ult } = await sb.from('loja_comandas').select('id').eq('company_id', company.id).order('aberta_em', { ascending: false }).limit(1)
+  const bad = await pinOk(company, pin, ult?.[0]?.id ?? null)
+  return bad ? erro(bad, 403) : null
+}

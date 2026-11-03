@@ -5,8 +5,9 @@ import { normalizePhone } from '@/lib/phone'
 import { requireUser } from '@/lib/requireUser'
 import { promoPrice } from '@/lib/lojaPricing'
 import {
-  sb, acessoMesas, erro, r2, hashPin, pinOk, evento, recalcComanda, totalPago, novoQrToken,
+  sb, acessoMesas, erro, r2, hashPin, pinOk, exigePinSupervisor, evento, recalcComanda, totalPago, novoQrToken,
 } from '@/lib/mesas'
+import { caixaObrigatorioFechado } from '@/lib/caixa'
 
 // Todas as ações do garçom/dono sobre mesas e comandas num lugar só. A tela
 // manda a ação; aqui o servidor confere dono, módulo ligado, PIN da
@@ -39,14 +40,7 @@ export async function POST(req: NextRequest) {
     // quem esteja pedindo seja a Trindade Online (admin geral), que pode redefinir.
     // Erro de PIN conta na mesma trava das outras ações (5 erros = 10 min bloqueado);
     // o registro do erro vai na comanda mais recente da loja (a tabela exige uma comanda).
-    async function exigePinAtual(pin: unknown): Promise<NextResponse | null> {
-      const u = await requireUser(req)
-      if (!(u instanceof NextResponse) && u.isAdmin) return null
-      if (!company.loja_supervisor_pin_hash) return null   // ainda não tem PIN: primeiro cadastro
-      const { data: ult } = await sb.from('loja_comandas').select('id').eq('company_id', companyId).order('aberta_em', { ascending: false }).limit(1)
-      const bad = await pinOk(company, pin, ult?.[0]?.id ?? null)
-      return bad ? erro(bad, 403) : null
-    }
+    const exigePinAtual = (pin: unknown) => exigePinSupervisor(req, company, pin)
 
     // ---------- configuração ----------
     if (acao === 'pin_zerar') {
@@ -248,6 +242,7 @@ export async function POST(req: NextRequest) {
       const c = await comandaAberta(companyId, b.comandaId)
       if (!c) return erro('Essa comanda não está aberta.', 409)
       if (!['dinheiro', 'cartao', 'pix'].includes(String(b.forma))) return erro('Forma de pagamento inválida.')
+      if (await caixaObrigatorioFechado(companyId)) return erro('O caixa está fechado. Abra o caixa (menu Caixa) para receber pagamentos.', 409)
       const valor = r2(Number(b.valor) || 0)
       if (!(valor > 0)) return erro('Informe o valor.')
       const calc = await recalcComanda(c.id)

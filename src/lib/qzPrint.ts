@@ -394,3 +394,68 @@ export function buildTestTicket(companyName: string): string {
   lines.push(CMD.feed(avancoFinal()), CMD.cut)
   return stripAccents(lines.join(''))
 }
+
+export type CaixaReportData = {
+  companyName: string; abertoEm: string; fechadoEm?: string | null; abertoPor?: string | null; fechadoPor?: string | null
+  trocoInicial: number
+  porForma: { label: string; valor: number; qtd: number }[]
+  canais: { pdv: { valor: number; qtd: number }; mesa: { valor: number; qtd: number } }
+  totalVendas: number
+  movimentos: { tipo: 'sangria' | 'suprimento'; valor: number; motivo?: string | null; criadoEm: string }[]
+  dinheiroEsperado: number
+  dinheiroContado?: number | null; diferenca?: number | null; observacao?: string | null
+}
+
+// Relatório de fechamento do caixa (ou parcial, com o caixa ainda aberto).
+export function buildCaixaReport(d: CaixaReportData): string {
+  const w = cols()
+  const hr = '-'.repeat(w)
+  const hora = (iso: string) => new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+  const L: string[] = []
+  const linha = (t = '') => L.push(t, '\n')
+  L.push(CMD.init, CMD.alignCenter, CMD.boldOn, CMD.doubleOn)
+  L.push('TRINDADE ONLINE', '\n')
+  L.push(CMD.doubleOff)
+  wrap(d.companyName.toUpperCase()).forEach(l => linha(l))
+  L.push(CMD.boldOff)
+  linha(d.fechadoEm ? 'FECHAMENTO DE CAIXA' : 'CAIXA - PARCIAL (ainda aberto)')
+  L.push(CMD.alignLeft)
+  linha(hr)
+  linha(padRow('Abertura', hora(d.abertoEm)))
+  if (d.abertoPor) linha(padRow('Aberto por', d.abertoPor.slice(0, w - 12)))
+  if (d.fechadoEm) linha(padRow('Fechamento', hora(d.fechadoEm)))
+  if (d.fechadoPor) linha(padRow('Fechado por', d.fechadoPor.slice(0, w - 13)))
+  linha(hr)
+  L.push(CMD.boldOn); linha('VENDAS POR FORMA'); L.push(CMD.boldOff)
+  d.porForma.forEach(f => linha(padRow(`${f.label} (${f.qtd})`, money(f.valor))))
+  if (d.porForma.length === 0) linha('Nenhuma venda')
+  L.push(CMD.boldOn); linha(padRow('TOTAL VENDAS', money(d.totalVendas))); L.push(CMD.boldOff)
+  linha(hr)
+  L.push(CMD.boldOn); linha('POR CANAL'); L.push(CMD.boldOff)
+  linha(padRow(`PDV (${d.canais.pdv.qtd})`, money(d.canais.pdv.valor)))
+  linha(padRow(`Mesas (${d.canais.mesa.qtd})`, money(d.canais.mesa.valor)))
+  linha(hr)
+  L.push(CMD.boldOn); linha('DINHEIRO NA GAVETA'); L.push(CMD.boldOff)
+  const din = d.porForma.find(f => f.label === 'Dinheiro')?.valor || 0
+  linha(padRow('Troco inicial', money(d.trocoInicial)))
+  linha(padRow('Vendas em dinheiro', money(din)))
+  d.movimentos.forEach(m => {
+    const rot = m.tipo === 'sangria' ? 'Sangria' : 'Suprimento'
+    linha(padRow(`${rot} ${new Date(m.criadoEm).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`, (m.tipo === 'sangria' ? '- ' : '+ ') + money(m.valor)))
+    if (m.motivo) wrap(m.motivo, w - 2).forEach(l => linha('  ' + l))
+  })
+  L.push(CMD.boldOn); linha(padRow('Esperado', money(d.dinheiroEsperado))); L.push(CMD.boldOff)
+  if (d.dinheiroContado != null) {
+    linha(padRow('Contado', money(d.dinheiroContado)))
+    const dif = d.diferenca ?? 0
+    L.push(CMD.boldOn)
+    linha(padRow(dif === 0 ? 'Diferenca' : dif > 0 ? 'SOBRA' : 'FALTA', money(Math.abs(dif))))
+    L.push(CMD.boldOff)
+  }
+  if (d.observacao) { linha(hr); wrap('Obs: ' + d.observacao).forEach(l => linha(l)) }
+  linha(hr)
+  L.push(CMD.alignCenter)
+  linha(new Date().toLocaleString('pt-BR'))
+  L.push(CMD.feed(avancoFinal()), CMD.cut)
+  return stripAccents(L.join(''))
+}

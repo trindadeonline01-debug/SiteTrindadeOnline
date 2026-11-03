@@ -24,6 +24,7 @@ export const PAINEL_NAV_GROUPS: PainelNavGroup[] = [
     items: [
       { href: '/painel/pedidos', icon: '🧾', label: 'Pedidos', lockKey: 'loja' },
       { href: '/painel/pdv', icon: '🖥️', label: 'PDV', lockKey: 'loja' },
+      { href: '/painel/caixa', icon: '💵', label: 'Caixa', lockKey: 'loja' },
       { href: '/painel/interesses', icon: '🔔', label: 'Interesses', lockKey: 'loja' },
       { href: '/painel/mensagens', icon: '💬', label: 'Mensagens', lockKey: 'crm' },
       { href: '/atendimento', icon: '🎧', label: 'Modo Atendimento', lockKey: 'crm' },

@@ -538,7 +538,11 @@ function ComandaView(props: {
                 <p>Lance o primeiro pedido para a cozinha começar. Cada novo pedido vira uma rodada nesta mesma comanda.</p>
                 <button className="cm-add big" onClick={props.onAdd}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#151210" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>Adicionar itens</button>
                 <small>O cliente também pode pedir pelo QR da mesa. O pedido dele aparece aqui para você confirmar.</small>
-                <button className="cm-liberar" disabled={busy} onClick={() => setConfLiberar(true)}>Liberar mesa (cliente desistiu)</button>
+                <div className="cm-ou"><i /><span>ou</span><i /></div>
+                <button className="cm-liberar" disabled={busy} onClick={() => setConfLiberar(true)}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="M16 17l5-5-5-5" /><path d="M21 12H9" /></svg>
+                  <span className="t"><b>Liberar mesa</b><em>Cliente desistiu? A mesa volta a ficar livre.</em></span>
+                </button>
               </div>
             )}
 
@@ -972,7 +976,10 @@ const CSS = `
 .cm-hb.calc{background:#FFC531;color:#151210;border:2px solid #151210;font-weight:700}
 .ms-top .ms-btn.calc{background:#FFC531;color:#151210;border:2px solid #151210;display:flex;align-items:center;gap:8px}
 .cm-hb.sq{width:44px;padding:0;justify-content:center}
-.cm-liberar{margin-top:6px;height:48px;padding:0 18px;border:1px solid #b9bab2;border-radius:10px;background:#fff;color:#B3261A;font-weight:700;font-size:14.5px;font-family:inherit;cursor:pointer}.cm-liberar:disabled{opacity:.5}
+.cm-ou{display:flex;align-items:center;gap:12px;width:100%;max-width:360px;margin-top:6px}.cm-ou i{flex:1;height:1px;background:#DCDDD6}.cm-ou span{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#6F6C67;font-weight:700}
+.cm-liberar{display:flex;align-items:center;gap:12px;width:100%;max-width:360px;min-height:60px;padding:8px 18px;border:1.5px solid #D9A39C;border-radius:10px;background:#fff;color:#B3261A;font-family:inherit;cursor:pointer;text-align:left}
+.cm-liberar:hover{background:#FDF3F1;border-color:#B3261A}.cm-liberar:disabled{opacity:.5;cursor:not-allowed}
+.cm-liberar .t{display:flex;flex-direction:column;gap:1px;min-width:0}.cm-liberar b{font-size:15.5px;font-weight:700}.cm-liberar em{font-style:normal;font-size:12.5px;color:#6F6C67;line-height:1.3}
 .cm-title{font-family:'Anton',sans-serif;font-size:34px;line-height:1;text-transform:uppercase;letter-spacing:.02em;padding-right:6px;flex:none}
 .cm-meta{display:flex;flex:1;min-width:0;overflow:hidden}
 .cm-meta>div{display:flex;flex-direction:column;gap:2px;padding:0 16px;border-left:1px solid #3a342d;justify-content:center;flex:none}

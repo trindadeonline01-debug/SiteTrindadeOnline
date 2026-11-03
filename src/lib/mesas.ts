@@ -146,3 +146,11 @@ export function resolveOpcoes(p: ProdutoMesaDb, opcaoIds: unknown): { mods: { na
   if ([...ids].some(i => !validas.has(i))) return { erro: 'Uma das opções escolhidas não existe mais. Atualize a página.' }
   return { mods }
 }
+
+// O telefone da conta foi confirmado por código de WhatsApp (e continua sendo o mesmo)?
+// Se o garçom trocar o número depois, a confirmação deixa de valer.
+export async function telefoneVerificado(comandaId: string, phone: string | null): Promise<boolean> {
+  if (!phone) return false
+  const { data } = await sb.from('loja_comanda_eventos').select('detalhe').eq('comanda_id', comandaId).eq('tipo', 'telefone_verificado').order('criado_em', { ascending: false }).limit(1)
+  return data?.[0]?.detalhe?.telefone === phone
+}

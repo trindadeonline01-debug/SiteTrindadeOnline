@@ -6,7 +6,7 @@ import { requireUser } from '@/lib/requireUser'
 import { promoPrice } from '@/lib/lojaPricing'
 import { creditarCashback, debitarCashback, getSaldoCashback, reembolsarCashback } from '@/lib/cashback'
 import {
-  sb, acessoMesas, erro, r2, hashPin, pinOk, exigePinSupervisor, evento, recalcComanda, totalPago, novoQrToken,
+  sb, acessoMesas, erro, r2, hashPin, pinOk, exigePinSupervisor, evento, recalcComanda, totalPago, novoQrToken, telefoneVerificado,
 } from '@/lib/mesas'
 
 // Todas as ações do garçom/dono sobre mesas e comandas num lugar só. A tela
@@ -115,8 +115,8 @@ export async function POST(req: NextRequest) {
       const c = await comandaAberta(companyId, b.comandaId)
       if (!c) return erro('Essa comanda não está aberta.', 409)
       const { data: cfg } = await sb.from('companies').select('cashback_enabled').eq('id', companyId).maybeSingle()
-      if (!cfg?.cashback_enabled || !c.customer_phone) return NextResponse.json({ ok: true, ativo: !!cfg?.cashback_enabled, saldo: 0 })
-      return NextResponse.json({ ok: true, ativo: true, saldo: r2(await getSaldoCashback(sb, companyId, c.customer_phone)) })
+      if (!cfg?.cashback_enabled || !c.customer_phone) return NextResponse.json({ ok: true, ativo: !!cfg?.cashback_enabled, saldo: 0, verificado: false })
+      return NextResponse.json({ ok: true, ativo: true, saldo: r2(await getSaldoCashback(sb, companyId, c.customer_phone)), verificado: await telefoneVerificado(c.id, c.customer_phone) })
     }
 
     // ---------- configuração ----------
@@ -292,6 +292,12 @@ export async function POST(req: NextRequest) {
         if (!c.customer_phone) return erro('Informe o WhatsApp do cliente na comanda para usar o cashback.')
         const { data: cfg } = await sb.from('companies').select('cashback_enabled').eq('id', companyId).maybeSingle()
         if (!cfg?.cashback_enabled) return erro('O cashback não está ativo nesta loja.')
+        // Gastar saldo exige o WhatsApp confirmado por código (QR da mesa) ou o PIN da supervisão.
+        if (!(await telefoneVerificado(c.id, c.customer_phone))) {
+          if (!b.pin) return erro('Confirme o WhatsApp do cliente pelo QR da mesa ou digite o PIN da supervisão para usar o cashback.', 403)
+          const bad = await pinOk(company, b.pin, c.id)
+          if (bad) return erro(bad, 403)
+        }
         const usado = await debitarCashback(sb, { companyId, phoneRaw: c.customer_phone, valorDesejado: valor })
         if (usado + 0.005 < valor) {
           if (usado > 0) await reembolsarCashback(sb, { companyId, phoneRaw: c.customer_phone, valor: usado })

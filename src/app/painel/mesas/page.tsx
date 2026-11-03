@@ -93,7 +93,6 @@ export default function MesasPage() {
   const chamadosVistos = useRef<Set<string> | null>(null)
   const [pedidoQr, setPedidoQr] = useState<Chamado | null>(null)
   const [pedirCfgPin, setPedirCfgPin] = useState(false)
-  const [cfgPin, setCfgPin] = useState('')
 
   const call = useCallback(async (acao: string, extra: Record<string, unknown> = {}): Promise<Resp> => {
     setBusy(true)
@@ -237,7 +236,7 @@ export default function MesasPage() {
           <a className="ms-tab" href={'/painel/pdv' + (adminMode ? `?empresa=${companyId}` : '')}>Balcão</a>
         </div>
         <button className="ms-btn calc" onClick={() => setCalcLivre(true)}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#151210" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2" /><rect x="8" y="6" width="8" height="3" /><path d="M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01M16 17h.01" /></svg>Calculadora</button>
-        <button className="ms-btn ghost" onClick={() => { if (adminMode || !hasPin) setShowConfig(true); else { setMsg(''); setCfgPin('') ; setPedirCfgPin(true) } }}>⚙️ Configurar</button>
+        <button className="ms-btn ghost" onClick={() => { if (adminMode || !hasPin) setShowConfig(true); else { setMsg(''); setPedirCfgPin(true) } }}>⚙️ Configurar</button>
         <a className="ms-back" href={'/painel' + (adminMode ? `?empresa=${companyId}` : '')}>Sair ›</a>
       </div>
 
@@ -340,20 +339,11 @@ export default function MesasPage() {
 
       {calcLivre && <MesaCalculadora onClose={() => setCalcLivre(false)} />}
 
-      {pedirCfgPin && (() => {
-        const entrar = async () => {
-          const r = await call('config_abrir', { pin: cfgPin })
-          if (r) { setPedirCfgPin(false); setCfgPin(''); setMsg(''); setShowConfig(true) }
-        }
-        return (
-          <Modal titulo="Configurações da mesa" onClose={() => { setPedirCfgPin(false); setMsg('') }}>
-            <p className="ms-p">Digite a senha de administrador (PIN da supervisão) para abrir as configurações.</p>
-            <PinInput className="pin" autoFocus value={cfgPin} onChange={setCfgPin} onEnter={() => { if (!busy && cfgPin.length >= 4) entrar() }} />
-            {msg && <div className="ms-err">{msg}</div>}
-            <button className="ms-btn big" disabled={busy || cfgPin.length < 4} onClick={entrar}>Abrir configurações</button>
-          </Modal>
-        )
-      })()}
+      {pedirCfgPin && (
+        <ConfigPinModal busy={busy} msg={msg} call={call}
+          onClose={() => { setPedirCfgPin(false); setMsg('') }}
+          onOk={() => { setPedirCfgPin(false); setMsg(''); setShowConfig(true) }} />
+      )}
 
       {pedidoQr && pedidoQr.payload && (
         <PedidoQrModal
@@ -398,6 +388,23 @@ function Modal({ titulo, onClose, children, wide }: { titulo: string; onClose: (
         {children}
       </div>
     </div>
+  )
+}
+
+// Pede o PIN da supervisão antes de abrir as configurações das mesas.
+function ConfigPinModal({ busy, msg, call, onClose, onOk }: { busy: boolean; msg: string; call: CallFn; onClose: () => void; onOk: () => void }) {
+  const [val, setVal] = useState('')
+  async function entrar() {
+    const r = await call('config_abrir', { pin: val })
+    if (r) onOk()
+  }
+  return (
+    <Modal titulo="Configurações da mesa" onClose={onClose}>
+      <p className="ms-p">Digite a senha de administrador (PIN da supervisão) para abrir as configurações.</p>
+      <PinInput className="pin" autoFocus value={val} onChange={setVal} onEnter={() => { if (!busy && val.length >= 4) entrar() }} />
+      {msg && <div className="ms-err">{msg}</div>}
+      <button className="ms-btn big" disabled={busy || val.length < 4} onClick={entrar}>Abrir configurações</button>
+    </Modal>
   )
 }
 
@@ -462,6 +469,7 @@ function ComandaView(props: {
   const [pinVal, setPinVal] = useState('')
   const [forma, setForma] = useState<'dinheiro' | 'cartao' | 'pix' | 'cashback'>('dinheiro')
   const [saldoCash, setSaldoCash] = useState(0)
+  const [cashVerif, setCashVerif] = useState(false)
   const [valorDig, setValorDig] = useState('')
   const [pessoa, setPessoa] = useState('')
   // Divisão da conta em partes (pessoas): ao tocar em ÷2/÷3/÷4 aparecem N
@@ -502,7 +510,7 @@ function ComandaView(props: {
     if (!c.customer_phone) return
     let vivo = true
     adminFetch('/api/mesas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ companyId: c.company_id, acao: 'cashback_saldo', comandaId: c.id }) })
-      .then(r => r.json()).then(d => { if (vivo) setSaldoCash(Number(d?.saldo) || 0) }).catch(() => {})
+      .then(r => r.json()).then(d => { if (vivo) { setSaldoCash(Number(d?.saldo) || 0); setCashVerif(!!d?.verificado) } }).catch(() => {})
     return () => { vivo = false }
   }, [c.id, c.company_id, c.customer_phone, nPagtos])
   const formasVisiveis = FORMAS.filter(f => f.key !== 'cashback' || (c.customer_phone && saldoCash > 0.004))
@@ -577,6 +585,11 @@ function ComandaView(props: {
   }
   async function pagar() {
     const valor = valorEf
+    // Cashback com o WhatsApp ainda não confirmado por código: só com o PIN da supervisão.
+    if (forma === 'cashback' && !cashVerif) {
+      pedirPin('Usar cashback sem confirmação do cliente', pin => call('pagar', { comandaId: c.id, forma, valor, pessoa: pessoa.trim() || null, pin }).then(async r => { if (r) { setPessoa(''); setValorDig(''); await load() } return r }))
+      return
+    }
     const r = await call('pagar', { comandaId: c.id, forma, valor, pessoa: pessoa.trim() || null })
     if (r) {
       setPessoa('')
@@ -710,7 +723,7 @@ function ComandaView(props: {
                 <div className="cm-pay" id="ms-pagamento">
                   <h3>Registrar pagamento</h3>
                   <div className="cm-seg" style={{ gridTemplateColumns: `repeat(${formasVisiveis.length}, minmax(0, 1fr))` }}>
-                    {formasVisiveis.map(f => <button key={f.key} className={forma === f.key ? 'on' : ''} onClick={() => { setForma(f.key); if (f.key === 'cashback') { setPartes(null); setParteSel(null); setValorDig(centavos(Math.min(falta, saldoCash))) } }}><PayIcon forma={f.key} cor={forma === f.key ? '#151210' : undefined} />{PAY_ICON[f.key].nome}{f.key === 'cashback' ? ` ${fmt(saldoCash)}` : ''}</button>)}
+                    {formasVisiveis.map(f => <button key={f.key} className={forma === f.key ? 'on' : ''} onClick={() => { setForma(f.key); if (f.key === 'cashback') { setPartes(null); setParteSel(null); setValorDig(centavos(Math.min(falta, saldoCash))) } }}><PayIcon forma={f.key} cor={forma === f.key ? '#151210' : undefined} />{PAY_ICON[f.key].nome}{f.key === 'cashback' ? ` ${fmt(saldoCash)}${cashVerif ? ' ✓' : ''}` : ''}</button>)}
                   </div>
                   <div className="cm-val"><span>R$</span>
                     <input aria-label="Valor a registrar" inputMode="numeric" value={valorDig ? moneyShow(valorDig) : moneyShow(String(Math.round(falta * 100)))}

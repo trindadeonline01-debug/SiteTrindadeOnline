@@ -1,11 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- corpo JSON validado campo a campo abaixo */
 import { NextRequest, NextResponse } from 'next/server'
-import { timingSafeEqual } from 'crypto'
+import { createHmac, timingSafeEqual } from 'crypto'
 import { promoPrice } from '@/lib/lojaPricing'
 import { PESO_REGEX } from '@/lib/produtoCart'
 import { normalizePhone } from '@/lib/phone'
 import { moduleActive } from '@/lib/modules'
-import { sb, erro, r2, configQr, resolveOpcoes, type ProdutoMesaDb } from '@/lib/mesas'
+import { sb, erro, r2, configQr, resolveOpcoes, evento, telefoneVerificado, type ProdutoMesaDb } from '@/lib/mesas'
+import { sendPlatformWhatsApp } from '@/lib/whatsapp'
+import { getSaldoCashback } from '@/lib/cashback'
 
 // Página pública da mesa (QR). Sem login: o QR identifica só a mesa. Aqui o
 // celular PEDE; o servidor confere tudo (mesa, conta, produto, opção, preço) e
@@ -23,7 +25,7 @@ async function carregar(token: unknown) {
   const { data: mesa } = await sb.from('loja_mesas').select('id, numero, nome, ativa, company_id').eq('qr_token', t).maybeSingle()
   if (!mesa || !mesa.ativa) return null
   const { data: company } = await sb.from('companies')
-    .select('id, name, slug, mesas_enabled, loja_digital_enabled, trial_modules_until').eq('id', mesa.company_id).maybeSingle()
+    .select('id, name, slug, mesas_enabled, loja_digital_enabled, trial_modules_until, cashback_enabled, cashback_percent_mesa').eq('id', mesa.company_id).maybeSingle()
   if (!company || !company.mesas_enabled || !moduleActive(company.loja_digital_enabled, company.trial_modules_until)) return null
   const { data: comanda } = await sb.from('loja_comandas').select('id, sessao_secret').eq('mesa_id', mesa.id).eq('status', 'aberta').maybeSingle()
   return { mesa, company, comanda: comanda || null }
@@ -36,6 +38,19 @@ function sessaoConfere(comanda: { sessao_secret: string } | null, sessao: unknow
 }
 const ENCERRADA = 'Essa conta mudou. Atualizando…'
 
+// Código de confirmação do WhatsApp: derivado (HMAC) da conta + telefone + janela de
+// 10 min, sem tabela. Vale a janela atual e a anterior (10 a 20 min). Tentativas erradas
+// e envios ficam contados no extrato da própria comanda.
+const JANELA_MS = 10 * 60_000
+function codigoOtp(comandaId: string, phone: string, janela: number) {
+  const h = createHmac('sha256', process.env.SUPABASE_SERVICE_ROLE_KEY!).update(`mesa-otp|${comandaId}|${phone}|${janela}`).digest('hex')
+  return String(parseInt(h.slice(0, 8), 16) % 1_000_000).padStart(6, '0')
+}
+async function contarEventos(comandaId: string, tipo: string, ms: number) {
+  const { count } = await sb.from('loja_comanda_eventos').select('id', { count: 'exact', head: true })
+    .eq('comanda_id', comandaId).eq('tipo', tipo).gte('criado_em', new Date(Date.now() - ms).toISOString())
+  return count || 0
+}
 export async function POST(req: NextRequest) {
   try {
     const b: Record<string, any> = await req.json()
@@ -75,6 +90,7 @@ export async function POST(req: NextRequest) {
         // A chave da conta só sai quando há conta aberta; a página guarda e manda de volta.
         sessao: comanda ? comanda.sessao_secret : null,
         podePedir: cfg.qrPedir,
+        cashback: { ativo: !!company.cashback_enabled && Number(company.cashback_percent_mesa) > 0, percentual: Number(company.cashback_percent_mesa) || 0 },
         categorias: cats || [],
         produtos,
       })
@@ -147,6 +163,44 @@ export async function POST(req: NextRequest) {
       const { error } = await sb.from('loja_mesa_chamados').insert({ company_id: company.id, mesa_id: mesa.id, comanda_id: comanda?.id ?? null, tipo, mensagem: msg })
       if (error) return erro('Não consegui avisar o garçom. Levante a mão para ele.', 500)
       return NextResponse.json({ ok: true })
+    }
+
+    // ---------- identificação do cliente por código (cashback) ----------
+    if (acao === 'carteira' || acao === 'codigo_enviar' || acao === 'codigo_verificar') {
+      if (!company.cashback_enabled) return erro('Esta loja não usa cashback.', 400)
+      if (!comanda) return erro('A conta ainda não foi aberta. Peça ao garçom ou envie um pedido primeiro.', 409)
+      if (!sessaoConfere(comanda, b.sessao)) return erro(ENCERRADA, 409)
+
+      if (acao === 'carteira') {
+        const { data: c } = await sb.from('loja_comandas').select('customer_phone').eq('id', comanda.id).maybeSingle()
+        const ok = await telefoneVerificado(comanda.id, c?.customer_phone ?? null)
+        return NextResponse.json({ ok: true, verificado: ok, telefone: ok ? c?.customer_phone : null, saldo: ok && c?.customer_phone ? r2(await getSaldoCashback(sb, company.id, c.customer_phone)) : 0 })
+      }
+
+      const tel = normalizePhone(b.telefone)
+      if (tel.length < 12 || tel.length > 13) return erro('Confira o número do WhatsApp (com DDD).')
+      const janela = Math.floor(Date.now() / JANELA_MS)
+
+      if (acao === 'codigo_enviar') {
+        if ((await contarEventos(comanda.id, 'otp_enviado', 60_000)) >= 1) return erro('Aguarde 1 minuto para pedir outro código.', 429)
+        if ((await contarEventos(comanda.id, 'otp_enviado', 3_600_000)) >= 3) return erro('Muitos códigos pedidos. Chame o garçom para ajudar.', 429)
+        await evento(company.id, comanda.id, 'otp_enviado', { final: tel.slice(-4) }, null)
+        const r = await sendPlatformWhatsApp(tel, `🔐 Seu código Trindade Online (${company.name}): *${codigoOtp(comanda.id, tel, janela)}*\n\nVale por alguns minutos. Não compartilhe com ninguém.`)
+        if (!r.ok) return erro('Não consegui enviar o código agora. Chame o garçom.', 502)
+        return NextResponse.json({ ok: true })
+      }
+
+      // codigo_verificar
+      if ((await contarEventos(comanda.id, 'otp_errado', 10 * 60_000)) >= 5) return erro('Muitas tentativas erradas. Chame o garçom.', 429)
+      const dig = String(b.codigo || '').replace(/\D/g, '')
+      const valido = [janela, janela - 1].some(j => igual(dig, codigoOtp(comanda.id, tel, j)))
+      if (!valido) {
+        await evento(company.id, comanda.id, 'otp_errado', {}, null)
+        return erro('Código incorreto ou vencido.', 400)
+      }
+      await sb.from('loja_comandas').update({ customer_phone: tel }).eq('id', comanda.id)
+      await evento(company.id, comanda.id, 'telefone_verificado', { telefone: tel }, null)
+      return NextResponse.json({ ok: true, verificado: true, telefone: tel, saldo: r2(await getSaldoCashback(sb, company.id, tel)) })
     }
 
     // ---------- andamento do pedido enviado ----------

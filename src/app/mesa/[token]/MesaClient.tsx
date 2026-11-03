@@ -8,8 +8,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 type Opcao = { id: string; name: string; price: number }
 type Grupo = { id: string; name: string; required: boolean; min: number; max: number; options: Opcao[] }
 type Prod = { id: string; name: string; description: string | null; photo: string | null; categoriaId: string | null; preco: number; precoCheio: number | null; porPeso: boolean; grupos: Grupo[] }
-type Info = { empresa: { nome: string }; mesa: { numero: number }; contaAberta: boolean; sessao: string | null; podePedir: boolean; categorias: { id: string; name: string }[]; produtos: Prod[] }
+type Info = { empresa: { nome: string }; mesa: { numero: number }; contaAberta: boolean; sessao: string | null; podePedir: boolean; cashback: { ativo: boolean; percentual: number }; categorias: { id: string; name: string }[]; produtos: Prod[] }
 type Linha = { key: string; prod: Prod; qty: number; opcoes: Opcao[]; unit: number }
+type Carteira = { verificado: boolean; saldo: number; telefone: string | null }
 type Envio = { chamadoId: string; status: 'aberto' | 'atendido' | 'cancelado'; motivo: string | null }
 
 const fmt = (n: number) => 'R$ ' + n.toFixed(2).replace('.', ',')
@@ -34,6 +35,13 @@ export default function MesaClient({ token }: { token: string }) {
   const [busy, setBusy] = useState(false)
   const [aviso, setAviso] = useState('')
   const [chamou, setChamou] = useState<'garcom' | 'conta' | null>(null)
+  // Identificação por código (cashback)
+  const [cart, setCart] = useState<Carteira | null>(null)
+  const [idTel, setIdTel] = useState('')
+  const [idCod, setIdCod] = useState('')
+  const [idEtapa, setIdEtapa] = useState<'tel' | 'codigo'>('tel')
+  const [idMsg, setIdMsg] = useState('')
+  const [idBusy, setIdBusy] = useState(false)
   const sessaoRef = useRef<string | null>(null)
   const seq = useRef(0)
 
@@ -57,6 +65,9 @@ export default function MesaClient({ token }: { token: string }) {
       if (!r.ok) { setFalha(r.data?.error || 'Não consegui abrir a mesa. Chame o garçom.'); return }
       sessaoRef.current = r.data.sessao
       setInfo(r.data as Info)
+      if (r.data.contaAberta && r.data.cashback?.ativo) {
+        call('carteira').then(c => { if (vivo && c.ok) setCart({ verificado: !!c.data.verificado, saldo: Number(c.data.saldo) || 0, telefone: c.data.telefone || null }) })
+      }
     })
     return () => { vivo = false }
   }, [call])
@@ -82,6 +93,21 @@ export default function MesaClient({ token }: { token: string }) {
   const qtdTotal = linhas.reduce((s, l) => s + l.qty, 0)
   const visiveis = useMemo(() => (info?.produtos || []).filter(p => cat === 'todas' || p.categoriaId === cat), [info, cat])
   const catsComItem = useMemo(() => (info?.categorias || []).filter(c => info?.produtos.some(p => p.categoriaId === c.id)), [info])
+
+  async function enviarCodigo() {
+    setIdBusy(true); setIdMsg('')
+    const r = await call('codigo_enviar', { telefone: idTel })
+    setIdBusy(false)
+    if (!r.ok) { setIdMsg(r.data?.error || 'Não consegui enviar o código.'); return }
+    setIdEtapa('codigo'); setIdCod(''); setIdMsg('Enviamos um código de 6 números para o seu WhatsApp.')
+  }
+  async function confirmarCodigo() {
+    setIdBusy(true); setIdMsg('')
+    const r = await call('codigo_verificar', { telefone: idTel, codigo: idCod })
+    setIdBusy(false)
+    if (!r.ok) { setIdMsg(r.data?.error || 'Código incorreto.'); return }
+    setCart({ verificado: true, saldo: Number(r.data.saldo) || 0, telefone: r.data.telefone || null }); setIdMsg('')
+  }
 
   function addLinha(p: Prod, opcoes: Opcao[]) {
     const unit = Math.round((p.preco + opcoes.reduce((s, o) => s + o.price, 0)) * 100) / 100
@@ -148,6 +174,36 @@ export default function MesaClient({ token }: { token: string }) {
           {info.contaAberta && <button className="mz-btn ghost" disabled={busy} onClick={() => chamar('conta')}>{chamou === 'conta' ? '✓ Conta pedida' : 'Pedir a conta'}</button>}
         </div>
       </header>
+
+      {info.contaAberta && info.cashback.ativo && cart && (
+        <section className="mz-cash" aria-label="Cashback">
+          {cart.verificado ? (
+            <>
+              <b>🎁 Seu cashback nesta loja: {fmt(cart.saldo)}</b>
+              <small>Ao pagar a conta você ganha {String(info.cashback.percentual).replace('.', ',')}% de volta para o próximo pedido. Para usar o saldo, avise o garçom na hora de pagar.</small>
+            </>
+          ) : idEtapa === 'tel' ? (
+            <>
+              <b>🎁 Ganhe {String(info.cashback.percentual).replace('.', ',')}% de volta</b>
+              <small>Confirme seu WhatsApp e receba cashback para usar no próximo pedido.</small>
+              <div className="mz-idrow">
+                <input inputMode="tel" autoComplete="tel" placeholder="(21) 99999-9999" value={idTel} onChange={e => setIdTel(e.target.value)} aria-label="Seu WhatsApp" />
+                <button className="mz-btn" disabled={idBusy || idTel.replace(/\D/g, '').length < 10} onClick={enviarCodigo}>{idBusy ? 'Enviando…' : 'Receber código'}</button>
+              </div>
+            </>
+          ) : (
+            <>
+              <b>Digite o código que chegou no WhatsApp</b>
+              <div className="mz-idrow">
+                <input inputMode="numeric" maxLength={6} placeholder="000000" value={idCod} onChange={e => setIdCod(e.target.value.replace(/\D/g, ''))} aria-label="Código de 6 números" />
+                <button className="mz-btn" disabled={idBusy || idCod.length < 6} onClick={confirmarCodigo}>{idBusy ? 'Conferindo…' : 'Confirmar'}</button>
+              </div>
+              <button className="mz-link" onClick={() => { setIdEtapa('tel'); setIdMsg('') }}>Trocar número</button>
+            </>
+          )}
+          {idMsg && <small className="mz-idmsg" role="status">{idMsg}</small>}
+        </section>
+      )}
 
       {!info.podePedir ? (
         <div className="mz-box"><p>Hoje os pedidos desta mesa são feitos com o garçom. Use “Chamar garçom”.</p></div>
@@ -293,6 +349,11 @@ const CSS = `
 .mz-add{flex:none;width:46px;height:46px;border-radius:10px;border:2px solid #151210;background:var(--mz-sign);color:#151210;font-size:26px;font-weight:700;line-height:1}
 .mz-vazio{text-align:center;color:var(--mz-muted);padding:30px 0}
 .mz-barra{position:fixed;left:12px;right:12px;bottom:12px;z-index:6;height:58px;border-radius:12px;border:2px solid #151210;background:var(--mz-sign);color:#151210;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-size:16px;font-weight:700;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+.mz-cash{margin:12px 16px 0;background:var(--mz-soft);border:1.5px solid var(--mz-sign);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.mz-cash b{font-size:15px}.mz-cash small{color:var(--mz-muted);font-size:12.5px;line-height:1.4}.mz-cash .mz-idmsg{color:var(--mz-ink);font-weight:600}
+.mz-idrow{display:flex;gap:8px}.mz-idrow input{flex:1;min-width:0;height:46px;border:1.5px solid var(--mz-line);border-radius:10px;background:var(--mz-paper);color:var(--mz-ink);font:inherit;font-size:16px;padding:0 12px}
+.mz-idrow .mz-btn{flex:none;height:46px;padding:0 14px;font-size:14px}
+.mz-link{align-self:flex-start;background:transparent;border:0;color:var(--mz-ink);text-decoration:underline;font-size:13px;padding:4px 0}
 .mz-box{margin:24px 16px;background:var(--mz-paper);border:1px solid var(--mz-line);border-radius:12px;padding:20px}.mz-box h1{margin:0 0 6px;font-family:Anton,sans-serif;font-weight:400;font-size:28px;text-transform:uppercase}.mz-box p{margin:0;line-height:1.5}
 .mz-aviso{margin:8px 16px 0;background:var(--mz-soft);border:1px solid var(--mz-sign);border-radius:8px;padding:10px 12px;font-size:14px;font-weight:600}
 .mz-sheet .mz-aviso{margin:10px 0 0}

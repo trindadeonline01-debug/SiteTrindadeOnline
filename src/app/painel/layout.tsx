@@ -9,6 +9,7 @@ import { ORIGENS_DELIVERY, isPdvOuMesa } from '@/lib/canais'
 import { isRawBtMode, setPapelImpressora } from '@/lib/qzPrint'
 import { refreshSessionOnce } from '@/lib/authRefresh'
 import { useRealtimeResync } from '@/hooks/useRealtimeResync'
+import NovaVersaoAviso from '@/components/painel/NovaVersaoAviso'
 import EmpresaShell, { type EmpresaNavKey } from '@/components/EmpresaShell'
 import { PainelShellContext } from '@/contexts/PainelShellContext'
 
@@ -301,7 +302,7 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [company?.id, company?.name, resyncTick])
 
-  if (bare) return <>{children}</>
+  if (bare) return <><NovaVersaoAviso />{children}</>
 
   const active = activeOverride || deriveActiveKey(pathname, searchParams.get('tab'))
 
@@ -309,6 +310,7 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
 
   return (
     <PainelShellContext.Provider value={{ company, loading, isAdminMode, setActiveOverride, printerName, autoAceitar, setPrinterName, setAutoAceitar, setStorePaused }}>
+      <NovaVersaoAviso />
       <EmpresaShell
         active={active}
         companyName={company?.name}

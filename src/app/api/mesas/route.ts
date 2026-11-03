@@ -4,6 +4,7 @@ import { randomBytes, randomInt } from 'crypto'
 import { normalizePhone } from '@/lib/phone'
 import { requireUser } from '@/lib/requireUser'
 import { promoPrice } from '@/lib/lojaPricing'
+import { sendCustomerWhatsApp } from '@/lib/whatsapp'
 import { creditarCashback, debitarCashback, getSaldoCashback, reembolsarCashback } from '@/lib/cashback'
 import {
   sb, acessoMesas, erro, r2, hashPin, pinOk, exigePinSupervisor, evento, recalcComanda, totalPago, novoQrToken, telefoneVerificado,
@@ -356,7 +357,7 @@ export async function POST(req: NextRequest) {
       // cliente — o crédito entra agora, depois que a conta já foi paga.
       let cashbackGanho = 0
       try {
-        const { data: cfg } = await sb.from('companies').select('cashback_enabled, cashback_percent_mesa').eq('id', companyId).maybeSingle()
+        const { data: cfg } = await sb.from('companies').select('cashback_enabled, cashback_percent_mesa, cashback_expira_dias').eq('id', companyId).maybeSingle()
         const pct = Number(cfg?.cashback_percent_mesa) || 0
         if (cfg?.cashback_enabled && pct > 0 && c.customer_phone) {
           const pagoCash = r2((pgs || []).filter(p => p.forma === 'cashback').reduce((s, p) => s + Number(p.valor), 0))
@@ -367,7 +368,16 @@ export async function POST(req: NextRequest) {
             const antes = await getSaldoCashback(sb, companyId, c.customer_phone)
             await creditarCashback(sb, { companyId, phoneRaw: c.customer_phone, pedidoId: rodada, valor: valorCash })
             const depois = await getSaldoCashback(sb, companyId, c.customer_phone)
-            if (depois > antes) cashbackGanho = valorCash
+            if (depois > antes) {
+              cashbackGanho = valorCash
+              // Aviso ao cliente: quanto ganhou, saldo total e até quando vale. Uma mensagem só,
+              // por cliente que fecha conta — nunca em lote. Falha de envio não atrapalha o fechamento.
+              const dias = Number(cfg?.cashback_expira_dias) || 90
+              const ate = new Date(Date.now() + dias * 86_400_000).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+              const brl = (n: number) => 'R$ ' + n.toFixed(2).replace('.', ',')
+              await sendCustomerWhatsApp(companyId, c.customer_phone,
+                `🎁 *${company.name.trim()}* agradece a visita!\n\nVocê ganhou *${brl(valorCash)}* de cashback nesta conta. Seu saldo agora é *${brl(r2(depois))}*, para usar no próximo pedido (delivery ou aqui na mesa) até *${ate}*.\n\nÉ só informar este WhatsApp quando pedir. Volte sempre! 😊`, 'aviso_pedido')
+            }
           }
         }
       } catch (e) { console.error('[mesas] cashback no fechamento:', e) }

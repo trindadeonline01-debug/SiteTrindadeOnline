@@ -5,6 +5,7 @@ import { adminFetch } from '@/lib/adminFetch'
 import { moduleActive } from '@/lib/modules'
 import { beep, unlockAudio } from '@/lib/beep'
 import { qzPrintRaw, buildReceipt, buildKitchenTicket, isRawBtMode, printViaRawBt, setPapelImpressora } from '@/lib/qzPrint'
+import MesaCalculadora, { type CalcComanda } from '@/components/painel/MesaCalculadora'
 import { npGroupContribution, type NpGrupo, type NpProduto, PESO_REGEX, pesoNum, pesoDisplay } from '@/lib/produtoCart'
 
 // Mesas e comandas (nov/2026) — mapa de mesas em tela cheia pro tablet do
@@ -79,6 +80,7 @@ export default function MesasPage() {
   const [abertaId, setAbertaId] = useState<string | null>(null)       // comanda aberta na tela
   const [abrirMesa, setAbrirMesa] = useState<Mesa | null>(null)       // escolher garçom
   const [showConfig, setShowConfig] = useState(false)
+  const [calcLivre, setCalcLivre] = useState(false)
   const [picker, setPicker] = useState(false)
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
@@ -222,6 +224,7 @@ export default function MesasPage() {
           <a className="ms-tab" href={'/painel/cozinha' + (adminMode ? `?empresa=${companyId}` : '')}>Cozinha</a>
           <a className="ms-tab" href={'/painel/pdv' + (adminMode ? `?empresa=${companyId}` : '')}>Balcão</a>
         </div>
+        <button className="ms-btn calc" onClick={() => setCalcLivre(true)}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#151210" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2" /><rect x="8" y="6" width="8" height="3" /><path d="M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01M16 17h.01" /></svg>Calculadora</button>
         <button className="ms-btn ghost" onClick={() => setShowConfig(true)}>⚙️ Configurar</button>
         <a className="ms-back" href={'/painel' + (adminMode ? `?empresa=${companyId}` : '')}>Sair ›</a>
       </div>
@@ -316,6 +319,8 @@ export default function MesasPage() {
           onLancar={async (l, obs) => { const ok = await lancarRodada(l, obs); if (ok) setPicker(false); return ok }} />
       )}
 
+      {calcLivre && <MesaCalculadora onClose={() => setCalcLivre(false)} />}
+
       {showConfig && (
         <Config
           companyId={companyId} adminMode={adminMode} mesasEnabled={mesasEnabled} taxaPct={taxaPct} hasPin={hasPin} garcons={garcons} totalMesas={mesas.length}
@@ -370,6 +375,7 @@ function ComandaView(props: {
   const [parteSel, setParteSel] = useState<number | null>(null)
   const pessoaRef = useRef<HTMLInputElement>(null)
   const [menu, setMenu] = useState(false)
+  const [calcAberta, setCalcAberta] = useState(false)
   const [sub, setSub] = useState<null | 'transferir' | 'juntar' | 'desconto' | 'cliente'>(null)
   const [descVal, setDescVal] = useState('')
   const [descMotivo, setDescMotivo] = useState('')
@@ -383,6 +389,21 @@ function ComandaView(props: {
   const valorEf = valorDig ? moneyDigits(valorDig) : falta
   const pct = c.total > 0 ? Math.min(100, Math.round(pago / c.total * 100)) : 0
   const centavos = (v: number) => String(Math.round(v * 100))
+  const calcComanda: CalcComanda = {
+    titulo: `Mesa ${mesa?.numero ?? ''} · Comanda ${c.numero}`,
+    consumo: c.subtotal, total: c.total, falta, pago, taxaPct: c.taxa_servico_pct, taxaAtiva: c.taxa_servico_ativa,
+    itens: ativos.flatMap(p => p.itens).map(it => ({
+      id: it.id, nome: it.product_name, qtd: it.peso_kg != null ? `${String(it.peso_kg).replace('.', ',')} kg` : `${it.qty}×`, total: r2(it.unit_price * it.qty),
+    })),
+  }
+  // Valor vindo da calculadora: já cai no campo de pagamento, com o nome de quem vai pagar.
+  function usarDaCalculadora(valor: number, quem?: string) {
+    setPartes(null); setParteSel(null)
+    setValorDig(centavos(Math.min(valor, falta > 0 ? falta : valor)))
+    if (quem) setPessoa(quem)
+    setCalcAberta(false)
+    setTimeout(() => document.getElementById('ms-pagamento')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50)
+  }
   const splitEq = (T: number, n: number) => {
     const base = Math.floor(T * 100 / n) / 100
     return Array.from({ length: n }, (_, i) => i < n - 1 ? base : r2(T - base * (n - 1)))
@@ -452,6 +473,7 @@ function ComandaView(props: {
                 : <button className="add" onClick={() => setSub('cliente')}>+ WhatsApp do cliente</button>}
             </div>
           </div>
+          <button className="cm-hb calc" onClick={() => setCalcAberta(true)} aria-label="Calculadora"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#151210" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2" /><rect x="8" y="6" width="8" height="3" /><path d="M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01M16 17h.01" /></svg><span className="hide-s">Calculadora</span></button>
           <button className="cm-hb hide-s" onClick={props.imprimirConta}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M7 9V4h10v5M7 17H5a1 1 0 0 1-1-1v-5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v5a1 1 0 0 1-1 1h-2" /><rect x="7" y="14" width="10" height="6" /></svg>Imprimir conta</button>
           <div className="cm-menuwrap">
             <button className="cm-hb sq" aria-label="Mais ações" aria-expanded={menu} onClick={() => setMenu(m => !m)}><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="19" cy="12" r="1.8" /></svg></button>
@@ -605,6 +627,7 @@ function ComandaView(props: {
         </div>
       </div>
 
+      {calcAberta && <MesaCalculadora comanda={calcComanda} onClose={() => setCalcAberta(false)} onUsar={falta > 0.005 ? usarDaCalculadora : undefined} />}
       {pin && (
         <Modal titulo={pin.titulo} onClose={() => setPin(null)}>
           <p className="ms-p">Digite o PIN da supervisão.</p>
@@ -872,6 +895,8 @@ const CSS = `
 .cm{width:100%;height:100vh;height:100dvh;display:flex;flex-direction:column;background:#E9EAE5}
 .cm-top{flex:none;min-height:72px;background:#151210;color:#fff;display:flex;align-items:center;gap:14px;padding:8px 20px;position:relative}
 .cm-hb{display:flex;align-items:center;gap:8px;background:transparent;color:#fff;border:1px solid #4a423a;border-radius:8px;padding:0 14px;height:44px;font-weight:600;font-size:14px;flex:none}
+.cm-hb.calc{background:#FFC531;color:#151210;border:2px solid #151210;font-weight:700}
+.ms-top .ms-btn.calc{background:#FFC531;color:#151210;border:2px solid #151210;display:flex;align-items:center;gap:8px}
 .cm-hb.sq{width:44px;padding:0;justify-content:center}
 .cm-title{font-family:'Anton',sans-serif;font-size:34px;line-height:1;text-transform:uppercase;letter-spacing:.02em;padding-right:6px;flex:none}
 .cm-meta{display:flex;flex:1;min-width:0;overflow:hidden}

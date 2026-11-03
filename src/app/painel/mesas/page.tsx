@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { adminFetch } from '@/lib/adminFetch'
 import { moduleActive } from '@/lib/modules'
-import { beep, unlockAudio } from '@/lib/beep'
+import { beep, beepMesa, unlockAudio } from '@/lib/beep'
 import { qzPrintRaw, buildReceipt, buildKitchenTicket, isRawBtMode, printViaRawBt, setPapelImpressora } from '@/lib/qzPrint'
 import ConfirmModal from '@/components/painel/ConfirmModal'
 import MesaCalculadora, { type CalcComanda, type Divisao, DIVISAO0 } from '@/components/painel/MesaCalculadora'
@@ -116,7 +116,12 @@ export default function MesasPage() {
     setMesas((m.data || []) as Mesa[]); setComandas(cs); setGarcons((g.data || []) as Garcom[])
     const chs = (ch.data || []) as Chamado[]
     setChamados(chs)
-    if (chamadosVistos.current && chs.some(x => !chamadosVistos.current!.has(x.id))) beep(2)
+    if (chamadosVistos.current) {
+      const novos = chs.filter(x => !chamadosVistos.current!.has(x.id))
+      // Pedido do cliente toca o sino da mesa (diferente do toque de chamado de garçom).
+      if (novos.some(x => x.tipo === 'pedido')) beepMesa()
+      else if (novos.length > 0) beep(2)
+    }
     chamadosVistos.current = new Set(chs.map(x => x.id))
     const ids = cs.map(x => x.id)
     if (ids.length === 0) { setPedidos([]); setPagtos([]); return }

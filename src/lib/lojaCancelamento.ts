@@ -4,6 +4,7 @@ import { sendCustomerWhatsApp, notifyOwnerNewOrder } from '@/lib/whatsapp'
 import { cancelarChamadaMotoboy } from '@/lib/entregaDispatch'
 import { moduleActive } from '@/lib/modules'
 import { notifyAdmin } from '@/lib/notifyAdmin'
+import { recalcComanda } from '@/lib/mesas'
 
 // Cancelamento de pedido do cardápio (item 25 da base de conhecimento,
 // regras do Ricardo, out/2026). Um lugar só pra: marcar cancelado + quem
@@ -139,6 +140,12 @@ export async function cancelarPedidoLoja(args: { pedidoId: string; por: Cancelad
     status: 'cancelado', cancelado_por: args.por, cancelado_em: agora, cancelamento_solicitado_em: null, updated_at: agora,
   }).eq('id', p.id).eq('status', p.status).select('id')
   if (!claimed?.length) return { ok: false, error: 'O pedido mudou de status agora — atualiza a tela e tenta de novo.', status: 409 }
+
+  // Rodada de mesa cancelada por fora da tela de mesas: refaz o total da conta.
+  try {
+    const { data: rod } = await supabaseAdmin.from('loja_pedidos').select('comanda_id').eq('id', p.id).maybeSingle()
+    if (rod?.comanda_id) await recalcComanda(rod.comanda_id)
+  } catch {}
 
   await devolverCashbackDoPedido(p)
   await soltarMotoboy(p.id)

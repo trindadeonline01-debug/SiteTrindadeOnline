@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { refreshSessionOnce } from '@/lib/authRefresh'
 import { usePainelShell } from '@/contexts/PainelShellContext'
+import { ORIGENS_DELIVERY } from '@/lib/canais'
 import PeriodFilterBar from '@/components/admin/PeriodFilterBar'
 import { PeriodSel, periodRange, periodLabel } from '@/lib/periodFilter'
 
@@ -65,7 +66,7 @@ export default function PagamentosPage() {
     const { from, to } = periodRange(period)
     let q = supabase.from('loja_pedidos')
       .select('id,payment_method,payment_status,mp_payment_id,total,created_at')
-      .eq('company_id', company.id).neq('status', 'cancelado')
+      .eq('company_id', company.id).neq('status', 'cancelado').in('origin', [...ORIGENS_DELIVERY])
     if (from) q = q.gte('created_at', from)
     if (to) q = q.lt('created_at', to)
     q.order('created_at', { ascending: true }).then(({ data }) => {

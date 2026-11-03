@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { refreshSessionOnce } from '@/lib/authRefresh'
 import { adminFetch } from '@/lib/adminFetch'
 import { moduleActive } from '@/lib/modules'
-import { beep, unlockAudio } from '@/lib/beep'
+import { beep, beepMesa, unlockAudio } from '@/lib/beep'
 import { ORIGENS_COZINHA } from '@/lib/canais'
 
 type Item = { id: string; product_name: string; qty: number; selected_options: { name: string; price: number }[] }
@@ -105,7 +105,8 @@ export default function CozinhaPage() {
         .on('postgres_changes', { event: '*', schema: 'public', table: 'loja_pedidos', filter: `company_id=eq.${comp.id}` }, payload => {
           // PDV nunca vai pra cozinha: sem toque e sem recarregar à toa
           if ((payload.new as { origin?: string } | null)?.origin === 'pdv') return
-          if (payload.eventType === 'INSERT') beep(2)
+          // Rodada de mesa toca um sino próprio; o toque de telefone é só do delivery.
+          if (payload.eventType === 'INSERT') { if ((payload.new as { origin?: string } | null)?.origin === 'mesa') beepMesa(); else beep(2) }
           loadAll(companyIdRef.current)
         })
         .subscribe()
@@ -205,7 +206,7 @@ export default function CozinhaPage() {
                 return (
                   <div className="cz-card" key={p.id} onClick={() => advance(p.id, next)}>
                     <div className="cz-cname">{p.customer_name}</div>
-                    <div className="cz-ctime">{timeAgo(p.created_at)} atrás · {p.delivery_type === 'entrega' ? '🚴 Entrega' : p.delivery_type === 'balcao' ? '🧾 Balcão' : '🏪 Retirada'}{p.scheduled_for ? ` · 📅 ${fmtSchedule(p.scheduled_for)}` : ''}</div>
+                    <div className="cz-ctime">{timeAgo(p.created_at)} atrás · {p.comanda_id ? '🍽️ Mesa' : p.delivery_type === 'entrega' ? '🚴 Entrega' : p.delivery_type === 'balcao' ? '🧾 Balcão' : '🏪 Retirada'}{p.scheduled_for ? ` · 📅 ${fmtSchedule(p.scheduled_for)}` : ''}</div>
                     {p.itens?.map(it => (
                       <div key={it.id}>
                         <div className="cz-citem"><span className="cz-cqty">{it.qty}x</span> {it.product_name}</div>

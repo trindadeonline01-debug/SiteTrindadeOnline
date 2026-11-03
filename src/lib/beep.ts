@@ -139,3 +139,32 @@ export function beepCancelamento() {
     }))
   } catch {}
 }
+
+
+// Som PRÓPRIO de rodada de MESA chegando na cozinha (nov/2026) — não pode ser
+// confundido com o toque de pedido de delivery: dois "dings" de sino, suaves
+// e agudos, repetidos 2x. Gerado por código, sem arquivo.
+export function beepMesa() {
+  try {
+    setPlaybackAudioSession()
+    const c = getCtx()
+    if (!c) return
+    if (c.state === 'suspended') c.resume().catch(() => {})
+    const master = c.createGain()
+    master.gain.value = 0.5
+    master.connect(c.destination)
+    ;[0, 0.8].forEach(base => [880, 1318.51].forEach((freq, i) => {
+      const osc = c.createOscillator()
+      const g = c.createGain()
+      osc.type = 'sine'
+      osc.frequency.value = freq
+      osc.connect(g); g.connect(master)
+      const t0 = c.currentTime + base + i * 0.28
+      g.gain.setValueAtTime(0, t0)
+      g.gain.linearRampToValueAtTime(1, t0 + 0.01)
+      g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.6)
+      osc.start(t0)
+      osc.stop(t0 + 0.65)
+    }))
+  } catch {}
+}

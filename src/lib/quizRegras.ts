@@ -8,11 +8,12 @@ export const QUIZ_PULOS = 3
 export const QUIZ_PENSAR = 2
 export const QUIZ_PORTAO = 15            // 15 acertos: entra a escolha parar/arriscar
 export const QUIZ_TETO_ACERTOS = 30      // 30 acertos: 10% garantido
+export const QUIZ_ERROS_PERDOADOS = 3    // até os 15 acertos o jogador pode errar 3 vezes e continuar; o 4º erro encerra
 
 export type EstadoRodada = 'jogando' | 'portao' | 'risco' | 'encerrada'
 export type MotivoFim = 'erro' | 'tempo' | 'parou' | 'abandono' | 'banco_esgotado'
 
-export type Rodada = { estado: EstadoRodada; acertos: number; marco: number; pontos: number }
+export type Rodada = { estado: EstadoRodada; acertos: number; marco: number; pontos: number; erros: number }
 
 // Marco (nível de prêmio) alcançado por quantidade de acertos.
 export function marcoDe(acertos: number): number {
@@ -42,14 +43,19 @@ export function aposAcerto(r: Rodada, pontos: number): Rodada {
   const marco = marcoDe(acertos)
   // De 15 a 29 acertos, antes de cada nova pergunta o jogador decide: parar e garantir ou arriscar.
   const estado: EstadoRodada = acertos >= QUIZ_PORTAO && acertos < QUIZ_TETO_ACERTOS ? 'portao' : 'jogando'
-  return { estado, acertos, marco, pontos: r.pontos + pontos }
+  return { estado, acertos, marco, pontos: r.pontos + pontos, erros: r.erros }
 }
 
-// Depois de ERRO ou TEMPO ESGOTADO: na fase segura mantém o último marco; na fase de risco
-// (quem escolheu continuar) zera. A partir de 30 acertos o 10% já está garantido.
+// Depois de ERRO ou TEMPO ESGOTADO (conta igual).
+//  Fase segura (menos de 15 acertos): o jogador tem 3 erros perdoados e continua jogando; o 4º erro
+//    encerra a rodada e ele leva o último marco.
+//  Fase de risco (quem escolheu continuar): qualquer erro encerra e zera o prêmio.
+//  A partir de 30 acertos o 10% já está garantido: qualquer erro encerra e ele leva o 10%.
 export function aposErro(r: Rodada): Rodada {
+  const fasesegura = r.estado === 'jogando' && r.acertos < QUIZ_PORTAO
+  if (fasesegura && r.erros < QUIZ_ERROS_PERDOADOS) return { ...r, erros: r.erros + 1 }
   const marco = r.estado === 'risco' ? 0 : marcoDe(r.acertos)
-  return { ...r, estado: 'encerrada', marco }
+  return { ...r, estado: 'encerrada', marco, erros: fasesegura ? r.erros + 1 : r.erros }
 }
 
 // Decisão no portão / antes de cada pergunta da fase de risco.

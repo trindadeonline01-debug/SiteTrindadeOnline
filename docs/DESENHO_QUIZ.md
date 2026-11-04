@@ -8,9 +8,10 @@
 
 - Acesso pelo QR da mesa (`/mesa/[token]` → "Jogar"), sem cadastro para jogar.
 - 4 alternativas, **7 s** por pergunta (**15 s** com "Pensar"), 3 pulos e 2 "Pensar 15 s" por rodada (decisão do Ricardo, 4/nov/2026: era 5 s e 10 s). Pular e ajuda não contam como acerto.
-- **Fase segura (até 15 acertos):** erro encerra a rodada e mantém o último marco: 5→2%, 10→3%, 15→5%.
+- **Fase segura (até 15 acertos):** o jogador tem **3 chances de errar** (decisão do Ricardo, 4/nov/2026). Erro e tempo esgotado contam igual. Os 3 primeiros erros são perdoados e o jogo continua; o **4º erro encerra** a rodada e ele leva o último marco: 5→2%, 10→3%, 15→5%. Mostrar as chances na tela (3 corações). Dificuldade da pergunta segue os acertos, não a quantidade de perguntas respondidas.
+- **Depois dos 15 acertos:** não há mais chances. Cada erro encerra o jogo (zera o prêmio se escolheu arriscar; a partir de 30 acertos mantém os 10%).
 - **Portão aos 15 acertos:** "Parar e garantir 5%" ou "Continuar e arriscar tudo".
-- **Fase de risco (16+):** antes de cada pergunta, "Parar e garantir X%" ou "Continuar". Erro/tempo esgotado zera o prêmio da rodada. Marcos: 20→6%, 25→8%, 30→10% (teto; depois só recorde).
+- **Fase de risco (16+):** sem chances de errar. Antes de cada pergunta, "Parar e garantir X%" ou "Continuar". Erro/tempo esgotado zera o prêmio da rodada. Marcos: 20→6%, 25→8%, 30→10% (teto; depois só recorde).
 - **Só a primeira rodada elegível gera prêmio**; as demais valem só pontos e recorde.
 - Pontos (ranking, nunca dinheiro): 100 por acerto + 20 por segundo inteiro restante (máx. 200).
 - **O prêmio só é liberado depois da conta paga.** Sem compra, sem prêmio.
@@ -53,7 +54,7 @@ Primeira rodada elegível = a primeira do **telefone verificado** na campanha, e
 
 ## 6. Pontos que precisam de cuidado
 
-- **Banco de perguntas:** com 30 perguntas e 3 pulos, chegar a 30 acertos exige 33 sorteios — **não dá**. Mínimo realista 60 antes do lançamento; meta 300. Perguntas por nível: pelo menos 10 fáceis, 15 médias e 35 difíceis.
+- **Banco de perguntas:** com 30 perguntas, 3 pulos e 3 erros perdoados, chegar a 30 acertos exige 36 sorteios — **não dá**. Mínimo realista 60 antes do lançamento; meta 300. Perguntas por nível: pelo menos 10 fáceis, 15 médias e 35 difíceis.
 - **7 segundos no celular:** enunciado curto (conferir leitura em 7 s), alternativas curtas, botão grande. A folga de ~1,5 s cobre sinal ruim da calçada, mas a contagem na tela mostra os 7 s.
 - **Desligar a qualquer momento:** botão da loja desliga a campanha; rodadas em andamento terminam sem prêmio novo.
 - **Menores:** jogam sem prêmio e sem telefone (só diversão); o prêmio exige telefone verificado de adulto.

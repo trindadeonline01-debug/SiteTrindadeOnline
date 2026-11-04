@@ -3,12 +3,21 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { aposAcerto, aposErro, aposDecisao, marcoDe, nivelDaPergunta, pontosDaResposta, valorDoPremio, MARCOS_PADRAO, type Rodada } from '../src/lib/quizRegras.ts'
 
-const novo = (): Rodada => ({ estado: 'jogando', acertos: 0, marco: 0, pontos: 0 })
+const novo = (): Rodada => ({ estado: 'jogando', acertos: 0, marco: 0, pontos: 0, erros: 0 })
+function errar(r: Rodada, n: number) { for (let i = 0; i < n; i++) r = aposErro(r); return r }
 function acertar(r: Rodada, n: number) { for (let i = 0; i < n; i++) r = aposAcerto(r, 100); return r }
 
-test('12 acertos e erro => 3%', () => assert.equal(aposErro(acertar(novo(), 12)).marco, 3))
-test('4 acertos e erro => 0%', () => assert.equal(aposErro(acertar(novo(), 4)).marco, 0))
-test('7 acertos e erro => 2%', () => assert.equal(aposErro(acertar(novo(), 7)).marco, 2))
+test('3 erros são perdoados na fase segura, o 4º encerra com o marco', () => {
+  let r = acertar(novo(), 12)
+  r = errar(r, 3)
+  assert.equal(r.estado, 'jogando'); assert.equal(r.erros, 3)
+  r = aposErro(r)
+  assert.equal(r.estado, 'encerrada'); assert.equal(r.marco, 3)
+})
+test('erro perdoado não muda acertos nem marco', () => { const r = errar(acertar(novo(), 7), 1); assert.equal(r.acertos, 7); assert.equal(r.marco, 2); assert.equal(r.estado, 'jogando') })
+test('começar errando 4 vezes encerra sem prêmio', () => { const r = errar(novo(), 4); assert.equal(r.estado, 'encerrada'); assert.equal(r.marco, 0) })
+test('4 acertos e 4 erros => 0%', () => assert.equal(errar(acertar(novo(), 4), 4).marco, 0))
+test('7 acertos e 4 erros => 2%', () => assert.equal(errar(acertar(novo(), 7), 4).marco, 2))
 test('15 acertos cai no portão', () => assert.equal(acertar(novo(), 15).estado, 'portao'))
 test('15 acertos e parar => 5%', () => assert.equal(aposDecisao(acertar(novo(), 15), true).marco, 5))
 test('18 acertos, arriscou e errou => 0%', () => {

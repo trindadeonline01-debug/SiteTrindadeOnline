@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { moduleActive } from '@/lib/modules'
 import { normalizePhone } from '@/lib/phone'
 import { sendCustomerWhatsApp } from '@/lib/whatsapp'
-import { creditarCashback } from '@/lib/cashback'
+import { creditarCashback, valorItensSemCashback } from '@/lib/cashback'
 import { requireCompanyAccess } from '@/lib/requireUser'
 
 const supabase = createClient(
@@ -95,7 +95,10 @@ export async function POST(req: NextRequest) {
     if (status === 'entregue' && pedidoId && company.cashback_enabled && Number(company.cashback_percent) > 0) {
       const { data: pedidoCashback } = await supabase.from('loja_pedidos').select('total').eq('id', pedidoId).eq('company_id', companyId).maybeSingle()
       if (pedidoCashback) {
-        const valorCredito = Number((Number(pedidoCashback.total) * (Number(company.cashback_percent) / 100)).toFixed(2))
+        // Produto em promoção marcado "sem cashback" não entra na base do crédito.
+        const semCashback = await valorItensSemCashback(supabase, [pedidoId])
+        const baseCashback = Math.max(0, Number(pedidoCashback.total) - semCashback)
+        const valorCredito = Number((baseCashback * (Number(company.cashback_percent) / 100)).toFixed(2))
         if (valorCredito > 0) await creditarCashback(supabase, { companyId, phoneRaw: phone, pedidoId, valor: valorCredito })
       }
     }

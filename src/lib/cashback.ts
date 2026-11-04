@@ -1,5 +1,6 @@
 import { SupabaseClient } from '@supabase/supabase-js'
 import { normalizePhone } from '@/lib/phone'
+import { promoPrice } from '@/lib/lojaPricing'
 
 // Valor padrão só pro campo do painel quando a loja ainda não configurou
 // nada — o prazo real mora em `companies.cashback_expira_dias`, por loja,
@@ -118,5 +119,33 @@ export async function reembolsarCashback(
     }, { onConflict: 'company_id,customer_phone' })
   } catch (err) {
     console.error('[cashback] falha ao reembolsar', err)
+  }
+}
+
+// Soma (em R$) das linhas desses pedidos que NÃO geram cashback: produto marcado
+// "sem cashback" (loja_produtos.sem_cashback) E ainda em promoção agora. Promoção
+// vencida ou desligada volta a gerar cashback sozinha. Tolerante: se a coluna
+// ainda não existir ou a consulta falhar, devolve 0 (comportamento antigo).
+export async function valorItensSemCashback(supabase: SupabaseClient, pedidoIds: string[]): Promise<number> {
+  try {
+    if (!pedidoIds.length) return 0
+    const { data: itens, error } = await supabase.from('loja_pedido_itens')
+      .select('produto_id, unit_price, qty').in('pedido_id', pedidoIds)
+    if (error || !itens?.length) return 0
+    const ids = [...new Set(itens.map(i => i.produto_id).filter(Boolean) as string[])]
+    if (!ids.length) return 0
+    const { data: prods, error: e2 } = await supabase.from('loja_produtos')
+      .select('id, sale_price, promo_type, promo_value, promo_starts_at, promo_ends_at')
+      .in('id', ids).eq('sem_cashback', true)
+    if (e2 || !prods?.length) return 0
+    const excluidos = new Set(prods.filter(p => promoPrice({
+      ...p, sale_price: Number(p.sale_price), promo_value: p.promo_value != null ? Number(p.promo_value) : null,
+    } as never) !== null).map(p => p.id))
+    let soma = 0
+    for (const i of itens) if (i.produto_id && excluidos.has(i.produto_id)) soma += Number(i.unit_price) * Number(i.qty)
+    return Math.round((soma + Number.EPSILON) * 100) / 100
+  } catch (err) {
+    console.error('[cashback] falha ao somar itens sem cashback', err)
+    return 0
   }
 }

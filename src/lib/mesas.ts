@@ -125,14 +125,14 @@ export type ProdutoMesaDb = {
   id: string; name: string; sale_price: number; promo_type: string | null; promo_value: number | null
   promo_starts_at: string | null; promo_ends_at: string | null; active: boolean; esgotado: boolean | null
   track_stock: boolean | null; stock_qty: number | null
-  groups: { id: string; name: string; required: boolean; min_select: number; max_select: number; pricing_rule: string; options: { id: string; name: string; price: number }[] }[]
+  groups: { id: string; name: string; required: boolean; min_select: number; max_select: number; pricing_rule: string; options: { id: string; name: string; price: number; pausado?: boolean | null }[] }[]
 }
 export function resolveOpcoes(p: ProdutoMesaDb, opcaoIds: unknown): { mods: { name: string; price: number }[] } | { erro: string } {
   const ids = new Set((Array.isArray(opcaoIds) ? opcaoIds : []).map(String))
   const mods: { name: string; price: number }[] = []
   const validas = new Set<string>()
   for (const g of p.groups || []) {
-    const sel = (g.options || []).filter(o => ids.has(o.id))
+    const sel = (g.options || []).filter(o => !o.pausado && ids.has(o.id))
     sel.forEach(o => validas.add(o.id))
     const min = g.required ? Math.max(1, g.min_select || 0) : (g.min_select || 0)
     if (sel.length < min) return { erro: `Escolha ${g.name.toLowerCase()} em "${p.name}".` }

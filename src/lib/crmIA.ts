@@ -256,7 +256,7 @@ async function buildContext(companyId: string, phone?: string | null, ultimaMsgC
     .from('loja_produtos')
     .select(`
       id, name, sale_price, promo_type, promo_value, promo_starts_at, promo_ends_at, esgotado, track_stock, stock_qty,
-      groups:loja_opcoes_grupo(name, options:loja_opcoes(name, price))
+      groups:loja_opcoes_grupo(name, options:loja_opcoes(name, price, pausado))
     `)
     .eq('company_id', companyId).eq('active', true)
   const disponiveis = (produtos || []).filter((p: any) => !isSoldOut(p))
@@ -285,6 +285,8 @@ async function buildContext(companyId: string, phone?: string | null, ultimaMsgC
   // de opcionais). Preço da opção ENTRA (é dado real cadastrado, ex: "paga
   // pra limpar? quanto custa?" — achado do Ricardo logo em seguida: sem o
   // preço, a IA não sabia dizer se cobrava e quanto).
+  // Complemento pausado pela loja não é oferecido.
+  for (const p of disponiveis as any[]) for (const g of (p.groups || [])) g.options = (g.options || []).filter((o: any) => !o.pausado)
   const comOpcionais = disponiveis.filter((p: any) => (p.groups || []).some((g: any) => (g.options || []).length > 0))
   if (comOpcionais.length > 0) {
     const opcaoLabel = (o: any) => `${o.name}${Number(o.price) > 0 ? ` (+${fmtMoney(Number(o.price))})` : ' (grátis)'}`

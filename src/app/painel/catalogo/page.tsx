@@ -8,7 +8,7 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, v
 import { CSS } from '@dnd-kit/utilities'
 
 type Categoria = { id: string; name: string; display_order: number }
-type Opcao = { id?: string; name: string; price: string; max_qty: number | null; linked_produto_id: string | null; photo_url?: string | null; _photoFile?: File | null }
+type Opcao = { id?: string; name: string; price: string; max_qty: number | null; linked_produto_id: string | null; photo_url?: string | null; pausado?: boolean; _photoFile?: File | null }
 type Grupo = { id?: string; name: string; required: boolean; min_select: number; max_select: number; pricing_rule: 'soma' | 'maior_valor'; options: Opcao[] }
 type Produto = {
   id: string; name: string; description: string | null; photo_url: string | null
@@ -787,7 +787,7 @@ export default function CatalogoPage() {
       active: data.active,
       groups: [...(data.groups || [])].sort(byDisplayOrder).map((g: any) => ({
         id: g.id, name: g.name, required: g.required, min_select: g.min_select, max_select: g.max_select, pricing_rule: g.pricing_rule || 'soma',
-        options: [...(g.options || [])].sort(byDisplayOrder).map((o: any) => ({ id: o.id, name: o.name, price: Number(o.price || 0).toFixed(2).replace('.', ','), max_qty: o.max_qty, linked_produto_id: o.linked_produto_id, photo_url: o.photo_url || null, _photoFile: null })),
+        options: [...(g.options || [])].sort(byDisplayOrder).map((o: any) => ({ id: o.id, name: o.name, price: Number(o.price || 0).toFixed(2).replace('.', ','), max_qty: o.max_qty, linked_produto_id: o.linked_produto_id, photo_url: o.photo_url || null, pausado: !!o.pausado, _photoFile: null })),
       })),
     })
     setPhotoFile(null)
@@ -818,7 +818,7 @@ export default function CatalogoPage() {
       active: data.active,
       groups: [...(data.groups || [])].sort(byDisplayOrder).map((g: any) => ({
         name: g.name, required: g.required, min_select: g.min_select, max_select: g.max_select, pricing_rule: g.pricing_rule || 'soma',
-        options: [...(g.options || [])].sort(byDisplayOrder).map((o: any) => ({ name: o.name, price: Number(o.price || 0).toFixed(2).replace('.', ','), max_qty: o.max_qty, linked_produto_id: o.linked_produto_id, photo_url: o.photo_url || null, _photoFile: null })),
+        options: [...(g.options || [])].sort(byDisplayOrder).map((o: any) => ({ name: o.name, price: Number(o.price || 0).toFixed(2).replace('.', ','), max_qty: o.max_qty, linked_produto_id: o.linked_produto_id, photo_url: o.photo_url || null, pausado: !!o.pausado, _photoFile: null })),
       })),
     })
     setPhotoFile(null)
@@ -844,6 +844,23 @@ export default function CatalogoPage() {
   }
   function ordenarOpcoesDoGrupo(gi: number, modo: OrdemOpcoes) {
     setForm(f => ({ ...f, groups: f.groups.map((g, i) => i === gi ? { ...g, options: ordenarOpcoes(g.options, modo) } : g) }))
+  }
+  // Pausa/volta um complemento em TODOS os produtos da loja que tenham um com o
+  // mesmo nome (sem diferenciar maiúscula/minúscula) — na hora, sem precisar
+  // salvar o produto. A RLS garante que só o dono (ou admin) altera.
+  async function pausarComplemento(gi: number, oi: number) {
+    const op = form.groups[gi]?.options[oi]
+    if (!op || !op.name.trim() || !companyId) return
+    const novo = !op.pausado
+    const nome = op.name.trim().toLowerCase()
+    const { data, error } = await supabase.rpc('pausar_complemento', { p_company_id: companyId, p_name: op.name, p_pausado: novo })
+    if (error) { showToast('Não consegui pausar. Tenta de novo.'); return }
+    setForm(f => ({ ...f, groups: f.groups.map(g => ({ ...g, options: g.options.map(o => o.name.trim().toLowerCase() === nome ? { ...o, pausado: novo } : o) })) }))
+    // produtos de dentro do próprio formulário ainda não salvos não contam no total do banco
+    const total = Number(data) || 0
+    showToast(novo
+      ? `"${op.name.trim()}" pausado${total > 0 ? ` em ${total} ${total === 1 ? 'lugar' : 'lugares'}` : ''} — some do cardápio até você reativar`
+      : `"${op.name.trim()}" voltou${total > 0 ? ` em ${total} ${total === 1 ? 'lugar' : 'lugares'}` : ''}`)
   }
   function moverOpcao(gi: number, oi: number, dir: -1 | 1) {
     setForm(f => ({ ...f, groups: f.groups.map((g, i) => i === gi ? { ...g, options: moverItem(g.options, oi, dir) } : g) }))
@@ -895,7 +912,7 @@ export default function CatalogoPage() {
     const { data } = await supabase.from('loja_opcoes_grupo').select('*, options:loja_opcoes(*)').eq('produto_id', produtoId).order('display_order')
     setDupGroups((data || []).map((g: any) => ({
       name: g.name, required: g.required, min_select: g.min_select, max_select: g.max_select, pricing_rule: g.pricing_rule || 'soma',
-      options: [...(g.options || [])].sort(byDisplayOrder).map((o: any) => ({ name: o.name, price: Number(o.price || 0).toFixed(2).replace('.', ','), max_qty: o.max_qty, linked_produto_id: o.linked_produto_id, photo_url: o.photo_url || null, _photoFile: null })),
+      options: [...(g.options || [])].sort(byDisplayOrder).map((o: any) => ({ name: o.name, price: Number(o.price || 0).toFixed(2).replace('.', ','), max_qty: o.max_qty, linked_produto_id: o.linked_produto_id, photo_url: o.photo_url || null, pausado: !!o.pausado, _photoFile: null })),
     })))
     setDupLoading(false)
   }
@@ -1016,7 +1033,7 @@ export default function CatalogoPage() {
           }
         }
         optRows.push({
-          grupo_id: gData.id, name: o.name.trim() || 'Opção', price: parsePt(o.price), max_qty: o.max_qty || null, linked_produto_id: o.linked_produto_id || null, photo_url: optPhotoUrl, display_order: oi,
+          grupo_id: gData.id, name: o.name.trim() || 'Opção', price: parsePt(o.price), max_qty: o.max_qty || null, linked_produto_id: o.linked_produto_id || null, photo_url: optPhotoUrl, pausado: !!o.pausado, display_order: oi,
         })
       }
       if (optRows.length) await supabase.from('loja_opcoes').insert(optRows)
@@ -1291,6 +1308,10 @@ export default function CatalogoPage() {
         .cg-mv{ flex:none;display:inline-flex;flex-direction:column;gap:2px; }
         .cg-mv button{ width:28px;height:20px;border:1px solid #B9AE97;background:#fff;border-radius:5px;font-size:9px;line-height:1;cursor:pointer;padding:0;color:#1A1610; }
         .cg-mv button:disabled{ opacity:.3;cursor:default; }
+        .cg-opt.paused{ background:#F3EFE6; }
+        .cg-opt.paused .cg-opt-name{ text-decoration:line-through;color:#8A8372; }
+        .cg-pause{ flex:none;border:1px solid #B9AE97;background:#fff;color:#1A1610;border-radius:7px;padding:0 9px;height:26px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap; }
+        .cg-pause.on{ background:#FFF1D6;color:#A56500;border-color:#A56500; }
         .cg-add-inline{ font-size:11px;font-weight:700;color:#8A6410;background:#FBF1DC;border:1px dashed #B9AE97;border-radius:8px;padding:7px;width:100%;cursor:pointer;margin-top:4px; }
         .cg-add-group{ width:100%;padding:10px;border-radius:10px;border:1.5px dashed #B9AE97;background:transparent;color:#A79E8B;font-weight:700;font-size:12px;cursor:pointer; }
         .cg-import-menu{ position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid #DDD5C4;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.1);z-index:10;overflow:hidden; }
@@ -1648,7 +1669,7 @@ export default function CatalogoPage() {
                   </div>
                 )}
                 {g.options.map((o, oi) => (
-                  <div className="cg-opt" key={oi}>
+                  <div className={`cg-opt${o.pausado ? ' paused' : ''}`} key={oi}>
                     <div className="cg-opt-top">
                       {g.options.length > 1 && (
                         <span className="cg-mv">
@@ -1661,6 +1682,7 @@ export default function CatalogoPage() {
                         <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => updateOption(gi, oi, { _photoFile: e.target.files?.[0] || null })} />
                       </label>
                       <input className="cg-opt-name" placeholder="Nome da opção" value={o.name} onChange={e => updateOption(gi, oi, { name: e.target.value })} />
+                      <button type="button" className={`cg-pause${o.pausado ? ' on' : ''}`} title="Pausa este complemento em todos os produtos que tiverem ele" onClick={() => pausarComplemento(gi, oi)}>{o.pausado ? '▶ Pausado' : '⏸ Pausar'}</button>
                       <button className="cg-del" style={{ width: 26, height: 26 }} onClick={() => removeOption(gi, oi)}>🗑</button>
                     </div>
                     <div className="cg-opt-fields">

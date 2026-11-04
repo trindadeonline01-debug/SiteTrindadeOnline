@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
       const [{ data: cats }, { data: prods }] = await Promise.all([
         sb.from('loja_categorias').select('id, name').eq('company_id', company.id).order('display_order'),
         sb.from('loja_produtos')
-          .select('id, name, description, photo_url, category_id, sale_price, promo_type, promo_value, promo_starts_at, promo_ends_at, esgotado, track_stock, stock_qty, groups:loja_opcoes_grupo(id, name, required, min_select, max_select, pricing_rule, display_order, options:loja_opcoes(id, name, price, display_order))')
+          .select('id, name, description, photo_url, category_id, sale_price, promo_type, promo_value, promo_starts_at, promo_ends_at, esgotado, track_stock, stock_qty, groups:loja_opcoes_grupo(id, name, required, min_select, max_select, pricing_rule, display_order, options:loja_opcoes(id, name, price, display_order, pausado))')
           .eq('company_id', company.id).eq('active', true).order('display_order'),
       ])
       const produtos = (prods || [])
@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
           const preco = promoPrice({ ...p, sale_price: Number(p.sale_price), promo_value: p.promo_value != null ? Number(p.promo_value) : null } as never) ?? Number(p.sale_price)
           const grupos = [...(p.groups || [])].sort((a: any, c: any) => (a.display_order ?? 0) - (c.display_order ?? 0)).map((g: any) => ({
             id: g.id, name: g.name, required: !!g.required, min: g.min_select || 0, max: Math.max(1, g.max_select || 1),
-            options: [...(g.options || [])].sort((a: any, c: any) => (a.display_order ?? 0) - (c.display_order ?? 0)).map((o: any) => ({ id: o.id, name: o.name, price: Number(o.price) || 0 })),
+            options: [...(g.options || [])].filter((o: any) => !o.pausado).sort((a: any, c: any) => (a.display_order ?? 0) - (c.display_order ?? 0)).map((o: any) => ({ id: o.id, name: o.name, price: Number(o.price) || 0 })),
           }))
           return {
             id: p.id, name: p.name, description: p.description || null, photo: p.photo_url || null, categoriaId: p.category_id || null,
@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
       if (entrada.length === 0 || entrada.length > 40) return erro('Escolha pelo menos um item.')
       const ids = [...new Set(entrada.map(i => String(i?.produtoId || '')))]
       const { data: prods } = await sb.from('loja_produtos')
-        .select('id, name, sale_price, promo_type, promo_value, promo_starts_at, promo_ends_at, active, esgotado, track_stock, stock_qty, groups:loja_opcoes_grupo(id, name, required, min_select, max_select, pricing_rule, options:loja_opcoes(id, name, price))')
+        .select('id, name, sale_price, promo_type, promo_value, promo_starts_at, promo_ends_at, active, esgotado, track_stock, stock_qty, groups:loja_opcoes_grupo(id, name, required, min_select, max_select, pricing_rule, options:loja_opcoes(id, name, price, pausado))')
         .eq('company_id', company.id).in('id', ids)
       const porId = new Map<string, ProdutoMesaDb>((prods || []).map((p: any) => [p.id, p as ProdutoMesaDb]))
 

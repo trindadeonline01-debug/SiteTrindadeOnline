@@ -110,6 +110,11 @@ async function buildContext(companyId: string, phone?: string | null, ultimaMsgC
       linhas.push('CALENDÁRIO REAL DOS PRÓXIMOS DIAS (já calculado — responda "hoje", "amanhã", "quando abre" SOMENTE por esta lista, nunca deduza de cabeça):\n' + cal.linhas.join('\n')
         + (cal.proxima ? `\nPRÓXIMA ABERTURA: ${cal.proxima}.` : '\nPRÓXIMA ABERTURA: não há dia aberto nos próximos 8 dias na grade cadastrada.')
         + (company.store_paused ? '\nATENÇÃO: a loja está com os pedidos PAUSADOS temporariamente pelo dono agora, mesmo dentro do horário.' : ''))
+      // Dia em que a loja não abre (nov/2026, Calçada do Peixe numa terça): saudação com link
+      // do cardápio confundia o cliente. Aqui vai a situação já resolvida pro prompt.
+      if (cal.hojeSemTurno && !aberta) {
+        linhas.push(`HOJE A LOJA NÃO FUNCIONA (${agora.dayLabel}, ${agora.dateLabel}): FECHADA O DIA TODO. ${cal.proxima ? `Volta a abrir ${cal.proxima}.` : 'Não há próximo dia de abertura na grade cadastrada.'} Veja a regra "DIA EM QUE A LOJA NÃO FUNCIONA" nas regras de atendimento.`)
+      }
     }
   }
 
@@ -330,7 +335,8 @@ CONTEXTO DA CONVERSA — leia com atenção antes de responder:
 - As mensagens anteriores desta conversa (se houver) vêm logo abaixo, na ordem em que aconteceram — incluindo mensagens automáticas de confirmação de pedido, avisos de status e qualquer coisa que já foi respondida antes (por você ou por um humano da loja).
 - NUNCA trate a mensagem atual como se fosse o primeiro contato quando já existem mensagens anteriores. Não repita saudação/apresentação da loja nem mande o link do cardápio do zero se isso já apareceu antes na mesma conversa — continue de onde parou.
 - Se o histórico mostrar que o cliente já fez um pedido, já recebeu confirmação, ou já perguntou algo antes, leve isso em conta na resposta em vez de ignorar.
-- Mensagem de SAUDAÇÃO SIMPLES ("oi", "olá", "opa", "bom dia", "boa tarde", "boa noite" ou parecido, sem pergunta nenhuma junto), sendo literalmente a primeira mensagem da conversa, sem nada antes: responda com boas-vindas calorosas citando o nome da loja e já inclua o link do cardápio completo (o que vem no topo dos DADOS DESTA LOJA abaixo), convidando a fazer o pedido por ali — SEMPRE em 3 linhas separadas por linha em branco entre cada uma, nunca tudo grudado num parágrafo só:
+- DIA EM QUE A LOJA NÃO FUNCIONA: se os dados abaixo trazem a linha "HOJE A LOJA NÃO FUNCIONA", NÃO mande o link do cardápio de cara — nem na saudação, nem quando o cliente pedir pra ver o cardápio pela primeira vez. Primeiro avise, em linhas separadas por linha em branco: (1) boas-vindas curtas com o nome da loja; (2) que hoje a loja não funciona e quando volta, usando EXATAMENTE a "PRÓXIMA ABERTURA" dos dados (ex: "Hoje não funcionamos. Voltamos amanhã, quarta-feira, a partir das 07:30."); (3) a pergunta "Quer ver o cardápio mesmo assim?". Só mande o link do cardápio depois que o cliente confirmar ("sim", "quero", "pode mandar") ou pedir o cardápio de novo — no histórico, se você já fez essa pergunta (ou já avisou que hoje não funciona) e o cliente respondeu que quer ver ou insistiu, aí sim mande o link, lembrando em uma frase curta que os pedidos só são atendidos quando a loja abre. Se o cliente fizer outra pergunta (preço, produto, endereço), responda normalmente, sem link. Vale para qualquer loja.
+- Mensagem de SAUDAÇÃO SIMPLES ("oi", "olá", "opa", "bom dia", "boa tarde", "boa noite" ou parecido, sem pergunta nenhuma junto), sendo literalmente a primeira mensagem da conversa, sem nada antes (e a loja NÃO estando no caso "DIA EM QUE A LOJA NÃO FUNCIONA" acima): responda com boas-vindas calorosas citando o nome da loja e já inclua o link do cardápio completo (o que vem no topo dos DADOS DESTA LOJA abaixo), convidando a fazer o pedido por ali — SEMPRE em 3 linhas separadas por linha em branco entre cada uma, nunca tudo grudado num parágrafo só:
   1) "Opa, seja bem-vindo(a) à [Nome da loja]!"
   2) "Um prazer te receber por aqui 😊"
   3) "Pra fazer seu pedido é só clicar no link: [link]"

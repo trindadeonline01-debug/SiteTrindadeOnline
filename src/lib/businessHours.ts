@@ -110,8 +110,8 @@ const NOMES_DIA_LONGO = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-fei
 const NOMES_REL = ['hoje', 'amanhã', 'depois de amanhã']
 function hhmm(t: string | null): string { return (t || '').slice(0, 5) }
 
-export function calendarioParaIA(hours: HourRow[] | undefined, flexible: boolean | undefined, dias = 8): { linhas: string[]; proxima: string | null } {
-  if (flexible || !hours || hours.length === 0) return { linhas: [], proxima: null }
+export function calendarioParaIA(hours: HourRow[] | undefined, flexible: boolean | undefined, dias = 8): { linhas: string[]; proxima: string | null; hojeSemTurno: boolean } {
+  if (flexible || !hours || hours.length === 0) return { linhas: [], proxima: null, hojeSemTurno: false }
   const { minutes: nowMin } = nowInSaoPaulo()
   const p = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date())
   const m: Record<string, string> = {}
@@ -119,6 +119,7 @@ export function calendarioParaIA(hours: HourRow[] | undefined, flexible: boolean
   const base = Date.UTC(parseInt(m.year, 10), parseInt(m.month, 10) - 1, parseInt(m.day, 10))
   const linhas: string[] = []
   let proxima: string | null = null
+  let hojeSemTurno = false
   for (let i = 0; i < dias; i++) {
     const d = new Date(base + i * 86400000)
     const dow = d.getUTCDay()
@@ -127,7 +128,7 @@ export function calendarioParaIA(hours: HourRow[] | undefined, flexible: boolean
     const turnos = hours.filter(h => h.day_of_week === dow && !h.closed && h.open_time && h.close_time)
       .sort((a, b) => (a.open_time! < b.open_time! ? -1 : 1))
     const rotulo = `${rel[0].toUpperCase()}${rel.slice(1)} (${NOMES_DIA_LONGO[dow]}, ${data})`
-    if (turnos.length === 0) { linhas.push(`- ${rotulo}: FECHADO o dia todo`); continue }
+    if (turnos.length === 0) { if (i === 0) hojeSemTurno = true; linhas.push(`- ${rotulo}: FECHADO o dia todo`); continue }
     const txt = turnos.map(h => `${hhmm(h.open_time)}–${hhmm(h.close_time)}`).join(' e ')
     // Hoje: só conta como "próxima abertura" um turno que ainda não começou.
     const futuros = i === 0 ? turnos.filter(h => { const [oh, om] = h.open_time!.split(':').map(Number); return oh * 60 + om > nowMin }) : turnos
@@ -136,5 +137,5 @@ export function calendarioParaIA(hours: HourRow[] | undefined, flexible: boolean
       proxima = `${NOMES_DIA_LONGO[dow]}, ${data} (${rel}), a partir das ${hhmm(futuros[0].open_time)}`
     }
   }
-  return { linhas, proxima }
+  return { linhas, proxima, hojeSemTurno }
 }

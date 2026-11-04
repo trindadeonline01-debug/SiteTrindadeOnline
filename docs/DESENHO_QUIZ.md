@@ -39,9 +39,11 @@
 5. *Sair no meio:* botão de sair avisa "se sair, perde tudo". Queda de internet, ligação ou fechar o navegador sem querer: dar 2 minutos para voltar à mesma rodada (o relógio da pergunta continua correndo; tempo esgotado conta como erro). Passou disso sem voltar = rodada abandonada = perde tudo e não entra no ranking. Isso muda a regra antiga ("abandono = erro, leva o marco") e é coerente: sair nunca é melhor do que responder.
 - Menor risco de fraude: um prêmio por conta de mesa e por telefone continua valendo.
 
+**Respondido pelo Ricardo (4/nov/2026):** ranking **só da loja** (nada da plataforma inteira por enquanto), métrica = **melhor rodada** (abas Semana e Sempre, cada jogador aparece uma vez com a melhor rodada do período), e **2 minutos para voltar à rodada** depois de queda aceitos. Ficam valendo as recomendações dos pontos 2, 3 e 4 acima (apelido travado e único por loja com filtro; 18+ e aceite de ranking; quem já confirmou o WhatsApp não recebe código de novo), que não foram contestadas.
+
 **Ao retomar, decidir (restam):**
 1. Mockup v17 aprovado? Ele precisa ganhar as telas novas: cadastro (apelido + WhatsApp + código) e ranking (botão "Ver ranking", abas, posição do jogador).
-2. Respostas aos pontos 1 a 5 acima.
+2. (respondido) pontos 1 e 5 acima; confirmar só se os pontos 2, 3 e 4 seguem como recomendado.
 3. Itens da seção 8 (modo do prêmio, limite, validade, lançar sem prêmio).
 4. Consulta jurídica (Lei 5.768/71) antes de ligar o prêmio.
 

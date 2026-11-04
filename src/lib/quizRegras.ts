@@ -1,8 +1,8 @@
 // Regras do Quiz Premiado (docs/DESENHO_QUIZ.md) — funções puras, sem banco, testáveis.
 // O servidor é quem manda: este arquivo nunca roda no celular com dados sensíveis.
 
-export const QUIZ_TEMPO_S = 7            // tempo normal por pergunta
-export const QUIZ_TEMPO_PENSAR_S = 15    // com "Pensar"
+export const QUIZ_TEMPO_S = 10           // tempo normal por pergunta
+export const QUIZ_TEMPO_PENSAR_S = 20    // com "Pensar"
 export const QUIZ_FOLGA_MS = 1500        // folga de rede pro servidor aceitar a resposta
 export const QUIZ_PULOS = 3
 export const QUIZ_PENSAR = 2

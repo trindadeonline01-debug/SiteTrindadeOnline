@@ -40,6 +40,55 @@ function fmt(n: number) { return 'R$ ' + n.toFixed(2).replace('.', ',') }
 function margin(cost: number, price: number) { return price > 0 ? Math.round(((price - cost) / price) * 100) : 0 }
 function parsePt(v: string) { return parseFloat((v || '0').replace(',', '.')) || 0 }
 
+// Organizador de complementos: a ordem dos grupos e das opções vive em
+// `display_order` (já existia nas duas tabelas) — o select aninhado do Supabase
+// não garante ordem, então sempre ordena aqui ao carregar o produto.
+function byDisplayOrder<T extends { display_order?: number | null }>(a: T, b: T) {
+  return (a.display_order ?? 0) - (b.display_order ?? 0)
+}
+type OrdemGrupos = 'free' | 'paid' | 'asc' | 'desc'
+type OrdemOpcoes = 'az' | 'asc' | 'desc' | 'free' | 'paid'
+function grupoTipo(g: Grupo): 'free' | 'paid' | 'mixed' {
+  if (!g.options.length) return 'free'
+  const zeros = g.options.filter(o => parsePt(o.price) === 0).length
+  return zeros === g.options.length ? 'free' : zeros === 0 ? 'paid' : 'mixed'
+}
+function grupoMedia(g: Grupo) {
+  return g.options.length ? g.options.reduce((s, o) => s + parsePt(o.price), 0) / g.options.length : 0
+}
+function ordenarGrupos(groups: Grupo[], modo: OrdemGrupos, obrigatoriosNoTopo: boolean): Grupo[] {
+  const rank = { free: { free: 0, mixed: 1, paid: 2 }, paid: { paid: 0, mixed: 1, free: 2 } }
+  const idx = new Map(groups.map((g, i) => [g, i]))
+  return [...groups].sort((a, b) => {
+    if (obrigatoriosNoTopo && a.required !== b.required) return a.required ? -1 : 1
+    let d = 0
+    if (modo === 'free' || modo === 'paid') d = rank[modo][grupoTipo(a)] - rank[modo][grupoTipo(b)]
+    else if (modo === 'asc') d = grupoMedia(a) - grupoMedia(b)
+    else d = grupoMedia(b) - grupoMedia(a)
+    return d || (idx.get(a)! - idx.get(b)!)
+  })
+}
+function ordenarOpcoes(options: Opcao[], modo: OrdemOpcoes): Opcao[] {
+  const idx = new Map(options.map((o, i) => [o, i]))
+  return [...options].sort((a, b) => {
+    let d = 0
+    const pa = parsePt(a.price), pb = parsePt(b.price)
+    if (modo === 'az') d = a.name.localeCompare(b.name, 'pt-BR')
+    else if (modo === 'asc') d = pa - pb
+    else if (modo === 'desc') d = pb - pa
+    else if (modo === 'free') d = Number(pa > 0) - Number(pb > 0)
+    else d = Number(pb > 0) - Number(pa > 0)
+    return d || (idx.get(a)! - idx.get(b)!)
+  })
+}
+function moverItem<T>(arr: T[], i: number, dir: -1 | 1): T[] {
+  const j = i + dir
+  if (j < 0 || j >= arr.length) return arr
+  const copy = [...arr]
+  ;[copy[i], copy[j]] = [copy[j], copy[i]]
+  return copy
+}
+
 // Converte o promo_value guardado (sempre como desconto, igual já era pro
 // tipo 'fixed') pro preço final que o lojista digita na tela — campo direto
 // "Preço de promoção" em vez de escolher tipo/valor de desconto. Produto
@@ -197,6 +246,12 @@ export default function CatalogoPage() {
   const [dupSourceId, setDupSourceId] = useState('')
   const [dupGroups, setDupGroups] = useState<Grupo[]>([])
   const [dupLoading, setDupLoading] = useState(false)
+  // Organizador de complementos
+  const [ordemGrupos, setOrdemGrupos] = useState<OrdemGrupos | 'manual'>('manual')
+  const [obrigNoTopo, setObrigNoTopo] = useState(true)
+  const [showApplyOrder, setShowApplyOrder] = useState(false)
+  const [applySel, setApplySel] = useState<string[]>([])
+  const [applyBusy, setApplyBusy] = useState(false)
   const [showCopyPhoto, setShowCopyPhoto] = useState(false)
   const [copyPhotoSearch, setCopyPhotoSearch] = useState('')
   const [showImportCsv, setShowImportCsv] = useState(false)
@@ -730,9 +785,9 @@ export default function CatalogoPage() {
       promo_starts_at: data.promo_starts_at ? data.promo_starts_at.slice(0, 10) : '',
       promo_ends_at: data.promo_ends_at ? data.promo_ends_at.slice(0, 10) : '',
       active: data.active,
-      groups: (data.groups || []).map((g: any) => ({
+      groups: [...(data.groups || [])].sort(byDisplayOrder).map((g: any) => ({
         id: g.id, name: g.name, required: g.required, min_select: g.min_select, max_select: g.max_select, pricing_rule: g.pricing_rule || 'soma',
-        options: (g.options || []).map((o: any) => ({ id: o.id, name: o.name, price: Number(o.price || 0).toFixed(2).replace('.', ','), max_qty: o.max_qty, linked_produto_id: o.linked_produto_id, photo_url: o.photo_url || null, _photoFile: null })),
+        options: [...(g.options || [])].sort(byDisplayOrder).map((o: any) => ({ id: o.id, name: o.name, price: Number(o.price || 0).toFixed(2).replace('.', ','), max_qty: o.max_qty, linked_produto_id: o.linked_produto_id, photo_url: o.photo_url || null, _photoFile: null })),
       })),
     })
     setPhotoFile(null)
@@ -761,9 +816,9 @@ export default function CatalogoPage() {
       promo_starts_at: data.promo_starts_at ? data.promo_starts_at.slice(0, 10) : '',
       promo_ends_at: data.promo_ends_at ? data.promo_ends_at.slice(0, 10) : '',
       active: data.active,
-      groups: (data.groups || []).map((g: any) => ({
+      groups: [...(data.groups || [])].sort(byDisplayOrder).map((g: any) => ({
         name: g.name, required: g.required, min_select: g.min_select, max_select: g.max_select, pricing_rule: g.pricing_rule || 'soma',
-        options: (g.options || []).map((o: any) => ({ name: o.name, price: Number(o.price || 0).toFixed(2).replace('.', ','), max_qty: o.max_qty, linked_produto_id: o.linked_produto_id, photo_url: o.photo_url || null, _photoFile: null })),
+        options: [...(g.options || [])].sort(byDisplayOrder).map((o: any) => ({ name: o.name, price: Number(o.price || 0).toFixed(2).replace('.', ','), max_qty: o.max_qty, linked_produto_id: o.linked_produto_id, photo_url: o.photo_url || null, _photoFile: null })),
       })),
     })
     setPhotoFile(null)
@@ -773,6 +828,62 @@ export default function CatalogoPage() {
 
   function addGroup() { setForm(f => ({ ...f, groups: [...f.groups, { name: '', required: false, min_select: 0, max_select: 1, pricing_rule: 'soma', options: [] }] })) }
   function removeGroup(gi: number) { setForm(f => ({ ...f, groups: f.groups.filter((_, i) => i !== gi) })) }
+
+  function aplicarOrdemGrupos(modo: OrdemGrupos) {
+    setOrdemGrupos(modo)
+    setForm(f => ({ ...f, groups: ordenarGrupos(f.groups, modo, obrigNoTopo) }))
+  }
+  function alternarObrigNoTopo() {
+    const novo = !obrigNoTopo
+    setObrigNoTopo(novo)
+    if (ordemGrupos !== 'manual') setForm(f => ({ ...f, groups: ordenarGrupos(f.groups, ordemGrupos, novo) }))
+  }
+  function moverGrupo(gi: number, dir: -1 | 1) {
+    setOrdemGrupos('manual')
+    setForm(f => ({ ...f, groups: moverItem(f.groups, gi, dir) }))
+  }
+  function ordenarOpcoesDoGrupo(gi: number, modo: OrdemOpcoes) {
+    setForm(f => ({ ...f, groups: f.groups.map((g, i) => i === gi ? { ...g, options: ordenarOpcoes(g.options, modo) } : g) }))
+  }
+  function moverOpcao(gi: number, oi: number, dir: -1 | 1) {
+    setForm(f => ({ ...f, groups: f.groups.map((g, i) => i === gi ? { ...g, options: moverItem(g.options, oi, dir) } : g) }))
+  }
+
+  // Copia a ordem dos grupos que está na tela para outros produtos, casando
+  // pelo NOME do grupo (sem diferenciar maiúscula/minúscula). Grupo que o outro
+  // produto não tem é ignorado; o que ele tem a mais vai pro fim, na ordem de
+  // antes. Só mexe em display_order dos grupos — nada de nome, regra ou opção.
+  async function aplicarOrdemEmOutros() {
+    if (!applySel.length) return
+    setApplyBusy(true)
+    try {
+      const norm = (s: string) => s.trim().toLowerCase()
+      const posicao = new Map<string, number>()
+      form.groups.forEach((g, i) => { if (!posicao.has(norm(g.name))) posicao.set(norm(g.name), i) })
+      let mexidos = 0
+      for (const pid of applySel) {
+        const { data } = await supabase.from('loja_opcoes_grupo').select('id, name, display_order').eq('produto_id', pid)
+        const grupos = [...(data || [])].sort(byDisplayOrder)
+        if (grupos.length < 2) continue
+        const antes = new Map(grupos.map((g, i) => [g.id, i]))
+        const novos = [...grupos].sort((a, b) => {
+          const pa = posicao.get(norm(a.name)), pb = posicao.get(norm(b.name))
+          if (pa !== undefined && pb !== undefined) return pa - pb
+          if (pa !== undefined) return -1
+          if (pb !== undefined) return 1
+          return antes.get(a.id)! - antes.get(b.id)!
+        })
+        await Promise.all(novos.map((g, i) => supabase.from('loja_opcoes_grupo').update({ display_order: i }).eq('id', g.id)))
+        mexidos++
+      }
+      setShowApplyOrder(false)
+      setApplySel([])
+      showToast(`Ordem aplicada em ${mexidos} produto${mexidos === 1 ? '' : 's'}`)
+    } catch {
+      showToast('Não consegui aplicar a ordem. Tenta de novo.')
+    }
+    setApplyBusy(false)
+  }
 
   function openDupGroup() { setShowDupGroup(true); setDupSourceId(''); setDupGroups([]) }
 
@@ -784,7 +895,7 @@ export default function CatalogoPage() {
     const { data } = await supabase.from('loja_opcoes_grupo').select('*, options:loja_opcoes(*)').eq('produto_id', produtoId).order('display_order')
     setDupGroups((data || []).map((g: any) => ({
       name: g.name, required: g.required, min_select: g.min_select, max_select: g.max_select, pricing_rule: g.pricing_rule || 'soma',
-      options: (g.options || []).map((o: any) => ({ name: o.name, price: Number(o.price || 0).toFixed(2).replace('.', ','), max_qty: o.max_qty, linked_produto_id: o.linked_produto_id, photo_url: o.photo_url || null, _photoFile: null })),
+      options: [...(g.options || [])].sort(byDisplayOrder).map((o: any) => ({ name: o.name, price: Number(o.price || 0).toFixed(2).replace('.', ','), max_qty: o.max_qty, linked_produto_id: o.linked_produto_id, photo_url: o.photo_url || null, _photoFile: null })),
     })))
     setDupLoading(false)
   }
@@ -1165,6 +1276,21 @@ export default function CatalogoPage() {
         .cg-opt-field-full{ grid-column:1/-1; }
         .cg-opt-field label{ display:block;font-size:10px;font-weight:700;color:#6E6656;margin-bottom:4px; }
         .cg-opt-field input, .cg-opt-field select{ width:100%;padding:7px 9px;border-radius:7px;border:1px solid #B9AE97;font-size:11.5px;font-family:inherit;box-sizing:border-box; }
+        .cg-org{ border:1px solid #B9AE97;border-radius:12px;padding:12px;margin-bottom:10px;background:#FCFAF5; }
+        .cg-org-lbl{ font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#6E6656;margin-bottom:6px; }
+        .cg-org-seg{ display:flex;flex-wrap:wrap;gap:6px; }
+        .cg-org-seg button{ border:1.5px solid #B9AE97;background:#fff;border-radius:9px;padding:8px 11px;min-height:38px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:#1A1610; }
+        .cg-org-seg button.on{ background:#1A1610;color:#fff;border-color:#1A1610; }
+        .cg-org-row{ display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:10px;font-size:12px; }
+        .cg-org-row label{ display:flex;align-items:center;gap:6px;cursor:pointer; }
+        .cg-org-link{ background:none;border:0;text-decoration:underline;font-weight:700;font-size:12px;cursor:pointer;padding:6px 2px;color:#1A1610;font-family:inherit; }
+        .cg-org-hint{ font-size:11px;color:#6E6656;margin-top:6px; }
+        .cg-pos{ flex:none;width:20px;text-align:center;font-weight:800;color:#A79E8B;font-size:13px; }
+        .cg-tipo{ flex:none;font-size:10px;font-weight:700;border-radius:99px;padding:3px 8px;white-space:nowrap; }
+        .cg-tipo.free{ background:#E3F3EA;color:#0F8A57; } .cg-tipo.paid{ background:#FFF1D6;color:#A56500; } .cg-tipo.mixed{ background:#E6EEF8;color:#2A4E7A; }
+        .cg-mv{ flex:none;display:inline-flex;flex-direction:column;gap:2px; }
+        .cg-mv button{ width:28px;height:20px;border:1px solid #B9AE97;background:#fff;border-radius:5px;font-size:9px;line-height:1;cursor:pointer;padding:0;color:#1A1610; }
+        .cg-mv button:disabled{ opacity:.3;cursor:default; }
         .cg-add-inline{ font-size:11px;font-weight:700;color:#8A6410;background:#FBF1DC;border:1px dashed #B9AE97;border-radius:8px;padding:7px;width:100%;cursor:pointer;margin-top:4px; }
         .cg-add-group{ width:100%;padding:10px;border-radius:10px;border:1.5px dashed #B9AE97;background:transparent;color:#A79E8B;font-weight:700;font-size:12px;cursor:pointer; }
         .cg-import-menu{ position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid #DDD5C4;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.1);z-index:10;overflow:hidden; }
@@ -1465,10 +1591,35 @@ export default function CatalogoPage() {
             <div className="cg-swrow"><div className={`cg-switch ${form.active ? 'on' : ''}`} onClick={() => setForm(f => ({ ...f, active: !f.active }))}><div className="k" /></div><span>Ativo no cardápio</span></div>
 
             <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase', color: '#A79E8B', margin: '16px 2px 8px' }}>Grupos de opção / combo</div>
+            {form.groups.length > 1 && (
+              <div className="cg-org">
+                <div className="cg-org-lbl">Ordem dos grupos</div>
+                <div className="cg-org-seg">
+                  {([['free', 'Gratuitos primeiro'], ['paid', 'Pagos primeiro'], ['asc', 'Menor preço'], ['desc', 'Maior preço']] as [OrdemGrupos, string][]).map(([m, label]) => (
+                    <button key={m} type="button" className={ordemGrupos === m ? 'on' : ''} onClick={() => aplicarOrdemGrupos(m)}>{label}</button>
+                  ))}
+                </div>
+                <div className="cg-org-row">
+                  <label><input type="checkbox" checked={obrigNoTopo} onChange={alternarObrigNoTopo} /> Obrigatórios sempre no topo</label>
+                  {form.groups.some(g => g.name.trim()) && (
+                    <button type="button" className="cg-org-link" onClick={() => { setApplySel([]); setShowApplyOrder(true) }}>Aplicar esta ordem em outros produtos…</button>
+                  )}
+                </div>
+                <div className="cg-org-hint">Ou use as setas ▲▼ de cada grupo para mover um a um. A ordem vale no cardápio depois de salvar o produto.</div>
+              </div>
+            )}
             {form.groups.map((g, gi) => (
               <div className="cg-group" key={gi}>
                 <div className="cg-group-top">
+                  <span className="cg-pos">{gi + 1}</span>
                   <input placeholder="Nome do grupo (ex: Sabores, Tamanho...)" value={g.name} onChange={e => updateGroup(gi, { name: e.target.value })} />
+                  {g.options.length > 0 && <span className={`cg-tipo ${grupoTipo(g)}`}>{grupoTipo(g) === 'free' ? 'Grátis' : grupoTipo(g) === 'paid' ? 'Pago' : 'Grátis + pago'}</span>}
+                  {form.groups.length > 1 && (
+                    <span className="cg-mv">
+                      <button type="button" aria-label="Subir grupo" disabled={gi === 0} onClick={() => moverGrupo(gi, -1)}>▲</button>
+                      <button type="button" aria-label="Descer grupo" disabled={gi === form.groups.length - 1} onClick={() => moverGrupo(gi, 1)}>▼</button>
+                    </span>
+                  )}
                   <button className="cg-del" onClick={() => removeGroup(gi)}>🗑</button>
                 </div>
                 <div className="cg-rule">
@@ -1483,9 +1634,28 @@ export default function CatalogoPage() {
                     <option value="maior_valor">o mais caro (ex: pizza meio a meio)</option>
                   </select>
                 </div>
+                {g.options.length > 1 && (
+                  <div className="cg-rule-cobrar">
+                    <span>ordenar opções:</span>
+                    <select value="" onChange={e => { if (e.target.value) ordenarOpcoesDoGrupo(gi, e.target.value as OrdemOpcoes) }}>
+                      <option value="">Escolher (ou use as setas)…</option>
+                      <option value="az">A → Z</option>
+                      <option value="asc">Menor preço</option>
+                      <option value="desc">Maior preço</option>
+                      <option value="free">Gratuitas primeiro</option>
+                      <option value="paid">Pagas primeiro</option>
+                    </select>
+                  </div>
+                )}
                 {g.options.map((o, oi) => (
                   <div className="cg-opt" key={oi}>
                     <div className="cg-opt-top">
+                      {g.options.length > 1 && (
+                        <span className="cg-mv">
+                          <button type="button" aria-label="Subir opção" disabled={oi === 0} onClick={() => moverOpcao(gi, oi, -1)}>▲</button>
+                          <button type="button" aria-label="Descer opção" disabled={oi === g.options.length - 1} onClick={() => moverOpcao(gi, oi, 1)}>▼</button>
+                        </span>
+                      )}
                       <label className="cg-opt-photo">
                         {o._photoFile ? <img src={URL.createObjectURL(o._photoFile)} alt="" /> : o.photo_url ? <img src={o.photo_url} alt="" /> : '🍽️'}
                         <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => updateOption(gi, oi, { _photoFile: e.target.files?.[0] || null })} />
@@ -1594,6 +1764,31 @@ export default function CatalogoPage() {
             <div className="cg-cat-modal-foot">
               <input placeholder="Nova categoria" value={mgrNewCatName} onChange={e => setMgrNewCatName(e.target.value)} onKeyDown={e => e.key === 'Enter' && addCategoriaFromManager()} />
               <button className="cg-btn cg-btn-gold" onClick={addCategoriaFromManager}>+ Adicionar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showApplyOrder && (
+        <div className="cg-cat-overlay" onClick={() => !applyBusy && setShowApplyOrder(false)}>
+          <div className="cg-cat-modal" onClick={e => e.stopPropagation()}>
+            <div className="cg-cat-modal-head">
+              <b>Aplicar ordem em outros produtos</b>
+              <button className="cg-close" onClick={() => !applyBusy && setShowApplyOrder(false)}>✕</button>
+            </div>
+            <div className="cg-cat-modal-body">
+              <div style={{ fontSize: 12, color: '#6E6656', padding: '10px 0' }}>
+                A ordem dos grupos que está na tela é copiada pelo <b>nome do grupo</b>. Grupo que o outro produto não tem é ignorado; o que ele tem a mais fica no fim. Só muda a ordem — nomes, regras e opções não são tocados.
+              </div>
+              {produtos.filter(p => p.id !== form.id).map(p => (
+                <label className="cg-cat-row" key={p.id} style={{ cursor: 'pointer' }}>
+                  <input type="checkbox" checked={applySel.includes(p.id)} onChange={e => setApplySel(s => e.target.checked ? [...s, p.id] : s.filter(x => x !== p.id))} />
+                  <span className="cg-cat-row-name">{p.name}</span>
+                </label>
+              ))}
+              <button className="cg-btn cg-btn-gold" style={{ marginTop: 12, width: '100%' }} disabled={!applySel.length || applyBusy} onClick={aplicarOrdemEmOutros}>
+                {applyBusy ? 'Aplicando...' : `Aplicar em ${applySel.length} produto${applySel.length === 1 ? '' : 's'}`}
+              </button>
             </div>
           </div>
         </div>

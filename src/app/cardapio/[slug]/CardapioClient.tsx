@@ -6,6 +6,7 @@ import { isOpenNow } from '@/lib/businessHours'
 import { type Produto, fmt, promoPrice, availableToday, isSoldOut, groupContribution, cartStorageKey, setActiveCart } from '@/lib/lojaPricing'
 import { getVisitorId } from '@/components/PalavraPremiada'
 import CartaoMercadoPago, { type CartaoFormData } from '@/components/loja/CartaoMercadoPago'
+import { ordenarComplementosLista } from '@/lib/produtoOrdem'
 
 type Categoria = { id: string; name: string; display_order: number }
 type Coupon = { id: string; title: string; discount_type: 'fixed' | 'percent'; discount_value: number; min_purchase: number }
@@ -243,7 +244,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
           supabase.from('coupons').select('id,title,discount_type,discount_value,min_purchase').eq('company_id', comp.id).eq('active', true).gt('expires_at', new Date().toISOString()).order('created_at', { ascending: false }),
         ])
         setCategorias(cats || [])
-        setProdutos(((prods || []) as any[]).filter(availableToday))
+        setProdutos(ordenarComplementosLista((prods || []) as any[]).filter(availableToday))
         setCoupons((cps || []) as Coupon[])
         setLoading(false)
       })

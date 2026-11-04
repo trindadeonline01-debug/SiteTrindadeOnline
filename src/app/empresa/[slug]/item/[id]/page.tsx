@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { fmt, promoPrice } from '@/lib/lojaPricing'
 import ProdutoDetailClient from '@/components/loja/ProdutoDetailClient'
+import { ordenarComplementos } from '@/lib/produtoOrdem'
 
 // Rota nova e crítica pro SEO (ESPECIFICACAO.md §5.2): antes o catálogo
 // inteiro vivia numa página só, então um produto não tinha endereço próprio
@@ -26,7 +27,7 @@ const getData = cache(async (slug: string, id: string) => {
 
   const { data: pecaAgoraSetting } = await supabaseServer.from('site_settings').select('value').eq('key', 'peca_agora_enabled').maybeSingle()
 
-  return { company, produto, related: related || [], pecaAgoraEnabled: pecaAgoraSetting?.value === 'true' }
+  return { company, produto: ordenarComplementos(produto), related: related || [], pecaAgoraEnabled: pecaAgoraSetting?.value === 'true' }
 })
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string; id: string }> }): Promise<Metadata> {

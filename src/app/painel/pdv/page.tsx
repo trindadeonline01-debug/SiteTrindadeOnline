@@ -6,6 +6,7 @@ import { qzPrintRaw, buildReceipt, buildKitchenTicket, isRawBtMode, printViaRawB
 import { fetchPedidoComItensComRetry } from '@/lib/autoprint'
 import { npGroupContribution, type NpGrupo, type NpProduto, type NpCartLine, PESO_REGEX, pesoNum, pesoDisplay, pesoDigitsFromKg } from '@/lib/produtoCart'
 import { parseBalancaCode, BALANCA_DEFAULT_CONFIG, type BalancaConfig, type BalancaParsed } from '@/lib/balancaBarcode'
+import { ordenarComplementosLista } from '@/lib/produtoOrdem'
 
 // PDV — tela cheia (bare route, igual Cozinha), pra venda de balcão rápida.
 // Mesmo catálogo/preço/formas de pagamento da loja, só muda a visualização:
@@ -147,7 +148,7 @@ export default function PdvPage() {
         supabase.from('loja_produtos').select('id, name, sale_price, category_id, photo_url, codigo_balanca, groups:loja_opcoes_grupo(*, options:loja_opcoes(*))').eq('company_id', comp.id).eq('active', true).order('display_order'),
         supabase.from('loja_categorias').select('id, name').eq('company_id', comp.id).order('display_order'),
       ])
-      setProdutos((prods || []) as any)
+      setProdutos(ordenarComplementosLista((prods || []) as any[]) as any)
       setCategorias((cats || []) as any)
       setLoading(false)
       searchRef.current?.focus()

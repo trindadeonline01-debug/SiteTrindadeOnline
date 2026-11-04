@@ -9,6 +9,7 @@ import ConfirmModal from '@/components/painel/ConfirmModal'
 import MesaCalculadora, { type CalcComanda, type Divisao, DIVISAO0 } from '@/components/painel/MesaCalculadora'
 import QRCode from 'qrcode'
 import { npGroupContribution, type NpGrupo, type NpProduto, PESO_REGEX, pesoNum, pesoDisplay } from '@/lib/produtoCart'
+import { ordenarComplementosLista } from '@/lib/produtoOrdem'
 
 // Mesas e comandas (nov/2026) — mapa de mesas em tela cheia pro tablet do
 // garçom (bare route, igual Cozinha/PDV). Tudo que mexe em dinheiro, PIN ou
@@ -154,7 +155,7 @@ export default function MesasPage() {
           supabase.from('loja_produtos').select('id, name, sale_price, category_id, photo_url, groups:loja_opcoes_grupo(*, options:loja_opcoes(*))').eq('company_id', comp.id).eq('active', true).order('display_order'),
           supabase.from('loja_categorias').select('id, name').eq('company_id', comp.id).order('display_order'),
         ])
-        setProdutos((prods || []) as unknown as Produto[]); setCategorias((cats || []) as { id: string; name: string }[])
+        setProdutos(ordenarComplementosLista((prods || []) as any[]) as unknown as Produto[]); setCategorias((cats || []) as { id: string; name: string }[])
       }
       await load()
       setLoading(false)

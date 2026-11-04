@@ -11,6 +11,7 @@ import { usePainelShell } from '@/contexts/PainelShellContext'
 import { npGroupContribution, type NpOpcao, type NpGrupo, type NpProduto, type NpCartLine } from '@/lib/produtoCart'
 import EditarPedidoPanel from '@/components/painel/EditarPedidoPanel'
 import BairrosEntregaModal from '@/components/painel/BairrosEntregaModal'
+import { ordenarComplementosLista } from '@/lib/produtoOrdem'
 
 type Item = { id: string; product_name: string; unit_price: number; qty: number; peso_kg: number | null; selected_options: { name: string; price: number }[] }
 type Status = 'recebido' | 'em_preparo' | 'pronto' | 'saiu_entrega' | 'entregue' | 'cancelado'
@@ -745,7 +746,7 @@ export default function PedidosPage() {
     if (npProdutos.length === 0) {
       setNpLoadingProdutos(true)
       const { data } = await supabase.from('loja_produtos').select('id, name, sale_price, category_id, groups:loja_opcoes_grupo(*, options:loja_opcoes(*))').eq('company_id', companyId).eq('active', true).order('display_order')
-      setNpProdutos((data || []) as any)
+      setNpProdutos(ordenarComplementosLista((data || []) as any[]) as any)
       setNpLoadingProdutos(false)
     }
   }

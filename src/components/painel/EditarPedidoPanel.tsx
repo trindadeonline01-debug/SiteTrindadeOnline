@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { npGroupContribution, type NpProduto, type NpCartLine, PESO_REGEX, pesoDigitsFromKg, pesoNum, pesoDisplay } from '@/lib/produtoCart'
+import { ordenarComplementosLista } from '@/lib/produtoOrdem'
 
 type DeliveryType = 'entrega' | 'retirada' | 'balcao'
 type PedidoParaEditar = {
@@ -120,7 +121,7 @@ export default function EditarPedidoPanel({ pedido, companyId, onClose, onSaved 
         supabase.from('loja_produtos').select('id, name, sale_price, category_id, groups:loja_opcoes_grupo(*, options:loja_opcoes(*))').eq('company_id', companyId).eq('active', true).order('display_order'),
         supabase.from('companies').select('loja_payment_methods').eq('id', companyId).single(),
       ])
-      setProdutos((prods || []) as any)
+      setProdutos(ordenarComplementosLista((prods || []) as any[]) as any)
       setLoadingProdutos(false)
       const configured: string[] = comp?.loja_payment_methods || []
       if (configured.length > 0) setPayOptions(configured.map(k => ({ key: k, label: payLabel(k) })))

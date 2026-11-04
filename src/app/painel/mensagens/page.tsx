@@ -7,6 +7,7 @@ import { compressImage } from '@/lib/compressImage'
 import { moduleActive } from '@/lib/modules'
 import { usePainelShell } from '@/contexts/PainelShellContext'
 import { PeriodSel, periodRange, periodLabel, MESES } from '@/lib/periodFilter'
+import { ordenarComplementosLista } from '@/lib/produtoOrdem'
 
 // Modo Atendimento (ESPECIFICACAO.md §4.4) — mesmo inbox de sempre, mas em
 // tela cheia, sem sidebar/topbar/tabbar do painel: "modo não é página de
@@ -506,7 +507,7 @@ export default function MensagensPage() {
         supabase.from('loja_produtos').select('*, groups:loja_opcoes_grupo(*, options:loja_opcoes(*))').eq('company_id', company.id).eq('active', true).order('display_order'),
       ])
       setNpCategorias((cats || []) as any)
-      setNpProdutos((prods || []) as any)
+      setNpProdutos(ordenarComplementosLista((prods || []) as any[]) as any)
       setNpLoadingProdutos(false)
     }
   }

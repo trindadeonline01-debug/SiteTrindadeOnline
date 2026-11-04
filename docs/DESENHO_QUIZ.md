@@ -23,7 +23,7 @@
 **Nada do jogo de verdade foi construído.** O que existe hoje:
 - `src/lib/quizRegras.ts` + `scripts/quiz-regras.test.mts` — motor de regras (14 testes passando), ainda não ligado a nenhuma rota ou tela.
 - `docs/sql/quiz_premiado_fase1.sql` — migração já aplicada no banco (tabelas do quiz, regra de 1 telefone por conta/conflito). Nenhuma tela lê ou grava nessas tabelas.
-- Mockup jogável (Artifact privado do Ricardo, versão 17 — arquivo de trabalho no scratchpad da sessão, que se perde): intro, contagem 3-2-1, pergunta, círculo de resultado, portão dos 15, tela final, sons. **O Ricardo não disse "aprovado" formalmente** — ao retomar, confirmar o mockup antes de codar.
+- Mockup jogável: arquivo salvo em `docs/pesca-premiada/quiz-mockup.html` (abrir no navegador; inclui cadastro com apelido e WhatsApp, ranking da loja, sair no meio perde tudo, queda de conexão de 2 min e 93 perguntas em 3 níveis). Antes era só um Artifact privado: intro, contagem 3-2-1, pergunta, círculo de resultado, portão dos 15, tela final, sons. **O Ricardo não disse "aprovado" formalmente** — ao retomar, confirmar o mockup antes de codar.
 - Perguntas-fonte: `docs/pesca-premiada/` (30 perguntas da Calçada do Peixe). Banco necessário para lançar: mínimo 60, meta 300+ (seção 8).
 
 **Decisões do Ricardo, 4/nov/2026 (conversa seguinte — só desenho, continua sem implementar):**

@@ -1,0 +1,1064 @@
+<title>Quiz Pesca Premiada</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: lista de telas à esquerda, celular jogável no centro, notas da tela à direita (empilha no celular).
+   Cores da página seguem o tema; o "celular" é o app da mesa e mantém a própria paleta (--ap-*). */
+:root{
+  --bg:#E9EAE5; --panel:#FFFFFF; --ink:#151210; --muted:#6B6862; --line:#D9DAD3; --sign:#FFC531; --sign-ink:#151210; --chip:#F3F4EF;
+  --display:'Anton',Impact,'Arial Narrow',sans-serif; --body:'Archivo',system-ui,-apple-system,'Segoe UI',sans-serif;
+  /* app (celular) */
+  --ap-paper:#FFFFFF; --ap-bg:#F4F2EC; --ap-ink:#151210; --ap-muted:#6F6C67; --ap-line:#DEDBD2; --ap-sign:#FFC531;
+  --ap-sea1:#0E4D64; --ap-sea2:#082B38; --ap-foam:#E9F4F3; --ap-ok:#0F8A57; --ap-bad:#D6392B; --ap-gold:#FFC531;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#151210;--panel:#201C19;--ink:#F2EFE8;--muted:#A8A39A;--line:#3A352F;--chip:#2A2623;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#151210;--panel:#201C19;--ink:#F2EFE8;--muted:#A8A39A;--line:#3A352F;--chip:#2A2623;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:14px;line-height:1.45;padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1{font-family:var(--display);font-weight:400;font-size:34px;line-height:1.05;margin:0}
+.top{max-width:1180px;margin:0 auto 16px;display:flex;gap:12px;align-items:end;justify-content:space-between;flex-wrap:wrap}
+.top p{margin:4px 0 0;color:var(--muted);max-width:60ch}
+.tag{display:inline-block;background:var(--sign);color:var(--sign-ink);font-weight:700;font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:4px}
+.shell{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:230px minmax(0,1fr) 300px;gap:20px;align-items:start}
+@media(max-width:1000px){.shell{grid-template-columns:minmax(0,1fr)}}
+.nav{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;position:sticky;top:12px}
+@media(max-width:1000px){.nav{position:static}}
+.nav h3{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:10px 6px 6px;font-weight:700}
+.nav h3:first-child{margin-top:2px}
+.nav .grp{display:flex;flex-direction:column;gap:2px}
+@media(max-width:1000px){.nav .grp{flex-direction:row;flex-wrap:wrap;gap:6px}}
+.nav button{font:inherit;text-align:left;border:0;background:transparent;color:var(--ink);padding:8px 10px;border-radius:6px;cursor:pointer;min-height:36px}
+.nav button:hover{background:var(--chip)}
+.nav button.on{background:var(--ink);color:var(--bg);font-weight:600}
+@media(max-width:1000px){.nav button{background:var(--chip)}}
+.nav button:focus-visible,.demo button:focus-visible,.seg button:focus-visible{outline:3px solid var(--sign);outline-offset:2px}
+.stage{display:flex;flex-direction:column;align-items:center;gap:12px;min-width:0}
+.phone{width:min(100%,var(--pw,390px));height:var(--ph,800px);background:#0B0B0C;border-radius:38px;padding:10px;box-shadow:0 18px 40px rgba(0,0,0,.28)}
+.screen{width:100%;height:100%;background:var(--ap-bg);color:var(--ap-ink);border-radius:29px;overflow-x:hidden;overflow-y:auto;display:flex;flex-direction:column;position:relative}
+.wide{width:100%;max-width:760px;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.notes{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;position:sticky;top:12px}
+@media(max-width:1000px){.notes{position:static}}
+.notes h2{font-size:13px;letter-spacing:.06em;text-transform:uppercase;margin:0 0 8px}
+.notes p{margin:0 0 8px}
+.notes ul{margin:0 0 8px;padding-left:18px}
+.notes li{margin-bottom:4px}
+.notes .dec{background:var(--chip);border-radius:8px;padding:8px 10px;margin-top:10px;font-size:13px}
+.demo{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.demo button{font:inherit;font-size:12px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:6px 10px;cursor:pointer}
+.demo small{width:100%;text-align:center;color:var(--muted)}
+/* ---- app ---- */
+.bar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--ap-paper);border-bottom:1px solid var(--ap-line);flex:none}
+.brand{font-family:var(--display);font-size:19px;letter-spacing:.01em}.brand b{font-weight:400;color:#A87200}
+.mesa{font-size:12px;color:var(--ap-muted);font-weight:600}
+.back{font:600 14px var(--body);background:transparent;border:0;color:var(--ap-ink);cursor:pointer;min-height:44px;padding:0 8px 0 0;margin-left:-4px;white-space:nowrap}
+.sea .back{color:#fff}
+.back:focus-visible{outline:3px solid var(--ap-gold);outline-offset:2px}
+.ovl{position:absolute;inset:0;background:rgba(0,0,0,.62);display:flex;align-items:flex-end;z-index:5}
+.sheet{background:#fff;color:#151210;border-radius:16px 16px 0 0;padding:18px 16px 20px;display:grid;gap:10px;width:100%}
+.sheet h3{font-family:var(--display);font-weight:400;font-size:24px;margin:0}
+.sheet p{margin:0;font-size:14px;color:#4a4742}
+.stp{display:flex;align-items:center;gap:6px;font-weight:700}.stp span{width:30px;height:30px;border-radius:8px;border:1px solid var(--ap-line);display:grid;place-items:center}
+.body{flex:1;min-height:0;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.h1{font-family:var(--display);font-weight:400;font-size:30px;line-height:1.05;margin:0}
+.p{margin:0;font-size:14px;color:var(--ap-muted)}
+.card{background:var(--ap-paper);border:1px solid var(--ap-line);border-radius:12px;padding:14px;display:flex;gap:12px;align-items:center}
+.card .ic{width:44px;height:44px;border-radius:10px;background:var(--ap-bg);display:grid;place-items:center;font-size:22px;flex:none}
+.card b{display:block;font-size:15px}.card span{font-size:12.5px;color:var(--ap-muted)}
+.card.hot{background:var(--ap-sea2);color:#fff;border-color:var(--ap-sea2)}
+.card.hot .ic{background:rgba(255,255,255,.12)}.card.hot span{color:#BFD9DE}
+.btn{font:700 16px var(--body);min-height:52px;border:0;border-radius:10px;background:var(--ap-sign);color:#151210;cursor:pointer;width:100%;padding:0 16px}
+.btn.alt{background:transparent;border:2px solid currentColor;color:inherit}
+.btn.dark{background:#151210;color:#fff}
+.btn:focus-visible{outline:3px solid #151210;outline-offset:2px}
+.note{font-size:12.5px;color:var(--ap-muted);line-height:1.4}
+.pill{display:inline-flex;align-items:center;gap:6px;background:var(--ap-bg);border:1px solid var(--ap-line);border-radius:99px;padding:4px 10px;font-size:12px;font-weight:600}
+/* jogo (fundo do mar) */
+.sea{background:radial-gradient(120% 70% at 50% 0%,var(--ap-sea1) 0%,var(--ap-sea2) 70%);color:#fff}
+.sea .bar{background:transparent;border-bottom:1px solid rgba(255,255,255,.14)}
+.sea .brand b{color:var(--ap-gold)}.sea .mesa{color:#BFD9DE}
+.ladder{display:flex;align-items:center;gap:4px;padding:10px 14px 0}
+.ladder .st{flex:1;text-align:center;border-radius:6px;padding:5px 0;background:rgba(255,255,255,.08);color:#9EC3CB;font-size:11px;font-weight:700;line-height:1.15}
+.ladder .st small{display:block;font-weight:500;font-size:9.5px;opacity:.85}
+.ladder .st.got{background:var(--ap-gold);color:#151210}
+.ladder .gate{width:2px;align-self:stretch;background:#fff;opacity:.5;margin:0 3px;border-radius:2px}
+.hud{display:flex;justify-content:space-between;align-items:center;padding:10px 16px 0;font-size:12.5px;color:#CFE3E6}
+.hud b{color:#fff;font-variant-numeric:tabular-nums}
+.hearts{display:inline-flex;gap:2px;align-items:center;color:#FF7A6B}
+.timer{position:relative;width:84px;height:84px;margin:6px auto 0;flex:none}
+.timer svg{width:84px;height:84px;transform:rotate(-90deg)}
+.timer .n{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--display);font-size:34px;font-variant-numeric:tabular-nums}
+.q{background:var(--ap-foam);color:#0A2A33;border-radius:14px;padding:16px;margin:0 14px;font-weight:700;font-size:19px;line-height:1.25;text-wrap:balance}
+.q small{display:block;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:#4A7783;margin-bottom:6px;font-weight:700}
+.opts{display:grid;gap:8px;padding:12px 14px 0}
+.opt{font:600 16px var(--body);text-align:left;min-height:54px;border-radius:10px;border:2px solid rgba(255,255,255,.18);background:rgba(255,255,255,.07);color:#fff;display:flex;align-items:center;gap:12px;padding:0 14px;cursor:pointer;width:100%}
+.opt i{font-style:normal;font-family:var(--display);font-size:18px;color:var(--ap-gold);width:18px}
+.opt.right{background:var(--ap-ok);border-color:var(--ap-ok)}.opt.wrong{background:var(--ap-bad);border-color:var(--ap-bad)}.opt.dim{opacity:.45}
+.opt:focus-visible{outline:3px solid var(--ap-gold);outline-offset:2px}
+.helps{display:flex;gap:8px;padding:12px 14px 14px;margin-top:auto}
+.helps button{flex:1;font:600 13px var(--body);min-height:46px;border-radius:10px;border:1.5px solid rgba(255,255,255,.35);background:transparent;color:#fff;cursor:pointer}
+.helps button:disabled{opacity:.35;cursor:default}
+.big{font-family:var(--display);font-size:54px;line-height:1;margin:0;font-variant-numeric:tabular-nums}
+.res{padding:18px 16px;display:flex;flex-direction:column;gap:12px;flex:1;min-height:0}
+.res .box{background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:12px 14px;font-size:14px}
+.res .box b{color:var(--ap-gold)}
+.gold{color:var(--ap-gold)}
+.input{min-height:50px;border:1px solid var(--ap-line);border-radius:8px;background:var(--ap-paper);padding:0 14px;font:600 17px var(--body);display:flex;align-items:center;justify-content:space-between}
+.codes{display:flex;gap:6px}.codes span{flex:1;height:52px;border:1px solid var(--ap-line);border-radius:8px;background:var(--ap-paper);display:grid;place-items:center;font:400 26px var(--display)}
+.warn{background:#FCE9E6;border:1px solid #E9B1A9;color:#7A1F14;border-radius:10px;padding:12px 14px;font-size:14px}
+.good{background:#E3F3EA;border:1px solid #A8D5BC;color:#0B5A37;border-radius:10px;padding:12px 14px;font-size:14px}
+.row{display:flex;justify-content:space-between;gap:10px;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--ap-line);font-variant-numeric:tabular-nums}
+.row:last-child{border-bottom:0}
+.bal{background:var(--ap-paper);border:1px solid var(--ap-line);border-radius:12px;padding:14px}
+.bal .big{font-size:44px}
+
+/* tela de entrada com cara de jogo */
+.game{overflow:hidden}
+.game .bar{position:relative;z-index:2}
+.scene{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.scene .rays{position:absolute;inset:-10% -20% 0 -20%;-webkit-mask-image:linear-gradient(180deg,#000 0,transparent 85%);mask-image:linear-gradient(180deg,#000 0,transparent 85%);background:repeating-linear-gradient(105deg,rgba(255,255,255,.07) 0 22px,transparent 22px 70px);transform:skewX(-12deg);animation:rays 9s ease-in-out infinite alternate}
+.bub{position:absolute;bottom:-20px;border-radius:50%;border:1.5px solid rgba(255,255,255,.55);background:rgba(255,255,255,.12);animation:rise linear infinite}
+.fsh{position:absolute;width:46px;opacity:.75}
+.fsh svg{display:block;width:100%}
+.f1{top:60%;animation:swim 14s linear infinite}
+.f2{top:70%;width:34px;animation:swimr 18s linear infinite;animation-delay:-6s}
+.f3{top:80%;width:40px;animation:swim 22s linear infinite;animation-delay:-11s}
+.weed{position:absolute;left:0;right:0;bottom:0;width:100%;height:70px}
+.gi{position:relative;z-index:1;flex:1;min-height:0;display:flex;flex-direction:column;gap:12px;padding:6px 16px 16px}
+.ttl{position:relative;line-height:.9;padding-top:6px}
+.t1,.t2{display:block;font-family:var(--display);letter-spacing:.02em;text-transform:uppercase}
+.t1{font-size:64px;color:#fff;text-shadow:0 4px 0 #082B38,0 0 22px rgba(127,214,229,.45)}
+.t2{font-size:50px;color:var(--ap-gold);text-shadow:0 4px 0 #6B4A00,0 0 24px rgba(255,197,49,.5)}
+.hook{position:absolute;right:6px;top:-4px;transform-origin:20px 0;animation:sway 3.2s ease-in-out infinite}
+.sub{margin:0;font-size:15px;color:#CFE3E6;line-height:1.35;max-width:30ch}
+.lad{background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.05));border:1px solid rgba(255,255,255,.2);border-radius:16px;padding:10px 10px 8px}
+.lcap{font-size:11px;letter-spacing:.09em;text-transform:uppercase;font-weight:700;color:#BFD9DE;text-align:center;margin-bottom:8px}
+.coins{display:flex;align-items:flex-end;justify-content:space-between;gap:4px}
+.coin{width:var(--s);height:var(--s);border-radius:50%;background:radial-gradient(circle at 32% 28%,#FFE79A 0,#FFC531 45%,#C98F0A 100%);border:2px solid #8A5E00;display:grid;place-items:center;box-shadow:0 3px 0 #6B4A00;flex:none}
+.coin b{font-family:var(--display);font-weight:400;font-size:14px;color:#4A3200;letter-spacing:.01em}
+.coin.max{animation:glow 1.8s ease-in-out infinite}
+.risk{align-self:stretch;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:#FF9F95;font-weight:700;gap:2px}
+.risk u{flex:1;border-left:2px dashed rgba(255,159,149,.7);min-height:30px}
+.lnum{display:flex;justify-content:space-between;padding:4px 6px 0;font-size:10.5px;color:#9EC3CB;font-variant-numeric:tabular-nums}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chips span{display:inline-flex;align-items:center;gap:5px;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.18);border-radius:99px;padding:6px 9px;font-size:12px;font-weight:600;color:#E6F2F3}
+.chips svg{color:var(--ap-gold)}
+.rib{background:rgba(255,197,49,.14);border:1px dashed rgba(255,197,49,.65);color:#FFE7A0;border-radius:10px;padding:8px 12px;font-size:13px;text-align:center}
+.rib b{color:#fff}
+.cta{margin-top:auto;display:grid;gap:6px}
+.go{position:relative;overflow:hidden;font-family:var(--display);font-size:24px;letter-spacing:.04em;text-transform:uppercase;min-height:64px;border:0;border-radius:16px;color:#2B1B00;cursor:pointer;background:linear-gradient(180deg,#FFE27A,#FFC531 55%,#F0A800);box-shadow:0 6px 0 #8A5E00,0 0 0 0 rgba(255,197,49,.55);animation:pulse 2s ease-in-out infinite}
+.go:active{transform:translateY(3px);box-shadow:0 3px 0 #8A5E00}
+.go::after{content:"";position:absolute;top:0;bottom:0;width:60px;left:-80px;background:linear-gradient(100deg,transparent,rgba(255,255,255,.7),transparent);transform:skewX(-20deg);animation:shine 3.2s ease-in-out infinite}
+.go:focus-visible,.fun:focus-visible{outline:3px solid #fff;outline-offset:3px}
+.fun{background:transparent;border:0;color:#CFE3E6;font:600 14px var(--body);text-decoration:underline;cursor:pointer;min-height:40px}
+@keyframes rise{from{transform:translateY(0);opacity:0}15%{opacity:1}to{transform:translateY(-820px);opacity:0}}
+@keyframes swim{from{left:-14%}to{left:112%}}
+@keyframes swimr{from{left:112%;transform:scaleX(-1)}to{left:-14%;transform:scaleX(-1)}}
+@keyframes rays{from{opacity:.6;transform:skewX(-12deg) translateX(-14px)}to{opacity:1;transform:skewX(-12deg) translateX(14px)}}
+@keyframes sway{0%,100%{transform:rotate(7deg)}50%{transform:rotate(-7deg)}}
+@keyframes glow{0%,100%{box-shadow:0 3px 0 #6B4A00,0 0 0 rgba(255,197,49,0)}50%{box-shadow:0 3px 0 #6B4A00,0 0 18px 4px rgba(255,197,49,.8)}}
+@keyframes pulse{0%,100%{box-shadow:0 6px 0 #8A5E00,0 0 0 0 rgba(255,197,49,.5)}50%{box-shadow:0 6px 0 #8A5E00,0 0 0 10px rgba(255,197,49,0)}}
+@keyframes shine{0%,55%{left:-80px}100%{left:120%}}
+@media (prefers-reduced-motion:reduce){.bub,.fsh,.rays,.hook,.coin.max,.go,.go::after{animation:none}.bub{display:none}.f1{left:20%}.f2{left:60%}.f3{left:35%}}
+
+/* entrada: versão enxuta */
+.vig{position:absolute;inset:0;background:radial-gradient(120% 80% at 50% 0%,transparent 40%,rgba(3,18,24,.55) 100%)}
+.gi{gap:14px;padding:8px 18px 18px}
+.ttl2{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:4px}
+.ttl2 .t1{font-size:58px;line-height:.92;text-shadow:0 2px 0 rgba(0,0,0,.35)}
+.ttl2 .t2{font-size:46px;line-height:.95;text-shadow:0 2px 0 rgba(0,0,0,.35)}
+.medal{flex:none;animation:floaty 4s ease-in-out infinite;filter:drop-shadow(0 6px 10px rgba(0,0,0,.35))}
+.sub{font-size:15px;max-width:none;color:#D5E7EA}
+.trk{background:rgba(5,26,34,.55);border:1px solid rgba(255,255,255,.16);border-radius:16px;padding:12px 12px 10px}
+.zones{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.z{font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;text-align:center;padding-bottom:5px;border-bottom:3px solid}
+.z.ok{color:#8FE3B5;border-color:#3FB57A}.z.rk{color:#FF9F95;border-color:#E2574A}
+.stops{position:relative;display:grid;grid-template-columns:repeat(6,1fr);gap:0}
+.stops::before{content:"";position:absolute;left:8%;right:8%;top:21px;height:3px;background:rgba(255,255,255,.22);border-radius:2px}
+.stop{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px}
+.dot{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-size:15px;color:#4A3200;background:radial-gradient(circle at 32% 28%,#FFE79A 0,#FFC531 50%,#C98F0A 100%);border:2px solid #8A5E00}
+.dot.max{box-shadow:0 0 0 3px rgba(255,197,49,.35),0 0 16px rgba(255,197,49,.7)}
+.ac{font-size:11px;color:#A9CBD2;font-variant-numeric:tabular-nums}
+.tcap{text-align:center;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:#7FA9B2;margin-top:6px}
+.rules{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.rl{display:flex;align-items:center;gap:10px;min-width:0;padding:12px 10px;border-radius:14px;background:linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,.04));border:1px solid rgba(255,255,255,.18)}
+.rl .ico{flex:none;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:var(--ap-gold);background:rgba(255,197,49,.14);border:1.5px solid rgba(255,197,49,.55)}
+.rl div{min-width:0}
+.rl b{display:flex;align-items:baseline;gap:5px;white-space:nowrap;font-family:var(--display);font-weight:400;font-size:15px;line-height:1;letter-spacing:.03em;text-transform:uppercase;color:#fff}
+.rl b i{font-style:normal;font-size:30px;line-height:.9;color:var(--ap-gold);letter-spacing:0}
+.rl div span{display:block;font-size:11.5px;line-height:1.25;color:#BFD9DE;margin-top:4px}
+.pnote{display:flex;align-items:center;justify-content:center;gap:6px;margin:0;font-size:12.5px;color:#BFD9DE;text-align:center}
+.pnote svg{color:var(--ap-gold);flex:none}.pnote b{color:#fff}
+.go{min-height:58px;font-size:22px;border-radius:14px;box-shadow:0 8px 22px rgba(255,197,49,.32);animation:none}
+.go:active{transform:translateY(2px)}
+.fun2{min-height:48px;border-radius:14px;background:transparent;border:1.5px solid rgba(255,255,255,.4);color:#fff;font:600 15px var(--body);cursor:pointer}
+.fun2:focus-visible{outline:3px solid #fff;outline-offset:3px}
+.zl{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px 14px 0;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;text-align:center}
+.zl .ok{color:#8FE3B5}.zl .rk{color:#FF9F95}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@media (prefers-reduced-motion:reduce){.medal{animation:none}}
+
+/* contagem 3-2-1 */
+.cnt{position:relative;z-index:1;flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:16px;text-align:center}
+.cnt-top{display:grid;gap:10px;justify-items:center}
+.cnt-top p{margin:0;font-family:var(--display);font-size:34px;letter-spacing:.04em;text-transform:uppercase}
+.cnt-tag{background:var(--ap-gold);color:#2B1B00;font-weight:700;font-size:12px;letter-spacing:.08em;text-transform:uppercase;padding:5px 12px;border-radius:99px}
+.cnt-tag.fun{background:rgba(255,255,255,.16);color:#fff}
+.cnt-ring{position:relative;width:220px;height:220px;display:grid;place-items:center}
+.cnt-ring i{position:absolute;inset:0;border-radius:50%;border:3px solid rgba(255,197,49,.55);animation:ping 1.8s ease-out infinite}
+.cnt-ring i:nth-child(2){animation-delay:.9s}
+.cnt-num{position:relative;width:170px;height:170px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-size:120px;line-height:1;color:#2B1B00;background:radial-gradient(circle at 32% 28%,#FFE79A 0,#FFC531 50%,#C98F0A 100%);border:4px solid #8A5E00;box-shadow:0 10px 30px rgba(0,0,0,.35),0 0 40px rgba(255,197,49,.45);animation:popn .9s ease-out both}
+.cnt-num.ja{font-size:64px;background:radial-gradient(circle at 32% 28%,#9BF0C2 0,#3FB57A 55%,#1E7F52 100%);border-color:#0F5A37;color:#fff;box-shadow:0 10px 30px rgba(0,0,0,.35),0 0 40px rgba(63,181,122,.55)}
+.cnt-sub{margin:0;color:#CFE3E6;font-size:15px}
+.cnt-rules{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.cnt-rules span{background:rgba(5,26,34,.55);border:1px solid rgba(255,255,255,.16);border-radius:99px;padding:6px 12px;font-size:12.5px;color:#C5DDE1}
+.cnt-rules b{color:var(--ap-gold)}
+@keyframes popn{0%{transform:scale(.55);opacity:0}45%{transform:scale(1.08);opacity:1}100%{transform:scale(1)}}
+@keyframes ping{0%{transform:scale(.8);opacity:.9}100%{transform:scale(1.18);opacity:0}}
+@media (prefers-reduced-motion:reduce){.cnt-ring i,.cnt-num{animation:none}}
+
+/* zonas explicadas */
+.zones{gap:8px;margin-bottom:12px}
+.zn{display:flex;align-items:flex-start;gap:7px;background:none;border:0;border-bottom:3px solid;padding:0 0 8px;color:inherit;font:inherit;cursor:pointer;text-align:left;min-width:0}
+.zn.ok{color:#8FE3B5;border-color:#3FB57A}.zn.rk{color:#FF9F95;border-color:#E2574A}
+.zn svg{flex:none;margin-top:1px}
+.zt{display:flex;flex-direction:column;gap:2px;min-width:0}
+.zt b{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;font-weight:700;line-height:1.1}
+.zt span{font-size:11px;color:#C5DDE1;line-height:1.2}
+.inf{margin-left:auto;flex:none;width:17px;height:17px;border-radius:50%;border:1.5px solid currentColor;display:grid;place-items:center;font:700 10.5px var(--body);font-style:normal}
+.zn:focus-visible{outline:3px solid #fff;outline-offset:3px;border-radius:6px}
+.tcap{text-transform:none;letter-spacing:.01em;font-size:11px}
+.zcard{display:flex;gap:12px;padding:12px;border-radius:12px;border:1px solid}
+.zcard.ok{background:#E8F6EE;border-color:#A8D5BC;color:#0B5A37}.zcard.rk{background:#FCEBE8;border-color:#EFB5AD;color:#7A1F14}
+.zcard .zi{flex:none;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#fff;border:1.5px solid currentColor}
+.zcard b{display:block;font-size:14px;margin-bottom:3px}.zcard p{margin:0;font-size:13px;line-height:1.4;color:#2b2926}
+.zcard em{display:inline-block;margin-top:6px;font-style:normal;font-size:12px;font-weight:700;background:#fff;border:1px solid currentColor;border-radius:99px;padding:3px 9px}
+
+/* pop-up redondo de resultado */
+.rs{position:absolute;inset:0;z-index:4;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:20px;text-align:center;background:rgba(3,18,24,.66);animation:fadein .18s ease-out}
+.rs-c{width:176px;height:176px;border-radius:50%;display:grid;place-items:center;border:4px solid;animation:popn .5s ease-out both;margin-bottom:6px}
+.rs-c.ok{background:radial-gradient(circle at 32% 28%,#9BF0C2 0,#3FB57A 55%,#1E7F52 100%);border-color:#0F5A37;box-shadow:0 10px 30px rgba(0,0,0,.4),0 0 46px rgba(63,181,122,.6)}
+.rs-c.bad{background:radial-gradient(circle at 32% 28%,#FFB3AA 0,#E2574A 55%,#B3261A 100%);border-color:#7A1F14;box-shadow:0 10px 30px rgba(0,0,0,.4),0 0 46px rgba(226,87,74,.55)}
+.rs-big{font-family:var(--display);font-size:46px;line-height:1;letter-spacing:.02em;text-transform:uppercase}
+.rs-big.ok{color:#9BF0C2}.rs-big.bad{color:#FFB3AA}
+.rs-sm{font-size:15px;color:#D5E7EA}
+.rs-certa{margin-top:10px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);border-radius:99px;padding:7px 14px;font-size:14px;color:#fff}
+.rs-certa b{color:var(--ap-gold)}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.rs,.rs-c{animation:none}}
+
+/* entrada: limpa e com respiro */
+.gi2{position:relative;z-index:1;flex:1;min-height:0;display:flex;flex-direction:column;padding:26px 26px 24px;gap:0}
+.kick{display:inline-block;font-size:11px;letter-spacing:.2em;text-transform:uppercase;font-weight:700;color:var(--ap-gold);margin-bottom:10px}
+.h2t{margin:0;font-family:var(--display);font-weight:400;text-transform:uppercase;line-height:.92;letter-spacing:.02em}
+.h2t span{display:block;font-size:56px;color:#fff}.h2t .g{color:var(--ap-gold);font-size:56px}
+.sub2{margin:16px 0 0;font-size:16px;line-height:1.45;color:#C9DEE2;max-width:26ch}
+.prize{flex:1;display:grid;place-items:center;min-height:0}
+.pm{width:176px;height:176px;border-radius:50%;padding:9px;background:conic-gradient(from 210deg,#FFE79A,#FFC531,#C98F0A,#FFE79A);box-shadow:0 0 60px rgba(255,197,49,.28),0 18px 36px rgba(0,0,0,.35);animation:floaty 5s ease-in-out infinite}
+.pm-in{width:100%;height:100%;border-radius:50%;background:radial-gradient(circle at 35% 28%,#10596F 0,#0A3A4B 60%,#072B38 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:2px solid rgba(255,255,255,.12)}
+.pm-in small{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#BFD9DE}
+.pm-in b{font-family:var(--display);font-weight:400;font-size:62px;line-height:1;color:var(--ap-gold)}
+.pm-in em{font-style:normal;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#E6F2F3}
+.facts{display:flex;align-items:center;justify-content:center;gap:14px;font-size:13.5px;color:#C9DEE2;margin-bottom:12px}
+.facts b{font-family:var(--display);font-weight:400;font-size:26px;line-height:1;color:var(--ap-gold);margin-right:3px;vertical-align:-2px}
+.facts i{width:1px;height:20px;background:rgba(255,255,255,.25)}
+.how{align-self:center;display:inline-flex;align-items:center;gap:8px;background:transparent;border:0;color:#fff;font:600 14px var(--body);cursor:pointer;padding:10px 12px;min-height:44px;margin-bottom:10px}
+.how .hi{width:18px;height:18px;border-radius:50%;border:1.5px solid currentColor;display:grid;place-items:center;font:700 11px var(--body)}
+.how:focus-visible{outline:3px solid #fff;outline-offset:2px;border-radius:8px}
+.cta2{display:grid;gap:10px}
+.pn{margin:0 0 2px;text-align:center;font-size:12.5px;color:#9EC3CB}.pn b{color:#fff}
+.go{min-height:60px;font-size:22px;border-radius:16px}
+.fun3{min-height:46px;background:transparent;border:0;color:#E6F2F3;font:600 15px var(--body);cursor:pointer;border-radius:12px}
+.fun3:hover{background:rgba(255,255,255,.08)}.fun3:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.sheet.tall{max-height:88%;overflow:auto;gap:12px}
+.hw-t{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#6B6862;margin-top:2px}
+.hw-dark{background:linear-gradient(180deg,#0E4D64,#082B38);border-radius:14px;color:#fff;padding:2px}
+.hw-dark .trk{background:transparent;border:0}
+.rrows{display:grid;gap:8px}
+.rrow{display:flex;align-items:center;gap:12px;font-size:14px;color:#2b2926}
+.rrow .ri{flex:none;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#FFF1C7;color:#8A5E00;border:1.5px solid #E9C35B}
+.rrow b{color:#151210}
+@media (prefers-reduced-motion:reduce){.pm{animation:none}}
+
+/* tela da pergunta: cabe numa tela só, estilo video game */
+.qs{overflow:hidden;container-type:size;container-name:scr;display:flex;flex-direction:column}
+.qs .zl{padding-top:6px}
+.qs .ladder{padding-top:4px}
+.hud2{display:grid;grid-template-columns:1fr 1.1fr 1fr;gap:6px;padding:8px 12px 0}
+.plate{position:relative;min-width:0;border-radius:12px;padding:5px 8px 6px;text-align:center;background:linear-gradient(180deg,rgba(255,255,255,.16),rgba(255,255,255,.05));border:2px solid rgba(255,197,49,.55);box-shadow:inset 0 -3px 0 rgba(0,0,0,.28),0 0 14px rgba(255,197,49,.16)}
+.plate small{display:block;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#BFD9DE;line-height:1.1}
+.plate b{display:block;font-family:var(--display);font-weight:400;letter-spacing:.02em;line-height:1.05}
+.pq b{font-size:15px;color:#fff;text-transform:uppercase;margin-top:3px}.pq b span{font-size:11px;color:#BFD9DE}
+.pq b{font-size:26px}.pq b span{font-size:11px;letter-spacing:.1em;margin-right:2px;vertical-align:3px}
+.ps b{font-size:28px;color:var(--ap-gold);text-shadow:0 0 14px rgba(255,197,49,.5);margin-top:2px;font-variant-numeric:tabular-nums}
+.ph .hrow{display:flex;align-items:center;justify-content:center;gap:3px;margin-top:4px;color:#FF6B5E;filter:drop-shadow(0 0 6px rgba(255,107,94,.65))}
+.ph .hrow svg{width:22px;height:22px}
+.ph.risk{border-color:rgba(255,107,94,.75);box-shadow:inset 0 -3px 0 rgba(0,0,0,.28),0 0 16px rgba(255,107,94,.3)}
+.ph.risk small{color:#FFB3AA}.ph.risk .hrow{gap:4px;filter:none}.ph.risk svg{width:20px;height:20px}
+.ph.risk em{font-style:normal;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;line-height:1.1;color:#FFD2CC;text-align:left}
+.ps.bump{animation:bump .5s ease-out}
+@keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.12);box-shadow:inset 0 -3px 0 rgba(0,0,0,.28),0 0 26px rgba(255,197,49,.8)}100%{transform:scale(1)}}
+.qmid{flex:1;min-height:0;display:flex;flex-direction:column;gap:8px;padding-top:6px}
+.qs .timer{width:68px;height:68px;margin:0 auto;flex:none}
+.qs .timer svg{width:68px;height:68px}.qs .timer .n{font-size:28px}
+.qs .q{flex:none;margin:0 14px;padding:12px 14px;font-size:18px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.qs .q small{margin-bottom:3px;text-align:center}.qs .q span{display:block;text-wrap:balance}
+.opts2{flex:1;min-height:0;display:grid;grid-template-rows:repeat(4,minmax(40px,60px));gap:8px;padding:0 14px;align-content:center}
+.qs .opt{min-height:0;height:100%;padding:0 10px 0 8px;gap:10px;font-size:16px;border-width:2px}
+.qs .opt i{flex:none;width:34px;height:34px;border-radius:9px;display:grid;place-items:center;font-family:var(--display);font-size:19px;color:#fff;box-shadow:inset 0 -3px 0 rgba(0,0,0,.25)}
+.qs .opt i{background:rgba(255,255,255,.12);color:var(--ap-gold);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.22)}
+.qs .opt span{min-width:0;line-height:1.15;text-align:left}
+.tiles{flex:none;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:8px 14px 14px}
+.tile{position:relative;height:clamp(74px,12cqh,98px);border:0;border-radius:18px;color:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-family:var(--body)}
+.tile svg{width:30px;height:30px;margin-bottom:1px}
+.tile b{font-family:var(--display);font-weight:400;font-size:21px;letter-spacing:.05em;text-transform:uppercase;line-height:1}
+.tile small{font-size:11px;opacity:.9;line-height:1.1}
+.tile .tc{position:absolute;top:-8px;right:-6px;min-width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--ap-gold);color:#2B1B00;border:3px solid #082B38;font-family:var(--display);font-size:17px}
+.tile.skip{background:linear-gradient(180deg,#4B9BFF,#1D5FD6);box-shadow:0 6px 0 #123F94,0 10px 18px rgba(0,0,0,.35)}
+.tile.think{background:linear-gradient(180deg,#B77BFF,#6D3BD4);box-shadow:0 6px 0 #45248F,0 10px 18px rgba(0,0,0,.35)}
+.tile:active:not(:disabled){transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.4)}
+.tile:disabled{filter:grayscale(.85);opacity:.5;cursor:default}
+.tile:focus-visible{outline:3px solid #fff;outline-offset:3px}
+@container scr (max-height:680px){
+  .qs .zl{display:none}.qs .bar{padding:8px 14px}.qs .ladder{padding-top:6px}.qs .ladder .st{padding:3px 0}
+  .hud2{padding-top:6px}.pq b{font-size:22px}.ps b{font-size:24px}.ph .hrow svg{width:19px;height:19px}
+  .qs .timer,.qs .timer svg{width:54px;height:54px}.qs .timer .n{font-size:22px}
+  .qmid{gap:6px;padding-top:4px}.qs .q{padding:8px 12px;font-size:16px}
+  .opts2{grid-template-rows:repeat(4,minmax(36px,52px));gap:6px}.qs .opt{font-size:15px}.qs .opt i{width:30px;height:30px;font-size:17px}
+  .tile{height:64px}.tile small{display:none}.tile b{font-size:18px}.tiles{padding:6px 14px 12px}
+}
+@container scr (max-height:580px){
+  .qs .ladder{display:none}.plate small{font-size:8.5px}.qs .timer,.qs .timer svg{width:46px;height:46px}.qs .timer .n{font-size:19px}
+  .qs .q{font-size:15px;padding:7px 10px}.qs .q small{display:none}.opts2{grid-template-rows:repeat(4,minmax(34px,46px));gap:5px}.tile{height:56px}
+}
+@container scr (max-width:340px){ .pq small{display:none}.pq b span{display:inline;font-size:9.5px;margin-right:3px}.qs .q{font-size:14.5px}.qs .opt{font-size:14px}.plate{padding:4px 5px 5px}.ph.risk em{font-size:8.5px} }
+@media (prefers-reduced-motion:reduce){.ps.bump{animation:none}}
+
+/* telas de fim: centradas, ganho em destaque */
+.fin{overflow:hidden;container-type:size;container-name:scr;display:flex;flex-direction:column}
+.fx{position:relative;z-index:1;flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;text-align:center;padding:14px 22px 22px;gap:14px}
+.fx-top{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+.fx-tag{background:var(--ap-gold);color:#2B1B00;font-weight:700;font-size:12px;letter-spacing:.12em;text-transform:uppercase;padding:6px 14px;border-radius:99px}
+.fx-tag.off{background:rgba(255,255,255,.16);color:#fff}
+.pm.sm{width:158px;height:158px;padding:8px;flex:none}
+.pm.sm .pm-in b{font-size:54px}.pm.sm .pm-in small{font-size:11px}.pm.sm .pm-in em{font-size:12px}
+.pm.off{background:conic-gradient(from 210deg,#9DB5BB,#5E7C85,#9DB5BB);box-shadow:0 12px 30px rgba(0,0,0,.35);animation:none}
+.pm.off .pm-in b{color:#fff}
+.fx-h{margin:0;font-family:var(--display);font-weight:400;font-size:30px;line-height:1.05;letter-spacing:.02em;text-transform:uppercase}
+.fx-stats{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fx-stats .plate{padding:8px 6px 9px}
+.fx-stats .plate b{font-size:32px;color:#fff;line-height:1}.fx-stats .plate b.g{color:var(--ap-gold);text-shadow:0 0 14px rgba(255,197,49,.45)}
+.fx-stats .plate small{margin-top:3px;font-size:10px}
+.fx-card{width:100%;display:flex;flex-direction:column;align-items:center;gap:8px;background:rgba(5,26,34,.55);border:1px solid rgba(255,255,255,.16);border-radius:16px;padding:14px 14px 13px}
+.fx-card p{margin:0;font-size:14.5px;line-height:1.4;color:#DCEBEE}.fx-card p b{color:var(--ap-gold)}
+.fx-ic{color:var(--ap-gold)}
+.fx-chips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.fx-chips span{font-size:12px;color:#C9DEE2;background:rgba(255,255,255,.1);border-radius:99px;padding:4px 10px}.fx-chips b{color:#fff}
+.fx-note{margin:0;font-size:12.5px;color:#9EC3CB}
+.fx-cta{width:100%;display:grid;gap:10px;margin-top:2px}
+.fin .btn.alt{color:#fff}
+.cf{position:absolute;width:7px;height:11px;border-radius:2px;opacity:0;animation:confall 4.2s ease-in infinite}
+@keyframes confall{0%{opacity:0;transform:translateY(-6px) rotate(0)}12%{opacity:1}100%{opacity:0;transform:translateY(150px) rotate(280deg)}}
+@container scr (max-height:660px){ .fx{gap:10px;padding:14px 18px 16px}.fx-top{padding-top:6px}.pm.sm{width:124px;height:124px}.pm.sm .pm-in b{font-size:42px}.fx-top{gap:10px}.fx-chips{display:none}.fx-stats .plate b{font-size:26px}.fx-card p{font-size:13.5px}.fx-h{font-size:24px}.fx-note{display:none} }
+@media (prefers-reduced-motion:reduce){.cf{animation:none;opacity:.7}}
+
+.bar-r{display:flex;align-items:center;gap:6px}
+.snd{width:34px;height:34px;border-radius:50%;border:0;background:transparent;color:var(--ap-ink);display:grid;place-items:center;cursor:pointer}
+.sea .snd{color:#fff}
+.snd:focus-visible{outline:3px solid var(--ap-gold);outline-offset:1px}
+@container scr (max-width:340px){ .qs .bar .mesa,.fin .bar .mesa{display:none} }
+
+/* fim: placar + ranking */
+.fx{gap:12px;padding:12px 20px 20px}
+.fx-stats .plate{padding:8px 6px 8px}
+.fx-stats .plate em{display:block;font-style:normal;font-size:11px;color:#C9DEE2;margin-top:3px}
+.fx-stats .plate small{margin-bottom:2px}
+.fx-prize{width:100%;display:flex;flex-direction:column;align-items:center;gap:2px;padding:12px 12px 11px;border-radius:16px;background:linear-gradient(180deg,rgba(255,197,49,.26),rgba(255,197,49,.1));border:1.5px solid rgba(255,197,49,.7);box-shadow:0 0 26px rgba(255,197,49,.18)}
+.fx-prize small{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#FFE7A0}
+.fx-prize b{font-family:var(--display);font-weight:400;font-size:32px;line-height:1.05;color:var(--ap-gold);text-transform:uppercase;letter-spacing:.02em}
+.fx-prize .fp-s{font-size:12px;color:#E6F2F3}
+.fx-prize .fx-ic{margin-bottom:2px}
+.fx-noprize{width:100%;display:flex;flex-direction:column;gap:3px;padding:11px 12px;border-radius:16px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18)}
+.fx-noprize b{font-family:var(--display);font-weight:400;font-size:22px;letter-spacing:.03em;text-transform:uppercase}
+.fx-noprize span{font-size:12.5px;color:#C9DEE2;line-height:1.3}
+.rk{width:100%;display:grid;gap:5px;text-align:left}
+.rkt{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#9EC3CB;text-align:center;margin-bottom:1px}
+.rkr{display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:8px;padding:7px 12px;border-radius:10px;background:rgba(5,26,34,.55);border:1px solid rgba(255,255,255,.12);font-size:14px}
+.rkr .rp{font-family:var(--display);font-size:16px;color:#BFD9DE}
+.rkr .rn{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rkr .rv{font-family:var(--display);font-size:17px;color:#fff;font-variant-numeric:tabular-nums}
+.rkr.me{background:linear-gradient(180deg,rgba(255,197,49,.3),rgba(255,197,49,.14));border-color:rgba(255,197,49,.85);box-shadow:0 0 16px rgba(255,197,49,.25)}
+.rkr.me .rp,.rkr.me .rv{color:var(--ap-gold)}.rkr.me .rn{font-weight:700}
+.rk-dots{text-align:center;color:#6F97A1;font-size:12px;line-height:1;letter-spacing:.3em}
+.fx-cta{margin-top:auto}
+@container scr (max-height:700px){ .fx{gap:9px;padding:10px 16px 14px}.fx-prize b{font-size:26px}.fx-prize .fp-s{display:none}.rkr{padding:5px 10px;font-size:13px}.rkr:nth-of-type(n+3):not(.me){display:none}.fx-tag{font-size:11px;padding:5px 12px} }
+@container scr (max-height:600px){ .rk .rkr:not(.me){display:none}.rk-dots{display:none}.fx-stats .plate b{font-size:26px}.fx-stats .plate em{display:none}.fx-noprize span{display:none} }
+/* painel da loja / garçom */
+.wide .pill{background:var(--chip);border-color:var(--line);color:var(--ink)}
+.wide .note{color:var(--muted)}
+.wide .hd{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.wide .hd b{font-family:var(--display);font-weight:400;font-size:22px}
+.wide .in{padding:16px;display:grid;gap:14px}
+.sw{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:8px}
+.sw small{display:block;color:var(--muted)}
+.tg{width:44px;height:26px;border-radius:99px;background:#B9B6AE;position:relative;border:0;cursor:pointer;flex:none}
+.tg.on{background:#0F8A57}.tg::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .15s}
+.tg.on::after{left:21px}
+.tg:focus-visible{outline:3px solid var(--sign);outline-offset:2px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{font:inherit;border:0;background:var(--panel);color:var(--ink);padding:9px 14px;cursor:pointer;min-height:40px}
+.seg button.on{background:var(--ink);color:var(--bg);font-weight:600}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);font-size:13.5px}
+th{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+td input{font:inherit;width:88px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.kpi{border:1px solid var(--line);border-radius:8px;padding:10px 12px}.kpi b{display:block;font-family:var(--display);font-weight:400;font-size:26px}
+.kpi span{color:var(--muted);font-size:12px}
+.pv{background:var(--chip);border-radius:8px;padding:10px 12px}
+.bubble{background:#DCF8C6;color:#102A12;border-radius:10px 10px 10px 2px;padding:10px 12px;max-width:340px;font-size:13.5px}
+.lock{display:flex;justify-content:space-between;align-items:center;gap:8px}
+@media (prefers-reduced-motion:reduce){.tg::after{transition:none}}
+.hwrow{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.fld{display:grid;gap:5px;font-size:13px;font-weight:600;color:var(--ap-ink)}
+.fld input{min-height:50px;border:1px solid var(--ap-line);border-radius:8px;background:var(--ap-paper);padding:0 14px;font:600 17px var(--body);color:var(--ap-ink);width:100%}
+.fld input.big6{font:400 30px var(--display);letter-spacing:.35em;text-align:center}
+.fld input:focus-visible{outline:3px solid #151210;outline-offset:1px}
+.chk{display:flex;gap:10px;align-items:center;font-size:14px;min-height:36px;color:var(--ap-ink)}.chk input{width:20px;height:20px;flex:none}
+.rkp{flex:1;min-height:0;overflow:auto;padding:6px 18px 18px;display:grid;align-content:start;gap:10px;position:relative}
+.rtabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:rgba(5,26,34,.6);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:4px}
+.rtabs button{min-height:42px;border:0;border-radius:9px;background:transparent;color:#CFE3E6;font:700 14px var(--body);cursor:pointer}
+.rtabs button.on{background:var(--ap-gold);color:#2B1B00}
+.rtabs button:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.rk-me{display:grid;justify-items:center;gap:2px;background:rgba(255,197,49,.14);border:1px solid rgba(255,197,49,.7);border-radius:14px;padding:10px 12px;text-align:center}
+.rk-me small{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#9EC3CB}
+.rk-me b{font-family:var(--display);font-weight:400;font-size:38px;line-height:1;color:var(--ap-gold)}
+.rk-me em{font-style:normal;font-size:12.5px;color:#DCEBEE}
+.rk-me.none{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2)}
+.rkr .rn small{display:block;font-size:11px;color:#9EC3CB;margin-top:1px}
+.rklink{background:none;border:0;color:var(--ap-gold);font:700 13px var(--body);cursor:pointer;padding:8px 4px;text-align:center;min-height:36px}
+.rklink:focus-visible{outline:3px solid #fff;outline-offset:2px}
+
+</style>
+
+<div class="top">
+  <div>
+    <span class="tag">Mockup jogável</span>
+    <h1>Quiz Pesca Premiada</h1>
+    <p>Calçada do Peixe, mesa pelo QR. Toque em uma tela à esquerda ou use <b>Jogar de verdade</b> na tela de entrada. As perguntas e os valores abaixo são exemplos. Este mockup tem <b id="bcount"></b> perguntas em 3 níveis, sem repetir para o mesmo jogador.</p>
+  </div>
+</div>
+
+<div class="shell">
+  <nav class="nav" aria-label="Telas">
+    <h3>Cliente na mesa</h3>
+    <div class="grp" id="nav-cliente"></div>
+    <h3>Jogo</h3>
+    <div class="grp" id="nav-jogo"></div>
+    <h3>Fim e prêmio</h3>
+    <div class="grp" id="nav-fim"></div>
+    <h3>Loja e garçom</h3>
+    <div class="grp" id="nav-loja"></div>
+  </nav>
+
+  <main class="stage">
+    <div id="view" style="width:100%;display:flex;justify-content:center"></div>
+    <div class="demo" id="demo"></div>
+  </main>
+
+  <aside class="notes" id="notes" aria-live="polite"></aside>
+</div>
+
+<script>
+(function(){
+  // ---------- dados de exemplo ----------
+  // [pergunta, [certa, errada, errada, errada], curiosidade, nível 1 fácil · 2 média · 3 difícil]
+  var BANCO = [
+    ['Qual é o maior oceano?',['Pacífico','Atlântico','Índico','Ártico'],'O Pacífico ocupa mais de 155 milhões de km².',1],
+    ['Qual destes é mamífero?',['Golfinho','Sardinha','Atum','Salmão'],'Golfinhos respiram ar pelos pulmões e amamentam os filhotes.',1],
+    ['Qual destes é uma ave?',['Pinguim','Polvo','Raia','Foca'],'Pinguins são aves que nadam, mas não voam.',1],
+    ['Quantos braços tem um polvo?',['Oito','Seis','Dez','Doze'],'O polvo tem oito braços e três corações.',1],
+    ['Qual é o maior animal vivo?',['Baleia-azul','Elefante-africano','Orca','Tubarão-branco'],'A baleia-azul é o maior animal que já existiu.',1],
+    ['Em qual animal o macho carrega os filhotes?',['Cavalo-marinho','Tubarão-branco','Sardinha','Pinguim'],'O macho do cavalo-marinho gesta os ovos numa bolsa.',2],
+    ['Como uma baleia respira?',['Pelos pulmões','Pelas brânquias','Pela pele','Pelo bico'],'Baleias sobem à superfície para respirar pelo orifício no alto da cabeça.',1],
+    ['Qual destes não é peixe?',['Lula','Sardinha','Tainha','Robalo'],'A lula é um molusco, parente do polvo.',2],
+    ['Quantos corações tem um polvo?',['Três','Um','Dois','Cinco'],'Dois bombeiam sangue para as brânquias e um para o corpo.',2],
+    ['Qual cor tem o sangue do polvo?',['Azul','Vermelho','Verde','Transparente'],'O sangue do polvo usa cobre e fica azulado.',2],
+    ['A estrela-do-mar é um…',['Equinodermo','Peixe','Crustáceo','Molusco'],'Estrelas-do-mar não têm cérebro nem sangue.',3],
+    ['Qual destes animais é um crustáceo?',['Camarão','Lula','Água-viva','Ostra'],'Camarões, siris e lagostas têm esqueleto externo.',2],
+
+    // fáceis
+    ['Qual destes animais solta tinta para fugir?',['Polvo','Golfinho','Tartaruga','Foca'],'A nuvem de tinta confunde o predador e dá tempo de escapar.',1],
+    ['Qual destes é um fruto do mar?',['Camarão','Frango','Arroz','Feijão'],'Frutos do mar são animais marinhos próprios para comer.',1],
+    ['Onde a tartaruga-marinha deposita os ovos?',['Na areia da praia','Dentro do mar','Em cima das pedras','Em árvores'],'As fêmeas voltam à praia onde nasceram para desovar.',1],
+    ['Como o caranguejo costuma andar?',['De lado','Para trás','Pulando','Rolando'],'As patas articuladas dele dobram para os lados, por isso o andar de lado.',1],
+    ['De que é feito o esqueleto do tubarão?',['Cartilagem','Osso','Madeira','Concha'],'Cartilagem é o mesmo material da ponta do nosso nariz.',1],
+    ['Qual é o maior peixe do mundo?',['Tubarão-baleia','Tubarão-branco','Atum','Peixe-espada'],'O tubarão-baleia passa de 12 metros e se alimenta de plâncton.',1],
+    ['Qual destes animais NÃO vive no mar?',['Girafa','Baleia','Foca','Polvo'],'As girafas vivem em savanas, bem longe do oceano.',1],
+    ['Qual ave guarda o peixe numa bolsa no bico?',['Pelicano','Papagaio','Coruja','Beija-flor'],'A bolsa do bico do pelicano funciona como uma rede de pesca.',1],
+    ['Como se chama um grupo grande de peixes nadando juntos?',['Cardume','Matilha','Rebanho','Enxame'],'Nadar em cardume ajuda a proteger os peixes dos predadores.',1],
+    ['Qual país é famoso pelo sushi?',['Japão','China','Índia','México'],'O sushi nasceu como forma de conservar peixe com arroz.',1],
+    ['O bacalhau é um…',['Peixe','Molusco','Crustáceo','Alga'],'O bacalhau é peixe do Atlântico Norte, conservado com sal.',1],
+    ['Quem é o padroeiro dos pescadores?',['São Pedro','São Jorge','Santo Antônio','São Francisco'],'São Pedro era pescador antes de seguir Jesus.',1],
+    ['Qual ponte liga o Rio de Janeiro a Niterói?',['Ponte Rio–Niterói','Ponte Estaiada','Ponte JK','Ponte Colombo Salles'],'A Ponte Rio–Niterói tem cerca de 13 km e cruza a Baía de Guanabara.',1],
+    ['A Trindade é um bairro de qual cidade?',['São Gonçalo','Niterói','Maricá','Itaboraí'],'São Gonçalo fica na margem leste da Baía de Guanabara.',1],
+    ['O tubarão-branco é um…',['Peixe','Mamífero','Réptil','Molusco'],'Mesmo temido, o tubarão-branco é um peixe de esqueleto de cartilagem.',1],
+    ['Qual parte do corpo o peixe usa para respirar?',['Brânquias','Pulmões','Escamas','Bexiga'],'As brânquias tiram o oxigênio dissolvido na água.',1],
+    ['Qual ave costuma seguir os barcos de pesca?',['Gaivota','Sabiá','Tucano','Bem-te-vi'],'Gaivotas aproveitam o peixe que cai ou sobra dos barcos.',1],
+
+    // médias
+    ['Qual destes animais é um molusco?',['Mexilhão','Camarão','Siri','Sardinha'],'Ostras, mexilhões e lulas são moluscos.',2],
+    ['Qual animal produz a pérola?',['Ostra','Camarão','Lula','Siri'],'A ostra cobre um grão de areia com camadas de nácar.',2],
+    ['Quantos membros, entre braços e tentáculos, tem uma lula?',['Dez','Oito','Seis','Doze'],'São oito braços e dois tentáculos mais longos.',2],
+    ['De que a baleia-azul se alimenta principalmente?',['Krill, pequenos crustáceos','Tubarões','Golfinhos','Algas'],'Uma baleia-azul adulta pode comer milhões de krills por dia.',2],
+    ['Qual destes peixes vive em água doce?',['Tucunaré','Sardinha','Atum','Linguado'],'O tucunaré vive em rios e lagos da Amazônia e de outras regiões.',2],
+    ['Qual peixe amazônico sobe à superfície para respirar ar?',['Pirarucu','Atum','Sardinha','Robalo'],'O pirarucu tem bexiga natatória adaptada que funciona como pulmão.',2],
+    ['Em qual panela se faz a moqueca capixaba tradicional?',['Panela de barro','Frigideira de ferro','Panela de pressão','Wok'],'A moqueca capixaba leva urucum e não leva dendê.',2],
+    ['Qual ingrediente é marca da moqueca baiana?',['Azeite de dendê','Manteiga','Óleo de soja','Banha'],'A moqueca baiana leva dendê e leite de coco.',2],
+    ['O ceviche é feito com…',['Peixe cru marinado no limão','Peixe frito','Peixe assado','Peixe defumado'],'O ácido do limão “cozinha” o peixe sem fogo. É prato típico do Peru.',2],
+    ['O que é sashimi?',['Fatias de peixe cru','Peixe frito','Arroz com alga','Sopa de peixe'],'Sashimi é só o peixe, sem arroz.',2],
+    ['Como se chama a alga que envolve o sushi maki?',['Nori','Wakame','Kombu','Ágar'],'O nori é seco e tostado em folhas finas.',2],
+    ['A paella é um prato típico de qual país?',['Espanha','Itália','Grécia','Portugal'],'A paella nasceu na região de Valência.',2],
+    ['O que é a piracema?',['Subida dos peixes rio acima para desovar','Uma festa de pescadores','Um tipo de rede','Um barco de pesca'],'Na piracema os peixes nadam contra a correnteza para se reproduzir.',2],
+    ['Como se chama o período em que a pesca é proibida para o peixe se reproduzir?',['Defeso','Quarentena','Recesso','Intervalo'],'Durante o defeso, pescadores artesanais podem receber o seguro-defeso.',2],
+    ['Qual destes é uma ilha do litoral do Rio de Janeiro?',['Ilha Grande','Fernando de Noronha','Ilha do Mel','Ilhabela'],'Ilha Grande fica em Angra dos Reis.',2],
+    ['Em qual estado fica Fernando de Noronha?',['Pernambuco','Bahia','Ceará','Rio Grande do Norte'],'O arquipélago é Patrimônio Natural da Humanidade.',2],
+    ['O cavalo-marinho é um…',['Peixe','Crustáceo','Réptil','Mamífero'],'Mesmo parecendo outro bicho, ele tem brânquias e nadadeiras.',2],
+    ['O que é o plâncton?',['Organismos minúsculos que flutuam na água','Um tipo de peixe grande','Um tipo de rocha','Um barco'],'O plâncton é a base da cadeia alimentar do mar.',2],
+    ['Qual astro é o principal responsável pelas marés?',['Lua','Marte','Júpiter','Vênus'],'A atração da Lua puxa a água dos oceanos. O Sol também ajuda.',2],
+    ['Como se chama a rede redonda lançada à mão pelo pescador?',['Tarrafa','Covo','Espinhel','Arrastão'],'A tarrafa abre no ar e cai sobre o cardume.',2],
+    ['Qual embarcação tradicional da pesca artesanal do Nordeste tem vela triangular?',['Jangada','Gôndola','Caiaque','Caravela'],'As jangadas navegam no mar aberto com poucos recursos.',2],
+    ['Qual gordura saudável abunda em peixes como sardinha e salmão?',['Ômega-3','Gordura trans','Colesterol ruim','Gordura saturada'],'O ômega-3 faz bem ao coração e ao cérebro.',2],
+    ['Qual animal marinho consegue regenerar braços perdidos?',['Estrela-do-mar','Golfinho','Baleia','Tubarão'],'Algumas estrelas-do-mar regeneram um braço inteiro.',2],
+    ['Qual rio forma a maior foz do mundo, no Atlântico?',['Amazonas','São Francisco','Paraíba do Sul','Tietê'],'O Amazonas despeja mais água no mar do que qualquer outro rio.',2],
+    ['Uma baleia-azul adulta pode pesar mais de…',['100 toneladas','10 toneladas','1 tonelada','500 quilos'],'O coração dela sozinho pesa centenas de quilos.',2],
+    ['Qual é o ponto mais profundo dos oceanos?',['Fossa das Marianas','Fossa de Porto Rico','Fossa de Java','Fossa de Tonga'],'A Fossa das Marianas passa de 10 mil metros de profundidade.',2],
+    ['Qual parte da superfície da Terra é coberta por água?',['Cerca de 71%','Cerca de 51%','Cerca de 90%','Cerca de 30%'],'Quase todo esse volume está nos oceanos.',2],
+    ['Qual é o maior recife de coral do mundo?',['Grande Barreira de Corais','Recife de Maracajaú','Recife do Caribe','Recife de Abrolhos'],'A Grande Barreira de Corais fica na Austrália e é visível do espaço.',2],
+    ['Qual mamífero marinho come só plantas?',['Peixe-boi','Orca','Foca','Golfinho'],'O peixe-boi come capim-marinho e plantas aquáticas.',2],
+    ['As raias são parentes de qual animal?',['Tubarões','Baleias','Polvos','Camarões'],'Raias e tubarões têm esqueleto de cartilagem.',2],
+    ['Qual ave de pescoço longo mergulha de cabeça para pescar no litoral brasileiro?',['Atobá','Sabiá','Tucano','Coruja'],'O atobá se joga de grande altura sobre os cardumes.',2],
+    ['Como se chama o som que as baleias-jubarte machos produzem?',['Canto','Grito','Latido','Zumbido'],'As músicas das jubartes mudam ao longo dos anos.',2],
+    ['Qual destes animais filtra a água para se alimentar?',['Ostra','Tubarão-branco','Polvo','Atum'],'Uma ostra pode filtrar vários litros de água por hora.',2],
+    ['O que a bexiga natatória do peixe controla?',['A flutuação','A digestão','A visão','A reprodução'],'Com ela o peixe sobe ou desce sem gastar energia.',2],
+
+    // difíceis
+    ['Qual destes animais tem os maiores olhos?',['Lula-gigante','Elefante','Baleia-azul','Cavalo-marinho'],'Os olhos da lula-gigante chegam a cerca de 25 cm.',3],
+    ['Qual animal é conhecido como “unicórnio-do-mar”?',['Narval','Golfinho','Foca','Tubarão-martelo'],'A longa presa em espiral do narval é um dente.',3],
+    ['De qual peixe vem o caviar verdadeiro?',['Esturjão','Atum','Tainha','Badejo'],'O caviar clássico é ova de esturjão.',3],
+    ['Qual país é o maior produtor mundial de salmão de cativeiro?',['Noruega','Brasil','Egito','Índia'],'A Noruega lidera, seguida pelo Chile.',3],
+    ['Qual é o maior crustáceo em envergadura de patas?',['Caranguejo-aranha-gigante','Lagosta','Camarão-rosa','Siri-azul'],'As patas do caranguejo-aranha-gigante japonês passam de 3 metros.',3],
+    ['Qual percentual do corpo de uma água-viva é água?',['Cerca de 95%','Cerca de 50%','Cerca de 70%','Cerca de 30%'],'Por isso a água-viva se desmancha fora da água.',3],
+    ['Qual animal tem o maior cérebro do planeta?',['Cachalote','Baleia-azul','Orca','Elefante-africano'],'O cérebro do cachalote passa de 7 kg.',3],
+    ['Como se chama a camada do oceano que recebe luz do sol?',['Zona eufótica','Zona abissal','Zona hadal','Zona batial'],'É nela que acontece a fotossíntese das algas.',3],
+    ['Qual corrente marinha quente passa perto do litoral brasileiro?',['Corrente do Brasil','Corrente de Humboldt','Corrente do Golfo','Corrente de Benguela'],'Ela desce pela costa e aquece as águas do Sudeste.',3],
+    ['Em qual dia se comemora o Dia do Pescador no Brasil?',['29 de junho','1º de maio','7 de setembro','12 de outubro'],'A data é o dia de São Pedro, padroeiro dos pescadores.',3],
+    ['Em qual estado a safra da tainha é famosa, no inverno?',['Santa Catarina','Amazonas','Goiás','Piauí'],'A pesca da tainha no Sul mobiliza comunidades inteiras.',3],
+    ['Qual peixe nasce macho e pode virar fêmea?',['Peixe-palhaço','Atum','Sardinha','Tubarão-martelo'],'Se a fêmea do grupo morre, o macho dominante muda de sexo.',3],
+    ['Como o mexilhão se prende às rochas?',['Por filamentos chamados bisso','Por ventosas','Por espinhos','Por cola de coral'],'O bisso é um fio resistente que o mexilhão produz.',3],
+    ['A Lagoa dos Patos fica em qual estado?',['Rio Grande do Sul','Bahia','Rio de Janeiro','Santa Catarina'],'É uma das maiores lagoas costeiras do mundo.',3],
+    ['Qual peixe é famoso por ser preparado só por cozinheiros licenciados, no Japão?',['Baiacu (fugu)','Atum','Salmão','Cavala'],'Partes do baiacu têm um veneno potente.',3],
+    ['Qual é o peixe ósseo mais pesado do mundo?',['Peixe-lua','Atum-azul','Marlim-azul','Peixe-espada'],'O peixe-lua pode passar de 2 toneladas.',3],
+    ['Qual é a diferença do siri para o caranguejo?',['Patas traseiras achatadas, usadas para nadar','Não tem pinças','Só vive em água doce','Só tem quatro patas'],'As patas em forma de remo ajudam o siri a nadar.',3],
+    ['Por que o camarão fica vermelho ao cozinhar?',['O calor libera o pigmento astaxantina','O sal tinge a casca','A água ferve com urucum','O sangue vira vermelho'],'A astaxantina já existe no camarão, mas fica escondida na casca crua.',3],
+    ['Quanto pode viver o tubarão-da-groenlândia?',['Mais de 250 anos','20 anos','50 anos','100 anos'],'É um dos vertebrados que mais vive na Terra.',3],
+    ['Qual destas baleias tem dentes?',['Cachalote','Baleia-azul','Baleia-jubarte','Baleia-franca'],'O cachalote é a maior baleia com dentes.',3],
+    ['A baleia-franca visita o litoral de qual estado para se reproduzir?',['Santa Catarina','Pará','Ceará','Goiás'],'Em Santa Catarina existe uma área de proteção só para ela.',3],
+    ['Em qual estado fica o Parque Nacional Marinho dos Abrolhos?',['Bahia','São Paulo','Paraná','Maranhão'],'Abrolhos é famoso pelas baleias-jubarte e pelos corais.',3],
+    ['O que é o espinhel, na pesca?',['Uma linha longa com muitos anzóis','Uma rede de arrasto','Um barco a vela','Uma gaiola para lagosta'],'O espinhel pode ter centenas de anzóis numa linha só.',3],
+    ['A orca pertence a qual grupo?',['Golfinhos','Baleias-barbadas','Tubarões','Focas'],'Apesar do nome, a orca é o maior golfinho.',3],
+    ['O que é o krill?',['Pequeno crustáceo parecido com camarão','Uma alga','Um peixe pequeno','Um molusco'],'O krill é o alimento principal de muitas baleias.',3],
+    ['De qual continente a tilápia é originária?',['África','Ásia','Europa','América do Sul'],'A tilápia-do-nilo veio da África e hoje é criada no Brasil inteiro.',3],
+    ['Como se chama a maré mais alta, que acontece na lua nova e na lua cheia?',['Maré de sizígia','Maré de quadratura','Maré de ressaca','Maré negra'],'Nesses dias Sol e Lua se alinham e somam a atração.',3],
+    ['Quantas patas, contando as pinças, tem um caranguejo?',['Dez','Oito','Seis','Doze'],'São oito patas para andar e duas pinças.',2],
+    ['Em quais águas vive o boto-cor-de-rosa?',['Rios da Amazônia','Mar do Caribe','Lagoas do Pantanal','Rios do Sul'],'Ele nada entre as árvores na época das cheias.',2],
+    ['Para que o peixe-voador usa as nadadeiras longas?',['Planar sobre a água','Cavar a areia','Respirar fora da água','Atrair parceiros'],'Ele salta e plana por dezenas de metros para escapar dos predadores.',2]
+  ];
+  var MODO = 'percentual';
+  var PCT = {2:2,3:3,5:5,6:6,8:8,10:10};
+  var FIXO = {2:3,3:5,5:8,6:12,8:15,10:20};
+  var TETO = 50;
+  var CONTA = 200;
+  var LOJA = {campanha:true,premio:true};
+  var TEMPO = 10000;
+
+  function marcoDe(a){return a>=30?10:a>=25?8:a>=20?6:a>=15?5:a>=10?3:a>=5?2:0}
+  function lab(m){ if(!m) return 'sem prêmio'; return MODO==='percentual' ? m+'%' : 'R$ '+String(FIXO[m]).replace('.',',') }
+  function labCurto(m){ return MODO==='percentual' ? m+'%' : 'R$'+FIXO[m] }
+  function brl(n){return 'R$ '+n.toFixed(2).replace('.',',')}
+  function valor(m){ if(!m) return 0; var v = MODO==='fixo' ? FIXO[m] : CONTA*PCT[m]/100; if(MODO==='percentual') v=Math.min(v,TETO); return Math.round(v*100)/100 }
+  function $(s,r){return (r||document).querySelector(s)}
+  function esc(s){return String(s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})}
+
+  // ---------- estado do jogo ----------
+  var G = null, T = null, cur = 'mesa';
+  function novoJogo(ac){ G={acertos:ac||0,pontos:(ac||0)*150,pulos:3,pensar:2,erros:0,errou:null,leaving:false,estado:'jogando',q:null,pensando:false,fixa:false,resp:null,last:null,fim:null,fase:'jogando'}; if(ac>=15&&ac<30) G.estado='portao' }
+  var SEEN=[]; // simula quiz_vistas: perguntas que este jogador já viu (no jogo real fica no servidor)
+  function sortear(){
+    var lvl=G.acertos<5?1:G.acertos<10?2:3, pool=[], i;
+    for(i=0;i<BANCO.length;i++) if(BANCO[i][3]===lvl&&SEEN.indexOf(i)<0) pool.push(i);
+    if(!pool.length) for(i=0;i<BANCO.length;i++) if(SEEN.indexOf(i)<0) pool.push(i);
+    if(!pool.length){ SEEN=[]; for(i=0;i<BANCO.length;i++) if(BANCO[i][3]===lvl) pool.push(i) }
+    var k=pool[Math.floor(Math.random()*pool.length)]; SEEN.push(k); return BANCO[k]
+  }
+  function novaPergunta(){
+    var b = sortear();
+    var ops = b[1].map(function(t,i){return {t:t,ok:i===0}});
+    for(var i=ops.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var x=ops[i];ops[i]=ops[j];ops[j]=x}
+    G.q={txt:b[0],ops:ops,cur:b[2],ini:Date.now(),dur:TEMPO}; G.pensando=false; G.resp=null
+  }
+  function stopT(){ if(T){clearInterval(T);T=null} }
+  function nivelTxt(){ var n=G.acertos+1; return n<=5?'Fácil':n<=10?'Média':'Difícil' }
+
+  // ---------- peças de tela ----------
+  function emJogo(){ return !!(G&&G.live&&!G.fixa&&!G.fim&&['q','certo','portao'].indexOf(cur)>=0) }
+  function bar(){
+    var back = cur==='mesa' ? '' : '<button class="back" '+(emJogo()?'data-act="leave"':'data-go="'+(['ranking','cadastro','codigo'].indexOf(cur)>=0?'intro':'mesa')+'"')+'>‹ '+(emJogo()?'Sair':(['ranking','cadastro','codigo'].indexOf(cur)>=0?'Voltar':'Início'))+'</button>';
+    return '<div class="bar">'+back+'<div class="brand">CALÇADA <b>DO PEIXE</b></div><div class="bar-r"><button class="snd" data-act="snd" aria-label="'+(SND?'Desligar som':'Ligar som')+'" aria-pressed="'+SND+'">'+(SND?IC_SPK:IC_SPK_OFF)+'</button><div class="mesa">Mesa 12</div></div></div>'
+  }
+  // ---------- sons (sintetizados no navegador, sem arquivos) ----------
+  var SND=true, AC=null;
+  function ac(){ if(!SND) return null; try{ if(!AC) AC=new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==='suspended') AC.resume(); return AC }catch(e){ return null } }
+  function tone(c,f,t0,dur,type,vol){ var o=c.createOscillator(), g=c.createGain(); o.type=type; o.frequency.setValueAtTime(f,t0); g.gain.setValueAtTime(0.0001,t0); g.gain.exponentialRampToValueAtTime(vol,t0+0.01); g.gain.exponentialRampToValueAtTime(0.0001,t0+dur); o.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0+dur+0.05) }
+  function noiseBuf(c,sec){ var b=c.createBuffer(1,Math.floor(c.sampleRate*sec),c.sampleRate), d=b.getChannelData(0); for(var i=0;i<d.length;i++) d[i]=Math.random()*2-1; return b }
+  function applause(c,t0,dur,vol){ var src=c.createBufferSource(); src.buffer=noiseBuf(c,dur+0.1); var bp=c.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=2200; bp.Q.value=.6; var g=c.createGain(); g.gain.setValueAtTime(0,t0); var t=t0; while(t<t0+dur-0.12){ var a=vol*(0.5+Math.random()*0.7); g.gain.linearRampToValueAtTime(a,t+0.008); g.gain.linearRampToValueAtTime(a*0.15,t+0.045); t+=0.045+Math.random()*0.05 } g.gain.linearRampToValueAtTime(0,t0+dur); src.connect(bp); bp.connect(g); g.connect(c.destination); src.start(t0) }
+  function sndCash(big){ var c=ac(); if(!c) return; var t=c.currentTime+0.01;
+    var n=c.createBufferSource(); n.buffer=noiseBuf(c,0.06); var hp=c.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=1800; var ng=c.createGain(); ng.gain.setValueAtTime(0.25,t); ng.gain.exponentialRampToValueAtTime(0.001,t+0.06); n.connect(hp); hp.connect(ng); ng.connect(c.destination); n.start(t);
+    tone(c,1318.5,t+0.05,0.7,'sine',0.28); tone(c,3640,t+0.05,0.35,'sine',0.08); tone(c,1760,t+0.17,0.9,'sine',0.3); tone(c,4850,t+0.17,0.4,'sine',0.07);
+    for(var i=0;i<6;i++) tone(c,3200+Math.random()*1800,t+0.3+i*0.045,0.12,'triangle',0.06);
+    if(big) applause(c,t+0.25,1.4,0.12) }
+  function sndErr(){ var c=ac(); if(!c) return; var t=c.currentTime+0.01; var lp=c.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=900; lp.connect(c.destination);
+    [[330,260,0],[247,170,0.2]].forEach(function(x){ var o=c.createOscillator(), g=c.createGain(); o.type='sawtooth'; o.frequency.setValueAtTime(x[0],t+x[2]); o.frequency.exponentialRampToValueAtTime(x[1],t+x[2]+0.22); g.gain.setValueAtTime(0.0001,t+x[2]); g.gain.exponentialRampToValueAtTime(0.28,t+x[2]+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+x[2]+0.26); o.connect(g); g.connect(lp); o.start(t+x[2]); o.stop(t+x[2]+0.3) }) }
+  function sndWin(){ var c=ac(); if(!c) return; var t=c.currentTime+0.01; applause(c,t,2.2,0.14); [523.25,659.25,783.99,1046.5].forEach(function(f,i){ tone(c,f,t+i*0.11,0.5,'triangle',0.16) }) }
+  var IC_SPK='<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+  var IC_SPK_OFF='<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16 9l5 6M21 9l-5 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+  var CALLED=null;
+  var ZONES=false;
+  var IC_SHIELD='<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8.5 12l2.5 2.5 4.5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var IC_FLAME='<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 3c.8 4 5 5.2 5 10a5 5 0 0 1-10 0c0-2 .9-3.4 2.2-4.4.1 1.8.9 2.9 2.1 3.2C10.6 9 10.8 6 12 3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>';
+  var CT={n:3,v:'1',t:null};
+  function ladder(){
+    var tiers=[[5,2],[10,3],[15,5],[20,6],[25,8],[30,10]], h='<div class="zl"><span class="ok">Zona segura</span><span class="rk">Zona de risco</span></div><div class="ladder">';
+    tiers.forEach(function(t,i){ if(i===3) h+='<span class="gate" title="Aos 15 acertos você escolhe: parar ou arriscar"></span>'; h+='<div class="st'+(G.acertos>=t[0]?' got':'')+'">'+labCurto(t[1])+'<small>'+t[0]+'</small></div>' });
+    return h+'</div>'
+  }
+  function hearts(){ var h=''; for(var i=0;i<3;i++){ h+='<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M12 21s-7-4.6-9.3-9A5.3 5.3 0 0 1 12 6.4 5.3 5.3 0 0 1 21.3 12C19 16.4 12 21 12 21z" fill="currentColor" opacity="'+(i<3-G.erros?1:.22)+'"/></svg>' } return h }
+  function hud(){ var safe=G.estado!=='risco'&&G.acertos<15, lvl=nivelTxt().toUpperCase();
+    var mid = safe ? '<div class="plate ph" aria-label="'+(3-G.erros)+' chances de errar"><small>Chances</small><span class="hrow">'+hearts()+'</span></div>'
+                   : '<div class="plate ph risk"><small>Zona de risco</small><span class="hrow">'+IC_FLAME+'<em>cada erro encerra</em></span></div>';
+    return '<div class="hud2"><div class="plate pq"><small>'+lvl+'</small><b><span>Pergunta</span> '+(G.acertos+1)+'</b></div>'+mid+'<div class="plate ps'+(G.res&&G.res.ok?' bump':'')+'"><small>Pontos</small><b id="pts">'+G.pontos+'</b></div></div>' }
+  function ringHtml(ms,total){
+    var C=2*Math.PI*36, off=C*(1-Math.max(0,ms)/total);
+    return '<div class="timer"><svg viewBox="0 0 84 84"><circle cx="42" cy="42" r="36" fill="none" stroke="rgba(255,255,255,.16)" stroke-width="7"/><circle id="ring" cx="42" cy="42" r="36" fill="none" stroke="'+(ms<2000?'#FF7A6B':'#FFC531')+'" stroke-width="7" stroke-linecap="round" stroke-dasharray="'+C.toFixed(1)+'" stroke-dashoffset="'+off.toFixed(1)+'"/></svg><div class="n" id="sec">'+Math.ceil(Math.max(0,ms)/1000)+'</div></div>'
+  }
+
+  // ---------- telas ----------
+  var S = {};
+  S.mesa = function(){ return '<div class="screen">'+bar()+'<div class="body"><div><h2 class="h1">Bem-vindo à<br>Calçada do Peixe</h2><p class="p" style="margin-top:6px">Mesa 12 · conta aberta com o garçom Marcos</p></div>'+
+    '<div class="card" data-go="pedir" style="cursor:pointer"><div class="ic">🍽️</div><div><b>Pedir</b><span>Veja o cardápio e peça sem esperar</span></div></div>'+
+    '<div class="card hot" data-go="intro" style="cursor:pointer"><div class="ic">🎣</div><div><b>Jogar · Quiz Pesca Premiada</b><span>Acerte e ganhe até '+lab(10)+' de volta na próxima compra</span></div></div>'+
+    '<div class="card" data-go="carteira" style="cursor:pointer"><div class="ic">🎁</div><div><b>Minha carteira</b><span>Cashback e prêmios guardados</span></div></div>'+
+    '<div class="card" data-go="chamar" style="cursor:pointer"><div class="ic">🙋</div><div><b>Chamar o garçom</b><span>Ou pedir a conta</span></div></div></div></div>' }
+
+  S.pedir = function(){ return '<div class="screen">'+bar()+'<div class="body"><h2 class="h1">Cardápio</h2><p class="p">Escolha e envie. O garçom confirma antes de ir para a cozinha.</p>'+
+    '<div class="card"><div class="ic">🐟</div><div style="flex:1"><b>Peixe frito com fritas</b><span>Porção para 2 pessoas</span></div><div style="text-align:right"><b>R$ 48,00</b><div class="stp"><span>−</span>1<span>+</span></div></div></div>'+
+    '<div class="card"><div class="ic">🍤</div><div style="flex:1"><b>Porção de camarão</b><span>Empanado, 400 g</span></div><div style="text-align:right"><b>R$ 62,00</b><div class="stp"><span>−</span>0<span>+</span></div></div></div>'+
+    '<div class="card"><div class="ic">🥤</div><div style="flex:1"><b>Refrigerante lata</b><span>350 ml</span></div><div style="text-align:right"><b>R$ 8,00</b><div class="stp"><span>−</span>1<span>+</span></div></div></div>'+
+    '<div class="card"><div class="ic">⚖️</div><div style="flex:1"><b>Peixe fresco, por peso</b><span>O garçom pesa e lança com você</span></div><button class="btn dark" style="width:auto;min-height:40px;font-size:13px" data-go="chamar">Chamar garçom</button></div>'+
+    '<div style="margin-top:auto;display:grid;gap:8px"><button class="btn">Enviar para o garçom · R$ 56,00</button><button class="btn alt" style="color:var(--ap-ink)" data-go="mesa">Voltar à mesa</button></div></div></div>' }
+
+  S.chamar = function(){ var m = CALLED==='garcom'?'Avisamos o garçom Marcos. Ele já vem à sua mesa.':CALLED==='conta'?'Pedimos a conta. O garçom traz em instantes.':'';
+    return '<div class="screen">'+bar()+'<div class="body"><h2 class="h1">Chamar o garçom</h2><p class="p">Toque e o aviso aparece no tablet do garçom.</p><button class="btn" data-act="call" data-k="garcom">🙋 Chamar o garçom</button><button class="btn dark" data-act="call" data-k="conta">🧾 Pedir a conta</button>'+(m?'<div class="good">'+m+'</div>':'')+
+    '<div style="margin-top:auto"><button class="btn alt" style="color:var(--ap-ink)" data-go="mesa">Voltar à mesa</button></div></div></div>' }
+
+  function fishSvg(c1,c2){ return '<svg viewBox="0 0 64 32" aria-hidden="true"><path d="M2 16C12 2 32 2 44 16 32 30 12 30 2 16z" fill="'+c1+'"/><path d="M42 16 62 4v24z" fill="'+c2+'"/><circle cx="14" cy="13" r="2.4" fill="#0A2A33"/></svg>' }
+  var IC_CLOCK='<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 8v5l3 2M9 3h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+  var IC_SKIP='<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 5l8 7-8 7zM14 5l8 7-8 7z" fill="currentColor"/></svg>';
+  var IC_HEART='<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 21s-7-4.6-9.3-9A5.3 5.3 0 0 1 12 6.4 5.3 5.3 0 0 1 21.3 12C19 16.4 12 21 12 21z" fill="currentColor"/></svg>';
+  var IC_BULB='<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M9 21h6M10 18h4M12 3a6 6 0 0 0-3.5 10.9c.9.7 1.5 1.5 1.5 2.1h4c0-.6.6-1.4 1.5-2.1A6 6 0 0 0 12 3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  function scene(){
+    var b='', bs=[[10,8,0,9],[28,5,3,11],[48,9,6,10],[70,6,2,12],[88,8,5,9]];
+    bs.forEach(function(x){ b+='<i class="bub" style="left:'+x[0]+'%;width:'+x[1]+'px;height:'+x[1]+'px;animation-delay:-'+x[2]+'s;animation-duration:'+x[3]+'s"></i>' });
+    return '<div class="scene" aria-hidden="true"><div class="rays"></div>'+b+'<div class="vig"></div></div>'
+  }
+  function trackHtml(sheet){
+    var st=[[5,2],[10,3],[15,5],[20,6],[25,8],[30,10]], d='';
+    st.forEach(function(x,i){ d+='<div class="stop"><span class="dot'+(i===5?' max':'')+'">'+labCurto(x[1])+'</span><span class="ac">'+x[0]+'</span></div>' });
+    return '<div class="trk"><div class="zones"><div class="zn ok">'+IC_SHIELD+'<span class="zt"><b>Zona segura</b></span></div><div class="zn rk">'+IC_FLAME+'<span class="zt"><b>Zona de risco</b></span></div></div><div class="stops">'+d+'</div><div class="tcap">Os números são acertos</div></div>'
+  }
+  S.intro = function(){
+    return '<div class="screen sea game">'+scene()+bar()+'<div class="gi2">'+
+      '<div class="hero"><span class="kick">Quiz</span><h2 class="h2t"><span>Pesca</span><span class="g">Premiada</span></h2><p class="sub2">Acerte as perguntas e ganhe cashback para a sua próxima compra.</p></div>'+
+      '<div class="prize"><div class="pm"><div class="pm-in"><small>até</small><b>'+labCurto(10)+'</b><em>de volta</em></div></div></div>'+
+      '<div class="facts"><span><b>10</b> segundos por pergunta</span><i></i><span><b>3</b> chances de errar</span></div>'+
+      '<div class="hwrow"><button class="how" data-act="zones"><span class="hi">i</span>Como funciona</button><button class="how" data-go="ranking"><span class="hi">★</span>Ver ranking</button></div>'+
+      '<div class="cta2"><p class="pn">'+(REG.ok?'Jogando como <b>'+esc(REG.apelido)+'</b> · 1 prêmio por mesa':'Você escolhe um apelido e confirma o WhatsApp · 1 prêmio por mesa')+'</p><button class="go" data-act="start" data-v="1"><span>Jogar valendo prêmio</span></button><button class="fun3" data-act="start" data-v="0">Jogar só por diversão</button></div></div></div>' }
+
+  S.contagem = function(){ var n=CT.n, ja=n<=0, valendo=CT.v==='1';
+    return '<div class="screen sea game">'+scene()+bar()+'<div class="cnt"><div class="cnt-top"><span class="cnt-tag'+(valendo?'':' fun')+'">'+(valendo?'Valendo prêmio':'Só por diversão')+'</span><p>Prepare-se</p></div>'+
+      '<div class="cnt-ring"><i></i><i></i><div class="cnt-num'+(ja?' ja':'')+'" key="'+n+'">'+(ja?'JÁ!':n)+'</div></div>'+
+      '<p class="cnt-sub">'+(ja?'Boa sorte!':'Seu jogo começa em instantes')+'</p><div class="cnt-rules"><span><b>10 s</b> por pergunta</span><span><b>3</b> chances de errar</span></div></div></div>' }
+
+  S.semzap = function(){ return '<div class="screen">'+bar()+'<div class="body"><h2 class="h1">Para onde vai o prêmio?</h2><p class="p">Esta conta ainda não tem WhatsApp. Confirme o seu: o prêmio entra como cashback nele, depois que a conta for paga.</p>'+
+    '<div class="input"><span>(21) 98877-1204</span><span style="color:#0F8A57;font-size:13px">Código enviado</span></div><div class="codes"><span>4</span><span>1</span><span>7</span><span style="border:2px solid #151210"></span><span></span><span></span></div>'+
+    '<p class="note">Chegou no seu WhatsApp, vindo do Trindade Online. Vale por 10 minutos. Só um WhatsApp por conta.</p><button class="btn">Confirmar e jogar</button><button class="btn alt" style="color:var(--ap-ink)">Jogar só por diversão</button></div></div>' }
+
+
+  S.cadastro = function(){
+    return '<div class="screen">'+bar()+'<div class="body"><div><h2 class="h1">Antes de jogar</h2><p class="p" style="margin-top:6px">Escolha um apelido e confirme seu WhatsApp. O apelido aparece no ranking da Calçada do Peixe e o WhatsApp recebe o prêmio.</p></div>'+
+    '<label class="fld"><span>Apelido (3 a 16 letras)</span><input id="rg-ap" maxlength="16" autocomplete="off" value="'+esc(REG.apelido)+'"></label>'+
+    '<label class="fld"><span>WhatsApp com DDD</span><input id="rg-tel" inputmode="tel" autocomplete="off" value="'+esc(REG.tel)+'"></label>'+
+    '<label class="chk"><input type="checkbox" id="rg-18"'+(REG.idade?' checked':'')+'> Tenho 18 anos ou mais</label>'+
+    '<label class="chk"><input type="checkbox" id="rg-ok"'+(REG.aceite?' checked':'')+'> Aceito aparecer no ranking com meu apelido</label>'+
+    (REG.err?'<div class="warn">'+esc(REG.err)+'</div>':'<p class="note">O apelido não troca depois e não pode repetir nesta loja. Os valores acima são exemplo, edite à vontade.</p>')+
+    '<div style="margin-top:auto;display:grid;gap:8px"><button class="btn" data-act="regsend">Enviar código no WhatsApp</button></div></div></div>' }
+
+  S.codigo = function(){
+    return '<div class="screen">'+bar()+'<div class="body"><div><h2 class="h1">Digite o código</h2><p class="p" style="margin-top:6px">Enviamos 6 números para o WhatsApp <b>'+esc(REG.tel)+'</b>.</p></div>'+
+    '<div class="bubble" style="max-width:none">Seu código do <b>Trindade Online</b>: <b>483 921</b><br>Vale por 10 minutos. Se não foi você, ignore.</div>'+
+    '<label class="fld"><span>Código de 6 números</span><input id="rg-cod" class="big6" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000"></label>'+
+    '<p class="note">No mockup, qualquer código vale. Quem já confirmou o WhatsApp nesta mesa ou neste aparelho não vê esta etapa de novo.</p>'+
+    '<div style="margin-top:auto;display:grid;gap:8px"><button class="btn" data-act="regok">Confirmar e jogar</button><button class="btn alt" style="color:var(--ap-ink)" data-go="cadastro">Trocar o número</button></div></div></div>' }
+
+  function rkRows(list,tabNome){
+    var rows='', ml = ME.pts>0 ? posIn(list,tabNome==='sem'?SEM_TOTAL:SEMPRE_TOTAL,ME.pts) : 0, shown=false;
+    list.forEach(function(r,i){
+      if(ME.pts>0 && ml===i+1 && !shown){ rows+='<div class="rkr me"><span class="rp">'+(i+1)+'º</span><span class="rn">'+esc(REG.apelido)+'<small>Você · '+ME.ac+' acertos</small></span><span class="rv">'+fmtN(ME.pts)+'</span></div>'; shown=true }
+      var pos=i+1+(shown?1:0); if(pos>10) return;
+      rows+='<div class="rkr"><span class="rp">'+pos+'º</span><span class="rn">'+esc(r[0])+'<small>'+r[2]+' acertos</small></span><span class="rv">'+fmtN(r[1])+'</span></div>' });
+    if(ME.pts>0 && !shown) rows+='<div class="rk-dots">•••</div><div class="rkr me"><span class="rp">'+ml+'º</span><span class="rn">'+esc(REG.apelido)+'<small>Você · '+ME.ac+' acertos</small></span><span class="rv">'+fmtN(ME.pts)+'</span></div>';
+    return rows
+  }
+  S.ranking = function(){
+    var sem=RKTAB==='sem', list=sem?RK_SEM:RK_SEMPRE, tot=sem?SEM_TOTAL:SEMPRE_TOTAL;
+    var meCard = ME.pts>0 ? '<div class="rk-me"><small>Sua posição '+(sem?'na semana':'de sempre')+'</small><b>'+posIn(list,tot,ME.pts)+'º</b><em>de '+tot+' jogadores · melhor rodada '+fmtN(ME.pts)+' pts</em></div>'
+                        : '<div class="rk-me none"><small>Você ainda não está no ranking</small><em>Jogue uma rodada para entrar. Vale a melhor de todas.</em></div>';
+    return '<div class="screen sea">'+scene()+bar()+'<div class="rkp"><div><h2 class="h2t" style="font-size:30px"><span>Ranking</span> <span class="g">da loja</span></h2><p class="sub2" style="margin-top:4px">Calçada do Peixe · melhor rodada de cada jogador</p></div>'+
+      '<div class="rtabs" role="tablist"><button role="tab" class="'+(sem?'on':'')+'" aria-selected="'+sem+'" data-act="rktab" data-t="sem">Semana</button><button role="tab" class="'+(sem?'':'on')+'" aria-selected="'+(!sem)+'" data-act="rktab" data-t="sempre">Sempre</button></div>'+
+      meCard+'<div class="rk">'+rkRows(list,RKTAB)+'</div>'+
+      '<p class="fx-note" style="text-align:center">'+(sem?'A semana recomeça na segunda-feira.':'Nunca zera.')+' Só aparece o apelido de quem aceitou.</p>'+
+      '<button class="go" data-go="intro"><span>Jogar agora</span></button></div></div>' }
+
+  S.queda = function(){ return '<div class="screen sea">'+bar()+'<div class="res"><div><div class="tag" style="background:var(--ap-gold);color:#151210">Conexão perdida</div><h2 class="h1" style="margin-top:10px">Sua rodada está guardada</h2></div>'+
+    '<div class="box">Volte em até <b class="gold">1:42</b> e continue de onde parou: <b>12 acertos · 1.640 pontos</b>.</div>'+
+    '<div class="box">O relógio da pergunta não para. Se o tempo estourar, conta como erro, igual a jogar sem queda.</div>'+
+    '<div style="margin-top:auto;display:grid;gap:8px"><button class="btn" data-go="q">Continuar de onde parei</button></div></div></div>' }
+  S.perdida = function(){ return '<div class="screen sea">'+bar()+'<div class="res"><div><div class="tag" style="background:var(--ap-bad);color:#fff">Rodada encerrada</div><h2 class="h1" style="margin-top:10px">Passaram 2 minutos</h2></div>'+
+    '<div class="box">Você não voltou a tempo. A rodada foi perdida: <b>pontos e prêmio zerados</b>, como em sair no meio.</div>'+
+    '<div class="box">Sua melhor rodada da semana continua valendo no ranking.</div>'+
+    '<div style="margin-top:auto;display:grid;gap:8px"><button class="btn" data-go="intro">Jogar de novo</button></div></div></div>' }
+
+  S.conflito = function(){ return '<div class="screen">'+bar()+'<div class="body"><h2 class="h1">Já existe um WhatsApp nesta conta</h2><div class="warn">Já existe um WhatsApp cadastrado para esta conta (final <b>1204</b>). Para trocar, chame o garçom.</div><p class="p">Você ainda pode jogar valendo prêmio para o WhatsApp da mesa, ou só por diversão.</p><button class="btn">Jogar valendo prêmio (final 1204)</button><button class="btn alt" style="color:var(--ap-ink)">Jogar só por diversão</button><button class="btn dark">Chamar o garçom</button></div></div>' }
+
+  S.jajogou = function(){ return '<div class="screen sea">'+bar()+'<div class="res"><h2 class="h1">O prêmio desta mesa já foi jogado</h2><div class="box">Cada mesa tem <b>1 rodada valendo prêmio</b>. Você pode continuar jogando por diversão e tentar bater o recorde.</div><div class="box">Recorde da noite: <b class="gold">23 acertos · 3.880 pontos</b></div><div style="margin-top:auto;display:grid;gap:8px"><button class="btn" data-go="intro">Jogar por diversão</button><button class="btn alt" data-go="mesa">Voltar à mesa</button></div></div></div>' }
+
+  var IC_SKIP_L='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5l9 7-9 7zM13 5l9 7-9 7z" fill="currentColor"/></svg>';
+  var IC_THINK_L='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M12 8v5l3.2 2M9 3h6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
+  function perguntaHtml(frozen){
+    var q=G.q, ms = frozen ? 4000 : (q.dur-(Date.now()-q.ini)), done=G.resp!==null;
+    var h='<div class="screen sea qs">'+bar()+ladder()+hud()+'<div class="qmid">'+ringHtml(ms,q.dur)+
+      '<div class="q"><small>'+nivelTxt()+(G.pensando?' · pensando (20 s)':'')+'</small><span>'+esc(q.txt)+'</span></div><div class="opts2">';
+    q.ops.forEach(function(o,i){
+      var cls='opt c'+i; if(done){ if(o.ok) cls+=' right'; else if(i===G.resp) cls+=' wrong'; else cls+=' dim' }
+      h+='<button class="'+cls+'" data-act="ans" data-i="'+i+'"'+(done||frozen?' tabindex="-1"':'')+'><i>'+'ABCD'[i]+'</i><span>'+esc(o.t)+'</span></button>'
+    });
+    h+='</div></div><div class="tiles">'+
+      '<button class="tile skip" data-act="skip"'+(G.pulos<=0||done?' disabled':'')+'><span class="tc">'+G.pulos+'</span>'+IC_SKIP_L+'<b>Pular</b><small>trocar pergunta</small></button>'+
+      '<button class="tile think" data-act="think"'+(G.pensar<=0||G.pensando||done?' disabled':'')+'><span class="tc">'+G.pensar+'</span>'+IC_THINK_L+'<b>'+(G.pensando?'Pensando':'Pensar')+'</b><small>'+(G.pensando?'+ tempo ativo':'+ tempo: 20 s')+'</small></button></div></div>';
+    if(G.res){ var li=h.lastIndexOf('</div>'); h=h.slice(0,li)+rsHtml()+h.slice(li) }
+    return h
+  }
+  S.q = function(){ if(!G||!G.live||!G.q){ novoJogo(7); novaPergunta(); G.fixa=true } return perguntaHtml(!!G.fixa) }
+
+  S.certo = function(){ var g=G.last; return '<div class="screen sea">'+bar()+ladder()+'<div class="res"><div><div class="tag" style="background:var(--ap-ok);color:#fff">Acertou</div><p class="big" style="margin-top:8px">+'+g.pts+'</p><p style="margin:0;color:#CFE3E6">pontos · '+G.acertos+' acertos</p></div><div class="box"><b>Você sabia?</b><br>'+esc(g.cur)+'</div>'+
+    '<div class="box">Nível garantido agora: <b>'+lab(marcoDe(G.acertos))+'</b>'+(G.acertos<15?'<br>Chances de errar: '+(3-G.erros)+' de 3.':'')+'</div><div style="margin-top:auto"><button class="btn" data-act="next">Próxima pergunta</button></div></div></div>' }
+
+  S.errou = function(){ var e=G.errou, n=3-G.erros; return '<div class="screen sea">'+bar()+ladder()+'<div class="res"><div><div class="tag" style="background:var(--ap-bad);color:#fff">'+(e.motivo==='tempo'?'Tempo esgotado':'Errou')+'</div><p style="margin:10px 0 0;color:#CFE3E6">Resposta certa: <b class="gold">'+esc(e.certa)+'</b></p></div><div class="box"><b>Você sabia?</b><br>'+esc(e.cur)+'</div>'+
+    '<div class="box"><span class="hearts" style="vertical-align:middle">'+hearts()+'</span> &nbsp;'+(n>0?'Você ainda pode errar <b>'+n+'</b> '+(n===1?'vez':'vezes')+' até chegar aos 15 acertos.':'<b>Acabaram as chances.</b> O próximo erro encerra o jogo.')+'</div>'+
+    '<div style="margin-top:auto"><button class="btn" data-act="next">Próxima pergunta</button></div></div></div>' }
+
+  S.errado = function(){ var m=G.fim; return '<div class="screen sea">'+bar()+'<div class="res"><div><div class="tag" style="background:var(--ap-bad);color:#fff">'+(m.motivo==='tempo'?'Tempo esgotado':'Errou')+'</div><p style="margin:10px 0 0;color:#CFE3E6">Resposta certa: <b class="gold">'+esc(m.certa)+'</b></p></div><div class="box"><b>Você sabia?</b><br>'+esc(m.cur)+'</div>'+
+    '<div class="box">'+G.acertos+' acertos · '+G.pontos+' pontos<br>'+(m.semChances?'Você usou as 3 chances de errar.<br>':'')+(m.marco? 'Você garantiu <b>'+lab(m.marco)+'</b> de cashback.' : (m.risco? 'Você arriscou tudo e ficou sem prêmio desta vez.' : 'Faltaram acertos para o primeiro nível ('+labCurto(2)+' com 5 acertos).'))+'</div>'+
+    '<div style="margin-top:auto;display:grid;gap:8px"><button class="btn" data-act="fim">Ver resultado</button></div></div></div>' }
+
+  S.portao = function(){ var a=G.acertos; var prox=a>=29?10:a>=24?8:a>=19?6:a>=14?6:6; var nx = a<20?6:a<25?8:10; return '<div class="screen sea">'+bar()+ladder()+'<div class="res"><div><div class="tag" style="background:var(--ap-gold);color:#151210">'+(a===15?'Portão do risco':'Decisão')+'</div><h2 class="h1" style="margin-top:8px">'+a+' acertos!</h2></div>'+
+    '<div class="box">Se parar agora, você <b>garante '+lab(marcoDe(a))+'</b> de cashback.<br>Se continuar e errar, <b>perde tudo</b>. Se acertar até '+(a<20?'20':a<25?'25':'30')+', sobe para <b class="gold">'+lab(nx)+'</b>.</div>'+
+    '<p class="note" style="color:#9EC3CB">Decida antes da próxima pergunta. Daqui para frente, cada erro encerra o jogo.</p>'+
+    '<div style="margin-top:auto;display:grid;gap:8px"><button class="btn" data-act="stop">Parar e garantir '+lab(marcoDe(a))+'</button><button class="btn alt" data-act="go">Continuar e arriscar tudo</button></div></div></div>' }
+
+  var IC_GIFT='<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M20 12v9H4v-9M2 7h20v5H2zM12 7v14M12 7S10 2 7.5 3.5 8 7 12 7zm0 0s2-5 4.5-3.5S16 7 12 7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>';
+  function confete(){ var c='', pts=[[8,6],[22,2],[36,10],[62,4],[78,9],[92,3],[14,26],[86,28]]; pts.forEach(function(x,i){ c+='<i class="cf" style="left:'+x[0]+'%;top:'+x[1]+'%;animation-delay:-'+(i*0.45).toFixed(2)+'s;background:'+(i%3===0?'#FFC531':i%3===1?'#7FD6E5':'#FF8A7A')+'"></i>' }); return '<div class="scene" aria-hidden="true"><div class="rays"></div>'+c+'<div class="vig"></div></div>' }
+  // ranking geral de exemplo (apelidos de quem aceitou aparecer)
+  var RK_SEM=[['Capitão Anzol',4120,30],['Sereia_21',3880,28],['Dona Linda',3640,27],['Pescador João',3310,25],['Maré Alta',3120,24],['Zé do Cais',2890,22],['Tainha Veloz',2640,20],['Cacá',2410,19],['Marujo RJ',2200,17],['Camarão Pro',1980,15]], SEM_TOTAL=37;
+  var RK_SEMPRE=[['Capitão Anzol',4980,30],['Dona Linda',4720,30],['Sereia_21',4410,30],['Arpoador',4180,29],['Zé do Cais',3990,28],['Pescador João',3760,27],['Maré Alta',3650,26],['Lulu',3420,25],['Tainha Veloz',3310,24],['Marujo RJ',3120,22]], SEMPRE_TOTAL=148;
+  var RK_TOP=RK_SEM, RK_TOTAL=SEM_TOTAL;
+  var ME={pts:0,ac:0}, RKTAB='sem';
+  var REG={apelido:'Capitão Zé',tel:'(21) 98877-1204',idade:true,aceite:true,err:'',ok:false,v:'1'};
+  function posIn(list,total,pts){ var n=0; for(var i=0;i<list.length;i++) if(list[i][1]>=pts) n++; if(n<list.length) return n+1; var f=(list[list.length-1][1]-pts)/list[list.length-1][1]; return Math.min(total,list.length+1+Math.round(f*(total-list.length-1))) }
+  function posRank(pts){ return posIn(RK_SEM,SEM_TOTAL,pts) }
+  function fmtN(n){ return n.toLocaleString('pt-BR') }
+  function rankHtml(pts){
+    var pos=posRank(pts), rows='', top=RK_TOP.slice(0,3);
+    if(pos<=3){ top.splice(pos-1,0,['Você',pts]); top=top.slice(0,3) }
+    top.forEach(function(r,i){ rows+='<div class="rkr'+(r[0]==='Você'?' me':'')+'"><span class="rp">'+(i+1)+'º</span><span class="rn">'+esc(r[0])+'</span><span class="rv">'+fmtN(r[1])+'</span></div>' });
+    if(pos>3) rows+='<div class="rk-dots">•••</div><div class="rkr me"><span class="rp">'+pos+'º</span><span class="rn">Você</span><span class="rv">'+fmtN(pts)+'</span></div>';
+    return '<div class="rk"><div class="rkt">Ranking da loja · esta semana</div>'+rows+'<button class="rklink" data-go="ranking">Ver ranking completo ›</button></div>'
+  }
+  function fin(o){
+    var pos=posRank(o.pt);
+    if(o.aband){
+      return '<div class="screen sea fin">'+scene()+bar()+'<div class="fx">'+
+        '<span class="fx-tag off">Você saiu da rodada</span>'+
+        '<div class="fx-stats"><div class="plate"><small>Seus pontos</small><b>0</b><em>perdidos</em></div><div class="plate"><small>No ranking</small><b>—</b><em>rodada não conta</em></div></div>'+
+        '<div class="fx-noprize"><b>Pontos e prêmio perdidos</b><span>'+o.why+'</span></div>'+
+        '<div class="fx-note" style="text-align:center">Sua melhor rodada da semana continua valendo no ranking.</div>'+
+        '<div class="fx-cta"><button class="btn" data-go="intro">Jogar de novo</button><button class="btn alt" data-go="mesa">Voltar à mesa</button></div></div></div>' }
+    var prize = o.m ? '<div class="fx-prize"><span class="fx-ic">'+IC_GIFT+'</span><small>Prêmio garantido</small><b>'+lab(o.m)+' de cashback</b><span class="fp-s">no WhatsApp final 1204 · cai quando a conta for paga</span></div>'
+                    : '<div class="fx-noprize"><b>Sem prêmio desta vez</b><span>'+o.why+'</span></div>';
+    return '<div class="screen sea fin">'+(o.m?confete():scene())+bar()+'<div class="fx">'+
+      '<span class="fx-tag'+(o.m?'':' off')+'">'+(o.m?'Fim de jogo · prêmio garantido':'Fim de jogo')+'</span>'+
+      '<div class="fx-stats"><div class="plate"><small>Seus pontos</small><b class="g">'+fmtN(o.pt)+'</b><em>'+o.ac+' acertos</em></div><div class="plate"><small>Na semana</small><b>'+pos+'º</b><em>de '+RK_TOTAL+' jogadores</em></div></div>'+
+      prize+rankHtml(o.pt)+
+      '<div class="fx-cta"><button class="btn" data-go="'+(o.m?'carteira':'intro')+'">'+(o.m?'Ver minha carteira':'Jogar por diversão')+'</button><button class="btn alt" data-go="mesa">Voltar à mesa</button></div></div></div>' }
+  function guardaMelhor(){ if(G&&G.fim&&G.fim.final&&G.fim.motivo!=='abandono'){ if(G.pontos>ME.pts){ ME.pts=G.pontos; ME.ac=G.acertos } } }
+  S.fimpremio = function(){ guardaMelhor(); var m=(G&&G.fim&&G.fim.marco)||5, ac=(G&&G.acertos)||15, pt=(G&&G.pontos)||2480; if(!G||!G.fim){m=5;ac=15}
+    return fin({m:m,ac:ac,pt:pt}) }
+  S.fimabandono = function(){ return fin({m:0,ac:12,pt:0,aband:true,why:'Sair no meio da rodada zera tudo: pontos e prêmio garantido.'}) }
+  S.fimzero = function(){ guardaMelhor(); var risco = !G || !G.fim || G.fim.risco !== false, ac = G?G.acertos:18, pt = G?G.pontos:3120, aband=(G&&G.fim&&G.fim.motivo==='abandono');
+    if(aband) return fin({m:0,ac:ac,pt:0,aband:true,why:'Sair no meio da rodada zera tudo: pontos e prêmio garantido.'});
+    var why = aband ? ''  : (risco?'Você arriscou, errou e perdeu o prêmio da rodada.':'As chances acabaram antes do primeiro nível (5 acertos).');
+    return fin({m:0,ac:ac,pt:pt,why:why}) }
+
+  S.carteira = function(){ return '<div class="screen">'+bar()+'<div class="body"><h2 class="h1">Minha carteira</h2><div class="bal"><div class="note" style="text-transform:uppercase;letter-spacing:.07em;font-weight:600">Saldo nesta loja</div><p class="big" style="margin-top:4px">R$ 14,00</p><p class="note">Vence em 90 dias se não usar.</p></div>'+
+    '<div class="good">🎣 Prêmio do Quiz de hoje: <b>'+lab(5)+'</b>. Entra aqui quando a conta da mesa 12 for paga.</div>'+
+    '<div class="bal"><div class="note" style="text-transform:uppercase;letter-spacing:.07em;font-weight:600;margin-bottom:4px">Extrato</div><div class="row"><span><b>Prêmio do Quiz</b><br><span class="note">20/10 · Mesa 7</span></span><b style="color:#0F8A57">+ R$ 6,00</b></div><div class="row"><span><b>Cashback da conta</b><br><span class="note">20/10 · Mesa 7</span></span><b style="color:#0F8A57">+ R$ 8,00</b></div></div>'+
+    '<p class="note">Veja todas as lojas em trindadeonline.com.br/meu-cashback</p></div></div>' }
+
+  S.garcom = function(){ var v=valor(5); return '<div class="wide"><div class="hd"><b>Mesa 12 · Fechar conta</b><span class="pill">Garçom Marcos</span></div><div class="in">'+
+    '<table><tbody><tr><td>Consumo</td><td style="text-align:right">'+brl(CONTA)+'</td></tr><tr><td>Taxa de serviço (10%)</td><td style="text-align:right">'+brl(CONTA*0.1)+'</td></tr><tr><td><b>Total a pagar</b></td><td style="text-align:right"><b>'+brl(CONTA*1.1)+'</b></td></tr></tbody></table>'+
+    '<div class="good">🎣 <b>Prêmio do Quiz:</b> a mesa garantiu <b>'+lab(5)+'</b> → <b>'+brl(v)+'</b> de cashback para o WhatsApp final 1204, liberado ao fechar a conta.</div>'+
+    '<div class="sw"><div><b>Cashback da conta (5%)</b><small>Sobre o consumo, sem a taxa de serviço</small></div><b>+ '+brl(CONTA*0.05)+'</b></div>'+
+    '<p class="note" style="color:var(--muted)">Mensagem enviada ao cliente ao fechar a conta:</p><div class="bubble">🎁 <b>Calçada do Peixe</b> agradece a visita!<br><br>Você ganhou <b>'+brl(CONTA*0.05+v)+'</b> de cashback nesta conta (<b>'+brl(CONTA*0.05)+'</b> da conta + <b>'+brl(v)+'</b> do Quiz). Seu saldo agora é <b>'+brl(14+CONTA*0.05+v)+'</b>, para usar no próximo pedido até <b>03/02</b>.</div>'+
+    '<button class="btn dark" style="max-width:260px">Fechar conta</button></div></div>' }
+
+  S.loja = function(){
+    var rows=[[5,2],[10,3],[15,5],[20,6],[25,8],[30,10]].map(function(t){
+      var v = MODO==='fixo'?FIXO[t[1]]:PCT[t[1]];
+      return '<tr><td>'+t[0]+' acertos</td><td><input data-m="'+t[1]+'" value="'+String(v).replace('.',',')+'" inputmode="decimal" aria-label="Valor do nível de '+t[0]+' acertos"> '+(MODO==='fixo'?'R$':'% da conta')+'</td><td style="text-align:right">'+brl(valor(t[1]))+'</td></tr>'
+    }).join('');
+    return '<div class="wide"><div class="hd"><b>Mesas · Quiz Pesca Premiada</b><span class="pill">Painel da loja</span></div><div class="in">'+
+    '<div class="sw"><div><b>Quiz ligado nas mesas</b><small>Aparece como “Jogar” na página da mesa</small></div><button class="tg '+(LOJA.campanha?'on':'')+'" data-tg="campanha" aria-label="Quiz ligado" aria-pressed="'+LOJA.campanha+'"></button></div>'+
+    '<div class="sw"><div><b>Valendo prêmio</b><small>Desligado: só pontos e recorde</small></div><button class="tg '+(LOJA.premio?'on':'')+'" data-tg="premio" aria-label="Valendo prêmio" aria-pressed="'+LOJA.premio+'"></button></div>'+
+    '<div><div class="note" style="color:var(--muted);margin-bottom:6px;font-weight:600">Como o prêmio é calculado</div><div class="seg" role="group" aria-label="Modo do prêmio"><button data-modo="percentual" class="'+(MODO==='percentual'?'on':'')+'">% da conta</button><button data-modo="fixo" class="'+(MODO==='fixo'?'on':'')+'">Valor fixo</button></div></div>'+
+    '<div style="overflow-x:auto"><table><thead><tr><th>Nível</th><th>'+(MODO==='fixo'?'Prêmio':'Percentual')+'</th><th style="text-align:right">Numa conta de '+brl(CONTA)+'</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
+    (MODO==='percentual'?'<div class="sw"><div><b>Teto por prêmio</b><small>O prêmio nunca passa disso</small></div><span>R$ <input id="teto" value="'+TETO+'" style="width:72px;font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink)"></span></div>':'')+
+    '<div class="pv">Prévia: conta de <b>'+brl(CONTA)+'</b> · quem para aos 15 acertos ganha <b>'+brl(valor(5))+'</b>; quem chega a 30 ganha <b>'+brl(valor(10))+'</b>.</div>'+
+    '<div class="sw"><div><b>Validade do prêmio</b><small>Usa a validade do cashback da loja: 90 dias (muda em Compartilhar › Cashback)</small></div><span class="pill">90 dias</span></div>'+
+    '<div class="sw"><div><b>Cashback da loja</b><small>Precisa estar ligado para o prêmio existir</small></div><span class="pill" style="background:#E3F3EA;border-color:#A8D5BC;color:#0B5A37">Ligado</span></div>'+
+    '<div class="kpis"><div class="kpi"><b>18</b><span>rodadas hoje</span></div><div class="kpi"><b>3</b><span>prêmios garantidos</span></div><div class="kpi"><b>'+brl(valor(5)*2+valor(3))+'</b><span>em prêmios a liberar</span></div><div class="kpi"><b>'+BANCO.length+'</b><span>perguntas neste mockup</span></div></div>'+
+    '<p class="note" style="color:var(--muted)">Números de exemplo. As perguntas só se repetem para o mesmo jogador depois que ele já viu todas.</p></div></div>' }
+
+  // ---------- navegação ----------
+  var NAV = {
+    'nav-cliente':[['mesa','Página da mesa'],['pedir','Pedir (cardápio)'],['chamar','Chamar garçom ou conta'],['intro','Entrada do quiz'],['cadastro','Cadastro: apelido e WhatsApp'],['codigo','Cadastro: código no WhatsApp'],['ranking','Ranking da loja'],['conflito','WhatsApp já cadastrado'],['jajogou','Prêmio da mesa já jogado']],
+    'nav-jogo':[['contagem','Contagem 3-2-1'],['q','Pergunta (parada)'],['acerto','Pop-up: acertou'],['erro','Pop-up: errou, ainda tem chance'],['erro4','Pop-up: errou e acabou'],['portao','Portão: 15 acertos'],['decisao','Decisão na fase de risco'],['queda','Queda de conexão (2 min)'],['perdida','Passou dos 2 min']],
+    'nav-fim':[['fimpremio','Prêmio garantido'],['fimzero','Arriscou e errou'],['fimabandono','Saiu no meio: perde tudo'],['carteira','Minha carteira']],
+    'nav-loja':[['loja','Configuração da loja'],['garcom','Fechar a conta']]
+  };
+  var NOTES = {
+    contagem:['Contagem antes de jogar','Ao tocar em jogar entra esta tela: 3, 2, 1, JÁ! Só depois aparece a primeira pergunta.',['Dá tempo de largar o copo e olhar para a tela.','Mostra se a rodada é valendo prêmio ou só diversão.','O relógio da primeira pergunta só começa depois do JÁ.','‹ Início ainda sai sem perder nada: a rodada não começou.'],'Aqui a contagem está parada no 2. Toque em “Jogar valendo prêmio” na entrada para ver correndo.'],
+    pedir:['Pedir','Cardápio da mesa, igual ao que já existe. O pedido só vai para a cozinha depois que o garçom confirma.',['Item por peso: o cliente chama o garçom.','Tem “Voltar à mesa” no botão e no canto de cima.'],''],
+    chamar:['Chamar o garçom','Dois botões: chamar o garçom ou pedir a conta. O aviso toca no tablet do garçom.',['Não duplica se tocar de novo em 30 s.'],''],
+    mesa:['Página da mesa','O QR da mesa abre esta tela. “Jogar” fica ao lado de Pedir e da Carteira.',['Quatro portas: Pedir, Jogar, Carteira e Chamar o garçom.','Todas as telas têm “‹ Início” no canto de cima para voltar para cá.','Sem cadastro para jogar.'],'O texto do prêmio muda com o modo da loja (% ou valor).'],
+    intro:['Entrada do quiz','Só o essencial: título, o prêmio máximo, duas regras e os botões. O resto fica em “Como funciona”.',['Respiro: uma coisa por vez, de cima para baixo.','“Como funciona” abre níveis, zonas e as 4 regras com exemplos.','Prêmio e WhatsApp numa linha discreta antes do botão.','Toque em “Jogar valendo prêmio” para ver a contagem 3-2-1.'],'Decisão: o “até 10%” como destaque central está bom?'],
+    semzap:['Conta sem WhatsApp','Para jogar valendo prêmio, a conta precisa de um WhatsApp confirmado por código.',['Reaproveita o código de 6 números que já existe nas mesas.','Vira o WhatsApp da conta: ninguém mais cadastra outro.'],'Quem não quiser confirmar joga só por diversão.'],
+    conflito:['WhatsApp já cadastrado','Se alguém tenta confirmar outro número, a conta recusa.',['Mostra só os 4 últimos dígitos.','Só o garçom troca o número da conta.'],'Evita 4 pessoas da mesma mesa ganhando pela mesma comanda.'],
+    jajogou:['Prêmio da mesa já jogado','Depois da rodada valendo prêmio, as próximas são por diversão.',['Os pontos continuam valendo para o recorde.'],'Decisão: mostrar o recorde da noite ou não.'],
+    q:['Pergunta','Tela principal. O relógio mostra 10 s; quem manda no tempo é o servidor.',['Escada de níveis no topo, com a linha branca marcando o portão dos 15.','Alternativas embaralhadas a cada pergunta.','Pular e Pensar 20 s com contador.','Aqui o relógio está parado em 3 s. Use Jogar de verdade para ver correndo.','Durante o jogo o botão vira “‹ Sair” e pede confirmação.'],'Decisão: sair no meio conta como erro: leva o último nível na fase segura e perde tudo na fase de risco. Confirma?'],
+    errou:['Errou, ainda tem chance','Até os 15 acertos (prêmio de 5%) o jogador pode errar 3 vezes e continuar.',['Os corações no topo mostram as chances que sobram.','Tempo esgotado gasta uma chance, como errar.','Na 4ª falha o jogo acaba e ele leva o último nível garantido.'],'Depois dos 15 acertos, cada erro encerra o jogo.'],
+    acerto:['Pop-up de acerto','Sem tela separada: um círculo verde com ✓ e os pontos aparece sobre a própria pergunta por ~1,3 s e já vem a próxima.',['Som: “ka-ching” de caixa registradora (e aplausos a cada 5 acertos).','O topo já mostra a pergunta, os pontos e as chances, atualizados na hora.','A resposta certa fica destacada em verde atrás do círculo.','Sem “Você sabia?” no meio do jogo.'],'Decisão: manter ~1,3 s?'],
+    erro:['Pop-up de erro','Círculo vermelho com ✗. Diz quantas chances restam e mostra a resposta certa, e a próxima pergunta já vem.',['Som de erro: duas notas graves descendo.','Tempo esgotado usa o mesmo círculo.','Os corações do topo já perdem uma chance.'],'Fica ~1,8 s para dar tempo de ler a resposta certa.'],
+    erro4:['Pop-up do erro final','Mesmo círculo, mas avisa que a rodada acabou; em seguida vai para o resumo.',['“Acabaram as chances” na zona segura.','Na zona de risco aparece “Fim da rodada”.'],''],
+    certo:['Acertou','Mostra pontos, curiosidade e o nível garantido. Sem pressa nesta tela.',['Cada acerto dá 100 pontos mais 20 por segundo que sobrou.'],'A curiosidade é parte do charme do jogo.'],
+    errado:['Errou ou tempo esgotado','Revela a certa e a curiosidade, e diz o que ficou garantido.',['Fase segura: leva o último nível.','Fase de risco: perde tudo.'],''],
+    portao:['Portão e decisões','Aos 15 acertos, e antes de cada pergunta depois disso.',['Parar garante o nível atual.','Continuar arrisca tudo.','Não dá para desistir depois de ver a pergunta.'],'Aos 30 acertos o prêmio máximo fica garantido e o jogo segue só por recorde.'],
+    decisao:['Decisão na fase de risco','Mesma tela do portão, com os valores do próximo degrau.',[],''],
+    fimpremio:['Fim de jogo · prêmio','Tela final única, centralizada, sem explicação no meio: o que importa aparece primeiro.',['Placar da rodada (pontos e acertos) e posição no ranking geral logo no topo.','O prêmio ganho vem em destaque dourado.','Ranking geral: top 3 e a linha do jogador destacada.','Só aparece apelido de quem aceitou participar do ranking.'],'Ranking é de exemplo. Falta decidir: ranking geral só da loja ou semanal também?'],
+    fimzero:['Fim de jogo · sem prêmio','Mesmo desenho da tela de prêmio, para a pessoa ver pontos e posição mesmo sem ganhar.',['Mostra por que não houve prêmio, em uma frase.','O ranking geral continua valendo.'],''],
+    carteira:['Minha carteira','O prêmio aparece como crédito pendente e depois no extrato, igual ao cashback.',['Reaproveita o “Meu cashback” já pronto.'],''],
+    loja:['Configuração da loja','A loja liga o quiz, liga o prêmio e escolhe o formato.',['Percentual da conta com teto, ou valor fixo.','Edite os valores: a prévia recalcula.','Troque o modo para ver o celular mudar os textos.'],'Validade segue o cashback da loja.'],
+    garcom:['Fechar a conta','No fechamento, o prêmio e o cashback da conta saem numa mensagem só.',['Só entra se a conta foi paga.','O garçom vê o valor antes de fechar.'],'Decisão: manter a mensagem única.']
+  };
+
+
+  NOTES.cadastro=['Cadastro antes de jogar','Ao tocar em jogar pela primeira vez, pede apelido e WhatsApp. O jogo só libera depois do código.',['Apelido de 3 a 16 caracteres, único na loja, fixo depois de escolhido, com filtro de palavrão.','“Tenho 18 anos ou mais” e “aceito aparecer no ranking” são obrigatórios (LGPD). Criança joga a Aventura do Peixinho, sem cadastro.','Vale para qualquer rodada, com prêmio ou só por diversão.','Erros aparecem na própria tela, em linguagem simples.'],'Decisão do Ricardo: pedir apelido e WhatsApp antes de começar.'];
+  NOTES.codigo=['Código no WhatsApp','Mesmo código de 6 números que já existe nas mesas, enviado pelo WhatsApp da plataforma.',['Vale 10 minutos e erra no máximo 5 vezes antes de travar.','“Trocar o número” volta ao cadastro.','Quem já confirmou nesta mesa ou neste aparelho pula esta etapa.','O WhatsApp confirmado é o que recebe o prêmio.'],''];
+  NOTES.ranking=['Ranking da loja','Só da loja, pela melhor rodada de cada jogador. Aberto pelo botão “Ver ranking” da entrada ou pelo link na tela final.',['Duas abas: Semana (recomeça na segunda) e Sempre (nunca zera).','Cada jogador aparece uma vez, com a melhor rodada.','Se você já jogou, aparece sua posição em destaque, mesmo fora do top 10.','Quem sai no meio da rodada não entra: só conta rodada terminada.','Use os atalhos à esquerda para simular quem já jogou ou nunca jogou.'],'Dados de exemplo.'];
+  NOTES.queda=['Queda de conexão','Internet caiu, ligação ou fechou o navegador: a rodada fica guardada por 2 minutos.',['Ao voltar, continua de onde parou, na mesma pergunta.','O relógio da pergunta não para; se estourar, conta como erro.','Passou dos 2 minutos: a rodada é perdida.'],''];
+  NOTES.perdida=['Passou dos 2 minutos','Sem voltar a tempo, a rodada é encerrada e perde tudo, igual a sair no meio.',['Pontos e prêmio zerados.','Não entra no ranking.','A melhor rodada anterior continua valendo.'],''];
+  NOTES.fimabandono=['Saiu no meio: perde tudo','Se o jogador sai no meio, perde os pontos e o prêmio garantido, mesmo que já tivesse alcançado um nível.',['O botão “Sair” pede confirmação e avisa isso antes.','Não entra no ranking; a melhor rodada anterior continua valendo.','Sair nunca é melhor que responder, então não dá para fugir de uma pergunta difícil.'],'Decisão do Ricardo: sair perde tudo.'];
+  NOTES.q=['Pergunta','Tela principal. O relógio mostra 10 s; quem manda no tempo é o servidor.',['Escada de níveis no topo, com a linha branca marcando o portão dos 15.','As perguntas vêm por nível (fácil, média, difícil) e nunca repetem para o mesmo jogador.','Alternativas embaralhadas a cada pergunta.','Pular e Pensar 20 s com contador.','Aqui o relógio está parado em 3 s. Use “Jogar de verdade” para ver correndo.','Durante o jogo o botão vira “‹ Sair” e avisa: sair no meio perde tudo.'],'Decisão do Ricardo: sair no meio perde pontos e prêmio.'];
+  NOTES.intro[3]='Botões “Como funciona” e “Ver ranking” lado a lado. Toque em “Jogar” para ver o cadastro no 1º acesso.';
+  NOTES.fimpremio=['Fim de jogo · prêmio','Tela final única, centralizada, sem explicação no meio: o que importa aparece primeiro.',['Placar da rodada e posição na semana, logo no topo.','O prêmio ganho vem em destaque dourado.','Ranking da loja: top 3 e a linha do jogador, com link para o ranking completo.','Só aparece apelido de quem aceitou participar.'],'Ranking de exemplo.'];
+  NOTES.fimzero=['Fim de jogo · sem prêmio','Mesmo desenho da tela de prêmio, para a pessoa ver pontos e posição mesmo sem ganhar.',['Mostra por que não houve prêmio, em uma frase.','Quem sai no meio vê a tela “perde tudo”.'],''];
+
+  function buildNav(){
+    Object.keys(NAV).forEach(function(id){
+      $('#'+id).innerHTML = NAV[id].map(function(n){return '<button data-go="'+n[0]+'" id="nv-'+n[0]+'">'+n[1]+'</button>'}).join('')
+    })
+  }
+  function setNotes(){
+    var key = cur==='decisao'?'portao':cur; var n = NOTES[cur]||NOTES[key]||['','',[],''];
+    $('#notes').innerHTML = '<h2>'+esc(n[0])+'</h2><p>'+esc(n[1])+'</p>'+(n[2].length?'<ul>'+n[2].map(function(x){return '<li>'+esc(x)+'</li>'}).join('')+'</ul>':'')+(n[3]?'<div class="dec">'+esc(n[3])+'</div>':'')
+  }
+
+  function render(){
+    stopT();
+    if(cur!=='intro') ZONES=false;
+    if(cur!=='contagem' && CT.t){ clearInterval(CT.t); CT.t=null }
+    var k = cur;
+    var html;
+    if(k==='decisao'){ if(!G||G.acertos<15){ novoJogo(18) } html = S.portao() }
+    else if(k==='acerto'||k==='erro'||k==='erro4'){
+      novoJogo(k==='acerto'?8:7); novaPergunta(); G.fixa=true; G.live=false;
+      var ci=G.q.ops.findIndex(function(o){return o.ok}), wi=(ci+1)%4;
+      if(k==='acerto'){ G.pontos=1380; G.resp=ci; G.res={ok:true,pts:180} }
+      else if(k==='erro'){ G.erros=1; G.resp=wi; G.res={ok:false,motivo:'erro',certa:G.q.ops[ci].t,left:2} }
+      else { G.erros=3; G.resp=wi; G.res={ok:false,motivo:'erro',certa:G.q.ops[ci].t,fim:true}; G.fim={semChances:true} }
+      html=perguntaHtml(true) }
+    else if(k==='q'){ html = S.q() }
+    else if(k==='errou'){ if(!G||!G.errou){ novoJogo(7); G.erros=2; G.errou={motivo:'erro',certa:BANCO[5][1][0],cur:BANCO[5][2]} } html=S.errou() }
+    else if(k==='errado' && (!G||!G.fim||G.fim.motivo===undefined)){ novoJogo(12); G.fim={motivo:'erro',certa:BANCO[3][1][0],cur:BANCO[3][2],marco:3}; html=S.errado() }
+    else if(k==='certo' && (!G||!G.last)){ novoJogo(7); G.acertos=8; G.last={pts:180,cur:BANCO[0][2]}; html=S.certo() }
+    else if(k==='portao'){ if(!G||G.acertos<15){ novoJogo(15) } html=S.portao() }
+    else if(k==='fimpremio'){ html = (G&&G.fim&&G.fim.final)? S.fimpremio() : (G=null, S.fimpremio()) }
+    else html = (S[k]||S.mesa)();
+    var wide = (k==='loja'||k==='garcom');
+    if(!wide && G && G.leaving && emJogo()){
+      var arriscando = (cur==='q' && G.estado==='risco');
+      var ov='<div class="ovl"><div class="sheet"><h3>Sair do jogo?</h3><p>Se você sair agora, <b>perde tudo</b>: os pontos e o prêmio garantido desta rodada. Na próxima, começa do zero.'+(cur==='q'?' O relógio continua correndo.':'')+'</p><button class="btn" data-act="leaveno">Continuar jogando</button><button class="btn alt" style="color:#151210" data-act="leaveyes">Sair e perder tudo</button></div></div>';
+      var li=html.lastIndexOf('</div>'); html=html.slice(0,li)+ov+html.slice(li);
+    }
+    if(!wide && ZONES && cur==='intro'){
+      var rr=[[IC_CLOCK,'10 segundos','para responder cada pergunta'],[IC_HEART,'3 chances','de errar até os 15 acertos'],[IC_SKIP,'3 pulos','para trocar a pergunta'],[IC_BULB,'2 × Pensar','dá 20 segundos na pergunta']].map(function(r){return '<div class="rrow"><span class="ri">'+r[0]+'</span><div><b>'+r[1]+'</b> '+r[2]+'</div></div>'}).join('');
+      var zv='<div class="ovl"><div class="sheet tall"><h3>Como funciona</h3>'+
+        '<div class="hw-t">Suba de nível</div><div class="hw-dark">'+trackHtml(true)+'</div>'+
+        '<div class="zcard ok"><span class="zi">'+IC_SHIELD+'</span><div><b>Zona segura · até 15 acertos</b><p>Você tem 3 chances de errar. Quando o jogo acabar, leva o último prêmio que alcançou.</p><em>12 acertos e 4 erros: leva '+lab(3)+'</em></div></div>'+
+        '<div class="zcard rk"><span class="zi">'+IC_FLAME+'</span><div><b>Zona de risco · depois dos 15</b><p>Antes de cada pergunta você escolhe: parar e levar o prêmio, ou continuar. Se errar, perde o prêmio da rodada.</p><em>Parou com 22 acertos: leva '+lab(6)+' · Errou: 0</em></div></div>'+
+        '<div class="hw-t">Regras</div><div class="rrows">'+rr+'</div>'+
+        '<button class="btn" data-act="zonesclose">Entendi</button></div></div>';
+      var zi=html.lastIndexOf('</div>'); html=html.slice(0,zi)+zv+html.slice(zi);
+    }
+    $('#view').innerHTML = wide ? html : '<div class="phone">'+html+'</div>';
+    document.querySelectorAll('.nav button').forEach(function(b){b.classList.toggle('on',b.id==='nv-'+k)});
+    setNotes(); demo();
+    if(k==='q' && G && G.q && !G.fixa) startTimer();
+  }
+  function demo(){
+    var d=$('#demo'); d.innerHTML='<small>Tamanho do celular</small><button data-size="320,568">Pequeno 320×568</button><button data-size="360,740">Médio 360×740</button><button data-size="390,844">Grande 390×844</button><button data-size="430,932">Extra 430×932</button>';
+    d.innerHTML+='<small>Cadastro do jogador</small><button data-act="regforget">Esquecer cadastro (1º acesso)</button>';
+    if(cur==='ranking') d.innerHTML+='<small>Ranking</small><button data-act="rkdemo">Simular: já joguei (2.480 pts)</button><button data-act="rkzero">Nunca joguei</button>';
+    if(cur==='q'||cur==='certo'||cur==='portao'||cur==='decisao'){
+      d.innerHTML+='<small>Atalhos só desta demonstração</small><button data-demo="14">Ir para 14 acertos</button><button data-demo="19">Ir para 19 acertos</button><button data-demo="29">Ir para 29 acertos</button><button data-demo="0">Recomeçar</button>'
+    }
+  }
+
+  // ---------- timer ----------
+  function startTimer(){
+    stopT();
+    T=setInterval(function(){
+      if(!G||!G.q||G.resp!==null||G.fixa){stopT();return}
+      var left = G.q.dur-(Date.now()-G.q.ini);
+      var ring=$('#ring'), sec=$('#sec');
+      if(ring){ var C=2*Math.PI*36; ring.setAttribute('stroke-dashoffset',(C*(1-Math.max(0,left)/G.q.dur)).toFixed(1)); ring.setAttribute('stroke',left<2000?'#FF7A6B':'#FFC531') }
+      if(sec) sec.textContent=Math.ceil(Math.max(0,left)/1000);
+      if(left<=0){ stopT(); acabou('tempo') }
+    },100)
+  }
+  // Resultado de cada pergunta: pop-up redondo sobre a própria pergunta (sem tela separada).
+  function resolver(ok,motivo,pts){
+    var q=G.q, certa=q.ops.filter(function(o){return o.ok})[0].t, fim=false;
+    if(ok){ G.acertos++; G.pontos+=pts; G.res={ok:true,pts:pts} }
+    else {
+      var seguro = G.estado!=='risco' && G.acertos<15;
+      if(seguro && G.erros<3){ G.erros++; G.res={ok:false,motivo:motivo,certa:certa,left:3-G.erros} }
+      else { var risco=G.estado==='risco'; G.fim={motivo:motivo,certa:certa,cur:q.cur,marco:risco?0:marcoDe(G.acertos),risco:risco,semChances:seguro}; G.res={ok:false,motivo:motivo,certa:certa,fim:true}; fim=true }
+    }
+    if(ok) sndCash(G.acertos%5===0); else sndErr();
+    render();
+    setTimeout(function(){
+      if(!G||G.q!==q||!G.res||cur!=='q') return;
+      G.res=null;
+      if(fim){ G.fim.final=true; cur=(G.fim.marco?'fimpremio':'fimzero'); render(); if(G.fim.marco) sndWin(); return }
+      if(ok){ G.estado=(G.acertos>=15&&G.acertos<30)?'portao':(G.estado==='risco'&&G.acertos>=30?'jogando':G.estado); if(G.estado==='portao'){ cur='portao'; render(); return } }
+      novaPergunta(); render()
+    }, ok?1300:1800)
+  }
+  function acabou(motivo){ if(!G||G.resp!==null) return; G.resp=-1; resolver(false,motivo,0) }
+  var IC_OK='<svg viewBox="0 0 24 24" width="96" height="96" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="#fff" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var IC_X='<svg viewBox="0 0 24 24" width="88" height="88" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="#fff" stroke-width="3.6" stroke-linecap="round"/></svg>';
+  function rsHtml(){ var r=G.res; if(!r) return '';
+    var big = r.ok ? '+'+r.pts : (r.motivo==='tempo'?'Tempo esgotado':'Errou');
+    var sm = r.ok ? 'pontos' : (r.fim ? (G.fim&&G.fim.semChances?'Acabaram as chances':'Fim da rodada') : 'Restam '+r.left+(r.left===1?' chance':' chances'));
+    return '<div class="rs" role="status"><div class="rs-c '+(r.ok?'ok':'bad')+'">'+(r.ok?IC_OK:IC_X)+'</div><div class="rs-big '+(r.ok?'ok':'bad')+'">'+big+'</div><div class="rs-sm">'+sm+'</div>'+(r.ok?'':'<div class="rs-certa">Certa: <b>'+esc(r.certa)+'</b></div>')+'</div>' }
+
+
+  // ---------- ações ----------
+  function iniciar(v){ novoJogo(0); G.live=true; CT.v=v||'1'; CT.n=3; cur='contagem'; render();
+    CT.t=setInterval(function(){ CT.n--; if(CT.n<0){ clearInterval(CT.t); CT.t=null; novaPergunta(); G.live=true; cur='q'; render(); return } render() },900) }
+  function go(k){ cur=k; render() }
+  document.addEventListener('click',function(e){
+    var t=e.target.closest('[data-go],[data-act],[data-demo],[data-tg],[data-modo],[data-size]'); if(!t) return;
+    if(t.dataset.size){ var wh=t.dataset.size.split(','); document.documentElement.style.setProperty('--pw',(+wh[0]+20)+'px'); document.documentElement.style.setProperty('--ph',(+wh[1]+20)+'px'); return }
+    if(t.dataset.go){ if(t.dataset.go==='q'){G=null} if(t.dataset.go==='contagem'){ CT.n=2; CT.v='1' } go(t.dataset.go); var kk=t.dataset.go; if(kk==='acerto') sndCash(false); else if(kk==='erro'||kk==='erro4') sndErr(); else if(kk==='fimpremio') sndWin(); return }
+    if(t.dataset.tg){ LOJA[t.dataset.tg]=!LOJA[t.dataset.tg]; render(); return }
+    if(t.dataset.modo){ MODO=t.dataset.modo; render(); return }
+    if(t.dataset.demo!==undefined){ var n=+t.dataset.demo; novoJogo(n); if(n>=15&&n<30){ cur='portao' } else { novaPergunta(); G.live=true; cur='q' } render(); return }
+    var a=t.dataset.act;
+    if(a==='snd'){ SND=!SND; if(SND) ac(); render(); return }
+    if(a==='zones'){ ZONES=true; render(); return }
+    if(a==='zonesclose'){ ZONES=false; render(); return }
+    if(a==='leave'){ G.leaving=true; render(); return }
+    if(a==='leaveno'){ G.leaving=false; render(); return }
+    if(a==='leaveyes'){ var rk=G.estado==='risco', mc=rk?0:marcoDe(G.acertos); G.leaving=false; stopT(); G.fim={motivo:'abandono',marco:0,risco:rk,final:true}; cur='fimzero'; render(); return }
+    if(a==='call'){ CALLED=t.dataset.k; render(); return }
+    if(a==='start'){ ac(); REG.v=t.dataset.v||'1'; if(!REG.ok){ REG.err=''; cur='cadastro'; render(); return } iniciar(REG.v); return }
+    if(a==='regsend'){ var ap=(REG.apelido||'').trim(), dg=(REG.tel||'').replace(/\D/g,'');
+      if(ap.length<3||ap.length>16) REG.err='O apelido precisa ter de 3 a 16 caracteres.';
+      else if(dg.length<10||dg.length>11) REG.err='Confira o WhatsApp: DDD mais o número.';
+      else if(!REG.idade) REG.err='O quiz com prêmio é para maiores de 18 anos. Criança joga a Aventura do Peixinho.';
+      else if(!REG.aceite) REG.err='Para jogar, aceite aparecer no ranking com o seu apelido.';
+      else REG.err='';
+      cur=REG.err?'cadastro':'codigo'; render(); return }
+    if(a==='regok'){ REG.ok=true; REG.err=''; iniciar(REG.v); return }
+    if(a==='regforget'){ REG.ok=false; ME.pts=0; ME.ac=0; SEEN=[]; cur='intro'; render(); return }
+    if(a==='rktab'){ RKTAB=t.dataset.t; render(); return }
+    if(a==='rkdemo'){ ME.pts=2480; ME.ac=18; REG.ok=true; render(); return }
+    if(a==='rkzero'){ ME.pts=0; ME.ac=0; render(); return }
+    if(a==='ans'){
+      if(!G||G.resp!==null) return; stopT();
+      var i=+t.dataset.i, q=G.q, ok=q.ops[i].ok; G.resp=i;
+      var left=q.dur-(Date.now()-q.ini); var pts=ok?Math.min(200,100+20*Math.max(0,Math.floor(left/1000))):0;
+      resolver(ok,'erro',pts); return
+    }
+    if(a==='skip'){ if(G.pulos>0&&G.resp===null){ G.pulos--; stopT(); novaPergunta(); render(); startTimer() } return }
+    if(a==='think'){ if(G.pensar>0&&!G.pensando&&G.resp===null){ var left2=G.q.dur-(Date.now()-G.q.ini); G.pensar--; G.pensando=true; G.q.dur=20000; G.q.ini=Date.now()-(TEMPO-Math.max(0,left2)); render(); startTimer() } return }
+    if(a==='next'){ if(G.acertos>=15&&G.acertos<30){ cur='portao'; render(); return } novaPergunta(); G.live=true; cur='q'; render(); return }
+    if(a==='go'){ G.estado='risco'; novaPergunta(); G.live=true; cur='q'; render(); return }
+    if(a==='stop'){ G.fim={motivo:'parou',marco:marcoDe(G.acertos),final:true}; cur='fimpremio'; render(); sndWin(); return }
+    if(a==='fim'){ var ganhou=!!(G.fim&&G.fim.marco); if(ganhou){ G.fim.final=true; cur='fimpremio' } else { cur='fimzero' } render(); if(ganhou) sndWin(); return }
+  });
+  document.addEventListener('change',function(e){ var t=e.target; if(t.id==='rg-18') REG.idade=t.checked; if(t.id==='rg-ok') REG.aceite=t.checked });
+  document.addEventListener('input',function(e){
+    var t=e.target;
+    if(t.id==='rg-ap') REG.apelido=t.value; if(t.id==='rg-tel') REG.tel=t.value;
+    if(t.dataset&&t.dataset.m){ var v=parseFloat(String(t.value).replace(',','.')); if(isNaN(v)||v<0) return; if(MODO==='fixo') FIXO[t.dataset.m]=v; else PCT[t.dataset.m]=v; refreshPreview(); }
+    if(t.id==='teto'){ var v2=parseFloat(String(t.value).replace(',','.')); if(!isNaN(v2)&&v2>=0){ TETO=v2; refreshPreview() } }
+  });
+  function refreshPreview(){
+    var pv=$('.pv'); if(pv) pv.innerHTML='Prévia: conta de <b>'+brl(CONTA)+'</b> · quem para aos 15 acertos ganha <b>'+brl(valor(5))+'</b>; quem chega a 30 ganha <b>'+brl(valor(10))+'</b>.';
+    document.querySelectorAll('td input[data-m]').forEach(function(inp){ var cell=inp.parentNode.nextElementSibling; if(cell) cell.textContent=brl(valor(+inp.dataset.m)) })
+  }
+
+  buildNav(); novoJogo(0); cur='mesa'; render(); $('#bcount').textContent=BANCO.length;
+})();
+</script>

@@ -166,6 +166,29 @@ function normalizeName(s: string) {
   return (s || '').trim().toLowerCase().normalize('NFD').replace(DIACRITICS_RE, '').replace(/\s+/g, ' ')
 }
 
+// Linha de produto no modo "Organizar ordem": arrastar pelo ⠿ muda a posição
+// do produto no cardápio (depois de salvar). Linha compacta de propósito —
+// no desktop a lista normal vira grade de cartões grandes, que não serve pra
+// arrastar.
+function SortableProdRow({ id, pos, name, cat, photo, price, status }: {
+  id: string; pos: number; name: string; cat: string; photo: string | null; price: React.ReactNode; status: string
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.55 : 1, zIndex: isDragging ? 5 : undefined }
+  return (
+    <div className="cg-rrow" ref={setNodeRef} style={style}>
+      <button type="button" className="cg-drag-handle" {...attributes} {...listeners} aria-label={`Arrastar ${name} para outra posição`}>⠿</button>
+      <span className="cg-rpos">{pos}</span>
+      <div className="cg-rphoto">{photo ? <img src={photo} alt="" /> : '🍽️'}</div>
+      <div className="cg-rmid">
+        <div className="cg-rname">{name}</div>
+        <div className="cg-rsub">{cat}{status ? ` · ${status}` : ''}</div>
+      </div>
+      <div className="cg-rprice">{price}</div>
+    </div>
+  )
+}
+
 // Linha de categoria arrastável (drag handle) no gerenciador — clicar e
 // arrastar pelo ⠿ reordena a seção no cardápio público, sem precisar de
 // setinha de subir/descer.
@@ -276,6 +299,10 @@ export default function CatalogoPage() {
   const [importIAUrl, setImportIAUrl] = useState('')
   const [importIAError, setImportIAError] = useState('')
   const [importIAPreview, setImportIAPreview] = useState<{ categorias: number; produtos: number; imagens: number; grupos: number; classificados: number; csv: string } | null>(null)
+  // Organizar a ordem dos produtos (arrastar ou botões) — vale no cardápio depois de salvar
+  const [reorderMode, setReorderMode] = useState(false)
+  const [draftIds, setDraftIds] = useState<string[]>([])
+  const [reorderSaving, setReorderSaving] = useState(false)
   const catSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -541,6 +568,68 @@ export default function CatalogoPage() {
     const reindexed = arrayMove(categorias, oldIdx, newIdx).map((c, i) => ({ ...c, display_order: i }))
     setCategorias(reindexed)
     await Promise.all(reindexed.map(c => supabase.from('loja_categorias').update({ display_order: c.display_order }).eq('id', c.id)))
+  }
+
+  // ---------- Organizar a ordem dos produtos ----------
+  // A ordem é `loja_produtos.display_order`: o cardápio público, o PDV, as Mesas e
+  // os pedidos já leem por ela. Dentro de cada categoria, o produto aparece na
+  // ordem em que está aqui. Com filtro/busca ligado, só os produtos visíveis
+  // trocam de lugar entre si; os outros ficam onde estão.
+  type OrdemProdutos = 'az' | 'za' | 'menor' | 'maior' | 'promo' | 'categoria' | 'foto'
+  function produtoVisivel(p: Produto) {
+    const term = search.trim().toLowerCase()
+    return (filterCat === 'all' || (filterCat === 'sem-foto' ? !p.photo_url : p.category_id === filterCat))
+      && (!term || p.name.toLowerCase().includes(term))
+  }
+  function enterReorder() { exitSelectMode(); setDraftIds(produtos.map(p => p.id)); setReorderMode(true) }
+  function cancelReorder() { setReorderMode(false); setDraftIds([]) }
+  function aplicarNaVisivel(novaOrdem: string[]) {
+    const conjunto = new Set(novaOrdem)
+    setDraftIds(prev => { let k = 0; return prev.map(id => conjunto.has(id) ? novaOrdem[k++] : id) })
+  }
+  function ordenarProdutos(modo: OrdemProdutos) {
+    const mapa = new Map(produtos.map(p => [p.id, p]))
+    const atual = draftIds.filter(id => { const p = mapa.get(id); return !!p && produtoVisivel(p) })
+    const pos = new Map(atual.map((id, i) => [id, i]))
+    const preco = (p: Produto) => promoPriceOf(p) ?? Number(p.sale_price)
+    const catIdx = new Map(categorias.map((c, i) => [c.id, i]))
+    const ordenado = [...atual].sort((x, y) => {
+      const a = mapa.get(x)!, b = mapa.get(y)!
+      let d = 0
+      if (modo === 'az') d = a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' })
+      else if (modo === 'za') d = b.name.localeCompare(a.name, 'pt-BR', { sensitivity: 'base' })
+      else if (modo === 'menor') d = preco(a) - preco(b)
+      else if (modo === 'maior') d = preco(b) - preco(a)
+      else if (modo === 'promo') d = Number(promoPriceOf(b) != null) - Number(promoPriceOf(a) != null)
+      else if (modo === 'foto') d = Number(!!b.photo_url) - Number(!!a.photo_url)
+      else d = (catIdx.get(a.category_id || '') ?? 9999) - (catIdx.get(b.category_id || '') ?? 9999)
+      return d || (pos.get(x)! - pos.get(y)!)
+    })
+    aplicarNaVisivel(ordenado)
+  }
+  function handleDragEndProd(e: DragEndEvent) {
+    const { active, over } = e
+    if (!over || active.id === over.id) return
+    const mapa = new Map(produtos.map(p => [p.id, p]))
+    const atual = draftIds.filter(id => { const p = mapa.get(id); return !!p && produtoVisivel(p) })
+    const o = atual.indexOf(String(active.id)), n = atual.indexOf(String(over.id))
+    if (o < 0 || n < 0) return
+    aplicarNaVisivel(arrayMove(atual, o, n))
+  }
+  async function salvarOrdem() {
+    setReorderSaving(true)
+    const mapa = new Map(produtos.map(p => [p.id, p]))
+    const mudou = draftIds.map((id, i) => ({ id, i })).filter(x => mapa.get(x.id) && mapa.get(x.id)!.display_order !== x.i)
+    let falhou = false
+    for (let k = 0; k < mudou.length; k += 20) {
+      const res = await Promise.all(mudou.slice(k, k + 20).map(x => supabase.from('loja_produtos').update({ display_order: x.i }).eq('id', x.id)))
+      if (res.some(r => r.error)) { falhou = true; break }
+    }
+    setReorderSaving(false)
+    if (falhou) { showToast('Não consegui salvar a ordem. Tenta de novo.'); return }
+    setProdutos(draftIds.map((id, i) => ({ ...mapa.get(id)!, display_order: i })).filter(p => p.id))
+    setReorderMode(false); setDraftIds([])
+    showToast('Ordem salva. O cardápio já usa essa ordem.')
   }
 
   function openNew() { setForm(emptyForm()); setPhotoFile(null); setView('form') }
@@ -1312,6 +1401,26 @@ export default function CatalogoPage() {
         .cg-opt.paused .cg-opt-name{ text-decoration:line-through;color:#8A8372; }
         .cg-pause{ flex:none;border:1px solid #B9AE97;background:#fff;color:#1A1610;border-radius:7px;padding:0 9px;height:26px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap; }
         .cg-pause.on{ background:#FFF1D6;color:#A56500;border-color:#A56500; }
+        .cg-ord{ margin-bottom:12px; }
+        .cg-ord-start{ width:100%;padding:11px 14px;border-radius:10px;border:1.5px dashed #B9AE97;background:transparent;color:#1A1610;font-weight:700;font-size:12.5px;cursor:pointer;font-family:inherit;min-height:44px; }
+        .cg-ord-start:hover{ background:#FBF1DC; }
+        .cg-ord-bar{ border:1px solid #B9AE97;border-radius:12px;background:#FCFAF5;padding:12px;display:grid;gap:8px; }
+        .cg-ord-title{ font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#6E6656; }
+        .cg-ord-hint{ margin:0;font-size:12px;color:#6E6656;line-height:1.4; }
+        .cg-ord-chips{ display:flex;flex-wrap:wrap;gap:6px; }
+        .cg-ord-chips button{ border:1.5px solid #B9AE97;background:#fff;border-radius:9px;padding:8px 11px;min-height:38px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:#1A1610; }
+        .cg-ord-chips button:hover{ background:#FBF1DC; }
+        .cg-ord-actions{ display:flex;gap:8px;flex-wrap:wrap; }
+        .cg-rlist{ display:grid;gap:6px;margin-bottom:14px; }
+        .cg-rrow{ display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #B9AE97;border-radius:10px;padding:6px 10px 6px 6px;min-width:0; }
+        .cg-rrow .cg-drag-handle{ width:34px;height:40px;font-size:20px; }
+        .cg-rpos{ flex:none;width:26px;text-align:center;font-weight:800;color:#A79E8B;font-size:12px; }
+        .cg-rphoto{ flex:none;width:40px;height:40px;border-radius:8px;background:#F4F1E9;display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:16px; }
+        .cg-rphoto img{ width:100%;height:100%;object-fit:cover; }
+        .cg-rmid{ flex:1;min-width:0; }
+        .cg-rname{ font-weight:700;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+        .cg-rsub{ font-size:11px;color:#6E6656;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+        .cg-rprice{ flex:none;font-size:12.5px;white-space:nowrap; }
         .cg-add-inline{ font-size:11px;font-weight:700;color:#8A6410;background:#FBF1DC;border:1px dashed #B9AE97;border-radius:8px;padding:7px;width:100%;cursor:pointer;margin-top:4px; }
         .cg-add-group{ width:100%;padding:10px;border-radius:10px;border:1.5px dashed #B9AE97;background:transparent;color:#A79E8B;font-weight:700;font-size:12px;cursor:pointer; }
         .cg-import-menu{ position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid #DDD5C4;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.1);z-index:10;overflow:hidden; }
@@ -1428,6 +1537,37 @@ export default function CatalogoPage() {
                 </div>
               )}
             </div>
+            {produtos.length > 1 && (
+              <div className="cg-ord">
+                {!reorderMode ? (
+                  <button className="cg-ord-start" onClick={enterReorder}>↕ Organizar ordem dos produtos</button>
+                ) : (() => {
+                  const mapaD = new Map(produtos.map(p => [p.id, p]))
+                  const sujo = draftIds.some((id, i) => produtos[i]?.id !== id)
+                  const nVis = draftIds.filter(id => { const p = mapaD.get(id); return !!p && produtoVisivel(p) }).length
+                  const parcial = nVis < produtos.length
+                  return (
+                    <div className="cg-ord-bar">
+                      <div className="cg-ord-title">Organizando a ordem</div>
+                      <p className="cg-ord-hint">Arraste pelo ⠿ ou use os botões. A ordem só vale no cardápio depois que você salvar, e vale dentro de cada categoria.{parcial ? ` Agora estão visíveis ${nVis} de ${produtos.length}: só eles trocam de lugar entre si.` : ''}</p>
+                      <div className="cg-ord-chips">
+                        <button onClick={() => ordenarProdutos('az')}>A → Z</button>
+                        <button onClick={() => ordenarProdutos('za')}>Z → A</button>
+                        <button onClick={() => ordenarProdutos('menor')}>Menor preço</button>
+                        <button onClick={() => ordenarProdutos('maior')}>Maior preço</button>
+                        <button onClick={() => ordenarProdutos('promo')}>Promoções primeiro</button>
+                        <button onClick={() => ordenarProdutos('foto')}>Com foto primeiro</button>
+                        <button onClick={() => ordenarProdutos('categoria')}>Pela ordem das categorias</button>
+                      </div>
+                      <div className="cg-ord-actions">
+                        <button className="cg-btn cg-btn-gold" disabled={!sujo || reorderSaving} onClick={salvarOrdem}>{reorderSaving ? 'Salvando...' : (sujo ? 'Salvar ordem' : 'Nada mudou')}</button>
+                        <button className="cg-btn-ghost" style={{ padding: '10px 14px', borderRadius: 10, fontWeight: 700 }} disabled={reorderSaving} onClick={cancelReorder}>Cancelar</button>
+                      </div>
+                    </div>
+                  )
+                })()}
+              </div>
+            )}
             {selectMode && (
               <div className="cg-selbar">
                 <span className="cg-selbar-count">{selectedIds.size} selecionado{selectedIds.size !== 1 ? 's' : ''}</span>
@@ -1453,7 +1593,29 @@ export default function CatalogoPage() {
                 {searchTerm ? `Nenhum produto encontrado pra "${search.trim()}".` : 'Nenhum produto ainda. Toca no + pra criar o primeiro.'}
               </div>
             )}
-            {filtered.map(p => (
+            {reorderMode && (
+              <DndContext sensors={catSensors} collisionDetection={closestCenter} onDragEnd={handleDragEndProd}>
+                {(() => {
+                  const mapaD = new Map(produtos.map(p => [p.id, p]))
+                  const vis = draftIds.map(id => mapaD.get(id)).filter((p): p is Produto => !!p && produtoVisivel(p))
+                  return (
+                    <SortableContext items={vis.map(p => p.id)} strategy={verticalListSortingStrategy}>
+                      <div className="cg-rlist">
+                        {vis.map((p, i) => {
+                          const promo = promoPriceOf(p)
+                          return (
+                            <SortableProdRow key={p.id} id={p.id} pos={i + 1} name={p.name} cat={p.category?.name || 'Sem categoria'} photo={p.photo_url}
+                              status={!p.active ? 'pausado' : p.esgotado ? 'esgotado hoje' : ''}
+                              price={promo != null ? <><s>{fmt(Number(p.sale_price))}</s> <b style={{ color: '#D6392B' }}>{fmt(promo)}</b></> : <b>{fmt(Number(p.sale_price))}</b>} />
+                          )
+                        })}
+                      </div>
+                    </SortableContext>
+                  )
+                })()}
+              </DndContext>
+            )}
+            {!reorderMode && filtered.map(p => (
               <div
                 key={p.id}
                 className={`cg-row ${selectMode ? 'selecting' : ''} ${selectedIds.has(p.id) ? 'selected' : ''}`}
@@ -1498,7 +1660,7 @@ export default function CatalogoPage() {
               </div>
             ))}
           </div>
-          <button className="cg-fab" onClick={openNew}>+</button>
+          {!reorderMode && <button className="cg-fab" onClick={openNew}>+</button>}
         </div>
       )}
 

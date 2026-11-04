@@ -5,7 +5,7 @@ import { normalizePhone } from '@/lib/phone'
 import { requireUser } from '@/lib/requireUser'
 import { promoPrice } from '@/lib/lojaPricing'
 import { sendCustomerWhatsApp } from '@/lib/whatsapp'
-import { creditarCashback, debitarCashback, getSaldoCashback, reembolsarCashback } from '@/lib/cashback'
+import { creditarCashback, debitarCashback, getSaldoCashback, reembolsarCashback, valorItensSemCashback } from '@/lib/cashback'
 import {
   sb, acessoMesas, erro, r2, hashPin, pinOk, exigePinSupervisor, evento, recalcComanda, totalPago, novoQrToken, telefoneVerificado,
 } from '@/lib/mesas'
@@ -361,7 +361,9 @@ export async function POST(req: NextRequest) {
         const pct = Number(cfg?.cashback_percent_mesa) || 0
         if (cfg?.cashback_enabled && pct > 0 && c.customer_phone) {
           const pagoCash = r2((pgs || []).filter(p => p.forma === 'cashback').reduce((s, p) => s + Number(p.valor), 0))
-          const base = Math.max(0, r2((calc?.subtotal ?? 0) - (calc?.desconto ?? 0) - pagoCash))
+          const { data: rodadasConta } = await sb.from('loja_pedidos').select('id').eq('comanda_id', c.id).neq('status', 'cancelado')
+          const semCashback = await valorItensSemCashback(sb, (rodadasConta || []).map(r => r.id))
+          const base = Math.max(0, r2((calc?.subtotal ?? 0) - (calc?.desconto ?? 0) - pagoCash - semCashback))
           const valorCash = r2(base * pct / 100)
           const rodada = await primeiraRodada(c.id)
           if (valorCash > 0 && rodada) {

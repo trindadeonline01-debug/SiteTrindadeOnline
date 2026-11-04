@@ -19,6 +19,7 @@ type Produto = {
   promo_starts_at: string | null; promo_ends_at: string | null
   active: boolean; esgotado: boolean; display_order: number
   tipo_vitrine: string | null
+  sem_cashback?: boolean | null
   category?: { name: string } | null
 }
 
@@ -29,7 +30,7 @@ const emptyForm = () => ({
   category_id: '', tipo_vitrine: '' as string, cost_price: '0', sale_price: '0',
   track_stock: false, stock_qty: '', stock_alert_qty: '',
   restrictDays: false, days: [] as number[],
-  hasPromo: false, promo_value: '',
+  hasPromo: false, promo_value: '', semCashback: false,
   promo_starts_at: '', promo_ends_at: '',
   active: true,
   groups: [] as Grupo[],
@@ -725,7 +726,7 @@ export default function CatalogoPage() {
       sale_price: Number(data.sale_price).toFixed(2).replace('.', ','),
       track_stock: data.track_stock, stock_qty: data.stock_qty ?? '', stock_alert_qty: data.stock_alert_qty ?? '',
       restrictDays: !!(data.available_days && data.available_days.length), days: data.available_days || [],
-      hasPromo: !!data.promo_type, promo_value: promoDisplayPrice(data),
+      hasPromo: !!data.promo_type, promo_value: promoDisplayPrice(data), semCashback: !!data.promo_type && !!data.sem_cashback,
       promo_starts_at: data.promo_starts_at ? data.promo_starts_at.slice(0, 10) : '',
       promo_ends_at: data.promo_ends_at ? data.promo_ends_at.slice(0, 10) : '',
       active: data.active,
@@ -756,7 +757,7 @@ export default function CatalogoPage() {
       sale_price: Number(data.sale_price).toFixed(2).replace('.', ','),
       track_stock: data.track_stock, stock_qty: data.stock_qty ?? '', stock_alert_qty: data.stock_alert_qty ?? '',
       restrictDays: !!(data.available_days && data.available_days.length), days: data.available_days || [],
-      hasPromo: !!data.promo_type, promo_value: promoDisplayPrice(data),
+      hasPromo: !!data.promo_type, promo_value: promoDisplayPrice(data), semCashback: !!data.promo_type && !!data.sem_cashback,
       promo_starts_at: data.promo_starts_at ? data.promo_starts_at.slice(0, 10) : '',
       promo_ends_at: data.promo_ends_at ? data.promo_ends_at.slice(0, 10) : '',
       active: data.active,
@@ -864,6 +865,8 @@ export default function CatalogoPage() {
       promo_value: form.hasPromo ? Number((parsePt(form.sale_price) - parsePt(String(form.promo_value))).toFixed(2)) : null,
       promo_starts_at: form.hasPromo && form.promo_starts_at ? form.promo_starts_at : null,
       promo_ends_at: form.hasPromo && form.promo_ends_at ? form.promo_ends_at : null,
+      // Produto em promoção pode ficar de fora do cashback; sem promoção, sempre gera.
+      sem_cashback: form.hasPromo && form.semCashback,
       active: form.active,
       updated_at: new Date().toISOString(),
     }
@@ -1439,6 +1442,10 @@ export default function CatalogoPage() {
               <div className="cg-subbox">
                 <div className="cg-field"><label>Início (opcional)</label><input type="date" value={form.promo_starts_at} onChange={e => setForm(f => ({ ...f, promo_starts_at: e.target.value }))} /></div>
                 <div className="cg-field"><label>Fim (opcional)</label><input type="date" value={form.promo_ends_at} onChange={e => setForm(f => ({ ...f, promo_ends_at: e.target.value }))} /></div>
+                <div className="cg-swrow" style={{ gridColumn: '1 / -1' }}>
+                  <div className={`cg-switch ${form.semCashback ? 'on' : ''}`} onClick={() => setForm(f => ({ ...f, semCashback: !f.semCashback }))}><div className="k" /></div>
+                  <span>Não gerar cashback neste produto enquanto estiver em promoção</span>
+                </div>
               </div>
             )}
 

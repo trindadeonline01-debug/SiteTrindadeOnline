@@ -20,6 +20,9 @@ type Produto = {
   active: boolean; esgotado: boolean; display_order: number
   tipo_vitrine: string | null
   sem_cashback?: boolean | null
+  canal_delivery?: boolean | null
+  canal_pdv?: boolean | null
+  canal_mesa?: boolean | null
   ordem_interna?: number | null
   category?: { name: string } | null
 }
@@ -32,6 +35,7 @@ const emptyForm = () => ({
   track_stock: false, stock_qty: '', stock_alert_qty: '',
   restrictDays: false, days: [] as number[],
   hasPromo: false, promo_value: '', semCashback: false,
+  canalDelivery: true, canalPdv: true, canalMesa: true,
   promo_starts_at: '', promo_ends_at: '',
   active: true,
   groups: [] as Grupo[],
@@ -876,6 +880,7 @@ export default function CatalogoPage() {
       track_stock: data.track_stock, stock_qty: data.stock_qty ?? '', stock_alert_qty: data.stock_alert_qty ?? '',
       restrictDays: !!(data.available_days && data.available_days.length), days: data.available_days || [],
       hasPromo: !!data.promo_type, promo_value: promoDisplayPrice(data), semCashback: !!data.sem_cashback,
+      canalDelivery: data.canal_delivery !== false, canalPdv: data.canal_pdv !== false, canalMesa: data.canal_mesa !== false,
       promo_starts_at: data.promo_starts_at ? data.promo_starts_at.slice(0, 10) : '',
       promo_ends_at: data.promo_ends_at ? data.promo_ends_at.slice(0, 10) : '',
       active: data.active,
@@ -907,6 +912,7 @@ export default function CatalogoPage() {
       track_stock: data.track_stock, stock_qty: data.stock_qty ?? '', stock_alert_qty: data.stock_alert_qty ?? '',
       restrictDays: !!(data.available_days && data.available_days.length), days: data.available_days || [],
       hasPromo: !!data.promo_type, promo_value: promoDisplayPrice(data), semCashback: !!data.sem_cashback,
+      canalDelivery: data.canal_delivery !== false, canalPdv: data.canal_pdv !== false, canalMesa: data.canal_mesa !== false,
       promo_starts_at: data.promo_starts_at ? data.promo_starts_at.slice(0, 10) : '',
       promo_ends_at: data.promo_ends_at ? data.promo_ends_at.slice(0, 10) : '',
       active: data.active,
@@ -1039,6 +1045,7 @@ export default function CatalogoPage() {
 
   async function saveProduto() {
     if (!form.name.trim()) { showToast('Dá um nome pro produto'); return }
+    if (company?.mesas_enabled && !form.canalDelivery && !form.canalPdv && !form.canalMesa) { showToast('Escolha pelo menos um lugar onde o produto aparece'); return }
     if (form.hasPromo) {
       const promoNum = parsePt(form.promo_value)
       if (promoNum <= 0) { showToast('Preenche o preço de promoção ou desativa a promoção'); return }
@@ -1089,6 +1096,9 @@ export default function CatalogoPage() {
       promo_ends_at: form.hasPromo && form.promo_ends_at ? form.promo_ends_at : null,
       // Produto em promoção pode ficar de fora do cashback; sem promoção, sempre gera.
       sem_cashback: form.semCashback,
+      // Onde o produto aparece: só é controlado quando a loja tem Mesas liberado (PDV + Mesas + Delivery).
+      // Sem isso, o produto continua aparecendo em tudo, como sempre foi.
+      ...(company?.mesas_enabled ? { canal_delivery: form.canalDelivery, canal_pdv: form.canalPdv, canal_mesa: form.canalMesa } : {}),
       active: form.active,
       updated_at: new Date().toISOString(),
     }
@@ -1367,6 +1377,11 @@ export default function CatalogoPage() {
         .cg-field.promo label{ display:flex;align-items:center;gap:6px; }
         .cg-field.promo .tag{ font-size:8.5px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:#fff;background:#D6392B;padding:1px 6px;border-radius:99px; }
         .cg-margin{ font-size:11px;font-weight:700;color:#157A52;margin:-6px 0 12px; }
+        .cg-canais{ margin:4px 0 14px;padding:10px 12px;border:1.5px solid #B9AE97;border-radius:12px;background:#FCFAF5; }
+        .cg-canais label{ display:block;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#6F6C67;margin-bottom:8px; }
+        .cg-canais .row{ display:flex;gap:8px;flex-wrap:wrap; }
+        .cg-canais button{ min-height:42px;padding:0 14px;border-radius:10px;border:1.5px solid #B9AE97;background:#fff;font-weight:700;cursor:pointer;font-size:13px; }
+        .cg-canais button.on{ background:#151210;color:#FFC531;border-color:#151210; }
         .cg-swrow{ display:flex;align-items:center;gap:10px;padding:8px 0; }
         .cg-switch{ width:36px;height:20px;border-radius:11px;background:#B9AE97;position:relative;cursor:pointer;flex:none; }
         .cg-switch.on{ background:#157A52; }
@@ -1737,6 +1752,18 @@ export default function CatalogoPage() {
               : <div className="cg-margin" style={{ color: '#AAA' }}>Preencha o custo pra ver a margem</div>}
             {form.hasPromo && parsePt(form.promo_value) > 0 && parsePt(form.promo_value) >= parsePt(form.sale_price) && (
               <div className="cg-margin" style={{ color: '#D6392B', marginTop: -4 }}>O preço de promoção precisa ser menor que o de venda</div>
+            )}
+
+            {company?.mesas_enabled && (
+              <div className="cg-canais">
+                <label>Onde este produto aparece</label>
+                <div className="row">
+                  {([['canalDelivery', '🛵 Delivery'], ['canalPdv', '🖥️ PDV'], ['canalMesa', '🍽️ Mesas']] as const).map(([k, nome]) => (
+                    <button key={k} type="button" className={form[k] ? 'on' : ''} onClick={() => setForm(f => ({ ...f, [k]: !f[k] }))}>{form[k] ? '✓ ' : ''}{nome}</button>
+                  ))}
+                </div>
+                {!form.canalDelivery && !form.canalPdv && !form.canalMesa && <small style={{ color: '#D6392B' }}>Escolha pelo menos um lugar, senão o produto não aparece em lugar nenhum.</small>}
+              </div>
             )}
 
             <div className="cg-swrow"><div className={`cg-switch ${form.restrictDays ? 'on' : ''}`} onClick={() => setForm(f => ({ ...f, restrictDays: !f.restrictDays }))}><div className="k" /></div><span>Disponibilidade limitada por dia</span></div>

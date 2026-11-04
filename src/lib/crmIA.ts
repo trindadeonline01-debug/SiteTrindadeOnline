@@ -258,7 +258,7 @@ async function buildContext(companyId: string, phone?: string | null, ultimaMsgC
       id, name, sale_price, promo_type, promo_value, promo_starts_at, promo_ends_at, esgotado, track_stock, stock_qty,
       groups:loja_opcoes_grupo(name, options:loja_opcoes(name, price, pausado))
     `)
-    .eq('company_id', companyId).eq('active', true)
+    .eq('company_id', companyId).eq('active', true).eq('canal_delivery', true)
   const disponiveis = (produtos || []).filter((p: any) => !isSoldOut(p))
 
   if (disponiveis.length > 0) {

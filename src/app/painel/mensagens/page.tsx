@@ -504,7 +504,7 @@ export default function MensagensPage() {
       setNpLoadingProdutos(true)
       const [{ data: cats }, { data: prods }] = await Promise.all([
         supabase.from('loja_categorias').select('id, name, display_order').eq('company_id', company.id).order('display_order'),
-        supabase.from('loja_produtos').select('*, groups:loja_opcoes_grupo(*, options:loja_opcoes(*))').eq('company_id', company.id).eq('active', true).order('display_order'),
+        supabase.from('loja_produtos').select('*, groups:loja_opcoes_grupo(*, options:loja_opcoes(*))').eq('company_id', company.id).eq('active', true).eq('canal_delivery', true).order('display_order'),
       ])
       setNpCategorias((cats || []) as any)
       setNpProdutos(ordenarComplementosLista((prods || []) as any[]) as any)

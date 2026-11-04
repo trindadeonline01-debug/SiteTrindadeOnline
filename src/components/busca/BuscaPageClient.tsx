@@ -121,7 +121,7 @@ export default function BuscaPageClient({ initialQuery, initialResults, produtos
       const { data } = await supabase
         .from('loja_produtos')
         .select('id,name,sale_price,photo_url,promo_type,promo_value,promo_starts_at,promo_ends_at,company:companies!inner(id,name,slug,status,loja_digital_enabled)')
-        .eq('active', true).not('photo_url', 'is', null)
+        .eq('active', true).eq('canal_delivery', true).not('photo_url', 'is', null)
         .eq('company.status', 'active').eq('company.loja_digital_enabled', true)
         .or(`name.ilike.%${term}%,description.ilike.%${term}%`)
         .limit(12)

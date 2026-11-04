@@ -33,6 +33,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .from('loja_produtos')
     .select('id, updated_at, company:companies!inner(slug, status, loja_digital_enabled)')
     .eq('active', true)
+    .eq('canal_delivery', true)
     .eq('company.status', 'active')
     .eq('company.loja_digital_enabled', true)
 

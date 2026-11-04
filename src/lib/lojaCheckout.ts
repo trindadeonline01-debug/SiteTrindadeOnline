@@ -100,7 +100,7 @@ export async function prepararCheckout(body: any): Promise<
   if (itens.some(l => !l.produtoId || !(l.qty > 0) || !(l.unitPrice >= 0))) return { ok: false, status: 400, error: 'Carrinho inválido — atualiza a página do cardápio.' }
   const { data: produtos } = await supabaseAdmin.from('loja_produtos')
     .select('id, sale_price, promo_type, promo_value, promo_starts_at, promo_ends_at, active, esgotado, track_stock, stock_qty')
-    .eq('company_id', companyId).in('id', [...new Set(itens.map(l => l.produtoId))])
+    .eq('company_id', companyId).eq('canal_delivery', true).in('id', [...new Set(itens.map(l => l.produtoId))])
   const porId = new Map((produtos || []).map(p => [p.id, p]))
   for (const l of itens) {
     const p = porId.get(l.produtoId)

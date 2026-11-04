@@ -38,7 +38,7 @@ export default function HomeSearchBox() {
       const { data: prodData } = await supabase
         .from('loja_produtos')
         .select('id, name, sale_price, company:companies!inner(slug, name, status, loja_digital_enabled)')
-        .eq('active', true).not('photo_url', 'is', null)
+        .eq('active', true).eq('canal_delivery', true).not('photo_url', 'is', null)
         .eq('company.status', 'active').eq('company.loja_digital_enabled', true)
         .ilike('name', `%${q}%`).limit(5)
       if (prodData) {

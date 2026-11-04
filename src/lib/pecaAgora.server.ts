@@ -47,6 +47,7 @@ export async function buildPecaAgoraGroups(supabaseServer: any): Promise<PecaGro
     .select('id, name, photo_url, sale_price, promo_type, promo_value, promo_starts_at, promo_ends_at, available_days, esgotado, track_stock, stock_qty, tipo_vitrine, company_id, groups:loja_opcoes_grupo(id)')
     .in('company_id', pecaCompanies.map((c) => c.id))
     .eq('active', true)
+    .eq('canal_delivery', true)
     .not('photo_url', 'is', null)
     .order('display_order')
 

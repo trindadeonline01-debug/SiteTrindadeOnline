@@ -152,7 +152,7 @@ export default function MesasPage() {
       setMesasEnabled(!!comp.mesas_enabled); setTaxaPct(Number(comp.loja_taxa_servico_pct) || 0); setHasPin(!!comp.loja_supervisor_pin_hash); setAdminMode(isAdmin)
       if (comp.mesas_enabled || isAdmin) {
         const [{ data: prods }, { data: cats }] = await Promise.all([
-          supabase.from('loja_produtos').select('id, name, sale_price, category_id, photo_url, groups:loja_opcoes_grupo(*, options:loja_opcoes(*))').eq('company_id', comp.id).eq('active', true).order('display_order'),
+          supabase.from('loja_produtos').select('id, name, sale_price, category_id, photo_url, groups:loja_opcoes_grupo(*, options:loja_opcoes(*))').eq('company_id', comp.id).eq('active', true).eq('canal_mesa', true).order('display_order'),
           supabase.from('loja_categorias').select('id, name').eq('company_id', comp.id).order('display_order'),
         ])
         setProdutos(ordenarComplementosLista((prods || []) as any[]) as unknown as Produto[]); setCategorias((cats || []) as { id: string; name: string }[])

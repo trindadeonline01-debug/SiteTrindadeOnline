@@ -32,7 +32,7 @@ async function criarRodada(companyId: string, c: any, entrada: any[], obs: unkno
   const ids = [...new Set(entrada.map(i => String(i.produtoId || '')))]
   const { data: prods } = await sb.from('loja_produtos')
     .select('id, name, sale_price, promo_type, promo_value, promo_starts_at, promo_ends_at, active, esgotado, track_stock, stock_qty')
-    .eq('company_id', companyId).in('id', ids)
+    .eq('company_id', companyId).eq('canal_mesa', true).in('id', ids)
   const porId = new Map((prods || []).map(p => [p.id, p]))
   const linhas: { produto_id: string; product_name: string; unit_price: number; qty: number; peso_kg: number | null; selected_options: unknown[]; notes: string | null }[] = []
   for (const i of entrada) {

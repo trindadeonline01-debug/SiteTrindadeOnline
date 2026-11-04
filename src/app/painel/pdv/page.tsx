@@ -145,7 +145,7 @@ export default function PdvPage() {
       setPayOptions(opts)
 
       const [{ data: prods }, { data: cats }] = await Promise.all([
-        supabase.from('loja_produtos').select('id, name, sale_price, category_id, photo_url, codigo_balanca, groups:loja_opcoes_grupo(*, options:loja_opcoes(*))').eq('company_id', comp.id).eq('active', true).order('display_order'),
+        supabase.from('loja_produtos').select('id, name, sale_price, category_id, photo_url, codigo_balanca, groups:loja_opcoes_grupo(*, options:loja_opcoes(*))').eq('company_id', comp.id).eq('active', true).eq('canal_pdv', true).order('display_order'),
         supabase.from('loja_categorias').select('id, name').eq('company_id', comp.id).order('display_order'),
       ])
       setProdutos(ordenarComplementosLista((prods || []) as any[]) as any)

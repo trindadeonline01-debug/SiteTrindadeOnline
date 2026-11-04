@@ -745,7 +745,7 @@ export default function PedidosPage() {
     setNpOpen(true)
     if (npProdutos.length === 0) {
       setNpLoadingProdutos(true)
-      const { data } = await supabase.from('loja_produtos').select('id, name, sale_price, category_id, groups:loja_opcoes_grupo(*, options:loja_opcoes(*))').eq('company_id', companyId).eq('active', true).order('display_order')
+      const { data } = await supabase.from('loja_produtos').select('id, name, sale_price, category_id, groups:loja_opcoes_grupo(*, options:loja_opcoes(*))').eq('company_id', companyId).eq('active', true).eq('canal_delivery', true).order('display_order')
       setNpProdutos(ordenarComplementosLista((data || []) as any[]) as any)
       setNpLoadingProdutos(false)
     }

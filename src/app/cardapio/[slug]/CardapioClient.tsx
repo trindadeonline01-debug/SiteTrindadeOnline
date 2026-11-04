@@ -240,7 +240,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
         setPayMethod(prev => (accepted.includes(prev) ? prev : accepted[0]) as any)
         const [{ data: cats }, { data: prods }, { data: cps }] = await Promise.all([
           supabase.from('loja_categorias').select('*').eq('company_id', comp.id).order('display_order'),
-          supabase.from('loja_produtos').select('*, groups:loja_opcoes_grupo(*, options:loja_opcoes(*))').eq('company_id', comp.id).eq('active', true).order('display_order'),
+          supabase.from('loja_produtos').select('*, groups:loja_opcoes_grupo(*, options:loja_opcoes(*))').eq('company_id', comp.id).eq('active', true).eq('canal_delivery', true).order('display_order'),
           supabase.from('coupons').select('id,title,discount_type,discount_value,min_purchase').eq('company_id', comp.id).eq('active', true).gt('expires_at', new Date().toISOString()).order('created_at', { ascending: false }),
         ])
         setCategorias(cats || [])

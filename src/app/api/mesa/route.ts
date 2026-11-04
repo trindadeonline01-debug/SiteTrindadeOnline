@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
         sb.from('loja_categorias').select('id, name').eq('company_id', company.id).order('display_order'),
         sb.from('loja_produtos')
           .select('id, name, description, photo_url, category_id, sale_price, promo_type, promo_value, promo_starts_at, promo_ends_at, esgotado, track_stock, stock_qty, groups:loja_opcoes_grupo(id, name, required, min_select, max_select, pricing_rule, display_order, options:loja_opcoes(id, name, price, display_order, pausado))')
-          .eq('company_id', company.id).eq('active', true).order('display_order'),
+          .eq('company_id', company.id).eq('active', true).eq('canal_mesa', true).order('display_order'),
       ])
       const produtos = (prods || [])
         .filter((p: any) => !p.esgotado && !(p.track_stock && (p.stock_qty ?? 0) <= 0))
@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
       const ids = [...new Set(entrada.map(i => String(i?.produtoId || '')))]
       const { data: prods } = await sb.from('loja_produtos')
         .select('id, name, sale_price, promo_type, promo_value, promo_starts_at, promo_ends_at, active, esgotado, track_stock, stock_qty, groups:loja_opcoes_grupo(id, name, required, min_select, max_select, pricing_rule, options:loja_opcoes(id, name, price, pausado))')
-        .eq('company_id', company.id).in('id', ids)
+        .eq('company_id', company.id).eq('canal_mesa', true).in('id', ids)
       const porId = new Map<string, ProdutoMesaDb>((prods || []).map((p: any) => [p.id, p as ProdutoMesaDb]))
 
       const itens: { produtoId: string; nome: string; qty: number; modifiers: { name: string; price: number }[]; notes: string | null; unit: number }[] = []

@@ -17,12 +17,12 @@ const getData = cache(async (slug: string, id: string) => {
 
   const { data: produto } = await supabaseServer.from('loja_produtos')
     .select('*, groups:loja_opcoes_grupo(*, options:loja_opcoes(*))')
-    .eq('id', id).eq('company_id', company.id).eq('active', true).maybeSingle()
+    .eq('id', id).eq('company_id', company.id).eq('active', true).eq('canal_delivery', true).maybeSingle()
   if (!produto) return { company, produto: null, related: [], pecaAgoraEnabled: false }
 
   const { data: related } = await supabaseServer.from('loja_produtos')
     .select('id,name,photo_url,sale_price,promo_type,promo_value,promo_starts_at,promo_ends_at')
-    .eq('company_id', company.id).eq('active', true).neq('id', id)
+    .eq('company_id', company.id).eq('active', true).eq('canal_delivery', true).neq('id', id)
     .order('display_order').limit(10)
 
   const { data: pecaAgoraSetting } = await supabaseServer.from('site_settings').select('value').eq('key', 'peca_agora_enabled').maybeSingle()

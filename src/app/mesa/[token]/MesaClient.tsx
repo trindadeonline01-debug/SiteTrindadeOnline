@@ -33,6 +33,7 @@ export default function MesaClient({ token }: { token: string }) {
     } catch { return null }
   })
   const [busy, setBusy] = useState(false)
+  const [quizOn, setQuizOn] = useState(false)
   const [aviso, setAviso] = useState('')
   const [chamou, setChamou] = useState<'garcom' | 'conta' | null>(null)
   // Identificação por código (cashback)
@@ -65,12 +66,15 @@ export default function MesaClient({ token }: { token: string }) {
       if (!r.ok) { setFalha(r.data?.error || 'Não consegui abrir a mesa. Chame o garçom.'); return }
       sessaoRef.current = r.data.sessao
       setInfo(r.data as Info)
+      // Quiz ligado nesta loja? Mostra o botão "Jogar".
+      fetch('/api/mesa/quiz', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, acao: 'estado' }) })
+        .then(q => q.json()).then(q => { if (vivo) setQuizOn(!!q.ativo) }).catch(() => {})
       if (r.data.contaAberta && r.data.cashback?.ativo) {
         call('carteira').then(c => { if (vivo && c.ok) setCart({ verificado: !!c.data.verificado, saldo: Number(c.data.saldo) || 0, telefone: c.data.telefone || null }) })
       }
     })
     return () => { vivo = false }
-  }, [call])
+  }, [call, token])
 
   // Acompanha a resposta do garçom (a cada 4s enquanto espera).
   const esperando = envio?.status === 'aberto'
@@ -174,6 +178,13 @@ export default function MesaClient({ token }: { token: string }) {
           {info.contaAberta && <button className="mz-btn ghost" disabled={busy} onClick={() => chamar('conta')}>{chamou === 'conta' ? '✓ Conta pedida' : 'Pedir a conta'}</button>}
         </div>
       </header>
+
+      {quizOn && (
+        <a href={`/mesa/${token}/quiz`} style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#082B38', color: '#fff', borderRadius: 12, padding: '14px 16px', textDecoration: 'none', margin: '0 0 12px' }}>
+          <span style={{ fontSize: 26 }}>🎣</span>
+          <span style={{ display: 'grid', gap: 2 }}><b style={{ fontSize: 15 }}>Jogar · Quiz Pesca Premiada</b><span style={{ fontSize: 12.5, color: '#BFD9DE' }}>Acerte as perguntas e suba no ranking da loja</span></span>
+        </a>
+      )}
 
       {info.contaAberta && info.cashback.ativo && cart && (
         <section className="mz-cash" aria-label="Cashback">

@@ -1,0 +1,183 @@
+# nivel|categoria|pergunta|certa|errada1|errada2|errada3|curiosidade   (1 muito fácil · 2 fácil · 3 intermediário · 4 difícil · 5 impossível)
+1|Geral|Quantos dias tem uma semana?|7|5|6|8|Vai de domingo a sábado.
+1|Geral|Qual cor sai da mistura de azul com amarelo?|Verde|Roxo|Laranja|Marrom|É a mesma mistura que o pintor faz na tinta.
+1|Geral|Quantos meses tem um ano?|12|10|11|13|Janeiro é o primeiro e dezembro é o último.
+1|Geral|Qual é o resultado de 2 + 2?|4|3|5|22|Uma das contas mais fáceis que existem.
+1|Geral|Quantos lados tem um triângulo?|3|4|5|6|Tri quer dizer três.
+1|Geral|Quantas rodas tem uma bicicleta?|2|3|4|1|Daí o nome: bi, de dois.
+1|Geral|Qual instrumento tem teclas brancas e pretas?|Piano|Violão|Flauta|Tambor|Um piano grande tem 88 teclas.
+1|Brasil|Qual é a capital do Brasil?|Brasília|Rio de Janeiro|São Paulo|Salvador|Brasília foi inaugurada em 1960.
+1|Brasil|Qual é a língua falada no Brasil?|Português|Espanhol|Inglês|Francês|Falado por mais de 200 milhões de pessoas.
+1|Brasil|Qual oceano banha o litoral do Brasil?|Atlântico|Pacífico|Índico|Ártico|O litoral brasileiro passa de 7 mil km.
+1|Brasil|Qual é a cor da camisa da seleção brasileira de futebol?|Amarela|Azul|Preta|Vermelha|A camisa amarela existe desde 1953.
+1|Brasil|Qual é o prato baiano feito com dendê e leite de coco?|Moqueca|Churrasco|Pizza|Hambúrguer|Peixe ou camarão na panela com dendê.
+1|Brasil|Em qual mês se comemora o Natal?|Dezembro|Outubro|Novembro|Janeiro|No dia 25.
+1|Brasil|Em qual país fica o Rio de Janeiro?|Brasil|Argentina|Portugal|Chile|É conhecido como Cidade Maravilhosa.
+1|Esportes|Quantos jogadores de cada time ficam em campo no futebol?|11|9|10|12|Contando o goleiro.
+1|Esportes|Em qual esporte se usa raquete e bola amarela?|Tênis|Futebol|Vôlei|Natação|Em Wimbledon o piso é de grama.
+1|Esportes|Qual esporte se joga com cesta e bola laranja?|Basquete|Tênis|Golfe|Boxe|Inventado em 1891 nos Estados Unidos.
+1|Ciência|Em qual planeta nós vivemos?|Terra|Marte|Vênus|Júpiter|A Terra é o terceiro planeta a partir do Sol.
+1|Ciência|Qual astro ilumina o nosso dia?|Sol|Lua|Marte|Júpiter|O Sol é uma estrela.
+1|Ciência|O que a abelha produz?|Mel|Leite|Açúcar|Queijo|Uma abelha produz muito pouco mel na vida.
+1|Corpo|Com qual órgão respiramos?|Pulmão|Coração|Estômago|Fígado|Temos dois pulmões.
+1|Corpo|Qual órgão bombeia o sangue?|Coração|Pulmão|Rim|Cérebro|Ele bate em média 100 mil vezes por dia.
+1|Corpo|Quantos dedos temos nas duas mãos?|10|8|12|20|Cinco em cada mão.
+1|Gastronomia|Qual destes alimentos é uma fruta?|Banana|Alface|Batata|Cebola|A banana cresce em cachos.
+1|Gastronomia|O pão é feito principalmente de…|Farinha|Areia|Gelo|Sal|Farinha de trigo, água e fermento.
+1|Gastronomia|Qual destes alimentos é um laticínio?|Queijo|Arroz|Feijão|Macarrão|Feito a partir do leite.
+1|Gastronomia|Qual prato brasileiro leva feijão preto e carnes variadas?|Feijoada|Moqueca|Lasanha|Sushi|Tradicionalmente servida aos sábados.
+1|Animais|Qual destes animais é uma ave?|Papagaio|Gato|Cavalo|Coelho|Alguns papagaios aprendem a falar.
+1|Animais|Qual animal faz “miau”?|Gato|Cachorro|Vaca|Pato|Gatos também ronronam.
+1|Animais|Qual é o maior animal terrestre?|Elefante-africano|Girafa|Rinoceronte|Hipopótamo|Pode passar de 6 toneladas.
+2|Geografia|Qual é a capital da França?|Paris|Lyon|Marselha|Nice|A Torre Eiffel fica lá.
+2|Geografia|Qual é a capital da Argentina?|Buenos Aires|Montevidéu|Santiago|Lima|Fica às margens do Rio da Prata.
+2|Geografia|Qual é a capital da Itália?|Roma|Milão|Veneza|Florença|Roma é chamada de Cidade Eterna.
+2|Geografia|Qual é a capital do Japão?|Tóquio|Quioto|Osaka|Nagoia|Tóquio é uma das maiores cidades do mundo.
+2|Geografia|Qual é o maior país do mundo em área?|Rússia|China|Canadá|Estados Unidos|Ocupa mais de 17 milhões de km².
+2|Geografia|Qual é a capital de Minas Gerais?|Belo Horizonte|Ouro Preto|Uberlândia|Juiz de Fora|Ouro Preto foi a antiga capital.
+2|Geografia|Qual é a capital de Pernambuco?|Recife|Olinda|Caruaru|Petrolina|O Recife é cortado por rios e pontes.
+2|Geografia|Qual é a capital da Bahia?|Salvador|Feira de Santana|Ilhéus|Porto Seguro|Foi a primeira capital do Brasil.
+2|Geografia|Qual é a maior cidade do Brasil em população?|São Paulo|Rio de Janeiro|Brasília|Salvador|São Paulo tem mais de 11 milhões de habitantes.
+2|Geografia|Em qual cidade fica o Cristo Redentor?|Rio de Janeiro|São Paulo|Salvador|Recife|Está no alto do Corcovado.
+2|Geografia|Em qual cidade fica o Pão de Açúcar?|Rio de Janeiro|Niterói|Santos|Florianópolis|Tem um bondinho famoso.
+2|Geografia|Qual rio nasce nos Andes e é o mais volumoso do mundo?|Amazonas|Nilo|Mississippi|Danúbio|Nenhum outro rio leva tanta água ao mar.
+2|Geografia|Qual é o rio mais importante do Egito?|Nilo|Tâmisa|Danúbio|Sena|Cruza o deserto até o Mediterrâneo.
+2|Ciência|Qual é o maior planeta do sistema solar?|Júpiter|Saturno|Terra|Netuno|Cabem mais de mil Terras dentro dele.
+2|Ciência|Qual é o planeta vermelho?|Marte|Vênus|Mercúrio|Urano|A cor vem do óxido de ferro no solo.
+2|Ciência|Qual gás as plantas absorvem na fotossíntese?|Gás carbônico|Oxigênio|Nitrogênio|Hélio|Elas liberam oxigênio.
+2|Ciência|H2O é a fórmula de qual substância?|Água|Sal|Gás oxigênio|Açúcar|Duas partes de hidrogênio e uma de oxigênio.
+2|Ciência|Qual é o metal líquido em temperatura ambiente?|Mercúrio|Ferro|Cobre|Prata|Por isso foi usado em termômetros antigos.
+2|Ciência|Quantas cores tem o arco-íris?|7|5|6|8|Vermelho, laranja, amarelo, verde, azul, anil e violeta.
+2|Esportes|Quantos jogadores tem um time de vôlei em quadra?|6|5|7|8|Seis de cada lado da rede.
+2|Esportes|Quantos jogadores tem um time de basquete em quadra?|5|6|7|11|Cinco de cada equipe.
+2|Esportes|Quantos minutos tem uma partida de futebol, sem acréscimos?|90|60|80|100|Dois tempos de 45.
+2|Esportes|Quem é conhecido como “Rei do Futebol”?|Pelé|Garrincha|Zico|Romário|Pelé ganhou três Copas.
+2|Esportes|Qual time carioca tem a camisa rubro-negra?|Flamengo|Vasco|Fluminense|Botafogo|O Flamengo é o clube de maior torcida do país.
+2|Matemática|Quanto é 7 x 8?|56|48|54|64|Uma conta clássica da tabuada.
+2|Matemática|Qual é a raiz quadrada de 81?|9|8|7|11|Nove vezes nove dá 81.
+2|Matemática|Quantos lados tem um hexágono?|6|5|7|8|Como as celas de um favo de mel.
+2|Gastronomia|Qual é o ingrediente principal do guacamole?|Abacate|Tomate|Pimentão|Milho|Prato típico do México.
+2|Gastronomia|De qual fruta se faz o vinho?|Uva|Maçã|Pera|Laranja|Existem também vinhos de outras frutas.
+2|Gastronomia|De qual país veio a pizza?|Itália|França|Grécia|Espanha|A pizza napolitana é patrimônio cultural da Unesco.
+2|Cultura|Quem pintou a Mona Lisa?|Leonardo da Vinci|Michelangelo|Picasso|Van Gogh|Está no Museu do Louvre, em Paris.
+2|Cultura|Quem escreveu “Dom Casmurro”?|Machado de Assis|José de Alencar|Graciliano Ramos|Jorge Amado|Machado fundou a Academia Brasileira de Letras.
+2|Cultura|Qual instrumento de couro pequeno é típico do samba?|Pandeiro|Violino|Saxofone|Gaita|Ele tem platinelas de metal.
+2|Cultura|Quem compôs a música de “Garota de Ipanema”?|Tom Jobim|Roberto Carlos|Chico Buarque|Caetano Veloso|A letra é de Vinicius de Moraes.
+2|História|Quem chegou ao Brasil em 1500 comandando a frota portuguesa?|Pedro Álvares Cabral|Cristóvão Colombo|Vasco da Gama|Dom Pedro I|A frota chegou ao litoral da Bahia.
+2|História|Qual é a moeda do Brasil?|Real|Peso|Dólar|Euro|O Real existe desde 1994.
+2|Animais|Qual é o animal terrestre mais rápido?|Guepardo|Leão|Cavalo|Avestruz|Chega a mais de 100 km/h em curtas corridas.
+2|Rio de Janeiro|Em que baía fica a cidade do Rio de Janeiro?|Baía de Guanabara|Baía de Todos os Santos|Baía de Sepetiba|Baía de Paranaguá|São Gonçalo e Niterói também ficam nela.
+2|Rio de Janeiro|Qual cidade fluminense é conhecida como Cidade Imperial?|Petrópolis|Niterói|Cabo Frio|Angra dos Reis|Lá ficava o palácio de verão de Dom Pedro II.
+2|Rio de Janeiro|Em qual cidade ficam as praias de Búzios?|Armação dos Búzios|Paraty|Angra dos Reis|Macaé|Foi destino de Brigitte Bardot nos anos 1960.
+3|Geografia|Qual é a capital da Austrália?|Camberra|Sydney|Melbourne|Perth|Foi criada só para ser capital.
+3|Geografia|Qual é a capital do Canadá?|Ottawa|Toronto|Vancouver|Montreal|Fica na província de Ontário.
+3|Geografia|Qual é a capital da Turquia?|Ancara|Istambul|Izmir|Antália|Istambul é maior, mas a capital é Ancara.
+3|Geografia|Qual é a capital da Noruega?|Oslo|Estocolmo|Copenhague|Helsinque|Oslo fica no sul do país.
+3|Geografia|Qual é o maior deserto quente do mundo?|Saara|Gobi|Atacama|Kalahari|Ocupa boa parte do norte da África.
+3|Geografia|Qual é a montanha mais alta do mundo?|Monte Everest|K2|Kilimanjaro|Mont Blanc|Passa de 8.800 metros.
+3|Geografia|Qual cidade do Rio de Janeiro é famosa por ser a Cidade Maravilhosa?|Rio de Janeiro|Niterói|Petrópolis|Cabo Frio|O apelido vem de uma marchinha de 1934.
+3|Geografia|Qual ilha da Baía de Guanabara é conhecida pelos passeios de bicicleta e pelos poucos carros?|Paquetá|Ilha Grande|Ilha do Governador|Ilha Fiscal|Paquetá é cenário de romances e passeios de charrete.
+3|Geografia|Qual é o maior estado brasileiro em área?|Amazonas|Pará|Mato Grosso|Minas Gerais|O Amazonas é maior que muitos países.
+3|Geografia|Quantos estados tem o Brasil, sem contar o Distrito Federal?|26|27|25|24|O 27º ente é o Distrito Federal.
+3|Geografia|Qual país tem o formato de uma bota?|Itália|Grécia|Portugal|Espanha|A Sicília parece uma “bola” na ponta da bota.
+3|Geografia|Qual cidade é chamada de Cidade Luz?|Paris|Londres|Roma|Viena|O apelido vem da iluminação pioneira nas ruas.
+3|Geografia|Qual rio atravessa Londres?|Tâmisa|Sena|Danúbio|Reno|A Ponte da Torre cruza esse rio.
+3|História|Em que ano começou a Segunda Guerra Mundial?|1939|1914|1941|1945|Começou com a invasão da Polônia.
+3|História|Em que ano terminou a Segunda Guerra Mundial?|1945|1939|1950|1941|A rendição do Japão veio em setembro de 1945.
+3|História|Quem foi o primeiro presidente do Brasil?|Marechal Deodoro da Fonseca|Getúlio Vargas|Juscelino Kubitschek|Floriano Peixoto|A República foi proclamada em 1889.
+3|História|Em que ano o homem pisou na Lua pela primeira vez?|1969|1959|1975|1981|A missão foi a Apollo 11.
+3|História|Qual foi a primeira capital do Brasil?|Salvador|Rio de Janeiro|Brasília|Olinda|Foi capital da colônia até 1763.
+3|História|Em que ano caiu o Muro de Berlim?|1989|1961|1975|1991|A queda abriu caminho para a reunificação alemã.
+3|História|Quem foi o último imperador do Brasil?|Dom Pedro II|Dom Pedro I|Dom João VI|Dom Manuel|Reinou por quase 50 anos.
+3|Ciência|Qual é o símbolo químico do ouro?|Au|Ag|Or|Go|Vem do latim aurum.
+3|Ciência|Quantos ossos tem o corpo de um adulto?|206|150|300|180|Bebês nascem com mais ossos, que depois se fundem.
+3|Ciência|Qual é o maior osso do corpo humano?|Fêmur|Úmero|Tíbia|Costela|Fica na coxa.
+3|Ciência|Qual é o planeta mais próximo do Sol?|Mercúrio|Vênus|Marte|Terra|Um ano em Mercúrio dura 88 dias.
+3|Ciência|Qual vitamina o sol ajuda o corpo a produzir?|Vitamina D|Vitamina C|Vitamina A|Vitamina K|Ela ajuda a fixar o cálcio nos ossos.
+3|Ciência|Quem propôs a evolução por seleção natural?|Charles Darwin|Isaac Newton|Galileu|Louis Pasteur|Publicou “A Origem das Espécies” em 1859.
+3|Ciência|Quem inventou o telefone, segundo a patente de 1876?|Alexander Graham Bell|Thomas Edison|Nikola Tesla|Guglielmo Marconi|A patente foi disputada por outros inventores.
+3|Ciência|Qual é a partícula de carga negativa do átomo?|Elétron|Próton|Nêutron|Fóton|Gira ao redor do núcleo.
+3|Matemática|Quantos segundos tem uma hora?|3.600|600|1.800|6.000|Sessenta minutos de sessenta segundos.
+3|Matemática|Quanto é 15% de 200?|30|15|20|45|Dez por cento são 20, mais metade disso.
+3|Matemática|Quanto é 12 x 12?|144|122|124|132|Uma dúzia de dúzias é uma grosa.
+3|Matemática|Qual é o número romano para 50?|L|X|C|D|X é 10, C é 100 e D é 500.
+3|Esportes|Quantas Copas do Mundo o Brasil já venceu?|5|4|6|3|1958, 1962, 1970, 1994 e 2002.
+3|Esportes|Qual país venceu a Copa do Mundo de 2022?|Argentina|França|Brasil|Croácia|A final foi no Catar.
+3|Esportes|Em que cidade foram as Olimpíadas de 2016?|Rio de Janeiro|São Paulo|Londres|Tóquio|Foi a primeira Olimpíada na América do Sul.
+3|Esportes|Qual era o piloto brasileiro tricampeão de Fórmula 1, morto em 1994?|Ayrton Senna|Nelson Piquet|Emerson Fittipaldi|Rubens Barrichello|Senna ganhou em 1988, 1990 e 1991.
+3|Cultura|Quem escreveu “Capitães da Areia”?|Jorge Amado|Graciliano Ramos|Machado de Assis|Clarice Lispector|O livro se passa em Salvador.
+3|Cultura|Quem pintou o quadro “Abaporu”?|Tarsila do Amaral|Portinari|Di Cavalcanti|Anita Malfatti|Pintado em 1928, é um ícone do modernismo.
+3|Cultura|Quem escreveu “Memórias Póstumas de Brás Cubas”?|Machado de Assis|Aluísio Azevedo|Lima Barreto|Raul Pompeia|O narrador é um defunto autor.
+3|Cultura|Quem pintou “A Noite Estrelada”?|Vincent van Gogh|Monet|Dalí|Rembrandt|Está no MoMA, em Nova York.
+3|Rio de Janeiro|Em que ano foi inaugurado o estádio do Maracanã?|1950|1930|1964|1970|Foi construído para a Copa do Mundo de 1950.
+3|Mar|Qual oceano abriga o Triângulo das Bermudas?|Atlântico|Pacífico|Índico|Ártico|A área fica entre Flórida, Bermudas e Porto Rico.
+3|Mar|Quantos corações tem uma lula?|Três|Um|Dois|Quatro|Dois bombeiam para as brânquias e um para o corpo.
+4|Geografia|Qual é a capital do Cazaquistão?|Astana|Almaty|Tashkent|Bishkek|Almaty foi a antiga capital.
+4|Geografia|Qual é a capital da Nova Zelândia?|Wellington|Auckland|Christchurch|Queenstown|É a capital mais ao sul do mundo.
+4|Geografia|Qual é a capital da Suíça?|Berna|Zurique|Genebra|Basileia|Zurique é a maior cidade, mas não a capital.
+4|Geografia|Qual é o menor país do mundo?|Vaticano|Mônaco|San Marino|Liechtenstein|Tem cerca de 0,44 km².
+4|Geografia|Qual é o país mais populoso do mundo atualmente?|Índia|China|Estados Unidos|Indonésia|A Índia passou a China em 2023.
+4|Geografia|Qual é o ponto mais alto do Brasil?|Pico da Neblina|Pico das Agulhas Negras|Pico da Bandeira|Monte Roraima|Fica no Amazonas, na fronteira com a Venezuela.
+4|Geografia|Qual deserto fica no Chile e é um dos mais secos do mundo?|Atacama|Saara|Gobi|Mojave|Há lugares onde quase nunca choveu.
+4|Geografia|Qual estreito separa a Europa da África?|Gibraltar|Bósforo|Magalhães|Ormuz|Tem cerca de 14 km no ponto mais estreito.
+4|Geografia|Qual é o rio mais longo da Europa?|Volga|Danúbio|Reno|Sena|Corre quase todo dentro da Rússia.
+4|Geografia|Qual é a montanha mais alta do Rio de Janeiro (cidade)?|Pico da Tijuca|Corcovado|Pão de Açúcar|Pedra da Gávea|Passa de mil metros.
+4|História|Em que ano foi proclamada a República do Brasil?|1889|1822|1888|1930|No dia 15 de novembro.
+4|História|Em que ano foi a Independência do Brasil?|1822|1808|1889|1500|O grito foi dado às margens do Ipiranga.
+4|História|Em que ano foi assinada a Lei Áurea?|1888|1822|1889|1850|Foi assinada pela princesa Isabel.
+4|História|Quem foi o primeiro homem no espaço?|Iuri Gagarin|Neil Armstrong|Buzz Aldrin|Alan Shepard|Foi em 1961.
+4|História|Quem foi a primeira pessoa a ganhar um Nobel duas vezes, em áreas diferentes?|Marie Curie|Albert Einstein|Linus Pauling|Rosalind Franklin|Ganhou em Física e em Química.
+4|História|Qual país venceu a primeira Copa do Mundo, em 1930?|Uruguai|Brasil|Argentina|Itália|O Uruguai foi também o país-sede.
+4|Ciência|Qual é o símbolo químico do ferro?|Fe|Fr|Ir|Fo|Vem do latim ferrum.
+4|Ciência|Qual é o símbolo químico da prata?|Ag|Pt|Pr|Sl|Vem do latim argentum.
+4|Ciência|Qual é o símbolo químico do potássio?|K|P|Po|Pt|Vem do latim kalium.
+4|Ciência|Qual é o símbolo químico do chumbo?|Pb|Ch|Cb|Pu|Vem do latim plumbum.
+4|Ciência|Qual planeta tem o maior número de luas conhecidas?|Saturno|Júpiter|Urano|Netuno|Passa de 140 luas confirmadas.
+4|Ciência|Quem descobriu a penicilina?|Alexander Fleming|Louis Pasteur|Robert Koch|Edward Jenner|A descoberta foi em 1928.
+4|Ciência|Qual é a unidade de medida da corrente elétrica?|Ampère|Volt|Ohm|Watt|Homenagem ao físico André-Marie Ampère.
+4|Ciência|Qual é a unidade de medida de frequência?|Hertz|Joule|Newton|Pascal|Um hertz é um ciclo por segundo.
+4|Ciência|Qual é o número atômico do carbono?|6|8|12|4|É a base da química orgânica.
+4|Ciência|Qual camada da atmosfera concentra as nuvens e o clima?|Troposfera|Estratosfera|Mesosfera|Exosfera|É a camada mais próxima do solo.
+4|Ciência|Qual destes mamíferos bota ovos?|Ornitorrinco|Canguru|Morcego|Golfinho|O ornitorrinco vive na Austrália.
+4|Cultura|Quem escreveu “Os Lusíadas”?|Luís de Camões|Fernando Pessoa|Eça de Queirós|Gil Vicente|É o grande poema épico de Portugal.
+4|Cultura|Quem escreveu “Vidas Secas”?|Graciliano Ramos|Rachel de Queiroz|José Lins do Rego|Guimarães Rosa|Fabiano, Sinhá Vitória e a cadela Baleia são personagens.
+4|Cultura|Quem escreveu “A Hora da Estrela”?|Clarice Lispector|Cecília Meireles|Lygia Fagundes Telles|Rachel de Queiroz|Foi o último livro publicado em vida por ela.
+4|Cultura|Quem escreveu “Dom Quixote”?|Miguel de Cervantes|William Shakespeare|Dante Alighieri|Camões|É considerado o primeiro grande romance moderno.
+4|Cultura|Quem pintou “Guernica”?|Pablo Picasso|Salvador Dalí|Joan Miró|Goya|Retrata o bombardeio de uma cidade espanhola.
+4|Cultura|Quem compôs a Nona Sinfonia, com o “Hino à Alegria”?|Beethoven|Mozart|Bach|Chopin|Ele já estava surdo quando a compôs.
+4|Cultura|Quem compôs “As Quatro Estações”?|Vivaldi|Mozart|Bach|Tchaikovsky|É um conjunto de quatro concertos para violino.
+4|Cultura|Quem pintou “O Grito”?|Edvard Munch|Gustav Klimt|Egon Schiele|Paul Gauguin|Existem quatro versões da obra.
+4|Cultura|Quem escreveu “A Divina Comédia”?|Dante Alighieri|Petrarca|Boccaccio|Virgílio|A obra tem Inferno, Purgatório e Paraíso.
+4|Cultura|Quem projetou o urbanismo de Brasília?|Lúcio Costa|Oscar Niemeyer|Burle Marx|Athos Bulcão|Niemeyer desenhou os prédios principais.
+4|Cultura|Quem foi o criador do alfabeto para cegos?|Louis Braille|Samuel Morse|Alexander Bell|Johannes Gutenberg|Ele criou o sistema aos 15 anos.
+4|Esportes|Quem tem mais Bolas de Ouro na história?|Lionel Messi|Cristiano Ronaldo|Pelé|Michel Platini|Messi chegou a 8 troféus.
+4|Esportes|Qual termo do tênis significa um saque que o adversário não toca?|Ace|Deuce|Let|Smash|Também vale para o vôlei em alguns contextos.
+4|Mar|Qual é a profundidade aproximada da Fossa das Marianas?|Cerca de 11 mil metros|Cerca de 6 mil metros|Cerca de 3 mil metros|Cerca de 20 mil metros|É mais fundo que o Everest é alto.
+5|Geografia|Qual é a capital do Butão?|Timphu|Catmandu|Daca|Colombo|Fica no Himalaia.
+5|Geografia|Qual é a capital do Quirguistão?|Bisqueque|Taskent|Dushanbe|Astana|Era chamada de Frunze na época soviética.
+5|Geografia|Qual é a capital da Mongólia?|Ulan Bator|Astana|Pequim|Tashkent|É uma das capitais mais frias do mundo.
+5|Geografia|Qual é a capital da Nigéria?|Abuja|Lagos|Acra|Nairóbi|Lagos é maior, mas a capital é Abuja.
+5|Geografia|Qual é a capital do Marrocos?|Rabat|Casablanca|Marrakech|Fez|Casablanca é a maior cidade.
+5|Geografia|Qual é a capital do Paquistão?|Islamabad|Karachi|Lahore|Cabul|Foi planejada nos anos 1960.
+5|Geografia|Qual é a capital da Etiópia?|Adis Abeba|Nairóbi|Cartum|Cairo|Fica a mais de 2.300 m de altitude.
+5|Geografia|Qual é a capital de Gana?|Acra|Lagos|Dacar|Abidjan|Fica no Golfo da Guiné.
+5|Geografia|Qual é a capital de Mianmar?|Naipidau|Rangum|Mandalay|Bangkok|Foi inaugurada como capital em 2006.
+5|Geografia|Qual é o maior país da África em área?|Argélia|Sudão|Congo|Líbia|Passou a ser o maior após a divisão do Sudão.
+5|Geografia|Qual país tem a maior costa marítima do mundo?|Canadá|Rússia|Austrália|Indonésia|Somando as ilhas, passa de 200 mil km.
+5|Geografia|Qual é o maior lago de água doce do mundo em área?|Lago Superior|Lago Vitória|Lago Baikal|Lago Michigan|Fica entre o Canadá e os Estados Unidos.
+5|Geografia|Qual é a maior ilha do mundo, sem contar continentes?|Groenlândia|Madagascar|Bornéu|Nova Guiné|Pertence à Dinamarca.
+5|História|Em que ano foi inaugurada a Ponte Rio–Niterói?|1974|1960|1985|1950|O nome oficial é Ponte Presidente Costa e Silva.
+5|História|Quem foi o autor da música do Hino Nacional Brasileiro?|Francisco Manuel da Silva|Carlos Gomes|Villa-Lobos|Chiquinha Gonzaga|A letra é de Joaquim Osório Duque Estrada.
+5|História|Quem fez 13 gols numa única Copa do Mundo, em 1958?|Just Fontaine|Pelé|Gerd Müller|Ronaldo|É o recorde de gols em uma só Copa.
+5|História|Qual tratado dividiu as terras do Novo Mundo entre Portugal e Espanha em 1494?|Tordesilhas|Madri|Utrecht|Versalhes|Foi assinado numa cidade espanhola.
+5|Ciência|Qual é o símbolo químico do tungstênio?|W|T|Tu|Tn|Vem do alemão Wolfram.
+5|Ciência|Qual é o menor osso do corpo humano?|Estribo|Martelo|Bigorna|Falange|Fica no ouvido.
+5|Ciência|Qual cientista formulou as três leis do movimento planetário?|Johannes Kepler|Galileu|Copérnico|Tycho Brahe|Elas descrevem as órbitas elípticas.
+5|Ciência|Qual é o número atômico do oxigênio?|8|6|16|10|Está na água e no ar que respiramos.
+5|Ciência|Qual é o elemento mais abundante no universo?|Hidrogênio|Oxigênio|Hélio|Carbono|Compõe cerca de três quartos da matéria comum.
+5|Ciência|Quantos cromossomos tem uma célula humana comum?|46|23|44|48|São 23 pares.
+5|Ciência|Qual é a unidade de potência no Sistema Internacional?|Watt|Joule|Newton|Pascal|Homenagem a James Watt.
+5|Cultura|Quem escreveu “Guerra e Paz”?|Liev Tolstói|Dostoiévski|Tchekhov|Gógol|Tem mais de mil páginas.
+5|Cultura|Quem compôs “O Lago dos Cisnes”?|Tchaikovsky|Stravinsky|Prokofiev|Rachmaninoff|É um dos balés mais famosos do mundo.
+5|Cultura|Quem escreveu “Dona Flor e Seus Dois Maridos”?|Jorge Amado|Érico Veríssimo|Rubem Fonseca|Ariano Suassuna|Foi adaptado para o cinema e a TV.
+5|Cultura|Quem escreveu “Grande Sertão: Veredas”?|Guimarães Rosa|Graciliano Ramos|Rachel de Queiroz|José Lins do Rego|Publicado em 1956.

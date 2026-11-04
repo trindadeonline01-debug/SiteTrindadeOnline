@@ -31,6 +31,12 @@ export function nivelDaPergunta(ordem: number): 1 | 2 | 3 {
   return ordem <= 5 ? 1 : ordem <= 10 ? 2 : 3
 }
 
+// 5 níveis (nov/2026, pedido do Ricardo): 1 muito fácil · 2 fácil · 3 intermediário · 4 difícil · 5 impossível.
+// Segue os ACERTOS (não as perguntas servidas): 0–4, 5–9, 10–14, 15–24 (zona de risco começa) e 25–30.
+export function nivelPorAcertos(acertos: number): 1 | 2 | 3 | 4 | 5 {
+  return acertos < 5 ? 1 : acertos < 10 ? 2 : acertos < 15 ? 3 : acertos < 25 ? 4 : 5
+}
+
 // Pontos (ranking, nunca dinheiro): 100 + 20 por segundo inteiro restante, máx. 200.
 export function pontosDaResposta(restanteMs: number): number {
   const seg = Math.max(0, Math.floor(restanteMs / 1000))

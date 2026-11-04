@@ -1,0 +1,3577 @@
+[
+ {
+  "nivel": 1,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual é o maior oceano?",
+  "opcoes": [
+   "Pacífico",
+   "Atlântico",
+   "Índico",
+   "Ártico"
+  ],
+  "curiosidade": "O Pacífico ocupa mais de 155 milhões de km².",
+  "id": "Q-0001"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual destes é mamífero?",
+  "opcoes": [
+   "Golfinho",
+   "Sardinha",
+   "Atum",
+   "Salmão"
+  ],
+  "curiosidade": "Golfinhos respiram ar pelos pulmões e amamentam os filhotes.",
+  "id": "Q-0002"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual destes é uma ave?",
+  "opcoes": [
+   "Pinguim",
+   "Polvo",
+   "Raia",
+   "Foca"
+  ],
+  "curiosidade": "Pinguins são aves que nadam, mas não voam.",
+  "id": "Q-0003"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Quantos braços tem um polvo?",
+  "opcoes": [
+   "Oito",
+   "Seis",
+   "Dez",
+   "Doze"
+  ],
+  "curiosidade": "O polvo tem oito braços e três corações.",
+  "id": "Q-0004"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual é o maior animal vivo?",
+  "opcoes": [
+   "Baleia-azul",
+   "Elefante-africano",
+   "Orca",
+   "Tubarão-branco"
+  ],
+  "curiosidade": "A baleia-azul é o maior animal que já existiu.",
+  "id": "Q-0005"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Em qual animal o macho carrega os filhotes?",
+  "opcoes": [
+   "Cavalo-marinho",
+   "Tubarão-branco",
+   "Sardinha",
+   "Pinguim"
+  ],
+  "curiosidade": "O macho do cavalo-marinho gesta os ovos numa bolsa.",
+  "id": "Q-0006"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Como uma baleia respira?",
+  "opcoes": [
+   "Pelos pulmões",
+   "Pelas brânquias",
+   "Pela pele",
+   "Pelo bico"
+  ],
+  "curiosidade": "Baleias sobem à superfície para respirar pelo orifício no alto da cabeça.",
+  "id": "Q-0007"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual destes não é peixe?",
+  "opcoes": [
+   "Lula",
+   "Sardinha",
+   "Tainha",
+   "Robalo"
+  ],
+  "curiosidade": "A lula é um molusco, parente do polvo.",
+  "id": "Q-0008"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Quantos corações tem um polvo?",
+  "opcoes": [
+   "Três",
+   "Um",
+   "Dois",
+   "Cinco"
+  ],
+  "curiosidade": "Dois bombeiam sangue para as brânquias e um para o corpo.",
+  "id": "Q-0009"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual cor tem o sangue do polvo?",
+  "opcoes": [
+   "Azul",
+   "Vermelho",
+   "Verde",
+   "Transparente"
+  ],
+  "curiosidade": "O sangue do polvo usa cobre e fica azulado.",
+  "id": "Q-0010"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "A estrela-do-mar é um…",
+  "opcoes": [
+   "Equinodermo",
+   "Peixe",
+   "Crustáceo",
+   "Molusco"
+  ],
+  "curiosidade": "Estrelas-do-mar não têm cérebro nem sangue.",
+  "id": "Q-0011"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual destes animais é um crustáceo?",
+  "opcoes": [
+   "Camarão",
+   "Lula",
+   "Água-viva",
+   "Ostra"
+  ],
+  "curiosidade": "Camarões, siris e lagostas têm esqueleto externo.",
+  "id": "Q-0012"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual destes animais solta tinta para fugir?",
+  "opcoes": [
+   "Polvo",
+   "Golfinho",
+   "Tartaruga",
+   "Foca"
+  ],
+  "curiosidade": "A nuvem de tinta confunde o predador e dá tempo de escapar.",
+  "id": "Q-0013"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual destes é um fruto do mar?",
+  "opcoes": [
+   "Camarão",
+   "Frango",
+   "Arroz",
+   "Feijão"
+  ],
+  "curiosidade": "Frutos do mar são animais marinhos próprios para comer.",
+  "id": "Q-0014"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Onde a tartaruga-marinha deposita os ovos?",
+  "opcoes": [
+   "Na areia da praia",
+   "Dentro do mar",
+   "Em cima das pedras",
+   "Em árvores"
+  ],
+  "curiosidade": "As fêmeas voltam à praia onde nasceram para desovar.",
+  "id": "Q-0015"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Como o caranguejo costuma andar?",
+  "opcoes": [
+   "De lado",
+   "Para trás",
+   "Pulando",
+   "Rolando"
+  ],
+  "curiosidade": "As patas articuladas dele dobram para os lados, por isso o andar de lado.",
+  "id": "Q-0016"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "De que é feito o esqueleto do tubarão?",
+  "opcoes": [
+   "Cartilagem",
+   "Osso",
+   "Madeira",
+   "Concha"
+  ],
+  "curiosidade": "Cartilagem é o mesmo material da ponta do nosso nariz.",
+  "id": "Q-0017"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual é o maior peixe do mundo?",
+  "opcoes": [
+   "Tubarão-baleia",
+   "Tubarão-branco",
+   "Atum",
+   "Peixe-espada"
+  ],
+  "curiosidade": "O tubarão-baleia passa de 12 metros e se alimenta de plâncton.",
+  "id": "Q-0018"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual destes animais NÃO vive no mar?",
+  "opcoes": [
+   "Girafa",
+   "Baleia",
+   "Foca",
+   "Polvo"
+  ],
+  "curiosidade": "As girafas vivem em savanas, bem longe do oceano.",
+  "id": "Q-0019"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual ave guarda o peixe numa bolsa no bico?",
+  "opcoes": [
+   "Pelicano",
+   "Papagaio",
+   "Coruja",
+   "Beija-flor"
+  ],
+  "curiosidade": "A bolsa do bico do pelicano funciona como uma rede de pesca.",
+  "id": "Q-0020"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Como se chama um grupo grande de peixes nadando juntos?",
+  "opcoes": [
+   "Cardume",
+   "Matilha",
+   "Rebanho",
+   "Enxame"
+  ],
+  "curiosidade": "Nadar em cardume ajuda a proteger os peixes dos predadores.",
+  "id": "Q-0021"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual país é famoso pelo sushi?",
+  "opcoes": [
+   "Japão",
+   "China",
+   "Índia",
+   "México"
+  ],
+  "curiosidade": "O sushi nasceu como forma de conservar peixe com arroz.",
+  "id": "Q-0022"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "O bacalhau é um…",
+  "opcoes": [
+   "Peixe",
+   "Molusco",
+   "Crustáceo",
+   "Alga"
+  ],
+  "curiosidade": "O bacalhau é peixe do Atlântico Norte, conservado com sal.",
+  "id": "Q-0023"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Quem é o padroeiro dos pescadores?",
+  "opcoes": [
+   "São Pedro",
+   "São Jorge",
+   "Santo Antônio",
+   "São Francisco"
+  ],
+  "curiosidade": "São Pedro era pescador antes de seguir Jesus.",
+  "id": "Q-0024"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual ponte liga o Rio de Janeiro a Niterói?",
+  "opcoes": [
+   "Ponte Rio–Niterói",
+   "Ponte Estaiada",
+   "Ponte JK",
+   "Ponte Colombo Salles"
+  ],
+  "curiosidade": "A Ponte Rio–Niterói tem cerca de 13 km e cruza a Baía de Guanabara.",
+  "id": "Q-0025"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "A Trindade é um bairro de qual cidade?",
+  "opcoes": [
+   "São Gonçalo",
+   "Niterói",
+   "Maricá",
+   "Itaboraí"
+  ],
+  "curiosidade": "São Gonçalo fica na margem leste da Baía de Guanabara.",
+  "id": "Q-0026"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "O tubarão-branco é um…",
+  "opcoes": [
+   "Peixe",
+   "Mamífero",
+   "Réptil",
+   "Molusco"
+  ],
+  "curiosidade": "Mesmo temido, o tubarão-branco é um peixe de esqueleto de cartilagem.",
+  "id": "Q-0027"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual parte do corpo o peixe usa para respirar?",
+  "opcoes": [
+   "Brânquias",
+   "Pulmões",
+   "Escamas",
+   "Bexiga"
+  ],
+  "curiosidade": "As brânquias tiram o oxigênio dissolvido na água.",
+  "id": "Q-0028"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual ave costuma seguir os barcos de pesca?",
+  "opcoes": [
+   "Gaivota",
+   "Sabiá",
+   "Tucano",
+   "Bem-te-vi"
+  ],
+  "curiosidade": "Gaivotas aproveitam o peixe que cai ou sobra dos barcos.",
+  "id": "Q-0029"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual destes animais é um molusco?",
+  "opcoes": [
+   "Mexilhão",
+   "Camarão",
+   "Siri",
+   "Sardinha"
+  ],
+  "curiosidade": "Ostras, mexilhões e lulas são moluscos.",
+  "id": "Q-0030"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual animal produz a pérola?",
+  "opcoes": [
+   "Ostra",
+   "Camarão",
+   "Lula",
+   "Siri"
+  ],
+  "curiosidade": "A ostra cobre um grão de areia com camadas de nácar.",
+  "id": "Q-0031"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Quantos membros, entre braços e tentáculos, tem uma lula?",
+  "opcoes": [
+   "Dez",
+   "Oito",
+   "Seis",
+   "Doze"
+  ],
+  "curiosidade": "São oito braços e dois tentáculos mais longos.",
+  "id": "Q-0032"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "De que a baleia-azul se alimenta principalmente?",
+  "opcoes": [
+   "Krill, pequenos crustáceos",
+   "Tubarões",
+   "Golfinhos",
+   "Algas"
+  ],
+  "curiosidade": "Uma baleia-azul adulta pode comer milhões de krills por dia.",
+  "id": "Q-0033"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual destes peixes vive em água doce?",
+  "opcoes": [
+   "Tucunaré",
+   "Sardinha",
+   "Atum",
+   "Linguado"
+  ],
+  "curiosidade": "O tucunaré vive em rios e lagos da Amazônia e de outras regiões.",
+  "id": "Q-0034"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual peixe amazônico sobe à superfície para respirar ar?",
+  "opcoes": [
+   "Pirarucu",
+   "Atum",
+   "Sardinha",
+   "Robalo"
+  ],
+  "curiosidade": "O pirarucu tem bexiga natatória adaptada que funciona como pulmão.",
+  "id": "Q-0035"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Em qual panela se faz a moqueca capixaba tradicional?",
+  "opcoes": [
+   "Panela de barro",
+   "Frigideira de ferro",
+   "Panela de pressão",
+   "Wok"
+  ],
+  "curiosidade": "A moqueca capixaba leva urucum e não leva dendê.",
+  "id": "Q-0036"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual ingrediente é marca da moqueca baiana?",
+  "opcoes": [
+   "Azeite de dendê",
+   "Manteiga",
+   "Óleo de soja",
+   "Banha"
+  ],
+  "curiosidade": "A moqueca baiana leva dendê e leite de coco.",
+  "id": "Q-0037"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "O ceviche é feito com…",
+  "opcoes": [
+   "Peixe cru marinado no limão",
+   "Peixe frito",
+   "Peixe assado",
+   "Peixe defumado"
+  ],
+  "curiosidade": "O ácido do limão “cozinha” o peixe sem fogo. É prato típico do Peru.",
+  "id": "Q-0038"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "O que é sashimi?",
+  "opcoes": [
+   "Fatias de peixe cru",
+   "Peixe frito",
+   "Arroz com alga",
+   "Sopa de peixe"
+  ],
+  "curiosidade": "Sashimi é só o peixe, sem arroz.",
+  "id": "Q-0039"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Como se chama a alga que envolve o sushi maki?",
+  "opcoes": [
+   "Nori",
+   "Wakame",
+   "Kombu",
+   "Ágar"
+  ],
+  "curiosidade": "O nori é seco e tostado em folhas finas.",
+  "id": "Q-0040"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "A paella é um prato típico de qual país?",
+  "opcoes": [
+   "Espanha",
+   "Itália",
+   "Grécia",
+   "Portugal"
+  ],
+  "curiosidade": "A paella nasceu na região de Valência.",
+  "id": "Q-0041"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "O que é a piracema?",
+  "opcoes": [
+   "Subida dos peixes rio acima para desovar",
+   "Uma festa de pescadores",
+   "Um tipo de rede",
+   "Um barco de pesca"
+  ],
+  "curiosidade": "Na piracema os peixes nadam contra a correnteza para se reproduzir.",
+  "id": "Q-0042"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Como se chama o período em que a pesca é proibida para o peixe se reproduzir?",
+  "opcoes": [
+   "Defeso",
+   "Quarentena",
+   "Recesso",
+   "Intervalo"
+  ],
+  "curiosidade": "Durante o defeso, pescadores artesanais podem receber o seguro-defeso.",
+  "id": "Q-0043"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual destes é uma ilha do litoral do Rio de Janeiro?",
+  "opcoes": [
+   "Ilha Grande",
+   "Fernando de Noronha",
+   "Ilha do Mel",
+   "Ilhabela"
+  ],
+  "curiosidade": "Ilha Grande fica em Angra dos Reis.",
+  "id": "Q-0044"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Em qual estado fica Fernando de Noronha?",
+  "opcoes": [
+   "Pernambuco",
+   "Bahia",
+   "Ceará",
+   "Rio Grande do Norte"
+  ],
+  "curiosidade": "O arquipélago é Patrimônio Natural da Humanidade.",
+  "id": "Q-0045"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "O cavalo-marinho é um…",
+  "opcoes": [
+   "Peixe",
+   "Crustáceo",
+   "Réptil",
+   "Mamífero"
+  ],
+  "curiosidade": "Mesmo parecendo outro bicho, ele tem brânquias e nadadeiras.",
+  "id": "Q-0046"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "O que é o plâncton?",
+  "opcoes": [
+   "Organismos minúsculos que flutuam na água",
+   "Um tipo de peixe grande",
+   "Um tipo de rocha",
+   "Um barco"
+  ],
+  "curiosidade": "O plâncton é a base da cadeia alimentar do mar.",
+  "id": "Q-0047"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual astro é o principal responsável pelas marés?",
+  "opcoes": [
+   "Lua",
+   "Marte",
+   "Júpiter",
+   "Vênus"
+  ],
+  "curiosidade": "A atração da Lua puxa a água dos oceanos. O Sol também ajuda.",
+  "id": "Q-0048"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Como se chama a rede redonda lançada à mão pelo pescador?",
+  "opcoes": [
+   "Tarrafa",
+   "Covo",
+   "Espinhel",
+   "Arrastão"
+  ],
+  "curiosidade": "A tarrafa abre no ar e cai sobre o cardume.",
+  "id": "Q-0049"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual embarcação tradicional da pesca artesanal do Nordeste tem vela triangular?",
+  "opcoes": [
+   "Jangada",
+   "Gôndola",
+   "Caiaque",
+   "Caravela"
+  ],
+  "curiosidade": "As jangadas navegam no mar aberto com poucos recursos.",
+  "id": "Q-0050"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual gordura saudável abunda em peixes como sardinha e salmão?",
+  "opcoes": [
+   "Ômega-3",
+   "Gordura trans",
+   "Colesterol ruim",
+   "Gordura saturada"
+  ],
+  "curiosidade": "O ômega-3 faz bem ao coração e ao cérebro.",
+  "id": "Q-0051"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual animal marinho consegue regenerar braços perdidos?",
+  "opcoes": [
+   "Estrela-do-mar",
+   "Golfinho",
+   "Baleia",
+   "Tubarão"
+  ],
+  "curiosidade": "Algumas estrelas-do-mar regeneram um braço inteiro.",
+  "id": "Q-0052"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual rio forma a maior foz do mundo, no Atlântico?",
+  "opcoes": [
+   "Amazonas",
+   "São Francisco",
+   "Paraíba do Sul",
+   "Tietê"
+  ],
+  "curiosidade": "O Amazonas despeja mais água no mar do que qualquer outro rio.",
+  "id": "Q-0053"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Uma baleia-azul adulta pode pesar mais de…",
+  "opcoes": [
+   "100 toneladas",
+   "10 toneladas",
+   "1 tonelada",
+   "500 quilos"
+  ],
+  "curiosidade": "O coração dela sozinho pesa centenas de quilos.",
+  "id": "Q-0054"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual é o ponto mais profundo dos oceanos?",
+  "opcoes": [
+   "Fossa das Marianas",
+   "Fossa de Porto Rico",
+   "Fossa de Java",
+   "Fossa de Tonga"
+  ],
+  "curiosidade": "A Fossa das Marianas passa de 10 mil metros de profundidade.",
+  "id": "Q-0055"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual parte da superfície da Terra é coberta por água?",
+  "opcoes": [
+   "Cerca de 71%",
+   "Cerca de 51%",
+   "Cerca de 90%",
+   "Cerca de 30%"
+  ],
+  "curiosidade": "Quase todo esse volume está nos oceanos.",
+  "id": "Q-0056"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual é o maior recife de coral do mundo?",
+  "opcoes": [
+   "Grande Barreira de Corais",
+   "Recife de Maracajaú",
+   "Recife do Caribe",
+   "Recife de Abrolhos"
+  ],
+  "curiosidade": "A Grande Barreira de Corais fica na Austrália e é visível do espaço.",
+  "id": "Q-0057"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual mamífero marinho come só plantas?",
+  "opcoes": [
+   "Peixe-boi",
+   "Orca",
+   "Foca",
+   "Golfinho"
+  ],
+  "curiosidade": "O peixe-boi come capim-marinho e plantas aquáticas.",
+  "id": "Q-0058"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "As raias são parentes de qual animal?",
+  "opcoes": [
+   "Tubarões",
+   "Baleias",
+   "Polvos",
+   "Camarões"
+  ],
+  "curiosidade": "Raias e tubarões têm esqueleto de cartilagem.",
+  "id": "Q-0059"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual ave de pescoço longo mergulha de cabeça para pescar no litoral brasileiro?",
+  "opcoes": [
+   "Atobá",
+   "Sabiá",
+   "Tucano",
+   "Coruja"
+  ],
+  "curiosidade": "O atobá se joga de grande altura sobre os cardumes.",
+  "id": "Q-0060"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Como se chama o som que as baleias-jubarte machos produzem?",
+  "opcoes": [
+   "Canto",
+   "Grito",
+   "Latido",
+   "Zumbido"
+  ],
+  "curiosidade": "As músicas das jubartes mudam ao longo dos anos.",
+  "id": "Q-0061"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual destes animais filtra a água para se alimentar?",
+  "opcoes": [
+   "Ostra",
+   "Tubarão-branco",
+   "Polvo",
+   "Atum"
+  ],
+  "curiosidade": "Uma ostra pode filtrar vários litros de água por hora.",
+  "id": "Q-0062"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "O que a bexiga natatória do peixe controla?",
+  "opcoes": [
+   "A flutuação",
+   "A digestão",
+   "A visão",
+   "A reprodução"
+  ],
+  "curiosidade": "Com ela o peixe sobe ou desce sem gastar energia.",
+  "id": "Q-0063"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual destes animais tem os maiores olhos?",
+  "opcoes": [
+   "Lula-gigante",
+   "Elefante",
+   "Baleia-azul",
+   "Cavalo-marinho"
+  ],
+  "curiosidade": "Os olhos da lula-gigante chegam a cerca de 25 cm.",
+  "id": "Q-0064"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual animal é conhecido como “unicórnio-do-mar”?",
+  "opcoes": [
+   "Narval",
+   "Golfinho",
+   "Foca",
+   "Tubarão-martelo"
+  ],
+  "curiosidade": "A longa presa em espiral do narval é um dente.",
+  "id": "Q-0065"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "De qual peixe vem o caviar verdadeiro?",
+  "opcoes": [
+   "Esturjão",
+   "Atum",
+   "Tainha",
+   "Badejo"
+  ],
+  "curiosidade": "O caviar clássico é ova de esturjão.",
+  "id": "Q-0066"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual país é o maior produtor mundial de salmão de cativeiro?",
+  "opcoes": [
+   "Noruega",
+   "Brasil",
+   "Egito",
+   "Índia"
+  ],
+  "curiosidade": "A Noruega lidera, seguida pelo Chile.",
+  "id": "Q-0067"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual é o maior crustáceo em envergadura de patas?",
+  "opcoes": [
+   "Caranguejo-aranha-gigante",
+   "Lagosta",
+   "Camarão-rosa",
+   "Siri-azul"
+  ],
+  "curiosidade": "As patas do caranguejo-aranha-gigante japonês passam de 3 metros.",
+  "id": "Q-0068"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual percentual do corpo de uma água-viva é água?",
+  "opcoes": [
+   "Cerca de 95%",
+   "Cerca de 50%",
+   "Cerca de 70%",
+   "Cerca de 30%"
+  ],
+  "curiosidade": "Por isso a água-viva se desmancha fora da água.",
+  "id": "Q-0069"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual animal tem o maior cérebro do planeta?",
+  "opcoes": [
+   "Cachalote",
+   "Baleia-azul",
+   "Orca",
+   "Elefante-africano"
+  ],
+  "curiosidade": "O cérebro do cachalote passa de 7 kg.",
+  "id": "Q-0070"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Como se chama a camada do oceano que recebe luz do sol?",
+  "opcoes": [
+   "Zona eufótica",
+   "Zona abissal",
+   "Zona hadal",
+   "Zona batial"
+  ],
+  "curiosidade": "É nela que acontece a fotossíntese das algas.",
+  "id": "Q-0071"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual corrente marinha quente passa perto do litoral brasileiro?",
+  "opcoes": [
+   "Corrente do Brasil",
+   "Corrente de Humboldt",
+   "Corrente do Golfo",
+   "Corrente de Benguela"
+  ],
+  "curiosidade": "Ela desce pela costa e aquece as águas do Sudeste.",
+  "id": "Q-0072"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Em qual dia se comemora o Dia do Pescador no Brasil?",
+  "opcoes": [
+   "29 de junho",
+   "1º de maio",
+   "7 de setembro",
+   "12 de outubro"
+  ],
+  "curiosidade": "A data é o dia de São Pedro, padroeiro dos pescadores.",
+  "id": "Q-0073"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Em qual estado a safra da tainha é famosa, no inverno?",
+  "opcoes": [
+   "Santa Catarina",
+   "Amazonas",
+   "Goiás",
+   "Piauí"
+  ],
+  "curiosidade": "A pesca da tainha no Sul mobiliza comunidades inteiras.",
+  "id": "Q-0074"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual peixe nasce macho e pode virar fêmea?",
+  "opcoes": [
+   "Peixe-palhaço",
+   "Atum",
+   "Sardinha",
+   "Tubarão-martelo"
+  ],
+  "curiosidade": "Se a fêmea do grupo morre, o macho dominante muda de sexo.",
+  "id": "Q-0075"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Como o mexilhão se prende às rochas?",
+  "opcoes": [
+   "Por filamentos chamados bisso",
+   "Por ventosas",
+   "Por espinhos",
+   "Por cola de coral"
+  ],
+  "curiosidade": "O bisso é um fio resistente que o mexilhão produz.",
+  "id": "Q-0076"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "A Lagoa dos Patos fica em qual estado?",
+  "opcoes": [
+   "Rio Grande do Sul",
+   "Bahia",
+   "Rio de Janeiro",
+   "Santa Catarina"
+  ],
+  "curiosidade": "É uma das maiores lagoas costeiras do mundo.",
+  "id": "Q-0077"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual peixe é famoso por ser preparado só por cozinheiros licenciados, no Japão?",
+  "opcoes": [
+   "Baiacu (fugu)",
+   "Atum",
+   "Salmão",
+   "Cavala"
+  ],
+  "curiosidade": "Partes do baiacu têm um veneno potente.",
+  "id": "Q-0078"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual é o peixe ósseo mais pesado do mundo?",
+  "opcoes": [
+   "Peixe-lua",
+   "Atum-azul",
+   "Marlim-azul",
+   "Peixe-espada"
+  ],
+  "curiosidade": "O peixe-lua pode passar de 2 toneladas.",
+  "id": "Q-0079"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual é a diferença do siri para o caranguejo?",
+  "opcoes": [
+   "Patas traseiras achatadas, usadas para nadar",
+   "Não tem pinças",
+   "Só vive em água doce",
+   "Só tem quatro patas"
+  ],
+  "curiosidade": "As patas em forma de remo ajudam o siri a nadar.",
+  "id": "Q-0080"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Por que o camarão fica vermelho ao cozinhar?",
+  "opcoes": [
+   "O calor libera o pigmento astaxantina",
+   "O sal tinge a casca",
+   "A água ferve com urucum",
+   "O sangue vira vermelho"
+  ],
+  "curiosidade": "A astaxantina já existe no camarão, mas fica escondida na casca crua.",
+  "id": "Q-0081"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Quanto pode viver o tubarão-da-groenlândia?",
+  "opcoes": [
+   "Mais de 250 anos",
+   "20 anos",
+   "50 anos",
+   "100 anos"
+  ],
+  "curiosidade": "É um dos vertebrados que mais vive na Terra.",
+  "id": "Q-0082"
+ },
+ {
+  "nivel": 5,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Qual destas baleias tem dentes?",
+  "opcoes": [
+   "Cachalote",
+   "Baleia-azul",
+   "Baleia-jubarte",
+   "Baleia-franca"
+  ],
+  "curiosidade": "O cachalote é a maior baleia com dentes.",
+  "id": "Q-0083"
+ },
+ {
+  "nivel": 5,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "A baleia-franca visita o litoral de qual estado para se reproduzir?",
+  "opcoes": [
+   "Santa Catarina",
+   "Pará",
+   "Ceará",
+   "Goiás"
+  ],
+  "curiosidade": "Em Santa Catarina existe uma área de proteção só para ela.",
+  "id": "Q-0084"
+ },
+ {
+  "nivel": 5,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Em qual estado fica o Parque Nacional Marinho dos Abrolhos?",
+  "opcoes": [
+   "Bahia",
+   "São Paulo",
+   "Paraná",
+   "Maranhão"
+  ],
+  "curiosidade": "Abrolhos é famoso pelas baleias-jubarte e pelos corais.",
+  "id": "Q-0085"
+ },
+ {
+  "nivel": 5,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "O que é o espinhel, na pesca?",
+  "opcoes": [
+   "Uma linha longa com muitos anzóis",
+   "Uma rede de arrasto",
+   "Um barco a vela",
+   "Uma gaiola para lagosta"
+  ],
+  "curiosidade": "O espinhel pode ter centenas de anzóis numa linha só.",
+  "id": "Q-0086"
+ },
+ {
+  "nivel": 5,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "A orca pertence a qual grupo?",
+  "opcoes": [
+   "Golfinhos",
+   "Baleias-barbadas",
+   "Tubarões",
+   "Focas"
+  ],
+  "curiosidade": "Apesar do nome, a orca é o maior golfinho.",
+  "id": "Q-0087"
+ },
+ {
+  "nivel": 5,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "O que é o krill?",
+  "opcoes": [
+   "Pequeno crustáceo parecido com camarão",
+   "Uma alga",
+   "Um peixe pequeno",
+   "Um molusco"
+  ],
+  "curiosidade": "O krill é o alimento principal de muitas baleias.",
+  "id": "Q-0088"
+ },
+ {
+  "nivel": 5,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "De qual continente a tilápia é originária?",
+  "opcoes": [
+   "África",
+   "Ásia",
+   "Europa",
+   "América do Sul"
+  ],
+  "curiosidade": "A tilápia-do-nilo veio da África e hoje é criada no Brasil inteiro.",
+  "id": "Q-0089"
+ },
+ {
+  "nivel": 5,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Como se chama a maré mais alta, que acontece na lua nova e na lua cheia?",
+  "opcoes": [
+   "Maré de sizígia",
+   "Maré de quadratura",
+   "Maré de ressaca",
+   "Maré negra"
+  ],
+  "curiosidade": "Nesses dias Sol e Lua se alinham e somam a atração.",
+  "id": "Q-0090"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Quantas patas, contando as pinças, tem um caranguejo?",
+  "opcoes": [
+   "Dez",
+   "Oito",
+   "Seis",
+   "Doze"
+  ],
+  "curiosidade": "São oito patas para andar e duas pinças.",
+  "id": "Q-0091"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Em quais águas vive o boto-cor-de-rosa?",
+  "opcoes": [
+   "Rios da Amazônia",
+   "Mar do Caribe",
+   "Lagoas do Pantanal",
+   "Rios do Sul"
+  ],
+  "curiosidade": "Ele nada entre as árvores na época das cheias.",
+  "id": "Q-0092"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Mar e vida marinha",
+  "enunciado": "Para que o peixe-voador usa as nadadeiras longas?",
+  "opcoes": [
+   "Planar sobre a água",
+   "Cavar a areia",
+   "Respirar fora da água",
+   "Atrair parceiros"
+  ],
+  "curiosidade": "Ele salta e plana por dezenas de metros para escapar dos predadores.",
+  "id": "Q-0093"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Geral",
+  "enunciado": "Quantos dias tem uma semana?",
+  "opcoes": [
+   "7",
+   "5",
+   "6",
+   "8"
+  ],
+  "curiosidade": "Vai de domingo a sábado.",
+  "id": "Q-0094"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Geral",
+  "enunciado": "Qual cor sai da mistura de azul com amarelo?",
+  "opcoes": [
+   "Verde",
+   "Roxo",
+   "Laranja",
+   "Marrom"
+  ],
+  "curiosidade": "É a mesma mistura que o pintor faz na tinta.",
+  "id": "Q-0095"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Geral",
+  "enunciado": "Quantos meses tem um ano?",
+  "opcoes": [
+   "12",
+   "10",
+   "11",
+   "13"
+  ],
+  "curiosidade": "Janeiro é o primeiro e dezembro é o último.",
+  "id": "Q-0096"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Geral",
+  "enunciado": "Qual é o resultado de 2 + 2?",
+  "opcoes": [
+   "4",
+   "3",
+   "5",
+   "22"
+  ],
+  "curiosidade": "Uma das contas mais fáceis que existem.",
+  "id": "Q-0097"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Geral",
+  "enunciado": "Quantos lados tem um triângulo?",
+  "opcoes": [
+   "3",
+   "4",
+   "5",
+   "6"
+  ],
+  "curiosidade": "Tri quer dizer três.",
+  "id": "Q-0098"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Geral",
+  "enunciado": "Quantas rodas tem uma bicicleta?",
+  "opcoes": [
+   "2",
+   "3",
+   "4",
+   "1"
+  ],
+  "curiosidade": "Daí o nome: bi, de dois.",
+  "id": "Q-0099"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Geral",
+  "enunciado": "Qual instrumento tem teclas brancas e pretas?",
+  "opcoes": [
+   "Piano",
+   "Violão",
+   "Flauta",
+   "Tambor"
+  ],
+  "curiosidade": "Um piano grande tem 88 teclas.",
+  "id": "Q-0100"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Brasil",
+  "enunciado": "Qual é a capital do Brasil?",
+  "opcoes": [
+   "Brasília",
+   "Rio de Janeiro",
+   "São Paulo",
+   "Salvador"
+  ],
+  "curiosidade": "Brasília foi inaugurada em 1960.",
+  "id": "Q-0101"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Brasil",
+  "enunciado": "Qual é a língua falada no Brasil?",
+  "opcoes": [
+   "Português",
+   "Espanhol",
+   "Inglês",
+   "Francês"
+  ],
+  "curiosidade": "Falado por mais de 200 milhões de pessoas.",
+  "id": "Q-0102"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Brasil",
+  "enunciado": "Qual oceano banha o litoral do Brasil?",
+  "opcoes": [
+   "Atlântico",
+   "Pacífico",
+   "Índico",
+   "Ártico"
+  ],
+  "curiosidade": "O litoral brasileiro passa de 7 mil km.",
+  "id": "Q-0103"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Brasil",
+  "enunciado": "Qual é a cor da camisa da seleção brasileira de futebol?",
+  "opcoes": [
+   "Amarela",
+   "Azul",
+   "Preta",
+   "Vermelha"
+  ],
+  "curiosidade": "A camisa amarela existe desde 1953.",
+  "id": "Q-0104"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Brasil",
+  "enunciado": "Qual é o prato baiano feito com dendê e leite de coco?",
+  "opcoes": [
+   "Moqueca",
+   "Churrasco",
+   "Pizza",
+   "Hambúrguer"
+  ],
+  "curiosidade": "Peixe ou camarão na panela com dendê.",
+  "id": "Q-0105"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Brasil",
+  "enunciado": "Em qual mês se comemora o Natal?",
+  "opcoes": [
+   "Dezembro",
+   "Outubro",
+   "Novembro",
+   "Janeiro"
+  ],
+  "curiosidade": "No dia 25.",
+  "id": "Q-0106"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Brasil",
+  "enunciado": "Em qual país fica o Rio de Janeiro?",
+  "opcoes": [
+   "Brasil",
+   "Argentina",
+   "Portugal",
+   "Chile"
+  ],
+  "curiosidade": "É conhecido como Cidade Maravilhosa.",
+  "id": "Q-0107"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Esportes",
+  "enunciado": "Quantos jogadores de cada time ficam em campo no futebol?",
+  "opcoes": [
+   "11",
+   "9",
+   "10",
+   "12"
+  ],
+  "curiosidade": "Contando o goleiro.",
+  "id": "Q-0108"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Esportes",
+  "enunciado": "Em qual esporte se usa raquete e bola amarela?",
+  "opcoes": [
+   "Tênis",
+   "Futebol",
+   "Vôlei",
+   "Natação"
+  ],
+  "curiosidade": "Em Wimbledon o piso é de grama.",
+  "id": "Q-0109"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Esportes",
+  "enunciado": "Qual esporte se joga com cesta e bola laranja?",
+  "opcoes": [
+   "Basquete",
+   "Tênis",
+   "Golfe",
+   "Boxe"
+  ],
+  "curiosidade": "Inventado em 1891 nos Estados Unidos.",
+  "id": "Q-0110"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Ciência",
+  "enunciado": "Em qual planeta nós vivemos?",
+  "opcoes": [
+   "Terra",
+   "Marte",
+   "Vênus",
+   "Júpiter"
+  ],
+  "curiosidade": "A Terra é o terceiro planeta a partir do Sol.",
+  "id": "Q-0111"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Ciência",
+  "enunciado": "Qual astro ilumina o nosso dia?",
+  "opcoes": [
+   "Sol",
+   "Lua",
+   "Marte",
+   "Júpiter"
+  ],
+  "curiosidade": "O Sol é uma estrela.",
+  "id": "Q-0112"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Ciência",
+  "enunciado": "O que a abelha produz?",
+  "opcoes": [
+   "Mel",
+   "Leite",
+   "Açúcar",
+   "Queijo"
+  ],
+  "curiosidade": "Uma abelha produz muito pouco mel na vida.",
+  "id": "Q-0113"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Corpo",
+  "enunciado": "Com qual órgão respiramos?",
+  "opcoes": [
+   "Pulmão",
+   "Coração",
+   "Estômago",
+   "Fígado"
+  ],
+  "curiosidade": "Temos dois pulmões.",
+  "id": "Q-0114"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Corpo",
+  "enunciado": "Qual órgão bombeia o sangue?",
+  "opcoes": [
+   "Coração",
+   "Pulmão",
+   "Rim",
+   "Cérebro"
+  ],
+  "curiosidade": "Ele bate em média 100 mil vezes por dia.",
+  "id": "Q-0115"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Corpo",
+  "enunciado": "Quantos dedos temos nas duas mãos?",
+  "opcoes": [
+   "10",
+   "8",
+   "12",
+   "20"
+  ],
+  "curiosidade": "Cinco em cada mão.",
+  "id": "Q-0116"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Gastronomia",
+  "enunciado": "Qual destes alimentos é uma fruta?",
+  "opcoes": [
+   "Banana",
+   "Alface",
+   "Batata",
+   "Cebola"
+  ],
+  "curiosidade": "A banana cresce em cachos.",
+  "id": "Q-0117"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Gastronomia",
+  "enunciado": "O pão é feito principalmente de…",
+  "opcoes": [
+   "Farinha",
+   "Areia",
+   "Gelo",
+   "Sal"
+  ],
+  "curiosidade": "Farinha de trigo, água e fermento.",
+  "id": "Q-0118"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Gastronomia",
+  "enunciado": "Qual destes alimentos é um laticínio?",
+  "opcoes": [
+   "Queijo",
+   "Arroz",
+   "Feijão",
+   "Macarrão"
+  ],
+  "curiosidade": "Feito a partir do leite.",
+  "id": "Q-0119"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Gastronomia",
+  "enunciado": "Qual prato brasileiro leva feijão preto e carnes variadas?",
+  "opcoes": [
+   "Feijoada",
+   "Moqueca",
+   "Lasanha",
+   "Sushi"
+  ],
+  "curiosidade": "Tradicionalmente servida aos sábados.",
+  "id": "Q-0120"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Animais",
+  "enunciado": "Qual destes animais é uma ave?",
+  "opcoes": [
+   "Papagaio",
+   "Gato",
+   "Cavalo",
+   "Coelho"
+  ],
+  "curiosidade": "Alguns papagaios aprendem a falar.",
+  "id": "Q-0121"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Animais",
+  "enunciado": "Qual animal faz “miau”?",
+  "opcoes": [
+   "Gato",
+   "Cachorro",
+   "Vaca",
+   "Pato"
+  ],
+  "curiosidade": "Gatos também ronronam.",
+  "id": "Q-0122"
+ },
+ {
+  "nivel": 1,
+  "categoria": "Animais",
+  "enunciado": "Qual é o maior animal terrestre?",
+  "opcoes": [
+   "Elefante-africano",
+   "Girafa",
+   "Rinoceronte",
+   "Hipopótamo"
+  ],
+  "curiosidade": "Pode passar de 6 toneladas.",
+  "id": "Q-0123"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Geografia",
+  "enunciado": "Qual é a capital da França?",
+  "opcoes": [
+   "Paris",
+   "Lyon",
+   "Marselha",
+   "Nice"
+  ],
+  "curiosidade": "A Torre Eiffel fica lá.",
+  "id": "Q-0124"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Geografia",
+  "enunciado": "Qual é a capital da Argentina?",
+  "opcoes": [
+   "Buenos Aires",
+   "Montevidéu",
+   "Santiago",
+   "Lima"
+  ],
+  "curiosidade": "Fica às margens do Rio da Prata.",
+  "id": "Q-0125"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Geografia",
+  "enunciado": "Qual é a capital da Itália?",
+  "opcoes": [
+   "Roma",
+   "Milão",
+   "Veneza",
+   "Florença"
+  ],
+  "curiosidade": "Roma é chamada de Cidade Eterna.",
+  "id": "Q-0126"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Geografia",
+  "enunciado": "Qual é a capital do Japão?",
+  "opcoes": [
+   "Tóquio",
+   "Quioto",
+   "Osaka",
+   "Nagoia"
+  ],
+  "curiosidade": "Tóquio é uma das maiores cidades do mundo.",
+  "id": "Q-0127"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Geografia",
+  "enunciado": "Qual é o maior país do mundo em área?",
+  "opcoes": [
+   "Rússia",
+   "China",
+   "Canadá",
+   "Estados Unidos"
+  ],
+  "curiosidade": "Ocupa mais de 17 milhões de km².",
+  "id": "Q-0128"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Geografia",
+  "enunciado": "Qual é a capital de Minas Gerais?",
+  "opcoes": [
+   "Belo Horizonte",
+   "Ouro Preto",
+   "Uberlândia",
+   "Juiz de Fora"
+  ],
+  "curiosidade": "Ouro Preto foi a antiga capital.",
+  "id": "Q-0129"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Geografia",
+  "enunciado": "Qual é a capital de Pernambuco?",
+  "opcoes": [
+   "Recife",
+   "Olinda",
+   "Caruaru",
+   "Petrolina"
+  ],
+  "curiosidade": "O Recife é cortado por rios e pontes.",
+  "id": "Q-0130"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Geografia",
+  "enunciado": "Qual é a capital da Bahia?",
+  "opcoes": [
+   "Salvador",
+   "Feira de Santana",
+   "Ilhéus",
+   "Porto Seguro"
+  ],
+  "curiosidade": "Foi a primeira capital do Brasil.",
+  "id": "Q-0131"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Geografia",
+  "enunciado": "Qual é a maior cidade do Brasil em população?",
+  "opcoes": [
+   "São Paulo",
+   "Rio de Janeiro",
+   "Brasília",
+   "Salvador"
+  ],
+  "curiosidade": "São Paulo tem mais de 11 milhões de habitantes.",
+  "id": "Q-0132"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Geografia",
+  "enunciado": "Em qual cidade fica o Cristo Redentor?",
+  "opcoes": [
+   "Rio de Janeiro",
+   "São Paulo",
+   "Salvador",
+   "Recife"
+  ],
+  "curiosidade": "Está no alto do Corcovado.",
+  "id": "Q-0133"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Geografia",
+  "enunciado": "Em qual cidade fica o Pão de Açúcar?",
+  "opcoes": [
+   "Rio de Janeiro",
+   "Niterói",
+   "Santos",
+   "Florianópolis"
+  ],
+  "curiosidade": "Tem um bondinho famoso.",
+  "id": "Q-0134"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Geografia",
+  "enunciado": "Qual rio nasce nos Andes e é o mais volumoso do mundo?",
+  "opcoes": [
+   "Amazonas",
+   "Nilo",
+   "Mississippi",
+   "Danúbio"
+  ],
+  "curiosidade": "Nenhum outro rio leva tanta água ao mar.",
+  "id": "Q-0135"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Geografia",
+  "enunciado": "Qual é o rio mais importante do Egito?",
+  "opcoes": [
+   "Nilo",
+   "Tâmisa",
+   "Danúbio",
+   "Sena"
+  ],
+  "curiosidade": "Cruza o deserto até o Mediterrâneo.",
+  "id": "Q-0136"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Ciência",
+  "enunciado": "Qual é o maior planeta do sistema solar?",
+  "opcoes": [
+   "Júpiter",
+   "Saturno",
+   "Terra",
+   "Netuno"
+  ],
+  "curiosidade": "Cabem mais de mil Terras dentro dele.",
+  "id": "Q-0137"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Ciência",
+  "enunciado": "Qual é o planeta vermelho?",
+  "opcoes": [
+   "Marte",
+   "Vênus",
+   "Mercúrio",
+   "Urano"
+  ],
+  "curiosidade": "A cor vem do óxido de ferro no solo.",
+  "id": "Q-0138"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Ciência",
+  "enunciado": "Qual gás as plantas absorvem na fotossíntese?",
+  "opcoes": [
+   "Gás carbônico",
+   "Oxigênio",
+   "Nitrogênio",
+   "Hélio"
+  ],
+  "curiosidade": "Elas liberam oxigênio.",
+  "id": "Q-0139"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Ciência",
+  "enunciado": "H2O é a fórmula de qual substância?",
+  "opcoes": [
+   "Água",
+   "Sal",
+   "Gás oxigênio",
+   "Açúcar"
+  ],
+  "curiosidade": "Duas partes de hidrogênio e uma de oxigênio.",
+  "id": "Q-0140"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Ciência",
+  "enunciado": "Qual é o metal líquido em temperatura ambiente?",
+  "opcoes": [
+   "Mercúrio",
+   "Ferro",
+   "Cobre",
+   "Prata"
+  ],
+  "curiosidade": "Por isso foi usado em termômetros antigos.",
+  "id": "Q-0141"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Ciência",
+  "enunciado": "Quantas cores tem o arco-íris?",
+  "opcoes": [
+   "7",
+   "5",
+   "6",
+   "8"
+  ],
+  "curiosidade": "Vermelho, laranja, amarelo, verde, azul, anil e violeta.",
+  "id": "Q-0142"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Esportes",
+  "enunciado": "Quantos jogadores tem um time de vôlei em quadra?",
+  "opcoes": [
+   "6",
+   "5",
+   "7",
+   "8"
+  ],
+  "curiosidade": "Seis de cada lado da rede.",
+  "id": "Q-0143"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Esportes",
+  "enunciado": "Quantos jogadores tem um time de basquete em quadra?",
+  "opcoes": [
+   "5",
+   "6",
+   "7",
+   "11"
+  ],
+  "curiosidade": "Cinco de cada equipe.",
+  "id": "Q-0144"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Esportes",
+  "enunciado": "Quantos minutos tem uma partida de futebol, sem acréscimos?",
+  "opcoes": [
+   "90",
+   "60",
+   "80",
+   "100"
+  ],
+  "curiosidade": "Dois tempos de 45.",
+  "id": "Q-0145"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Esportes",
+  "enunciado": "Quem é conhecido como “Rei do Futebol”?",
+  "opcoes": [
+   "Pelé",
+   "Garrincha",
+   "Zico",
+   "Romário"
+  ],
+  "curiosidade": "Pelé ganhou três Copas.",
+  "id": "Q-0146"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Esportes",
+  "enunciado": "Qual time carioca tem a camisa rubro-negra?",
+  "opcoes": [
+   "Flamengo",
+   "Vasco",
+   "Fluminense",
+   "Botafogo"
+  ],
+  "curiosidade": "O Flamengo é o clube de maior torcida do país.",
+  "id": "Q-0147"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Matemática",
+  "enunciado": "Quanto é 7 x 8?",
+  "opcoes": [
+   "56",
+   "48",
+   "54",
+   "64"
+  ],
+  "curiosidade": "Uma conta clássica da tabuada.",
+  "id": "Q-0148"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Matemática",
+  "enunciado": "Qual é a raiz quadrada de 81?",
+  "opcoes": [
+   "9",
+   "8",
+   "7",
+   "11"
+  ],
+  "curiosidade": "Nove vezes nove dá 81.",
+  "id": "Q-0149"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Matemática",
+  "enunciado": "Quantos lados tem um hexágono?",
+  "opcoes": [
+   "6",
+   "5",
+   "7",
+   "8"
+  ],
+  "curiosidade": "Como as celas de um favo de mel.",
+  "id": "Q-0150"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Gastronomia",
+  "enunciado": "Qual é o ingrediente principal do guacamole?",
+  "opcoes": [
+   "Abacate",
+   "Tomate",
+   "Pimentão",
+   "Milho"
+  ],
+  "curiosidade": "Prato típico do México.",
+  "id": "Q-0151"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Gastronomia",
+  "enunciado": "De qual fruta se faz o vinho?",
+  "opcoes": [
+   "Uva",
+   "Maçã",
+   "Pera",
+   "Laranja"
+  ],
+  "curiosidade": "Existem também vinhos de outras frutas.",
+  "id": "Q-0152"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Gastronomia",
+  "enunciado": "De qual país veio a pizza?",
+  "opcoes": [
+   "Itália",
+   "França",
+   "Grécia",
+   "Espanha"
+  ],
+  "curiosidade": "A pizza napolitana é patrimônio cultural da Unesco.",
+  "id": "Q-0153"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Cultura",
+  "enunciado": "Quem pintou a Mona Lisa?",
+  "opcoes": [
+   "Leonardo da Vinci",
+   "Michelangelo",
+   "Picasso",
+   "Van Gogh"
+  ],
+  "curiosidade": "Está no Museu do Louvre, em Paris.",
+  "id": "Q-0154"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Cultura",
+  "enunciado": "Quem escreveu “Dom Casmurro”?",
+  "opcoes": [
+   "Machado de Assis",
+   "José de Alencar",
+   "Graciliano Ramos",
+   "Jorge Amado"
+  ],
+  "curiosidade": "Machado fundou a Academia Brasileira de Letras.",
+  "id": "Q-0155"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Cultura",
+  "enunciado": "Qual instrumento de couro pequeno é típico do samba?",
+  "opcoes": [
+   "Pandeiro",
+   "Violino",
+   "Saxofone",
+   "Gaita"
+  ],
+  "curiosidade": "Ele tem platinelas de metal.",
+  "id": "Q-0156"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Cultura",
+  "enunciado": "Quem compôs a música de “Garota de Ipanema”?",
+  "opcoes": [
+   "Tom Jobim",
+   "Roberto Carlos",
+   "Chico Buarque",
+   "Caetano Veloso"
+  ],
+  "curiosidade": "A letra é de Vinicius de Moraes.",
+  "id": "Q-0157"
+ },
+ {
+  "nivel": 2,
+  "categoria": "História",
+  "enunciado": "Quem chegou ao Brasil em 1500 comandando a frota portuguesa?",
+  "opcoes": [
+   "Pedro Álvares Cabral",
+   "Cristóvão Colombo",
+   "Vasco da Gama",
+   "Dom Pedro I"
+  ],
+  "curiosidade": "A frota chegou ao litoral da Bahia.",
+  "id": "Q-0158"
+ },
+ {
+  "nivel": 2,
+  "categoria": "História",
+  "enunciado": "Qual é a moeda do Brasil?",
+  "opcoes": [
+   "Real",
+   "Peso",
+   "Dólar",
+   "Euro"
+  ],
+  "curiosidade": "O Real existe desde 1994.",
+  "id": "Q-0159"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Animais",
+  "enunciado": "Qual é o animal terrestre mais rápido?",
+  "opcoes": [
+   "Guepardo",
+   "Leão",
+   "Cavalo",
+   "Avestruz"
+  ],
+  "curiosidade": "Chega a mais de 100 km/h em curtas corridas.",
+  "id": "Q-0160"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Rio de Janeiro",
+  "enunciado": "Em que baía fica a cidade do Rio de Janeiro?",
+  "opcoes": [
+   "Baía de Guanabara",
+   "Baía de Todos os Santos",
+   "Baía de Sepetiba",
+   "Baía de Paranaguá"
+  ],
+  "curiosidade": "São Gonçalo e Niterói também ficam nela.",
+  "id": "Q-0161"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Rio de Janeiro",
+  "enunciado": "Qual cidade fluminense é conhecida como Cidade Imperial?",
+  "opcoes": [
+   "Petrópolis",
+   "Niterói",
+   "Cabo Frio",
+   "Angra dos Reis"
+  ],
+  "curiosidade": "Lá ficava o palácio de verão de Dom Pedro II.",
+  "id": "Q-0162"
+ },
+ {
+  "nivel": 2,
+  "categoria": "Rio de Janeiro",
+  "enunciado": "Em qual cidade ficam as praias de Búzios?",
+  "opcoes": [
+   "Armação dos Búzios",
+   "Paraty",
+   "Angra dos Reis",
+   "Macaé"
+  ],
+  "curiosidade": "Foi destino de Brigitte Bardot nos anos 1960.",
+  "id": "Q-0163"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Geografia",
+  "enunciado": "Qual é a capital da Austrália?",
+  "opcoes": [
+   "Camberra",
+   "Sydney",
+   "Melbourne",
+   "Perth"
+  ],
+  "curiosidade": "Foi criada só para ser capital.",
+  "id": "Q-0164"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Geografia",
+  "enunciado": "Qual é a capital do Canadá?",
+  "opcoes": [
+   "Ottawa",
+   "Toronto",
+   "Vancouver",
+   "Montreal"
+  ],
+  "curiosidade": "Fica na província de Ontário.",
+  "id": "Q-0165"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Geografia",
+  "enunciado": "Qual é a capital da Turquia?",
+  "opcoes": [
+   "Ancara",
+   "Istambul",
+   "Izmir",
+   "Antália"
+  ],
+  "curiosidade": "Istambul é maior, mas a capital é Ancara.",
+  "id": "Q-0166"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Geografia",
+  "enunciado": "Qual é a capital da Noruega?",
+  "opcoes": [
+   "Oslo",
+   "Estocolmo",
+   "Copenhague",
+   "Helsinque"
+  ],
+  "curiosidade": "Oslo fica no sul do país.",
+  "id": "Q-0167"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Geografia",
+  "enunciado": "Qual é o maior deserto quente do mundo?",
+  "opcoes": [
+   "Saara",
+   "Gobi",
+   "Atacama",
+   "Kalahari"
+  ],
+  "curiosidade": "Ocupa boa parte do norte da África.",
+  "id": "Q-0168"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Geografia",
+  "enunciado": "Qual é a montanha mais alta do mundo?",
+  "opcoes": [
+   "Monte Everest",
+   "K2",
+   "Kilimanjaro",
+   "Mont Blanc"
+  ],
+  "curiosidade": "Passa de 8.800 metros.",
+  "id": "Q-0169"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Geografia",
+  "enunciado": "Qual cidade do Rio de Janeiro é famosa por ser a Cidade Maravilhosa?",
+  "opcoes": [
+   "Rio de Janeiro",
+   "Niterói",
+   "Petrópolis",
+   "Cabo Frio"
+  ],
+  "curiosidade": "O apelido vem de uma marchinha de 1934.",
+  "id": "Q-0170"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Geografia",
+  "enunciado": "Qual ilha da Baía de Guanabara é conhecida pelos passeios de bicicleta e pelos poucos carros?",
+  "opcoes": [
+   "Paquetá",
+   "Ilha Grande",
+   "Ilha do Governador",
+   "Ilha Fiscal"
+  ],
+  "curiosidade": "Paquetá é cenário de romances e passeios de charrete.",
+  "id": "Q-0171"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Geografia",
+  "enunciado": "Qual é o maior estado brasileiro em área?",
+  "opcoes": [
+   "Amazonas",
+   "Pará",
+   "Mato Grosso",
+   "Minas Gerais"
+  ],
+  "curiosidade": "O Amazonas é maior que muitos países.",
+  "id": "Q-0172"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Geografia",
+  "enunciado": "Quantos estados tem o Brasil, sem contar o Distrito Federal?",
+  "opcoes": [
+   "26",
+   "27",
+   "25",
+   "24"
+  ],
+  "curiosidade": "O 27º ente é o Distrito Federal.",
+  "id": "Q-0173"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Geografia",
+  "enunciado": "Qual país tem o formato de uma bota?",
+  "opcoes": [
+   "Itália",
+   "Grécia",
+   "Portugal",
+   "Espanha"
+  ],
+  "curiosidade": "A Sicília parece uma “bola” na ponta da bota.",
+  "id": "Q-0174"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Geografia",
+  "enunciado": "Qual cidade é chamada de Cidade Luz?",
+  "opcoes": [
+   "Paris",
+   "Londres",
+   "Roma",
+   "Viena"
+  ],
+  "curiosidade": "O apelido vem da iluminação pioneira nas ruas.",
+  "id": "Q-0175"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Geografia",
+  "enunciado": "Qual rio atravessa Londres?",
+  "opcoes": [
+   "Tâmisa",
+   "Sena",
+   "Danúbio",
+   "Reno"
+  ],
+  "curiosidade": "A Ponte da Torre cruza esse rio.",
+  "id": "Q-0176"
+ },
+ {
+  "nivel": 3,
+  "categoria": "História",
+  "enunciado": "Em que ano começou a Segunda Guerra Mundial?",
+  "opcoes": [
+   "1939",
+   "1914",
+   "1941",
+   "1945"
+  ],
+  "curiosidade": "Começou com a invasão da Polônia.",
+  "id": "Q-0177"
+ },
+ {
+  "nivel": 3,
+  "categoria": "História",
+  "enunciado": "Em que ano terminou a Segunda Guerra Mundial?",
+  "opcoes": [
+   "1945",
+   "1939",
+   "1950",
+   "1941"
+  ],
+  "curiosidade": "A rendição do Japão veio em setembro de 1945.",
+  "id": "Q-0178"
+ },
+ {
+  "nivel": 3,
+  "categoria": "História",
+  "enunciado": "Quem foi o primeiro presidente do Brasil?",
+  "opcoes": [
+   "Marechal Deodoro da Fonseca",
+   "Getúlio Vargas",
+   "Juscelino Kubitschek",
+   "Floriano Peixoto"
+  ],
+  "curiosidade": "A República foi proclamada em 1889.",
+  "id": "Q-0179"
+ },
+ {
+  "nivel": 3,
+  "categoria": "História",
+  "enunciado": "Em que ano o homem pisou na Lua pela primeira vez?",
+  "opcoes": [
+   "1969",
+   "1959",
+   "1975",
+   "1981"
+  ],
+  "curiosidade": "A missão foi a Apollo 11.",
+  "id": "Q-0180"
+ },
+ {
+  "nivel": 3,
+  "categoria": "História",
+  "enunciado": "Qual foi a primeira capital do Brasil?",
+  "opcoes": [
+   "Salvador",
+   "Rio de Janeiro",
+   "Brasília",
+   "Olinda"
+  ],
+  "curiosidade": "Foi capital da colônia até 1763.",
+  "id": "Q-0181"
+ },
+ {
+  "nivel": 3,
+  "categoria": "História",
+  "enunciado": "Em que ano caiu o Muro de Berlim?",
+  "opcoes": [
+   "1989",
+   "1961",
+   "1975",
+   "1991"
+  ],
+  "curiosidade": "A queda abriu caminho para a reunificação alemã.",
+  "id": "Q-0182"
+ },
+ {
+  "nivel": 3,
+  "categoria": "História",
+  "enunciado": "Quem foi o último imperador do Brasil?",
+  "opcoes": [
+   "Dom Pedro II",
+   "Dom Pedro I",
+   "Dom João VI",
+   "Dom Manuel"
+  ],
+  "curiosidade": "Reinou por quase 50 anos.",
+  "id": "Q-0183"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Ciência",
+  "enunciado": "Qual é o símbolo químico do ouro?",
+  "opcoes": [
+   "Au",
+   "Ag",
+   "Or",
+   "Go"
+  ],
+  "curiosidade": "Vem do latim aurum.",
+  "id": "Q-0184"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Ciência",
+  "enunciado": "Quantos ossos tem o corpo de um adulto?",
+  "opcoes": [
+   "206",
+   "150",
+   "300",
+   "180"
+  ],
+  "curiosidade": "Bebês nascem com mais ossos, que depois se fundem.",
+  "id": "Q-0185"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Ciência",
+  "enunciado": "Qual é o maior osso do corpo humano?",
+  "opcoes": [
+   "Fêmur",
+   "Úmero",
+   "Tíbia",
+   "Costela"
+  ],
+  "curiosidade": "Fica na coxa.",
+  "id": "Q-0186"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Ciência",
+  "enunciado": "Qual é o planeta mais próximo do Sol?",
+  "opcoes": [
+   "Mercúrio",
+   "Vênus",
+   "Marte",
+   "Terra"
+  ],
+  "curiosidade": "Um ano em Mercúrio dura 88 dias.",
+  "id": "Q-0187"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Ciência",
+  "enunciado": "Qual vitamina o sol ajuda o corpo a produzir?",
+  "opcoes": [
+   "Vitamina D",
+   "Vitamina C",
+   "Vitamina A",
+   "Vitamina K"
+  ],
+  "curiosidade": "Ela ajuda a fixar o cálcio nos ossos.",
+  "id": "Q-0188"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Ciência",
+  "enunciado": "Quem propôs a evolução por seleção natural?",
+  "opcoes": [
+   "Charles Darwin",
+   "Isaac Newton",
+   "Galileu",
+   "Louis Pasteur"
+  ],
+  "curiosidade": "Publicou “A Origem das Espécies” em 1859.",
+  "id": "Q-0189"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Ciência",
+  "enunciado": "Quem inventou o telefone, segundo a patente de 1876?",
+  "opcoes": [
+   "Alexander Graham Bell",
+   "Thomas Edison",
+   "Nikola Tesla",
+   "Guglielmo Marconi"
+  ],
+  "curiosidade": "A patente foi disputada por outros inventores.",
+  "id": "Q-0190"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Ciência",
+  "enunciado": "Qual é a partícula de carga negativa do átomo?",
+  "opcoes": [
+   "Elétron",
+   "Próton",
+   "Nêutron",
+   "Fóton"
+  ],
+  "curiosidade": "Gira ao redor do núcleo.",
+  "id": "Q-0191"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Matemática",
+  "enunciado": "Quantos segundos tem uma hora?",
+  "opcoes": [
+   "3.600",
+   "600",
+   "1.800",
+   "6.000"
+  ],
+  "curiosidade": "Sessenta minutos de sessenta segundos.",
+  "id": "Q-0192"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Matemática",
+  "enunciado": "Quanto é 15% de 200?",
+  "opcoes": [
+   "30",
+   "15",
+   "20",
+   "45"
+  ],
+  "curiosidade": "Dez por cento são 20, mais metade disso.",
+  "id": "Q-0193"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Matemática",
+  "enunciado": "Quanto é 12 x 12?",
+  "opcoes": [
+   "144",
+   "122",
+   "124",
+   "132"
+  ],
+  "curiosidade": "Uma dúzia de dúzias é uma grosa.",
+  "id": "Q-0194"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Matemática",
+  "enunciado": "Qual é o número romano para 50?",
+  "opcoes": [
+   "L",
+   "X",
+   "C",
+   "D"
+  ],
+  "curiosidade": "X é 10, C é 100 e D é 500.",
+  "id": "Q-0195"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Esportes",
+  "enunciado": "Quantas Copas do Mundo o Brasil já venceu?",
+  "opcoes": [
+   "5",
+   "4",
+   "6",
+   "3"
+  ],
+  "curiosidade": "1958, 1962, 1970, 1994 e 2002.",
+  "id": "Q-0196"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Esportes",
+  "enunciado": "Qual país venceu a Copa do Mundo de 2022?",
+  "opcoes": [
+   "Argentina",
+   "França",
+   "Brasil",
+   "Croácia"
+  ],
+  "curiosidade": "A final foi no Catar.",
+  "id": "Q-0197"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Esportes",
+  "enunciado": "Em que cidade foram as Olimpíadas de 2016?",
+  "opcoes": [
+   "Rio de Janeiro",
+   "São Paulo",
+   "Londres",
+   "Tóquio"
+  ],
+  "curiosidade": "Foi a primeira Olimpíada na América do Sul.",
+  "id": "Q-0198"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Esportes",
+  "enunciado": "Qual era o piloto brasileiro tricampeão de Fórmula 1, morto em 1994?",
+  "opcoes": [
+   "Ayrton Senna",
+   "Nelson Piquet",
+   "Emerson Fittipaldi",
+   "Rubens Barrichello"
+  ],
+  "curiosidade": "Senna ganhou em 1988, 1990 e 1991.",
+  "id": "Q-0199"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Cultura",
+  "enunciado": "Quem escreveu “Capitães da Areia”?",
+  "opcoes": [
+   "Jorge Amado",
+   "Graciliano Ramos",
+   "Machado de Assis",
+   "Clarice Lispector"
+  ],
+  "curiosidade": "O livro se passa em Salvador.",
+  "id": "Q-0200"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Cultura",
+  "enunciado": "Quem pintou o quadro “Abaporu”?",
+  "opcoes": [
+   "Tarsila do Amaral",
+   "Portinari",
+   "Di Cavalcanti",
+   "Anita Malfatti"
+  ],
+  "curiosidade": "Pintado em 1928, é um ícone do modernismo.",
+  "id": "Q-0201"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Cultura",
+  "enunciado": "Quem escreveu “Memórias Póstumas de Brás Cubas”?",
+  "opcoes": [
+   "Machado de Assis",
+   "Aluísio Azevedo",
+   "Lima Barreto",
+   "Raul Pompeia"
+  ],
+  "curiosidade": "O narrador é um defunto autor.",
+  "id": "Q-0202"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Cultura",
+  "enunciado": "Quem pintou “A Noite Estrelada”?",
+  "opcoes": [
+   "Vincent van Gogh",
+   "Monet",
+   "Dalí",
+   "Rembrandt"
+  ],
+  "curiosidade": "Está no MoMA, em Nova York.",
+  "id": "Q-0203"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Rio de Janeiro",
+  "enunciado": "Em que ano foi inaugurado o estádio do Maracanã?",
+  "opcoes": [
+   "1950",
+   "1930",
+   "1964",
+   "1970"
+  ],
+  "curiosidade": "Foi construído para a Copa do Mundo de 1950.",
+  "id": "Q-0204"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Mar",
+  "enunciado": "Qual oceano abriga o Triângulo das Bermudas?",
+  "opcoes": [
+   "Atlântico",
+   "Pacífico",
+   "Índico",
+   "Ártico"
+  ],
+  "curiosidade": "A área fica entre Flórida, Bermudas e Porto Rico.",
+  "id": "Q-0205"
+ },
+ {
+  "nivel": 3,
+  "categoria": "Mar",
+  "enunciado": "Quantos corações tem uma lula?",
+  "opcoes": [
+   "Três",
+   "Um",
+   "Dois",
+   "Quatro"
+  ],
+  "curiosidade": "Dois bombeiam para as brânquias e um para o corpo.",
+  "id": "Q-0206"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Geografia",
+  "enunciado": "Qual é a capital do Cazaquistão?",
+  "opcoes": [
+   "Astana",
+   "Almaty",
+   "Tashkent",
+   "Bishkek"
+  ],
+  "curiosidade": "Almaty foi a antiga capital.",
+  "id": "Q-0207"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Geografia",
+  "enunciado": "Qual é a capital da Nova Zelândia?",
+  "opcoes": [
+   "Wellington",
+   "Auckland",
+   "Christchurch",
+   "Queenstown"
+  ],
+  "curiosidade": "É a capital mais ao sul do mundo.",
+  "id": "Q-0208"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Geografia",
+  "enunciado": "Qual é a capital da Suíça?",
+  "opcoes": [
+   "Berna",
+   "Zurique",
+   "Genebra",
+   "Basileia"
+  ],
+  "curiosidade": "Zurique é a maior cidade, mas não a capital.",
+  "id": "Q-0209"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Geografia",
+  "enunciado": "Qual é o menor país do mundo?",
+  "opcoes": [
+   "Vaticano",
+   "Mônaco",
+   "San Marino",
+   "Liechtenstein"
+  ],
+  "curiosidade": "Tem cerca de 0,44 km².",
+  "id": "Q-0210"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Geografia",
+  "enunciado": "Qual é o país mais populoso do mundo atualmente?",
+  "opcoes": [
+   "Índia",
+   "China",
+   "Estados Unidos",
+   "Indonésia"
+  ],
+  "curiosidade": "A Índia passou a China em 2023.",
+  "id": "Q-0211"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Geografia",
+  "enunciado": "Qual é o ponto mais alto do Brasil?",
+  "opcoes": [
+   "Pico da Neblina",
+   "Pico das Agulhas Negras",
+   "Pico da Bandeira",
+   "Monte Roraima"
+  ],
+  "curiosidade": "Fica no Amazonas, na fronteira com a Venezuela.",
+  "id": "Q-0212"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Geografia",
+  "enunciado": "Qual deserto fica no Chile e é um dos mais secos do mundo?",
+  "opcoes": [
+   "Atacama",
+   "Saara",
+   "Gobi",
+   "Mojave"
+  ],
+  "curiosidade": "Há lugares onde quase nunca choveu.",
+  "id": "Q-0213"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Geografia",
+  "enunciado": "Qual estreito separa a Europa da África?",
+  "opcoes": [
+   "Gibraltar",
+   "Bósforo",
+   "Magalhães",
+   "Ormuz"
+  ],
+  "curiosidade": "Tem cerca de 14 km no ponto mais estreito.",
+  "id": "Q-0214"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Geografia",
+  "enunciado": "Qual é o rio mais longo da Europa?",
+  "opcoes": [
+   "Volga",
+   "Danúbio",
+   "Reno",
+   "Sena"
+  ],
+  "curiosidade": "Corre quase todo dentro da Rússia.",
+  "id": "Q-0215"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Geografia",
+  "enunciado": "Qual é a montanha mais alta do Rio de Janeiro (cidade)?",
+  "opcoes": [
+   "Pico da Tijuca",
+   "Corcovado",
+   "Pão de Açúcar",
+   "Pedra da Gávea"
+  ],
+  "curiosidade": "Passa de mil metros.",
+  "id": "Q-0216"
+ },
+ {
+  "nivel": 4,
+  "categoria": "História",
+  "enunciado": "Em que ano foi proclamada a República do Brasil?",
+  "opcoes": [
+   "1889",
+   "1822",
+   "1888",
+   "1930"
+  ],
+  "curiosidade": "No dia 15 de novembro.",
+  "id": "Q-0217"
+ },
+ {
+  "nivel": 4,
+  "categoria": "História",
+  "enunciado": "Em que ano foi a Independência do Brasil?",
+  "opcoes": [
+   "1822",
+   "1808",
+   "1889",
+   "1500"
+  ],
+  "curiosidade": "O grito foi dado às margens do Ipiranga.",
+  "id": "Q-0218"
+ },
+ {
+  "nivel": 4,
+  "categoria": "História",
+  "enunciado": "Em que ano foi assinada a Lei Áurea?",
+  "opcoes": [
+   "1888",
+   "1822",
+   "1889",
+   "1850"
+  ],
+  "curiosidade": "Foi assinada pela princesa Isabel.",
+  "id": "Q-0219"
+ },
+ {
+  "nivel": 4,
+  "categoria": "História",
+  "enunciado": "Quem foi o primeiro homem no espaço?",
+  "opcoes": [
+   "Iuri Gagarin",
+   "Neil Armstrong",
+   "Buzz Aldrin",
+   "Alan Shepard"
+  ],
+  "curiosidade": "Foi em 1961.",
+  "id": "Q-0220"
+ },
+ {
+  "nivel": 4,
+  "categoria": "História",
+  "enunciado": "Quem foi a primeira pessoa a ganhar um Nobel duas vezes, em áreas diferentes?",
+  "opcoes": [
+   "Marie Curie",
+   "Albert Einstein",
+   "Linus Pauling",
+   "Rosalind Franklin"
+  ],
+  "curiosidade": "Ganhou em Física e em Química.",
+  "id": "Q-0221"
+ },
+ {
+  "nivel": 4,
+  "categoria": "História",
+  "enunciado": "Qual país venceu a primeira Copa do Mundo, em 1930?",
+  "opcoes": [
+   "Uruguai",
+   "Brasil",
+   "Argentina",
+   "Itália"
+  ],
+  "curiosidade": "O Uruguai foi também o país-sede.",
+  "id": "Q-0222"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Ciência",
+  "enunciado": "Qual é o símbolo químico do ferro?",
+  "opcoes": [
+   "Fe",
+   "Fr",
+   "Ir",
+   "Fo"
+  ],
+  "curiosidade": "Vem do latim ferrum.",
+  "id": "Q-0223"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Ciência",
+  "enunciado": "Qual é o símbolo químico da prata?",
+  "opcoes": [
+   "Ag",
+   "Pt",
+   "Pr",
+   "Sl"
+  ],
+  "curiosidade": "Vem do latim argentum.",
+  "id": "Q-0224"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Ciência",
+  "enunciado": "Qual é o símbolo químico do potássio?",
+  "opcoes": [
+   "K",
+   "P",
+   "Po",
+   "Pt"
+  ],
+  "curiosidade": "Vem do latim kalium.",
+  "id": "Q-0225"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Ciência",
+  "enunciado": "Qual é o símbolo químico do chumbo?",
+  "opcoes": [
+   "Pb",
+   "Ch",
+   "Cb",
+   "Pu"
+  ],
+  "curiosidade": "Vem do latim plumbum.",
+  "id": "Q-0226"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Ciência",
+  "enunciado": "Qual planeta tem o maior número de luas conhecidas?",
+  "opcoes": [
+   "Saturno",
+   "Júpiter",
+   "Urano",
+   "Netuno"
+  ],
+  "curiosidade": "Passa de 140 luas confirmadas.",
+  "id": "Q-0227"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Ciência",
+  "enunciado": "Quem descobriu a penicilina?",
+  "opcoes": [
+   "Alexander Fleming",
+   "Louis Pasteur",
+   "Robert Koch",
+   "Edward Jenner"
+  ],
+  "curiosidade": "A descoberta foi em 1928.",
+  "id": "Q-0228"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Ciência",
+  "enunciado": "Qual é a unidade de medida da corrente elétrica?",
+  "opcoes": [
+   "Ampère",
+   "Volt",
+   "Ohm",
+   "Watt"
+  ],
+  "curiosidade": "Homenagem ao físico André-Marie Ampère.",
+  "id": "Q-0229"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Ciência",
+  "enunciado": "Qual é a unidade de medida de frequência?",
+  "opcoes": [
+   "Hertz",
+   "Joule",
+   "Newton",
+   "Pascal"
+  ],
+  "curiosidade": "Um hertz é um ciclo por segundo.",
+  "id": "Q-0230"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Ciência",
+  "enunciado": "Qual é o número atômico do carbono?",
+  "opcoes": [
+   "6",
+   "8",
+   "12",
+   "4"
+  ],
+  "curiosidade": "É a base da química orgânica.",
+  "id": "Q-0231"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Ciência",
+  "enunciado": "Qual camada da atmosfera concentra as nuvens e o clima?",
+  "opcoes": [
+   "Troposfera",
+   "Estratosfera",
+   "Mesosfera",
+   "Exosfera"
+  ],
+  "curiosidade": "É a camada mais próxima do solo.",
+  "id": "Q-0232"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Ciência",
+  "enunciado": "Qual destes mamíferos bota ovos?",
+  "opcoes": [
+   "Ornitorrinco",
+   "Canguru",
+   "Morcego",
+   "Golfinho"
+  ],
+  "curiosidade": "O ornitorrinco vive na Austrália.",
+  "id": "Q-0233"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Cultura",
+  "enunciado": "Quem escreveu “Os Lusíadas”?",
+  "opcoes": [
+   "Luís de Camões",
+   "Fernando Pessoa",
+   "Eça de Queirós",
+   "Gil Vicente"
+  ],
+  "curiosidade": "É o grande poema épico de Portugal.",
+  "id": "Q-0234"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Cultura",
+  "enunciado": "Quem escreveu “Vidas Secas”?",
+  "opcoes": [
+   "Graciliano Ramos",
+   "Rachel de Queiroz",
+   "José Lins do Rego",
+   "Guimarães Rosa"
+  ],
+  "curiosidade": "Fabiano, Sinhá Vitória e a cadela Baleia são personagens.",
+  "id": "Q-0235"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Cultura",
+  "enunciado": "Quem escreveu “A Hora da Estrela”?",
+  "opcoes": [
+   "Clarice Lispector",
+   "Cecília Meireles",
+   "Lygia Fagundes Telles",
+   "Rachel de Queiroz"
+  ],
+  "curiosidade": "Foi o último livro publicado em vida por ela.",
+  "id": "Q-0236"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Cultura",
+  "enunciado": "Quem escreveu “Dom Quixote”?",
+  "opcoes": [
+   "Miguel de Cervantes",
+   "William Shakespeare",
+   "Dante Alighieri",
+   "Camões"
+  ],
+  "curiosidade": "É considerado o primeiro grande romance moderno.",
+  "id": "Q-0237"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Cultura",
+  "enunciado": "Quem pintou “Guernica”?",
+  "opcoes": [
+   "Pablo Picasso",
+   "Salvador Dalí",
+   "Joan Miró",
+   "Goya"
+  ],
+  "curiosidade": "Retrata o bombardeio de uma cidade espanhola.",
+  "id": "Q-0238"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Cultura",
+  "enunciado": "Quem compôs a Nona Sinfonia, com o “Hino à Alegria”?",
+  "opcoes": [
+   "Beethoven",
+   "Mozart",
+   "Bach",
+   "Chopin"
+  ],
+  "curiosidade": "Ele já estava surdo quando a compôs.",
+  "id": "Q-0239"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Cultura",
+  "enunciado": "Quem compôs “As Quatro Estações”?",
+  "opcoes": [
+   "Vivaldi",
+   "Mozart",
+   "Bach",
+   "Tchaikovsky"
+  ],
+  "curiosidade": "É um conjunto de quatro concertos para violino.",
+  "id": "Q-0240"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Cultura",
+  "enunciado": "Quem pintou “O Grito”?",
+  "opcoes": [
+   "Edvard Munch",
+   "Gustav Klimt",
+   "Egon Schiele",
+   "Paul Gauguin"
+  ],
+  "curiosidade": "Existem quatro versões da obra.",
+  "id": "Q-0241"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Cultura",
+  "enunciado": "Quem escreveu “A Divina Comédia”?",
+  "opcoes": [
+   "Dante Alighieri",
+   "Petrarca",
+   "Boccaccio",
+   "Virgílio"
+  ],
+  "curiosidade": "A obra tem Inferno, Purgatório e Paraíso.",
+  "id": "Q-0242"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Cultura",
+  "enunciado": "Quem projetou o urbanismo de Brasília?",
+  "opcoes": [
+   "Lúcio Costa",
+   "Oscar Niemeyer",
+   "Burle Marx",
+   "Athos Bulcão"
+  ],
+  "curiosidade": "Niemeyer desenhou os prédios principais.",
+  "id": "Q-0243"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Cultura",
+  "enunciado": "Quem foi o criador do alfabeto para cegos?",
+  "opcoes": [
+   "Louis Braille",
+   "Samuel Morse",
+   "Alexander Bell",
+   "Johannes Gutenberg"
+  ],
+  "curiosidade": "Ele criou o sistema aos 15 anos.",
+  "id": "Q-0244"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Esportes",
+  "enunciado": "Quem tem mais Bolas de Ouro na história?",
+  "opcoes": [
+   "Lionel Messi",
+   "Cristiano Ronaldo",
+   "Pelé",
+   "Michel Platini"
+  ],
+  "curiosidade": "Messi chegou a 8 troféus.",
+  "id": "Q-0245"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Esportes",
+  "enunciado": "Qual termo do tênis significa um saque que o adversário não toca?",
+  "opcoes": [
+   "Ace",
+   "Deuce",
+   "Let",
+   "Smash"
+  ],
+  "curiosidade": "Também vale para o vôlei em alguns contextos.",
+  "id": "Q-0246"
+ },
+ {
+  "nivel": 4,
+  "categoria": "Mar",
+  "enunciado": "Qual é a profundidade aproximada da Fossa das Marianas?",
+  "opcoes": [
+   "Cerca de 11 mil metros",
+   "Cerca de 6 mil metros",
+   "Cerca de 3 mil metros",
+   "Cerca de 20 mil metros"
+  ],
+  "curiosidade": "É mais fundo que o Everest é alto.",
+  "id": "Q-0247"
+ },
+ {
+  "nivel": 5,
+  "categoria": "Geografia",
+  "enunciado": "Qual é a capital do Butão?",
+  "opcoes": [
+   "Timphu",
+   "Catmandu",
+   "Daca",
+   "Colombo"
+  ],
+  "curiosidade": "Fica no Himalaia.",
+  "id": "Q-0248"
+ },
+ {
+  "nivel": 5,
+  "categoria": "Geografia",
+  "enunciado": "Qual é a capital do Quirguistão?",
+  "opcoes": [
+   "Bisqueque",
+   "Taskent",
+   "Dushanbe",
+   "Astana"
+  ],
+  "curiosidade": "Era chamada de Frunze na época soviética.",
+  "id": "Q-0249"
+ },
+ {
+  "nivel": 5,
+  "categoria": "Geografia",
+  "enunciado": "Qual é a capital da Mongólia?",
+  "opcoes": [
+   "Ulan Bator",
+   "Astana",
+   "Pequim",
+   "Tashkent"
+  ],
+  "curiosidade": "É uma das capitais mais frias do mundo.",
+  "id": "Q-0250"
+ },
+ {
+  "nivel": 5,
+  "categoria": "Geografia",
+  "enunciado": "Qual é a capital da Nigéria?",
+  "opcoes": [
+   "Abuja",
+   "Lagos",
+   "Acra",
+   "Nairóbi"
+  ],
+  "curiosidade": "Lagos é maior, mas a capital é Abuja.",
+  "id": "Q-0251"
+ },
+ {
+  "nivel": 5,
+  "categoria": "Geografia",
+  "enunciado": "Qual é a capital do Marrocos?",
+  "opcoes": [
+   "Rabat",
+   "Casablanca",
+   "Marrakech",
+   "Fez"
+  ],
+  "curiosidade": "Casablanca é a maior cidade.",
+  "id": "Q-0252"
+ },
+ {
+  "nivel": 5,
+  "categoria": "Geografia",
+  "enunciado": "Qual é a capital do Paquistão?",
+  "opcoes": [
+   "Islamabad",
+   "Karachi",
+   "Lahore",
+   "Cabul"
+  ],
+  "curiosidade": "Foi planejada nos anos 1960.",
+  "id": "Q-0253"
+ },
+ {
+  "nivel": 5,
+  "categoria": "Geografia",
+  "enunciado": "Qual é a capital da Etiópia?",
+  "opcoes": [
+   "Adis Abeba",
+   "Nairóbi",
+   "Cartum",
+   "Cairo"
+  ],
+  "curiosidade": "Fica a mais de 2.300 m de altitude.",
+  "id": "Q-0254"
+ },
+ {
+  "nivel": 5,
+  "categoria": "Geografia",
+  "enunciado": "Qual é a capital de Gana?",
+  "opcoes": [
+   "Acra",
+   "Lagos",
+   "Dacar",
+   "Abidjan"
+  ],
+  "curiosidade": "Fica no Golfo da Guiné.",
+  "id": "Q-0255"
+ },
+ {
+  "nivel": 5,
+  "categoria": "Geografia",
+  "enunciado": "Qual é a capital de Mianmar?",
+  "opcoes": [
+   "Naipidau",
+   "Rangum",
+   "Mandalay",
+   "Bangkok"
+  ],
+  "curiosidade": "Foi inaugurada como capital em 2006.",
+  "id": "Q-0256"
+ },
+ {
+  "nivel": 5,
+  "categoria": "Geografia",
+  "enunciado": "Qual é o maior país da África em área?",
+  "opcoes": [
+   "Argélia",
+   "Sudão",
+   "Congo",
+   "Líbia"
+  ],
+  "curiosidade": "Passou a ser o maior após a divisão do Sudão.",
+  "id": "Q-0257"
+ },
+ {
+  "nivel": 5,
+  "categoria": "Geografia",
+  "enunciado": "Qual país tem a maior costa marítima do mundo?",
+  "opcoes": [
+   "Canadá",
+   "Rússia",
+   "Austrália",
+   "Indonésia"
+  ],
+  "curiosidade": "Somando as ilhas, passa de 200 mil km.",
+  "id": "Q-0258"
+ },
+ {
+  "nivel": 5,
+  "categoria": "Geografia",
+  "enunciado": "Qual é o maior lago de água doce do mundo em área?",
+  "opcoes": [
+   "Lago Superior",
+   "Lago Vitória",
+   "Lago Baikal",
+   "Lago Michigan"
+  ],
+  "curiosidade": "Fica entre o Canadá e os Estados Unidos.",
+  "id": "Q-0259"
+ },
+ {
+  "nivel": 5,
+  "categoria": "Geografia",
+  "enunciado": "Qual é a maior ilha do mundo, sem contar continentes?",
+  "opcoes": [
+   "Groenlândia",
+   "Madagascar",
+   "Bornéu",
+   "Nova Guiné"
+  ],
+  "curiosidade": "Pertence à Dinamarca.",
+  "id": "Q-0260"
+ },
+ {
+  "nivel": 5,
+  "categoria": "História",
+  "enunciado": "Em que ano foi inaugurada a Ponte Rio–Niterói?",
+  "opcoes": [
+   "1974",
+   "1960",
+   "1985",
+   "1950"
+  ],
+  "curiosidade": "O nome oficial é Ponte Presidente Costa e Silva.",
+  "id": "Q-0261"
+ },
+ {
+  "nivel": 5,
+  "categoria": "História",
+  "enunciado": "Quem foi o autor da música do Hino Nacional Brasileiro?",
+  "opcoes": [
+   "Francisco Manuel da Silva",
+   "Carlos Gomes",
+   "Villa-Lobos",
+   "Chiquinha Gonzaga"
+  ],
+  "curiosidade": "A letra é de Joaquim Osório Duque Estrada.",
+  "id": "Q-0262"
+ },
+ {
+  "nivel": 5,
+  "categoria": "História",
+  "enunciado": "Quem fez 13 gols numa única Copa do Mundo, em 1958?",
+  "opcoes": [
+   "Just Fontaine",
+   "Pelé",
+   "Gerd Müller",
+   "Ronaldo"
+  ],
+  "curiosidade": "É o recorde de gols em uma só Copa.",
+  "id": "Q-0263"
+ },
+ {
+  "nivel": 5,
+  "categoria": "História",
+  "enunciado": "Qual tratado dividiu as terras do Novo Mundo entre Portugal e Espanha em 1494?",
+  "opcoes": [
+   "Tordesilhas",
+   "Madri",
+   "Utrecht",
+   "Versalhes"
+  ],
+  "curiosidade": "Foi assinado numa cidade espanhola.",
+  "id": "Q-0264"
+ },
+ {
+  "nivel": 5,
+  "categoria": "Ciência",
+  "enunciado": "Qual é o símbolo químico do tungstênio?",
+  "opcoes": [
+   "W",
+   "T",
+   "Tu",
+   "Tn"
+  ],
+  "curiosidade": "Vem do alemão Wolfram.",
+  "id": "Q-0265"
+ },
+ {
+  "nivel": 5,
+  "categoria": "Ciência",
+  "enunciado": "Qual é o menor osso do corpo humano?",
+  "opcoes": [
+   "Estribo",
+   "Martelo",
+   "Bigorna",
+   "Falange"
+  ],
+  "curiosidade": "Fica no ouvido.",
+  "id": "Q-0266"
+ },
+ {
+  "nivel": 5,
+  "categoria": "Ciência",
+  "enunciado": "Qual cientista formulou as três leis do movimento planetário?",
+  "opcoes": [
+   "Johannes Kepler",
+   "Galileu",
+   "Copérnico",
+   "Tycho Brahe"
+  ],
+  "curiosidade": "Elas descrevem as órbitas elípticas.",
+  "id": "Q-0267"
+ },
+ {
+  "nivel": 5,
+  "categoria": "Ciência",
+  "enunciado": "Qual é o número atômico do oxigênio?",
+  "opcoes": [
+   "8",
+   "6",
+   "16",
+   "10"
+  ],
+  "curiosidade": "Está na água e no ar que respiramos.",
+  "id": "Q-0268"
+ },
+ {
+  "nivel": 5,
+  "categoria": "Ciência",
+  "enunciado": "Qual é o elemento mais abundante no universo?",
+  "opcoes": [
+   "Hidrogênio",
+   "Oxigênio",
+   "Hélio",
+   "Carbono"
+  ],
+  "curiosidade": "Compõe cerca de três quartos da matéria comum.",
+  "id": "Q-0269"
+ },
+ {
+  "nivel": 5,
+  "categoria": "Ciência",
+  "enunciado": "Quantos cromossomos tem uma célula humana comum?",
+  "opcoes": [
+   "46",
+   "23",
+   "44",
+   "48"
+  ],
+  "curiosidade": "São 23 pares.",
+  "id": "Q-0270"
+ },
+ {
+  "nivel": 5,
+  "categoria": "Ciência",
+  "enunciado": "Qual é a unidade de potência no Sistema Internacional?",
+  "opcoes": [
+   "Watt",
+   "Joule",
+   "Newton",
+   "Pascal"
+  ],
+  "curiosidade": "Homenagem a James Watt.",
+  "id": "Q-0271"
+ },
+ {
+  "nivel": 5,
+  "categoria": "Cultura",
+  "enunciado": "Quem escreveu “Guerra e Paz”?",
+  "opcoes": [
+   "Liev Tolstói",
+   "Dostoiévski",
+   "Tchekhov",
+   "Gógol"
+  ],
+  "curiosidade": "Tem mais de mil páginas.",
+  "id": "Q-0272"
+ },
+ {
+  "nivel": 5,
+  "categoria": "Cultura",
+  "enunciado": "Quem compôs “O Lago dos Cisnes”?",
+  "opcoes": [
+   "Tchaikovsky",
+   "Stravinsky",
+   "Prokofiev",
+   "Rachmaninoff"
+  ],
+  "curiosidade": "É um dos balés mais famosos do mundo.",
+  "id": "Q-0273"
+ },
+ {
+  "nivel": 5,
+  "categoria": "Cultura",
+  "enunciado": "Quem escreveu “Dona Flor e Seus Dois Maridos”?",
+  "opcoes": [
+   "Jorge Amado",
+   "Érico Veríssimo",
+   "Rubem Fonseca",
+   "Ariano Suassuna"
+  ],
+  "curiosidade": "Foi adaptado para o cinema e a TV.",
+  "id": "Q-0274"
+ },
+ {
+  "nivel": 5,
+  "categoria": "Cultura",
+  "enunciado": "Quem escreveu “Grande Sertão: Veredas”?",
+  "opcoes": [
+   "Guimarães Rosa",
+   "Graciliano Ramos",
+   "Rachel de Queiroz",
+   "José Lins do Rego"
+  ],
+  "curiosidade": "Publicado em 1956.",
+  "id": "Q-0275"
+ }
+]

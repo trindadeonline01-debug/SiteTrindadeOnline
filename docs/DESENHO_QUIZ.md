@@ -7,7 +7,7 @@
 ## 1. Regras fechadas (já decididas)
 
 - Acesso pelo QR da mesa (`/mesa/[token]` → "Jogar"), sem cadastro para jogar.
-- 4 alternativas, 5 s por pergunta (10 s com "Pensar"), 3 pulos e 2 "Pensar 10 s" por rodada. Pular e ajuda não contam como acerto.
+- 4 alternativas, **7 s** por pergunta (**15 s** com "Pensar"), 3 pulos e 2 "Pensar 15 s" por rodada (decisão do Ricardo, 4/nov/2026: era 5 s e 10 s). Pular e ajuda não contam como acerto.
 - **Fase segura (até 15 acertos):** erro encerra a rodada e mantém o último marco: 5→2%, 10→3%, 15→5%.
 - **Portão aos 15 acertos:** "Parar e garantir 5%" ou "Continuar e arriscar tudo".
 - **Fase de risco (16+):** antes de cada pergunta, "Parar e garantir X%" ou "Continuar". Erro/tempo esgotado zera o prêmio da rodada. Marcos: 20→6%, 25→8%, 30→10% (teto; depois só recorde).
@@ -22,9 +22,9 @@
 Estados da rodada: `jogando` → (`portao` aos 15) → `risco` → `encerrada`.
 
 1. **Iniciar** (`POST /api/mesa` ação `quiz_iniciar`): confere conta aberta + chave da conta, cria a rodada, decide se é **elegível a prêmio** (seção 5) e devolve o saldo de ajudas.
-2. **Pergunta** (`quiz_pergunta`): servidor sorteia (sem repetir na rodada, por nível: 1–5 fácil, 6–10 médio, 11+ difícil), **embaralha as alternativas** e guarda a ordem; grava `servida_em` e o prazo = 5 s + folga de rede (~1,5 s). Devolve só texto e 4 alternativas.
+2. **Pergunta** (`quiz_pergunta`): servidor sorteia (sem repetir na rodada, por nível: 1–5 fácil, 6–10 médio, 11+ difícil), **embaralha as alternativas** e guarda a ordem; grava `servida_em` e o prazo = 7 s + folga de rede (~1,5 s). Devolve só texto e 4 alternativas.
 3. **Responder** (`quiz_responder`): servidor confere o prazo (chegou depois = tempo esgotado), compara com a certa, calcula pontos, atualiza acertos e marco e só então devolve "certo/errado + curiosidade". 
-4. **Pular** / **Pensar** (`quiz_pular`, `quiz_pensar`): consome 1 unidade; "Pensar" estende o prazo da pergunta atual para 10 s e só vale antes de vencer.
+4. **Pular** / **Pensar** (`quiz_pular`, `quiz_pensar`): consome 1 unidade; "Pensar" estende o prazo da pergunta atual para 15 s e só vale antes de vencer.
 5. **Decidir** (`quiz_decidir`): no portão e antes de cada pergunta da fase de risco — `parar` encerra e garante o marco; `continuar` segue.
 6. **Encerrar:** grava o resultado, o marco final e (se elegível) cria o prêmio **pendente**.
 
@@ -54,7 +54,7 @@ Primeira rodada elegível = a primeira do **telefone verificado** na campanha, e
 ## 6. Pontos que precisam de cuidado
 
 - **Banco de perguntas:** com 30 perguntas e 3 pulos, chegar a 30 acertos exige 33 sorteios — **não dá**. Mínimo realista 60 antes do lançamento; meta 300. Perguntas por nível: pelo menos 10 fáceis, 15 médias e 35 difíceis.
-- **5 segundos no celular:** enunciado curto (conferir leitura em 5 s), alternativas curtas, botão grande. A folga de ~1,5 s cobre sinal ruim da calçada, mas a contagem na tela mostra os 5 s.
+- **7 segundos no celular:** enunciado curto (conferir leitura em 7 s), alternativas curtas, botão grande. A folga de ~1,5 s cobre sinal ruim da calçada, mas a contagem na tela mostra os 7 s.
 - **Desligar a qualquer momento:** botão da loja desliga a campanha; rodadas em andamento terminam sem prêmio novo.
 - **Menores:** jogam sem prêmio e sem telefone (só diversão); o prêmio exige telefone verificado de adulto.
 - **Jurídico (Lei 5.768/71):** prêmio por desempenho num jogo, **condicionado a compra**, pode ser enquadrado como promoção comercial/vale-brinde que exige autorização. Resolver com advogado **antes de ligar o prêmio**. O jogo em si (pontos e recorde, sem prêmio) pode ir primeiro.

@@ -33,6 +33,13 @@ Estados da rodada: `jogando` → (`portao` aos 15) → `risco` → `encerrada`.
 
 Anti-trapaça: uma rodada ativa por conta; perguntas já vistas não voltam; tempo medido só no servidor; limite de chamadas por segundo; a ordem das alternativas muda a cada vez (copiar "é a B" não ajuda quem joga depois); rodada abandonada (sem resposta por 2 min) encerra sozinha como erro.
 
+## 2.1 Tela da pergunta (pedido do Ricardo, 4/nov/2026)
+
+- **Cabe numa tela só, sem rolagem, em qualquer celular** (testado de 320×568 a 430×932 no mockup). Em telas baixas o desenho se enxuga sozinho: some o rótulo das zonas, depois a escada de níveis, e o relógio e os botões encolhem.
+- **Topo estilo videogame:** três plaquetas com borda dourada (nível e número da pergunta · chances em corações · pontos em dourado, que dá um "pulo" quando soma). Na zona de risco a plaqueta do meio vira "cada erro encerra".
+- **Alternativas** com letras em quadradinhos coloridos (A vermelho, B azul, C amarelo, D verde).
+- **Botões de baixo grandes e coloridos:** Pular (azul) e Pensar (roxo), com a quantidade que sobra num selo dourado; apagam quando acabam.
+
 ## 3. Dados (migração — pedir confirmação antes de aplicar)
 
 - `quiz_perguntas`: id (ex.: MAR-001), nível, categoria, enunciado, alternativas (jsonb), correta, curiosidade, fonte, ativa. Global (banco da plataforma); a loja pode ter perguntas próprias depois (`company_id` opcional).

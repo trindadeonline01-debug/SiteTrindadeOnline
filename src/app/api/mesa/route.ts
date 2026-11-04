@@ -181,6 +181,16 @@ export async function POST(req: NextRequest) {
       if (tel.length < 12 || tel.length > 13) return erro('Confira o número do WhatsApp (com DDD).')
       const janela = Math.floor(Date.now() / JANELA_MS)
 
+      // Uma conta, um WhatsApp (pedido do Ricardo, 4/nov/2026): se a conta já tem telefone
+      // (do garçom ou de outra pessoa da mesa), outro número não entra — evita 4 pessoas da mesma
+      // mesa ganhando cashback/prêmio pela mesma comanda. Só o garçom troca (aba da comanda).
+      {
+        const { data: cc } = await sb.from('loja_comandas').select('customer_phone').eq('id', comanda.id).maybeSingle()
+        if (cc?.customer_phone && cc.customer_phone !== tel) {
+          return erro(`Já existe um WhatsApp cadastrado para esta conta (final ${cc.customer_phone.slice(-4)}). Para trocar, chame o garçom.`, 409)
+        }
+      }
+
       if (acao === 'codigo_enviar') {
         if ((await contarEventos(comanda.id, 'otp_enviado', 60_000)) >= 1) return erro('Aguarde 1 minuto para pedir outro código.', 429)
         if ((await contarEventos(comanda.id, 'otp_enviado', 3_600_000)) >= 3) return erro('Muitos códigos pedidos. Chame o garçom para ajudar.', 429)

@@ -100,3 +100,41 @@ export function isOpenNow(hours?: HourRow[], flexible?: boolean, paused?: boolea
   // Turno de ontem que começou antes da meia-noite e ainda não fechou hoje
   return hours.some(h => h.day_of_week === yesterday && rowCoversMinute(h, nowMin + 1440))
 }
+
+// Calendário pronto dos próximos dias pra IA do CRM (nov/2026, Mineroca): a IA
+// respondeu "hoje não, só amanhã" num domingo — mas amanhã (segunda) a loja
+// também fecha, e ela mesma corrigiu pra "terça" na frase seguinte. O modelo
+// não deve deduzir "amanhã"/"depois de amanhã" da grade semanal; recebe cada dia
+// com data, dia da semana e horário já resolvidos, e a próxima abertura pronta.
+const NOMES_DIA_LONGO = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado']
+const NOMES_REL = ['hoje', 'amanhã', 'depois de amanhã']
+function hhmm(t: string | null): string { return (t || '').slice(0, 5) }
+
+export function calendarioParaIA(hours: HourRow[] | undefined, flexible: boolean | undefined, dias = 8): { linhas: string[]; proxima: string | null } {
+  if (flexible || !hours || hours.length === 0) return { linhas: [], proxima: null }
+  const { minutes: nowMin } = nowInSaoPaulo()
+  const p = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date())
+  const m: Record<string, string> = {}
+  p.forEach(x => { m[x.type] = x.value })
+  const base = Date.UTC(parseInt(m.year, 10), parseInt(m.month, 10) - 1, parseInt(m.day, 10))
+  const linhas: string[] = []
+  let proxima: string | null = null
+  for (let i = 0; i < dias; i++) {
+    const d = new Date(base + i * 86400000)
+    const dow = d.getUTCDay()
+    const data = `${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}`
+    const rel = i < 3 ? NOMES_REL[i] : `daqui a ${i} dias`
+    const turnos = hours.filter(h => h.day_of_week === dow && !h.closed && h.open_time && h.close_time)
+      .sort((a, b) => (a.open_time! < b.open_time! ? -1 : 1))
+    const rotulo = `${rel[0].toUpperCase()}${rel.slice(1)} (${NOMES_DIA_LONGO[dow]}, ${data})`
+    if (turnos.length === 0) { linhas.push(`- ${rotulo}: FECHADO o dia todo`); continue }
+    const txt = turnos.map(h => `${hhmm(h.open_time)}–${hhmm(h.close_time)}`).join(' e ')
+    // Hoje: só conta como "próxima abertura" um turno que ainda não começou.
+    const futuros = i === 0 ? turnos.filter(h => { const [oh, om] = h.open_time!.split(':').map(Number); return oh * 60 + om > nowMin }) : turnos
+    linhas.push(`- ${rotulo}: aberto ${txt}`)
+    if (!proxima && futuros.length > 0) {
+      proxima = `${NOMES_DIA_LONGO[dow]}, ${data} (${rel}), a partir das ${hhmm(futuros[0].open_time)}`
+    }
+  }
+  return { linhas, proxima }
+}

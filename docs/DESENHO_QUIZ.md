@@ -26,12 +26,24 @@
 - Mockup jogável (Artifact privado do Ricardo, versão 17 — arquivo de trabalho no scratchpad da sessão, que se perde): intro, contagem 3-2-1, pergunta, círculo de resultado, portão dos 15, tela final, sons. **O Ricardo não disse "aprovado" formalmente** — ao retomar, confirmar o mockup antes de codar.
 - Perguntas-fonte: `docs/pesca-premiada/` (30 perguntas da Calçada do Peixe). Banco necessário para lançar: mínimo 60, meta 300+ (seção 8).
 
-**Ao retomar, decidir primeiro (nenhuma foi respondida):**
-1. Mockup v17 aprovado? (pedir o que ajustar antes de codar)
-2. **Ranking:** só da loja (semanal, apelido) — recomendado —, geral da plataforma ou sem ranking no início; e como o jogador escolhe o apelido.
-3. **Sair no meio da rodada:** recomendado manter o marco na fase segura, perder o prêmio na zona de risco e contar como "parar" no portão dos 15.
-4. Itens da seção 8 (modo do prêmio, limite, validade, lançar sem prêmio).
-5. Consulta jurídica (Lei 5.768/71) antes de ligar o prêmio.
+**Decisões do Ricardo, 4/nov/2026 (conversa seguinte — só desenho, continua sem implementar):**
+- **Ranking é obrigatório.** Botão "Ver ranking" na tela inicial do jogo (ou o ranking aparece ao rolar a tela; ao tocar no botão, a tela desce até ele). Mostra ranking geral e histórico, e a **posição do jogador depois da 1ª rodada**.
+- **Apelido + WhatsApp antes de jogar.** Ao tocar em iniciar, já pede apelido e WhatsApp; recebe o código de confirmação no WhatsApp, volta e começa. O jogo só libera depois disso (garante prêmio ligado a um número verificado e ranking com apelido).
+- **Sair no meio da rodada = perde tudo** (pontos da rodada e o cashback garantido, mesmo o marco já alcançado), e a rodada seguinte começa do zero. Vale também para sair sem finalizar/salvar.
+
+**Pontos que o Claude levantou para fechar antes de codar (sem resposta ainda):**
+1. *Ranking da loja ou da plataforma:* recomendado por loja (o prêmio é cashback daquela loja), com abas "Semana" e "Sempre"; geral da plataforma pode vir depois. Métrica a decidir (melhor rodada, soma da semana ou mais acertos).
+2. *Apelido:* travado depois de escolhido (preso ao WhatsApp), único por loja, 3 a 16 caracteres, com filtro de palavrões e botão de denunciar para o admin remover.
+3. *Cadastro obrigatório x menores:* a regra antiga dizia que menores jogam sem telefone. Com cadastro obrigatório, o quiz adulto pede "tenho 18 anos ou mais" + aceite de aparecer no ranking com apelido (LGPD); criança joga só a Aventura do Peixinho, que não exige cadastro e não tem ranking.
+4. *Quem já confirmou o WhatsApp* (nesta conta da mesa ou neste aparelho) não recebe código de novo; só o 1º acesso passa pelo cadastro. Reaproveita o fluxo de código que já existe na página da mesa (`codigo_enviar`/`codigo_verificar`).
+5. *Sair no meio:* botão de sair avisa "se sair, perde tudo". Queda de internet, ligação ou fechar o navegador sem querer: dar 2 minutos para voltar à mesma rodada (o relógio da pergunta continua correndo; tempo esgotado conta como erro). Passou disso sem voltar = rodada abandonada = perde tudo e não entra no ranking. Isso muda a regra antiga ("abandono = erro, leva o marco") e é coerente: sair nunca é melhor do que responder.
+- Menor risco de fraude: um prêmio por conta de mesa e por telefone continua valendo.
+
+**Ao retomar, decidir (restam):**
+1. Mockup v17 aprovado? Ele precisa ganhar as telas novas: cadastro (apelido + WhatsApp + código) e ranking (botão "Ver ranking", abas, posição do jogador).
+2. Respostas aos pontos 1 a 5 acima.
+3. Itens da seção 8 (modo do prêmio, limite, validade, lançar sem prêmio).
+4. Consulta jurídica (Lei 5.768/71) antes de ligar o prêmio.
 
 **Para construir (seção 7):** ações `quiz_*` em `/api/mesa`, tela em `/mesa/[token]`, prêmio pendente → crédito de cashback em `fechar` (extrato "Prêmio do Quiz", mesma mensagem de WhatsApp do cashback), painel da loja (campanha, prêmio, marcos, teto, validade), banco de perguntas com memória de perguntas vistas por jogador (`quiz_vistas`).
 

@@ -28,7 +28,9 @@ export default function InstrucoesIA({ companyId }: { companyId: string }) {
     return () => { vivo = false }
   }, [companyId])
 
-  if (!iaLiberadaParaEmpresa(companyId)) return null
+  // Card aparece pra TODA loja (pedido do Ricardo, 4/nov/2026). O texto fica salvo e a IA
+  // só o usa nas lojas em que o atendente já está ligado.
+  const iaLigada = iaLiberadaParaEmpresa(companyId)
 
   async function salvar() {
     setSalvando(true); setMsg('')
@@ -52,6 +54,11 @@ export default function InstrucoesIA({ companyId }: { companyId: string }) {
           pratos do dia, promoções, bairros que não atende, como funciona retirada, o que ela nunca deve prometer. A IA lê
           este campo em <b>toda</b> resposta e trata como informação oficial sua.
         </p>
+        {!iaLigada && (
+          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: '#6F6C67', background: '#FFF6D6', border: '1px solid #EBD27C', borderRadius: 8, padding: '8px 12px' }}>
+            O atendente de IA ainda não está ligado na sua loja. O que você escrever aqui fica salvo e passa a valer assim que ele for ligado.
+          </p>
+        )}
         <textarea
           value={texto} disabled={!carregado} maxLength={MAX} rows={9}
           onChange={e => setTexto(e.target.value)}

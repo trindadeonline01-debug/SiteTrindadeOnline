@@ -22,6 +22,7 @@
 
 Estados da rodada: `jogando` → (`portao` aos 15) → `risco` → `encerrada`.
 
+0. **Contagem 3-2-1-JÁ (sugestão do Ricardo, 4/nov/2026):** ao tocar em jogar entra uma tela de contagem antes da 1ª pergunta. É só do celular: o servidor só sorteia e começa a contar o tempo da 1ª pergunta quando o celular avisa que a contagem terminou (`quiz_pergunta`). Sair (‹ Início) durante a contagem não perde nada, a rodada ainda não começou.
 1. **Iniciar** (`POST /api/mesa` ação `quiz_iniciar`): confere conta aberta + chave da conta, cria a rodada, decide se é **elegível a prêmio** (seção 5) e devolve o saldo de ajudas.
 2. **Pergunta** (`quiz_pergunta`): servidor sorteia (sem repetir na rodada, por nível: 1–5 fácil, 6–10 médio, 11+ difícil), **embaralha as alternativas** e guarda a ordem; grava `servida_em` e o prazo = 7 s + folga de rede (~1,5 s). Devolve só texto e 4 alternativas.
 3. **Responder** (`quiz_responder`): servidor confere o prazo (chegou depois = tempo esgotado), compara com a certa, calcula pontos, atualiza acertos e marco e só então devolve "certo/errado + curiosidade". 

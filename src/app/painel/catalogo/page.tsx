@@ -726,7 +726,7 @@ export default function CatalogoPage() {
       sale_price: Number(data.sale_price).toFixed(2).replace('.', ','),
       track_stock: data.track_stock, stock_qty: data.stock_qty ?? '', stock_alert_qty: data.stock_alert_qty ?? '',
       restrictDays: !!(data.available_days && data.available_days.length), days: data.available_days || [],
-      hasPromo: !!data.promo_type, promo_value: promoDisplayPrice(data), semCashback: !!data.promo_type && !!data.sem_cashback,
+      hasPromo: !!data.promo_type, promo_value: promoDisplayPrice(data), semCashback: !!data.sem_cashback,
       promo_starts_at: data.promo_starts_at ? data.promo_starts_at.slice(0, 10) : '',
       promo_ends_at: data.promo_ends_at ? data.promo_ends_at.slice(0, 10) : '',
       active: data.active,
@@ -757,7 +757,7 @@ export default function CatalogoPage() {
       sale_price: Number(data.sale_price).toFixed(2).replace('.', ','),
       track_stock: data.track_stock, stock_qty: data.stock_qty ?? '', stock_alert_qty: data.stock_alert_qty ?? '',
       restrictDays: !!(data.available_days && data.available_days.length), days: data.available_days || [],
-      hasPromo: !!data.promo_type, promo_value: promoDisplayPrice(data), semCashback: !!data.promo_type && !!data.sem_cashback,
+      hasPromo: !!data.promo_type, promo_value: promoDisplayPrice(data), semCashback: !!data.sem_cashback,
       promo_starts_at: data.promo_starts_at ? data.promo_starts_at.slice(0, 10) : '',
       promo_ends_at: data.promo_ends_at ? data.promo_ends_at.slice(0, 10) : '',
       active: data.active,
@@ -866,7 +866,7 @@ export default function CatalogoPage() {
       promo_starts_at: form.hasPromo && form.promo_starts_at ? form.promo_starts_at : null,
       promo_ends_at: form.hasPromo && form.promo_ends_at ? form.promo_ends_at : null,
       // Produto em promoção pode ficar de fora do cashback; sem promoção, sempre gera.
-      sem_cashback: form.hasPromo && form.semCashback,
+      sem_cashback: form.semCashback,
       active: form.active,
       updated_at: new Date().toISOString(),
     }
@@ -1133,7 +1133,9 @@ export default function CatalogoPage() {
         .cg-field label{ display:block;font-size:10.5px;font-weight:700;color:#6E6656;margin-bottom:5px; }
         .cg-field input, .cg-field select, .cg-field textarea{ width:100%;padding:9px 11px;border-radius:9px;border:1px solid #B9AE97;background:#fff;font-size:12.5px;font-family:inherit;color:#1A1610; }
         .cg-row2{ display:grid;grid-template-columns:1fr 1fr;gap:10px; }
-        .cg-row3{ display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px; }
+        .cg-row3{ display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end; }
+        @media(max-width:560px){ .cg-row3{ grid-template-columns:1fr 1fr; } }
+        .cg-field.cb .cb-box{ display:flex;align-items:center;gap:8px;height:40px;padding:0 10px;border:1px solid #B9AE97;border-radius:8px;background:#F4F1E9;cursor:pointer;white-space:nowrap;font-size:13px;font-weight:600; }
         .cg-field.promo input{ border-color:#D6392B;background:#FDF5F4; }
         .cg-field.promo label{ display:flex;align-items:center;gap:6px; }
         .cg-field.promo .tag{ font-size:8.5px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:#fff;background:#D6392B;padding:1px 6px;border-radius:99px; }
@@ -1426,6 +1428,13 @@ export default function CatalogoPage() {
                   style={!form.hasPromo ? { borderColor: '#B9AE97', background: '#FCFAF5', color: '#A79E8B' } : undefined}
                 />
               </div>
+              <div className="cg-field cb">
+                <label>Cashback</label>
+                <div className="cb-box" onClick={() => setForm(f => ({ ...f, semCashback: !f.semCashback }))}>
+                  <div className={`cg-switch ${form.semCashback ? 'on' : ''}`}><div className="k" /></div>
+                  <span>Não gerar</span>
+                </div>
+              </div>
             </div>
             {parsePt(form.cost_price) > 0
               ? <div className="cg-margin">{margin(parsePt(form.cost_price), parsePt(form.sale_price))}% de margem</div>
@@ -1442,10 +1451,6 @@ export default function CatalogoPage() {
               <div className="cg-subbox">
                 <div className="cg-field"><label>Início (opcional)</label><input type="date" value={form.promo_starts_at} onChange={e => setForm(f => ({ ...f, promo_starts_at: e.target.value }))} /></div>
                 <div className="cg-field"><label>Fim (opcional)</label><input type="date" value={form.promo_ends_at} onChange={e => setForm(f => ({ ...f, promo_ends_at: e.target.value }))} /></div>
-                <div className="cg-swrow" style={{ gridColumn: '1 / -1' }}>
-                  <div className={`cg-switch ${form.semCashback ? 'on' : ''}`} onClick={() => setForm(f => ({ ...f, semCashback: !f.semCashback }))}><div className="k" /></div>
-                  <span>Não gerar cashback neste produto enquanto estiver em promoção</span>
-                </div>
               </div>
             )}
 

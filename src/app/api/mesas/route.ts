@@ -378,7 +378,7 @@ export async function POST(req: NextRequest) {
               const ate = new Date(Date.now() + dias * 86_400_000).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })
               const brl = (n: number) => 'R$ ' + n.toFixed(2).replace('.', ',')
               await sendCustomerWhatsApp(companyId, c.customer_phone,
-                `🎁 *${company.name.trim()}* agradece a visita!\n\nVocê ganhou *${brl(valorCash)}* de cashback nesta conta. Seu saldo agora é *${brl(r2(depois))}*, para usar no próximo pedido (delivery ou aqui na mesa) até *${ate}*.\n\nÉ só informar este WhatsApp quando pedir. Volte sempre! 😊`, 'aviso_pedido')
+                `🎁 *${company.name.trim()}* agradece a visita!\n\nVocê ganhou *${brl(valorCash)}* de cashback nesta conta. Seu saldo agora é *${brl(r2(depois))}*, para usar no próximo pedido (delivery ou aqui na mesa) até *${ate}*.\n\nÉ só informar este WhatsApp quando pedir. Veja seus saldos e extrato em trindadeonline.com.br/meu-cashback. Volte sempre! 😊`, 'aviso_pedido')
             }
           }
         }

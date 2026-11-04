@@ -159,6 +159,7 @@ export default function TermosPage() {
               <li><strong>Dados de cadastro:</strong> nome completo, endereço de e-mail, número de telefone/WhatsApp e bairro de residência.</li>
               <li><strong>Dados de empresa:</strong> nome fantasia, endereço, telefone comercial, categoria de atividade e fotos do estabelecimento.</li>
               <li><strong>Dados de uso:</strong> interações com a plataforma, buscas realizadas, avaliações publicadas e anúncios criados.</li>
+              <li><strong>Cashback:</strong> o número de WhatsApp informado em pedidos e contas de mesa é usado para registrar o saldo de cashback em cada loja. Ao confirmar esse número por código no WhatsApp (página &quot;Meu cashback&quot;), o titular passa a ver, num só lugar, os saldos e extratos de todas as lojas do Trindade Online em que tem cashback. As lojas veem apenas o cashback do próprio estabelecimento.</li>
               <li><strong>Dados técnicos:</strong> endereço IP, tipo de navegador e dispositivo utilizado, coletados automaticamente para fins de segurança e melhoria do serviço.</li>
             </ul>
 

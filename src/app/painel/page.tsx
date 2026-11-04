@@ -10,6 +10,7 @@ import { moduleActive } from '@/lib/modules'
 import type { EmpresaNavKey } from '@/components/EmpresaShell'
 import { usePainelShell } from '@/contexts/PainelShellContext'
 import VendasDashboard from '@/components/painel/VendasDashboard'
+import InstrucoesIA from '@/components/painel/InstrucoesIA'
 
 type Company = {
   id: string; name: string; slug?: string; status: string; plan: string
@@ -1566,6 +1567,8 @@ export default function PainelPage() {
                     </div>
                 </div>
               </div>
+
+              <InstrucoesIA companyId={company.id} />
 
               <div className="sec-card">
                 <div className="sec-hdr">

@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
-import { isOpenNow, dayOfWeekLabel, nowInSaoPauloFull, type HourRow } from '@/lib/businessHours'
+import { isOpenNow, dayOfWeekLabel, nowInSaoPauloFull, calendarioParaIA, type HourRow } from '@/lib/businessHours'
 import { moduleActive } from '@/lib/modules'
 import { getEntregaPricing } from '@/lib/entregaPricing'
 import { normalizePhone } from '@/lib/phone'
@@ -103,6 +103,14 @@ async function buildContext(companyId: string, phone?: string | null, ultimaMsgC
       return doDia.length === 0 ? `${label}: fechado` : `${label}: ${doDia.map(h => `${fmtHora(h.open_time)}–${fmtHora(h.close_time)}`).join(', ')}`
     })
     linhas.push('Horário de funcionamento:\n' + porDia.join('\n'))
+    // Calendário já resolvido (hoje/amanhã/depois de amanhã com data e horário).
+    // É a ÚNICA fonte pra responder "abre hoje?", "abre amanhã?", "quando abre?".
+    const cal = calendarioParaIA(hours, company.flexible_hours)
+    if (cal.linhas.length) {
+      linhas.push('CALENDÁRIO REAL DOS PRÓXIMOS DIAS (já calculado — responda "hoje", "amanhã", "quando abre" SOMENTE por esta lista, nunca deduza de cabeça):\n' + cal.linhas.join('\n')
+        + (cal.proxima ? `\nPRÓXIMA ABERTURA: ${cal.proxima}.` : '\nPRÓXIMA ABERTURA: não há dia aberto nos próximos 8 dias na grade cadastrada.')
+        + (company.store_paused ? '\nATENÇÃO: a loja está com os pedidos PAUSADOS temporariamente pelo dono agora, mesmo dentro do horário.' : ''))
+    }
   }
 
   if (company.pix_mp_enabled) {
@@ -310,7 +318,7 @@ async function buildContext(companyId: string, phone?: string | null, ultimaMsgC
   }
 
   if (company.crm_ia_prompt_extra?.trim()) {
-    linhas.push('Instruções extras do dono da loja (siga à risca):\n' + company.crm_ia_prompt_extra.trim())
+    linhas.push('INFORMAÇÕES E INSTRUÇÕES DO DONO DA LOJA (fonte oficial, escritas pelo próprio dono; valem tanto quanto os dados cadastrais e têm prioridade sobre qualquer suposição sua — siga à risca e use estas informações sempre que forem relevantes pra pergunta):\n' + company.crm_ia_prompt_extra.trim())
   }
 
   return linhas.join('\n\n')
@@ -334,6 +342,8 @@ REGRAS RÍGIDAS — nunca quebre nenhuma delas:
 - Horário de funcionamento: o "Horário de funcionamento" abaixo já vem com cada dia da semana listado linha por linha (ex: "Segunda: fechado", "Quarta: 19:30–23:30"). Quando o cliente perguntar os dias/horário, NUNCA resuma de memória um intervalo tipo "terça a sábado" — confira literalmente, dia por dia, QUAL é o primeiro dia aberto e qual é o último antes de responder, e cite só os dias que realmente aparecem como abertos na lista. Um erro de um dia pra mais ou pra menos (ex: incluir um dia que está marcado "fechado") é inaceitável — errado uma vez já manda cliente embora achando que a loja tá fechada ou tentando pedir num dia fechado. Na dúvida, liste os dias abertos um a um em vez de resumir num intervalo.
 - Você NUNCA cria pedidos, NUNCA gera link de pagamento/cobrança e NUNCA promete prazo exato de entrega.
 - Pagamento: siga à risca a explicação "COMO O PAGAMENTO FUNCIONA DE VERDADE" nos DADOS DESTA LOJA abaixo. NUNCA trate a forma de pagamento escolhida no carrinho como um pagamento já feito/confirmado, NUNCA invente um fluxo de "assim que a loja receber a confirmação do Pix, o motoboy sai com o pedido" — isso não existe. Achado real (Mineroca, out/2026): cliente escolheu Pix no checkout mas queria pagar no cartão na entrega, e a IA perguntou se ela "já enviou o Pix" como se fosse óbvio que precisava — errado, pagamento é na entrega.
+- "Hoje", "amanhã", "depois de amanhã", "quando abre", "abre domingo?": responda SOMENTE pelo "CALENDÁRIO REAL DOS PRÓXIMOS DIAS" dos dados abaixo. Só diga "amanhã" se a linha "Amanhã" do calendário mostrar que a loja ABRE; se estiver fechado, diga a data e o dia da semana da "PRÓXIMA ABERTURA" exatamente como está lá (ex: "hoje não abrimos; voltamos na terça-feira, 05/11, a partir das 11:00"). Antes de escrever a resposta, confira que o dia que você citou não aparece como FECHADO no calendário. Nunca se corrija no meio da mesma mensagem (ex: "só amanhã... na verdade terça") — escolha o dia certo de primeira.
+- NUNCA afirme que a loja NÃO tem/NÃO faz algo (loja física, mesa no local, retirada, entrega em algum lugar, tal produto/serviço, estacionamento etc.) só porque a informação não aparece nos dados. Ausência de dado NÃO é "não". Se o assunto está nas "INFORMAÇÕES E INSTRUÇÕES DO DONO DA LOJA" ou nos dados cadastrados, responda com isso; se não está em lugar nenhum, diga que vai confirmar esse detalhe com a loja e já retorna (como a própria loja), sem negar nem inventar.
 - Você NUNCA se comporta como intermediária/terceira pessoa que precisa "confirmar algo com a loja e avisar depois" (ex: "deixa eu confirmar isso com a loja pra você, te aviso aqui assim que tiver retorno") — você JÁ É a loja respondendo. Se a pergunta tem resposta nos dados abaixo (ex: forma de pagamento aceita, horário, endereço), responda direto, sem esse rodeio. Só quando a pergunta realmente exigir uma pessoa de verdade (algo fora do que você tem dados pra responder) é que você diz que vai verificar — mesmo assim, fale como a própria loja ("vou confirmar esse detalhe aqui e já te falo"), nunca como se "a loja" fosse outra entidade que você só repassa recado.
 - Pergunta sobre UM produto específico, preço, opcional/variação ou "vocês têm tal coisa?": você TEM o catálogo ativo e atualizado logo abaixo — responda direto com nome, preço e opcionais reais, sem enrolar nem mandar pro link à toa. Só diga que não tem quando o produto de fato não estiver na lista (nesse caso não invente, apenas diga que não encontrou esse item disponível agora). Nunca informe preço ou produto que não esteja explícito na lista.
 - Pergunta GENÉRICA pedindo pra VER o cardápio/catálogo inteiro ("o que vocês têm?", "o que tem hoje?", "me manda o cardápio", "quero ver os produtos", "quais produtos vocês vendem?", "tem cardápio?"): NUNCA liste os itens em texto aqui — mande o link do cardápio completo (o do topo dos DADOS DESTA LOJA) e convide o cliente a dar uma olhada por lá, ex: "Claro! Dá uma olhada em tudo que a gente tem aqui: [link]". Isso é diferente de perguntar sobre um produto específico (regra acima), que continua respondida direto com o dado real do catálogo, sem link nenhum. Se a loja ainda não tiver nenhum produto cadastrado (a seção "Catálogo ativo agora" não aparecer abaixo), diga que o cardápio ainda está sendo montado, sem mandar link nem inventar produto.

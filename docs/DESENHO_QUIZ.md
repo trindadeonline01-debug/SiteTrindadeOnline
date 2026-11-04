@@ -40,6 +40,14 @@ Anti-trapaça: uma rodada ativa por conta; perguntas já vistas não voltam; tem
 - **Alternativas** com letras em quadradinhos coloridos (A vermelho, B azul, C amarelo, D verde).
 - **Botões de baixo grandes e coloridos:** Pular (azul) e Pensar (roxo), com a quantidade que sobra num selo dourado; apagam quando acabam.
 
+## 2.2 Sons (pedido do Ricardo, 4/nov/2026)
+
+- **Acerto:** "ka-ching" de caixa registradora (clique da gaveta, sino de dois toques e moedas). A cada 5 acertos (níveis) soma aplausos.
+- **Erro e tempo esgotado:** duas notas graves descendo.
+- **Prêmio garantido:** aplausos com uma pequena fanfarra.
+- **Botão de som** (alto-falante) na barra de cima, para ligar e desligar.
+- **Regra do navegador:** áudio só toca depois de um toque do jogador; o toque em "Jogar" libera. No mockup os sons são sintetizados no navegador (sem arquivos). No jogo real podemos manter assim ou trocar por arquivos mp3 curtos escolhidos pelo Ricardo.
+
 ## 3. Dados (migração — pedir confirmação antes de aplicar)
 
 - `quiz_perguntas`: id (ex.: MAR-001), nível, categoria, enunciado, alternativas (jsonb), correta, curiosidade, fonte, ativa. Global (banco da plataforma); a loja pode ter perguntas próprias depois (`company_id` opcional).

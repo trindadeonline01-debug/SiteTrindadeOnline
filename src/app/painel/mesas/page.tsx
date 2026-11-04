@@ -63,6 +63,10 @@ function moneyShow(d: string) {
   const p = c.padStart(3, '0'); return `${p.slice(0, -2).replace(/^0+(?=\d)/, '') || '0'},${p.slice(-2)}`
 }
 
+// Pausa de impressão nas mesas (pedido do Ricardo, 4/nov/2026: dia de teste do sistema, sem testar impressão).
+// Pra voltar a imprimir: esvaziar esta lista.
+const IMPRESSAO_PAUSADA_EMPRESAS: string[] = ['d3373bd7-fa9b-490f-a077-c8f2980028c1'] // Calçada do Peixe
+
 export default function MesasPage() {
   const [loading, setLoading] = useState(true)
   const [companyId, setCompanyId] = useState('')
@@ -175,8 +179,10 @@ export default function MesasPage() {
   const comanda = comandas.find(c => c.id === abertaId) || null
   const fotos = useMemo(() => Object.fromEntries(produtos.map(p => [p.id, p.photo_url ?? null])) as Record<string, string | null>, [produtos])
   const mesaDe = (id: string) => mesas.find(m => m.id === id)
+  const impressaoPausada = IMPRESSAO_PAUSADA_EMPRESAS.includes(companyId)
 
   async function imprimir(conteudos: string[]) {
+    if (impressaoPausada) return
     if (!printerName || conteudos.length === 0) return
     try {
       for (let i = 0; i < conteudos.length; i++) {
@@ -229,6 +235,7 @@ export default function MesasPage() {
   return (
     <div className="ms-wrap" onClick={() => unlockAudio()}>
       <style>{CSS}</style>
+      {impressaoPausada && <div style={{ background: '#FFC531', color: '#151210', fontWeight: 800, fontSize: 13, textAlign: 'center', padding: '6px 10px' }}>🖨️ Impressão PAUSADA (modo teste) — nada sai na impressora</div>}
       <div className="ms-top">
         <div className="ms-brand">{companyName}</div>
         <div className="ms-tabs">

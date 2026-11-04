@@ -48,6 +48,13 @@ Anti-trapaça: uma rodada ativa por conta; perguntas já vistas não voltam; tem
 - **Botão de som** (alto-falante) na barra de cima, para ligar e desligar.
 - **Regra do navegador:** áudio só toca depois de um toque do jogador; o toque em "Jogar" libera. No mockup os sons são sintetizados no navegador (sem arquivos). No jogo real podemos manter assim ou trocar por arquivos mp3 curtos escolhidos pelo Ricardo.
 
+## 2.3 Tela final (pedido do Ricardo, 4/nov/2026)
+
+- **Uma tela só no fim**, ganhando ou perdendo, sem a tela de explicação ("Você sabia?", "Ver resultado"): depois do círculo do último erro vai direto para ela.
+- **Ordem de importância:** placar da rodada (pontos e acertos) e posição no ranking geral · prêmio ganho em destaque dourado (ou, sem prêmio, uma frase dizendo por quê) · ranking geral (top 3 e a linha do jogador destacada) · botões.
+- **Ranking geral:** só mostra apelido de quem aceitou participar (LGPD, menores sem ranking). Falta decidir o escopo (só da loja, semanal, geral) e o apelido do jogador. No mockup os dados são de exemplo.
+- Cabe numa tela só em qualquer celular; em telas baixas o ranking se resume à linha do jogador.
+
 ## 3. Dados (migração — pedir confirmação antes de aplicar)
 
 - `quiz_perguntas`: id (ex.: MAR-001), nível, categoria, enunciado, alternativas (jsonb), correta, curiosidade, fonte, ativa. Global (banco da plataforma); a loja pode ter perguntas próprias depois (`company_id` opcional).

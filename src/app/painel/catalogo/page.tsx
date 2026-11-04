@@ -1133,9 +1133,9 @@ export default function CatalogoPage() {
         .cg-field label{ display:block;font-size:10.5px;font-weight:700;color:#6E6656;margin-bottom:5px; }
         .cg-field input, .cg-field select, .cg-field textarea{ width:100%;padding:9px 11px;border-radius:9px;border:1px solid #B9AE97;background:#fff;font-size:12.5px;font-family:inherit;color:#1A1610; }
         .cg-row2{ display:grid;grid-template-columns:1fr 1fr;gap:10px; }
-        .cg-row3{ display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end; }
+        .cg-row3{ display:grid;grid-template-columns:repeat(4,1fr);gap:10px;align-items:start; }
         @media(max-width:560px){ .cg-row3{ grid-template-columns:1fr 1fr; } }
-        .cg-field.cb .cb-box{ display:flex;align-items:center;gap:8px;height:40px;padding:0 10px;border:1px solid #B9AE97;border-radius:8px;background:#F4F1E9;cursor:pointer;white-space:nowrap;font-size:13px;font-weight:600; }
+        .cg-field.cb .cb-box{ box-sizing:border-box;width:100%;display:flex;align-items:center;gap:8px;padding:6.5px 11px;border:1px solid #B9AE97;border-radius:9px;background:#fff;cursor:pointer;white-space:nowrap;font-size:12.5px;font-weight:600;color:#1A1610; }
         .cg-field.promo input{ border-color:#D6392B;background:#FDF5F4; }
         .cg-field.promo label{ display:flex;align-items:center;gap:6px; }
         .cg-field.promo .tag{ font-size:8.5px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:#fff;background:#D6392B;padding:1px 6px;border-radius:99px; }

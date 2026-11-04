@@ -850,24 +850,25 @@ function Picker({ produtos, categorias, mesaNumero, onClose, onLancar, busy, msg
   const [linhas, setLinhas] = useState<Linha[]>([])
   const [obs, setObs] = useState('')
   const seq = useRef(0)
-  const [peso, setPeso] = useState<{ p: Produto; dig: string } | null>(null)
+  const valorDig = (d: string) => (d ? parseInt(d, 10) / 100 : 0)
+  const [peso, setPeso] = useState<{ p: Produto; dig: string; modo: 'kg' | 'valor' } | null>(null)
   const [opc, setOpc] = useState<{ p: Produto; sel: number[][] } | null>(null)
 
   const lista = produtos.filter(p => (cat === 'all' || p.category_id === cat) && (!q || p.name.toLowerCase().includes(q.toLowerCase())))
   const total = r2(linhas.reduce((s, l) => s + l.unit * (l.pesoKg != null ? 1 : l.qty), 0))
 
-  function add(p: Produto, modifiers: { name: string; price: number }[] = [], pesoKg: number | null = null) {
+  function add(p: Produto, modifiers: { name: string; price: number }[] = [], pesoKg: number | null = null, valorFixo: number | null = null) {
     const extra = modifiers.reduce((s, m) => s + m.price, 0)
     const unit = r2(Number(p.sale_price) + extra)
     const key = p.id + '|' + modifiers.map(m => m.name).join(',') + (pesoKg != null ? '|' + (++seq.current) : '')
     setLinhas(prev => {
       const ex = pesoKg == null ? prev.find(l => l.key === key) : null
       if (ex) return prev.map(l => l.key === key ? { ...l, qty: l.qty + 1 } : l)
-      return [...prev, { key, produto: p, qty: 1, pesoKg, modifiers, unit: pesoKg != null ? r2(unit * pesoKg) : unit }]
+      return [...prev, { key, produto: p, qty: 1, pesoKg, modifiers, unit: pesoKg != null ? (valorFixo != null ? r2(valorFixo) : r2(unit * pesoKg)) : unit }]
     })
   }
   function tocar(p: Produto) {
-    if (PESO_REGEX.test(p.name)) { setPeso({ p, dig: '' }); return }
+    if (PESO_REGEX.test(p.name)) { setPeso({ p, dig: '', modo: 'kg' }); return }
     if (p.groups && p.groups.length > 0) { setOpc({ p, sel: p.groups.map(() => []) }); return }
     add(p)
   }
@@ -940,14 +941,25 @@ function Picker({ produtos, categorias, mesaNumero, onClose, onLancar, busy, msg
 
       {peso && (
         <Modal titulo={peso.p.name} onClose={() => setPeso(null)}>
-          <p className="ms-p">Peso pesado na peixaria ({fmt(Number(peso.p.sale_price))}/kg)</p>
-          <div className="ms-peso">{pesoDisplay(peso.dig) || '0,000'} kg</div>
+          <p className="ms-p">Peixe pesado na peixaria ({fmt(Number(peso.p.sale_price))}/kg)</p>
+          <div className="ms-modo">
+            <button className={peso.modo === 'kg' ? 'on' : ''} onClick={() => setPeso(s => s && ({ ...s, modo: 'kg', dig: '' }))}>Digitar o peso (kg)</button>
+            <button className={peso.modo === 'valor' ? 'on' : ''} onClick={() => setPeso(s => s && ({ ...s, modo: 'valor', dig: '' }))}>Digitar o valor (R$)</button>
+          </div>
+          <div className="ms-peso">{peso.modo === 'kg' ? `${pesoDisplay(peso.dig) || '0,000'} kg` : fmt(valorDig(peso.dig))}</div>
+          {peso.modo === 'valor' && (
+            <p className="ms-p" style={{ textAlign: 'center' }}>{valorDig(peso.dig) > 0 && Number(peso.p.sale_price) > 0 ? `≈ ${(valorDig(peso.dig) / Number(peso.p.sale_price)).toFixed(3).replace('.', ',')} kg` : 'Digite o valor do peixe já pesado'}</p>
+          )}
           <div className="ms-keypad">
             {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '⌫'].map(k => (
               <button key={k} onClick={() => setPeso(s => s && ({ ...s, dig: k === 'C' ? '' : k === '⌫' ? s.dig.slice(0, -1) : (s.dig + k).slice(0, 6) }))}>{k}</button>
             ))}
           </div>
-          <button className="ms-btn ok big" disabled={pesoNum(peso.dig) <= 0} onClick={() => { add(peso.p, [], pesoNum(peso.dig)); setPeso(null) }}>Adicionar</button>
+          <button className="ms-btn ok big" disabled={peso.modo === 'kg' ? pesoNum(peso.dig) <= 0 : valorDig(peso.dig) <= 0 || !(Number(peso.p.sale_price) > 0)} onClick={() => {
+            if (peso.modo === 'kg') add(peso.p, [], pesoNum(peso.dig))
+            else { const v = valorDig(peso.dig); add(peso.p, [], Math.round((v / Number(peso.p.sale_price)) * 1e6) / 1e6, v) }
+            setPeso(null)
+          }}>Adicionar</button>
         </Modal>
       )}
       {opc && (
@@ -1355,6 +1367,7 @@ const CSS = `
 .ms-cl{display:flex;align-items:center;gap:8px;border-top:1px solid #ECEDE8;padding-top:8px}.ms-cl .n{flex:1;display:flex;flex-direction:column;font-weight:600}.ms-cl .n small{color:#6F6C67;font-weight:400}
 .ms-cl .qty{display:flex;align-items:center;gap:8px}.ms-cl .qty button{width:40px;height:40px;border-radius:10px;border:2px solid #151210;background:#fff;font-size:20px;font-weight:700}
 .ms-cartfoot{display:flex;flex-direction:column;gap:8px}.ms-cartfoot .big{display:flex;justify-content:space-between;font-family:'Anton',sans-serif;font-size:24px}
+.ms-modo{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}.ms-modo button{min-height:44px;border-radius:10px;border:1px solid #b9bab2;background:#fff;font-weight:700}.ms-modo button.on{background:#151210;color:#FFC531;border-color:#151210}
 .ms-peso{font-family:'Anton',sans-serif;font-size:40px;text-align:center;background:#F5F6F2;border-radius:12px;padding:10px}
 .ms-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.ms-keypad button{min-height:56px;border-radius:10px;border:1px solid #DCDDD6;background:#fff;font-size:22px;font-weight:700}
 .ms-grp{display:flex;flex-direction:column}.ms-grp small{font-weight:400;color:#6F6C67}

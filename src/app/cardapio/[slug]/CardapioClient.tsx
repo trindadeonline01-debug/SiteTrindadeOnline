@@ -1582,6 +1582,9 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
                         <div className="cd-coupon-card-radio" />
                       </div>
                     )}
+                    {cashbackSaldo > 0 && (
+                      <a href="/meu-cashback" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 6, fontSize: 12, fontWeight: 600, color: '#6F6C67', textDecoration: 'underline' }}>Ver extrato e saldos em outras lojas</a>
+                    )}
 
                     <div style={{ marginTop: 14, padding: 12, background: '#F7F5F0', borderRadius: 10 }}>
                       <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', marginBottom: 8, fontWeight: 800 }}>Resumo do pedido</div>

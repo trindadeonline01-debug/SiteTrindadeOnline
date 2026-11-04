@@ -2,9 +2,9 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { moduleActive } from '@/lib/modules'
-import { PAINEL_NAV_GROUPS, isPainelNavItemLocked, isPainelNavItemVisible } from '@/lib/painelNavItems'
+import { PAINEL_NAV_GROUPS, PAINEL_NAV_HOME, isPainelNavItemLocked, isPainelNavItemVisible, painelNavHref } from '@/lib/painelNavItems'
 
-type Company = { id: string; name: string; slug: string; loja_digital_enabled: boolean; crm_whatsapp_enabled: boolean; crm_atendimento_pilot: boolean; crm_vendas_pilot: boolean; entrega_enabled: boolean; trial_modules_until: string | null; plan: string }
+type Company = { id: string; name: string; slug: string; loja_digital_enabled: boolean; crm_whatsapp_enabled: boolean; crm_atendimento_pilot: boolean; crm_vendas_pilot: boolean; entrega_enabled: boolean; mesas_enabled: boolean; trial_modules_until: string | null; plan: string }
 
 // Admin navegando por uma empresa (?empresa=) precisa que todo link daqui
 // carregue esse parâmetro junto — senão o primeiro clique devolve pro
@@ -17,9 +17,9 @@ function withAdmin(href: string, adminEmpresaId?: string): string {
 
 // Mesma regra da sidebar desktop (EmpresaShell) — função sem módulo ativo
 // não some, fica trancada e leva pra venda do plano (ESPECIFICACAO.md §4.3).
-function Item({ href, icon, label, locked, badge, adminEmpresaId }: { href: string; icon: string; label: string; locked?: boolean; badge?: number; adminEmpresaId?: string }) {
+function Item({ href, icon, label, locked, badge, adminEmpresaId, external }: { href: string; icon: string; label: string; locked?: boolean; badge?: number; adminEmpresaId?: string; external?: boolean }) {
   return (
-    <a className="item" href={withAdmin(locked ? '/painel?tab=plano' : href, adminEmpresaId)} style={locked ? { opacity: 0.5 } : undefined}>
+    <a className="item" href={external && !locked ? href : withAdmin(locked ? '/painel?tab=plano' : href, adminEmpresaId)} style={locked ? { opacity: 0.5 } : undefined}>
       <span className="item-ico">{locked ? '🔒' : icon}</span>
       <span className="item-lbl">{label}</span>
       {!locked && !!badge && <span className="item-badge">{badge}</span>}
@@ -48,7 +48,7 @@ export default function MaisPage() {
       const admin = profile?.user_type === 'admin' && !!empresaParam
       setIsAdmin(admin)
       if (admin) setAdminEmpresaId(empresaParam!)
-      const MAIS_SELECT = 'id, name, slug, loja_digital_enabled, crm_whatsapp_enabled, crm_atendimento_pilot, crm_vendas_pilot, entrega_enabled, trial_modules_until, plan'
+      const MAIS_SELECT = 'id, name, slug, loja_digital_enabled, crm_whatsapp_enabled, crm_atendimento_pilot, crm_vendas_pilot, entrega_enabled, mesas_enabled, trial_modules_until, plan'
       const { data: comp } = admin
         ? await supabase.from('companies').select(MAIS_SELECT).eq('id', empresaParam).maybeSingle()
         : await supabase.from('companies').select(MAIS_SELECT).eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
@@ -79,6 +79,8 @@ export default function MaisPage() {
     entrega_enabled: isAdmin || moduleActive(company.entrega_enabled, company.trial_modules_until),
     crm_atendimento_pilot: isAdmin || !!company.crm_atendimento_pilot,
     crm_vendas_pilot: isAdmin || !!company.crm_vendas_pilot,
+    mesas_enabled: !!company.mesas_enabled,
+    slug: company.slug,
   }
   // Badge é dado dinâmico (contagem), não faz parte da lista estática
   // compartilhada com a gaveta do menu hambúrguer — mapeado à parte aqui.
@@ -120,12 +122,16 @@ export default function MaisPage() {
           <div className="company-arrow">›</div>
         </a>
 
+        <div className="list" style={{ marginBottom: 4 }}>
+          <Item href={PAINEL_NAV_HOME.href} icon={PAINEL_NAV_HOME.icon} label={PAINEL_NAV_HOME.label} adminEmpresaId={adminEmpresaId} />
+        </div>
+
         {PAINEL_NAV_GROUPS.map(group => (
           <div key={group.label}>
             <div className="sectlbl">{group.label}</div>
             <div className="list">
               {group.items.filter(item => isPainelNavItemVisible(item, flags)).map(item => (
-                <Item key={item.href} href={item.href} icon={item.icon} label={item.label} badge={badgeByHref[item.href]} locked={isPainelNavItemLocked(item, flags)} adminEmpresaId={adminEmpresaId} />
+                <Item key={item.href} href={painelNavHref(item, flags)} external={item.external} icon={item.icon} label={item.label} badge={badgeByHref[item.href]} locked={isPainelNavItemLocked(item, flags)} adminEmpresaId={adminEmpresaId} />
               ))}
             </div>
           </div>

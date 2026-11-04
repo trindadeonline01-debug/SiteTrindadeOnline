@@ -1,5 +1,6 @@
 'use client'
 
+import { PAINEL_NAV_GROUPS, PAINEL_NAV_HOME, isPainelNavItemLocked, isPainelNavItemVisible, painelNavHref } from '@/lib/painelNavItems'
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 
@@ -136,6 +137,10 @@ export default function EmpresaShell({
         { key: 'avaliacoes', href: '/painel?tab=avaliacoes', ico: '⭐', lbl: 'Avaliações', badge: avaliacoesBadge },
         { key: 'cupons', href: '/painel?tab=cupons', ico: '🎟️', lbl: 'Cupons' },
       ]
+  const navFlags = {
+    loja_digital_enabled: !!lojaDigitalEnabled, crm_whatsapp_enabled: !!crmEnabled, entrega_enabled: !!entregaEnabled,
+    crm_atendimento_pilot: !!crmAtendimentoPilot, crm_vendas_pilot: !!crmVendasPilot, mesas_enabled: !!mesasEnabled, slug: companySlug,
+  }
   const mobileTabKeys = mobileTabs.map(t => t.key)
   const maisActive = !mobileTabKeys.includes(active)
 
@@ -248,57 +253,27 @@ export default function EmpresaShell({
             </>
           ) : (
             <>
-              <Link href={withAdmin('/painel', adminEmpresaId)} className={`es-item ${active === 'dashboard' ? 'on' : ''}`}>📊 Visão geral</Link>
+              <Link href={withAdmin(PAINEL_NAV_HOME.href, adminEmpresaId)} className={`es-item ${active === 'dashboard' ? 'on' : ''}`}>{PAINEL_NAV_HOME.icon} {PAINEL_NAV_HOME.label}</Link>
 
-              {/* Agrupado por frequência de uso, não por assunto —
+              {/* Lista ÚNICA em src/lib/painelNavItems.ts (a mesma do ☰ Mais e do menu
+                  hambúrguer do celular). Agrupado por frequência de uso —
                   ESPECIFICACAO.md §4.3. Função sem módulo ativo não some: fica
-                  com cadeado e leva pra tela de venda do plano — esconder
-                  economiza pixel e perde venda. */}
-              <div className="es-group-lbl">Todo dia</div>
-              <NavItem href="/painel/pedidos" active={active === 'pedidos'} locked={!lojaDigitalEnabled} badge={pedidosBadge} adminEmpresaId={adminEmpresaId}>🧾 Pedidos</NavItem>
-              <NavItem href="/painel/pdv" active={active === 'pdv'} locked={!lojaDigitalEnabled} adminEmpresaId={adminEmpresaId}>🖥️ PDV</NavItem>
-              {mesasEnabled && <NavItem href="/painel/mesas" active={active === 'mesas'} adminEmpresaId={adminEmpresaId}>🍽️ Mesas</NavItem>}
-              <NavItem href="/painel/vendas" active={active === 'vendas'} locked={!lojaDigitalEnabled} adminEmpresaId={adminEmpresaId}>📈 Vendas por canal</NavItem>
-              <NavItem href="/painel/cashback" active={active === 'cashback'} locked={!lojaDigitalEnabled} adminEmpresaId={adminEmpresaId}>🎁 Cashback</NavItem>
-              <NavItem href="/painel/interesses" active={active === 'interesses'} locked={!lojaDigitalEnabled} adminEmpresaId={adminEmpresaId}>🔔 Interesses</NavItem>
-              <NavItem href="/painel/mensagens" active={active === 'mensagens'} locked={!crmEnabled} badge={mensagensBadge} adminEmpresaId={adminEmpresaId}>💬 Mensagens</NavItem>
-              <NavItem href="/atendimento" active={false} locked={!crmEnabled} adminEmpresaId={adminEmpresaId}>🎧 Modo Atendimento</NavItem>
-              <NavItem href="/painel/cozinha" active={active === 'cozinha'} locked={!lojaDigitalEnabled} adminEmpresaId={adminEmpresaId}>🍳 Cozinha</NavItem>
-
-              <div className="es-group-lbl">Minha loja</div>
-              <NavItem href="/painel/catalogo" active={active === 'catalogo'} locked={!lojaDigitalEnabled} adminEmpresaId={adminEmpresaId}>📋 Cardápio</NavItem>
-              <NavItem href="/painel/compartilhar" active={active === 'compartilhar'} locked={!lojaDigitalEnabled} adminEmpresaId={adminEmpresaId}>⚙️ Configurar cardápio</NavItem>
-              <NavItem href="/painel?tab=perfil" active={active === 'perfil'} adminEmpresaId={adminEmpresaId}>✏️ Perfil e fotos</NavItem>
-              {companySlug && <NavItem href={`/empresa/${companySlug}`} active={false}>🔗 Página da loja</NavItem>}
-              <NavItem href="/painel/entrega" active={active === 'entrega'} locked={!entregaEnabled} adminEmpresaId={adminEmpresaId}>🏍️ Entrega e retirada</NavItem>
-              <NavItem href="/painel/motoboys" active={active === 'motoboys'} locked={!lojaDigitalEnabled} adminEmpresaId={adminEmpresaId}>🏍️ Meus motoboys</NavItem>
-
-              <div className="es-group-lbl">Clientes</div>
-              <NavItem href="/painel/clientes" active={active === 'clientes'} locked={!crmEnabled} adminEmpresaId={adminEmpresaId}>👥 CRM</NavItem>
-              {/* Piloto (companies.crm_atendimento_pilot) — não é cadeado de
-                  plano, por isso some de vez em quem não tem a flag, em vez
-                  de aparecer travado pra todo mundo (ESPECIFICACAO.md fala de
-                  cadeado pra função paga existente, não se aplica a feature
-                  ainda em teste com 1 cliente). */}
-              {crmAtendimentoPilot && (
-                <NavItem href="/painel/atendimento" active={active === 'atendimento'} adminEmpresaId={adminEmpresaId}>📊 Atendimento</NavItem>
-              )}
-              {/* Piloto (companies.crm_vendas_pilot) — mesma lógica do
-                  Atendimento acima: some de vez em quem não tem a flag. */}
-              {crmVendasPilot && (
-                <NavItem href="/painel/radar" active={active === 'radar'} adminEmpresaId={adminEmpresaId}>📡 Radar de clientes</NavItem>
-              )}
-              <NavItem href="/painel?tab=avaliacoes" active={active === 'avaliacoes'} badge={avaliacoesBadge} adminEmpresaId={adminEmpresaId}>⭐ Avaliações</NavItem>
-
-              <div className="es-group-lbl">Crescer</div>
-              <NavItem href="/painel?tab=cupons" active={active === 'cupons'} adminEmpresaId={adminEmpresaId}>🎟️ Cupons</NavItem>
-              <NavItem href="/painel?tab=promocoes" active={active === 'promocoes'} adminEmpresaId={adminEmpresaId}>🏷️ Promoções</NavItem>
-              <NavItem href="/painel?tab=destaques" active={active === 'destaques'} adminEmpresaId={adminEmpresaId}>🌟 Destaques</NavItem>
-              <NavItem href="/painel?tab=banners" active={active === 'banners'} adminEmpresaId={adminEmpresaId}>🖼️ Banners</NavItem>
-
-              <div className="es-group-lbl">Conta</div>
-              <NavItem href="/painel?tab=plano" active={active === 'plano'} adminEmpresaId={adminEmpresaId}>💳 Plano e pagamento</NavItem>
-              <NavItem href="/painel/pagamentos" active={active === 'pagamentos'} locked={!lojaDigitalEnabled} adminEmpresaId={adminEmpresaId}>🏦 Pagamentos</NavItem>
+                  com cadeado e leva pra tela de venda do plano. Itens de piloto
+                  (Atendimento/Radar) e Mesas só aparecem com a flag da loja. */}
+              {PAINEL_NAV_GROUPS.map(group => (
+                <div key={group.label}>
+                  <div className="es-group-lbl">{group.label}</div>
+                  {group.items.filter(item => isPainelNavItemVisible(item, navFlags)).map(item => {
+                    const badge = item.key === 'pedidos' ? pedidosBadge : item.key === 'mensagens' ? mensagensBadge : item.key === 'avaliacoes' ? avaliacoesBadge : undefined
+                    return (
+                      <NavItem key={item.href} href={painelNavHref(item, navFlags)} active={!!item.key && active === item.key}
+                        locked={isPainelNavItemLocked(item, navFlags)} badge={badge} adminEmpresaId={item.external ? undefined : adminEmpresaId}>
+                        {item.icon} {item.label}
+                      </NavItem>
+                    )
+                  })}
+                </div>
+              ))}
             </>
           )}
         </nav>

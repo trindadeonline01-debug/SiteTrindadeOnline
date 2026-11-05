@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
 
     // Configurar (PIN, taxa, mesas, garçons) funciona mesmo com o módulo
     // desligado — o dono prepara tudo antes de ligar.
-    const livre = ['config_salvar', 'mesas_acrescentar', 'garcom_salvar', 'pin_zerar'].includes(acao)
+    const livre = ['config_salvar', 'mesas_acrescentar', 'mesas_remover', 'garcom_salvar', 'pin_zerar'].includes(acao)
     const acc = await acessoMesas(req, companyId, { exigirLigado: !livre })
     if (acc instanceof NextResponse) return acc
     const { company } = acc
@@ -165,13 +165,45 @@ export async function POST(req: NextRequest) {
     if (acao === 'mesas_acrescentar') {
       const qtd = Math.floor(Number(b.qtd))
       if (!(qtd >= 1 && qtd <= 50)) return erro('Escolha de 1 a 50 mesas.')
-      const { data: ult } = await sb.from('loja_mesas').select('numero').eq('company_id', companyId).order('numero', { ascending: false }).limit(1)
-      const base = ult?.[0]?.numero || 0
-      if (base + qtd > 200) return erro('Limite de 200 mesas.')
-      const rows = Array.from({ length: qtd }, (_, i) => ({ company_id: companyId, numero: base + i + 1, qr_token: novoQrToken() }))
-      const { error } = await sb.from('loja_mesas').insert(rows)
-      if (error) return erro('Não consegui criar as mesas: ' + error.message, 500)
-      return NextResponse.json({ ok: true, de: base + 1, ate: base + qtd })
+      const { data: todas } = await sb.from('loja_mesas').select('id, numero, ativa').eq('company_id', companyId).order('numero')
+      const lista = todas || []
+      const maxAtiva = Math.max(0, ...lista.filter(m => m.ativa).map(m => m.numero))
+      const maxGeral = Math.max(0, ...lista.map(m => m.numero))
+      if (lista.filter(m => m.ativa).length + qtd > 200) return erro('Limite de 200 mesas.')
+      // Primeiro volta com as mesas removidas que vêm logo depois da última ativa (a numeração
+      // fica seguida: tirou da 17 à 25, acrescentar 3 devolve a 17, 18 e 19). QR novo para elas.
+      const reativar = lista.filter(m => !m.ativa && m.numero > maxAtiva).slice(0, qtd)
+      for (const m of reativar) await sb.from('loja_mesas').update({ ativa: true, qr_token: novoQrToken() }).eq('id', m.id)
+      const faltam = qtd - reativar.length
+      if (faltam > 0) {
+        const rows = Array.from({ length: faltam }, (_, i) => ({ company_id: companyId, numero: maxGeral + i + 1, qr_token: novoQrToken() }))
+        const { error } = await sb.from('loja_mesas').insert(rows)
+        if (error) return erro('Não consegui criar as mesas: ' + error.message, 500)
+      }
+      const ate = Math.max(maxAtiva + qtd, ...reativar.map(m => m.numero), faltam > 0 ? maxGeral + faltam : 0)
+      return NextResponse.json({ ok: true, de: maxAtiva + 1, ate })
+    }
+
+    // Tira as últimas mesas (de trás para frente). A mesa sai da tela e o QR dela para de abrir, mas o
+    // histórico de contas fica guardado. Mesa com conta aberta não sai.
+    if (acao === 'mesas_remover') {
+      const qtd = Math.floor(Number(b.qtd))
+      if (!(qtd >= 1 && qtd <= 200)) return erro('Informe quantas mesas tirar.')
+      const { data: ativas } = await sb.from('loja_mesas').select('id, numero').eq('company_id', companyId).eq('ativa', true).order('numero', { ascending: false })
+      const lista = ativas || []
+      if (qtd > lista.length) return erro(`A loja só tem ${lista.length} mesas.`)
+      const alvo = lista.slice(0, qtd)
+      const ids = alvo.map(m => m.id)
+      const { data: abertas } = await sb.from('loja_comandas').select('mesa_id').in('mesa_id', ids).eq('status', 'aberta')
+      if (abertas && abertas.length) {
+        const ocupadas = alvo.filter(m => abertas.some(c => c.mesa_id === m.id)).map(m => m.numero).sort((x, y) => x - y)
+        return erro(`Mesa ${ocupadas.join(', ')} com conta aberta. Feche a conta antes de tirar.`, 409)
+      }
+      const { error } = await sb.from('loja_mesas').update({ ativa: false }).in('id', ids)
+      if (error) return erro('Não consegui tirar as mesas: ' + error.message, 500)
+      await sb.from('loja_mesa_chamados').update({ status: 'atendido', atendido_em: new Date().toISOString(), atendido_por: 'sistema' }).in('mesa_id', ids).eq('status', 'aberto')
+      const nums = alvo.map(m => m.numero).sort((x, y) => x - y)
+      return NextResponse.json({ ok: true, de: nums[0], ate: nums[nums.length - 1], restam: lista.length - qtd })
     }
 
     if (acao === 'garcom_salvar') {

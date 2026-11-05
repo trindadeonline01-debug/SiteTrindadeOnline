@@ -407,10 +407,10 @@ export default function MesasPage() {
 }
 
 // ================= Modal base =================
-function Modal({ titulo, onClose, children, wide }: { titulo: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) {
+function Modal({ titulo, onClose, children, wide, cfg }: { titulo: string; onClose: () => void; children: React.ReactNode; wide?: boolean; cfg?: boolean }) {
   return (
     <div className="ms-ov" onClick={onClose}>
-      <div className={`ms-modal ${wide ? 'wide' : ''}`} onClick={e => e.stopPropagation()}>
+      <div className={`ms-modal ${wide ? 'wide' : ''} ${cfg ? 'cfg' : ''}`} onClick={e => e.stopPropagation()}>
         <div className="ms-mh"><h3>{titulo}</h3><button className="ms-x" onClick={onClose} aria-label="Fechar">✕</button></div>
         {children}
       </div>
@@ -1151,13 +1151,15 @@ function Config({ companyId, nomeLoja, adminMode, recarregar, mesasEnabled, taxa
     if (r) { await recarregar(); setEditando(null); setOk('Nome do garçom alterado.') }
   }
   return (
-    <Modal titulo="Configurar mesas" onClose={onClose} wide>
+    <Modal titulo="Configurar mesas" onClose={onClose} wide cfg>
       {adminMode && (
-        <div className="ms-cfg">
+        <div className="ms-adm">
           <label className="ms-sw"><input type="checkbox" checked={mesasEnabled} onChange={async e => { await call('config_salvar', { mesasEnabled: e.target.checked }); setOk(e.target.checked ? 'Módulo ligado.' : 'Módulo desligado.') }} /> Módulo de Mesas ligado nesta loja (só a Trindade Online)</label>
         </div>
       )}
-      <div className="ms-cfg">
+      <div className="ms-cfgwrap">
+        <div className="ms-cfgcol">
+      <div className="ms-card">
         <h4>Taxa de serviço e PIN da supervisão</h4>
         <div className="ms-row">
           <label className="ms-lbl">Taxa de serviço (%)<input className="ms-in" inputMode="decimal" value={taxa} onChange={e => setTaxa(e.target.value)} /></label>
@@ -1173,25 +1175,7 @@ function Config({ companyId, nomeLoja, adminMode, recarregar, mesasEnabled, taxa
         )}
         {pinGerado && <div className="ms-okmsg">Novo PIN da loja: <b style={{ fontSize: 22, letterSpacing: '.15em' }}>{pinGerado}</b><br />Passe para a loja agora. Ele não aparece de novo (depois a loja pode trocar por um PIN dela).</div>}
       </div>
-      <div className="ms-cfg">
-        <h4>Pedido pelo QR da mesa</h4>
-        <label className="ms-sw"><input type="checkbox" checked={qrPedir} onChange={e => setQrPedir(e.target.checked)} /> O cliente pode montar o pedido pelo celular (o garçom sempre confirma antes de ir para a cozinha)</label>
-        <div className="ms-row" style={{ marginTop: 8 }}>
-          <label className="ms-lbl">Envios por minuto, por mesa<input className="ms-in sm" inputMode="numeric" value={porMin} onChange={e => setPorMin(e.target.value.replace(/\D/g, '').slice(0, 2))} /></label>
-          <button className="ms-btn" disabled={busy || !porMin} onClick={salvarQr}>Salvar</button>
-          <button className="ms-btn ghost" disabled={busy} onClick={imprimirQrs}>🖨️ Imprimir QR das mesas</button>
-        </div>
-        <div className="ms-row" style={{ marginTop: 10, alignItems: 'center' }}>
-          {logoTem && <img src={`${logoPublicUrl}?v=${logoVer}`} alt="Logo no QR" style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 8, border: '1px solid #B9AE97', background: '#fff' }} />}
-          <label className="ms-btn ghost" style={{ cursor: 'pointer' }}>
-            {logoTem ? 'Trocar logo do QR' : 'Enviar logo pro centro do QR'}
-            <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) enviarLogo(f); e.target.value = '' }} />
-          </label>
-          {logoTem && <button className="ms-btn ghost" onClick={removerLogo}>Remover logo</button>}
-        </div>
-        <small>O limite conta cada clique em “Enviar para o garçom” dentro de 1 minuto, não importa quantos itens tenha o pedido; fechar e abrir a página não zera. Padrão: 3. Peixe por peso nunca sai pelo QR: o cliente só chama o garçom.</small>
-      </div>
-      <div className="ms-cfg">
+      <div className="ms-card">
         <h4>Garçons</h4>
         {lista.map(g => (
           editando?.id === g.id ? (
@@ -1214,13 +1198,45 @@ function Config({ companyId, nomeLoja, adminMode, recarregar, mesasEnabled, taxa
           <button className="ms-btn" disabled={busy || !nome.trim()} onClick={async () => { const r = await call('garcom_salvar', { nome }); if (r) { await recarregar(); setNome('') } }}>Adicionar</button>
         </div>
       </div>
-      <div className="ms-cfg">
+        </div>
+        <div className="ms-cfgcol">
+      <div className="ms-card">
+        <h4>Pedido pelo QR da mesa</h4>
+        <label className="ms-sw"><input type="checkbox" checked={qrPedir} onChange={e => setQrPedir(e.target.checked)} /> O cliente pode montar o pedido pelo celular (o garçom sempre confirma antes de ir para a cozinha)</label>
+        <div className="ms-row" style={{ marginTop: 8 }}>
+          <label className="ms-lbl">Envios por minuto, por mesa<input className="ms-in sm" inputMode="numeric" value={porMin} onChange={e => setPorMin(e.target.value.replace(/\D/g, '').slice(0, 2))} /></label>
+          <button className="ms-btn" disabled={busy || !porMin} onClick={salvarQr}>Salvar</button>
+          <button className="ms-btn ghost" disabled={busy} onClick={imprimirQrs}>🖨️ Imprimir QR das mesas</button>
+        </div>
+        <div className="ms-row" style={{ marginTop: 10, alignItems: 'center' }}>
+          {logoTem && <img src={`${logoPublicUrl}?v=${logoVer}`} alt="Logo no QR" style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 8, border: '1px solid #B9AE97', background: '#fff' }} />}
+          <label className="ms-btn ghost" style={{ cursor: 'pointer' }}>
+            {logoTem ? 'Trocar logo do QR' : 'Enviar logo pro centro do QR'}
+            <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) enviarLogo(f); e.target.value = '' }} />
+          </label>
+          {logoTem && <button className="ms-btn ghost" onClick={removerLogo}>Remover logo</button>}
+        </div>
+        <small>O limite conta cada clique em “Enviar para o garçom” dentro de 1 minuto, não importa quantos itens tenha o pedido; fechar e abrir a página não zera. Padrão: 3. Peixe por peso nunca sai pelo QR: o cliente só chama o garçom.</small>
+      </div>
+      <div className="ms-card">
         <h4>Mesas ({totalMesas} cadastradas)</h4>
         <div className="ms-row">
           <input className="ms-in sm" inputMode="numeric" value={qtd} onChange={e => setQtd(e.target.value.replace(/\D/g, ''))} />
-          <button className="ms-btn" disabled={busy || !qtd} onClick={async () => { const r = await call('mesas_acrescentar', { qtd: Number(qtd) }); if (r) setOk(`Criadas as mesas ${r.de} a ${r.ate}.`) }}>+ Acrescentar mesas</button>
+          <button className="ms-btn" disabled={busy || !qtd} onClick={async () => { const r = await call('mesas_acrescentar', { qtd: Number(qtd) }); if (r) { await recarregar(); setOk(`Mesas ${r.de} a ${r.ate} criadas.`) } }}>+ Acrescentar mesas</button>
+          <button className="ms-btn ghost" disabled={busy || !qtd || Number(qtd) > totalMesas} onClick={async () => {
+            const n = Number(qtd)
+            const { data } = await supabase.from('loja_mesas').select('numero').eq('company_id', companyId).eq('ativa', true).order('numero', { ascending: false }).limit(n)
+            const nums = (data || []).map(m => m.numero).sort((x, y) => x - y)
+            if (nums.length === 0) return
+            const faixa = nums.length === 1 ? `a mesa ${nums[0]}` : `as mesas ${nums[0]} a ${nums[nums.length - 1]}`
+            if (!window.confirm(`Tirar ${faixa}?\n\nElas saem da tela e os QR codes delas param de abrir. O histórico das contas continua guardado.`)) return
+            const r = await call('mesas_remover', { qtd: n })
+            if (r) { await recarregar(); setOk(`Mesas ${r.de} a ${r.ate} removidas. Restam ${r.restam}.`) }
+          }}>− Tirar mesas</button>
         </div>
-        <small>Ex.: acrescentar 5 depois da mesa 20 cria de 21 a 25 sozinho.</small>
+        <small>A quantidade vale para os dois botões. Ex.: acrescentar 5 depois da mesa 20 cria de 21 a 25; tirar 5 remove as últimas 5, de trás para frente (mesa com conta aberta não sai).</small>
+      </div>
+        </div>
       </div>
       {(msg || ok) && <div className={msg ? 'ms-err' : 'ms-okmsg'}>{msg || ok}</div>}
       {confZerar && (
@@ -1423,7 +1439,7 @@ const CSS = `
 .ms-cmdhead .t{flex:1;display:flex;flex-direction:column}.ms-cmdhead .t b{font-family:'Anton',sans-serif;font-weight:400;font-size:24px;text-transform:uppercase}.ms-cmdhead .t small{color:#E9EAE5}
 .ms-cmdbody{display:flex;gap:16px;padding:16px;flex-wrap:wrap;align-items:flex-start}
 .ms-col{flex:1.2;min-width:300px;display:flex;flex-direction:column;gap:10px}.ms-col.narrow{flex:1;min-width:340px;background:#fff;border-radius:14px;padding:16px}
-.ms-col h4,.ms-cfg h4,.ms-cart h4{margin:0;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#6F6C67}
+.ms-col h4,.ms-cfg h4,.ms-card h4,.ms-cart h4{margin:0;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#6F6C67}
 .ms-rodada{background:#fff;border:1px solid #DCDDD6;border-radius:12px;padding:10px 14px}
 .ms-rodada .rh{display:flex;justify-content:space-between;color:#6F6C67;margin-bottom:4px}
 .ms-rodada .it{display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid #ECEDE8}
@@ -1451,6 +1467,17 @@ const CSS = `
 .ms-peso{font-family:'Anton',sans-serif;font-size:40px;text-align:center;background:#F5F6F2;border-radius:12px;padding:10px}
 .ms-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.ms-keypad button{min-height:56px;border-radius:10px;border:1px solid #DCDDD6;background:#fff;font-size:22px;font-weight:700}
 .ms-grp{display:flex;flex-direction:column}.ms-grp small{font-weight:400;color:#6F6C67}
+.ms-modal.cfg{width:min(900px,100%);background:#E9EAE5;padding:0;gap:0;border:1px solid #9C988B}
+.ms-modal.cfg>.ms-mh{background:#151210;color:#fff;padding:14px 18px;border-radius:16px 16px 0 0;position:sticky;top:0;z-index:2}
+.ms-modal.cfg>.ms-mh .ms-x{color:#fff}
+.ms-modal.cfg>.ms-adm,.ms-modal.cfg>.ms-cfgwrap,.ms-modal.cfg>.ms-okmsg,.ms-modal.cfg>.ms-err{margin:14px 18px 0}
+.ms-modal.cfg>.ms-cfgwrap{margin-bottom:18px}
+.ms-adm{background:#FFC531;color:#151210;border-radius:10px;padding:10px 14px}
+.ms-cfgwrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
+.ms-cfgcol{display:flex;flex-direction:column;gap:14px;min-width:0}
+.ms-card{background:#fff;border:1px solid #9C988B;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.ms-card small{color:#6F6C67;line-height:1.4}
+@media(max-width:760px){.ms-cfgwrap{grid-template-columns:1fr}.ms-modal.cfg{border-radius:16px 16px 0 0}}
 .ms-cfg{display:flex;flex-direction:column;gap:8px;border-top:1px solid #ECEDE8;padding-top:12px}.ms-cfg:first-of-type{border-top:0;padding-top:0}
 .ms-lbl{display:flex;flex-direction:column;gap:4px;font-size:12.5px;font-weight:600;flex:1;min-width:140px}
 .ms-gl{display:flex;align-items:center;gap:8px}.ms-gl>span{flex:1;min-width:0}

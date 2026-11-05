@@ -1260,8 +1260,9 @@ const CSS = `
   .cm-meta>div:not(.wa):nth-child(n+3){display:none}.cm-meta>div{padding:0 10px}
   .hide-s{display:none!important}.show-s{display:block!important}
   .cm-body{display:flex;flex-direction:column;overflow-y:auto;max-width:none}
-  .cm-main{overflow:visible;padding:14px}.cm-aside{overflow:visible;border-left:0;border-top:1px solid #DCDDD6}
-  .cm-scroll{overflow:visible;padding:18px 14px}.cm-foot{padding:14px 14px 96px}
+  .cm-main{flex:none;overflow:visible;padding:14px}.cm-aside{flex:none;min-height:auto;overflow:visible;border-left:0;border-top:1px solid #DCDDD6}
+  .cm-scroll{flex:none;min-height:auto;overflow:visible;padding:18px 14px}.cm-foot{flex:none;padding:14px 14px calc(110px + env(safe-area-inset-bottom))}
+  .cm-total{padding:10px 14px}.cm-total b{font-size:34px}.cm-sum>div{grid-template-columns:minmax(0,1fr) auto 78px}
   .cm-mini{display:block;background:#fff;border:1px solid #DCDDD6;border-radius:10px;padding:14px 16px}
   .cm-mini .r{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
   .cm-mini .r span{font-weight:700;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#4f4c47}

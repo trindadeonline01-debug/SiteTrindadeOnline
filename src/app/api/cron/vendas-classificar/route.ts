@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { classificarEmpresaVendas } from '@/lib/crmVendasIA'
-import { ATENDIMENTO_IA_DESLIGADO } from '@/lib/atendimentoIA'
 
 export const maxDuration = 120
 
@@ -20,7 +19,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
-  if (ATENDIMENTO_IA_DESLIGADO) return NextResponse.json({ ok: true, desligado: true })
+  // NÃO obedece à chave geral ATENDIMENTO_IA_DESLIGADO (corrigido em 5/nov/2026): esta rotina só LÊ as
+  // conversas e classifica (reclamação, venda, desistência) pra alimentar os painéis das empresas piloto,
+  // nunca escreve pro cliente. Desligar junto com a IA de atendimento parou as métricas da Julia Eventos.
 
   const { data: empresas } = await supabase
     .from('companies')

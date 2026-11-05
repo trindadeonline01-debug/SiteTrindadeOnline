@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { adminFetch } from '@/lib/adminFetch'
 import { moduleActive } from '@/lib/modules'
-import { beep, beepMesa, unlockAudio } from '@/lib/beep'
+import { beepChamado, beepMesa, pararSons, unlockAudio } from '@/lib/beep'
 import { buildReceipt, buildKitchenTicket, imprimirVias, setPapelImpressora, setViasImpressao } from '@/lib/qzPrint'
 import ConfirmModal from '@/components/painel/ConfirmModal'
 import MesaCalculadora, { type CalcComanda, type Divisao, DIVISAO0 } from '@/components/painel/MesaCalculadora'
@@ -147,7 +147,7 @@ export default function MesasPage() {
       const novos = chs.filter(x => !chamadosVistos.current!.has(x.id))
       // Pedido do cliente toca o sino da mesa (diferente do toque de chamado de garçom).
       if (novos.some(x => x.tipo === 'pedido')) beepMesa()
-      else if (novos.length > 0) beep(2)
+      else if (novos.length > 0) beepChamado()
     }
     // Acumula (não substitui): um chamado que já tocou nunca toca de novo nesta tela, mesmo que a lista oscile.
     chamadosVistos.current = new Set([...(chamadosVistos.current || []), ...chs.map(x => x.id)])
@@ -321,7 +321,7 @@ export default function MesasPage() {
                 const k = !c ? 'livre' : ch.some(x => x.tipo === 'pedido') ? 'aguard' : ch.some(x => x.tipo === 'garcom') ? 'chama' : ch.some(x => x.tipo === 'conta') ? 'conta' : 'ocupada'
                 const rotulo = { livre: 'Livre', ocupada: 'Ocupada', aguard: 'Aguardando garçom', chama: 'Chamou o garçom', conta: 'Pediu a conta' }[k]
                 return (
-                  <button key={m.id} className={`ms-mesa ${k}`} onClick={() => c ? setAbertaId(c.id) : setAbrirMesa(m)}>
+                  <button key={m.id} className={`ms-mesa ${k}`} onClick={() => { pararSons(); if (c) setAbertaId(c.id); else setAbrirMesa(m) }}>
                     <span className="top"><b>{m.numero}</b><em>{c ? tempo(c.aberta_em) : ''}</em></span>
                     <span className="bot"><strong>{rotulo}</strong><span className="row"><span className="who">{c?.garcom_nome || ''}</span><small>{c ? fmt(c.total) : ''}</small></span></span>
                   </button>
@@ -363,6 +363,7 @@ export default function MesasPage() {
                     </ul>
                   )}
                   <button className="ms-btn dark" disabled={busy} onClick={async () => {
+                    pararSons()
                     if (ch.tipo === 'garcom') { await call('atender_chamado', { chamadoId: ch.id }); await load() }
                     else if (ch.tipo === 'pedido' && ch.payload) setPedidoQr(ch)
                     else {

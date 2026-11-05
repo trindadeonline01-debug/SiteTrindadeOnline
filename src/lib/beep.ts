@@ -91,6 +91,14 @@ function playFallback(c: AudioContext) {
 // out/2026: "toca uma vez só", passava despercebido no balcão). O arquivo
 // já é toque de telefone antigo (2 toques) + a música de pedido novo,
 // aprovado por ele em prévia.
+// Sons longos em andamento (o toque de pedido novo dura ~6 s e toca 2x): guardados pra dar pra calar
+// no clique — ex.: o garçom abre a comanda e o toque para na hora.
+const sonsAtivos = new Set<AudioBufferSourceNode>()
+export function pararSons() {
+  sonsAtivos.forEach(s => { try { s.stop() } catch {} })
+  sonsAtivos.clear()
+}
+
 export function beep(vezes = 1) {
   try {
     setPlaybackAudioSession()
@@ -105,6 +113,7 @@ export function beep(vezes = 1) {
         const gain = c.createGain()
         gain.gain.value = 0.9
         src.connect(gain); gain.connect(c.destination)
+        sonsAtivos.add(src); src.onended = () => { sonsAtivos.delete(src) }
         src.start(c.currentTime + 0.05 + i * buffer.duration)
       }
     })
@@ -166,5 +175,32 @@ export function beepMesa() {
       osc.start(t0)
       osc.stop(t0 + 0.65)
     }))
+  } catch {}
+}
+
+// Chamado de garçom / pedido de conta: aviso CURTO (3 notas subindo, ~1 s, uma vez), bem diferente do
+// toque de pedido novo — o garçom ouve, olha a tela e atende; não fica "tocando" até alguém clicar.
+export function beepChamado() {
+  try {
+    setPlaybackAudioSession()
+    const c = getCtx()
+    if (!c) return
+    if (c.state === 'suspended') c.resume().catch(() => {})
+    const master = c.createGain()
+    master.gain.value = 0.5
+    master.connect(c.destination)
+    ;[659.25, 830.61, 987.77].forEach((freq, i) => {
+      const osc = c.createOscillator()
+      const g = c.createGain()
+      osc.type = 'sine'
+      osc.frequency.value = freq
+      osc.connect(g); g.connect(master)
+      const t0 = c.currentTime + i * 0.22
+      g.gain.setValueAtTime(0, t0)
+      g.gain.linearRampToValueAtTime(1, t0 + 0.02)
+      g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.5)
+      osc.start(t0)
+      osc.stop(t0 + 0.55)
+    })
   } catch {}
 }

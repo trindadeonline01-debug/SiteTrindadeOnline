@@ -1563,6 +1563,13 @@ export default function CatalogoPage() {
 
         .pf-grid{ display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:20px; align-items:start; padding:20px 32px 40px; }
         .pf-main,.pf-side{ display:flex; flex-direction:column; gap:20px; min-width:0; }
+        /* Só desktop largo: conteúdo com largura máxima fixa (1240px) e centralizado; barra do topo alinhada na mesma coluna.
+           Tablet e celular (<=1180px) continuam fluidos. */
+        @media(min-width:1181px){
+          .pf{ --pf-w:1240px; }
+          .pf-grid{ max-width:calc(var(--pf-w) + 64px); margin:0 auto; }
+          .pf-head.cg-head.cg-head-centered{ padding-left:max(32px, calc((100% - var(--pf-w)) / 2)); padding-right:max(32px, calc((100% - var(--pf-w)) / 2)); }
+        }
         @media(max-width:1180px){
           .pf-grid{ grid-template-columns:minmax(0,1fr); gap:14px; padding:14px 16px 90px; }
           .pf-main,.pf-side{ display:contents; }

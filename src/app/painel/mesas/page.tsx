@@ -8,6 +8,7 @@ import { buildReceipt, buildKitchenTicket, imprimirVias, setPapelImpressora, set
 import ConfirmModal from '@/components/painel/ConfirmModal'
 import MesaCalculadora, { type CalcComanda, type Divisao, DIVISAO0 } from '@/components/painel/MesaCalculadora'
 import QRCode from 'qrcode'
+import { buildQrSheetHtml } from '@/lib/mesaQrSheet'
 import { promoPrice } from '@/lib/lojaPricing'
 import { npGroupContribution, type NpGrupo, type NpProduto, PESO_REGEX, pesoNum, pesoDisplay } from '@/lib/produtoCart'
 import { ordenarComplementosLista } from '@/lib/produtoOrdem'
@@ -380,7 +381,7 @@ export default function MesasPage() {
 
       {showConfig && (
         <Config
-          companyId={companyId} adminMode={adminMode} mesasEnabled={mesasEnabled} taxaPct={taxaPct} hasPin={hasPin} garcons={garcons} totalMesas={mesas.length}
+          companyId={companyId} nomeLoja={companyName} adminMode={adminMode} mesasEnabled={mesasEnabled} taxaPct={taxaPct} hasPin={hasPin} garcons={garcons} totalMesas={mesas.length}
           call={call} busy={busy} msg={msg} recarregar={load}
           onClose={async () => {
             setShowConfig(false); setMsg('')
@@ -1030,8 +1031,8 @@ function Foto({ url, size = 52 }: { url?: string | null; size?: number }) {
 function pesoDisplayKg(n: number) { return n.toFixed(3).replace('.', ',') }
 
 // ================= Configuração =================
-function Config({ companyId, adminMode, recarregar, mesasEnabled, taxaPct, hasPin, garcons, totalMesas, call, busy, msg, onClose }: {
-  companyId: string; adminMode: boolean; mesasEnabled: boolean; taxaPct: number; hasPin: boolean; garcons: Garcom[]; totalMesas: number
+function Config({ companyId, nomeLoja, adminMode, recarregar, mesasEnabled, taxaPct, hasPin, garcons, totalMesas, call, busy, msg, onClose }: {
+  companyId: string; nomeLoja: string; adminMode: boolean; mesasEnabled: boolean; taxaPct: number; hasPin: boolean; garcons: Garcom[]; totalMesas: number
   call: CallFn; busy: boolean; msg: string; onClose: () => void; recarregar: () => Promise<void>
 }) {
   const [taxa, setTaxa] = useState(String(taxaPct))
@@ -1059,24 +1060,66 @@ function Config({ companyId, adminMode, recarregar, mesasEnabled, taxaPct, hasPi
     if (r) setOk('Salvo.')
   }
 
+  // Logo no centro do QR: guardada no Storage em um caminho fixo da loja (sem coluna
+  // nova no banco). Se não existir, o QR sai limpo, sem nada no meio.
+  const logoPath = `${companyId}/qr-logo.png`
+  const logoPublicUrl = supabase.storage.from('loja-produtos').getPublicUrl(logoPath).data.publicUrl
+  const [logoVer, setLogoVer] = useState(0)
+  const [logoTem, setLogoTem] = useState(false)
+  useEffect(() => {
+    let vivo = true
+    fetch(`${logoPublicUrl}?v=${logoVer}`, { method: 'HEAD', cache: 'no-store' }).then(r => { if (vivo) setLogoTem(r.ok) }).catch(() => { if (vivo) setLogoTem(false) })
+    return () => { vivo = false }
+  }, [logoPublicUrl, logoVer])
+
+  async function enviarLogo(file: File) {
+    try {
+      const bmp = await createImageBitmap(file)
+      const lado = 400
+      const canvas = document.createElement('canvas'); canvas.width = lado; canvas.height = lado
+      const ctx = canvas.getContext('2d')!
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, lado, lado)
+      const k = Math.min(lado / bmp.width, lado / bmp.height)
+      ctx.drawImage(bmp, (lado - bmp.width * k) / 2, (lado - bmp.height * k) / 2, bmp.width * k, bmp.height * k)
+      const blob: Blob | null = await new Promise(res => canvas.toBlob(res, 'image/png'))
+      if (!blob) throw new Error('imagem inválida')
+      const { error } = await supabase.storage.from('loja-produtos').upload(logoPath, blob, { upsert: true, contentType: 'image/png', cacheControl: '60' })
+      if (error) throw new Error(error.message)
+      setLogoVer(v => v + 1)
+      setOk('Logo salva. Ela aparece no centro do QR na próxima impressão.')
+    } catch (e: any) {
+      setOk('Não deu pra enviar a logo: ' + (e?.message || 'erro desconhecido'))
+    }
+  }
+  async function removerLogo() {
+    await supabase.storage.from('loja-produtos').remove([logoPath])
+    setLogoVer(v => v + 1)
+    setOk('Logo removida do QR.')
+  }
+  async function logoDataUrl(): Promise<string | null> {
+    try {
+      const r = await fetch(`${logoPublicUrl}?v=${logoVer}`, { cache: 'no-store' })
+      if (!r.ok) return null
+      const blob = await r.blob()
+      return await new Promise<string>(res => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.readAsDataURL(blob) })
+    } catch { return null }
+  }
+
   // Folha de QR codes pra imprimir e plastificar: um cartão por mesa, o link leva
   // só à página daquela mesa (código aleatório, não dá acesso a conta nenhuma).
+  // Layout em src/lib/mesaQrSheet.ts (4 cartões de 91 x 128 mm por folha A4).
   async function imprimirQrs() {
     const { data } = await supabase.from('loja_mesas').select('numero, qr_token').eq('company_id', companyId).eq('ativa', true).order('numero')
     if (!data || data.length === 0) { setOk('Crie as mesas primeiro.'); return }
-    const cards = await Promise.all(data.map(async m => {
-      const url = await QRCode.toDataURL(`${window.location.origin}/mesa/${m.qr_token}`, { width: 600, margin: 1, errorCorrectionLevel: 'M', color: { dark: '#151210', light: '#FFFFFF' } })
-      return `<section><h2>Mesa ${m.numero}</h2><img src="${url}" alt="QR da mesa ${m.numero}"/><p>Aponte a câmera do celular<br/>para ver o cardápio e pedir</p></section>`
-    }))
+    // Correção de erro 'H' (30%): aguenta a logo por cima sem deixar de ler.
+    const cards = await Promise.all(data.map(async m => ({
+      numero: m.numero as number,
+      qrDataUrl: await QRCode.toDataURL(`${window.location.origin}/mesa/${m.qr_token}`, { width: 900, margin: 0, errorCorrectionLevel: 'H', color: { dark: '#151210', light: '#FFFFFF' } }),
+    })))
+    const logo = await logoDataUrl()
     const w = window.open('', '_blank')
     if (!w) { setOk('O navegador bloqueou a janela. Permita pop-ups e tente de novo.'); return }
-    w.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>QR das mesas</title><style>
-      @page{size:A4;margin:12mm}*{box-sizing:border-box}body{margin:0;font-family:Archivo,Arial,sans-serif;color:#151210}
-      main{display:grid;grid-template-columns:1fr 1fr;gap:8mm}
-      section{border:2px solid #151210;border-radius:6mm;padding:7mm 5mm;text-align:center;break-inside:avoid;page-break-inside:avoid}
-      h2{margin:0 0 3mm;font-family:Anton,Impact,sans-serif;font-weight:400;font-size:34pt;text-transform:uppercase;line-height:1}
-      img{width:62mm;height:62mm}p{margin:3mm 0 0;font-size:11pt;font-weight:600;line-height:1.35}
-    </style></head><body><main>${cards.join('')}</main><script>window.onload=function(){setTimeout(function(){window.print()},400)}<\/script></body></html>`)
+    w.document.write(buildQrSheetHtml({ nomeLoja: nomeLoja.trim() || 'Nossa loja', cards, logoUrl: logo }))
     w.document.close()
   }
 
@@ -1126,6 +1169,14 @@ function Config({ companyId, adminMode, recarregar, mesasEnabled, taxaPct, hasPi
           <label className="ms-lbl">Envios por minuto, por mesa<input className="ms-in sm" inputMode="numeric" value={porMin} onChange={e => setPorMin(e.target.value.replace(/\D/g, '').slice(0, 2))} /></label>
           <button className="ms-btn" disabled={busy || !porMin} onClick={salvarQr}>Salvar</button>
           <button className="ms-btn ghost" disabled={busy} onClick={imprimirQrs}>🖨️ Imprimir QR das mesas</button>
+        </div>
+        <div className="ms-row" style={{ marginTop: 10, alignItems: 'center' }}>
+          {logoTem && <img src={`${logoPublicUrl}?v=${logoVer}`} alt="Logo no QR" style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 8, border: '1px solid #B9AE97', background: '#fff' }} />}
+          <label className="ms-btn ghost" style={{ cursor: 'pointer' }}>
+            {logoTem ? 'Trocar logo do QR' : 'Enviar logo pro centro do QR'}
+            <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) enviarLogo(f); e.target.value = '' }} />
+          </label>
+          {logoTem && <button className="ms-btn ghost" onClick={removerLogo}>Remover logo</button>}
         </div>
         <small>O limite conta cada clique em “Enviar para o garçom” dentro de 1 minuto, não importa quantos itens tenha o pedido; fechar e abrir a página não zera. Padrão: 3. Peixe por peso nunca sai pelo QR: o cliente só chama o garçom.</small>
       </div>

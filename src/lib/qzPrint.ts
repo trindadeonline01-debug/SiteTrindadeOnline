@@ -220,6 +220,7 @@ const CMD = {
   boldOff: ESC + 'E' + '\x00',
   doubleOn: GS + '!' + '\x11',
   doubleOff: GS + '!' + '\x00',
+  tallOn: GS + '!' + '\x01',   // só altura dupla (largura normal): cabe mais letra por linha
   cut: GS + 'V' + '\x00',
   feed: (n: number) => '\n'.repeat(n),
 }
@@ -390,13 +391,23 @@ export function buildKitchenTicket(d: KitchenTicketData): string {
   lines.push('-'.repeat(cols()), '\n')
   lines.push(CMD.alignLeft)
 
-  for (const it of d.items) {
-    lines.push(CMD.boldOn)
-    wrap(itemLabel(it)).forEach(l => lines.push(l, '\n'))
-    lines.push(CMD.boldOff)
+  // Produção: item em letra GRANDE (largura e altura dobradas, por isso o texto quebra na metade das colunas),
+  // opções/observações em altura dupla e uma linha em branco entre os itens, pra bater o olho e achar rápido.
+  const metade = Math.floor(cols() / 2)
+  d.items.forEach((it, idx) => {
+    if (idx > 0) lines.push('\n')
+    lines.push(CMD.boldOn, CMD.doubleOn)
+    wrap(itemLabel(it), metade).forEach(l => lines.push(l, '\n'))
+    lines.push(CMD.doubleOff)
+    lines.push(CMD.tallOn)
     it.options?.forEach(o => wrap('- ' + o.name, cols() - 2).forEach(l => lines.push('  ' + l, '\n')))
+    lines.push(CMD.doubleOff, CMD.boldOff)
+  })
+  if (d.notes) {
+    lines.push('\n', '-'.repeat(cols()), '\n', CMD.boldOn, CMD.tallOn, 'OBS:', '\n')
+    wrap(d.notes).forEach(l => lines.push(l, '\n'))
+    lines.push(CMD.doubleOff, CMD.boldOff)
   }
-  if (d.notes) { lines.push('-'.repeat(cols()), '\n', CMD.boldOn, 'Obs: ', CMD.boldOff, '\n'); wrap(d.notes).forEach(l => lines.push(l, '\n')) }
   lines.push('\n', CMD.alignCenter, 'Impresso em ' + new Date().toLocaleString('pt-BR'), '\n')
   lines.push(CMD.feed(avancoFinal()), CMD.cut)
   return stripAccents(lines.join(''))

@@ -49,7 +49,7 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
     var h='<div class="screen sea qs">'+bar()+ladder()+hud()+'<div class="qmid">'+ringHtml(ms,q.dur)+
       '<div class="q"><small>'+nivelTxt()+(G.pensando?' · pensando (20 s)':'')+'</small><span>'+esc(q.txt)+'</span></div><div class="opts2">';
     q.ops.forEach(function(o,i){
-      var cls='opt c'+i; if(done){ if(o.ok) cls+=' right'; else if(i===G.resp) cls+=' wrong'; else cls+=' dim' }
+      var cls='opt c'+i; if(done){ if(G.busy&&!G.res){ cls+= i===G.resp ? ' pick' : ' dim' } else if(o.ok) cls+=' right'; else if(i===G.resp) cls+=' wrong'; else cls+=' dim' }
       h+='<button class="'+cls+'" data-act="ans" data-i="'+i+'"'+(done||frozen?' tabindex="-1"':'')+'><i>'+'ABCD'[i]+'</i><span>'+esc(o.t)+'</span></button>'
     });
     h+='</div></div><div class="tiles">'+

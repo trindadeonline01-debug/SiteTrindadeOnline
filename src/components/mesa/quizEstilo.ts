@@ -57,6 +57,8 @@ export const ESTILO = `
 .opt{font:600 16px var(--body);text-align:left;min-height:54px;border-radius:10px;border:2px solid rgba(255,255,255,.18);background:rgba(255,255,255,.07);color:#fff;display:flex;align-items:center;gap:12px;padding:0 14px;cursor:pointer;width:100%}
 .opt i{font-style:normal;font-family:var(--display);font-size:18px;color:var(--ap-gold);width:18px}
 .opt.right{background:var(--ap-ok);border-color:var(--ap-ok)}.opt.wrong{background:var(--ap-bad);border-color:var(--ap-bad)}.opt.dim{opacity:.45}
+.opt.pick{background:var(--ap-gold);border-color:var(--ap-gold);color:#151210}
+.qs .opt.pick i{background:rgba(21,18,16,.14);color:#151210;box-shadow:none}
 .opt:focus-visible{outline:3px solid var(--ap-gold);outline-offset:2px}
 .helps{display:flex;gap:8px;padding:12px 14px 14px;margin-top:auto}
 .helps button{flex:1;font:600 13px var(--body);min-height:46px;border-radius:10px;border:1.5px solid rgba(255,255,255,.35);background:transparent;color:#fff;cursor:pointer}

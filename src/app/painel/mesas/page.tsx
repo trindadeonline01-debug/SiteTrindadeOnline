@@ -598,6 +598,9 @@ function ComandaView(props: {
     const r = await pin.run(pinVal)
     if (r) { setPin(null); setPinVal(''); await load() }
   }
+  async function fecharConta() {
+    const r = await call('fechar', { comandaId: c.id }); if (r) { limparDivisao(); await props.fechado(); if (Number(r.cashbackGanho) > 0) props.setMsg(`🎁 Cliente ganhou ${fmt(Number(r.cashbackGanho))} de cashback para o próximo pedido`) }
+  }
   async function pagar() {
     const valor = valorEf
     // Cashback com o WhatsApp ainda não confirmado por código: só com o PIN da supervisão.
@@ -776,7 +779,7 @@ function ComandaView(props: {
                     </div>
                   )}
                   <input ref={pessoaRef} className="cm-who hide-s" aria-label="Quem pagou (opcional)" placeholder="Quem pagou? (opcional)" value={pessoa} onChange={e => setPessoa(e.target.value)} />
-                  <button className="cm-reg" disabled={busy || !(valorEf > 0)} onClick={pagar}>Registrar {partes && parteSel !== null ? `parte ${parteSel + 1}` : 'pagamento'} · {fmt(valorEf)}</button>
+                  <button className="cm-reg hide-s" disabled={busy || !(valorEf > 0)} onClick={pagar}>Registrar {partes && parteSel !== null ? `parte ${parteSel + 1}` : 'pagamento'} · {fmt(valorEf)}</button>
                 </div>
               ) : ativos.length === 0 ? (
                 <div className="cm-hint">Os pagamentos aparecem aqui assim que houver consumo na mesa.</div>
@@ -786,8 +789,8 @@ function ComandaView(props: {
               {msg && <div className="ms-err">{msg}</div>}
             </div>
 
-            <div className="cm-foot" id="ms-fechar">
-              <button className="cm-close" disabled={busy || falta > 0.005 || ativos.length === 0} onClick={async () => { const r = await call('fechar', { comandaId: c.id }); if (r) { limparDivisao(); await props.fechado(); if (Number(r.cashbackGanho) > 0) props.setMsg(`🎁 Cliente ganhou ${fmt(Number(r.cashbackGanho))} de cashback para o próximo pedido`) } }}>Fechar conta</button>
+            <div className="cm-foot hide-s" id="ms-fechar">
+              <button className="cm-close" disabled={busy || falta > 0.005 || ativos.length === 0} onClick={fecharConta}>Fechar conta</button>
               <small>{ativos.length === 0 ? 'Adicione itens para poder fechar a conta.' : falta > 0.005 ? <>Falta <b>{fmt(falta)}</b> para poder fechar.</> : 'Ao fechar, a mesa fica livre para o próximo cliente.'}</small>
             </div>
           </aside>
@@ -795,7 +798,7 @@ function ComandaView(props: {
 
         <div className="cm-bar">
           <button className="cm-add" onClick={props.onAdd}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#151210" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>Itens</button>
-          <button className="cm-pagar" onClick={() => document.getElementById(falta > 0.005 ? 'ms-pagamento' : 'ms-fechar')?.scrollIntoView({ behavior: 'smooth' })}>{falta > 0.005 ? `Pagar · ${fmt(falta)}` : 'Fechar conta'}</button>
+          <button className="cm-pagar" disabled={busy || (falta > 0.005 ? !(valorEf > 0) : ativos.length === 0)} onClick={falta > 0.005 ? pagar : fecharConta}>{falta > 0.005 ? `Pagar · ${fmt(falta)}` : 'Fechar conta'}</button>
         </div>
       </div>
 
@@ -1268,7 +1271,7 @@ const CSS = `
   .hide-s{display:none!important}.show-s{display:block!important}
   .cm-body{display:flex;flex-direction:column;overflow-y:auto;max-width:none}
   .cm-main{flex:none;overflow:visible;padding:14px}.cm-aside{flex:none;min-height:auto;overflow:visible;border-left:0;border-top:1px solid #DCDDD6}
-  .cm-scroll{flex:none;min-height:auto;overflow:visible;padding:18px 14px}.cm-foot{flex:none;padding:14px 14px calc(110px + env(safe-area-inset-bottom))}
+  .cm-scroll{flex:none;min-height:auto;overflow:visible;padding:18px 14px calc(110px + env(safe-area-inset-bottom))}.cm-foot{flex:none;padding:14px 14px calc(110px + env(safe-area-inset-bottom))}
   .cm-total{padding:10px 14px}.cm-total b{font-size:34px}.cm-sum>div{grid-template-columns:minmax(0,1fr) auto 78px}
   .cm-mini{display:block;background:#fff;border:1px solid #DCDDD6;border-radius:10px;padding:14px 16px}
   .cm-mini .r{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
@@ -1278,7 +1281,7 @@ const CSS = `
   .cm-mhead h1{font-size:22px}.cm-it{grid-template-columns:44px minmax(0,1fr) auto 36px;gap:10px;padding:8px 12px}.cm-it .qt{display:none}.cm-it .nm span{font-size:14px}.cm-it .vl{font-size:14px}
   .cm-sq{width:36px;height:36px}
   .cm-bar{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:10px;position:fixed;left:0;right:0;bottom:0;z-index:55;background:#fff;border-top:1px solid #DCDDD6;padding:12px 14px calc(14px + env(safe-area-inset-bottom))}
-  .cm-bar .cm-add{height:54px;padding:0}.cm-pagar{background:#2A4E7A;color:#fff;border:0;border-radius:10px;height:54px;font-weight:700;font-size:16px}
+  .cm-bar .cm-add{height:54px;padding:0}.cm-pagar:disabled{opacity:.45}.cm-pagar{background:#2A4E7A;color:#fff;border:0;border-radius:10px;height:54px;font-weight:700;font-size:16px}
 }
 .ms-wrap{min-height:100vh;background:#E9EAE5;color:#151210;font-family:'Archivo',system-ui,sans-serif;font-size:14px}
 .ms-wrap *{box-sizing:border-box}

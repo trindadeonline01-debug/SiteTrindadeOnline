@@ -25,7 +25,7 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
   var IC_SHIELD='<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8.5 12l2.5 2.5 4.5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   var IC_FLAME='<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 3c.8 4 5 5.2 5 10a5 5 0 0 1-10 0c0-2 .9-3.4 2.2-4.4.1 1.8.9 2.9 2.1 3.2C10.6 9 10.8 6 12 3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>';
   function hearts(){ var h=''; for(var i=0;i<3;i++){ h+='<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M12 21s-7-4.6-9.3-9A5.3 5.3 0 0 1 12 6.4 5.3 5.3 0 0 1 21.3 12C19 16.4 12 21 12 21z" fill="currentColor" opacity="'+(i<3-G.erros?1:.22)+'"/></svg>' } return h }
-  function hud(){ var safe=G.estado!=='risco'&&G.acertos<15, lvl=nivelTxt().toUpperCase();
+  function hud(){ var safe=G.estado!=='risco'&&G.acertos<30, lvl=nivelTxt().toUpperCase();
     var mid = safe ? '<div class="plate ph" aria-label="'+(3-G.erros)+' chances de errar"><small>Chances</small><span class="hrow">'+hearts()+'</span></div>'
                    : '<div class="plate ph risk"><small>Zona de risco</small><span class="hrow">'+IC_FLAME+'<em>cada erro encerra</em></span></div>';
     return '<div class="hud2"><div class="plate pq"><small>'+lvl+'</small><b><span>Pergunta</span> '+(G.acertos+1)+'</b></div>'+mid+'<div class="plate ps'+(G.res&&G.res.ok?' bump':'')+'"><small>Pontos</small><b id="pts">'+G.pontos+'</b></div></div>' }
@@ -109,8 +109,8 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
     return '<div class="bar">' + back + '<div class="brand">' + marca + '</div><div class="bar-r"><button class="snd" data-act="snd" aria-label="' + (SND ? 'Desligar som' : 'Ligar som') + '" aria-pressed="' + SND + '">' + (SND ? IC_SPK : IC_SPK_OFF) + '</button><div class="mesa">Mesa ' + esc((INFO && INFO.mesa) || '') + '</div></div></div>'
   }
   function ladder() {
-    var tiers = [5, 10, 15, 20, 25, 30], h = '<div class="zl"><span class="ok">Zona segura</span><span class="rk">Zona de risco</span></div><div class="ladder">'
-    tiers.forEach(function (t, i) { if (i === 3) h += '<span class="gate" title="Depois de 15 acertos, cada erro encerra a rodada"></span>'; h += '<div class="st' + (G.acertos >= t ? ' got' : '') + '">' + t + '<small>acertos</small></div>' })
+    var tiers = [10, 20, 30, 35, 40, 45], h = '<div class="zl"><span class="ok">Zona segura</span><span class="rk">Zona de risco</span></div><div class="ladder">'
+    tiers.forEach(function (t, i) { if (i === 3) h += '<span class="gate" title="Depois de 30 acertos, cada erro encerra a rodada"></span>'; h += '<div class="st' + (G.acertos >= t ? ' got' : '') + '">' + t + '<small>acertos</small></div>' })
     return h + '</div>'
   }
   function msg(titulo, texto) { return '<div class="screen sea">' + scene() + bar() + '<div class="res"><div><h2 class="h1">' + titulo + '</h2></div><div class="box">' + texto + '</div></div></div>' }
@@ -216,9 +216,9 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
       html = html.slice(0, html.lastIndexOf('</div>')) + '<div class="ovl"><div class="sheet"><h3>Sair do jogo?</h3><p>Se você sair agora, <b>perde tudo</b>: os pontos desta rodada. Na próxima, começa do zero.</p><button class="btn" data-act="leaveno">Continuar jogando</button><button class="btn alt" style="color:#151210" data-act="leaveyes">Sair e perder tudo</button></div></div></div>'
     }
     if (ZONES && cur === 'intro') {
-      var rr = [[IC_CLOCK, '10 segundos', 'para responder cada pergunta'], [IC_HEART, '3 chances', 'de errar até os 15 acertos'], [IC_SKIP, '3 pulos', 'para trocar a pergunta'], [IC_BULB, '2 × Pensar', 'dá 20 segundos na pergunta']].map(function (r) { return '<div class="rrow"><span class="ri">' + r[0] + '</span><div><b>' + r[1] + '</b> ' + r[2] + '</div></div>' }).join('')
+      var rr = [[IC_CLOCK, '10 segundos', 'para responder cada pergunta'], [IC_HEART, '3 chances', 'de errar até os 30 acertos'], [IC_SKIP, '3 pulos', 'para trocar a pergunta'], [IC_BULB, '2 × Pensar', 'dá 20 segundos na pergunta']].map(function (r) { return '<div class="rrow"><span class="ri">' + r[0] + '</span><div><b>' + r[1] + '</b> ' + r[2] + '</div></div>' }).join('')
       var zv = sheet('<h3>Como funciona</h3><div class="zcard ok"><span class="zi">' + IC_SHIELD + '</span><div><b>5 níveis de dificuldade</b><p>Começa muito fácil e vai ficando difícil: fácil, intermediário, difícil e impossível. Quanto mais acertos, mais pontos no ranking.</p></div></div>' +
-        '<div class="zcard rk"><span class="zi">' + IC_FLAME + '</span><div><b>Depois de 15 acertos</b><p>Cada erro encerra a rodada. Antes disso você pode errar 3 vezes e continuar.</p></div></div>' +
+        '<div class="zcard rk"><span class="zi">' + IC_FLAME + '</span><div><b>Depois de 30 acertos</b><p>Cada erro encerra a rodada. Antes disso você pode errar 3 vezes e continuar.</p></div></div>' +
         '<div class="hw-t">Regras</div><div class="rrows">' + rr + '</div><p class="note" style="color:#4a4742">Sair no meio da rodada perde os pontos dela. O ranking guarda a sua melhor rodada.</p><button class="btn" data-act="zonesclose">Entendi</button>')
       html = html.slice(0, html.lastIndexOf('</div>')) + zv + '</div>'
     }
@@ -290,7 +290,7 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
     api('decidir', { parar: false }).then(function (j) { sync(j.rodada); proxima() }).catch(fail)
   }
   function aplicaResultado(j) {
-    var estavaSegura = G.acertos < 15 && G.estado !== 'risco'
+    var estavaSegura = G.acertos < 30 && G.estado !== 'risco'
     G.busy = false; sync(j.rodada)
     if (j.certaPos != null) G.q.ops.forEach(function (o, k) { o.ok = (k === j.certaPos) })
     if (j.acertou) { G.res = { ok: true, pts: j.pontos }; sndCash(G.acertos % 5 === 0) }

@@ -918,6 +918,11 @@ export default function CatalogoPage() {
   // NOVO (form.id vazio) — nada é salvo até o lojista revisar e clicar em
   // "Salvar produto", igual o "Duplicar de outro produto" já faz pra grupos.
   async function duplicateProduto(id: string) {
+    // Confirmação antes de abrir (caso real da Peixaria Trindade, nov/2026): o ⧉
+    // fica colado no ⏸/🗑 e era tocado sem querer — a pessoa mudava o preço
+    // achando que editava o original e acabava criando um produto novo.
+    const nome = produtos.find(x => x.id === id)?.name
+    if (!confirm(`Duplicar${nome ? ` "${nome}"` : ' este produto'}?\n\nIsso cria um produto NOVO. O original continua como está.\n\nPra só mudar o preço dele, toque no produto (não no botão de duplicar).`)) return
     const { data } = await supabase
       .from('loja_produtos')
       .select('*, groups:loja_opcoes_grupo(*, options:loja_opcoes(*))')

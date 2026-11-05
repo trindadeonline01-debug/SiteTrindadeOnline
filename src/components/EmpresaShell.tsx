@@ -145,9 +145,11 @@ export default function EmpresaShell({
   const maisActive = !mobileTabKeys.includes(active)
 
   return (
-    <div className="es-shell">
+    <div className={`es-shell${active === 'pedidos' ? ' es-legacy' : ''}`}>
       <style>{`
-        .es-shell{display:flex;min-height:100vh;background:#D5D1C5;--concrete:#D5D1C5;}
+        .es-shell{display:flex;min-height:100vh;background:var(--concrete);}
+        /* Visual novo (fundo pedra, topo, cartões, largura fixa) em todas as telas, MENOS Pedidos (es-legacy), que segue como era */
+        .es-shell:not(.es-legacy){background:#D5D1C5;--concrete:#D5D1C5;}
         .es-sidebar{width:246px;background:var(--ink);flex-shrink:0;display:none;flex-direction:column;position:sticky;top:0;height:100vh;overflow:hidden;transition:width .2s ease;}
         @media(min-width:768px){.es-sidebar{display:flex;}}
         .es-sidebar.collapsed{width:0;}
@@ -187,8 +189,10 @@ export default function EmpresaShell({
         .es-btn-small{background:none;color:#888;padding:5px 8px;font-size:11px;font-weight:600;flex:none;}
         .es-btn-small:hover{color:var(--alert);}
 
-        .es-main{flex:1;overflow-x:hidden;display:flex;flex-direction:column;min-width:0;background:#D5D1C5;}
-        .es-topbar{background:#fff;border-bottom:1px solid #C2BEB0;box-shadow:0 1px 0 rgba(21,18,16,.12);padding:16px 32px;display:none;align-items:center;gap:14px;justify-content:flex-start;position:sticky;top:0;z-index:20;}
+        .es-main{flex:1;overflow-x:hidden;display:flex;flex-direction:column;min-width:0;}
+        .es-shell:not(.es-legacy) .es-main{background:#D5D1C5;}
+        .es-topbar{background:#fff;border-bottom:1px solid #EDE8E0;padding:16px 32px;display:none;align-items:center;gap:14px;justify-content:flex-start;position:sticky;top:0;z-index:20;}
+        .es-shell:not(.es-legacy) .es-topbar{border-bottom-color:#C2BEB0;box-shadow:0 1px 0 rgba(21,18,16,.12);}
         @media(min-width:768px){.es-topbar{display:flex;}}
         .es-topbar-burger{flex:none;width:34px;height:34px;border-radius:9px;border:1.5px solid #E6E0D2;background:#fff;color:var(--ink);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
         .es-topbar-burger:hover{border-color:var(--sign-dark,#A87200);}
@@ -197,14 +201,14 @@ export default function EmpresaShell({
         /* Desktop largo: conteúdo de todas as telas do painel com largura máxima de 1240px, centralizado; barra do topo alinhada
            na mesma coluna. Tablet e celular (<=1180px) continuam fluidos. */
         @media(min-width:1181px){
-          .es-content{width:100%;max-width:1304px;margin:0 auto;}
-          .es-topbar{padding-left:max(32px,calc((100% - 1240px) / 2));padding-right:max(32px,calc((100% - 1240px) / 2));}
+          .es-shell:not(.es-legacy) .es-content{width:100%;max-width:1304px;margin:0 auto;}
+          .es-shell:not(.es-legacy) .es-topbar{padding-left:max(32px,calc((100% - 1240px) / 2));padding-right:max(32px,calc((100% - 1240px) / 2));}
         }
         /* Cabeçalhos fixos das telas (tinham fundo claro próprio) viram brancos, iguais à barra do topo */
-        .es-content .cg-head,.es-content .cl-head,.es-content .pd-head{background:#fff;border-bottom:1px solid #C2BEB0;}
+        .es-shell:not(.es-legacy) .es-content :is(.cg-head,.cl-head){background:#fff;border-bottom:1px solid #C2BEB0;}
         /* Cartões das telas do painel: borda marcada + sombra, para destacar do fundo */
-        .es-content :is(.sec-card,.stat-card,.cb-card,.vc-card,.it-card,.hub-card,.en-card,.mb-card,.mp-card,.pd-card,.cl-card){border-color:#9C988B;box-shadow:0 1px 0 rgba(21,18,16,.08),0 10px 22px -12px rgba(21,18,16,.35);}
-        .es-content .sec-hdr{background:#EDEADF;border-bottom-color:#C9C5B8;}
+        .es-shell:not(.es-legacy) .es-content :is(.sec-card,.stat-card,.cb-card,.vc-card,.it-card,.hub-card,.en-card,.mb-card,.mp-card,.cl-card){border-color:#9C988B;box-shadow:0 1px 0 rgba(21,18,16,.08),0 10px 22px -12px rgba(21,18,16,.35);}
+        .es-shell:not(.es-legacy) .es-content .sec-hdr{background:#EDEADF;border-bottom-color:#C9C5B8;}
         @media(max-width:767px){.es-content{padding-bottom:var(--es-tabbar-h, 74px);}}
 
         .es-tabbar{position:fixed;left:0;right:0;bottom:0;background:var(--ink);display:flex;align-items:center;z-index:9999;padding:6px 4px env(safe-area-inset-bottom);}

@@ -1566,6 +1566,8 @@ export default function CatalogoPage() {
         /* Só desktop largo: conteúdo com largura máxima fixa (1240px) e centralizado; barra do topo alinhada na mesma coluna.
            Tablet e celular (<=1180px) continuam fluidos. */
         @media(min-width:1181px){
+          .pf-info{ grid-template-columns:repeat(3,minmax(0,1fr)); }
+          .pf-info .pf-nm{ grid-column:auto; }
           .pf{ --pf-w:1240px; }
           .pf-grid{ max-width:calc(var(--pf-w) + 64px); margin:0 auto; }
           .pf-head.cg-head.cg-head-centered{ padding-left:max(32px, calc((100% - var(--pf-w)) / 2)); padding-right:max(32px, calc((100% - var(--pf-w)) / 2)); }
@@ -1927,8 +1929,8 @@ export default function CatalogoPage() {
               {/* Informações */}
               <section className="pf-card pf-o2">
                 <div className="pf-card-h"><div><h2>Informações</h2><p>O que o cliente lê antes de pedir.</p></div></div>
-                <div className="pf-card-b pf-g2">
-                  <div className="pf-span2">
+                <div className="pf-card-b pf-g2 pf-info">
+                  <div className="pf-span2 pf-nm">
                     <label className="pf-lab" htmlFor="pf-nome">Nome do produto</label>
                     <input id="pf-nome" className="pf-inp" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
                   </div>

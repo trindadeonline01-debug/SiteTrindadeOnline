@@ -18,7 +18,7 @@ export type CalcComanda = {
   itens: CalcItem[]
 }
 export type CalcPagto = { id: string; valor: number; forma: string; pessoa: string | null }
-export type FormaPg = 'dinheiro' | 'cartao' | 'pix'
+export type FormaPg = 'dinheiro' | 'debito' | 'credito' | 'pix'
 type Base = 'total' | 'falta' | 'consumo' | 'visor'
 // Divisão congelada: quanto cada pessoa deve (alvo) e os ids dos pagamentos dela.
 export type Congelada = { alvo: number[]; ids: string[][] }
@@ -35,8 +35,8 @@ type Props = {
   onPagar?: (valor: number, pessoa: string, forma: FormaPg) => Promise<string | null>
   erro?: string
 }
-const FORMAS_CALC: { key: FormaPg; label: string }[] = [{ key: 'dinheiro', label: 'Dinheiro' }, { key: 'cartao', label: 'Cartão' }, { key: 'pix', label: 'Pix' }]
-const NOME_FORMA: Record<string, string> = { dinheiro: 'Dinheiro', cartao: 'Cartão', pix: 'Pix' }
+const FORMAS_CALC: { key: FormaPg; label: string }[] = [{ key: 'dinheiro', label: 'Dinheiro' }, { key: 'debito', label: 'Débito' }, { key: 'credito', label: 'Crédito' }, { key: 'pix', label: 'Pix' }]
+const NOME_FORMA: Record<string, string> = { dinheiro: 'Dinheiro', cartao: 'Cartão', debito: 'Débito', credito: 'Crédito', pix: 'Pix' }
 
 const r2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100
 const brl = (n: number) => 'R$ ' + (Number.isFinite(n) ? n : 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })

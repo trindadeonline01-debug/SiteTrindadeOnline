@@ -8,7 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 type Opcao = { id: string; name: string; price: number }
 type Grupo = { id: string; name: string; required: boolean; min: number; max: number; options: Opcao[] }
 type Prod = { id: string; name: string; description: string | null; photo: string | null; categoriaId: string | null; preco: number; precoCheio: number | null; porPeso: boolean; grupos: Grupo[] }
-type Info = { empresa: { nome: string }; mesa: { numero: number }; contaAberta: boolean; sessao: string | null; podePedir: boolean; cashback: { ativo: boolean; percentual: number }; categorias: { id: string; name: string }[]; produtos: Prod[] }
+type Info = { empresa: { nome: string; logo?: string }; mesa: { numero: number }; contaAberta: boolean; sessao: string | null; podePedir: boolean; cashback: { ativo: boolean; percentual: number }; categorias: { id: string; name: string }[]; produtos: Prod[] }
 type Linha = { key: string; prod: Prod; qty: number; opcoes: Opcao[]; unit: number }
 type Carteira = { verificado: boolean; saldo: number; telefone: string | null }
 type Envio = { chamadoId: string; status: 'aberto' | 'atendido' | 'cancelado'; motivo: string | null }
@@ -36,6 +36,12 @@ export default function MesaClient({ token }: { token: string }) {
   const [quizOn, setQuizOn] = useState(false)
   const [aviso, setAviso] = useState('')
   const [chamou, setChamou] = useState<'garcom' | 'conta' | null>(null)
+  const [busca, setBusca] = useState('')
+  const [cashSheet, setCashSheet] = useState(false)
+  const [rolou, setRolou] = useState(false)
+  const [logoOk, setLogoOk] = useState(true)
+  // Foto do que foi enviado (as linhas são limpas quando o garçom confirma).
+  const [enviado, setEnviado] = useState<{ linhas: Linha[]; total: number; hora: string } | null>(null)
   // Identificação por código (cashback)
   const [cart, setCart] = useState<Carteira | null>(null)
   const [idTel, setIdTel] = useState('')
@@ -76,6 +82,14 @@ export default function MesaClient({ token }: { token: string }) {
     return () => { vivo = false }
   }, [call, token])
 
+  // Barra compacta fixa aparece depois que o topo grande sai da tela.
+  useEffect(() => {
+    const onScroll = () => setRolou(window.scrollY > 150)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
   // Acompanha a resposta do garçom (a cada 4s enquanto espera).
   const esperando = envio?.status === 'aberto'
   const chamadoId = envio?.chamadoId
@@ -95,7 +109,22 @@ export default function MesaClient({ token }: { token: string }) {
 
   const total = useMemo(() => linhas.reduce((s, l) => s + l.unit * l.qty, 0), [linhas])
   const qtdTotal = linhas.reduce((s, l) => s + l.qty, 0)
-  const visiveis = useMemo(() => (info?.produtos || []).filter(p => cat === 'todas' || p.categoriaId === cat), [info, cat])
+  const visiveis = useMemo(() => {
+    const t = busca.trim().toLowerCase()
+    return (info?.produtos || []).filter(p => (cat === 'todas' || p.categoriaId === cat) && (!t || p.name.toLowerCase().includes(t) || (p.description || '').toLowerCase().includes(t)))
+  }, [info, cat, busca])
+  // Cardápio agrupado por categoria (na ordem do cardápio); sem categoria vai pro fim.
+  const secoes = useMemo(() => {
+    const out: { id: string; nome: string | null; itens: Prod[] }[] = []
+    for (const c of info?.categorias || []) {
+      const itens = visiveis.filter(p => p.categoriaId === c.id)
+      if (itens.length) out.push({ id: c.id, nome: c.name, itens })
+    }
+    const sem = visiveis.filter(p => !p.categoriaId || !(info?.categorias || []).some(c => c.id === p.categoriaId))
+    if (sem.length) out.push({ id: 'sem', nome: out.length ? 'Outros' : null, itens: sem })
+    return out
+  }, [info, visiveis])
+  const qtdDoProduto = (id: string) => linhas.filter(l => l.prod.id === id).reduce((s, l) => s + l.qty, 0)
   const catsComItem = useMemo(() => (info?.categorias || []).filter(c => info?.produtos.some(p => p.categoriaId === c.id)), [info])
 
   async function enviarCodigo() {
@@ -159,6 +188,7 @@ export default function MesaClient({ token }: { token: string }) {
     if (r.status === 409) { await carregar(); setAviso(r.data?.error || 'A conta mudou. Confira o pedido e envie de novo.'); return }
     if (!r.ok) { setAviso(r.data?.error || 'Não consegui enviar. Chame o garçom.'); return }
     try { localStorage.setItem(PEND(token), r.data.chamadoId) } catch {}
+    setEnviado({ linhas, total, hora: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) })
     setEnvio({ chamadoId: r.data.chamadoId, status: 'aberto', motivo: null })
     setCarrinho(false)
   }
@@ -166,90 +196,208 @@ export default function MesaClient({ token }: { token: string }) {
   if (falha) return <Tela><div className="mz-box"><h1>Ops</h1><p>{falha}</p></div></Tela>
   if (!info) return <Tela><div className="mz-box"><p>Abrindo a mesa…</p></div></Tela>
 
+  const cashPct = String(info.cashback.percentual).replace('.', ',')
+  const inicial = (info.empresa.nome || '?').trim().charAt(0).toUpperCase()
+  const miniBar = (visivel: boolean) => (
+    <div className={`mz-mini ${visivel ? 'on' : ''}`} aria-hidden={!visivel}>
+      <div className="mz-num sm">{info.mesa.numero}</div>
+      <div className="mz-hn"><small>{info.empresa.nome}</small><b>Mesa {info.mesa.numero}</b></div>
+      <button className="mz-rb y" disabled={busy} onClick={() => chamar('garcom')} aria-label="Chamar garçom" tabIndex={visivel ? 0 : -1}>
+        {chamou === 'garcom' ? <span>✓</span> : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15z" /><path d="M10 21h4" /></svg>}
+      </button>
+      {info.contaAberta && (
+        <button className="mz-rb o" disabled={busy} onClick={() => chamar('conta')} aria-label="Pedir a conta" tabIndex={visivel ? 0 : -1}>
+          {chamou === 'conta' ? <span>✓</span> : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z" /><path d="M9 8h6M9 12h6" /></svg>}
+        </button>
+      )}
+    </div>
+  )
+
+  // Tela de acompanhamento do pedido enviado.
+  if (envio) {
+    const feito = envio.status === 'atendido'
+    return (
+      <Tela>
+        {miniBar(true)}
+        <div className="mz-st">
+          {envio.status === 'cancelado' ? (
+            <div className="mz-okh"><div className="mz-no" aria-hidden="true">!</div><h2>O garçom não pôde aceitar</h2><p>{envio.motivo || 'Chame o garçom para ajudar com o pedido.'}</p></div>
+          ) : (
+            <div className="mz-okh">
+              {feito ? <div className="mz-ok" aria-hidden="true">✓</div> : <div className="mz-pulse" aria-hidden="true" />}
+              <h2>{feito ? 'Pedido confirmado' : 'Pedido enviado'}</h2>
+              <p>{feito ? 'Já está indo para a cozinha. Você pode pedir mais a qualquer momento.' : 'Estamos avisando o garçom. Assim que ele confirmar, o pedido vai para a cozinha.'}</p>
+            </div>
+          )}
+          {envio.status !== 'cancelado' && (
+            <div className="mz-tl">
+              <div className="s d"><i /><div><b>Enviado ao garçom</b>{enviado && <span>{enviado.hora}</span>}</div></div>
+              <div className={`s ${feito ? 'd' : 'n'}`}><i /><div><b>Garçom confirmou</b></div></div>
+              <div className={`s ${feito ? 'n' : 'w'}`}><i /><div><b>Na cozinha</b>{feito && <span>Seu pedido está sendo preparado</span>}</div></div>
+            </div>
+          )}
+          {enviado && enviado.linhas.length > 0 && (
+            <div className="mz-sum">
+              {enviado.linhas.map(l => <div className="r" key={l.key}><span>{l.qty}× {l.prod.name}</span><span>{fmt(l.unit * l.qty)}</span></div>)}
+              <div className="r tot"><span>Total do pedido</span><span>{fmt(enviado.total)}</span></div>
+            </div>
+          )}
+          <div className="mz-stack">
+            {envio.status !== 'aberto' && <button className="mz-pb" onClick={() => { setEnvio(null); setEnviado(null) }}>{feito ? 'Pedir mais' : 'Voltar ao cardápio'}</button>}
+            {info.contaAberta && <button className="mz-pb g" disabled={busy} onClick={() => chamar('conta')}>{chamou === 'conta' ? '✓ Conta pedida' : 'Pedir a conta'}</button>}
+          </div>
+          {aviso && <div className="mz-aviso" role="status">{aviso}</div>}
+        </div>
+      </Tela>
+    )
+  }
+
   return (
     <Tela>
-      <header className="mz-top">
-        <div>
-          <span className="mz-eyebrow">{info.empresa.nome}</span>
-          <h1>Mesa {info.mesa.numero}</h1>
+      {miniBar(rolou)}
+
+      <header className="mz-hero">
+        <div className="mz-hrow">
+          <div className="mz-logo">
+            {info.empresa.logo && logoOk
+              ? <img src={info.empresa.logo} alt="" onError={() => setLogoOk(false)} />
+              : <span>{inicial}</span>}
+          </div>
+          <div className="mz-hn"><small>Bem-vindo ao</small><b>{info.empresa.nome}</b></div>
+          <div className="mz-num">{info.mesa.numero}</div>
         </div>
-        <div className="mz-acoes">
-          <button className="mz-btn ghost" disabled={busy} onClick={() => chamar('garcom')}>{chamou === 'garcom' ? '✓ Garçom avisado' : 'Chamar garçom'}</button>
-          {info.contaAberta && <button className="mz-btn ghost" disabled={busy} onClick={() => chamar('conta')}>{chamou === 'conta' ? '✓ Conta pedida' : 'Pedir a conta'}</button>}
-        </div>
+        <h1>Peça daqui, <em>sem fila.</em></h1>
+        <p>Você está na mesa {info.mesa.numero}. {info.podePedir ? 'O garçom confirma o pedido antes de ir para a cozinha.' : 'Os pedidos desta mesa são feitos com o garçom.'}</p>
       </header>
 
-      {quizOn && (
-        <a href={`/mesa/${token}/quiz`} style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#082B38', color: '#fff', borderRadius: 12, padding: '14px 16px', textDecoration: 'none', margin: '0 0 12px' }}>
-          <span style={{ fontSize: 26 }}>🎣</span>
-          <span style={{ display: 'grid', gap: 2 }}><b style={{ fontSize: 15 }}>Jogar · Quiz Pesca Premiada</b><span style={{ fontSize: 12.5, color: '#BFD9DE' }}>Acerte as perguntas e suba no ranking da loja</span></span>
-        </a>
-      )}
+      <div className={`mz-acts ${info.contaAberta ? 'two' : 'one'}`}>
+        <button className="mz-act pri" disabled={busy} onClick={() => chamar('garcom')}>
+          <span className="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15z" /><path d="M10 21h4" /></svg></span>
+          {chamou === 'garcom' ? '✓ Garçom avisado' : 'Chamar garçom'}
+        </button>
+        {info.contaAberta && (
+          <button className="mz-act" disabled={busy} onClick={() => chamar('conta')}>
+            <span className="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z" /><path d="M9 8h6M9 12h6" /></svg></span>
+            {chamou === 'conta' ? '✓ Conta pedida' : 'Pedir a conta'}
+          </button>
+        )}
+      </div>
 
-      {info.contaAberta && info.cashback.ativo && cart && (
-        <section className="mz-cash" aria-label="Cashback">
-          {cart.verificado ? (
-            <>
-              <b>🎁 Seu cashback nesta loja: {fmt(cart.saldo)}</b>
-              <small>Ao pagar a conta você ganha {String(info.cashback.percentual).replace('.', ',')}% de volta para o próximo pedido. Para usar o saldo, avise o garçom na hora de pagar.</small>
-            </>
-          ) : idEtapa === 'tel' ? (
-            <>
-              <b>🎁 Ganhe {String(info.cashback.percentual).replace('.', ',')}% de volta</b>
-              <small>Confirme seu WhatsApp e receba cashback para usar no próximo pedido.</small>
-              <div className="mz-idrow">
-                <input inputMode="tel" autoComplete="tel" placeholder="(21) 99999-9999" value={idTel} onChange={e => setIdTel(e.target.value)} aria-label="Seu WhatsApp" />
-                <button className="mz-btn" disabled={idBusy || idTel.replace(/\D/g, '').length < 10} onClick={enviarCodigo}>{idBusy ? 'Enviando…' : 'Receber código'}</button>
-              </div>
-            </>
-          ) : (
-            <>
-              <b>Digite o código que chegou no WhatsApp</b>
-              <div className="mz-idrow">
-                <input inputMode="numeric" maxLength={6} placeholder="000000" value={idCod} onChange={e => setIdCod(e.target.value.replace(/\D/g, ''))} aria-label="Código de 6 números" />
-                <button className="mz-btn" disabled={idBusy || idCod.length < 6} onClick={confirmarCodigo}>{idBusy ? 'Conferindo…' : 'Confirmar'}</button>
-              </div>
-              <button className="mz-link" onClick={() => { setIdEtapa('tel'); setIdMsg('') }}>Trocar número</button>
-            </>
+      {(quizOn || info.cashback.ativo) && (
+        <div className={`mz-promo ${quizOn && info.cashback.ativo ? '' : 'solo'}`}>
+          {quizOn && (
+            <a className="mz-pcard pq" href={`/mesa/${token}/quiz`}>
+              <span className="ico"><svg viewBox="0 0 24 24" fill="none" stroke="#151210" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z" /><path d="M7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3" /></svg></span>
+              <b>Quiz Pesca Premiada</b>
+              <p>Suba no ranking da casa.</p>
+              <span className="bt">Jogar</span>
+            </a>
           )}
-          {idMsg && <small className="mz-idmsg" role="status">{idMsg}</small>}
-        </section>
+          {info.cashback.ativo && (
+            <div className="mz-pcard pc5">
+              {cart?.verificado ? (
+                <>
+                  <div className="top5"><span className="up">Seu saldo</span></div>
+                  <div className="saldo">{fmt(cart.saldo)}</div>
+                  <p className="rt2">Ganhe até {cashPct}% de volta ao pagar a conta.</p>
+                  <span className="bt ok">✓ Cashback ativo</span>
+                </>
+              ) : (
+                <>
+                  <div className="top5"><span className="up">Até</span><span className="big">{cashPct}<small>%</small></span></div>
+                  <p className="rt2">de cashback na sua próxima compra</p>
+                  {info.contaAberta
+                    ? <button className="bt" onClick={() => { setCashSheet(true); setIdMsg('') }}>Ativar</button>
+                    : <span className="bt ok">Peça e ative</span>}
+                </>
+              )}
+            </div>
+          )}
+        </div>
       )}
 
       {!info.podePedir ? (
         <div className="mz-box"><p>Hoje os pedidos desta mesa são feitos com o garçom. Use “Chamar garçom”.</p></div>
       ) : (
         <>
+          <div className="mz-sbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="M20 20l-4-4" /></svg>
+            <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar no cardápio" aria-label="Buscar no cardápio" />
+          </div>
           {catsComItem.length > 1 && (
-            <nav className="mz-cats" aria-label="Categorias">
+            <nav className={`mz-cats ${rolou ? 'under' : ''}`} aria-label="Categorias">
               <button className={cat === 'todas' ? 'on' : ''} onClick={() => setCat('todas')}>Tudo</button>
               {catsComItem.map(c => <button key={c.id} className={cat === c.id ? 'on' : ''} onClick={() => setCat(c.id)}>{c.name}</button>)}
             </nav>
           )}
           {aviso && !carrinho && <div className="mz-aviso" role="status">{aviso}</div>}
-          <ul className="mz-lista">
-            {visiveis.map(p => (
-              <li key={p.id} className="mz-item">
-                {p.photo && <img src={p.photo} alt="" loading="lazy" />}
-                <div className="mz-info">
-                  <b>{p.name}</b>
-                  {p.description && <small>{p.description}</small>}
-                  <span className="mz-preco">{p.porPeso ? `${fmt(p.preco)} / kg` : fmt(p.preco)}{p.precoCheio && !p.porPeso && <s>{fmt(p.precoCheio)}</s>}</span>
-                </div>
-                {p.porPeso
-                  ? <button className="mz-btn peso" disabled={busy} onClick={() => chamar('garcom', `Quer pedir "${p.name}" (por peso)`)}>Chamar garçom</button>
-                  : <button className="mz-add" aria-label={`Adicionar ${p.name}`} onClick={() => tocar(p)}>+</button>}
-              </li>
-            ))}
-            {visiveis.length === 0 && <li className="mz-vazio">Nada por aqui ainda.</li>}
-          </ul>
+          {secoes.map(sec => (
+            <section key={sec.id} className="mz-sec">
+              {sec.nome && <div className="mz-h"><b>{sec.nome}</b><small>{sec.itens.length} {sec.itens.length === 1 ? 'item' : 'itens'}</small></div>}
+              <ul className="mz-lista">
+                {sec.itens.map(p => {
+                  const q = qtdDoProduto(p.id)
+                  const simples = p.grupos.length === 0
+                  const keySimples = p.id + '|'
+                  return (
+                    <li key={p.id} className="mz-item">
+                      {p.photo && <img src={p.photo} alt="" loading="lazy" />}
+                      <div className="mz-info">
+                        <b>{p.name}</b>
+                        {p.description && <small>{p.description}</small>}
+                        <span className="mz-preco">{p.porPeso ? `${fmt(p.preco)}` : fmt(p.preco)}{p.porPeso && <em> / kg</em>}{p.precoCheio && !p.porPeso && <s>{fmt(p.precoCheio)}</s>}</span>
+                      </div>
+                      {p.porPeso
+                        ? <button className="mz-peso" disabled={busy} onClick={() => chamar('garcom', `Quer pedir "${p.name}" (por peso)`)}>Por peso<br />chamar garçom</button>
+                        : simples && q > 0
+                          ? <div className="mz-step"><button aria-label={`Tirar ${p.name}`} onClick={() => mudarQtd(keySimples, -1)}>−</button><b>{q}</b><button aria-label={`Adicionar ${p.name}`} onClick={() => tocar(p)}>+</button></div>
+                          : <button className="mz-add" aria-label={`Adicionar ${p.name}`} onClick={() => tocar(p)}>{q > 0 ? <span className="n">{q}</span> : '+'}</button>}
+                    </li>
+                  )
+                })}
+              </ul>
+            </section>
+          ))}
+          {visiveis.length === 0 && <p className="mz-vazio">Nada por aqui ainda.</p>}
         </>
       )}
 
       {qtdTotal > 0 && !carrinho && (
         <button className="mz-barra" onClick={() => setCarrinho(true)}>
-          <span>Ver pedido · {qtdTotal} {qtdTotal === 1 ? 'item' : 'itens'}</span><b>{fmt(total)}</b>
+          <span className="l"><i>{qtdTotal}</i>Ver pedido</span><span className="p">{fmt(total)}</span>
         </button>
+      )}
+
+      {cashSheet && (
+        <Sheet titulo="" onClose={() => setCashSheet(false)}>
+          <div className="mz-cs">
+            <div className="ico5">{cashPct}%</div>
+            <h3>Até {cashPct}% de cashback</h3>
+            {cart?.verificado ? (
+              <>
+                <p className="s">Pronto! Seu cashback está ativo. Seu saldo nesta casa: <b>{fmt(cart.saldo)}</b>.</p>
+                <button className="mz-pb" onClick={() => setCashSheet(false)}>Fechar</button>
+              </>
+            ) : idEtapa === 'tel' ? (
+              <>
+                <p className="s">Confirme seu WhatsApp para guardar o cashback e usar na sua próxima compra nesta casa.</p>
+                <label>Seu WhatsApp</label>
+                <input inputMode="tel" autoComplete="tel" placeholder="(21) 99999-9999" value={idTel} onChange={e => setIdTel(e.target.value)} aria-label="Seu WhatsApp" />
+                <button className="mz-pb" disabled={idBusy || idTel.replace(/\D/g, '').length < 10} onClick={enviarCodigo}>{idBusy ? 'Enviando…' : 'Receber código'}</button>
+                <p className="nt">Você recebe um código de 6 números no WhatsApp. O cashback é liberado quando a conta é paga.</p>
+              </>
+            ) : (
+              <>
+                <p className="s">Digite o código de 6 números que chegou no seu WhatsApp.</p>
+                <label>Código</label>
+                <input inputMode="numeric" maxLength={6} placeholder="000000" value={idCod} onChange={e => setIdCod(e.target.value.replace(/\D/g, ''))} aria-label="Código de 6 números" />
+                <button className="mz-pb" disabled={idBusy || idCod.length < 6} onClick={confirmarCodigo}>{idBusy ? 'Conferindo…' : 'Confirmar'}</button>
+                <button className="mz-link" onClick={() => { setIdEtapa('tel'); setIdMsg('') }}>Trocar número</button>
+              </>
+            )}
+            {idMsg && <small className="mz-idmsg" role="status">{idMsg}</small>}
+            <button className="mz-link" onClick={() => setCashSheet(false)}>Agora não</button>
+          </div>
+        </Sheet>
       )}
 
       {opc && (
@@ -305,15 +453,6 @@ export default function MesaClient({ token }: { token: string }) {
         </Sheet>
       )}
 
-      {envio && (
-        <div className="mz-ov" role="dialog" aria-modal="true">
-          <div className="mz-card">
-            {envio.status === 'aberto' && (<><div className="mz-pulse" aria-hidden="true" /><h2>Pedido enviado!</h2><p>Estamos avisando o garçom. Assim que ele confirmar, o pedido vai para a cozinha.</p></>)}
-            {envio.status === 'atendido' && (<><div className="mz-ok" aria-hidden="true">✓</div><h2>Pedido confirmado</h2><p>Já está indo para a cozinha. Quer pedir mais alguma coisa?</p><button className="mz-btn full" onClick={() => setEnvio(null)}>Voltar ao cardápio</button></>)}
-            {envio.status === 'cancelado' && (<><div className="mz-no" aria-hidden="true">!</div><h2>O garçom não pôde aceitar</h2><p>{envio.motivo || 'Chame o garçom para ajudar com o pedido.'}</p><button className="mz-btn full" onClick={() => setEnvio(null)}>Voltar ao cardápio</button></>)}
-          </div>
-        </div>
-      )}
     </Tela>
   )
 }
@@ -338,32 +477,8 @@ const CSS = `
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--mz-ink:#F4F1EA;--mz-paper:#231F1B;--mz-bg:#151210;--mz-line:#3A342D;--mz-muted:#A8A39B;--mz-soft:#3A2F0E}}
 .mz{min-height:100vh;min-height:100dvh;background:var(--mz-bg);color:var(--mz-ink);font-family:Archivo,system-ui,sans-serif;padding-bottom:96px}
 .mz *{box-sizing:border-box}.mz button{font-family:inherit;cursor:pointer}
-.mz-top{position:sticky;top:0;z-index:5;background:#151210;color:#fff;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
-.mz-eyebrow{font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:#FFC531;font-weight:700}
-.mz-top h1{margin:2px 0 0;font-family:Anton,sans-serif;font-weight:400;font-size:34px;line-height:1;text-transform:uppercase}
-.mz-acoes{display:flex;gap:8px;flex-wrap:wrap}
 .mz-btn{height:46px;padding:0 18px;border-radius:10px;border:2px solid var(--mz-ink);background:var(--mz-sign);color:#151210;font-weight:700;font-size:15px}
 .mz-btn:disabled{opacity:.5;cursor:not-allowed}
-.mz-btn.full{width:100%;margin-top:12px;height:52px;font-size:16px}
-.mz-btn.ghost{background:transparent;color:#fff;border:1.5px solid #5a5148;height:42px;font-size:14px;font-weight:600}
-.mz-btn.peso{height:40px;font-size:13px;background:var(--mz-paper);color:var(--mz-ink);border:1.5px solid var(--mz-line);flex:none}
-.mz-cats{display:flex;gap:8px;overflow-x:auto;padding:12px 16px;scrollbar-width:none}
-.mz-cats button{flex:none;height:38px;padding:0 16px;border-radius:8px;border:1.5px solid var(--mz-line);background:var(--mz-paper);color:var(--mz-ink);font-weight:600;font-size:14px}
-.mz-cats button.on{background:var(--mz-sign);color:#151210;border:2px solid #151210;font-weight:700}
-.mz-lista{list-style:none;margin:0;padding:4px 16px 0;display:flex;flex-direction:column;gap:10px}
-.mz-item{display:flex;align-items:center;gap:12px;background:var(--mz-paper);border:1px solid var(--mz-line);border-radius:12px;padding:10px}
-.mz-item img{width:72px;height:72px;object-fit:cover;border-radius:8px;flex:none;background:var(--mz-line)}
-.mz-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
-.mz-info b{font-size:15.5px;line-height:1.25}
-.mz-info small{color:var(--mz-muted);font-size:12.5px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.mz-preco{font-weight:700;font-size:15px;font-variant-numeric:tabular-nums}.mz-preco s{color:var(--mz-muted);font-weight:400;font-size:12.5px;margin-left:8px}
-.mz-add{flex:none;width:46px;height:46px;border-radius:10px;border:2px solid #151210;background:var(--mz-sign);color:#151210;font-size:26px;font-weight:700;line-height:1}
-.mz-vazio{text-align:center;color:var(--mz-muted);padding:30px 0}
-.mz-barra{position:fixed;left:12px;right:12px;bottom:12px;z-index:6;height:58px;border-radius:12px;border:2px solid #151210;background:var(--mz-sign);color:#151210;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-size:16px;font-weight:700;box-shadow:0 6px 18px rgba(0,0,0,.25)}
-.mz-cash{margin:12px 16px 0;background:var(--mz-soft);border:1.5px solid var(--mz-sign);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px}
-.mz-cash b{font-size:15px}.mz-cash small{color:var(--mz-muted);font-size:12.5px;line-height:1.4}.mz-cash .mz-idmsg{color:var(--mz-ink);font-weight:600}
-.mz-idrow{display:flex;gap:8px}.mz-idrow input{flex:1;min-width:0;height:46px;border:1.5px solid var(--mz-line);border-radius:10px;background:var(--mz-paper);color:var(--mz-ink);font:inherit;font-size:16px;padding:0 12px}
-.mz-idrow .mz-btn{flex:none;height:46px;padding:0 14px;font-size:14px}
 .mz-link{align-self:flex-start;background:transparent;border:0;color:var(--mz-ink);text-decoration:underline;font-size:13px;padding:4px 0}
 .mz-box{margin:24px 16px;background:var(--mz-paper);border:1px solid var(--mz-line);border-radius:12px;padding:20px}.mz-box h1{margin:0 0 6px;font-family:Anton,sans-serif;font-weight:400;font-size:28px;text-transform:uppercase}.mz-box p{margin:0;line-height:1.5}
 .mz-aviso{margin:8px 16px 0;background:var(--mz-soft);border:1px solid var(--mz-sign);border-radius:8px;padding:10px 12px;font-size:14px;font-weight:600}
@@ -393,4 +508,122 @@ const CSS = `
 @keyframes mzp{0%,100%{transform:scale(.85);opacity:.7}50%{transform:scale(1.1);opacity:1}}
 @media (prefers-reduced-motion:reduce){.mz-pulse{animation:none}}
 @media (min-width:720px){.mz{max-width:640px;margin:0 auto}.mz-ov.sheet{align-items:center;padding:16px}.mz-sheet{max-width:520px;border-radius:16px}}
+
+.mz{background:var(--mz-bg)}
+.mz-btn.full{width:100%;margin-top:12px;height:52px;font-size:16px;border-radius:14px;border:0;background:var(--mz-sign);color:#151210}
+/* barra compacta (fixa, aparece depois do topo grande) */
+.mz-mini{position:fixed;top:0;left:0;right:0;z-index:15;max-width:640px;margin:0 auto;background:#151210;color:#fff;display:flex;align-items:center;gap:12px;padding:10px 16px;transform:translateY(-110%);transition:transform .22s ease;box-shadow:0 10px 24px -14px rgba(0,0,0,.6)}
+.mz-mini.on{transform:none}
+.mz-mini::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:linear-gradient(90deg,transparent,#FFC531 30%,#FFC531 70%,transparent);opacity:.5}
+.mz-st .mz-mini,.mz-mini.on{position:fixed}
+.mz-num{width:50px;height:50px;border-radius:50%;border:1.5px solid #FFC531;color:#FFC531;display:grid;place-items:center;font-family:Anton,sans-serif;font-size:25px;line-height:1;flex:none;padding-top:2px;background:rgba(255,197,49,.08)}
+.mz-num.sm{width:38px;height:38px;font-size:19px}
+.mz-hn{flex:1;min-width:0}
+.mz-hn small{display:block;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#A9A397;font-weight:600}
+.mz-hn b{display:block;font-size:17px;font-weight:700;letter-spacing:.2px;line-height:1.2;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mz-mini .mz-hn small{font-size:9.5px}.mz-mini .mz-hn b{font-size:14.5px;margin:0}
+.mz-rb{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;flex:none;border:0;padding:0}
+.mz-rb svg{width:18px;height:18px}
+.mz-rb.y{background:#FFC531;color:#151210;font-weight:800}
+.mz-rb.o{background:transparent;border:1px solid #4A443C;color:#fff}
+/* topo */
+.mz-hero{background:linear-gradient(180deg,#1B1815 0%,#151210 100%);color:#fff;padding:20px 20px 52px;position:relative}
+.mz-hero::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:linear-gradient(90deg,transparent,#FFC531 30%,#FFC531 70%,transparent);opacity:.6}
+.mz-hrow{display:flex;align-items:center;gap:12px}
+.mz-logo{width:44px;height:44px;border-radius:50%;background:#fff;overflow:hidden;flex:none;box-shadow:0 0 0 1.5px rgba(255,197,49,.9);display:grid;place-items:center;color:#151210;font-family:Anton,sans-serif;font-size:20px}
+.mz-logo img{width:86%;height:86%;object-fit:contain}
+.mz-hero h1{margin:20px 0 0;font-family:inherit;font-size:23px;font-weight:700;line-height:1.2;letter-spacing:-.1px;text-transform:none}
+.mz-hero h1 em{font-style:normal;color:#FFC531}
+.mz-hero p{margin:6px 0 0;font-size:13px;color:#A9A397;line-height:1.45}
+/* ações */
+.mz-acts{margin:-28px 16px 0;position:relative;z-index:2;background:var(--mz-paper);border-radius:16px;display:grid;box-shadow:0 1px 2px rgba(21,18,16,.06),0 14px 28px -16px rgba(21,18,16,.35)}
+.mz-acts.two{grid-template-columns:1fr 1fr}.mz-acts.one{grid-template-columns:1fr}
+.mz-act{border:0;background:transparent;color:var(--mz-ink);padding:14px 8px;display:flex;align-items:center;justify-content:center;gap:10px;font-size:13px;font-weight:600;min-height:60px}
+.mz-act+.mz-act{border-left:1px solid var(--mz-line)}
+.mz-act:disabled{opacity:.6}
+.mz-act .ic{width:34px;height:34px;border-radius:50%;background:var(--mz-bg);display:grid;place-items:center}
+.mz-act .ic svg{width:18px;height:18px}
+.mz-act.pri .ic{background:#FFC531;color:#151210}
+/* quiz + cashback */
+.mz-promo{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 16px 0}.mz-promo.solo{grid-template-columns:1fr}
+.mz-pcard{border-radius:16px;padding:12px;display:flex;flex-direction:column;position:relative;overflow:hidden;text-decoration:none}
+.mz-pcard .bt{height:32px;border-radius:10px;display:grid;place-items:center;font:700 12.5px Archivo,sans-serif;margin-top:auto;border:0;width:100%}
+.mz-pcard.pq{background:linear-gradient(165deg,#0F3A4A 0%,#082B38 70%);color:#fff;box-shadow:0 14px 26px -16px rgba(8,43,56,.9)}
+.mz-pcard.pq .ico{width:30px;height:30px;border-radius:50%;background:#FFC531;display:grid;place-items:center;margin:0 0 8px}
+.mz-pcard.pq .ico svg{width:16px;height:16px}
+.mz-pcard.pq b{display:block;font-size:14px;font-weight:700;line-height:1.2}
+.mz-pcard.pq p{margin:3px 0 10px;font-size:11.5px;line-height:1.4;color:#A9C6CD}
+.mz-pcard.pq .bt{background:#FFC531;color:#151210}
+.mz-pcard.pc5{background:linear-gradient(165deg,#FFD35C 0%,#FFC531 70%);color:#151210;box-shadow:0 14px 26px -16px rgba(168,114,0,.9)}
+.mz-pcard .top5{display:flex;align-items:flex-end;gap:5px;line-height:1;min-height:38px}
+.mz-pcard .top5 .up{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#5C4607;padding-bottom:4px}
+.mz-pcard .big{font-family:Anton,sans-serif;font-size:38px;line-height:.95}.mz-pcard .big small{font-size:20px}
+.mz-pcard .saldo{font-family:Anton,sans-serif;font-size:30px;line-height:1;margin-top:2px}
+.mz-pcard .rt2{margin:6px 0 10px;font-size:12px;line-height:1.35;font-weight:600;color:#3D2F04}
+.mz-pcard.pc5 .bt{background:#151210;color:#fff}
+.mz-pcard.pc5 .bt.ok{background:rgba(21,18,16,.12);color:#151210}
+/* busca + abas */
+.mz-sbar{margin:14px 16px 0;height:44px;border-radius:12px;background:var(--mz-paper);border:1px solid var(--mz-line);display:flex;align-items:center;gap:10px;padding:0 14px;color:var(--mz-muted)}
+.mz-sbar svg{width:17px;height:17px;flex:none}
+.mz-sbar input{flex:1;min-width:0;border:0;background:transparent;color:var(--mz-ink);font:inherit;font-size:14px;outline:none}
+.mz-cats{display:flex;gap:8px;overflow-x:auto;padding:12px 16px;scrollbar-width:none;position:sticky;top:0;z-index:6;background:var(--mz-bg)}
+.mz-cats.under{top:62px}
+.mz-cats button{flex:none;height:34px;padding:0 15px;border-radius:17px;border:1px solid var(--mz-line);background:var(--mz-paper);color:var(--mz-ink);font-weight:600;font-size:13px}
+.mz-cats button.on{background:#151210;color:#fff;border-color:#151210}
+/* lista */
+.mz-sec{padding:6px 16px 0}
+.mz-h{display:flex;align-items:baseline;justify-content:space-between;margin:12px 0 12px}
+.mz-h b{font-size:15px;font-weight:700}.mz-h small{font-size:12px;color:var(--mz-muted)}
+.mz-lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.mz-item{display:flex;gap:14px;align-items:center;background:var(--mz-paper);border-radius:16px;padding:12px;box-shadow:0 1px 2px rgba(21,18,16,.05),0 8px 18px -14px rgba(21,18,16,.3)}
+.mz-item img{width:80px;height:80px;object-fit:cover;border-radius:12px;flex:none;background:var(--mz-line)}
+.mz-info{flex:1;min-width:0}
+.mz-info b{display:block;font-size:14.5px;font-weight:600;line-height:1.3}
+.mz-info small{display:-webkit-box;font-size:12px;color:var(--mz-muted);line-height:1.4;margin-top:3px;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.mz-preco{display:block;margin-top:7px;font-size:14px;font-weight:700;font-variant-numeric:tabular-nums}
+.mz-preco s{font-weight:400;color:var(--mz-muted);font-size:12px;margin-left:6px}.mz-preco em{font-style:normal;font-weight:400;color:var(--mz-muted);font-size:12px}
+.mz-add{flex:none;width:38px;height:38px;border-radius:50%;background:#FFC531;color:#151210;border:0;display:grid;place-items:center;font-size:22px;font-weight:600;line-height:1;box-shadow:0 4px 10px -4px rgba(21,18,16,.45)}
+.mz-add .n{font-size:14px;font-weight:800}
+.mz-step{flex:none;display:flex;align-items:center;height:38px;border-radius:19px;background:var(--mz-bg);border:1px solid var(--mz-line)}
+.mz-step button{width:34px;height:100%;border:0;background:transparent;color:var(--mz-ink);font-size:18px;line-height:1}
+.mz-step b{min-width:20px;text-align:center;font-size:14px;font-weight:700}
+.mz-peso{flex:none;height:36px;padding:0 12px;border-radius:18px;border:1px solid #CFCBC2;background:transparent;color:var(--mz-ink);font:600 11.5px Archivo,sans-serif;text-align:center;line-height:1.1}
+.mz-vazio{text-align:center;color:var(--mz-muted);padding:30px 0}
+.mz-barra{position:fixed;left:16px;right:16px;max-width:608px;margin:0 auto;bottom:16px;z-index:6;height:54px;border-radius:16px;background:#151210;color:#fff;border:0;display:flex;align-items:center;justify-content:space-between;padding:0 8px 0 18px;font-size:14.5px;font-weight:600;box-shadow:0 16px 28px -12px rgba(21,18,16,.65)}
+.mz-barra .l{display:flex;align-items:center;gap:10px}
+.mz-barra i{font-style:normal;display:inline-grid;place-items:center;min-width:24px;height:24px;border-radius:12px;background:#FFC531;color:#151210;font-size:12.5px;font-weight:800}
+.mz-barra .p{height:38px;padding:0 16px;border-radius:12px;background:#FFC531;color:#151210;font-weight:800;display:grid;place-items:center;font-variant-numeric:tabular-nums}
+/* tela de acompanhamento */
+.mz-st{padding:84px 20px 40px}
+.mz-okh{text-align:center}
+.mz-okh h2{margin:18px 0 4px;font-family:inherit;font-size:22px;font-weight:700;text-transform:none}
+.mz-okh p{margin:0;color:var(--mz-muted);font-size:13.5px;line-height:1.45}
+.mz-ok{box-shadow:0 0 0 8px rgba(15,138,87,.12)}
+.mz-tl{margin:22px 0 0;background:var(--mz-paper);border-radius:16px;padding:16px 16px 14px;box-shadow:0 1px 2px rgba(21,18,16,.05),0 8px 18px -14px rgba(21,18,16,.3)}
+.mz-tl .s{display:flex;gap:14px;position:relative;padding-bottom:16px}.mz-tl .s:last-child{padding-bottom:0}
+.mz-tl .s:not(:last-child)::before{content:"";position:absolute;left:7px;top:19px;bottom:1px;width:2px;background:var(--mz-line)}
+.mz-tl .s.d:not(:last-child)::before{background:#0F8A57}
+.mz-tl i{width:16px;height:16px;border-radius:50%;flex:none;margin-top:2px;border:2px solid #D6D2C8;background:var(--mz-paper)}
+.mz-tl .d i{background:#0F8A57;border-color:#0F8A57}
+.mz-tl .n i{border-color:var(--mz-ink);box-shadow:0 0 0 4px rgba(120,116,106,.18)}
+.mz-tl b{display:block;font-size:14px;font-weight:600}.mz-tl span{font-size:12.5px;color:var(--mz-muted)}
+.mz-tl .w b{color:var(--mz-muted);font-weight:500}
+.mz-sum{margin-top:12px;background:var(--mz-paper);border-radius:16px;padding:12px 16px;font-size:13.5px;box-shadow:0 1px 2px rgba(21,18,16,.05),0 8px 18px -14px rgba(21,18,16,.3)}
+.mz-sum .r{display:flex;justify-content:space-between;gap:12px;padding:5px 0}
+.mz-sum .tot{border-top:1px solid var(--mz-line);margin-top:6px;padding-top:11px;font-weight:700;font-size:15px}
+.mz-stack{margin-top:18px;display:flex;flex-direction:column;gap:8px}
+.mz-pb{height:50px;border-radius:14px;background:#FFC531;color:#151210;border:0;font:700 15px Archivo,sans-serif;width:100%}
+.mz-pb.g{background:var(--mz-paper);color:var(--mz-ink);border:1px solid var(--mz-line);height:46px;font-weight:600;font-size:14.5px}
+.mz-pb:disabled{opacity:.5}
+/* folha do cashback */
+.mz-cs{display:flex;flex-direction:column;padding-bottom:6px}
+.mz-cs .ico5{width:54px;height:54px;border-radius:50%;background:#FFC531;color:#151210;display:grid;place-items:center;font-family:Anton,sans-serif;font-size:21px;padding-top:2px}
+.mz-cs h3{margin:14px 0 4px;font-family:inherit;font-size:21px;font-weight:700}
+.mz-cs .s{margin:0;color:var(--mz-muted);font-size:13.5px;line-height:1.5}
+.mz-cs label{margin-top:16px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--mz-muted)}
+.mz-cs input{margin:8px 0 14px;height:50px;border-radius:12px;border:1.5px solid var(--mz-ink);background:var(--mz-paper);color:var(--mz-ink);font:inherit;font-size:16px;padding:0 14px}
+.mz-cs .nt{margin:12px 0 0;font-size:12px;line-height:1.5;color:var(--mz-muted);text-align:center}
+.mz-cs .mz-link{align-self:center;margin-top:8px}
+.mz-sh h2:empty{display:none}
+@media (min-width:720px){.mz-mini{left:50%;transform:translate(-50%,-110%)}.mz-mini.on{transform:translate(-50%,0)}}
 `

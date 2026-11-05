@@ -308,6 +308,8 @@ export async function POST(req: NextRequest) {
       }
       const { data: novo, error } = await sb.from('loja_comanda_pagamentos').insert({
         comanda_id: c.id, company_id: companyId, forma: b.forma, valor,
+        // Cartão: débito ou crédito (o cashback tem percentual diferente). Sem informar, vale crédito.
+        cartao_tipo: b.forma === 'cartao' ? (b.cartaoTipo === 'debito' ? 'debito' : 'credito') : null,
         pessoa: b.pessoa ? String(b.pessoa).slice(0, 40) : null, customer_phone: c.customer_phone, registrado_por: c.garcom_nome,
       }).select('id').single()
       if (error) {
@@ -343,7 +345,7 @@ export async function POST(req: NextRequest) {
       const pago = await totalPago(c.id)
       const total = calc?.total ?? 0
       if (pago + 0.005 < total) return erro(`Ainda falta pagar R$ ${r2(total - pago).toFixed(2).replace('.', ',')}.`, 409)
-      const { data: pgs } = await sb.from('loja_comanda_pagamentos').select('forma, valor').eq('comanda_id', c.id)
+      const { data: pgs } = await sb.from('loja_comanda_pagamentos').select('forma, valor, cartao_tipo').eq('comanda_id', c.id)
       const formas = [...new Set((pgs || []).map(p => p.forma))]
       const agora = new Date().toISOString()
       const { error } = await sb.from('loja_comandas').update({ status: 'fechada', fechada_em: agora, fechada_por: c.garcom_nome, updated_at: agora }).eq('id', c.id).eq('status', 'aberta')
@@ -357,14 +359,28 @@ export async function POST(req: NextRequest) {
       // cliente — o crédito entra agora, depois que a conta já foi paga.
       let cashbackGanho = 0
       try {
-        const { data: cfg } = await sb.from('companies').select('cashback_enabled, cashback_percent_mesa, cashback_expira_dias').eq('id', companyId).maybeSingle()
-        const pct = Number(cfg?.cashback_percent_mesa) || 0
-        if (cfg?.cashback_enabled && pct > 0 && c.customer_phone) {
+        const { data: cfg } = await sb.from('companies').select('cashback_enabled, cashback_percent_mesa, cashback_pct_dinheiro, cashback_pct_pix, cashback_pct_debito, cashback_pct_credito, cashback_expira_dias').eq('id', companyId).maybeSingle()
+        const pctMax = Number(cfg?.cashback_percent_mesa) || 0
+        if (cfg?.cashback_enabled && pctMax > 0 && c.customer_phone) {
           const pagoCash = r2((pgs || []).filter(p => p.forma === 'cashback').reduce((s, p) => s + Number(p.valor), 0))
           const { data: rodadasConta } = await sb.from('loja_pedidos').select('id').eq('comanda_id', c.id).neq('status', 'cancelado')
           const semCashback = await valorItensSemCashback(sb, (rodadasConta || []).map(r => r.id))
           const base = Math.max(0, r2((calc?.subtotal ?? 0) - (calc?.desconto ?? 0) - pagoCash - semCashback))
-          const valorCash = r2(base * pct / 100)
+          // Percentual por forma de pagamento: a base é repartida na proporção do que foi pago em
+          // cada forma (a parte paga com cashback não gera cashback). Forma sem percentual próprio
+          // usa o percentual geral da mesa.
+          const pctDe = (p: { forma: string; cartao_tipo: string | null }) => {
+            const v = p.forma === 'dinheiro' ? cfg?.cashback_pct_dinheiro
+              : p.forma === 'pix' ? cfg?.cashback_pct_pix
+              : p.cartao_tipo === 'debito' ? cfg?.cashback_pct_debito
+              : cfg?.cashback_pct_credito
+            return v == null ? pctMax : Number(v) || 0
+          }
+          const comValor = (pgs || []).filter(p => p.forma !== 'cashback')
+          const somaPago = comValor.reduce((s, p) => s + Number(p.valor), 0)
+          const valorCash = somaPago > 0
+            ? r2(comValor.reduce((s, p) => s + base * (Number(p.valor) / somaPago) * pctDe(p as { forma: string; cartao_tipo: string | null }) / 100, 0))
+            : 0
           const rodada = await primeiraRodada(c.id)
           if (valorCash > 0 && rodada) {
             const antes = await getSaldoCashback(sb, companyId, c.customer_phone)

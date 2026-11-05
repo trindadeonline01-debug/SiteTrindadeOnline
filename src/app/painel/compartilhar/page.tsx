@@ -15,6 +15,7 @@ type Company = {
   loja_lat: number | null; loja_lng: number | null; loja_tempo_preparo_min: number
   crm_whatsapp_enabled: boolean; entrega_enabled: boolean; pix_key: string | null
   cashback_enabled: boolean; cashback_percent: number; cashback_percent_mesa: number; cashback_expira_dias: number
+  cashback_pct_dinheiro?: number | null; cashback_pct_pix?: number | null; cashback_pct_debito?: number | null; cashback_pct_credito?: number | null
 }
 type Categoria = { id: string; name: string }
 type ProdutoOpt = { id: string; name: string }
@@ -98,7 +99,7 @@ export default function CompartilharPage() {
 
   const [cashbackEnabledInput, setCashbackEnabledInput] = useState(false)
   const [cashbackPercentInput, setCashbackPercentInput] = useState('3')
-  const [cashbackMesaInput, setCashbackMesaInput] = useState('0')
+  const [cbMesa, setCbMesa] = useState({ dinheiro: '0', pix: '0', debito: '0', credito: '0' })
   const [cashbackDiasInput, setCashbackDiasInput] = useState(String(CASHBACK_EXPIRA_DIAS_DEFAULT))
   const [savingCashback, setSavingCashback] = useState(false)
   const [cashbackSaved, setCashbackSaved] = useState(false)
@@ -109,7 +110,7 @@ export default function CompartilharPage() {
     if (!shellCompany) { setCompany(null); setLoading(false); return }
     supabase
       .from('companies')
-      .select('id, name, slug, address, loja_digital_enabled, loja_taxa_entrega, loja_pedido_minimo, loja_payment_methods, loja_taxa_metodo, loja_frete_gratis_acima, loja_taxa_fora_area, loja_lat, loja_lng, loja_tempo_preparo_min, crm_whatsapp_enabled, entrega_enabled, trial_modules_until, pix_key, cashback_enabled, cashback_percent, cashback_percent_mesa, cashback_expira_dias')
+      .select('id, name, slug, address, loja_digital_enabled, loja_taxa_entrega, loja_pedido_minimo, loja_payment_methods, loja_taxa_metodo, loja_frete_gratis_acima, loja_taxa_fora_area, loja_lat, loja_lng, loja_tempo_preparo_min, crm_whatsapp_enabled, entrega_enabled, trial_modules_until, pix_key, cashback_enabled, cashback_percent, cashback_percent_mesa, cashback_expira_dias, cashback_pct_dinheiro, cashback_pct_pix, cashback_pct_debito, cashback_pct_credito')
       .eq('id', shellCompany.id)
       .maybeSingle()
       .then(async ({ data: comp }) => {
@@ -129,7 +130,11 @@ export default function CompartilharPage() {
         setPixKey(comp.pix_key || '')
         setCashbackEnabledInput(!!comp.cashback_enabled)
         setCashbackPercentInput(comp.cashback_percent != null && Number(comp.cashback_percent) > 0 ? fmtPt(Number(comp.cashback_percent)) : '3')
-        setCashbackMesaInput(Number(comp.cashback_percent_mesa) > 0 ? fmtPt(Number(comp.cashback_percent_mesa)) : '0')
+        {
+          const base = Number(comp.cashback_percent_mesa) || 0
+          const f = (v: number | null | undefined) => fmtPt(v == null ? base : Number(v) || 0)
+          setCbMesa({ dinheiro: f(comp.cashback_pct_dinheiro), pix: f(comp.cashback_pct_pix), debito: f(comp.cashback_pct_debito), credito: f(comp.cashback_pct_credito) })
+        }
         setCashbackDiasInput(String(comp.cashback_expira_dias || CASHBACK_EXPIRA_DIAS_DEFAULT))
         if (isAdminMode || moduleActive(comp.loja_digital_enabled, comp.trial_modules_until)) {
           const [{ data: cats }, { data: prods }, { data: bairroRows }, { data: tierRows }] = await Promise.all([
@@ -281,8 +286,11 @@ export default function CompartilharPage() {
     if (!company) return
     const pct = parsePt(cashbackPercentInput)
     const dias = Math.max(1, parseInt(cashbackDiasInput) || CASHBACK_EXPIRA_DIAS_DEFAULT)
-    const pctMesa = parsePt(cashbackMesaInput)
-    if (cashbackEnabledInput && (pct < 0 || pct > CASHBACK_PERCENT_MAX || pctMesa < 0 || pctMesa > CASHBACK_PERCENT_MAX)) {
+    const mesa = { dinheiro: parsePt(cbMesa.dinheiro), pix: parsePt(cbMesa.pix), debito: parsePt(cbMesa.debito), credito: parsePt(cbMesa.credito) }
+    const valoresMesa = Object.values(mesa)
+    // "Até X%" que o cliente vê na mesa = o maior dos quatro.
+    const pctMesa = Math.max(...valoresMesa)
+    if (cashbackEnabledInput && (pct < 0 || pct > CASHBACK_PERCENT_MAX || valoresMesa.some(v => v < 0 || v > CASHBACK_PERCENT_MAX))) {
       setCashbackError(`Os percentuais precisam ficar entre 0 e ${CASHBACK_PERCENT_MAX}%.`)
       return
     }
@@ -292,8 +300,9 @@ export default function CompartilharPage() {
     }
     setCashbackError('')
     setSavingCashback(true)
-    await supabase.from('companies').update({ cashback_enabled: cashbackEnabledInput, cashback_percent: pct, cashback_percent_mesa: pctMesa, cashback_expira_dias: dias }).eq('id', company.id)
-    setCompany(prev => prev ? { ...prev, cashback_enabled: cashbackEnabledInput, cashback_percent: pct, cashback_percent_mesa: pctMesa, cashback_expira_dias: dias } : prev)
+    const novo = { cashback_enabled: cashbackEnabledInput, cashback_percent: pct, cashback_percent_mesa: pctMesa, cashback_expira_dias: dias, cashback_pct_dinheiro: mesa.dinheiro, cashback_pct_pix: mesa.pix, cashback_pct_debito: mesa.debito, cashback_pct_credito: mesa.credito }
+    await supabase.from('companies').update(novo).eq('id', company.id)
+    setCompany(prev => prev ? { ...prev, ...novo } : prev)
     setCashbackDiasInput(String(dias))
     setSavingCashback(false)
     setCashbackSaved(true)
@@ -700,8 +709,16 @@ export default function CompartilharPage() {
                     <input inputMode="decimal" value={cashbackPercentInput} onChange={e => setCashbackPercentInput(e.target.value.replace(/[^0-9,]/g, ''))} placeholder="Ex: 3" />
                   </div>
                   <div className="crm-config-field">
-                    <label>🍽️ Mesa — % devolvido em crédito (0 = a mesa não dá cashback)</label>
-                    <input inputMode="decimal" value={cashbackMesaInput} onChange={e => setCashbackMesaInput(e.target.value.replace(/[^0-9,]/g, ''))} placeholder="Ex: 5" />
+                    <label>🍽️ Mesa — % devolvido por forma de pagamento (0 = não dá cashback naquela forma)</label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8 }}>
+                      {([['dinheiro', 'Dinheiro'], ['pix', 'Pix'], ['debito', 'Cartão de débito'], ['credito', 'Cartão de crédito']] as const).map(([k, nome]) => (
+                        <label key={k} style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11.5, fontWeight: 600 }}>
+                          {nome}
+                          <input inputMode="decimal" value={cbMesa[k]} onChange={e => setCbMesa(v => ({ ...v, [k]: e.target.value.replace(/[^0-9,]/g, '') }))} placeholder="Ex: 5" />
+                        </label>
+                      ))}
+                    </div>
+                    <div style={{ fontSize: 11, color: '#6E6656', marginTop: 6 }}>O cliente vê “até {fmtPt(Math.max(parsePt(cbMesa.dinheiro), parsePt(cbMesa.pix), parsePt(cbMesa.debito), parsePt(cbMesa.credito)))}% de cashback” na página da mesa. Se a conta for paga em mais de uma forma, cada parte rende o percentual da sua forma.</div>
                   </div>
                   <div className="crm-config-field">
                     <label>Saldo some depois de quantos dias sem uso?</label>

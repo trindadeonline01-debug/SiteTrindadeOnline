@@ -26,7 +26,7 @@ type Comanda = {
 }
 type ItemPed = { id: string; produto_id: string | null; product_name: string; unit_price: number; qty: number; peso_kg: number | null; selected_options: { name: string; price: number }[] }
 type PedidoMesa = { id: string; order_number: number | null; comanda_id: string; status: string; created_at: string; notes: string | null; itens: ItemPed[] }
-type Pagto = { id: string; comanda_id: string; forma: string; valor: number; pessoa: string | null }
+type Pagto = { id: string; comanda_id: string; forma: string; cartao_tipo?: string | null; valor: number; pessoa: string | null }
 type PedidoQr = { itens: { produtoId: string; nome: string; qty: number; modifiers: { name: string; price: number }[]; notes: string | null; unit: number }[]; obs: string | null; telefone: string | null; total: number }
 type Chamado = { id: string; mesa_id: string; comanda_id: string | null; tipo: 'garcom' | 'conta' | 'pedido'; mensagem: string | null; criado_em: string; payload: PedidoQr | null }
 type Garcom = { id: string; nome: string; ativo: boolean }
@@ -42,12 +42,23 @@ type Resp = any
 type CallFn = (a: string, e?: Record<string, unknown>) => Promise<Resp>
 type Linha = { key: string; produto: Produto; qty: number; pesoKg: number | null; modifiers: { name: string; price: number }[]; unit: number }
 
-const FORMAS: { key: 'dinheiro' | 'cartao' | 'pix' | 'cashback'; label: string }[] = [
-  { key: 'dinheiro', label: '💵 Dinheiro' }, { key: 'cartao', label: '💳 Cartão' }, { key: 'pix', label: '📱 Pix' }, { key: 'cashback', label: '🎁 Cashback' },
+type FormaUi = 'dinheiro' | 'debito' | 'credito' | 'pix' | 'cashback'
+const FORMAS: { key: FormaUi; label: string }[] = [
+  { key: 'dinheiro', label: '💵 Dinheiro' }, { key: 'debito', label: '💳 Débito' }, { key: 'credito', label: '💳 Crédito' }, { key: 'pix', label: '📱 Pix' }, { key: 'cashback', label: '🎁 Cashback' },
 ]
+// Débito e crédito são o mesmo "cartao" no banco, com o tipo guardado à parte (o cashback tem percentual diferente).
+function formaApi(f: FormaUi | 'cartao'): { forma: string; cartaoTipo?: 'debito' | 'credito' } {
+  if (f === 'debito' || f === 'credito') return { forma: 'cartao', cartaoTipo: f }
+  return { forma: f }
+}
+function formaExibida(p: { forma: string; cartao_tipo?: string | null }): string {
+  return p.forma === 'cartao' ? (p.cartao_tipo === 'debito' || p.cartao_tipo === 'credito' ? p.cartao_tipo : 'cartao') : p.forma
+}
 const PAY_ICON: Record<string, { cor: string; tint: string; nome: string; d: React.ReactNode }> = {
   dinheiro: { cor: '#0B7347', tint: '#DDF1E7', nome: 'Dinheiro', d: <><rect x="3" y="6" width="18" height="12" rx="2" /><circle cx="12" cy="12" r="2.5" /></> },
   cartao: { cor: '#2A4E7A', tint: '#E1EAF5', nome: 'Cartão', d: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 10h18" /></> },
+  debito: { cor: '#2A4E7A', tint: '#E1EAF5', nome: 'Débito', d: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 10h18" /></> },
+  credito: { cor: '#2A4E7A', tint: '#E1EAF5', nome: 'Crédito', d: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 10h18M7 15h4" /></> },
   pix: { cor: '#0E7C86', tint: '#DCF1F2', nome: 'Pix', d: <><path d="M12 3l9 9-9 9-9-9z" /><path d="M9 12l3-3 3 3-3 3z" /></> },
   cashback: { cor: '#9A6A00', tint: '#FFF1CC', nome: 'Cashback', d: <><rect x="3" y="8" width="18" height="4" rx="1" /><path d="M12 8v13M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7" /><path d="M7.5 8a2.5 2.5 0 0 1 0-5C10 3 12 8 12 8s2-5 4.5-5a2.5 2.5 0 0 1 0 5" /></> },
 }
@@ -142,7 +153,7 @@ export default function MesasPage() {
     if (ids.length === 0) { setPedidos([]); setPagtos([]); return }
     const [p, pg] = await Promise.all([
       supabase.from('loja_pedidos').select('id, order_number, comanda_id, status, created_at, notes, itens:loja_pedido_itens(*)').in('comanda_id', ids).order('created_at'),
-      supabase.from('loja_comanda_pagamentos').select('id, comanda_id, forma, valor, pessoa').in('comanda_id', ids).order('criado_em'),
+      supabase.from('loja_comanda_pagamentos').select('id, comanda_id, forma, cartao_tipo, valor, pessoa').in('comanda_id', ids).order('criado_em'),
     ])
     setPedidos((p.data || []) as unknown as PedidoMesa[]); setPagtos((pg.data || []) as Pagto[])
   }, [])
@@ -230,7 +241,7 @@ export default function MesasPage() {
     const extras: { label: string; valor: number }[] = []
     if (c.desconto > 0) extras.push({ label: 'Desconto', valor: -c.desconto })
     if (c.taxa_servico_ativa && c.taxa_valor > 0) extras.push({ label: `Servico ${c.taxa_servico_pct}%`, valor: c.taxa_valor })
-    const pagamentos = pagtos.filter(p => p.comanda_id === c.id).map(p => ({ label: (FORMAS.find(f => f.key === p.forma)?.label.replace(/^\S+\s/, '') || p.forma) + (p.pessoa ? ` (${p.pessoa})` : ''), valor: p.valor }))
+    const pagamentos = pagtos.filter(p => p.comanda_id === c.id).map(p => ({ label: (FORMAS.find(f => f.key === formaExibida(p))?.label.replace(/^\S+\s/, '') || p.forma) + (p.pessoa ? ` (${p.pessoa})` : ''), valor: p.valor }))
     return buildReceipt({
       companyName, pedidoShortId: `Comanda ${c.numero}`, createdAt: c.aberta_em, customerName: `Mesa ${mesa?.numero ?? ''}`, customerPhone: c.customer_phone,
       deliveryType: 'balcao', rotuloTipo: `MESA ${mesa?.numero ?? ''} - Garcom ${c.garcom_nome || ''}`, items, subtotal: c.subtotal, extras, total: c.total, pagamentos,
@@ -483,7 +494,7 @@ function ComandaView(props: {
   const { c, mesa, pedidos, pagtos, busy, msg, setMsg, call, load } = props
   const [pin, setPin] = useState<{ titulo: string; run: (pin: string) => Promise<Resp> } | null>(null)
   const [pinVal, setPinVal] = useState('')
-  const [forma, setForma] = useState<'dinheiro' | 'cartao' | 'pix' | 'cashback'>('dinheiro')
+  const [forma, setForma] = useState<FormaUi>('dinheiro')
   const [saldoCash, setSaldoCash] = useState(0)
   const [cashVerif, setCashVerif] = useState(false)
   const [valorDig, setValorDig] = useState('')
@@ -548,9 +559,9 @@ function ComandaView(props: {
   }
   // Pagamento feito de dentro da calculadora: registra na comanda e devolve o id
   // (a calculadora usa o id pra marcar a pessoa como paga). Null = deu erro.
-  async function pagarDaCalculadora(valor: number, quem: string, formaPg: 'dinheiro' | 'cartao' | 'pix'): Promise<string | null> {
+  async function pagarDaCalculadora(valor: number, quem: string, formaPg: 'dinheiro' | 'debito' | 'credito' | 'pix'): Promise<string | null> {
     setMsg('')
-    const r = await call('pagar', { comandaId: c.id, forma: formaPg, valor, pessoa: quem || null })
+    const r = await call('pagar', { comandaId: c.id, ...formaApi(formaPg), valor, pessoa: quem || null })
     if (!r) return null
     await load()
     return (r.pagamentoId as string) || null
@@ -606,10 +617,10 @@ function ComandaView(props: {
     const valor = valorEf
     // Cashback com o WhatsApp ainda não confirmado por código: só com o PIN da supervisão.
     if (forma === 'cashback' && !cashVerif) {
-      pedirPin('Usar cashback sem confirmação do cliente', pin => call('pagar', { comandaId: c.id, forma, valor, pessoa: pessoa.trim() || null, pin }).then(async r => { if (r) { setPessoa(''); setValorDig(''); await load() } return r }))
+      pedirPin('Usar cashback sem confirmação do cliente', pin => call('pagar', { comandaId: c.id, ...formaApi(forma), valor, pessoa: pessoa.trim() || null, pin }).then(async r => { if (r) { setPessoa(''); setValorDig(''); await load() } return r }))
       return
     }
-    const r = await call('pagar', { comandaId: c.id, forma, valor, pessoa: pessoa.trim() || null })
+    const r = await call('pagar', { comandaId: c.id, ...formaApi(forma), valor, pessoa: pessoa.trim() || null })
     if (r) {
       setPessoa('')
       if (partes && parteSel !== null) {
@@ -730,8 +741,8 @@ function ComandaView(props: {
                 <div className="cm-pgs">
                   {pagtos.map(pg => (
                     <div key={pg.id} className="cm-pg">
-                      <span className="ico" style={{ background: PAY_ICON[pg.forma]?.tint }}><PayIcon forma={pg.forma} size={17} /></span>
-                      <span><b>{PAY_ICON[pg.forma]?.nome || pg.forma}</b>{pg.pessoa ? ` · ${pg.pessoa}` : ''}</span><b>{fmt(pg.valor)}</b>
+                      <span className="ico" style={{ background: PAY_ICON[formaExibida(pg)]?.tint }}><PayIcon forma={formaExibida(pg)} size={17} /></span>
+                      <span><b>{PAY_ICON[formaExibida(pg)]?.nome || pg.forma}</b>{pg.pessoa ? ` · ${pg.pessoa}` : ''}</span><b>{fmt(pg.valor)}</b>
                       <button className="cm-sq sm" aria-label="Remover pagamento (pede o PIN)" onClick={() => pedirPin('Remover pagamento', pin => call('remover_pagamento', { pagamentoId: pg.id, pin }).then(async r => { await load(); return r }))}>{X}</button>
                     </div>
                   ))}
@@ -805,7 +816,7 @@ function ComandaView(props: {
 
       {calcAberta && (
         <MesaCalculadora comanda={calcComanda} onClose={() => setCalcAberta(false)}
-          pagtos={pagtos.map(p => ({ id: p.id, valor: Number(p.valor), forma: p.forma, pessoa: p.pessoa }))}
+          pagtos={pagtos.map(p => ({ id: p.id, valor: Number(p.valor), forma: formaExibida(p), pessoa: p.pessoa }))}
           divisao={divisao} setDivisao={setDivisao} erro={msg}
           onPagar={falta > 0.005 ? pagarDaCalculadora : undefined} />
       )}

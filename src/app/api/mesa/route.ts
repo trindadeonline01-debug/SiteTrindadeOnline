@@ -84,7 +84,8 @@ export async function POST(req: NextRequest) {
         })
       return NextResponse.json({
         ok: true,
-        empresa: { nome: company.name },
+        // Logo da loja (a mesma do centro do QR, enviada em Mesas → Configurar). A página esconde se não existir.
+        empresa: { nome: company.name, logo: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/loja-produtos/${company.id}/qr-logo.png` },
         mesa: { numero: mesa.numero },
         contaAberta: !!comanda,
         // A chave da conta só sai quando há conta aberta; a página guarda e manda de volta.

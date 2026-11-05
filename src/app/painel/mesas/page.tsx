@@ -25,7 +25,7 @@ type Comanda = {
   subtotal: number; taxa_valor: number; total: number; aberta_em: string
 }
 type ItemPed = { id: string; produto_id: string | null; product_name: string; unit_price: number; qty: number; peso_kg: number | null; selected_options: { name: string; price: number }[] }
-type PedidoMesa = { id: string; order_number: number | null; comanda_id: string; status: string; created_at: string; notes: string | null; itens: ItemPed[] }
+type PedidoMesa = { id: string; order_number: number | null; comanda_id: string; status: string; created_at: string; notes: string | null; impresso_em?: string | null; itens: ItemPed[] }
 type Pagto = { id: string; comanda_id: string; forma: string; cartao_tipo?: string | null; valor: number; pessoa: string | null }
 type PedidoQr = { itens: { produtoId: string; nome: string; qty: number; modifiers: { name: string; price: number }[]; notes: string | null; unit: number }[]; obs: string | null; telefone: string | null; total: number }
 type Chamado = { id: string; mesa_id: string; comanda_id: string | null; tipo: 'garcom' | 'conta' | 'pedido'; mensagem: string | null; criado_em: string; payload: PedidoQr | null }
@@ -153,7 +153,7 @@ export default function MesasPage() {
     const ids = cs.map(x => x.id)
     if (ids.length === 0) { setPedidos([]); setPagtos([]); return }
     const [p, pg] = await Promise.all([
-      supabase.from('loja_pedidos').select('id, order_number, comanda_id, status, created_at, notes, itens:loja_pedido_itens(*)').in('comanda_id', ids).order('created_at'),
+      supabase.from('loja_pedidos').select('id, order_number, comanda_id, status, created_at, notes, impresso_em, itens:loja_pedido_itens(*)').in('comanda_id', ids).order('created_at'),
       supabase.from('loja_comanda_pagamentos').select('id, comanda_id, forma, cartao_tipo, valor, pessoa').in('comanda_id', ids).order('criado_em'),
     ])
     setPedidos((p.data || []) as unknown as PedidoMesa[]); setPagtos((pg.data || []) as Pagto[])
@@ -233,13 +233,27 @@ export default function MesasPage() {
       itens: linhas.map(l => ({ produtoId: l.produto.id, qty: l.qty, pesoKg: l.pesoKg, modifiers: l.modifiers })),
     })
     if (!r) return false
-    const mesa = mesaDe(comanda.mesa_id)
-    await imprimir([buildKitchenTicket({
-      pedidoShortId: `${comanda.tipo === 'retirada' ? 'R' + comanda.numero : (mesa?.numero ?? '')}-${r.orderNumber ?? ''}`, createdAt: new Date().toISOString(), deliveryType: 'balcao', rotulo: `${nomeConta(comanda)} · ${comanda.garcom_nome || ''}`,
-      items: linhas.map(l => ({ qty: l.qty, pesoKg: l.pesoKg, name: l.produto.name, unitPrice: l.unit, options: l.modifiers })), notes: obs || null,
-    })], 'producao')
+    // Não imprime sozinho: a atendente lança tudo e imprime para a produção no botão "Imprimir produção".
     await load()
     return true
+  }
+
+  // Imprime para a produção TUDO que foi lançado e ainda não saiu no papel, num papelzinho só.
+  // todas=true reimprime tudo (menu ⋯). Só marca como impresso quando é a impressão normal.
+  async function imprimirProducao(c: Comanda, todas = false) {
+    const peds = pedidos.filter(p => p.comanda_id === c.id && p.status !== 'cancelado' && (todas || !p.impresso_em))
+    if (peds.length === 0) { setMsg('Nada novo para imprimir.'); return }
+    if (!printerName) { setMsg('Escolha a impressora em Pedidos → 🖨️ Impressora.'); return }
+    const mesa = mesaDe(c.mesa_id)
+    const items = peds.flatMap(p => p.itens).map(it => ({ qty: it.qty, pesoKg: it.peso_kg, name: it.product_name, unitPrice: it.unit_price, options: it.selected_options }))
+    const notes = peds.map(p => p.notes).filter(Boolean).join(' | ') || null
+    await imprimir([buildKitchenTicket({
+      pedidoShortId: `${c.tipo === 'retirada' ? 'R' + c.numero : (mesa?.numero ?? '')}-${peds.map(p => p.order_number ?? '').join('/')}`, createdAt: new Date().toISOString(), deliveryType: 'balcao',
+      rotulo: `${nomeConta(c)} · ${c.garcom_nome || ''}`, items, notes,
+    })], 'producao')
+    if (!todas) await supabase.from('loja_pedidos').update({ impresso_em: new Date().toISOString() }).in('id', peds.map(p => p.id)).is('impresso_em', null)
+    setMsg('')
+    await load()
   }
 
   function dadosConta(c: Comanda) {
@@ -382,6 +396,7 @@ export default function MesasPage() {
           busy={busy} msg={msg} setMsg={setMsg} call={call} load={load} fotos={fotos}
           onClose={() => { setAbertaId(null); setMsg('') }} onAdd={() => setPicker(true)}
           imprimirConta={() => imprimir([dadosConta(comanda)], 'completa', true)}
+          imprimirProducao={(todas) => imprimirProducao(comanda, todas)}
           fechado={async () => { const conta = dadosConta(comanda); await imprimir([conta], 'completa'); setAbertaId(null); await load() }}
         />
       )}
@@ -412,6 +427,7 @@ export default function MesasPage() {
               pedidoShortId: `${r.mesaNumero ?? ''}-${r.orderNumber ?? ''}`, createdAt: new Date().toISOString(), deliveryType: 'balcao', rotulo: `MESA ${r.mesaNumero ?? ''} · ${r.garcomNome || ''} · PEDIDO DO CLIENTE`,
               items: (r.linhas || []).map((l: { qty: number; peso_kg: number | null; product_name: string; unit_price: number; selected_options: { name: string; price: number }[] }) => ({ qty: l.qty, pesoKg: l.peso_kg, name: l.product_name, unitPrice: l.unit_price, options: l.selected_options })), notes: r.obs || null,
             })], 'producao')
+            if (r.pedidoId) await supabase.from('loja_pedidos').update({ impresso_em: new Date().toISOString() }).eq('id', r.pedidoId).is('impresso_em', null)
             setPedidoQr(null); setMsg(''); await load(); if (r.comandaId) setAbertaId(r.comandaId)
           }}
           onRecusar={async (motivo) => { const r = await call('pedido_recusar', { chamadoId: pedidoQr.id, motivo }); if (r) { setPedidoQr(null); setMsg(''); await load() } }}
@@ -535,7 +551,7 @@ function ComandaView(props: {
   c: Comanda; mesa?: Mesa; mesas: Mesa[]; comandas: Comanda[]; comandaDaMesa: Map<string, Comanda>
   pedidos: PedidoMesa[]; pagtos: Pagto[]; busy: boolean; msg: string; setMsg: (s: string) => void
   call: CallFn; load: () => Promise<void>; fotos: Record<string, string | null>
-  onClose: () => void; onAdd: () => void; imprimirConta: () => void; fechado: () => Promise<void>
+  onClose: () => void; onAdd: () => void; imprimirConta: () => void; imprimirProducao: (todas?: boolean) => Promise<void>; fechado: () => Promise<void>
 }) {
   const { c, mesa, pedidos, pagtos, busy, msg, setMsg, call, load } = props
   const [pin, setPin] = useState<{ titulo: string; run: (pin: string) => Promise<Resp> } | null>(null)
@@ -591,6 +607,7 @@ function ComandaView(props: {
   const pago = r2(pagtos.reduce((s, p) => s + Number(p.valor), 0))
   const falta = Math.max(0, r2(c.total - pago))
   const ativos = pedidos.filter(p => p.status !== 'cancelado')
+  const pendProd = ativos.filter(p => !p.impresso_em).length  // rodadas lançadas que ainda não saíram no papel da produção
   const rodadas = ativos.map((p, i) => ({ p, n: i + 1 })).reverse()   // mais recente primeiro
   const nItens = ativos.reduce((n, p) => n + p.itens.length, 0)
   const valorEf = valorDig ? moneyDigits(valorDig) : falta
@@ -710,6 +727,7 @@ function ComandaView(props: {
                 <div className="cm-scrim" onClick={() => setMenu(false)} />
                 <div className="cm-menu">
                   <button className="show-s" onClick={() => { setMenu(false); props.imprimirConta() }}>Imprimir conta</button>
+                  <button onClick={() => { setMenu(false); void props.imprimirProducao(true) }}>Reimprimir produção (tudo)</button>
                   <button onClick={() => { setMenu(false); setSub('transferir') }}>{c.tipo === 'retirada' ? 'Transformar em mesa' : 'Trocar de mesa'}</button>
                   <button onClick={() => { setMenu(false); setSub('juntar') }}>Juntar mesas</button>
                   <button className="danger" onClick={() => { setMenu(false); if (ativos.length === 0) { setConfLiberar(true); return } pedirPin('Cancelar comanda', pin => call('cancelar_comanda', { comandaId: c.id, pin }).then(async r => { if (r) { limparDivisao(); await load(); props.onClose() } return r })) }}>{ativos.length === 0 ? 'Liberar mesa' : 'Cancelar comanda'}</button>
@@ -729,6 +747,7 @@ function ComandaView(props: {
 
             <div className="cm-mhead">
               <div><h1>{c.tipo === 'retirada' ? 'Consumo da retirada' : 'Consumo da mesa'}</h1><span>{ativos.length === 0 ? 'Nenhum pedido lançado ainda' : `${ativos.length} ${ativos.length === 1 ? 'rodada' : 'rodadas'} · ${nItens} ${nItens === 1 ? 'item' : 'itens'} · mais recente primeiro`}</span></div>
+              {pendProd > 0 && <button className="cm-prod" disabled={busy} onClick={() => props.imprimirProducao(false)}>🖨️ Imprimir produção ({pendProd} {pendProd === 1 ? 'rodada' : 'rodadas'})</button>}
               {ativos.length > 0 && <button className="cm-add hide-s" onClick={props.onAdd}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#151210" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>Adicionar itens</button>}
             </div>
 
@@ -1323,6 +1342,10 @@ const CSS = `
 .cm-mhead>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .cm-mhead h1{margin:0;font-family:'Anton',sans-serif;font-weight:400;font-size:30px;text-transform:uppercase;line-height:1.05}
 .cm-mhead span{font-size:13px;color:#4f4c47}
+.cm-prod{display:flex;align-items:center;justify-content:center;gap:8px;background:#151210;color:#FFC531;border:2px solid #FFC531;border-radius:10px;padding:0 18px;height:52px;font-weight:800;font-size:15px;flex:none;cursor:pointer;animation:cmprod 1.6s ease-in-out infinite}
+.cm-prod:disabled{opacity:.5;animation:none}
+@keyframes cmprod{0%,100%{box-shadow:0 0 0 0 rgba(255,197,49,.55)}50%{box-shadow:0 0 0 8px rgba(255,197,49,0)}}
+@media(max-width:700px){.cm-mhead{flex-wrap:wrap}.cm-prod{width:100%}}
 .cm-add{display:flex;align-items:center;justify-content:center;gap:10px;background:#FFC531;color:#151210;border:0;border-radius:10px;padding:0 22px;height:52px;font-weight:700;font-size:16px;flex:none}
 .cm-add.big{height:60px;padding:0 32px;font-size:18px}
 .cm-empty{background:#fff;border:2px dashed #b9bab2;border-radius:12px;display:flex;flex-direction:column;align-items:center;gap:16px;padding:44px 28px;text-align:center}

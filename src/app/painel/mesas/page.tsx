@@ -611,7 +611,7 @@ function ComandaView(props: {
     if (r) { setPin(null); setPinVal(''); await load() }
   }
   async function fecharConta() {
-    const r = await call('fechar', { comandaId: c.id }); if (r) { limparDivisao(); await props.fechado(); if (Number(r.cashbackGanho) > 0) props.setMsg(`🎁 Cliente ganhou ${fmt(Number(r.cashbackGanho))} de cashback para o próximo pedido`) }
+    const r = await call('fechar', { comandaId: c.id }); if (r) { limparDivisao(); await props.fechado(); const cb = Number(r.cashbackGanho) || 0, qz = Number(r.premioQuiz) || 0; if (cb > 0 || qz > 0) props.setMsg(`🎁 Cliente ganhou ${fmt(cb + qz)} de cashback para o próximo pedido${qz > 0 ? ` (inclui ${fmt(qz)} do Quiz)` : ''}`) }
   }
   async function pagar() {
     const valor = valorEf

@@ -1,3 +1,4 @@
+import { jaGanhouNosUltimosDias } from '@/lib/quizPremio'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createHmac, randomInt, timingSafeEqual } from 'crypto'
@@ -251,6 +252,8 @@ export async function POST(req: NextRequest) {
         ok: true, total: lista[0]?.total ? Number(lista[0].total) : 0,
         top: lista.slice(0, 10).map(x => ({ pos: Number(x.posicao), apelido: x.apelido, pontos: x.pontos, acertos: x.acertos, eu: x.jogador_id === jogadorId })),
         eu: eu ? { pos: Number(eu.posicao), apelido: eu.apelido, pontos: eu.pontos, acertos: eu.acertos } : null,
+        // Jogador que já ganhou prêmio nos últimos 7 dias: nesta rodada só vale o ranking.
+        premioBloqueado: ctx.camp.premio_ativo && jogadorId ? await jaGanhouNosUltimosDias(sb, cid, jogadorId) : false,
       })
     }
 

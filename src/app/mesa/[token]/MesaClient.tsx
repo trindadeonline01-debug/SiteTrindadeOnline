@@ -10,7 +10,7 @@ type Grupo = { id: string; name: string; required: boolean; min: number; max: nu
 type Prod = { id: string; name: string; description: string | null; photo: string | null; categoriaId: string | null; preco: number; precoCheio: number | null; porPeso: boolean; grupos: Grupo[] }
 type Info = { empresa: { nome: string; logo?: string }; mesa: { numero: number }; contaAberta: boolean; sessao: string | null; podePedir: boolean; cashback: { ativo: boolean; percentual: number }; categorias: { id: string; name: string }[]; produtos: Prod[] }
 type Linha = { key: string; prod: Prod; qty: number; opcoes: Opcao[]; unit: number }
-type Carteira = { verificado: boolean; saldo: number; telefone: string | null }
+type Carteira = { verificado: boolean; saldo: number; telefone: string | null; premioPct?: number }
 type Ident = { nome: string; telefone: string; token: string }
 type Envio = { chamadoId: string; status: 'aberto' | 'atendido' | 'cancelado'; motivo: string | null }
 
@@ -82,7 +82,7 @@ export default function MesaClient({ token }: { token: string }) {
         const id = salvo
         call('carteira', { ident: id.token }).then(c => {
           if (!vivo) return
-          if (c.ok) { identRef.current = id; setIdent(id); setCart({ verificado: true, saldo: Number(c.data.saldo) || 0, telefone: id.telefone }) }
+          if (c.ok) { identRef.current = id; setIdent(id); setCart({ verificado: true, saldo: Number(c.data.saldo) || 0, telefone: id.telefone, premioPct: Number(c.data.premioPct) || 0 }) }
           else if (c.status === 401) { try { localStorage.removeItem(IDENT_KEY) } catch {} }
         })
       }
@@ -310,7 +310,11 @@ export default function MesaClient({ token }: { token: string }) {
                 <>
                   <div className="top5"><span className="up">Seu saldo</span></div>
                   <div className="saldo">{fmt(cart.saldo)}</div>
-                  <p className="rt2">Ganhe até {cashPct}% de volta ao pagar a conta.</p>
+                  {cart.premioPct ? (
+                    <p className="rt2"><b>Prêmio do Quiz de hoje: {cart.premioPct}%</b> — vira cashback quando você pagar a conta.</p>
+                  ) : (
+                    <p className="rt2">Ganhe até {cashPct}% de volta ao pagar a conta.</p>
+                  )}
                   <span className="bt ok">✓ Cashback ativo</span>
                 </>
               ) : (

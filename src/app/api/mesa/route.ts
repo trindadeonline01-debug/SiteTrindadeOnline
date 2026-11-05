@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- corpo JSON validado campo a campo abaixo */
+import { desdeDaConta, jaGanhouNosUltimosDias, melhorRodadaPremiavel } from '@/lib/quizPremio'
 import { NextRequest, NextResponse } from 'next/server'
 import { createHmac, timingSafeEqual } from 'crypto'
 import { promoPrice } from '@/lib/lojaPricing'
@@ -239,7 +240,16 @@ export async function POST(req: NextRequest) {
       let vinculada = false
       if (comanda && sessaoConfere(comanda, b.sessao)) vinculada = await vincularConta(company.id, comanda.id, ident)
       const saldo = company.cashback_enabled ? r2(await getSaldoCashback(sb, company.id, ident.tel)) : 0
-      return NextResponse.json({ ok: true, verificado: true, telefone: ident.tel, nome: ident.nome, saldo, vinculada })
+      // Prêmio provisório do Quiz de hoje (só o percentual; vira valor quando a conta for paga).
+      let premioPct = 0
+      try {
+        const { data: qc } = await sb.from('quiz_campanhas').select('ativa, premio_ativo').eq('company_id', company.id).maybeSingle()
+        if (qc?.ativa && qc.premio_ativo) {
+          const m = await melhorRodadaPremiavel(sb, company.id, ident.tel, desdeDaConta(comanda ? (await sb.from('loja_comandas').select('aberta_em').eq('id', comanda.id).maybeSingle()).data?.aberta_em : null))
+          if (m && !(await jaGanhouNosUltimosDias(sb, company.id, m.jogadorId))) premioPct = m.marco
+        }
+      } catch {}
+      return NextResponse.json({ ok: true, verificado: true, telefone: ident.tel, nome: ident.nome, saldo, vinculada, premioPct })
     }
 
     // ---------- identificação do cliente por código (cashback, fluxo antigo) ----------

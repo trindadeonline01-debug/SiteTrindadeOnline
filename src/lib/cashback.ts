@@ -51,6 +51,29 @@ export async function creditarCashback(
   }
 }
 
+// Crédito sem pedido ligado (prêmio do Quiz). A anti-duplicidade fica por conta de quem chama
+// (quiz_premios tem rodada_id único); aqui só grava o extrato e soma na carteira.
+export async function creditarCashbackAvulso(
+  supabase: SupabaseClient,
+  args: { companyId: string; phoneRaw: string; valor: number }
+): Promise<boolean> {
+  try {
+    const phone = normalizePhone(args.phoneRaw)
+    if (!phone || args.valor <= 0) return false
+    const { error } = await supabase.from('cashback_ledger').insert({ company_id: args.companyId, customer_phone: phone, pedido_id: null, tipo: 'credito', valor: args.valor })
+    if (error) return false
+    const saldoAtual = await getSaldoCashback(supabase, args.companyId, phone)
+    await supabase.from('company_cashback_wallet').upsert({
+      company_id: args.companyId, customer_phone: phone,
+      saldo: saldoAtual + args.valor, updated_at: new Date().toISOString(),
+    }, { onConflict: 'company_id,customer_phone' })
+    return true
+  } catch (err) {
+    console.error('[cashback] falha ao creditar avulso', err)
+    return false
+  }
+}
+
 // Debita até `valorDesejado` do saldo disponível (nunca mais que o saldo
 // real) e devolve quanto foi de fato usado — chamado ANTES de criar o
 // pedido, pra abater do total cobrado. Guarda contra corrida (duas abas

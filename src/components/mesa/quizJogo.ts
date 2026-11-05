@@ -159,7 +159,7 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
   S.portao = function () {
     var a = G.acertos
     return '<div class="screen sea">' + scene() + bar() + ladder() + '<div class="res"><div><div class="tag" style="background:var(--ap-gold);color:#151210">Decisão</div><h2 class="h1" style="margin-top:8px">' + a + ' acertos!</h2></div>' +
-      '<div class="box">Se parar agora, a rodada termina com <b>' + fmtN(G.pontos) + ' pontos</b>. Se continuar e errar, a rodada acaba na hora.</div>' +
+      '<div class="box">Se parar agora, a rodada termina com <b>' + fmtN(G.pontos) + ' pontos</b>' + (INFO && INFO.premio && G.marco > 0 ? ' e você garante <b>' + G.marco + '% de cashback</b> (provisório: vira valor quando você pagar a conta de hoje)' : '') + '. Se continuar e errar, a rodada acaba na hora' + (INFO && INFO.premio ? ' e o prêmio desta rodada se perde' : '') + '.</div>' +
       '<div style="margin-top:auto;display:grid;gap:8px"><button class="btn" data-act="stop">Parar aqui</button><button class="btn alt" data-act="go">Continuar</button></div></div></div>'
   }
 
@@ -198,7 +198,11 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
     if (d && d.eu && d.eu.pos > 3) rows += '<div class="rk-dots">•••</div><div class="rkr me"><span class="rp">' + d.eu.pos + 'º</span><span class="rn">' + esc(d.eu.apelido) + '<small>Você · ' + d.eu.acertos + ' acertos</small></span><span class="rv">' + fmtN(d.eu.pontos) + '</span></div>'
     return '<div class="screen sea fin">' + scene() + bar() + '<div class="fx"><span class="fx-tag off">Fim de jogo</span>' +
       '<div class="fx-stats"><div class="plate"><small>Seus pontos</small><b class="g">' + fmtN(G.pontos) + '</b><em>' + G.acertos + ' acertos</em></div><div class="plate"><small>Na semana</small><b>' + (pos ? pos + 'º' : '…') + '</b><em>' + (tot ? 'de ' + tot + ' jogadores' : 'calculando') + '</em></div></div>' +
-      '<div class="fx-noprize"><b>' + porque + '</b><span>Vale a melhor rodada da semana no ranking da loja.</span></div>' +
+      (INFO && INFO.premio && G.marco > 0 && !(d && d.premioBloqueado)
+        ? '<div class="fx-noprize" style="border-color:var(--ap-gold)"><b>🎁 Você garantiu ' + G.marco + '% de cashback</b><span>Ainda é provisório: vira valor em R$ quando você pagar a conta de hoje e leva para a próxima compra. Vale a sua melhor rodada.</span></div>'
+        : INFO && INFO.premio && G.marco > 0 && d && d.premioBloqueado
+          ? '<div class="fx-noprize"><b>' + porque + '</b><span>Você já ganhou um prêmio nos últimos 7 dias, então esta rodada vale só para o ranking.</span></div>'
+          : '<div class="fx-noprize"><b>' + porque + '</b><span>' + (INFO && INFO.premio ? 'Faça 10 acertos para garantir cashback. ' : '') + 'Vale a melhor rodada da semana no ranking da loja.</span></div>') +
       '<div class="rk"><div class="rkt">Ranking da loja · esta semana</div>' + rows + '<button class="rklink" data-go="ranking">Ver ranking completo ›</button></div>' +
       '<div class="fx-cta"><button class="btn" data-act="start">Jogar de novo</button><button class="btn alt" data-go="mesa">Voltar à mesa</button></div></div></div>'
   }

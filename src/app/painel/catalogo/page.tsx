@@ -1316,7 +1316,6 @@ export default function CatalogoPage() {
           .cg-row .cg-mid{ padding:12px 14px 4px; }
           .cg-row-actions{ padding:0 14px 12px; }
           .cg-row .cg-checkbox{ position:absolute; top:8px; left:8px; z-index:2; background:#fff; box-shadow:0 1px 6px rgba(0,0,0,.2); }
-          .cg-fab{ right:32px; }
           .cg-form-view .cg-body{ max-width:640px; margin:0 auto; padding:0 32px; }
           /* Cabeçalho do form de produto continua fixo no desktop também —
              a regra geral de ".cg-head" acima trava em position:static a
@@ -1353,11 +1352,16 @@ export default function CatalogoPage() {
         .cg-btn{ padding:10px 18px;border-radius:10px;border:none;font-weight:800;font-size:13px;cursor:pointer; }
         .cg-btn-gold{ background:var(--sign);color:var(--ink); }
         .cg-btn-ghost{ background:#fff;border:1px solid #B9AE97;color:#1A1610; }
-        .cg-fab{ position:fixed; right:calc(50% - 240px + 16px); bottom:24px; width:50px;height:50px;border-radius:50%;background:var(--sign);color:var(--ink);border:none;font-size:24px;font-weight:800;box-shadow:0 8px 18px -6px rgba(0,0,0,.35);cursor:pointer; }
-        /* No mobile ele ficava meio escondido embaixo da barra de navegação
-           fixa (.es-tabbar, ~60px de altura) — centraliza e sobe pra cima
-           dela (Ricardo, set/2026). */
-        @media(max-width:520px){ .cg-fab{ left:50%; right:auto; transform:translateX(-50%); bottom:calc(74px + env(safe-area-inset-bottom)); } }
+        /* Botão "Criar produto" (mockup aprovado, nov/2026): desktop e tablet =
+           pílula amarela com texto, centralizada na área de conteúdo (desconta
+           a barra lateral de 246px); celular = só o "+" redondo no canto
+           inferior direito, acima da barra de abas. z-index acima de tudo. */
+        .cg-fab{ position:fixed; left:calc(50% + 123px); transform:translateX(-50%); bottom:24px; z-index:10000; display:inline-flex;align-items:center;justify-content:center;gap:10px;height:52px;padding:0 24px 0 18px;border-radius:26px;background:var(--sign);color:var(--ink);border:2px solid var(--ink);font-family:inherit;font-size:14px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap;box-shadow:0 12px 24px -8px rgba(21,18,16,.55);cursor:pointer; }
+        .cg-fab-plus{ font-size:26px;line-height:1;font-weight:800; }
+        @media(max-width:767px){
+          .cg-fab{ left:auto; right:16px; transform:none; width:56px;height:56px;padding:0;border-radius:50%; bottom:calc(var(--es-tabbar-h,74px) + 16px + env(safe-area-inset-bottom)); }
+          .cg-fab-txt{ display:none; }
+        }
         .cg-search-wrap{ margin-bottom:10px; }
         .cg-search{ width:100%;padding:10px 14px;border-radius:10px;border:1px solid #B9AE97;background:#fff;font-size:13px;font-family:inherit;box-sizing:border-box; }
         .cg-quality{ display:flex;align-items:center;gap:14px;background:#fff;border:1px solid #B9AE97;border-radius:14px;padding:14px;margin-bottom:14px; }
@@ -1880,7 +1884,7 @@ export default function CatalogoPage() {
             </SortableContext>
             </DndContext>
           </div>
-          <button className="cg-fab" onClick={openNew}>+</button>
+          <button className="cg-fab" onClick={openNew} aria-label="Criar produto"><span className="cg-fab-plus">+</span><span className="cg-fab-txt">Criar produto</span></button>
         </div>
       )}
 

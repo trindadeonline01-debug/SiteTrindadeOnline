@@ -120,6 +120,10 @@ async function tryHandleMotoboyCode(companyId: string, motoboyPhone: string, tex
 // Grava o payload cru de eventos de status/presença/chat em crm_webhook_debug (debug). Ver comentário abaixo.
 const LOGAR_EVENTOS_BRUTOS = false
 
+const INST_CACHE_MS = 60_000
+type InstRow = { id: string; company_id: string; api_key: string; webhook_v2: boolean | null }
+const instCache = new Map<string, { v: InstRow; exp: number }>()
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
@@ -128,10 +132,18 @@ export async function POST(req: NextRequest) {
     const data = body?.data
     if (!instanceName) return NextResponse.json({ ok: true })
 
-    const { data: inst } = await supabase
-      .from('crm_whatsapp_instances')
-      .select('id, company_id, api_key, webhook_v2')
-      .eq('instance_name', instanceName).maybeSingle()
+    // Cache em memória (60 s) da instância: antes cada evento do WhatsApp fazia essa
+    // consulta (~25 mil/dia). Só guarda instância ACHADA; se não achou, consulta de novo.
+    let inst = instCache.get(instanceName)?.v
+    if (!inst || (instCache.get(instanceName)?.exp ?? 0) < Date.now()) {
+      const { data } = await supabase
+        .from('crm_whatsapp_instances')
+        .select('id, company_id, api_key, webhook_v2')
+        .eq('instance_name', instanceName).maybeSingle()
+      inst = data ?? undefined
+      if (inst) instCache.set(instanceName, { v: inst, exp: Date.now() + INST_CACHE_MS })
+      else instCache.delete(instanceName)
+    }
     if (!inst) return NextResponse.json({ ok: true })
 
     // DEBUG temporário: grava o payload cru de status/presença/chat pra
@@ -156,6 +168,7 @@ export async function POST(req: NextRequest) {
     // — função serverless da Vercel pode congelar assim que a resposta sai,
     // matando qualquer fetch em segundo plano que não foi esperado.
     if (!inst.webhook_v2 && inst.api_key) {
+      instCache.delete(instanceName) // reconsulta no próximo evento (webhook_v2 muda abaixo)
       try {
         const setRes = await fetch(`${EVOLUTION_URL}/webhook/set/${encodeURIComponent(instanceName)}`, {
           method: 'POST',

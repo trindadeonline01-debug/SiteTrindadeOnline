@@ -275,6 +275,9 @@ export default function CatalogoPage() {
   const [showNewCat, setShowNewCat] = useState(false)
   const [toast, setToast] = useState('')
   const [showImportMenu, setShowImportMenu] = useState(false)
+  const [showMoreMenu, setShowMoreMenu] = useState(false)
+  const [showSortMenu, setShowSortMenu] = useState(false)
+  const [ordemSel, setOrdemSel] = useState<string | null>(null)
   const [showCatManager, setShowCatManager] = useState(false)
   const [selectMode, setSelectMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -634,6 +637,7 @@ export default function CatalogoPage() {
     const atual = (draftIds ?? produtos.map(p => p.id)).filter(id => { const p = mapa.get(id); return !!p && produtoVisivel(p) })
     const o = atual.indexOf(String(active.id)), n = atual.indexOf(String(over.id))
     if (o < 0 || n < 0) return
+    setOrdemSel(null)
     aplicarNaVisivel(arrayMove(atual, o, n))
   }
   function descartarOrdem() { setDraftIds(null); setShowSaveOrder(false) }
@@ -1289,10 +1293,6 @@ export default function CatalogoPage() {
     .filter(p => filterCat === 'all' || (filterCat === 'sem-foto' ? !p.photo_url : p.category_id === filterCat))
     .filter(p => !searchTerm || p.name.toLowerCase().includes(searchTerm))
   const semFotoCount = produtos.filter(p => !p.photo_url).length
-  const pctFoto = produtos.length ? Math.round(produtos.filter(p => p.photo_url).length / produtos.length * 100) : 0
-  const pctDesc = produtos.length ? Math.round(produtos.filter(p => p.description && p.description.trim()).length / produtos.length * 100) : 0
-  const pctPromo = produtos.length ? Math.round(produtos.filter(p => p.promo_type).length / produtos.length * 100) : 0
-  const qualidade = produtos.length ? Math.round((pctFoto + pctDesc + pctPromo) / 3) : 0
 
   return (
     <>
@@ -1463,6 +1463,43 @@ export default function CatalogoPage() {
         .cg-opt.paused .cg-opt-name{ text-decoration:line-through;color:#8A8372; }
         .cg-pause{ flex:none;border:1px solid #B9AE97;background:#fff;color:#1A1610;border-radius:7px;padding:0 9px;height:26px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap; }
         .cg-pause.on{ background:#FFF1D6;color:#A56500;border-color:#A56500; }
+        /* Topo do catálogo reorganizado (mockup aprovado, nov/2026) */
+        .cg-head-title{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+        .cg-head-title h1{ flex:none; margin:0; }
+        .cg-head-sub{ font-size:12px; color:#4A453F; font-weight:500; }
+        .cg-act-desk{ display:none; align-items:center; gap:8px; }
+        .cg-act-mobile{ display:block; position:relative; }
+        .cg-ov{ position:fixed; inset:0; z-index:9; background:transparent; }
+        .cg-ov.dim{ background:rgba(21,18,16,.35); }
+        .cg-tool{ background:#fff; border:1px solid #9C988B; border-radius:12px; box-shadow:0 1px 0 rgba(21,18,16,.08),0 10px 22px -12px rgba(21,18,16,.35); margin-bottom:12px; position:relative; }
+        .cg-tool-r1{ display:flex; gap:10px; padding:12px; align-items:center; }
+        .cg-tool .cg-search{ flex:1; min-width:0; height:40px; padding:0 14px; border:1px solid #807C70; background:#F3F1E8; border-radius:10px; }
+        .cg-tool .cg-filters{ border-top:1px solid #D9D5C8; padding:10px 12px; }
+        .cg-sort-wrap{ position:relative; flex:none; }
+        .cg-sort{ height:40px; padding:0 14px; border:1px solid #807C70; border-radius:10px; background:#fff; display:inline-flex; align-items:center; gap:8px; font:700 12.5px 'Archivo',sans-serif; color:#151210; cursor:pointer; white-space:nowrap; }
+        .cg-sort small{ font-weight:600; color:#6B665E; font-size:11px; letter-spacing:.06em; text-transform:uppercase; }
+        .cg-sort-menu{ position:absolute; right:0; top:calc(100% + 6px); width:250px; background:#fff; border:1px solid #807C70; border-radius:12px; box-shadow:0 18px 36px -10px rgba(21,18,16,.5); padding:6px; z-index:11; }
+        .cg-sort-menu button{ display:flex; justify-content:space-between; width:100%; text-align:left; padding:10px 12px; border:0; border-radius:8px; background:transparent; font:600 13px 'Archivo',sans-serif; color:#151210; cursor:pointer; }
+        .cg-sort-menu button:hover{ background:#F3F1E8; }
+        .cg-sort-menu button.on{ background:#F3F1E8; font-weight:800; }
+        .cg-sort-menu hr{ border:0; border-top:1px solid #D9D5C8; margin:6px 4px; }
+        .cg-sort-menu p{ margin:0; padding:6px 12px 8px; font-size:11.5px; color:#6B665E; line-height:1.35; }
+        .cg-dirty{ background:#FFF3CC; border:1px solid #C9951A; border-radius:12px; padding:10px 14px; margin-bottom:12px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:13px; }
+        .cg-dirty-txt{ flex:1; min-width:220px; }
+        .cg-dirty-btns{ display:inline-flex; gap:8px; }
+        .cg-dirty-btns button{ border-radius:9px; padding:8px 14px; min-height:38px; font-size:12px; font-weight:800; font-family:inherit; border:1.5px solid transparent; cursor:pointer; }
+        .cg-dirty .cg-save-ord.on{ background:var(--sign); color:var(--ink); border-color:var(--ink); }
+        @media(max-width:767px){
+          .cg-sort small{ display:none; }
+          .cg-sort-menu{ position:fixed; left:0; right:0; bottom:0; top:auto; width:auto; border-radius:16px 16px 0 0; padding:10px 10px calc(10px + env(safe-area-inset-bottom)); z-index:10001; }
+          .cg-sort-menu button{ padding:13px 14px; font-size:14px; }
+          .cg-ov.dim{ z-index:10000; }
+        }
+        @media(min-width:768px){
+          .cg-act-desk{ display:flex; }
+          .cg-act-mobile{ display:none; }
+          .cg-list-view .cg-tool, .cg-list-view .cg-dirty{ grid-column:1/-1; }
+        }
         .cg-ord{ margin-bottom:12px;border:1px solid #B9AE97;border-radius:12px;background:#FCFAF5;padding:10px 12px;display:grid;gap:6px; }
         .cg-ord-chips{ display:flex;flex-wrap:wrap;gap:6px;align-items:center; }
         .cg-ord-lbl{ font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#6E6656;margin-right:2px; }
@@ -1727,88 +1764,103 @@ export default function CatalogoPage() {
         <div className="cg-list-view">
           <div className="cg-head">
             <a href={isAdminMode ? `/painel/compartilhar?empresa=${company?.id}` : '/painel/compartilhar'} className="cg-back" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', color: '#1A1610' }}>‹</a>
-            <h1>Catálogo</h1>
+            <div className="cg-head-title">
+              <h1>Catálogo</h1>
+              <span className="cg-head-sub">{produtos.length} produto{produtos.length !== 1 ? 's' : ''}{produtos.length > 0 ? ` · ${produtos.filter(x => x.active).length} ativos${produtos.some(x => !x.active) ? ` · ${produtos.filter(x => !x.active).length} pausados` : ''}` : ''}</span>
+            </div>
             <div className="cg-head-actions">
-              <button className={`cg-btn-ghost ${selectMode ? 'cg-btn-danger' : ''}`} style={{ padding: '8px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }} onClick={toggleSelectMode}>
-                {selectMode ? '✕ Cancelar' : '☑️ Selecionar'}
-              </button>
-              <button className="cg-btn-ghost" style={{ padding: '8px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700 }} onClick={() => setShowCatManager(true)}>🏷️ Categorias</button>
-              {/* No desktop o "Importar" sai da faixa gigante acima da lista e
-                  vem pra cá, do lado de Categorias — é ação de setup, não
-                  precisa de destaque toda vez que a tela abre. No mobile
-                  continua no lugar de sempre (cg-import-mobile abaixo). */}
-              <div className="cg-import-desktop">
-                <button className="cg-btn-ghost" style={{ padding: '8px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700 }} onClick={() => setShowImportMenu(v => !v)}>📥 Importar ▾</button>
-                {showImportMenu && (
-                  <div className="cg-import-menu" style={{ right: 0, left: 'auto', minWidth: 280 }}>
-                    <button onClick={() => { setShowImportMenu(false); openImportIA() }}>🤖 Importar cardápio com IA — link, PDF ou fotos</button>
-                    <button onClick={() => { setShowImportMenu(false); openBulk() }}>⚡ Cadastro rápido — vários produtos de uma vez</button>
-                    <button onClick={() => { setShowImportMenu(false); setShowImportCsv(true); setImportResults(null); setImportUpdateMode(false) }}>📥 Importar de um CSV</button>
-                    <button onClick={() => { setShowImportMenu(false); setShowImportPhotos(true); setPhotoImportResults(null) }}>🖼️ Importar fotos pelo nome do produto</button>
-                  </div>
+              <div className="cg-act-desk">
+                <button className={`cg-btn-ghost ${selectMode ? 'cg-btn-danger' : ''}`} style={{ padding: '8px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }} onClick={toggleSelectMode}>
+                  {selectMode ? '✕ Cancelar' : '☑️ Selecionar'}
+                </button>
+                <button className="cg-btn-ghost" style={{ padding: '8px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700 }} onClick={() => setShowCatManager(true)}>🏷️ Categorias</button>
+                <div className="cg-import-desktop">
+                  <button className="cg-btn-ghost" style={{ padding: '8px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700 }} onClick={() => setShowImportMenu(v => !v)}>📥 Importar ▾</button>
+                  {showImportMenu && (
+                    <>
+                      <div className="cg-ov" onClick={() => setShowImportMenu(false)} />
+                      <div className="cg-import-menu" style={{ right: 0, left: 'auto', minWidth: 280 }}>
+                        <button onClick={() => { setShowImportMenu(false); openImportIA() }}>🤖 Importar cardápio com IA — link, PDF ou fotos</button>
+                        <button onClick={() => { setShowImportMenu(false); openBulk() }}>⚡ Cadastro rápido — vários produtos de uma vez</button>
+                        <button onClick={() => { setShowImportMenu(false); setShowImportCsv(true); setImportResults(null); setImportUpdateMode(false) }}>📥 Importar de um CSV</button>
+                        <button onClick={() => { setShowImportMenu(false); setShowImportPhotos(true); setPhotoImportResults(null) }}>🖼️ Importar fotos pelo nome do produto</button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+              {/* Celular: Selecionar, Categorias e Importar ficam num menu só. */}
+              <div className="cg-act-mobile">
+                <button className="cg-btn-ghost" style={{ padding: '8px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }} onClick={() => setShowMoreMenu(v => !v)}>Mais ▾</button>
+                {showMoreMenu && (
+                  <>
+                    <div className="cg-ov" onClick={() => setShowMoreMenu(false)} />
+                    <div className="cg-import-menu" style={{ right: 0, left: 'auto', minWidth: 270 }}>
+                      <button onClick={() => { setShowMoreMenu(false); toggleSelectMode() }}>{selectMode ? '✕ Cancelar seleção' : '☑️ Selecionar produtos'}</button>
+                      <button onClick={() => { setShowMoreMenu(false); setShowCatManager(true) }}>🏷️ Categorias</button>
+                      <button onClick={() => { setShowMoreMenu(false); openImportIA() }}>🤖 Importar cardápio com IA</button>
+                      <button onClick={() => { setShowMoreMenu(false); openBulk() }}>⚡ Cadastro rápido</button>
+                      <button onClick={() => { setShowMoreMenu(false); setShowImportCsv(true); setImportResults(null); setImportUpdateMode(false) }}>📥 Importar de um CSV</button>
+                      <button onClick={() => { setShowMoreMenu(false); setShowImportPhotos(true); setPhotoImportResults(null) }}>🖼️ Importar fotos pelo nome</button>
+                    </div>
+                  </>
                 )}
               </div>
             </div>
           </div>
           <div className="cg-body">
-            {produtos.length > 0 && (
-              <div className="cg-quality">
-                <div className="cg-quality-num">{qualidade}%</div>
-                <div className="cg-quality-mid">
-                  <div className="cg-quality-title">Qualidade do cardápio</div>
-                  <div className="cg-quality-bar"><div className="cg-quality-fill" style={{ width: `${qualidade}%` }} /></div>
-                  <div className="cg-quality-sub">{pctFoto}% com foto · {pctDesc}% com descrição · {pctPromo}% em promoção</div>
-                </div>
-              </div>
-            )}
-            <div className="cg-search-wrap">
-              <input className="cg-search" placeholder="Buscar produto pelo nome..." value={search} onChange={e => setSearch(e.target.value)} />
-            </div>
-            <div className="cg-filters">
-              <button className={`cg-chip ${filterCat === 'all' ? 'active' : ''}`} onClick={() => setFilterCat('all')}>Tudo</button>
-              {semFotoCount > 0 && (
-                <button className={`cg-chip ${filterCat === 'sem-foto' ? 'active' : ''}`} onClick={() => setFilterCat('sem-foto')}>📷 Sem foto ({semFotoCount})</button>
-              )}
-              {categorias.map(c => (
-                <button key={c.id} className={`cg-chip ${filterCat === c.id ? 'active' : ''}`} onClick={() => setFilterCat(c.id)}>{c.name}</button>
-              ))}
-            </div>
-            {/* No mobile o "Importar" continua aqui, faixa única (era 3
-                antes) — ação de setup, feita uma vez (ESPECIFICACAO.md
-                §10.8, §12 #12). No desktop essa faixa some: o botão
-                equivalente foi pro cabeçalho, do lado de Categorias. */}
-            <div className="cg-import-wrap cg-import-mobile" style={{ position: 'relative', marginBottom: 14 }}>
-              <button className="cg-add-group" onClick={() => setShowImportMenu(v => !v)}>Importar ▾</button>
-              {showImportMenu && (
-                <div className="cg-import-menu">
-                  <button onClick={() => { setShowImportMenu(false); openImportIA() }}>🤖 Importar cardápio com IA — link, PDF ou fotos</button>
-                  <button onClick={() => { setShowImportMenu(false); openBulk() }}>⚡ Cadastro rápido — vários produtos de uma vez</button>
-                  <button onClick={() => { setShowImportMenu(false); setShowImportCsv(true); setImportResults(null); setImportUpdateMode(false) }}>📥 Importar de um CSV</button>
-                  <button onClick={() => { setShowImportMenu(false); setShowImportPhotos(true); setPhotoImportResults(null) }}>🖼️ Importar fotos pelo nome do produto</button>
-                </div>
-              )}
-            </div>
-            {produtos.length > 1 && (() => {
+            {(() => {
               const sujo = !!draftIds && draftIds.some((id, i) => produtos[i]?.id !== id)
               const nVis = produtos.filter(produtoVisivel).length
+              const OPCOES: [OrdemProdutos, string][] = [['az', 'A → Z'], ['za', 'Z → A'], ['menor', 'Menor preço'], ['maior', 'Maior preço'], ['promo', 'Promoções primeiro'], ['foto', 'Com foto primeiro'], ['categoria', 'Pela ordem das categorias']]
+              const rotulo = sujo ? (ordemSel ?? 'Manual') : 'Ordem atual'
               return (
-                <div className="cg-ord">
-                  <div className="cg-ord-chips" role="group" aria-label="Ordenar produtos">
-                    <span className="cg-ord-lbl">Ordenar:</span>
-                    <button onClick={() => ordenarProdutos('az')}>A → Z</button>
-                    <button onClick={() => ordenarProdutos('za')}>Z → A</button>
-                    <button onClick={() => ordenarProdutos('menor')}>Menor preço</button>
-                    <button onClick={() => ordenarProdutos('maior')}>Maior preço</button>
-                    <button onClick={() => ordenarProdutos('promo')}>Promoções primeiro</button>
-                    <button onClick={() => ordenarProdutos('foto')}>Com foto primeiro</button>
-                    <button onClick={() => ordenarProdutos('categoria')}>Pela ordem das categorias</button>
-                    <span className="cg-ord-save">
-                      {sujo && <button className="cg-ord-undo" onClick={descartarOrdem} disabled={reorderSaving}>Desfazer</button>}
-                      <button className={`cg-save-ord ${sujo ? 'on' : ''}`} disabled={!sujo || reorderSaving} onClick={() => setShowSaveOrder(true)}>Salvar ordem</button>
-                    </span>
+                <>
+                  <div className="cg-tool">
+                    <div className="cg-tool-r1">
+                      <input className="cg-search" placeholder="Buscar produto pelo nome..." value={search} onChange={e => setSearch(e.target.value)} />
+                      {produtos.length > 1 && (
+                        <div className="cg-sort-wrap">
+                          <button type="button" className="cg-sort" onClick={() => setShowSortMenu(v => !v)} aria-haspopup="menu" aria-expanded={showSortMenu}>
+                            <small>Ordenar</small><span>{rotulo}</span><span aria-hidden="true">▾</span>
+                          </button>
+                          {showSortMenu && (
+                            <>
+                              <div className="cg-ov dim" onClick={() => setShowSortMenu(false)} />
+                              <div className="cg-sort-menu" role="menu">
+                                {OPCOES.map(([modo, nome]) => (
+                                  <button key={modo} type="button" role="menuitem" className={sujo && ordemSel === nome ? 'on' : ''} onClick={() => { ordenarProdutos(modo); setOrdemSel(nome); setShowSortMenu(false) }}>
+                                    {nome}{sujo && ordemSel === nome ? <span>✓</span> : null}
+                                  </button>
+                                ))}
+                                <hr />
+                                <p>Ou arraste um produto pelo ⠿ para a posição que quiser.</p>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div className="cg-filters">
+                      <button className={`cg-chip ${filterCat === 'all' ? 'active' : ''}`} onClick={() => setFilterCat('all')}>Tudo</button>
+                      {semFotoCount > 0 && (
+                        <button className={`cg-chip ${filterCat === 'sem-foto' ? 'active' : ''}`} onClick={() => setFilterCat('sem-foto')}>📷 Sem foto ({semFotoCount})</button>
+                      )}
+                      {categorias.map(c => (
+                        <button key={c.id} className={`cg-chip ${filterCat === c.id ? 'active' : ''}`} onClick={() => setFilterCat(c.id)}>{c.name}</button>
+                      ))}
+                    </div>
                   </div>
-                  <p className="cg-ord-hint">Ou arraste um produto pelo ⠿ para a posição que quiser.{nVis < produtos.length ? ` Com o filtro ligado, só os ${nVis} visíveis trocam de lugar entre si.` : ''}</p>
-                </div>
+                  {sujo && (
+                    <div className="cg-dirty">
+                      <span className="cg-dirty-txt"><b>Ordem alterada.</b> Salvar vale pro cardápio do cliente ou só pra organização interna.{nVis < produtos.length ? ` Com o filtro ligado, só os ${nVis} visíveis trocam de lugar entre si.` : ''}</span>
+                      <span className="cg-dirty-btns">
+                        <button className="cg-ord-undo" onClick={() => { descartarOrdem(); setOrdemSel(null) }} disabled={reorderSaving}>Desfazer</button>
+                        <button className="cg-save-ord on" disabled={reorderSaving} onClick={() => setShowSaveOrder(true)}>Salvar ordem</button>
+                      </span>
+                    </div>
+                  )}
+                </>
               )
             })()}
             {selectMode && (

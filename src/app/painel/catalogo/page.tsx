@@ -1523,9 +1523,11 @@ export default function CatalogoPage() {
         .cg-bulk-line2 select{ flex:1.4;min-width:0;padding:7px 6px;border-radius:8px;border:1px solid #B9AE97;font-size:11.5px;font-family:inherit; }
         .cg-bulk-price{ flex:1;min-width:0;padding:7px 8px;border-radius:8px;border:1px solid #B9AE97;font-size:11.5px;font-family:inherit; }
         /* ===== Editar produto (redesenho, nov/2026) — classes pf-* ===== */
-        .pf{ --pf-ink:#151210; --pf-line:#DCDDD6; --pf-line2:#ECEDE8; --pf-mut:#5E5B56; --pf-ok:#0B5B38; --pf-okbg:#DDF1E7; --pf-bad:#B3261A; }
+        .pf{ --pf-ink:#151210; --pf-line:#C2BEB0; --pf-line2:#D9D5C8; --pf-mut:#5E5B56; --pf-ok:#0B5B38; --pf-okbg:#DDF1E7; --pf-bad:#B3261A; }
         .pf *{ box-sizing:border-box; }
-        .pf-head.cg-head.cg-head-centered{ display:flex; align-items:center; gap:12px; flex-wrap:nowrap; padding:12px 16px; background:#fff; border-bottom:1px solid var(--pf-line); }
+        .pf{ background:#D5D1C5; min-height:100vh; }
+        .cg-wrap:has(.pf){ background:#D5D1C5; }
+        .pf-head.cg-head.cg-head-centered{ box-shadow:0 1px 0 rgba(21,18,16,.12); display:flex; align-items:center; gap:12px; flex-wrap:nowrap; padding:12px 16px; background:#fff; border-bottom:1px solid var(--pf-line); }
         @media(min-width:768px){ .pf-head.cg-head.cg-head-centered{ padding:14px 32px; min-height:76px; } }
         .pf-title{ display:flex; flex-direction:column; gap:1px; min-width:0; }
         .pf-title h1{ margin:0; flex:none; font-size:19px; font-weight:800; letter-spacing:-.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; max-width:46vw; }
@@ -1540,7 +1542,7 @@ export default function CatalogoPage() {
         .pf-dirty{ display:inline-flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:#6B4A00; white-space:nowrap; }
         .pf-dirty i{ width:8px; height:8px; border-radius:50%; background:#E0A100; }
         @media(max-width:1000px){ .pf-dirty{ font-size:0; gap:0; } .pf-dirty i{ width:10px; height:10px; } }
-        .pf-btn{ display:inline-flex; align-items:center; justify-content:center; gap:8px; height:42px; padding:0 18px; border-radius:8px; border:1px solid #B9BAB2; background:#fff; color:var(--pf-ink); font:inherit; font-size:14px; font-weight:600; cursor:pointer; white-space:nowrap; }
+        .pf-btn{ display:inline-flex; align-items:center; justify-content:center; gap:8px; height:42px; padding:0 18px; border-radius:8px; border:1px solid #807C70; background:#fff; color:var(--pf-ink); font:inherit; font-size:14px; font-weight:600; cursor:pointer; white-space:nowrap; }
         .pf-btn:hover:not(:disabled){ background:#F5F6F2; }
         .pf-btn.pri{ background:var(--sign,#FFC531); border-color:var(--pf-ink); font-weight:700; }
         .pf-btn.pri:hover:not(:disabled){ background:#F5B800; }
@@ -1566,10 +1568,10 @@ export default function CatalogoPage() {
           .pf-main,.pf-side{ display:contents; }
           .pf-o1{order:1} .pf-o2{order:2} .pf-o3{order:3} .pf-o4{order:4} .pf-o5{order:5} .pf-o6{order:6} .pf-o7{order:7} .pf-o9{order:9}
         }
-        .pf-card{ background:#fff; border:1px solid var(--pf-line); border-radius:12px; min-width:0; }
-        .pf-card-h{ display:flex; align-items:center; justify-content:space-between; gap:14px; padding:15px 20px; border-bottom:1px solid var(--pf-line2); }
-        .pf-card-h h2{ margin:0; font-size:15px; font-weight:700; color:var(--pf-ink); }
-        .pf-card-h p{ margin:2px 0 0; font-size:12.5px; color:var(--pf-mut); }
+        .pf-card{ background:#fff; border:1px solid #9C988B; border-radius:12px; min-width:0; overflow:hidden; box-shadow:0 1px 0 rgba(21,18,16,.08),0 10px 22px -12px rgba(21,18,16,.35); }
+        .pf-card-h{ display:flex; align-items:center; justify-content:space-between; gap:14px; padding:15px 20px; border-bottom:1px solid var(--pf-line); background:#EDEADF; }
+        .pf-card-h h2{ margin:0; font-size:15.5px; font-weight:800; color:var(--pf-ink); }
+        .pf-card-h p{ margin:2px 0 0; font-size:12.5px; color:#4A453F; }
         .pf-card-h.pf-wrap{ flex-wrap:wrap; }
         .pf-hl{ display:flex; align-items:center; gap:10px; min-width:0; }
         .pf-actions{ display:flex; gap:8px; flex-wrap:wrap; }
@@ -1586,7 +1588,7 @@ export default function CatalogoPage() {
         .pf-lab{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; font-size:12px; font-weight:600; color:#3D3A36; }
         .pf-count{ font-size:12px; font-weight:500; color:var(--pf-mut); font-variant-numeric:tabular-nums; }
         .pf-opt{ font-weight:500; color:var(--pf-mut); }
-        .pf-inp{ width:100%; height:42px; border:1px solid #B9BAB2; border-radius:8px; padding:0 12px; font:inherit; font-size:14px; color:var(--pf-ink); background:#fff; }
+        .pf-inp{ width:100%; height:42px; border:1px solid #807C70; border-radius:8px; padding:0 12px; font:inherit; font-size:14px; color:var(--pf-ink); background:#fff; }
         .pf-inp:focus{ outline:2px solid var(--sign,#FFC531); border-color:var(--pf-ink); }
         .pf-inp.sm{ height:38px; font-size:13.5px; padding:0 10px; }
         .pf-inp:disabled{ background:#F5F6F2; color:#6F6C67; border-color:var(--pf-line); }
@@ -1610,7 +1612,7 @@ export default function CatalogoPage() {
         .pf-margin.ok{ background:var(--pf-okbg); color:var(--pf-ok); }
         .pf-margin.bad{ background:#FBEAEA; color:var(--pf-bad); }
         .pf-err{ font-size:12.5px; font-weight:600; color:var(--pf-bad); margin-top:8px; }
-        .pf-box{ border:1px solid var(--pf-line); border-radius:10px; padding:14px 16px; background:#FAFAF7; display:flex; flex-direction:column; gap:14px; }
+        .pf-box{ border:1px solid var(--pf-line); border-radius:10px; padding:14px 16px; background:#F3F1E8; display:flex; flex-direction:column; gap:14px; }
         .pf-rowsw{ display:flex; align-items:flex-start; gap:12px; }
         .pf-rowsw.tight{ align-items:center; height:38px; }
         .pf-rowsw b{ display:block; font-size:14px; font-weight:600; }
@@ -1624,23 +1626,23 @@ export default function CatalogoPage() {
         .pf-sep{ border-top:1px solid var(--pf-line2); }
         .pf-mb8{ margin-bottom:8px; }
         .pf-chips{ display:flex; gap:8px; flex-wrap:wrap; }
-        .pf-chip{ display:inline-flex; align-items:center; justify-content:center; gap:6px; height:36px; padding:0 14px; border-radius:8px; border:1px solid #B9BAB2; background:#fff; color:var(--pf-ink); font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+        .pf-chip{ display:inline-flex; align-items:center; justify-content:center; gap:6px; height:36px; padding:0 14px; border-radius:8px; border:1px solid #807C70; background:#fff; color:var(--pf-ink); font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
         .pf-chip.on{ background:var(--pf-ink); border-color:var(--pf-ink); color:#fff; }
         @media(max-width:767px){ .pf-chip{ flex:1; height:44px; } }
         .pf-days{ display:flex; gap:6px; flex-wrap:wrap; }
-        .pf-day{ display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:50%; border:1px solid #B9BAB2; background:#fff; font:inherit; font-size:12.5px; font-weight:700; color:var(--pf-ink); cursor:pointer; padding:0; }
+        .pf-day{ display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:50%; border:1px solid #807C70; background:#fff; font:inherit; font-size:12.5px; font-weight:700; color:var(--pf-ink); cursor:pointer; padding:0; }
         .pf-day.on{ background:var(--sign,#FFC531); border-color:var(--pf-ink); }
         .pf-stock{ border-radius:8px; padding:10px 14px; font-size:13px; font-weight:700; }
         .pf-stock.ok{ background:var(--pf-okbg); color:var(--pf-ok); }
         .pf-stock.warn{ background:#FFF1C9; color:#6B4A00; }
         .pf-stock.bad{ background:#FBEAEA; color:var(--pf-bad); }
         .pf-hint{ margin:0; font-size:12.5px; color:var(--pf-mut); }
-        .pf-photo-big{ display:block; width:100%; aspect-ratio:1 / 1; border-radius:10px; border:1px dashed #B9BAB2; background:#F5F6F2; padding:0; overflow:hidden; cursor:default; color:var(--pf-mut); }
+        .pf-photo-big{ display:block; width:100%; aspect-ratio:1 / 1; border-radius:10px; border:1px dashed #807C70; background:#F5F6F2; padding:0; overflow:hidden; cursor:default; color:var(--pf-mut); }
         .pf-photo-big.has{ border-style:solid; cursor:zoom-in; }
         .pf-photo-big img{ width:100%; height:100%; object-fit:cover; display:block; }
         .pf-photo-big > span{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; height:100%; font-size:13px; font-weight:600; }
         .pf-photo-big:focus-visible{ outline:2px solid var(--pf-ink); outline-offset:2px; }
-        .pf-prev{ display:flex; gap:14px; padding:12px; border:1px solid var(--pf-line2); border-radius:10px; background:#FAFAF7; }
+        .pf-prev{ display:flex; gap:14px; padding:12px; border:1px solid var(--pf-line2); border-radius:10px; background:#F3F1E8; }
         .pf-prev-t{ flex:1; min-width:0; display:flex; flex-direction:column; gap:4px; }
         .pf-prev-t b{ font-size:14.5px; }
         .pf-prev-t > span{ font-size:12.5px; color:var(--pf-mut); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
@@ -1650,16 +1652,16 @@ export default function CatalogoPage() {
         .pf-prev-img{ width:84px; height:84px; border-radius:8px; background:#ECEDE8; flex:none; overflow:hidden; display:flex; align-items:center; justify-content:center; color:var(--pf-mut); }
         .pf-prev-img img{ width:100%; height:100%; object-fit:cover; }
 
-        .pf-empty{ padding:18px; border:1px dashed #B9BAB2; border-radius:10px; font-size:13.5px; color:var(--pf-mut); text-align:center; }
-        .pf-org{ display:flex; align-items:center; gap:10px 14px; flex-wrap:wrap; padding:10px 12px; border:1px solid var(--pf-line2); border-radius:10px; background:#FAFAF7; }
-        .pf-seg{ display:inline-flex; flex-wrap:wrap; border:1px solid #B9BAB2; border-radius:8px; overflow:hidden; background:#fff; }
+        .pf-empty{ padding:18px; border:1px dashed #807C70; border-radius:10px; font-size:13.5px; color:var(--pf-mut); text-align:center; }
+        .pf-org{ display:flex; align-items:center; gap:10px 14px; flex-wrap:wrap; padding:10px 12px; border:1px solid var(--pf-line2); border-radius:10px; background:#F3F1E8; }
+        .pf-seg{ display:inline-flex; flex-wrap:wrap; border:1px solid #807C70; border-radius:8px; overflow:hidden; background:#fff; }
         .pf-seg button{ height:34px; padding:0 12px; border:0; border-right:1px solid var(--pf-line); background:#fff; font:inherit; font-size:12.5px; font-weight:600; color:var(--pf-ink); cursor:pointer; }
         .pf-seg button:last-child{ border-right:0; }
         .pf-seg button.on{ background:var(--pf-ink); color:#fff; }
         .pf-chk{ display:inline-flex; align-items:center; gap:8px; font-size:13px; font-weight:600; }
         .pf-chk input{ width:16px; height:16px; accent-color:var(--pf-ink); }
         .pf-grp{ border:1px solid var(--pf-line); border-radius:10px; background:#fff; overflow:hidden; }
-        .pf-grp-h{ display:flex; align-items:center; gap:10px; padding:10px 12px; background:#FAFAF7; }
+        .pf-grp-h{ display:flex; align-items:center; gap:10px; padding:10px 12px; background:#F3F1E8; }
         .pf-pos{ display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:50%; background:var(--pf-ink); color:#fff; font-size:12.5px; font-weight:700; flex:none; }
         .pf-grp-name{ max-width:300px; font-weight:700 !important; }
         .pf-grp-sum{ display:flex; flex-direction:column; align-items:flex-start; gap:1px; border:0; background:transparent; padding:0; font:inherit; text-align:left; cursor:pointer; min-width:0; }
@@ -1672,14 +1674,14 @@ export default function CatalogoPage() {
         .pf-f.wide{ min-width:210px; flex:1 1 210px; max-width:300px; }
         .pf-opts{ display:flex; flex-direction:column; }
         .pf-orow{ display:grid; grid-template-columns:26px 44px minmax(120px,1.4fr) 120px 110px minmax(150px,1fr) 80px; gap:10px; align-items:center; padding:8px 12px; border-bottom:1px solid var(--pf-line2); }
-        .pf-ohead{ padding-top:8px; padding-bottom:8px; background:#FAFAF7; font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--pf-mut); }
+        .pf-ohead{ padding-top:8px; padding-bottom:8px; background:#F3F1E8; font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--pf-mut); }
         .pf-orow.paused .pf-c-nm input{ color:#6F6C67; text-decoration:line-through; background:#F5F6F2; }
         .pf-mlab{ display:none; font-size:11.5px; font-weight:600; color:#4A453F; margin-bottom:4px; }
         .pf-mv{ display:flex; flex-direction:column; gap:2px; }
         .pf-mv button{ width:22px; height:18px; border:0; border-radius:4px; background:transparent; color:#6F6C67; cursor:pointer; padding:0; display:flex; align-items:center; justify-content:center; }
         .pf-mv button:hover:not(:disabled){ background:#ECEDE8; }
         .pf-mv button:disabled{ opacity:.25; cursor:default; }
-        .pf-thumb{ width:44px; height:44px; border-radius:8px; background:#F5F6F2; border:1px dashed #B9BAB2; display:inline-flex; align-items:center; justify-content:center; color:#6F6C67; cursor:pointer; overflow:hidden; flex:none; }
+        .pf-thumb{ width:44px; height:44px; border-radius:8px; background:#F5F6F2; border:1px dashed #807C70; display:inline-flex; align-items:center; justify-content:center; color:#6F6C67; cursor:pointer; overflow:hidden; flex:none; }
         .pf-thumb.has{ border-style:solid; }
         .pf-thumb img{ width:100%; height:100%; object-fit:cover; }
         .pf-c-ac{ display:flex; justify-content:flex-end; gap:2px; }

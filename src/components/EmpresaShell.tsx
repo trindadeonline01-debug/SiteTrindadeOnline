@@ -189,7 +189,7 @@ export default function EmpresaShell({
         .es-btn-small{background:none;color:#888;padding:5px 8px;font-size:11px;font-weight:600;flex:none;}
         .es-btn-small:hover{color:var(--alert);}
 
-        .es-main{flex:1;overflow-x:hidden;display:flex;flex-direction:column;min-width:0;}
+        .es-main{flex:1;overflow-x:hidden;overflow-x:clip;display:flex;flex-direction:column;min-width:0;}
         .es-shell:not(.es-legacy) .es-main{background:#D5D1C5;}
         .es-topbar{background:#fff;border-bottom:1px solid #EDE8E0;padding:16px 32px;display:none;align-items:center;gap:14px;justify-content:flex-start;position:sticky;top:0;z-index:20;}
         .es-shell:not(.es-legacy) .es-topbar{border-bottom-color:#C2BEB0;box-shadow:0 1px 0 rgba(21,18,16,.12);}

@@ -820,18 +820,18 @@ function ComandaView(props: {
                   <div className="cm-seg" style={{ gridTemplateColumns: `repeat(${formasVisiveis.length}, minmax(0, 1fr))` }}>
                     {formasVisiveis.map(f => <button key={f.key} className={forma === f.key ? 'on' : ''} onClick={() => { setForma(f.key); if (f.key === 'cashback') { setPartes(null); setParteSel(null); setValorDig(centavos(Math.min(falta, saldoCash))) } }}><PayIcon forma={f.key} cor={forma === f.key ? '#151210' : undefined} />{PAY_ICON[f.key].nome}{f.key === 'cashback' ? ` ${fmt(saldoCash)}${cashVerif ? ' ✓' : ''}` : ''}</button>)}
                   </div>
-                  <div className="cm-val hide-s"><span>R$</span>
+                  <div className="cm-val cm-gone"><span>R$</span>
                     <input aria-label="Valor a registrar" inputMode="numeric" value={valorDig ? moneyShow(valorDig) : moneyShow(String(Math.round(falta * 100)))}
                       onFocus={e => e.target.select()} onChange={e => setValorDig(e.target.value.replace(/\D/g, ''))} />
                   </div>
-                  <div className="cm-quick hide-s">
+                  <div className="cm-quick cm-gone">
                     <button className={!partes && Math.abs(valorEf - falta) < 0.005 ? 'on' : ''} onClick={() => { setPartes(null); setParteSel(null); setValorDig(centavos(falta)) }}><em>Tudo</em><b>{moneyShow(centavos(falta))}</b></button>
                     {[2, 3, 4].map(n => (
                       <button key={n} className={partes?.alvo.length === n ? 'on' : ''} onClick={() => dividir(n)}><em>÷ {n}</em><b>{moneyShow(centavos(r2(falta / n)))}</b></button>
                     ))}
                   </div>
                   {partes && (
-                    <div className="cm-parts hide-s">
+                    <div className="cm-parts cm-gone">
                       <div className="ph">
                         <span>Dividido em {partes.alvo.length} · toque em uma parte</span>
                         <div>
@@ -855,8 +855,8 @@ function ComandaView(props: {
                       </div>
                     </div>
                   )}
-                  <input ref={pessoaRef} className="cm-who hide-s" aria-label="Quem pagou (opcional)" placeholder="Quem pagou? (opcional)" value={pessoa} onChange={e => setPessoa(e.target.value)} />
-                  <button className="cm-reg hide-s" disabled={busy || !(valorEf > 0)} onClick={pagar}>Registrar {partes && parteSel !== null ? `parte ${parteSel + 1}` : 'pagamento'} · {fmt(valorEf)}</button>
+                  <input ref={pessoaRef} className="cm-who cm-gone" aria-label="Quem pagou (opcional)" placeholder="Quem pagou? (opcional)" value={pessoa} onChange={e => setPessoa(e.target.value)} />
+                  <button className="cm-payfull" disabled={busy || !(valorEf > 0)} onClick={pagar}>Pagar · {fmt(valorEf)}</button>
                 </div>
               ) : ativos.length === 0 ? (
                 <div className="cm-hint">Os pagamentos aparecem aqui assim que houver consumo na mesa.</div>
@@ -1412,10 +1412,14 @@ const CSS = `
 .cm-foot small{text-align:center;font-size:13px;color:#4f4c47}
 .cm-bar{display:none}
 .show-s{display:none}
+/* Divisão e "quem pagou" ficam só na Calculadora (celular e computador iguais). No computador o pagamento é o botão Pagar; no celular, o da barra de baixo. */
+.cm-gone{display:none!important}
+.cm-payfull{height:56px;border:0;border-radius:10px;background:#2A4E7A;color:#fff;font-weight:800;font-size:17px;cursor:pointer}
+.cm-payfull:disabled{opacity:.45;cursor:not-allowed}
 @media(max-width:1000px){
   .cm-top{padding:10px 14px;gap:10px;min-height:64px}.cm-title{font-size:26px}
   .cm-meta>div:not(.wa):nth-child(n+3){display:none}.cm-meta>div{padding:0 10px}
-  .hide-s{display:none!important}.show-s{display:block!important}
+  .hide-s{display:none!important}.show-s{display:block!important}.cm-payfull{display:none}
   .cm-body{display:flex;flex-direction:column;overflow-y:auto;max-width:none}
   .cm-main{flex:none;overflow:visible;padding:14px}.cm-aside{flex:none;min-height:auto;overflow:visible;border-left:0;border-top:1px solid #DCDDD6}
   .cm-scroll{flex:none;min-height:auto;overflow:visible;padding:18px 14px calc(110px + env(safe-area-inset-bottom))}.cm-foot{flex:none;padding:14px 14px calc(110px + env(safe-area-inset-bottom))}

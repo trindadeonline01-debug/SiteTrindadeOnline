@@ -123,13 +123,20 @@ export default function MesasPage() {
 
   const call = useCallback(async (acao: string, extra: Record<string, unknown> = {}): Promise<Resp> => {
     setBusy(true)
+    // Limite de 25s: uma chamada pendurada (internet ruim, sessão travada) não pode deixar
+    // os botões desativados para sempre — antes disso "Lançar pedido" ficava cinza e nada mais respondia.
+    let timer: ReturnType<typeof setTimeout> | undefined
     try {
-      const res = await adminFetch('/api/mesas', { method: 'POST', body: JSON.stringify({ companyId: companyRef.current, acao, ...extra }) })
+      const tempo = new Promise<never>((_, rej) => { timer = setTimeout(() => rej(new Error('timeout')), 25000) })
+      const res = await Promise.race([adminFetch('/api/mesas', { method: 'POST', body: JSON.stringify({ companyId: companyRef.current, acao, ...extra }) }), tempo])
       const data = await res.json().catch(() => ({}))
       if (!res.ok) { setMsg(data.error || 'Não consegui concluir.'); return null }
       setMsg('')
       return data
-    } catch { setMsg('Sem conexão. Tente de novo.'); return null } finally { setBusy(false) }
+    } catch (e) {
+      setMsg(e instanceof Error && e.message === 'timeout' ? 'Demorou demais para responder. Confira a internet e tente de novo (confira se o pedido já não entrou na comanda).' : 'Sem conexão. Tente de novo.')
+      return null
+    } finally { if (timer) clearTimeout(timer); setBusy(false) }
   }, [])
 
   const load = useCallback(async () => {
@@ -1086,7 +1093,7 @@ function Picker({ produtos, categorias, alvo, onClose, onLancar, busy, msg }: {
             {msg && <div className="ms-err">{msg}</div>}
             <div className="ms-cartfoot">
               <div className="big"><span>Total</span><b>{fmt(total)}</b></div>
-              <button className="ms-btn ok big" disabled={busy || linhas.length === 0} onClick={async () => { await onLancar(linhas, obs) }}>Lançar pedido</button>
+              <button className="ms-btn ok big" disabled={busy || linhas.length === 0} onClick={async () => { await onLancar(linhas, obs) }}>{busy ? 'Lançando…' : 'Lançar pedido'}</button>
             </div>
           </div>
         </div>
@@ -1397,8 +1404,8 @@ const CSS = `
 .cm-body{flex:1;min-height:0;width:100%;max-width:1560px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) 420px}
 .cm-main{min-width:0;overflow-y:auto;padding:24px 28px;display:flex;flex-direction:column;gap:14px}
 .cm-mini{display:none}
-.cm-mhead{display:flex;align-items:center;gap:16px}
-.cm-mhead>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.cm-mhead{display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap}
+.cm-mhead>div{flex:1 1 220px;min-width:0;display:flex;flex-direction:column;gap:2px}
 .cm-mhead h1{margin:0;font-family:'Anton',sans-serif;font-weight:400;font-size:30px;text-transform:uppercase;line-height:1.05}
 .cm-mhead span{font-size:13px;color:#4f4c47}
 .cm-prod{display:flex;align-items:center;justify-content:center;gap:8px;background:#151210;color:#FFC531;border:2px solid #FFC531;border-radius:10px;padding:0 18px;height:52px;font-weight:800;font-size:15px;flex:none;cursor:pointer;animation:cmprod 1.6s ease-in-out infinite}

@@ -55,6 +55,14 @@ body {
      scroll horizontal fantasma. */
   overflow-x: hidden;
 }
+/* iOS (Chrome/Safari): overflow-x:hidden no body vira "contêiner de rolagem" e,
+   depois de recarregar a página, a barra do navegador fica POR CIMA do conteúdo
+   (topo do cabeçalho cortado, barra de baixo sobrepondo). `clip` corta o excesso
+   igual, mas sem criar contêiner de rolagem — o cabeçalho sticky e as barras
+   fixas continuam se medindo pela tela visível de verdade. */
+@supports (overflow-x: clip) {
+  html, body { overflow-x: clip; }
+}
 
 /* Tipografia (ESPECIFICACAO.md §11.3) — Anton só em título de página,
    número grande e faixa de destaque; nunca em nome de empresa/produto/

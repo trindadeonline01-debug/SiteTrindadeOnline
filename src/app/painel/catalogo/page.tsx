@@ -1330,7 +1330,7 @@ export default function CatalogoPage() {
            em tablet, sobrando margem vazia dos dois lados (achado do
            Ricardo, set/2026, testando no tablet). Fluido até o breakpoint
            de desktop, que troca pra outro layout de qualquer forma. */
-        .cg-wrap{ width:100%; max-width:100%; margin:0 auto; min-height:100vh; background:var(--concrete); font-family:'Archivo',sans-serif; font-size:13px; color:var(--ink); padding-bottom:40px; min-width:0; overflow-x:hidden; }
+        .cg-wrap{ width:100%; max-width:100%; margin:0 auto; min-height:100vh; min-height:100dvh; background:var(--concrete); font-family:'Archivo',sans-serif; font-size:13px; color:var(--ink); padding-bottom:40px; min-width:0; overflow-x:hidden; }
         .cg-import-desktop{ display:none; }
         @media(min-width:768px){
           .cg-wrap{ max-width:none; margin:0; min-height:0; padding-bottom:60px; }
@@ -1610,7 +1610,7 @@ export default function CatalogoPage() {
         /* ===== Editar produto (redesenho, nov/2026) — classes pf-* ===== */
         .pf{ --pf-ink:#151210; --pf-line:#C2BEB0; --pf-line2:#D9D5C8; --pf-mut:#5E5B56; --pf-ok:#0B5B38; --pf-okbg:#DDF1E7; --pf-bad:#B3261A; }
         .pf *{ box-sizing:border-box; }
-        .pf{ background:#D5D1C5; min-height:100vh; }
+        .pf{ background:#D5D1C5; min-height:100vh; min-height:100dvh; }
         .cg-wrap:has(.pf){ background:#D5D1C5; }
         .pf-head.cg-head.cg-head-centered{ box-shadow:0 1px 0 rgba(21,18,16,.12); display:flex; align-items:center; gap:12px; flex-wrap:nowrap; padding:12px 16px; background:#fff; border-bottom:1px solid var(--pf-line); }
         @media(min-width:768px){ .pf-head.cg-head.cg-head-centered{ padding:14px 32px; min-height:76px; } }

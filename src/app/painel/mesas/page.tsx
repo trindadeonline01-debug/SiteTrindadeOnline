@@ -149,7 +149,8 @@ export default function MesasPage() {
       if (novos.some(x => x.tipo === 'pedido')) beepMesa()
       else if (novos.length > 0) beep(2)
     }
-    chamadosVistos.current = new Set(chs.map(x => x.id))
+    // Acumula (não substitui): um chamado que já tocou nunca toca de novo nesta tela, mesmo que a lista oscile.
+    chamadosVistos.current = new Set([...(chamadosVistos.current || []), ...chs.map(x => x.id)])
     const ids = cs.map(x => x.id)
     if (ids.length === 0) { setPedidos([]); setPagtos([]); return }
     const [p, pg] = await Promise.all([
@@ -364,9 +365,14 @@ export default function MesasPage() {
                   <button className="ms-btn dark" disabled={busy} onClick={async () => {
                     if (ch.tipo === 'garcom') { await call('atender_chamado', { chamadoId: ch.id }); await load() }
                     else if (ch.tipo === 'pedido' && ch.payload) setPedidoQr(ch)
-                    else if (c) setAbertaId(c.id)
-                    else if (m) setAbrirMesa(m)
+                    else {
+                      // Pedido de conta: ao abrir a comanda o chamado já é dado como atendido (para de tocar e some da lista).
+                      await call('atender_chamado', { chamadoId: ch.id }); await load()
+                      if (c) setAbertaId(c.id)
+                      else if (m) setAbrirMesa(m)
+                    }
                   }}>{ch.tipo === 'garcom' ? `Atender mesa ${m?.numero}` : ch.tipo === 'conta' ? 'Abrir comanda' : `Ver pedido da mesa ${m?.numero}`}</button>
+                  {ch.tipo !== 'pedido' && ch.tipo !== 'garcom' && <button className="ms-btn ghost" style={{ marginTop: 6, width: '100%' }} disabled={busy} onClick={async () => { await call('atender_chamado', { chamadoId: ch.id }); await load() }}>Já atendi (tirar da lista)</button>}
                 </div>
               )
             })}

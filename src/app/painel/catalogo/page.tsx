@@ -1294,6 +1294,34 @@ export default function CatalogoPage() {
     .filter(p => !searchTerm || p.name.toLowerCase().includes(searchTerm))
   const semFotoCount = produtos.filter(p => !p.photo_url).length
 
+  // Busca e "Ordenar" aparecem no cabeçalho (computador) ou na barra do cartão (celular)
+  const sujo = !!draftIds && draftIds.some((id, i) => produtos[i]?.id !== id)
+  const nVis = produtos.filter(produtoVisivel).length
+  const OPCOES_ORDEM: [OrdemProdutos, string][] = [['az', 'A → Z'], ['za', 'Z → A'], ['menor', 'Menor preço'], ['maior', 'Maior preço'], ['promo', 'Promoções primeiro'], ['foto', 'Com foto primeiro'], ['categoria', 'Pela ordem das categorias']]
+  const rotuloOrdem = sujo ? (ordemSel ?? 'Manual') : 'Ordem atual'
+  const searchNode = <input className="cg-search" placeholder="Buscar produto pelo nome..." value={search} onChange={e => setSearch(e.target.value)} />
+  const sortNode = produtos.length > 1 ? (
+    <div className="cg-sort-wrap">
+      <button type="button" className="cg-sort" onClick={() => setShowSortMenu(v => !v)} aria-haspopup="menu" aria-expanded={showSortMenu}>
+        <small>Ordenar</small><span>{rotuloOrdem}</span><span aria-hidden="true">▾</span>
+      </button>
+      {showSortMenu && (
+        <>
+          <div className="cg-ov dim" onClick={() => setShowSortMenu(false)} />
+          <div className="cg-sort-menu" role="menu">
+            {OPCOES_ORDEM.map(([modo, nome]) => (
+              <button key={modo} type="button" role="menuitem" className={sujo && ordemSel === nome ? 'on' : ''} onClick={() => { ordenarProdutos(modo); setOrdemSel(nome); setShowSortMenu(false) }}>
+                {nome}{sujo && ordemSel === nome ? <span>✓</span> : null}
+              </button>
+            ))}
+            <hr />
+            <p>Ou arraste um produto pelo ⠿ para a posição que quiser.</p>
+          </div>
+        </>
+      )}
+    </div>
+  ) : null
+
   return (
     <>
     <div className="cg-wrap">
@@ -1468,6 +1496,7 @@ export default function CatalogoPage() {
         .cg-head-title h1{ flex:none; margin:0; }
         .cg-head-sub{ font-size:12px; color:#4A453F; font-weight:500; }
         .cg-act-desk{ display:none; align-items:center; gap:8px; }
+        .cg-head-search{ display:none; }
         .cg-act-mobile{ display:block; position:relative; }
         .cg-ov{ position:fixed; inset:0; z-index:9; background:transparent; }
         .cg-ov.dim{ background:rgba(21,18,16,.35); }
@@ -1497,6 +1526,13 @@ export default function CatalogoPage() {
         }
         @media(min-width:768px){
           .cg-act-desk{ display:flex; }
+          .cg-head-title{ flex:none; }
+          .cg-head .cg-head-actions{ margin-left:auto; flex-wrap:nowrap; }
+          .cg-head-search{ display:block; flex:1; min-width:180px; max-width:460px; }
+          .cg-head-search .cg-search{ width:100%; height:38px; padding:0 14px; border:1px solid #807C70; background:#F3F1E8; border-radius:10px; }
+          .cg-act-desk .cg-sort{ height:36px; }
+          .cg-tool-r1{ display:none; }
+          .cg-tool .cg-filters{ border-top:0; }
           .cg-act-mobile{ display:none; }
           .cg-list-view .cg-tool, .cg-list-view .cg-dirty{ grid-column:1/-1; }
         }
@@ -1768,6 +1804,7 @@ export default function CatalogoPage() {
               <h1>Catálogo</h1>
               <span className="cg-head-sub">{produtos.length} produto{produtos.length !== 1 ? 's' : ''}{produtos.length > 0 ? ` · ${produtos.filter(x => x.active).length} ativos${produtos.some(x => !x.active) ? ` · ${produtos.filter(x => !x.active).length} pausados` : ''}` : ''}</span>
             </div>
+            <div className="cg-head-search">{searchNode}</div>
             <div className="cg-head-actions">
               <div className="cg-act-desk">
                 <button className={`cg-btn-ghost ${selectMode ? 'cg-btn-danger' : ''}`} style={{ padding: '8px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }} onClick={toggleSelectMode}>
@@ -1788,6 +1825,7 @@ export default function CatalogoPage() {
                     </>
                   )}
                 </div>
+                {sortNode}
               </div>
               {/* Celular: Selecionar, Categorias e Importar ficam num menu só. */}
               <div className="cg-act-mobile">
@@ -1809,60 +1847,30 @@ export default function CatalogoPage() {
             </div>
           </div>
           <div className="cg-body">
-            {(() => {
-              const sujo = !!draftIds && draftIds.some((id, i) => produtos[i]?.id !== id)
-              const nVis = produtos.filter(produtoVisivel).length
-              const OPCOES: [OrdemProdutos, string][] = [['az', 'A → Z'], ['za', 'Z → A'], ['menor', 'Menor preço'], ['maior', 'Maior preço'], ['promo', 'Promoções primeiro'], ['foto', 'Com foto primeiro'], ['categoria', 'Pela ordem das categorias']]
-              const rotulo = sujo ? (ordemSel ?? 'Manual') : 'Ordem atual'
-              return (
-                <>
-                  <div className="cg-tool">
-                    <div className="cg-tool-r1">
-                      <input className="cg-search" placeholder="Buscar produto pelo nome..." value={search} onChange={e => setSearch(e.target.value)} />
-                      {produtos.length > 1 && (
-                        <div className="cg-sort-wrap">
-                          <button type="button" className="cg-sort" onClick={() => setShowSortMenu(v => !v)} aria-haspopup="menu" aria-expanded={showSortMenu}>
-                            <small>Ordenar</small><span>{rotulo}</span><span aria-hidden="true">▾</span>
-                          </button>
-                          {showSortMenu && (
-                            <>
-                              <div className="cg-ov dim" onClick={() => setShowSortMenu(false)} />
-                              <div className="cg-sort-menu" role="menu">
-                                {OPCOES.map(([modo, nome]) => (
-                                  <button key={modo} type="button" role="menuitem" className={sujo && ordemSel === nome ? 'on' : ''} onClick={() => { ordenarProdutos(modo); setOrdemSel(nome); setShowSortMenu(false) }}>
-                                    {nome}{sujo && ordemSel === nome ? <span>✓</span> : null}
-                                  </button>
-                                ))}
-                                <hr />
-                                <p>Ou arraste um produto pelo ⠿ para a posição que quiser.</p>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    <div className="cg-filters">
-                      <button className={`cg-chip ${filterCat === 'all' ? 'active' : ''}`} onClick={() => setFilterCat('all')}>Tudo</button>
-                      {semFotoCount > 0 && (
-                        <button className={`cg-chip ${filterCat === 'sem-foto' ? 'active' : ''}`} onClick={() => setFilterCat('sem-foto')}>📷 Sem foto ({semFotoCount})</button>
-                      )}
-                      {categorias.map(c => (
-                        <button key={c.id} className={`cg-chip ${filterCat === c.id ? 'active' : ''}`} onClick={() => setFilterCat(c.id)}>{c.name}</button>
-                      ))}
-                    </div>
-                  </div>
-                  {sujo && (
-                    <div className="cg-dirty">
-                      <span className="cg-dirty-txt"><b>Ordem alterada.</b> Salvar vale pro cardápio do cliente ou só pra organização interna.{nVis < produtos.length ? ` Com o filtro ligado, só os ${nVis} visíveis trocam de lugar entre si.` : ''}</span>
-                      <span className="cg-dirty-btns">
-                        <button className="cg-ord-undo" onClick={() => { descartarOrdem(); setOrdemSel(null) }} disabled={reorderSaving}>Desfazer</button>
-                        <button className="cg-save-ord on" disabled={reorderSaving} onClick={() => setShowSaveOrder(true)}>Salvar ordem</button>
-                      </span>
-                    </div>
-                  )}
-                </>
-              )
-            })()}
+            <div className="cg-tool">
+              <div className="cg-tool-r1">
+                {searchNode}
+                {sortNode}
+              </div>
+              <div className="cg-filters">
+                <button className={`cg-chip ${filterCat === 'all' ? 'active' : ''}`} onClick={() => setFilterCat('all')}>Tudo</button>
+                {semFotoCount > 0 && (
+                  <button className={`cg-chip ${filterCat === 'sem-foto' ? 'active' : ''}`} onClick={() => setFilterCat('sem-foto')}>📷 Sem foto ({semFotoCount})</button>
+                )}
+                {categorias.map(c => (
+                  <button key={c.id} className={`cg-chip ${filterCat === c.id ? 'active' : ''}`} onClick={() => setFilterCat(c.id)}>{c.name}</button>
+                ))}
+              </div>
+            </div>
+            {sujo && (
+              <div className="cg-dirty">
+                <span className="cg-dirty-txt"><b>Ordem alterada.</b> Salvar vale pro cardápio do cliente ou só pra organização interna.{nVis < produtos.length ? ` Com o filtro ligado, só os ${nVis} visíveis trocam de lugar entre si.` : ''}</span>
+                <span className="cg-dirty-btns">
+                  <button className="cg-ord-undo" onClick={() => { descartarOrdem(); setOrdemSel(null) }} disabled={reorderSaving}>Desfazer</button>
+                  <button className="cg-save-ord on" disabled={reorderSaving} onClick={() => setShowSaveOrder(true)}>Salvar ordem</button>
+                </span>
+              </div>
+            )}
             {selectMode && (
               <div className="cg-selbar">
                 <span className="cg-selbar-count">{selectedIds.size} selecionado{selectedIds.size !== 1 ? 's' : ''}</span>

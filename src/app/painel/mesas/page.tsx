@@ -8,6 +8,7 @@ import { buildReceipt, buildKitchenTicket, imprimirVias, setPapelImpressora, set
 import ConfirmModal from '@/components/painel/ConfirmModal'
 import MesaCalculadora, { type CalcComanda, type Divisao, DIVISAO0 } from '@/components/painel/MesaCalculadora'
 import QRCode from 'qrcode'
+import { promoPrice } from '@/lib/lojaPricing'
 import { npGroupContribution, type NpGrupo, type NpProduto, PESO_REGEX, pesoNum, pesoDisplay } from '@/lib/produtoCart'
 import { ordenarComplementosLista } from '@/lib/produtoOrdem'
 
@@ -28,7 +29,13 @@ type Pagto = { id: string; comanda_id: string; forma: string; valor: number; pes
 type PedidoQr = { itens: { produtoId: string; nome: string; qty: number; modifiers: { name: string; price: number }[]; notes: string | null; unit: number }[]; obs: string | null; telefone: string | null; total: number }
 type Chamado = { id: string; mesa_id: string; comanda_id: string | null; tipo: 'garcom' | 'conta' | 'pedido'; mensagem: string | null; criado_em: string; payload: PedidoQr | null }
 type Garcom = { id: string; nome: string; ativo: boolean }
-type Produto = NpProduto
+type Produto = NpProduto & { promo_type?: string | null; promo_value?: number | null; promo_starts_at?: string | null; promo_ends_at?: string | null }
+// Preço de venda de hoje (com promoção, se estiver valendo) — o mesmo que o servidor cobra.
+function precoDe(p: Produto): number {
+  const base = Number(p.sale_price)
+  const v = promoPrice({ ...p, sale_price: base, promo_value: p.promo_value != null ? Number(p.promo_value) : null } as never)
+  return v != null ? r2(v) : base
+}
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Resp = any
 type CallFn = (a: string, e?: Record<string, unknown>) => Promise<Resp>
@@ -156,7 +163,7 @@ export default function MesasPage() {
       setMesasEnabled(!!comp.mesas_enabled); setTaxaPct(Number(comp.loja_taxa_servico_pct) || 0); setHasPin(!!comp.loja_supervisor_pin_hash); setAdminMode(isAdmin)
       if (comp.mesas_enabled || isAdmin) {
         const [{ data: prods }, { data: cats }] = await Promise.all([
-          supabase.from('loja_produtos').select('id, name, sale_price, category_id, photo_url, groups:loja_opcoes_grupo(*, options:loja_opcoes(*))').eq('company_id', comp.id).eq('active', true).eq('canal_mesa', true).order('display_order'),
+          supabase.from('loja_produtos').select('id, name, sale_price, promo_type, promo_value, promo_starts_at, promo_ends_at, category_id, photo_url, groups:loja_opcoes_grupo(*, options:loja_opcoes(*))').eq('company_id', comp.id).eq('active', true).eq('canal_mesa', true).order('display_order'),
           supabase.from('loja_categorias').select('id, name').eq('company_id', comp.id).order('display_order'),
         ])
         setProdutos(ordenarComplementosLista((prods || []) as any[]) as unknown as Produto[]); setCategorias((cats || []) as { id: string; name: string }[])
@@ -866,7 +873,7 @@ function Picker({ produtos, categorias, mesaNumero, onClose, onLancar, busy, msg
 
   function add(p: Produto, modifiers: { name: string; price: number }[] = [], pesoKg: number | null = null, valorFixo: number | null = null) {
     const extra = modifiers.reduce((s, m) => s + m.price, 0)
-    const unit = r2(Number(p.sale_price) + extra)
+    const unit = r2(precoDe(p) + extra)
     const key = p.id + '|' + modifiers.map(m => m.name).join(',') + (pesoKg != null ? '|' + (++seq.current) : '')
     setLinhas(prev => {
       const ex = pesoKg == null ? prev.find(l => l.key === key) : null
@@ -913,7 +920,7 @@ function Picker({ produtos, categorias, mesaNumero, onClose, onLancar, busy, msg
                 <button key={p.id} className="ms-prod" onClick={() => tocar(p)}>
                   <Foto url={p.photo_url} size={0} />
                   <span className="n">{p.name}</span>
-                  <span className="p">{PESO_REGEX.test(p.name) ? `${fmt(Number(p.sale_price))}/kg` : fmt(Number(p.sale_price))}</span>
+                  <span className="p">{precoDe(p) < Number(p.sale_price) && <s style={{ opacity: .55, fontWeight: 400, marginRight: 6 }}>{fmt(Number(p.sale_price))}</s>}{PESO_REGEX.test(p.name) ? `${fmt(precoDe(p))}/kg` : fmt(precoDe(p))}</span>
                 </button>
               ))}
               {lista.length === 0 && <div className="ms-note">Nada encontrado.</div>}
@@ -948,23 +955,23 @@ function Picker({ produtos, categorias, mesaNumero, onClose, onLancar, busy, msg
 
       {peso && (
         <Modal titulo={peso.p.name} onClose={() => setPeso(null)}>
-          <p className="ms-p">Peixe pesado na peixaria ({fmt(Number(peso.p.sale_price))}/kg)</p>
+          <p className="ms-p">Peixe pesado na peixaria ({fmt(Number(precoDe(peso.p)))}/kg)</p>
           <div className="ms-modo">
             <button className={peso.modo === 'kg' ? 'on' : ''} onClick={() => setPeso(s => s && ({ ...s, modo: 'kg', dig: '' }))}>Digitar o peso (kg)</button>
             <button className={peso.modo === 'valor' ? 'on' : ''} onClick={() => setPeso(s => s && ({ ...s, modo: 'valor', dig: '' }))}>Digitar o valor (R$)</button>
           </div>
           <div className="ms-peso">{peso.modo === 'kg' ? `${pesoDisplay(peso.dig) || '0,000'} kg` : fmt(valorDig(peso.dig))}</div>
           {peso.modo === 'valor' && (
-            <p className="ms-p" style={{ textAlign: 'center' }}>{valorDig(peso.dig) > 0 && Number(peso.p.sale_price) > 0 ? `≈ ${(valorDig(peso.dig) / Number(peso.p.sale_price)).toFixed(3).replace('.', ',')} kg` : 'Digite o valor do peixe já pesado'}</p>
+            <p className="ms-p" style={{ textAlign: 'center' }}>{valorDig(peso.dig) > 0 && Number(precoDe(peso.p)) > 0 ? `≈ ${(valorDig(peso.dig) / Number(precoDe(peso.p))).toFixed(3).replace('.', ',')} kg` : 'Digite o valor do peixe já pesado'}</p>
           )}
           <div className="ms-keypad">
             {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '⌫'].map(k => (
               <button key={k} onClick={() => setPeso(s => s && ({ ...s, dig: k === 'C' ? '' : k === '⌫' ? s.dig.slice(0, -1) : (s.dig + k).slice(0, 6) }))}>{k}</button>
             ))}
           </div>
-          <button className="ms-btn ok big" disabled={peso.modo === 'kg' ? pesoNum(peso.dig) <= 0 : valorDig(peso.dig) <= 0 || !(Number(peso.p.sale_price) > 0)} onClick={() => {
+          <button className="ms-btn ok big" disabled={peso.modo === 'kg' ? pesoNum(peso.dig) <= 0 : valorDig(peso.dig) <= 0 || !(Number(precoDe(peso.p)) > 0)} onClick={() => {
             if (peso.modo === 'kg') add(peso.p, [], pesoNum(peso.dig))
-            else { const v = valorDig(peso.dig); add(peso.p, [], Math.round((v / Number(peso.p.sale_price)) * 1e6) / 1e6, v) }
+            else { const v = valorDig(peso.dig); add(peso.p, [], Math.round((v / Number(precoDe(peso.p))) * 1e6) / 1e6, v) }
             setPeso(null)
           }}>Adicionar</button>
         </Modal>

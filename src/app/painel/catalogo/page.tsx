@@ -1533,8 +1533,9 @@ export default function CatalogoPage() {
           .cg-act-desk .cg-sort{ height:36px; }
           .cg-tool-r1{ display:none; }
           /* No computador a busca sobe pro cabeçalho: sobra só a fileira de categorias, sem o cartão branco em volta. */
-          .cg-tool{ background:transparent; border:0; box-shadow:none; border-radius:0; }
-          .cg-tool .cg-filters{ border-top:0; padding:0 0 4px; }
+          /* Folga igual em cima (do cabeçalho) e embaixo (dos produtos, que já tem o espaçamento da grade de 14px). */
+          .cg-tool{ background:transparent; border:0; box-shadow:none; border-radius:0; margin:14px 0 0; }
+          .cg-tool .cg-filters{ border-top:0; padding:0; }
           .cg-act-mobile{ display:none; }
           .cg-list-view .cg-tool, .cg-list-view .cg-dirty{ grid-column:1/-1; }
         }

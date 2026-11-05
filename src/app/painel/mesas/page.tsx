@@ -20,7 +20,7 @@ import { ordenarComplementosLista } from '@/lib/produtoOrdem'
 
 type Mesa = { id: string; numero: number; nome: string | null; ativa: boolean }
 type Comanda = {
-  id: string; company_id: string; mesa_id: string; numero: number; garcom_nome: string | null; customer_phone: string | null; customer_name: string | null
+  id: string; company_id: string; mesa_id: string | null; tipo?: 'mesa' | 'retirada'; rotulo?: string | null; numero: number; garcom_nome: string | null; customer_phone: string | null; customer_name: string | null
   taxa_servico_ativa: boolean; taxa_servico_pct: number; desconto: number; desconto_motivo: string | null
   subtotal: number; taxa_valor: number; total: number; aberta_em: string
 }
@@ -107,6 +107,7 @@ export default function MesasPage() {
 
   const [abertaId, setAbertaId] = useState<string | null>(null)       // comanda aberta na tela
   const [abrirMesa, setAbrirMesa] = useState<Mesa | null>(null)       // escolher garçom
+  const [abrirRetirada, setAbrirRetirada] = useState(false)           // nova retirada (sem mesa)
   const [showConfig, setShowConfig] = useState(false)
   const [calcLivre, setCalcLivre] = useState(false)
   const [picker, setPicker] = useState(false)
@@ -194,10 +195,12 @@ export default function MesasPage() {
     return () => { clearInterval(t); document.removeEventListener('visibilitychange', vis); if (ch) supabase.removeChannel(ch) }
   }, [load])
 
-  const comandaDaMesa = useMemo(() => new Map(comandas.map(c => [c.mesa_id, c])), [comandas])
+  const comandaDaMesa = useMemo(() => new Map(comandas.filter(c => c.mesa_id).map(c => [c.mesa_id as string, c])), [comandas])
+  const retiradas = useMemo(() => comandas.filter(c => c.tipo === 'retirada').sort((a, b) => a.aberta_em.localeCompare(b.aberta_em)), [comandas])
   const comanda = comandas.find(c => c.id === abertaId) || null
   const fotos = useMemo(() => Object.fromEntries(produtos.map(p => [p.id, p.photo_url ?? null])) as Record<string, string | null>, [produtos])
-  const mesaDe = (id: string) => mesas.find(m => m.id === id)
+  const mesaDe = (id: string | null) => id ? mesas.find(m => m.id === id) : undefined
+  const nomeConta = (c: Comanda) => c.tipo === 'retirada' ? `RETIRADA ${c.rotulo ? c.rotulo.toUpperCase() : '#' + c.numero}` : `MESA ${mesaDe(c.mesa_id)?.numero ?? ''}`
   const impressaoPausada = IMPRESSAO_PAUSADA_EMPRESAS.includes(companyId)
 
   // tipo 'producao' = comandinha da cozinha (sem valores); 'completa' = conta.
@@ -218,6 +221,11 @@ export default function MesasPage() {
     if (r?.comandaId) { setAbrirMesa(null); await load(); setAbertaId(r.comandaId) }
   }
 
+  async function abrirNovaRetirada(garcomId: string, rotulo: string) {
+    const r = await call('abrir_retirada', { garcomId, rotulo })
+    if (r?.comandaId) { setAbrirRetirada(false); await load(); setAbertaId(r.comandaId) }
+  }
+
   async function lancarRodada(linhas: Linha[], obs: string) {
     if (!comanda) return false
     const r = await call('rodada', {
@@ -227,7 +235,7 @@ export default function MesasPage() {
     if (!r) return false
     const mesa = mesaDe(comanda.mesa_id)
     await imprimir([buildKitchenTicket({
-      pedidoShortId: `${mesa?.numero ?? ''}-${r.orderNumber ?? ''}`, createdAt: new Date().toISOString(), deliveryType: 'balcao', rotulo: `MESA ${mesa?.numero ?? ''} · ${comanda.garcom_nome || ''}`,
+      pedidoShortId: `${comanda.tipo === 'retirada' ? 'R' + comanda.numero : (mesa?.numero ?? '')}-${r.orderNumber ?? ''}`, createdAt: new Date().toISOString(), deliveryType: 'balcao', rotulo: `${nomeConta(comanda)} · ${comanda.garcom_nome || ''}`,
       items: linhas.map(l => ({ qty: l.qty, pesoKg: l.pesoKg, name: l.produto.name, unitPrice: l.unit, options: l.modifiers })), notes: obs || null,
     })], 'producao')
     await load()
@@ -243,14 +251,14 @@ export default function MesasPage() {
     if (c.taxa_servico_ativa && c.taxa_valor > 0) extras.push({ label: `Servico ${c.taxa_servico_pct}%`, valor: c.taxa_valor })
     const pagamentos = pagtos.filter(p => p.comanda_id === c.id).map(p => ({ label: (FORMAS.find(f => f.key === formaExibida(p))?.label.replace(/^\S+\s/, '') || p.forma) + (p.pessoa ? ` (${p.pessoa})` : ''), valor: p.valor }))
     return buildReceipt({
-      companyName, pedidoShortId: `Comanda ${c.numero}`, createdAt: c.aberta_em, customerName: `Mesa ${mesa?.numero ?? ''}`, customerPhone: c.customer_phone,
-      deliveryType: 'balcao', rotuloTipo: `MESA ${mesa?.numero ?? ''} - Garcom ${c.garcom_nome || ''}`, items, subtotal: c.subtotal, extras, total: c.total, pagamentos,
+      companyName, pedidoShortId: `Comanda ${c.numero}`, createdAt: c.aberta_em, customerName: c.tipo === 'retirada' ? `Retirada${c.rotulo ? ' ' + c.rotulo : ''}` : `Mesa ${mesa?.numero ?? ''}`, customerPhone: c.customer_phone,
+      deliveryType: 'balcao', rotuloTipo: `${nomeConta(c)} - Atend. ${c.garcom_nome || ''}`, items, subtotal: c.subtotal, extras, total: c.total, pagamentos,
     })
   }
 
   if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Archivo,sans-serif', color: '#6F6C67', background: '#E9EAE5' }}>Carregando...</div>
 
-  const emUso = comandas.length
+  const emUso = comandas.filter(c => c.tipo !== 'retirada').length
   return (
     <div className="ms-wrap" onClick={() => unlockAudio()}>
       <style>{CSS}</style>
@@ -302,6 +310,22 @@ export default function MesasPage() {
                 )
               })}
             </div>
+            <div className="ms-head ms-rethead">
+              <h1>Retirada</h1>
+              <span>{retiradas.length === 0 ? 'Sem taxa de serviço' : `${retiradas.length} em andamento · sem taxa de serviço`}</span>
+            </div>
+            <div className="ms-grid">
+              {retiradas.map(c => (
+                <button key={c.id} className="ms-mesa ret" onClick={() => setAbertaId(c.id)}>
+                  <span className="top"><b className="rt">{c.rotulo || `#${c.numero}`}</b><em>{tempo(c.aberta_em)}</em></span>
+                  <span className="bot"><strong>Retirada</strong><span className="row"><span className="who">{c.garcom_nome || ''}</span><small>{fmt(c.total)}</small></span></span>
+                </button>
+              ))}
+              <button className="ms-mesa ret novo" disabled={busy} onClick={() => setAbrirRetirada(true)}>
+                <span className="top"><b>+</b></span>
+                <span className="bot"><strong>Nova retirada</strong></span>
+              </button>
+            </div>
           </div>
           <aside className="ms-side">
             <div className="ms-sidehead"><h2>Chamados</h2><span className="ms-count">{chamados.length}</span></div>
@@ -347,6 +371,10 @@ export default function MesasPage() {
         </Modal>
       )}
 
+      {abrirRetirada && (
+        <RetiradaModal garcons={garcons.filter(g => g.ativo)} busy={busy} msg={msg} onClose={() => { setAbrirRetirada(false); setMsg('') }} onAbrir={abrirNovaRetirada} />
+      )}
+
       {comanda && !picker && (
         <ComandaView
           key={comanda.id} c={comanda} mesa={mesaDe(comanda.mesa_id)} mesas={mesas} comandas={comandas} comandaDaMesa={comandaDaMesa}
@@ -359,7 +387,7 @@ export default function MesasPage() {
       )}
 
       {comanda && picker && (
-        <Picker produtos={produtos} categorias={categorias} mesaNumero={mesaDe(comanda.mesa_id)?.numero}
+        <Picker produtos={produtos} categorias={categorias} alvo={comanda.tipo === 'retirada' ? `a retirada ${comanda.rotulo || '#' + comanda.numero}` : `à mesa ${mesaDe(comanda.mesa_id)?.numero ?? ''}`}
           onClose={() => setPicker(false)} busy={busy} msg={msg}
           onLancar={async (l, obs) => { const ok = await lancarRodada(l, obs); if (ok) setPicker(false); return ok }} />
       )}
@@ -417,6 +445,24 @@ function Modal({ titulo, onClose, children, wide, cfg }: { titulo: string; onClo
     </div>
   )
 }
+
+// Nova retirada: quem atende + nome/identificação opcional do cliente.
+function RetiradaModal({ garcons, busy, msg, onClose, onAbrir }: { garcons: Garcom[]; busy: boolean; msg: string; onClose: () => void; onAbrir: (garcomId: string, rotulo: string) => void }) {
+  const [rotulo, setRotulo] = useState('')
+  return (
+    <Modal titulo="Nova retirada" onClose={onClose}>
+      <p className="ms-p">Cliente que vai buscar o pedido. Não cobra taxa de serviço (dá para colocar depois, se precisar).</p>
+      <label className="ms-lbl">Nome do cliente (opcional)<input className="ms-in" value={rotulo} maxLength={40} placeholder="Ex.: Maria" onChange={e => setRotulo(e.target.value)} /></label>
+      <p className="ms-p">Quem está atendendo?</p>
+      {garcons.length === 0 && <div className="ms-note">Nenhum garçom cadastrado. Vá em “⚙️ Configurar” e cadastre.</div>}
+      <div className="ms-garcons">
+        {garcons.map(g => <button key={g.id} className="ms-btn big" disabled={busy} onClick={() => onAbrir(g.id, rotulo)}>{g.nome}</button>)}
+      </div>
+      {msg && <div className="ms-err">{msg}</div>}
+    </Modal>
+  )
+}
+
 
 // Pede o PIN da supervisão antes de abrir as configurações das mesas.
 function ConfigPinModal({ busy, msg, call, onClose, onOk }: { busy: boolean; msg: string; call: CallFn; onClose: () => void; onOk: () => void }) {
@@ -644,7 +690,7 @@ function ComandaView(props: {
       <div className="cm">
         <header className="cm-top">
           <button className="cm-hb" onClick={props.onClose}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6" /></svg><span className="hide-s">Mesas</span></button>
-          <div className="cm-title">Mesa {mesa?.numero}</div>
+          <div className="cm-title">{c.tipo === 'retirada' ? `Retirada${c.rotulo ? ' · ' + c.rotulo : ''}` : `Mesa ${mesa?.numero}`}</div>
           <div className="cm-meta">
             <div><span>Comanda</span><b>{c.numero}</b></div>
             <div><span>Garçom</span><b>{c.garcom_nome}</b></div>
@@ -664,7 +710,7 @@ function ComandaView(props: {
                 <div className="cm-scrim" onClick={() => setMenu(false)} />
                 <div className="cm-menu">
                   <button className="show-s" onClick={() => { setMenu(false); props.imprimirConta() }}>Imprimir conta</button>
-                  <button onClick={() => { setMenu(false); setSub('transferir') }}>Trocar de mesa</button>
+                  <button onClick={() => { setMenu(false); setSub('transferir') }}>{c.tipo === 'retirada' ? 'Transformar em mesa' : 'Trocar de mesa'}</button>
                   <button onClick={() => { setMenu(false); setSub('juntar') }}>Juntar mesas</button>
                   <button className="danger" onClick={() => { setMenu(false); if (ativos.length === 0) { setConfLiberar(true); return } pedirPin('Cancelar comanda', pin => call('cancelar_comanda', { comandaId: c.id, pin }).then(async r => { if (r) { limparDivisao(); await load(); props.onClose() } return r })) }}>{ativos.length === 0 ? 'Liberar mesa' : 'Cancelar comanda'}</button>
                 </div>
@@ -682,7 +728,7 @@ function ComandaView(props: {
             </div>
 
             <div className="cm-mhead">
-              <div><h1>Consumo da mesa</h1><span>{ativos.length === 0 ? 'Nenhum pedido lançado ainda' : `${ativos.length} ${ativos.length === 1 ? 'rodada' : 'rodadas'} · ${nItens} ${nItens === 1 ? 'item' : 'itens'} · mais recente primeiro`}</span></div>
+              <div><h1>{c.tipo === 'retirada' ? 'Consumo da retirada' : 'Consumo da mesa'}</h1><span>{ativos.length === 0 ? 'Nenhum pedido lançado ainda' : `${ativos.length} ${ativos.length === 1 ? 'rodada' : 'rodadas'} · ${nItens} ${nItens === 1 ? 'item' : 'itens'} · mais recente primeiro`}</span></div>
               {ativos.length > 0 && <button className="cm-add hide-s" onClick={props.onAdd}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#151210" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>Adicionar itens</button>}
             </div>
 
@@ -696,7 +742,7 @@ function ComandaView(props: {
                 <div className="cm-ou"><i /><span>ou</span><i /></div>
                 <button className="cm-liberar" disabled={busy} onClick={() => setConfLiberar(true)}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="M16 17l5-5-5-5" /><path d="M21 12H9" /></svg>
-                  <span className="t"><b>Liberar mesa</b><em>Cliente desistiu? A mesa volta a ficar livre.</em></span>
+                  <span className="t"><b>{c.tipo === 'retirada' ? 'Cancelar retirada' : 'Liberar mesa'}</b><em>{c.tipo === 'retirada' ? 'Cliente desistiu? A retirada sai da lista.' : 'Cliente desistiu? A mesa volta a ficar livre.'}</em></span>
                 </button>
               </div>
             )}
@@ -803,7 +849,7 @@ function ComandaView(props: {
 
             <div className="cm-foot hide-s" id="ms-fechar">
               <button className="cm-close" disabled={busy || falta > 0.005 || ativos.length === 0} onClick={fecharConta}>Fechar conta</button>
-              <small>{ativos.length === 0 ? 'Adicione itens para poder fechar a conta.' : falta > 0.005 ? <>Falta <b>{fmt(falta)}</b> para poder fechar.</> : 'Ao fechar, a mesa fica livre para o próximo cliente.'}</small>
+              <small>{ativos.length === 0 ? 'Adicione itens para poder fechar a conta.' : falta > 0.005 ? <>Falta <b>{fmt(falta)}</b> para poder fechar.</> : (c.tipo === 'retirada' ? 'Ao fechar, a retirada sai da lista.' : 'Ao fechar, a mesa fica livre para o próximo cliente.')}</small>
             </div>
           </aside>
         </div>
@@ -821,8 +867,8 @@ function ComandaView(props: {
           onPagar={falta > 0.005 ? pagarDaCalculadora : undefined} />
       )}
       {confLiberar && (
-        <ConfirmModal perigo titulo={`Liberar a Mesa ${mesa?.numero}?`} mensagem="A mesa volta a ficar livre para o próximo cliente. Nenhum pedido ou pagamento será perdido, pois não há nenhum."
-          confirmar="Liberar mesa" ocupado={busy} onConfirm={liberarMesa} onCancel={() => setConfLiberar(false)} />
+        <ConfirmModal perigo titulo={c.tipo === 'retirada' ? 'Cancelar esta retirada?' : `Liberar a Mesa ${mesa?.numero}?`} mensagem={c.tipo === 'retirada' ? 'A retirada sai da lista. Nenhum pedido ou pagamento será perdido, pois não há nenhum.' : 'A mesa volta a ficar livre para o próximo cliente. Nenhum pedido ou pagamento será perdido, pois não há nenhum.'}
+          confirmar={c.tipo === 'retirada' ? 'Cancelar retirada' : 'Liberar mesa'} ocupado={busy} onConfirm={liberarMesa} onCancel={() => setConfLiberar(false)} />
       )}
       {pin && (
         <Modal titulo={pin.titulo} onClose={() => setPin(null)}>
@@ -848,8 +894,8 @@ function ComandaView(props: {
         </Modal>
       )}
       {sub === 'transferir' && (
-        <Modal titulo="Trocar de mesa" onClose={() => setSub(null)}>
-          <p className="ms-p">Escolha uma mesa livre.</p>
+        <Modal titulo={c.tipo === 'retirada' ? 'Transformar em mesa' : 'Trocar de mesa'} onClose={() => setSub(null)}>
+          <p className="ms-p">{c.tipo === 'retirada' ? 'O cliente vai comer aqui? Escolha uma mesa livre. A taxa de serviço passa a valer (você ainda pode tirar).' : 'Escolha uma mesa livre.'}</p>
           <div className="ms-pick">{props.mesas.filter(m => !props.comandaDaMesa.has(m.id)).map(m => (
             <button key={m.id} className="ms-btn big" disabled={busy} onClick={async () => { const r = await call('transferir', { comandaId: c.id, mesaDestinoId: m.id }); if (r) { await load(); setSub(null) } }}>{m.numero}</button>
           ))}</div>
@@ -870,8 +916,8 @@ function ComandaView(props: {
 }
 
 // ================= Seleção de itens =================
-function Picker({ produtos, categorias, mesaNumero, onClose, onLancar, busy, msg }: {
-  produtos: Produto[]; categorias: { id: string; name: string }[]; mesaNumero?: number; busy: boolean; msg: string
+function Picker({ produtos, categorias, alvo, onClose, onLancar, busy, msg }: {
+  produtos: Produto[]; categorias: { id: string; name: string }[]; alvo: string; busy: boolean; msg: string
   onClose: () => void; onLancar: (l: Linha[], obs: string) => Promise<boolean>
 }) {
   const [cat, setCat] = useState('all')
@@ -921,7 +967,7 @@ function Picker({ produtos, categorias, mesaNumero, onClose, onLancar, busy, msg
       <div className="ms-cmd">
         <div className="ms-cmdhead">
           <button className="ms-btn ghost" onClick={onClose}>← Comanda</button>
-          <div className="t"><b>Adicionar à mesa {mesaNumero}</b><small>Toque nos produtos e lance o pedido</small></div>
+          <div className="t"><b>Adicionar {alvo}</b><small>Toque nos produtos e lance o pedido</small></div>
         </div>
         <div className="ms-picker">
           <div className="ms-pl">
@@ -1386,6 +1432,10 @@ const CSS = `
 .ms-legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12.5px;color:#3d3a36}
 .ms-legend span{display:flex;align-items:center;gap:6px}
 .ms-legend i{width:14px;height:14px;border-radius:4px;display:inline-block}
+.ms-rethead{margin-top:18px}
+.ms-mesa.ret{background:#fff;border:2px solid #151210}.ms-mesa.ret .top b{font-size:26px;word-break:break-word}
+.ms-mesa.ret.novo{background:transparent;border:2px dashed #8a8678;color:#4f4c47;align-items:center;justify-content:center}
+.ms-mesa.ret.novo .top b{font-size:34px}.ms-mesa.ret.novo .bot{align-items:center}
 .ms-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
 .ms-mesa{border:2px solid #b9bab2;background:#fff;color:#151210;border-radius:10px;padding:10px 14px;min-height:112px;cursor:pointer;text-align:left;display:flex;flex-direction:column;justify-content:space-between;gap:6px}
 .ms-mesa .top{display:flex;justify-content:space-between;align-items:baseline}

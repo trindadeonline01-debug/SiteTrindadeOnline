@@ -57,12 +57,12 @@ async function criarRodada(companyId: string, c: any, entrada: any[], obs: unkno
     }
   }
   const subtotal = r2(linhas.reduce((s, l) => s + l.unit_price * l.qty, 0))
-  const { data: mesa } = await sb.from('loja_mesas').select('numero').eq('id', c.mesa_id).maybeSingle()
+  const { data: mesa } = c.mesa_id ? await sb.from('loja_mesas').select('numero').eq('id', c.mesa_id).maybeSingle() : { data: null }
   // Rodada = pedido comum da loja ligado à comanda. Sem telefone no
   // pedido (fica na comanda) pra não disparar WhatsApp de status nem
   // cashback; origin 'mesa' + comanda_id identificam a rodada.
   const { data: ped, error: pe } = await sb.from('loja_pedidos').insert({
-    company_id: companyId, customer_id: null, customer_name: `Mesa ${mesa?.numero ?? ''}`.trim(), customer_phone: null,
+    company_id: companyId, customer_id: null, customer_name: c.tipo === 'retirada' ? `Retirada ${c.rotulo || '#' + c.numero}`.trim() : `Mesa ${mesa?.numero ?? ''}`.trim(), customer_phone: null,
     delivery_type: 'balcao', origin: 'mesa', comanda_id: c.id,
     subtotal, total: subtotal, accepted_at: new Date().toISOString(),
     notes: obs ? String(obs).slice(0, 300) : null,
@@ -245,6 +245,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, comandaId: c.id })
     }
 
+    // ---------- retirada: conta de quem vem buscar (sem mesa, sem taxa de serviço) ----------
+    if (acao === 'abrir_retirada') {
+      const { data: garcom } = await sb.from('loja_garcons').select('id, nome, ativo').eq('id', String(b.garcomId || '')).eq('company_id', companyId).maybeSingle()
+      if (!garcom || !garcom.ativo) return erro('Escolha quem está atendendo.')
+      const rotulo = String(b.rotulo || '').trim().slice(0, 40) || null
+      const { data: c, error } = await sb.from('loja_comandas').insert({
+        company_id: companyId, mesa_id: null, tipo: 'retirada', rotulo, garcom_id: garcom.id, garcom_nome: garcom.nome,
+        taxa_servico_ativa: false, taxa_servico_pct: Number(company.loja_taxa_servico_pct) || 0,
+        sessao_secret: randomBytes(24).toString('base64url'),
+      }).select('id').single()
+      if (error || !c) return erro('Não consegui abrir a retirada: ' + (error?.message || ''), 500)
+      await evento(companyId, c.id, 'abriu', { retirada: rotulo, garcom: garcom.nome }, garcom.nome)
+      return NextResponse.json({ ok: true, comandaId: c.id })
+    }
+
     // ---------- lançar rodada ----------
     if (acao === 'rodada') {
       const c = await comandaAberta(companyId, b.comandaId)
@@ -387,7 +402,7 @@ export async function POST(req: NextRequest) {
       // Só agora as rodadas contam como vendas pagas.
       await sb.from('loja_pedidos').update({ payment_status: 'pago', payment_method: formas.length === 1 ? formas[0] : (formas.length > 1 ? 'misto' : null), updated_at: agora })
         .eq('comanda_id', c.id).neq('status', 'cancelado')
-      await sb.from('loja_mesa_chamados').update({ status: 'atendido', atendido_em: agora, atendido_por: c.garcom_nome }).eq('mesa_id', c.mesa_id).eq('status', 'aberto')
+      if (c.mesa_id) await sb.from('loja_mesa_chamados').update({ status: 'atendido', atendido_em: agora, atendido_por: c.garcom_nome }).eq('mesa_id', c.mesa_id).eq('status', 'aberto')
       // Cashback da mesa: % próprio da mesa sobre o consumo (já sem desconto, sem a taxa
       // de serviço e sem a parte paga com cashback). Só vale pro próximo pedido do
       // cliente — o crédito entra agora, depois que a conta já foi paga.
@@ -494,10 +509,15 @@ export async function POST(req: NextRequest) {
       if (!dest || !dest.ativa) return erro('Mesa de destino não encontrada.', 404)
       const { data: ocupada } = await sb.from('loja_comandas').select('id').eq('mesa_id', dest.id).eq('status', 'aberta').maybeSingle()
       if (ocupada) return erro(`A mesa ${dest.numero} está ocupada. Use "Juntar mesas".`, 409)
-      const { error } = await sb.from('loja_comandas').update({ mesa_id: dest.id, updated_at: new Date().toISOString() }).eq('id', c.id)
+      const eraRetirada = c.tipo === 'retirada'
+      // Retirada que vira mesa passa a ter a taxa de serviço normal da loja (o garçom ainda pode tirar).
+      const upd: Record<string, unknown> = { mesa_id: dest.id, updated_at: new Date().toISOString() }
+      if (eraRetirada) { upd.tipo = 'mesa'; upd.taxa_servico_pct = Number(company.loja_taxa_servico_pct) || 0; upd.taxa_servico_ativa = Number(company.loja_taxa_servico_pct) > 0 }
+      const { error } = await sb.from('loja_comandas').update(upd).eq('id', c.id)
       if (error) return erro('Não consegui transferir: ' + error.message, 500)
       await sb.from('loja_pedidos').update({ customer_name: `Mesa ${dest.numero}` }).eq('comanda_id', c.id).in('status', ['recebido', 'em_preparo', 'pronto'])
-      await evento(companyId, c.id, 'transferiu', { para: dest.numero }, c.garcom_nome)
+      if (eraRetirada) await recalcComanda(c.id)
+      await evento(companyId, c.id, eraRetirada ? 'retirada_virou_mesa' : 'transferiu', { para: dest.numero }, c.garcom_nome)
       return NextResponse.json({ ok: true })
     }
 

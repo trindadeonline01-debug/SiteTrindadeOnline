@@ -374,6 +374,7 @@ export type KitchenTicketData = {
   items: ReceiptItem[]
   notes?: string | null
   rotulo?: string   // ex.: 'MESA 12' no lugar de ENTREGA/RETIRADA/BALCÃO
+  titulo?: string   // destaque grande no topo no lugar de "PEDIDO #..." (ex.: 'MESA 12')
 }
 
 const KITCHEN_DELIVERY_LABEL: Record<KitchenTicketData['deliveryType'], string> = {
@@ -383,7 +384,7 @@ const KITCHEN_DELIVERY_LABEL: Record<KitchenTicketData['deliveryType'], string> 
 export function buildKitchenTicket(d: KitchenTicketData): string {
   const lines: string[] = []
   lines.push(CMD.init, CMD.alignCenter)
-  lines.push(CMD.boldOn, CMD.doubleOn, `PEDIDO #${d.pedidoShortId}`, CMD.doubleOff, CMD.boldOff, '\n')
+  lines.push(CMD.boldOn, CMD.doubleOn, d.titulo ? d.titulo : `PEDIDO #${d.pedidoShortId}`, CMD.doubleOff, CMD.boldOff, '\n')
   lines.push(new Date(d.createdAt).toLocaleString('pt-BR'), '\n')
   lines.push(CMD.boldOn + (d.rotulo || KITCHEN_DELIVERY_LABEL[d.deliveryType]) + CMD.boldOff, '\n')
   lines.push('-'.repeat(cols()), '\n')

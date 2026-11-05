@@ -206,12 +206,13 @@ export default function MesasPage() {
   // tipo 'producao' = comandinha da cozinha (sem valores); 'completa' = conta.
   // Quantas cópias de cada sai vem de Impressora → "Quantas vias" (0 a 2).
   // forcar: botão manual "Imprimir conta" sempre sai ao menos 1.
-  async function imprimir(conteudos: string[], tipo: 'completa' | 'producao', forcar = false) {
-    if (impressaoPausada) return
-    if (!printerName || conteudos.length === 0) return
+  async function imprimir(conteudos: string[], tipo: 'completa' | 'producao', forcar = false): Promise<boolean> {
+    if (impressaoPausada) return false
+    if (!printerName || conteudos.length === 0) return false
     try {
       for (const c of conteudos) await imprimirVias(printerName, tipo === 'completa' ? c : null, tipo === 'producao' ? c : null, tipo === 'completa' && forcar ? 1 : 0)
-    } catch {}
+      return true
+    } catch { return false }
   }
 
   // ---------- ações ----------
@@ -247,10 +248,12 @@ export default function MesasPage() {
     const mesa = mesaDe(c.mesa_id)
     const items = peds.flatMap(p => p.itens).map(it => ({ qty: it.qty, pesoKg: it.peso_kg, name: it.product_name, unitPrice: it.unit_price, options: it.selected_options }))
     const notes = peds.map(p => p.notes).filter(Boolean).join(' | ') || null
-    await imprimir([buildKitchenTicket({
+    const ok = await imprimir([buildKitchenTicket({
       pedidoShortId: `${c.tipo === 'retirada' ? 'R' + c.numero : (mesa?.numero ?? '')}-${peds.map(p => p.order_number ?? '').join('/')}`, createdAt: new Date().toISOString(), deliveryType: 'balcao',
-      rotulo: `${nomeConta(c)} · ${c.garcom_nome || ''}`, items, notes,
+      titulo: nomeConta(c), rotulo: `Garcom: ${c.garcom_nome || ''}`, items, notes,
     })], 'producao')
+    if (!ok) { setMsg('Não consegui imprimir. Confira a impressora e toque em Imprimir produção de novo.'); return }
+    // Só marca como impresso se saiu de verdade; assim o botão continua pedindo até dar certo.
     if (!todas) await supabase.from('loja_pedidos').update({ impresso_em: new Date().toISOString() }).in('id', peds.map(p => p.id)).is('impresso_em', null)
     setMsg('')
     await load()
@@ -747,7 +750,9 @@ function ComandaView(props: {
 
             <div className="cm-mhead">
               <div><h1>{c.tipo === 'retirada' ? 'Consumo da retirada' : 'Consumo da mesa'}</h1><span>{ativos.length === 0 ? 'Nenhum pedido lançado ainda' : `${ativos.length} ${ativos.length === 1 ? 'rodada' : 'rodadas'} · ${nItens} ${nItens === 1 ? 'item' : 'itens'} · mais recente primeiro`}</span></div>
-              {pendProd > 0 && <button className="cm-prod" disabled={busy} onClick={() => props.imprimirProducao(false)}>🖨️ Imprimir produção ({pendProd} {pendProd === 1 ? 'rodada' : 'rodadas'})</button>}
+              {ativos.length > 0 && (pendProd > 0
+                ? <button className="cm-prod" disabled={busy} onClick={() => props.imprimirProducao(false)}>🖨️ Imprimir produção ({pendProd} {pendProd === 1 ? 'rodada' : 'rodadas'})</button>
+                : <button className="cm-prod again" disabled={busy} onClick={() => props.imprimirProducao(true)}>🖨️ Imprimir produção de novo</button>)}
               {ativos.length > 0 && <button className="cm-add hide-s" onClick={props.onAdd}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#151210" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>Adicionar itens</button>}
             </div>
 
@@ -1344,6 +1349,7 @@ const CSS = `
 .cm-mhead span{font-size:13px;color:#4f4c47}
 .cm-prod{display:flex;align-items:center;justify-content:center;gap:8px;background:#151210;color:#FFC531;border:2px solid #FFC531;border-radius:10px;padding:0 18px;height:52px;font-weight:800;font-size:15px;flex:none;cursor:pointer;animation:cmprod 1.6s ease-in-out infinite}
 .cm-prod:disabled{opacity:.5;animation:none}
+.cm-prod.again{animation:none;background:#fff;color:#151210;border-color:#151210}
 @keyframes cmprod{0%,100%{box-shadow:0 0 0 0 rgba(255,197,49,.55)}50%{box-shadow:0 0 0 8px rgba(255,197,49,0)}}
 @media(max-width:700px){.cm-mhead{flex-wrap:wrap}.cm-prod{width:100%}}
 .cm-add{display:flex;align-items:center;justify-content:center;gap:10px;background:#FFC531;color:#151210;border:0;border-radius:10px;padding:0 22px;height:52px;font-weight:700;font-size:16px;flex:none}

@@ -1532,7 +1532,9 @@ export default function CatalogoPage() {
           .cg-head-search .cg-search{ width:100%; height:38px; padding:0 14px; border:1px solid #807C70; background:#F3F1E8; border-radius:10px; }
           .cg-act-desk .cg-sort{ height:36px; }
           .cg-tool-r1{ display:none; }
-          .cg-tool .cg-filters{ border-top:0; }
+          /* No computador a busca sobe pro cabeçalho: sobra só a fileira de categorias, sem o cartão branco em volta. */
+          .cg-tool{ background:transparent; border:0; box-shadow:none; border-radius:0; }
+          .cg-tool .cg-filters{ border-top:0; padding:0 0 4px; }
           .cg-act-mobile{ display:none; }
           .cg-list-view .cg-tool, .cg-list-view .cg-dirty{ grid-column:1/-1; }
         }

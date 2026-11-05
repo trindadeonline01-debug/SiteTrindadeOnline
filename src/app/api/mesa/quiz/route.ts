@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createHmac, randomInt, timingSafeEqual } from 'crypto'
 import { normalizePhone } from '@/lib/phone'
+import { lerIdentToken, nomeRanking } from '@/lib/mesaIdent'
 import { sendPlatformWhatsApp } from '@/lib/whatsapp'
 import { moduleActive } from '@/lib/modules'
 import {
@@ -160,6 +161,33 @@ export async function POST(req: NextRequest) {
         if (j) retomar = !!(await rodadaAberta(jogadorId))
       }
       return NextResponse.json({ ativo: true, premio: !!ctx.camp.premio_ativo, loja: ctx.company.name, mesa: ctx.mesa.numero, jogador, retomar, perguntas: BANCO.length })
+    }
+
+    // ================= cadastro pela identificação única (nome + WhatsApp já confirmado) =================
+    // O ranking mostra o primeiro nome + inicial do sobrenome ("Maria S."). Quem já jogou aqui com este
+    // WhatsApp volta com o mesmo nome de antes. Repetiu o nome na loja: ganha " 2", " 3"…
+    if (acao === 'cadastro_ident') {
+      const id = lerIdentToken(b.ident)
+      if (!id) return erro('Identifique-se com seu nome e WhatsApp para jogar.', 401)
+      if (!b.idade || !b.aceite) return erro('Para jogar, confirme que tem 18 anos ou mais e aceite aparecer no ranking.')
+      let { data: j } = await sb.from('quiz_jogadores').select('id, apelido').eq('company_id', cid).eq('telefone', id.tel).maybeSingle()
+      if (!j) {
+        const base = nomeRanking(id.nome)
+        const norm = normApelido(base)
+        // Só barra palavrão "de verdade" (termos curtos como "cu" pegariam nomes normais, ex.: Marcus).
+        if (norm.length < 2 || PALAVROES.some(p => p.length >= 5 && norm.includes(p))) return erro('Esse nome não pode aparecer no ranking. Use seu nome verdadeiro.')
+        for (let n = 1; n <= 9 && !j; n++) {
+          const ap = n === 1 ? base : `${base} ${n}`
+          const ins = await sb.from('quiz_jogadores').insert({ company_id: cid, apelido: ap, apelido_norm: normApelido(ap), telefone: id.tel, maior_idade: true, aceite_ranking: true }).select('id, apelido').single()
+          if (!ins.error) { j = ins.data; break }
+          if (ins.error.code !== '23505') return erro('Não consegui salvar o cadastro.', 500)
+          // 23505 pode ser o apelido repetido (tenta o próximo número) ou o mesmo WhatsApp criado agora há pouco.
+          const { data: ja } = await sb.from('quiz_jogadores').select('id, apelido').eq('company_id', cid).eq('telefone', id.tel).maybeSingle()
+          if (ja) j = ja
+        }
+        if (!j) return erro('Não consegui salvar o cadastro.', 500)
+      }
+      return NextResponse.json({ ok: true, jt: criarToken(j.id, cid), apelido: j.apelido })
     }
 
     // ================= cadastro: apelido + WhatsApp + código =================

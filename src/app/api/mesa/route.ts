@@ -8,6 +8,8 @@ import { moduleActive } from '@/lib/modules'
 import { sb, erro, r2, configQr, resolveOpcoes, evento, telefoneVerificado, type ProdutoMesaDb } from '@/lib/mesas'
 import { sendPlatformWhatsApp } from '@/lib/whatsapp'
 import { getSaldoCashback } from '@/lib/cashback'
+import { criarIdentToken, lerIdentToken, limparNome } from '@/lib/mesaIdent'
+import { randomInt } from 'crypto'
 
 // Página pública da mesa (QR). Sem login: o QR identifica só a mesa. Aqui o
 // celular PEDE; o servidor confere tudo (mesa, conta, produto, opção, preço) e
@@ -51,6 +53,27 @@ async function contarEventos(comandaId: string, tipo: string, ms: number) {
     .eq('comanda_id', comandaId).eq('tipo', tipo).gte('criado_em', new Date(Date.now() - ms).toISOString())
   return count || 0
 }
+// Contadores de envio/erro do código de identificação, guardados em `whatsapp_verifications`
+// com chaves próprias (id:<tel>, idx:<tel> = erros, idip:<ip> = envios por IP).
+async function contarVerif(chave: string, ms: number) {
+  const { count } = await sb.from('whatsapp_verifications').select('id', { count: 'exact', head: true })
+    .eq('phone', chave).gte('created_at', new Date(Date.now() - ms).toISOString())
+  return count || 0
+}
+
+// Amarra o cliente identificado à conta aberta da mesa (cashback do fechamento). Uma conta,
+// um WhatsApp: se a conta já tem outro número, não troca (só o garçom troca) e devolve false.
+async function vincularConta(companyId: string, comandaId: string, id: { tel: string; nome: string }): Promise<boolean> {
+  const { data: c } = await sb.from('loja_comandas').select('customer_phone, customer_name').eq('id', comandaId).maybeSingle()
+  if (!c) return false
+  if (c.customer_phone && c.customer_phone !== id.tel) return false
+  if (!c.customer_phone || !c.customer_name) {
+    await sb.from('loja_comandas').update({ customer_phone: id.tel, customer_name: c.customer_name || id.nome }).eq('id', comandaId)
+  }
+  if (!(await telefoneVerificado(comandaId, id.tel))) await evento(companyId, comandaId, 'telefone_verificado', { telefone: id.tel }, null)
+  return true
+}
+
 export async function POST(req: NextRequest) {
   try {
     const b: Record<string, any> = await req.json()
@@ -111,6 +134,10 @@ export async function POST(req: NextRequest) {
       if ((ultMin || 0) >= cfg.porMinuto) return erro('Muitos pedidos em sequência. Espere um instante e tente de novo.', 429)
       if ((abertos || 0) >= 5) return erro('Já há pedidos esperando o garçom. Aguarde a confirmação.', 429)
 
+      // Pedir exige o cliente identificado (nome + WhatsApp confirmado por código).
+      const ident = lerIdentToken(b.ident)
+      if (!ident) return erro('Identifique-se com seu nome e WhatsApp para enviar o pedido.', 401)
+
       const entrada: any[] = Array.isArray(b.itens) ? b.itens : []
       if (entrada.length === 0 || entrada.length > 40) return erro('Escolha pelo menos um item.')
       const ids = [...new Set(entrada.map(i => String(i?.produtoId || '')))]
@@ -134,13 +161,13 @@ export async function POST(req: NextRequest) {
         itens.push({ produtoId: p.id, nome: p.name, qty, modifiers: o.mods, notes: i.obs ? String(i.obs).slice(0, 120) : null, unit })
       }
       const total = r2(itens.reduce((s, i) => s + i.unit * i.qty, 0))
-      const tel = normalizePhone(b.telefone)
-      if (b.telefone && (tel.length < 12 || tel.length > 13)) return erro('Confira o número do WhatsApp (com DDD) ou deixe em branco.')
-      const nome = b.nome ? String(b.nome).trim().slice(0, 40) : ''
+      const tel = ident.tel
+      const nome = ident.nome
+      if (comanda) await vincularConta(company.id, comanda.id, ident)
       const resumo = `${itens.reduce((s, i) => s + i.qty, 0)} ${itens.reduce((s, i) => s + i.qty, 0) === 1 ? 'item' : 'itens'} · R$ ${total.toFixed(2).replace('.', ',')}`
       const { data: ch, error } = await sb.from('loja_mesa_chamados').insert({
         company_id: company.id, mesa_id: mesa.id, comanda_id: comanda?.id ?? null, tipo: 'pedido', mensagem: resumo,
-        payload: { itens, obs: b.obs ? String(b.obs).slice(0, 300) : null, telefone: tel || null, nome: nome || null, total },
+        payload: { itens, obs: b.obs ? String(b.obs).slice(0, 300) : null, telefone: tel, nome, verificado: true, total },
       }).select('id').single()
       if (error || !ch) return erro('Não consegui enviar o pedido. Chame o garçom.', 500)
       return NextResponse.json({ ok: true, chamadoId: ch.id, total, aguardando: true })
@@ -166,7 +193,56 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
-    // ---------- identificação do cliente por código (cashback) ----------
+    // ---------- identificação única do cliente: nome + WhatsApp + código ----------
+    if (acao === 'ident_enviar' || acao === 'ident_verificar') {
+      const nome = limparNome(b.nome)
+      if (!nome) return erro('Digite seu nome (só letras).')
+      const tel = normalizePhone(b.telefone)
+      if (tel.length < 12 || tel.length > 13) return erro('Confira o número do WhatsApp (com DDD).')
+
+      if (acao === 'ident_enviar') {
+        const ip = (req.headers.get('x-forwarded-for') || 'x').split(',')[0].trim()
+        const chaveIp = `idip:${ip}`
+        if ((await contarVerif(chaveIp, 3_600_000)) >= 10) return erro('Muitos pedidos de código. Tente de novo mais tarde.', 429)
+        if ((await contarVerif(`id:${tel}`, 60_000)) >= 1) return erro('Aguarde 1 minuto para pedir outro código.', 429)
+        if ((await contarVerif(`id:${tel}`, 3_600_000)) >= 3) return erro('Muitos códigos pedidos para este número. Chame o garçom.', 429)
+        const venc = new Date(Date.now() + 10 * 60_000).toISOString()
+        await sb.from('whatsapp_verifications').insert({ phone: chaveIp, code: 'ip', expires_at: venc, used: true })
+        const code = String(randomInt(0, 1_000_000)).padStart(6, '0')
+        await sb.from('whatsapp_verifications').insert({ phone: `id:${tel}`, code, expires_at: venc })
+        const r = await sendPlatformWhatsApp(tel, `🔐 Seu código Trindade Online (${company.name}): *${code}*\n\nVale por 10 minutos. Não compartilhe com ninguém.`)
+        if (!r.ok) return erro('Não consegui enviar o código agora. Chame o garçom.', 502)
+        await sb.from('whatsapp_verifications').delete().or('phone.like.id:*,phone.like.idx:*,phone.like.idip:*').lt('created_at', new Date(Date.now() - 86_400_000).toISOString())
+        return NextResponse.json({ ok: true })
+      }
+
+      // ident_verificar
+      if ((await contarVerif(`idx:${tel}`, 10 * 60_000)) >= 5) return erro('Muitas tentativas erradas. Peça um código novo daqui a alguns minutos.', 429)
+      const dig = String(b.codigo || '').replace(/\D/g, '')
+      const { data: rec } = await sb.from('whatsapp_verifications').select('id, code').eq('phone', `id:${tel}`).eq('used', false)
+        .gt('expires_at', new Date().toISOString()).order('created_at', { ascending: false }).limit(1).maybeSingle()
+      if (!rec || dig.length !== 6 || !igual(dig, String(rec.code))) {
+        await sb.from('whatsapp_verifications').insert({ phone: `idx:${tel}`, code: 'erro', expires_at: new Date(Date.now() + 600_000).toISOString(), used: true })
+        return erro('Código incorreto ou vencido.', 400)
+      }
+      await sb.from('whatsapp_verifications').update({ used: true }).eq('id', rec.id)
+      let vinculada = false
+      if (comanda && sessaoConfere(comanda, b.sessao)) vinculada = await vincularConta(company.id, comanda.id, { tel, nome })
+      const saldo = company.cashback_enabled ? r2(await getSaldoCashback(sb, company.id, tel)) : 0
+      return NextResponse.json({ ok: true, token: criarIdentToken(tel, nome), nome, telefone: tel, saldo, vinculada })
+    }
+
+    // Carteira de quem já se identificou (token): funciona antes mesmo de a conta abrir.
+    if (acao === 'carteira' && b.ident) {
+      const ident = lerIdentToken(b.ident)
+      if (!ident) return erro('Sua identificação venceu. Informe seu WhatsApp de novo.', 401)
+      let vinculada = false
+      if (comanda && sessaoConfere(comanda, b.sessao)) vinculada = await vincularConta(company.id, comanda.id, ident)
+      const saldo = company.cashback_enabled ? r2(await getSaldoCashback(sb, company.id, ident.tel)) : 0
+      return NextResponse.json({ ok: true, verificado: true, telefone: ident.tel, nome: ident.nome, saldo, vinculada })
+    }
+
+    // ---------- identificação do cliente por código (cashback, fluxo antigo) ----------
     if (acao === 'carteira' || acao === 'codigo_enviar' || acao === 'codigo_verificar') {
       if (!company.cashback_enabled) return erro('Esta loja não usa cashback.', 400)
       if (!comanda) return erro('A conta ainda não foi aberta. Peça ao garçom ou envie um pedido primeiro.', 409)

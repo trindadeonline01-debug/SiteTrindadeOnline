@@ -11,10 +11,12 @@ type Prod = { id: string; name: string; description: string | null; photo: strin
 type Info = { empresa: { nome: string; logo?: string }; mesa: { numero: number }; contaAberta: boolean; sessao: string | null; podePedir: boolean; cashback: { ativo: boolean; percentual: number }; categorias: { id: string; name: string }[]; produtos: Prod[] }
 type Linha = { key: string; prod: Prod; qty: number; opcoes: Opcao[]; unit: number }
 type Carteira = { verificado: boolean; saldo: number; telefone: string | null }
+type Ident = { nome: string; telefone: string; token: string }
 type Envio = { chamadoId: string; status: 'aberto' | 'atendido' | 'cancelado'; motivo: string | null }
 
 const fmt = (n: number) => 'R$ ' + n.toFixed(2).replace('.', ',')
 const PEND = (t: string) => `mesa_pend_${t}`
+const IDENT_KEY = 'trindade_ident'
 
 export default function MesaClient({ token }: { token: string }) {
   const [info, setInfo] = useState<Info | null>(null)
@@ -24,7 +26,6 @@ export default function MesaClient({ token }: { token: string }) {
   const [opc, setOpc] = useState<{ p: Prod; sel: string[][] } | null>(null)
   const [carrinho, setCarrinho] = useState(false)
   const [obs, setObs] = useState('')
-  const [tel, setTel] = useState('')
   // Pedido enviado antes de recarregar a página continua sendo acompanhado.
   const [envio, setEnvio] = useState<Envio | null>(() => {
     try {
@@ -37,18 +38,17 @@ export default function MesaClient({ token }: { token: string }) {
   const [aviso, setAviso] = useState('')
   const [chamou, setChamou] = useState<'garcom' | 'conta' | null>(null)
   const [busca, setBusca] = useState('')
-  const [cashSheet, setCashSheet] = useState(false)
   const [rolou, setRolou] = useState(false)
   const [logoOk, setLogoOk] = useState(true)
   // Foto do que foi enviado (as linhas são limpas quando o garçom confirma).
   const [enviado, setEnviado] = useState<{ linhas: Linha[]; total: number; hora: string } | null>(null)
-  // Identificação por código (cashback)
+  // Identificação única (nome + WhatsApp confirmado por código), guardada neste aparelho.
+  const [ident, setIdent] = useState<Ident | null>(null)
+  const [identPara, setIdentPara] = useState<null | 'jogar' | 'cashback' | 'pedir'>(null)
   const [cart, setCart] = useState<Carteira | null>(null)
-  const [idTel, setIdTel] = useState('')
-  const [idCod, setIdCod] = useState('')
-  const [idEtapa, setIdEtapa] = useState<'tel' | 'codigo'>('tel')
-  const [idMsg, setIdMsg] = useState('')
-  const [idBusy, setIdBusy] = useState(false)
+  const [menuAberto, setMenuAberto] = useState(false)
+  const depoisIdent = useRef<null | (() => void)>(null)
+  const identRef = useRef<Ident | null>(null) // sempre o valor mais novo (o que roda depois da identificação não pode ver o estado velho)
   const sessaoRef = useRef<string | null>(null)
   const seq = useRef(0)
 
@@ -75,9 +75,19 @@ export default function MesaClient({ token }: { token: string }) {
       // Quiz ligado nesta loja? Mostra o botão "Jogar".
       fetch('/api/mesa/quiz', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, acao: 'estado' }) })
         .then(q => q.json()).then(q => { if (vivo) setQuizOn(!!q.ativo) }).catch(() => {})
-      if (r.data.contaAberta && r.data.cashback?.ativo) {
-        call('carteira').then(c => { if (vivo && c.ok) setCart({ verificado: !!c.data.verificado, saldo: Number(c.data.saldo) || 0, telefone: c.data.telefone || null }) })
+      // Cliente que já se identificou neste aparelho: confere o cadastro e já mostra o cashback dele.
+      let salvo: Ident | null = null
+      try { salvo = JSON.parse(localStorage.getItem(IDENT_KEY) || 'null') } catch {}
+      if (salvo?.token) {
+        const id = salvo
+        call('carteira', { ident: id.token }).then(c => {
+          if (!vivo) return
+          if (c.ok) { identRef.current = id; setIdent(id); setCart({ verificado: true, saldo: Number(c.data.saldo) || 0, telefone: id.telefone }) }
+          else if (c.status === 401) { try { localStorage.removeItem(IDENT_KEY) } catch {} }
+        })
       }
+      // Veio do quiz sem estar identificado: abre a identificação para jogar.
+      if (new URLSearchParams(window.location.search).get('identificar') === 'jogar') setIdentPara('jogar')
     })
     return () => { vivo = false }
   }, [call, token])
@@ -127,19 +137,29 @@ export default function MesaClient({ token }: { token: string }) {
   const qtdDoProduto = (id: string) => linhas.filter(l => l.prod.id === id).reduce((s, l) => s + l.qty, 0)
   const catsComItem = useMemo(() => (info?.categorias || []).filter(c => info?.produtos.some(p => p.categoriaId === c.id)), [info])
 
-  async function enviarCodigo() {
-    setIdBusy(true); setIdMsg('')
-    const r = await call('codigo_enviar', { telefone: idTel })
-    setIdBusy(false)
-    if (!r.ok) { setIdMsg(r.data?.error || 'Não consegui enviar o código.'); return }
-    setIdEtapa('codigo'); setIdCod(''); setIdMsg('Enviamos um código de 6 números para o seu WhatsApp.')
+  // Identificação concluída (código confirmado): guarda neste aparelho e segue o que o cliente queria fazer.
+  function identificado(i: Ident, saldo: number, fechar = true) {
+    identRef.current = i; setIdent(i); setCart({ verificado: true, saldo, telefone: i.telefone })
+    try { localStorage.setItem(IDENT_KEY, JSON.stringify(i)) } catch {}
+    if (!fechar) return
+    setIdentPara(null)
+    const seguir = depoisIdent.current; depoisIdent.current = null
+    if (seguir) setTimeout(seguir, 0)
   }
-  async function confirmarCodigo() {
-    setIdBusy(true); setIdMsg('')
-    const r = await call('codigo_verificar', { telefone: idTel, codigo: idCod })
-    setIdBusy(false)
-    if (!r.ok) { setIdMsg(r.data?.error || 'Código incorreto.'); return }
-    setCart({ verificado: true, saldo: Number(r.data.saldo) || 0, telefone: r.data.telefone || null }); setIdMsg('')
+  // Pede identificação (ou segue direto se o cliente já tem cadastro neste aparelho).
+  function exigirIdent(para: 'jogar' | 'cashback' | 'pedir', seguir: () => void) {
+    if (identRef.current && para !== 'jogar') { seguir(); return }
+    depoisIdent.current = seguir
+    setIdentPara(para)
+  }
+  async function irJogar(i: Ident) {
+    // Cadastra o jogador no quiz (o servidor confere o nome e o WhatsApp pelo token) e abre o jogo.
+    const res = await fetch('/api/mesa/quiz', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, acao: 'cadastro_ident', ident: i.token, idade: true, aceite: true }) })
+    const d = await res.json().catch(() => ({}))
+    if (!res.ok) return d?.error || 'Não consegui abrir o quiz agora.'
+    try { localStorage.setItem('quizjt:' + token, d.jt) } catch {}
+    window.location.href = `/mesa/${token}/quiz`
+    return null
   }
 
   function addLinha(p: Prod, opcoes: Opcao[]) {
@@ -179,12 +199,15 @@ export default function MesaClient({ token }: { token: string }) {
 
   async function enviar() {
     if (linhas.length === 0 || busy) return
+    const ident = identRef.current
+    if (!ident) { exigirIdent('pedir', () => { void enviar() }); return }
     setBusy(true); setAviso('')
     const r = await call('pedir', {
       itens: linhas.map(l => ({ produtoId: l.prod.id, qty: l.qty, opcoes: l.opcoes.map(o => o.id) })),
-      obs: obs.trim() || undefined, telefone: tel.trim() || undefined,
+      obs: obs.trim() || undefined, ident: ident.token,
     })
     setBusy(false)
+    if (r.status === 401) { try { localStorage.removeItem(IDENT_KEY) } catch {} identRef.current = null; setIdent(null); setCart(null); exigirIdent('pedir', () => { void enviar() }); return }
     if (r.status === 409) { await carregar(); setAviso(r.data?.error || 'A conta mudou. Confira o pedido e envie de novo.'); return }
     if (!r.ok) { setAviso(r.data?.error || 'Não consegui enviar. Chame o garçom.'); return }
     try { localStorage.setItem(PEND(token), r.data.chamadoId) } catch {}
@@ -252,6 +275,7 @@ export default function MesaClient({ token }: { token: string }) {
     )
   }
 
+  const quizBtn = () => exigirIdent('jogar', () => {})
   return (
     <Tela>
       {miniBar(rolou)}
@@ -270,28 +294,15 @@ export default function MesaClient({ token }: { token: string }) {
         <p>Você está na mesa {info.mesa.numero}. {info.podePedir ? 'O garçom confirma o pedido antes de ir para a cozinha.' : 'Os pedidos desta mesa são feitos com o garçom.'}</p>
       </header>
 
-      <div className={`mz-acts ${info.contaAberta ? 'two' : 'one'}`}>
-        <button className="mz-act pri" disabled={busy} onClick={() => chamar('garcom')}>
-          <span className="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15z" /><path d="M10 21h4" /></svg></span>
-          {chamou === 'garcom' ? '✓ Garçom avisado' : 'Chamar garçom'}
-        </button>
-        {info.contaAberta && (
-          <button className="mz-act" disabled={busy} onClick={() => chamar('conta')}>
-            <span className="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z" /><path d="M9 8h6M9 12h6" /></svg></span>
-            {chamou === 'conta' ? '✓ Conta pedida' : 'Pedir a conta'}
-          </button>
-        )}
-      </div>
-
       {(quizOn || info.cashback.ativo) && (
         <div className={`mz-promo ${quizOn && info.cashback.ativo ? '' : 'solo'}`}>
           {quizOn && (
-            <a className="mz-pcard pq" href={`/mesa/${token}/quiz`}>
+            <button type="button" className="mz-pcard pq" onClick={quizBtn}>
               <span className="ico"><svg viewBox="0 0 24 24" fill="none" stroke="#151210" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z" /><path d="M7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3" /></svg></span>
               <b>Quiz Pesca Premiada</b>
               <p>Suba no ranking da casa.</p>
               <span className="bt">Jogar</span>
-            </a>
+            </button>
           )}
           {info.cashback.ativo && (
             <div className="mz-pcard pc5">
@@ -306,9 +317,7 @@ export default function MesaClient({ token }: { token: string }) {
                 <>
                   <div className="top5"><span className="up">Até</span><span className="big">{cashPct}<small>%</small></span></div>
                   <p className="rt2">de cashback na sua próxima compra</p>
-                  {info.contaAberta
-                    ? <button className="bt" onClick={() => { setCashSheet(true); setIdMsg('') }}>Ativar</button>
-                    : <span className="bt ok">Peça e ative</span>}
+                  <button className="bt" onClick={() => exigirIdent('cashback', () => {})}>Ativar</button>
                 </>
               )}
             </div>
@@ -316,49 +325,71 @@ export default function MesaClient({ token }: { token: string }) {
         </div>
       )}
 
-      {!info.podePedir ? (
-        <div className="mz-box"><p>Hoje os pedidos desta mesa são feitos com o garçom. Use “Chamar garçom”.</p></div>
-      ) : (
+      <div className={`mz-acts ${info.contaAberta ? 'two' : 'one'}`}>
+        <button className="mz-act pri" disabled={busy} onClick={() => chamar('garcom')}>
+          <span className="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15z" /><path d="M10 21h4" /></svg></span>
+          {chamou === 'garcom' ? '✓ Garçom avisado' : 'Chamar garçom'}
+        </button>
+        {info.contaAberta && (
+          <button className="mz-act" disabled={busy} onClick={() => chamar('conta')}>
+            <span className="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z" /><path d="M9 8h6M9 12h6" /></svg></span>
+            {chamou === 'conta' ? '✓ Conta pedida' : 'Pedir a conta'}
+          </button>
+        )}
+      </div>
+      {aviso && !carrinho && !menuAberto && <div className="mz-aviso" role="status">{aviso}</div>}
+
+      {info.podePedir ? (
         <>
-          <div className="mz-sbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="M20 20l-4-4" /></svg>
-            <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar no cardápio" aria-label="Buscar no cardápio" />
-          </div>
-          {catsComItem.length > 1 && (
-            <nav className={`mz-cats ${rolou ? 'under' : ''}`} aria-label="Categorias">
-              <button className={cat === 'todas' ? 'on' : ''} onClick={() => setCat('todas')}>Tudo</button>
-              {catsComItem.map(c => <button key={c.id} className={cat === c.id ? 'on' : ''} onClick={() => setCat(c.id)}>{c.name}</button>)}
-            </nav>
+          <button type="button" className={`mz-vercard ${menuAberto ? 'on' : ''}`} onClick={() => setMenuAberto(v => !v)} aria-expanded={menuAberto}>
+            <span>{menuAberto ? 'Ocultar cardápio' : 'Ver cardápio'}</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+          </button>
+          {menuAberto && (
+            <div className="mz-menu">
+              <div className="mz-sbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="M20 20l-4-4" /></svg>
+                <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar no cardápio" aria-label="Buscar no cardápio" />
+              </div>
+              {catsComItem.length > 1 && (
+                <nav className={`mz-cats ${rolou ? 'under' : ''}`} aria-label="Categorias">
+                  <button className={cat === 'todas' ? 'on' : ''} onClick={() => setCat('todas')}>Tudo</button>
+                  {catsComItem.map(c => <button key={c.id} className={cat === c.id ? 'on' : ''} onClick={() => setCat(c.id)}>{c.name}</button>)}
+                </nav>
+              )}
+              {aviso && !carrinho && <div className="mz-aviso" role="status">{aviso}</div>}
+              {secoes.map(sec => (
+                <section key={sec.id} className="mz-sec">
+                  {sec.nome && <div className="mz-h"><b>{sec.nome}</b><small>{sec.itens.length} {sec.itens.length === 1 ? 'item' : 'itens'}</small></div>}
+                  <ul className="mz-lista">
+                    {sec.itens.map(p => {
+                      const q = qtdDoProduto(p.id)
+                      const simples = p.grupos.length === 0
+                      const keySimples = p.id + '|'
+                      return (
+                        <li key={p.id} className="mz-item">
+                          {p.photo && <img src={p.photo} alt="" loading="lazy" />}
+                          <div className="mz-info">
+                            <b>{p.name}</b>
+                            {p.description && <small>{p.description}</small>}
+                            <span className="mz-preco">{p.porPeso ? `${fmt(p.preco)}` : fmt(p.preco)}{p.porPeso && <em> / kg</em>}{p.precoCheio && !p.porPeso && <s>{fmt(p.precoCheio)}</s>}</span>
+                          </div>
+                          {p.porPeso
+                            ? <button className="mz-peso" disabled={busy} onClick={() => chamar('garcom', `Quer pedir "${p.name}" (por peso)`)}>Por peso<br />chamar garçom</button>
+                            : simples && q > 0
+                              ? <div className="mz-step"><button aria-label={`Tirar ${p.name}`} onClick={() => mudarQtd(keySimples, -1)}>−</button><b>{q}</b><button aria-label={`Adicionar ${p.name}`} onClick={() => tocar(p)}>+</button></div>
+                              : <button className="mz-add" aria-label={`Adicionar ${p.name}`} onClick={() => tocar(p)}>{q > 0 ? <span className="n">{q}</span> : '+'}</button>}
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </section>
+              ))}
+              {visiveis.length === 0 && <p className="mz-vazio">Nada por aqui ainda.</p>}
+            </div>
           )}
-          {aviso && !carrinho && <div className="mz-aviso" role="status">{aviso}</div>}
-          {secoes.map(sec => (
-            <section key={sec.id} className="mz-sec">
-              {sec.nome && <div className="mz-h"><b>{sec.nome}</b><small>{sec.itens.length} {sec.itens.length === 1 ? 'item' : 'itens'}</small></div>}
-              <ul className="mz-lista">
-                {sec.itens.map(p => {
-                  const q = qtdDoProduto(p.id)
-                  const simples = p.grupos.length === 0
-                  const keySimples = p.id + '|'
-                  return (
-                    <li key={p.id} className="mz-item">
-                      {p.photo && <img src={p.photo} alt="" loading="lazy" />}
-                      <div className="mz-info">
-                        <b>{p.name}</b>
-                        {p.description && <small>{p.description}</small>}
-                        <span className="mz-preco">{p.porPeso ? `${fmt(p.preco)}` : fmt(p.preco)}{p.porPeso && <em> / kg</em>}{p.precoCheio && !p.porPeso && <s>{fmt(p.precoCheio)}</s>}</span>
-                      </div>
-                      {p.porPeso
-                        ? <button className="mz-peso" disabled={busy} onClick={() => chamar('garcom', `Quer pedir "${p.name}" (por peso)`)}>Por peso<br />chamar garçom</button>
-                        : simples && q > 0
-                          ? <div className="mz-step"><button aria-label={`Tirar ${p.name}`} onClick={() => mudarQtd(keySimples, -1)}>−</button><b>{q}</b><button aria-label={`Adicionar ${p.name}`} onClick={() => tocar(p)}>+</button></div>
-                          : <button className="mz-add" aria-label={`Adicionar ${p.name}`} onClick={() => tocar(p)}>{q > 0 ? <span className="n">{q}</span> : '+'}</button>}
-                    </li>
-                  )
-                })}
-              </ul>
-            </section>
-          ))}
-          {visiveis.length === 0 && <p className="mz-vazio">Nada por aqui ainda.</p>}
         </>
+      ) : (
+        <div className="mz-box"><p>Hoje os pedidos desta mesa são feitos com o garçom. Use “Chamar garçom”.</p></div>
       )}
 
       {qtdTotal > 0 && !carrinho && (
@@ -367,38 +398,6 @@ export default function MesaClient({ token }: { token: string }) {
         </button>
       )}
 
-      {cashSheet && (
-        <Sheet titulo="" onClose={() => setCashSheet(false)}>
-          <div className="mz-cs">
-            <div className="ico5">{cashPct}%</div>
-            <h3>Até {cashPct}% de cashback</h3>
-            {cart?.verificado ? (
-              <>
-                <p className="s">Pronto! Seu cashback está ativo. Seu saldo nesta casa: <b>{fmt(cart.saldo)}</b>.</p>
-                <button className="mz-pb" onClick={() => setCashSheet(false)}>Fechar</button>
-              </>
-            ) : idEtapa === 'tel' ? (
-              <>
-                <p className="s">Confirme seu WhatsApp para guardar o cashback e usar na sua próxima compra nesta casa.</p>
-                <label>Seu WhatsApp</label>
-                <input inputMode="tel" autoComplete="tel" placeholder="(21) 99999-9999" value={idTel} onChange={e => setIdTel(e.target.value)} aria-label="Seu WhatsApp" />
-                <button className="mz-pb" disabled={idBusy || idTel.replace(/\D/g, '').length < 10} onClick={enviarCodigo}>{idBusy ? 'Enviando…' : 'Receber código'}</button>
-                <p className="nt">Você recebe um código de 6 números no WhatsApp. O cashback é liberado quando a conta é paga.</p>
-              </>
-            ) : (
-              <>
-                <p className="s">Digite o código de 6 números que chegou no seu WhatsApp.</p>
-                <label>Código</label>
-                <input inputMode="numeric" maxLength={6} placeholder="000000" value={idCod} onChange={e => setIdCod(e.target.value.replace(/\D/g, ''))} aria-label="Código de 6 números" />
-                <button className="mz-pb" disabled={idBusy || idCod.length < 6} onClick={confirmarCodigo}>{idBusy ? 'Conferindo…' : 'Confirmar'}</button>
-                <button className="mz-link" onClick={() => { setIdEtapa('tel'); setIdMsg('') }}>Trocar número</button>
-              </>
-            )}
-            {idMsg && <small className="mz-idmsg" role="status">{idMsg}</small>}
-            <button className="mz-link" onClick={() => setCashSheet(false)}>Agora não</button>
-          </div>
-        </Sheet>
-      )}
 
       {opc && (
         <Sheet titulo={opc.p.name} onClose={() => setOpc(null)}>
@@ -440,11 +439,6 @@ export default function MesaClient({ token }: { token: string }) {
           <label className="mz-lbl">Alguma observação?
             <textarea value={obs} maxLength={300} onChange={e => setObs(e.target.value)} placeholder="Ex.: sem cebola" rows={2} />
           </label>
-          {!info.contaAberta && (
-            <label className="mz-lbl">Em qual WhatsApp coloco o pedido? <small>(opcional)</small>
-              <input inputMode="tel" autoComplete="tel" value={tel} onChange={e => setTel(e.target.value)} placeholder="(21) 99999-9999" />
-            </label>
-          )}
           <p className="mz-nota">O garçom confirma o pedido antes de ir para a cozinha. {info.contaAberta ? '' : 'Sua conta será aberta por ele.'}</p>
           {aviso && <div className="mz-aviso" role="alert">{aviso}</div>}
           <div className="mz-tot"><span>Total do pedido</span><b>{fmt(total)}</b></div>
@@ -453,7 +447,115 @@ export default function MesaClient({ token }: { token: string }) {
         </Sheet>
       )}
 
+      {identPara && (
+        <IdentModal
+          para={identPara}
+          atual={ident}
+          call={call}
+          onClose={() => { setIdentPara(null); depoisIdent.current = null }}
+          onFeito={identificado}
+          onJogar={irJogar}
+        />
+      )}
     </Tela>
+  )
+}
+
+type CallFn = (acao: string, extra?: Record<string, unknown>) => Promise<{ ok: boolean; status: number; data: Record<string, unknown> }>
+
+// Identificação única: nome + WhatsApp + código de 6 números. Pede para jogar, ativar o
+// cashback e enviar pedido; quem já se identificou neste aparelho não digita de novo.
+function IdentModal({ para, atual, call, onClose, onFeito, onJogar }: {
+  para: 'jogar' | 'cashback' | 'pedir'; atual: Ident | null; call: CallFn; onClose: () => void
+  onFeito: (i: Ident, saldo: number, fechar?: boolean) => void; onJogar: (i: Ident) => Promise<string | null>
+}) {
+  const [nome, setNome] = useState(atual?.nome || '')
+  const [tel, setTel] = useState('')
+  const [cod, setCod] = useState('')
+  const [etapa, setEtapa] = useState<'dados' | 'codigo'>('dados')
+  const [idade, setIdade] = useState(false)
+  const [rank, setRank] = useState(false)
+  const [msg, setMsg] = useState('')
+  const [busy, setBusy] = useState(false)
+  const jogar = para === 'jogar'
+  const jaIdentificado = !!atual && jogar // só falta confirmar 18+ e ranking
+  const titulos = { jogar: 'Antes de jogar', cashback: 'Ativar cashback', pedir: 'Antes de pedir' }
+  const textos = {
+    jogar: 'Informe seu nome e WhatsApp. No ranking aparece só seu primeiro nome com a inicial do sobrenome.',
+    cashback: 'Informe seu nome e WhatsApp para guardar o cashback e usar na sua próxima compra nesta casa.',
+    pedir: 'Informe seu nome e WhatsApp para o garçom saber quem está pedindo. É só desta vez.',
+  }
+  const AVISO_JOGAR = 'Para jogar, confirme que tem 18 anos ou mais e aceite aparecer no ranking.'
+
+  async function jogarAgora(i: Ident) {
+    if (!idade || !rank) { setMsg(AVISO_JOGAR); return }
+    setBusy(true); setMsg('')
+    const erro = await onJogar(i)
+    setBusy(false)
+    if (erro) setMsg(erro)
+  }
+  async function enviarCodigo() {
+    if (nome.trim().length < 2) { setMsg('Digite seu nome.'); return }
+    if (tel.replace(/\D/g, '').length < 10) { setMsg('Digite seu WhatsApp com DDD.'); return }
+    if (jogar && (!idade || !rank)) { setMsg(AVISO_JOGAR); return }
+    setBusy(true); setMsg('')
+    const r = await call('ident_enviar', { nome, telefone: tel })
+    setBusy(false)
+    if (!r.ok) { setMsg(String(r.data?.error || 'Não consegui enviar o código.')); return }
+    setEtapa('codigo'); setCod(''); setMsg('Enviamos um código de 6 números para o seu WhatsApp.')
+  }
+  async function confirmar() {
+    setBusy(true); setMsg('')
+    const r = await call('ident_verificar', { nome, telefone: tel, codigo: cod })
+    if (!r.ok) { setBusy(false); setMsg(String(r.data?.error || 'Código incorreto.')); return }
+    const i: Ident = { nome: String(r.data.nome), telefone: String(r.data.telefone), token: String(r.data.token) }
+    onFeito(i, Number(r.data.saldo) || 0, !jogar)
+    if (jogar) await jogarAgora(i)
+    setBusy(false)
+  }
+
+  return (
+    <Sheet titulo="" onClose={onClose}>
+      <div className="mz-cs">
+        <h3>{titulos[para]}</h3>
+        {jaIdentificado ? (
+          <>
+            <p className="s">Jogando como <b>{atual!.nome}</b>. Confirme para entrar no jogo.</p>
+            <label className="mz-chk"><input type="checkbox" checked={idade} onChange={e => setIdade(e.target.checked)} /> Tenho 18 anos ou mais</label>
+            <label className="mz-chk"><input type="checkbox" checked={rank} onChange={e => setRank(e.target.checked)} /> Aceito aparecer no ranking com meu nome e a inicial do sobrenome</label>
+            {msg && <div className="mz-aviso" role="alert">{msg}</div>}
+            <button className="mz-pb" disabled={busy} onClick={() => jogarAgora(atual!)}>{busy ? 'Abrindo…' : 'Jogar'}</button>
+          </>
+        ) : etapa === 'dados' ? (
+          <>
+            <p className="s">{textos[para]}</p>
+            <label>Seu nome</label>
+            <input autoComplete="name" maxLength={40} placeholder="Ex.: Maria da Silva" value={nome} onChange={e => setNome(e.target.value)} aria-label="Seu nome" />
+            <label>Seu WhatsApp</label>
+            <input inputMode="tel" autoComplete="tel" placeholder="(21) 99999-9999" value={tel} onChange={e => setTel(e.target.value)} aria-label="Seu WhatsApp" />
+            {jogar && (
+              <>
+                <label className="mz-chk"><input type="checkbox" checked={idade} onChange={e => setIdade(e.target.checked)} /> Tenho 18 anos ou mais</label>
+                <label className="mz-chk"><input type="checkbox" checked={rank} onChange={e => setRank(e.target.checked)} /> Aceito aparecer no ranking com meu nome e a inicial do sobrenome</label>
+              </>
+            )}
+            {msg && <div className="mz-aviso" role="alert">{msg}</div>}
+            <button className="mz-pb" disabled={busy} onClick={enviarCodigo}>{busy ? 'Enviando…' : 'Receber código'}</button>
+            <p className="nt">Você recebe um código de 6 números no WhatsApp para confirmar que o número é seu.</p>
+          </>
+        ) : (
+          <>
+            <p className="s">Digite o código de 6 números que chegou no seu WhatsApp.</p>
+            <label>Código</label>
+            <input inputMode="numeric" maxLength={6} placeholder="000000" value={cod} onChange={e => setCod(e.target.value.replace(/\D/g, ''))} aria-label="Código de 6 números" />
+            {msg && <div className="mz-aviso" role="status">{msg}</div>}
+            <button className="mz-pb" disabled={busy || cod.length < 6} onClick={confirmar}>{busy ? 'Conferindo…' : 'Confirmar'}</button>
+            <button className="mz-link" onClick={() => { setEtapa('dados'); setMsg('') }}>Trocar número</button>
+          </>
+        )}
+        <button className="mz-link" onClick={onClose}>Agora não</button>
+      </div>
+    </Sheet>
   )
 }
 
@@ -474,8 +576,7 @@ function Tela({ children }: { children: React.ReactNode }) {
 
 const CSS = `
 :root{--mz-ink:#151210;--mz-paper:#fff;--mz-bg:#F1F2EE;--mz-sign:#FFC531;--mz-line:#DCDDD6;--mz-muted:#6F6C67;--mz-open:#0F8A57;--mz-alert:#D6392B;--mz-soft:#FFF6D9}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--mz-ink:#F4F1EA;--mz-paper:#231F1B;--mz-bg:#151210;--mz-line:#3A342D;--mz-muted:#A8A39B;--mz-soft:#3A2F0E}}
-.mz{min-height:100vh;min-height:100dvh;background:var(--mz-bg);color:var(--mz-ink);font-family:Archivo,system-ui,sans-serif;padding-bottom:96px}
+.mz{color-scheme:light;min-height:100vh;min-height:100dvh;background:var(--mz-bg);color:var(--mz-ink);font-family:Archivo,system-ui,sans-serif;padding-bottom:96px}
 .mz *{box-sizing:border-box}.mz button{font-family:inherit;cursor:pointer}
 .mz-btn{height:46px;padding:0 18px;border-radius:10px;border:2px solid var(--mz-ink);background:var(--mz-sign);color:#151210;font-weight:700;font-size:15px}
 .mz-btn:disabled{opacity:.5;cursor:not-allowed}
@@ -626,4 +727,16 @@ const CSS = `
 .mz-cs .mz-link{align-self:center;margin-top:8px}
 .mz-sh h2:empty{display:none}
 @media (min-width:720px){.mz-mini{left:50%;transform:translate(-50%,-110%)}.mz-mini.on{transform:translate(-50%,0)}}
+
+.mz-hero h1,.mz-hero p{text-align:center}
+.mz-hero p{margin-left:auto;margin-right:auto;max-width:300px}
+.mz-promo{margin-top:-28px;position:relative;z-index:2}
+.mz-acts{margin-top:12px}
+.mz-vercard{display:flex;align-items:center;justify-content:center;gap:10px;width:calc(100% - 32px);margin:12px 16px 0;height:52px;border-radius:14px;border:0;background:#151210;color:#fff;font:700 15px Archivo,sans-serif;box-shadow:0 14px 26px -16px rgba(21,18,16,.7)}
+.mz-vercard svg{width:18px;height:18px;transition:transform .2s ease}
+.mz-vercard.on svg{transform:rotate(180deg)}
+.mz-menu{padding-bottom:8px}
+button.mz-pcard{border:0;text-align:left;font:inherit;cursor:pointer;width:100%}
+.mz-chk{display:flex;gap:10px;align-items:flex-start;margin:12px 0 0 !important;font-size:13px !important;line-height:1.4;color:var(--mz-ink) !important;text-transform:none !important;letter-spacing:0 !important;font-weight:500 !important}
+.mz-chk input{width:20px;height:20px;margin:1px 0 0 !important;padding:0;border:0;flex:none;accent-color:#151210}
 `

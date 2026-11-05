@@ -92,7 +92,7 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
   }
   function fail(e) {
     if (G) G.busy = false
-    if (e && e.status === 401) { JT = ''; try { localStorage.removeItem(LS) } catch (x) {} if (INFO) INFO.jogador = null; cur = 'cadastro'; render(); return }
+    if (e && e.status === 401) { JT = ''; try { localStorage.removeItem(LS) } catch (x) {} if (INFO) INFO.jogador = null; location.href = '/mesa/' + TOKEN + '?identificar=jogar'; return }
     if (e && e.status === 409 && G && G.live) { // rodada já encerrada no servidor
       cur = 'intro'; G = null; render(); toast('Essa rodada já terminou.'); return
     }
@@ -127,7 +127,7 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
       '<div class="prize"><div class="pm"><div class="pm-in"><small>entre no</small><b>TOP</b><em>da loja</em></div></div></div>' +
       '<div class="facts"><span><b>10</b> segundos por pergunta</span><i></i><span><b>3</b> chances de errar</span></div>' +
       '<div class="hwrow"><button class="how" data-act="zones"><span class="hi">i</span>Como funciona</button><button class="how" data-go="ranking"><span class="hi">★</span>Ver ranking</button></div>' +
-      '<div class="cta2"><p class="pn">' + (INFO && INFO.jogador ? 'Jogando como <b>' + esc(INFO.jogador.apelido) + '</b>' : 'Você escolhe um apelido e confirma o WhatsApp') + '</p><button class="go" data-act="start"><span>Jogar</span></button></div></div></div>'
+      '<div class="cta2"><p class="pn">' + (INFO && INFO.jogador ? 'Jogando como <b>' + esc(INFO.jogador.apelido) + '</b>' : 'Você informa seu nome e WhatsApp antes de jogar') + '</p><button class="go" data-act="start"><span>Jogar</span></button></div></div></div>'
   }
   S.contagem = function () {
     var n = CT.n, ja = n <= 0
@@ -342,7 +342,7 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
     }
     if (a === 'start') {
       ac()
-      if (!INFO.jogador) { REG.err = ''; cur = 'cadastro'; render(); return }
+      if (!INFO.jogador) { location.href = '/mesa/' + TOKEN + '?identificar=jogar'; return }
       comecar(); return
     }
     if (a === 'resume') { comecar(); return }

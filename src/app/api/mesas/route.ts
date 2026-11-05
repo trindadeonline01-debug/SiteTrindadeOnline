@@ -482,8 +482,11 @@ export async function POST(req: NextRequest) {
         if (error || !nova) { await desfazer(); return erro('Não consegui abrir a mesa: ' + (error?.message || ''), 500) }
         c = nova; aberta = true
         await evento(companyId, nova.id, 'abriu', { mesa: mesa.numero, garcom: garcom.nome, origem: 'qr_cliente' }, garcom.nome)
+        // O cliente já confirmou o WhatsApp por código antes de pedir: a conta nasce verificada.
+        if (ch.payload?.verificado && ch.payload?.telefone) await evento(companyId, nova.id, 'telefone_verificado', { telefone: ch.payload.telefone }, null)
       } else if (!c.customer_phone && ch.payload?.telefone) {
-        await sb.from('loja_comandas').update({ customer_phone: ch.payload.telefone }).eq('id', c.id)
+        await sb.from('loja_comandas').update({ customer_phone: ch.payload.telefone, customer_name: c.customer_name || ch.payload.nome || null }).eq('id', c.id)
+        if (ch.payload?.verificado) await evento(companyId, c.id, 'telefone_verificado', { telefone: ch.payload.telefone }, null)
       }
       const entrada = itens.map(i => ({ produtoId: i.produtoId, qty: i.qty, modifiers: i.modifiers, notes: i.notes }))
       const r = await criarRodada(companyId, c, entrada, ch.payload?.obs)

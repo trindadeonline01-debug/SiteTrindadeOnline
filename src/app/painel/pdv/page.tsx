@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { moduleActive } from '@/lib/modules'
-import { qzPrintRaw, buildReceipt, buildKitchenTicket, isRawBtMode, printViaRawBt, setPapelImpressora } from '@/lib/qzPrint'
+import { buildReceipt, buildKitchenTicket, imprimirVias, setPapelImpressora, setViasImpressao } from '@/lib/qzPrint'
 import { fetchPedidoComItensComRetry } from '@/lib/autoprint'
 import { npGroupContribution, type NpGrupo, type NpProduto, type NpCartLine, PESO_REGEX, pesoNum, pesoDisplay, pesoDigitsFromKg } from '@/lib/produtoCart'
 import { parseBalancaCode, BALANCA_DEFAULT_CONFIG, type BalancaConfig, type BalancaParsed } from '@/lib/balancaBarcode'
@@ -121,7 +121,7 @@ export default function PdvPage() {
       const { data: profile } = await supabase.from('profiles').select('user_type').eq('id', session.user.id).maybeSingle()
       const empresaParam = new URLSearchParams(window.location.search).get('empresa')
       const isAdmin = profile?.user_type === 'admin' && !!empresaParam
-      const SEL = 'id, name, loja_digital_enabled, loja_impressora_nome, loja_impressora_papel, loja_payment_methods, trial_modules_until, balanca_prefixo, balanca_plu_digits, balanca_valor_digits, balanca_valor_tipo, balanca_configurada'
+      const SEL = 'id, name, loja_digital_enabled, loja_impressora_nome, loja_impressora_papel, impressao_vias_completa, impressao_vias_producao, loja_payment_methods, trial_modules_until, balanca_prefixo, balanca_plu_digits, balanca_valor_digits, balanca_valor_tipo, balanca_configurada'
       const { data: comp } = isAdmin
         ? await supabase.from('companies').select(SEL).eq('id', empresaParam).maybeSingle()
         : await supabase.from('companies').select(SEL).eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
@@ -130,6 +130,7 @@ export default function PdvPage() {
       setCompanyName(comp.name)
       setPrinterName(comp.loja_impressora_nome || '')
       setPapelImpressora(comp.loja_impressora_papel)
+      setViasImpressao(comp.impressao_vias_completa, comp.impressao_vias_producao)
       try { setSkipOpcionais(localStorage.getItem(`pdv-venda-rapida-${comp.id}`) === '1') } catch {}
       const cfg: BalancaConfig = {
         prefixo: comp.balanca_prefixo || BALANCA_DEFAULT_CONFIG.prefixo,
@@ -355,13 +356,7 @@ export default function PdvPage() {
         paymentMethod: data.payment_method, items, subtotal: data.subtotal, total: data.total,
       })
       const kitchenContent = buildKitchenTicket({ pedidoShortId: String(orderNumber ?? pedidoId.slice(0, 8)), createdAt: data.created_at, deliveryType: 'balcao', items })
-      if (isRawBtMode(printerName)) {
-        printViaRawBt(content)
-        setTimeout(() => printViaRawBt(kitchenContent), 600)
-      } else {
-        await qzPrintRaw(printerName, content)
-        await qzPrintRaw(printerName, kitchenContent)
-      }
+      await imprimirVias(printerName, content, kitchenContent)
     } catch {}
   }
 

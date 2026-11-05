@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { refreshSessionOnce } from '@/lib/authRefresh'
 import { adminFetch } from '@/lib/adminFetch'
-import { qzListPrinters, qzPrintRaw, buildReceipt, buildKitchenTicket, buildTestTicket, isRawBtMode, printViaRawBt, RAWBT_SENTINEL, getPapelImpressora, setPapelImpressora } from '@/lib/qzPrint'
+import { qzListPrinters, qzPrintRaw, buildReceipt, buildKitchenTicket, buildTestTicket, isRawBtMode, printViaRawBt, RAWBT_SENTINEL, getPapelImpressora, setPapelImpressora, imprimirVias, getViasImpressao, setViasImpressao } from '@/lib/qzPrint'
 import { fetchPedidoComItensComRetry } from '@/lib/autoprint'
 import { ORIGENS_DELIVERY } from '@/lib/canais'
 import { useRealtimeResync } from '@/hooks/useRealtimeResync'
@@ -20,7 +20,7 @@ type Pedido = {
   origin: string; status: Status; payment_method: string | null; payment_status: string
   delivery_type: 'entrega' | 'retirada' | 'balcao'; scheduled_for: string | null; comanda_id?: string | null
   notes: string | null; subtotal: number; total: number; delivery_fee: number; motoboy_id: string | null
-  created_at: string; accepted_at: string | null
+  created_at: string; accepted_at: string | null; impresso_em?: string | null
   cancelamento_solicitado_em: string | null
   mp_payment_id?: string | null; cancelado_por?: 'cliente' | 'loja' | null
   refund_status?: 'processando' | 'estornado' | 'falhou' | null; refund_amount?: number | null; refund_error?: string | null
@@ -187,6 +187,8 @@ export default function PedidosPage() {
   const [showPrinterModal, setShowPrinterModal] = useState(false)
   const [printerModalMode, setPrinterModalMode] = useState<'qz' | 'rawbt'>('qz')
   const [papelMm, setPapelMm] = useState<58 | 80>(80)
+  const [vias, setVias] = useState(getViasImpressao())
+  useEffect(() => { if (showPrinterModal) setVias(getViasImpressao()) }, [showPrinterModal])
   const [qzStatus, setQzStatus] = useState<'idle' | 'connecting' | 'connected' | 'error'>('idle')
   const [qzError, setQzError] = useState('')
   const [foundPrinters, setFoundPrinters] = useState<string[]>([])
@@ -648,16 +650,8 @@ export default function PedidosPage() {
         pedidoShortId: String(p.order_number ?? p.id.slice(0, 8)), createdAt: p.created_at,
         deliveryType: p.delivery_type, items, notes: p.notes,
       })
-      if (isRawBtMode(printerName)) {
-        // Duas chamadas de `intent:` em sequência imediata perdem a segunda
-        // — o Android ainda está trocando de app pra a primeira. Um respiro
-        // curto entre elas é o suficiente.
-        printViaRawBt(content)
-        setTimeout(() => printViaRawBt(kitchenContent), 600)
-      } else {
-        await qzPrintRaw(printerName, content)
-        await qzPrintRaw(printerName, kitchenContent)
-      }
+      const folhas = await imprimirVias(printerName, content, kitchenContent)
+      if (folhas === 0) { setPrintError('Nenhuma via configurada pra imprimir — escolha em 🖨️ Impressora quantas vias saem.'); return }
       setPrintedIds(prev => new Set(prev).add(p.id))
     } catch (err: any) {
       setPrintError(isRawBtMode(printerName)
@@ -733,6 +727,14 @@ export default function PedidosPage() {
     setPapelMm(mm)
     setPapelImpressora(mm)
     if (companyId) supabase.from('companies').update({ loja_impressora_papel: mm }).eq('id', companyId).then(() => {})
+  }
+
+  // Quantas vias sair por pedido (0 a 2 de cada) — vale pra delivery, PDV e mesas.
+  function escolherVias(tipo: 'completa' | 'producao', n: number) {
+    const novo = { ...vias, [tipo]: n }
+    setVias(novo)
+    setViasImpressao(novo.completa, novo.producao)
+    if (companyId) supabase.from('companies').update({ impressao_vias_completa: novo.completa, impressao_vias_producao: novo.producao }).eq('id', companyId).then(() => {})
   }
 
   async function removePrinter() {
@@ -1106,7 +1108,7 @@ export default function PedidosPage() {
   // Só dispara em cima do dia de hoje — pedido "recebido" esquecido num dia
   // antigo (histórico) não é uma urgência de agora, não deve piscar nem
   // oferecer reimpressão como se tivesse acabado de chegar.
-  const pedidosNovos = isToday ? pedidos.filter(p => p.status === 'recebido' && !printedIds.has(p.id)).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) : []
+  const pedidosNovos = isToday ? pedidos.filter(p => p.status === 'recebido' && !printedIds.has(p.id) && !p.impresso_em).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) : []
   // Pedidos cuja entrega esgotou os motoboys disponíveis (status sem_motoboy)
   // — precisa aparecer bem visível aqui, não só em /painel/entrega, porque é
   // aqui que o lojista fica de olho (pedido do Ricardo, set/2026).
@@ -1696,6 +1698,19 @@ export default function PedidosPage() {
               <button className={`pp-mode-tab ${papelMm === 58 ? 'sel' : ''}`} onClick={() => escolherPapel(58)}>🧾 58mm (pequena)</button>
               <button className={`pp-mode-tab ${papelMm === 80 ? 'sel' : ''}`} onClick={() => escolherPapel(80)}>🧾 80mm (grande)</button>
             </div>
+
+            <div style={{ fontSize: 11, fontWeight: 800, color: '#6E6656', textTransform: 'uppercase', letterSpacing: '.04em', margin: '12px 0 6px' }}>Quantas vias imprimir por pedido</div>
+            {([['completa', 'Via completa (cupom com valores)'], ['producao', 'Via de produção (só os produtos, sem valores)']] as const).map(([tipo, nome]) => (
+              <div key={tipo} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, margin: '4px 0 8px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 13, fontWeight: 700 }}>{nome}</span>
+                <span style={{ display: 'flex', gap: 6 }}>
+                  {[0, 1, 2].map(n => (
+                    <button key={n} className={`pp-mode-tab ${vias[tipo] === n ? 'sel' : ''}`} style={{ minWidth: 44, flex: 'none' }} onClick={() => escolherVias(tipo, n)}>{n === 0 ? 'Nenhuma' : n}</button>
+                  ))}
+                </span>
+              </div>
+            ))}
+            <div style={{ fontSize: 11, color: '#6E6656', marginBottom: 10 }}>Vale pra delivery, PDV e mesas. Em mesas, a via de produção é a comandinha da cozinha e a completa é a conta.</div>
 
             <div className="pp-mode-tabs">
               <button className={`pp-mode-tab ${printerModalMode === 'qz' ? 'sel' : ''}`} onClick={() => setPrinterModalMode('qz')}>💻 Computador</button>

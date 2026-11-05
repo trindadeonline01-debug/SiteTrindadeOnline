@@ -6,7 +6,7 @@ import { moduleActive } from '@/lib/modules'
 import { beep, beepCancelamento, unlockAudio } from '@/lib/beep'
 import { autoImprimirPedido } from '@/lib/autoprint'
 import { ORIGENS_DELIVERY, isPdvOuMesa } from '@/lib/canais'
-import { isRawBtMode, setPapelImpressora } from '@/lib/qzPrint'
+import { isRawBtMode, setPapelImpressora, setViasImpressao } from '@/lib/qzPrint'
 import { refreshSessionOnce } from '@/lib/authRefresh'
 import { useRealtimeResync } from '@/hooks/useRealtimeResync'
 import NovaVersaoAviso from '@/components/painel/NovaVersaoAviso'
@@ -137,6 +137,7 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
     setAutoAceitarState(comp.loja_auto_aceitar_pedidos !== false)
     setPrinterNameState(comp.loja_impressora_nome || '')
     setPapelImpressora(comp.loja_impressora_papel)
+    setViasImpressao(comp.impressao_vias_completa, comp.impressao_vias_producao)
     refreshAvaliacoesBadge(comp.id)
     refreshPedidosBadge(comp.id)
   }
@@ -182,7 +183,7 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
       const { data: profile } = await supabase.from('profiles').select('user_type').eq('id', session.user.id).single()
       const empresaParam = new URLSearchParams(window.location.search).get('empresa')
 
-      const COMPANY_SELECT = 'id,name,slug,loja_digital_enabled,crm_whatsapp_enabled,crm_atendimento_pilot,crm_vendas_pilot,mesas_enabled,entrega_enabled,entrega_chamada_automatica,trial_modules_until,loja_auto_aceitar_pedidos,loja_impressora_nome,loja_impressora_papel,store_paused'
+      const COMPANY_SELECT = 'id,name,slug,loja_digital_enabled,crm_whatsapp_enabled,crm_atendimento_pilot,crm_vendas_pilot,mesas_enabled,entrega_enabled,entrega_chamada_automatica,trial_modules_until,loja_auto_aceitar_pedidos,loja_impressora_nome,loja_impressora_papel,impressao_vias_completa,impressao_vias_producao,store_paused'
       let comp: any = null
       const adminOverride = profile?.user_type === 'admin' && !!empresaParam
       if (adminOverride) {

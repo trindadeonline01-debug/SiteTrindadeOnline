@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { adminFetch } from '@/lib/adminFetch'
 import { moduleActive } from '@/lib/modules'
 import { beep, beepMesa, unlockAudio } from '@/lib/beep'
-import { qzPrintRaw, buildReceipt, buildKitchenTicket, isRawBtMode, printViaRawBt, setPapelImpressora } from '@/lib/qzPrint'
+import { buildReceipt, buildKitchenTicket, imprimirVias, setPapelImpressora, setViasImpressao } from '@/lib/qzPrint'
 import ConfirmModal from '@/components/painel/ConfirmModal'
 import MesaCalculadora, { type CalcComanda, type Divisao, DIVISAO0 } from '@/components/painel/MesaCalculadora'
 import QRCode from 'qrcode'
@@ -146,13 +146,13 @@ export default function MesasPage() {
       const { data: profile } = await supabase.from('profiles').select('user_type').eq('id', session.user.id).maybeSingle()
       const empresaParam = new URLSearchParams(window.location.search).get('empresa')
       const isAdmin = profile?.user_type === 'admin' && !!empresaParam
-      const SEL = 'id, name, loja_digital_enabled, trial_modules_until, loja_impressora_nome, loja_impressora_papel, mesas_enabled, loja_taxa_servico_pct, loja_supervisor_pin_hash'
+      const SEL = 'id, name, loja_digital_enabled, trial_modules_until, loja_impressora_nome, loja_impressora_papel, impressao_vias_completa, impressao_vias_producao, mesas_enabled, loja_taxa_servico_pct, loja_supervisor_pin_hash'
       const { data: comp } = isAdmin
         ? await supabase.from('companies').select(SEL).eq('id', empresaParam).maybeSingle()
         : await supabase.from('companies').select(SEL).eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
       if (!comp || (!isAdmin && !moduleActive(comp.loja_digital_enabled, comp.trial_modules_until))) { window.location.href = '/painel/compartilhar'; return }
       companyRef.current = comp.id
-      setCompanyId(comp.id); setCompanyName(comp.name); setPrinterName(comp.loja_impressora_nome || ''); setPapelImpressora(comp.loja_impressora_papel)
+      setCompanyId(comp.id); setCompanyName(comp.name); setPrinterName(comp.loja_impressora_nome || ''); setPapelImpressora(comp.loja_impressora_papel); setViasImpressao(comp.impressao_vias_completa, comp.impressao_vias_producao)
       setMesasEnabled(!!comp.mesas_enabled); setTaxaPct(Number(comp.loja_taxa_servico_pct) || 0); setHasPin(!!comp.loja_supervisor_pin_hash); setAdminMode(isAdmin)
       if (comp.mesas_enabled || isAdmin) {
         const [{ data: prods }, { data: cats }] = await Promise.all([
@@ -181,14 +181,14 @@ export default function MesasPage() {
   const mesaDe = (id: string) => mesas.find(m => m.id === id)
   const impressaoPausada = IMPRESSAO_PAUSADA_EMPRESAS.includes(companyId)
 
-  async function imprimir(conteudos: string[]) {
+  // tipo 'producao' = comandinha da cozinha (sem valores); 'completa' = conta.
+  // Quantas cópias de cada sai vem de Impressora → "Quantas vias" (0 a 2).
+  // forcar: botão manual "Imprimir conta" sempre sai ao menos 1.
+  async function imprimir(conteudos: string[], tipo: 'completa' | 'producao', forcar = false) {
     if (impressaoPausada) return
     if (!printerName || conteudos.length === 0) return
     try {
-      for (let i = 0; i < conteudos.length; i++) {
-        if (isRawBtMode(printerName)) { if (i === 0) printViaRawBt(conteudos[i]); else setTimeout(() => printViaRawBt(conteudos[i]), 600 * i) }
-        else await qzPrintRaw(printerName, conteudos[i])
-      }
+      for (const c of conteudos) await imprimirVias(printerName, tipo === 'completa' ? c : null, tipo === 'producao' ? c : null, tipo === 'completa' && forcar ? 1 : 0)
     } catch {}
   }
 
@@ -210,7 +210,7 @@ export default function MesasPage() {
     await imprimir([buildKitchenTicket({
       pedidoShortId: `${mesa?.numero ?? ''}-${r.orderNumber ?? ''}`, createdAt: new Date().toISOString(), deliveryType: 'balcao', rotulo: `MESA ${mesa?.numero ?? ''} · ${comanda.garcom_nome || ''}`,
       items: linhas.map(l => ({ qty: l.qty, pesoKg: l.pesoKg, name: l.produto.name, unitPrice: l.unit, options: l.modifiers })), notes: obs || null,
-    })])
+    })], 'producao')
     await load()
     return true
   }
@@ -334,8 +334,8 @@ export default function MesasPage() {
           pedidos={pedidos.filter(p => p.comanda_id === comanda.id)} pagtos={pagtos.filter(p => p.comanda_id === comanda.id)}
           busy={busy} msg={msg} setMsg={setMsg} call={call} load={load} fotos={fotos}
           onClose={() => { setAbertaId(null); setMsg('') }} onAdd={() => setPicker(true)}
-          imprimirConta={() => imprimir([dadosConta(comanda)])}
-          fechado={async () => { const conta = dadosConta(comanda); await imprimir([conta]); setAbertaId(null); await load() }}
+          imprimirConta={() => imprimir([dadosConta(comanda)], 'completa', true)}
+          fechado={async () => { const conta = dadosConta(comanda); await imprimir([conta], 'completa'); setAbertaId(null); await load() }}
         />
       )}
 
@@ -364,7 +364,7 @@ export default function MesasPage() {
             await imprimir([buildKitchenTicket({
               pedidoShortId: `${r.mesaNumero ?? ''}-${r.orderNumber ?? ''}`, createdAt: new Date().toISOString(), deliveryType: 'balcao', rotulo: `MESA ${r.mesaNumero ?? ''} · ${r.garcomNome || ''} · PEDIDO DO CLIENTE`,
               items: (r.linhas || []).map((l: { qty: number; peso_kg: number | null; product_name: string; unit_price: number; selected_options: { name: string; price: number }[] }) => ({ qty: l.qty, pesoKg: l.peso_kg, name: l.product_name, unitPrice: l.unit_price, options: l.selected_options })), notes: r.obs || null,
-            })])
+            })], 'producao')
             setPedidoQr(null); setMsg(''); await load(); if (r.comandaId) setAbertaId(r.comandaId)
           }}
           onRecusar={async (motivo) => { const r = await call('pedido_recusar', { chamadoId: pedidoQr.id, motivo }); if (r) { setPedidoQr(null); setMsg(''); await load() } }}

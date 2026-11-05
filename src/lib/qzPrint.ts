@@ -180,6 +180,31 @@ const GS = '\x1D'
 let PAPEL_MM: 58 | 80 = 80
 export function setPapelImpressora(mm: number | null | undefined) { PAPEL_MM = mm === 58 ? 58 : 80 }
 export function getPapelImpressora(): 58 | 80 { return PAPEL_MM }
+
+// Quantas vias sair por pedido (companies.impressao_vias_completa /
+// impressao_vias_producao, 0 a 2 cada). "Completa" = cupom com valores;
+// "produção" = só os produtos, sem preço (cozinha). Quem carrega a empresa
+// chama setViasImpressao, igual ao papel. Padrão 1+1 = como sempre foi.
+let VIAS = { completa: 1, producao: 1 }
+function clampVia(v: unknown, padrao: number) { const n = Number(v); return Number.isFinite(n) ? Math.min(2, Math.max(0, Math.round(n))) : padrao }
+export function setViasImpressao(completa: unknown, producao: unknown) { VIAS = { completa: clampVia(completa, 1), producao: clampVia(producao, 1) } }
+export function getViasImpressao() { return { ...VIAS } }
+// Imprime as cópias configuradas (completa e/ou produção), na ordem: completa
+// primeiro. minCompleta: botão manual "imprimir" sempre sai ao menos essa quantidade.
+// Devolve quantas folhas mandou (0 = a loja configurou "nenhuma").
+export async function imprimirVias(printerName: string, completa: string | null, producao: string | null, minCompleta = 0): Promise<number> {
+  const folhas: string[] = []
+  if (completa) for (let i = 0; i < Math.max(VIAS.completa, minCompleta); i++) folhas.push(completa)
+  if (producao) for (let i = 0; i < VIAS.producao; i++) folhas.push(producao)
+  if (folhas.length === 0) return 0
+  if (isRawBtMode(printerName)) {
+    // Duas chamadas de `intent:` em sequência imediata perdem a segunda — respiro entre elas.
+    folhas.forEach((f, i) => { if (i === 0) printViaRawBt(f); else setTimeout(() => printViaRawBt(f), 600 * i) })
+  } else {
+    for (const f of folhas) await qzPrintRaw(printerName, f)
+  }
+  return folhas.length
+}
 function cols() { return PAPEL_MM === 58 ? 32 : 42 }
 // Avanço antes do corte: a de 80mm tem faca alguns milímetros abaixo da
 // cabeça (3 linhas cortava em cima do texto, 6 dá folga). A de 58mm não tem

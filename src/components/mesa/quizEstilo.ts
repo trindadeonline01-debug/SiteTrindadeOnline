@@ -377,4 +377,23 @@ export const ESTILO = `
 .rklink{background:none;border:0;color:var(--ap-gold);font:700 13px var(--body);cursor:pointer;padding:8px 4px;text-align:center;min-height:36px}
 .rklink:focus-visible{outline:3px solid #fff;outline-offset:2px}
 
+
+/* Entrada responsiva (nov/2026): em celular Android com barra do navegador/sistema o botão Jogar
+   ficava cortado. Tudo escala pela ALTURA visível (dvh) e, em último caso, a tela rola. */
+.qz{bottom:auto;height:100vh;height:100dvh}
+.gi2{overflow-y:auto;scrollbar-width:none;padding:clamp(10px,2.6dvh,26px) 24px max(14px,env(safe-area-inset-bottom))}
+.gi2::-webkit-scrollbar{display:none}
+.kick{margin-bottom:clamp(2px,.9dvh,10px)}
+.h2t span,.h2t .g{font-size:clamp(32px,7dvh,56px)}
+.sub2{margin-top:clamp(6px,1.5dvh,16px);font-size:clamp(13px,2dvh,16px);line-height:1.35;max-width:30ch}
+.prize{flex:1 1 auto;min-height:0;padding:clamp(4px,1.2dvh,12px) 0}
+.pm{width:clamp(92px,18dvh,176px);height:clamp(92px,18dvh,176px);padding:clamp(5px,1dvh,9px)}
+.pm-in b{font-size:clamp(32px,6.6dvh,62px)}
+.pm-in small{font-size:clamp(8.5px,1.4dvh,12px)}
+.pm-in em{font-size:clamp(9px,1.5dvh,13px)}
+.facts{gap:12px;font-size:clamp(11.5px,1.8dvh,13.5px);margin-bottom:clamp(2px,.8dvh,12px)}
+.facts b{font-size:clamp(20px,3.4dvh,26px)}
+.how{min-height:40px;padding:6px 10px;margin-bottom:clamp(0px,.8dvh,10px)}
+.cta2{gap:clamp(4px,1dvh,10px)}
+.go{min-height:clamp(50px,7.4dvh,60px);font-size:clamp(19px,2.9dvh,22px)}
 `

@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { compressImage } from '@/lib/compressImage'
 import { usePainelShell } from '@/contexts/PainelShellContext'
@@ -25,6 +25,21 @@ type Produto = {
   canal_mesa?: boolean | null
   ordem_interna?: number | null
   category?: { name: string } | null
+}
+
+
+// Ícones do formulário de produto (traço fino, mesmo estilo em tudo)
+const ICO = {
+  back: 'M15 6l-6 6 6 6', check: 'M5 12l5 5 9-10', plus: 'M12 5v14M5 12h14', up: 'M6 15l6-6 6 6', down: 'M6 9l6 6 6-6',
+  trash: 'M4 7h16M6 7l1 12a2 2 0 002 2h6a2 2 0 002-2l1-12M9 7V4h6v3', pause: 'M9 6v12M15 6v12', play: 'M8 5l11 7-11 7z',
+  copy: 'M8 8h10a2 2 0 012 2v10a2 2 0 01-2 2H8a2 2 0 01-2-2V10a2 2 0 012-2zM16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2',
+  upload: 'M12 16V4M7 9l5-5 5 5M5 20h14', image: 'M4 5h16v14H4zM4 15l5-5 5 5 3-3 3 3',
+}
+function Ico({ d, size = 16, sw = 2 }: { d: string; size?: number; sw?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill={d === ICO.play ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flex: 'none' }}><path d={d} /></svg>
+}
+function PfSwitch({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
+  return <label className="pf-sw"><input type="checkbox" checked={checked} aria-label={label} onChange={e => onChange(e.target.checked)} /></label>
 }
 
 const DAY_LABELS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
@@ -253,6 +268,9 @@ export default function CatalogoPage() {
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoLightbox, setPhotoLightbox] = useState<string | null>(null)
   const [savingProd, setSavingProd] = useState(false)
+  const [fechados, setFechados] = useState<Set<number>>(new Set())
+  const [formSnap, setFormSnap] = useState('')
+  const fotoPreview = useMemo(() => (photoFile ? URL.createObjectURL(photoFile) : null), [photoFile])
   const [newCatName, setNewCatName] = useState('')
   const [showNewCat, setShowNewCat] = useState(false)
   const [toast, setToast] = useState('')
@@ -1156,8 +1174,8 @@ export default function CatalogoPage() {
     setProdutos(prev => prev.map(x => x.id === p.id ? { ...x, esgotado: !p.esgotado } : x))
   }
 
-  async function deleteProduto(id: string) {
-    if (!confirm('Excluir esse produto? Não dá pra desfazer.')) return
+  async function deleteProduto(id: string): Promise<boolean> {
+    if (!confirm('Excluir esse produto? Não dá pra desfazer.')) return false
     const { data } = await supabase
       .from('loja_produtos')
       .select('photo_url, groups:loja_opcoes_grupo(options:loja_opcoes(photo_url))')
@@ -1169,6 +1187,7 @@ export default function CatalogoPage() {
     await supabase.from('loja_produtos').delete().eq('id', id)
     if (paths.length) await supabase.storage.from('loja-produtos').remove(paths)
     setProdutos(prev => prev.filter(x => x.id !== id))
+    return true
   }
 
   function toggleSelectMode() {
@@ -1243,6 +1262,15 @@ export default function CatalogoPage() {
     setBulkActing(false)
     exitSelectMode()
   }
+
+  // "Alterações não salvas": foto da tela de edição de produto. A impressão digital do formulário
+  // (sem os arquivos de foto) é guardada quando a tela abre e comparada a cada mudança.
+  const snapDe = (f: typeof form, pf: File | null) => JSON.stringify({ ...f, _pf: !!pf, groups: f.groups.map(g => ({ ...g, options: g.options.map(({ _photoFile, ...o }) => ({ ...o, _f: !!_photoFile })) })) })
+  useEffect(() => {
+    if (view === 'form') { setFormSnap(snapDe(form, photoFile)); setFechados(new Set()) } else setFormSnap('')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, form.id])
+  const dirty = view === 'form' && formSnap !== '' && snapDe(form, photoFile) !== formSnap
 
   if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Archivo,sans-serif', color: '#AAA' }}>Carregando...</div>
 
@@ -1494,6 +1522,185 @@ export default function CatalogoPage() {
         .cg-bulk-line2{ display:flex;gap:6px; }
         .cg-bulk-line2 select{ flex:1.4;min-width:0;padding:7px 6px;border-radius:8px;border:1px solid #B9AE97;font-size:11.5px;font-family:inherit; }
         .cg-bulk-price{ flex:1;min-width:0;padding:7px 8px;border-radius:8px;border:1px solid #B9AE97;font-size:11.5px;font-family:inherit; }
+        /* ===== Editar produto (redesenho, nov/2026) — classes pf-* ===== */
+        .pf{ --pf-ink:#151210; --pf-line:#DCDDD6; --pf-line2:#ECEDE8; --pf-mut:#5E5B56; --pf-ok:#0B5B38; --pf-okbg:#DDF1E7; --pf-bad:#B3261A; }
+        .pf *{ box-sizing:border-box; }
+        .pf-head.cg-head.cg-head-centered{ display:flex; align-items:center; gap:12px; flex-wrap:nowrap; padding:12px 16px; background:#fff; border-bottom:1px solid var(--pf-line); }
+        @media(min-width:768px){ .pf-head.cg-head.cg-head-centered{ padding:14px 32px; min-height:76px; } }
+        .pf-title{ display:flex; flex-direction:column; gap:1px; min-width:0; }
+        .pf-title h1{ margin:0; flex:none; font-size:19px; font-weight:800; letter-spacing:-.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; max-width:46vw; }
+        @media(min-width:768px){ .pf-title h1{ font-size:22px; max-width:34vw; } }
+        .pf-eyebrow{ font-size:11px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--pf-mut); }
+        .pf-grow{ flex:1; min-width:0; }
+        .pf-badge{ display:inline-flex; align-items:center; gap:6px; height:24px; padding:0 10px; border-radius:12px; font-size:12px; font-weight:700; white-space:nowrap; flex:none; }
+        .pf-badge i{ width:7px; height:7px; border-radius:50%; background:currentColor; }
+        .pf-badge.ok{ background:var(--pf-okbg); color:var(--pf-ok); }
+        .pf-badge.off{ background:#ECEDE8; color:#3D3A36; }
+        @media(max-width:560px){ .pf-badge{ display:none; } }
+        .pf-dirty{ display:inline-flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:#6B4A00; white-space:nowrap; }
+        .pf-dirty i{ width:8px; height:8px; border-radius:50%; background:#E0A100; }
+        @media(max-width:1000px){ .pf-dirty{ font-size:0; gap:0; } .pf-dirty i{ width:10px; height:10px; } }
+        .pf-btn{ display:inline-flex; align-items:center; justify-content:center; gap:8px; height:42px; padding:0 18px; border-radius:8px; border:1px solid #B9BAB2; background:#fff; color:var(--pf-ink); font:inherit; font-size:14px; font-weight:600; cursor:pointer; white-space:nowrap; }
+        .pf-btn:hover:not(:disabled){ background:#F5F6F2; }
+        .pf-btn.pri{ background:var(--sign,#FFC531); border-color:var(--pf-ink); font-weight:700; }
+        .pf-btn.pri:hover:not(:disabled){ background:#F5B800; }
+        .pf-btn.sm{ height:36px; padding:0 12px; font-size:13px; }
+        .pf-btn.dng{ color:var(--pf-bad); border-color:#E7B7B2; }
+        .pf-btn:disabled{ opacity:.55; cursor:default; }
+        .pf-btn:focus-visible,.pf-ib:focus-visible,.pf-chip:focus-visible,.pf-day:focus-visible,.pf-link:focus-visible{ outline:2px solid var(--pf-ink); outline-offset:2px; }
+        .pf-ib{ display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:8px; border:1px solid transparent; background:transparent; color:#4A453F; cursor:pointer; padding:0; flex:none; }
+        .pf-ib:hover:not(:disabled){ background:#F5F6F2; border-color:var(--pf-line); }
+        .pf-ib:disabled{ opacity:.3; cursor:default; }
+        .pf-ib.dng{ color:var(--pf-bad); }
+        .pf-ib.ok{ color:var(--pf-ok); }
+        .pf-back{ width:40px; height:40px; border-color:var(--pf-line); }
+        .pf-link{ border:0; background:transparent; padding:0; font:inherit; font-size:13px; font-weight:600; color:#7A5400; cursor:pointer; text-decoration:none; }
+        .pf-link:hover{ text-decoration:underline; }
+        .pf-only-m{ display:none; }
+        @media(max-width:767px){ .pf-only-d{ display:none !important; } .pf-only-m{ display:grid; } }
+
+        .pf-grid{ display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:20px; align-items:start; padding:20px 32px 40px; }
+        .pf-main,.pf-side{ display:flex; flex-direction:column; gap:20px; min-width:0; }
+        @media(max-width:1180px){
+          .pf-grid{ grid-template-columns:minmax(0,1fr); gap:14px; padding:14px 16px 90px; }
+          .pf-main,.pf-side{ display:contents; }
+          .pf-o1{order:1} .pf-o2{order:2} .pf-o3{order:3} .pf-o4{order:4} .pf-o5{order:5} .pf-o6{order:6} .pf-o7{order:7} .pf-o9{order:9}
+        }
+        .pf-card{ background:#fff; border:1px solid var(--pf-line); border-radius:12px; min-width:0; }
+        .pf-card-h{ display:flex; align-items:center; justify-content:space-between; gap:14px; padding:15px 20px; border-bottom:1px solid var(--pf-line2); }
+        .pf-card-h h2{ margin:0; font-size:15px; font-weight:700; color:var(--pf-ink); }
+        .pf-card-h p{ margin:2px 0 0; font-size:12.5px; color:var(--pf-mut); }
+        .pf-card-h.pf-wrap{ flex-wrap:wrap; }
+        .pf-hl{ display:flex; align-items:center; gap:10px; min-width:0; }
+        .pf-actions{ display:flex; gap:8px; flex-wrap:wrap; }
+        .pf-card-b{ padding:20px; }
+        @media(max-width:560px){ .pf-card-h{ padding:13px 14px; } .pf-card-b{ padding:14px; } }
+        .pf-stack{ display:flex; flex-direction:column; gap:18px; }
+        .pf-g2{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px 20px; }
+        .pf-g2.tight{ gap:10px; }
+        .pf-span2{ grid-column:1 / -1; }
+        .pf-g4{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px 20px; align-items:end; }
+        .pf-g2b{ display:grid; grid-template-columns:minmax(0,1.5fr) minmax(0,1fr); gap:16px; align-items:start; }
+        @media(max-width:900px){ .pf-g4{ grid-template-columns:repeat(2,minmax(0,1fr)); } .pf-g2b{ grid-template-columns:minmax(0,1fr); } }
+        @media(max-width:480px){ .pf-g2:not(.tight){ grid-template-columns:minmax(0,1fr); } .pf-g2.tight{ grid-template-columns:minmax(0,1fr); } }
+        .pf-lab{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; font-size:12px; font-weight:600; color:#3D3A36; }
+        .pf-count{ font-size:12px; font-weight:500; color:var(--pf-mut); font-variant-numeric:tabular-nums; }
+        .pf-opt{ font-weight:500; color:var(--pf-mut); }
+        .pf-inp{ width:100%; height:42px; border:1px solid #B9BAB2; border-radius:8px; padding:0 12px; font:inherit; font-size:14px; color:var(--pf-ink); background:#fff; }
+        .pf-inp:focus{ outline:2px solid var(--sign,#FFC531); border-color:var(--pf-ink); }
+        .pf-inp.sm{ height:38px; font-size:13.5px; padding:0 10px; }
+        .pf-inp:disabled{ background:#F5F6F2; color:#6F6C67; border-color:var(--pf-line); }
+        .pf-inp.pf-ta,textarea.pf-inp{ height:92px; padding:10px 12px; resize:vertical; line-height:1.45; }
+        .pf-inp.pf-num{ width:68px; text-align:center; }
+        .pf-tab{ font-variant-numeric:tabular-nums; }
+        select.pf-inp{ padding-right:8px; }
+        @media(max-width:767px){ .pf-inp{ font-size:16px; height:46px; } .pf-inp.sm{ height:44px; font-size:15px; } }
+        .pf-money{ position:relative; }
+        .pf-money > span{ position:absolute; left:12px; top:50%; transform:translateY(-50%); font-size:13.5px; font-weight:600; color:var(--pf-mut); pointer-events:none; }
+        .pf-money .pf-inp{ padding-left:38px; font-variant-numeric:tabular-nums; }
+        .pf-money.sm > span{ left:10px; font-size:12.5px; }
+        .pf-money.sm .pf-inp{ padding-left:32px; }
+        .pf-inline{ display:flex; gap:8px; margin-top:8px; }
+        .pf-pill{ display:inline-flex; align-items:center; height:22px; padding:0 8px; border-radius:11px; font-size:11.5px; font-weight:700; background:#ECEDE8; color:#3D3A36; white-space:nowrap; flex:none; }
+        .pf-pill.ok{ background:var(--pf-okbg); color:var(--pf-ok); }
+        .pf-pill.warn{ background:#FFF1C9; color:#6B4A00; }
+        .pf-margin{ min-height:42px; border-radius:8px; background:#F5F6F2; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:0 14px; font-size:12.5px; font-weight:600; color:var(--pf-mut); line-height:1.2; }
+        .pf-margin small{ display:block; font-size:11.5px; font-weight:500; opacity:.9; }
+        .pf-margin b{ font-family:'Anton',sans-serif; font-weight:400; font-size:26px; line-height:1; font-variant-numeric:tabular-nums; }
+        .pf-margin.ok{ background:var(--pf-okbg); color:var(--pf-ok); }
+        .pf-margin.bad{ background:#FBEAEA; color:var(--pf-bad); }
+        .pf-err{ font-size:12.5px; font-weight:600; color:var(--pf-bad); margin-top:8px; }
+        .pf-box{ border:1px solid var(--pf-line); border-radius:10px; padding:14px 16px; background:#FAFAF7; display:flex; flex-direction:column; gap:14px; }
+        .pf-rowsw{ display:flex; align-items:flex-start; gap:12px; }
+        .pf-rowsw.tight{ align-items:center; height:38px; }
+        .pf-rowsw b{ display:block; font-size:14px; font-weight:600; }
+        .pf-rowsw small{ display:block; font-size:12.5px; color:var(--pf-mut); margin-top:1px; }
+        .pf-sw{ position:relative; display:inline-block; width:40px; height:24px; flex:none; }
+        .pf-sw input{ appearance:none; -webkit-appearance:none; position:absolute; inset:0; margin:0; border-radius:12px; background:#8B8A84; cursor:pointer; }
+        .pf-sw input:checked{ background:#0B7347; }
+        .pf-sw input::after{ content:''; position:absolute; top:3px; left:3px; width:18px; height:18px; border-radius:50%; background:#fff; transition:left .15s; }
+        .pf-sw input:checked::after{ left:19px; }
+        .pf-sw input:focus-visible{ outline:2px solid var(--pf-ink); outline-offset:2px; }
+        .pf-sep{ border-top:1px solid var(--pf-line2); }
+        .pf-mb8{ margin-bottom:8px; }
+        .pf-chips{ display:flex; gap:8px; flex-wrap:wrap; }
+        .pf-chip{ display:inline-flex; align-items:center; justify-content:center; gap:6px; height:36px; padding:0 14px; border-radius:8px; border:1px solid #B9BAB2; background:#fff; color:var(--pf-ink); font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+        .pf-chip.on{ background:var(--pf-ink); border-color:var(--pf-ink); color:#fff; }
+        @media(max-width:767px){ .pf-chip{ flex:1; height:44px; } }
+        .pf-days{ display:flex; gap:6px; flex-wrap:wrap; }
+        .pf-day{ display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:50%; border:1px solid #B9BAB2; background:#fff; font:inherit; font-size:12.5px; font-weight:700; color:var(--pf-ink); cursor:pointer; padding:0; }
+        .pf-day.on{ background:var(--sign,#FFC531); border-color:var(--pf-ink); }
+        .pf-stock{ border-radius:8px; padding:10px 14px; font-size:13px; font-weight:700; }
+        .pf-stock.ok{ background:var(--pf-okbg); color:var(--pf-ok); }
+        .pf-stock.warn{ background:#FFF1C9; color:#6B4A00; }
+        .pf-stock.bad{ background:#FBEAEA; color:var(--pf-bad); }
+        .pf-hint{ margin:0; font-size:12.5px; color:var(--pf-mut); }
+        .pf-photo-big{ display:block; width:100%; aspect-ratio:1 / 1; border-radius:10px; border:1px dashed #B9BAB2; background:#F5F6F2; padding:0; overflow:hidden; cursor:default; color:var(--pf-mut); }
+        .pf-photo-big.has{ border-style:solid; cursor:zoom-in; }
+        .pf-photo-big img{ width:100%; height:100%; object-fit:cover; display:block; }
+        .pf-photo-big > span{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; height:100%; font-size:13px; font-weight:600; }
+        .pf-photo-big:focus-visible{ outline:2px solid var(--pf-ink); outline-offset:2px; }
+        .pf-prev{ display:flex; gap:14px; padding:12px; border:1px solid var(--pf-line2); border-radius:10px; background:#FAFAF7; }
+        .pf-prev-t{ flex:1; min-width:0; display:flex; flex-direction:column; gap:4px; }
+        .pf-prev-t b{ font-size:14.5px; }
+        .pf-prev-t > span{ font-size:12.5px; color:var(--pf-mut); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+        .pf-prev-p{ display:flex; align-items:baseline; gap:8px; margin-top:4px; }
+        .pf-prev-p strong{ font-family:'Anton',sans-serif; font-weight:400; font-size:22px; line-height:1; color:var(--pf-ok); font-variant-numeric:tabular-nums; }
+        .pf-prev-p s{ font-size:13px; color:#6F6C67; }
+        .pf-prev-img{ width:84px; height:84px; border-radius:8px; background:#ECEDE8; flex:none; overflow:hidden; display:flex; align-items:center; justify-content:center; color:var(--pf-mut); }
+        .pf-prev-img img{ width:100%; height:100%; object-fit:cover; }
+
+        .pf-empty{ padding:18px; border:1px dashed #B9BAB2; border-radius:10px; font-size:13.5px; color:var(--pf-mut); text-align:center; }
+        .pf-org{ display:flex; align-items:center; gap:10px 14px; flex-wrap:wrap; padding:10px 12px; border:1px solid var(--pf-line2); border-radius:10px; background:#FAFAF7; }
+        .pf-seg{ display:inline-flex; flex-wrap:wrap; border:1px solid #B9BAB2; border-radius:8px; overflow:hidden; background:#fff; }
+        .pf-seg button{ height:34px; padding:0 12px; border:0; border-right:1px solid var(--pf-line); background:#fff; font:inherit; font-size:12.5px; font-weight:600; color:var(--pf-ink); cursor:pointer; }
+        .pf-seg button:last-child{ border-right:0; }
+        .pf-seg button.on{ background:var(--pf-ink); color:#fff; }
+        .pf-chk{ display:inline-flex; align-items:center; gap:8px; font-size:13px; font-weight:600; }
+        .pf-chk input{ width:16px; height:16px; accent-color:var(--pf-ink); }
+        .pf-grp{ border:1px solid var(--pf-line); border-radius:10px; background:#fff; overflow:hidden; }
+        .pf-grp-h{ display:flex; align-items:center; gap:10px; padding:10px 12px; background:#FAFAF7; }
+        .pf-pos{ display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:50%; background:var(--pf-ink); color:#fff; font-size:12.5px; font-weight:700; flex:none; }
+        .pf-grp-name{ max-width:300px; font-weight:700 !important; }
+        .pf-grp-sum{ display:flex; flex-direction:column; align-items:flex-start; gap:1px; border:0; background:transparent; padding:0; font:inherit; text-align:left; cursor:pointer; min-width:0; }
+        .pf-grp-sum b{ font-size:14.5px; }
+        .pf-grp-sum span{ font-size:12.5px; color:var(--pf-mut); }
+        @media(max-width:700px){ .pf-hide-s{ display:none !important; } .pf-grp-h{ flex-wrap:wrap; } .pf-grp-name{ max-width:none; flex:1 1 140px; } }
+        .pf-rules{ display:flex; align-items:flex-end; gap:14px 20px; flex-wrap:wrap; padding:14px; border-top:1px solid var(--pf-line2); border-bottom:1px solid var(--pf-line2); }
+        .pf-f{ display:flex; flex-direction:column; gap:5px; }
+        .pf-f > span{ font-size:11.5px; font-weight:600; color:#4A453F; }
+        .pf-f.wide{ min-width:210px; flex:1 1 210px; max-width:300px; }
+        .pf-opts{ display:flex; flex-direction:column; }
+        .pf-orow{ display:grid; grid-template-columns:26px 44px minmax(120px,1.4fr) 120px 110px minmax(150px,1fr) 80px; gap:10px; align-items:center; padding:8px 12px; border-bottom:1px solid var(--pf-line2); }
+        .pf-ohead{ padding-top:8px; padding-bottom:8px; background:#FAFAF7; font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--pf-mut); }
+        .pf-orow.paused .pf-c-nm input{ color:#6F6C67; text-decoration:line-through; background:#F5F6F2; }
+        .pf-mlab{ display:none; font-size:11.5px; font-weight:600; color:#4A453F; margin-bottom:4px; }
+        .pf-mv{ display:flex; flex-direction:column; gap:2px; }
+        .pf-mv button{ width:22px; height:18px; border:0; border-radius:4px; background:transparent; color:#6F6C67; cursor:pointer; padding:0; display:flex; align-items:center; justify-content:center; }
+        .pf-mv button:hover:not(:disabled){ background:#ECEDE8; }
+        .pf-mv button:disabled{ opacity:.25; cursor:default; }
+        .pf-thumb{ width:44px; height:44px; border-radius:8px; background:#F5F6F2; border:1px dashed #B9BAB2; display:inline-flex; align-items:center; justify-content:center; color:#6F6C67; cursor:pointer; overflow:hidden; flex:none; }
+        .pf-thumb.has{ border-style:solid; }
+        .pf-thumb img{ width:100%; height:100%; object-fit:cover; }
+        .pf-c-ac{ display:flex; justify-content:flex-end; gap:2px; }
+        .pf-grp-f{ padding:10px 12px; }
+        @media(max-width:900px){
+          .pf-ohead{ display:none; }
+          .pf-orow{ display:flex; flex-wrap:wrap; align-items:flex-end; gap:10px; padding:12px; }
+          .pf-mv{ display:none; }
+          .pf-thumb{ order:1; }
+          .pf-c-nm{ order:2; flex:1 1 140px; min-width:0; align-self:center; }
+          .pf-c-ac{ order:3; align-self:center; }
+          .pf-c-pr{ order:4; flex:1 1 120px; }
+          .pf-c-mx{ order:5; flex:1 1 110px; }
+          .pf-c-lk{ order:6; flex:1 1 100%; }
+          .pf-mlab{ display:block; }
+        }
+        .pf-foot{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:4px 0; }
+        .pf-foot-r{ display:flex; gap:10px; }
+        .pf-mbar{ position:sticky; bottom:0; z-index:6; grid-template-columns:1fr 1.6fr; gap:10px; padding:12px 16px calc(14px + env(safe-area-inset-bottom)); background:#fff; border-top:1px solid var(--pf-line); }
+        .pf-mbar .pf-btn{ height:46px; font-size:15px; }
+        @media(min-width:768px){ .pf-mbar{ display:none; } }
       `}</style>
 
       {view === 'list' && (
@@ -1666,235 +1873,367 @@ export default function CatalogoPage() {
         </div>
       )}
 
-      {view === 'form' && (
-        <div className="cg-form-view">
-          <div className="cg-head cg-head-centered">
-            <div className="cg-head-left">
-              <button className="cg-back" onClick={() => setView('list')}>‹</button>
-              <h1>{form.id ? 'Editar produto' : 'Novo produto'}</h1>
+      {view === 'form' && (() => {
+        const venda = parsePt(form.sale_price)
+        const custo = parsePt(form.cost_price)
+        const promo = parsePt(form.promo_value)
+        const promoValida = form.hasPromo && promo > 0 && promo < venda
+        const precoEfetivo = promoValida ? promo : venda
+        const margemOk = custo > 0 && precoEfetivo > 0
+        const lucro = precoEfetivo - custo
+        const qtdEstoque = parseInt(String(form.stock_qty)) || 0
+        const alertaEstoque = parseInt(String(form.stock_alert_qty)) || 0
+        const fotoSrc = fotoPreview || form.photo_url
+        const nenhumCanal = !form.canalDelivery && !form.canalPdv && !form.canalMesa
+        const voltar = () => { if (dirty && !confirm('Descartar as alterações deste produto?')) return; setView('list') }
+        const toggleGrp = (gi: number) => setFechados(s0 => { const n = new Set(s0); if (n.has(gi)) n.delete(gi); else n.add(gi); return n })
+        const moveGrp = (gi: number, dir: -1 | 1) => {
+          moverGrupo(gi, dir)
+          setFechados(s0 => { const n = new Set<number>(); s0.forEach(i => n.add(i === gi ? gi + dir : i === gi + dir ? gi : i)); return n })
+        }
+        const delGrp = (gi: number) => {
+          removeGroup(gi)
+          setFechados(s0 => { const n = new Set<number>(); s0.forEach(i => { if (i < gi) n.add(i); else if (i > gi) n.add(i - 1) }); return n })
+        }
+        const excluirDoForm = async () => { if (form.id && await deleteProduto(form.id)) setView('list') }
+        const resumoGrupo = (g: Grupo) => `${g.required ? 'Obrigatório' : 'Opcional'} · ${g.max_select > 0 ? `até ${g.max_select}` : 'sem limite'} · ${g.options.length} ${g.options.length === 1 ? 'opção' : 'opções'}`
+        return (
+        <div className="cg-form-view pf">
+          <div className="cg-head cg-head-centered pf-head">
+            <button type="button" className="pf-ib pf-back" aria-label="Voltar para o catálogo" onClick={voltar}><Ico d={ICO.back} size={18} sw={2.2} /></button>
+            <div className="pf-title">
+              <span className="pf-eyebrow">{form.id ? 'Editar produto' : 'Novo produto'}</span>
+              <h1>{form.name.trim() || 'Produto sem nome'}</h1>
             </div>
-            <div className="cg-head-center">
-              <button type="button" className="cg-btn cg-btn-ghost cg-btn-sm" onClick={() => setView('list')}>Cancelar</button>
-              <button className="cg-btn cg-btn-gold cg-btn-sm" disabled={savingProd} onClick={saveProduto}>{savingProd ? 'Salvando...' : 'Salvar'}</button>
-            </div>
-            <div />
+            <span className={`pf-badge ${form.active ? 'ok' : 'off'}`}><i />{form.active ? 'Ativo no cardápio' : 'Pausado'}</span>
+            <div className="pf-grow" />
+            {dirty && <span className="pf-dirty"><i />Alterações não salvas</span>}
+            <button type="button" className="pf-btn pf-only-d" onClick={voltar}>Cancelar</button>
+            <button type="button" className="pf-btn pri pf-only-d" disabled={savingProd} onClick={saveProduto}><Ico d={ICO.check} size={16} sw={2.4} />{savingProd ? 'Salvando...' : 'Salvar produto'}</button>
           </div>
-          <div className="cg-body">
-            <div className="cg-photo-input">
-              <div
-                className="cg-photo-big"
-                style={(photoFile || form.photo_url) ? { cursor: 'zoom-in' } : undefined}
-                onClick={() => {
-                  const src = photoFile ? URL.createObjectURL(photoFile) : form.photo_url
-                  if (src) setPhotoLightbox(src)
-                }}
-              >
-                {photoFile ? <img src={URL.createObjectURL(photoFile)} alt="" /> : form.photo_url ? <img src={form.photo_url} alt="" /> : '🍽️'}
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                <label className="cg-btn cg-btn-ghost" style={{ cursor: 'pointer' }}>
-                  Carregar foto
-                  <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => setPhotoFile(e.target.files?.[0] || null)} />
-                </label>
-                <button type="button" className="cg-btn cg-btn-ghost" onClick={openCopyPhoto}>📋 Copiar de outro produto</button>
-              </div>
-            </div>
 
-            <div className="cg-field"><label>Nome do produto</label><input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} /></div>
+          <div className="pf-grid">
+            <div className="pf-main">
 
-            <div className="cg-field">
-              <label>Categoria</label>
-              <select value={form.category_id} onChange={e => setForm(f => ({ ...f, category_id: e.target.value }))}>
-                <option value="">Sem categoria</option>
-                {categorias.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-              {!showNewCat
-                ? <button className="cg-add-inline" style={{ marginTop: 8 }} onClick={() => setShowNewCat(true)}>+ Nova categoria</button>
-                : <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-                    <input placeholder="Nome da categoria" value={newCatName} onChange={e => setNewCatName(e.target.value)} />
-                    <button className="cg-btn cg-btn-gold" style={{ padding: '9px 14px' }} onClick={addCategoria}>OK</button>
-                  </div>}
-            </div>
-
-            <div className="cg-field">
-              <label>Tipo do produto (pra aparecer certinho na home)</label>
-              <select value={form.tipo_vitrine} onChange={e => setForm(f => ({ ...f, tipo_vitrine: e.target.value }))}>
-                <option value="">— não classificar —</option>
-                {tiposVitrine.map(t => <option key={t.value} value={t.value}>{t.emoji} {t.label}</option>)}
-              </select>
-            </div>
-
-            <div className="cg-field"><label>Descrição</label><textarea style={{ minHeight: 56 }} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
-
-            <div className="cg-row3">
-              <div className="cg-field"><label>Preço de custo</label><input value={form.cost_price} onChange={e => setForm(f => ({ ...f, cost_price: e.target.value }))} /></div>
-              <div className="cg-field"><label>Preço de venda</label><input value={form.sale_price} onChange={e => setForm(f => ({ ...f, sale_price: e.target.value }))} /></div>
-              <div className="cg-field promo">
-                <label>Preço de promoção {form.hasPromo && <span className="tag">ativa</span>}</label>
-                <input
-                  value={form.promo_value}
-                  placeholder="0,00"
-                  disabled={!form.hasPromo}
-                  onChange={e => setForm(f => ({ ...f, promo_value: e.target.value }))}
-                  style={!form.hasPromo ? { borderColor: '#B9AE97', background: '#FCFAF5', color: '#A79E8B' } : undefined}
-                />
-              </div>
-              <div className="cg-field cb">
-                <label>Cashback</label>
-                <div className="cb-box" onClick={() => setForm(f => ({ ...f, semCashback: !f.semCashback }))}>
-                  <div className={`cg-switch ${form.semCashback ? 'on' : ''}`}><div className="k" /></div>
-                  <span>Não gerar</span>
-                </div>
-              </div>
-            </div>
-            {parsePt(form.cost_price) > 0
-              ? <div className="cg-margin">{margin(parsePt(form.cost_price), parsePt(form.sale_price))}% de margem</div>
-              : <div className="cg-margin" style={{ color: '#AAA' }}>Preencha o custo pra ver a margem</div>}
-            {form.hasPromo && parsePt(form.promo_value) > 0 && parsePt(form.promo_value) >= parsePt(form.sale_price) && (
-              <div className="cg-margin" style={{ color: '#D6392B', marginTop: -4 }}>O preço de promoção precisa ser menor que o de venda</div>
-            )}
-
-            {company?.mesas_enabled && (
-              <div className="cg-canais">
-                <label>Onde este produto aparece</label>
-                <div className="row">
-                  {([['canalDelivery', '🛵 Delivery'], ['canalPdv', '🖥️ PDV'], ['canalMesa', '🍽️ Mesas']] as const).map(([k, nome]) => (
-                    <button key={k} type="button" className={form[k] ? 'on' : ''} onClick={() => setForm(f => ({ ...f, [k]: !f[k] }))}>{form[k] ? '✓ ' : ''}{nome}</button>
-                  ))}
-                </div>
-                {!form.canalDelivery && !form.canalPdv && !form.canalMesa && <small style={{ color: '#D6392B' }}>Escolha pelo menos um lugar, senão o produto não aparece em lugar nenhum.</small>}
-              </div>
-            )}
-
-            <div className="cg-swrow"><div className={`cg-switch ${form.restrictDays ? 'on' : ''}`} onClick={() => setForm(f => ({ ...f, restrictDays: !f.restrictDays }))}><div className="k" /></div><span>Disponibilidade limitada por dia</span></div>
-            {form.restrictDays && <div style={{ marginBottom: 12 }}>{DAY_LABELS.map((d, i) => <button key={i} type="button" className={`cg-daychip ${form.days.includes(i) ? 'active' : ''}`} onClick={() => toggleDay(i)}>{d}</button>)}</div>}
-
-            <div className="cg-swrow"><div className={`cg-switch ${form.hasPromo ? 'on' : ''}`} onClick={() => setForm(f => ({ ...f, hasPromo: !f.hasPromo }))}><div className="k" /></div><span>Ativar promoção</span></div>
-            {form.hasPromo && (
-              <div className="cg-subbox">
-                <div className="cg-field"><label>Início (opcional)</label><input type="date" value={form.promo_starts_at} onChange={e => setForm(f => ({ ...f, promo_starts_at: e.target.value }))} /></div>
-                <div className="cg-field"><label>Fim (opcional)</label><input type="date" value={form.promo_ends_at} onChange={e => setForm(f => ({ ...f, promo_ends_at: e.target.value }))} /></div>
-              </div>
-            )}
-
-            <div className="cg-swrow"><div className={`cg-switch ${form.track_stock ? 'on' : ''}`} onClick={() => setForm(f => ({ ...f, track_stock: !f.track_stock }))}><div className="k" /></div><span>Controlar estoque</span></div>
-            {form.track_stock && (
-              <div className="cg-subbox">
-                <div className="cg-field"><label>Quantidade</label><input value={String(form.stock_qty)} onChange={e => setForm(f => ({ ...f, stock_qty: e.target.value as any }))} /></div>
-                <div className="cg-field"><label>Avisar quando restar</label><input value={String(form.stock_alert_qty)} onChange={e => setForm(f => ({ ...f, stock_alert_qty: e.target.value as any }))} /></div>
-              </div>
-            )}
-
-            <div className="cg-swrow"><div className={`cg-switch ${form.active ? 'on' : ''}`} onClick={() => setForm(f => ({ ...f, active: !f.active }))}><div className="k" /></div><span>Ativo no cardápio</span></div>
-
-            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase', color: '#A79E8B', margin: '16px 2px 8px' }}>Grupos de opção / combo</div>
-            {form.groups.length > 1 && (
-              <div className="cg-org">
-                <div className="cg-org-lbl">Ordem dos grupos</div>
-                <div className="cg-org-seg">
-                  {([['free', 'Gratuitos primeiro'], ['paid', 'Pagos primeiro'], ['asc', 'Menor preço'], ['desc', 'Maior preço']] as [OrdemGrupos, string][]).map(([m, label]) => (
-                    <button key={m} type="button" className={ordemGrupos === m ? 'on' : ''} onClick={() => aplicarOrdemGrupos(m)}>{label}</button>
-                  ))}
-                </div>
-                <div className="cg-org-row">
-                  <label><input type="checkbox" checked={obrigNoTopo} onChange={alternarObrigNoTopo} /> Obrigatórios sempre no topo</label>
-                  {form.groups.some(g => g.name.trim()) && (
-                    <button type="button" className="cg-org-link" onClick={() => { setApplySel([]); setShowApplyOrder(true) }}>Aplicar esta ordem em outros produtos…</button>
-                  )}
-                </div>
-                <div className="cg-org-hint">Ou use as setas ▲▼ de cada grupo para mover um a um. A ordem vale no cardápio depois de salvar o produto.</div>
-              </div>
-            )}
-            {form.groups.map((g, gi) => (
-              <div className="cg-group" key={gi}>
-                <div className="cg-group-top">
-                  <span className="cg-pos">{gi + 1}</span>
-                  <input placeholder="Nome do grupo (ex: Sabores, Tamanho...)" value={g.name} onChange={e => updateGroup(gi, { name: e.target.value })} />
-                  {g.options.length > 0 && <span className={`cg-tipo ${grupoTipo(g)}`}>{grupoTipo(g) === 'free' ? 'Grátis' : grupoTipo(g) === 'paid' ? 'Pago' : 'Grátis + pago'}</span>}
-                  {form.groups.length > 1 && (
-                    <span className="cg-mv">
-                      <button type="button" aria-label="Subir grupo" disabled={gi === 0} onClick={() => moverGrupo(gi, -1)}>▲</button>
-                      <button type="button" aria-label="Descer grupo" disabled={gi === form.groups.length - 1} onClick={() => moverGrupo(gi, 1)}>▼</button>
-                    </span>
-                  )}
-                  <button className="cg-del" onClick={() => removeGroup(gi)}>🗑</button>
-                </div>
-                <div className="cg-rule">
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}><input type="checkbox" checked={g.required} onChange={e => updateGroup(gi, { required: e.target.checked })} /> Obrigatório</label>
-                  <div>mín <input value={g.min_select} onChange={e => updateGroup(gi, { min_select: +e.target.value || 0 })} /></div>
-                  <div>máx <input value={g.max_select} onChange={e => updateGroup(gi, { max_select: +e.target.value || 0 })} /></div>
-                </div>
-                <div className="cg-rule-cobrar">
-                  <span>cobrar:</span>
-                  <select value={g.pricing_rule} onChange={e => updateGroup(gi, { pricing_rule: e.target.value as any })}>
-                    <option value="soma">soma dos itens</option>
-                    <option value="maior_valor">o mais caro (ex: pizza meio a meio)</option>
-                  </select>
-                </div>
-                {g.options.length > 1 && (
-                  <div className="cg-rule-cobrar">
-                    <span>ordenar opções:</span>
-                    <select value="" onChange={e => { if (e.target.value) ordenarOpcoesDoGrupo(gi, e.target.value as OrdemOpcoes) }}>
-                      <option value="">Escolher (ou use as setas)…</option>
-                      <option value="az">A → Z</option>
-                      <option value="asc">Menor preço</option>
-                      <option value="desc">Maior preço</option>
-                      <option value="free">Gratuitas primeiro</option>
-                      <option value="paid">Pagas primeiro</option>
+              {/* Informações */}
+              <section className="pf-card pf-o2">
+                <div className="pf-card-h"><div><h2>Informações</h2><p>O que o cliente lê antes de pedir.</p></div></div>
+                <div className="pf-card-b pf-g2">
+                  <div className="pf-span2">
+                    <label className="pf-lab" htmlFor="pf-nome">Nome do produto</label>
+                    <input id="pf-nome" className="pf-inp" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="pf-lab" htmlFor="pf-cat"><span>Categoria</span>{!showNewCat && <button type="button" className="pf-link" onClick={() => setShowNewCat(true)}>+ Nova categoria</button>}</label>
+                    <select id="pf-cat" className="pf-inp" value={form.category_id} onChange={e => setForm(f => ({ ...f, category_id: e.target.value }))}>
+                      <option value="">Sem categoria</option>
+                      {categorias.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                    {showNewCat && (
+                      <div className="pf-inline">
+                        <input className="pf-inp" aria-label="Nome da nova categoria" placeholder="Nome da categoria" value={newCatName} onChange={e => setNewCatName(e.target.value)} />
+                        <button type="button" className="pf-btn pri" onClick={addCategoria}>OK</button>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <label className="pf-lab" htmlFor="pf-tipo"><span>Tipo na home</span></label>
+                    <select id="pf-tipo" className="pf-inp" value={form.tipo_vitrine} onChange={e => setForm(f => ({ ...f, tipo_vitrine: e.target.value }))}>
+                      <option value="">— não classificar —</option>
+                      {tiposVitrine.map(t => <option key={t.value} value={t.value}>{t.emoji} {t.label}</option>)}
                     </select>
                   </div>
-                )}
-                {g.options.map((o, oi) => (
-                  <div className={`cg-opt${o.pausado ? ' paused' : ''}`} key={oi}>
-                    <div className="cg-opt-top">
-                      {g.options.length > 1 && (
-                        <span className="cg-mv">
-                          <button type="button" aria-label="Subir opção" disabled={oi === 0} onClick={() => moverOpcao(gi, oi, -1)}>▲</button>
-                          <button type="button" aria-label="Descer opção" disabled={oi === g.options.length - 1} onClick={() => moverOpcao(gi, oi, 1)}>▼</button>
-                        </span>
-                      )}
-                      <label className="cg-opt-photo">
-                        {o._photoFile ? <img src={URL.createObjectURL(o._photoFile)} alt="" /> : o.photo_url ? <img src={o.photo_url} alt="" /> : '🍽️'}
-                        <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => updateOption(gi, oi, { _photoFile: e.target.files?.[0] || null })} />
-                      </label>
-                      <input className="cg-opt-name" placeholder="Nome da opção" value={o.name} onChange={e => updateOption(gi, oi, { name: e.target.value })} />
-                      <button type="button" className={`cg-pause${o.pausado ? ' on' : ''}`} title="Pausa este complemento em todos os produtos que tiverem ele" onClick={() => pausarComplemento(gi, oi)}>{o.pausado ? '▶ Pausado' : '⏸ Pausar'}</button>
-                      <button className="cg-del" style={{ width: 26, height: 26 }} onClick={() => removeOption(gi, oi)}>🗑</button>
+                  <div className="pf-span2">
+                    <label className="pf-lab" htmlFor="pf-desc"><span>Descrição</span><span className="pf-count">{form.description.length} / 240</span></label>
+                    <textarea id="pf-desc" className="pf-inp pf-ta" maxLength={240} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
+                  </div>
+                </div>
+              </section>
+
+              {/* Preços */}
+              <section className="pf-card pf-o3">
+                <div className="pf-card-h"><div><h2>Preços</h2><p>A margem é calculada na hora, só você vê.</p></div></div>
+                <div className="pf-card-b pf-stack">
+                  <div className="pf-g4">
+                    <div>
+                      <label className="pf-lab" htmlFor="pf-custo">Preço de custo</label>
+                      <div className="pf-money"><span>R$</span><input id="pf-custo" className="pf-inp" inputMode="decimal" value={form.cost_price} onChange={e => setForm(f => ({ ...f, cost_price: e.target.value }))} /></div>
                     </div>
-                    <div className="cg-opt-fields">
-                      <div className="cg-opt-field">
-                        <label>Preço (R$)</label>
-                        <input value={o.price} onChange={e => updateOption(gi, oi, { price: e.target.value })} />
+                    <div>
+                      <label className="pf-lab" htmlFor="pf-venda">Preço de venda</label>
+                      <div className="pf-money"><span>R$</span><input id="pf-venda" className="pf-inp" inputMode="decimal" value={form.sale_price} onChange={e => setForm(f => ({ ...f, sale_price: e.target.value }))} /></div>
+                    </div>
+                    <div>
+                      <label className="pf-lab" htmlFor="pf-promo"><span>Preço promocional</span>{form.hasPromo && <span className="pf-pill warn">ativa</span>}</label>
+                      <div className="pf-money"><span>R$</span><input id="pf-promo" className="pf-inp" inputMode="decimal" placeholder="0,00" disabled={!form.hasPromo} value={form.promo_value} onChange={e => setForm(f => ({ ...f, promo_value: e.target.value }))} /></div>
+                    </div>
+                    <div className={`pf-margin ${margemOk ? (lucro >= 0 ? 'ok' : 'bad') : ''}`}>
+                      {margemOk ? (
+                        <><span>{promoValida ? 'Margem na promoção' : 'Margem'}<small>{lucro >= 0 ? 'lucro' : 'prejuízo'} de {fmt(Math.abs(lucro))}</small></span><b>{margin(custo, precoEfetivo)}%</b></>
+                      ) : (
+                        <span>Informe o custo para ver a margem</span>
+                      )}
+                    </div>
+                  </div>
+                  {form.hasPromo && promo > 0 && promo >= venda && <div className="pf-err">O preço promocional precisa ser menor que o preço de venda.</div>}
+
+                  <div className="pf-g2b">
+                    <div className="pf-box">
+                      <div className="pf-rowsw">
+                        <PfSwitch checked={form.hasPromo} onChange={v => setForm(f => ({ ...f, hasPromo: v }))} label="Promoção ativa" />
+                        <div><b>Promoção ativa</b><small>Aparece com o preço antigo riscado no cardápio.</small></div>
                       </div>
-                      <div className="cg-opt-field">
-                        <label>Qtd. máx. dessa opção</label>
-                        <input placeholder="sem limite" value={o.max_qty ?? ''} onChange={e => updateOption(gi, oi, { max_qty: +e.target.value || null })} />
-                      </div>
-                      <div className="cg-opt-field cg-opt-field-full">
-                        <label>Vincular a um produto do catálogo (opcional)</label>
-                        <select value={o.linked_produto_id || ''} onChange={e => updateOption(gi, oi, { linked_produto_id: e.target.value || null })}>
-                          <option value="">Nenhum — é só uma opção avulsa</option>
-                          {produtos.filter(p => p.id !== form.id).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                        </select>
+                      {form.hasPromo && (
+                        <div className="pf-g2">
+                          <div><label className="pf-lab" htmlFor="pf-ini">Início <span className="pf-opt">opcional</span></label><input id="pf-ini" className="pf-inp sm" type="date" value={form.promo_starts_at} onChange={e => setForm(f => ({ ...f, promo_starts_at: e.target.value }))} /></div>
+                          <div><label className="pf-lab" htmlFor="pf-fim">Fim <span className="pf-opt">opcional</span></label><input id="pf-fim" className="pf-inp sm" type="date" value={form.promo_ends_at} onChange={e => setForm(f => ({ ...f, promo_ends_at: e.target.value }))} /></div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="pf-box">
+                      <div className="pf-rowsw">
+                        <PfSwitch checked={form.semCashback} onChange={v => setForm(f => ({ ...f, semCashback: v }))} label="Não gerar cashback" />
+                        <div><b>Não gerar cashback</b><small>O cliente não ganha cashback ao comprar este produto.</small></div>
                       </div>
                     </div>
                   </div>
-                ))}
-                <button className="cg-add-inline" onClick={() => addOption(gi)}>+ Adicionar opção</button>
+                </div>
+              </section>
+
+              {/* Opções e complementos */}
+              <section className="pf-card pf-o6">
+                <div className="pf-card-h pf-wrap">
+                  <div className="pf-hl"><div><h2>Opções e complementos</h2><p>Molhos, acompanhamentos, tamanhos, meio a meio…</p></div>{form.groups.length > 0 && <span className="pf-pill">{form.groups.length} {form.groups.length === 1 ? 'grupo' : 'grupos'}</span>}</div>
+                  <div className="pf-actions">
+                    <button type="button" className="pf-btn sm" onClick={openDupGroup}><Ico d={ICO.copy} size={15} />Copiar de outro produto</button>
+                    <button type="button" className="pf-btn sm pri" onClick={addGroup}><Ico d={ICO.plus} size={15} sw={2.4} />Novo grupo</button>
+                  </div>
+                </div>
+                <div className="pf-card-b pf-stack">
+                  {form.groups.length === 0 && (
+                    <div className="pf-empty">Este produto não tem opções. Use <b>Novo grupo</b> para criar molhos, tamanhos ou acompanhamentos.</div>
+                  )}
+                  {form.groups.length > 1 && (
+                    <div className="pf-org">
+                      <span className="pf-eyebrow">Ordem dos grupos</span>
+                      <div className="pf-seg">
+                        {([['free', 'Gratuitos primeiro'], ['paid', 'Pagos primeiro'], ['asc', 'Menor preço'], ['desc', 'Maior preço']] as [OrdemGrupos, string][]).map(([m, label]) => (
+                          <button key={m} type="button" className={ordemGrupos === m ? 'on' : ''} onClick={() => { aplicarOrdemGrupos(m); setFechados(new Set()) }}>{label}</button>
+                        ))}
+                      </div>
+                      <label className="pf-chk"><input type="checkbox" checked={obrigNoTopo} onChange={alternarObrigNoTopo} />Obrigatórios sempre no topo</label>
+                      <div className="pf-grow" />
+                      {form.groups.some(g => g.name.trim()) && <button type="button" className="pf-link" onClick={() => { setApplySel([]); setShowApplyOrder(true) }}>Aplicar esta ordem em outros produtos…</button>}
+                      <button type="button" className="pf-link" onClick={() => setFechados(fechados.size ? new Set() : new Set(form.groups.map((_, i) => i)))}>{fechados.size ? 'Expandir todos' : 'Recolher todos'}</button>
+                    </div>
+                  )}
+
+                  {form.groups.map((g, gi) => {
+                    const fechado = fechados.has(gi)
+                    const tipo = grupoTipo(g)
+                    return (
+                      <div className="pf-grp" key={gi}>
+                        <div className="pf-grp-h">
+                          <span className="pf-pos">{gi + 1}</span>
+                          {fechado ? (
+                            <button type="button" className="pf-grp-sum" onClick={() => toggleGrp(gi)} aria-expanded="false">
+                              <b>{g.name.trim() || 'Grupo sem nome'}</b>
+                              <span>{resumoGrupo(g)}</span>
+                            </button>
+                          ) : (
+                            <input className="pf-inp sm pf-grp-name" placeholder="Nome do grupo (ex: Molho, Tamanho…)" aria-label="Nome do grupo" value={g.name} onChange={e => updateGroup(gi, { name: e.target.value })} />
+                          )}
+                          {!fechado && <span className={`pf-pill ${g.required ? 'ok' : ''}`}>{g.required ? 'Obrigatório' : 'Opcional'}</span>}
+                          {g.options.length > 0 && <span className={`pf-pill ${tipo === 'mixed' ? 'warn' : ''} pf-hide-s`}>{tipo === 'free' ? 'Grátis' : tipo === 'paid' ? 'Pago' : 'Grátis + pago'}</span>}
+                          {!fechado && <span className="pf-count pf-hide-s">{g.options.length} {g.options.length === 1 ? 'opção' : 'opções'}</span>}
+                          <div className="pf-grow" />
+                          {form.groups.length > 1 && (
+                            <>
+                              <button type="button" className="pf-ib" aria-label="Subir grupo" disabled={gi === 0} onClick={() => moveGrp(gi, -1)}><Ico d={ICO.up} size={16} sw={2.2} /></button>
+                              <button type="button" className="pf-ib" aria-label="Descer grupo" disabled={gi === form.groups.length - 1} onClick={() => moveGrp(gi, 1)}><Ico d={ICO.down} size={16} sw={2.2} /></button>
+                            </>
+                          )}
+                          <button type="button" className="pf-ib" aria-label={fechado ? 'Expandir grupo' : 'Recolher grupo'} aria-expanded={!fechado} onClick={() => toggleGrp(gi)}><Ico d={fechado ? ICO.down : ICO.up} size={16} sw={2.2} /></button>
+                          <button type="button" className="pf-ib dng" aria-label="Excluir grupo" onClick={() => delGrp(gi)}><Ico d={ICO.trash} size={16} /></button>
+                        </div>
+
+                        {!fechado && (
+                          <>
+                            <div className="pf-rules">
+                              <div className="pf-f"><span>Cliente precisa escolher</span>
+                                <div className="pf-rowsw tight"><PfSwitch checked={g.required} onChange={v => updateGroup(gi, { required: v })} label="Obrigatório" /><b>{g.required ? 'Sim' : 'Não'}</b></div>
+                              </div>
+                              <div className="pf-f"><span>Mínimo</span><input className="pf-inp sm pf-num" inputMode="numeric" aria-label="Mínimo" value={g.min_select} onChange={e => updateGroup(gi, { min_select: +e.target.value || 0 })} /></div>
+                              <div className="pf-f"><span>Máximo</span><input className="pf-inp sm pf-num" inputMode="numeric" aria-label="Máximo" value={g.max_select} onChange={e => updateGroup(gi, { max_select: +e.target.value || 0 })} /></div>
+                              <div className="pf-f wide"><span>Como cobrar</span>
+                                <select className="pf-inp sm" aria-label="Como cobrar" value={g.pricing_rule} onChange={e => updateGroup(gi, { pricing_rule: e.target.value as any })}>
+                                  <option value="soma">Soma dos itens escolhidos</option>
+                                  <option value="maior_valor">O mais caro (ex: pizza meio a meio)</option>
+                                </select>
+                              </div>
+                              {g.options.length > 1 && (
+                                <div className="pf-f wide"><span>Ordenar opções</span>
+                                  <select className="pf-inp sm" aria-label="Ordenar opções" value="" onChange={e => { if (e.target.value) ordenarOpcoesDoGrupo(gi, e.target.value as OrdemOpcoes) }}>
+                                    <option value="">Escolher (ou use as setas)…</option>
+                                    <option value="az">A → Z</option>
+                                    <option value="asc">Menor preço</option>
+                                    <option value="desc">Maior preço</option>
+                                    <option value="free">Gratuitas primeiro</option>
+                                    <option value="paid">Pagas primeiro</option>
+                                  </select>
+                                </div>
+                              )}
+                            </div>
+
+                            {g.options.length > 0 && (
+                              <div className="pf-opts">
+                                <div className="pf-orow pf-ohead" aria-hidden="true">
+                                  <span /><span /><span>Nome da opção</span><span>Preço</span><span>Máx. por pedido</span><span>Vincular a produto</span><span />
+                                </div>
+                                {g.options.map((o, oi) => (
+                                  <div className={`pf-orow${o.pausado ? ' paused' : ''}`} key={oi}>
+                                    <span className="pf-mv">
+                                      {g.options.length > 1 && (
+                                        <>
+                                          <button type="button" aria-label="Subir opção" disabled={oi === 0} onClick={() => moverOpcao(gi, oi, -1)}><Ico d={ICO.up} size={13} sw={2.4} /></button>
+                                          <button type="button" aria-label="Descer opção" disabled={oi === g.options.length - 1} onClick={() => moverOpcao(gi, oi, 1)}><Ico d={ICO.down} size={13} sw={2.4} /></button>
+                                        </>
+                                      )}
+                                    </span>
+                                    <label className={`pf-thumb${o._photoFile || o.photo_url ? ' has' : ''}`} title="Foto da opção">
+                                      {o._photoFile ? <img src={URL.createObjectURL(o._photoFile)} alt="" /> : o.photo_url ? <img src={o.photo_url} alt="" /> : <Ico d={ICO.plus} size={16} sw={2} />}
+                                      <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => updateOption(gi, oi, { _photoFile: e.target.files?.[0] || null })} />
+                                    </label>
+                                    <div className="pf-c-nm"><input className="pf-inp sm" aria-label="Nome da opção" placeholder="Nome da opção" value={o.name} onChange={e => updateOption(gi, oi, { name: e.target.value })} /></div>
+                                    <div className="pf-c-pr"><span className="pf-mlab">Preço</span><div className="pf-money sm"><span>R$</span><input className="pf-inp sm" inputMode="decimal" aria-label="Preço da opção" value={o.price} onChange={e => updateOption(gi, oi, { price: e.target.value })} /></div></div>
+                                    <div className="pf-c-mx"><span className="pf-mlab">Máx. por pedido</span><input className="pf-inp sm" inputMode="numeric" aria-label="Quantidade máxima desta opção" placeholder="Sem limite" value={o.max_qty ?? ''} onChange={e => updateOption(gi, oi, { max_qty: +e.target.value || null })} /></div>
+                                    <div className="pf-c-lk"><span className="pf-mlab">Vincular a produto</span>
+                                      <select className="pf-inp sm" aria-label="Vincular a um produto do catálogo" value={o.linked_produto_id || ''} onChange={e => updateOption(gi, oi, { linked_produto_id: e.target.value || null })}>
+                                        <option value="">Nenhum — opção avulsa</option>
+                                        {produtos.filter(p => p.id !== form.id).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                      </select>
+                                    </div>
+                                    <div className="pf-c-ac">
+                                      <button type="button" className={`pf-ib${o.pausado ? ' ok' : ''}`} aria-label={o.pausado ? 'Voltar a vender esta opção' : 'Pausar esta opção em todos os produtos'} title="Pausa este complemento em todos os produtos que tiverem ele" onClick={() => pausarComplemento(gi, oi)}><Ico d={o.pausado ? ICO.play : ICO.pause} size={16} sw={2.2} /></button>
+                                      <button type="button" className="pf-ib dng" aria-label="Excluir opção" onClick={() => removeOption(gi, oi)}><Ico d={ICO.trash} size={16} /></button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            <div className="pf-grp-f"><button type="button" className="pf-btn sm" onClick={() => addOption(gi)}><Ico d={ICO.plus} size={15} sw={2.4} />Adicionar opção</button></div>
+                          </>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </section>
+
+              <div className="pf-foot pf-o9">
+                {form.id ? <button type="button" className="pf-btn dng" onClick={excluirDoForm}><Ico d={ICO.trash} size={16} />Excluir produto</button> : <span />}
+                <div className="pf-only-d pf-foot-r">
+                  <button type="button" className="pf-btn" onClick={voltar}>Cancelar</button>
+                  <button type="button" className="pf-btn pri" disabled={savingProd} onClick={saveProduto}>{savingProd ? 'Salvando...' : 'Salvar produto'}</button>
+                </div>
               </div>
-            ))}
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button className="cg-add-group" style={{ flex: 1 }} onClick={addGroup}>+ Adicionar grupo de opção</button>
-              <button className="cg-add-group" style={{ flex: 1 }} onClick={openDupGroup}>📋 Duplicar de outro produto</button>
             </div>
 
-            <div className="cg-savebar">
-              <button className="cg-btn cg-btn-gold" disabled={savingProd} onClick={saveProduto}>{savingProd ? 'Salvando...' : 'Salvar produto'}</button>
-              <button type="button" className="cg-btn cg-btn-ghost" onClick={() => setView('list')}>Cancelar edição</button>
-            </div>
+            <aside className="pf-side">
+              {/* Foto */}
+              <section className="pf-card pf-o1">
+                <div className="pf-card-h"><h2>Foto</h2><span className="pf-count">Quadrada, mín. 800 px</span></div>
+                <div className="pf-card-b pf-stack pf-photo">
+                  <button type="button" className={`pf-photo-big${fotoSrc ? ' has' : ''}`} onClick={() => { if (fotoSrc) setPhotoLightbox(fotoSrc) }} aria-label={fotoSrc ? 'Ampliar foto' : 'Sem foto'} disabled={!fotoSrc}>
+                    {fotoSrc ? <img src={fotoSrc} alt="Foto do produto" /> : <span><Ico d={ICO.image} size={34} sw={1.6} />Sem foto ainda</span>}
+                  </button>
+                  <div className="pf-g2 tight">
+                    <label className="pf-btn sm" style={{ cursor: 'pointer' }}>
+                      <Ico d={ICO.upload} size={15} />{fotoSrc ? 'Trocar foto' : 'Carregar foto'}
+                      <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => setPhotoFile(e.target.files?.[0] || null)} />
+                    </label>
+                    <button type="button" className="pf-btn sm" onClick={openCopyPhoto}><Ico d={ICO.copy} size={15} />Copiar de outro</button>
+                  </div>
+                </div>
+              </section>
+
+              {/* Visibilidade */}
+              <section className="pf-card pf-o4">
+                <div className="pf-card-h"><div><h2>Visibilidade</h2><p>Onde e quando o cliente vê este produto.</p></div></div>
+                <div className="pf-card-b pf-stack">
+                  <div className="pf-rowsw">
+                    <PfSwitch checked={form.active} onChange={v => setForm(f => ({ ...f, active: v }))} label="Ativo no cardápio" />
+                    <div><b>Ativo no cardápio</b><small>Desligue para pausar sem apagar.</small></div>
+                  </div>
+                  {company?.mesas_enabled && (
+                    <div>
+                      <div className="pf-eyebrow pf-mb8">Onde aparece</div>
+                      <div className="pf-chips">
+                        {([['canalDelivery', 'Delivery'], ['canalPdv', 'PDV'], ['canalMesa', 'Mesas']] as const).map(([k, nome]) => (
+                          <button key={k} type="button" className={`pf-chip${form[k] ? ' on' : ''}`} aria-pressed={form[k]} onClick={() => setForm(f => ({ ...f, [k]: !f[k] }))}>{form[k] && <Ico d={ICO.check} size={15} sw={2.4} />}{nome}</button>
+                        ))}
+                      </div>
+                      {nenhumCanal && <div className="pf-err">Escolha pelo menos um lugar, senão o produto não aparece em lugar nenhum.</div>}
+                    </div>
+                  )}
+                  <div className="pf-sep" />
+                  <div className="pf-rowsw">
+                    <PfSwitch checked={form.restrictDays} onChange={v => setForm(f => ({ ...f, restrictDays: v }))} label="Só em alguns dias da semana" />
+                    <div><b>Só em alguns dias da semana</b><small>Fora desses dias aparece como indisponível.</small></div>
+                  </div>
+                  {form.restrictDays && (
+                    <div className="pf-days">{DAY_LABELS.map((d, i) => <button key={i} type="button" aria-pressed={form.days.includes(i)} aria-label={['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'][i]} className={`pf-day${form.days.includes(i) ? ' on' : ''}`} onClick={() => toggleDay(i)}>{d}</button>)}</div>
+                  )}
+                </div>
+              </section>
+
+              {/* Estoque */}
+              <section className="pf-card pf-o5">
+                <div className="pf-card-h">
+                  <div><h2>Estoque</h2><p>{form.track_stock ? 'Desconta a cada venda. Zerou, sai do cardápio.' : 'Sem controle: vende sem limite.'}</p></div>
+                  <PfSwitch checked={form.track_stock} onChange={v => setForm(f => ({ ...f, track_stock: v }))} label="Controlar estoque" />
+                </div>
+                {form.track_stock && (
+                  <div className="pf-card-b pf-stack">
+                    <div className="pf-g2">
+                      <div><label className="pf-lab" htmlFor="pf-qtd">Quantidade</label><input id="pf-qtd" className="pf-inp pf-tab" inputMode="numeric" value={String(form.stock_qty)} onChange={e => setForm(f => ({ ...f, stock_qty: e.target.value as any }))} /></div>
+                      <div><label className="pf-lab" htmlFor="pf-alerta">Avisar quando restar</label><input id="pf-alerta" className="pf-inp pf-tab" inputMode="numeric" value={String(form.stock_alert_qty)} onChange={e => setForm(f => ({ ...f, stock_alert_qty: e.target.value as any }))} /></div>
+                    </div>
+                    <div className={`pf-stock ${qtdEstoque <= 0 ? 'bad' : alertaEstoque > 0 && qtdEstoque <= alertaEstoque ? 'warn' : 'ok'}`}>
+                      {qtdEstoque <= 0 ? 'Zerado — o produto sai do cardápio' : alertaEstoque > 0 && qtdEstoque <= alertaEstoque ? `Estoque baixo — ${qtdEstoque} restantes` : `${qtdEstoque} em estoque`}
+                    </div>
+                    <p className="pf-hint">Vendido por peso ou sem limite? Deixe o controle desligado.</p>
+                  </div>
+                )}
+              </section>
+
+              {/* Prévia */}
+              <section className="pf-card pf-o7">
+                <div className="pf-card-h"><h2>Prévia no cardápio</h2></div>
+                <div className="pf-card-b">
+                  <div className="pf-prev">
+                    <div className="pf-prev-t">
+                      <b>{form.name.trim() || 'Nome do produto'}</b>
+                      {form.description.trim() && <span>{form.description}</span>}
+                      <div className="pf-prev-p">
+                        <strong>{fmt(precoEfetivo)}</strong>
+                        {promoValida && <s>{fmt(venda)}</s>}
+                      </div>
+                    </div>
+                    <div className="pf-prev-img">{fotoSrc ? <img src={fotoSrc} alt="" /> : <Ico d={ICO.image} size={22} sw={1.6} />}</div>
+                  </div>
+                </div>
+              </section>
+            </aside>
+          </div>
+
+          <div className="pf-mbar pf-only-m">
+            <button type="button" className="pf-btn" onClick={voltar}>Cancelar</button>
+            <button type="button" className="pf-btn pri" disabled={savingProd} onClick={saveProduto}>{savingProd ? 'Salvando...' : 'Salvar produto'}</button>
           </div>
         </div>
-      )}
+        )
+      })()}
 
       {view === 'bulk' && (
         <div className="cg-form-view">

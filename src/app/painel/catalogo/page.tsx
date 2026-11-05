@@ -1566,8 +1566,8 @@ export default function CatalogoPage() {
         /* Só desktop largo: conteúdo com largura máxima fixa (1240px) e centralizado; barra do topo alinhada na mesma coluna.
            Tablet e celular (<=1180px) continuam fluidos. */
         @media(min-width:1181px){
-          .pf-info{ grid-template-columns:repeat(3,minmax(0,1fr)); }
-          .pf-info .pf-nm{ grid-column:auto; }
+          .pf .pf-card-b.pf-info{ grid-template-columns:repeat(3,minmax(0,1fr)); }
+          .pf .pf-info .pf-nm{ grid-column:auto; }
           .pf{ --pf-w:1240px; }
           .pf-grid{ max-width:calc(var(--pf-w) + 64px); margin:0 auto; }
           .pf-head.cg-head.cg-head-centered{ padding-left:max(32px, calc((100% - var(--pf-w)) / 2)); padding-right:max(32px, calc((100% - var(--pf-w)) / 2)); }

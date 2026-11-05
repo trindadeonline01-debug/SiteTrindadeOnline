@@ -260,6 +260,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, comandaId: c.id })
     }
 
+    // ---------- imprimir produção por outro aparelho ----------
+    // O celular não tem a impressora (ela está no computador com o QZ Tray): ele só registra o pedido de
+    // impressão na comanda e o computador, que está com a tela de Mesas aberta, imprime.
+    if (acao === 'producao_pedir') {
+      const c = await comandaAberta(companyId, b.comandaId)
+      if (!c) return erro('Essa comanda não está aberta.', 409)
+      await sb.from('loja_comandas').update({ imprimir_producao_em: new Date().toISOString(), imprimir_producao_todas: !!b.todas }).eq('id', c.id)
+      return NextResponse.json({ ok: true })
+    }
+
     // ---------- lançar rodada ----------
     if (acao === 'rodada') {
       const c = await comandaAberta(companyId, b.comandaId)

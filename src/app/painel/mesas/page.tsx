@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { adminFetch } from '@/lib/adminFetch'
 import { moduleActive } from '@/lib/modules'
 import { beepChamado, beepMesa, pararSons, unlockAudio } from '@/lib/beep'
-import { buildReceipt, buildKitchenTicket, imprimirVias, setPapelImpressora, setViasImpressao } from '@/lib/qzPrint'
+import { buildReceipt, buildKitchenTicket, imprimirVias, isRawBtMode, qzConnect, setPapelImpressora, setViasImpressao } from '@/lib/qzPrint'
 import ConfirmModal from '@/components/painel/ConfirmModal'
 import MesaCalculadora, { type CalcComanda, type Divisao, DIVISAO0 } from '@/components/painel/MesaCalculadora'
 import QRCode from 'qrcode'
@@ -22,6 +22,7 @@ type Mesa = { id: string; numero: number; nome: string | null; ativa: boolean }
 type Comanda = {
   id: string; company_id: string; mesa_id: string | null; tipo?: 'mesa' | 'retirada'; rotulo?: string | null; numero: number; garcom_nome: string | null; customer_phone: string | null; customer_name: string | null
   taxa_servico_ativa: boolean; taxa_servico_pct: number; desconto: number; desconto_motivo: string | null
+  imprimir_producao_em?: string | null; imprimir_producao_todas?: boolean
   subtotal: number; taxa_valor: number; total: number; aberta_em: string
 }
 type ItemPed = { id: string; produto_id: string | null; product_name: string; unit_price: number; qty: number; peso_kg: number | null; selected_options: { name: string; price: number }[] }
@@ -246,10 +247,18 @@ export default function MesasPage() {
 
   // Imprime para a produção TUDO que foi lançado e ainda não saiu no papel, num papelzinho só.
   // todas=true reimprime tudo (menu ⋯). Só marca como impresso quando é a impressão normal.
-  async function imprimirProducao(c: Comanda, todas = false) {
-    const peds = pedidos.filter(p => p.comanda_id === c.id && p.status !== 'cancelado' && (todas || !p.impresso_em))
-    if (peds.length === 0) { setMsg('Nada novo para imprimir.'); return }
-    if (!printerName) { setMsg('Escolha a impressora em Pedidos → 🖨️ Impressora.'); return }
+  // Este aparelho consegue imprimir? (RawBT no tablet, ou QZ Tray rodando — o computador da impressora.)
+  async function podeImprimirAqui(): Promise<boolean> {
+    if (!printerName) return false
+    if (isRawBtMode(printerName)) return true
+    try { await qzConnect(); return true } catch { return false }
+  }
+
+  // Monta e imprime a produção da comanda com o que está no banco AGORA. Marca como impresso só se saiu.
+  async function executarProducao(c: Comanda, todas: boolean): Promise<'ok' | 'nada' | 'erro'> {
+    const { data } = await supabase.from('loja_pedidos').select('id, order_number, status, notes, impresso_em, itens:loja_pedido_itens(*)').eq('comanda_id', c.id)
+    const peds = ((data || []) as unknown as PedidoMesa[]).filter(p => p.status !== 'cancelado' && (todas || !p.impresso_em)).sort((x, y) => (x.order_number ?? 0) - (y.order_number ?? 0))
+    if (peds.length === 0) return 'nada'
     const mesa = mesaDe(c.mesa_id)
     const items = peds.flatMap(p => p.itens).map(it => ({ qty: it.qty, pesoKg: it.peso_kg, name: it.product_name, unitPrice: it.unit_price, options: it.selected_options }))
     const notes = peds.map(p => p.notes).filter(Boolean).join(' | ') || null
@@ -257,12 +266,46 @@ export default function MesasPage() {
       pedidoShortId: `${c.tipo === 'retirada' ? 'R' + c.numero : (mesa?.numero ?? '')}-${peds.map(p => p.order_number ?? '').join('/')}`, createdAt: new Date().toISOString(), deliveryType: 'balcao',
       titulo: nomeConta(c), rotulo: `Garcom: ${c.garcom_nome || ''}`, items, notes,
     })], 'producao')
-    if (!ok) { setMsg('Não consegui imprimir. Confira a impressora e toque em Imprimir produção de novo.'); return }
+    if (!ok) return 'erro'
     // Só marca como impresso se saiu de verdade; assim o botão continua pedindo até dar certo.
     if (!todas) await supabase.from('loja_pedidos').update({ impresso_em: new Date().toISOString() }).in('id', peds.map(p => p.id)).is('impresso_em', null)
-    setMsg('')
-    await load()
+    return 'ok'
   }
+
+  async function imprimirProducao(c: Comanda, todas = false) {
+    if (!printerName) { setMsg('Escolha a impressora em Pedidos → 🖨️ Impressora.'); return }
+    if (await podeImprimirAqui()) {
+      const r = await executarProducao(c, todas)
+      if (r === 'nada') { setMsg('Nada novo para imprimir.'); return }
+      if (r === 'erro') { setMsg('Não consegui imprimir. Confira a impressora e toque em Imprimir produção de novo.'); return }
+      setMsg(''); await load(); return
+    }
+    // Sem impressora neste aparelho (celular): pede para o computador imprimir.
+    const r = await call('producao_pedir', { comandaId: c.id, todas })
+    if (r) setMsg('📨 Enviado para a impressora do computador. Se não sair, confira se a tela de Mesas está aberta lá.')
+  }
+
+  // Computador com a impressora: imprime os pedidos feitos pelos outros aparelhos (celular).
+  const imprimindoRemoto = useRef(false)
+  useEffect(() => {
+    const pend = comandas.filter(c => c.imprimir_producao_em)
+    if (pend.length === 0 || !printerName || isRawBtMode(printerName) || imprimindoRemoto.current) return
+    imprimindoRemoto.current = true
+    ;(async () => {
+      try {
+        if (!(await podeImprimirAqui())) return
+        for (const c of pend) {
+          // Reivindica: só o aparelho que conseguir zerar o pedido (com o mesmo carimbo) imprime — evita papel duplicado.
+          const { data: ganhou } = await supabase.from('loja_comandas').update({ imprimir_producao_em: null }).eq('id', c.id).eq('imprimir_producao_em', c.imprimir_producao_em as string).select('id')
+          if (!ganhou || ganhou.length === 0) continue
+          const r = await executarProducao(c, !!c.imprimir_producao_todas)
+          if (r === 'erro') setMsg('Não consegui imprimir o pedido do celular. Confira a impressora e peça de novo.')
+        }
+        await load()
+      } finally { imprimindoRemoto.current = false }
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [comandas, printerName])
 
   function dadosConta(c: Comanda) {
     const mesa = mesaDe(c.mesa_id)

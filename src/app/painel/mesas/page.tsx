@@ -116,6 +116,7 @@ export default function MesasPage() {
   const [, setTick] = useState(0)
   const companyRef = useRef('')
   const chamadosVistos = useRef<Set<string> | null>(null)
+  const chamadosAbertosAntes = useRef<Set<string>>(new Set())
   const [pedidoQr, setPedidoQr] = useState<Chamado | null>(null)
   const [pedirCfgPin, setPedirCfgPin] = useState(false)
 
@@ -143,6 +144,9 @@ export default function MesasPage() {
     setMesas((m.data || []) as Mesa[]); setComandas(cs); setGarcons((g.data || []) as Garcom[])
     const chs = (ch.data || []) as Chamado[]
     setChamados(chs)
+    // Chamado atendido em outro aparelho (sumiu da lista): cala o toque aqui também.
+    if (chamadosVistos.current && [...chamadosVistos.current].some(id => !chs.some(x => x.id === id) && chamadosAbertosAntes.current.has(id))) pararSons()
+    chamadosAbertosAntes.current = new Set(chs.map(x => x.id))
     if (chamadosVistos.current) {
       const novos = chs.filter(x => !chamadosVistos.current!.has(x.id))
       // Pedido do cliente toca o sino da mesa (diferente do toque de chamado de garçom).

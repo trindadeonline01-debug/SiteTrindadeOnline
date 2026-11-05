@@ -3,7 +3,7 @@ import { Suspense, useEffect, useRef, useState } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { moduleActive } from '@/lib/modules'
-import { beep, beepCancelamento, unlockAudio } from '@/lib/beep'
+import { beep, beepCancelamento, pararSons, unlockAudio } from '@/lib/beep'
 import { autoImprimirPedido } from '@/lib/autoprint'
 import { ORIGENS_DELIVERY, isPdvOuMesa } from '@/lib/canais'
 import { isRawBtMode, setPapelImpressora, setViasImpressao } from '@/lib/qzPrint'
@@ -165,13 +165,19 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
   // setPlaybackAudioSession() em src/lib/beep.ts pra pedir categoria
   // "playback" (Safari 17+), que ignora o interruptor igual app de música.
   useEffect(() => {
-    const handler = () => unlockAudio()
+    // Qualquer toque/clique/tecla neste aparelho cala o toque longo que estiver tocando (pedido do Ricardo: onde abrir, o alarme para na hora).
+    const handler = () => { unlockAudio(); pararSons() }
     document.addEventListener('pointerdown', handler)
     document.addEventListener('touchstart', handler)
     document.addEventListener('keydown', handler)
+    const aoVoltar = () => { if (document.visibilityState === 'visible') pararSons() }
+    document.addEventListener('visibilitychange', aoVoltar)
+    window.addEventListener('focus', pararSons)
     return () => {
       document.removeEventListener('pointerdown', handler)
       document.removeEventListener('touchstart', handler)
+      document.removeEventListener('visibilitychange', aoVoltar)
+      window.removeEventListener('focus', pararSons)
       document.removeEventListener('keydown', handler)
     }
   }, [])
@@ -293,6 +299,8 @@ function PainelLayoutInner({ children }: { children: React.ReactNode }) {
         // Cliente pediu cancelamento (pedido já em preparo/pronto/saiu):
         // som diferente do de pedido novo, uma vez por pedido.
         const n = payload.new as { id?: string; cancelamento_solicitado_em?: string | null; status?: string }
+        // Alguém (em qualquer aparelho) aceitou/avançou/cancelou o pedido: o toque longo para aqui também.
+        if (n?.status && n.status !== 'recebido') pararSons()
         if (n?.id && n.cancelamento_solicitado_em && n.status !== 'cancelado' && !cancelReqAvisadoRef.current.has(n.id)) {
           cancelReqAvisadoRef.current.add(n.id)
           beepCancelamento()

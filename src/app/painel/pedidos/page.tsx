@@ -185,6 +185,7 @@ export default function PedidosPage() {
   // disso (Ricardo, set/2026).
   const [autoChamarMoto, setAutoChamarMoto] = useState(true)
   const [showPrinterModal, setShowPrinterModal] = useState(false)
+  const [pwMore, setPwMore] = useState(false)
   const [printerModalMode, setPrinterModalMode] = useState<'qz' | 'rawbt'>('qz')
   const [papelMm, setPapelMm] = useState<58 | 80>(80)
   const [vias, setVias] = useState(getViasImpressao())
@@ -1270,6 +1271,62 @@ export default function PedidosPage() {
         .pp-printer-item.sel{ border-color:#157A52;background:#E4F3EC; }
         .pp-close{ width:100%;padding:10px;border-radius:9px;border:none;background:#F0EDE8;color:#6E6656;font-weight:700;font-size:12.5px;cursor:pointer;margin-top:10px;font-family:inherit; }
         .pp-err{ background:#FBEAEA;color:#C43D3D;font-size:11.5px;padding:9px 11px;border-radius:8px;margin-bottom:12px;line-height:1.5; }
+        /* Impressora de pedidos — redesenho (mockup aprovado, nov/2026) */
+        .pw-modal{ max-width:840px;padding:0;display:flex;flex-direction:column;overflow:hidden;max-height:92vh;border:1px solid #9C988B;box-shadow:0 30px 60px -20px rgba(21,18,16,.6); }
+        .pw-head{ display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid #D9D5C8;background:#EDEADF;flex-wrap:wrap; }
+        .pw-ico{ width:42px;height:42px;border-radius:11px;background:var(--ink);color:var(--sign);display:grid;place-items:center;flex:none; }
+        .pw-ttl{ flex:1;min-width:180px; }
+        .pp-modal.pw-modal .pw-ttl h2{ font-family:'Anton',sans-serif;font-weight:400;font-size:22px;letter-spacing:.5px;text-transform:uppercase;line-height:1;margin:0; }
+        .pp-modal.pw-modal .pw-ttl p{ margin:3px 0 0;font-size:12.5px;color:#4A453F;line-height:1.4; }
+        .pw-pill{ display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 12px;border-radius:15px;background:#E4F3EC;border:1px solid #B7DFC9;color:#157A52;font-size:12px;font-weight:800;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+        .pw-pill i{ width:8px;height:8px;border-radius:50%;background:#0F8A57;display:block;flex:none; }
+        .pw-x{ width:34px;height:34px;border-radius:50%;border:1px solid #9C988B;background:#fff;color:var(--ink);font-size:13px;font-weight:800;cursor:pointer;flex:none; }
+        .pw-cols{ display:grid;grid-template-columns:330px minmax(0,1fr);flex:1;min-height:0;overflow-y:auto; }
+        .pw-left{ padding:20px 22px;border-right:1px solid #D9D5C8; }
+        .pw-right{ padding:20px 24px; }
+        .pw-h{ font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#6B665E;margin:0 0 9px !important; }
+        .pw-sec{ margin-bottom:20px; }
+        .pw-seg{ display:flex;border:1px solid #807C70;border-radius:10px;overflow:hidden;background:#fff; }
+        .pw-seg button{ flex:1;height:42px;display:flex;align-items:center;justify-content:center;gap:7px;border:0;border-right:1px solid #D9D5C8;background:#fff;font:700 13px 'Archivo',sans-serif;color:var(--ink);cursor:pointer; }
+        .pw-seg button:last-child{ border-right:0; }
+        .pw-seg button.on{ background:var(--ink);color:var(--sign); }
+        .pw-seg.sm button{ height:36px;font-size:12.5px; }
+        .pw-seg small{ font-weight:600;opacity:.8;font-size:11px; }
+        .pw-via{ margin-bottom:12px; }
+        .pw-via-t{ display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;gap:8px; }
+        .pw-via-t b{ font-size:13px; }
+        .pw-via-t small{ font-size:11.5px;color:#6B665E; }
+        .pw-hint{ background:#F3F1E8;border:1px solid #D9D5C8;border-radius:10px;padding:10px 12px;font-size:11.5px;color:#4A453F;line-height:1.45; }
+        .pw-steps{ margin-top:16px;display:flex;flex-direction:column;gap:12px; }
+        .pw-more{ display:flex;flex-direction:column;gap:12px; }
+        .pw-fold{ display:none;justify-content:space-between;align-items:center;padding:11px 14px;border:1px dashed #B9AE97;border-radius:12px;background:#fff;font:700 12.5px 'Archivo',sans-serif;color:#4A453F;cursor:pointer; }
+        .pw-step{ display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border:1px solid #D9D5C8;border-radius:12px;background:#fff; }
+        .pw-step p{ margin:0;font-size:13px;line-height:1.45;color:var(--ink); }
+        .pw-n{ width:26px;height:26px;border-radius:50%;background:var(--ink);color:var(--sign);display:grid;place-items:center;font:800 12.5px 'Archivo',sans-serif;flex:none;margin-top:1px; }
+        .pw-dl{ display:flex;gap:8px;margin-top:9px;flex-wrap:wrap; }
+        .pw-btn{ height:36px;padding:0 14px;border-radius:10px;border:1px solid #807C70;background:#fff;font:700 12.5px 'Archivo',sans-serif;color:var(--ink);display:inline-flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap;cursor:pointer;text-decoration:none; }
+        .pw-btn:disabled{ opacity:.55;cursor:not-allowed; }
+        .pw-btn.dk{ background:var(--ink);border-color:var(--ink);color:var(--sign); }
+        .pw-btn.pri{ background:var(--sign);border-color:var(--ink); }
+        .pw-btn.ok{ background:#E4F3EC;border-color:#B7DFC9;color:#157A52; }
+        .pw-btn.dg{ color:#C43D3D;border-color:#E8B9B9; }
+        .pw-test{ width:100%;margin-top:14px;height:40px; }
+        .pw-warn{ margin-top:12px;font-size:12px;color:#8A6410;line-height:1.5;background:#FEF6DC;border:1px solid #E8D49A;border-radius:10px;padding:10px 12px; }
+        .pw-foot{ display:flex;align-items:center;gap:10px;padding:14px 18px;border-top:1px solid #D9D5C8;background:#EDEADF;flex-wrap:wrap; }
+        .pw-sp{ flex:1; }
+        .pw-close{ padding:0 22px; }
+        @media(max-width:767px){
+          .pw-overlay{ align-items:flex-end;padding:0; }
+          .pw-modal{ max-width:none;border-radius:18px 18px 0 0;max-height:94vh; }
+          .pw-cols{ grid-template-columns:1fr; }
+          .pw-left{ border-right:0;border-bottom:1px solid #D9D5C8;padding:16px; }
+          .pw-right{ padding:16px; }
+          .pw-fold{ display:flex; }
+          .pw-more{ display:none; }
+          .pw-more.open{ display:flex; }
+          .pw-foot .pw-btn{ flex:1; }
+          .pw-foot .pw-sp{ display:none; }
+        }
         .pd-empty{ text-align:center;color:#A79E8B;padding:40px 0;font-size:14px; }
         .pd-card-pending{ border:1.5px solid var(--accent); }
         .pd-accept{ width:100%;margin-top:8px;padding:9px;border-radius:9px;border:none;background:var(--accent);color:#fff;font-weight:800;font-size:14.5px;cursor:pointer; }
@@ -1688,124 +1745,154 @@ export default function PedidosPage() {
       )}
 
       {showPrinterModal && (
-        <div className="pp-overlay" onClick={() => setShowPrinterModal(false)}>
-          <div className="pp-modal" onClick={e => e.stopPropagation()}>
-            <h2>🖨️ Impressora de pedidos</h2>
-            <p>Imprime o pedido automaticamente numa impressora térmica, quando "Aceitar pedidos automaticamente" estiver ligado.</p>
-
-            <div style={{ fontSize: 11, fontWeight: 800, color: '#6E6656', textTransform: 'uppercase', letterSpacing: '.04em', margin: '4px 0 6px' }}>Tamanho do papel</div>
-            <div className="pp-mode-tabs">
-              <button className={`pp-mode-tab ${papelMm === 58 ? 'sel' : ''}`} onClick={() => escolherPapel(58)}>🧾 58mm (pequena)</button>
-              <button className={`pp-mode-tab ${papelMm === 80 ? 'sel' : ''}`} onClick={() => escolherPapel(80)}>🧾 80mm (grande)</button>
-            </div>
-
-            <div style={{ fontSize: 11, fontWeight: 800, color: '#6E6656', textTransform: 'uppercase', letterSpacing: '.04em', margin: '12px 0 6px' }}>Quantas vias imprimir por pedido</div>
-            {([['completa', 'Via completa (cupom com valores)'], ['producao', 'Via de produção (só os produtos, sem valores)']] as const).map(([tipo, nome]) => (
-              <div key={tipo} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, margin: '4px 0 8px', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 13, fontWeight: 700 }}>{nome}</span>
-                <span style={{ display: 'flex', gap: 6 }}>
-                  {[0, 1, 2].map(n => (
-                    <button key={n} className={`pp-mode-tab ${vias[tipo] === n ? 'sel' : ''}`} style={{ minWidth: 44, flex: 'none' }} onClick={() => escolherVias(tipo, n)}>{n === 0 ? 'Nenhuma' : n}</button>
-                  ))}
-                </span>
+        <div className="pp-overlay pw-overlay" onClick={() => setShowPrinterModal(false)}>
+          <div className="pp-modal pw-modal" onClick={e => e.stopPropagation()}>
+            <div className="pw-head">
+              <div className="pw-ico">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 9V4h10v5" /><rect x="4" y="9" width="16" height="8" rx="2" /><path d="M7 14h10v6H7z" /></svg>
               </div>
-            ))}
-            <div style={{ fontSize: 11, color: '#6E6656', marginBottom: 10 }}>Vale pra delivery, PDV e mesas. Em mesas, a via de produção é a comandinha da cozinha e a completa é a conta.</div>
-
-            <div className="pp-mode-tabs">
-              <button className={`pp-mode-tab ${printerModalMode === 'qz' ? 'sel' : ''}`} onClick={() => setPrinterModalMode('qz')}>💻 Computador</button>
-              <button className={`pp-mode-tab ${printerModalMode === 'rawbt' ? 'sel' : ''}`} onClick={() => setPrinterModalMode('rawbt')}>📱 Tablet</button>
+              <div className="pw-ttl">
+                <h2>Impressora de pedidos</h2>
+                <p>Imprime o pedido sozinho quando “Aceitar pedidos automaticamente” está ligado.</p>
+              </div>
+              {printerName && (
+                <span className="pw-pill"><i />{isRawBtMode(printerName) ? 'Configurada: RawBT' : `Configurada: ${printerName}`}</span>
+              )}
+              <button type="button" className="pw-x" onClick={() => setShowPrinterModal(false)} aria-label="Fechar">✕</button>
             </div>
 
-            {printerModalMode === 'qz' && (
-              <>
-                {!isRawBtMode(printerName) && printerName && (
-                  <div style={{ fontSize: 11, fontWeight: 800, color: '#157A52', marginBottom: 8 }}>✓ Impressora configurada: {printerName}</div>
-                )}
-                {qzStatus !== 'connected' && (
-                  <>
-                    <div className="pp-step">
-                      <span className="pp-step-n">1</span>
-                      <span className="pp-step-txt">
-                        Baixa e instala o app de impressão (uma vez só, no computador da impressora):<br/>
-                        <a className="pp-dl-btn" href={supabase.storage.from('app-downloads').getPublicUrl('qz-tray-windows.exe').data.publicUrl} target="_blank" rel="noopener noreferrer">🪟 Baixar app de impressão (Windows)</a>{' '}
-                        <a className="pp-dl-btn" href={supabase.storage.from('app-downloads').getPublicUrl('qz-tray-mac.pkg').data.publicUrl} target="_blank" rel="noopener noreferrer">🍎 Baixar app de impressão (Mac)</a>
-                      </span>
-                    </div>
-                    <div className="pp-step">
-                      <span className="pp-step-n">2</span>
-                      <span className="pp-step-txt">Abre o app instalado (fica rodando quietinho, sem precisar mexer de novo) e volta aqui.</span>
-                    </div>
-                    <div className="pp-step">
-                      <span className="pp-step-n">3</span>
-                      <span className="pp-step-txt">Clica em "Testar conexão" — na primeira vez o app vai perguntar se pode confiar nesse site; marca "lembrar" pra não perguntar de novo.</span>
-                    </div>
-                    <div className="pp-step">
-                      <span className="pp-step-n">4</span>
-                      <span className="pp-step-txt">
-                        Se continuar pedindo permissão toda hora mesmo marcando "lembrar", baixa os dois certificados abaixo e importa o certificado <b>raiz</b> como confiável nas configurações avançadas do app de impressão (pede ajuda ao suporte se precisar):<br/>
-                        <a className="pp-dl-btn" href="/api/qz/certificado/raiz" target="_blank" rel="noopener noreferrer">🔐 Baixar certificado raiz</a>{' '}
-                        <a className="pp-dl-btn" href="/api/qz/certificado/site" target="_blank" rel="noopener noreferrer">📄 Baixar certificado do site</a>
-                      </span>
-                    </div>
-                    {qzStatus === 'error' && <div className="pp-err">{qzError}</div>}
-                    <button className="pp-retry" onClick={startQzSetup} disabled={qzStatus === 'connecting'}>
-                      {qzStatus === 'connecting' ? 'Conectando...' : '🔄 Testar conexão'}
-                    </button>
-                  </>
-                )}
-
-                {qzStatus === 'connected' && (
-                  <>
-                    <div style={{ fontSize: 11, fontWeight: 800, color: '#6E6656', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 8 }}>
-                      {foundPrinters.length === 1 ? 'Impressora detectada automaticamente' : 'Escolhe a impressora'}
-                    </div>
-                    {foundPrinters.length === 0 && <div className="pp-err">Nenhuma impressora encontrada no computador. Confere se ela está ligada e instalada no Windows/Mac.</div>}
-                    {foundPrinters.map(name => (
-                      <div key={name} className={`pp-printer-item ${printerName === name ? 'sel' : ''}`} onClick={() => selectPrinter(name)}>
-                        <span style={{ fontSize: 12.5, fontWeight: 600 }}>{name}</span>
-                        {printerName === name && <span style={{ color: '#157A52', fontSize: 12, fontWeight: 800 }}>✓ Selecionada</span>}
+            <div className="pw-cols">
+              <div className="pw-left">
+                <div className="pw-sec">
+                  <p className="pw-h">Tamanho do papel</p>
+                  <div className="pw-seg">
+                    <button type="button" className={papelMm === 58 ? 'on' : ''} onClick={() => escolherPapel(58)}>58 mm <small>pequena</small></button>
+                    <button type="button" className={papelMm === 80 ? 'on' : ''} onClick={() => escolherPapel(80)}>80 mm <small>grande</small></button>
+                  </div>
+                </div>
+                <div className="pw-sec">
+                  <p className="pw-h">Vias por pedido</p>
+                  {([['completa', 'Via completa', 'cupom com valores'], ['producao', 'Via de produção', 'sem valores']] as const).map(([tipo, nome, sub]) => (
+                    <div key={tipo} className="pw-via">
+                      <div className="pw-via-t"><b>{nome}</b><small>{sub}</small></div>
+                      <div className="pw-seg sm">
+                        {[0, 1, 2].map(n => (
+                          <button key={n} type="button" className={vias[tipo] === n ? 'on' : ''} onClick={() => escolherVias(tipo, n)}>{n === 0 ? 'Nenhuma' : n}</button>
+                        ))}
                       </div>
-                    ))}
+                    </div>
+                  ))}
+                  <div className="pw-hint">Vale pra delivery, PDV e mesas. Em mesas, a via de produção é a comandinha da cozinha e a completa é a conta.</div>
+                </div>
+              </div>
+
+              <div className="pw-right">
+                <p className="pw-h">Como conectar</p>
+                <div className="pw-seg">
+                  <button type="button" className={printerModalMode === 'qz' ? 'on' : ''} onClick={() => setPrinterModalMode('qz')}>💻 Computador</button>
+                  <button type="button" className={printerModalMode === 'rawbt' ? 'on' : ''} onClick={() => setPrinterModalMode('rawbt')}>📱 Tablet</button>
+                </div>
+
+                {printerModalMode === 'qz' && (
+                  <>
+                    {qzStatus !== 'connected' && (
+                      <>
+                        <div className="pw-steps">
+                          <div className="pw-step">
+                            <span className="pw-n">1</span>
+                            <div>
+                              <p>Baixe e instale o app de impressão — uma vez só, no computador da impressora.</p>
+                              <div className="pw-dl">
+                                <a className="pw-btn dk" href={supabase.storage.from('app-downloads').getPublicUrl('qz-tray-windows.exe').data.publicUrl} target="_blank" rel="noopener noreferrer">🪟 Windows</a>
+                                <a className="pw-btn dk" href={supabase.storage.from('app-downloads').getPublicUrl('qz-tray-mac.pkg').data.publicUrl} target="_blank" rel="noopener noreferrer">🍎 Mac</a>
+                              </div>
+                            </div>
+                          </div>
+                          <button type="button" className="pw-fold" onClick={() => setPwMore(v => !v)}>
+                            <span>Passos 2 a 4 · certificados</span><span>{pwMore ? '▴' : '▾'}</span>
+                          </button>
+                          <div className={`pw-more ${pwMore ? 'open' : ''}`}>
+                            <div className="pw-step">
+                              <span className="pw-n">2</span>
+                              <div><p>Abra o app instalado. Ele fica rodando quietinho, sem precisar mexer de novo. Depois volte aqui.</p></div>
+                            </div>
+                            <div className="pw-step">
+                              <span className="pw-n">3</span>
+                              <div><p>Clique em <b>Testar conexão</b>. Na primeira vez o app pergunta se pode confiar no site — marque “lembrar”.</p></div>
+                            </div>
+                            <div className="pw-step">
+                              <span className="pw-n">4</span>
+                              <div>
+                                <p>Continua pedindo permissão toda hora, mesmo marcando “lembrar”? Baixe os dois certificados e importe o <b>raiz</b> como confiável nas configurações avançadas do app de impressão (peça ajuda ao suporte se precisar).</p>
+                                <div className="pw-dl">
+                                  <a className="pw-btn dk" href="/api/qz/certificado/raiz" target="_blank" rel="noopener noreferrer">🔐 Baixar certificado raiz</a>
+                                  <a className="pw-btn dk" href="/api/qz/certificado/site" target="_blank" rel="noopener noreferrer">📄 Baixar certificado do site</a>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        {qzStatus === 'error' && <div className="pp-err" style={{ marginTop: 12 }}>{qzError}</div>}
+                        <button type="button" className="pw-btn pri pw-test" onClick={startQzSetup} disabled={qzStatus === 'connecting'}>
+                          {qzStatus === 'connecting' ? 'Conectando...' : '🔄 Testar conexão'}
+                        </button>
+                      </>
+                    )}
+
+                    {qzStatus === 'connected' && (
+                      <div style={{ marginTop: 16 }}>
+                        <p className="pw-h">{foundPrinters.length === 1 ? 'Impressora detectada automaticamente' : 'Escolha a impressora'}</p>
+                        {foundPrinters.length === 0 && <div className="pp-err">Nenhuma impressora encontrada no computador. Confere se ela está ligada e instalada no Windows/Mac.</div>}
+                        {foundPrinters.map(name => (
+                          <div key={name} className={`pp-printer-item ${printerName === name ? 'sel' : ''}`} onClick={() => selectPrinter(name)}>
+                            <span style={{ fontSize: 12.5, fontWeight: 600 }}>{name}</span>
+                            {printerName === name && <span style={{ color: '#157A52', fontSize: 12, fontWeight: 800 }}>✓ Selecionada</span>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </>
                 )}
-              </>
-            )}
 
-            {printerModalMode === 'rawbt' && (
-              <>
-                {isRawBtMode(printerName) && (
-                  <div style={{ fontSize: 11, fontWeight: 800, color: '#157A52', marginBottom: 8 }}>✓ Impressão por RawBT ativada</div>
+                {printerModalMode === 'rawbt' && (
+                  <>
+                    <div className="pw-steps">
+                      <div className="pw-step">
+                        <span className="pw-n">1</span>
+                        <div><p>Instale o app <b>RawBT</b> (grátis, Play Store) no tablet.</p></div>
+                      </div>
+                      <div className="pw-step">
+                        <span className="pw-n">2</span>
+                        <div><p>Abra o RawBT, pareie a impressora térmica por Bluetooth por dentro dele e escolha o idioma/página de código Português nas configurações do app.</p></div>
+                      </div>
+                      <div className="pw-step">
+                        <span className="pw-n">3</span>
+                        <div><p>Toque no botão abaixo pra ativar. Não precisa “conectar” com nada aqui — é o próprio botão “🖨️ Imprimir” no pedido que abre o RawBT na hora.</p></div>
+                      </div>
+                    </div>
+                    <button type="button" className="pw-btn pri pw-test" onClick={() => selectPrinter(RAWBT_SENTINEL)} disabled={printerSaving}>
+                      {isRawBtMode(printerName) ? '✓ Ativado' : 'Ativar impressão por RawBT'}
+                    </button>
+                    <div className="pw-warn">
+                      ⚠ No tablet, a impressão automática de pedido novo não funciona — o Android só deixa abrir o RawBT depois de um toque de verdade na tela. Precisa tocar em “🖨️ Imprimir” em cada pedido.
+                    </div>
+                  </>
                 )}
-                <div className="pp-step">
-                  <span className="pp-step-n">1</span>
-                  <span className="pp-step-txt">Instala o app <b>RawBT</b> (grátis, Play Store) no tablet.</span>
-                </div>
-                <div className="pp-step">
-                  <span className="pp-step-n">2</span>
-                  <span className="pp-step-txt">Abre o RawBT, pareia a impressora térmica por Bluetooth por dentro dele e escolhe o idioma/página de código Português nas configurações do app.</span>
-                </div>
-                <div className="pp-step">
-                  <span className="pp-step-n">3</span>
-                  <span className="pp-step-txt">Clica no botão abaixo pra ativar. Não precisa "conectar" com nada aqui — é o próprio botão "🖨️ Imprimir" no pedido que vai abrir o RawBT na hora.</span>
-                </div>
-                <button className="pp-retry" onClick={() => selectPrinter(RAWBT_SENTINEL)} disabled={printerSaving}>
-                  {isRawBtMode(printerName) ? '✓ Ativado' : 'Ativar impressão por RawBT'}
-                </button>
-                <div style={{ fontSize: 11, color: '#8A6410', marginTop: 8, lineHeight: 1.5 }}>
-                  ⚠ No tablet, a impressão automática de pedido novo não funciona — o Android só deixa abrir o RawBT depois de um toque de verdade na tela. Precisa tocar em "🖨️ Imprimir" em cada pedido.
-                </div>
-              </>
-            )}
 
-            {printerName && (
-              <button className="pp-retry" style={{ color: '#157A52', borderColor: '#B7DFC9', background: '#E4F3EC' }} onClick={testPrint}>🖨️ Imprimir teste</button>
-            )}
-            {printerName && printError && <div className="pp-err">{printError}</div>}
-            {printerName && (
-              <button className="pp-retry" style={{ color: '#C43D3D' }} onClick={removePrinter} disabled={printerSaving}>✕ Remover impressora configurada</button>
-            )}
-            <button className="pp-close" onClick={() => setShowPrinterModal(false)}>Fechar</button>
+                {printerName && printError && <div className="pp-err" style={{ marginTop: 12 }}>{printError}</div>}
+              </div>
+            </div>
+
+            <div className="pw-foot">
+              {printerName && (
+                <button type="button" className="pw-btn dg" onClick={removePrinter} disabled={printerSaving}>✕ Remover impressora</button>
+              )}
+              <div className="pw-sp" />
+              {printerName && (
+                <button type="button" className="pw-btn ok" onClick={testPrint}>🖨️ Imprimir teste</button>
+              )}
+              <button type="button" className="pw-btn dk pw-close" onClick={() => setShowPrinterModal(false)}>Fechar</button>
+            </div>
           </div>
         </div>
       )}

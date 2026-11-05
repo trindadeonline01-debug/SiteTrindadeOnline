@@ -729,22 +729,22 @@ function ComandaView(props: {
 
               {falta > 0.005 ? (
                 <div className="cm-pay" id="ms-pagamento">
-                  <h3>Registrar pagamento</h3>
+                  <h3 className="hide-s">Registrar pagamento</h3>
                   <div className="cm-seg" style={{ gridTemplateColumns: `repeat(${formasVisiveis.length}, minmax(0, 1fr))` }}>
                     {formasVisiveis.map(f => <button key={f.key} className={forma === f.key ? 'on' : ''} onClick={() => { setForma(f.key); if (f.key === 'cashback') { setPartes(null); setParteSel(null); setValorDig(centavos(Math.min(falta, saldoCash))) } }}><PayIcon forma={f.key} cor={forma === f.key ? '#151210' : undefined} />{PAY_ICON[f.key].nome}{f.key === 'cashback' ? ` ${fmt(saldoCash)}${cashVerif ? ' ✓' : ''}` : ''}</button>)}
                   </div>
-                  <div className="cm-val"><span>R$</span>
+                  <div className="cm-val hide-s"><span>R$</span>
                     <input aria-label="Valor a registrar" inputMode="numeric" value={valorDig ? moneyShow(valorDig) : moneyShow(String(Math.round(falta * 100)))}
                       onFocus={e => e.target.select()} onChange={e => setValorDig(e.target.value.replace(/\D/g, ''))} />
                   </div>
-                  <div className="cm-quick">
+                  <div className="cm-quick hide-s">
                     <button className={!partes && Math.abs(valorEf - falta) < 0.005 ? 'on' : ''} onClick={() => { setPartes(null); setParteSel(null); setValorDig(centavos(falta)) }}><em>Tudo</em><b>{moneyShow(centavos(falta))}</b></button>
                     {[2, 3, 4].map(n => (
                       <button key={n} className={partes?.alvo.length === n ? 'on' : ''} onClick={() => dividir(n)}><em>÷ {n}</em><b>{moneyShow(centavos(r2(falta / n)))}</b></button>
                     ))}
                   </div>
                   {partes && (
-                    <div className="cm-parts">
+                    <div className="cm-parts hide-s">
                       <div className="ph">
                         <span>Dividido em {partes.alvo.length} · toque em uma parte</span>
                         <div>
@@ -768,7 +768,7 @@ function ComandaView(props: {
                       </div>
                     </div>
                   )}
-                  <input ref={pessoaRef} className="cm-who" aria-label="Quem pagou (opcional)" placeholder="Quem pagou? (opcional)" value={pessoa} onChange={e => setPessoa(e.target.value)} />
+                  <input ref={pessoaRef} className="cm-who hide-s" aria-label="Quem pagou (opcional)" placeholder="Quem pagou? (opcional)" value={pessoa} onChange={e => setPessoa(e.target.value)} />
                   <button className="cm-reg" disabled={busy || !(valorEf > 0)} onClick={pagar}>Registrar {partes && parteSel !== null ? `parte ${parteSel + 1}` : 'pagamento'} · {fmt(valorEf)}</button>
                 </div>
               ) : ativos.length === 0 ? (

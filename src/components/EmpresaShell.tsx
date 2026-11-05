@@ -145,10 +145,10 @@ export default function EmpresaShell({
   const maisActive = !mobileTabKeys.includes(active)
 
   return (
-    <div className={`es-shell${active === 'pedidos' ? ' es-legacy' : ''}`}>
+    <div className={`es-shell${active === 'pedidos' || active === 'mensagens' ? ' es-legacy' : ''}`}>
       <style>{`
         .es-shell{display:flex;min-height:100vh;background:var(--concrete);}
-        /* Visual novo (fundo pedra, topo, cartões, largura fixa) em todas as telas, MENOS Pedidos (es-legacy), que segue como era */
+        /* Visual novo (fundo pedra, topo, cartões, largura fixa) em todas as telas, MENOS Pedidos e Mensagens (es-legacy), que segue como era */
         .es-shell:not(.es-legacy){background:#D5D1C5;--concrete:#D5D1C5;}
         .es-sidebar{width:246px;background:var(--ink);flex-shrink:0;display:none;flex-direction:column;position:sticky;top:0;height:100vh;overflow:hidden;transition:width .2s ease;}
         @media(min-width:768px){.es-sidebar{display:flex;}}

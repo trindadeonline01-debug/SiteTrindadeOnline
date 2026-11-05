@@ -72,7 +72,7 @@ function moneyShow(d: string) {
 
 // Pausa de impressão nas mesas (pedido do Ricardo, 4/nov/2026: dia de teste do sistema, sem testar impressão).
 // Pra voltar a imprimir: esvaziar esta lista.
-const IMPRESSAO_PAUSADA_EMPRESAS: string[] = ['d3373bd7-fa9b-490f-a077-c8f2980028c1'] // Calçada do Peixe
+const IMPRESSAO_PAUSADA_EMPRESAS: string[] = [] // vazio = impressão liberada em todas (Calçada do Peixe liberada em 5/nov/2026)
 
 export default function MesasPage() {
   const [loading, setLoading] = useState(true)

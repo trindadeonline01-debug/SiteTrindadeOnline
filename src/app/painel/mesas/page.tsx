@@ -935,14 +935,14 @@ function ComandaView(props: {
                   <div className="cm-seg" style={{ gridTemplateColumns: `repeat(${formasVisiveis.length}, minmax(0, 1fr))` }}>
                     {formasVisiveis.map(f => <button key={f.key} className={forma === f.key ? 'on' : ''} onClick={() => { setForma(f.key); if (f.key === 'cashback') { setPartes(null); setParteSel(null); setValorDig(centavos(Math.min(falta, saldoCash))) } }}><PayIcon forma={f.key} cor={forma === f.key ? '#151210' : undefined} />{PAY_ICON[f.key].nome}{f.key === 'cashback' ? ` ${fmt(saldoCash)}${cashVerif ? ' ✓' : ''}` : ''}</button>)}
                   </div>
-                  <div className="cm-val cm-gone"><span>R$</span>
+                  <div className="cm-val"><span>R$</span>
                     <input aria-label="Valor a registrar" inputMode="numeric" value={valorDig ? moneyShow(valorDig) : moneyShow(String(Math.round(falta * 100)))}
                       onFocus={e => e.target.select()} onChange={e => setValorDig(e.target.value.replace(/\D/g, ''))} />
                   </div>
-                  <div className="cm-quick cm-gone">
+                  <div className="cm-quick one">
                     <button className={!partes && Math.abs(valorEf - falta) < 0.005 ? 'on' : ''} onClick={() => { setPartes(null); setParteSel(null); setValorDig(centavos(falta)) }}><em>Tudo</em><b>{moneyShow(centavos(falta))}</b></button>
                     {[2, 3, 4].map(n => (
-                      <button key={n} className={partes?.alvo.length === n ? 'on' : ''} onClick={() => dividir(n)}><em>÷ {n}</em><b>{moneyShow(centavos(r2(falta / n)))}</b></button>
+                      <button key={n} className={`cm-gone ${partes?.alvo.length === n ? 'on' : ''}`} onClick={() => dividir(n)}><em>÷ {n}</em><b>{moneyShow(centavos(r2(falta / n)))}</b></button>
                     ))}
                   </div>
                   {partes && (
@@ -990,7 +990,7 @@ function ComandaView(props: {
 
         <div className="cm-bar">
           <button className="cm-add" onClick={props.onAdd}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#151210" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>Itens</button>
-          <button className="cm-pagar" disabled={busy || (falta > 0.005 ? !(valorEf > 0) : ativos.length === 0)} onClick={falta > 0.005 ? pagar : fecharConta}>{falta > 0.005 ? `Pagar · ${fmt(falta)}` : 'Fechar conta'}</button>
+          <button className="cm-pagar" disabled={busy || (falta > 0.005 ? !(valorEf > 0) : ativos.length === 0)} onClick={falta > 0.005 ? pagar : fecharConta}>{falta > 0.005 ? `Pagar · ${fmt(valorEf)}` : 'Fechar conta'}</button>
         </div>
       </div>
 
@@ -1513,6 +1513,7 @@ const CSS = `
 .cm-val span{color:#4f4c47;font-size:16px;font-weight:600;flex:none}
 .cm-val input{flex:1;min-width:0;width:100%;border:0;outline:0;font-family:'Anton',sans-serif;font-size:28px;background:transparent;color:#151210;font-variant-numeric:tabular-nums}
 .cm-quick{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.cm-quick.one{grid-template-columns:minmax(0,1fr)}
 .cm-quick button{height:46px;border:1px solid #b9bab2;border-radius:6px;background:#fff;color:#151210;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-width:0}
 .cm-quick button em{font-style:normal;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:#4f4c47}.cm-quick button b{font-size:13px;font-variant-numeric:tabular-nums}
 .cm-quick button.on{background:#FFF6D6;border:2px solid #151210}

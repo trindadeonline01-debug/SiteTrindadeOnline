@@ -270,6 +270,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
+    // Celular sem impressora: pede para o computador imprimir a conta (aberta ou já fechada).
+    if (acao === 'conta_pedir') {
+      const { data: c } = await sb.from('loja_comandas').select('id').eq('id', String(b.comandaId || '')).eq('company_id', companyId).maybeSingle()
+      if (!c) return erro('Comanda não encontrada.', 404)
+      await sb.from('loja_comandas').update({ imprimir_conta_em: new Date().toISOString() }).eq('id', c.id)
+      return NextResponse.json({ ok: true })
+    }
+
     // ---------- lançar rodada ----------
     if (acao === 'rodada') {
       const c = await comandaAberta(companyId, b.comandaId)

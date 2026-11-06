@@ -22,7 +22,7 @@ type Mesa = { id: string; numero: number; nome: string | null; ativa: boolean }
 type Comanda = {
   id: string; company_id: string; mesa_id: string | null; tipo?: 'mesa' | 'retirada'; rotulo?: string | null; numero: number; garcom_nome: string | null; customer_phone: string | null; customer_name: string | null
   taxa_servico_ativa: boolean; taxa_servico_pct: number; desconto: number; desconto_motivo: string | null
-  imprimir_producao_em?: string | null; imprimir_producao_todas?: boolean
+  imprimir_producao_em?: string | null; imprimir_producao_todas?: boolean; imprimir_conta_em?: string | null
   subtotal: number; taxa_valor: number; total: number; aberta_em: string
 }
 type ItemPed = { id: string; produto_id: string | null; product_name: string; unit_price: number; qty: number; peso_kg: number | null; selected_options: { name: string; price: number }[] }
@@ -101,6 +101,7 @@ export default function MesasPage() {
   const [comandas, setComandas] = useState<Comanda[]>([])
   const [pedidos, setPedidos] = useState<PedidoMesa[]>([])
   const [pagtos, setPagtos] = useState<Pagto[]>([])
+  const [contasPedidas, setContasPedidas] = useState<Comanda[]>([])  // contas pedidas por outro aparelho (inclui já fechadas)
   const [chamados, setChamados] = useState<Chamado[]>([])
   const [garcons, setGarcons] = useState<Garcom[]>([])
   const [produtos, setProdutos] = useState<Produto[]>([])
@@ -142,12 +143,14 @@ export default function MesasPage() {
   const load = useCallback(async () => {
     const cid = companyRef.current
     if (!cid) return
-    const [m, c, g, ch] = await Promise.all([
+    const [m, c, g, ch, cp] = await Promise.all([
       supabase.from('loja_mesas').select('id, numero, nome, ativa').eq('company_id', cid).eq('ativa', true).order('numero'),
       supabase.from('loja_comandas').select('*').eq('company_id', cid).eq('status', 'aberta'),
       supabase.from('loja_garcons').select('id, nome, ativo').eq('company_id', cid).order('nome'),
       supabase.from('loja_mesa_chamados').select('id, mesa_id, comanda_id, tipo, mensagem, criado_em, payload').eq('company_id', cid).eq('status', 'aberto').order('criado_em'),
+      supabase.from('loja_comandas').select('*').eq('company_id', cid).not('imprimir_conta_em', 'is', null),
     ])
+    setContasPedidas((cp.data || []) as Comanda[])
     const cs = (c.data || []) as Comanda[]
     setMesas((m.data || []) as Mesa[]); setComandas(cs); setGarcons((g.data || []) as Garcom[])
     const chs = (ch.data || []) as Chamado[]
@@ -314,14 +317,50 @@ export default function MesasPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [comandas, printerName])
 
-  function dadosConta(c: Comanda) {
+  // Imprime a conta aqui se este aparelho tem impressora; senão (celular) pede para o computador imprimir.
+  async function imprimirContaAgora(c: Comanda, forcar = true) {
+    if (await podeImprimirAqui()) {
+      const ok = await imprimir([dadosConta(c)], 'completa', forcar)
+      if (ok || impressaoPausada) return
+      setMsg('Não consegui imprimir a conta. Confira a impressora.'); return
+    }
+    const r = await call('conta_pedir', { comandaId: c.id })
+    if (r) setMsg('📨 Conta enviada para a impressora do computador. Se não sair, confira se a tela de Mesas está aberta lá.')
+  }
+
+  // Computador com a impressora: imprime as contas pedidas pelo celular (a comanda pode já estar fechada).
+  const imprimindoConta = useRef(false)
+  useEffect(() => {
+    if (contasPedidas.length === 0 || !printerName || isRawBtMode(printerName) || imprimindoConta.current) return
+    imprimindoConta.current = true
+    ;(async () => {
+      try {
+        if (!(await podeImprimirAqui())) return
+        for (const c of contasPedidas) {
+          const { data: ganhou } = await supabase.from('loja_comandas').update({ imprimir_conta_em: null }).eq('id', c.id).eq('imprimir_conta_em', c.imprimir_conta_em as string).select('id')
+          if (!ganhou || ganhou.length === 0) continue
+          const [{ data: ps }, { data: pg }] = await Promise.all([
+            supabase.from('loja_pedidos').select('id, order_number, comanda_id, status, created_at, notes, impresso_em, itens:loja_pedido_itens(*)').eq('comanda_id', c.id).order('created_at'),
+            supabase.from('loja_comanda_pagamentos').select('id, comanda_id, forma, cartao_tipo, valor, pessoa').eq('comanda_id', c.id).order('criado_em'),
+          ])
+          const ok = await imprimir([montarConta(c, (ps || []) as unknown as PedidoMesa[], (pg || []) as Pagto[])], 'completa', true)
+          if (!ok) setMsg('Não consegui imprimir a conta do celular. Confira a impressora e peça de novo.')
+        }
+        await load()
+      } finally { imprimindoConta.current = false }
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contasPedidas, printerName])
+
+  function dadosConta(c: Comanda) { return montarConta(c, pedidos.filter(p => p.comanda_id === c.id), pagtos.filter(p => p.comanda_id === c.id)) }
+  function montarConta(c: Comanda, todosPeds: PedidoMesa[], pgs: Pagto[]) {
     const mesa = mesaDe(c.mesa_id)
-    const peds = pedidos.filter(p => p.comanda_id === c.id && p.status !== 'cancelado')
+    const peds = todosPeds.filter(p => p.status !== 'cancelado')
     const items = peds.flatMap(p => p.itens).map(it => ({ qty: it.qty, pesoKg: it.peso_kg, name: it.product_name, unitPrice: it.unit_price, options: it.selected_options }))
     const extras: { label: string; valor: number }[] = []
     if (c.desconto > 0) extras.push({ label: 'Desconto', valor: -c.desconto })
     if (c.taxa_servico_ativa && c.taxa_valor > 0) extras.push({ label: `Servico ${c.taxa_servico_pct}%`, valor: c.taxa_valor })
-    const pagamentos = pagtos.filter(p => p.comanda_id === c.id).map(p => ({ label: (FORMAS.find(f => f.key === formaExibida(p))?.label.replace(/^\S+\s/, '') || p.forma) + (p.pessoa ? ` (${p.pessoa})` : ''), valor: p.valor }))
+    const pagamentos = pgs.map(p => ({ label: (FORMAS.find(f => f.key === formaExibida(p))?.label.replace(/^\S+\s/, '') || p.forma) + (p.pessoa ? ` (${p.pessoa})` : ''), valor: p.valor }))
     return buildReceipt({
       companyName, pedidoShortId: `Comanda ${c.numero}`, createdAt: c.aberta_em, customerName: c.tipo === 'retirada' ? `Retirada${c.rotulo ? ' ' + c.rotulo : ''}` : `Mesa ${mesa?.numero ?? ''}`, customerPhone: c.customer_phone,
       deliveryType: 'balcao', rotuloTipo: `${nomeConta(c)} - Atend. ${c.garcom_nome || ''}`, items, subtotal: c.subtotal, extras, total: c.total, pagamentos,
@@ -459,9 +498,9 @@ export default function MesasPage() {
           pedidos={pedidos.filter(p => p.comanda_id === comanda.id)} pagtos={pagtos.filter(p => p.comanda_id === comanda.id)}
           busy={busy} msg={msg} setMsg={setMsg} call={call} load={load} fotos={fotos}
           onClose={() => { setAbertaId(null); setMsg('') }} onAdd={() => setPicker(true)}
-          imprimirConta={() => imprimir([dadosConta(comanda)], 'completa', true)}
+          imprimirConta={() => imprimirContaAgora(comanda)}
           imprimirProducao={(todas) => imprimirProducao(comanda, todas)}
-          fechado={async () => { const conta = dadosConta(comanda); await imprimir([conta], 'completa'); setAbertaId(null); await load() }}
+          fechado={async () => { await imprimirContaAgora(comanda, false); setAbertaId(null); await load() }}
         />
       )}
 

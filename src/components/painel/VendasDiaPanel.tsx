@@ -254,6 +254,7 @@ export default function VendasDiaPanel({ companyId, onClose, onAbrirComanda, onM
     <section className="vd-col">
       <div className="vd-colh"><b>Mesas</b><span>{fmt(totMesas)}</span></div>
       {gruposVis.length === 0 && <div className="vd-vazio">{carregando ? 'Carregando…' : 'Nenhuma venda de mesa.'}</div>}
+      <div className="vd-lista">
       {gruposVis.map(g => (
         <div key={g.titulo} className="vd-grp">
           <div className="vd-grph"><b>{g.titulo}</b><small>{subGrupo(g)}</small><em>{num(g.vendas.filter(v => v.status !== 'cancelada').reduce((s, v) => s + Number(v.total), 0))}</em></div>
@@ -287,6 +288,7 @@ export default function VendasDiaPanel({ companyId, onClose, onAbrirComanda, onM
           })}
         </div>
       ))}
+      </div>
     </section>
   )
 
@@ -470,12 +472,13 @@ const CSS = `
 .vd-colh{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid #DCDDD6;background:#F5F6F2}
 .vd-colh b{font-size:12px;letter-spacing:.1em;text-transform:uppercase;font-weight:800}
 .vd-colh span{color:#4f4c47;font-weight:700;font-variant-numeric:tabular-nums}
-.vd-grp{border-bottom:1px solid #ECEDE8}
-.vd-grp:last-child{border-bottom:0}
-.vd-grph{display:flex;align-items:baseline;gap:10px;padding:12px 16px 6px}
-.vd-grph b{font-family:'Anton',sans-serif;font-weight:400;font-size:20px;text-transform:uppercase}
-.vd-grph small{flex:1;color:#6F6C67;font-size:12.5px}
+.vd-lista{padding:14px;display:flex;flex-direction:column;gap:18px}
+.vd-grp{border:1px solid #C9CBC6;border-radius:10px;overflow:hidden;background:#fff}
+.vd-grph{display:flex;align-items:baseline;gap:10px;padding:10px 14px;background:#4A4E54;color:#fff}
+.vd-grph b{font-family:'Anton',sans-serif;font-weight:400;font-size:20px;text-transform:uppercase;letter-spacing:.02em}
+.vd-grph small{flex:1;color:rgba(255,255,255,.78);font-size:12.5px}
 .vd-grph em{font-style:normal;font-weight:800;font-variant-numeric:tabular-nums}
+.vd-grph+.vd-row{border-top:0}
 .vd-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:12px;align-items:center;padding:10px 16px;border-top:1px solid #F0F1EC}
 .vd-col>.vd-row:first-of-type{border-top:0}
 .vd-rl{min-width:0;display:flex;flex-direction:column;gap:2px}

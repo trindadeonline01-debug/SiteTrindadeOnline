@@ -110,6 +110,9 @@ export default function MesasPage() {
 
   const [abertaId, setAbertaId] = useState<string | null>(null)       // comanda aberta na tela
   const [abrirMesa, setAbrirMesa] = useState<Mesa | null>(null)       // escolher garçom
+  const [abrirPessoas, setAbrirPessoas] = useState<number | null>(null)
+  const [abrirFone, setAbrirFone] = useState('')
+  const [abrirNome, setAbrirNome] = useState('')
   const [abrirRetirada, setAbrirRetirada] = useState(false)           // nova retirada (sem mesa)
   const [showConfig, setShowConfig] = useState(false)
   const [calcLivre, setCalcLivre] = useState(false)
@@ -236,8 +239,8 @@ export default function MesasPage() {
   // ---------- ações ----------
   async function abrirComanda(garcomId: string) {
     if (!abrirMesa) return
-    const r = await call('abrir', { mesaId: abrirMesa.id, garcomId })
-    if (r?.comandaId) { setAbrirMesa(null); await load(); setAbertaId(r.comandaId) }
+    const r = await call('abrir', { mesaId: abrirMesa.id, garcomId, pessoas: abrirPessoas, phone: abrirFone.trim() || undefined, nome: abrirNome.trim() || undefined })
+    if (r?.comandaId) { setAbrirMesa(null); setAbrirPessoas(null); setAbrirFone(''); setAbrirNome(''); await load(); setAbertaId(r.comandaId) }
   }
 
   async function abrirNovaRetirada(garcomId: string, rotulo: string) {
@@ -481,7 +484,18 @@ export default function MesasPage() {
       {msg && !comanda && !picker && !showConfig && <div className={`ms-toast ${msg.startsWith('🎁') ? 'ok' : ''}`} onClick={() => setMsg('')}>{msg}</div>}
 
       {abrirMesa && (
-        <Modal onClose={() => setAbrirMesa(null)} titulo={`Abrir mesa ${abrirMesa.numero}`}>
+        <Modal onClose={() => { setAbrirMesa(null); setAbrirPessoas(null); setAbrirFone(''); setAbrirNome('') }} titulo={`Abrir mesa ${abrirMesa.numero}`}>
+          <div className="ms-lbl">Quantas pessoas?</div>
+          <div className="ms-pess">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map(n => <button key={n} type="button" className={abrirPessoas === n ? 'on' : ''} onClick={() => setAbrirPessoas(n)}>{n}</button>)}
+            <input type="number" inputMode="numeric" min={1} max={60} placeholder="+" aria-label="Outra quantidade de pessoas"
+              value={abrirPessoas && abrirPessoas > 8 ? abrirPessoas : ''} onChange={e => setAbrirPessoas(e.target.value ? Math.min(60, Math.max(1, Number(e.target.value))) : null)} />
+          </div>
+          <div className="ms-lbl">WhatsApp do cliente <span>(peça: ele ganha cashback e avisos)</span></div>
+          <div className="ms-fone">
+            <input type="tel" inputMode="tel" autoComplete="off" placeholder="(21) 99999-9999" value={abrirFone} onChange={e => setAbrirFone(e.target.value)} />
+            <input type="text" autoComplete="off" placeholder="Nome (opcional)" value={abrirNome} onChange={e => setAbrirNome(e.target.value)} />
+          </div>
           <p className="ms-p">Quem vai atender essa mesa? O nome fica travado até a conta fechar.</p>
           {garcons.filter(g => g.ativo).length === 0 && <div className="ms-note">Nenhum garçom cadastrado. Vá em “⚙️ Configurar” e cadastre.</div>}
           <div className="ms-garcons">
@@ -1639,6 +1653,14 @@ const CSS = `
 .ms-mh{display:flex;justify-content:space-between;align-items:center}.ms-mh h3{margin:0;font-family:'Anton',sans-serif;font-weight:400;font-size:22px;text-transform:uppercase}
 .ms-x{background:#F5F6F2;border:0;border-radius:8px;width:44px;height:44px;font-size:16px}.ms-x.sm{width:36px;height:36px;font-size:13px}
 .ms-p{margin:0;color:#3d3a36}
+.ms-lbl{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#4f4c47;margin:4px 0 6px}
+.ms-lbl span{text-transform:none;letter-spacing:0;font-weight:600;color:#6F6C67}
+.ms-pess{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:6px;margin-bottom:10px}
+.ms-pess button,.ms-pess input{height:46px;border-radius:8px;border:1px solid #DCDDD6;background:#fff;font-weight:800;font-size:16px;font-family:inherit;text-align:center;min-width:0;color:#151210}
+.ms-pess button.on{background:#FFC531;border-color:#151210}
+.ms-fone{display:grid;grid-template-columns:1.3fr 1fr;gap:8px;margin-bottom:12px}
+.ms-fone input{height:46px;border-radius:8px;border:1px solid #DCDDD6;padding:0 12px;font-size:15px;font-family:inherit;min-width:0}
+@media(max-width:520px){.ms-pess{grid-template-columns:repeat(5,minmax(0,1fr))}.ms-fone{grid-template-columns:1fr}}
 .ms-garcons,.ms-pick{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px}
 .ms-in{border:2px solid #151210;border-radius:10px;padding:10px 12px;font-size:16px;min-height:46px;background:#fff;color:#151210;width:100%;font-family:inherit}
 .ms-in.sm{width:90px}.ms-in.pin{text-align:center;letter-spacing:.5em;font-size:24px}

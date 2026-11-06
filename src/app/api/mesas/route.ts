@@ -235,13 +235,19 @@ export async function POST(req: NextRequest) {
       if (!garcom || !garcom.ativo) return erro('Escolha o garçom da mesa.')
       const { data: aberta } = await sb.from('loja_comandas').select('id').eq('mesa_id', mesa.id).eq('status', 'aberta').maybeSingle()
       if (aberta) return NextResponse.json({ ok: true, comandaId: aberta.id, jaAberta: true })
+      // Dados para o painel de inteligência (nov/2026): quantas pessoas e, se o cliente topar, o WhatsApp.
+      const pessoasN = Math.round(Number(b.pessoas))
+      const pessoas = pessoasN >= 1 && pessoasN <= 60 ? pessoasN : null
+      const fone = b.phone ? normalizePhone(String(b.phone)) : ''
+      if (fone && (fone.length < 12 || fone.length > 13)) return erro('WhatsApp inválido. Confira o DDD e o número.')
       const { data: c, error } = await sb.from('loja_comandas').insert({
         company_id: companyId, mesa_id: mesa.id, garcom_id: garcom.id, garcom_nome: garcom.nome,
+        pessoas, customer_phone: fone || null, customer_name: fone && b.nome ? String(b.nome).trim().slice(0, 60) || null : null,
         taxa_servico_ativa: Number(company.loja_taxa_servico_pct) > 0, taxa_servico_pct: Number(company.loja_taxa_servico_pct) || 0,
         sessao_secret: randomBytes(24).toString('base64url'),
       }).select('id').single()
       if (error || !c) return erro('Não consegui abrir a mesa: ' + (error?.message || ''), 500)
-      await evento(companyId, c.id, 'abriu', { mesa: mesa.numero, garcom: garcom.nome }, garcom.nome)
+      await evento(companyId, c.id, 'abriu', { mesa: mesa.numero, garcom: garcom.nome, pessoas: pessoas ?? undefined, whatsapp: !!fone }, garcom.nome)
       return NextResponse.json({ ok: true, comandaId: c.id })
     }
 

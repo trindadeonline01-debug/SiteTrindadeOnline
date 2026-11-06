@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Inteligência de Salão</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700;800&display=swap">
+<style>
+:root{
+  --ink:#151210; --ink-2:#4f4c47; --muted:#6F6C67;
+  --paper:#FFFFFF; --concrete:#E9EAE5; --concrete-2:#F5F6F2; --line:#DCDDD6;
+  --sign:#FFC531; --sign-dark:#8a5f00;
+  --open:#0F8A57; --open-bg:#DDF1E7;
+  --alert:#B3261E; --alert-bg:#F6DAD6;
+  --warn-bg:#FFF3C9; --warn-ink:#5C3F00;
+  --chumbo:#4A4E54;
+  --bar:#4A4E54; --bar-hi:#FFC531; --bar-soft:#D3D5CF;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ink:#F3EFE8; --ink-2:#C9C4BB; --muted:#A09A91;
+    --paper:#1C1A17; --concrete:#11100E; --concrete-2:#25221E; --line:#38342E;
+    --sign-dark:#FFC531; --open:#3DC589; --open-bg:#123324; --alert:#FF8A80; --alert-bg:#3a1a17;
+    --warn-bg:#3a2f10; --warn-ink:#FFD66B; --chumbo:#2c2f33; --bar:#8E949C; --bar-soft:#34312C;
+  }
+}
+:root[data-theme="dark"]{
+  --ink:#F3EFE8; --ink-2:#C9C4BB; --muted:#A09A91;
+  --paper:#1C1A17; --concrete:#11100E; --concrete-2:#25221E; --line:#38342E;
+  --sign-dark:#FFC531; --open:#3DC589; --open-bg:#123324; --alert:#FF8A80; --alert-bg:#3a1a17;
+  --warn-bg:#3a2f10; --warn-ink:#FFD66B; --chumbo:#2c2f33; --bar:#8E949C; --bar-soft:#34312C;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--concrete);color:var(--ink);font-family:'Archivo',system-ui,sans-serif;font-size:14px;line-height:1.4}
+button,select,input{font-family:inherit}
+.num{font-variant-numeric:tabular-nums}
+
+/* ---------- topo ---------- */
+.top{background:var(--chumbo);color:#fff;padding:12px 20px;display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center}
+.top h1{margin:0;font-family:'Anton',sans-serif;font-weight:400;font-size:26px;letter-spacing:.02em;text-transform:uppercase;flex:1;min-width:220px}
+.top h1 small{display:block;font-family:'Archivo',sans-serif;font-size:12px;letter-spacing:.08em;font-weight:600;opacity:.75;margin-top:2px}
+.sel{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#d6d8da}
+.sel select{height:42px;border-radius:8px;border:1px solid #6b7077;background:#fff;color:#151210;padding:0 12px;font-weight:700;font-size:14px;text-transform:none;letter-spacing:0}
+.pills{display:flex;gap:6px;flex-wrap:wrap}
+.pills button{height:40px;padding:0 14px;border-radius:8px;border:1px solid #6b7077;background:transparent;color:#fff;font-weight:700;font-size:13px;cursor:pointer}
+.pills button.on{background:var(--sign);color:#151210;border-color:var(--sign)}
+.maturidade{background:var(--paper);border-bottom:1px solid var(--line);padding:10px 20px;display:flex;gap:10px 22px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--ink-2)}
+.maturidade b{color:var(--ink)}
+.meter{width:120px;height:8px;background:var(--bar-soft);border-radius:4px;overflow:hidden;display:inline-block;vertical-align:middle;margin:0 6px}
+.meter i{display:block;height:100%;background:var(--sign)}
+
+/* ---------- abas ---------- */
+.tabs{display:flex;gap:4px;overflow-x:auto;padding:12px 20px 0;max-width:1320px;margin:0 auto}
+.tabs button{height:44px;padding:0 18px;border:0;border-bottom:3px solid transparent;background:transparent;color:var(--ink-2);font-weight:700;font-size:14px;white-space:nowrap;cursor:pointer}
+.tabs button.on{color:var(--ink);border-bottom-color:var(--sign)}
+.wrap{max-width:1320px;margin:0 auto;padding:16px 20px 56px}
+.panel{display:none;flex-direction:column;gap:16px}
+.panel.on{display:flex}
+
+/* ---------- peças ---------- */
+.card{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0}
+.card h2{margin:0 0 4px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;font-weight:800;color:var(--ink-2)}
+.card .sub{color:var(--muted);font-size:13px;margin:0 0 12px}
+.grid2{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+@media(max-width:960px){.grid2,.grid3{grid-template-columns:1fr}}
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+@media(max-width:1100px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.kpis .k:first-child{grid-column:1/-1}}
+.k{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:3px}
+.k em{font-style:normal;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:800;color:var(--ink-2)}
+.k b{font-family:'Anton',sans-serif;font-weight:400;font-size:32px;line-height:1.1}
+.k small{color:var(--muted);font-size:12.5px}
+.k.dark{background:var(--chumbo);border-color:var(--chumbo)}
+.k.dark em,.k.dark small{color:#d6d8da}.k.dark b{color:var(--sign)}
+.tag{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;border-radius:4px;padding:3px 8px;white-space:nowrap}
+.tag.real{background:var(--open-bg);color:var(--open)}
+.tag.ex{background:transparent;border:1px dashed var(--muted);color:var(--muted)}
+.tag.wait{background:var(--warn-bg);color:var(--warn-ink)}
+.tag.baixa{background:var(--alert-bg);color:var(--alert)}
+.tag.media{background:var(--warn-bg);color:var(--warn-ink)}
+.head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+
+/* ações recomendadas */
+.acao{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:12px;align-items:start;padding:14px 0;border-top:1px solid var(--line)}
+.acao:first-of-type{border-top:0}
+.acao .n{width:34px;height:34px;border-radius:50%;background:var(--chumbo);color:var(--sign);font-family:'Anton',sans-serif;display:flex;align-items:center;justify-content:center;font-size:17px}
+.acao p{margin:0 0 4px}.acao small{color:var(--muted)}
+.btn{height:40px;padding:0 14px;border-radius:8px;border:1px solid var(--ink);background:var(--paper);color:var(--ink);font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap}
+.btn.pri{background:var(--sign);color:#151210;border-color:#151210}
+@media(max-width:700px){.acao{grid-template-columns:34px 1fr}.acao .btn{grid-column:2}}
+
+/* barras por hora */
+.horas{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;align-items:end;height:190px;padding-top:8px}
+.horas div{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:4px}
+.horas i{display:block;width:100%;max-width:56px;background:var(--bar);border-radius:5px 5px 0 0}
+.horas .hi i{background:var(--bar-hi);outline:1px solid #151210}
+.horas span{font-size:12px;color:var(--muted)}
+.horas b{font-size:12px}
+
+/* tabelas */
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);font-weight:800}
+.tbl td{padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+.tbl .r{text-align:right}
+.tbl tr:last-child td{border-bottom:0}
+.scroll{overflow-x:auto}
+.bar{height:8px;background:var(--bar-soft);border-radius:4px;overflow:hidden;min-width:70px}
+.bar i{display:block;height:100%;background:var(--bar)}
+.bar.hi i{background:var(--bar-hi)}
+.mut{color:var(--muted)}
+.ghost{opacity:.55}
+.aviso{background:var(--warn-bg);color:var(--warn-ink);border-radius:10px;padding:12px 14px;font-size:13.5px}
+.aviso b{display:block;margin-bottom:2px}
+.insight{background:var(--concrete-2);border-radius:10px;padding:12px 14px;margin-top:12px;font-size:13.5px}
+.insight b{color:var(--ink)}
+
+/* matriz */
+.matriz{position:relative;height:250px;border:1px solid var(--line);border-radius:10px;background:
+ linear-gradient(var(--line),var(--line)) 50% 0/1px 100% no-repeat,
+ linear-gradient(var(--line),var(--line)) 0 50%/100% 1px no-repeat;}
+.matriz .q{position:absolute;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.matriz .q1{top:8px;right:10px}.matriz .q2{top:8px;left:10px}.matriz .q3{bottom:8px;right:10px}.matriz .q4{bottom:8px;left:10px}
+.matriz .dot{position:absolute;width:12px;height:12px;border-radius:50%;background:var(--bar);opacity:.55}
+.veu{position:absolute;inset:0;background:color-mix(in srgb,var(--paper) 82%,transparent);display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;border-radius:10px;font-weight:700}
+
+/* heatmap */
+.heat{display:grid;grid-template-columns:44px repeat(7,1fr);gap:4px;font-size:11.5px}
+.heat div{height:30px;border-radius:5px;background:var(--bar-soft);display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.heat .h{background:transparent;height:auto;justify-content:flex-start;font-weight:700}
+.heat .c1{background:color-mix(in srgb,var(--sign) 30%,var(--bar-soft))}
+.heat .c2{background:color-mix(in srgb,var(--sign) 60%,var(--bar-soft));color:#151210}
+.heat .c3{background:var(--sign);color:#151210;font-weight:800}
+
+/* perfil de cliente */
+.perfil{display:grid;grid-template-columns:200px minmax(0,1fr);gap:18px}
+@media(max-width:700px){.perfil{grid-template-columns:1fr}}
+.avatar{width:56px;height:56px;border-radius:50%;background:var(--chumbo);color:var(--sign);display:flex;align-items:center;justify-content:center;font-family:'Anton',sans-serif;font-size:24px;margin-bottom:8px}
+.fatos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media(max-width:700px){.fatos{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.fato{background:var(--concrete-2);border-radius:8px;padding:10px 12px}
+.fato em{display:block;font-style:normal;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:800}
+.fato b{font-size:15px}
+.seg{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+.seg:first-of-type{border-top:0}
+.seg .big{font-family:'Anton',sans-serif;font-size:28px;min-width:54px;text-align:right}
+.msg{background:var(--concrete-2);border-left:3px solid var(--sign);border-radius:6px;padding:12px 14px;font-size:13.5px;white-space:pre-line}
+.funil{display:flex;flex-direction:column;gap:8px}
+.funil div{display:grid;grid-template-columns:130px 1fr 60px;gap:10px;align-items:center;font-size:13px}
+.legenda{display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:12.5px;color:var(--muted);margin-bottom:4px}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <h1>Inteligência de Salão <small id="sub">Calçada do Peixe · ontem, 05/11</small></h1>
+  <label class="sel">Loja
+    <select id="loja">
+      <option value="todas">Todas as lojas</option>
+      <option value="calcada" selected>Calçada do Peixe</option>
+    </select>
+  </label>
+  <div class="pills" id="periodo">
+    <button>Hoje</button><button class="on">Ontem</button><button>Esta semana</button><button>Este mês</button><button>Tudo</button>
+  </div>
+</header>
+
+<div class="maturidade">
+  <span><b>Maturidade dos dados:</b> 3 dias de histórico <span class="meter"><i style="width:10%"></i></span> meta: 8 semanas</span>
+  <span><b>54</b> contas desde 03/11</span>
+  <span><b>4%</b> com WhatsApp confirmado <span class="meter"><i style="width:13%"></i></span> meta: 30%</span>
+  <span><b>0 de 106</b> produtos com custo</span>
+</div>
+
+<nav class="tabs" id="abas">
+  <button class="on" data-t="resumo">Resumo</button>
+  <button data-t="produtos">Produtos</button>
+  <button data-t="mesas">Mesas e tempo</button>
+  <button data-t="combos">Combos</button>
+  <button data-t="clientes">Clientes</button>
+  <button data-t="retencao">Retenção</button>
+</nav>
+
+<main class="wrap">
+
+<!-- ================= RESUMO ================= -->
+<section class="panel on" id="p-resumo">
+  <div class="legenda"><span class="tag real">Dado real</span> calculado do sistema <span class="tag ex">Exemplo</span> ilustrativo, ainda sem dados suficientes <span class="tag wait">Aguardando</span> depende de cadastro</div>
+
+  <div class="kpis">
+    <div class="k dark"><em>Vendido ontem</em><b class="num">R$ 3.658</b><small>23 contas fechadas (mesas + retirada)</small></div>
+    <div class="k"><em>Ticket médio</em><b class="num">R$ 159</b><small>por conta</small></div>
+    <div class="k"><em>Tempo médio de mesa</em><b class="num">54 min</b><small>abertura → fechamento</small></div>
+    <div class="k"><em>Rende por hora de mesa</em><b class="num">R$ 177</b><small>ticket ÷ tempo da mesa</small></div>
+    <div class="k"><em>Clientes identificados</em><b class="num">1 de 26</b><small>meta: 8 de 26 (30%)</small></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="head"><div><h2>Movimento por horário</h2><p class="sub">Contas abertas e valor fechado em cada hora</p></div><span class="tag real">Dado real · 05/11</span></div>
+      <div class="horas" id="horas"></div>
+      <div class="insight"><b>22h foi o pico de faturamento</b> (R$ 1.246 em 7 contas) e <b>19h o mais fraco</b> (2 contas): há mesa vazia no começo da noite.</div>
+    </div>
+
+    <div class="card">
+      <div class="head"><div><h2>O que fazer agora</h2><p class="sub">Ordenado por impacto estimado</p></div></div>
+      <div class="acao"><div class="n">1</div><div><p><b>Atrair mesas para antes das 20h.</b> Só 2 contas abriram às 19h e 7 às 20h.</p><small>Ideia: bebida em dobro ou sobremesa cortesia até as 19h30. <span class="tag media">Confiança média · 1 dia</span></small></div><button class="btn pri">Criar promoção de horário</button></div>
+      <div class="acao"><div class="n">2</div><div><p><b>Montar combo Combo Raiz + Coca 2 L.</b> Saiu junto em 4 contas desde 03/11.</p><small>Preço sugerido só depois do custo cadastrado. <span class="tag baixa">Confiança baixa · 4 casos</span></small></div><button class="btn">Ver o cruzamento</button></div>
+      <div class="acao"><div class="n">3</div><div><p><b>Identificar mais clientes.</b> 1 de 26 contas tem WhatsApp. Sem isso não há retenção.</p><small>O garçom já pergunta ao abrir a mesa; falta medir por garçom. <span class="tag real">Dado real</span></small></div><button class="btn">Ver por garçom</button></div>
+    </div>
+  </div>
+
+  <div class="card" id="cmp" style="display:none">
+    <div class="head"><div><h2>Comparativo entre lojas</h2><p class="sub">Visão do administrador — filtre por loja no topo</p></div><span class="tag real">Dado real · 05/11</span></div>
+    <div class="scroll"><table class="tbl">
+      <tr><th>Loja</th><th class="r">Vendido</th><th class="r">Contas</th><th class="r">Ticket</th><th class="r">Tempo de mesa</th><th class="r">% com WhatsApp</th><th>Situação</th></tr>
+      <tr><td><b>Calçada do Peixe</b></td><td class="r num">R$ 3.658</td><td class="r num">23</td><td class="r num">R$ 159</td><td class="r num">54 min</td><td class="r num">4%</td><td><span class="tag real">Mesas ativas</span></td></tr>
+      <tr class="ghost"><td>Restaurante Mineroca</td><td class="r">—</td><td class="r">—</td><td class="r">—</td><td class="r">—</td><td class="r">—</td><td><span class="tag ex">Mesas desligadas · só delivery</span></td></tr>
+      <tr class="ghost"><td>Mistura Fina Açaí</td><td class="r">—</td><td class="r">—</td><td class="r">—</td><td class="r">—</td><td class="r">—</td><td><span class="tag ex">Mesas desligadas · só delivery</span></td></tr>
+    </table></div>
+  </div>
+</section>
+
+<!-- ================= PRODUTOS ================= -->
+<section class="panel" id="p-produtos">
+  <div class="grid2">
+    <div class="card">
+      <div class="head"><div><h2>Mais vendidos ontem</h2><p class="sub">Por faturamento · pedidos cancelados não entram</p></div><span class="tag real">Dado real · 05/11</span></div>
+      <div class="scroll"><table class="tbl" id="tprod"></table></div>
+      <div class="insight"><b>Combo Raiz</b> sozinho respondeu por 26% do faturamento de itens do dia (8 vendas). <b>Cerveja Império 600 ml</b> foi o item mais repetido (10 unidades).</div>
+    </div>
+    <div class="card">
+      <div class="head"><div><h2>Matriz de cardápio</h2><p class="sub">Popularidade × margem de cada prato</p></div><span class="tag wait">Aguardando custo</span></div>
+      <div class="matriz">
+        <span class="q q1">Estrelas</span><span class="q q2">Lucrativos, pouco pedidos</span><span class="q q3">Populares, margem baixa</span><span class="q q4">Rever ou tirar</span>
+        <i class="dot" style="left:62%;top:30%"></i><i class="dot" style="left:78%;top:55%"></i><i class="dot" style="left:25%;top:25%"></i><i class="dot" style="left:35%;top:70%"></i><i class="dot" style="left:70%;top:72%"></i><i class="dot" style="left:48%;top:40%"></i>
+        <div class="veu"><div>Precisa do custo dos pratos.<br><span class="mut" style="font-weight:500">A Calçada do Peixe vai cadastrar no produto. Progresso: 0 de 106.</span></div></div>
+      </div>
+      <p class="sub" style="margin-top:10px">Quando houver custo: estrelas ganham destaque no cardápio, populares de margem baixa pedem reajuste ou ficha técnica, e os que ninguém pede saem.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="head"><div><h2>Que prato sai em que dia da semana</h2><p class="sub">Quantidade vendida por prato e dia</p></div><span class="tag ex">Exemplo ilustrativo</span></div>
+    <div class="aviso"><b>Dados insuficientes: 3 dias de histórico.</b> Esse cruzamento só fica confiável com pelo menos 4 semanas (cada dia da semana precisa aparecer 4 vezes). Até lá o painel não mostra conclusão.</div>
+    <div class="heat" style="margin-top:12px" id="heatprod"></div>
+  </div>
+</section>
+
+<!-- ================= MESAS ================= -->
+<section class="panel" id="p-mesas">
+  <div class="grid2">
+    <div class="card">
+      <div class="head"><div><h2>Quanto cada mesa rende por hora ocupada</h2><p class="sub">Receita ÷ tempo que a mesa ficou ocupada · contas abaixo de 10 min não entram</p></div><span class="tag real">Dado real · 05/11</span></div>
+      <div class="scroll"><table class="tbl" id="tmesa"></table></div>
+      <div class="insight"><b>Mesas 7, 6 e 4 giram em 36–48 min e rendem de R$ 281 a R$ 323 por hora.</b> A <b>mesa 5</b> faturou parecido com a 7 (R$ 342 contra R$ 388), mas ficou 129 min por conta, 3,6 vezes mais tempo ocupada, e rendeu R$ 79/h.</div>
+    </div>
+    <div class="card">
+      <div class="head"><div><h2>Pessoas por mesa</h2><p class="sub">Para saber quais mesas recebem mais gente</p></div><span class="tag wait">Começa a coletar hoje</span></div>
+      <div class="aviso"><b>Campo novo na abertura da conta.</b> Desde hoje o garçom informa quantas pessoas sentaram. Em duas semanas dá para ver ocupação real, ticket por pessoa e quais mesas ficam subutilizadas (casal em mesa de 6).</div>
+      <p class="sub" style="margin:12px 0 6px">Prévia do que vai aparecer:</p>
+      <div class="scroll"><table class="tbl ghost">
+        <tr><th>Mesa</th><th class="r">Pessoas / conta</th><th class="r">Ticket por pessoa</th></tr>
+        <tr><td>Mesa 4</td><td class="r">3,8</td><td class="r">R$ 62</td></tr>
+        <tr><td>Mesa 7</td><td class="r">2,1</td><td class="r">R$ 91</td></tr>
+        <tr><td>Mesa 9</td><td class="r">5,2</td><td class="r">R$ 38</td></tr>
+      </table></div><span class="tag ex" style="margin-top:8px">Exemplo ilustrativo</span>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="head"><div><h2>Mesa × horário</h2><p class="sub">Contas abertas por mesa em cada hora</p></div><span class="tag ex">Exemplo ilustrativo</span></div>
+      <div class="aviso"><b>Dados insuficientes.</b> Com 8 semanas o mapa mostra onde sempre há fila e onde a mesa fica vazia.</div>
+      <div class="heat" style="margin-top:12px;grid-template-columns:44px repeat(6,1fr)" id="heatmesa"></div>
+    </div>
+    <div class="card">
+      <div class="head"><div><h2>Tempo de mesa por prato</h2><p class="sub">Tempo médio das contas que pediram cada item</p></div><span class="tag ex">Exemplo ilustrativo</span></div>
+      <table class="tbl ghost">
+        <tr><th>Prato</th><th class="r">Tempo médio</th><th>vs. média (54 min)</th></tr>
+        <tr><td>Porção de fritas</td><td class="r">41 min</td><td><div class="bar"><i style="width:55%"></i></div></td></tr>
+        <tr><td>Combo Raiz</td><td class="r">58 min</td><td><div class="bar"><i style="width:78%"></i></div></td></tr>
+        <tr><td>Peixe inteiro por kg</td><td class="r">86 min</td><td><div class="bar hi"><i style="width:100%"></i></div></td></tr>
+      </table>
+      <p class="sub" style="margin-top:10px">Cuidado de leitura: a conta fecha quando o garçom fecha, não quando o cliente sai. Com o "Pedir a conta" do QR dá para medir o tempo real de saída.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= COMBOS ================= -->
+<section class="panel" id="p-combos">
+  <div class="card">
+    <div class="head"><div><h2>Que bebida acompanha que prato</h2><p class="sub">Contas em que os dois foram pedidos · histórico desde 03/11</p></div><span class="tag real">Dado real · 3 dias</span></div>
+    <div class="scroll"><table class="tbl" id="tpar"></table></div>
+    <div class="aviso" style="margin-top:12px"><b>Amostra pequena (menos de 10 casos por par).</b> Serve como pista, não como regra. O painel só recomenda combo com mais de 15 casos e mostra a confiança em cada linha.</div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="head"><div><h2>Combo sugerido</h2><p class="sub">Montado a partir do par mais frequente</p></div><span class="tag wait">Preço depende do custo</span></div>
+      <div class="msg"><b>Combo Raiz + Coca-Cola 2 L</b>
+Saiu junto em 4 das 8 vendas do Combo Raiz (50%).
+Preço sugerido: a calcular com o custo (alvo: margem do combo ≥ margem média do Combo Raiz).</div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button class="btn pri">Criar combo no cardápio</button><button class="btn">Mostrar como sugestão no QR da mesa</button></div>
+    </div>
+    <div class="card">
+      <div class="head"><div><h2>Venda de bebida por conta</h2><p class="sub">Quantas contas pediram ao menos uma bebida</p></div><span class="tag ex">Exemplo ilustrativo</span></div>
+      <div class="funil ghost">
+        <div><span>Contas</span><div class="bar"><i style="width:100%"></i></div><b class="num">23</b></div>
+        <div><span>Com bebida</span><div class="bar"><i style="width:87%"></i></div><b class="num">20</b></div>
+        <div><span>Com 2+ bebidas</span><div class="bar"><i style="width:52%"></i></div><b class="num">12</b></div>
+        <div><span>Com sobremesa</span><div class="bar"><i style="width:17%"></i></div><b class="num">4</b></div>
+      </div>
+      <p class="sub" style="margin-top:10px">Quem não pediu bebida ou sobremesa é a maior oportunidade de ticket: sugestão no QR da mesa e no lançamento do garçom.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CLIENTES ================= -->
+<section class="panel" id="p-clientes">
+  <div class="grid2">
+    <div class="card">
+      <div class="head"><div><h2>Funil de identificação</h2><p class="sub">Do cliente na mesa ao cliente que se conhece</p></div><span class="tag real">Dado real · 03–05/11</span></div>
+      <div class="funil">
+        <div><span>Contas abertas</span><div class="bar"><i style="width:100%"></i></div><b class="num">54</b></div>
+        <div><span>Com WhatsApp</span><div class="bar hi"><i style="width:9%"></i></div><b class="num">5</b></div>
+        <div><span>Telefones distintos</span><div class="bar hi"><i style="width:6%"></i></div><b class="num">3</b></div>
+        <div><span>Jogaram o quiz</span><div class="bar"><i style="width:6%"></i></div><b class="num">3</b></div>
+        <div><span>Voltaram</span><div class="bar"><i style="width:0%"></i></div><b class="num">0</b></div>
+      </div>
+      <div class="insight"><b>Hoje a retenção é limitada pela identificação, não pelas mensagens.</b> Cada ponto percentual a mais de clientes identificados vale mais que qualquer relatório novo.</div>
+    </div>
+    <div class="card">
+      <div class="head"><div><h2>Quem identifica mais</h2><p class="sub">Contas com WhatsApp por garçom · meta 30%</p></div><span class="tag real">Dado real · 05/11</span></div>
+      <table class="tbl">
+        <tr><th>Garçom</th><th class="r">Contas</th><th class="r">Com WhatsApp</th><th>Taxa</th></tr>
+        <tr><td>Andressa</td><td class="r num">23</td><td class="r num">1</td><td><div class="bar hi"><i style="width:4%"></i></div></td></tr>
+      </table>
+      <p class="sub" style="margin-top:10px">Com mais garçons, vira ranking amigável e base para uma meta com premiação.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="head"><div><h2>Perfil do cliente</h2><p class="sub">O que ele consome, quando vem e quando deve voltar</p></div><span class="tag ex">Exemplo ilustrativo · cliente fictício</span></div>
+    <div class="perfil">
+      <div><div class="avatar">M</div><b style="font-size:16px">Marcos S.</b><div class="mut">Confirmou WhatsApp na mesa 4</div><div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap"><span class="tag real">Jogou o quiz</span><span class="tag media">Cashback R$ 18</span></div></div>
+      <div class="fatos">
+        <div class="fato"><em>Visitas</em><b>4 em 6 semanas</b></div>
+        <div class="fato"><em>Ticket médio</em><b>R$ 172</b></div>
+        <div class="fato"><em>Tempo de mesa</em><b>71 min</b></div>
+        <div class="fato"><em>Dias que vem</em><b>Sex e sáb</b></div>
+        <div class="fato"><em>Horário</em><b>20h–21h</b></div>
+        <div class="fato"><em>Costuma vir com</em><b>3 a 4 pessoas</b></div>
+        <div class="fato"><em>Prato preferido</em><b>Corvina frita kg</b></div>
+        <div class="fato"><em>Bebida preferida</em><b>Império 600 ml</b></div>
+        <div class="fato"><em>Voltaria em</em><b>~9 dias (sex 14/11)</b></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= RETENÇÃO ================= -->
+<section class="panel" id="p-retencao">
+  <div class="grid2">
+    <div class="card">
+      <div class="head"><div><h2>Quem está na hora de voltar</h2><p class="sub">Grupos prontos para uma mensagem, calculados pelo ritmo de cada cliente</p></div><span class="tag ex">Exemplo ilustrativo</span></div>
+      <div class="seg"><div><b>Na hora de voltar</b><div class="mut">Passou o intervalo habitual entre visitas</div></div><div class="big num">12</div><button class="btn pri">Preparar mensagem</button></div>
+      <div class="seg"><div><b>Sumiram</b><div class="mut">Mais de 3× o intervalo habitual sem vir</div></div><div class="big num">7</div><button class="btn">Preparar mensagem</button></div>
+      <div class="seg"><div><b>Cashback vencendo em 7 dias</b><div class="mut">Saldo que perde valor se não voltarem</div></div><div class="big num">5</div><button class="btn">Preparar mensagem</button></div>
+      <div class="seg"><div><b>Jogaram o quiz e não voltaram</b><div class="mut">Já conhecem a casa e têm prêmio parado</div></div><div class="big num">3</div><button class="btn">Preparar mensagem</button></div>
+      <div class="seg"><div><b>Primeira visita há 7 dias</b><div class="mut">Agradecer e convidar para a 2ª vez</div></div><div class="big num">9</div><button class="btn">Preparar mensagem</button></div>
+    </div>
+    <div class="card">
+      <div class="head"><div><h2>Mensagem preparada</h2><p class="sub">Você revisa antes de qualquer envio</p></div></div>
+      <div class="msg">Oi, Marcos! Aqui é da Calçada do Peixe 🐟
+Sentimos sua falta! Sexta-feira tem corvina frita na brasa e você ainda tem R$ 18 de cashback para usar até 14/11.
+Quer que a gente guarde uma mesa?</div>
+      <div class="aviso" style="margin-top:12px"><b>Segurança do número da loja</b>Os envios saem pela fila lenta (1 mensagem por vez, só das 8h às 20h), sem lote. Cliente que pedir para parar nunca mais recebe.</div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button class="btn pri">Enviar para 12 clientes</button><button class="btn">Editar texto</button></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="head"><div><h2>O que realmente traz o cliente de volta</h2><p class="sub">Taxa de retorno em 30 dias · compara quem teve cashback, quiz ou nenhum dos dois</p></div><span class="tag ex">Exemplo ilustrativo</span></div>
+    <table class="tbl ghost">
+      <tr><th>Grupo</th><th class="r">Clientes</th><th class="r">Voltaram em 30 dias</th><th>Taxa</th></tr>
+      <tr><td>Ganhou cashback</td><td class="r">28</td><td class="r">11</td><td><div class="bar hi"><i style="width:39%"></i></div></td></tr>
+      <tr><td>Jogou o quiz</td><td class="r">19</td><td class="r">6</td><td><div class="bar"><i style="width:32%"></i></div></td></tr>
+      <tr><td>Nenhum dos dois</td><td class="r">41</td><td class="r">5</td><td><div class="bar"><i style="width:12%"></i></div></td></tr>
+    </table>
+    <p class="sub" style="margin-top:10px">Responde se vale insistir em cashback e quiz, ou se o dinheiro rende mais em outra coisa.</p>
+  </div>
+</section>
+
+</main>
+
+<script>
+// ---------- dados reais de 05/11 (Calçada do Peixe) ----------
+var horas=[["17",0,0],["18",0,0],["19",2,259.70],["20",7,999.42],["21",4,844.56],["22",7,1245.93],["23",3,308.87]];
+var mesas=[[1,2,309.05,63],[2,2,392.55,61],[3,2,390.78,83],[4,2,448.96,48],[5,2,341.77,129],[6,2,363.47,38],[7,2,387.60,36],[8,2,279.94,56],[9,2,394.76,80]];
+var prods=[["Combo Raiz","Especialidades da casa",8,960.00],["Corvina Frita kg","Peixes",5,310.79],["Caldeirada (Individual)","Petiscos",5,249.50],["Camarão Alho e Óleo","Porções",3,209.70],["Combo Guarnição","Especialidades da casa",3,180.00],["Camarão Empanado","Porções",2,139.80],["Cerveja Império Larger 600 ml","Bebidas",10,129.90],["Arroz","Guarnições",7,105.00],["Pirão","Guarnições",7,105.00],["Gurjão com Fritas","Petiscos",1,94.90]];
+var pares=[["Coca-Cola Original 2 L","Combo Raiz",4],["Cerveja Império 600 ml","Corvina Frita kg",3],["Coca-Cola Original 2 L","Camarão Empanado",2],["Coca-Cola Original 2 L","Tira Vira Frito kg",2],["Água sem gás","Combo Raiz",2],["Guaraná Antarctica lata","Caldeirada (Individual)",2],["Cerveja Império 600 ml","Combo Raiz",2],["Coca-Cola Zero lata","Combo Guarnição",2]];
+var fmt=function(n){return n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})};
+
+// horas
+var max=Math.max.apply(null,horas.map(function(h){return h[2]}));
+document.getElementById('horas').innerHTML=horas.map(function(h){
+  var pico=h[2]===max;
+  return '<div class="'+(pico?'hi':'')+'"><b class="num">'+(h[2]?('R$ '+Math.round(h[2])):'—')+'</b><i style="height:'+Math.max(h[2]/max*130,h[2]?6:2)+'px"></i><span>'+h[0]+'h · '+h[1]+' contas</span></div>';
+}).join('');
+
+// produtos
+var maxp=prods[0][3];
+document.getElementById('tprod').innerHTML='<tr><th>Produto</th><th class="r">Qtd</th><th class="r">Faturou</th><th style="width:22%">&nbsp;</th><th class="r">Custo</th><th class="r">Margem</th></tr>'+
+ prods.map(function(p,i){return '<tr><td><b>'+p[0]+'</b><div class="mut" style="font-size:12px">'+p[1]+'</div></td><td class="r num">'+p[2]+'</td><td class="r num">R$ '+fmt(p[3])+'</td><td><div class="bar '+(i===0?'hi':'')+'"><i style="width:'+(p[3]/maxp*100)+'%"></i></div></td><td class="r mut">—</td><td class="r mut">—</td></tr>'}).join('');
+
+// mesas: R$/h
+var linhas=mesas.map(function(m){var h=m[0],n=m[1],r=m[2],t=m[3];return {mesa:h,n:n,r:r,t:t,rh:r/(n*t/60)}}).sort(function(a,b){return b.rh-a.rh});
+var maxrh=linhas[0].rh;
+document.getElementById('tmesa').innerHTML='<tr><th>Mesa</th><th class="r">Contas</th><th class="r">Tempo médio</th><th class="r">Faturou</th><th>R$ por hora ocupada</th></tr>'+
+ linhas.map(function(l,i){return '<tr><td><b>Mesa '+l.mesa+'</b></td><td class="r num">'+l.n+'</td><td class="r num">'+l.t+' min</td><td class="r num">R$ '+fmt(l.r)+'</td><td><div style="display:flex;align-items:center;gap:8px"><div class="bar '+(i<2?'hi':'')+'" style="flex:1"><i style="width:'+(l.rh/maxrh*100)+'%"></i></div><b class="num" style="min-width:58px;text-align:right">R$ '+Math.round(l.rh)+'</b></div></td></tr>'}).join('');
+
+// pares
+document.getElementById('tpar').innerHTML='<tr><th>Bebida</th><th>Prato</th><th class="r">Contas juntos</th><th>Confiança</th></tr>'+
+ pares.map(function(p){return '<tr><td><b>'+p[0]+'</b></td><td>'+p[1]+'</td><td class="r num">'+p[2]+'</td><td><span class="tag baixa">Baixa · '+p[2]+' casos</span></td></tr>'}).join('');
+
+// heatmaps ilustrativos
+var dias=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+var pr=['Combo Raiz','Corvina frita','Caldeirada','Camarão alho e óleo'];
+var hp='<div class="h"></div>'+dias.map(function(d){return '<div class="h" style="justify-content:center">'+d+'</div>'}).join('');
+var seed=[[0,1,1,1,2,3,2],[0,0,1,1,2,3,3],[0,1,0,1,1,2,2],[0,0,1,0,2,2,1]];
+pr.forEach(function(p,i){hp+='<div class="h" style="font-size:10.5px;line-height:1.1">'+p.split(' ')[0]+'</div>'+seed[i].map(function(v){return '<div class="'+(v?'c'+v:'')+'">'+(v?v*3:'')+'</div>'}).join('')});
+document.getElementById('heatprod').innerHTML=hp;
+var hm='<div class="h"></div>'+['19h','20h','21h','22h','23h','00h'].map(function(h){return '<div class="h" style="justify-content:center">'+h+'</div>'}).join('');
+var ms=[[1,2,3,2,1,0],[0,1,3,3,2,1],[1,2,2,3,2,0],[0,1,2,2,1,0]];
+['Mesa 1','Mesa 4','Mesa 6','Mesa 9'].forEach(function(m,i){hm+='<div class="h">'+m+'</div>'+ms[i].map(function(v){return '<div class="'+(v?'c'+v:'')+'"></div>'}).join('')});
+document.getElementById('heatmesa').innerHTML=hm;
+
+// navegação
+document.getElementById('abas').addEventListener('click',function(e){
+  var b=e.target.closest('button'); if(!b) return;
+  [].forEach.call(document.querySelectorAll('#abas button'),function(x){x.classList.toggle('on',x===b)});
+  [].forEach.call(document.querySelectorAll('.panel'),function(p){p.classList.toggle('on',p.id==='p-'+b.dataset.t)});
+});
+document.getElementById('periodo').addEventListener('click',function(e){
+  var b=e.target.closest('button'); if(!b) return;
+  [].forEach.call(document.querySelectorAll('#periodo button'),function(x){x.classList.toggle('on',x===b)});
+});
+document.getElementById('loja').addEventListener('change',function(e){
+  var todas=e.target.value==='todas';
+  document.getElementById('cmp').style.display=todas?'block':'none';
+  document.getElementById('sub').textContent=(todas?'Todas as lojas':'Calçada do Peixe')+' · ontem, 05/11';
+});
+</script>
+</body>
+</html>

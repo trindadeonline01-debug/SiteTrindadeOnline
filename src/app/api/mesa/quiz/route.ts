@@ -7,7 +7,7 @@ import { lerIdentToken, nomeRanking } from '@/lib/mesaIdent'
 import { sendPlatformWhatsApp } from '@/lib/whatsapp'
 import { moduleActive } from '@/lib/modules'
 import {
-  QUIZ_FOLGA_MS, QUIZ_PULOS, QUIZ_PENSAR, QUIZ_TEMPO_S, QUIZ_TEMPO_PENSAR_S,
+  QUIZ_FOLGA_MS, QUIZ_PULOS, QUIZ_PENSAR, QUIZ_TEMPO_S, QUIZ_TEMPO_PENSAR_S, QUIZ_PORTAO,
   aposAcerto, aposErro, aposDecisao, nivelPorAcertos, pontosDaResposta, type Rodada,
 } from '@/lib/quizRegras'
 import banco from '@/data/quiz/banco.json'
@@ -359,6 +359,14 @@ export async function POST(req: NextRequest) {
       const novo = aposDecisao(paraRegras(r), parar)
       await salvarRodada(r.id, novo, parar ? { motivo_fim: 'parou' } : {})
       return NextResponse.json({ ok: true, rodada: publico({ ...r, estado: novo.estado, marco: novo.marco }), fim: novo.estado === 'encerrada' })
+    }
+
+    // Parar num marco antes do portão (10 e 20 acertos): encerra a rodada e leva o marco já garantido.
+    if (acao === 'parar') {
+      if (r.estado !== 'jogando' || r.marco <= 0 || r.acertos >= QUIZ_PORTAO) return erro('Não há como parar agora.', 409)
+      const novo = aposDecisao(paraRegras(r), true)
+      await salvarRodada(r.id, novo, { motivo_fim: 'parou' })
+      return NextResponse.json({ ok: true, rodada: publico({ ...r, estado: novo.estado, marco: novo.marco }), fim: true })
     }
 
     if (acao === 'sair') {

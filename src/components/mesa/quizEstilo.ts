@@ -398,4 +398,18 @@ export const ESTILO = `
 .how{min-height:40px;padding:6px 10px;margin-bottom:clamp(0px,.8dvh,10px)}
 .cta2{gap:clamp(4px,1dvh,10px)}
 .go{min-height:clamp(50px,7.4dvh,60px);font-size:clamp(19px,2.9dvh,22px)}
+
+.fw{position:absolute;inset:0;width:100%;height:100%;z-index:6;pointer-events:none}
+.mkc{position:relative;z-index:7;flex:1;display:flex;align-items:center;justify-content:center;padding:16px}
+.mkc-card{width:100%;max-width:380px;background:linear-gradient(180deg,#0E4D64,#082B38);border:2px solid var(--ap-gold);border-radius:20px;padding:22px 18px 18px;display:grid;gap:12px;text-align:center;box-shadow:0 0 0 6px rgba(255,197,49,.15),0 20px 50px rgba(0,0,0,.45);animation:mkpop .5s cubic-bezier(.2,1.4,.4,1) both}
+.mkc-kick{font-size:11px;letter-spacing:.22em;text-transform:uppercase;font-weight:700;color:var(--ap-gold)}
+.mkc-t{font-family:var(--display);font-weight:400;font-size:40px;line-height:1;margin:0;color:#fff}
+.mkc-pct{display:grid;gap:2px;justify-items:center;background:rgba(255,197,49,.12);border:1.5px solid rgba(255,197,49,.6);border-radius:14px;padding:10px}
+.mkc-pct b{font-family:var(--display);font-weight:400;font-size:64px;line-height:1;color:var(--ap-gold);text-shadow:0 4px 0 #6B4A00,0 0 24px rgba(255,197,49,.5)}
+.mkc-pct span{font-size:14px;font-weight:700;color:#fff}
+.mkc-card p{margin:0;font-size:14px;color:#D7E7EA;line-height:1.4}
+.mkc-card p b{color:var(--ap-gold)}
+.mkc-btns{display:grid;gap:8px;margin-top:4px}
+@keyframes mkpop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+@media (prefers-reduced-motion:reduce){.mkc-card{animation:none}}
 `

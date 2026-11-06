@@ -19,6 +19,39 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
     if(big) applause(c,t+0.25,1.4,0.12) }
   function sndErr(){ var c=ac(); if(!c) return; var t=c.currentTime+0.01; var lp=c.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=900; lp.connect(c.destination);
     [[330,260,0],[247,170,0.2]].forEach(function(x){ var o=c.createOscillator(), g=c.createGain(); o.type='sawtooth'; o.frequency.setValueAtTime(x[0],t+x[2]); o.frequency.exponentialRampToValueAtTime(x[1],t+x[2]+0.22); g.gain.setValueAtTime(0.0001,t+x[2]); g.gain.exponentialRampToValueAtTime(0.28,t+x[2]+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+x[2]+0.26); o.connect(g); g.connect(lp); o.start(t+x[2]); o.stop(t+x[2]+0.3) }) }
+  function pop(c,t0){ var n=c.createBufferSource(); n.buffer=noiseBuf(c,0.12); var bp=c.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=900; bp.Q.value=.8; var g=c.createGain(); g.gain.setValueAtTime(0.32,t0); g.gain.exponentialRampToValueAtTime(0.001,t0+0.12); n.connect(bp); bp.connect(g); g.connect(c.destination); n.start(t0); tone(c,190,t0,0.1,'sine',0.18) }
+  function sndMarco(){ var c=ac(); if(!c) return; var t=c.currentTime+0.01; applause(c,t+0.15,3.2,0.16); [523.25,659.25,783.99,1046.5,1318.5].forEach(function(f,i){ tone(c,f,t+i*0.09,0.55,'triangle',0.16) }); [0.2,0.55,0.95,1.4,1.9,2.5].forEach(function(d){ pop(c,t+d) }) }
+  var FW={raf:0,parts:[],timers:[]}
+  function stopFogos(){ if(FW.raf) cancelAnimationFrame(FW.raf); FW.raf=0; FW.timers.forEach(clearTimeout); FW.timers=[]; FW.parts=[] }
+  function iniciarFogos(){
+    stopFogos()
+    var cv=view.querySelector('#qz-fw'); if(!cv) return
+    if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    var dpr=Math.min(2,window.devicePixelRatio||1), W=cv.clientWidth||320, H=cv.clientHeight||560
+    cv.width=W*dpr; cv.height=H*dpr
+    var g=cv.getContext('2d'); g.scale(dpr,dpr)
+    var cores=['#FFC531','#FF6B5E','#4BD6A5','#5CC8FF','#FF8AD8','#FFFFFF']
+    function cor(){ return cores[Math.floor(Math.random()*cores.length)] }
+    function burst(){
+      var x=W*(0.15+Math.random()*0.7), y=H*(0.12+Math.random()*0.4), c1=cor(), i, a, v
+      for(i=0;i<36;i++){ a=Math.random()*6.2832; v=1.4+Math.random()*3.8; FW.parts.push({k:'f',x:x,y:y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:1,dec:.011+Math.random()*.01,c:Math.random()<.7?c1:cor(),r:1.5+Math.random()*1.8}) }
+      for(i=0;i<14;i++){ FW.parts.push({k:'c',x:x,y:y,vx:(Math.random()-.5)*5,vy:-1-Math.random()*3,life:1,dec:.006+Math.random()*.005,c:cor(),w:5+Math.random()*4,h:3+Math.random()*3,rot:Math.random()*6,vr:(Math.random()-.5)*.4}) }
+    }
+    ;[200,550,950,1400,1900,2500].forEach(function(d){ FW.timers.push(setTimeout(burst,d)) })
+    function loop(){
+      if(DESTROYED||cur!=='marco'){ stopFogos(); return }
+      g.clearRect(0,0,W,H)
+      FW.parts=FW.parts.filter(function(p){ return p.life>0 && p.y<H+20 })
+      FW.parts.forEach(function(p){
+        p.x+=p.vx; p.y+=p.vy; p.vy+=.06; p.vx*=.985; p.life-=p.dec; g.globalAlpha=Math.max(0,p.life); g.fillStyle=p.c
+        if(p.k==='f'){ g.beginPath(); g.arc(p.x,p.y,p.r,0,6.2832); g.fill() }
+        else { p.rot+=p.vr; g.save(); g.translate(p.x,p.y); g.rotate(p.rot); g.fillRect(-p.w/2,-p.h/2,p.w,p.h); g.restore() }
+      })
+      g.globalAlpha=1
+      FW.raf=requestAnimationFrame(loop)
+    }
+    FW.raf=requestAnimationFrame(loop)
+  }
   function sndWin(){ var c=ac(); if(!c) return; var t=c.currentTime+0.01; applause(c,t,2.2,0.14); [523.25,659.25,783.99,1046.5].forEach(function(f,i){ tone(c,f,t+i*0.11,0.5,'triangle',0.16) }) }
   var IC_SPK='<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
   var IC_SPK_OFF='<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16 9l5 6M21 9l-5 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
@@ -156,6 +189,18 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
       '<div style="margin-top:auto;display:grid;gap:8px"><button class="btn" data-act="resume">Continuar de onde parei</button><button class="btn alt" data-act="leaveyes2">Desistir (perde tudo)</button></div></div></div>'
   }
   S.q = function () { return perguntaHtml(false) }
+  // Comemoração dos marcos antes do portão (10 e 20 acertos): fogos, aplauso e a escolha continuar/parar.
+  S.marco = function () {
+    var a = G.acertos, bloq = INFO && INFO.premioBloqueado, cash = INFO && INFO.premio && !bloq && G.marco > 0
+    var prox = a < 20 ? '3% de cashback aos 20 acertos' : '5% de cashback aos 30 acertos'
+    return '<div class="screen sea mkscr">' + scene() + '<canvas class="fw" id="qz-fw" aria-hidden="true"></canvas>' + bar() +
+      '<div class="mkc"><div class="mkc-card"><span class="mkc-kick">Parabéns!</span><h2 class="mkc-t">' + a + ' acertos! 🎉</h2>' +
+      (cash
+        ? '<div class="mkc-pct"><b>' + G.marco + '%</b><span>de cashback garantido</span></div><p>Você já garantiu <b>' + G.marco + '% de cashback</b>. É provisório: vira valor em R$ quando você pagar a conta de hoje e vale para a sua próxima compra.</p>'
+        : '<p>Muito bem! Você já fez <b>' + fmtN(G.pontos) + ' pontos</b>' + (INFO && INFO.premio && bloq ? '. Como você já ganhou um prêmio nos últimos 7 dias, esta rodada vale só para o ranking.' : ' no ranking da loja.') + '</p>') +
+      (cash ? '<p>Continuar não faz você perder isso. Próximo prêmio: <b>' + prox + '</b>.</p>' : '') +
+      '<div class="mkc-btns"><button class="btn" data-act="mkgo">Continuar jogando</button><button class="btn alt" data-act="mkstop">Parar por aqui</button></div></div></div></div>'
+  }
   S.portao = function () {
     var a = G.acertos
     return '<div class="screen sea">' + scene() + bar() + ladder() + '<div class="res"><div><div class="tag" style="background:var(--ap-gold);color:#151210">Decisão</div><h2 class="h1" style="margin-top:8px">' + a + ' acertos!</h2></div>' +
@@ -213,6 +258,7 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
   function render() {
     if (DESTROYED) return
     stopT()
+    if (cur !== 'marco') stopFogos()
     if (cur !== 'contagem' && CT.t) { clearInterval(CT.t); CT.t = null }
     if (cur !== 'intro') ZONES = false
     var html = (S[cur] || S.load)()
@@ -228,6 +274,7 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
     }
     view.innerHTML = html + '<div class="qz-toast" id="qz-toast" role="status"></div>'
     if (cur === 'q' && G && G.q && !G.res && !G.busy) startTimer()
+    if (cur === 'marco') iniciarFogos()
   }
 
   // ======== relógio da pergunta (quem manda é o servidor; aqui só mostra e avisa) ========
@@ -311,6 +358,8 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
       G.res = null
       if (G.fimJogo) { terminar(); return }
       if (G.estado === 'portao') { decidirAuto(); return }
+      // 10 e 20 acertos (ainda na fase segura): comemora e deixa escolher continuar ou parar.
+      if (j.acertou && INFO && INFO.premio && G.estado === 'jogando' && (G.acertos === 10 || G.acertos === 20)) { cur = 'marco'; render(); sndMarco(); return }
       proxima()
     }, j.acertou ? 1300 : 1800)
   }
@@ -393,6 +442,12 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
       api('pensar', { itemId: G.q.id }).then(function (j) { G.busy = false; sync(j.rodada); G.pensando = true; G.q.dur = 20000; G.q.ini = Date.now() - (20000 - j.restanteMs); render() }).catch(fail)
       return
     }
+    if (a === 'mkgo') { stopFogos(); proxima(); return }
+    if (a === 'mkstop') {
+      stopFogos()
+      api('parar').then(function (j) { sync(j.rodada); G.fim = { motivo: 'parou' }; terminar() }).catch(fail)
+      return
+    }
     if (a === 'stop' || a === 'go') {
       api('decidir', { parar: a === 'stop' }).then(function (j) { sync(j.rodada); if (j.fim) { G.fim = { motivo: 'parou' }; terminar() } else proxima() }).catch(fail)
       return
@@ -417,5 +472,5 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
     cur = j.jogador && j.retomar ? 'queda' : 'intro'; render()
   }).catch(function () { INFO = { ativo: false }; cur = 'off'; render() })
 
-  return function () { DESTROYED = true; stopT(); if (CT.t) clearInterval(CT.t); view.removeEventListener('click', onClick); view.removeEventListener('input', onInput); view.removeEventListener('change', onChange) }
+  return function () { DESTROYED = true; stopT(); stopFogos(); if (CT.t) clearInterval(CT.t); view.removeEventListener('click', onClick); view.removeEventListener('input', onInput); view.removeEventListener('change', onChange) }
 }

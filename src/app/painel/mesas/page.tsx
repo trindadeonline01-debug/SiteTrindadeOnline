@@ -776,6 +776,13 @@ function ComandaView(props: {
     const r = await pin.run(pinVal)
     if (r) { setPin(null); setPinVal(''); await load() }
   }
+  // "+" ao lado do item: lança mais uma unidade igual (mesmas opções) como uma nova rodada, que vai para a cozinha.
+  async function maisUm(it: ItemPed) {
+    if (!it.produto_id) return
+    const r = await call('rodada', { comandaId: c.id, itens: [{ produtoId: it.produto_id, qty: 1, pesoKg: null, modifiers: it.selected_options || [] }] })
+    if (r) await load()
+  }
+
   async function fecharConta() {
     const r = await call('fechar', { comandaId: c.id }); if (r) { limparDivisao(); await props.fechado(); const cb = Number(r.cashbackGanho) || 0, qz = Number(r.premioQuiz) || 0; if (cb > 0 || qz > 0) props.setMsg(`🎁 Cliente ganhou ${fmt(cb + qz)} de cashback para o próximo pedido${qz > 0 ? ` (inclui ${fmt(qz)} do Quiz)` : ''}`) }
   }
@@ -882,6 +889,9 @@ function ComandaView(props: {
                       <div className="nm"><span>{it.product_name}</span>{it.selected_options?.length > 0 && <small>{it.selected_options.map(o => o.name).join(' · ')}</small>}</div>
                       <b className="qt">{it.peso_kg != null ? `${String(it.peso_kg).replace('.', ',')} kg` : `${it.qty}×`}</b>
                       <b className="vl">{fmt(it.unit_price * it.qty)}</b>
+                      {it.peso_kg == null && it.produto_id
+                        ? <button className="cm-sq plus" disabled={busy} aria-label={`Mais um ${it.product_name}`} title="Mais um (nova rodada)" onClick={() => maisUm(it)}>+</button>
+                        : <span />}
                       <button className="cm-sq" aria-label={`Cancelar ${it.product_name} (pede o PIN)`} onClick={() => pedirPin(`Cancelar “${it.product_name}”`, pin => call('cancelar_item', { itemId: it.id, pin }))}>{X}</button>
                     </div>
                   ))}
@@ -1049,6 +1059,9 @@ function Picker({ produtos, categorias, alvo, onClose, onLancar, busy, msg }: {
   const [linhas, setLinhas] = useState<Linha[]>([])
   const [obs, setObs] = useState('')
   const seq = useRef(0)
+  // Abre já com o cursor na busca (computador/tablet com teclado). No celular não foca sozinho, para o teclado não cobrir os produtos.
+  const buscaRef = useRef<HTMLInputElement>(null)
+  useEffect(() => { if (window.innerWidth > 1000) buscaRef.current?.focus() }, [])
   const valorDig = (d: string) => (d ? parseInt(d, 10) / 100 : 0)
   const [peso, setPeso] = useState<{ p: Produto; dig: string; modo: 'kg' | 'valor' } | null>(null)
   const [opc, setOpc] = useState<{ p: Produto; sel: number[][] } | null>(null)
@@ -1095,7 +1108,7 @@ function Picker({ produtos, categorias, alvo, onClose, onLancar, busy, msg }: {
         </div>
         <div className="ms-picker">
           <div className="ms-pl">
-            <input className="ms-in" placeholder="Buscar produto" value={q} onChange={e => setQ(e.target.value)} />
+            <input className="ms-in" placeholder="Buscar produto" value={q} onChange={e => setQ(e.target.value)} ref={buscaRef} />
             <div className="ms-cats">
               <button className={`ms-chip ${cat === 'all' ? 'on' : ''}`} onClick={() => setCat('all')}>Todos</button>
               {categorias.map(c => <button key={c.id} className={`ms-chip ${cat === c.id ? 'on' : ''}`} onClick={() => setCat(c.id)}>{c.name}</button>)}
@@ -1463,12 +1476,14 @@ const CSS = `
 .cm-rod>header b{font-size:13px;letter-spacing:.04em;text-transform:uppercase}.cm-rod>header span{font-size:13px;color:#4f4c47}.cm-rod>header i{flex:1}
 .cm-rod>header em{font-style:normal;border-radius:4px;padding:4px 8px;font-weight:700;font-size:11px;letter-spacing:.05em;text-transform:uppercase}
 .cm-rod em.wait{background:#FFF3C9;color:#5C3F00}.cm-rod em.ok{background:#DDF1E7;color:#0B5B38}.cm-rod em.done{background:#ECEDE8;color:#3d3a36}
-.cm-it{display:grid;grid-template-columns:48px minmax(0,1fr) 78px 100px 40px;align-items:center;gap:14px;padding:10px 16px;border-top:1px solid #ECEDE8}
+.cm-it{display:grid;grid-template-columns:48px minmax(0,1fr) 78px 100px 40px 40px;align-items:center;gap:14px;padding:10px 16px;border-top:1px solid #ECEDE8}
 .cm-it .nm{min-width:0;display:flex;flex-direction:column;gap:2px}.cm-it .nm span{font-weight:600;font-size:15px}.cm-it .nm small{font-size:12.5px;color:#4f4c47}
 .cm-it .qt{text-align:right;font-size:14px;font-variant-numeric:tabular-nums}.cm-it .vl{text-align:right;font-size:15px;font-variant-numeric:tabular-nums}
 .cm-obs{padding:8px 16px;border-top:1px solid #ECEDE8;font-size:12.5px;color:#4f4c47}
 .cm-sq{width:40px;height:40px;border:1px solid #DCDDD6;background:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0}
 .cm-sq.sm{width:36px;height:36px;border:0;background:transparent}
+.cm-sq.plus{background:#FFC531;border-color:#FFC531;color:#151210;font-size:26px;font-weight:700;line-height:1}
+.cm-sq.plus:disabled{opacity:.5}
 .cm-aside{min-height:0;display:flex;flex-direction:column;background:#fff;border-left:1px solid #DCDDD6}
 .cm-scroll{flex:1;min-height:0;overflow-y:auto;padding:22px 24px;display:flex;flex-direction:column;gap:14px}
 .cm-scroll h2{margin:0;font-family:'Anton',sans-serif;font-weight:400;font-size:24px;text-transform:uppercase;line-height:1}
@@ -1535,7 +1550,7 @@ const CSS = `
   .cm-mini .r span{font-weight:700;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#4f4c47}
   .cm-mini .r b{font-family:'Anton',sans-serif;font-weight:400;font-size:32px;line-height:1;font-variant-numeric:tabular-nums}
   .cm-mini .r2{margin:8px 0 0}
-  .cm-mhead h1{font-size:22px}.cm-it{grid-template-columns:44px minmax(0,1fr) auto 36px;gap:10px;padding:8px 12px}.cm-it .qt{display:none}.cm-it .nm span{font-size:14px}.cm-it .vl{font-size:14px}
+  .cm-mhead h1{font-size:22px}.cm-it{grid-template-columns:44px minmax(0,1fr) auto 36px 36px;gap:8px;padding:8px 12px}.cm-it .qt{display:none}.cm-it .nm span{font-size:14px}.cm-it .vl{font-size:14px}
   .cm-sq{width:36px;height:36px}
   .cm-bar{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:10px;position:fixed;left:0;right:0;bottom:0;z-index:55;background:#fff;border-top:1px solid #DCDDD6;padding:12px 14px calc(14px + env(safe-area-inset-bottom))}
   .cm-bar .cm-add{height:54px;padding:0}.cm-pagar:disabled{opacity:.45}.cm-pagar{background:#2A4E7A;color:#fff;border:0;border-radius:10px;height:54px;font-weight:700;font-size:16px}

@@ -1070,6 +1070,9 @@ function Picker({ produtos, categorias, alvo, onClose, onLancar, busy, msg }: {
   const total = r2(linhas.reduce((s, l) => s + l.unit * (l.pesoKg != null ? 1 : l.qty), 0))
 
   function add(p: Produto, modifiers: { name: string; price: number }[] = [], pesoKg: number | null = null, valorFixo: number | null = null) {
+    // Item adicionado: limpa a busca (e volta o cursor nela no computador) para já procurar o próximo.
+    setQ('')
+    if (window.innerWidth > 1000) setTimeout(() => buscaRef.current?.focus(), 0)
     const extra = modifiers.reduce((s, m) => s + m.price, 0)
     const unit = r2(precoDe(p) + extra)
     const key = p.id + '|' + modifiers.map(m => m.name).join(',') + (pesoKg != null ? '|' + (++seq.current) : '')

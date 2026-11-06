@@ -280,7 +280,8 @@ const CSS = `
 .vd-back{background:transparent;color:#fff;border:1px solid #4a423a;border-radius:8px;height:44px;padding:0 16px;font-weight:700;font-size:14px;font-family:inherit;cursor:pointer}
 .vd-back:disabled{opacity:.6}
 .vd-date{height:44px;border-radius:8px;border:1px solid #4a423a;background:#fff;color:#151210;padding:0 10px;font-family:inherit;font-size:15px}
-.vd-body{flex:1;overflow-y:auto;padding:16px 18px 40px;display:flex;flex-direction:column;gap:14px;max-width:1100px;width:100%;margin:0 auto}
+.vd-body{flex:1;min-height:0;overflow-y:auto;padding:16px 18px 40px;display:flex;flex-direction:column;gap:14px;max-width:1100px;width:100%;margin:0 auto}
+.vd-body>*{flex:none}
 .vd-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .vd-kpis>div{background:#fff;border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:2px;border:1px solid #DCDDD6}
 .vd-kpis em{font-style:normal;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:#4f4c47;font-weight:700}

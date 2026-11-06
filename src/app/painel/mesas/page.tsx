@@ -6,6 +6,7 @@ import { moduleActive } from '@/lib/modules'
 import { beepChamado, beepMesa, pararSons, unlockAudio } from '@/lib/beep'
 import { buildReceipt, buildKitchenTicket, imprimirVias, isRawBtMode, qzConnect, setPapelImpressora, setViasImpressao } from '@/lib/qzPrint'
 import ConfirmModal from '@/components/painel/ConfirmModal'
+import VendasDiaPanel from '@/components/painel/VendasDiaPanel'
 import MesaCalculadora, { type CalcComanda, type Divisao, DIVISAO0 } from '@/components/painel/MesaCalculadora'
 import QRCode from 'qrcode'
 import { buildQrSheetHtml } from '@/lib/mesaQrSheet'
@@ -112,6 +113,7 @@ export default function MesasPage() {
   const [abrirRetirada, setAbrirRetirada] = useState(false)           // nova retirada (sem mesa)
   const [showConfig, setShowConfig] = useState(false)
   const [calcLivre, setCalcLivre] = useState(false)
+  const [showVendas, setShowVendas] = useState(false)
   const [picker, setPicker] = useState(false)
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
@@ -382,6 +384,7 @@ export default function MesasPage() {
           <a className="ms-tab" href={'/painel/pdv' + (adminMode ? `?empresa=${companyId}` : '')}>Balcão</a>
         </div>
         <button className="ms-btn calc" onClick={() => setCalcLivre(true)}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#151210" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2" /><rect x="8" y="6" width="8" height="3" /><path d="M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01M16 17h.01" /></svg>Calculadora</button>
+        <button className="ms-btn ghost" onClick={() => setShowVendas(true)}>📋 Vendas do dia</button>
         <button className="ms-btn ghost" onClick={() => { if (adminMode || !hasPin) setShowConfig(true); else { setMsg(''); setPedirCfgPin(true) } }}>⚙️ Configurar</button>
         <a className="ms-back" href={'/painel' + (adminMode ? `?empresa=${companyId}` : '')}>Sair ›</a>
       </div>
@@ -511,6 +514,15 @@ export default function MesasPage() {
       )}
 
       {calcLivre && <MesaCalculadora onClose={() => setCalcLivre(false)} />}
+
+      {showVendas && companyId && (
+        <VendasDiaPanel
+          companyId={companyId}
+          onClose={() => setShowVendas(false)}
+          onMudou={load}
+          onAbrirComanda={async (id) => { await load(); setAbertaId(id); setShowVendas(false) }}
+        />
+      )}
 
       {pedirCfgPin && (
         <ConfigPinModal busy={busy} msg={msg} call={call}

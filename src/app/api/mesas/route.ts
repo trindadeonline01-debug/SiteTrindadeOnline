@@ -519,6 +519,77 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
+    // ---------- relatório de vendas: conferir PIN / reabrir / cancelar venda já fechada ----------
+    // Todas pedem o PIN da supervisão: mexer em venda fechada é sensível.
+    if (acao === 'pin_conferir') {
+      const negado = await exigePinSupervisor(req, company, b.pin)
+      if (negado) return negado
+      return NextResponse.json({ ok: true })
+    }
+
+    // Reabre uma conta FECHADA para editar (acrescentar/tirar item, trocar forma de pagamento) e fechar de novo.
+    if (acao === 'venda_reabrir') {
+      const { data: c } = await sb.from('loja_comandas').select('*').eq('id', String(b.comandaId || '')).eq('company_id', companyId).maybeSingle()
+      if (!c) return erro('Venda não encontrada.', 404)
+      if (c.status === 'aberta') return NextResponse.json({ ok: true, jaAberta: true })
+      if (c.status !== 'fechada') return erro('Só dá para editar venda aberta ou fechada.', 409)
+      const bad = await pinOk(company, b.pin, c.id)
+      if (bad) return erro(bad, 403)
+      if (c.mesa_id) {
+        const { data: ocupada } = await sb.from('loja_comandas').select('id').eq('mesa_id', c.mesa_id).eq('status', 'aberta').maybeSingle()
+        if (ocupada) return erro('Essa mesa está com outra conta aberta agora. Feche ou libere a conta atual e tente de novo.', 409)
+      }
+      const agora = new Date().toISOString()
+      const { error } = await sb.from('loja_comandas').update({ status: 'aberta', fechada_em: null, fechada_por: null, updated_at: agora }).eq('id', c.id).eq('status', 'fechada')
+      if (error) return erro('Não consegui reabrir a venda: ' + error.message, 500)
+      // Enquanto estiver aberta, as rodadas voltam a "não pagas"; o fechamento marca de novo.
+      await sb.from('loja_pedidos').update({ payment_status: 'pendente', updated_at: agora }).eq('comanda_id', c.id).neq('status', 'cancelado')
+      await evento(companyId, c.id, 'reaberta', { totalAntes: Number(c.total) }, c.garcom_nome)
+      return NextResponse.json({ ok: true })
+    }
+
+    // Cancela a venda inteira (aberta ou já fechada): rodadas canceladas, cashback usado volta, cashback ganho sai.
+    if (acao === 'venda_cancelar') {
+      const { data: c } = await sb.from('loja_comandas').select('*').eq('id', String(b.comandaId || '')).eq('company_id', companyId).maybeSingle()
+      if (!c) return erro('Venda não encontrada.', 404)
+      if (c.status !== 'aberta' && c.status !== 'fechada') return erro('Essa venda já está cancelada.', 409)
+      const bad = await pinOk(company, b.pin, c.id)
+      if (bad) return erro(bad, 403)
+      const rodada = await primeiraRodada(c.id)
+      const { data: pgs } = await sb.from('loja_comanda_pagamentos').select('forma, valor').eq('comanda_id', c.id)
+      let cashbackDevolvido = 0, cashbackRetirado = 0
+      try {
+        if (c.customer_phone) {
+          // Cashback que o cliente GASTOU nesta conta volta para a carteira.
+          const gasto = r2((pgs || []).filter(p => p.forma === 'cashback').reduce((s, p) => s + Number(p.valor), 0))
+          if (gasto > 0) {
+            await reembolsarCashback(sb, { companyId, phoneRaw: c.customer_phone, valor: gasto })
+            await sb.from('cashback_ledger').insert({ company_id: companyId, customer_phone: c.customer_phone, pedido_id: null, tipo: 'estorno', valor: gasto })
+            cashbackDevolvido = gasto
+          }
+          // Cashback que ele GANHOU ao fechar esta conta sai da carteira (o que ainda houver de saldo).
+          if (c.status === 'fechada' && rodada) {
+            const { data: cred } = await sb.from('cashback_ledger').select('valor').eq('pedido_id', rodada).eq('tipo', 'credito').maybeSingle()
+            const ganho = Number(cred?.valor) || 0
+            if (ganho > 0) {
+              const tirado = await debitarCashback(sb, { companyId, phoneRaw: c.customer_phone, valorDesejado: ganho })
+              if (tirado > 0) {
+                await sb.from('cashback_ledger').insert({ company_id: companyId, customer_phone: c.customer_phone, pedido_id: rodada, tipo: 'debito', valor: tirado })
+                cashbackRetirado = tirado
+              }
+            }
+          }
+        }
+      } catch (e) { console.error('[mesas] cashback ao cancelar venda:', e) }
+      const agora = new Date().toISOString()
+      await sb.from('loja_pedidos').update({ status: 'cancelado', cancelado_por: 'loja', cancelado_em: agora, updated_at: agora }).eq('comanda_id', c.id).neq('status', 'cancelado')
+      await sb.from('loja_comandas').update({ status: 'cancelada', fechada_em: c.fechada_em || agora, fechada_por: c.fechada_por || c.garcom_nome, updated_at: agora }).eq('id', c.id)
+      if (c.mesa_id) await sb.from('loja_mesa_chamados').update({ status: 'atendido', atendido_em: agora, atendido_por: c.garcom_nome }).eq('mesa_id', c.mesa_id).eq('status', 'aberto')
+      // Sem recalcComanda de propósito: a venda cancelada mantém o valor que tinha, para o relatório mostrar o que foi cancelado.
+      await evento(companyId, c.id, 'venda_cancelada', { eraFechada: c.status === 'fechada', total: Number(c.total), cashbackDevolvido: cashbackDevolvido || undefined, cashbackRetirado: cashbackRetirado || undefined }, c.garcom_nome)
+      return NextResponse.json({ ok: true, cashbackDevolvido, cashbackRetirado })
+    }
+
     // ---------- transferir / juntar ----------
     if (acao === 'transferir') {
       const c = await comandaAberta(companyId, b.comandaId)

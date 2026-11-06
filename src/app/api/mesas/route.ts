@@ -586,7 +586,7 @@ export async function POST(req: NextRequest) {
       await sb.from('loja_comandas').update({ status: 'cancelada', fechada_em: c.fechada_em || agora, fechada_por: c.fechada_por || c.garcom_nome, updated_at: agora }).eq('id', c.id)
       if (c.mesa_id) await sb.from('loja_mesa_chamados').update({ status: 'atendido', atendido_em: agora, atendido_por: c.garcom_nome }).eq('mesa_id', c.mesa_id).eq('status', 'aberto')
       // Sem recalcComanda de propósito: a venda cancelada mantém o valor que tinha, para o relatório mostrar o que foi cancelado.
-      await evento(companyId, c.id, 'venda_cancelada', { eraFechada: c.status === 'fechada', total: Number(c.total), cashbackDevolvido: cashbackDevolvido || undefined, cashbackRetirado: cashbackRetirado || undefined }, c.garcom_nome)
+      await evento(companyId, c.id, 'venda_cancelada', { eraFechada: c.status === 'fechada', total: Number(c.total), motivo: String(b.motivo || '').slice(0, 40) || undefined, observacao: String(b.observacao || '').slice(0, 300) || undefined, cashbackDevolvido: cashbackDevolvido || undefined, cashbackRetirado: cashbackRetirado || undefined }, c.garcom_nome)
       return NextResponse.json({ ok: true, cashbackDevolvido, cashbackRetirado })
     }
 

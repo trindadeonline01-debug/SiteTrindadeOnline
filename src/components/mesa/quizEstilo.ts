@@ -412,4 +412,18 @@ export const ESTILO = `
 .mkc-btns{display:grid;gap:8px;margin-top:4px}
 @keyframes mkpop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
 @media (prefers-reduced-motion:reduce){.mkc-card{animation:none}}
+
+.mkc-kick.warn{display:inline-block;justify-self:center;width:auto;background:#D6392B;color:#fff;border-radius:999px;padding:6px 14px;font-size:11px;letter-spacing:.16em}
+.mkc-card.dc{animation-duration:.35s}
+.dc-opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dc-opt{display:grid;gap:3px;justify-items:center;align-content:start;border-radius:14px;padding:12px 8px;border:2px solid;text-align:center}
+.dc-opt small{font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#D7E7EA}
+.dc-opt b{font-family:var(--display);font-weight:400;font-size:44px;line-height:1}
+.dc-opt span{font-size:13px;font-weight:700;color:#fff;line-height:1.2}
+.dc-opt em{font-style:normal;font-size:12px;line-height:1.3;color:#D7E7EA;margin-top:4px}
+.dc-opt.safe{border-color:var(--ap-gold);background:rgba(255,197,49,.12)}
+.dc-opt.safe b{color:var(--ap-gold)}
+.dc-opt.risk{border-color:#FF7A6B;background:rgba(214,57,43,.14)}
+.dc-opt.risk b{color:#FF9C8F}
+.btn.dc-go{color:#FFB3A8;border-color:#FF7A6B}
 `

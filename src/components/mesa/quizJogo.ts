@@ -201,11 +201,24 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
       (cash ? '<p>Continuar não faz você perder isso. Próximo prêmio: <b>' + prox + '</b>.</p>' : '') +
       '<div class="mkc-btns"><button class="btn" data-act="mkgo">Continuar jogando</button><button class="btn alt" data-act="mkstop">Parar por aqui</button></div></div></div></div>'
   }
+  // Decisão dos 30+ acertos: parar e garantir ou arriscar. Tela de decisão importante: compara as duas saídas lado a lado.
   S.portao = function () {
-    var a = G.acertos
-    return '<div class="screen sea">' + scene() + bar() + ladder() + '<div class="res"><div><div class="tag" style="background:var(--ap-gold);color:#151210">Decisão</div><h2 class="h1" style="margin-top:8px">' + a + ' acertos!</h2></div>' +
-      '<div class="box">Se parar agora, a rodada termina com <b>' + fmtN(G.pontos) + ' pontos</b>' + (INFO && INFO.premio && G.marco > 0 ? ' e você garante <b>' + G.marco + '% de cashback</b> (provisório: vira valor quando você pagar a conta de hoje)' : '') + '. Se continuar e errar, a rodada acaba na hora' + (INFO && INFO.premio ? ' e o prêmio desta rodada se perde' : '') + '.</div>' +
-      '<div style="margin-top:auto;display:grid;gap:8px"><button class="btn" data-act="stop">Parar aqui</button><button class="btn alt" data-act="go">Continuar</button></div></div></div>'
+    var a = G.acertos, bloq = INFO && INFO.premioBloqueado
+    var cash = INFO && INFO.premio && !bloq && G.marco > 0
+    var prox = a < 35 ? 35 : a < 40 ? 40 : 45
+    var proxPct = prox === 35 ? 6 : prox === 40 ? 8 : 10
+    var falta = prox - a
+    var stopOpt = '<div class="dc-opt safe"><small>Se parar agora</small>' +
+      (cash ? '<b>' + G.marco + '%</b><span>de cashback garantido</span>' : '<b>' + fmtN(G.pontos) + '</b><span>pontos no ranking</span>') +
+      '<em>' + (cash ? fmtN(G.pontos) + ' pontos no ranking' : 'A rodada termina aqui') + '</em></div>'
+    var goOpt = '<div class="dc-opt risk"><small>Se continuar</small>' +
+      (cash ? '<b>' + proxPct + '%</b><span>aos ' + prox + ' acertos (faltam ' + falta + ')</span>' : '<b>' + falta + '</b><span>acertos para chegar aos ' + prox + '</span>') +
+      '<em>' + (cash ? 'Um erro encerra a rodada e você perde o cashback' : 'Um erro encerra a rodada') + '</em></div>'
+    return '<div class="screen sea">' + scene() + bar() + ladder() +
+      '<div class="mkc"><div class="mkc-card dc"><span class="mkc-kick warn">Decisão importante</span><h2 class="mkc-t">' + a + ' acertos!</h2>' +
+      '<div class="dc-opts">' + stopOpt + goOpt + '</div>' +
+      (cash ? '<p>O cashback é provisório: vira valor em R$ quando você pagar a conta de hoje e vale para a sua próxima compra.</p>' : '<p>Como você já ganhou um prêmio nos últimos 7 dias, esta rodada vale só para o ranking.</p>') +
+      '<div class="mkc-btns"><button class="btn" data-act="stop">' + (cash ? 'Parar e garantir ' + G.marco + '%' : 'Parar aqui') + '</button><button class="btn alt dc-go" data-act="go">' + (cash ? 'Arriscar por ' + proxPct + '%' : 'Continuar') + '</button></div></div></div></div>'
   }
 
   function rkRows(top) {

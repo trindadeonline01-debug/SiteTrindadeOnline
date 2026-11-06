@@ -3,6 +3,7 @@
 import React, { useRef, useState } from 'react'
 import Image from 'next/image'
 import { CATEGORY_IMAGES } from '@/lib/categoryImages'
+import { isOpenNow } from '@/lib/businessHours'
 
 type Category    = { id: string; name: string; emoji: string; slug: string }
 type Subcategory = { id: string; name: string; emoji: string; slug?: string }
@@ -11,6 +12,7 @@ type Company     = {
   id: string; name: string; slug: string
   avg_rating?: number; address?: string; plan?: string; description?: string; tags?: string[]
   photos?: any[]; subcategories?: any[]
+  hours?: any[]; flexible_hours?: boolean; store_paused?: boolean; store_forced_open?: boolean
 }
 
 type Props = {
@@ -31,6 +33,11 @@ export default function CategoriaPageClient({ slug, category, subcats, companies
   const [sortOrder, setSortOrder]     = useState<'az'|'rating'|'recent'|null>(null)
   const [activeSub, setActiveSub]   = useState<string | null>(null)
   const [search, setSearch]         = useState('')
+  // Filtro "Aberto agora": calculado no navegador (a hora muda enquanto a página fica aberta).
+  const [onlyOpen, setOnlyOpen]     = useState(false)
+  const abre = (c: Company) => isOpenNow(c.hours, c.flexible_hours, c.store_paused, c.store_forced_open)
+  const shown = onlyOpen ? filtered.filter(abre) : filtered
+  const openCount = filtered.filter(abre).length
   const subcatScrollRef = useRef<HTMLDivElement>(null)
   function scrollSubcats(dir: number) {
     subcatScrollRef.current?.scrollBy({ left: dir * 240, behavior: 'smooth' })
@@ -280,12 +287,16 @@ export default function CategoriaPageClient({ slug, category, subcats, companies
         {/* 3. EMPRESAS */}
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16,flexWrap:'wrap',gap:8}}>
           <div style={{fontSize:13,color:'#AAA'}}>
-            Mostrando <span style={{color:'#111',fontWeight:600}}>{filtered.length}</span> empresa{filtered.length !== 1 ? 's' : ''}
+            Mostrando <span style={{color:'#111',fontWeight:600}}>{shown.length}</span> empresa{shown.length !== 1 ? 's' : ''}
             {activeSub && ` em ${subcats.find(s => s.id === activeSub)?.name}`}
             {search && ` para "${search}"`}
           </div>
           {filtered.length > 0 && (
-            <div style={{display:'flex',alignItems:'center',gap:6}}>
+            <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+              <button onClick={()=>setOnlyOpen(v=>!v)} aria-pressed={onlyOpen}
+                style={{padding:'7px 14px',borderRadius:20,border:'1.5px solid',borderColor:onlyOpen?'var(--open)':'#E0DDD8',background:onlyOpen?'var(--open)':'#fff',color:onlyOpen?'#fff':'#888',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'Archivo,sans-serif',whiteSpace:'nowrap'}}>
+                📶 Aberto agora ({openCount})
+              </button>
               <span style={{fontSize:12,color:'#CCC'}}>|</span>
               <span style={{fontSize:12,color:'#999',fontWeight:500}}>Ordenar:</span>
               {([['az','A–Z'],['rating','⭐ Avaliado'],['recent','🕐 Recente']] as const).map(([v,l])=>(
@@ -298,10 +309,10 @@ export default function CategoriaPageClient({ slug, category, subcats, companies
           )}
         </div>
 
-        {filtered.length > 0 && (() => {
+        {shown.length > 0 && (() => {
           // sortOrder null (nada escolhido ainda) não reordena — mantém o
           // embaralhado que já veio do servidor.
-          const sorted = !sortOrder ? filtered : [...filtered].sort((a,b)=>{
+          const sorted = !sortOrder ? shown : [...shown].sort((a,b)=>{
             if(sortOrder==='az') return a.name.localeCompare(b.name,'pt')
             if(sortOrder==='rating') return (b.avg_rating||0)-(a.avg_rating||0)
             return 0
@@ -347,17 +358,17 @@ export default function CategoriaPageClient({ slug, category, subcats, companies
           )
         })()}
 
-        {filtered.length === 0 && (
+        {shown.length === 0 && (
           <div className="empty">
             <div className="empty-ico">🔍</div>
             <div className="empty-title">
-              {search ? `Nenhum resultado para "${search}"` : 'Nenhuma empresa nesta categoria ainda'}
+              {onlyOpen && filtered.length > 0 ? 'Nenhuma empresa aberta agora nesse filtro' : search ? `Nenhum resultado para "${search}"` : 'Nenhuma empresa nesta categoria ainda'}
             </div>
             <div className="empty-sub">
-              {search ? 'Tente outro termo ou remova o filtro.' : 'Em breve novos estabelecimentos serão cadastrados aqui.'}
+              {onlyOpen && filtered.length > 0 ? 'Desligue "Aberto agora" pra ver todas.' : search ? 'Tente outro termo ou remova o filtro.' : 'Em breve novos estabelecimentos serão cadastrados aqui.'}
             </div>
-            {(search || activeSub) && (
-              <button className="btn-clear" onClick={() => { setSearch(''); filterBySub(null) }}>
+            {(search || activeSub || onlyOpen) && (
+              <button className="btn-clear" onClick={() => { setSearch(''); setOnlyOpen(false); filterBySub(null) }}>
                 Limpar filtro
               </button>
             )}

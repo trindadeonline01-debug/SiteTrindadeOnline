@@ -51,7 +51,7 @@ export default async function SubcategoriaPage({ params }: { params: Promise<{ s
 
   const { data: comps } = await supabaseServer
     .from('companies')
-    .select('id, name, slug, avg_rating, address, photos:company_photos(url,order)')
+    .select('id, name, slug, avg_rating, address, flexible_hours, store_paused, store_forced_open, hours:company_hours(day_of_week,open_time,close_time,closed), photos:company_photos(url,order)')
     .eq('status', 'active')
     .in('id', companyIds)
 

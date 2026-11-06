@@ -45,7 +45,7 @@ export default async function CategoriaPage({ params }: { params: Promise<{ slug
   const [{ data: subs }, { data: comps }, { data: hlData }] = await Promise.all([
     supabaseServer.from('subcategories').select('id, name, emoji, slug').eq('category_id', category.id).order('name'),
     supabaseServer.from('companies')
-      .select('id, name, slug, avg_rating, address, plan, description, tags, photos:company_photos(url,order), subcategories:company_subcategories(subcategory:subcategories(id,name,emoji))')
+      .select('id, name, slug, avg_rating, address, plan, description, tags, flexible_hours, store_paused, store_forced_open, hours:company_hours(day_of_week,open_time,close_time,closed), photos:company_photos(url,order), subcategories:company_subcategories(subcategory:subcategories(id,name,emoji))')
       .eq('status', 'active').eq('category_id', category.id),
     supabaseServer.from('highlights')
       .select('id, company_id, company:companies(name,slug,avg_rating,category:categories(name,emoji))')

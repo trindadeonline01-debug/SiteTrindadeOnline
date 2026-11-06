@@ -2,15 +2,20 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
+import { isOpenNow } from '@/lib/businessHours'
 
 type Subcategory = { id: string; name: string; emoji: string; slug: string; category: { id: string; name: string; emoji: string; slug: string } }
-type Company     = { id: string; name: string; slug: string; avg_rating?: number; address?: string; photos?: any[] }
+type Company     = { id: string; name: string; slug: string; avg_rating?: number; address?: string; photos?: any[]; hours?: any[]; flexible_hours?: boolean; store_paused?: boolean; store_forced_open?: boolean }
 
 type Props = { subcat: Subcategory; companies: Company[] }
 
 export default function SubcategoriaPageClient({ subcat, companies }: Props) {
   const [filtered, setFiltered] = useState<Company[]>(companies)
   const [search, setSearch]     = useState('')
+  const [onlyOpen, setOnlyOpen] = useState(false)
+  const abre = (c: Company) => isOpenNow(c.hours, c.flexible_hours, c.store_paused, c.store_forced_open)
+  const shown = onlyOpen ? filtered.filter(abre) : filtered
+  const openCount = filtered.filter(abre).length
 
   function handleSearch(e: React.ChangeEvent<HTMLInputElement>) {
     const q = e.target.value; setSearch(q)
@@ -151,13 +156,22 @@ export default function SubcategoriaPageClient({ subcat, companies }: Props) {
       <div className="page">
 
         <div className="result-cnt">
-          Mostrando <span>{filtered.length}</span> estabelecimento{filtered.length !== 1 ? 's' : ''}
+          Mostrando <span>{shown.length}</span> estabelecimento{shown.length !== 1 ? 's' : ''}
           {search && ` para "${search}"`}
         </div>
 
         {filtered.length > 0 && (
+          <div style={{display:'flex',justifyContent:'flex-end',marginBottom:14}}>
+            <button onClick={()=>setOnlyOpen(v=>!v)} aria-pressed={onlyOpen}
+              style={{padding:'7px 14px',borderRadius:20,border:'1.5px solid',borderColor:onlyOpen?'var(--open)':'#E0DDD8',background:onlyOpen?'var(--open)':'#fff',color:onlyOpen?'#fff':'#888',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'Archivo,sans-serif',whiteSpace:'nowrap'}}>
+              📶 Aberto agora ({openCount})
+            </button>
+          </div>
+        )}
+
+        {shown.length > 0 && (
           <div className="grid">
-            {filtered.map(c => {
+            {shown.map(c => {
               const cover = getCover(c)
               return (
                 <a key={c.id} className="cc" href={`/empresa/${c.slug}`}>
@@ -175,17 +189,17 @@ export default function SubcategoriaPageClient({ subcat, companies }: Props) {
           </div>
         )}
 
-        {filtered.length === 0 && (
+        {shown.length === 0 && (
           <div className="empty">
             <div className="empty-ico">{subcat.emoji || '🔍'}</div>
             <div className="empty-title">
-              {search ? `Nenhum resultado para "${search}"` : `Nenhum estabelecimento em ${subcat.name} ainda`}
+              {onlyOpen && filtered.length > 0 ? 'Nenhum estabelecimento aberto agora' : search ? `Nenhum resultado para "${search}"` : `Nenhum estabelecimento em ${subcat.name} ainda`}
             </div>
             <div className="empty-sub">
-              {search ? 'Tente outro termo.' : 'Em breve novos estabelecimentos serão cadastrados aqui.'}
+              {onlyOpen && filtered.length > 0 ? 'Desligue "Aberto agora" pra ver todos.' : search ? 'Tente outro termo.' : 'Em breve novos estabelecimentos serão cadastrados aqui.'}
             </div>
-            {search && (
-              <button className="btn-clear" onClick={() => { setSearch(''); setFiltered(companies) }}>
+            {(search || onlyOpen) && (
+              <button className="btn-clear" onClick={() => { setSearch(''); setOnlyOpen(false); setFiltered(companies) }}>
                 Limpar busca
               </button>
             )}

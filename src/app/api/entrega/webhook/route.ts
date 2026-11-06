@@ -13,8 +13,37 @@ const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE || 'Trindade Online'
 const YES = /^(sim|s|ok|vou|posso|aceito|topo|👍|bora)\b/
 const NO = /^(n[ãa]o|n)\b/
 
+// Texto da mensagem em qualquer "embrulho" que o WhatsApp usa: conversa com mensagens temporárias,
+// visualização única, mensagem editada, legenda de documento. Antes só lia conversation/extendedTextMessage
+// e qualquer outro formato era descartado sem aviso.
+function extrairTexto(msg: any): string | null {
+  const m = msg?.message
+  if (!m) return null
+  const inner = m.ephemeralMessage?.message || m.viewOnceMessage?.message || m.viewOnceMessageV2?.message
+    || m.documentWithCaptionMessage?.message || m.editedMessage?.message?.protocolMessage?.editedMessage || m
+  return inner?.conversation || inner?.extendedTextMessage?.text || inner?.imageMessage?.caption || null
+}
+
+// Telefone de quem mandou. O WhatsApp novo às vezes entrega o contato como "<número>@lid" (id interno):
+// nesse caso o telefone de verdade vem em remoteJidAlt / senderPn.
+function extrairTelefone(msg: any): string {
+  const key = msg?.key || {}
+  const jid: string = key.remoteJid || ''
+  if (jid.endsWith('@lid')) {
+    const alt: string = key.remoteJidAlt || key.senderPn || msg?.senderPn || ''
+    if (alt) return alt.split('@')[0]
+  }
+  return jid.split('@')[0]
+}
+
 function normalize(s: string): string {
   return s.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+}
+
+// Log leve de diagnóstico (mesma tabela do webhook do CRM, que se limpa sozinha): só casos em que a
+// mensagem de um possível motoboy foi descartada. Nunca derruba o webhook.
+async function logEntrega(payload: Record<string, unknown>) {
+  try { await supabase.from('crm_webhook_debug').insert({ event: 'entrega_descartada', payload }) } catch {}
 }
 
 // Webhook da instância da PLATAFORMA (a mesma usada pelos disparos do
@@ -39,13 +68,21 @@ export async function POST(req: NextRequest) {
     for (const msg of msgs) {
       const remoteJid: string = msg?.key?.remoteJid || ''
       if (!remoteJid || remoteJid.includes('@g.us') || msg?.key?.fromMe) continue
-      const phone = remoteJid.split('@')[0]
-      const text: string | null = msg?.message?.conversation || msg?.message?.extendedTextMessage?.text || null
-      if (!text) continue
+      const phone = extrairTelefone(msg)
+      const text: string | null = extrairTexto(msg)
+      if (!text) {
+        // Registro de diagnóstico: mensagem que chegou mas não tem texto legível (áudio, figurinha, formato novo).
+        await logEntrega({ motivo: 'sem_texto', jid: remoteJid, phone, tipos: Object.keys(msg?.message || {}) })
+        continue
+      }
       const norm = normalize(text)
 
       const { data: motoboy } = await supabase.from('motoboys').select('id, name, phone').eq('phone', phone).maybeSingle()
-      if (!motoboy) continue
+      if (!motoboy) {
+        // Só registra quando o texto parece resposta de corrida (SIM/NÃO/código), pra não encher a tabela com conversa comum.
+        if (YES.test(norm) || NO.test(norm) || /^\d{4}$/.test(norm)) await logEntrega({ motivo: 'nao_e_motoboy', jid: remoteJid, phone, texto: norm.slice(0, 20) })
+        continue
+      }
 
       // 1) tem oferta pendente esperando resposta dele?
       const { data: offer } = await supabase

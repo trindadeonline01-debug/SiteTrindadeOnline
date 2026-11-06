@@ -227,8 +227,12 @@ export async function notifyOwnerHumanRequested(companyId: string, contactName: 
 // dos motoboys. Só registra uma vez; guarda o "já registrei" em settings.
 export async function ensureEntregaWebhookRegistered() {
   try {
+    // Re-registra de tempos em tempos (idempotente): antes registrava UMA vez e nunca mais conferia,
+    // então se a Evolution perdesse a configuração (reinício, reconexão) as respostas dos motoboys
+    // paravam de chegar e ninguém percebia.
     const { data } = await supabase.from('settings').select('value').eq('key', 'entrega_webhook_registered').maybeSingle()
-    if (data?.value === 'true') return
+    const ultima = data?.value && data.value !== 'true' ? Date.parse(data.value) : NaN
+    if (!Number.isNaN(ultima) && Date.now() - ultima < 3 * 3600 * 1000) return
     const res = await fetch(`${EVOLUTION_URL}/webhook/set/${encodeURIComponent(EVOLUTION_INSTANCE)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', apikey: EVOLUTION_API_KEY },
@@ -236,6 +240,6 @@ export async function ensureEntregaWebhookRegistered() {
         webhook: { enabled: true, url: `${SITE_URL}/api/entrega/webhook`, byEvents: false, base64: false, events: ['MESSAGES_UPSERT'] },
       }),
     })
-    if (res.ok) await supabase.from('settings').upsert({ key: 'entrega_webhook_registered', value: 'true' }, { onConflict: 'key' })
+    if (res.ok) await supabase.from('settings').upsert({ key: 'entrega_webhook_registered', value: new Date().toISOString() }, { onConflict: 'key' })
   } catch {}
 }

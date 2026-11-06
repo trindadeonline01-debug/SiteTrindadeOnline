@@ -45,11 +45,12 @@ export default function VendasDiaPanel({ companyId, onClose, onAbrirComanda, onM
 }) {
   const [dia, setDia] = useState(hojeBr())
   const [carregando, setCarregando] = useState(true)
-  const [comandas, setComandas] = useState<Comanda[]>([])
+  const [comandasTodas, setComandas] = useState<Comanda[]>([])
   const [mesaNum, setMesaNum] = useState<Record<string, number>>({})
   const [pagtos, setPagtos] = useState<Pagto[]>([])
   const [rodadas, setRodadas] = useState<Pedido[]>([])
-  const [pdv, setPdv] = useState<Pedido[]>([])
+  const [pdvTodos, setPdv] = useState<Pedido[]>([])
+  const [garcom, setGarcom] = useState('')
   const [motivos, setMotivos] = useState<Record<string, string>>({})
   const [aviso, setAviso] = useState('')
   const [filtro, setFiltro] = useState<Filtro>('todas')
@@ -95,6 +96,12 @@ export default function VendasDiaPanel({ companyId, onClose, onAbrirComanda, onM
   }, [companyId, dia])
 
   useEffect(() => { carregar() }, [carregar])
+
+  // Filtro por garçom: só vendas de mesa/retirada têm garçom; o balcão (PDV) some enquanto um garçom está escolhido.
+  const garcons = useMemo(() => [...new Set(comandasTodas.map(c => c.garcom_nome).filter((n): n is string => !!n))].sort((a, b) => a.localeCompare(b, 'pt')), [comandasTodas])
+  const garcomAtivo = garcons.includes(garcom) ? garcom : ''
+  const comandas = useMemo(() => garcomAtivo ? comandasTodas.filter(c => c.garcom_nome === garcomAtivo) : comandasTodas, [comandasTodas, garcomAtivo])
+  const pdv = useMemo(() => garcomAtivo ? [] : pdvTodos, [pdvTodos, garcomAtivo])
 
   async function api(acao: string, extra: Record<string, unknown>): Promise<{ ok: boolean; erro?: string }> {
     try {
@@ -351,7 +358,16 @@ export default function VendasDiaPanel({ companyId, onClose, onAbrirComanda, onM
           {([['todas', 'Todas', comandas.length + pdv.length], ['mesas', 'Mesas', comandas.length], ['balcao', 'Balcão (PDV)', pdv.length], ['canceladas', 'Canceladas', nCanc]] as const).map(([k, l, n]) => (
             <button key={k} className={filtro === k ? 'on' : ''} onClick={() => setFiltro(k)}>{l} <span>· {n}</span></button>
           ))}
-          {notaAbertas && <small className="vd-notaab">{notaAbertas}</small>}
+          {garcons.length > 0 && (
+            <label className="vd-garcom">Garçom
+              <select value={garcomAtivo} onChange={e => setGarcom(e.target.value)}>
+                <option value="">Todos</option>
+                {garcons.map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </label>
+          )}
+          {garcomAtivo && <small className="vd-notaab">Mostrando só as vendas de {garcomAtivo}. O balcão (PDV) não tem garçom e fica oculto.</small>}
+          {!garcomAtivo && notaAbertas && <small className="vd-notaab">{notaAbertas}</small>}
         </div>
 
         {aviso && <div className="vd-aviso">{aviso}</div>}
@@ -463,6 +479,8 @@ const CSS = `
 .vd-tabs button{height:42px;padding:0 16px;border-radius:8px;border:1px solid #DCDDD6;background:#fff;color:#151210;font-weight:700;font-size:13.5px;font-family:inherit;cursor:pointer}
 .vd-tabs button span{color:#6F6C67;font-weight:600}
 .vd-tabs button.on{background:#FFC531;border-color:#151210}.vd-tabs button.on span{color:#151210}
+.vd-garcom{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#4f4c47;margin-left:6px}
+.vd-garcom select{height:42px;border-radius:8px;border:1px solid #DCDDD6;background:#fff;color:#151210;padding:0 12px;font-weight:700;font-size:13.5px;font-family:inherit;text-transform:none;letter-spacing:0}
 .vd-notaab{margin-left:auto;color:#4f4c47;font-size:12.5px}
 .vd-aviso{background:#DDF1E7;color:#0B5B38;border-radius:8px;padding:10px 14px;font-weight:600}
 .vd-vazio{text-align:center;color:#4f4c47;padding:28px 0}
@@ -551,6 +569,7 @@ const CSS = `
   .vd-tabs{flex-wrap:nowrap;overflow-x:auto;gap:6px}
   .vd-tabs button{flex:none;height:40px;padding:0 12px}
   .vd-tabs button span{display:none}
+  .vd-garcom{flex:none;margin-left:0}
   .vd-notaab{display:none}
   .vd-row{grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;padding:10px 14px}
   .vd-chip{grid-row:2;grid-column:1;justify-self:start}

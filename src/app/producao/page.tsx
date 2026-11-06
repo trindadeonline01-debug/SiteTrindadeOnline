@@ -62,6 +62,7 @@ export default function ProducaoPage() {
   const [authName, setAuthName] = useState(''); const [authEmail, setAuthEmail] = useState(''); const [authPass, setAuthPass] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const aguardandoCaptcha = !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !captchaToken
   const captchaRef = useRef<TurnstileInstance>(null)
   const [busy, setBusy] = useState(false)
 
@@ -531,7 +532,7 @@ export default function ProducaoPage() {
                 <label>Senha</label>
                 <input type="password" value={authPass} onChange={e => setAuthPass(e.target.value)} placeholder="••••••••" required minLength={6} />
                 <CaptchaTurnstile ref={captchaRef} onToken={setCaptchaToken} />
-                <button type="submit" className="pr2-btn pr2-btn-primary" disabled={busy}>{busy ? '...' : authMode === 'login' ? 'Entrar' : 'Criar conta'}</button>
+                <button type="submit" className="pr2-btn pr2-btn-primary" disabled={busy || aguardandoCaptcha}>{busy ? '...' : aguardandoCaptcha ? 'Aguarde, verificando...' : authMode === 'login' ? 'Entrar' : 'Criar conta'}</button>
               </form>
               {errorMsg && <div className="pr2-error">{errorMsg}</div>}
               <button className="pr2-toggle" onClick={() => { setAuthMode(authMode === 'login' ? 'signup' : 'login'); setErrorMsg('') }}>

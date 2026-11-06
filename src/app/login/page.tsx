@@ -14,6 +14,8 @@ export default function LoginPage() {
   const [resetOk, setResetOk]     = useState(false)
   const [verSenha, setVerSenha]   = useState(false)
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  // Botão só libera depois que o Cloudflare confirmar que é humano (o widget demora alguns segundos).
+  const aguardandoCaptcha = !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !captchaToken
   const captchaRef = useRef<TurnstileInstance>(null)
 
   async function handleLogin(e: React.FormEvent) {
@@ -169,8 +171,8 @@ export default function LoginPage() {
 
                 {erro && <div className="erro-msg">⚠️ {erro}</div>}
 
-                <button className="btn-primary" type="submit" disabled={loading}>
-                  {loading ? 'Entrando...' : 'Entrar'}
+                <button className="btn-primary" type="submit" disabled={loading || aguardandoCaptcha}>
+                  {loading ? 'Entrando...' : aguardandoCaptcha ? 'Aguarde, verificando que você é humano...' : 'Entrar'}
                 </button>
               </form>
 
@@ -198,8 +200,8 @@ export default function LoginPage() {
 
                 {erro && <div className="erro-msg">⚠️ {erro}</div>}
 
-                <button className="btn-primary" type="submit" disabled={loading}>
-                  {loading ? 'Enviando...' : 'Enviar link de redefinição'}
+                <button className="btn-primary" type="submit" disabled={loading || aguardandoCaptcha}>
+                  {loading ? 'Enviando...' : aguardandoCaptcha ? 'Aguarde, verificando que você é humano...' : 'Enviar link de redefinição'}
                 </button>
                 <button type="button" className="btn-link" onClick={() => { setModo('login'); setErro('') }}>
                   ← Voltar para o login

@@ -68,6 +68,7 @@ export default function AnunciarPage() {
   const [code, setCode] = useState('')
   const [pendingData, setPendingData] = useState<any>(null)
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const aguardandoCaptcha = !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !captchaToken
   const captchaRef = useRef<TurnstileInstance>(null)
 
   // ── Negócio ──
@@ -603,9 +604,9 @@ export default function AnunciarPage() {
                   style={{ width: '100%', padding: '14px', textAlign: 'center', fontSize: 28, fontWeight: 700, letterSpacing: 12, border: '1.5px solid #E0DDD8', borderRadius: 12, fontFamily: 'Archivo,sans-serif', marginBottom: 12, outline: 'none' }} />
                 <CaptchaTurnstile ref={captchaRef} onToken={setCaptchaToken} />
                 {erro && <div className="erro-msg">⚠️ {erro}</div>}
-                <button type="submit" disabled={loading || code.length < 6} className="btn-primary"
+                <button type="submit" disabled={loading || code.length < 6 || aguardandoCaptcha} className="btn-primary"
                   style={{ background: code.length === 6 ? 'var(--sign)' : '#E0DDD8', color: code.length === 6 ? 'var(--ink)' : '#AAA', cursor: code.length === 6 ? 'pointer' : 'not-allowed' }}>
-                  {loading ? 'Verificando...' : 'Confirmar código'}
+                  {loading ? 'Verificando...' : aguardandoCaptcha ? 'Aguarde, verificando...' : 'Confirmar código'}
                 </button>
                 <button type="button" className="btn-secondary" onClick={() => { setPhase('conta'); setCode(''); setErro('') }}>← Voltar</button>
               </form>

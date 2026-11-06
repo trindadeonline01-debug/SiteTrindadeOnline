@@ -32,6 +32,7 @@ function CadastroForm() {
     try { const s = sessionStorage.getItem('cadastro_pending'); return s ? JSON.parse(s) : null } catch { return null }
   })
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const aguardandoCaptcha = !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !captchaToken
   const captchaRef = useRef<TurnstileInstance>(null)
 
   // Força visual da senha
@@ -138,9 +139,9 @@ function CadastroForm() {
           />
           <CaptchaTurnstile ref={captchaRef} onToken={setCaptchaToken} />
           {erro && <div style={{color:'#E24B4A',fontSize:13,marginBottom:12}}>{erro}</div>}
-          <button type="submit" disabled={loading || code.length < 6}
+          <button type="submit" disabled={loading || code.length < 6 || aguardandoCaptcha}
             style={{width:'100%',padding:'13px',background:code.length===6?'var(--sign)':'#E0DDD8',color:code.length===6?'var(--ink)':'#AAA',border:'none',borderRadius:12,fontSize:14,fontWeight:700,cursor:code.length===6?'pointer':'not-allowed',fontFamily:'Archivo,sans-serif',marginBottom:12}}>
-            {loading ? 'Verificando...' : 'Confirmar código'}
+            {loading ? 'Verificando...' : aguardandoCaptcha ? 'Aguarde, verificando...' : 'Confirmar código'}
           </button>
           <button type="button" onClick={() => { setStep('form'); setCode(''); setErro('') }}
             style={{width:'100%',padding:'10px',background:'transparent',color:'#AAA',border:'1px solid #ddd',borderRadius:12,fontSize:13,cursor:'pointer',fontFamily:'Archivo,sans-serif',marginBottom:8}}>

@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { refreshSessionOnce } from '@/lib/authRefresh'
 import { adminFetch } from '@/lib/adminFetch'
 import { moduleActive } from '@/lib/modules'
-import { beep, beepMesa, unlockAudio } from '@/lib/beep'
+import { beep, unlockAudio } from '@/lib/beep'
 import { ORIGENS_COZINHA } from '@/lib/canais'
 
 type Item = { id: string; product_name: string; qty: number; selected_options: { name: string; price: number }[] }
@@ -106,7 +106,7 @@ export default function CozinhaPage() {
           // PDV nunca vai pra cozinha: sem toque e sem recarregar à toa
           if ((payload.new as { origin?: string } | null)?.origin === 'pdv') return
           // Rodada de mesa toca um sino próprio; o toque de telefone é só do delivery.
-          if (payload.eventType === 'INSERT') { if ((payload.new as { origin?: string } | null)?.origin === 'mesa') beepMesa(); else beep(2) }
+          if (payload.eventType === 'INSERT') { if ((payload.new as { origin?: string } | null)?.origin !== 'mesa') beep(2) }
           loadAll(companyIdRef.current)
         })
         .subscribe()

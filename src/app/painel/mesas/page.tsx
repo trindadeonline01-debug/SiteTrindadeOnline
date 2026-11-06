@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { adminFetch } from '@/lib/adminFetch'
 import { moduleActive } from '@/lib/modules'
-import { beepChamado, beepMesa, pararSons, unlockAudio } from '@/lib/beep'
+import { beepChamado, pararSons, unlockAudio } from '@/lib/beep'
 import { buildReceipt, buildKitchenTicket, imprimirVias, isRawBtMode, qzConnect, setPapelImpressora, setViasImpressao } from '@/lib/qzPrint'
 import ConfirmModal from '@/components/painel/ConfirmModal'
 import VendasDiaPanel from '@/components/painel/VendasDiaPanel'
@@ -165,9 +165,9 @@ export default function MesasPage() {
     chamadosAbertosAntes.current = new Set(chs.map(x => x.id))
     if (chamadosVistos.current) {
       const novos = chs.filter(x => !chamadosVistos.current!.has(x.id))
-      // Pedido do cliente toca o sino da mesa (diferente do toque de chamado de garçom).
-      if (novos.some(x => x.tipo === 'pedido')) beepMesa()
-      else if (novos.length > 0) beepChamado()
+      // Pedido do cliente pelo QR: sem som (decisão do Ricardo, 6/nov/2026) — só aparece o aviso na tela.
+      // Chamado de garçom / pedir a conta continua com o aviso curto.
+      if (novos.some(x => x.tipo !== 'pedido')) beepChamado()
     }
     // Acumula (não substitui): um chamado que já tocou nunca toca de novo nesta tela, mesmo que a lista oscile.
     chamadosVistos.current = new Set([...(chamadosVistos.current || []), ...chs.map(x => x.id)])

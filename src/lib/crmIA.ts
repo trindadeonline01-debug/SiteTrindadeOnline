@@ -550,6 +550,13 @@ export async function gerarRespostaIA(companyId: string, historico: HistoricoMsg
     }
     if (messages.length === 0 || messages[0].role !== 'user') return null
 
+    // Histórico terminando numa fala da própria IA/loja = a última mensagem do cliente JÁ foi respondida
+    // (cliente manda 2 balões seguidos, a 1ª execução responde os dois e a 2ª lê o histórico depois disso).
+    // Mandar assim pro modelo vira "continuação" da fala dele e ele devolve texto vazio — era isso que
+    // caía na frase genérica "Oi! Como posso te ajudar?" no meio da conversa (Mineroca, 7/nov/2026).
+    // Melhor ficar quieto do que mandar resposta fora de contexto.
+    if (messages[messages.length - 1].role === 'assistant') return null
+
     const response = await anthropic.messages.create({
       model: 'claude-haiku-4-5',
       max_tokens: 300,

@@ -60,7 +60,9 @@ export async function POST(req: NextRequest) {
 
     // Reboca ofertas estouradas toda vez que esse webhook é chamado — não dá
     // pra confiar só num cron de minuto em minuto pra um prazo de 45s.
-    await checkExpiredOffers()
+    // Isolado de propósito: se a limpeza de ofertas vencidas falhar, a resposta do motoboy (SIM/código)
+    // que chegou nessa mesma chamada não pode ser perdida junto.
+    try { await checkExpiredOffers() } catch (e: any) { await logEntrega({ motivo: 'erro_expirar', erro: String(e?.message || e).slice(0, 200) }) }
 
     if (!event.includes('messages.upsert') && !event.includes('messages_upsert')) return NextResponse.json({ ok: true })
 
@@ -84,6 +86,9 @@ export async function POST(req: NextRequest) {
         continue
       }
 
+      // Diagnóstico (nov/2026): resposta de motoboy que chegou e foi reconhecida — o resultado sai em 'entrega_resultado' abaixo.
+      await logEntrega({ motivo: 'motoboy_recebido', motoboy: motoboy.name, texto: norm.slice(0, 20) })
+
       // 1) tem oferta pendente esperando resposta dele?
       const { data: offer } = await supabase
         .from('delivery_offers').select('id').eq('motoboy_id', motoboy.id).eq('status', 'pendente')
@@ -97,6 +102,7 @@ export async function POST(req: NextRequest) {
           // Aceitar/Recusar. Mensagem de confirmação já sai de dentro da
           // própria função.
           const r = await acceptOfferForMotoboy(motoboy.id)
+          await logEntrega({ motivo: 'entrega_resultado', acao: 'aceitar', ok: r.ok })
           if (!r.ok) await sendMotoboyWhatsApp(motoboy.phone, 'Essa corrida não está mais disponível — já foi cancelada ou pega por outro motoboy.')
         } else if (NO.test(norm)) {
           await declineOfferForMotoboy(motoboy.id)
@@ -128,7 +134,7 @@ export async function POST(req: NextRequest) {
           .from('delivery_orders').select('id, delivery_code, pickup_code, picked_up_at')
           .eq('motoboy_id', motoboy.id).eq('status', 'a_caminho')
           .order('assigned_at', { ascending: false })
-        if (!orders || orders.length === 0) continue
+        if (!orders || orders.length === 0) { await logEntrega({ motivo: 'entrega_resultado', acao: 'codigo', ok: false, detalhe: 'sem corrida a_caminho' }); continue }
 
         // Pickup_code pode ser nulo numa entrega antiga que já estava em
         // andamento quando essa coluna foi criada — nesse caso só existe o
@@ -149,12 +155,15 @@ export async function POST(req: NextRequest) {
         // entrega. Mensagens de WhatsApp saem de dentro dela mesma, por isso
         // passa motoboy.phone aqui (o painel não passa).
         const r = await confirmCodeForMotoboy(motoboy.id, order.id, norm, motoboy.phone)
+        await logEntrega({ motivo: 'entrega_resultado', acao: 'codigo', ok: r.ok })
         if (!r.ok) await sendMotoboyWhatsApp(motoboy.phone, 'Esse código não confere — confirma e tenta de novo.')
       }
     }
 
     return NextResponse.json({ ok: true })
-  } catch {
+  } catch (e: any) {
+    // Antes o erro sumia sem deixar rastro e a resposta do motoboy era perdida em silêncio.
+    await logEntrega({ motivo: 'erro_webhook', erro: String(e?.message || e).slice(0, 300) })
     return NextResponse.json({ ok: true })
   }
 }

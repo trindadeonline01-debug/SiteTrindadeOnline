@@ -73,7 +73,8 @@ export async function POST(req: NextRequest) {
           enabled: true,
           url: `${SITE_URL}/api/crm/webhook`,
           byEvents: false,
-          base64: true,
+          // base64:false de propósito — ver comentário em /api/crm/webhook (erro 413 da Vercel com mídia grande).
+          base64: false,
           events: ['QRCODE_UPDATED', 'CONNECTION_UPDATE', 'MESSAGES_UPSERT', 'MESSAGES_UPDATE', 'PRESENCE_UPDATE', 'CHATS_UPDATE', 'CHATS_UPSERT'],
         },
       }),

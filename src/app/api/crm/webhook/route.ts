@@ -175,7 +175,7 @@ export async function POST(req: NextRequest) {
           headers: { 'Content-Type': 'application/json', apikey: inst.api_key },
           body: JSON.stringify({
             webhook: {
-              enabled: true, url: `${SITE_URL}/api/crm/webhook`, byEvents: false, base64: true,
+              enabled: true, url: `${SITE_URL}/api/crm/webhook`, byEvents: false, base64: false,
               events: ['QRCODE_UPDATED', 'CONNECTION_UPDATE', 'MESSAGES_UPSERT', 'MESSAGES_UPDATE', 'PRESENCE_UPDATE', 'CHATS_UPDATE', 'CHATS_UPSERT'],
             },
           }),
@@ -319,10 +319,12 @@ export async function POST(req: NextRequest) {
         const pushName: string | null = direction === 'in' ? (msg?.pushName || null) : null
         const sentAt = msg?.messageTimestamp ? new Date(Number(msg.messageTimestamp) * 1000).toISOString() : new Date().toISOString()
 
-        // Evolution normalmente manda a mídia já decodificada em base64 no
-        // próprio evento (config base64:true na criação da instância). Se por
-        // algum motivo não vier (payload grande, etc.), busca direto na
-        // Evolution como fallback antes de desistir.
+        // A mídia NÃO vem no evento (webhook com base64:false desde 6/nov/2026):
+        // com base64:true, foto/vídeo/áudio grande passava dos 4,5 MB que a
+        // Vercel aceita no corpo da requisição → erro 413 antes do nosso código
+        // rodar, a Evolution ficava repetindo e travava as mensagens seguintes
+        // da loja (caso Mineroca e outras 11, 6/nov). Então a mídia é buscada
+        // direto na Evolution aqui embaixo, que é o caminho normal agora.
         let base64Data: string | null = m.base64 || null
         if (mediaType && DOWNLOADABLE.includes(mediaType) && !base64Data && waMessageId && inst.api_key) {
           try {

@@ -558,10 +558,24 @@ export async function gerarRespostaIA(companyId: string, historico: HistoricoMsg
     })
 
     const block = response.content.find(b => b.type === 'text')
-    const raw = block && block.type === 'text' ? block.text.trim() : null
+    let raw = block && block.type === 'text' ? block.text.trim() : null
     if (!raw) {
+      // O modelo às vezes devolve texto vazio (mensagem solta como "?" ou "Opa"
+      // — caso Mineroca/Calçada do Peixe, 5-6/nov/2026): o cliente ficava sem
+      // resposta nenhuma. Tenta uma vez de novo mandando responder sempre; se
+      // ainda vier vazio, usa um convite curto em vez de ficar mudo.
       try { await supabase.from('crm_webhook_debug').insert({ event: 'ia_sem_resposta', payload: { company_id: companyId, motivo: 'modelo devolveu texto vazio', stop_reason: response.stop_reason } }) } catch {}
-      return null
+      try {
+        const retry = await anthropic.messages.create({
+          model: 'claude-haiku-4-5',
+          max_tokens: 300,
+          system: (isSalaoEventos ? SYSTEM_PROMPT_SALAO : SYSTEM_PROMPT_BASE) + context + '\n\nIMPORTANTE: responda SEMPRE com uma mensagem curta e simpática, mesmo que a última mensagem do cliente seja só um cumprimento, um "?" ou algo sem pergunta clara — nesse caso, cumprimente e pergunte como pode ajudar.',
+          messages,
+        })
+        const b2 = retry.content.find(b => b.type === 'text')
+        raw = b2 && b2.type === 'text' ? b2.text.trim() : null
+      } catch {}
+      if (!raw) raw = 'Oi! 😊 Como posso te ajudar? Se quiser ver o cardápio ou fazer um pedido, é só me falar.'
     }
 
     // [AGENDAR_RETORNO:N] é instrução interna da Julia (follow-up), nunca

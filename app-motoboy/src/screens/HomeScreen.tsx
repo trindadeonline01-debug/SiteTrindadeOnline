@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { View, Text, Pressable, StyleSheet, AppState } from 'react-native'
 // SafeAreaView do pacote 'react-native' não respeita a barra de navegação
 // do Android (só funciona de verdade no iOS) — achado real do Ricardo,
 // out/2026: a barra de baixo do app (Corridas/Ganhos/Perfil) ficava embaixo
@@ -12,6 +12,8 @@ import { setDisponibilidade, getCorridas, Motoboy, Oferta, Corrida } from '../ap
 import CorridasScreen from './CorridasScreen'
 import GanhosScreen from './GanhosScreen'
 import PerfilScreen from './PerfilScreen'
+import { registrarPushMotoboy } from '../push'
+import { pararAlarme, podeSobrepor, abrirAjusteSobrepor } from 'alarme-motoboy'
 
 type Tab = 'corridas' | 'ganhos' | 'perfil'
 type Props = { motoboy: Motoboy; onLogout: () => void }
@@ -38,6 +40,20 @@ export default function HomeScreen({ motoboy, onLogout }: Props) {
       setOffer(data.offer)
       setRides(data.rides)
     } catch {}
+  }, [])
+
+  // Push nativo + alarme de corrida com o app fechado (nov/2026). Ao abrir
+  // ou voltar pro app, o alarme nativo para — a partir daí quem toca é a
+  // própria tela (alertPlayer abaixo), enquanto a oferta estiver de pé.
+  const [semSobrepor, setSemSobrepor] = useState(false)
+  useEffect(() => {
+    registrarPushMotoboy()
+    pararAlarme()
+    setSemSobrepor(!podeSobrepor())
+    const sub = AppState.addEventListener('change', st => {
+      if (st === 'active') { pararAlarme(); setSemSobrepor(!podeSobrepor()); reload() }
+    })
+    return () => sub.remove()
   }, [])
 
   useEffect(() => {
@@ -92,6 +108,12 @@ export default function HomeScreen({ motoboy, onLogout }: Props) {
         </Pressable>
       </View>
 
+      {semSobrepor && (
+        <Pressable style={s.aviso} onPress={abrirAjusteSobrepor}>
+          <Text style={s.avisoTxt}>⚠️ Para a corrida abrir sozinha com o app fechado, toque aqui e ligue "Sobrepor a outros apps".</Text>
+        </Pressable>
+      )}
+
       <View style={{ flex: 1 }}>
         {tab === 'corridas' && <CorridasScreen offer={offer} rides={rides} reload={reload} pauseAlert={pauseAlert} />}
         {tab === 'ganhos' && <GanhosScreen />}
@@ -116,6 +138,8 @@ const s = StyleSheet.create({
   onlineOn: { backgroundColor: colors.goodBg, borderColor: colors.good },
   onlineOff: { backgroundColor: colors.paperDark, borderColor: colors.line },
   onlineTxt: { fontWeight: '700', fontSize: 12.5, color: colors.muted },
+  aviso: { backgroundColor: '#FFF4D6', borderBottomWidth: 1, borderBottomColor: colors.line, padding: spacing.sm },
+  avisoTxt: { fontSize: 12.5, color: colors.ink, fontWeight: '600' },
   headerName: { fontWeight: '700', color: colors.ink },
   // Área de toque ~35% mais alta que antes (era só o texto solto, sem
   // padding — ficava estreito demais pra clicar, achado do Ricardo,

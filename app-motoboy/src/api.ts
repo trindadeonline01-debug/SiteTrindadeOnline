@@ -94,3 +94,7 @@ export function confirmarGrupo(items: { orderId: string; code: string }[]) {
     auth: true, body: { action: 'confirm_group', items },
   })
 }
+
+export function salvarPushToken(token: string) {
+  return request<{ ok: true }>('/api/motoboy/push-token', { auth: true, body: { token, platform: 'android' } })
+}

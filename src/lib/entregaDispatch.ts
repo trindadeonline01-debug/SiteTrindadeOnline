@@ -5,6 +5,7 @@ import {
   sendPlatformWhatsApp, sendMotoboyWhatsApp, sendPlatformWhatsAppImage, sendCustomerWhatsApp, ensureEntregaWebhookRegistered,
 } from '@/lib/whatsapp'
 import { formatPhoneDisplay } from '@/lib/phone'
+import { pushOfertaCorrida, pushOfertaEncerrada } from '@/lib/pushMotoboy'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -408,7 +409,17 @@ export async function offerToNextMotoboy(deliveryOrderId: string, sequenceNo: nu
     delivery_order_id: deliveryOrderId, motoboy_id: motoboy.id, sequence_no: sequenceNo, round_no: round, status: 'pendente', expires_at: expiresAt,
   })
 
+  // Push nativo pro app do motoboy (alarme em loop mesmo com o app fechado).
+  // Corre junto com o WhatsApp; nunca atrasa nem derruba a oferta.
+  const { data: empresa } = await supabase.from('companies').select('name').eq('id', order.company_id).maybeSingle()
+  const pushJob = pushOfertaCorrida(motoboy.id, {
+    titulo: '🏍️ Nova corrida',
+    corpo: `${empresa?.name || 'Loja'} — toque para ver e aceitar`,
+    expiresAt,
+  })
+
   const sent = await sendOfferMessage(order, deliveryOrderId, motoboy.phone, attemptNo)
+  await pushJob
   // Se o envio falhar de verdade (Evolution fora do ar, etc), a oferta
   // continua pendente e só expira em 2min pro próximo motoboy — sem isso
   // registrado, essa falha nunca aparecia em lugar nenhum pra investigar.
@@ -482,6 +493,7 @@ export async function cancelarChamadaMotoboy(deliveryOrderId: string): Promise<{
     await supabase.from('delivery_offers').update({ status: 'expirada', responded_at: new Date().toISOString() }).eq('id', o.id)
     const { data: motoboy } = await supabase.from('motoboys').select('phone').eq('id', o.motoboy_id).maybeSingle()
     if (motoboy?.phone) await sendMotoboyWhatsApp(motoboy.phone, '❌ Essa chamada foi cancelada pela loja — não precisa buscar essa entrega.')
+    await pushOfertaEncerrada(o.motoboy_id)
   }
 
   if (order.status === 'a_caminho' && order.motoboy_phone) {
@@ -568,6 +580,7 @@ export async function acceptOfferForMotoboy(motoboyId: string): Promise<
   }
 
   await supabase.from('delivery_offers').update({ status: 'aceita', responded_at: new Date().toISOString() }).eq('id', offer.id)
+  await pushOfertaEncerrada(motoboyId)
   await supabase.from('delivery_orders').update({
     status: 'a_caminho', motoboy_id: motoboy.id, motoboy_name: motoboy.name, motoboy_phone: motoboy.phone,
     assigned_at: new Date().toISOString(),
@@ -591,6 +604,7 @@ export async function declineOfferForMotoboy(motoboyId: string): Promise<{ ok: t
     .order('offered_at', { ascending: false }).limit(1).maybeSingle()
   if (!offer) return { ok: false, error: 'sem oferta pendente' }
   await supabase.from('delivery_offers').update({ status: 'recusada', responded_at: new Date().toISOString() }).eq('id', offer.id)
+  await pushOfertaEncerrada(motoboyId)
   await offerToNextMotoboy(offer.delivery_order_id, offer.sequence_no + 1, offer.round_no)
   return { ok: true }
 }

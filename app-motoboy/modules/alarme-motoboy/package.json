@@ -1,0 +1,8 @@
+{
+  "name": "alarme-motoboy",
+  "version": "1.0.0",
+  "description": "Alarme de corrida nova do app do motoboy: push FCM só de dados → serviço em primeiro plano que toca em loop e abre o app (mesmo desenho do alarme do app-loja).",
+  "main": "index.ts",
+  "license": "UNLICENSED",
+  "private": true
+}

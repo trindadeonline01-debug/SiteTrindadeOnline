@@ -30,8 +30,15 @@
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_BACKGROUND_LOCATION",
         "android.permission.FOREGROUND_SERVICE",
-        "android.permission.FOREGROUND_SERVICE_LOCATION"
-      ]
+        "android.permission.FOREGROUND_SERVICE_LOCATION",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.USE_FULL_SCREEN_INTENT",
+        "android.permission.WAKE_LOCK",
+        "android.permission.VIBRATE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ],
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -44,13 +51,23 @@
           "isAndroidBackgroundLocationEnabled": true
         }
       ],
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#C9951A",
+          "sounds": [
+            "./assets/sounds/alerta_corrida.wav"
+          ]
+        }
+      ],
       [
         "expo-local-authentication",
         {
           "faceIDPermission": "Usa Face ID pra desbloquear o app sem precisar digitar código ou senha toda vez."
         }
-      ]
+      ],
+      "./plugins/withAlarmeMotoboy"
     ],
     "extra": {
       "eas": {

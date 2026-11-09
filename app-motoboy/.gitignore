@@ -33,8 +33,8 @@ yarn-error.*
 # local env files
 .env*.local
 
-# credenciais (Firebase, Google Maps) — nunca versionar
-google-services.json
+# google-services.json É versionado de propósito (o EAS só envia arquivos do
+# git e o conteúdo vai dentro do APK de qualquer jeito — igual ao app-loja)
 GoogleService-Info.plist
 
 # typescript

@@ -20,7 +20,9 @@ android {
 dependencies {
   // Mesmo arranjo do app-loja: no SDK 57 o expo-notifications vem
   // pré-compilado (artefato Maven), o repositório local dele já é ligado.
-  implementation 'host.exp.exponent:expo.modules.notifications:57.0.24'
+  // A versão TEM que ser a mesma do expo-notifications instalado no app
+  // (package-lock) — senão o Gradle não acha o artefato e o build falha.
+  implementation 'host.exp.exponent:expo.modules.notifications:57.0.22'
   implementation 'com.google.firebase:firebase-messaging:25.0.1'
   implementation 'androidx.core:core:1.17.0'
 }

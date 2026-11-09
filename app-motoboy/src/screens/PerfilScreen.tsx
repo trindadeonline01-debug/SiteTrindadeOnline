@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
-import { View, Text, TextInput, Pressable, StyleSheet, Alert, Switch } from 'react-native'
+import { View, Text, TextInput, Pressable, StyleSheet, Alert, Switch, ScrollView, AppState } from 'react-native'
+import { useAudioPlayer } from 'expo-audio'
+import { statusAlertas, abrirAjusteNotificacoes, abrirAjusteSobrepor, abrirAjusteTelaCheia, abrirAjusteBateria } from 'alarme-motoboy'
 import * as LocalAuthentication from 'expo-local-authentication'
 import { colors, spacing, radius, errMsg } from '../theme'
 import { atualizarPix, logout, Motoboy } from '../api'
@@ -16,6 +18,23 @@ export default function PerfilScreen({ motoboy, onLogout }: Props) {
   // o aparelho tiver sensor E já tiver digital/Face ID cadastrado nele.
   const [bioSupported, setBioSupported] = useState(false)
   const [bioEnabled, setBioEnabledState] = useState(false)
+
+  // Alertas de corrida (nov/2026): confere as 4 permissões que o Android exige
+  // pro alarme tocar e abrir o app com a tela apagada ou em cima de outro app.
+  const [alertas, setAlertas] = useState(() => statusAlertas())
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', st => { if (st === 'active') setAlertas(statusAlertas()) })
+    return () => sub.remove()
+  }, [])
+  const testePlayer = useAudioPlayer(require('../../assets/sounds/alerta_corrida.wav'))
+  function testarSom() {
+    try {
+      testePlayer.volume = 1
+      testePlayer.seekTo(0).catch(() => {})
+      testePlayer.play()
+      setTimeout(() => { try { testePlayer.pause() } catch {} }, 4000)
+    } catch {}
+  }
 
   useEffect(() => {
     (async () => {
@@ -61,7 +80,7 @@ export default function PerfilScreen({ motoboy, onLogout }: Props) {
   }
 
   return (
-    <View style={s.wrap}>
+    <ScrollView style={{ flex: 1, backgroundColor: colors.paper }} contentContainerStyle={s.wrap}>
       <View style={s.avatarRow}>
         <View style={s.avatar}><Text style={s.avatarTxt}>{motoboy.name.slice(0, 2).toUpperCase()}</Text></View>
         <View>
@@ -99,6 +118,18 @@ export default function PerfilScreen({ motoboy, onLogout }: Props) {
         </View>
       )}
 
+      <View style={s.secao}>
+        <Text style={s.secaoTit}>🔔 Alertas de corrida</Text>
+        <Text style={s.muted}>
+          Para a corrida tocar e abrir o app com a tela apagada ou em cima de outro aplicativo, as quatro opções abaixo precisam estar ligadas.
+        </Text>
+        <ItemAlerta ok={alertas.notificacoes} titulo="Notificações" ajuda="Permite o aviso de corrida nova e cancelada" onPress={abrirAjusteNotificacoes} />
+        <ItemAlerta ok={alertas.sobrepor} titulo="Sobrepor a outros apps" ajuda="Deixa a corrida abrir por cima de qualquer app" onPress={abrirAjusteSobrepor} />
+        <ItemAlerta ok={alertas.telaCheia} titulo="Notificação em tela cheia" ajuda="Mostra a corrida na tela bloqueada" onPress={abrirAjusteTelaCheia} />
+        <ItemAlerta ok={alertas.bateria} titulo="Sem economia de bateria" ajuda="Impede o Android de fechar o app em segundo plano" onPress={abrirAjusteBateria} />
+        <Pressable style={[s.btn, { marginTop: spacing.sm }]} onPress={testarSom}><Text style={s.btnTxt}>🔊 Testar o som da corrida</Text></Pressable>
+      </View>
+
       <Pressable
         style={s.docRow}
         onPress={() => Alert.alert('Ajuda', 'Fala com a gente pelo WhatsApp da Trindade Online.')}
@@ -110,12 +141,24 @@ export default function PerfilScreen({ motoboy, onLogout }: Props) {
       <Pressable style={[s.btn, s.btnSair]} onPress={handleSair}>
         <Text style={[s.btnTxt, { color: colors.bad }]}>Sair</Text>
       </Pressable>
-    </View>
+    </ScrollView>
+  )
+}
+
+function ItemAlerta({ ok, titulo, ajuda, onPress }: { ok: boolean; titulo: string; ajuda: string; onPress: () => void }) {
+  return (
+    <Pressable style={s.itemAlerta} onPress={ok ? undefined : onPress}>
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontWeight: '700', color: colors.ink }}>{ok ? '✅' : '⚠️'} {titulo}</Text>
+        <Text style={s.muted}>{ajuda}</Text>
+      </View>
+      {ok ? <Text style={s.pillOk}>ligado</Text> : <Text style={s.corrigir}>Ligar ›</Text>}
+    </Pressable>
   )
 }
 
 const s = StyleSheet.create({
-  wrap: { flex: 1, backgroundColor: colors.paper, padding: spacing.md, gap: spacing.md },
+  wrap: { backgroundColor: colors.paper, padding: spacing.md, gap: spacing.md },
   avatarRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.sm },
   avatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.gold, alignItems: 'center', justifyContent: 'center' },
   avatarTxt: { fontWeight: '800', color: colors.ink },
@@ -126,5 +169,9 @@ const s = StyleSheet.create({
   field: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, padding: spacing.md },
   btn: { backgroundColor: colors.gold, borderRadius: radius.md, padding: spacing.md, alignItems: 'center' },
   btnTxt: { fontWeight: '800', color: colors.ink },
-  btnSair: { backgroundColor: 'transparent', borderWidth: 1.4, borderColor: colors.bad, marginTop: 'auto' },
+  btnSair: { backgroundColor: 'transparent', borderWidth: 1.4, borderColor: colors.bad, marginTop: spacing.lg },
+  secao: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, padding: spacing.md, gap: spacing.sm },
+  secaoTit: { fontWeight: '800', fontSize: 15, color: colors.ink },
+  itemAlerta: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm, borderTopWidth: 1, borderTopColor: colors.line },
+  corrigir: { color: colors.bad, fontWeight: '800', fontSize: 13 },
 })

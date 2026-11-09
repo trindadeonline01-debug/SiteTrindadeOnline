@@ -5,7 +5,7 @@ import {
   sendPlatformWhatsApp, sendMotoboyWhatsApp, sendPlatformWhatsAppImage, sendCustomerWhatsApp, ensureEntregaWebhookRegistered,
 } from '@/lib/whatsapp'
 import { formatPhoneDisplay } from '@/lib/phone'
-import { pushOfertaCorrida, pushOfertaEncerrada } from '@/lib/pushMotoboy'
+import { pushOfertaCorrida, pushOfertaEncerrada, pushCorridaCancelada } from '@/lib/pushMotoboy'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -473,8 +473,10 @@ export async function retryMotoboyDispatch(deliveryOrderId: string): Promise<{ o
 // então os dois avisos abaixo já caem fora sozinhos, sem precisar de
 // nenhuma ramificação extra pra esse caso.
 export async function cancelarChamadaMotoboy(deliveryOrderId: string): Promise<{ ok: boolean; error?: string }> {
-  const { data: order } = await supabase.from('delivery_orders').select('status, motoboy_phone, picked_up_at').eq('id', deliveryOrderId).maybeSingle()
+  const { data: order } = await supabase.from('delivery_orders').select('status, motoboy_phone, picked_up_at, motoboy_id, company_id').eq('id', deliveryOrderId).maybeSingle()
   if (!order) return { ok: false, error: 'entrega não encontrada' }
+  const { data: empresaRow } = await supabase.from('companies').select('name').eq('id', order.company_id).maybeSingle()
+  const empresaNome = empresaRow?.name as string | undefined
   if (order.status !== 'buscando_motoboy' && order.status !== 'a_caminho' && order.status !== 'sem_motoboy') {
     return { ok: false, error: 'essa entrega não pode mais ser cancelada' }
   }
@@ -494,8 +496,10 @@ export async function cancelarChamadaMotoboy(deliveryOrderId: string): Promise<{
     const { data: motoboy } = await supabase.from('motoboys').select('phone').eq('id', o.motoboy_id).maybeSingle()
     if (motoboy?.phone) await sendMotoboyWhatsApp(motoboy.phone, '❌ Essa chamada foi cancelada pela loja — não precisa buscar essa entrega.')
     await pushOfertaEncerrada(o.motoboy_id)
+    await pushCorridaCancelada(o.motoboy_id, empresaNome)
   }
 
+  if (order.status === 'a_caminho' && order.motoboy_id) await pushCorridaCancelada(order.motoboy_id, empresaNome)
   if (order.status === 'a_caminho' && order.motoboy_phone) {
     await sendMotoboyWhatsApp(order.motoboy_phone, '❌ Essa corrida foi cancelada pela loja — pode desconsiderar, não precisa buscar nem entregar.')
   }

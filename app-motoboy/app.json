@@ -36,7 +36,8 @@
         "android.permission.WAKE_LOCK",
         "android.permission.VIBRATE",
         "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
-        "android.permission.SYSTEM_ALERT_WINDOW"
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"
       ],
       "googleServicesFile": "./google-services.json"
     },
@@ -57,7 +58,8 @@
           "icon": "./assets/icon.png",
           "color": "#C9951A",
           "sounds": [
-            "./assets/sounds/alerta_corrida.wav"
+            "./assets/sounds/alerta_corrida.wav",
+            "./assets/sounds/corrida_cancelada.wav"
           ]
         }
       ],

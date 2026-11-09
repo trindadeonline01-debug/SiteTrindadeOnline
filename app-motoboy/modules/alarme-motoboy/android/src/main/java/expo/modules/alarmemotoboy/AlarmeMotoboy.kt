@@ -90,6 +90,44 @@ object AlarmeMotoboy {
     }
   }
 
+  // Corrida cancelada (pela loja) com o app fechado/em segundo plano: toca o
+  // som de cancelamento por alguns segundos e abre o app por cima.
+  fun cancelada(ctx: Context, titulo: String, corpo: String) {
+    try {
+      val i = Intent(ctx, AlarmeService::class.java)
+        .putExtra(AlarmeService.EXTRA_TITULO, titulo)
+        .putExtra(AlarmeService.EXTRA_CORPO, corpo)
+        .putExtra(AlarmeService.EXTRA_MODO, AlarmeService.MODO_CANCELADA)
+      ContextCompat.startForegroundService(ctx, i)
+    } catch (e: Exception) {
+      avisoCancelada(ctx, titulo, corpo)
+    }
+  }
+
+  // Aviso que fica na barra depois do som (sem som próprio, comum).
+  fun avisoCancelada(ctx: Context, titulo: String, corpo: String) {
+    try {
+      val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+      criarCanais(ctx, nm)
+      val abrir = ctx.packageManager.getLaunchIntentForPackage(ctx.packageName)?.apply {
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+      } ?: return
+      val pi = PendingIntent.getActivity(ctx, 1, abrir, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+      val iconeNotif = ctx.resources.getIdentifier("notification_icon", "drawable", ctx.packageName)
+      val icone = if (iconeNotif != 0) iconeNotif else ctx.applicationInfo.icon
+      val n = NotificationCompat.Builder(ctx, CANAL_SILENCIOSO)
+        .setSmallIcon(icone)
+        .setContentTitle(titulo)
+        .setContentText(corpo)
+        .setPriority(NotificationCompat.PRIORITY_HIGH)
+        .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+        .setAutoCancel(true)
+        .setContentIntent(pi)
+        .build()
+      nm.notify(NOTIF_ID + 1, n)
+    } catch (e: Exception) {}
+  }
+
   fun parar(ctx: Context) {
     try { ctx.stopService(Intent(ctx, AlarmeService::class.java)) } catch (e: Exception) {}
     val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

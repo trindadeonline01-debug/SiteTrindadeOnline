@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { View, Text, Pressable, StyleSheet, AppState } from 'react-native'
+import { View, Text, Pressable, StyleSheet, AppState, Modal } from 'react-native'
 // SafeAreaView do pacote 'react-native' não respeita a barra de navegação
 // do Android (só funciona de verdade no iOS) — achado real do Ricardo,
 // out/2026: a barra de baixo do app (Corridas/Ganhos/Perfil) ficava embaixo
@@ -13,7 +13,7 @@ import CorridasScreen from './CorridasScreen'
 import GanhosScreen from './GanhosScreen'
 import PerfilScreen from './PerfilScreen'
 import { registrarPushMotoboy } from '../push'
-import { pararAlarme, podeSobrepor, abrirAjusteSobrepor } from 'alarme-motoboy'
+import { pararAlarme, statusAlertas } from 'alarme-motoboy'
 
 type Tab = 'corridas' | 'ganhos' | 'perfil'
 type Props = { motoboy: Motoboy; onLogout: () => void }
@@ -46,9 +46,17 @@ export default function HomeScreen({ motoboy, onLogout }: Props) {
   const [rides, setRides] = useState<Corrida[]>([])
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
+  // Corrida cancelada com o app aberto (nov/2026): uma corrida que ainda NÃO
+  // foi retirada e some da lista só pode ter sido cancelada pela loja (entrega
+  // exige retirada antes). Mostra aviso vermelho + som até o motoboy tocar OK.
+  const [cancelada, setCancelada] = useState<{ company: string } | null>(null)
+  const ridesAntes = useRef<Corrida[]>([])
   const reload = useCallback(async () => {
     try {
       const data = await getCorridas()
+      const sumiu = ridesAntes.current.find(r => !r.pickedUp && !data.rides.some(n => n.id === r.id))
+      if (sumiu) setCancelada({ company: sumiu.company })
+      ridesAntes.current = data.rides
       setOffer(data.offer)
       setRides(data.rides)
     } catch {}
@@ -57,13 +65,13 @@ export default function HomeScreen({ motoboy, onLogout }: Props) {
   // Push nativo + alarme de corrida com o app fechado (nov/2026). Ao abrir
   // ou voltar pro app, o alarme nativo para — a partir daí quem toca é a
   // própria tela (alertPlayer abaixo), enquanto a oferta estiver de pé.
-  const [semSobrepor, setSemSobrepor] = useState(false)
+  const [alertasIncompletos, setAlertasIncompletos] = useState(false)
   useEffect(() => {
     registrarPushMotoboy()
     pararAlarme()
-    setSemSobrepor(!podeSobrepor())
+    setAlertasIncompletos(!statusAlertas().tudoOk)
     const sub = AppState.addEventListener('change', st => {
-      if (st === 'active') { pararAlarme(); setSemSobrepor(!podeSobrepor()); reload(); carregarOnline() }
+      if (st === 'active') { pararAlarme(); setAlertasIncompletos(!statusAlertas().tudoOk); reload(); carregarOnline() }
     })
     return () => sub.remove()
   }, [carregarOnline])
@@ -79,6 +87,19 @@ export default function HomeScreen({ motoboy, onLogout }: Props) {
   // Toca em loop, no volume máximo, enquanto tiver oferta esperando resposta.
   const alertPlayer = useAudioPlayer(require('../../assets/sounds/alerta_corrida.wav'))
   const hasOffer = !!offer
+  const cancelPlayer = useAudioPlayer(require('../../assets/sounds/corrida_cancelada.wav'))
+  useEffect(() => {
+    cancelPlayer.loop = true
+    cancelPlayer.volume = 1
+    if (cancelada) {
+      cancelPlayer.seekTo(0).catch(() => {})
+      cancelPlayer.play()
+      const t = setTimeout(() => { try { cancelPlayer.pause() } catch {} }, 12000)
+      return () => clearTimeout(t)
+    } else {
+      try { cancelPlayer.pause() } catch {}
+    }
+  }, [cancelada, cancelPlayer])
 
   useEffect(() => {
     alertPlayer.loop = true
@@ -121,11 +142,24 @@ export default function HomeScreen({ motoboy, onLogout }: Props) {
         </Pressable>
       </View>
 
-      {semSobrepor && (
-        <Pressable style={s.aviso} onPress={abrirAjusteSobrepor}>
-          <Text style={s.avisoTxt}>⚠️ Para a corrida abrir sozinha com o app fechado, toque aqui e ligue "Sobrepor a outros apps".</Text>
+      {alertasIncompletos && (
+        <Pressable style={s.aviso} onPress={() => setTab('perfil')}>
+          <Text style={s.avisoTxt}>⚠️ Alertas de corrida incompletos — toque aqui para configurar (Perfil → Alertas de corrida).</Text>
         </Pressable>
       )}
+
+      <Modal visible={!!cancelada} transparent animationType="fade" onRequestClose={() => setCancelada(null)}>
+        <View style={s.cancelFundo}>
+          <View style={s.cancelCard}>
+            <Text style={s.cancelEmoji}>❌</Text>
+            <Text style={s.cancelTit}>Corrida cancelada</Text>
+            <Text style={s.cancelTxt}>{cancelada?.company ? `A loja ${cancelada.company} cancelou essa corrida.` : 'A loja cancelou essa corrida.'} Você não precisa buscar nem entregar.</Text>
+            <Pressable style={s.cancelBtn} onPress={() => setCancelada(null)}>
+              <Text style={s.cancelBtnTxt}>OK, entendi</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
 
       <View style={{ flex: 1 }}>
         {tab === 'corridas' && <CorridasScreen offer={offer} rides={rides} reload={reload} pauseAlert={pauseAlert} />}
@@ -147,6 +181,13 @@ export default function HomeScreen({ motoboy, onLogout }: Props) {
 const s = StyleSheet.create({
   wrap: { flex: 1, backgroundColor: colors.paper },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.line, backgroundColor: colors.card },
+  cancelFundo: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
+  cancelCard: { width: '100%', backgroundColor: colors.card, borderRadius: radius.md, padding: spacing.lg, alignItems: 'center', gap: spacing.sm, borderWidth: 3, borderColor: colors.bad },
+  cancelEmoji: { fontSize: 44 },
+  cancelTit: { fontSize: 22, fontWeight: '800', color: colors.bad },
+  cancelTxt: { textAlign: 'center', color: colors.ink, fontSize: 15 },
+  cancelBtn: { marginTop: spacing.sm, backgroundColor: colors.bad, borderRadius: radius.md, paddingVertical: spacing.md, paddingHorizontal: spacing.xl, alignSelf: 'stretch', alignItems: 'center' },
+  cancelBtnTxt: { color: '#fff', fontWeight: '800', fontSize: 16 },
   onlinePill: { borderRadius: radius.pill, paddingVertical: 6, paddingHorizontal: 12, borderWidth: 1 },
   onlineOn: { backgroundColor: colors.goodBg, borderColor: colors.good },
   onlineOff: { backgroundColor: colors.paperDark, borderColor: colors.line },

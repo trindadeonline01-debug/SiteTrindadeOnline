@@ -21,6 +21,14 @@ class MotoboyMessagingService : ExpoFirebaseMessagingService() {
         // se o alarme falhar, cai no caminho normal
       }
     }
+    if (dados["tipo"] == "corrida_cancelada") {
+      // App aberto: a própria tela mostra o aviso e toca o som (HomeScreen).
+      if (!appEmPrimeiroPlano()) {
+        AlarmeMotoboy.parar(applicationContext)
+        AlarmeMotoboy.cancelada(applicationContext, dados["title"] ?: "Corrida cancelada", dados["body"] ?: "A loja cancelou essa corrida.")
+      }
+      return
+    }
     if (dados["tipo"] == "oferta_encerrada") {
       AlarmeMotoboy.parar(applicationContext)
       return

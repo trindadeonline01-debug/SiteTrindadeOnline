@@ -19,3 +19,25 @@ export function podeSobrepor(): boolean {
 export function abrirAjusteSobrepor(): void {
   try { Native?.openOverlaySettings() } catch {}
 }
+
+// ---- Configuração dos alertas (tela Perfil → "Alertas de corrida") ----
+// Cada item devolve true quando está OK. Em build antigo sem o módulo nativo
+// tudo conta como OK (não mostra aviso falso).
+function seguro(fn: () => unknown, padrao = true): boolean {
+  try { return Native ? !!fn() : padrao } catch { return padrao }
+}
+export function notificacoesLigadas(): boolean { return seguro(() => Native.notificationsEnabled()) }
+export function abrirAjusteNotificacoes(): void { try { Native?.openNotificationSettings() } catch {} }
+export function podeTelaCheia(): boolean { return seguro(() => Native.canUseFullScreenIntent()) }
+export function abrirAjusteTelaCheia(): void { try { Native?.openFullScreenSettings() } catch {} }
+export function semEconomiaBateria(): boolean { return seguro(() => Native.ignoringBatteryOptimizations()) }
+export function abrirAjusteBateria(): void { try { Native?.openBatterySettings() } catch {} }
+
+export type StatusAlertas = { notificacoes: boolean; sobrepor: boolean; telaCheia: boolean; bateria: boolean; tudoOk: boolean }
+export function statusAlertas(): StatusAlertas {
+  const notificacoes = notificacoesLigadas()
+  const sobrepor = podeSobrepor()
+  const telaCheia = podeTelaCheia()
+  const bateria = semEconomiaBateria()
+  return { notificacoes, sobrepor, telaCheia, bateria, tudoOk: notificacoes && sobrepor && telaCheia && bateria }
+}

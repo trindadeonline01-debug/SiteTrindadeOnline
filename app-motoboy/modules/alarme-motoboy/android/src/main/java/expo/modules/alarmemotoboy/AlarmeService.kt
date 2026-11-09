@@ -27,6 +27,9 @@ class AlarmeService : Service() {
     const val EXTRA_TITULO = "titulo"
     const val EXTRA_CORPO = "corpo"
     const val EXTRA_EXPIRA = "expira_em"
+    const val EXTRA_MODO = "modo"
+    const val MODO_CANCELADA = "cancelada"
+    private const val CANCELADA_MS = 9 * 1000L
     private const val LIMITE_MS = 3 * 60 * 1000L
   }
 
@@ -38,7 +41,8 @@ class AlarmeService : Service() {
   override fun onBind(intent: Intent?): IBinder? = null
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-    val titulo = intent?.getStringExtra(EXTRA_TITULO) ?: "Nova corrida"
+    val cancelada = intent?.getStringExtra(EXTRA_MODO) == MODO_CANCELADA
+    val titulo = intent?.getStringExtra(EXTRA_TITULO) ?: (if (cancelada) "Corrida cancelada" else "Nova corrida")
     val corpo = intent?.getStringExtra(EXTRA_CORPO) ?: ""
 
     val notif = AlarmeMotoboy.notificacao(this, titulo, corpo, false)
@@ -58,10 +62,21 @@ class AlarmeService : Service() {
     }
 
     acordarTela()
-    tocar()
+    // Troca o som se já tinha alarme de corrida nova tocando
+    try { player?.stop(); player?.release() } catch (e: Exception) {}
+    player = null
+    tocar(if (cancelada) "corrida_cancelada" else "alerta_corrida")
     abrirApp()
 
     handler.removeCallbacksAndMessages(null)
+    if (cancelada) {
+      // Som de cancelamento: ~9 s e para; deixa um aviso comum na barra.
+      handler.postDelayed({
+        AlarmeMotoboy.avisoCancelada(this, titulo, corpo)
+        stopSelf()
+      }, CANCELADA_MS)
+      return START_NOT_STICKY
+    }
     // Para na hora em que a oferta vence (com folga de 5 s); sem a data,
     // ou com data estranha, usa o limite de 3 minutos.
     val expira = intent?.getLongExtra(EXTRA_EXPIRA, 0L) ?: 0L
@@ -82,7 +97,7 @@ class AlarmeService : Service() {
     } catch (e: Exception) {}
   }
 
-  private fun tocar() {
+  private fun tocar(nomeSom: String) {
     if (player != null) return
     try {
       // Garante volume audível no canal de alarme (tablet de balcão)
@@ -93,7 +108,7 @@ class AlarmeService : Service() {
         am.setStreamVolume(AudioManager.STREAM_ALARM, minimo, 0)
       }
 
-      val res = resources.getIdentifier("alerta_corrida", "raw", packageName)
+      val res = resources.getIdentifier(nomeSom, "raw", packageName)
       if (res == 0) return
       val mp = MediaPlayer()
       mp.setAudioAttributes(

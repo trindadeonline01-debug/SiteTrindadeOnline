@@ -2175,6 +2175,9 @@ export default function MensagensPage() {
               <div style={{ fontSize: 11, color: '#8696a0', marginBottom: 8, lineHeight: 1.5 }}>
                 Responde sozinha perguntas básicas (horário, endereço, formas de pagamento, valor de entrega por bairro e o link do cardápio), sempre lendo os dados já cadastrados da loja. Não cria pedido nem cobrança. Se o cliente insistir em falar com uma pessoa, a conversa passa pro atendimento humano.
               </div>
+              <div style={{ fontSize: 11, color: '#e8c872', marginBottom: 8, lineHeight: 1.5 }}>
+                Antes de ativar: confira se cardápio, horários, pagamento e taxas de entrega estão preenchidos no cadastro, e escreva as informações da loja no Perfil. Se você responder um cliente pelo celular, a IA para nessa conversa e só volta depois de 5 minutos sem resposta.
+              </div>
               <textarea
                 placeholder='Instruções extras pra IA (opcional). Ex: "Não entregamos no Colubandê."'
                 value={iaDraft.extra} onChange={e => setIaDraft(d => ({ ...d, extra: e.target.value }))}

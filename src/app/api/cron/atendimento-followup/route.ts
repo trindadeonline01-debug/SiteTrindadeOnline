@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { gerarFollowUp } from '@/lib/crmIA'
 import { ATENDIMENTO_IA_DESLIGADO } from '@/lib/atendimentoIA'
+
+const FOLLOWUP_DIAS_PAUSADO = true
 import { sendCustomerWhatsApp } from '@/lib/whatsapp'
 
 const supabase = createClient(
@@ -26,7 +28,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
-  if (ATENDIMENTO_IA_DESLIGADO) return NextResponse.json({ ok: true, desligado: true })
+  // Chave PRÓPRIA (9/nov/2026): a chave geral da IA foi liberada pra todas as lojas, mas este follow-up
+  // de dias da Julia Eventos manda mensagem proativa ao cliente e continua desligado (decisão do Ricardo).
+  if (FOLLOWUP_DIAS_PAUSADO || ATENDIMENTO_IA_DESLIGADO) return NextResponse.json({ ok: true, desligado: true })
 
   const { data: pendentes } = await supabase
     .from('crm_contacts')

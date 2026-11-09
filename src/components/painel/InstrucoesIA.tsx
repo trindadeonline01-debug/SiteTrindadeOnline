@@ -59,6 +59,10 @@ export default function InstrucoesIA({ companyId }: { companyId: string }) {
             O atendente de IA ainda não está ligado na sua loja. O que você escrever aqui fica salvo e passa a valer assim que ele for ligado.
           </p>
         )}
+        <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: '#4f4c47', background: '#F4F1E9', border: '1px solid #DDD5C4', borderRadius: 8, padding: '8px 12px' }}>
+          <b>Antes de ativar a IA:</b> confira se o cardápio, os horários, as formas de pagamento e as taxas de entrega estão preenchidos
+          no cadastro, e escreva aqui o que ela precisa saber. A IA só responde com o que está cadastrado — quanto mais completo, menos erro.
+        </p>
         <textarea
           value={texto} disabled={!carregado} maxLength={MAX} rows={9}
           onChange={e => setTexto(e.target.value)}

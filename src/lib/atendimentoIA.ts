@@ -10,7 +10,11 @@
 // O envio de mensagens de status de pedido NÃO passa por aqui e segue normal.
 // Pra religar: trocar pra `false` (e rever as rotinas — a de silêncio precisa
 // de limite de idade antes, ver KNOWLEDGE_BASE item 26).
-export const ATENDIMENTO_IA_DESLIGADO = true
+// 9/nov/2026 (pedido do Ricardo): LIBERADO PARA TODAS AS LOJAS. Vale para quem tem WhatsApp conectado e
+// ativou o "Atendente IA" (companies.crm_ia_enabled, desligado por padrão em cada loja). A lista de
+// empresas abaixo só importa se esta chave voltar a `true` (piloto). Rotinas de follow-up seguem com
+// as chaves próprias (silêncio, motoboy-repique, follow-up de dias da Julia Eventos).
+export const ATENDIMENTO_IA_DESLIGADO = false
 
 // Empresas LIBERADAS mesmo com a chave geral desligada (piloto, 31/out/2026,
 // pedido do Ricardo: "ativa o atendimento da IA só para a Calçada do Peixe").

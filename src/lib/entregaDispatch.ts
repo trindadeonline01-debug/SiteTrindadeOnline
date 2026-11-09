@@ -671,6 +671,34 @@ async function finalizarEntregaConfirmada(
   return valorMotoboy
 }
 
+// Código de RETIRADA conferiu → o pedido do cardápio vira "Saiu p/ entrega"
+// sozinho (pedido do Ricardo, nov/2026 — antes a loja tinha que clicar à mão,
+// e se esquecesse o cliente nunca recebia o aviso com o código de entrega).
+// Só avança pedido que ainda está antes disso (nunca volta um entregue/
+// cancelado), e só avisa o cliente se o status mudou de fato aqui. Mesmo
+// texto e mesma regra do aviso de /api/loja/status-pedido.
+async function marcarSaiuParaEntrega(order: { company_id: string; pedido_id: string | null; delivery_code: string | null }) {
+  if (!order.pedido_id) return
+  try {
+    const { data: mudou } = await supabase.from('loja_pedidos')
+      .update({ status: 'saiu_entrega', updated_at: new Date().toISOString() })
+      .eq('id', order.pedido_id).eq('company_id', order.company_id)
+      .in('status', ['recebido', 'em_preparo', 'pronto'])
+      .select('customer_phone')
+    const phone = mudou?.[0]?.customer_phone
+    if (!phone) return
+    const { data: company } = await supabase.from('companies')
+      .select('crm_whatsapp_enabled, trial_modules_until').eq('id', order.company_id).maybeSingle()
+    if (!company || !moduleActive(company.crm_whatsapp_enabled, company.trial_modules_until)) return
+    await sendCustomerWhatsApp(order.company_id, phone, '🚴 Seu pedido acabou de sair para entrega!')
+    if (order.delivery_code) {
+      await sendCustomerWhatsApp(order.company_id, phone, `🔑 Lembrando: quando o motoboy chegar, informe este código pra ele: *${order.delivery_code}*`)
+    }
+  } catch (e) {
+    console.error('[entrega] falha ao marcar saiu_entrega:', e)
+  }
+}
+
 // Confirma o código de UMA corrida específica desse motoboy — decide sozinho
 // se é o código de RETIRADA (loja) ou de ENTREGA (cliente) pela fase em que
 // a corrida está (picked_up_at). Usada pelo painel do motoboy, que já sabe
@@ -698,6 +726,7 @@ export async function confirmCodeForMotoboy(
     if (norm !== order.pickup_code) return { ok: false, error: 'não confere — confirma com o lojista' }
     await supabase.from('delivery_orders').update({ picked_up_at: new Date().toISOString() }).eq('id', order.id)
     if (motoboyPhone) await sendMotoboyWhatsApp(motoboyPhone, '✅ Retirada confirmada! Segue pro cliente — quando entregar, peça o código dele pra liberar seu pagamento.')
+    await marcarSaiuParaEntrega(order)
     return { ok: true, phase: 'retirada' }
   }
 

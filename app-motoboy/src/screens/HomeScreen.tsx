@@ -62,14 +62,15 @@ export default function HomeScreen({ motoboy, onLogout }: Props) {
     return () => { if (pollRef.current) clearInterval(pollRef.current) }
   }, [reload])
 
-  // Som placeholder (ainda não é a musiquinha de marca de verdade — trocar
-  // assets/sounds/alerta_corrida.wav quando o Ricardo mandar o arquivo
-  // real) em loop enquanto tiver oferta esperando resposta.
+  // Som de marca "N1 — três toques e acorde" (aprovado pelo Ricardo, 9/nov/2026):
+  // três toques de telefone subindo de tom + acorde de 3 notas (Trindade = três).
+  // Toca em loop, no volume máximo, enquanto tiver oferta esperando resposta.
   const alertPlayer = useAudioPlayer(require('../../assets/sounds/alerta_corrida.wav'))
   const hasOffer = !!offer
 
   useEffect(() => {
     alertPlayer.loop = true
+    alertPlayer.volume = 1
     // Explícito em vez de confiar no default — garante que o som toca
     // mesmo com o celular no silencioso/vibrar (`playsInSilentMode`,
     // default já é `true`, mas sem isso o comportamento real dependia do

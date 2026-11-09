@@ -8,7 +8,7 @@ import { View, Text, Pressable, StyleSheet, AppState } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useAudioPlayer, setAudioModeAsync } from 'expo-audio'
 import { colors, spacing, radius } from '../theme'
-import { setDisponibilidade, getCorridas, Motoboy, Oferta, Corrida } from '../api'
+import { setDisponibilidade, getCorridas, getPainel, Motoboy, Oferta, Corrida } from '../api'
 import CorridasScreen from './CorridasScreen'
 import GanhosScreen from './GanhosScreen'
 import PerfilScreen from './PerfilScreen'
@@ -20,7 +20,19 @@ type Props = { motoboy: Motoboy; onLogout: () => void }
 
 export default function HomeScreen({ motoboy, onLogout }: Props) {
   const [tab, setTab] = useState<Tab>('corridas')
-  const [online, setOnline] = useState(false)
+  // Online/offline vem SEMPRE do servidor (motoboys.available), nunca de um
+  // valor fixo do app — antes começava em `false` toda vez que o app abria e
+  // o motoboy parecia offline mesmo estando online no sistema (Ricardo,
+  // 9/nov/2026: "toda vez que eu fecho o aplicativo, o motoboy fica
+  // offline"). Só muda quando o motoboy toca no botão.
+  const [online, setOnline] = useState(true)
+  const carregarOnline = useCallback(async () => {
+    try {
+      const d = await getPainel()
+      setOnline(!!d.motoboy.available)
+    } catch {}
+  }, [])
+  useEffect(() => { carregarOnline() }, [carregarOnline])
 
   // Polling de corridas (oferta + corridas ativas) e o som de alerta moram
   // AQUI, não dentro de CorridasScreen — achado real do Ricardo, out/2026:
@@ -51,10 +63,10 @@ export default function HomeScreen({ motoboy, onLogout }: Props) {
     pararAlarme()
     setSemSobrepor(!podeSobrepor())
     const sub = AppState.addEventListener('change', st => {
-      if (st === 'active') { pararAlarme(); setSemSobrepor(!podeSobrepor()); reload() }
+      if (st === 'active') { pararAlarme(); setSemSobrepor(!podeSobrepor()); reload(); carregarOnline() }
     })
     return () => sub.remove()
-  }, [])
+  }, [carregarOnline])
 
   useEffect(() => {
     reload()

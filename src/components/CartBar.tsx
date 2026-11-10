@@ -33,7 +33,7 @@ export default function CartBar() {
   // ficava escondido atrás das duas barras empilhadas). Quem quiser ver o
   // carrinho pendente de outra loja continua acessando pelo ícone 🛒 do
   // header.
-  if (pathname === `/cardapio/${cart.slug}` || pathname.startsWith('/mesa/')) return null
+  if (pathname === `/cardapio/${cart.slug}` || pathname.startsWith('/mesa/') || pathname.startsWith('/acompanhar/')) return null
   if (/^\/empresa\/[^/]+\/item\//.test(pathname)) return null
 
   return (

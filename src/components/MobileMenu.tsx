@@ -64,7 +64,7 @@ export default function MobileMenu() {
   // empilhado ACIMA do cabeçalho fixo do Catálogo (.cg-head, também
   // sticky), empurrando ele pra fora da tela — "escondendo o menu" até
   // rolar a página pra cima de novo.
-  const hideOn = ['/login', '/cadastro', '/admin', '/empresa/cadastrar', '/anunciar', '/producao', '/painel', '/atendimento', '/mesa/']
+  const hideOn = ['/login', '/cadastro', '/admin', '/empresa/cadastrar', '/anunciar', '/producao', '/painel', '/atendimento', '/mesa/', '/acompanhar/']
   if (hideOn.some(p => pathname.startsWith(p))) return null
 
   // /painel/pessoal é "modo negócio" só de endereço — visualmente é pessoal,

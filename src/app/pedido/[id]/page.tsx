@@ -2,6 +2,7 @@ import { cache } from 'react'
 import type { Metadata } from 'next'
 import { createClient } from '@supabase/supabase-js'
 import PedidoClient from './PedidoClient'
+import { signTracking } from '@/lib/trackingToken'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -23,9 +24,9 @@ const getData = cache(async (id: string) => {
   let entrega = null
   if (pedido.delivery_type === 'entrega') {
     const { data } = await supabase
-      .from('delivery_orders').select('status, motoboy_name, delivery_code, picked_up_at, delivered_at')
+      .from('delivery_orders').select('id, status, motoboy_name, delivery_code, picked_up_at, delivered_at')
       .eq('pedido_id', pedido.id).order('created_at', { ascending: false }).limit(1).maybeSingle()
-    entrega = data || null
+    entrega = data ? { ...data, tracking_token: signTracking(data.id) } : null
   }
 
   return { pedido, company, entrega }

@@ -13,7 +13,7 @@ type Pedido = {
   itens: Item[]
 }
 type Company = { name: string; slug: string; phone: string | null; pix_mp_enabled?: boolean | null } | null
-type Entrega = { status: string; motoboy_name: string | null; delivery_code: string | null; picked_up_at: string | null; delivered_at: string | null } | null
+type Entrega = { tracking_token?: string; status: string; motoboy_name: string | null; delivery_code: string | null; picked_up_at: string | null; delivered_at: string | null } | null
 
 const PAY_LABEL: Record<string, string> = { pix: 'Pix', dinheiro: 'Dinheiro', cartao: 'Cartão', cartao_credito: 'Cartão de crédito', cartao_debito: 'Cartão de débito' }
 
@@ -223,6 +223,12 @@ export default function PedidoClient({ id, initialPedido, initialCompany, initia
               {pedido.status === 'saiu_entrega' && (entrega?.motoboy_name ? <><b>{entrega.motoboy_name}</b> está a caminho com seu pedido.</> : 'O motoboy está a caminho com seu pedido.')}
             </div>
           </div>
+
+          {pedido.status === 'saiu_entrega' && entrega?.tracking_token && entrega.status === 'a_caminho' && (
+            <a href={`/acompanhar/${entrega.tracking_token}`} className="pd-code-box" style={{ display: 'block', textAlign: 'center', textDecoration: 'none', color: 'inherit', fontWeight: 800 }}>
+              📍 Ver o motoboy no mapa
+            </a>
+          )}
 
           {pedido.status === 'saiu_entrega' && entrega?.delivery_code && (
             <div className="pd-code-box">

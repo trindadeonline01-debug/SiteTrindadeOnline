@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { signTracking } from '@/lib/trackingToken'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -26,12 +27,12 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
   const { data: company } = await supabase.from('companies').select('name, slug, phone, pix_mp_enabled').eq('id', pedido.company_id).maybeSingle()
 
-  let entrega: { status: string; motoboy_name: string | null; delivery_code: string | null; picked_up_at: string | null; delivered_at: string | null } | null = null
+  let entrega: { tracking_token: string; status: string; motoboy_name: string | null; delivery_code: string | null; picked_up_at: string | null; delivered_at: string | null } | null = null
   if (pedido.delivery_type === 'entrega') {
     const { data } = await supabase
-      .from('delivery_orders').select('status, motoboy_name, delivery_code, picked_up_at, delivered_at')
+      .from('delivery_orders').select('id, status, motoboy_name, delivery_code, picked_up_at, delivered_at')
       .eq('pedido_id', pedido.id).order('created_at', { ascending: false }).limit(1).maybeSingle()
-    entrega = data || null
+    entrega = data ? { ...data, tracking_token: signTracking(data.id) } : null
   }
 
   return NextResponse.json({ pedido, company, entrega })

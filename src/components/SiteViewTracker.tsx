@@ -23,7 +23,7 @@ function bucketFor(pathname: string): string | null {
   if (
     pathname.startsWith('/painel') || pathname.startsWith('/admin') ||
     pathname.startsWith('/motoboy') || pathname.startsWith('/producao') || pathname.startsWith('/mesa/') ||
-    pathname.startsWith('/api')
+    pathname.startsWith('/acompanhar/') || pathname.startsWith('/api')
   ) return null
 
   // "/" na frente em todo bucket — mesma convenção que os 3 tipos que já

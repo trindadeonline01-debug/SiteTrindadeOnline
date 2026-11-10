@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { trackingUrl } from '@/lib/trackingToken'
 import { moduleActive } from '@/lib/modules'
 import { getEntregaPricing, getEntregaFeeForDelivery, todaySaoPaulo, matchBairroInAddress } from '@/lib/entregaPricing'
 import {
@@ -707,7 +708,7 @@ async function finalizarEntregaConfirmada(
 // Só avança pedido que ainda está antes disso (nunca volta um entregue/
 // cancelado), e só avisa o cliente se o status mudou de fato aqui. Mesmo
 // texto e mesma regra do aviso de /api/loja/status-pedido.
-async function marcarSaiuParaEntrega(order: { company_id: string; pedido_id: string | null; delivery_code: string | null }) {
+async function marcarSaiuParaEntrega(order: { id: string; company_id: string; pedido_id: string | null; delivery_code: string | null }) {
   if (!order.pedido_id) return
   try {
     const { data: mudou } = await supabase.from('loja_pedidos')
@@ -720,7 +721,7 @@ async function marcarSaiuParaEntrega(order: { company_id: string; pedido_id: str
     const { data: company } = await supabase.from('companies')
       .select('crm_whatsapp_enabled, trial_modules_until').eq('id', order.company_id).maybeSingle()
     if (!company || !moduleActive(company.crm_whatsapp_enabled, company.trial_modules_until)) return
-    await sendCustomerWhatsApp(order.company_id, phone, '🚴 Seu pedido acabou de sair para entrega!')
+    await sendCustomerWhatsApp(order.company_id, phone, `🚴 Seu pedido acabou de sair para entrega!\n\n📍 Acompanhe o motoboy em tempo real:\n${trackingUrl(order.id)}`)
     if (order.delivery_code) {
       await sendCustomerWhatsApp(order.company_id, phone, `🔑 Lembrando: quando o motoboy chegar, informe este código pra ele: *${order.delivery_code}*`)
     }

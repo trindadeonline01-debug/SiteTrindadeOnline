@@ -31,9 +31,9 @@ if (!TaskManager.isTaskDefined(TASK_POSICAO)) {
 }
 
 export type StatusLocalizacao = {
-  /** Permissão "enquanto usa o app" concedida. */
+  /** Permissão "enquanto usa o app" concedida — a que o rastreio precisa. */
   primeiroPlano: boolean
-  /** Permissão "o tempo todo" concedida — a que o rastreio precisa. */
+  /** Permissão "o tempo todo" (informativa — o rastreio não depende dela). */
   segundoPlano: boolean
 }
 
@@ -49,16 +49,17 @@ export async function statusLocalizacao(): Promise<StatusLocalizacao> {
 }
 
 /**
- * Pede a localização. Android não deixa o app se conceder o "o tempo todo":
- * 1º pede "enquanto usa o app" (caixa do sistema); 2º manda pra tela de
- * ajustes do app (Android 11+) onde o motoboy marca "Permitir o tempo todo".
+ * Pede a localização "enquanto usa o app" (caixa do sistema). Basta ela: o
+ * rastreio roda como serviço em primeiro plano (notificação fixa), iniciado
+ * com o app aberto — o Android mantém a posição mesmo com o Maps por cima, sem
+ * precisar de "Permitir o tempo todo" (que o motoboy teria que achar nos
+ * ajustes e travava o app, nov/2026).
  */
 export async function pedirLocalizacao(): Promise<StatusLocalizacao> {
   try {
     const fg = await Location.requestForegroundPermissionsAsync()
     if (!fg.granted) return { primeiroPlano: false, segundoPlano: false }
-    const bg = await Location.requestBackgroundPermissionsAsync()
-    return { primeiroPlano: true, segundoPlano: bg.granted }
+    return statusLocalizacao()
   } catch {
     return statusLocalizacao()
   }
@@ -72,7 +73,7 @@ export async function ligarRastreio(): Promise<void> {
   try {
     if (await rastreioLigado()) return
     const st = await statusLocalizacao()
-    if (!st.segundoPlano) return
+    if (!st.primeiroPlano) return
     await Location.startLocationUpdatesAsync(TASK_POSICAO, {
       accuracy: Location.Accuracy.High,
       timeInterval: 10000,

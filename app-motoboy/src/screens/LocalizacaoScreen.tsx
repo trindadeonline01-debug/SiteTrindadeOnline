@@ -6,22 +6,26 @@ import { pedirLocalizacao, StatusLocalizacao } from '../localizacao'
 
 type Props = { status: StatusLocalizacao; onChange: (s: StatusLocalizacao) => void }
 
-// Tela obrigatória (nov/2026): sem a localização "o tempo todo" o motoboy não
-// recebe corrida. O Android não deixa o app se conceder essa permissão sozinho
-// — a partir do Android 11 só dá pra abrir a tela de ajustes do app, onde o
-// motoboy marca "Permitir o tempo todo". Esta tela explica o porquê (exigência
-// do Google Play) e leva direto pro lugar certo.
-export default function LocalizacaoScreen({ status, onChange }: Props) {
+// Tela obrigatória (nov/2026): sem a localização o motoboy não recebe corrida.
+// Basta "Durante o uso do app": o rastreio roda como serviço em primeiro plano
+// (notificação fixa "Corrida em andamento"), iniciado com o app aberto, e o
+// Android mantém a posição mesmo com o Google Maps por cima. Antes pedíamos
+// "o tempo todo", que o app não consegue conceder sozinho e deixava o motoboy
+// preso nesta tela (caso real, Samsung, 10/nov).
+export default function LocalizacaoScreen({ onChange }: Props) {
   const [busy, setBusy] = useState(false)
-  const jaTemPrimeiroPlano = status.primeiroPlano
+  const [negou, setNegou] = useState(false)
 
   async function permitir() {
     setBusy(true)
     try {
       const r = await pedirLocalizacao()
       onChange(r)
-      // Se o sistema não mostrou caixa nova (negado antes), manda pros ajustes.
-      if (!r.segundoPlano) Linking.openSettings().catch(() => {})
+      if (!r.primeiroPlano) {
+        // Negou ou o sistema não mostrou mais a caixa: só nos ajustes.
+        setNegou(true)
+        Linking.openSettings().catch(() => {})
+      }
     } finally {
       setBusy(false)
     }
@@ -31,23 +35,24 @@ export default function LocalizacaoScreen({ status, onChange }: Props) {
     <SafeAreaView style={s.wrap}>
       <View style={s.card}>
         <Text style={s.emoji}>📍</Text>
-        <Text style={s.titulo}>Localização durante a corrida</Text>
+        <Text style={s.titulo}>Ative a localização</Text>
         <Text style={s.txt}>
-          Para receber corridas, o Trindade Online precisa da sua localização <Text style={s.b}>mesmo com o app fechado ou com o Google Maps aberto</Text>.
-        </Text>
-        <Text style={s.txt}>
-          Ela só é usada <Text style={s.b}>durante uma corrida aceita</Text>, para a loja e o cliente acompanharem a entrega. Quando você entrega, o compartilhamento para.
+          Para receber corridas, o Trindade Entregas precisa da sua localização. Ela só é compartilhada <Text style={s.b}>durante uma corrida aceita</Text>, para a loja e o cliente acompanharem a entrega.
         </Text>
 
         <View style={s.passo}>
           <Text style={s.passoTit}>Como liberar</Text>
           <Text style={s.passoTxt}>1. Toque em “Permitir localização”.</Text>
-          <Text style={s.passoTxt}>2. Se abrir os ajustes, escolha <Text style={s.b}>Localização → Permitir o tempo todo</Text>.</Text>
-          <Text style={s.passoTxt}>3. Volte para o app.</Text>
+          <Text style={s.passoTxt}>2. Na caixa do Android, escolha <Text style={s.b}>“Durante o uso do app”</Text> (ou “Permitir somente com o app em uso”).</Text>
         </View>
 
-        {jaTemPrimeiroPlano && (
-          <Text style={s.aviso}>⚠️ Falta só marcar “Permitir o tempo todo”. “Somente com o app em uso” não funciona com o Maps aberto.</Text>
+        {negou && (
+          <View style={s.passo}>
+            <Text style={s.passoTit}>Se a caixa não aparecer</Text>
+            <Text style={s.passoTxt}>1. Nos ajustes que abriram, toque em <Text style={s.b}>Permissões → Localização</Text>.</Text>
+            <Text style={s.passoTxt}>2. Marque <Text style={s.b}>“Permitir somente com o app em uso”</Text> e ative <Text style={s.b}>“Usar localização precisa”</Text>.</Text>
+            <Text style={s.passoTxt}>3. Volte para o app — ele libera sozinho.</Text>
+          </View>
         )}
 
         <Pressable style={[s.btn, busy && { opacity: 0.6 }]} onPress={permitir} disabled={busy}>
@@ -71,7 +76,6 @@ const s = StyleSheet.create({
   passo: { backgroundColor: colors.paper, borderRadius: radius.md, padding: spacing.md, gap: 4 },
   passoTit: { fontWeight: '800', color: colors.ink, marginBottom: 2 },
   passoTxt: { fontSize: 13.5, color: colors.ink, lineHeight: 19 },
-  aviso: { fontSize: 13, color: colors.goldDark, fontWeight: '700' },
   btn: { backgroundColor: colors.gold, borderRadius: radius.md, paddingVertical: 14, alignItems: 'center', marginTop: spacing.sm },
   btnTxt: { fontWeight: '800', fontSize: 15.5, color: colors.ink },
   link: { textAlign: 'center', color: colors.goldDark, fontWeight: '700', paddingVertical: spacing.sm },

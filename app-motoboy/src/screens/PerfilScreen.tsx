@@ -34,7 +34,7 @@ export default function PerfilScreen({ motoboy, onLogout }: Props) {
   async function ligarLocalizacao() {
     const r = await pedirLocalizacao()
     setLoc(r)
-    if (!r.segundoPlano) Linking.openSettings().catch(() => {})
+    if (!r.primeiroPlano) Linking.openSettings().catch(() => {})
   }
   const testePlayer = useAudioPlayer(require('../../assets/sounds/alerta_corrida.wav'))
   function testarSom() {
@@ -136,7 +136,7 @@ export default function PerfilScreen({ motoboy, onLogout }: Props) {
         <ItemAlerta ok={alertas.notificacoes} titulo="Notificações" ajuda="Permite o aviso de corrida nova e cancelada" onPress={abrirAjusteNotificacoes} />
         <ItemAlerta ok={alertas.sobrepor} titulo="Sobrepor a outros apps" ajuda="Deixa a corrida abrir por cima de qualquer app" onPress={abrirAjusteSobrepor} />
         <ItemAlerta ok={alertas.telaCheia} titulo="Notificação em tela cheia" ajuda="Mostra a corrida na tela bloqueada" onPress={abrirAjusteTelaCheia} />
-        <ItemAlerta ok={!!loc?.segundoPlano} titulo="Localização o tempo todo" ajuda="Permite acompanhar a corrida com o Google Maps aberto" onPress={ligarLocalizacao} />
+        <ItemAlerta ok={!!loc?.primeiroPlano} titulo="Localização" ajuda="Permite a loja e o cliente acompanharem a corrida" onPress={ligarLocalizacao} />
         <ItemAlerta ok={alertas.bateria} titulo="Sem economia de bateria" ajuda="Impede o Android de fechar o app em segundo plano" onPress={abrirAjusteBateria} />
         <Pressable style={[s.btn, { marginTop: spacing.sm }]} onPress={testarSom}><Text style={s.btnTxt}>🔊 Testar o som da corrida</Text></Pressable>
       </View>

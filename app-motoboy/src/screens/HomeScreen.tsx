@@ -52,13 +52,17 @@ export default function HomeScreen({ motoboy, onLogout }: Props) {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const [ridesLoaded, setRidesLoaded] = useState(false)
 
-  // Localização "o tempo todo" (nov/2026): obrigatória pra receber corrida e
+  // Localização (nov/2026): obrigatória pra receber corrida e
   // pro rastreio em segundo plano com o Google Maps aberto. Sem ela, o app
   // mostra a tela de permissão no lugar de tudo e deixa o motoboy offline.
   const [loc, setLoc] = useState<StatusLocalizacao | null>(null)
+  // O Android só deixa iniciar o serviço de localização com o app visível. Se a
+  // corrida foi aceita com o app em 2º plano (WhatsApp), tenta de novo quando
+  // o motoboy volta pro app.
+  const [voltouAoApp, setVoltouAoApp] = useState(0)
   const checarLoc = useCallback(async () => { setLoc(await statusLocalizacao()) }, [])
   useEffect(() => { checarLoc() }, [checarLoc])
-  const semLocalizacao = loc !== null && !loc.segundoPlano
+  const semLocalizacao = loc !== null && !loc.primeiroPlano
   useEffect(() => {
     if (loc === null) return
     if (semLocalizacao) {
@@ -81,12 +85,12 @@ export default function HomeScreen({ motoboy, onLogout }: Props) {
   // quando não houver mais nenhuma (entregue/cancelada).
   useEffect(() => {
     if (!ridesLoaded || loc === null) return
-    if (rides.length > 0 && loc.segundoPlano) {
+    if (rides.length > 0 && loc.primeiroPlano) {
       ligarRastreio()
     } else {
       rastreioLigado().then(on => { if (on) desligarRastreio() })
     }
-  }, [ridesLoaded, rides.length, loc])
+  }, [ridesLoaded, rides.length, loc, voltouAoApp])
 
   // Corrida cancelada com o app aberto (nov/2026): uma corrida que ainda NÃO
   // foi retirada e some da lista só pode ter sido cancelada pela loja (entrega
@@ -120,7 +124,7 @@ export default function HomeScreen({ motoboy, onLogout }: Props) {
     pararAlarme()
     setAlertasIncompletos(!statusAlertas().tudoOk)
     const sub = AppState.addEventListener('change', st => {
-      if (st === 'active') { pararAlarme(); setAlertasIncompletos(!statusAlertas().tudoOk); reload(); carregarOnline(); checarLoc() }
+      if (st === 'active') { pararAlarme(); setAlertasIncompletos(!statusAlertas().tudoOk); reload(); carregarOnline(); checarLoc(); setVoltouAoApp(n => n + 1) }
     })
     return () => sub.remove()
   }, [carregarOnline, checarLoc])

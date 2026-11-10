@@ -40,13 +40,13 @@ export async function GET(req: NextRequest) {
   const fase = indoParaLoja ? 'loja' : 'cliente'
   const destino = indoParaLoja ? o.pickup_address : o.dropoff_address
 
-  let posicao: { lat: number; lng: number; semSinal: boolean } | null = null
+  let posicao: { lat: number; lng: number; semSinal: boolean; atualizadoEm: string } | null = null
   if (o.motoboy_id) {
     const { data: loc } = await supabase
       .from('motoboy_locations').select('lat, lng, updated_at').eq('motoboy_id', o.motoboy_id).maybeSingle()
     if (loc) {
       posicao = {
-        lat: loc.lat, lng: loc.lng,
+        lat: loc.lat, lng: loc.lng, atualizadoEm: loc.updated_at,
         semSinal: Date.now() - new Date(loc.updated_at).getTime() > SEM_SINAL_MS,
       }
     }

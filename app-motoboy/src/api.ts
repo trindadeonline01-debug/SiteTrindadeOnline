@@ -99,3 +99,11 @@ export function confirmarGrupo(items: { orderId: string; code: string }[]) {
 export function salvarPushToken(token: string) {
   return request<{ ok: true }>('/api/motoboy/push-token', { auth: true, body: { token, platform: 'android' } })
 }
+
+export function enviarPosicao(pos: { lat: number; lng: number; accuracy?: number; heading?: number; speed?: number }) {
+  return request<{ ok: true }>('/api/motoboy/posicao', { auth: true, body: pos })
+}
+
+export function pararPosicao() {
+  return request<{ ok: true }>('/api/motoboy/posicao', { auth: true, body: { action: 'parar' } })
+}

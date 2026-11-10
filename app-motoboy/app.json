@@ -48,8 +48,9 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "O app usa sua localização pra te mostrar no mapa durante a corrida e pro lojista acompanhar a entrega.",
-          "isAndroidBackgroundLocationEnabled": true
+          "locationAlwaysAndWhenInUsePermission": "O app usa sua localização, mesmo com o app fechado ou em segundo plano, durante a corrida, para a loja e o cliente acompanharem a entrega.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
         }
       ],
       [

@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
-import { View, Text, TextInput, Pressable, StyleSheet, Alert, Switch, ScrollView, AppState } from 'react-native'
+import { View, Text, TextInput, Pressable, StyleSheet, Alert, Switch, ScrollView, AppState, Linking } from 'react-native'
 import { useAudioPlayer } from 'expo-audio'
 import { statusAlertas, abrirAjusteNotificacoes, abrirAjusteSobrepor, abrirAjusteTelaCheia, abrirAjusteBateria } from 'alarme-motoboy'
 import * as LocalAuthentication from 'expo-local-authentication'
 import { colors, spacing, radius, errMsg } from '../theme'
 import { atualizarPix, logout, Motoboy } from '../api'
 import { clearToken, isBiometricEnabled, setBiometricEnabled } from '../auth'
+import { statusLocalizacao, pedirLocalizacao, StatusLocalizacao } from '../localizacao'
 
 type Props = { motoboy: Motoboy; onLogout: () => void }
 
@@ -22,10 +23,19 @@ export default function PerfilScreen({ motoboy, onLogout }: Props) {
   // Alertas de corrida (nov/2026): confere as 4 permissões que o Android exige
   // pro alarme tocar e abrir o app com a tela apagada ou em cima de outro app.
   const [alertas, setAlertas] = useState(() => statusAlertas())
+  const [loc, setLoc] = useState<StatusLocalizacao | null>(null)
   useEffect(() => {
-    const sub = AppState.addEventListener('change', st => { if (st === 'active') setAlertas(statusAlertas()) })
+    statusLocalizacao().then(setLoc)
+    const sub = AppState.addEventListener('change', st => {
+      if (st === 'active') { setAlertas(statusAlertas()); statusLocalizacao().then(setLoc) }
+    })
     return () => sub.remove()
   }, [])
+  async function ligarLocalizacao() {
+    const r = await pedirLocalizacao()
+    setLoc(r)
+    if (!r.segundoPlano) Linking.openSettings().catch(() => {})
+  }
   const testePlayer = useAudioPlayer(require('../../assets/sounds/alerta_corrida.wav'))
   function testarSom() {
     try {
@@ -121,11 +131,12 @@ export default function PerfilScreen({ motoboy, onLogout }: Props) {
       <View style={s.secao}>
         <Text style={s.secaoTit}>🔔 Alertas de corrida</Text>
         <Text style={s.muted}>
-          Para a corrida tocar e abrir o app com a tela apagada ou em cima de outro aplicativo, as quatro opções abaixo precisam estar ligadas.
+          Para a corrida tocar e abrir o app com a tela apagada ou em cima de outro aplicativo, as opções abaixo precisam estar ligadas.
         </Text>
         <ItemAlerta ok={alertas.notificacoes} titulo="Notificações" ajuda="Permite o aviso de corrida nova e cancelada" onPress={abrirAjusteNotificacoes} />
         <ItemAlerta ok={alertas.sobrepor} titulo="Sobrepor a outros apps" ajuda="Deixa a corrida abrir por cima de qualquer app" onPress={abrirAjusteSobrepor} />
         <ItemAlerta ok={alertas.telaCheia} titulo="Notificação em tela cheia" ajuda="Mostra a corrida na tela bloqueada" onPress={abrirAjusteTelaCheia} />
+        <ItemAlerta ok={!!loc?.segundoPlano} titulo="Localização o tempo todo" ajuda="Permite acompanhar a corrida com o Google Maps aberto" onPress={ligarLocalizacao} />
         <ItemAlerta ok={alertas.bateria} titulo="Sem economia de bateria" ajuda="Impede o Android de fechar o app em segundo plano" onPress={abrirAjusteBateria} />
         <Pressable style={[s.btn, { marginTop: spacing.sm }]} onPress={testarSom}><Text style={s.btnTxt}>🔊 Testar o som da corrida</Text></Pressable>
       </View>

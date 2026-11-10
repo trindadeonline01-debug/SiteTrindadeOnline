@@ -14,6 +14,11 @@ import GanhosScreen from './GanhosScreen'
 import PerfilScreen from './PerfilScreen'
 import { registrarPushMotoboy } from '../push'
 import { pararAlarme, statusAlertas } from 'alarme-motoboy'
+import LocalizacaoScreen from './LocalizacaoScreen'
+import {
+  statusLocalizacao, StatusLocalizacao, ligarRastreio, desligarRastreio, rastreioLigado,
+  marcarOfflineForcado, estavaOfflineForcado,
+} from '../localizacao'
 
 type Tab = 'corridas' | 'ganhos' | 'perfil'
 type Props = { motoboy: Motoboy; onLogout: () => void }
@@ -45,6 +50,43 @@ export default function HomeScreen({ motoboy, onLogout }: Props) {
   const [offer, setOffer] = useState<Oferta | null>(null)
   const [rides, setRides] = useState<Corrida[]>([])
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [ridesLoaded, setRidesLoaded] = useState(false)
+
+  // Localização "o tempo todo" (nov/2026): obrigatória pra receber corrida e
+  // pro rastreio em segundo plano com o Google Maps aberto. Sem ela, o app
+  // mostra a tela de permissão no lugar de tudo e deixa o motoboy offline.
+  const [loc, setLoc] = useState<StatusLocalizacao | null>(null)
+  const checarLoc = useCallback(async () => { setLoc(await statusLocalizacao()) }, [])
+  useEffect(() => { checarLoc() }, [checarLoc])
+  const semLocalizacao = loc !== null && !loc.segundoPlano
+  useEffect(() => {
+    if (loc === null) return
+    if (semLocalizacao) {
+      // Tira o motoboy da fila de corridas enquanto a permissão falta.
+      marcarOfflineForcado(true)
+      setOnline(false)
+      setDisponibilidade(false).catch(() => {})
+    } else {
+      // Permissão voltou: se foi o app que o deixou offline, volta online.
+      estavaOfflineForcado().then(forcado => {
+        if (!forcado) return
+        marcarOfflineForcado(false)
+        setOnline(true)
+        setDisponibilidade(true).catch(() => {})
+      })
+    }
+  }, [semLocalizacao, loc === null]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Rastreio: liga o GPS em 2º plano enquanto houver corrida aceita e desliga
+  // quando não houver mais nenhuma (entregue/cancelada).
+  useEffect(() => {
+    if (!ridesLoaded || loc === null) return
+    if (rides.length > 0 && loc.segundoPlano) {
+      ligarRastreio()
+    } else {
+      rastreioLigado().then(on => { if (on) desligarRastreio() })
+    }
+  }, [ridesLoaded, rides.length, loc])
 
   // Corrida cancelada com o app aberto (nov/2026): uma corrida que ainda NÃO
   // foi retirada e some da lista só pode ter sido cancelada pela loja (entrega
@@ -65,6 +107,7 @@ export default function HomeScreen({ motoboy, onLogout }: Props) {
       }
       setOffer(data.offer)
       setRides(data.rides)
+      setRidesLoaded(true)
     } catch {}
   }, [])
 
@@ -77,10 +120,10 @@ export default function HomeScreen({ motoboy, onLogout }: Props) {
     pararAlarme()
     setAlertasIncompletos(!statusAlertas().tudoOk)
     const sub = AppState.addEventListener('change', st => {
-      if (st === 'active') { pararAlarme(); setAlertasIncompletos(!statusAlertas().tudoOk); reload(); carregarOnline() }
+      if (st === 'active') { pararAlarme(); setAlertasIncompletos(!statusAlertas().tudoOk); reload(); carregarOnline(); checarLoc() }
     })
     return () => sub.remove()
-  }, [carregarOnline])
+  }, [carregarOnline, checarLoc])
 
   useEffect(() => {
     reload()
@@ -132,9 +175,14 @@ export default function HomeScreen({ motoboy, onLogout }: Props) {
   }
 
   async function toggleOnline() {
+    if (semLocalizacao) return
     const next = !online
     setOnline(next)
     try { await setDisponibilidade(next) } catch { setOnline(!next) }
+  }
+
+  if (loc && semLocalizacao) {
+    return <LocalizacaoScreen status={loc} onChange={setLoc} />
   }
 
   return (
@@ -173,7 +221,7 @@ export default function HomeScreen({ motoboy, onLogout }: Props) {
       <View style={{ flex: 1 }}>
         {tab === 'corridas' && <CorridasScreen offer={offer} rides={rides} reload={reload} pauseAlert={pauseAlert} />}
         {tab === 'ganhos' && <GanhosScreen />}
-        {tab === 'perfil' && <PerfilScreen motoboy={motoboy} onLogout={onLogout} />}
+        {tab === 'perfil' && <PerfilScreen motoboy={motoboy} onLogout={() => { desligarRastreio(); onLogout() }} />}
       </View>
 
       <View style={s.bottomNav}>

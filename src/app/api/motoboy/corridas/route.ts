@@ -51,8 +51,9 @@ export async function GET(req: NextRequest) {
     .order('assigned_at', { ascending: true })
 
   const companyIds = Array.from(new Set((orders || []).map(o => o.company_id)))
-  const { data: companies } = companyIds.length ? await supabase.from('companies').select('id, name').in('id', companyIds) : { data: [] as any[] }
+  const { data: companies } = companyIds.length ? await supabase.from('companies').select('id, name, loja_lat, loja_lng').in('id', companyIds) : { data: [] as any[] }
   const nameByCompany = new Map((companies || []).map(c => [c.id, c.name]))
+  const coordByCompany = new Map((companies || []).map(c => [c.id, c.loja_lat != null && c.loja_lng != null ? { lat: Number(c.loja_lat), lng: Number(c.loja_lng) } : null]))
 
   const rides = (orders || []).map(o => ({
     id: o.id,
@@ -76,6 +77,10 @@ export async function GET(req: NextRequest) {
     // WhatsApp direto pro cliente. Campos aditivos — não quebra o painel
     // web, que continua só lendo destinationAddress.
     pickupAddress: o.pickup_address,
+    // Coordenadas da loja (nov/2026): o app passa isso ao Google Maps em vez do
+    // texto do endereço, que sem cidade era geocodificado no lugar errado.
+    pickupLat: coordByCompany.get(o.company_id)?.lat ?? null,
+    pickupLng: coordByCompany.get(o.company_id)?.lng ?? null,
     dropoffAddress: o.dropoff_address,
     customerPhone: o.customer_phone,
   }))

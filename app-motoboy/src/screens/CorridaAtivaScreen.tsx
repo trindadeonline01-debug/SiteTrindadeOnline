@@ -1,3 +1,4 @@
+import * as Location from 'expo-location'
 import { View, Text, Pressable, StyleSheet, Linking, ScrollView } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors, fonts } from '../theme'
@@ -16,6 +17,22 @@ export default function CorridaAtivaScreen({ unit, onCodigo, onMenu }: Props) {
   const endereco = loja ? ride.pickupAddress : ride.dropoffAddress
   const nomeDestino = loja ? unit.company : ride.customerName
   const nPedidos = unit.rides.length
+
+  // Posição atual como origem da rota (a mais recente que o aparelho tiver; o
+  // rastreio em 2º plano já mantém uma fresca). Falhou/negou: abre sem origem.
+  async function navegar(end: string) {
+    let origem: { lat: number; lng: number } | null = null
+    try {
+      const p = (await Location.getLastKnownPositionAsync({ maxAge: 60_000 }))
+        || (await Promise.race([
+          Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+          new Promise<null>(r => setTimeout(() => r(null), 3500)),
+        ]))
+      if (p) origem = { lat: p.coords.latitude, lng: p.coords.longitude }
+    } catch {}
+    const destino = loja && ride.pickupLat != null && ride.pickupLng != null ? { lat: ride.pickupLat, lng: ride.pickupLng } : null
+    Linking.openURL(openMaps(end, destino, origem))
+  }
 
   return (
     <SafeAreaView style={s.wrap} edges={['top', 'bottom']}>
@@ -59,7 +76,7 @@ export default function CorridaAtivaScreen({ unit, onCodigo, onMenu }: Props) {
           </View>
 
           {endereco ? (
-            <Pressable style={s.navBtn} onPress={() => Linking.openURL(openMaps(endereco))}>
+            <Pressable style={s.navBtn} onPress={() => navegar(endereco)}>
               <Icon name="navigate" size={22} stroke={2.4} />
               <Text style={s.navTxt}>{loja ? 'Navegar até a loja' : 'Navegar até o cliente'}</Text>
             </Pressable>

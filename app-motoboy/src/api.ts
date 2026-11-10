@@ -69,6 +69,7 @@ export type Corrida = {
   id: string; company: string; bairro: string | null; customerName: string; customerPhone: string | null
   valueLabel: string; pickedUp: boolean; requestedAt: string
   pickupAddress: string | null; dropoffAddress: string | null
+  pickupLat?: number | null; pickupLng?: number | null
 }
 
 export type CorridaCancelada = { id: string; company: string; pickedUp: boolean }

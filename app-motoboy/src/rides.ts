@@ -13,8 +13,23 @@ export function buildUnits(rides: Corrida[]): Unit[] {
   return [...entregar, ...retirar]
 }
 
-export function openMaps(address: string) {
-  return `https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=${encodeURIComponent(address)}`
+type Ponto = { lat: number; lng: number }
+
+// Endereços guardados sem cidade ("R. Ilhéus, 139 - Trindade") eram geocodificados
+// pelo Google em qualquer outro lugar (nov/2026, caso real: rota de 5,4 km no lugar
+// de 1,3 km). Completa com a cidade quando o texto não traz — mesma regra que o
+// servidor usa ao geocodificar a entrega.
+function enderecoCompleto(address: string) {
+  return /\bRJ\b|Rio de Janeiro|S[ãa]o Gon[çc]alo/i.test(address) ? address : `${address}, São Gonçalo - RJ, Brasil`
+}
+
+// Destino por coordenadas quando existem (loja); senão endereço completo.
+// Origem = posição atual do aparelho: sem ela o Maps usa "Seu local" com o que
+// tiver na memória na hora de abrir, e a rota podia sair de outro ponto.
+export function openMaps(address: string, destino?: Ponto | null, origem?: Ponto | null) {
+  const dest = destino ? `${destino.lat},${destino.lng}` : enderecoCompleto(address)
+  const org = origem ? `&origin=${origem.lat},${origem.lng}` : ''
+  return `https://www.google.com/maps/dir/?api=1&travelmode=driving${org}&destination=${encodeURIComponent(dest)}`
 }
 
 export function waLink(phone: string) {

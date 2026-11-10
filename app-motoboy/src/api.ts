@@ -43,7 +43,7 @@ export type PainelData = {
   motoboy: { id: string; name: string; phone: string; pix_key: string | null; pix_key_type: string | null; status: string; available: boolean; has_password: boolean }
   entregasSemana: number; aReceber: number; jaRecebido: number
   periodAReceber: number; periodRecebido: number
-  recentOrders: { id: string; company_name: string; customer_name: string; status: string; fee: number; created_at: string; pago: boolean; bairro: string | null; picked_up_at: string | null; delivered_at: string | null }[]
+  recentOrders: { id: string; company_name: string; customer_name: string; status: string; fee: number; created_at: string; pago: boolean; repasse?: number | null; bairro: string | null; picked_up_at: string | null; delivered_at: string | null }[]
   payouts: { id: string; period_start: string; period_end: string; valor: number; status: string; paid_at: string | null }[]
 }
 

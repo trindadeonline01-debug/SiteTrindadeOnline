@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { getEntregaPricing } from '@/lib/entregaPricing'
+import { getEntregaPricing, valorRepasseMotoboy } from '@/lib/entregaPricing'
 import { sendMotoboyWhatsApp } from '@/lib/whatsapp'
 
 const supabase = createClient(
@@ -57,19 +57,20 @@ export async function GET(req: NextRequest) {
   })))
 
   const { data: pendentesOrders } = await supabase
-    .from('delivery_orders').select('motoboy_id, fee, delivered_at')
-    .eq('status', 'entregue').eq('payout_status', 'liberado').is('payout_id', null)
+    .from('delivery_orders').select('motoboy_id, fee, status, delivered_at, created_at')
+    .in('status', ['entregue', 'cancelada']).eq('payout_status', 'liberado').is('payout_id', null)
   // Repasse já sai com o corte da plataforma retido — motoboy recebia
   // 100% do fee antes (Ricardo, set/2026: "não existe divisão nenhuma
   // hoje" — corrigido).
   const pricing = await getEntregaPricing()
   const prontosByMotoboy = new Map<string, { count: number; valor: number; oldest: string }>()
   for (const o of pendentesOrders || []) {
-    if (!o.motoboy_id || !o.delivered_at) continue
-    const cur = prontosByMotoboy.get(o.motoboy_id) || { count: 0, valor: 0, oldest: o.delivered_at }
+    const quando = o.delivered_at || o.created_at
+    if (!o.motoboy_id || !quando) continue
+    const cur = prontosByMotoboy.get(o.motoboy_id) || { count: 0, valor: 0, oldest: quando }
     cur.count += 1
-    cur.valor += Math.max(0, Number(o.fee) - pricing.motoboy_corte_plataforma)
-    if (o.delivered_at < cur.oldest) cur.oldest = o.delivered_at
+    cur.valor += valorRepasseMotoboy(o, pricing)
+    if (quando < cur.oldest) cur.oldest = quando
     prontosByMotoboy.set(o.motoboy_id, cur)
   }
   // "A receber" não depende mais de ninguém gerar repasse — já entra aqui
@@ -113,15 +114,15 @@ export async function POST(req: NextRequest) {
       const { motoboy_id } = body
       if (!motoboy_id) return NextResponse.json({ error: 'motoboy_id obrigatório' }, { status: 400 })
       const { data: orders } = await supabase
-        .from('delivery_orders').select('id, fee, delivered_at')
-        .eq('motoboy_id', motoboy_id).eq('status', 'entregue').eq('payout_status', 'liberado').is('payout_id', null)
+        .from('delivery_orders').select('id, fee, status, delivered_at, created_at')
+        .eq('motoboy_id', motoboy_id).in('status', ['entregue', 'cancelada']).eq('payout_status', 'liberado').is('payout_id', null)
       if (!orders || orders.length === 0) return NextResponse.json({ error: 'nenhuma entrega pendente de pagamento pra esse motoboy' }, { status: 400 })
 
       const pricing = await getEntregaPricing()
-      const dates = orders.map(o => new Date(o.delivered_at)).sort((a, b) => a.getTime() - b.getTime())
+      const dates = orders.map(o => new Date(o.delivered_at || o.created_at)).sort((a, b) => a.getTime() - b.getTime())
       const periodStart = dates[0].toISOString().slice(0, 10)
       const periodEnd = dates[dates.length - 1].toISOString().slice(0, 10)
-      const valor = orders.reduce((a, o) => a + Math.max(0, Number(o.fee) - pricing.motoboy_corte_plataforma), 0)
+      const valor = orders.reduce((a, o) => a + valorRepasseMotoboy(o, pricing), 0)
       const paidAt = new Date().toISOString()
 
       const { data: payout, error } = await supabase.from('motoboy_payouts').insert({

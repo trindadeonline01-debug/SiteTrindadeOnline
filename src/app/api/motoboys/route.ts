@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import crypto from 'crypto'
 import { sendMotoboyWhatsApp } from '@/lib/whatsapp'
-import { getEntregaPricing } from '@/lib/entregaPricing'
+import { getEntregaPricing, valorRepasseMotoboy } from '@/lib/entregaPricing'
 import { decodeAndValidateImage } from '@/lib/validateImageUpload'
 
 const supabase = createClient(
@@ -87,12 +87,12 @@ export async function GET(req: NextRequest) {
   // repasse" primeiro (antes ficava zerado até esse clique, mesmo com
   // corrida de verdade feita — Ricardo, set/2026).
   const { data: pendentesOrders } = ids.length
-    ? await supabase.from('delivery_orders').select('motoboy_id, fee').in('motoboy_id', ids).eq('status', 'entregue').eq('payout_status', 'liberado').is('payout_id', null)
+    ? await supabase.from('delivery_orders').select('motoboy_id, fee, status').in('motoboy_id', ids).in('status', ['entregue', 'cancelada']).eq('payout_status', 'liberado').is('payout_id', null)
     : { data: [] as any[] }
   const pricing = await getEntregaPricing()
   const aReceberByMotoboy = new Map<string, number>()
   for (const o of pendentesOrders || []) {
-    aReceberByMotoboy.set(o.motoboy_id, (aReceberByMotoboy.get(o.motoboy_id) || 0) + Math.max(0, Number(o.fee) - pricing.motoboy_corte_plataforma))
+    aReceberByMotoboy.set(o.motoboy_id, (aReceberByMotoboy.get(o.motoboy_id) || 0) + valorRepasseMotoboy(o, pricing))
   }
   const { data: payouts } = ids.length
     ? await supabase.from('motoboy_payouts').select('motoboy_id, valor').in('motoboy_id', ids).eq('status', 'pago')

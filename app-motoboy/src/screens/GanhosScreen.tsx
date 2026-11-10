@@ -78,7 +78,7 @@ export default function GanhosScreen() {
           <Text style={s.muted}>{o.customer_name} · {o.bairro || '—'}</Text>
           <View style={s.rowBetween}>
             <Text style={s.muted}>{new Date(o.created_at).toLocaleDateString('pt-BR')}</Text>
-            <Text style={s.valorTxt}>{fmt(o.fee)}{o.pago ? ' · pago' : ''}</Text>
+            <Text style={s.valorTxt}>{o.repasse != null ? `${fmt(o.repasse)} (metade)` : fmt(o.fee)}{o.pago ? ' · pago' : ''}</Text>
           </View>
         </View>
       ))}

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getMotoboyFromRequest } from '@/lib/motoboySession'
-import { getEntregaPricing, matchBairroInAddress } from '@/lib/entregaPricing'
+import { getEntregaPricing, matchBairroInAddress, valorRepasseMotoboy } from '@/lib/entregaPricing'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -51,21 +51,22 @@ export async function GET(req: NextRequest) {
   // admin pra aparecer (antes só existia depois de alguém "gerar repasse",
   // e até lá o motoboy via zerado mesmo já tendo rodado — Ricardo, set/2026).
   const { data: pendentesOrders } = await supabase
-    .from('delivery_orders').select('fee')
-    .eq('motoboy_id', motoboy.id).eq('status', 'entregue').eq('payout_status', 'liberado').is('payout_id', null)
+    .from('delivery_orders').select('fee, status')
+    .eq('motoboy_id', motoboy.id).in('status', ['entregue', 'cancelada']).eq('payout_status', 'liberado').is('payout_id', null)
   const pricing = await getEntregaPricing()
-  const aReceber = (pendentesOrders || []).reduce((a, o) => a + Math.max(0, Number(o.fee) - pricing.motoboy_corte_plataforma), 0)
+  const aReceber = (pendentesOrders || []).reduce((a, o) => a + valorRepasseMotoboy(o, pricing), 0)
 
   // Mesmos totais de cima, só que somados dentro do período filtrado (em vez
   // do saldo atual geral) — é o que responde "o que eu tenho a receber/já
   // recebi NESSE período" em vez de só o saldo de agora.
-  const entreguesNoPeriodo = (recentOrders || []).filter(o => o.status === 'entregue')
+  // Entregues + canceladas já retiradas (essas só entram com payout_status liberado/pago)
+  const entreguesNoPeriodo = (recentOrders || []).filter(o => o.status === 'entregue' || (o.status === 'cancelada' && (o.payout_status === 'liberado' || !!o.payout_id)))
   const periodAReceber = entreguesNoPeriodo
     .filter(o => o.payout_status === 'liberado' && !o.payout_id)
-    .reduce((a, o) => a + Math.max(0, Number(o.fee) - pricing.motoboy_corte_plataforma), 0)
+    .reduce((a, o) => a + valorRepasseMotoboy(o, pricing), 0)
   const periodRecebido = entreguesNoPeriodo
     .filter(o => !!o.payout_id)
-    .reduce((a, o) => a + Math.max(0, Number(o.fee) - pricing.motoboy_corte_plataforma), 0)
+    .reduce((a, o) => a + valorRepasseMotoboy(o, pricing), 0)
 
   const { data: payouts } = await supabase.from('motoboy_payouts').select('*').eq('motoboy_id', motoboy.id).eq('status', 'pago').order('paid_at', { ascending: false }).limit(10)
   const jaRecebido = (payouts || []).reduce((a, p) => a + Number(p.valor), 0)
@@ -76,6 +77,7 @@ export async function GET(req: NextRequest) {
     periodAReceber, periodRecebido,
     recentOrders: (recentOrders || []).map(o => ({
       id: o.id, company_name: nameByCompany.get(o.company_id) || '—', customer_name: o.customer_name, status: o.status, fee: o.fee, created_at: o.created_at, pago: !!o.payout_id,
+      repasse: o.status === 'cancelada' && (o.payout_status === 'liberado' || !!o.payout_id) ? valorRepasseMotoboy(o, pricing) : null,
       bairro: o.dropoff_address ? matchBairroInAddress(o.dropoff_address) : null,
       picked_up_at: o.picked_up_at, delivered_at: o.delivered_at,
     })),

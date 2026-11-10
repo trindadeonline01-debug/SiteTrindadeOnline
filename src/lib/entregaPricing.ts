@@ -116,3 +116,13 @@ export async function getEntregaFeeForDelivery(
   if (match.disabled) return { fee: 0, blocked: true, reason: 'Fora da área de entrega da plataforma.' }
   return { fee: Number(match.price), blocked: false }
 }
+
+// Valor que o MOTOBOY recebe por uma corrida. Entrega concluída: fee menos o corte da
+// plataforma. Corrida cancelada DEPOIS da retirada (pedido cancelado com o motoboy já
+// com a mercadoria — decisão do Ricardo, 9/nov/2026): metade desse valor, pelo
+// deslocamento. Corrida cancelada sem retirada: nada (nunca fica com payout_status
+// 'liberado').
+export function valorRepasseMotoboy(o: { fee: number | string; status: string }, pricing: { motoboy_corte_plataforma: number }): number {
+  const cheio = Math.max(0, Number(o.fee) - pricing.motoboy_corte_plataforma)
+  return o.status === 'cancelada' ? Math.round(cheio * 50) / 100 : cheio
+}

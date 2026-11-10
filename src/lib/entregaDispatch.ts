@@ -492,7 +492,11 @@ export async function cancelarChamadaMotoboy(deliveryOrderId: string, opts?: { p
   }
   const jaRetirou = !!order.picked_up_at
 
-  await supabase.from('delivery_orders').update({ status: 'cancelada' }).eq('id', deliveryOrderId)
+  // Cancelada depois da retirada: o motoboy já fez o deslocamento — libera o repasse
+  // (metade do valor da corrida, ver valorRepasseMotoboy). Sem retirada, não libera nada.
+  await supabase.from('delivery_orders').update(
+    jaRetirou && order.motoboy_id ? { status: 'cancelada', payout_status: 'liberado' } : { status: 'cancelada' }
+  ).eq('id', deliveryOrderId)
 
   const { data: pending } = await supabase
     .from('delivery_offers').select('id, motoboy_id')

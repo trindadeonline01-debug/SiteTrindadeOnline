@@ -77,10 +77,13 @@ export function pushOfertaEncerrada(motoboyId: string) {
 // Corrida cancelada pela loja (oferta pendente ou já aceita): com o app fechado
 // o aparelho toca o som de cancelamento e abre o app; com o app aberto a
 // própria tela mostra o aviso (detecta pelo polling).
-export function pushCorridaCancelada(motoboyId: string, empresa?: string) {
+export function pushCorridaCancelada(motoboyId: string, empresa?: string, jaRetirou = false) {
+  const loja = empresa ? `A loja ${empresa}` : 'A loja'
   return enviarPushMotoboy(motoboyId, {
     tipo: 'corrida_cancelada',
     title: '❌ Corrida cancelada',
-    body: empresa ? `A loja ${empresa} cancelou essa corrida. Não precisa buscar nem entregar.` : 'A loja cancelou essa corrida. Não precisa buscar nem entregar.',
+    body: jaRetirou
+      ? `${loja} cancelou o pedido. Volte ao estabelecimento e devolva o pedido.`
+      : `${loja} cancelou essa corrida. Não precisa buscar nem entregar.`,
   }, 120)
 }

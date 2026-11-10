@@ -106,7 +106,7 @@ async function soltarMotoboy(pedidoId: string) {
   const { data: entregas } = await supabaseAdmin.from('delivery_orders')
     .select('id, status').eq('pedido_id', pedidoId).in('status', ['buscando_motoboy', 'a_caminho', 'sem_motoboy'])
   for (const e of entregas || []) {
-    const r = await cancelarChamadaMotoboy(e.id)
+    const r = await cancelarChamadaMotoboy(e.id, { permitirJaRetirada: true })
     if (!r.ok) console.error('[lojaCancelamento] não soltou o motoboy', e.id, r.error)
   }
 }

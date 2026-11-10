@@ -80,7 +80,20 @@ export async function GET(req: NextRequest) {
     customerPhone: o.customer_phone,
   }))
 
-  return NextResponse.json({ offer, rides })
+  // Corridas deste motoboy que foram canceladas pela loja nas últimas 6 h — o app
+  // mostra o aviso "Corrida cancelada" uma vez por corrida (nov/2026). Não
+  // existe coluna de data do cancelamento; `assigned_at` limita a janela.
+  const desde = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString()
+  const { data: canc } = await supabase
+    .from('delivery_orders')
+    .select('id, company_id, picked_up_at')
+    .eq('motoboy_id', motoboy.id).eq('status', 'cancelada').gte('assigned_at', desde)
+  const cancIds = Array.from(new Set((canc || []).map(o => o.company_id)))
+  const { data: cancCompanies } = cancIds.length ? await supabase.from('companies').select('id, name').in('id', cancIds) : { data: [] as any[] }
+  const cancName = new Map((cancCompanies || []).map(c => [c.id, c.name]))
+  const canceladas = (canc || []).map(o => ({ id: o.id, company: cancName.get(o.company_id) || '—', pickedUp: !!o.picked_up_at }))
+
+  return NextResponse.json({ offer, rides, canceladas })
 }
 
 export async function POST(req: NextRequest) {

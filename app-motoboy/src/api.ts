@@ -71,8 +71,9 @@ export type Corrida = {
   pickupAddress: string | null; dropoffAddress: string | null
 }
 
+export type CorridaCancelada = { id: string; company: string; pickedUp: boolean }
 export function getCorridas() {
-  return request<{ offer: Oferta | null; rides: Corrida[] }>('/api/motoboy/corridas', { auth: true })
+  return request<{ offer: Oferta | null; rides: Corrida[]; canceladas?: CorridaCancelada[] }>('/api/motoboy/corridas', { auth: true })
 }
 
 export function aceitarOferta() {

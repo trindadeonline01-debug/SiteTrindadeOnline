@@ -49,14 +49,20 @@ export default function HomeScreen({ motoboy, onLogout }: Props) {
   // Corrida cancelada com o app aberto (nov/2026): uma corrida que ainda NÃO
   // foi retirada e some da lista só pode ter sido cancelada pela loja (entrega
   // exige retirada antes). Mostra aviso vermelho + som até o motoboy tocar OK.
-  const [cancelada, setCancelada] = useState<{ company: string } | null>(null)
-  const ridesAntes = useRef<Corrida[]>([])
+  const [cancelada, setCancelada] = useState<{ company: string; pickedUp: boolean } | null>(null)
+  // Ids de corridas canceladas já conhecidas: a 1ª resposta só "semeia" a lista (não
+  // mostra aviso de cancelamento antigo); depois, cada id novo abre o aviso uma vez.
+  const canceladasVistas = useRef<Set<string> | null>(null)
   const reload = useCallback(async () => {
     try {
       const data = await getCorridas()
-      const sumiu = ridesAntes.current.find(r => !r.pickedUp && !data.rides.some(n => n.id === r.id))
-      if (sumiu) setCancelada({ company: sumiu.company })
-      ridesAntes.current = data.rides
+      const lista = data.canceladas || []
+      if (canceladasVistas.current === null) {
+        canceladasVistas.current = new Set(lista.map(c => c.id))
+      } else {
+        const nova = lista.find(c => !canceladasVistas.current!.has(c.id))
+        if (nova) { canceladasVistas.current.add(nova.id); setCancelada({ company: nova.company, pickedUp: nova.pickedUp }) }
+      }
       setOffer(data.offer)
       setRides(data.rides)
     } catch {}
@@ -153,7 +159,10 @@ export default function HomeScreen({ motoboy, onLogout }: Props) {
           <View style={s.cancelCard}>
             <Text style={s.cancelEmoji}>❌</Text>
             <Text style={s.cancelTit}>Corrida cancelada</Text>
-            <Text style={s.cancelTxt}>{cancelada?.company ? `A loja ${cancelada.company} cancelou essa corrida.` : 'A loja cancelou essa corrida.'} Você não precisa buscar nem entregar.</Text>
+            <Text style={s.cancelTxt}>
+              {cancelada?.company ? `A loja ${cancelada.company} cancelou essa corrida.` : 'A loja cancelou essa corrida.'}{' '}
+              {cancelada?.pickedUp ? 'Volte ao estabelecimento e devolva o pedido.' : 'Você não precisa buscar nem entregar.'}
+            </Text>
             <Pressable style={s.cancelBtn} onPress={() => setCancelada(null)}>
               <Text style={s.cancelBtnTxt}>OK, entendi</Text>
             </Pressable>

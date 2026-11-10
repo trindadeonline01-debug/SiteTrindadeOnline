@@ -472,7 +472,12 @@ export async function retryMotoboyDispatch(deliveryOrderId: string): Promise<{ o
 // não tem nenhum dos dois (é exatamente por isso que chegou nesse estado),
 // então os dois avisos abaixo já caem fora sozinhos, sem precisar de
 // nenhuma ramificação extra pra esse caso.
-export async function cancelarChamadaMotoboy(deliveryOrderId: string): Promise<{ ok: boolean; error?: string }> {
+// `opts.permitirJaRetirada`: usado só quando é o PEDIDO que foi cancelado (cliente ou
+// loja) — se o motoboy já retirou a mercadoria, a corrida é encerrada mesmo assim e ele
+// é avisado pra voltar ao estabelecimento e devolver o pedido (caso real, 9/nov/2026:
+// loja cancelou o pedido depois da retirada e a corrida seguia ativa no app do motoboy).
+// O botão "Cancelar chamada" da loja continua sem esse poder (não passa a opção).
+export async function cancelarChamadaMotoboy(deliveryOrderId: string, opts?: { permitirJaRetirada?: boolean }): Promise<{ ok: boolean; error?: string }> {
   const { data: order } = await supabase.from('delivery_orders').select('status, motoboy_phone, picked_up_at, motoboy_id, company_id').eq('id', deliveryOrderId).maybeSingle()
   if (!order) return { ok: false, error: 'entrega não encontrada' }
   const { data: empresaRow } = await supabase.from('companies').select('name').eq('id', order.company_id).maybeSingle()
@@ -482,9 +487,10 @@ export async function cancelarChamadaMotoboy(deliveryOrderId: string): Promise<{
   }
   // Depois que o motoboy digita o código de retirada, a mercadoria já saiu
   // da loja — não tem mais o que cancelar (pedido do Ricardo, out/2026).
-  if (order.picked_up_at) {
+  if (order.picked_up_at && !opts?.permitirJaRetirada) {
     return { ok: false, error: 'o motoboy já retirou a mercadoria, não dá mais pra cancelar' }
   }
+  const jaRetirou = !!order.picked_up_at
 
   await supabase.from('delivery_orders').update({ status: 'cancelada' }).eq('id', deliveryOrderId)
 
@@ -499,9 +505,11 @@ export async function cancelarChamadaMotoboy(deliveryOrderId: string): Promise<{
     await pushCorridaCancelada(o.motoboy_id, empresaNome)
   }
 
-  if (order.status === 'a_caminho' && order.motoboy_id) await pushCorridaCancelada(order.motoboy_id, empresaNome)
+  if (order.status === 'a_caminho' && order.motoboy_id) await pushCorridaCancelada(order.motoboy_id, empresaNome, jaRetirou)
   if (order.status === 'a_caminho' && order.motoboy_phone) {
-    await sendMotoboyWhatsApp(order.motoboy_phone, '❌ Essa corrida foi cancelada pela loja — pode desconsiderar, não precisa buscar nem entregar.')
+    await sendMotoboyWhatsApp(order.motoboy_phone, jaRetirou
+      ? '❌ *Corrida cancelada* — o pedido foi cancelado pela loja. *Volte ao estabelecimento* e devolva o pedido.'
+      : '❌ Essa corrida foi cancelada pela loja — pode desconsiderar, não precisa buscar nem entregar.')
   }
 
   return { ok: true }

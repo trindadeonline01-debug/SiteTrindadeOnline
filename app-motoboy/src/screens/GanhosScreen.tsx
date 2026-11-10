@@ -71,9 +71,9 @@ export default function GanhosScreen() {
       <Text style={s.sectionTitle}>Corridas — {PERIODS.find(p => p.kind === period)?.label.toLowerCase()}</Text>
       {data.recentOrders.map(o => (
         <View key={o.id} style={s.card}>
-          <View style={s.rowBetween}>
-            <Text style={s.cardTitle}>{o.company_name}</Text>
-            <Text style={[s.pill, o.status === 'entregue' ? s.pillGood : s.pillWait]}>{STATUS_LABEL[o.status] || o.status}</Text>
+          <View style={s.cardHead}>
+            <Text style={[s.cardTitle, { flex: 1 }]} numberOfLines={2}>{o.company_name}</Text>
+            <Text style={[s.pill, s.pillFixo, o.status === 'entregue' ? s.pillGood : s.pillWait]}>{STATUS_LABEL[o.status] || o.status}</Text>
           </View>
           <Text style={s.muted}>{o.customer_name} · {o.bairro || '—'}</Text>
           <View style={s.rowBetween}>
@@ -98,6 +98,9 @@ const s = StyleSheet.create({
   sectionTitle: { fontWeight: '800', fontSize: 15, marginBottom: spacing.sm, color: colors.ink },
   card: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, padding: spacing.md, gap: 4, marginBottom: spacing.sm },
   cardTitle: { fontWeight: '700', color: colors.ink },
+  // Nome longo quebra em até 2 linhas e o status fica sempre inteiro à direita (Ricardo, 10/nov/2026)
+  cardHead: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
+  pillFixo: { flexShrink: 0, alignSelf: 'flex-start' },
   muted: { color: colors.muted, fontSize: 12 },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   valorTxt: { fontWeight: '700', color: colors.ink },

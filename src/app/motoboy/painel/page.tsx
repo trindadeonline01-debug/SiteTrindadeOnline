@@ -1,4 +1,5 @@
 'use client'
+import { calcularRota } from '@/lib/gmapsRoute'
 import { useEffect, useRef, useState } from 'react'
 import { PeriodSel, periodRange, periodLabel } from '@/lib/periodFilter'
 import PeriodFilterBar from '@/components/admin/PeriodFilterBar'
@@ -26,7 +27,7 @@ function loadGoogleMaps(): Promise<void> {
     const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
     if (!key) { reject(new Error('sem chave')); return }
     const script = document.createElement('script')
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${key}`
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=routes`
     script.async = true
     script.onload = () => resolve()
     script.onerror = () => reject(new Error('falha ao carregar'))
@@ -173,10 +174,7 @@ export default function MotoboyPainelPage() {
         const map = new google.maps.Map(mapDivRef.current, {
           zoom: 15, center: { lat: -22.826, lng: -43.053 }, disableDefaultUI: true, zoomControl: true, clickableIcons: false,
         })
-        const directionsService = new google.maps.DirectionsService()
-        const directionsRenderer = new google.maps.DirectionsRenderer({
-          map, suppressMarkers: true, polylineOptions: { strokeColor: '#1A56B0', strokeWeight: 5 },
-        })
+        const rotaLinha = new google.maps.Polyline({ map, strokeColor: '#1A56B0', strokeWeight: 5 })
         let routed = false
 
         if (!navigator.geolocation) { setNavError('Esse navegador não dá suporte a localização.'); return }
@@ -195,14 +193,9 @@ export default function MotoboyPainelPage() {
             }
             if (!routed) {
               routed = true
-              directionsService.route(
-                { origin: latLng, destination: ride.destinationAddress, travelMode: google.maps.TravelMode.DRIVING },
-                (result: any, status: string) => {
-                  if (cancelled) return
-                  if (status === 'OK') directionsRenderer.setDirections(result)
-                  else setNavError(`Não consegui calcular a rota (${status}) — o mapa continua, só sem a linha azul.`)
-                }
-              )
+              calcularRota(google, latLng, ride.destinationAddress)
+                .then(r => { if (!cancelled) rotaLinha.setPath(r.path) })
+                .catch(() => { if (!cancelled) setNavError('Não consegui calcular a rota (confira se a Routes API está ativada no Google Cloud) — o mapa continua, só sem a linha azul.') })
             }
           },
           () => { if (!cancelled) setNavError('Não deu pra pegar sua localização — ativa o GPS e permite o acesso no navegador.') },

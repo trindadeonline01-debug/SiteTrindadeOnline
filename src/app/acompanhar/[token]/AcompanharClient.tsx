@@ -1,5 +1,6 @@
 'use client'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { calcularRota } from '@/lib/gmapsRoute'
 
 // Acompanhamento da entrega pelo cliente, sem app (nov/2026) — o link chega no
 // WhatsApp quando o motoboy retira o pedido. Mostra o mapa com o motoboy se
@@ -24,7 +25,7 @@ function loadGoogleMaps(): Promise<void> {
     const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
     if (!key) { reject(new Error('sem chave')); return }
     const sc = document.createElement('script')
-    sc.src = `https://maps.googleapis.com/maps/api/js?key=${key}`
+    sc.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=routes`
     sc.async = true
     sc.onload = () => resolve()
     sc.onerror = () => { gmapsPromise = null; reject(new Error('falha ao carregar')) }
@@ -46,9 +47,11 @@ export default function AcompanharClient({ token }: { token: string }) {
   const mapRef = useRef<any>(null)
   const motoRef = useRef<any>(null)
   const destRef = useRef<any>(null)
-  const rendererRef = useRef<any>(null)
+  const rotaRef = useRef<any>(null)
   const ultimaRotaRef = useRef<{ em: number; fase: string }>({ em: 0, fase: '' })
   const centralizouRef = useRef(false)
+  const vivoRef = useRef(true)
+  useEffect(() => { vivoRef.current = true; return () => { vivoRef.current = false } }, [])
 
   const buscar = useCallback(async () => {
     try {
@@ -86,10 +89,7 @@ export default function AcompanharClient({ token }: { token: string }) {
         mapRef.current = new google.maps.Map(mapDivRef.current, {
           zoom: 15, center: latLng, disableDefaultUI: true, zoomControl: true, clickableIcons: false,
         })
-        rendererRef.current = new google.maps.DirectionsRenderer({
-          map: mapRef.current, suppressMarkers: true, preserveViewport: true,
-          polylineOptions: { strokeColor: '#1A56B0', strokeWeight: 5 },
-        })
+        rotaRef.current = new google.maps.Polyline({ map: mapRef.current, strokeColor: '#1A56B0', strokeWeight: 5 })
       }
       if (!motoRef.current) {
         motoRef.current = new google.maps.Marker({
@@ -106,33 +106,29 @@ export default function AcompanharClient({ token }: { token: string }) {
       const precisaRota = !!destino && (ultimaRotaRef.current.fase !== fase || agora - ultimaRotaRef.current.em > ROTA_A_CADA_MS)
       if (precisaRota) {
         ultimaRotaRef.current = { em: agora, fase: fase || '' }
-        new google.maps.DirectionsService().route(
-          { origin: latLng, destination: destino, travelMode: google.maps.TravelMode.DRIVING },
-          (result: any, status: string) => {
-            if (cancelled || status !== 'OK') return
-            rendererRef.current?.setDirections(result)
-            const leg = result.routes?.[0]?.legs?.[0]
-            if (leg?.duration?.text) setEta(leg.duration.text)
-            if (leg?.end_location) {
-              if (!destRef.current) {
-                destRef.current = new google.maps.Marker({
-                  map: mapRef.current, position: leg.end_location, zIndex: 500,
-                  label: { text: fase === 'loja' ? '🏪' : '🏠', fontSize: '20px' },
-                  icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
-                })
-              } else {
-                destRef.current.setPosition(leg.end_location)
-                destRef.current.setLabel({ text: fase === 'loja' ? '🏪' : '🏠', fontSize: '20px' })
-              }
+        calcularRota(google, latLng, destino as string).then(r => {
+          if (!vivoRef.current) return
+          rotaRef.current?.setPath(r.path)
+          if (r.minutos != null) setEta(r.minutos >= 60 ? `${Math.floor(r.minutos / 60)} h ${r.minutos % 60} min` : `${r.minutos} min`)
+          if (r.fim) {
+            if (!destRef.current) {
+              destRef.current = new google.maps.Marker({
+                map: mapRef.current, position: r.fim, zIndex: 500,
+                label: { text: fase === 'loja' ? '🏪' : '🏠', fontSize: '20px' },
+                icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
+              })
+            } else {
+              destRef.current.setPosition(r.fim)
+              destRef.current.setLabel({ text: fase === 'loja' ? '🏪' : '🏠', fontSize: '20px' })
             }
-            if (!centralizouRef.current && leg) {
+            if (!centralizouRef.current) {
               centralizouRef.current = true
               const b = new google.maps.LatLngBounds()
-              b.extend(latLng); b.extend(leg.end_location)
+              b.extend(latLng); b.extend(r.fim)
               mapRef.current.fitBounds(b, 70)
             }
-          },
-        )
+          }
+        }).catch(() => { /* sem rota: o mapa e o motoboy continuam, só sem a linha azul e o tempo */ })
       }
     }).catch((e: unknown) => { if (!cancelled) setMapaErro(e instanceof Error ? e.message : 'erro ao montar o mapa') })
     return () => { cancelled = true }

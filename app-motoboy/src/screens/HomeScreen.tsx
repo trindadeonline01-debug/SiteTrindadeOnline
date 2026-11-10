@@ -1,15 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { View, Text, Pressable, StyleSheet, AppState, Modal } from 'react-native'
+import { StatusBar } from 'expo-status-bar'
 // SafeAreaView do pacote 'react-native' não respeita a barra de navegação
 // do Android (só funciona de verdade no iOS) — achado real do Ricardo,
 // out/2026: a barra de baixo do app (Corridas/Ganhos/Perfil) ficava embaixo
 // dos botões de navegação do sistema, sem dar pra clicar. Essa versão (do
 // pacote safe-area-context) calcula a área segura nos dois sistemas.
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAudioPlayer, setAudioModeAsync } from 'expo-audio'
 import { colors, spacing, radius } from '../theme'
-import { setDisponibilidade, getCorridas, getPainel, Motoboy, Oferta, Corrida } from '../api'
+import { setDisponibilidade, getCorridas, getPainel, confirmarCodigo, confirmarGrupo, Motoboy, Oferta, Corrida } from '../api'
 import CorridasScreen from './CorridasScreen'
+import OfertaScreen from './OfertaScreen'
+import CorridaAtivaScreen from './CorridaAtivaScreen'
+import CodigoScreen from './CodigoScreen'
+import ConcluidaScreen, { Concluida } from './ConcluidaScreen'
+import Icon, { IconName } from '../components/Icon'
+import { buildUnits, fmtMoney } from '../rides'
+import { periodRange } from '../periodFilter'
 import GanhosScreen from './GanhosScreen'
 import PerfilScreen from './PerfilScreen'
 import { registrarPushMotoboy } from '../push'
@@ -51,6 +59,16 @@ export default function HomeScreen({ motoboy, onLogout }: Props) {
   const [rides, setRides] = useState<Corrida[]>([])
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const [ridesLoaded, setRidesLoaded] = useState(false)
+  // Redesenho (nov/2026): a corrida ocupa a tela toda (oferta, indo à loja/ao
+  // cliente, código, concluída). `foco` = unidade aberta; `mostrarMenu` = o
+  // motoboy tocou em "Menu" e quer ver as abas com a corrida em andamento.
+  const [foco, setFoco] = useState<string | null>(null)
+  const [mostrarMenu, setMostrarMenu] = useState(false)
+  const [codigoAberto, setCodigoAberto] = useState(false)
+  const [concluida, setConcluida] = useState<Concluida | null>(null)
+  const [concluidaHoje, setConcluidaHoje] = useState<string | null>(null)
+  const prevRides = useRef<Corrida[] | null>(null)
+  const prevKeys = useRef<Set<string> | null>(null)
 
   // Localização (nov/2026): obrigatória pra receber corrida e
   // pro rastreio em segundo plano com o Google Maps aberto. Sem ela, o app
@@ -109,6 +127,22 @@ export default function HomeScreen({ motoboy, onLogout }: Props) {
         const nova = lista.find(c => !canceladasVistas.current!.has(c.id))
         if (nova) { canceladasVistas.current.add(nova.id); setCancelada({ company: nova.company, pickedUp: nova.pickedUp }) }
       }
+      // Corrida já retirada que saiu da lista sem ter sido cancelada = entregue.
+      const antes = prevRides.current
+      if (antes) {
+        const canc = new Set((data.canceladas || []).map(c => c.id))
+        const feita = antes.find(p => p.pickedUp && !data.rides.some(r => r.id === p.id) && !canc.has(p.id))
+        if (feita) {
+          setConcluida({ company: feita.company, customerName: feita.customerName, bairro: feita.bairro, valueLabel: feita.valueLabel })
+          setConcluidaHoje(null)
+          setCodigoAberto(false)
+          getPainel({ from: periodRange('today').from || '', to: '' }).then(d => {
+            const n = d.recentOrders.filter(o => o.status === 'entregue').length
+            setConcluidaHoje(`${fmtMoney((d.periodAReceber || 0) + (d.periodRecebido || 0))} · ${n} ${n === 1 ? 'corrida' : 'corridas'}`)
+          }).catch(() => {})
+        }
+      }
+      prevRides.current = data.rides
       setOffer(data.offer)
       setRides(data.rides)
       setRidesLoaded(true)
@@ -185,83 +219,182 @@ export default function HomeScreen({ motoboy, onLogout }: Props) {
     try { await setDisponibilidade(next) } catch { setOnline(!next) }
   }
 
+  const units = buildUnits(rides)
+  const unitKeys = units.map(u => u.key).join('|')
+  // Corrida nova (ex.: acabou de aceitar, ou a retirada virou entrega) abre sozinha.
+  useEffect(() => {
+    if (!ridesLoaded) return
+    const keys = new Set(units.map(u => u.key))
+    if (prevKeys.current) {
+      const nova = units.find(u => !prevKeys.current!.has(u.key))
+      if (nova) { setFoco(nova.key); setMostrarMenu(false); setCodigoAberto(false) }
+    }
+    if (keys.size === 0) { setMostrarMenu(false); setCodigoAberto(false) }
+    prevKeys.current = keys
+  }, [ridesLoaded, unitKeys]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const unitAtual = units.find(u => u.key === foco) || units[0] || null
+  const alertasOk = !alertasIncompletos && !!loc?.primeiroPlano
+
   if (loc && semLocalizacao) {
     return <LocalizacaoScreen status={loc} onChange={setLoc} />
   }
 
-  return (
-    <SafeAreaView style={s.wrap}>
-      <View style={s.header}>
-        {/* Nome à esquerda, botão de online/offline à direita — ordem
-            trocada a pedido do Ricardo, out/2026 (estava ao contrário). */}
-        <Text style={s.headerName}>{motoboy.name}</Text>
-        <Pressable style={[s.onlinePill, online ? s.onlineOn : s.onlineOff]} onPress={toggleOnline}>
-          <Text style={[s.onlineTxt, online && { color: colors.good }]}>{online ? '🟢 Online' : '⚫ Offline'}</Text>
-        </Pressable>
-      </View>
-
-      {alertasIncompletos && (
-        <Pressable style={s.aviso} onPress={() => setTab('perfil')}>
-          <Text style={s.avisoTxt}>⚠️ Alertas de corrida incompletos — toque aqui para configurar (Perfil → Alertas de corrida).</Text>
-        </Pressable>
-      )}
-
-      <Modal visible={!!cancelada} transparent animationType="fade" onRequestClose={() => setCancelada(null)}>
-        <View style={s.cancelFundo}>
-          <View style={s.cancelCard}>
-            <Text style={s.cancelEmoji}>❌</Text>
-            <Text style={s.cancelTit}>Corrida cancelada</Text>
-            <Text style={s.cancelTxt}>
-              {cancelada?.company ? `A loja ${cancelada.company} cancelou essa corrida.` : 'A loja cancelou essa corrida.'}{' '}
-              {cancelada?.pickedUp ? 'Volte ao estabelecimento e devolva o pedido.' : 'Você não precisa buscar nem entregar.'}
-            </Text>
-            <Pressable style={s.cancelBtn} onPress={() => setCancelada(null)}>
-              <Text style={s.cancelBtnTxt}>OK, entendi</Text>
-            </Pressable>
-          </View>
+  const canceladaModal = (
+    <Modal visible={!!cancelada} transparent animationType="fade" onRequestClose={() => setCancelada(null)}>
+      <View style={s.cancelFundo}>
+        <View style={s.cancelCard}>
+          <View style={s.cancelIcon}><Icon name="close" size={30} color="#fff" stroke={3} /></View>
+          <Text style={s.cancelTit}>Corrida cancelada</Text>
+          <Text style={s.cancelTxt}>
+            {cancelada?.company ? `A loja ${cancelada.company} cancelou essa corrida.` : 'A loja cancelou essa corrida.'}{' '}
+            {cancelada?.pickedUp ? 'Volte ao estabelecimento e devolva o pedido.' : 'Você não precisa buscar nem entregar.'}
+          </Text>
+          <Pressable style={s.cancelBtn} onPress={() => setCancelada(null)}>
+            <Text style={s.cancelBtnTxt}>OK, entendi</Text>
+          </Pressable>
         </View>
-      </Modal>
+      </View>
+    </Modal>
+  )
 
+  // 1) Entrega concluída
+  if (concluida) {
+    return (
+      <>
+        <StatusBar style="light" />
+        <ConcluidaScreen
+          dados={concluida}
+          hoje={concluidaHoje}
+          onVoltar={() => { setConcluida(null); setTab('corridas'); setMostrarMenu(false) }}
+          onGanhos={() => { setConcluida(null); setTab('ganhos') }}
+        />
+        {canceladaModal}
+      </>
+    )
+  }
+
+  // 2) Oferta nova em tela cheia
+  if (offer) {
+    return (
+      <>
+        <StatusBar style="light" />
+        <OfertaScreen offer={offer} pauseAlert={pauseAlert} reload={reload} />
+        {canceladaModal}
+      </>
+    )
+  }
+
+  // 3) Código de retirada / entrega
+  if (tab === 'corridas' && !mostrarMenu && unitAtual && codigoAberto) {
+    const loja = unitAtual.kind === 'loja'
+    const alvos = unitAtual.rides.map(r => ({ id: r.id, label: r.customerName }))
+    return (
+      <>
+        <StatusBar style="dark" />
+        <CodigoScreen
+          key={unitAtual.key}
+          etapa={loja ? 'retirada' : 'entrega'}
+          titulo={loja ? 'Código de retirada' : 'Código de entrega'}
+          quem={loja ? `ao lojista da ${unitAtual.company}` : `à ${unitAtual.rides[0].customerName}`}
+          alvos={alvos}
+          confirmarLabel={loja ? 'Confirmar retirada' : 'Confirmar entrega'}
+          onBack={() => setCodigoAberto(false)}
+          onConfirm={async codes => {
+            const erros: Record<string, string> = {}
+            try {
+              if (alvos.length === 1) {
+                const r = await confirmarCodigo(alvos[0].id, codes[alvos[0].id])
+                if (!r.ok) erros[alvos[0].id] = r.error || 'Código não confere'
+              } else {
+                const r = await confirmarGrupo(alvos.map(a => ({ orderId: a.id, code: codes[a.id] || '' })))
+                r.results.forEach(x => { if (!x.ok) erros[x.orderId] = `${alvos.find(a => a.id === x.orderId)?.label || 'Pedido'}: ${x.error || 'não confere'}` })
+              }
+            } catch (e) {
+              erros[alvos[0].id] = e instanceof Error ? e.message : 'Algo deu errado.'
+            }
+            if (Object.keys(erros).length === 0) { setCodigoAberto(false); reload() }
+            return erros
+          }}
+        />
+        {canceladaModal}
+      </>
+    )
+  }
+
+  // 4) Corrida em andamento (indo à loja / ao cliente)
+  if (tab === 'corridas' && !mostrarMenu && unitAtual) {
+    return (
+      <>
+        <StatusBar style="light" />
+        <CorridaAtivaScreen unit={unitAtual} onCodigo={() => setCodigoAberto(true)} onMenu={() => setMostrarMenu(true)} />
+        {canceladaModal}
+      </>
+    )
+  }
+
+  // 5) Menu principal (abas)
+  const NAV: { tab: Tab; label: string; icon: IconName }[] = [
+    { tab: 'corridas', label: 'Corridas', icon: 'bike' },
+    { tab: 'ganhos', label: 'Ganhos', icon: 'wallet' },
+    { tab: 'perfil', label: 'Perfil', icon: 'user' },
+  ]
+  return (
+    <SafeAreaView style={s.wrap} edges={['top']}>
+      <StatusBar style="dark" />
+      {canceladaModal}
       <View style={{ flex: 1 }}>
-        {tab === 'corridas' && <CorridasScreen offer={offer} rides={rides} reload={reload} pauseAlert={pauseAlert} />}
-        {tab === 'ganhos' && <GanhosScreen />}
+        {tab === 'corridas' && (
+          <CorridasScreen
+            nome={motoboy.name}
+            online={online}
+            onToggleOnline={toggleOnline}
+            units={units}
+            onOpenUnit={key => { setFoco(key); setMostrarMenu(false); setCodigoAberto(false) }}
+            alertasOk={alertasOk}
+            onConfigurar={() => setTab('perfil')}
+            reload={reload}
+          />
+        )}
+        {tab === 'ganhos' && <GanhosScreen online={online} onToggleOnline={toggleOnline} />}
         {tab === 'perfil' && <PerfilScreen motoboy={motoboy} onLogout={() => { desligarRastreio(); onLogout() }} />}
       </View>
-
-      <View style={s.bottomNav}>
-        <Pressable style={s.navItem} onPress={() => setTab('corridas')}>
-          <Text style={[s.navTxt, tab === 'corridas' && s.navOn]}>🏠 Corridas{hasOffer && tab !== 'corridas' ? ' 🔴' : ''}</Text>
-        </Pressable>
-        <Pressable style={s.navItem} onPress={() => setTab('ganhos')}><Text style={[s.navTxt, tab === 'ganhos' && s.navOn]}>💰 Ganhos</Text></Pressable>
-        <Pressable style={s.navItem} onPress={() => setTab('perfil')}><Text style={[s.navTxt, tab === 'perfil' && s.navOn]}>👤 Perfil</Text></Pressable>
-      </View>
+      <BottomNav items={NAV} tab={tab} onChange={setTab} />
     </SafeAreaView>
+  )
+}
+
+function BottomNav({ items, tab, onChange }: { items: { tab: Tab; label: string; icon: IconName }[]; tab: Tab; onChange: (t: Tab) => void }) {
+  const insets = useSafeAreaInsets()
+  return (
+    <View style={[s.nav, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+      {items.map(it => {
+        const on = it.tab === tab
+        return (
+          <Pressable key={it.tab} style={s.navItem} onPress={() => onChange(it.tab)}>
+            {on && <View style={s.navBar} />}
+            <Icon name={it.icon} size={24} color={on ? colors.gold : colors.mutedDark} />
+            <Text style={[s.navTxt, on && s.navOn]}>{it.label}</Text>
+          </Pressable>
+        )
+      })}
+    </View>
   )
 }
 
 const s = StyleSheet.create({
   wrap: { flex: 1, backgroundColor: colors.paper },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.line, backgroundColor: colors.card },
-  cancelFundo: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
-  cancelCard: { width: '100%', backgroundColor: colors.card, borderRadius: radius.md, padding: spacing.lg, alignItems: 'center', gap: spacing.sm, borderWidth: 3, borderColor: colors.bad },
-  cancelEmoji: { fontSize: 44 },
+  cancelFundo: { flex: 1, backgroundColor: 'rgba(18,15,10,0.8)', alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
+  cancelCard: { width: '100%', backgroundColor: colors.card, borderRadius: 24, padding: spacing.lg, alignItems: 'center', gap: spacing.sm, borderWidth: 3, borderColor: colors.bad },
+  cancelIcon: { width: 56, height: 56, borderRadius: 28, backgroundColor: colors.bad, alignItems: 'center', justifyContent: 'center' },
   cancelTit: { fontSize: 22, fontWeight: '800', color: colors.bad },
-  cancelTxt: { textAlign: 'center', color: colors.ink, fontSize: 15 },
-  cancelBtn: { marginTop: spacing.sm, backgroundColor: colors.bad, borderRadius: radius.md, paddingVertical: spacing.md, paddingHorizontal: spacing.xl, alignSelf: 'stretch', alignItems: 'center' },
+  cancelTxt: { textAlign: 'center', color: colors.ink, fontSize: 15, lineHeight: 21 },
+  cancelBtn: { marginTop: spacing.sm, backgroundColor: colors.bad, borderRadius: 16, paddingVertical: spacing.md, paddingHorizontal: spacing.xl, alignSelf: 'stretch', alignItems: 'center' },
   cancelBtnTxt: { color: '#fff', fontWeight: '800', fontSize: 16 },
-  onlinePill: { borderRadius: radius.pill, paddingVertical: 6, paddingHorizontal: 12, borderWidth: 1 },
-  onlineOn: { backgroundColor: colors.goodBg, borderColor: colors.good },
-  onlineOff: { backgroundColor: colors.paperDark, borderColor: colors.line },
-  onlineTxt: { fontWeight: '700', fontSize: 12.5, color: colors.muted },
-  aviso: { backgroundColor: '#FFF4D6', borderBottomWidth: 1, borderBottomColor: colors.line, padding: spacing.sm },
-  avisoTxt: { fontSize: 12.5, color: colors.ink, fontWeight: '600' },
-  headerName: { fontWeight: '700', color: colors.ink },
-  // Área de toque ~35% mais alta que antes (era só o texto solto, sem
-  // padding — ficava estreito demais pra clicar, achado do Ricardo,
-  // out/2026). Padding mora no item, não no container, pra cada aba ter
-  // sua própria área de toque cheia em vez de dividir um espaço comum.
-  bottomNav: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: colors.line, backgroundColor: colors.card },
-  navItem: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 14 },
-  navTxt: { fontSize: 12, color: colors.muted },
-  navOn: { color: colors.goldDark, fontWeight: '800' },
+  // Barra inferior preta, ícone + nome, aba ativa em amarelo com marca no topo.
+  nav: { flexDirection: 'row', backgroundColor: colors.ink, paddingHorizontal: 12, paddingTop: 10 },
+  navItem: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 5, paddingVertical: 4 },
+  navBar: { position: 'absolute', top: -10, width: 30, height: 3, borderBottomLeftRadius: 3, borderBottomRightRadius: 3, backgroundColor: colors.gold },
+  navTxt: { fontSize: 12, fontWeight: '600', color: colors.mutedDark },
+  navOn: { color: colors.gold, fontWeight: '700' },
 })

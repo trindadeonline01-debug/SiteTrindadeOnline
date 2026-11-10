@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { View, ActivityIndicator } from 'react-native'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { StatusBar } from 'expo-status-bar'
+import { useFonts, BebasNeue_400Regular } from '@expo-google-fonts/bebas-neue'
 import LoginScreen from './src/screens/LoginScreen'
 import HomeScreen from './src/screens/HomeScreen'
 import LockScreen from './src/screens/LockScreen'
@@ -11,6 +12,8 @@ import { colors } from './src/theme'
 
 export default function App() {
   const [checking, setChecking] = useState(true)
+  // Fonte dos números grandes do redesenho (Bebas Neue). Se falhar, o app segue com a fonte do sistema.
+  const [fontsLoaded, fontError] = useFonts({ BebasNeue_400Regular })
   const [motoboy, setMotoboy] = useState<Motoboy | null>(null)
   // Sessão já carregada e válida, mas ainda esperando a digital (quando o
   // motoboy ativou isso no Perfil) — ver src/screens/LockScreen.tsx.
@@ -34,7 +37,7 @@ export default function App() {
     })()
   }, [])
 
-  if (checking) {
+  if (checking || (!fontsLoaded && !fontError)) {
     return (
       <SafeAreaProvider>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.paper }}>

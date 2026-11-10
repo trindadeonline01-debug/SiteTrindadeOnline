@@ -1,234 +1,159 @@
-import { useEffect, useState } from 'react'
-import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, RefreshControl, Linking } from 'react-native'
-import { colors, spacing, radius, errMsg } from '../theme'
-import { aceitarOferta, recusarOferta, confirmarCodigo, confirmarGrupo, Oferta, Corrida } from '../api'
+import { useCallback, useEffect, useState } from 'react'
+import { View, Text, Pressable, StyleSheet, ScrollView, RefreshControl } from 'react-native'
+import Svg, { Circle, G, Path } from 'react-native-svg'
+import { colors, fonts } from '../theme'
+import Icon from '../components/Icon'
+import OnlinePill from '../components/OnlinePill'
+import { getPainel } from '../api'
+import { periodRange } from '../periodFilter'
+import { Unit, iniciais, fmtMoney } from '../rides'
 
-// "O entregador tá cego" (Ricardo, out/2026) — o card de "indo entregar" só
-// tinha nome e código, nada de endereço nem contato. Esses dois abrem o que
-// já está instalado no celular (Maps/WhatsApp), sem precisar de API nova.
-function openMaps(address: string) {
-  Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`)
-}
-function openWhatsApp(phone: string) {
-  let digits = phone.replace(/\D/g, '')
-  if (!digits.startsWith('55')) digits = '55' + digits
-  Linking.openURL(`https://wa.me/${digits}`)
-}
-
-function fmtTempo(s: number) {
-  const m = Math.floor(s / 60); const sec = s % 60
-  return `${m}:${sec < 10 ? '0' : ''}${sec}`
-}
-function isStaleRide(iso: string) { return Date.now() - new Date(iso).getTime() > 2 * 60 * 60 * 1000 }
-function fmtHora(iso: string) {
-  return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+type Props = {
+  nome: string
+  online: boolean
+  onToggleOnline: () => void
+  units: Unit[]
+  onOpenUnit: (key: string) => void
+  alertasOk: boolean
+  onConfigurar: () => void
+  reload: () => Promise<void>
 }
 
-// Mesma engine do painel web (src/app/motoboy/painel/page.tsx) — poll a
-// cada 4s em vez de Supabase Realtime, porque motoboy não é usuário
-// Supabase Auth (ver KB). Round 2 troca esse poll por push nativo quando
-// o Firebase estiver configurado; a lógica de aceitar/recusar/confirmar
-// continua a mesma de qualquer forma.
-//
-// offer/rides/reload/pauseAlert vêm de HomeScreen, não daqui — esse
-// componente só existe enquanto a aba Corridas está em foco (ver
-// HomeScreen.tsx), então o polling e o som de alerta precisam morar lá em
-// cima pra continuarem rodando mesmo com o motoboy em Ganhos/Perfil
-// (achado real do Ricardo, out/2026: "a música não tocou" — a causa era
-// essa, o componente simplesmente não existia quando a oferta chegou).
-type Props = { offer: Oferta | null; rides: Corrida[]; reload: () => Promise<void>; pauseAlert: () => void }
-
-export default function CorridasScreen({ offer, rides, reload, pauseAlert }: Props) {
-  const [secondsLeft, setSecondsLeft] = useState(0)
-  const [busy, setBusy] = useState(false)
+// Aba Corridas fora da tela da corrida: "aguardando" (online/offline) ou a lista
+// das corridas em andamento. A oferta nova e a corrida aberta ocupam a tela toda
+// e moram no HomeScreen — redesenho aprovado (nov/2026).
+export default function CorridasScreen({ nome, online, onToggleOnline, units, onOpenUnit, alertasOk, onConfigurar, reload }: Props) {
   const [refreshing, setRefreshing] = useState(false)
-  const [soloCodes, setSoloCodes] = useState<Record<string, string>>({})
-  const [soloErrs, setSoloErrs] = useState<Record<string, string>>({})
-  const [groupCodes, setGroupCodes] = useState<Record<string, string>>({})
-  const [groupErrs, setGroupErrs] = useState<Record<string, string>>({})
+  const [hoje, setHoje] = useState<{ total: number; corridas: number } | null>(null)
 
-  useEffect(() => {
-    if (!offer) { setSecondsLeft(0); return }
-    const tick = () => setSecondsLeft(Math.max(0, Math.round((new Date(offer.expiresAt).getTime() - Date.now()) / 1000)))
-    tick()
-    const id = setInterval(tick, 1000)
-    return () => clearInterval(id)
-  }, [offer])
-
-  async function onRefresh() {
-    setRefreshing(true)
-    await reload()
-    setRefreshing(false)
-  }
-
-  async function handleAceitar() {
-    setBusy(true)
-    pauseAlert() // não espera o próximo poll pra calar o som
-    try { await aceitarOferta() } catch {} finally { setBusy(false); reload() }
-  }
-  async function handleRecusar() {
-    setBusy(true)
-    pauseAlert()
-    try { await recusarOferta() } catch {} finally { setBusy(false); reload() }
-  }
-
-  async function handleConfirmarSolo(id: string) {
-    const code = soloCodes[id]
-    if (!code) return
-    setSoloErrs(e => ({ ...e, [id]: '' }))
+  const carregarHoje = useCallback(async () => {
     try {
-      const r = await confirmarCodigo(id, code)
-      if (!r.ok) setSoloErrs(e => ({ ...e, [id]: r.error || 'não confere' }))
-      else { setSoloCodes(c => ({ ...c, [id]: '' })); reload() }
-    } catch (e) {
-      setSoloErrs(er => ({ ...er, [id]: errMsg(e) }))
-    }
-  }
+      const { from } = periodRange('today')
+      const d = await getPainel(from ? { from, to: '' } : undefined)
+      setHoje({
+        total: (d.periodAReceber || 0) + (d.periodRecebido || 0),
+        corridas: d.recentOrders.filter(o => o.status === 'entregue').length,
+      })
+    } catch {}
+  }, [])
+  useEffect(() => {
+    carregarHoje()
+    const id = setInterval(carregarHoje, 60000)
+    return () => clearInterval(id)
+  }, [carregarHoje])
 
-  async function handleConfirmarGrupo(ids: string[]) {
-    const items = ids.map(id => ({ orderId: id, code: groupCodes[id] || '' }))
-    const r = await confirmarGrupo(items)
-    const newErrs: Record<string, string> = {}
-    r.results.forEach(res => { if (!res.ok) newErrs[res.orderId] = res.error || 'não confere' })
-    setGroupErrs(newErrs)
-    if (Object.keys(newErrs).length === 0) { setGroupCodes({}); reload() }
-  }
-
-  // Corridas aguardando retirada da MESMA loja viram um card de grupo —
-  // achado real: retirar vários pedidos da mesma loja numa só ida
-  // (Confeitaria da Juju, 3 pedidos de uma vez).
-  const aRetirar = rides.filter(r => !r.pickedUp)
-  const porLoja = new Map<string, Corrida[]>()
-  aRetirar.forEach(r => porLoja.set(r.company, [...(porLoja.get(r.company) || []), r]))
-  const aEntregar = rides.filter(r => r.pickedUp)
+  async function onRefresh() { setRefreshing(true); await Promise.all([reload(), carregarHoje()]); setRefreshing(false) }
+  const primeiro = nome.trim().split(/\s+/)[0] || nome
+  const nomeBonito = primeiro.charAt(0) + primeiro.slice(1).toLowerCase()
 
   return (
-    <ScrollView style={s.wrap} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
-      {offer && (
-        <View style={s.offerBox}>
-          <Text style={s.offerKicker}>NOVA CORRIDA</Text>
-          <View style={s.ring}><Text style={s.ringTxt}>{fmtTempo(secondsLeft)}</Text></View>
-          <Text style={s.offerCompany}>{offer.company}</Text>
-          <Text style={s.offerBairro}>→ {offer.bairro || 'destino do cliente'}</Text>
-          <Text style={s.offerValor}>R$ {offer.valueLabel}</Text>
-          <View style={s.offerBtns}>
-            <Pressable style={[s.btn, s.btnBad]} disabled={busy} onPress={handleRecusar}><Text style={s.btnTxt}>Recusar</Text></Pressable>
-            <Pressable style={[s.btn, s.btnGood]} disabled={busy} onPress={handleAceitar}><Text style={s.btnTxt}>Aceitar</Text></Pressable>
+    <ScrollView style={s.wrap} contentContainerStyle={s.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
+      <View style={s.header}>
+        <View style={s.who}>
+          <View style={s.avatar}><Text style={s.avatarTxt}>{iniciais(nome)}</Text></View>
+          <View>
+            <Text style={s.hello}>Bom trabalho,</Text>
+            <Text style={s.name}>{nomeBonito}</Text>
           </View>
         </View>
-      )}
+        <OnlinePill online={online} onPress={onToggleOnline} />
+      </View>
 
-      {!offer && rides.length === 0 && (
-        <View style={s.empty}><Text style={s.emptyTxt}>Nenhuma corrida ativa agora.{'\n'}Fica de olho — a próxima oferta aparece aqui.</Text></View>
-      )}
-
-      {Array.from(porLoja.entries()).map(([loja, items]) => (
-        <View key={loja} style={s.card}>
-          <Text style={s.cardTitle}>{loja}</Text>
-          {items.length > 1 && <Text style={s.muted}>{items.length} pedidos pra retirar junto</Text>}
-          {items.map(r => (
-            <View key={r.id} style={s.rideRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={s.rideCliente}>{r.customerName}</Text>
-                <Text style={s.muted}>{r.bairro || r.pickupAddress} · R$ {r.valueLabel}{isStaleRide(r.requestedAt) ? ' · ⚠️ há muito tempo' : ` · ${fmtHora(r.requestedAt)}`}</Text>
-              </View>
-              <TextInput
-                style={s.codeInput}
-                placeholder="código"
-                placeholderTextColor={colors.muted}
-                keyboardType="number-pad"
-                maxLength={4}
-                value={items.length > 1 ? (groupCodes[r.id] || '') : (soloCodes[r.id] || '')}
-                onChangeText={t => items.length > 1 ? setGroupCodes(c => ({ ...c, [r.id]: t })) : setSoloCodes(c => ({ ...c, [r.id]: t }))}
-              />
-              {items.length === 1 && (
-                <Pressable style={s.btnSm} onPress={() => handleConfirmarSolo(r.id)}><Text style={s.btnSmTxt}>Confirmar</Text></Pressable>
-              )}
-            </View>
-          ))}
-          {items.map(r => (items.length > 1 && groupErrs[r.id]) ? <Text key={r.id + 'e'} style={s.erroTxt}>{r.customerName}: {groupErrs[r.id]}</Text> : null)}
-          {items.map(r => (items.length === 1 && soloErrs[r.id]) ? <Text key={r.id + 'e'} style={s.erroTxt}>{soloErrs[r.id]}</Text> : null)}
-          {items.length > 1 && (
-            <Pressable style={s.btn} onPress={() => handleConfirmarGrupo(items.map(i => i.id))}><Text style={s.btnTxt}>Confirmar todos</Text></Pressable>
-          )}
+      <View style={s.hero}>
+        <Text style={s.heroLabel}>GANHOS DE HOJE</Text>
+        <Text style={s.heroValor}>{fmtMoney(hoje?.total || 0)}</Text>
+        <View style={s.heroRow}>
+          <View><Text style={s.heroN}>{hoje?.corridas ?? 0}</Text><Text style={s.heroS}>corridas</Text></View>
+          <View><Text style={s.heroN}>{hoje && hoje.corridas > 0 ? fmtMoney(hoje.total / hoje.corridas) : '—'}</Text><Text style={s.heroS}>por corrida</Text></View>
         </View>
-      ))}
+      </View>
 
-      {aEntregar.map(r => (
-        <View key={r.id} style={s.card}>
-          <View style={s.cardTop}>
+      {units.length === 0 ? (
+        <>
+          <View style={s.radarBox}>
+            <Svg width={210} height={210} viewBox="0 0 210 210">
+              <Circle cx={105} cy={105} r={100} fill="none" stroke={online ? colors.gold : colors.btnBorder} strokeOpacity={online ? 0.16 : 0.6} strokeWidth={2} />
+              <Circle cx={105} cy={105} r={72} fill="none" stroke={online ? colors.gold : colors.btnBorder} strokeOpacity={online ? 0.32 : 0.8} strokeWidth={2} />
+              <Circle cx={105} cy={105} r={46} fill={online ? colors.gold : colors.btnBorder} fillOpacity={online ? 0.22 : 0.4} />
+              <Circle cx={105} cy={105} r={32} fill={online ? colors.gold : colors.btnBorder} />
+              <G transform="translate(105 105) scale(1.1) translate(-12 -12)" fill="none" stroke={colors.ink} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <Circle cx={6} cy={17} r={3} /><Circle cx={18} cy={17} r={3} /><Path d="M6 17 9 11h5l4 6" /><Path d="M14 11l1.5-3H18" /><Path d="M4 9h5v3H4z" />
+              </G>
+            </Svg>
+            <Text style={s.radarTit}>{online ? 'Procurando corridas' : 'Você está offline'}</Text>
+            <Text style={s.radarTxt}>
+              {online ? 'Você está online. Quando chegar uma corrida, o alarme toca — mesmo com a tela apagada.' : 'Toque em “Offline” no topo para voltar a receber corridas.'}
+            </Text>
+          </View>
+
+          <Pressable style={s.health} onPress={alertasOk ? undefined : onConfigurar}>
+            <View style={[s.healthIcon, !alertasOk && { backgroundColor: '#FFF1CC' }]}>
+              <Icon name="shield" size={22} color={alertasOk ? colors.good : colors.goldDark} />
+            </View>
             <View style={{ flex: 1 }}>
-              <Text style={s.cardTitle}>{r.customerName}</Text>
-              <Text style={s.muted}>{r.bairro || r.dropoffAddress} · R$ {r.valueLabel}</Text>
+              <Text style={s.healthTit}>{alertasOk ? 'Tudo pronto para receber corridas' : 'Falta configurar alguns alertas'}</Text>
+              <Text style={s.healthSub}>{alertasOk ? 'Localização, alertas e bateria configurados' : 'Toque para ver o que falta no Perfil'}</Text>
             </View>
-            <Text style={s.pillWait}>🏍️ Indo entregar</Text>
-          </View>
-          <View style={s.addrRow}>
-            {r.pickupAddress && (
-              <Pressable style={s.addrBtn} onPress={() => openMaps(r.pickupAddress!)}>
-                <Text style={s.addrBtnTxt}>📍 Loja</Text>
+            {!alertasOk && <Icon name="chevronRight" size={18} color={colors.muted} />}
+          </Pressable>
+        </>
+      ) : (
+        <>
+          <Text style={s.sec}>Em andamento</Text>
+          {units.map(u => {
+            const r = u.rides[0]
+            const loja = u.kind === 'loja'
+            const valor = u.rides.reduce((a, x) => a + (parseFloat(String(x.valueLabel).replace('.', '').replace(',', '.')) || 0), 0)
+            return (
+              <Pressable key={u.key} style={s.card} onPress={() => onOpenUnit(u.key)}>
+                <View style={[s.cardIcon, loja ? { backgroundColor: colors.ink } : { backgroundColor: colors.gold }]}>
+                  <Icon name={loja ? 'store' : 'pin'} size={22} color={loja ? colors.gold : colors.ink} />
+                </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={s.cardPhase}>{loja ? 'RETIRAR' : 'ENTREGAR'}</Text>
+                  <Text style={s.cardTit} numberOfLines={1}>{loja ? u.company : r.customerName}</Text>
+                  <Text style={s.cardSub} numberOfLines={1}>{loja ? (u.rides.length > 1 ? `${u.rides.length} pedidos juntos` : r.bairro || r.pickupAddress || '') : r.bairro || r.dropoffAddress || ''}</Text>
+                </View>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text style={s.cardValor}>{fmtMoney(valor)}</Text>
+                  <Icon name="chevronRight" size={18} color={colors.muted} />
+                </View>
               </Pressable>
-            )}
-            {r.dropoffAddress && (
-              <Pressable style={s.addrBtn} onPress={() => openMaps(r.dropoffAddress!)}>
-                <Text style={s.addrBtnTxt}>📍 Cliente</Text>
-              </Pressable>
-            )}
-          </View>
-          {r.customerPhone && (
-            <Pressable style={s.waBtn} onPress={() => openWhatsApp(r.customerPhone!)}>
-              <Text style={s.waBtnTxt}>💬 Chamar cliente no WhatsApp</Text>
-            </Pressable>
-          )}
-          <View style={s.rideRow}>
-            <TextInput
-              style={[s.codeInput, { flex: 1 }]}
-              placeholder="código de entrega"
-              placeholderTextColor={colors.muted}
-              keyboardType="number-pad"
-              maxLength={4}
-              value={soloCodes[r.id] || ''}
-              onChangeText={t => setSoloCodes(c => ({ ...c, [r.id]: t }))}
-            />
-            <Pressable style={s.btnSm} onPress={() => handleConfirmarSolo(r.id)}><Text style={s.btnSmTxt}>Confirmar</Text></Pressable>
-          </View>
-          {soloErrs[r.id] ? <Text style={s.erroTxt}>{soloErrs[r.id]}</Text> : null}
-        </View>
-      ))}
+            )
+          })}
+        </>
+      )}
     </ScrollView>
   )
 }
 
 const s = StyleSheet.create({
-  wrap: { flex: 1, backgroundColor: colors.paper, padding: spacing.md },
-  offerBox: { backgroundColor: colors.ink, borderRadius: radius.lg, padding: spacing.lg, alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md },
-  offerKicker: { color: colors.paperDark, fontSize: 11, fontWeight: '700', letterSpacing: 1 },
-  ring: { width: 72, height: 72, borderRadius: 36, borderWidth: 5, borderColor: colors.bad, alignItems: 'center', justifyContent: 'center' },
-  ringTxt: { color: colors.bad, fontWeight: '800', fontSize: 18 },
-  offerCompany: { color: colors.paper, fontWeight: '800', fontSize: 16 },
-  offerBairro: { color: colors.paperDark, fontSize: 13 },
-  offerValor: { color: colors.gold, fontWeight: '800', fontSize: 24 },
-  offerBtns: { flexDirection: 'row', gap: spacing.sm, width: '100%' },
-  empty: { padding: spacing.xl, alignItems: 'center' },
-  emptyTxt: { color: colors.muted, textAlign: 'center' },
-  card: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, padding: spacing.md, gap: spacing.sm, marginBottom: spacing.md },
-  cardTop: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
-  cardTitle: { fontWeight: '800', fontSize: 15, color: colors.ink },
-  muted: { color: colors.muted, fontSize: 12 },
-  addrRow: { flexDirection: 'row', gap: spacing.sm },
-  addrBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.paper, borderWidth: 1, borderColor: colors.line, borderRadius: radius.sm, paddingVertical: spacing.sm },
-  addrBtnTxt: { fontWeight: '700', fontSize: 12, color: colors.ink },
-  waBtn: { backgroundColor: colors.goodBg, borderWidth: 1, borderColor: '#BEE3CC', borderRadius: radius.sm, paddingVertical: spacing.sm, alignItems: 'center' },
-  waBtnTxt: { fontWeight: '800', fontSize: 12.5, color: colors.good },
-  rideRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  rideCliente: { fontWeight: '700', color: colors.ink },
-  codeInput: { backgroundColor: colors.paper, borderWidth: 1, borderColor: colors.line, borderRadius: radius.sm, padding: spacing.sm, width: 80, textAlign: 'center', fontWeight: '700' },
-  btn: { backgroundColor: colors.gold, borderRadius: radius.md, padding: spacing.sm, alignItems: 'center' },
-  btnGood: { backgroundColor: colors.good, flex: 1 },
-  btnBad: { backgroundColor: colors.bad, flex: 1 },
-  btnTxt: { fontWeight: '800', color: '#fff' },
-  btnSm: { backgroundColor: colors.gold, borderRadius: radius.sm, paddingVertical: spacing.sm, paddingHorizontal: spacing.md },
-  btnSmTxt: { fontWeight: '800', color: colors.ink, fontSize: 12 },
-  pillWait: { alignSelf: 'flex-start', backgroundColor: colors.waitBg, color: colors.wait, fontWeight: '700', fontSize: 11, borderRadius: radius.pill, paddingVertical: 3, paddingHorizontal: 9 },
-  erroTxt: { color: colors.bad, fontSize: 12 },
+  wrap: { flex: 1, backgroundColor: colors.paper },
+  content: { paddingHorizontal: 20, paddingTop: 14, paddingBottom: 20 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  who: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  avatar: { width: 46, height: 46, borderRadius: 23, backgroundColor: colors.gold, alignItems: 'center', justifyContent: 'center' },
+  avatarTxt: { fontWeight: '800', fontSize: 16, color: colors.ink },
+  hello: { fontSize: 12, color: colors.muted, fontWeight: '500' },
+  name: { fontSize: 19, fontWeight: '800', color: colors.ink, lineHeight: 22 },
+  hero: { marginTop: 20, backgroundColor: colors.ink, borderRadius: 24, paddingHorizontal: 22, paddingTop: 22, paddingBottom: 20 },
+  heroLabel: { fontSize: 12, letterSpacing: 1.2, color: colors.mutedDark, fontWeight: '600' },
+  heroValor: { fontFamily: fonts.display, fontSize: 76, lineHeight: 80, color: colors.gold, marginTop: 4 },
+  heroRow: { flexDirection: 'row', gap: 28, marginTop: 16, paddingTop: 14, borderTopWidth: 1, borderTopColor: colors.inkLine },
+  heroN: { fontSize: 20, fontWeight: '700', color: '#fff' },
+  heroS: { fontSize: 12, color: colors.mutedDark },
+  radarBox: { alignItems: 'center', marginTop: 22 },
+  radarTit: { marginTop: 6, fontSize: 21, fontWeight: '800', color: colors.ink },
+  radarTxt: { marginTop: 6, fontSize: 14, lineHeight: 20, color: colors.muted, textAlign: 'center', maxWidth: 290 },
+  health: { marginTop: 20, backgroundColor: '#fff', borderRadius: 18, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: colors.border },
+  healthIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: colors.goodBg, alignItems: 'center', justifyContent: 'center' },
+  healthTit: { fontSize: 14, fontWeight: '700', color: colors.ink },
+  healthSub: { fontSize: 12, color: colors.muted, marginTop: 2 },
+  sec: { marginTop: 22, marginBottom: 10, fontSize: 15, fontWeight: '800', color: colors.ink },
+  card: { backgroundColor: '#fff', borderRadius: 18, borderWidth: 1, borderColor: colors.border, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 },
+  cardIcon: { width: 46, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  cardPhase: { fontSize: 11, letterSpacing: 1.2, fontWeight: '800', color: colors.goldDark },
+  cardTit: { fontSize: 17, fontWeight: '800', color: colors.ink },
+  cardSub: { fontSize: 12, color: colors.muted, marginTop: 1 },
+  cardValor: { fontSize: 16, fontWeight: '800', color: colors.ink },
 })

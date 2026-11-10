@@ -4,7 +4,9 @@ import { useAudioPlayer } from 'expo-audio'
 import { statusAlertas, abrirAjusteNotificacoes, abrirAjusteSobrepor, abrirAjusteTelaCheia, abrirAjusteBateria } from 'alarme-motoboy'
 import * as LocalAuthentication from 'expo-local-authentication'
 import { colors, spacing, radius, errMsg } from '../theme'
-import { atualizarPix, logout, Motoboy } from '../api'
+import { atualizarPix, logout, getPainel, Motoboy } from '../api'
+import Icon from '../components/Icon'
+import { iniciais } from '../rides'
 import { clearToken, isBiometricEnabled, setBiometricEnabled } from '../auth'
 import { statusLocalizacao, pedirLocalizacao, StatusLocalizacao } from '../localizacao'
 
@@ -15,6 +17,13 @@ export default function PerfilScreen({ motoboy, onLogout }: Props) {
   const [pixKey, setPixKey] = useState('')
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState('')
+  const [pixInfo, setPixInfo] = useState('')
+  useEffect(() => {
+    getPainel().then(d => {
+      const k = d.motoboy.pix_key
+      setPixInfo(k ? `Chave cadastrada · final ${k.slice(-3)}` : '')
+    }).catch(() => {})
+  }, [saving])
   // Login com digital (pedido do Ricardo, out/2026) — só mostra o toggle se
   // o aparelho tiver sensor E já tiver digital/Face ID cadastrado nele.
   const [bioSupported, setBioSupported] = useState(false)
@@ -89,100 +98,138 @@ export default function PerfilScreen({ motoboy, onLogout }: Props) {
     onLogout()
   }
 
+  const itens: { ok: boolean; titulo: string; ajuda: string; onPress: () => void }[] = [
+    { ok: alertas.notificacoes, titulo: 'Notificações', ajuda: 'Aviso de corrida nova e cancelada', onPress: abrirAjusteNotificacoes },
+    { ok: alertas.sobrepor, titulo: 'Sobrepor a outros apps', ajuda: 'A corrida abre por cima de qualquer app', onPress: abrirAjusteSobrepor },
+    { ok: alertas.telaCheia, titulo: 'Notificação em tela cheia', ajuda: 'Mostra a corrida na tela bloqueada', onPress: abrirAjusteTelaCheia },
+    { ok: !!loc?.primeiroPlano, titulo: 'Localização', ajuda: 'A loja e o cliente acompanham a corrida', onPress: ligarLocalizacao },
+    { ok: alertas.bateria, titulo: 'Sem economia de bateria', ajuda: 'Impede o Android de fechar o app', onPress: abrirAjusteBateria },
+  ]
+  const okCount = itens.filter(i => i.ok).length
+  const tudoOk = okCount === itens.length
+
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.paper }} contentContainerStyle={s.wrap}>
-      <View style={s.avatarRow}>
-        <View style={s.avatar}><Text style={s.avatarTxt}>{motoboy.name.slice(0, 2).toUpperCase()}</Text></View>
-        <View>
-          <Text style={s.nome}>{motoboy.name}</Text>
-          <Text style={s.muted}>{motoboy.phone}</Text>
+      <Text style={s.h1}>Perfil</Text>
+
+      <View style={s.hero}>
+        <View style={s.avatar}><Text style={s.avatarTxt}>{iniciais(motoboy.name)}</Text></View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={s.nome} numberOfLines={2}>{motoboy.name}</Text>
+          <Text style={s.fone}>{motoboy.phone}</Text>
+          <View style={s.tag}><Icon name="shield" size={14} color={colors.gold} stroke={2.2} /><Text style={s.tagTxt}>Motoboy parceiro</Text></View>
         </View>
       </View>
 
-      <Pressable style={s.docRow} onPress={() => setEditPix(e => !e)}>
-        <Text>💳 Chave Pix</Text>
-        <Text style={s.muted}>editar ›</Text>
-      </Pressable>
-      {editPix && (
-        <View style={{ gap: spacing.sm }}>
-          <TextInput style={s.field} placeholder="Nova chave Pix" placeholderTextColor={colors.muted} value={pixKey} onChangeText={setPixKey} />
-          <Pressable style={s.btn} disabled={saving} onPress={handleSalvarPix}><Text style={s.btnTxt}>Salvar</Text></Pressable>
+      <View style={s.listCard}>
+        <Pressable style={[s.row, s.rowBorder]} onPress={() => setEditPix(e => !e)}>
+          <View style={s.rowIcon}><Icon name="card" size={20} /></View>
+          <View style={{ flex: 1 }}>
+            <Text style={s.rowTit}>Chave Pix</Text>
+            <Text style={s.rowSub}>{pixInfo || 'Toque para cadastrar'}</Text>
+          </View>
+          <Text style={s.editar}>Editar</Text>
+        </Pressable>
+        {editPix && (
+          <View style={s.pixBox}>
+            <TextInput style={s.field} placeholder="Nova chave Pix" placeholderTextColor={colors.muted} value={pixKey} onChangeText={setPixKey} autoCapitalize="none" />
+            <Pressable style={s.btnGold} disabled={saving} onPress={handleSalvarPix}><Text style={s.btnGoldTxt}>Salvar chave</Text></Pressable>
+          </View>
+        )}
+        {msg ? <Text style={s.msg}>{msg}</Text> : null}
+        <View style={[s.row, bioSupported && s.rowBorder]}>
+          <View style={s.rowIcon}><Icon name="doc" size={20} /></View>
+          <Text style={[s.rowTit, { flex: 1 }]}>Documentos</Text>
+          <Text style={s.okPill}>Aprovados</Text>
         </View>
-      )}
-      {msg ? <Text style={s.muted}>{msg}</Text> : null}
-
-      <View style={s.docRow}>
-        <Text>📄 Documentos</Text>
-        <Text style={s.pillOk}>✓ aprovados</Text>
+        {bioSupported && (
+          <View style={s.row}>
+            <View style={s.rowIcon}><Icon name="lock" size={20} /></View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.rowTit}>Entrar com digital</Text>
+              <Text style={s.rowSub}>Abre o app sem digitar código</Text>
+            </View>
+            <Switch value={bioEnabled} onValueChange={handleToggleBio} trackColor={{ true: colors.gold, false: colors.line }} thumbColor={colors.ink} />
+          </View>
+        )}
       </View>
 
-      {bioSupported && (
-        <View style={s.docRow}>
-          <Text>🔒 Entrar com digital</Text>
-          <Switch
-            value={bioEnabled}
-            onValueChange={handleToggleBio}
-            trackColor={{ true: colors.gold, false: colors.line }}
-            thumbColor={colors.card}
-          />
+      <View style={s.saude}>
+        <View style={s.saudeHead}>
+          <Text style={s.saudeTit}>Saúde do app</Text>
+          <Text style={[s.contador, !tudoOk && { backgroundColor: '#FFF1CC', color: '#6B4A00' }]}>{okCount} de {itens.length}</Text>
         </View>
-      )}
-
-      <View style={s.secao}>
-        <Text style={s.secaoTit}>🔔 Alertas de corrida</Text>
-        <Text style={s.muted}>
-          Para a corrida tocar e abrir o app com a tela apagada ou em cima de outro aplicativo, as opções abaixo precisam estar ligadas.
-        </Text>
-        <ItemAlerta ok={alertas.notificacoes} titulo="Notificações" ajuda="Permite o aviso de corrida nova e cancelada" onPress={abrirAjusteNotificacoes} />
-        <ItemAlerta ok={alertas.sobrepor} titulo="Sobrepor a outros apps" ajuda="Deixa a corrida abrir por cima de qualquer app" onPress={abrirAjusteSobrepor} />
-        <ItemAlerta ok={alertas.telaCheia} titulo="Notificação em tela cheia" ajuda="Mostra a corrida na tela bloqueada" onPress={abrirAjusteTelaCheia} />
-        <ItemAlerta ok={!!loc?.primeiroPlano} titulo="Localização" ajuda="Permite a loja e o cliente acompanharem a corrida" onPress={ligarLocalizacao} />
-        <ItemAlerta ok={alertas.bateria} titulo="Sem economia de bateria" ajuda="Impede o Android de fechar o app em segundo plano" onPress={abrirAjusteBateria} />
-        <Pressable style={[s.btn, { marginTop: spacing.sm }]} onPress={testarSom}><Text style={s.btnTxt}>🔊 Testar o som da corrida</Text></Pressable>
+        <View style={s.barra}><View style={[s.barraFill, { width: `${(okCount / itens.length) * 100}%`, backgroundColor: tudoOk ? colors.good : colors.gold }]} /></View>
+        <Text style={s.saudeTxt}>Com tudo ligado, a corrida toca e abre o app mesmo com a tela apagada ou em cima de outro aplicativo.</Text>
+        {itens.map((it, i) => (
+          <Pressable key={it.titulo} style={[s.item, i < itens.length - 1 && s.itemBorder]} onPress={it.ok ? undefined : it.onPress}>
+            <View style={[s.check, !it.ok && { backgroundColor: colors.bad }]}>
+              <Icon name={it.ok ? 'check' : 'close'} size={15} color="#fff" stroke={3} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.itemTit}>{it.titulo}</Text>
+              <Text style={s.itemSub}>{it.ajuda}</Text>
+            </View>
+            {!it.ok && <Text style={s.ligar}>Ligar</Text>}
+          </Pressable>
+        ))}
       </View>
 
-      <Pressable
-        style={s.docRow}
-        onPress={() => Alert.alert('Ajuda', 'Fala com a gente pelo WhatsApp da Trindade Online.')}
-      >
-        <Text>💬 Ajuda</Text>
-        <Text style={s.muted}>WhatsApp ›</Text>
+      <Pressable style={s.somBtn} onPress={testarSom}>
+        <Icon name="speaker" size={20} /><Text style={s.somTxt}>Testar o som da corrida</Text>
       </Pressable>
 
-      <Pressable style={[s.btn, s.btnSair]} onPress={handleSair}>
-        <Text style={[s.btnTxt, { color: colors.bad }]}>Sair</Text>
-      </Pressable>
+      <View style={s.listCard}>
+        <Pressable style={s.row} onPress={() => Linking.openURL('https://wa.me/5521986210551').catch(() => Alert.alert('Ajuda', 'Fale com a gente pelo WhatsApp da Trindade Online.'))}>
+          <View style={s.rowIcon}><Icon name="chat" size={20} /></View>
+          <Text style={[s.rowTit, { flex: 1 }]}>Ajuda pelo WhatsApp</Text>
+          <Icon name="chevronRight" size={18} color={colors.muted} />
+        </Pressable>
+      </View>
+
+      <Pressable style={s.sair} onPress={handleSair}><Text style={s.sairTxt}>Sair da conta</Text></Pressable>
     </ScrollView>
   )
 }
 
-function ItemAlerta({ ok, titulo, ajuda, onPress }: { ok: boolean; titulo: string; ajuda: string; onPress: () => void }) {
-  return (
-    <Pressable style={s.itemAlerta} onPress={ok ? undefined : onPress}>
-      <View style={{ flex: 1 }}>
-        <Text style={{ fontWeight: '700', color: colors.ink }}>{ok ? '✅' : '⚠️'} {titulo}</Text>
-        <Text style={s.muted}>{ajuda}</Text>
-      </View>
-      {ok ? <Text style={s.pillOk}>ligado</Text> : <Text style={s.corrigir}>Ligar ›</Text>}
-    </Pressable>
-  )
-}
-
 const s = StyleSheet.create({
-  wrap: { backgroundColor: colors.paper, padding: spacing.md, gap: spacing.md },
-  avatarRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.sm },
-  avatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.gold, alignItems: 'center', justifyContent: 'center' },
-  avatarTxt: { fontWeight: '800', color: colors.ink },
-  nome: { fontWeight: '800', fontSize: 16, color: colors.ink },
-  muted: { color: colors.muted, fontSize: 12 },
-  docRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, padding: spacing.md },
-  pillOk: { color: colors.good, fontWeight: '700', fontSize: 12 },
-  field: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, padding: spacing.md },
-  btn: { backgroundColor: colors.gold, borderRadius: radius.md, padding: spacing.md, alignItems: 'center' },
-  btnTxt: { fontWeight: '800', color: colors.ink },
-  btnSair: { backgroundColor: 'transparent', borderWidth: 1.4, borderColor: colors.bad, marginTop: spacing.lg },
-  secao: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, padding: spacing.md, gap: spacing.sm },
-  secaoTit: { fontWeight: '800', fontSize: 15, color: colors.ink },
-  itemAlerta: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm, borderTopWidth: 1, borderTopColor: colors.line },
-  corrigir: { color: colors.bad, fontWeight: '800', fontSize: 13 },
+  wrap: { paddingHorizontal: 20, paddingTop: 14, paddingBottom: 28 },
+  h1: { fontSize: 28, fontWeight: '800', color: colors.ink },
+  hero: { marginTop: 16, backgroundColor: colors.ink, borderRadius: 24, padding: 22, flexDirection: 'row', alignItems: 'center', gap: 16 },
+  avatar: { width: 72, height: 72, borderRadius: 36, backgroundColor: colors.gold, alignItems: 'center', justifyContent: 'center' },
+  avatarTxt: { fontWeight: '800', fontSize: 26, color: colors.ink },
+  nome: { fontSize: 21, fontWeight: '800', color: '#fff', lineHeight: 24 },
+  fone: { fontSize: 14, color: colors.mutedDark, marginTop: 3 },
+  tag: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', marginTop: 8, backgroundColor: colors.inkLine, borderRadius: 999, paddingVertical: 5, paddingHorizontal: 10 },
+  tagTxt: { fontSize: 12, fontWeight: '700', color: colors.gold },
+  listCard: { marginTop: 14, backgroundColor: '#fff', borderRadius: 20, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16 },
+  rowBorder: { borderBottomWidth: 1, borderBottomColor: '#EEEAE0' },
+  rowIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: colors.paper, alignItems: 'center', justifyContent: 'center' },
+  rowTit: { fontSize: 15, fontWeight: '700', color: colors.ink },
+  rowSub: { fontSize: 13, color: colors.muted, marginTop: 1 },
+  editar: { fontSize: 13, fontWeight: '700', color: colors.goldDark },
+  okPill: { backgroundColor: colors.goodBg, color: colors.goodDark, fontSize: 12, fontWeight: '800', paddingVertical: 4, paddingHorizontal: 10, borderRadius: 999, overflow: 'hidden' },
+  pixBox: { paddingHorizontal: 16, paddingBottom: 14, gap: 8, borderBottomWidth: 1, borderBottomColor: '#EEEAE0' },
+  field: { backgroundColor: colors.paper, borderWidth: 1, borderColor: colors.line, borderRadius: 12, padding: 12, fontSize: 15, color: colors.ink },
+  btnGold: { backgroundColor: colors.gold, borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
+  btnGoldTxt: { fontWeight: '800', color: colors.ink },
+  msg: { fontSize: 12, color: colors.muted, paddingHorizontal: 16, paddingBottom: 8 },
+  saude: { marginTop: 14, backgroundColor: '#fff', borderRadius: 20, borderWidth: 1, borderColor: colors.border, paddingTop: 18, paddingHorizontal: 16, paddingBottom: 6 },
+  saudeHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  saudeTit: { fontSize: 17, fontWeight: '800', color: colors.ink },
+  contador: { fontSize: 13, fontWeight: '800', color: colors.goodDark, backgroundColor: colors.goodBg, paddingVertical: 4, paddingHorizontal: 10, borderRadius: 999, overflow: 'hidden' },
+  barra: { height: 8, borderRadius: 8, backgroundColor: '#EEEAE0', marginTop: 12, overflow: 'hidden' },
+  barraFill: { height: '100%' },
+  saudeTxt: { marginTop: 12, marginBottom: 4, fontSize: 13, lineHeight: 19, color: colors.muted },
+  item: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 13 },
+  itemBorder: { borderBottomWidth: 1, borderBottomColor: '#EEEAE0' },
+  check: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.good, alignItems: 'center', justifyContent: 'center' },
+  itemTit: { fontSize: 14, fontWeight: '700', color: colors.ink },
+  itemSub: { fontSize: 12, color: colors.muted },
+  ligar: { fontSize: 13, fontWeight: '800', color: colors.bad },
+  somBtn: { marginTop: 14, height: 56, borderRadius: 16, borderWidth: 1.5, borderColor: colors.ink, backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
+  somTxt: { fontSize: 15, fontWeight: '800', color: colors.ink },
+  sair: { marginTop: 14, height: 54, borderRadius: 16, borderWidth: 1.5, borderColor: '#C0392B', alignItems: 'center', justifyContent: 'center' },
+  sairTxt: { fontSize: 15, fontWeight: '800', color: '#B03123' },
 })

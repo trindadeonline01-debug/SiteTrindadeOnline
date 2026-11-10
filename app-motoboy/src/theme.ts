@@ -16,7 +16,18 @@ export const colors = {
   wait: '#8A6410',
   waitBg: '#F6E9CE',
   line: '#E0DCD0',
+  // Redesenho (nov/2026)
+  ink2: '#1D1810',
+  inkLine: '#2C2518',
+  mutedDark: '#B8AE98',
+  border: '#E6E2D6',
+  btnBorder: '#D9D5CA',
+  goodDark: '#0B5F44',
+  disabled: '#DDD8C9',
 }
+
+// Fonte dos números grandes (Bebas Neue, carregada em App.tsx).
+export const fonts = { display: 'BebasNeue_400Regular' }
 
 export const spacing = { xs: 4, sm: 8, md: 12, lg: 18, xl: 28 }
 

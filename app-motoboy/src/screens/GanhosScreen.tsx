@@ -23,7 +23,8 @@ export default function GanhosScreen({ online, onToggleOnline }: Props) {
   const load = useCallback(async (p: PeriodKind) => {
     try {
       const { from, to } = periodRange(p)
-      setData(await getPainel(from ? { from, to: to || '' } : undefined))
+      // "Tudo" não manda data → o servidor devolvia só as 15 últimas corridas na lista.
+      setData(await getPainel(from ? { from, to: to || '' } : p === 'all' ? { from: '2020-01-01T00:00:00.000Z', to: '' } : undefined))
     } catch {}
   }, [])
   useEffect(() => { load(period) }, [load, period])

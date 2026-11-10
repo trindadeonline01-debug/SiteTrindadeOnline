@@ -59,8 +59,17 @@ export async function GET(req: NextRequest) {
   // Mesmos totais de cima, só que somados dentro do período filtrado (em vez
   // do saldo atual geral) — é o que responde "o que eu tenho a receber/já
   // recebi NESSE período" em vez de só o saldo de agora.
-  // Entregues + canceladas já retiradas (essas só entram com payout_status liberado/pago)
-  const entreguesNoPeriodo = (recentOrders || []).filter(o => o.status === 'entregue' || (o.status === 'cancelada' && (o.payout_status === 'liberado' || !!o.payout_id)))
+  // Entregues + canceladas já retiradas (essas só entram com payout_status liberado/pago).
+  // Os totais saem de uma consulta SEM o limite de linhas da lista: antes, "Tudo"
+  // (sem from/to) somava só as 15 últimas corridas e mostrava R$ 74 enquanto o
+  // saldo geral era R$ 107 (Ricardo, nov/2026).
+  let totQ = supabase
+    .from('delivery_orders').select('fee, status, payout_status, payout_id')
+    .eq('motoboy_id', motoboy.id).in('status', ['entregue', 'cancelada']).limit(5000)
+  if (from) totQ = totQ.gte('created_at', from)
+  if (to) totQ = totQ.lt('created_at', to)
+  const { data: totOrders } = await totQ
+  const entreguesNoPeriodo = (totOrders || []).filter(o => o.status === 'entregue' || (o.status === 'cancelada' && (o.payout_status === 'liberado' || !!o.payout_id)))
   const periodAReceber = entreguesNoPeriodo
     .filter(o => o.payout_status === 'liberado' && !o.payout_id)
     .reduce((a, o) => a + valorRepasseMotoboy(o, pricing), 0)
@@ -69,7 +78,9 @@ export async function GET(req: NextRequest) {
     .reduce((a, o) => a + valorRepasseMotoboy(o, pricing), 0)
 
   const { data: payouts } = await supabase.from('motoboy_payouts').select('*').eq('motoboy_id', motoboy.id).eq('status', 'pago').order('paid_at', { ascending: false }).limit(10)
-  const jaRecebido = (payouts || []).reduce((a, p) => a + Number(p.valor), 0)
+  // "Já recebido" do topo soma TODOS os repasses pagos (antes somava só os 10 últimos).
+  const { data: pagos } = await supabase.from('motoboy_payouts').select('valor').eq('motoboy_id', motoboy.id).eq('status', 'pago')
+  const jaRecebido = (pagos || []).reduce((a, p) => a + Number(p.valor), 0)
 
   return NextResponse.json({
     motoboy: { id: full?.id, name: full?.name, phone: full?.phone, pix_key: full?.pix_key, pix_key_type: full?.pix_key_type, status: full?.status, available: full?.available, has_password: !!full?.password_hash },

@@ -1,21 +1,21 @@
 // Paleta e tipos compartilhados — mesmos tokens de marca do site
 // (docs/KNOWLEDGE_BASE.md §2), adaptados pro app nativo do motoboy.
 export const colors = {
-  ink: '#1A0F00',
-  inkLight: '#2A1B08',
-  gold: '#C9951A',
+  ink: '#120F0A',
+  inkLight: '#1D1810',
+  gold: '#FFC531',
   goldDark: '#8A6410',
-  paper: '#F0EDE8',
-  paperDark: '#E3DCCB',
+  paper: '#F2F1ED',
+  paperDark: '#E9E5D8',
   card: '#FFFFFF',
-  muted: '#7A6E57',
-  good: '#1F7A4D',
-  goodBg: '#E1F2E8',
+  muted: '#6B6558',
+  good: '#12805C',
+  goodBg: '#E3F4EC',
   bad: '#B23B2E',
   badBg: '#F6DCD6',
   wait: '#8A6410',
   waitBg: '#F6E9CE',
-  line: '#D8CFBA',
+  line: '#E0DCD0',
 }
 
 export const spacing = { xs: 4, sm: 8, md: 12, lg: 18, xl: 28 }

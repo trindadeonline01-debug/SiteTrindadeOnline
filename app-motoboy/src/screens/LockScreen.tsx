@@ -19,7 +19,7 @@ export default function LockScreen({ motoboyName, onUnlock, onLogout }: Props) {
     setTrying(true); setErro('')
     try {
       const r = await LocalAuthentication.authenticateAsync({
-        promptMessage: 'Desbloquear Trindade Online Entregas',
+        promptMessage: 'Desbloquear Trindade Entregas',
         cancelLabel: 'Cancelar',
       })
       if (r.success) onUnlock()

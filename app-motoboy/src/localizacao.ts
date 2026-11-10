@@ -82,7 +82,7 @@ export async function ligarRastreio(): Promise<void> {
       foregroundService: {
         notificationTitle: 'Corrida em andamento',
         notificationBody: 'Trindade Online está compartilhando sua localização com a loja e o cliente.',
-        notificationColor: '#C9951A',
+        notificationColor: '#FFC531',
       },
     })
   } catch {}

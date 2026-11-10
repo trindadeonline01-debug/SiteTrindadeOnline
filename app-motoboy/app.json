@@ -1,13 +1,13 @@
 {
   "expo": {
-    "name": "Trindade Online Entregas",
+    "name": "Trindade Entregas",
     "slug": "trindade-motoboy",
     "scheme": "trindademotoboy",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "backgroundColor": "#F0EDE8",
+    "backgroundColor": "#F2F1ED",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.trindadeonline.motoboy"
@@ -15,7 +15,7 @@
     "android": {
       "package": "com.trindadeonline.motoboy",
       "adaptiveIcon": {
-        "backgroundColor": "#1A0F00",
+        "backgroundColor": "#120F0A",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -56,8 +56,8 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/icon.png",
-          "color": "#C9951A",
+          "icon": "./assets/notification-icon.png",
+          "color": "#FFC531",
           "sounds": [
             "./assets/sounds/alerta_corrida.wav",
             "./assets/sounds/corrida_cancelada.wav"

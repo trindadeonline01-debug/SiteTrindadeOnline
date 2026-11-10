@@ -156,7 +156,7 @@ const s = StyleSheet.create({
   wrap: { flexGrow: 1, padding: spacing.xl, paddingTop: spacing.xl * 2, gap: spacing.md },
   brand: { fontSize: 30, fontWeight: '800', textAlign: 'center', letterSpacing: 1 },
   brandInk: { color: colors.ink },
-  brandGold: { color: colors.gold },
+  brandGold: { color: colors.goldDark },
   sub: { textAlign: 'center', color: colors.muted, marginBottom: spacing.lg },
   tabs: { flexDirection: 'row', justifyContent: 'center', gap: spacing.lg, marginBottom: spacing.sm },
   tab: { color: colors.muted, fontWeight: '600', paddingBottom: 4 },

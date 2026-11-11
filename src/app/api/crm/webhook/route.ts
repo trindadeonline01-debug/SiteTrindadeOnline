@@ -544,13 +544,16 @@ export async function POST(req: NextRequest) {
               const { data: maisRecente } = await supabase
                 .from('crm_messages').select('id')
                 .eq('contact_id', contactId).eq('direction', 'in')
+                // só conta mensagem com texto: figurinha/foto solta mandada logo depois do texto não pode
+                // "roubar" a vez — antes ninguém respondia (o último evento não tinha texto pra responder)
+                .not('body', 'is', null)
                 .order('sent_at', { ascending: false }).limit(1).maybeSingle()
               if (insertedMsg && maisRecente?.id === insertedMsg.id) {
                 const { data: historico } = await supabase
                   .from('crm_messages').select('direction, body')
                   .eq('contact_id', contactId).not('body', 'is', null)
                   .order('sent_at', { ascending: false }).limit(20)
-                const respostaIA = await gerarRespostaIA(inst.company_id, ((historico || []) as any[]).reverse(), phone)
+                const respostaIA = await gerarRespostaIA(inst.company_id, ((historico || []) as any[]).reverse(), phone, sentAt)
                 if (respostaIA) {
                   await sendCustomerWhatsApp(inst.company_id, phone, respostaIA.texto, 'ia')
                   if (jaPediu) await supabase.from('crm_contacts').update({ pediu_humano_em: null }).eq('id', contactId)

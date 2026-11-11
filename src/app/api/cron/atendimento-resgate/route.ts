@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
 
   let query = supabase
     .from('crm_contacts')
-    .select('id, phone, company_id, companies!inner(crm_ia_enabled)')
+    .select('id, phone, company_id, last_message_at, companies!inner(crm_ia_enabled)')
     .eq('atendimento_modo', 'humano')
     .eq('last_message_direction', 'in')
     .eq('companies.crm_ia_enabled', true)
@@ -78,7 +78,7 @@ export async function GET(req: NextRequest) {
         .from('crm_messages').select('direction, body')
         .eq('contact_id', contato.id).not('body', 'is', null)
         .order('sent_at', { ascending: false }).limit(20)
-      const respostaIA = await gerarRespostaIA(contato.company_id, ((historico || []) as any[]).reverse(), contato.phone)
+      const respostaIA = await gerarRespostaIA(contato.company_id, ((historico || []) as any[]).reverse(), contato.phone, contato.last_message_at)
       if (respostaIA) {
         await sendCustomerWhatsApp(contato.company_id, contato.phone, respostaIA.texto, 'ia')
         await supabase.from('crm_contacts').update({ pediu_humano_em: null }).eq('id', contato.id)

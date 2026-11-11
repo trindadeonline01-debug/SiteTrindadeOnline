@@ -322,6 +322,16 @@ async function buildContext(companyId: string, phone?: string | null, ultimaMsgC
           .order('created_at', { ascending: false }).limit(1).maybeSingle()
         if (entrega?.delivery_code) codigoEntrega = entrega.delivery_code
       }
+      // Status real do pedido — pra "já está pronto?" / "cadê meu pedido?" (Mineroca, nov/2026: a IA
+      // respondia só "nosso prazo é de 50 minutos" mesmo com o pedido já saindo, e o cliente não queria esperar).
+      const STATUS_TXT: Record<string, string> = {
+        recebido: 'RECEBIDO — a loja ainda não começou o preparo', em_preparo: 'EM PREPARO agora',
+        pronto: 'PRONTO — aguardando sair para entrega / retirada', saiu_entrega: 'SAIU PARA ENTREGA — já está a caminho',
+        entregue: 'ENTREGUE',
+      }
+      if (STATUS_TXT[pedido.status]) {
+        linhas.push(`STATUS REAL do pedido mais recente desse cliente (nº ${pedido.order_number}, ${pedido.delivery_type === 'entrega' ? 'entrega' : 'retirada'}): ${STATUS_TXT[pedido.status]}. Se o cliente perguntar "já está pronto?", "cadê meu pedido?", "falta muito?" sobre esse pedido, responda com ESSE status real — NUNCA responda só repetindo o prazo médio de preparo (o cliente já sabe e não quer esperar à toa). Em preparo: diga que está sendo preparado e que ele recebe um aviso aqui no WhatsApp quando ficar pronto/sair; saiu para entrega: diga que já está a caminho. Se o pedido está em preparo há MUITO mais que o tempo médio, reconheça que está demorando um pouco mais e que vai verificar com a cozinha, sem prometer horário.`)
+      }
       if (codigoEntrega) {
         linhas.push(`Pedido mais recente desse cliente: nº ${pedido.order_number}. ATENÇÃO — o número do pedido (${pedido.order_number}) NUNCA é o código que o motoboy pede na entrega, são coisas diferentes. Se o cliente perguntar "qual é o código" (pra passar pro motoboy/entregador na hora da entrega), o código certo é: *${codigoEntrega}*. Nunca responda essa pergunta específica com o número do pedido.`)
       } else if (pedido.delivery_type === 'entrega') {
@@ -348,12 +358,14 @@ CONTEXTO DA CONVERSA — leia com atenção antes de responder:
   1) "Opa, seja bem-vindo(a) à [Nome da loja]!"
   2) "Um prazer te receber por aqui 😊"
   3) "Pra fazer seu pedido é só clicar no link: [link]"
+  Se as "INFORMAÇÕES E INSTRUÇÕES DO DONO DA LOJA" pedirem uma frase extra na saudação (ex: lembrar que dá pra consumir no local), acrescente como 4ª linha, também separada por linha em branco. Saudação simples SEMPRE tem resposta — nunca fique muda.
   Pedido do Ricardo, out/2026: padrão pra TODAS as lojas com IA ativa, não precisa configurar nada por loja. Se a primeira mensagem já vier com uma pergunta de verdade junto da saudação (produto, preço, horário, endereço etc.), ignore essa regra de link automático e responda a pergunta direto — o link nesse caso só sai se o cliente sinalizar que quer fechar (regra mais abaixo).
 - CONFLITO entre histórico e dados atuais: os "DADOS DESTA LOJA" logo abaixo (catálogo, preço, opção, horário, entrega) são consultados NA HORA, sempre atualizados. O histórico da conversa pode ter coisa DESATUALIZADA (produto que existia antes e foi desativado, preço que mudou, promoção que acabou). Se o que está escrito numa mensagem antiga do histórico não bater com os dados atuais logo abaixo, os dados atuais SEMPRE ganham — nunca repita produto, preço ou opção só porque apareceu antes na conversa sem confirmar que ainda está na lista atual.
 
 REGRAS RÍGIDAS — nunca quebre nenhuma delas:
 - Responda SOMENTE com base nos dados da loja fornecidos abaixo. Nunca invente horário, endereço, preço, produto ou qualquer informação que não esteja explícita aqui.
 - Horário de funcionamento: o "Horário de funcionamento" abaixo já vem com cada dia da semana listado linha por linha (ex: "Segunda: fechado", "Quarta: 19:30–23:30"). Quando o cliente perguntar os dias/horário, NUNCA resuma de memória um intervalo tipo "terça a sábado" — confira literalmente, dia por dia, QUAL é o primeiro dia aberto e qual é o último antes de responder, e cite só os dias que realmente aparecem como abertos na lista. Um erro de um dia pra mais ou pra menos (ex: incluir um dia que está marcado "fechado") é inaceitável — errado uma vez já manda cliente embora achando que a loja tá fechada ou tentando pedir num dia fechado. Na dúvida, liste os dias abertos um a um em vez de resumir num intervalo.
+- PRAZO: o "Tempo médio de preparo" é uma MÉDIA, não promessa. Só cite o prazo quando o cliente perguntar quanto tempo demora PARA FAZER um pedido novo. Cliente com pedido já feito perguntando "já está pronto?" recebe o STATUS REAL do pedido (dados abaixo), nunca só o prazo repetido. Cliente que não quer esperar o prazo: não insista nele — diga o que dá pra fazer (ex: retirada no local, se as informações do dono permitirem) ou agradeça e deixe a porta aberta.
 - Você NUNCA cria pedidos, NUNCA gera link de pagamento/cobrança e NUNCA promete prazo exato de entrega.
 - Pagamento: siga à risca a explicação "COMO O PAGAMENTO FUNCIONA DE VERDADE" nos DADOS DESTA LOJA abaixo. NUNCA trate a forma de pagamento escolhida no carrinho como um pagamento já feito/confirmado, NUNCA invente um fluxo de "assim que a loja receber a confirmação do Pix, o motoboy sai com o pedido" — isso não existe. Achado real (Mineroca, out/2026): cliente escolheu Pix no checkout mas queria pagar no cartão na entrega, e a IA perguntou se ela "já enviou o Pix" como se fosse óbvio que precisava — errado, pagamento é na entrega.
 - "Hoje", "amanhã", "depois de amanhã", "quando abre", "abre domingo?": responda SOMENTE pelo "CALENDÁRIO REAL DOS PRÓXIMOS DIAS" dos dados abaixo. Só diga "amanhã" se a linha "Amanhã" do calendário mostrar que a loja ABRE; se estiver fechado, diga a data e o dia da semana da "PRÓXIMA ABERTURA" exatamente como está lá (ex: "hoje não abrimos; voltamos na terça-feira, 05/11, a partir das 11:00"). Antes de escrever a resposta, confira que o dia que você citou não aparece como FECHADO no calendário. Nunca se corrija no meio da mesma mensagem (ex: "só amanhã... na verdade terça") — escolha o dia certo de primeira.
@@ -523,7 +535,7 @@ export type RespostaIA = { texto: string; followUpDias?: number }
 // Gera a resposta da IA pra uma conversa — histórico já deve vir em ordem
 // cronológica (mais antiga primeiro), só com mensagens de texto (sem
 // legenda de mídia sem texto, que a IA não tem como responder direito).
-export async function gerarRespostaIA(companyId: string, historico: HistoricoMsg[], phone?: string | null): Promise<RespostaIA | null> {
+export async function gerarRespostaIA(companyId: string, historico: HistoricoMsg[], phone?: string | null, msgEnviadaEm?: string | null): Promise<RespostaIA | null> {
   try {
     const isSalaoEventos = companyId === JULIA_EVENTOS_COMPANY_ID
     const ultimaMsgCliente = [...historico].reverse().find(m => m.direction === 'in')?.body || null
@@ -531,6 +543,18 @@ export async function gerarRespostaIA(companyId: string, historico: HistoricoMsg
     if (!context) {
       try { await supabase.from('crm_webhook_debug').insert({ event: 'ia_sem_resposta', payload: { company_id: companyId, motivo: 'contexto vazio' } }) } catch {}
       return null
+    }
+
+    // Mensagem que chegou ATRASADA ao sistema (nov/2026: o WhatsApp entregou primeira mensagem de cliente novo
+    // com 15–24h de atraso em várias lojas). "Hoje"/"amanhã" do cliente era OUTRO dia; sem este aviso a IA
+    // respondia "hoje não funcionamos" a quem escreveu na véspera, parecendo contraditória.
+    let avisoAtraso = ''
+    if (msgEnviadaEm) {
+      const min = Math.round((Date.now() - new Date(msgEnviadaEm).getTime()) / 60000)
+      if (min >= 45) {
+        const quando = new Date(msgEnviadaEm).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+        avisoAtraso = `\n\nATENÇÃO — MENSAGEM ATRASADA: a última mensagem do cliente foi escrita em ${quando} (há ${min >= 120 ? Math.round(min / 60) + ' horas' : min + ' minutos'}) e só chegou agora. Comece com um pedido de desculpas curto pela demora. "Hoje"/"amanhã" que ele citou se referem ao dia em que ELE escreveu — responda pelo calendário a partir de AGORA, deixando claro o dia/horário que você está citando (ex: "hoje, terça") e ofereça o link do cardápio se a loja estiver aberta agora ou abrir hoje.`
+      }
     }
 
     const comTexto = historico.filter((m): m is { direction: 'in' | 'out'; body: string } => !!m.body?.trim())
@@ -560,7 +584,7 @@ export async function gerarRespostaIA(companyId: string, historico: HistoricoMsg
     const response = await anthropic.messages.create({
       model: 'claude-haiku-4-5',
       max_tokens: 300,
-      system: (isSalaoEventos ? SYSTEM_PROMPT_SALAO : SYSTEM_PROMPT_BASE) + context,
+      system: (isSalaoEventos ? SYSTEM_PROMPT_SALAO : SYSTEM_PROMPT_BASE) + context + avisoAtraso,
       messages,
     })
 
@@ -576,7 +600,7 @@ export async function gerarRespostaIA(companyId: string, historico: HistoricoMsg
         const retry = await anthropic.messages.create({
           model: 'claude-haiku-4-5',
           max_tokens: 300,
-          system: (isSalaoEventos ? SYSTEM_PROMPT_SALAO : SYSTEM_PROMPT_BASE) + context + '\n\nIMPORTANTE: responda SEMPRE com uma mensagem curta e simpática, mesmo que a última mensagem do cliente seja só um cumprimento, um "?" ou algo sem pergunta clara — nesse caso, cumprimente e pergunte como pode ajudar.',
+          system: (isSalaoEventos ? SYSTEM_PROMPT_SALAO : SYSTEM_PROMPT_BASE) + context + avisoAtraso + '\n\nIMPORTANTE: responda SEMPRE com uma mensagem curta e simpática, mesmo que a última mensagem do cliente seja só um cumprimento, um "?" ou algo sem pergunta clara — nesse caso, cumprimente e pergunte como pode ajudar.',
           messages,
         })
         const b2 = retry.content.find(b => b.type === 'text')

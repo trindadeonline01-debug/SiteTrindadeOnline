@@ -63,7 +63,7 @@ interface PainelData {
   motoboy: { id: string; name: string; phone: string; pix_key: string | null; pix_key_type: string | null; status: string; available: boolean; has_password: boolean }
   entregasSemana: number; aReceber: number; jaRecebido: number
   periodAReceber: number; periodRecebido: number
-  recentOrders: { id: string; company_name: string; customer_name: string; status: string; fee: number; created_at: string; pago: boolean; bairro: string | null; picked_up_at: string | null; delivered_at: string | null }[]
+  recentOrders: { id: string; company_name: string; customer_name: string; status: string; fee: number; repasse?: number | null; created_at: string; pago: boolean; bairro: string | null; picked_up_at: string | null; delivered_at: string | null }[]
   payouts: { id: string; period_start: string; period_end: string; valor: number; status: string; paid_at: string | null }[]
 }
 
@@ -726,7 +726,7 @@ export default function MotoboyPainelPage() {
                 <div className="p-row-sub">{orderSubtitle(o)}</div>
               </div>
               <div className="p-row-right">
-                <div className="p-row-val">{fmt(o.fee)}</div>
+                <div className="p-row-val">{fmt(o.repasse != null ? o.repasse : o.fee)}</div>
                 <span className="p-pill" style={{ background: o.pago ? '#E4F3EC' : '#FEF3E2', color: o.pago ? '#157A52' : '#92600A' }}>{o.pago ? 'pago' : 'a receber'}</span>
               </div>
             </div>

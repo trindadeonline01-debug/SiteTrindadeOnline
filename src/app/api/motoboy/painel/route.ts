@@ -88,7 +88,9 @@ export async function GET(req: NextRequest) {
     periodAReceber, periodRecebido,
     recentOrders: (recentOrders || []).map(o => ({
       id: o.id, company_name: nameByCompany.get(o.company_id) || '—', customer_name: o.customer_name, status: o.status, fee: o.fee, created_at: o.created_at, pago: !!o.payout_id,
-      repasse: o.status === 'cancelada' && (o.payout_status === 'liberado' || !!o.payout_id) ? valorRepasseMotoboy(o, pricing) : null,
+      // valor que o MOTOBOY recebe (fee − corte da plataforma; metade se cancelada após retirada). Antes só vinha
+      // preenchido em corrida cancelada, e as telas mostravam o `fee` cheio nas demais (nov/2026).
+      repasse: o.status === 'cancelada' && !(o.payout_status === 'liberado' || !!o.payout_id) ? null : valorRepasseMotoboy(o, pricing),
       bairro: o.dropoff_address ? matchBairroInAddress(o.dropoff_address) : null,
       picked_up_at: o.picked_up_at, delivered_at: o.delivered_at,
     })),

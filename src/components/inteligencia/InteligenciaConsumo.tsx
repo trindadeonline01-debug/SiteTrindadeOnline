@@ -64,6 +64,12 @@ export default function InteligenciaConsumo({ companyId, admin }: { companyId?: 
   const [oferta, setOferta] = useState<{ tipo: 'retorno' | 'carrinho'; dest: DestOferta[]; produto?: string; lojaIdx: number } | null>(null)
   const [aviso, setAviso] = useState('')
   const [campanhas, setCampanhas] = useState<Campanha[] | null>(null)
+  // Modo gravação: borra números, valores e nomes (como o "olhinho" de app de banco). Lembra a escolha neste aparelho.
+  const [oculto, setOculto] = useState(false)
+  useEffect(() => {
+    Promise.resolve().then(() => { try { if (localStorage.getItem('ic_oculto') === '1') setOculto(true) } catch { /* sem storage */ } })
+  }, [])
+  const alternaOculto = () => setOculto(v => { const n = !v; try { localStorage.setItem('ic_oculto', n ? '1' : '0') } catch { /* sem storage */ } return n })
 
   const carregar = useCallback(() => {
     if (!admin && !companyId) return
@@ -265,10 +271,18 @@ export default function InteligenciaConsumo({ companyId, admin }: { companyId?: 
   const gcols = admin ? '1.25fr 1fr .9fr .5fr .7fr 1.1fr 1fr 1.5fr 1.2fr' : '1.25fr 1fr .5fr .7fr 1.1fr 1fr 1.5fr 1.2fr'
 
   return (
-    <div className="ic">
+    <div className={'ic' + (oculto ? ' oc' : '')}>
       <style>{CSS}</style>
       <div className="ic-head">
-        <h1>Inteligência de consumo</h1>
+        <div className="ic-ht">
+          <h1>Inteligência de consumo</h1>
+          <button type="button" className="ic-eye" onClick={alternaOculto} aria-pressed={oculto} title={oculto ? 'Mostrar os números' : 'Esconder os números (para gravar vídeo)'}>
+            {oculto
+              ? <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><path d="m1 1 22 22"/></svg>
+              : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>}
+            <span>{oculto ? 'Mostrar números' : 'Esconder números'}</span>
+          </button>
+        </div>
         <p>{admin ? 'Todas as lojas juntas. Escolha bairro, loja, produto ou horário e veja quem parou de pedir.' : 'Seus clientes, o que pedem e quando. Escolha um grupo para ver quem parou de pedir.'}</p>
       </div>
 
@@ -305,7 +319,7 @@ export default function InteligenciaConsumo({ companyId, admin }: { companyId?: 
                 const t = comPoligono.length > 1 ? 1 - i / (comPoligono.length - 1) : 1
                 return <path key={b} d={BAIRRO_PATHS[b]} fillRule="evenodd" strokeLinejoin="round" style={{ cursor: 'pointer', mixBlendMode: sel || apagado ? 'normal' : 'multiply' }}
                   fill={apagado ? 'rgba(255,255,255,0)' : sel ? '#E0A000' : corRampa(t)} stroke={sel ? '#151210' : apagado ? 'rgba(0,0,0,0)' : '#6B4300'} strokeWidth={sel ? 5 : 1.5}
-                  onClick={() => alterna('bairro', b)}><title>{b + ': ' + n + ' pedidos'}</title></path>
+                  onClick={() => alterna('bairro', b)}><title>{oculto ? b : b + ': ' + n + ' pedidos'}</title></path>
               })}
               {comPoligono.filter(([b, n]) => (f.bairro == null ? n >= 3 : f.bairro === b)).map(([b, n]) => {
                 const p = BAIRRO_ROTULO[b]
@@ -366,7 +380,7 @@ export default function InteligenciaConsumo({ companyId, admin }: { companyId?: 
                   const v = heat[di][hi]
                   const k = v === 0 ? 0 : Math.min(5, 1 + Math.floor((v / heatMax) * 4.999))
                   const sel = f.dow === DOW_DE_DIA[di] && f.hora === h
-                  return <button key={h} className="ic-c" title={v + ' pedidos'} style={{ background: HEAT[k], color: k >= 4 ? '#fff' : '#151210', outline: sel ? '2px solid #151210' : 'none' }}
+                  return <button key={h} className="ic-c" title={oculto ? undefined : v + ' pedidos'} style={{ background: HEAT[k], color: k >= 4 ? '#fff' : '#151210', outline: sel ? '2px solid #151210' : 'none' }}
                     onClick={() => { if (sel) setFiltro({ dow: null, hora: null }); else setFiltro({ dow: DOW_DE_DIA[di], hora: h }) }}>{v || ''}</button>
                 })}
               </div>
@@ -380,7 +394,7 @@ export default function InteligenciaConsumo({ companyId, admin }: { companyId?: 
       <div className="ic-insg">
         <section className="ic-card">
           <h2>Quem sustenta a loja <span className="ic-src real">dado real</span></h2>
-          <div className="ic-sub">{sust.n} clientes identificados. Segue a loja escolhida lá em cima.</div>
+          <div className="ic-sub"><span className="ic-num">{sust.n}</span> clientes identificados. Segue a loja escolhida lá em cima.</div>
           <div className="ic-sl">1 · Poucos clientes fazem a maior parte da venda</div>
           <div className="ic-nt">{sust.n ? `Os ${sust.topN} clientes que mais gastam (${sust.wCli}%) trazem ${sust.wRec}% de tudo que a loja vendeu.` : 'Sem clientes neste filtro.'}</div>
           <div className="ic-nt">Clientes</div>
@@ -532,7 +546,7 @@ export default function InteligenciaConsumo({ companyId, admin }: { companyId?: 
       <div className="ic-act">
         <div><b>{audLista.length} clientes neste filtro</b><span>{destRetorno.length} podem receber uma oferta para voltar a pedir. {aviso ? '' : 'A oferta sai pelo WhatsApp da loja, uma por vez.'}{aviso && <em style={{ color: '#FFC531', fontStyle: 'normal' }}> {aviso}</em>}</span></div>
         <button className="ic-sec2" onClick={baixarCsv} disabled={audLista.length === 0}>Baixar lista (CSV)</button>
-        <button className="ic-cta" onClick={() => abrirOferta('retorno', destRetorno)} disabled={destRetorno.length === 0}>Enviar oferta para {destRetorno.length}</button>
+        <button className="ic-cta" onClick={() => abrirOferta('retorno', destRetorno)} disabled={destRetorno.length === 0}>{oculto ? 'Enviar oferta' : 'Enviar oferta para ' + destRetorno.length}</button>
       </div>
 
       {oferta && (
@@ -571,6 +585,12 @@ const CSS = `
 .ic-erro button{margin-left:8px}
 .ic-head h1{margin:0;font-family:'Anton',Impact,sans-serif;font-weight:400;font-size:40px;line-height:1;letter-spacing:.01em}
 .ic-head p{margin:6px 0 0;color:#3E3B37;max-width:720px}
+.ic-ht{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.ic-eye{display:inline-flex;align-items:center;gap:8px;background:#fff;color:#151210;border:1px solid #8E8F85;border-radius:999px;padding:8px 14px;font-size:13px;font-weight:700;box-shadow:0 1px 3px rgba(21,18,16,.14)}
+.ic-eye:hover{background:#FFF3CC}
+.ic.oc .ic-eye{background:#151210;color:#FFC531;border-color:#151210}
+.ic.oc :is(.ic-kpi strong,.ic-kpi em,.ic-row .n,.ic-s2,.ic-ln .v,.ic-ln .nm,.ic-mt .r:not(.h) span,.ic-c,.ic-nt,.ic-sub,.ic-hl,.ic-sk b,.ic-fn strong,.ic-fn small:last-child,.ic-sg b,.ic-arow>span:not(:last-child),.ic-act div b,.ic-act div span,.ic-dh h3,.ic-fk strong,.ic-ho,.ic-map text){filter:blur(7px);user-select:none;pointer-events:none}
+.ic.oc .ic-map text{filter:blur(5px)}
 .ic-card{background:#fff;border:1px solid #A9AAA0;border-radius:14px;padding:18px 20px;box-shadow:0 1px 3px rgba(21,18,16,.14)}
 .ic-card h2{margin:0;font-size:16px;font-weight:700}
 .ic-per{padding:12px}

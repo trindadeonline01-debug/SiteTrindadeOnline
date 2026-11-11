@@ -51,6 +51,7 @@ export const PAINEL_NAV_GROUPS: PainelNavGroup[] = [
     label: 'Clientes',
     items: [
       { href: '/painel/clientes', key: 'clientes', icon: '👥', label: 'CRM', lockKey: 'crm' },
+      { href: '/painel/inteligencia', key: 'inteligencia', icon: '🧠', label: 'Inteligência de consumo', lockKey: 'loja' },
       { href: '/painel/atendimento', key: 'atendimento', icon: '📊', label: 'Atendimento', requiresFlag: 'atendimentoPilot' },
       { href: '/painel/radar', key: 'radar', icon: '📡', label: 'Radar de clientes', requiresFlag: 'vendasPilot' },
       { href: '/painel?tab=avaliacoes', key: 'avaliacoes', icon: '⭐', label: 'Avaliações' },

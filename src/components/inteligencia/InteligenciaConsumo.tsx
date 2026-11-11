@@ -4,6 +4,7 @@ import { adminFetch } from '@/lib/adminFetch'
 import { formatPhoneDisplay } from '@/lib/phone'
 import { periodRange, type PeriodSel } from '@/lib/periodFilter'
 import PeriodFilterBar from '@/components/admin/PeriodFilterBar'
+import OfertaComposer, { type DestOferta } from '@/components/inteligencia/OfertaComposer'
 import { BAIRRO_PATHS, BAIRRO_ROTULO, MAPA_IMAGEM, MAPA_VIEWBOX } from '@/data/mapaSaoGoncalo'
 
 // Inteligência de consumo (nov/2026, mockup aprovado pelo Ricardo): quem comprou o quê, quando e de onde,
@@ -14,10 +15,13 @@ import { BAIRRO_PATHS, BAIRRO_ROTULO, MAPA_IMAGEM, MAPA_VIEWBOX } from '@/data/m
 
 type Linha = { l: number; d: string; h: number; w: number; b: string; t: number; p: string; n: string; it: string[] }
 type Prazo = { l: number; n: number; prazo: number; ret: number; ent: number; passou: number | null }
+type Funil = { total: { abriu: number; add: number; feito: number }; porOrigem: { origem: string; abriu: number; add: number; feito: number }[]; abandonados: { l: number; phone: string; itens: { n: string; q: number }[]; quando: string }[]; temDados: boolean }
 type Dados = {
-  hoje: string; lojas: { nome: string; prazo: number }[]; pedidos: Linha[]; prazos: Prazo[]
-  perdida: { l: number; tot: number; sd: number }[]
+  hoje: string; lojas: { id: string; nome: string; prazo: number }[]; pedidos: Linha[]; prazos: Prazo[]
+  perdida: { l: number; tot: number; sd: number }[]; funil: Funil; media: { tk: number; vol: number; lojas: number } | null
 }
+type Campanha = { id: string; nome: string; produto: string | null; status: string; criada: string; loja: string; total: number; enviadas: number; pendentes: number; falhas: number; puladas: number; responderam: number; pediram: number; vendeu: number }
+const ORIGEM_TXT: Record<string, string> = { direto: 'Link direto', instagram: 'Instagram', facebook: 'Facebook', google: 'Google', whatsapp: 'WhatsApp', tiktok: 'TikTok', peca_agora: 'Peça Agora', perfil: 'Página da loja', site: 'Outras páginas do site', outro_site: 'Outro site', qr: 'QR code', cartao: 'Cartão', adesivo: 'Adesivo', flyer: 'Flyer', sacola: 'Sacola' }
 type Situacao = 'ativo' | 'novo' | 'hora' | 'sumiu' | 'uma'
 type Cliente = {
   key: string; phone: string; nome: string; l: number; rows: Linha[]; n: number; gasto: number
@@ -57,6 +61,9 @@ export default function InteligenciaConsumo({ companyId, admin }: { companyId?: 
   const [f, setF] = useState<Filtros>({ loja: null, bairro: null, produto: null, dow: null, hora: null, status: 'todos' })
   const [ficha, setFicha] = useState<string | null>(null)
   const [todos, setTodos] = useState(false)
+  const [oferta, setOferta] = useState<{ tipo: 'retorno' | 'carrinho'; dest: DestOferta[]; produto?: string; lojaIdx: number } | null>(null)
+  const [aviso, setAviso] = useState('')
+  const [campanhas, setCampanhas] = useState<Campanha[] | null>(null)
 
   const carregar = useCallback(() => {
     if (!admin && !companyId) return
@@ -65,6 +72,18 @@ export default function InteligenciaConsumo({ companyId, admin }: { companyId?: 
       .catch(() => setErro('Não consegui carregar. Tente de novo.'))
   }, [admin, companyId])
   useEffect(() => { carregar() }, [carregar])
+  const carregarCampanhas = useCallback(() => {
+    if (!admin && !companyId) return
+    adminFetch('/api/painel/ofertas', { method: 'POST', body: JSON.stringify(admin ? { all: true, action: 'listar' } : { companyId, action: 'listar' }) })
+      .then(async r => { const j = await r.json(); if (r.ok) setCampanhas(j.campanhas || []) })
+      .catch(() => {})
+  }, [admin, companyId])
+  useEffect(() => { carregarCampanhas() }, [carregarCampanhas])
+  const cancelarCampanha = async (c: Campanha, lojaId: string) => {
+    if (!confirm('Parar este envio? O que ainda não saiu será cancelado.')) return
+    await adminFetch('/api/painel/ofertas', { method: 'POST', body: JSON.stringify({ companyId: lojaId, action: 'cancelar', campanhaId: c.id }) }).catch(() => {})
+    carregarCampanhas()
+  }
 
   const setFiltro = (p: Partial<Filtros>) => setF(x => ({ ...x, ...p }))
   const alterna = <K extends keyof Filtros>(k: K, v: Filtros[K]) => setF(x => ({ ...x, [k]: x[k] === v ? null : v } as Filtros))
@@ -195,7 +214,9 @@ export default function InteligenciaConsumo({ companyId, admin }: { companyId?: 
     }).filter(x => x.n > 0)
     if (admin) return por.sort((a, b) => b.n - a.n).map(x => ({ nome: x.nome, tk: brl2(x.fat / x.n), n: x.n, vol: x.vol != null ? x.vol + '%' : '—', me: false }))
     const eu = por[0]
-    return [{ nome: 'Sua loja', tk: eu ? brl2(eu.fat / eu.n) : '—', n: eu ? eu.n : 0, vol: eu && eu.vol != null ? eu.vol + '%' : '—', me: true }]
+    const linhas = [{ nome: 'Sua loja', tk: eu ? brl2(eu.fat / eu.n) : '—', n: eu ? eu.n : 0, vol: eu && eu.vol != null ? eu.vol + '%' : '—', me: true }]
+    if (dados.media) linhas.push({ nome: 'Média de ' + dados.media.lojas + ' outras lojas', tk: brl2(dados.media.tk), n: 0, vol: dados.media.vol + '%', me: false })
+    return linhas
   }, [dados, clientes, admin])
 
   // Bairros: pedidos por bairro com o filtro atual (o mapa usa o mesmo número do ranking)
@@ -219,6 +240,20 @@ export default function InteligenciaConsumo({ companyId, admin }: { companyId?: 
     const blob = new Blob(['﻿' + [cab.map(esc).join(';'), ...linhas].join('\n')], { type: 'text/csv;charset=utf-8' })
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'clientes.csv'; a.click(); URL.revokeObjectURL(a.href)
   }
+
+  // Abre a janela de oferta. Um envio sempre sai pelo WhatsApp de UMA loja: no admin, escolha a loja antes.
+  const abrirOferta = (tipo: 'retorno' | 'carrinho', lista: { phone: string; nome: string; l: number; item?: string }[]) => {
+    setAviso('')
+    if (!dados || lista.length === 0) return
+    const lojasEnv = [...new Set(lista.map(x => x.l))]
+    if (lojasEnv.length > 1) { setAviso('Cada envio sai pelo WhatsApp de uma loja só. Clique numa loja no ranking "Lojas" para escolher qual.'); return }
+    const cont: Record<string, number> = {}
+    lista.forEach(x => { if (x.item) cont[x.item] = (cont[x.item] || 0) + 1 })
+    const produto = Object.keys(cont).sort((a, b) => cont[b] - cont[a])[0]
+    setOferta({ tipo, dest: lista.map(x => ({ phone: x.phone, nome: x.nome })), produto, lojaIdx: lojasEnv[0] })
+  }
+  const destRetorno = audLista.filter(c => f.status === 'ativo' || (c.st !== 'ativo' && c.st !== 'novo'))
+    .map(c => ({ phone: c.phone, nome: c.nome, l: c.l, item: c.fav.split(' · ')[0] || undefined }))
 
   if (erro) return <div className="ic-erro">{erro} <button onClick={() => { setErro(''); carregar() }}>Tentar de novo</button><style>{CSS}</style></div>
   if (!dados) return <div className="ic-load">Carregando os pedidos…<style>{CSS}</style></div>
@@ -405,21 +440,67 @@ export default function InteligenciaConsumo({ companyId, admin }: { companyId?: 
           <div className="ic-mt">
             <div className="r h" style={{ gridTemplateColumns: '1.5fr 1fr 1fr 1fr' }}><span>Loja</span><span>Ticket médio</span><span>Pedidos</span><span>Voltam a pedir</span></div>
             {comparativo.map(z => (
-              <div key={z.nome} className={'r' + (z.me ? ' me' : '')} style={{ gridTemplateColumns: '1.5fr 1fr 1fr 1fr' }}><span><b>{z.nome}</b></span><span>{z.tk}</span><span>{z.n}</span><span>{z.vol}</span></div>
+              <div key={z.nome} className={'r' + (z.me ? ' me' : '')} style={{ gridTemplateColumns: '1.5fr 1fr 1fr 1fr' }}><span><b>{z.nome}</b></span><span>{z.tk}</span><span>{z.n || '—'}</span><span>{z.vol}</span></div>
             ))}
           </div>
-          {!admin && <div className="ic-nt">O comparativo com a média das outras lojas (sem mostrar quem é quem) entra quando houver lojas suficientes.</div>}
+          {!admin && <div className="ic-nt">{dados.media ? 'A média das outras lojas é anônima: nunca aparece o nome nem o dado de uma loja específica. Pedidos da média: últimos 180 dias.' : 'A média das outras lojas (sem mostrar quem é quem) aparece quando houver lojas suficientes.'}</div>}
         </section>
 
         <section className="ic-card">
-          <h2>Resultado das ofertas enviadas <span className="ic-src aw">em breve</span></h2>
-          <div className="ic-sub">Quando o envio de ofertas pelo WhatsApp estiver ligado, aqui aparece quantos receberam, responderam, pediram e quanto vendeu.</div>
+          <h2>Resultado das ofertas enviadas <span className="ic-src real">dado real</span></h2>
+          <div className="ic-sub">Quem respondeu e quem pediu em até 72 horas depois de receber a mensagem.</div>
+          {!campanhas || campanhas.length === 0 ? <div className="ic-hint" style={{ marginTop: 12 }}>Nenhuma oferta enviada ainda. Use o botão “Enviar oferta” lá embaixo.</div> : (
+            <div className="ic-scroll">
+              <div className="ic-mt" style={{ minWidth: 560 }}>
+                <div className="r h" style={{ gridTemplateColumns: '1.8fr .7fr .8fr .7fr .9fr .6fr' }}><span>Oferta</span><span>Enviadas</span><span>Responderam</span><span>Pediram</span><span>Vendeu</span><span /></div>
+                {campanhas.map(c => (
+                  <div key={c.id} className="r" style={{ gridTemplateColumns: '1.8fr .7fr .8fr .7fr .9fr .6fr' }}>
+                    <span><b>{c.nome}</b><span className="ic-s2"> · {admin ? c.loja + ' · ' : ''}{dm(c.criada.slice(0, 10))}{c.status === 'enviando' ? ' · enviando (' + c.pendentes + ' na fila)' : c.status === 'cancelada' ? ' · cancelada' : ''}{c.falhas ? ' · ' + c.falhas + ' falhas' : ''}</span></span>
+                    <span>{c.enviadas}/{c.total}</span><span>{c.responderam}</span><span>{c.pediram}</span><span><b>{brl(c.vendeu)}</b></span>
+                    <span>{c.status === 'enviando' && <button className="ic-link" style={{ padding: 0 }} onClick={() => { const l = dados.lojas.find(x => x.nome === c.loja); cancelarCampanha(c, l?.id || companyId || '') }}>parar</button>}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="ic-nt">“Vendeu” soma os pedidos de quem recebeu a oferta nas 72 horas seguintes. É o que aconteceu depois, não prova de que foi só a mensagem.</div>
         </section>
 
         <section className="ic-card">
-          <h2>Funil: de onde veio e onde parou <span className="ic-src aw">aguardando gravação</span></h2>
-          <div className="ic-sub">Ainda não registramos a origem do cliente nem o carrinho abandonado. Quando começarmos, o funil aparece aqui.</div>
-          <div className="ic-fn"><div><strong>—</strong><small>Abriu o cardápio</small></div><div><strong>—</strong><small>Adicionou ao carrinho</small></div><div><strong>—</strong><small>Finalizou</small></div></div>
+          <h2>Funil: de onde veio e onde parou {dados.funil.temDados ? <span className="ic-src real">dado real</span> : <span className="ic-src aw">aguardando dados</span>}</h2>
+          <div className="ic-sub">Últimos 30 dias, por visita ao cardápio. Começamos a gravar agora: os números crescem a cada dia.</div>
+          <div className="ic-fn">
+            {[['Abriu o cardápio', dados.funil.total.abriu], ['Adicionou ao carrinho', dados.funil.total.add], ['Finalizou o pedido', dados.funil.total.feito]].map(([nome, v], i) => (
+              <div key={nome as string} style={dados.funil.temDados ? { borderStyle: 'solid', background: '#fff', color: '#151210' } : undefined}>
+                <strong>{dados.funil.temDados ? v : '—'}</strong><small>{nome}</small>
+                {dados.funil.temDados && i > 0 && <small style={{ display: 'block' }}>{dados.funil.total.abriu ? Math.round((v as number) / dados.funil.total.abriu * 100) : 0}% de quem abriu</small>}
+              </div>
+            ))}
+          </div>
+          {dados.funil.porOrigem.length > 0 && (
+            <div className="ic-mt">
+              <div className="r h" style={{ gridTemplateColumns: '1.6fr 1fr 1fr 1fr' }}><span>De onde veio</span><span>Abriu</span><span>Carrinho</span><span>Pediu</span></div>
+              {dados.funil.porOrigem.map(o => (
+                <div key={o.origem} className="r" style={{ gridTemplateColumns: '1.6fr 1fr 1fr 1fr' }}><span><b>{ORIGEM_TXT[o.origem] || o.origem}</b></span><span>{o.abriu}</span><span>{o.add}</span><span>{o.feito}</span></div>
+              ))}
+            </div>
+          )}
+          <div className="ic-sl">Carrinhos deixados para trás</div>
+          {(() => {
+            const aband = dados.funil.abandonados.filter(x => !admin || f.loja == null || x.l === f.loja)
+            if (aband.length === 0) return <div className="ic-hint" style={{ marginTop: 6 }}>Nenhum carrinho abandonado com WhatsApp ainda. Só entram clientes que já tinham digitado o número.</div>
+            return (
+              <>
+                <div className="ic-nt">{aband.length} cliente(s) montaram o carrinho, deixaram o WhatsApp e não pediram.</div>
+                <div className="ic-rank">
+                  {aband.slice(-6).reverse().map((x, i) => (
+                    <div key={i} className="ic-ln" style={{ gridTemplateColumns: '1.2fr 1.6fr auto' }}><span className="nm">{formatPhoneDisplay(x.phone)}</span><span>{x.itens.map(it => it.q + 'x ' + it.n).join(', ')}</span><span className="v">{dm(x.quando)}</span></div>
+                  ))}
+                </div>
+                <button className="ic-cta" style={{ marginTop: 12 }} onClick={() => abrirOferta('carrinho', aband.map(x => ({ phone: x.phone, nome: '', l: x.l, item: x.itens[0]?.n })))}>Lembrar estes {aband.length} do carrinho</button>
+              </>
+            )
+          })()}
         </section>
       </div>
 
@@ -449,9 +530,15 @@ export default function InteligenciaConsumo({ companyId, admin }: { companyId?: 
       </section>
 
       <div className="ic-act">
-        <div><b>{audLista.length} clientes neste filtro</b><span>{nNao} ainda não voltaram. O envio de oferta pelo WhatsApp da loja chega na próxima etapa; por enquanto dá para baixar a lista.</span></div>
-        <button className="ic-cta" onClick={baixarCsv} disabled={audLista.length === 0}>Baixar lista (CSV)</button>
+        <div><b>{audLista.length} clientes neste filtro</b><span>{destRetorno.length} podem receber uma oferta para voltar a pedir. {aviso ? '' : 'A oferta sai pelo WhatsApp da loja, uma por vez.'}{aviso && <em style={{ color: '#FFC531', fontStyle: 'normal' }}> {aviso}</em>}</span></div>
+        <button className="ic-sec2" onClick={baixarCsv} disabled={audLista.length === 0}>Baixar lista (CSV)</button>
+        <button className="ic-cta" onClick={() => abrirOferta('retorno', destRetorno)} disabled={destRetorno.length === 0}>Enviar oferta para {destRetorno.length}</button>
       </div>
+
+      {oferta && (
+        <OfertaComposer companyId={dados.lojas[oferta.lojaIdx]?.id || companyId || ''} lojaNome={dados.lojas[oferta.lojaIdx]?.nome || ''} tipo={oferta.tipo} dest={oferta.dest} produtoSugerido={oferta.produto}
+          onClose={() => setOferta(null)} onEnviado={carregarCampanhas} />
+      )}
 
       {fichaC && (
         <div className="ic-ov" onClick={() => setFicha(null)}>
@@ -574,6 +661,8 @@ const CSS = `
 .ic-act b{font-size:16px}
 .ic-act span{display:block;color:#D8D5CD;font-size:13px}
 .ic-cta{border:0;background:#FFC531;color:#151210;border-radius:10px;padding:12px 20px;font:800 15px inherit;min-height:48px}
+.ic-sec2{border:1px solid #8E8F85;background:transparent;color:#fff;border-radius:10px;padding:12px 16px;font:700 14px inherit;min-height:48px}
+.ic-sec2:disabled{opacity:.5;cursor:not-allowed}
 .ic-cta:disabled{background:#4A443D;color:#F2EFE8;cursor:not-allowed}
 .ic-ov{position:fixed;inset:0;background:rgba(21,18,16,.55);z-index:60;display:flex;justify-content:flex-end}
 .ic-dr{background:#E6E7DF;width:100%;max-width:560px;height:100%;overflow-y:auto}

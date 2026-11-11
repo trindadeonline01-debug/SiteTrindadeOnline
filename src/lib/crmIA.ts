@@ -340,6 +340,20 @@ async function buildContext(companyId: string, phone?: string | null, ultimaMsgC
     }
   }
 
+  // Oferta enviada por esta loja a este cliente nas últimas 48 h (Inteligência de consumo, nov/2026): a resposta
+  // dele ("2 kg", "quero", "sim") é a resposta à oferta — a IA continua a conversa e manda o link do produto.
+  if (phone) {
+    const tel = normalizePhone(phone)
+    const desde48 = new Date(Date.now() - 48 * 3600000).toISOString()
+    const { data: lg } = await supabase.from('crm_campaign_logs').select('campaign_id, enviado_em, texto')
+      .eq('company_id', companyId).eq('phone', tel).eq('status', 'enviado').gte('enviado_em', desde48).order('enviado_em', { ascending: false }).limit(1).maybeSingle()
+    if (lg) {
+      const { data: camp } = await supabase.from('crm_campaigns').select('produto_nome, link').eq('id', lg.campaign_id).maybeSingle()
+      const horas = Math.max(1, Math.round((Date.now() - new Date(lg.enviado_em as string).getTime()) / 3600000))
+      linhas.push(`OFERTA ENVIADA POR VOCÊ (a loja) A ESTE CLIENTE há cerca de ${horas} h: «${String(lg.texto).replace(/\n+\(Para não receber[\s\S]*$/, '').trim()}»${camp?.produto_nome ? ` Produto da oferta: ${camp.produto_nome}${camp.link ? ` — link direto: ${camp.link}` : ''}.` : ''} Se o cliente responder com quantidade, aceite ou interesse ("2 kg", "sim", "quero", "pode separar"), confirme a quantidade em uma frase curta e já mande ${camp?.link ? 'o link direto do produto' : 'o link do cardápio'} para ele fechar o pedido por lá. Você NUNCA cria o pedido nem "separa" nada sozinha: o pedido só vale quando ele finaliza pelo link. Se ele recusar, agradeça com educação e não insista. Se a loja estiver fechada agora, diga quando abre.`)
+    }
+  }
+
   if (company.crm_ia_prompt_extra?.trim()) {
     linhas.push('INFORMAÇÕES E INSTRUÇÕES DO DONO DA LOJA (fonte oficial, escritas pelo próprio dono; valem tanto quanto os dados cadastrais e têm prioridade sobre qualquer suposição sua — siga à risca e use estas informações sempre que forem relevantes pra pergunta):\n' + company.crm_ia_prompt_extra.trim())
   }

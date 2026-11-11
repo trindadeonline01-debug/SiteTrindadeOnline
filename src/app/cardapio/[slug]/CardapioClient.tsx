@@ -1,4 +1,5 @@
 'use client'
+import { funilTrack } from '@/lib/funil'
 import { useEffect, useRef, useState, use } from 'react'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
@@ -171,6 +172,16 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
       body: JSON.stringify({ companyId: company.id, phone: guestPhone }),
     }).then(r => r.json()).then(d => setCashbackSaldo(Number(d?.saldo || 0))).catch(() => setCashbackSaldo(0))
   }, [company?.id, company?.cashback_enabled, guestPhone])
+  // Funil (nov/2026): abriu o cardápio e, quando já se sabe o WhatsApp e há itens no carrinho, registra o
+  // carrinho (é com isso que dá pra chamar de volta quem deixou o carrinho pra trás).
+  useEffect(() => { if (company?.id) funilTrack(company.id, 'cardapio_aberto') }, [company?.id])
+  const carrinhoSig = cart.map(l => l.key + 'x' + l.qty).join(',')
+  useEffect(() => {
+    if (!company?.id || cart.length === 0 || guestPhone.replace(/\D/g, '').length < 10) return
+    const t = setTimeout(() => funilTrack(company.id, 'carrinho_telefone', { telefone: guestPhone, itens: cart.map(l => ({ n: l.name, q: l.qty })) }), 2000)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [company?.id, carrinhoSig, guestPhone])
   const [freteInfo, setFreteInfo] = useState<FreteInfo | null>(null)
   const [freteLoading, setFreteLoading] = useState(false)
 
@@ -348,6 +359,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
     if (!pecaAgoraEnabled) return
     if (company && !isOpenNow(company.hours as any, company.flexible_hours, company.store_paused, company.store_forced_open)) return
     const key = produtoId + '|' + modifiers.map(m => m.name).sort().join('+')
+    funilTrack(company?.id, 'carrinho_add', { produtoId })
     setCart(prev => {
       const existing = prev.find(l => l.key === key)
       if (existing) return prev.map(l => l.key === key ? { ...l, qty: l.qty + qty } : l)
@@ -581,6 +593,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
   }
 
   function finalizarSucesso() {
+    funilTrack(company?.id, 'pedido_feito')
     setSuccess(true)
     setTimeout(() => {
       closeDrawer(); setSuccess(false); setCart([]); setObs('')
@@ -672,6 +685,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
         const w = window.open(url, '_blank')
         if (!w) { setWaFallbackUrl(url); return }
       }
+      funilTrack(company.id, 'pedido_feito')
       setDrawerOpen(false); setCart([]); setSelectedCouponId(null)
       setPrecisaTroco(null); setTrocoPara(''); setObs('')
       setAgendarRetirada(false); setScheduleDate(''); setScheduleTime('')

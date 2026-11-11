@@ -153,9 +153,78 @@ export async function POST(req: NextRequest) {
   }
   const perdida = lojas.map((l, i) => ({ l: i, ...(cont.get(l.id) || { tot: 0, sd: 0 }) })).filter(x => x.tot > 0)
 
+  // Funil do cardápio (30 dias): abriu → montou carrinho → pediu, por origem, e carrinhos abandonados.
+  const desdeFunil = new Date(Date.now() - 30 * DIA_MS).toISOString()
+  const evs = await paginar<{ company_id: string; sessao: string; evento: string; origem: string | null; itens: { n: string; q: number }[] | null; telefone: string | null; created_at: string }>((de, ate) => {
+    let q = sb.from('loja_funil_eventos').select('company_id, sessao, evento, origem, itens, telefone, created_at').gte('created_at', desdeFunil).order('created_at', { ascending: true }).range(de, ate)
+    q = todas ? q.in('company_id', empIds.length ? empIds : ['00000000-0000-0000-0000-000000000000']) : q.eq('company_id', companyId)
+    return q as unknown as PromiseLike<{ data: { company_id: string; sessao: string; evento: string; origem: string | null; itens: { n: string; q: number }[] | null; telefone: string | null; created_at: string }[] | null }>
+  }, 25)
+  const sess = new Map<string, { origem: string; abriu: boolean; add: boolean; feito: boolean }>()
+  for (const e of evs) {
+    const k = e.company_id + '|' + e.sessao
+    const o = sess.get(k) || { origem: e.origem || 'direto', abriu: false, add: false, feito: false }
+    if (e.evento === 'cardapio_aberto') { o.abriu = true; if (e.origem) o.origem = e.origem }
+    if (e.evento === 'carrinho_add' || e.evento === 'carrinho_telefone') o.add = true
+    if (e.evento === 'pedido_feito') o.feito = true
+    sess.set(k, o)
+  }
+  const porOrigem = new Map<string, { abriu: number; add: number; feito: number }>()
+  const tot = { abriu: 0, add: 0, feito: 0 }
+  for (const o of sess.values()) {
+    const g = porOrigem.get(o.origem) || { abriu: 0, add: 0, feito: 0 }
+    const a = o.abriu || o.add || o.feito
+    if (a) { g.abriu++; tot.abriu++ }
+    if (o.add || o.feito) { g.add++; tot.add++ }
+    if (o.feito) { g.feito++; tot.feito++ }
+    porOrigem.set(o.origem, g)
+  }
+  // Carrinho abandonado: deixou o WhatsApp + itens, passou de 2 h e não pediu depois.
+  const ultimoPorTel = new Map<string, { l: number; phone: string; itens: { n: string; q: number }[]; t: number; sessao: string }>()
+  for (const e of evs) {
+    if (e.evento !== 'carrinho_telefone' || !e.telefone || !e.itens?.length) continue
+    ultimoPorTel.set(e.company_id + '|' + e.telefone, { l: idxLoja.get(e.company_id) ?? 0, phone: e.telefone, itens: e.itens, t: new Date(e.created_at).getTime(), sessao: e.sessao })
+  }
+  const feitaSessao = new Set(evs.filter(e => e.evento === 'pedido_feito').map(e => e.company_id + '|' + e.sessao))
+  const pedidosTel = new Map<string, number[]>()
+  for (const p of validos) { const k = p.company_id + '|' + normalizePhone(p.customer_phone || ''); const l = pedidosTel.get(k) || []; l.push(new Date(p.created_at).getTime()); pedidosTel.set(k, l) }
+  const abandonados = [...ultimoPorTel.entries()].filter(([k, v]) => {
+    const emp = k.split('|')[0]
+    if (Date.now() - v.t < 2 * 3600000) return false
+    if (feitaSessao.has(emp + '|' + v.sessao)) return false
+    if ((pedidosTel.get(k) || []).some(t => t > v.t - 60000)) return false
+    return !v.phone.endsWith('0551')
+  }).map(([, v]) => ({ l: v.l, phone: v.phone, itens: v.itens, quando: new Date(v.t - BRT).toISOString().slice(0, 10) })).slice(-100)
+  const funil = { total: tot, porOrigem: [...porOrigem.entries()].map(([origem, g]) => ({ origem, ...g })).sort((a, b) => b.abriu - a.abriu), abandonados, temDados: evs.length > 0 }
+
+  // Média anônima das OUTRAS lojas (só no painel do lojista): ticket médio e % de clientes que voltaram.
+  let media: { tk: number; vol: number; lojas: number } | null = null
+  if (!todas) {
+    const desdeM = new Date(Date.now() - 180 * DIA_MS).toISOString()
+    const outros = await paginar<{ company_id: string; customer_phone: string | null; total: number | string | null }>((de, ate) =>
+      sb.from('loja_pedidos').select('company_id, customer_phone, total').in('origin', [...ORIGENS_DELIVERY]).neq('status', 'cancelado').neq('company_id', companyId).gte('created_at', desdeM).range(de, ate) as unknown as PromiseLike<{ data: { company_id: string; customer_phone: string | null; total: number | string | null }[] | null }>, 20)
+    const porEmp = new Map<string, { n: number; fat: number; tels: Map<string, number> }>()
+    for (const p of outros) {
+      const tel = normalizePhone(p.customer_phone || '')
+      if (tel.endsWith('0551')) continue
+      const g = porEmp.get(p.company_id) || { n: 0, fat: 0, tels: new Map() }
+      g.n++; g.fat += Number(p.total || 0)
+      if (tel) g.tels.set(tel, (g.tels.get(tel) || 0) + 1)
+      porEmp.set(p.company_id, g)
+    }
+    const validas = [...porEmp.values()].filter(g => g.n >= 15 && g.tels.size >= 5)
+    if (validas.length >= 3) {
+      media = {
+        tk: validas.reduce((a, g) => a + g.fat / g.n, 0) / validas.length,
+        vol: Math.round(validas.reduce((a, g) => a + [...g.tels.values()].filter(c => c >= 2).length / g.tels.size, 0) / validas.length * 100),
+        lojas: validas.length,
+      }
+    }
+  }
+
   return NextResponse.json({
     hoje: new Date(Date.now() - BRT).toISOString().slice(0, 10),
-    lojas: lojas.map(l => ({ nome: l.nome, prazo: l.prazo })),
-    pedidos: linhas, prazos, perdida,
+    lojas: lojas.map(l => ({ id: l.id, nome: l.nome, prazo: l.prazo })),
+    pedidos: linhas, prazos, perdida, funil, media,
   })
 }

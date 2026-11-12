@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { npGroupContribution, type NpProduto, type NpCartLine, PESO_REGEX, pesoDigitsFromKg, pesoNum, pesoDisplay } from '@/lib/produtoCart'
 import { ordenarComplementosLista } from '@/lib/produtoOrdem'
+import { matchBairroInAddress } from '@/lib/bairrosSaoGoncalo'
 
 type DeliveryType = 'entrega' | 'retirada' | 'balcao'
 type PedidoParaEditar = {
@@ -83,6 +84,10 @@ export default function EditarPedidoPanel({ pedido, companyId, onClose, onSaved 
   const [telefone, setTelefone] = useState(pedido.customer_phone || '')
   const [deliveryType, setDeliveryType] = useState<DeliveryType>(pedido.delivery_type)
   const [endereco, setEndereco] = useState(pedido.delivery_address || '')
+  // Taxa de entrega editável e guardada no próprio estado: antes ela era lida de `pedido.delivery_fee`, que vira 0
+  // ao salvar o pedido como retirada — voltar pra entrega depois não recuperava o frete (caso Mistura Fina nº 11,
+  // 12/nov/2026: cliente pagou R$ 7,00 de frete no Pix e o pedido ficou com frete zerado).
+  const [taxaEntrega, setTaxaEntrega] = useState(() => String(pedido.delivery_fee || 0).replace('.', ','))
   const [agendado, setAgendado] = useState(!!pedido.scheduled_for)
   const [scheduledFor, setScheduledFor] = useState(toLocalInputValue(pedido.scheduled_for))
   const [payMethod, setPayMethod] = useState(pedido.payment_method || '')
@@ -178,7 +183,8 @@ export default function EditarPedidoPanel({ pedido, companyId, onClose, onSaved 
   }
 
   const subtotal = items.reduce((s, l) => s + lineTotal(l), 0)
-  const deliveryFee = deliveryType === 'entrega' ? (pedido.delivery_fee || 0) : 0
+  const taxaNum = Math.max(0, Number(String(taxaEntrega).replace(',', '.')) || 0)
+  const deliveryFee = deliveryType === 'entrega' ? taxaNum : 0
   const total = subtotal + deliveryFee
 
   async function handleSave() {
@@ -405,7 +411,15 @@ export default function EditarPedidoPanel({ pedido, companyId, onClose, onSaved 
               <button className={deliveryType === 'balcao' ? 'on-endereco' : ''} onClick={() => setDeliveryType('balcao')}>Balcão</button>
             </div>
             {deliveryType === 'entrega' && (
-              <div className="ep-field"><label>Endereço</label><textarea value={endereco} onChange={e => setEndereco(e.target.value)} /></div>
+              <>
+                <div className="ep-field"><label>Endereço</label><textarea value={endereco} onChange={e => setEndereco(e.target.value)} /></div>
+                {endereco.trim() && !matchBairroInAddress(endereco) && (
+                  <div style={{ background: '#FFF3CC', color: '#6b4e00', borderRadius: 8, padding: '8px 10px', fontSize: 11.5, marginBottom: 9, lineHeight: 1.4 }}>
+                    ⚠️ Não achei o <b>bairro</b> nesse endereço. Ao chamar o motoboy da plataforma, a corrida será cobrada pelo valor padrão, e não pelo bairro. Escreva o bairro no endereço (ex.: <i>Rua X, 10, Nova Cidade, São Gonçalo-RJ</i>).
+                  </div>
+                )}
+                <div className="ep-field"><label>Taxa de entrega (R$)</label><input inputMode="decimal" value={taxaEntrega} onChange={e => setTaxaEntrega(e.target.value)} /></div>
+              </>
             )}
           </div>
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createHmac, timingSafeEqual } from 'crypto'
 import { gerarRespostaIA, type HistoricoMsg } from '@/lib/crmIA'
+import { transcreverAudioWhatsApp } from '@/lib/transcreverAudio'
 
 // PROTÓTIPO (12/nov/2026) — IA respondendo pelo WAHA, só para teste.
 // Recebe o webhook `message` de UMA sessão do WAHA, e responde com a mesma IA do CRM
@@ -43,6 +44,28 @@ async function waha(path: string, init?: RequestInit) {
   return fetch(`${WAHA_URL}${path}`, { ...init, headers: { 'X-Api-Key': WAHA_API_KEY, 'Content-Type': 'application/json', Accept: 'application/json', ...(init?.headers || {}) } })
 }
 
+// Baixa o áudio (voz) de uma mensagem do WAHA. O `media.url` do webhook aponta pro endereço interno do WAHA
+// (ex.: http://localhost:3000/api/files/...), então reaproveita só o caminho /api/files/... no WAHA_URL público.
+async function baixarAudio(p: any): Promise<{ buf: Buffer; mimetype: string } | null> {
+  const mimetype = String(p?.media?.mimetype || '')
+  if (!p?.hasMedia || !mimetype.startsWith('audio')) return null
+  try {
+    let url: string | null = p?.media?.url || null
+    if (!url && p?.id) {
+      // WAHA não baixou o arquivo junto do webhook: pede a mensagem de novo mandando baixar.
+      const chatId = encodeURIComponent(String(p.from || ''))
+      const r = await waha(`/api/${encodeURIComponent(SESSION)}/chats/${chatId}/messages/${encodeURIComponent(String(p.id))}?downloadMedia=true`)
+      if (r.ok) url = (await r.json())?.media?.url || null
+    }
+    if (!url) return null
+    const caminho = url.includes('/api/files/') ? url.slice(url.indexOf('/api/files/')) : null
+    if (!caminho) return null
+    const r = await waha(caminho)
+    if (!r.ok) return null
+    return { buf: Buffer.from(await r.arrayBuffer()), mimetype: mimetype.split(';')[0] || 'audio/ogg' }
+  } catch { return null }
+}
+
 // `from` pode vir como 5521...@c.us ou 1234...@lid; devolve só os dígitos do telefone (ou null).
 async function telefoneDe(from: string): Promise<string | null> {
   const [id, dominio] = from.split('@')
@@ -71,12 +94,24 @@ export async function POST(req: NextRequest) {
 
   const p = body.payload
   const from: string = String(p?.from || '')
-  const texto: string = String(p?.body || '').trim()
-  if (!p || p.fromMe || !from || from.endsWith('@g.us') || from.includes('@broadcast') || from.endsWith('@newsletter') || !texto) return NextResponse.json({ ok: true })
+  let texto: string = String(p?.body || '').trim()
+  if (!p || p.fromMe || !from || from.endsWith('@g.us') || from.includes('@broadcast') || from.endsWith('@newsletter')) return NextResponse.json({ ok: true })
+  const ehAudio = !texto && p.hasMedia && String(p?.media?.mimetype || '').startsWith('audio')
+  if (!texto && !ehAudio) return NextResponse.json({ ok: true })
   if (p.id && jaVisto(String(p.id))) return NextResponse.json({ ok: true })
 
   const telefone = await telefoneDe(from)
   if (!telefone || !ALLOWLIST.has(telefone)) return NextResponse.json({ ok: true })
+
+  if (ehAudio) {
+    const audio = await baixarAudio(p)
+    texto = audio ? ((await transcreverAudioWhatsApp(audio.buf, audio.mimetype)) || '') : ''
+    if (!texto) {
+      // Mesma resposta de reserva do atendimento normal quando o áudio não pôde ser transcrito.
+      await waha('/api/sendText', { method: 'POST', body: JSON.stringify({ session: SESSION, chatId: `${telefone}@c.us`, text: 'Não consegui ouvir seu áudio agora 😕 Pode escrever sua mensagem, por favor?' }) })
+      return NextResponse.json({ ok: true, audioSemTexto: true })
+    }
+  }
 
   try {
     const chatId = `${telefone}@c.us`
@@ -89,6 +124,7 @@ export async function POST(req: NextRequest) {
         .filter(m => String(m?.body || '').trim())
         .sort((a, b) => Number(a.timestamp) - Number(b.timestamp))
         .map(m => ({ direction: m.fromMe ? 'out' : 'in', body: String(m.body) }) as HistoricoMsg)
+      if (ehAudio) ordenada.push({ direction: 'in', body: texto } as HistoricoMsg)
       if (ordenada.length && ordenada[ordenada.length - 1].direction === 'in') historico = ordenada
     }
 

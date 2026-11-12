@@ -276,6 +276,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
+    // Registro de falha de impressão (feito pelo computador da impressora) — para diagnosticar depois.
+    if (acao === 'impressao_log') {
+      await evento(companyId, String(b.comandaId || ''), 'impressao_falhou', { origem: String(b.origem || '').slice(0, 40), detalhe: String(b.detalhe || '').slice(0, 300) }, null)
+      return NextResponse.json({ ok: true })
+    }
+
     // Celular sem impressora: pede para o computador imprimir a conta (aberta ou já fechada).
     if (acao === 'conta_pedir') {
       const { data: c } = await sb.from('loja_comandas').select('id').eq('id', String(b.comandaId || '')).eq('company_id', companyId).maybeSingle()

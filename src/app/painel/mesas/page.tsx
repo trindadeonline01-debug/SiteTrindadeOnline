@@ -126,6 +126,7 @@ export default function MesasPage() {
   const chamadosAbertosAntes = useRef<Set<string>>(new Set())
   const [pedidoQr, setPedidoQr] = useState<Chamado | null>(null)
   const [pedirCfgPin, setPedirCfgPin] = useState(false)
+  const erroImp = useRef('')
 
   const call = useCallback(async (acao: string, extra: Record<string, unknown> = {}): Promise<Resp> => {
     setBusy(true)
@@ -231,9 +232,17 @@ export default function MesasPage() {
     if (impressaoPausada) return false
     if (!printerName || conteudos.length === 0) return false
     try {
+      erroImp.current = ''
       for (const c of conteudos) await imprimirVias(printerName, tipo === 'completa' ? c : null, tipo === 'producao' ? c : null, tipo === 'completa' && forcar ? 1 : 0)
       return true
-    } catch { return false }
+    } catch (e) {
+      erroImp.current = e instanceof Error ? e.message : String(e || 'erro desconhecido')
+      return false
+    }
+  }
+  // Registra no extrato da loja (para a Trindade conseguir ver o que falhou) — nunca atrapalha a tela.
+  function logImpressao(c: Comanda, o: string, detalhe: string) {
+    call('impressao_log', { comandaId: c.id, origem: o, detalhe }).catch(() => {})
   }
 
   // ---------- ações ----------
@@ -266,7 +275,13 @@ export default function MesasPage() {
   async function podeImprimirAqui(): Promise<boolean> {
     if (!printerName) return false
     if (isRawBtMode(printerName)) return true
-    try { await qzConnect(); return true } catch { return false }
+    // QZ Tray é programa de computador: no celular/tablet nem tenta (a tentativa pode ficar pendurada
+    // ou abrir pedido de "rede local" no navegador, e o pedido de impressão nunca seguia para o computador).
+    if (typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)) return false
+    try {
+      await Promise.race([qzConnect(), new Promise<never>((_, rej) => setTimeout(() => rej(new Error('QZ não respondeu')), 6000))])
+      return true
+    } catch { return false }
   }
 
   // Monta e imprime a produção da comanda com o que está no banco AGORA. Marca como impresso só se saiu.
@@ -302,6 +317,7 @@ export default function MesasPage() {
 
   // Computador com a impressora: imprime os pedidos feitos pelos outros aparelhos (celular).
   const imprimindoRemoto = useRef(false)
+  const tentativasRemotas = useRef<Record<string, { n: number; ate: number }>>({})
   useEffect(() => {
     const pend = comandas.filter(c => c.imprimir_producao_em)
     if (pend.length === 0 || !printerName || isRawBtMode(printerName) || imprimindoRemoto.current) return
@@ -310,11 +326,22 @@ export default function MesasPage() {
       try {
         if (!(await podeImprimirAqui())) return
         for (const c of pend) {
+          const chave = c.id + '|' + c.imprimir_producao_em
+          const t = tentativasRemotas.current[chave] || { n: 0, ate: 0 }
+          if (t.n >= 3 || Date.now() < t.ate) continue
           // Reivindica: só o aparelho que conseguir zerar o pedido (com o mesmo carimbo) imprime — evita papel duplicado.
           const { data: ganhou } = await supabase.from('loja_comandas').update({ imprimir_producao_em: null }).eq('id', c.id).eq('imprimir_producao_em', c.imprimir_producao_em as string).select('id')
           if (!ganhou || ganhou.length === 0) continue
           const r = await executarProducao(c, !!c.imprimir_producao_todas)
-          if (r === 'erro') setMsg('Não consegui imprimir o pedido do celular. Confira a impressora e peça de novo.')
+          if (r === 'erro') {
+            const n = t.n + 1
+            tentativasRemotas.current[chave] = { n, ate: Date.now() + 15000 }
+            // Devolve o pedido à fila (o celular continua vendo "pendente") e tenta de novo em 15 s, até 3 vezes.
+            await supabase.from('loja_comandas').update({ imprimir_producao_em: c.imprimir_producao_em }).eq('id', c.id).is('imprimir_producao_em', null)
+            logImpressao(c, 'producao_remota', `tentativa ${n}: ${erroImp.current || 'a impressora não respondeu'}`)
+            setMsg(`Não consegui imprimir o pedido do celular (${erroImp.current || 'impressora não respondeu'}). ${n < 3 ? 'Tentando de novo…' : 'Confira a impressora/QZ Tray e peça de novo no celular.'}`)
+            if (n < 3) setTimeout(() => { load() }, 16000)
+          }
         }
         await load()
       } finally { imprimindoRemoto.current = false }
@@ -342,6 +369,9 @@ export default function MesasPage() {
       try {
         if (!(await podeImprimirAqui())) return
         for (const c of contasPedidas) {
+          const chave = 'conta|' + c.id + '|' + c.imprimir_conta_em
+          const t = tentativasRemotas.current[chave] || { n: 0, ate: 0 }
+          if (t.n >= 3 || Date.now() < t.ate) continue
           const { data: ganhou } = await supabase.from('loja_comandas').update({ imprimir_conta_em: null }).eq('id', c.id).eq('imprimir_conta_em', c.imprimir_conta_em as string).select('id')
           if (!ganhou || ganhou.length === 0) continue
           const [{ data: ps }, { data: pg }] = await Promise.all([
@@ -349,7 +379,14 @@ export default function MesasPage() {
             supabase.from('loja_comanda_pagamentos').select('id, comanda_id, forma, cartao_tipo, valor, pessoa').eq('comanda_id', c.id).order('criado_em'),
           ])
           const ok = await imprimir([montarConta(c, (ps || []) as unknown as PedidoMesa[], (pg || []) as Pagto[])], 'completa', true)
-          if (!ok) setMsg('Não consegui imprimir a conta do celular. Confira a impressora e peça de novo.')
+          if (!ok) {
+            const n = t.n + 1
+            tentativasRemotas.current[chave] = { n, ate: Date.now() + 15000 }
+            await supabase.from('loja_comandas').update({ imprimir_conta_em: c.imprimir_conta_em }).eq('id', c.id).is('imprimir_conta_em', null)
+            logImpressao(c, 'conta_remota', `tentativa ${n}: ${erroImp.current || 'a impressora não respondeu'}`)
+            setMsg(`Não consegui imprimir a conta do celular (${erroImp.current || 'impressora não respondeu'}). ${n < 3 ? 'Tentando de novo…' : 'Confira a impressora/QZ Tray e peça de novo no celular.'}`)
+            if (n < 3) setTimeout(() => { load() }, 16000)
+          }
         }
         await load()
       } finally { imprimindoConta.current = false }

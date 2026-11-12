@@ -204,3 +204,27 @@ export function beepChamado() {
     })
   } catch {}
 }
+
+// "Moedinha" curta: confirma que o produto entrou na comanda (Mesas, pedido de março/nov 2026).
+// Duas notas agudas bem rápidas, baixinho — dá para ouvir muitas vezes seguidas sem cansar.
+export function beepAdd() {
+  try {
+    setPlaybackAudioSession()
+    const c = getCtx()
+    if (!c) return
+    if (c.state === 'suspended') c.resume().catch(() => {})
+    const t0 = c.currentTime
+    ;[1318.51, 1975.53].forEach((freq, i) => {
+      const osc = c.createOscillator()
+      const g = c.createGain()
+      osc.type = 'triangle'
+      osc.frequency.value = freq
+      const t = t0 + i * 0.085
+      g.gain.setValueAtTime(0.0001, t)
+      g.gain.exponentialRampToValueAtTime(0.32, t + 0.012)
+      g.gain.exponentialRampToValueAtTime(0.0001, t + (i === 0 ? 0.11 : 0.28))
+      osc.connect(g); g.connect(c.destination)
+      osc.start(t); osc.stop(t + 0.3)
+    })
+  } catch {}
+}

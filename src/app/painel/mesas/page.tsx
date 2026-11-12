@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { adminFetch } from '@/lib/adminFetch'
 import { moduleActive } from '@/lib/modules'
-import { beepChamado, pararSons, unlockAudio } from '@/lib/beep'
+import { beepAdd, beepChamado, pararSons, unlockAudio } from '@/lib/beep'
 import { buildReceipt, buildKitchenTicket, imprimirVias, isRawBtMode, qzConnect, setPapelImpressora, setViasImpressao } from '@/lib/qzPrint'
 import ConfirmModal from '@/components/painel/ConfirmModal'
 import VendasDiaPanel from '@/components/painel/VendasDiaPanel'
@@ -1122,6 +1122,26 @@ function Picker({ produtos, categorias, alvo, onClose, onLancar, busy, msg }: {
   const [linhas, setLinhas] = useState<Linha[]>([])
   const [obs, setObs] = useState('')
   const seq = useRef(0)
+  // Confirmação visual/sonora de que o produto entrou: o botão fica verde por ~1 s e toca uma moedinha.
+  const [aceso, setAceso] = useState<string | null>(null)
+  const acesoTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  function confirmaAdd(id: string) {
+    beepAdd()
+    setAceso(id)
+    if (acesoTimer.current) clearTimeout(acesoTimer.current)
+    acesoTimer.current = setTimeout(() => setAceso(null), 1000)
+  }
+  useEffect(() => () => { if (acesoTimer.current) clearTimeout(acesoTimer.current) }, [])
+  // Carrinho flutuante (celular): leva direto ao pedido lá embaixo; some quando o pedido já está na tela.
+  const cartRef = useRef<HTMLDivElement>(null)
+  const [cartVisivel, setCartVisivel] = useState(false)
+  useEffect(() => {
+    const el = cartRef.current
+    if (!el || typeof IntersectionObserver === 'undefined') return
+    const io = new IntersectionObserver(([e]) => setCartVisivel(e.isIntersecting), { threshold: 0.15 })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
   // Abre já com o cursor na busca (computador/tablet com teclado). No celular não foca sozinho, para o teclado não cobrir os produtos.
   const buscaRef = useRef<HTMLInputElement>(null)
   useEffect(() => { if (window.innerWidth > 1000) buscaRef.current?.focus() }, [])
@@ -1131,11 +1151,14 @@ function Picker({ produtos, categorias, alvo, onClose, onLancar, busy, msg }: {
 
   const lista = produtos.filter(p => (cat === 'all' || p.category_id === cat) && (!q || p.name.toLowerCase().includes(q.toLowerCase())))
   const total = r2(linhas.reduce((s, l) => s + l.unit * (l.pesoKg != null ? 1 : l.qty), 0))
+  const qtdTotal = linhas.reduce((s, l) => s + (l.pesoKg != null ? 1 : l.qty), 0)
+  const qtdDe = (id: string) => linhas.filter(l => l.produto.id === id).reduce((s, l) => s + (l.pesoKg != null ? 1 : l.qty), 0)
 
   function add(p: Produto, modifiers: { name: string; price: number }[] = [], pesoKg: number | null = null, valorFixo: number | null = null) {
     // Item adicionado: limpa a busca (e volta o cursor nela no computador) para já procurar o próximo.
     setQ('')
     if (window.innerWidth > 1000) setTimeout(() => buscaRef.current?.focus(), 0)
+    confirmaAdd(p.id)
     const extra = modifiers.reduce((s, m) => s + m.price, 0)
     const unit = r2(precoDe(p) + extra)
     const key = p.id + '|' + modifiers.map(m => m.name).join(',') + (pesoKg != null ? '|' + (++seq.current) : '')
@@ -1181,7 +1204,9 @@ function Picker({ produtos, categorias, alvo, onClose, onLancar, busy, msg }: {
             </div>
             <div className="ms-prods">
               {lista.map(p => (
-                <button key={p.id} className="ms-prod" onClick={() => tocar(p)}>
+                <button key={p.id} className={`ms-prod${aceso === p.id ? ' aceso' : ''}`} onClick={() => tocar(p)}>
+                  {qtdDe(p.id) > 0 && <span className="qb">{qtdDe(p.id)}</span>}
+                  {aceso === p.id && <span className="ok">✓ Adicionado</span>}
                   <Foto url={p.photo_url} size={0} />
                   <span className="n">{p.name}</span>
                   <span className="p">{precoDe(p) < Number(p.sale_price) && <s style={{ opacity: .55, fontWeight: 400, marginRight: 6 }}>{fmt(Number(p.sale_price))}</s>}{PESO_REGEX.test(p.name) ? `${fmt(precoDe(p))}/kg` : fmt(precoDe(p))}</span>
@@ -1190,7 +1215,7 @@ function Picker({ produtos, categorias, alvo, onClose, onLancar, busy, msg }: {
               {lista.length === 0 && <div className="ms-note">Nada encontrado.</div>}
             </div>
           </div>
-          <div className="ms-cart">
+          <div className="ms-cart" ref={cartRef}>
             <h4>Pedido desta rodada</h4>
             {linhas.length === 0 && <div className="ms-note">Nenhum item ainda.</div>}
             {linhas.map(l => (
@@ -1217,6 +1242,13 @@ function Picker({ produtos, categorias, alvo, onClose, onLancar, busy, msg }: {
         </div>
       </div>
 
+      {qtdTotal > 0 && !cartVisivel && !peso && !opc && (
+        <button className="ms-fab" aria-label="Ver o pedido desta rodada" onClick={() => cartRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.4" /><circle cx="18" cy="20" r="1.4" /><path d="M2 3h3l2.4 12.2a1.6 1.6 0 0 0 1.6 1.3h8.7a1.6 1.6 0 0 0 1.6-1.2L21 8H6" /></svg>
+          <span className="n">{qtdTotal}</span>
+          <span className="v">{fmt(total)}</span>
+        </button>
+      )}
       {peso && (
         <Modal titulo={peso.p.name} onClose={() => setPeso(null)}>
           <p className="ms-p">Peixe pesado na peixaria ({fmt(Number(precoDe(peso.p)))}/kg)</p>
@@ -1728,6 +1760,14 @@ const CSS = `
 .ms-prod{background:#fff;border:1px solid #b9bab2;border-radius:10px;padding:10px;text-align:left;min-height:74px;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;gap:6px}
 .ms-prod .n{font-weight:700;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.5em}
 .ms-prod:active{background:#FFF6D6;border-color:#151210}
+.ms-prod{position:relative;transition:background .15s,border-color .15s}
+.ms-prod.aceso{background:#DDF1E7;border-color:#0B7347;box-shadow:0 0 0 2px #0B7347 inset}
+.ms-prod .ok{position:absolute;top:6px;left:6px;background:#0B7347;color:#fff;font-size:12px;font-weight:800;border-radius:999px;padding:3px 9px;z-index:2}
+.ms-prod .qb{position:absolute;top:6px;right:6px;background:#151210;color:#FFC531;font-size:12px;font-weight:800;min-width:22px;height:22px;border-radius:999px;display:flex;align-items:center;justify-content:center;padding:0 6px;z-index:2}
+.ms-fab{position:fixed;right:14px;bottom:16px;z-index:70;display:flex;align-items:center;gap:8px;background:#FFC531;color:#151210;border:2px solid #151210;border-radius:999px;padding:12px 16px;font-weight:800;font-size:15px;box-shadow:0 6px 18px rgba(21,18,16,.35);cursor:pointer}
+.ms-fab .n{background:#151210;color:#FFC531;border-radius:999px;min-width:24px;height:24px;display:flex;align-items:center;justify-content:center;padding:0 7px;font-size:13px}
+.ms-fab .v{font-variant-numeric:tabular-nums}
+@media(min-width:1001px){.ms-fab{display:none}}
 .ms-mask{-webkit-text-security:disc;text-security:disc}
 .ms-img{object-fit:cover;border-radius:8px;flex:none;background:#E9EAE5}
 .ms-ph{display:inline-flex;align-items:center;justify-content:center;border-radius:8px;background:#E9EAE5;font-size:20px;flex:none}

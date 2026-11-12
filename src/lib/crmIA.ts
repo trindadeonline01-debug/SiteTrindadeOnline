@@ -255,7 +255,7 @@ async function buildContext(companyId: string, phone?: string | null, ultimaMsgC
   const { data: produtos } = await supabase
     .from('loja_produtos')
     .select(`
-      id, name, sale_price, promo_type, promo_value, promo_starts_at, promo_ends_at, esgotado, track_stock, stock_qty,
+      id, name, description, sale_price, promo_type, promo_value, promo_starts_at, promo_ends_at, esgotado, track_stock, stock_qty,
       groups:loja_opcoes_grupo(name, options:loja_opcoes(name, price, pausado))
     `)
     .eq('company_id', companyId).eq('active', true).eq('canal_delivery', true)
@@ -273,9 +273,12 @@ async function buildContext(companyId: string, phone?: string | null, ultimaMsgC
       const promo = promoPrice(p)
       const preco = promo != null ? `${fmtMoney(promo)} (de ${fmtMoney(Number(p.sale_price))}, em promoção)` : fmtMoney(Number(p.sale_price))
       const link = `https://trindadeonline.com.br/empresa/${company.slug}/item/${p.id}`
-      return `${p.name} — ${preco} — link direto deste produto: ${link}`
+      // Descrição cadastrada no produto (o que vem no combo, ingredientes, tamanho) — antes a IA não via esse
+      // campo e não sabia responder "o que vem no combo?" (teste pelo WAHA, 12/nov/2026).
+      const desc = String(p.description || '').replace(/\s+/g, ' ').trim().slice(0, 400)
+      return `${p.name} — ${preco}${desc ? ` — descrição: ${desc}` : ''} — link direto deste produto: ${link}`
     })
-    linhas.push('Catálogo ativo agora, com preço real e atualizado (responda pergunta de produto/preço direto com base nessa lista — se o produto perguntado NÃO estiver aqui, diga que não achou esse item disponível agora, sem inventar). Cada linha já vem com o link direto daquele produto específico:\n' + catalogoLinhas.join('\n'))
+    linhas.push('Catálogo ativo agora, com preço real e atualizado (responda pergunta de produto/preço direto com base nessa lista — se o produto perguntado NÃO estiver aqui, diga que não achou esse item disponível agora, sem inventar). Quando a linha traz "descrição", ela é a fonte oficial do que vem no produto/combo (itens, ingredientes, tamanho, serve quantas pessoas): use-a para responder "o que vem no combo?", "tem X?", "serve quantas pessoas?" e NUNCA acrescente item que não esteja escrito nela; se a pergunta não estiver respondida na descrição, diga que vai confirmar com a loja. Cada linha já vem com o link direto daquele produto específico:\n' + catalogoLinhas.join('\n'))
   }
 
   // Opcionais/variações do produto (ex: camarão "Limpo" ou "Com casca", peixe

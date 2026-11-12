@@ -954,12 +954,12 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
         .cd-hot-card-closed .cd-hot-photo{ filter:grayscale(1); }
         .cd-pphoto{ width:92px;height:92px;border-radius:13px;background:linear-gradient(135deg,#FBF1DC,#F0EDE8);display:flex;align-items:center;justify-content:center;font-size:27px;position:relative;overflow:hidden;flex-shrink:0; }
         .cd-pphoto img{ width:100%;height:100%;object-fit:cover; }
-        .cd-badge{ position:absolute;top:-6px;left:-6px;background:#E24B4A;color:#fff;font-size:9px;font-weight:800;padding:2px 6px;border-radius:6px; }
+        .cd-badge{ position:absolute;top:4px;left:4px;z-index:1;white-space:nowrap;background:#E24B4A;color:#fff;font-size:9px;font-weight:800;padding:2px 6px;border-radius:6px; }
         .cd-pmid{ flex:1;min-width:0; }
         .cd-pname{ font-size:13px;font-weight:700; }
         .cd-pdesc{ font-size:11px;color:#AAA;margin-top:2px; }
         .cd-pprice{ font-size:13px;font-weight:800;margin-top:4px; }
-        .cd-pprice.was{ font-size:10.5px;color:#AAA;text-decoration:line-through;margin-left:5px;font-weight:600; }
+        .cd-pprice .was{ display:inline-block;font-size:10.5px;color:#AAA;text-decoration:line-through;margin-left:6px;font-weight:600; }
         .cd-addbtn{ flex:none;width:30px;height:30px;border-radius:9px;border:1.5px solid var(--sign-dark);background:#FEF3E2;color:var(--sign-dark);font-size:16px;font-weight:800;cursor:pointer;transition:background .2s,color .2s,transform .2s; }
         .cd-addbtn.added{ background:var(--sign-dark);color:#fff;transform:scale(1.12); }
         .cd-chev{ flex:none;width:26px;height:26px;border-radius:50%;border:none;background:#F0EDE8;color:#AAA;font-size:13px;font-weight:800;cursor:pointer; }

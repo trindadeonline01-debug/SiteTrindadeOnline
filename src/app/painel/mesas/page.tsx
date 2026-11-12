@@ -119,6 +119,7 @@ export default function MesasPage() {
   const [showConfig, setShowConfig] = useState(false)
   const [calcLivre, setCalcLivre] = useState(false)
   const [showVendas, setShowVendas] = useState(false)
+  const [menuTopo, setMenuTopo] = useState(false)
   const [picker, setPicker] = useState(false)
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
@@ -428,10 +429,25 @@ export default function MesasPage() {
           <a className="ms-tab" href={'/painel/cozinha' + (adminMode ? `?empresa=${companyId}` : '')}>Cozinha</a>
           <a className="ms-tab" href={'/painel/pdv' + (adminMode ? `?empresa=${companyId}` : '')}>Balcão</a>
         </div>
-        <button className="ms-btn calc" onClick={() => setCalcLivre(true)}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#151210" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2" /><rect x="8" y="6" width="8" height="3" /><path d="M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01M16 17h.01" /></svg>Calculadora</button>
-        <button className="ms-btn ghost" onClick={() => setShowVendas(true)}>📋 Vendas do dia</button>
-        <button className="ms-btn ghost" onClick={() => { if (adminMode || !hasPin) setShowConfig(true); else { setMsg(''); setPedirCfgPin(true) } }}>⚙️ Configurar</button>
-        <a className="ms-back" href={'/painel' + (adminMode ? `?empresa=${companyId}` : '')}>Sair ›</a>
+        <button className="ms-btn calc" onClick={() => setCalcLivre(true)} aria-label="Calculadora"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#151210" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2" /><rect x="8" y="6" width="8" height="3" /><path d="M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01M16 17h.01" /></svg><span className="ms-calc-t">Calculadora</span></button>
+        <button className="ms-btn ghost ms-dsk" onClick={() => setShowVendas(true)}>📋 Vendas do dia</button>
+        <button className="ms-btn ghost ms-dsk" onClick={() => { if (adminMode || !hasPin) setShowConfig(true); else { setMsg(''); setPedirCfgPin(true) } }}>⚙️ Configurar</button>
+        <a className="ms-back ms-dsk" href={'/painel' + (adminMode ? `?empresa=${companyId}` : '')}>Sair ›</a>
+        <div className="ms-mmenu">
+          <button className="ms-btn ghost ms-mbtn" onClick={() => setMenuTopo(v => !v)} aria-label="Menu" aria-expanded={menuTopo}><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><circle cx="12" cy="5" r="1.7" /><circle cx="12" cy="12" r="1.7" /><circle cx="12" cy="19" r="1.7" /></svg></button>
+          {menuTopo && (
+            <>
+              <div className="ms-mshade" onClick={() => setMenuTopo(false)} />
+              <div className="ms-msheet" role="menu">
+                <button onClick={() => { setMenuTopo(false); setShowVendas(true) }}>📋 Vendas do dia</button>
+                <button onClick={() => { setMenuTopo(false); if (adminMode || !hasPin) setShowConfig(true); else { setMsg(''); setPedirCfgPin(true) } }}>⚙️ Configurar</button>
+                <a href={'/painel/cozinha' + (adminMode ? `?empresa=${companyId}` : '')}>🍳 Cozinha</a>
+                <a href={'/painel/pdv' + (adminMode ? `?empresa=${companyId}` : '')}>🏪 Balcão (PDV)</a>
+                <a href={'/painel' + (adminMode ? `?empresa=${companyId}` : '')}>↩ Sair</a>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {!mesasEnabled ? (
@@ -1729,6 +1745,19 @@ const CSS = `
 .ms-btn.danger{background:#fff;color:#D6392B;border:2px solid #D6392B}
 .ms-btn.big{min-height:52px;font-size:16px;width:100%}
 .ms-btn:disabled{opacity:.45;cursor:not-allowed}
+.ms-mmenu{display:none;position:relative}
+.ms-mbtn{padding:0;width:44px;display:grid;place-items:center}
+.ms-mshade{position:fixed;inset:0;z-index:40}
+.ms-msheet{position:absolute;right:0;top:50px;width:220px;background:#fff;color:#151210;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.35);padding:6px;z-index:41;display:flex;flex-direction:column}
+.ms-msheet button,.ms-msheet a{background:none;border:0;text-align:left;text-decoration:none;color:#151210;font-size:15px;font-weight:600;padding:13px 12px;border-radius:8px;min-height:44px;display:flex;align-items:center}
+.ms-msheet>*+*{border-top:1px solid #eee}
+@media(max-width:700px){
+.ms-top{flex-wrap:nowrap;gap:8px;padding:0 10px;min-height:56px}
+.ms-brand{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:19px}
+.ms-tabs,.ms-dsk,.ms-calc-t{display:none}
+.ms-top .ms-btn.calc{padding:0;width:44px;justify-content:center}
+.ms-mmenu{display:block}
+}
 .ms-body{display:flex;min-height:calc(100vh - 60px)}
 .ms-main{flex:1;min-width:0;padding:18px 22px;display:flex;flex-direction:column;gap:12px}
 .ms-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}

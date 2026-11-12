@@ -23,7 +23,7 @@ type Mesa = { id: string; numero: number; nome: string | null; ativa: boolean }
 type Comanda = {
   id: string; company_id: string; mesa_id: string | null; tipo?: 'mesa' | 'retirada'; rotulo?: string | null; numero: number; garcom_nome: string | null; customer_phone: string | null; customer_name: string | null
   taxa_servico_ativa: boolean; taxa_servico_pct: number; desconto: number; desconto_motivo: string | null
-  imprimir_producao_em?: string | null; imprimir_producao_todas?: boolean; imprimir_conta_em?: string | null
+  fechada_em?: string | null; imprimir_producao_em?: string | null; imprimir_producao_todas?: boolean; imprimir_conta_em?: string | null
   subtotal: number; taxa_valor: number; total: number; aberta_em: string
 }
 type ItemPed = { id: string; produto_id: string | null; product_name: string; unit_price: number; qty: number; peso_kg: number | null; selected_options: { name: string; price: number }[] }
@@ -114,6 +114,8 @@ export default function MesasPage() {
   const [abrirFone, setAbrirFone] = useState('')
   const [abrirNome, setAbrirNome] = useState('')
   const [abrirRetirada, setAbrirRetirada] = useState(false)           // nova retirada (sem mesa)
+  const [retFechadas, setRetFechadas] = useState<Comanda[]>([])        // retiradas já finalizadas hoje (histórico ao lado de "Nova retirada")
+  const [reabrirRet, setReabrirRet] = useState<Comanda | null>(null)   // retirada finalizada escolhida para reabrir/editar
   const [showConfig, setShowConfig] = useState(false)
   const [calcLivre, setCalcLivre] = useState(false)
   const [showVendas, setShowVendas] = useState(false)
@@ -149,13 +151,16 @@ export default function MesasPage() {
   const load = useCallback(async () => {
     const cid = companyRef.current
     if (!cid) return
-    const [m, c, g, ch, cp] = await Promise.all([
+    const inicioHoje = new Date(new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' }) + 'T00:00:00-03:00').toISOString()
+    const [m, c, g, ch, cp, rf] = await Promise.all([
       supabase.from('loja_mesas').select('id, numero, nome, ativa').eq('company_id', cid).eq('ativa', true).order('numero'),
       supabase.from('loja_comandas').select('*').eq('company_id', cid).eq('status', 'aberta'),
       supabase.from('loja_garcons').select('id, nome, ativo').eq('company_id', cid).order('nome'),
       supabase.from('loja_mesa_chamados').select('id, mesa_id, comanda_id, tipo, mensagem, criado_em, payload').eq('company_id', cid).eq('status', 'aberto').order('criado_em'),
       supabase.from('loja_comandas').select('*').eq('company_id', cid).not('imprimir_conta_em', 'is', null),
+      supabase.from('loja_comandas').select('*').eq('company_id', cid).eq('tipo', 'retirada').eq('status', 'fechada').gte('fechada_em', inicioHoje).order('fechada_em', { ascending: false }).limit(40),
     ])
+    setRetFechadas((rf.data || []) as Comanda[])
     setContasPedidas((cp.data || []) as Comanda[])
     const cs = (c.data || []) as Comanda[]
     setMesas((m.data || []) as Mesa[]); setComandas(cs); setGarcons((g.data || []) as Garcom[])
@@ -479,6 +484,13 @@ export default function MesasPage() {
                 <span className="top"><b>+</b></span>
                 <span className="bot"><strong>Nova retirada</strong></span>
               </button>
+              {retFechadas.map(c => (
+                <button key={c.id} className="ms-retok" title="Retirada finalizada — toque para reabrir e editar" onClick={() => { setMsg(''); setReabrirRet(c) }}>
+                  <span className="n">✓ #{c.numero}</span>
+                  <span className="nm">{c.rotulo || 'Retirada'}</span>
+                  <span className="vl">{fmt(c.total)}{c.fechada_em ? ` · ${new Date(c.fechada_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })}` : ''}</span>
+                </button>
+              ))}
             </div>
           </div>
           <aside className="ms-side">
@@ -565,6 +577,12 @@ export default function MesasPage() {
       )}
 
       {calcLivre && <MesaCalculadora onClose={() => setCalcLivre(false)} />}
+
+      {reabrirRet && (
+        <ReabrirRetiradaModal c={reabrirRet} busy={busy} msg={msg} call={call}
+          onClose={() => { setReabrirRet(null); setMsg('') }}
+          onOk={async () => { const id = reabrirRet.id; setReabrirRet(null); await load(); setAbertaId(id) }} />
+      )}
 
       {showVendas && companyId && (
         <VendasDiaPanel
@@ -659,6 +677,23 @@ function ConfigPinModal({ busy, msg, call, onClose, onOk }: { busy: boolean; msg
       <PinInput className="pin" autoFocus value={val} onChange={setVal} onEnter={() => { if (!busy && val.length >= 4) entrar() }} />
       {msg && <div className="ms-err">{msg}</div>}
       <button className="ms-btn big" disabled={busy || val.length < 4} onClick={entrar}>Abrir configurações</button>
+    </Modal>
+  )
+}
+
+// Retirada já finalizada (histórico ao lado de "Nova retirada"): pede o PIN da supervisão e reabre para editar.
+function ReabrirRetiradaModal({ c, busy, msg, call, onClose, onOk }: { c: Comanda; busy: boolean; msg: string; call: CallFn; onClose: () => void; onOk: () => void }) {
+  const [val, setVal] = useState('')
+  async function reabrir() {
+    const r = await call('venda_reabrir', { comandaId: c.id, pin: val })
+    if (r) onOk()
+  }
+  return (
+    <Modal titulo={`Retirada #${c.numero}${c.rotulo ? ' · ' + c.rotulo : ''}`} onClose={onClose}>
+      <p className="ms-p">Finalizada · {fmt(c.total)}{c.garcom_nome ? ` · ${c.garcom_nome}` : ''}. Para editar (tirar ou acrescentar produto, trocar a forma de pagamento), digite o PIN da supervisão. A retirada volta a ficar aberta e você fecha de novo.</p>
+      <PinInput className="pin" autoFocus value={val} onChange={setVal} onEnter={() => { if (!busy && val.length >= 4) reabrir() }} />
+      {msg && <div className="ms-err">{msg}</div>}
+      <button className="ms-btn big" disabled={busy || val.length < 4} onClick={reabrir}>Reabrir para editar</button>
     </Modal>
   )
 }
@@ -1706,6 +1741,9 @@ const CSS = `
 .ms-mesa.ret{background:#fff;border:2px solid #151210}.ms-mesa.ret .top b{font-size:26px;word-break:break-word}
 .ms-mesa.ret.novo{background:transparent;border:2px dashed #8a8678;color:#4f4c47;align-items:center;justify-content:center}
 .ms-mesa.ret.novo .top b{font-size:34px}.ms-mesa.ret.novo .bot{align-items:center}
+.ms-retok{align-self:start;background:#DDF1E7;border:1.5px solid #0B7347;color:#0B5A38;border-radius:8px;padding:7px 10px;min-height:0;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:1px;font-family:inherit}
+.ms-retok .n{font-weight:800;font-size:14px}.ms-retok .nm{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ms-retok .vl{font-size:12px;font-variant-numeric:tabular-nums;opacity:.85}
+.ms-retok:hover{background:#C9EBDA}
 .ms-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
 .ms-mesa{border:2px solid #b9bab2;background:#fff;color:#151210;border-radius:10px;padding:10px 14px;min-height:112px;cursor:pointer;text-align:left;display:flex;flex-direction:column;justify-content:space-between;gap:6px}
 .ms-mesa .top{display:flex;justify-content:space-between;align-items:baseline}

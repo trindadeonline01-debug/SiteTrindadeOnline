@@ -335,6 +335,23 @@ export default function PdvPage() {
   function pesoKey(d: string) { setPesoDigits(prev => (prev === '0' ? d : prev + d).replace(/^0+(?=\d)/, '')) }
   function pesoBackspace() { setPesoDigits(prev => prev.slice(0, -1) || '0') }
 
+  // Teclado do computador (inclusive o numérico) na pesagem: números digitam, Backspace apaga,
+  // Enter adiciona ao carrinho, Esc cancela.
+  useEffect(() => {
+    if (!pesoPrompt) return
+    function onKey(e: KeyboardEvent) {
+      if (e.ctrlKey || e.metaKey || e.altKey) return
+      if (/^[0-9]$/.test(e.key)) { e.preventDefault(); pesoKey(e.key); return }
+      if (e.key === 'Backspace') { e.preventDefault(); pesoBackspace(); return }
+      if (e.key === 'Delete') { e.preventDefault(); setPesoDigits('0'); return }
+      if (e.key === 'Escape') { e.preventDefault(); setPesoPrompt(null); return }
+      if (e.key === 'Enter') { e.preventDefault(); confirmPeso() }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pesoPrompt, pesoDigits])
+
   function changeQty(key: string, delta: number) {
     setCart(prev => prev.map(l => l.key === key ? { ...l, qty: l.qty + delta } : l).filter(l => l.qty > 0))
   }

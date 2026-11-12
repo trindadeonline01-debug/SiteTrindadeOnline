@@ -1186,6 +1186,32 @@ function Picker({ produtos, categorias, alvo, onClose, onLancar, busy, msg }: {
     }
     add(opc.p, mods); setOpc(null)
   }
+  function confirmarPeso() {
+    if (!peso) return
+    if (peso.modo === 'kg') { if (pesoNum(peso.dig) <= 0) return; add(peso.p, [], pesoNum(peso.dig)) }
+    else {
+      const v = valorDig(peso.dig); const pr = Number(precoDe(peso.p))
+      if (v <= 0 || !(pr > 0)) return
+      add(peso.p, [], Math.round((v / pr) * 1e6) / 1e6, v)
+    }
+    setPeso(null)
+  }
+  // Teclado do computador (inclusive o numérico) na pesagem: números digitam, Backspace apaga,
+  // Delete limpa, Enter adiciona, Esc fecha. preventDefault impede o dígito de cair no campo de busca.
+  useEffect(() => {
+    if (!peso) return
+    function onKey(e: KeyboardEvent) {
+      if (e.ctrlKey || e.metaKey || e.altKey) return
+      if (/^[0-9]$/.test(e.key)) { e.preventDefault(); setPeso(s => s && ({ ...s, dig: (s.dig + e.key).slice(0, 6) })); return }
+      if (e.key === 'Backspace') { e.preventDefault(); setPeso(s => s && ({ ...s, dig: s.dig.slice(0, -1) })); return }
+      if (e.key === 'Delete') { e.preventDefault(); setPeso(s => s && ({ ...s, dig: '' })); return }
+      if (e.key === 'Escape') { e.preventDefault(); setPeso(null); return }
+      if (e.key === 'Enter') { e.preventDefault(); confirmarPeso() }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [peso])
   const opcOk = opc ? opc.p.groups.every((g, gi) => opc.sel[gi].length >= (g.required ? Math.max(1, g.min_select) : g.min_select)) : false
 
   return (
@@ -1265,11 +1291,8 @@ function Picker({ produtos, categorias, alvo, onClose, onLancar, busy, msg }: {
               <button key={k} onClick={() => setPeso(s => s && ({ ...s, dig: k === 'C' ? '' : k === '⌫' ? s.dig.slice(0, -1) : (s.dig + k).slice(0, 6) }))}>{k}</button>
             ))}
           </div>
-          <button className="ms-btn ok big" disabled={peso.modo === 'kg' ? pesoNum(peso.dig) <= 0 : valorDig(peso.dig) <= 0 || !(Number(precoDe(peso.p)) > 0)} onClick={() => {
-            if (peso.modo === 'kg') add(peso.p, [], pesoNum(peso.dig))
-            else { const v = valorDig(peso.dig); add(peso.p, [], Math.round((v / Number(precoDe(peso.p))) * 1e6) / 1e6, v) }
-            setPeso(null)
-          }}>Adicionar</button>
+          <button className="ms-btn ok big" disabled={peso.modo === 'kg' ? pesoNum(peso.dig) <= 0 : valorDig(peso.dig) <= 0 || !(Number(precoDe(peso.p)) > 0)} onClick={confirmarPeso}>Adicionar</button>
+          <p className="ms-p" style={{ textAlign: 'center', fontSize: 12 }}>Dica: no computador digite com o teclado (numérico também). Enter adiciona, Esc fecha.</p>
         </Modal>
       )}
       {opc && (

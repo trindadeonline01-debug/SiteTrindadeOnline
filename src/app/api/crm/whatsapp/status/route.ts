@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { wahaSessao, wahaQr } from '@/lib/wa'
+import { wahaSessao, wahaQr, wahaApagarSessao, wahaCriarSessao } from '@/lib/wa'
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 const supabaseAuth = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
@@ -36,6 +36,12 @@ export async function POST(req: NextRequest) {
     }
     if (inst.status === 'connected' && (st.status === 'FAILED' || st.status === 'STOPPED')) {
       await supabase.from('crm_whatsapp_instances').update({ status: 'disconnected' }).eq('id', inst.id)
+    }
+    // QR que expirou sem leitura deixa a sessão "Falhou": recria sozinha para a tela voltar a mostrar um QR novo.
+    if (st.status === 'FAILED' && inst.status !== 'connected') {
+      await wahaApagarSessao(inst.instance_name)
+      await wahaCriarSessao(inst.instance_name)
+      return NextResponse.json({ status: 'disconnected', waha: 'STARTING', qrcode_base64: null })
     }
     const qr = st.status === 'SCAN_QR_CODE' ? await wahaQr(inst.instance_name) : null
     return NextResponse.json({ status: 'disconnected', waha: st.status, qrcode_base64: qr })

@@ -15,7 +15,12 @@ export async function POST(req: NextRequest) {
     if (!atual) {
       const r = await wahaCriarSessao(PLATAFORMA_SESSAO)
       if (!r.ok) return NextResponse.json({ error: r.detail || 'não criou a sessão' }, { status: 500 })
-    } else if (atual.status === 'STOPPED' || atual.status === 'FAILED') {
+    } else if (atual.status === 'FAILED') {
+      // QR que expirou sem leitura deixa a sessão "Falhou" e o /start não destrava: apaga e cria de novo.
+      await wahaApagarSessao(PLATAFORMA_SESSAO)
+      const r = await wahaCriarSessao(PLATAFORMA_SESSAO)
+      if (!r.ok) return NextResponse.json({ error: r.detail || 'não recriou a sessão' }, { status: 500 })
+    } else if (atual.status === 'STOPPED') {
       await waha(`/api/sessions/${encodeURIComponent(PLATAFORMA_SESSAO)}/start`, { method: 'POST' })
     }
     return NextResponse.json({ ok: true })

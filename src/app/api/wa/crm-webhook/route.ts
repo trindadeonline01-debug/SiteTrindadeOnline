@@ -2,6 +2,7 @@ import { NextRequest, NextResponse, after } from 'next/server'
 import { createHmac, timingSafeEqual } from 'crypto'
 import { shortId, wahaTelefone } from '@/lib/wa'
 import { createClient } from '@supabase/supabase-js'
+import { PLATAFORMA_WAHA, PLATAFORMA_SESSAO, EVOLUTION_INSTANCE_PLATAFORMA } from '@/lib/wa/plataforma'
 
 // Entrada dos eventos do WAHA para o CRM das lojas (nov/2026). Traduz cada evento para o formato da
 // Evolution que /api/crm/webhook já entende (IA, motoboy próprio, opt-out, follow-up, mídia, reação,
@@ -64,7 +65,28 @@ function montarMensagem(p: any): { message: any; mediaKind: string | null } {
   return { message: stanzaId ? { extendedTextMessage: { text: texto, ...ctx } } : { conversation: texto }, mediaKind: null }
 }
 
+// Número da PLATAFORMA no WAHA: só interessa a resposta de motoboy (SIM/NÃO/código). Entrega no formato da Evolution
+// ao mesmo /api/entrega/webhook de sempre (ele só confere o nome da instância e o telefone, e a regra fica numa cópia só).
+async function processarPlataforma(session: string, evento: string, p: any) {
+  if (evento !== 'message.any' && evento !== 'message') return
+  const from = String(p?.from || '')
+  if (!p || p.fromMe || !from || from.endsWith('@g.us') || from.includes('@broadcast') || from.endsWith('@newsletter') || from.startsWith('status@')) return
+  const texto = String(p?.body || '').trim()
+  if (!texto) return
+  const tel = await wahaTelefone(session, from)
+  if (!tel) { await log('wa_telefone_nao_resolvido', { session, chat: from, evento }); return }
+  const r = await fetch(`${SITE}/api/entrega/webhook`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+    instance: EVOLUTION_INSTANCE_PLATAFORMA, event: 'messages.upsert',
+    data: { messages: [{ key: { remoteJid: `${tel}@s.whatsapp.net`, fromMe: false, id: shortId(p?.id) }, message: { conversation: texto } }] },
+  }) })
+  if (!r.ok) console.error('[wa/crm-webhook] /api/entrega/webhook respondeu', r.status)
+}
+
 async function processar(session: string, evento: string, p: any) {
+  if (session === PLATAFORMA_SESSAO) {
+    if (PLATAFORMA_WAHA) await processarPlataforma(session, evento, p)
+    return
+  }
   if (evento === 'session.status') {
     const st = String(p?.status || '')
     if (st === 'WORKING') return encaminhar({ instance: session, event: 'connection.update', data: { state: 'open' } })

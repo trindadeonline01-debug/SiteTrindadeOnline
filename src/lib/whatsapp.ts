@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { moduleActive } from '@/lib/modules'
-import { waSendText } from '@/lib/wa'
+import { waSendText, waSendMedia } from '@/lib/wa'
+import { PLATAFORMA_WAHA, plataformaWaha, plataformaTexto } from '@/lib/wa/plataforma'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -28,6 +29,7 @@ function formatPhone(phone: string): string {
 // binário — daí essas funções moraram aqui, e entregaDispatch.ts reusa
 // (re-exporta) em vez de duplicar.
 export async function sendPlatformWhatsApp(phone: string, text: string): Promise<{ ok: boolean; detail?: string }> {
+  if (PLATAFORMA_WAHA) return plataformaTexto(phone, text)
   try {
     const res = await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(EVOLUTION_INSTANCE)}`, {
       method: 'POST',
@@ -52,6 +54,10 @@ export const sendMotoboyWhatsApp = sendPlatformWhatsApp
 // Mesma instância da plataforma, mas manda a legenda junto de uma imagem já
 // pronta (URL) — não recorta/reprocessa nada, então não precisa de sharp.
 export async function sendPlatformWhatsAppImage(phone: string, imageUrl: string, caption: string): Promise<{ ok: boolean; detail?: string }> {
+  if (PLATAFORMA_WAHA) {
+    const r = await waSendMedia(plataformaWaha(), formatPhone(phone), 'image', imageUrl, { caption })
+    return { ok: r.ok, detail: r.detail }
+  }
   try {
     const res = await fetch(`${EVOLUTION_URL}/message/sendMedia/${encodeURIComponent(EVOLUTION_INSTANCE)}`, {
       method: 'POST',
@@ -220,6 +226,7 @@ export async function notifyOwnerHumanRequested(companyId: string, contactName: 
 // Self-heal do webhook da instância da PLATAFORMA pra receber as respostas
 // dos motoboys. Só registra uma vez; guarda o "já registrei" em settings.
 export async function ensureEntregaWebhookRegistered() {
+  if (PLATAFORMA_WAHA) return // no WAHA o webhook da sessão já é configurado ao criá-la
   try {
     // Re-registra de tempos em tempos (idempotente): antes registrava UMA vez e nunca mais conferia,
     // então se a Evolution perdesse a configuração (reinício, reconexão) as respostas dos motoboys

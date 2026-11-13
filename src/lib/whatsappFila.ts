@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { sendPlatformWhatsApp } from '@/lib/whatsapp'
+import { plataformaConectada } from '@/lib/wa/plataforma'
 
 // Fila de WhatsApp automático (lembrete de plano/trial, aviso em lote) pelo
 // número da PLATAFORMA. Nunca manda junto: cada aviso entra como 1 linha em
@@ -13,9 +14,6 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'https://evo.trindadeonline.com.br'
-const EVOLUTION_KEY = process.env.EVOLUTION_API_KEY || ''
-const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE || 'Trindade Online'
 
 export const FILA_STATUS = 'fila'
 // Intervalo mínimo entre DUAS mensagens quaisquer da plataforma em lote
@@ -50,16 +48,7 @@ export async function enfileirarWhatsApp(nomeCampanha: string, itens: ItemFila[]
   return validos.length
 }
 
-async function instanciaConectada(): Promise<boolean> {
-  try {
-    const res = await fetch(`${EVOLUTION_URL}/instance/connectionState/${encodeURIComponent(EVOLUTION_INSTANCE)}`, { headers: { apikey: EVOLUTION_KEY } })
-    if (!res.ok) return false
-    const data = await res.json()
-    return data?.instance?.state === 'open'
-  } catch {
-    return false
-  }
-}
+const instanciaConectada = plataformaConectada
 
 // Uma rodada do cron: manda no máximo 1 mensagem.
 export async function processarFilaWhatsApp(): Promise<{ enviado: boolean; motivo?: string }> {

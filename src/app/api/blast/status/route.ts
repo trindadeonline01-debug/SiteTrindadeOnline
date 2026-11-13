@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server'
+import { PLATAFORMA_WAHA, plataformaConectada } from '@/lib/wa/plataforma'
 
 export async function GET() {
   try {
+    if (PLATAFORMA_WAHA) return NextResponse.json({ connected: await plataformaConectada() })
     const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'https://evo.trindadeonline.com.br'
     const EVOLUTION_KEY = process.env.EVOLUTION_API_KEY || ''
 

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { plataformaTexto } from '@/lib/wa/plataforma'
 import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(
@@ -11,9 +12,6 @@ const supabaseAuth = createClient(
 )
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://trindadeonline.com.br'
-const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'https://evo.trindadeonline.com.br'
-const EVOLUTION_KEY = process.env.EVOLUTION_API_KEY || ''
-const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE || 'Trindade Online'
 
 function formatPhone(phone: string): string {
   const digits = (phone || '').replace(/\D/g, '')
@@ -21,15 +19,7 @@ function formatPhone(phone: string): string {
   return '55' + digits
 }
 async function sendWhatsApp(phone: string, message: string) {
-  try {
-    await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(EVOLUTION_INSTANCE)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', apikey: EVOLUTION_KEY },
-      body: JSON.stringify({ number: formatPhone(phone), text: message })
-    })
-  } catch {
-    // best-effort — nunca derruba o fluxo principal
-  }
+  await plataformaTexto(formatPhone(phone), message) // best-effort
 }
 
 function inviteEmailHtml(name: string): string {

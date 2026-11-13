@@ -1,19 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/requireAdmin'
+import { PLATAFORMA_WAHA, PLATAFORMA_SESSAO, waComoEvolution, plataformaConectada } from '@/lib/wa/plataforma'
 
 const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'https://evo.trindadeonline.com.br'
 
-type EvoInstance = { name: string; key: string }
+type EvoInstance = { name: string; key: string; provider?: string }
 
 // Mesma lógica de failover do disparo em massa (src/app/api/blast/route.ts)
 // — testa aqui pelo botão "Testar" já passa pela mesma instância que vai
 // ser usada de verdade numa campanha
 const INSTANCES: EvoInstance[] = [
-  { name: process.env.EVOLUTION_INSTANCE || 'Trindade Online', key: process.env.EVOLUTION_API_KEY || '' },
+  PLATAFORMA_WAHA
+    ? { name: PLATAFORMA_SESSAO, key: 'waha', provider: 'waha' }
+    : { name: process.env.EVOLUTION_INSTANCE || 'Trindade Online', key: process.env.EVOLUTION_API_KEY || '' },
   { name: process.env.EVOLUTION_INSTANCE_2 || '', key: process.env.EVOLUTION_API_KEY_2 || '' },
 ].filter(i => i.name && i.key)
 
 async function isInstanceConnected(instance: EvoInstance): Promise<boolean> {
+  if (instance.provider === 'waha') return plataformaConectada()
   try {
     const res = await fetch(`${EVOLUTION_URL}/instance/connectionState/${encodeURIComponent(instance.name)}`, {
       headers: { apikey: instance.key }
@@ -34,6 +38,7 @@ async function pickActiveInstance(): Promise<EvoInstance> {
 }
 
 async function evoRequest(instance: EvoInstance, path: string, body: any): Promise<string | null> {
+  if (instance.provider === 'waha') return waComoEvolution({ instance_name: instance.name, api_key: 'waha', provider: 'waha' }, path, body)
   const res = await fetch(`${EVOLUTION_URL}${path}/${encodeURIComponent(instance.name)}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', apikey: instance.key },

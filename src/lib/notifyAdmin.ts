@@ -1,13 +1,11 @@
 import { createClient } from '@supabase/supabase-js'
+import { plataformaTexto } from '@/lib/wa/plataforma'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'https://evo.trindadeonline.com.br'
-const EVOLUTION_KEY = process.env.EVOLUTION_API_KEY || ''
-const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE || 'Trindade Online'
 const ADMIN_WHATSAPP = process.env.ADMIN_WHATSAPP_NUMBER || '21980239006'
 
 export type AdminEvent =
@@ -64,11 +62,7 @@ export async function notifyAdmin(event: AdminEvent): Promise<void> {
     const { data: flag } = await supabase.from('feature_flags').select('enabled').eq('key', 'notify_admin_whatsapp').maybeSingle()
     if (flag && flag.enabled === false) return
 
-    await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(EVOLUTION_INSTANCE)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', apikey: EVOLUTION_KEY },
-      body: JSON.stringify({ number: formatPhone(ADMIN_WHATSAPP), text: buildMessage(event) })
-    })
+    await plataformaTexto(formatPhone(ADMIN_WHATSAPP), buildMessage(event))
   } catch {
     // notificação é best-effort — nunca deve derrubar o fluxo principal (cadastro, pagamento, etc.)
   }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { plataformaTexto } from '@/lib/wa/plataforma'
 import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(
@@ -6,9 +7,6 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'https://evo.trindadeonline.com.br'
-const EVOLUTION_KEY = process.env.EVOLUTION_API_KEY || ''
-const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE || 'Trindade Online'
 
 const STATUS_LABEL: Record<string, string> = { a_gravar: 'A gravar', gravado: 'Gravado', editado: 'Editado', postado: 'Postado' }
 
@@ -18,15 +16,7 @@ function formatPhone(phone: string): string {
   return '55' + digits
 }
 async function sendWhatsApp(phone: string, message: string) {
-  try {
-    await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(EVOLUTION_INSTANCE)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', apikey: EVOLUTION_KEY },
-      body: JSON.stringify({ number: formatPhone(phone), text: message })
-    })
-  } catch {
-    // best-effort — nunca derruba o job
-  }
+  await plataformaTexto(formatPhone(phone), message) // best-effort
 }
 function fmtDate(iso: string): string {
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })

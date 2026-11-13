@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { buildEmailHtml } from '@/lib/trialReminders'
 
-const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'https://evo.trindadeonline.com.br'
-const EVOLUTION_KEY = process.env.EVOLUTION_API_KEY || ''
-const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE || 'Trindade Online'
+import { plataformaTexto } from '@/lib/wa/plataforma'
 
 function formatPhone(phone: string): string {
   const digits = phone.replace(/\D/g, '')
@@ -27,13 +25,9 @@ export async function POST(req: NextRequest) {
       if (!whatsapp_message) {
         result.whatsapp = false
       } else {
-        const res = await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(EVOLUTION_INSTANCE)}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'apikey': EVOLUTION_KEY },
-          body: JSON.stringify({ number: formatPhone(phone), text: fillTemplate(whatsapp_message, nome) })
-        })
-        result.whatsapp = res.ok
-        if (!res.ok) result.error = await res.text()
+        const r = await plataformaTexto(formatPhone(phone), fillTemplate(whatsapp_message, nome))
+        result.whatsapp = r.ok
+        if (!r.ok) result.error = r.detail
       }
     }
 

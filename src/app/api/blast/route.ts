@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse, after } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { requireAdmin } from '@/lib/requireAdmin'
+import { PLATAFORMA_WAHA, PLATAFORMA_SESSAO, waComoEvolution, plataformaConectada } from '@/lib/wa/plataforma'
 
 // Permite a funcao serverless continuar rodando em segundo plano (via after())
 // pelo tempo necessario pra terminar o disparo de uma campanha
@@ -13,13 +14,15 @@ const supabase = createClient(
 
 const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'https://evo.trindadeonline.com.br'
 
-type EvoInstance = { name: string; key: string }
+type EvoInstance = { name: string; key: string; provider?: string }
 
 // Instância principal + secundária (opcional) — se a segunda não tiver
 // variável de ambiente configurada, o array fica só com a principal e o
 // disparo funciona exatamente como antes, sem failover
 const INSTANCES: EvoInstance[] = [
-  { name: process.env.EVOLUTION_INSTANCE || 'Trindade Online', key: process.env.EVOLUTION_API_KEY || '' },
+  PLATAFORMA_WAHA
+    ? { name: PLATAFORMA_SESSAO, key: 'waha', provider: 'waha' }
+    : { name: process.env.EVOLUTION_INSTANCE || 'Trindade Online', key: process.env.EVOLUTION_API_KEY || '' },
   { name: process.env.EVOLUTION_INSTANCE_2 || '', key: process.env.EVOLUTION_API_KEY_2 || '' },
 ].filter(i => i.name && i.key)
 
@@ -85,6 +88,7 @@ function formatPhone(phone: string): string {
 
 // Confere se uma instância está com o WhatsApp conectado (não caída/deslogada)
 async function isInstanceConnected(instance: EvoInstance): Promise<boolean> {
+  if (instance.provider === 'waha') return plataformaConectada()
   try {
     const res = await fetch(`${EVOLUTION_URL}/instance/connectionState/${encodeURIComponent(instance.name)}`, {
       headers: { apikey: instance.key }
@@ -108,6 +112,10 @@ async function pickActiveInstance(): Promise<EvoInstance> {
 }
 
 async function evoRequest(instance: EvoInstance, path: string, body: any): Promise<{ ok: boolean; error?: string }> {
+  if (instance.provider === 'waha') {
+    const err = await waComoEvolution({ instance_name: instance.name, api_key: 'waha', provider: 'waha' }, path, body)
+    return err ? { ok: false, error: err } : { ok: true }
+  }
   try {
     const res = await fetch(`${EVOLUTION_URL}${path}/${encodeURIComponent(instance.name)}`, {
       method: 'POST',

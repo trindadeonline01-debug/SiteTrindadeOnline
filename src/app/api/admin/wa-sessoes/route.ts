@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { requireAdmin } from '@/lib/requireAdmin'
-import { waha, wahaQr } from '@/lib/wa'
+import { waha, wahaQr, wahaApagarSessao } from '@/lib/wa'
 
 const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
@@ -9,7 +9,17 @@ const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPAB
 export async function POST(req: NextRequest) {
   const auth = await requireAdmin(req)
   if (auth instanceof NextResponse) return auth
-  const { qrDe } = await req.json().catch(() => ({}))
+  const { qrDe, apagar } = await req.json().catch(() => ({}))
+
+  // Só apaga sessão "órfã" (sem loja ligada) e nunca a da plataforma — ex.: a sessão de teste.
+  if (apagar) {
+    const nome = String(apagar)
+    if (nome === (process.env.WA_PLATFORM_SESSION || 'plataforma')) return NextResponse.json({ error: 'essa é a sessão da plataforma' }, { status: 400 })
+    const { data: ligada } = await sb.from('crm_whatsapp_instances').select('id').eq('instance_name', nome).maybeSingle()
+    if (ligada) return NextResponse.json({ error: 'essa sessão pertence a uma loja' }, { status: 400 })
+    await wahaApagarSessao(nome)
+    return NextResponse.json({ ok: true })
+  }
 
   if (qrDe) return NextResponse.json({ qr: await wahaQr(String(qrDe)) })
 

@@ -34,6 +34,12 @@ export default function WaConexoesPage() {
     setQr({ sessao, img: d?.qr || null })
   }
 
+  async function apagar(sessao: string) {
+    if (!confirm(`Apagar a sessão "${sessao}" do WAHA? O WhatsApp ligado nela será desconectado.`)) return
+    await adminFetch('/api/admin/wa-sessoes', { method: 'POST', body: JSON.stringify({ apagar: sessao }) })
+    carregar()
+  }
+
   const total = lista?.length || 0
   const conectadas = (lista || []).filter(s => s.status === 'WORKING').length
 
@@ -60,6 +66,7 @@ export default function WaConexoesPage() {
                 <div style={{ fontSize: 13, color: '#6F6C67' }}>{s.telefone ? `+${s.telefone}` : 'sem número ainda'}</div>
               </div>
               <span style={{ color: '#fff', background: cor, borderRadius: 999, padding: '4px 12px', fontSize: 13, fontWeight: 700 }}>{txt}</span>
+              {s.loja === '(sem loja)' && <button onClick={() => apagar(s.sessao)} style={{ background: '#fff', color: '#D6392B', border: '1px solid #D6392B', borderRadius: 8, padding: '8px 12px', fontWeight: 700, cursor: 'pointer' }}>Apagar</button>}
               {s.status === 'SCAN_QR_CODE' && <button onClick={() => verQr(s.sessao)} style={{ background: '#151210', color: '#FFC531', border: 0, borderRadius: 8, padding: '8px 12px', fontWeight: 700, cursor: 'pointer' }}>Ver QR</button>}
             </div>
           )

@@ -147,6 +147,11 @@ export async function POST(req: NextRequest) {
         upd.loja_supervisor_pin_hash = hashPin(String(b.pin))
       }
       if (typeof b.qrPedir === 'boolean') upd.mesas_qr_pedir = b.qrPedir
+      if (b.diaViradaHora != null) {
+        const h = Math.floor(Number(b.diaViradaHora))
+        if (!(h >= 0 && h <= 6)) return erro('A virada do dia vai de 00h a 06h.')
+        upd.dia_virada_hora = h
+      }
       if (b.pedidosPorMinuto != null) {
         const n = Math.floor(Number(b.pedidosPorMinuto))
         if (!(n >= 1 && n <= 10)) return erro('O limite de envios por minuto vai de 1 a 10.')

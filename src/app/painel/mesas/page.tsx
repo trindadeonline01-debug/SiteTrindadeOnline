@@ -6,6 +6,7 @@ import { moduleActive } from '@/lib/modules'
 import { beepAdd, beepChamado, pararSons, unlockAudio } from '@/lib/beep'
 import { buildReceipt, buildKitchenTicket, imprimirVias, isRawBtMode, qzConnect, setPapelImpressora, setViasImpressao } from '@/lib/qzPrint'
 import ConfirmModal from '@/components/painel/ConfirmModal'
+import { diaComercialDe, faixaDiaComercial, clampVirada } from '@/lib/diaComercial'
 import VendasDiaPanel from '@/components/painel/VendasDiaPanel'
 import MesaCalculadora, { type CalcComanda, type Divisao, DIVISAO0 } from '@/components/painel/MesaCalculadora'
 import QRCode from 'qrcode'
@@ -95,6 +96,7 @@ export default function MesasPage() {
   const [printerName, setPrinterName] = useState('')
   const [mesasEnabled, setMesasEnabled] = useState(false)
   const [taxaPct, setTaxaPct] = useState(10)
+  const viradaRef = useRef(0) // hora em que o dia comercial vira (companies.dia_virada_hora)
   const [hasPin, setHasPin] = useState(false)
   const [adminMode, setAdminMode] = useState(false)
 
@@ -152,7 +154,7 @@ export default function MesasPage() {
   const load = useCallback(async () => {
     const cid = companyRef.current
     if (!cid) return
-    const inicioHoje = new Date(new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' }) + 'T00:00:00-03:00').toISOString()
+    const inicioHoje = faixaDiaComercial(diaComercialDe(new Date(), viradaRef.current), viradaRef.current).ini
     const [m, c, g, ch, cp, rf] = await Promise.all([
       supabase.from('loja_mesas').select('id, numero, nome, ativa').eq('company_id', cid).eq('ativa', true).order('numero'),
       supabase.from('loja_comandas').select('*').eq('company_id', cid).eq('status', 'aberta'),
@@ -194,14 +196,14 @@ export default function MesasPage() {
       const { data: profile } = await supabase.from('profiles').select('user_type').eq('id', session.user.id).maybeSingle()
       const empresaParam = new URLSearchParams(window.location.search).get('empresa')
       const isAdmin = profile?.user_type === 'admin' && !!empresaParam
-      const SEL = 'id, name, loja_digital_enabled, trial_modules_until, loja_impressora_nome, loja_impressora_papel, impressao_vias_completa, impressao_vias_producao, mesas_enabled, loja_taxa_servico_pct, loja_supervisor_pin_hash'
+      const SEL = 'id, name, loja_digital_enabled, trial_modules_until, loja_impressora_nome, loja_impressora_papel, impressao_vias_completa, impressao_vias_producao, mesas_enabled, loja_taxa_servico_pct, loja_supervisor_pin_hash, dia_virada_hora'
       const { data: comp } = isAdmin
         ? await supabase.from('companies').select(SEL).eq('id', empresaParam).maybeSingle()
         : await supabase.from('companies').select(SEL).eq('owner_id', session.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
       if (!comp || (!isAdmin && !moduleActive(comp.loja_digital_enabled, comp.trial_modules_until))) { window.location.href = '/painel/compartilhar'; return }
       companyRef.current = comp.id
       setCompanyId(comp.id); setCompanyName(comp.name); setPrinterName(comp.loja_impressora_nome || ''); setPapelImpressora(comp.loja_impressora_papel); setViasImpressao(comp.impressao_vias_completa, comp.impressao_vias_producao)
-      setMesasEnabled(!!comp.mesas_enabled); setTaxaPct(Number(comp.loja_taxa_servico_pct) || 0); setHasPin(!!comp.loja_supervisor_pin_hash); setAdminMode(isAdmin)
+      setMesasEnabled(!!comp.mesas_enabled); setTaxaPct(Number(comp.loja_taxa_servico_pct) || 0); setHasPin(!!comp.loja_supervisor_pin_hash); setAdminMode(isAdmin); viradaRef.current = clampVirada(comp.dia_virada_hora)
       if (comp.mesas_enabled || isAdmin) {
         const [{ data: prods }, { data: cats }] = await Promise.all([
           supabase.from('loja_produtos').select('id, name, sale_price, promo_type, promo_value, promo_starts_at, promo_ends_at, category_id, photo_url, groups:loja_opcoes_grupo(*, options:loja_opcoes(*))').eq('company_id', comp.id).eq('active', true).eq('canal_mesa', true).order('display_order'),
@@ -640,8 +642,8 @@ export default function MesasPage() {
           call={call} busy={busy} msg={msg} recarregar={load}
           onClose={async () => {
             setShowConfig(false); setMsg('')
-            const { data } = await supabase.from('companies').select('mesas_enabled, loja_taxa_servico_pct, loja_supervisor_pin_hash').eq('id', companyId).maybeSingle()
-            if (data) { setMesasEnabled(!!data.mesas_enabled); setTaxaPct(Number(data.loja_taxa_servico_pct) || 0); setHasPin(!!data.loja_supervisor_pin_hash) }
+            const { data } = await supabase.from('companies').select('mesas_enabled, loja_taxa_servico_pct, loja_supervisor_pin_hash, dia_virada_hora').eq('id', companyId).maybeSingle()
+            if (data) { viradaRef.current = clampVirada(data.dia_virada_hora); setMesasEnabled(!!data.mesas_enabled); setTaxaPct(Number(data.loja_taxa_servico_pct) || 0); setHasPin(!!data.loja_supervisor_pin_hash) }
             await load()
           }}
         />
@@ -1402,6 +1404,8 @@ function Config({ companyId, nomeLoja, adminMode, recarregar, mesasEnabled, taxa
   call: CallFn; busy: boolean; msg: string; onClose: () => void; recarregar: () => Promise<void>
 }) {
   const [taxa, setTaxa] = useState(String(taxaPct))
+  const [virada, setVirada] = useState(0)
+  useEffect(() => { supabase.from('companies').select('dia_virada_hora').eq('id', companyId).maybeSingle().then(({ data }) => setVirada(clampVirada(data?.dia_virada_hora))) }, [companyId])
   const [pin, setPin] = useState('')
   const [pinAtual, setPinAtual] = useState('')
   const [pinGerado, setPinGerado] = useState('')
@@ -1529,6 +1533,18 @@ function Config({ companyId, nomeLoja, adminMode, recarregar, mesasEnabled, taxa
           </div>
         )}
         {pinGerado && <div className="ms-okmsg">Novo PIN da loja: <b style={{ fontSize: 22, letterSpacing: '.15em' }}>{pinGerado}</b><br />Passe para a loja agora. Ele não aparece de novo (depois a loja pode trocar por um PIN dela).</div>}
+      </div>
+      <div className="ms-card">
+        <h4>Virada do dia</h4>
+        <div className="ms-row">
+          <label className="ms-lbl">O dia novo começa às
+            <select className="ms-in" value={virada} onChange={e => setVirada(Number(e.target.value))}>
+              {[0, 1, 2, 3, 4, 5, 6].map(h => <option key={h} value={h}>{h === 0 ? '00h (meia-noite)' : `${String(h).padStart(2, '0')}h da manhã`}</option>)}
+            </select>
+          </label>
+          <button className="ms-btn" disabled={busy} onClick={async () => { const r = await call('config_salvar', { diaViradaHora: virada }); if (r) setOk('Virada do dia salva.') }}>Salvar</button>
+        </div>
+        <small>Vendas feitas depois da meia-noite, até esse horário, contam no dia em que a loja abriu. Vale para Vendas do dia, Vendas por canal e retiradas finalizadas.</small>
       </div>
       <div className="ms-card">
         <h4>Garçons</h4>

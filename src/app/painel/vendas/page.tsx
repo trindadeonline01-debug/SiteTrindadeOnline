@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { usePainelShell } from '@/contexts/PainelShellContext'
 import PeriodFilterBar from '@/components/admin/PeriodFilterBar'
 import { PeriodSel, periodRange, periodLabel } from '@/lib/periodFilter'
+import { clampVirada } from '@/lib/diaComercial'
 import { ORIGENS_DELIVERY } from '@/lib/canais'
 
 // Vendas por canal (nov/2026): Delivery, PDV e Mesas separados, cada um com as
@@ -38,11 +39,16 @@ export default function VendasPage() {
   const [dados, setDados] = useState<Dados | null>(null)
   const [erro, setErro] = useState('')
   const companyId = company?.id
+  const [virada, setVirada] = useState<number | null>(null)
+  useEffect(() => {
+    if (!companyId) return
+    supabase.from('companies').select('dia_virada_hora').eq('id', companyId).maybeSingle().then(({ data }) => setVirada(clampVirada(data?.dia_virada_hora)))
+  }, [companyId])
 
   useEffect(() => {
-    if (shellLoading || !companyId) return
+    if (shellLoading || !companyId || virada == null) return
     let vivo = true
-    const { from, to } = periodRange(period)
+    const { from, to } = periodRange(period, virada)
     let qp = supabase.from('loja_pedidos').select('total, status, origin, payment_method').eq('company_id', companyId).in('origin', [...ORIGENS_DELIVERY, 'pdv'])
     if (from) qp = qp.gte('created_at', from)
     if (to) qp = qp.lt('created_at', to)
@@ -71,7 +77,7 @@ export default function VendasPage() {
       setDados({ delivery, pdv, mesa })
     })
     return () => { vivo = false }
-  }, [shellLoading, companyId, period])
+  }, [shellLoading, companyId, period, virada])
 
   const totalVendas = dados ? r2(dados.delivery.bruto + dados.pdv.bruto + dados.mesa.bruto) : 0
   const totalQtd = dados ? dados.delivery.qtd + dados.pdv.qtd + dados.mesa.qtd : 0

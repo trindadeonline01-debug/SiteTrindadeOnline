@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { adminFetch } from '@/lib/adminFetch'
 import EditarPedidoPanel from '@/components/painel/EditarPedidoPanel'
+import { diaComercialDe, faixaDiaComercial, clampVirada } from '@/lib/diaComercial'
 
 // Vendas do dia (6/nov/2026, pedido do Ricardo): todas as vendas de mesa e de
 // balcão (PDV) de um dia, separadas por mesa, com editar e cancelar — inclusive
@@ -27,15 +28,10 @@ const fmt = (n: number) => 'R$ ' + Number(n || 0).toFixed(2).replace('.', ',')
 const num = (n: number) => Number(n || 0).toFixed(2).replace('.', ',')
 const qtdItens = (itens: Item[]) => itens.reduce((s, i) => s + (i.peso_kg != null ? 1 : Number(i.qty) || 0), 0)
 const hora = (iso: string | null) => iso ? new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' }) : '—'
-const hojeBr = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 const NOME_FORMA: Record<string, string> = { dinheiro: 'Dinheiro', pix: 'Pix', cashback: 'Cashback', cartao: 'Cartão', cartao_credito: 'Crédito', cartao_debito: 'Débito', misto: 'Misto' }
 const formaDe = (p: { forma: string; cartao_tipo?: string | null }) => p.forma === 'cartao' ? (p.cartao_tipo === 'debito' ? 'Débito' : 'Crédito') : (NOME_FORMA[p.forma] || p.forma)
 const resumoItens = (itens: Item[]) => itens.map(i => i.peso_kg != null ? `${String(i.peso_kg).replace('.', ',')}kg ${i.product_name}` : `${i.qty}× ${i.product_name}`).join(' · ')
 
-function faixaDoDia(dia: string) {
-  const ini = new Date(`${dia}T00:00:00-03:00`)
-  return { ini: ini.toISOString(), fim: new Date(ini.getTime() + 86_400_000).toISOString() }
-}
 
 export default function VendasDiaPanel({ companyId, onClose, onAbrirComanda, onMudou }: {
   companyId: string
@@ -43,7 +39,16 @@ export default function VendasDiaPanel({ companyId, onClose, onAbrirComanda, onM
   onAbrirComanda: (comandaId: string) => Promise<void>
   onMudou: () => Promise<void>
 }) {
-  const [dia, setDia] = useState(hojeBr())
+  // Virada do dia da loja (ex.: 3 = vendas até 3h da manhã contam no dia anterior). null = ainda carregando.
+  const [virada, setVirada] = useState<number | null>(null)
+  const [dia, setDia] = useState('')
+  const hojeBr = useCallback(() => diaComercialDe(new Date(), virada ?? 0), [virada])
+  useEffect(() => {
+    supabase.from('companies').select('dia_virada_hora').eq('id', companyId).maybeSingle().then(({ data }) => {
+      const v = clampVirada(data?.dia_virada_hora)
+      setVirada(v); setDia(diaComercialDe(new Date(), v))
+    })
+  }, [companyId])
   const [carregando, setCarregando] = useState(true)
   const [comandasTodas, setComandas] = useState<Comanda[]>([])
   const [mesaNum, setMesaNum] = useState<Record<string, number>>({})
@@ -66,8 +71,9 @@ export default function VendasDiaPanel({ companyId, onClose, onAbrirComanda, onM
   const [cObs, setCObs] = useState('')
 
   const carregar = useCallback(async () => {
+    if (!dia || virada == null) return
     setCarregando(true)
-    const { ini, fim } = faixaDoDia(dia)
+    const { ini, fim } = faixaDiaComercial(dia, virada)
     const [a, b, c, mesas, pv] = await Promise.all([
       supabase.from('loja_comandas').select('*').eq('company_id', companyId).gte('aberta_em', ini).lt('aberta_em', fim),
       supabase.from('loja_comandas').select('*').eq('company_id', companyId).gte('fechada_em', ini).lt('fechada_em', fim),
@@ -93,7 +99,7 @@ export default function VendasDiaPanel({ companyId, onClose, onAbrirComanda, onM
     setMesaNum(Object.fromEntries((mesas.data || []).map((m: any) => [m.id, m.numero])))
     setComandas(lista); setPagtos((pg.data || []) as Pagto[]); setRodadas((rd.data || []) as Pedido[]); setPdv((pv.data || []) as Pedido[])
     setCarregando(false)
-  }, [companyId, dia])
+  }, [companyId, dia, virada, hojeBr])
 
   useEffect(() => { carregar() }, [carregar])
 
@@ -341,7 +347,7 @@ export default function VendasDiaPanel({ companyId, onClose, onAbrirComanda, onM
       </div>
 
       <div className="vd-body">
-        <div className="vd-sub">Tudo que foi vendido {estaHoje ? 'hoje' : 'em ' + dataTxt} nas mesas e no balcão (PDV). Toque em Editar para abrir uma venda, mesmo já fechada.</div>
+        <div className="vd-sub">Tudo que foi vendido {estaHoje ? 'hoje' : 'em ' + dataTxt} nas mesas e no balcão (PDV){virada ? `, contando até ${String(virada).padStart(2, '0')}h da manhã do dia seguinte` : ''}. Toque em Editar para abrir uma venda, mesmo já fechada.</div>
 
         <div className="vd-kpis">
           <div className="vd-k dark"><em>Total do dia</em><b>{fmt(totDia)}</b><small>só vendas fechadas, sem as canceladas</small></div>

@@ -19,8 +19,19 @@ function fmtBR(iso: string): string {
 }
 
 // `to` null = sem limite superior (vai até agora).
-export function periodRange(p: PeriodSel): { from: string | null; to: string | null } {
-  const now = new Date()
+export function periodRange(p: PeriodSel, viradaHora = 0): { from: string | null; to: string | null } {
+  if (viradaHora > 0) return deslocar(periodRangeBase(p, new Date(Date.now() - viradaHora * 3_600_000)), viradaHora)
+  return periodRangeBase(p, new Date())
+}
+
+// Dia comercial (loja que vende de madrugada): calcula como se o relógio estivesse `viradaHora` atrás e
+// empurra as fronteiras de volta — "hoje" passa a ir das `viradaHora`h até as `viradaHora`h do dia seguinte.
+function deslocar(r: { from: string | null; to: string | null }, h: number) {
+  const mv = (iso: string | null) => iso ? new Date(new Date(iso).getTime() + h * 3_600_000).toISOString() : null
+  return { from: mv(r.from), to: mv(r.to) }
+}
+
+function periodRangeBase(p: PeriodSel, now: Date): { from: string | null; to: string | null } {
   const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate())
   switch (p.kind) {
     case 'today':
@@ -80,8 +91,15 @@ export function periodRange(p: PeriodSel): { from: string | null; to: string | n
 // 'custom' com só uma ponta preenchida não têm período anterior óbvio de
 // tamanho igual — devolve null, e quem usa deve simplesmente não mostrar
 // variação nesses casos (não inventar um número).
-export function previousPeriodRange(p: PeriodSel): { from: string; to: string } | null {
-  const now = new Date()
+export function previousPeriodRange(p: PeriodSel, viradaHora = 0): { from: string; to: string } | null {
+  if (viradaHora > 0) {
+    const r = previousPeriodRangeBase(p, new Date(Date.now() - viradaHora * 3_600_000))
+    return r ? { from: deslocar(r, viradaHora).from!, to: deslocar(r, viradaHora).to! } : null
+  }
+  return previousPeriodRangeBase(p, new Date())
+}
+
+function previousPeriodRangeBase(p: PeriodSel, now: Date): { from: string; to: string } | null {
   const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate())
   switch (p.kind) {
     case 'today': {

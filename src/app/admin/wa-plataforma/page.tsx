@@ -45,6 +45,7 @@ export default function WaPlataformaPage() {
       <div style={{ background: '#151210', color: '#fff', padding: '12px 16px', display: 'flex', gap: 12, alignItems: 'center' }}>
         <a href="/admin" style={{ color: '#FFC531', textDecoration: 'none', fontWeight: 700 }}>← Admin</a>
         <strong style={{ fontSize: 18 }}>Número da plataforma no WAHA</strong>
+        <a href="/admin/wa-conexoes" style={{ marginLeft: 'auto', color: '#FFC531', fontSize: 14 }}>Todas as conexões</a>
       </div>
       <div style={{ maxWidth: 560, margin: '24px auto', padding: '0 16px', display: 'grid', gap: 16 }}>
         <div style={{ background: '#fff', borderRadius: 12, padding: 16 }}>

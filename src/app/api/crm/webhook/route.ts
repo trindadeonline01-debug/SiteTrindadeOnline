@@ -8,6 +8,7 @@ import { notifyAdmin } from '@/lib/notifyAdmin'
 import { pedeHumano, gerarRespostaIA } from '@/lib/crmIA'
 import { iaAtiva } from '@/lib/atendimentoIA'
 import { transcreverAudioWhatsApp } from '@/lib/transcreverAudio'
+import { waSendText, wahaBaixarMidia } from '@/lib/wa'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -52,13 +53,9 @@ function findContextInfo(m: any): any {
     m?.locationMessage?.contextInfo || m?.contactMessage?.contextInfo || null
 }
 
-async function sendWhatsapp(instanceName: string, apiKey: string, phone: string, text: string) {
+async function sendWhatsapp(instanceName: string, apiKey: string, phone: string, text: string, provider?: string | null) {
   try {
-    await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(instanceName)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', apikey: apiKey },
-      body: JSON.stringify({ number: phone, text }),
-    })
+    await waSendText({ instance_name: instanceName, api_key: apiKey, provider }, phone, text)
   } catch {}
 }
 
@@ -69,7 +66,7 @@ async function sendWhatsapp(instanceName: string, apiKey: string, phone: string,
 // motoboy, resolve aqui e não vira mensagem de conversa no CRM (não é bate-
 // papo, é só operação). Devolve true quando tratou a mensagem (o chamador
 // deve pular o resto do processamento pra esse texto).
-async function tryHandleMotoboyCode(companyId: string, motoboyPhone: string, text: string | null, instanceName: string, apiKey: string): Promise<boolean> {
+async function tryHandleMotoboyCode(companyId: string, motoboyPhone: string, text: string | null, instanceName: string, apiKey: string, provider?: string | null): Promise<boolean> {
   const code = (text || '').trim()
   if (!/^\d{4}$/.test(code)) return false
 
@@ -87,7 +84,7 @@ async function tryHandleMotoboyCode(companyId: string, motoboyPhone: string, tex
   if (!bate) {
     // Só avisa "não confere" quando não sobra dúvida de qual entrega ele
     // quis dizer — com 2+ em aberto, fica em silêncio (pedido do Ricardo).
-    if (abertas.length === 1) await sendWhatsapp(instanceName, apiKey, motoboyPhone, '❌ Código não confere — confere com o cliente e tenta de novo.')
+    if (abertas.length === 1) await sendWhatsapp(instanceName, apiKey, motoboyPhone, '❌ Código não confere — confere com o cliente e tenta de novo.', provider)
     return abertas.length === 1
   }
 
@@ -97,7 +94,7 @@ async function tryHandleMotoboyCode(companyId: string, motoboyPhone: string, tex
     payment_status: 'pago', updated_at: agora,
   }).eq('id', bate.id)
 
-  await sendWhatsapp(instanceName, apiKey, motoboyPhone, `✅ Codigo confirmado! Pedido #${bate.order_number ?? ''} entregue.`)
+  await sendWhatsapp(instanceName, apiKey, motoboyPhone, `✅ Codigo confirmado! Pedido #${bate.order_number ?? ''} entregue.`, provider)
 
   // Avisa o cliente também — esse caminho não passa pelo notifyCustomerWhatsapp
   // client-side normal (a confirmação chega pelo motoboy, não por quem tem o
@@ -106,7 +103,7 @@ async function tryHandleMotoboyCode(companyId: string, motoboyPhone: string, tex
     const msgCliente = bate.delivery_type === 'retirada'
       ? '📦 Retirada confirmada. Obrigado pela preferencia!'
       : '🎉 Pedido entregue! Obrigado pela preferencia, bom apetite!'
-    await sendWhatsapp(instanceName, apiKey, normalizePhone(bate.customer_phone), msgCliente)
+    await sendWhatsapp(instanceName, apiKey, normalizePhone(bate.customer_phone), msgCliente, provider)
   }
 
   return true
@@ -121,7 +118,7 @@ async function tryHandleMotoboyCode(companyId: string, motoboyPhone: string, tex
 const LOGAR_EVENTOS_BRUTOS = false
 
 const INST_CACHE_MS = 60_000
-type InstRow = { id: string; company_id: string; api_key: string; webhook_v2: boolean | null }
+type InstRow = { id: string; company_id: string; api_key: string; webhook_v2: boolean | null; provider: string | null }
 const instCache = new Map<string, { v: InstRow; exp: number }>()
 
 export async function POST(req: NextRequest) {
@@ -138,7 +135,7 @@ export async function POST(req: NextRequest) {
     if (!inst || (instCache.get(instanceName)?.exp ?? 0) < Date.now()) {
       const { data } = await supabase
         .from('crm_whatsapp_instances')
-        .select('id, company_id, api_key, webhook_v2')
+        .select('id, company_id, api_key, webhook_v2, provider')
         .eq('instance_name', instanceName).maybeSingle()
       inst = data ?? undefined
       if (inst) instCache.set(instanceName, { v: inst, exp: Date.now() + INST_CACHE_MS })
@@ -258,7 +255,7 @@ export async function POST(req: NextRequest) {
         // evento sem virar mensagem de conversa no CRM.
         if (direction === 'in') {
           const rawText: string | null = msg?.message?.conversation || msg?.message?.extendedTextMessage?.text || null
-          if (await tryHandleMotoboyCode(inst.company_id, phone, rawText, instanceName, inst.api_key)) continue
+          if (await tryHandleMotoboyCode(inst.company_id, phone, rawText, instanceName, inst.api_key, inst.provider)) continue
         }
 
         // Reação é um "mensagem" à parte que referencia outra pelo key.id —
@@ -326,7 +323,11 @@ export async function POST(req: NextRequest) {
         // da loja (caso Mineroca e outras 11, 6/nov). Então a mídia é buscada
         // direto na Evolution aqui embaixo, que é o caminho normal agora.
         let base64Data: string | null = m.base64 || null
-        if (mediaType && DOWNLOADABLE.includes(mediaType) && !base64Data && waMessageId && inst.api_key) {
+        if (mediaType && DOWNLOADABLE.includes(mediaType) && !base64Data && inst.provider === 'waha' && msg?._waha?.composedId) {
+          // Loja no WAHA: baixa o arquivo direto do WAHA (a url vem no evento, ou pede de novo mandando baixar).
+          const baixada = await wahaBaixarMidia(instanceName, msg._waha.chat || `${phone}@c.us`, msg._waha.composedId, msg._waha.mediaUrl)
+          if (baixada) base64Data = baixada.buf.toString('base64')
+        } else if (mediaType && DOWNLOADABLE.includes(mediaType) && !base64Data && waMessageId && inst.api_key) {
           try {
             const mediaRes = await fetch(`${EVOLUTION_URL}/chat/getBase64FromMediaMessage/${encodeURIComponent(instanceName)}`, {
               method: 'POST',
@@ -486,11 +487,7 @@ export async function POST(req: NextRequest) {
               .eq('company_id', inst.company_id)
             if (!isOpenNow(hours || [], company.flexible_hours, company.store_paused, company.store_forced_open)) {
               try {
-                await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(instanceName)}`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json', apikey: inst.api_key },
-                  body: JSON.stringify({ number: phone, text: company.crm_auto_reply_text.trim() }),
-                })
+                await waSendText({ instance_name: instanceName, api_key: inst.api_key, provider: inst.provider }, phone, company.crm_auto_reply_text.trim())
                 const autoReplyAt = new Date().toISOString()
                 await supabase.from('crm_messages').insert({
                   company_id: inst.company_id, contact_id: contactId, direction: 'out',

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { moduleActive } from '@/lib/modules'
+import { wahaCriarSessao, wahaQr, wahaSessao, wahaApagarSessao } from '@/lib/wa'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -18,6 +19,8 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://trindadeonline.com
 // WhatsApp no CRM. Usa a chave GLOBAL (diferente da chave da instância "Trindade
 // Online" usada pro disparo em massa do admin) porque criar instância é uma
 // operação de administração da Evolution, não de uma instância específica.
+export const maxDuration = 60
+
 export async function POST(req: NextRequest) {
   try {
     const { access_token, company_id } = await req.json()
@@ -28,7 +31,7 @@ export async function POST(req: NextRequest) {
 
     const { data: company } = await supabase
       .from('companies')
-      .select('id, owner_id, crm_whatsapp_enabled, crm_phone_limit, trial_modules_until')
+      .select('id, owner_id, crm_whatsapp_enabled, crm_phone_limit, trial_modules_until, wa_provider')
       .eq('id', company_id).maybeSingle()
     if (!company) return NextResponse.json({ error: 'empresa não encontrada' }, { status: 404 })
     if (company.owner_id !== userData.user.id) {
@@ -58,9 +61,29 @@ export async function POST(req: NextRequest) {
     // Limpa instâncias antigas desconectadas dessa empresa antes de criar
     // uma nova — sem isso a tabela acumula uma linha morta a cada tentativa
     // que não completou o QR code.
+    const { data: antigas } = await supabase.from('crm_whatsapp_instances').select('instance_name, provider').eq('company_id', company_id).eq('status', 'disconnected')
+    for (const a of antigas || []) if (a.provider === 'waha') await wahaApagarSessao(a.instance_name)
     await supabase.from('crm_whatsapp_instances').delete().eq('company_id', company_id).eq('status', 'disconnected')
 
     const instanceName = `crm-${company_id.replace(/-/g, '').slice(0, 12)}-${Date.now().toString(36)}`
+
+    // Loja marcada como 'waha' conecta pelo WAHA (sessão + QR); as demais seguem na Evolution.
+    if (company.wa_provider === 'waha') {
+      const criada = await wahaCriarSessao(instanceName)
+      if (!criada.ok) return NextResponse.json({ error: criada.detail || 'falha ao criar sessão' }, { status: 500 })
+      const { data: inst, error: instErr } = await supabase.from('crm_whatsapp_instances').insert({
+        company_id, instance_name: instanceName, api_key: 'waha', provider: 'waha', status: 'disconnected', webhook_v2: true,
+      }).select('id').single()
+      if (instErr) return NextResponse.json({ error: instErr.message }, { status: 500 })
+      // A sessão leva alguns segundos até mostrar o QR.
+      let qr: string | null = null
+      for (let i = 0; i < 12 && !qr; i++) {
+        await new Promise(r => setTimeout(r, 1500))
+        const st = await wahaSessao(instanceName)
+        if (st?.status === 'SCAN_QR_CODE') qr = await wahaQr(instanceName)
+      }
+      return NextResponse.json({ ok: true, instance_id: inst.id, instance_name: instanceName, qrcode_base64: qr })
+    }
 
     const evoRes = await fetch(`${EVOLUTION_URL}/instance/create`, {
       method: 'POST',

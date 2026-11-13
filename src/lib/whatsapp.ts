@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { moduleActive } from '@/lib/modules'
+import { waSendText } from '@/lib/wa'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -90,7 +91,7 @@ export async function sendCustomerWhatsApp(companyId: string, phone: string | nu
     // apareceu pro cliente.
     const normalized = formatPhone(phone)
     const { data: instance } = await supabase
-      .from('crm_whatsapp_instances').select('instance_name, api_key')
+      .from('crm_whatsapp_instances').select('instance_name, api_key, provider')
       .eq('company_id', companyId).eq('status', 'connected').limit(1).maybeSingle()
     // Loja sem WhatsApp escaneado (instância não conectada): antes a
     // mensagem simplesmente não saía, calada — cliente nunca recebia nem o
@@ -104,22 +105,15 @@ export async function sendCustomerWhatsApp(companyId: string, phone: string | nu
       await sendPlatformWhatsApp(normalized, text)
       return
     }
-    const res = await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', apikey: instance.api_key },
-      body: JSON.stringify({ number: normalized, text }),
-    })
-    if (!res.ok) {
-      const body = await res.text().catch(() => '')
-      console.error(`[sendCustomerWhatsApp] Evolution respondeu ${res.status}: ${body.slice(0, 300)}`)
+    const sent = await waSendText(instance, normalized, text)
+    if (!sent.ok) {
+      console.error(`[sendCustomerWhatsApp] ${sent.detail}`)
       return
     }
-    // Grava o wa_message_id real (igual /api/crm/enviar já faz) — se a
-    // Evolution algum dia ecoar essa mensagem de volta pelo webhook, o
-    // dedup por wa_message_id lá já filtra sozinho, sem deixar essa mensagem
-    // da própria IA ser confundida com "o dono digitou direto do celular"
-    // (ver a troca pra atendimento_modo='humano' em api/crm/webhook).
-    const resData = await res.json().catch(() => null)
-    const waMessageId: string | null = resData?.key?.id || null
+    // Grava o wa_message_id real (igual /api/crm/enviar já faz) — se o WhatsApp algum dia ecoar essa
+    // mensagem de volta pelo webhook, o dedup por wa_message_id lá já filtra sozinho, sem deixar essa
+    // mensagem da própria IA ser confundida com "o dono digitou direto do celular".
+    const waMessageId: string | null = sent.id || null
     const { data: contact } = await supabase.from('crm_contacts').select('id').eq('company_id', companyId).eq('phone', normalized).maybeSingle()
     if (contact) {
       await supabase.from('crm_messages').insert({ company_id: companyId, contact_id: contact.id, direction: 'out', body: text, status: 'sent', sent_at: new Date().toISOString(), wa_message_id: waMessageId, origem })

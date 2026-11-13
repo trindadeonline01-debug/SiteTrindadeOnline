@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { waReact } from '@/lib/wa'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -10,7 +11,6 @@ const supabaseAuth = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'https://evo.trindadeonline.com.br'
 
 function formatPhone(phone: string): string {
   const digits = phone.replace(/\D/g, '')
@@ -51,22 +51,13 @@ export async function POST(req: NextRequest) {
     if (!contact) return NextResponse.json({ error: 'contato não encontrado' }, { status: 404 })
 
     const { data: instance } = await supabase
-      .from('crm_whatsapp_instances').select('instance_name, api_key')
+      .from('crm_whatsapp_instances').select('instance_name, api_key, provider')
       .eq('company_id', company_id).eq('status', 'connected').limit(1).maybeSingle()
     if (!instance) return NextResponse.json({ error: 'WhatsApp não está conectado' }, { status: 400 })
 
-    const remoteJid = `${formatPhone(contact.phone)}@s.whatsapp.net`
-    const evoRes = await fetch(`${EVOLUTION_URL}/message/sendReaction/${encodeURIComponent(instance.instance_name)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', apikey: instance.api_key },
-      body: JSON.stringify({
-        key: { remoteJid, fromMe: msg.direction === 'out', id: msg.wa_message_id },
-        reaction: emoji,
-      }),
-    })
-    if (!evoRes.ok) {
-      const errText = await evoRes.text().catch(() => '')
-      return NextResponse.json({ error: `falha ao reagir (status ${evoRes.status}): ${errText.slice(0, 300)}` }, { status: 500 })
+    const r = await waReact(instance, formatPhone(contact.phone), { shortId: msg.wa_message_id, fromMe: msg.direction === 'out' }, emoji)
+    if (!r.ok) {
+      return NextResponse.json({ error: `falha ao reagir: ${(r.detail || '').slice(0, 300)}` }, { status: 500 })
     }
 
     await supabase.from('crm_messages').update({

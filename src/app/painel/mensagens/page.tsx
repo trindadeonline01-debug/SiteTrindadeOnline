@@ -838,6 +838,18 @@ export default function MensagensPage() {
   useEffect(() => {
     if (!qrCode || !company) return
     const iv = setInterval(async () => {
+      // Pergunta o estado real (no WAHA o QR renova sozinho a cada ~20 s e a conexão é conferida direto na sessão).
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.access_token) {
+          const r = await fetch('/api/crm/whatsapp/status', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ access_token: session.access_token, company_id: company.id }),
+          })
+          const d = await r.json().catch(() => null)
+          if (d?.qrcode_base64 && d.qrcode_base64 !== qrCode) setQrCode(d.qrcode_base64)
+        }
+      } catch {}
       const inst = await loadInstance(company.id)
       if (inst?.status === 'connected') { setQrCode(null); clearInterval(iv) }
     }, 3000)

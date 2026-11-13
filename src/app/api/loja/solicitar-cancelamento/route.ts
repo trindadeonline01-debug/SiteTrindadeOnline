@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { waSendText } from '@/lib/wa'
 import { createClient } from '@supabase/supabase-js'
 import { normalizePhone } from '@/lib/phone'
 
@@ -6,7 +7,6 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
-const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'https://evo.trindadeonline.com.br'
 
 // Chamado pela tela pública de acompanhamento (/pedido/[id]) — qualquer um
 // com o link do pedido pode pedir, sem precisar estar logado (mesmo modelo
@@ -54,14 +54,10 @@ export async function POST(req: NextRequest) {
         const { data: owner } = await supabase.from('profiles').select('phone').eq('id', company.owner_id).maybeSingle()
         if (owner?.phone) {
           const { data: instance } = await supabase
-            .from('crm_whatsapp_instances').select('instance_name, api_key')
+            .from('crm_whatsapp_instances').select('instance_name, api_key, provider')
             .eq('company_id', pedido.company_id).eq('status', 'connected').limit(1).maybeSingle()
           if (instance) {
-            await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', apikey: instance.api_key },
-              body: JSON.stringify({ number: normalizePhone(owner.phone), text: `🙋 *Pedido de cancelamento*\n${pedido.customer_name} pediu pra cancelar o pedido. Decide em ${site}/painel/pedidos` }),
-            })
+            await waSendText(instance, normalizePhone(owner.phone), `🙋 *Pedido de cancelamento*\n${pedido.customer_name} pediu pra cancelar o pedido. Decide em ${site}/painel/pedidos`)
           }
         }
       } catch (err: any) {

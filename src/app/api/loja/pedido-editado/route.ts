@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { waSendText } from '@/lib/wa'
 import { createClient } from '@supabase/supabase-js'
 import { moduleActive } from '@/lib/modules'
 import { normalizePhone } from '@/lib/phone'
@@ -7,7 +8,6 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
-const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'https://evo.trindadeonline.com.br'
 
 function fmt(n: number) { return 'R$ ' + Number(n || 0).toFixed(2).replace('.', ',') }
 
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     if (!company || !moduleActive(company.crm_whatsapp_enabled, company.trial_modules_until)) return NextResponse.json({ ok: true })
 
     const { data: instance } = await supabase
-      .from('crm_whatsapp_instances').select('instance_name, api_key')
+      .from('crm_whatsapp_instances').select('instance_name, api_key, provider')
       .eq('company_id', companyId).eq('status', 'connected').limit(1).maybeSingle()
     if (!instance) return NextResponse.json({ ok: true })
 
@@ -51,20 +51,15 @@ export async function POST(req: NextRequest) {
     parts.push('', `📲 Confere os detalhes aqui: ${site}/pedido/${pedidoId}`)
     const text = parts.join('\n')
 
-    const res = await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', apikey: instance.api_key },
-      body: JSON.stringify({ number: phone, text }),
-    })
-    if (!res.ok) {
-      const body = await res.text().catch(() => '')
-      console.error(`[pedido-editado] envio falhou (${res.status}): ${body.slice(0, 300)}`)
+    const sent = await waSendText(instance, phone, text)
+    if (!sent.ok) {
+      console.error(`[pedido-editado] envio falhou: ${sent.detail}`)
       return NextResponse.json({ ok: true })
     }
     const { data: contact } = await supabase.from('crm_contacts').select('id').eq('company_id', companyId).eq('phone', phone).maybeSingle()
     if (contact) {
       await supabase.from('crm_messages').insert({
-        company_id: companyId, contact_id: contact.id, direction: 'out', body: text, status: 'sent', sent_at: new Date().toISOString(), origem: 'aviso_pedido',
+        company_id: companyId, contact_id: contact.id, direction: 'out', body: text, status: 'sent', sent_at: new Date().toISOString(), wa_message_id: sent.id || null, origem: 'aviso_pedido',
       })
       await supabase.from('crm_contacts').update({
         last_message_at: new Date().toISOString(), last_message_preview: text, last_message_direction: 'out',

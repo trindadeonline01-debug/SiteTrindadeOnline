@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { waDelete } from '@/lib/wa'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -10,7 +11,6 @@ const supabaseAuth = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'https://evo.trindadeonline.com.br'
 
 function formatPhone(phone: string): string {
   const digits = phone.replace(/\D/g, '')
@@ -51,16 +51,10 @@ export async function POST(req: NextRequest) {
     if (msg.wa_message_id) {
       const { data: contact } = await supabase.from('crm_contacts').select('phone').eq('id', msg.contact_id).maybeSingle()
       const { data: instance } = await supabase
-        .from('crm_whatsapp_instances').select('instance_name, api_key')
+        .from('crm_whatsapp_instances').select('instance_name, api_key, provider')
         .eq('company_id', company_id).eq('status', 'connected').limit(1).maybeSingle()
       if (contact && instance) {
-        try {
-          await fetch(`${EVOLUTION_URL}/chat/deleteMessageForEveryone/${encodeURIComponent(instance.instance_name)}`, {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json', apikey: instance.api_key },
-            body: JSON.stringify({ id: msg.wa_message_id, remoteJid: `${formatPhone(contact.phone)}@s.whatsapp.net`, fromMe: true }),
-          })
-        } catch {}
+        await waDelete(instance, formatPhone(contact.phone), msg.wa_message_id)
         // Best-effort: mesmo se a Evolution recusar (ex: passou do prazo de apagar
         // pra todos), ainda apaga do nosso lado — não trava o lojista por isso.
       }

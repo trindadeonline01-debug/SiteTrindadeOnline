@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { waProfilePicture } from '@/lib/wa'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -10,7 +11,6 @@ const supabaseAuth = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'https://evo.trindadeonline.com.br'
 
 function formatPhone(phone: string): string {
   const digits = phone.replace(/\D/g, '')
@@ -47,18 +47,11 @@ export async function POST(req: NextRequest) {
     if (!contact) return NextResponse.json({ error: 'contato não encontrado' }, { status: 404 })
 
     const { data: instance } = await supabase
-      .from('crm_whatsapp_instances').select('instance_name, api_key')
+      .from('crm_whatsapp_instances').select('instance_name, api_key, provider')
       .eq('company_id', company_id).eq('status', 'connected').limit(1).maybeSingle()
     if (!instance) return NextResponse.json({ url: null })
 
-    const number = formatPhone(contact.phone)
-    const res = await fetch(`${EVOLUTION_URL}/chat/fetchProfilePictureUrl/${encodeURIComponent(instance.instance_name)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', apikey: instance.api_key },
-      body: JSON.stringify({ number }),
-    })
-    const data = await res.json().catch(() => null)
-    const url: string | null = data?.profilePictureUrl || data?.picture || null
+    const url = await waProfilePicture(instance, formatPhone(contact.phone))
 
     await supabase.from('crm_contacts').update({ avatar_url: url }).eq('id', contact_id)
     return NextResponse.json({ url })

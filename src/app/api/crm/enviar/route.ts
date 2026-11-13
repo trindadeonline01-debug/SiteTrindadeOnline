@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { waSendText, waSendMedia, waSendLocation, waSendContact, type WaResult } from '@/lib/wa'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -10,7 +11,6 @@ const supabaseAuth = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'https://evo.trindadeonline.com.br'
 const MEDIA_TYPES = ['image', 'audio', 'video', 'document']
 
 function formatPhone(phone: string): string {
@@ -62,86 +62,50 @@ export async function POST(req: NextRequest) {
     }
 
     const { data: instance } = await supabase
-      .from('crm_whatsapp_instances').select('instance_name, api_key')
+      .from('crm_whatsapp_instances').select('instance_name, api_key, provider')
       .eq('company_id', company_id).eq('status', 'connected').limit(1).maybeSingle()
     if (!instance) return NextResponse.json({ error: 'WhatsApp não está conectado' }, { status: 400 })
 
     const { data: contact } = await supabase.from('crm_contacts').select('phone').eq('id', contact_id).eq('company_id', company_id).maybeSingle()
     if (!contact) return NextResponse.json({ error: 'contato não encontrado' }, { status: 404 })
 
-    // Responder citando: só precisa da key (remoteJid/fromMe/id) da mensagem original,
-    // o WhatsApp busca o conteúdo pra montar a caixinha de citação sozinho.
-    let quoted: any = undefined
+    // Responder citando: só precisa do id da mensagem original (o WhatsApp monta a caixinha sozinho).
+    let replyShort: string | null = null
+    let replyFromMe = false
     if (reply_to_id) {
       const { data: quotedMsg } = await supabase
         .from('crm_messages').select('wa_message_id, direction')
         .eq('id', reply_to_id).eq('company_id', company_id).maybeSingle()
-      if (quotedMsg?.wa_message_id) {
-        quoted = { key: { remoteJid: `${formatPhone(contact.phone)}@s.whatsapp.net`, fromMe: quotedMsg.direction === 'out', id: quotedMsg.wa_message_id } }
-      }
+      if (quotedMsg?.wa_message_id) { replyShort = quotedMsg.wa_message_id; replyFromMe = quotedMsg.direction === 'out' }
     }
 
     const number = formatPhone(contact.phone)
-    let evoRes: Response
+    let r: WaResult
     let bodyForDb: string | null = text?.trim() || null
 
     if (media_path) {
-      // media_path é caminho no bucket privado — a Evolution precisa de uma
-      // URL alcançável de fora pra baixar, então gera uma assinada de curta
-      // duração só pro tempo do envio (a mídia já fica hospedada no próprio
-      // WhatsApp depois de entregue, não depende dessa URL continuar válida).
+      // media_path é caminho no bucket privado — o WhatsApp precisa de uma URL alcançável de fora pra
+      // baixar, então gera uma assinada de curta duração só pro tempo do envio.
       const { data: signed } = await supabase.storage.from('crm-midia').createSignedUrl(media_path, 300)
       if (!signed?.signedUrl) return NextResponse.json({ error: 'falha ao gerar URL da mídia' }, { status: 500 })
-
-      if (media_type === 'audio') {
-        evoRes = await fetch(`${EVOLUTION_URL}/message/sendWhatsAppAudio/${encodeURIComponent(instance.instance_name)}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', apikey: instance.api_key },
-          body: JSON.stringify({ number, audio: signed.signedUrl, quoted }),
-        })
-      } else {
-        if (media_type === 'document') bodyForDb = file_name || 'Documento'
-        evoRes = await fetch(`${EVOLUTION_URL}/message/sendMedia/${encodeURIComponent(instance.instance_name)}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', apikey: instance.api_key },
-          body: JSON.stringify({
-            number, mediatype: media_type, media: signed.signedUrl,
-            caption: text?.trim() || undefined, fileName: media_type === 'document' ? (file_name || undefined) : undefined,
-            quoted,
-          }),
-        })
-      }
-    } else if (location) {
-      evoRes = await fetch(`${EVOLUTION_URL}/message/sendLocation/${encodeURIComponent(instance.instance_name)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', apikey: instance.api_key },
-        body: JSON.stringify({ number, latitude: location.lat, longitude: location.lng, name: location.name || undefined, address: location.address || undefined, quoted }),
+      if (media_type === 'document') bodyForDb = file_name || 'Documento'
+      r = await waSendMedia(instance, number, media_type, signed.signedUrl, {
+        caption: text?.trim() || undefined, fileName: file_name || undefined, replyToShortId: replyShort, replyFromMe,
       })
+    } else if (location) {
+      r = await waSendLocation(instance, number, location)
       bodyForDb = JSON.stringify({ lat: location.lat, lng: location.lng, name: location.name, address: location.address })
     } else if (contact_share) {
-      evoRes = await fetch(`${EVOLUTION_URL}/message/sendContact/${encodeURIComponent(instance.instance_name)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', apikey: instance.api_key },
-        body: JSON.stringify({
-          number,
-          contact: [{ fullName: contact_share.name || contact_share.phone, wuid: formatPhone(contact_share.phone), phoneNumber: contact_share.phone }],
-        }),
-      })
+      r = await waSendContact(instance, number, { name: contact_share.name || contact_share.phone, phone: contact_share.phone })
       bodyForDb = JSON.stringify({ name: contact_share.name, phone: contact_share.phone })
     } else {
-      evoRes = await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', apikey: instance.api_key },
-        body: JSON.stringify({ number, text: text.trim(), linkPreview: true, quoted }),
-      })
+      r = await waSendText(instance, number, text.trim(), { linkPreview: true, replyToShortId: replyShort, replyFromMe })
     }
 
-    if (!evoRes.ok) {
-      const errText = await evoRes.text()
-      return NextResponse.json({ error: `falha ao enviar (status ${evoRes.status}): ${errText.slice(0, 300)}` }, { status: 500 })
+    if (!r.ok) {
+      return NextResponse.json({ error: `falha ao enviar: ${(r.detail || '').slice(0, 300)}` }, { status: 500 })
     }
-    const evoData = await evoRes.json().catch(() => null)
-    const waMessageId = evoData?.key?.id || null
+    const waMessageId = r.id || null
 
     const now = new Date().toISOString()
     await supabase.from('crm_messages').insert({

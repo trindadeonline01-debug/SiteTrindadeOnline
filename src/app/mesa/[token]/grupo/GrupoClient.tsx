@@ -173,7 +173,7 @@ export default function GrupoClient({ token }: { token: string }) {
 
               <div className="gq-card">
                 <h2>Criar um grupo</h2>
-                <div className="gq-tm"><span>Tema da partida</span>
+                <div className="gq-temabox"><span>Tema da partida</span>
                   <div className="gq-chips">
                     <button type="button" className={'gq-chip' + (!tema ? ' on' : '')} onClick={() => setTema('')}>🎲 Misturado</button>
                     {(inicio.temas || []).map(t => <button type="button" key={t.id} className={'gq-chip' + (tema === t.id ? ' on' : '')} onClick={() => setTema(t.id)}>{t.icone} {t.nome}</button>)}
@@ -366,9 +366,9 @@ body{background:#082B38}
 .gq-res.bad{background:rgba(214,57,43,.25);color:#FFB0A8}
 .gq-cur{margin:0;font-size:13.5px;color:#E4EEF0;line-height:1.45}
 .gq-warn{background:#FDECEA;color:#9B2318;border-radius:10px;padding:10px 12px;font-size:13px;font-weight:600}
-.gq-tm{display:grid;gap:6px;font-size:12.5px;font-weight:700;color:#4a4742}
-.gq-chips{display:flex;gap:6px;flex-wrap:wrap}
-.gq-chip{font:600 13px 'Archivo',system-ui,sans-serif;min-height:38px;padding:0 12px;border-radius:99px;border:1.5px solid #DEDBD2;background:#fff;color:#151210;cursor:pointer}
-.gq-chip.on{background:#FFC531;border-color:#FFC531}
+.gq-temabox{display:grid;gap:6px;font-size:12.5px;font-weight:700;color:#4a4742}
+.gq-chips{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.gq-chip{display:flex;align-items:center;gap:8px;text-align:left;font:600 13px/1.2 'Archivo',system-ui,sans-serif;min-height:48px;padding:6px 10px;border-radius:10px;border:1.5px solid #DEDBD2;background:#fff;color:#151210;cursor:pointer}
+.gq-chip.on{background:#FFF3CC;border-color:#E0A800;box-shadow:inset 0 0 0 1px #E0A800}
 .gq-mut{margin:0;font-size:13px;color:#BFD9DE;line-height:1.4}
 `

@@ -160,17 +160,32 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
   S.load = function () { return '<div class="screen sea">' + scene() + bar() + '<div class="res"><p class="p" style="color:#CFE3E6">Carregando…</p></div></div>' }
   S.off = function () { return '<div class="screen sea">' + scene() + bar() + '<div class="res"><div><h2 class="h1">Quiz indisponível</h2></div><div class="box">O quiz não está ligado nesta loja agora. ' + (MODO_LOJA ? '' : 'Chame o garçom se quiser jogar.') + '</div><div style="margin-top:auto"><button class="btn" data-go="mesa">' + (MODO_LOJA ? 'Voltar aos jogos' : 'Voltar à mesa') + '</button></div></div></div>' }
 
+  // Tela inicial: título, aviso de prêmio, tema em retângulos fixos, Jogar e atalhos (regras, ranking, grupo).
+  var IC_INFO = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 11v5M12 7.6v.2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>'
+  var IC_RANK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v4a5 5 0 0 1-10 0zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M12 13v4M8.5 20h7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+  var IC_GRUPO = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8.5" r="3.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3.5 19c.4-3 2.6-4.8 5.5-4.8s5.1 1.8 5.5 4.8M16 5.6a3 3 0 0 1 0 5.8M17.5 14.6c1.8.5 3 2 3.3 4.4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
+  var IC_OK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>'
   S.intro = function () {
     var premio = INFO && INFO.premio
-    return '<div class="screen sea game">' + scene() + bar() + '<div class="gi2">' +
-      '<div class="hero"><span class="kick">Quiz</span><h2 class="h2t"><span>Pesca</span><span class="g">Premiada</span></h2><p class="sub2">' + (premio ? 'Acerte as perguntas e ganhe cashback para a sua próxima compra.' : 'Acerte as perguntas e suba no ranking da loja.') + '</p></div>' +
-      '<div class="prize"><div class="pm"><div class="pm-in"><small>entre no</small><b>TOP</b><em>da loja</em></div></div></div>' +
-      (MODO_LOJA ? '<div class="fx-noprize" style="margin:0 16px 10px"><b>🏆 Aqui vale só para o ranking</b><span>Para ganhar cashback, jogue pelo QR da sua mesa no restaurante.</span></div>' : (premio ? '<div class="fx-noprize" style="margin:0 16px 10px"><b>🎁 Esta rodada vale cashback</b><span>Ele só é creditado quando você pagar a conta da mesa.</span></div>' : '')) +
-      '<div class="facts"><span><b>10</b> segundos por pergunta</span><i></i><span><b>3</b> chances de errar</span></div>' +
-      '<div class="hwrow"><button class="how" data-act="zones"><span class="hi">i</span>Como funciona</button><button class="how" data-go="ranking"><span class="hi">★</span>Ver ranking</button></div>' +
-      (MODO_LOJA ? '' : '<div class="hwrow"><button class="how" data-go="grupo"><span class="hi">👥</span>Jogar em grupo</button></div>') +
-      '<div class="temas"><span class="tm-t">Tema</span><div class="tm-row"><button class="tm' + (TEMA ? '' : ' on') + '" data-act="tema" data-v="">🎲 Misturado</button>' + ((INFO && INFO.temas) || []).map(function (t) { return '<button class="tm' + (TEMA === t.id ? ' on' : '') + '" data-act="tema" data-v="' + esc(t.id) + '">' + t.icone + ' ' + esc(t.nome) + '</button>' }).join('') + '</div></div>' +
-      '<div class="cta2"><p class="pn">' + (INFO && INFO.jogador ? 'Jogando como <b>' + esc(INFO.jogador.apelido) + '</b>' : 'Você informa seu nome e WhatsApp antes de jogar') + '</p><button class="go" data-act="start"><span>Jogar</span></button></div></div></div>'
+    var aviso = MODO_LOJA
+      ? '<b>Valendo só ranking</b><span>Para ganhar cashback, jogue pelo QR da sua mesa.</span>'
+      : (premio ? '<b>Esta rodada vale cashback</b><span>Creditado só quando você pagar a conta da mesa.</span>' : '<b>Valendo ranking da loja</b><span>Suba de posição a cada rodada.</span>')
+    var temas = [{ id: '', nome: 'Misturado', icone: '🎲' }].concat((INFO && INFO.temas) || [])
+    var tiles = temas.map(function (t) {
+      var on = (TEMA || '') === t.id
+      return '<button class="in2-t' + (on ? ' on' : '') + '" data-act="tema" data-v="' + esc(t.id) + '" aria-pressed="' + on + '"><span class="in2-ti">' + t.icone + '</span><span class="in2-tn">' + esc(t.nome) + '</span>' + (on ? '<span class="in2-ck">' + IC_OK + '</span>' : '') + '</button>'
+    }).join('')
+    return '<div class="screen sea in2">' + bar() + '<div class="in2-body">' +
+      '<div class="in2-head"><span class="in2-k">Quiz</span><h2 class="in2-h">Pesca <b>Premiada</b></h2><p class="in2-s">10 segundos por pergunta · 3 chances de errar</p></div>' +
+      '<div class="in2-aviso' + (MODO_LOJA || !premio ? ' rk' : '') + '">' + aviso + '</div>' +
+      '<div class="in2-sec"><span class="in2-lb">Escolha o tema</span><div class="in2-grid">' + tiles + '</div></div>' +
+      '<div class="in2-cta"><button class="go" data-act="start"><span>Jogar</span></button>' +
+      '<p class="in2-pl">' + (INFO && INFO.jogador ? 'Jogando como <b>' + esc(INFO.jogador.apelido) + '</b>' : 'Você informa seu nome e WhatsApp antes de jogar') + '</p></div>' +
+      '<div class="in2-acts' + (MODO_LOJA ? ' dois' : '') + '">' +
+      '<button class="in2-a" data-act="zones">' + IC_INFO + '<span>Como funciona</span></button>' +
+      '<button class="in2-a" data-go="ranking">' + IC_RANK + '<span>Ranking</span></button>' +
+      (MODO_LOJA ? '' : '<button class="in2-a" data-go="grupo">' + IC_GRUPO + '<span>Em grupo</span></button>') +
+      '</div></div></div>'
   }
   S.contagem = function () {
     var n = CT.n, ja = n <= 0

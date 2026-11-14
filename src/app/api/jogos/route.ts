@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
         // Cada jogo novo entra nesta lista (id, nome, descrição, rota).
         jogos: [
           { id: 'quiz', nome: 'Quiz Pesca Premiada', descricao: 'Responda perguntas, tente chegar ao topo do ranking da loja.', ativo: !!camp?.ativa, rota: `/jogos/${company.slug}/quiz` },
+          { id: 'caca', nome: 'Caça-Palavras', descricao: 'Ache as palavras escondidas antes de o tempo acabar.', ativo: true, rota: `/jogos/${company.slug}/caca` },
         ],
       })
     }
@@ -61,15 +62,16 @@ export async function POST(req: NextRequest) {
         const { data: j } = await sb.from('quiz_jogadores').select('id').eq('company_id', company.id).eq('telefone', ident.tel).maybeSingle()
         meuId = j?.id || null
       }
-      type Lin = { posicao: number; jogador_id: string; apelido: string; pontos: number; acertos?: number; total?: number }
+      type Lin = { posicao: number; jogador_id: string; apelido: string; pontos: number; acertos?: number; nivel?: number; total?: number }
       const ind = (d: unknown, sub: (x: Lin) => string) => ((d || []) as Lin[]).slice(0, 50).map(x => ({
         pos: Number(x.posicao), nome: x.apelido, pontos: x.pontos, sub: sub(x), eu: !!meuId && x.jogador_id === meuId,
       }))
-      const [geral, solo, duelo, grupos] = await Promise.all([
+      const [geral, solo, duelo, grupos, caca] = await Promise.all([
         sb.rpc('quiz_ranking_geral', { p_company: company.id, p_desde: desde, p_limite: 50 }),
         sb.rpc('quiz_ranking', { p_company: company.id, p_desde: desde, p_limite: 50 }),
         sb.rpc('quiz_ranking_duelo', { p_company: company.id, p_desde: desde, p_limite: 50 }),
         sb.rpc('quiz_ranking_grupos', { p_company: company.id, p_desde: desde, p_limite: 50 }),
+        sb.rpc('caca_ranking', { p_company: company.id, p_desde: desde, p_limite: 50 }),
       ])
       const acertos = (x: Lin) => (x.acertos ?? 0) === 1 ? '1 acerto' : `${x.acertos ?? 0} acertos`
       return NextResponse.json({
@@ -78,6 +80,7 @@ export async function POST(req: NextRequest) {
         geral: ind(geral.data, () => ''),
         solo: ind(solo.data, acertos),
         duelo: ind(duelo.data, acertos),
+        caca: ind(caca.data, x => `até o nível ${x.nivel ?? 0}`),
         grupos: ((grupos.data || []) as { posicao: number; nome: string; media: number; jogadores: number }[]).slice(0, 50).map(g => ({
           pos: Number(g.posicao), nome: g.nome, pontos: g.media, sub: `${g.jogadores} jogadores`, eu: false,
         })),

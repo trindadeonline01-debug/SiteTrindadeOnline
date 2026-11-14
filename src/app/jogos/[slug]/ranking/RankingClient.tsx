@@ -5,11 +5,11 @@ import { useEffect, useMemo, useState } from 'react'
 // Dados de /api/jogos (ação ranking). Quem está identificado (token da mesa/jogos) aparece destacado.
 
 type Lin = { pos: number; nome: string; pontos: number; sub: string; eu: boolean }
-type Dados = { inicioSemana: string | null; geral: Lin[]; solo: Lin[]; duelo: Lin[]; grupos: Lin[] }
+type Dados = { inicioSemana: string | null; geral: Lin[]; solo: Lin[]; duelo: Lin[]; caca: Lin[]; grupos: Lin[] }
 type Info = { loja: string }
-type Jogo = 'geral' | 'solo' | 'duelo'
+type Jogo = 'geral' | 'solo' | 'duelo' | 'caca'
 const IDENT_KEY = 'trindade_ident'
-const JOGOS: [Jogo, string][] = [['geral', 'Geral'], ['solo', 'Quiz solo'], ['duelo', 'Quiz em grupo']]
+const JOGOS: [Jogo, string][] = [['geral', 'Geral'], ['solo', 'Quiz solo'], ['duelo', 'Quiz em grupo'], ['caca', 'Caça-palavras']]
 const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
 
 async function post(body: unknown) {
@@ -71,7 +71,7 @@ export default function RankingClient({ slug }: { slug: string }) {
   const acima = idxEu > 0 ? lista[idxEu - 1] : null
   const falta = eu && acima ? Math.max(acima.pontos - eu.pontos, 0) : 0
   const pct = eu && acima && acima.pontos > 0 ? Math.round((eu.pontos / acima.pontos) * 100) : 100
-  const jogarUrl = grp ? `/jogos/${slug}` : jogo === 'duelo' ? `/jogos/${slug}` : `/jogos/${slug}/quiz`
+  const jogarUrl = grp ? `/jogos/${slug}` : jogo === 'duelo' ? `/jogos/${slug}` : jogo === 'caca' ? `/jogos/${slug}/caca` : `/jogos/${slug}/quiz`
   const un = grp ? 'média' : 'pts'
 
   if (falhou) return <main className="rk"><div className="rk-box"><h1>Ranking indisponível</h1><p>Não encontramos essa loja. Confira o endereço.</p></div><style>{CSS}</style></main>
@@ -184,8 +184,9 @@ const CSS = `
 .rk-seg button[aria-pressed="true"]{background:var(--gold);color:#1B1300}
 .rk-seg button:focus-visible,.rk-chip:focus-visible,.rk-cta:focus-visible,.rk-bar a:focus-visible{outline:3px solid #fff;outline-offset:2px}
 .rk-filtros{position:sticky;top:0;z-index:4;margin:0 -18px;padding:6px 18px 12px;display:grid;gap:10px;background:linear-gradient(180deg,#0B4054 78%,rgba(11,64,84,0))}
-.rk-chips{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid rgba(255,255,255,.16)}
-.rk-chip{font:600 13.5px/1.15 var(--body);min-height:46px;padding:0 4px;border:0;border-bottom:3px solid transparent;margin-bottom:-1px;background:transparent;color:#A9C9D0;cursor:pointer;text-align:center}
+.rk-chips{display:flex;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid rgba(255,255,255,.16)}
+.rk-chips::-webkit-scrollbar{display:none}
+.rk-chip{flex:1 0 auto;white-space:nowrap;font:600 13px/1.15 var(--body);min-height:46px;padding:0 11px;border:0;border-bottom:3px solid transparent;margin-bottom:-1px;background:transparent;color:#A9C9D0;cursor:pointer;text-align:center}
 .rk-chip[aria-pressed="true"]{color:var(--gold);border-bottom-color:var(--gold)}
 .rk-podio{position:relative;display:grid;grid-template-columns:1fr 1.18fr 1fr;align-items:end;gap:8px;padding-top:34px;isolation:isolate}
 .rk-podio::before{content:"";position:absolute;left:50%;top:-6px;width:78%;aspect-ratio:1;transform:translateX(-50%);background:radial-gradient(circle,rgba(255,215,100,.30),transparent 62%);z-index:-1}

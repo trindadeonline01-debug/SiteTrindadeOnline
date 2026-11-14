@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import CapaJogo from '@/components/jogos/CapaJogo'
 
 // Lista de jogos da loja + identificação (nome + WhatsApp confirmado por código). Cada jogo novo é só
 // mais um item em `jogos` (api/jogos). Regra: jogo aberto aqui vale SÓ para o ranking; cashback só
@@ -9,6 +10,7 @@ type Jogo = { id: string; nome: string; descricao: string; ativo: boolean; rota:
 type Info = { loja: string; logo: string; jogos: Jogo[] }
 type Ident = { nome: string; telefone: string; token: string }
 const IDENT_KEY = 'trindade_ident'
+const TAGS: Record<string, string> = { quiz: 'Perguntas e respostas', caca: 'Ache as palavras' }
 
 async function post(url: string, body: unknown) {
   const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
@@ -109,13 +111,14 @@ export default function JogosClient({ slug }: { slug: string }) {
                 <span>Quer ganhar cashback? Jogue pelo QR da sua mesa no restaurante. O cashback só é creditado depois que a conta é paga.</span>
               </div>
               {ativos.length === 0 && <div className="jg-box">Nenhum jogo ligado nesta loja agora.</div>}
-              {ativos.map(j => (
-                <div key={j.id} className="jg-card">
-                  <div className="jg-ic" aria-hidden="true">🎣</div>
-                  <div className="jg-tx"><b>{j.nome}</b><span>{j.descricao}</span></div>
-                  <button type="button" className="jg-go" disabled={busy} onClick={() => jogar(j)}>{busy ? '…' : 'Jogar'}</button>
-                </div>
-              ))}
+              <div className="jg-tiles">
+                {ativos.map(j => (
+                  <button key={j.id} type="button" className="jg-tile" disabled={busy} onClick={() => jogar(j)} aria-label={`Jogar ${j.nome}`}>
+                    <span className="jg-art"><CapaJogo id={j.id} /></span>
+                    <span className="jg-nm"><b>{j.nome}</b><small>{TAGS[j.id] || j.descricao}</small></span>
+                  </button>
+                ))}
+              </div>
               <a className="jg-rkl" href={`/jogos/${slug}/ranking`}>
                 <span className="jg-rkl-i">🏆</span>
                 <span className="jg-tx"><b>Ranking da loja</b><span>Pódio da semana, individual e de grupos</span></span>
@@ -169,6 +172,16 @@ body{background:#082B38}
 .jg-aviso{background:rgba(255,197,49,.12);border:1px solid rgba(255,197,49,.45);border-radius:12px;padding:12px 14px;display:grid;gap:4px}
 .jg-aviso b{font-size:14.5px;color:#FFC531}
 .jg-aviso span{font-size:13px;color:#E4EEF0;line-height:1.4}
+.jg-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.jg-tile{position:relative;aspect-ratio:1;padding:0;border:0;border-radius:22px;overflow:hidden;cursor:pointer;background:#0A3342;box-shadow:0 10px 24px rgba(0,0,0,.35);color:#fff;font-family:inherit;text-align:left;transition:transform .12s}
+.jg-tile:active:not(:disabled){transform:scale(.97)}
+.jg-tile:disabled{opacity:.7;cursor:default}
+.jg-tile:focus-visible{outline:3px solid #fff;outline-offset:3px}
+.jg-art{position:absolute;inset:0;display:block}
+.jg-art svg{width:100%;height:100%;display:block}
+.jg-nm{position:absolute;left:0;right:0;bottom:0;display:grid;gap:2px;padding:30px 12px 12px;background:linear-gradient(180deg,rgba(5,29,39,0),rgba(5,29,39,.94) 62%)}
+.jg-nm b{font-family:'Anton',Impact,'Arial Narrow',sans-serif;font-weight:400;font-size:21px;line-height:1.05;text-transform:uppercase;letter-spacing:.01em;text-wrap:balance}
+.jg-nm small{font-size:12px;color:#BFD9DE;line-height:1.25}
 .jg-card{display:flex;align-items:center;gap:12px;background:#fff;color:#151210;border-radius:14px;padding:14px}
 .jg-ic{width:48px;height:48px;border-radius:12px;background:#F4F2EC;display:grid;place-items:center;font-size:24px;flex:none}
 .jg-tx{flex:1;min-width:0;display:grid;gap:2px}

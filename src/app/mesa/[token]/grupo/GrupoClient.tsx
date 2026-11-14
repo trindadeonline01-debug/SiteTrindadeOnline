@@ -40,7 +40,6 @@ export default function GrupoClient({ token }: { token: string }) {
   const [agora, setAgora] = useState(0)
   const [nome, setNome] = useState('')
   const [tema, setTema] = useState('')
-  const [codigo, setCodigo] = useState('')
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
   const [escolhida, setEscolhida] = useState<{ ordem: number; pos: number; acertou?: boolean; pontos?: number } | null>(null)
@@ -218,7 +217,7 @@ export default function GrupoClient({ token }: { token: string }) {
 
               <div className="gq-card">
                 <h2>Entrar em um grupo</h2>
-                {inicio.abertas.length > 0 && (
+                {inicio.abertas.length > 0 ? (
                   <div className="gq-abertas">
                     {inicio.abertas.map(a => (
                       <button type="button" key={a.id} className="gq-aberta" disabled={busy || a.cheia} onClick={() => entrar({ salaId: a.id })}>
@@ -226,9 +225,7 @@ export default function GrupoClient({ token }: { token: string }) {
                       </button>
                     ))}
                   </div>
-                )}
-                <label>Ou digite o código do grupo<input className="gq-cod" value={codigo} onChange={e => setCodigo(e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4))} placeholder="ABCD" autoCapitalize="characters" /></label>
-                <button type="button" className="gq-btn alt" disabled={busy || codigo.length !== 4} onClick={() => entrar({ codigo })}>{busy ? 'Entrando…' : 'Entrar com o código'}</button>
+                ) : <p>Nenhum grupo aberto nesta mesa agora. Peça para quem criou o grupo mostrar o QR e escaneie com a câmera do celular.</p>}
               </div>
               {msg && <div className="gq-warn">{msg}</div>}
               <p className="gq-mut" style={{ textAlign: 'center' }}>Jogando como <b>{inicio.apelido}</b></p>
@@ -243,7 +240,6 @@ export default function GrupoClient({ token }: { token: string }) {
                 <b>Chame os amigos</b>
                 <span>Peça para escanearem este QR com a câmera do celular. Eles entram direto no grupo.</span>
                 {qr ? /* eslint-disable-next-line @next/next/no-img-element -- QR gerado no navegador (data URL) */ <img src={qr} alt={`QR code para entrar no grupo ${est.sala.nome}`} width={220} height={220} /> : <div className="gq-qr-ph" />}
-                <small>Sem câmera? Código do grupo: <em>{est.sala.codigo}</em></small>
               </div>
               <div className="gq-card">
                 <h2>Jogadores ({jogadoresLista.length}/{est.maximo})</h2>

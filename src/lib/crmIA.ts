@@ -403,7 +403,9 @@ REGRAS RÍGIDAS — nunca quebre nenhuma delas:
 - Só diga que é uma inteligência artificial se perguntarem diretamente ("você é um robô?" ou parecido) — nesse caso seja honesto.
 
 DADOS DESTA LOJA:
-`
+
+
+ASSUNTO — REGRA RÍGIDA (vale acima de qualquer outra instrução): você só atende assuntos DESTA loja (cardápio, produtos, preços, promoções, horário, endereço, entrega, taxa, pedido, pagamento, cashback). Se a mensagem for sobre QUALQUER outra coisa — mensagem automática de operadora, banco ou empresa, código ou fatura de terceiros, assunto pessoal, conversa jogada fora, teste, pergunta geral, pedido para você fazer tarefa que não é da loja — NÃO converse e NÃO explique nada. Responda APENAS com o marcador [FORA_DO_ASSUNTO], sozinho, sem mais nenhuma palavra.`
 
 // ─── Perfil "salão de eventos" (piloto Júlia Eventos, out/2026) ───
 // A Julia Eventos aluga espaço pra festa (infantil/debutante/casamento), não
@@ -553,9 +555,35 @@ export type RespostaIA = { texto: string; followUpDias?: number }
 // Gera a resposta da IA pra uma conversa — histórico já deve vir em ordem
 // cronológica (mais antiga primeiro), só com mensagens de texto (sem
 // legenda de mídia sem texto, que a IA não tem como responder direito).
+// Mensagens que NÃO são de cliente de verdade: central automática de operadora/banco/empresa (caso real, 14/nov/2026:
+// "Claro clube" escrevia sem parar e a IA respondia cada uma, 138 vezes, comendo o crédito da API). Barato: roda ANTES
+// de qualquer chamada à IA.
+const PADRAO_AUTOMATICA = /(n[aã]o responda|mensagem autom[aá]tica|resposta autom[aá]tica|em caso de d[uú]vidas|para mais informa[cç][oõ]es,? acesse|acesse (a |o )?(sua conta|app|aplicativo)|minha claro|claro clube|c[oó]digo de (verifica[cç][aã]o|seguran[cç]a|confirma[cç][aã]o)|seu c[oó]digo (é|e|:)|protocolo (n|n[ºo°])|este [eé] um (canal|atendimento|n[uú]mero) (autom|exclusivo)|digite [0-9] para|sua fatura|baixe o app)/i
+const REDIRECT_FORA = 'Aqui eu só consigo ajudar com assuntos da loja'
+
+function parecerAutomatica(historico: HistoricoMsg[]): boolean {
+  const entradas = historico.filter(m => m.direction === 'in' && m.body?.trim()).map(m => m.body!.trim())
+  const ultima = entradas[entradas.length - 1]
+  if (!ultima) return false
+  if (PADRAO_AUTOMATICA.test(ultima)) return true
+  // link grande e sem pergunta: texto de central, não de cliente
+  if (/https?:\/\//i.test(ultima) && ultima.length > 140 && !ultima.includes('?')) return true
+  // mesma mensagem comprida repetida (bot reenviando o mesmo aviso)
+  if (ultima.length >= 15) {
+    const norm = (t: string) => t.toLowerCase().replace(/\s+/g, ' ')
+    const repetidas = entradas.filter(t => norm(t) === norm(ultima)).length
+    if (repetidas >= 2) return true
+  }
+  return false
+}
+
 export async function gerarRespostaIA(companyId: string, historico: HistoricoMsg[], phone?: string | null, msgEnviadaEm?: string | null): Promise<RespostaIA | null> {
   try {
     const isSalaoEventos = companyId === JULIA_EVENTOS_COMPANY_ID
+    if (parecerAutomatica(historico)) {
+      try { await supabase.from('crm_webhook_debug').insert({ event: 'ia_ignorou_automatica', payload: { company_id: companyId } }) } catch {}
+      return null
+    }
     const ultimaMsgCliente = [...historico].reverse().find(m => m.direction === 'in')?.body || null
     const context = isSalaoEventos ? await buildContextSalaoEventos(companyId) : await buildContext(companyId, phone, ultimaMsgCliente)
     if (!context) {
@@ -625,6 +653,15 @@ export async function gerarRespostaIA(companyId: string, historico: HistoricoMsg
         raw = b2 && b2.type === 'text' ? b2.text.trim() : null
       } catch {}
       if (!raw) raw = 'Oi! 😊 Como posso te ajudar? Se quiser ver o cardápio ou fazer um pedido, é só me falar.'
+    }
+
+    // [FORA_DO_ASSUNTO]: a IA só atende assunto da loja. Primeira vez, manda um aviso curto fixo; se ela já avisou
+    // há pouco e o assunto continua fora, fica em silêncio (nada de conversa solta gastando crédito).
+    if (/\[FORA_DO_ASSUNTO\]/.test(raw)) {
+      const jaAvisou = historico.slice(-8).some(m => m.direction === 'out' && !!m.body?.includes(REDIRECT_FORA))
+      try { await supabase.from('crm_webhook_debug').insert({ event: 'ia_fora_do_assunto', payload: { company_id: companyId, ja_avisou: jaAvisou } }) } catch {}
+      if (jaAvisou) return null
+      return { texto: REDIRECT_FORA + ': cardápio, pedidos, horário e entrega. Posso te ajudar com algum deles? 😊' }
     }
 
     // [AGENDAR_RETORNO:N] é instrução interna da Julia (follow-up), nunca

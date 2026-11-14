@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useMemo, useState } from 'react'
+import { CACA_PALAVRAS_ATIVO } from '@/lib/jogosFlags'
 
 // Ranking dos jogos da loja: pódio (ouro/prata/bronze), lista do 4º em diante e barra fixa "sua posição".
 // Dados de /api/jogos (ação ranking). Quem está identificado (token da mesa/jogos) aparece destacado.
@@ -9,7 +10,7 @@ type Dados = { inicioSemana: string | null; geral: Lin[]; solo: Lin[]; duelo: Li
 type Info = { loja: string }
 type Jogo = 'geral' | 'solo' | 'duelo' | 'caca'
 const IDENT_KEY = 'trindade_ident'
-const JOGOS: [Jogo, string][] = [['geral', 'Geral'], ['solo', 'Quiz solo'], ['duelo', 'Quiz em grupo'], ['caca', 'Caça-palavras']]
+const JOGOS: [Jogo, string][] = ([['geral', 'Geral'], ['solo', 'Quiz solo'], ['duelo', 'Quiz em grupo'], ['caca', 'Caça-palavras']] as [Jogo, string][]).filter(([j]) => j !== 'caca' || CACA_PALAVRAS_ATIVO)
 const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
 
 async function post(body: unknown) {

@@ -1,5 +1,6 @@
 'use client'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { CACA_PALAVRAS_ATIVO } from '@/lib/jogosFlags'
 
 // Página da mesa (QR do cliente). O celular só PEDE: o servidor confere mesa,
 // conta, produto, opções e preço, e o garçom confirma antes de ir pra cozinha.
@@ -308,7 +309,7 @@ export default function MesaClient({ token }: { token: string }) {
               <span className="bt">Jogar</span>
             </button>
           )}
-          {quizOn && (
+          {quizOn && CACA_PALAVRAS_ATIVO && (
             <button type="button" className="mz-pcard pq" onClick={cacaBtn}>
               <span className="ico"><svg viewBox="0 0 24 24" fill="none" stroke="#151210" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="3" /><path d="M7 7l10 10M7 12h5M12 7v5" /></svg></span>
               <b>Caça-Palavras</b>

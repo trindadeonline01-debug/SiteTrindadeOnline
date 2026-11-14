@@ -5,6 +5,7 @@ import { normalizePhone } from '@/lib/phone'
 import { moduleActive } from '@/lib/modules'
 import { criarIdentToken, lerIdentToken, limparNome } from '@/lib/mesaIdent'
 import { sendPlatformWhatsApp } from '@/lib/whatsapp'
+import { CACA_PALAVRAS_ATIVO } from '@/lib/jogosFlags'
 
 // Página de jogos da loja (/jogos/<slug>) — pública, sem mesa. Aqui só se lista os jogos e se identifica
 // o jogador (nome + WhatsApp confirmado por código, o mesmo token da identificação da mesa).
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest) {
         jogos: [
           { id: 'quiz', nome: 'Quiz Pesca Premiada', descricao: 'Responda perguntas, tente chegar ao topo do ranking da loja.', ativo: !!camp?.ativa, rota: `/jogos/${company.slug}/quiz` },
           { id: 'caca', nome: 'Caça-Palavras', descricao: 'Ache as palavras escondidas antes de o tempo acabar.', ativo: true, rota: `/jogos/${company.slug}/caca` },
-        ],
+        ].filter(j => j.id !== 'caca' || CACA_PALAVRAS_ATIVO),
       })
     }
 

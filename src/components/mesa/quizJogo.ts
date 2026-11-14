@@ -181,10 +181,12 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
       '<div class="in2-sec"><h3 class="in2-lb">Escolha o tema</h3><div class="in2-grid">' + tiles + '</div></div>' +
       '<div class="in2-foot"><div class="in2-cta"><button class="go" data-act="start"><span>Jogar</span></button>' +
       '<p class="in2-pl">' + (INFO && INFO.jogador ? 'Jogando como <b>' + esc(INFO.jogador.apelido) + '</b>' : 'Você informa seu nome e WhatsApp antes de jogar') + '</p></div>' +
-      '<div class="in2-acts' + (MODO_LOJA ? ' dois' : '') + '">' +
+      '<div class="in2-acts">' +
       '<button class="in2-a" data-act="zones">' + IC_INFO + '<span>Como funciona</span></button>' +
       '<button class="in2-a" data-go="ranking">' + IC_RANK + '<span>Ranking</span></button>' +
-      (MODO_LOJA ? '' : '<button class="in2-a" data-go="grupo">' + IC_GRUPO + '<span>Em grupo</span></button>') +
+      (MODO_LOJA
+        ? '<button class="in2-a trava" data-act="grupotrava" aria-label="Em grupo, disponível só pelo QR da mesa">' + IC_GRUPO + '<span>Em grupo</span></button>'
+        : '<button class="in2-a" data-go="grupo">' + IC_GRUPO + '<span>Em grupo</span></button>') +
       '</div></div>' +
       '</div></div></div>'
   }
@@ -423,6 +425,7 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
       return
     }
     var a = t.dataset.act
+    if (a === 'grupotrava') { toast('O quiz em grupo abre pelo QR da sua mesa, no restaurante.'); return }
     if (a === 'tema') { TEMA = t.dataset.v || ''; try { localStorage.setItem('quiztema', TEMA) } catch (x) {} render(); return }
     if (a === 'snd') { SND = !SND; if (SND) ac(); render(); return }
     if (a === 'zones') { ZONES = true; render(); return }

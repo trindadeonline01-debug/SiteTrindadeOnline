@@ -474,6 +474,7 @@ export const ESTILO = `
 .in2-acts.dois{grid-template-columns:repeat(2,1fr)}
 .in2-a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-height:62px;padding:8px 6px;border-radius:12px;border:1.5px solid rgba(255,255,255,.2);background:transparent;color:#E6F2F3;font:600 12.5px var(--body);cursor:pointer}
 .in2-a svg{width:22px;height:22px}
+.in2-a.trava{opacity:.65;border-style:dashed}
 .in2-a:focus-visible{outline:3px solid #fff;outline-offset:2px}
 @media (max-height:820px){.in2-s{display:none}.in2-body{gap:12px;padding-top:12px}.in2-a{min-height:56px}}
 @media (max-height:700px){.in2-pl{display:none}.in2-a{min-height:46px;flex-direction:row;gap:6px}.in2-a svg{width:18px;height:18px}.in2-foot .go{min-height:50px}.in2-foot{gap:8px;padding-top:12px}}

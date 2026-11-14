@@ -842,20 +842,6 @@
 {
 "nivel": 2,
 "categoria": "Gastronomia e peixaria",
-"enunciado": "Quantos braços tem um polvo?",
-"opcoes": [
-"8",
-"6",
-"10",
-"12"
-],
-"curiosidade": "A lula tem 8 braços e 2 tentáculos.",
-"id": "GAS-061",
-"tema": "gastronomia"
-},
-{
-"nivel": 2,
-"categoria": "Gastronomia e peixaria",
 "enunciado": "Qual processo dá o sabor característico ao salmão defumado?",
 "opcoes": [
 "Defumação",
@@ -935,20 +921,6 @@
 ],
 "curiosidade": "Serve para limpar o paladar entre um sushi e outro.",
 "id": "GAS-067",
-"tema": "gastronomia"
-},
-{
-"nivel": 3,
-"categoria": "Gastronomia e peixaria",
-"enunciado": "O que é sashimi?",
-"opcoes": [
-"Fatias de peixe cru",
-"Peixe frito",
-"Rolinho de arroz",
-"Sopa de peixe"
-],
-"curiosidade": "É servido sem arroz.",
-"id": "GAS-068",
 "tema": "gastronomia"
 },
 {

@@ -100,20 +100,6 @@
 {
 "nivel": 1,
 "categoria": "Rio de Janeiro e São Gonçalo",
-"enunciado": "Qual ponte liga o Rio de Janeiro a Niterói?",
-"opcoes": [
-"Ponte Rio-Niterói",
-"Ponte Estaiada",
-"Ponte JK",
-"Ponte Colombo Salles"
-],
-"curiosidade": "Foi inaugurada em 1974.",
-"id": "RIO-008",
-"tema": "rio"
-},
-{
-"nivel": 1,
-"categoria": "Rio de Janeiro e São Gonçalo",
 "enunciado": "Como se chama a baía que fica entre o Rio de Janeiro e Niterói?",
 "opcoes": [
 "Baía de Guanabara",

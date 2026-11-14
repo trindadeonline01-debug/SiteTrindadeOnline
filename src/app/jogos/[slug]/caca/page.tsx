@@ -9,5 +9,5 @@ export const metadata: Metadata = {
 
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-  return <CacaClient slug={slug} />
+  return <CacaClient modo="loja" chave={slug} />
 }

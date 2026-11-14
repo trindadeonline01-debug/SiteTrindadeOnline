@@ -35,6 +35,7 @@ export default function MesaClient({ token }: { token: string }) {
   })
   const [busy, setBusy] = useState(false)
   const [quizOn, setQuizOn] = useState(false)
+  const destJogo = useRef<'quiz' | 'caca'>('quiz')   // qual jogo o cliente tocou (a identificação é a mesma para os dois)
   const [aviso, setAviso] = useState('')
   const [chamou, setChamou] = useState<'garcom' | 'conta' | null>(null)
   const [busca, setBusca] = useState('')
@@ -160,7 +161,7 @@ export default function MesaClient({ token }: { token: string }) {
     try { localStorage.setItem('quizjt:' + token, d.jt) } catch {}
     // Veio de um convite (ex.: QR de um grupo): volta para onde estava, senão abre o quiz.
     const volt = new URLSearchParams(window.location.search).get('voltar')
-    window.location.href = volt && volt.startsWith(`/mesa/${token}/`) ? volt : `/mesa/${token}/quiz`
+    window.location.href = volt && volt.startsWith(`/mesa/${token}/`) ? volt : `/mesa/${token}/${destJogo.current}`
     return null
   }
 
@@ -277,7 +278,8 @@ export default function MesaClient({ token }: { token: string }) {
     )
   }
 
-  const quizBtn = () => exigirIdent('jogar', () => {})
+  const quizBtn = () => { destJogo.current = 'quiz'; exigirIdent('jogar', () => {}) }
+  const cacaBtn = () => { destJogo.current = 'caca'; exigirIdent('jogar', () => {}) }
   return (
     <Tela>
       {miniBar(rolou)}
@@ -306,8 +308,16 @@ export default function MesaClient({ token }: { token: string }) {
               <span className="bt">Jogar</span>
             </button>
           )}
+          {quizOn && (
+            <button type="button" className="mz-pcard pq" onClick={cacaBtn}>
+              <span className="ico"><svg viewBox="0 0 24 24" fill="none" stroke="#151210" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="3" /><path d="M7 7l10 10M7 12h5M12 7v5" /></svg></span>
+              <b>Caça-Palavras</b>
+              <p>Ache as palavras e suba de nível.</p>
+              <span className="bt">Jogar</span>
+            </button>
+          )}
           {info.cashback.ativo && (
-            <div className="mz-pcard pc5">
+            <div className={`mz-pcard pc5${quizOn ? ' full' : ''}`}>
               {cart?.verificado ? (
                 <>
                   <div className="top5"><span className="up">Seu saldo</span></div>
@@ -661,6 +671,7 @@ const CSS = `
 .mz-pcard.pq b{display:block;font-size:14px;font-weight:700;line-height:1.2}
 .mz-pcard.pq p{margin:3px 0 10px;font-size:11.5px;line-height:1.4;color:#A9C6CD}
 .mz-pcard.pq .bt{background:#FFC531;color:#151210}
+.mz-pcard.pc5.full{grid-column:1/-1}
 .mz-pcard.pc5{background:linear-gradient(165deg,#FFD35C 0%,#FFC531 70%);color:#151210;box-shadow:0 14px 26px -16px rgba(168,114,0,.9)}
 .mz-pcard .top5{display:flex;align-items:flex-end;gap:5px;line-height:1;min-height:38px}
 .mz-pcard .top5 .up{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#5C4607;padding-bottom:4px}

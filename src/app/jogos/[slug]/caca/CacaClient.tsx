@@ -2,15 +2,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 // Caça-Palavras (tela). O servidor monta a grade e confere cada seleção (/api/jogos/caca); aqui só se desenha e se arrasta o dedo.
-// Fluxo: Começar → grade (2 por nível, tempo zera) → nível concluído (ir para o próximo ou parar) → fim. Vale só para o ranking.
+// Fluxo: Começar → grade (2 por nível, tempo zera) → nível concluído (ir para o próximo ou parar) → fim.
+// Dois modos: página de jogos (`loja`, só ranking) e QR da mesa (`mesa`, o % garantido vira cashback quando a conta é paga).
 
 type Pal = { id: number; cor: number; achada: boolean; texto?: string; dica?: string; tam?: number; cells?: [number, number][] }
 type Rod = {
   id: string; estado: 'jogando' | 'entre_niveis' | 'encerrada'; fim: string | null; nivel: number; nomeNivel: string; niveis: number; parte: number; partes: number
   pontos: number; pontosNivel: number; melhorNivel: number; tamanho: number; letras: string[]; lista: 'full' | 'dica' | 'oculta'
   total: number; restante: number; espera: number; ajudas: { tempo: number; emb: number; troca: number }; palavras: Pal[]
+  marco: number; premio: boolean; bloqueado: boolean
 }
-type NivelRes = { nivel: number; nome: string; pontosNivel: number; tempoUsado: number | null; estrelas: number; ultimo: boolean }
+type NivelRes = { nivel: number; nome: string; pontosNivel: number; tempoUsado: number | null; estrelas: number; ultimo: boolean; marco: number }
+type Meta = { loja: string; slug: string; premio: boolean; bloqueado: boolean; mesaNumero: string | number | null }
+const PORTAO = 3     // até o nível 3 é fase segura; depois, tempo esgotado perde o bônus (mesmo valor do servidor)
+const BONUS = [2, 3, 5, 8, 10]
 type Tela = 'carregando' | 'intro' | 'jogo' | 'parte' | 'nivel' | 'fim'
 
 const CORES = ['#7FD6C2', '#6FC6F0', '#F2A7C3', '#A9C8FF', '#C6A8FF', '#FFB38A', '#B5E48C', '#E6B8A2', '#F7C6FF']
@@ -44,10 +49,11 @@ function Estrelas({ n }: { n: number }) {
   )
 }
 
-export default function CacaClient({ slug }: { slug: string }) {
-  const LS = `quizjt:loja:${slug}`
+export default function CacaClient({ modo, chave }: { modo: 'loja' | 'mesa'; chave: string }) {
+  const tokenApi = modo === 'loja' ? `loja:${chave}` : chave          // QR da mesa ou loja:<slug>
+  const LS = `quizjt:${tokenApi}`
   const [tela, setTela] = useState<Tela>('carregando')
-  const [brand, setBrand] = useState('')
+  const [meta, setMeta] = useState<Meta>({ loja: '', slug: modo === 'loja' ? chave : '', premio: false, bloqueado: false, mesaNumero: null })
   const [rod, setRod] = useState<Rod | null>(null)
   const [melhor, setMelhor] = useState<{ pontos: number; nivel: number }>({ pontos: 0, nivel: 0 })
   const [rest, setRest] = useState(0)
@@ -65,13 +71,15 @@ export default function CacaClient({ slug }: { slug: string }) {
   const travado = useRef(false)
 
   const jt = useCallback(() => { try { return localStorage.getItem(LS) || '' } catch { return '' } }, [LS])
-  const irIdentificar = useCallback(() => { window.location.assign(`/jogos/${slug}?identificar=1`) }, [slug])
+  const irIdentificar = useCallback(() => {
+    window.location.assign(modo === 'loja' ? `/jogos/${chave}?identificar=1` : `/mesa/${chave}?identificar=jogar&voltar=${encodeURIComponent(window.location.pathname)}`)
+  }, [modo, chave])
   const api = useCallback(async (acao: string, extra: Record<string, unknown> = {}) => {
-    const r = await fetch('/api/jogos/caca', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ acao, slug, jt: jt(), ...extra }) })
+    const r = await fetch('/api/jogos/caca', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ acao, token: tokenApi, jt: jt(), ...extra }) })
     const d = await r.json().catch(() => ({}))
     if (r.status === 401) { try { localStorage.removeItem(LS) } catch {} irIdentificar() }
     return { ok: r.ok, status: r.status, d }
-  }, [slug, jt, LS, irIdentificar])
+  }, [tokenApi, jt, LS, irIdentificar])
 
   // guarda o relógio do servidor junto com a rodada: o tempo corre a partir de agora, depois da espera da transição
   const aplicar = useCallback((r: Rod) => {
@@ -84,17 +92,16 @@ export default function CacaClient({ slug }: { slug: string }) {
   useEffect(() => {
     let vivo = true
     if (!jt()) { irIdentificar(); return }
-    fetch('/api/jogos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ acao: 'info', slug }) })
-      .then(r => r.json()).then(d => { if (vivo && d?.loja) setBrand(d.loja) }).catch(() => {})
     api('estado').then(r => {
       if (!vivo) return
       if (!r.ok) { setErroMsg(r.d?.error || 'Não consegui abrir o jogo agora.'); setTela('intro'); return }
       setMelhor(r.d.melhor || { pontos: 0, nivel: 0 })
+      if (r.d.ctx) setMeta({ loja: r.d.ctx.loja, slug: r.d.ctx.slug, premio: !!r.d.ctx.premio, bloqueado: !!r.d.ctx.bloqueado, mesaNumero: r.d.ctx.mesaNumero ?? null })
       if (r.d.rodada) { setRod(r.d.rodada as Rod) }
       setTela('intro')
     }).catch(() => { if (vivo) { setErroMsg('Sem conexão. Tente de novo.'); setTela('intro') } })
     return () => { vivo = false }
-  }, [slug, jt, api, irIdentificar])
+  }, [jt, api, irIdentificar])
 
   // ---------- relógio ----------
   const fimPorTempo = useCallback(async () => {
@@ -103,7 +110,7 @@ export default function CacaClient({ slug }: { slug: string }) {
     let encerrou = false
     for (let i = 0; i < 6 && !encerrou; i++) {
       const r = await api('estado')
-      if (r.ok && !r.d.rodada) { encerrou = true; break }
+      if (r.ok && !r.d.rodada) { encerrou = true; if (r.d.ultima) setRod(r.d.ultima as Rod); break }   // o servidor diz o resultado final (inclusive se o bônus se perdeu)
       if (r.ok && r.d.rodada && r.d.rodada.estado === 'jogando' && r.d.rodada.restante > 0.6) { aplicar(r.d.rodada); travado.current = false; return }
       await new Promise(res2 => setTimeout(res2, 700))
     }
@@ -139,7 +146,7 @@ export default function CacaClient({ slug }: { slug: string }) {
   function retomar() {
     if (!rod) return
     if (rod.estado === 'entre_niveis') {
-      setRes({ nivel: rod.nivel, nome: rod.nomeNivel, pontosNivel: rod.pontosNivel, tempoUsado: null, estrelas: 0, ultimo: false }); setTela('nivel')
+      setRes({ nivel: rod.nivel, nome: rod.nomeNivel, pontosNivel: rod.pontosNivel, tempoUsado: null, estrelas: 0, ultimo: false, marco: rod.marco }); setTela('nivel')
     } else { aplicar(rod); setTela('jogo') }
   }
   async function proximoNivel() {
@@ -241,11 +248,14 @@ export default function CacaClient({ slug }: { slug: string }) {
   const selSet = useMemo(() => new Set(sel.map(([r, c]) => `${r},${c}`)), [sel])
   const ruimSet = useMemo(() => new Set(ruim.map(([r, c]) => `${r},${c}`)), [ruim])
 
+  const voltarUrl = modo === 'loja' ? `/jogos/${chave}` : `/mesa/${chave}`
+  const rankUrl = `/jogos/${meta.slug || chave}/ranking`
+  const cash = meta.premio && !meta.bloqueado          // este jogo vale cashback para este jogador agora?
   const topo = (
     <header className="cc-bar">
-      <a href={`/jogos/${slug}`}>‹ Jogos</a>
-      <div className="cc-brand">{brand || ' '}</div>
-      <a className="cc-rk" href={`/jogos/${slug}/ranking`}>Ranking</a>
+      <a href={voltarUrl}>{modo === 'loja' ? '‹ Jogos' : '‹ Mesa'}</a>
+      <div className="cc-brand">{meta.loja || ' '}</div>
+      <a className="cc-rk" href={rankUrl}>Ranking</a>
     </header>
   )
 
@@ -258,10 +268,13 @@ export default function CacaClient({ slug }: { slug: string }) {
 
           {tela === 'intro' && (
             <>
-              <div><h1 className="cc-t">Caça-Palavras</h1><p className="cc-sub">Ache as palavras escondidas antes de o tempo acabar. Arraste o dedo sobre as letras em linha reta, em qualquer direção. Aqui o jogo vale só para o ranking da loja.</p></div>
+              <div><h1 className="cc-t">Caça-Palavras</h1><p className="cc-sub">Ache as palavras escondidas antes de o tempo acabar. Arraste o dedo sobre as letras em linha reta, em qualquer direção. {cash ? 'Cada nível garante cashback, que vira valor quando você pagar a conta de hoje.' : meta.premio && meta.bloqueado ? 'Você já ganhou um prêmio nos últimos 7 dias: esta rodada vale só para o ranking.' : modo === 'mesa' ? 'Nesta mesa o jogo vale para o ranking da loja.' : 'Aqui o jogo vale só para o ranking da loja. Para ganhar cashback, jogue pelo QR da sua mesa.'}</p></div>
               <div className="cc-rota">
                 {NIVEIS_INFO.map(n => (
-                  <div key={n.n} className="cc-nv"><div className="cc-n">{n.n}</div><div><b>{n.nome}</b><small>{n.g} · {n.pal} palavras · 2 grades<br />{n.dir} · {n.extra}</small></div></div>
+                  <div key={n.n}>
+                    {cash && n.n === PORTAO + 1 && <div className="cc-portao">Portão: a partir daqui, tempo esgotado perde o bônus</div>}
+                    <div className="cc-nv"><div className="cc-n">{n.n}</div><div><b>{n.nome}</b><small>{n.g} · {n.pal} palavras · 2 grades<br />{n.dir} · {n.extra}</small></div>{cash && <span className="cc-pill">{BONUS[n.n - 1]}%</span>}</div>
+                  </div>
                 ))}
               </div>
               {melhor.pontos > 0 && <div className="cc-box">Seu melhor: <b>{fmt(melhor.pontos)} pontos</b>{melhor.nivel > 0 ? ` · até o nível ${melhor.nivel}` : ''}</div>}
@@ -275,7 +288,7 @@ export default function CacaClient({ slug }: { slug: string }) {
 
           {tela === 'jogo' && rod && (
             <>
-              <div className="cc-gtop"><div className="cc-lv">Nível {rod.nivel}<small>{rod.nomeNivel} · grade {rod.parte} de {rod.partes}</small></div><div className={`cc-tm${rest < 15 ? ' low' : ''}`}>{fmtT(rest)}</div></div>
+              <div className="cc-gtop"><div className="cc-lv">Nível {rod.nivel}<small>{rod.nomeNivel} · grade {rod.parte} de {rod.partes}{cash && rod.marco > 0 ? ` · garantido ${rod.marco}%` : ''}</small></div><div className={`cc-tm${rest < 15 ? ' low' : ''}`}>{fmtT(rest)}</div></div>
               <div className={`cc-tbar${rest < 15 ? ' low' : ''}`}><i style={{ width: `${Math.min(100, (rest / rod.total) * 100)}%` }} /></div>
               <div className="cc-gridwrap">
                 <div ref={gridRef} className="cc-grid" style={{ ['--n' as string]: rod.tamanho } as React.CSSProperties}
@@ -313,22 +326,42 @@ export default function CacaClient({ slug }: { slug: string }) {
             </div>
           )}
 
-          {tela === 'nivel' && res && rod && (
-            <div className="cc-res">
-              <div><span className="cc-kick">Nível {res.nivel} concluído</span><h1 className="cc-t" style={{ marginTop: 6 }}>{res.nome}</h1></div>
-              {res.estrelas > 0 && <Estrelas n={res.estrelas} />}
-              <div className="cc-box">
-                {res.tempoUsado !== null && <div className="cc-row"><span>Tempo usado nas 2 grades</span><b>{fmtT(res.tempoUsado)}</b></div>}
-                <div className="cc-row"><span>Pontos do nível</span><b>+{fmt(res.pontosNivel)}</b></div>
-                <div className="cc-row"><span>Pontos na rodada</span><b>{fmt(rod.pontos)}</b></div>
+          {tela === 'nivel' && res && rod && (() => {
+            const prox = BONUS[res.nivel]            // bônus do próximo nível
+            const decide = cash && res.nivel >= PORTAO
+            return (
+              <div className="cc-res">
+                <div><span className="cc-kick">Nível {res.nivel} concluído</span><h1 className="cc-t" style={{ marginTop: 6 }}>{res.nome}</h1></div>
+                {res.estrelas > 0 && <Estrelas n={res.estrelas} />}
+                <div className="cc-box">
+                  {res.tempoUsado !== null && <div className="cc-row"><span>Tempo usado nas 2 grades</span><b>{fmtT(res.tempoUsado)}</b></div>}
+                  <div className="cc-row"><span>Pontos do nível</span><b>+{fmt(res.pontosNivel)}</b></div>
+                  <div className="cc-row"><span>Pontos na rodada</span><b>{fmt(rod.pontos)}</b></div>
+                </div>
+                {cash && <div className="cc-box gold"><span className="cc-kick">Garantido até agora</span><div className="cc-big">{res.marco}%<small>de cashback</small></div><p className="cc-sub">Vira valor quando você pagar a conta de hoje, na próxima compra.</p></div>}
+                {decide && (
+                  <div className="cc-dec">
+                    <div className="cc-dc"><span className="k">Se parar agora</span><span className="v">{res.marco}%</span><p>Garantido. Seus {fmt(rod.pontos)} pontos entram no ranking.</p></div>
+                    <div className="cc-dc rk"><span className="k">Se continuar</span><span className="v">{prox}%</span><p>Nível {res.nivel + 1} vale {prox}%. Se o tempo acabar em qualquer grade, você perde o cashback.</p></div>
+                  </div>
+                )}
+                {erroMsg && <div className="cc-warn">{erroMsg}</div>}
+                <div className="cc-foot">
+                  {decide ? (
+                    <>
+                      <button className="cc-cta" type="button" disabled={busy} onClick={parar}>{busy ? '…' : `Parar e garantir ${res.marco}%`}</button>
+                      <button className="cc-cta risk" type="button" disabled={busy} onClick={proximoNivel}>Arriscar por {prox}%</button>
+                    </>
+                  ) : (
+                    <>
+                      <button className="cc-cta" type="button" disabled={busy} onClick={proximoNivel}>{busy ? '…' : `Ir para o nível ${res.nivel + 1}`}</button>
+                      <button className="cc-cta alt" type="button" disabled={busy} onClick={parar}>Parar por aqui</button>
+                    </>
+                  )}
+                </div>
               </div>
-              {erroMsg && <div className="cc-warn">{erroMsg}</div>}
-              <div className="cc-foot">
-                <button className="cc-cta" type="button" disabled={busy} onClick={proximoNivel}>{busy ? '…' : `Ir para o nível ${res.nivel + 1}`}</button>
-                <button className="cc-cta alt" type="button" disabled={busy} onClick={parar}>Parar por aqui</button>
-              </div>
-            </div>
-          )}
+            )
+          })()}
 
           {tela === 'fim' && rod && (
             <div className="cc-res">
@@ -336,10 +369,14 @@ export default function CacaClient({ slug }: { slug: string }) {
                 <span className="cc-kick" style={rod.fim === 'tempo' ? { color: '#FFB4A8' } : undefined}>{rod.fim === 'tempo' ? 'Tempo esgotado' : rod.fim === 'completa' ? 'Rodada completa' : 'Rodada encerrada'}</span>
                 <h1 className="cc-t" style={{ marginTop: 6 }}>{rod.fim === 'completa' ? 'Capitão do caça-palavras!' : rod.fim === 'tempo' ? `Nível ${rod.nivel} não concluído` : 'Boa pescaria!'}</h1>
               </div>
-              <div className="cc-box gold"><span className="cc-kick">Pontos na rodada</span><div className="cc-big">{fmt(rod.pontos)}<small>pontos</small></div><p className="cc-sub">{rod.melhorNivel > 0 ? `Você concluiu até o nível ${rod.melhorNivel}.` : 'Conclua o nível 1 para subir no ranking.'}</p></div>
+              {cash && (
+                <div className="cc-box gold"><span className="cc-kick">Seu bônus</span><div className="cc-big" style={{ color: rod.marco > 0 ? undefined : '#FFB4A8' }}>{rod.marco}%<small>de cashback</small></div>
+                  <p className="cc-sub">{rod.marco > 0 ? 'Vira valor quando você pagar a conta de hoje. Vale para a sua próxima compra aqui.' : rod.fim === 'tempo' && rod.nivel > PORTAO ? 'Neste nível o tempo esgotado perde o bônus. Seus pontos continuam no ranking.' : `Você ainda não garantiu bônus. Conclua o nível 1 para garantir ${BONUS[0]}%.`}</p></div>
+              )}
+              <div className={`cc-box${cash ? '' : ' gold'}`}><span className="cc-kick">Pontos na rodada</span><div className={cash ? 'cc-row' : 'cc-big'} style={cash ? { borderBottom: 0 } : undefined}>{cash ? <b>{fmt(rod.pontos)} pontos</b> : <>{fmt(rod.pontos)}<small>pontos</small></>}</div><p className="cc-sub">{rod.melhorNivel > 0 ? `Você concluiu até o nível ${rod.melhorNivel}.` : 'Conclua o nível 1 para subir no ranking.'}</p></div>
               {erroMsg && <div className="cc-warn">{erroMsg}</div>}
               <div className="cc-foot">
-                <a className="cc-cta" href={`/jogos/${slug}/ranking`}>Ver ranking</a>
+                <a className="cc-cta" href={rankUrl}>Ver ranking</a>
                 <button className="cc-cta alt" type="button" disabled={busy} onClick={comecar}>{busy ? '…' : 'Jogar de novo'}</button>
               </div>
             </div>
@@ -380,6 +417,17 @@ const CSS = `
 .cc-cta:disabled{opacity:.6}
 .cc-box{border-radius:16px;background:var(--card);border:1px solid var(--line);padding:14px 16px;font-size:14px}
 .cc-box.gold{background:rgba(255,197,49,.12);border-color:rgba(255,197,49,.5)}
+.cc-pill{font:700 12px var(--body);padding:6px 10px;border-radius:99px;background:rgba(255,197,49,.16);color:var(--gold);white-space:nowrap}
+.cc-nv{grid-template-columns:48px 1fr auto}
+.cc-portao{margin:4px 0 4px 60px;font-size:11.5px;color:#FFB4A8;line-height:1.35}
+.cc-dec{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cc-dc{border-radius:14px;padding:12px;border:1px solid var(--line);background:var(--card);display:grid;gap:4px;align-content:start}
+.cc-dc .k{font:700 11px var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--mut)}
+.cc-dc .v{font-family:var(--display);font-size:34px;line-height:1;color:var(--gold)}
+.cc-dc.rk{border-color:rgba(255,138,122,.6)}
+.cc-dc.rk .v{color:#FFB4A8}
+.cc-dc p{margin:0;font-size:12px;line-height:1.35;color:var(--mut)}
+.cc-cta.risk{background:transparent;color:#FFB4A8;border:1px solid rgba(255,138,122,.7);box-shadow:none;font-size:18px;min-height:48px}
 .cc-warn{background:#FDECEA;color:#9B2318;border-radius:10px;padding:10px 12px;font-size:13px;font-weight:600}
 .cc-gtop{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .cc-lv{font-family:var(--display);font-size:22px;text-transform:uppercase;letter-spacing:.02em}

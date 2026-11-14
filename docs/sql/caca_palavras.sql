@@ -40,3 +40,23 @@ language sql security definer set search_path to 'public' as $$
       from melhor m join public.quiz_jogadores j on j.id = m.jogador_id where j.aceite_ranking)
   select pos, jogador_id, apelido, pontos, melhor_nivel, tot from ord order by pos limit greatest(p_limite, 1)
 $$;
+
+-- Prêmio (cashback) do caça-palavras: mesma regra do quiz (percentual provisório que vira valor no fechamento da conta).
+alter table public.caca_rodadas
+  add column if not exists mesa_id uuid references public.loja_mesas(id) on delete set null,   -- só rodada jogada pelo QR da mesa vale prêmio
+  add column if not exists marco smallint not null default 0,                                  -- % garantido (2, 3, 5, 8, 10)
+  add column if not exists premiada boolean not null default false,
+  add column if not exists comanda_id uuid references public.loja_comandas(id) on delete set null;
+create table if not exists public.caca_premios (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid not null references public.companies(id) on delete cascade,
+  rodada_id uuid not null unique references public.caca_rodadas(id) on delete cascade,
+  comanda_id uuid not null references public.loja_comandas(id) on delete cascade,
+  marco int not null,
+  estado text not null default 'pendente' check (estado in ('pendente','liberado','sem_telefone','cancelado')),
+  valor numeric,
+  liberado_em timestamptz,
+  criado_em timestamptz not null default now()
+);
+create index if not exists caca_premios_comanda_idx on public.caca_premios (comanda_id);
+alter table public.caca_premios enable row level security;

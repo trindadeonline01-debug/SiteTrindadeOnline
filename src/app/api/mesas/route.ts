@@ -5,7 +5,7 @@ import { normalizePhone } from '@/lib/phone'
 import { requireUser } from '@/lib/requireUser'
 import { promoPrice } from '@/lib/lojaPricing'
 import { sendCustomerWhatsApp } from '@/lib/whatsapp'
-import { desdeDaConta, jaGanhouNosUltimosDias, melhorRodadaPremiavel } from '@/lib/quizPremio'
+import { desdeDaConta, jaGanhouNosUltimosDias, melhorPremiavel, contaJaPremiada } from '@/lib/quizPremio'
 import { valorDoPremio } from '@/lib/quizRegras'
 import { creditarCashback, creditarCashbackAvulso, debitarCashback, getSaldoCashback, reembolsarCashback, valorItensSemCashback } from '@/lib/cashback'
 import {
@@ -489,29 +489,32 @@ export async function POST(req: NextRequest) {
       try {
         const { data: qc } = await sb.from('quiz_campanhas').select('ativa, premio_ativo, modo, marcos, teto_valor').eq('company_id', companyId).maybeSingle()
         if (qc?.ativa && qc.premio_ativo && c.customer_phone && await telefoneVerificado(c.id, c.customer_phone)) {
-          const { count: jaTem } = await sb.from('quiz_premios').select('id', { count: 'exact', head: true }).eq('comanda_id', c.id)
-          const melhor = jaTem ? null : await melhorRodadaPremiavel(sb, companyId, normalizePhone(c.customer_phone), desdeDaConta(c.aberta_em))
+          const jaTem = await contaJaPremiada(sb, c.id)
+          const melhor = jaTem ? null : await melhorPremiavel(sb, companyId, normalizePhone(c.customer_phone), desdeDaConta(c.aberta_em))
           if (melhor && !(await jaGanhouNosUltimosDias(sb, companyId, melhor.jogadorId))) {
             const base = Math.max(0, r2((calc?.subtotal ?? 0) - (calc?.desconto ?? 0)))
             const valor = valorDoPremio({ modo: qc.modo === 'fixo' ? 'fixo' : 'percentual', marco: melhor.marco, marcos: (qc.marcos || {}) as Record<string, number>, base, teto: Number(qc.teto_valor) || 0 })
             if (valor > 0) {
-              const ins = await sb.from('quiz_premios').insert({ company_id: companyId, rodada_id: melhor.rodadaId, comanda_id: c.id, marco: melhor.marco, estado: 'liberado', valor, liberado_em: agora })
+              const tabelaPremio = melhor.jogo === 'caca' ? 'caca_premios' : 'quiz_premios'
+              const tabelaRodada = melhor.jogo === 'caca' ? 'caca_rodadas' : 'quiz_rodadas'
+              const ins = await sb.from(tabelaPremio).insert({ company_id: companyId, rodada_id: melhor.rodadaId, comanda_id: c.id, marco: melhor.marco, estado: 'liberado', valor, liberado_em: agora })
               if (!ins.error) {
-                await sb.from('quiz_rodadas').update({ premiada: true, comanda_id: c.id }).eq('id', melhor.rodadaId)
+                await sb.from(tabelaRodada).update({ premiada: true, comanda_id: c.id }).eq('id', melhor.rodadaId)
                 if (await creditarCashbackAvulso(sb, { companyId, phoneRaw: c.customer_phone, valor })) {
                   premioQuiz = valor
                   const brl = (n: number) => 'R$ ' + n.toFixed(2).replace('.', ',')
                   const saldo = await getSaldoCashback(sb, companyId, c.customer_phone)
+                  const jogoNome = melhor.jogo === 'caca' ? 'no Caça-Palavras' : 'no Quiz Pesca Premiada'
                   await sendCustomerWhatsApp(companyId, c.customer_phone,
-                    `🎣 Parabéns! No Quiz Pesca Premiada você garantiu *${melhor.marco}%* e ganhou *${brl(valor)}* de cashback da *${company.name.trim()}*. Seu saldo agora é *${brl(r2(saldo))}*, para usar no próximo pedido (delivery ou aqui na mesa). Ver saldo: https://www.trindadeonline.com.br/meu-cashback`)
+                    `🎣 Parabéns! ${jogoNome.charAt(0).toUpperCase() + jogoNome.slice(1)} você garantiu *${melhor.marco}%* e ganhou *${brl(valor)}* de cashback da *${company.name.trim()}*. Seu saldo agora é *${brl(r2(saldo))}*, para usar no próximo pedido (delivery ou aqui na mesa). Ver saldo: https://www.trindadeonline.com.br/meu-cashback`)
                 } else {
-                  await sb.from('quiz_premios').update({ estado: 'cancelado' }).eq('rodada_id', melhor.rodadaId)
+                  await sb.from(tabelaPremio).update({ estado: 'cancelado' }).eq('rodada_id', melhor.rodadaId)
                 }
               }
             }
           }
         }
-      } catch (e) { console.error('[mesas] prêmio do quiz no fechamento:', e) }
+      } catch (e) { console.error('[mesas] prêmio dos jogos no fechamento:', e) }
       await evento(companyId, c.id, 'fechou', { total, formas, cashback: cashbackGanho || undefined, premioQuiz: premioQuiz || undefined }, c.garcom_nome)
       return NextResponse.json({ ok: true, total, cashbackGanho, premioQuiz })
     }

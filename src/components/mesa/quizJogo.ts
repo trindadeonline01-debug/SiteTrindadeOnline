@@ -173,18 +173,19 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
     var temas = [{ id: '', nome: 'Misturado', icone: '🎲' }].concat((INFO && INFO.temas) || [])
     var tiles = temas.map(function (t) {
       var on = (TEMA || '') === t.id
-      return '<button class="in2-t' + (on ? ' on' : '') + '" data-act="tema" data-v="' + esc(t.id) + '" aria-pressed="' + on + '"><span class="in2-ti">' + t.icone + '</span><span class="in2-tn">' + esc(t.nome) + '</span>' + (on ? '<span class="in2-ck">' + IC_OK + '</span>' : '') + '</button>'
+      return '<button class="in2-t' + (on ? ' on' : '') + '" data-tema="' + esc(t.id || 'misturado') + '" data-act="tema" data-v="' + esc(t.id) + '" aria-pressed="' + on + '"><span class="in2-img"><span class="in2-em" aria-hidden="true">' + t.icone + '</span>' + (on ? '<span class="in2-ck">' + IC_OK + '</span>' : '') + '</span><span class="in2-tn">' + esc(t.nome) + '</span></button>'
     }).join('')
     return '<div class="screen sea in2">' + bar() + '<div class="in2-body">' +
       '<div class="in2-head"><span class="in2-k">Quiz</span><h2 class="in2-h">Pesca <b>Premiada</b></h2><p class="in2-s">10 segundos por pergunta · 3 chances de errar</p></div>' +
       '<div class="in2-aviso' + (MODO_LOJA || !premio ? ' rk' : '') + '">' + aviso + '</div>' +
-      '<div class="in2-sec"><span class="in2-lb">Escolha o tema</span><div class="in2-grid">' + tiles + '</div></div>' +
-      '<div class="in2-cta"><button class="go" data-act="start"><span>Jogar</span></button>' +
+      '<div class="in2-sec"><h3 class="in2-lb">Escolha o tema</h3><div class="in2-grid">' + tiles + '</div></div>' +
+      '<div class="in2-foot"><div class="in2-cta"><button class="go" data-act="start"><span>Jogar</span></button>' +
       '<p class="in2-pl">' + (INFO && INFO.jogador ? 'Jogando como <b>' + esc(INFO.jogador.apelido) + '</b>' : 'Você informa seu nome e WhatsApp antes de jogar') + '</p></div>' +
       '<div class="in2-acts' + (MODO_LOJA ? ' dois' : '') + '">' +
       '<button class="in2-a" data-act="zones">' + IC_INFO + '<span>Como funciona</span></button>' +
       '<button class="in2-a" data-go="ranking">' + IC_RANK + '<span>Ranking</span></button>' +
       (MODO_LOJA ? '' : '<button class="in2-a" data-go="grupo">' + IC_GRUPO + '<span>Em grupo</span></button>') +
+      '</div></div>' +
       '</div></div></div>'
   }
   S.contagem = function () {

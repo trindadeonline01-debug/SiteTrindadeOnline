@@ -158,7 +158,9 @@ export default function MesaClient({ token }: { token: string }) {
     const d = await res.json().catch(() => ({}))
     if (!res.ok) return d?.error || 'Não consegui abrir o quiz agora.'
     try { localStorage.setItem('quizjt:' + token, d.jt) } catch {}
-    window.location.href = `/mesa/${token}/quiz`
+    // Veio de um convite (ex.: QR de um grupo): volta para onde estava, senão abre o quiz.
+    const volt = new URLSearchParams(window.location.search).get('voltar')
+    window.location.href = volt && volt.startsWith(`/mesa/${token}/`) ? volt : `/mesa/${token}/quiz`
     return null
   }
 

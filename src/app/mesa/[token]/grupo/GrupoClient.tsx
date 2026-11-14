@@ -1,5 +1,6 @@
 'use client'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import QRCode from 'qrcode'
 
 // Quiz em grupo na mesa: criar grupo (nome + código de 4 letras), entrar por código ou pela lista de
 // grupos abertos na mesa, e disputar 15 perguntas iguais para todos. Sem cashback: só ranking.
@@ -22,6 +23,9 @@ type Estado = {
 }
 type Rank = { individual: { pos: number; apelido: string; pontos: number; eu: boolean }[]; grupos: { pos: number; nome: string; media: number; jogadores: number }[] }
 
+// Quem ainda não se identificou vai para a identificação da mesa e volta para esta mesma página (com o convite).
+const identUrl = (token: string) => `/mesa/${token}?identificar=jogar&voltar=${encodeURIComponent(window.location.pathname + window.location.search)}`
+
 const NIVEIS = ['Muito fácil', 'Fácil', 'Intermediário', 'Difícil', 'Impossível']
 const LETRAS = ['A', 'B', 'C', 'D']
 
@@ -41,13 +45,14 @@ export default function GrupoClient({ token }: { token: string }) {
   const [busy, setBusy] = useState(false)
   const [escolhida, setEscolhida] = useState<{ ordem: number; pos: number; acertou?: boolean; pontos?: number } | null>(null)
   const [rank, setRank] = useState<Rank | null>(null)
+  const [qr, setQr] = useState('')
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const jtRef = useRef<string | null>(null)
 
   const chamar = useCallback(async (acao: string, extra: Record<string, unknown> = {}) => {
     const r = await fetch('/api/mesa/quiz-grupo', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, jt: jtRef.current, acao, ...extra }) })
     const d = await r.json().catch(() => ({}))
-    if (r.status === 401) { try { localStorage.removeItem(LS) } catch {} window.location.assign(`/mesa/${token}?identificar=jogar`); return { ok: false as const, status: 401, d } }
+    if (r.status === 401) { try { localStorage.removeItem(LS) } catch {} window.location.assign(identUrl(token)); return { ok: false as const, status: 401, d } }
     return { ok: r.ok, status: r.status, d }
   }, [token, LS])
 
@@ -56,7 +61,7 @@ export default function GrupoClient({ token }: { token: string }) {
     Promise.resolve().then(() => {
       let v: string | null = null
       try { v = localStorage.getItem(LS) } catch {}
-      if (!v) { window.location.assign(`/mesa/${token}?identificar=jogar`); return }
+      if (!v) { window.location.assign(identUrl(token)); return }
       jtRef.current = v; setJt(v)
     })
   }, [LS, token])
@@ -71,6 +76,34 @@ export default function GrupoClient({ token }: { token: string }) {
   }, [chamar])
 
   useEffect(() => { if (jt) Promise.resolve().then(carregarInicio) }, [jt, carregarInicio])
+
+  // Convite por QR: ?sala=<id> entra direto na sala, sem digitar código.
+  const convite = useRef<string | null>(null)
+  useEffect(() => {
+    if (!inicio || convite.current !== null) return
+    const id = new URLSearchParams(window.location.search).get('sala')
+    convite.current = id || ''
+    if (!id) return
+    window.history.replaceState(null, '', window.location.pathname)
+    if (inicio.minha) return
+    Promise.resolve().then(async () => {
+      setBusy(true)
+      const r = await chamar('entrar', { salaId: id })
+      setBusy(false)
+      if (!r.ok) { setMsg(r.d?.error || 'Não consegui entrar no grupo.'); return }
+      setEst(null); setSalaId(r.d.salaId)
+    })
+  }, [inicio, chamar])
+
+  // QR da sala: quem escaneia entra direto neste grupo.
+  const esperando = est?.fase === 'espera' && !!salaId
+  useEffect(() => {
+    if (!esperando || !salaId) return
+    let vivo = true
+    const link = `${window.location.origin}/mesa/${token}/grupo?sala=${salaId}`
+    QRCode.toDataURL(link, { width: 480, margin: 1, color: { dark: '#0A2A33', light: '#FFFFFF' } }).then(u => { if (vivo) setQr(u) }).catch(() => {})
+    return () => { vivo = false }
+  }, [esperando, salaId, token])
 
   // Consulta o estado da sala: a cada 2 s e de novo na virada de fase (a contagem é feita aqui no celular).
   useEffect(() => {
@@ -206,7 +239,12 @@ export default function GrupoClient({ token }: { token: string }) {
           {salaId && est?.fase === 'espera' && (
             <div className="gq-stack">
               <div className="gq-hero"><span className="gq-kick">Grupo{est.sala.tema ? ` · ${(inicio?.temas || []).find(t => t.id === est.sala.tema)?.nome || ''}` : ' · tema misturado'}</span><h1>{est.sala.nome}</h1></div>
-              <div className="gq-code"><small>Código do grupo</small><b>{est.sala.codigo}</b><span>Os amigos escaneiam o QR da mesa, escolhem Quiz → em grupo e digitam este código.</span></div>
+              <div className="gq-qr">
+                <b>Chame os amigos</b>
+                <span>Peça para escanearem este QR com a câmera do celular. Eles entram direto no grupo.</span>
+                {qr ? /* eslint-disable-next-line @next/next/no-img-element -- QR gerado no navegador (data URL) */ <img src={qr} alt={`QR code para entrar no grupo ${est.sala.nome}`} width={220} height={220} /> : <div className="gq-qr-ph" />}
+                <small>Sem câmera? Código do grupo: <em>{est.sala.codigo}</em></small>
+              </div>
               <div className="gq-card">
                 <h2>Jogadores ({jogadoresLista.length}/{est.maximo})</h2>
                 <ul className="gq-lista">
@@ -330,6 +368,13 @@ body{background:#082B38}
 .gq-aberta{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:50px;border:2px solid #DEDBD2;border-radius:10px;background:#fff;padding:0 12px;cursor:pointer;font:600 15px 'Archivo',system-ui,sans-serif;color:#151210;text-align:left}
 .gq-aberta span{font-size:12.5px;color:#6F6C67}
 .gq-aberta:disabled{opacity:.5}
+.gq-qr{background:#fff;color:#151210;border-radius:16px;padding:16px;display:grid;gap:8px;justify-items:center;text-align:center}
+.gq-qr b{font-family:'Anton',Impact,sans-serif;font-weight:400;font-size:24px;letter-spacing:.01em}
+.gq-qr span{font-size:13px;color:#4a4742;line-height:1.4;max-width:30ch}
+.gq-qr img,.gq-qr-ph{width:min(220px,62vw);height:min(220px,62vw);border-radius:10px;border:1px solid #DEDBD2}
+.gq-qr-ph{background:#F4F2EC}
+.gq-qr small{font-size:12.5px;color:#6F6C67}
+.gq-qr em{font-style:normal;font-weight:700;letter-spacing:.2em;color:#151210}
 .gq-code{background:rgba(255,197,49,.12);border:2px dashed #FFC531;border-radius:14px;padding:16px;text-align:center;display:grid;gap:4px}
 .gq-code small{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#FFC531;font-weight:700}
 .gq-code b{font-family:'Anton',Impact,sans-serif;font-weight:400;font-size:60px;letter-spacing:.2em;line-height:1.1;padding-left:.2em}

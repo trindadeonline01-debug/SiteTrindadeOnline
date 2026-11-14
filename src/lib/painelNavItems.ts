@@ -64,6 +64,7 @@ export const PAINEL_NAV_GROUPS: PainelNavGroup[] = [
       { href: '/painel?tab=promocoes', key: 'promocoes', icon: '🏷️', label: 'Promoções' },
       { href: '/painel?tab=destaques', key: 'destaques', icon: '🌟', label: 'Destaques' },
       { href: '/painel?tab=banners', key: 'banners', icon: '🖼️', label: 'Banners' },
+      { href: '/painel/jogos', key: 'jogos', icon: '🎮', label: 'Jogos', requiresFlag: 'mesas' },
     ],
   },
   {

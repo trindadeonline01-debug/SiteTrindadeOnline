@@ -9,7 +9,7 @@ import Link from 'next/link'
 // sidebar interna de /painel, que eram dois sistemas de menu separados.
 export type EmpresaNavKey =
   | 'dashboard' | 'perfil' | 'avaliacoes' | 'destaques' | 'banners'
-  | 'compartilhar' | 'catalogo' | 'pedidos' | 'pdv' | 'mesas' | 'vendas' | 'cashback' | 'inteligencia' | 'cozinha' | 'entrega' | 'motoboys' | 'mensagens' | 'clientes' | 'atendimento' | 'radar'
+  | 'compartilhar' | 'catalogo' | 'pedidos' | 'pdv' | 'mesas' | 'vendas' | 'cashback' | 'jogos' | 'inteligencia' | 'cozinha' | 'entrega' | 'motoboys' | 'mensagens' | 'clientes' | 'atendimento' | 'radar'
   | 'interesses' | 'cupons' | 'promocoes' | 'plano' | 'pagamentos' | 'relatorios'
   | 'pessoal-perfil' | 'pessoal-favoritos' | 'pessoal-avaliacoes' | 'pessoal-pedidos' | 'pessoal-anuncios' | 'pessoal-cupons'
 
@@ -17,7 +17,7 @@ type Company = { id: string; name: string; slug?: string }
 
 const TITLES: Record<EmpresaNavKey, string> = {
   dashboard: 'Visão geral', perfil: 'Perfil e fotos', avaliacoes: 'Avaliações', destaques: 'Destaques',
-  banners: 'Banners', compartilhar: 'Configurar cardápio', catalogo: 'Cardápio', pedidos: 'Pedidos', pdv: 'PDV', mesas: 'Mesas', vendas: 'Vendas por canal', cashback: 'Cashback', inteligencia: 'Inteligência de consumo',
+  banners: 'Banners', compartilhar: 'Configurar cardápio', catalogo: 'Cardápio', pedidos: 'Pedidos', pdv: 'PDV', mesas: 'Mesas', vendas: 'Vendas por canal', cashback: 'Cashback', jogos: 'Jogos', inteligencia: 'Inteligência de consumo',
   cozinha: 'Cozinha', entrega: 'Entrega', motoboys: 'Meus motoboys', mensagens: 'Mensagens', clientes: 'Clientes', atendimento: 'Painel de Atendimento', radar: 'Radar de clientes', interesses: 'Interesses', cupons: 'Cupons', promocoes: 'Promoções', plano: 'Plano', pagamentos: 'Pagamentos', relatorios: 'Relatórios',
   'pessoal-perfil': 'Meu perfil', 'pessoal-favoritos': 'Favoritos', 'pessoal-avaliacoes': 'Minhas avaliações',
   'pessoal-pedidos': 'Meus pedidos', 'pessoal-anuncios': 'Meus anúncios', 'pessoal-cupons': 'Meus cupons',

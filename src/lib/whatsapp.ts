@@ -28,7 +28,25 @@ function formatPhone(phone: string): string {
 // cadastro, aprovação de motoboy, etc.) não podem ficar reféns desse
 // binário — daí essas funções moraram aqui, e entregaDispatch.ts reusa
 // (re-exporta) em vez de duplicar.
+// Falha de envio pelo número da plataforma: deixa o motivo no banco (crm_webhook_debug) para dar para diagnosticar
+// sem acesso aos logs da Vercel (nov/2026, código do quiz não chegava depois da troca para o WAHA).
+async function registrarFalhaPlataforma(r: { ok: boolean; detail?: string }, phone: string) {
+  if (r.ok) return
+  try {
+    await supabase.from('crm_webhook_debug').insert({
+      event: 'plataforma_envio_erro',
+      payload: { detail: String(r.detail || 'sem detalhe').slice(0, 500), provider: PLATAFORMA_WAHA ? 'waha' : 'evolution', fim_telefone: String(phone || '').replace(/\D/g, '').slice(-4) },
+    })
+  } catch {}
+}
+
 export async function sendPlatformWhatsApp(phone: string, text: string): Promise<{ ok: boolean; detail?: string }> {
+  const r = await sendPlatformWhatsAppBruto(phone, text)
+  await registrarFalhaPlataforma(r, phone)
+  return r
+}
+
+async function sendPlatformWhatsAppBruto(phone: string, text: string): Promise<{ ok: boolean; detail?: string }> {
   if (PLATAFORMA_WAHA) return plataformaTexto(phone, text)
   try {
     const res = await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(EVOLUTION_INSTANCE)}`, {

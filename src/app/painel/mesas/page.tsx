@@ -220,9 +220,12 @@ export default function MesasPage() {
         .subscribe()
     })
     const t = setInterval(() => setTick(x => x + 1), 30000)
+    // Rede de segurança: o socket em tempo real pode ficar "surdo" sem avisar (aba esquecida, rede que oscila) e o
+    // computador da impressora deixava de ver os pedidos de impressão do celular. A cada 15 s confere de novo.
+    const poll = setInterval(() => { if (document.visibilityState === 'visible') load() }, 15000)
     const vis = () => { if (document.visibilityState === 'visible') load() }
     document.addEventListener('visibilitychange', vis)
-    return () => { clearInterval(t); document.removeEventListener('visibilitychange', vis); if (ch) supabase.removeChannel(ch) }
+    return () => { clearInterval(t); clearInterval(poll); document.removeEventListener('visibilitychange', vis); if (ch) supabase.removeChannel(ch) }
   }, [load])
 
   const comandaDaMesa = useMemo(() => new Map(comandas.filter(c => c.mesa_id).map(c => [c.mesa_id as string, c])), [comandas])
@@ -332,7 +335,12 @@ export default function MesasPage() {
     imprimindoRemoto.current = true
     ;(async () => {
       try {
-        if (!(await podeImprimirAqui())) return
+        if (!(await podeImprimirAqui())) {
+          setMsg('⚠️ Tem pedido do celular esperando para imprimir, mas este computador não está conectado à impressora (QZ Tray). Abra o QZ Tray e atualize a página.')
+          const c0 = pend[0]; const ch0 = 'sem_qz|' + c0.id + '|' + c0.imprimir_producao_em
+          if (!tentativasRemotas.current[ch0]) { tentativasRemotas.current[ch0] = { n: 1, ate: 0 }; logImpressao(c0, 'producao_remota', 'QZ Tray não conectado neste computador') }
+          return
+        }
         for (const c of pend) {
           const chave = c.id + '|' + c.imprimir_producao_em
           const t = tentativasRemotas.current[chave] || { n: 0, ate: 0 }
@@ -375,7 +383,7 @@ export default function MesasPage() {
     imprimindoConta.current = true
     ;(async () => {
       try {
-        if (!(await podeImprimirAqui())) return
+        if (!(await podeImprimirAqui())) { setMsg('⚠️ Tem conta do celular esperando para imprimir, mas este computador não está conectado à impressora (QZ Tray). Abra o QZ Tray e atualize a página.'); return }
         for (const c of contasPedidas) {
           const chave = 'conta|' + c.id + '|' + c.imprimir_conta_em
           const t = tentativasRemotas.current[chave] || { n: 0, ate: 0 }

@@ -5,12 +5,13 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 // grupos abertos na mesa, e disputar 15 perguntas iguais para todos. Sem cashback: só ranking.
 // O servidor manda no relógio e na correção (api/mesa/quiz-grupo); esta tela só mostra o que ele devolve.
 
-type Aberta = { id: string; nome: string; codigo: string; jogadores: number; cheia: boolean }
-type Inicio = { apelido: string; mesa: number | string; loja: string; slug: string; minha: { id: string; estado: string } | null; abertas: Aberta[] }
+type TemaQ = { id: string; nome: string; icone: string }
+type Aberta = { id: string; nome: string; codigo: string; tema?: string | null; jogadores: number; cheia: boolean }
+type Inicio = { temas?: TemaQ[]; apelido: string; mesa: number | string; loja: string; slug: string; minha: { id: string; estado: string } | null; abertas: Aberta[] }
 type PlacarLinha = { pos: number; apelido: string; pontos: number; ganhou?: number; acertou?: boolean | null; eu: boolean; acertos?: number }
 type Estado = {
   fase: 'espera' | 'contagem' | 'pergunta' | 'revelacao' | 'fim' | 'aguardando_fim' | 'cancelada'
-  sala: { id: string; nome: string; codigo: string; estado: string }
+  sala: { id: string; nome: string; codigo: string; estado: string; tema?: string | null }
   souAnfitriao: boolean; slug: string
   jogadores?: { id: string; apelido: string; anfitriao: boolean }[] | number
   minimo?: number; maximo?: number
@@ -34,6 +35,7 @@ export default function GrupoClient({ token }: { token: string }) {
   const [recebidoEm, setRecebidoEm] = useState(0)
   const [agora, setAgora] = useState(0)
   const [nome, setNome] = useState('')
+  const [tema, setTema] = useState('')
   const [codigo, setCodigo] = useState('')
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
@@ -111,7 +113,7 @@ export default function GrupoClient({ token }: { token: string }) {
 
   async function criar() {
     setBusy(true); setMsg('')
-    const r = await chamar('criar', { nome })
+    const r = await chamar('criar', { nome, tema: tema || null })
     setBusy(false)
     if (!r.ok) { setMsg(r.d?.error || 'Não consegui criar o grupo.'); return }
     setEst(null); setSalaId(r.d.salaId)
@@ -171,6 +173,12 @@ export default function GrupoClient({ token }: { token: string }) {
 
               <div className="gq-card">
                 <h2>Criar um grupo</h2>
+                <div className="gq-tm"><span>Tema da partida</span>
+                  <div className="gq-chips">
+                    <button type="button" className={'gq-chip' + (!tema ? ' on' : '')} onClick={() => setTema('')}>🎲 Misturado</button>
+                    {(inicio.temas || []).map(t => <button type="button" key={t.id} className={'gq-chip' + (tema === t.id ? ' on' : '')} onClick={() => setTema(t.id)}>{t.icone} {t.nome}</button>)}
+                  </div>
+                </div>
                 <label>Nome do grupo<input value={nome} onChange={e => setNome(e.target.value)} maxLength={24} placeholder="Ex.: Os Pescadores" /></label>
                 <button type="button" className="gq-btn" disabled={busy || nome.trim().length < 2} onClick={criar}>{busy ? 'Criando…' : 'Criar e gerar código'}</button>
               </div>
@@ -181,7 +189,7 @@ export default function GrupoClient({ token }: { token: string }) {
                   <div className="gq-abertas">
                     {inicio.abertas.map(a => (
                       <button type="button" key={a.id} className="gq-aberta" disabled={busy || a.cheia} onClick={() => entrar({ salaId: a.id })}>
-                        <b>{a.nome}</b><span>{a.cheia ? 'cheio' : `${a.jogadores} ${a.jogadores === 1 ? 'jogador' : 'jogadores'} · entrar`}</span>
+                        <b>{a.nome}{a.tema ? ` · ${(inicio.temas || []).find(t => t.id === a.tema)?.nome || ''}` : ''}</b><span>{a.cheia ? 'cheio' : `${a.jogadores} ${a.jogadores === 1 ? 'jogador' : 'jogadores'} · entrar`}</span>
                       </button>
                     ))}
                   </div>
@@ -197,7 +205,7 @@ export default function GrupoClient({ token }: { token: string }) {
           {/* ---------- sala de espera ---------- */}
           {salaId && est?.fase === 'espera' && (
             <div className="gq-stack">
-              <div className="gq-hero"><span className="gq-kick">Grupo</span><h1>{est.sala.nome}</h1></div>
+              <div className="gq-hero"><span className="gq-kick">Grupo{est.sala.tema ? ` · ${(inicio?.temas || []).find(t => t.id === est.sala.tema)?.nome || ''}` : ' · tema misturado'}</span><h1>{est.sala.nome}</h1></div>
               <div className="gq-code"><small>Código do grupo</small><b>{est.sala.codigo}</b><span>Os amigos escaneiam o QR da mesa, escolhem Quiz → em grupo e digitam este código.</span></div>
               <div className="gq-card">
                 <h2>Jogadores ({jogadoresLista.length}/{est.maximo})</h2>
@@ -358,5 +366,9 @@ body{background:#082B38}
 .gq-res.bad{background:rgba(214,57,43,.25);color:#FFB0A8}
 .gq-cur{margin:0;font-size:13.5px;color:#E4EEF0;line-height:1.45}
 .gq-warn{background:#FDECEA;color:#9B2318;border-radius:10px;padding:10px 12px;font-size:13px;font-weight:600}
+.gq-tm{display:grid;gap:6px;font-size:12.5px;font-weight:700;color:#4a4742}
+.gq-chips{display:flex;gap:6px;flex-wrap:wrap}
+.gq-chip{font:600 13px 'Archivo',system-ui,sans-serif;min-height:38px;padding:0 12px;border-radius:99px;border:1.5px solid #DEDBD2;background:#fff;color:#151210;cursor:pointer}
+.gq-chip.on{background:#FFC531;border-color:#FFC531}
 .gq-mut{margin:0;font-size:13px;color:#BFD9DE;line-height:1.4}
 `

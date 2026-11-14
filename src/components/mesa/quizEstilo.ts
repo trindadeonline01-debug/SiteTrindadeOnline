@@ -231,6 +231,12 @@ export const ESTILO = `
 .how .hi{width:18px;height:18px;border-radius:50%;border:1.5px solid currentColor;display:grid;place-items:center;font:700 11px var(--body)}
 .how:focus-visible{outline:3px solid #fff;outline-offset:2px;border-radius:8px}
 .cta2{display:grid;gap:10px}
+.temas{display:grid;gap:6px;margin:0 0 4px}
+.tm-t{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#9EC3CB;font-weight:700;text-align:center}
+.tm-row{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 4px;scrollbar-width:none}
+.tm-row::-webkit-scrollbar{display:none}
+.tm{flex:none;font:600 13px var(--body);min-height:38px;padding:0 12px;border-radius:99px;border:1.5px solid rgba(255,255,255,.28);background:rgba(255,255,255,.08);color:#fff;cursor:pointer;white-space:nowrap}
+.tm.on{background:var(--ap-gold);border-color:var(--ap-gold);color:#151210}
 .pn{margin:0 0 2px;text-align:center;font-size:12.5px;color:#9EC3CB}.pn b{color:#fff}
 .go{min-height:60px;font-size:22px;border-radius:16px}
 .fun3{min-height:46px;background:transparent;border:0;color:#E6F2F3;font:600 15px var(--body);cursor:pointer;border-radius:12px}

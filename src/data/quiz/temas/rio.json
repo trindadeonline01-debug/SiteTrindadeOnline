@@ -1,0 +1,2214 @@
+[
+{
+"nivel": 1,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Em qual estado fica a cidade de São Gonçalo?",
+"opcoes": [
+"Rio de Janeiro",
+"São Paulo",
+"Minas Gerais",
+"Espírito Santo"
+],
+"curiosidade": "São Gonçalo é a segunda cidade mais populosa do estado.",
+"id": "RIO-001",
+"tema": "rio"
+},
+{
+"nivel": 1,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Em qual cidade fica o bairro Trindade, de onde vem o Trindade Online?",
+"opcoes": [
+"São Gonçalo",
+"Niterói",
+"Rio de Janeiro",
+"Itaboraí"
+],
+"curiosidade": "A Trindade é um bairro de São Gonçalo.",
+"id": "RIO-002",
+"tema": "rio"
+},
+{
+"nivel": 1,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual é a capital do estado do Rio de Janeiro?",
+"opcoes": [
+"Rio de Janeiro",
+"Niterói",
+"São Gonçalo",
+"Petrópolis"
+],
+"curiosidade": "A cidade é conhecida como \"Cidade Maravilhosa\".",
+"id": "RIO-003",
+"tema": "rio"
+},
+{
+"nivel": 1,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual monumento famoso do Rio fica no alto do Corcovado?",
+"opcoes": [
+"Cristo Redentor",
+"Pão de Açúcar",
+"Maracanã",
+"Arcos da Lapa"
+],
+"curiosidade": "Ele abre os braços sobre a cidade.",
+"id": "RIO-004",
+"tema": "rio"
+},
+{
+"nivel": 1,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual morro do Rio tem um bondinho que sai da Praia Vermelha?",
+"opcoes": [
+"Pão de Açúcar",
+"Corcovado",
+"Pedra da Gávea",
+"Morro Dois Irmãos"
+],
+"curiosidade": "O passeio passa pelo Morro da Urca.",
+"id": "RIO-005",
+"tema": "rio"
+},
+{
+"nivel": 1,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual praia carioca tem um calçadão com ondas pretas e brancas de pedras portuguesas?",
+"opcoes": [
+"Copacabana",
+"Ipanema",
+"Leblon",
+"Barra da Tijuca"
+],
+"curiosidade": "O calçadão tem desenho de Burle Marx.",
+"id": "RIO-006",
+"tema": "rio"
+},
+{
+"nivel": 1,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual é o estádio mais famoso do Rio de Janeiro?",
+"opcoes": [
+"Maracanã",
+"São Januário",
+"Engenhão",
+"Mineirão"
+],
+"curiosidade": "Já recebeu duas finais de Copa do Mundo.",
+"id": "RIO-007",
+"tema": "rio"
+},
+{
+"nivel": 1,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual ponte liga o Rio de Janeiro a Niterói?",
+"opcoes": [
+"Ponte Rio-Niterói",
+"Ponte Estaiada",
+"Ponte JK",
+"Ponte Colombo Salles"
+],
+"curiosidade": "Foi inaugurada em 1974.",
+"id": "RIO-008",
+"tema": "rio"
+},
+{
+"nivel": 1,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Como se chama a baía que fica entre o Rio de Janeiro e Niterói?",
+"opcoes": [
+"Baía de Guanabara",
+"Baía de Todos os Santos",
+"Baía de Paranaguá",
+"Baía de Sepetiba"
+],
+"curiosidade": "São Gonçalo também é banhado por essa baía.",
+"id": "RIO-009",
+"tema": "rio"
+},
+{
+"nivel": 1,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual cidade fica do outro lado da Baía de Guanabara em relação ao Rio de Janeiro?",
+"opcoes": [
+"Niterói",
+"Petrópolis",
+"Angra dos Reis",
+"Macaé"
+],
+"curiosidade": "Niterói faz divisa com São Gonçalo.",
+"id": "RIO-010",
+"tema": "rio"
+},
+{
+"nivel": 1,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual festa mais famosa do Rio acontece antes da Quaresma?",
+"opcoes": [
+"Carnaval",
+"Festa Junina",
+"Réveillon",
+"Natal"
+],
+"curiosidade": "Os desfiles das escolas de samba acontecem no Sambódromo.",
+"id": "RIO-011",
+"tema": "rio"
+},
+{
+"nivel": 1,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual bebida típica é feita com cachaça, limão e açúcar?",
+"opcoes": [
+"Caipirinha",
+"Mojito",
+"Margarita",
+"Cosmopolitan"
+],
+"curiosidade": "É considerada a bebida mais famosa do Brasil.",
+"id": "RIO-012",
+"tema": "rio"
+},
+{
+"nivel": 1,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual prato é feito com feijão preto, carne seca, linguiça e é muito tradicional no Rio?",
+"opcoes": [
+"Feijoada",
+"Moqueca",
+"Acarajé",
+"Vatapá"
+],
+"curiosidade": "Costuma ser servida com arroz, couve e laranja.",
+"id": "RIO-013",
+"tema": "rio"
+},
+{
+"nivel": 1,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual é o nome da lagoa famosa da Zona Sul do Rio de Janeiro?",
+"opcoes": [
+"Lagoa Rodrigo de Freitas",
+"Lagoa de Araruama",
+"Lagoa Feia",
+"Lagoa de Marapendi"
+],
+"curiosidade": "Ao redor dela há ciclovia e pista de corrida.",
+"id": "RIO-014",
+"tema": "rio"
+},
+{
+"nivel": 1,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual cidade é chamada de \"Cidade Maravilhosa\"?",
+"opcoes": [
+"Rio de Janeiro",
+"Salvador",
+"São Paulo",
+"Brasília"
+],
+"curiosidade": "O apelido virou o título do hino da cidade.",
+"id": "RIO-015",
+"tema": "rio"
+},
+{
+"nivel": 1,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual cidade fluminense é chamada de \"Cidade Imperial\"?",
+"opcoes": [
+"Petrópolis",
+"Teresópolis",
+"Nova Friburgo",
+"Niterói"
+],
+"curiosidade": "Foi a residência de verão de Dom Pedro II.",
+"id": "RIO-016",
+"tema": "rio"
+},
+{
+"nivel": 1,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual cidade fluminense tem o famoso Dedo de Deus?",
+"opcoes": [
+"Teresópolis",
+"Petrópolis",
+"Angra dos Reis",
+"Cabo Frio"
+],
+"curiosidade": "O Dedo de Deus fica na Serra dos Órgãos.",
+"id": "RIO-017",
+"tema": "rio"
+},
+{
+"nivel": 1,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual praia carioca foi imortalizada na música \"Garota de ...\"?",
+"opcoes": [
+"Ipanema",
+"Copacabana",
+"Leblon",
+"Flamengo"
+],
+"curiosidade": "A canção é de Tom Jobim e Vinicius de Moraes.",
+"id": "RIO-018",
+"tema": "rio"
+},
+{
+"nivel": 1,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Como se chamam as pessoas que nascem na cidade do Rio de Janeiro?",
+"opcoes": [
+"Cariocas",
+"Fluminenses",
+"Niteroienses",
+"Paulistanos"
+],
+"curiosidade": "\"Fluminense\" é quem nasce no estado do Rio.",
+"id": "RIO-019",
+"tema": "rio"
+},
+{
+"nivel": 1,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Como se chamam as pessoas que nascem no estado do Rio de Janeiro?",
+"opcoes": [
+"Fluminenses",
+"Cariocas",
+"Paulistas",
+"Mineiros"
+],
+"curiosidade": "Os moradores da capital são chamados de cariocas.",
+"id": "RIO-020",
+"tema": "rio"
+},
+{
+"nivel": 1,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Como se chama quem nasce em São Gonçalo?",
+"opcoes": [
+"São-gonçalense",
+"Niteroiense",
+"Carioca",
+"Itaboraiense"
+],
+"curiosidade": "É um dos municípios mais populosos do estado.",
+"id": "RIO-021",
+"tema": "rio"
+},
+{
+"nivel": 1,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Como se chama quem nasce em Niterói?",
+"opcoes": [
+"Niteroiense",
+"São-gonçalense",
+"Carioca",
+"Petropolitano"
+],
+"curiosidade": "Niterói fica na região metropolitana do Rio.",
+"id": "RIO-022",
+"tema": "rio"
+},
+{
+"nivel": 1,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual esporte, criado em Copacabana, mistura futebol e vôlei na areia?",
+"opcoes": [
+"Futevôlei",
+"Beach tennis",
+"Frescobol",
+"Peteca"
+],
+"curiosidade": "Ele surgiu na década de 1960.",
+"id": "RIO-023",
+"tema": "rio"
+},
+{
+"nivel": 1,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual biscoito de polvilho é muito vendido nas praias cariocas?",
+"opcoes": [
+"Biscoito Globo",
+"Biscoito Maria",
+"Cream cracker",
+"Água e sal"
+],
+"curiosidade": "É um dos símbolos da praia carioca.",
+"id": "RIO-024",
+"tema": "rio"
+},
+{
+"nivel": 1,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual cidade do Brasil sediou as Olimpíadas de 2016?",
+"opcoes": [
+"Rio de Janeiro",
+"São Paulo",
+"Brasília",
+"Salvador"
+],
+"curiosidade": "Foram as primeiras Olimpíadas na América do Sul.",
+"id": "RIO-025",
+"tema": "rio"
+},
+{
+"nivel": 1,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "O Trindade Online conecta moradores, comércios e serviços de qual bairro?",
+"opcoes": [
+"Trindade",
+"Alcântara",
+"Zé Garoto",
+"Neves"
+],
+"curiosidade": "O projeto nasceu no bairro Trindade, em São Gonçalo.",
+"id": "RIO-026",
+"tema": "rio"
+},
+{
+"nivel": 1,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual destes bairros fica em São Gonçalo?",
+"opcoes": [
+"Trindade",
+"Ipanema",
+"Icaraí",
+"Lapa"
+],
+"curiosidade": "Ipanema e Lapa ficam no Rio e Icaraí fica em Niterói.",
+"id": "RIO-027",
+"tema": "rio"
+},
+{
+"nivel": 1,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual destes bairros é de São Gonçalo?",
+"opcoes": [
+"Alcântara",
+"Copacabana",
+"Botafogo",
+"Tijuca"
+],
+"curiosidade": "Os outros ficam na cidade do Rio.",
+"id": "RIO-028",
+"tema": "rio"
+},
+{
+"nivel": 1,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual bondinho sobe pelo bairro de Santa Teresa, no Rio?",
+"opcoes": [
+"Bonde de Santa Teresa",
+"Bondinho do Pão de Açúcar",
+"Trem do Corcovado",
+"Barca de Paquetá"
+],
+"curiosidade": "Passa sobre os Arcos da Lapa.",
+"id": "RIO-029",
+"tema": "rio"
+},
+{
+"nivel": 1,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual jogo de praia, com raquetes de madeira e uma bolinha, é muito comum no Rio?",
+"opcoes": [
+"Frescobol",
+"Tênis",
+"Squash",
+"Badminton"
+],
+"curiosidade": "Os jogadores não deixam a bolinha cair.",
+"id": "RIO-030",
+"tema": "rio"
+},
+{
+"nivel": 1,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual praia carioca recebe o Réveillon com milhões de pessoas?",
+"opcoes": [
+"Copacabana",
+"Ipanema",
+"Leblon",
+"Flamengo"
+],
+"curiosidade": "A festa tem fogos de artifício sobre o mar.",
+"id": "RIO-031",
+"tema": "rio"
+},
+{
+"nivel": 1,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual cor é tradição usar no Réveillon de Copacabana, para a paz?",
+"opcoes": [
+"Branca",
+"Preta",
+"Vermelha",
+"Amarela"
+],
+"curiosidade": "Muita gente também pula sete ondas.",
+"id": "RIO-032",
+"tema": "rio"
+},
+{
+"nivel": 1,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual bebida gelada de erva-mate é muito vendida nas praias do Rio?",
+"opcoes": [
+"Mate gelado",
+"Guaraná natural",
+"Água de coco",
+"Chá preto"
+],
+"curiosidade": "É vendido em copos grandes na areia.",
+"id": "RIO-033",
+"tema": "rio"
+},
+{
+"nivel": 2,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual cidade do estado do Rio tem um centro histórico colonial e a Flip, festa literária?",
+"opcoes": [
+"Paraty",
+"Búzios",
+"Petrópolis",
+"Macaé"
+],
+"curiosidade": "Paraty fica na Costa Verde.",
+"id": "RIO-034",
+"tema": "rio"
+},
+{
+"nivel": 2,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual artista chileno decorou a famosa escadaria da Lapa com azulejos coloridos?",
+"opcoes": [
+"Jorge Selarón",
+"Oscar Niemeyer",
+"Burle Marx",
+"Portinari"
+],
+"curiosidade": "A escadaria leva o nome do artista.",
+"id": "RIO-035",
+"tema": "rio"
+},
+{
+"nivel": 2,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual é o aeroporto do Rio que fica no centro da cidade, perto da Baía de Guanabara?",
+"opcoes": [
+"Santos Dumont",
+"Galeão",
+"Jacarepaguá",
+"Campo dos Afonsos"
+],
+"curiosidade": "O Galeão fica na Ilha do Governador.",
+"id": "RIO-036",
+"tema": "rio"
+},
+{
+"nivel": 2,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual ilha do Rio, na Baía de Guanabara, é famosa pelas bicicletas e por quase não ter carros?",
+"opcoes": [
+"Paquetá",
+"Ilha Fiscal",
+"Ilha Grande",
+"Ilha do Governador"
+],
+"curiosidade": "Dá para chegar de barca.",
+"id": "RIO-037",
+"tema": "rio"
+},
+{
+"nivel": 2,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual é o nome da floresta urbana que fica dentro da cidade do Rio de Janeiro?",
+"opcoes": [
+"Floresta da Tijuca",
+"Floresta Amazônica",
+"Mata Atlântica do Sul",
+"Floresta de Itatiaia"
+],
+"curiosidade": "Ela foi replantada no século XIX.",
+"id": "RIO-038",
+"tema": "rio"
+},
+{
+"nivel": 2,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual cidade foi a capital do Brasil antes de Brasília?",
+"opcoes": [
+"Rio de Janeiro",
+"Salvador",
+"São Paulo",
+"Belo Horizonte"
+],
+"curiosidade": "A capital mudou em 1960.",
+"id": "RIO-039",
+"tema": "rio"
+},
+{
+"nivel": 2,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual arquiteto projetou o Sambódromo e o Museu de Arte Contemporânea de Niterói?",
+"opcoes": [
+"Oscar Niemeyer",
+"Lúcio Costa",
+"Burle Marx",
+"Le Corbusier"
+],
+"curiosidade": "Niemeyer nasceu no Rio de Janeiro.",
+"id": "RIO-040",
+"tema": "rio"
+},
+{
+"nivel": 2,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "O Museu de Arte Contemporânea (MAC) tem formato de qual objeto?",
+"opcoes": [
+"Disco voador",
+"Navio",
+"Cubo",
+"Pirâmide"
+],
+"curiosidade": "Fica em Niterói, de frente para a Baía de Guanabara.",
+"id": "RIO-041",
+"tema": "rio"
+},
+{
+"nivel": 2,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Como se chama a região de clima mais frio que reúne Petrópolis, Teresópolis e Nova Friburgo?",
+"opcoes": [
+"Região Serrana",
+"Região dos Lagos",
+"Costa Verde",
+"Baixada Fluminense"
+],
+"curiosidade": "É uma região de clima mais frio.",
+"id": "RIO-042",
+"tema": "rio"
+},
+{
+"nivel": 2,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual favela da Zona Sul do Rio é uma das mais conhecidas do mundo?",
+"opcoes": [
+"Rocinha",
+"Maré",
+"Alemão",
+"Cidade de Deus"
+],
+"curiosidade": "Fica entre São Conrado e a Gávea.",
+"id": "RIO-043",
+"tema": "rio"
+},
+{
+"nivel": 2,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual feira do Rio é famosa pela comida e pela cultura nordestina?",
+"opcoes": [
+"Feira de São Cristóvão",
+"Feira da Glória",
+"Feira de Acari",
+"Feira da Praça XV"
+],
+"curiosidade": "Também é chamada de Centro Luiz Gonzaga de Tradições Nordestinas.",
+"id": "RIO-044",
+"tema": "rio"
+},
+{
+"nivel": 2,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual é o nome do aeroporto internacional do Rio, na Ilha do Governador?",
+"opcoes": [
+"Galeão",
+"Santos Dumont",
+"Jacarepaguá",
+"Campo dos Afonsos"
+],
+"curiosidade": "Ele leva o nome de Tom Jobim.",
+"id": "RIO-045",
+"tema": "rio"
+},
+{
+"nivel": 2,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual é o nome do Museu que fica na Praça Mauá e foi projetado por Santiago Calatrava?",
+"opcoes": [
+"Museu do Amanhã",
+"MASP",
+"MAR",
+"Museu Nacional"
+],
+"curiosidade": "Foi inaugurado em 2015.",
+"id": "RIO-046",
+"tema": "rio"
+},
+{
+"nivel": 2,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Em qual bairro do Rio fica a Quinta da Boa Vista, onde ficava o Museu Nacional?",
+"opcoes": [
+"São Cristóvão",
+"Tijuca",
+"Gávea",
+"Lapa"
+],
+"curiosidade": "O Museu Nacional foi atingido por um incêndio em 2018.",
+"id": "RIO-047",
+"tema": "rio"
+},
+{
+"nivel": 2,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "São Gonçalo é o segundo município mais populoso do estado. Qual é o primeiro?",
+"opcoes": [
+"Rio de Janeiro",
+"Duque de Caxias",
+"Niterói",
+"Nova Iguaçu"
+],
+"curiosidade": "A capital tem mais de 6 milhões de habitantes.",
+"id": "RIO-048",
+"tema": "rio"
+},
+{
+"nivel": 2,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual é o padroeiro de São Gonçalo?",
+"opcoes": [
+"São Gonçalo de Amarante",
+"São Sebastião",
+"São Jorge",
+"Santo Antônio"
+],
+"curiosidade": "O nome da cidade vem do santo.",
+"id": "RIO-049",
+"tema": "rio"
+},
+{
+"nivel": 2,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual praça é conhecida como um dos pontos centrais de São Gonçalo?",
+"opcoes": [
+"Praça Zé Garoto",
+"Praça Tiradentes",
+"Praça XV",
+"Praça Mauá"
+],
+"curiosidade": "É um dos pontos mais movimentados do comércio.",
+"id": "RIO-050",
+"tema": "rio"
+},
+{
+"nivel": 2,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual cidade faz divisa com São Gonçalo?",
+"opcoes": [
+"Itaboraí",
+"Petrópolis",
+"Teresópolis",
+"Nova Friburgo"
+],
+"curiosidade": "Niterói e Maricá também fazem divisa.",
+"id": "RIO-051",
+"tema": "rio"
+},
+{
+"nivel": 2,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual baía banha a cidade de São Gonçalo?",
+"opcoes": [
+"Baía de Guanabara",
+"Baía de Sepetiba",
+"Baía de Ilha Grande",
+"Baía de Todos os Santos"
+],
+"curiosidade": "Ela também banha o Rio e Niterói.",
+"id": "RIO-052",
+"tema": "rio"
+},
+{
+"nivel": 2,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual cidade fluminense é famosa pelo \"Caribe brasileiro\"?",
+"opcoes": [
+"Arraial do Cabo",
+"Búzios",
+"Paraty",
+"Macaé"
+],
+"curiosidade": "As águas são azul-turquesa.",
+"id": "RIO-053",
+"tema": "rio"
+},
+{
+"nivel": 2,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual é o nome da região turística que reúne Búzios, Cabo Frio e Arraial do Cabo?",
+"opcoes": [
+"Região dos Lagos",
+"Costa Verde",
+"Região Serrana",
+"Baixada Fluminense"
+],
+"curiosidade": "Fica na costa leste do estado.",
+"id": "RIO-054",
+"tema": "rio"
+},
+{
+"nivel": 2,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual é o nome da região turística que reúne Angra dos Reis e Paraty?",
+"opcoes": [
+"Costa Verde",
+"Região dos Lagos",
+"Região Serrana",
+"Baixada Litorânea"
+],
+"curiosidade": "Fica no litoral sul do estado.",
+"id": "RIO-055",
+"tema": "rio"
+},
+{
+"nivel": 2,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual é a \"Capital Nacional do Surfe\", no estado do Rio?",
+"opcoes": [
+"Saquarema",
+"Niterói",
+"Arraial do Cabo",
+"Búzios"
+],
+"curiosidade": "A cidade recebe etapas de campeonatos de surfe.",
+"id": "RIO-056",
+"tema": "rio"
+},
+{
+"nivel": 2,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual ilha de Angra dos Reis é famosa por não ter carros e ter vilarejos preservados?",
+"opcoes": [
+"Ilha Grande",
+"Ilha de Paquetá",
+"Ilha do Governador",
+"Ilha Fiscal"
+],
+"curiosidade": "É um dos destinos mais procurados do estado.",
+"id": "RIO-057",
+"tema": "rio"
+},
+{
+"nivel": 2,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual cidade fluminense é famosa pela siderúrgica CSN, a Companhia Siderúrgica Nacional?",
+"opcoes": [
+"Volta Redonda",
+"Macaé",
+"Campos",
+"Resende"
+],
+"curiosidade": "A usina foi inaugurada em 1946.",
+"id": "RIO-058",
+"tema": "rio"
+},
+{
+"nivel": 2,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual cidade fluminense é chamada de \"Capital Nacional do Petróleo\"?",
+"opcoes": [
+"Macaé",
+"Campos dos Goytacazes",
+"Cabo Frio",
+"Angra dos Reis"
+],
+"curiosidade": "A região tem grandes bacias de petróleo.",
+"id": "RIO-059",
+"tema": "rio"
+},
+{
+"nivel": 2,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual cidade fluminense é conhecida como \"Suíça Brasileira\"?",
+"opcoes": [
+"Nova Friburgo",
+"Petrópolis",
+"Teresópolis",
+"Itatiaia"
+],
+"curiosidade": "A cidade foi colonizada por suíços e alemães.",
+"id": "RIO-060",
+"tema": "rio"
+},
+{
+"nivel": 2,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual é o nome da escola de samba de São Gonçalo que desfila nos grupos principais do Rio?",
+"opcoes": [
+"Porto da Pedra",
+"Mangueira",
+"Portela",
+"Salgueiro"
+],
+"curiosidade": "A escola é de São Gonçalo.",
+"id": "RIO-061",
+"tema": "rio"
+},
+{
+"nivel": 2,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual praia de Niterói é a mais famosa, em frente ao bairro nobre da cidade?",
+"opcoes": [
+"Icaraí",
+"Copacabana",
+"Ipanema",
+"Leblon"
+],
+"curiosidade": "Fica no centro-sul de Niterói.",
+"id": "RIO-062",
+"tema": "rio"
+},
+{
+"nivel": 2,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Em qual mês de 1502 os portugueses chegaram à Baía de Guanabara e deram o nome de \"Rio de Janeiro\"?",
+"opcoes": [
+"Janeiro",
+"Março",
+"Julho",
+"Dezembro"
+],
+"curiosidade": "Eles acharam que a baía era a foz de um rio.",
+"id": "RIO-063",
+"tema": "rio"
+},
+{
+"nivel": 2,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual petisco de boteco carioca é feito com bacalhau frito?",
+"opcoes": [
+"Bolinho de bacalhau",
+"Coxinha",
+"Pastel de queijo",
+"Empada"
+],
+"curiosidade": "É um dos petiscos mais pedidos nos bares do Rio.",
+"id": "RIO-064",
+"tema": "rio"
+},
+{
+"nivel": 2,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual ponto entre Ipanema e Copacabana é famoso pelo pôr do sol aplaudido?",
+"opcoes": [
+"Arpoador",
+"Pedra da Gávea",
+"Urca",
+"Leme"
+],
+"curiosidade": "Os banhistas costumam aplaudir o sol se pondo.",
+"id": "RIO-065",
+"tema": "rio"
+},
+{
+"nivel": 2,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Como se chama o bairro boêmio do Rio, conhecido pelos arcos antigos?",
+"opcoes": [
+"Lapa",
+"Botafogo",
+"Tijuca",
+"Leblon"
+],
+"curiosidade": "Os Arcos da Lapa são um antigo aqueduto.",
+"id": "RIO-066",
+"tema": "rio"
+},
+{
+"nivel": 2,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual destes lugares fica em São Gonçalo?",
+"opcoes": [
+"Jardim Catarina",
+"Leblon",
+"Santa Teresa",
+"Urca"
+],
+"curiosidade": "Jardim Catarina é um dos bairros mais populosos da cidade.",
+"id": "RIO-067",
+"tema": "rio"
+},
+{
+"nivel": 2,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual destes bairros pertence a São Gonçalo?",
+"opcoes": [
+"Neves",
+"Leblon",
+"Urca",
+"Santa Teresa"
+],
+"curiosidade": "Neves é um distrito de São Gonçalo.",
+"id": "RIO-068",
+"tema": "rio"
+},
+{
+"nivel": 2,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual é o perfil oficial do Trindade Online no Instagram?",
+"opcoes": [
+"@trindade.online",
+"@trindadeonline",
+"@trindade_rj",
+"@trindade.sg"
+],
+"curiosidade": "O projeto conta histórias do bairro Trindade.",
+"id": "RIO-069",
+"tema": "rio"
+},
+{
+"nivel": 3,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Em que ano foi inaugurado o Cristo Redentor?",
+"opcoes": [
+"1931",
+"1922",
+"1945",
+"1960"
+],
+"curiosidade": "Foi eleito uma das Sete Maravilhas do Mundo Moderno em 2007.",
+"id": "RIO-070",
+"tema": "rio"
+},
+{
+"nivel": 3,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual é a altura aproximada do Cristo Redentor, incluindo o pedestal?",
+"opcoes": [
+"38 metros",
+"20 metros",
+"55 metros",
+"75 metros"
+],
+"curiosidade": "A estátua tem 30 metros e o pedestal, 8.",
+"id": "RIO-071",
+"tema": "rio"
+},
+{
+"nivel": 3,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual é o ponto mais alto da cidade do Rio de Janeiro, no Parque Nacional da Tijuca?",
+"opcoes": [
+"Pico da Tijuca",
+"Corcovado",
+"Pedra da Gávea",
+"Pão de Açúcar"
+],
+"curiosidade": "Ele tem 1.021 metros de altura.",
+"id": "RIO-072",
+"tema": "rio"
+},
+{
+"nivel": 3,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Quem fundou a cidade do Rio de Janeiro em 1565?",
+"opcoes": [
+"Estácio de Sá",
+"Pedro Álvares Cabral",
+"Dom Pedro I",
+"Mem de Sá"
+],
+"curiosidade": "A cidade se chamava São Sebastião do Rio de Janeiro.",
+"id": "RIO-073",
+"tema": "rio"
+},
+{
+"nivel": 3,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Em que ano foi fundada a cidade do Rio de Janeiro?",
+"opcoes": [
+"1565",
+"1500",
+"1608",
+"1763"
+],
+"curiosidade": "A fundação é comemorada em 1º de março.",
+"id": "RIO-074",
+"tema": "rio"
+},
+{
+"nivel": 3,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual é a altura aproximada do Pão de Açúcar?",
+"opcoes": [
+"396 metros",
+"210 metros",
+"520 metros",
+"700 metros"
+],
+"curiosidade": "Ele fica na entrada da Baía de Guanabara.",
+"id": "RIO-075",
+"tema": "rio"
+},
+{
+"nivel": 3,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Em que ano foi inaugurada a Ponte Rio-Niterói?",
+"opcoes": [
+"1974",
+"1960",
+"1985",
+"1998"
+],
+"curiosidade": "Ela tem cerca de 13 quilômetros de extensão.",
+"id": "RIO-076",
+"tema": "rio"
+},
+{
+"nivel": 3,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual é a extensão aproximada da Ponte Rio-Niterói?",
+"opcoes": [
+"13 quilômetros",
+"5 quilômetros",
+"20 quilômetros",
+"30 quilômetros"
+],
+"curiosidade": "Ela atravessa a Baía de Guanabara.",
+"id": "RIO-077",
+"tema": "rio"
+},
+{
+"nivel": 3,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual é o nome oficial da Ponte Rio-Niterói?",
+"opcoes": [
+"Ponte Presidente Costa e Silva",
+"Ponte Getúlio Vargas",
+"Ponte Juscelino Kubitschek",
+"Ponte Tancredo Neves"
+],
+"curiosidade": "O nome homenageia um presidente do regime militar.",
+"id": "RIO-078",
+"tema": "rio"
+},
+{
+"nivel": 3,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Em que ano o Theatro Municipal do Rio de Janeiro foi inaugurado?",
+"opcoes": [
+"1909",
+"1850",
+"1925",
+"1950"
+],
+"curiosidade": "Fica na Cinelândia e foi inspirado na Ópera de Paris.",
+"id": "RIO-079",
+"tema": "rio"
+},
+{
+"nivel": 3,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual é o nome do bairro do Rio onde fica a Confeitaria Colombo?",
+"opcoes": [
+"Centro",
+"Tijuca",
+"Botafogo",
+"Madureira"
+],
+"curiosidade": "A confeitaria foi aberta em 1894.",
+"id": "RIO-080",
+"tema": "rio"
+},
+{
+"nivel": 3,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual é a maior biblioteca da América Latina, localizada no Centro do Rio?",
+"opcoes": [
+"Biblioteca Nacional",
+"Biblioteca Parque",
+"Real Gabinete Português de Leitura",
+"Biblioteca de Manguinhos"
+],
+"curiosidade": "Ela guarda mais de 9 milhões de itens.",
+"id": "RIO-081",
+"tema": "rio"
+},
+{
+"nivel": 3,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual rei português criou o Jardim Botânico do Rio em 1808?",
+"opcoes": [
+"Dom João VI",
+"Dom Pedro I",
+"Dom Manuel",
+"Dom Pedro II"
+],
+"curiosidade": "Ele chegou ao Brasil em 1808.",
+"id": "RIO-082",
+"tema": "rio"
+},
+{
+"nivel": 3,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Em que ano a família real portuguesa chegou ao Rio de Janeiro?",
+"opcoes": [
+"1808",
+"1500",
+"1822",
+"1889"
+],
+"curiosidade": "O Rio virou capital do Império português.",
+"id": "RIO-083",
+"tema": "rio"
+},
+{
+"nivel": 3,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual era o nome do estado cuja capital era a cidade do Rio, entre 1960 e 1975?",
+"opcoes": [
+"Guanabara",
+"Rio de Janeiro",
+"Niterói",
+"Fluminense"
+],
+"curiosidade": "Em 1975 ele se uniu ao antigo estado do Rio de Janeiro.",
+"id": "RIO-084",
+"tema": "rio"
+},
+{
+"nivel": 3,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual cidade foi a capital do antigo estado do Rio de Janeiro, até 1975?",
+"opcoes": [
+"Niterói",
+"São Gonçalo",
+"Petrópolis",
+"Nova Iguaçu"
+],
+"curiosidade": "Niterói fica do outro lado da Baía de Guanabara.",
+"id": "RIO-085",
+"tema": "rio"
+},
+{
+"nivel": 3,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual é o terceiro município mais populoso do estado do Rio de Janeiro?",
+"opcoes": [
+"Duque de Caxias",
+"Nova Iguaçu",
+"Niterói",
+"Belford Roxo"
+],
+"curiosidade": "Fica na Baixada Fluminense.",
+"id": "RIO-086",
+"tema": "rio"
+},
+{
+"nivel": 3,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual parque nacional, o mais antigo do Brasil, fica em Itatiaia?",
+"opcoes": [
+"Parque Nacional do Itatiaia",
+"Parque Nacional da Tijuca",
+"Parque Nacional da Serra dos Órgãos",
+"Parque Nacional do Iguaçu"
+],
+"curiosidade": "Foi criado em 1937.",
+"id": "RIO-087",
+"tema": "rio"
+},
+{
+"nivel": 3,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual é o ponto mais alto do estado do Rio de Janeiro, no Parque Nacional do Itatiaia?",
+"opcoes": [
+"Pico das Agulhas Negras",
+"Pedra do Sino",
+"Dedo de Deus",
+"Pico da Tijuca"
+],
+"curiosidade": "Ele tem cerca de 2.790 metros.",
+"id": "RIO-088",
+"tema": "rio"
+},
+{
+"nivel": 3,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual rio é o principal do Vale do Paraíba fluminense?",
+"opcoes": [
+"Rio Paraíba do Sul",
+"Rio Guandu",
+"Rio Macaé",
+"Rio São João"
+],
+"curiosidade": "Ele abastece várias cidades do estado.",
+"id": "RIO-089",
+"tema": "rio"
+},
+{
+"nivel": 3,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Em qual bairro do Rio fica o Estádio Nilton Santos?",
+"opcoes": [
+"Engenho de Dentro",
+"Botafogo",
+"Maracanã",
+"São Cristóvão"
+],
+"curiosidade": "O estádio foi inaugurado em 2007 para os Jogos Pan-Americanos.",
+"id": "RIO-090",
+"tema": "rio"
+},
+{
+"nivel": 3,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Em qual ano foram realizados no Rio os Jogos Pan-Americanos?",
+"opcoes": [
+"2007",
+"1999",
+"2011",
+"2015"
+],
+"curiosidade": "Foi a primeira vez que a cidade recebeu o evento.",
+"id": "RIO-091",
+"tema": "rio"
+},
+{
+"nivel": 3,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual é o nome do evento literário realizado todo ano em Paraty?",
+"opcoes": [
+"Flip",
+"Bienal do Livro",
+"Fliporto",
+"Festival Literário do Rio"
+],
+"curiosidade": "A sigla significa Festa Literária Internacional de Paraty.",
+"id": "RIO-092",
+"tema": "rio"
+},
+{
+"nivel": 3,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual palácio da cidade de Petrópolis hoje é o Museu Imperial?",
+"opcoes": [
+"Palácio Imperial",
+"Palácio do Planalto",
+"Palácio Guanabara",
+"Palácio de Cristal"
+],
+"curiosidade": "Foi residência de verão de Dom Pedro II.",
+"id": "RIO-093",
+"tema": "rio"
+},
+{
+"nivel": 3,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual é o nome da escola de samba que representa o bairro de Madureira, no Rio?",
+"opcoes": [
+"Portela",
+"Mangueira",
+"Salgueiro",
+"Beija-Flor"
+],
+"curiosidade": "A Portela tem a águia como símbolo.",
+"id": "RIO-094",
+"tema": "rio"
+},
+{
+"nivel": 3,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Em qual bairro do Rio fica o pavilhão da feira nordestina famosa pelo forró e pelas comidas do Nordeste?",
+"opcoes": [
+"São Cristóvão",
+"Madureira",
+"Lapa",
+"Botafogo"
+],
+"curiosidade": "Ela fica no Pavilhão de São Cristóvão.",
+"id": "RIO-095",
+"tema": "rio"
+},
+{
+"nivel": 3,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Em qual ano São Gonçalo se separou de Niterói e virou município?",
+"opcoes": [
+"1890",
+"1819",
+"1930",
+"1975"
+],
+"curiosidade": "São Gonçalo foi elevado à condição de município no fim do Império.",
+"id": "RIO-096",
+"tema": "rio"
+},
+{
+"nivel": 3,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual rodovia federal passa por São Gonçalo?",
+"opcoes": [
+"BR-101",
+"BR-116",
+"BR-040",
+"BR-381"
+],
+"curiosidade": "Ela liga o Rio a vários estados do litoral.",
+"id": "RIO-097",
+"tema": "rio"
+},
+{
+"nivel": 3,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual município fluminense é conhecido pela cachaça artesanal e pelos engenhos?",
+"opcoes": [
+"Paraty",
+"Angra dos Reis",
+"Macaé",
+"Nova Iguaçu"
+],
+"curiosidade": "A cachaça de Paraty é muito valorizada.",
+"id": "RIO-098",
+"tema": "rio"
+},
+{
+"nivel": 3,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual cidade fluminense é famosa por ter o Parque Nacional da Serra dos Órgãos?",
+"opcoes": [
+"Teresópolis",
+"Itatiaia",
+"Nova Iguaçu",
+"Cabo Frio"
+],
+"curiosidade": "Ele é um dos parques mais visitados do Brasil.",
+"id": "RIO-099",
+"tema": "rio"
+},
+{
+"nivel": 3,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Em que ano foi inaugurado o Sambódromo do Rio de Janeiro?",
+"opcoes": [
+"1984",
+"1970",
+"1992",
+"2002"
+],
+"curiosidade": "Foi projetado por Oscar Niemeyer.",
+"id": "RIO-100",
+"tema": "rio"
+},
+{
+"nivel": 3,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual era a função original dos Arcos da Lapa?",
+"opcoes": [
+"Aqueduto",
+"Ponte de trem",
+"Muralha de defesa",
+"Mercado"
+],
+"curiosidade": "Levavam água ao Centro do Rio.",
+"id": "RIO-101",
+"tema": "rio"
+},
+{
+"nivel": 3,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual destes bairros pertence ao município de São Gonçalo?",
+"opcoes": [
+"Mutuá",
+"Méier",
+"Madureira",
+"Jacarepaguá"
+],
+"curiosidade": "Os outros ficam na cidade do Rio.",
+"id": "RIO-102",
+"tema": "rio"
+},
+{
+"nivel": 3,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual destes bairros faz parte de São Gonçalo?",
+"opcoes": [
+"Colubandê",
+"Tijuca",
+"Botafogo",
+"Penha"
+],
+"curiosidade": "Os outros ficam na cidade do Rio.",
+"id": "RIO-103",
+"tema": "rio"
+},
+{
+"nivel": 3,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual destas cidades NÃO faz divisa com São Gonçalo?",
+"opcoes": [
+"Petrópolis",
+"Niterói",
+"Maricá",
+"Itaboraí"
+],
+"curiosidade": "Petrópolis fica na Região Serrana.",
+"id": "RIO-104",
+"tema": "rio"
+},
+{
+"nivel": 3,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Em qual cidade fluminense fica \"A Encantada\", casa de Santos Dumont?",
+"opcoes": [
+"Petrópolis",
+"Teresópolis",
+"Niterói",
+"Resende"
+],
+"curiosidade": "Santos Dumont construiu a casa em 1918.",
+"id": "RIO-105",
+"tema": "rio"
+},
+{
+"nivel": 3,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual é a maior praia da Zona Oeste do Rio, com cerca de 18 km de extensão?",
+"opcoes": [
+"Barra da Tijuca",
+"Recreio",
+"Grumari",
+"Prainha"
+],
+"curiosidade": "É muito procurada por surfistas e banhistas.",
+"id": "RIO-106",
+"tema": "rio"
+},
+{
+"nivel": 3,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual praia de Niterói é famosa pelo surfe e pelo costão de pedras?",
+"opcoes": [
+"Itacoatiara",
+"Icaraí",
+"São Francisco",
+"Charitas"
+],
+"curiosidade": "Fica na Região Oceânica de Niterói.",
+"id": "RIO-107",
+"tema": "rio"
+},
+{
+"nivel": 3,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual pedra famosa do Rio, em São Conrado, tem cerca de 842 metros e é ponto de voo livre e escalada?",
+"opcoes": [
+"Pedra da Gávea",
+"Pedra Bonita",
+"Pão de Açúcar",
+"Corcovado"
+],
+"curiosidade": "Tem formato que lembra um rosto humano.",
+"id": "RIO-108",
+"tema": "rio"
+},
+{
+"nivel": 4,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual igreja da Zona Norte do Rio tem uma escadaria com 382 degraus?",
+"opcoes": [
+"Igreja da Penha",
+"Igreja da Candelária",
+"Igreja de São Bento",
+"Catedral Metropolitana"
+],
+"curiosidade": "Muitos fiéis sobem de joelhos para pagar promessas.",
+"id": "RIO-109",
+"tema": "rio"
+},
+{
+"nivel": 4,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual local do Rio sediou o último grande baile do Império, em 1889?",
+"opcoes": [
+"Ilha Fiscal",
+"Paço Imperial",
+"Quinta da Boa Vista",
+"Theatro Municipal"
+],
+"curiosidade": "O baile foi poucos dias antes da Proclamação da República.",
+"id": "RIO-110",
+"tema": "rio"
+},
+{
+"nivel": 4,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Em qual ano a Proclamação da República foi declarada no Rio de Janeiro?",
+"opcoes": [
+"1889",
+"1822",
+"1888",
+"1930"
+],
+"curiosidade": "A cidade era a capital do Império.",
+"id": "RIO-111",
+"tema": "rio"
+},
+{
+"nivel": 4,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual praça do Rio é conhecida pelo Paço Imperial e pelo chafariz do Mestre Valentim?",
+"opcoes": [
+"Praça XV de Novembro",
+"Praça Mauá",
+"Cinelândia",
+"Largo da Carioca"
+],
+"curiosidade": "Antes era chamada de Largo do Paço.",
+"id": "RIO-112",
+"tema": "rio"
+},
+{
+"nivel": 4,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual arquiteto paisagista desenhou o Aterro do Flamengo?",
+"opcoes": [
+"Burle Marx",
+"Oscar Niemeyer",
+"Lúcio Costa",
+"Affonso Reidy"
+],
+"curiosidade": "Ele também desenhou o calçadão de Copacabana.",
+"id": "RIO-113",
+"tema": "rio"
+},
+{
+"nivel": 4,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual é o nome do parque, na Zona Sul do Rio, que abriga a Escola de Artes Visuais e um palacete?",
+"opcoes": [
+"Parque Lage",
+"Parque do Flamengo",
+"Parque Madureira",
+"Quinta da Boa Vista"
+],
+"curiosidade": "Fica aos pés do Corcovado.",
+"id": "RIO-114",
+"tema": "rio"
+},
+{
+"nivel": 4,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual teleférico da Zona Norte do Rio foi inaugurado em 2011?",
+"opcoes": [
+"Teleférico do Alemão",
+"Teleférico da Rocinha",
+"Teleférico do Vidigal",
+"Teleférico de Madureira"
+],
+"curiosidade": "Ele foi construído para ligar vários morros do complexo.",
+"id": "RIO-115",
+"tema": "rio"
+},
+{
+"nivel": 4,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual cidade do estado do Rio tem o Palácio de Cristal e o Museu Imperial?",
+"opcoes": [
+"Petrópolis",
+"Teresópolis",
+"Nova Friburgo",
+"Vassouras"
+],
+"curiosidade": "Foi planejada pelo engenheiro Júlio Koeler.",
+"id": "RIO-116",
+"tema": "rio"
+},
+{
+"nivel": 4,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Quem projetou o Aterro do Flamengo, junto com Burle Marx?",
+"opcoes": [
+"Affonso Reidy",
+"Oscar Niemeyer",
+"Lúcio Costa",
+"Joaquim Cardozo"
+],
+"curiosidade": "O arquiteto também projetou o Museu de Arte Moderna do Rio.",
+"id": "RIO-117",
+"tema": "rio"
+},
+{
+"nivel": 4,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual artista francês pintou o Rio de Janeiro no século XIX com a Missão Artística Francesa?",
+"opcoes": [
+"Jean-Baptiste Debret",
+"Claude Monet",
+"Edgar Degas",
+"Auguste Renoir"
+],
+"curiosidade": "A Missão chegou ao Rio em 1816.",
+"id": "RIO-118",
+"tema": "rio"
+},
+{
+"nivel": 4,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual cidade fluminense foi o centro da produção de café, com fazendas históricas no Vale do Paraíba?",
+"opcoes": [
+"Vassouras",
+"Búzios",
+"Cabo Frio",
+"Maricá"
+],
+"curiosidade": "O café foi a base da riqueza do Império.",
+"id": "RIO-119",
+"tema": "rio"
+},
+{
+"nivel": 4,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Em qual cidade do estado fica a Academia Militar das Agulhas Negras (AMAN)?",
+"opcoes": [
+"Resende",
+"Volta Redonda",
+"Barra Mansa",
+"Itatiaia"
+],
+"curiosidade": "A AMAN forma os oficiais do Exército.",
+"id": "RIO-120",
+"tema": "rio"
+},
+{
+"nivel": 4,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual cidade fluminense é o centro da produção de petróleo da Bacia de Campos?",
+"opcoes": [
+"Macaé",
+"Niterói",
+"Saquarema",
+"Rio das Ostras"
+],
+"curiosidade": "A cidade abriga a base da Petrobras.",
+"id": "RIO-121",
+"tema": "rio"
+},
+{
+"nivel": 4,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual foi o primeiro nome da cidade do Rio de Janeiro?",
+"opcoes": [
+"São Sebastião do Rio de Janeiro",
+"Vila Real",
+"Guanabara",
+"Carioca"
+],
+"curiosidade": "O nome homenageia o rei de Portugal e o santo padroeiro.",
+"id": "RIO-122",
+"tema": "rio"
+},
+{
+"nivel": 4,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual é o padroeiro da cidade do Rio de Janeiro?",
+"opcoes": [
+"São Sebastião",
+"São Jorge",
+"São Pedro",
+"Nossa Senhora da Penha"
+],
+"curiosidade": "A cidade comemora o dia dele em 20 de janeiro.",
+"id": "RIO-123",
+"tema": "rio"
+},
+{
+"nivel": 4,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual é o nome da tradicional ligação de barcas entre o Rio e Niterói?",
+"opcoes": [
+"Barcas Rio–Niterói",
+"Metrô Rio",
+"VLT Carioca",
+"Trem Central"
+],
+"curiosidade": "As barcas atravessam a Baía de Guanabara.",
+"id": "RIO-124",
+"tema": "rio"
+},
+{
+"nivel": 4,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Em qual ano o metrô do Rio de Janeiro foi inaugurado?",
+"opcoes": [
+"1979",
+"1950",
+"1965",
+"1998"
+],
+"curiosidade": "A primeira linha ligou a Praça Onze a Botafogo.",
+"id": "RIO-125",
+"tema": "rio"
+},
+{
+"nivel": 4,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual é o apelido da região do Rio com praias como Barra da Tijuca e Recreio?",
+"opcoes": [
+"Zona Oeste",
+"Zona Norte",
+"Zona Sul",
+"Centro"
+],
+"curiosidade": "A região cresceu muito a partir da década de 1970.",
+"id": "RIO-126",
+"tema": "rio"
+},
+{
+"nivel": 4,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual é o apelido da região do Rio com bairros como Copacabana, Ipanema e Leblon?",
+"opcoes": [
+"Zona Sul",
+"Zona Norte",
+"Zona Oeste",
+"Baixada"
+],
+"curiosidade": "É uma das regiões mais valorizadas da cidade.",
+"id": "RIO-127",
+"tema": "rio"
+},
+{
+"nivel": 4,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual local do Rio, antigo porto de entrada de africanos escravizados, foi reconhecido como Patrimônio Mundial da Unesco em 2017?",
+"opcoes": [
+"Cais do Valongo",
+"Cristo Redentor",
+"Pão de Açúcar",
+"Arcos da Lapa"
+],
+"curiosidade": "Foi o maior porto de entrada de africanos escravizados nas Américas.",
+"id": "RIO-128",
+"tema": "rio"
+},
+{
+"nivel": 4,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Quando o Rio de Janeiro foi reconhecido como Patrimônio Mundial pela Unesco como \"Paisagem Cultural\"?",
+"opcoes": [
+"2012",
+"1990",
+"2000",
+"2020"
+],
+"curiosidade": "O título reconhece a paisagem entre o mar e a montanha.",
+"id": "RIO-129",
+"tema": "rio"
+},
+{
+"nivel": 4,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual município fluminense tem o Caminho do Ouro, rota histórica ligada a Minas Gerais?",
+"opcoes": [
+"Paraty",
+"Niterói",
+"Nova Iguaçu",
+"Magé"
+],
+"curiosidade": "O Caminho do Ouro partia de Paraty rumo a Minas.",
+"id": "RIO-130",
+"tema": "rio"
+},
+{
+"nivel": 4,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual é o nome oficial do Sambódromo do Rio?",
+"opcoes": [
+"Passarela Professor Darcy Ribeiro",
+"Passarela Oscar Niemeyer",
+"Passarela Zico",
+"Marquês de Sapucaí Hall"
+],
+"curiosidade": "Ele fica na Rua Marquês de Sapucaí.",
+"id": "RIO-131",
+"tema": "rio"
+},
+{
+"nivel": 4,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Quantos municípios tem o estado do Rio de Janeiro?",
+"opcoes": [
+"92",
+"70",
+"100",
+"85"
+],
+"curiosidade": "O estado é um dos mais urbanizados do país.",
+"id": "RIO-132",
+"tema": "rio"
+},
+{
+"nivel": 4,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual município do estado do Rio é o maior em área?",
+"opcoes": [
+"Campos dos Goytacazes",
+"Rio de Janeiro",
+"Macaé",
+"Paraty"
+],
+"curiosidade": "Fica no Norte Fluminense.",
+"id": "RIO-133",
+"tema": "rio"
+},
+{
+"nivel": 4,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual chefe indígena é considerado o fundador da cidade de Niterói?",
+"opcoes": [
+"Araribóia",
+"Cunhambebe",
+"Tibiriçá",
+"Poti"
+],
+"curiosidade": "Ele era da tribo Temiminó.",
+"id": "RIO-134",
+"tema": "rio"
+},
+{
+"nivel": 5,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Em que ano o antigo estado do Rio de Janeiro e o estado da Guanabara se fundiram?",
+"opcoes": [
+"1975",
+"1960",
+"1964",
+"1985"
+],
+"curiosidade": "A fusão foi decretada em 1974 e entrou em vigor em 1975.",
+"id": "RIO-135",
+"tema": "rio"
+},
+{
+"nivel": 5,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual é a altitude aproximada do Pico das Agulhas Negras, no Itatiaia?",
+"opcoes": [
+"2.790 metros",
+"1.600 metros",
+"3.200 metros",
+"2.100 metros"
+],
+"curiosidade": "É um dos pontos mais altos do Brasil.",
+"id": "RIO-136",
+"tema": "rio"
+},
+{
+"nivel": 5,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Quem foi o urbanista que fez o plano da cidade de Brasília, mas também projetou parte do Rio de Janeiro?",
+"opcoes": [
+"Lúcio Costa",
+"Oscar Niemeyer",
+"Burle Marx",
+"Affonso Reidy"
+],
+"curiosidade": "Ele projetou a Barra da Tijuca.",
+"id": "RIO-137",
+"tema": "rio"
+},
+{
+"nivel": 5,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual prefeito do Rio abriu a Avenida Central, hoje Rio Branco, em uma grande reforma urbana do início do século XX?",
+"opcoes": [
+"Pereira Passos",
+"Carlos Sampaio",
+"Henrique Dodsworth",
+"Carlos Lacerda"
+],
+"curiosidade": "A reforma foi inspirada nas reformas de Paris.",
+"id": "RIO-138",
+"tema": "rio"
+},
+{
+"nivel": 5,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual presidente do Brasil assinou a transferência da capital do Rio para Brasília?",
+"opcoes": [
+"Juscelino Kubitschek",
+"Getúlio Vargas",
+"Jânio Quadros",
+"Eurico Dutra"
+],
+"curiosidade": "A mudança foi feita em 1960.",
+"id": "RIO-139",
+"tema": "rio"
+},
+{
+"nivel": 5,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual é o nome do túnel que liga Botafogo a Copacabana?",
+"opcoes": [
+"Túnel Novo",
+"Túnel Rebouças",
+"Túnel Santa Bárbara",
+"Túnel Zuzu Angel"
+],
+"curiosidade": "Ele foi inaugurado em 1971.",
+"id": "RIO-140",
+"tema": "rio"
+},
+{
+"nivel": 5,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual é a principal via expressa que liga o Centro do Rio à Zona Oeste, inaugurada em 1946?",
+"opcoes": [
+"Avenida Brasil",
+"Linha Vermelha",
+"Linha Amarela",
+"Avenida Atlântica"
+],
+"curiosidade": "Ela tem cerca de 58 quilômetros.",
+"id": "RIO-141",
+"tema": "rio"
+},
+{
+"nivel": 5,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual é o nome do palácio na Zona Sul do Rio que foi sede do governo estadual, no bairro de Laranjeiras?",
+"opcoes": [
+"Palácio Guanabara",
+"Palácio Tiradentes",
+"Palácio Laranjeiras",
+"Palácio Pedro Ernesto"
+],
+"curiosidade": "O palácio foi residência da princesa Isabel.",
+"id": "RIO-142",
+"tema": "rio"
+},
+{
+"nivel": 5,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Em qual bairro da Zona Norte do Rio fica o Mercadão e a sede da escola de samba Portela?",
+"opcoes": [
+"Madureira",
+"Tijuca",
+"Botafogo",
+"Barra da Tijuca"
+],
+"curiosidade": "É conhecido como a capital do samba da Zona Norte.",
+"id": "RIO-143",
+"tema": "rio"
+},
+{
+"nivel": 5,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Em qual cidade do estado do Rio nasceu o poeta Casimiro de Abreu?",
+"opcoes": [
+"Barra de São João",
+"Cabo Frio",
+"Macaé",
+"Búzios"
+],
+"curiosidade": "O município onde ele nasceu hoje leva o nome do poeta.",
+"id": "RIO-144",
+"tema": "rio"
+},
+{
+"nivel": 5,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Em qual cidade do estado do Rio nasceu o músico e compositor Cartola?",
+"opcoes": [
+"Rio de Janeiro",
+"Niterói",
+"Paraty",
+"Petrópolis"
+],
+"curiosidade": "Cartola nasceu no bairro do Catete.",
+"id": "RIO-145",
+"tema": "rio"
+},
+{
+"nivel": 5,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Em qual cidade do estado do Rio nasceu o escritor Machado de Assis?",
+"opcoes": [
+"Rio de Janeiro",
+"Niterói",
+"Petrópolis",
+"São Gonçalo"
+],
+"curiosidade": "Machado nasceu no Morro do Livramento.",
+"id": "RIO-146",
+"tema": "rio"
+},
+{
+"nivel": 5,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual fortaleza de Niterói guarda a entrada da Baía de Guanabara?",
+"opcoes": [
+"Fortaleza de Santa Cruz",
+"Forte de Copacabana",
+"Forte de Imbuhy",
+"Fortaleza de São João"
+],
+"curiosidade": "É uma das fortalezas mais antigas do Brasil.",
+"id": "RIO-147",
+"tema": "rio"
+},
+{
+"nivel": 5,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual é o nome do forte do Rio que fica na entrada da Praia de Copacabana?",
+"opcoes": [
+"Forte de Copacabana",
+"Forte de São João",
+"Forte de Santa Cruz",
+"Forte Duque de Caxias"
+],
+"curiosidade": "Ele abriga o Museu Histórico do Exército.",
+"id": "RIO-148",
+"tema": "rio"
+},
+{
+"nivel": 5,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual é o nome do bloco de carnaval de rua mais tradicional do Rio, fundado em 1918?",
+"opcoes": [
+"Cordão da Bola Preta",
+"Banda de Ipanema",
+"Simpatia é Quase Amor",
+"Monobloco"
+],
+"curiosidade": "O bloco sai no Centro do Rio.",
+"id": "RIO-149",
+"tema": "rio"
+},
+{
+"nivel": 5,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual parque de Niterói tem uma das vistas mais famosas da Baía de Guanabara, no alto do Morro da Viração?",
+"opcoes": [
+"Parque da Cidade",
+"Parque do Cantagalo",
+"Parque Nacional da Tijuca",
+"Parque Lage"
+],
+"curiosidade": "De lá se enxergam o Rio e a Ponte Rio-Niterói.",
+"id": "RIO-150",
+"tema": "rio"
+},
+{
+"nivel": 5,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Quem foi o fundador da cidade de Petrópolis, em 1843, em nome de Dom Pedro II?",
+"opcoes": [
+"Júlio Frederico Koeler",
+"Estácio de Sá",
+"Mem de Sá",
+"Barão de Mauá"
+],
+"curiosidade": "Koeler projetou o plano urbano da cidade.",
+"id": "RIO-151",
+"tema": "rio"
+},
+{
+"nivel": 5,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Em qual cidade do estado do Rio nasceu o jogador Zico?",
+"opcoes": [
+"Rio de Janeiro",
+"Niterói",
+"São Gonçalo",
+"Campos dos Goytacazes"
+],
+"curiosidade": "Zico nasceu em Quintino.",
+"id": "RIO-152",
+"tema": "rio"
+},
+{
+"nivel": 5,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Em qual cidade do estado do Rio nasceu a atriz Fernanda Montenegro?",
+"opcoes": [
+"Rio de Janeiro",
+"Niterói",
+"Petrópolis",
+"São Gonçalo"
+],
+"curiosidade": "Fernanda nasceu no bairro de Campo Grande.",
+"id": "RIO-153",
+"tema": "rio"
+},
+{
+"nivel": 5,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Em que ano foi fundada a cidade de Niterói?",
+"opcoes": [
+"1573",
+"1502",
+"1650",
+"1819"
+],
+"curiosidade": "Ela foi fundada pelo cacique Araribóia.",
+"id": "RIO-154",
+"tema": "rio"
+},
+{
+"nivel": 5,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual cidade da Região dos Lagos foi fundada em 1615?",
+"opcoes": [
+"Cabo Frio",
+"Búzios",
+"Arraial do Cabo",
+"Saquarema"
+],
+"curiosidade": "É uma das cidades mais antigas do estado.",
+"id": "RIO-155",
+"tema": "rio"
+},
+{
+"nivel": 5,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual pedra da Zona Oeste do Rio é famosa por fotos que parecem mostrar pessoas suspensas sobre o abismo?",
+"opcoes": [
+"Pedra do Telégrafo",
+"Pedra Bonita",
+"Pedra do Sino",
+"Pedra da Gávea"
+],
+"curiosidade": "Fica em Barra de Guaratiba.",
+"id": "RIO-156",
+"tema": "rio"
+},
+{
+"nivel": 5,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual é o nome da tribo indígena de Araribóia, fundador de Niterói?",
+"opcoes": [
+"Temiminó",
+"Tupinambá",
+"Guarani",
+"Tamoio"
+],
+"curiosidade": "Os temiminós foram aliados dos portugueses.",
+"id": "RIO-157",
+"tema": "rio"
+},
+{
+"nivel": 5,
+"categoria": "Rio de Janeiro e São Gonçalo",
+"enunciado": "Qual mirante de Niterói abriga o Museu de Arte Contemporânea?",
+"opcoes": [
+"Mirante da Boa Viagem",
+"Morro da Viração",
+"Pedra do Telégrafo",
+"Morro do Cavalão"
+],
+"curiosidade": "O museu foi inaugurado em 1996.",
+"id": "RIO-158",
+"tema": "rio"
+}
+]

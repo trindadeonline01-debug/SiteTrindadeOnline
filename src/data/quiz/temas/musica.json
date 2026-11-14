@@ -1,0 +1,2186 @@
+[
+{
+"nivel": 1,
+"categoria": "Música brasileira",
+"enunciado": "Qual instrumento de 6 cordas é muito usado na MPB, na bossa nova e no sertanejo?",
+"opcoes": [
+"Violão",
+"Flauta",
+"Piano",
+"Trompete"
+],
+"curiosidade": "O violão é um dos instrumentos mais populares do Brasil.",
+"id": "MUS-001",
+"tema": "musica"
+},
+{
+"nivel": 1,
+"categoria": "Música brasileira",
+"enunciado": "Qual é o ritmo mais famoso do Carnaval do Rio de Janeiro?",
+"opcoes": [
+"Samba",
+"Forró",
+"Axé",
+"Sertanejo"
+],
+"curiosidade": "As escolas de samba desfilam no Sambódromo.",
+"id": "MUS-002",
+"tema": "musica"
+},
+{
+"nivel": 1,
+"categoria": "Música brasileira",
+"enunciado": "Qual instrumento grave marca o ritmo nas baterias das escolas de samba?",
+"opcoes": [
+"Surdo",
+"Pandeiro",
+"Cavaquinho",
+"Triângulo"
+],
+"curiosidade": "O surdo dá o compasso do samba.",
+"id": "MUS-003",
+"tema": "musica"
+},
+{
+"nivel": 1,
+"categoria": "Música brasileira",
+"enunciado": "Qual instrumento pequeno de 4 cordas é muito usado no samba e no pagode?",
+"opcoes": [
+"Cavaquinho",
+"Violino",
+"Harpa",
+"Bandolim"
+],
+"curiosidade": "Ele tem um som agudo e alegre.",
+"id": "MUS-004",
+"tema": "musica"
+},
+{
+"nivel": 1,
+"categoria": "Música brasileira",
+"enunciado": "Quem é conhecido como o \"Rei do Baião\"?",
+"opcoes": [
+"Luiz Gonzaga",
+"Roberto Carlos",
+"Tim Maia",
+"Raul Seixas"
+],
+"curiosidade": "Luiz Gonzaga popularizou a sanfona no Brasil.",
+"id": "MUS-005",
+"tema": "musica"
+},
+{
+"nivel": 1,
+"categoria": "Música brasileira",
+"enunciado": "Qual dupla sertaneja canta \"Evidências\"?",
+"opcoes": [
+"Chitãozinho e Xororó",
+"Zezé Di Camargo e Luciano",
+"Jorge e Mateus",
+"Bruno e Marrone"
+],
+"curiosidade": "A música é de 1990.",
+"id": "MUS-006",
+"tema": "musica"
+},
+{
+"nivel": 1,
+"categoria": "Música brasileira",
+"enunciado": "Qual cantor é conhecido como \"O Rei\" e canta \"Detalhes\" e \"Emoções\"?",
+"opcoes": [
+"Roberto Carlos",
+"Tim Maia",
+"Erasmo Carlos",
+"Jorge Ben"
+],
+"curiosidade": "Roberto Carlos faz show de fim de ano na TV há décadas.",
+"id": "MUS-007",
+"tema": "musica"
+},
+{
+"nivel": 1,
+"categoria": "Música brasileira",
+"enunciado": "\"Garota de Ipanema\" é uma música de qual estilo?",
+"opcoes": [
+"Bossa nova",
+"Forró",
+"Funk",
+"Pagode"
+],
+"curiosidade": "Foi composta por Tom Jobim e Vinicius de Moraes.",
+"id": "MUS-008",
+"tema": "musica"
+},
+{
+"nivel": 1,
+"categoria": "Música brasileira",
+"enunciado": "Qual cantora brasileira ficou conhecida como a \"Pequena Notável\"?",
+"opcoes": [
+"Carmen Miranda",
+"Elis Regina",
+"Clara Nunes",
+"Gal Costa"
+],
+"curiosidade": "Ela fez muito sucesso em Hollywood.",
+"id": "MUS-009",
+"tema": "musica"
+},
+{
+"nivel": 1,
+"categoria": "Música brasileira",
+"enunciado": "Qual banda cantou \"Pais e Filhos\" e \"Tempo Perdido\"?",
+"opcoes": [
+"Legião Urbana",
+"Titãs",
+"Skank",
+"Capital Inicial"
+],
+"curiosidade": "O vocalista era Renato Russo.",
+"id": "MUS-010",
+"tema": "musica"
+},
+{
+"nivel": 1,
+"categoria": "Música brasileira",
+"enunciado": "Qual cantor brasileiro ficou famoso com a música \"Ai, Se Eu Te Pego\"?",
+"opcoes": [
+"Michel Teló",
+"Gusttavo Lima",
+"Luan Santana",
+"Wesley Safadão"
+],
+"curiosidade": "A música virou sucesso mundial em 2011.",
+"id": "MUS-011",
+"tema": "musica"
+},
+{
+"nivel": 1,
+"categoria": "Música brasileira",
+"enunciado": "Qual instrumento é a marca registrada do forró?",
+"opcoes": [
+"Sanfona",
+"Violino",
+"Saxofone",
+"Harpa"
+],
+"curiosidade": "A sanfona também é chamada de acordeão.",
+"id": "MUS-012",
+"tema": "musica"
+},
+{
+"nivel": 1,
+"categoria": "Música brasileira",
+"enunciado": "Qual cantora ficou famosa com \"Show das Poderosas\"?",
+"opcoes": [
+"Anitta",
+"Ivete Sangalo",
+"Pabllo Vittar",
+"Claudia Leitte"
+],
+"curiosidade": "Anitta nasceu no Rio de Janeiro.",
+"id": "MUS-013",
+"tema": "musica"
+},
+{
+"nivel": 1,
+"categoria": "Música brasileira",
+"enunciado": "Qual cidade é considerada o berço do axé e do carnaval de rua mais famoso da Bahia?",
+"opcoes": [
+"Salvador",
+"Recife",
+"Fortaleza",
+"São Luís"
+],
+"curiosidade": "O carnaval de Salvador tem trios elétricos.",
+"id": "MUS-014",
+"tema": "musica"
+},
+{
+"nivel": 1,
+"categoria": "Música brasileira",
+"enunciado": "Qual ritmo típico do Pará é dançado com saias rodadas?",
+"opcoes": [
+"Carimbó",
+"Frevo",
+"Maracatu",
+"Xote"
+],
+"curiosidade": "O carimbó é reconhecido como patrimônio cultural brasileiro.",
+"id": "MUS-015",
+"tema": "musica"
+},
+{
+"nivel": 1,
+"categoria": "Música brasileira",
+"enunciado": "Quem compôs \"Aquarela do Brasil\"?",
+"opcoes": [
+"Ary Barroso",
+"Pixinguinha",
+"Noel Rosa",
+"Cartola"
+],
+"curiosidade": "A música é de 1939.",
+"id": "MUS-016",
+"tema": "musica"
+},
+{
+"nivel": 1,
+"categoria": "Música brasileira",
+"enunciado": "Qual música de Luiz Gonzaga fala da seca no sertão?",
+"opcoes": [
+"Asa Branca",
+"Garota de Ipanema",
+"Evidências",
+"Detalhes"
+],
+"curiosidade": "A música foi composta com Humberto Teixeira.",
+"id": "MUS-017",
+"tema": "musica"
+},
+{
+"nivel": 1,
+"categoria": "Música brasileira",
+"enunciado": "Qual é o nome do ritmo que nasceu nas favelas cariocas e tem o \"batidão\"?",
+"opcoes": [
+"Funk carioca",
+"Frevo",
+"Forró",
+"Carimbó"
+],
+"curiosidade": "O funk carioca é famoso no Brasil todo.",
+"id": "MUS-018",
+"tema": "musica"
+},
+{
+"nivel": 1,
+"categoria": "Música brasileira",
+"enunciado": "Qual dupla canta \"É o Amor\"?",
+"opcoes": [
+"Zezé Di Camargo e Luciano",
+"Chitãozinho e Xororó",
+"Leandro e Leonardo",
+"João Bosco e Vinícius"
+],
+"curiosidade": "Zezé e Luciano são irmãos de Goiás.",
+"id": "MUS-019",
+"tema": "musica"
+},
+{
+"nivel": 1,
+"categoria": "Música brasileira",
+"enunciado": "Em qual cidade acontece o festival Rock in Rio?",
+"opcoes": [
+"Rio de Janeiro",
+"São Paulo",
+"Salvador",
+"Belo Horizonte"
+],
+"curiosidade": "O primeiro Rock in Rio foi em 1985.",
+"id": "MUS-020",
+"tema": "musica"
+},
+{
+"nivel": 1,
+"categoria": "Música brasileira",
+"enunciado": "Qual banda canta \"Sonífera Ilha\" e \"Comida\"?",
+"opcoes": [
+"Titãs",
+"Paralamas do Sucesso",
+"Barão Vermelho",
+"Ira!"
+],
+"curiosidade": "Os Titãs surgiram em São Paulo.",
+"id": "MUS-021",
+"tema": "musica"
+},
+{
+"nivel": 1,
+"categoria": "Música brasileira",
+"enunciado": "Qual banda mineira canta \"Garota Nacional\" e \"Jackie Tequila\"?",
+"opcoes": [
+"Skank",
+"Jota Quest",
+"Pato Fu",
+"Sepultura"
+],
+"curiosidade": "O vocalista é Samuel Rosa.",
+"id": "MUS-022",
+"tema": "musica"
+},
+{
+"nivel": 1,
+"categoria": "Música brasileira",
+"enunciado": "Rita Lee ficou famosa nos anos 60 em qual banda?",
+"opcoes": [
+"Os Mutantes",
+"Os Incríveis",
+"Secos & Molhados",
+"Titãs"
+],
+"curiosidade": "Rita Lee é chamada de \"Rainha do Rock\".",
+"id": "MUS-023",
+"tema": "musica"
+},
+{
+"nivel": 1,
+"categoria": "Música brasileira",
+"enunciado": "Qual instrumento de percussão tem platinelas e é tocado com a mão, sendo base do samba?",
+"opcoes": [
+"Pandeiro",
+"Surdo",
+"Agogô",
+"Tamborim"
+],
+"curiosidade": "O pandeiro é um dos símbolos do Brasil.",
+"id": "MUS-024",
+"tema": "musica"
+},
+{
+"nivel": 1,
+"categoria": "Música brasileira",
+"enunciado": "O berimbau acompanha qual luta/dança brasileira?",
+"opcoes": [
+"Capoeira",
+"Frevo",
+"Maracatu",
+"Jongo"
+],
+"curiosidade": "A capoeira nasceu entre os escravizados no Brasil.",
+"id": "MUS-025",
+"tema": "musica"
+},
+{
+"nivel": 1,
+"categoria": "Música brasileira",
+"enunciado": "Qual música é considerada o hino da cidade do Rio de Janeiro?",
+"opcoes": [
+"Cidade Maravilhosa",
+"Aquarela do Brasil",
+"Garota de Ipanema",
+"Samba de Janeiro"
+],
+"curiosidade": "Foi composta por André Filho em 1934.",
+"id": "MUS-026",
+"tema": "musica"
+},
+{
+"nivel": 1,
+"categoria": "Música brasileira",
+"enunciado": "Qual dança típica das festas juninas é feita em pares, com um \"marcador\" dando as ordens?",
+"opcoes": [
+"Quadrilha",
+"Frevo",
+"Samba de gafieira",
+"Carimbó"
+],
+"curiosidade": "A quadrilha vem da França e se tornou brasileira.",
+"id": "MUS-027",
+"tema": "musica"
+},
+{
+"nivel": 1,
+"categoria": "Música brasileira",
+"enunciado": "Quem canta \"Tente Outra Vez\" e \"Maluco Beleza\"?",
+"opcoes": [
+"Raul Seixas",
+"Cazuza",
+"Tim Maia",
+"Gilberto Gil"
+],
+"curiosidade": "Raul Seixas nasceu em Salvador.",
+"id": "MUS-028",
+"tema": "musica"
+},
+{
+"nivel": 1,
+"categoria": "Música brasileira",
+"enunciado": "Qual cantora é irmã de Caetano Veloso?",
+"opcoes": [
+"Maria Bethânia",
+"Gal Costa",
+"Elis Regina",
+"Nara Leão"
+],
+"curiosidade": "Bethânia nasceu em Santo Amaro da Purificação.",
+"id": "MUS-029",
+"tema": "musica"
+},
+{
+"nivel": 1,
+"categoria": "Música brasileira",
+"enunciado": "Quem canta \"Exagerado\" e \"O Tempo Não Para\"?",
+"opcoes": [
+"Cazuza",
+"Renato Russo",
+"Lulu Santos",
+"Raul Seixas"
+],
+"curiosidade": "Cazuza foi vocalista do Barão Vermelho.",
+"id": "MUS-030",
+"tema": "musica"
+},
+{
+"nivel": 2,
+"categoria": "Música brasileira",
+"enunciado": "Quem compôs \"A Banda\", sucesso de 1966?",
+"opcoes": [
+"Chico Buarque",
+"Caetano Veloso",
+"Gilberto Gil",
+"Vinicius de Moraes"
+],
+"curiosidade": "A música ganhou o festival da TV Record.",
+"id": "MUS-031",
+"tema": "musica"
+},
+{
+"nivel": 2,
+"categoria": "Música brasileira",
+"enunciado": "Quem canta \"Como uma Onda\" e \"Tempos Modernos\"?",
+"opcoes": [
+"Lulu Santos",
+"Cazuza",
+"Marcelo Camelo",
+"Herbert Vianna"
+],
+"curiosidade": "Lulu Santos é carioca.",
+"id": "MUS-032",
+"tema": "musica"
+},
+{
+"nivel": 2,
+"categoria": "Música brasileira",
+"enunciado": "Qual dupla canta \"Largado às Traças\"?",
+"opcoes": [
+"Zé Neto e Cristiano",
+"Jorge e Mateus",
+"Henrique e Juliano",
+"Maiara e Maraisa"
+],
+"curiosidade": "É uma das duplas sertanejas mais ouvidas do país.",
+"id": "MUS-033",
+"tema": "musica"
+},
+{
+"nivel": 2,
+"categoria": "Música brasileira",
+"enunciado": "Quem é o vocalista do Skank?",
+"opcoes": [
+"Samuel Rosa",
+"Renato Russo",
+"Dinho Ouro Preto",
+"Chorão"
+],
+"curiosidade": "O Skank é de Belo Horizonte.",
+"id": "MUS-034",
+"tema": "musica"
+},
+{
+"nivel": 2,
+"categoria": "Música brasileira",
+"enunciado": "Qual cantor era conhecido como \"Síndico\"?",
+"opcoes": [
+"Tim Maia",
+"Jorge Ben",
+"Roberto Carlos",
+"Raul Seixas"
+],
+"curiosidade": "Tim Maia cantava soul e funk brasileiro.",
+"id": "MUS-035",
+"tema": "musica"
+},
+{
+"nivel": 2,
+"categoria": "Música brasileira",
+"enunciado": "Qual cantora canta \"Dona de Mim\"?",
+"opcoes": [
+"IZA",
+"Anitta",
+"Ludmilla",
+"Marília Mendonça"
+],
+"curiosidade": "A música é de 2018.",
+"id": "MUS-036",
+"tema": "musica"
+},
+{
+"nivel": 2,
+"categoria": "Música brasileira",
+"enunciado": "Qual cantora gravou \"Vai Malandra\" com Maluma e outros artistas?",
+"opcoes": [
+"Anitta",
+"Ivete Sangalo",
+"Gaby Amarantos",
+"Pabllo Vittar"
+],
+"curiosidade": "O clipe foi gravado no Rio de Janeiro.",
+"id": "MUS-037",
+"tema": "musica"
+},
+{
+"nivel": 2,
+"categoria": "Música brasileira",
+"enunciado": "Qual banda canta \"Não Vou Me Adaptar\" e \"Epitáfio\"?",
+"opcoes": [
+"Titãs",
+"Legião Urbana",
+"Barão Vermelho",
+"Capital Inicial"
+],
+"curiosidade": "Os Titãs tiveram Arnaldo Antunes e Nando Reis.",
+"id": "MUS-038",
+"tema": "musica"
+},
+{
+"nivel": 2,
+"categoria": "Música brasileira",
+"enunciado": "Qual banda de Brasília canta \"Que País É Este\"?",
+"opcoes": [
+"Legião Urbana",
+"Paralamas do Sucesso",
+"Engenheiros do Hawaii",
+"Biquini Cavadão"
+],
+"curiosidade": "O disco é de 1987.",
+"id": "MUS-039",
+"tema": "musica"
+},
+{
+"nivel": 2,
+"categoria": "Música brasileira",
+"enunciado": "Quem gravou \"Águas de Março\" com Tom Jobim em 1974?",
+"opcoes": [
+"Elis Regina",
+"Gal Costa",
+"Maria Bethânia",
+"Nara Leão"
+],
+"curiosidade": "O álbum se chama \"Elis & Tom\".",
+"id": "MUS-040",
+"tema": "musica"
+},
+{
+"nivel": 2,
+"categoria": "Música brasileira",
+"enunciado": "De qual cidade vem a banda Os Paralamas do Sucesso?",
+"opcoes": [
+"Rio de Janeiro",
+"São Paulo",
+"Brasília",
+"Porto Alegre"
+],
+"curiosidade": "O vocalista é Herbert Vianna.",
+"id": "MUS-041",
+"tema": "musica"
+},
+{
+"nivel": 2,
+"categoria": "Música brasileira",
+"enunciado": "Qual cantor mistura MPB e foi líder do movimento Tropicália, junto com Gilberto Gil?",
+"opcoes": [
+"Caetano Veloso",
+"Chico Buarque",
+"Milton Nascimento",
+"Djavan"
+],
+"curiosidade": "A Tropicália surgiu em 1967 e 1968.",
+"id": "MUS-042",
+"tema": "musica"
+},
+{
+"nivel": 2,
+"categoria": "Música brasileira",
+"enunciado": "Quem canta \"Trem-Bala\"?",
+"opcoes": [
+"Ana Vilela",
+"Marília Mendonça",
+"Maiara",
+"Simone"
+],
+"curiosidade": "A música é de 2016.",
+"id": "MUS-043",
+"tema": "musica"
+},
+{
+"nivel": 2,
+"categoria": "Música brasileira",
+"enunciado": "Qual poeta escreveu a letra de \"Garota de Ipanema\"?",
+"opcoes": [
+"Vinicius de Moraes",
+"Carlos Drummond de Andrade",
+"Manuel Bandeira",
+"Cecília Meireles"
+],
+"curiosidade": "Vinicius era chamado de \"Poetinha\".",
+"id": "MUS-044",
+"tema": "musica"
+},
+{
+"nivel": 2,
+"categoria": "Música brasileira",
+"enunciado": "Qual grupo de pagode canta \"Tá Escrito\"?",
+"opcoes": [
+"Grupo Revelação",
+"Raça Negra",
+"Exaltasamba",
+"Só Pra Contrariar"
+],
+"curiosidade": "O grupo surgiu no Rio de Janeiro.",
+"id": "MUS-045",
+"tema": "musica"
+},
+{
+"nivel": 2,
+"categoria": "Música brasileira",
+"enunciado": "Qual banda do Rio canta \"Alagados\" e \"Lanterna dos Afogados\"?",
+"opcoes": [
+"Os Paralamas do Sucesso",
+"Barão Vermelho",
+"Ira!",
+"Kid Abelha"
+],
+"curiosidade": "A banda tem três integrantes principais.",
+"id": "MUS-046",
+"tema": "musica"
+},
+{
+"nivel": 2,
+"categoria": "Música brasileira",
+"enunciado": "Quem canta \"Aquarela\" (\"Numa folha qualquer eu desenho um sol amarelo\")?",
+"opcoes": [
+"Toquinho",
+"Chico Buarque",
+"Roberto Carlos",
+"Milton Nascimento"
+],
+"curiosidade": "A música foi feita com Vinicius de Moraes.",
+"id": "MUS-047",
+"tema": "musica"
+},
+{
+"nivel": 2,
+"categoria": "Música brasileira",
+"enunciado": "Qual cantor é o líder do grupo de rap Racionais MC's?",
+"opcoes": [
+"Mano Brown",
+"Emicida",
+"Criolo",
+"Gabriel o Pensador"
+],
+"curiosidade": "O grupo é de São Paulo.",
+"id": "MUS-048",
+"tema": "musica"
+},
+{
+"nivel": 2,
+"categoria": "Música brasileira",
+"enunciado": "Quem canta \"Garçom\", sucesso do brega?",
+"opcoes": [
+"Reginaldo Rossi",
+"Waldick Soriano",
+"Amado Batista",
+"Odair José"
+],
+"curiosidade": "Reginaldo era conhecido como \"Rei do Brega\".",
+"id": "MUS-049",
+"tema": "musica"
+},
+{
+"nivel": 2,
+"categoria": "Música brasileira",
+"enunciado": "Quem canta \"O Canto da Cidade\"?",
+"opcoes": [
+"Daniela Mercury",
+"Ivete Sangalo",
+"Claudia Leitte",
+"Margareth Menezes"
+],
+"curiosidade": "A música é de 1992.",
+"id": "MUS-050",
+"tema": "musica"
+},
+{
+"nivel": 2,
+"categoria": "Música brasileira",
+"enunciado": "Qual cantora é chamada de \"Rainha do Rock brasileiro\"?",
+"opcoes": [
+"Rita Lee",
+"Gal Costa",
+"Pitty",
+"Marina Lima"
+],
+"curiosidade": "Ela é autora de \"Ovelha Negra\" e \"Lança Perfume\".",
+"id": "MUS-051",
+"tema": "musica"
+},
+{
+"nivel": 2,
+"categoria": "Música brasileira",
+"enunciado": "Qual estado brasileiro é o berço do frevo?",
+"opcoes": [
+"Pernambuco",
+"Bahia",
+"Ceará",
+"Maranhão"
+],
+"curiosidade": "O frevo é dançado com sombrinhas coloridas.",
+"id": "MUS-052",
+"tema": "musica"
+},
+{
+"nivel": 2,
+"categoria": "Música brasileira",
+"enunciado": "Qual escola de samba carioca tem as cores verde e rosa?",
+"opcoes": [
+"Mangueira",
+"Portela",
+"Salgueiro",
+"Beija-Flor"
+],
+"curiosidade": "É chamada de \"Estação Primeira\".",
+"id": "MUS-053",
+"tema": "musica"
+},
+{
+"nivel": 2,
+"categoria": "Música brasileira",
+"enunciado": "Qual escola de samba tem como símbolo uma águia e as cores azul e branco?",
+"opcoes": [
+"Portela",
+"Mangueira",
+"Imperatriz",
+"Vila Isabel"
+],
+"curiosidade": "Foi fundada em 1923.",
+"id": "MUS-054",
+"tema": "musica"
+},
+{
+"nivel": 2,
+"categoria": "Música brasileira",
+"enunciado": "Quem fundou a escola de samba Mangueira e compôs \"As Rosas Não Falam\"?",
+"opcoes": [
+"Cartola",
+"Nelson Cavaquinho",
+"Noel Rosa",
+"Adoniran Barbosa"
+],
+"curiosidade": "Cartola nasceu no Rio de Janeiro.",
+"id": "MUS-055",
+"tema": "musica"
+},
+{
+"nivel": 2,
+"categoria": "Música brasileira",
+"enunciado": "Qual movimento musical dos anos 60 teve Caetano Veloso, Gilberto Gil, Gal Costa e Os Mutantes?",
+"opcoes": [
+"Tropicália",
+"Jovem Guarda",
+"Bossa nova",
+"Manguebeat"
+],
+"curiosidade": "Foi um movimento de renovação cultural.",
+"id": "MUS-056",
+"tema": "musica"
+},
+{
+"nivel": 2,
+"categoria": "Música brasileira",
+"enunciado": "Qual programa de TV dos anos 60 deu nome ao movimento musical de Roberto Carlos e Erasmo?",
+"opcoes": [
+"Jovem Guarda",
+"Fantástico",
+"Chacrinha",
+"Os Trapalhões"
+],
+"curiosidade": "Roberto e Erasmo eram os grandes nomes.",
+"id": "MUS-057",
+"tema": "musica"
+},
+{
+"nivel": 2,
+"categoria": "Música brasileira",
+"enunciado": "Qual banda gaúcha canta \"Infinita Highway\"?",
+"opcoes": [
+"Engenheiros do Hawaii",
+"Nenhum de Nós",
+"Os Cascavelletes",
+"Cachorro Grande"
+],
+"curiosidade": "O vocalista é Humberto Gessinger.",
+"id": "MUS-058",
+"tema": "musica"
+},
+{
+"nivel": 2,
+"categoria": "Música brasileira",
+"enunciado": "Quem canta \"Pense em Mim\"?",
+"opcoes": [
+"Leandro e Leonardo",
+"Chitãozinho e Xororó",
+"Zezé Di Camargo e Luciano",
+"Rionegro e Solimões"
+],
+"curiosidade": "Leandro faleceu em 1998.",
+"id": "MUS-059",
+"tema": "musica"
+},
+{
+"nivel": 2,
+"categoria": "Música brasileira",
+"enunciado": "Qual banda canta \"Pelados em Santos\"?",
+"opcoes": [
+"Mamonas Assassinas",
+"Raimundos",
+"Charlie Brown Jr.",
+"Planet Hemp"
+],
+"curiosidade": "A banda ficou famosa em 1995.",
+"id": "MUS-060",
+"tema": "musica"
+},
+{
+"nivel": 2,
+"categoria": "Música brasileira",
+"enunciado": "Quem canta \"Travessia\" e \"Maria, Maria\"?",
+"opcoes": [
+"Milton Nascimento",
+"Djavan",
+"Gilberto Gil",
+"Ney Matogrosso"
+],
+"curiosidade": "Ele é do Clube da Esquina, de Minas Gerais.",
+"id": "MUS-061",
+"tema": "musica"
+},
+{
+"nivel": 2,
+"categoria": "Música brasileira",
+"enunciado": "Quem canta \"Anna Júlia\"?",
+"opcoes": [
+"Los Hermanos",
+"Pato Fu",
+"Jota Quest",
+"O Rappa"
+],
+"curiosidade": "Os Hermanos são do Rio de Janeiro.",
+"id": "MUS-062",
+"tema": "musica"
+},
+{
+"nivel": 2,
+"categoria": "Música brasileira",
+"enunciado": "Quem é o vocalista do Charlie Brown Jr.?",
+"opcoes": [
+"Chorão",
+"Marcelo Falcão",
+"Marcelo D2",
+"Samuel Rosa"
+],
+"curiosidade": "A banda é de Santos.",
+"id": "MUS-063",
+"tema": "musica"
+},
+{
+"nivel": 2,
+"categoria": "Música brasileira",
+"enunciado": "Quem é o vocalista do Capital Inicial?",
+"opcoes": [
+"Dinho Ouro Preto",
+"Renato Russo",
+"Cazuza",
+"Humberto Gessinger"
+],
+"curiosidade": "A banda é de Brasília.",
+"id": "MUS-064",
+"tema": "musica"
+},
+{
+"nivel": 2,
+"categoria": "Música brasileira",
+"enunciado": "Qual cantor interpreta \"Faroeste Caboclo\"?",
+"opcoes": [
+"Renato Russo",
+"Cazuza",
+"Lulu Santos",
+"Roberto Carlos"
+],
+"curiosidade": "A música tem mais de nove minutos.",
+"id": "MUS-065",
+"tema": "musica"
+},
+{
+"nivel": 3,
+"categoria": "Música brasileira",
+"enunciado": "Em qual cidade nasceu a bossa nova?",
+"opcoes": [
+"Rio de Janeiro",
+"São Paulo",
+"Salvador",
+"Recife"
+],
+"curiosidade": "O bairro símbolo é Copacabana.",
+"id": "MUS-066",
+"tema": "musica"
+},
+{
+"nivel": 3,
+"categoria": "Música brasileira",
+"enunciado": "Quem lançou o disco \"Chega de Saudade\", marco da bossa nova, em 1958?",
+"opcoes": [
+"João Gilberto",
+"Tom Jobim",
+"Vinicius de Moraes",
+"Carlos Lyra"
+],
+"curiosidade": "João Gilberto tocava com uma batida diferente no violão.",
+"id": "MUS-067",
+"tema": "musica"
+},
+{
+"nivel": 3,
+"categoria": "Música brasileira",
+"enunciado": "Qual cantora gravou \"Garota de Ipanema\" no álbum com Stan Getz?",
+"opcoes": [
+"Astrud Gilberto",
+"Elis Regina",
+"Nara Leão",
+"Maysa"
+],
+"curiosidade": "O álbum ganhou o Grammy de 1965.",
+"id": "MUS-068",
+"tema": "musica"
+},
+{
+"nivel": 3,
+"categoria": "Música brasileira",
+"enunciado": "Em qual cidade de Pernambuco nasceu Luiz Gonzaga?",
+"opcoes": [
+"Exu",
+"Recife",
+"Caruaru",
+"Olinda"
+],
+"curiosidade": "Exu fica no sertão pernambucano.",
+"id": "MUS-069",
+"tema": "musica"
+},
+{
+"nivel": 3,
+"categoria": "Música brasileira",
+"enunciado": "Quem compôs \"Carinhoso\", um dos choros mais famosos do Brasil?",
+"opcoes": [
+"Pixinguinha",
+"Villa-Lobos",
+"Chiquinha Gonzaga",
+"Ernesto Nazareth"
+],
+"curiosidade": "A letra é de João de Barro.",
+"id": "MUS-070",
+"tema": "musica"
+},
+{
+"nivel": 3,
+"categoria": "Música brasileira",
+"enunciado": "Quem compôs \"Pra Não Dizer que Não Falei das Flores\"?",
+"opcoes": [
+"Geraldo Vandré",
+"Chico Buarque",
+"Gilberto Gil",
+"Taiguara"
+],
+"curiosidade": "A música virou símbolo da resistência à ditadura.",
+"id": "MUS-071",
+"tema": "musica"
+},
+{
+"nivel": 3,
+"categoria": "Música brasileira",
+"enunciado": "Quem compôs \"Cálice\" junto com Chico Buarque?",
+"opcoes": [
+"Gilberto Gil",
+"Caetano Veloso",
+"Milton Nascimento",
+"Edu Lobo"
+],
+"curiosidade": "A música foi censurada na ditadura.",
+"id": "MUS-072",
+"tema": "musica"
+},
+{
+"nivel": 3,
+"categoria": "Música brasileira",
+"enunciado": "Qual banda cantou \"Primeiros Erros\"?",
+"opcoes": [
+"Capital Inicial",
+"Legião Urbana",
+"Titãs",
+"Plebe Rude"
+],
+"curiosidade": "O vocalista é Dinho Ouro Preto.",
+"id": "MUS-073",
+"tema": "musica"
+},
+{
+"nivel": 3,
+"categoria": "Música brasileira",
+"enunciado": "Quem é o vocalista da banda Os Paralamas do Sucesso?",
+"opcoes": [
+"Herbert Vianna",
+"Renato Russo",
+"Samuel Rosa",
+"Dinho Ouro Preto"
+],
+"curiosidade": "Herbert sofreu um acidente de ultraleve em 2001.",
+"id": "MUS-074",
+"tema": "musica"
+},
+{
+"nivel": 3,
+"categoria": "Música brasileira",
+"enunciado": "Qual movimento musical de Recife foi criado por Chico Science & Nação Zumbi?",
+"opcoes": [
+"Manguebeat",
+"Tropicália",
+"Bossa nova",
+"Samba-reggae"
+],
+"curiosidade": "O símbolo do movimento é a caranguejo com antenas.",
+"id": "MUS-075",
+"tema": "musica"
+},
+{
+"nivel": 3,
+"categoria": "Música brasileira",
+"enunciado": "Qual bloco da Bahia ajudou a criar o samba-reggae?",
+"opcoes": [
+"Olodum",
+"Mangueira",
+"Cacique de Ramos",
+"Salgueiro"
+],
+"curiosidade": "O Olodum fica no Pelourinho.",
+"id": "MUS-076",
+"tema": "musica"
+},
+{
+"nivel": 3,
+"categoria": "Música brasileira",
+"enunciado": "Qual instrumento Almir Sater toca?",
+"opcoes": [
+"Viola caipira",
+"Sanfona",
+"Cavaquinho",
+"Violino"
+],
+"curiosidade": "Ele é conhecido por \"Tocando em Frente\".",
+"id": "MUS-077",
+"tema": "musica"
+},
+{
+"nivel": 3,
+"categoria": "Música brasileira",
+"enunciado": "Quem canta \"Admirável Gado Novo\" e \"Chão de Giz\"?",
+"opcoes": [
+"Zé Ramalho",
+"Alceu Valença",
+"Geraldo Azevedo",
+"Elba Ramalho"
+],
+"curiosidade": "Zé Ramalho nasceu na Paraíba.",
+"id": "MUS-078",
+"tema": "musica"
+},
+{
+"nivel": 3,
+"categoria": "Música brasileira",
+"enunciado": "Quem canta \"Lança Perfume\" e \"Ovelha Negra\"?",
+"opcoes": [
+"Rita Lee",
+"Gal Costa",
+"Marina Lima",
+"Elis Regina"
+],
+"curiosidade": "Rita Lee faleceu em 2023.",
+"id": "MUS-079",
+"tema": "musica"
+},
+{
+"nivel": 3,
+"categoria": "Música brasileira",
+"enunciado": "Quem canta \"Nem Um Dia\" e \"Oceano\"?",
+"opcoes": [
+"Djavan",
+"Caetano Veloso",
+"Milton Nascimento",
+"Ed Motta"
+],
+"curiosidade": "Djavan nasceu em Maceió, Alagoas.",
+"id": "MUS-080",
+"tema": "musica"
+},
+{
+"nivel": 3,
+"categoria": "Música brasileira",
+"enunciado": "De qual estado é a banda Sepultura?",
+"opcoes": [
+"Minas Gerais",
+"São Paulo",
+"Rio de Janeiro",
+"Bahia"
+],
+"curiosidade": "A banda é de Belo Horizonte.",
+"id": "MUS-081",
+"tema": "musica"
+},
+{
+"nivel": 3,
+"categoria": "Música brasileira",
+"enunciado": "Qual dança é típica do Maranhão, com bois coloridos e música de pandeirões?",
+"opcoes": [
+"Bumba meu boi",
+"Frevo",
+"Carimbó",
+"Jongo"
+],
+"curiosidade": "A festa acontece principalmente em junho.",
+"id": "MUS-082",
+"tema": "musica"
+},
+{
+"nivel": 3,
+"categoria": "Música brasileira",
+"enunciado": "Em qual estado acontece o famoso Festival de Parintins, com os bois Garantido e Caprichoso?",
+"opcoes": [
+"Amazonas",
+"Pará",
+"Maranhão",
+"Acre"
+],
+"curiosidade": "O festival acontece em junho.",
+"id": "MUS-083",
+"tema": "musica"
+},
+{
+"nivel": 3,
+"categoria": "Música brasileira",
+"enunciado": "Em qual cidade nasceu Roberto Carlos?",
+"opcoes": [
+"Cachoeiro de Itapemirim",
+"Rio de Janeiro",
+"Salvador",
+"Vitória"
+],
+"curiosidade": "A cidade fica no Espírito Santo.",
+"id": "MUS-084",
+"tema": "musica"
+},
+{
+"nivel": 3,
+"categoria": "Música brasileira",
+"enunciado": "Quem compõe muitos sucessos em parceria com Roberto Carlos?",
+"opcoes": [
+"Erasmo Carlos",
+"Tim Maia",
+"Jorge Ben",
+"Wando"
+],
+"curiosidade": "Erasmo era chamado de \"Tremendão\".",
+"id": "MUS-085",
+"tema": "musica"
+},
+{
+"nivel": 3,
+"categoria": "Música brasileira",
+"enunciado": "Quem compôs as \"Bachianas Brasileiras\"?",
+"opcoes": [
+"Heitor Villa-Lobos",
+"Carlos Gomes",
+"Ernesto Nazareth",
+"Pixinguinha"
+],
+"curiosidade": "Villa-Lobos é o maior compositor erudito do Brasil.",
+"id": "MUS-086",
+"tema": "musica"
+},
+{
+"nivel": 3,
+"categoria": "Música brasileira",
+"enunciado": "Quem era o vocalista dos Secos & Molhados?",
+"opcoes": [
+"Ney Matogrosso",
+"Cazuza",
+"Caetano Veloso",
+"Erasmo Carlos"
+],
+"curiosidade": "A banda fez sucesso em 1973.",
+"id": "MUS-087",
+"tema": "musica"
+},
+{
+"nivel": 3,
+"categoria": "Música brasileira",
+"enunciado": "Qual banda tem Arnaldo Antunes, Paulo Miklos, Nando Reis e Branco Mello?",
+"opcoes": [
+"Titãs",
+"Paralamas do Sucesso",
+"Barão Vermelho",
+"Ira!"
+],
+"curiosidade": "A banda foi formada em São Paulo em 1982.",
+"id": "MUS-088",
+"tema": "musica"
+},
+{
+"nivel": 3,
+"categoria": "Música brasileira",
+"enunciado": "Quem escreveu o samba \"Conversa de Botequim\"?",
+"opcoes": [
+"Noel Rosa",
+"Cartola",
+"Ary Barroso",
+"Adoniran Barbosa"
+],
+"curiosidade": "Noel Rosa era de Vila Isabel.",
+"id": "MUS-089",
+"tema": "musica"
+},
+{
+"nivel": 3,
+"categoria": "Música brasileira",
+"enunciado": "Quem é o autor de \"Trem das Onze\"?",
+"opcoes": [
+"Adoniran Barbosa",
+"Noel Rosa",
+"Cartola",
+"Dorival Caymmi"
+],
+"curiosidade": "A canção fala de São Paulo.",
+"id": "MUS-090",
+"tema": "musica"
+},
+{
+"nivel": 3,
+"categoria": "Música brasileira",
+"enunciado": "Quem cantou \"Mas Que Nada\", sucesso mundial com Sérgio Mendes?",
+"opcoes": [
+"Jorge Ben Jor",
+"Tim Maia",
+"Gilberto Gil",
+"Wilson Simonal"
+],
+"curiosidade": "A música foi composta por Jorge Ben.",
+"id": "MUS-091",
+"tema": "musica"
+},
+{
+"nivel": 3,
+"categoria": "Música brasileira",
+"enunciado": "Quem gravou \"O Mar Serenou\" e \"Conto de Areia\"?",
+"opcoes": [
+"Clara Nunes",
+"Beth Carvalho",
+"Alcione",
+"Elza Soares"
+],
+"curiosidade": "Clara Nunes era mineira.",
+"id": "MUS-092",
+"tema": "musica"
+},
+{
+"nivel": 3,
+"categoria": "Música brasileira",
+"enunciado": "Quem é chamada de \"Madrinha do Samba\"?",
+"opcoes": [
+"Beth Carvalho",
+"Alcione",
+"Clara Nunes",
+"Dona Ivone Lara"
+],
+"curiosidade": "Ela lançou o grupo Fundo de Quintal.",
+"id": "MUS-093",
+"tema": "musica"
+},
+{
+"nivel": 3,
+"categoria": "Música brasileira",
+"enunciado": "Qual instrumento de sopro é tradicional no choro, junto com o cavaquinho e o violão?",
+"opcoes": [
+"Flauta",
+"Tuba",
+"Trombone",
+"Clarinete baixo"
+],
+"curiosidade": "Pixinguinha ajudou a consagrar o choro.",
+"id": "MUS-094",
+"tema": "musica"
+},
+{
+"nivel": 3,
+"categoria": "Música brasileira",
+"enunciado": "Qual banda carioca canta \"Pro Dia Nascer Feliz\"?",
+"opcoes": [
+"Barão Vermelho",
+"Legião Urbana",
+"Titãs",
+"Kid Abelha"
+],
+"curiosidade": "Cazuza foi o vocalista na época.",
+"id": "MUS-095",
+"tema": "musica"
+},
+{
+"nivel": 3,
+"categoria": "Música brasileira",
+"enunciado": "Qual compositor baiano escreveu \"O Que É Que a Baiana Tem?\" e \"Samba da Minha Terra\"?",
+"opcoes": [
+"Dorival Caymmi",
+"Gilberto Gil",
+"Jorge Ben",
+"Vinicius de Moraes"
+],
+"curiosidade": "Caymmi cantava as belezas e os costumes da Bahia.",
+"id": "MUS-096",
+"tema": "musica"
+},
+{
+"nivel": 4,
+"categoria": "Música brasileira",
+"enunciado": "Quem é o autor de \"Pelo Telefone\", considerado o primeiro samba gravado?",
+"opcoes": [
+"Donga",
+"Pixinguinha",
+"Cartola",
+"Noel Rosa"
+],
+"curiosidade": "Foi registrado em 1917.",
+"id": "MUS-097",
+"tema": "musica"
+},
+{
+"nivel": 4,
+"categoria": "Música brasileira",
+"enunciado": "Qual filme da Disney de 1942 apresenta \"Aquarela do Brasil\" e o personagem Zé Carioca?",
+"opcoes": [
+"Alô, Amigos",
+"Fantasia",
+"Bambi",
+"Dumbo"
+],
+"curiosidade": "O filme foi feito durante a Política da Boa Vizinhança.",
+"id": "MUS-098",
+"tema": "musica"
+},
+{
+"nivel": 4,
+"categoria": "Música brasileira",
+"enunciado": "Qual compositor criou \"Águas de Março\" e \"Wave\"?",
+"opcoes": [
+"Tom Jobim",
+"Carlos Lyra",
+"Roberto Menescal",
+"Baden Powell"
+],
+"curiosidade": "Tom Jobim nasceu no Rio de Janeiro.",
+"id": "MUS-099",
+"tema": "musica"
+},
+{
+"nivel": 4,
+"categoria": "Música brasileira",
+"enunciado": "Quem compôs \"Ô Abre Alas\", considerada a primeira marcha de carnaval?",
+"opcoes": [
+"Chiquinha Gonzaga",
+"Pixinguinha",
+"Ernesto Nazareth",
+"Carmen Miranda"
+],
+"curiosidade": "A música é de 1899.",
+"id": "MUS-100",
+"tema": "musica"
+},
+{
+"nivel": 4,
+"categoria": "Música brasileira",
+"enunciado": "Quem cantou \"Disparada\" no festival da TV Record de 1966?",
+"opcoes": [
+"Jair Rodrigues",
+"Chico Buarque",
+"Geraldo Vandré",
+"Elis Regina"
+],
+"curiosidade": "Empatou com \"A Banda\", de Chico Buarque.",
+"id": "MUS-101",
+"tema": "musica"
+},
+{
+"nivel": 4,
+"categoria": "Música brasileira",
+"enunciado": "Quem era chamado de \"Rei da Voz\" nos tempos do rádio?",
+"opcoes": [
+"Francisco Alves",
+"Orlando Silva",
+"Silvio Caldas",
+"Cauby Peixoto"
+],
+"curiosidade": "Ele fez muito sucesso nos anos 30 e 40.",
+"id": "MUS-102",
+"tema": "musica"
+},
+{
+"nivel": 4,
+"categoria": "Música brasileira",
+"enunciado": "Quem era chamado de \"Poeta da Vila\"?",
+"opcoes": [
+"Noel Rosa",
+"Cartola",
+"Nelson Cavaquinho",
+"Wilson Batista"
+],
+"curiosidade": "Vila Isabel é um bairro do Rio.",
+"id": "MUS-103",
+"tema": "musica"
+},
+{
+"nivel": 4,
+"categoria": "Música brasileira",
+"enunciado": "Qual música de Dorival Caymmi foi cantada por Carmen Miranda no filme \"Banana da Terra\"?",
+"opcoes": [
+"O Que É Que a Baiana Tem?",
+"Aquarela do Brasil",
+"Samba da Minha Terra",
+"Marina"
+],
+"curiosidade": "Foi um dos primeiros sucessos de Carmen.",
+"id": "MUS-104",
+"tema": "musica"
+},
+{
+"nivel": 4,
+"categoria": "Música brasileira",
+"enunciado": "Qual disco de 1972 dos Novos Baianos é um marco do rock e do samba brasileiros?",
+"opcoes": [
+"Acabou Chorare",
+"Clube da Esquina",
+"Ou Não",
+"Transa"
+],
+"curiosidade": "O disco tem a música \"Preta Pretinha\".",
+"id": "MUS-105",
+"tema": "musica"
+},
+{
+"nivel": 4,
+"categoria": "Música brasileira",
+"enunciado": "Quem cantou \"Minha Alma (A Paz que Eu Não Quero)\"?",
+"opcoes": [
+"O Rappa",
+"Skank",
+"Planet Hemp",
+"Charlie Brown Jr."
+],
+"curiosidade": "O Rappa é do Rio de Janeiro.",
+"id": "MUS-106",
+"tema": "musica"
+},
+{
+"nivel": 4,
+"categoria": "Música brasileira",
+"enunciado": "Qual cantor foi ministro da Cultura do Brasil de 2003 a 2008?",
+"opcoes": [
+"Gilberto Gil",
+"Caetano Veloso",
+"Chico Buarque",
+"Milton Nascimento"
+],
+"curiosidade": "Gil nasceu em Salvador.",
+"id": "MUS-107",
+"tema": "musica"
+},
+{
+"nivel": 4,
+"categoria": "Música brasileira",
+"enunciado": "De qual estado vem a banda Engenheiros do Hawaii?",
+"opcoes": [
+"Rio Grande do Sul",
+"Santa Catarina",
+"Paraná",
+"São Paulo"
+],
+"curiosidade": "A banda é de Porto Alegre.",
+"id": "MUS-108",
+"tema": "musica"
+},
+{
+"nivel": 4,
+"categoria": "Música brasileira",
+"enunciado": "Em qual cidade acontece a história de \"Eduardo e Mônica\", da Legião Urbana?",
+"opcoes": [
+"Brasília",
+"Rio de Janeiro",
+"São Paulo",
+"Belo Horizonte"
+],
+"curiosidade": "A música conta a história de um casal muito diferente.",
+"id": "MUS-109",
+"tema": "musica"
+},
+{
+"nivel": 4,
+"categoria": "Música brasileira",
+"enunciado": "Qual álbum do Sepultura, de 1996, mistura metal com ritmos brasileiros?",
+"opcoes": [
+"Roots",
+"Chaos A.D.",
+"Beneath the Remains",
+"Arise"
+],
+"curiosidade": "O disco usou percussão de tribos indígenas.",
+"id": "MUS-110",
+"tema": "musica"
+},
+{
+"nivel": 4,
+"categoria": "Música brasileira",
+"enunciado": "Qual disco dos Titãs, de 1986, tem \"Polícia\" e \"Bichos Escrotos\"?",
+"opcoes": [
+"Cabeça Dinossauro",
+"Jesus Não Tem Dentes no País dos Banguelas",
+"Õ Blésq Blom",
+"Televisão"
+],
+"curiosidade": "O disco é considerado um clássico do rock nacional.",
+"id": "MUS-111",
+"tema": "musica"
+},
+{
+"nivel": 4,
+"categoria": "Música brasileira",
+"enunciado": "Qual ritmo, dançado a dois e muito sensual, nasceu no Pará nos anos 80?",
+"opcoes": [
+"Lambada",
+"Carimbó",
+"Forró",
+"Xote"
+],
+"curiosidade": "Ficou famosa no mundo nos anos 80.",
+"id": "MUS-112",
+"tema": "musica"
+},
+{
+"nivel": 4,
+"categoria": "Música brasileira",
+"enunciado": "Qual choro de Waldir Azevedo é um dos mais famosos do Brasil?",
+"opcoes": [
+"Brasileirinho",
+"Carinhoso",
+"Tico-Tico no Fubá",
+"Noites Cariocas"
+],
+"curiosidade": "Waldir Azevedo tocava cavaquinho.",
+"id": "MUS-113",
+"tema": "musica"
+},
+{
+"nivel": 4,
+"categoria": "Música brasileira",
+"enunciado": "Quem compôs \"Chega de Saudade\"?",
+"opcoes": [
+"Tom Jobim e Vinicius de Moraes",
+"João Gilberto e Caetano Veloso",
+"Carlos Lyra e Chico Buarque",
+"Roberto Menescal e Ronaldo Bôscoli"
+],
+"curiosidade": "A música foi gravada por Elizeth Cardoso e depois João Gilberto.",
+"id": "MUS-114",
+"tema": "musica"
+},
+{
+"nivel": 4,
+"categoria": "Música brasileira",
+"enunciado": "Quem era o vocalista do grupo de rock Barão Vermelho no início?",
+"opcoes": [
+"Cazuza",
+"Renato Russo",
+"Lobão",
+"Frejat"
+],
+"curiosidade": "Frejat assumiu depois da saída de Cazuza.",
+"id": "MUS-115",
+"tema": "musica"
+},
+{
+"nivel": 4,
+"categoria": "Música brasileira",
+"enunciado": "Qual cantora é a voz de \"Folhetim\" e \"Meu Nome É Gal\"?",
+"opcoes": [
+"Gal Costa",
+"Elis Regina",
+"Maria Bethânia",
+"Rita Lee"
+],
+"curiosidade": "Gal Costa nasceu em Salvador.",
+"id": "MUS-116",
+"tema": "musica"
+},
+{
+"nivel": 4,
+"categoria": "Música brasileira",
+"enunciado": "Em qual cidade nasceu Tom Jobim?",
+"opcoes": [
+"Rio de Janeiro",
+"São Paulo",
+"Salvador",
+"Belo Horizonte"
+],
+"curiosidade": "Ele morreu em Nova York em 1994.",
+"id": "MUS-117",
+"tema": "musica"
+},
+{
+"nivel": 4,
+"categoria": "Música brasileira",
+"enunciado": "Em qual cidade nasceu Gilberto Gil?",
+"opcoes": [
+"Salvador",
+"Recife",
+"Rio de Janeiro",
+"São Paulo"
+],
+"curiosidade": "Gil é um dos fundadores da Tropicália.",
+"id": "MUS-118",
+"tema": "musica"
+},
+{
+"nivel": 4,
+"categoria": "Música brasileira",
+"enunciado": "Em qual cidade nasceu Chico Buarque?",
+"opcoes": [
+"Rio de Janeiro",
+"São Paulo",
+"Belo Horizonte",
+"Salvador"
+],
+"curiosidade": "Chico é filho do historiador Sérgio Buarque de Holanda.",
+"id": "MUS-119",
+"tema": "musica"
+},
+{
+"nivel": 4,
+"categoria": "Música brasileira",
+"enunciado": "Em qual cidade nasceu Elis Regina?",
+"opcoes": [
+"Porto Alegre",
+"Rio de Janeiro",
+"São Paulo",
+"Curitiba"
+],
+"curiosidade": "Elis morreu em 1982.",
+"id": "MUS-120",
+"tema": "musica"
+},
+{
+"nivel": 4,
+"categoria": "Música brasileira",
+"enunciado": "Em qual cidade nasceu Raul Seixas?",
+"opcoes": [
+"Salvador",
+"Recife",
+"Rio de Janeiro",
+"São Paulo"
+],
+"curiosidade": "Raul morreu em 1989.",
+"id": "MUS-121",
+"tema": "musica"
+},
+{
+"nivel": 4,
+"categoria": "Música brasileira",
+"enunciado": "Qual cantor é chamado de \"Rei do Brega\"?",
+"opcoes": [
+"Reginaldo Rossi",
+"Amado Batista",
+"Waldick Soriano",
+"Odair José"
+],
+"curiosidade": "Reginaldo nasceu em Recife.",
+"id": "MUS-122",
+"tema": "musica"
+},
+{
+"nivel": 4,
+"categoria": "Música brasileira",
+"enunciado": "Qual é o nome do tipo de música sertaneja de raiz, cantada por duplas com viola?",
+"opcoes": [
+"Música caipira",
+"Axé",
+"Frevo",
+"Carimbó"
+],
+"curiosidade": "A música caipira vem do interior de São Paulo e Minas.",
+"id": "MUS-123",
+"tema": "musica"
+},
+{
+"nivel": 4,
+"categoria": "Música brasileira",
+"enunciado": "Quem canta \"Cheia de Manias\"?",
+"opcoes": [
+"Raça Negra",
+"Grupo Revelação",
+"Exaltasamba",
+"Molejo"
+],
+"curiosidade": "Raça Negra é um dos grupos mais populares do pagode romântico.",
+"id": "MUS-124",
+"tema": "musica"
+},
+{
+"nivel": 4,
+"categoria": "Música brasileira",
+"enunciado": "Qual banda mineira canta \"Dias Melhores\" e \"Fácil\"?",
+"opcoes": [
+"Jota Quest",
+"Skank",
+"Pato Fu",
+"Tianastácia"
+],
+"curiosidade": "O vocalista é Rogério Flausino.",
+"id": "MUS-125",
+"tema": "musica"
+},
+{
+"nivel": 4,
+"categoria": "Música brasileira",
+"enunciado": "Qual cantor popularizou a \"Pilantragem\" nos anos 60?",
+"opcoes": [
+"Wilson Simonal",
+"Jair Rodrigues",
+"Jorge Ben",
+"Roberto Carlos"
+],
+"curiosidade": "Simonal foi um dos grandes nomes da TV da época.",
+"id": "MUS-126",
+"tema": "musica"
+},
+{
+"nivel": 5,
+"categoria": "Música brasileira",
+"enunciado": "Em que ano foi gravado \"Pelo Telefone\", considerado o primeiro samba?",
+"opcoes": [
+"1917",
+"1902",
+"1930",
+"1945"
+],
+"curiosidade": "Foi registrado na Biblioteca Nacional em 1916.",
+"id": "MUS-127",
+"tema": "musica"
+},
+{
+"nivel": 5,
+"categoria": "Música brasileira",
+"enunciado": "Quem escreveu a letra de \"Carinhoso\", de Pixinguinha?",
+"opcoes": [
+"João de Barro",
+"Vinicius de Moraes",
+"Noel Rosa",
+"Cartola"
+],
+"curiosidade": "João de Barro também é conhecido como Braguinha.",
+"id": "MUS-128",
+"tema": "musica"
+},
+{
+"nivel": 5,
+"categoria": "Música brasileira",
+"enunciado": "Quem compôs o \"Hino Nacional Brasileiro\" (a música)?",
+"opcoes": [
+"Francisco Manuel da Silva",
+"Carlos Gomes",
+"Villa-Lobos",
+"Pixinguinha"
+],
+"curiosidade": "A letra é de Joaquim Osório Duque Estrada.",
+"id": "MUS-129",
+"tema": "musica"
+},
+{
+"nivel": 5,
+"categoria": "Música brasileira",
+"enunciado": "Quem escreveu a letra do \"Hino Nacional Brasileiro\"?",
+"opcoes": [
+"Osório Duque Estrada",
+"Olavo Bilac",
+"Castro Alves",
+"Machado de Assis"
+],
+"curiosidade": "A letra foi oficializada em 1922.",
+"id": "MUS-130",
+"tema": "musica"
+},
+{
+"nivel": 5,
+"categoria": "Música brasileira",
+"enunciado": "Quem compôs a ópera \"O Guarani\"?",
+"opcoes": [
+"Carlos Gomes",
+"Villa-Lobos",
+"Chiquinha Gonzaga",
+"Francisco Mignone"
+],
+"curiosidade": "Carlos Gomes nasceu em Campinas.",
+"id": "MUS-131",
+"tema": "musica"
+},
+{
+"nivel": 5,
+"categoria": "Música brasileira",
+"enunciado": "Quem compôs a canção \"Tocando em Frente\", com Almir Sater?",
+"opcoes": [
+"Renato Teixeira",
+"Zé Ramalho",
+"Sérgio Reis",
+"Rolando Boldrin"
+],
+"curiosidade": "A música virou um hino de superação.",
+"id": "MUS-132",
+"tema": "musica"
+},
+{
+"nivel": 5,
+"categoria": "Música brasileira",
+"enunciado": "Em qual bloco carioca nasceu o grupo Fundo de Quintal?",
+"opcoes": [
+"Cacique de Ramos",
+"Cordão da Bola Preta",
+"Bafo da Onça",
+"Simpatia é Quase Amor"
+],
+"curiosidade": "O grupo ajudou a criar o pagode moderno.",
+"id": "MUS-133",
+"tema": "musica"
+},
+{
+"nivel": 5,
+"categoria": "Música brasileira",
+"enunciado": "Qual música Caetano Veloso apresentou no Festival da Record de 1967?",
+"opcoes": [
+"Alegria, Alegria",
+"Domingo no Parque",
+"Roda Viva",
+"Ponteio"
+],
+"curiosidade": "Gilberto Gil apresentou \"Domingo no Parque\".",
+"id": "MUS-134",
+"tema": "musica"
+},
+{
+"nivel": 5,
+"categoria": "Música brasileira",
+"enunciado": "Qual álbum de João Gilberto e Stan Getz ganhou o Grammy de Álbum do Ano?",
+"opcoes": [
+"Getz/Gilberto",
+"Chega de Saudade",
+"Elis & Tom",
+"Wave"
+],
+"curiosidade": "O Grammy foi entregue em 1965.",
+"id": "MUS-135",
+"tema": "musica"
+},
+{
+"nivel": 5,
+"categoria": "Música brasileira",
+"enunciado": "Quem compôs \"Samba de Uma Nota Só\" com Tom Jobim?",
+"opcoes": [
+"Newton Mendonça",
+"Vinicius de Moraes",
+"Carlos Lyra",
+"Baden Powell"
+],
+"curiosidade": "A música usa praticamente uma única nota na melodia.",
+"id": "MUS-136",
+"tema": "musica"
+},
+{
+"nivel": 5,
+"categoria": "Música brasileira",
+"enunciado": "Em qual cidade nasceu Caetano Veloso?",
+"opcoes": [
+"Santo Amaro",
+"Salvador",
+"Recife",
+"Rio de Janeiro"
+],
+"curiosidade": "Santo Amaro fica no Recôncavo Baiano.",
+"id": "MUS-137",
+"tema": "musica"
+},
+{
+"nivel": 5,
+"categoria": "Música brasileira",
+"enunciado": "Em qual cidade nasceu Cartola?",
+"opcoes": [
+"Rio de Janeiro",
+"Salvador",
+"São Paulo",
+"Belo Horizonte"
+],
+"curiosidade": "Cartola é um dos fundadores da Mangueira.",
+"id": "MUS-138",
+"tema": "musica"
+},
+{
+"nivel": 5,
+"categoria": "Música brasileira",
+"enunciado": "Em qual cidade nasceu Renato Russo?",
+"opcoes": [
+"Rio de Janeiro",
+"Brasília",
+"São Paulo",
+"Belo Horizonte"
+],
+"curiosidade": "Ele se mudou para Brasília ainda criança.",
+"id": "MUS-139",
+"tema": "musica"
+},
+{
+"nivel": 5,
+"categoria": "Música brasileira",
+"enunciado": "Em qual cidade nasceu Tim Maia?",
+"opcoes": [
+"Rio de Janeiro",
+"São Paulo",
+"Salvador",
+"Belo Horizonte"
+],
+"curiosidade": "Tim Maia morreu em 1998.",
+"id": "MUS-140",
+"tema": "musica"
+},
+{
+"nivel": 5,
+"categoria": "Música brasileira",
+"enunciado": "Em qual cidade nasceu Rita Lee?",
+"opcoes": [
+"São Paulo",
+"Rio de Janeiro",
+"Salvador",
+"Belo Horizonte"
+],
+"curiosidade": "Rita Lee nasceu em 1947.",
+"id": "MUS-141",
+"tema": "musica"
+},
+{
+"nivel": 5,
+"categoria": "Música brasileira",
+"enunciado": "Qual banda lançou o álbum \"Dois\", em 1986, com \"Eduardo e Mônica\" e \"Tempo Perdido\"?",
+"opcoes": [
+"Legião Urbana",
+"Titãs",
+"Paralamas do Sucesso",
+"Capital Inicial"
+],
+"curiosidade": "O disco foi um dos mais vendidos do rock nacional.",
+"id": "MUS-142",
+"tema": "musica"
+},
+{
+"nivel": 5,
+"categoria": "Música brasileira",
+"enunciado": "Qual disco dos Paralamas do Sucesso, de 1986, tem \"Alagados\" e \"Melô do Marinheiro\"?",
+"opcoes": [
+"Selvagem?",
+"Cabeça Dinossauro",
+"O Passo do Lui",
+"Bora Bora"
+],
+"curiosidade": "O disco usa ritmos jamaicanos e brasileiros.",
+"id": "MUS-143",
+"tema": "musica"
+},
+{
+"nivel": 5,
+"categoria": "Música brasileira",
+"enunciado": "Qual disco de Milton Nascimento e Lô Borges, de 1972, deu nome a um movimento musical mineiro?",
+"opcoes": [
+"Clube da Esquina",
+"Acabou Chorare",
+"Tropicália",
+"Transa"
+],
+"curiosidade": "O Clube da Esquina nasceu em Belo Horizonte.",
+"id": "MUS-144",
+"tema": "musica"
+},
+{
+"nivel": 5,
+"categoria": "Música brasileira",
+"enunciado": "Quem gravou o álbum \"Falso Brilhante\", de 1976?",
+"opcoes": [
+"Elis Regina",
+"Gal Costa",
+"Maria Bethânia",
+"Rita Lee"
+],
+"curiosidade": "O show marcou a carreira da cantora.",
+"id": "MUS-145",
+"tema": "musica"
+},
+{
+"nivel": 5,
+"categoria": "Música brasileira",
+"enunciado": "Qual é o nome do tipo de cantoria do sertão em que dois cantadores improvisam versos?",
+"opcoes": [
+"Repente",
+"Embolada",
+"Coco",
+"Xaxado"
+],
+"curiosidade": "Os cantadores usam viola e rima na hora.",
+"id": "MUS-146",
+"tema": "musica"
+},
+{
+"nivel": 5,
+"categoria": "Música brasileira",
+"enunciado": "Quem compôs a marcha-rancho \"Cidade Maravilhosa\"?",
+"opcoes": [
+"André Filho",
+"Noel Rosa",
+"Lamartine Babo",
+"Ary Barroso"
+],
+"curiosidade": "A música foi composta em 1934.",
+"id": "MUS-147",
+"tema": "musica"
+},
+{
+"nivel": 5,
+"categoria": "Música brasileira",
+"enunciado": "Quem compôs a música \"Mulheres de Atenas\", junto com Augusto Boal?",
+"opcoes": [
+"Chico Buarque",
+"Gilberto Gil",
+"Vinicius de Moraes",
+"Edu Lobo"
+],
+"curiosidade": "A música fala de mulheres submissas aos maridos.",
+"id": "MUS-148",
+"tema": "musica"
+},
+{
+"nivel": 5,
+"categoria": "Música brasileira",
+"enunciado": "Qual compositor mineiro escreveu \"Ponteio\" com Capinam?",
+"opcoes": [
+"Edu Lobo",
+"Milton Nascimento",
+"Chico Buarque",
+"Geraldo Vandré"
+],
+"curiosidade": "A música ganhou o festival de 1967.",
+"id": "MUS-149",
+"tema": "musica"
+},
+{
+"nivel": 5,
+"categoria": "Música brasileira",
+"enunciado": "Qual rapper brasileiro canta \"Boa Esperança\" e \"Levanta e Anda\"?",
+"opcoes": [
+"Emicida",
+"Criolo",
+"Projota",
+"Racionais MC's"
+],
+"curiosidade": "Emicida nasceu em São Paulo.",
+"id": "MUS-150",
+"tema": "musica"
+},
+{
+"nivel": 5,
+"categoria": "Música brasileira",
+"enunciado": "Qual banda canta \"Onde Você Mora?\" e \"A Cor do Sol\"?",
+"opcoes": [
+"Cidade Negra",
+"Skank",
+"Jota Quest",
+"O Rappa"
+],
+"curiosidade": "O vocalista Toni Garrido interpretou a música.",
+"id": "MUS-151",
+"tema": "musica"
+},
+{
+"nivel": 5,
+"categoria": "Música brasileira",
+"enunciado": "Em qual cidade nasceu Cazuza?",
+"opcoes": [
+"Rio de Janeiro",
+"São Paulo",
+"Salvador",
+"Belo Horizonte"
+],
+"curiosidade": "Cazuza era filho do produtor João Araújo.",
+"id": "MUS-152",
+"tema": "musica"
+},
+{
+"nivel": 5,
+"categoria": "Música brasileira",
+"enunciado": "Em qual cidade nasceu Dorival Caymmi?",
+"opcoes": [
+"Salvador",
+"Recife",
+"Rio de Janeiro",
+"Santos"
+],
+"curiosidade": "Ele escreveu \"Maracangalha\" e \"Samba da Minha Terra\".",
+"id": "MUS-153",
+"tema": "musica"
+},
+{
+"nivel": 5,
+"categoria": "Música brasileira",
+"enunciado": "Quem compôs \"Asa Branca\" com Luiz Gonzaga?",
+"opcoes": [
+"Humberto Teixeira",
+"Zé Dantas",
+"Dominguinhos",
+"Gonzaguinha"
+],
+"curiosidade": "Humberto Teixeira era advogado e compositor cearense.",
+"id": "MUS-154",
+"tema": "musica"
+},
+{
+"nivel": 5,
+"categoria": "Música brasileira",
+"enunciado": "Quem compôs \"Samba de Verão\"?",
+"opcoes": [
+"Marcos Valle",
+"Tom Jobim",
+"Roberto Menescal",
+"Carlos Lyra"
+],
+"curiosidade": "A música é de 1964 e foi gravada no mundo todo.",
+"id": "MUS-155",
+"tema": "musica"
+},
+{
+"nivel": 5,
+"categoria": "Música brasileira",
+"enunciado": "Em qual cidade nasceu Noel Rosa?",
+"opcoes": [
+"Rio de Janeiro",
+"São Paulo",
+"Salvador",
+"Niterói"
+],
+"curiosidade": "Noel nasceu no bairro de Vila Isabel.",
+"id": "MUS-156",
+"tema": "musica"
+}
+]

@@ -1,0 +1,2116 @@
+[
+{
+"nivel": 1,
+"categoria": "Futebol",
+"enunciado": "Qual time carioca tem as cores vermelho e preto?",
+"opcoes": [
+"Flamengo",
+"Vasco",
+"Fluminense",
+"Botafogo"
+],
+"curiosidade": "O Flamengo é o time com a maior torcida do Brasil.",
+"id": "FUT-001",
+"tema": "futebol"
+},
+{
+"nivel": 1,
+"categoria": "Futebol",
+"enunciado": "Qual clube carioca tem uma cruz de malta no escudo?",
+"opcoes": [
+"Vasco",
+"Flamengo",
+"Fluminense",
+"Botafogo"
+],
+"curiosidade": "O Vasco é chamado de \"Gigante da Colina\".",
+"id": "FUT-002",
+"tema": "futebol"
+},
+{
+"nivel": 1,
+"categoria": "Futebol",
+"enunciado": "Qual time carioca tem as cores verde, branco e grená?",
+"opcoes": [
+"Fluminense",
+"Flamengo",
+"Botafogo",
+"Vasco"
+],
+"curiosidade": "É chamado de \"Tricolor das Laranjeiras\".",
+"id": "FUT-003",
+"tema": "futebol"
+},
+{
+"nivel": 1,
+"categoria": "Futebol",
+"enunciado": "Qual clube carioca tem uma estrela solitária no escudo?",
+"opcoes": [
+"Botafogo",
+"Vasco",
+"Flamengo",
+"Fluminense"
+],
+"curiosidade": "A estrela solitária é o símbolo do clube.",
+"id": "FUT-004",
+"tema": "futebol"
+},
+{
+"nivel": 1,
+"categoria": "Futebol",
+"enunciado": "Qual é o estádio mais famoso do Rio de Janeiro, palco de duas finais de Copa do Mundo?",
+"opcoes": [
+"Maracanã",
+"São Januário",
+"Engenhão",
+"Mineirão"
+],
+"curiosidade": "Foi inaugurado em 1950.",
+"id": "FUT-005",
+"tema": "futebol"
+},
+{
+"nivel": 1,
+"categoria": "Futebol",
+"enunciado": "Quantos jogadores de cada time ficam em campo, contando o goleiro?",
+"opcoes": [
+"11",
+"9",
+"10",
+"12"
+],
+"curiosidade": "Cada time pode ter até cinco substituições em um jogo.",
+"id": "FUT-006",
+"tema": "futebol"
+},
+{
+"nivel": 1,
+"categoria": "Futebol",
+"enunciado": "Quanto tempo dura uma partida normal de futebol, sem acréscimos?",
+"opcoes": [
+"90 minutos",
+"60 minutos",
+"80 minutos",
+"100 minutos"
+],
+"curiosidade": "O jogo é dividido em dois tempos de 45 minutos.",
+"id": "FUT-007",
+"tema": "futebol"
+},
+{
+"nivel": 1,
+"categoria": "Futebol",
+"enunciado": "Qual cartão significa expulsão do jogador?",
+"opcoes": [
+"Vermelho",
+"Amarelo",
+"Azul",
+"Verde"
+],
+"curiosidade": "O cartão amarelo é uma advertência.",
+"id": "FUT-008",
+"tema": "futebol"
+},
+{
+"nivel": 1,
+"categoria": "Futebol",
+"enunciado": "Qual jogador é conhecido como o \"Rei do Futebol\"?",
+"opcoes": [
+"Pelé",
+"Zico",
+"Romário",
+"Ronaldo"
+],
+"curiosidade": "Pelé nasceu em Três Corações, Minas Gerais.",
+"id": "FUT-009",
+"tema": "futebol"
+},
+{
+"nivel": 1,
+"categoria": "Futebol",
+"enunciado": "Qual país sediou a Copa do Mundo de 2014?",
+"opcoes": [
+"Brasil",
+"Alemanha",
+"África do Sul",
+"Rússia"
+],
+"curiosidade": "A final foi no Maracanã.",
+"id": "FUT-010",
+"tema": "futebol"
+},
+{
+"nivel": 1,
+"categoria": "Futebol",
+"enunciado": "Quantas Copas do Mundo a seleção brasileira já ganhou?",
+"opcoes": [
+"5",
+"4",
+"3",
+"6"
+],
+"curiosidade": "O Brasil é o único pentacampeão mundial.",
+"id": "FUT-011",
+"tema": "futebol"
+},
+{
+"nivel": 1,
+"categoria": "Futebol",
+"enunciado": "Qual é a cor tradicional da camisa da seleção brasileira?",
+"opcoes": [
+"Amarela",
+"Verde",
+"Azul",
+"Branca"
+],
+"curiosidade": "A camisa azul é a segunda opção.",
+"id": "FUT-012",
+"tema": "futebol"
+},
+{
+"nivel": 1,
+"categoria": "Futebol",
+"enunciado": "Qual é o apelido da seleção brasileira de futebol?",
+"opcoes": [
+"Seleção Canarinho",
+"Seleção Tricolor",
+"Seleção Verde",
+"Seleção Amarelinha"
+],
+"curiosidade": "O apelido vem da camisa amarela.",
+"id": "FUT-013",
+"tema": "futebol"
+},
+{
+"nivel": 1,
+"categoria": "Futebol",
+"enunciado": "Qual craque brasileiro jogou no Santos, Barcelona e PSG e é conhecido por seus dribles?",
+"opcoes": [
+"Neymar",
+"Gabigol",
+"Vinícius Júnior",
+"Rodrygo"
+],
+"curiosidade": "Neymar começou no Santos.",
+"id": "FUT-014",
+"tema": "futebol"
+},
+{
+"nivel": 1,
+"categoria": "Futebol",
+"enunciado": "Qual é o apelido do Flamengo?",
+"opcoes": [
+"Mengão",
+"Fogão",
+"Tricolor",
+"Gigante"
+],
+"curiosidade": "A torcida é chamada de \"Nação Rubro-Negra\".",
+"id": "FUT-015",
+"tema": "futebol"
+},
+{
+"nivel": 1,
+"categoria": "Futebol",
+"enunciado": "Qual é o apelido do Botafogo?",
+"opcoes": [
+"Fogão",
+"Mengão",
+"Tricolor",
+"Cruzmaltino"
+],
+"curiosidade": "A torcida é chamada de \"Glorioso\".",
+"id": "FUT-016",
+"tema": "futebol"
+},
+{
+"nivel": 1,
+"categoria": "Futebol",
+"enunciado": "Qual é o apelido do Fluminense?",
+"opcoes": [
+"Tricolor das Laranjeiras",
+"Mengão",
+"Cruzmaltino",
+"Fogão"
+],
+"curiosidade": "O clube nasceu no bairro das Laranjeiras.",
+"id": "FUT-017",
+"tema": "futebol"
+},
+{
+"nivel": 1,
+"categoria": "Futebol",
+"enunciado": "Qual cartão é mostrado como advertência ao jogador?",
+"opcoes": [
+"Amarelo",
+"Vermelho",
+"Azul",
+"Verde"
+],
+"curiosidade": "Dois cartões amarelos equivalem a um vermelho.",
+"id": "FUT-018",
+"tema": "futebol"
+},
+{
+"nivel": 1,
+"categoria": "Futebol",
+"enunciado": "Qual é o nome do principal campeonato nacional de futebol do Brasil?",
+"opcoes": [
+"Campeonato Brasileiro",
+"Copa Libertadores",
+"Copa do Mundo",
+"Campeonato Carioca"
+],
+"curiosidade": "Também é chamado de Brasileirão.",
+"id": "FUT-019",
+"tema": "futebol"
+},
+{
+"nivel": 1,
+"categoria": "Futebol",
+"enunciado": "Qual seleção venceu a Copa do Mundo de 2022?",
+"opcoes": [
+"Argentina",
+"França",
+"Brasil",
+"Croácia"
+],
+"curiosidade": "A final foi contra a França, decidida nos pênaltis.",
+"id": "FUT-020",
+"tema": "futebol"
+},
+{
+"nivel": 1,
+"categoria": "Futebol",
+"enunciado": "Qual craque argentino foi campeão do mundo em 2022?",
+"opcoes": [
+"Messi",
+"Neymar",
+"Cristiano Ronaldo",
+"Mbappé"
+],
+"curiosidade": "Messi usava a camisa 10.",
+"id": "FUT-021",
+"tema": "futebol"
+},
+{
+"nivel": 1,
+"categoria": "Futebol",
+"enunciado": "Qual craque português é conhecido como CR7?",
+"opcoes": [
+"Cristiano Ronaldo",
+"Messi",
+"Neymar",
+"Bruno Fernandes"
+],
+"curiosidade": "CR7 são as iniciais e o número que ele usa.",
+"id": "FUT-022",
+"tema": "futebol"
+},
+{
+"nivel": 1,
+"categoria": "Futebol",
+"enunciado": "Qual é o nome do clássico entre Flamengo e Fluminense?",
+"opcoes": [
+"Fla-Flu",
+"Gre-Nal",
+"Clássico Vovô",
+"Clássico dos Milhões"
+],
+"curiosidade": "O Fla-Flu é um dos clássicos mais famosos do Brasil.",
+"id": "FUT-023",
+"tema": "futebol"
+},
+{
+"nivel": 1,
+"categoria": "Futebol",
+"enunciado": "Qual é o nome da cobrança de falta dentro da grande área, a 11 metros do gol?",
+"opcoes": [
+"Pênalti",
+"Escanteio",
+"Lateral",
+"Tiro de meta"
+],
+"curiosidade": "O goleiro enfrenta o batedor sozinho.",
+"id": "FUT-024",
+"tema": "futebol"
+},
+{
+"nivel": 1,
+"categoria": "Futebol",
+"enunciado": "Quantos pontos vale uma vitória no Campeonato Brasileiro?",
+"opcoes": [
+"3",
+"1",
+"2",
+"5"
+],
+"curiosidade": "O empate vale 1 ponto.",
+"id": "FUT-025",
+"tema": "futebol"
+},
+{
+"nivel": 1,
+"categoria": "Futebol",
+"enunciado": "Quantos tempos tem uma partida de futebol?",
+"opcoes": [
+"2",
+"3",
+"4",
+"1"
+],
+"curiosidade": "Há um intervalo de 15 minutos entre eles.",
+"id": "FUT-026",
+"tema": "futebol"
+},
+{
+"nivel": 1,
+"categoria": "Futebol",
+"enunciado": "Quais são as cores do Vasco da Gama?",
+"opcoes": [
+"Preto e branco",
+"Vermelho e preto",
+"Verde e branco",
+"Azul e branco"
+],
+"curiosidade": "A camisa é preta com uma faixa branca.",
+"id": "FUT-027",
+"tema": "futebol"
+},
+{
+"nivel": 1,
+"categoria": "Futebol",
+"enunciado": "Qual é o nome do campeonato de futebol disputado pelos clubes do estado do Rio de Janeiro?",
+"opcoes": [
+"Campeonato Carioca",
+"Campeonato Paulista",
+"Campeonato Mineiro",
+"Campeonato Gaúcho"
+],
+"curiosidade": "Reúne clubes como Flamengo, Fluminense, Vasco e Botafogo.",
+"id": "FUT-028",
+"tema": "futebol"
+},
+{
+"nivel": 1,
+"categoria": "Futebol",
+"enunciado": "Qual é o verdadeiro nome do Pelé?",
+"opcoes": [
+"Edson Arantes do Nascimento",
+"Arthur Antunes Coimbra",
+"Romário de Souza Faria",
+"Ronaldo Nazário de Lima"
+],
+"curiosidade": "Pelé nasceu em 1940.",
+"id": "FUT-029",
+"tema": "futebol"
+},
+{
+"nivel": 1,
+"categoria": "Futebol",
+"enunciado": "Qual jogador é o dono da camisa 10 histórica do Flamengo, apelidado de \"Galinho de Quintino\"?",
+"opcoes": [
+"Zico",
+"Júnior",
+"Leandro",
+"Adílio"
+],
+"curiosidade": "Zico é considerado o maior ídolo da história do clube.",
+"id": "FUT-030",
+"tema": "futebol"
+},
+{
+"nivel": 1,
+"categoria": "Futebol",
+"enunciado": "Quais são as cores da camisa da seleção da Argentina?",
+"opcoes": [
+"Celeste e branca",
+"Verde e amarela",
+"Vermelha e preta",
+"Azul e vermelha"
+],
+"curiosidade": "A camisa é listrada na vertical.",
+"id": "FUT-031",
+"tema": "futebol"
+},
+{
+"nivel": 2,
+"categoria": "Futebol",
+"enunciado": "Qual é o estádio do Vasco da Gama?",
+"opcoes": [
+"São Januário",
+"Maracanã",
+"Nilton Santos",
+"Luso Brasileiro"
+],
+"curiosidade": "O estádio foi inaugurado em 1927.",
+"id": "FUT-032",
+"tema": "futebol"
+},
+{
+"nivel": 2,
+"categoria": "Futebol",
+"enunciado": "Qual é o estádio do Botafogo, também chamado de Engenhão?",
+"opcoes": [
+"Nilton Santos",
+"São Januário",
+"Maracanã",
+"Estádio da Gávea"
+],
+"curiosidade": "O nome homenageia um dos maiores laterais da história.",
+"id": "FUT-033",
+"tema": "futebol"
+},
+{
+"nivel": 2,
+"categoria": "Futebol",
+"enunciado": "Qual é o principal torneio de clubes da América do Sul?",
+"opcoes": [
+"Copa Libertadores",
+"Copa do Brasil",
+"Copa América",
+"Copa Sul-Americana"
+],
+"curiosidade": "O vencedor disputa o Mundial de Clubes.",
+"id": "FUT-034",
+"tema": "futebol"
+},
+{
+"nivel": 2,
+"categoria": "Futebol",
+"enunciado": "Quantas Copas do Mundo Pelé ganhou?",
+"opcoes": [
+"3",
+"2",
+"4",
+"1"
+],
+"curiosidade": "Foi campeão em 1958, 1962 e 1970.",
+"id": "FUT-035",
+"tema": "futebol"
+},
+{
+"nivel": 2,
+"categoria": "Futebol",
+"enunciado": "Qual jogador é conhecido como \"Fenômeno\"?",
+"opcoes": [
+"Ronaldo",
+"Romário",
+"Neymar",
+"Adriano"
+],
+"curiosidade": "Ronaldo foi campeão do mundo em 1994 e 2002.",
+"id": "FUT-036",
+"tema": "futebol"
+},
+{
+"nivel": 2,
+"categoria": "Futebol",
+"enunciado": "Qual atacante, campeão da Copa de 1994, é chamado de \"Baixinho\"?",
+"opcoes": [
+"Romário",
+"Bebeto",
+"Ronaldo",
+"Zico"
+],
+"curiosidade": "Romário foi eleito o melhor jogador da Copa de 1994.",
+"id": "FUT-037",
+"tema": "futebol"
+},
+{
+"nivel": 2,
+"categoria": "Futebol",
+"enunciado": "Qual é o mascote do Flamengo?",
+"opcoes": [
+"Urubu",
+"Leão",
+"Gavião",
+"Cavalo"
+],
+"curiosidade": "O CT do clube se chama Ninho do Urubu.",
+"id": "FUT-038",
+"tema": "futebol"
+},
+{
+"nivel": 2,
+"categoria": "Futebol",
+"enunciado": "Em qual país foi disputada a Copa do Mundo de 2022?",
+"opcoes": [
+"Catar",
+"Rússia",
+"Emirados Árabes",
+"Estados Unidos"
+],
+"curiosidade": "Foi a primeira Copa disputada no fim do ano.",
+"id": "FUT-039",
+"tema": "futebol"
+},
+{
+"nivel": 2,
+"categoria": "Futebol",
+"enunciado": "Qual ídolo do Vasco é o maior artilheiro da história do clube?",
+"opcoes": [
+"Roberto Dinamite",
+"Romário",
+"Edmundo",
+"Juninho Pernambucano"
+],
+"curiosidade": "Roberto Dinamite marcou mais de 700 gols pelo Vasco.",
+"id": "FUT-040",
+"tema": "futebol"
+},
+{
+"nivel": 2,
+"categoria": "Futebol",
+"enunciado": "Qual ponta-direita do Botafogo é chamado de \"Alegria do Povo\"?",
+"opcoes": [
+"Garrincha",
+"Jairzinho",
+"Nilton Santos",
+"Didi"
+],
+"curiosidade": "Garrincha foi campeão do mundo em 1958 e 1962.",
+"id": "FUT-041",
+"tema": "futebol"
+},
+{
+"nivel": 2,
+"categoria": "Futebol",
+"enunciado": "Qual lateral do Botafogo era conhecido como \"Enciclopédia do Futebol\"?",
+"opcoes": [
+"Nilton Santos",
+"Garrincha",
+"Carlos Alberto Torres",
+"Marinho"
+],
+"curiosidade": "O estádio do Botafogo leva seu nome.",
+"id": "FUT-042",
+"tema": "futebol"
+},
+{
+"nivel": 2,
+"categoria": "Futebol",
+"enunciado": "Qual dos quatro grandes do Rio foi fundado em 1902?",
+"opcoes": [
+"Fluminense",
+"Flamengo",
+"Botafogo",
+"Vasco"
+],
+"curiosidade": "É um dos clubes mais antigos do futebol brasileiro.",
+"id": "FUT-043",
+"tema": "futebol"
+},
+{
+"nivel": 2,
+"categoria": "Futebol",
+"enunciado": "Em que ano o Flamengo foi campeão mundial, vencendo o Liverpool?",
+"opcoes": [
+"1981",
+"1977",
+"1985",
+"1992"
+],
+"curiosidade": "O jogo foi disputado em Tóquio.",
+"id": "FUT-044",
+"tema": "futebol"
+},
+{
+"nivel": 2,
+"categoria": "Futebol",
+"enunciado": "Qual craque liderou o Flamengo campeão mundial de 1981?",
+"opcoes": [
+"Zico",
+"Romário",
+"Bebeto",
+"Júnior Baiano"
+],
+"curiosidade": "Zico também jogou na Itália e no Japão.",
+"id": "FUT-045",
+"tema": "futebol"
+},
+{
+"nivel": 2,
+"categoria": "Futebol",
+"enunciado": "Qual treinador português comandou o Flamengo no título da Libertadores de 2019?",
+"opcoes": [
+"Jorge Jesus",
+"Abel Ferreira",
+"Vítor Pereira",
+"Tite"
+],
+"curiosidade": "O clube também ganhou o Brasileirão naquele ano.",
+"id": "FUT-046",
+"tema": "futebol"
+},
+{
+"nivel": 2,
+"categoria": "Futebol",
+"enunciado": "Qual jogador brasileiro ficou conhecido como \"Menino da Vila\"?",
+"opcoes": [
+"Neymar",
+"Pelé",
+"Robinho",
+"Diego"
+],
+"curiosidade": "A Vila Belmiro é o estádio do Santos.",
+"id": "FUT-047",
+"tema": "futebol"
+},
+{
+"nivel": 2,
+"categoria": "Futebol",
+"enunciado": "Qual é o time brasileiro em que Pelé fez fama?",
+"opcoes": [
+"Santos",
+"São Paulo",
+"Palmeiras",
+"Corinthians"
+],
+"curiosidade": "Pelé jogou no Santos de 1956 a 1974.",
+"id": "FUT-048",
+"tema": "futebol"
+},
+{
+"nivel": 2,
+"categoria": "Futebol",
+"enunciado": "Qual país foi campeão da Copa do Mundo de 2018?",
+"opcoes": [
+"França",
+"Croácia",
+"Bélgica",
+"Inglaterra"
+],
+"curiosidade": "A final foi contra a Croácia.",
+"id": "FUT-049",
+"tema": "futebol"
+},
+{
+"nivel": 2,
+"categoria": "Futebol",
+"enunciado": "Qual país foi campeão da Copa do Mundo de 2014, no Brasil?",
+"opcoes": [
+"Alemanha",
+"Argentina",
+"Holanda",
+"Espanha"
+],
+"curiosidade": "O Brasil perdeu de 7 a 1 na semifinal.",
+"id": "FUT-050",
+"tema": "futebol"
+},
+{
+"nivel": 2,
+"categoria": "Futebol",
+"enunciado": "Qual foi o placar da semifinal da Copa de 2014 entre Brasil e Alemanha?",
+"opcoes": [
+"7 a 1",
+"5 a 0",
+"3 a 1",
+"4 a 2"
+],
+"curiosidade": "O jogo foi disputado no Mineirão.",
+"id": "FUT-051",
+"tema": "futebol"
+},
+{
+"nivel": 2,
+"categoria": "Futebol",
+"enunciado": "Qual craque argentino é conhecido como \"La Pulga\"?",
+"opcoes": [
+"Messi",
+"Maradona",
+"Di María",
+"Agüero"
+],
+"curiosidade": "Messi jogou no Barcelona por muitos anos.",
+"id": "FUT-052",
+"tema": "futebol"
+},
+{
+"nivel": 2,
+"categoria": "Futebol",
+"enunciado": "Qual país tem mais títulos de Copa do Mundo?",
+"opcoes": [
+"Brasil",
+"Alemanha",
+"Itália",
+"Argentina"
+],
+"curiosidade": "O Brasil tem 5 e a Alemanha e a Itália têm 4.",
+"id": "FUT-053",
+"tema": "futebol"
+},
+{
+"nivel": 2,
+"categoria": "Futebol",
+"enunciado": "Em que ano o Brasil sediou pela primeira vez a Copa do Mundo?",
+"opcoes": [
+"1950",
+"1958",
+"1970",
+"1994"
+],
+"curiosidade": "A final foi no Maracanã recém-inaugurado.",
+"id": "FUT-054",
+"tema": "futebol"
+},
+{
+"nivel": 2,
+"categoria": "Futebol",
+"enunciado": "Qual seleção venceu o Brasil na final da Copa de 1950, no Maracanã?",
+"opcoes": [
+"Uruguai",
+"Argentina",
+"Itália",
+"Alemanha"
+],
+"curiosidade": "O jogo ficou conhecido como \"Maracanazo\".",
+"id": "FUT-055",
+"tema": "futebol"
+},
+{
+"nivel": 2,
+"categoria": "Futebol",
+"enunciado": "Qual atacante ídolo do Fluminense foi campeão brasileiro em 2010 e 2012?",
+"opcoes": [
+"Fred",
+"Washington",
+"Cano",
+"Romário"
+],
+"curiosidade": "Fred foi destaque do Brasil campeão da Copa das Confederações de 2013.",
+"id": "FUT-056",
+"tema": "futebol"
+},
+{
+"nivel": 2,
+"categoria": "Futebol",
+"enunciado": "Qual é o nome do clássico entre Vasco e Flamengo?",
+"opcoes": [
+"Clássico dos Milhões",
+"Fla-Flu",
+"Clássico Vovô",
+"Clássico da Amizade"
+],
+"curiosidade": "Reúne as duas torcidas mais numerosas do Rio.",
+"id": "FUT-057",
+"tema": "futebol"
+},
+{
+"nivel": 2,
+"categoria": "Futebol",
+"enunciado": "Qual clube espanhol Messi defendeu por quase duas décadas?",
+"opcoes": [
+"Barcelona",
+"Real Madrid",
+"Atlético de Madrid",
+"Sevilla"
+],
+"curiosidade": "Ele saiu do clube em 2021.",
+"id": "FUT-058",
+"tema": "futebol"
+},
+{
+"nivel": 2,
+"categoria": "Futebol",
+"enunciado": "Qual seleção usa a camisa laranja e é chamada de \"Laranja Mecânica\"?",
+"opcoes": [
+"Holanda",
+"Bélgica",
+"Dinamarca",
+"Irlanda"
+],
+"curiosidade": "A Holanda foi vice-campeã mundial em 1974, 1978 e 2010.",
+"id": "FUT-059",
+"tema": "futebol"
+},
+{
+"nivel": 2,
+"categoria": "Futebol",
+"enunciado": "Qual seleção é chamada de \"Les Bleus\"?",
+"opcoes": [
+"França",
+"Itália",
+"Bélgica",
+"Suíça"
+],
+"curiosidade": "A França foi campeã em 1998 e 2018.",
+"id": "FUT-060",
+"tema": "futebol"
+},
+{
+"nivel": 2,
+"categoria": "Futebol",
+"enunciado": "Qual jogador brasileiro não jogou a semifinal de 2014 por lesão?",
+"opcoes": [
+"Neymar",
+"Thiago Silva",
+"David Luiz",
+"Oscar"
+],
+"curiosidade": "Neymar fraturou uma vértebra nas quartas de final.",
+"id": "FUT-061",
+"tema": "futebol"
+},
+{
+"nivel": 2,
+"categoria": "Futebol",
+"enunciado": "Qual é o único país que participou de todas as Copas do Mundo?",
+"opcoes": [
+"Brasil",
+"Alemanha",
+"Itália",
+"Argentina"
+],
+"curiosidade": "O Brasil estreou em 1930.",
+"id": "FUT-062",
+"tema": "futebol"
+},
+{
+"nivel": 3,
+"categoria": "Futebol",
+"enunciado": "Qual é o nome do clássico entre Botafogo e Fluminense?",
+"opcoes": [
+"Clássico Vovô",
+"Fla-Flu",
+"Clássico dos Milhões",
+"Clássico da Amizade"
+],
+"curiosidade": "É considerado o clássico mais antigo do Brasil.",
+"id": "FUT-063",
+"tema": "futebol"
+},
+{
+"nivel": 3,
+"categoria": "Futebol",
+"enunciado": "Qual goleiro do São Paulo marcou mais de 100 gols na carreira?",
+"opcoes": [
+"Rogério Ceni",
+"Dida",
+"Marcos",
+"Taffarel"
+],
+"curiosidade": "Ele cobrava faltas e pênaltis.",
+"id": "FUT-064",
+"tema": "futebol"
+},
+{
+"nivel": 3,
+"categoria": "Futebol",
+"enunciado": "Qual jogador é o maior artilheiro da história da seleção brasileira, tendo passado Pelé em 2023?",
+"opcoes": [
+"Neymar",
+"Romário",
+"Ronaldo",
+"Zico"
+],
+"curiosidade": "Pelé marcou 77 gols pela seleção.",
+"id": "FUT-065",
+"tema": "futebol"
+},
+{
+"nivel": 3,
+"categoria": "Futebol",
+"enunciado": "Qual jogador brasileiro foi eleito melhor do mundo em 2007, conquistando a Bola de Ouro?",
+"opcoes": [
+"Kaká",
+"Ronaldinho Gaúcho",
+"Cafu",
+"Robinho"
+],
+"curiosidade": "Kaká jogava no Milan.",
+"id": "FUT-066",
+"tema": "futebol"
+},
+{
+"nivel": 3,
+"categoria": "Futebol",
+"enunciado": "Qual é o maior artilheiro da história das Copas do Mundo?",
+"opcoes": [
+"Miroslav Klose",
+"Ronaldo",
+"Pelé",
+"Gerd Müller"
+],
+"curiosidade": "Klose marcou 16 gols em Copas pela Alemanha.",
+"id": "FUT-067",
+"tema": "futebol"
+},
+{
+"nivel": 3,
+"categoria": "Futebol",
+"enunciado": "Em que ano o Brasil conquistou o pentacampeonato mundial?",
+"opcoes": [
+"2002",
+"1998",
+"2006",
+"1994"
+],
+"curiosidade": "O título foi na Coreia do Sul e no Japão.",
+"id": "FUT-068",
+"tema": "futebol"
+},
+{
+"nivel": 3,
+"categoria": "Futebol",
+"enunciado": "Quem era o técnico da seleção brasileira campeã do mundo em 2002?",
+"opcoes": [
+"Luiz Felipe Scolari",
+"Carlos Alberto Parreira",
+"Zagallo",
+"Tite"
+],
+"curiosidade": "Ele ficou conhecido como Felipão.",
+"id": "FUT-069",
+"tema": "futebol"
+},
+{
+"nivel": 3,
+"categoria": "Futebol",
+"enunciado": "Quantos gols Ronaldo marcou na final da Copa de 2002 contra a Alemanha?",
+"opcoes": [
+"2",
+"1",
+"3",
+"0"
+],
+"curiosidade": "O Brasil venceu por 2 a 0.",
+"id": "FUT-070",
+"tema": "futebol"
+},
+{
+"nivel": 3,
+"categoria": "Futebol",
+"enunciado": "Qual país sediou a Copa do Mundo de 2002 junto com a Coreia do Sul?",
+"opcoes": [
+"Japão",
+"China",
+"Austrália",
+"Tailândia"
+],
+"curiosidade": "Foi a primeira Copa em dois países.",
+"id": "FUT-071",
+"tema": "futebol"
+},
+{
+"nivel": 3,
+"categoria": "Futebol",
+"enunciado": "Quem foi o capitão do Brasil campeão do mundo em 1994?",
+"opcoes": [
+"Dunga",
+"Romário",
+"Taffarel",
+"Cafu"
+],
+"curiosidade": "A final foi decidida nos pênaltis contra a Itália.",
+"id": "FUT-072",
+"tema": "futebol"
+},
+{
+"nivel": 3,
+"categoria": "Futebol",
+"enunciado": "Qual foi o goleiro do Brasil campeão em 1994?",
+"opcoes": [
+"Taffarel",
+"Dida",
+"Marcos",
+"Júlio César"
+],
+"curiosidade": "Taffarel defendeu pênaltis na final.",
+"id": "FUT-073",
+"tema": "futebol"
+},
+{
+"nivel": 3,
+"categoria": "Futebol",
+"enunciado": "Em qual país o Brasil ganhou sua primeira Copa, em 1958?",
+"opcoes": [
+"Suécia",
+"Chile",
+"México",
+"Inglaterra"
+],
+"curiosidade": "Pelé tinha 17 anos.",
+"id": "FUT-074",
+"tema": "futebol"
+},
+{
+"nivel": 3,
+"categoria": "Futebol",
+"enunciado": "Em qual país o Brasil ganhou o tricampeonato, em 1970?",
+"opcoes": [
+"México",
+"Estados Unidos",
+"Alemanha",
+"Itália"
+],
+"curiosidade": "A seleção de 1970 é considerada uma das melhores de todos os tempos.",
+"id": "FUT-075",
+"tema": "futebol"
+},
+{
+"nivel": 3,
+"categoria": "Futebol",
+"enunciado": "Qual país empatou com a Alemanha em número de títulos mundiais, com 4?",
+"opcoes": [
+"Itália",
+"Argentina",
+"França",
+"Uruguai"
+],
+"curiosidade": "A Itália foi campeã em 1934, 1938, 1982 e 2006.",
+"id": "FUT-076",
+"tema": "futebol"
+},
+{
+"nivel": 3,
+"categoria": "Futebol",
+"enunciado": "Qual é o maior artilheiro da história do Flamengo?",
+"opcoes": [
+"Zico",
+"Gabigol",
+"Bebeto",
+"Romário"
+],
+"curiosidade": "Zico marcou mais de 500 gols pelo clube.",
+"id": "FUT-077",
+"tema": "futebol"
+},
+{
+"nivel": 3,
+"categoria": "Futebol",
+"enunciado": "Qual é o maior artilheiro da história do Vasco?",
+"opcoes": [
+"Roberto Dinamite",
+"Romário",
+"Edmundo",
+"Pinga"
+],
+"curiosidade": "Ele também foi presidente do clube.",
+"id": "FUT-078",
+"tema": "futebol"
+},
+{
+"nivel": 3,
+"categoria": "Futebol",
+"enunciado": "Em que ano o Maracanã foi inaugurado?",
+"opcoes": [
+"1950",
+"1938",
+"1958",
+"1964"
+],
+"curiosidade": "Foi construído para a Copa do Mundo de 1950.",
+"id": "FUT-079",
+"tema": "futebol"
+},
+{
+"nivel": 3,
+"categoria": "Futebol",
+"enunciado": "Qual é o nome do centro de treinamento do Flamengo?",
+"opcoes": [
+"Ninho do Urubu",
+"Granja Comary",
+"CFZ",
+"Vila Belmiro"
+],
+"curiosidade": "Fica em Vargem Grande, no Rio.",
+"id": "FUT-080",
+"tema": "futebol"
+},
+{
+"nivel": 3,
+"categoria": "Futebol",
+"enunciado": "Qual time carioca venceu a Copa Libertadores em 1998?",
+"opcoes": [
+"Vasco",
+"Flamengo",
+"Fluminense",
+"Botafogo"
+],
+"curiosidade": "O Vasco venceu o Barcelona de Guayaquil na final.",
+"id": "FUT-081",
+"tema": "futebol"
+},
+{
+"nivel": 3,
+"categoria": "Futebol",
+"enunciado": "Qual time carioca venceu a Copa Libertadores em 2023?",
+"opcoes": [
+"Fluminense",
+"Flamengo",
+"Botafogo",
+"Vasco"
+],
+"curiosidade": "O título veio na prorrogação contra o Boca Juniors.",
+"id": "FUT-082",
+"tema": "futebol"
+},
+{
+"nivel": 3,
+"categoria": "Futebol",
+"enunciado": "Qual time carioca venceu a Copa Libertadores em 2024?",
+"opcoes": [
+"Botafogo",
+"Flamengo",
+"Fluminense",
+"Vasco"
+],
+"curiosidade": "O Botafogo venceu o Atlético-MG na final em Buenos Aires.",
+"id": "FUT-083",
+"tema": "futebol"
+},
+{
+"nivel": 3,
+"categoria": "Futebol",
+"enunciado": "Qual time carioca ganhou a Libertadores e o Mundial em 1981?",
+"opcoes": [
+"Flamengo",
+"Vasco",
+"Fluminense",
+"Botafogo"
+],
+"curiosidade": "Foi o primeiro título mundial de um clube carioca.",
+"id": "FUT-084",
+"tema": "futebol"
+},
+{
+"nivel": 3,
+"categoria": "Futebol",
+"enunciado": "Qual é o jogador com mais jogos pela seleção brasileira masculina?",
+"opcoes": [
+"Cafu",
+"Roberto Carlos",
+"Neymar",
+"Dani Alves"
+],
+"curiosidade": "Cafu jogou 142 partidas pelo Brasil.",
+"id": "FUT-085",
+"tema": "futebol"
+},
+{
+"nivel": 3,
+"categoria": "Futebol",
+"enunciado": "Qual seleção venceu o Brasil por 3 a 0 na final da Copa de 1998?",
+"opcoes": [
+"França",
+"Brasil",
+"Itália",
+"Holanda"
+],
+"curiosidade": "A França venceu o Brasil por 3 a 0 na final.",
+"id": "FUT-086",
+"tema": "futebol"
+},
+{
+"nivel": 3,
+"categoria": "Futebol",
+"enunciado": "Quem foi o melhor jogador da Copa do Mundo de 2022?",
+"opcoes": [
+"Messi",
+"Mbappé",
+"Modrić",
+"Neymar"
+],
+"curiosidade": "Messi ganhou a Bola de Ouro do torneio.",
+"id": "FUT-087",
+"tema": "futebol"
+},
+{
+"nivel": 3,
+"categoria": "Futebol",
+"enunciado": "Qual astro francês foi o artilheiro da Copa de 2022, com 8 gols?",
+"opcoes": [
+"Mbappé",
+"Messi",
+"Giroud",
+"Griezmann"
+],
+"curiosidade": "Ele marcou três gols na final.",
+"id": "FUT-088",
+"tema": "futebol"
+},
+{
+"nivel": 3,
+"categoria": "Futebol",
+"enunciado": "Qual é o nome oficial do Maracanã?",
+"opcoes": [
+"Estádio Jornalista Mário Filho",
+"Estádio Pelé",
+"Estádio Zico",
+"Estádio Garrincha"
+],
+"curiosidade": "O nome homenageia um jornalista que defendeu sua construção.",
+"id": "FUT-089",
+"tema": "futebol"
+},
+{
+"nivel": 3,
+"categoria": "Futebol",
+"enunciado": "Em qual bairro do Rio fica o estádio de São Januário, do Vasco?",
+"opcoes": [
+"São Cristóvão",
+"Maracanã",
+"Gávea",
+"Engenho de Dentro"
+],
+"curiosidade": "O estádio foi inaugurado em 1927.",
+"id": "FUT-090",
+"tema": "futebol"
+},
+{
+"nivel": 3,
+"categoria": "Futebol",
+"enunciado": "Qual seleção é chamada de \"Azzurra\"?",
+"opcoes": [
+"Itália",
+"França",
+"Argentina",
+"Uruguai"
+],
+"curiosidade": "A Itália tem 4 títulos mundiais.",
+"id": "FUT-091",
+"tema": "futebol"
+},
+{
+"nivel": 3,
+"categoria": "Futebol",
+"enunciado": "Qual seleção é chamada de \"Die Mannschaft\"?",
+"opcoes": [
+"Alemanha",
+"Áustria",
+"Holanda",
+"Suíça"
+],
+"curiosidade": "A Alemanha tem 4 títulos mundiais.",
+"id": "FUT-092",
+"tema": "futebol"
+},
+{
+"nivel": 3,
+"categoria": "Futebol",
+"enunciado": "Quem é o brasileiro com mais gols em Copas do Mundo?",
+"opcoes": [
+"Ronaldo",
+"Pelé",
+"Romário",
+"Jairzinho"
+],
+"curiosidade": "Ronaldo marcou 15 gols em Copas.",
+"id": "FUT-093",
+"tema": "futebol"
+},
+{
+"nivel": 3,
+"categoria": "Futebol",
+"enunciado": "Quem foi o artilheiro da Copa do Mundo de 2002, com 8 gols?",
+"opcoes": [
+"Ronaldo",
+"Rivaldo",
+"Klose",
+"Ronaldinho Gaúcho"
+],
+"curiosidade": "Ele fez um gol na semifinal e dois na final.",
+"id": "FUT-094",
+"tema": "futebol"
+},
+{
+"nivel": 3,
+"categoria": "Futebol",
+"enunciado": "Quem era o técnico da seleção brasileira na Copa de 2014?",
+"opcoes": [
+"Luiz Felipe Scolari",
+"Dunga",
+"Tite",
+"Mano Menezes"
+],
+"curiosidade": "Felipão já tinha sido campeão em 2002.",
+"id": "FUT-095",
+"tema": "futebol"
+},
+{
+"nivel": 3,
+"categoria": "Futebol",
+"enunciado": "Em qual cidade foi jogada a semifinal de 7 a 1 entre Brasil e Alemanha?",
+"opcoes": [
+"Belo Horizonte",
+"Rio de Janeiro",
+"São Paulo",
+"Brasília"
+],
+"curiosidade": "O estádio foi o Mineirão.",
+"id": "FUT-096",
+"tema": "futebol"
+},
+{
+"nivel": 3,
+"categoria": "Futebol",
+"enunciado": "Qual atacante é chamado de \"Animal\"?",
+"opcoes": [
+"Edmundo",
+"Romário",
+"Adriano",
+"Bebeto"
+],
+"curiosidade": "Edmundo foi ídolo do Vasco.",
+"id": "FUT-097",
+"tema": "futebol"
+},
+{
+"nivel": 3,
+"categoria": "Futebol",
+"enunciado": "Qual craque, de sorriso característico, ganhou a Bola de Ouro em 2005?",
+"opcoes": [
+"Ronaldinho Gaúcho",
+"Kaká",
+"Ronaldo",
+"Neymar"
+],
+"curiosidade": "Ele jogava no Barcelona.",
+"id": "FUT-098",
+"tema": "futebol"
+},
+{
+"nivel": 4,
+"categoria": "Futebol",
+"enunciado": "Quem foi o goleiro do Brasil na final da Copa de 1950?",
+"opcoes": [
+"Barbosa",
+"Gilmar",
+"Taffarel",
+"Castilho"
+],
+"curiosidade": "Barbosa foi injustamente culpado pela derrota.",
+"id": "FUT-099",
+"tema": "futebol"
+},
+{
+"nivel": 4,
+"categoria": "Futebol",
+"enunciado": "Qual uruguaio marcou o gol do título contra o Brasil em 1950?",
+"opcoes": [
+"Ghiggia",
+"Schiaffino",
+"Obdulio Varela",
+"Suárez"
+],
+"curiosidade": "O gol saiu aos 34 minutos do segundo tempo.",
+"id": "FUT-100",
+"tema": "futebol"
+},
+{
+"nivel": 4,
+"categoria": "Futebol",
+"enunciado": "Quem era o capitão do Brasil tricampeão em 1970?",
+"opcoes": [
+"Carlos Alberto Torres",
+"Pelé",
+"Gérson",
+"Rivelino"
+],
+"curiosidade": "Ele marcou um dos gols mais famosos das finais de Copa.",
+"id": "FUT-101",
+"tema": "futebol"
+},
+{
+"nivel": 4,
+"categoria": "Futebol",
+"enunciado": "Quem era o técnico do Brasil no tricampeonato de 1970?",
+"opcoes": [
+"Zagallo",
+"Telê Santana",
+"Parreira",
+"Felipão"
+],
+"curiosidade": "Zagallo foi campeão como jogador e como técnico.",
+"id": "FUT-102",
+"tema": "futebol"
+},
+{
+"nivel": 4,
+"categoria": "Futebol",
+"enunciado": "Quantos gols Pelé marcou em Copas do Mundo?",
+"opcoes": [
+"12",
+"15",
+"10",
+"14"
+],
+"curiosidade": "Ele jogou quatro Copas.",
+"id": "FUT-103",
+"tema": "futebol"
+},
+{
+"nivel": 4,
+"categoria": "Futebol",
+"enunciado": "Quem foi atingido com uma cabeçada de Zidane na final da Copa de 2006?",
+"opcoes": [
+"Materazzi",
+"Buffon",
+"Cannavaro",
+"Pirlo"
+],
+"curiosidade": "A final foi entre França e Itália.",
+"id": "FUT-104",
+"tema": "futebol"
+},
+{
+"nivel": 4,
+"categoria": "Futebol",
+"enunciado": "Quem recebeu a Bola de Ouro da Copa de 2002, mesmo com o Brasil campeão?",
+"opcoes": [
+"Oliver Kahn",
+"Ronaldo",
+"Rivaldo",
+"Ronaldinho Gaúcho"
+],
+"curiosidade": "O goleiro da Alemanha foi eleito o melhor jogador do torneio.",
+"id": "FUT-105",
+"tema": "futebol"
+},
+{
+"nivel": 4,
+"categoria": "Futebol",
+"enunciado": "Em qual cidade foi disputada a final da Copa do Mundo de 1950?",
+"opcoes": [
+"Rio de Janeiro",
+"São Paulo",
+"Belo Horizonte",
+"Porto Alegre"
+],
+"curiosidade": "O Maracanã recebeu mais de 170 mil pessoas.",
+"id": "FUT-106",
+"tema": "futebol"
+},
+{
+"nivel": 4,
+"categoria": "Futebol",
+"enunciado": "Em qual bairro do Rio fica o estádio Nilton Santos, do Botafogo?",
+"opcoes": [
+"Engenho de Dentro",
+"Botafogo",
+"Maracanã",
+"São Cristóvão"
+],
+"curiosidade": "O estádio foi inaugurado em 2007.",
+"id": "FUT-107",
+"tema": "futebol"
+},
+{
+"nivel": 4,
+"categoria": "Futebol",
+"enunciado": "Quem marcou o gol do título do Fluminense na Libertadores de 2023, na prorrogação?",
+"opcoes": [
+"John Kennedy",
+"Germán Cano",
+"Marcelo",
+"Ganso"
+],
+"curiosidade": "O jogo foi no Maracanã.",
+"id": "FUT-108",
+"tema": "futebol"
+},
+{
+"nivel": 4,
+"categoria": "Futebol",
+"enunciado": "Qual é o time brasileiro que ganhou o Mundial de Clubes de 2012?",
+"opcoes": [
+"Corinthians",
+"São Paulo",
+"Internacional",
+"Atlético-MG"
+],
+"curiosidade": "O Corinthians venceu o Chelsea.",
+"id": "FUT-109",
+"tema": "futebol"
+},
+{
+"nivel": 4,
+"categoria": "Futebol",
+"enunciado": "Qual é o time brasileiro que ganhou o Mundial de Clubes de 2006?",
+"opcoes": [
+"Internacional",
+"São Paulo",
+"Corinthians",
+"Santos"
+],
+"curiosidade": "O Inter venceu o Barcelona na final.",
+"id": "FUT-110",
+"tema": "futebol"
+},
+{
+"nivel": 4,
+"categoria": "Futebol",
+"enunciado": "Qual é o time brasileiro que ganhou o Mundial de Clubes de 2005?",
+"opcoes": [
+"São Paulo",
+"Corinthians",
+"Santos",
+"Internacional"
+],
+"curiosidade": "O São Paulo venceu o Liverpool.",
+"id": "FUT-111",
+"tema": "futebol"
+},
+{
+"nivel": 4,
+"categoria": "Futebol",
+"enunciado": "Qual é o time que Zico defendeu na Itália?",
+"opcoes": [
+"Udinese",
+"Milan",
+"Juventus",
+"Roma"
+],
+"curiosidade": "Zico jogou na Udinese de 1983 a 1985.",
+"id": "FUT-112",
+"tema": "futebol"
+},
+{
+"nivel": 4,
+"categoria": "Futebol",
+"enunciado": "Qual jogador do Flamengo marcou dois gols na final do Mundial de 1981 contra o Liverpool?",
+"opcoes": [
+"Nunes",
+"Zico",
+"Júnior",
+"Adílio"
+],
+"curiosidade": "O Flamengo venceu por 3 a 0.",
+"id": "FUT-113",
+"tema": "futebol"
+},
+{
+"nivel": 4,
+"categoria": "Futebol",
+"enunciado": "Qual craque colombiano foi destaque na Copa de 2014 e foi o artilheiro do torneio?",
+"opcoes": [
+"James Rodríguez",
+"Falcao",
+"Cuadrado",
+"Ospina"
+],
+"curiosidade": "Ele marcou seis gols.",
+"id": "FUT-114",
+"tema": "futebol"
+},
+{
+"nivel": 4,
+"categoria": "Futebol",
+"enunciado": "Qual lateral brasileiro foi campeão do mundo em 1994 e 2002, e é conhecido por seu chute forte?",
+"opcoes": [
+"Roberto Carlos",
+"Cafu",
+"Júnior",
+"Leonardo"
+],
+"curiosidade": "Ele jogou no Real Madrid por mais de dez anos.",
+"id": "FUT-115",
+"tema": "futebol"
+},
+{
+"nivel": 4,
+"categoria": "Futebol",
+"enunciado": "Qual time de São Paulo é conhecido como \"Timão\"?",
+"opcoes": [
+"Corinthians",
+"Palmeiras",
+"São Paulo",
+"Santos"
+],
+"curiosidade": "O clube foi fundado em 1910.",
+"id": "FUT-116",
+"tema": "futebol"
+},
+{
+"nivel": 4,
+"categoria": "Futebol",
+"enunciado": "Qual time de São Paulo tem o apelido \"Verdão\"?",
+"opcoes": [
+"Palmeiras",
+"Corinthians",
+"São Paulo",
+"Santos"
+],
+"curiosidade": "O clube é conhecido como Verdão.",
+"id": "FUT-117",
+"tema": "futebol"
+},
+{
+"nivel": 4,
+"categoria": "Futebol",
+"enunciado": "Qual time de Minas Gerais é chamado de \"Raposa\"?",
+"opcoes": [
+"Cruzeiro",
+"Atlético Mineiro",
+"América Mineiro",
+"Tombense"
+],
+"curiosidade": "O Atlético Mineiro é chamado de \"Galo\".",
+"id": "FUT-118",
+"tema": "futebol"
+},
+{
+"nivel": 4,
+"categoria": "Futebol",
+"enunciado": "Qual é o time gaúcho conhecido pela cor azul, preto e branco, rival do Internacional?",
+"opcoes": [
+"Grêmio",
+"Juventude",
+"Caxias",
+"Pelotas"
+],
+"curiosidade": "O clássico se chama Gre-Nal.",
+"id": "FUT-119",
+"tema": "futebol"
+},
+{
+"nivel": 4,
+"categoria": "Futebol",
+"enunciado": "Qual país foi o primeiro campeão da Copa do Mundo, em 1930?",
+"opcoes": [
+"Uruguai",
+"Brasil",
+"Argentina",
+"Itália"
+],
+"curiosidade": "A Copa de 1930 foi disputada no Uruguai.",
+"id": "FUT-120",
+"tema": "futebol"
+},
+{
+"nivel": 4,
+"categoria": "Futebol",
+"enunciado": "Em que ano aconteceu a primeira Copa do Mundo?",
+"opcoes": [
+"1930",
+"1934",
+"1950",
+"1958"
+],
+"curiosidade": "Participaram 13 seleções.",
+"id": "FUT-121",
+"tema": "futebol"
+},
+{
+"nivel": 4,
+"categoria": "Futebol",
+"enunciado": "Qual país sediou a Copa do Mundo de 1994?",
+"opcoes": [
+"Estados Unidos",
+"México",
+"Itália",
+"França"
+],
+"curiosidade": "A final foi no Rose Bowl, na Califórnia.",
+"id": "FUT-122",
+"tema": "futebol"
+},
+{
+"nivel": 4,
+"categoria": "Futebol",
+"enunciado": "Quem era o goleiro do Brasil no jogo do 7 a 1, em 2014?",
+"opcoes": [
+"Júlio César",
+"Jefferson",
+"Dida",
+"Marcos"
+],
+"curiosidade": "Ele jogava no Toronto na época.",
+"id": "FUT-123",
+"tema": "futebol"
+},
+{
+"nivel": 4,
+"categoria": "Futebol",
+"enunciado": "Qual jogador alemão marcou o 16º gol em Copas, contra o Brasil, em 2014?",
+"opcoes": [
+"Klose",
+"Müller",
+"Kroos",
+"Götze"
+],
+"curiosidade": "Com esse gol, ele se tornou o maior artilheiro da história das Copas.",
+"id": "FUT-124",
+"tema": "futebol"
+},
+{
+"nivel": 4,
+"categoria": "Futebol",
+"enunciado": "Qual atacante é chamado de \"Imperador\"?",
+"opcoes": [
+"Adriano",
+"Ronaldo",
+"Romário",
+"Fred"
+],
+"curiosidade": "Adriano jogou na Inter de Milão e no Flamengo.",
+"id": "FUT-125",
+"tema": "futebol"
+},
+{
+"nivel": 5,
+"categoria": "Futebol",
+"enunciado": "Qual é o maior artilheiro da história do Botafogo?",
+"opcoes": [
+"Quarentinha",
+"Garrincha",
+"Heleno de Freitas",
+"Jairzinho"
+],
+"curiosidade": "Quarentinha marcou mais de 300 gols pelo clube.",
+"id": "FUT-126",
+"tema": "futebol"
+},
+{
+"nivel": 5,
+"categoria": "Futebol",
+"enunciado": "Qual é o maior artilheiro da história do Fluminense?",
+"opcoes": [
+"Waldo",
+"Fred",
+"Romário",
+"Henrique"
+],
+"curiosidade": "Waldo marcou mais de 300 gols.",
+"id": "FUT-127",
+"tema": "futebol"
+},
+{
+"nivel": 5,
+"categoria": "Futebol",
+"enunciado": "Em que ano foi inaugurado o estádio de São Januário, do Vasco?",
+"opcoes": [
+"1927",
+"1938",
+"1950",
+"1912"
+],
+"curiosidade": "Era o maior estádio do Brasil na época.",
+"id": "FUT-128",
+"tema": "futebol"
+},
+{
+"nivel": 5,
+"categoria": "Futebol",
+"enunciado": "Qual é o nome da taça entregue ao campeão da Copa do Mundo até 1970?",
+"opcoes": [
+"Taça Jules Rimet",
+"Taça da FIFA",
+"Taça Pelé",
+"Taça Libertadores"
+],
+"curiosidade": "O Brasil ficou com a taça definitivamente em 1970.",
+"id": "FUT-129",
+"tema": "futebol"
+},
+{
+"nivel": 5,
+"categoria": "Futebol",
+"enunciado": "Qual clube foi campeão do Campeonato Brasileiro de 1971?",
+"opcoes": [
+"Atlético Mineiro",
+"Palmeiras",
+"Santos",
+"Fluminense"
+],
+"curiosidade": "Antes havia a Taça Brasil e o Torneio Roberto Gomes Pedrosa.",
+"id": "FUT-130",
+"tema": "futebol"
+},
+{
+"nivel": 5,
+"categoria": "Futebol",
+"enunciado": "Qual time brasileiro foi bicampeão da Libertadores em 1962 e 1963, com Pelé?",
+"opcoes": [
+"Santos",
+"Palmeiras",
+"Cruzeiro",
+"Grêmio"
+],
+"curiosidade": "O Santos também foi campeão mundial nesses dois anos.",
+"id": "FUT-131",
+"tema": "futebol"
+},
+{
+"nivel": 5,
+"categoria": "Futebol",
+"enunciado": "Quem foi o treinador do Brasil na Copa de 1982 que encantou o mundo, mas não foi campeão?",
+"opcoes": [
+"Telê Santana",
+"Zagallo",
+"Parreira",
+"Mário Zagallo"
+],
+"curiosidade": "Aquele time tinha Zico, Sócrates, Falcão e Júnior.",
+"id": "FUT-132",
+"tema": "futebol"
+},
+{
+"nivel": 5,
+"categoria": "Futebol",
+"enunciado": "Qual jogador marcou o gol mais rápido da história das Copas, aos 11 segundos, em 2002?",
+"opcoes": [
+"Hakan Şükür",
+"Ronaldo",
+"Rivaldo",
+"Ronaldinho Gaúcho"
+],
+"curiosidade": "O turco marcou aos 11 segundos contra a Coreia do Sul.",
+"id": "FUT-133",
+"tema": "futebol"
+},
+{
+"nivel": 5,
+"categoria": "Futebol",
+"enunciado": "Qual país foi o anfitrião da Copa do Mundo de 1986?",
+"opcoes": [
+"México",
+"Argentina",
+"Espanha",
+"Alemanha"
+],
+"curiosidade": "Foi a Copa da \"Mão de Deus\" de Maradona.",
+"id": "FUT-134",
+"tema": "futebol"
+},
+{
+"nivel": 5,
+"categoria": "Futebol",
+"enunciado": "Quem marcou o \"gol do século\" na Copa de 1986?",
+"opcoes": [
+"Maradona",
+"Pelé",
+"Platini",
+"Zico"
+],
+"curiosidade": "Ele driblou meio time da Inglaterra.",
+"id": "FUT-135",
+"tema": "futebol"
+},
+{
+"nivel": 5,
+"categoria": "Futebol",
+"enunciado": "Quem foi o primeiro jogador a ganhar três Copas do Mundo?",
+"opcoes": [
+"Pelé",
+"Garrincha",
+"Zagallo",
+"Cafu"
+],
+"curiosidade": "Pelé foi campeão em 1958, 1962 e 1970.",
+"id": "FUT-136",
+"tema": "futebol"
+},
+{
+"nivel": 5,
+"categoria": "Futebol",
+"enunciado": "Qual atacante marcou dois gols na final da Copa das Confederações de 2013, contra a Espanha?",
+"opcoes": [
+"Fred",
+"Neymar",
+"Oscar",
+"Paulinho"
+],
+"curiosidade": "O Brasil goleou por 3 a 0 no Maracanã.",
+"id": "FUT-137",
+"tema": "futebol"
+},
+{
+"nivel": 5,
+"categoria": "Futebol",
+"enunciado": "Quem foi o treinador do Fluminense campeão da Libertadores de 2023?",
+"opcoes": [
+"Fernando Diniz",
+"Abel Braga",
+"Renato Gaúcho",
+"Roger Machado"
+],
+"curiosidade": "Diniz também comandou a seleção brasileira por um período.",
+"id": "FUT-138",
+"tema": "futebol"
+},
+{
+"nivel": 5,
+"categoria": "Futebol",
+"enunciado": "Em que ano o Vasco foi campeão da Copa Libertadores?",
+"opcoes": [
+"1998",
+"2000",
+"1997",
+"1981"
+],
+"curiosidade": "O clube venceu o Barcelona do Equador na final.",
+"id": "FUT-139",
+"tema": "futebol"
+},
+{
+"nivel": 5,
+"categoria": "Futebol",
+"enunciado": "Em que ano o Botafogo ganhou seu primeiro Campeonato Brasileiro?",
+"opcoes": [
+"1968",
+"1995",
+"1962",
+"1957"
+],
+"curiosidade": "A conquista teve Jairzinho em campo.",
+"id": "FUT-140",
+"tema": "futebol"
+},
+{
+"nivel": 5,
+"categoria": "Futebol",
+"enunciado": "Qual time ganhou o primeiro Campeonato Carioca, em 1906?",
+"opcoes": [
+"Fluminense",
+"Flamengo",
+"Vasco",
+"Botafogo"
+],
+"curiosidade": "Foi o primeiro de muitos títulos do clube.",
+"id": "FUT-141",
+"tema": "futebol"
+},
+{
+"nivel": 5,
+"categoria": "Futebol",
+"enunciado": "Qual clube venceu o primeiro Mundial de Clubes da FIFA, em 2000?",
+"opcoes": [
+"Corinthians",
+"Vasco",
+"Real Madrid",
+"Manchester United"
+],
+"curiosidade": "O Corinthians venceu o Vasco nos pênaltis na final.",
+"id": "FUT-142",
+"tema": "futebol"
+},
+{
+"nivel": 5,
+"categoria": "Futebol",
+"enunciado": "Qual foi o placar da final da Copa de 1958, entre Brasil e Suécia?",
+"opcoes": [
+"5 a 2",
+"3 a 1",
+"4 a 1",
+"2 a 0"
+],
+"curiosidade": "Pelé marcou dois gols, aos 17 anos.",
+"id": "FUT-143",
+"tema": "futebol"
+},
+{
+"nivel": 5,
+"categoria": "Futebol",
+"enunciado": "Quantos gols o Brasil marcou na final de 1970 contra a Itália?",
+"opcoes": [
+"4",
+"3",
+"5",
+"2"
+],
+"curiosidade": "O placar foi de 4 a 1.",
+"id": "FUT-144",
+"tema": "futebol"
+},
+{
+"nivel": 5,
+"categoria": "Futebol",
+"enunciado": "Qual treinador foi tetracampeão mundial em 1994?",
+"opcoes": [
+"Carlos Alberto Parreira",
+"Zagallo",
+"Telê Santana",
+"Felipão"
+],
+"curiosidade": "Parreira também foi técnico em Copas de outros países.",
+"id": "FUT-145",
+"tema": "futebol"
+},
+{
+"nivel": 5,
+"categoria": "Futebol",
+"enunciado": "Quem foi o melhor jogador da Copa do Mundo de 1994?",
+"opcoes": [
+"Romário",
+"Baggio",
+"Stoichkov",
+"Hagi"
+],
+"curiosidade": "Romário marcou cinco gols.",
+"id": "FUT-146",
+"tema": "futebol"
+},
+{
+"nivel": 5,
+"categoria": "Futebol",
+"enunciado": "Qual país eliminou o Brasil da Copa de 2018, nas quartas de final?",
+"opcoes": [
+"Bélgica",
+"França",
+"Croácia",
+"Alemanha"
+],
+"curiosidade": "O jogo terminou em 2 a 1.",
+"id": "FUT-147",
+"tema": "futebol"
+},
+{
+"nivel": 5,
+"categoria": "Futebol",
+"enunciado": "Qual país eliminou o Brasil da Copa de 2022, nas quartas de final?",
+"opcoes": [
+"Croácia",
+"Argentina",
+"Marrocos",
+"Holanda"
+],
+"curiosidade": "A decisão foi nos pênaltis.",
+"id": "FUT-148",
+"tema": "futebol"
+},
+{
+"nivel": 5,
+"categoria": "Futebol",
+"enunciado": "Qual foi a seleção campeã da Copa América 2021, no Maracanã?",
+"opcoes": [
+"Argentina",
+"Brasil",
+"Uruguai",
+"Chile"
+],
+"curiosidade": "Messi ganhou o primeiro título pela seleção principal.",
+"id": "FUT-149",
+"tema": "futebol"
+},
+{
+"nivel": 5,
+"categoria": "Futebol",
+"enunciado": "Quem era o técnico do Flamengo campeão mundial de 1981?",
+"opcoes": [
+"Paulo César Carpegiani",
+"Telê Santana",
+"Zagallo",
+"Cláudio Coutinho"
+],
+"curiosidade": "O time tinha Zico, Júnior, Leandro e Nunes.",
+"id": "FUT-150",
+"tema": "futebol"
+},
+{
+"nivel": 5,
+"categoria": "Futebol",
+"enunciado": "Em qual clube japonês Zico jogou?",
+"opcoes": [
+"Kashima Antlers",
+"Urawa Reds",
+"Yokohama Marinos",
+"Vissel Kobe"
+],
+"curiosidade": "Zico depois foi técnico da seleção japonesa.",
+"id": "FUT-151",
+"tema": "futebol"
+}
+]

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { randomInt } from 'crypto'
 import { moduleActive } from '@/lib/modules'
+import { TEMAS_QUIZ, garantirBanco, temaValido } from '@/lib/quizBanco'
 import { lerJogadorToken } from '@/lib/quizJogador'
 import { pontosDaResposta } from '@/lib/quizRegras'
 import {
@@ -29,7 +30,7 @@ function nomeGrupoProblema(n: string): string | null {
   return null
 }
 
-type SalaDb = { id: string; company_id: string; mesa_id: string | null; codigo: string; nome: string; anfitriao_id: string; estado: 'espera' | 'jogando' | 'encerrada' | 'cancelada'; iniciada_em: string | null; criada_em: string; atualizada_em: string; n_jogadores: number | null }
+type SalaDb = { id: string; company_id: string; mesa_id: string | null; codigo: string; nome: string; anfitriao_id: string; tema?: string | null; estado: 'espera' | 'jogando' | 'encerrada' | 'cancelada'; iniciada_em: string | null; criada_em: string; atualizada_em: string; n_jogadores: number | null }
 
 async function carregar(token: unknown) {
   const t = String(token || '')
@@ -143,12 +144,12 @@ export async function POST(req: NextRequest) {
     if (acao === 'inicio') {
       const minha = await salaAtivaDoJogador(cid, jogadorId)
       const desde = new Date(Date.now() - GRUPO_ESPERA_MAX_MS).toISOString()
-      const { data: abertas } = await sb.from('quiz_salas').select('id, nome, codigo, anfitriao_id, atualizada_em').eq('company_id', cid).eq('mesa_id', ctx.mesa.id).eq('estado', 'espera').gte('atualizada_em', desde).order('criada_em', { ascending: false }).limit(5)
+      const { data: abertas } = await sb.from('quiz_salas').select('id, nome, codigo, anfitriao_id, atualizada_em, tema').eq('company_id', cid).eq('mesa_id', ctx.mesa.id).eq('estado', 'espera').gte('atualizada_em', desde).order('criada_em', { ascending: false }).limit(5)
       const lista = await Promise.all((abertas || []).map(async s => {
         const { count } = await sb.from('quiz_sala_jogadores').select('jogador_id', { count: 'exact', head: true }).eq('sala_id', s.id)
-        return { id: s.id as string, nome: s.nome as string, codigo: s.codigo as string, jogadores: count || 0, cheia: (count || 0) >= GRUPO_MAX_JOGADORES }
+        return { id: s.id as string, nome: s.nome as string, codigo: s.codigo as string, tema: (s.tema as string) || null, jogadores: count || 0, cheia: (count || 0) >= GRUPO_MAX_JOGADORES }
       }))
-      return NextResponse.json({ ok: true, apelido: jog.apelido, mesa: ctx.mesa.numero, loja: ctx.company.name, slug: ctx.company.slug, minha: minha ? { id: minha.id, estado: minha.estado } : null, abertas: lista.filter(s => s.id !== minha?.id) })
+      return NextResponse.json({ ok: true, apelido: jog.apelido, mesa: ctx.mesa.numero, loja: ctx.company.name, slug: ctx.company.slug, temas: TEMAS_QUIZ, minha: minha ? { id: minha.id, estado: minha.estado } : null, abertas: lista.filter(s => s.id !== minha?.id) })
     }
 
     if (acao === 'criar') {
@@ -158,7 +159,7 @@ export async function POST(req: NextRequest) {
       if (await salaAtivaDoJogador(cid, jogadorId)) return erro('Você já está em uma partida. Saia dela antes de criar outra.', 409)
       for (let tent = 0; tent < 6; tent++) {
         const codigo = Array.from({ length: 4 }, () => CODIGO_ALFABETO[randomInt(0, CODIGO_ALFABETO.length)]).join('')
-        const ins = await sb.from('quiz_salas').insert({ company_id: cid, mesa_id: ctx.mesa.id, codigo, nome, anfitriao_id: jogadorId }).select('id, codigo').single()
+        const ins = await sb.from('quiz_salas').insert({ company_id: cid, mesa_id: ctx.mesa.id, codigo, nome, anfitriao_id: jogadorId, tema: temaValido(b.tema) }).select('id, codigo').single()
         if (ins.error) { if (ins.error.code === '23505') continue; return erro('Não consegui criar o grupo.', 500) }
         await sb.from('quiz_sala_jogadores').insert({ sala_id: ins.data.id, jogador_id: jogadorId })
         return NextResponse.json({ ok: true, salaId: ins.data.id, codigo: ins.data.codigo })
@@ -211,17 +212,19 @@ export async function POST(req: NextRequest) {
     if (acao === 'iniciar') {
       if (!souAnfitriao) return erro('Só quem criou o grupo pode começar.', 403)
       if (sala.estado !== 'espera') return erro('Essa partida já começou.', 409)
+      await garantirBanco(sb)
       const js = await jogadoresDaSala(salaId)
       if (js.length < GRUPO_MIN_JOGADORES) return erro(`Chame pelo menos ${GRUPO_MIN_JOGADORES} jogadores para começar.`, 409)
       // 15 perguntas: 3 de cada nível, preferindo as que ninguém do grupo viu ainda.
       const { data: vistasD } = await sb.from('quiz_vistas').select('pergunta_id').in('jogador_key', js.map(j => `j:${j.id}`))
       const vistas = new Set((vistasD || []).map(v => v.pergunta_id as string))
-      const ativas = ((await sb.from('quiz_perguntas').select('id, nivel').eq('ativa', true)).data || []) as { id: string; nivel: number }[]
+      const ativas = ((await sb.from('quiz_perguntas').select('id, nivel, tema').eq('ativa', true)).data || []) as { id: string; nivel: number; tema: string | null }[]
+      const doTema = sala.tema ? ativas.filter(q => q.tema === sala.tema) : ativas
       const escolhidas: string[] = []
       for (let nivel = 1; nivel <= 5; nivel++) {
-        let pool = ativas.filter(q => q.nivel === nivel && !vistas.has(q.id))
-        if (pool.length < 3) pool = [...pool, ...ativas.filter(q => q.nivel === nivel && vistas.has(q.id))]
-        if (pool.length < 3) pool = [...pool, ...ativas.filter(q => q.nivel !== nivel && !escolhidas.includes(q.id) && !pool.some(p => p.id === q.id))]
+        let pool = doTema.filter(q => q.nivel === nivel && !vistas.has(q.id))
+        if (pool.length < 3) pool = [...pool, ...doTema.filter(q => q.nivel === nivel && vistas.has(q.id))]
+        if (pool.length < 3) pool = [...pool, ...doTema.filter(q => q.nivel !== nivel && !escolhidas.includes(q.id) && !pool.some(p => p.id === q.id))]
         for (let i = 0; i < 3 && pool.length; i++) { const k = randomInt(0, pool.length); escolhidas.push(pool[k].id); pool.splice(k, 1) }
       }
       if (escolhidas.length < GRUPO_PERGUNTAS) return erro('Sem perguntas suficientes agora.', 503)
@@ -241,7 +244,7 @@ export async function POST(req: NextRequest) {
 
     if (acao === 'estado') {
       const js = await jogadoresDaSala(salaId)
-      const base = { ok: true, sala: { id: sala.id, nome: sala.nome, codigo: sala.codigo, estado: sala.estado }, souAnfitriao, eu: jogadorId, mesa: ctx.mesa.numero, slug: ctx.company.slug }
+      const base = { ok: true, sala: { id: sala.id, nome: sala.nome, codigo: sala.codigo, estado: sala.estado, tema: sala.tema || null }, souAnfitriao, eu: jogadorId, mesa: ctx.mesa.numero, slug: ctx.company.slug }
       if (sala.estado === 'cancelada') return NextResponse.json({ ...base, fase: 'cancelada' })
       if (sala.estado === 'espera') {
         await sb.from('quiz_salas').update({ atualizada_em: new Date().toISOString() }).eq('id', salaId)

@@ -10,7 +10,7 @@ import {
   QUIZ_FOLGA_MS, QUIZ_PULOS, QUIZ_PENSAR, QUIZ_TEMPO_S, QUIZ_TEMPO_PENSAR_S, QUIZ_PORTAO,
   aposAcerto, aposErro, aposDecisao, nivelPorAcertos, pontosDaResposta, type Rodada,
 } from '@/lib/quizRegras'
-import banco from '@/data/quiz/banco.json'
+import { BANCO_COMPLETO, TEMAS_QUIZ, garantirBanco as garantirBancoLib, temaValido } from '@/lib/quizBanco'
 
 // Quiz Pesca Premiada — jogo de verdade (nov/2026). Público, sem login: o QR identifica a mesa
 // (e por ela a loja) e o jogador se identifica por apelido + WhatsApp confirmado por código.
@@ -24,8 +24,8 @@ const igual = (a: string, b: string) => { const x = Buffer.from(a), y = Buffer.f
 const RETOMAR_MS = 2 * 60_000          // queda de conexão: 2 minutos para voltar à rodada
 const SESSAO_MS = 60 * 86_400_000       // login do jogador no aparelho: 60 dias
 
-type Banco = { id: string; nivel: number; categoria: string; enunciado: string; opcoes: string[]; curiosidade: string | null }
-const BANCO = banco as unknown as Banco[]
+const BANCO = BANCO_COMPLETO
+const garantirBanco = () => garantirBancoLib(sb)
 
 // ---------- sessão do jogador (token assinado, sem estado) ----------
 function assinar(jid: string, cid: string, exp: number) {
@@ -37,20 +37,6 @@ function lerToken(token: unknown, cid: string): string | null {
   const exp = Number(expS)
   if (!jid || c !== cid || !exp || !sig || exp < Date.now()) return null
   return igual(sig, assinar(jid, c, exp)) ? jid : null
-}
-
-// ---------- banco de perguntas: carrega sozinho na 1ª vez e quando o arquivo cresce ----------
-let bancoOk = false
-async function garantirBanco() {
-  if (bancoOk) return
-  const { count } = await sb.from('quiz_perguntas').select('id', { count: 'exact', head: true })
-  if ((count || 0) < BANCO.length) {
-    for (let i = 0; i < BANCO.length; i += 100) {
-      const lote = BANCO.slice(i, i + 100).map(q => ({ id: q.id, nivel: q.nivel, categoria: q.categoria, enunciado: q.enunciado, opcoes: q.opcoes, curiosidade: q.curiosidade, status: 'a_revisar' }))
-      await sb.from('quiz_perguntas').upsert(lote, { onConflict: 'id' })
-    }
-  }
-  bancoOk = true
 }
 
 // ---------- apelido ----------
@@ -107,7 +93,7 @@ function inicioSemana(): string {
   return new Date(seg + 3 * 3600_000).toISOString()
 }
 
-type RodadaDb = { id: string; company_id: string; jogador_id: string; estado: Rodada['estado']; acertos: number; pontos: number; marco: number; erros: number; pulos_usados: number; pensar_usados: number; atualizada_em: string; mesa_id: string | null }
+type RodadaDb = { id: string; company_id: string; jogador_id: string; estado: Rodada['estado']; acertos: number; pontos: number; marco: number; erros: number; pulos_usados: number; pensar_usados: number; atualizada_em: string; mesa_id: string | null; tema?: string | null }
 const paraRegras = (r: RodadaDb): Rodada => ({ estado: r.estado, acertos: r.acertos, pontos: r.pontos, marco: r.marco, erros: r.erros })
 const publico = (r: RodadaDb) => ({ id: r.id, estado: r.estado, acertos: r.acertos, pontos: r.pontos, marco: r.marco, erros: r.erros, pulos: QUIZ_PULOS - r.pulos_usados, pensar: QUIZ_PENSAR - r.pensar_usados })
 
@@ -177,7 +163,7 @@ export async function POST(req: NextRequest) {
         jogador = j || null
         if (j) retomar = !!(await rodadaAberta(jogadorId))
       }
-      return NextResponse.json({ ativo: true, modo: ctx.modoLoja ? 'loja' : 'mesa', slug: ctx.company.slug, premio: ctx.modoLoja ? false : !!ctx.camp.premio_ativo, premioDaLoja: !!ctx.camp.premio_ativo, loja: ctx.company.name, mesa: ctx.mesa?.numero ?? null, jogador, retomar, perguntas: BANCO.length })
+      return NextResponse.json({ ativo: true, modo: ctx.modoLoja ? 'loja' : 'mesa', slug: ctx.company.slug, premio: ctx.modoLoja ? false : !!ctx.camp.premio_ativo, premioDaLoja: !!ctx.camp.premio_ativo, loja: ctx.company.name, mesa: ctx.mesa?.numero ?? null, jogador, retomar, perguntas: BANCO.length, temas: TEMAS_QUIZ })
     }
 
     // ================= cadastro pela identificação única (nome + WhatsApp já confirmado) =================
@@ -280,16 +266,17 @@ export async function POST(req: NextRequest) {
     await garantirBanco()
 
     if (acao === 'iniciar') {
+      const tema = temaValido(b.tema)
       let r = await rodadaAberta(jogadorId)
       let retomada = true
       if (!r) {
         retomada = false
-        const ins = await sb.from('quiz_rodadas').insert({ company_id: cid, comanda_id: null, jogador_key: `j:${jogadorId}`, jogador_id: jogadorId, mesa_id: ctx.mesa?.id ?? null, premiada: false }).select('*').single()
+        const ins = await sb.from('quiz_rodadas').insert({ company_id: cid, comanda_id: null, jogador_key: `j:${jogadorId}`, jogador_id: jogadorId, mesa_id: ctx.mesa?.id ?? null, premiada: false, tema }).select('*').single()
         if (ins.error) return erro('Não consegui começar a rodada.', 500)
         r = ins.data as RodadaDb
       }
       const item = await itemPendente(r.id)
-      return NextResponse.json({ ok: true, retomada, rodada: publico(r), item: item ? await mostrarItem(item, r) : null, tempoS: QUIZ_TEMPO_S })
+      return NextResponse.json({ ok: true, retomada, rodada: publico(r), tema: r.tema ?? null, item: item ? await mostrarItem(item, r) : null, tempoS: QUIZ_TEMPO_S })
     }
 
     // As demais ações trabalham na rodada aberta do jogador.
@@ -310,7 +297,7 @@ export async function POST(req: NextRequest) {
       const chave = `j:${jogadorId}`
       const { data: vistasD } = await sb.from('quiz_vistas').select('pergunta_id').eq('jogador_key', chave)
       const vistas = new Set((vistasD || []).map(v => v.pergunta_id as string))
-      const ativas = (await sb.from('quiz_perguntas').select('id, nivel').eq('ativa', true)).data || []
+      const ativas = ((await sb.from('quiz_perguntas').select('id, nivel, tema').eq('ativa', true)).data || []).filter(q => !r.tema || q.tema === r.tema)
       let pool = ativas.filter(q => q.nivel === nivel && !vistas.has(q.id))
       if (!pool.length) pool = ativas.filter(q => !vistas.has(q.id) && q.nivel <= nivel).sort((a, c) => c.nivel - a.nivel)
       if (!pool.length) pool = ativas.filter(q => !vistas.has(q.id))

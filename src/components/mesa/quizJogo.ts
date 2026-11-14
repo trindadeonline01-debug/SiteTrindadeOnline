@@ -106,6 +106,8 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
   var HOME = MODO_LOJA ? '/jogos/' + TOKEN.slice(5) : '/mesa/' + TOKEN
   var IDENT_URL = MODO_LOJA ? HOME + '?identificar=1' : HOME + '?identificar=jogar'
   var VOLTAR = MODO_LOJA ? 'Jogos' : 'Mesa'
+  // Tema escolhido na tela inicial ('' = misturado). Fica guardado neste aparelho.
+  var TEMA = ''; try { TEMA = localStorage.getItem('quiztema') || '' } catch (e) {}
   var JT = ''; try { JT = localStorage.getItem(LS) || '' } catch (e) {}
   var INFO = null, G = null, T = null, cur = 'load', ZONES = false, LEAVE = false, DESTROYED = false
   var CT = { n: 3, t: null }
@@ -167,6 +169,7 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
       '<div class="facts"><span><b>10</b> segundos por pergunta</span><i></i><span><b>3</b> chances de errar</span></div>' +
       '<div class="hwrow"><button class="how" data-act="zones"><span class="hi">i</span>Como funciona</button><button class="how" data-go="ranking"><span class="hi">★</span>Ver ranking</button></div>' +
       (MODO_LOJA ? '' : '<div class="hwrow"><button class="how" data-go="grupo"><span class="hi">👥</span>Jogar em grupo</button></div>') +
+      '<div class="temas"><span class="tm-t">Tema</span><div class="tm-row"><button class="tm' + (TEMA ? '' : ' on') + '" data-act="tema" data-v="">🎲 Misturado</button>' + ((INFO && INFO.temas) || []).map(function (t) { return '<button class="tm' + (TEMA === t.id ? ' on' : '') + '" data-act="tema" data-v="' + esc(t.id) + '">' + t.icone + ' ' + esc(t.nome) + '</button>' }).join('') + '</div></div>' +
       '<div class="cta2"><p class="pn">' + (INFO && INFO.jogador ? 'Jogando como <b>' + esc(INFO.jogador.apelido) + '</b>' : 'Você informa seu nome e WhatsApp antes de jogar') + '</p><button class="go" data-act="start"><span>Jogar</span></button></div></div></div>'
   }
   S.contagem = function () {
@@ -332,7 +335,7 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
   }
   function comecar() {
     ac()
-    api('iniciar').then(function (j) {
+    api('iniciar', { tema: TEMA || null }).then(function (j) {
       novoG(j.rodada)
       if (j.retomada && j.item) { setItem(j.item); cur = 'q'; render(); return }
       if (j.retomada && j.rodada.estado === 'portao') { return decidirAuto() }
@@ -404,6 +407,7 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
       return
     }
     var a = t.dataset.act
+    if (a === 'tema') { TEMA = t.dataset.v || ''; try { localStorage.setItem('quiztema', TEMA) } catch (x) {} render(); return }
     if (a === 'snd') { SND = !SND; if (SND) ac(); render(); return }
     if (a === 'zones') { ZONES = true; render(); return }
     if (a === 'zonesclose') { ZONES = false; render(); return }

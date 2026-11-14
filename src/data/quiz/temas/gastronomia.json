@@ -1,0 +1,2242 @@
+[
+{
+"nivel": 1,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual prato típico é feito com peixe, leite de coco e azeite de dendê?",
+"opcoes": [
+"Moqueca",
+"Feijoada",
+"Escondidinho",
+"Strogonoff"
+],
+"curiosidade": "A moqueca baiana é cozida com dendê e leite de coco.",
+"id": "GAS-001",
+"tema": "gastronomia"
+},
+{
+"nivel": 1,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual é o ingrediente principal do sushi, além do peixe?",
+"opcoes": [
+"Arroz",
+"Batata",
+"Macarrão",
+"Pão"
+],
+"curiosidade": "O arroz do sushi é temperado com vinagre.",
+"id": "GAS-002",
+"tema": "gastronomia"
+},
+{
+"nivel": 1,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "De qual país vem o sushi?",
+"opcoes": [
+"Japão",
+"China",
+"Coreia do Sul",
+"Tailândia"
+],
+"curiosidade": "O sushi também pode levar frutas e legumes.",
+"id": "GAS-003",
+"tema": "gastronomia"
+},
+{
+"nivel": 1,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "De qual país vem a pizza?",
+"opcoes": [
+"Itália",
+"França",
+"Espanha",
+"Estados Unidos"
+],
+"curiosidade": "A pizza napolitana é a mais tradicional.",
+"id": "GAS-004",
+"tema": "gastronomia"
+},
+{
+"nivel": 1,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "De qual país vem o taco?",
+"opcoes": [
+"México",
+"Peru",
+"Argentina",
+"Espanha"
+],
+"curiosidade": "O taco é uma tortilha recheada.",
+"id": "GAS-005",
+"tema": "gastronomia"
+},
+{
+"nivel": 1,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual peixe, de cor laranja-rosada, é muito usado em sushi e sashimi?",
+"opcoes": [
+"Salmão",
+"Sardinha",
+"Tilápia",
+"Pescada"
+],
+"curiosidade": "O salmão é rico em ômega 3.",
+"id": "GAS-006",
+"tema": "gastronomia"
+},
+{
+"nivel": 1,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual animal marinho tem oito tentáculos e é muito usado na culinária?",
+"opcoes": [
+"Polvo",
+"Lula",
+"Camarão",
+"Siri"
+],
+"curiosidade": "O polvo cozido fica macio com o preparo certo.",
+"id": "GAS-007",
+"tema": "gastronomia"
+},
+{
+"nivel": 1,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual crustáceo tem pinças e é muito usado na casquinha de siri?",
+"opcoes": [
+"Siri",
+"Camarão",
+"Lagosta",
+"Lula"
+],
+"curiosidade": "A casquinha leva a carne do siri e farofa.",
+"id": "GAS-008",
+"tema": "gastronomia"
+},
+{
+"nivel": 1,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual peixe é a base do tradicional prato português da Páscoa?",
+"opcoes": [
+"Bacalhau",
+"Sardinha",
+"Tilápia",
+"Atum"
+],
+"curiosidade": "O bacalhau é conservado em sal.",
+"id": "GAS-009",
+"tema": "gastronomia"
+},
+{
+"nivel": 1,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual fruto do mar fica rosado quando é cozido?",
+"opcoes": [
+"Camarão",
+"Lula",
+"Mexilhão",
+"Ostra"
+],
+"curiosidade": "Ele também fica mais firme quando cozido.",
+"id": "GAS-010",
+"tema": "gastronomia"
+},
+{
+"nivel": 1,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual bebida típica brasileira é feita da cana-de-açúcar?",
+"opcoes": [
+"Cachaça",
+"Vodca",
+"Tequila",
+"Uísque"
+],
+"curiosidade": "A cachaça é a base da caipirinha.",
+"id": "GAS-011",
+"tema": "gastronomia"
+},
+{
+"nivel": 1,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual tempero verde é muito usado em moquecas e peixadas?",
+"opcoes": [
+"Coentro",
+"Louro",
+"Orégano",
+"Alecrim"
+],
+"curiosidade": "Também é muito usado no Nordeste do Brasil.",
+"id": "GAS-012",
+"tema": "gastronomia"
+},
+{
+"nivel": 1,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual farinha é a base do pão?",
+"opcoes": [
+"Farinha de trigo",
+"Farinha de mandioca",
+"Fubá",
+"Polvilho"
+],
+"curiosidade": "O pão francês é feito com farinha de trigo.",
+"id": "GAS-013",
+"tema": "gastronomia"
+},
+{
+"nivel": 1,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual doce brasileiro é feito com leite condensado e chocolate granulado?",
+"opcoes": [
+"Brigadeiro",
+"Beijinho",
+"Cocada",
+"Pé de moleque"
+],
+"curiosidade": "O brigadeiro é presença obrigatória em festas de aniversário.",
+"id": "GAS-014",
+"tema": "gastronomia"
+},
+{
+"nivel": 1,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual fruto do mar é muito servido em anéis empanados e fritos?",
+"opcoes": [
+"Lula",
+"Polvo",
+"Siri",
+"Camarão"
+],
+"curiosidade": "Os anéis de lula são um petisco comum em bares.",
+"id": "GAS-015",
+"tema": "gastronomia"
+},
+{
+"nivel": 1,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual peixe pequeno é muito servido frito ou em lata?",
+"opcoes": [
+"Sardinha",
+"Atum",
+"Bacalhau",
+"Salmão"
+],
+"curiosidade": "É muito consumida em todo o litoral brasileiro.",
+"id": "GAS-016",
+"tema": "gastronomia"
+},
+{
+"nivel": 1,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual fruta é muito espremida sobre o peixe frito?",
+"opcoes": [
+"Limão",
+"Banana",
+"Maçã",
+"Uva"
+],
+"curiosidade": "O limão ajuda a cortar a gordura da fritura.",
+"id": "GAS-017",
+"tema": "gastronomia"
+},
+{
+"nivel": 1,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual bebida é feita de uvas?",
+"opcoes": [
+"Vinho",
+"Cerveja",
+"Cachaça",
+"Guaraná"
+],
+"curiosidade": "O vinho é produzido em várias regiões do mundo.",
+"id": "GAS-018",
+"tema": "gastronomia"
+},
+{
+"nivel": 1,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual molusco pode produzir pérolas?",
+"opcoes": [
+"Ostra",
+"Lula",
+"Camarão",
+"Siri"
+],
+"curiosidade": "As pérolas são formadas dentro da concha.",
+"id": "GAS-019",
+"tema": "gastronomia"
+},
+{
+"nivel": 1,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual petisco mineiro é feito de polvilho e queijo?",
+"opcoes": [
+"Pão de queijo",
+"Coxinha",
+"Empada",
+"Pastel"
+],
+"curiosidade": "É muito servido com café.",
+"id": "GAS-020",
+"tema": "gastronomia"
+},
+{
+"nivel": 1,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual farinha é feita de mandioca?",
+"opcoes": [
+"Farinha de mandioca",
+"Farinha de trigo",
+"Fubá",
+"Amido de milho"
+],
+"curiosidade": "É a base da farofa.",
+"id": "GAS-021",
+"tema": "gastronomia"
+},
+{
+"nivel": 1,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Como se chama o corte de peixe em fatias grossas, com o osso no meio?",
+"opcoes": [
+"Posta",
+"Filé",
+"Lombo",
+"Isca"
+],
+"curiosidade": "A posta é muito usada em peixes grandes, como o peixe-espada.",
+"id": "GAS-022",
+"tema": "gastronomia"
+},
+{
+"nivel": 1,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual óleo vermelho-alaranjado é típico da culinária baiana?",
+"opcoes": [
+"Azeite de dendê",
+"Azeite de oliva",
+"Óleo de soja",
+"Óleo de girassol"
+],
+"curiosidade": "O dendê vem de uma palmeira de origem africana.",
+"id": "GAS-023",
+"tema": "gastronomia"
+},
+{
+"nivel": 1,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual fruta é o ingrediente principal do guacamole?",
+"opcoes": [
+"Abacate",
+"Tomate",
+"Pepino",
+"Manga"
+],
+"curiosidade": "O guacamole é um prato mexicano.",
+"id": "GAS-024",
+"tema": "gastronomia"
+},
+{
+"nivel": 1,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual fruto do mar é o maior crustáceo servido em restaurantes, com pinças grandes e cauda?",
+"opcoes": [
+"Lagosta",
+"Camarão",
+"Siri",
+"Mexilhão"
+],
+"curiosidade": "A lagosta é considerada um prato de luxo.",
+"id": "GAS-025",
+"tema": "gastronomia"
+},
+{
+"nivel": 1,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual fruto amazônico roxo é servido na tigela com granola?",
+"opcoes": [
+"Açaí",
+"Cupuaçu",
+"Caju",
+"Acerola"
+],
+"curiosidade": "O açaí vem de uma palmeira da região amazônica.",
+"id": "GAS-026",
+"tema": "gastronomia"
+},
+{
+"nivel": 1,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual queijo é muito servido em espetinho na praia, no Nordeste?",
+"opcoes": [
+"Queijo coalho",
+"Queijo prato",
+"Mussarela",
+"Parmesão"
+],
+"curiosidade": "Ele é assado na brasa.",
+"id": "GAS-027",
+"tema": "gastronomia"
+},
+{
+"nivel": 1,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual é o nome do molho de soja usado no sushi?",
+"opcoes": [
+"Shoyu",
+"Ketchup",
+"Mostarda",
+"Maionese"
+],
+"curiosidade": "Shoyu é fermentado a partir da soja.",
+"id": "GAS-028",
+"tema": "gastronomia"
+},
+{
+"nivel": 1,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual é o nome do ponto da carne em que ela fica bem cozida por dentro?",
+"opcoes": [
+"Bem passado",
+"Mal passado",
+"Ao ponto",
+"Cru"
+],
+"curiosidade": "O ponto depende da temperatura interna da carne.",
+"id": "GAS-029",
+"tema": "gastronomia"
+},
+{
+"nivel": 1,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual é o nome do prato italiano de massa com molho de tomate e carne moída?",
+"opcoes": [
+"Espaguete à bolonhesa",
+"Lasanha de queijo",
+"Risoto",
+"Nhoque"
+],
+"curiosidade": "A bolonhesa vem da cidade de Bolonha.",
+"id": "GAS-030",
+"tema": "gastronomia"
+},
+{
+"nivel": 2,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual prato peruano é feito de peixe cru marinado em limão?",
+"opcoes": [
+"Ceviche",
+"Sushi",
+"Paella",
+"Tacos"
+],
+"curiosidade": "O ceviche costuma levar cebola roxa e pimenta.",
+"id": "GAS-031",
+"tema": "gastronomia"
+},
+{
+"nivel": 2,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "De qual país vem a paella?",
+"opcoes": [
+"Espanha",
+"Itália",
+"Portugal",
+"México"
+],
+"curiosidade": "Ela leva arroz, frutos do mar e açafrão.",
+"id": "GAS-032",
+"tema": "gastronomia"
+},
+{
+"nivel": 2,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual prato inglês é feito de peixe frito e batatas fritas?",
+"opcoes": [
+"Fish and chips",
+"Hambúrguer",
+"Bouillabaisse",
+"Moqueca"
+],
+"curiosidade": "É vendido em embalagens de papel.",
+"id": "GAS-033",
+"tema": "gastronomia"
+},
+{
+"nivel": 2,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual alga é usada para enrolar o sushi?",
+"opcoes": [
+"Nori",
+"Wakame",
+"Kombu",
+"Spirulina"
+],
+"curiosidade": "É uma folha seca, fina e escura.",
+"id": "GAS-034",
+"tema": "gastronomia"
+},
+{
+"nivel": 2,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual pasta verde e picante é servida com sushi?",
+"opcoes": [
+"Wasabi",
+"Mostarda",
+"Maionese",
+"Gengibre"
+],
+"curiosidade": "Ela é feita de uma raiz japonesa.",
+"id": "GAS-035",
+"tema": "gastronomia"
+},
+{
+"nivel": 2,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual alimento é a base do tofu?",
+"opcoes": [
+"Soja",
+"Arroz",
+"Trigo",
+"Milho"
+],
+"curiosidade": "O tofu é muito usado na culinária asiática.",
+"id": "GAS-036",
+"tema": "gastronomia"
+},
+{
+"nivel": 2,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual bebida mexicana é feita de agave?",
+"opcoes": [
+"Tequila",
+"Rum",
+"Vodca",
+"Uísque"
+],
+"curiosidade": "A tequila é típica do México.",
+"id": "GAS-037",
+"tema": "gastronomia"
+},
+{
+"nivel": 2,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Como se chama o acompanhamento feito de caldo de peixe e farinha, típico das peixadas?",
+"opcoes": [
+"Pirão",
+"Farofa",
+"Vinagrete",
+"Purê"
+],
+"curiosidade": "O pirão deixa a peixada mais encorpada.",
+"id": "GAS-038",
+"tema": "gastronomia"
+},
+{
+"nivel": 2,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual é o maior peixe de água doce do Brasil?",
+"opcoes": [
+"Pirarucu",
+"Tambaqui",
+"Tucunaré",
+"Dourado"
+],
+"curiosidade": "Pode passar de 2 metros de comprimento.",
+"id": "GAS-039",
+"tema": "gastronomia"
+},
+{
+"nivel": 2,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual peixe de água doce é muito criado em fazendas de piscicultura no Brasil?",
+"opcoes": [
+"Tilápia",
+"Atum",
+"Sardinha",
+"Salmão"
+],
+"curiosidade": "Seu filé é muito usado em restaurantes.",
+"id": "GAS-040",
+"tema": "gastronomia"
+},
+{
+"nivel": 2,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual destes peixes é de água salgada?",
+"opcoes": [
+"Atum",
+"Tilápia",
+"Tambaqui",
+"Pintado"
+],
+"curiosidade": "Os outros três são de água doce.",
+"id": "GAS-041",
+"tema": "gastronomia"
+},
+{
+"nivel": 2,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual destes peixes é de água doce?",
+"opcoes": [
+"Tilápia",
+"Atum",
+"Sardinha",
+"Linguado"
+],
+"curiosidade": "Os outros três são marinhos.",
+"id": "GAS-042",
+"tema": "gastronomia"
+},
+{
+"nivel": 2,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual peixe tem o corpo longo e prateado, que parece uma lâmina?",
+"opcoes": [
+"Peixe-espada",
+"Linguado",
+"Pescada",
+"Cação"
+],
+"curiosidade": "Por isso é muito vendido em postas.",
+"id": "GAS-043",
+"tema": "gastronomia"
+},
+{
+"nivel": 2,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual fruto do mar tem concha escura e é muito usado em caldos e moquecas?",
+"opcoes": [
+"Mexilhão",
+"Lula",
+"Polvo",
+"Camarão"
+],
+"curiosidade": "Também é chamado de marisco.",
+"id": "GAS-044",
+"tema": "gastronomia"
+},
+{
+"nivel": 2,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual bolinho baiano é frito no dendê e feito de feijão-fradinho?",
+"opcoes": [
+"Acarajé",
+"Coxinha",
+"Pastel",
+"Quibe"
+],
+"curiosidade": "Pode ser recheado com vatapá e camarão.",
+"id": "GAS-045",
+"tema": "gastronomia"
+},
+{
+"nivel": 2,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual prato leva purê de mandioca por cima de carne seca?",
+"opcoes": [
+"Escondidinho",
+"Feijoada",
+"Moqueca",
+"Estrogonofe"
+],
+"curiosidade": "O recheio fica \"escondido\" sob o purê.",
+"id": "GAS-046",
+"tema": "gastronomia"
+},
+{
+"nivel": 2,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual doce de milho é típico das festas juninas?",
+"opcoes": [
+"Canjica",
+"Brigadeiro",
+"Quindim",
+"Pudim"
+],
+"curiosidade": "Também pode ser feita com leite de coco.",
+"id": "GAS-047",
+"tema": "gastronomia"
+},
+{
+"nivel": 2,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual bebida típica do Sul do Brasil é feita de erva-mate?",
+"opcoes": [
+"Chimarrão",
+"Cachaça",
+"Guaraná",
+"Café"
+],
+"curiosidade": "É servida em uma cuia com bomba.",
+"id": "GAS-048",
+"tema": "gastronomia"
+},
+{
+"nivel": 2,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Como se chama o ponto de cozimento do macarrão em que ele fica firme?",
+"opcoes": [
+"Al dente",
+"Mal passado",
+"Cru",
+"Empapado"
+],
+"curiosidade": "A expressão vem do italiano e quer dizer \"ao dente\".",
+"id": "GAS-049",
+"tema": "gastronomia"
+},
+{
+"nivel": 2,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Como se chama o ato de tirar o filé do peixe?",
+"opcoes": [
+"Filetar",
+"Escamar",
+"Eviscerar",
+"Marinar"
+],
+"curiosidade": "O filé é a parte sem espinhas do peixe.",
+"id": "GAS-050",
+"tema": "gastronomia"
+},
+{
+"nivel": 2,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "O que é escamar um peixe?",
+"opcoes": [
+"Retirar as escamas",
+"Retirar as vísceras",
+"Retirar a cabeça",
+"Retirar o osso"
+],
+"curiosidade": "Pode ser feito com um utensílio chamado escamador.",
+"id": "GAS-051",
+"tema": "gastronomia"
+},
+{
+"nivel": 2,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual é um sinal de peixe fresco?",
+"opcoes": [
+"Olhos brilhantes e saltados",
+"Olhos fundos e opacos",
+"Cheiro forte de amônia",
+"Carne mole"
+],
+"curiosidade": "O cheiro deve lembrar o mar, e não ser forte.",
+"id": "GAS-052",
+"tema": "gastronomia"
+},
+{
+"nivel": 2,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Como se tira o excesso de sal do bacalhau antes de cozinhar?",
+"opcoes": [
+"Deixando de molho em água",
+"Fritando direto",
+"Congelando",
+"Fervendo no leite"
+],
+"curiosidade": "A água é trocada várias vezes.",
+"id": "GAS-053",
+"tema": "gastronomia"
+},
+{
+"nivel": 2,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual mistura de ervas é muito usada para temperar peixes e carnes, chamada de cheiro-verde?",
+"opcoes": [
+"Salsa e cebolinha",
+"Louro e cravo",
+"Hortelã e manjericão",
+"Alecrim e sálvia"
+],
+"curiosidade": "Faz parte da base de muitos pratos brasileiros.",
+"id": "GAS-054",
+"tema": "gastronomia"
+},
+{
+"nivel": 2,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual petisco de boteco é feito de bacalhau frito em formato de bolinho?",
+"opcoes": [
+"Bolinho de bacalhau",
+"Coxinha",
+"Pastel",
+"Empada"
+],
+"curiosidade": "É muito servido com limão.",
+"id": "GAS-055",
+"tema": "gastronomia"
+},
+{
+"nivel": 2,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual país é famoso pelo queijo gouda?",
+"opcoes": [
+"Holanda",
+"Itália",
+"Suíça",
+"França"
+],
+"curiosidade": "Também é famoso pelo queijo edam.",
+"id": "GAS-056",
+"tema": "gastronomia"
+},
+{
+"nivel": 2,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual país é famoso pelo champanhe?",
+"opcoes": [
+"França",
+"Itália",
+"Espanha",
+"Portugal"
+],
+"curiosidade": "Ele leva o nome de uma região francesa.",
+"id": "GAS-057",
+"tema": "gastronomia"
+},
+{
+"nivel": 2,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual prato francês é um ensopado de peixes e frutos do mar, típico de Marselha?",
+"opcoes": [
+"Bouillabaisse",
+"Ratatouille",
+"Fondue",
+"Croissant"
+],
+"curiosidade": "Leva peixes variados, ervas e açafrão.",
+"id": "GAS-058",
+"tema": "gastronomia"
+},
+{
+"nivel": 2,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual tempero em pó, vermelho e feito de urucum, é muito usado na cozinha brasileira?",
+"opcoes": [
+"Colorau",
+"Cominho",
+"Curry",
+"Canela"
+],
+"curiosidade": "Também é chamado de corante.",
+"id": "GAS-059",
+"tema": "gastronomia"
+},
+{
+"nivel": 2,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Como se chamam pedaços pequenos de peixe empanados e fritos?",
+"opcoes": [
+"Iscas",
+"Postas",
+"Filés",
+"Rolinhos"
+],
+"curiosidade": "São muito servidas como petisco.",
+"id": "GAS-060",
+"tema": "gastronomia"
+},
+{
+"nivel": 2,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Quantos braços tem um polvo?",
+"opcoes": [
+"8",
+"6",
+"10",
+"12"
+],
+"curiosidade": "A lula tem 8 braços e 2 tentáculos.",
+"id": "GAS-061",
+"tema": "gastronomia"
+},
+{
+"nivel": 2,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual processo dá o sabor característico ao salmão defumado?",
+"opcoes": [
+"Defumação",
+"Fritura",
+"Congelamento",
+"Fermentação"
+],
+"curiosidade": "A fumaça de madeira conserva e aromatiza o peixe.",
+"id": "GAS-062",
+"tema": "gastronomia"
+},
+{
+"nivel": 2,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual país é o maior produtor de café do mundo?",
+"opcoes": [
+"Brasil",
+"Colômbia",
+"Vietnã",
+"Etiópia"
+],
+"curiosidade": "O Brasil lidera a produção há mais de 150 anos.",
+"id": "GAS-063",
+"tema": "gastronomia"
+},
+{
+"nivel": 2,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual pão achatado é típico da culinária árabe?",
+"opcoes": [
+"Pão sírio",
+"Pão francês",
+"Pão de forma",
+"Brioche"
+],
+"curiosidade": "Também é chamado de pão pita.",
+"id": "GAS-064",
+"tema": "gastronomia"
+},
+{
+"nivel": 3,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual tempero dá cor amarela à paella?",
+"opcoes": [
+"Açafrão",
+"Colorau",
+"Páprica",
+"Cúrcuma"
+],
+"curiosidade": "O açafrão é uma das especiarias mais caras do mundo.",
+"id": "GAS-065",
+"tema": "gastronomia"
+},
+{
+"nivel": 3,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual é o nome do rolinho de sushi enrolado em alga?",
+"opcoes": [
+"Maki",
+"Nigiri",
+"Sashimi",
+"Temaki"
+],
+"curiosidade": "O temaki tem formato de cone.",
+"id": "GAS-066",
+"tema": "gastronomia"
+},
+{
+"nivel": 3,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual é o gengibre em conserva que acompanha o sushi?",
+"opcoes": [
+"Gari",
+"Wasabi",
+"Nori",
+"Shoyu"
+],
+"curiosidade": "Serve para limpar o paladar entre um sushi e outro.",
+"id": "GAS-067",
+"tema": "gastronomia"
+},
+{
+"nivel": 3,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "O que é sashimi?",
+"opcoes": [
+"Fatias de peixe cru",
+"Peixe frito",
+"Rolinho de arroz",
+"Sopa de peixe"
+],
+"curiosidade": "É servido sem arroz.",
+"id": "GAS-068",
+"tema": "gastronomia"
+},
+{
+"nivel": 3,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Em qual tipo de panela é feita a moqueca capixaba?",
+"opcoes": [
+"Panela de barro",
+"Panela de pressão",
+"Panela de ferro",
+"Frigideira"
+],
+"curiosidade": "A moqueca capixaba não leva dendê.",
+"id": "GAS-069",
+"tema": "gastronomia"
+},
+{
+"nivel": 3,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual tempero dá cor à moqueca capixaba, no lugar do dendê?",
+"opcoes": [
+"Urucum",
+"Açafrão",
+"Curry",
+"Páprica"
+],
+"curiosidade": "O urucum também é chamado de colorau.",
+"id": "GAS-070",
+"tema": "gastronomia"
+},
+{
+"nivel": 3,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual prato baiano leva pão, camarão seco, amendoim e dendê?",
+"opcoes": [
+"Vatapá",
+"Caruru",
+"Acarajé",
+"Abará"
+],
+"curiosidade": "É servido com acarajé e caruru.",
+"id": "GAS-071",
+"tema": "gastronomia"
+},
+{
+"nivel": 3,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual peixe amazônico é muito servido em costela assada?",
+"opcoes": [
+"Tambaqui",
+"Salmão",
+"Atum",
+"Tilápia"
+],
+"curiosidade": "A costela do tambaqui é muito apreciada.",
+"id": "GAS-072",
+"tema": "gastronomia"
+},
+{
+"nivel": 3,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual peixe é chamado de \"bacalhau da Amazônia\"?",
+"opcoes": [
+"Pirarucu",
+"Tambaqui",
+"Tucunaré",
+"Pintado"
+],
+"curiosidade": "Ele pode ser salgado e seco, como o bacalhau.",
+"id": "GAS-073",
+"tema": "gastronomia"
+},
+{
+"nivel": 3,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual caldo amarelo, extraído da mandioca, é típico da culinária paraense?",
+"opcoes": [
+"Tucupi",
+"Dendê",
+"Urucum",
+"Leite de coco"
+],
+"curiosidade": "É usado no pato no tucupi e no tacacá.",
+"id": "GAS-074",
+"tema": "gastronomia"
+},
+{
+"nivel": 3,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual prato paraense leva pato, tucupi e jambu?",
+"opcoes": [
+"Pato no tucupi",
+"Moqueca",
+"Vatapá",
+"Escondidinho"
+],
+"curiosidade": "É o prato típico do Círio de Nazaré.",
+"id": "GAS-075",
+"tema": "gastronomia"
+},
+{
+"nivel": 3,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual ave serve de base ao prato típico do Círio de Nazaré?",
+"opcoes": [
+"Pato",
+"Galinha",
+"Peru",
+"Pombo"
+],
+"curiosidade": "Ele é cozido no tucupi.",
+"id": "GAS-076",
+"tema": "gastronomia"
+},
+{
+"nivel": 3,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual país é famoso pelo queijo gorgonzola?",
+"opcoes": [
+"Itália",
+"França",
+"Suíça",
+"Espanha"
+],
+"curiosidade": "É um queijo azul.",
+"id": "GAS-077",
+"tema": "gastronomia"
+},
+{
+"nivel": 3,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "De qual cidade italiana vem a pizza?",
+"opcoes": [
+"Nápoles",
+"Roma",
+"Milão",
+"Veneza"
+],
+"curiosidade": "A pizza margherita nasceu lá.",
+"id": "GAS-078",
+"tema": "gastronomia"
+},
+{
+"nivel": 3,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual prato espanhol frio é feito de tomate, pepino e pimentão?",
+"opcoes": [
+"Gazpacho",
+"Paella",
+"Tortilla",
+"Churros"
+],
+"curiosidade": "É servido como uma sopa gelada.",
+"id": "GAS-079",
+"tema": "gastronomia"
+},
+{
+"nivel": 3,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual é o nome do peixe do qual vêm as ovas do caviar?",
+"opcoes": [
+"Esturjão",
+"Salmão",
+"Bacalhau",
+"Atum"
+],
+"curiosidade": "O caviar é uma iguaria de luxo.",
+"id": "GAS-080",
+"tema": "gastronomia"
+},
+{
+"nivel": 3,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual é o nome do prato italiano com pequenos moluscos de concha, servido com massa?",
+"opcoes": [
+"Spaghetti alle vongole",
+"Lasanha",
+"Risoto",
+"Carbonara"
+],
+"curiosidade": "Vôngoles são pequenos moluscos.",
+"id": "GAS-081",
+"tema": "gastronomia"
+},
+{
+"nivel": 3,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual é o nome em inglês do peixe usado para fazer bacalhau?",
+"opcoes": [
+"Cod",
+"Salmon",
+"Tuna",
+"Sole"
+],
+"curiosidade": "O bacalhau do Atlântico Norte é o mais conhecido.",
+"id": "GAS-082",
+"tema": "gastronomia"
+},
+{
+"nivel": 3,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual é o sinal de um peixe fresco nas brânquias?",
+"opcoes": [
+"Vermelho vivo",
+"Cinza",
+"Marrom",
+"Amarelado"
+],
+"curiosidade": "Brânquias escuras indicam peixe velho.",
+"id": "GAS-083",
+"tema": "gastronomia"
+},
+{
+"nivel": 3,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Como deve ser a carne de um peixe fresco ao toque?",
+"opcoes": [
+"Firme e elástica",
+"Mole",
+"Pegajosa",
+"Seca"
+],
+"curiosidade": "A carne volta quando pressionada.",
+"id": "GAS-084",
+"tema": "gastronomia"
+},
+{
+"nivel": 3,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "O que significa eviscerar um peixe?",
+"opcoes": [
+"Retirar as vísceras",
+"Retirar as escamas",
+"Retirar a cabeça",
+"Retirar a pele"
+],
+"curiosidade": "É uma etapa da limpeza do peixe.",
+"id": "GAS-085",
+"tema": "gastronomia"
+},
+{
+"nivel": 3,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Sobre o que o peixe fresco deve ser mantido, na bancada da peixaria?",
+"opcoes": [
+"Gelo",
+"Água morna",
+"Papel alumínio",
+"Sal grosso"
+],
+"curiosidade": "O gelo mantém o peixe fresco por mais tempo.",
+"id": "GAS-086",
+"tema": "gastronomia"
+},
+{
+"nivel": 3,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "O que é a \"veia preta\" que se retira do camarão?",
+"opcoes": [
+"O intestino",
+"A cabeça",
+"O fígado",
+"A casca"
+],
+"curiosidade": "Retirar é uma questão de sabor e higiene.",
+"id": "GAS-087",
+"tema": "gastronomia"
+},
+{
+"nivel": 3,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual cozinha é conhecida por pratos como curry, naan e tandoori?",
+"opcoes": [
+"Indiana",
+"Japonesa",
+"Tailandesa",
+"Chinesa"
+],
+"curiosidade": "Usa muitas especiarias, como cúrcuma e cominho.",
+"id": "GAS-088",
+"tema": "gastronomia"
+},
+{
+"nivel": 3,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual prato mexicano é feito de tortilha dobrada com recheio e molho?",
+"opcoes": [
+"Burrito",
+"Sushi",
+"Paella",
+"Ceviche"
+],
+"curiosidade": "O burrito é mais comum no norte do México e nos Estados Unidos.",
+"id": "GAS-089",
+"tema": "gastronomia"
+},
+{
+"nivel": 3,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual prato capixaba é uma torta com frutos do mar, comida na Semana Santa?",
+"opcoes": [
+"Torta capixaba",
+"Moqueca",
+"Vatapá",
+"Caruru"
+],
+"curiosidade": "Costuma levar siri, bacalhau e palmito.",
+"id": "GAS-090",
+"tema": "gastronomia"
+},
+{
+"nivel": 3,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual é o nome do queijo italiano ralado, muito servido sobre a massa?",
+"opcoes": [
+"Parmesão",
+"Gouda",
+"Cheddar",
+"Brie"
+],
+"curiosidade": "O parmesão envelhece por mais de um ano.",
+"id": "GAS-091",
+"tema": "gastronomia"
+},
+{
+"nivel": 3,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "De qual país vem o estrogonofe?",
+"opcoes": [
+"Rússia",
+"França",
+"Alemanha",
+"Polônia"
+],
+"curiosidade": "A receita original leva carne e creme azedo.",
+"id": "GAS-092",
+"tema": "gastronomia"
+},
+{
+"nivel": 3,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "De qual país vem a fondue?",
+"opcoes": [
+"Suíça",
+"França",
+"Bélgica",
+"Itália"
+],
+"curiosidade": "A fondue clássica é feita com queijo derretido.",
+"id": "GAS-093",
+"tema": "gastronomia"
+},
+{
+"nivel": 3,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "De qual país vem o queijo feta?",
+"opcoes": [
+"Grécia",
+"Turquia",
+"Itália",
+"Espanha"
+],
+"curiosidade": "É um queijo branco e salgado, muito usado em saladas.",
+"id": "GAS-094",
+"tema": "gastronomia"
+},
+{
+"nivel": 3,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "De qual país vem o kebab?",
+"opcoes": [
+"Turquia",
+"Grécia",
+"Egito",
+"Índia"
+],
+"curiosidade": "O kebab é carne assada no espeto.",
+"id": "GAS-095",
+"tema": "gastronomia"
+},
+{
+"nivel": 3,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual prato de origem árabe é feito de sêmola de trigo?",
+"opcoes": [
+"Cuscuz",
+"Tabule",
+"Quibe",
+"Esfiha"
+],
+"curiosidade": "Também há cuscuz nordestino, de milho.",
+"id": "GAS-096",
+"tema": "gastronomia"
+},
+{
+"nivel": 3,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual bolinho árabe é frito e feito de grão-de-bico?",
+"opcoes": [
+"Falafel",
+"Quibe",
+"Coxinha",
+"Pastel"
+],
+"curiosidade": "Costuma ser servido no pão pita.",
+"id": "GAS-097",
+"tema": "gastronomia"
+},
+{
+"nivel": 3,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual cozinha é conhecida pelo kimchi?",
+"opcoes": [
+"Coreana",
+"Japonesa",
+"Chinesa",
+"Tailandesa"
+],
+"curiosidade": "O kimchi é feito de repolho fermentado.",
+"id": "GAS-098",
+"tema": "gastronomia"
+},
+{
+"nivel": 3,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual cozinha é conhecida pelo curry verde?",
+"opcoes": [
+"Tailandesa",
+"Japonesa",
+"Coreana",
+"Chinesa"
+],
+"curiosidade": "Leva leite de coco e pimenta verde.",
+"id": "GAS-099",
+"tema": "gastronomia"
+},
+{
+"nivel": 3,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual é o pó verde do chá japonês, muito usado em sobremesas?",
+"opcoes": [
+"Matcha",
+"Wasabi",
+"Nori",
+"Kombu"
+],
+"curiosidade": "O matcha é feito de folhas de chá moídas.",
+"id": "GAS-100",
+"tema": "gastronomia"
+},
+{
+"nivel": 3,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual feijão é a base do acarajé?",
+"opcoes": [
+"Feijão-fradinho",
+"Feijão-preto",
+"Feijão-carioca",
+"Feijão-branco"
+],
+"curiosidade": "O bolinho é frito no dendê.",
+"id": "GAS-101",
+"tema": "gastronomia"
+},
+{
+"nivel": 3,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Quantas patas tem um caranguejo, contando as pinças?",
+"opcoes": [
+"10",
+"6",
+"8",
+"12"
+],
+"curiosidade": "São cinco pares de patas.",
+"id": "GAS-102",
+"tema": "gastronomia"
+},
+{
+"nivel": 3,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual país é o maior produtor de laranja do mundo?",
+"opcoes": [
+"Brasil",
+"Estados Unidos",
+"Espanha",
+"México"
+],
+"curiosidade": "A maior parte vira suco.",
+"id": "GAS-103",
+"tema": "gastronomia"
+},
+{
+"nivel": 4,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual prato português leva bacalhau desfiado, batata palha e ovos mexidos?",
+"opcoes": [
+"Bacalhau à Brás",
+"Bacalhau com natas",
+"Bacalhau à Gomes de Sá",
+"Caldeirada"
+],
+"curiosidade": "É um dos pratos mais populares de Portugal.",
+"id": "GAS-104",
+"tema": "gastronomia"
+},
+{
+"nivel": 4,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "De onde vem a maior parte do bacalhau vendido no Brasil?",
+"opcoes": [
+"Noruega",
+"Brasil",
+"Argentina",
+"Japão"
+],
+"curiosidade": "O peixe é pescado e salgado no Atlântico Norte.",
+"id": "GAS-105",
+"tema": "gastronomia"
+},
+{
+"nivel": 4,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual prato alagoano leva o molusco sururu?",
+"opcoes": [
+"Caldinho de sururu",
+"Moqueca",
+"Vatapá",
+"Peixada"
+],
+"curiosidade": "É um caldo temperado, típico das lagoas de Alagoas.",
+"id": "GAS-106",
+"tema": "gastronomia"
+},
+{
+"nivel": 4,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual peixe é curado com sal, açúcar e endro, no prato escandinavo?",
+"opcoes": [
+"Salmão",
+"Atum",
+"Pescada",
+"Sardinha"
+],
+"curiosidade": "O prato se chama gravlax.",
+"id": "GAS-107",
+"tema": "gastronomia"
+},
+{
+"nivel": 4,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual é o nome do peixe de carne vermelha mais caro, usado em sashimi de luxo?",
+"opcoes": [
+"Atum-azul",
+"Salmão",
+"Tilápia",
+"Pescada"
+],
+"curiosidade": "O atum-azul pode chegar a preços altíssimos.",
+"id": "GAS-108",
+"tema": "gastronomia"
+},
+{
+"nivel": 4,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual crustáceo pequeno de água doce parece uma mini lagosta?",
+"opcoes": [
+"Lagostim",
+"Camarão",
+"Siri",
+"Caranguejo"
+],
+"curiosidade": "É muito apreciado em risotos.",
+"id": "GAS-109",
+"tema": "gastronomia"
+},
+{
+"nivel": 4,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "O que significa a expressão francesa \"mise en place\" na cozinha?",
+"opcoes": [
+"Organizar os ingredientes antes de cozinhar",
+"Cortar em cubos",
+"Cozinhar a vácuo",
+"Servir o prato"
+],
+"curiosidade": "Ajuda a evitar erros durante o preparo.",
+"id": "GAS-110",
+"tema": "gastronomia"
+},
+{
+"nivel": 4,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual técnica cozinha o peixe embrulhado em papel ou folha?",
+"opcoes": [
+"Papillote",
+"Grelhado",
+"Frito",
+"Cru"
+],
+"curiosidade": "O vapor cozinha o peixe dentro do embrulho.",
+"id": "GAS-111",
+"tema": "gastronomia"
+},
+{
+"nivel": 4,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual é a origem do dendê?",
+"opcoes": [
+"África",
+"Ásia",
+"Europa",
+"América do Norte"
+],
+"curiosidade": "Ele chegou ao Brasil com os escravizados.",
+"id": "GAS-112",
+"tema": "gastronomia"
+},
+{
+"nivel": 4,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual caldo de peixe é tradicional da cozinha de Portugal?",
+"opcoes": [
+"Caldeirada",
+"Cozido",
+"Sopa de pedra",
+"Feijoada"
+],
+"curiosidade": "A caldeirada leva peixes, batata e tomate.",
+"id": "GAS-113",
+"tema": "gastronomia"
+},
+{
+"nivel": 4,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual prato da região Norte é um caldo de tucupi com goma de tapioca, camarão seco e jambu?",
+"opcoes": [
+"Tacacá",
+"Moqueca",
+"Vatapá",
+"Bobó"
+],
+"curiosidade": "É vendido em cuias em muitas ruas de Belém.",
+"id": "GAS-114",
+"tema": "gastronomia"
+},
+{
+"nivel": 4,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual prato baiano leva camarão, leite de coco e aipim batido?",
+"opcoes": [
+"Bobó de camarão",
+"Vatapá",
+"Caruru",
+"Moqueca"
+],
+"curiosidade": "O bobó é cozido com dendê e leite de coco.",
+"id": "GAS-115",
+"tema": "gastronomia"
+},
+{
+"nivel": 4,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual prato baiano é feito de quiabo, camarão seco e dendê?",
+"opcoes": [
+"Caruru",
+"Vatapá",
+"Bobó",
+"Acarajé"
+],
+"curiosidade": "É um prato oferecido no culto a Cosme e Damião.",
+"id": "GAS-116",
+"tema": "gastronomia"
+},
+{
+"nivel": 4,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual prato mineiro é feito com feijão, carne e é servido em panela de ferro, o tropeiro?",
+"opcoes": [
+"Feijão tropeiro",
+"Feijoada",
+"Baião de dois",
+"Tutu"
+],
+"curiosidade": "Leva farinha, couve, ovos e torresmo.",
+"id": "GAS-117",
+"tema": "gastronomia"
+},
+{
+"nivel": 4,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual prato nordestino mistura arroz e feijão-de-corda com queijo coalho?",
+"opcoes": [
+"Baião de dois",
+"Feijoada",
+"Escondidinho",
+"Moqueca"
+],
+"curiosidade": "Costuma ser acompanhado de carne seca.",
+"id": "GAS-118",
+"tema": "gastronomia"
+},
+{
+"nivel": 4,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual país é famoso pelo sorvete chamado gelato?",
+"opcoes": [
+"Itália",
+"França",
+"Grécia",
+"Espanha"
+],
+"curiosidade": "O gelato tem menos ar que o sorvete comum.",
+"id": "GAS-119",
+"tema": "gastronomia"
+},
+{
+"nivel": 4,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual prato asiático de macarrão e caldo é muito popular no Japão?",
+"opcoes": [
+"Lámen",
+"Pad thai",
+"Chow mein",
+"Pho"
+],
+"curiosidade": "O lámen pode levar ovo, carne de porco e nori.",
+"id": "GAS-120",
+"tema": "gastronomia"
+},
+{
+"nivel": 4,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual prato vietnamita é uma sopa de macarrão de arroz e carne?",
+"opcoes": [
+"Pho",
+"Lámen",
+"Pad thai",
+"Sushi"
+],
+"curiosidade": "É servido com ervas frescas e limão.",
+"id": "GAS-121",
+"tema": "gastronomia"
+},
+{
+"nivel": 4,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual país é o berço do prato \"pad thai\"?",
+"opcoes": [
+"Tailândia",
+"Japão",
+"China",
+"Vietnã"
+],
+"curiosidade": "Ele leva macarrão de arroz, amendoim e camarão.",
+"id": "GAS-122",
+"tema": "gastronomia"
+},
+{
+"nivel": 4,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual prato do Rio é feito de arroz, feijão, bife, ovo e batata frita, o \"PF\"?",
+"opcoes": [
+"Prato feito",
+"Feijoada completa",
+"Marmitex",
+"Rodízio"
+],
+"curiosidade": "É a refeição de todo dia em muitos botecos.",
+"id": "GAS-123",
+"tema": "gastronomia"
+},
+{
+"nivel": 4,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual prato típico carioca leva carne, linguiça, feijão preto e é servido aos sábados?",
+"opcoes": [
+"Feijoada",
+"Moqueca",
+"Cozido",
+"Vaca atolada"
+],
+"curiosidade": "Costuma vir com couve, farofa e laranja.",
+"id": "GAS-124",
+"tema": "gastronomia"
+},
+{
+"nivel": 4,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual sobremesa é feita de gemas, açúcar e coco ralado e é de origem portuguesa?",
+"opcoes": [
+"Quindim",
+"Brigadeiro",
+"Pudim",
+"Cocada"
+],
+"curiosidade": "O quindim é amarelo e brilhante.",
+"id": "GAS-125",
+"tema": "gastronomia"
+},
+{
+"nivel": 4,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual destes pratos italianos usa tinta de lula para ficar preto?",
+"opcoes": [
+"Risoto nero",
+"Lasanha",
+"Pizza marguerita",
+"Nhoque"
+],
+"curiosidade": "O prato é feito com arroz e lula.",
+"id": "GAS-126",
+"tema": "gastronomia"
+},
+{
+"nivel": 4,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual peixe japonês pode ser venenoso se for mal preparado?",
+"opcoes": [
+"Baiacu (fugu)",
+"Atum",
+"Salmão",
+"Enguia"
+],
+"curiosidade": "Só chefs licenciados podem servir fugu no Japão.",
+"id": "GAS-127",
+"tema": "gastronomia"
+},
+{
+"nivel": 4,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual cidade abriga o maior mercado de peixes do mundo, antigo Tsukiji, atual Toyosu?",
+"opcoes": [
+"Tóquio",
+"Osaka",
+"Kyoto",
+"Seul"
+],
+"curiosidade": "O mercado é famoso pelos leilões de atum.",
+"id": "GAS-128",
+"tema": "gastronomia"
+},
+{
+"nivel": 4,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual prato gaúcho é feito com arroz, charque e temperos?",
+"opcoes": [
+"Arroz de carreteiro",
+"Feijoada",
+"Escondidinho",
+"Baião de dois"
+],
+"curiosidade": "Era o prato dos tropeiros.",
+"id": "GAS-129",
+"tema": "gastronomia"
+},
+{
+"nivel": 4,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual país é conhecido pelo chucrute?",
+"opcoes": [
+"Alemanha",
+"França",
+"Itália",
+"Espanha"
+],
+"curiosidade": "O chucrute é repolho fermentado.",
+"id": "GAS-130",
+"tema": "gastronomia"
+},
+{
+"nivel": 4,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "De qual país vem o gulache (goulash)?",
+"opcoes": [
+"Hungria",
+"Polônia",
+"Alemanha",
+"Áustria"
+],
+"curiosidade": "É um ensopado de carne com páprica.",
+"id": "GAS-131",
+"tema": "gastronomia"
+},
+{
+"nivel": 4,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "De qual país vem a moussaka?",
+"opcoes": [
+"Grécia",
+"Turquia",
+"Itália",
+"Egito"
+],
+"curiosidade": "Leva berinjela e carne moída.",
+"id": "GAS-132",
+"tema": "gastronomia"
+},
+{
+"nivel": 4,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Quantos braços e tentáculos tem uma lula, ao todo?",
+"opcoes": [
+"10",
+"8",
+"6",
+"12"
+],
+"curiosidade": "Dois deles são tentáculos mais longos.",
+"id": "GAS-133",
+"tema": "gastronomia"
+},
+{
+"nivel": 4,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual sal delicado, colhido na superfície das salinas, é usado para finalizar pratos?",
+"opcoes": [
+"Flor de sal",
+"Sal grosso",
+"Sal rosa",
+"Sal-gema"
+],
+"curiosidade": "É considerado um sal de luxo.",
+"id": "GAS-134",
+"tema": "gastronomia"
+},
+{
+"nivel": 4,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual crustáceo de água doce é chamado de \"pitu\" no Nordeste?",
+"opcoes": [
+"Camarão de água doce",
+"Lagosta",
+"Siri",
+"Caranguejo"
+],
+"curiosidade": "O pitu é um camarão grande de rios e riachos.",
+"id": "GAS-135",
+"tema": "gastronomia"
+},
+{
+"nivel": 4,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual doce árabe é feito de massa folhada, nozes e calda?",
+"opcoes": [
+"Baclava",
+"Quindim",
+"Cocada",
+"Pudim"
+],
+"curiosidade": "É muito popular na Turquia e no Líbano.",
+"id": "GAS-136",
+"tema": "gastronomia"
+},
+{
+"nivel": 4,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual país é o maior exportador de carne bovina do mundo?",
+"opcoes": [
+"Brasil",
+"Estados Unidos",
+"Austrália",
+"Argentina"
+],
+"curiosidade": "O Brasil lidera as exportações há alguns anos.",
+"id": "GAS-137",
+"tema": "gastronomia"
+},
+{
+"nivel": 5,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual prato português leva bacalhau, batata em rodelas, cebola e ovo cozido, com azeite?",
+"opcoes": [
+"Bacalhau à Gomes de Sá",
+"Bacalhau à Brás",
+"Bacalhau com natas",
+"Caldeirada"
+],
+"curiosidade": "É um dos pratos mais famosos da cidade do Porto.",
+"id": "GAS-138",
+"tema": "gastronomia"
+},
+{
+"nivel": 5,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual prato amazonense leva pirarucu desfiado, banana frita e farofa?",
+"opcoes": [
+"Pirarucu de casaca",
+"Tacacá",
+"Pato no tucupi",
+"Maniçoba"
+],
+"curiosidade": "É um prato típico de Manaus.",
+"id": "GAS-139",
+"tema": "gastronomia"
+},
+{
+"nivel": 5,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual é o nome do prato paraense feito com as folhas da mandioca cozidas por vários dias?",
+"opcoes": [
+"Maniçoba",
+"Tacacá",
+"Vatapá",
+"Caruru"
+],
+"curiosidade": "Costuma ser chamada de \"feijoada paraense\".",
+"id": "GAS-140",
+"tema": "gastronomia"
+},
+{
+"nivel": 5,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual país inventou o ceviche?",
+"opcoes": [
+"Peru",
+"México",
+"Chile",
+"Equador"
+],
+"curiosidade": "A origem é muito disputada, mas o Peru é patrimônio cultural.",
+"id": "GAS-141",
+"tema": "gastronomia"
+},
+{
+"nivel": 5,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual prato japonês consiste em uma bola de arroz moldada com fatia de peixe por cima?",
+"opcoes": [
+"Nigiri",
+"Maki",
+"Temaki",
+"Uramaki"
+],
+"curiosidade": "Nigiri significa \"apertado com a mão\".",
+"id": "GAS-142",
+"tema": "gastronomia"
+},
+{
+"nivel": 5,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual é o nome do pescado cru e fatiado em lâminas, de origem italiana, servido com azeite e limão?",
+"opcoes": [
+"Carpaccio",
+"Ceviche",
+"Sashimi",
+"Tartare"
+],
+"curiosidade": "O carpaccio foi inventado em Veneza.",
+"id": "GAS-143",
+"tema": "gastronomia"
+},
+{
+"nivel": 5,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual é o tipo de corte em que o peixe é aberto como um livro?",
+"opcoes": [
+"Borboleta",
+"Posta",
+"Filé",
+"Isca"
+],
+"curiosidade": "É comum em peixes inteiros assados na grelha.",
+"id": "GAS-144",
+"tema": "gastronomia"
+},
+{
+"nivel": 5,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual parte do atum é a mais gordurosa e valorizada no sushi?",
+"opcoes": [
+"Toro",
+"Akami",
+"Chutoro",
+"Kama"
+],
+"curiosidade": "O toro vem da barriga do atum.",
+"id": "GAS-145",
+"tema": "gastronomia"
+},
+{
+"nivel": 5,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual peixe de água doce, também chamado de piraíba, é famoso pela carne macia no Norte do Brasil?",
+"opcoes": [
+"Filhote",
+"Tambaqui",
+"Pirarucu",
+"Pacu"
+],
+"curiosidade": "É muito usado em moquecas e peixadas amazônicas.",
+"id": "GAS-146",
+"tema": "gastronomia"
+},
+{
+"nivel": 5,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual é o nome da técnica francesa de cozinhar em baixa temperatura, em saco plástico, por muitas horas?",
+"opcoes": [
+"Sous-vide",
+"Papillote",
+"Flambagem",
+"Confit"
+],
+"curiosidade": "A palavra significa \"sob vácuo\".",
+"id": "GAS-147",
+"tema": "gastronomia"
+},
+{
+"nivel": 5,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Flambar consiste em colocar fogo em qual ingrediente do prato?",
+"opcoes": [
+"Bebida alcoólica",
+"Azeite",
+"Açúcar",
+"Manteiga"
+],
+"curiosidade": "O álcool evapora e deixa o sabor no prato.",
+"id": "GAS-148",
+"tema": "gastronomia"
+},
+{
+"nivel": 5,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual país é o berço da cozinha chamada \"tapas\"?",
+"opcoes": [
+"Espanha",
+"Portugal",
+"Itália",
+"França"
+],
+"curiosidade": "Tapas são petiscos servidos em pequenas porções.",
+"id": "GAS-149",
+"tema": "gastronomia"
+},
+{
+"nivel": 5,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual é o termo para o ponto em que o açúcar derrete e fica marrom, usado em pudim?",
+"opcoes": [
+"Caramelo",
+"Calda grossa",
+"Fondant",
+"Glaçagem"
+],
+"curiosidade": "O caramelo é feito apenas com açúcar e água.",
+"id": "GAS-150",
+"tema": "gastronomia"
+},
+{
+"nivel": 5,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Quem é o chef brasileiro que ficou conhecido por revalorizar a culinária amazônica, com o restaurante Dalva e Dito?",
+"opcoes": [
+"Alex Atala",
+"Claude Troisgros",
+"Paulo Machado",
+"Bela Gil"
+],
+"curiosidade": "Atala também comanda o D.O.M., em São Paulo.",
+"id": "GAS-151",
+"tema": "gastronomia"
+},
+{
+"nivel": 5,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual chef francês radicado no Rio é jurado de programas culinários e dono do Olympe?",
+"opcoes": [
+"Claude Troisgros",
+"Alex Atala",
+"Henrique Fogaça",
+"Érick Jacquin"
+],
+"curiosidade": "Ele é de uma família de chefs franceses.",
+"id": "GAS-152",
+"tema": "gastronomia"
+},
+{
+"nivel": 5,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual chef brasileiro é dono do restaurante D.O.M., em São Paulo?",
+"opcoes": [
+"Alex Atala",
+"Claude Troisgros",
+"Rodrigo Oliveira",
+"Roberta Sudbrack"
+],
+"curiosidade": "É um dos restaurantes mais premiados do país.",
+"id": "GAS-153",
+"tema": "gastronomia"
+},
+{
+"nivel": 5,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual é a cidade do Rio onde fica o tradicional restaurante Confeitaria Colombo, aberto em 1894?",
+"opcoes": [
+"Rio de Janeiro",
+"Niterói",
+"Petrópolis",
+"São Gonçalo"
+],
+"curiosidade": "Fica no Centro, na Rua Gonçalves Dias.",
+"id": "GAS-154",
+"tema": "gastronomia"
+},
+{
+"nivel": 5,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual é a temperatura ideal do freezer para conservar peixe por mais tempo?",
+"opcoes": [
+"-18 °C",
+"0 °C",
+"5 °C",
+"10 °C"
+],
+"curiosidade": "O congelamento correto preserva o sabor e a qualidade.",
+"id": "GAS-155",
+"tema": "gastronomia"
+},
+{
+"nivel": 5,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual é o nome do peixe da família dos tunídeos, de carne escura, usado em latas, mais barato que o atum?",
+"opcoes": [
+"Bonito",
+"Cação",
+"Pescada",
+"Sardinha"
+],
+"curiosidade": "É da mesma família do atum.",
+"id": "GAS-156",
+"tema": "gastronomia"
+},
+{
+"nivel": 5,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual é o nome do molusco bivalve servido cru, com limão, em bares à beira-mar?",
+"opcoes": [
+"Ostra",
+"Lula",
+"Polvo",
+"Camarão"
+],
+"curiosidade": "Costuma ser chamada de \"ostra fresca\".",
+"id": "GAS-157",
+"tema": "gastronomia"
+},
+{
+"nivel": 5,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual é o nome do peixe seco e fermentado que dá sabor ao caldo básico da culinária japonesa?",
+"opcoes": [
+"Katsuobushi",
+"Wakame",
+"Niboshi",
+"Kombu"
+],
+"curiosidade": "É feito de bonito e é ralado em flocos finos.",
+"id": "GAS-158",
+"tema": "gastronomia"
+},
+{
+"nivel": 5,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual é o nome da faca multiuso mais popular da cozinha japonesa?",
+"opcoes": [
+"Santoku",
+"Cutelo",
+"Faca de chef",
+"Faca de pão"
+],
+"curiosidade": "O nome significa \"três virtudes\".",
+"id": "GAS-159",
+"tema": "gastronomia"
+},
+{
+"nivel": 5,
+"categoria": "Gastronomia e peixaria",
+"enunciado": "Qual cozinha usa o termo \"umami\", o quinto gosto básico?",
+"opcoes": [
+"Japonesa",
+"Francesa",
+"Italiana",
+"Indiana"
+],
+"curiosidade": "O umami foi descrito por um cientista japonês em 1908.",
+"id": "GAS-160",
+"tema": "gastronomia"
+}
+]

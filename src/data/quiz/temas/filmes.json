@@ -1,0 +1,2256 @@
+[
+{
+"nivel": 1,
+"categoria": "Filmes e séries",
+"enunciado": "Qual é o nome do peixinho laranja que se perde no filme \"Procurando Nemo\"?",
+"opcoes": [
+"Nemo",
+"Dory",
+"Marlin",
+"Bruce"
+],
+"curiosidade": "O filme é da Pixar e estreou em 2003.",
+"id": "FIL-001",
+"tema": "filmes"
+},
+{
+"nivel": 1,
+"categoria": "Filmes e séries",
+"enunciado": "Qual brinquedo é o cowboy de \"Toy Story\"?",
+"opcoes": [
+"Woody",
+"Buzz Lightyear",
+"Rex",
+"Slinky"
+],
+"curiosidade": "Woody e Buzz são os protagonistas da série.",
+"id": "FIL-002",
+"tema": "filmes"
+},
+{
+"nivel": 1,
+"categoria": "Filmes e séries",
+"enunciado": "Em \"Frozen\", qual é o nome da princesa com poderes de gelo?",
+"opcoes": [
+"Elsa",
+"Anna",
+"Moana",
+"Bela"
+],
+"curiosidade": "Elsa canta a música \"Let It Go\".",
+"id": "FIL-003",
+"tema": "filmes"
+},
+{
+"nivel": 1,
+"categoria": "Filmes e séries",
+"enunciado": "Qual é o ratinho mais famoso da Disney?",
+"opcoes": [
+"Mickey",
+"Jerry",
+"Stuart Little",
+"Speedy Gonzales"
+],
+"curiosidade": "Mickey Mouse estreou em 1928.",
+"id": "FIL-004",
+"tema": "filmes"
+},
+{
+"nivel": 1,
+"categoria": "Filmes e séries",
+"enunciado": "Como se chama o robozinho que limpa o lixo da Terra no filme da Pixar de 2008?",
+"opcoes": [
+"WALL-E",
+"R2-D2",
+"Baymax",
+"Bumblebee"
+],
+"curiosidade": "Ele é o último robô que ainda trabalha na Terra.",
+"id": "FIL-005",
+"tema": "filmes"
+},
+{
+"nivel": 1,
+"categoria": "Filmes e séries",
+"enunciado": "Em \"Shrek\", que tipo de criatura é o protagonista?",
+"opcoes": [
+"Ogro",
+"Dragão",
+"Troll",
+"Gigante"
+],
+"curiosidade": "Shrek vive em um pântano.",
+"id": "FIL-006",
+"tema": "filmes"
+},
+{
+"nivel": 1,
+"categoria": "Filmes e séries",
+"enunciado": "Qual é o nome do menino bruxo de óculos e cicatriz na testa criado por J.K. Rowling?",
+"opcoes": [
+"Harry Potter",
+"Rony Weasley",
+"Draco Malfoy",
+"Hagrid"
+],
+"curiosidade": "Os livros viraram oito filmes.",
+"id": "FIL-007",
+"tema": "filmes"
+},
+{
+"nivel": 1,
+"categoria": "Filmes e séries",
+"enunciado": "Quantos anões acompanham a Branca de Neve?",
+"opcoes": [
+"Sete",
+"Cinco",
+"Seis",
+"Nove"
+],
+"curiosidade": "\"Branca de Neve e os Sete Anões\" é de 1937.",
+"id": "FIL-008",
+"tema": "filmes"
+},
+{
+"nivel": 1,
+"categoria": "Filmes e séries",
+"enunciado": "Qual é o nome verdadeiro do Homem-Aranha?",
+"opcoes": [
+"Peter Parker",
+"Bruce Wayne",
+"Tony Stark",
+"Clark Kent"
+],
+"curiosidade": "Peter foi picado por uma aranha radioativa.",
+"id": "FIL-009",
+"tema": "filmes"
+},
+{
+"nivel": 1,
+"categoria": "Filmes e séries",
+"enunciado": "De que cor é o Hulk?",
+"opcoes": [
+"Verde",
+"Azul",
+"Vermelho",
+"Amarelo"
+],
+"curiosidade": "Bruce Banner vira o Hulk quando fica furioso.",
+"id": "FIL-010",
+"tema": "filmes"
+},
+{
+"nivel": 1,
+"categoria": "Filmes e séries",
+"enunciado": "Em \"Procurando Nemo\", como se chama a peixe azul que tem memória curta?",
+"opcoes": [
+"Dory",
+"Gill",
+"Crush",
+"Bruce"
+],
+"curiosidade": "Dory ganhou um filme só dela em 2016.",
+"id": "FIL-011",
+"tema": "filmes"
+},
+{
+"nivel": 1,
+"categoria": "Filmes e séries",
+"enunciado": "Qual personagem de Toy Story diz \"Ao infinito e além!\"?",
+"opcoes": [
+"Buzz Lightyear",
+"Woody",
+"Mike Wazowski",
+"Sulley"
+],
+"curiosidade": "Buzz é um astronauta de brinquedo.",
+"id": "FIL-012",
+"tema": "filmes"
+},
+{
+"nivel": 1,
+"categoria": "Filmes e séries",
+"enunciado": "No filme \"Ratatouille\", qual animal sonha em ser chef de cozinha?",
+"opcoes": [
+"Um rato",
+"Um gato",
+"Um cachorro",
+"Um porco"
+],
+"curiosidade": "O ratinho se chama Remy.",
+"id": "FIL-013",
+"tema": "filmes"
+},
+{
+"nivel": 1,
+"categoria": "Filmes e séries",
+"enunciado": "Qual é o nome do cachorro de estimação do Mickey Mouse?",
+"opcoes": [
+"Pluto",
+"Scooby",
+"Bolt",
+"Snoopy"
+],
+"curiosidade": "Pluto apareceu pela primeira vez em 1930.",
+"id": "FIL-014",
+"tema": "filmes"
+},
+{
+"nivel": 1,
+"categoria": "Filmes e séries",
+"enunciado": "Qual personagem é uma esponja amarela que mora no fundo do mar?",
+"opcoes": [
+"Bob Esponja",
+"Patrick",
+"Lula Molusco",
+"Sr. Sirigueijo"
+],
+"curiosidade": "Ele mora em Fenda do Biquíni.",
+"id": "FIL-015",
+"tema": "filmes"
+},
+{
+"nivel": 1,
+"categoria": "Filmes e séries",
+"enunciado": "Os \"Minions\" aparecem em qual série de filmes?",
+"opcoes": [
+"Meu Malvado Favorito",
+"Madagascar",
+"Shrek",
+"Carros"
+],
+"curiosidade": "Os Minions também têm filmes só deles.",
+"id": "FIL-016",
+"tema": "filmes"
+},
+{
+"nivel": 1,
+"categoria": "Filmes e séries",
+"enunciado": "Como se chama o carro de corrida vermelho protagonista do filme \"Carros\"?",
+"opcoes": [
+"Relâmpago McQueen",
+"Mate",
+"Doc Hudson",
+"Chick Hicks"
+],
+"curiosidade": "Ele usa o número 95.",
+"id": "FIL-017",
+"tema": "filmes"
+},
+{
+"nivel": 1,
+"categoria": "Filmes e séries",
+"enunciado": "Como se chama a protagonista do filme \"A Bela e a Fera\"?",
+"opcoes": [
+"Bela",
+"Cinderela",
+"Ariel",
+"Aurora"
+],
+"curiosidade": "A Fera é um príncipe enfeitiçado.",
+"id": "FIL-018",
+"tema": "filmes"
+},
+{
+"nivel": 1,
+"categoria": "Filmes e séries",
+"enunciado": "Qual é o nome do pai de Simba em \"O Rei Leão\"?",
+"opcoes": [
+"Mufasa",
+"Scar",
+"Zazu",
+"Timão"
+],
+"curiosidade": "Scar é o tio e vilão da história.",
+"id": "FIL-019",
+"tema": "filmes"
+},
+{
+"nivel": 1,
+"categoria": "Filmes e séries",
+"enunciado": "Em \"Aladdin\", dentro de que objeto vive o Gênio?",
+"opcoes": [
+"Uma lâmpada",
+"Um anel",
+"Uma garrafa",
+"Um baú"
+],
+"curiosidade": "O Gênio concede três desejos.",
+"id": "FIL-020",
+"tema": "filmes"
+},
+{
+"nivel": 1,
+"categoria": "Filmes e séries",
+"enunciado": "Qual filme da Disney conta a história de uma sereia ruiva chamada Ariel?",
+"opcoes": [
+"A Pequena Sereia",
+"Moana",
+"Frozen",
+"Enrolados"
+],
+"curiosidade": "Ariel troca a voz por pernas humanas.",
+"id": "FIL-021",
+"tema": "filmes"
+},
+{
+"nivel": 1,
+"categoria": "Filmes e séries",
+"enunciado": "Em \"Star Wars\", quem é o pai de Luke Skywalker?",
+"opcoes": [
+"Darth Vader",
+"Yoda",
+"Obi-Wan Kenobi",
+"Han Solo"
+],
+"curiosidade": "A revelação é uma das mais famosas do cinema.",
+"id": "FIL-022",
+"tema": "filmes"
+},
+{
+"nivel": 1,
+"categoria": "Filmes e séries",
+"enunciado": "Qual é o nome do pato da Disney que usa roupa de marinheiro?",
+"opcoes": [
+"Pato Donald",
+"Patolino",
+"Tio Patinhas",
+"Peninha"
+],
+"curiosidade": "Donald foi criado em 1934.",
+"id": "FIL-023",
+"tema": "filmes"
+},
+{
+"nivel": 1,
+"categoria": "Filmes e séries",
+"enunciado": "Qual é o nome do gato que vive perseguindo o rato Jerry?",
+"opcoes": [
+"Tom",
+"Garfield",
+"Félix",
+"Manda-Chuva"
+],
+"curiosidade": "Tom e Jerry ganharam vários Oscars de curta-metragem.",
+"id": "FIL-024",
+"tema": "filmes"
+},
+{
+"nivel": 1,
+"categoria": "Filmes e séries",
+"enunciado": "No filme \"Mogli – O Menino Lobo\", o menino é criado por qual animal?",
+"opcoes": [
+"Lobos",
+"Ursos",
+"Macacos",
+"Tigres"
+],
+"curiosidade": "A história é baseada em um livro de Rudyard Kipling.",
+"id": "FIL-025",
+"tema": "filmes"
+},
+{
+"nivel": 1,
+"categoria": "Filmes e séries",
+"enunciado": "Qual desenho mostra uma família amarela com Homer, Marge, Bart, Lisa e Maggie?",
+"opcoes": [
+"Os Simpsons",
+"Uma Família da Pesada",
+"South Park",
+"Os Jetsons"
+],
+"curiosidade": "É a série animada mais longa da TV americana.",
+"id": "FIL-026",
+"tema": "filmes"
+},
+{
+"nivel": 1,
+"categoria": "Filmes e séries",
+"enunciado": "Qual super-herói da DC usa uma capa e um símbolo de morcego?",
+"opcoes": [
+"Batman",
+"Superman",
+"Flash",
+"Aquaman"
+],
+"curiosidade": "Batman é o alter ego de Bruce Wayne.",
+"id": "FIL-027",
+"tema": "filmes"
+},
+{
+"nivel": 1,
+"categoria": "Filmes e séries",
+"enunciado": "Qual é o nome do vilão de \"Aladdin\" que quer a lâmpada mágica?",
+"opcoes": [
+"Jafar",
+"Scar",
+"Gaston",
+"Hades"
+],
+"curiosidade": "Jafar é o grão-vizir do sultão.",
+"id": "FIL-028",
+"tema": "filmes"
+},
+{
+"nivel": 1,
+"categoria": "Filmes e séries",
+"enunciado": "Qual é o nome da cidade onde vive o Batman?",
+"opcoes": [
+"Gotham City",
+"Metrópolis",
+"Springfield",
+"Nova York"
+],
+"curiosidade": "Metrópolis é a cidade do Superman.",
+"id": "FIL-029",
+"tema": "filmes"
+},
+{
+"nivel": 1,
+"categoria": "Filmes e séries",
+"enunciado": "Qual é o nome do rei dos animais em \"O Rei Leão\" quando adulto, filho de Mufasa?",
+"opcoes": [
+"Simba",
+"Nala",
+"Timão",
+"Pumba"
+],
+"curiosidade": "Simba aprende com Timão e Pumba a viver sem preocupações.",
+"id": "FIL-030",
+"tema": "filmes"
+},
+{
+"nivel": 2,
+"categoria": "Filmes e séries",
+"enunciado": "Qual ator interpreta o Capitão Jack Sparrow em \"Piratas do Caribe\"?",
+"opcoes": [
+"Johnny Depp",
+"Brad Pitt",
+"Orlando Bloom",
+"Tom Cruise"
+],
+"curiosidade": "O primeiro filme é de 2003.",
+"id": "FIL-031",
+"tema": "filmes"
+},
+{
+"nivel": 2,
+"categoria": "Filmes e séries",
+"enunciado": "Qual é o nome do navio do Capitão Jack Sparrow?",
+"opcoes": [
+"Pérola Negra",
+"Holandês Voador",
+"Vingança da Rainha Anne",
+"Titanic"
+],
+"curiosidade": "O Pérola Negra tem velas escuras.",
+"id": "FIL-032",
+"tema": "filmes"
+},
+{
+"nivel": 2,
+"categoria": "Filmes e séries",
+"enunciado": "Qual filme de 1997 conta a história de um navio que afunda ao bater em um iceberg?",
+"opcoes": [
+"Titanic",
+"Poseidon",
+"Tempestade Perfeita",
+"Água Viva"
+],
+"curiosidade": "Foi dirigido por James Cameron.",
+"id": "FIL-033",
+"tema": "filmes"
+},
+{
+"nivel": 2,
+"categoria": "Filmes e séries",
+"enunciado": "Em \"O Senhor dos Anéis\", qual hobbit carrega o Um Anel até a Montanha da Perdição?",
+"opcoes": [
+"Frodo",
+"Bilbo",
+"Sam",
+"Pippin"
+],
+"curiosidade": "Bilbo foi o dono do anel antes de Frodo.",
+"id": "FIL-034",
+"tema": "filmes"
+},
+{
+"nivel": 2,
+"categoria": "Filmes e séries",
+"enunciado": "Qual ator interpretou Elvis Presley no filme de 2022 dirigido por Baz Luhrmann?",
+"opcoes": [
+"Austin Butler",
+"Tom Hanks",
+"Rami Malek",
+"Timothée Chalamet"
+],
+"curiosidade": "Tom Hanks fez o Coronel Parker.",
+"id": "FIL-035",
+"tema": "filmes"
+},
+{
+"nivel": 2,
+"categoria": "Filmes e séries",
+"enunciado": "Qual filme brasileiro de 2002, dirigido por Fernando Meirelles, foi indicado a quatro Oscars?",
+"opcoes": [
+"Cidade de Deus",
+"Tropa de Elite",
+"Central do Brasil",
+"Cidade Baixa"
+],
+"curiosidade": "Foi indicado a quatro Oscars.",
+"id": "FIL-036",
+"tema": "filmes"
+},
+{
+"nivel": 2,
+"categoria": "Filmes e séries",
+"enunciado": "Como é chamado o bruxo mau que ataca Harry Potter e é conhecido como \"Aquele-Que-Não-Deve-Ser-Nomeado\"?",
+"opcoes": [
+"Voldemort",
+"Gandalf",
+"Saruman",
+"Sauron"
+],
+"curiosidade": "Seu nome de nascimento era Tom Riddle.",
+"id": "FIL-037",
+"tema": "filmes"
+},
+{
+"nivel": 2,
+"categoria": "Filmes e séries",
+"enunciado": "Qual super-herói da Marvel é um deus nórdico que usa um martelo?",
+"opcoes": [
+"Thor",
+"Loki",
+"Hulk",
+"Homem de Ferro"
+],
+"curiosidade": "O martelo se chama Mjölnir.",
+"id": "FIL-038",
+"tema": "filmes"
+},
+{
+"nivel": 2,
+"categoria": "Filmes e séries",
+"enunciado": "Em \"O Mágico de Oz\", qual menina viaja com um cachorro chamado Totó?",
+"opcoes": [
+"Dorothy",
+"Alice",
+"Wendy",
+"Cinderela"
+],
+"curiosidade": "Ela segue uma estrada de tijolos amarelos.",
+"id": "FIL-039",
+"tema": "filmes"
+},
+{
+"nivel": 2,
+"categoria": "Filmes e séries",
+"enunciado": "Qual é o nome do bilionário gênio que é o Homem de Ferro?",
+"opcoes": [
+"Tony Stark",
+"Steve Rogers",
+"Bruce Banner",
+"Nick Fury"
+],
+"curiosidade": "Ele é interpretado por Robert Downey Jr.",
+"id": "FIL-040",
+"tema": "filmes"
+},
+{
+"nivel": 2,
+"categoria": "Filmes e séries",
+"enunciado": "Qual série da Netflix, que estreou em 2016, se passa na cidade de Hawkins?",
+"opcoes": [
+"Stranger Things",
+"Dark",
+"The Witcher",
+"Black Mirror"
+],
+"curiosidade": "A série mistura ficção científica e anos 80.",
+"id": "FIL-041",
+"tema": "filmes"
+},
+{
+"nivel": 2,
+"categoria": "Filmes e séries",
+"enunciado": "Qual série sul-coreana da Netflix, de 2021, em que jogadores usam roupas verdes, virou fenômeno mundial?",
+"opcoes": [
+"Round 6",
+"Parasita",
+"Kingdom",
+"Sweet Home"
+],
+"curiosidade": "Seu nome em inglês é \"Squid Game\".",
+"id": "FIL-042",
+"tema": "filmes"
+},
+{
+"nivel": 2,
+"categoria": "Filmes e séries",
+"enunciado": "Qual dinossauro é o grande astro de \"Jurassic Park\"?",
+"opcoes": [
+"Tiranossauro Rex",
+"Velociraptor",
+"Triceratops",
+"Brontossauro"
+],
+"curiosidade": "O rugido do T. Rex é famoso no primeiro filme.",
+"id": "FIL-043",
+"tema": "filmes"
+},
+{
+"nivel": 2,
+"categoria": "Filmes e séries",
+"enunciado": "Qual atriz brasileira interpretou Dona Flor no cinema, em 1976?",
+"opcoes": [
+"Sônia Braga",
+"Fernanda Montenegro",
+"Regina Casé",
+"Marília Pêra"
+],
+"curiosidade": "O filme é \"Dona Flor e Seus Dois Maridos\".",
+"id": "FIL-044",
+"tema": "filmes"
+},
+{
+"nivel": 2,
+"categoria": "Filmes e séries",
+"enunciado": "Em qual cidade se passa o filme de animação \"Rio\" (2011)?",
+"opcoes": [
+"Rio de Janeiro",
+"São Paulo",
+"Salvador",
+"Brasília"
+],
+"curiosidade": "A história é de uma arara azul chamada Blu.",
+"id": "FIL-045",
+"tema": "filmes"
+},
+{
+"nivel": 2,
+"categoria": "Filmes e séries",
+"enunciado": "Qual é o nome do Capitão que usa um escudo redondo nos filmes \"Os Vingadores\"?",
+"opcoes": [
+"Capitão América",
+"Capitão Marvel",
+"Capitão Planeta",
+"Capitão Nascimento"
+],
+"curiosidade": "O nome dele é Steve Rogers.",
+"id": "FIL-046",
+"tema": "filmes"
+},
+{
+"nivel": 2,
+"categoria": "Filmes e séries",
+"enunciado": "Qual ator interpretou o Coringa em \"Batman – O Cavaleiro das Trevas\" (2008)?",
+"opcoes": [
+"Heath Ledger",
+"Joaquin Phoenix",
+"Jared Leto",
+"Jack Nicholson"
+],
+"curiosidade": "Ele ganhou o Oscar póstumo de Ator Coadjuvante.",
+"id": "FIL-047",
+"tema": "filmes"
+},
+{
+"nivel": 2,
+"categoria": "Filmes e séries",
+"enunciado": "Em \"King Kong\", em qual cidade o gorila gigante escala um prédio famoso?",
+"opcoes": [
+"Nova York",
+"Londres",
+"Los Angeles",
+"Paris"
+],
+"curiosidade": "O prédio é o Empire State Building.",
+"id": "FIL-048",
+"tema": "filmes"
+},
+{
+"nivel": 2,
+"categoria": "Filmes e séries",
+"enunciado": "Qual filme brasileiro tem Wagner Moura no papel do Capitão Nascimento?",
+"opcoes": [
+"Tropa de Elite",
+"Cidade de Deus",
+"Carandiru",
+"Meu Nome Não É Johnny"
+],
+"curiosidade": "O filme ganhou o Urso de Ouro em Berlim em 2008.",
+"id": "FIL-049",
+"tema": "filmes"
+},
+{
+"nivel": 2,
+"categoria": "Filmes e séries",
+"enunciado": "Qual série mostra um professor de química chamado Walter White que vira fabricante de drogas?",
+"opcoes": [
+"Breaking Bad",
+"Narcos",
+"Ozark",
+"Prison Break"
+],
+"curiosidade": "A série terminou em 2013.",
+"id": "FIL-050",
+"tema": "filmes"
+},
+{
+"nivel": 2,
+"categoria": "Filmes e séries",
+"enunciado": "Em qual novela aparece a personagem Juma Marruá, que vira onça?",
+"opcoes": [
+"Pantanal",
+"Avenida Brasil",
+"Mulheres de Areia",
+"Roque Santeiro"
+],
+"curiosidade": "A novela original é de 1990 e o remake, de 2022.",
+"id": "FIL-051",
+"tema": "filmes"
+},
+{
+"nivel": 2,
+"categoria": "Filmes e séries",
+"enunciado": "Em \"Moana\", qual semideus ajuda a protagonista?",
+"opcoes": [
+"Maui",
+"Tamatoa",
+"Heihei",
+"Te Fiti"
+],
+"curiosidade": "Maui é dublado por Dwayne Johnson na versão original.",
+"id": "FIL-052",
+"tema": "filmes"
+},
+{
+"nivel": 2,
+"categoria": "Filmes e séries",
+"enunciado": "Qual é a raça do cachorro Marley, do filme \"Marley & Eu\"?",
+"opcoes": [
+"Labrador",
+"Poodle",
+"Beagle",
+"Pastor-alemão"
+],
+"curiosidade": "Marley é um labrador amarelo bagunceiro.",
+"id": "FIL-053",
+"tema": "filmes"
+},
+{
+"nivel": 2,
+"categoria": "Filmes e séries",
+"enunciado": "Qual é o nome da escola de magia de Harry Potter?",
+"opcoes": [
+"Hogwarts",
+"Beauxbatons",
+"Durmstrang",
+"Ilvermorny"
+],
+"curiosidade": "Fica na Escócia, segundo os livros.",
+"id": "FIL-054",
+"tema": "filmes"
+},
+{
+"nivel": 2,
+"categoria": "Filmes e séries",
+"enunciado": "Em \"Os Incríveis\", qual é a profissão da personagem Edna Moda?",
+"opcoes": [
+"Estilista",
+"Médica",
+"Cientista",
+"Piloto"
+],
+"curiosidade": "Ela cria os uniformes dos super-heróis.",
+"id": "FIL-055",
+"tema": "filmes"
+},
+{
+"nivel": 2,
+"categoria": "Filmes e séries",
+"enunciado": "Em qual filme o robô do futuro diz \"Eu voltarei\"?",
+"opcoes": [
+"O Exterminador do Futuro",
+"RoboCop",
+"Matrix",
+"Blade Runner"
+],
+"curiosidade": "O robô é interpretado por Arnold Schwarzenegger.",
+"id": "FIL-056",
+"tema": "filmes"
+},
+{
+"nivel": 2,
+"categoria": "Filmes e séries",
+"enunciado": "Qual é o significado do nome \"Scar\", o vilão de \"O Rei Leão\"?",
+"opcoes": [
+"Cicatriz",
+"Sombra",
+"Garra",
+"Rei"
+],
+"curiosidade": "Ele tem uma cicatriz sobre o olho.",
+"id": "FIL-057",
+"tema": "filmes"
+},
+{
+"nivel": 2,
+"categoria": "Filmes e séries",
+"enunciado": "Em qual filme de 1980, dirigido por Stanley Kubrick, uma família passa o inverno em um hotel isolado chamado Overlook?",
+"opcoes": [
+"O Iluminado",
+"Psicose",
+"Os Pássaros",
+"Poltergeist"
+],
+"curiosidade": "O livro foi escrito por Stephen King.",
+"id": "FIL-058",
+"tema": "filmes"
+},
+{
+"nivel": 2,
+"categoria": "Filmes e séries",
+"enunciado": "Qual princesa da Disney dorme após picar o dedo em um fuso?",
+"opcoes": [
+"Aurora",
+"Cinderela",
+"Jasmine",
+"Mulan"
+],
+"curiosidade": "É a princesa de \"A Bela Adormecida\".",
+"id": "FIL-059",
+"tema": "filmes"
+},
+{
+"nivel": 2,
+"categoria": "Filmes e séries",
+"enunciado": "Em \"Toy Story 4\", qual novo brinquedo é feito de lixo e acha que é lixo?",
+"opcoes": [
+"Forky",
+"Slinky",
+"Rex",
+"Hamm"
+],
+"curiosidade": "Forky foi feito por Bonnie em uma aula.",
+"id": "FIL-060",
+"tema": "filmes"
+},
+{
+"nivel": 2,
+"categoria": "Filmes e séries",
+"enunciado": "Qual é o nome do filme da Pixar sobre emoções dentro da cabeça de uma menina, com a personagem Alegria?",
+"opcoes": [
+"Divertida Mente",
+"Soul",
+"Up",
+"Luca"
+],
+"curiosidade": "O filme é de 2015.",
+"id": "FIL-061",
+"tema": "filmes"
+},
+{
+"nivel": 2,
+"categoria": "Filmes e séries",
+"enunciado": "Qual ator interpreta Jack Dawson em \"Titanic\"?",
+"opcoes": [
+"Leonardo DiCaprio",
+"Matt Damon",
+"Brad Pitt",
+"Johnny Depp"
+],
+"curiosidade": "Kate Winslet interpreta Rose.",
+"id": "FIL-062",
+"tema": "filmes"
+},
+{
+"nivel": 2,
+"categoria": "Filmes e séries",
+"enunciado": "Como se chama a coruja de Harry Potter?",
+"opcoes": [
+"Edwiges",
+"Bichento",
+"Perebas",
+"Fawkes"
+],
+"curiosidade": "Ela é uma coruja-das-neves.",
+"id": "FIL-063",
+"tema": "filmes"
+},
+{
+"nivel": 2,
+"categoria": "Filmes e séries",
+"enunciado": "Em \"Meu Malvado Favorito\", como se chama o vilão principal?",
+"opcoes": [
+"Gru",
+"Vector",
+"Scarlet",
+"Dr. Nefário"
+],
+"curiosidade": "Dr. Nefário é o cientista ajudante.",
+"id": "FIL-064",
+"tema": "filmes"
+},
+{
+"nivel": 2,
+"categoria": "Filmes e séries",
+"enunciado": "Qual série clássica americana mostra seis amigos em Nova York e um café chamado Central Perk?",
+"opcoes": [
+"Friends",
+"Seinfeld",
+"How I Met Your Mother",
+"The Big Bang Theory"
+],
+"curiosidade": "Teve 10 temporadas, de 1994 a 2004.",
+"id": "FIL-065",
+"tema": "filmes"
+},
+{
+"nivel": 2,
+"categoria": "Filmes e séries",
+"enunciado": "Em \"Karatê Kid\", qual é o nome do mestre de caratê do protagonista?",
+"opcoes": [
+"Sr. Miyagi",
+"Sensei Kreese",
+"Mestre Splinter",
+"Sr. Han"
+],
+"curiosidade": "Ele ensina com tarefas como encerar carros.",
+"id": "FIL-066",
+"tema": "filmes"
+},
+{
+"nivel": 2,
+"categoria": "Filmes e séries",
+"enunciado": "Qual atriz dá voz à rainha Elsa na versão original de \"Frozen\"?",
+"opcoes": [
+"Idina Menzel",
+"Demi Lovato",
+"Taylor Swift",
+"Selena Gomez"
+],
+"curiosidade": "Ela cantou \"Let It Go\".",
+"id": "FIL-067",
+"tema": "filmes"
+},
+{
+"nivel": 3,
+"categoria": "Filmes e séries",
+"enunciado": "Em que ano o filme \"Titanic\", de James Cameron, estreou?",
+"opcoes": [
+"1997",
+"1995",
+"1999",
+"2001"
+],
+"curiosidade": "Ganhou 11 Oscars.",
+"id": "FIL-068",
+"tema": "filmes"
+},
+{
+"nivel": 3,
+"categoria": "Filmes e séries",
+"enunciado": "Quantos Oscars \"O Senhor dos Anéis: O Retorno do Rei\" ganhou?",
+"opcoes": [
+"11",
+"7",
+"9",
+"13"
+],
+"curiosidade": "Empatou com \"Titanic\" e \"Ben-Hur\" como o maior vencedor.",
+"id": "FIL-069",
+"tema": "filmes"
+},
+{
+"nivel": 3,
+"categoria": "Filmes e séries",
+"enunciado": "Quem dirigiu o filme \"Tubarão\", de 1975?",
+"opcoes": [
+"Steven Spielberg",
+"George Lucas",
+"Martin Scorsese",
+"Francis Ford Coppola"
+],
+"curiosidade": "Foi um dos primeiros grandes blockbusters de verão.",
+"id": "FIL-070",
+"tema": "filmes"
+},
+{
+"nivel": 3,
+"categoria": "Filmes e séries",
+"enunciado": "Qual filme brasileiro de 1998 tem Fernanda Montenegro e foi indicado ao Oscar de Filme Estrangeiro?",
+"opcoes": [
+"Central do Brasil",
+"O Quatrilho",
+"Cidade de Deus",
+"Carandiru"
+],
+"curiosidade": "Fernanda foi indicada ao Oscar de Melhor Atriz.",
+"id": "FIL-071",
+"tema": "filmes"
+},
+{
+"nivel": 3,
+"categoria": "Filmes e séries",
+"enunciado": "Qual é o nome do hotel onde se passa o filme de Wes Anderson de 2014?",
+"opcoes": [
+"Grand Budapest Hotel",
+"Hotel Continental",
+"Hotel Overlook",
+"Hotel Ritz"
+],
+"curiosidade": "O filme é \"O Grande Hotel Budapeste\".",
+"id": "FIL-072",
+"tema": "filmes"
+},
+{
+"nivel": 3,
+"categoria": "Filmes e séries",
+"enunciado": "Qual é o sobrenome do astronauta interpretado por Matthew McConaughey em \"Interestelar\"?",
+"opcoes": [
+"Cooper",
+"Mann",
+"Brand",
+"Murph"
+],
+"curiosidade": "O filme foi dirigido por Christopher Nolan.",
+"id": "FIL-073",
+"tema": "filmes"
+},
+{
+"nivel": 3,
+"categoria": "Filmes e séries",
+"enunciado": "Quem escreveu os livros que deram origem à série \"Game of Thrones\"?",
+"opcoes": [
+"George R. R. Martin",
+"J. R. R. Tolkien",
+"Stephen King",
+"J. K. Rowling"
+],
+"curiosidade": "A saga se chama \"As Crônicas de Gelo e Fogo\".",
+"id": "FIL-074",
+"tema": "filmes"
+},
+{
+"nivel": 3,
+"categoria": "Filmes e séries",
+"enunciado": "Qual é o nome do protagonista de \"Matrix\", interpretado por Keanu Reeves?",
+"opcoes": [
+"Neo",
+"Morpheus",
+"Trinity",
+"Cypher"
+],
+"curiosidade": "O filme é de 1999.",
+"id": "FIL-075",
+"tema": "filmes"
+},
+{
+"nivel": 3,
+"categoria": "Filmes e séries",
+"enunciado": "Em qual rua fica a casa da família Simpson, em Springfield?",
+"opcoes": [
+"Evergreen Terrace",
+"Baker Street",
+"Elm Street",
+"Sunset Boulevard"
+],
+"curiosidade": "A casa fica no número 742.",
+"id": "FIL-076",
+"tema": "filmes"
+},
+{
+"nivel": 3,
+"categoria": "Filmes e séries",
+"enunciado": "Qual novela da Globo, de 2012, tem a vilã Carminha?",
+"opcoes": [
+"Avenida Brasil",
+"Fina Estampa",
+"Salve Jorge",
+"Império"
+],
+"curiosidade": "Carminha é interpretada por Adriana Esteves.",
+"id": "FIL-077",
+"tema": "filmes"
+},
+{
+"nivel": 3,
+"categoria": "Filmes e séries",
+"enunciado": "Quem interpretou Forrest Gump no cinema?",
+"opcoes": [
+"Tom Hanks",
+"Tom Cruise",
+"Kevin Costner",
+"Robin Williams"
+],
+"curiosidade": "O filme ganhou 6 Oscars.",
+"id": "FIL-078",
+"tema": "filmes"
+},
+{
+"nivel": 3,
+"categoria": "Filmes e séries",
+"enunciado": "Quem foi o mestre Jedi de Anakin Skywalker?",
+"opcoes": [
+"Obi-Wan Kenobi",
+"Qui-Gon Jinn",
+"Mace Windu",
+"Yoda"
+],
+"curiosidade": "Qui-Gon Jinn foi mestre de Obi-Wan.",
+"id": "FIL-079",
+"tema": "filmes"
+},
+{
+"nivel": 3,
+"categoria": "Filmes e séries",
+"enunciado": "Qual estúdio japonês fez \"A Viagem de Chihiro\"?",
+"opcoes": [
+"Studio Ghibli",
+"Pixar",
+"DreamWorks",
+"Illumination"
+],
+"curiosidade": "O diretor é Hayao Miyazaki.",
+"id": "FIL-080",
+"tema": "filmes"
+},
+{
+"nivel": 3,
+"categoria": "Filmes e séries",
+"enunciado": "Em qual estado dos Estados Unidos fica a cidade fictícia de Hawkins, de \"Stranger Things\"?",
+"opcoes": [
+"Indiana",
+"Texas",
+"Califórnia",
+"Maine"
+],
+"curiosidade": "A série se passa nos anos 1980.",
+"id": "FIL-081",
+"tema": "filmes"
+},
+{
+"nivel": 3,
+"categoria": "Filmes e séries",
+"enunciado": "Qual vilão de \"Vingadores: Guerra Infinita\" busca reunir as Joias do Infinito?",
+"opcoes": [
+"Thanos",
+"Ultron",
+"Loki",
+"Hela"
+],
+"curiosidade": "Thanos é interpretado por Josh Brolin.",
+"id": "FIL-082",
+"tema": "filmes"
+},
+{
+"nivel": 3,
+"categoria": "Filmes e séries",
+"enunciado": "Em que ano estreou o desenho \"O Rei Leão\" da Disney?",
+"opcoes": [
+"1994",
+"1989",
+"1999",
+"2003"
+],
+"curiosidade": "A trilha sonora tem músicas de Elton John e Hans Zimmer.",
+"id": "FIL-083",
+"tema": "filmes"
+},
+{
+"nivel": 3,
+"categoria": "Filmes e séries",
+"enunciado": "Qual ator interpreta o Capitão América nos filmes da Marvel?",
+"opcoes": [
+"Chris Evans",
+"Chris Hemsworth",
+"Chris Pratt",
+"Chris Pine"
+],
+"curiosidade": "Chris Hemsworth interpreta o Thor.",
+"id": "FIL-084",
+"tema": "filmes"
+},
+{
+"nivel": 3,
+"categoria": "Filmes e séries",
+"enunciado": "Como se chama a série da Netflix, de 2022, protagonizada pela filha da Família Addams?",
+"opcoes": [
+"Wandinha",
+"Mercúrio",
+"Quarta-Feira Negra",
+"Gomez"
+],
+"curiosidade": "A personagem é interpretada por Jenna Ortega.",
+"id": "FIL-085",
+"tema": "filmes"
+},
+{
+"nivel": 3,
+"categoria": "Filmes e séries",
+"enunciado": "Qual série brasileira da Globo, exibida de 2001 a 2014, mostra a família de Lineu, Nenê e Tuco?",
+"opcoes": [
+"A Grande Família",
+"Os Normais",
+"Sai de Baixo",
+"Zorra Total"
+],
+"curiosidade": "É uma versão renovada de uma série dos anos 1970.",
+"id": "FIL-086",
+"tema": "filmes"
+},
+{
+"nivel": 3,
+"categoria": "Filmes e séries",
+"enunciado": "Em qual novela de 1988 a pergunta do Brasil era \"Quem matou Odete Roitman?\"",
+"opcoes": [
+"Vale Tudo",
+"Roque Santeiro",
+"Tieta",
+"Pantanal"
+],
+"curiosidade": "Odete era interpretada por Beatriz Segall.",
+"id": "FIL-087",
+"tema": "filmes"
+},
+{
+"nivel": 3,
+"categoria": "Filmes e séries",
+"enunciado": "Quem interpreta Maximus no filme \"Gladiador\" (2000)?",
+"opcoes": [
+"Russell Crowe",
+"Mel Gibson",
+"Brad Pitt",
+"Joaquin Phoenix"
+],
+"curiosidade": "O filme ganhou o Oscar de Melhor Filme.",
+"id": "FIL-088",
+"tema": "filmes"
+},
+{
+"nivel": 3,
+"categoria": "Filmes e séries",
+"enunciado": "Quem dirigiu o filme \"Pulp Fiction\"?",
+"opcoes": [
+"Quentin Tarantino",
+"Martin Scorsese",
+"Francis Ford Coppola",
+"Steven Spielberg"
+],
+"curiosidade": "O filme é de 1994.",
+"id": "FIL-089",
+"tema": "filmes"
+},
+{
+"nivel": 3,
+"categoria": "Filmes e séries",
+"enunciado": "Quem interpreta Vito Corleone no primeiro \"O Poderoso Chefão\"?",
+"opcoes": [
+"Marlon Brando",
+"Al Pacino",
+"Robert De Niro",
+"Robert Duvall"
+],
+"curiosidade": "Marlon Brando recusou o Oscar pelo papel.",
+"id": "FIL-090",
+"tema": "filmes"
+},
+{
+"nivel": 3,
+"categoria": "Filmes e séries",
+"enunciado": "Qual é a primeira regra do \"Clube da Luta\"?",
+"opcoes": [
+"Não falar sobre o Clube da Luta",
+"Sempre usar luvas",
+"Nunca lutar sozinho",
+"Chegar cedo"
+],
+"curiosidade": "A segunda regra é a mesma: não falar sobre o clube.",
+"id": "FIL-091",
+"tema": "filmes"
+},
+{
+"nivel": 3,
+"categoria": "Filmes e séries",
+"enunciado": "Qual filme sul-coreano, de Bong Joon-ho, foi o primeiro de língua não inglesa a ganhar o Oscar de Melhor Filme?",
+"opcoes": [
+"Parasita",
+"Oldboy",
+"Trem para Busan",
+"Minari"
+],
+"curiosidade": "O Oscar foi entregue em 2020.",
+"id": "FIL-092",
+"tema": "filmes"
+},
+{
+"nivel": 3,
+"categoria": "Filmes e séries",
+"enunciado": "Qual artista inspirou as máscaras dos assaltantes da série espanhola \"La Casa de Papel\"?",
+"opcoes": [
+"Salvador Dalí",
+"Pablo Picasso",
+"Vincent van Gogh",
+"Joan Miró"
+],
+"curiosidade": "Os assaltantes também usam macacões vermelhos.",
+"id": "FIL-093",
+"tema": "filmes"
+},
+{
+"nivel": 3,
+"categoria": "Filmes e séries",
+"enunciado": "Quem dá voz ao Burro na versão original de \"Shrek\"?",
+"opcoes": [
+"Eddie Murphy",
+"Mike Myers",
+"Cameron Diaz",
+"Antonio Banderas"
+],
+"curiosidade": "Antonio Banderas dá voz ao Gato de Botas.",
+"id": "FIL-094",
+"tema": "filmes"
+},
+{
+"nivel": 3,
+"categoria": "Filmes e séries",
+"enunciado": "Quantos filmes tem a saga principal de \"Harry Potter\"?",
+"opcoes": [
+"8",
+"7",
+"9",
+"10"
+],
+"curiosidade": "O último, \"Relíquias da Morte\", foi dividido em duas partes.",
+"id": "FIL-095",
+"tema": "filmes"
+},
+{
+"nivel": 3,
+"categoria": "Filmes e séries",
+"enunciado": "Em que ano estreou \"Jurassic Park\", de Steven Spielberg?",
+"opcoes": [
+"1993",
+"1991",
+"1995",
+"1997"
+],
+"curiosidade": "O filme é baseado em um livro de Michael Crichton.",
+"id": "FIL-096",
+"tema": "filmes"
+},
+{
+"nivel": 3,
+"categoria": "Filmes e séries",
+"enunciado": "Qual atriz dá voz à Dory na versão original de \"Procurando Nemo\"?",
+"opcoes": [
+"Ellen DeGeneres",
+"Meryl Streep",
+"Julia Roberts",
+"Whoopi Goldberg"
+],
+"curiosidade": "Ellen também apresenta um programa de TV.",
+"id": "FIL-097",
+"tema": "filmes"
+},
+{
+"nivel": 3,
+"categoria": "Filmes e séries",
+"enunciado": "Em qual cidade americana se passa o filme \"Rocky, Um Lutador\"?",
+"opcoes": [
+"Filadélfia",
+"Nova York",
+"Chicago",
+"Boston"
+],
+"curiosidade": "A cena da escadaria é famosa.",
+"id": "FIL-098",
+"tema": "filmes"
+},
+{
+"nivel": 3,
+"categoria": "Filmes e séries",
+"enunciado": "Qual é o título em português do filme \"Avengers: Endgame\"?",
+"opcoes": [
+"Vingadores: Ultimato",
+"Vingadores: Guerra Infinita",
+"Vingadores: Era de Ultron",
+"Vingadores: Ruínas"
+],
+"curiosidade": "Foi lançado em 2019.",
+"id": "FIL-099",
+"tema": "filmes"
+},
+{
+"nivel": 4,
+"categoria": "Filmes e séries",
+"enunciado": "Quem dirigiu \"2001: Uma Odisseia no Espaço\", de 1968?",
+"opcoes": [
+"Stanley Kubrick",
+"Ridley Scott",
+"George Lucas",
+"Steven Spielberg"
+],
+"curiosidade": "O computador do filme se chama HAL 9000.",
+"id": "FIL-100",
+"tema": "filmes"
+},
+{
+"nivel": 4,
+"categoria": "Filmes e séries",
+"enunciado": "Qual foi o primeiro filme a ganhar 11 Oscars, em 1960?",
+"opcoes": [
+"Ben-Hur",
+"Titanic",
+"Gigi",
+"O Senhor dos Anéis"
+],
+"curiosidade": "\"Titanic\" e \"O Retorno do Rei\" igualaram a marca depois.",
+"id": "FIL-101",
+"tema": "filmes"
+},
+{
+"nivel": 4,
+"categoria": "Filmes e séries",
+"enunciado": "Qual é a última palavra dita por Kane em \"Cidadão Kane\"?",
+"opcoes": [
+"Rosebud",
+"Citizen",
+"Xanadu",
+"Mother"
+],
+"curiosidade": "O filme é de 1941, de Orson Welles.",
+"id": "FIL-102",
+"tema": "filmes"
+},
+{
+"nivel": 4,
+"categoria": "Filmes e séries",
+"enunciado": "Quem dirigiu \"Psicose\", de 1960?",
+"opcoes": [
+"Alfred Hitchcock",
+"Stanley Kubrick",
+"Orson Welles",
+"Roman Polanski"
+],
+"curiosidade": "A cena do chuveiro é uma das mais famosas do cinema.",
+"id": "FIL-103",
+"tema": "filmes"
+},
+{
+"nivel": 4,
+"categoria": "Filmes e séries",
+"enunciado": "Quem interpretou Rick Blaine em \"Casablanca\"?",
+"opcoes": [
+"Humphrey Bogart",
+"Cary Grant",
+"James Stewart",
+"Clark Gable"
+],
+"curiosidade": "O filme é de 1942.",
+"id": "FIL-104",
+"tema": "filmes"
+},
+{
+"nivel": 4,
+"categoria": "Filmes e séries",
+"enunciado": "Quem interpretou Scarlett O'Hara em \"E o Vento Levou\"?",
+"opcoes": [
+"Vivien Leigh",
+"Ingrid Bergman",
+"Greta Garbo",
+"Audrey Hepburn"
+],
+"curiosidade": "O filme é de 1939.",
+"id": "FIL-105",
+"tema": "filmes"
+},
+{
+"nivel": 4,
+"categoria": "Filmes e séries",
+"enunciado": "Quem dirigiu o filme brasileiro \"Deus e o Diabo na Terra do Sol\", de 1964?",
+"opcoes": [
+"Glauber Rocha",
+"Nelson Pereira dos Santos",
+"Walter Salles",
+"Hector Babenco"
+],
+"curiosidade": "Glauber foi o líder do Cinema Novo.",
+"id": "FIL-106",
+"tema": "filmes"
+},
+{
+"nivel": 4,
+"categoria": "Filmes e séries",
+"enunciado": "Quem interpreta o personagem Chicó em \"O Auto da Compadecida\"?",
+"opcoes": [
+"Selton Mello",
+"Matheus Nachtergaele",
+"Lázaro Ramos",
+"Wagner Moura"
+],
+"curiosidade": "Matheus Nachtergaele faz o João Grilo.",
+"id": "FIL-107",
+"tema": "filmes"
+},
+{
+"nivel": 4,
+"categoria": "Filmes e séries",
+"enunciado": "Quem dirigiu \"Cidade de Deus\"?",
+"opcoes": [
+"Fernando Meirelles",
+"José Padilha",
+"Walter Salles",
+"Hector Babenco"
+],
+"curiosidade": "Kátia Lund foi a codiretora.",
+"id": "FIL-108",
+"tema": "filmes"
+},
+{
+"nivel": 4,
+"categoria": "Filmes e séries",
+"enunciado": "Qual filme brasileiro venceu o Oscar de Melhor Filme Internacional em 2025?",
+"opcoes": [
+"Ainda Estou Aqui",
+"Central do Brasil",
+"Cidade de Deus",
+"O Auto da Compadecida"
+],
+"curiosidade": "Fernanda Torres foi indicada a Melhor Atriz.",
+"id": "FIL-109",
+"tema": "filmes"
+},
+{
+"nivel": 4,
+"categoria": "Filmes e séries",
+"enunciado": "De que cor é a pílula que Neo escolhe para ver a verdade em \"Matrix\"?",
+"opcoes": [
+"Vermelha",
+"Azul",
+"Verde",
+"Branca"
+],
+"curiosidade": "A pílula azul o manteria na ilusão.",
+"id": "FIL-110",
+"tema": "filmes"
+},
+{
+"nivel": 4,
+"categoria": "Filmes e séries",
+"enunciado": "A que velocidade o DeLorean precisa chegar para viajar no tempo em \"De Volta para o Futuro\"?",
+"opcoes": [
+"88 milhas por hora",
+"55 milhas por hora",
+"100 milhas por hora",
+"120 milhas por hora"
+],
+"curiosidade": "O filme é de 1985.",
+"id": "FIL-111",
+"tema": "filmes"
+},
+{
+"nivel": 4,
+"categoria": "Filmes e séries",
+"enunciado": "Em qual casa de Hogwarts o Chapéu Seletor coloca Harry Potter?",
+"opcoes": [
+"Grifinória",
+"Sonserina",
+"Corvinal",
+"Lufa-Lufa"
+],
+"curiosidade": "O símbolo da Grifinória é um leão.",
+"id": "FIL-112",
+"tema": "filmes"
+},
+{
+"nivel": 4,
+"categoria": "Filmes e séries",
+"enunciado": "Quem dirigiu a trilogia \"O Senhor dos Anéis\" no cinema?",
+"opcoes": [
+"Peter Jackson",
+"Steven Spielberg",
+"James Cameron",
+"Ridley Scott"
+],
+"curiosidade": "Os filmes foram gravados na Nova Zelândia.",
+"id": "FIL-113",
+"tema": "filmes"
+},
+{
+"nivel": 4,
+"categoria": "Filmes e séries",
+"enunciado": "Qual lema pertence à casa Stark em \"Game of Thrones\"?",
+"opcoes": [
+"O Inverno Está Chegando",
+"Ouça-me Rugir",
+"Fogo e Sangue",
+"Nossa Fúria É Nossa Força"
+],
+"curiosidade": "O lobo é o símbolo da casa Stark.",
+"id": "FIL-114",
+"tema": "filmes"
+},
+{
+"nivel": 4,
+"categoria": "Filmes e séries",
+"enunciado": "Qual é o codinome de Walter White em \"Breaking Bad\"?",
+"opcoes": [
+"Heisenberg",
+"Einstein",
+"Oppenheimer",
+"Tesla"
+],
+"curiosidade": "O nome vem de um físico alemão.",
+"id": "FIL-115",
+"tema": "filmes"
+},
+{
+"nivel": 4,
+"categoria": "Filmes e séries",
+"enunciado": "Em \"Friends\", qual é o nome do macaco de estimação de Ross?",
+"opcoes": [
+"Marcel",
+"Gunther",
+"Joey",
+"Chandler"
+],
+"curiosidade": "Marcel é um macaco-capuchinho.",
+"id": "FIL-116",
+"tema": "filmes"
+},
+{
+"nivel": 4,
+"categoria": "Filmes e séries",
+"enunciado": "Qual é o nome do bar frequentado por Homer em \"Os Simpsons\"?",
+"opcoes": [
+"Taverna do Moe",
+"Cheers",
+"Central Perk",
+"Bar do Zé"
+],
+"curiosidade": "O dono se chama Moe Szyslak.",
+"id": "FIL-117",
+"tema": "filmes"
+},
+{
+"nivel": 4,
+"categoria": "Filmes e séries",
+"enunciado": "Qual poder tem a personagem Eleven em \"Stranger Things\"?",
+"opcoes": [
+"Telecinese",
+"Invisibilidade",
+"Voo",
+"Super força"
+],
+"curiosidade": "Ela também consegue ver coisas à distância.",
+"id": "FIL-118",
+"tema": "filmes"
+},
+{
+"nivel": 4,
+"categoria": "Filmes e séries",
+"enunciado": "Em que ano estreou o primeiro filme de \"Star Wars\" (Episódio IV)?",
+"opcoes": [
+"1977",
+"1980",
+"1983",
+"1975"
+],
+"curiosidade": "O diretor foi George Lucas.",
+"id": "FIL-119",
+"tema": "filmes"
+},
+{
+"nivel": 4,
+"categoria": "Filmes e séries",
+"enunciado": "Qual foi o primeiro longa-metragem totalmente feito em animação por computador?",
+"opcoes": [
+"Toy Story",
+"Shrek",
+"Os Incríveis",
+"Vida de Inseto"
+],
+"curiosidade": "Foi lançado em 1995 pela Pixar.",
+"id": "FIL-120",
+"tema": "filmes"
+},
+{
+"nivel": 4,
+"categoria": "Filmes e séries",
+"enunciado": "Qual foi o primeiro longa-metragem de animação da Disney?",
+"opcoes": [
+"Branca de Neve e os Sete Anões",
+"Pinóquio",
+"Bambi",
+"Fantasia"
+],
+"curiosidade": "Foi lançado em 1937.",
+"id": "FIL-121",
+"tema": "filmes"
+},
+{
+"nivel": 4,
+"categoria": "Filmes e séries",
+"enunciado": "Quem criou o personagem Carlitos, \"O Vagabundo\"?",
+"opcoes": [
+"Charles Chaplin",
+"Buster Keaton",
+"Harold Lloyd",
+"Oliver Hardy"
+],
+"curiosidade": "Chaplin também dirigiu seus filmes.",
+"id": "FIL-122",
+"tema": "filmes"
+},
+{
+"nivel": 4,
+"categoria": "Filmes e séries",
+"enunciado": "Quem ganhou o Oscar de Melhor Diretor por \"Titanic\"?",
+"opcoes": [
+"James Cameron",
+"Steven Spielberg",
+"Ridley Scott",
+"Peter Jackson"
+],
+"curiosidade": "O filme levou 11 estatuetas.",
+"id": "FIL-123",
+"tema": "filmes"
+},
+{
+"nivel": 4,
+"categoria": "Filmes e séries",
+"enunciado": "Qual é o único filme brasileiro a ganhar a Palma de Ouro em Cannes?",
+"opcoes": [
+"O Pagador de Promessas",
+"Central do Brasil",
+"Cidade de Deus",
+"Terra em Transe"
+],
+"curiosidade": "O filme é de 1962, dirigido por Anselmo Duarte.",
+"id": "FIL-124",
+"tema": "filmes"
+},
+{
+"nivel": 4,
+"categoria": "Filmes e séries",
+"enunciado": "Qual é o nome do país fictício africano de \"Pantera Negra\"?",
+"opcoes": [
+"Wakanda",
+"Genosha",
+"Latvéria",
+"Sokovia"
+],
+"curiosidade": "O filme de 2018 foi dirigido por Ryan Coogler.",
+"id": "FIL-125",
+"tema": "filmes"
+},
+{
+"nivel": 4,
+"categoria": "Filmes e séries",
+"enunciado": "Qual série da Netflix retrata a vida da rainha Elizabeth II?",
+"opcoes": [
+"The Crown",
+"Bridgerton",
+"Downton Abbey",
+"Vikings"
+],
+"curiosidade": "Estreou em 2016.",
+"id": "FIL-126",
+"tema": "filmes"
+},
+{
+"nivel": 4,
+"categoria": "Filmes e séries",
+"enunciado": "Quem criou o seriado \"Chaves\"?",
+"opcoes": [
+"Roberto Gómez Bolaños",
+"Silvio Santos",
+"Carlos Villagrán",
+"Ramón Valdés"
+],
+"curiosidade": "Ele também era conhecido como Chespirito.",
+"id": "FIL-127",
+"tema": "filmes"
+},
+{
+"nivel": 4,
+"categoria": "Filmes e séries",
+"enunciado": "Qual atriz interpreta a Noiva em \"Kill Bill\", de Quentin Tarantino?",
+"opcoes": [
+"Uma Thurman",
+"Julia Roberts",
+"Angelina Jolie",
+"Sandra Bullock"
+],
+"curiosidade": "O filme tem dois volumes.",
+"id": "FIL-128",
+"tema": "filmes"
+},
+{
+"nivel": 4,
+"categoria": "Filmes e séries",
+"enunciado": "Qual objeto é o \"totem\" de Cobb em \"A Origem\" para saber se está sonhando?",
+"opcoes": [
+"Um pião",
+"Uma moeda",
+"Um dado",
+"Um anel"
+],
+"curiosidade": "O filme foi dirigido por Christopher Nolan.",
+"id": "FIL-129",
+"tema": "filmes"
+},
+{
+"nivel": 5,
+"categoria": "Filmes e séries",
+"enunciado": "Qual foi o primeiro filme a ganhar o Oscar de Melhor Filme?",
+"opcoes": [
+"Asas",
+"Casablanca",
+"Cidadão Kane",
+"O Grande Ditador"
+],
+"curiosidade": "A primeira cerimônia foi em 1929.",
+"id": "FIL-130",
+"tema": "filmes"
+},
+{
+"nivel": 5,
+"categoria": "Filmes e séries",
+"enunciado": "Quem dirigiu o clássico do cinema mudo \"Metrópolis\", de 1927?",
+"opcoes": [
+"Fritz Lang",
+"F. W. Murnau",
+"Sergei Eisenstein",
+"Charles Chaplin"
+],
+"curiosidade": "O filme é um marco da ficção científica.",
+"id": "FIL-131",
+"tema": "filmes"
+},
+{
+"nivel": 5,
+"categoria": "Filmes e séries",
+"enunciado": "Quem dirigiu \"O Encouraçado Potemkin\", de 1925?",
+"opcoes": [
+"Sergei Eisenstein",
+"Fritz Lang",
+"Dziga Vertov",
+"Andrei Tarkovski"
+],
+"curiosidade": "É famoso pela cena da escadaria de Odessa.",
+"id": "FIL-132",
+"tema": "filmes"
+},
+{
+"nivel": 5,
+"categoria": "Filmes e séries",
+"enunciado": "Quem dirigiu \"Cinema Paradiso\"?",
+"opcoes": [
+"Giuseppe Tornatore",
+"Federico Fellini",
+"Roberto Rossellini",
+"Bernardo Bertolucci"
+],
+"curiosidade": "O filme é de 1988.",
+"id": "FIL-133",
+"tema": "filmes"
+},
+{
+"nivel": 5,
+"categoria": "Filmes e séries",
+"enunciado": "Quem dirigiu \"Viagem à Lua\", de 1902?",
+"opcoes": [
+"Georges Méliès",
+"Irmãos Lumière",
+"Thomas Edison",
+"D. W. Griffith"
+],
+"curiosidade": "A imagem da lua com um foguete no olho é famosa.",
+"id": "FIL-134",
+"tema": "filmes"
+},
+{
+"nivel": 5,
+"categoria": "Filmes e séries",
+"enunciado": "Qual foi o primeiro longa-metragem com falas sincronizadas, de 1927?",
+"opcoes": [
+"O Cantor de Jazz",
+"Luzes da Cidade",
+"Tempos Modernos",
+"Asas"
+],
+"curiosidade": "Marcou o fim do cinema mudo.",
+"id": "FIL-135",
+"tema": "filmes"
+},
+{
+"nivel": 5,
+"categoria": "Filmes e séries",
+"enunciado": "Em que ano os irmãos Lumière fizeram a primeira exibição pública paga de cinema, em Paris?",
+"opcoes": [
+"1895",
+"1888",
+"1902",
+"1910"
+],
+"curiosidade": "Eles criaram o cinematógrafo.",
+"id": "FIL-136",
+"tema": "filmes"
+},
+{
+"nivel": 5,
+"categoria": "Filmes e séries",
+"enunciado": "Quem dirigiu o clássico brasileiro \"Limite\", de 1931?",
+"opcoes": [
+"Mário Peixoto",
+"Humberto Mauro",
+"Glauber Rocha",
+"Nelson Pereira dos Santos"
+],
+"curiosidade": "O filme é considerado um dos melhores do cinema brasileiro.",
+"id": "FIL-137",
+"tema": "filmes"
+},
+{
+"nivel": 5,
+"categoria": "Filmes e séries",
+"enunciado": "Qual livro de Graciliano Ramos foi adaptado por Nelson Pereira dos Santos para o cinema em 1963?",
+"opcoes": [
+"Vidas Secas",
+"São Bernardo",
+"Angústia",
+"Caetés"
+],
+"curiosidade": "O filme retrata uma família de retirantes.",
+"id": "FIL-138",
+"tema": "filmes"
+},
+{
+"nivel": 5,
+"categoria": "Filmes e séries",
+"enunciado": "Quem dirigiu \"Bye Bye Brasil\", de 1980?",
+"opcoes": [
+"Cacá Diegues",
+"Glauber Rocha",
+"Walter Salles",
+"Hector Babenco"
+],
+"curiosidade": "O filme acompanha uma caravana de artistas pelo interior.",
+"id": "FIL-139",
+"tema": "filmes"
+},
+{
+"nivel": 5,
+"categoria": "Filmes e séries",
+"enunciado": "Quem dirigiu \"Pixote, a Lei do Mais Fraco\"?",
+"opcoes": [
+"Hector Babenco",
+"Cacá Diegues",
+"Fernando Meirelles",
+"Walter Salles"
+],
+"curiosidade": "O filme é de 1981.",
+"id": "FIL-140",
+"tema": "filmes"
+},
+{
+"nivel": 5,
+"categoria": "Filmes e séries",
+"enunciado": "Qual ator ganhou o Oscar por \"O Beijo da Mulher-Aranha\", de 1985?",
+"opcoes": [
+"William Hurt",
+"Robert De Niro",
+"Al Pacino",
+"Jack Nicholson"
+],
+"curiosidade": "O filme foi dirigido por Hector Babenco.",
+"id": "FIL-141",
+"tema": "filmes"
+},
+{
+"nivel": 5,
+"categoria": "Filmes e séries",
+"enunciado": "Qual filme de Akira Kurosawa, de 1950, mostra versões conflitantes de um mesmo crime?",
+"opcoes": [
+"Rashomon",
+"Os Sete Samurais",
+"Ran",
+"Trono Manchado de Sangue"
+],
+"curiosidade": "Ganhou o Leão de Ouro em Veneza.",
+"id": "FIL-142",
+"tema": "filmes"
+},
+{
+"nivel": 5,
+"categoria": "Filmes e séries",
+"enunciado": "Quem dança na chuva em \"Cantando na Chuva\", de 1952?",
+"opcoes": [
+"Gene Kelly",
+"Fred Astaire",
+"Frank Sinatra",
+"Dean Martin"
+],
+"curiosidade": "A cena é uma das mais famosas dos musicais.",
+"id": "FIL-143",
+"tema": "filmes"
+},
+{
+"nivel": 5,
+"categoria": "Filmes e séries",
+"enunciado": "Qual ator interpretou Norman Bates em \"Psicose\"?",
+"opcoes": [
+"Anthony Perkins",
+"James Stewart",
+"Cary Grant",
+"Jack Lemmon"
+],
+"curiosidade": "Norman cuidava do Bates Motel.",
+"id": "FIL-144",
+"tema": "filmes"
+},
+{
+"nivel": 5,
+"categoria": "Filmes e séries",
+"enunciado": "Qual livro de Joseph Conrad inspirou \"Apocalypse Now\", de Coppola?",
+"opcoes": [
+"O Coração das Trevas",
+"Lord Jim",
+"Nostromo",
+"O Agente Secreto"
+],
+"curiosidade": "O filme se passa na Guerra do Vietnã.",
+"id": "FIL-145",
+"tema": "filmes"
+},
+{
+"nivel": 5,
+"categoria": "Filmes e séries",
+"enunciado": "Qual é o nome do taxista interpretado por Robert De Niro em \"Taxi Driver\"?",
+"opcoes": [
+"Travis Bickle",
+"Jake LaMotta",
+"Vito Corleone",
+"Johnny Boy"
+],
+"curiosidade": "O filme foi dirigido por Martin Scorsese.",
+"id": "FIL-146",
+"tema": "filmes"
+},
+{
+"nivel": 5,
+"categoria": "Filmes e séries",
+"enunciado": "Qual escritor criou a história que inspirou \"Blade Runner\", de 1982?",
+"opcoes": [
+"Philip K. Dick",
+"Isaac Asimov",
+"Arthur C. Clarke",
+"Ray Bradbury"
+],
+"curiosidade": "O livro se chama \"Androides Sonham com Ovelhas Elétricas?\".",
+"id": "FIL-147",
+"tema": "filmes"
+},
+{
+"nivel": 5,
+"categoria": "Filmes e séries",
+"enunciado": "Quem interpreta a tenente Ripley em \"Alien, o 8º Passageiro\"?",
+"opcoes": [
+"Sigourney Weaver",
+"Jamie Lee Curtis",
+"Linda Hamilton",
+"Jodie Foster"
+],
+"curiosidade": "O filme de Ridley Scott é de 1979.",
+"id": "FIL-148",
+"tema": "filmes"
+},
+{
+"nivel": 5,
+"categoria": "Filmes e séries",
+"enunciado": "Qual filme de Quentin Tarantino ganhou a Palma de Ouro em Cannes, em 1994?",
+"opcoes": [
+"Pulp Fiction",
+"Cães de Aluguel",
+"Kill Bill",
+"Jackie Brown"
+],
+"curiosidade": "O filme tem John Travolta e Samuel L. Jackson.",
+"id": "FIL-149",
+"tema": "filmes"
+},
+{
+"nivel": 5,
+"categoria": "Filmes e séries",
+"enunciado": "Qual foi o primeiro longa-metragem dirigido por Quentin Tarantino?",
+"opcoes": [
+"Cães de Aluguel",
+"Pulp Fiction",
+"Jackie Brown",
+"Kill Bill"
+],
+"curiosidade": "O filme é de 1992.",
+"id": "FIL-150",
+"tema": "filmes"
+},
+{
+"nivel": 5,
+"categoria": "Filmes e séries",
+"enunciado": "Qual filme de Steven Spielberg ganhou o Oscar de Melhor Filme em 1994?",
+"opcoes": [
+"A Lista de Schindler",
+"Jurassic Park",
+"O Resgate do Soldado Ryan",
+"E.T."
+],
+"curiosidade": "O filme é em preto e branco.",
+"id": "FIL-151",
+"tema": "filmes"
+},
+{
+"nivel": 5,
+"categoria": "Filmes e séries",
+"enunciado": "Quantos Oscars \"Oppenheimer\" ganhou na cerimônia de 2024?",
+"opcoes": [
+"7",
+"5",
+"9",
+"11"
+],
+"curiosidade": "Cillian Murphy ganhou o de Melhor Ator.",
+"id": "FIL-152",
+"tema": "filmes"
+},
+{
+"nivel": 5,
+"categoria": "Filmes e séries",
+"enunciado": "Como se chama o fotógrafo narrador de \"Cidade de Deus\"?",
+"opcoes": [
+"Buscapé",
+"Zé Pequeno",
+"Bené",
+"Cabeleira"
+],
+"curiosidade": "Ele quer ser fotógrafo para sair da violência.",
+"id": "FIL-153",
+"tema": "filmes"
+},
+{
+"nivel": 5,
+"categoria": "Filmes e séries",
+"enunciado": "Qual é o nome completo do personagem de Russell Crowe em \"Gladiador\"?",
+"opcoes": [
+"Maximus Decimus Meridius",
+"Maximus Aurelius Commodus",
+"Marcus Aurelius Maximus",
+"Decimus Maximus Aurelius"
+],
+"curiosidade": "O imperador Cômodo é o vilão.",
+"id": "FIL-154",
+"tema": "filmes"
+},
+{
+"nivel": 5,
+"categoria": "Filmes e séries",
+"enunciado": "Qual faroeste americano de 1960 é uma versão de \"Os Sete Samurais\"?",
+"opcoes": [
+"Sete Homens e um Destino",
+"Rio Bravo",
+"Matar ou Morrer",
+"Os Brutos Também Amam"
+],
+"curiosidade": "O filme original japonês é de 1954.",
+"id": "FIL-155",
+"tema": "filmes"
+},
+{
+"nivel": 5,
+"categoria": "Filmes e séries",
+"enunciado": "Qual filme de 1940 de Charles Chaplin faz sátira de Hitler?",
+"opcoes": [
+"O Grande Ditador",
+"Tempos Modernos",
+"Luzes da Cidade",
+"O Garoto"
+],
+"curiosidade": "Foi o primeiro filme totalmente falado de Chaplin.",
+"id": "FIL-156",
+"tema": "filmes"
+},
+{
+"nivel": 5,
+"categoria": "Filmes e séries",
+"enunciado": "Qual ator protagoniza \"Janela Indiscreta\", de Hitchcock?",
+"opcoes": [
+"James Stewart",
+"Cary Grant",
+"Gregory Peck",
+"Henry Fonda"
+],
+"curiosidade": "Grace Kelly é a protagonista feminina.",
+"id": "FIL-157",
+"tema": "filmes"
+},
+{
+"nivel": 5,
+"categoria": "Filmes e séries",
+"enunciado": "Qual é o nome do computador de bordo de \"2001: Uma Odisseia no Espaço\"?",
+"opcoes": [
+"HAL 9000",
+"JARVIS",
+"SkyNet",
+"Mother"
+],
+"curiosidade": "Ele fala com voz calma e se rebela contra a tripulação.",
+"id": "FIL-158",
+"tema": "filmes"
+},
+{
+"nivel": 5,
+"categoria": "Filmes e séries",
+"enunciado": "Quem interpretou Tony Soprano na série \"Os Sopranos\"?",
+"opcoes": [
+"James Gandolfini",
+"Robert De Niro",
+"Joe Pesci",
+"Ray Liotta"
+],
+"curiosidade": "A série da HBO estreou em 1999.",
+"id": "FIL-159",
+"tema": "filmes"
+},
+{
+"nivel": 5,
+"categoria": "Filmes e séries",
+"enunciado": "Em qual cidade americana se passa a série \"The Wire\"?",
+"opcoes": [
+"Baltimore",
+"Nova York",
+"Chicago",
+"Detroit"
+],
+"curiosidade": "A série foi criada por David Simon.",
+"id": "FIL-160",
+"tema": "filmes"
+},
+{
+"nivel": 5,
+"categoria": "Filmes e séries",
+"enunciado": "Qual diretor criou a série \"Twin Peaks\", com Mark Frost?",
+"opcoes": [
+"David Lynch",
+"Quentin Tarantino",
+"David Fincher",
+"Tim Burton"
+],
+"curiosidade": "A série começou em 1990.",
+"id": "FIL-161",
+"tema": "filmes"
+}
+]

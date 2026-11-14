@@ -79,7 +79,7 @@ export default function TopNav() {
     })
   }, [])
 
-  const hideOn = ['/login', '/cadastro', '/admin', '/empresa/cadastrar', '/anunciar', '/producao', '/painel', '/atendimento', '/mesa/', '/acompanhar/']
+  const hideOn = ['/login', '/cadastro', '/admin', '/empresa/cadastrar', '/anunciar', '/producao', '/painel', '/atendimento', '/mesa/', '/jogos/', '/acompanhar/']
   if (hideOn.some(p => pathname.startsWith(p))) return null
 
   // Páginas que já têm busca própria no hero (categoria, comunidade,

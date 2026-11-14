@@ -101,6 +101,11 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
 
   // ======== estado ========
   var API = '/api/mesa/quiz', LS = 'quizjt:' + TOKEN
+  // Modo loja (página de jogos, sem mesa): só ranking, nunca cashback. Token = 'loja:<slug>'.
+  var MODO_LOJA = TOKEN.indexOf('loja:') === 0
+  var HOME = MODO_LOJA ? '/jogos/' + TOKEN.slice(5) : '/mesa/' + TOKEN
+  var IDENT_URL = MODO_LOJA ? HOME + '?identificar=1' : HOME + '?identificar=jogar'
+  var VOLTAR = MODO_LOJA ? 'Jogos' : 'Mesa'
   var JT = ''; try { JT = localStorage.getItem(LS) || '' } catch (e) {}
   var INFO = null, G = null, T = null, cur = 'load', ZONES = false, LEAVE = false, DESTROYED = false
   var CT = { n: 3, t: null }
@@ -125,7 +130,7 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
   }
   function fail(e) {
     if (G) G.busy = false
-    if (e && e.status === 401) { JT = ''; try { localStorage.removeItem(LS) } catch (x) {} if (INFO) INFO.jogador = null; location.href = '/mesa/' + TOKEN + '?identificar=jogar'; return }
+    if (e && e.status === 401) { JT = ''; try { localStorage.removeItem(LS) } catch (x) {} if (INFO) INFO.jogador = null; location.href = IDENT_URL; return }
     if (e && e.status === 409 && G && G.live) { // rodada já encerrada no servidor
       cur = 'intro'; G = null; render(); toast('Essa rodada já terminou.'); return
     }
@@ -135,11 +140,11 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
   // ======== peças de tela ========
   function bar() {
     var voltar = ['ranking', 'cadastro', 'codigo'].indexOf(cur) >= 0
-    var back = cur === 'intro' || cur === 'load' || cur === 'queda' ? '<button class="back" data-go="mesa">‹ Mesa</button>'
-      : '<button class="back" ' + (emJogo() ? 'data-act="leave"' : 'data-go="' + (voltar ? 'intro' : 'mesa') + '"') + '>‹ ' + (emJogo() ? 'Sair' : (voltar ? 'Voltar' : 'Mesa')) + '</button>'
+    var back = cur === 'intro' || cur === 'load' || cur === 'queda' ? '<button class="back" data-go="mesa">‹ ' + VOLTAR + '</button>'
+      : '<button class="back" ' + (emJogo() ? 'data-act="leave"' : 'data-go="' + (voltar ? 'intro' : 'mesa') + '"') + '>‹ ' + (emJogo() ? 'Sair' : (voltar ? 'Voltar' : VOLTAR)) + '</button>'
     var nome = esc(((INFO && INFO.loja) || 'Quiz').trim().toUpperCase()), sp = nome.indexOf(' ')
     var marca = sp > 0 ? nome.slice(0, sp) + ' <b>' + nome.slice(sp + 1) + '</b>' : nome
-    return '<div class="bar">' + back + '<div class="brand">' + marca + '</div><div class="bar-r"><button class="snd" data-act="snd" aria-label="' + (SND ? 'Desligar som' : 'Ligar som') + '" aria-pressed="' + SND + '">' + (SND ? IC_SPK : IC_SPK_OFF) + '</button><div class="mesa">Mesa ' + esc((INFO && INFO.mesa) || '') + '</div></div></div>'
+    return '<div class="bar">' + back + '<div class="brand">' + marca + '</div><div class="bar-r"><button class="snd" data-act="snd" aria-label="' + (SND ? 'Desligar som' : 'Ligar som') + '" aria-pressed="' + SND + '">' + (SND ? IC_SPK : IC_SPK_OFF) + '</button>' + (MODO_LOJA ? '' : '<div class="mesa">Mesa ' + esc((INFO && INFO.mesa) || '') + '</div>') + '</div></div>'
   }
   function ladder() {
     var tiers = [10, 20, 30, 35, 40, 45], h = '<div class="zl"><span class="ok">Zona segura</span><span class="rk">Zona de risco</span></div><div class="ladder">'
@@ -151,13 +156,14 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
   // ======== telas ========
   var S = {}
   S.load = function () { return '<div class="screen sea">' + scene() + bar() + '<div class="res"><p class="p" style="color:#CFE3E6">Carregando…</p></div></div>' }
-  S.off = function () { return '<div class="screen sea">' + scene() + bar() + '<div class="res"><div><h2 class="h1">Quiz indisponível</h2></div><div class="box">O quiz não está ligado nesta loja agora. Chame o garçom se quiser jogar.</div><div style="margin-top:auto"><button class="btn" data-go="mesa">Voltar à mesa</button></div></div></div>' }
+  S.off = function () { return '<div class="screen sea">' + scene() + bar() + '<div class="res"><div><h2 class="h1">Quiz indisponível</h2></div><div class="box">O quiz não está ligado nesta loja agora. ' + (MODO_LOJA ? '' : 'Chame o garçom se quiser jogar.') + '</div><div style="margin-top:auto"><button class="btn" data-go="mesa">' + (MODO_LOJA ? 'Voltar aos jogos' : 'Voltar à mesa') + '</button></div></div></div>' }
 
   S.intro = function () {
     var premio = INFO && INFO.premio
     return '<div class="screen sea game">' + scene() + bar() + '<div class="gi2">' +
       '<div class="hero"><span class="kick">Quiz</span><h2 class="h2t"><span>Pesca</span><span class="g">Premiada</span></h2><p class="sub2">' + (premio ? 'Acerte as perguntas e ganhe cashback para a sua próxima compra.' : 'Acerte as perguntas e suba no ranking da loja.') + '</p></div>' +
       '<div class="prize"><div class="pm"><div class="pm-in"><small>entre no</small><b>TOP</b><em>da loja</em></div></div></div>' +
+      (MODO_LOJA ? '<div class="fx-noprize" style="margin:0 16px 10px"><b>🏆 Aqui vale só para o ranking</b><span>Para ganhar cashback, jogue pelo QR da sua mesa no restaurante.</span></div>' : (premio ? '<div class="fx-noprize" style="margin:0 16px 10px"><b>🎁 Esta rodada vale cashback</b><span>Ele só é creditado quando você pagar a conta da mesa.</span></div>' : '')) +
       '<div class="facts"><span><b>10</b> segundos por pergunta</span><i></i><span><b>3</b> chances de errar</span></div>' +
       '<div class="hwrow"><button class="how" data-act="zones"><span class="hi">i</span>Como funciona</button><button class="how" data-go="ranking"><span class="hi">★</span>Ver ranking</button></div>' +
       '<div class="cta2"><p class="pn">' + (INFO && INFO.jogador ? 'Jogando como <b>' + esc(INFO.jogador.apelido) + '</b>' : 'Você informa seu nome e WhatsApp antes de jogar') + '</p><button class="go" data-act="start"><span>Jogar</span></button></div></div></div>'
@@ -247,7 +253,7 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
         '<div class="fx-stats"><div class="plate"><small>Seus pontos</small><b>0</b><em>perdidos</em></div><div class="plate"><small>No ranking</small><b>—</b><em>rodada não conta</em></div></div>' +
         '<div class="fx-noprize"><b>Pontos perdidos</b><span>Sair no meio da rodada zera tudo.</span></div>' +
         '<div class="fx-note" style="text-align:center">Sua melhor rodada da semana continua valendo no ranking.</div>' +
-        '<div class="fx-cta"><button class="btn" data-act="start">Jogar de novo</button><button class="btn alt" data-go="mesa">Voltar à mesa</button></div></div></div>'
+        '<div class="fx-cta"><button class="btn" data-act="start">Jogar de novo</button><button class="btn alt" data-go="mesa">' + (MODO_LOJA ? 'Voltar aos jogos' : 'Voltar à mesa') + '</button></div></div></div>'
     }
     var pos = d && d.eu ? d.eu.pos : null, tot = d ? d.total : 0
     var porque = G.fim && G.fim.motivo === 'parou' ? 'Você parou na hora certa.' : (G.fim && G.fim.motivo === 'tempo' ? 'O tempo acabou.' : 'Você errou.')
@@ -262,7 +268,7 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
           ? '<div class="fx-noprize"><b>' + porque + '</b><span>Você já ganhou um prêmio nos últimos 7 dias, então esta rodada vale só para o ranking.</span></div>'
           : '<div class="fx-noprize"><b>' + porque + '</b><span>' + (INFO && INFO.premio ? 'Faça 10 acertos para garantir cashback. ' : '') + 'Vale a melhor rodada da semana no ranking da loja.</span></div>') +
       '<div class="rk"><div class="rkt">Ranking da loja · esta semana</div>' + rows + '<button class="rklink" data-go="ranking">Ver ranking completo ›</button></div>' +
-      '<div class="fx-cta"><button class="btn" data-act="start">Jogar de novo</button><button class="btn alt" data-go="mesa">Voltar à mesa</button></div></div></div>'
+      '<div class="fx-cta"><button class="btn" data-act="start">Jogar de novo</button><button class="btn alt" data-go="mesa">' + (MODO_LOJA ? 'Voltar aos jogos' : 'Voltar à mesa') + '</button></div></div></div>'
   }
   S.fim = fin
 
@@ -391,7 +397,7 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
     var t = e.target.closest('[data-go],[data-act]'); if (!t || !view.contains(t)) return
     if (t.dataset.go) {
       var k = t.dataset.go
-      if (k === 'mesa') { location.href = '/mesa/' + TOKEN; return }
+      if (k === 'mesa') { location.href = HOME; return }
       cur = k; if (k === 'ranking') { RK.data = null; render(); carregarRanking('sem') } else render()
       return
     }
@@ -408,7 +414,7 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
     }
     if (a === 'start') {
       ac()
-      if (!INFO.jogador) { location.href = '/mesa/' + TOKEN + '?identificar=jogar'; return }
+      if (!INFO.jogador) { location.href = IDENT_URL; return }
       comecar(); return
     }
     if (a === 'resume') { comecar(); return }

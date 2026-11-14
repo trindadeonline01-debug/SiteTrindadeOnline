@@ -90,15 +90,18 @@ export async function POST(req: NextRequest) {
       const { data: ws } = await sb.from('company_cashback_wallet').select('company_id, saldo, updated_at').eq('customer_phone', phone)
       const ids = (ws || []).map(w => w.company_id)
       const { data: cs } = ids.length
-        ? await sb.from('companies').select('id, name, slug, cashback_expira_dias').in('id', ids)
-        : { data: [] as { id: string; name: string; slug: string; cashback_expira_dias: number | null }[] }
+        ? await sb.from('companies').select('id, name, slug, cashback_expira_dias, mesas_enabled').in('id', ids)
+        : { data: [] as { id: string; name: string; slug: string; cashback_expira_dias: number | null; mesas_enabled: boolean | null }[] }
+      // Lojas com o quiz ligado ganham o botão "Jogar" (página /jogos/<slug>, só ranking).
+      const { data: qcs } = ids.length ? await sb.from('quiz_campanhas').select('company_id, ativa').in('company_id', ids).eq('ativa', true) : { data: [] as { company_id: string }[] }
+      const comJogo = new Set((qcs || []).map(q => q.company_id))
       const mapa = new Map((cs || []).map(c => [c.id, c]))
       const lojas = (ws || []).map(w => {
         const c = mapa.get(w.company_id)
         const dias = Number(c?.cashback_expira_dias) || CASHBACK_EXPIRA_DIAS_DEFAULT
         const saldo = Number(w.saldo)
         return {
-          companyId: w.company_id, nome: c?.name || 'Loja', slug: c?.slug || null, saldo: r2(saldo),
+          companyId: w.company_id, nome: c?.name || 'Loja', slug: c?.slug || null, saldo: r2(saldo), jogos: !!(c?.mesas_enabled && comJogo.has(w.company_id)),
           venceEm: saldo > 0 ? new Date(new Date(w.updated_at).getTime() + dias * DAY).toISOString() : null,
         }
       }).sort((a, z) => z.saldo - a.saldo)

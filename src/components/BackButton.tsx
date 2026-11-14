@@ -38,7 +38,7 @@ export default function BackButton() {
   // Configurar cardápio) sem esse botão prende o lojista lá (achado real
   // do Ricardo testando no iPhone, set/2026). Só a home (que não tem "voltar"
   // que faça sentido) continua de fora.
-  if (pathname === '/' || pathname.startsWith('/mesa/') || pathname.startsWith('/acompanhar/')) return null
+  if (pathname === '/' || pathname.startsWith('/mesa/') || pathname.startsWith('/jogos/') || pathname.startsWith('/acompanhar/')) return null
 
   // Página do produto (/empresa/[slug]/item/[id]) tem a barra fixa
   // "Adicionar ao carrinho" (.id-bar, z-index:10000) colada no mesmo

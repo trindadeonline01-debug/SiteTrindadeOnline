@@ -27,7 +27,7 @@ export async function jaGanhouNosUltimosDias(sb: SupabaseClient, companyId: stri
 export async function melhorRodadaPremiavel(sb: SupabaseClient, companyId: string, telefone: string, desde: string): Promise<{ rodadaId: string; marco: number; jogadorId: string } | null> {
   const { data: j } = await sb.from('quiz_jogadores').select('id').eq('company_id', companyId).eq('telefone', telefone).maybeSingle()
   if (!j) return null
-  const { data: rods } = await sb.from('quiz_rodadas').select('id, marco, pontos').eq('company_id', companyId).eq('jogador_id', j.id).eq('estado', 'encerrada').gt('marco', 0).gte('iniciada_em', desde).order('marco', { ascending: false }).order('pontos', { ascending: false }).limit(10)
+  const { data: rods } = await sb.from('quiz_rodadas').select('id, marco, pontos').eq('company_id', companyId).eq('jogador_id', j.id).eq('estado', 'encerrada').gt('marco', 0).not('mesa_id', 'is', null).gte('iniciada_em', desde).order('marco', { ascending: false }).order('pontos', { ascending: false }).limit(10)
   for (const r of rods || []) {
     const { count } = await sb.from('quiz_premios').select('id', { count: 'exact', head: true }).eq('rodada_id', r.id)
     if (!count) return { rodadaId: r.id, marco: r.marco, jogadorId: j.id }

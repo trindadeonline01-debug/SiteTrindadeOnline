@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 
-type Loja = { companyId: string; nome: string; slug: string | null; saldo: number; venceEm: string | null }
+type Loja = { companyId: string; nome: string; slug: string | null; saldo: number; venceEm: string | null; jogos?: boolean }
 type Mov = { tipo: string; valor: number; data: string; origem: string; saldoApos: number }
 
 const brl = (n: number) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -130,6 +130,7 @@ export default function MeuCashbackClient() {
             <div className="mc-total"><span className="mc-k">Saldo nesta loja</span><span className="mc-big">{brl(loja.saldo)}</span></div>
             {loja.venceEm && <p className="mc-sub">Vence em {dataBR(loja.venceEm)} se não usar.</p>}
             {loja.slug && <a className="mc-btn" style={{ textAlign: 'center', textDecoration: 'none' }} href={`/cardapio/${loja.slug}`}>Pedir nesta loja</a>}
+            {loja.slug && loja.jogos && <a className="mc-btn" style={{ textAlign: 'center', textDecoration: 'none', background: 'transparent', border: '2px solid currentColor' }} href={`/jogos/${loja.slug}`}>🎮 Jogar (só ranking)</a>}
             <div className="mc-k" style={{ marginTop: 18 }}>Extrato</div>
             {movs.length === 0 && !msg && <p className="mc-sub">Carregando…</p>}
             <ul className="mc-list">

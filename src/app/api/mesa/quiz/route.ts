@@ -67,15 +67,31 @@ function apelidoProblema(ap: string): string | null {
 }
 
 // ---------- contexto: mesa → loja → campanha ----------
+// Dois modos (nov/2026): "mesa" (QR da mesa — pode valer cashback, só pago no fechamento da conta) e
+// "loja" (token `loja:<slug>`, página /jogos/<slug> — SEM mesa, nunca vale cashback, só ranking).
+// A regra é do servidor: rodada sem mesa_id nunca entra em melhorRodadaPremiavel (src/lib/quizPremio.ts).
+type MesaQ = { id: string; numero: number | string; ativa: boolean; company_id: string }
 async function carregar(token: unknown) {
   const t = String(token || '')
-  if (t.length < 10 || t.length > 80) return null
-  const { data: mesa } = await sb.from('loja_mesas').select('id, numero, ativa, company_id').eq('qr_token', t).maybeSingle()
-  if (!mesa || !mesa.ativa) return null
-  const { data: company } = await sb.from('companies').select('id, name, mesas_enabled, loja_digital_enabled, trial_modules_until').eq('id', mesa.company_id).maybeSingle()
+  if (t.length < 5 || t.length > 90) return null
+  const modoLoja = t.startsWith('loja:')
+  let mesa: MesaQ | null = null
+  let companyId: string | null = null
+  if (modoLoja) {
+    const { data: c0 } = await sb.from('companies').select('id').eq('slug', t.slice(5)).maybeSingle()
+    if (!c0) return null
+    companyId = c0.id as string
+  } else {
+    if (t.length < 10) return null
+    const { data: m } = await sb.from('loja_mesas').select('id, numero, ativa, company_id').eq('qr_token', t).maybeSingle()
+    if (!m || !m.ativa) return null
+    mesa = m as MesaQ
+    companyId = m.company_id as string
+  }
+  const { data: company } = await sb.from('companies').select('id, name, slug, mesas_enabled, loja_digital_enabled, trial_modules_until').eq('id', companyId).maybeSingle()
   if (!company || !company.mesas_enabled || !moduleActive(company.loja_digital_enabled, company.trial_modules_until)) return null
   const { data: camp } = await sb.from('quiz_campanhas').select('ativa, premio_ativo').eq('company_id', company.id).maybeSingle()
-  return { mesa, company, camp: camp as { ativa: boolean; premio_ativo: boolean } | null }
+  return { mesa, modoLoja, company, camp: camp as { ativa: boolean; premio_ativo: boolean } | null }
 }
 
 async function contar(chave: string, ms: number) {
@@ -161,7 +177,7 @@ export async function POST(req: NextRequest) {
         jogador = j || null
         if (j) retomar = !!(await rodadaAberta(jogadorId))
       }
-      return NextResponse.json({ ativo: true, premio: !!ctx.camp.premio_ativo, loja: ctx.company.name, mesa: ctx.mesa.numero, jogador, retomar, perguntas: BANCO.length })
+      return NextResponse.json({ ativo: true, modo: ctx.modoLoja ? 'loja' : 'mesa', slug: ctx.company.slug, premio: ctx.modoLoja ? false : !!ctx.camp.premio_ativo, premioDaLoja: !!ctx.camp.premio_ativo, loja: ctx.company.name, mesa: ctx.mesa?.numero ?? null, jogador, retomar, perguntas: BANCO.length })
     }
 
     // ================= cadastro pela identificação única (nome + WhatsApp já confirmado) =================
@@ -253,7 +269,7 @@ export async function POST(req: NextRequest) {
         top: lista.slice(0, 10).map(x => ({ pos: Number(x.posicao), apelido: x.apelido, pontos: x.pontos, acertos: x.acertos, eu: x.jogador_id === jogadorId })),
         eu: eu ? { pos: Number(eu.posicao), apelido: eu.apelido, pontos: eu.pontos, acertos: eu.acertos } : null,
         // Jogador que já ganhou prêmio nos últimos 7 dias: nesta rodada só vale o ranking.
-        premioBloqueado: ctx.camp.premio_ativo && jogadorId ? await jaGanhouNosUltimosDias(sb, cid, jogadorId) : false,
+        premioBloqueado: !ctx.modoLoja && ctx.camp.premio_ativo && jogadorId ? await jaGanhouNosUltimosDias(sb, cid, jogadorId) : false,
       })
     }
 
@@ -268,7 +284,7 @@ export async function POST(req: NextRequest) {
       let retomada = true
       if (!r) {
         retomada = false
-        const ins = await sb.from('quiz_rodadas').insert({ company_id: cid, comanda_id: null, jogador_key: `j:${jogadorId}`, jogador_id: jogadorId, mesa_id: ctx.mesa.id, premiada: false }).select('*').single()
+        const ins = await sb.from('quiz_rodadas').insert({ company_id: cid, comanda_id: null, jogador_key: `j:${jogadorId}`, jogador_id: jogadorId, mesa_id: ctx.mesa?.id ?? null, premiada: false }).select('*').single()
         if (ins.error) return erro('Não consegui começar a rodada.', 500)
         r = ins.data as RodadaDb
       }

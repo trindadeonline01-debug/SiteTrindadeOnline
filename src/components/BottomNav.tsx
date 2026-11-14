@@ -89,7 +89,7 @@ export default function BottomNav() {
     return () => document.removeEventListener('mousedown', onClick)
   }, [])
 
-  const hideOn = ['/login', '/cadastro', '/empresa/cadastrar', '/anunciar', '/admin', '/producao', '/painel', '/atendimento', '/mesa/', '/acompanhar/']
+  const hideOn = ['/login', '/cadastro', '/empresa/cadastrar', '/anunciar', '/admin', '/producao', '/painel', '/atendimento', '/mesa/', '/jogos/', '/acompanhar/']
   if (!show || !user || hideOn.some(p => pathname.startsWith(p))) return null
 
   const empresasActive = EMPRESAS_LINKS.some(l => pathname === l.href)

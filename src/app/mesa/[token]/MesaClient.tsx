@@ -343,11 +343,25 @@ export default function MesaClient({ token }: { token: string }) {
             </button>
           )}
           {quizOn && CACA_PALAVRAS_ATIVO && (
-            <button type="button" className="mz-pcard pq" onClick={cacaBtn}>
-              <span className="ico"><svg viewBox="0 0 24 24" fill="none" stroke="#151210" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="3" /><path d="M7 7l10 10M7 12h5M12 7v5" /></svg></span>
-              <b>Caça-Palavras</b>
-              <p>Ache as palavras e suba de nível.</p>
-              <span className="bt">Jogar</span>
+            <button type="button" className="mz-gamecard gc-caca" onClick={cacaBtn}>
+              <span className="gc-bub" aria-hidden="true"><i /><i /><i /><i /><i /></span>
+              <span className="gc-art" aria-hidden="true">
+                <svg viewBox="0 0 96 96">
+                  <rect x="6" y="6" width="84" height="84" rx="16" fill="#F6F1E4" stroke="#0B4A3A" strokeWidth="3" />
+                  <g fontFamily="Anton, sans-serif" fontSize="22" fill="#0B4A3A" textAnchor="middle">
+                    <text x="26" y="34">P</text><text x="48" y="34">E</text><text x="70" y="34">I</text>
+                    <text x="26" y="58">R</text><text x="48" y="58">X</text><text x="70" y="58">A</text>
+                    <text x="26" y="82">S</text><text x="48" y="82">O</text><text x="70" y="82">L</text>
+                  </g>
+                  <path d="M20 14L76 70" stroke="#FFC531" strokeWidth="12" strokeLinecap="round" opacity=".55" />
+                </svg>
+              </span>
+              <span className="gc-txt">
+                <small>Jogo da casa</small>
+                <b>Caça-Palavras</b>
+                <span className="gc-chips"><em>5 níveis</em><em>Contra o tempo</em>{info.cashback.ativo && <em>Cashback</em>}</span>
+              </span>
+              <span className="gc-play"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M7 4l13 8-13 8z" fill="currentColor" /></svg>JOGAR</span>
             </button>
           )}
           {info.cashback.ativo && (
@@ -802,6 +816,7 @@ button.mz-pcard{border:0;text-align:left;font:inherit;cursor:pointer;width:100%}
 .gc-chips{display:flex;gap:6px;flex-wrap:wrap}
 .gc-chips em{font-style:normal;font-size:11.5px;font-weight:700;background:rgba(255,255,255,.14);border-radius:99px;padding:3px 10px}
 .gc-play{grid-column:1/-1;position:relative;z-index:1;display:flex;align-items:center;justify-content:center;gap:8px;height:52px;border-radius:14px;background:#FFC531;color:#151210;font:800 18px Archivo,sans-serif;letter-spacing:.08em;border-bottom:4px solid #C98F00;animation:gcpulse 1.8s ease-in-out infinite}
+.mz-gamecard.gc-caca{background:radial-gradient(120% 90% at 85% 0%,#25B98B 0%,#0E5A45 46%,#062B22 100%);box-shadow:0 18px 30px -16px rgba(6,43,34,.95),inset 0 0 0 2px rgba(255,197,49,.35)}
 .gc-bub{position:absolute;inset:0;pointer-events:none}
 .gc-bub i{position:absolute;bottom:-12px;width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.16);animation:gcrise 6s linear infinite}
 .gc-bub i:nth-child(1){left:8%;animation-delay:0s}.gc-bub i:nth-child(2){left:30%;width:7px;height:7px;animation-delay:1.6s}.gc-bub i:nth-child(3){left:55%;animation-delay:3s}.gc-bub i:nth-child(4){left:75%;width:14px;height:14px;animation-delay:.8s}.gc-bub i:nth-child(5){left:92%;width:8px;height:8px;animation-delay:2.4s}

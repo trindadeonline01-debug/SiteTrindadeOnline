@@ -1565,6 +1565,7 @@ export default function AdminPage() {
       }},
       { label: 'Conectar WhatsApp', icon: '💬', href: `/painel/mensagens?empresa=${c.id}` },
       { label: 'Editar cardápio', icon: '📋', href: `/painel/catalogo?empresa=${c.id}` },
+      { label: 'Jogos (link e QR)', icon: '🎮', href: `/painel/jogos?empresa=${c.id}` },
     ]
     if (c.trial_modules_until && new Date(c.trial_modules_until) > new Date()) {
       items.push({ label: `Teste até ${fmtDate(c.trial_modules_until)} ✕`, icon: '🧪', onClick: () => setTrial(c.id, null) })

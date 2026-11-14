@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { gerarRespostaIA } from '@/lib/crmIA'
+import { iaEmLoop } from '@/lib/iaLoop'
 import { ATENDIMENTO_IA_DESLIGADO, ATENDIMENTO_IA_EMPRESAS_LIBERADAS } from '@/lib/atendimentoIA'
 import { sendCustomerWhatsApp } from '@/lib/whatsapp'
 
@@ -67,6 +68,7 @@ export async function GET(req: NextRequest) {
     // Reivindica o contato ANTES de gerar a resposta — se outra execução do
     // cron (improvável, mas possível se uma rodada demorar) já pegou esse
     // mesmo contato, affected rows = 0 e a gente simplesmente pula.
+    if (await iaEmLoop(supabase, contato.id)) continue
     const { data: claimed } = await supabase
       .from('crm_contacts').update({ atendimento_modo: 'ia' })
       .eq('id', contato.id).eq('atendimento_modo', 'humano')

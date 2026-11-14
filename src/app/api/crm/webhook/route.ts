@@ -6,6 +6,7 @@ import { normalizePhone } from '@/lib/phone'
 import { sendCustomerWhatsApp, notifyOwnerHumanRequested } from '@/lib/whatsapp'
 import { notifyAdmin } from '@/lib/notifyAdmin'
 import { pedeHumano, gerarRespostaIA } from '@/lib/crmIA'
+import { iaEmLoop } from '@/lib/iaLoop'
 import { iaAtiva } from '@/lib/atendimentoIA'
 import { transcreverAudioWhatsApp } from '@/lib/transcreverAudio'
 import { waSendText, wahaBaixarMidia } from '@/lib/wa'
@@ -537,7 +538,9 @@ export async function POST(req: NextRequest) {
               // estiver processando a mensagem MAIS RECENTE do cliente nesse
               // momento segue — sai 1 resposta só, já lendo tudo que ele
               // mandou (o histórico abaixo é buscado DEPOIS da espera).
-              await new Promise(resolve => setTimeout(resolve, 4000))
+              const emLoop = await iaEmLoop(supabase, contactId)
+              if (emLoop) await supabase.from('crm_webhook_debug').insert({ event: 'ia_loop_bloqueado', payload: { contact_id: contactId, company_id: inst.company_id } })
+              await new Promise(resolve => setTimeout(resolve, emLoop ? 0 : 4000))
               const { data: maisRecente } = await supabase
                 .from('crm_messages').select('id')
                 .eq('contact_id', contactId).eq('direction', 'in')
@@ -545,7 +548,7 @@ export async function POST(req: NextRequest) {
                 // "roubar" a vez — antes ninguém respondia (o último evento não tinha texto pra responder)
                 .not('body', 'is', null)
                 .order('sent_at', { ascending: false }).limit(1).maybeSingle()
-              if (insertedMsg && maisRecente?.id === insertedMsg.id) {
+              if (!emLoop && insertedMsg && maisRecente?.id === insertedMsg.id) {
                 const { data: historico } = await supabase
                   .from('crm_messages').select('direction, body')
                   .eq('contact_id', contactId).not('body', 'is', null)

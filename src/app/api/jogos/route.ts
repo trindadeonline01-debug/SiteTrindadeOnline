@@ -15,6 +15,14 @@ const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPAB
 const erro = (msg: string, status = 400) => NextResponse.json({ error: msg }, { status })
 const igual = (a: string, b: string) => { const x = Buffer.from(a), y = Buffer.from(b); return x.length === y.length && timingSafeEqual(x, y) }
 
+// Semana do ranking: começa na segunda-feira 00:00 (horário de Brasília, UTC-3).
+function inicioSemana(): string {
+  const agora = new Date(Date.now() - 3 * 3600_000)
+  const dia = (agora.getUTCDay() + 6) % 7
+  const seg = Date.UTC(agora.getUTCFullYear(), agora.getUTCMonth(), agora.getUTCDate() - dia)
+  return new Date(seg + 3 * 3600_000).toISOString()
+}
+
 async function contar(chave: string, ms: number) {
   const { count } = await sb.from('whatsapp_verifications').select('id', { count: 'exact', head: true })
     .eq('phone', chave).gte('created_at', new Date(Date.now() - ms).toISOString())
@@ -40,6 +48,23 @@ export async function POST(req: NextRequest) {
         jogos: [
           { id: 'quiz', nome: 'Quiz Pesca Premiada', descricao: 'Responda perguntas, tente chegar ao topo do ranking da loja.', ativo: !!camp?.ativa, rota: `/jogos/${company.slug}/quiz` },
         ],
+      })
+    }
+
+    // Rankings da loja: geral (soma do melhor de cada jogo) e de cada jogo, individual e de grupos.
+    if (acao === 'ranking') {
+      const desde = String(b.aba || 'sem') !== 'sempre' ? inicioSemana() : null
+      const ind = (d: unknown) => ((d || []) as { posicao: number; apelido: string; pontos: number }[]).slice(0, 10).map(x => ({ pos: Number(x.posicao), apelido: x.apelido, pontos: x.pontos }))
+      const [geral, solo, duelo, grupos] = await Promise.all([
+        sb.rpc('quiz_ranking_geral', { p_company: company.id, p_desde: desde, p_limite: 10 }),
+        sb.rpc('quiz_ranking', { p_company: company.id, p_desde: desde, p_limite: 10 }),
+        sb.rpc('quiz_ranking_duelo', { p_company: company.id, p_desde: desde, p_limite: 10 }),
+        sb.rpc('quiz_ranking_grupos', { p_company: company.id, p_desde: desde, p_limite: 10 }),
+      ])
+      return NextResponse.json({
+        ok: true,
+        geralIndividual: ind(geral.data), quizSolo: ind(solo.data), quizGrupoIndividual: ind(duelo.data),
+        grupos: ((grupos.data || []) as { posicao: number; nome: string; media: number; jogadores: number }[]).map(g => ({ pos: Number(g.posicao), nome: g.nome, media: g.media, jogadores: g.jogadores })),
       })
     }
 

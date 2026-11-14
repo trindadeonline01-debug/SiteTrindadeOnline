@@ -166,6 +166,7 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
       (MODO_LOJA ? '<div class="fx-noprize" style="margin:0 16px 10px"><b>🏆 Aqui vale só para o ranking</b><span>Para ganhar cashback, jogue pelo QR da sua mesa no restaurante.</span></div>' : (premio ? '<div class="fx-noprize" style="margin:0 16px 10px"><b>🎁 Esta rodada vale cashback</b><span>Ele só é creditado quando você pagar a conta da mesa.</span></div>' : '')) +
       '<div class="facts"><span><b>10</b> segundos por pergunta</span><i></i><span><b>3</b> chances de errar</span></div>' +
       '<div class="hwrow"><button class="how" data-act="zones"><span class="hi">i</span>Como funciona</button><button class="how" data-go="ranking"><span class="hi">★</span>Ver ranking</button></div>' +
+      (MODO_LOJA ? '' : '<div class="hwrow"><button class="how" data-go="grupo"><span class="hi">👥</span>Jogar em grupo</button></div>') +
       '<div class="cta2"><p class="pn">' + (INFO && INFO.jogador ? 'Jogando como <b>' + esc(INFO.jogador.apelido) + '</b>' : 'Você informa seu nome e WhatsApp antes de jogar') + '</p><button class="go" data-act="start"><span>Jogar</span></button></div></div></div>'
   }
   S.contagem = function () {
@@ -398,6 +399,7 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
     if (t.dataset.go) {
       var k = t.dataset.go
       if (k === 'mesa') { location.href = HOME; return }
+      if (k === 'grupo') { location.href = '/mesa/' + TOKEN + '/grupo'; return }
       cur = k; if (k === 'ranking') { RK.data = null; render(); carregarRanking('sem') } else render()
       return
     }

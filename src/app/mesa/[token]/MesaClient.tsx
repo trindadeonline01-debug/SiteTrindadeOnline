@@ -1,6 +1,6 @@
 'use client'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { CACA_PALAVRAS_ATIVO } from '@/lib/jogosFlags'
+import { CACA_PALAVRAS_ATIVO, MESA_PEDIDOS_ATIVO } from '@/lib/jogosFlags'
 
 // Página da mesa (QR do cliente). O celular só PEDE: o servidor confere mesa,
 // conta, produto, opções e preço, e o garçom confirma antes de ir pra cozinha.
@@ -280,6 +280,11 @@ export default function MesaClient({ token }: { token: string }) {
   }
 
   const quizBtn = () => { destJogo.current = 'quiz'; exigirIdent('jogar', () => {}) }
+  // "Sair": esquece a identificação deste aparelho (WhatsApp confirmado) para quem quiser jogar como outra pessoa.
+  const sair = () => {
+    try { localStorage.removeItem(IDENT_KEY); localStorage.removeItem('quizjt:' + token) } catch {}
+    identRef.current = null; setIdent(null); setCart(null)
+  }
   const cacaBtn = () => { destJogo.current = 'caca'; exigirIdent('jogar', () => {}) }
   return (
     <Tela>
@@ -295,18 +300,46 @@ export default function MesaClient({ token }: { token: string }) {
           <div className="mz-hn"><small>Bem-vindo ao</small><b>{info.empresa.nome}</b></div>
           <div className="mz-num">{info.mesa.numero}</div>
         </div>
-        <h1>Peça daqui, <em>sem fila.</em></h1>
-        <p>Você está na mesa {info.mesa.numero}. {info.podePedir ? 'O garçom confirma o pedido antes de ir para a cozinha.' : 'Os pedidos desta mesa são feitos com o garçom.'}</p>
+        {MESA_PEDIDOS_ATIVO ? (
+          <>
+            <h1>Peça daqui, <em>sem fila.</em></h1>
+            <p>Você está na mesa {info.mesa.numero}. {info.podePedir ? 'O garçom confirma o pedido antes de ir para a cozinha.' : 'Os pedidos desta mesa são feitos com o garçom.'}</p>
+          </>
+        ) : (
+          <>
+            <h1>Jogue e <em>suba no ranking.</em></h1>
+            <p>Você está na mesa {info.mesa.numero}. Responda o quiz e dispute com os clientes da casa.</p>
+          </>
+        )}
+        {ident && (
+          <div className="mz-quem">
+            <span>Jogando como <b>{ident.nome}</b></span>
+            <button type="button" onClick={sair}>Sair</button>
+          </div>
+        )}
       </header>
 
       {(quizOn || info.cashback.ativo) && (
-        <div className={`mz-promo ${quizOn && info.cashback.ativo ? '' : 'solo'}`}>
+        <div className={`mz-promo ${quizOn && info.cashback.ativo && CACA_PALAVRAS_ATIVO ? '' : 'solo'}`}>
           {quizOn && (
-            <button type="button" className="mz-pcard pq" onClick={quizBtn}>
-              <span className="ico"><svg viewBox="0 0 24 24" fill="none" stroke="#151210" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z" /><path d="M7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3" /></svg></span>
-              <b>Quiz Pesca Premiada</b>
-              <p>Suba no ranking da casa.</p>
-              <span className="bt">Jogar</span>
+            <button type="button" className="mz-gamecard" onClick={quizBtn}>
+              <span className="gc-bub" aria-hidden="true"><i /><i /><i /><i /><i /></span>
+              <span className="gc-art" aria-hidden="true">
+                <svg viewBox="0 0 96 96">
+                  <defs><radialGradient id="gcg" cx="35%" cy="28%" r="75%"><stop offset="0" stopColor="#FFE9A3" /><stop offset=".55" stopColor="#FFC531" /><stop offset="1" stopColor="#C98F00" /></radialGradient></defs>
+                  <circle cx="48" cy="50" r="38" fill="url(#gcg)" stroke="#8A5F00" strokeWidth="3" />
+                  <circle cx="48" cy="50" r="29" fill="none" stroke="#8A5F00" strokeWidth="2" strokeDasharray="3 4" />
+                  <text x="48" y="64" textAnchor="middle" fontFamily="Anton, sans-serif" fontSize="44" fill="#5B3C00">?</text>
+                  <path d="M16 18l2.4 5 5.4.6-4 3.7 1.1 5.3-4.9-2.7-4.9 2.7 1.1-5.3-4-3.7 5.4-.6z" fill="#fff" opacity=".9" />
+                  <path d="M80 10l1.8 3.8 4.1.5-3 2.8.8 4-3.7-2-3.7 2 .8-4-3-2.8 4.1-.5z" fill="#fff" opacity=".8" />
+                </svg>
+              </span>
+              <span className="gc-txt">
+                <small>Jogo da casa</small>
+                <b>Quiz Pesca Premiada</b>
+                <span className="gc-chips"><em>5 níveis</em><em>Ranking</em>{info.cashback.ativo && <em>Cashback</em>}</span>
+              </span>
+              <span className="gc-play"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M7 4l13 8-13 8z" fill="currentColor" /></svg>JOGAR</span>
             </button>
           )}
           {quizOn && CACA_PALAVRAS_ATIVO && (
@@ -342,6 +375,8 @@ export default function MesaClient({ token }: { token: string }) {
         </div>
       )}
 
+      {MESA_PEDIDOS_ATIVO && (
+        <>
       <div className={`mz-acts ${info.contaAberta ? 'two' : 'one'}`}>
         <button className="mz-act pri" disabled={busy} onClick={() => chamar('garcom')}>
           <span className="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15z" /><path d="M10 21h4" /></svg></span>
@@ -407,6 +442,8 @@ export default function MesaClient({ token }: { token: string }) {
         </>
       ) : (
         <div className="mz-box"><p>Hoje os pedidos desta mesa são feitos com o garçom. Use “Chamar garçom”.</p></div>
+      )}
+        </>
       )}
 
       {qtdTotal > 0 && !carrinho && (
@@ -755,6 +792,26 @@ const CSS = `
 .mz-vercard.on svg{transform:rotate(180deg)}
 .mz-menu{padding-bottom:8px}
 button.mz-pcard{border:0;text-align:left;font:inherit;cursor:pointer;width:100%}
+.mz-promo.games{grid-template-columns:1fr}
+.mz-gamecard{position:relative;overflow:hidden;border:0;cursor:pointer;width:100%;text-align:left;font:inherit;border-radius:22px;padding:16px;color:#fff;background:radial-gradient(120% 90% at 85% 0%,#1E8CA8 0%,#0F3A4A 46%,#082B38 100%);box-shadow:0 18px 30px -16px rgba(8,43,56,.95),inset 0 0 0 2px rgba(255,197,49,.35);display:grid;grid-template-columns:92px 1fr;gap:12px;align-items:center;grid-column:1/-1}
+.gc-art{display:block;width:92px;height:92px;animation:gcfloat 3s ease-in-out infinite;position:relative;z-index:1}
+.gc-art svg{width:100%;height:100%;display:block}
+.gc-txt{position:relative;z-index:1;min-width:0}
+.gc-txt small{display:block;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#FFC531}
+.gc-txt b{display:block;font-family:Anton,sans-serif;font-weight:400;font-size:27px;line-height:1.05;text-transform:uppercase;margin:3px 0 9px;letter-spacing:.01em}
+.gc-chips{display:flex;gap:6px;flex-wrap:wrap}
+.gc-chips em{font-style:normal;font-size:11.5px;font-weight:700;background:rgba(255,255,255,.14);border-radius:99px;padding:3px 10px}
+.gc-play{grid-column:1/-1;position:relative;z-index:1;display:flex;align-items:center;justify-content:center;gap:8px;height:52px;border-radius:14px;background:#FFC531;color:#151210;font:800 18px Archivo,sans-serif;letter-spacing:.08em;border-bottom:4px solid #C98F00;animation:gcpulse 1.8s ease-in-out infinite}
+.gc-bub{position:absolute;inset:0;pointer-events:none}
+.gc-bub i{position:absolute;bottom:-12px;width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.16);animation:gcrise 6s linear infinite}
+.gc-bub i:nth-child(1){left:8%;animation-delay:0s}.gc-bub i:nth-child(2){left:30%;width:7px;height:7px;animation-delay:1.6s}.gc-bub i:nth-child(3){left:55%;animation-delay:3s}.gc-bub i:nth-child(4){left:75%;width:14px;height:14px;animation-delay:.8s}.gc-bub i:nth-child(5){left:92%;width:8px;height:8px;animation-delay:2.4s}
+@keyframes gcfloat{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-5px) rotate(3deg)}}
+@keyframes gcpulse{0%,100%{box-shadow:0 0 0 0 rgba(255,197,49,.5)}50%{box-shadow:0 0 0 8px rgba(255,197,49,0)}}
+@keyframes gcrise{0%{transform:translateY(0);opacity:0}15%{opacity:1}100%{transform:translateY(-190px);opacity:0}}
+@media(prefers-reduced-motion:reduce){.gc-art,.gc-play,.gc-bub i{animation:none}}
+.mz-quem{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:12px;font-size:12.5px;color:#A9A397}
+.mz-quem b{color:#fff}
+.mz-quem button{background:transparent;border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:99px;padding:4px 14px;font:700 12px Archivo,sans-serif;cursor:pointer}
 .mz-chk{display:flex;gap:10px;align-items:flex-start;margin:12px 0 0 !important;font-size:13px !important;line-height:1.4;color:var(--mz-ink) !important;text-transform:none !important;letter-spacing:0 !important;font-weight:500 !important}
 .mz-chk input{width:20px;height:20px;margin:1px 0 0 !important;padding:0;border:0;flex:none;accent-color:#151210}
 `

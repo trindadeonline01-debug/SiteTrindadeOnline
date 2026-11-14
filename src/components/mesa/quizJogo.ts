@@ -421,6 +421,7 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
       var k = t.dataset.go
       if (k === 'mesa') { location.href = HOME; return }
       if (k === 'grupo') { location.href = '/mesa/' + TOKEN + '/grupo'; return }
+      if (k === 'ranking' && INFO && INFO.slug) { location.href = '/jogos/' + INFO.slug + '/ranking'; return }
       cur = k; if (k === 'ranking') { RK.data = null; render(); carregarRanking('sem') } else render()
       return
     }

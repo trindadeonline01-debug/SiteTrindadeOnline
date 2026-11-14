@@ -311,7 +311,7 @@ export default function GrupoClient({ token }: { token: string }) {
                 </div>
               )}
               <button type="button" className="gq-btn" onClick={novaPartida}>Jogar de novo</button>
-              <a className="gq-btn alt" style={{ textAlign: 'center', textDecoration: 'none', display: 'grid', placeItems: 'center' }} href={`/jogos/${est.slug}`}>Ver todos os rankings</a>
+              <a className="gq-btn alt" style={{ textAlign: 'center', textDecoration: 'none', display: 'grid', placeItems: 'center' }} href={`/jogos/${est.slug}/ranking`}>Ver todos os rankings</a>
               <a className="gq-alt" style={{ textAlign: 'center' }} href={`/mesa/${token}`}>Voltar à mesa</a>
             </div>
           )}

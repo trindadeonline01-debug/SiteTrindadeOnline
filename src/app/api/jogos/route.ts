@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { randomInt, timingSafeEqual } from 'crypto'
 import { normalizePhone } from '@/lib/phone'
 import { moduleActive } from '@/lib/modules'
-import { criarIdentToken, limparNome } from '@/lib/mesaIdent'
+import { criarIdentToken, lerIdentToken, limparNome } from '@/lib/mesaIdent'
 import { sendPlatformWhatsApp } from '@/lib/whatsapp'
 
 // Página de jogos da loja (/jogos/<slug>) — pública, sem mesa. Aqui só se lista os jogos e se identifica
@@ -52,19 +52,35 @@ export async function POST(req: NextRequest) {
     }
 
     // Rankings da loja: geral (soma do melhor de cada jogo) e de cada jogo, individual e de grupos.
+    // Com o token de identificação, marca a linha do próprio jogador (`eu`) para a tela destacar.
     if (acao === 'ranking') {
       const desde = String(b.aba || 'sem') !== 'sempre' ? inicioSemana() : null
-      const ind = (d: unknown) => ((d || []) as { posicao: number; apelido: string; pontos: number }[]).slice(0, 10).map(x => ({ pos: Number(x.posicao), apelido: x.apelido, pontos: x.pontos }))
+      const ident = lerIdentToken(b.ident)
+      let meuId: string | null = null
+      if (ident) {
+        const { data: j } = await sb.from('quiz_jogadores').select('id').eq('company_id', company.id).eq('telefone', ident.tel).maybeSingle()
+        meuId = j?.id || null
+      }
+      type Lin = { posicao: number; jogador_id: string; apelido: string; pontos: number; acertos?: number; total?: number }
+      const ind = (d: unknown, sub: (x: Lin) => string) => ((d || []) as Lin[]).slice(0, 50).map(x => ({
+        pos: Number(x.posicao), nome: x.apelido, pontos: x.pontos, sub: sub(x), eu: !!meuId && x.jogador_id === meuId,
+      }))
       const [geral, solo, duelo, grupos] = await Promise.all([
-        sb.rpc('quiz_ranking_geral', { p_company: company.id, p_desde: desde, p_limite: 10 }),
-        sb.rpc('quiz_ranking', { p_company: company.id, p_desde: desde, p_limite: 10 }),
-        sb.rpc('quiz_ranking_duelo', { p_company: company.id, p_desde: desde, p_limite: 10 }),
-        sb.rpc('quiz_ranking_grupos', { p_company: company.id, p_desde: desde, p_limite: 10 }),
+        sb.rpc('quiz_ranking_geral', { p_company: company.id, p_desde: desde, p_limite: 50 }),
+        sb.rpc('quiz_ranking', { p_company: company.id, p_desde: desde, p_limite: 50 }),
+        sb.rpc('quiz_ranking_duelo', { p_company: company.id, p_desde: desde, p_limite: 50 }),
+        sb.rpc('quiz_ranking_grupos', { p_company: company.id, p_desde: desde, p_limite: 50 }),
       ])
+      const acertos = (x: Lin) => (x.acertos ?? 0) === 1 ? '1 acerto' : `${x.acertos ?? 0} acertos`
       return NextResponse.json({
         ok: true,
-        geralIndividual: ind(geral.data), quizSolo: ind(solo.data), quizGrupoIndividual: ind(duelo.data),
-        grupos: ((grupos.data || []) as { posicao: number; nome: string; media: number; jogadores: number }[]).map(g => ({ pos: Number(g.posicao), nome: g.nome, media: g.media, jogadores: g.jogadores })),
+        inicioSemana: desde,
+        geral: ind(geral.data, () => ''),
+        solo: ind(solo.data, acertos),
+        duelo: ind(duelo.data, acertos),
+        grupos: ((grupos.data || []) as { posicao: number; nome: string; media: number; jogadores: number }[]).slice(0, 50).map(g => ({
+          pos: Number(g.posicao), nome: g.nome, pontos: g.media, sub: `${g.jogadores} jogadores`, eu: false,
+        })),
       })
     }
 

@@ -8,7 +8,6 @@ import { useEffect, useState } from 'react'
 type Jogo = { id: string; nome: string; descricao: string; ativo: boolean; rota: string }
 type Info = { loja: string; logo: string; jogos: Jogo[] }
 type Ident = { nome: string; telefone: string; token: string }
-type Rk = { geralIndividual: { pos: number; apelido: string; pontos: number }[]; quizSolo: { pos: number; apelido: string; pontos: number }[]; quizGrupoIndividual: { pos: number; apelido: string; pontos: number }[]; grupos: { pos: number; nome: string; media: number; jogadores: number }[] }
 const IDENT_KEY = 'trindade_ident'
 
 async function post(url: string, body: unknown) {
@@ -30,10 +29,6 @@ export default function JogosClient({ slug }: { slug: string }) {
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
   const [logoOk, setLogoOk] = useState(true)
-  const [rk, setRk] = useState<Rk | null>(null)
-  const [aba, setAba] = useState<'sem' | 'sempre'>('sem')
-  const [jogoRk, setJogoRk] = useState<'geral' | 'quiz'>('geral')
-  const [modoRk, setModoRk] = useState<'ind' | 'grupos' | 'solo' | 'duelo'>('ind')
 
   useEffect(() => {
     let vivo = true
@@ -49,12 +44,6 @@ export default function JogosClient({ slug }: { slug: string }) {
     }).catch(() => { if (vivo) setFalhou(true) })
     return () => { vivo = false }
   }, [slug])
-
-  useEffect(() => {
-    let vivo = true
-    post('/api/jogos', { acao: 'ranking', slug, aba }).then(r => { if (vivo && r.ok) setRk(r.d as Rk) }).catch(() => {})
-    return () => { vivo = false }
-  }, [slug, aba])
 
   async function abrir(j: Jogo, i: Ident) {
     setBusy(true); setMsg('')
@@ -127,46 +116,11 @@ export default function JogosClient({ slug }: { slug: string }) {
                   <button type="button" className="jg-go" disabled={busy} onClick={() => jogar(j)}>{busy ? '…' : 'Jogar'}</button>
                 </div>
               ))}
-              <section className="jg-rk">
-                <div className="jg-rk-h"><h2>🏆 Ranking</h2>
-                  <div className="jg-seg">
-                    <button type="button" className={aba === 'sem' ? 'on' : ''} onClick={() => setAba('sem')}>Semana</button>
-                    <button type="button" className={aba === 'sempre' ? 'on' : ''} onClick={() => setAba('sempre')}>Sempre</button>
-                  </div>
-                </div>
-                <div className="jg-seg wide">
-                  <button type="button" className={jogoRk === 'geral' ? 'on' : ''} onClick={() => { setJogoRk('geral'); setModoRk('ind') }}>Geral</button>
-                  <button type="button" className={jogoRk === 'quiz' ? 'on' : ''} onClick={() => { setJogoRk('quiz'); setModoRk('solo') }}>Quiz</button>
-                </div>
-                <div className="jg-seg wide">
-                  {jogoRk === 'geral' ? (
-                    <>
-                      <button type="button" className={modoRk === 'ind' ? 'on' : ''} onClick={() => setModoRk('ind')}>Individual</button>
-                      <button type="button" className={modoRk === 'grupos' ? 'on' : ''} onClick={() => setModoRk('grupos')}>Grupos</button>
-                    </>
-                  ) : (
-                    <>
-                      <button type="button" className={modoRk === 'solo' ? 'on' : ''} onClick={() => setModoRk('solo')}>Solo</button>
-                      <button type="button" className={modoRk === 'duelo' ? 'on' : ''} onClick={() => setModoRk('duelo')}>Em grupo</button>
-                      <button type="button" className={modoRk === 'grupos' ? 'on' : ''} onClick={() => setModoRk('grupos')}>Grupos</button>
-                    </>
-                  )}
-                </div>
-                {(() => {
-                  if (!rk) return <p className="jg-nt">Carregando ranking…</p>
-                  if (modoRk === 'grupos') {
-                    return rk.grupos.length === 0 ? <p className="jg-nt">Ainda não há grupos no ranking. Jogue em grupo pelo QR da mesa!</p> : (
-                      <ol className="jg-rl">{rk.grupos.map(g => <li key={g.pos}><b>{g.pos}º</b><span>{g.nome}<small>{g.jogadores} jogadores</small></span><em>{g.media} pts</em></li>)}</ol>
-                    )
-                  }
-                  const lista = modoRk === 'ind' ? rk.geralIndividual : modoRk === 'solo' ? rk.quizSolo : rk.quizGrupoIndividual
-                  return lista.length === 0 ? <p className="jg-nt">Ninguém no ranking ainda. Seja o primeiro!</p> : (
-                    <ol className="jg-rl">{lista.map(x => <li key={x.pos}><b>{x.pos}º</b><span>{x.apelido}</span><em>{x.pontos} pts</em></li>)}</ol>
-                  )
-                })()}
-                {jogoRk === 'geral' && modoRk === 'ind' && <p className="jg-nt">Geral = melhor rodada solo + melhor partida em grupo de cada jogador.</p>}
-                {modoRk === 'grupos' && <p className="jg-nt">Ranking de grupos: média de pontos por jogador na melhor partida do grupo.</p>}
-              </section>
+              <a className="jg-rkl" href={`/jogos/${slug}/ranking`}>
+                <span className="jg-rkl-i">🏆</span>
+                <span className="jg-tx"><b>Ranking da loja</b><span>Pódio da semana, individual e de grupos</span></span>
+                <span className="jg-rkl-g">Ver ›</span>
+              </a>
               {ident && <p className="jg-nt">Você está identificado como <b>{ident.nome}</b>. Ao jogar, você confirma ter 18 anos ou mais e aceita aparecer no ranking.</p>}
               {msg && <div className="jg-warn">{msg}</div>}
             </>
@@ -236,18 +190,10 @@ body{background:#082B38}
 .jg-cod{font-size:26px!important;letter-spacing:.35em;text-align:center}
 .jg-warn{background:#FDECEA;color:#9B2318;border-radius:10px;padding:10px 12px;font-size:13px;font-weight:600}
 .jg-box{background:rgba(255,255,255,.1);border-radius:12px;padding:16px;font-size:14px;text-align:center;color:#E4EEF0}
-.jg-rk{background:rgba(255,255,255,.08);border-radius:14px;padding:14px;display:grid;gap:10px}
-.jg-rk-h{display:flex;justify-content:space-between;align-items:center;gap:8px}
-.jg-rk-h h2{margin:0;font-family:'Anton',Impact,sans-serif;font-weight:400;font-size:22px}
-.jg-seg{display:inline-flex;background:rgba(255,255,255,.1);border-radius:10px;padding:3px;gap:3px}
-.jg-seg.wide{display:flex}.jg-seg.wide button{flex:1}
-.jg-seg button{font:600 13px 'Archivo',system-ui,sans-serif;min-height:38px;border:0;border-radius:8px;background:transparent;color:#CFE3E6;cursor:pointer;padding:0 12px}
-.jg-seg button.on{background:#FFC531;color:#151210}
-.jg-rl{list-style:none;margin:0;padding:0;display:grid;gap:6px}
-.jg-rl li{display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:8px;background:rgba(255,255,255,.08);border-radius:9px;padding:9px 12px;font-size:14.5px;font-weight:600}
-.jg-rl b{font-family:'Anton',Impact,sans-serif;font-weight:400;color:#FFC531;font-size:16px}
-.jg-rl span small{display:block;font-size:11.5px;font-weight:500;color:#BFD9DE}
-.jg-rl em{font-style:normal;font-size:13px;color:#FFC531;font-weight:700}
+.jg-rkl{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;padding:14px;border-radius:14px;background:linear-gradient(135deg,rgba(255,197,49,.22),rgba(255,197,49,.06));border:1px solid rgba(255,197,49,.5);color:inherit;text-decoration:none}
+.jg-rkl .jg-tx span{color:#BFD9DE}
+.jg-rkl-i{font-size:28px}
+.jg-rkl-g{font-family:'Anton',Impact,sans-serif;font-size:16px;color:#FFC531;letter-spacing:.04em;text-transform:uppercase}
 .jg-nt{margin:0;font-size:12.5px;color:#BFD9DE;text-align:center;line-height:1.4}
 .jg-ft{text-align:center;font-size:12px;color:#7FA9B3;padding-top:6px}
 `

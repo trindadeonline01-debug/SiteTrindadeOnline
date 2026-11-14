@@ -1,4 +1,5 @@
 import { jaGanhouNosUltimosDias } from '@/lib/quizPremio'
+import { lerQuizPcts, QUIZ_MARCOS_CHAVES } from '@/lib/jogosPremio'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createHmac, randomInt, timingSafeEqual } from 'crypto'
@@ -76,8 +77,8 @@ async function carregar(token: unknown) {
   }
   const { data: company } = await sb.from('companies').select('id, name, slug, mesas_enabled, loja_digital_enabled, trial_modules_until').eq('id', companyId).maybeSingle()
   if (!company || !company.mesas_enabled || !moduleActive(company.loja_digital_enabled, company.trial_modules_until)) return null
-  const { data: camp } = await sb.from('quiz_campanhas').select('ativa, premio_ativo').eq('company_id', company.id).maybeSingle()
-  return { mesa, modoLoja, company, camp: camp as { ativa: boolean; premio_ativo: boolean } | null }
+  const { data: camp } = await sb.from('quiz_campanhas').select('ativa, premio_ativo, marcos').eq('company_id', company.id).maybeSingle()
+  return { mesa, modoLoja, company, camp: camp as { ativa: boolean; premio_ativo: boolean; marcos: unknown } | null }
 }
 
 async function contar(chave: string, ms: number) {
@@ -163,7 +164,9 @@ export async function POST(req: NextRequest) {
         jogador = j || null
         if (j) retomar = !!(await rodadaAberta(jogadorId))
       }
-      return NextResponse.json({ ativo: true, modo: ctx.modoLoja ? 'loja' : 'mesa', slug: ctx.company.slug, premio: ctx.modoLoja ? false : !!ctx.camp.premio_ativo, premioDaLoja: !!ctx.camp.premio_ativo, loja: ctx.company.name, mesa: ctx.mesa?.numero ?? null, jogador, retomar, perguntas: BANCO.length, temas: TEMAS_QUIZ })
+      return NextResponse.json({ ativo: true, modo: ctx.modoLoja ? 'loja' : 'mesa', slug: ctx.company.slug, premio: ctx.modoLoja ? false : !!ctx.camp.premio_ativo, premioDaLoja: !!ctx.camp.premio_ativo, loja: ctx.company.name, mesa: ctx.mesa?.numero ?? null, jogador, retomar, perguntas: BANCO.length, temas: TEMAS_QUIZ,
+        // % que a loja configurou para cada marco (a tela mostra este valor, não o número do marco)
+        pcts: Object.fromEntries(QUIZ_MARCOS_CHAVES.map((k, i) => [k, lerQuizPcts(ctx.camp?.marcos)[i]])) })
     }
 
     // ================= cadastro pela identificação única (nome + WhatsApp já confirmado) =================

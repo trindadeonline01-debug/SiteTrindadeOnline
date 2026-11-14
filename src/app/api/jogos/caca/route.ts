@@ -3,8 +3,9 @@ import { createClient } from '@supabase/supabase-js'
 import { moduleActive } from '@/lib/modules'
 import { lerJogadorToken } from '@/lib/quizJogador'
 import { jaGanhouNosUltimosDias } from '@/lib/quizPremio'
+import { lerCacaBonus } from '@/lib/jogosPremio'
 import {
-  NIVEIS, PARTES, TEMPO_EXTRA, AJUDAS_INICIAIS, ATRASO_INICIO_S, MAX_TENTATIVAS, BONUS_NIVEL, PORTAO_CASHBACK,
+  NIVEIS, PARTES, TEMPO_EXTRA, AJUDAS_INICIAIS, ATRASO_INICIO_S, MAX_TENTATIVAS, PORTAO_CASHBACK,
   pontosGrade, estrelas, novaGrade, refazerGrade, conferirSelecao, palavrasVisiveis, type Grade, type Ajudas,
 } from '@/lib/cacaPalavras'
 
@@ -23,7 +24,7 @@ type R = {
   tempo_total: number; grade_iniciada_em: string; tempo_usado: number; atualizada_em: string
   mesa_id: string | null; marco: number
 }
-type Ctx = { modo: 'loja' | 'mesa'; mesaId: string | null; mesaNumero: string | number | null; slug: string; loja: string; premio: boolean; bloqueado: boolean }
+type Ctx = { modo: 'loja' | 'mesa'; mesaId: string | null; mesaNumero: string | number | null; slug: string; loja: string; premio: boolean; bloqueado: boolean; bonus: number[] }
 
 // segundos que ainda sobram na grade (pode ficar negativo; passa de `tempo_total` só durante a tela de transição)
 const sobraBruta = (r: R, agora = Date.now()) => r.tempo_total - (agora - Date.parse(r.grade_iniciada_em)) / 1000
@@ -33,7 +34,7 @@ const atraso = () => new Date(Date.now() + ATRASO_INICIO_S * 1000).toISOString()
 function visao(r: R, ctx: Ctx) {
   const L = NIVEIS[r.nivel - 1]
   return {
-    modo: ctx.modo, mesaNumero: ctx.mesaNumero, slug: ctx.slug, loja: ctx.loja, premio: ctx.premio, bloqueado: ctx.bloqueado, marco: r.marco, bonus: BONUS_NIVEL,
+    modo: ctx.modo, mesaNumero: ctx.mesaNumero, slug: ctx.slug, loja: ctx.loja, premio: ctx.premio, bloqueado: ctx.bloqueado, marco: r.marco, bonus: ctx.bonus,
     id: r.id, estado: r.estado, fim: r.motivo_fim, nivel: r.nivel, nomeNivel: L.nome, niveis: NIVEIS.length, parte: r.parte, partes: PARTES,
     pontos: r.pontos, pontosNivel: r.pontos_nivel, melhorNivel: r.melhor_nivel,
     tamanho: r.grade.n, letras: r.grade.letras, lista: L.lista,
@@ -80,11 +81,12 @@ export async function POST(req: NextRequest) {
     if (!company || !company.mesas_enabled || !moduleActive(company.loja_digital_enabled, company.trial_modules_until)) return erro('Loja não encontrada.', 404)
     const jogadorId = lerJogadorToken(b.jt, company.id)
     if (!jogadorId) return erro('Sua identificação venceu. Confirme seu WhatsApp de novo.', 401)
-    const { data: camp } = await sb.from('quiz_campanhas').select('ativa, premio_ativo').eq('company_id', company.id).maybeSingle()
+    const { data: camp } = await sb.from('quiz_campanhas').select('ativa, premio_ativo, caca_marcos').eq('company_id', company.id).maybeSingle()
     const premio = !!mesaId && !!camp?.ativa && !!camp?.premio_ativo
     const ctx: Ctx = {
       modo: mesaId ? 'mesa' : 'loja', mesaId, mesaNumero, slug: company.slug, loja: company.name, premio,
       bloqueado: premio ? await jaGanhouNosUltimosDias(sb, company.id, jogadorId) : false,
+      bonus: lerCacaBonus(camp?.caca_marcos),     // % de cada nível, como a loja configurou
     }
 
     const melhorDoJogador = async () => {
@@ -201,13 +203,13 @@ export async function POST(req: NextRequest) {
       }
       const ultimo = r.nivel >= NIVEIS.length
       const n = await salvar(r, {
-        ...base, grade: g, melhor_nivel: r.nivel, marco: r.mesa_id ? BONUS_NIVEL[r.nivel - 1] : 0,
+        ...base, grade: g, melhor_nivel: r.nivel, marco: r.mesa_id ? ctx.bonus[r.nivel - 1] : 0,
         estado: ultimo ? 'encerrada' : 'entre_niveis', motivo_fim: ultimo ? 'completa' : null, encerrada_em: ultimo ? new Date().toISOString() : null,
       })
       if (!n) return erro('Tente de novo.', 409)
       return NextResponse.json({
         ok: true, acerto: true, palavra,
-        nivelConcluido: { nivel: r.nivel, nome: L.nome, pontosNivel: base.pontos_nivel, tempoUsado: base.tempo_usado, estrelas: estrelas(ratios), ultimo, marco: r.mesa_id ? BONUS_NIVEL[r.nivel - 1] : 0 },
+        nivelConcluido: { nivel: r.nivel, nome: L.nome, pontosNivel: base.pontos_nivel, tempoUsado: base.tempo_usado, estrelas: estrelas(ratios), ultimo, marco: r.mesa_id ? ctx.bonus[r.nivel - 1] : 0 },
         rodada: visao(n, ctx),
       })
     }

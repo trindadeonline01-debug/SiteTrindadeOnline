@@ -60,3 +60,6 @@ create table if not exists public.caca_premios (
 );
 create index if not exists caca_premios_comanda_idx on public.caca_premios (comanda_id);
 alter table public.caca_premios enable row level security;
+
+-- % de cashback de cada nível do caça-palavras, configurável pela loja (painel de Cashback). Chave = nível (1 a 5).
+alter table public.quiz_campanhas add column if not exists caca_marcos jsonb not null default '{"1":2,"2":3,"3":5,"4":8,"5":10}'::jsonb;

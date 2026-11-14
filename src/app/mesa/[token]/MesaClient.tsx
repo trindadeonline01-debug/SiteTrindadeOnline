@@ -323,7 +323,7 @@ export default function MesaClient({ token }: { token: string }) {
                   <div className="top5"><span className="up">Seu saldo</span></div>
                   <div className="saldo">{fmt(cart.saldo)}</div>
                   {cart.premioPct ? (
-                    <p className="rt2"><b>Prêmio do Quiz de hoje: {cart.premioPct}%</b> — vira cashback quando você pagar a conta.</p>
+                    <p className="rt2"><b>Prêmio dos jogos de hoje: {cart.premioPct}%</b> — vira cashback quando você pagar a conta.</p>
                   ) : (
                     <p className="rt2">Ganhe até {cashPct}% de volta ao pagar a conta.</p>
                   )}

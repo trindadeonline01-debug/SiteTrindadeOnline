@@ -6,6 +6,7 @@ import { requireUser } from '@/lib/requireUser'
 import { promoPrice } from '@/lib/lojaPricing'
 import { sendCustomerWhatsApp } from '@/lib/whatsapp'
 import { desdeDaConta, jaGanhouNosUltimosDias, melhorPremiavel, contaJaPremiada } from '@/lib/quizPremio'
+import { valorPremioDireto, pctDoMarcoQuiz } from '@/lib/jogosPremio'
 import { valorDoPremio } from '@/lib/quizRegras'
 import { creditarCashback, creditarCashbackAvulso, debitarCashback, getSaldoCashback, reembolsarCashback, valorItensSemCashback } from '@/lib/cashback'
 import {
@@ -493,7 +494,12 @@ export async function POST(req: NextRequest) {
           const melhor = jaTem ? null : await melhorPremiavel(sb, companyId, normalizePhone(c.customer_phone), desdeDaConta(c.aberta_em))
           if (melhor && !(await jaGanhouNosUltimosDias(sb, companyId, melhor.jogadorId))) {
             const base = Math.max(0, r2((calc?.subtotal ?? 0) - (calc?.desconto ?? 0)))
-            const valor = valorDoPremio({ modo: qc.modo === 'fixo' ? 'fixo' : 'percentual', marco: melhor.marco, marcos: (qc.marcos || {}) as Record<string, number>, base, teto: Number(qc.teto_valor) || 0 })
+            const modoPremio = qc.modo === 'fixo' ? 'fixo' : 'percentual'
+            // quiz: o marco é só a etapa e o % vem de quiz_campanhas.marcos; caça-palavras: a rodada já guarda o % do nível
+            const valor = melhor.jogo === 'caca'
+              ? valorPremioDireto({ modo: modoPremio, valor: melhor.marco, base, teto: Number(qc.teto_valor) || 0 })
+              : valorDoPremio({ modo: modoPremio, marco: melhor.marco, marcos: (qc.marcos || {}) as Record<string, number>, base, teto: Number(qc.teto_valor) || 0 })
+            const pctMostrado = melhor.jogo === 'caca' ? melhor.marco : pctDoMarcoQuiz(qc.marcos, melhor.marco)
             if (valor > 0) {
               const tabelaPremio = melhor.jogo === 'caca' ? 'caca_premios' : 'quiz_premios'
               const tabelaRodada = melhor.jogo === 'caca' ? 'caca_rodadas' : 'quiz_rodadas'
@@ -506,7 +512,7 @@ export async function POST(req: NextRequest) {
                   const saldo = await getSaldoCashback(sb, companyId, c.customer_phone)
                   const jogoNome = melhor.jogo === 'caca' ? 'no Caça-Palavras' : 'no Quiz Pesca Premiada'
                   await sendCustomerWhatsApp(companyId, c.customer_phone,
-                    `🎣 Parabéns! ${jogoNome.charAt(0).toUpperCase() + jogoNome.slice(1)} você garantiu *${melhor.marco}%* e ganhou *${brl(valor)}* de cashback da *${company.name.trim()}*. Seu saldo agora é *${brl(r2(saldo))}*, para usar no próximo pedido (delivery ou aqui na mesa). Ver saldo: https://www.trindadeonline.com.br/meu-cashback`)
+                    `🎣 Parabéns! ${jogoNome.charAt(0).toUpperCase() + jogoNome.slice(1)} você garantiu *${pctMostrado}%* e ganhou *${brl(valor)}* de cashback da *${company.name.trim()}*. Seu saldo agora é *${brl(r2(saldo))}*, para usar no próximo pedido (delivery ou aqui na mesa). Ver saldo: https://www.trindadeonline.com.br/meu-cashback`)
                 } else {
                   await sb.from(tabelaPremio).update({ estado: 'cancelado' }).eq('rodada_id', melhor.rodadaId)
                 }

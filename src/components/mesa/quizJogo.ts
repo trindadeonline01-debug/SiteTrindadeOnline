@@ -109,6 +109,8 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
   // Tema escolhido na tela inicial ('' = misturado). Fica guardado neste aparelho.
   var TEMA = ''; try { TEMA = localStorage.getItem('quiztema') || '' } catch (e) {}
   var JT = ''; try { JT = localStorage.getItem(LS) || '' } catch (e) {}
+  // % que a loja configurou para cada marco (2,3,5,6,8,10); sem configuração vale o próprio número
+  function pct(m) { var v = INFO && INFO.pcts && INFO.pcts[String(m)]; return v === undefined || v === null ? m : v }
   var INFO = null, G = null, T = null, cur = 'load', ZONES = false, LEAVE = false, DESTROYED = false
   var CT = { n: 3, t: null }
   var REG = { apelido: '', tel: '', idade: false, aceite: false, err: '', cod: '' }
@@ -220,11 +222,11 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
   // Comemoração dos marcos antes do portão (10 e 20 acertos): fogos, aplauso e a escolha continuar/parar.
   S.marco = function () {
     var a = G.acertos, bloq = INFO && INFO.premioBloqueado, cash = INFO && INFO.premio && !bloq && G.marco > 0
-    var prox = a < 20 ? '3% de cashback aos 20 acertos' : '5% de cashback aos 30 acertos'
+    var prox = a < 20 ? pct(3) + '% de cashback aos 20 acertos' : pct(5) + '% de cashback aos 30 acertos'
     return '<div class="screen sea mkscr">' + scene() + '<canvas class="fw" id="qz-fw" aria-hidden="true"></canvas>' + bar() +
       '<div class="mkc"><div class="mkc-card"><span class="mkc-kick">Parabéns!</span><h2 class="mkc-t">' + a + ' acertos! 🎉</h2>' +
       (cash
-        ? '<div class="mkc-pct"><b>' + G.marco + '%</b><span>de cashback garantido</span></div><p>Você já garantiu <b>' + G.marco + '% de cashback</b>. É provisório: vira valor em R$ quando você pagar a conta de hoje e vale para a sua próxima compra.</p>'
+        ? '<div class="mkc-pct"><b>' + pct(G.marco) + '%</b><span>de cashback garantido</span></div><p>Você já garantiu <b>' + pct(G.marco) + '% de cashback</b>. É provisório: vira valor em R$ quando você pagar a conta de hoje e vale para a sua próxima compra.</p>'
         : '<p>Muito bem! Você já fez <b>' + fmtN(G.pontos) + ' pontos</b>' + (INFO && INFO.premio && bloq ? '. Como você já ganhou um prêmio nos últimos 7 dias, esta rodada vale só para o ranking.' : ' no ranking da loja.') + '</p>') +
       (cash ? '<p>Continuar não faz você perder isso. Próximo prêmio: <b>' + prox + '</b>.</p>' : '') +
       '<div class="mkc-btns"><button class="btn" data-act="mkgo">Continuar jogando</button><button class="btn alt" data-act="mkstop">Parar por aqui</button></div></div></div></div>'
@@ -234,10 +236,10 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
     var a = G.acertos, bloq = INFO && INFO.premioBloqueado
     var cash = INFO && INFO.premio && !bloq && G.marco > 0
     var prox = a < 35 ? 35 : a < 40 ? 40 : 45
-    var proxPct = prox === 35 ? 6 : prox === 40 ? 8 : 10
+    var proxPct = pct(prox === 35 ? 6 : prox === 40 ? 8 : 10)
     var falta = prox - a
     var stopOpt = '<div class="dc-opt safe"><small>Se parar agora</small>' +
-      (cash ? '<b>' + G.marco + '%</b><span>de cashback garantido</span>' : '<b>' + fmtN(G.pontos) + '</b><span>pontos no ranking</span>') +
+      (cash ? '<b>' + pct(G.marco) + '%</b><span>de cashback garantido</span>' : '<b>' + fmtN(G.pontos) + '</b><span>pontos no ranking</span>') +
       '<em>' + (cash ? fmtN(G.pontos) + ' pontos no ranking' : 'A rodada termina aqui') + '</em></div>'
     var goOpt = '<div class="dc-opt risk"><small>Se continuar</small>' +
       (cash ? '<b>' + proxPct + '%</b><span>aos ' + prox + ' acertos (faltam ' + falta + ')</span>' : '<b>' + falta + '</b><span>acertos para chegar aos ' + prox + '</span>') +
@@ -246,7 +248,7 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
       '<div class="mkc"><div class="mkc-card dc"><span class="mkc-kick warn">Decisão importante</span><h2 class="mkc-t">' + a + ' acertos!</h2>' +
       '<div class="dc-opts">' + stopOpt + goOpt + '</div>' +
       (cash ? '<p>O cashback é provisório: vira valor em R$ quando você pagar a conta de hoje e vale para a sua próxima compra.</p>' : '<p>Como você já ganhou um prêmio nos últimos 7 dias, esta rodada vale só para o ranking.</p>') +
-      '<div class="mkc-btns"><button class="btn" data-act="stop">' + (cash ? 'Parar e garantir ' + G.marco + '%' : 'Parar aqui') + '</button><button class="btn alt dc-go" data-act="go">' + (cash ? 'Arriscar por ' + proxPct + '%' : 'Continuar') + '</button></div></div></div></div>'
+      '<div class="mkc-btns"><button class="btn" data-act="stop">' + (cash ? 'Parar e garantir ' + pct(G.marco) + '%' : 'Parar aqui') + '</button><button class="btn alt dc-go" data-act="go">' + (cash ? 'Arriscar por ' + proxPct + '%' : 'Continuar') + '</button></div></div></div></div>'
   }
 
   function rkRows(top) {
@@ -285,7 +287,7 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
     return '<div class="screen sea fin">' + scene() + bar() + '<div class="fx"><span class="fx-tag off">Fim de jogo</span>' +
       '<div class="fx-stats"><div class="plate"><small>Seus pontos</small><b class="g">' + fmtN(G.pontos) + '</b><em>' + G.acertos + ' acertos</em></div><div class="plate"><small>Na semana</small><b>' + (pos ? pos + 'º' : '…') + '</b><em>' + (tot ? 'de ' + tot + ' jogadores' : 'calculando') + '</em></div></div>' +
       (INFO && INFO.premio && G.marco > 0 && !(d && d.premioBloqueado)
-        ? '<div class="fx-noprize" style="border-color:var(--ap-gold)"><b>🎁 Você garantiu ' + G.marco + '% de cashback</b><span>Ainda é provisório: vira valor em R$ quando você pagar a conta de hoje e leva para a próxima compra. Vale a sua melhor rodada.</span></div>'
+        ? '<div class="fx-noprize" style="border-color:var(--ap-gold)"><b>🎁 Você garantiu ' + pct(G.marco) + '% de cashback</b><span>Ainda é provisório: vira valor em R$ quando você pagar a conta de hoje e leva para a próxima compra. Vale a sua melhor rodada.</span></div>'
         : INFO && INFO.premio && G.marco > 0 && d && d.premioBloqueado
           ? '<div class="fx-noprize"><b>' + porque + '</b><span>Você já ganhou um prêmio nos últimos 7 dias, então esta rodada vale só para o ranking.</span></div>'
           : '<div class="fx-noprize"><b>' + porque + '</b><span>' + (INFO && INFO.premio ? 'Faça 10 acertos para garantir cashback. ' : '') + 'Vale a melhor rodada da semana no ranking da loja.</span></div>') +

@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { requireCompanyAccess } from '@/lib/requireUser'
 import { normalizePhone } from '@/lib/phone'
 import { CASHBACK_EXPIRA_DIAS_DEFAULT } from '@/lib/cashback'
+import { lerCacaBonus, lerQuizPcts, validarSequencia, QUIZ_MARCOS_CHAVES, QUIZ_MARCOS_ACERTOS, PREMIO_PCT_MAX } from '@/lib/jogosPremio'
 
 // Painel de cashback da LOJA (nov/2026): resumo + lista de clientes com saldo +
 // extrato por cliente. As tabelas de cashback não têm policy de RLS (só o
@@ -46,6 +47,33 @@ export async function POST(req: NextRequest) {
   const config = {
     ativo: !!company?.cashback_enabled, pctDelivery: Number(company?.cashback_percent) || 0,
     pctMesa: Number(company?.cashback_percent_mesa) || 0, dias,
+  }
+
+  // ---------- prêmio dos jogos (quiz e caça-palavras): ver e ajustar os percentuais ----------
+  if (b.action === 'jogos' || b.action === 'jogos_salvar') {
+    const { data: camp } = await sb.from('quiz_campanhas').select('ativa, premio_ativo, modo, marcos, caca_marcos, teto_valor').eq('company_id', companyId).maybeSingle()
+    if (b.action === 'jogos_salvar') {
+      if (!camp) return NextResponse.json({ error: 'Os jogos ainda não estão ligados na sua loja.' }, { status: 409 })
+      if (camp.modo === 'fixo') return NextResponse.json({ error: 'Esta loja paga o prêmio em valor fixo. Fale com a Trindade Online para ajustar.' }, { status: 409 })
+      const quiz = validarSequencia(b.quiz, QUIZ_MARCOS_ACERTOS.length, QUIZ_MARCOS_ACERTOS.map(a => `${a} acertos do quiz`))
+      if (typeof quiz === 'string') return NextResponse.json({ error: quiz }, { status: 400 })
+      const caca = validarSequencia(b.caca, 5, [1, 2, 3, 4, 5].map(n => `o nível ${n}`))
+      if (typeof caca === 'string') return NextResponse.json({ error: caca }, { status: 400 })
+      const teto = Number(b.teto)
+      if (!Number.isFinite(teto) || teto < 1 || teto > 1000) return NextResponse.json({ error: 'O teto por conta precisa ficar entre R$ 1 e R$ 1.000.' }, { status: 400 })
+      const { error } = await sb.from('quiz_campanhas').update({
+        marcos: Object.fromEntries(QUIZ_MARCOS_CHAVES.map((k, i) => [k, quiz[i]])),
+        caca_marcos: Object.fromEntries(caca.map((v, i) => [String(i + 1), v])),
+        teto_valor: Math.round(teto * 100) / 100, atualizado_em: new Date().toISOString(),
+      }).eq('company_id', companyId)
+      if (error) return NextResponse.json({ error: 'Não consegui salvar agora. Tente de novo.' }, { status: 500 })
+      return NextResponse.json({ ok: true, quiz, caca, teto })
+    }
+    return NextResponse.json({
+      ligado: !!camp?.ativa, premio: !!camp?.premio_ativo, modo: camp?.modo || 'percentual', max: PREMIO_PCT_MAX,
+      quiz: lerQuizPcts(camp?.marcos), caca: lerCacaBonus(camp?.caca_marcos), teto: Number(camp?.teto_valor) || 50,
+      acertos: QUIZ_MARCOS_ACERTOS,
+    })
   }
 
   if (b.action === 'extrato') {

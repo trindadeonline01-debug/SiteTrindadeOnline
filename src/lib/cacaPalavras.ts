@@ -1,4 +1,5 @@
 import { PALAVRAS_CACA } from '@/data/caca/palavras'
+import { CACA_BONUS_PADRAO } from '@/lib/jogosPremio'
 
 // Regras do Caça-Palavras (nov/2026). Tudo aqui é do SERVIDOR: ele monta a grade, guarda onde cada palavra está,
 // conta o tempo e confere cada seleção. O celular só recebe as letras e desenha.
@@ -22,7 +23,7 @@ export const NIVEIS: Nivel[] = [
   { n: 5, nome: 'Capitão', size: 13, count: 10, minLen: 6, dirs: ALL, time: 200, lista: 'oculta', decoys: 6, vies: 0.85 },
 ]
 export const PARTES = 2               // grades por nível
-export const BONUS_NIVEL = [2, 3, 5, 8, 10]   // % de cashback garantido ao concluir cada nível (a chave tem que existir em quiz_campanhas.marcos)
+export const BONUS_NIVEL = CACA_BONUS_PADRAO   // % padrão ao concluir cada nível; a loja pode mudar (quiz_campanhas.caca_marcos, painel de Cashback)
 export const PORTAO_CASHBACK = 3      // até este nível é fase segura; depois, tempo esgotado perde o bônus (igual ao quiz depois dos 30 acertos)
 export const TEMPO_EXTRA = 30         // segundos da ajuda "Mais tempo"
 export const AJUDAS_INICIAIS: Ajudas = { tempo: 1, emb: 1, troca: 1 }   // renovam a cada nível

@@ -13,6 +13,7 @@ import { formatPhoneDisplay } from '@/lib/phone'
 type Cliente = { phone: string; nome: string | null; saldo: number; ultimaData: string; ultimaTipo: string | null; venceEm: string; diasParaVencer: number }
 type Resumo = { aberto: number; clientes: number; gerado: number; geradoMesa: number; geradoDelivery: number; usado: number; expirado: number; aVencer: number; aVencerQtd: number }
 type Config = { ativo: boolean; pctDelivery: number; pctMesa: number; dias: number }
+type Jogos = { ligado: boolean; premio: boolean; modo: string; max: number; quiz: number[]; caca: number[]; teto: number; acertos: number[] }
 type Mov = { tipo: string; valor: number; data: string; origem: string; saldoApos: number }
 type Extrato = { phone: string; nome: string | null; saldo: number; venceEm: string | null; movs: Mov[] }
 
@@ -32,6 +33,12 @@ export default function CashbackPage() {
   const [erro, setErro] = useState('')
   const [filtro, setFiltro] = useState<Filtro>('todos')
   const [busca, setBusca] = useState('')
+  const [jogos, setJogos] = useState<Jogos | null>(null)
+  const [edQuiz, setEdQuiz] = useState<string[]>([])
+  const [edCaca, setEdCaca] = useState<string[]>([])
+  const [edTeto, setEdTeto] = useState('50')
+  const [jgMsg, setJgMsg] = useState<{ ok: boolean; t: string } | null>(null)
+  const [jgBusy, setJgBusy] = useState(false)
   const [sel, setSel] = useState<string | null>(null)
   const [extrato, setExtrato] = useState<Extrato | null>(null)
   const [carregandoExtrato, setCarregandoExtrato] = useState(false)
@@ -50,6 +57,34 @@ export default function CashbackPage() {
       .catch(() => { if (vivo) setErro('Não consegui carregar o cashback. Tente de novo.') })
     return () => { vivo = false }
   }, [shellLoading, companyId])
+
+  useEffect(() => {
+    if (shellLoading || !companyId) return
+    let vivo = true
+    adminFetch('/api/painel/cashback', { method: 'POST', body: JSON.stringify({ companyId, action: 'jogos' }) })
+      .then(async r => {
+        const j = await r.json()
+        if (!vivo || !r.ok) return
+        setJogos(j); setEdQuiz(j.quiz.map(String)); setEdCaca(j.caca.map(String)); setEdTeto(String(j.teto))
+      })
+      .catch(() => {})
+    return () => { vivo = false }
+  }, [shellLoading, companyId])
+
+  async function salvarJogos() {
+    if (!companyId || jgBusy) return
+    setJgBusy(true); setJgMsg(null)
+    try {
+      const r = await adminFetch('/api/painel/cashback', { method: 'POST', body: JSON.stringify({ companyId, action: 'jogos_salvar', quiz: edQuiz.map(x => (x.trim() === '' ? '' : Number(x.replace(',', '.')))), caca: edCaca.map(x => (x.trim() === '' ? '' : Number(x.replace(',', '.')))), teto: Number(edTeto.replace(',', '.')) }) })
+      const j = await r.json()
+      if (!r.ok) { setJgMsg({ ok: false, t: j.error || 'Não consegui salvar.' }); return }
+      setJogos(g => (g ? { ...g, quiz: j.quiz, caca: j.caca, teto: j.teto } : g))
+      setJgMsg({ ok: true, t: 'Percentuais salvos. Valem para quem jogar a partir de agora; quem já garantiu um prêmio mantém o percentual que garantiu.' })
+    } catch { setJgMsg({ ok: false, t: 'Não consegui salvar. Tente de novo.' }) } finally { setJgBusy(false) }
+  }
+  const padraoJogos = () => { setEdQuiz(['2', '3', '5', '6', '8', '10']); setEdCaca(['2', '3', '5', '8', '10']); setEdTeto('50'); setJgMsg(null) }
+  const exemploConta = 200
+  const exemplo = (v: string) => { const n = Number(v.replace(',', '.')); const t = Number(edTeto.replace(',', '.')) || 0; if (!Number.isFinite(n)) return 0; const b = exemploConta * n / 100; return t > 0 ? Math.min(b, t) : b }
 
   const abrir = useCallback((phone: string) => {
     if (!companyId) return
@@ -103,6 +138,49 @@ export default function CashbackPage() {
             <div className="cb-kpi"><em>Venceu no mês</em><b>{brl(resumo.expirado)}</b><small>saldo sem uso por {config?.dias ?? 90} dias</small></div>
             <div className={'cb-kpi' + (resumo.aVencerQtd ? ' alert' : '')}><em>Vence em 7 dias</em><b>{brl(resumo.aVencer)}</b><small>{resumo.aVencerQtd ? `${resumo.aVencerQtd} ${resumo.aVencerQtd === 1 ? 'cliente' : 'clientes'} para lembrar` : 'nenhum saldo perto de vencer'}</small></div>
           </section>
+
+          {jogos && (
+            <section className="cb-card cb-jg">
+              <div className="cb-jg-h">
+                <div><h2>Prêmio dos jogos</h2><p className="cb-sub">Quanto de cashback o cliente garante jogando o Quiz e o Caça-Palavras pelo QR da mesa. Só vira valor quando ele paga a conta.</p></div>
+                <span className={'cb-tag' + (jogos.ligado && jogos.premio ? ' on' : '')}>{!jogos.ligado ? 'Jogos desligados' : jogos.premio ? 'Prêmio ligado' : 'Só ranking'}</span>
+              </div>
+              {!jogos.ligado ? (
+                <p className="cb-empty">Os jogos ainda não estão ligados na sua loja. Fale com a Trindade Online para ligar o Quiz e o Caça-Palavras.</p>
+              ) : (
+                <>
+                  {!jogos.premio && <div className="cb-warn" style={{ margin: '0 16px' }}>O prêmio está desligado: os jogos valem só para o ranking. Quem liga o prêmio é a Trindade Online. Você já pode deixar os percentuais prontos.</div>}
+                  <div className="cb-jg-grp">
+                    <div><b>Caça-Palavras</b><small>% da conta que o cliente garante ao concluir cada nível</small></div>
+                    <div className="cb-jg-in">
+                      {edCaca.map((v, i) => (
+                        <label key={i}><span>Nível {i + 1}</span><div><input inputMode="numeric" value={v} onChange={e => setEdCaca(a => a.map((x, k) => (k === i ? e.target.value : x)))} aria-label={`Percentual do nível ${i + 1} do caça-palavras`} /><i>%</i></div></label>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="cb-jg-grp">
+                    <div><b>Quiz Pesca Premiada</b><small>% da conta garantido em cada marco de acertos</small></div>
+                    <div className="cb-jg-in">
+                      {edQuiz.map((v, i) => (
+                        <label key={i}><span>{jogos.acertos[i]} acertos</span><div><input inputMode="numeric" value={v} onChange={e => setEdQuiz(a => a.map((x, k) => (k === i ? e.target.value : x)))} aria-label={`Percentual dos ${jogos.acertos[i]} acertos do quiz`} /><i>%</i></div></label>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="cb-jg-grp">
+                    <div className="cb-jg-in">
+                      <label><span>Teto por conta</span><div><i>R$</i><input inputMode="decimal" value={edTeto} onChange={e => setEdTeto(e.target.value)} aria-label="Teto do prêmio por conta em reais" /></div></label>
+                    </div>
+                    <small>Exemplo numa conta de {brl(exemploConta)}: Caça-Palavras nível 1 = <b>{brl(exemplo(edCaca[0] || '0'))}</b> · nível 5 = <b>{brl(exemplo(edCaca[4] || '0'))}</b>. Os percentuais precisam subir (ou ficar iguais) a cada etapa e vão de 0% a {jogos.max}%. Cada cliente ganha no máximo 1 prêmio por conta e 1 a cada 7 dias, somando os dois jogos.</small>
+                  </div>
+                  {jgMsg && <div className={jgMsg.ok ? 'cb-ok' : 'cb-err'} role="status" style={{ margin: '0 16px' }}>{jgMsg.t}</div>}
+                  <div className="cb-jg-bt">
+                    <button type="button" className="cb-btn primary" disabled={jgBusy} onClick={salvarJogos}>{jgBusy ? 'Salvando…' : 'Salvar percentuais'}</button>
+                    <button type="button" className="cb-btn" disabled={jgBusy} onClick={padraoJogos}>Voltar ao padrão</button>
+                  </div>
+                </>
+              )}
+            </section>
+          )}
 
           <div className="cb-cols">
             <section className="cb-card">
@@ -185,6 +263,25 @@ const CSS = `
 .cb-kpi small{font-size:12px;color:#6F6C67}
 .cb-kpi.main{background:#FFC531;border-color:#FFC531}.cb-kpi.main em,.cb-kpi.main small{color:#151210}.cb-kpi.main b{font-size:34px}
 .cb-kpi.alert em,.cb-kpi.alert b{color:#B42318}
+.cb-jg{padding:16px 0 16px}
+.cb-jg-h{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:0 16px 8px;flex-wrap:wrap}
+.cb-jg-h h2{margin:0;font-family:'Anton',sans-serif;font-weight:400;font-size:24px;text-transform:uppercase;letter-spacing:.02em}
+.cb-tag{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:6px 10px;border-radius:999px;background:#ECEDE7;color:#6F6C67;white-space:nowrap}
+.cb-tag.on{background:#DDF3E7;color:#0F6B45}
+.cb-jg-grp{padding:10px 16px;display:grid;gap:8px;border-top:1px solid #ECEDE7;margin-top:8px}
+.cb-jg-grp b{display:block;font-size:14px}
+.cb-jg-grp small{display:block;font-size:12.5px;color:#6F6C67;line-height:1.45}
+.cb-jg-grp small b{display:inline;font-size:inherit;color:#151210}
+.cb-jg-in{display:flex;gap:10px;flex-wrap:wrap}
+.cb-jg-in label{display:grid;gap:4px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#6F6C67}
+.cb-jg-in label div{display:flex;align-items:center;gap:4px;border:1px solid #DCDDD6;border-radius:6px;padding:0 10px;background:#fff;min-height:44px}
+.cb-jg-in input{width:54px;border:0;outline:0;font:inherit;font-size:16px;font-weight:700;color:#151210;background:transparent;text-align:right;font-variant-numeric:tabular-nums}
+.cb-jg-in label div:focus-within{border-color:#151210;box-shadow:0 0 0 2px #FFC531}
+.cb-jg-in i{font-style:normal;font-weight:700;color:#6F6C67}
+.cb-ok{background:#DDF3E7;color:#0F6B45;border-radius:8px;padding:10px 14px;font-weight:600;font-size:14px}
+.cb-jg-bt{display:flex;gap:10px;flex-wrap:wrap;padding:6px 16px 0}
+.cb-btn.primary{background:#FFC531;border-color:#FFC531}
+.cb-btn:disabled{opacity:.6}
 .cb-cols{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
 .cb-card{background:#fff;border:1px solid #DCDDD6;border-radius:8px;overflow:hidden;min-width:0}
 .cb-tools{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 16px;flex-wrap:wrap}

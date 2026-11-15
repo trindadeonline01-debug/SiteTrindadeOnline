@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { notifyAdmin } from '@/lib/notifyAdmin'
+import { syncPixMpEnabled } from '@/lib/mpSync'
+import { avisarMpDesconectado } from '@/lib/mpAvisoDesconexao'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -21,6 +23,37 @@ export async function GET(req: NextRequest) {
   const clientSecret = process.env.MERCADO_PAGO_CLIENT_SECRET
   if (!clientId || !clientSecret) {
     return NextResponse.json({ error: 'Mercado Pago Connect não configurado' }, { status: 500 })
+  }
+
+  // 1) Confere se cada conta conectada ainda funciona. Se o lojista tirou a
+  // autorização direto no Mercado Pago (ou o token venceu), o MP responde
+  // 401 — aí marca como desconectada e avisa admin + lojista. Erro de rede ou
+  // 5xx não conta: só desconecta com recusa explícita do MP.
+  const { data: todas } = await supabase
+    .from('company_mp_accounts')
+    .select('company_id, mp_access_token, companies(name)')
+    .eq('status', 'connected')
+  let desconectadas = 0
+  for (const conta of todas || []) {
+    let recusado = !conta.mp_access_token
+    if (!recusado) {
+      try {
+        const res = await fetch('https://api.mercadopago.com/users/me', { headers: { Authorization: `Bearer ${conta.mp_access_token}` } })
+        recusado = res.status === 401
+      } catch {
+        // rede — tenta de novo na próxima rodada
+      }
+    }
+    if (!recusado) continue
+    const agora = new Date().toISOString()
+    const { error: updErr } = await supabase.from('company_mp_accounts')
+      .update({ status: 'disconnected', disconnected_at: agora, updated_at: agora })
+      .eq('company_id', conta.company_id).eq('status', 'connected')
+    if (updErr) { console.error('[mp-renovar-tokens] falhou ao marcar desconectada', conta.company_id, updErr); continue }
+    await syncPixMpEnabled(conta.company_id)
+    const empresa = (conta.companies as { name?: string } | null)?.name || conta.company_id
+    await avisarMpDesconectado(conta.company_id, empresa, 'o Mercado Pago recusou o acesso (autorização removida ou vencida)', false)
+    desconectadas++
   }
 
   const limite = new Date(Date.now() + RENOVAR_COM_DIAS * 86400000).toISOString()
@@ -90,5 +123,5 @@ export async function GET(req: NextRequest) {
     await notifyAdmin({ type: 'mp_renovacao_falhou', empresa, venceEm, motivo })
   }
 
-  return NextResponse.json({ ok: true, verificadas: contas?.length || 0, ...resultado })
+  return NextResponse.json({ ok: true, verificadas: contas?.length || 0, desconectadas, ...resultado })
 }

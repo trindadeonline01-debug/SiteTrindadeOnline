@@ -170,7 +170,7 @@ export async function sendCustomerWhatsApp(companyId: string, phone: string | nu
 // FATO escaneado na instância da loja (ownerJid, via fetchInstances da
 // Evolution — usado só pra DESCOBRIR o número aqui, o envio em si nunca
 // passa pela instância da loja).
-async function resolveOwnerNotifyPhone(companyId: string): Promise<{ phone: string | null; company: { owner_id: string | null; crm_whatsapp_enabled: boolean; trial_modules_until: string | null } | null }> {
+export async function resolveOwnerNotifyPhone(companyId: string): Promise<{ phone: string | null; company: { owner_id: string | null; crm_whatsapp_enabled: boolean; trial_modules_until: string | null } | null }> {
   const { data: company } = await supabase.from('companies').select('owner_id, phone, crm_whatsapp_enabled, trial_modules_until').eq('id', companyId).maybeSingle()
   if (!company) return { phone: null, company: null }
 

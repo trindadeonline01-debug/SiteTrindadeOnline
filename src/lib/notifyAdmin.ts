@@ -15,6 +15,7 @@ export type AdminEvent =
   | { type: 'motoboy_reenviou'; nome: string }
   | { type: 'humano_solicitado'; empresa: string; contato: string; mensagem: string }
   | { type: 'mp_renovacao_falhou'; empresa: string; venceEm: string | null; motivo: string }
+  | { type: 'mp_desconectado'; empresa: string; motivo: string; lojistaAvisado: boolean }
   | { type: 'pagamento_sem_pedido'; empresa: string; mpPaymentId: string }
   | { type: 'estorno_falhou'; empresa: string; pedido: string; valor: number; motivo: string }
   | { type: 'followup_alerta'; linhas: string[] }
@@ -38,6 +39,9 @@ function buildMessage(event: AdminEvent): string {
   }
   if (event.type === 'mp_renovacao_falhou') {
     return `⚠️ Mercado Pago: não consegui renovar o acesso da ${event.empresa}.${event.venceEm ? `\nVence em: ${event.venceEm}` : ''}\nMotivo: ${event.motivo}\n\nVou tentar de novo amanhã. Se continuar falhando, a loja precisa reconectar em Painel → Pagamentos antes de vencer.`
+  }
+  if (event.type === 'mp_desconectado') {
+    return `🔌 Mercado Pago DESCONECTADO — ${event.empresa}\nMotivo: ${event.motivo}\n\n${event.lojistaAvisado ? 'O lojista já foi avisado no WhatsApp.' : 'Não consegui avisar o lojista no WhatsApp (sem telefone) — avise por fora.'} Enquanto não reconectar em Painel → Pagamentos, a loja não recebe Pix/cartão pelo site.`
   }
   if (event.type === 'followup_alerta') {
     return `⚠️ Follow-up automático — atenção\n\n${event.linhas.map(l => `• ${l}`).join('\n')}\n\nConfira em Admin → Follow-up. O botão "Desligar tudo" está lá se precisar.`

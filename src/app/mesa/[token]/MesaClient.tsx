@@ -807,15 +807,15 @@ const CSS = `
 .mz-menu{padding-bottom:8px}
 button.mz-pcard{border:0;text-align:left;font:inherit;cursor:pointer;width:100%}
 .mz-promo.games{grid-template-columns:1fr}
-.mz-gamecard{position:relative;overflow:hidden;border:0;cursor:pointer;width:100%;text-align:left;font:inherit;border-radius:22px;padding:16px;color:#fff;background:radial-gradient(120% 90% at 85% 0%,#1E8CA8 0%,#0F3A4A 46%,#082B38 100%);box-shadow:0 18px 30px -16px rgba(8,43,56,.95),inset 0 0 0 2px rgba(255,197,49,.35);display:grid;grid-template-columns:92px 1fr;gap:12px;align-items:center;grid-column:1/-1}
-.gc-art{display:block;width:92px;height:92px;animation:gcfloat 3s ease-in-out infinite;position:relative;z-index:1}
+.mz-gamecard{position:relative;overflow:hidden;border:0;cursor:pointer;width:100%;text-align:left;font:inherit;border-radius:20px;padding:clamp(10px,3.2vw,14px);color:#fff;background:radial-gradient(120% 90% at 85% 0%,#1E8CA8 0%,#0F3A4A 46%,#082B38 100%);box-shadow:0 18px 30px -16px rgba(8,43,56,.95),inset 0 0 0 2px rgba(255,197,49,.35);display:grid;grid-template-columns:clamp(58px,17vw,84px) 1fr;gap:clamp(8px,2.6vw,12px);align-items:center;grid-column:1/-1}
+.gc-art{display:block;width:clamp(58px,17vw,84px);height:clamp(58px,17vw,84px);animation:gcfloat 3s ease-in-out infinite;position:relative;z-index:1}
 .gc-art svg{width:100%;height:100%;display:block}
 .gc-txt{position:relative;z-index:1;min-width:0}
 .gc-txt small{display:block;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#FFC531}
-.gc-txt b{display:block;font-family:Anton,sans-serif;font-weight:400;font-size:27px;line-height:1.05;text-transform:uppercase;margin:3px 0 9px;letter-spacing:.01em}
+.gc-txt b{display:block;font-family:Anton,sans-serif;font-weight:400;font-size:clamp(19px,6vw,26px);line-height:1.05;text-transform:uppercase;margin:2px 0 clamp(5px,1.6vw,8px);letter-spacing:.01em}
 .gc-chips{display:flex;gap:6px;flex-wrap:wrap}
-.gc-chips em{font-style:normal;font-size:11.5px;font-weight:700;background:rgba(255,255,255,.14);border-radius:99px;padding:3px 10px}
-.gc-play{grid-column:1/-1;position:relative;z-index:1;display:flex;align-items:center;justify-content:center;gap:8px;height:52px;border-radius:14px;background:#FFC531;color:#151210;font:800 18px Archivo,sans-serif;letter-spacing:.08em;border-bottom:4px solid #C98F00;animation:gcpulse 1.8s ease-in-out infinite}
+.gc-chips em{font-style:normal;font-size:clamp(10px,2.9vw,11.5px);font-weight:700;background:rgba(255,255,255,.14);border-radius:99px;padding:2px clamp(7px,2.2vw,10px)}
+.gc-play{grid-column:1/-1;position:relative;z-index:1;display:flex;align-items:center;justify-content:center;gap:8px;height:clamp(40px,11.5vw,48px);border-radius:12px;background:#FFC531;color:#151210;font:800 clamp(15px,4.4vw,17px) Archivo,sans-serif;letter-spacing:.08em;border-bottom:4px solid #C98F00;animation:gcpulse 1.8s ease-in-out infinite}
 .mz-gamecard.gc-caca{background:radial-gradient(120% 90% at 85% 0%,#25B98B 0%,#0E5A45 46%,#062B22 100%);box-shadow:0 18px 30px -16px rgba(6,43,34,.95),inset 0 0 0 2px rgba(255,197,49,.35)}
 .gc-bub{position:absolute;inset:0;pointer-events:none}
 .gc-bub i{position:absolute;bottom:-12px;width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.16);animation:gcrise 6s linear infinite}
@@ -824,6 +824,8 @@ button.mz-pcard{border:0;text-align:left;font:inherit;cursor:pointer;width:100%}
 @keyframes gcpulse{0%,100%{box-shadow:0 0 0 0 rgba(255,197,49,.5)}50%{box-shadow:0 0 0 8px rgba(255,197,49,0)}}
 @keyframes gcrise{0%{transform:translateY(0);opacity:0}15%{opacity:1}100%{transform:translateY(-190px);opacity:0}}
 @media(prefers-reduced-motion:reduce){.gc-art,.gc-play,.gc-bub i{animation:none}}
+.mz-promo{gap:clamp(8px,2.4vw,10px)}
+@media(max-height:800px){.mz-hero{padding-bottom:42px}.mz-hero h1{font-size:20px;margin-top:12px}.mz-hero p{font-size:12px;margin-top:4px}}
 .mz-quem{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:12px;font-size:12.5px;color:#A9A397}
 .mz-quem b{color:#fff}
 .mz-quem button{background:transparent;border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:99px;padding:4px 14px;font:700 12px Archivo,sans-serif;cursor:pointer}

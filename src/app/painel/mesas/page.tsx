@@ -336,6 +336,7 @@ export default function MesasPage() {
     if (pend.length === 0 || !printerName || isRawBtMode(printerName) || imprimindoRemoto.current) return
     imprimindoRemoto.current = true
     ;(async () => {
+      let mexeu = false  // só recarrega se algo foi de fato reivindicado/impresso (recarregar à toa realimenta este efeito em loop)
       try {
         if (!(await podeImprimirAqui())) {
           setMsg('⚠️ Tem pedido do celular esperando para imprimir, mas este computador não está conectado à impressora (QZ Tray). Abra o QZ Tray e atualize a página.')
@@ -350,6 +351,7 @@ export default function MesasPage() {
           // Reivindica: só o aparelho que conseguir zerar o pedido (com o mesmo carimbo) imprime — evita papel duplicado.
           const { data: ganhou } = await supabase.from('loja_comandas').update({ imprimir_producao_em: null }).eq('id', c.id).eq('imprimir_producao_em', c.imprimir_producao_em as string).select('id')
           if (!ganhou || ganhou.length === 0) continue
+          mexeu = true
           const r = await executarProducao(c, !!c.imprimir_producao_todas)
           if (r === 'erro') {
             const n = t.n + 1
@@ -361,7 +363,7 @@ export default function MesasPage() {
             if (n < 3) setTimeout(() => { load() }, 16000)
           }
         }
-        await load()
+        if (mexeu) await load()
       } finally { imprimindoRemoto.current = false }
     })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -384,6 +386,7 @@ export default function MesasPage() {
     if (contasPedidas.length === 0 || !printerName || isRawBtMode(printerName) || imprimindoConta.current) return
     imprimindoConta.current = true
     ;(async () => {
+      let mexeu = false
       try {
         if (!(await podeImprimirAqui())) { setMsg('⚠️ Tem conta do celular esperando para imprimir, mas este computador não está conectado à impressora (QZ Tray). Abra o QZ Tray e atualize a página.'); return }
         for (const c of contasPedidas) {
@@ -392,6 +395,7 @@ export default function MesasPage() {
           if (t.n >= 3 || Date.now() < t.ate) continue
           const { data: ganhou } = await supabase.from('loja_comandas').update({ imprimir_conta_em: null }).eq('id', c.id).eq('imprimir_conta_em', c.imprimir_conta_em as string).select('id')
           if (!ganhou || ganhou.length === 0) continue
+          mexeu = true
           const [{ data: ps }, { data: pg }] = await Promise.all([
             supabase.from('loja_pedidos').select('id, order_number, comanda_id, status, created_at, notes, impresso_em, itens:loja_pedido_itens(*)').eq('comanda_id', c.id).order('created_at'),
             supabase.from('loja_comanda_pagamentos').select('id, comanda_id, forma, cartao_tipo, valor, pessoa').eq('comanda_id', c.id).order('criado_em'),
@@ -406,7 +410,7 @@ export default function MesasPage() {
             if (n < 3) setTimeout(() => { load() }, 16000)
           }
         }
-        await load()
+        if (mexeu) await load()
       } finally { imprimindoConta.current = false }
     })()
     // eslint-disable-next-line react-hooks/exhaustive-deps

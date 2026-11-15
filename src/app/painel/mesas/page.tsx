@@ -1,6 +1,7 @@
 'use client'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { formatPhoneDisplay } from '@/lib/phone'
 import { adminFetch } from '@/lib/adminFetch'
 import { moduleActive } from '@/lib/modules'
 import { beepAdd, beepChamado, pararSons, unlockAudio } from '@/lib/beep'
@@ -32,7 +33,7 @@ type PedidoMesa = { id: string; order_number: number | null; comanda_id: string;
 type Pagto = { id: string; comanda_id: string; forma: string; cartao_tipo?: string | null; valor: number; pessoa: string | null }
 type PedidoQr = { itens: { produtoId: string; nome: string; qty: number; modifiers: { name: string; price: number }[]; notes: string | null; unit: number }[]; obs: string | null; telefone: string | null; total: number }
 type Chamado = { id: string; mesa_id: string; comanda_id: string | null; tipo: 'garcom' | 'conta' | 'pedido'; mensagem: string | null; criado_em: string; payload: PedidoQr | null }
-type Garcom = { id: string; nome: string; ativo: boolean }
+type Garcom = { id: string; nome: string; ativo: boolean; telefone?: string | null }
 type Produto = NpProduto & { promo_type?: string | null; promo_value?: number | null; promo_starts_at?: string | null; promo_ends_at?: string | null }
 // Preço de venda de hoje (com promoção, se estiver valendo) — o mesmo que o servidor cobra.
 function precoDe(p: Produto): number {
@@ -161,7 +162,7 @@ export default function MesasPage() {
     const [m, c, g, ch, cp, rf] = await Promise.all([
       supabase.from('loja_mesas').select('id, numero, nome, ativa').eq('company_id', cid).eq('ativa', true).order('numero'),
       supabase.from('loja_comandas').select('*').eq('company_id', cid).eq('status', 'aberta'),
-      supabase.from('loja_garcons').select('id, nome, ativo').eq('company_id', cid).order('nome'),
+      supabase.from('loja_garcons').select('id, nome, ativo, telefone').eq('company_id', cid).order('nome'),
       supabase.from('loja_mesa_chamados').select('id, mesa_id, comanda_id, tipo, mensagem, criado_em, payload').eq('company_id', cid).eq('status', 'aberto').order('criado_em'),
       supabase.from('loja_comandas').select('*').eq('company_id', cid).not('imprimir_conta_em', 'is', null),
       supabase.from('loja_comandas').select('*').eq('company_id', cid).eq('tipo', 'retirada').eq('status', 'fechada').gte('fechada_em', inicioHoje).order('fechada_em', { ascending: false }).limit(40),
@@ -943,7 +944,7 @@ function ComandaView(props: {
   }
 
   async function fecharConta() {
-    const r = await call('fechar', { comandaId: c.id }); if (r) { limparDivisao(); await props.fechado(); const cb = Number(r.cashbackGanho) || 0, qz = Number(r.premioQuiz) || 0; if (cb > 0 || qz > 0) props.setMsg(`🎁 Cliente ganhou ${fmt(cb + qz)} de cashback para o próximo pedido${qz > 0 ? ` (inclui ${fmt(qz)} dos jogos)` : ''}`) }
+    const r = await call('fechar', { comandaId: c.id }); if (r) { limparDivisao(); await props.fechado(); const cb = Number(r.cashbackGanho) || 0, qz = Number(r.premioQuiz) || 0, pd = Number(r.cashbackPendente) || 0; if (r.cashbackBloqueado) props.setMsg(r.cashbackBloqueado === 'funcionario' ? 'Sem cashback: esse WhatsApp é de um garçom da loja.' : 'Sem cashback: esse WhatsApp já ganhou cashback em outra conta nas últimas 12 horas.'); else if (cb > 0 || qz > 0 || pd > 0) props.setMsg(`🎁 ${cb + qz > 0 ? `Cliente ganhou ${fmt(cb + qz)} de cashback${qz > 0 ? ` (inclui ${fmt(qz)} dos jogos)` : ''}` : ''}${cb + qz > 0 && pd > 0 ? ' · ' : ''}${pd > 0 ? `${fmt(pd)} aguardando o cliente confirmar no WhatsApp` : ''}`) }
   }
   async function pagar() {
     const valor = valorEf
@@ -1453,8 +1454,9 @@ function Config({ companyId, nomeLoja, adminMode, recarregar, mesasEnabled, taxa
   const [pin, setPin] = useState('')
   const [pinAtual, setPinAtual] = useState('')
   const [pinGerado, setPinGerado] = useState('')
-  const [editando, setEditando] = useState<null | { id: string; nome: string; pin: string }>(null)
+  const [editando, setEditando] = useState<null | { id: string; nome: string; telefone: string; pin: string }>(null)
   const [nome, setNome] = useState('')
+  const [telGarcom, setTelGarcom] = useState('')
   const [qtd, setQtd] = useState('5')
   const [ok, setOk] = useState('')
   const [qrPedir, setQrPedir] = useState(true)
@@ -1550,8 +1552,8 @@ function Config({ companyId, nomeLoja, adminMode, recarregar, mesasEnabled, taxa
   async function salvarNomeGarcom() {
     if (!editando) return
     const g = lista.find(x => x.id === editando.id)
-    const r = await call('garcom_salvar', { id: editando.id, nome: editando.nome, ativo: g?.ativo !== false, pin: editando.pin })
-    if (r) { await recarregar(); setEditando(null); setOk('Nome do garçom alterado.') }
+    const r = await call('garcom_salvar', { id: editando.id, nome: editando.nome, telefone: editando.telefone, ativo: g?.ativo !== false, pin: editando.pin })
+    if (r) { await recarregar(); setEditando(null); setOk('Garçom atualizado.') }
   }
   return (
     <Modal titulo="Configurar mesas" onClose={onClose} wide cfg>
@@ -1596,22 +1598,25 @@ function Config({ companyId, nomeLoja, adminMode, recarregar, mesasEnabled, taxa
           editando?.id === g.id ? (
             <div key={g.id} className="ms-row">
               <input className="ms-in" aria-label="Novo nome do garçom" value={editando.nome} onChange={e => setEditando({ ...editando, nome: e.target.value })} onKeyDown={e => { if (e.key === 'Enter' && !busy && editando.nome.trim() && (adminMode || editando.pin.length >= 4)) salvarNomeGarcom() }} />
+              <input className="ms-in" aria-label="WhatsApp do garçom" placeholder="WhatsApp do garçom" inputMode="tel" value={editando.telefone} onChange={e => setEditando({ ...editando, telefone: e.target.value })} />
               {!adminMode && <label className="ms-lbl">PIN da supervisão<PinInput value={editando.pin} onChange={v => setEditando({ ...editando, pin: v })} onEnter={() => { if (!busy && editando.nome.trim() && editando.pin.length >= 4) salvarNomeGarcom() }} /></label>}
               <button className="ms-btn" disabled={busy || !editando.nome.trim() || (!adminMode && editando.pin.length < 4)} onClick={salvarNomeGarcom}>Salvar</button>
               <button className="ms-btn ghost" onClick={() => setEditando(null)}>Cancelar</button>
             </div>
           ) : (
             <div key={g.id} className="ms-gl">
-              <span style={{ opacity: g.ativo ? 1 : .5 }}>{g.nome}</span>
-              <button className="ms-btn ghost" disabled={busy} onClick={() => { setOk(''); setEditando({ id: g.id, nome: g.nome, pin: '' }) }}>Editar nome</button>
+              <span style={{ opacity: g.ativo ? 1 : .5 }}>{g.nome}{g.telefone ? <small style={{ display: 'block', opacity: .7 }}>{formatPhoneDisplay(g.telefone)}</small> : <small style={{ display: 'block', color: '#B45309' }}>sem WhatsApp</small>}</span>
+              <button className="ms-btn ghost" disabled={busy} onClick={() => { setOk(''); setEditando({ id: g.id, nome: g.nome, telefone: g.telefone ? formatPhoneDisplay(g.telefone) : '', pin: '' }) }}>Editar</button>
               <button className="ms-btn ghost" disabled={busy} onClick={async () => { await call('garcom_salvar', { id: g.id, nome: g.nome, ativo: !g.ativo }); await recarregar() }}>{g.ativo ? 'Desativar' : 'Reativar'}</button>
             </div>
           )
         ))}
         <div className="ms-row">
           <input className="ms-in" placeholder="Nome do garçom" value={nome} onChange={e => setNome(e.target.value)} />
-          <button className="ms-btn" disabled={busy || !nome.trim()} onClick={async () => { const r = await call('garcom_salvar', { nome }); if (r) { await recarregar(); setNome('') } }}>Adicionar</button>
+          <input className="ms-in" placeholder="WhatsApp do garçom" inputMode="tel" value={telGarcom} onChange={e => setTelGarcom(e.target.value)} />
+          <button className="ms-btn" disabled={busy || !nome.trim()} onClick={async () => { const r = await call('garcom_salvar', { nome, telefone: telGarcom }); if (r) { await recarregar(); setNome(''); setTelGarcom('') } }}>Adicionar</button>
         </div>
+        <small>O WhatsApp do garçom nunca ganha cashback de mesa. Trocar o número de um garçom pede o PIN da supervisão.</small>
       </div>
         </div>
         <div className="ms-cfgcol">

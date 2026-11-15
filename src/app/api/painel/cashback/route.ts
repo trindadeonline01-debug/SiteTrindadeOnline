@@ -256,6 +256,49 @@ export async function POST(req: NextRequest) {
     for (const [ph, n] of await nomesExtras(companyId, semNome)) nomes.set(ph, n)
   }
 
+  // ---- antifraude (trava 4): padrões suspeitos nos últimos 30 dias ----
+  const desde30 = new Date(Date.now() - 30 * DAY).toISOString()
+  const [{ data: cms }, { data: gs }, { data: pends }] = await Promise.all([
+    sb.from('loja_comandas').select('customer_phone, customer_name, garcom_nome, fechada_em').eq('company_id', companyId).eq('status', 'fechada')
+      .not('customer_phone', 'is', null).gte('fechada_em', desde30).limit(5000),
+    sb.from('loja_garcons').select('nome, telefone').eq('company_id', companyId).not('telefone', 'is', null),
+    sb.from('cashback_pendentes').select('customer_phone, valor, estado, motivo, criado_em, expira_em').eq('company_id', companyId).gte('criado_em', desde30).limit(5000),
+  ])
+  const garcomDoTel = new Map((gs || []).map(g => [g.telefone as string, g.nome as string]))
+  const porTel = new Map<string, { nome: string | null; contas: { garcom: string; dia: string }[] }>()
+  for (const c of cms || []) {
+    const ph = normalizePhone(c.customer_phone); if (!ph) continue
+    const e = porTel.get(ph) || { nome: null, contas: [] }; porTel.set(ph, e)
+    if (!e.nome && nomeValido(c.customer_name)) e.nome = c.customer_name
+    // Dia comercial: madrugada até 6h conta no dia anterior (fuso de Brasília).
+    const dia = new Date(new Date(c.fechada_em).getTime() - 9 * 3600000).toISOString().slice(0, 10)
+    e.contas.push({ garcom: c.garcom_nome || '—', dia })
+  }
+  const bloqPorTel = new Map<string, number>()
+  for (const p of pends || []) if (p.estado === 'bloqueado') bloqPorTel.set(p.customer_phone, (bloqPorTel.get(p.customer_phone) || 0) + 1)
+  const alertas: { phone: string; nome: string | null; motivos: string[] }[] = []
+  const ddmm = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`
+  for (const [ph, e] of porTel) {
+    const motivos: string[] = []
+    const g = garcomDoTel.get(ph)
+    if (g) motivos.push(`É o WhatsApp do garçom ${g}`)
+    const n = e.contas.length
+    const porG = new Map<string, number>()
+    for (const c of e.contas) porG.set(c.garcom, (porG.get(c.garcom) || 0) + 1)
+    const [gTop, qTop] = [...porG.entries()].sort((a, b) => b[1] - a[1])[0] || ['', 0]
+    if (qTop >= 3 && qTop / n >= 0.7) motivos.push(`${qTop} de ${n} contas sempre com ${gTop}`)
+    const porDia = new Map<string, number>()
+    for (const c of e.contas) porDia.set(c.dia, (porDia.get(c.dia) || 0) + 1)
+    const dias = [...porDia.entries()].filter(([, q]) => q >= 2).sort((a, b) => b[0].localeCompare(a[0]))
+    if (dias.length) motivos.push(dias.slice(0, 3).map(([d, q]) => `${q} contas em ${ddmm(d)}`).join(', ') + (dias.length > 3 ? '…' : ''))
+    const bl = bloqPorTel.get(ph)
+    if (bl) motivos.push(`${bl} ${bl === 1 ? 'cashback bloqueado' : 'cashbacks bloqueados'} pelas travas`)
+    if (motivos.length) alertas.push({ phone: ph, nome: e.nome || nomes.get(ph) || null, motivos })
+  }
+  alertas.sort((a, b) => b.motivos.length - a.motivos.length)
+  const pendAtivos = (pends || []).filter(p => p.estado === 'pendente' && new Date(p.expira_em).getTime() > Date.now())
+  const pendentes = { qtd: pendAtivos.length, valor: r2(pendAtivos.reduce((s2, p) => s2 + Number(p.valor), 0)) }
+
   const agora = Date.now()
   const clientes = wl.map(w => {
     const vence = new Date(w.updated_at).getTime() + dias * DAY
@@ -276,6 +319,6 @@ export async function POST(req: NextRequest) {
       usado: r2(Math.max(0, usado - estornado)), expirado: r2(expirado),
       aVencer: r2(aVencer.reduce((s, c) => s + c.saldo, 0)), aVencerQtd: aVencer.length,
     },
-    clientes,
+    clientes, alertas: alertas.slice(0, 50), pendentes,
   })
 }

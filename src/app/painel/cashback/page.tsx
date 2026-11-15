@@ -22,6 +22,7 @@ const pct = (n: number) => String(n).replace('.', ',') + '%'
 const dm = (iso: string) => new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'America/Sao_Paulo' })
 const TIPO_ULT: Record<string, string> = { credito: 'ganhou', debito: 'usou', estorno: 'devolvido', expirado: 'venceu' }
 
+type Alerta = { phone: string; nome: string | null; motivos: string[] }
 type Filtro = 'todos' | 'vencem' | 'maior'
 
 export default function CashbackPage() {
@@ -30,6 +31,8 @@ export default function CashbackPage() {
   const [config, setConfig] = useState<Config | null>(null)
   const [resumo, setResumo] = useState<Resumo | null>(null)
   const [clientes, setClientes] = useState<Cliente[]>([])
+  const [alertas, setAlertas] = useState<Alerta[]>([])
+  const [pendentes, setPendentes] = useState<{ qtd: number; valor: number } | null>(null)
   const [erro, setErro] = useState('')
   const [filtro, setFiltro] = useState<Filtro>('todos')
   const [busca, setBusca] = useState('')
@@ -52,7 +55,7 @@ export default function CashbackPage() {
         const j = await r.json()
         if (!vivo) return
         if (!r.ok) { setErro(j.error || 'Não consegui carregar o cashback.'); return }
-        setErro(''); setConfig(j.config); setResumo(j.resumo); setClientes(j.clientes || [])
+        setErro(''); setConfig(j.config); setResumo(j.resumo); setClientes(j.clientes || []); setAlertas(j.alertas || []); setPendentes(j.pendentes || null)
       })
       .catch(() => { if (vivo) setErro('Não consegui carregar o cashback. Tente de novo.') })
     return () => { vivo = false }
@@ -138,6 +141,26 @@ export default function CashbackPage() {
             <div className="cb-kpi"><em>Venceu no mês</em><b>{brl(resumo.expirado)}</b><small>saldo sem uso por {config?.dias ?? 90} dias</small></div>
             <div className={'cb-kpi' + (resumo.aVencerQtd ? ' alert' : '')}><em>Vence em 7 dias</em><b>{brl(resumo.aVencer)}</b><small>{resumo.aVencerQtd ? `${resumo.aVencerQtd} ${resumo.aVencerQtd === 1 ? 'cliente' : 'clientes'} para lembrar` : 'nenhum saldo perto de vencer'}</small></div>
           </section>
+
+          {(alertas.length > 0 || (pendentes && pendentes.qtd > 0)) && (
+            <section className="cb-card cb-al">
+              <h2>Atenção</h2>
+              <p className="cb-sub">Cashback de mesa só entra no saldo quando o cliente confirma pelo WhatsApp. Número de garçom e 2ª conta do mesmo número em 12 horas não ganham. Abaixo, números com padrão estranho nos últimos 30 dias.</p>
+              {pendentes && pendentes.qtd > 0 && <p className="cb-al-p">⏳ {pendentes.qtd} {pendentes.qtd === 1 ? 'cashback aguardando' : 'cashbacks aguardando'} o cliente confirmar · {brl(pendentes.valor)}</p>}
+              {alertas.length > 0 && (
+                <ul>
+                  {alertas.map(a => (
+                    <li key={a.phone}>
+                      <button type="button" onClick={() => abrir(a.phone)}>
+                        <b>⚠️ {a.nome || 'Sem nome'}</b> <span className="cb-sub">{formatPhoneDisplay(a.phone)}</span>
+                        <small>{a.motivos.join(' · ')}</small>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
 
           {jogos && (
             <section className="cb-card cb-jg">
@@ -254,6 +277,7 @@ const CSS = `
 .cb-rules{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;color:#6F6C67}
 .cb-btn{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 14px;border:1px solid #151210;background:#fff;border-radius:6px;color:#151210;font-weight:600;font-size:13px;text-decoration:none;font-family:inherit}
 .cb-sub{color:#6F6C67;font-size:13px}
+.cb-al{border-color:#F59E0B !important;padding:16px;margin-bottom:16px}.cb-al h2{margin:0 0 4px}.cb-al ul{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:6px}.cb-al li button{width:100%;text-align:left;background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:10px 12px;cursor:pointer;font:inherit;color:inherit}.cb-al li small{display:block;margin-top:2px;color:#92400E}.cb-al-p{margin:8px 0 0;font-weight:600}
 .cb-err{background:#FBE6E3;color:#B3261A;border-radius:8px;padding:10px 14px;font-weight:600;font-size:14px}
 .cb-warn{background:#FFF6D6;border:1px solid #EBD27C;border-radius:8px;padding:10px 14px;font-size:14px}
 .cb-kpis{display:grid;grid-template-columns:1.3fr repeat(4,minmax(0,1fr));gap:10px}

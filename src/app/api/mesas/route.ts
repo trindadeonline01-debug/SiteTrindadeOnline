@@ -8,6 +8,7 @@ import { sendCustomerWhatsApp } from '@/lib/whatsapp'
 import { desdeDaConta, jaGanhouNosUltimosDias, melhorPremiavel, contaJaPremiada } from '@/lib/quizPremio'
 import { valorPremioDireto, pctDoMarcoQuiz } from '@/lib/jogosPremio'
 import { valorDoPremio } from '@/lib/quizRegras'
+import { bloqueioCashbackMesa, registrarCashbackMesa, PENDENTE_DIAS } from '@/lib/cashbackMesa'
 import { creditarCashback, creditarCashbackAvulso, debitarCashback, getSaldoCashback, reembolsarCashback, valorItensSemCashback } from '@/lib/cashback'
 import {
   sb, acessoMesas, erro, r2, hashPin, pinOk, exigePinSupervisor, evento, recalcComanda, totalPago, novoQrToken, telefoneVerificado,
@@ -217,17 +218,21 @@ export async function POST(req: NextRequest) {
     if (acao === 'garcom_salvar') {
       const nome = String(b.nome || '').trim().slice(0, 40)
       if (!nome) return erro('Informe o nome do garçom.')
+      // WhatsApp do garçom: esse número nunca ganha cashback de mesa (trava antifraude).
+      const telInformado = b.telefone !== undefined
+      const telefone = telInformado ? (String(b.telefone || '').trim() ? normalizePhone(String(b.telefone)) : null) : undefined
+      if (telInformado && String(b.telefone || '').trim() && !telefone) return erro('WhatsApp do garçom inválido.')
       if (b.id) {
-        const { data: atual } = await sb.from('loja_garcons').select('nome').eq('id', String(b.id)).eq('company_id', companyId).maybeSingle()
+        const { data: atual } = await sb.from('loja_garcons').select('nome, telefone').eq('id', String(b.id)).eq('company_id', companyId).maybeSingle()
         if (!atual) return erro('Garçom não encontrado.', 404)
-        if (atual.nome !== nome) {
+        if (atual.nome !== nome || (telInformado && (atual.telefone || null) !== telefone)) {
           const negado = await exigePinAtual(b.pin)
           if (negado) return negado
         }
-        const { error } = await sb.from('loja_garcons').update({ nome, ativo: b.ativo !== false }).eq('id', String(b.id)).eq('company_id', companyId)
+        const { error } = await sb.from('loja_garcons').update({ nome, ativo: b.ativo !== false, ...(telInformado ? { telefone } : {}) }).eq('id', String(b.id)).eq('company_id', companyId)
         if (error) return erro(error.message, 500)
       } else {
-        const { error } = await sb.from('loja_garcons').insert({ company_id: companyId, nome })
+        const { error } = await sb.from('loja_garcons').insert({ company_id: companyId, nome, telefone: telefone ?? null })
         if (error) return erro(error.message, 500)
       }
       return NextResponse.json({ ok: true })
@@ -447,6 +452,8 @@ export async function POST(req: NextRequest) {
       // de serviço e sem a parte paga com cashback). Só vale pro próximo pedido do
       // cliente — o crédito entra agora, depois que a conta já foi paga.
       let cashbackGanho = 0
+      let cashbackPendente = 0
+      let cashbackBloqueado: string | null = null
       try {
         const { data: cfg } = await sb.from('companies').select('cashback_enabled, cashback_percent_mesa, cashback_pct_dinheiro, cashback_pct_pix, cashback_pct_debito, cashback_pct_credito, cashback_expira_dias').eq('id', companyId).maybeSingle()
         const pctMax = Number(cfg?.cashback_percent_mesa) || 0
@@ -472,18 +479,37 @@ export async function POST(req: NextRequest) {
             : 0
           const rodada = await primeiraRodada(c.id)
           if (valorCash > 0 && rodada) {
-            const antes = await getSaldoCashback(sb, companyId, c.customer_phone)
-            await creditarCashback(sb, { companyId, phoneRaw: c.customer_phone, pedidoId: rodada, valor: valorCash })
-            const depois = await getSaldoCashback(sb, companyId, c.customer_phone)
-            if (depois > antes) {
-              cashbackGanho = valorCash
-              // Aviso ao cliente: quanto ganhou, saldo total e até quando vale. Uma mensagem só,
-              // por cliente que fecha conta — nunca em lote. Falha de envio não atrapalha o fechamento.
-              const dias = Number(cfg?.cashback_expira_dias) || 90
-              const ate = new Date(Date.now() + dias * 86_400_000).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })
-              const brl = (n: number) => 'R$ ' + n.toFixed(2).replace('.', ',')
-              await sendCustomerWhatsApp(companyId, c.customer_phone,
-                `🎁 *${company.name.trim()}* agradece a visita!\n\nVocê ganhou *${brl(valorCash)}* de cashback nesta conta. Seu saldo agora é *${brl(r2(depois))}*, para usar no próximo pedido (delivery ou aqui na mesa) até *${ate}*.\n\nÉ só informar este WhatsApp quando pedir. Veja seus saldos e extrato em trindadeonline.com.br/meu-cashback. Volte sempre! 😊`, 'aviso_pedido')
+            const dias = Number(cfg?.cashback_expira_dias) || 90
+            const brl = (n: number) => 'R$ ' + n.toFixed(2).replace('.', ',')
+            const bloqueio = await bloqueioCashbackMesa(sb, companyId, c.customer_phone, c.id)
+            if (bloqueio) {
+              // Número de garçom ou 2ª conta do mesmo número na noite: não credita, só registra (aparece no painel).
+              await registrarCashbackMesa(sb, { companyId, comandaId: c.id, pedidoId: rodada, phoneRaw: c.customer_phone, valor: valorCash, estado: 'bloqueado', motivo: bloqueio })
+              cashbackBloqueado = bloqueio
+            } else if (await telefoneVerificado(c.id, c.customer_phone)) {
+              // WhatsApp confirmado por código na mesa: credita direto.
+              const antes = await getSaldoCashback(sb, companyId, c.customer_phone)
+              await creditarCashback(sb, { companyId, phoneRaw: c.customer_phone, pedidoId: rodada, valor: valorCash })
+              const depois = await getSaldoCashback(sb, companyId, c.customer_phone)
+              if (depois > antes) {
+                await registrarCashbackMesa(sb, { companyId, comandaId: c.id, pedidoId: rodada, phoneRaw: c.customer_phone, valor: valorCash, estado: 'confirmado' })
+                cashbackGanho = valorCash
+                // Aviso ao cliente: quanto ganhou, saldo total e até quando vale. Uma mensagem só,
+                // por cliente que fecha conta — nunca em lote. Falha de envio não atrapalha o fechamento.
+                const ate = new Date(Date.now() + dias * 86_400_000).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+                await sendCustomerWhatsApp(companyId, c.customer_phone,
+                  `🎁 *${company.name.trim()}* agradece a visita!\n\nVocê ganhou *${brl(valorCash)}* de cashback nesta conta. Seu saldo agora é *${brl(r2(depois))}*, para usar no próximo pedido (delivery ou aqui na mesa) até *${ate}*.\n\nÉ só informar este WhatsApp quando pedir. Veja seus saldos e extrato em trindadeonline.com.br/meu-cashback. Volte sempre! 😊`, 'aviso_pedido')
+              }
+            } else {
+              // Número digitado pelo garçom, sem confirmação: fica pendente até o cliente confirmar pelo link.
+              const token = await registrarCashbackMesa(sb, { companyId, comandaId: c.id, pedidoId: rodada, phoneRaw: c.customer_phone, valor: valorCash, estado: 'pendente' })
+              if (token) {
+                cashbackPendente = valorCash
+                const { data: mesaRow } = c.mesa_id ? await sb.from('loja_mesas').select('numero').eq('id', c.mesa_id).maybeSingle() : { data: null }
+                const mesaTxt = mesaRow ? `Mesa ${mesaRow.numero}` : 'Sua conta'
+                await sendCustomerWhatsApp(companyId, c.customer_phone,
+                  `🎁 *${company.name.trim()}* agradece a visita!\n\n${mesaTxt} · conta de *${brl(total)}*. Você tem *${brl(valorCash)}* de cashback para liberar.\n\nToque no link para confirmar que foi você e o valor entra no seu saldo:\nhttps://www.trindadeonline.com.br/cashback/confirmar/${token}\n\nO link vale por ${PENDENTE_DIAS} dias. Se não foi você, é só ignorar.`, 'aviso_pedido')
+              }
             }
           }
         }
@@ -525,8 +551,8 @@ export async function POST(req: NextRequest) {
           }
         }
       } catch (e) { console.error('[mesas] prêmio dos jogos no fechamento:', e) }
-      await evento(companyId, c.id, 'fechou', { total, formas, cashback: cashbackGanho || undefined, premioQuiz: premioQuiz || undefined }, c.garcom_nome)
-      return NextResponse.json({ ok: true, total, cashbackGanho, premioQuiz })
+      await evento(companyId, c.id, 'fechou', { total, formas, cashback: cashbackGanho || undefined, cashbackPendente: cashbackPendente || undefined, cashbackBloqueado: cashbackBloqueado || undefined, premioQuiz: premioQuiz || undefined }, c.garcom_nome)
+      return NextResponse.json({ ok: true, total, cashbackGanho, cashbackPendente, cashbackBloqueado, premioQuiz })
     }
 
     if (acao === 'cancelar_comanda') {

@@ -5,6 +5,7 @@ import { debitarCashback, registrarDebitoCashback, reembolsarCashback } from '@/
 import { notifyAdmin } from '@/lib/notifyAdmin'
 import { promoPrice } from '@/lib/lojaPricing'
 import { enviarPushLoja } from '@/lib/pushLoja'
+import { ofertarJogoPedido } from '@/lib/jogoPedido'
 
 // Checkout do cardápio público, compartilhado por /api/loja/criar-pedido,
 // /api/loja/pagar-cartao, o webhook do Mercado Pago e a consulta do cliente.
@@ -303,6 +304,8 @@ export async function finalizarPedidoLoja(
   })())
 
   await Promise.allSettled(jobs)
+  // Pagou pelo site: já chega o link do jogo que vale cashback (lojas com prêmio dos jogos ligado).
+  if (pagoOnline) await ofertarJogoPedido(pedido.id)
   return { ok: true, pedidoId: pedido.id, orderNumber: pedido.order_number ?? null }
 }
 

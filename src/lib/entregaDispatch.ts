@@ -7,6 +7,7 @@ import {
 } from '@/lib/whatsapp'
 import { formatPhoneDisplay } from '@/lib/phone'
 import { pushOfertaCorrida, pushOfertaEncerrada, pushCorridaCancelada } from '@/lib/pushMotoboy'
+import { ofertarJogoPedido } from '@/lib/jogoPedido'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -657,6 +658,7 @@ async function finalizarEntregaConfirmada(
     await supabase.from('loja_pedidos').update({
       status: 'entregue', payment_status: 'pago', updated_at: new Date().toISOString(),
     }).eq('id', order.pedido_id)
+    await ofertarJogoPedido(order.pedido_id)
   }
 
   const { data: wallet } = await supabase.from('company_delivery_wallet').select('credits, dias_diaria_disponiveis').eq('company_id', order.company_id).maybeSingle()

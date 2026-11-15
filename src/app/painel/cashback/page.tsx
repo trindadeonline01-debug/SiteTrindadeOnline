@@ -123,7 +123,7 @@ export default function CashbackPage() {
       <header className="cb-top">
         <div><span className="cb-eyebrow">{company?.name || ''}</span><h1>Cashback</h1></div>
         <div className="cb-rules">
-          {config && <span>{config.ativo ? `Delivery ${pct(config.pctDelivery)} · Mesa ${pct(config.pctMesa)} · vale por ${config.dias} dias` : 'Cashback desligado'}</span>}
+          {config && <span>{config.ativo ? (config.pctDelivery === 0 && config.pctMesa === 0 ? `Cashback só pelos jogos · vale por ${config.dias} dias` : `Delivery ${pct(config.pctDelivery)} · Mesa ${pct(config.pctMesa)} · vale por ${config.dias} dias`) : 'Cashback desligado'}</span>}
           <Link className="cb-btn" href="/painel/compartilhar">Ajustar regras</Link>
         </div>
       </header>

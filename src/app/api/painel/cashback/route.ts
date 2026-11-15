@@ -165,6 +165,15 @@ export async function POST(req: NextRequest) {
       if (p) usados.add(p)
       return p
     }
+    // Prêmios do jogo pelo link do delivery.
+    const { data: ofs } = await sb.from('jogo_ofertas_pedido').select('pedido_id, premio_valor').eq('company_id', companyId).eq('customer_phone', phone).eq('estado', 'premiada').limit(200)
+    const ofertasPed = ofs || []
+    const usadasPed = new Set<string>()
+    const pedNum = new Map<string, number | null>()
+    if (ofertasPed.length) {
+      const { data: pn } = await sb.from('loja_pedidos').select('id, order_number').in('id', ofertasPed.map(o => o.pedido_id))
+      for (const x of pn || []) pedNum.set(x.id, x.order_number)
+    }
     const comIds = [...[...peds.values()].map(p => p.comanda_id), ...premios.map(p => p.comanda_id)].filter(Boolean) as string[]
     const comandas = await comandasPorId(companyId, comIds)
     const descComanda = (c: ComandaInfo | undefined) => c ? `${c.mesa != null ? `Mesa ${c.mesa}` : 'Balcão'} · comanda ${c.numero ?? '—'} · conta ${brlS(c.total)}` : 'Mesa'
@@ -193,7 +202,11 @@ export async function POST(req: NextRequest) {
           const ac = rodadaInfo.get(pr.rodada_id)?.acertos
           origem = (pr.jogo === 'caca' ? 'Prêmio do Caça-Palavras' : `Prêmio do Quiz${ac != null ? ` (${ac} acertos)` : ''}`) + ' · ' + descComanda(c)
           detalhe = c?.itens || undefined
-        } else origem = 'Prêmio de jogo'
+        } else {
+          const op = ofertasPed.find(o => !usadasPed.has(o.pedido_id) && Math.abs(Number(o.premio_valor) - Number(l.valor)) < 0.005)
+          if (op) { usadasPed.add(op.pedido_id); origem = `Prêmio do Quiz · delivery, pedido nº ${pedNum.get(op.pedido_id) ?? '—'}` }
+          else origem = 'Prêmio de jogo'
+        }
       } else origem = 'Usado na mesa'
       return { tipo: l.tipo, valor: v, data: l.created_at, origem, detalhe, saldoApos }
     })

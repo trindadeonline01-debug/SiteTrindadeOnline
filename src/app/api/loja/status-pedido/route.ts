@@ -5,6 +5,7 @@ import { normalizePhone } from '@/lib/phone'
 import { sendCustomerWhatsApp } from '@/lib/whatsapp'
 import { creditarCashback, valorItensSemCashback } from '@/lib/cashback'
 import { requireCompanyAccess } from '@/lib/requireUser'
+import { ofertarJogoPedido } from '@/lib/jogoPedido'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -102,6 +103,9 @@ export async function POST(req: NextRequest) {
         if (valorCredito > 0) await creditarCashback(supabase, { companyId, phoneRaw: phone, pedidoId, valor: valorCredito })
       }
     }
+
+    // Pago na entrega (dinheiro/cartão): o link do jogo com cashback sai agora. Já pago pelo site: não repete.
+    if (status === 'entregue') await ofertarJogoPedido(pedidoId)
 
     if (!moduleActive(company.crm_whatsapp_enabled, company.trial_modules_until)) return NextResponse.json({ ok: true })
 

@@ -1,4 +1,5 @@
 import { jaGanhouNosUltimosDias } from '@/lib/quizPremio'
+import { ofertaPorToken, ofertaValida, podeGanharNaOferta, liberarPremioRodadaPedido, type OfertaPedido } from '@/lib/jogoPedido'
 import { lerQuizPcts, QUIZ_MARCOS_CHAVES } from '@/lib/jogosPremio'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
@@ -40,6 +41,13 @@ function lerToken(token: unknown, cid: string): string | null {
   return igual(sig, assinar(jid, c, exp)) ? jid : null
 }
 
+// Prêmio que já saiu no link do pedido (para a tela final mostrar o valor em R$).
+async function premioDoPedido(ofertaId: string) {
+  const { data } = await sb.from('jogo_ofertas_pedido').select('estado, premio_valor, premio_rodada_id').eq('id', ofertaId).maybeSingle()
+  if (!data || data.estado !== 'premiada' || !data.premio_rodada_id) return null
+  return { rodadaId: data.premio_rodada_id, valorTxt: 'R$ ' + Number(data.premio_valor).toFixed(2).replace('.', ',') }
+}
+
 // ---------- apelido ----------
 const PALAVROES = ['porra', 'caralho', 'puta', 'fdp', 'buceta', 'cacete', 'merda', 'viado', 'cu', 'pau', 'foda', 'foder', 'nazi', 'hitler', 'racis', 'estupr', 'pedofil', 'arrombado', 'otario', 'vagabund', 'piroca', 'rola', 'xereca', 'punheta', 'corno']
 const semAcento = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -62,12 +70,20 @@ async function carregar(token: unknown) {
   const t = String(token || '')
   if (t.length < 5 || t.length > 90) return null
   const modoLoja = t.startsWith('loja:')
+  // Modo "pedido" (15/nov/2026): link do WhatsApp depois de um pedido de delivery pago — vale cashback na hora
+  // (src/lib/jogoPedido.ts). A rodada nasce sem mesa_id, então nunca entra no prêmio da mesa.
+  const modoPedido = t.startsWith('pedido:')
   let mesa: MesaQ | null = null
+  let oferta: OfertaPedido | null = null
   let companyId: string | null = null
   if (modoLoja) {
     const { data: c0 } = await sb.from('companies').select('id').eq('slug', t.slice(5)).maybeSingle()
     if (!c0) return null
     companyId = c0.id as string
+  } else if (modoPedido) {
+    oferta = await ofertaPorToken(t.slice(7))
+    if (!oferta) return null
+    companyId = oferta.company_id
   } else {
     if (t.length < 10) return null
     const { data: m } = await sb.from('loja_mesas').select('id, numero, ativa, company_id').eq('qr_token', t).maybeSingle()
@@ -78,7 +94,7 @@ async function carregar(token: unknown) {
   const { data: company } = await sb.from('companies').select('id, name, slug, mesas_enabled, loja_digital_enabled, trial_modules_until').eq('id', companyId).maybeSingle()
   if (!company || !company.mesas_enabled || !moduleActive(company.loja_digital_enabled, company.trial_modules_until)) return null
   const { data: camp } = await sb.from('quiz_campanhas').select('ativa, premio_ativo, marcos').eq('company_id', company.id).maybeSingle()
-  return { mesa, modoLoja, company, camp: camp as { ativa: boolean; premio_ativo: boolean; marcos: unknown } | null }
+  return { mesa, modoLoja, modoPedido, oferta, company, camp: camp as { ativa: boolean; premio_ativo: boolean; marcos: unknown } | null }
 }
 
 async function contar(chave: string, ms: number) {
@@ -104,6 +120,8 @@ async function salvarRodada(id: string, novo: Rodada, extra: Record<string, unkn
     estado: novo.estado, acertos: novo.acertos, pontos: novo.pontos, marco: novo.marco, erros: novo.erros,
     atualizada_em: new Date().toISOString(), ...(fim ? { encerrada_em: new Date().toISOString() } : {}), ...extra,
   }).eq('id', id)
+  // Rodada do link de delivery: o prêmio sai na hora em que a rodada termina.
+  if (fim && novo.marco > 0) await liberarPremioRodadaPedido(id)
 }
 
 type ItemDb = { id: string; rodada_id: string; ordem: number; pergunta_id: string; ordem_opcoes: number[]; prazo: string; pensar: boolean; resposta: number | null; acertou: boolean | null }
@@ -164,7 +182,8 @@ export async function POST(req: NextRequest) {
         jogador = j || null
         if (j) retomar = !!(await rodadaAberta(jogadorId))
       }
-      return NextResponse.json({ ativo: true, modo: ctx.modoLoja ? 'loja' : 'mesa', slug: ctx.company.slug, premio: ctx.modoLoja ? false : !!ctx.camp.premio_ativo, premioDaLoja: !!ctx.camp.premio_ativo, loja: ctx.company.name, mesa: ctx.mesa?.numero ?? null, jogador, retomar, perguntas: BANCO.length, temas: TEMAS_QUIZ,
+      const premioPedido = ctx.oferta ? !!ctx.camp.premio_ativo && (jogadorId ? await podeGanharNaOferta(ctx.oferta, jogadorId) : ofertaValida(ctx.oferta)) : false
+      return NextResponse.json({ ativo: true, modo: ctx.modoLoja ? 'loja' : ctx.modoPedido ? 'pedido' : 'mesa', slug: ctx.company.slug, premio: ctx.modoLoja ? false : ctx.modoPedido ? premioPedido : !!ctx.camp.premio_ativo, premioDaLoja: !!ctx.camp.premio_ativo, loja: ctx.company.name, mesa: ctx.mesa?.numero ?? null, jogador, retomar, perguntas: BANCO.length, temas: TEMAS_QUIZ,
         // % que a loja configurou para cada marco (a tela mostra este valor, não o número do marco)
         pcts: Object.fromEntries(QUIZ_MARCOS_CHAVES.map((k, i) => [k, lerQuizPcts(ctx.camp?.marcos)[i]])) })
     }
@@ -258,7 +277,9 @@ export async function POST(req: NextRequest) {
         top: lista.slice(0, 10).map(x => ({ pos: Number(x.posicao), apelido: x.apelido, pontos: x.pontos, acertos: x.acertos, eu: x.jogador_id === jogadorId })),
         eu: eu ? { pos: Number(eu.posicao), apelido: eu.apelido, pontos: eu.pontos, acertos: eu.acertos } : null,
         // Jogador que já ganhou prêmio nos últimos 7 dias: nesta rodada só vale o ranking.
-        premioBloqueado: !ctx.modoLoja && ctx.camp.premio_ativo && jogadorId ? await jaGanhouNosUltimosDias(sb, cid, jogadorId) : false,
+        premioPedido: ctx.oferta ? await premioDoPedido(ctx.oferta.id) : undefined,
+        premioBloqueado: ctx.oferta ? (ctx.camp.premio_ativo && jogadorId ? !(await podeGanharNaOferta(ctx.oferta, jogadorId)) : false)
+          : !ctx.modoLoja && ctx.camp.premio_ativo && jogadorId ? await jaGanhouNosUltimosDias(sb, cid, jogadorId) : false,
       })
     }
 
@@ -274,7 +295,7 @@ export async function POST(req: NextRequest) {
       let retomada = true
       if (!r) {
         retomada = false
-        const ins = await sb.from('quiz_rodadas').insert({ company_id: cid, comanda_id: null, jogador_key: `j:${jogadorId}`, jogador_id: jogadorId, mesa_id: ctx.mesa?.id ?? null, premiada: false, tema }).select('*').single()
+        const ins = await sb.from('quiz_rodadas').insert({ company_id: cid, comanda_id: null, jogador_key: `j:${jogadorId}`, jogador_id: jogadorId, mesa_id: ctx.mesa?.id ?? null, pedido_id: ctx.oferta?.pedido_id ?? null, premiada: false, tema }).select('*').single()
         if (ins.error) return erro('Não consegui começar a rodada.', 500)
         r = ins.data as RodadaDb
       }

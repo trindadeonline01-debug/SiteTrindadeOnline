@@ -5,6 +5,7 @@ import { cancelarChamadaMotoboy } from '@/lib/entregaDispatch'
 import { moduleActive } from '@/lib/modules'
 import { notifyAdmin } from '@/lib/notifyAdmin'
 import { recalcComanda } from '@/lib/mesas'
+import { cancelarJogoPedido } from '@/lib/jogoPedido'
 
 // Cancelamento de pedido do cardápio (item 25 da base de conhecimento,
 // regras do Ricardo, out/2026). Um lugar só pra: marcar cancelado + quem
@@ -148,6 +149,7 @@ export async function cancelarPedidoLoja(args: { pedidoId: string; por: Cancelad
   } catch {}
 
   await devolverCashbackDoPedido(p)
+  await cancelarJogoPedido(supabaseAdmin, p.id)
   await soltarMotoboy(p.id)
   const estorno = pagoPeloSite(p) ? await estornarNoMercadoPago(p) : null
 

@@ -102,10 +102,15 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
   // ======== estado ========
   var API = '/api/mesa/quiz', LS = 'quizjt:' + TOKEN
   // Modo loja (página de jogos, sem mesa): só ranking, nunca cashback. Token = 'loja:<slug>'.
-  var MODO_LOJA = TOKEN.indexOf('loja:') === 0
-  var HOME = MODO_LOJA ? '/jogos/' + TOKEN.slice(5) : '/mesa/' + TOKEN
+  // Modo pedido (link do WhatsApp depois de um delivery pago): o prêmio vira cashback na hora. Token = 'pedido:<token>'.
+  var MODO_PEDIDO = TOKEN.indexOf('pedido:') === 0
+  var SEM_MESA = MODO_LOJA || MODO_PEDIDO
+  var HOME = MODO_LOJA ? '/jogos/' + TOKEN.slice(5) : MODO_PEDIDO ? '/meu-cashback' : '/mesa/' + TOKEN
   var IDENT_URL = MODO_LOJA ? HOME + '?identificar=1' : HOME + '?identificar=jogar'
-  var VOLTAR = MODO_LOJA ? 'Jogos' : 'Mesa'
+  var VOLTAR = MODO_LOJA ? 'Jogos' : MODO_PEDIDO ? 'Saldo' : 'Mesa'
+  var VOLTAR_LONGO = MODO_LOJA ? 'Voltar aos jogos' : MODO_PEDIDO ? 'Ver meu saldo' : 'Voltar à mesa'
+  // Quando o prêmio vira valor: na mesa, ao pagar a conta; no link do pedido, assim que a rodada termina.
+  var QUANDO = MODO_PEDIDO ? 'Vira valor em R$ assim que a rodada terminar e vale para a sua próxima compra.' : 'É provisório: vira valor em R$ quando você pagar a conta de hoje e vale para a sua próxima compra.'
   // Tema escolhido na tela inicial ('' = misturado). Fica guardado neste aparelho.
   var TEMA = ''; try { TEMA = localStorage.getItem('quiztema') || '' } catch (e) {}
   var JT = ''; try { JT = localStorage.getItem(LS) || '' } catch (e) {}
@@ -134,7 +139,7 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
   }
   function fail(e) {
     if (G) G.busy = false
-    if (e && e.status === 401) { JT = ''; try { localStorage.removeItem(LS) } catch (x) {} if (INFO) INFO.jogador = null; location.href = IDENT_URL; return }
+    if (e && e.status === 401) { JT = ''; try { localStorage.removeItem(LS) } catch (x) {} if (INFO) INFO.jogador = null; if (MODO_PEDIDO) { cur = 'cadastro'; render(); return } location.href = IDENT_URL; return }
     if (e && e.status === 409 && G && G.live) { // rodada já encerrada no servidor
       cur = 'intro'; G = null; render(); toast('Essa rodada já terminou.'); return
     }
@@ -148,7 +153,7 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
       : '<button class="back" ' + (emJogo() ? 'data-act="leave"' : 'data-go="' + (voltar ? 'intro' : 'mesa') + '"') + '>‹ ' + (emJogo() ? 'Sair' : (voltar ? 'Voltar' : VOLTAR)) + '</button>'
     var nome = esc(((INFO && INFO.loja) || 'Quiz').trim().toUpperCase()), sp = nome.indexOf(' ')
     var marca = sp > 0 ? nome.slice(0, sp) + ' <b>' + nome.slice(sp + 1) + '</b>' : nome
-    return '<div class="bar">' + back + '<div class="brand">' + marca + '</div><div class="bar-r"><button class="snd" data-act="snd" aria-label="' + (SND ? 'Desligar som' : 'Ligar som') + '" aria-pressed="' + SND + '">' + (SND ? IC_SPK : IC_SPK_OFF) + '</button>' + (MODO_LOJA ? '' : '<div class="mesa">Mesa ' + esc((INFO && INFO.mesa) || '') + '</div>') + '</div></div>'
+    return '<div class="bar">' + back + '<div class="brand">' + marca + '</div><div class="bar-r"><button class="snd" data-act="snd" aria-label="' + (SND ? 'Desligar som' : 'Ligar som') + '" aria-pressed="' + SND + '">' + (SND ? IC_SPK : IC_SPK_OFF) + '</button>' + (MODO_LOJA ? '' : MODO_PEDIDO ? '<div class="mesa">Delivery</div>' : '<div class="mesa">Mesa ' + esc((INFO && INFO.mesa) || '') + '</div>') + '</div></div>'
   }
   function ladder() {
     var tiers = [10, 20, 30, 35, 40, 45], h = '<div class="zl"><span class="ok">Zona segura</span><span class="rk">Zona de risco</span></div><div class="ladder">'
@@ -160,7 +165,7 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
   // ======== telas ========
   var S = {}
   S.load = function () { return '<div class="screen sea">' + scene() + bar() + '<div class="res"><p class="p" style="color:#CFE3E6">Carregando…</p></div></div>' }
-  S.off = function () { return '<div class="screen sea">' + scene() + bar() + '<div class="res"><div><h2 class="h1">Quiz indisponível</h2></div><div class="box">O quiz não está ligado nesta loja agora. ' + (MODO_LOJA ? '' : 'Chame o garçom se quiser jogar.') + '</div><div style="margin-top:auto"><button class="btn" data-go="mesa">' + (MODO_LOJA ? 'Voltar aos jogos' : 'Voltar à mesa') + '</button></div></div></div>' }
+  S.off = function () { return '<div class="screen sea">' + scene() + bar() + '<div class="res"><div><h2 class="h1">Quiz indisponível</h2></div><div class="box">O quiz não está ligado nesta loja agora. ' + (SEM_MESA ? '' : 'Chame o garçom se quiser jogar.') + '</div><div style="margin-top:auto"><button class="btn" data-go="mesa">' + VOLTAR_LONGO + '</button></div></div></div>' }
 
   // Tela inicial: título, aviso de prêmio, tema em retângulos fixos, Jogar e atalhos (regras, ranking, grupo).
   var IC_INFO = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 11v5M12 7.6v.2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>'
@@ -171,6 +176,8 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
     var premio = INFO && INFO.premio
     var aviso = MODO_LOJA
       ? '<b>Valendo só ranking</b><span>Para ganhar cashback, jogue pelo QR da sua mesa.</span>'
+      : MODO_PEDIDO
+        ? (premio ? '<b>Esta rodada vale cashback do seu pedido</b><span>Com 10 acertos você já garante. Cai no saldo na hora, para a próxima compra. Vale 1 prêmio por pedido.</span>' : '<b>Valendo só ranking</b><span>O cashback deste link já foi usado, venceu ou é de outro WhatsApp.</span>')
       : (premio ? '<b>Esta rodada vale cashback</b><span>Creditado só quando você pagar a conta da mesa.</span>' : '<b>Valendo ranking da loja</b><span>Suba de posição a cada rodada.</span>')
     var temas = [{ id: '', nome: 'Misturado', icone: '🎲' }].concat((INFO && INFO.temas) || [])
     var tiles = temas.map(function (t) {
@@ -186,7 +193,7 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
       '<div class="in2-acts">' +
       '<button class="in2-a" data-act="zones">' + IC_INFO + '<span>Como funciona</span></button>' +
       '<button class="in2-a" data-go="ranking">' + IC_RANK + '<span>Ranking</span></button>' +
-      (MODO_LOJA
+      (SEM_MESA
         ? '<button class="in2-a trava" data-act="grupotrava" aria-label="Em grupo, disponível só pelo QR da mesa">' + IC_GRUPO + '<span>Em grupo</span></button>'
         : '<button class="in2-a" data-go="grupo">' + IC_GRUPO + '<span>Em grupo</span></button>') +
       '</div></div>' +
@@ -226,7 +233,7 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
     return '<div class="screen sea mkscr">' + scene() + '<canvas class="fw" id="qz-fw" aria-hidden="true"></canvas>' + bar() +
       '<div class="mkc"><div class="mkc-card"><span class="mkc-kick">Parabéns!</span><h2 class="mkc-t">' + a + ' acertos! 🎉</h2>' +
       (cash
-        ? '<div class="mkc-pct"><b>' + pct(G.marco) + '%</b><span>de cashback garantido</span></div><p>Você já garantiu <b>' + pct(G.marco) + '% de cashback</b>. É provisório: vira valor em R$ quando você pagar a conta de hoje e vale para a sua próxima compra.</p>'
+        ? '<div class="mkc-pct"><b>' + pct(G.marco) + '%</b><span>de cashback garantido</span></div><p>Você já garantiu <b>' + pct(G.marco) + '% de cashback</b>. ' + QUANDO + '</p>'
         : '<p>Muito bem! Você já fez <b>' + fmtN(G.pontos) + ' pontos</b>' + (INFO && INFO.premio && bloq ? '. Como você já ganhou um prêmio nos últimos 7 dias, esta rodada vale só para o ranking.' : ' no ranking da loja.') + '</p>') +
       (cash ? '<p>Continuar não faz você perder isso. Próximo prêmio: <b>' + prox + '</b>.</p>' : '') +
       '<div class="mkc-btns"><button class="btn" data-act="mkgo">Continuar jogando</button><button class="btn alt" data-act="mkstop">Parar por aqui</button></div></div></div></div>'
@@ -247,7 +254,7 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
     return '<div class="screen sea">' + scene() + bar() + ladder() +
       '<div class="mkc"><div class="mkc-card dc"><span class="mkc-kick warn">Decisão importante</span><h2 class="mkc-t">' + a + ' acertos!</h2>' +
       '<div class="dc-opts">' + stopOpt + goOpt + '</div>' +
-      (cash ? '<p>O cashback é provisório: vira valor em R$ quando você pagar a conta de hoje e vale para a sua próxima compra.</p>' : '<p>Como você já ganhou um prêmio nos últimos 7 dias, esta rodada vale só para o ranking.</p>') +
+      (cash ? '<p>' + QUANDO + '</p>' : '<p>Como você já ganhou um prêmio nos últimos 7 dias, esta rodada vale só para o ranking.</p>') +
       '<div class="mkc-btns"><button class="btn" data-act="stop">' + (cash ? 'Parar e garantir ' + pct(G.marco) + '%' : 'Parar aqui') + '</button><button class="btn alt dc-go" data-act="go">' + (cash ? 'Arriscar por ' + proxPct + '%' : 'Continuar') + '</button></div></div></div></div>'
   }
 
@@ -277,7 +284,7 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
         '<div class="fx-stats"><div class="plate"><small>Seus pontos</small><b>0</b><em>perdidos</em></div><div class="plate"><small>No ranking</small><b>—</b><em>rodada não conta</em></div></div>' +
         '<div class="fx-noprize"><b>Pontos perdidos</b><span>Sair no meio da rodada zera tudo.</span></div>' +
         '<div class="fx-note" style="text-align:center">Sua melhor rodada da semana continua valendo no ranking.</div>' +
-        '<div class="fx-cta"><button class="btn" data-act="start">Jogar de novo</button><button class="btn alt" data-go="mesa">' + (MODO_LOJA ? 'Voltar aos jogos' : 'Voltar à mesa') + '</button></div></div></div>'
+        '<div class="fx-cta"><button class="btn" data-act="start">Jogar de novo</button><button class="btn alt" data-go="mesa">' + VOLTAR_LONGO + '</button></div></div></div>'
     }
     var pos = d && d.eu ? d.eu.pos : null, tot = d ? d.total : 0
     var porque = G.fim && G.fim.motivo === 'parou' ? 'Você parou na hora certa.' : (G.fim && G.fim.motivo === 'tempo' ? 'O tempo acabou.' : 'Você errou.')
@@ -286,13 +293,19 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
     if (d && d.eu && d.eu.pos > 3) rows += '<div class="rk-dots">•••</div><div class="rkr me"><span class="rp">' + d.eu.pos + 'º</span><span class="rn">' + esc(d.eu.apelido) + '<small>Você · ' + d.eu.acertos + ' acertos</small></span><span class="rv">' + fmtN(d.eu.pontos) + '</span></div>'
     return '<div class="screen sea fin">' + scene() + bar() + '<div class="fx"><span class="fx-tag off">Fim de jogo</span>' +
       '<div class="fx-stats"><div class="plate"><small>Seus pontos</small><b class="g">' + fmtN(G.pontos) + '</b><em>' + G.acertos + ' acertos</em></div><div class="plate"><small>Na semana</small><b>' + (pos ? pos + 'º' : '…') + '</b><em>' + (tot ? 'de ' + tot + ' jogadores' : 'calculando') + '</em></div></div>' +
-      (INFO && INFO.premio && G.marco > 0 && !(d && d.premioBloqueado)
+      (MODO_PEDIDO && d && d.premioPedido && d.premioPedido.rodadaId === G.id
+        ? '<div class="fx-noprize" style="border-color:var(--ap-gold)"><b>🎁 Você ganhou ' + esc(d.premioPedido.valorTxt) + ' de cashback</b><span>Já está no seu saldo para a próxima compra. Também mandamos no seu WhatsApp.</span></div>'
+        : MODO_PEDIDO && INFO && INFO.premio && G.marco > 0 && !d
+          ? '<div class="fx-noprize" style="border-color:var(--ap-gold)"><b>🎁 Calculando seu cashback…</b><span>Aguarde um instante.</span></div>'
+          : MODO_PEDIDO && d && d.premioPedido
+            ? '<div class="fx-noprize"><b>' + porque + '</b><span>O cashback deste pedido já foi ganho. Esta rodada vale só para o ranking.</span></div>'
+      : INFO && INFO.premio && G.marco > 0 && !(d && d.premioBloqueado)
         ? '<div class="fx-noprize" style="border-color:var(--ap-gold)"><b>🎁 Você garantiu ' + pct(G.marco) + '% de cashback</b><span>Ainda é provisório: vira valor em R$ quando você pagar a conta de hoje e leva para a próxima compra. Vale a sua melhor rodada.</span></div>'
         : INFO && INFO.premio && G.marco > 0 && d && d.premioBloqueado
           ? '<div class="fx-noprize"><b>' + porque + '</b><span>Você já ganhou um prêmio nos últimos 7 dias, então esta rodada vale só para o ranking.</span></div>'
           : '<div class="fx-noprize"><b>' + porque + '</b><span>' + (INFO && INFO.premio ? 'Faça 10 acertos para garantir cashback. ' : '') + 'Vale a melhor rodada da semana no ranking da loja.</span></div>') +
       '<div class="rk"><div class="rkt">Ranking da loja · esta semana</div>' + rows + '<button class="rklink" data-go="ranking">Ver ranking completo ›</button></div>' +
-      '<div class="fx-cta"><button class="btn" data-act="start">Jogar de novo</button><button class="btn alt" data-go="mesa">' + (MODO_LOJA ? 'Voltar aos jogos' : 'Voltar à mesa') + '</button></div></div></div>'
+      '<div class="fx-cta"><button class="btn" data-act="start">Jogar de novo</button><button class="btn alt" data-go="mesa">' + VOLTAR_LONGO + '</button></div></div></div>'
   }
   S.fim = fin
 
@@ -344,7 +357,7 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
   // ======== fluxo do jogo ========
   function sync(r) {
     if (!r) return
-    G.acertos = r.acertos; G.pontos = r.pontos; G.erros = r.erros; G.estado = r.estado; G.pulos = r.pulos; G.pensar = r.pensar; G.marco = r.marco
+    G.id = r.id; G.acertos = r.acertos; G.pontos = r.pontos; G.erros = r.erros; G.estado = r.estado; G.pulos = r.pulos; G.pensar = r.pensar; G.marco = r.marco
     G.fimJogo = r.estado === 'encerrada'
   }
   function novoG(r) { G = { live: true, res: null, resp: null, pensando: false, fim: null, q: null, nivel: 1, busy: false, acertos: 0, pontos: 0, erros: 0, pulos: 3, pensar: 2, estado: 'jogando' }; sync(r) }
@@ -442,7 +455,7 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
     }
     if (a === 'start') {
       ac()
-      if (!INFO.jogador) { location.href = IDENT_URL; return }
+      if (!INFO.jogador) { if (MODO_PEDIDO) { REG.err = ''; cur = 'cadastro'; render(); return } location.href = IDENT_URL; return }
       comecar(); return
     }
     if (a === 'resume') { comecar(); return }
@@ -466,7 +479,10 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
       REG.err = ''; REG.busy = true; render()
       api('cadastro_verificar', { telefone: REG.tel, codigo: cod, apelido: REG.apelido }).then(function (j) {
         REG.busy = false; JT = j.jt; try { localStorage.setItem(LS, JT) } catch (x) {}
-        INFO.jogador = { apelido: j.apelido }; comecar()
+        INFO.jogador = { apelido: j.apelido }
+        // No link do pedido, o prêmio depende do WhatsApp confirmado: atualiza antes de começar.
+        if (MODO_PEDIDO) api('estado').then(function (e) { INFO.premio = !!e.premio; comecar() }).catch(function () { comecar() })
+        else comecar()
       }).catch(function (e) { REG.busy = false; REG.err = e.message; render() })
       return
     }

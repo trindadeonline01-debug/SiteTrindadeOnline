@@ -49,6 +49,14 @@ export default function JogosClient({ slug }: { slug: string }) {
       } catch {}
       if (!r.ok) { setFalhou(true); return }
       setInfo(r.d as Info)
+      // Veio pelo link do WhatsApp do pedido: já é o cliente, entra identificado sem pedir código.
+      const rTok = new URLSearchParams(window.location.search).get('r')
+      if (rTok) post('/api/jogos', { acao: 'ident_link', slug, r: rTok }).then(x => {
+        if (!vivo || !x.ok) return
+        const i: Ident = { nome: String(x.d.nome), telefone: String(x.d.telefone), token: String(x.d.token) }
+        try { localStorage.setItem(IDENT_KEY, JSON.stringify(i)) } catch {}
+        setIdent(i); setNome(i.nome); setTel(i.telefone)
+      }).catch(() => {})
       if (new URLSearchParams(window.location.search).get('identificar')) { setPasso('dados') }
     }).catch(() => { if (vivo) setFalhou(true) })
     return () => { vivo = false }

@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from 'react'
 
 type Oferta = { premiada: boolean; valorTxt: string | null; jogoUsado: 'quiz' | 'caca' | null; vencida: boolean } | null
-type Estado = { ativo: boolean; loja?: string; jogador?: { apelido: string } | null; premio?: boolean; oferta?: Oferta }
+type Estado = { ativo: boolean; slug?: string; loja?: string; jogador?: { apelido: string } | null; premio?: boolean; oferta?: Oferta }
 
 const API = '/api/mesa/quiz'
 
@@ -29,8 +29,24 @@ export default function JogarClient({ token, caca }: { token: string; caca: bool
   }, [TK])
 
   const carregar = useCallback(() => {
-    call('estado').then(d => setEst(d)).catch(e => setErro(e.message === 'Mesa não encontrada.' ? 'Este link não existe ou não está mais ativo.' : e.message))
-  }, [call])
+    call('estado').then(async d => {
+      // O link chegou no WhatsApp do pedido: o número já é do cliente, então entra direto (sem código).
+      if (d.ativo && !d.jogador && d.slug) {
+        try {
+          const r1 = await fetch('/api/jogos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ acao: 'ident_link', slug: d.slug, p: token }) })
+          const i = await r1.json()
+          if (r1.ok && i.token) {
+            try { localStorage.setItem('trindade_ident', JSON.stringify({ nome: i.nome, telefone: i.telefone, token: i.token })) } catch {}
+            const c = await call('cadastro_ident', { ident: i.token, idade: true, aceite: true })
+            try { localStorage.setItem(LS, c.jt) } catch {}
+            d = await call('estado')
+          }
+        } catch { /* cai no cadastro com código */ }
+      }
+      setEst(d)
+    }).catch(e => setErro(e.message === 'Mesa não encontrada.' ? 'Este link não existe ou não está mais ativo.' : e.message))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [call, token])
   useEffect(() => { carregar() }, [carregar])
   // Conta o acesso ao link (1 vez por aba) para o monitor em admin → Jogos.
   useEffect(() => {

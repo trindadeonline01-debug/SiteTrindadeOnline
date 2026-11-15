@@ -91,6 +91,26 @@ export async function POST(req: NextRequest) {
       })
     }
 
+    // Link que saiu no WhatsApp do cliente (pedido da plataforma): o número já é dele, então entra direto,
+    // sem pedir código. `r` = link "enquanto você espera", `p` = link do jogo com cashback do delivery.
+    if (acao === 'ident_link') {
+      const r = String(b.r || ''), p = String(b.p || '')
+      const tok = r || p
+      if (!/^[A-Za-z0-9_-]{8,64}$/.test(tok)) return erro('Link inválido.', 404)
+      const { data: lk } = r
+        ? await sb.from('jogo_links_enviados').select('company_id, pedido_id, customer_phone, customer_name').eq('token', r).maybeSingle()
+        : await sb.from('jogo_ofertas_pedido').select('company_id, pedido_id, customer_phone').eq('token', p).maybeSingle()
+      if (!lk || lk.company_id !== company.id) return erro('Link inválido.', 404)
+      let nomeBruto = (lk as { customer_name?: string | null }).customer_name || null
+      if (!nomeBruto) {
+        const { data: pd } = await sb.from('loja_pedidos').select('customer_name').eq('id', lk.pedido_id).maybeSingle()
+        nomeBruto = pd?.customer_name || null
+      }
+      const nome = limparNome(nomeBruto) || 'Cliente'
+      const tel = normalizePhone(lk.customer_phone)
+      return NextResponse.json({ ok: true, token: criarIdentToken(tel, nome), nome, telefone: tel })
+    }
+
     if (acao === 'ident_enviar' || acao === 'ident_verificar') {
       const nome = limparNome(b.nome)
       if (!nome) return erro('Digite seu nome (só letras).')

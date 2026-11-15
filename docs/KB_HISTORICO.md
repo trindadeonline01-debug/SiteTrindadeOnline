@@ -422,6 +422,7 @@ Calçada do Peixe: `cashback_percent` e `cashback_percent_mesa` zerados (saldo c
 
 ### Link de jogos "enquanto você espera" (15/nov/2026, Ricardo)
 Pedido de delivery/retirada que vai para `em_preparo` (painel, cozinha ou app da loja → `/api/loja/status-pedido`) manda no WhatsApp da loja: "🎮 Enquanto você espera, dá uma olhadinha no que a gente preparou pra você: /jogos/<slug>". Só diversão (ranking, sem cashback). Gate: módulo WhatsApp/CRM ativo + cardápio digital ativo; não vai para pedido de mesa nem para pedido que já recebeu link de cashback (`jogo_ofertas_pedido`). A página /jogos/<slug> (e quiz/caça modo loja) deixou de exigir `mesas_enabled`; loja sem `quiz_campanhas` roda o quiz só por ranking.
+**Sem código pelo link (15/nov/2026, Ricardo):** quem chega pelo link do WhatsApp do pedido (`?r=` ou `/jogar/<token>`) entra identificado direto (`/api/jogos` acao `ident_link` → token de identificação com o WhatsApp e o nome do pedido). Código por WhatsApp só na mesa ou para quem abre a página de jogos sem o link.
 **Monitor (admin → aba 🎮 Jogos):** cada link "enquanto espera" fica em `jogo_links_enviados` (token `?r=` no link, 1 por pedido); o link com cashback em `jogo_ofertas_pedido`. Acesso contado por `/api/jogos/abriu` (1x por aba). Jogou/pontos = rodadas de quiz/caça do jogador com o WhatsApp do pedido até 48 h após o envio (`/api/admin/jogos-monitor`).
 
 ### Inteligência de consumo — tela construída (11/nov/2026, "bora implementar", mockup aprovado pelo Ricardo)

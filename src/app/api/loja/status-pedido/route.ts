@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { data: company } = await supabase.from('companies')
-      .select('crm_whatsapp_enabled, trial_modules_until, slug, cashback_enabled, cashback_percent')
+      .select('crm_whatsapp_enabled, loja_digital_enabled, trial_modules_until, slug, cashback_enabled, cashback_percent')
       .eq('id', companyId).maybeSingle()
     if (!company) return NextResponse.json({ ok: true })
 
@@ -119,6 +119,19 @@ export async function POST(req: NextRequest) {
     // Mensagem do código sempre à parte, nunca grudada na de status —
     // pedido do Ricardo, set/2026.
     if (codeText) await sendCustomerWhatsApp(companyId, phone, codeText)
+    // Jogos só pela diversão (15/nov/2026, Ricardo): quando o pedido entra em preparo, o cliente recebe o
+    // link da página de jogos da loja para passar o tempo. Sem prêmio. Pedido de mesa não (lá tem o QR) e
+    // pedido que já recebeu o link do jogo com cashback também não (não confundir os dois).
+    if (status === 'em_preparo' && company.slug && moduleActive(company.loja_digital_enabled, company.trial_modules_until)) {
+      const [{ data: ped }, { data: oferta }] = await Promise.all([
+        supabase.from('loja_pedidos').select('comanda_id, origin').eq('id', pedidoId).maybeSingle(),
+        supabase.from('jogo_ofertas_pedido').select('id').eq('pedido_id', pedidoId).maybeSingle(),
+      ])
+      if (ped && !ped.comanda_id && ped.origin !== 'mesa' && !oferta) {
+        const site = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trindadeonline.com.br'
+        await sendCustomerWhatsApp(companyId, phone, `🎮 Enquanto você espera, dá uma olhadinha no que a gente preparou pra você: ${site}/jogos/${company.slug}`)
+      }
+    }
     // Pedido de avaliação, também à parte — só na entrega/retirada de
     // verdade (nunca em cancelado), enquanto a experiência tá fresca.
     // Precisa de login pra avaliar; quem não tem conta cai no "Entrar para

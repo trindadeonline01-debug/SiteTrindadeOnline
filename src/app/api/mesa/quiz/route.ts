@@ -91,8 +91,11 @@ async function carregar(token: unknown) {
     companyId = m.company_id as string
   }
   const { data: company } = await sb.from('companies').select('id, name, slug, mesas_enabled, loja_digital_enabled, trial_modules_until').eq('id', companyId).maybeSingle()
-  if (!company || !company.mesas_enabled || !moduleActive(company.loja_digital_enabled, company.trial_modules_until)) return null
-  const { data: camp } = await sb.from('quiz_campanhas').select('ativa, premio_ativo, marcos').eq('company_id', company.id).maybeSingle()
+  // QR da mesa exige o módulo de mesas; página de jogos e link do pedido só o cardápio digital ativo.
+  if (!company || (mesa && !company.mesas_enabled) || !moduleActive(company.loja_digital_enabled, company.trial_modules_until)) return null
+  let { data: camp } = await sb.from('quiz_campanhas').select('ativa, premio_ativo, marcos').eq('company_id', company.id).maybeSingle()
+  // Loja sem campanha configurada: na página de jogos o quiz roda só pela diversão (ranking, sem prêmio).
+  if (!camp && modoLoja) camp = { ativa: true, premio_ativo: false, marcos: null }
   return { mesa, modoLoja, modoPedido, oferta, company, camp: camp as { ativa: boolean; premio_ativo: boolean; marcos: unknown } | null }
 }
 
@@ -182,7 +185,7 @@ export async function POST(req: NextRequest) {
         if (j) retomar = !!(await rodadaAberta(jogadorId))
       }
       const premioPedido = ctx.oferta ? !!ctx.camp.premio_ativo && await premioDisponivel(ctx.oferta, jogadorId, 'quiz') : false
-      return NextResponse.json({ ativo: true, modo: ctx.modoLoja ? 'loja' : ctx.modoPedido ? 'pedido' : 'mesa', slug: ctx.company.slug, premio: ctx.modoLoja ? false : ctx.modoPedido ? premioPedido : !!ctx.camp.premio_ativo, premioDaLoja: !!ctx.camp.premio_ativo, loja: ctx.company.name, mesa: ctx.mesa?.numero ?? null, jogador, retomar, perguntas: BANCO.length, temas: TEMAS_QUIZ,
+      return NextResponse.json({ ativo: true, modo: ctx.modoLoja ? 'loja' : ctx.modoPedido ? 'pedido' : 'mesa', slug: ctx.company.slug, premio: ctx.modoLoja ? false : ctx.modoPedido ? premioPedido : !!ctx.camp.premio_ativo, premioDaLoja: !!ctx.camp.premio_ativo, mesasLoja: !!ctx.company.mesas_enabled, loja: ctx.company.name, mesa: ctx.mesa?.numero ?? null, jogador, retomar, perguntas: BANCO.length, temas: TEMAS_QUIZ,
         // % que a loja configurou para cada marco (a tela mostra este valor, não o número do marco)
         pcts: Object.fromEntries(QUIZ_MARCOS_CHAVES.map((k, i) => [k, lerQuizPcts(ctx.camp?.marcos)[i]])),
         // Link do delivery: situação da oferta (prêmio já saiu? primeira jogada já usada?) para a tela de entrada.

@@ -175,7 +175,7 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
   S.intro = function () {
     var premio = INFO && INFO.premio
     var aviso = MODO_LOJA
-      ? '<b>Valendo só ranking</b><span>Para ganhar cashback, jogue pelo QR da sua mesa.</span>'
+      ? (INFO && INFO.premioDaLoja && INFO.mesasLoja ? '<b>Valendo só ranking</b><span>Para ganhar cashback, jogue pelo QR da sua mesa.</span>' : '<b>Valendo ranking da loja</b><span>Suba de posição a cada rodada.</span>')
       : MODO_PEDIDO
         ? (premio ? '<b>Esta rodada vale cashback do seu pedido</b><span>Vale a sua primeira jogada (Quiz ou Caça-Palavras). Com 10 acertos você já garante, e cai no saldo na hora.</span>' : '<b>Valendo só ranking</b><span>A jogada que valia cashback deste pedido já foi usada, o link venceu ou é de outro WhatsApp.</span>')
       : (premio ? '<b>Esta rodada vale cashback</b><span>Creditado só quando você pagar a conta da mesa.</span>' : '<b>Valendo ranking da loja</b><span>Suba de posição a cada rodada.</span>')

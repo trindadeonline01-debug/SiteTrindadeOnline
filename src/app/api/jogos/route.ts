@@ -37,17 +37,20 @@ export async function POST(req: NextRequest) {
     const slug = String(b.slug || '').trim().toLowerCase()
     if (!slug || slug.length > 80) return erro('Loja não encontrada.', 404)
     const { data: company } = await sb.from('companies').select('id, name, slug, mesas_enabled, loja_digital_enabled, trial_modules_until').eq('slug', slug).maybeSingle()
-    if (!company || !company.mesas_enabled || !moduleActive(company.loja_digital_enabled, company.trial_modules_until)) return erro('Loja não encontrada.', 404)
+    // Página de jogos (só diversão/ranking) vale para toda loja com cardápio digital ativo, com ou sem módulo de mesas (15/nov/2026).
+    if (!company || !moduleActive(company.loja_digital_enabled, company.trial_modules_until)) return erro('Loja não encontrada.', 404)
 
     if (acao === 'info') {
-      const { data: camp } = await sb.from('quiz_campanhas').select('ativa').eq('company_id', company.id).maybeSingle()
+      const { data: camp } = await sb.from('quiz_campanhas').select('ativa, premio_ativo').eq('company_id', company.id).maybeSingle()
       return NextResponse.json({
         ok: true,
         loja: company.name,
+        // Só a loja com mesas e prêmio ligado fala de cashback nesta página; nas outras é só diversão.
+        cashbackMesa: !!(company.mesas_enabled && camp?.ativa && camp?.premio_ativo),
         logo: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/loja-produtos/${company.id}/qr-logo.png`,
         // Cada jogo novo entra nesta lista (id, nome, descrição, rota).
         jogos: [
-          { id: 'quiz', nome: 'Quiz Pesca Premiada', descricao: 'Responda perguntas, tente chegar ao topo do ranking da loja.', ativo: !!camp?.ativa, rota: `/jogos/${company.slug}/quiz` },
+          { id: 'quiz', nome: 'Quiz Pesca Premiada', descricao: 'Responda perguntas, tente chegar ao topo do ranking da loja.', ativo: camp ? !!camp.ativa : true, rota: `/jogos/${company.slug}/quiz` },
           { id: 'caca', nome: 'Caça-Palavras', descricao: 'Ache as palavras escondidas antes de o tempo acabar.', ativo: true, rota: `/jogos/${company.slug}/caca` },
         ].filter(j => j.id !== 'caca' || CACA_PALAVRAS_ATIVO),
       })

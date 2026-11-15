@@ -107,8 +107,8 @@ export default function JogosClient({ slug }: { slug: string }) {
           {passo === 'lista' && info && (
             <>
               <div className="jg-aviso">
-                <b>🏆 Aqui os jogos valem só para o ranking</b>
-                <span>Quer ganhar cashback? Jogue pelo QR da sua mesa no restaurante. O cashback só é creditado depois que a conta é paga.</span>
+                <b>🏆 Jogue e suba no ranking da loja</b>
+                {(info as { cashbackMesa?: boolean }).cashbackMesa && <span>Quer ganhar cashback? Jogue pelo QR da sua mesa no restaurante. O cashback só é creditado depois que a conta é paga.</span>}
               </div>
               {ativos.length === 0 && <div className="jg-box">Nenhum jogo ligado nesta loja agora.</div>}
               <div className="jg-tiles">

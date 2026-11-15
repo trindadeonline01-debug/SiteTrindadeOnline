@@ -89,7 +89,8 @@ export async function POST(req: NextRequest) {
     }
     if (!companyId) return erro('Loja não encontrada.', 404)
     const { data: company } = await sb.from('companies').select('id, name, slug, mesas_enabled, loja_digital_enabled, trial_modules_until').eq('id', companyId).maybeSingle()
-    if (!company || !company.mesas_enabled || !moduleActive(company.loja_digital_enabled, company.trial_modules_until)) return erro('Loja não encontrada.', 404)
+    // Pelo QR da mesa precisa do módulo de mesas; pela página de jogos ou link do pedido basta o cardápio digital ativo.
+    if (!company || (mesaId && !company.mesas_enabled) || !moduleActive(company.loja_digital_enabled, company.trial_modules_until)) return erro('Loja não encontrada.', 404)
     const jogadorId = lerJogadorToken(b.jt, company.id)
     if (!jogadorId) return erro('Sua identificação venceu. Confirme seu WhatsApp de novo.', 401)
     const { data: camp } = await sb.from('quiz_campanhas').select('ativa, premio_ativo, caca_marcos').eq('company_id', company.id).maybeSingle()

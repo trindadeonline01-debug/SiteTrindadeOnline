@@ -57,7 +57,7 @@ export function jogosOgImage(loja: string, chamada: string, sub: string, tema: '
 }
 
 // Prévia do link do CASHBACK (15/nov/2026, Ricardo: "cashback remete a ganhar e a dinheiro"): fundo verde-dinheiro,
-// moedas de R$ douradas e o "até X%" grande. O jogo aparece só como apoio (Quiz/Caça-Palavras).
+// moedas de R$ douradas e "CASHBACK" grande em dourado. O jogo aparece só como apoio (Quiz/Caça-Palavras).
 function Moeda({ d, x, y, rot = 0 }: { d: number; x: number; y: number; rot?: number }) {
   return (
     <div style={{ position: 'absolute', left: x, top: y, width: d, height: d, borderRadius: d, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #FFE48A 0%, #F5B800 50%, #B8860B 100%)', border: `${Math.round(d / 18)}px solid #8A6410`, boxShadow: '0 14px 30px rgba(0,0,0,.35)', transform: `rotate(${rot}deg)` }}>
@@ -66,7 +66,7 @@ function Moeda({ d, x, y, rot = 0 }: { d: number; x: number; y: number; rot?: nu
   )
 }
 
-export function cashbackOgImage(loja: string, maxPct: number) {
+export function cashbackOgImage(loja: string) {
   const nome = loja.trim().length > 26 ? loja.trim().slice(0, 25) + '…' : loja.trim()
   return new ImageResponse(
     (
@@ -78,17 +78,14 @@ export function cashbackOgImage(loja: string, maxPct: number) {
           </div>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             <div style={{ display: 'flex', fontSize: 40, fontWeight: 700, color: '#D9F99D' }}>Jogue e ganhe</div>
-            <div style={{ display: 'flex', alignItems: 'flex-end', marginTop: 4 }}>
-              <span style={{ fontSize: 44, fontWeight: 800, color: '#FFD54A', marginBottom: 22, marginRight: 10 }}>até</span>
-              <span style={{ fontSize: 150, fontWeight: 800, color: '#FFD54A', lineHeight: 1 }}>{maxPct}%</span>
-            </div>
-            <div style={{ display: 'flex', fontSize: 40, fontWeight: 700, marginTop: 4 }}>de volta no seu pedido</div>
+            <div style={{ display: 'flex', fontSize: 118, fontWeight: 800, color: '#FFD54A', lineHeight: 1, marginTop: 8, letterSpacing: -2, textShadow: '0 4px 0 #8A6410, 0 10px 24px rgba(0,0,0,.45)' }}>CASHBACK</div>
+            <div style={{ display: 'flex', fontSize: 40, fontWeight: 700, marginTop: 14 }}>no seu pedido</div>
             <div style={{ display: 'flex', fontSize: 26, color: '#BBF7D0', marginTop: 16 }}>Quiz ou Caça-Palavras · cai na hora no seu saldo</div>
           </div>
           <div style={{ display: 'flex', fontSize: 30, fontWeight: 700 }}>{nome}</div>
         </div>
         <Moeda d={250} x={800} y={150} rot={-12} />
-        <Moeda d={170} x={700} y={330} rot={10} />
+        <Moeda d={160} x={745} y={350} rot={10} />
         <Moeda d={130} x={990} y={380} rot={-4} />
         <Moeda d={90} x={1010} y={70} rot={14} />
         <div style={{ position: 'absolute', right: 64, bottom: 54, display: 'flex', background: '#FFFFFF', color: '#0B6B3A', fontSize: 24, fontWeight: 800, padding: '10px 20px', borderRadius: 999 }}>VALE A 1ª JOGADA</div>

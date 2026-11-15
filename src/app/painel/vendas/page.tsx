@@ -15,7 +15,7 @@ import { ORIGENS_DELIVERY } from '@/lib/canais'
 type Formas = Record<string, number>
 type Canal = { qtd: number; bruto: number; canc: number; formas: Formas }
 type Mesa = Canal & { consumo: number; desconto: number; taxa: number; recebido: number }
-type Dados = { delivery: Canal; pdv: Canal; mesa: Mesa }
+type Dados = { delivery: Canal; pdv: Canal; mesa: Mesa; consumo: { qtd: number; valor: number } }
 
 const r2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100
 const brl = (n: number) => 'R$ ' + (Number.isFinite(n) ? n : 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -31,7 +31,7 @@ const vazio = (): Canal => ({ qtd: 0, bruto: 0, canc: 0, formas: {} })
 const add = (f: Formas, k: string, v: number) => { f[k] = r2((f[k] || 0) + v) }
 
 type PedidoRow = { total: number; status: string; origin: string; payment_method: string | null }
-type ComandaRow = { status: string; subtotal: number; desconto: number; taxa_valor: number; total: number; pagamentos: { forma: string; valor: number }[] | null }
+type ComandaRow = { tipo?: string; status: string; subtotal: number; desconto: number; taxa_valor: number; total: number; pagamentos: { forma: string; valor: number }[] | null }
 
 export default function VendasPage() {
   const { company, loading: shellLoading } = usePainelShell()
@@ -52,7 +52,7 @@ export default function VendasPage() {
     let qp = supabase.from('loja_pedidos').select('total, status, origin, payment_method').eq('company_id', companyId).in('origin', [...ORIGENS_DELIVERY, 'pdv'])
     if (from) qp = qp.gte('created_at', from)
     if (to) qp = qp.lt('created_at', to)
-    let qc = supabase.from('loja_comandas').select('status, subtotal, desconto, taxa_valor, total, pagamentos:loja_comanda_pagamentos(forma, valor)').eq('company_id', companyId).in('status', ['fechada', 'cancelada'])
+    let qc = supabase.from('loja_comandas').select('tipo, status, subtotal, desconto, taxa_valor, total, pagamentos:loja_comanda_pagamentos(forma, valor)').eq('company_id', companyId).in('status', ['fechada', 'cancelada'])
     if (from) qc = qc.gte('fechada_em', from)
     if (to) qc = qc.lt('fechada_em', to)
     Promise.all([qp.limit(20000), qc.limit(20000)]).then(([pr, cr]) => {
@@ -66,7 +66,9 @@ export default function VendasPage() {
         if (p.status === 'cancelado') { c.canc += 1; continue }
         c.qtd += 1; c.bruto = r2(c.bruto + Number(p.total)); add(c.formas, formaKey(p.payment_method), Number(p.total))
       }
+      const consumo = { qtd: 0, valor: 0 }   // consumo interno: conta da casa, fora do caixa e do total vendido
       for (const cm of (cr.data || []) as unknown as ComandaRow[]) {
+        if (cm.tipo === 'consumo') { if (cm.status === 'fechada') { consumo.qtd += 1; consumo.valor = r2(consumo.valor + Number(cm.subtotal)) } continue }
         if (cm.status === 'cancelada') { mesa.canc += 1; continue }
         mesa.qtd += 1
         mesa.consumo = r2(mesa.consumo + Number(cm.subtotal)); mesa.desconto = r2(mesa.desconto + Number(cm.desconto))
@@ -74,7 +76,7 @@ export default function VendasPage() {
         mesa.bruto = r2(mesa.bruto + Number(cm.subtotal) - Number(cm.desconto))
         for (const pg of cm.pagamentos || []) add(mesa.formas, formaKey(pg.forma), Number(pg.valor))
       }
-      setDados({ delivery, pdv, mesa })
+      setDados({ delivery, pdv, mesa, consumo })
     })
     return () => { vivo = false }
   }, [shellLoading, companyId, period, virada])
@@ -140,6 +142,15 @@ export default function VendasPage() {
               </div>
             </section>
           </div>
+
+          <section className="vc-card">
+            <h2>🏠 Consumo interno</h2>
+            <p className="vc-hint">Conta da casa (equipe, sócio, cortesia). Fica fora do caixa e do total vendido.</p>
+            <div className="vc-kpis">
+              <div><em>Consumo lançado</em><b>{brl(dados.consumo.valor)}</b></div>
+              <div><em>Contas</em><b>{dados.consumo.qtd}</b></div>
+            </div>
+          </section>
 
           <section className="vc-card">
             <h2>Forma de pagamento</h2>

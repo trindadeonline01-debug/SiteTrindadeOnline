@@ -83,7 +83,8 @@ export default function VendasDiaPanel({ companyId, onClose, onAbrirComanda, onM
     ])
     const unicas = new Map<string, Comanda>()
     for (const r of [...(a.data || []), ...(b.data || []), ...(c.data || [])] as Comanda[]) unicas.set(r.id, r)
-    const lista = [...unicas.values()].sort((x, y) => x.aberta_em.localeCompare(y.aberta_em))
+    // Consumo interno (conta da casa) não é venda: fica fora deste relatório e dos totais.
+    const lista = [...unicas.values()].filter(x => (x as { tipo?: string }).tipo !== 'consumo').sort((x, y) => x.aberta_em.localeCompare(y.aberta_em))
     const ids = lista.map(x => x.id)
     const canceladasIds = lista.filter(x => x.status === 'cancelada').map(x => x.id)
     const [pg, rd, ev] = ids.length

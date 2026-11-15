@@ -63,7 +63,7 @@ async function criarRodada(companyId: string, c: any, entrada: any[], obs: unkno
   // pedido (fica na comanda) pra não disparar WhatsApp de status nem
   // cashback; origin 'mesa' + comanda_id identificam a rodada.
   const { data: ped, error: pe } = await sb.from('loja_pedidos').insert({
-    company_id: companyId, customer_id: null, customer_name: c.tipo === 'retirada' ? `Retirada ${c.rotulo || '#' + c.numero}`.trim() : `Mesa ${mesa?.numero ?? ''}`.trim(), customer_phone: null,
+    company_id: companyId, customer_id: null, customer_name: c.tipo === 'consumo' ? `Consumo ${c.rotulo || '#' + c.numero}`.trim() : c.tipo === 'retirada' ? `Retirada ${c.rotulo || '#' + c.numero}`.trim() : `Mesa ${mesa?.numero ?? ''}`.trim(), customer_phone: null,
     delivery_type: 'balcao', origin: 'mesa', comanda_id: c.id,
     subtotal, total: subtotal, accepted_at: new Date().toISOString(),
     notes: obs ? String(obs).slice(0, 300) : null,
@@ -262,13 +262,14 @@ export async function POST(req: NextRequest) {
       const { data: garcom } = await sb.from('loja_garcons').select('id, nome, ativo').eq('id', String(b.garcomId || '')).eq('company_id', companyId).maybeSingle()
       if (!garcom || !garcom.ativo) return erro('Escolha quem está atendendo.')
       const rotulo = String(b.rotulo || '').trim().slice(0, 40) || null
+      const tipoConta = b.tipo === 'consumo' ? 'consumo' : 'retirada'   // consumo interno: conta da casa, fora do caixa
       const { data: c, error } = await sb.from('loja_comandas').insert({
-        company_id: companyId, mesa_id: null, tipo: 'retirada', rotulo, garcom_id: garcom.id, garcom_nome: garcom.nome,
+        company_id: companyId, mesa_id: null, tipo: tipoConta, rotulo, garcom_id: garcom.id, garcom_nome: garcom.nome,
         taxa_servico_ativa: false, taxa_servico_pct: Number(company.loja_taxa_servico_pct) || 0,
         sessao_secret: randomBytes(24).toString('base64url'),
       }).select('id').single()
-      if (error || !c) return erro('Não consegui abrir a retirada: ' + (error?.message || ''), 500)
-      await evento(companyId, c.id, 'abriu', { retirada: rotulo, garcom: garcom.nome }, garcom.nome)
+      if (error || !c) return erro(`Não consegui abrir ${tipoConta === 'consumo' ? 'o consumo' : 'a retirada'}: ` + (error?.message || ''), 500)
+      await evento(companyId, c.id, 'abriu', { [tipoConta]: rotulo, garcom: garcom.nome }, garcom.nome)
       return NextResponse.json({ ok: true, comandaId: c.id })
     }
 
@@ -347,6 +348,7 @@ export async function POST(req: NextRequest) {
     if (acao === 'taxa_toggle') {
       const c = await comandaAberta(companyId, b.comandaId)
       if (!c) return erro('Essa comanda não está aberta.', 409)
+      if (c.tipo === 'consumo') return erro('Consumo interno não tem taxa de serviço.')
       await sb.from('loja_comandas').update({ taxa_servico_ativa: !!b.ativa }).eq('id', c.id)
       const calc = await recalcComanda(c.id)
       await evento(companyId, c.id, b.ativa ? 'taxa_ligada' : 'taxa_removida', {}, c.garcom_nome)
@@ -366,7 +368,9 @@ export async function POST(req: NextRequest) {
     if (acao === 'pagar') {
       const c = await comandaAberta(companyId, b.comandaId)
       if (!c) return erro('Essa comanda não está aberta.', 409)
-      if (!['dinheiro', 'cartao', 'pix', 'cashback'].includes(String(b.forma))) return erro('Forma de pagamento inválida.')
+      if (!['dinheiro', 'cartao', 'pix', 'cashback', 'consumo'].includes(String(b.forma))) return erro('Forma de pagamento inválida.')
+      // Conta de consumo interno só aceita a forma "consumo" (e "consumo" só vale nela).
+      if ((c.tipo === 'consumo') !== (b.forma === 'consumo')) return erro(c.tipo === 'consumo' ? 'Consumo interno só aceita a forma Consumo interno.' : 'Consumo interno só vale em contas de consumo.')
       const valor = r2(Number(b.valor) || 0)
       if (!(valor > 0)) return erro('Informe o valor.')
       const calc = await recalcComanda(c.id)
@@ -446,7 +450,7 @@ export async function POST(req: NextRequest) {
       try {
         const { data: cfg } = await sb.from('companies').select('cashback_enabled, cashback_percent_mesa, cashback_pct_dinheiro, cashback_pct_pix, cashback_pct_debito, cashback_pct_credito, cashback_expira_dias').eq('id', companyId).maybeSingle()
         const pctMax = Number(cfg?.cashback_percent_mesa) || 0
-        if (cfg?.cashback_enabled && pctMax > 0 && c.customer_phone) {
+        if (cfg?.cashback_enabled && pctMax > 0 && c.customer_phone && c.tipo !== 'consumo') {
           const pagoCash = r2((pgs || []).filter(p => p.forma === 'cashback').reduce((s, p) => s + Number(p.valor), 0))
           const { data: rodadasConta } = await sb.from('loja_pedidos').select('id').eq('comanda_id', c.id).neq('status', 'cancelado')
           const semCashback = await valorItensSemCashback(sb, (rodadasConta || []).map(r => r.id))
@@ -489,7 +493,7 @@ export async function POST(req: NextRequest) {
       let premioQuiz = 0
       try {
         const { data: qc } = await sb.from('quiz_campanhas').select('ativa, premio_ativo, modo, marcos, teto_valor').eq('company_id', companyId).maybeSingle()
-        if (qc?.ativa && qc.premio_ativo && c.customer_phone && await telefoneVerificado(c.id, c.customer_phone)) {
+        if (qc?.ativa && qc.premio_ativo && c.customer_phone && c.tipo !== 'consumo' && await telefoneVerificado(c.id, c.customer_phone)) {
           const jaTem = await contaJaPremiada(sb, c.id)
           const melhor = jaTem ? null : await melhorPremiavel(sb, companyId, normalizePhone(c.customer_phone), desdeDaConta(c.aberta_em))
           if (melhor && !(await jaGanhouNosUltimosDias(sb, companyId, melhor.jogadorId))) {
@@ -620,6 +624,7 @@ export async function POST(req: NextRequest) {
     if (acao === 'transferir') {
       const c = await comandaAberta(companyId, b.comandaId)
       if (!c) return erro('Essa comanda não está aberta.', 409)
+      if (c.tipo === 'consumo') return erro('Consumo interno não vira mesa.')
       const { data: dest } = await sb.from('loja_mesas').select('id, numero, ativa').eq('id', String(b.mesaDestinoId || '')).eq('company_id', companyId).maybeSingle()
       if (!dest || !dest.ativa) return erro('Mesa de destino não encontrada.', 404)
       const { data: ocupada } = await sb.from('loja_comandas').select('id').eq('mesa_id', dest.id).eq('status', 'aberta').maybeSingle()
@@ -640,6 +645,7 @@ export async function POST(req: NextRequest) {
       const orig = await comandaAberta(companyId, b.comandaId)
       const dest = await comandaAberta(companyId, b.comandaDestinoId)
       if (!orig || !dest || orig.id === dest.id) return erro('Escolha duas mesas abertas diferentes.', 409)
+      if (orig.tipo === 'consumo' || dest.tipo === 'consumo') return erro('Consumo interno não pode ser juntado com outra conta.')
       if ((await totalPago(orig.id)) > 0) return erro('A mesa de origem já tem pagamento. Feche ou remova antes de juntar.', 409)
       await sb.from('loja_pedidos').update({ comanda_id: dest.id }).eq('comanda_id', orig.id)
       const agora = new Date().toISOString()

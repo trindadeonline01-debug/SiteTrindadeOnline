@@ -139,7 +139,7 @@ export default function SalaDeVendasTab() {
 
     // PDV (vendas) e Mesas (contas fechadas) no mesmo período/loja — a taxa de serviço fica à parte.
     let qpdv = supabase.from('loja_pedidos').select('total').eq('origin', 'pdv').neq('status', 'cancelado')
-    let qmesa = supabase.from('loja_comandas').select('subtotal, desconto, taxa_valor').eq('status', 'fechada')
+    let qmesa = supabase.from('loja_comandas').select('subtotal, desconto, taxa_valor').eq('status', 'fechada').neq('tipo', 'consumo')
     if (from) { qpdv = qpdv.gte('created_at', from); qmesa = qmesa.gte('fechada_em', from) }
     if (to) { qpdv = qpdv.lt('created_at', to); qmesa = qmesa.lt('fechada_em', to) }
     if (storeFilter !== 'all') { qpdv = qpdv.eq('company_id', storeFilter); qmesa = qmesa.eq('company_id', storeFilter) }

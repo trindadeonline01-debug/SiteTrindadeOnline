@@ -32,6 +32,13 @@ export default function JogosClient({ slug }: { slug: string }) {
   const [busy, setBusy] = useState(false)
   const [logoOk, setLogoOk] = useState(true)
 
+  // Veio pelo link do WhatsApp ("enquanto você espera"): conta o acesso, 1 vez por aba.
+  useEffect(() => {
+    const r = new URLSearchParams(window.location.search).get('r')
+    if (!r) return
+    try { if (sessionStorage.getItem('jgr:' + r)) return; sessionStorage.setItem('jgr:' + r, '1') } catch {}
+    fetch('/api/jogos/abriu', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ r }) }).catch(() => {})
+  }, [])
   useEffect(() => {
     let vivo = true
     post('/api/jogos', { acao: 'info', slug }).then(r => {

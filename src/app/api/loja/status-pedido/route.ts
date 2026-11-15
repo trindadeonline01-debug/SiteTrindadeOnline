@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { randomBytes } from 'crypto'
 import { createClient } from '@supabase/supabase-js'
 import { moduleActive } from '@/lib/modules'
 import { normalizePhone } from '@/lib/phone'
@@ -124,12 +125,18 @@ export async function POST(req: NextRequest) {
     // pedido que já recebeu o link do jogo com cashback também não (não confundir os dois).
     if (status === 'em_preparo' && company.slug && moduleActive(company.loja_digital_enabled, company.trial_modules_until)) {
       const [{ data: ped }, { data: oferta }] = await Promise.all([
-        supabase.from('loja_pedidos').select('comanda_id, origin').eq('id', pedidoId).maybeSingle(),
+        supabase.from('loja_pedidos').select('comanda_id, origin, customer_name').eq('id', pedidoId).maybeSingle(),
         supabase.from('jogo_ofertas_pedido').select('id').eq('pedido_id', pedidoId).maybeSingle(),
       ])
       if (ped && !ped.comanda_id && ped.origin !== 'mesa' && !oferta) {
-        const site = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trindadeonline.com.br'
-        await sendCustomerWhatsApp(companyId, phone, `🎮 Enquanto você espera, dá uma olhadinha no que a gente preparou pra você: ${site}/jogos/${company.slug}`)
+        // Registro do envio (1 por pedido — se o status voltar para "em preparo", não manda de novo). O token
+        // no link conta quem abriu; jogou/pontos vêm pelo WhatsApp do jogador (painel admin → Jogos).
+        const token = randomBytes(9).toString('base64url')
+        const { error: dup } = await supabase.from('jogo_links_enviados').insert({ company_id: companyId, pedido_id: pedidoId, customer_phone: phone, customer_name: ped.customer_name || null, token })
+        if (!dup) {
+          const site = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trindadeonline.com.br'
+          await sendCustomerWhatsApp(companyId, phone, `🎮 Enquanto você espera, dá uma olhadinha no que a gente preparou pra você: ${site}/jogos/${company.slug}?r=${token}`)
+        }
       }
     }
     // Pedido de avaliação, também à parte — só na entrega/retirada de

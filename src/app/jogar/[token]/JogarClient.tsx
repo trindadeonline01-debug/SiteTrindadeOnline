@@ -32,6 +32,11 @@ export default function JogarClient({ token, caca }: { token: string; caca: bool
     call('estado').then(d => setEst(d)).catch(e => setErro(e.message === 'Mesa não encontrada.' ? 'Este link não existe ou não está mais ativo.' : e.message))
   }, [call])
   useEffect(() => { carregar() }, [carregar])
+  // Conta o acesso ao link (1 vez por aba) para o monitor em admin → Jogos.
+  useEffect(() => {
+    try { if (sessionStorage.getItem('jgp:' + token)) return; sessionStorage.setItem('jgp:' + token, '1') } catch {}
+    fetch('/api/jogos/abriu', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ p: token }) }).catch(() => {})
+  }, [token])
 
   async function enviar() {
     setErro('')

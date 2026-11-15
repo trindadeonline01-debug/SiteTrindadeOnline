@@ -1,5 +1,5 @@
 import { jaGanhouNosUltimosDias } from '@/lib/quizPremio'
-import { ofertaPorToken, ofertaValida, podeGanharNaOferta, liberarPremioRodadaPedido, type OfertaPedido } from '@/lib/jogoPedido'
+import { ofertaPorToken, premioDisponivel, reivindicarPrimeiraJogada, liberarPremioPedido, situacaoOferta, type OfertaPedido } from '@/lib/jogoPedido'
 import { lerQuizPcts, QUIZ_MARCOS_CHAVES } from '@/lib/jogosPremio'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
@@ -43,9 +43,8 @@ function lerToken(token: unknown, cid: string): string | null {
 
 // Prêmio que já saiu no link do pedido (para a tela final mostrar o valor em R$).
 async function premioDoPedido(ofertaId: string) {
-  const { data } = await sb.from('jogo_ofertas_pedido').select('estado, premio_valor, premio_rodada_id').eq('id', ofertaId).maybeSingle()
-  if (!data || data.estado !== 'premiada' || !data.premio_rodada_id) return null
-  return { rodadaId: data.premio_rodada_id, valorTxt: 'R$ ' + Number(data.premio_valor).toFixed(2).replace('.', ',') }
+  const st = await situacaoOferta(ofertaId)
+  return st?.premiada && st.rodadaId ? { rodadaId: st.rodadaId, valorTxt: st.valorTxt } : null
 }
 
 // ---------- apelido ----------
@@ -121,7 +120,7 @@ async function salvarRodada(id: string, novo: Rodada, extra: Record<string, unkn
     atualizada_em: new Date().toISOString(), ...(fim ? { encerrada_em: new Date().toISOString() } : {}), ...extra,
   }).eq('id', id)
   // Rodada do link de delivery: o prêmio sai na hora em que a rodada termina.
-  if (fim && novo.marco > 0) await liberarPremioRodadaPedido(id)
+  if (fim && novo.marco > 0) await liberarPremioPedido('quiz', id)
 }
 
 type ItemDb = { id: string; rodada_id: string; ordem: number; pergunta_id: string; ordem_opcoes: number[]; prazo: string; pensar: boolean; resposta: number | null; acertou: boolean | null }
@@ -182,10 +181,12 @@ export async function POST(req: NextRequest) {
         jogador = j || null
         if (j) retomar = !!(await rodadaAberta(jogadorId))
       }
-      const premioPedido = ctx.oferta ? !!ctx.camp.premio_ativo && (jogadorId ? await podeGanharNaOferta(ctx.oferta, jogadorId) : ofertaValida(ctx.oferta)) : false
+      const premioPedido = ctx.oferta ? !!ctx.camp.premio_ativo && await premioDisponivel(ctx.oferta, jogadorId, 'quiz') : false
       return NextResponse.json({ ativo: true, modo: ctx.modoLoja ? 'loja' : ctx.modoPedido ? 'pedido' : 'mesa', slug: ctx.company.slug, premio: ctx.modoLoja ? false : ctx.modoPedido ? premioPedido : !!ctx.camp.premio_ativo, premioDaLoja: !!ctx.camp.premio_ativo, loja: ctx.company.name, mesa: ctx.mesa?.numero ?? null, jogador, retomar, perguntas: BANCO.length, temas: TEMAS_QUIZ,
         // % que a loja configurou para cada marco (a tela mostra este valor, não o número do marco)
-        pcts: Object.fromEntries(QUIZ_MARCOS_CHAVES.map((k, i) => [k, lerQuizPcts(ctx.camp?.marcos)[i]])) })
+        pcts: Object.fromEntries(QUIZ_MARCOS_CHAVES.map((k, i) => [k, lerQuizPcts(ctx.camp?.marcos)[i]])),
+        // Link do delivery: situação da oferta (prêmio já saiu? primeira jogada já usada?) para a tela de entrada.
+        oferta: ctx.oferta ? await situacaoOferta(ctx.oferta.id) : undefined })
     }
 
     // ================= cadastro pela identificação única (nome + WhatsApp já confirmado) =================
@@ -278,7 +279,8 @@ export async function POST(req: NextRequest) {
         eu: eu ? { pos: Number(eu.posicao), apelido: eu.apelido, pontos: eu.pontos, acertos: eu.acertos } : null,
         // Jogador que já ganhou prêmio nos últimos 7 dias: nesta rodada só vale o ranking.
         premioPedido: ctx.oferta ? await premioDoPedido(ctx.oferta.id) : undefined,
-        premioBloqueado: ctx.oferta ? (ctx.camp.premio_ativo && jogadorId ? !(await podeGanharNaOferta(ctx.oferta, jogadorId)) : false)
+        premioDisponivel: ctx.oferta ? !!ctx.camp.premio_ativo && await premioDisponivel(ctx.oferta, jogadorId, 'quiz') : undefined,
+        premioBloqueado: ctx.oferta ? false
           : !ctx.modoLoja && ctx.camp.premio_ativo && jogadorId ? await jaGanhouNosUltimosDias(sb, cid, jogadorId) : false,
       })
     }
@@ -295,9 +297,11 @@ export async function POST(req: NextRequest) {
       let retomada = true
       if (!r) {
         retomada = false
-        const ins = await sb.from('quiz_rodadas').insert({ company_id: cid, comanda_id: null, jogador_key: `j:${jogadorId}`, jogador_id: jogadorId, mesa_id: ctx.mesa?.id ?? null, pedido_id: ctx.oferta?.pedido_id ?? null, premiada: false, tema }).select('*').single()
+        const ins = await sb.from('quiz_rodadas').insert({ company_id: cid, comanda_id: null, jogador_key: `j:${jogadorId}`, jogador_id: jogadorId, mesa_id: ctx.mesa?.id ?? null, premiada: false, tema }).select('*').single()
         if (ins.error) return erro('Não consegui começar a rodada.', 500)
         r = ins.data as RodadaDb
+        // Link do delivery: a primeira jogada é a que vale o prêmio do pedido.
+        if (ctx.oferta) await reivindicarPrimeiraJogada(ctx.oferta, jogadorId, 'quiz', r.id)
       }
       const item = await itemPendente(r.id)
       return NextResponse.json({ ok: true, retomada, rodada: publico(r), tema: r.tema ?? null, item: item ? await mostrarItem(item, r) : null, tempoS: QUIZ_TEMPO_S })

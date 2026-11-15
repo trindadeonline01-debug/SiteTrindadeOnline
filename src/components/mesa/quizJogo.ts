@@ -105,10 +105,10 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
   // Modo pedido (link do WhatsApp depois de um delivery pago): o prêmio vira cashback na hora. Token = 'pedido:<token>'.
   var MODO_PEDIDO = TOKEN.indexOf('pedido:') === 0
   var SEM_MESA = MODO_LOJA || MODO_PEDIDO
-  var HOME = MODO_LOJA ? '/jogos/' + TOKEN.slice(5) : MODO_PEDIDO ? '/meu-cashback' : '/mesa/' + TOKEN
-  var IDENT_URL = MODO_LOJA ? HOME + '?identificar=1' : HOME + '?identificar=jogar'
-  var VOLTAR = MODO_LOJA ? 'Jogos' : MODO_PEDIDO ? 'Saldo' : 'Mesa'
-  var VOLTAR_LONGO = MODO_LOJA ? 'Voltar aos jogos' : MODO_PEDIDO ? 'Ver meu saldo' : 'Voltar à mesa'
+  var HOME = MODO_LOJA ? '/jogos/' + TOKEN.slice(5) : MODO_PEDIDO ? '/jogar/' + TOKEN.slice(7) : '/mesa/' + TOKEN
+  var IDENT_URL = MODO_LOJA ? HOME + '?identificar=1' : MODO_PEDIDO ? HOME : HOME + '?identificar=jogar'
+  var VOLTAR = MODO_LOJA || MODO_PEDIDO ? 'Jogos' : 'Mesa'
+  var VOLTAR_LONGO = MODO_LOJA || MODO_PEDIDO ? 'Voltar aos jogos' : 'Voltar à mesa'
   // Quando o prêmio vira valor: na mesa, ao pagar a conta; no link do pedido, assim que a rodada termina.
   var QUANDO = MODO_PEDIDO ? 'Vira valor em R$ assim que a rodada terminar e vale para a sua próxima compra.' : 'É provisório: vira valor em R$ quando você pagar a conta de hoje e vale para a sua próxima compra.'
   // Tema escolhido na tela inicial ('' = misturado). Fica guardado neste aparelho.
@@ -139,7 +139,7 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
   }
   function fail(e) {
     if (G) G.busy = false
-    if (e && e.status === 401) { JT = ''; try { localStorage.removeItem(LS) } catch (x) {} if (INFO) INFO.jogador = null; if (MODO_PEDIDO) { cur = 'cadastro'; render(); return } location.href = IDENT_URL; return }
+    if (e && e.status === 401) { JT = ''; try { localStorage.removeItem(LS) } catch (x) {} if (INFO) INFO.jogador = null; location.href = IDENT_URL; return }
     if (e && e.status === 409 && G && G.live) { // rodada já encerrada no servidor
       cur = 'intro'; G = null; render(); toast('Essa rodada já terminou.'); return
     }
@@ -177,7 +177,7 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
     var aviso = MODO_LOJA
       ? '<b>Valendo só ranking</b><span>Para ganhar cashback, jogue pelo QR da sua mesa.</span>'
       : MODO_PEDIDO
-        ? (premio ? '<b>Esta rodada vale cashback do seu pedido</b><span>Com 10 acertos você já garante. Cai no saldo na hora, para a próxima compra. Vale 1 prêmio por pedido.</span>' : '<b>Valendo só ranking</b><span>O cashback deste link já foi usado, venceu ou é de outro WhatsApp.</span>')
+        ? (premio ? '<b>Esta rodada vale cashback do seu pedido</b><span>Vale a sua primeira jogada (Quiz ou Caça-Palavras). Com 10 acertos você já garante, e cai no saldo na hora.</span>' : '<b>Valendo só ranking</b><span>A jogada que valia cashback deste pedido já foi usada, o link venceu ou é de outro WhatsApp.</span>')
       : (premio ? '<b>Esta rodada vale cashback</b><span>Creditado só quando você pagar a conta da mesa.</span>' : '<b>Valendo ranking da loja</b><span>Suba de posição a cada rodada.</span>')
     var temas = [{ id: '', nome: 'Misturado', icone: '🎲' }].concat((INFO && INFO.temas) || [])
     var tiles = temas.map(function (t) {
@@ -426,7 +426,7 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
   }
   function carregarRanking(aba, depois) {
     RK.tab = aba
-    api('ranking', { aba: aba }).then(function (j) { RK.data = j; if (cur === 'ranking' || cur === 'fim') render(); if (depois) depois() }).catch(function () {})
+    api('ranking', { aba: aba }).then(function (j) { RK.data = j; if (MODO_PEDIDO && INFO && typeof j.premioDisponivel === 'boolean') INFO.premio = j.premioDisponivel; if (cur === 'ranking' || cur === 'fim') render(); if (depois) depois() }).catch(function () {})
   }
 
   // ======== cliques ========
@@ -455,7 +455,7 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
     }
     if (a === 'start') {
       ac()
-      if (!INFO.jogador) { if (MODO_PEDIDO) { REG.err = ''; cur = 'cadastro'; render(); return } location.href = IDENT_URL; return }
+      if (!INFO.jogador) { location.href = IDENT_URL; return }
       comecar(); return
     }
     if (a === 'resume') { comecar(); return }

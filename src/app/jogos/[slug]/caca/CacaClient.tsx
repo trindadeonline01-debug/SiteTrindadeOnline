@@ -49,8 +49,10 @@ function Estrelas({ n }: { n: number }) {
   )
 }
 
-export default function CacaClient({ modo, chave }: { modo: 'loja' | 'mesa'; chave: string }) {
-  const tokenApi = modo === 'loja' ? `loja:${chave}` : chave          // QR da mesa ou loja:<slug>
+export default function CacaClient({ modo, chave }: { modo: 'loja' | 'mesa' | 'pedido'; chave: string }) {
+  // QR da mesa, loja:<slug> ou pedido:<token> (link do WhatsApp depois de um delivery pago — o prêmio cai na hora)
+  const tokenApi = modo === 'loja' ? `loja:${chave}` : modo === 'pedido' ? `pedido:${chave}` : chave
+  const QUANDO = modo === 'pedido' ? 'Cai no seu saldo assim que a rodada terminar, para a próxima compra.' : 'Vira valor quando você pagar a conta de hoje, na próxima compra.'
   const LS = `quizjt:${tokenApi}`
   const [tela, setTela] = useState<Tela>('carregando')
   const [meta, setMeta] = useState<Meta>({ loja: '', slug: modo === 'loja' ? chave : '', premio: false, bloqueado: false, mesaNumero: null, bonus: BONUS_PADRAO })
@@ -72,7 +74,7 @@ export default function CacaClient({ modo, chave }: { modo: 'loja' | 'mesa'; cha
 
   const jt = useCallback(() => { try { return localStorage.getItem(LS) || '' } catch { return '' } }, [LS])
   const irIdentificar = useCallback(() => {
-    window.location.assign(modo === 'loja' ? `/jogos/${chave}?identificar=1` : `/mesa/${chave}?identificar=jogar&voltar=${encodeURIComponent(window.location.pathname)}`)
+    window.location.assign(modo === 'pedido' ? `/jogar/${chave}` : modo === 'loja' ? `/jogos/${chave}?identificar=1` : `/mesa/${chave}?identificar=jogar&voltar=${encodeURIComponent(window.location.pathname)}`)
   }, [modo, chave])
   const api = useCallback(async (acao: string, extra: Record<string, unknown> = {}) => {
     const r = await fetch('/api/jogos/caca', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ acao, token: tokenApi, jt: jt(), ...extra }) })
@@ -248,12 +250,12 @@ export default function CacaClient({ modo, chave }: { modo: 'loja' | 'mesa'; cha
   const selSet = useMemo(() => new Set(sel.map(([r, c]) => `${r},${c}`)), [sel])
   const ruimSet = useMemo(() => new Set(ruim.map(([r, c]) => `${r},${c}`)), [ruim])
 
-  const voltarUrl = modo === 'loja' ? `/jogos/${chave}` : `/mesa/${chave}`
+  const voltarUrl = modo === 'loja' ? `/jogos/${chave}` : modo === 'pedido' ? `/jogar/${chave}` : `/mesa/${chave}`
   const rankUrl = `/jogos/${meta.slug || chave}/ranking`
-  const cash = meta.premio && !meta.bloqueado          // este jogo vale cashback para este jogador agora?
+  const cash = modo === 'pedido' ? (rod ? rod.premio : meta.premio) : meta.premio && !meta.bloqueado          // este jogo vale cashback para este jogador agora?
   const topo = (
     <header className="cc-bar">
-      <a href={voltarUrl}>{modo === 'loja' ? '‹ Jogos' : '‹ Mesa'}</a>
+      <a href={voltarUrl}>{modo === 'mesa' ? '‹ Mesa' : '‹ Jogos'}</a>
       <div className="cc-brand">{meta.loja || ' '}</div>
       <a className="cc-rk" href={rankUrl}>Ranking</a>
     </header>
@@ -268,7 +270,7 @@ export default function CacaClient({ modo, chave }: { modo: 'loja' | 'mesa'; cha
 
           {tela === 'intro' && (
             <>
-              <div><h1 className="cc-t">Caça-Palavras</h1><p className="cc-sub">Ache as palavras escondidas antes de o tempo acabar. Arraste o dedo sobre as letras em linha reta, em qualquer direção. {cash ? 'Cada nível garante cashback, que vira valor quando você pagar a conta de hoje.' : meta.premio && meta.bloqueado ? 'Você já ganhou um prêmio nos últimos 7 dias: esta rodada vale só para o ranking.' : modo === 'mesa' ? 'Nesta mesa o jogo vale para o ranking da loja.' : 'Aqui o jogo vale só para o ranking da loja. Para ganhar cashback, jogue pelo QR da sua mesa.'}</p></div>
+              <div><h1 className="cc-t">Caça-Palavras</h1><p className="cc-sub">Ache as palavras escondidas antes de o tempo acabar. Arraste o dedo sobre as letras em linha reta, em qualquer direção. {modo === 'pedido' ? (cash ? 'Vale a sua primeira jogada: cada nível concluído garante cashback, que cai no seu saldo quando a rodada termina.' : 'A jogada que valia cashback deste pedido já foi usada, o link venceu ou é de outro WhatsApp. Aqui vale só o ranking.') : cash ? 'Cada nível garante cashback, que vira valor quando você pagar a conta de hoje.' : meta.premio && meta.bloqueado ? 'Você já ganhou um prêmio nos últimos 7 dias: esta rodada vale só para o ranking.' : modo === 'mesa' ? 'Nesta mesa o jogo vale para o ranking da loja.' : 'Aqui o jogo vale só para o ranking da loja. Para ganhar cashback, jogue pelo QR da sua mesa.'}</p></div>
               <div className="cc-rota">
                 {NIVEIS_INFO.map(n => (
                   <div key={n.n}>
@@ -338,7 +340,7 @@ export default function CacaClient({ modo, chave }: { modo: 'loja' | 'mesa'; cha
                   <div className="cc-row"><span>Pontos do nível</span><b>+{fmt(res.pontosNivel)}</b></div>
                   <div className="cc-row"><span>Pontos na rodada</span><b>{fmt(rod.pontos)}</b></div>
                 </div>
-                {cash && <div className="cc-box gold"><span className="cc-kick">Garantido até agora</span><div className="cc-big">{res.marco}%<small>de cashback</small></div><p className="cc-sub">Vira valor quando você pagar a conta de hoje, na próxima compra.</p></div>}
+                {cash && <div className="cc-box gold"><span className="cc-kick">Garantido até agora</span><div className="cc-big">{res.marco}%<small>de cashback</small></div><p className="cc-sub">{QUANDO}</p></div>}
                 {decide && (
                   <div className="cc-dec">
                     <div className="cc-dc"><span className="k">Se parar agora</span><span className="v">{res.marco}%</span><p>Garantido. Seus {fmt(rod.pontos)} pontos entram no ranking.</p></div>
@@ -371,7 +373,7 @@ export default function CacaClient({ modo, chave }: { modo: 'loja' | 'mesa'; cha
               </div>
               {cash && (
                 <div className="cc-box gold"><span className="cc-kick">Seu bônus</span><div className="cc-big" style={{ color: rod.marco > 0 ? undefined : '#FFB4A8' }}>{rod.marco}%<small>de cashback</small></div>
-                  <p className="cc-sub">{rod.marco > 0 ? 'Vira valor quando você pagar a conta de hoje. Vale para a sua próxima compra aqui.' : rod.fim === 'tempo' && rod.nivel > PORTAO ? 'Neste nível o tempo esgotado perde o bônus. Seus pontos continuam no ranking.' : `Você ainda não garantiu bônus. Conclua o nível 1 para garantir ${meta.bonus[0]}%.`}</p></div>
+                  <p className="cc-sub">{rod.marco > 0 ? (modo === 'pedido' ? 'Já está no seu saldo para a próxima compra. Também mandamos no seu WhatsApp.' : 'Vira valor quando você pagar a conta de hoje. Vale para a sua próxima compra aqui.') : rod.fim === 'tempo' && rod.nivel > PORTAO ? 'Neste nível o tempo esgotado perde o bônus. Seus pontos continuam no ranking.' : `Você ainda não garantiu bônus. Conclua o nível 1 para garantir ${meta.bonus[0]}%.`}</p></div>
               )}
               <div className={`cc-box${cash ? '' : ' gold'}`}><span className="cc-kick">Pontos na rodada</span><div className={cash ? 'cc-row' : 'cc-big'} style={cash ? { borderBottom: 0 } : undefined}>{cash ? <b>{fmt(rod.pontos)} pontos</b> : <>{fmt(rod.pontos)}<small>pontos</small></>}</div><p className="cc-sub">{rod.melhorNivel > 0 ? `Você concluiu até o nível ${rod.melhorNivel}.` : 'Conclua o nível 1 para subir no ranking.'}</p></div>
               {erroMsg && <div className="cc-warn">{erroMsg}</div>}

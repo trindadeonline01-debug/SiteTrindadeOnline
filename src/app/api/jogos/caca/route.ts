@@ -4,6 +4,7 @@ import { moduleActive } from '@/lib/modules'
 import { lerJogadorToken } from '@/lib/quizJogador'
 import { jaGanhouNosUltimosDias } from '@/lib/quizPremio'
 import { lerCacaBonus } from '@/lib/jogosPremio'
+import { ofertaPorToken, premioDisponivel, reivindicarPrimeiraJogada, liberarPremioPedido, situacaoOferta, type OfertaPedido } from '@/lib/jogoPedido'
 import {
   NIVEIS, PARTES, TEMPO_EXTRA, AJUDAS_INICIAIS, ATRASO_INICIO_S, MAX_TENTATIVAS, PORTAO_CASHBACK,
   pontosGrade, estrelas, novaGrade, refazerGrade, conferirSelecao, palavrasVisiveis, type Grade, type Ajudas,
@@ -22,9 +23,9 @@ type R = {
   nivel: number; parte: number; pontos: number; pontos_nivel: number; melhor_nivel: number
   grade: Grade; usadas: string[]; ajudas: Ajudas; ratios: number[]
   tempo_total: number; grade_iniciada_em: string; tempo_usado: number; atualizada_em: string
-  mesa_id: string | null; marco: number
+  mesa_id: string | null; pedido_id: string | null; marco: number
 }
-type Ctx = { modo: 'loja' | 'mesa'; mesaId: string | null; mesaNumero: string | number | null; slug: string; loja: string; premio: boolean; bloqueado: boolean; bonus: number[] }
+type Ctx = { modo: 'loja' | 'mesa' | 'pedido'; mesaId: string | null; mesaNumero: string | number | null; slug: string; loja: string; premio: boolean; bloqueado: boolean; bonus: number[] }
 
 // segundos que ainda sobram na grade (pode ficar negativo; passa de `tempo_total` só durante a tela de transição)
 const sobraBruta = (r: R, agora = Date.now()) => r.tempo_total - (agora - Date.parse(r.grade_iniciada_em)) / 1000
@@ -51,8 +52,14 @@ async function salvar(r: R, patch: Record<string, unknown>): Promise<R | null> {
 }
 // Do nível 4 em diante (o jogador escolheu arriscar), tempo esgotado ou largar a grade no meio perde o bônus garantido.
 // Nos níveis 1 a 3 ele mantém.
-const encerrar = (r: R, motivo: 'parou' | 'tempo' | 'completa', perdeBonus = motivo === 'tempo') =>
-  salvar(r, { estado: 'encerrada', motivo_fim: motivo, encerrada_em: new Date().toISOString(), ...(perdeBonus && r.mesa_id && r.nivel > PORTAO_CASHBACK ? { marco: 0 } : {}) })
+// Rodada que vale prêmio = da mesa (QR) ou a primeira jogada do link do delivery.
+const valePremio = (r: R) => !!(r.mesa_id || r.pedido_id)
+async function encerrar(r: R, motivo: 'parou' | 'tempo' | 'completa', perdeBonus = motivo === 'tempo') {
+  const fin = await salvar(r, { estado: 'encerrada', motivo_fim: motivo, encerrada_em: new Date().toISOString(), ...(perdeBonus && valePremio(r) && r.nivel > PORTAO_CASHBACK ? { marco: 0 } : {}) })
+  // Link do delivery: o bônus garantido vira cashback na hora em que a rodada termina.
+  if (fin?.pedido_id && fin.marco > 0) await liberarPremioPedido('caca', fin.id)
+  return fin
+}
 
 async function rodadaAtual(companyId: string, jogadorId: string): Promise<R | null> {
   const { data } = await sb.from('caca_rodadas').select('*').eq('company_id', companyId).eq('jogador_id', jogadorId)
@@ -68,7 +75,11 @@ export async function POST(req: NextRequest) {
     const tok = String(b.token || (b.slug ? 'loja:' + String(b.slug) : '')).trim()
     if (tok.length < 5 || tok.length > 90) return erro('Loja não encontrada.', 404)
     let mesaId: string | null = null, mesaNumero: string | number | null = null, companyId: string | null = null
-    if (tok.startsWith('loja:')) {
+    let oferta: OfertaPedido | null = null
+    if (tok.startsWith('pedido:')) {
+      oferta = await ofertaPorToken(tok.slice(7))
+      companyId = oferta?.company_id ?? null
+    } else if (tok.startsWith('loja:')) {
       const { data: c0 } = await sb.from('companies').select('id').eq('slug', tok.slice(5).trim().toLowerCase()).maybeSingle()
       companyId = c0?.id ?? null
     } else {
@@ -82,10 +93,11 @@ export async function POST(req: NextRequest) {
     const jogadorId = lerJogadorToken(b.jt, company.id)
     if (!jogadorId) return erro('Sua identificação venceu. Confirme seu WhatsApp de novo.', 401)
     const { data: camp } = await sb.from('quiz_campanhas').select('ativa, premio_ativo, caca_marcos').eq('company_id', company.id).maybeSingle()
-    const premio = !!mesaId && !!camp?.ativa && !!camp?.premio_ativo
+    const premioPedido = oferta ? !!camp?.ativa && !!camp?.premio_ativo && await premioDisponivel(oferta, jogadorId, 'caca') : false
+    const premio = oferta ? premioPedido : !!mesaId && !!camp?.ativa && !!camp?.premio_ativo
     const ctx: Ctx = {
-      modo: mesaId ? 'mesa' : 'loja', mesaId, mesaNumero, slug: company.slug, loja: company.name, premio,
-      bloqueado: premio ? await jaGanhouNosUltimosDias(sb, company.id, jogadorId) : false,
+      modo: oferta ? 'pedido' : mesaId ? 'mesa' : 'loja', mesaId, mesaNumero, slug: company.slug, loja: company.name, premio,
+      bloqueado: premio && !oferta ? await jaGanhouNosUltimosDias(sb, company.id, jogadorId) : false,
       bonus: lerCacaBonus(camp?.caca_marcos),     // % de cada nível, como a loja configurou
     }
 
@@ -98,7 +110,13 @@ export async function POST(req: NextRequest) {
     if (acao === 'estado') {
       let r = await rodadaAtual(company.id, jogadorId)
       if (r && r.estado === 'jogando' && sobraBruta(r) <= -0.5) r = (await encerrar(r, 'tempo')) ?? r
-      return NextResponse.json({ ok: true, rodada: r && r.estado !== 'encerrada' ? visao(r, ctx) : null, ultima: r && r.estado === 'encerrada' ? visao(r, ctx) : null, melhor: await melhorDoJogador(), ctx })
+      // Delivery: quem saiu entre um nível e outro e voltou 15 min depois leva o bônus que já tinha garantido.
+      if (r && r.pedido_id && r.estado === 'entre_niveis' && Date.now() - Date.parse(r.atualizada_em) > 15 * 60_000) r = (await encerrar(r, 'parou', false)) ?? r
+      if (!r && oferta) {
+        const { data: ult } = await sb.from('caca_rodadas').select('*').eq('company_id', company.id).eq('jogador_id', jogadorId).order('criada_em', { ascending: false }).limit(1).maybeSingle()
+        r = (ult as R | null) ?? null
+      }
+      return NextResponse.json({ ok: true, premioPedido: oferta ? await situacaoOferta(oferta.id) : undefined, rodada: r && r.estado !== 'encerrada' ? visao(r, ctx) : null, ultima: r && r.estado === 'encerrada' ? visao(r, ctx) : null, melhor: await melhorDoJogador(), ctx })
     }
 
     // ---------- iniciar: rodada nova (fecha a anterior, se houver) ----------
@@ -117,7 +135,14 @@ export async function POST(req: NextRequest) {
         ajudas: AJUDAS_INICIAIS, tempo_total: L.time, grade_iniciada_em: atraso(),
       }).select('*').single()
       if (error || !data) return erro('Não consegui começar agora. Tente de novo.', 500)
-      return NextResponse.json({ ok: true, rodada: visao(data as R, ctx) })
+      let nova = data as R
+      // Link do delivery: a primeira jogada é a que vale o prêmio do pedido.
+      if (oferta) {
+        const vale = await reivindicarPrimeiraJogada(oferta, jogadorId, 'caca', nova.id)
+        if (vale) nova = { ...nova, pedido_id: oferta.pedido_id }
+        ctx.premio = vale && !!camp?.ativa && !!camp?.premio_ativo
+      }
+      return NextResponse.json({ ok: true, rodada: visao(nova, ctx) })
     }
 
     const r = await rodadaAtual(company.id, jogadorId)
@@ -203,13 +228,14 @@ export async function POST(req: NextRequest) {
       }
       const ultimo = r.nivel >= NIVEIS.length
       const n = await salvar(r, {
-        ...base, grade: g, melhor_nivel: r.nivel, marco: r.mesa_id ? ctx.bonus[r.nivel - 1] : 0,
+        ...base, grade: g, melhor_nivel: r.nivel, marco: valePremio(r) ? ctx.bonus[r.nivel - 1] : 0,
         estado: ultimo ? 'encerrada' : 'entre_niveis', motivo_fim: ultimo ? 'completa' : null, encerrada_em: ultimo ? new Date().toISOString() : null,
       })
       if (!n) return erro('Tente de novo.', 409)
+      if (ultimo && n.pedido_id && n.marco > 0) await liberarPremioPedido('caca', n.id)
       return NextResponse.json({
         ok: true, acerto: true, palavra,
-        nivelConcluido: { nivel: r.nivel, nome: L.nome, pontosNivel: base.pontos_nivel, tempoUsado: base.tempo_usado, estrelas: estrelas(ratios), ultimo, marco: r.mesa_id ? ctx.bonus[r.nivel - 1] : 0 },
+        nivelConcluido: { nivel: r.nivel, nome: L.nome, pontosNivel: base.pontos_nivel, tempoUsado: base.tempo_usado, estrelas: estrelas(ratios), ultimo, marco: valePremio(r) ? ctx.bonus[r.nivel - 1] : 0 },
         rodada: visao(n, ctx),
       })
     }

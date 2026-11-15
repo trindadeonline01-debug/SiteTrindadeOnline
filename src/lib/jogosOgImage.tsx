@@ -77,7 +77,7 @@ export function cashbackOgImage(loja: string) {
             <span style={{ fontSize: 28, fontWeight: 700, color: '#FFD54A', marginLeft: 8 }}>ONLINE</span>
           </div>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            <div style={{ display: 'flex', fontSize: 40, fontWeight: 700, color: '#D9F99D' }}>Jogue e ganhe</div>
+            <div style={{ display: 'flex', alignSelf: 'flex-start', fontSize: 36, fontWeight: 800, color: '#063D22', background: 'linear-gradient(135deg, #FFE48A 0%, #F5B800 60%, #D99A00 100%)', padding: '10px 26px', borderRadius: 999, boxShadow: '0 6px 16px rgba(0,0,0,.3)' }}>Jogue e ganhe</div>
             <div style={{ display: 'flex', fontSize: 118, fontWeight: 800, color: '#FFD54A', lineHeight: 1, marginTop: 8, letterSpacing: -2, textShadow: '0 4px 0 #8A6410, 0 10px 24px rgba(0,0,0,.45)' }}>CASHBACK</div>
             <div style={{ display: 'flex', fontSize: 40, fontWeight: 700, marginTop: 14 }}>no seu pedido</div>
             <div style={{ display: 'flex', fontSize: 26, color: '#BBF7D0', marginTop: 16 }}>Quiz ou Caça-Palavras · cai na hora no seu saldo</div>

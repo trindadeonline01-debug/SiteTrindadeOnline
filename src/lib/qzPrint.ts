@@ -192,10 +192,10 @@ export function getViasImpressao() { return { ...VIAS } }
 // Imprime as cópias configuradas (completa e/ou produção), na ordem: completa
 // primeiro. minCompleta: botão manual "imprimir" sempre sai ao menos essa quantidade.
 // Devolve quantas folhas mandou (0 = a loja configurou "nenhuma").
-export async function imprimirVias(printerName: string, completa: string | null, producao: string | null, minCompleta = 0): Promise<number> {
+export async function imprimirVias(printerName: string, completa: string | null, producao: string | null, minCompleta = 0, viasProducao?: number): Promise<number> {
   const folhas: string[] = []
   if (completa) for (let i = 0; i < Math.max(VIAS.completa, minCompleta); i++) folhas.push(completa)
-  if (producao) for (let i = 0; i < VIAS.producao; i++) folhas.push(producao)
+  if (producao) for (let i = 0; i < (viasProducao ?? VIAS.producao); i++) folhas.push(producao)
   if (folhas.length === 0) return 0
   if (isRawBtMode(printerName)) {
     // Duas chamadas de `intent:` em sequência imediata perdem a segunda — respiro entre elas.

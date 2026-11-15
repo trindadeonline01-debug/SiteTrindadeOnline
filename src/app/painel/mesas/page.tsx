@@ -88,6 +88,7 @@ function moneyShow(d: string) {
 // Pausa de impressão nas mesas (pedido do Ricardo, 4/nov/2026: dia de teste do sistema, sem testar impressão).
 // Pra voltar a imprimir: esvaziar esta lista.
 const IMPRESSAO_PAUSADA_EMPRESAS: string[] = [] // vazio = impressão liberada em todas (Calçada do Peixe liberada em 5/nov/2026)
+const VIAS_PRODUCAO_MESA = 2 // produção das mesas: uma via vai para a cozinha, a outra fica com a separação
 
 export default function MesasPage() {
   const [loading, setLoading] = useState(true)
@@ -239,12 +240,12 @@ export default function MesasPage() {
   // tipo 'producao' = comandinha da cozinha (sem valores); 'completa' = conta.
   // Quantas cópias de cada sai vem de Impressora → "Quantas vias" (0 a 2).
   // forcar: botão manual "Imprimir conta" sempre sai ao menos 1.
-  async function imprimir(conteudos: string[], tipo: 'completa' | 'producao', forcar = false): Promise<boolean> {
+  async function imprimir(conteudos: string[], tipo: 'completa' | 'producao', forcar = false, viasProducao?: number): Promise<boolean> {
     if (impressaoPausada) return false
     if (!printerName || conteudos.length === 0) return false
     try {
       erroImp.current = ''
-      for (const c of conteudos) await imprimirVias(printerName, tipo === 'completa' ? c : null, tipo === 'producao' ? c : null, tipo === 'completa' && forcar ? 1 : 0)
+      for (const c of conteudos) await imprimirVias(printerName, tipo === 'completa' ? c : null, tipo === 'producao' ? c : null, tipo === 'completa' && forcar ? 1 : 0, tipo === 'producao' ? viasProducao : undefined)
       return true
     } catch (e) {
       erroImp.current = e instanceof Error ? e.message : String(e || 'erro desconhecido')
@@ -275,8 +276,9 @@ export default function MesasPage() {
       itens: linhas.map(l => ({ produtoId: l.produto.id, qty: l.qty, pesoKg: l.pesoKg, modifiers: l.modifiers })),
     })
     if (!r) return false
-    // Não imprime sozinho: a atendente lança tudo e imprime para a produção no botão "Imprimir produção".
     await load()
+    // Imprime sozinho a produção (2 vias: cozinha + separação). Se falhar, o botão "Imprimir produção" segue pendente.
+    void imprimirProducao(comanda, false)
     return true
   }
 
@@ -306,7 +308,7 @@ export default function MesasPage() {
     const ok = await imprimir([buildKitchenTicket({
       pedidoShortId: `${c.tipo === 'retirada' ? 'R' + c.numero : (mesa?.numero ?? '')}-${peds.map(p => p.order_number ?? '').join('/')}`, createdAt: new Date().toISOString(), deliveryType: 'balcao',
       titulo: nomeConta(c), rotulo: `Garcom: ${c.garcom_nome || ''}`, items, notes,
-    })], 'producao')
+    })], 'producao', false, VIAS_PRODUCAO_MESA)
     if (!ok) return 'erro'
     // Só marca como impresso se saiu de verdade; assim o botão continua pedindo até dar certo.
     if (!todas) await supabase.from('loja_pedidos').update({ impresso_em: new Date().toISOString() }).in('id', peds.map(p => p.id)).is('impresso_em', null)
@@ -636,7 +638,7 @@ export default function MesasPage() {
             await imprimir([buildKitchenTicket({
               pedidoShortId: `${r.mesaNumero ?? ''}-${r.orderNumber ?? ''}`, createdAt: new Date().toISOString(), deliveryType: 'balcao', rotulo: `MESA ${r.mesaNumero ?? ''} · ${r.garcomNome || ''} · PEDIDO DO CLIENTE`,
               items: (r.linhas || []).map((l: { qty: number; peso_kg: number | null; product_name: string; unit_price: number; selected_options: { name: string; price: number }[] }) => ({ qty: l.qty, pesoKg: l.peso_kg, name: l.product_name, unitPrice: l.unit_price, options: l.selected_options })), notes: r.obs || null,
-            })], 'producao')
+            })], 'producao', false, VIAS_PRODUCAO_MESA)
             if (r.pedidoId) await supabase.from('loja_pedidos').update({ impresso_em: new Date().toISOString() }).eq('id', r.pedidoId).is('impresso_em', null)
             setPedidoQr(null); setMsg(''); await load(); if (r.comandaId) setAbertaId(r.comandaId)
           }}
@@ -904,7 +906,7 @@ function ComandaView(props: {
   async function maisUm(it: ItemPed) {
     if (!it.produto_id) return
     const r = await call('rodada', { comandaId: c.id, itens: [{ produtoId: it.produto_id, qty: 1, pesoKg: null, modifiers: it.selected_options || [] }] })
-    if (r) await load()
+    if (r) { await load(); void props.imprimirProducao(false) }
   }
 
   async function fecharConta() {

@@ -15,5 +15,5 @@ export default async function Image({ params }: { params: Promise<{ token: strin
     const { data: o } = await supabase.from('jogo_ofertas_pedido').select('company_id').eq('token', token).maybeSingle()
     if (o) { const { data: c } = await supabase.from('companies').select('name').eq('id', o.company_id).maybeSingle(); if (c?.name) loja = c.name }
   }
-  return jogosOgImage(loja, 'Jogue e ganhe cashback', 'Quiz ou Caça-Palavras: vale a sua primeira jogada')
+  return jogosOgImage(loja, 'Jogue e ganhe cashback', 'Quiz ou Caça-Palavras: vale a sua primeira jogada', 'ouro')
 }

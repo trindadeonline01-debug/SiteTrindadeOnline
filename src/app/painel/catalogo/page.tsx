@@ -1119,8 +1119,10 @@ export default function CatalogoPage() {
       // vitrine, IA de atendimento) — sem precisar de coluna nova.
       promo_type: form.hasPromo ? 'fixed' : null,
       promo_value: form.hasPromo ? Number((parsePt(form.sale_price) - parsePt(String(form.promo_value))).toFixed(2)) : null,
-      promo_starts_at: form.hasPromo && form.promo_starts_at ? form.promo_starts_at : null,
-      promo_ends_at: form.hasPromo && form.promo_ends_at ? form.promo_ends_at : null,
+      // Data escolhida vale o dia INTEIRO no horário de Brasília (antes ia como meia-noite UTC = 21h do dia anterior,
+      // e a promoção "até 15/11" acabava às 21h do dia 14 — caso Mistura Fina Açaí, 14/nov/2026).
+      promo_starts_at: form.hasPromo && form.promo_starts_at ? `${form.promo_starts_at}T00:00:00-03:00` : null,
+      promo_ends_at: form.hasPromo && form.promo_ends_at ? `${form.promo_ends_at}T23:59:59-03:00` : null,
       // Produto em promoção pode ficar de fora do cashback; sem promoção, sempre gera.
       sem_cashback: form.semCashback,
       // Onde o produto aparece: só é controlado quando a loja tem Mesas liberado (PDV + Mesas + Delivery).

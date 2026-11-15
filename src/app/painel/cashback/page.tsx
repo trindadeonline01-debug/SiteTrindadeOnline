@@ -11,10 +11,10 @@ import { formatPhoneDisplay } from '@/lib/phone'
 // configurados em Configurar cardápio → Cashback.
 
 type Cliente = { phone: string; nome: string | null; saldo: number; ultimaData: string; ultimaTipo: string | null; venceEm: string; diasParaVencer: number }
-type Resumo = { aberto: number; clientes: number; gerado: number; geradoMesa: number; geradoDelivery: number; usado: number; expirado: number; aVencer: number; aVencerQtd: number }
+type Resumo = { aberto: number; clientes: number; gerado: number; geradoMesa: number; geradoJogos?: number; geradoDelivery: number; usado: number; expirado: number; aVencer: number; aVencerQtd: number }
 type Config = { ativo: boolean; pctDelivery: number; pctMesa: number; dias: number }
 type Jogos = { ligado: boolean; premio: boolean; modo: string; max: number; quiz: number[]; caca: number[]; teto: number; acertos: number[] }
-type Mov = { tipo: string; valor: number; data: string; origem: string; saldoApos: number }
+type Mov = { tipo: string; valor: number; data: string; origem: string; detalhe?: string; saldoApos: number }
 type Extrato = { phone: string; nome: string | null; saldo: number; venceEm: string | null; movs: Mov[] }
 
 const brl = (n: number) => 'R$ ' + (Number.isFinite(n) ? n : 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -133,7 +133,7 @@ export default function CashbackPage() {
         <>
           <section className="cb-kpis">
             <div className="cb-kpi main"><em>Saldo em aberto</em><b>{brl(resumo.aberto)}</b><small>{resumo.clientes} {resumo.clientes === 1 ? 'cliente com saldo' : 'clientes com saldo'}</small></div>
-            <div className="cb-kpi"><em>Gerado em {mesNome}</em><b>{brl(resumo.gerado)}</b><small>Delivery {brl(resumo.geradoDelivery)} · Mesa {brl(resumo.geradoMesa)}</small></div>
+            <div className="cb-kpi"><em>Gerado em {mesNome}</em><b>{brl(resumo.gerado)}</b><small>Delivery {brl(resumo.geradoDelivery)} · Mesa {brl(resumo.geradoMesa)}{resumo.geradoJogos ? ` · Jogos ${brl(resumo.geradoJogos)}` : ''}</small></div>
             <div className="cb-kpi"><em>Usado no mês</em><b>{brl(resumo.usado)}</b><small>abatido em pedidos e contas</small></div>
             <div className="cb-kpi"><em>Venceu no mês</em><b>{brl(resumo.expirado)}</b><small>saldo sem uso por {config?.dias ?? 90} dias</small></div>
             <div className={'cb-kpi' + (resumo.aVencerQtd ? ' alert' : '')}><em>Vence em 7 dias</em><b>{brl(resumo.aVencer)}</b><small>{resumo.aVencerQtd ? `${resumo.aVencerQtd} ${resumo.aVencerQtd === 1 ? 'cliente' : 'clientes'} para lembrar` : 'nenhum saldo perto de vencer'}</small></div>
@@ -227,7 +227,7 @@ export default function CashbackPage() {
                       return (
                         <li key={i}>
                           <span className="cb-sub">{dm(m.data)}</span>
-                          <div><b className={pos ? 'pos' : 'neg'}>{m.tipo === 'credito' ? 'Ganhou' : m.tipo === 'estorno' ? 'Devolvido' : m.tipo === 'expirado' ? 'Venceu' : 'Usou'} {pos ? '+' : '−'}{brl(m.valor)}</b>{m.origem && <small>{m.origem}</small>}</div>
+                          <div><b className={pos ? 'pos' : 'neg'}>{m.tipo === 'credito' ? 'Ganhou' : m.tipo === 'estorno' ? 'Devolvido' : m.tipo === 'expirado' ? 'Venceu' : 'Usou'} {pos ? '+' : '−'}{brl(m.valor)}</b>{m.origem && <small>{m.origem}</small>}{m.detalhe && <small style={{ display: 'block', opacity: .8 }}>Consumiu: {m.detalhe}</small>}</div>
                           <span className="cb-sub n" title="Saldo depois do movimento">{brl(m.saldoApos)}</span>
                         </li>
                       )

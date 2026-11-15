@@ -33,6 +33,56 @@ async function pedidosPorId(ids: string[]): Promise<Map<string, PedidoInfo>> {
   return m
 }
 
+type ComandaInfo = { id: string; numero: number | null; mesa: number | null; total: number; customer_name: string | null; itens: string }
+
+// Comanda + mesa + o que foi consumido (itens somados de todos os pedidos da conta).
+async function comandasPorId(companyId: string, ids: string[]): Promise<Map<string, ComandaInfo>> {
+  const m = new Map<string, ComandaInfo>()
+  const lista = [...new Set(ids)].slice(0, 100)
+  if (!lista.length) return m
+  const [{ data: cs }, { data: ps }] = await Promise.all([
+    sb.from('loja_comandas').select('id, numero, total, customer_name, mesa_id').eq('company_id', companyId).in('id', lista),
+    sb.from('loja_pedidos').select('id, comanda_id, status').in('comanda_id', lista),
+  ])
+  const mesaIds = [...new Set((cs || []).map(c => c.mesa_id).filter(Boolean))] as string[]
+  const pedIds = (ps || []).filter(p => p.status !== 'cancelado').map(p => p.id)
+  const [{ data: ms }, { data: its }] = await Promise.all([
+    mesaIds.length ? sb.from('loja_mesas').select('id, numero').in('id', mesaIds) : Promise.resolve({ data: [] as { id: string; numero: number }[] }),
+    pedIds.length ? sb.from('loja_pedido_itens').select('pedido_id, product_name, qty').in('pedido_id', pedIds) : Promise.resolve({ data: [] as { pedido_id: string; product_name: string; qty: number }[] }),
+  ])
+  const mesaNum = new Map((ms || []).map(x => [x.id, x.numero as number]))
+  const comandaDoPed = new Map((ps || []).map(p => [p.id, p.comanda_id as string]))
+  const itens = new Map<string, Map<string, number>>()
+  for (const it of its || []) {
+    const cid = comandaDoPed.get(it.pedido_id); if (!cid) continue
+    const mm = itens.get(cid) || new Map<string, number>(); itens.set(cid, mm)
+    mm.set(it.product_name, (mm.get(it.product_name) || 0) + Number(it.qty || 1))
+  }
+  for (const c of cs || []) {
+    const lst = [...(itens.get(c.id) || new Map()).entries()].map(([n, q]) => `${q}x ${n}`).join(', ')
+    m.set(c.id, { id: c.id, numero: c.numero, mesa: c.mesa_id ? mesaNum.get(c.mesa_id) ?? null : null, total: Number(c.total || 0), customer_name: c.customer_name, itens: lst })
+  }
+  return m
+}
+
+const brlS = (n: number) => 'R$ ' + n.toFixed(2).replace('.', ',')
+const nomeValido = (n: string | null | undefined) => !!n && !/^mesa\b/i.test(n) && n !== 'Cliente balcão'
+
+// Nome do cliente quando o pedido não tem (pedido de mesa vem como "Mesa 3"):
+// cai pro nome da comanda e, por fim, pro apelido que ele usou nos jogos.
+async function nomesExtras(companyId: string, phones: string[]): Promise<Map<string, string>> {
+  const m = new Map<string, string>()
+  if (!phones.length) return m
+  const [{ data: cs }, { data: js }] = await Promise.all([
+    sb.from('loja_comandas').select('customer_phone, customer_name, aberta_em').eq('company_id', companyId).in('customer_phone', phones)
+      .not('customer_name', 'is', null).order('aberta_em', { ascending: false }).limit(3000),
+    sb.from('quiz_jogadores').select('telefone, apelido, criado_em').eq('company_id', companyId).in('telefone', phones).order('criado_em', { ascending: false }).limit(3000),
+  ])
+  for (const c of cs || []) if (!m.has(c.customer_phone) && nomeValido(c.customer_name)) m.set(c.customer_phone, c.customer_name)
+  for (const j of js || []) if (j.telefone && !m.has(j.telefone) && j.apelido) m.set(j.telefone, j.apelido)
+  return m
+}
+
 export async function POST(req: NextRequest) {
   let b: Record<string, unknown>
   try { b = await req.json() } catch { return NextResponse.json({ error: 'Pedido inválido' }, { status: 400 }) }
@@ -86,6 +136,38 @@ export async function POST(req: NextRequest) {
     ])
     const linhas = (led || []) as Linha[]
     const peds = await pedidosPorId(linhas.map(l => l.pedido_id).filter(Boolean) as string[])
+    // Prêmios dos jogos (crédito sem pedido): acha o prêmio pela conta do cliente + valor + horário.
+    const { data: minhasComandas } = await sb.from('loja_comandas').select('id').eq('company_id', companyId).eq('customer_phone', phone)
+      .order('aberta_em', { ascending: false }).limit(100)
+    const cIds = (minhasComandas || []).map(c => c.id)
+    type Premio = { comanda_id: string; valor: number; criado_em: string; rodada_id: string; jogo: 'quiz' | 'caca' }
+    let premios: Premio[] = []
+    const rodadaInfo = new Map<string, { acertos: number | null; nivel: number | null }>()
+    if (cIds.length) {
+      const [{ data: qp }, { data: cp }] = await Promise.all([
+        sb.from('quiz_premios').select('comanda_id, valor, criado_em, rodada_id').eq('company_id', companyId).eq('estado', 'liberado').in('comanda_id', cIds),
+        sb.from('caca_premios').select('comanda_id, valor, criado_em, rodada_id, marco').eq('company_id', companyId).eq('estado', 'liberado').in('comanda_id', cIds),
+      ])
+      premios = [
+        ...(qp || []).map(p => ({ ...p, valor: Number(p.valor), jogo: 'quiz' as const })),
+        ...(cp || []).map(p => ({ comanda_id: p.comanda_id, valor: Number(p.valor), criado_em: p.criado_em, rodada_id: p.rodada_id, jogo: 'caca' as const })),
+      ]
+      const qIds = (qp || []).map(p => p.rodada_id)
+      if (qIds.length) {
+        const { data: rs } = await sb.from('quiz_rodadas').select('id, acertos').in('id', qIds)
+        for (const r of rs || []) rodadaInfo.set(r.id, { acertos: r.acertos, nivel: null })
+      }
+    }
+    const usados = new Set<Premio>()
+    const premioDe = (l: Linha) => {
+      const t = new Date(l.created_at).getTime()
+      const p = premios.find(x => !usados.has(x) && Math.abs(x.valor - Number(l.valor)) < 0.005 && Math.abs(new Date(x.criado_em).getTime() - t) < 120000)
+      if (p) usados.add(p)
+      return p
+    }
+    const comIds = [...[...peds.values()].map(p => p.comanda_id), ...premios.map(p => p.comanda_id)].filter(Boolean) as string[]
+    const comandas = await comandasPorId(companyId, comIds)
+    const descComanda = (c: ComandaInfo | undefined) => c ? `${c.mesa != null ? `Mesa ${c.mesa}` : 'Balcão'} · comanda ${c.numero ?? '—'} · conta ${brlS(c.total)}` : 'Mesa'
     // Saldo depois de cada movimento: parte do saldo atual e volta no tempo.
     let corrente = Number(w?.saldo || 0)
     const movs = linhas.map(l => {
@@ -96,13 +178,28 @@ export async function POST(req: NextRequest) {
       const p = l.pedido_id ? peds.get(l.pedido_id) : undefined
       const mesa = !!p?.comanda_id || p?.origin === 'mesa'
       let origem = ''
+      let detalhe: string | undefined
       if (l.tipo === 'expirado') origem = 'Venceu por falta de uso'
       else if (l.tipo === 'estorno') origem = p ? 'Devolvido (pedido cancelado)' : 'Devolvido (pagamento removido)'
-      else if (p) origem = mesa ? (p.customer_name || 'Mesa') + ' · conta fechada' : `Pedido nº ${p.order_number ?? '—'} · delivery`
-      else origem = l.tipo === 'debito' ? 'Usado na mesa' : ''
-      return { tipo: l.tipo, valor: v, data: l.created_at, origem, saldoApos }
+      else if (p && mesa) {
+        const c = p.comanda_id ? comandas.get(p.comanda_id) : undefined
+        origem = (l.tipo === 'debito' ? 'Usado · ' : 'Conta fechada · ') + descComanda(c)
+        detalhe = c?.itens || undefined
+      } else if (p) origem = `Pedido nº ${p.order_number ?? '—'} · delivery`
+      else if (l.tipo === 'credito') {
+        const pr = premioDe(l)
+        if (pr) {
+          const c = comandas.get(pr.comanda_id)
+          const ac = rodadaInfo.get(pr.rodada_id)?.acertos
+          origem = (pr.jogo === 'caca' ? 'Prêmio do Caça-Palavras' : `Prêmio do Quiz${ac != null ? ` (${ac} acertos)` : ''}`) + ' · ' + descComanda(c)
+          detalhe = c?.itens || undefined
+        } else origem = 'Prêmio de jogo'
+      } else origem = 'Usado na mesa'
+      return { tipo: l.tipo, valor: v, data: l.created_at, origem, detalhe, saldoApos }
     })
-    const nome = [...peds.values()].find(p => p.customer_name && !/^mesa\b/i.test(p.customer_name))?.customer_name || null
+    const nome = [...peds.values()].find(p => nomeValido(p.customer_name))?.customer_name
+      || [...comandas.values()].find(c => nomeValido(c.customer_name))?.customer_name
+      || (await nomesExtras(companyId, [phone])).get(phone) || null
     const ultima = linhas[0]?.created_at || w?.updated_at || null
     return NextResponse.json({
       phone, nome, saldo: Number(w?.saldo || 0),
@@ -124,13 +221,14 @@ export async function POST(req: NextRequest) {
   // Gerado no mês, separado entre delivery e mesa (pelo pedido que gerou o crédito).
   const credIds = mes.filter(l => l.tipo === 'credito' && l.pedido_id).map(l => l.pedido_id as string)
   const pedsMes = await pedidosPorId(credIds)
-  let gerado = 0, geradoMesa = 0, usado = 0, expirado = 0, estornado = 0
+  let gerado = 0, geradoMesa = 0, geradoJogos = 0, usado = 0, expirado = 0, estornado = 0
   for (const l of mes) {
     const v = Number(l.valor)
     if (l.tipo === 'credito') {
       gerado += v
       const p = l.pedido_id ? pedsMes.get(l.pedido_id) : undefined
-      if (p && (p.comanda_id || p.origin === 'mesa')) geradoMesa += v
+      if (!l.pedido_id) geradoJogos += v
+      else if (p && (p.comanda_id || p.origin === 'mesa')) geradoMesa += v
     } else if (l.tipo === 'debito') usado += v
     else if (l.tipo === 'estorno') estornado += v
     else if (l.tipo === 'expirado') expirado += v
@@ -152,8 +250,10 @@ export async function POST(req: NextRequest) {
     for (const l of (led || []) as (Linha)[]) {
       if (nomes.has(l.customer_phone) || !l.pedido_id) continue
       const p = peds.get(l.pedido_id)
-      if (p?.customer_name && !/^mesa\b/i.test(p.customer_name) && p.customer_name !== 'Cliente balcão') nomes.set(l.customer_phone, p.customer_name)
+      if (p && nomeValido(p.customer_name)) nomes.set(l.customer_phone, p.customer_name as string)
     }
+    const semNome = phones.filter(ph => !nomes.has(ph))
+    for (const [ph, n] of await nomesExtras(companyId, semNome)) nomes.set(ph, n)
   }
 
   const agora = Date.now()
@@ -172,7 +272,7 @@ export async function POST(req: NextRequest) {
     config,
     resumo: {
       aberto: r2(aberto), clientes: clientes.length,
-      gerado: r2(gerado), geradoMesa: r2(geradoMesa), geradoDelivery: r2(gerado - geradoMesa),
+      gerado: r2(gerado), geradoMesa: r2(geradoMesa), geradoJogos: r2(geradoJogos), geradoDelivery: r2(gerado - geradoMesa - geradoJogos),
       usado: r2(Math.max(0, usado - estornado)), expirado: r2(expirado),
       aVencer: r2(aVencer.reduce((s, c) => s + c.saldo, 0)), aVencerQtd: aVencer.length,
     },

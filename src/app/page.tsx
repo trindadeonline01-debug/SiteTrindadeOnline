@@ -7,7 +7,7 @@ import HomeAbertoAgora from '@/components/home/HomeAbertoAgora'
 import HomeComunidadeTabs from '@/components/home/HomeComunidadeTabs'
 import HomeLojas, { LojaItem } from '@/components/home/HomeLojas'
 import ScrollRow from '@/components/home/ScrollRow'
-import { createServerSupabase } from '@/lib/supabase-server'
+import { createClient } from '@supabase/supabase-js'
 import { isOpenNow, HourRow } from '@/lib/businessHours'
 import { CATEGORY_IMAGES } from '@/lib/categoryImages'
 import { buildPecaAgoraGroups } from '@/lib/pecaAgora.server'
@@ -114,12 +114,17 @@ const PULSE_PRESETS: Record<string, { bg: string, text: string }> = {
   elegante: { bg: '#FFFFFF', text: '#111111' },
 }
 
+// Home em cache: a página é montada no máximo 1 vez por minuto e servida pronta a todos os visitantes.
+// Antes cada visita refazia ~25 consultas ao banco; com o banco lento a home não abria (15/nov/2026).
+// Só usa dado público (sem cookie/sessão), então o cache é seguro.
+export const revalidate = 60
+
 export default async function HomePage() {
   // O login guarda a sessão no localStorage do navegador (não em cookie),
   // então esse cliente de servidor nunca vê quem está logado — serve só
   // pra buscar dado público. Quem é o usuário (pra nav mobile, busca etc.)
   // continua sendo resolvido no navegador, no BottomNav global/HomeSearchBox.
-  const supabaseServer = await createServerSupabase()
+  const supabaseServer = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { auth: { persistSession: false, autoRefreshToken: false } })
 
   // Todas as consultas daqui são independentes entre si — rodam em paralelo
   // em vez de uma esperar a outra terminar, o que cortava bastante o tempo

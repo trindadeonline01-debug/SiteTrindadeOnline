@@ -121,6 +121,14 @@ function promoDisplayPrice(p: Pick<Produto, 'promo_type' | 'promo_value' | 'sale
   return preco.toFixed(2).replace('.', ',')
 }
 
+// Banco guarda o timestamp em UTC (fim = 23:59:59 de Brasília = 02:59:59 UTC do dia seguinte).
+// Cortar a string direto mostrava 1 dia a mais ao reabrir, e cada novo "salvar" empurrava
+// a data mais um dia — caso Mistura Fina, 16/nov/2026. Converte pro dia de Brasília (UTC-3).
+function diaBrasilia(ts: string | null): string {
+  if (!ts) return ''
+  return new Date(new Date(ts).getTime() - 3 * 3600 * 1000).toISOString().slice(0, 10)
+}
+
 function promoPriceOf(p: Pick<Produto, 'promo_type' | 'promo_value' | 'sale_price' | 'promo_starts_at' | 'promo_ends_at'>): number | null {
   if (!p.promo_type || !p.promo_value) return null
   const now = Date.now()
@@ -903,8 +911,8 @@ export default function CatalogoPage() {
       restrictDays: !!(data.available_days && data.available_days.length), days: data.available_days || [],
       hasPromo: !!data.promo_type, promo_value: promoDisplayPrice(data), semCashback: !!data.sem_cashback,
       canalDelivery: data.canal_delivery !== false, canalPdv: data.canal_pdv !== false, canalMesa: data.canal_mesa !== false,
-      promo_starts_at: data.promo_starts_at ? data.promo_starts_at.slice(0, 10) : '',
-      promo_ends_at: data.promo_ends_at ? data.promo_ends_at.slice(0, 10) : '',
+      promo_starts_at: diaBrasilia(data.promo_starts_at),
+      promo_ends_at: diaBrasilia(data.promo_ends_at),
       active: data.active,
       groups: [...(data.groups || [])].sort(byDisplayOrder).map((g: any) => ({
         id: g.id, name: g.name, required: g.required, min_select: g.min_select, max_select: g.max_select, pricing_rule: g.pricing_rule || 'soma',
@@ -940,8 +948,8 @@ export default function CatalogoPage() {
       restrictDays: !!(data.available_days && data.available_days.length), days: data.available_days || [],
       hasPromo: !!data.promo_type, promo_value: promoDisplayPrice(data), semCashback: !!data.sem_cashback,
       canalDelivery: data.canal_delivery !== false, canalPdv: data.canal_pdv !== false, canalMesa: data.canal_mesa !== false,
-      promo_starts_at: data.promo_starts_at ? data.promo_starts_at.slice(0, 10) : '',
-      promo_ends_at: data.promo_ends_at ? data.promo_ends_at.slice(0, 10) : '',
+      promo_starts_at: diaBrasilia(data.promo_starts_at),
+      promo_ends_at: diaBrasilia(data.promo_ends_at),
       active: data.active,
       groups: [...(data.groups || [])].sort(byDisplayOrder).map((g: any) => ({
         name: g.name, required: g.required, min_select: g.min_select, max_select: g.max_select, pricing_rule: g.pricing_rule || 'soma',

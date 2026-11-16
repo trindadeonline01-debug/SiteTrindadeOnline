@@ -23,8 +23,11 @@ export async function POST(req: NextRequest) {
     if (!userData?.user) return NextResponse.json({ error: `sessão inválida${authError ? ' — ' + authError.message : ''}` }, { status: 401 })
 
     const { data: company } = await supabase.from('companies').select('owner_id').eq('id', company_id).maybeSingle()
-    if (!company || company.owner_id !== userData.user.id) {
-      return NextResponse.json({ error: 'empresa não é sua' }, { status: 403 })
+    if (!company) return NextResponse.json({ error: 'empresa não encontrada' }, { status: 404 })
+    if (company.owner_id !== userData.user.id) {
+      // Admin pode ligar/desligar Pix e cartão pela loja.
+      const { data: profile } = await supabase.from('profiles').select('user_type').eq('id', userData.user.id).maybeSingle()
+      if (profile?.user_type !== 'admin') return NextResponse.json({ error: 'empresa não é sua' }, { status: 403 })
     }
 
     const { error } = await supabase.from('company_mp_accounts')

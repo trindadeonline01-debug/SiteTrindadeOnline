@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { data: conta } = await supabase.from('company_mp_accounts')
-      .select('mp_email, application_fee_pct, pix_automatico_enabled, connected_at, status')
+      .select('mp_email, application_fee_pct, pix_automatico_enabled, cartao_enabled, connected_at, status')
       .eq('company_id', company_id).eq('status', 'connected').maybeSingle()
 
     return NextResponse.json({ connected: !!conta, conta: conta || null })

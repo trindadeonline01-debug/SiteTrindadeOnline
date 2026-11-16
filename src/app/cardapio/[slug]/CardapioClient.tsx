@@ -17,7 +17,7 @@ type Company = {
   loja_digital_enabled: boolean; flexible_hours?: boolean; store_paused?: boolean; store_forced_open?: boolean; owner_id?: string
   loja_taxa_entrega: number; loja_pedido_minimo: number; loja_payment_methods?: string[]
   loja_taxa_metodo?: 'bairro' | 'distancia'; loja_frete_gratis_acima?: number | null
-  cashback_enabled?: boolean; pix_mp_enabled?: boolean
+  cashback_enabled?: boolean; pix_mp_enabled?: boolean; mp_pix_on?: boolean; mp_cartao_on?: boolean
   hours?: any[]; photos?: { url: string; order: number }[]
 }
 const PAYMENT_LABELS: Record<string, string> = {
@@ -75,7 +75,10 @@ type CartLine = { key: string; produtoId: string; name: string; modifiers: { nam
 
 // Loja com Mercado Pago conectado só aceita pagamento pelo site: Pix ou cartão.
 function paymentOptionsFor(comp: Company | null): string[] {
-  if (comp?.pix_mp_enabled) return ['pix', 'cartao_online']
+  if (comp?.pix_mp_enabled) {
+    const ops = [...(comp.mp_pix_on !== false ? ['pix'] : []), ...(comp.mp_cartao_on !== false ? ['cartao_online'] : [])]
+    return ops.length ? ops : ['pix', 'cartao_online']
+  }
   return comp?.loja_payment_methods?.length ? comp.loja_payment_methods : ['pix', 'dinheiro', 'cartao_credito']
 }
 
@@ -238,7 +241,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
     supabase.from('site_settings').select('value').eq('key', 'peca_agora_enabled').maybeSingle()
       .then(({ data }) => setPecaAgoraEnabled(data?.value === 'true'))
     supabase.from('companies')
-      .select('id,name,slug,phone,address,avg_rating,total_reviews,status,loja_digital_enabled,flexible_hours,store_paused,store_forced_open,owner_id,loja_taxa_entrega,loja_pedido_minimo,loja_payment_methods,loja_taxa_metodo,loja_frete_gratis_acima,cashback_enabled,pix_mp_enabled,hours:company_hours(label,hours,order,day_of_week,open_time,close_time,closed),photos:company_photos(url,order)')
+      .select('id,name,slug,phone,address,avg_rating,total_reviews,status,loja_digital_enabled,flexible_hours,store_paused,store_forced_open,owner_id,loja_taxa_entrega,loja_pedido_minimo,loja_payment_methods,loja_taxa_metodo,loja_frete_gratis_acima,cashback_enabled,pix_mp_enabled,mp_pix_on,mp_cartao_on,hours:company_hours(label,hours,order,day_of_week,open_time,close_time,closed),photos:company_photos(url,order)')
       .eq('slug', slug).maybeSingle()
       .then(async ({ data: comp }) => {
         if (!comp || comp.status !== 'active' || !comp.loja_digital_enabled) { setCompany(null); setLoading(false); return }

@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     const prep = await prepararCheckout({ ...body, paymentMethod: 'cartao_credito', origin: 'cardapio_publico' })
     if (!prep.ok) return NextResponse.json({ error: prep.error }, { status: prep.status })
     const { company, contaMp, useCashback } = prep
-    if (!contaMp) return NextResponse.json({ error: 'Essa loja não aceita cartão pelo site.' }, { status: 400 })
+    if (!contaMp || !prep.metodosOnline.cartao) return NextResponse.json({ error: 'Essa loja não aceita cartão pelo site.' }, { status: 400 })
 
     const { cashbackUsado, payload } = await reservarCashback(company, prep.payload, useCashback)
     if (payload.total <= 0) {

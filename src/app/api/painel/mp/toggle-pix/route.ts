@@ -13,7 +13,8 @@ const supabaseAuth = createClient(
 
 export async function POST(req: NextRequest) {
   try {
-    const { access_token, company_id, enabled } = await req.json()
+    const { access_token, company_id, enabled, metodo } = await req.json()
+    const campo = metodo === 'cartao' ? 'cartao_enabled' : 'pix_automatico_enabled'
     if (!access_token || !company_id || typeof enabled !== 'boolean') {
       return NextResponse.json({ error: 'dados faltando' }, { status: 400 })
     }
@@ -27,7 +28,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { error } = await supabase.from('company_mp_accounts')
-      .update({ pix_automatico_enabled: enabled, updated_at: new Date().toISOString() })
+      .update({ [campo]: enabled, updated_at: new Date().toISOString() })
       .eq('company_id', company_id)
     if (error) return NextResponse.json({ error: 'Falhou ao salvar' }, { status: 500 })
 

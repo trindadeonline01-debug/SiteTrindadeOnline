@@ -10,7 +10,7 @@ import { PeriodSel, periodRange, periodLabel } from '@/lib/periodFilter'
 
 type MpStatus = {
   connected: boolean
-  conta: { mp_email: string | null; application_fee_pct: number; pix_automatico_enabled: boolean; connected_at: string } | null
+  conta: { mp_email: string | null; application_fee_pct: number; pix_automatico_enabled: boolean; cartao_enabled?: boolean; connected_at: string } | null
 }
 type Pedido = { id: string; payment_method: string | null; payment_status: string; mp_payment_id: string | null; total: number; created_at: string }
 
@@ -118,14 +118,15 @@ export default function PagamentosPage() {
     setMpStatus({ connected: false, conta: null })
   }
 
-  async function togglePix(enabled: boolean) {
+  async function toggleMetodo(metodo: 'pix' | 'cartao', enabled: boolean) {
     if (!company || !mpStatus?.conta) return
+    const campo = metodo === 'cartao' ? 'cartao_enabled' : 'pix_automatico_enabled'
     setToggling(true)
-    setMpStatus(s => s ? { ...s, conta: { ...s.conta!, pix_automatico_enabled: enabled } } : s)
-    const { r, data } = await callComRetry('/api/painel/mp/toggle-pix', { company_id: company.id, enabled })
+    setMpStatus(s => s ? { ...s, conta: { ...s.conta!, [campo]: enabled } } : s)
+    const { r, data } = await callComRetry('/api/painel/mp/toggle-pix', { company_id: company.id, enabled, metodo })
     setToggling(false)
     if (!r.ok || data.error) {
-      setMpStatus(s => s ? { ...s, conta: { ...s.conta!, pix_automatico_enabled: !enabled } } : s)
+      setMpStatus(s => s ? { ...s, conta: { ...s.conta!, [campo]: !enabled } } : s)
       setError(data.error || 'Não consegui salvar.')
     }
   }
@@ -305,12 +306,15 @@ export default function PagamentosPage() {
               </div>
               <button className="mp-btn-ghost-danger" disabled={disconnecting} onClick={desconectar}>{disconnecting ? 'Desconectando...' : 'Desconectar'}</button>
             </div>
-            <div style={{ borderTop: '1px solid #F0EDE8', paddingTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Pix automático no carrinho</div>
-                <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>Desligado, o Pix some do carrinho e volta a ser "combinar na entrega" — a conexão continua ativa.</div>
-              </div>
-              <button className={`mp-toggle ${mpStatus.conta?.pix_automatico_enabled ? 'on' : ''}`} disabled={toggling} onClick={() => togglePix(!mpStatus.conta?.pix_automatico_enabled)}><span className="knob" /></button>
+            <div style={{ borderTop: '1px solid #F0EDE8', paddingTop: 16 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Formas de pagamento no site</div>
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2, marginBottom: 12 }}>O cliente só vê no checkout o que estiver ligado. Com as duas desligadas, volta a ser "combinar na entrega" — a conexão continua ativa.</div>
+              {([['pix', 'Pix', !!mpStatus.conta?.pix_automatico_enabled], ['cartao', 'Cartão de crédito ou débito', mpStatus.conta?.cartao_enabled !== false]] as const).map(([m, label, on]) => (
+                <div key={m} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0' }}>
+                  <span style={{ fontSize: 13, color: 'var(--ink-2)', fontWeight: 600 }}>{label}</span>
+                  <button aria-label={`${on ? 'Desligar' : 'Ligar'} ${label}`} className={`mp-toggle ${on ? 'on' : ''}`} disabled={toggling} onClick={() => toggleMetodo(m, !on)}><span className="knob" /></button>
+                </div>
+              ))}
             </div>
           </div>
 

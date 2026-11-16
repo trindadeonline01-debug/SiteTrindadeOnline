@@ -22,6 +22,9 @@ export async function POST(req: NextRequest) {
       if (prep.payload.origin === 'conversa' || prep.payload.paymentMethod !== 'pix') {
         return NextResponse.json({ error: 'Nessa loja o pagamento é feito pelo site: escolhe Pix ou cartão.' }, { status: 400 })
       }
+      if (!prep.metodosOnline.pix) {
+        return NextResponse.json({ error: 'Essa loja não aceita Pix pelo site — paga com cartão.' }, { status: 400 })
+      }
 
       const { cashbackUsado, payload } = await reservarCashback(company, prep.payload, useCashback)
 

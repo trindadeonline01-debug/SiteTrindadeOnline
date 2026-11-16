@@ -14,8 +14,12 @@ const supabase = createClient(
 // toggle) — nunca deixar os dois desincronizarem.
 export async function syncPixMpEnabled(companyId: string) {
   const { data: conta } = await supabase.from('company_mp_accounts')
-    .select('status, pix_automatico_enabled')
+    .select('status, pix_automatico_enabled, cartao_enabled')
     .eq('company_id', companyId).maybeSingle()
-  const enabled = !!conta && conta.status === 'connected' && conta.pix_automatico_enabled
-  await supabase.from('companies').update({ pix_mp_enabled: enabled }).eq('id', companyId)
+  const conectada = !!conta && conta.status === 'connected'
+  const pix = conectada && !!conta.pix_automatico_enabled
+  const cartao = conectada && !!conta.cartao_enabled
+  // pix_mp_enabled = "loja recebe pelo site" (Pix e/ou cartão). Os dois
+  // desligados = volta ao modo antigo (combina na entrega).
+  await supabase.from('companies').update({ pix_mp_enabled: pix || cartao, mp_pix_on: pix, mp_cartao_on: cartao }).eq('id', companyId)
 }

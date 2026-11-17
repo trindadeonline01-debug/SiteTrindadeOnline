@@ -268,6 +268,9 @@ export type ReceiptData = {
   customerPhone?: string | null
   deliveryType: 'entrega' | 'retirada' | 'balcao'
   address?: string | null
+  // Motoboy que saiu com o pedido (próprio da loja ou da plataforma) — só
+  // aparece na reimpressão, quando já foi escolhido/aceitou.
+  motoboyName?: string | null
   paymentMethod?: string | null
   notes?: string | null
   items: ReceiptItem[]
@@ -314,6 +317,7 @@ export function buildReceipt(d: ReceiptData): string {
   if (d.deliveryType === 'entrega') {
     lines.push('\n', CMD.boldOn, 'ENDEREÇO PARA ENTREGA:', CMD.boldOff, '\n')
     if (d.address) wrap(d.address).forEach(l => lines.push(l, '\n'))
+    if (d.motoboyName) lines.push('\n', CMD.boldOn, 'MOTOBOY: ', CMD.boldOff, d.motoboyName, '\n')
   } else if (d.deliveryType === 'balcao') {
     lines.push('\n', CMD.boldOn, d.rotuloTipo || 'PEDIDO DE BALCÃO', CMD.boldOff, '\n')
   } else {

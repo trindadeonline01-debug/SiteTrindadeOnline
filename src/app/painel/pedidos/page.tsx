@@ -641,6 +641,7 @@ export default function PedidosPage() {
         companyName, pedidoShortId: String(p.order_number ?? p.id.slice(0, 8)), createdAt: p.created_at,
         customerName: p.customer_name, customerPhone: p.customer_phone,
         deliveryType: p.delivery_type, address: p.delivery_address,
+        motoboyName: (p.motoboy_id && motoboys.find(m => m.id === p.motoboy_id)?.nome) || deliveryByPedido[p.id]?.motoboy_name || null,
         paymentMethod: p.payment_method, notes: p.notes,
         items,
         subtotal: p.subtotal,

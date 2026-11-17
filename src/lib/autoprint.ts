@@ -17,6 +17,24 @@ export async function fetchPedidoComItensComRetry(pedidoId: string) {
   return data
 }
 
+// Motoboy que já está com o pedido, se tiver: o próprio da loja
+// (loja_pedidos.motoboy_id → loja_motoboys) ou o da plataforma que aceitou
+// a corrida (delivery_orders.motoboy_name). Best-effort — sem nome, imprime sem.
+export async function nomeMotoboyDoPedido(pedidoId: string, motoboyId: string | null): Promise<string | null> {
+  try {
+    if (motoboyId) {
+      const { data } = await supabase.from('loja_motoboys').select('nome').eq('id', motoboyId).maybeSingle()
+      if (data?.nome) return data.nome
+    }
+    const { data: entrega } = await supabase.from('delivery_orders').select('motoboy_name')
+      .eq('pedido_id', pedidoId).neq('status', 'cancelada').not('motoboy_name', 'is', null)
+      .order('created_at', { ascending: false }).limit(1).maybeSingle()
+    return entrega?.motoboy_name || null
+  } catch {
+    return null
+  }
+}
+
 // Imprime as vias configuradas (cupom completo e/ou via de produção — ver
 // companies.impressao_vias_*) de um pedido recém-chegado. Extraído de
 // /painel/pedidos pra rodar a partir do layout do painel (persiste entre
@@ -41,6 +59,7 @@ export async function autoImprimirPedido(companyName: string, pedidoId: string, 
     const data = await fetchPedidoComItensComRetry(pedidoId)
     if (!data) throw new Error('pedido não encontrado')
     const items = (data.itens || []).map((it: any) => ({ qty: it.qty, pesoKg: it.peso_kg, name: it.product_name, unitPrice: it.unit_price, options: it.selected_options }))
+    const motoboyName = data.delivery_type === 'entrega' ? await nomeMotoboyDoPedido(data.id, data.motoboy_id) : null
     const content = buildReceipt({
       companyName,
       pedidoShortId: String(data.order_number ?? data.id.slice(0, 8)),
@@ -49,6 +68,7 @@ export async function autoImprimirPedido(companyName: string, pedidoId: string, 
       customerPhone: data.customer_phone,
       deliveryType: data.delivery_type,
       address: data.delivery_address,
+      motoboyName,
       paymentMethod: data.payment_method,
       notes: data.notes,
       items,

@@ -149,6 +149,7 @@ export default function TopNav() {
               <a className={`top-nav-link ${pathname==='/ofertas'?'active':''}`} href="/ofertas" style={{position:'relative'}}>
                 🏷️ Ofertas<span className="top-nav-dot"/>
               </a>
+              <a className={`top-nav-link ${pathname?.startsWith('/jogos')?'active':''}`} href="/jogos">🎮 Jogos</a>
               <NavDropdown label="Comunidade" items={COMUNIDADE_LINKS} />
             </nav>
           </div>

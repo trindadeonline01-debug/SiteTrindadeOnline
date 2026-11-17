@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
         logo: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/loja-produtos/${company.id}/qr-logo.png`,
         // Cada jogo novo entra nesta lista (id, nome, descrição, rota).
         jogos: [
-          { id: 'quiz', nome: 'Quiz Pesca Premiada', descricao: 'Responda perguntas, tente chegar ao topo do ranking da loja.', ativo: camp ? !!camp.ativa : true, rota: `/jogos/${company.slug}/quiz` },
+          { id: 'quiz', nome: 'Quiz Pesca Premiada', descricao: `Responda perguntas, tente chegar ao topo do ranking ${company.slug === 'trindade-online' ? 'do bairro' : 'da loja'}.`, ativo: camp ? !!camp.ativa : true, rota: `/jogos/${company.slug}/quiz` },
           { id: 'caca', nome: 'Caça-Palavras', descricao: 'Ache as palavras escondidas antes de o tempo acabar.', ativo: true, rota: `/jogos/${company.slug}/caca` },
         ].filter(j => j.id !== 'caca' || CACA_PALAVRAS_ATIVO),
       })

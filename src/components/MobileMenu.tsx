@@ -261,6 +261,9 @@ export default function MobileMenu() {
                 <a className={`mm-link ${pathname === '/ofertas' ? 'active' : ''}`} href="/ofertas">
                   <span className="mm-link-icon">🏷️</span> Ofertas
                 </a>
+                <a className={`mm-link ${pathname.startsWith('/jogos') ? 'active' : ''}`} href="/jogos">
+                  <span className="mm-link-icon">🎮</span> Jogos
+                </a>
 
                 <div className="mm-divider" />
                 <div className="mm-section-label">Comunidade</div>

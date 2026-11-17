@@ -188,6 +188,8 @@ function genDeliveryCodes(): { pickupCode: string; deliveryCode: string } {
 // já validou isso quando fizer sentido (o botão manual valida a sessão antes
 // de chegar aqui; o disparo automático roda com o pedido que acabou de ser
 // criado de verdade no banco, não com dado vindo direto do navegador).
+export const MOTOBOY_INDISPONIVEL_MSG = 'Neste momento estamos sem entregador disponível.'
+
 export async function criarEntregaEChamarMotoboy(opts: {
   companyId: string
   pedidoId?: string | null
@@ -200,6 +202,11 @@ export async function criarEntregaEChamarMotoboy(opts: {
   const { companyId, pedidoId, customerName, customerPhone, dropoffAddress } = opts
   let { paymentMethod, orderValue } = opts
   if (!customerName?.trim() || !dropoffAddress?.trim()) return { ok: false, error: 'dados faltando' }
+
+  // Interruptor global do admin (feature_flags.motoboy_disponivel) — quando
+  // desligado, ninguém chama motoboy da plataforma (manual ou automático).
+  const { data: flagMoto } = await supabase.from('feature_flags').select('enabled').eq('key', 'motoboy_disponivel').maybeSingle()
+  if (flagMoto && flagMoto.enabled === false) return { ok: false, error: MOTOBOY_INDISPONIVEL_MSG }
 
   // Entrega vinculada a um pedido do próprio cardápio já tem forma de
   // pagamento e valor lá — reaproveita em vez de pedir de novo (só a

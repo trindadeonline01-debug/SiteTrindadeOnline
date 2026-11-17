@@ -73,7 +73,21 @@ export default function EntregaConfigTab() {
   const [novoPacote, setNovoPacote] = useState<{ categoria: 'diaria' | 'entrega'; nome: string; quantidade: string; preco: string } | null>(null)
   const [editPacote, setEditPacote] = useState<Record<string, { nome: string; quantidade: string; preco: string }>>({})
 
+  // Interruptor global: desligado = ninguém chama motoboy da plataforma e o
+  // lojista vê "Neste momento estamos sem entregador disponível".
+  const [motoboyOn, setMotoboyOn] = useState<boolean | null>(null)
   useEffect(() => { load() }, [])
+  useEffect(() => {
+    supabase.from('feature_flags').select('enabled').eq('key', 'motoboy_disponivel').maybeSingle()
+      .then(({ data }) => setMotoboyOn(data?.enabled !== false))
+  }, [])
+  async function toggleMotoboy() {
+    const next = !motoboyOn
+    if (!next && !confirm('Desativar "Chamar motoboy" pra todas as lojas?')) return
+    const { error } = await supabase.from('feature_flags').update({ enabled: next, updated_at: new Date().toISOString() }).eq('key', 'motoboy_disponivel')
+    if (error) { setMsg(error.message); return }
+    setMotoboyOn(next)
+  }
 
   async function load() {
     const [precoRes, bairroRes, kmRes, pacoteRes] = await Promise.all([
@@ -284,6 +298,18 @@ export default function EntregaConfigTab() {
   return (
     <div>
       {msg && <div style={{ marginBottom: 14, fontSize: 12.5, fontWeight: 700, color: msg === 'Salvo!' ? '#157A52' : '#C43D3D' }}>{msg}</div>}
+
+      {motoboyOn !== null && (
+        <div style={{ ...s.card, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '14px 20px', flexWrap: 'wrap', background: motoboyOn ? '#fff' : '#FBEAEA' }}>
+          <div>
+            <div style={s.cardTitle}>🏍️ Chamar motoboy da plataforma — {motoboyOn ? 'ATIVO' : 'DESATIVADO'}</div>
+            <div style={s.cardHint}>{motoboyOn ? 'Lojas podem chamar motoboy normalmente.' : 'Lojas veem: "Neste momento estamos sem entregador disponível."'}</div>
+          </div>
+          <button style={{ ...s.btnSave, ...(motoboyOn ? { background: '#C43D3D', color: '#fff' } : { background: '#157A52', color: '#fff' }) }} onClick={toggleMotoboy}>
+            {motoboyOn ? 'Desativar pra todos' : 'Reativar'}
+          </button>
+        </div>
+      )}
 
       <div style={s.topRow}>
         <PacotesList categoria="diaria" label="diária" />

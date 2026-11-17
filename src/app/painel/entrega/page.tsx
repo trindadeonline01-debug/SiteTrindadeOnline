@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
+import MotoboyIndisponivelAviso from '@/components/MotoboyIndisponivelAviso'
 import { supabase } from '@/lib/supabase'
 import { refreshSessionOnce } from '@/lib/authRefresh'
 import { usePainelShell } from '@/contexts/PainelShellContext'
@@ -344,6 +345,7 @@ export default function EntregaPage() {
         <button className="en-btn en-btn-outline" onClick={() => setShowBairrosModal(true)}>📍 Bairros e valores</button>
         <button className="en-btn en-btn-gold" onClick={() => { setNovaError(''); setNovaOpen(true) }}>+ Nova entrega</button>
       </div>
+      <MotoboyIndisponivelAviso />
       {showBairrosModal && <BairrosEntregaModal onClose={() => setShowBairrosModal(false)} />}
 
       {view === 'geral' && (

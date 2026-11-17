@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
+import MotoboyIndisponivelAviso from '@/components/MotoboyIndisponivelAviso'
 import { supabase } from '@/lib/supabase'
 import { refreshSessionOnce } from '@/lib/authRefresh'
 import { adminFetch } from '@/lib/adminFetch'
@@ -1551,6 +1552,7 @@ export default function PedidosPage() {
           </div>
         )
       })()}
+      {entregaEnabled && <MotoboyIndisponivelAviso />}
       <div className="pd-mobile-only">
         <div className="pd-head">
           <div className="pd-head-left">

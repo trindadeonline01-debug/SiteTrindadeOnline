@@ -103,6 +103,7 @@ export function montarQuiz(view: HTMLElement, TOKEN: string): () => void {
   var API = '/api/mesa/quiz', LS = 'quizjt:' + TOKEN
   // Modo loja (página de jogos, sem mesa): só ranking, nunca cashback. Token = 'loja:<slug>'.
   // Modo pedido (link do WhatsApp depois de um delivery pago): o prêmio vira cashback na hora. Token = 'pedido:<token>'.
+  var MODO_LOJA = TOKEN.indexOf('loja:') === 0
   var MODO_PEDIDO = TOKEN.indexOf('pedido:') === 0
   var SEM_MESA = MODO_LOJA || MODO_PEDIDO
   var HOME = MODO_LOJA ? '/jogos/' + TOKEN.slice(5) : MODO_PEDIDO ? '/jogar/' + TOKEN.slice(7) : '/mesa/' + TOKEN

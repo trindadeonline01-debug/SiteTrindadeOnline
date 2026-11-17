@@ -1,7 +1,7 @@
 'use client'
 import { Fragment, useEffect, useState } from 'react'
 
-type Item = { id: string; product_name: string; unit_price: number; qty: number; selected_options: { name: string; price: number }[] | null }
+type Item = { id: string; product_name: string; unit_price: number; qty: number; peso_kg?: number | null; selected_options: { name: string; price: number }[] | null }
 type Status = 'recebido' | 'em_preparo' | 'pronto' | 'saiu_entrega' | 'entregue' | 'cancelado'
 type Pedido = {
   id: string; order_number: number | null; customer_name: string; status: Status
@@ -9,6 +9,7 @@ type Pedido = {
   delivery_type: 'entrega' | 'retirada' | 'balcao'; delivery_address: string | null
   subtotal: number; delivery_fee: number; total: number; notes: string | null
   created_at: string; cancelamento_solicitado_em: string | null
+  aguardando_pesagem?: boolean; cobranca_expira_em?: string | null; cobranca_pix_qr?: string | null; cobranca_pix_copia?: string | null
   cancelado_por?: 'cliente' | 'loja' | null; refund_status?: 'processando' | 'estornado' | 'falhou' | null; refund_amount?: number | null
   itens: Item[]
 }
@@ -52,6 +53,9 @@ export default function PedidoClient({ id, initialPedido, initialCompany, initia
 
   // Busca de novo em segundo plano — quem acompanha o pedido abre esse link
   // várias vezes esperando o status mudar, sem recarregar a página na mão.
+  // Com o Pix da pesagem aberto, confere a cada 5 s; no resto, a cada 15 s.
+  const esperandoPix = !!(pedido?.aguardando_pesagem && pedido.cobranca_pix_copia && pedido.payment_status !== 'pago')
+  const [copiado, setCopiado] = useState(false)
   useEffect(() => {
     const t = setInterval(async () => {
       try {
@@ -62,9 +66,9 @@ export default function PedidoClient({ id, initialPedido, initialCompany, initia
         if (j.company) setCompany(j.company)
         setEntrega(j.entrega || null)
       } catch {}
-    }, 15000)
+    }, esperandoPix ? 5000 : 15000)
     return () => clearInterval(t)
-  }, [id])
+  }, [id, esperandoPix])
 
   async function solicitarCancelamento() {
     if (!pedido) return
@@ -240,7 +244,32 @@ export default function PedidoClient({ id, initialPedido, initialCompany, initia
         </>
       )}
 
-      {pedido.payment_method && (
+      {pedido.aguardando_pesagem && pedido.status !== 'cancelado' && pedido.payment_status !== 'pago' && (() => {
+        // Vencida, o cron cancela o pedido em até 5 min e a tela troca sozinha pro "cancelado".
+        const valida = !!pedido.cobranca_pix_copia && !!pedido.cobranca_expira_em
+        if (!valida) return (
+          <div className="pd-card" style={{ background: '#FFF7E6', borderColor: '#F2D49B' }}>
+            <div className="pd-label">⚖️ Aguardando pesagem</div>
+            <div style={{ fontSize: 12.5, lineHeight: 1.5 }}>A loja vai pesar seu pedido e mandar o <b>link de pagamento no seu WhatsApp</b>. O total abaixo é uma estimativa — você paga só o peso real.</div>
+          </div>
+        )
+        return (
+          <div className="pd-card" style={{ textAlign: 'center' }}>
+            <div className="pd-label">⚖️ Pedido pesado — pague com Pix</div>
+            <div style={{ fontFamily: "'Anton',sans-serif", fontSize: 26, margin: '4px 0 8px' }}>{fmt(pedido.total)}</div>
+            {pedido.cobranca_pix_qr && (
+              // eslint-disable-next-line @next/next/no-img-element -- QR em base64 vindo do Mercado Pago
+              <img src={`data:image/png;base64,${pedido.cobranca_pix_qr}`} alt="QR code do Pix" style={{ width: 200, height: 200, margin: '0 auto', display: 'block' }} />
+            )}
+            <button className="pd-btn" style={{ marginTop: 10, width: '100%', background: '#0F8A57', color: '#fff' }} onClick={() => { navigator.clipboard?.writeText(pedido.cobranca_pix_copia || '').then(() => { setCopiado(true); setTimeout(() => setCopiado(false), 2500) }).catch(() => {}) }}>
+              {copiado ? '✓ Código copiado' : '📋 Copiar código Pix (copia e cola)'}
+            </button>
+            <div style={{ fontSize: 11.5, color: '#8A8478', marginTop: 8 }}>Vale até {new Date(pedido.cobranca_expira_em!).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}. Assim que o pagamento cair, esta tela atualiza sozinha e a loja começa a preparar.</div>
+          </div>
+        )
+      })()}
+
+      {pedido.payment_method && !(pedido.aguardando_pesagem && pedido.payment_status !== 'pago') && (
         <div className="pd-note">
           <span style={{ fontSize: 16 }}>💵</span>
           {pedido.payment_status === 'pago' && pedido.mp_payment_id
@@ -260,7 +289,7 @@ export default function PedidoClient({ id, initialPedido, initialCompany, initia
         <div className="pd-label">Itens do pedido</div>
         {pedido.itens.map(it => (
           <div className="pd-itemrow" key={it.id}>
-            <span>{it.qty}x {it.product_name}{it.selected_options?.length ? ` (${it.selected_options.map(o => o.name).join(', ')})` : ''}</span>
+            <span>{it.peso_kg != null ? `${String(it.peso_kg).replace('.', ',')}kg` : `${it.qty}x`} {it.product_name}{it.selected_options?.length ? ` (${it.selected_options.map(o => o.name).join(', ')})` : ''}</span>
             <span style={{ fontWeight: 700 }}>{fmt(it.unit_price * it.qty)}</span>
           </div>
         ))}

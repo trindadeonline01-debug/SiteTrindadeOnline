@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { signTracking } from '@/lib/trackingToken'
+import { confirmarCobrancaPesagem } from '@/lib/cobrancaPesagem'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -21,9 +22,14 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const { id } = await params
   const { data: pedido } = await supabase
     .from('loja_pedidos')
-    .select('id, order_number, customer_name, status, payment_method, payment_status, mp_payment_id, delivery_type, delivery_address, subtotal, delivery_fee, total, notes, created_at, cancelamento_solicitado_em, cancelado_por, refund_status, refund_amount, company_id, itens:loja_pedido_itens(id, product_name, unit_price, qty, selected_options)')
+    .select('id, order_number, customer_name, status, payment_method, payment_status, mp_payment_id, delivery_type, delivery_address, subtotal, delivery_fee, total, notes, created_at, cancelamento_solicitado_em, cancelado_por, refund_status, refund_amount, company_id, aguardando_pesagem, cobranca_expira_em, cobranca_pix_qr, cobranca_pix_copia, itens:loja_pedido_itens(id, product_name, unit_price, qty, peso_kg, selected_options)')
     .eq('id', id).maybeSingle()
   if (!pedido) return NextResponse.json({ error: 'pedido não encontrado' }, { status: 404 })
+  // Cliente com o Pix da pesagem aberto: confere direto no Mercado Pago (não espera só o webhook).
+  if (pedido.aguardando_pesagem && pedido.mp_payment_id && pedido.payment_status !== 'pago'
+      && (await confirmarCobrancaPesagem(pedido.mp_payment_id)) === 'pago') {
+    Object.assign(pedido, { payment_status: 'pago', aguardando_pesagem: false, cobranca_pix_qr: null, status: pedido.status === 'recebido' ? 'em_preparo' : pedido.status })
+  }
 
   const { data: company } = await supabase.from('companies').select('name, slug, phone, pix_mp_enabled').eq('id', pedido.company_id).maybeSingle()
 

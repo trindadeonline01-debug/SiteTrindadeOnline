@@ -222,7 +222,8 @@ export default function EditarPedidoPanel({ pedido, companyId, onClose, onSaved 
       qty: l.pesoModo ? 1 : l.qty,
       unitPrice: l.pesoModo ? Math.round(l.unitPrice * pesoNum(l.pesoKg) * 100) / 100 : l.unitPrice,
     })))
-    if (newItemsKey !== initialItemsKey || total !== initialTotal) {
+    // Pedido aguardando pesagem: o aviso pro cliente sai junto com a cobrança (Enviar cobrança), não aqui.
+    if (!(pedido as { aguardando_pesagem?: boolean }).aguardando_pesagem && (newItemsKey !== initialItemsKey || total !== initialTotal)) {
       fetch('/api/loja/pedido-editado', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ companyId, pedidoId: pedido.id }),

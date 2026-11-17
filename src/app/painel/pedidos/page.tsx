@@ -23,6 +23,7 @@ type Pedido = {
   created_at: string; accepted_at: string | null; impresso_em?: string | null
   cancelamento_solicitado_em: string | null
   mp_payment_id?: string | null; cancelado_por?: 'cliente' | 'loja' | null
+  aguardando_pesagem?: boolean; cobranca_enviada_em?: string | null; cobranca_expira_em?: string | null
   refund_status?: 'processando' | 'estornado' | 'falhou' | null; refund_amount?: number | null; refund_error?: string | null
   itens: Item[]
 }
@@ -243,6 +244,9 @@ export default function PedidosPage() {
   const [retryingMotoId, setRetryingMotoId] = useState<string | null>(null)
   const [cancelingMotoId, setCancelingMotoId] = useState<string | null>(null)
   const [motoErrors, setMotoErrors] = useState<Record<string, string>>({})
+  // Cobrança depois da pesagem (produto por kg em loja com Mercado Pago).
+  const [cobrandoId, setCobrandoId] = useState<string | null>(null)
+  const [cobrancaErro, setCobrancaErro] = useState<Record<string, string>>({})
   const [motoLoading, setMotoLoading] = useState<string | null>(null)
   // Ref (não state) pra travar na hora — o disparo automático e um clique
   // manual no mesmo pedido não podem rodar ao mesmo tempo, e esperar o
@@ -626,6 +630,16 @@ export default function PedidosPage() {
     const next = !autoChamarMoto
     setAutoChamarMoto(next)
     await supabase.from('companies').update({ entrega_chamada_automatica: next }).eq('id', companyId)
+  }
+
+  async function enviarCobranca(p: Pedido) {
+    if (!confirm(`Enviar a cobrança de ${fmt(p.total)} pro WhatsApp do cliente? Confira se o peso já foi ajustado.`)) return
+    setCobrandoId(p.id); setCobrancaErro(prev => ({ ...prev, [p.id]: '' }))
+    const res = await adminFetch('/api/loja/enviar-cobranca', { method: 'POST', body: JSON.stringify({ companyId, pedidoId: p.id }) })
+    const data = await res.json().catch(() => ({}))
+    setCobrandoId(null)
+    if (!res.ok || data.error) { setCobrancaErro(prev => ({ ...prev, [p.id]: data.error || 'Não consegui enviar a cobrança.' })); return }
+    loadAll(companyId, selectedDate)
   }
 
   async function printPedido(p: Pedido) {
@@ -1025,8 +1039,27 @@ export default function PedidosPage() {
             )}
           </div>
         )}
+        {p.aguardando_pesagem && p.payment_status !== 'pago' && p.status !== 'cancelado' && (() => {
+          const enviada = !!p.cobranca_enviada_em && !!p.cobranca_expira_em && new Date(p.cobranca_expira_em).getTime() > Date.now()
+          return (
+            <div className="pd-pesagem" onClick={e => e.stopPropagation()}>
+              <div className="pd-pesagem-txt">
+                {enviada
+                  ? <>⚖️ Cobrança enviada — aguardando o Pix do cliente (vence {new Date(p.cobranca_expira_em!).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })})</>
+                  : <>⚖️ <b>Aguardando pesagem.</b> Pese, ajuste o peso em ✏️ Editar e envie a cobrança. Só prepare depois do pagamento.</>}
+              </div>
+              <div className="pd-pesagem-btns">
+                <button className="pd-pesagem-edit" onClick={() => setEditId(p.id)}>✏️ Ajustar peso</button>
+                <button className="pd-pesagem-send" disabled={cobrandoId === p.id} onClick={() => enviarCobranca(p)}>
+                  {cobrandoId === p.id ? 'Enviando...' : enviada ? '🔁 Reenviar cobrança' : `💸 Enviar cobrança · ${fmt(p.total)}`}
+                </button>
+              </div>
+              {cobrancaErro[p.id] && <div style={{ color: '#C43D3D', fontSize: 11, marginTop: 6 }}>{cobrancaErro[p.id]}</div>}
+            </div>
+          )
+        })()}
         {canAct && needsAccept && <button className="pd-accept" onClick={e => { e.stopPropagation(); acceptPedido(p.id) }}>✓ Aceitar pedido</button>}
-        {canAct && !needsAccept && getNextAction(p) && (() => {
+        {canAct && !needsAccept && !(p.aguardando_pesagem && p.payment_status !== 'pago') && getNextAction(p) && (() => {
           const action = getNextAction(p)!
           const ativos = motoboys.filter(m => m.ativo)
           // Vira "saiu pra entrega" com motoboy PRÓPRIO cadastrado — com 2+
@@ -1330,6 +1363,11 @@ export default function PedidosPage() {
         }
         .pd-empty{ text-align:center;color:#A79E8B;padding:40px 0;font-size:14px; }
         .pd-card-pending{ border:1.5px solid var(--accent); }
+        .pd-pesagem{ margin-top:8px;padding:10px;border-radius:10px;background:#FFF7E6;border:1px solid #F2D49B;color:#5C4210;font-size:12px;line-height:1.45; }
+        .pd-pesagem-btns{ display:flex;gap:6px;margin-top:8px; }
+        .pd-pesagem-edit{ flex:0 0 auto;padding:9px 10px;border-radius:9px;border:1px solid #E2CFA3;background:#fff;color:#5C4210;font-weight:800;font-size:12.5px;cursor:pointer; }
+        .pd-pesagem-send{ flex:1;padding:9px;border-radius:9px;border:none;background:#0F8A57;color:#fff;font-weight:800;font-size:13px;cursor:pointer; }
+        .pd-pesagem-send:disabled{ opacity:.6;cursor:default; }
         .pd-accept{ width:100%;margin-top:8px;padding:9px;border-radius:9px;border:none;background:var(--accent);color:#fff;font-weight:800;font-size:14.5px;cursor:pointer; }
         .pd-next{ width:100%;margin-top:8px;padding:10px;border-radius:9px;border:none;background:var(--accent);color:#fff;font-weight:800;font-size:14.5px;cursor:pointer; }
         .pd-mb-select{ width:100%;margin-top:8px;padding:9px 10px;border-radius:9px;border:1.5px solid #B9AE97;background:#fff;color:#111;font-weight:700;font-size:14px;font-family:inherit; }

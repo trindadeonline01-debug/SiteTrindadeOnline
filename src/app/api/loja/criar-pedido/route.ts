@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+import { temProdutoPorPeso } from '@/lib/cobrancaPesagem'
 import {
   prepararCheckout, reservarCashback, devolverCashback, finalizarPedidoLoja,
   criarPagamentoMp, pixExpiracao, salvarPendente, PIX_VALIDADE_MIN,
 } from '@/lib/lojaCheckout'
+
+const sbAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
 // Cria o pedido do cardápio público — roda com service role de propósito:
 // é o que abre o checkout pra quem NÃO tem conta (só nome + WhatsApp).
@@ -24,6 +28,16 @@ export async function POST(req: NextRequest) {
       }
       if (!prep.metodosOnline.pix) {
         return NextResponse.json({ error: 'Essa loja não aceita Pix pelo site — paga com cartão.' }, { status: 400 })
+      }
+
+      // Produto vendido por kg: o valor só fecha depois de pesar. O pedido nasce
+      // agora, sem cobrança, e a loja manda o Pix com o valor real depois
+      // (src/lib/cobrancaPesagem.ts). Cashback não entra aqui: o total ainda vai mudar.
+      const { data: prods } = await sbAdmin.from('loja_produtos').select('name').in('id', [...new Set(prep.payload.items.map(l => l.produtoId))])
+      if (temProdutoPorPeso((prods || []).map(x => String(x.name)))) {
+        const r = await finalizarPedidoLoja({ ...prep.payload, paymentMethod: 'pix' }, { company, reqUrl: req.url, cashbackUsado: 0, devolverCashbackSeFalhar: false, aguardandoPesagem: true })
+        if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status })
+        return NextResponse.json({ ok: true, pedidoId: r.pedidoId, orderNumber: r.orderNumber, total: prep.payload.total, cashbackUsado: 0, pix: null, pesagem: true })
       }
 
       const { cashbackUsado, payload } = await reservarCashback(company, prep.payload, useCashback)

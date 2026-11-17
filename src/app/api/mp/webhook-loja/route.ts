@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { notifyOwnerNewOrder } from '@/lib/whatsapp'
 import { confirmarPendente } from '@/lib/lojaCheckout'
+import { confirmarCobrancaPesagem } from '@/lib/cobrancaPesagem'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -17,6 +18,8 @@ async function processPayment(paymentId: string, reqUrl: string) {
     // Fluxo atual: carrinho aguardando pagamento — o pedido nasce aqui.
     const estado = await confirmarPendente(paymentId, reqUrl)
     if (estado.estado !== 'desconhecido') return
+    // Cobrança enviada depois da pesagem (pedido já existe, aguardando o Pix).
+    if ((await confirmarCobrancaPesagem(paymentId)) !== 'desconhecido') return
 
     // Pedidos antigos (criados antes de out/2026, já com mp_payment_id e
     // pagamento ainda pendente): só marca como pago.

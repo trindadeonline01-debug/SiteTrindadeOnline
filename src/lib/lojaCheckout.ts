@@ -175,9 +175,9 @@ export async function devolverCashback(companyId: string, phone: string, valor: 
 // Com mpPaymentId, é idempotente: se já existir pedido desse pagamento, devolve ele.
 export async function finalizarPedidoLoja(
   payload: PedidoPayload,
-  opts: { company: CheckoutCompany; reqUrl: string; cashbackUsado: number; mpPaymentId?: string | null; pagoOnline?: boolean; devolverCashbackSeFalhar: boolean }
+  opts: { company: CheckoutCompany; reqUrl: string; cashbackUsado: number; mpPaymentId?: string | null; pagoOnline?: boolean; devolverCashbackSeFalhar: boolean; aguardandoPesagem?: boolean }
 ): Promise<{ ok: true; pedidoId: string; orderNumber: number | null } | Falha> {
-  const { company, reqUrl, cashbackUsado, mpPaymentId = null, pagoOnline = false } = opts
+  const { company, reqUrl, cashbackUsado, mpPaymentId = null, pagoOnline = false, aguardandoPesagem = false } = opts
 
   if (mpPaymentId) {
     const { data: existente } = await supabaseAdmin.from('loja_pedidos').select('id, order_number').eq('mp_payment_id', mpPaymentId).maybeSingle()
@@ -199,6 +199,7 @@ export async function finalizarPedidoLoja(
     subtotal: payload.subtotal, total: payload.total, delivery_fee: payload.deliveryFee,
     notes: payload.notes, mp_payment_id: mpPaymentId,
     payment_status: pagoOnline ? 'pago' : 'pendente',
+    aguardando_pesagem: aguardandoPesagem,
   }).select('id, order_number').single()
   if (pedidoError || !pedido) {
     // Outro processo (webhook x consulta do cliente) criou o mesmo pedido primeiro.
@@ -256,13 +257,13 @@ export async function finalizarPedidoLoja(
       address: payload.deliveryType === 'entrega' ? payload.address : null, notes: payload.notes,
       orderNumber: pedido.order_number ?? null, customerName: payload.customerName || 'Cliente', customerPhone: payload.customerPhone || null,
       pagoOnline,
-    })).then(result => { if (!result.ok) console.error('[lojaCheckout] aviso pro dono falhou:', result.detail) })
+    }) + (aguardandoPesagem ? '\n\n⚖️ *AGUARDANDO PESAGEM* — pese, ajuste o peso em Editar pedido e toque em "Enviar cobrança". O cliente paga pelo Pix depois.' : '')).then(result => { if (!result.ok) console.error('[lojaCheckout] aviso pro dono falhou:', result.detail) })
   )
 
   // Push nativo pro app do lojista (acorda o tablet com a tela apagada).
   jobs.push(enviarPushLoja(company.id, {
     title: `Pedido novo${pedido.order_number ? ` #${pedido.order_number}` : ''} — ${valorFmt}`,
-    body: `${payload.customerName || 'Cliente'}${pagoOnline ? ' · já pago pelo site' : ''}`,
+    body: `${payload.customerName || 'Cliente'}${pagoOnline ? ' · já pago pelo site' : aguardandoPesagem ? ' · pesar e enviar cobrança' : ''}`,
     data: { tipo: 'pedido_novo', pedidoId: String(pedido.id) },
     somenteDados: true,
   }))

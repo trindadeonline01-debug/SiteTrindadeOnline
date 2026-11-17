@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { varrerPendentesVencidos } from '@/lib/lojaCheckout'
+import { varrerCobrancasPesagemVencidas } from '@/lib/cobrancaPesagem'
 
 // A cada 5 min (pg_cron): carrinho com Pix/cartão vencido vira "expirado" e o
 // cashback volta pro cliente — a não ser que o Mercado Pago diga que aprovou,
@@ -9,5 +10,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
   const resumo = await varrerPendentesVencidos(req.url)
-  return NextResponse.json({ ok: true, ...resumo })
+  const pesagem = await varrerCobrancasPesagemVencidas()
+  return NextResponse.json({ ok: true, ...resumo, pesagem })
 }

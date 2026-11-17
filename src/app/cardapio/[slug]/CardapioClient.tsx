@@ -8,6 +8,7 @@ import { type Produto, fmt, promoPrice, availableToday, isSoldOut, groupContribu
 import { getVisitorId } from '@/components/PalavraPremiada'
 import CartaoMercadoPago, { type CartaoFormData } from '@/components/loja/CartaoMercadoPago'
 import { ordenarComplementosLista } from '@/lib/produtoOrdem'
+import { PESO_REGEX } from '@/lib/produtoCart'
 
 type Categoria = { id: string; name: string; display_order: number }
 type Coupon = { id: string; title: string; discount_type: 'fixed' | 'percent'; discount_value: number; min_purchase: number }
@@ -155,6 +156,9 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
   // conta conectada; sem isso o checkout segue exatamente como sempre foi.
   const [pixModal, setPixModal] = useState<{ pendenteId: string; qr: string | null; copy: string | null; value: number } | null>(null)
   // Cartão pelo Mercado Pago — o pedido só é criado se o pagamento aprovar.
+  // Produto por kg em loja com Mercado Pago: pedido vai pra pesagem e o Pix chega depois no WhatsApp.
+  const [pesagemModal, setPesagemModal] = useState(false)
+  const [sucessoPesagem, setSucessoPesagem] = useState(false)
   const [cardModal, setCardModal] = useState<{ publicKey: string; value: number; erro: string | null; emAnalise: boolean; tentativa: number } | null>(null)
   const [pixCopied, setPixCopied] = useState(false)
   const pixPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -486,9 +490,13 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
     if (!loggedIn && (!guestName.trim() || guestPhone.replace(/\D/g, '').length < 10)) { setStep('contato'); return }
     setConfirming(true)
     setOrderError(null)
+    setSucessoPesagem(false)
     // orderTotal já desconta o cupom aplicado — usar cartTotal+taxa aqui de
     // novo ignorava o desconto no pedido salvo de verdade.
     const total = orderTotal
+
+    if (pesagem && !pesagemModal) { setConfirming(false); setPesagemModal(true); return }
+    if (pesagem) setPesagemModal(false)
 
     if (pagamentoOnline && payMethod === 'cartao_online') {
       const r = await fetch('/api/loja/mp-public-key', {
@@ -504,7 +512,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
 
     const res = await fetch('/api/loja/criar-pedido', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(await checkoutBody()),
+      body: JSON.stringify({ ...(await checkoutBody()), ...(pesagem ? { paymentMethod: 'pix', useCashback: false } : {}) }),
     })
     const data = await res.json().catch(() => ({}))
     // Antes, um erro aqui (RLS, rede, etc.) passava batido — o cliente via
@@ -518,6 +526,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
       return
     }
     setConfirming(false)
+    if (data.pesagem) setSucessoPesagem(true)
     if (data.pix && data.pendenteId) {
       // O pedido AINDA não existe — só nasce quando o Pix cair.
       setPixModal({ pendenteId: data.pendenteId, qr: data.pix.qrCodeBase64, copy: data.pix.qrCode, value: Number(data.total ?? total) })
@@ -805,7 +814,8 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
   const trocoParaNum = Number(trocoPara.replace(',', '.')) || 0
   // Troco só é obrigatório escolher (sim/não) quando o pagamento é dinheiro;
   // se escolheu "sim", o valor tem que pelo menos cobrir o total do pedido.
-  const pagamentoOnline = !!company?.pix_mp_enabled
+  const pesagem = !!company?.pix_mp_enabled && company?.mp_pix_on !== false && cart.some(l => PESO_REGEX.test(l.name))
+  const pagamentoOnline = !!company?.pix_mp_enabled && !pesagem
   const trocoIncompleto = payMethod === 'dinheiro' && (precisaTroco === null || (precisaTroco === true && (!trocoPara || trocoParaNum < orderTotal)))
   const finalNotes = [
     payMethod === 'dinheiro' && precisaTroco === true && trocoParaNum > 0 ? `Troco para ${fmt(trocoParaNum)}` : null,
@@ -1528,6 +1538,12 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
                 <>
                   <div className="cd-dbody">
                     <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', marginBottom: 8, fontWeight: 800 }}>Pagamento</div>
+                    {pesagem ? (
+                      <div style={{ padding: '12px 14px', background: '#FFF7E6', border: '1px solid #F2D49B', borderRadius: 12, fontSize: 12.5, lineHeight: 1.55, color: '#5C4210' }}>
+                        <b>⚖️ Seu pedido tem produto vendido por peso.</b><br />
+                        A loja vai pesar e mandar o <b>link do Pix no seu WhatsApp</b> com o valor exato. Você não paga nada agora — o total abaixo é uma estimativa.
+                      </div>
+                    ) : (<>
                     <div className="cd-payopts">
                       {paymentOptionsFor(company).map(m => (
                         <button key={m} type="button" className={`cd-payopt ${payMethod === m ? 'active' : ''}`} onClick={() => setPayMethod(m)}>
@@ -1548,6 +1564,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
                         ? '🔒 Pagamento feito agora, pelo site, com segurança pelo Mercado Pago. Seu pedido só vai pra loja depois que o pagamento for aprovado.'
                         : `💵 Isso é só a forma escolhida — o pagamento é cobrado ${deliveryType === 'entrega' ? 'na entrega, pelo motoboy' : 'na retirada, na loja'}, não agora pelo site.`}
                     </div>
+                    </>)}
 
                     {payMethod === 'dinheiro' && (
                       <div style={{ marginTop: 10, padding: '10px 12px', background: '#F7F5F0', borderRadius: 10 }}>
@@ -1632,8 +1649,8 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
                         ⚠️ {orderError}
                       </div>
                     )}
-                    <button className="cd-addcart" style={{ width: '100%' }} disabled={confirming || trocoIncompleto || (deliveryType === 'entrega' && (freteBlocked || freteLoading || freteIndisponivel))} onClick={confirmOrder}>{confirming ? 'Enviando...' : freteLoading && deliveryType === 'entrega' ? 'Calculando taxa de entrega...' : pagamentoOnline ? `Ir para o pagamento — ${fmt(orderTotal)}` : `Confirmar pedido — ${fmt(orderTotal)}`}</button>
-                    {company.phone && !pagamentoOnline && (
+                    <button className="cd-addcart" style={{ width: '100%' }} disabled={confirming || trocoIncompleto || (deliveryType === 'entrega' && (freteBlocked || freteLoading || freteIndisponivel))} onClick={confirmOrder}>{confirming ? 'Enviando...' : freteLoading && deliveryType === 'entrega' ? 'Calculando taxa de entrega...' : pesagem ? `Enviar pedido pra pesagem — ~${fmt(orderTotal)}` : pagamentoOnline ? `Ir para o pagamento — ${fmt(orderTotal)}` : `Confirmar pedido — ${fmt(orderTotal)}`}</button>
+                    {company.phone && !company.pix_mp_enabled && (
                       <button type="button" className="cd-wa-link" disabled={sendingWa || trocoIncompleto || (deliveryType === 'entrega' && (freteBlocked || freteLoading || freteIndisponivel))} onClick={sendCartWhatsapp}>
                         {sendingWa ? 'Abrindo…' : '📱 Prefiro pedir pelo WhatsApp'}
                       </button>
@@ -1653,9 +1670,24 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 30, gap: 10 }}>
               <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#EDFAF3', color: '#0F6E56', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26 }}>✓</div>
               <b style={{ fontSize: 15 }}>Pedido enviado!</b>
-              <p style={{ fontSize: 12.5, color: '#555', maxWidth: 260 }}>{pagamentoOnline ? `Pagamento aprovado! A ${company.name} recebeu seu pedido.` : `A ${company.name} recebeu seu pedido.`}</p>
+              <p style={{ fontSize: 12.5, color: '#555', maxWidth: 260 }}>{sucessoPesagem ? `A ${company.name} recebeu seu pedido. Assim que pesar, o link do Pix com o valor exato chega no seu WhatsApp.` : company.pix_mp_enabled ? `Pagamento aprovado! A ${company.name} recebeu seu pedido.` : `A ${company.name} recebeu seu pedido.`}</p>
             </div>
           )}
+        </div>
+      )}
+
+      {pesagemModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 10001, background: 'rgba(21,18,16,.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => setPesagemModal(false)}>
+          <div role="dialog" aria-modal="true" style={{ background: '#fff', borderRadius: 18, padding: 24, maxWidth: 340, width: '100%', textAlign: 'center', boxShadow: '0 24px 60px rgba(0,0,0,.4)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 34, marginBottom: 6 }}>⚖️</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: '#151210', marginBottom: 8 }}>Seu pedido vai ser pesado</div>
+            <div style={{ fontSize: 12.5, color: '#555', lineHeight: 1.55, marginBottom: 16 }}>
+              Como tem produto vendido por peso, a loja pesa primeiro e manda o <b>link de pagamento (Pix) no seu WhatsApp</b> com o valor exato. Você não paga nada agora.<br /><br />
+              Depois que o link chegar, você tem 30 minutos pra pagar.
+            </div>
+            <button className="cd-addcart" style={{ width: '100%' }} disabled={confirming} onClick={confirmOrder}>{confirming ? 'Enviando...' : 'Entendi, enviar pedido'}</button>
+            <button type="button" onClick={() => setPesagemModal(false)} style={{ marginTop: 8, background: 'none', border: 'none', color: '#6E6656', fontWeight: 700, fontSize: 12.5, cursor: 'pointer', padding: 8 }}>Voltar</button>
+          </div>
         </div>
       )}
 

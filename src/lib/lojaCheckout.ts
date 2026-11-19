@@ -51,7 +51,7 @@ type Falha = { ok: false; status: number; error: string }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export async function prepararCheckout(body: any): Promise<
-  { ok: true; company: CheckoutCompany; payload: PedidoPayload; useCashback: boolean; contaMp: ContaMp | null; metodosOnline: { pix: boolean; cartao: boolean } } | Falha
+  { ok: true; company: CheckoutCompany; payload: PedidoPayload; useCashback: boolean; contaMp: ContaMp | null; metodosOnline: { pix: boolean; cartao: boolean; local: string[] } } | Falha
 > {
   const {
     access_token, companyId, customerName, customerPhone,
@@ -87,7 +87,7 @@ export async function prepararCheckout(body: any): Promise<
   }
 
   const { data: company } = await supabaseAdmin.from('companies')
-    .select('id, name, owner_id, status, loja_digital_enabled, store_paused, pix_mp_enabled, mp_pix_on, mp_cartao_on, cashback_enabled')
+    .select('id, name, owner_id, status, loja_digital_enabled, store_paused, pix_mp_enabled, mp_pix_on, mp_cartao_on, pagar_local_enabled, pagar_local_metodos, cashback_enabled')
     .eq('id', companyId).maybeSingle()
   if (!company || company.status !== 'active' || !company.loja_digital_enabled) {
     return { ok: false, status: 400, error: 'Essa loja não está disponível pra pedidos agora.' }
@@ -141,7 +141,7 @@ export async function prepararCheckout(body: any): Promise<
     ok: true,
     company: { id: company.id, name: company.name, owner_id: company.owner_id, pix_mp_enabled: !!company.pix_mp_enabled, cashback_enabled: !!company.cashback_enabled },
     contaMp,
-    metodosOnline: { pix: !!company.mp_pix_on, cartao: !!company.mp_cartao_on },
+    metodosOnline: { pix: !!company.mp_pix_on, cartao: !!company.mp_cartao_on, local: company.pagar_local_enabled ? ((company.pagar_local_metodos || []) as string[]) : [] },
     useCashback: !!useCashback,
     payload: {
       companyId, customerId, customerName: finalName || 'Cliente', customerPhone: finalPhone,

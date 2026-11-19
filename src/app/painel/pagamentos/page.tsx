@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { adminFetch } from '@/lib/adminFetch'
 import { refreshSessionOnce } from '@/lib/authRefresh'
 import { usePainelShell } from '@/contexts/PainelShellContext'
 import { ORIGENS_DELIVERY } from '@/lib/canais'
@@ -10,6 +11,7 @@ import { PeriodSel, periodRange, periodLabel } from '@/lib/periodFilter'
 
 type MpStatus = {
   connected: boolean
+  pagarLocal?: { enabled: boolean; metodos: string[] }
   conta: { mp_email: string | null; application_fee_pct: number; pix_automatico_enabled: boolean; cartao_enabled?: boolean; connected_at: string } | null
 }
 type Pedido = { id: string; payment_method: string | null; payment_status: string; mp_payment_id: string | null; total: number; created_at: string }
@@ -116,6 +118,19 @@ export default function PagamentosPage() {
     setDisconnecting(false)
     if (!r.ok || data.error) { setError(data.error || 'Não consegui desconectar.'); return }
     setMpStatus({ connected: false, conta: null })
+  }
+
+  // Pagamento no local (na entrega/retirada), além do pagamento pelo site.
+  async function salvarLocal(next: { enabled: boolean; metodos: string[] }) {
+    if (!company || !mpStatus) return
+    if (next.metodos.length === 0) { setError('Deixe pelo menos uma forma de pagamento no local.'); return }
+    const antes = mpStatus.pagarLocal
+    setError(''); setToggling(true)
+    setMpStatus(s => s ? { ...s, pagarLocal: next } : s)
+    const r = await adminFetch('/api/painel/mp/pagar-local', { method: 'POST', body: JSON.stringify({ company_id: company.id, enabled: next.enabled, metodos: next.metodos }) })
+    const data = await r.json().catch(() => ({}))
+    setToggling(false)
+    if (!r.ok || data.error) { setMpStatus(s => s ? { ...s, pagarLocal: antes } : s); setError(data.error || 'Não consegui salvar.') }
   }
 
   async function toggleMetodo(metodo: 'pix' | 'cartao', enabled: boolean) {
@@ -316,6 +331,38 @@ export default function PagamentosPage() {
                 </div>
               ))}
             </div>
+            {(() => {
+              const pl = mpStatus.pagarLocal || { enabled: false, metodos: ['dinheiro', 'cartao_credito', 'cartao_debito'] }
+              const OPCOES: [string, string][] = [['dinheiro', 'Dinheiro'], ['pix', 'Pix direto pra loja'], ['cartao_credito', 'Cartão de crédito'], ['cartao_debito', 'Cartão de débito']]
+              return (
+                <div style={{ borderTop: '1px solid #F0EDE8', paddingTop: 16, marginTop: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Também aceitar pagamento no local</div>
+                      <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>O cliente pode escolher pagar na entrega ou na retirada, além de pagar pelo site.</div>
+                    </div>
+                    <button aria-label={pl.enabled ? 'Desligar pagamento no local' : 'Ligar pagamento no local'} className={`mp-toggle ${pl.enabled ? 'on' : ''}`} disabled={toggling} onClick={() => salvarLocal({ ...pl, enabled: !pl.enabled })}><span className="knob" /></button>
+                  </div>
+                  {pl.enabled && (
+                    <div style={{ marginTop: 12 }}>
+                      <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink-2)', marginBottom: 8 }}>Quais formas você recebe no local?</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                        {OPCOES.map(([k, label]) => {
+                          const on = pl.metodos.includes(k)
+                          return (
+                            <button key={k} type="button" aria-pressed={on} disabled={toggling}
+                              onClick={() => salvarLocal({ ...pl, metodos: on ? pl.metodos.filter(x => x !== k) : [...pl.metodos, k] })}
+                              style={{ padding: '8px 12px', borderRadius: 20, border: `1.5px solid ${on ? '#0F8A57' : 'var(--line)'}`, background: on ? '#E4F3EC' : '#fff', color: on ? '#0F6E56' : 'var(--ink-2)', fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}>
+                              {on ? '✓ ' : ''}{label}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
           </div>
 
           <div style={{ marginBottom: 18 }}><PeriodFilterBar value={period} onChange={setPeriod} /></div>

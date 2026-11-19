@@ -22,7 +22,15 @@ export async function POST(req: NextRequest) {
     if (!prep.ok) return NextResponse.json({ error: prep.error }, { status: prep.status })
     const { company, contaMp, useCashback } = prep
 
-    if (contaMp) {
+    // Loja que também aceita pagamento no local (Painel → Pagamentos): essas
+    // formas seguem o fluxo de sempre, pedido na hora e pagamento na entrega/retirada.
+    // "pix_local" = Pix direto pra loja, combinado na hora (não passa pelo Mercado Pago).
+    const metodoLocal = prep.payload.paymentMethod === 'pix_local' ? 'pix' : prep.payload.paymentMethod
+    const pagaNoLocal = !!contaMp && prep.payload.origin !== 'conversa' && !!metodoLocal
+      && prep.payload.paymentMethod !== 'pix' && prep.metodosOnline.local.includes(metodoLocal)
+    if (pagaNoLocal) prep.payload.paymentMethod = metodoLocal
+
+    if (contaMp && !pagaNoLocal) {
       if (prep.payload.origin === 'conversa' || prep.payload.paymentMethod !== 'pix') {
         return NextResponse.json({ error: 'Nessa loja o pagamento é feito pelo site: escolhe Pix ou cartão.' }, { status: 400 })
       }

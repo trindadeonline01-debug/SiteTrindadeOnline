@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     const { data: userData, error: authError } = await supabaseAuth.auth.getUser(access_token)
     if (!userData?.user) return NextResponse.json({ error: `sessão inválida${authError ? ' — ' + authError.message : ''}` }, { status: 401 })
 
-    const { data: company } = await supabase.from('companies').select('owner_id').eq('id', company_id).maybeSingle()
+    const { data: company } = await supabase.from('companies').select('owner_id, pagar_local_enabled, pagar_local_metodos').eq('id', company_id).maybeSingle()
     if (!company) return NextResponse.json({ error: 'empresa não encontrada' }, { status: 404 })
     if (company.owner_id !== userData.user.id) {
       // Admin "entrando" na conta da loja também precisa ver se está conectado.
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
       .select('mp_email, application_fee_pct, pix_automatico_enabled, cartao_enabled, connected_at, status')
       .eq('company_id', company_id).eq('status', 'connected').maybeSingle()
 
-    return NextResponse.json({ connected: !!conta, conta: conta || null })
+    return NextResponse.json({ connected: !!conta, conta: conta || null, pagarLocal: { enabled: !!company.pagar_local_enabled, metodos: company.pagar_local_metodos || [] } })
   } catch (err: any) {
     console.error('[painel/mp/status]', err)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })

@@ -1,4 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+import { temProdutoPorPeso } from '@/lib/cobrancaPesagem'
+
+const sbAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 import {
   prepararCheckout, reservarCashback, devolverCashback, finalizarPedidoLoja,
   criarPagamentoMp, salvarPendente, confirmarPendente, CARTAO_ANALISE_DIAS,
@@ -33,6 +37,9 @@ export async function POST(req: NextRequest) {
     if (!prep.ok) return NextResponse.json({ error: prep.error }, { status: prep.status })
     const { company, contaMp, useCashback } = prep
     if (!contaMp || !prep.metodosOnline.cartao) return NextResponse.json({ error: 'Essa loja não aceita cartão pelo site.' }, { status: 400 })
+    // Produto por kg: o valor só fecha depois de pesar — paga pelo Pix que a loja manda depois.
+    const { data: prods } = await sbAdmin.from('loja_produtos').select('name').in('id', [...new Set(prep.payload.items.map(l => l.produtoId))])
+    if (temProdutoPorPeso((prods || []).map(x => String(x.name)))) return NextResponse.json({ error: 'Seu pedido tem produto vendido por peso: escolha Pix e a loja manda o link com o valor exato depois de pesar.' }, { status: 400 })
 
     const { cashbackUsado, payload } = await reservarCashback(company, prep.payload, useCashback)
     if (payload.total <= 0) {

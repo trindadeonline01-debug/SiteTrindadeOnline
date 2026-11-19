@@ -19,17 +19,18 @@ type Company = {
   loja_taxa_entrega: number; loja_pedido_minimo: number; loja_payment_methods?: string[]
   loja_taxa_metodo?: 'bairro' | 'distancia'; loja_frete_gratis_acima?: number | null
   cashback_enabled?: boolean; pix_mp_enabled?: boolean; mp_pix_on?: boolean; mp_cartao_on?: boolean
+  pagar_local_enabled?: boolean; pagar_local_metodos?: string[]
   hours?: any[]; photos?: { url: string; order: number }[]
 }
 const PAYMENT_LABELS: Record<string, string> = {
   pix: 'Pix', dinheiro: 'Dinheiro', cartao: 'Cartão', cartao_credito: 'Cartão de crédito', cartao_debito: 'Cartão de débito',
-  cartao_online: 'Cartão de crédito ou débito',
+  cartao_online: 'Cartão de crédito ou débito', pix_local: 'Pix na entrega ou retirada',
   vale_refeicao: 'Vale-refeição', vale_alimentacao: 'Vale-alimentação', picpay: 'PicPay',
 }
 // Ícone por forma de pagamento (pedido do Ricardo, out/2026 — reconhecer o
 // Pix e o cartão de bate-olho). Desenhados aqui, sem imagem externa.
 function PayIcon({ m }: { m: string }) {
-  if (m === 'pix') return (
+  if (m === 'pix' || m === 'pix_local') return (
     <span className="cd-payopt-ico" style={{ background: '#E6F6F3' }}>
       <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
         <g fill="#32BCAD">
@@ -62,7 +63,9 @@ function PayIcon({ m }: { m: string }) {
     </span>
   )
 }
-function payHint(m: string, online: boolean): string {
+function payHint(m: string, online: boolean, pesagem = false): string {
+  if (m === 'pix' && pesagem) return 'Link do Pix no WhatsApp depois de pesar'
+  if (m === 'pix_local') return 'Direto pra loja, na entrega ou retirada'
   if (m === 'pix') return online ? 'Paga agora pelo QR code · aprovação na hora' : 'Combinado com a loja'
   if (m === 'cartao_online') return 'Paga agora pelo site · à vista'
   if (m.startsWith('cartao')) return 'Na maquininha, na entrega ou retirada'
@@ -75,9 +78,13 @@ type FreteInfo = { fee: number; blocked: boolean; reason?: string; tempo?: Tempo
 type CartLine = { key: string; produtoId: string; name: string; modifiers: { name: string; price: number }[]; unitPrice: number; qty: number }
 
 // Loja com Mercado Pago conectado só aceita pagamento pelo site: Pix ou cartão.
-function paymentOptionsFor(comp: Company | null): string[] {
+// Loja com Mercado Pago: Pix/cartão pelo site + (se a loja ligou em Painel → Pagamentos) formas
+// pagas no local. Carrinho com produto por kg: cartão pelo site some (o valor só fecha depois de pesar).
+function paymentOptionsFor(comp: Company | null, pesagemCart = false): string[] {
   if (comp?.pix_mp_enabled) {
-    const ops = [...(comp.mp_pix_on !== false ? ['pix'] : []), ...(comp.mp_cartao_on !== false ? ['cartao_online'] : [])]
+    const online = [...(comp.mp_pix_on !== false ? ['pix'] : []), ...(comp.mp_cartao_on !== false && !pesagemCart ? ['cartao_online'] : [])]
+    const local = comp.pagar_local_enabled ? (comp.pagar_local_metodos || []).map(m => m === 'pix' ? 'pix_local' : m) : []
+    const ops = [...online, ...local]
     return ops.length ? ops : ['pix', 'cartao_online']
   }
   return comp?.loja_payment_methods?.length ? comp.loja_payment_methods : ['pix', 'dinheiro', 'cartao_credito']
@@ -158,7 +165,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
   // Cartão pelo Mercado Pago — o pedido só é criado se o pagamento aprovar.
   // Produto por kg em loja com Mercado Pago: pedido vai pra pesagem e o Pix chega depois no WhatsApp.
   const [pesagemModal, setPesagemModal] = useState(false)
-  const [sucessoPesagem, setSucessoPesagem] = useState(false)
+  const [sucessoTipo, setSucessoTipo] = useState<'pesagem' | 'online' | 'local'>('local')
   const [cardModal, setCardModal] = useState<{ publicKey: string; value: number; erro: string | null; emAnalise: boolean; tentativa: number } | null>(null)
   const [pixCopied, setPixCopied] = useState(false)
   const pixPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -245,7 +252,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
     supabase.from('site_settings').select('value').eq('key', 'peca_agora_enabled').maybeSingle()
       .then(({ data }) => setPecaAgoraEnabled(data?.value === 'true'))
     supabase.from('companies')
-      .select('id,name,slug,phone,address,avg_rating,total_reviews,status,loja_digital_enabled,flexible_hours,store_paused,store_forced_open,owner_id,loja_taxa_entrega,loja_pedido_minimo,loja_payment_methods,loja_taxa_metodo,loja_frete_gratis_acima,cashback_enabled,pix_mp_enabled,mp_pix_on,mp_cartao_on,hours:company_hours(label,hours,order,day_of_week,open_time,close_time,closed),photos:company_photos(url,order)')
+      .select('id,name,slug,phone,address,avg_rating,total_reviews,status,loja_digital_enabled,flexible_hours,store_paused,store_forced_open,owner_id,loja_taxa_entrega,loja_pedido_minimo,loja_payment_methods,loja_taxa_metodo,loja_frete_gratis_acima,cashback_enabled,pix_mp_enabled,mp_pix_on,mp_cartao_on,pagar_local_enabled,pagar_local_metodos,hours:company_hours(label,hours,order,day_of_week,open_time,close_time,closed),photos:company_photos(url,order)')
       .eq('slug', slug).maybeSingle()
       .then(async ({ data: comp }) => {
         if (!comp || comp.status !== 'active' || !comp.loja_digital_enabled) { setCompany(null); setLoading(false); return }
@@ -490,7 +497,8 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
     if (!loggedIn && (!guestName.trim() || guestPhone.replace(/\D/g, '').length < 10)) { setStep('contato'); return }
     setConfirming(true)
     setOrderError(null)
-    setSucessoPesagem(false)
+    setSucessoTipo(pesagem ? 'pesagem' : pagamentoOnline ? 'online' : 'local')
+    if (!paymentOptionsFor(company, pesagemCart).includes(payMethod)) { setConfirming(false); setOrderError('Escolha a forma de pagamento.'); return }
     // orderTotal já desconta o cupom aplicado — usar cartTotal+taxa aqui de
     // novo ignorava o desconto no pedido salvo de verdade.
     const total = orderTotal
@@ -526,7 +534,6 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
       return
     }
     setConfirming(false)
-    if (data.pesagem) setSucessoPesagem(true)
     if (data.pix && data.pendenteId) {
       // O pedido AINDA não existe — só nasce quando o Pix cair.
       setPixModal({ pendenteId: data.pendenteId, qr: data.pix.qrCodeBase64, copy: data.pix.qrCode, value: Number(data.total ?? total) })
@@ -814,8 +821,10 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
   const trocoParaNum = Number(trocoPara.replace(',', '.')) || 0
   // Troco só é obrigatório escolher (sim/não) quando o pagamento é dinheiro;
   // se escolheu "sim", o valor tem que pelo menos cobrir o total do pedido.
-  const pesagem = !!company?.pix_mp_enabled && company?.mp_pix_on !== false && cart.some(l => PESO_REGEX.test(l.name))
-  const pagamentoOnline = !!company?.pix_mp_enabled && !pesagem
+  const pesagemCart = !!company?.pix_mp_enabled && company?.mp_pix_on !== false && cart.some(l => PESO_REGEX.test(l.name))
+  const pagaNoLocal = !!company?.pix_mp_enabled && payMethod !== 'pix' && payMethod !== 'cartao_online'
+  const pesagem = pesagemCart && payMethod === 'pix'
+  const pagamentoOnline = !!company?.pix_mp_enabled && !pesagem && !pagaNoLocal
   const trocoIncompleto = payMethod === 'dinheiro' && (precisaTroco === null || (precisaTroco === true && (!trocoPara || trocoParaNum < orderTotal)))
   const finalNotes = [
     payMethod === 'dinheiro' && precisaTroco === true && trocoParaNum > 0 ? `Troco para ${fmt(trocoParaNum)}` : null,
@@ -1538,19 +1547,13 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
                 <>
                   <div className="cd-dbody">
                     <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: '#AAA', marginBottom: 8, fontWeight: 800 }}>Pagamento</div>
-                    {pesagem ? (
-                      <div style={{ padding: '12px 14px', background: '#FFF7E6', border: '1px solid #F2D49B', borderRadius: 12, fontSize: 12.5, lineHeight: 1.55, color: '#5C4210' }}>
-                        <b>⚖️ Seu pedido tem produto vendido por peso.</b><br />
-                        A loja vai pesar e mandar o <b>link do Pix no seu WhatsApp</b> com o valor exato. Você não paga nada agora — o total abaixo é uma estimativa.
-                      </div>
-                    ) : (<>
                     <div className="cd-payopts">
-                      {paymentOptionsFor(company).map(m => (
+                      {paymentOptionsFor(company, pesagemCart).map(m => (
                         <button key={m} type="button" className={`cd-payopt ${payMethod === m ? 'active' : ''}`} onClick={() => setPayMethod(m)}>
                           <PayIcon m={m} />
                           <span className="cd-payopt-txt">
                             <span className="cd-payopt-t">{PAYMENT_LABELS[m] || m}</span>
-                            {payHint(m, pagamentoOnline) && <span className="cd-payopt-s">{payHint(m, pagamentoOnline)}</span>}
+                            {payHint(m, !!company.pix_mp_enabled, pesagemCart) && <span className="cd-payopt-s">{payHint(m, !!company.pix_mp_enabled, pesagemCart)}</span>}
                           </span>
                           <span className="cd-payopt-radio" aria-hidden="true" />
                         </button>
@@ -1559,12 +1562,18 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
                     {/* Sem gateway automático aqui — o pedido nunca é pago
                         pelo site, só combina a forma. Sem esse aviso o
                         cliente não tem como saber disso (Ricardo, set/2026). */}
+                    {pesagem ? (
+                      <div style={{ marginTop: 10, padding: '12px 14px', background: '#FFF7E6', border: '1px solid #F2D49B', borderRadius: 12, fontSize: 12.5, lineHeight: 1.55, color: '#5C4210' }}>
+                        <b>⚖️ Seu pedido tem produto vendido por peso.</b><br />
+                        A loja vai pesar e mandar o <b>link do Pix no seu WhatsApp</b> com o valor exato. Você não paga nada agora — o total abaixo é uma estimativa.
+                      </div>
+                    ) : (
                     <div style={{ marginTop: 10, padding: '9px 12px', background: pagamentoOnline ? '#EDFAF3' : '#F7F5F0', borderRadius: 10, fontSize: 11.5, color: pagamentoOnline ? '#0F6E56' : '#6E6656', lineHeight: 1.5 }}>
                       {pagamentoOnline
                         ? '🔒 Pagamento feito agora, pelo site, com segurança pelo Mercado Pago. Seu pedido só vai pra loja depois que o pagamento for aprovado.'
                         : `💵 Isso é só a forma escolhida — o pagamento é cobrado ${deliveryType === 'entrega' ? 'na entrega, pelo motoboy' : 'na retirada, na loja'}, não agora pelo site.`}
                     </div>
-                    </>)}
+                    )}
 
                     {payMethod === 'dinheiro' && (
                       <div style={{ marginTop: 10, padding: '10px 12px', background: '#F7F5F0', borderRadius: 10 }}>
@@ -1670,7 +1679,7 @@ export default function CardapioClient({ params }: { params: Promise<{ slug: str
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 30, gap: 10 }}>
               <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#EDFAF3', color: '#0F6E56', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26 }}>✓</div>
               <b style={{ fontSize: 15 }}>Pedido enviado!</b>
-              <p style={{ fontSize: 12.5, color: '#555', maxWidth: 260 }}>{sucessoPesagem ? `A ${company.name} recebeu seu pedido. Assim que pesar, o link do Pix com o valor exato chega no seu WhatsApp.` : company.pix_mp_enabled ? `Pagamento aprovado! A ${company.name} recebeu seu pedido.` : `A ${company.name} recebeu seu pedido.`}</p>
+              <p style={{ fontSize: 12.5, color: '#555', maxWidth: 260 }}>{sucessoTipo === 'pesagem' ? `A ${company.name} recebeu seu pedido. Assim que pesar, o link do Pix com o valor exato chega no seu WhatsApp.` : sucessoTipo === 'online' ? `Pagamento aprovado! A ${company.name} recebeu seu pedido.` : `A ${company.name} recebeu seu pedido.`}</p>
             </div>
           )}
         </div>

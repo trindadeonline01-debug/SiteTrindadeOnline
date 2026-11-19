@@ -69,7 +69,7 @@ async function buildContext(companyId: string, phone?: string | null, ultimaMsgC
     .from('companies')
     .select(`
       name, slug, phone, address, flexible_hours, store_paused, store_forced_open,
-      loja_taxa_metodo, loja_taxa_entrega, loja_taxa_fora_area, loja_payment_methods, pix_key, pix_mp_enabled, mp_pix_on, mp_cartao_on,
+      loja_taxa_metodo, loja_taxa_entrega, loja_taxa_fora_area, loja_payment_methods, pix_key, pix_mp_enabled, mp_pix_on, mp_cartao_on, pagar_local_enabled, pagar_local_metodos,
       loja_tempo_preparo_min,
       entrega_enabled, trial_modules_until,
       crm_ia_prompt_extra,
@@ -129,8 +129,12 @@ async function buildContext(companyId: string, phone?: string | null, ultimaMsgC
     const soPix = company.mp_cartao_on === false && company.mp_pix_on !== false
     const soCartao = company.mp_pix_on === false && company.mp_cartao_on !== false
     const formas = soPix ? 'SOMENTE Pix (essa loja NÃO aceita cartão)' : soCartao ? 'SOMENTE cartão de crédito/débito (essa loja NÃO aceita Pix)' : 'Pix ou cartão de crédito/débito'
-    linhas.push(`Formas de pagamento aceitas: ${formas}, PAGO NO PRÓPRIO SITE no momento do pedido (pelo Mercado Pago). Essa loja NÃO aceita dinheiro e NÃO cobra na entrega.`)
-    linhas.push('COMO O PAGAMENTO FUNCIONA NESSA LOJA (leia com atenção): o cliente monta o carrinho pelo link do cardápio e paga ali mesmo, com Pix ou cartão. O pedido só chega pra loja DEPOIS que o pagamento é aprovado — se o cliente disser que fez o pedido mas não pagou, explique que o pedido só é enviado quando o pagamento cai, e mande o link do cardápio pra ele tentar de novo. Nunca combine pagamento por fora, nunca informe chave Pix pra transferência manual e nunca diga que dá pra pagar na entrega.')
+    const locais = company.pagar_local_enabled ? ((company.pagar_local_metodos || []) as string[]).map(m => PAY_LABEL[m] || m) : []
+    linhas.push(locais.length
+      ? `Formas de pagamento aceitas: ${formas}, PAGO NO PRÓPRIO SITE no momento do pedido (pelo Mercado Pago), OU pagamento no local (na entrega ou retirada) em: ${locais.join(', ')}. O cliente escolhe no checkout do cardápio.`
+      : `Formas de pagamento aceitas: ${formas}, PAGO NO PRÓPRIO SITE no momento do pedido (pelo Mercado Pago). Essa loja NÃO aceita dinheiro e NÃO cobra na entrega.`)
+    if (locais.length) linhas.push('COMO O PAGAMENTO FUNCIONA NESSA LOJA (leia com atenção): o cliente monta o carrinho pelo link do cardápio e, no checkout, escolhe pagar ali mesmo pelo site (o pedido só chega pra loja depois que o pagamento aprova) ou pagar no local, na entrega ou retirada, nas formas listadas acima. Nunca informe chave Pix pra transferência antecipada.')
+    else linhas.push('COMO O PAGAMENTO FUNCIONA NESSA LOJA (leia com atenção): o cliente monta o carrinho pelo link do cardápio e paga ali mesmo, com Pix ou cartão. O pedido só chega pra loja DEPOIS que o pagamento é aprovado — se o cliente disser que fez o pedido mas não pagou, explique que o pedido só é enviado quando o pagamento cai, e mande o link do cardápio pra ele tentar de novo. Nunca combine pagamento por fora, nunca informe chave Pix pra transferência manual e nunca diga que dá pra pagar na entrega.')
   } else {
   const metodos = (company.loja_payment_methods?.length ? company.loja_payment_methods : ['pix', 'dinheiro', 'cartao_credito']) as string[]
   linhas.push(`Formas de pagamento aceitas: ${metodos.map(m => PAY_LABEL[m] || m).join(', ')}`)

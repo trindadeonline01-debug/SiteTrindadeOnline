@@ -9,7 +9,7 @@ const supabaseAuth = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process
 // (fonte da verdade, sem depender do webhook) e devolve o QR atualizado enquanto a sessão espera leitura.
 export async function POST(req: NextRequest) {
   try {
-    const { access_token, company_id } = await req.json()
+    const { access_token, company_id, forcar } = await req.json()
     if (!access_token || !company_id) return NextResponse.json({ error: 'dados faltando' }, { status: 400 })
     const { data: userData } = await supabaseAuth.auth.getUser(access_token)
     if (!userData?.user) return NextResponse.json({ error: 'sessão inválida' }, { status: 401 })
@@ -36,7 +36,8 @@ export async function POST(req: NextRequest) {
     }
     // Celular desvinculou o aparelho (pede QR de novo), sessão caiu ou parou: o banco não pode seguir dizendo "conectado".
     // STARTING fica de fora de propósito (estado passageiro logo depois de a VPS religar).
-    if (inst.status === 'connected' && (st.status === 'FAILED' || st.status === 'STOPPED' || st.status === 'SCAN_QR_CODE')) {
+    // 'forcar' = a tela viu a sessão presa em STARTING por vários minutos seguidos (credencial inválida, celular desvinculado).
+    if (inst.status === 'connected' && (st.status === 'FAILED' || st.status === 'STOPPED' || st.status === 'SCAN_QR_CODE' || st.status === 'NOT_FOUND' || (forcar && st.status === 'STARTING'))) {
       await supabase.from('crm_whatsapp_instances').update({ status: 'disconnected' }).eq('id', inst.id)
     }
     // QR que expirou sem leitura deixa a sessão "Falhou": recria sozinha para a tela voltar a mostrar um QR novo.

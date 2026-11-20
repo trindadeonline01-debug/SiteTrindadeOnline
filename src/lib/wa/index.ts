@@ -229,6 +229,7 @@ export async function wahaCriarSessao(nome: string): Promise<{ ok: boolean; deta
 export async function wahaSessao(nome: string): Promise<{ status: string; phone: string | null } | null> {
   try {
     const res = await waha(`/api/sessions/${encodeURIComponent(nome)}`)
+    if (res.status === 404) return { status: 'NOT_FOUND', phone: null } // WAHA no ar, mas a sessão não existe mais
     if (!res.ok) return null
     const d = await res.json()
     const me: string | undefined = d?.me?.id

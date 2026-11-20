@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
 
   if (acao === 'criar') {
     const atual = await wahaSessao(PLATAFORMA_SESSAO)
-    if (!atual) {
+    if (!atual || atual.status === 'NOT_FOUND') {
       const r = await wahaCriarSessao(PLATAFORMA_SESSAO)
       if (!r.ok) return NextResponse.json({ error: r.detail || 'não criou a sessão' }, { status: 500 })
     } else if (atual.status === 'FAILED') {
@@ -41,5 +41,5 @@ export async function POST(req: NextRequest) {
   // status (padrão)
   const st = await wahaSessao(PLATAFORMA_SESSAO)
   const qr = st?.status === 'SCAN_QR_CODE' ? await wahaQr(PLATAFORMA_SESSAO) : null
-  return NextResponse.json({ chaveNoWaha: PLATAFORMA_WAHA, sessao: PLATAFORMA_SESSAO, existe: !!st, status: st?.status || null, phone: st?.phone || null, qr })
+  return NextResponse.json({ chaveNoWaha: PLATAFORMA_WAHA, sessao: PLATAFORMA_SESSAO, existe: !!st && st.status !== 'NOT_FOUND', status: st?.status || null, phone: st?.phone || null, qr })
 }

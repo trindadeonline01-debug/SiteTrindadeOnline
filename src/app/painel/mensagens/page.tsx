@@ -839,6 +839,7 @@ export default function MensagensPage() {
   useEffect(() => {
     if (instance?.status !== 'connected' || !company) return
     let vivo = true
+    let iniciando = 0 // checagens seguidas com a sessão presa em "iniciando"
     const conferir = async () => {
       if (document.visibilityState !== 'visible') return
       try {
@@ -846,9 +847,10 @@ export default function MensagensPage() {
         if (!session?.access_token) return
         const r = await fetch('/api/crm/whatsapp/status', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ access_token: session.access_token, company_id: company.id }),
+          body: JSON.stringify({ access_token: session.access_token, company_id: company.id, forcar: iniciando >= 3 }),
         })
         const d = await r.json().catch(() => null)
+        iniciando = d?.waha === 'STARTING' ? iniciando + 1 : 0
         if (vivo && d?.status && d.status !== 'connected') await loadInstance(company.id)
       } catch {}
     }

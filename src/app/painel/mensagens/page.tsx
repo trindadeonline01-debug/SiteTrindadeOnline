@@ -834,6 +834,30 @@ export default function MensagensPage() {
     return () => clearInterval(iv)
   }, [selected?.id])
 
+  // Confere o estado REAL da sessão no WAHA com a tela aberta (ao entrar e a cada 60 s, só com a aba visível).
+  // Antes a tela confiava só no que estava gravado no banco e seguia "conectada" mesmo com o celular desvinculado.
+  useEffect(() => {
+    if (instance?.status !== 'connected' || !company) return
+    let vivo = true
+    const conferir = async () => {
+      if (document.visibilityState !== 'visible') return
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session?.access_token) return
+        const r = await fetch('/api/crm/whatsapp/status', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ access_token: session.access_token, company_id: company.id }),
+        })
+        const d = await r.json().catch(() => null)
+        if (vivo && d?.status && d.status !== 'connected') await loadInstance(company.id)
+      } catch {}
+    }
+    void conferir()
+    const iv = setInterval(conferir, 60000)
+    return () => { vivo = false; clearInterval(iv) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [instance?.status, company?.id])
+
   // Poll de conexão enquanto o QR está na tela, até status virar 'connected'
   useEffect(() => {
     if (!qrCode || !company) return

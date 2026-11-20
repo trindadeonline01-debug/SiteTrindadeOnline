@@ -34,7 +34,9 @@ export async function POST(req: NextRequest) {
       }
       return NextResponse.json({ status: 'connected' })
     }
-    if (inst.status === 'connected' && (st.status === 'FAILED' || st.status === 'STOPPED')) {
+    // Celular desvinculou o aparelho (pede QR de novo), sessão caiu ou parou: o banco não pode seguir dizendo "conectado".
+    // STARTING fica de fora de propósito (estado passageiro logo depois de a VPS religar).
+    if (inst.status === 'connected' && (st.status === 'FAILED' || st.status === 'STOPPED' || st.status === 'SCAN_QR_CODE')) {
       await supabase.from('crm_whatsapp_instances').update({ status: 'disconnected' }).eq('id', inst.id)
     }
     // QR que expirou sem leitura deixa a sessão "Falhou": recria sozinha para a tela voltar a mostrar um QR novo.
